@@ -1109,11 +1109,6 @@ public:
 
   void setNoDefaultPlugins() { UseDefaultPlugins = false; }
 
-  // -X or --discard-locals
-  bool isStripTemporaryOrLocalSymbols() const {
-    return (StripSymbols == StripTemporaries || StripSymbols == StripLocals);
-  }
-
 private:
   bool appendMapStyle(const std::string MapStyle);
   enum Status { YES, NO, Unknown };

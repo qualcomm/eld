@@ -908,9 +908,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   }
 
   if (m_Config.options().isPatchEnable()) {
-    if (!m_Config.options().isStripTemporaryOrLocalSymbols())
+    if (m_Config.options().getStripSymbolMode() ==
+        GeneralOptions::StripAllSymbols)
       m_Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    m_Config.options().setStripSymbols(eld::GeneralOptions::KeepAllSymbols);
+    m_Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
   }
 
   //
