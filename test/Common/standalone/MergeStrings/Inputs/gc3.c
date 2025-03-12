@@ -1,0 +1,1 @@
+int baz(char *) { return 0; }

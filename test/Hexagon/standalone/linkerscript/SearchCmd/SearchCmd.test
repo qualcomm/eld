@@ -1,0 +1,21 @@
+#---GroupCmd.test--------------------- Executable,LS------------------#
+
+
+#BEGIN_COMMENT
+# This tests that SEARCH_DIR is activated properly when the linker traverses all
+# the linker scripts. The paths in the GROUP is resolved lazily when the inputs
+# are lookedup during the normalize process.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: mkdir -p %t2/mylib/
+RUN: %ar cr %aropts %t2/mylib/lib2.a %t1.2.o
+RUN: echo "SEARCH_DIR(%t2/mylib/)" > %t2.script.t
+RUN: echo "GROUP(-l2)" >> %t2.script.t
+RUN: echo "SECTIONS { " >> %t2.script.t
+RUN: echo "} " >> %t2.script.t
+RUN: %link %linkopts %t1.1.o -T %t2.script.t -o %t2.out
+RUN: %readelf -s %t2.out | %filecheck %s
+
+#CHECK-DAG: bar
+#CHECK-DAG: foo

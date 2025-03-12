@@ -1,0 +1,11 @@
+#---MultiMapStyleReproduce.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Checks that the --reproduce switch works with multiple map styles.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out.reproduce -MapStyle txt -MapStyle yaml --reproduce foo.tar -dump-response-file %t2.out.reproduce.dump
+RUN: %filecheck %s -check-prefix=DUMP < %t2.out.reproduce.dump
+#DUMP: -MapStyle txt -MapStyle yaml
+#END_TEST

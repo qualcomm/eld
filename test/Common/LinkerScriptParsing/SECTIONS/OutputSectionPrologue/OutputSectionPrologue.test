@@ -1,0 +1,6 @@
+#---OutputSectionPrologue.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test verifies linker script parsing for output section prologue.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t
+

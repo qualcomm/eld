@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -c %p/Inputs/linkonce.s -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/link_script %t1.o -o %t.out
+RUN: %readelf -S %t.out | %filecheck %s
+
+#CHECK: [ 1] .sdata PROGBITS 00000000 001000 000004 00 WA 0 0 1

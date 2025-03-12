@@ -1,0 +1,11 @@
+UNSUPPORTED: windows
+#---DirectoryAsInput.test------------------------- Executable ----------------#
+
+#BEGIN_COMMENT
+# Checks linker does not crash when trying to read an input file that is a directory
+#END_COMMENT
+#START_TEST
+RUN: %not %link %linkopts %p 2>&1 | %filecheck %s
+CHECK: cannot read file {{.*}} because of error Is a directory
+CHECK-NOT: UNEXPECTED LINKER BEHAVIOR
+#END_TEST

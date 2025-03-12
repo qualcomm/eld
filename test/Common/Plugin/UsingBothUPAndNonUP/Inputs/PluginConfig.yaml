@@ -1,0 +1,7 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: UP
+    Library: UP
+  - Type: SectionMatcher
+    Name: NonUP
+    Library: NonUP

@@ -1,0 +1,15 @@
+#---AuxiliarySymbolName.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of LinkerWrapper::setAuxiliarySymbolNameMap
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --trace-symbol=foo 2>&1 | %filecheck %s --check-prefix FOO
+RUN: %link -MapStyle txt %linkopts -o %t1.1.2.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --trace-symbol=MyAuxSymName 2>&1 | %filecheck %s --check-prefix AUX
+#END_TEST
+FOO: Note: Symbol `foo(MyAuxSymName)' from Input file `{{.*}}1.o' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+
+AUX: Note: Symbol `foo(MyAuxSymName)' from Input file `{{.*}}1.o' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+AUX: Note: Symbol `bar(MyAuxSymName)' from Input file `{{.*}}1.o' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+
+

@@ -1,0 +1,20 @@
+# This tests that the linker functionality to delay creation of empty segments
+# for sections that are empty.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -march aarch64 %t1.o -T %p/Inputs/script1.t -o %t1.out.1
+RUN: %link %linkopts -march aarch64 %t2.o -T %p/Inputs/script2.t -o %t1.out.2
+RUN: %link %linkopts -march aarch64 %t2.o -T %p/Inputs/script3.t -o %t1.out.3
+RUN: %link %linkopts -march aarch64 %t1.o -T %p/Inputs/script4.t -o %t1.out.4
+RUN: %readelf -W -l %t1.out.1 | %filecheck %s -check-prefix=CASEA
+RUN: %readelf -W -l %t1.out.2 | %filecheck %s -check-prefix=CASEB
+RUN: %readelf -W -l %t1.out.3 | %filecheck %s -check-prefix=CASEB
+RUN: %readelf -W -l %t1.out.4 | %filecheck %s -check-prefix=CASEA
+
+#CASEA:  LOAD {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} R E 0x1000
+#CASEA:  LOAD {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} RW  0x1000
+#CASEA-NOT: LOAD
+#CASEB:  LOAD {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} R E 0x1000
+#CASEB:  LOAD {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} RW  0x1000
+#CASEB:  LOAD {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} R  0x1000
+#CASEB-NOT: LOAD

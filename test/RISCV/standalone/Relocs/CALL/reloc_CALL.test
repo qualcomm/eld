@@ -1,0 +1,21 @@
+#---reloc_HI_LO.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+# Check patching of CALL reloc. This internally is converted to
+# R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_I relocation
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts  -T %p/Inputs/script.t  -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts --no-relax  -T %p/Inputs/script.t %t1.1.o -o %t1.out
+RUN: %link %linkopts  -T %p/Inputs/script.t %t1.1.o -o %t2.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s
+RUN: %objdump --no-print-imm-hex -d %t2.out |  %filecheck %s -check-prefix=RELAX
+
+CHECK:     auipc   ra, 0
+CHECK:     jalr    1376(ra)
+
+RELAX:     jal 0x1234560 <bar>
+

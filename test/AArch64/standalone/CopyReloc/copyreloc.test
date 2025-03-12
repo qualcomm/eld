@@ -1,0 +1,13 @@
+# This tests that the linker is able to generate a proper R_AARCH64_COPY
+# relocation. The test is unable to check for the proper relocation as the tools
+# that are used on ARM doesnot use the ELFToolChain and the ELFToolchain does
+# not supporting printing AArch64 relocations properly.
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -target aarch64
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -target aarch64
+RUN: %link %linkopts -shared %t1.2.o -o %t2.lib2.so -march aarch64
+RUN: %link %linkopts %t1.1.o %t2.lib2.so -o %t3.out -march aarch64
+RUN: %readelf -r %t3.out | %filecheck %s
+
+#CHECK: .rela.dyn
+#CHECK: a + 0

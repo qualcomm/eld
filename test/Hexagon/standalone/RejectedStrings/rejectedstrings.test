@@ -1,0 +1,8 @@
+#The linker should not reject strings that dont respect section alignment.
+RUN: %clang %clangopts -c %p/Inputs/str.s -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: %readelf -p .rodata %t2.out | %filecheck %s
+
+#CHECK: foo
+#CHECK: bar
+#CHECK: baz

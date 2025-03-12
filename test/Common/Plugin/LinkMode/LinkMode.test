@@ -1,0 +1,20 @@
+UNSUPPORTED: iu
+#---LinkMode.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Tests that the plugin is able to print the Link mode
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=STATICLINK
+RUN: %link --force-dynamic %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.2 -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=DYNAMICEXEC
+RUN: %link -shared %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.3 -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=SHAREDLIB
+RUN: %link -pie %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.3 -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=PIE
+RUN: %link %linkopts -Bdynamic %t1.1.o %t1.lib2.so -T %p/Inputs/script.t -o %t2.out -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=DYNAMICEXEC
+#STATICLINK: StaticExecutable
+#DYNAMICEXEC: DynamicExecutable
+#SHAREDLIB: SharedLibrary
+#PIE: PIE
+#END_TEST

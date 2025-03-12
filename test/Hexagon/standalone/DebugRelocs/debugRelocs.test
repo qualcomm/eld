@@ -1,0 +1,10 @@
+# Check that Debug sections are fixed up properly.
+RUN: %clang %clangopts -c %p/Inputs/crap.c -gdwarf-2 -o %t1.o -g
+RUN: %clang %clangopts -c %p/Inputs/hello.c  -gdwarf-2 -o %t2.o -g
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --noinhibit-exec
+# Until the bug in %readelf is fixed.
+RUN: %dwarfdump -debug-info %t.out | %filecheck %s
+
+#CHECK:   DW_AT_producer ("
+#CHECK:   DW_AT_name ("{{[ -\(\)_A-Za-z0-9.\\/:]+}}DebugRelocs{{[\\/]+}}Inputs{{[\\/]+}}crap.c")
+#CHECK:   DW_AT_name ("{{[ -\(\)_A-Za-z0-9.\\/:]+}}DebugRelocs{{[\\/]+}}Inputs{{[\\/]+}}hello.c")

@@ -1,0 +1,16 @@
+#---PhdrEmpty.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+#This is a test to make sure that filesz and memsz are both equal
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/b.s -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.1
+RUN: %readelf -l -W %t2.out.1  | %filecheck %s -check-prefix=SEGMENTS
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script1.t -o %t2.out.2
+RUN: %readelf -l -W %t2.out.2  | %filecheck %s -check-prefix=SEGMENTS
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script2.t -o %t2.out.3
+RUN: %readelf -l -W %t2.out.3  | %filecheck %s -check-prefix=SEGMENTS
+#SEGMENTS:  LOAD           {{[0x0-9a-f]+}} {{[0x0]+}} {{[0x0]+}} [[FILESZ2:[0xa-f0-9]+]] [[FILESZ2]]
+#SEGMENTS:  LOAD           {{[0x0-9a-f]+}} {{.*}} {{.*}} [[FILESZ3:[0xa-f0-9]+]] [[FILESZ3]]
+#END_TEST

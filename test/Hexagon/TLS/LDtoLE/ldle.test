@@ -1,0 +1,12 @@
+# Test that hidden symbols are not exported.
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/1.s  -o %t1.o
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/2.s  -o %t2.o
+RUN: %link %linkopts  %linkg0opts  -static  %t1.o  %t2.o  -o %t.so
+RUN: %readelf -l -r -S -s -W %t.so |   %filecheck %s
+
+# CHECK-NOT: TPREL
+# CHECK-NOT:  R_HEX_DTPMOD_32
+# CHECK-NOT:  R_HEX_DTPREL_32
+# CHECK:  __hexagon_le_tls_get_addr
+
+

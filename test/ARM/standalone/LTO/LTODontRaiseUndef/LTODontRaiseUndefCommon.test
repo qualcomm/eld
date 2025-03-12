@@ -1,0 +1,15 @@
+#---LTODontRaiseUndefCommon.test-------------------------- Executable,LTO  --------------#
+
+#BEGIN_COMMENT
+# This test checks that the linker doesnot report undefined symbol for a symbol
+# that is marked IGNORE.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/Common/lto.c -o %t1.lto.o -flto -ffunction-sections -fdata-sections %clangg0opts
+RUN: %clang %clangopts -c %p/Inputs/Common/main.c -o %t1.main.o -ffunction-sections -fdata-sections %clangg0opts
+RUN: %link %linkopts %t1.lto.o %t1.main.o -o %t2.out --gc-sections --trace=lto -e main 2>&1
+RUN: %nm -n %t2.out | %filecheck %s
+
+#CHECK-NOT: C
+
+#END_TEST

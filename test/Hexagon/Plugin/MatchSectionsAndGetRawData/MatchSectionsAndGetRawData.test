@@ -1,0 +1,18 @@
+#---MatchIslandSectionsAndGetSymbolsDefinedInSection.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple SectionIterator plugin that tries to figure out the
+#relationship between sections only for sections matching a particular pattern.
+#This also lists symbols in that section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o -ffunction-sections %clangg0opts
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+
+#PLUGINTRACE-DAG: Note: Registration function found RegisterAll in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE-DAG: Note: Plugin handler getPlugin found in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE-DAG: Note: Registering all plugin handlers for plugin types
+#PLUGINTRACE-DAG: Note: Found plugin handler for plugin type MATCHSECTIONSANDGETRAWDATA in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE-DAG: HelloWorld
+
+#END_TEST

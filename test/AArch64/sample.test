@@ -1,0 +1,3 @@
+XFAIL: aarch64
+RUN: %clang %clangopts %link %linkopts %readelf -c  %p/Inputs/1.c -o %t1.o
+

@@ -1,0 +1,13 @@
+#---Incompatible.test--------------------------- Relocatable,Shared --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to warn symdef usage with incompaible
+# options
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o --symdef -o %t2.out.1 -r 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --symdef -o %t2.out.2 -shared 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --symdef -o %t2.out.3 -pie 2>&1 | %filecheck %s
+#CHECK: Option `--symdef/--symdef-file' is disabled as it is incompatible
+#END_TEST

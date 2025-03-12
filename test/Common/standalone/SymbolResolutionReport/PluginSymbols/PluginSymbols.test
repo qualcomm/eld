@@ -1,0 +1,16 @@
+#---PluginSymbols.test--------------------- Executable, LS------------------#
+
+#BEGIN_COMMENT
+# This test checks the symbol resolution report when there are
+# plugin-inserted symbols.
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t -Map %t1.1.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s < %t1.1.map.txt
+
+CHECK: Symbol Resolution:
+CHECK: start_of_foo
+CHECK: start_of_foo(Plugin[PluginSymbols]:.text.foo) [Size=0, Def, Local, NoType] [Selected]
+CHECK: end_of_foo
+CHECK: end_of_foo(Plugin[PluginSymbols]:.text.foo) [Size=0, Def, Local, NoType] [Selected]
+CHECK: foo
+CHECK: foo({{.*}}1.o:.text.foo) [Size={{.*}}, Def, Global, Function] [Selected]

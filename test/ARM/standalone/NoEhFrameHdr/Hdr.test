@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target arm %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts -march arm --eh-frame-hdr %t.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+
+CHECK-NOT: .eh_frame_hdr

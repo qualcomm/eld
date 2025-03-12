@@ -1,0 +1,21 @@
+#---DiscardSectionRelocNotComdatGroup.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# A group section that is not a COMDAT should be preserved.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t.2.o
+RUN: %link %linkopts %t.1.o %t.2.o -o %t.out
+RUN: (%readelf -s %t.out; %readelf -Sgr %t.out) | %filecheck %s
+
+CHECK:     Symbol table '.symtab' contains
+CHECK:             Num:       Value  Size    Type  Bind      Vis           Ndx Name
+CHECK-DAG: [[#%d,FOOSYM1:]]:     [[#%x,]]     0 NOTYPE  LOCAL  DEFAULT   [[#%d,FOOSEC:]] foo
+CHECK-DAG: [[#%d,FOOSYM2:]]:     [[#%x,]]     0 NOTYPE  WEAK   HIDDEN    [[#%d,FOOSEC:]] foo
+
+CHECK:     Section Headers:
+CHECK-DAG: [ [[#FOOSEC]]]  .foo     PROGBITS [[#%x,]] [[#%x,]] {{0*}}[[#%x,8]] [[#%x,]] WA 0 0 1
+
+#END_TEST

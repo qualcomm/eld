@@ -1,0 +1,16 @@
+#---VerboseDiagnostics.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This test checks the verbose diagnostics LinkerWrapper API functionality.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+#END_TEST
+CHECK-NOT: VerboseDiagnostics:Verbose: Verbose init diag!
+CHECK: VerboseDiagnostics:Note: Note init diag!
+
+VERBOSE: VerboseDiagnostics:Verbose: Verbose init diag!
+VERBOSE: VerboseDiagnostics:Note: Note init diag!
+

@@ -1,0 +1,16 @@
+#---NONESegment.test--------------------------- Executable ----------#
+
+
+#BEGIN_COMMENT
+#Test for NONE segment support. Add text map file output and check for NONE
+#segment printed in the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --fatal-warnings -Map %t1.map
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#MAP: Segments : [ NONE ]
+#CHECK: None .text
+#END_TEST

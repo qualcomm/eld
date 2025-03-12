@@ -1,0 +1,10 @@
+#---StartGroupEndGroupEmpty.test--------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This checks if a warning is emitted if the group is empty with
+# -Wcommand-line.
+# END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %t1.1.o -o %t1.outerr.1 %linkopts -Wcommand-line --start-group --end-group 2>&1 | %filecheck %s
+#CHECK: Warning: Empty --start-group --end-group.
+# END_TEST

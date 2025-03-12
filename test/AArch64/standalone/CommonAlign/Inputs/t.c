@@ -1,0 +1,3 @@
+char bar;
+char foo;
+

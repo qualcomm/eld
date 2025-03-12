@@ -1,0 +1,17 @@
+#---EmptySectionRelocs.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests checks that empty section relocations are preserved with
+# emit relocs
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --emit-relocs
+RUN: %readelf -r -l -W %t2.out | %filecheck %s
+#END_TEST
+
+#CHECK: 00 .foo
+#CHECK: 01
+#CHECK: Relocation section
+#CHECK: {{.*}} .unrecognized
+

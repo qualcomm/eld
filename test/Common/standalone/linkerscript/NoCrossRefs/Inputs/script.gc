@@ -1,0 +1,8 @@
+NOCROSSREFS(.text .xsection)
+SECTIONS {
+  .zsection : { *(.data.z) }
+  .xsection : { *(.data.x) }
+  .baz : { *(.text.baz) }
+  .text : { *(.text.*) }
+  .bss : { *(.sdata*) }
+}

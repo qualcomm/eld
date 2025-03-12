@@ -1,0 +1,24 @@
+#---MatchIslandSections.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple SectionIterator plugin that tries to figure out the
+#relationship between sections only for sections matching a particular pattern.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -M -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+# Make sure the section ignoreme doesnot appear
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/b.s -o %t1.2.o -ffunction-sections
+RUN: %link %linkopts %t1.2.o -M -T %p/Inputs/script.t --trace=plugin -o %t2.out.err --noinhibit-exec 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+RUN: %readelf -s %t2.out.err 2>&1 | %filecheck %s -check-prefix=SYM
+
+#PLUGINTRACE: Note: Registration function found RegisterAll in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Plugin handler getPlugin found in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Registering all plugin handlers for plugin types
+#PLUGINTRACE: Note: Found plugin handler for plugin type MATCHANDDISCARDSECTIONS in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: MATCHANDDISCARDSECTIONS
+#CHECK-NOT: .ignoreme
+#SYM-NOT: goo
+
+#END_TEST

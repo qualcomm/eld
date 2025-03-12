@@ -1,0 +1,16 @@
+UNSUPPORTED: ndk-build
+RUN: %yaml2obj %p/Inputs/1.yaml -o %t.o
+RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %objdump -d %t.out | %filecheck %s --check-prefix=TEXT
+
+#TEXT: 00000000 <foo>:
+#TEXT:        0: e1a00000      mov     r0, r0
+#TEXT:        4: e1a00000      mov     r0, r0
+#TEXT:        8: e1a0f00e      mov     pc, lr
+
+#TEXT:        c:       04 10 00 00     .word   0x00001004
+#TEXT:       10:       f8 0f 00 00     .word   0x00000ff8
+#TEXT:       14:       04 00 00 00     .word   0x00000004
+#TEXT:       18:       0c 10 00 00     .word   0x0000100c
+#TEXT:       1c:       14 00 00 00     .word   0x00000014
+

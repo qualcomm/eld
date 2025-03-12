@@ -1,0 +1,13 @@
+#---DisplayHeaderDetails.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is not printing program headers or file headers
+# in the Mapfile without -MapDetail=--show-header-details option
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -Map %t2.map -o %t2.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+CHECK-NOT: __ehdr__
+CHECK-NOT: __pHdr__

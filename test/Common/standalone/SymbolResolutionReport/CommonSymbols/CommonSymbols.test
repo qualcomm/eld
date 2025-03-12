@@ -1,0 +1,22 @@
+#---WeakVsCommonVsGlobal.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks the symbol resolution report when there are multiple common
+# symbols of different sizes.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/4.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.var.out %t1.1.o %t1.2.o %t1.3.o %t1.4.o -Map %t1.var.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s < %t1.var.map.txt
+
+CHECK: # Symbol Resolution:
+CHECK: var
+CHECK-NEXT: var({{.*}}1.o) [Size={{.*}}, Common, Global, Object]
+CHECK-NEXT: var({{.*}}2.o) [Size={{.*}}, Common, Global, Object]
+CHECK-NEXT: var({{.*}}3.o) [Size={{.*}}, Common, Global, Object] [Selected]
+CHECK-NEXT: var({{.*}}4.o:{{.*}}) [Size={{.*}}, Def, Weak, Object]
+
+
+

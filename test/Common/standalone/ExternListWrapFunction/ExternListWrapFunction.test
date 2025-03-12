@@ -1,0 +1,15 @@
+#---ExternListWrapFunction.test--------------------------- Executable ----------#
+
+
+#BEGIN_COMMENT
+#If a symbol is mentioned in the extern list, the linker needs to pull it in.
+#The symbol also should not get garbage collected as usual.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o -ffunction-sections
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o
+RUN: %link %linkopts %t1.1.o %t2.lib2.a %t1.3.o --wrap foo -u foo -o %t2.out -t 2>&1 | %filecheck %s
+
+#CHECK: {{.*}}lib2.a{{.*}}2.o

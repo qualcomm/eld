@@ -1,0 +1,15 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -target aarch64  -c %p/Inputs/2.c -o %t2.o
+RUN: %not %link %linkopts -march aarch64 -T %p/Inputs/assert.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck --check-prefix=ERR %s
+RUN: %not %link %linkopts -march aarch64 -T %p/Inputs/assert_neg1.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck --check-prefix=ERR1 %s
+RUN: %not %link %linkopts -march aarch64 -T %p/Inputs/assert_neg2.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck --check-prefix=ERR2 %s
+RUN: %not %link %linkopts -march aarch64 -T %p/Inputs/assert_neg3.t %t1.o %t2.o -o %t.out 2>&1 | %filecheck --check-prefix=ERR3 %s
+
+ERR-NOT: should not assert
+ERR: sym1 smaller then sym2
+
+ERR1: sym1 smaller then sym2
+
+ERR2: assert for script assert
+
+ERR3: sym1 smaller then sym2

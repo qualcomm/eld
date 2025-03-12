@@ -1,0 +1,20 @@
+#---NoIgnoreBCSym.test-------------------- Exe------------------#
+
+#BEGIN_COMMENT
+# When bitcode weak is overridden with ELF define in LTO phase
+# the symbol must not be ignored
+#----------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -march=armv4t -c -flto %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -march=armv4t -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -march=armv4t -c %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -march=armv4t -c %p/Inputs/4.c -o %t4.o
+RUN: %link %linkopts -o %t1.out %t1.o %t2.o %t3.o %t4.o --trace=symbol=foo 2>&1 | %filecheck %s
+RUN: %objdump -d %t1.out |  %filecheck --check-prefix="DIS" %s
+
+CHECK-NOT: (ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}{IGNORE}
+DIS:      <elf_f>:
+DIS-DAG:        bl {{[x#0-9a-fA-F]*}} <foo>
+
+DIS-DAG:  <elf_f3>:
+DIS-DAG:        bl {{[x#0-9a-fA-F]*}} <foo>

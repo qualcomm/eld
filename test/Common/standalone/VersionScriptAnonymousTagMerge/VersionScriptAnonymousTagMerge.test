@@ -1,0 +1,13 @@
+#---VersionScriptAnonymousTagMerge.test--------------------- Executable,VS------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to merge anonymous tags properly.
+#END_COMMENT
+#----------------------------------------------------------------
+# Trivial example of version script
+RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs1 --version-script=%p/Inputs/vs2
+RUN: %readelf --dyn-syms %t1.so | %filecheck %s
+
+CHECK-DAG: main
+CHECK-DAG: bar

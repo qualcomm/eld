@@ -1,0 +1,11 @@
+#---AttributeSectionPermissions.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the RISC-V attribute sections are assigned proper permissions
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o
+RUN: %readelf -S -W %t1.1.out | %filecheck %s
+#END_TEST
+#CHECK-NOT: {{.*}} .riscv.attributes {{.*}} AW

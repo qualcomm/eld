@@ -1,0 +1,12 @@
+UNSUPPORTED: hexagon
+#---Padding_04.test-------------------------#
+
+#BEGIN_COMMENT
+#This tests basic padding detection functionality of addr2struct
+#END_COMMENT
+
+RUN: %clang %clangopts -c -g -gdwarf-4 %p/Inputs/p4.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: llvm-addr2struct %t2.out -lookup=0x00001000 -size=10752 --get-padding |  %filecheck %s
+#CHECK:Padding|3456
+#CHECK-NEXT:foo | struct_2 | {{.*}}.c:{{[0-9]+}} | 3456

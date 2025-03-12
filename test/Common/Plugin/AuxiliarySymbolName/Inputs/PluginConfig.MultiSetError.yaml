@@ -1,0 +1,7 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: AuxiliarySymbolNamePlugin
+    Library: AuxiliarySymbolNamePlugin
+  - Type: LinkerPlugin
+    Name: AuxiliarySymbolNamePluginAgain
+    Library: AuxiliarySymbolNamePlugin

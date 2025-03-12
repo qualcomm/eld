@@ -1,0 +1,12 @@
+#---DiscardWithDebug.test--------------------- Exe/------------------#
+
+#BEGIN_COMMENT
+# Debug relocs from discarded sectiosn must not issue an Undef error
+#----------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c  -g %p/Inputs/1.c  -ffunction-sections -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o -T %p/Inputs/script.t
+RUN: %readelf -s %t.out | %filecheck %s
+
+CHECK-NOT: {{ baz}}

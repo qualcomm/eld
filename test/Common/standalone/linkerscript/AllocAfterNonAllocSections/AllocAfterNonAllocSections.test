@@ -1,0 +1,39 @@
+#---AllocAfterNonAllocSections.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests that the linker is able to load sections seen after non loadable
+# sections in the linker script. this improves on previous functionality that
+# was implemented to support non alloc sections
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.s -c -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables
+# Error because of section overlap with no PHDRS
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -o %t1.1.out -T %p/Inputs/script1.t -Map %t1.1.nophdrs.map.txt
+RUN: %filecheck %s < %t1.1.nophdrs.map.txt -check-prefix=ERRNOPHDRS
+# Error because of section overlap using PHDRS
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -o %t1.2.out -T %p/Inputs/script2.t -Map %t1.2.phdrs.map.txt
+RUN: %filecheck %s < %t1.2.phdrs.map.txt -check-prefix=ERRPHDRS
+# Make sure that the VMA for a alloc section following the non alloc section is
+# used from the alloc section with NOPHDRS
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t1.3.out -T %p/Inputs/script3.t -Map %t1.3.nophdrs.map.txt
+RUN: %filecheck %s < %t1.3.nophdrs.map.txt -check-prefix=NOPHDRS
+# Make sure that the VMA for a alloc section following the non alloc section is
+# used from the alloc section with PHDRS
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t1.4.out -T %p/Inputs/script4.t -Map %t1.4.phdrs.map.txt
+RUN: %filecheck %s < %t1.4.phdrs.map.txt -check-prefix=PHDRS
+# Error with a debug section using dot assignments
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -o %t1.5.out -T %p/Inputs/script5.t \
+RUN: -Map %t1.5.phdrs.map.txt 2>&1 | %filecheck %s -check-prefix=ERR
+# Error with a debug section using dot assignments
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -o %t1.6.out \
+RUN: -T %p/Inputs/script6.t -Map %t1.6.phdrs.map.txt 2>&1 | %filecheck %s -check-prefix=ERR
+#END_TEST
+
+#ERRNOPHDRS: .empty 0x0 0x1
+#ERRPHDRS:.empty 0x0 0x1
+#NOPHDRS: .foo 0x0 [[SZ:[xa-f0-9]+]]
+#NOPHDRS: .bar [[SZ]] 0x0
+#NOPHDRS: .baz [[SZ]] {{.*}}
+#PHDRS: .foo 0x0 [[SZ:[xa-f0-9]+]]
+#PHDRS: .bar [[SZ]] 0x0
+#PHDRS: .baz [[SZ]] {{.*}}
+#ERR: Error: dot expression evaluation in .comment with permissions SHF_MERGE|SHF_STRINGS is not supported

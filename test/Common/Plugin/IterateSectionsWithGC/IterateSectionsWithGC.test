@@ -1,0 +1,15 @@
+#---IterateSectionsWithGC.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that the section iterator is not going over sections that have been
+# garbage collected.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections %clangg0opts
+RUN: %link %linkopts -M --gc-sections -e main %t1.1.o -T %p/Inputs/script.t --defsym defsym_var=0x1000 --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+
+PLUGINTRACE-NOT: .text.foo
+PLUGINTRACE-NOT: .text.bar
+PLUGINTRACE: ITERATESECTIONSGC
+
+#END_TEST

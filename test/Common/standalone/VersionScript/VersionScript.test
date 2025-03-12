@@ -1,0 +1,220 @@
+UNSUPPORTED: ndk-build
+#---VersionScript.test--------------------- Exe------------------#
+
+
+#BEGIN_COMMENT
+# Test few basic conditions of version script along with map file
+# information check
+#----------------------------------------------------------------
+#END_COMMENT
+# Trivial example of version script
+RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/1.c -o %t1.o
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs1 -Map %t.map1
+RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK1" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK1" < %t.map1
+
+
+CHECK1-NOT: bar
+CHECK1-DAG: baz
+CHECK1-DAG: foo
+CHECK1-DAG: func_dso
+MAPCHECK1: Version Script Information
+MAPCHECK1: Version Script file
+MAPCHECK1: {{.*}}/Inputs/vs1
+MAPCHECK1: Global:
+MAPCHECK1: Pattern: foo
+MAPCHECK1: # foo {{.*}}1.o
+MAPCHECK1: Local:
+MAPCHECK1: Pattern: bar
+MAPCHECK1: # bar {{.*}}1.o
+
+# Check that any locals if any are asked to be exported, they have no effect
+RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/3.c -o %t3.o
+RUN: %link -MapStyle txt %linkopts -shared -o %t3.so %t3.o --version-script=%p/Inputs/vs3 -Map %t.map3
+RUN: %readelf --dyn-syms --hash-symbols %t3.so |  %filecheck --check-prefix="CHECK3" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK3"  < %t.map3
+
+CHECK3-NOT: bar
+CHECK3-NOT: local_baz
+CHECK3-DAG: baz
+CHECK3-DAG: foo
+CHECK3-DAG: func_dso
+MAPCHECK3: Version Script Information
+MAPCHECK3: Version Script file
+MAPCHECK3: {{.*}}/Inputs/vs3
+MAPCHECK3: Global:
+MAPCHECK3: Pattern: foo
+MAPCHECK3: # foo {{.*}}3.o
+MAPCHECK3: Pattern: local_baz
+MAPCHECK3: Local:
+MAPCHECK3: Pattern: bar
+MAPCHECK3: # bar {{.*}}3.o
+
+
+# Test  version script on an executable, all globals mentioned in script
+# and all the symbols defined external to exe are exported
+RUN: %clang %clangopts -c  -fpic -O2 %p/Inputs/4_1.c -o %t4_1.o
+RUN: %clang %clangopts -c   -O2 %p/Inputs/4_2.c -o %t4_2.o
+RUN: %link -MapStyle txt %linkopts -shared -o %t4.so %t4_1.o
+RUN: %link -MapStyle txt %linkopts %t4_2.o -dy %t4.so --version-script=%p/Inputs/vs4  -o %t4.out -Map %t.map4
+RUN: %readelf --dyn-syms --hash-symbols %t4.out |  %filecheck --check-prefix="CHECK4" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK4" < %t.map4
+
+CHECK4-NOT: common
+CHECK4-NOT: data
+CHECK4-DAG: func_dso
+CHECK4-DAG: func_exe
+MAPCHECK4: Version Script Information
+MAPCHECK4: Version Script file
+MAPCHECK4: {{.*}}Inputs/vs4
+MAPCHECK4: Local:
+MAPCHECK4: Pattern: data
+MAPCHECK4: # data {{.*}}4_2.o
+MAPCHECK4: Pattern: common
+MAPCHECK4: # common {{.*}}4_2.o
+
+RUN: %clang %clangopts -c  -fpic -O2 %p/Inputs/5.c -o %t5.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -shared --gc-sections --print-gc-sections --version-script=%p/Inputs/vs5 %t5.o -o %t5.out -Map %t.map5 2>&1
+RUN: %filecheck %s --check-prefix="MAPCHECK5" < %t.map5
+RUN: %readelf --dyn-syms --hash-symbols %t5.out  | %filecheck --check-prefix="CHECK5" %s
+RUN: %link -MapStyle txt %linkopts  --gc-sections --print-gc-sections --version-script=%p/Inputs/vs5 %t5.o -o %t5.out.1 -Map %t.map51 2>&1
+RUN: %readelf --dyn-syms --hash-symbols %t5.out  | %filecheck --check-prefix="EXEC5" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK51" < %t.map51
+
+CHECK5-DAG: foo
+CHECK5-DAG: bar
+CHECK5-DAG: baz
+MAPCHECK5: Version Script Information
+MAPCHECK5: Version Script file
+MAPCHECK5: {{.*}}/Inputs/vs5
+MAPCHECK5: Global:
+MAPCHECK5: Pattern: *
+MAPCHECK5: # bar {{.*}}5.o
+MAPCHECK5: # baz {{.*}}5.o
+MAPCHECK5: # foo {{.*}}5.o
+MAPCHECK5: Local:
+MAPCHECK5: Pattern: *
+
+
+EXEC5: foo
+EXEC5-not: bar
+EXEC5-not: baz
+MAPCHECK51: Version Script Information
+MAPCHECK51: Version Script file
+MAPCHECK51: {{.*}}/Inputs/vs5
+MAPCHECK51: Global:
+MAPCHECK51: Pattern: *
+MAPCHECK51: # bar {{.*}}5.o
+MAPCHECK51: # baz {{.*}}5.o
+MAPCHECK51: # foo {{.*}}5.o
+MAPCHECK51: Local:
+MAPCHECK51: Pattern: *
+
+
+# Test  version script on an executable with -E flag, all globals mentioned in script
+# and all the symbols defined external to exe are exported. (version script
+# reduces number of symbols to be exported by -E flag)
+RUN: %clang %clangopts -c  -fpic -O2 %p/Inputs/4_1.c -o %t4_1.o
+RUN: %clang %clangopts -c   -O2 %p/Inputs/4_2.c -o %t4_2.o
+RUN: %link -MapStyle txt %linkopts -shared -o %t4.so %t4_1.o
+RUN: %link -MapStyle txt %linkopts %t4_2.o -dy %t4.so --version-script=%p/Inputs/vs4 -E  -o %t4.out -Map %t.map7
+RUN: %readelf --dyn-syms --hash-symbols %t4.out |  %filecheck --check-prefix="CHECK7" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK7" < %t.map7
+
+CHECK7-NOT: common
+CHECK7-NOT: data
+CHECK7-DAG: func_dso
+CHECK7-DAG: func_exe
+MAPCHECK7: Version Script Information
+MAPCHECK7: Version Script file
+MAPCHECK7: {{.*}}/Inputs/vs4
+MAPCHECK7: Local:
+MAPCHECK7: Pattern: data
+MAPCHECK7: # data {{.*}}4_2.o
+MAPCHECK7: Pattern: common
+MAPCHECK7: # common {{.*}}4_2.o
+
+
+# Test  version script on an executable with -E flag, all globals mentioned in script
+# and all the symbols defined external to exe are exported. (version script
+# reduces number of symbols to be exported by -E flag)
+RUN: %clang %clangopts -c  -fpic -O2 %p/Inputs/8_1.c -o %t8_1.o -ffunction-sections
+RUN: %clang %clangopts -c   -O2 %p/Inputs/8_2.c -o %t8_2.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -shared -o %t8.so %t8_1.o
+RUN: %link -MapStyle txt %linkopts %t8_2.o -dy %t8.so --version-script=%p/Inputs/vs5 -o %t8.out --entry=main --gc-sections --print-gc-sections -Map %t.map8 2>&1 | %filecheck  --check-prefix="CHECK8" %s
+RUN: %readelf --symbols --hash-symbols %t8.out |  %filecheck --check-prefix="CHECK8SYM" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK8" < %t.map8
+
+CHECK8: GC :  {{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text]
+CHECK8: GC :  {{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text.func_exe]
+CHECK8: GC :  {{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text.f_exe]
+CHECK8SYM-NOT: f_exe
+CHECK8SYM-NOT: func_exe
+CHECK8SYM: main
+MAPCHECK8: Version Script Information
+MAPCHECK8: Version Script file
+MAPCHECK8: {{.*}}/Inputs/vs5
+MAPCHECK8: Global:
+MAPCHECK8: Pattern: *
+MAPCHECK8: # f_exe {{.*}}8_2.o
+MAPCHECK8: # bar {{.*}}8.so
+MAPCHECK8: # main {{.*}}8_2.o
+MAPCHECK8: # baz {{.*}}8.so
+MAPCHECK8: # func_exe {{.*}}8_2.o
+MAPCHECK8: # foo {{.*}}8.so
+MAPCHECK8: Local:
+MAPCHECK8: Pattern: *
+
+#Test that scripts with version nodes are warned as unsupported and ignored
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs6 -Map %t.map9 2>&1 |  %filecheck --check-prefix="CHECK9" %s
+RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK9SYM" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK9" < %t.map9
+
+CHECK9: Warning: Only anonymous version nodes are suppored. Ignoring version script
+CHECK9SYM-DAG: bar
+CHECK9SYM-DAG: baz
+CHECK9SYM-DAG: foo
+CHECK9SYM-DAG: func_dso
+MAPCHECK9: Version Script Information
+MAPCHECK9: Version Script file
+MAPCHECK9: {{.*}}/Inputs/vs6
+MAPCHECK9: Global:
+MAPCHECK9: Pattern: foo
+MAPCHECK9: Local:
+MAPCHECK9: Pattern: bar
+
+#Test that scripts with dependent nodes are warned as unsupported and ignored
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs7 -Map %t.map10 2>&1 |  %filecheck --check-prefix="CHECK10" %s
+RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK10SYM" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK10" < %t.map10
+
+CHECK10:Warning: {{Dependent nodes are not suppored. Ignoring version script|Only anonymous version nodes are suppored}}
+CHECK10SYM-DAG: bar
+CHECK10SYM-DAG: baz
+CHECK10SYM-DAG: foo
+CHECK10SYM-DAG: func_dso
+MAPCHECK10: Version Script Information
+MAPCHECK10: Version Script file
+MAPCHECK10: {{.*}}/Inputs/vs7
+MAPCHECK10: Global:
+MAPCHECK10: Pattern: foo
+MAPCHECK10: Local:
+MAPCHECK10: Pattern: bar
+
+#Test two anonymous version script nodes are allowed
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs8 -Map %t.map11 --version-script=%p/Inputs/vs9
+RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK11" %s
+RUN: %filecheck %s --check-prefix="MAPCHECK11" < %t.map11
+CHECK11: foo
+CHECK11-NOT: bar
+MAPCHECK11: Version Script Information
+MAPCHECK11: Version Script file
+MAPCHECK11: {{.*}}/Inputs/vs8
+MAPCHECK11: Local:
+MAPCHECK11: Pattern: bar
+MAPCHECK11: # bar {{.*}}1.o
+MAPCHECK11: Version Script file
+MAPCHECK11: {{.*}}/Inputs/vs9
+MAPCHECK11: Global:
+MAPCHECK11: Pattern: foo
+MAPCHECK11: # foo {{.*}}1.o

@@ -1,0 +1,32 @@
+#---UPVisitSections.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of VisitSections plugin hook.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC -ffunction-sections
+RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared
+RUN: %link %linkopts -o %t1.a.out -dy %t1.1.o %t1.lib2.so -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.a.out -dy %t1.1.o %t1.lib2.so -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --trace=plugin 2>&1 | %filecheck %s --check-prefix=TRACE
+#END_TEST
+CHECK: InputFile: {{.*}}1.o
+CHECK: Sections:
+CHECK: .strtab
+CHECK: .text
+CHECK: .text.foo
+CHECK: .comment
+CHECK: .symtab
+
+CHECK: InputFile: {{.*}}lib2.so
+CHECK: Sections:
+CHECK: .dynsym
+CHECK: .dynstr
+CHECK: .text
+CHECK: .dynamic
+CHECK: .comment
+CHECK: .shstrtab
+CHECK: .symtab
+CHECK: .strtab
+
+TRACE: Trace: Calling plugin hook handler UPVisitSections::VisitSections for the input file '{{.*}}1.o'
+TRACE: Trace: Calling plugin hook handler UPVisitSections::VisitSections for the input file '{{.*}}lib2.so'

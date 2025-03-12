@@ -1,0 +1,23 @@
+#---AtAddressAutoPlacement.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker. This checks that the @ section is automatically laid
+# out in the final image by inspecting the Map file.
+# placed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t -M 2>&1 | %filecheck %s
+
+#CHECK: .bar    0x300
+#CHECK: *(.bar*)
+#CHECK: .main@0x300     0x300
+#CHECK: .bar
+#CHECK: *(.foo1)
+#CHECK: *(.foo2)
+#CHECK: *(.foo3)
+#CHECK: .baz@0x350      0x350
+
+#END_TEST
+

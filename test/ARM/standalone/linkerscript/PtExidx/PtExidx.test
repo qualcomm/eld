@@ -1,0 +1,13 @@
+#---PtExidx.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+#Generate PT_ARM_EXIDX segment based on PHDRS command
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c  %p/Inputs/1.cpp -o %t1.o
+RUN: %link %linkopts -march arm -T %p/Inputs/script.t  %t1.o -o %t1.out --noinhibit-exec
+RUN: %readelf -l %t1.out | %filecheck %s
+
+CHECK: EXIDX
+CHECK-DAG: 01     .ARM.exidx
+#END_TEST

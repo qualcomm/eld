@@ -1,0 +1,15 @@
+#---LTOInternalizeCommonsNoLS.test------------------ Executable,LTO ---------------------#
+
+#BEGIN_COMMENT
+# This tests that LTO will internalize commons if there is no linker script. Other
+# tests (LTOPreserveCommon/LTOMixCommonSymbols) already check the linker script
+# case.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -O2 -ffunction-sections -flto -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -O2 -ffunction-sections -o %t1.3.o
+RUN: %link %linkopts --trace=lto --trace=symbol=thecommon -e main %t1.1.o %t1.2.o %t1.3.o -o %t1.out 2>&1 | %filecheck %s
+
+CHECK: Note: LTO resolution for symbol thecommon: Prevailing=1, VisibleToRegularObj=0
+CHECK: Note: LTO resolution for symbol thecommon: Prevailing=0, VisibleToRegularObj=0

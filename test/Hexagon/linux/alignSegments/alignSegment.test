@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2 -mtriple hexagon-unknown-linux -z max-page-size=4096
+RUN: %readelf -l -W %t2 | %filecheck %s
+
+#CHECK:  LOAD           0x000000 {{.*}} 0x0008c 0x0008c R E 0x1000
+#CHECK:  LOAD           {{.*}} {{.*}} 0x00000 0x00008 RW  0x1000

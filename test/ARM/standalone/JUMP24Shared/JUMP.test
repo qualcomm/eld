@@ -1,0 +1,13 @@
+#---JUMP.test--------------------- SharedLibrary------------------#
+
+# Test ThmToThmStub generation
+#START_TEST
+
+RUN: %clangas -c %p/Inputs/t.s -o %t.o
+RUN: %clang %clangopts -target arm -mthumb %p/Inputs/t.c -o %t2.o -c -fvisibility=hidden -ffunction-sections
+RUN: %link %linkopts -shared %t.o %t2.o -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: foo_T2T_veneer@island
+
+#END_TEST

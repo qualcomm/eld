@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/hello.c -o %t.o
+RUN: %link %linkopts -march aarch64 --no-align-segments %t.o -o %t.out --noinhibit-exec
+RUN: %readelf -l -W %t.out | %filecheck %s 
+
+CHECK:    {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} R E 0x1000
+CHECK:  LOAD            {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} RW  0x1000

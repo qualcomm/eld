@@ -1,0 +1,18 @@
+#---ResponseFileDump.test------------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# This checks for proper output for --dump-response-file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.one.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.two.o
+RUN: %link %linkopts %t1.one.o %t1.two.o --reproduce %t0.tar --dump-response-file %t1.dump -o %t1.out.rdump
+RUN: %filecheck %s < %t1.dump
+CHECK: {{Object/.*.o.[0-9]+ Object/.*.o.[0-9]+}}
+CHECK: --mapping-file=
+CHECK NOT: --reproduce
+CHECK NOT: one.o
+CHECK NOT: --dump-response-file
+#END_TEST

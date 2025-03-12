@@ -1,0 +1,12 @@
+#--NOLOAD_TEXT_PT_NULL.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# NOLOAD TEXT sections are assigned PT_NULL segments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s -check-prefix=READELF
+#READELF: {{.*}} .bar NOBITS {{.*}}
+#END_TEST
+

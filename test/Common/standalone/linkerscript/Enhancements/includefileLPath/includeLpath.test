@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -L%p/Inputs -T %p/script_with_archive.t %t.o -o %t.out -M 2>&1 | %filecheck %s
+
+#CHECK-NOT: NOTFOUND
+

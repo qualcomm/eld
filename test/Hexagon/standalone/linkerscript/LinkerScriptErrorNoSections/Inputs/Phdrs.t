@@ -1,0 +1,3 @@
+PHDRS {
+  SEG PT_LOAD;
+}

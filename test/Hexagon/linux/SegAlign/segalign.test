@@ -1,0 +1,6 @@
+# Check that segment alignment is what is set by the ABI.
+RUN: %clang %clangopts -c %p/Inputs/bss.c -o %t.o
+RUN: %link %linkopts %t.o -o %t.out -z max-page-size=4096
+RUN: %readelf -l %t.out | %filecheck %s
+
+#CHECK:   LOAD           {{.*}} RW 0x1000

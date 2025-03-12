@@ -1,0 +1,11 @@
+# Test that linker is able to create a PLT entry for the symbol.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.cpp -o %t1.o
+RUN: %link %linkopts -march arm  -shared %t1.o -o %t1.so
+RUN: %link %linkopts -march arm  %t1.o -o %t1.out --noinhibit-exec
+RUN: %readelf --dyn-syms %t1.so | %filecheck %s --check-prefix="SHLIB"
+RUN: %readelf -s %t1.out | %filecheck %s --check-prefix="STATIC"
+
+#SHLIB: {{[0-9a-f]+}}     0 OBJECT  GLOBAL DEFAULT   8 __exidx_start
+#SHLIB-NOT: 00000000     0 OBJECT  GLOBAL DEFAULT   8 __exidx_start
+#STATIC: {{[0-9a-f]+}}     0 OBJECT  GLOBAL DEFAULT    2 __exidx_end
+#STATIC-NOT: 00000000     0 OBJECT  GLOBAL DEFAULT    2 __exidx_end

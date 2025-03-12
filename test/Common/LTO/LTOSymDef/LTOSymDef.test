@@ -1,0 +1,16 @@
+UNSUPPORTED: iu
+#---LTOSymDef.test--------------------- Executable,LTO,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that values read from the symdef file are properly preserved in the
+# final output and not overridden if there is a bitcode symbol seen with the
+# same name.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts -ffunction-sections -fdata-sections -flto
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o %clangg0opts -ffunction-sections -fdata-sections -flto
+RUN: %link %linkopts %p/Inputs/r.symdef %t1.1.o %t1.2.o -o %t2.out -T %p/Inputs/script.t -flto-options=preserve-sym=foo,boo
+RUN: %nm -n %t2.out | %filecheck %s -check-prefix=SYM
+#SYM-DAG: 008782c0 A baz
+#SYM-DAG: 00080000 A bar
+#END_TEST

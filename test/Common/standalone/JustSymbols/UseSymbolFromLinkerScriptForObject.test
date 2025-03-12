@@ -1,0 +1,19 @@
+#---UseSymbolFromLinkerScriptForObject.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is has higher precedence for linker script provide symbols over
+# symbols from input object file passed via just-symbols for object files
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections -fdata-sections
+RUN: %elfcopy -R .ARM.exidx.text.bar -R .rel.ARM.exidx.text.bar -R .ARM.exidx.text.baz -R .rel.ARM.exidx.text.baz %t1.3.o %t1.3.o.1
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o --just-symbols=%t1.3.o.1 -T %p/Inputs/script.t -o %t.out.elf -Map %t.map --trace=symbol=a1 2>&1 | %filecheck %s
+RUN: %readelf -s %t.out.elf 2>&1 | %filecheck %s --check-prefix=ELFCHECK
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+#CHECK: Resolving symbol 'a1' from provide style sym def file '{{.*}}/Inputs/script.t'
+#MAPCHECK: PROVIDE(a1(0x7d0) = 0x7d0);
+#ELFCHECK: 000007d0     0 NOTYPE  GLOBAL DEFAULT   ABS a1
+#END_TEST
+

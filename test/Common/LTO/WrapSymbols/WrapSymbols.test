@@ -1,0 +1,26 @@
+#---WrapSymbols.test----------------------- Executable,LTO --------------------#
+
+
+#BEGIN_COMMENT
+# This test supports wrap symbols in Bitcode. If the definition is in the
+# bitcode file, the definition is preserved. This test checks that the link %linkopts is
+# successful, which internally makes the foo from 2.o not pulled in.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -flto -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -flto -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o %t1.3.o
+RUN: %link %linkopts %t1.1.o %t2.lib2.a -o %t2.out -e main --wrap foo --wrap bar --trace=wrap-symbols 2>&1 | %filecheck %s --check-prefix="TRACE"
+RUN: %readelf -s %t2.out | %filecheck %s
+
+TRACE-DAG: Inserting wrapper `__wrap_foo' for bitcode symbol
+TRACE-DAG: Inserting wrapper `__wrap_bar' for bitcode symbol
+TRACE-NOT: {{.*}}lib2.a{{.*}}2.o
+TRACE-DAG: Marking wrap symbol foo to be preserved.
+TRACE-DAG: Marking wrap symbol bar to be preserved.
+TRACE-DAG: Found real symbol `__wrap_foo' for wrapped symbol `foo'
+TRACE-DAG: Found real symbol `__wrap_bar' for wrapped symbol `bar'
+CHECK-DAG: FUNC    GLOBAL   DEFAULT    1 __wrap_foo
+CHECK-DAG: FUNC    GLOBAL   DEFAULT    1 __wrap_bar
+#END_TEST

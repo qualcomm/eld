@@ -1,0 +1,10 @@
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/t.s -o %t.o
+RUN: %link %linkopts  -march aarch64 -static %t.o -z max-page-size=0x1000 -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+#CHECK: {{.*}} <_test_tls_desc>:
+#CHECK: {{.*}} adrp    x0, 0x1000
+#CHECK: {{.*}} ldr     x0, [x0]
+#CHECK: {{.*}} <_test_tls_desc_local>:
+#CHECK: {{.*}} adrp    x0, 0x1000
+#CHECK: {{.*}} ldr     x0, [x0, #0x8]

@@ -1,0 +1,17 @@
+UNSUPPORTED: ndk-build
+#---WeakUndefs.test--------- Executable,Shared --------------------#
+
+#BEGIN_COMMENT
+# The weak undefined symbol prologue check is made sure that the symbol doesnot
+# become strong. This allows the weak symbol to never get called.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fno-pie %p/Inputs/1.c -o %t1.1.o -c
+RUN: %clang %clangopts -fno-pie %p/Inputs/2.c -o %t1.2.o -c -fpic
+RUN: %link %linkopts %t1.2.o -shared  -o %t2.so
+RUN: %link %linkopts -dy %t1.1.o %t2.so -o %t.out
+RUN: %objdump -d %t.out | %filecheck %s
+
+#CHECK: .word   0x00000000
+
+#END_TEST

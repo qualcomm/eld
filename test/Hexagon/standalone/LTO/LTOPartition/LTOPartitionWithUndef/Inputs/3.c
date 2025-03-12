@@ -1,0 +1,3 @@
+int baz() {
+  return foo();
+}

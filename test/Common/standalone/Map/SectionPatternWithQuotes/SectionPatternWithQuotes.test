@@ -1,0 +1,12 @@
+#---SectionPatternWithQuotes.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This test checks that the quotes surrounding a section pattern are preserved .
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -Map %t2.map -T %p/Inputs/script.t -o %t2.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: FOO
+#CHECK: *("*foo*")

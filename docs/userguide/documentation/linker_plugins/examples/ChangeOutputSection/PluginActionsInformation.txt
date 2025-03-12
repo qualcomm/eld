@@ -1,0 +1,6 @@
+# Detailed Plugin information
+# Plugin #0     ChangeOutputSection
+#       Modification #1 {C, Comment : Setting output section of '.text.foo' to 'bar'}
+#       Section :.text.foo      1.o
+#       Original Rule : *(.text.foo) #Rule 1, 1.linker.script
+#       Modified Rule : *(bar) #Rule 4, Internal-LinkerScript (Implicit rule inserted by Linker)

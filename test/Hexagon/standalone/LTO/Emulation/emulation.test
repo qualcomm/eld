@@ -1,0 +1,4 @@
+#This tests that the linker passes the appropriate emulation flag for LTO.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o  -flto -mv68
+RUN: %link %linkopts -mv68 %t1.o -o %t2.out --trace=lto 2>&1 | %filecheck %s
+#CHECK: Setting codegen MCPU to hexagonv68

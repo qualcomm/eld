@@ -1,0 +1,8 @@
+# This tests that unary plus, minus and not operators are handled properly.
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %nm -n %t2.out | %filecheck %s
+#CHECK: 00000000 A notval
+#CHECK: 00000064 A plusval
+#CHECK: ffffff9c A minusval
+

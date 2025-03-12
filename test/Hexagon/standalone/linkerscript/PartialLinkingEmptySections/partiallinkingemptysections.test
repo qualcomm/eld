@@ -1,0 +1,10 @@
+# This tests that partial linking can handle empty sections, though it contains
+# symbols.
+RUN: %clang %clangopts -c %p/Inputs/foo.s -o %t1.o
+RUN: %link %linkopts -r %t1.o -o %t2.r.o -T %p/Inputs/script.t
+RUN: %link %linkopts %t2.r.o -T %p/Inputs/exec.t -o %t2.exec
+RUN: %nm -n %t2.r.o | %filecheck %s
+RUN: %nm -n %t2.exec | %filecheck %s
+#CHECK: {{[0-9a-fx]+}} T another
+#CHECK: {{[0-9a-fx]+}} t here
+#CHECK: {{[0-9a-fx]+}} t there

@@ -1,0 +1,10 @@
+#---PCRelativeRelocation.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This tests for x86_64 PC relative relocation :- R_X86_64_PC32
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang -target x86_64 -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t1.out | %filecheck %s --allow-empty
+#CHECK-NOT: Not Implemented

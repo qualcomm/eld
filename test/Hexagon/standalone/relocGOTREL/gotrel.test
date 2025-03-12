@@ -1,0 +1,6 @@
+# This test creates a GOTREL relocation. The linker needs to process the
+# relocation properly when generating a static link %linkopts.
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.gotrel.o
+RUN: %link %linkopts %t1.gotrel.o -static -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+#CHECK: .got.plt

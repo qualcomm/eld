@@ -1,0 +1,45 @@
+#---PatchPLT.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test creation of PLT/GOT slots for patchable symbols.
+#END_COMMENT
+#START_TEST
+
+## Compile base.
+RUN: %clang %clangopts %p/Inputs/base.s -o %t.base.o -c
+RUN: %link %linkopts --no-emit-relocs --patch-enable --section-start=.plt=0x1000 --section-start=.text=0x2000 %t.base.o -o %t.base
+
+## Compile patch.
+RUN: %clang %clangopts -mno-relax -O3 -fno-pic %p/Inputs/f.c -o %t.f.o -c
+RUN: %clang %clangopts -mno-relax -O3 -fno-pic %p/Inputs/2.riscv.s -o %t.2.o -c
+RUN: %link %linkopts --patch-base=%t.base --section-start=.text=0x8000 --section-start=.pgot=0x9000 %t.f.o %t.2.o -o %t.2
+RUN: (%readelf -s %t.2; %objdump -d -s %t.2) | %filecheck %s --match-full-lines
+
+## Check that symbol values are expected.
+CHECK-DAG: [[#]]: {{0*}}1000     [[#]] NOTYPE  GLOBAL DEFAULT   ABS __llvm_patchable_xxx_f
+CHECK-DAG: [[#]]: {{0*}}1010     [[#]] NOTYPE  GLOBAL DEFAULT   ABS __llvm_patchable_xxx_g
+CHECK-DAG: [[#]]: {{0*}}2002     [[#]] FUNC    GLOBAL DEFAULT   ABS xxx_g
+CHECK-DAG: [[#]]: {{0*}}2004     [[#]] FUNC    GLOBAL DEFAULT   ABS xxx_h
+CHECK-DAG: [[#]]: {{0*}}8000     [[#]] FUNC    GLOBAL DEFAULT  [[#]] xxx_f
+
+CHECK: Disassembly of section .text:
+
+CHECK:      {{0*}}8000 <xxx_f>:
+CHECK-NEXT: 8000: 8082          ret
+
+## Offsets should be fixed because .plt is at 0x1000 and we are at 0x8000
+CHECK:      {{0*}}8002 <patch>:
+
+## Address of __llvm_patchable_xxx_f = &PLT[0] = 0x1000.
+CHECK-NEXT: 8002: 00001537      lui a0, 0x1
+CHECK-NEXT: 8006: 00050513      mv a0, a0
+
+## Address of __llvm_patchable_xxx_g = &PLT[0] = 0x1010.
+CHECK-NEXT: 800a: 00001537      lui a0, 0x1
+CHECK-NEXT: 800e: 01050513      addi a0, a0, 0x10
+
+## Address of non-patchable xxx_h = 0x2004.
+CHECK-NEXT: 8012: 00002537      lui a0, 0x2
+CHECK-NEXT: 8016: 00450513      addi a0, a0, 0x4
+
+#END_TEST

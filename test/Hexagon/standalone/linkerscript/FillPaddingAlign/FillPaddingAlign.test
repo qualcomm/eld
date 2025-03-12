@@ -1,0 +1,11 @@
+#---FillPaddingAlign.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that padding is filled properly in the output file, and tests that
+# the linker is not filling with extra bytes.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck %s
+
+#CHECK: aa aa aa 00

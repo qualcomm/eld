@@ -1,0 +1,14 @@
+#---unknown.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Add --ignore-unknown-opts option
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts  -trace=lto -asdfasdfasd %t.o -o %t.out --ignore-unknown-opts 2>&1 | %filecheck %s
+RUN: %nm %t.out | %filecheck %s -check-prefix NMCHECK
+
+CHECK-NOT: Warning
+NMCHECK: foo
+
+#END_TEST

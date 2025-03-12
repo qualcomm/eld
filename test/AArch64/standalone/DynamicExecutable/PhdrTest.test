@@ -1,0 +1,24 @@
+#--PhdrTest.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# On Linux environment with QEMU on AArch64, the linker loads the program header
+# if we end up creating a dynamic executable or if there is thread local
+# storage.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -target aarch64
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o  -target aarch64
+RUN: %clang %clangopts -c %p/Inputs/static.c -o %t1.static.o  -target aarch64
+RUN: %link %linkopts -shared %t1.2.o -o %t2.so
+RUN: %link %linkopts %t1.static.o  -o %t2.out.static
+# build static executable and check phdr is not loaded.
+RUN: %readelf -l -W %t2.out.static 2>&1 | %filecheck %s
+# build dynamic executable and check phdr is loaded.
+RUN: %link %linkopts -m aarch64linux %t1.1.o %t2.so -o %t2.out.dyn
+RUN: %readelf -l -W %t2.out.dyn | %filecheck %s -check-prefix=LOADPHDR
+# build PIE executable and check phdr is loaded.
+RUN: %link %linkopts -pie -m aarch64linux %t1.1.o %t2.so -o %t2.out.pie
+RUN: %readelf -l -W %t2.out.pie | %filecheck %s -check-prefix=LOADPHDR
+
+#CHECK-NOT: LOAD 0x000000
+#LOADPHDR: LOAD 0x000000

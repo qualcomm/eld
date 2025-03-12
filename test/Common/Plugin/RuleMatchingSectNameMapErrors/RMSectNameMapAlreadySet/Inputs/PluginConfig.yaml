@@ -1,0 +1,7 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: RMSectNameMapA
+    Library: RMSectNameMapAlreadySet
+  - Type: LinkerPlugin
+    Name: RMSectNameMapB
+    Library: RMSectNameMapAlreadySet

@@ -1,0 +1,14 @@
+#---FloatABI.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+# Check the Map file that Float ABI is shown properly.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %yaml2obj %p/Inputs/float.yaml -o %t.o
+RUN: %link %linkopts %t.o -o %t1.out -M 2>&1 | %filecheck --check-prefix=FLOATABI %s
+RUN: %not %link -march riscv64 %t.o -o %t1.out -M 2>&1 | %filecheck --check-prefix=ERROR %s
+
+#FLOATABI: Single
+#ERROR: riscv64

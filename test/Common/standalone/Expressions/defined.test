@@ -1,0 +1,13 @@
+#---defined.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Test DEFINED function.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/defined.t 2>&1 | %filecheck --allow-empty %s
+CHECK-NOT: undefined symbol 'B' referenced in expression
+CHECK-NOT: Symbol D used before being defined
+CHECK-NOT: Assertion failed.
+CHECK-NOT: Linking had errors.
+#END_TEST

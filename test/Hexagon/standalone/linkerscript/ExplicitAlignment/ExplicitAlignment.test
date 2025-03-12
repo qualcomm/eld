@@ -1,0 +1,11 @@
+#---ExplicitAlignment.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that explicit alignment requested by linker script is smaller than
+# the alignment that is been set in the section. The linker should not set the
+# alignment requested.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: .data 0x200

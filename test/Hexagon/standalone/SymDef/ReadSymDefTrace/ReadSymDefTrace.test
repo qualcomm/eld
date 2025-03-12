@@ -1,0 +1,11 @@
+#---ReadSymDefTrace.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks the trace info when linker reads the symdef file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o %p/Inputs/x.symdef -o %t2.out.2 --trace=symdef
+#CHECK: Note: Read symbol 'baz' from sym def file{{.*}}'x.symdef'
+#CHECK: Note: Resolving symbol 'baz' from sym def file{{.*}}'x.symdef'
+#END_TEST

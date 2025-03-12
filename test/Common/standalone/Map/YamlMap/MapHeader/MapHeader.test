@@ -1,0 +1,14 @@
+#---MapHeader.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests the output of yaml map file header.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -MapStyle=yaml -M 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Header:
+#CHECK:   Architecture:    {{.*}}
+#CHECK:   Emulation:       {{.*}}
+#CHECK:   AddressSize:     {{.*}}
+#CHECK:   ABIPageSize:     {{.*}}

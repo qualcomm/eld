@@ -1,0 +1,14 @@
+# Test that AT behaves properly with empty sections.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script_nophdr.t -o %t2.out.nophdr
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script_phdr.t -o %t2.out.phdr
+RUN: %readelf -l -W %t2.out.nophdr | %filecheck %s
+RUN: %readelf -l -W %t2.out.phdr | %filecheck %s
+
+#CHECK:  LOAD           0x001000 0xf0004000 0x00004000
+#CHECK:  LOAD           0x002000 0xf0040000 0x00040000
+#CHECK:  LOAD           0x003000 0xf0050000 0x00050000
+#CHECK:  Segment Sections...
+#CHECK:   00     .foo
+#CHECK:   01     .bar
+#CHECK:   02     .baz

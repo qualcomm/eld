@@ -1,0 +1,7 @@
+# This tests that TraceGC only prints the references from sections that are
+# processed by GC.
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -g -o %t1.1.o
+RUN: %link  -o %t1.out %linkopts --gc-sections %t1.1.o -e main --trace=garbage-collection 2>&1 | %filecheck %s
+RUN: %link  -o %t1.out.1 %linkopts --gc-sections %t1.1.o -e main --gc-cref .text.bar 2>&1 | %filecheck %s
+
+#CHECK-NOT: .debug

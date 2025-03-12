@@ -1,0 +1,40 @@
+#---AlignBuiltinFuncNonPow2.test----------------- Executable----------------#
+#BEGIN_COMMENT
+# Verify that non-power-of-2 values passed into the ALIGN() builtin function
+# are handled correctly and that we are only warning on non-zero non-power-of-2
+# values when -Wlinker-script is enabled.
+#
+# ld.bfd allows non-power-of-2 values, ld.lld currently rejects these
+# (besides 0). We try to align with ld.bfd's behavior here.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+
+# Check ALIGN(align) usages
+RUN: %link %linkopts -o %t.a.out %t1.o -Wno-linker-script -T %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix=NO-WARN --allow-empty
+RUN: %nm -S %t.a.out 2>&1 | %filecheck %s --check-prefix=NM-OUT
+RUN: %link %linkopts -Wlinker-script -o %t.a.out %t1.o -T %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix=WARN
+RUN: %nm -S %t.a.out 2>&1 | %filecheck %s --check-prefix=NM-OUT
+
+# Check ALIGN(exp, align) usages
+RUN: %link %linkopts -o %t.a.out %t1.o -Wno-linker-script -T %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix=NO-WARN --allow-empty
+RUN: %nm -S %t.a.out 2>&1 | %filecheck %s --check-prefix=NM-OUT
+RUN: %link %linkopts -Wlinker-script -o %t.a.out %t1.o -T %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix=WARN
+RUN: %nm -S %t.a.out 2>&1 | %filecheck %s --check-prefix=NM-OUT
+
+NO-WARN-NOT: Warning: {{.*}}Inputs/script{{[1-2]}}.t: non-power-of-2{{.*}}
+
+NM-OUT: 00000014 {{.*}} bar
+NM-OUT: 00000100 {{.*}} baz
+
+# There's two quirks here:
+#   1. With the new parser, outermost expressions may have their context from parsing
+#      (which has script name and line number) overwritten later on, dropping the line
+#      number.
+WARN: Warning: {{.*}}Inputs/script{{[1-2]}}.t{{.*}}: non-power-of-2 value 0x14 passed to ALIGN builtin function
+WARN-NOT: Warning: {{.*}}Inputs/script{{[1-2]}}.t{{.*}}: non-power-of-2 value 0x100 passed to ALIGN builtin function
+WARN-NOT: Warning: {{.*}}Inputs/script{{[1-2]}}.t{{.*}}: non-power-of-2 value 0x0 passed to ALIGN builtin function
+WARN: Warning: {{.*}}Inputs/script{{[1-2]}}.t{{.*}}: non-power-of-2 value 0x1e passed to ALIGN builtin function
+WARN: Warning: {{.*}}Inputs/script{{[1-2]}}.t{{.*}}: non-power-of-2 value 0x21c passed to ALIGN builtin function
+#END_TEST

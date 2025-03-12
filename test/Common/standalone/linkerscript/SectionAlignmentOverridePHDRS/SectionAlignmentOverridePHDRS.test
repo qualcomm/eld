@@ -1,0 +1,24 @@
+#---SectionAlignmentOverridePHDRS.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# If the linker script has an expression that overrides the default VMA
+# associated with the section using a direct expression or an absolute value,
+# the absolute value may be desired to not be aligned to the alignment of the
+# section.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.a.o
+RUN: %link %linkopts %t1.a.o -T %p/Inputs/script1.t -o %t2.out.1
+RUN: %clang %clangopts -c %p/Inputs/b.s -o %t1.b.o
+RUN: %link %linkopts %t1.a.o -T %p/Inputs/script2.t -o %t2.out.2
+RUN: %clang %clangopts -c %p/Inputs/c.s -o %t1.c.o
+RUN: %link %linkopts %t1.a.o -T %p/Inputs/script3.t -o %t2.out.3
+RUN: %clang %clangopts -c %p/Inputs/d.s -o %t1.d.o
+RUN: %link %linkopts %t1.d.o -T %p/Inputs/script4.t -o %t2.out.4
+RUN: %readelf -S -W %t2.out.1 | %filecheck %s -check-prefix=VMA1
+RUN: %readelf -S -W %t2.out.2 | %filecheck %s -check-prefix=VMA1
+RUN: %readelf -S -W %t2.out.3 | %filecheck %s -check-prefix=VMA2
+RUN: %readelf -S -W %t2.out.4 | %filecheck %s -check-prefix=VMA3
+
+#VMA1: .text {{.*}}10
+#VMA2: .text {{.*}}cc
+#VMA3: .text {{.*}}10

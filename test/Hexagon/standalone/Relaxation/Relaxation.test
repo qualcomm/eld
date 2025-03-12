@@ -1,0 +1,29 @@
+#---Relaxation.test--------- Executable------- --------------------#
+
+
+
+
+#BEGIN_COMMENT
+#This tests that the linker is able to remove tail jumps
+#also adds a test that the linker should not relax.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts  %p/Inputs/1.s -o %t1.1.o -c
+RUN: %clang %clangopts  %p/Inputs/2.s -o %t1.2.o -c
+RUN: %clang %clangopts  %p/Inputs/t.s -o %t1.t.o -c
+RUN: %link %linkopts --relax %t1.1.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=RELAX
+RUN: %objdump -d %t2.out | %filecheck %s
+RUN: %link %linkopts --relax %t1.2.o -o %t2.out.nor --verbose 2>&1 | %filecheck %s -check-prefix=DONTRELAX
+RUN: %link %linkopts %t1.1.o -o %t2.out.norelax --relax=".text.bar" --verbose 2>&1 | %filecheck %s -check-prefix=DONTRELAX
+RUN: %link %linkopts %t1.1.o -o %t2.out.relax --relax=".text.foo" --verbose 2>&1 | %filecheck %s -check-prefix=RELAX
+RUN: %link %linkopts %t1.1.o -o %t2.out.relax --relax=".text.foo" --relax --verbose 2>&1 | %filecheck %s -check-prefix=RELAX
+RUN: %link %linkopts --relax %t1.t.o -T %p/Inputs/script.t -o %t2.out.nodel --verbose 2>&1 | %filecheck %s -check-prefix=DONTRELAX
+
+#RELAX: Deleting 4 bytes for symbol '.text.bar' in section .text.foo
+#RELAX: Deleting 4 bytes for symbol '.text.bar' in section .text.foo
+#RELAX: Deleting 4 bytes for symbol '.text.bar' in section .text.foo
+#DONTRELAX-NOT: Deleting
+
+CHECK: { nop }
+
+#END_TEST

@@ -1,0 +1,34 @@
+#---base-addr.test-------------------------- Executable -----------------------#
+
+
+#BEGIN_COMMENT
+# This test checks that the linker assigns a predefined base address for the
+# static images under linux environment when not using a linker script and the
+# address specified in the sections command when using a linker script.
+#END_COMMENT
+#------------------------------------------------------------------------------
+#START_TEST
+RUN: %clang -target riscv32 -c %p/Inputs/hello.c -o %t1.o
+RUN: %clang -target riscv64 -c %p/Inputs/hello.c -o %t2.o
+RUN: %clang -target riscv64 -c %p/Inputs/foo.c -o %t2.foo.o
+RUN: %clang -target riscv64 -c %p/Inputs/bar.c -o %t2.bar.o
+RUN: %link -mtriple riscv64-unknown-linux -shared %t2.bar.o -o %t2.bar.so
+RUN: %link -Bdynamic -mtriple riscv64-unknown-linux %t2.foo.o %t2.bar.so -o %t2.dynexec.out
+RUN: %link -mtriple riscv32-unknown-linux %t1.o -o %t1.out
+RUN: %link -mtriple riscv64-unknown-linux %t2.o -o %t2.out
+RUN: %link -mtriple riscv32-unknown-linux -T %p/Inputs/script.t %t1.o -o %t3.out
+RUN: %link -mtriple riscv64-unknown-linux -T %p/Inputs/script.t %t2.o -o %t4.out
+RUN: %readelf -l -W %t1.out | %filecheck --check-prefix=RV32 %s
+RUN: %readelf -l -W %t2.out | %filecheck --check-prefix=RV64 %s
+RUN: %readelf -l -W %t3.out | %filecheck --check-prefix=LCF32 %s
+RUN: %readelf -l -W %t4.out | %filecheck --check-prefix=LCF64 %s
+RUN: %readelf -l -W %t2.dynexec.out | %filecheck --check-prefix=RV64 %s
+#END_TEST
+RV32: LOAD           {{[0x1-9a-f]+}}  0x08048000 0x08048000 {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} R E 0x1000
+RV32: LOAD            {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} RW  0x1000
+RV64: LOAD           {{[0x1-9a-f]+}}  0x0000000000400000 0x0000000000400000 {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} R E 0x1000
+RV64: LOAD            {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} RW  0x1000
+LCF32: LOAD           {{[0x1-9a-f]+}}  0x00010000 0x00010000 {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} R E 0x1000
+LCF32: LOAD            {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} RW  0x1000
+LCF64: LOAD           {{[0x1-9a-f]+}}  0x0000000000010000 0x0000000000010000 {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} R E 0x1000
+LCF64: LOAD            {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} RW  0x1000

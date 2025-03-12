@@ -1,0 +1,19 @@
+#---InitialLayoutIgnoreSections.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks that 'LDFileFormat::ignored' sections are only printed
+# once in the initial layout.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -g -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.ignore.t -MapDetail show-initial-layout -Map %t1.main.map.txt
+RUN: %filecheck %s < %t1.main.map.txt
+#END_TEST
+CHECK: Initial layout:
+CHECK: .debug_abbrev
+CHECK: .debug_info
+CHECK-NOT: .debug_abbrev
+CHECK-NOT: .debug_info
+CHECK: Output Section and Layout
+CHECK: # .debug_abbrev
+CHECK: # .debug_info

@@ -1,0 +1,13 @@
+#---TraceSectionWildCardMatcher3.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check tracing of sections with wildcard matching.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --trace=section="^.text.foo$" 2>&1 | %filecheck %s
+
+CHECK: Note: Input Section : .text.foo InputFile : {{.*}}.o Alignment : 0x10 Size : 0xc Flags : SHF_ALLOC|SHF_EXECINSTR
+CHECK: Note: Input Section : .text.foo Symbol : foo
+CHECK: Note: Input Section : .text.foo PMA : 0x0 VMA : 0x0 Offset : 0x0 Size : 0xc
+CHECK: Note: Input Section : .text.foo PMA : 0x0 VMA : 0x0 Offset : 0x0 Size : 0x

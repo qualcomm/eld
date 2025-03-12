@@ -1,0 +1,10 @@
+#Test if /DISCARD/ : { *(.dynsym) *(.dynstr) *(.hash) } 
+# removes them from a shared library
+RUN: %clang %clangopts  -fpic %p/Inputs/1.c -c -o %t1.o
+RUN: %link %linkopts  -shared -T %p/Inputs/t.t %t1.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+
+CHECK: ELF32
+CHECK-NOT: dynsym
+CHECK-NOT: hash
+CHECK-NOT: dynstr

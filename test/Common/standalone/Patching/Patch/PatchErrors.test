@@ -1,0 +1,15 @@
+#---PatchPLT.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test errors when trying to build the patch image as a shared library.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts %p/Inputs/base.s -o %t.base.o -c
+
+RUN: %clang %clangopts -o %t.patch.o -c %p/Inputs/patch.c
+RUN: %not %link %linkopts --no-emit-relocs --patch-base=%t.base.o %t.patch.o -o %t.patch 2>&1 | %filecheck %s
+
+CHECK: Error: The file {{.+}}, specified by --patch-base, must be an executable ELF file
+
+#END_TEST

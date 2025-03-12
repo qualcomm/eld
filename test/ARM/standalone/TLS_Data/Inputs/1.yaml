@@ -1,0 +1,122 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5 ]
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x4
+    Content:         0000A0E10000A0E10EF0A0E10000000000000000000000000C00000000000000
+  - Name:            .data
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x1
+  - Name:            .bss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x1
+  - Name:            .tdata
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC, SHF_TLS ]
+    AddressAlign:    0x1
+    Content:         '0000000000000000'
+  - Name:            .tbss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC, SHF_TLS ]
+    AddressAlign:    0x1
+    Size:            0x8
+  - Name:            .ARM.attributes
+    Type:            SHT_ARM_ATTRIBUTES
+    AddressAlign:    0x1
+    Content:         '4113000000616561626900010900000006010801'
+  - Name:            .rel.text
+    Type:            SHT_REL
+    Flags:           [ SHF_INFO_LINK ]
+    Link:            .symtab
+    AddressAlign:    0x4
+    Info:            .text
+    Relocations:
+      - Offset:          0xC
+        Symbol:          app_gd
+        Type:            R_ARM_TLS_GD32
+      - Offset:          0x10
+        Symbol:          app_ld
+        Type:            R_ARM_TLS_LDM32
+      - Offset:          0x14
+        Symbol:          app_ld
+        Type:            R_ARM_TLS_LDO32
+      - Offset:          0x18
+        Symbol:          app_ie
+        Type:            R_ARM_TLS_IE32
+      - Offset:          0x1C
+        Symbol:          app_le
+        Type:            R_ARM_TLS_LE32
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .text
+      - Name:            .rel.text
+      - Name:            .data
+      - Name:            .bss
+      - Name:            .tdata
+      - Name:            .tbss
+      - Name:            .ARM.attributes
+      - Name:            .shstrtab
+      - Name:            .symtab
+      - Name:            .strtab
+Symbols:
+  - Name:            .text
+    Type:            STT_SECTION
+    Section:         .text
+  - Name:            .data
+    Type:            STT_SECTION
+    Section:         .data
+  - Name:            .bss
+    Type:            STT_SECTION
+    Section:         .bss
+  - Name:            '$a'
+    Section:         .text
+  - Name:            '$d'
+    Section:         .text
+    Value:           0xC
+  - Name:            .tdata
+    Type:            STT_SECTION
+    Section:         .tdata
+  - Name:            '$d (1)'
+    Type:            STT_TLS
+    Section:         .tdata
+  - Name:            .tbss
+    Type:            STT_SECTION
+    Section:         .tbss
+  - Name:            '$d (2)'
+    Type:            STT_TLS
+    Section:         .tbss
+  - Name:            .ARM.attributes
+    Type:            STT_SECTION
+    Section:         .ARM.attributes
+  - Name:            foo
+    Type:            STT_FUNC
+    Section:         .text
+    Binding:         STB_GLOBAL
+  - Name:            app_gd
+    Type:            STT_TLS
+    Section:         .tdata
+    Binding:         STB_GLOBAL
+  - Name:            app_ld
+    Type:            STT_TLS
+    Section:         .tdata
+    Binding:         STB_GLOBAL
+    Value:           0x4
+  - Name:            app_ie
+    Type:            STT_TLS
+    Section:         .tbss
+    Binding:         STB_GLOBAL
+  - Name:            app_le
+    Type:            STT_TLS
+    Section:         .tbss
+    Binding:         STB_GLOBAL
+    Value:           0x4
+...

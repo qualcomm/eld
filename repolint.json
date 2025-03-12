@@ -1,0 +1,126 @@
+{
+    "$schema": "https://raw.githubusercontent.com/todogroup/repolinter/master/rulesets/schema.json",
+    "version": 2,
+    "axioms": {
+      "linguist": "language",
+      "licensee": "license",
+      "packagers": "packager"
+    },
+    "rules": {
+      "license-file-exists": {
+        "level": "error",
+        "rule": {
+          "type": "file-existence",
+          "options": {
+            "globsAny": [
+              "LICENSE*",
+              "COPYING*",
+              "NOTICE*"
+            ],
+            "nocase": true
+          }
+        }
+      },
+      "readme-file-exists": {
+        "level": "error",
+        "rule": {
+          "type": "file-existence",
+          "options": {
+            "globsAny": [
+              "README*"
+            ],
+            "nocase": true
+          }
+        }
+      },
+      "contributing-file-exists": {
+        "level": "warning",
+        "rule": {
+          "type": "file-existence",
+          "options": {
+            "globsAny": [
+              "{docs/,.github/,}CONTRIB*"
+            ],
+            "nocase": true
+          }
+        }
+      },
+      "code-of-conduct-file-exists": {
+        "level": "warning",
+        "rule": {
+          "type": "file-existence",
+          "options": {
+            "globsAny": [
+              "{docs/,.github/,}CODEOFCONDUCT*",
+              "{docs/,.github/,}CODE-OF-CONDUCT*",
+              "{docs/,.github/,}CODE_OF_CONDUCT*"
+            ],
+            "nocase": true
+          }
+        }
+      },
+      "readme-references-license": {
+        "level": "error",
+        "rule": {
+          "type": "file-contents",
+          "options": {
+            "globsAll": [
+              "README*"
+            ],
+            "content": "license|notice",
+            "flags": "i"
+          }
+        }
+      },
+      "test-directory-exists": {
+        "level": "warning",
+        "rule": {
+          "type": "directory-existence",
+          "options": {
+            "globsAny": [
+              "**/test*",
+              "**/specs",
+              "**/*test*"
+            ],
+            "nocase": true
+          }
+        }
+      },
+      "source-license-headers-exist": {
+        "level": "error",
+        "rule": {
+          "type": "file-starts-with",
+          "options": {
+            "globsAll": [
+              "**/*.c",
+              "**/*.cc",
+              "**/*.cpp",
+              "**/*.h",
+              "**/*.hpp"
+            ],
+            "skip-paths-matching": {
+              "patterns": [
+                "test*",
+                "docs*"
+              ]
+            },
+            "lineCount": 60,
+            "patterns": [
+              "SPDX-License-Identifier|Redistribution and use in source and binary forms, with or without|(Copyright|©).*Qualcomm Innovation Center, Inc|Qualcomm Technologies, Inc|Copyright (\\(c\\)|©) (20(1[2-9]|2[0-2])(-|,|\\s)*)+ The Linux Foundation"
+            ],
+            "flags": "i"
+          }
+        }
+      },
+      "license-detectable-by-licensee": {
+        "level": "off",
+        "where": [
+          "license=*"
+        ],
+        "rule": {
+          "type": "license-detectable-by-licensee",
+          "options": {}
+        }
+      }
+    }
+  }

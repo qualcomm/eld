@@ -1,0 +1,14 @@
+#---OptimalAtCommandUsage.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# If there is not a VMA LMA difference, it might be optimal to not create a
+# segment, even if the user uses an AT command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.foo.o -ffunction-sections
+RUN: %link %linkopts %t1.foo.o -T %p/Inputs/script.t -o %t2.out.1 2>&1
+RUN: %link %linkopts %t1.foo.o -T %p/Inputs/scripto.t -o %t2.out.2 2>&1
+RUN: %readelf -l -W %t2.out.1 | %filecheck %s
+RUN: %readelf -l -W %t2.out.2 | %filecheck %s
+
+#CHECK: .foo .bar

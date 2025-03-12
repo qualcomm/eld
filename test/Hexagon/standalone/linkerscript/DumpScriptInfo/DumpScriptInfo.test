@@ -1,0 +1,17 @@
+#---DumpScriptInfo.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check dumping of linkerscript information in MAP file
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/3.c -o %t3.o
+RUN: %ar cr %aropts %t2.lib2.a %t2.o %t3.o
+RUN: cp %p/Inputs/script.t %t4.t
+RUN: echo "INPUT(\"%t1.o\")" >> %t4.t
+RUN: echo "GROUP(\"%t2.lib2.a\")" >> %t4.t
+RUN: %link %linkopts -T %t4.t -M 2>&1 | %filecheck %s --allow-empty
+CHECK: # Output Section and Layout
+CHECK-NEXT: plusval(0x100) = 0x100;

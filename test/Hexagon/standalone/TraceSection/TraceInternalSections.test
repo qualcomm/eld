@@ -1,0 +1,10 @@
+#---TraceInputSections.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check tracing of internal sections.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts --force-dynamic -o %t.out %t1.o --trace=section=.hash 2>&1 | %filecheck %s
+CHECK: Note: Internal Section : .hash Alignment : 0x4 Size : 0x0 Flags : SHF_ALLOC
+CHECK: Note: Input Section : .hash PMA : 0x28 VMA : 0x28 Offset : 0x0 Size : 0x10

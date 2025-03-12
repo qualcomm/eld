@@ -1,0 +1,2 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -march arm -L%p/Inputs/ -T %p/script_with_expression.t %t.o -o %t.out 2>&1

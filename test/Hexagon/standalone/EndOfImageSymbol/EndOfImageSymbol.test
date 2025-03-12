@@ -1,0 +1,16 @@
+#---EndOfImageSymbol.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to add an end of image marker symbol that
+# points to the end of the image.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: %readelf -s -W %t2.out | %filecheck %s
+RUN: %link %linkopts %t1.o -o %t2.out.gc --gc-sections
+RUN: %readelf -s -W %t2.out.gc | %filecheck %s
+RUN: %link %linkopts %t1.o -o %t2.out.ls -T %p/Inputs/script.t --gc-sections
+RUN: %readelf -s -W %t2.out.ls | %filecheck %s
+#CHECK: {{[0-9a-f]+[1-9a-f]+}}    0 NOTYPE  GLOBAL DEFAULT  ABS __end
+#END_TEST

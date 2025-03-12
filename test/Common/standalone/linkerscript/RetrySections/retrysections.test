@@ -1,0 +1,6 @@
+# Test that linker should not retry a section if that matched a real rule.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK-NOT: .text.baz

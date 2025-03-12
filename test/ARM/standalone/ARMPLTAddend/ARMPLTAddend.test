@@ -1,0 +1,21 @@
+#---ARMPLTAddend.test--------------------------- SharedObject -----------------#
+
+#BEGIN_COMMENT
+# This checks that ARM Linker generates proper PLT code for accessing the GOT.
+# The below test when run with arm-linux-gnueabi-objdump would produce this result
+# which is more readable.
+#     00000188 <baz@plt>:
+#          188:   e28fc600        add     ip, pc, #0, 12
+#          18c:   e28cca44        add     ip, ip, #68, 20 ; 0x44000
+#          190:   e5bcfffc        ldr     pc, [ip, #4092]!        ; 0xffc
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts -shared %t1.1.o -T %p/Inputs/script.t -o %t2.lib2.so
+RUN: %objdump -d %t2.lib2.so | %filecheck %s
+
+CHECK: 188: e28fc600      add     r12, pc, #0, #12
+CHECK: 18c: e28cca44      add     r12, r12, #68, #20
+CHECK: 190: e5bcfffc      ldr     pc, [r12, #0xffc]
+
+#END_TEST

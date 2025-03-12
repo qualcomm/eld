@@ -1,0 +1,1 @@
+NOCROSSREFS(.foo .bar .baz)

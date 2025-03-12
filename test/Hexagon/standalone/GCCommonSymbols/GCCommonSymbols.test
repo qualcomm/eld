@@ -1,0 +1,17 @@
+#---GCCommonSymbols.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests the GC marks the common symbol as IGNORE and we can use trace
+# symbol to track symbol liveness. Previously the linker used to always treat
+# common symbols as non live even when gc-sections is not enabled. There was
+# code around the linker to treat commons as live only if GC is enabled. This is
+# wrong.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o %clangg0opts
+RUN: %link %linkopts %t1.1.o %t1.2.o -e baz --gc-sections --trace=symbol=bar -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: Symbol `bar' from Input file `{{[ -\(\)_A-Za-z0-9.\\/:]+}}' with info `(ELF)(OBJECT)(COMMON)[Global]{DEFAULT}{IGNORE}'
+
+#END_TEST

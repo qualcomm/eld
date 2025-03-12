@@ -1,0 +1,15 @@
+#---UndefinedSymbolReportAll.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that all undefined symbols are reported,
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %not %link %linkopts -Bdynamic %t1.1.o %t1.lib2.so -o %t2.out.1 --unresolved-symbols=report-all 2>&1 | %filecheck %s -check-prefix=SHARED
+RUN: %not %link %linkopts -Bdynamic %t1.1.o %t1.2.o -o %t2.out.2 --unresolved-symbols=report-all 2>&1 | %filecheck %s -check-prefix=OBJ
+#SHARED: {{.*}}lib2.so
+#OBJ: {{.*}}2.o
+
+#END_TEST

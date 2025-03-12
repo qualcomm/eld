@@ -1,0 +1,17 @@
+#---DynamicListSearch.test-------Executable/SharedLibrary----------------------------#
+
+#BEGIN_COMMENT
+#Improve dynamic list parsing by using linker script parser.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o
+RUN: %link %linkopts -shared %t1.1.o -L %p/Inputs/ --dynamic-list dynlist -o %t1.so \
+RUN: --verbose -Map %t1.map 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+
+#CHECK: Verbose: Dynamic List[{{.*}}dynlist] : foo
+#CHECK: Verbose: Dynamic List[{{.*}}dynlist] : bar
+#CHECK: Verbose: Dynamic List[{{.*}}extrasym.t] : baz
+#MAP: {{.*}}dynlist
+#MAP: {{.*}}extrasym.t

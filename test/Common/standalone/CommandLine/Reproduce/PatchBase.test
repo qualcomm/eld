@@ -1,0 +1,15 @@
+REQUIRES: riscv32 || riscv64
+#---ExternList.test------------------------- Executable ----------------------#
+
+#BEGIN_COMMENT
+# Check --patch-base path rewrite in the response file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts %t.1.o -o %t.base.out
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts --patch-base=%t.base.out %t.2.o -o %t.out --reproduce %t0.tar --dump-mapping-file %t.mapping --dump-response-file %t.response
+RUN: %filecheck %s --check-prefix=CHECK_MAPPING <%t.mapping
+RUN: %filecheck %s --check-prefix=CHECK_RESPONSE <%t.response
+CHECK_MAPPING: .base.out=Object/PatchBase.test.tmp.base.out
+CHECK_RESPONSE: --patch-base{{[= ]}}Object/PatchBase.test.tmp.base.out

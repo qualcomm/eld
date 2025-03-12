@@ -1,0 +1,24 @@
+#---AllOutSectAddresses.test----------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# This tests checks the behavior of plugin framework APIs:
+# LinkerWrapper::getAllOutputSections, eld::plugin::OutputSection::getVirtualAddress,
+# and eld::plugin::OutputSection::getPhysicalAddress.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.InvalidState.t 2>&1 | %filecheck %s --check-prefix=INVALID_STATE
+#END_TEST
+#CHECK: Output section: foo
+#CHECK: Virtual address: 32768
+#CHECK: Physical address: 32768
+#CHECK: Output section: bar
+#CHECK: Virtual address: 90112
+#CHECK: Physical address: 90112
+#CHECK: Output section: .comment
+#CHECK: Virtual address: {{.*}}
+#CHECK: Physical address: 0
+#INVALID_STATE: InvalidStateFindOutSectAddresses:Error: Link state 'BeforeLayout' is invalid for the API '{{(eld::plugin::OutputSection::)?}}getVirtualAddress'. Valid link states: ['CreatingSegments, AfterLayout']
+#INVALID_STATE: InvalidStateFindOutSectAddresses:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}eld::plugin::LinkerWrapper::getAllOutputSections({{.*}}) const'. Valid link states: [CreatingSegments, AfterLayout]

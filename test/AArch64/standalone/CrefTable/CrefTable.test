@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/3.c -o %t3.o
+RUN: %link %linkopts -march aarch64 %t1.o %t2.o %t3.o --cref -o %t.out --gc-sections --entry=main | %filecheck %s
+
+#CHECK:   bar {{.*tmp2.o}}
+#CHECK:    {{.*tmp3.o}}
+#CHECK:   commonChar {{.*tmp1.o}}
+#CHECK:   foo {{.*tmp2.o}}
+#CHECK:    {{.*tmp1.o}}
+

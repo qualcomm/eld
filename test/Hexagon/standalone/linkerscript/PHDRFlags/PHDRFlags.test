@@ -1,0 +1,14 @@
+#---PHDRFlags.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that the PHDR command can also be used to specify the initial flags
+# for the segment. The test doesnot use %readelf since, GNU %readelf doesnot
+# display this property of the segment.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: LoadRegions:
+#CHECK:   - Name:            A
+#CHECK:     Type:            [ PT_LOAD ]
+#CHECK:     Permissions:     [ READ, WRITE, EXECUTE, PROCESSOR_SPECIFIC ]

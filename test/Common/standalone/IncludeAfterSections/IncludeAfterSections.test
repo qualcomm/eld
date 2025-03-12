@@ -1,0 +1,11 @@
+#---IncludeAfterSection.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks the usage of INCLUDE command after SECTIONS command.
+#END_COMMENT
+#START_TEST
+RUN: %rm another_script.t
+RUN: %clang %clangopts -c -o %t1.1.o %p/Inputs/1.c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%p/Inputs -T %p/Inputs/script.t --verbose 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Trying to open script include file `{{.*}}another_script.t' for `another_script.t': found

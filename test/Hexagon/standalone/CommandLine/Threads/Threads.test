@@ -1,0 +1,16 @@
+#---Threads.test--------------------------- Executable,LS -----------------#
+
+#BEGIN_COMMENT
+# This checks enabling, disabling threads, setting thread counts.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out.enable --threads --trace=threads 2>&1 | %filecheck %s -check-prefix=ENABLETHREADS
+RUN: %link %t1.1.o -o %t2.out.disable --no-threads --trace=threads 2>&1 | %filecheck %s -check-prefix=DISABLETHREADS
+RUN: %link %linkopts %t1.1.o -o %t2.out.threadcnt --thread-count 10  --trace=threads 2>&1 | %filecheck %s -check-prefix=ENABLETHREADS-COUNT
+RUN: %not %link %linkopts %t1.1.o -o %t2.out.threadcnt --thread-count 10 --no-threads 2>&1 | %filecheck %s -check-prefix=THREADS-COUNT-ERROR
+
+#ENABLETHREADS: Threads Enabled
+#DISABLETHREADS: Threads Disabled
+#ENABLETHREADS-COUNT: Threads Enabled {{.*}}, Number of threads = 10
+#THREADS-COUNT-ERROR: Cannot disable threads and specify thread count

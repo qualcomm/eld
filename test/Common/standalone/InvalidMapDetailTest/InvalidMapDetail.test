@@ -1,0 +1,10 @@
+#----InvalidMapDetail.test------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks for correct diagnostic message when an invalid --MapDetail option is used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %not %link %linkopts %t1.o --MapDetail abc 2>&1 | %filecheck %s
+#CHECK: Invalid option abc specified for --MapDetail
+#END_TEST

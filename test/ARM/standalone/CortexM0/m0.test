@@ -1,0 +1,14 @@
+#---m0.test----------------------------------- Executable ---------------------#
+
+#BEGIN_COMMENT
+# Cortex-M0 doesn't use blx, which need test attribute
+#END_COMMENT
+#START_TEST
+RUN: %clang -c  -o %t.o %p/Inputs/t.s
+RUN: %link %linkopts -mcpu=cortex-m0 %t.o -o %t.out
+RUN: llvm-objdump --triple thumbv6m-none--eabi -d %t.out | %filecheck %s
+
+CHECK: beq
+CHECK-NOT: blx
+
+#END_TEST

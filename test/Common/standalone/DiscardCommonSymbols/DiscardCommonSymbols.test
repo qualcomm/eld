@@ -1,0 +1,24 @@
+#---DiscardCommonSymbols.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks the usage of /DISCARD/ linker script functionality with
+# common symbol input description.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/1.linker.script 2>&1
+RUN: %readelf -s %t1.1.out 2>&1 | %filecheck %s
+RUN: %link %linkg0opts -o %t1.1.r.out %t1.1.o -T %p/Inputs/1.linker.script -r
+RUN: %readelf -sS %t1.1.r.out 2>&1 | %filecheck %s --check-prefix=PARTIAL
+RUN: %link %linkg0opts -o %t1.1.rd.out %t1.1.o -T %p/Inputs/1.linker.script -r -d
+RUN: %readelf -sS %t1.1.rd.out 2>&1 | %filecheck %s
+#END_TEST
+#CHECK-NOT: common_short
+#CHECK-NOT: common_int
+#CHECK-NOT: common_long
+#CHECK-NOT: common_double
+#PARTIAL-DAG: common_short
+#PARTIAL-DAG: common_int
+#PARTIAL-DAG: common_long
+#PARTIAL-DAG: common_double
+

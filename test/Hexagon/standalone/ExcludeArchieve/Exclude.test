@@ -1,0 +1,8 @@
+
+RUN: %clang %clangopts -c  %p/1.c -w -ffunction-sections -o %t1.o
+RUN: %clang %clangopts -c  %p/2.c -w -ffunction-sections -o %t2.o
+RUN: %ar cr %aropts %tlib2.a %t2.o
+RUN: %link %linkopts %t1.o %tlib2.a -T %p/script.t -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+
+CHECK: .mybar            PROGBITS

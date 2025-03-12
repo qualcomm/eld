@@ -1,0 +1,10 @@
+#---EnableThreadsNegative.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the linker throws error if unsupported value given to --enable-threads option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -o %t2.out --enable-threads=al 2>&1 | %filecheck %s
+#CHECK: Invalid value for
+#END_TEST

@@ -1,0 +1,17 @@
+#---ExportFromExe.test--------------------- Exe------------------#
+
+#BEGIN_COMMENT
+# This tests that symbols refered in shared library and defined in executable
+# are exported by the executable
+#END_COMMENT
+RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/dso.c -ffunction-sections -fdata-sections -o %t1.o
+RUN: %clang %clangopts -c  %p/Inputs/test.c -ffunction-sections -fdata-sections  -o %t2.o
+RUN: %link %linkopts -shared -o %t.dso.so %t1.o
+RUN: %link %linkopts -Bdynamic %t2.o %t.dso.so -o %t.out
+RUN: %readelf --dyn-syms %t.out | %filecheck %s
+
+#CHECK-NOT: COM
+#CHECK-DAG: common_in_program
+#CHECK-DAG: data_in_program
+#CHECK-DAG: func_in_program
+#CHECK-DAG: variable_in_program

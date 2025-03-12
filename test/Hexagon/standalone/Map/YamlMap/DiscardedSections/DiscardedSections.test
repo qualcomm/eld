@@ -1,0 +1,33 @@
+#---DiscardedSections.test--------------------- Executable,GC ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print the sections that are garbage
+# collected in the YAML map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o  --gc-sections -e foo -Map %t2.map -o %t2.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: DiscardedSections:
+#CHECK:   - Name:            .text
+#CHECK:     Type:            [ SHT_PROGBITS ]
+#CHECK:     Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+#CHECK:     Alignment:       4
+#CHECK:   - Name:            .text.bar
+#CHECK:     Type:            [ SHT_PROGBITS ]
+#CHECK:     Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+#CHECK:     Alignment:       16
+#CHECK:     Symbols:
+#CHECK:       - Symbol:          bar
+#CHECK:         Type:            [ STT_FUNC ]
+#CHECK:         Scope:           Global
+#CHECK:   - Name:            .text.baz
+#CHECK:     Type:            [ SHT_PROGBITS ]
+#CHECK:     Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+#CHECK:     Alignment:       16
+#CHECK:     Symbols:
+#CHECK:       - Symbol:          baz
+#CHECK:         Type:            [ STT_FUNC ]
+#CHECK:         Scope:           Weak

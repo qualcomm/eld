@@ -1,0 +1,2 @@
+LINKER_PLUGIN("LinkMode", "LINKMODE")
+

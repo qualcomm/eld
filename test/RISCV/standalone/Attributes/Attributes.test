@@ -1,0 +1,74 @@
+#------Attributes.test---PartialLink,Executable,LS------------------#
+
+
+
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle the section .riscv.attributes
+# appropriately.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/attr1.s -o %t1.attr1.o
+RUN: %clang %clangopts -c %p/Inputs/attr2.s -o %t1.attr2.o
+RUN: %clang %clangopts -c %p/Inputs/attr3.s -o %t1.attr3.o
+RUN: %clang %clangopts -c %p/Inputs/attr5.s -o %t1.attr5.o
+RUN: %clang %clangopts -c %p/Inputs/attr6.s -o %t1.attr6.o
+RUN: %clang %clangopts -c %p/Inputs/attr7.s -o %t1.attr7.o
+RUN: %clang %clangopts -c %p/Inputs/attr8.s -o %t1.attr8.o
+# Create executables
+RUN: %link %linkopts %t1.attr1.o %t1.attr2.o -o %t.out
+RUN: %readelf -A %t.out 2>&1 | %filecheck %s -check-prefix=ATTRS
+# Fails for bad attributes
+RUN: %not %link --fatal-warnings %linkopts %p/Inputs/BadAttr.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr3.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr5.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr6.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr7.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr8.o -o %t.out
+# Create partial links
+RUN: %link %linkopts %t1.attr1.o %t1.attr2.o -o %t.r.out
+RUN: %readelf -A %t.r.out 2>&1 | %filecheck %s -check-prefix=ATTRS
+# Fails for bad attributes
+RUN: %not %link --fatal-warnings %linkopts -r %p/Inputs/BadAttr.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr3.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr5.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr6.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr7.o -o %t.out
+RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr8.o -o %t.out
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t.script.out
+RUN: %readelf -S -W %t.script.out 2>&1 | %filecheck -check-prefix=SECTIONS %s
+
+#ATTRS: BuildAttributes {
+#ATTRS:   FormatVersion: 0x41
+#ATTRS:   Section 1 {
+#ATTRS:     Vendor: riscv
+#ATTRS:     Tag: Tag_File (0x1)
+#ATTRS:     FileAttributes {
+#ATTRS:       Attribute {
+#ATTRS:         Tag: 4
+#ATTRS:         Value: 16
+#ATTRS:         TagName: stack_align
+#ATTRS:         Description: Stack alignment is 16-bytes
+#ATTRS:       }
+#ATTRS:       Attribute {
+#ATTRS:         Tag: 6
+#ATTRS:         Value: 1
+#ATTRS:         TagName: unaligned_access
+#ATTRS:         Description: Unaligned access
+#ATTRS:       }
+#ATTRS:       Attribute {
+#ATTRS:         Tag: 8
+#ATTRS:         TagName: priv_spec
+#ATTRS:         Value: 2
+#ATTRS:       }
+#ATTRS:       Attribute {
+#ATTRS:         Tag: 5
+#ATTRS:         TagName: arch
+#ATTRS:         Value: rv32i2p1_m2p0_a2p1_c2p0_zmmul1p0
+#ATTRS:       }
+#ATTRS:     }
+#ATTRS:   }
+#ATTRS: }
+
+#SECTIONS-NOT: .riscv.attributes

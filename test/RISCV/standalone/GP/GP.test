@@ -1,0 +1,15 @@
+#----------GP.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Add symbol __global_pointer$ symbol. This is the small data area
+# base pointer
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts  %t1.o -Ttext=0x10000 -o %t.out
+RUN: %objdump -d %t.out
+
+CHECK: auipc   gp,0x1
+CHECK-DAG: addi    gp,gp,-2040 # 100808

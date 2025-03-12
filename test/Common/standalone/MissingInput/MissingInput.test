@@ -1,0 +1,10 @@
+#---MissingInput.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the error when the input object file is missing.
+#END_COMMENT
+#START_TEST
+RUN: %not %link %linkopts -o %t1.1.elf %t1.1.o -T %p/Inputs/1.linker.script 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Fatal: cannot read file {{.*}}1.o
+CHECK-NOT: Fatal: Linker script

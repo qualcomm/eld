@@ -1,0 +1,39 @@
+#---IFunc.test---------------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Programs with IFunc symbols only run with Linaro sysroot.
+# this test only checks setup, now only static linked supported
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/m.c -o %tm.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/t.c -o %tt.o
+RUN: %link %linkopts -march aarch64 %tm.o %tt.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck --check-prefix=STANDALONE %s
+RUN: llvm-readobj -r %t.out | %filecheck --check-prefix=STANDALONE2 %s
+RUN: %link %linkopts -march aarch64 %tm.o %tt.o -pie -o %t2.out
+RUN: llvm-readobj -r %t2.out | %filecheck --check-prefix=PIE %s
+RUN: %link %linkopts -march aarch64 %tm.o %tt.o -shared -o %t3.out
+RUN: llvm-readobj -r %t3.out | %filecheck --check-prefix=SHARED %s
+RUN: %link %linkopts -march aarch64 %tt.o -shared -o %t4.so
+RUN: %link %linkopts -march aarch64 %tm.o %t4.so -o %t4.out
+RUN: llvm-readobj -r %t4.out | %filecheck --check-prefix=LINKSHARED %s
+
+STANDALONE: .rela.plt
+STANDALONE: .plt
+STANDALONE: .got
+STANDALONE: __rela_iplt_start
+STANDALONE: __rela_iplt_end
+STANDALONE: IFUNC   GLOBAL DEFAULT
+STANDALONE-NOT: .dynamic
+STANDALONE2: R_AARCH64_IRELATIVE
+
+PIE: aarch64
+PIE-NOT: R_AARCH64_IRELATIVE
+
+SHARED: aarch64
+SHARED-NOT: R_AARCH64_IRELATIVE
+
+LINKSHARED:  aarch64
+LINKSHARED-NOT: R_AARCH64_IRELATIVE
+
+#END_TEST

@@ -1,0 +1,13 @@
+#---RevisionInfoInOutputImage.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks that the output ELF image .comment section contains linker
+# and LLVM version and revision information.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.1.out
+RUN: %readelf -p .comment %t1.1.out 2>&1 2>&1 | %filecheck %s
+#CHECK: Linker {{.*}} ({{.*}})
+#CHECK: {{(LLVM .* \(.*\))?}}
+#END_TEST

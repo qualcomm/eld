@@ -1,0 +1,18 @@
+#---DebugStrings.test----------------------- Executable -----------------#
+
+# START_COMMENT
+# Checks that merged debug strings are not shown by default
+# and are shown with -MapDetail=show-debug-strings in txt map file
+# END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c -g %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c -g %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -Map %t.NoDebugStrings.map -o %t1.out
+RUN: %link %linkopts %t1.o %t2.o -Map %t.YesDebugStrings.map --MapDetail=show-debug-strings -o %t2.out
+
+RUN: %filecheck < %t.NoDebugStrings.map %s --check-prefix=NO
+RUN: %filecheck < %t.YesDebugStrings.map %s  --check-prefix=YES
+# END_TEST
+
+NO-NOT: .debug_str 0x0 {{.*}}2.o
+YES: .debug_str 0x0 {{.*}}2.o

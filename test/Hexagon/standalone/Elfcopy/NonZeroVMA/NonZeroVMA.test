@@ -1,0 +1,14 @@
+#---NonZeroVMa.test--------------------- Exe------------------#
+
+#BEGIN_COMMENT
+#When stripping binaries that have VMA or LMA that is not from 0
+#the segments must not change.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -fpic -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c %clangg0opts -fpic -o %t2.o
+RUN: %link %linkopts -shared %t2.o -o %t.so
+RUN: %link %linkopts -mtriple=hexagon-unknown-linux  -dy %t1.o %t.so -o %t.out
+RUN: %readelf -l %t.out | %grep -v None > %tunstripped
+RUN: %strip %t.out
+RUN: %readelf -l %t.out | %grep -v None > %tstripped
+RUN: diff %tunstripped %tstripped

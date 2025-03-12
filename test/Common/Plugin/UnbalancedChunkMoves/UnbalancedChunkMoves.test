@@ -1,0 +1,18 @@
+#---VerifyChunkMoves.test----------------------- Executable,LS --------------------#
+
+
+
+#BEGIN_COMMENT
+# This test checks that plugins can access unbalanced fragment removes and
+# unbalanced fragment adds.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.UnbalancedChunkRemoves.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.UnbalancedChunkRemoves.t 2>&1 | %filecheck %s --check-prefix UNBALANCED_REMOVES
+RUN: %link %linkopts -o %t1.1.UnbalancedChunkAdds.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.UnbalancedChunkAdds.t 2>&1 | %filecheck %s --check-prefix UNBALANCED_ADDS
+#END_TEST
+UNBALANCED_REMOVES-DAG: UnbalancedChunkRemoves:Note: Found unbalanced remove chunk '.text.bar'. Adding it back.
+UNBALANCED_REMOVES-DAG: UnbalancedChunkRemoves:Note: Found unbalanced remove chunk '.text.bar_1'. Adding it back.
+
+UNBALANCED_ADDS-DAG: UnbalancedChunkAdds:Note: Found unbalanced add chunk '.text.bar'. Removing it.
+UNBALANCED_ADDS-DAG: UnbalancedChunkAdds:Note: Found unbalanced add chunk '.text.bar_1'. Removing it.

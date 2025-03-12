@@ -1,0 +1,15 @@
+#---PartialLinkSectionGroup.test --------------------- PartialLink ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is not merging different section groups to the
+# same output section with partial links.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -O2 -c %p/Inputs/foo.s -o %t1.foo.o
+RUN: %link %t1.foo.o -r -o %t1.r.o 2>&1
+RUN: %readelf -g %t1.r.o 2>&1 | %filecheck %s
+#CHECK: COMDAT group section [{{.*}}] `.group' [foo_group] contains 1 sections:
+#CHECK:    [{{.*}}]   .text.foo_group
+#CHECK: COMDAT group section [{{.*}}] `.group' [bar_group] contains 1 sections:
+#CHECK:    [{{.*}}]   .text.foo_group
+#END_TEST

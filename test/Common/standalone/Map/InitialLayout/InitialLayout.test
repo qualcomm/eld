@@ -1,0 +1,19 @@
+#---InitialRuleMatching.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the show-initial-layout MapDetail option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -MapDetail show-initial-layout -Map %t1.main.map.txt
+RUN: %filecheck %s < %t1.main.map.txt
+#END_TEST
+CHECK: Initial layout:
+CHECK: foo
+CHECK: *(*foo*) #Rule 1, {{.*}}script.t
+CHECK: .text.foo {{.*}}1.o #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR
+CHECK: *(foo) #Rule 2, Internal-LinkerScript
+CHECK: bar
+CHECK: *(*bar*) #Rule 3, {{.*}}script.t
+CHECK: .text.bar {{.*}}1.o #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR
+CHECK: *(bar) #Rule 4, Internal-LinkerScript

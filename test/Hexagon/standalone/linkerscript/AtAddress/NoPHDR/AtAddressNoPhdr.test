@@ -1,0 +1,17 @@
+#---AtAddressNoPhdr.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker when there is no PHDR specified.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .text             PROGBITS        00000000
+#CHECK: .foo@0x100        PROGBITS        00000100
+#CHECK: .bar@0x200        PROGBITS        00000200
+#CHECK: .baz@0x300        PROGBITS        00000300
+
+#END_TEST

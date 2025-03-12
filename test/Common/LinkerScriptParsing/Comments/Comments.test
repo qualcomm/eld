@@ -1,0 +1,6 @@
+#---Comments.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test verifies linker script parsing for linker script comments.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t
+

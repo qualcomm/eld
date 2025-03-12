@@ -1,0 +1,8 @@
+# This fixes QTOOL-21682. GNU linker accounts for the file offset when a
+# previous section is TBSS and a regular PROGBITS section follows it.
+# Make sure file size is same as memory size.
+RUN: %clang %clangopts -c %p/Inputs/tls.c %clangg0opts -o %t1.tls.o
+RUN: %link %linkopts %t1.tls.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK: LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[FILESZ:[xa-f0-9]+]] [[FILESZ]]

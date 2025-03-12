@@ -1,0 +1,7 @@
+RUN: %clang %clangopts --target=aarch64-linux-gnu %p/t.c -c -w -o %t.o
+RUN: %link %linkopts -march aarch64 %t.o --defsym=bar=0xdeadbeef -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+
+CHECK: 0x00000010 fd7bc1a8 c0035fd6 90000010
+CHECK: 0x00000020 00021fd6 00000000 efbeadde
+

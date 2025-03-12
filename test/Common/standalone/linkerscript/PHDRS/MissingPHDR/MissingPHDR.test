@@ -1,0 +1,11 @@
+#---MissingPHDR.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+#Linker should exit with a proper fatal error when a segment is not defined in
+#PHDR section
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/s.t -o %t2.out 2>&1
+
+#CHECK: Segment B is not defined in linker script

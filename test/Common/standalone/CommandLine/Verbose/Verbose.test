@@ -1,0 +1,19 @@
+#---Verbose.test--------------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# This checks if the linker supports --verbose option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --verbose 2>&1 | %filecheck %s --allow-empty
+RUN: %link %linkopts %t1.1.o -o %t2.out --verbose=0 2>&1 | %filecheck %s --allow-empty
+RUN: %link %linkopts %t1.1.o -o %t2.out --verbose=1 2>&1 | %filecheck %s --allow-empty
+RUN: %link %linkopts %t1.1.o -o %t2.out --verbose=2 2>&1 | %filecheck %s --allow-empty
+RUN: %not %link %linkopts %t1.1.o -o %t2.out --verbose=3 2>&1 | %filecheck %s -check-prefix=INVALID
+RUN: %not %link %linkopts %t1.1.o -o %t2.out --verbose=3a 2>&1 | %filecheck %s -check-prefix=INVALID
+#CHECK: Creating output section  with type SHT_NULL flag NONE alignment 0
+#CHECK: Created linker internal section .comment with type SHT_PROGBITS flag SHF_MERGE|SHF_STRINGS alignment 1 entry size 1
+#INVALID: Invalid
+#END_TEST

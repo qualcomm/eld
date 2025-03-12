@@ -1,0 +1,10 @@
+REQUIRES: zlib
+#---Compressed.test--------------------------- Executable --------------------#
+
+
+# Checks that the --reproduce-compressed works
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --reproduce-compressed %t0.tar
+#END_TEST

@@ -1,0 +1,9 @@
+#---CheckOptionsAfterInput.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Checks that the linker reports no inputs before checking for unknown options.
+#END_COMMENT
+#START_TEST
+RUN: %not %link --bad 2>&1 | %filecheck %s
+CHECK: Error: no inputs
+#END_TEST

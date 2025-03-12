@@ -1,0 +1,13 @@
+#---LogicalAndOr.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# Add test for logical operators || and &&.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/s.t -o %t2.out -Map %t1.map
+RUN: %filecheck %s < %t1.map
+#END_TEST
+#CHECK: ASSERT(foo(0x1) == 0x1 || foo(0x1) > 0x0, "foo is 1 or greater than 0");
+#CHECK: ASSERT(foo(0x1) == 0x1 && foo(0x1) > 0x0, "foo is 1 and  greater than 0");
+#CHECK: ASSERT(foo(0x1) == 0x2 || foo(0x1) > 0x0, "foo is 2 or greater than 0");

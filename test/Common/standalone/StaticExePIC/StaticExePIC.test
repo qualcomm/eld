@@ -1,0 +1,15 @@
+#---StaticExePIC.test-------Static Executable----------------------------#
+
+#BEGIN_COMMENT
+# Test that GOT relocations in object files do not result dynamic relocations.
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+
+RUN: %link %linkopts --force-dynamic %t.1.o %t.main.o -o %t.a.out
+RUN: %objdump -TR %t.a.out | %filecheck %s
+
+#CHECK-NOT: .data
+#CHECK-NOT: DYNAMIC RELOCATION RECORDS
+#CHECK-NOT: R_

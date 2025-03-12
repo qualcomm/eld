@@ -1,0 +1,29 @@
+#---WrapSymbolsResolution.test----------------------- Executable,LTO --------------------#
+
+
+#BEGIN_COMMENT
+# This tests that the linker is not including symbols from an archive library
+# unless the symbol __real_foo is referenced.
+#END_COMMENT
+#START_TEST
+#
+# Make sure the below test pulls 2.o from the archive library.
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -DPULLFROMARCHIVE -flto
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o
+RUN: %link %linkopts %t1.1.o %t2.lib2.a %t1.3.o --wrap foo -t -o %t2.out.1 2>&1 | %filecheck %s -check-prefix=PULLFROMARCHIVE
+#PULLFROMARCHIVE: {{.*}}lib2.a{{.*}}2.o
+
+#
+# Make sure the below test doesnot pull 2.o from the archive library.
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.lto.1.o  -DNOPULLFROMARCHIVE -flto
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.lto.2.o -flto
+RUN: %ar cr %aropts %t2.lto.lib2.a %t1.lto.2.o
+RUN: %link %linkopts %t1.lto.1.o %t2.lto.lib2.a %t1.3.o --wrap foo -t -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=ARCHIVE
+#ARCHIVE-NOT: {{.*}}lib2.a{{.*}}2.o
+
+
+#END_TEST

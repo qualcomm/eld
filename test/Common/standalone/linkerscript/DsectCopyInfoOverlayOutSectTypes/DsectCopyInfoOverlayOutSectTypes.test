@@ -1,0 +1,29 @@
+#---DsectCopyInfoOverlayOutSectTypes.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks the behavior of DSECT, COPY, INFO and OVERLAY
+# output section type linker script keywords.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+
+CHECK: Output Section and Layout
+CHECK: FOO {{.*}} Flags: SHF_ALLOC|SHF_EXECINSTR
+CHECK: *(.text.foo)
+CHECK: .text.foo
+CHECK: BAR {{.*}} Flags: SHF_EXECINSTR
+CHECK: *(.text.bar)
+CHECK: .text.bar
+CHECK: BAZ {{.*}} Flags: SHF_EXECINSTR
+CHECK: *(.text.baz)
+CHECK: .text.baz
+CHECK: FRED {{.*}} Flags: SHF_EXECINSTR
+CHECK: *(.text.fred)
+CHECK: .text.fred
+CHECK: BOB {{.*}} Flags: SHF_EXECINSTR
+CHECK: *(.text.bob)
+CHECK: .text.bob
+
+
+

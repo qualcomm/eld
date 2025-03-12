@@ -1,0 +1,9 @@
+#---LongDynamicList.test-------Executable/SharedLibrary----------------------------#
+
+#BEGIN_COMMENT
+#Check that the linker is able to parse a long dynamic list
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --force-dynamic --dynamic-list %p/Inputs/long.lst -o %t1.out.2
+#END_TEST

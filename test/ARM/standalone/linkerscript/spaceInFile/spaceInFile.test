@@ -1,0 +1,33 @@
+# Test that we actually Reserve space in file.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -march arm %t1.o -T %p/Inputs/script.t -o %t1.out
+RUN: %readelf -l -W %t1.out | %filecheck %s -check-prefix=PHDR
+RUN: %readelf -W -s %t1.out | %filecheck %s -check-prefix=SYMBOLS
+
+#PHDR:  LOAD           0x000000 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  LOAD           0x000000 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  LOAD           0x000000 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  LOAD           0x000000 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  LOAD           {{[0x0-9a-f]+}} 0x00000000 0x00000000 0x00010 0x00010 R E 0x4
+#PHDR:  LOAD           {{[0x0-9a-f]+}} 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  LOAD           {{[0x0-9a-f]+}} 0x00001000 0x00001000 0x00008 0x00008 R   0x4
+#PHDR:  LOAD           {{[0x0-9a-f]+}} 0x00001008 0x00001008 0x00000 0x27f4b8 RW  0x4
+#PHDR:  LOAD           {{[0x0-9a-f]+}} 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  LOAD           {{[0x0-9a-f]+}} 0x00000000 0x00000000 0x00000 0x00000     0x4
+#PHDR:  EXIDX
+#PHDR: Section to Segment mapping:
+#PHDR:  Segment Sections...
+#PHDR:   00
+#PHDR:   01
+#PHDR:   02
+#PHDR:   03
+#PHDR:   04     .text
+#PHDR:   05
+#PHDR:   06     .ARM.exidx
+#PHDR:   07     .bss .demback_offoad_bss
+#PHDR:   08
+#PHDR:   09
+
+#SYMBOLS: 00001040     0 NOTYPE  GLOBAL DEFAULT    4 __hw_demback_buffer_start__
+#SYMBOLS: 0027f480     0 NOTYPE  GLOBAL DEFAULT  ABS __hw_demback_buffer_size__
+#SYMBOLS: 002804c0     0 NOTYPE  GLOBAL DEFAULT    4 __hw_demback_buffer_end__

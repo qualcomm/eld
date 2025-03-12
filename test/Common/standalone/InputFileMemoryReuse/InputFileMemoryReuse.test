@@ -1,0 +1,23 @@
+#---InputFileMemoryReuse.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that linker reuses memory buffer for input files when they
+# are repeated in the link command-line.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.libbar.a
+RUN: %clang %clangopts -o %t1.foo.o %p/Inputs/foo.c -c
+RUN: %clang %clangopts -o %t1.bar.o %p/Inputs/bar.c -c
+RUN: %ar cr %aropts %t1.libbar.a %t1.bar.o
+RUN: %link %linkopts -o %t1.a.out %t1.foo.o %t1.libbar.a \
+RUN: %t1.foo.o %t1.libbar.a %t1.foo.o %t1.libbar.a --verbose 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Verbose: Mapping input file '{{.*}}foo.o' into memory
+CHECK: Verbose: Mapping input file '{{.*}}libbar.a' into memory
+CHECK: Verbose: Reusing previous memory mapping for input file '{{.*}}foo.o'
+CHECK: Verbose: Reusing previous memory mapping for input file '{{.*}}libbar.a'
+CHECK: Verbose: Reusing previous memory mapping for input file '{{.*}}foo.o'
+CHECK: Verbose: Reusing previous memory mapping for input file '{{.*}}libbar.a'
+CHECK-NOT: Verbose: Mapping input file '{{.*}}foo.o' into memory
+CHECK-NOT: Verbose: Mapping input file '{{.*}}libbar.a' into memory
+

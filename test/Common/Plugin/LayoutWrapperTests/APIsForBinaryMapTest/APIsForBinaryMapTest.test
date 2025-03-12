@@ -1,0 +1,18 @@
+#---APIsForBinaryMapTest.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks symbol type information.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g -ffunction-sections %p/Inputs/1.c -o %t.o
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -Map %t.map.txt -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK
+
+#CHECK: Map File:{{.*}}map.txt
+#CHECK: Name: foo
+#CHECK: Object Type: No
+#CHECK: File Type: No
+#CHECK: NoType Type: No
+#CHECK: Function Type: Yes
+#CHECK: Path: {{.*}}test.tmp.o
+#CHECK: Real Path: {{.*}}test.tmp.o
+
+#END_TEST

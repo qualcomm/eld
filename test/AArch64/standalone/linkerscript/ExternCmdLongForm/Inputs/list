@@ -1,0 +1,28 @@
+EXTERN(externSym
+foo)
+
+SECTIONS {
+  .sdata          :
+  {
+    PROVIDE (_SDA_BASE_ = .);
+    *(.sdata.1 .sdata.1.* .gnu.linkonce.s.1.*)
+    *(.sbss.1 .sbss.1.* .gnu.linkonce.sb.1.*)
+    *(.scommon.1 .scommon.1.*)
+    *(.sdata.2 .sdata.2.* .gnu.linkonce.s.2.*)
+    *(.sbss.2 .sbss.2.* .gnu.linkonce.sb.2.*)
+    *(.scommon.2 .scommon.2.*)
+    *(.sdata.4 .sdata.4.* .gnu.linkonce.s.4.*)
+    *(.sbss.4 .sbss.4.* .gnu.linkonce.sb.4.*)
+    *(.scommon.4 .scommon.4.*)
+    *(.lit[a4] .lit[a4].* .gnu.linkonce.l[a4].*)
+    *(.sdata.8 .sdata.8.* .gnu.linkonce.s.8.*)
+    *(.sbss.8 .sbss.8.* .gnu.linkonce.sb.8.*)
+    *(.scommon.8 .scommon.8.*)
+    *(.lit8 .lit8.* .gnu.linkonce.l8.*)
+    *(.sdata.hot .sdata.hot.* .gnu.linkonce.s.hot.*)
+    *(.sdata .sdata.* .gnu.linkonce.s.*)
+    *(COMMON)
+  }
+  .rest : { *(*) }
+}
+

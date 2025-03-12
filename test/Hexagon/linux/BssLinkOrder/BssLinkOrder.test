@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -c %clangg0opts  %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %clangg0opts  %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %clangg0opts  %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -c %clangg0opts  %p/Inputs/4.c -o %t4.o
+RUN: %link %linkopts  %linkg0opts  %t1.o %t2.o %t3.o %t4.o -o %t.out
+RUN: %nm -n %t.out | %filecheck %s
+
+#CHECK: B b
+#CHECK: B a
+#CHECK: B default_virt_pool
+#CHECK: B pthread_tcb_key

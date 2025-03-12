@@ -1,0 +1,18 @@
+# Check that PHDR's work properly.
+
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/foo.c -o %t1.o -g
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/bar.c -o %t2.o -g
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t %t1.o %t2.o -o %t.out --section-start .start=0x1300000
+RUN: %readelf -W -l %t.out | %filecheck %s
+
+#CHECK: There are 3 program headers, starting at offset 64
+#CHECK: Program Headers:
+#CHECK:   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#CHECK:   LOAD           {{[0-9A-Za-z]+}} 0x0000000001300000 0x0000000001300000 {{[0-9A-Za-z]+}} {{[0-9A-Za-z]+}} R E 0x1000
+#CHECK:   LOAD           {{[0-9A-Za-z]+}} {{[0-9A-Za-z]+}} {{[0-9A-Za-z]+}} {{[0-9A-Za-z]+}} {{[0-9A-Za-z]+}} R E 0x1000
+#CHECK:   LOAD           {{[0-9A-Za-z]+}} 0x00000000d0000000 0x00000000d0000000 {{[0-9A-Za-z]+}} {{[0-9A-Za-z]+}} R E 0x1000
+#CHECK:  Section to Segment mapping:
+#CHECK:   Segment Sections...
+#CHECK:    00     .start
+#CHECK:    01     .mytext .unrecognized
+#CHECK:    02     .compress_sect

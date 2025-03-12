@@ -1,0 +1,9 @@
+UNSUPPORTED: tsan
+# Test we emit a well-formed ELF file with a .symtab_shndxr section.
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.o -fdata-sections
+RUN: %link %linkopts -r %t1.o -o %t2.o -Map %t1.map.out
+RUN: %readelf -S -W %t2.o | %filecheck %s
+RUN: %filecheck %s -check-prefix=TIME < %t1.map.out
+
+#CHECK: .symtab_shndxr SYMTAB SECTION INDICES
+#TIME: LinkTime

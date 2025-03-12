@@ -1,0 +1,20 @@
+#---Used.test----------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Simple check for input containing merge strings marked used/unused
+#END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -c -o %t2.o
+# FIXME: I have to discard .comment for this test to pass on aarch64 even though
+# non-alloc sections should not count toward used
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o %t2.o -e foo \
+RUN:  --gc-sections -o %t.out -Map %t.yaml -MapStyle=yaml
+RUN: %filecheck %s < %t.yaml
+#END_TEST
+
+CHECK: Path: {{.*}}1.o
+CHECK-NEXT: Used: Used
+
+CHECK: Path: {{.*}}2.o
+CHECK-NEXT: Used: Used

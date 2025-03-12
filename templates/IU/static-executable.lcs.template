@@ -1,0 +1,143 @@
+
+ENTRY(_reset)
+
+PHDRS
+{
+  TEXT     PT_LOAD;
+  DATA     PT_LOAD;
+  BSS      PT_LOAD;
+  STACK    PT_LOAD;
+}
+
+SECTIONS
+{
+  . = 0;
+
+  .vectors : {
+    KEEP(*(.vectors*));
+  } :TEXT
+
+  .init : {
+    __init_start = .;
+    KEEP(*(.init*));
+    /* Add padding only when the section is not empty */
+    . += (__init_start != .)? 16*4 : 0;
+    . = ALIGN(16);
+  } :TEXT
+
+  .text : {
+    *(.text*)
+    /* Prefetch goes 16*4 bytes past last instruction, leave padding */
+    . += 16*4;
+    . = ALIGN(16);
+  } :TEXT
+
+  .fini : {
+    __fini_start = .;
+    KEEP(*(.fini*))
+    /* Add padding only when the section is not empty */
+    . += (__fini_start != .)? 16*4 : 0;
+    . = ALIGN(16);
+  } :TEXT
+
+  . = ALIGN(16);
+  _etext = .;
+  PROVIDE(etext = .);
+
+  .rodata : { *(.rodata*) } :TEXT
+
+  .data :  {
+    *(.data*)
+    *(__llvm_prf_cnts);
+    *(__llvm_prf_data);
+    *(__llvm_prf_names);
+    *(__llvm_prf_vnds);
+  } :DATA
+
+  .eh_frame : { KEEP(*(.eh_frame)) } :DATA
+
+  .ctors : {
+    __CTOR_LIST__ = .;
+    KEEP(*(.ctors*))
+    __CTOR_END__ = .;
+    __dso_handle = 0; /* Unused but referenced by global constructors */
+  } :DATA
+
+  _edata = .;
+  PROVIDE(edata = .);
+
+  . = ALIGN(16);
+  .bss :
+  {
+    __bss_start = .;
+    *(.bss*)
+    *(COMMON)
+    . = ALIGN(16);
+  } :BSS
+  __bss_end = .;
+
+  _end = .;
+  PROVIDE(end = .);
+  __image_end = .;
+  __image_size = .;
+
+
+  . = ALIGN(16);
+  __heap_start = .;
+
+
+  ENV_SIZE = DEFINED(ENV_SIZE) ? ENV_SIZE : 1M;
+  ENV_END = DEFINED(ENV_END) ? ENV_END : 0x40000000;
+  __env_end = ENV_END;
+  ASSERT(__heap_start + ENV_SIZE <= __env_end, "Env crossed heap");
+  __env_start = __env_end - ENV_SIZE;
+
+  STACK_SIZE = DEFINED(STACK_SIZE) ? STACK_SIZE : 1M;
+  __stack_end = __env_start;
+  ASSERT(__heap_start + STACK_SIZE <= __stack_end, "Stack crossed heap");
+  __stack_start = __stack_end - STACK_SIZE;
+  _reset_stack_ptr = __stack_end;
+
+  __heap_end = DEFINED(HEAP_SIZE) ? __heap_start + HEAP_SIZE : __stack_start;
+  ASSERT(__stack_start >= __heap_end, "Heap crossed stack");
+
+
+  __mmap_start = __env_end;
+  __mmap_end = DEFINED(MMAP_SIZE) ? __mmap_start + MMAP_SIZE : 0x7FFFFFF0;
+
+
+  /* Debug sections */
+  .comment            0 : { *(.comment) }
+  .debug              0 : { *(.debug) }
+  .line               0 : { *(.line) }
+  .debug_srcinfo      0 : { *(.debug_srcinfo) }
+  .debug_sfnames      0 : { *(.debug_sfnames) }
+  .debug_aranges      0 : { *(.debug_aranges) }
+  .debug_pubnames     0 : { *(.debug_pubnames) }
+  .debug_gnu_pubnames 0 : { *(.debug_gnu_pubnames) }
+  .debug_info         0 : { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev       0 : { *(.debug_abbrev) }
+  .debug_line         0 : { *(.debug_line) }
+  .debug_frame        0 : { *(.debug_frame) }
+  .debug_str          0 : { *(.debug_str) }
+  .debug_loc          0 : { *(.debug_loc) }
+  .debug_macinfo      0 : { *(.debug_macinfo) }
+  .debug_ranges       0 : { *(.debug_ranges) }
+  .debug_pubtypes     0 : { *(.debug_pubtypes) }
+  .debug_gnu_pubtypes 0 : { *(.debug_gnu_pubtypes) }
+  .debug_str_offsets  0 : { *(.debug_str_offsets) }
+  .debug_addr         0 : { *(.debug_addr) }
+  .debug_line_str     0 : { *(.debug_line_str) }
+  .debug_names        0 : { *(.debug_names) }
+  .note.GNU-stack     0 : { *(.note.GNU-stack) }
+  .lisadesc           0 : { *(.lisadesc) }
+  .lisadescstr        0 : { *(.lisadescstr) }
+
+  /* Group all remaining sections here, and generate an error if there are any. */
+  __unrecognized_start__ = . ;
+  .unrecognized : { *(*) }
+  __unrecognized_end__ = . ;
+  ASSERT(__unrecognized_end__ == __unrecognized_start__ , "Unrecognized sections - see linker script")
+
+}
+

@@ -1,0 +1,100 @@
+RUN: %clang %clangopts -target aarch64 -c %p/test.c -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/bar.c -o %t2.o
+
+RUN: %clang %clangopts -target aarch64 -c %p/test.c -g -gdwarf-4 -o %t_g1.o
+RUN: %clang %clangopts -target aarch64 -c %p/bar.c  -g -gdwarf-4 -o %t_g2.o
+
+
+RUN: %link %linkopts -march=aarch64  -static %t2.o -emit-relocs -r -o %t1.out 2>&1 | %filecheck %s -check-prefix=PARTIAL
+RUN: %link %linkopts -march=aarch64  -static -Ttext=0x1000 %t1.o %t2.o -emit-relocs -o %t2.out
+RUN: %link %linkopts -march=aarch64  -shared -Ttext=0x1000 %t1.o %t2.o -emit-relocs -o %t2.so 2>&1 | %filecheck %s --check-prefix=SO
+RUN: %link %linkopts -march=aarch64  -static -Ttext=0x1000 %t1.o %t2.o -T %p/test.ld -emit-relocs -o %t3.out
+RUN: %link %linkopts -march=aarch64  -static -Ttext=0x1000 %t_g1.o %t_g2.o -emit-relocs -o %t3_g.out
+
+RUN: %readelf -r %t1.o | %filecheck %s -check-prefix=OBJ1
+RUN: %readelf -r %t2.o | %filecheck %s -check-prefix=OBJ2
+RUN: %readelf -r %t2.out | %filecheck %s -check-prefix=EXE
+RUN: %readelf -r %t3.out | %filecheck %s --check-prefix=SCRIPT
+RUN: %readelf -r %t3_g.out | %filecheck %s --check-prefix=DEBUG
+RUN: %readelf -W -S %t2.out | %filecheck %s --check-prefix=SECT
+
+PARTIAL: Warning: Option `--emit-relocs' is disabled as it is incompatible with `-relocatable`
+
+OBJ1: Relocation section '.relamycode_1' at offset {{.*}} contains
+OBJ1: x + 0
+OBJ1: x + 0
+OBJ1: Relocation section '.relamycode_2' at offset {{.*}} contains
+OBJ1: y + 0
+OBJ1: y + 0
+OBJ1: bar + 0
+OBJ1: bar2 + 0
+
+OBJ2: Relocation section '.rela.text' at offset {{.*}} contains
+OBJ2-DAG: z + 0
+OBJ2-DAG: z + 0
+OBJ2-DAG: y + 0
+OBJ2-DAG: y + 0
+OBJ2-DAG: x + 0
+OBJ2-DAG: x + 0
+OBJ2: Relocation section '.relamycode_2' at offset {{.*}} contains
+OBJ2-DAG: z + 0
+OBJ2-DAG: z + 0
+
+EXE: Relocation section '.rela.text' at offset {{.*}} contains
+EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+
+EXE: Relocation section '.relamycode_2' at offset {{.*}} contains
+EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} bar + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} bar2 + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+
+EXE: Relocation section '.relamycode_1' at offset {{.*}} contains
+EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+
+SO: Option `--emit-relocs' is disabled as it is incompatible with `-shared`
+
+SCRIPT: Relocation section '.relaCODE' at offset {{.*}} contains
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} bar + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} bar2 + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+
+DEBUG: Relocation section '.rela.debug_info' at offset {{.*}} contains
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} .debug_abbrev + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} .debug_line + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} .debug_ranges + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} x + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} mycode_1 + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} .debug_str + 0
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} .debug_str + {{[0-9a-f]}}
+DEBUG-DAG: {{[0-9a-f]+}} {{.*}} .debug_str + {{[0-9a-f]}}
+
+SECT: Section Headers:
+SECT:  .text             PROGBITS
+SECT:  mycode_1          PROGBITS
+SECT:  mycode_2          PROGBITS
+SECT:  mydata            PROGBITS
+SECT:  .rela.text        RELA            {{.*}}
+SECT:  .relamycode_2     RELA            {{.*}}
+SECT:  .relamycode_1     RELA            {{.*}}
+SECT:  .symtab           SYMTAB

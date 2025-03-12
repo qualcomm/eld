@@ -1,0 +1,15 @@
+#---EhFrameOutOfBoundSymbol.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies the final value of an explicit out of bounds symbol in
+# .eh_frame section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fasynchronous-unwind-tables
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -fasynchronous-unwind-tables
+RUN: %link %linkopts -o %t1.21.o %t1.2.o %t1.1.o -r
+RUN: %link %linkopts -o %t1.21.out %t1.21.o
+RUN: %readelf -Ss %t1.21.out | %filecheck %s
+#END_TEST
+CHECK: .eh_frame {{.*}}0c {{.*}}30
+CHECK: 3c {{.*}} EH_FRAME_BEGIN

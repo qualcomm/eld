@@ -1,0 +1,13 @@
+#---RelativeRelocAddend.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that no time that the relative reloc addend when building shared
+# libraries is not set to 0
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -fPIC
+RUN: %link %linkopts -shared %t1.1.o %t1.2.o -Bsymbolic -o %t2.out
+RUN: %readelf -r %t2.out | %filecheck %s
+#CHECK-NOT: + 0
+#END_TEST

@@ -1,0 +1,12 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o.noffdf
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o.noffdf
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.o.ffdf
+RUN: %clang %clangopts -target aarch64 -c -fdata-sections -fdata-sections %p/Inputs/2.c -o %t2.o.ffdf
+RUN: %link %linkopts  -march aarch64 --rosegment %t1.o.ffdf %t2.o.ffdf -o %t1.out.ffdf
+RUN: %readelf -p 2 %t1.out.ffdf | %filecheck %s -check-prefix=FFDF
+RUN: %link %linkopts  -march aarch64 --rosegment --gc-sections --entry=main %t1.o.ffdf %t2.o.ffdf -o %t1.out.ffdfgc
+RUN: %readelf -S %t1.out.ffdfgc | %filecheck %s
+
+NOFFDFMS:  [ 2] .rodata           PROGBITS        00001000 002000 000009 00   A  0   0  1
+FFDF:   [     0]  qualcomm
+CHECK-NOT: .rodata

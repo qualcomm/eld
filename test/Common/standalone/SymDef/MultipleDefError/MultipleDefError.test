@@ -1,0 +1,13 @@
+#---MultipleDefError.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to report multiple definition errors.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o -o %t2.out.2 --symdef-file %t2.x.symdef
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t2.out 2>&1 | %filecheck %s
+#CHECK: Error: multiple definition of symbol `foo'
+#CHECK: Error: multiple definition of symbol `bar'
+#CHECK: Error: multiple definition of symbol `baz'
+#END_TEST

@@ -1,0 +1,29 @@
+#---BasicLinkerScriptGenerator.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the behavior of printing output section data commands
+# along with many other linker script commands.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: SECTIONS {
+#CHECK:   .foo : {
+#CHECK:     *(*foo*)
+#CHECK:     BYTE (0xf)
+#CHECK:   }
+#CHECK:   .bar : {
+#CHECK:     *(*bar*)
+#CHECK:     SHORT (0x2)
+#CHECK:   }
+#CHECK:   .baz : {
+#CHECK:     *(*baz*)
+#CHECK:     LONG (0x3)
+#CHECK:   }
+#CHECK:   .text : {
+#CHECK:     *(*text*)
+#CHECK:     QUAD (0xabab)
+#CHECK:     SQUAD (0xefef)
+#CHECK:   }
+#CHECK: }

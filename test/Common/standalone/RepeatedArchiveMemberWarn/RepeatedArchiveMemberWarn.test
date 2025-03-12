@@ -1,0 +1,20 @@
+#---RepeatedArchiveMemberWarn.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks that a warning is reported for multiple archive members
+# with the same contents.
+#END_COMMENT
+RUN: %rm %t1.another_foo %t1.libfoobar.a
+RUN: %clang %clangopts -o %t1.foo.o %p/Inputs/foo.c -c
+RUN: %clang %clangopts -o %t1.bar.o %p/Inputs/bar.c -c
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %cp %t1.foo.o %t1.another_foo.o
+RUN: %ar cr %aropts %t1.libfoobar.a %t1.foo.o %t1.bar.o %t1.another_foo.o %t1.foo.o
+RUN: %link %linkopts -o %t1.main.out %t1.main.o %t1.libfoobar.a -Warchive-file 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.main.out %t1.main.o %t1.libfoobar.a -Wno-archive-file 2>&1 | %filecheck %s --check-prefix=NO_WARN --allow-empty
+
+CHECK: Warning: Archive member '{{.*}}libfoobar.a:{{.*}}another_foo.o' at index 2 has same content as archive member '{{.*}}libfoobar.a:{{.*}}foo.o' at index 0
+CHECK: Warning: Archive member '{{.*}}libfoobar.a:{{.*}}foo.o' at index 3 has same content as archive member '{{.*}}libfoobar.a:{{.*}}foo.o' at index 0
+
+NO_WARN-NOT: Warning: Archive member
+

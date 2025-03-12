@@ -1,0 +1,45 @@
+#----------ALIGN.test----------------- Executable------------------#
+
+
+
+
+
+
+#BEGIN_COMMENT
+# Do relaxation based on the value of ALIGN relocation.
+#END_COMMENT
+#--------------------------------------------------------------------
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/align.s -o %t1.align.o
+RUN: %link %linkopts --no-relax-c %t1.align.o -o %t1.out -MapStyle txt -Map %t1.map --verbose 2>&1 | %filecheck %s
+RUN: %objdump -d %t1.out 2>&1 | %filecheck %s --check-prefix=DUMP
+RUN: %filecheck %s --input-file=%t1.map  --check-prefix=MAP-RELAX
+RUN: %link %linkopts --no-relax %t1.align.o -o %t2.out -MapStyle txt -Map %t2.map --verbose 2>&1 | %filecheck %s
+RUN: %objdump -d %t2.out 2>&1 | %filecheck %s --check-prefix=DUMP
+RUN: %filecheck %s --input-file=%t2.map  --check-prefix=MAP-NORELAX
+#END_TEST
+
+CHECK: Verbose: RISCV_ALIGN : Need only 8 bytes in section .text+0x18 file {{.*}}align.o
+CHECK: Verbose: RISCV_ALIGN : Deleting 6 bytes for symbol '' in section .text+0x20 file {{.*}}align.o
+
+DUMP: nop
+DUMP: nop
+DUMP: jal
+
+MAP-RELAX: # LinkStats Begin
+MAP-RELAX: # RelaxationBytesDeleted : 10
+MAP-RELAX: # LinkStats End
+
+MAP-RELAX: # Output Section and Layout
+MAP-RELAX: .text {{.+}} Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP-RELAX: # RelaxationBytesDeleted : 10
+MAP-RELAX: .text   {{.+}}align.o #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,16
+
+MAP-NORELAX: # LinkStats Begin
+MAP-NORELAX: # RelaxationBytesDeleted : 6
+MAP-NORELAX: # LinkStats End
+
+MAP-NORELAX: # Output Section and Layout
+MAP-NORELAX: .text {{.+}} Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP-NORELAX: # RelaxationBytesDeleted : 6
+MAP-NORELAX: .text   {{.+}}align.o #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,16

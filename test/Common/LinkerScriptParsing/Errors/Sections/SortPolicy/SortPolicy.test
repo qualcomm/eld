@@ -1,0 +1,11 @@
+UNSUPPORTED: old_lsparser
+#---SortPolicy.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the error reported by linker script parser for incorrect
+# sort policy combination.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}script.t:2: Invalid sort policy combination
+CHECK: >>>   FOO : { *(SORT_BY_NAME(SORT_BY_INIT_PRIORITY(*foo*))) }
+CHECK: >>>                          ^

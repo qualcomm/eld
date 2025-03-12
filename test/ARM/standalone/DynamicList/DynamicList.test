@@ -1,0 +1,105 @@
+#---DynamicList.test-------Executable/SharedLibrary----------------------------#
+
+# Rectify the dynamic-list behavior
+#BEGIN_COMMENT
+#The dynamic list is used to control what can be added to dynamic symbol table
+#The list is only effective when a executable is built as position dependent
+#or independent. This option only exports symbols that exist. To add a
+#non-existant symbol, --extern-list must be used. When the list is specified,
+#any symbol referred by GOT or PLT that is not mentioned in the list is not
+#exported. The list is ineffective and is overridden by -E/--export-dynamic
+#option which will export all symbols into dynamic symbol table.
+#The list is not used when passed while creating shared library and is simply
+#ignored.
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/dso1.c -fPIC -o %tdso1.o
+RUN: %clang %clangopts -c %p/Inputs/main1.c  -o %tmain1.o
+
+#Normal case (simply use the list on both shared library and executable):
+RUN: %link %linkopts -shared --dynamic-list=%p/Inputs/list1 %tdso1.o -o %t1.so
+RUN: %link %linkopts -dy %tmain1.o %t1.so --dynamic-list=%p/Inputs/list1 -o %t1.out
+RUN: %readelf --dyn-symbols %t1.so | %filecheck %s --check-prefix="CHECK1DSO"
+RUN: %readelf --dyn-symbols %t1.out | %filecheck %s --check-prefix="CHECK1EXE"
+
+#CHECK1DSO-NOT: bar
+#CHECK1DSO-DAG: baz
+#CHECK1DSO-DAG: boo
+#CHECK1DSO-DAG: far
+#CHECK1DSO-DAG: foo
+#CHECK1DSO-DAG: func_dso
+#CHECK1DSO-DAG: func_exe
+#CHECK1DSO-DAG: mar
+#CHECK1DSO-DAG: moo
+#CHECK1DSO-DAG: zoo
+#
+#CHECK1EXE-DAG: foo
+#CHECK1EXE-DAG: func_exe
+#
+#Case where -Bsymbolic is used for shared library - This must not effect the
+#symbols that are global to be exported
+RUN: %link %linkopts -shared --dynamic-list=%p/Inputs/list1 %tdso1.o -o %t2.so
+RUN: %link %linkopts -dy %tmain1.o %t2.so --dynamic-list=%p/Inputs/list1 -o %t2.out
+RUN: %readelf --dyn-symbols %t2.so |  %filecheck %s --check-prefix="CHECK2DSO"
+RUN: %readelf --dyn-symbols %t2.out |  %filecheck %s --check-prefix="CHECK2EXE"
+
+#CHECK1DSO-NOT: bar
+#CHECK2DSO-DAG: baz
+#CHECK2DSO-DAG: boo
+#CHECK2DSO-DAG: far
+#CHECK2DSO-DAG: foo
+#CHECK2DSO-DAG: func_dso
+#CHECK2DSO-DAG: func_exe
+#CHECK2DSO-DAG: mar
+#CHECK2DSO-DAG: moo
+#CHECK2DSO-DAG: zoo
+#CHECK2EXE-DAG: foo
+#CHECK2EXE-DAG: func_exe
+#
+#Case where a non existant symbol is placed in dynamic list, this must not have
+#any effect and the .dynsym must not contain this symbol
+RUN: %link %linkopts -dy %tmain1.o %t1.so --dynamic-list=%p/Inputs/list2 -o %t3.out
+RUN: %readelf --dyn-symbols %t3.out |   %filecheck %s --check-prefix="CHECK3"
+
+#CHECK3-NOT: far
+#CHECK3: main
+#
+#Case where a position independent executable is created (-shared -pie flags),
+#dynamic list must still be respected
+RUN: %clang %clangopts -c %p/Inputs/dso1.c -fPIC -fpie -o %tpie.o
+RUN: %link %linkopts -pie --dynamic-list=%p/Inputs/list3 %tmain1.o  %tpie.o -o %t.pie
+RUN: %readelf --dyn-syms --hash-symbols %t.pie |   %filecheck %s --check-prefix="CHECK4"
+
+#CHECK4-DAG: far
+#CHECK4-DAG: func_dso
+#CHECK4-NOT: mar
+#
+#Case where export all is specified with the dynamic list. The dynamic list must
+#be ignored and all the symbols that can be exported must be exported
+RUN: %link %linkopts -dy %tmain1.o %t1.so -E --dynamic-list=%p/Inputs/list1 -o %t5.out
+RUN: %readelf --dyn-symbols %t5.out |  %filecheck %s --check-prefix="CHECK5"
+
+#CHECK5-DAG: foo
+#CHECK5-DAG: func_exe
+#CHECK5-DAG: main
+
+#Check case of wildcards
+RUN: %clang %clangopts -c %p/Inputs/dso3.c -fPIC -o %tdso3.o
+RUN: %clang %clangopts -c %p/Inputs/main3.c  -o %tmain3.o
+RUN: %link %linkopts -shared -o %t3.so %tdso3.o
+RUN: %link %linkopts -dy %tmain3.o %t3.so --dynamic-list=%p/Inputs/list4 -o %t6.out
+RUN: %readelf --dyn-symbols %t6.out |  %filecheck %s --check-prefix="SINGLECHAR"
+
+#SINGLECHAR-NOT: bar
+#SINGLECHAR-DAG: f1o
+#SINGLECHAR-DAG: f2o
+#SINGLECHAR-DAG: f3o
+#SINGLECHAR-DAG: foo
+
+RUN: %link %linkopts -dy %tmain3.o %t3.so --dynamic-list=%p/Inputs/list5 -o %t7.out
+RUN: %readelf --dyn-symbols %t7.out |  %filecheck %s --check-prefix="ALL"
+#ALL-DAG:     bar
+#ALL-DAG: f1o
+#ALL-DAG: f2o
+#ALL-DAG: f3o
+#ALL-DAG: foo

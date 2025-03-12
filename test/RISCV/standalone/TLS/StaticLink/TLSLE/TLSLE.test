@@ -1,0 +1,13 @@
+#----------TLSLE.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+#This tests that the linker can support TLS LE model with static linking.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ftls-model=local-exec
+RUN: %link %linkopts  %t1.1.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s
+
+#CHECK-NOT: .got

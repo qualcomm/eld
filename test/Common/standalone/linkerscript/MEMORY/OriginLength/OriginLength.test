@@ -1,0 +1,25 @@
+#---OriginLength.test--------------------- Executable,LS------------------#
+
+
+#BEGIN_COMMENT
+# This test checks that user can use ORIGIN/LENGTH in linker script
+# expressions
+# command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/mem.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %filecheck %s < %t1.map
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/memerr.t -o %t2.out -Map %t1.map \
+RUN: 2>&1 | %filecheck %s -check-prefix=ERR
+#END_TEST
+#CHECK: myorigin(0x100) = ORIGIN(mymem); # myorigin = ORIGIN(mymem); {{.*}}mem.t
+#CHECK: mylen(0x200) = LENGTH(mymem); # mylen = LENGTH(mymem); {{.*}}mem.t
+#CHECK: mylen(0x200) = LENGTH(memory); # mylen = LENGTH(memory); {{.*}}mem.t
+#ERR: Cannot find memory region myymem
+#MAP: .text {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [mymem, mymem]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS

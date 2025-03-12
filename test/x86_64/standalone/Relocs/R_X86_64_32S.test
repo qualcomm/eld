@@ -1,0 +1,10 @@
+#---R_X86_64_32S.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This tests for x86_64 Absolute relocation :- R_X86_64_32S
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang -target x86_64 -c %p/Inputs/3.c -o %t2.o
+RUN: %link %linkopts %t2.o -o %t1.out | %filecheck %s --allow-empty
+#CHECK-NOT: Not Implemented

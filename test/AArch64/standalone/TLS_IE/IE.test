@@ -1,0 +1,16 @@
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/ie.s -o %t.o
+RUN: %link %linkopts  -march aarch64 -static -z max-page-size=0x1000 %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/d.s -o %t1.o
+RUN: %link %linkopts  -march aarch64 -static -z max-page-size=0x1000 %t1.o -o %t1.out
+RUN: %clang %clangopts -target aarch64 %p/Inputs/t.c -c -o %t2.o
+RUN: %clang %clangopts -target aarch64 %p/Inputs/f.c -c -o %t3.o
+RUN: %link %linkopts -static -march aarch64 %t2.o %t3.o -z max-page-size=0x1000 -o %t2.out
+
+CHECK: _test_tls_IE
+CHECK: b0000000       adrp
+CHECK: f9400000       ldr
+CHECK: _test_tls_IE_local
+CHECK: d2a00000       movz
+CHECK: f2800280       movk
+

@@ -1,0 +1,15 @@
+#----------TLSIE.test--------------------- SharedLibrary------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker can support TLS IE model when building shared
+#objects
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ftls-model=initial-exec -fPIC
+RUN: %link %linkopts -shared  %t1.1.o -o %t.out --noinhibit-exec --no-emit-relocs
+RUN: %readelf -r %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK-COUNT-3: R_RISCV_TLS_TPREL
+

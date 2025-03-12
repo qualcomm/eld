@@ -1,0 +1,16 @@
+#---WeakUndefDefinedInLibraryProtected.test--------- Executable,Shared --------------------#
+
+#BEGIN_COMMENT
+# Since the weak undefined symbol got resolved from the shared object, make sure
+# the access goes through the PLT.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.w2.1.o -c
+RUN: %clang %clangopts %p/Inputs/4.c -o %t1.w2.2.o -c -fpic
+RUN: %link %linkopts %t1.w2.2.o -shared  -o %t2.w2.so --no-emit-relocs
+RUN: %link %linkopts -dy %t1.w2.1.o %t2.w2.so -o %t.w2.out --no-emit-relocs
+RUN: %readelf -r %t.w2.out | %filecheck %s
+
+#CHECK: {{.*}}_J{{[UM]*}}P_SLOT {{.*}} foo
+
+#END_TEST

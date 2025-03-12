@@ -1,0 +1,11 @@
+#---Expressions.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+#This tests that expressions with parenthesis are properly printed in the Map
+#file.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: ASSERT(0x64 - (0x64 + 0x5 - 0x5) == 0x0, "correct")
+#CHECK: ASSERT(0x64 + (0x64 - 0xc8 + 0x5) == 0x5, "correct")

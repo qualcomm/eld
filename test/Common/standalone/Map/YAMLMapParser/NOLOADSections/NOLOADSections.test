@@ -1,0 +1,26 @@
+#---NOLOADSections.test--------------------- Executable ------------------#
+
+
+#BEGIN_COMMENT
+# Check that NOLOAD section sizes are properly shown
+#END_COMMENT
+#START_TEST
+RUN: %python %yamlmapparser --info summarysizes,totals %p/Inputs/1.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+#      CHECK: Grand Totals Loaded Sections:
+# CHECK-NEXT:      Code (inc. data)   RO Data    RW Data    ZI Data
+# CHECK-NEXT:        10          0         40          0          0
+# CHECK-NEXT: Grand Totals Sections Not Loaded:
+# CHECK-NEXT:      Code (inc. data)   RO Data    RW Data    ZI Data    Debug
+# CHECK-NEXT:         0          0          0          8       4096        167
+# CHECK-NEXT: =============================================================================
+# CHECK-NEXT: Totals sections loaded:
+# CHECK-NEXT:    Total RO  Size (Code + RO Data)                   50 (   0.05kB)
+# CHECK-NEXT:    Total RW  Size (RW Data + ZI Data)                 0 (   0.00kB)
+# CHECK-NEXT:    Total ROM Size (Code + RO Data + RW Data)         50 (   0.05kB)
+# CHECK-NEXT: Totals sections not loaded:
+# CHECK-NEXT:    NoLoad RO  Size (Code + RO Data sections not loaded)                    0 (   0.00kB)
+# CHECK-NEXT:    NoLoad RW  Size (RW Data + ZI Data sections not loaded)              4104 (   4.01kB)
+# CHECK-NEXT:    NoLoad ROM Size (Code + RO Data + RW Data sections not loaded)          8 (   0.01kB)
+# CHECK-NEXT:    NoLoad total (total size sections not loaded inc. debug sections)    4271 (   4.17kB)

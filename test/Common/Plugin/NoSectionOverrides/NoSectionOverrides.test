@@ -1,0 +1,12 @@
+#---NoSectionOverrides.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that linker emits a diagnostic if a user calls,
+# 'LinkerWrapper::finishAssignOutputSections' but there are no section
+# overrides.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t1.1.out 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: NoSectionOverrides:Warning: 'LinkerWrapper::finishAssignOutputSections' is called but no section overrides are found.

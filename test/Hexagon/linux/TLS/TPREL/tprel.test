@@ -1,0 +1,15 @@
+# Test R_HEX_TPREL* relocations
+RUN: %clang %clangopts -c %p/Inputs/1.c -ftls-model=local-exec -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ftls-model=local-exec  -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/1.c -ftls-model=local-exec -fpic -o %t1.pic.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ftls-model=local-exec  -fpic -o %t2.pic.o
+RUN: %link %linkopts  -o %t.out %t1.o %t2.o -G0 2>&1
+RUN: %not %link %linkopts -shared -o %t.so %t1.pic.o %t2.pic.o -G0 2>&1 | %filecheck %s --check-prefix="ERR"
+RUN: %readelf -l -S -s -W %t.out |   %filecheck %s
+
+#ERR: recompile with -fPIC
+# CHECK:  .tdata            PROGBITS        {{[x0-9a-z]+}} {{[x0-9a-z]+}} 000008 00 WAT
+# CHECK:  .tbss             NOBITS          {{[x0-9a-z]+}} {{[x0-9a-z]+}} 000004 00 WAT
+# CHECK:  00000000     4 TLS     GLOBAL DEFAULT    {{[0-9]}} src1
+# CHECK:  00000004     4 TLS     GLOBAL DEFAULT    {{[0-9]}} src2
+# CHECK:  00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} dst

@@ -1,0 +1,16 @@
+#---DefSymReferenceGarbageCollect.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that when a symbol is defined as an alias for a different symbol
+# using the --defsym option, that symbol should not be garbage collected.
+# This matches GNU Behavior by just not making the symbol thats referenced in
+# the Defsym expression as Live.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/defsym.c -o %t1.1.o %clangg0opts -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.1.o  --trace=live-edges --gc-sections -e main --defsym crap=xinit -o %t2.out 2>&1 | %filecheck %s -check-prefix=LIVEEDGES
+RUN: %readelf -s %t2.out  | %filecheck %s -check-prefix=SYM
+
+#LIVEEDGES: Trace: Refers to = .data.xinit
+#LIVEEDGES: Trace:       [{{.*}}1.o]
+#LIVEEDGES: Trace:       Referenced by = .text.main
+#SYM: xinit

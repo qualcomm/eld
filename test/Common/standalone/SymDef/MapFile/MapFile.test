@@ -1,0 +1,9 @@
+#---MapFile.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that Mapfile prints that the file is of type SymDef.
+#END_COMMENT
+#START_TEST
+RUN: %link %linkopts %p/Inputs/x.symdef -o %t2.out -M 2>&1 | %filecheck %s
+#CHECK: x.symdef [SymDef]
+#END_TEST

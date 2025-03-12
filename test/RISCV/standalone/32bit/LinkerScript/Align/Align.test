@@ -1,0 +1,14 @@
+#----------Align.test----------------- Executable,LS------------------#
+
+
+#BEGIN_COMMENT
+# Do relaxation based on the value of ALIGN relocation.
+#END_COMMENT
+#--------------------------------------------------------------------
+RUN: %clang %clangopts -o %t.o -c %p/Inputs/align.s
+RUN: %link %linkopts %t.o -o %t.out -T %p/Inputs/script.t
+RUN: %objdump -d %t.out 2>&1 | %filecheck %s
+
+#CHECK: nop
+#CHECK-NEXT: nop
+#CHECK-NEXT: jal

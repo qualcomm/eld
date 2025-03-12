@@ -1,0 +1,14 @@
+#---RaiseUndefs.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that undefined symbols are handled properly and linker reports the
+# error in a proper way without applying relocations.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/blah.c -o %t1.blah.o
+RUN: %clang %clangopts -c %p/Inputs/x.c -o %t1.x.o
+RUN: %not %link %linkopts %t1.blah.o %t1.x.o -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: undefined reference to `blah'
+
+#END_TEST

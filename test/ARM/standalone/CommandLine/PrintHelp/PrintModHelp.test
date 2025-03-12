@@ -1,0 +1,9 @@
+#---PrintModHelp.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This option prints the linker help text.
+#END_COMMENT
+#START_TEST
+RUN: %link --help 2>&1 | %filecheck %s
+#CHECK:   --gpsize=<maxsize>
+#END_TEST

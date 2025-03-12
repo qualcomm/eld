@@ -1,0 +1,12 @@
+#---GetEnv.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests checks the API LinkerWrapper::GetEnv.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: ValueA: Hello World!
+CHECK: ValueB not defined!

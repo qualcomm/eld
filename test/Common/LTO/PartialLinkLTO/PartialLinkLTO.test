@@ -1,0 +1,13 @@
+#---PartialLinkLTO.test----------------------------- PartialLink,LTO --------------------#
+
+
+#BEGIN_COMMENT
+# The linker was releasing memory for archives that contained Bitcode and ELF
+# files.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -O2 %clangg0opts -flto
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -O2 %clangg0opts
+RUN: %ar cr %aropts %t2.lib1.a %t1.1.o %t1.2.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o %t1.1.o
+RUN: %link %linkopts --whole-archive %t2.lib1.a -r -o %t2.r1.o --verbose 2>&1
+RUN: %link %linkopts --whole-archive %t2.lib2.a -r -o %t2.r2.o --verbose 2>&1

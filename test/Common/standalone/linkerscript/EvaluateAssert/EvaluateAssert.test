@@ -1,0 +1,15 @@
+#---EvaluateAssert.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is executing asserts properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -g
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out --verbose 2>&1 | %filecheck %s
+#CHECK: Verbose: Deferring executing assert "ASSERT(SIZEOF(.foo) >= 0x0, "Wow!"); {{.*}}script.t" until Layout
+#CHECK: Verbose: Skipping executed assert "ASSERT((. + 0x1) > ., "Dot + 1 should always be greater than Dot"); {{.*}}script.t" after complete layout
+#CHECK: Verbose: Skipping executed assert "ASSERT(. == ., "Dot should always be equal to ."); {{.*}}script.t" after complete layout
+#CHECK: Verbose: Now executing assert "ASSERT(SIZEOF(.foo) >= 0x0, "Wow!"); {{.*}}script.t"
+#CHECK: Verbose: Now executing assert "ASSERT(__unrecognized_end__ == __unrecognized_start__, "Unrecognized sections - see linker script"); {{.*}}script.t"
+#CHECK: Unrecognized sections - see linker script
+#END_TEST

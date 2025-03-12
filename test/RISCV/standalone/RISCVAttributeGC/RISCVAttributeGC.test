@@ -1,0 +1,18 @@
+#----------RISCVAttributeGC.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Prevent linker from garbage collecting riscv.attribute sections and check that
+# the linker creates an attribute segment
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -O2
+RUN: %link %linkopts  %t1.1.o -o %t.out --gc-sections --print-gc-sections 2>&1 | %filecheck %s -allow-empty
+RUN: %readelf -l -W %t.out | %filecheck %s -check-prefix=SEGMENTS
+RUN: %link %linkopts  %t1.1.o -o %t1.out -T %p/Inputs/script.t 2>&1
+RUN: %readelf -l -W %t1.out | %filecheck %s -check-prefix=ATTRIBUTES
+#END_TEST
+
+#CHECK-NOT: riscv.attributes
+#SEGMENTS: ATTRIBUTES
+#ATTRIBUTES-NOT: ATTRIBUTES

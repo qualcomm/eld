@@ -1,0 +1,5 @@
+# This change makes building shared library not export Absolute symbols.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/blah.c -o %t1.o
+RUN: %link %linkopts -shared %t1.o -o %t2.so --hash-style=gnu
+RUN: %readelf --dyn-syms %t2.so | %filecheck %s
+#CHECK-NOT: __bss_start

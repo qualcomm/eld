@@ -1,0 +1,8 @@
+SECTIONS {
+  foo : { *(.text.foo) }
+  bar : { *(.text.bar) }
+  baz : { *(.text.baz) }
+  var : { *(*var) }
+}
+
+PLUGIN_OUTPUT_SECTION_ITER("AddRule", "AddRule");

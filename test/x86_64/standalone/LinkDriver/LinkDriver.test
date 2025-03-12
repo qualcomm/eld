@@ -1,0 +1,13 @@
+#---LinkDriver.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# x86_64-link %linkopts should invoke the x86_64 bit driver
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang -target x86_64 -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t1.out
+RUN: %readelf -h %t1.out | %filecheck %s
+
+CHECK: Class:                              ELF64
+CHECK:X86-64

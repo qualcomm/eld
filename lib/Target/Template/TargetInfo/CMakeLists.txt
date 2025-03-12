@@ -1,0 +1,1 @@
+add_llvm_library(ELDTemplateTargetInfo TemplateTargetInfo.cpp)

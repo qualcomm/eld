@@ -1,0 +1,16 @@
+#---ArchiveMemberCount.test---Executable --------------------#
+
+#BEGIN_COMMENT
+# This test shows processed archive member count against total member count in text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.4.o
+RUN: %ar -cr %tlib.a %t1.2.o %t1.3.o %t1.4.o
+RUN: %link %linkopts %t1.1.o %tlib.a -o %t2.out -M 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: Count for Loaded archive member/Total archive members
+#CHECK: {{.*}}lib.a 2/3

@@ -1,0 +1,12 @@
+#---PartialEXIDX.test--------------------------- PartialLink -----------------#
+#BEGIN_COMMENT
+#Linker should not create seperate exidx sections even if link order is set.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts -r %t1.1.o %t1.2.o  -o %t2.r.o
+RUN: %readelf -S -W %t2.r.o | %filecheck %s
+#CHECK: .ARM.exidx ARM_EXIDX
+#CHECK-NOT: .ARM.exidx ARM_EXIDX
+#END_TEST

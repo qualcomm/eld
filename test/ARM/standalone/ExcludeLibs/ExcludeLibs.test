@@ -1,0 +1,54 @@
+#---ExcludeLibs.test--------------------- Exe/DSO------------------#
+
+
+#BEGIN_COMMENT
+# Test -exclude-libs option
+#----------------------------------------------------------------
+#END_COMMENT
+
+#Check executable with exclude libs
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -fpic -o %t3.o
+RUN: %ar cr %aropts %tlib.a %t2.o
+RUN: %link %linkopts -shared -o %t3.so %t3.o
+RUN: %link %linkopts -dy -E  %t1.o %tlib.a --exclude-libs %tlib.a %t3.so -o %t1.out
+RUN: %readelf --dyn-symbols %t1.out |%filecheck --check-prefix="ONE" %s
+
+ONE-NOT: foo
+
+RUN: %link %linkopts -dy -dynamic-list %p/Inputs/list %t1.o %tlib.a --exclude-libs %tlib.a %t3.so -o %t2.out
+RUN: %readelf --dyn-symbols %t2.out |%filecheck --check-prefix="TWO" %s
+TWO-NOT: foo
+
+RUN: %ar cr %aropts %tlib.a %t3.o
+RUN: %link %linkopts --force-dynamic -E %t1.o %tlib.a --exclude-libs ALL -o %t3.out
+RUN: %readelf --dyn-symbols %t3.out |%filecheck --check-prefix="THREE" %s
+THREE-NOT: foo
+THREE-NOT: bar
+
+RUN: mkdir -p %T
+RUN: %ar cr %aropts %T/mylib.a %t2.o
+RUN: %link %linkopts -dy -E %t1.o -L%T -l:mylib.a %t3.so  --exclude-libs -l:mylib.a -o %tnamespec1.out
+RUN: %readelf --dyn-symbols %tnamespec1.out | %filecheck --check-prefix="NS" %s
+NS-NOT: foo
+
+RUN: mkdir -p %T
+RUN: %ar cr %aropts %T/mylib.a %t2.o
+RUN: %ar cr %aropts %T/mylib1.a %t3.o
+RUN: %link %linkopts --force-dynamic -E %t1.o -L%T -l:mylib.a -l:mylib1.a  --exclude-libs -l:mylib.a,-l:mylib1.a -o %tnamespec2.out
+RUN: %readelf --dyn-symbols %tnamespec2.out | %filecheck --check-prefix="NS1" %s
+NS1-NOT: foo
+NS1-NOT: bar
+
+#Check shared objects with exclude libs
+RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -o %tpic1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fpic -o %tpic2.o
+RUN: %ar cr %aropts %tlib2.a %tpic2.o
+RUN: %link %linkopts -shared %tpic1.o %tlib2.a --exclude-libs %tlib2.a %t3.o -o %t4.out.so
+RUN: %readelf --dyn-symbols %t4.out.so |%filecheck --check-prefix="FOUR" %s
+FOUR-NOT: foo
+
+RUN: %link %linkopts -shared %tpic1.o %tlib2.a --exclude-libs %tlib2.a %t3.o -version-script %p/Inputs/script -o %t5.out.so
+RUN: %readelf --dyn-symbols %t5.out.so |%filecheck --check-prefix="FIVE" %s
+FIVE-NOT: foo

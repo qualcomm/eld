@@ -1,0 +1,25 @@
+#---KeepCommonsymbols.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the KEEP linker script directive works for common
+# symbols input description.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -e main --gc-sections --trace=live-edges 2>&1 | %filecheck %s --check-prefix=CHECK1
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -e main --gc-sections --trace=live-edges 2>&1 | %filecheck %s --check-prefix=CHECK2
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -e main --gc-sections --trace=live-edges 2>&1 | %filecheck %s --check-prefix=CHECK3
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -e main --gc-sections --trace=live-edges 2>&1 | %filecheck %s --check-prefix=CHECK4
+#END_TEST
+#CHECK1: Refers to = COMMON.f_common
+#CHECK1-NOT: Refers to
+#CHECK1: Referenced by = .text.main
+#CHECK2: Refers to = .text.increment_a_common
+#CHECK-NOT: Refers to
+#CHECK2: Referenced by = .text.main
+#CHECK3: Refers to = .text.bar
+#CHECK3-NOT: Refers to
+#CHECK3: Referenced by = .text.main
+#CHECK4: Refers to = .scommon.4.c_common
+#CHECK4-NOT: Refers to
+#CHECK4: Referenced by = .text.main

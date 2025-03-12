@@ -1,0 +1,10 @@
+#FIXME: How does this test checks that commons are moved to bss?
+# Test that commons are moved to bss, and commons appear at the end.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out 2>&1
+RUN: %readelf -s %t.out | %grep -E 'common|bss' | %filecheck %s
+
+#CHECK: {{[0-9]+}}: {{[x0-9a-z]+}}     4 OBJECT  GLOBAL DEFAULT    1 bss
+#CHECK: {{[0-9]+}}: {{[x0-9a-z]+}}  4000 OBJECT  GLOBAL DEFAULT    1 common1
+

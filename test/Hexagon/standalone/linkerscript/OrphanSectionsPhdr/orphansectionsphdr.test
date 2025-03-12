@@ -1,0 +1,11 @@
+# The orphan sections that are not listed in the program header, that appears in
+# the section list before the first segment goes into the first segment in
+# decreasing order of virtual addresses.
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out --force-dynamic
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK: LOAD           0x001000 0x00000000 0x00000000 0x0004c 0x0004c R E 0x1000
+#CHECK: LOAD           0x00104c 0x0000004c 0x0000004c 0x00078 0x00078 RW  0x1000
+#CHECK: DYNAMIC        0x00104c 0x0000004c 0x0000004c 0x00078 0x00078 RW  0x1000
+

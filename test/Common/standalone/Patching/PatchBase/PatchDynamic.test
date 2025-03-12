@@ -1,0 +1,11 @@
+#---PatchSections.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test errors for patching dynamic executables
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t.o -c
+RUN: %not %link %linkopts --no-emit-relocs -shared --patch-enable %t.o -o %t.so 2>&1 | %filecheck %s
+RUN: %not %link %linkopts --no-emit-relocs -pie --patch-enable %t.o -o %t.so 2>&1 | %filecheck %s
+CHECK: Error: Patching is only supported for static linking
+#END_TEST

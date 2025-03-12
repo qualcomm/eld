@@ -1,0 +1,12 @@
+#---DontOverrideTriple.test--------------------- Executable------------------#
+
+#-----------------------------------------------------------------------------
+#BEGIN_COMMENT
+# If a triple is not passed in the command line and march is passed, dont override the triple unless
+# the march is not the same as the arch from the triple.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c  -ffunction-sections -o %t1.o
+RUN: %link %linkopts -march hexagon-unknown-linux-elf -o %t.out %t1.o
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK: LOAD           0x000000 {{.*}} 0x10000

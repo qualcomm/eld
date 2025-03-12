@@ -1,0 +1,11 @@
+PHDRS {
+  THIS_SHOULD_BE_REGULAR PT_LOAD;
+}
+SECTIONS {
+  BSS_NON_BSS_MIXED ALIGN(4096) : {
+    *(.bss .comment)
+  } : THIS_SHOULD_BE_REGULAR
+  ARMV8_TEXT ALIGN(4096) : {
+    *(.text)
+  }
+}

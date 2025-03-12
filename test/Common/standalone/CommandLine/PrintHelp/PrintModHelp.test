@@ -1,0 +1,90 @@
+#---PrintModHelp.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This option prints the linker help text.
+#END_COMMENT
+#START_TEST
+RUN: %link --help 2>&1 | %filecheck %s
+
+#CHECK:   --color=<on/off>
+#CHECK:   --emit-timing-stats=<filename>
+#CHECK:   --error-style=<style>
+#CHECK:   --gc-cref=<symbol/section>
+#CHECK:   --time-region=<region>
+#CHECK:   --time-region <region>
+#CHECK:   --trace-reloc=<relocation>
+#CHECK:   --trace-section=<section_name>
+#CHECK:   --trace-symbol=<symbol>
+#CHECK:   --verbose=<verbose-level>
+#CHECK:   --verify-options=<option>
+#CHECK:   --warn-limit=<maxwarnings>
+#CHECK:   -y=<symbol>
+#CHECK:   --hash-size=<size>
+#CHECK:   --hash-style=<hashstyle>
+#CHECK:   -h <name>
+#CHECK:   -soname=<name>
+#CHECK:   --dynamic-linker=<path>
+#CHECK:   --export-dynamic-symbol=<symbol>
+#CHECK:   -rpath-link=<path>
+#CHECK:   -e=<symbolname>
+#CHECK:   --entry=<symbolname>
+#CHECK:   --e <symbolname>
+#CHECK:   --fini=<symbol>
+#CHECK:   --image-base=<address>
+#CHECK:   --init=<symbol>
+#CHECK:   --library-path=<path>
+#CHECK:   -L <path>
+#CHECK:   -l <libName>
+#CHECK:   --Y=<path>
+#CHECK:   --copy-farcalls-from-file=<filename>
+#CHECK:   --dump-mapping-file=<outputfilename>
+#CHECK:   -dump-response-file=<outputfilename>
+#CHECK:   --no-reuse-trampolines-file=<filename>
+#CHECK:   --reproduce-compressed=<tarfilename>
+#CHECK:   --reproduce=<tarfilename>
+#CHECK:   --script-options=<matchtype>
+#CHECK:   --just-symbols=<filename>
+#CHECK:   -R=<filename>
+#CHECK:   --symdef-file=<filename>
+#CHECK:   --symdef-style=<style>
+#CHECK:   -o=<outputfile>
+#CHECK:   --output=<outputfile>
+#CHECK:   --o <outputfile>
+#CHECK:   --sysroot=<sysroot-path>
+#CHECK:   -b=<input-format>
+#CHECK:   --format=<input-format>
+#CHECK:   --exclude-lto-filelist=<list_of_files>
+#CHECK:   -flto-options=<option>
+#CHECK:   --include-lto-filelist=<list_of_files>
+#CHECK:   --save-temps=<filename>
+#CHECK:   --enable-threads=<option>
+#CHECK:   --thread-count=<threadcount>
+#CHECK:   -Map=<filename>
+#CHECK:   --MapDetail=<option>
+#CHECK:   --MapStyle=<fileformat>
+#CHECK:   -Map <filename>
+#CHECK:   --trampoline-map=<filename>
+#CHECK:   --plugin-config=<config-file>
+#CHECK:   --default-script=<pluginfile>
+#CHECK:   --dynamic-list=<list-of-symbols>
+#CHECK:   --exclude-libs=<libs>
+#CHECK:   --extern-list=<list-of-symbols>
+#CHECK:   --map-section=<section>
+#CHECK:   --script=<linkerscriptfile>
+#CHECK:   --section-start=<address>
+#CHECK:   --sort-section=<option>
+#CHECK:   -T=<linkerscriptfile>
+#CHECK:   --Tbss=<address>
+#CHECK:   -Ttext-segment=<address>
+#CHECK:   --Ttext=<address>
+#CHECK:   --T <linkerscriptfile>
+#CHECK:   --unresolved-symbols=<option>
+#CHECK:   --version-script=<linkersciptfile>
+#CHECK:   --portable=<symbol>
+#CHECK:   --sort-common=<option>
+#CHECK:   --wrap=<symbol>
+#CHECK:   --defsym=symbol=<expression>
+#CHECK:   --undefined=<symbol>
+#CHECK:   -u <symbol>
+
+#END_TEST

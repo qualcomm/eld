@@ -1,0 +1,46 @@
+UNSUPPORTED: riscv32, riscv64
+#---tracestrings.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This tests the --trace-merge-strings option
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/const1.c -o %t1.o %clangg0opts
+RUN: %clang %clangopts -c %p/Inputs/const2.c -o %t2.o %clangg0opts
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --trace-merge-strings=all 2>&1 | %filecheck %s --check-prefix=ALL
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --trace-merge-strings=allocatable_sections 2>&1 | %filecheck %s --check-prefix=ALLOC
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --trace-merge-strings=.rodata 2>&1 | %filecheck %s --check-prefix=SECTION
+ALL: Merging fragment from file {{.*}}2.o in section .rodata.str1.1
+ALL:  with fragment from file {{.*}}1.o in section .rodata.str1.1
+ALL:  and content World
+ALL:  to output section .rodata
+ALL: Merging fragment from file {{.*}}2.o in section .rodata.str1.1
+ALL:  with fragment from file {{.*}}1.o in section .rodata.str1.1
+ALL:  and content Hello
+ALL:  to output section .rodata
+ALL: Modified relocation .rodata.str1.1 + 0 from relocation section .rel{{a?}}.data in file {{.*}}.o:
+ALL:          Old fragment: offset {{.*}} in section .rodata.str1.1 from file {{.*}}2.o
+ALL:          New fragment: offset {{.*}} in section .rodata.str1.1 from file {{.*}}1.o
+ALLOC: Merging fragment from file {{.*}}2.o in section .rodata.str1.1
+ALLOC:  with fragment from file {{.*}}1.o in section .rodata.str1.1
+ALLOC:  and content World
+ALLOC:  to output section .rodata
+ALLOC: Merging fragment from file {{.*}}2.o in section .rodata.str1.1
+ALLOC:  with fragment from file {{.*}}1.o in section .rodata.str1.1
+ALLOC:  and content Hello
+ALLOC:  to output section .rodata
+ALLOC: Modified relocation .rodata.str1.1 + 0 from relocation section .rel{{a?}}.data in file {{.*}}.o:
+ALLOC:          Old fragment: offset {{.*}} in section .rodata.str1.1 from file {{.*}}2.o
+ALLOC:          New fragment: offset {{.*}} in section .rodata.str1.1 from file {{.*}}1.o
+SECTION: Merging fragment from file {{.*}}2.o in section .rodata.str1.1
+SECTION:  with fragment from file {{.*}}1.o in section .rodata.str1.1
+SECTION:  and content World
+SECTION:  to output section .rodata
+SECTION: Merging fragment from file {{.*}}2.o in section .rodata.str1.1
+SECTION:  with fragment from file {{.*}}1.o in section .rodata.str1.1
+SECTION:  and content Hello
+SECTION:  to output section .rodata
+SECTION: Modified relocation .rodata.str1.1 + 0 from relocation section .rel{{a?}}.data in file {{.*}}.o:
+SECTION:          Old fragment: offset {{.*}} in section .rodata.str1.1 from file {{.*}}2.o
+SECTION:          New fragment: offset {{.*}} in section .rodata.str1.1 from file {{.*}}1.o

@@ -1,0 +1,13 @@
+#---DynamicSectionOrder.test--------------------------- SharedLibrary -----------------#
+
+#BEGIN_COMMENT
+#Check that .got.plt is sorted after .got.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts %t.1.o %t.2.o -shared -o %t.out
+RUN: %objdump -h %t.out | %filecheck %s
+CHECK:      .got {{.*}} DATA
+CHECK-NEXT: .got.plt  {{.*}} DATA
+#END_TEST

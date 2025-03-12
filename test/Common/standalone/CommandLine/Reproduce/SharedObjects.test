@@ -1,0 +1,19 @@
+#---SharedObjects.test------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This checks for support of shared files
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts -shared %t1.1.o -o %t1.so
+RUN: %link %linkopts -shared %t1.2.o -o lib2.so
+RUN: %link %linkopts -dynamic %t1.1.o %t1.so -l2 --reproduce %t0.tar --dump-response-file %t1.dump --dump-mapping-file %t1.mapping -o %t1.out.sharedlibrary
+RUN %filecheck %s < %t1.dump --check-prefix=RESPONSE
+RESPONSE-NOT: 1.o
+RESPONSE-NOT: 1.so
+RESPONSE-NOT: lib2.so
+MAPPING: lib2.so=
+MAPPING-NOT: /lib2.so
+#END_TEST

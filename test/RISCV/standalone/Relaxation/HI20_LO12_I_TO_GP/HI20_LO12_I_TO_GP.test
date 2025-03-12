@@ -1,0 +1,29 @@
+#----------HI20_LO12_I_TO_GP.test----------------- Executable------------------#
+
+
+
+
+#BEGIN_COMMENT
+# Do relaxation based on the value of global pointer register.
+#END_COMMENT
+#--------------------------------------------------------------------
+#
+RUN: %clang %clangopts -c  %p/Inputs/t.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts -MapStyle txt -Map %t.1.map --verbose %t1.o -o %t.out -T %p/Inputs/s.t 2>&1 | %filecheck %s --check-prefix=VERBOSE
+VERBOSE: RISCV_LUI_GP : Deleting 4 bytes for symbol 'near' in section .text.data+0x8 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Deleting 4 bytes for symbol 'far' in section .text.data+0xc file {{.*}}1.o
+
+RUN: %objdump --no-print-imm-hex -d %t.out 2>&1 | %filecheck %s
+CHECK: addi    a{{.*}}, gp, 4
+CHECK: lw      a{{.*}}, 0(gp)
+
+RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
+MAP: # LinkStats Begin
+MAP: # RelaxationBytesDeleted : {{18|16}}
+MAP-NOT: # RelaxationBytesMissed
+MAP: # LinkStats End
+
+MAP: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP: # RelaxationBytesDeleted : {{18|16}}
+MAP-NOT: # RelaxationBytesMissed
+MAP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2

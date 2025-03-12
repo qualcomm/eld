@@ -1,0 +1,24 @@
+#---LinkerComment.test--------------------- Executable,DSO,LTO --------------------#
+
+#BEGIN_COMMENT
+# Linker should emit specific comments in the .comment section
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts %t1.1.o -o %t2.out.exe
+RUN: %link %linkopts %t1.1.o -o %t2.out.dso -shared
+RUN: %link %linkopts %t1.1.o -o %t2.out.pie -pie
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.lto.o -fPIC -flto
+RUN: %link %linkopts %t1.lto.o -o %t2.lto.exe
+RUN: %link %linkopts %t1.lto.o -o %t2.out.lto.dso -shared
+RUN: %link %linkopts %t1.lto.o -o %t2.out.lto.pie -pie
+RUN: %readelf -p .comment %t2.out.exe | %filecheck %s
+RUN: %readelf -p .comment %t2.out.dso | %filecheck %s
+RUN: %readelf -p .comment %t2.out.pie | %filecheck %s
+RUN: %readelf -p .comment %t2.lto.exe | %filecheck %s -check-prefix LTO
+RUN: %readelf -p .comment %t2.out.lto.dso | %filecheck %s -check-prefix LTO
+RUN: %readelf -p .comment %t2.out.lto.pie | %filecheck %s -check-prefix LTO
+
+#CHECK: Linker
+#LTO: LTO Enabled
+#END_TEST

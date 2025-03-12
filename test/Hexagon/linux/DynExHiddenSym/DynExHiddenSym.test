@@ -1,0 +1,11 @@
+#Ensure that the hidden visibility symbols generate relative relocations
+# instead of access through .got
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/2.c -o %t2.o -fPIC
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/3.c -o %t3.o -fPIC
+RUN: %link %linkopts -shared %t3.o -o %t3.so
+RUN: %link %linkopts -Bdynamic %t1.o %t2.o %t3.so -o %t.out
+RUN: %readelf -r -W %t.out | %filecheck %s
+
+CHECK: R_HEX_RELATIVE
+

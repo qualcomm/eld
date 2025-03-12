@@ -1,0 +1,24 @@
+#---ExcludeOutsideAndInsideSectPattern.test--------------------- Executable,LS ------------------#
+
+#BEGIN_COMMENT
+# This test checks the behavior of EXCLUDE_FILE linker script directive
+# when it is used both outside and inside the section pattern for the same
+# input section description.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %link -MapStyle txt %linkopts -o %t.a.out -T %p/Inputs/script.t %t1.1.o %t1.2.o %t1.3.o -Map %t1.a.map.txt
+RUN: %filecheck %s < %t1.a.map.txt
+
+CHECK: Output Section and Layout
+CHECK: FOO
+CHECK: EXCLUDE_FILE ( *2.o ) *( EXCLUDE_FILE ( *3.o )*text*)
+CHECK: .text {{.*}}1.o
+CHECK: foo
+CHECK: OTHERS
+CHECK: *(*text*)
+CHECK: .text {{.*}}2.o
+CHECK: bar
+CHECK: .text {{.*}}3.o
+CHECK: baz

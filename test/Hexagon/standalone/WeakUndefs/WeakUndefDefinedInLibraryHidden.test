@@ -1,0 +1,17 @@
+#---WeakUndefDefinedInLibraryProtected.test--------- Executable,Shared --------------------#
+
+#BEGIN_COMMENT
+# Since the weak undefined symbol got resolved from the shared object, make sure
+# the access goes through the PLT.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fno-pic %p/Inputs/1.c -o %t1.w3.1.o -c
+RUN: %clang %clangopts %p/Inputs/5.c -o %t1.w3.2.o -c -fpic
+RUN: %link %linkopts %t1.w3.2.o -shared  -o %t2.w3.so
+RUN: %link %linkopts -dy %t1.w3.1.o %t2.w3.so -o %t.w3.out --no-emit-relocs
+RUN: %objdump -d %t.w3.out | %filecheck %s
+
+CHECK: { immext(#0x0)
+CHECK-NEXT r{{[0-9]+}}=##0x0 }
+
+#END_TEST

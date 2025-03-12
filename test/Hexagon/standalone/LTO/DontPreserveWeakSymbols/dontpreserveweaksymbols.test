@@ -1,0 +1,6 @@
+# This tests that linker doesnot preserve weak symbols.
+RUN: %clang %clangopts -c -flto %p/Inputs/t.c -o %t1.weakfoo.o
+RUN: %clang %clangopts -c %p/Inputs/f.c -o %t1.fooundef.o
+RUN: %clang %clangopts -c %p/Inputs/foostrong.c -o %t1.foostrong.o
+RUN: %link %linkopts %t1.weakfoo.o %t1.fooundef.o %t1.foostrong.o -o %t2.out --trace=lto 2>&1 | %filecheck %s
+#CHECK-NOT: Preserving symbol foo

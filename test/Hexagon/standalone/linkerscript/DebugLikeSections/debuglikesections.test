@@ -1,0 +1,9 @@
+# This checks that VMA that is set is not ignored by the linker.
+RUN: %clang %clangopts -c  %clangg0opts %p/Inputs/1.c -g -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -h -l -S %t2.out | %filecheck %s
+
+
+#CHECK:   Segment Sections...
+#CHECK:    00     .text
+#CHECK:    01     .mystab .bss

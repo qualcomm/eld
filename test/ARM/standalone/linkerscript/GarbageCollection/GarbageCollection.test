@@ -1,0 +1,14 @@
+#---GarbageCollection.test--------------------- Executable,LS---------------#
+
+
+#BEGIN_COMMENT
+# This tests that Garbage collection can handle symbols defined in linker
+# scripts as ENTRY symbols and they may not be defined. This currently crashes
+# the linker so just run the linker and make sure undefined symbol error is produced.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
+RUN: %not %link %linkopts %t1.1.o %t1.lib2.a -T %p/Inputs/s.t -o %t2.out --gc-sections 2>&1 | %filecheck %s
+
+#CHECK: undefined reference to `baz'

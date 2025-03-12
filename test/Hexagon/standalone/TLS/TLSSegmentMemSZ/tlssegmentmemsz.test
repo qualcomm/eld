@@ -1,0 +1,17 @@
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# BEGIN_COMMENT
+# This tests that the TLS memory size has been bumped to at least word for TLS
+# accesses. hexagon-clang %clangopts adds a tls guard variable which is size '1' for C++
+# programs, without this change, the code associated with TLS guard variables
+# dont run properly.
+# END_COMMENT
+# -----------------------------------------------------------------------------
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/b.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK: TLS            {{[0-9xa-f]+}} {{[0-9xa-f]+}} {{[0-9xa-f]+}} 0x00001 0x00008
+#END_TEST

@@ -1,0 +1,16 @@
+UNSUPPORTED: ndk-build
+#---AliasSymbolExportDynamic.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This option checks when the usage in the main program refers to the alias
+# symbol and not the real symbol. The real symbol is copied to the main program
+# and the alias symbol is made to point to the original symbol.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -fno-pic -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts %t1.2.o -o %t2.lib2.so -shared
+RUN: %link %linkopts -E -Bdynamic --no-emit-relocs %t1.1.o %t2.lib2.so -o %t2.out --gc-sections -e main
+RUN: %readelf --dyn-relocations %t2.out | %filecheck %s
+#CHECK-NOT: alias
+#END_TEST

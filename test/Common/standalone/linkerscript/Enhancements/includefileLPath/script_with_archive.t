@@ -1,0 +1,4 @@
+SECTIONS
+{
+  INCLUDE_OPTIONAL include.t
+}

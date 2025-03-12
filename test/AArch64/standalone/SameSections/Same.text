@@ -1,0 +1,6 @@
+RUN: %clang --target=aarch64-linux-gnu %p/Inputs/t.c -c -w -o %t.o
+RUN: %link -march aarch64 -T %p/Inputs/t.l %t.o -o %t.out
+RUN: readelf -a %t.out | %filecheck %s
+
+CHECK: HYP_RW            PROGBITS
+CHECK: HYP_RW            NOBITS

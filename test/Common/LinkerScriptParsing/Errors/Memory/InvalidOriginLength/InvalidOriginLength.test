@@ -1,0 +1,16 @@
+UNSUPPORTED: old_lsparser
+#---InvalidAttrs.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the error reported by linker script parser for incorrect
+# ORIGIN and LENGTH memory region attributes.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
+
+CHECK1: Error: {{.*}}script1.t:2: expected one of: ORIGIN, org, or o
+CHECK1: >>>   A (rx) : ORIG = 0x100, LENGTH = 0x200
+CHECK1: >>>            ^
+
+CHECK2: Error: {{.*}}script2.t:2: expected one of: LENGTH, len, or l
+CHECK2: >>>   A (rx) : ORIGIN = 0x100, leng = 0x200
+CHECK2: >>>                            ^

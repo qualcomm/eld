@@ -1,0 +1,13 @@
+#---ExternList.test------------------------- Executable ----------------------#
+
+
+#BEGIN_COMMENT
+# This checks that --reproduce can handle extern list and binary map stability
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts --extern-list=%p/Inputs/externlist %t1.1.o -o %t1.out --reproduce %t0.tar --dump-mapping-file %t0.mapping --dump-response-file %t0.response
+RUN: %filecheck %s --check-prefix="CHECK_MAPPING" < %t0.mapping
+RUN: %filecheck %s --check-prefix="CHECK_RESPONSE" < %t0.response
+CHECK_MAPPING: externlist=
+CHECK_RESPONSE-NOT: externlist{{[ ]}}

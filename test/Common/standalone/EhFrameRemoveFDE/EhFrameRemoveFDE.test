@@ -1,0 +1,25 @@
+#---EhFrameRemoveFDE.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This checks that the linker removes FDE entries that are garbage collected.
+# This test checks that the CIE is also removed, and there is no eh_frame
+# section emitted. AArch64 sets up .eh_frame_hdr to be emitted
+# by default, and is disabled if there is a linker script that does not
+# specify eh_frame_hdr. Use a linker script to enable the test
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts  --no-emit-relocs %t1.1.o --gc-sections -e foo -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=VERBOSE
+RUN: %dwarfdump --debug-frame %t2.out | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/removeallfde.s -o %t1.r.o
+RUN: %link %linkopts  --no-emit-relocs %t1.r.o --gc-sections -e _start -o %t2.out.noeh -T %p/Inputs/s.t 2>&1
+RUN: %readelf -S -W %t2.out.noeh 2>&1 | %filecheck %s -check-prefix=EH
+
+#VERBOSE: Removing FDE entry
+#CHECK: CIE
+#CHECK: FDE
+#CHECK-NOT: FDE
+#EH-NOT: .eh_frame
+
+#END_TEST

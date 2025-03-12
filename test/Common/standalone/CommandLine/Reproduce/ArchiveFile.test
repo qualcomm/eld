@@ -1,0 +1,29 @@
+UNSUPPORTED: reproduce_fail
+#----ArchiveFile.test------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# This checks that the --reproduce option is able to handle archive files
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.lib14.a %t1.2.reproduce.tar %t1.2.reproduce %t1.four
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %mkdir %t1.four
+RUN: cd %t1.four
+RUN: %clang %clangopts -o 4.o %p/Inputs/4.c -c
+RUN: %ar -cr %aropts %t1.lib14.a %t1.1.o 4.o
+RUN: cd ..
+RUN: %link %linkopts -o %t1.2.out %t1.2.o %t1.lib14.a \
+RUN: --reproduce %t1.2.reproduce.tar --dump-mapping-file \
+RUN: %t1.2.mapping --dump-response-file %t1.2.response
+RUN: %filecheck %s < %t1.2.mapping
+RUN: %mkdir %t1.2.reproduce
+RUN: %tar -xf %t1.2.reproduce.tar -C %t1.2.reproduce --strip-components 1
+RUN: cd %t1.2.reproduce
+RUN: %link @response.txt -o %t1.2.reproduce.out
+RUN: %diff %t1.2.out %t1.2.reproduce.out
+CHECK: lib14.a=
+CHECK NOT: 1.o
+#END_TEST

@@ -1,0 +1,12 @@
+#---ForceVerify.test--------------------- SharedLibrary------------------#
+
+# Add a verify-options=reloc=<reloc name> option
+#BEGIN_COMMENT
+# This will check if there is any alignment or truncation issues and warn
+# accordingly
+#END_COMMENT
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts --verify-options=reloc=R_HEX_GOT_11_X %t1.o -o %t.out -shared 2>&1 | %filecheck %s
+
+#CHECK:  Relocation `R_HEX_GOT_11_X' for symbol `a' referred from `{{[ -\(\)_A-Za-z0-9.\\/:]+}}[.data]' and defined in `{{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text]' is truncated to fit relocation field
+

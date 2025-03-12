@@ -1,0 +1,8 @@
+#---HiddenHelp.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Test to ensure "hidden-help" terminates correctly.
+#END_COMMENT
+#START_TEST
+RUN: %link --help-hidden
+#END_TEST

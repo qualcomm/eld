@@ -1,0 +1,11 @@
+#---ZRelRO.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker creates a valid segment with RELRO option.
+#END_COMMENT
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o -fno-use-init-array
+RUN: %link %linkopts %t1.1.o -o %t1.out -z relro
+RUN: %readelf -l -W %t1.out | %filecheck %s
+
+#CHECK: LOAD {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[FILESZ:[xa-f0-9]+]] [[FILESZ]]
+#CHECK: LOAD {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[FILESZ:[xa-f0-9]+]] [[FILESZ]]

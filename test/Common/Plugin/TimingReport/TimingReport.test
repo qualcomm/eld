@@ -1,0 +1,26 @@
+#---TimingReport.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies that timing information is emitted for plugin hooks.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   --emit-timing-stats %t1.1.timing.stats
+RUN: %filecheck %s < %t1.1.timing.stats
+#END_TEST
+
+CHECK: Plugins
+CHECK-DAG: Load Linker Plugins
+CHECK-DAG: Init
+CHECK-DAG: VisitSections
+CHECK-DAG: ActBeforeSectionMerging
+CHECK-DAG: ActBeforePerformingLayout
+CHECK-DAG: ActBeforeWritingOutput
+CHECK-DAG: PluginCommandLineOptions
+CHECK-DAG: Destroy
+CHECK-DAG: ActBeforeRuleMatching
+CHECK-DAG: VisitSymbol
+CHECK: Total
+
+

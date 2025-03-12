@@ -1,0 +1,17 @@
+UNSUPPORTED: arm
+#---CopyRelocSymbolAlignment.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This test checks the alignment of copy reloc symbols.
+#END_COMMENT
+RUN: %clang %clangg0opts -o %t1.foo.o %p/Inputs/foo.c -c -fPIC
+RUN: %clang %clangg0opts -fno-pic -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkg0opts -o %t1.libfoo.so %t1.foo.o -shared
+RUN: %link -MapStyle txt %linkg0opts -o %t1.a.SharedLibAfter.out -Bdynamic %t1.1.o %t1.libfoo.so -Map %t1.a.map.SharedLibAfter.txt
+RUN: %link -MapStyle txt %linkg0opts -o %t1.a.SharedLibBefore.out -Bdynamic %t1.libfoo.so %t1.1.o -Map %t1.a.map.SharedLibBefore.txt
+RUN: %filecheck %s < %t1.a.map.SharedLibAfter.txt
+RUN: %filecheck %s < %t1.a.map.SharedLibBefore.txt
+
+CHECK: .bss {{.*}} Alignment: 0x10
+CHECK-NEXT: .dynbss.val {{.*}} CopyRelocSymbols #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,16
+

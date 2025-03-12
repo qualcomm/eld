@@ -1,0 +1,13 @@
+#---LTOPreserveCommonSymbolReference.test---------------------- Executable,LTO  --------------#
+
+#BEGIN_COMMENT
+# Test that Linker is preserving the symbol defined in bitcode, when the symbol
+# is referenced as a COMMON symbol.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/def.c -o %t1.lto.def.o -flto -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -c %p/Inputs/ref.c -o %t1.lto.ref.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts  %t1.lto.def.o %t1.lto.ref.o  -e foo -o %t2.out --trace=lto 2>&1 | %filecheck %s
+RUN: %link %linkopts  %t1.lto.ref.o %t1.lto.def.o  -e foo -o %t2.out --trace=lto 2>&1 | %filecheck %s
+#CHECK: Note: Preserving symbol C
+#END_TEST

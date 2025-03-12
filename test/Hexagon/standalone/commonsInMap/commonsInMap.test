@@ -1,0 +1,115 @@
+
+# Check that commons exist in the Map file.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o.g0 %clangg0opts
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+# Test G0 with and without linker scripts
+RUN: %link -o %t1.out.1 %linkopts %t1.o.g0 -M 2>&1 | %filecheck -check-prefix=COMMONSWITHOUTLSG0 %s
+RUN: %link -o %t1.out.2 %linkopts %t1.o.g0 -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLSG0 %s
+RUN: %link -o %t1.out.3 %linkopts %t1.o.g0  %linkg0opts  -M 2>&1 | %filecheck -check-prefix=COMMONSWITHOUTLSLINKG0 %s
+RUN: %link -o %t1.out.4 %linkopts %t1.o.g0  %linkg0opts  -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLSLINKG0 %s
+# Test G8 with linker scripts
+RUN: %link  -o %t1.out.5 %linkopts %t1.o -M  2>&1| %filecheck -check-prefix=COMMONSWITHOUTLS %s
+RUN: %link  -o %t1.out.6 %linkopts %t1.o -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLS %s
+
+# Test for common symbols with partial link
+RUN: %link %linkopts -o %t1.1.r.elf %t1.o -r -M 2>&1 | %filecheck %s --check-prefix=COMMON_PARTIAL_LINK
+RUN: %link %linkopts -o %t1.1.r.elf %t1.o -r -d -M 2>&1 | %filecheck %s --check-prefix=COMMON_PARTIAL_LINK_WITH_DOPTION
+
+# Test for common symbols with LTO
+RUN: %clang %clangopts -o %t1.1.lto.o %p/Inputs/1.c -c -flto -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.lto.elf %t1.1.lto.o -flto-options=codegen="-function-sections -data-sections" -T %p/Inputs/1.linker.script -M 2>&1 | %filecheck %s --check-prefix=COMMON_LTO
+
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared -M 2>&1 | %filecheck %s --check-prefix=COMMON_SHARED_LIB
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %link %linkopts -o %t1.3.elf %t1.3.o -dy %t1.lib2.so -M 2>&1 | %filecheck %s --check-prefix=COMMON_DYN_EXE
+
+#COMMONSWITHOUTLSG0:common_char 0x1
+#COMMONSWITHOUTLSG0:common_short 0x2
+#COMMONSWITHOUTLSG0:common1 0x4
+#COMMONSWITHOUTLSG0:common2 0x4
+#COMMONSWITHOUTLSG0:common_double 0x8
+#COMMONSWITHOUTLSG0:        0x1000          common_char
+#COMMONSWITHOUTLSG0:        0x1002          common_short
+#COMMONSWITHOUTLSG0:        0x1004          common1
+#COMMONSWITHOUTLSG0:        0x1008          common2
+#COMMONSWITHOUTLSG0:        0x1010          common_double
+#COMMONSWITHLSG0:common_char 0x1
+#COMMONSWITHLSG0:common_short 0x2
+#COMMONSWITHLSG0:common1 0x4
+#COMMONSWITHLSG0:common2 0x4
+#COMMONSWITHLSG0:common_double 0x8
+#COMMONSWITHLSG0:        0x4000          common_char
+#COMMONSWITHLSG0:        0x4002          common_short
+#COMMONSWITHLSG0:        0x4004          common1
+#COMMONSWITHLSG0:        0x4008          common2
+#COMMONSWITHLSG0:        0x4010          common_double
+#COMMONSWITHOUTLSLINKG0:common_char 0x1
+#COMMONSWITHOUTLSLINKG0:common_short 0x2
+#COMMONSWITHOUTLSLINKG0:common1 0x4
+#COMMONSWITHOUTLSLINKG0:common2 0x4
+#COMMONSWITHOUTLSLINKG0:common_double 0x8
+#COMMONSWITHOUTLSLINKG0:        0x1000          common_char
+#COMMONSWITHOUTLSLINKG0:        0x1002          common_short
+#COMMONSWITHOUTLSLINKG0:        0x1004          common1
+#COMMONSWITHOUTLSLINKG0:        0x1008          common2
+#COMMONSWITHOUTLSLINKG0:        0x1010          common_double
+#COMMONSWITHLSLINKG0:common_char 0x1
+#COMMONSWITHLSLINKG0:common_short 0x2
+#COMMONSWITHLSLINKG0:common1 0x4
+#COMMONSWITHLSLINKG0:common2 0x4
+#COMMONSWITHLSLINKG0:common_double 0x8
+#COMMONSWITHLSLINKG0:        0x4000          common_char
+#COMMONSWITHLSLINKG0:        0x4002          common_short
+#COMMONSWITHLSLINKG0:        0x4004          common1
+#COMMONSWITHLSLINKG0:        0x4008          common2
+#COMMONSWITHLSLINKG0:        0x4010          common_double
+#COMMONSWITHOUTLS:common_char 0x1
+#COMMONSWITHOUTLS:common_short 0x2
+#COMMONSWITHOUTLS:common1 0x4
+#COMMONSWITHOUTLS:common2 0x4
+#COMMONSWITHOUTLS:common_double 0x8
+#COMMONSWITHOUTLS:        0x1000          common_char
+#COMMONSWITHOUTLS:        0x1002          common_short
+#COMMONSWITHOUTLS:        0x1004          common1
+#COMMONSWITHOUTLS:        0x1008          common2
+#COMMONSWITHOUTLS:        0x1010          common_double
+#COMMONSWITHLS:common_char 0x1
+#COMMONSWITHLS:common_short 0x2
+#COMMONSWITHLS:common1 0x4
+#COMMONSWITHLS:common2 0x4
+#COMMONSWITHLS:common_double 0x8
+#COMMONSWITHLS:        0x4000          common_char
+#COMMONSWITHLS:        0x4002          common_short
+#COMMONSWITHLS:        0x4004          common1
+#COMMONSWITHLS:        0x4008          common2
+#COMMONSWITHLS:        0x4010          common_double
+
+#COMMON_PARTIAL_LINK-NOT: common1
+#COMMON_PARTIAL_LINK-NOT: common2
+#COMMON_PARTIAL_LINK-NOT: common_char
+#COMMON_PARTIAL_LINK-NOT: common_short
+#COMMON_PARTIAL_LINK-NOT: common_double
+
+#COMMON_PARTIAL_LINK_WITH_DOPTION:common_char 0x1
+#COMMON_PARTIAL_LINK_WITH_DOPTION:common_short 0x2
+#COMMON_PARTIAL_LINK_WITH_DOPTION:common1 0x4
+#COMMON_PARTIAL_LINK_WITH_DOPTION:common2 0x4
+#COMMON_PARTIAL_LINK_WITH_DOPTION:common_double 0x8
+
+#COMMON_LTO:common_char 0x1
+#COMMON_LTO:common_short 0x2
+#COMMON_LTO:common1 0x4
+#COMMON_LTO:common2 0x4
+#COMMON_LTO:common_double 0x8
+#COMMON_LTO:        0x0          common_short
+#COMMON_LTO:        0x4          common1
+#COMMON_LTO:        0x8          common_char
+#COMMON_LTO:        0xc          common2
+#COMMON_LTO:        0x10          common_double
+
+#COMMON_SHARED_LIB: common_char 0x1
+#COMMON_SHARED_LIB: common_short 0x2
+#COMMON_SHARED_LIB: common_int 0x4
+
+#COMMON_DYN_EXE: another_common_char 0x1

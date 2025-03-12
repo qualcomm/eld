@@ -1,0 +1,18 @@
+# This shows that the user can override section permissions and types to prevent
+# the NOBITS is followed by PROGBITS error.
+RUN: %clang %clangopts -c %p/Inputs/1.c  -fdata-sections %clangg0opts -o %t1.o
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=ERR
+RUN: %link %linkopts %t1.o -T %p/Inputs/script_type.t -o %t2.out.types 2>&1
+RUN: %readelf -l -W %t2.out.types | %filecheck %s -check-prefix=TYPE
+RUN: %link %linkopts %t1.o -T %p/Inputs/script_type_perm.t -o %t2.out.perm 2>&1
+RUN: %readelf -l -W %t2.out.perm | %filecheck %s -check-prefix=PERM
+RUN: %link %linkopts %t1.o -T %p/Inputs/script_vma_type_perm.t -o %t2.out.vmaperm 2>&1
+RUN: %readelf -l -W %t2.out.vmaperm | %filecheck %s -check-prefix=VMAPERM
+
+#ERR: Mixing BSS and non-BSS sections in segment. non-BSS '.a' is after BSS '.c' in linker script
+#TYPE: LOAD           0x001000 0x00000000 0x00000000 0x0000c 0x0000c RW  0x1000
+#TYPE:  00     .c .b .a
+#PERM: LOAD           0x001000 0x00000000 0x00000000 0x0000c 0x0000c RWE  0x1000
+#PERM:  00     .c .b .a
+#VMAPERM: LOAD           0x001000 0x00004000 0x00004000 0x0000c 0x0000c RWE  0x1000
+#VMAPERM:  00     .c .b .a

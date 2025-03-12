@@ -1,0 +1,16 @@
+#---WarnOnce.test--------------------- Executable------------------#
+
+# Implement --warn-once
+#BEGIN_COMMENT
+# This tests that once --warn-once switch is thrown, linker should
+# warn about undefined references only once as opposed to per
+# module
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c  -o %t2.o
+RUN: %not %link %linkopts %t1.o %t2.o -o %t.out --warn-once 2>&1 | %filecheck %s
+
+CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}(.text+{{[x0-9a-f]*}}): undefined reference to `bar'
+CHECK-NOT: {{[ -\(\)_A-Za-z0-9.\\/:]+}}(.text+{{[x0-0a-f]*}}): undefined reference to `bar'
+CHECK: Fatal
+

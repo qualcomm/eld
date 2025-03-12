@@ -1,0 +1,17 @@
+#---ArchiveRelativePath.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the relative paths in (thin) archives work as expected.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.lib1.a %t1.dir
+RUN: %mkdir %t1.dir
+RUN: cd %t1.dir
+RUN: %clang %clangopts -o %t1.dir/1.o %p/Inputs/1.c -c
+RUN: %ar %aropts cr %t1.dir/lib1.a 1.o
+RUN: cd ..
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %link %linkopts -o %t1.main.out %t1.main.o %t1.dir/lib1.a --verbose 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Verbose: Loading Member {{.*}}dir/lib1.a(1.o)
+

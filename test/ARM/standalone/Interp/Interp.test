@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -fPIC -o %t.o
+RUN: %link %linkopts -march arm -pie -dynamic-linker /system/bin/linker %t.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+
+CHECK: .interp           PROGBITS

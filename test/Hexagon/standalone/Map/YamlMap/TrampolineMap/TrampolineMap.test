@@ -1,0 +1,12 @@
+#---TrampoolineMap.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that linker is able to generate trampoline maps without issues when
+# the symbol is absolute.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %t1.1.o -Map %t2.map -o %t2.out --defsym foo=0xF0000000 -MapStyle yaml
+RUN: %filecheck %s < %t2.map
+
+#CHECK: No Section

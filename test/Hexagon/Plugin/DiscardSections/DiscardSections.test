@@ -1,0 +1,12 @@
+#---DiscardSections.test----------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# This tests that symbol f1 can be discarded by section matcher and section
+# iterator plugins.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/fn.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -M %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=MAP
+RUN: %link %linkopts -M %t1.1.o -T %p/Inputs/script.SectionMatcher.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=MAP
+#MAP: Discarding section .text.f1

@@ -1,0 +1,13 @@
+#---FirstPtLoadDoesnotContainPhdrsError.test--------------------------- Executable,LS,PHDRS -----------------#
+
+
+#BEGIN_COMMENT
+# This is a test which tests the linker that it produces an error when the first
+# PT_LOAD segment doesnot contain PHDRS / FILEHDRS but the next segment does
+# contain them.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=ERR
+#ERR: First PT_LOAD specified, does not have PHDRS/FILEHDR
+#END_TEST

@@ -1,0 +1,45 @@
+add_llvm_library(
+  ELDScript
+  Expression.cpp
+  Assignment.cpp
+  EnterScopeCmd.cpp
+  EntryCmd.cpp
+  ExitScopeCmd.cpp
+  ExternCmd.cpp
+  ExcludeFiles.cpp
+  Expression.cpp
+  FileToken.cpp
+  GroupCmd.cpp
+  IncludeCmd.cpp
+  InputCmd.cpp
+  InputSectDesc.cpp
+  InputToken.cpp
+  MemoryCmd.cpp
+  MemoryDesc.cpp
+  NameSpec.cpp
+  NoCrossRefsCmd.cpp
+  OutputSectData.cpp
+  Plugin.cpp
+  PluginCmd.cpp
+  PluginConfig.cpp
+  OutputArchCmd.cpp
+  OutputCmd.cpp
+  OutputFormatCmd.cpp
+  OutputSectDesc.cpp
+  PhdrsCmd.cpp
+  PhdrDesc.cpp
+  RegionAlias.cpp
+  ScriptAction.cpp
+  ScriptCommand.cpp
+  ScriptFile.cpp
+  ScriptReader.cpp
+  SearchDirCmd.cpp
+  SectionsCmd.cpp
+  StrToken.cpp
+  ScriptSymbol.cpp
+  SymbolContainer.cpp
+  StringList.cpp
+  VersionScript.cpp
+  WildcardPattern.cpp)
+
+target_link_libraries(ELDScript PRIVATE ELDCore ELDSupport ELDScriptParser)

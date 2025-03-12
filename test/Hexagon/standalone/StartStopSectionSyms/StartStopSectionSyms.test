@@ -1,0 +1,11 @@
+# Test that linker is able to create a PLT entry for the symbol.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t -shared %t1.o -o %t1.so
+RUN: %link %linkopts -T %p/Inputs/script.t  %t1.o -o %t1.out
+RUN: %readelf --dyn-syms %t1.so | %filecheck %s --check-prefix="SHLIB"
+RUN: %readelf -s %t1.out | %filecheck %s --check-prefix="STATIC"
+
+#SHLIB-DAG: 00003000     0 NOTYPE  GLOBAL DEFAULT   {{[0-9]+}} __stop_bar
+#SHLIB-DAG: 00001000     0 NOTYPE  GLOBAL DEFAULT   {{[0-9]+}} __start_foo
+#STATIC-DAG: 00001000     0 NOTYPE  GLOBAL DEFAULT    2 __start_foo
+#STATIC-DAG: 00003000     0 NOTYPE  GLOBAL DEFAULT    3 __stop_bar

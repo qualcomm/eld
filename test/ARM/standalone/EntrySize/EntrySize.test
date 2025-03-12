@@ -1,0 +1,13 @@
+#---EntrySize.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# This handles the case where a string section that contains mergeable strings
+# has an entry size more than one. This checks that partial linking can handle
+# the case and preserve the entry size for such sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.s -o %t1.1.o -fintegrated-as
+RUN: %link %linkopts -r %t1.1.o -o %t2.r.o
+RUN: %readelf -S -W %t2.r.o | %filecheck %s
+#CHECK: .rodata.str1.1    PROGBITS        00000000 {{[a-f0-9x]+}} 000008 04 AMS  0   0
+#END_TEST

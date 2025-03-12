@@ -1,0 +1,49 @@
+#---PaddingTest.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks section padding information.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g -ffunction-sections %p/Inputs/1.c -o %t.o
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.out 2>&1 | %filecheck %s --check-prefix=PADDING1
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.out 2>&1 | %filecheck %s --check-prefix=PADDING2
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.out 2>&1 | %filecheck %s --check-prefix=PADDING3
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.out 2>&1 | %filecheck %s --check-prefix=PADDING4
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.out 2>&1 | %filecheck %s --check-prefix=PADDING5
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.out 2>&1 | %filecheck %s --check-prefix=PADDING6
+
+#PADDING1: Output Section: .text
+#PADDING1: Start Offset: 0x0
+#PADDING1: Size: 0x1e
+#PADDING1: Fill Value: 0xa
+#PADDING1: Is Alignment Padding: No
+
+#PADDING2: Output Section: .text
+#PADDING2: Start Offset: 0x1e
+#PADDING2: Size: 0x2
+#PADDING2: Fill Value: 0xa
+#PADDING2: Is Alignment Padding: Yes
+
+#PADDING3: Output Section: .text
+#PADDING3: Start Offset: 0x2c
+#PADDING3: Size: 0x1e
+#PADDING3: Fill Value: 0xa
+#PADDING3: Is Alignment Padding: No
+
+#PADDING4: Output Section: .text
+#PADDING4: Start Offset: 0x4a
+#PADDING4: Size: 0x28
+#PADDING4: Fill Value: 0xa
+#PADDING4: Is Alignment Padding: No
+
+#PADDING5: Output Section: .text
+#PADDING5: Start Offset: 0x72
+#PADDING5: Size: 0xe
+#PADDING5: Fill Value: 0xa
+#PADDING5: Is Alignment Padding: Yes
+
+#PADDING6: Output Section: .text
+#PADDING6: Start Offset: 0x8c
+#PADDING6: Size: 0x34
+#PADDING6: Fill Value: 0xa
+#PADDING6: Is Alignment Padding: No
+#END_TEST

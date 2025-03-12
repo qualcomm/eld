@@ -1,0 +1,39 @@
+#---INIFile.test----------------------- Executable,LS --------------------#
+
+
+
+#BEGIN_COMMENT
+# Tests that plugins are able to read and write .ini files with plugin APIs
+#END_COMMENT
+#START_TEST
+RUN: rm -f out.ini
+RUN: rm -f new.ini
+RUN: rm -f test.ini
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=READ
+RUN: %filecheck <out.ini %s --check-prefix=WRITE
+RUN: %filecheck <test.ini %s --check-prefix=WRITESAME
+RUN: %filecheck <new.ini %s --check-prefix=WRITENEW
+RUN: rm -f out.ini
+RUN: rm -f new.ini
+RUN: rm -f test.ini
+RUN: echo "PLUGIN_OUTPUT_SECTION_ITER(\"INIFilePlugin\",\"INIFILE\", \"%p/Inputs/test.ini\");" > %t2.t
+RUN: %link %linkopts %t1.1.o -T %t2.t -o %t2.out.1  2>&1  | %filecheck %s -check-prefix=READ
+RUN: %filecheck <out.ini %s --check-prefix=WRITE
+RUN: %filecheck <test.ini %s --check-prefix=WRITESAME
+RUN: %filecheck <new.ini %s --check-prefix=WRITENEW
+#READ-DAG: A
+#READ-DAG: B
+#READ: found section A
+#READ: found item A[1]
+#READ: did not find section C
+#READ: 2
+#READ: 1
+#READ: Success
+#WRITE: [C]
+#WRITE: a=1
+#WRITESAME: [C]
+#WRITESAME: a=1
+#WRITENEW: [NEW]
+#WRITENEW: foo=bar
+#END_TEST

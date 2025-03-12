@@ -1,0 +1,10 @@
+#---UnrecognizedOption.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks for the proper warning string when an unrecognized command line
+# Argument is passed to the linker
+#END_COMMENT
+#START_TEST
+RUN: %not %link --bad 2>&1 | %filecheck %s
+CHECK-NOT: Warning: Warning
+#END_TEST

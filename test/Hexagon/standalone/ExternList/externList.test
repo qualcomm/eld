@@ -1,0 +1,14 @@
+
+# Check extern list
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %ar cr %aropts %tlib.a %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --extern-list=%p/Inputs/list 2>&1
+# also do some rudimentary error checking
+RUN: %not %link %linkopts %t1.o %tlib.a -o %t.out.err1 --extern-list=%p/Inputs/list1 2>&1 | %filecheck --check-prefix "ERR1" %s
+RUN: %not %link %linkopts %t1.o %tlib.a -o %t.out.err2 --extern-list=%p/Inputs/list2 2>&1 | %filecheck --check-prefix "ERR2" %s
+RUN: %readelf -s %t.out  | %filecheck %s
+
+#ERR1: {{syntax error|list1:1: ; expected, but got [}]}}
+#ERR2: {{syntax error|list2:1: ; expected, but got \*/}}
+#CHECK:       {{[0-9a-f]+}}: {{[0-9a-f]+}}    12 FUNC    GLOBAL DEFAULT    1 foo

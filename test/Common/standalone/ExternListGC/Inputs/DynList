@@ -1,0 +1,5 @@
+{
+  commonSym;
+  NoGC; 
+  func_exe;
+};

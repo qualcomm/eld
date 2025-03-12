@@ -1,0 +1,28 @@
+#---ATRegionPHDRS.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command with AT command used to set physical addresses. Verify that physical
+# address is appropriately set using AT. This uses PHDRS
+# region
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link -Wlinker-script-memory -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %readelf -l -W %t2.out | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+#CHECK: Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}3000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}6000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}9000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: Segment Sections...
+#CHECK:  00     .t1
+#CHECK:  01     .t2
+#CHECK:  02     .t3
+#MAP: .t1 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [b1, lmab1]
+#MAP: .t2 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ B ], Memory : [b2, lmab2]
+#MAP: .t3 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ C ], Memory : [b3, lmab3]
+

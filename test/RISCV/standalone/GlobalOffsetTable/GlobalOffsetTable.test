@@ -1,0 +1,14 @@
+#----------GlobalOffsetTable.test--------------------- Executable ------#
+
+#BEGIN_COMMENT
+#Test the value of the variable _GLOBAL_OFFSET_TABLE_ and make sure it points
+#to .got.plt
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts %t1.1.o  -o %t1.out 2>&1
+RUN: %readelf -S -W -s %t1.out 2>&1 | %filecheck %s
+#END_Test
+
+CHECK: .got PROGBITS [[ADDR:[xa-f0-9]+]]
+CHECK: {{.*}} [[ADDR]] {{.*}} _GLOBAL_OFFSET_TABLE_

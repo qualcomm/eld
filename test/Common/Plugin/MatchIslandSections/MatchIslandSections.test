@@ -1,0 +1,26 @@
+#---MatchIslandSections.test----------------------- Executable,LS --------------------#
+
+
+
+#BEGIN_COMMENT
+#This tests a simple SectionIterator plugin that tries to figure out the
+#relationship between sections only for sections matching a particular pattern.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out.1 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+RUN: %link %linkopts %t1.1.o --plugin-config %p/Inputs/plugin.config --trace=plugin -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+RUN: %not %link %linkopts %t1.1.o --plugin-config %p/Inputs/fail.config --trace=plugin -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=NOTREGISTERED
+RUN: %not %link %linkopts %t1.1.o --plugin-config %p/Inputs/doesnotexit.config --trace=plugin -o %t2.out.2 2>&1 | %filecheck %s
+
+#PLUGINTRACE: Note: Registration function found RegisterAll in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Plugin handler getPlugin found in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Registering all plugin handlers for plugin types
+#PLUGINTRACE: Note: Found plugin handler for plugin type MATCHANDFINDUSES in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Uses for section .text.island_baz
+#PLUGINTRACE: .text.foo
+#PLUGINTRACE: .text.bar
+#NOTREGISTERED: NOTREGISTERED
+#CHECK-NOT: !!!
+
+#END_TEST

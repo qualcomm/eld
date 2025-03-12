@@ -1,0 +1,13 @@
+#---SizeOfForSegment.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that SIZEOF also works on segments.
+#END_COMMENT
+# 1.s is derived from 1.c.
+RUN: %clang %clangopts -c %p/Inputs/1.s -fdata-sections -o %t1.1.o -fintegrated-as
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -M -o %t2.out 2>&1 | %filecheck %s -check-prefix=PASS
+# Check for error.
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/error.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=ERROR
+
+#PASS: size_of_segment_A(0x4) = SIZEOF(:A = 0x4);
+#ERROR: Using SIZEOF without PHDR's is not supported for segments

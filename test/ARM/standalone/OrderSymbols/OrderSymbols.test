@@ -1,0 +1,12 @@
+#---OrderSymbols.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that we dont order LOCAL symbols after GLOBAL symbols.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %readelf -s -W %t2.out | %filecheck %s
+
+#CHECK: LOCAL DEFAULT
+#CHECK: GLOBAL DEFAULT
+#CHECK-NOT: LOCAL DEFAULT

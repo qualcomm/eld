@@ -1,0 +1,27 @@
+#---MinimumArchiveGroupIteration.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that the minimum archive group iteration count is 2.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.libfoo.a %t1.libbar.a %t1.libbaz.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.foo.o %p/Inputs/foo.c -c
+RUN: %clang %clangopts -o %t1.bar.o %p/Inputs/bar.c -c
+RUN: %clang %clangopts -o %t1.baz.o %p/Inputs/baz.c -c
+RUN: %ar cr %aropts %t1.libfoo.a %t1.foo.o
+RUN: %ar cr %aropts %t1.libbar.a %t1.bar.o
+RUN: %ar cr %aropts %t1.libbaz.a %t1.baz.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o --start-group %t1.libfoo.a \
+RUN:   %t1.libbar.a %t1.libbaz.a --end-group --verbose 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Verbose: Performing symbol resolution for archive '{{.*}}libfoo.a'
+CHECK: Verbose: Performing symbol resolution for archive '{{.*}}libbar.a'
+CHECK: Verbose: Performing symbol resolution for archive '{{.*}}libbaz.a'
+CHECK: Verbose: Performing symbol resolution for archive '{{.*}}libfoo.a'
+CHECK: Verbose: Performing symbol resolution for archive '{{.*}}libbar.a'
+CHECK: Verbose: Performing symbol resolution for archive '{{.*}}libbaz.a'
+CHECK-NOT: Verbose: Performing symbol resolution for archive '{{.*}}libfoo.a'
+CHECK-NOT: Verbose: Performing symbol resolution for archive '{{.*}}libbar.a'
+CHECK-NOT: Verbose: Performing symbol resolution for archive '{{.*}}libbaz.a'
+

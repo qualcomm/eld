@@ -1,0 +1,9 @@
+RUN: %clang %clangopts -target aarch64-linux-gnueabi %p/t.c -c -o %t.o
+RUN: %link %linkopts -march=aarch64 -T %p/t.t %t.o -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: T S1$$Base
+CHECK: D S2$$Base
+CHECK: A S2$$Length
+CHECK: B S3$$Base
+CHECK: A S3$$Length

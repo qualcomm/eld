@@ -1,0 +1,18 @@
+#---AtAddressAutoPlacementWithinInputSections.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker. This checks that the @ section is automatically laid
+# out in the final image inside input section descriptors. This is tested
+# by inspecting the Map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t -M 2>&1 | %filecheck %s
+
+#CHECK: .main@0x300     0x300
+#CHECK: .foo1   0x320
+#CHECK: .baz@0x330      0x330
+#CHECK: .foo2   0x340
+#CHECK: .foo3   0x350
+#CHECK: .bar    0x360

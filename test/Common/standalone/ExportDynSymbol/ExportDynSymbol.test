@@ -1,0 +1,41 @@
+#---ExportDynSymbol.test------------------ exe --------------------#
+
+
+#BEGIN_COMMENT
+# Implement --export-dynamic-symbol option. This option exports
+# the specified symbol to dynamic symbol table
+##
+#
+#END_COMMENT
+#START_TEST
+# Check that a undefined symbol for symbol using --export-dynamic-symbol
+# is not seen in final binary
+RUN: %clang %clangopts  -c %p/Inputs/1.c -ffunction-sections -o %t1.o
+RUN: %clang %clangopts  -c %p/Inputs/2.c -ffunction-sections -o %t2.o
+RUN: %clang %clangopts  -c -fpic %p/Inputs/3.c -ffunction-sections -o %t3.o
+RUN: %ar crs %aropts %tlib2.a %t2.o
+RUN: %link %linkopts -shared -o %tshlib.so %t3.o
+RUN: %link %linkopts -dy %t1.o %tlib2.a %tshlib.so --export-dynamic-symbol bar -o %t1.out
+RUN: %nm %t1.out | %filecheck %s --check-prefix="CHECK1"
+RUN: %readelf --dyn-syms %t1.out | %filecheck %s --check-prefix="RE1"
+
+CHECK1: bar
+RE1: bar
+
+
+# Check that a undefined symbol for symbol using --export-dynamic-symbol
+# is not seen in final binary
+RUN: %link %linkopts -dy %t1.o --export-dynamic-symbol bar %tshlib.so -o %t2.out
+RUN: %nm %t2.out | %filecheck %s --check-prefix="CHECK2"
+RUN: %readelf --dyn-syms %t2.out | %filecheck %s --check-prefix="RE2"
+CHECK2-NOT: bar
+RE2-NOT: bar
+
+# Check garbage collection does not clobber the symbol specified in
+# --export-dynamic-symbol option
+RUN: %link %linkopts -dy %t1.o %tlib2.a --entry=foo --export-dynamic-symbol bar %tshlib.so --gc-sections  -o %t3.out
+RUN: %nm %t3.out | %filecheck %s --check-prefix="CHECK3"
+RUN: %readelf --dyn-syms %t3.out | %filecheck %s --check-prefix="RE3"
+CHECK3: bar
+RE3: bar
+END_TEST

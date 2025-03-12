@@ -1,0 +1,6 @@
+# Test that GC works when dynamic list contains undefined symbols.
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o -target aarch64
+RUN: %link %linkopts ---dynamic-list=%p/Inputs/dynList %t1.1.o --force-dynamic -o %t2.out -march aarch64
+RUN: %readelf --dyn-symbols %t2.out | %filecheck %s
+
+#CHECK-NOT: foo

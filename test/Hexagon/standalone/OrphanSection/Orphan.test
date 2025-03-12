@@ -1,0 +1,10 @@
+RUN: %link %linkopts %p/t.o -T %p/t.t -o %t1.out
+RUN: %readelf -l %t1.out | %filecheck %s
+RUN: %not %link %linkopts %p/t.o -T %p/n.t -o %t2.out -G0 \
+RUN: 2>&1 | %filecheck -check-prefix=NOLOAD %s
+
+CHECK: 00     .text .bss
+
+#NOLOAD: Section .rodata.str1.1 does not have segment assignment in linker script
+#NOLOAD: Error: Loadable section .rodata.str1.1 not in any load segment
+#NOLOAD: Error: Loadable section .bss not in any load segment

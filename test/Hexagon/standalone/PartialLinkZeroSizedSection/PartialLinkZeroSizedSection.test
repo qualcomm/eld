@@ -1,0 +1,12 @@
+#---PartialLinkZeroSizedSection.test--------------------- PartialLink,LinkerScript ------------------#
+
+#BEGIN_COMMENT
+# This tests  that partial link %linkopts can handle zero sized sections as it was being
+# done previously. This failed because of code changes to cleanup symbol table
+# in 8.1.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/p.s -o %t1.p.o
+RUN: %link %linkopts -r %t1.p.o -o %t2.o -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.o | %filecheck %s
+
+#CHECK: .bar

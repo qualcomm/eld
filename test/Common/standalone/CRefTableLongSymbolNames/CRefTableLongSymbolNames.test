@@ -1,0 +1,15 @@
+#---CRefTableLongSymbolNames.test--------------------- Executable--------------------#
+
+
+#BEGIN_COMMENT
+#This tests that the linker is able to handle long symbol names when printing
+#cross reference information
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t1.out -e main --cref 2>&1 | %filecheck %s -check-prefix=CREF
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t1.out.1 -e main -Map %t1.map --cref 2>&1
+RUN: %filecheck %s -check-prefix=CREF < %t1.map
+
+#CREF: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyy {{.*}}
+

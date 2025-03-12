@@ -1,0 +1,9 @@
+#---EXIDX.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that the Map file shows EXIDX information.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/ex.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out -M 2>&1 | %filecheck %s
+
+#CHECK: .ARM.exidx {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o

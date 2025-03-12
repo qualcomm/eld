@@ -1,0 +1,12 @@
+#---OutputFile.test--------------------- Executable,GC ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print the output file properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map -o %t2.yamlmap.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: OutputFile: {{[ -\(\)_A-Za-z0-9.\\/:]+}}.yamlmap.out

@@ -1,0 +1,25 @@
+#---BinaryFormatInputFiles.test--------------------- Executable---------------------#
+
+
+
+#BEGIN_COMMENT
+# This test checks the support of binary format input files when
+# garbage-collection is enabled.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -b binary %p/Inputs/hello.txt -Map %t1.1.map.txt -e main --gc-sections --print-gc-sections --trace=live-edges 2>&1 | %filecheck %s --check-prefix=LIVE_EDGES
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix=SYMBOLS
+RUN: %readelf -p .data %t1.1.out | %filecheck %s --check-prefix=CONTENT
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+#END_TEST
+LIVE_EDGES: Refers to = .data
+LIVE_EDGES-NEXT: [{{.*}}hello.txt]
+LIVE_EDGES-NEXT: Referenced by = Root symbol
+SYMBOLS-DAG: GLOBAL DEFAULT {{.*}} _binary_{{.*}}_hello_txt_start
+SYMBOLS-DAG: GLOBAL DEFAULT {{.*}} _binary_{{.*}}_hello_txt_end
+SYMBOLS-DAG: GLOBAL DEFAULT ABS _binary_{{.*}}_hello_txt_size
+CONTENT: Hello World!
+MAP: Linker Script and memory map
+MAP: LOAD {{.*}}hello.txt (Binary)
+

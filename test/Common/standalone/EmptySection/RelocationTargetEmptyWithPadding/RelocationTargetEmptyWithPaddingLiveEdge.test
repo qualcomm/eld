@@ -1,0 +1,26 @@
+#---RelocationTargetEmptyWithPaddingLiveEdge.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the text map file has the empty section recorded if its used in as
+# a relocation target along with padding and garbage collection using live egde traces
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.x.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %link -MapStyle txt %linkopts %t.x.o %t.main.o -o %t.main.out -T %p/Inputs/keepscript.t -Map %t.main.map --gc-sections -e main --print-gc-sections --trace=section=.text.baz --trace=live-edges 2>&1 | %filecheck %s
+RUN: %filecheck %s < %t.main.map --check-prefix=MAPCHECK
+#MAPCHECK: PADDING
+#MAPCHECK: PADDING
+#MAPCHECK: PADDING
+#MAPCHECK-NOT: # .text.baz	<GC>
+#MAPCHECK: # .text.c1	<GC>
+#CHECK: Refers to = .text.baz
+#CHECK: Referenced by = Root symbol
+#CHECK: GC : {{.*}}x.o[.text]
+#CHECK: GC : {{.*}}x.o[.text.foo]
+#CHECK-NOT: GC : {{.*}}x.o[.text.baz]
+#CHECK: GC : {{.*}}x.o[.text.baz1]
+#CHECK: GC : {{.*}}x.o[.text.baz2]
+#CHECK: GC : {{.*}}x.o[.text.c1]
+#CHECK: GC : {{.*}}x.o[.text.empty]
+#END_TEST

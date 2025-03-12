@@ -1,0 +1,13 @@
+#---DebugLineInformationGC.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests that the relocations that point from debug sections are set an
+#address which is set to the end of the image. The test also uses addr2line
+#to check that the information returned is proper as well.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -g3 %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t2.out.gc --gc-sections -e main
+RUN: %addr2line -e %t2.out.gc 0
+#CHECK: 1.c:4
+#END_TEST

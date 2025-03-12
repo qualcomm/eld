@@ -1,0 +1,15 @@
+#---VersionScriptSearch.test-------Executable/SharedLibrary----------------------------#
+
+#BEGIN_COMMENT
+#Improve version script parsing by using linker script parser.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o
+RUN: %link %linkopts -shared %t1.1.o -L %p/Inputs/ --version-script vers-script -o %t1.so \
+RUN: --verbose -Map %t1.map 2>&1
+RUN: %readelf --dyn-syms %t1.so | %filecheck %s
+#END_TEST
+
+#CHECK-DAG: foo
+#CHECK-DAG: bar
+#CHECK-DAG: baz

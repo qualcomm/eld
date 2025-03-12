@@ -1,0 +1,8 @@
+# This tests that defsym also works from the command line with partial linking.
+RUN: %clang %clangopts -c %p/Inputs/a.c -o %t1.o
+RUN: %link %linkopts %t1.o -r --defsym="__start_text=ADDR(".text")" --defsym="__end_text=ADDR(".text")+SIZEOF(".text")" -o %t2.out
+RUN: %nm -n %t2.out | %filecheck %s
+
+#CHECK: 00000000 A __start_text
+#CHECK: 0000000c A __end_text
+

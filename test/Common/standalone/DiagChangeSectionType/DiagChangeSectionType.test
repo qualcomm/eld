@@ -1,0 +1,12 @@
+#---DiagChangeSectionType.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker produces warning if a non-allocatable input
+# section is being assigned to an allocatable output section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -g
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o -T %p/Inputs/1.linker.script 2>&1 | %filecheck %s
+#CHECK-NOT: Warning: Changing section type to SHT_PROGBITS from SHT_PROGBITS for section .text
+#CHECK: Warning: Changing section type to SHT_PROGBITS from SHT_NOBITS for section .bss
+#END_TEST

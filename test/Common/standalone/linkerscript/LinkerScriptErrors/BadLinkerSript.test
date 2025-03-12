@@ -1,0 +1,13 @@
+#---BadLinkerScript.test----------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# Test that the linker emits a syntax error for a script with unmatched braces
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %not %link %linkopts -T %p/Inputs/script2.t -o %t.out 2>&1 | %filecheck %s
+
+CHECK-DAG: script2.t:3: unexpected EOF
+CHECK-DAG: script2.t has errors

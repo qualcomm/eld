@@ -1,0 +1,6 @@
+# This tests that linker walks over eh frame relocations to produce undefined
+# symbols. This will get fixed when eh frame sections are merged.
+RUN: %clangxx %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/1.cpp -o %t1.1.o
+RUN: %clangxx %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/2.cpp -o %t1.2.o
+RUN: %clangxx %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/3.cpp -o %t1.3.o
+RUN: %link  -o %t1.out %linkopts %t1.1.o %t1.2.o %t1.3.o -e main --gc-sections

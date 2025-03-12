@@ -1,0 +1,23 @@
+#---NoPHDRS.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command. After layout is complete, the linker checks for zero sized
+# memory regions and raises warning to signify that there are zero sized
+# sections associated with memory regions
+# region
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link -Wlinker-script-memory -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+#CHECK: Memory region b2 is zero sized
+#MAP: .t1 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [b1, b1]
+#MAP: .t2 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [b1, b1]
+#MAP: .t3 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [b1, b1]
+#MAP: .t4 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [b1, b1]
+#MAP: .t5 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS, Memory : [b2, b2]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS

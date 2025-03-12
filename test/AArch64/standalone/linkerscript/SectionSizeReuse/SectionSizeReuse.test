@@ -1,0 +1,17 @@
+#---SectionSizeReuse.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# Some sections are evaluated for size multiple times(a trampoline insert that
+# changes section sizes, will reevaluat all expressions again, because of
+# section size, which results in VMA increase). The first few times, the section
+# got a virtual address, that resulted in the expression producing some file
+# size. Finally when everything was stable, the linker continued to use the old
+# section size for sections that need the size to be computed again (that is
+# sections that have only expressions).
+#END_COMMENT
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/main.s -o %t1.1.o -fintegrated-as
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/FarFunction.S -o %t1.2.o -fintegrated-as
+RUN: %link %linkopts -march aarch64 %t1.1.o %t1.2.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK-NOT: .bug

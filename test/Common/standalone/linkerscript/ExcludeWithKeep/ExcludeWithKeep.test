@@ -1,0 +1,21 @@
+#---ExcludeWithKeep.test--------------------- Executable, LS------------------#
+
+#BEGIN_COMMENT
+# This test verifies the behavior with EXCLUDE_FILE is used within KEEP linker
+# script directive.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.2.o -T %p/Inputs/script.t --gc-sections -e main -Map %t1.a.map.txt
+RUN: %filecheck %s < %t1.a.map.txt
+
+CHECK: Output Section and Layout
+CHECK: FOO
+CHECK: EXCLUDE_FILE ( *2.o ) KEEP (*(*text*))
+CHECK: .text {{.*}}1.o
+CHECK: foo
+CHECK: .text
+CHECK: *(*text*)
+CHECK: .text {{.*}}2.o
+CHECK: bar
+CHECK: main

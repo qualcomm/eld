@@ -1,0 +1,13 @@
+#---VersionScript.test------------------------- Executable ----------------------#
+
+
+#BEGIN_COMMENT
+# This checks that --reproduce can handle version scripts
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/3.c -o %t1.3.o
+RUN: %link %linkopts -shared -o %t1.so %t1.3.o --version-script=%p/Inputs/versionscript --reproduce foo --dump-mapping-file %t0.mapping --dump-response-file %t0.response
+RUN: %filecheck %s --check-prefix="CHECK_MAPPING" < %t0.mapping
+RUN: %filecheck %s --check-prefix="CHECK_RESPONSE" < %t0.response
+CHECK_MAPPING: versionscript=
+CHECK_RESPONSE-NOT: versionscript{{[ ]}}

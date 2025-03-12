@@ -1,0 +1,20 @@
+UNSUPPORTED: sanitize, reproduce_fail
+#---ReproduceOnCrash.test------------------ Executable,LS --------------------#
+
+
+# BEGIN_COMMENT
+# Tests that reproduce tarball is written when the linker is about to crash
+# END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out --reproduce %t0.tar || true
+RUN: %tar %gnutaropts -tf %t0.tar 2>&1 | %filecheck %s
+CHECK-DAG: mapping.ini
+CHECK-DAG: response.txt
+CHECK-DAG: version.txt
+CHECK-DAG: LinkerScript
+CHECK-DAG: Object
+CHECK-DAG: Plugin
+CHECK-DAG: {{.*}}.t.{{[0-9]+}}
+CHECK-DAG: {{.*}}.o.{{[0-9]+}}
+#END_TEST

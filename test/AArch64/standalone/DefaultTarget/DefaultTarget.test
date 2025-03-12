@@ -1,0 +1,5 @@
+RUN: %clang %clangopts --target=aarch64-linux-gnu %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts -m aarch64linux %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: c0: d65f03c0      ret

@@ -1,0 +1,22 @@
+#---WrapSymbolsAllBC.test----------------- Executable,LTO ---------------------#
+
+
+#BEGIN_COMMENT
+# This test supports wrap symbols in Bitcode.#END_COMMENT
+#------------------------------------------------------------------------------#
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -flto -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -flto -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -flto -o %t1.3.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -flto -o %t1.4.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o %t1.3.o %t1.4.o
+RUN: %link %linkopts %t1.1.o %t2.lib2.a -o %t2.out --wrap foo -e main --trace=wrap-symbols -t  2>&1 | %filecheck %s
+CHECK-NOT: (WrapSymbolsAllBC.test.tmp1.4.o)
+CHECK: Inserting wrapper `__wrap_foo' for bitcode symbol
+CHECK-DAG: Marking wrap symbol __wrap_foo to be preserved.
+CHECK-DAG: Marking wrap symbol __real_foo to be preserved.
+CHECK-DAG: Found real symbol `__wrap_foo' for wrapped symbol `foo'
+CHECK-DAG: Found real symbol `foo' for wrapped symbol `__real_foo'
+RUN: %readelf -s %t2.out | %filecheck %s --check-prefix="SYMS"
+SYMS-NOT: __real_foo
+#END_TEST

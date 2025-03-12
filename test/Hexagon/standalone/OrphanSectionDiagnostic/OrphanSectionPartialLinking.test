@@ -1,0 +1,13 @@
+#---OrphanSectionsPartialLinking.test------------Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks if a diagnostic warning is emitted when an orphan section
+# is detected when partial linking takes place and orphan_handling is set to
+# "warn".
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -orphan-handling=warn -r %t1.1.o -o %t2.r.o.script -T %p/Inputs/script.t 2>&1 | %filecheck %s
+
+#CHECK:Warning: no linker script rule for section .text.bar
+#CHECK:Warning: no linker script rule for section .rela.foobar

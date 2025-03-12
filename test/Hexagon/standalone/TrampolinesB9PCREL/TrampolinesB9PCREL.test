@@ -1,0 +1,13 @@
+#---TrampolinesB9PCREL.test--------------------- Executable ------------------#
+
+
+#BEGIN_COMMENT
+# This tests that the linker fails when inserting trampolines. Without this
+# patch, this patch will result in an infinite loop or crash.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -O2 -c %p/Inputs/foo.s -o %t1.foo.o
+RUN: %clang %clangopts -O2 -c %p/Inputs/far.s -o %t1.far.o
+RUN: %not %link %t1.foo.o %t1.far.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+#CHECK: Fatal: Unable to insert trampoline for symbol far{{.*}} from section {{.*}}R_HEX_B9_PCREL
+#END_TEST

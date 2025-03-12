@@ -1,0 +1,8 @@
+SECTIONS {
+  CODE_RAM 0x000000 : {
+    *(.rodata .rodata*)
+  } : CODE_SEGMENT
+  DATA_RAM 0x90000 : {
+    KEEP(*\2.o (.data.check*))
+  } : DATA_SEGMENT
+}

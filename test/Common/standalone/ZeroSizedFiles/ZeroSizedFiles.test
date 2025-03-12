@@ -1,0 +1,12 @@
+UNSUPPORTED: windows
+#--ZeroSizedFiles.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#Emit a note message when input files to the linker are zero-sized.
+#END_COMMENT
+#START_TEST
+RUN: %touch %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out 2>&1 | %filecheck %s
+#CHECK: {{.*}}1.o has no contents
+RUN: %readelf -h %t2.out
+#END_TEST

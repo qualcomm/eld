@@ -1,0 +1,10 @@
+UNSUPPORTED: riscv32, riscv64
+# Checks that commons are selected from the right files even after LTO.
+RUN: %clang %clangopts -c -flto -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c -flto -ffunction-sections -fdata-sections %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts  %t1.1.o %t1.2.o -flto-options=codegen="-function-sections -data-sections" -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK-NOT: mysmallcommons1 PROGBITS
+#CHECK-NOT: allcommons PROGBITS
+#CHECK-NOT: unrecognized PROGBITS

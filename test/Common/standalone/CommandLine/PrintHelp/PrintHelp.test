@@ -1,0 +1,9 @@
+#---PrintHelp.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This option prints the Linker help.
+#END_COMMENT
+#START_TEST
+RUN: %link --help 2>&1 | %filecheck %s
+#CHECK: SYMBOL RESOLUTION OPTIONS:
+#END_TEST

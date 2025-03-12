@@ -1,0 +1,16 @@
+#---SpaceForProgramHeaders.test--------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to position the file header and program
+# header
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -z max-page-size=0x1000
+RUN: %readelf -l -S -W %t2.out | %filecheck %s
+
+#CHECK: [ 1] .foo PROGBITS {{[0]+}}d000 {{.*}}
+#CHECK: [ 2] .bar PROGBITS {{[0]+}}e000 {{.*}}
+#CHECK: LOAD 0x{{[0]+}}00 0x{{[0]+}}c000 0x{{[0]+}}c000 {{.*}}
+#CHECK: LOAD 0x{{[0]+}}2000 0x{{[0]+}}e000 0x{{[0]+}}e000 {{.*}}
+

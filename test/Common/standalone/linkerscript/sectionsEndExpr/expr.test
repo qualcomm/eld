@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -T %p/Inputs/expr.t %t1.o %t2.o -o %t.out 2>&1
+RUN: %readelf -s %t.out | %filecheck %s
+
+CHECK-DAG:  00000001     0 NOTYPE  GLOBAL DEFAULT    1 sym1
+CHECK-DAG:  00000200     0 NOTYPE  GLOBAL DEFAULT  ABS sym2
+CHECK-DAG:  00000123     0 NOTYPE  GLOBAL DEFAULT  ABS sym3

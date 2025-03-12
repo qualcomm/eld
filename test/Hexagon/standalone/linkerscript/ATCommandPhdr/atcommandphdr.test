@@ -1,0 +1,7 @@
+# Test that AT works with PHDR.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/scripterror.t -o %t2.out.err 2>&1 | %filecheck %s -check-prefix=ERROR
+RUN: %readelf -l -W %t2.out | %filecheck %s
+#CHECK:   LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}} 0x00004000 0x00004 0x00008 RW 0x1000
+#ERROR: Fatal: Ignoring physical address for section .bss which is already part of PHDR DATA

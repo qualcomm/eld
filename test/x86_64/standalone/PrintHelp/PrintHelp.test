@@ -1,0 +1,9 @@
+#---PrintHelp.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This option prints the Linker help.
+#END_COMMENT
+
+RUN: %link --help 2>&1 | %filecheck %s
+CHECK: OVERVIEW: X86_64 Linker
+

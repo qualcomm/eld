@@ -1,0 +1,20 @@
+
+# Check if the the -l:namespec option works with the linker
+RUN: %rm temp/mylib.a temp/mylib.random
+RUN: %clang %clangopts -c %p/Inputs/1.c  -fPIC -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c  -fPIC -o %t2.o
+RUN: mkdir -p temp
+RUN: %ar cr %aropts temp/mylib.a %t2.o
+RUN: %ar cr %aropts temp/mylib.random %t2.o
+RUN: %link %linkopts -shared %t2.o -o temp/myshlib.so
+RUN: %link %linkopts %t1.o -Ltemp -l:mylib.a -o %t3
+RUN: %link %linkopts %t1.o -dy -Ltemp -l:myshlib.so -o %t4
+RUN: %link %linkopts %t1.o -static -dy -Ltemp -l:myshlib.so -o %t5
+RUN: %link %linkopts %t1.o -Ltemp -l:mylib.random -o %t6
+RUN: %readelf -s %t3 | %filecheck %s -check-prefix=AR
+RUN: %readelf -a %t4 | %filecheck %s -check-prefix=SO
+RUN: %readelf -a %t5 | %filecheck %s -check-prefix=SO
+RUN: %readelf -s %t6 | %filecheck %s -check-prefix=AR
+
+#SO: Shared library: [myshlib.so]
+#AR: 2.c

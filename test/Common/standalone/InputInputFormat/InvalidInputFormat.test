@@ -1,0 +1,13 @@
+#---InvalidInputFormat.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the invalid input format diagnostic.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -b asdf %p/Inputs/hello.txt 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o --format asdf %p/Inputs/hello.txt 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Error: Invalid input format 'asdf'. Supported values: 'binary', 'default'
+
+

@@ -1,0 +1,16 @@
+#---LayoutHeaderTest.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks layout header contents.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.test.out 2>&1 | %filecheck %s --check-prefix=HEADER
+#HEADER: Vendor:{{.*}}
+#HEADER: Version
+#HEADER: ABI Page Size: {{[0-9]+}}
+#HEADER: Emulation:{{.*}}
+#HEADER: Max GP Size: {{[0-9]+}}
+#HEADER: Commandline:{{.*}}{{.*}}script.t
+#HEADER: Link Launch Directory: {{[ -\(\)_A-Za-z0-9.\\/:]+}}
+#END_TEST

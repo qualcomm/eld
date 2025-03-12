@@ -1,0 +1,16 @@
+# This tests that the linker is able to handle read-only and read-write note
+# sections.
+RUN: %clang %clangopts -c %p/Inputs/note.s -o %t1.note.o
+RUN: %link %linkopts %t1.note.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD
+#CHECK:  NOTE
+#CHECK:  LOAD
+#CHECK:  NOTE
+#CHECK: Section to Segment mapping:
+#CHECK:  Segment Sections...
+#CHECK:   00     .note.ro .note.another.ro
+#CHECK:   01     .note.ro .note.another.ro
+#CHECK:   02     .data .anotherdata .note.rw
+#CHECK:   03     .note.rw

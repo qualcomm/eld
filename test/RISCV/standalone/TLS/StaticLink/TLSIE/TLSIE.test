@@ -1,0 +1,14 @@
+#----------TLSIE.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+#This tests that the linker can support TLS IE model with static linking.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ftls-model=initial-exec -fPIC
+RUN: %link %linkopts  %t1.1.o -o %t.out
+RUN: %readelf -x .got %t.out | %filecheck %s
+
+#CHECK: 00000000
+#CHECK: 0c000000

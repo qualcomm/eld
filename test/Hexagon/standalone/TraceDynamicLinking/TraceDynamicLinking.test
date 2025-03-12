@@ -1,0 +1,14 @@
+#---TraceDynamicLinking.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check --trace=dynamic-linking option
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/2.c -o %t2.o -fPIC
+RUN: %link %linkopts -shared %t1.o  -o %t3.so
+RUN: %link %linkopts -o %t.out %t2.o -dy %t3.so --trace="dynamic-linking" 2>&1 | %filecheck %s
+CHECK: Note: Created PLT Entry for Symbol foo
+CHECK-NEXT: Note: Created GOT Entry for Symbol foo
+
+

@@ -1,0 +1,10 @@
+# This test checks that fill values are shown in map files with appropriate
+# keywords PADDING and PADDING_ALIGNMENT.
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections %clangg0opts  -o %t1.o
+RUN: %link -MapStyle txt %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+#CHECK: PADDING	0xc	0x10	0xc0037f
+#CHECK: PADDING_ALIGNMENT	0x1c	0x64	0xc0037f
+#CHECK: PADDING	0x90	0xf70	0x0
+#CHECK: PADDING	0x40000	0x64	0x1234

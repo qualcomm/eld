@@ -1,0 +1,22 @@
+#---MultipleJustSymbolsUsageForObject.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to attach just symbols actions to multiple input object files.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections
+RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections
+RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections
+RUN: %clang %clangopts %p/Inputs/4.c -o %t1.4.o -c -ffunction-sections
+RUN: %elfcopy -R .ARM.exidx.text.bar -R .rel.ARM.exidx.text.bar -R .ARM.exidx.text.baz -R .rel.ARM.exidx.text.baz %t1.3.o %t1.3.o.1
+RUN: %elfcopy -R .ARM.exidx.text.baz -R .rel.ARM.exidx.text.baz %t1.4.o %t1.4.o.1
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o --just-symbols=%t1.3.o.1 --just-symbols=%t1.4.o.1 -T %p/Inputs/script.t -o %t.out.elf -Map %t.map --trace=symbol=baz --verbose 2>&1 | %filecheck %s
+RUN: %readelf -s %t.out.elf 2>&1 | %filecheck %s --check-prefix=ELFCHECK
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+#CHECK-COUNT-2: Using just symbols for input
+#CHECK: Symbol `baz' from Input file `{{.*}}3.o.1' with info `(ELF)(FUNCTION)(DEFINE)[Absolute]{DEFAULT}' being resolved from Namepool
+#CHECK: Resolving symbol 'baz' from provide style sym def file {{.*}}3.o.1'
+#MAPCHECK: bar{{.*}}2.o
+#ELFCHECK: {{[0-9a-f]+}}     0 FUNC    GLOBAL DEFAULT   ABS baz
+#END_TEST
+

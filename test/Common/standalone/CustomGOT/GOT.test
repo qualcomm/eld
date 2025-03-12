@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -O0 %p/Inputs/t.c -c -o %t.t.o
+RUN: %link %linkopts -T %p/Inputs/t.l %t.t.o -o %t.out
+RUN: %readelf -x .got %t.out | %filecheck %s
+
+CHECK: HELLO WORLD

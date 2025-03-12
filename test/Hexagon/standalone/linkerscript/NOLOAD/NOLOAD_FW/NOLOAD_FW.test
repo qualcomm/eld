@@ -1,0 +1,18 @@
+#--NOLOAD_FW.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# NOLOAD sections stress test
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/1.t -o %t2.out.1
+RUN: %readelf -l -W %t2.out.1 | %filecheck %s -check-prefix=READELF
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts %t1.2.o -T %p/Inputs/2.t -o %t2.out.2
+RUN: %readelf -l -W %t2.out.2 | %filecheck %s -check-prefix=READELF
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/3.c -o %t1.3.o
+RUN: %link %linkopts %t1.3.o -T %p/Inputs/3.t -o %t2.out.3
+RUN: %readelf -l -W %t2.out.3 | %filecheck %s -check-prefix=READELF
+#END_TEST
+
+#READELF: LOAD   {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[FILESZ:[xa-f0-9]+]] [[FILESZ]]

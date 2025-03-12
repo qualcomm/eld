@@ -1,0 +1,14 @@
+#---RetainSectionTrace.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#This tests that a section with a property SHF_GNU_RETAIN is retained by
+#the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t2.out --gc-sections -e main --verbose -Map %t.map 2>&1 | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+RUN: %link %linkopts %t1.1.o -o %t2.out --gc-sections -e main --trace-section .text.foo 2>&1 | %filecheck %s
+#CHECK: Retaining section .text.foo from {{.*}}1.o
+#MAPCHECK: RetainedSections : 1
+#END_TEST

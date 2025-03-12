@@ -1,0 +1,12 @@
+#---TraceSymbolWildCardMatcher2.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check tracing of symbols with wildcard matching.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --trace=symbol="z{3}" 2>&1 | %filecheck %s
+CHECK: Note: Symbol `zzz' from Input file `{{.*}}.o' with info `(ELF)(OBJECT)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+CHECK: Symbol zzz, application site: 0x{{[[:xdigit:]]+}}
+
+

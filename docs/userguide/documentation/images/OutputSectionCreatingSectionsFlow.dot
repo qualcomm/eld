@@ -1,0 +1,14 @@
+digraph G {
+    node [shape=rectangle]
+    A [label="Merge input sections \n based on rules and create \n missing output sections"]
+    B [label="UserPlugin::Init(...)"]
+    C [label="Call \n UserPlugin::ProcessOutputSection(...) \n for each input section"]
+    D [label="UserPlugin::run(...)"]
+    E [label="UserPlugin::Destroy(...)"]
+    F [label="Complete processing \n of output sections"]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+    E -> F
+}

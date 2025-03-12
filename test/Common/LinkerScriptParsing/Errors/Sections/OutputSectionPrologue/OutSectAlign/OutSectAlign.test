@@ -1,0 +1,16 @@
+UNSUPPORTED: old_lsparser
+#---OutSectAlign.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the error reported by linker script parser for incorrect
+# alignment.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
+
+CHECK1: Error: {{.*}}script1.t:2: malformed number: 0xasdf
+CHECK1: >>>   FOO : ALIGN(0xasdf) { *(*foo*) }
+CHECK1: >>>
+
+CHECK2: Error: {{.*}}script2.t:2: malformed number: 0xasdf
+CHECK2: >>>   FOO : SUBALIGN(0xasdf) { *(*foo*) }
+CHECK2: >>>

@@ -1,0 +1,8 @@
+SECTIONS {
+    .sdata :
+    {
+        _SDA_BASE_ = .;
+        KEEP(*(.scommon.2)) *(.scommon*)
+    }
+    .bss : { *(COMMON) }
+}

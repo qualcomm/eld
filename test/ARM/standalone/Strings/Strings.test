@@ -1,0 +1,13 @@
+#---Strings.test------------------------------------ Executable --------------------#
+
+#BEGIN_COMMENT
+# Check that the rodata is split properly in the Map file
+# even if there are no symbols. The size reported by the YAMLMapParser should
+# also be consistent with the size reported by the size tool.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.s -o %t.o
+RUN: %link -MapStyle yaml %linkopts -march arm %t.o -o %t.out -T %p/Inputs/script.t -Map %t1.out.yaml -o %t2.out
+RUN: %python %yamlmapparser --info=summarysizes %t1.out.yaml | %filecheck %s
+#CHECK: Program Size: Code=0 RO-data=12 RW-data=0 ZI-data=4096
+#END_TEST

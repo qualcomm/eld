@@ -1,0 +1,96 @@
+//===- BitcodeFile.h-------------------------------------------------------===//
+// Part of the eld Project, under the BSD License
+// See https://github.com/qualcomm/eld/LICENSE.txt for license information.
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+#ifndef ELD_INPUT_BITCODEFILE_H
+#define ELD_INPUT_BITCODEFILE_H
+
+#include "eld/Input/ObjectFile.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/LTO/LTO.h"
+
+#include "eld/PluginAPI/Expected.h"
+
+#include <memory>
+
+namespace llvm {
+namespace lto {
+class QCInputFileAdapter;
+}
+} // namespace llvm
+
+namespace eld::plugin {
+class LinkerPlugin;
+class LTOModule;
+} // namespace eld::plugin
+
+namespace eld {
+
+class DiagnosticEngine;
+
+/** \class InputFile
+ *  \brief InputFile represents a real object file, a linker script or anything
+ *  that the rest of the linker can work with.
+ */
+class BitcodeFile : public ObjectFile {
+public:
+  BitcodeFile(Input *I, DiagnosticEngine *diagEngine);
+
+  ~BitcodeFile();
+
+  /// Casting support.
+  static bool classof(const InputFile *I) {
+    return (I->getKind() == InputFile::BitcodeFileKind);
+  }
+
+  bool createLTOInputFile(const std::string &ModuleID);
+
+  llvm::lto::InputFile &getInputFile() const { return *m_LTOInputFile; }
+
+  std::unique_ptr<llvm::lto::InputFile> takeLTOInputFile();
+
+  /// Release Memory
+  bool canReleaseMemory() const;
+
+  void releaseMemory(bool isVerbose = false);
+
+  // --------- Comdat Table -------------------------
+  bool findIfKeptComdat(int index) const {
+    if (index == -1) /* Not a part of group */
+      return true;
+    const auto &it = m_BCComdats.find(index);
+    if (it != m_BCComdats.end() && it->second == false)
+      return false;
+    return true;
+  }
+
+  void addKeptComdat(int index, bool Kept) { m_BCComdats[index] = Kept; }
+
+  bool CreatePluginModule(plugin::LinkerPlugin &, uint64_t Hash);
+
+  // TODO: Used by BitcodeReader, may not be needed.
+  // TODO: class reference.
+  plugin::LTOModule *getPluginModule() { return m_PluginModule; }
+
+  void createBitcodeFilePlugin(plugin::LinkerPlugin &LTOPlugin);
+
+  void setInputSectionForSymbol(const ResolveInfo &, Section &);
+
+  Section *getInputSectionForSymbol(const ResolveInfo &) const;
+
+private:
+  DiagnosticEngine *m_DiagEngine = nullptr;
+  std::string m_ModuleID;
+  std::unique_ptr<llvm::lto::InputFile> m_LTOInputFile;
+  // Marked by comdat index in Module if accepted: (true if not rejected)
+  llvm::DenseMap<int, bool> m_BCComdats;
+  std::unordered_map<const ResolveInfo *, Section *> m_InputSectionForSymbol;
+  plugin::LTOModule *m_PluginModule;
+};
+
+} // namespace eld
+
+#endif // ELD_INPUT_BITCODEFILE_H

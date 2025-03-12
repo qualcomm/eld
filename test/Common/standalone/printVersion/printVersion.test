@@ -1,0 +1,11 @@
+#---PrintVersionInfo.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# Check linker version.
+#END_COMMENT
+
+RUN: %link --version 2>&1 | %filecheck %s
+
+CHECK: Supported Targets:
+CHECK: Linker Plugin Interface Version {{[[:xdigit:]]+}}.{{[[:xdigit:]]+}}

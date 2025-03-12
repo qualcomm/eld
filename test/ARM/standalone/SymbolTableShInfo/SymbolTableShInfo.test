@@ -1,0 +1,16 @@
+#---SymbolTableShInfo.test--------------------------- Executable,PartialLink,SharedLibrary -----------------#
+
+#BEGIN_COMMENT
+# This makes the linker set sh_info field appropriately in the symtab section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out.exe
+RUN: %link %linkopts -shared %t1.1.o -o %t2.out.shared
+RUN: %link %linkopts -r %t1.1.o -o %t2.out.partial
+RUN: %readelf -S -W %t2.out.exe | %filecheck %s
+RUN: %readelf -S -W %t2.out.shared | %filecheck %s
+RUN: %readelf -S -W %t2.out.partial | %filecheck %s
+
+#CHECK: .symtab      SYMTAB     {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}}   {{[0-9a-fx]+}} 3{{[0-9a-fx]+}}
+

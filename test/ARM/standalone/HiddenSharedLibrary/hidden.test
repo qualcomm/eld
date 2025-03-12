@@ -1,0 +1,9 @@
+# Test that hidden symbols are not exported.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %link %linkopts -march arm -shared %t1.o -o %t.out 2>&1
+RUN: %readelf --dyn-symbols %t.out | %filecheck %s --check-prefix="SYMS"
+RUN: %readelf --section-headers %t.out | %filecheck %s --check-prefix="INTERP"
+
+# SYMS: fn2
+# SYMS-NOT: fn1
+# INTERP-NOT: interp

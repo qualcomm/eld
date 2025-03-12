@@ -1,0 +1,14 @@
+#---ExternDynamicList.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks for option -extern-list/-dynamic-list that is being handled in the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -extern-list %p/Inputs/extern_list -o %t2.1.single 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -extern-list %p/Inputs/extern_list -o %t2.1.double 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -dynamic-list %p/Inputs/dynamic_list -o %t2.2.single 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -dynamic-list %p/Inputs/dynamic_list -o %t2.2.double 2>&1 | %filecheck %s
+
+#CHECK-NOT: Not implemented
+#END_TEST

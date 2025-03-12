@@ -1,0 +1,6 @@
+#Relax few alignment constraints on TLS relocs.
+#
+#RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t.o
+#RUN: %link %linkopts -o %t.out %t.o
+#RUN: %readelf -l %t.out | %filecheck %s
+#CHECK: TLS            {{[x0-9a-f]+}} {{[x0-9a-f]+}} {{[x0-9a-f]+}} 0x00001 0x00008 R   0x8

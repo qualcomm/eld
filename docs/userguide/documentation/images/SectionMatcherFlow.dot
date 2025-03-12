@@ -1,0 +1,16 @@
+digraph G {
+    node [shape=rectangle]
+    A [label="Perform Section \n rule-matching"]
+    B [label="UserPlugin::Init(...)"]
+    C [label="Call \n UserPlugin::ProcessSection(...) \n for each input section"]
+    D [label="UserPlugin::run(...)"]
+    E [label="UserPlugin::Destroy(...)"]
+    F [label="Perform garbage \n collection"]
+    G [label="Continue the linking \n Process"]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+    E -> F
+    F -> G
+}

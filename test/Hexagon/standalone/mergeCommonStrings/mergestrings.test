@@ -1,0 +1,13 @@
+
+# Test that commons are moved to bss, and commons appear at the end.
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out 2>&1
+RUN: %readelf -p 3 %t.out | %filecheck %s
+
+#CHECK:  [     0]  printf
+#CHECK:  [     7]  /usr2/seaswara/tests/eld/mergeSimilar
+#CHECK:  [    2d]  print
+#CHECK:  [    33]  char
+#CHECK:  [    38]  main
+#CHECK:  [    3d]  GNU C 4.6.1

@@ -1,0 +1,30 @@
+#---OutputSectionIteratorWithConfig.test----------------------- Executable,LS --------------------#
+
+
+
+
+#BEGIN_COMMENT
+#This tests a simple output section iterator plugin that just displays the
+#relocations that the plugin ends up getting called for.
+#END_COMMENT
+#START_TEST
+RUN: rm -f foo.txt
+RUN: cp -f %p/Inputs/foo.txt .
+
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o  -ffunction-sections -fdata-sections
+RUN: %not %link %linkopts -M %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out -L %p/Inputs --reproduce %t0.tar --dump-mapping-file %t0.mapping 2>&1 | %filecheck %s
+RUN: %filecheck %s < %t0.mapping --check-prefix=MAPPING
+
+MAPPING: config.ini
+MAPPING: foo.txt
+#CHECK-DAG: foo
+#CHECK-DAG: bar
+#CHECK-DAG: baz
+#CHECK-DAG: false
+#CHECK-DAG: 1a
+#CHECK-DAG: 2b
+#CHECK-DAG: 3c
+#CHECK-DAG: GETOUTPUTWITHCONFIG:Error: ini file {{.*}}badcharacters.ini contains non-ascii characters
+#CHECK-DAG: Fatal: Linking had errors.
+
+#END_TEST

@@ -1,0 +1,13 @@
+#---DisplayHeaderDetails.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print program headers and file headers in the Mapfile.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -Map %t2.map -MapDetail=show-header-details -o %t2.out -shared
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+CHECK-DAG: __ehdr__
+CHECK-DAG: __pHdr__

@@ -1,0 +1,29 @@
+#---OutputSectionAddRules.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests adding rules to output sections
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -M %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: *(.foo.outputsectionaddrulesbefore)
+#CHECK: *(.text.foo)
+#CHECK: *(.foo.outputsectionaddrulesafter)
+#CHECK: *(.text.baz)
+#CHECK: *(COMMON)
+#CHECK: *(.foo)
+#CHECK: *(.bar.outputsectionaddrulesbefore)
+#CHECK: *(.text.bar)
+#CHECK: *(.bar.outputsectionaddrulesafter)
+#CHECK: *(.bar)
+#CHECK: *(.plugin.outputsectionaddrulesbefore)
+#CHECK: *(.pluginfoo)
+#CHECK: *(.plugin.outputsectionaddrulesafter)
+#CHECK: *(.plugin)
+#CHECK: *(.bss.outputsectionaddrulesbefore)
+#CHECK: *(.scommon*)
+#CHECK: *(.bss.outputsectionaddrulesafter)
+#CHECK: *(.bss)
+#CHECK: *(.comment)
+#CHECK: *(.note.GNU-stack)

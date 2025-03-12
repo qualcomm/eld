@@ -1,0 +1,15 @@
+#---DuplicateDynsymEntries.test--------------------------- SharedLibrary --------------------#
+
+#BEGIN_COMMENT
+# This checks that there are no two duplicate symbols of the same name in the
+# dynsym table.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o -fPIC
+RUN: %link %linkopts -shared %t1.main.o -o %t2.out 2>&1
+RUN: %readelf --dyn-syms %t2.out | %filecheck %s
+
+#CHECK: bar
+#CHECK-NOT: bar
+
+#END_TEST

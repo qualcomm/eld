@@ -1,0 +1,41 @@
+#---ThinArchives.test--------------------- Executable---------------------#
+
+
+
+
+#BEGIN_COMMENT
+# This test checks the basic thin archive support.
+#END_COMMENT
+#START_TEST
+
+RUN: %rm %t1.libthin.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %ar cr %aropts --thin %t1.libthin.a %t1.1.o %t1.2.o
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.main.out %t1.main.o %t1.libthin.a -Map %t1.map.txt
+RUN: %readelf -s %t1.main.out | %filecheck %s --check-prefix READELF
+RUN: %filecheck %s --check-prefix MAP < %t1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.main.out %t1.main.o %t1.libthin.a -Map %t1.map.relative.txt --MapDetail relative-path=%T
+RUN: %filecheck %s --check-prefix RELATIVE_MAP < %t1.map.relative.txt
+#END_TEST
+
+READELF-DAG: main
+READELF-DAG: foo
+READELF-DAG: anotherFoo
+READELF-DAG: bar
+READELF-DAG: anotherBar
+
+MAP: {{.*}}libthin.a({{.*}}1.o)
+MAP: foo
+MAP : anotherFoo
+MAP: {{.*}}libthin.a({{.*}}2.o)
+MAP: bar
+MAP: anotherBar
+
+RELATIVE_MAP: {{[^/\]+}}libthin.a({{[^/\]+}}1.o)
+RELATIVE_MAP: foo
+RELATIVE_MAP : anotherFoo
+RELATIVE_MAP: {{[^/\]+}}libthin.a({{[^/\]+}}2.o)
+RELATIVE_MAP: bar
+RELATIVE_MAP: anotherBar

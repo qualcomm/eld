@@ -1,0 +1,12 @@
+#---GCPersonalitiesWithScript.test-------- Exe------------------#
+
+#BEGIN_COMMENT
+# When linker script is used, do not add exception related
+# sections into root set for GC
+#----------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c  %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts --gc-sections --entry=foo -o %t1.out %t1.o -T %p/Inputs/script.t --print-gc-sections 2>&1 | %filecheck %s
+
+CHECK: GC : {{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text.__gxx_personality_v0]

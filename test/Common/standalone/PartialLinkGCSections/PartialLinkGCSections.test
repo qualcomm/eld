@@ -1,0 +1,17 @@
+#---PartialLinkGCSections.test--------------------------- PartialLink -----------------#
+
+
+#BEGIN_COMMENT
+# Some users are trying to do partial link %linkopts steps and they enable gc sections,
+# which is weird, but the linker should handle it properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -r %t1.1.o --gc-sections -o %t2.r.o --print-gc-sections 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %readelf -s %t2.r.o | %filecheck %s
+#END_TEST
+LINK: Warning: --gc-sections has no effect when building a relocatable file
+LINK-NOT: bar
+LINK-NOT: baz
+#CHECK-DAG: main
+#CHECK-DAG: foo

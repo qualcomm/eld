@@ -1,0 +1,13 @@
+UNSUPPORTED: iu
+#---MoveChunksFromOutputSectionForTrampolines.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This test tries to create a situation where the linker creates
+#trampolines of the same name. This case can be triggered only by
+#using plugins. Checking that linker does not fail is a good enough
+#status.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts  %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1
+#END_TEST

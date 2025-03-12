@@ -1,0 +1,14 @@
+#---GCSectionsGroupReloc.test----------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Make sure --gc-sections works as expected with RISCV linker
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections  -g %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts --entry=main --gc-sections --print-gc-sections %t1.o -o %t1.out 2>&1 | %filecheck %s
+
+CHECK: .text.bar
+CHECK-DAG: GC (Common Symbol): {{.*}}1.o[common]
+

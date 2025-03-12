@@ -1,0 +1,22 @@
+#---AtAutoAlign.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker when there is no PHDR specified. This also checks for
+# the addresses not aligned properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t 2>&1 | %filecheck %s -check-prefix=AUTOALIGN
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#AUTOALIGN: Warning: The section .foo@0x99 is not aligned to the section alignment, Aligning automatically
+#AUTOALIGN: Warning: The section .bar@0x199 is not aligned to the section alignment, Aligning automatically
+#AUTOALIGN: Warning: The section .baz@0x299 is not aligned to the section alignment, Aligning automatically
+
+#CHECK: .text             PROGBITS        00000000
+#CHECK: .foo@0x99         PROGBITS        000000a0
+#CHECK: .bar@0x199        PROGBITS        000001a0
+#CHECK: .baz@0x299        PROGBITS        000002a0
+
+#END_TEST

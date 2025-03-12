@@ -1,0 +1,39 @@
+#---LinkerPluginVersion.test--------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+#Test plugin API version.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+
+# Note: the version numbers have to be updated on every API version change
+
+RUN: not %link %linkopts --plugin-config %p/Inputs/PluginConfigNoVersion.yaml %t1.1.o --trace=plugin -o %t.out 2>&1 | %filecheck --check-prefix=NO_VERSION %s
+NO_VERSION: Plugin {{.*}} in library {{.*}} does not export getPluginAPIVersion function
+
+RUN: ELD_TEST_LINKER_PLUGIN_VERSION_MAJOR=4 ELD_TEST_LINKER_PLUGIN_VERSION_MINOR=0 \
+RUN:   %link %linkopts --plugin-config %p/Inputs/PluginConfig.yaml %t1.1.o --trace=plugin -o %t.out 2>&1 | %filecheck --check-prefix=CURRENT %s
+CURRENT: Plugin version 4.0 in library
+CURRENT: Calling LinkerPluginVersion::Init plugin hook
+
+RUN: ELD_TEST_LINKER_PLUGIN_VERSION_MAJOR=4 ELD_TEST_LINKER_PLUGIN_VERSION_MINOR=0 \
+RUN:   %link %linkopts --plugin-config %p/Inputs/PluginConfig.yaml %t1.1.o --trace=plugin -o %t.out 2>&1 | %filecheck --check-prefix=PAST_MINOR %s
+PAST_MINOR: Plugin version 4.0 in library
+PAST_MINOR: Calling LinkerPluginVersion::Init plugin hook
+
+RUN: ELD_TEST_LINKER_PLUGIN_VERSION_MAJOR=4 ELD_TEST_LINKER_PLUGIN_VERSION_MINOR=999 \
+RUN:   %not %link %linkopts --plugin-config %p/Inputs/PluginConfig.yaml %t1.1.o --trace=plugin -o %t.out 2>&1 | %filecheck --check-prefix=FUTURE_MINOR %s
+FUTURE_MINOR: Plugin version 4.999 in library
+FUTURE_MINOR: Plugin version mismatch in library
+
+RUN: ELD_TEST_LINKER_PLUGIN_VERSION_MAJOR=2 ELD_TEST_LINKER_PLUGIN_VERSION_MINOR=1 \
+RUN:   %not %link %linkopts --plugin-config %p/Inputs/PluginConfig.yaml %t1.1.o --trace=plugin -o %t.out 2>&1 | %filecheck --check-prefix=PAST_MAJOR %s
+PAST_MAJOR: Plugin version 2.1 in library
+PAST_MAJOR: Plugin version mismatch in library
+
+RUN: ELD_TEST_LINKER_PLUGIN_VERSION_MAJOR=999 ELD_TEST_LINKER_PLUGIN_VERSION_MINOR=1 \
+RUN:   %not %link %linkopts --plugin-config %p/Inputs/PluginConfig.yaml %t1.1.o --trace=plugin -o %t.out 2>&1 | %filecheck --check-prefix=FUTURE_MAJOR %s
+FUTURE_MAJOR: Plugin version 999.1 in library
+FUTURE_MAJOR: Plugin version mismatch in library

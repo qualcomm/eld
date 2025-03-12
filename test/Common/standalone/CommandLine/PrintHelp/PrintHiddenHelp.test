@@ -1,0 +1,10 @@
+#---PrintHiddenHelp.test--------------------------- Executable -----------------#
+
+# UNSUPPORTED: true
+#BEGIN_COMMENT
+# This option prints the hidden help flags.
+#END_COMMENT
+#START_TEST
+RUN: %link --help-hidden 2>&1 | %filecheck %s
+#CHECK: --include-cache=<value>
+#END_TEST

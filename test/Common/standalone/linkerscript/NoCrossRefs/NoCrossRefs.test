@@ -1,0 +1,39 @@
+UNSUPPORTED: riscv32, riscv64
+#---NoCrossRefs.test--------------------- Executable,LS------------------------#
+#
+#
+
+#BEGIN_COMMENT
+# This tests that sections in NOCROSSREFS linker command prohibits
+# accesses (references) among the specified output sections
+#END_COMMENT
+RUN: %clang %clangg0opts -c -g -gdwarf-4 %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %rm %t/archive
+RUN: %mkdir %t/archive
+RUN: %clang %clangg0opts -c -g -gdwarf-4 %p/Inputs/2.c -o %t/archive/2.o -ffunction-sections -fdata-sections
+RUN: %rm %tlib1.a
+RUN: %ar cr %aropts %tlib1.a  %t/archive/2.o
+RUN: %not %link %linkg0opts %t1.o -T %p/Inputs/script.t %tlib1.a -o %t1.out --error-limit 0 2>&1 | %filecheck %s --check-prefix="REGULAR"
+
+# Test normal case of cross reference prohibition between commons, and sections
+# (data and text)
+REGULAR: {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o:(.text.baz:{{[x0-9a-f]*}}): prohibited cross reference from .baz to `z'({{[ -\(\)_A-Za-z0-9.\\/:]+}}1.a({{.*}}2.o)) in .zsection
+REGULAR-DAG: {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o:(.text.main:{{[x0-9a-f]*}}): prohibited cross reference from .text to `common'({{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o) in .bss
+REGULAR-DAG: {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o:(.text.main:{{[x0-9a-f]*}}): prohibited cross reference from .text to `baz'({{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o) in .baz
+REGULAR-DAG: {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o:(.data.x:{{[x0-9a-f]*}}): prohibited cross reference from .xsection to `z'({{[ -\(\)_A-Za-z0-9.\\/:]+}}1.a({{.*}}2.o)) in .zsection
+
+# Test that a gc'd output section should not trigger error with NOCROSSREFS as
+# it is never contained in output file
+RUN: %link %linkg0opts %t1.o -T %p/Inputs/script.gc %tlib1.a --g -gdwarf-4c-sections -o %t2.out --entry=main
+
+# Test a corss reference between a debug and a text is also prohibited. The
+# script has .debug_info as orphan (also checks orphans are accounted for
+# prohibition).
+RUN: %not %link %linkg0opts %t1.o -T %p/Inputs/script.dbg %tlib1.a -o %t3.out 2>&1 | %filecheck %s --check-prefix="DBG"
+
+DBG: {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o:(.debug_info:{{[x0-9a-f]*}}): prohibited cross reference from .debug_info to `.text.main'({{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o) in .text
+
+#Test when two NOCORSSREFS commands are used, the restriction is only among the
+#sections that are in respective commands and not across commands
+RUN: %clang %clangg0opts -c -g -gdwarf-4 %p/Inputs/3.c -o %t3.o -ffunction-sections -fdata-sections
+RUN: %link %linkg0opts %t3.o -T %p/Inputs/script.2 -o %t4.out

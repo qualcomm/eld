@@ -1,0 +1,7 @@
+# Tests the functionality of moving common symbols to bss with linker script and
+# partial linking.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -march arm -r -d -T %p/Inputs/script.t %t1.o -o %t.out 2>&1
+RUN: %readelf -W -S %t.out | %filecheck %s
+
+#CHECK:   .bss              NOBITS          00000000 000034 000004 00  WA  0   0  4

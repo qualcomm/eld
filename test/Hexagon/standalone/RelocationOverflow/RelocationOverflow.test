@@ -1,0 +1,16 @@
+#---RelocationOverflow.test--------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This checks that relocation overflows result in a proper error message for
+# easier diagnosability.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t1.trampoline.o
+RUN: %not %link %linkopts %t1.foo.o -M %t1.trampoline.o -o %t2.out --no-trampolines --verbose 2>&1 | %filecheck %s
+
+#CHECK: Error: Relocation overflow when applying relocation `R_HEX_B22_PCREL' for symbol `foo' referred from {{[ -\(\)_A-Za-z0-9.\\/:]+}}trampoline.o[.text.callfoo] symbol defined in {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o[.text]
+#CHECK: Error: Relocation overflow when applying relocation `R_HEX_B22_PCREL' for symbol `bar' referred from {{[ -\(\)_A-Za-z0-9.\\/:]+}}trampoline.o[.text.callfoo] symbol defined in {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o[.text]
+
+#END_TEST

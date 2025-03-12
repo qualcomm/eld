@@ -1,0 +1,35 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_HEXAGON
+  Flags:           [ EF_HEXAGON_MACH_V68, EF_HEXAGON_ISA_V68 ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x4
+  - Name:            .text.foo
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+    Content:         00C0007F
+  - Name:            .rodata.foo
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+    Content:         00C0007F
+  - Name:            .sdata.foo
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+    Content:         00C0007F
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .text.foo
+      - Name:            .rodata.foo
+      - Name:            .sdata.foo
+      - Name:            .symtab
+Symbols:         []
+...

@@ -1,0 +1,20 @@
+#---UniqueSections.test--------------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# Checks that the --unique-output-sections option creates unique output sections
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o -ffunction-sections
+RUN: %link %linkopts -T %p/Inputs/script.t -r %t.o --unique-output-sections -o %t.r.o --verbose 2>&1 | %filecheck %s
+RUN: %link %linkopts -T %p/Inputs/script.t %t.o --unique-output-sections -o %t.out 2>&1 | %filecheck %s --check-prefix=NOTSUPPORTED
+RUN: %readelf -S %t.r.o | %filecheck %s --check-prefix=SECTIONS
+CHECK-DAG: Mapping input section .text.foo to output section allfuncs
+CHECK-DAG: Mapping input section .text.bar to output section allfuncs
+CHECK-DAG: Mapping input section .text.baz to output section allfuncs
+SECTIONS: [ 1] allfuncs          PROGBITS
+SECTIONS: [ 2] allfuncs          PROGBITS
+SECTIONS: [ 3] allfuncs          PROGBITS
+NOTSUPPORTED: Note: --unique-output-sections is supported only with -r/partial link
+#END_TEST

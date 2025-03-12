@@ -1,0 +1,13 @@
+#---AtAddressErrorWithPlacement.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker.
+# placed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -march aarch64 %t1.1.o -o %t2.out -T %p/Inputs/script.t
+
+#END_TEST
+

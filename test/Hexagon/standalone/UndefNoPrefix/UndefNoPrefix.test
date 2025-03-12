@@ -1,0 +1,18 @@
+#---UndefNoPrefix.test--------------------- Exe------------------#
+
+
+#BEGIN_COMMENT
+# Test -u flag can be used with or without space between symbol
+# and the option
+#----------------------------------------------------------------
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c  -o %ttwo.o
+RUN: %ar cr %aropts %tlib.a %ttwo.o
+RUN: %link %linkopts %t1.o -t -u foo %tlib.a -o %t1.out 2>&1 | %filecheck %s
+CHECK: two
+RUN: %link %linkopts %t1.o -t -ufoo %tlib.a -o %t2.out 2>&1 | %filecheck %s --check-prefix="NOPREF"
+NOPREF: two
+RUN: %link %linkopts %t1.o -t --undefined=foo %tlib.a -o %t2.out 2>&1 | %filecheck %s --check-prefix="LONG"
+LONG: two

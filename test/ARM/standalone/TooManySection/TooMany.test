@@ -1,0 +1,5 @@
+RUN: %clang -c %p/Inputs/t.s -o %t.o
+RUN: %link %linkopts -march arm %t.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s
+
+#CHECK: .symtab

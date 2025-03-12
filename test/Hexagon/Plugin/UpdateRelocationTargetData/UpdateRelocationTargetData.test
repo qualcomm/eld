@@ -1,0 +1,14 @@
+#---UpdateRelocationTargetData.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#Add a plugin API to modify contents of relocation target data.
+#END_COMMENT
+#START_TEST
+RUN: %yaml2obj %p/Inputs/1.yaml >%t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t --trace=plugin -o %t1.out 2>&1
+RUN: %objdump -d %t1.out | %filecheck %s
+
+#CHECK: c:	0c 00 34 12	1234000c
+#CHECK-NEXT: 10:	10 00 34 12	12340010
+
+#END_TEST

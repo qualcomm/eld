@@ -1,0 +1,23 @@
+#---EntrySymArchive.test----------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This tests that the linker is able to add the entry symbol from an archive
+# mentioned via command line.
+#END_COMMENT
+#START_TEST
+# Only foo and bar are defined in 1.c
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %ar cr %aropts %tlib.a %t1.o
+RUN: %link %linkopts -march aarch64 -e foo %tlib.a -t -o %tfoo.out 2>&1 | %filecheck %s
+RUN: %nm %tfoo.out | %filecheck --check-prefix=FOO %s
+RUN: %link %linkopts -march aarch64 -e bar %tlib.a -t -o %tbar.out 2>&1 | %filecheck %s
+RUN: %nm %tbar.out | %filecheck --check-prefix=BAR %s
+RUN: %link %linkopts -march aarch64 -e baz %tlib.a -t -o %tbaz.out 2>&1 | %filecheck --check-prefix=WARN %s
+RUN: %nm %tbaz.out | %filecheck --check-prefix=BAZ %s
+#CHECK-NOT: cannot find entry symbol
+#WARN: Warning: baz Entry symbol not found
+#FOO: T foo
+#BAR: T bar
+#BAZ: U baz
+#ENDTEST

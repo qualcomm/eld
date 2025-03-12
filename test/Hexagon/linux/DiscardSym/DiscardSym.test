@@ -1,0 +1,6 @@
+# A symbol in discarded section (/DISCARD/) should also be discarded
+RUN: %clang %clangopts -c -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+#CHECK-NOT:   foo

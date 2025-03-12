@@ -1,0 +1,24 @@
+#---ThinArchiveRuleMatchingCompatibility.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the rule-matching of archive members is consistent for
+# fat archives and thin archives when
+# '--thin-archive-rule-matching-compatibiity' option is used.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.lib1.a %t1.dir
+RUN: %mkdir %t1.dir
+RUN: cd %t1.dir
+RUN: %clang %clangopts -o %t1.dir/1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: cd ..
+RUN: %ar %aropts cr %t1.libdir.a %t1.dir/1.o
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.main.out %t1.main.o %t1.libdir.a -T %p/Inputs/script.t --thin-archive-rule-matching-compatibility -Map %t1.main.map.txt 2>&1
+RUN: %filecheck %s < %t1.main.map.txt
+#END_TEST
+CHECK: foo
+CHECK: *libdir*:1*.o(*foo*)
+CHECK: .text.foo
+CHECK: bar
+CHECK: *libdir*:1.o(*bar*)
+CHECK: .text.bar

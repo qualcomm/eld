@@ -1,0 +1,18 @@
+#---reloc_GOT_HI20.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+#Check support for GOT relocations.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -fPIC -c %p/Inputs/got.c -o %t1.got.o
+RUN: %link %linkopts   %t1.got.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s
+RUN: %readelf -S -W %t1.out | %filecheck %s -check-prefix=GOT
+
+#CHECK: auipc   a{{.*}}, 1
+#CHECK-DAG: lw  a{{.*}}, {{.*}}(a{{.*}})
+#GOT: .got
+#GOT: .got.plt
+

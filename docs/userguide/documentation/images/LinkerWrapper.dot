@@ -1,0 +1,9 @@
+digraph G {
+    rankdir="LR";
+    node [shape=rectangle]
+    A [label="Plugin"]
+    B [label="LinkerWrapper"]
+    C [label="Linker"]
+    A -> B
+    B -> C
+}

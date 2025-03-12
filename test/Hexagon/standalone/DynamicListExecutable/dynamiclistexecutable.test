@@ -1,0 +1,11 @@
+
+# This tests symbols in the dynamic list are emitted when creating a dynamic
+# executable.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
+RUN: %link %linkopts --force-dynamic %t1.1.o %t1.lib2.a --dynamic-list=%p/Inputs/dynamicList --force-dynamic  -t -o %t2.out 2>&1 | %filecheck %s -check-prefix=PULL
+RUN: %readelf --dyn-syms -W %t2.out | %filecheck %s
+
+#PULL-NOT: lib2.a
+#CHECK: foo

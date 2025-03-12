@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/t.c -o %t.o
+RUN: %link %linkopts -march=aarch64 -shared %t.o -o %t.out -trace=all-symbols 2>&1 | %filecheck %s
+
+CHECK: [main]: (SHNDX
+

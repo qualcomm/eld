@@ -1,0 +1,18 @@
+#---TarWriterTest.test----------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# This checks a tar file being created and file names and content in it.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.test.out 2>&1 | %filecheck %s --check-prefix=TARMSG
+#RUN: %filecheck %s < testTar.tar --check-prefix=TARCONTENT
+#RUN: %tar %gnutaropts -tf testTar.tar 2>&1 | %filecheck %s --check-prefix=TARFILELIST
+#TARMSG: TARWRITER:Note: Initialized Tar File testTar.tar
+#TARCONTENT: TestFile1{{.*}}Test Content 1
+#TARCONTENT: TestFile2{{.*}}Name : Test Content 2
+#TARFILELIST: TestFile1.txt
+#TARFILELIST: TestFile2.json
+#END_TEST

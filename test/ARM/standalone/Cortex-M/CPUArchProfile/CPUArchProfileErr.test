@@ -1,0 +1,13 @@
+#---CPUArchProfileErr.test--------- Executable-----------------------------------#
+
+#BEGIN_COMMENT
+#Fail link if incompatible arch profile
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c --target=armv7m-none-eabi %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c --target=armv7a-none-eabi %p/Inputs/2.c -o %t1.2.o
+RUN: %not %link %linkopts %t1.1.o %t1.2.o -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: Error: CPU Arch Profile in input {{.*}}2.o (value=Application) is not compatible with the output (value=MicroController)
+
+#END_TEST

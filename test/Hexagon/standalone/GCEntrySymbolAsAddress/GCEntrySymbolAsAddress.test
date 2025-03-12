@@ -1,0 +1,17 @@
+#---GCEntrySymbolAsAddress.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Linker fails to parse the entry symbol as address, and doesnot associate the
+# entry field in the ELF header to the value specified by the user. The linker
+# also emits a warning for this. The way entry symbol associated with a value
+# works is by treating entry symbol with an address separately with the entry
+# section that is needed for Garbage collection. If the entry symbol is found
+# then the entry symbol is chosen as one of the root set symbols for garbage
+# collection.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -e 0x2300 --gc-sections -o %t2.out
+RUN: %readelf -h %t2.out | %filecheck %s -check-prefix=ENTRY
+#ENTRY: Entry point address: 0x2300
+#END_TEST

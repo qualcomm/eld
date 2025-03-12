@@ -1,0 +1,6 @@
+# install.cmake.in corresponding to install.cmake. The list of targets passed
+# are used by installer to figure out the *-link shortcuts/copies for ld.eld
+
+set(LINK_TARGETS @LLVM_TARGETS_TO_BUILD@)
+set(USE_LINKER_ALT_NAME @USE_LINKER_ALT_NAME@)
+set(TARGET_TRIPLE @TARGET_TRIPLE@)

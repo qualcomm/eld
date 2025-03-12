@@ -1,0 +1,20 @@
+#---PrintPadding.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that padding is printed properly in the Map file.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link  -o %t1.out %linkopts %t1.1.o -T %p/Inputs/script.t -M 2>&1 | %filecheck %s
+
+#CHECK: .text
+#CHECK: *(.text.fn)
+#CHECK: .text.fn
+#CHECK: PADDING
+#CHECK:         FILL(0x1234);
+#CHECK: *(.text*)
+#CHECK: .text.foo
+#CHECK:         {{[x0-9a-f]+}}  foo
+#CHECK: PADDING_ALIGNMENT
+#CHECK:         {{[x0-9a-f]+}}  bar
+#CHECK: PADDING_ALIGNMENT
+#CHECK:         {{[x0-9a-f]+}}  baz

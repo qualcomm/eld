@@ -1,0 +1,14 @@
+#---MergenoMergeStr.test-------Executable--------------------------------------#
+
+# If a non alloc merge string and a non alloc section with no merge string
+# flag set is merged, the resulting section must not have the merge string
+# flag set
+#BEGIN_COMMENT
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
+RUN: %link %linkopts  %p/Inputs/script.t %t1.o -o %t.out
+RUN: %readelf -s %t.out | %filecheck %s
+
+CHECK: foo
+

@@ -1,0 +1,6 @@
+# Check that -Bsymbolic-functions dont do anything with data.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -shared %t1.o -Bsymbolic-functions -o %t2.so
+RUN: %readelf -r %t2.so | %filecheck %s
+#CHECK: a
+#CHECK-NOT: bar

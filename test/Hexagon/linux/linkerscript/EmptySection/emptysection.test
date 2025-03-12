@@ -1,0 +1,8 @@
+# Check symbol assignments when there is an empty section.
+RUN: %clang %clangopts -c -ffunction-sections %p/Inputs/foo.c %clangg0opts -o %t0.foo.o
+RUN: %clang %clangopts -c -ffunction-sections %p/Inputs/bar.c %clangg0opts -o %t0.bar.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t0.foo.o %t0.bar.o -o %t1 -z max-page-size=4096
+RUN: %readelf -S %t1 | %filecheck %s
+
+#CHECK: [ 1] .candidate_compress_section PROGBITS d0000000 001000 00000c 00 AX 0 0 16
+

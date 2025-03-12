@@ -1,0 +1,15 @@
+/* Error out only if there is a cross reference between foo,bar,baz */
+NOCROSSREFS(.foo .bar .baz)
+/* Error out only if there is a cross reference between
+  .ptrfoo,.ptrglobdata,.crap */
+NOCROSSREFS(.ptrfoo .ptrglobdata .crap)
+SECTIONS {
+  .foo : { *(.text.foo) }
+  .bar : { *(.text.bar) }
+  .baz : { *(.text.baz) }
+  .globdata : { *(.data.globdata) }
+  .data1 : { *(.data.data1) }
+  .ptrfoo : { *(.data.ptrfoo) }
+  .crap : { *(.text.crap) }
+  .ptrglobdata : { *(.data.globdata) }
+}

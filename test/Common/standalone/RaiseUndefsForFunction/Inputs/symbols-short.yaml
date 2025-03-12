@@ -1,0 +1,10 @@
+Symbols:
+  - Name:            .text
+    Type:            STT_SECTION
+    Section:         .text
+  - Name:            main
+    Section:         .text
+  - Name:            f
+    Type:            STT_FUNC
+    Binding:         STB_GLOBAL
+...

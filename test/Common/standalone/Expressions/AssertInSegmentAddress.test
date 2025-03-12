@@ -1,0 +1,14 @@
+#---ErrorInSegmentVMA.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Verify that assertion in segment address is raised.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+
+# Check that the assertion is reported
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/segment-address-assert.t 2>&1 | %filecheck %s --check-prefix=ERROR
+#ERROR: Assertion failed ASSERT(0x0, "LMA")
+#ERROR: Fatal: Linking had errors
+
+#END_TEST

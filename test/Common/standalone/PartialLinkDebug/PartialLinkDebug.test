@@ -1,0 +1,13 @@
+#---PartialLinkDebug.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+#Linker should merge debug string mergeable sections into one section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -g -gdwarf-4
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -g -gdwarf-4
+RUN: %link %linkopts -r %t1.1.o %t1.2.o  -o %t2.r.o
+RUN: %readelf -S -W %t2.r.o | %grep debug_str | %filecheck %s
+#CHECK: .debug_str
+#CHECK-NOT: .debug_str
+#END_TEST

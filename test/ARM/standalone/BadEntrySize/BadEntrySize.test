@@ -1,0 +1,12 @@
+#---BadEntrySize.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# When the sections that have varying entry sizes need to merged to an output
+# section, its invalid to set the entry size to the max of the entry sizes.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/m.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out | %filecheck %s
+#CHECK: .rodata    PROGBITS        00000000 {{[a-f0-9x]+}} {{[a-f0-9x]+}} 00 AMS
+#END_TEST

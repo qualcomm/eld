@@ -1,0 +1,18 @@
+#---DynamicListMapFile.test-------Executable/SharedLibrary----------------------------#
+
+
+#BEGIN_COMMENT
+# Check dynamic list is added to text map file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts --force-dynamic %t1.1.o %t1.lib2.a --dynamic-list=%p/Inputs/dynamicList --force-dynamic -t -o %t2.out -Map %t.map
+RUN: %filecheck %s < %t.map
+#END_TEST
+
+CHECK: Dynamic list files
+CHECK: {{.*}}/Inputs/dynamicList
+CHECK: Pattern: foo
+CHECK: #	foo	{{.*}}1.1.o

@@ -1,0 +1,3 @@
+RUN: %not %link -o %t1.out %linkopts -Map /__d#d__/dd.map 2>&1 | %filecheck %s
+
+CHECK: no inputs

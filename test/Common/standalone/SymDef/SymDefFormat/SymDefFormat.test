@@ -1,0 +1,12 @@
+#---SymDefFormat.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to read the symdef file properly, and
+# checks various syntax of symdef files.
+#END_COMMENT
+#START_TEST
+RUN: %link %linkopts %p/Inputs/good.symdef -o %t2.out.1
+RUN: %not %link %linkopts %p/Inputs/bad.symdef -o %t2.out.2 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %p/Inputs/morebad.symdef -o %t2.out.3 2>&1 | %filecheck %s
+#CHECK: Fatal: Linker script {{[ -\(\)_A-Za-z0-9.\\/:]+}}bad.symdef has errors, Please check
+#END_TEST

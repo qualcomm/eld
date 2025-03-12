@@ -1,0 +1,14 @@
+#---CompactFiles.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+# Test that the linker can generate compact files.
+#END_COMMENT
+#----------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/1.s -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts --compact %t1.1.o -T %p/Inputs/script.t  -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %link %linkopts --compact %t1.1.o -T %p/Inputs/scriptwithat.t  -o %t2.out.at
+RUN: %readelf -S -W %t2.out.at | %filecheck %s
+
+#CHECK: .A PROGBITS 00001000 000054 000010 00  AX  0   0  4
+#CHECK: .B PROGBITS 00010000 000064 000010 00  AX  0   0  4

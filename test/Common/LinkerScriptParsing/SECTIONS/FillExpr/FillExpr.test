@@ -1,0 +1,5 @@
+#---FillExpr.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test verifies linker script parsing for FILL command.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t

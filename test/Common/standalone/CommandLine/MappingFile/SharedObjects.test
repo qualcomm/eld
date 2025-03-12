@@ -1,0 +1,14 @@
+UNSUPPORTED: riscv32, riscv64
+#---SharedObjects.test------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks for support of shared files for --mapping-file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -shared %t1.1.o -o 98765
+RUN: %link -MapStyle txt %linkopts -dynamic %t1.1.o 98765 --mapping-file=%p/Inputs/mapping.ini -Map=%t0.map -o %t2.out.dynexec
+RUN: %filecheck %s < %t0.map
+CHECK: SharedObjects : 1
+CHECK: foo.so
+#END_TEST

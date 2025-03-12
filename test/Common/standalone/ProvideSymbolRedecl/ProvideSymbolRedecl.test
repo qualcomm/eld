@@ -1,0 +1,17 @@
+#---ProvideSymbolRedecl.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies the behavior when the same provide symbol
+# is redeclared.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 -Wno-linker-script | %filecheck %s --check-prefix=NO_LS_WARN --allow-empty
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+RUN: %readelf -Ss %t1.1.out 2>&1 | %filecheck %s --check-prefix=READELF
+#END_TEST
+NO_LS_WARN-NOT: Ignoring provide symbol
+CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'bar' redeclaration
+CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'bar' redeclaration
+CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'bar' redeclaration
+READELF: 03 0 NOTYPE GLOBAL DEFAULT 1 bar

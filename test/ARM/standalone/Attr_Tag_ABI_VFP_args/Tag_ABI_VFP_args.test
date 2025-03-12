@@ -1,0 +1,16 @@
+#---Tag_ABI_VFP_args.test-------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This checks that the linker warns on mixing objects with inconsistent VFP ABI
+#tags.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts  -c %p/Inputs/vfp1.s -o %t1.o
+RUN: %clang %clangopts  -c %p/Inputs/vfp2.s -o %t2.o
+# smoke test, this should not fail
+RUN: %link --fatal-warnings  --warn-mismatch %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out.1 2>&1
+RUN: %not %link --fatal-warnings --warn-mismatch %linkopts -T %p/Inputs/script.t  %t1.o %t2.o -o %t2.out.2 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: incompatible Tag_ABI_VFP_args
+

@@ -1,0 +1,14 @@
+#---OutputChunkIterator.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple output chunk iterator plugin.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -M %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=MAP
+
+#MAP: *(.text.foo)
+#MAP: *(.text.baz)
+#MAP:         .text.baz
+#MAP:         .text.foo
+#MAP: *(COMMON)

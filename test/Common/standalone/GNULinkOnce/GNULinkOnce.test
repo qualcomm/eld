@@ -1,0 +1,16 @@
+UNSUPPORTED: arm
+#---GNULinkOnce.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# .gnu.linkonce sections are not properly resolved
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/f.c -o %t1.f.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t1.2.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.f.o %t1.1.o %t1.2.o -Map %t2.map
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: .gnu.linkonce.irq_vector_table
+#CHECK: .gnu.linkonce.sw_isr_table

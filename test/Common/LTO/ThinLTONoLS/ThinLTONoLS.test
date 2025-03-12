@@ -1,0 +1,23 @@
+UNSUPPORTED: arm && ndk-build
+#---ThinLTONoLS.test-------------------------------- Executable,LTO ---------------------#
+
+#BEGIN_COMMENT
+# This tests that ThinLTO works without linker scripts. This should inline
+# otherfun into myfun (across files), and then garbage collect otherfun after
+# LTO.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto=thin -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -O2 -ffunction-sections -flto=thin -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -O2 -ffunction-sections -o %t1.3.o
+RUN: %link %linkopts --gc-sections -print-gc-sections -flto-options=codegen=-function-sections -flto-options=codegen=-data-sections --save-temps -e main %t1.1.o %t1.2.o %t1.3.o -o %t1.out 2>&1 | %filecheck --check-prefix=GARBAGE %s
+
+GARBAGE: GC :{{.*}}[.text.otherfun]
+
+RUN: %readelf -s -W %t1.out | %filecheck %s
+
+CHECK-NOT: FUNC
+CHECK: FUNC GLOBAL DEFAULT 1 myfun
+CHECK: FUNC GLOBAL DEFAULT 1 main
+CHECK-NOT: FUNC
+

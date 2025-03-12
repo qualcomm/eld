@@ -1,0 +1,16 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/4.c -o %t4.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/5.c -o %t5.o
+RUN: %ar cr %tlib24.a %t2.o %t4.o
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/exclude.t %t1.o --whole-archive %tlib24.a --no-whole-archive %t3.o %t5.o -o %t.out 2>&1
+RUN: %readelf -S -s %t.out | %filecheck %s
+
+CHECK:  .section1          PROGBITS
+CHECK:  .others           PROGBITS
+CHECK:  FUNC    GLOBAL DEFAULT    1 main_4
+CHECK:  FUNC    GLOBAL DEFAULT    1 main_5
+CHECK:  OBJECT  GLOBAL DEFAULT    1 a5
+CHECK:  FUNC    GLOBAL DEFAULT    2 main_1
+CHECK:  OBJECT  GLOBAL DEFAULT    2 a4

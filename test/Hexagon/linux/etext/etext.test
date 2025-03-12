@@ -1,0 +1,6 @@
+# Checks that the value of etext has been set appropriately.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: %readelf -s %t2.out | %grep etext | %filecheck %s
+
+#CHECK:    {{[0-9]+}}: {{.*}}     0 NOTYPE  GLOBAL DEFAULT  ABS __etext

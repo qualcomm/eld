@@ -1,0 +1,28 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_HEXAGON
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x10
+    Content:         '0000000000000000000000000000000000000000'
+  - Name:            .rela.text
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x4
+    Info:            .text
+    Relocations:
+      - Offset:          0xC
+        Type:            R_HEX_NONE
+        Addend:          1
+      - Offset:          0x10
+        Type:            R_HEX_NONE
+        Addend:          1
+Symbols:
+  - Name:            .text
+    Type:            STT_SECTION
+    Section:         .text

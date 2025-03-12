@@ -1,0 +1,11 @@
+#---CommonPageSize.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that DATA_SEGMENT_ALIGN calculates the right value of the symbol
+# DOT (.) when -z common-page-size is specified.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -z max-page-size=0x200000 -z common-page-size=0x1000 -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .data PROGBITS  00601000

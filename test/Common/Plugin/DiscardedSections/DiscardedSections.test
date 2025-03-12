@@ -1,0 +1,16 @@
+#---DiscardedSections.test----------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# This tests checks that SectIonMatcher plugins processes discarded sections
+# in the processSection hook.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t --trace=plugin --gc-sections --print-gc-sections -e main 2>&1 | %filecheck %s
+#END_TEST
+CHECK-DAG: Processing section: .text.foo
+CHECK-DAG: Processing section: .text.bar
+CHECK-DAG: Processing section: .text.baz
+CHECK-DAG: Processing section: .text.main
+CHECK-DAG: GC : {{.*}}1.o[.text.baz]

@@ -1,0 +1,17 @@
+SECTIONS
+{
+  outputa 0x123450 :
+  {
+    1.o(.text)
+  }
+
+  outputb :
+  {
+    2.o(.text)
+  }
+
+  outputc :
+  {
+    *(EXCLUDE_FILE(3.o) .*)
+  }
+}

@@ -1,0 +1,12 @@
+#---DefaultINIConfigFilePathTest.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Tests that plugins are able to unable to load .config via the full path and .ini files from search dirs
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/../Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts %t1.1.o -o %t2.out --plugin-config=plugin.config --verbose  2>&1  | %filecheck %s -check-prefix=VERBOSE
+#VERBOSE: Trying to open `plugin.config' for plugin configuration file `plugin.config' (file path): not found
+#VERBOSE: Plugin config file plugin.config not found
+#VERBOSE: Linking had errors.
+#END_TEST

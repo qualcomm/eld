@@ -1,0 +1,27 @@
+#---TraceSectionWildCardMatcher1.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check tracing of sections.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --trace=section=.text.* 2>&1 | %filecheck %s
+CHECK: Note: Input Section : .text InputFile : {{.*}}.o Alignment : 0x4 Size : 0x0 Flags : SHF_ALLOC|SHF_EXECINSTR
+CHECK: Note: Input Section : .text.foo InputFile : {{.*}}.o Alignment : 0x10 Size : 0xc Flags : SHF_ALLOC|SHF_EXECINSTR
+CHECK: Note: Input Section : .text.foo Symbol : foo
+CHECK:Note: Input Section : .text.unlikely Output Section : .text
+CHECK: Note: Input Section : .text.unlikely.* Output Section : .text
+CHECK: Note: Input Section : .text.cold Output Section : .text
+CHECK: Note: Input Section : .text.cold.* Output Section : .text
+CHECK: Note: Input Section : .text.exit Output Section : .text
+CHECK: Note: Input Section : .text.exit.* Output Section : .text
+CHECK: Note: Input Section : .text.hot Output Section : .text
+CHECK: Note: Input Section : .text.hot.* Output Section : .text
+CHECK: Note: Input Section : .text* Output Section : .text
+CHECK: Note: Internal Section : .text.guard Alignment : 0x4
+CHECK: Note: Internal Section : .text.__tls_get_addr Alignment : 0x4
+CHECK: Note: Internal Section : .text.__hexagon_ie_tls_get_addr Alignment : 0x4
+CHECK: Note: Internal Section : .text.__hexagon_le_tls_get_addr Alignment : 0x4
+CHECK: Note: Input Section : .text PMA : 0x0 VMA : 0x0 Offset : 0x0 Size : 0x0
+CHECK: Note: Input Section : .text.foo PMA : 0x0 VMA : 0x0 Offset : 0x0
+

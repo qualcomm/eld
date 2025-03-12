@@ -1,0 +1,2 @@
+ENTRY(foo)
+ENTRY("foo")

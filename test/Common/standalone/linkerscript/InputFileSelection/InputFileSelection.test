@@ -1,0 +1,15 @@
+#---InputFileSelection.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that linker is able to use linkerscripts that take input from specific files
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c  -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c  -o %t1.3.o
+RUN: %link %linkopts -T %p/Inputs/linkerscript  %t1.1.o %t1.2.o %t1.3.o -o t.out -Map %t0.map
+RUN %filecheck %s < %t0.map
+CHECK: 123450
+CHECK: outputa
+CHECK: outputb
+CHECK: outputc
+

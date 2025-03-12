@@ -1,0 +1,14 @@
+#---AlignRelaxRelocsPartialLink.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies that partial linking preserves R_RISCV_ALIGN and
+# R_RISCV_RELAX reloc
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fno-asynchronous-unwind-tables
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -r
+RUN: %readelf -r %t1.1.out | %filecheck %s
+#END_TEST
+CHECK: R_RISCV_ALIGN
+CHECK: R_RISCV_RELAX 0
+CHECK: R_RISCV_RELAX 0

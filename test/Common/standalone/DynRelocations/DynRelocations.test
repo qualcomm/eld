@@ -1,0 +1,25 @@
+UNSUPPORTED: iu
+#---DynRelocations.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Check that dynamic relocation section is linked to dynamic symbol table and
+# that the dynamic relocation symbol is correctly resolved.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -fPIC
+RUN: %link -shared %linkopts %t1.1.o -o %t.so
+RUN: %link %linkopts -Bdynamic %t1.2.o %t.so -o %t.out
+RUN: %readelf -S --dyn-symbols --dyn-relocations %t.out | %filecheck %s
+#END_TEST
+
+### Read the index of the .dynsym section
+CHECK:     {{[[] *}}[[DYNSYM:[[:digit:]]+]]{{]}} .dynsym   DYNSYM    {{[[:xdigit:]]+}}
+### Check that .rel.plt sh_info points to the .dynsym section
+CHECK:     {{[[] *}}{{[[:digit:]]+}}{{]}}   .rel{{a?}}.plt REL{{A?}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} A [[DYNSYM]]
+### Check for dynamic relocation header
+CHECK:     'PLT' relocation section at offset 0x{{[[:xdigit:]]+}} contains {{[[:digit:]]+}} bytes:
+### This is not needed because static relocations are not printed, but the idea that static relocations should not match in case they are.
+CHECK-NOT: Relocation section '.rel{{a?}}.text'
+### Check that symbol is correctly resolved to f.
+CHECK:     {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} R_{{[A-Z0-9_]+}} {{[[:xdigit:]]+}} f

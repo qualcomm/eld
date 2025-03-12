@@ -1,0 +1,25 @@
+#---WarnCommon.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker removes FDE entries that are garbage collected
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.4.o
+# Definition overrides common symbol
+RUN: %link %linkopts %t1.1.o %t1.2.o --warn-common -o %t1.out.1 2>&1
+RUN: %link %linkopts %t1.1.o %t1.2.o --warn-common -o %t1.out.2 2>&1 | %filecheck %s -check-prefix=DEF
+#DEF: common symbol a in file {{.*}}1.o is overridden by definition from {{.*}}2.o
+# COMMON doesnot override definition
+RUN: %link %linkopts %t1.2.o %t1.3.o %t1.4.o --warn-common -o %t1.out.3 2>&1
+RUN: %link %linkopts %t1.2.o %t1.3.o %t1.4.o --warn-common -o %t1.out.4 2>&1 | %filecheck %s -check-prefix=NOOVERRIDE
+#NOOVERRIDE: common symbol in {{.*}}3.o does not override defined symbol a in file {{.*}}2.o
+#NOOVERRIDE: common symbol in {{.*}}4.o does not override defined symbol a in file {{.*}}2.o
+# COMMON symbol overrides common symbol
+RUN: %link %linkopts %t1.1.o %t1.3.o %t1.4.o --warn-common -o %t1.out.5 2>&1
+RUN: %link %linkopts %t1.1.o %t1.3.o %t1.4.o --warn-common -o %t1.out.6 2>&1 | %filecheck %s -check-prefix=OVERRIDE
+#OVERRIDE: common symbol a in file {{.*}}1.o is overridden by common symbol from {{.*}}3.o
+#OVERRIDE: common symbol a in file {{.*}}3.o is overridden by common symbol from {{.*}}4.o
+#END_TEST

@@ -1,0 +1,12 @@
+#---ProvideSymbols.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the PROVIDE symbol evaluation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1
+RUN: %readelf -Ss %t1.1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK-DAG: ABS PROVIDED_SYM
+CHECK-DAG: ABS ANOTHER_PROVIDED_SYM

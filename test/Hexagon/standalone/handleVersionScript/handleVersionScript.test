@@ -1,0 +1,4 @@
+# Check version script.
+RUN: %not %link  -o %t1.out %linkopts --version-script=/dev/null 2>&1 | %filecheck %s
+
+#CHECK-NOT: Linker from

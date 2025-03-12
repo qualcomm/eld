@@ -1,0 +1,17 @@
+#---LoadRegion.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print the load regions properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map -o %t2.yamlmap.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: LoadRegions:
+#CHECK:   - Name: 'Segment #1'
+#CHECK:     Type:            [ PT_LOAD ]
+#CHECK:     Permissions:     [ READ, EXECUTE ]
+#CHECK:     Sections:
+#CHECK:       - .text

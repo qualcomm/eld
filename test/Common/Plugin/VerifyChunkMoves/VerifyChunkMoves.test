@@ -1,0 +1,18 @@
+#---VerifyChunkMoves.test----------------------- Executable,LS --------------------#
+
+
+
+#BEGIN_COMMENT
+# This tests verifies that plugin reports an error if a chunk is removed but
+# not added afterwards.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.ChunkRemoveButNotAdd.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.ChunkRemoveButNotAdd.t 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -o %t1.1.ChunkRemoveUsingUpdate.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.ChunkRemoveUsingUpdate.t 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -o %t1.1.ChunkRemoveUsingUpdate.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.MultipleChunkAdds.t 2>&1 | %filecheck %s --check-prefix=MULTIPLE_ADDS
+RUN: %not %link %linkopts -o %t1.1.ChunkInsertButNotRemove.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.ChunkInsertButNotRemove.t 2>&1 | %filecheck %s --check-prefix=INSERT_BUT_NOT_REMOVE
+#END_TEST
+CHECK: Error: The chunk '{{.*}}.text.{{bar.*|foo.*}}' was removed from the rule '*(*{{bar|foo}}*) #Rule {{.*}}, {{.*}}/Inputs/script.{{ChunkRemoveButNotAdd|ChunkRemoveUsingUpdate}}.t' by the plugin '{{ChunkRemoveButNotAdd|ChunkRemoveUsingUpdate}}' but has not been inserted back
+MULTIPLE_ADDS: MultipleChunkAdds:Error: The chunk '.text.bar' cannot be added to the rule '*(*foo*) #Rule 1, {{.*}}script.MultipleChunkAdds.t' because it was previously added to the rule '*(*foo*) #Rule 1, {{.*}}/script.MultipleChunkAdds.t' and has not been removed from there
+INSERT_BUT_NOT_REMOVE: Error: The chunk '{{.*}}.text.bar{{.*}}' is inserted to the rule '*(*foo*) #Rule 1, {{.*}}/script.ChunkInsertButNotRemove.t' by the plugin 'ChunkInsertButNotRemove' but has not been removed from any rule

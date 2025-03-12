@@ -1,0 +1,11 @@
+#---CompactFilesWarn.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+# Test that the linker produces a warning if it doesnot satisfy the requirement
+# when generating compact files.
+#END_COMMENT
+#----------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/1.s -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts --compact %t1.1.o -T %p/Inputs/warn.t  -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: Warning: Compact Option needs physical address aligned with File offsets. Mismatch found at section .B

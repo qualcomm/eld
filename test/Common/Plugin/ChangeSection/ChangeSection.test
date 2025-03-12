@@ -1,0 +1,14 @@
+#---ChangeSection.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the section override functionality work correctly
+# for section iterator plugins.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.elf %t1.1.o -L%libsdir/test -T %p/Inputs/1.linker.script -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+#END_TEST
+CHECK: bar
+CHECK: .text.bar
+CHECK: .text.foo

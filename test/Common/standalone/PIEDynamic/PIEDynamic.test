@@ -1,0 +1,12 @@
+#---PIEDynamic.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that PIE dynamic flag is enabled on targets that support PIE
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -Bdynamic -pie %t1.o -o %t1.out
+RUN: %readelf -d %t1.out 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: PIE

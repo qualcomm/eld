@@ -1,0 +1,22 @@
+#---PluginCommandLineOptions.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of plugin command-line options.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --optA="foobar" --optB=barfoo --flagA 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --optA="foobar" --optB=barfoo --flagA --trace=plugin --verbose 2>&1 | %filecheck %s --check-prefix=TRACE
+#END_TEST
+
+CHECK: option: --optA, value: foobar
+CHECK: option: --optB, value: barfoo
+CHECK: option: --flagA
+
+
+TRACE: Trace: Plugin 'PluginCommandLineOptions' registered command-line option '--optA' with value
+TRACE: Trace: Plugin 'PluginCommandLineOptions' registered command-line option '--optB' with value
+TRACE: Trace: Plugin 'PluginCommandLineOptions' registered command-line option '--flagA' without value
+TRACE: Trace: Plugin 'PluginCommandLineOptions' registered command-line option '--flagB' without value
+TRACE: Verbose: Calling 'PluginCommandLineOptions::CommandLineOptionHandler' for option '--optA' with value 'foobar'
+TRACE: Verbose: Calling 'PluginCommandLineOptions::CommandLineOptionHandler' for option '--optB' with value 'barfoo'
+TRACE: Verbose: Calling 'PluginCommandLineOptions::CommandLineOptionHandler' for option '--flagA'

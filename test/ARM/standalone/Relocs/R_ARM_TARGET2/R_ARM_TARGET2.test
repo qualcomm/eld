@@ -1,0 +1,15 @@
+#---R_ARM_TARGET2.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle R_ARM_TARGET2 relocations
+# properly like BFD and LLD.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/t2.s -o %t1.1.o
+RUN: %clang -c %p/Inputs/x.c -o %t1.2.o
+RUN: %link -shared %t1.2.o -o %t1.shared.out
+RUN: %link %linkopts -march arm %t1.1.o %t1.shared.out -o %t2.out 2>&1
+RUN: %readelf -r %t1.shared.out | %filecheck %s
+
+#CHECK-NOT: GLOB_DAT
+#END_TEST

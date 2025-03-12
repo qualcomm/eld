@@ -1,0 +1,10 @@
+#---TraceSection.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check tracing of sections.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --trace=section=.text.foo 2>&1 | %filecheck %s
+CHECK: Note: Input Section : .text.foo InputFile :
+CHECK-NEXT: Note: Input Section : .text.foo Symbol : foo

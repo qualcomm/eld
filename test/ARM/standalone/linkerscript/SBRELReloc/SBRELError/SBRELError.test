@@ -1,0 +1,13 @@
+#---SBRELSimple.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that SBREL32 relocation is implemented and the relocation is
+# applied properly by picking the value of the relocation to be computed based
+# on the base address of the segment.
+#END_COMMENT
+RUN: %clang %clangopts -fno-pie -c %p/Inputs/1.c -o %t1.1.o -frwpi
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t  -o %t2.out -frwpi 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/scriptphdr.t  -o %t2.out -frwpi 2>&1 | %filecheck %s
+
+#CHECK: R_ARM_SBREL32 Relocation Mismatch for symbol bar defined in {{.*}} has a different load segment
+#CHECK: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from {{.*}} symbol defined in {{.*}}

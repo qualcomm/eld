@@ -1,0 +1,42 @@
+#---PartialLinkTLSSymbol.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks that TLS symbols have correct values after partial link.
+# per merge string.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %link %linkopts -o %t1.12.r.o %t1.1.o %t1.2.o -r
+RUN: %readelf -s %t1.1.o %t1.2.o %t1.12.r.o | %filecheck %s
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fdata-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fdata-sections
+RUN: %link %linkopts -o %t1.12.r.o %t1.1.o %t1.2.o -r
+RUN: %readelf -s %t1.1.o %t1.2.o %t1.12.r.o | %filecheck %s --check-prefix=DATA_SECTIONS
+RUN: %link %linkopts -o %t1.12.r.o %t1.1.o %t1.2.o -r -T %p/Inputs/script.t
+RUN: %readelf -s %t1.1.o %t1.2.o %t1.12.r.o | %filecheck %s --check-prefix=LINKER_SCRIPT
+#END_TEST
+CHECK: : [[a:[0-9a-f]+]] {{.*}} TLS {{.*}} a
+CHECK: : [[b:[0-9a-f]+]] {{.*}} TLS {{.*}} b
+CHECK: : {{0+}} {{.*}} TLS {{.*}} c
+CHECK: : {{0+[1-9]+}} {{.*}} TLS {{.*}} d
+CHECK: : [[a]] {{.*}} TLS {{.*}} a
+CHECK: : [[b]] {{.*}} TLS {{.*}} b
+CHECK: : {{0+[1-9a-f]+}} {{.*}} TLS {{.*}} c
+CHECK: : {{0+[1-9a-f]+}} {{.*}} TLS {{.*}} d
+DATA_SECTIONS: {{0+}} {{.*}} TLS {{.*}} a
+DATA_SECTIONS: {{0+}} {{.*}} TLS {{.*}} b
+DATA_SECTIONS: {{0+}} {{.*}} TLS {{.*}} c
+DATA_SECTIONS: {{0+}} {{.*}} TLS {{.*}} d
+DATA_SECTIONS-DAG: {{[0-9a-f]+}} {{.*}} TLS {{.*}} a
+DATA_SECTIONS-DAG: {{[0-9a-f]+}} {{.*}} TLS {{.*}} b
+DATA_SECTIONS-DAG: {{[0-9a-f]+}} {{.*}} TLS {{.*}} c
+DATA_SECTIONS-DAG: {{[0-9a-f]+}} {{.*}} TLS {{.*}} d
+LINKER_SCRIPT: {{0+}} {{.*}} TLS {{.*}} a
+LINKER_SCRIPT: {{0+}} {{.*}} TLS {{.*}} b
+LINKER_SCRIPT: {{0+}} {{.*}} TLS {{.*}} c
+LINKER_SCRIPT: {{0+}} {{.*}} TLS {{.*}} d
+LINKER_SCRIPT-DAG: {{0+}} {{.*}} TLS {{.*}} a
+LINKER_SCRIPT-DAG: {{0+}} {{.*}} TLS {{.*}} b
+LINKER_SCRIPT-DAG: {{0+}} {{.*}} TLS {{.*}} c
+LINKER_SCRIPT-DAG: {{0+}} {{.*}} TLS {{.*}} d

@@ -1,0 +1,14 @@
+#---InvalidEmulation.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker should reject invalid Emulations specified on the
+# command line.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts -mv99 %t1.1.o -o %t2.out 2>&1 | %filecheck %s -check-prefix=MV
+RUN: %not %link %linkopts -mcpu hexagonv99 %t1.1.o -o %t2.out.err 2>&1 | %filecheck %s -check-prefix=MCPU
+
+#MV: Fatal: Invalid Emulation v99
+#MCPU: Fatal: Invalid Emulation hexagonv99
+#END_TEST

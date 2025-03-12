@@ -1,0 +1,21 @@
+#--TrampolinesB9PCREL.test--------------------- Executable ------------------#
+
+
+#BEGIN_COMMENT
+# Linker needs to emit trampolines for B9 PCREL locations, to handle a recent
+# change in the compiler that allows a function to be split by basic blocks.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections %p/Inputs/far.c -o %t1.far.o
+# The code in foo.s creates a relocation R_HEX_B9_PCREL to the function far
+# in far.c, but the linker script places the symbol far so that it needs a
+# trampoline.
+RUN: %clang %clangopts -c -ffunction-sections %p/Inputs/foo.s -o %t1.foo.o
+RUN: %link %linkopts %t1.far.o %t1.foo.o -T %p/Inputs/script.t \
+RUN: -o %t2.out --trace=trampolines 2>&1 | %filecheck %s
+RUN: %objdump -d %t2.out | %filecheck %s -check-prefix=OBJDUMP
+#CHECK: Trace: Creating Stub trampoline_for_far_from_.text.foo_{{[0-9]+}}
+#CHECK:Trace: From {{.*}}.text.foo
+#OBJDUMP: <trampoline_for_far_from_.text.foo_{{[0-9]+}}>
+#END_TEST
+

@@ -1,0 +1,19 @@
+#---EhFrameHeader.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that AArch64 doesnot enable generating eh_frame_hdr section by
+# default when using Linker scripts. The linker will create an eh_frame_hdr
+# section by using the following two conditions
+# a) When the linker script uses SIZE_OF_HEADERS keyword in the linker script.
+# b) When there is a .eh_frame section thats available
+# c) When the user uses the option --eh-frame-hdr
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.cpp -o %t1.1.o -target aarch64
+RUN: %clang %clangopts -c %p/Inputs/2.cpp -o %t1.2.o -target aarch64
+RUN: %link %linkopts -march aarch64 %t1.1.o %t1.2.o -T %p/Inputs/createehframehdr.t -o %t2.out.ehframehdr --noinhibit-exec
+RUN: %link %linkopts -march aarch64 %t1.1.o %t1.2.o -T %p/Inputs/nocreateehframehdr.t -o %t2.out.noehframehdr --noinhibit-exec
+RUN: %readelf -l -W %t2.out.ehframehdr | %filecheck -check-prefix=EHFRAMEHDR %s
+RUN: %readelf -l -W %t2.out.noehframehdr | %filecheck -check-prefix=NOEHFRAMEHDR %s
+
+#EHFRAMEHDR:  GNU_EH_FRAME
+#NOEHFRAMEHDR-NOT: GNU_EH_FRAME

@@ -1,0 +1,3 @@
+SECTIONS {
+  FOO : { *(SORT_BY_NAME(SORT_BY_INIT_PRIORITY(*foo*))) }
+}

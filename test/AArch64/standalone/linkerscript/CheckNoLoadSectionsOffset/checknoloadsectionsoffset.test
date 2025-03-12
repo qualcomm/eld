@@ -1,0 +1,6 @@
+# Check that NOLOAD sections do not cause offset to increase.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -ffunction-sections -o %t1.o
+RUN: %link %linkopts -march aarch64 %t1.o -T %p/Inputs/script.t -o %t2.out -z max-page-size=0x1000
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .comment PROGBITS 0000000000000000 {{[0-9a-f]+}} {{[0-9a-f]+}}

@@ -1,0 +1,12 @@
+#---PHDRSWithAtCommand.test--------------------- Executable,LS ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker will handle PHDRS with AT command, that specifies
+# fixed physical address.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD 0x001000 0x00000000 0x00050000
+

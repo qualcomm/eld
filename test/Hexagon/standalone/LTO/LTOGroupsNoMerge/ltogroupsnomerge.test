@@ -1,0 +1,15 @@
+
+# This test, checks that LTO is able to handle a .o within a group.
+RUN: %clang %clangopts -c -flto %p/Inputs/a.c -o %t1.a.o
+RUN: %clang %clangopts -c -flto %p/Inputs/b1.c -o %t1.b1.o
+RUN: %clang %clangopts -c  %p/Inputs/b2.c -o %t1.b2.o
+RUN: %clang %clangopts -c  %p/Inputs/c.c -o %t1.c.o
+RUN: %clang %clangopts -c  %p/Inputs/crap.c -o %t1.crap.o
+RUN: %ar cr %t2.libb1.a %t1.b1.o
+RUN: %ar cr %aropts %t2.libb2.a %t1.b2.o
+RUN: %ar cr %aropts %t2.libc.a %t1.c.o
+RUN: %link %linkopts -flto-options=no-merge-modules  -M %t1.a.o --start-group %t2.libb1.a %t2.libb2.a %t2.libc.a %t1.crap.o --end-group --trace=lto -t 2>&1 | %filecheck %s
+
+#CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}crap
+
+

@@ -1,0 +1,13 @@
+# This checks that map file display the correct section information for EMPTY
+# sections.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t %t1.1.o -z max-page-size=0x1000 -M -o %t2.out 2>&1 | %filecheck %s -check-prefix=MAP
+
+#MAP: .mycompress     0xd0000000      0x0
+#MAP: .reclaim        0xd0000000      0x64
+#MAP: .text   0x0     0x8
+#MAP: .DATA   0x1000  0x0
+#MAP: .data   0x2000  0x190
+#MAP: .bss    0x2190  0x4
+#MAP: .comment        0x3000
+

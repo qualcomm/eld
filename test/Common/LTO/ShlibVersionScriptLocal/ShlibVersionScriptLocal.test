@@ -1,0 +1,17 @@
+UNSUPPORTED: iu
+#---ShlibVersionScriptLocal.test------------- DSO-----------------
+
+#BEGIN_COMMENT
+# Use version script to not preserve local symbols in a shared lib
+#----------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -fpic -o %t1.o
+RUN: %clang %clangopts -c  %p/Inputs/2.c -fpic -o %t2.o
+RUN: %link %linkopts -o %t1.so --version-script=%p/Inputs/vs.t -shared  %t1.o --trace=lto 2>&1 | %filecheck %s
+RUN: %readelf --dyn-syms %t1.so |  %filecheck --check-prefix="SYM" %s
+RUN: %link %linkopts -o %t2.so --version-script=%p/Inputs/vs.t -shared  %t1.o %t2.o --trace=lto 2>&1 | %filecheck %s --check-prefix="PRESERVE"
+
+CHECK-NOT: Preserving symbol bar
+SYM-NOT: bar
+
+PRESERVE: Preserving symbol bar

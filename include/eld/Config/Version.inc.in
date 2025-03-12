@@ -1,0 +1,14 @@
+//===- Version.inc.in------------------------------------------------------===//
+// Part of the eld Project, under the BSD License
+// See https://github.com/qualcomm/eld/LICENSE.txt for license information.
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+#ifndef ELD_VERSION
+#define ELD_VERSION @ELD_VERSION@
+#define ELD_VERSION_MAJOR @ELD_VERSION_MAJOR@
+#define ELD_VERSION_MINOR @ELD_VERSION_MINOR@
+#define ELD_REVISION_STRING "${ELD_REVISION}"
+#define ELD_REPOSITORY_STRING "@ELD_REPOSITORY@"
+#define LLVM_VENDOR_NAME "@LLVM_VENDOR_NAME@"
+#define LLVM_VENDOR_VERSION "@LLVM_VENDOR_VERSION@"
+#endif

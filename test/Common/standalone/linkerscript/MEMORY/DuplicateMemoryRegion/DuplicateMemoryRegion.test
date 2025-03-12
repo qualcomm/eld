@@ -1,0 +1,14 @@
+#---DuplicateMemoryRegion.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command and errors out because there are two memory regions with the same
+# name
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Duplicate memory region b1

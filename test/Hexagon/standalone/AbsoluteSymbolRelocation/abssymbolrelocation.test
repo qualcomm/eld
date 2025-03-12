@@ -1,0 +1,5 @@
+# This tests that absolute symbol relocations are handled appropriately.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: %readelf -x .data %t2.out | %filecheck %s
+#CHECK-NOT: 00000000

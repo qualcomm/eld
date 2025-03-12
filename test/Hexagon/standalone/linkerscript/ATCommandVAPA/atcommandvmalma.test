@@ -1,0 +1,11 @@
+# Test that VA and PA are incrementing at the same rate.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x001000 0xf0004000 0x00004000
+#CHECK:  LOAD           0x002000 0xf0040000 0x00040000
+#CHECK: Section to Segment mapping:
+#CHECK:  Segment Sections...
+#CHECK:   00     .foo
+#CHECK:   01     .bar

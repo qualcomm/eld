@@ -1,0 +1,1 @@
+int b2() { return 12; }

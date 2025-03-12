@@ -1,0 +1,13 @@
+#---DynamicListPreserve.test----------------- Executable,LTO ------------------#
+
+#BEGIN_COMMENT
+#When symbols are included in dynamic list, they must be preserved. They may be
+#garbage collected in post LTO phase.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto -o %t1.o
+RUN: %link %linkopts --gc-sections -print-gc-sections --dynamic-list %p/Inputs/list -flto-options=codegen="-function-sections" --force-dynamic --trace=lto -e bar %t1.o  -o %t1.out 2>&1 | %filecheck  %s
+
+CHECK: Marking symbol foo to be preserved (found in dynamic list)
+CHECK-DAG: Preserving symbol foo
+CHECK-DAG: GC : {{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text.foo]

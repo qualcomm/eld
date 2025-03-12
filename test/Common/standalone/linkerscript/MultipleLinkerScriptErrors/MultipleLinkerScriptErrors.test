@@ -1,0 +1,21 @@
+UNSUPPORTED: old_lsparser
+#---MultipleLinkerScriptErrors.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks that linker reports multiple errors in a linker script
+# for the missing semicolon in an assignment expression case.
+#END_COMMENT
+
+RUN: %touch %t1.1.c
+RUN: %clang %clangopts -o %t1.1.o %t1.1.c -c
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}script.t:2: ; expected, but got v
+CHECK: >>>   u = 5
+CHECK: >>>       ^
+CHECK: Error: {{.*}}script.t:3: ; expected, but got w
+CHECK: >>>   v = 7
+CHECK: >>>       ^
+CHECK: Error: {{.*}}script.t:4: ; expected, but got }
+CHECK: >>>   w = 9
+CHECK: >>>

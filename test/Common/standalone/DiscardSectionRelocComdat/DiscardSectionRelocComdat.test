@@ -1,0 +1,18 @@
+#---DiscardSectionRelocComdat.test----------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# Check that relocations to a discarded section generate an error
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t.2.o
+RUN: not %link %linkopts %t.1.o %t.2.o -o %t.a.out 2>&1 | %filecheck %s
+CHECK: `.text.foo' referenced in section `.data' of {{.*}}2.o: defined in discarded section
+
+RUN: %clang %clangopts -c %p/Inputs/debug-1.s -o %t.debug-1.o
+RUN: %clang %clangopts -c %p/Inputs/debug-2.s -o %t.debug-2.o
+RUN: %link %linkopts -r -d %t.debug-1.o %t.debug-2.o -o %t.b.out 2>&1
+
+#END_TEST

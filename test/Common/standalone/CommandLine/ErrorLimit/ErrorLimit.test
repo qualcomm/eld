@@ -1,0 +1,28 @@
+#---ErrorLimit.test--------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This checks that the linker is able to limit the number of error.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o -o %t2.out.2 --symdef-file %t2.x.symdef
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t21.out 2>&1 | %filecheck %s --check-prefix=DEFAULTERRORLIMIT
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t22.out --error-limit 2>&1 | %filecheck %s --check-prefix=MISSINGARG
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t22.out --error-limit aa 2>&1 | %filecheck %s --check-prefix=INVALIDARGVALUE
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t23.out --error-limit -8 2>&1 | %filecheck %s --check-prefix=INVALIDARGVALUE
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t22.out --error-limit 2 2>&1 | %filecheck %s --check-prefix=ERRORLIMIT
+RUN: %not %link %linkopts %t1.1.o %t2.x.symdef -o %t23.out --error-limit 0 2>&1 | %filecheck %s --check-prefix=NOERRORLIMIT
+
+#DEFAULTERRORLIMIT-COUNT-9: Error:
+#DEFAULTERRORLIMIT: Error: Too many errors emitted, stopping now (use --error-limit=0 to see all errors)
+#DEFAULTERRORLIMIT-NOT: Error:
+#MISSINGARG: Error: Missing arg value for '--error-limit' expected 1 argument(s)
+#INVALIDARGVALUE: Error: Invalid value for --error-limit:
+#ERRORLIMIT-COUNT-1: Error:
+#ERRORLIMIT: Error: Too many errors emitted, stopping now (use --error-limit=0 to see all errors)
+#ERRORLIMIT-NOT: Error:
+#NOERRORLIMIT-COUNT-12: Error:
+#NOERRORLIMIT-NOT: Error:
+#NOERRORLIMIT-NOT: Error: Too many errors emitted, stopping now (use --error-limit=0 to see all errors)
+#END_TEST

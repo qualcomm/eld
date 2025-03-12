@@ -1,0 +1,14 @@
+SECTIONS {
+  .section1 : {
+  KEEP(*liba.a: (*dat*f*))
+  }
+
+  .section2 : {
+  KEEP(*liba.a:*tmp2.o(*data*))
+  }
+
+  .section3 : {
+    *tmp1.o(*text*)
+  }
+
+}

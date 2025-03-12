@@ -1,0 +1,16 @@
+#---EmptySections.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# Show empty sections in map file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t1.map.out
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map.gc --gc-sections -e foo
+RUN: %filecheck %s < %t1.map.out
+RUN: %filecheck %s < %t2.map.gc
+#END_TEST
+#CHECK: .unrecognized
+#CHECK: .text.bar
+#CHECK: .data
+#CHECK: .bss

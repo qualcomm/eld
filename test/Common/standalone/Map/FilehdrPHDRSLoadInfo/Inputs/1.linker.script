@@ -1,0 +1,9 @@
+PHDRS {
+  hdrs PT_PHDR PHDRS;
+  text PT_LOAD;
+}
+
+SECTIONS {
+  . = SIZEOF_HEADERS;
+  .text : { *(.text*) } :text
+}

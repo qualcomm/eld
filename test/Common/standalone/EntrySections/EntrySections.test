@@ -1,0 +1,13 @@
+#------------------------EntrySections.test-----------------------------#
+
+#BEGIN_COMMENT
+This test verifies that a section which contain address information using '@' must
+be treated as an entry section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/2.c -o %t2.2.o
+RUN: %link %linkopts -T %p/Inputs/1.linker.script %t1.1.o %t2.2.o --gc-sections -static -o %t2.r.o
+RUN: %readelf -s %t2.r.o | %filecheck %s
+#END_TEST
+#CHECK: buffer

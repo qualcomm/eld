@@ -1,0 +1,21 @@
+#---PatchSections.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test creation of .pgot and .rela.pgot
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t.1.o -c
+
+RUN: %link %linkopts --patch-enable %t.1.o --trace-section '.*' -o %t.out 2>&1 | %filecheck %s --match-full-lines --check-prefix=PATCH
+PATCH:Note: Internal Section : .pgot Alignment : 0x{{4|8}} Size : 0x0 Flags : SHF_ALLOC|SHF_WRITE
+PATCH:Note: Internal Section : .rel{{a?}}.pgot Alignment : 0x{{4|8}} Size : 0x0 Flags : NONE
+
+RUN: %link %linkopts %t.1.o --trace-section '.*' -o %t.out 2>&1 | %filecheck %s --check-prefix=NO-PATCH
+NO-PATCH-NOT:Internal Section : .pgot
+NO-PATCH-NOT:Internal Section : .rel{{a?}}.pgot
+
+RUN: %link %linkopts %t.1.o -t %p/Inputs/pgot_discard.t -o %t.out
+RUN: %readelf -S %t.out | %filecheck %s --check-prefix=DISCARD
+DISCARD-NOT: .pgot
+
+#END_TEST

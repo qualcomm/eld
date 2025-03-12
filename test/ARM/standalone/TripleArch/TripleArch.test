@@ -1,0 +1,26 @@
+#XFAIL: arm
+#---TripleArch.test--------------------- exe --------------------#
+
+#BEGIN_COMMENT
+# Linker can know architecute by -march or by -mtriple options
+# whichever comes later on command line is used to create target machine
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -march=armv8 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -march=armv5 -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -march armv8r %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s --check-prefix="ARCH"
+RUN: %link %linkopts -mtriple armv7-unknown-gnu %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s --check-prefix="TRIP"
+RUN: %link %linkopts -mtriple armv7-unknown-gnu -march armv8 %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s --check-prefix="TRIPARCH"
+RUN: %link %linkopts -mtriple armv8-unknown-gnu -march armv6k %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s --check-prefix="ARCHTRIP"
+
+ARCH: Command line architecture: `ARM_V8_R' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V8'
+ARCH: Warning: Command line architecture: `ARM_V8_R' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V5T'
+
+TRIP: Command line architecture: `ARM_V7' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V8'
+TRIP: Warning: Command line architecture: `ARM_V7' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V5T'
+
+TRIPARCH: Warning: Command line architecture: `ARM_V8' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V5T'
+
+ARCHTRIP: Warning: Command line architecture: `ARM_V6K' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V8'
+ARCHTRIP: Warning: Command line architecture: `ARM_V6K' mismatches object ({{[ -\(\)_A-Za-z0-9.\\/:]+}}) architecture attribute `ARM_V5T'
+#END_TEST

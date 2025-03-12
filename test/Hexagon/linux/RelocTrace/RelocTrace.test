@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o
+RUN: %link %linkopts --no-align-segments --section-start=main2=0x20  %t1.o %t2.o %t3.o -o %t.out --trace=symbol=main_1 2>&1 | %filecheck %s
+
+CHECK:  Symbol main_1, application site: 0x24

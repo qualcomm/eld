@@ -1,0 +1,11 @@
+#---MissingINIFile.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests checks the usage of eld::Expected<T, std::unique_ptr<DiagnosticEntry>>
+# type and DiagnosticEntry override severity functionality.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o  -ffunction-sections -fdata-sections
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.out -L %p/Inputs 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: MissingINIFile:Fatal: File 'someFile.ini' does not exist
+#CHECK: Fatal: Linking had errors.

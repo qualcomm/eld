@@ -1,0 +1,13 @@
+#---FullRelRO.test--------------------- SharedLibrary,LS------------------#
+
+# This tests that -z relro is su
+#BEGIN_COMMENT
+# This tests that -z relro flag is able to create a PT_GNU_RELRO segment. This
+# tests the functionality of a full RELRO segment that includes all the sections
+# that are part of the RELRO segment.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o -fno-use-init-array
+RUN: %link %linkopts %t1.1.o -shared -o %t1.so -z relro -z now -T %p/Inputs/script.t
+RUN: %readelf -l -W %t1.so | %filecheck %s
+
+#CHECK: 04 .ctors .dtors .dynamic .got .got.plt

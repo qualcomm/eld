@@ -1,0 +1,14 @@
+#---UndefinedSymbolIgnoreAllVisibilitySharedLibrary.test--------------------------- SharedLibrary -----------------#
+
+#BEGIN_COMMENT
+#This checks that undefined symbols are reported by the linker, when the
+#user uses the policy --unresolved-symbols=ignore-all because symbol visibility
+#is set to be protected or hidden. This is when building a shared object
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.1.o -fPIC
+RUN: %not %link %linkopts -shared %t1.1.o -o %t2.out --unresolved-symbols=ignore-all
+RUN: %clang %clangopts -c %p/Inputs/foohid.c -o %t1.2.o -fPIC
+RUN: %not %link %linkopts -shared %t1.2.o -o %t2.out --unresolved-symbols=ignore-all
+
+#END_TEST

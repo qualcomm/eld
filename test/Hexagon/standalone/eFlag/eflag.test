@@ -1,0 +1,112 @@
+UNSUPPORTED: arm, aarch64, riscv32, riscv64
+# Check eflags produced by %link %linkopts.
+RUN: %clang %clangopts -mv68 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -mv68 -c %p/Inputs/1.c -o %t2.o
+RUN: %clang %clangopts -mv68 -c %p/Inputs/1.c -o %t3.o
+
+# Generate V68 objects
+RUN: %link %linkopts -mv68 %t1.o -o %t1.elf.mv68.1
+RUN: %link %linkopts -mcpu hexagonv68 %t1.o -o %t1.elf.mv68.2
+RUN: %link %linkopts -r -mcpu hexagonv68 %t1.o -o %t1.elf.mv68.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv68.2.r -o %t1.elf.mv68.3
+
+# Generate V69 objects
+RUN: %link %linkopts -mv69 %t1.o -o %t1.elf.mv69.1
+RUN: %link %linkopts -mcpu hexagonv69 %t1.o -o %t1.elf.mv69.2
+RUN: %link %linkopts -r -mcpu hexagonv69 %t1.o -o %t1.elf.mv69.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv69.2.r -o %t1.elf.mv69.3
+
+# Generate V71 objects
+RUN: %link %linkopts -mv71 %t1.o -o %t1.elf.mv71.1
+RUN: %link %linkopts -mcpu hexagonv71 %t1.o -o %t1.elf.mv71.2
+RUN: %link %linkopts -r -mcpu hexagonv71 %t1.o -o %t1.elf.mv71.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv71.2.r -o %t1.elf.mv71.3
+
+# Generate V71t objects
+RUN: %link %linkopts -mv71t %t1.o -o %t1.elf.mv71t.1
+RUN: %link %linkopts -mcpu hexagonv71t %t1.o -o %t1.elf.mv71t.2
+RUN: %link %linkopts -r -mcpu hexagonv71t %t1.o -o %t1.elf.mv71t.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv71t.2.r -o %t1.elf.mv71t.3
+
+# Generate V73 objects
+RUN: %link %linkopts -mv73 %t1.o -o %t1.elf.mv73.1
+RUN: %link %linkopts -mcpu hexagonv73 %t1.o -o %t1.elf.mv73.2
+RUN: %link %linkopts -r -mcpu hexagonv73 %t1.o -o %t1.elf.mv73.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv73.2.r -o %t1.elf.mv73.3
+
+# Generate V75 objects
+RUN: %link %linkopts -mv75 %t1.o -o %t1.elf.mv75.1
+RUN: %link %linkopts -mcpu hexagonv75 %t1.o -o %t1.elf.mv75.2
+RUN: %link %linkopts -r -mcpu hexagonv75 %t1.o -o %t1.elf.mv75.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv75.2.r -o %t1.elf.mv75.3
+
+# Generate V77 objects
+RUN: %link %linkopts -mv77 %t1.o -o %t1.elf.mv77.1
+RUN: %link %linkopts -mcpu hexagonv77 %t1.o -o %t1.elf.mv77.2
+RUN: %link %linkopts -r -mcpu hexagonv77 %t1.o -o %t1.elf.mv77.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv77.2.r -o %t1.elf.mv77.3
+
+# Generate V79 objects
+RUN: %link %linkopts -mv79 %t1.o -o %t1.elf.mv79.1
+RUN: %link %linkopts -mcpu hexagonv79 %t1.o -o %t1.elf.mv79.2
+RUN: %link %linkopts -r -mcpu hexagonv79 %t1.o -o %t1.elf.mv79.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv79.2.r -o %t1.elf.mv79.3
+
+# Generate V81 objects
+RUN: %link %linkopts -mv81 %t1.o -o %t1.elf.mv81.1
+RUN: %link %linkopts -mcpu hexagonv81 %t1.o -o %t1.elf.mv81.2
+RUN: %link %linkopts -r -mcpu hexagonv81 %t1.o -o %t1.elf.mv81.2.r
+RUN: %link %linkopts %t2.o %t1.elf.mv81.2.r -o %t1.elf.mv81.3
+
+# Generate V83 objects
+RUN: %link %linkopts -mv83 %t1.o -o %t1.elf.mv83.1
+RUN: %link %linkopts -mcpu hexagonv83 %t1.o -o %t1.elf.mv83.2
+
+# Generate V85 objects
+RUN: %link %linkopts -mv85 %t1.o -o %t1.elf.mv85.1
+RUN: %link %linkopts -mcpu hexagonv85 %t1.o -o %t1.elf.mv85.2
+
+# Check all variants
+RUN: %readelf -h %t1.elf.mv68.1 | %filecheck -check-prefix=V68 %s
+RUN: %readelf -h %t1.elf.mv68.2 | %filecheck -check-prefix=V68 %s
+RUN: %readelf -h %t1.elf.mv68.3 | %filecheck -check-prefix=V68 %s
+RUN: %readelf -h %t1.elf.mv69.1 | %filecheck -check-prefix=V69 %s
+RUN: %readelf -h %t1.elf.mv69.2 | %filecheck -check-prefix=V69 %s
+RUN: %readelf -h %t1.elf.mv69.3 | %filecheck -check-prefix=V69 %s
+RUN: %readelf -h %t1.elf.mv71.1 | %filecheck -check-prefix=V71 %s
+RUN: %readelf -h %t1.elf.mv71.2 | %filecheck -check-prefix=V71 %s
+RUN: %readelf -h %t1.elf.mv71.3 | %filecheck -check-prefix=V71 %s
+RUN: %readelf -h %t1.elf.mv71t.1 | %filecheck -check-prefix=V71t %s
+RUN: %readelf -h %t1.elf.mv71t.2 | %filecheck -check-prefix=V71t %s
+RUN: %readelf -h %t1.elf.mv71t.3 | %filecheck -check-prefix=V71t %s
+RUN: %readelf -h %t1.elf.mv73.1 | %filecheck -check-prefix=V73 %s
+RUN: %readelf -h %t1.elf.mv73.2 | %filecheck -check-prefix=V73 %s
+RUN: %readelf -h %t1.elf.mv73.3 | %filecheck -check-prefix=V73 %s
+RUN: %readelf -h %t1.elf.mv75.1 | %filecheck -check-prefix=V75 %s
+RUN: %readelf -h %t1.elf.mv75.2 | %filecheck -check-prefix=V75 %s
+RUN: %readelf -h %t1.elf.mv75.3 | %filecheck -check-prefix=V75 %s
+RUN: %readelf -h %t1.elf.mv77.1 | %filecheck -check-prefix=V77 %s
+RUN: %readelf -h %t1.elf.mv77.2 | %filecheck -check-prefix=V77 %s
+RUN: %readelf -h %t1.elf.mv77.3 | %filecheck -check-prefix=V77 %s
+RUN: %readelf -h %t1.elf.mv79.1 | %filecheck -check-prefix=V79 %s
+RUN: %readelf -h %t1.elf.mv79.2 | %filecheck -check-prefix=V79 %s
+RUN: %readelf -h %t1.elf.mv79.3 | %filecheck -check-prefix=V79 %s
+RUN: %readelf -h %t1.elf.mv81.1 | %filecheck -check-prefix=V81 %s
+RUN: %readelf -h %t1.elf.mv81.2 | %filecheck -check-prefix=V81 %s
+RUN: %readelf -h %t1.elf.mv81.3 | %filecheck -check-prefix=V81 %s
+RUN: %readelf -h %t1.elf.mv83.1 | %filecheck -check-prefix=V83 %s
+RUN: %readelf -h %t1.elf.mv83.2 | %filecheck -check-prefix=V83 %s
+RUN: %readelf -h %t1.elf.mv85.1 | %filecheck -check-prefix=V85 %s
+RUN: %readelf -h %t1.elf.mv85.2 | %filecheck -check-prefix=V85 %s
+
+#V68: Flags: 0x68
+#V69: Flags: 0x69
+#V71: Flags: 0x71
+#V71t: 0x8071
+#V73: Flags: 0x73
+#V75: Flags: 0x75
+#V77: Flags: 0x77
+#V79: Flags: 0x79
+#V81: Flags: 0x81
+#V83: Flags: 0x83
+#V85: Flags: 0x85

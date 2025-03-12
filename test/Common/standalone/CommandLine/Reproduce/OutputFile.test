@@ -1,0 +1,12 @@
+#---OutputFile.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the output file in the response file uses the base name
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts  %t1.1.o -o %t1.out --reproduce %t0.tar --dump-response-file %t1.dump
+RUN: %filecheck %s < %t1.dump
+CHECK: tmp1.out
+CHECK NOT: /
+#END_TEST

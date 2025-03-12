@@ -1,0 +1,12 @@
+#---DynamicExecutablesWithDiscard.test--------------------- DynamicExecutable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that the dynamic section still contains valid entries, even when
+# the important sections such as dynsym, dynstr are discarded by linker script
+# rules.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -shared -o %t1.so -z relro -z now -T %p/Inputs/script.t -Bsymbolic
+RUN: %readelf -d %t1.so | %filecheck %s
+
+#CHECK: (RELCOUNT)             {{[0-9a-fx]+}}

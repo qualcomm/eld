@@ -1,0 +1,16 @@
+UNSUPPORTED: old_lsparser
+#---OutSectConstraints.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the error reported by linker script parser for incorrect
+# output section constraints.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
+
+CHECK1: Error: {{.*}}script1.t:2: { expected, but got ONLY_IF_RX
+CHECK1: >>>   FOO : ONLY_IF_RX { *(*foo*) }
+CHECK1: >>>
+
+CHECK2: Error: {{.*}}script2.t:2: { expected, but got ONLY_IF_RW
+CHECK2: >>>   FOO : ONLY_IF_RO ONLY_IF_RW { *(*foo*) }
+CHECK2: >>>

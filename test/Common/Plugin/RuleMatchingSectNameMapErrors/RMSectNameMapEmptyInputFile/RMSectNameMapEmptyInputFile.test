@@ -1,0 +1,13 @@
+#---RMSectNameMapEmptyInputFile.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of LinkerWrapper::setRuleMatchingSectionNameMap API
+# when it is called for an empty InputFile object.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: RMSectNameEmptyInputFile:Error: Empty eld::plugin::InputFile object
+

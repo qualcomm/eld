@@ -1,0 +1,9 @@
+---ZOpt.test------------------------- Executable -----------------#
+
+# Checks that the response file is written correctely with -z options
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -static -e _start -z relro --hash-style=sysv --reproduce %t0.tar -o %t1.out.ZOpt --dump-response-file %t0.response
+RUN: %filecheck < %t0.response %s
+CHECK: -static -e _start -z relro --hash-style=sysv

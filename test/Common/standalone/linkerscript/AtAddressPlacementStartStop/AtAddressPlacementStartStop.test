@@ -1,0 +1,18 @@
+#---AtAddressPlacementStartStop.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker. This checks that the @ section is automatically laid
+# out in the final image by inspecting the Map file. The start and stop symbols
+# are also tested to make sure that they are appropriately set.
+# placed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections %clangg0opts
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %nm -n %t2.out | %filecheck %s
+
+#CHECK: {{[0]+}} T __start_text
+
+#END_TEST
+

@@ -1,0 +1,150 @@
+#---KeepCommonsymbols.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks the garbage collection of common symbols and the
+# output of garbage-collected common sections with <GC> attribute in
+# the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -G1 %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -G1 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK1
+RUN: %clang %clangopts -c -G2 %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -G2 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK2
+RUN: %clang %clangopts -c -G4 %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -G4 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK3
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -G8 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK4
+RUN: %clang %clangopts -c %p/Inputs/1.c -G1 -flto -o %t1.1.lto.o
+RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G1 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO1
+RUN: %clang %clangopts -c %p/Inputs/1.c -G2 -flto -o %t1.1.lto.o
+RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G2 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO2
+RUN: %clang %clangopts -c %p/Inputs/1.c -G4 -flto -o %t1.1.lto.o
+RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G4 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO3
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -flto -o %t1.1.lto.o
+RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G8 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO4
+#END_TEST
+#CHECK1: .sdata
+#CHECK1: .scommon.1.a_common
+#CHECK1: 0x{{.*}} a_common
+#CHECK1: .bss
+#CHECK1: # COMMON.b_common       <GC>
+#CHECK1: # b_common
+#CHECK1: # COMMON.c_common       <GC>
+#CHECK1: # c_common
+#CHECK1: # COMMON.d_common       <GC>
+#CHECK1: # d_common
+#CHECK1: # COMMON.e_common       <GC>
+#CHECK1: # e_common
+#CHECK1: COMMON.f_common
+#CHECK1: 0x{{.*}} f_common
+
+#CHECK2: .sdata
+#CHECK2: KEEP (*(.scommon.2)) #Rule 1
+#CHECK2: .scommon.2.b_common
+#CHECK2: {{.*}} b_common
+#CHECK2: .scommon.1.a_common
+#CHECK2: 0x{{.*}} a_common
+#CHECK2: .bss
+#CHECK2: # COMMON.c_common       <GC>
+#CHECK2: # c_common
+#CHECK2: # COMMON.d_common       <GC>
+#CHECK2: # d_common
+#CHECK2: # COMMON.e_common       <GC>
+#CHECK2: # e_common
+#CHECK2: COMMON.f_common
+#CHECK2: 0x{{.*}} f_common
+
+#CHECK3: .sdata
+#CHECK3: KEEP (*(.scommon.2)) #Rule 1
+#CHECK3: .scommon.2.b_common
+#CHECK3: {{.*}} b_common
+#CHECK3: # .scommon.4.c_common       <GC>
+#CHECK3: # c_common
+#CHECK3: .scommon.1.a_common
+#CHECK3: 0x{{.*}} a_common
+#CHECK3: .bss
+#CHECK3: # COMMON.d_common       <GC>
+#CHECK3: # d_common
+#CHECK3: # COMMON.e_common       <GC>
+#CHECK3: # e_common
+#CHECK3: COMMON.f_common
+#CHECK3: 0x{{.*}} f_common
+
+#CHECK4: .sdata
+#CHECK4: KEEP (*(.scommon.2)) #Rule 1
+#CHECK4: .scommon.2.b_common
+#CHECK4: {{.*}} b_common
+#CHECK4: # .scommon.4.c_common       <GC>
+#CHECK4: # c_common
+#CHECK4: # .scommon.8.d_common       <GC>
+#CHECK4: # d_common
+#CHECK4: .scommon.1.a_common
+#CHECK4: 0x{{.*}} a_common
+#CHECK4: .bss
+#CHECK4: # COMMON.e_common       <GC>
+#CHECK4: # e_common
+#CHECK4: COMMON.f_common
+#CHECK4: 0x{{.*}} f_common
+
+#LTO1: .sdata
+#LTO1: .scommon.1.a_common
+#LTO1: 0x{{.*}} a_common
+#LTO1: .bss
+#LTO1: # COMMON.b_common       <GC>
+#LTO1: # b_common
+#LTO1: # COMMON.c_common       <GC>
+#LTO1: # c_common
+#LTO1: # COMMON.d_common       <GC>
+#LTO1: # d_common
+#LTO1: # COMMON.e_common       <GC>
+#LTO1: # e_common
+#LTO1: COMMON.f_common
+#LTO1: 0x{{.*}} f_common
+
+#LTO2: .sdata
+#LTO2: KEEP (*(.scommon.2)) #Rule 1
+#LTO2: .scommon.2.b_common
+#LTO2: {{.*}} b_common
+#LTO2: .scommon.1.a_common
+#LTO2: 0x{{.*}} a_common
+#LTO2: .bss
+#LTO2: # COMMON.c_common       <GC>
+#LTO2: # c_common
+#LTO2: # COMMON.d_common       <GC>
+#LTO2: # d_common
+#LTO2: # COMMON.e_common       <GC>
+#LTO2: # e_common
+#LTO2: COMMON.f_common
+#LTO2: 0x{{.*}} f_common
+
+#LTO3: .sdata
+#LTO3: KEEP (*(.scommon.2)) #Rule 1
+#LTO3: .scommon.2.b_common
+#LTO3: {{.*}} b_common
+#LTO3: # .scommon.4.c_common       <GC>
+#LTO3: # c_common
+#LTO3: .scommon.1.a_common
+#LTO3: 0x{{.*}} a_common
+#LTO3: .bss
+#LTO3: # COMMON.d_common       <GC>
+#LTO3: # d_common
+#LTO3: # COMMON.e_common       <GC>
+#LTO3: # e_common
+#LTO3: COMMON.f_common
+#LTO3: 0x{{.*}} f_common
+
+#LTO4: .sdata
+#LTO4: KEEP (*(.scommon.2)) #Rule 1
+#LTO4: .scommon.2.b_common
+#LTO4: {{.*}} b_common
+#LTO4: # .scommon.4.c_common       <GC>
+#LTO4: # c_common
+#LTO4: # .scommon.8.d_common       <GC>
+#LTO4: # d_common
+#LTO4: .scommon.1.a_common
+#LTO4: 0x{{.*}} a_common
+#LTO4: .bss
+#LTO4: # COMMON.e_common       <GC>
+#LTO4: # e_common
+#LTO4: COMMON.f_common
+#LTO4: 0x{{.*}} f_common

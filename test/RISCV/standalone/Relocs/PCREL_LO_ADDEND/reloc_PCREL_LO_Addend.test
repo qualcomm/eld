@@ -1,0 +1,12 @@
+#---reloc_PCREL_LO_Addend.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+# Warn when PCREL relocations are used with an addend
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}1.o: ignoring addend for relocation `R_RISCV_PCREL_LO12_I' referring symbol external

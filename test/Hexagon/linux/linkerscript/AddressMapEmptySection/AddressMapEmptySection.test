@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/script 2>&1
+RUN: %readelf -S %t.out  | %filecheck %s
+
+#CHECK: .text             PROGBITS        00001000 001000 000014

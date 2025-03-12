@@ -1,0 +1,22 @@
+
+# Show full linker script rules in the map file.
+RUN: %rm lib11.a
+RUN: %clang %clangopts -O2 -c -ffunction-sections %p/Inputs/1.c %p/Inputs/11.c
+RUN: %ar cr %aropts lib11.a 11.o
+RUN: %link -MapStyle txt %linkopts 1.o lib11.a -T %p/Inputs/script_with_archive.t -o exec -Map %t1.mapfile
+RUN: %filecheck %s < %t1.mapfile
+
+#CHECK: .text.hot	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}
+#CHECK: 1*.o(.text.eldfn*)
+#CHECK: .text.eldfn	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}
+#CHECK: 	{{[x0-9a-f]+}}		eldfn
+#CHECK: .text.cold	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}
+#CHECK: lib11.a:11.o(.text.*main)
+#CHECK: .text.mmain	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}
+#CHECK: 	{{[x0-9a-f]+}}		mmain
+#CHECK: .text 	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}
+#CHECK: *(.text*)
+#CHECK: .text.main	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}
+#CHECK: 	{{[x0-9a-f]+}}		main
+#CHECK: .text.meldfn	{{[x0-9a-f]+}}	{{[x0-9a-f]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}
+#CHECK: 	{{[x0-9a-f]+}}		meldfn

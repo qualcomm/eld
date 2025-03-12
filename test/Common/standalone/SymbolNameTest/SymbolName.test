@@ -1,0 +1,31 @@
+#---SymbolName.test--------------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# This test checks for proper Symbol names printed in map file.
+#END_COMMENT
+#START_TEST
+RUN: %rm %tlib2.a %tlib3.a
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -flto -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -flto -o %t3.o
+RUN: %ar cr %aropts %tlib2.a %t2.o %t3.o
+RUN: %link -MapStyle txt %linkopts %t1.o %tlib2.a -o %t.out -Map %t2.out.map1 -T %p/Inputs/script.t -L%p/Inputs --trace-symbol=commonsymbol
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o
+RUN: %ar cr %aropts %tlib3.a %t2.o %t3.o
+RUN: %link -MapStyle txt %linkopts %t1.o %tlib3.a -o %t.out -Map %t2.out.map2 -T %p/Inputs/script.t -L%p/Inputs --trace-symbol=commonsymbol
+RUN: %filecheck %s < %t2.out.map1 -check-prefix=SYMNAME1
+RUN: %filecheck %s < %t2.out.map2 -check-prefix=SYMNAME2
+
+#SYMNAME1: {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib2.a({{.*}}2.o) (Bitcode type)
+#SYMNAME1: 1.o ({{.*}}bar)
+#SYMNAME1: {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib2.a({{.*}}3.o) (Bitcode type)
+#SYMNAME1: {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib2.a({{.*}}2.o) (commonsymbol) (Bitcode type)
+
+#SYMNAME2: {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib3.a({{.*}}2.o)
+#SYMNAME2: 1.o ({{.*}}bar)
+#SYMNAME2: {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib3.a({{.*}}3.o)
+#SYMNAME2: {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib3.a({{.*}}2.o) (commonsymbol)
+#END_TEST

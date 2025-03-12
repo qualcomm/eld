@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -c  %clangg0opts %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t1.out
+RUN: %readelf -S  %t1.out | %filecheck %s
+
+#CHECK:  [ 1] .text             PROGBITS        00000000 001000 000014 00  AX  0   0 16
+#CHECK:  [ 2] .8994_DEVCFG_DATA PROGBITS        00000014 001014 000004 00  WA  0   0  4
+
+

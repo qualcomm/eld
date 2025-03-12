@@ -1,0 +1,14 @@
+#---AbsolutePath.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print absolute paths in the Mapfile.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -Map %t2.map -MapDetail absolute-path -o %t2.out -T %p/Inputs/script.t
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: .text.foo	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}
+#CHECK: .text.bar	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}

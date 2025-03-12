@@ -1,0 +1,10 @@
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/1.c -fpic %clangg0opts -o %t1.o
+RUN: %link %linkopts %t1.o -o %t.out  --gc-sections --entry=main --gc-cref=.text.bar --trace=garbage-collection 2>&1 | %filecheck %s
+
+#CHECK-DAG:   .text.main                                            _GLOBAL_OFFSET_TABLE_ (Symbol)
+#CHECK-DAG:   commonChar (Symbol)
+#CHECK-DAG:   .text.foo (section)
+#CHECK-DAG:   .text.bar (section)
+#CHECK-DAG: Symbols referring .text.bar
+#CHECK-DAG:   bar   .text.main
+#CHECK-DAG:   bar   .text.foo

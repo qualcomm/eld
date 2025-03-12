@@ -1,0 +1,28 @@
+#---ltointernalization.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# YOU SHALL NOT XFAIL THIS TEST.
+# If you have to, please contact LLVM-ARM management.
+
+# Tests that globals are appropriately internalized.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c -flto %p/Inputs/perf_art.ll -o %t.o
+RUN: %link %linkopts -march aarch64 -e main %t.o -o %t.out --trace=lto 2>&1 | %filecheck %s -check-prefix=TRACELTO
+RUN: %nm -n %t.out | %filecheck %s -check-prefix=SYMBOLS
+
+#TRACELTO-DAG: Note: Preserving symbol main
+#TRACELTO-DAG: Note: LTO resolution for symbol main: Prevailing=1, VisibleToRegularObj=1, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol win: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol Y: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol d: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol num2: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol num1: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol f1: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol c: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol t: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol a: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+#TRACELTO-DAG: Note: LTO resolution for symbol b: Prevailing=1, VisibleToRegularObj=0, FinalDefinitionInLinkageUnit=1
+
+#SYMBOLS: {{[0-9a-f]+}} T main
+#END_TEST

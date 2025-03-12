@@ -1,0 +1,9 @@
+# Tests that sections part of a group are not merged with sections not in a
+# group during partial linking.
+# Using a assembly file here because someday clang %clangopts may change :)
+RUN: %clang %clangopts -c %p/Inputs/g.s -o %t1.o
+RUN: %link %linkopts -r %t1.o -o %t2.o -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.o | %filecheck %s
+
+#CHECK: .text
+#CHECK: .text

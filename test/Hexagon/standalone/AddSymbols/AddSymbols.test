@@ -1,0 +1,28 @@
+#---SharedLibs.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Verify that lw_image_layout_checksum is added with and without garbage
+# collection and whether it is garbage collected when not used.
+#END_COMMENT
+#START_TEST
+
+### -G0 is needed to prevent the compiler from using GPREL relocations.
+RUN: %clang %clangopts -G0 -c %p/Inputs/f.c -o %t.f.o -ffunction-sections
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts -o %t.1.out %t.f.o %t.1.o -e main
+RUN: %objdump -t %t.1.out | %filecheck %s -check-prefix=SYMBOL
+RUN: %link %linkopts -o %t.1.gc.out %t.f.o %t.1.o -e main --gc-sections
+RUN: %objdump -t %t.1.gc.out | %filecheck %s -check-prefix=SYMBOL
+
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -o %t.2.out %t.f.o %t.2.o -e main
+RUN: %objdump -t %t.2.out | %filecheck %s -check-prefix=SYMBOL
+RUN: %link %linkopts -o %t.2.gc.out %t.f.o %t.2.o -e main --gc-sections
+### TODO: QTOOL-115985: If __lw_image_layout_checksum is used from a
+### garbage-collected section, it should be garbage-collected too.
+### But it isn't.
+RUNXXX: %objdump -t %t.2.gc.out | %filecheck %s -check-prefix=NO-SYMBOL
+
+SYMBOL:{{[[:xdigit:]]+}} g .rodata {{[[:xdigit:]]+}} __lw_image_layout_checksum
+NO-SYMBOL-NOT: __lw_image_layout_checksum

@@ -1,0 +1,8 @@
+# Check that empty sections with align information creates proper segments.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t %t1.o -o %t2.out -z max-page-size=0x1000
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x001000 0x0000000000000000 0x0000000000000000 {{[0-9a-fx]+}} {{[0-9a-fx]+}} R E 0x1000
+#CHECK:  LOAD           0x002000 0x0000000000100000 0x0000000000100000 {{[0-9a-fx]+}} {{[0-9a-fx]+}} R E 0x1000
+#CHECK:  LOAD           0x002008 0x0000000000100008 0x0000000000100008 0x000004 0x000004 RW  0x1000

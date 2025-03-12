@@ -1,0 +1,10 @@
+# There is a need to preserve the common symbol if an ELF file overrides the
+# symbol, which otherwise will change the symbol to local scope having two
+# definitions of the symbol, which needs to be avoided in all cases.
+
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.1.o  -flto
+RUN: %clang %clangopts -target arm -c %p/Inputs/2.c -o %t1.2.o  -flto
+RUN: %clang %clangopts -target arm -c %p/Inputs/3.c -o %t1.3.o
+RUN: %link -o %t1.out %linkopts -march arm %t1.1.o %t1.2.o %t1.3.o --trace=lto 2>&1 | %filecheck %s
+
+#CHECK: a

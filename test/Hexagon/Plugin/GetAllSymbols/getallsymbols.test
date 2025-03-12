@@ -1,0 +1,31 @@
+#---getallsymbols.test--------------------- Executable,LS --------------------#
+# This test checks LinkerWrapper::getAllSymbols()
+
+
+
+RUN: %clang -c %clangopts %p/Inputs/1.s -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/script.t -o %t.out 2>&1 | %filecheck %s --check-prefix=LINK
+RUN: %readelf -s %t.out | %filecheck %s --check-prefix=SYMTAB
+LINK-DAG: local
+LINK-DAG: foo
+LINK-DAG: bar
+LINK-DAG: __end
+LINK-DAG: far
+LINK-DAG: .text
+LINK-DAG: .text.far
+LINK-DAG: .text.foo
+LINK-DAG: .comment
+LINK-DAG: trampoline_for_far_from_.text.bar_{{[0-9]+}}
+
+# the extra entry is the null symbol
+SYMTAB: Symbol table '.symtab' contains 12 entries:
+SYMTAB: .text
+SYMTAB: .comment
+SYMTAB: .text.far
+SYMTAB: .text.foo
+SYMTAB: trampoline_for_far_from_.text.bar_{{[0-9]+}}
+SYMTAB: local
+SYMTAB: bar
+SYMTAB: far
+SYMTAB: foo
+SYMTAB: __end

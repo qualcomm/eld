@@ -1,0 +1,7 @@
+# This tests that .eh_frame references are kept around and applied.
+# The easiest way to test this is with --emit-relocs
+RUN: %clangxx %clangxxopts %clangxxopts -target aarch64 -c -fPIC %p/Inputs/a.cpp -o %t1.o
+RUN: %link %linkopts -march aarch64 --gc-sections -e main %t1.o -o %t2.out --emit-relocs --noinhibit-exec
+RUN: %readelf -r -W %t2.out | %filecheck %s
+
+#CHECK: DW.ref.__gxx_personality_v0 + 0

@@ -1,0 +1,59 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_RISCV
+  Flags:           [ EF_RISCV_RVC, EF_RISCV_FLOAT_ABI_SOFT ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x2
+    Content:         411106C622C400080145232AA4FEB240224441018280
+  - Name:            .comment
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_MERGE, SHF_STRINGS ]
+    AddressAlign:    0x1
+    EntSize:         0x1
+    Content:         00536E6170647261676F6E204C4C564D2041524D20436F6D70696C65722031382E302E3000
+  - Name:            .note.GNU-stack
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+  - Name:            .riscv.attributes
+    Type:            SHT_RISCV_ATTRIBUTES
+    AddressAlign:    0x1
+    Content:         412A000000726973637600012000000004100572763332693270315F6D3270305F613270315F6332703000
+  - Name:            .llvm_addrsig
+    Type:            SHT_LLVM_ADDRSIG
+    Flags:           [ SHF_EXCLUDE ]
+    Link:            .symtab
+    AddressAlign:    0x1
+    Offset:          0xFC
+    Symbols:         [  ]
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .comment
+      - Name:            .note.GNU-stack
+      - Name:            .riscv.attributes
+      - Name:            .llvm_addrsig
+      - Name:            .symtab
+Symbols:
+  - Name:            1.c
+    Type:            STT_FILE
+    Index:           SHN_ABS
+  - Name:            '$x.0'
+    Section:         .text
+  - Name:            '$d.1'
+    Section:         .comment
+  - Name:            '$d.2'
+    Section:         .riscv.attributes
+  - Name:            main
+    Type:            STT_FUNC
+    Section:         .text
+    Binding:         STB_GLOBAL
+    Size:            0x16
+...

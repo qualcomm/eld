@@ -1,0 +1,10 @@
+# Exclude a file from the archive.
+RUN: %clang %clangopts -target arm -c -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -target arm -c -ffunction-sections -fdata-sections %p/Inputs/2.c -o %t2.2.o
+RUN: mkdir -p %t1 && rm -f %t1/lib2.a && %ar cr %t1/lib2.a %t2.2.o
+RUN: %link %linkopts -march arm -T %p/Inputs/script.t %t1.1.o %t1/lib2.a -o %t.out
+RUN: %readelf -W -S %t.out | %filecheck %s
+
+#CHECK:  [ 1] .text.fns         PROGBITS        00000000 {{[0-9a-f]+}} 000018 00  AX  0   0  4
+#CHECK:  [ 2] .text.fn1         PROGBITS        00000018 {{[0-9a-f]+}} 000008 00  AX  0   0  4
+

@@ -1,0 +1,14 @@
+#---EntryCommand.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Test entry command parsing with the new linker script parser.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t --trace=linker-script \
+RUN: --new-linker-script-parser 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: ENTRY(foo) # {{.*}}script.t:1
+#CHECK: ENTRY(foo) # {{.*}}script.t:2
+

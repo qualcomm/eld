@@ -1,0 +1,9 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -fPIC -o %t.o
+RUN: %link %linkopts  -static -march arm %t.o -o %t.out -z max-page-size=0x1000
+RUN: %readelf -a -W %t.out | %filecheck %s
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t2.o
+RUN: %link %linkopts  -static -march arm %t2.o -o %t2.out -z max-page-size=0x1000
+RUN: %readelf -a -W %t2.out | %filecheck %s
+
+CHECK: {{[0-9a-fx]+}} 0 NOTYPE  GLOBAL DEFAULT  ABS __init_array_end
+

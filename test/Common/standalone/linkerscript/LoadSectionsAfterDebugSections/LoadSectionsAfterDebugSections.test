@@ -1,0 +1,11 @@
+#---LoadSectionsAfterDebugSections.test-------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Show that linker can handle loadable sections specified after debug sections
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fno-asynchronous-unwind-tables
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out  2>&1
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=LOAD
+#END_TEST
+
+#LOAD: 00 .foo .last_section .last_section1 .last_section2 .last_section3 .last_section4 .last_section5

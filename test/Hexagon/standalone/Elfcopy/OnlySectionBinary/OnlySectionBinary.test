@@ -1,0 +1,10 @@
+#---NonZeroVMa.test--------------------- Exe------------------#
+
+#BEGIN_COMMENT
+#Make sure that copying/stripping a binary that does not load program headers
+#does not mess up the binary
+#END_COMMENT
+#
+RUN: %elfcopy -j .comp_data  %p/Inputs/a.out %t.o
+RUN: %size -A %t.o | %filecheck %s
+CHECK: .comp_data     45056

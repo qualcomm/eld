@@ -1,0 +1,19 @@
+#---SortByAlignment.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker script directive SORT_BY_ALIGNMENT.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: .text.b1
+#CHECK: .text.b2
+#CHECK: .text.b3
+#CHECK: .text.b4
+#CHECK: .text.b5
+#CHECK: .text.b6
+#CHECK: .text.b7
+#CHECK: .text.b8
+#CHECK: .text.b9
+

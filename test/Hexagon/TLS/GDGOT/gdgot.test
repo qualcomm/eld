@@ -1,0 +1,13 @@
+# Test that hidden symbols are not exported.
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/1.c -ftls-model=global-dynamic -o %t1.o
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/2.c -ftls-model=global-dynamic  -o %t2.o
+RUN: %link %linkopts  %linkg0opts  -shared  %t1.o  %t2.o  -o %t.so
+RUN: %readelf -l -r -S -s -W %t.so |   %filecheck %s
+
+# CHECK-NOT: TPREL
+# CHECK-DAG:  R_HEX_DTPMOD_32   00000004   src1 + 0
+# CHECK-DAG:  R_HEX_DTPREL_32   00000004   src1 + 0
+# CHECK-DAG:  R_HEX_DTPMOD_32   00000000   src2 + 0
+# CHECK-DAG:  R_HEX_DTPREL_32   00000000   src2 + 0
+# CHECK-DAG:  R_HEX_JMP_SLOT    00000000   __tls_get_addr
+

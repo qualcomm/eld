@@ -1,0 +1,24 @@
+#---SortCommon.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This tests that the command line flag --sort-common
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkg0opts %t1.1.o --sort-common -o %t2.out.d1
+RUN: %link %linkg0opts %t1.1.o --sort-common=ascending -o %t2.out.a
+RUN: %link %linkg0opts %t1.1.o --sort-common=descending -o %t2.out.d2
+RUN: %not %link %linkg0opts %t1.1.o --sort-common=desc -o %t2.out.err
+RUN: %nm -n %t2.out.d1 | %filecheck %s -check-prefix=DESCENDING
+RUN: %nm -n %t2.out.a | %filecheck %s -check-prefix=ASCENDING
+RUN: %nm -n %t2.out.d2 | %filecheck %s -check-prefix=DESCENDING
+#END_TEST
+
+#DESCENDING: d
+#DESCENDING: b
+#DESCENDING: a
+#DESCENDING: c
+#ASCENDING: c
+#ASCENDING: a
+#ASCENDING: b
+#ASCENDING: d

@@ -1,0 +1,17 @@
+XFAIL: aarch64
+#---UsedNotUsed.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker prints filename as used when they are really used
+# and not used when they are not used.
+# YAML form.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/r.s -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map.1 -T %p/Inputs/script.t -o %t2.out
+RUN: %filecheck %s < %t2.map.1
+#END_TEST
+
+#CHECK: InputInfo:
+#CHECK:   - Path:            {{.*}}1.o
+#CHECK:     Used:            Used

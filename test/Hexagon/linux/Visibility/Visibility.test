@@ -1,0 +1,78 @@
+#---Visibility.test--------------------- Exe/DSO------------------#
+
+
+#BEGIN_COMMENT
+# Test visibility attributes particularly protected and hidden
+#----------------------------------------------------------------
+#END_COMMENT
+
+#A hidden symbol must not be exported from a shared lib.
+#Try linking an application with reference to such symbol. It must fail
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fpic -o %t2.o
+RUN: %link %linkopts -shared -o %t1.so %t2.o
+RUN: %not %link %linkopts --warn-once -dy %t1.o %t1.so 2>&1 | %filecheck --check-prefix="HIDDEN1" %s
+#
+HIDDEN1: undefined reference to `a'
+#
+#Try making a shared library with a hidden reference. Shared lib
+#must not link %linkopts since it expects it in same module
+RUN: %clang %clangopts -c %p/Inputs/3.c -fpic -o %t3.o
+RUN: %not %link %linkopts -shared %t3.o -o %t3.so 2>&1 | %filecheck --check-prefix="HIDDEN2" %s
+#
+HIDDEN2: undefined hidden symbol `a' cannot be used when making a shared object
+#
+#Make sure that LTO works correct with the hidden symbols.
+#A library with hidden symbol and an object with hidden symbol, should cause the
+#linker to pick up and preserve the symbol in object
+#
+RUN: %clang %clangopts -c %p/Inputs/4.c -flto -o %t6.bc
+RUN: %link %linkopts -dy %t1.o %t1.so %t6.bc --trace=lto -o %t7.out 2>&1 | %filecheck --check-prefix="HIDDEN3" %s
+#
+HIDDEN3: Preserving symbol a
+#
+#Check archive resolution has not changed with symbol visibility
+RUN: %clang %clangopts -c %p/Inputs/5.c %clangg0opts -o %t7.o
+RUN: %clang %clangopts -c %p/Inputs/6.c %clangg0opts -o %t8.o
+RUN: %ar cr %aropts %t.eight.a %t2.o
+RUN: %link %linkopts %t1.o %t.eight.a  %linkg0opts  -o %t41.out -t 2>&1 | %grep eight | wc -l |  %filecheck --check-prefix="HIDDEN41" %s
+RUN: %ar cr %aropts %t.nine.a %t7.o
+RUN: %link %linkopts %t1.o %t.nine.a  %linkg0opts  -o %t42.out -t 2>&1 | %grep nine | wc -l |  %filecheck --check-prefix="HIDDEN42" %s
+RUN: %ar cr %aropts %t.ten.a %t8.o
+RUN: %link %linkopts %t1.o %t.ten.a %t.eight.a  %t.nine.a  %linkg0opts  -o %t43.out -t 2>&1 | %grep ten | wc -l |  %filecheck --check-prefix="HIDDEN43" %s
+
+HIDDEN41: 1
+HIDDEN42: 1
+HIDDEN43: 1
+
+#Check that a protected reference from an application must result in undefined
+#reference if the definition is in a shared object
+RUN: %clang %clangopts -c %p/Inputs/7.c  -o %t10.o
+RUN: not  %link -o %t1err.out %linkopts -dy %t10.o %t1.so 2>&1 | %filecheck --check-prefix="PROTECTED1" %s
+
+PROTECTED1:  undefined reference to `a'
+
+#Try making a shared library with a protected reference. Shared lib
+#must not link %linkopts since it expects definition in same module
+RUN: %clang %clangopts -c %p/Inputs/8.c -fpic -o %t11.o
+RUN: %not %link %linkopts -shared %t11.o -o %t11.so 2>&1 | %filecheck --check-prefix="PROTECTED2" %s
+#
+PROTECTED2: undefined protected symbol `a' cannot be used when making a shared object
+
+#Make sure that LTO works correct with the protected symbols.
+#A library with protected symbol and an object with symbol, should cause the
+#linker to pick up and preserve the symbol in object
+#
+RUN: %link %linkopts -dy %t10.o %t1.so %t6.bc --trace=lto -o %t7.out 2>&1 | %filecheck --check-prefix="PROTECTED3" %s
+PROTECTED3: Preserving symbol a
+
+#Make sure the section magic symbols are also supported ith proper visibility.
+#These symbols are always defined by linker per module. So they should not be
+#flagged as undefined
+RUN: %clang %clangopts -c %p/Inputs/9.c %clangg0opts -fpic -o %t11.o
+RUN: %link %linkopts -shared %t11.o -o %t11.so
+RUN: %readelf -s %t11.so | %filecheck --check-prefix="MAGIC1" %s
+MAGIC1: __start_foo
+RUN: %clang %clangopts -c %p/Inputs/10.c %clangg0opts -fpic -o %t12.o
+RUN: %not %link %linkopts -shared %t12.o -o %t12.so 2>&1 | %filecheck --check-prefix="MAGIC2" %s
+MAGIC2:  undefined reference to `__start_bar'

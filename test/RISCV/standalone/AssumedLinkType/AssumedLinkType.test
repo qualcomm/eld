@@ -1,0 +1,42 @@
+#---AssumedLinkType.test--------------------- Executable ----------------------#
+
+#BEGIN_COMMENT
+# Check that the assumed link type is as expected, and that we are able to find
+# static/shared libraries as appropriate for the given link type.
+#
+# The basic expectations are as follows (assuming no flags explicitly
+# controlling this are present):
+#  - Static linking with no special flags (ex: -pie) and when no or static-only
+#    libraries are linked.
+#  - Dynamic linking with special flags (ex: -pie) and/or when shared objects are
+#    linked.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/a.c -o %ta.o
+RUN: %clang %clangopts -c %p/Inputs/b.c -o %tb.o
+RUN: rm -rf %t-lib
+RUN: mkdir %t-lib
+RUN: %ar cr %aropts %t-lib/liba.a %ta.o
+RUN: %link %linkopts -shared -o %t-lib/libb.so %tb.o
+
+RUN: %link -MapStyle txt %linkopts -o %t1.out %t1.o -Map %t1.map
+RUN: %filecheck %s < %t1.map --check-prefix=STATIC-LINK-TYPE
+
+RUN: %link -MapStyle txt %linkopts --verbose -L%t-lib -la -o %t2.out %t1.o -Map %t2.map 2>&1 | %filecheck %s --check-prefix=FOUND-STATIC
+RUN: %filecheck %s < %t2.map --check-prefix=STATIC-LINK-TYPE
+
+RUN: %link -MapStyle txt %linkopts --verbose -L%t-lib -lb -o %t3.out %t1.o -Map %t3.map 2>&1 | %filecheck %s --check-prefix=FOUND-DYNOBJ
+RUN: %filecheck %s < %t3.map --check-prefix=DYNAMIC-LINK-TYPE
+
+RUN: %link -MapStyle txt %linkopts --verbose -L%t-lib -la -lb -o %t4.out %t1.o -Map %t4.map 2>&1 | %filecheck %s --check-prefixes=FOUND-STATIC,FOUND-DYNOBJ
+RUN: %filecheck %s < %t4.map --check-prefix=DYNAMIC-LINK-TYPE
+
+RUN: %link -MapStyle txt %linkopts -pie --verbose -L%t-lib -lb -o %t5.out %t1.o -Map %t5.map 2>&1 | %filecheck %s --check-prefix=FOUND-DYNOBJ
+RUN: %filecheck %s < %t5.map --check-prefix=DYNAMIC-LINK-TYPE
+#END_TEST
+
+FOUND-STATIC: Trying to open input `{{.+}}-lib/liba.a' of type `archive' for namespec `a': found
+STATIC-LINK-TYPE: Link type: Static
+FOUND-DYNOBJ: Trying to open input `{{.+}}-lib/libb.so' of type `dynamic object' for namespec `b': found
+DYNAMIC-LINK-TYPE: Link type: Dynamic

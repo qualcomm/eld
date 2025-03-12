@@ -1,0 +1,21 @@
+# Checks that Emit relocs work with garbage collection and by default too.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -g -gdwarf-4
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t1.bar.o -g -gdwarf-4
+RUN: %clang %clangopts -c %p/Inputs/const1.c -o %t1.const1.o -g -gdwarf-4
+RUN: %clang %clangopts -c %p/Inputs/const2.c -o %t1.const2.o -g -gdwarf-4
+RUN: %link %linkopts  %t1.const1.o %t1.const2.o %t1.bar.o  --emit-relocs-llvm --entry=foo --gc-sections  -o %t1.out.1
+RUN: %link %linkopts  %t1.const1.o %t1.const2.o %t1.bar.o  --emit-relocs-llvm --entry=foo --gc-sections  -o %t1.out.2
+RUN: %link %linkopts  %t1.1.o --emit-relocs-llvm --entry=foo --gc-sections -o %t1.out.3
+RUN: %link %linkopts  %t1.1.o --emit-relocs-llvm --entry=foo --gc-sections -o %t1.out.4
+RUN: %readelf -r %t1.out.1 | %filecheck %s -check-prefix=CHECK-RELOCS
+RUN: %readelf -r %t1.out.2 | %filecheck %s -check-prefix=CHECK-RELOCS
+RUN: %readelf -r %t1.out.3 | %filecheck %s -check-prefix=CHECK-RELOCS-SDATA
+RUN: %readelf -r %t1.out.4 | %filecheck %s -check-prefix=CHECK-RELOCS-SDATA
+
+#CHECK-RELOCS: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .debug_abbrev
+#CHECK-RELOCS: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .debug_line
+#CHECK-RELOCS: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .text
+#CHECK-RELOCS-SDATA: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .debug_abbrev
+#CHECK-RELOCS-SDATA: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .debug_line
+#CHECK-RELOCS-SDATA: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .text
+#CHECK-RELOCS-SDATA: {{[0-9a-fx]+}}  {{[0-9a-fx]+}} R_HEX_32          {{[0-9a-fx]+}}   .text

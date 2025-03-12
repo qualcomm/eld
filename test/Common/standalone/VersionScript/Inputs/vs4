@@ -1,0 +1,4 @@
+{
+  local:
+  /*locals :*/ data; /*and */ common; #must be changed to local scope
+};

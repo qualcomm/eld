@@ -1,0 +1,14 @@
+#---LiveEdges.test--------------------- Executable,GC ------------------#
+
+UNSUPPORTED:  windows
+#BEGIN_COMMENT
+# This tests that the linker is able to show live edges during garbage
+# collection.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t1.out -e main --gc-sections --trace=live-edges 2>&1 | %filecheck %s
+
+#CHECK: Trace: Refers to = .text.bar
+#CHECK: Trace:       [{{.*}}1.o]
+#CHECK: Trace:       Referenced by = .text.foo
+#CHECK: Trace:       [{{.*}}1.o]

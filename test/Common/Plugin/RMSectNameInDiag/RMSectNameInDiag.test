@@ -1,0 +1,20 @@
+#---RMSectNameInDiag.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of
+# LinkerWrapper::showRuleMatchingSectionNameInDiagnostics API.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN: -Map %t1.1.map.txt --trace=section=.text.bar --trace=plugin 2>&1 | %filecheck %s
+RUN: %filecheck %s < %t1.1.map.txt --check-prefix MAP
+#END_TEST
+
+CHECK: Trace: Plugin 'RMSectNameInDiagPlugin' has enabled the display of rule-matching section name in diagnostics
+CHECK: Note: Input Section : .text.bar(.text.myfoo) InputFile : {{.*}}1.o
+CHECK: Note: Input Section : .text.bar(.text.myfoo) Symbol : bar
+
+MAP: FOO
+MAP: *(*myfoo*)
+MAP: .text.bar(.text.myfoo)

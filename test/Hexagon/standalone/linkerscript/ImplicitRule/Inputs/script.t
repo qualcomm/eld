@@ -1,0 +1,3 @@
+SECTIONS {
+  .data : { *(.mydata) }
+}

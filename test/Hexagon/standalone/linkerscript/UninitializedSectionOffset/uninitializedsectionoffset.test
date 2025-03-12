@@ -1,0 +1,9 @@
+# This test that output sections that are created have valid offsets.
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out -M 2>&1 | %filecheck %s
+RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=READELF
+
+#CHECK: Linker:
+#CHECK: LLVM:
+#CHECK-NOT: ffff
+#READELF-NOT: ffff

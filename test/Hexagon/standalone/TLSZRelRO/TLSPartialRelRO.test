@@ -1,0 +1,11 @@
+#---TLSPartialRelRO.test--------------------- SharedLibrary------------------#
+
+# Support TLS in GNU_RELRO segment
+#BEGIN_COMMENT
+# This tests that TLS sections are also included in GNU_RELRO segment
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o -fno-use-init-array
+RUN: %link %linkopts %t1.1.o -shared -o %t1.so -z relro
+RUN: %readelf -l -W %t1.so | %filecheck %s
+
+#CHECK-NOT: 04     .tdata .ctors .dtors .dynamic .got .got.plt

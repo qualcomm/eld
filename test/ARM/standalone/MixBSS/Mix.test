@@ -1,0 +1,14 @@
+#---Mix.test----------------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Enable ARMLink type BSS Mixing with options
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t.o
+RUN: %link %linkopts -march arm -T %p/Inputs/t.l %t.o -o %t.out --enable-bss-mixing --disable-bss-conversion
+RUN: %readelf -S %t.out | %filecheck %s
+
+#CHECK: STACK             NOBITS          00000000 {{.*}}
+#CHECK: .text             PROGBITS        00000200 {{.*}}
+
+#END_TEST

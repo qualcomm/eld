@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target arm-linux-gnueabi %p/t.c -c -o %t.o -fpic
+RUN: %link %linkopts -march=arm -static -nostdlib -T %p/t.t %t.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+
+CHECK: DYNAMIC

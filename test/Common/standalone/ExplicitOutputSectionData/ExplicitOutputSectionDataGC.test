@@ -1,0 +1,24 @@
+#---ExplicitOutputSectionData.test--------------------- Executable---------------------#
+
+
+
+
+#BEGIN_COMMENT
+# This test checks that the explicit output section data are not
+# garbage-collected.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o -T %p/Inputs/script.t --gc-sections
+RUN: %readelf -S %t1.1.elf 2>&1 | %filecheck %s
+RUN: %objdump -d %t1.1.elf --section .one | %filecheck %s --check-prefix=ONE
+RUN: %objdump -d %t1.1.elf --section .some_value | %filecheck %s --check-prefix=SOME_VALUE
+RUN: %objdump -d %t1.1.elf --section .empty | %filecheck %s --check-prefix=EMPTY
+#END_TEST
+CHECK: .text PROGBITS {{.*}} AX
+CHECK: .one PROGBITS {{.*}} {{0+1}} {{.*}} A
+CHECK: .some_value PROGBITS {{.*}} {{0+4}} {{.*}} A
+CHECK: .empty PROGBITS {{.*}} {{0+2}} {{.*}} A
+ONE: 01
+SOME_VALUE: 0f
+EMPTY: {{0+}}

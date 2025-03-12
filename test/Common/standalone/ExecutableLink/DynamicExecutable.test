@@ -1,0 +1,16 @@
+UNSUPPORTED: riscv
+#---DynamicExecutable.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to read a dynamic executable and error out
+# since the dynamic executables are not supported
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %clang %clangg0opts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -fdata-sections -fPIC
+RUN: %clang %clangg0opts -o %t1.3.o %p/Inputs/3.c -c -ffunction-sections -fdata-sections -fPIC
+RUN: %link %linkopts -shared %t1.2.o -o %t1.2.so
+RUN: %link %linkopts -Bdynamic %linkopts -o %t1.1.out %t1.1.o %t1.2.so
+RUN: %not %link %linkopts -o %t1.main.elf %t1.1.out 2>&1 | %filecheck %s -check-prefix=DYNEXEC
+#END_TEST
+#DYNEXEC: .interp

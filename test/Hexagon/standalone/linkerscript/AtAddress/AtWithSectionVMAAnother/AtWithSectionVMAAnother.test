@@ -1,0 +1,17 @@
+#---AtWithSectionVMAAnother.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker when the linker script uses a VMA in the prolog.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .foo              PROGBITS        00000000
+#CHECK: .main@0x200       PROGBITS        00000200
+#CHECK: .baz@0x220        PROGBITS        00000220
+#CHECK: .bar              PROGBITS        00000300
+
+#END_TEST

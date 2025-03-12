@@ -1,0 +1,16 @@
+digraph G {
+    node [shape=rectangle]
+    A [label="Initialize plugin"]
+    B [label="Process input \n sections"]
+    C [label="UserPlugin::Init(...)"]
+    D [label="call UserPlugin::ProcessOutputSection(...) \n for each output \n section"]
+    E [label="UserPlugin::Run(...)"]
+    F [label="UserPlugin::Destroy(...)"]
+    G [label="Merge input sections \n based on rules and \n create missing output \n sections"]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+    E -> F
+    F -> G
+}

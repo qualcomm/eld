@@ -1,0 +1,9 @@
+#---reproduceDLL.test-------------------- Executable ---------------#
+
+#BEGIN_COMMENT
+# Checks that dll files are loaded properly with reproduce on windows
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -shared %t1.1.o -o %t1.1.dll
+RUN: %link %linkopts -dynamic %t1.1.o %t1.1.dll --reproduce %t0.tar -o %t1.out.runDLL --dump-response-file %t0.response
+#END_TEST

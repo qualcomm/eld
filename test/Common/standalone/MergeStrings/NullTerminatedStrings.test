@@ -1,0 +1,31 @@
+#---NullTerminatedStrings.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that strings in merge string sections are null terminated
+# and proper that proper error messages are emitted if they are not
+#END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/null.s -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/null2.s -o %t.2.o
+RUN: %clang %clangopts -c %p/Inputs/null3.s -o %t.3.o
+RUN: %clang %clangopts -c %p/Inputs/good2.s -o %t.4.o
+RUN: %not %link %linkopts %t.1.o -o %t.1.out 2>&1 | %filecheck %s --check-prefix=T1
+RUN: %not %link %linkopts %t.2.o -o %t.2.out 2>&1 | %filecheck %s --check-prefix=T2
+RUN: %link %linkopts %t.3.o -o %t.3.out --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE1
+RUN: %link %linkopts %t.4.o -o %t.4.out --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE2
+# END_TEST
+
+T1: Error: {{.*}}1.o:(.rodata.str1.1+0x0) string is not null terminated
+T1: Fatal: can not read section `.rodata.str1.1'.
+T1: Fatal: Linking had errors.
+
+T2: Error: {{.*}}2.o:(.rodata.str1.1+0x4) string is not null terminated
+T2: {{(Fatal: can not read section `.rodata.str1.1'.)?}}
+T2: Fatal: Linking had errors.
+
+VERBOSE1: {{.*}}3.o:(.rodata.str1.1+0x0) created mergeable string fragment with contents and align 1
+VERBOSE1: {{.*}}3.o:(.rodata.str1.1+0x1) created mergeable string fragment with contents and align 1
+VERBOSE1: {{.*}}3.o:(.rodata.str1.1+0x2) created mergeable string fragment with contents and align 1
+VERBOSE2: {{.*}}4.o:(.rodata.str1.1+0x0) created mergeable string fragment with contents foo and align 1
+VERBOSE2: {{.*}}4.o:(.rodata.str1.1+0x4) created mergeable string fragment with contents bar and align 1
+VERBOSE2: {{.*}}4.o:(.rodata.str1.1+0x8) created mergeable string fragment with contents baz and align 1

@@ -1,0 +1,18 @@
+#---UndefinedSymbolReportFromObjectFiles.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+#This checks that undefined symbols are not reported by the linker when using
+#the option --unresolved-symbols="ignore-in-object-files"
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+# Report undefined symbol from lib2.so
+RUN: %not %link %linkopts -Bdynamic %t1.1.o %t1.lib2.so -o %t2.out.1 --unresolved-symbols=ignore-in-object-files 2>&1 | %filecheck %s -check-prefix=UNDEFFROMSHARED
+#UNDEFFROMSHARED: {{.*}}lib2.so
+RUN: %link %linkopts -Bdynamic %t1.1.o %t1.lib2.so -o %t2.out.2 --unresolved-symbols=ignore-in-shared-libs
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t2.out.3 --unresolved-symbols=ignore-in-object-files
+RUN: %not %link %linkopts %t1.1.o %t1.2.o -o %t2.out.4 --unresolved-symbols=ignore-in-shared-libs  2>&1 | %filecheck %s -check-prefix=UNDEFFROMOBJ
+#UNDEFFROMOBJ: {{.*}}2.o
+#END_TEST

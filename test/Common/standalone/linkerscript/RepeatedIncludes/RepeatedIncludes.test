@@ -1,0 +1,11 @@
+#---RepeatedIncludes.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+This test checks that the repeated INCLUDEs in linker script does not lead to
+include cycle error.
+#END_COMMENT
+RUN: %touch %t1.1.o
+RUN: %touch 1.t
+RUN: %mkdir %t1.scripts
+RUN: cd %t1.scripts && %touch 2.t && cd $(%dirname %t1.1.o)/..
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -L %t1.scripts -o %t1.1.out
+

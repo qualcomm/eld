@@ -1,0 +1,16 @@
+#----------AUIPC_JALR_TO_CJ.test----------------- Executable------------------#
+
+# REQUIRES: riscv64
+#BEGIN_COMMENT
+# Platform-dependent test for tail call relaxation with incorrect register.
+#END_COMMENT
+#--------------------------------------------------------------------
+
+## Jump using not x0. This cannot be generated from assembly source
+## because assembler choses to not use the  R_RISCV_CALL_PLT relocation when
+## call/tail is not used.
+RUN: %yaml2obj %p/Inputs/2-64.yaml -o %t.2-64.o
+RUN: %link %linkopts  %t.2-64.o -o %t.2-64.out
+RUN: %objdump -d %t.2-64.out 2>&1 | %filecheck %s
+
+CHECK: fffff16f jal sp, 0x{{[0-9a-f]+}} <foo>

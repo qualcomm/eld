@@ -1,0 +1,8 @@
+{
+  global:
+  foo;
+  local_baz;
+ /* all local symbols appear here */
+  local:
+  bar;
+};

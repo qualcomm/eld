@@ -1,0 +1,14 @@
+RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o.noffdf
+RUN: %clang %clangopts -c  %p/Inputs/2.c -o %t2.o.noffdf
+RUN: %link %linkopts --rosegment  %t1.o.noffdf %t2.o.noffdf -o %t1.out.noffdfms
+RUN: %readelf -S %t1.out.noffdfms | %grep rodata | %filecheck %s -check-prefix=NOFFDFMS
+RUN: %clang %clangopts -c  -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.o.ffdf
+RUN: %clang %clangopts -c  -fdata-sections -fdata-sections %p/Inputs/2.c -o %t2.o.ffdf
+RUN: %link %linkopts  --rosegment --gc-sections --entry=main %t1.o.ffdf %t2.o.ffdf -o %t1.out.ffdfgc
+RUN: %readelf -S %t1.out.ffdfgc | %filecheck %s
+
+NOFFDFMS:  [ 2] .rodata           PROGBITS        00001000 002000 000009 01 AMS  0   0  1
+FFDF:   [     0]  qualcomm
+CHECK-NOT: .rodata
+
+

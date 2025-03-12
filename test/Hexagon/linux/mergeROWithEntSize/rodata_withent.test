@@ -1,0 +1,13 @@
+# Check that rodata ent size is handled in the linker appropriately.
+RUN: %clang %clangopts -c %p/Inputs/rodata_withnoent.s -o %t1.o
+RUN: %link %linkopts  %t1.o -o %t1.out
+RUN: %readelf -p 1 %t1.out | %filecheck -check-prefix=RODATAMERGE %s
+RUN: %clang %clangopts -c %p/Inputs/rodata_withent.s -o %t2.o
+RUN: %link %linkopts  %t2.o -o %t2.out
+RUN: %readelf -p 1 %t2.out | %filecheck -check-prefix=RODATANOMERGE %s
+
+
+RODATAMERGE: String dump of section '.rodata':
+RODATAMERGE:   [     0]  great
+RODATANOMERGE:  [     0]  great
+RODATANOMERGE:  [     8]  great

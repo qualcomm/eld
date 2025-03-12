@@ -1,0 +1,17 @@
+#---reloc_PCREL_HI_LO.test--------------------- Executable------------#
+
+
+
+#BEGIN_COMMENT
+# Check patching of R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_I relocations
+# Additionally this also check R_RISCV_JAL relocation
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s
+
+CHECK:     auipc   a{{.*}}, 1
+CHECK-DAG: addi    a{{.*}}, a{{.*}}, 1376
+CHECK-DAG: jalr    a1
+

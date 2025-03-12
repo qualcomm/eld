@@ -1,0 +1,15 @@
+#--AArch64Trampoline.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that AARCH64 creates a trampoline only when necessary.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -target aarch64
+RUN: %link %linkopts -march aarch64 %t1.1.o -T %p/Inputs/script.t -o %t2.out.notrampoline
+RUN: %link %linkopts -march aarch64 %t1.1.o -T %p/Inputs/trampoline.t -o %t2.out.trampoline
+RUN: %readelf -s -W %t2.out.notrampoline | %filecheck %s
+RUN: %readelf -s -W %t2.out.trampoline | %filecheck %s -check-prefix=TRAMPOLINE
+
+#CHECK-NOT: trampoline
+#TRAMPOLINE: trampoline
+#END_TEST

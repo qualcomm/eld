@@ -1,0 +1,16 @@
+#---OverlapAddress.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that the addresses dont overlap when using MEMORY, and checks that
+# the linker is not overlapping addresses
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections %p/Inputs/1.c \
+RUN: -o %t1.1.o -fno-asynchronous-unwind-tables
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t \
+RUN: --trace=assignments 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script-nophdrs.t \
+RUN: --trace=assignments 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Trace: OUTPUT_SECTION(EVALUATE) >> .foo VMA : 0x1000 LMA : 0x1000
+#CHECK: Trace: OUTPUT_SECTION(EVALUATE) >> .bar VMA : 0x18{{[0-9a-f]+}} LMA : 0x18{{[0-9a-f]+}}

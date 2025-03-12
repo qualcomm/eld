@@ -1,0 +1,10 @@
+#---ZDefsNoUndefinedSharedLibrary.test--------------------------- SharedLibrary -----------------#
+
+#BEGIN_COMMENT
+# Looks like --no-undefined is broken when building shared libraries.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %not %link %linkopts -shared %t1.1.o --no-undefined -o %t2.out 2>&1 | %filecheck %s
+#CHECK: undefined reference to `bar'
+#END_TEST

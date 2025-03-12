@@ -1,0 +1,3 @@
+SECTIONS {
+  .test : { *(.note.test) }
+}

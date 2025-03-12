@@ -1,0 +1,39 @@
+#---InputFilesNotUsed.test--------------------- Executable ------------------#
+
+
+#BEGIN_COMMENT
+#This test checks the Map file output for input files that are not used during
+#the link %linkopts.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -ffunction-sections -o %t1.3.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.3.o %t1.2.o
+RUN: %ar cr %aropts %t2.lib3.a %t1.2.o %t1.3.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o %t2.lib2.a -Map %t2.map.x -o %t2.out.x 2>&1
+RUN: %link -MapStyle yaml %linkopts %t1.1.o %t2.lib3.a -Map %t2.map.y -o %t2.out.y 2>&1
+RUN: %filecheck %s -check-prefix=FIRST < %t2.map.x
+RUN: %filecheck %s -check-prefix=SECOND < %t2.map.y
+#END_TEST
+
+#FIRST: InputInfo:
+#FIRST:   - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o
+#FIRST:     Used:            Used
+#FIRST:   - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib2.a
+#FIRST:     Used:            Used
+#FIRST:     Members:
+#FIRST:       - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}3.o
+#FIRST:         Used:            Used
+#FIRST:       - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}2.o
+#FIRST:         Used:            NotUsed
+#SECOND: InputInfo:
+#SECOND:  - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o
+#SECOND:    Used:            Used
+#SECOND:  - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}lib3.a
+#SECOND:    Used:            Used
+#SECOND:    Members:
+#SECOND:      - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}2.o
+#SECOND:        Used:            Used
+#SECOND:      - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}3.o
+#SECOND:        Used:            NotUsed

@@ -1,0 +1,28 @@
+#---WarningLimit.test--------------------------- Executable --------------------#
+
+
+
+#BEGIN_COMMENT
+# This checks that the linker is able to limit the number of warning.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -g %p/Inputs/1.c -o %t1.1.1.o
+RUN: %clang %clangopts -c -g %p/Inputs/2.c -o %t1.1.2.o
+RUN: %clang %clangopts -c -g %p/Inputs/3.c -o %t1.1.3.o
+RUN: %clang %clangopts -c -g %p/Inputs/4.c -o %t1.1.4.o
+RUN: %link %linkopts %t1.1.1.o %t1.1.2.o %t1.1.3.o %t1.1.4.o -T %p/Inputs/linker.script.1 -o %t1.out.1.1 2>&1 | %filecheck %s --check-prefix=DEFAULTWARNINGLIMIT
+RUN: %not %link %linkopts %t1.1.1.o %t1.1.2.o %t1.1.3.o %t1.1.4.o -T %p/Inputs/linker.script.1 -o %t1.out.1.2 --warn-limit 2>&1 | %filecheck %s --check-prefix=MISSINGARG
+RUN: %not %link %linkopts %t1.1.1.o %t1.1.2.o %t1.1.3.o %t1.1.4.o -T %p/Inputs/linker.script.1 -o %t1.out.1.3 --warn-limit aa 2>&1 | %filecheck %s --check-prefix=INVALIDARGVALUE
+RUN: %not %link %linkopts %t1.1.1.o %t1.1.2.o %t1.1.3.o %t1.1.4.o -T %p/Inputs/linker.script.1 -o %t1.out.1.4 --warn-limit -1 2>&1 | %filecheck %s --check-prefix=INVALIDARGVALUE
+RUN: %link %linkopts %t1.1.1.o %t1.1.2.o %t1.1.3.o %t1.1.4.o -T %p/Inputs/linker.script.1 -o %t1.out.1.5 --warn-limit 2 2>&1 | %filecheck %s --check-prefix=WARNINGLIMIT
+RUN: %link %linkopts %t1.1.1.o %t1.1.2.o %t1.1.3.o %t1.1.4.o -T %p/Inputs/linker.script.1 -o %t1.out.1.6 --warn-limit 0 2>&1 | %filecheck %s --check-prefix=NOWARNINGLIMIT
+
+#DEFAULTWARNINGLIMIT-COUNT-9: Warning:
+#MISSINGARG: Error: Missing arg value for '--warn-limit' expected 1 argument(s)
+#INVALIDARGVALUE: Error: Invalid value for --warn-limit:
+#WARNINGLIMIT-COUNT-1: Warning:
+#WARNINGLIMIT: Warning: Too many warnings emitted (use --warn-limit=0 to see all warnings)
+#WARNINGLIMIT-NOT: Warning:
+#NOWARNINGLIMIT-COUNT-9: Warning:
+#NOWARNINGLIMIT-NOT: Warning: Too many warnings emitted (use --warn-limit=0 to see all warnings)
+#END_TEST

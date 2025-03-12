@@ -1,0 +1,16 @@
+UNSUPPORTED: iu
+#---DynRelocSymbolValue.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that symbols resolved from shared libraries have symbol values
+# set to 0.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -fPIC
+RUN: %link -shared %linkopts %t1.2.o -o %t2.so
+RUN: %link %linkopts -Bdynamic %t1.1.o %t2.so -o %t2.out
+RUN: %readelf -r -W %t2.out
+#END_TEST
+
+#CHECK : 0x{{[0]+}} baz

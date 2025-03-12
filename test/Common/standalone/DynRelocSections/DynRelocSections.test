@@ -1,0 +1,17 @@
+#----------DynRelocSections.test--------------------- SharedLibrary------------------#
+
+#BEGIN_COMMENT
+# Check the info field of .rela.dyn and .rela.plt sections.
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
+RUN: %link %linkopts -shared %t.1.o -o %t.so
+RUN: %readelf -S %t.so | %filecheck %s
+
+CHECK: Section Headers:
+
+CHECK-DAG: {{[[] *}}[[DYNSYM:[[:digit:]]+]]{{]}} .dynsym  DYNSYM   {{[[:xdigit:]]+}}
+CHECK-DAG: {{[[] *}}[[GOTPLT:[[:digit:]]+]]{{]}} .got.plt PROGBITS {{[[:xdigit:]]+}}
+CHECK-DAG: [{{[ 0-9]+}}] .rel{{a?}}.dyn REL{{A?}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} A [[DYNSYM]] 0          {{[[:xdigit:]]+}}
+CHECK-DAG: [{{[ 0-9]+}}] .rel{{a?}}.plt REL{{A?}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} A [[DYNSYM]] [[GOTPLT]] {{[[:xdigit:]]+}}

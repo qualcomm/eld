@@ -1,0 +1,28 @@
+UNSUPPORTED: ndk-build
+#---Bitcode.test------------------------- Executable -------------------------#
+
+
+#BEGIN_COMMENT
+# This checks that --reproduce can handle LLVM bitcode files
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c -flto %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t1.out --reproduce %t0.tar --dump-mapping-file %t0.mapping --dump-response-file %t0.response
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t2.out --reproduce %t1.tar --save-temps --dump-mapping-file %t0.MappingWithTemps --dump-response-file %t0.LTOResponse
+RUN: %filecheck %s --check-prefix="CHECK_MAPPING" < %t0.mapping
+RUN: %filecheck %s --check-prefix="CHECK_RESPONSE" < %t0.response
+RUN: %filecheck %s --check-prefix="CHECK_TEMPS" < %t0.MappingWithTemps
+RUN: %filecheck %s --check-prefix="CHECK_LTORESPONSE" < %t0.LTOResponse
+CHECK_MAPPING-DAG: 2.o=
+CHECK_MAPPING-DAG: llvm-lto
+CHECK_RESPONSE: .o.{{[0-9]+}}
+CHECK_RESPONSE-NOT: /2.o
+CHECK_TEMPS: preopt.bc
+CHECK_TEMPS: internalize.bc
+CHECK_TEMPS: opt.bc
+CHECK_TEMPS: precodegen.bc
+CHECK_TEMPS: resolution.txt
+CHECK_LTORESPONSE: -flto-options=lto-output-file=
+CHECK_LTORESPONSE-NOT: llvm-lto.o
+CHECK_LTORESPONSE-NOT: ,

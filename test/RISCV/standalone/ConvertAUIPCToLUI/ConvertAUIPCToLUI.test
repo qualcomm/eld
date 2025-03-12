@@ -1,0 +1,18 @@
+UNSUPPORTED: riscv32
+#----------ConvertAUIPCToLUI.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+#This test checks that the linker converts AUIPC to LUI for relocations that
+#will overflow PCREL but fit LUI
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/t.c -ffunction-sections \
+RUN: -fno-asynchronous-unwind-tables -o %t1.o -mno-relax
+RUN: %link %linkopts  %t1.o -T %p/Inputs/tls.t -o %t.out 2>&1
+RUN: %objdump -d %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+
+#CHECK: lui     a0, 0x0
+#CHECK: addi    a0, a0, 0x4

@@ -1,0 +1,12 @@
+#--UnableToWriteOutputFile.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# There is a problem of a signed integer overflow check in the linker. This is
+# very bad and produces offsets to increase in such a way that we cannot write
+# the output file.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o -target aarch64
+RUN: %link %linkopts -march aarch64 %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .text

@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -target arm -c %p/test.c -o %test.o
+RUN: %link %linkopts -march arm -T %p/test.ld %test.o -o %test.out 2>&1 | %filecheck --check-prefix=NOWARN %s -allow-empty
+RUN: %readelf -S -W %test.out | %filecheck %s
+
+NOWARN-NOT: Warning: Section ENTRY does not have segment assignment in linker script
+CHECK: Section Headers:
+CHECK: ENTRY PROGBITS {{[0-9a-f]+}}  {{[0-9a-f]+}}  {{[0]*}}{{[1-9a-f]+}} 00  AX  0   0  4

@@ -1,0 +1,8 @@
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %ar cr %aropts  %tlib2.a %t2.o
+RUN: %link %linkopts %t1.o %tlib2.a -o %t.out -print-timing-stats 2>&1 | %filecheck %s
+
+CHECK: Hexagon Allocate Common Symbols
+

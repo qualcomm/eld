@@ -1,0 +1,15 @@
+#----------TLSGD.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+#This tests that the linker can support TLS GD model with static linking.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ftls-model=global-dynamic -fPIC
+RUN: %link %linkopts  %t1.1.o -o %t.out --noinhibit-exec --no-emit-relocs
+RUN: %readelf -s -x .got %t.out | %filecheck %s
+
+#CHECK-NOT: .L
+#CHECK: 01000000{{.*}}
+#CHECK-NEXT: f8ffff{{.*}}

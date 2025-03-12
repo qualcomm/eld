@@ -1,0 +1,34 @@
+#---NoMerge.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests cases where strings should NOT be merged
+#END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/good.s -o %t.good.o
+RUN: %clang %clangopts -c %p/Inputs/badentsize.s -o %t.badentsize.o
+RUN: %clang %clangopts -c %p/Inputs/badalign.s -o %t.badalign.o
+RUN: %link %linkopts %t.good.o -T %p/Inputs/script2.t -o %t.good.out
+RUN: %link %linkopts %t.badentsize.o -T %p/Inputs/script2.t -o %t.badentsize.out
+RUN: %link %linkopts %t.badalign.o -T %p/Inputs/script2.t -o %t.badalign.out
+RUN: %link -r %linkopts %t.good.o -T %p/Inputs/script2.t -o %t.partial.out
+RUN: %readelf -p .rodata %t.good.out | %filecheck %s --check-prefix=GOOD
+RUN: %readelf -p .rodata %t.badentsize.out | %filecheck %s --check-prefix=BADENTSIZE
+RUN: %readelf -p .rodata %t.badalign.out | %filecheck %s --check-prefix=BADALIGN
+RUN: %readelf -p .rodata %t.partial.out | %filecheck %s --check-prefix=PARTIAL
+# END_TEST
+
+GOOD: String dump of section '.rodata':
+GOOD: [     0] foo
+GOOD-NOT: [     4] foo
+
+BADENTSIZE: String dump of section '.rodata':
+BADENTSIZE: [     0] foo
+BADENTSIZE: [     4] foo
+
+BADALIGN: String dump of section '.rodata':
+BADALIGN: [     0] foo
+BADALIGN: [     4] foo
+
+PARTIAL: String dump of section '.rodata':
+PARTIAL: [     0] foo
+PARTIAL: [     4] foo

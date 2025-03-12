@@ -1,0 +1,15 @@
+#---LMAOverlap.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This test checks that the linker does not create an image with overlapping
+# LMA's.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c  \
+RUN: -ffunction-sections -fdata-sections  -o %t1.1.o -fno-asynchronous-unwind-tables
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK:   00     .foo .bar .baz
+

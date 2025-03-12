@@ -1,0 +1,18 @@
+UNSUPPORTED: sanitize
+#---SignalHandling.test------------------ Executable,LS ----------------------#
+
+
+# BEGIN_COMMENT
+# Tests that a diagnostic is emitted when a plugin is about to crash
+# END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+CHECK-NOT: !!!UNEXPECTED LINKER BEHAVIOR!!!
+CHECK-DAG: LinkerCrashPlugin::Init
+CHECK-DAG: Please rerun link with
+CHECK-DAG: .sh
+CHECK-DAG: !!!PLUGIN CRASHED!!!
+CHECK-DAG: User specified plugin LinkerCrashPlugin caused segmentation fault
+CHECK-NOT: nullfilesize caused Segmentation fault
+#END_TEST

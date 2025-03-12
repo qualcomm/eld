@@ -1,0 +1,12 @@
+#---EmitRelocsPermissions.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that relocation sections that are not allocatable are properly
+# treated and they are not associated with RW permissions.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts --emit-relocs %t1.1.o -o %t2.out
+RUN: %readelf -S %t2.out -W | %filecheck %s
+#CHECK-NOT: .rela.text {{[.*]+}} WA
+#END_TEST

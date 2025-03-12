@@ -1,0 +1,21 @@
+# Test that map file is properly produced when the link %linkopts involves archive files.
+RUN: %clang %clangopts -target arm -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/foo.c -o %t1.foo.o -flto
+RUN: %clang %clangopts -target arm -c %p/Inputs/bar.c -o %t1.bar.o -flto
+RUN: %ar cr %t1.library.a %t1.foo.o %t1.bar.o
+RUN: %link %linkopts -march arm --cref -flto-options=codegen="-Os -relocation-model=static -function-sections -data-sections" %t1.main.o %t1.library.a -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: Cross Reference Table - Pre LTO phase
+#CHECK: Symbol                                                File
+#CHECK: bar                                                   {{[ -\(\)_A-Za-z0-9.\\/:]+}}bar.o
+#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
+#CHECK: common_array                                          {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: foo                                                   {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
+#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: main                                                  {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: Cross Reference Table
+#CHECK: Symbol                                                File
+#CHECK: common_array                                          {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: foo                                                   {{[ #-\(\)_A-Za-z0-9.\\/:]+}}lto
+#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: main                                                  {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o

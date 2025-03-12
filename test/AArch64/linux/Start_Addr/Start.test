@@ -1,0 +1,29 @@
+RUN: echo "int main() { return 0; }" > %t1.c
+RUN: %clang --target=aarch64-gnu-linux %t1.c -c -o %t1.o -fpie
+RUN: %link -mtriple aarch64-gnu-linux %t1.o -o %t1.out -pie
+RUN: %readelf -a %t1.out | %filecheck %s --check-prefix=AARCH64-PIE
+
+RUN: %clang --target=aarch64-gnu-linux %t1.c -c -o %t2.o -fno-pie
+RUN: %link -mtriple aarch64-gnu-linux %t2.o -o %t2.out -dynamic-linker /dev/null
+RUN: %readelf -a %t2.out | %filecheck %s --check-prefix=AARCH64-NOPIE
+
+RUN: %clang --target=aarch64-gnu-linux %t1.c -c -o %t3.o -static
+RUN: %link -mtriple aarch64-gnu-linux %t3.o -o %t3.out -static
+RUN: %readelf -a %t3.out | %filecheck %s --check-prefix=AARCH64-STATIC
+
+
+RUN: %clang --target=aarch64-unknown-linux %t1.c -c -o %t4.o -fpie
+RUN: %link -mtriple aarch64-unknown-linux %t4.o -o %t4.out -pie
+RUN: %readelf -a %t4.out | %filecheck %s --check-prefix=AARCH64-PIE
+
+RUN: %clang --target=aarch64-unknown-linux %t1.c -c -o %t5.o -fno-pie
+RUN: %link -mtriple aarch64-unknown-linux %t5.o -o %t5.out -dynamic-linker /dev/null
+RUN: %readelf -a %t5.out | %filecheck %s --check-prefix=AARCH64-NOPIE
+
+RUN: %clang --target=aarch64-unknown-linux %t1.c -c -o %t6.o -static
+RUN: %link -mtriple aarch64-unknown-linux %t6.o -o %t6.out -static
+RUN: %readelf -a %t6.out | %filecheck %s --check-prefix=AARCH64-STATIC
+
+AARCH64-PIE: 0x000000 0x0000000000000000 0x0000000000000000 {{[x0-9a-z]+}} {{[x0-9a-z]+}} R E 0x1000
+AARCH64-NOPIE: 0x000000 0x0000000000400000 0x0000000000400000 {{[x0-9a-z]+}} {{[x0-9a-z]+}} R E 0x1000
+AARCH64-STATIC: 0x000000 0x0000000000400000 0x0000000000400000 {{[x0-9a-z]+}} {{[x0-9a-z]+}} R E 0x1000

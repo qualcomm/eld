@@ -1,0 +1,12 @@
+#---IgnoredHelpOption.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This checks for build-id option present in ingnored options
+# help content group.
+#END_COMMENT
+#START_TEST
+RUN: %link --help 2>&1 | %filecheck %s
+#CHECK: Compatibility Or Ignored Options:
+#CHECK: --add-needed          Deprecated
+#END_TEST

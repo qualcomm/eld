@@ -1,0 +1,22 @@
+#---LTOGC.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This test checks LTO with garbage-collection.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -flto -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -flto -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.2.out %t1.1.o %t1.2.o --gc-sections -e main --print-gc-sections 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.2.out 2>&1 | %filecheck %s --check-prefix=SYMBOLS
+#END_TEST
+CHECK-NOT: bar_sym
+CHECK-NOT: foo_sym
+CHECK-NOT: baz_sym
+CHECK-NOT: foobar_sym
+CHECK-NOT: asdf_sym
+SYMBOLS-DAG: foo_sym
+SYMBOLS-DAG: bar_sym
+SYMBOLS-DAG: baz_sym
+SYMBOLS-DAG: main
+SYMBOLS-NOT: foobar_sym
+SYMBOLS-NOT: asdf_sym

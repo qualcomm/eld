@@ -1,0 +1,2 @@
+# extra symbol
+baz;

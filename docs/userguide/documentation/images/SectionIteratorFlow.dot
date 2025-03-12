@@ -1,0 +1,16 @@
+digraph G {
+    node [shape=rectangle]
+    A [label="Initialize the plugin"]
+    B [label="Process input files, and perform garbage \n collection on sections"]
+    C [label="UserPlugin::Init(...)"]
+    D [label="call \n UserPlugin::ProcessSection(...) \n for each input section that is \n not garbage-collected"]
+    E [label="UserPlugin::Run(...)"]
+    F [label="UserPlugin::Destroy(...)"]
+    G [label="Continue the linking \n Process"]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+    E -> F
+    F -> G
+}

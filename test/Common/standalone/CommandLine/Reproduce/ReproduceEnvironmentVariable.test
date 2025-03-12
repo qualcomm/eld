@@ -1,0 +1,18 @@
+UNSUPPORTED: riscv32, riscv64
+---ReproduceEnvironmentVariable.test------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Checks that a tarball is created if env variable ELD_REPRODUCE_CREATE_TAR exists
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+
+# if reproduce option specified, env variable should be ignored
+RUN: env ELD_REPRODUCE_CREATE_TAR=TRUE \
+RUN:  %link %t1.1.o --reproduce %t0.tar -o %t1.out.env1 --verbose 2>&1 | %filecheck %s
+CHECK-NOT: Setting reproduce option based on environment variable ELD_REPRODUCE_CREATE_TAR
+
+RUN: env ELD_REPRODUCE_CREATE_TAR=TRUE \
+RUN:  %link %t1.1.o -o %t1.out.env2 --verbose 2>&1 | %filecheck %s --check-prefix ENV
+ENV: Setting reproduce option based on environment variable ELD_REPRODUCE_CREATE_TAR
+#END_TEST

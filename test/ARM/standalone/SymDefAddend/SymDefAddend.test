@@ -1,0 +1,14 @@
+#---SymDefAddend.test--------------------- Executable ------------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker doesn't treat a non-call symbol as Thumb
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/x.s -o %t1.1.o
+RUN: %link -march arm %t1.1.o --defsym arm_val=1 -o %t2.out
+RUN: %objdump -s %t2.out | %filecheck %s
+
+#CHECK: Contents of section .data:
+#CHECK-NEXT: 0000 02000000
+#END_TEST
+

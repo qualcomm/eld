@@ -1,0 +1,13 @@
+#---ProvideSymsNotUsed.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies that PROVIDE symbols are not evaluated if
+# they are not used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.ProvideSymsNotUsed.t 2>&1
+RUN: %readelf -Ss %t1.1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK-DAG: 0b {{.*}} PROVIDED_SYM
+CHECK-DAG: 00 {{.*}} foo

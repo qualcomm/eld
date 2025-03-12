@@ -1,0 +1,9 @@
+__attribute__((section(".text.i9"))) int a9() { return 0; }
+__attribute__((section(".text.h8"))) int a8() { return 0; }
+__attribute__((section(".text.g7"))) int a7() { return 0; }
+__attribute__((section(".text.f6"))) int a6() { return 0; }
+__attribute__((section(".text.e5"))) int a5() { return 0; }
+__attribute__((section(".text.d4"))) int a4() { return 0; }
+__attribute__((section(".text.c3"))) int a3() { return 0; }
+__attribute__((section(".text.b2"))) int a2() { return 0; }
+__attribute__((section(".text.a1"))) int a1() { return 0; }

@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t.o
+RUN: %link %linkopts -march arm %t.o -o %t.out -fix-cortex-a8 -no-fix-cortex-a8 -warn-shared-textrel -no-warn-shared-textrel -Bsymbolic -Bsymbolic
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: T main

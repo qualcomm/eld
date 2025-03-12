@@ -1,0 +1,19 @@
+#---AuxiliarySymbolName.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of LinkerWrapper::setAuxiliarySymbolNameMap
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map %t1.1.map.txt --trace=plugin 2>&1 | %filecheck %s --check-prefix=TRACE
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+RUN: %not %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.MultiSetError.yaml -Map %t1.1.map.txt --trace=plugin 2>&1 | %filecheck %s --check-prefix=ERR
+#END_TEST
+
+TRACE: Trace: Plugin 'AuxiliarySymbolNamePlugin' has set auxiliary symbol name map for the input file '{{.*}}1.o'
+
+MAP: .text.foo
+MAP: foo(myFoo)
+MAP: .text.bar
+MAP: bar(myBar)
+
+ERR: AuxiliarySymbolNamePluginAgain:Error: Auxiliary symbol name map is already set for the input file '{{.*}}1.o' by the plugin 'AuxiliarySymbolNamePlugin'

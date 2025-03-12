@@ -1,0 +1,28 @@
+#---NullFileSize.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple FileOffset plugin that tries to override how the blocks
+#are merged in a specific linker script section. No blocks are returned from the
+#plugin which makes the linker create a zero byte section. This is used by
+#compression.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#PLUGINTRACE: Note: Registration function found RegisterAll in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Plugin handler getPlugin found in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Registering all plugin handlers for plugin types
+#PLUGINTRACE: Note: Found plugin handler for plugin type NULLBLOCKS in Library {{.*}}{{[.sodll]}}
+#PLUGINTRACE: Note: Creating MemoryBlock sized {{.*}} for output section .foo
+#PLUGINTRACE: Note: Applying relocations for section .foo
+#PLUGINTRACE: Note: Syncing relocations for section .foo
+#PLUGINTRACE: Note: Adding memory blocks for section .foo
+#PLUGINTRACE: Note: Running handler for section .foo
+#PLUGINTRACE: Note: Plugin returned 0 blocks when processing section .foo
+#PLUGINTRACE: Note: Plugin NULLBLOCKS Destroyed
+
+#CHECK: .foo
+#CHECK: .bar
+#END_TEST

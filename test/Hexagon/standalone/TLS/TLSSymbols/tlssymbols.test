@@ -1,0 +1,9 @@
+#Make sure TLS template boundaries are marked by (following) 3 symbols
+#
+#RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t.o
+#RUN: %link %linkopts -o %t.out %t.o
+#RUN: %nm -n %t.out | %filecheck %s
+
+#CHECK: {{[0-9a-f]+}} A _TLS_START_
+#CHECK: {{[0-9a-f]+}} A _TLS_DATA_END_
+#CHECK: {{[0-9a-f]+}} A _TLS_END_

@@ -1,0 +1,15 @@
+#---NoIgnoreBCSym.test-------------------- Exe-----------------
+
+#BEGIN_COMMENT
+# When bitcode weak is overridden with ELF define in LTO phase
+# the symbol must not be ignored
+#----------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t4.o
+RUN: %link %linkopts -o %t1.out %t1.o %t2.o %t3.o %t4.o --trace=symbol=foo 2>&1 | %filecheck %s
+
+CHECK-NOT: foo{{.+}}{IGNORE}
+CHECK-COUNT-2: Trace: Symbol foo, application site:

@@ -1,0 +1,32 @@
+#---SearchDiagnostics.test---- ----------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/a.c -o %ta.o
+RUN: rm -rf %t-lib
+RUN: mkdir %t-lib
+RUN: %ar cr %aropts %t-lib/liba.a %ta.o
+RUN: %link %linkopts -shared -o %t-lib/liba.so %ta.o
+
+RUN: %not %link %linkopts --verbose -o %t1.out %t1.o -lblablabla 2>&1 | %filecheck %s --check-prefix=NOT-FOUND
+NOT-FOUND: Trying to open input `{{.+}}libblablabla.a' of type `archive' for namespec `blablabla': not found
+
+RUN: %link %linkopts -static --verbose -o %t2.out %t1.o -L%t-lib -la 2>&1 | %filecheck %s --check-prefix=FOUND-STATIC
+FOUND-STATIC: Trying to open input `{{.+}}-lib/liba.a' of type `archive' for namespec `a': found
+
+RUN: %link %linkopts -dynamic --verbose -o %t3.out %t1.o -L%t-lib -la 2>&1 | %filecheck %s --check-prefix=FOUND-DYNOBJ
+FOUND-DYNOBJ: Trying to open input `{{.+}}-lib/liba.so' of type `dynamic object' for namespec `a': found
+
+RUN: %link %linkopts --verbose -o %t1.out %t1.o -L%p/Inputs/ -T 1.t 2>&1 | %filecheck %s --check-prefix=FOUND-SCRIPT
+FOUND-SCRIPT: Trying to open input `{{.+}}1.t' of type `linker script' for namespec `1.t': found
+
+RUN: %link %linkopts --verbose -o %t1.out %t1.o -L%p/Inputs/ -T 2.t 2>&1 | %filecheck %s --check-prefix=FOUND-INCLUDE
+FOUND-INCLUDE: Trying to open script include file `{{.+}}' for `1.t': found
+
+RUN: %not %link %linkopts --verbose -o %t1.out %t1.o -L%p/Inputs/ -T 3.t 2>&1 | %filecheck %s --check-prefix=NOT-FOUND-INCLUDE
+NOT-FOUND-INCLUDE: Trying to open script include file `{{.+}}' for `none.t': not found
+
+#END_TEST

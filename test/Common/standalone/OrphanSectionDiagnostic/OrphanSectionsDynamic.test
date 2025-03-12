@@ -1,0 +1,15 @@
+#---OrphanSectionDynamic.test------------Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks if orphan section diagnostic warnings are emitted for
+# ".dynsym" and ".dynstr".
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o -ffunction-sections
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %link %linkopts -Bdynamic -orphan-handling=warn %t1.3.o %t1.lib2.so -T %p/Inputs/scriptdyn.t -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: Warning: no linker script rule for section .dynsym
+#CHECK: Warning: no linker script rule for section .dynstr

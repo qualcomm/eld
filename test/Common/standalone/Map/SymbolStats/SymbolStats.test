@@ -1,0 +1,12 @@
+#---SymbolStats.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the symbol stats in the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.elf %t1.1.o -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+#END_TEST
+CHECK: # Total Symbols: {{[0-9]+}} { Global: {{[0-9]+}}, Local: {{[0-9]+}}, Weak: {{[0-9]+}}, Absolute: {{[0-9]+}}, Hidden: {{[0-9]+}}, Protected: {{[0-9]+}} }
+CHECK: # Discarded Symbols: {{[0-9]+}} { Global: {{[0-9]+}}, Local: {{[0-9]+}}, Weak: {{[0-9]+}}, Absolute: {{[0-9]+}}, Hidden: {{[0-9]+}}, Protected: {{[0-9]+}} }

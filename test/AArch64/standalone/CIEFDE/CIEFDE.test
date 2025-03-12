@@ -1,0 +1,16 @@
+#---CIEFDE.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker parsing the EhFrame sections and creating
+# appropriate output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %dwarfdump --debug-frame %t2.out | %filecheck %s
+
+#CHECK: CIE
+#CHECK: FDE
+#CHECK: FDE
+
+#END_TEST

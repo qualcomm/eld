@@ -1,0 +1,15 @@
+#---PIETrampoline.test--------------------- PIE/Executable------------------#
+
+#BEGIN_COMMENT
+# Test that linker inserts a trampoline when building PIE executable.
+#---------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c -fPIC -ffunction-sections %p/Inputs/1.c -o %t1.o -target aarch64
+RUN: %link %linkopts -march aarch64 -pie -o %t1.out %t1.o -T %p/Inputs/script.t
+RUN: %objdump -d  %t1.out | %filecheck %s
+
+#CHECK: trampoline
+#CHECK: ldr     x16,
+#CHECK: adr     x17,
+#CHECK: add     x16, x16, x17
+#CHECK: br      x16

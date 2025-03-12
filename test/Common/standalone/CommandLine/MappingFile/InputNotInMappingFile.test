@@ -1,0 +1,9 @@
+#---OutputTarWriter.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the --mapping-file can accept a new input file not present in the mapping file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts  %t1.1.o --mapping-file=%p/Inputs/mapping.ini -o %t2.out.notinmappingfile
+#END_TEST

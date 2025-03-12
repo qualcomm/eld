@@ -1,0 +1,11 @@
+#---DebugSymbols.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#Symbols from debug sections should not have VMA addresses
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c  %p/Inputs/1.s -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t1.out -Ttext=0xF0000000
+RUN: %readelf -s %t1.out | %filecheck %s
+#CHECK-NOT: {{.*}} f{{.*}} {{.*}} baz
+#END_TEST

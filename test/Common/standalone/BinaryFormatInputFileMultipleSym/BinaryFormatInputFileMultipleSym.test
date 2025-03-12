@@ -1,0 +1,13 @@
+#---BinaryFormatInputFiles.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the error when there is symbol resolution conflict due to
+# binary format input file symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %cp %p/Inputs/hello.txt .
+RUN: %not %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -b binary hello.txt 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Error: multiple definition of symbol `_binary_hello_txt_start' in file {{.*}}1.o and hello.txt
+

@@ -1,0 +1,27 @@
+#---ZForceBTI.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker can handle the switch -z force-bti and -z pac-plt
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.one.o
+RUN: %link %linkopts -march aarch64 %t1.one.o %t1.1.o  -o %t1.out 2>&1
+RUN: %readelf -n %t1.out | %filecheck --allow-empty %s
+RUN: %link %linkopts -z force-bti -z pac-plt -march aarch64 %t1.one.o %t1.1.o  -o %t1.out.1 2>&1 | %filecheck %s -check-prefix=BTIPAC
+RUN: %readelf -n %t1.out.1 | %filecheck --check-prefix=FORCENOTE %s
+RUN: %link %linkopts -z force-bti -march aarch64 %t1.one.o %t1.1.o  -o %t1.out.2 2>&1 | %filecheck %s -check-prefix=BTI
+RUN: %readelf -n %t1.out.2 | %filecheck --check-prefix=FORCENOTE-BTI %s
+RUN: %link %linkopts -z pac-plt -march aarch64 %t1.one.o %t1.1.o  -o %t1.out.3 2>&1 | %filecheck %s -check-prefix=PAC
+RUN: %readelf -n %t1.out.3 | %filecheck --check-prefix=FORCENOTE-PAC %s
+
+#BTIPAC: No BTI features recorded in {{.*}}one.o
+#BTIPAC: No PAC features recorded in {{.*}}one.o
+#BTI: No BTI features recorded in {{.*}}one.o
+#PAC: No PAC features recorded in {{.*}}one.o
+#NOTE:  GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0 (property note)
+#FORCENOTE:  GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0 (property note)
+#FORCENOTE:    Properties:    aarch64 feature: BTI, PAC
+#FORCENOTE-BTI:    Properties:    aarch64 feature: BTI
+#FORCENOTE-PAC:    Properties:    aarch64 feature: PAC
+#CHECK-NOT: BTI

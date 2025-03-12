@@ -1,0 +1,24 @@
+#---RuleOrigin.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks for support added in the Linker to print the Rule and where
+# it originates from.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -fdata-sections -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -fdata-sections -o %t1.2.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -Map %t2.map.withtiming -L %p/Inputs/ -o %t2.out -T %p/Inputs/script.t
+RUN: %filecheck %s < %t2.map.withtiming
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -Map %t2.map.notiming -L %p/Inputs/ -o %t2.out -T %p/Inputs/script.t -MapDetail no-timing
+RUN: %filecheck %s < %t2.map.notiming
+
+#CHECK: mytext{{.*}}text.t
+#CHECK: *(.text*) #Rule 1, {{.*}}text.t
+#CHECK: *(.text) #Rule 2, Internal-LinkerScript
+#CHECK: mydata{{.*}}script.t
+#CHECK: *(COMMON) #Rule 3, {{.*}}script.t
+#CHECK: *(.data) #Rule 4, Internal-LinkerScript
+#CHECK: *(.comment) #Rule 5, {{.*}}script.t
+
+#END_TEST
+

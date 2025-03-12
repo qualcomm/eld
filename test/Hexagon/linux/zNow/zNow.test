@@ -1,0 +1,11 @@
+# Check if BIND_NOW works.
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -shared %t1.o -o %t2.so.newdtag  -z now --enable-new-dtags
+RUN: %readelf -d %t2.so.newdtag | %filecheck %s --check-prefix=NEWDTAG
+RUN: %link %linkopts -shared %t1.o -o %t2.so.nonewdtag  -z now
+RUN: %readelf -d %t2.so.nonewdtag | %filecheck %s --check-prefix=NONEWDTAG
+
+#NEWDTAG: 0x0000001e (FLAGS)                      BIND_NOW
+#NEWDTAG: 0x6ffffffb (FLAGS_1)
+#NONEWDTAG: 0x00000018 (BIND_NOW)
+#NONEWDTAG: 0x6ffffffb (FLAGS_1)

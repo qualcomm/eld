@@ -1,0 +1,13 @@
+#---Addend.test----------------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Fix for the offset computation bug with a string section with addend
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -main-file-name t.s -target-cpu cortex-a53 -o %t.o %p/Inputs/t.s
+RUN: %link %linkopts -march aarch64 %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: add     x23, x23, #0x11
+
+#END_TEST

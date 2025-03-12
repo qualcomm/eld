@@ -1,0 +1,12 @@
+#---UniversalPluginTextMapFile.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test verifies that the map-file displays universal plugins.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+#END_TEST
+CHECK: Linker Plugin Information
+CHECK: Linker Plugins
+CHECK: UPTextMapFile UPTextMapFile

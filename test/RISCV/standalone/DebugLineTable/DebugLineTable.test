@@ -1,0 +1,14 @@
+#---DebugLineTable.test----------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# Handle group relocations to merge string relocations.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -g -gdwarf-5 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -g -gdwarf-5 -c %p/Inputs/QC/2.c -o %t1.2.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o %t1.2.o -o %t2.out
+RUN: %dwarfdump %t2.out | %filecheck %s
+#END_TEST
+CHECK: {{.*}}Inputs{{.*}}1.c
+CHECK: {{.*}}Inputs{{.*}}QC{{.*}}2.c

@@ -1,0 +1,17 @@
+# Check that merge strings is able to merge strings properly with appropriate
+# debug relocations and appropriate relocation entries when emit-relocs is used
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -g -o %t1.1.o -target aarch64 -O2
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -g -o %t1.2.o -target aarch64 -O2
+RUN: %link %linkopts %t1.1.o %t1.2.o -shared -o %t2.so -march aarch64 -z max-page-size=0x1000
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t2.out -march aarch64 -z max-page-size=0x1000
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t2.out.emitrelocs --emit-relocs -march aarch64 -z max-page-size=0x1000
+RUN: %dwarfdump -debug-info %t2.so | %filecheck %s -check-prefix=DEBUGSTR
+RUN: %dwarfdump -debug-info %t2.out | %filecheck %s -check-prefix=DEBUGSTR
+RUN: %dwarfdump -debug-info %t2.out.emitrelocs | %filecheck %s -check-prefix=DEBUGSTR
+
+DEBUGSTR: DW_AT_name ("{{[-_A-Za-z0-9.\\/:]+}}MergeStrRelocs/Inputs{{[\\/]}}1.c")
+DEBUGSTR: DW_AT_name ("foo1")
+DEBUGSTR: DW_AT_name ("int")
+DEBUGSTR: DW_AT_name ("{{[-_A-Za-z0-9.\\/:]+}}MergeStrRelocs/Inputs{{[\\/]}}2.c")
+DEBUGSTR: DW_AT_name ("bar")
+DEBUGSTR: DW_AT_name ("int")

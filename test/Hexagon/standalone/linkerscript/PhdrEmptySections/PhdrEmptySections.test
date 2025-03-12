@@ -1,0 +1,17 @@
+# This checks that the linker tries to merge empty sections. These should exactly match.
+# This checks in a binary objectfile and the source from which it was created so that the
+# behavior can be compared all the time.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=LOADSEG
+
+#LOADSEG:  LOAD           0x001000 0x00000000 0x00000000 0x0000c 0x0000c R E 0x1000
+#LOADSEG:  LOAD           0x008000 0x00008000 0x00008000 0x00190 0x00194 RW  0x1000
+#LOADSEG:  LOAD           0x008190 0x00000000 0x00000000 0x00000 0x00000     0x1000
+#LOADSEG:  LOAD           0x009000 0xd0000000 0xd0000000 0x00000 0x00064 RW  0x1000
+#LOADSEG: Section to Segment mapping:
+#LOADSEG:  Segment Sections...
+#LOADSEG:   00     .text
+#LOADSEG:   01     .data .bss
+#LOADSEG:   02
+#LOADSEG:   03     .reclaim

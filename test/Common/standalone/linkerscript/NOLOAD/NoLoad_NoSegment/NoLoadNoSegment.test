@@ -1,0 +1,23 @@
+#--NoLoadNoSegment.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# Test NOLOAD sections associated with no segment
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.1 -Map %t1.map
+RUN: %readelf -l -W %t2.out.1 | %filecheck %s -check-prefix=READELF
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts %t1.2.o -T %p/Inputs/script2.t -o %t2.out.2 -Map %t2.map
+RUN: %readelf -l -W %t2.out.2 | %filecheck %s -check-prefix=READELF2
+RUN: %filecheck %s -check-prefix=MAP2 < %t2.map
+#END_TEST
+
+#READELF: LOAD   {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[FILESZ:[xa-f0-9]+]] [[FILESZ]]
+#READELF: None .foo
+#MAP-NOT: .foo {{.*}} Segments
+#READELF2: LOAD   {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[FILESZ:[xa-f0-9]+]] [[FILESZ]]
+#READELF2: None .bar .baz
+#MAP2-NOT: .bar {{.*}} Segments
+#MAP2-NOT: .baz {{.*}} Segments

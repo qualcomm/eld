@@ -1,0 +1,6 @@
+# Check that Debug sections are not present in the output.
+RUN: %clang %clangopts -target arm -c -ffunction-sections -fdata-sections %p/Inputs/foo.c -o %t1.o -g
+RUN: %link %linkopts -march arm %t1.o -o %t.out --strip-debug
+RUN: %readelf -S %t.out | %filecheck %s
+
+#CHECK-NOT: .debug

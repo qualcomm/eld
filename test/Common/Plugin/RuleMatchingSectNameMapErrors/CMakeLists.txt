@@ -1,0 +1,2 @@
+add_subdirectory(RMSectNameMapEmptyInputFile)
+add_subdirectory(RMSectNameMapAlreadySet)

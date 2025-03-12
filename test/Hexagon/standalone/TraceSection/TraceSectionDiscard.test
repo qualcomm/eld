@@ -1,0 +1,13 @@
+#---TraceSectionDiscard.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check tracing of input sections which are discarded.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/2.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o -T=%p/Inputs/script_with_discard.t --trace=section=.text.bar 2>&1 | %filecheck %s
+CHECK: Note: Input Section : .text.bar InputFile :
+CHECK-NEXT: Note: Input Section : .text.bar Symbol : bar
+CHECK-NEXT: Note: Section : .text.bar is being discarded
+CHECK-NOT: Note: Section : .text.bar is being discarded

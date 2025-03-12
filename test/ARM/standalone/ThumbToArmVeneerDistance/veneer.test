@@ -1,0 +1,16 @@
+#---veneer.test----------------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Make sure we make a Thumb-to-ARM veneer for distances greater than 4MB
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target armv6-eabi -integrated-as -c %p/Inputs/caller.s -o %t-caller.o
+RUN: %clang %clangopts -target armv6-eabi -integrated-as -c %p/Inputs/callee.s -o %t-callee.o
+RUN: %link %linkopts -march=arm -static -T %p/Inputs/test.ld %t-callee.o %t-caller.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: <caller_t>:
+CHECK: <__callee_t_T2A_veneer
+
+#END_TEST

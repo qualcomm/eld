@@ -1,0 +1,24 @@
+#----------OverflowMemoryCheck.test----------------- Executable------------------#
+
+
+
+# BEGIN_COMMENT
+# Test that linker checks for overflows when using MEMORY command post
+# relaxation
+# END_COMMENT
+# START_TEST
+#RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+#RUN: %not %link %linkopts %t.o -T %p/Inputs/script.t \
+#RUN: -o %t1.out --no-relax --print-memory-usage  2>&1 | %filecheck %s
+#RUN: %link %linkopts %t.o -T %p/Inputs/script.t -o %t2.out \
+#RUN: --print-memory-usage 2>&1 | %filecheck %s -check-prefix=USAGE
+#RUN: %not %link %linkopts %t.o -T %p/Inputs/script-align.t \
+#RUN: -o %t1.3.out --print-memory-usage  2>&1 | %filecheck %s \
+#RUN: -check-prefix=ALIGNOVERFLOW
+#END_TEST
+#CHECK: Memory region MYREGION exceeded limit while adding section text
+#CHECK: Memory region         Used Size  Region Size  %age Used
+#USAGE: Memory region         Used Size  Region Size  %age Used
+#USAGE:        MYREGION:          16 B         18 B     88.89%
+#USAGE-NEXT:   EMPTYREGION:
+#ALIGNOVERFLOW:        MYREGION:          164 B         80 B     205.00%

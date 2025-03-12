@@ -1,0 +1,16 @@
+#---AtWithSectionVMAPHDROverlap.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that a section specified with a @ attribute along with an address
+# is handled by the linker when the linker script uses a VMA in the prolog.
+# This is when there is PHDR specified.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -march aarch64 %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .foo              PROGBITS        0000000000000000
+#CHECK: .baz@0x210        PROGBITS        0000000000000210
+#CHECK: .bar              PROGBITS        0000000000000300
+#END_TEST

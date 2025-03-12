@@ -1,0 +1,6 @@
+# Test ABI page size value
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -mtriple hexagon-unknown-linux-elf %t1.o -o %t.out -trace=command-line | %filecheck %s
+
+# CHECK:  ABI Page Size: 0x10000
+

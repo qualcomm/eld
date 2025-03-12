@@ -1,0 +1,14 @@
+#---StrtabAfterSymtabInLayout.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks that there is no overlap in offsets of symtab and
+# strtab output sections.
+#END_COMMENT
+#START_TEST
+RUN: %python %p/Inputs/print1c.py > %t1.1.c
+RUN: %clang %clangopts -o %t1.1.o %t1.1.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.txt
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+#END_TEST
+MAP: .symtab 0x{{.*}}  0x{{.*}} Type: SHT_SYMTAB
+MAP: .strtab 0x{{.*}}  0x{{.*}} Type: SHT_STRTAB

@@ -1,0 +1,19 @@
+# --LocalSymbolsGD.test--------------------- Executable-----------------------#
+# -----------------------------------------------------------------------------#
+
+# -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# When a local TLS symbol is using GD model, the stub has to be exported to 
+# .dynsym otherwise PLT calls is not possible.
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c -fpic %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -shared %t2.o -o %tlib.so
+#Not using -dy will transform the GD to IE
+RUN: %link %linkopts %t1.o -dy %tlib.so -o %t.out
+RUN: %readelf --symbols --dynamic %t.out | %filecheck %s
+
+#CHECK: __tls_get_addr
+#END_TEST

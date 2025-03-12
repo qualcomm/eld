@@ -1,0 +1,8 @@
+# Check that LTO passes on assembler options
+RUN: %clang %clangopts -c   %p/Inputs/main.c -o %t1.main.o %clangg0opts
+RUN: %clang %clangopts -c  -flto %p/Inputs/foo.c -o %t1.foo.o %clangg0opts
+RUN: %link %linkopts  %linkg0opts   %t1.main.o %t1.foo.o -flto-options=asmopts="-gpsize=0" -o %t2.out.nosdata --trace=lto  2>&1
+RUN: %readelf -S %t2.out.nosdata | %filecheck %s -check-prefix=ASMOPTS
+
+#ASMOPTS-NOT: sdata
+#SDATA: sdata

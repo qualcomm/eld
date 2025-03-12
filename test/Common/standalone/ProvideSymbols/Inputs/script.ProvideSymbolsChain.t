@@ -1,0 +1,6 @@
+PROVIDE(f4 = 0x1000);
+PROVIDE(f3 = f4);
+PROVIDE(f2 = f3);
+PROVIDE(f2 = f3);
+PROVIDE(f1 = f2);
+PROVIDE(PROVIDED_SYM = f1);

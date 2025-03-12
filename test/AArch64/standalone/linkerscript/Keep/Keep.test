@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -ffunction-sections -fdata-sections -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -ffunction-sections -fdata-sections -o %t2.o
+RUN: %ar cr  %tliba.a %t2.o
+RUN: %link %linkopts -march aarch64 %t1.o --whole-archive %tliba.a --no-whole-archive -o %t.out -T=%p/Inputs/script --gc-sections --entry=main 2>&1
+RUN: %nm -n %t.out  | %filecheck %s
+
+#CHECK:  D foo
+#CHECK:  D bar
+#CHECK:  D baz
+#CHECK:  T main
+#CHECK-NOT: func

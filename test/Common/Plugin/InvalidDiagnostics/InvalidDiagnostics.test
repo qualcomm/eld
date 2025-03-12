@@ -1,0 +1,12 @@
+#---InvalidDiagnostics.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the linker reports fatal error when invalid
+# diagnostics are being reported.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts %t1.1.o -L%libsdir/test -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Fatal: Invalid diagnostic ID: 10000
+#CHECK: Fatal: Missing argument 0 when reporting diagnostic 'File '%0' does not exist'

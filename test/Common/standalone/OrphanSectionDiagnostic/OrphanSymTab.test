@@ -1,0 +1,13 @@
+#---OrphanSymTab.test------------Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks if orphan section diagnostic warnings are not emitted for
+# ".symtab", ".strtab" and ".shstrtab".
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -orphan-handling=warn %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK-NOT:Warning: no linker script rule for section .shstrtab
+#CHECK-NOT:Warning: no linker script rule for section .symtab
+#CHECK-NOT:Warning: no linker script rule for section .strtab

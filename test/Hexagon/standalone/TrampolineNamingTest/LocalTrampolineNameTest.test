@@ -1,0 +1,16 @@
+#---LocalTrampolineNameTest.test-------Executable/SharedLibrary----------------------------#
+
+#BEGIN_COMMENT
+# Test for the contextual naming convention of trampolines to local symbols
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/local_trampoline_script.t -o %t1.out --trace=trampolines 2>&1 | %filecheck %s -check-prefix=TRAMPOLINES
+RUN: %readelf -s %t1.out | %filecheck %s
+#END_TEST
+#CHECK: trampoline_for_.text.foo#(foo1)_from_.text.bar_{{[0-9]+}}#({{[0-9]+}})
+#CHECK: trampoline_for_.text.foo#(foo2)_from_.text.bar_{{[0-9]+}}#({{[0-9]+}})
+
+#TRAMPOLINES: Creating Stub trampoline_for_.text.foo#(foo1)_from_.text.bar_{{[0-9]+}}#({{[0-9]+}})
+#TRAMPOLINES: Creating Stub trampoline_for_.text.foo#(foo2)_from_.text.bar_{{[0-9]+}}#({{[0-9]+}})
+#TRAMPOLINES: Reusing Stub trampoline_for_.text.foo#(foo2)_from_.text.bar_{{[0-9]+}}#({{[0-9]+}})

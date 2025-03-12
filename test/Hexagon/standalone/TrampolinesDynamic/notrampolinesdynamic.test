@@ -1,0 +1,8 @@
+# This test checks to make sure that there are no trampolines created for
+# symbols resolved from dynamic library.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t2.2.o
+RUN: %link %linkopts -shared %t2.2.o -o %t3.so
+RUN: %link %linkopts -T %p/Inputs/script.t -Bdynamic --section-start .text=0xB0000000 %t1.1.o %t3.so  -o %t2.out 2>&1
+RUN: %readelf -s -W %t2.out | %filecheck %s
+CHECK: trampoline_for_bar_from_.text_{{[0-9]+}}

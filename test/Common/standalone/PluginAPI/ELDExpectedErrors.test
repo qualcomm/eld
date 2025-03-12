@@ -1,0 +1,11 @@
+XFAIL: windows
+#---ELDExpectedErrors.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This test checks various static asserts in eld::Expected.
+#END_COMMENT
+#START_TEST
+RUN: %not %cppcompiler -I%eldsrcroot/include/eld/PluginAPI %p/Inputs/ELDExpectedReferenceTypeError.cpp -std=c++17 -stdlib=libc++ 2>&1 | %filecheck %s --check-prefix=REFERENCE_ERROR
+#REFERENCE_ERROR: failed due to requirement {{.*}}reference
+#END_TEST

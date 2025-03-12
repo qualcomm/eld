@@ -1,0 +1,6 @@
+# This tests that the linker errors out when there the user has not specified a
+# SECTIONS command in the input linker script.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/Phdrs.t -o %t2.out.phdrs 2>&1 | %filecheck %s
+
+#CHECK: Linker Script is using PHDR's but not using SECTIONS command

@@ -1,0 +1,21 @@
+#---ExcludeCommonSymbols.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks that EXCLUDE_FILE directive works with COMMON input section description.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c %clangg0opts
+RUN: %clang %clangopts -o %t1.2.o -c %p/Inputs/2.c %clangg0opts
+RUN: %link %linkopts -o %t1.out %t1.1.o %t1.2.o  %linkg0opts  -T %p/Inputs/linker.script -M 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: commons 0x{{.*}}
+#CHECK: *( EXCLUDE_FILE ( *2.o )COMMON)
+#CHECK: COMMON.a
+#CHECK: COMMON.b
+#CHECK: COMMON.c
+#CHECK: COMMON.d
+#CHECK: .bss 0x{{.*}}
+#CHECK: COMMON.another_a
+#CHECK: COMMON.another_b
+#CHECK: COMMON.another_c
+#CHECK: COMMON.another_d

@@ -1,0 +1,12 @@
+#---ThinLTOCommonSymbols.test------------------------------ Executable,LS,LTO ---------------------#
+
+#BEGIN_COMMENT
+#Linker misplaces a symbol with ThinLTO.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -flto=thin -o %t1.1.o %clangg0opts
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -flto=thin -o %t1.2.o %clangg0opts
+RUN: %link %linkopts %t1.1.o %t1.2.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK-NOT: .bss

@@ -1,0 +1,21 @@
+UNSUPPORTED: riscv32, riscv64
+#---ProvideStyleSymDef.test--------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This checks that the linker is able to read the symdef file properly with provide symdef style.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.3.o --symdef-file %t.r.symdef -T %p/Inputs/farimage.t --symdef-style provide -o %t3.out
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o %t.r.symdef -T %p/Inputs/script.t -o %t.out.elf -Map %t.map --trace=symbol=bar 2>&1 | %filecheck %s
+RUN: %readelf -s %t.out.elf 2>&1 | %filecheck %s --check-prefix=ELFCHECK
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+#CHECK: Symbol `bar' from Input file `{{.*}}2.o' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being resolved from Namepool
+#MAPCHECK: {{.text.trampoline_for_baz_from_.text.boo|.text.__baz_A2A_veneer@island-1}}
+#MAPCHECK: bar{{.*}}2.o
+#ELFCHECK: {{[0-9a-f]+}}     0 FUNC    GLOBAL DEFAULT   ABS baz
+#END_TEST
+

@@ -1,0 +1,10 @@
+#---SearchPathErrorMessage.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This test check the error message when a search path can not be loaded.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -L /a/b -o %t.test.out 2>&1 | %filecheck %s --check-prefix=MSG
+#MSG: Note: can not open search directory `{{[\(\)_A-Za-z0-9.\\/:]+}}a/b
+#END_TEST

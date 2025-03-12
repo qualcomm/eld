@@ -1,0 +1,13 @@
+#---UndefinedSymbolIgnoreAll.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+#This checks that undefined symbols are not reported by the linker, when the
+#user uses the policy --unresolved-symbols=ignore-all
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --unresolved-symbols=ignore-all
+RUN: %readelf -s %t2.out | %filecheck %s
+
+#CHECK: {{.*}} UND foo
+#END_TEST

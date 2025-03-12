@@ -1,0 +1,18 @@
+#---LTOUndefWeakAndRegular.test-------------------------- Executable,LTO  --------------#
+
+
+#BEGIN_COMMENT
+# An undefined weak symbol reference from an ELF file overridden by a regular
+# undefined weak reference from a bitcode file should make the symbol still be
+# preserved.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -flto
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o -flto
+RUN: %ar cr %aropts %t1.lib3.a %t1.3.o
+RUN: %link %linkopts  %t1.1.o %t1.2.o %t1.lib3.a -o %t2.out --trace=lto 2>&1 | %filecheck %s
+
+#CHECK: LTO resolution for symbol foo: Prevailing=1, VisibleToRegularObj=1, FinalDefinitionInLinkageUnit=1, LinkerRedefined=0. Resolved Origin: {{.*}}3.o
+
+#END_TEST

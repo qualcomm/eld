@@ -1,0 +1,26 @@
+#---FullConfigFilePathTest.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Tests that plugins are able to load .config via the full path and .ini files from search dirs
+# the verbose log should reflect only one match for plugin.conf
+#END_COMMENT
+#START_TEST
+RUN: rm -f out.ini
+RUN: rm -f new.ini
+RUN: rm -f test.ini
+RUN: %mkdir -p ./NewINIFolder
+RUN: %clang %clangopts -c %p/../Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t2.out -L %p/../Inputs -L %T/../NewINIFolder --plugin-config=%p/../Inputs/plugin.config --verbose  2>&1  | %filecheck %s -check-prefix=VERBOSE
+RUN: %filecheck <out.ini %s --check-prefix=WRITE
+RUN: %filecheck <test.ini %s --check-prefix=WRITESAME
+RUN: %filecheck <new.ini %s --check-prefix=WRITENEW
+RUN: %filecheck <%T/../NewINIFolder/new_plugin.ini %s --check-prefix=WRITENEW
+#WRITE: [C]
+#WRITE: a=1
+#WRITESAME: [C]
+#WRITESAME: a=1
+#WRITENEW: [NEW]
+#WRITENEW: foo=bar
+#VERBOSE: Trying to open `{{.*}}/../Inputs/plugin.config' for plugin configuration file `{{.*}}/../Inputs/plugin.config' (file path): found
+#VERBOSE-NOT: unable to read new plugin INI file
+#END_TEST

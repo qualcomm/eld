@@ -1,0 +1,26 @@
+UNSUPPORTED: riscv32
+#---DebugTombStone64bit.test----------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Debug sections need to be set with tombstone values for sections
+# garbage collected or discarded.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/64bit/ranges1.asm -o %t1.1.64bit.o
+RUN: %clang %clangopts -c %p/64bit/ranges2.asm -o %t1.2.64bit.o
+RUN: %link %linkopts %t1.1.64bit.o %t1.2.64bit.o -o %t1.64bit.out -e baz --gc-sections 2>&1
+RUN: %dwarfdump --verbose %t1.64bit.out | %filecheck %s
+
+CHECK: DW_TAG_compile_unit [1] *
+CHECK:   DW_AT_ranges [DW_FORM_rnglistx] (indexed (0x0) rangelist = 0x{{0*}}10
+CHECK:     [0x{{0*}}0, 0x{{0*}}0)
+CHECK:   DW_TAG_subprogram [2] * (0x{{0*}}c)
+CHECK:     DW_AT_name [DW_FORM_strx1] (indexed ({{[[:digit:]]+}}) string = "foo")
+CHECK:   DW_TAG_subprogram [2] * (0x{{0*}}c)
+CHECK:     DW_AT_low_pc [DW_FORM_addrx] (indexed ({{[[:digit:]]+}}) address = 0x{{0*}}0)
+CHECK:     DW_AT_high_pc [DW_FORM_data4] (0x{{0*}}16)
+CHECK:     DW_AT_name [DW_FORM_strx1] (indexed ({{[[:digit:]]+}}) string = "bar")
+#END_TEST
+

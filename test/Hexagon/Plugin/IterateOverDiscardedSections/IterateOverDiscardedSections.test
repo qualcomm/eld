@@ -1,0 +1,14 @@
+#---IterateOverDiscardedSections.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple SectionIterator plugin that tries to figure out the
+#relationship between sections only for sections matching a particular pattern.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+RUN: %readelf -S -W %t2.out | %filecheck %s
+#PLUGINTRACE: Marking section discarded
+#CHECK-NOT: .callgraph
+
+#END_TEST

@@ -1,0 +1,15 @@
+#---SBREL32LinkerScriptSymbol.test--------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Support R_ARM_SBREL32 relocation associated with a LinkerScript symbol.
+#END_COMMENT
+#START_TEST
+RUN: %clang -fno-pie -c -O2 -frwpi %p/Inputs/1.c -o %t1.o
+# Make the symbol belong to an output section and so it belongs to a segment.
+RUN: %link -march arm %t1.o -T %p/Inputs/script.t -o %t2.out.1
+# Make the symbol a section symbol, auto reloc support.
+RUN: %link -march arm %t1.o -T %p/Inputs/sectionsym.t -o %t2.out.2
+# Make the symbol absolute, this should throw an error.
+RUN: %not %link -march arm %t1.o -T %p/Inputs/absolute.t -o %t2.out.3 2>&1 | %filecheck %s
+#CHECK: SBREL Relocation points to no segment for symbol __start_MYTEXT
+#END_TEST

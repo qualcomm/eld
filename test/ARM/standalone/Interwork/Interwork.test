@@ -1,0 +1,26 @@
+RUN: %clang %clangopts -target armv7a -mcpu=cortex-a8 -integrated-as -c %p/Inputs/caller.s -o %t0.o
+RUN: %clang %clangopts -target armv7a -mcpu=cortex-a8 -integrated-as -c %p/Inputs/callee.s -o %t1.o
+RUN: %link %linkopts -march=arm -static %t0.o %t1.o -o %t.out
+RUN: llvm-objdump --mcpu=cortex-a8 -d %t.out | %filecheck %s
+
+CHECK: <caller32>:
+CHECK-NEXT: push
+CHECK-NEXT: bl
+CHECK-NEXT: bl
+CHECK-NEXT: blx
+CHECK-NEXT: blx
+
+; llvm-objdump cannot disassemble mixed ARM/Thumb properly. objdump shows:
+;   <caller16>:
+;    8014:	b530      	push	{r4, r5, lr}
+;    8016:	f000 e808 	blx	8028 <callee32>
+;    801a:	f000 e806 	blx	8028 <callee32>
+;    801e:	f000 f807 	bl	8030 <callee16>
+;    8022:	f000 f805 	bl	8030 <callee16>
+
+CHECK: <caller16>:
+CHECK: push
+CHECK-NEXT: blx
+CHECK-NEXT: blx
+CHECK-NEXT: bl
+CHECK-NEXT: bl

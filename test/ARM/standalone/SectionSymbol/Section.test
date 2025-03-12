@@ -1,0 +1,16 @@
+#---ExampleOfMyLitTest.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Without this patch, undefined reference to `__start_llvm_profile_data'
+# will be generated.like GNU ld, the input object order matters
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -w -c %p/Inputs/f.c -o %tf.o
+RUN: %clang %clangopts -target arm -w -c %p/Inputs/m.c -o %tm.o
+RUN: %clang %clangopts -target arm -w -c %p/Inputs/t.c -o %tt.o
+RUN: %link %linkopts  -march arm %tm.o %tf.o %tt.o -gc-sections -entry=main -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: __start_llvm_profile_data
+
+#END_TEST

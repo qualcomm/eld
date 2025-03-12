@@ -1,0 +1,21 @@
+#---ExternListGC.test-------Executable/SharedLibrary----------------------------#
+
+
+#BEGIN_COMMENT
+# Check extern list adds symbols to the root set for GC. Also --dynamic-list
+# must not add a symbol to root set
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -fdata-sections -o %t3.o
+RUN: %ar crs %aropts %t.a %t1.o %t2.o %t3.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -ffunction-sections -o %tmain.o
+RUN: %link %linkopts --force-dynamic --entry=main --gc-sections --extern-list %p/Inputs/ExtList --dynamic-list %p/Inputs/DynList %tmain.o %t.a -o %t.out -print-gc-sections 2>&1 | %filecheck %s --check-prefix="TRACE"
+RUN: %readelf -s %t.out | %filecheck %s
+
+TRACE: .text.func_exe
+CHECK: NoGC
+CHECK: commonSym
+CHECK-NOT: func_exe
+

@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t1.o
+RUN: %clang %clangopts -target arm -flto -c %p/Inputs/f.c -o %t2.o
+RUN: %link -o %t1.out %linkopts -march arm %t1.o %t2.o -trace=lto 2>&1 | %filecheck %s
+
+CHECK: Preserving symbol array
+

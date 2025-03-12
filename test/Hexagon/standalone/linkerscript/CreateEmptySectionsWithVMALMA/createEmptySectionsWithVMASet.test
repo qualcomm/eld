@@ -1,0 +1,18 @@
+# This test checks that the linker is able to create empty sections with VMA
+# set. The sections output is checking that .CODE exists but is not found in
+# PHDR output. The reason we create a empty section is that section explicitly
+# requested for an address.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -o %t2.out.nophdr
+RUN: %link %linkopts %t1.o -T %p/Inputs/p.t -o %t2.out.phdr
+RUN: %readelf -s %t2.out.nophdr | %filecheck %s -check-prefix=CHECK-SYMVALUE
+RUN: %readelf -l -W %t2.out.nophdr | %filecheck %s
+RUN: %readelf -l -W %t2.out.phdr | %filecheck %s
+RUN: %readelf -S %t2.out.nophdr | %filecheck %s -check-prefix=EMPTYCODE
+RUN: %readelf -S %t2.out.phdr | %filecheck %s -check-prefix=EMPTYCODE
+
+#CHECK-SYMVALUE: {{[0-9 ]+}}: 00080000 0 NOTYPE GLOBAL DEFAULT ABS val
+#CHECK:   00     .text
+#CHECK:   01     .empty0 .empty1
+#CHECK:   02     .data
+#EMPTYCODE-NOT: .CODE

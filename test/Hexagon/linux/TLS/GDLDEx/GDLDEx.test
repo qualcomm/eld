@@ -1,0 +1,11 @@
+#---GDLDEx.test---------------------SharedLibrary------------------#
+
+#BEGIN_COMMENT
+# Add two more relocations with GD and LD PLT calls for stub
+#END_COMMENT
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/1.cpp -mlong-calls -std=c++11 -o %t1.o
+RUN: %link %linkopts  -shared  %t1.o  -o %t.out
+RUN: %readelf -r %t.out |   %filecheck %s
+#CHECK: __tls_get_addr
+RUN: %link %linkopts -shared  %t1.o --gc-sections  -o %t1.out --trace=symbol=__tls_get_addr 2>&1 | %filecheck %s --check-prefix="NOGC"
+#NOGC: Symbol __tls_get_addr, application site:

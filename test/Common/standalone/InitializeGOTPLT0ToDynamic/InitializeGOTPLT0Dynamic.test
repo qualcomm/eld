@@ -1,0 +1,16 @@
+UNSUPPORTED: riscv32, riscv64
+UNSUPPORTED: ndk-build
+#---CommonSymbolValue.test----------------------- Executable --------------------#
+#XFAIL: hexagonv
+
+#BEGIN_COMMENT
+# This tests that the linker sets the first slot in GOTPLT0 to be _DYNAMIC.
+# This is assumed in the SOS loader.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -fPIC
+RUN: %link %linkopts -shared %t1.1.o -o %t1.lib1.so
+RUN: %readelf -x .got.plt %t1.lib1.so | %filecheck %s
+
+#CHECK: 001000
+#END_TEST

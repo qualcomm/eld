@@ -1,0 +1,19 @@
+UNSUPPORTED: ndk-build
+#XFAIL: hexagon
+#---DynamicExecutableCopyRelocWithAlignment.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This checks that the alignment of the dynamic symbol thats copied has the right
+#alignment by inspecting the Map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fno-pie -c %p/Inputs/1.c -o %t1.foo.o
+RUN: %clang %clangopts -fno-pie -c %p/Inputs/2.c -o %t1.bar.o -fPIC
+RUN: %link %linkopts -shared %t1.bar.o -o %t2.bar.so 2>&1
+RUN: %link -MapStyle txt %linkopts -Bdynamic %t1.foo.o %t2.bar.so -o %t2.out -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+#CHECK: .bss
+#CHECK: #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,256
+
+#END_TEST

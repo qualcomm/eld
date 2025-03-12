@@ -1,0 +1,22 @@
+#---OutputCommand.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This test verifies the functionality of OUTPUT linker script command.
+#END_COMMENT
+RUN: %rm %t1.foo.elf %t1.foo.out %t1.1.c
+RUN: %touch %t1.1.c
+RUN: %clang %clangopts -o %t1.1.o %t1.1.c -c
+RUN: %echo "OUTPUT(%t1.foo.elf)" > %t1.script.t
+RUN: %link %linkopts %t1.1.o -T %t1.script.t
+RUN: %readelf %t1.foo.elf
+RUN: %rm %t1.foo.elf
+RUN: %link %linkopts %t1.1.o -T %t1.script.t -o %t1.foo.out
+RUN: %readelf %t1.foo.out
+RUN: %not %readelf %t1.foo.elf
+RUN: %rm %t1.foo.elf %t1.foo.out
+RUN: %echo "OUTPUT(%t1.bar.elf)" > %t1.script.another.t
+RUN: %link %linkopts -T %t1.script.t -T %t1.script.another.t --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %readelf %t1.foo.elf
+RUN: %not %readelf %t1.bar.elf
+
+VERBOSE: Verbose: Using output file name '{{.*}}foo.elf' specified in the linker script '{{.*}}script.t'

@@ -1,0 +1,21 @@
+#---TrampolinesCopyWithRelocs.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This test checks the linker produces a proper message that it cannot clone
+# fragment for symbol since the symbol has relocations. This fixes the undefined
+# behavior.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/myfn.s -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out.1  --section-start .boo=0x80000000  \
+RUN: -copy-farcalls-from-file=%p/Inputs/dup --trace=trampolines 2>&1 | %filecheck %s
+# Use search path to find file dup
+RUN: %link %linkopts %t1.o %t2.o -o %t.out.2 -L %p/Inputs/ --section-start .boo=0x80000000 \
+RUN: -copy-farcalls-from-file dup --trace=trampolines 2>&1 | %filecheck %s
+#CHECK: Unable to clone fragment for symbol myfn from file
+#CHECK: Creating Stub trampoline_for_myfn_from_.text.main_{{[0-9]+}}
+#CHECK: Reusing Stub trampoline_for_myfn_from_.text.main_{{[0-9]+}}
+#CHECK: Reusing Stub trampoline_for_myfn_from_.text.main_{{[0-9]+}}
+#END_TEST

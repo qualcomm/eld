@@ -1,0 +1,3 @@
+SECTIONS {
+  FOO : { *(*ruleMatchingName.foo*) }
+}

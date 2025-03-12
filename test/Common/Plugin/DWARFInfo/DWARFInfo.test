@@ -1,0 +1,14 @@
+#---DWARFInfo.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Test Plugin DWARF parsing
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %link %t.o -T %p/Inputs/script.t -o %t.out 2>&1 | %filecheck %s --check-prefix=WITHDEBUG
+RUN: %link %t2.o -T %p/Inputs/script.t -o %t.out 2>&1 | %filecheck %s --check-prefix=WITHOUTDEBUG
+WITHDEBUG-DAG: good
+WITHDEBUG-NOT: bad
+WITHOUTDEBUG: bad
+#END_TEST

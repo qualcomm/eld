@@ -1,0 +1,3 @@
+add_eld_unittest(LinkerDriverTests LinkerDriverTest.cpp)
+
+target_link_libraries(LinkerDriverTests PRIVATE LW ELDDiagnostics ELDScript)

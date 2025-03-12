@@ -1,0 +1,48 @@
+#---ELDExpected.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks the functioning of eld::Expected.
+#END_COMMENT
+#START_TEST
+RUN: %llvmobjroot/bin/tests/ELDExpectedUsage | %filecheck %s
+#END_TEST
+#CHECK: e1.has_value(): 1
+#CHECK: e1.value(): 11
+#CHECK: e2.has_value(): 0
+#CHECK: e2.error(): unexpected
+#CHECK: e3.has_value(): 1
+#CHECK: e3.value(): 11
+#CHECK: e4.has_value(): 1
+#CHECK: e4.value(): 19
+#CHECK: (e1 == e3): 1
+#CHECK: (e1 == e4): 0
+#CHECK: (e1 != e3): 0
+#CHECK: (e1 != e4): 1
+#CHECK: 0 unexpected
+#CHECK: 1 0
+#CHECK: 0 unexpected
+#CHECK: 1 11
+#CHECK: e6.has_value(): 1
+#CHECK: *e6.value(): 19
+#CHECK: e7.has_value(): 0
+#CHECK: *e7.error(): move-only error
+#CHECK: *up_i: 19
+#CHECK: e6.has_value(): 0
+#CHECK: *e6.error(): move-only error
+#CHECK: e8.has_value(): 1
+#CHECK: e8.value().val: 23
+#CHECK: e9.has_value(): 0
+#CHECK: e9.error(): copy-only error
+#CHECK: e10.has_value(): 1
+#CHECK: e10.value().val: 0
+#CHECK: e8.has_value(): 0
+#CHECK: e8.error(): copy-only error
+#CHECK: e10.has_value(): 0
+#CHECK: e10.error(): copy-only error
+#CHECK: e11.value(): 27
+#CHECK: e12.error(): error
+#CHECK: e11.error(): error
+#CHECK: e13.has_value(): 1
+#CHECK: e14.error(): Error Message
+#CHECK: e15.has_value(): 0
+#CHECK: e15.error(): Error Message

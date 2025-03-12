@@ -1,0 +1,9 @@
+RUN: %clang %clangopts -target arm-linux-gnueabi -c -mthumb %p/Inputs/t.c -w -o %t.o
+RUN: %link %linkopts -march=arm %t.o -T %p/Inputs/t.l -o %t.out
+RUN: %nm %t.out | %filecheck %s
+RUN: %readelf -x .text %t.out | %filecheck %s -check-prefix=ENCODING
+
+CHECK: w JustLoop
+CHECK-NOT: veneer
+
+ENCODING: {{[00e000bf|00e0 00bf]}}

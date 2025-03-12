@@ -1,0 +1,10 @@
+#---VMAPhdr.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# Dont use zero sized section information to create program headers.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK: LOAD {{.*}} {{.*}} {{.*}} {{[0x]+}}4 {{[0x]+}}4

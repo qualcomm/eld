@@ -1,0 +1,15 @@
+#---PIE.test--------------------- PIE ------------------#
+
+#BEGIN_COMMENT
+#This tests that .got.plt and .got sections are merged into a single .got
+#section for Android.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -fPIC
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %link %linkopts -m armelf_linux_androideabi %t1.1.o %t1.lib2.so  -o %t2.out.0 -pie -z max-page-size=0x1000
+RUN: %readelf -S -W %t2.out.0 | %filecheck %s
+RUN: %readelf -s %t2.out.0 -d %t2.out.0 | %filecheck %s -check-prefix=DYNAMICENTRY
+
+#CHECK-NOT: .got.plt
+#DYNAMICENTRY: PLTGOT

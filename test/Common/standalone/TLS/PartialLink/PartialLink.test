@@ -1,0 +1,15 @@
+#---PartialLink.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# This tests that TLS is supported with partial linking.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls.c -o %t1.1.o -fdata-sections
+RUN: %link %linkopts -r %t1.1.o -o %t2.r.o --no-emit-relocs
+RUN: %link %linkopts -r %t1.1.o -o %t2.r.o.script -T %p/Inputs/script.t --no-emit-relocs
+RUN: %readelf -S -W %t2.r.o | %filecheck %s
+RUN: %readelf -S -W %t2.r.o.script | %filecheck %s
+
+#CHECK: .tdata
+#CHECK: .tbss
+#END_TEST

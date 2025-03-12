@@ -1,0 +1,23 @@
+#---WrapSymbol.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks the symbol resolution report output for wrap symbols.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.2.o -Map %t1.a.map.txt -MapDetail show-symbol-resolution --wrap=foo
+RUN: %filecheck %s < %t1.a.map.txt
+
+CHECK: # Symbol Resolution:
+CHECK-DAG: bar
+CHECK-DAG: bar({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: baz
+CHECK-DAG: baz({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: foo
+CHECK-DAG: foo({{.*}}1.o) [Size=0, Undef, Global, NoType]
+CHECK-DAG: foo({{.*}}2.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: asdf
+CHECK-DAG: asdf({{.*}}2.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: __wrap_foo
+CHECK-DAG: __wrap_foo({{.*}}1.o) [Size=0, Undef, Global, NoType]
+CHECK-DAG: __wrap_foo({{.*}}2.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]

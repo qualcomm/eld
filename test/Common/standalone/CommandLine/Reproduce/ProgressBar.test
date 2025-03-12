@@ -1,0 +1,8 @@
+---ProgressBar.test------------------------- Executable -----------------#
+
+# This checks for ProgressBar with reproduce
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --reproduce %t0.tar -o %t1.out.verbose --verbose 2>&1 | %filecheck %s
+CHECK: Progress

@@ -1,0 +1,13 @@
+#---RemoveChunks.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This test checks if a diagnostic error is emitted if there
+# is a mismatch between chunk being removed and the linkerscript rule
+# that is being used to match and remove the chunk.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts  %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1
+#CHECK: REMOVECHUNKS:Error: Chunk '.text.bar' not found in rule '*(.text.foo*) #Rule 1, {{.*}}/RemoveChunks/Inputs/script.t' for output section '.foobar'
+#CHECK: Note: Creating tarball a.tar
+#END_TEST

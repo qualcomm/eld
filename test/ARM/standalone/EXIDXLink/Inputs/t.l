@@ -1,0 +1,4 @@
+SECTIONS {
+.exidx : { *(.ARM.exidx) }
+}
+

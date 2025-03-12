@@ -1,0 +1,14 @@
+#----------TLSLD.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+#This tests that the linker can support TLS LD model with static linking.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ftls-model=local-dynamic -fPIC
+RUN: %link %linkopts  %t1.1.o -o %t.out --noinhibit-exec
+RUN: %readelf -x .got %t.out | %filecheck %s
+
+#CHECK: 01000000{{.*}}
+#CHECK-NEXT: f8ffff

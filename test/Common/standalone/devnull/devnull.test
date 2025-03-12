@@ -1,0 +1,3 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o 
+RUN: %link %linkopts %t1.o -o /dev/null
+XFAIL: windows

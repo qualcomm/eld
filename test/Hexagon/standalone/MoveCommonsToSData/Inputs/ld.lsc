@@ -1,0 +1,23 @@
+/* Script for -z combreloc: combine and sort reloc sections */
+OUTPUT_FORMAT("elf32-littlehexagon", "elf32-bighexagon",
+	      "elf32-littlehexagon")
+OUTPUT_ARCH(hexagon)
+SEARCH_DIR("/opt/codesourcery/hexagon/lib");
+SECTIONS
+{
+  .text : { *(*.text) }
+  . = ALIGN (64);
+  .sdata          :
+  {
+    PROVIDE (_SDA_BASE_ = .);
+    *(.sdata.1)
+    *(.scommon.1)
+    *(.sdata.2)
+    *(.scommon.2)
+    *(.sdata.4)
+    *(.scommon.4)
+    *(.sdata.8)
+    *(.scommon.8)
+  }
+  .bss : { *(*.bss) }
+}

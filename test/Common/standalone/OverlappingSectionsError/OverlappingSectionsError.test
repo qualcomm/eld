@@ -1,0 +1,13 @@
+#---OverlappingSectionsError.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to detect that the overlapping sections
+# when using section placement attributes
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %clang %clangg0opts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -fdata-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o %t1.2.o -T %p/Inputs/script.t  2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Error: The section .bar@0x100 cannot be placed as the address range is occupied by section .foo
+

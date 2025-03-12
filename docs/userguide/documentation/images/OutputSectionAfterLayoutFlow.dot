@@ -1,0 +1,13 @@
+digraph G {
+    node [shape=rectangle]
+    rankdir="LR";
+    A [label="Finalize output \n image layout"]
+    B [label="UserPlugin::Init"]
+    C [label="Call \n UserPlugin::ProcessOutputSection \n for each output section"]
+    D [label="Call \n UserPlugin::Destroy"]
+    E [label="Finalize relocations, \n symbol values and then \n emit output image."]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+}

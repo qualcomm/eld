@@ -1,0 +1,17 @@
+UNSUPPORTED: riscv64
+#----------MappingSymbols.test----------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# Support mapping symbols on RISC-V. The test is marked unsupported for the
+# only reason that the object file generated is a 32bit object.
+#END_COMMENT
+#--------------------------------------------------------------------
+#START_TEST
+RUN: %yaml2obj %p/Inputs/1.yaml -o %t1.1.o
+RUN: %link %linkopts  -o %t.out.1 %t1.1.o
+RUN: %link %linkopts  -o %t.out.2 %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -s %t.out.1 | %filecheck %s
+RUN: %readelf -s %t.out.2 | %filecheck %s
+#END_TEST
+
+#CHECK: {{.*}} $d.2

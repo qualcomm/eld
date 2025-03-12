@@ -1,0 +1,35 @@
+UNSUPPORTED: riscv64
+#---LinkerScriptPadding3.test---------------- Executable,LS --------------------#
+
+
+
+#BEGIN_COMMENT
+# This checks that linker script padding information is recorded correctly
+# And YAMLMapParser is able to read this padding info for size reports
+#END_COMMENT
+
+#START_TEST
+
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.c -o %t.o
+RUN: %link -MapStyle yaml %linkopts %t.o -T %p/Inputs/script.t -o %t.out -Map %t.yaml
+
+RUN: %filecheck < %t.yaml %s --check-prefix=MAP
+RUN: %python %yamlmapparser --info summarysizes,totals %t.yaml 2>&1 | %filecheck %s --check-prefix=SIZE
+
+MAP: Name:            LINKER_SCRIPT_PADDING
+MAP: Offset:          0x0
+MAP: Padding:         0x1E
+MAP: Name:            LINKER_SCRIPT_PADDING
+MAP: Offset:          0x30
+MAP: Padding:         0x1E
+MAP: Name:            LINKER_SCRIPT_PADDING
+MAP: Offset:          0x4E
+MAP: Padding:         0x28
+MAP: Name:            LINKER_SCRIPT_PADDING
+MAP: Offset:          0x88
+MAP: Padding:         0x38
+
+SIZE: Program Size: Code=192 RO-data=0 RW-data=0 ZI-data=0
+
+RUN: %readelf -l %t.out 2>&1 | %filecheck %s
+CHECK: 0x000c0

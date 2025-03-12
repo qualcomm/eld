@@ -1,0 +1,13 @@
+#---YamlMapParserScript.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# Allow Read only data separation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %clangnorvcopts -c %p/Inputs/r.s -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map -o %t2.yamlmap.out -T %p/Inputs/script.t
+RUN: %python %yamlmapparser --info sizes %t2.map 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: Code (inc. data)   RO Data    RW Data    ZI Data      Debug
+#CHECK:   16          0         76        132       1024          0   Grand Totals

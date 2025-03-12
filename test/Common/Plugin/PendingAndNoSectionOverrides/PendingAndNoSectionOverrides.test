@@ -1,0 +1,12 @@
+#---PendingSectionOverrides.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the behavior of 'no section overrides' and
+# 'has pending sections' diagnostics.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkg0opts %t1.1.o -L%libsdir/test -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: NoSectionOverrides:Warning: 'LinkerWrapper::finishAssignOutputSections' is called but no section overrides are found.
+#CHECK: Fatal: Plugin 'PendingSectionOverrides' has pending section overrides. Please call 'LinkerWrapper::finishAssignOutputSections'

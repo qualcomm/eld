@@ -1,0 +1,15 @@
+digraph G {
+    node [shape=rectangle]
+    rankdir="LR";
+    A [label="Creating \n output \n sections"]
+    B [label="UserPlugin::\nInit"]
+    C [label="UserPlugin:: \n AddBlocks"]
+    D [label="UserPlugin::\nRun"]
+    E [label="UserPlugin::\n Destroy"]
+    F [label="Finalize output \n image layout"]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+    E -> F
+}

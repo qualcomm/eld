@@ -1,0 +1,2 @@
+add_eld_unittest(ThreadPoolTests ThreadPoolTest.cpp)
+target_link_libraries(ThreadPoolTests PRIVATE LW)

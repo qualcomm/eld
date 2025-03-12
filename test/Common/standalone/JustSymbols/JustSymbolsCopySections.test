@@ -1,0 +1,14 @@
+#UNSUPPORTED: emit_relocs
+#---JustSymbolsCopySections.test--------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This checks that the linker is able to build an executable with just symbols
+# and not copy the input sections
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/base.c -o %t1.base.o -c -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.base.o -o %t1.base.out
+RUN: %clang %clangopts %p/Inputs/usebase.c -o %t1.usebase.o -c -ffunction-sections -fdata-sections
+RUN: %link -MapStyle txt %linkopts %t1.usebase.o -R=%t1.base.out -o %t.out.elf -Map %t.map
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+#END_TEST
+#MAPCHECK-NOT: .tcm_static

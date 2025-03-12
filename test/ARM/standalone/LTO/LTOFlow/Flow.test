@@ -1,0 +1,12 @@
+RUN: %clang %clangopts  -target arm -flto %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts -march arm -trace=lto %t.o -o %t.out 2>&1 | %filecheck %s
+RUN: %link %linkopts -march arm -trace=lto %t.o -save-temps -flto-options=codegen=-mattr=+neon -o %t.out 2>&1 | %filecheck %s --check-prefix=SAVE
+
+CHECK: Inserting generated LTO object
+
+SAVE: -target-feature +neon
+SAVE: Beginning LTO Phase 2
+SAVE-NEXT: out.llvm-lto.0.o
+
+
+

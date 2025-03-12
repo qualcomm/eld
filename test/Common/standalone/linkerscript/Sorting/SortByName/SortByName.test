@@ -1,0 +1,22 @@
+#---SortByName.test--------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+#This tests that the linker script directive SORT_BY_NAME.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --sort-section=name -T %p/Inputs/sortbyname.t -o %t2.out.1 -M 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: .text.a1
+#CHECK: .text.b2
+#CHECK: .text.c3
+#CHECK: .text.d4
+#CHECK: .text.e5
+#CHECK: .text.f6
+#CHECK: .text.g7
+#CHECK: .text.h8
+#CHECK: .text.i9
+

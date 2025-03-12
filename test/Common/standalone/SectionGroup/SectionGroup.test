@@ -1,0 +1,12 @@
+#---SectionGroup.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# Handle signature symbols and TLS
+#END_COMMENT
+#START_TEST
+RUN: %clangxx %clangopts -fpic -c %p/Inputs/1.cpp -o %t.o -ffunction-sections
+RUN: %link -r %linkopts %t.o -o %t.r.o --verbose 2>&1 | %filecheck %s
+RUN: %readelf -g %t.r.o 2>&1 | %filecheck %s
+#CHECK-DAG: _ZN16ThreadLocalStoreI13WorkspacePoolE3GetEv
+#CHECK-DAG: _ZZN16ThreadLocalStoreI13WorkspacePoolE3GetEvE3ptr
+#END_TEST

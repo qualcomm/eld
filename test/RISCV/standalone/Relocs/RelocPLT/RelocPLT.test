@@ -1,0 +1,21 @@
+#---RelocPLT.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check the value of PLT relocation in static link.
+#--------------------------------------------------------------------
+#END_COMMENT
+
+RUN: %clang %clangopts -O3 -fPIC -c %p/Inputs/f.c -o %t.f.o
+RUN: %link %linkopts -shared %t.f.o -o %t.f.so
+
+RUN: %clang %clangopts -O3 -fno-pic -c %p/Inputs/main.c -o %t.main.o
+RUN: %link %linkopts -o %t.out --section-start .plt=0x2000 %t.main.o %t.f.so
+
+RUN: %objdump -d %t.out | %filecheck %s
+
+CHECK: 00002000 <.plt>
+
+CHECK: <main>:
+CHECK-NEXT: lui    a0, 0x2
+CHECK-NEXT: addi   a0, a0, 0x20
+CHECK-NEXT  ret

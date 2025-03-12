@@ -1,0 +1,60 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_HEXAGON
+  Flags:           [ EF_HEXAGON_MACH_V68, EF_HEXAGON_ISA_V68 ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x10
+    Content:         01C09DA082487A0D80C20078FEE09EA700C0005AC0FF9E970040000002C0496A02C08291FFE29EA700C0005AE0FF9E971EC01E9602C09DA0FDE09EA72654310C00C50078FEE09EA700C0005AA2FF9E97C0FF9E97FFE29EA700C0005A1EC01E9602C09DA0FDE09EA7D064B80F40C20078FEE09EA700C0005AA2FF9E97C0FF9E97FFE29EA700C0005A1EC01E96
+  - Name:            .comment
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_MERGE, SHF_STRINGS ]
+    AddressAlign:    0x1
+    EntSize:         0x1
+    Content:         0051754943204C4C564D2048657861676F6E20436C616E672076657273696F6E20382E362E303520456E67696E656572696E672052656C656173653A2068657861676F6E2D636C616E672D38362D3736323400
+  - Name:            .note.GNU-stack
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+  - Name:            .rela.text
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x4
+    Info:            .text
+    Relocations:
+      - Offset:          0x4
+        Type:            R_HEX_NONE
+        Addend:          1
+      - Offset:          0x8
+        Type:            R_HEX_NONE
+        Addend:          1
+  - Name:            .llvm_addrsig
+    Type:            SHT_LLVM_ADDRSIG
+    Flags:           [ SHF_EXCLUDE ]
+    Link:            .symtab
+    AddressAlign:    0x1
+    Symbols:         [ ]
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .rela.text
+      - Name:            .comment
+      - Name:            .note.GNU-stack
+      - Name:            .llvm_addrsig
+      - Name:            .symtab
+Symbols:
+  - Name:            1.c
+    Type:            STT_FILE
+    Index:           SHN_ABS
+  - Name:            foo
+    Type:            STT_FUNC
+    Section:         .text
+    Binding:         STB_GLOBAL
+    Size:            0x34
+...

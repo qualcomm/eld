@@ -1,0 +1,5 @@
+RUN: %clang %clangopts --target=aarch64-linux-gnu %p/t.c -c -w -o %t.o
+RUN: %link %linkopts -march aarch64 %t.o -o %t.out
+RUN: %readelf -l %t.out | %filecheck %s
+
+CHECK: LOAD           {{[x0-9a-f]*}} {{[x0-9a-f]*}} {{[x0-9a-f]*}} {{[x0-9a-f]*}} {{[x0-9a-f]*}} R E 0x1000

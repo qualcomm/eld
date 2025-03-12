@@ -1,0 +1,17 @@
+#---YAMLExpressions.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# Make sure expressions are printed properly inside the output section
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map -o %t2.yamlmap.out -T %p/Inputs/script.t
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK:  - Name:            .text
+#CHECK:    Contents:
+#CHECK:      - Name:            __start_section_foo
+#CHECK:      - Name:            .text.foo
+#CHECK:      - Name:            .text.bar
+#CHECK:      - Name:            __end_section_foo

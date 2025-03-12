@@ -1,0 +1,11 @@
+#---DynamicSection.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+#The dynamic section disapears from the output, This test checks that the
+#dynamic section does exist
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.1.o --force-dynamic -o %t2.out
+RUN: %readelf -d %t2.out
+#END_TEST

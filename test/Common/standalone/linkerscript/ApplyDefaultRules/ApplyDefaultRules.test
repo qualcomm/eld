@@ -1,0 +1,11 @@
+#---ApplyDefaultRules.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that Default Linker script rules are applied only if there is no
+# linker script in the command line.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: foo

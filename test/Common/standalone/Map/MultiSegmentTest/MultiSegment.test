@@ -1,0 +1,12 @@
+#---MultiSegment.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the Map file can show multiple segments when PHDR's are used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -Map %t2.map -T %p/Inputs/script.t -shared -Bsymbolic -pie -soname %t2.foo -o %t.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: {{.*}} Segments : [ DYN, DYNAMIC ]

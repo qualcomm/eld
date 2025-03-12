@@ -1,0 +1,8 @@
+# Check that empty sections with align information creates proper segments.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts -march arm -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           {{[x0-9a-z]+}} 0x00000000 0x00000000 {{[0-9a-fx]+}} {{[0-9a-fx]+}} R E 0x4
+#CHECK:  LOAD           {{[x0-9a-z]+}} 0x00100000 0x00100000 {{[0-9a-fx]+}} {{[0-9a-fx]+}} R E 0x4
+#CHECK:  LOAD           {{[x0-9a-z]+}} 0x00100018 0x00100018 0x00004 0x00004 RW  0x4

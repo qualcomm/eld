@@ -1,0 +1,11 @@
+#---DontReuseStubs.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# Dont reuse stubs when the stub is not compatible.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.1.o -ffunction-sections -mcpu=cortex-a8
+RUN: %clang %clangopts -c %p/Inputs/b.s -o %t1.2.o -ffunction-sections -mcpu=cortex-a8
+RUN: %clang %clangopts -c %p/Inputs/c.s -o %t1.3.o -ffunction-sections -mcpu=cortex-a8
+RUN: %link %linkopts %t1.1.o %t1.2.o %t1.3.o -T %p/Inputs/script.t -o %t2.out --trace=trampolines 2>&1 | %filecheck %s
+
+#CHECK-NOT: Reusing

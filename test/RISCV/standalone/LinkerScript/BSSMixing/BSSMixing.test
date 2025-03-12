@@ -1,0 +1,15 @@
+#---BSSMixing.test----------------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# Enable the linker to support the options enable bss mixing and disable conversion.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/t.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/t.l %t.o -o %t.out --enable-bss-mixing --disable-bss-conversion
+RUN: %readelf -S %t.out | %filecheck %s
+
+#CHECK: STACK  NOBITS    {{[0]+}} {{.*}}
+#CHECK: .text  PROGBITS  {{[0]+}}200 {{.*}}
+
+#END_TEST

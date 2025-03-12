@@ -1,0 +1,7 @@
+# This tests that linker is unable to insert a trampoline and produces proper
+# diagnostic error output.
+#RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t1.o
+#RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t2.o
+#RUN: %not %link %linkopts %t1.o %t2.o -M -o %t3.out 2>&1 | %filecheck %s
+#CHECK: Fatal: Unable to insert trampoline for symbol foo
+

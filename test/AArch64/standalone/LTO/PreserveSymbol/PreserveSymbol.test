@@ -1,0 +1,10 @@
+# Checks that the linker preserves symbols only when there is an actual use for it.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -ffunction-sections -flto -o %t1.2.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/3.c -ffunction-sections -o %t1.3.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/4.c -ffunction-sections -o %t2.1.o
+RUN: %link -o %t1.out.1 %linkopts -march aarch64 %t1.1.o %t1.2.o %t1.3.o -e main  --trace=lto 2>&1 | %filecheck %s -check-prefix=PA
+RUN: %link  -o %t1.out.2 %linkopts -march aarch64 %t2.1.o %t1.2.o %t1.3.o -e main --gc-sections --trace=lto 2>&1 | %filecheck %s -check-prefix=PB
+
+#PA: Preserving symbol foo
+#PB:  Preserving symbol foo

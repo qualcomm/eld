@@ -1,0 +1,16 @@
+#---Comment.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+#Make the linker show all sections that have comments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o  -Map %t2.map -o %t2.out -T %p/Inputs/script.t
+RUN: %link %linkopts %t1.1.o  -r -o %t2.out.reloc
+RUN: %readelf -p .comment %t2.out.reloc 2>&1 | %filecheck %s -check-prefix=CMDLINE
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: .comment{{.*}}1.o
+#CMDLINE: Command:

@@ -1,0 +1,14 @@
+#---PromoteNoBitsToProgBits.test--------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This test checks that the linker promotes sections from NOBITS to PROGBITS
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c  \
+RUN: -ffunction-sections -fdata-sections  -o %t1.1.o -fno-asynchronous-unwind-tables
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out  \
+RUN: --allow-bss-conversion 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: Note: Section .b1(SHT_NOBITS) is before SHT_PROGBITS(.bar), Promoting .b1 to PROGBITS
+#CHECK: Note: Section .b2(SHT_NOBITS) is before SHT_PROGBITS(.bar), Promoting .b2 to PROGBITS

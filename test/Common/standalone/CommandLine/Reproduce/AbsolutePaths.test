@@ -1,0 +1,20 @@
+#---AbsolutePaths.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# Ensure that what is given to the linker as an absolute path is shown as an absolute path in the mapping file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.AbsolutePaths.2.o
+RUN: %link %linkopts -shared %t1.1.o -o %t1.dll
+RUN: %link %linkopts -shared %t.AbsolutePaths.2.o -o %t.AbsolutePaths.2.dll
+RUN: %link %linkopts -dynamic %t1.1.o %t.AbsolutePaths.2.o %t1.dll %t.AbsolutePaths.2.dll -T %p/Inputs/script1.t --reproduce %t0.tar \
+RUN:  --dump-mapping-file %t1.dump --dump-response-file %t1.response -o %t1.out.AbsPaths
+RUN %filecheck %s < %t1.dump
+CHECK-DAG: /tmp1.1.o
+CHECK-DAG: /AbsolutePaths.2.dll
+CHECK-DAG: /AbsolutePaths.2.o
+CHECK-DAG: /Inputs/script1.t
+CHECK-DAG: /tmp1.dll
+#END_TEST

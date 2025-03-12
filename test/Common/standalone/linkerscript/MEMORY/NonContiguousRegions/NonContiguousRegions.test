@@ -1,0 +1,28 @@
+#---NonContiguousRegions.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests that the linker is able to assign the same VMA region for LMA
+# region, if the LMA region is unspecified.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections -fno-asynchronous-unwind-tables
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %readelf -l -W %t2.out | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+RUN: %not %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/scripterr.t -o %t2.out.err -Map %t1.map.err  \
+RUN: 2>&1 | %filecheck %s -check-prefix=ERR
+#END_TEST
+#CHECK: Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}8000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}f000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}80{{.*}} {{.*}} {{.*}} R E {{.*}}
+#CHECK: Segment Sections...
+#CHECK:  00     .foo
+#CHECK:  01     .bar
+#CHECK:  02     .baz
+#MAP: .foo {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [M1, M1]
+#MAP: .bar {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [M2]
+#MAP: .baz {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [M1, M1]
+#ERR: Error: cannot specify AT and LMA memory region for output section : .bar defined in script

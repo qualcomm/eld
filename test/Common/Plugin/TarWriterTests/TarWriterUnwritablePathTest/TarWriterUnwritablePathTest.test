@@ -1,0 +1,12 @@
+UNSUPPORTED: windows
+#---TarWriterUnwritablePathTest.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Test checks for a tar file being created in a path with no write permissions.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %not %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.test.out 2>&1 | %filecheck %s --check-prefix=TARMSG
+#TARMSG: TarWriterUnwritablePathTest:Fatal: LLVM: cannot open /testTar.tar
+#END_TEST

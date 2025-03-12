@@ -1,0 +1,11 @@
+#---PatchSections.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test errors for dynamic inputs and patching
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t.o -c
+RUN: %link %linkopts -shared %t.o -o %t.so
+RUN: %not %link %linkopts --patch-enable %t.o %t.so -o %t.out 2>&1 | %filecheck %s
+CHECK: Error: Dynamic input '{{.*}}PatchDynamicInput.test.tmp.so' cannot be used with patching
+#END_TEST

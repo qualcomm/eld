@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -target aarch64 %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts -march aarch64 -hash-style=gnu %t.o -shared -o %t.so
+# Make sure %readelf doesnot error out, if there is an error that means the gnu
+# hash emitted is wrong.
+RUN: %readelf --dyn-syms %t.so
+

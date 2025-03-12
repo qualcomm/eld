@@ -1,0 +1,5 @@
+SECTIONS {
+  commons: {
+    *(EXCLUDE_FILE (*2.o) COMMON)
+  }
+}

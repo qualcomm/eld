@@ -1,0 +1,15 @@
+#---OutSectMissingSemiColon.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the error reported by linker script parser when semi-colon
+# is missing after the output section name.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
+
+CHECK1: Error: {{.*}}script1.t:2: : expected, but got {
+CHECK1: >>>   FOO {
+CHECK1: >>>       ^
+
+CHECK2: Error: {{.*}}script2.t:2: : expected, but got {
+CHECK2: >>>   FOO 0x1000 {
+CHECK2: >>>              ^

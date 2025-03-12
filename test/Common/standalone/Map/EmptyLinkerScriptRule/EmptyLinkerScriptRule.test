@@ -1,0 +1,17 @@
+#---EmptyLinkerScriptRule.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test tests that the linker is able to dump empty linker script rules.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o  -Map %t2.map -o %t2.out -T %p/Inputs/script.t
+RUN: %filecheck %s < %t2.map
+RUN: %link %linkopts %t1.1.o  -Map %t2.map.yaml -o %t2.out -T %p/Inputs/script.t -MapStyle yaml
+RUN: %filecheck %s < %t2.map.yaml
+#END_TEST
+
+#CHECK: .text.bar
+#CHECK: .text.baz
+#CHECK: .text.foo
+#CHECK: .text.boo

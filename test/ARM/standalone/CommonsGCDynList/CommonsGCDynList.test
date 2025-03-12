@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts --force-dynamic --dynamic-list=%p/Inputs/list %t1.o -o %t.out --gc-sections --entry=main 2>&1
+RUN: %readelf --dyn-syms %t.out | %grep 'common' | %filecheck %s
+
+#CHECK-NOT: commonArray
+#CHECK:  commonChar
+#CHECK-NOT: commonInt
+

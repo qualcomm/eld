@@ -1,0 +1,12 @@
+# This tests that dynamic relocations that go through the GOT for dynamic
+# executables are routed using the GOT. They should not be converted to
+# R_HEX_RELATIVE.
+
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.s  -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/1a.s  -o %t1.1a.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %clang %clangopts -c %p/Inputs/1.c  %clangg0opts -fPIC  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o %t1.1a.o -Bdynamic %t1.lib2.so --section-start .interp=0xf0000000  -o %t2.out
+RUN: %readelf -r %t2.out | %filecheck %s
+
+#CHECK: R_HEX_GLOB_DAT

@@ -1,0 +1,14 @@
+#---PartialLinkMergeSections.test--------------------------- PartialLink,LS -----------------#
+
+#BEGIN_COMMENT
+# This test checks that the strings that have mergeable strings are merged
+# during partial link %linkopts as one section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.s -o %t1.1.o -fintegrated-as
+RUN: %clang %clangopts -c %p/Inputs/bar.s -o %t1.2.o -fintegrated-as
+RUN: %link %linkopts -r %t1.1.o  %t1.2.o -o %t2.r.o  -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.r.o | %filecheck %s
+#CHECK: .rodata    PROGBITS
+#CHECK: .rel.rodata REL
+#END_TEST

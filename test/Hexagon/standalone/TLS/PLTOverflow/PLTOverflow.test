@@ -1,0 +1,12 @@
+# --PLTOverflow.test--------------------- Shared Lib---------------------------#
+
+# -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# Check that linker creates trampolines for GD
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -ftls-model=global-dynamic -o %t1.o
+RUN: %link %linkopts -shared %t1.o -o %t2.so -T %p/Inputs/script.t --trace=trampolines 2>&1 | %filecheck %s
+
+#CHECK: __tls_get_addr

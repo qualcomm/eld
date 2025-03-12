@@ -1,0 +1,11 @@
+digraph G {
+    rankdir="LR";
+    node [shape=rectangle]
+    A [label="Initializing"]
+    B [label="BeforeLayout"]
+    C [label="CreatingSections"]
+    D [label="AfterLayout"]
+    A -> B
+    B -> C
+    C -> D
+}

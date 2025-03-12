@@ -1,0 +1,5 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: UPInitError
+    Library: UPInitError
+    Options: Hey

@@ -1,0 +1,19 @@
+#---DebugSectionsWithGC.test------------ Executable------------------#
+
+
+#BEGIN_COMMENT
+#debug_aranges section abruptly ends with more entries need to be parsed
+#still. This patch fixes it. Affects only RISC-V
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c -g -gdwarf-4 %p/Inputs/1.c -ffunction-sections -o %t1.o
+RUN: %link %linkopts %t1.o -o %t1.out -g -e main
+RUN: %dwarfdump %t1.out 2>&1 | %filecheck %s
+
+#CHECK: DW_AT_name	("{{.*}}1.c")
+#CHECK: DW_AT_low_pc	(0x{{[0]+}})
+#CHECK: DW_AT_ranges	(0x{{[0]+}}
+#CHECK: [0x000000{{[0-9a-f]+}}, 0x000000{{[0-9a-f]+}})
+#CHECK: [0x000000{{[0-9a-f]+}}, 0x000000{{[0-9a-f]+}})
+#CHECK: [0x000000{{[0-9a-f]+}}, 0x000000{{[0-9a-f]+}}))

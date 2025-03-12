@@ -1,0 +1,12 @@
+#---Padding.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests that the YAML file records padding information.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map -o %t2.out -T %p/Inputs/script.t
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: ALIGNMENT_PADDING

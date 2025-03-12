@@ -1,0 +1,11 @@
+UNSUPPORTED: reproduce_fail
+#----Message------------------- Executable -----------------------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker emits a message before writing output tarball
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --reproduce output.tar 2>&1 | %filecheck %s
+#CHECK: Creating tarball output.tar
+#END_TEST

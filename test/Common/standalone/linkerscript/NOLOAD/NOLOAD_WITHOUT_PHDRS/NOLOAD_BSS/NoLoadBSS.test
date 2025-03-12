@@ -1,0 +1,15 @@
+#--NoLoadBSS.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# Support NOLOAD without PHDRS's
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.1 -Map %t1.map
+RUN: %readelf -a -W %t2.out.1 | %filecheck %s -check-prefix=READELF
+#END_TEST
+
+#READELF: .bar NOBITS
+#READELF: .baz NOBITS
+#READELF: 00 .foo
+#READELF: 01 .bar .baz

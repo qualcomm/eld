@@ -1,0 +1,13 @@
+#---reloc_VENDOR_missing.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+#  Error when Relocation 192-255 has a R_RISCV_VENDOR (191)
+#  relocation but we don't support that vendor
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}1.o: Unknown Vendor Symbol 'UNKNOWN' for relocation 'R_RISCV_CUSTOM192'

@@ -1,0 +1,16 @@
+#---ProvideAtSectionsEnd.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the PROVIDE symbol evaluation for a more complicated
+# case in which PROVIDE expression is at end of SECTIONS command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.ProvideAtSectionsEnd.t 2>&1
+RUN: %readelf -Ss %t1.1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK-DAG: 1000 {{.*}} ABS f1
+CHECK-DAG: 1000 {{.*}} ABS f3
+CHECK-DAG: 1000 {{.*}} ABS f4
+CHECK-DAG: 1000 {{.*}} ABS PROVIDED_SYM
+CHECK-DAG: 1000 {{.*}} ABS f2

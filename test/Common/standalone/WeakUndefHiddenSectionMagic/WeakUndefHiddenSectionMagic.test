@@ -1,0 +1,21 @@
+#---WeakUndefHiddenSectionMagic.test----------- Executable,Shared----------------#
+
+#BEGIN_COMMENT
+# Weak undefined symbols with non default visibility should be used
+# for "magic section" symbols resolution.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -o %t.1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -o %t.a.out -dy %t.1.o
+# With undefined symbols, link fails
+RUN: %readelf --symbols %t.a.out | %filecheck %s --check-prefix="SYMS"
+RUN: %readelf --dyn-symbols %t.a.out | %filecheck %s --allow-empty --check-prefix="DYNSYMS"
+
+#SYMS-DAG: WEAK HIDDEN UND __start_foo_hidden
+#SYMS-DAG: WEAK HIDDEN UND __stop_foo_hidden
+#SYMS-DAG: WEAK PROTECTED UND __start_foo_protected
+#SYMS-DAG: WEAK PROTECTED UND __stop_foo_protected
+
+#DYNSYMS-NOT: foo
+
+#END_TEST

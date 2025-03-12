@@ -1,0 +1,18 @@
+#---SortByInitPriority.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker script directive SORT_BY_INIT_PRIORITY
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --emit-timing-stats=%t.time.stats -M 2>&1 | %filecheck %s
+
+#CHECK: .text.a.1
+#CHECK: .text.a.2
+#CHECK: .text.a.3
+#CHECK: .text.a.4
+#CHECK: .text.a.5
+#CHECK: .text.a.6
+#CHECK: .text.a.7
+#CHECK: .text.a.8
+#CHECK: .text.a.9

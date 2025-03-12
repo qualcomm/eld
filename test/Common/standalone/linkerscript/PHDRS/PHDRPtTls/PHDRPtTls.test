@@ -1,0 +1,11 @@
+UNSUPPORTED: ndk-build
+#---PHDRPtTls.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+#Linker should not error out if a TBSS section is not marked by a PT_LOAD
+#segment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/s.t -o %t2.out 2>&1
+#END_TEST

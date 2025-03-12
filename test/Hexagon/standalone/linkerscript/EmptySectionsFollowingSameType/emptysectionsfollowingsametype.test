@@ -1,0 +1,11 @@
+# This tests that empty sections are followed by the same type of sections prior
+# to the empty sections are attached to the same segment.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -h -l -S %t2.out | %filecheck %s
+
+#CHECK:  [ 1] .text.foo         PROGBITS        00000000 001000 00000c 00  AX  0   0 16
+#CHECK:  [ 2] .text.bar         PROGBITS        00000010 001010 00000c 00  AX  0   0 16
+#CHECK:  LOAD           0x001000 0x00000000 0x00000000 0x0001c 0x0001c R E 0x1000
+#CHECK:  Segment Sections...
+#CHECK:   00     .text.foo .text.bar

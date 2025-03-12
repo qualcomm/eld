@@ -1,0 +1,1 @@
+PLUGIN_ITER_SECTIONS("VerboseDiagnostics", "VerboseDiagnostics");

@@ -1,0 +1,25 @@
+#---MapFileCommonSymbols.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+#This tests that Map file are shown properly in the Map file.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: .bss    0x0     0x2004 # Offset: 0x2000, LMA: 0x0, Alignment: 0x2000
+#CHECK: *(COMMON)
+#CHECK: *(.bss)
+#CHECK: .scommon.4.a    0x64    0x4     {{.*}}     #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,4
+#CHECK:         0x64            a
+#CHECK: PADDING_ALIGNMENT       0x68    0x398   0x0
+#CHECK: .scommon.4.b    0x400   0x4     {{.*}}     #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,1024
+#CHECK:         0x400           b
+#CHECK: PADDING_ALIGNMENT       0x404   0x3fc   0x0
+#CHECK: .scommon.4.c    0x800   0x4     {{.*}}     #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,2048
+#CHECK:         0x800           c
+#CHECK: PADDING_ALIGNMENT       0x804   0x7fc   0x0
+#CHECK: .scommon.4.d    0x1000  0x4     {{.*}}     #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,4096
+#CHECK:         0x1000          d
+#CHECK: PADDING_ALIGNMENT       0x1004  0xffc   0x0
+#CHECK: .scommon.4.e    0x2000  0x4     {{.*}}     #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,8192
+#CHECK:         0x2000          e

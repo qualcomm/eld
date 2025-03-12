@@ -1,0 +1,23 @@
+UNSUPPORTED: ndk-build
+# --TLSNonTLSMix.test------------------------ Executable-----------------------#
+
+# -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# TLS symbols must only be resolved or overridden (in case of undefined) by
+# TLS symbols. Global regular symbols of same name must be flagged as error
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/4.c -o %t4.o
+RUN: %not %link %linkopts %t1.o %t2.o -o %t.out 2>&1 | %filecheck %s --check-prefix="REFREF"
+RUN: %not %link %linkopts %t1.o %t3.o -o %t.out 2>&1 | %filecheck %s --check-prefix="DEFREF"
+RUN: %not %link %linkopts %t2.o %t4.o -o %t.out 2>&1 | %filecheck %s --check-prefix="REFDEF"
+RUN: %not %link %linkopts %t3.o %t4.o -o %t.out 2>&1 | %filecheck %s --check-prefix="DEFDEF"
+
+#REFREF: bar: TLS reference in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp2.o mismatches non-TLS reference in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp1.o
+#DEFREF: bar: TLS definition in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp3.o mismatches non-TLS reference in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp1.o
+#REFDEF: bar: non-TLS definition in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp4.o mismatches TLS reference in {{[ #-\(\)_A-Za-z0-9.\\/:]+}}tmp2.o
+#DEFDEF: bar: non-TLS definition in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp4.o mismatches TLS definition in {{[ -\(\)_A-Za-z0-9.\\/:]+}}tmp3.o

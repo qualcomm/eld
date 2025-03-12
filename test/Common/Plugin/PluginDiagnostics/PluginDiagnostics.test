@@ -1,0 +1,11 @@
+#---PluginDiagnostics.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This test checks the basic behavior of plugin diagnostics.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o -L%libsdir/test -T %p/Inputs/1.linker.script 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: PluginDiagnostics:Note: Test note diagnostic!
+#CHECK: PluginDiagnostics:Note: Error disguised as note!

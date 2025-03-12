@@ -1,0 +1,33 @@
+#---TrampolinesYAML.test--------------------- Executable,LS ------------------#
+
+#BEGIN_COMMENT
+# This tests that the trampoline information is shown in the YAML file properly.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %link %linkopts -T %p/Inputs/link.script %t.main.o -o %t.trampolineyaml.out --trace=trampolines -M -MapStyle yaml --trampoline-map %t2.map 2>&1 | %filecheck %s -check-prefix=YAML
+RUN: %filecheck %s -check-prefix=YAML < %t2.map
+
+#YAML: - OutputSection:   .text
+#YAML:   Trampolines:
+#YAML:     - Name:            'trampoline_for_.tcm_static#(Function1)_from_.text_{{[0-9]+}}#(0)
+#YAML:       From:            .text
+#YAML:       Symbols:
+#YAML:         - Symbol:          main
+#YAML:           Type:            [ STT_FUNC ]
+#YAML:       Origin:          {{.*}}
+#YAML:       To:              .tcm_static
+#YAML:       Destination:     {{.*}}
+#YAML:     - Name:            'trampoline_for_.tcm_static#(Function2)_from_.text_{{[0-9]+}}#
+#YAML:       From:            .text
+#YAML:       Symbols:
+#YAML:         - Symbol:          main
+#YAML:           Type:            [ STT_FUNC ]
+#YAML:       Origin:          {{.*}}
+#YAML:       To:              .tcm_static
+#YAML:       Destination:     {{.*}}
+#YAML:       Uses:
+#YAML:         - From:            .text
+#YAML:           Symbols:
+#YAML:             - Symbol:          main
+#YAML:               Type:            [ STT_FUNC ]
+#YAML:           Origin:          {{.*}}

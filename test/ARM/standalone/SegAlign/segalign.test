@@ -1,0 +1,6 @@
+# Check that segment alignment is what is set by the ABI.
+RUN: %clang %clangopts -target arm -c %p/Inputs/bss.c -o %t.o
+RUN: %link %linkopts -march arm %t.o -o %t.out
+RUN: %readelf -W -l %t.out | %filecheck %s
+
+#CHECK:   LOAD           0x010000 0x00010000 0x00010000 0x00000 0x00004 RW  0x1000

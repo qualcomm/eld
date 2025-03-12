@@ -1,0 +1,22 @@
+#---WeakUndefNonDefaultVisibility.test----------- SharedLibrary----------------#
+
+
+#BEGIN_COMMENT
+# Weak undefined symbolos with non default visibility are not preemptible
+# They are converted to local default visibility and resolved to 0
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -o %t1.protected.o
+RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -DHIDDEN -o %t1.hidden.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fpic -o %t2.o
+RUN: %link %linkopts -shared -o %t2.so %t2.o
+RUN: %link %linkopts --hash-style=sysv -dy %t1.protected.o %t2.so -o %t1.out
+RUN: %link %linkopts --hash-style=sysv -dy %t1.hidden.o %t2.so -o %t2.out
+RUN: %readelf --symbols %t1.out | %filecheck %s --check-prefix="PROT"
+RUN: %readelf --dyn-symbols %t1.out | %filecheck %s --check-prefix="DYNSYM-PROT"
+RUN: %readelf --symbols %t2.out | %filecheck %s --check-prefix="HIDDEN"
+RUN: %readelf --dyn-symbols %t2.out | %filecheck %s --check-prefix="DYNSYM-HIDDEN"
+
+#PROT: NOTYPE  WEAK  PROTECTED  UND foo
+#DYNSYM-PROT-NOT: foo
+#HIDDEN: NOTYPE  WEAK  HIDDEN  UND foo
+#DYNSYM-HIDDEN-NOT: foo

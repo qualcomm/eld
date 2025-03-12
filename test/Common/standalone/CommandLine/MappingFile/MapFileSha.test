@@ -1,0 +1,15 @@
+UNSUPPORTED: riscv32, riscv64
+#----MapFileSha.test------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if map file contains file path and sha if --mapping-file is used
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o 123456789
+RUN: %clang %clangopts -c %p/Inputs/1.c -o bar.o
+RUN: %link 123456789 --mapping-file=%p/Inputs/mapping.ini -Map=%t0.map -o %t2.out.sha
+RUN: %filecheck %s < %t0.map
+CHECK: Original CommandLine
+CHECK: bar.o --mapping-file=
+CHECK: bar.o(123456789)
+#END_TEST

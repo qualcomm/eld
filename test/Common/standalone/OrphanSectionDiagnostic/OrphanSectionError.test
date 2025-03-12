@@ -1,0 +1,14 @@
+#---OrphanSectionsError.test------------Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks if a diagnostic error is emitted when an orphan section
+# is detected when orphan_handling is set to "error".
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts -orphan-handling=error %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK:Error: no linker script rule for section .text.bar
+
+
+

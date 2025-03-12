@@ -1,0 +1,4 @@
+# Test that INCLUDE_OPTIONAL Keyword is supported.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+#CHECK: nonexistentfile.t

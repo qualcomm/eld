@@ -1,0 +1,7 @@
+PLUGIN_SECTION_MATCHER("TestChangeSection", "ChangeSection")
+
+SECTIONS {
+  foo : { *(.text.foo) }
+  bar : { *(.text.bar) }
+  text : { *(.text*) }
+}

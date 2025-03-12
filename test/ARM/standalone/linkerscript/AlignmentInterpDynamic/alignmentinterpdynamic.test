@@ -1,0 +1,8 @@
+# Test that interp and dynamic segment are associated with proper alignments.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -march arm %t1.o -T %p/Inputs/script.t -o %t2.out --force-dynamic -E
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  INTERP         {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} R   0x1
+#CHECK:  DYNAMIC        {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} RW  0x4
+

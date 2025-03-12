@@ -1,0 +1,19 @@
+UNSUPPORTED: oldreaders
+#---UnsupportedArchiveMember.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This test checks that the new input readers reports a warning for unsupported
+# archive members.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.main.o -c %p/Inputs/main.c -ffunction-sections
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
+RUN: %ar cr %aropts %t1.lib1.a %t1.1.o %p/Inputs/HelloWorld.txt %p/Inputs/script.t
+RUN: %link -MapStyle txt %linkopts -o %t1.main.elf %t1.main.o %t1.lib1.a 2>&1 | %filecheck %s --check-prefix=DISABLE_WARNING_CHECK --allow-empty
+RUN: %link -MapStyle txt %linkopts -o %t1.main.elf %t1.main.o %t1.lib1.a -Warchive-file 2>&1 | %filecheck %s
+RUN: %link -MapStyle txt %linkopts -o %t1.main.elf %t1.main.o %t1.lib1.a -Wno-archive-file 2>&1 | %filecheck %s --check-prefix=DISABLE_WARNING_CHECK --allow-empty
+#END_TEST
+CHECK: Warning: Archive member '{{.*}}lib1.a'('{{.*}}HelloWorld.txt') is not an object
+CHECK: Warning: Archive member '{{.*}}lib1.a'('{{.*}}script.t') is not an object
+DISABLE_WARNING_CHECK-NOT: Unsupported member

@@ -1,0 +1,4 @@
+{
+  commonSym;
+    NoGC;
+};

@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o -ffunction-sections
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t %t1.o %t2.o -o %t.out 2>&1
+RUN: %readelf -s %t.out | %filecheck %s
+
+CHECK:  {{[x0-9a-f]+}}     0 NOTYPE  GLOBAL DEFAULT  ABS __unrecognized_start__
+CHECK:  {{[x0-9a-f]+}}     0 NOTYPE  GLOBAL DEFAULT  ABS __unrecognized_end__

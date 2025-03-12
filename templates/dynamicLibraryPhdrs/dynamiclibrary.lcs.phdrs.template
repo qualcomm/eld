@@ -1,0 +1,118 @@
+OUTPUT_FORMAT("elf32-littlehexagon", "elf32-littlehexagon",
+	      "elf32-littlehexagon")
+
+PHDRS {
+  TEXT PT_LOAD FILEHDR PHDRS;
+  RODATA PT_LOAD;
+  DATA PT_LOAD;
+  DYNAMIC PT_DYNAMIC;
+  EHFRAMEHDR PT_GNU_EH_FRAME;
+}
+
+SECTIONS
+{
+  . = SIZEOF_HEADERS;
+
+  /* SysV hash section */
+  .hash           :  { *(.hash) } :TEXT
+
+  /* GNU hash section */
+  .gnu.hash       :  { *(.gnu.hash) } :TEXT
+
+  /* Dynamic Symbol Table section */
+  .dynsym         :  { *(.dynsym) } :TEXT
+
+  /* Dynamic string table section */
+  .dynstr         :  { *(.dynstr) } :TEXT
+
+  /* Dynamic relocations for data */
+  .rela.dyn       :  { *(.rela.dyn) } :TEXT
+
+  /* Dynamic relocations for PLT */
+  .rela.plt       :  { *(.rela.plt) } :TEXT
+
+  /* Initializer */
+  .init           :
+  {
+    KEEP (*(.init))
+  } :TEXT
+
+  /* Procedure Linkage table */
+  .plt            :  { *(.plt) } :TEXT
+
+  /* Text section */
+  .text           :
+  {
+    *(.text*)
+    . = ALIGN(16);
+    __start___lcxx_override = .;
+    *(__lcxx_override)
+    __stop___lcxx_override = .;
+  } :TEXT
+
+  /* Finalizer section */
+  .fini           :
+  {
+    KEEP (*(.fini))
+  } :TEXT
+
+  . = ALIGN(4K);
+
+  /* Read Only Data */
+  .rodata         : { *(.rodata*) } :RODATA
+
+  /* EH Frame Information */
+  .eh_frame_hdr   :  { *(.eh_frame_hdr) } :EHFRAMEHDR :RODATA
+  .eh_frame       :  ONLY_IF_RO { KEEP (*(.eh_frame)) } :RODATA
+
+  . = ALIGN(4K);
+  /* Constructors and Destructors */
+  .init_array     :  { KEEP (*(.init_array)) } :DATA
+  .fini_array     :  { KEEP (*(.fini_array.*)) } :DATA
+  .ctors          : { KEEP (*(.ctors)) } :DATA
+  .dtors          : { KEEP (*(.dtors)) } :DATA
+
+
+  .data.rel.ro    :  { *(.data.rel.ro*) } :DATA
+
+   /* Dynamic Sections */
+  .dynamic        :  { *(.dynamic) } :DYNAMIC :DATA
+
+   /* GOT section */
+  .got            :  { *(.got) } :DATA
+
+  /* GOT slots for PLT section  */
+  .got.plt        :  { *(.got.plt) } :DATA
+
+  .data           :
+  {
+    *(.data .data.*)
+  } :DATA
+
+  .bss            :
+  {
+   *(.bss*)
+   *(COMMON)
+  } :DATA
+
+  /* Non alloc sections */
+  PROVIDE (end = .);
+  .hexagon.attributes 0 : { *(.hexagon.attributes) }
+  .comment       0 :  { *(.comment) }
+  /* GNU DWARF 1 extensions */
+  .debug_srcinfo  0 :  { *(.debug_srcinfo) }
+  .debug_sfnames  0 :  { *(.debug_sfnames) }
+  /* DWARF 1.1 and DWARF 2 */
+  .debug_aranges  0 :  { *(.debug_aranges) }
+  .debug_pubnames 0 :  { *(.debug_pubnames) }
+  /* DWARF 2 */
+  .debug_info     0 :  { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 :  { *(.debug_abbrev) }
+  .debug_line     0 :  { *(.debug_line) }
+  .debug_frame    0 :  { *(.debug_frame) }
+  .debug_str      0 :  { *(.debug_str) }
+  .debug_loc      0 :  { *(.debug_loc) }
+  /* DWARF 3 */
+  .debug_pubtypes 0 :  { *(.debug_pubtypes) }
+  .debug_ranges   0 :  { *(.debug_ranges) }
+}

@@ -1,0 +1,15 @@
+#---ChangeChunkData.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#Test section types and flags are determined correctly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c -o %t.1.o -fno-common %p/Inputs/1.c
+RUN: %link %linkopts -o %t.out %t.1.o --trace=plugin -L%libsdir/test --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
+
+# CHECK: {{.*}}.1.o .text 1 0 1 1 0
+# CHECK: {{.*}}.1.o .data 1 0 0 1 1
+# CHECK: {{.*}}.1.o .rodata 1 0 0 1 0
+# CHECK: {{.*}}.1.o .bss 0 1 0 1 1
+
+#END_TEST

@@ -1,0 +1,6 @@
+# This tests that merge string and map file shows that strings are merged.
+RUN: %clang %clangopts -c %p/Inputs/const1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/const2.c -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t3.out -M --MapDetail=show-strings 2>&1 | %filecheck %s
+#CHECK: Hello
+#CHECK: World

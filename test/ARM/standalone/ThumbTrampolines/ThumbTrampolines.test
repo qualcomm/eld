@@ -1,0 +1,13 @@
+#---ThumbTrampolines.test--------- Executable --------------------------#
+
+#BEGIN_COMMENT
+# This tests that the THM2 call can create trampolines properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c --target=armv7m-none-eabi -ffunction-sections
+RUN: %link %linkopts  %t1.1.o  -o %t.out -T %p/Inputs/script.t --trace=trampolines 2>&1 | %filecheck %s
+
+#CHECK: Creating Stub __bar_T2T_veneer
+#CHECK: Creating Stub __baz_T2T_veneer
+
+#END_TEST

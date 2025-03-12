@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/1.c -fpic -o %t1.o
+RUN: %link %linkopts %t1.o -o %t.out -dy -shared  --gc-sections --entry=main 2>&1
+RUN: %readelf -s %t.out | %grep 'common' | %filecheck %s
+
+#CHECK:   4 OBJECT  GLOBAL DEFAULT    9 commonInt
+#CHECK:   1 OBJECT GLOBAL DEFAULT 9 commonChar
+#CHECK:   40 OBJECT GLOBAL DEFAULT 9 commonArray

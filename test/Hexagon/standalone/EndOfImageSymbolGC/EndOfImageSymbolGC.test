@@ -1,0 +1,22 @@
+#---EndOfImageSymbolGC.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to add an end of image marker symbol that
+# points to the end of the image. The tests check with %readelf output as the old
+# check is not enough.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/fb.s -o %t1.o
+RUN: %link %linkopts %t1.o -e main --gc-sections -o %t2.out
+RUN: %dwarfdump -debug-frame %t2.out | %filecheck %s -check-prefix=EOI
+RUN: %link %linkopts %t1.o -e main --gc-sections -defsym __end=0 -o %t2.out.noeoi
+RUN: %dwarfdump -debug-frame %t2.out.noeoi | %filecheck %s -check-prefix=NOEOI
+
+#EOI: 00000014 0000000c 00000000 FDE cie=00000000 pc=00000000...00000004
+#EOI: 00000024 0000000c 00000000 FDE cie=00000000 pc=00000009...0000000d
+#EOI: 00000034 0000000c 00000000 FDE cie=00000000 pc=00000009...0000000d
+#NOEOI: 00000014 0000000c 00000000 FDE cie=00000000 pc=00000000...00000004
+#NOEOI: 00000024 0000000c 00000000 FDE cie=00000000 pc=00000000...00000004
+#NOEOI: 00000034 0000000c 00000000 FDE cie=00000000 pc=00000000...00000004
+
+#END_TEST

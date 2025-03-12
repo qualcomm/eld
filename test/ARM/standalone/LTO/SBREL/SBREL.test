@@ -1,0 +1,23 @@
+#XFAIL: ndk-build
+#---SBREL.test--------------------- Executable,LTO ------------------------------ ------------------#
+
+#BEGIN_COMMENT
+# This tests that SBREL32 relocation is implemented and the relocation is
+# applied properly by picking the value of the relocation to be computed based
+# on the base address of the segment.
+#END_COMMENT
+RUN: %clang %clangopts -fno-pie -c %p/Inputs/1.c -o %t1.1.o -frwpi -flto
+RUN: %link %linkopts %t1.1.o  -frwpi -o %t2.out.1 -e main --trace=lto 2>&1 | %filecheck %s -check-prefix=TRACELTO1
+RUN: %link %linkopts %t1.1.o  -fropi -o %t2.out.2 -e main --trace=lto 2>&1 | %filecheck %s -check-prefix=TRACELTO2
+RUN: %link %linkopts %t1.1.o -fropi -frwpi -o %t2.out.3 -e main --trace=lto 2>&1 | %filecheck %s -check-prefix=TRACELTO3
+#TRACELTO1: RWPI
+#TRACELTO2: ROPI
+#TRACELTO3: ROPI, RWPI
+RUN: %objdump -d %t2.out.1 | %filecheck %s
+RUN: %objdump -d %t2.out.3 | %filecheck %s
+RUN: %nm -n %t2.out.2 | %filecheck %s -check-prefix=SYM
+
+#CHECK-DAG:  .word   0x00000004
+#CHECK-DAG:  .word   0x00000000
+
+#SYM: __RWPI_BASE__

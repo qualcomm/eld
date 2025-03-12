@@ -1,0 +1,13 @@
+#---MapStyleAll.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# Teach linker to emit multiple map files
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle all %linkopts %t1.1.o -Map %t1.map -o %t2.out 2>&1
+RUN: %python %yamlmapparser --map %t1.map.yaml --xref 2>&1 | %filecheck %s
+RUN: %filecheck %s < %t1.map
+#CHECK: {{.*}}1.o
+#CHECK: {{.*}}foo

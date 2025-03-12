@@ -1,0 +1,13 @@
+# Test that hidden symbols are not exported.
+RUN: %clang %clangopts -ftls-model=initial-exec -c -fpic %p/Inputs/1.s  -o %t1.o
+RUN: %clang %clangopts -ftls-model=initial-exec -c -fpic %p/Inputs/2.s   -o %t2.o
+RUN: %link %linkopts -G0   %t1.o  %t2.o  -o %t.out
+RUN: %readelf -l -r -S -s -W -x .got %t.out |   %filecheck %s
+
+# CHECK:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x0000c 0x00010 R   0x8
+# CHECK:  00000000     4 TLS     GLOBAL DEFAULT    {{[0-9]}} dst
+# CHECK:  00000004     4 TLS     GLOBAL DEFAULT    {{[0-9]}} src1
+# CHECK:  00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} src2
+# CHECK: {{[x0-9a-z]+}} f4ffffff f8ffffff
+
+

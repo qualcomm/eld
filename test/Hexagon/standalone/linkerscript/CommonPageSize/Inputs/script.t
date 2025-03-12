@@ -1,0 +1,7 @@
+SECTIONS
+{
+  . = 0x4017dc;
+  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  .data : { *(.data) }
+  . = DATA_SEGMENT_END (.);
+}

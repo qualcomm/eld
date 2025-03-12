@@ -1,0 +1,9 @@
+# Check extern list
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o
+RUN: %ar cr %tlib.a %t2.o
+RUN: %link %linkopts -march aarch64 %t1.o %tlib.a -o %t.out --extern-list=%p/Inputs/list --force-dynamic 2>&1
+RUN: %readelf -s %t.out  | %filecheck %s
+
+#CHECK:       {{[0-9a-f]+}}: {{[0-9a-f]+}}    0 NOTYPE  GLOBAL DEFAULT  UND externSym
+#CHECK:       {{[0-9a-f]+}}: {{[0-9a-f]+}}    8 FUNC    GLOBAL DEFAULT    5 foo

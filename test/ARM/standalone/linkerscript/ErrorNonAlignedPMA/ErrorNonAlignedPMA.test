@@ -1,0 +1,10 @@
+#---ErrorNonAlignedPMA.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the linker throws error when physical address of a segment is not aligned to ELF spec
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --compact 2>&1 | %filecheck %s
+#CHECK: Physical address and the offset of a segment must be congruent modulo
+#END_TEST

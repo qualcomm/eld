@@ -1,0 +1,20 @@
+RUN: %clang -target armv7a -mcpu=cortex-a8 -c %p/Inputs/t.s -o %t1.o
+RUN: %clang -target armv7a -mcpu=cortex-a8 -c %p/Inputs/f.s -o %t2.o
+RUN: %link %linkopts -march arm -shared %t1.o %t2.o -o %tlibt.so
+RUN: %link %linkopts -march arm -shared %t1.o %t2.o -o %tlibt.sym.so -Bsymbolic
+RUN: %link %linkopts -march arm -shared %t1.o %t2.o -o %tlibt2.so -z compactdyn
+RUN: %readelf -r %tlibt.so | %filecheck %s --check-prefix=WITHOUT
+RUN: %readelf -r %tlibt.sym.so | %filecheck %s --check-prefix=WITH
+RUN: %readelf -a %tlibt2.so | %filecheck %s --check-prefix=COMPACT
+
+WITHOUT: {{[0-9a-f]+}} R_ARM_RELATIVE
+WITHOUT: {{[0-9a-f]+}} R_ARM_GLOB_DAT
+WITHOUT: bar
+
+WITH: {{[0-9a-f]+}} R_ARM_RELATIVE
+WITH: {{[0-9a-f]+}} R_ARM_RELATIVE
+
+COMPACT: Dynamic section at offse
+COMPACT: HASH
+COMPACT-NOT: PLTGOT
+COMPACT-NOT: DEBUG

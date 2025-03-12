@@ -1,0 +1,4 @@
+#<SYMDEFS>#
+#DO NOT EDIT#
+0x080000	FUNC	bar
+0x8782c0	FUNC	baz

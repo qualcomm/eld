@@ -1,0 +1,13 @@
+#---NumSegments.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the number of segments stat in the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -Map %t1.1.map.txt
+RUN: %readelf -l %t1.1.out | %grep -E 'LOAD|GNU_STACK|EXIDX|ATTRIBUTES' -c > %t1.NumSegments.txt
+RUN: cat %t1.NumSegments.txt %t1.1.map.txt | %filecheck %s --match-full-lines
+#END_TEST
+CHECK: [[SegmentCount:[0-9]+]]
+CHECK: # NumSegments : [[SegmentCount]]

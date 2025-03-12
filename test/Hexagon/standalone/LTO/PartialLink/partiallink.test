@@ -1,0 +1,10 @@
+# Test that LTO can be used for partial linking.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -flto
+RUN: %link %linkopts  -r %t1.1.o -o %t1.r.o --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+RUN: %nm -n %t1.r.o | %filecheck %s
+
+#PRESERVE-DAG: Note: Preserving symbol bar
+#PRESERVE-DAG: Note: Preserving symbol foo
+
+#CHECK-DAG: foo
+#CHECK-DAG: bar

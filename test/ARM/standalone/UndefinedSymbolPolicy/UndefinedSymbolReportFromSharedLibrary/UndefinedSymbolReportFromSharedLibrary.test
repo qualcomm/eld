@@ -1,0 +1,15 @@
+#---UndefinedSymbolReportFromSharedLibrary.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+#This checks that undefined symbols are reported by the linker by default, but
+#when user uses the option --unresolved-symbols="ignore-in-shared-libs". The
+#option "ignore-in-object-files" is also checked to make sure the test fails
+#with a failure in the link %linkopts step.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %not %link %linkopts -Bdynamic %t1.1.o %t1.lib2.so -o %t2.out --unresolved-symbols=ignore-in-object-files
+RUN: %link %linkopts -Bdynamic %t1.1.o %t1.lib2.so -o %t2.out --unresolved-symbols=ignore-in-shared-libs
+#END_TEST

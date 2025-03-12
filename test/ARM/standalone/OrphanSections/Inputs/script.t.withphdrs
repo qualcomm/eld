@@ -1,0 +1,13 @@
+PHDRS {
+  a PT_LOAD;
+  b PT_LOAD;
+  c PT_LOAD;
+}
+
+SECTIONS {
+  .text : { *(.text) } :a
+  .temp : { *(.temp) } :b
+  __bss_start = .;
+  . = ALIGN(1K);
+  .bss : { *(.bss) } :c
+}

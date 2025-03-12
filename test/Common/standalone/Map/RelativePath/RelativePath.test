@@ -1,0 +1,54 @@
+#---RelativePath.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This test checks the working of relative-path MapDetail option.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.lib2.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %ar cr %t1.lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path=%T -Map %t1.1.map.txt --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %filecheck %s < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path=. -Map %t1.1.map.txt.dot
+RUN: %filecheck %s --check-prefix=DOT < %t1.1.map.txt.dot
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path -Map %t1.1.map.txt.default
+RUN: %filecheck %s --check-prefix=DEFAULT < %t1.1.map.txt.default
+RUN: %rm %t1.lib2.a
+RUN: %ar --thin cr %t1.lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path=%T -Map %t1.1.map.txt --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %filecheck %s --check-prefix=CHECK_THIN < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path=. -Map %t1.1.map.txt.dot
+RUN: %filecheck %s --check-prefix=DOT_THIN < %t1.1.map.txt.dot
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path -Map %t1.1.map.txt.default
+RUN: %filecheck %s --check-prefix=DEFAULT_THIN < %t1.1.map.txt.default
+#END_TEST
+VERBOSE: Verbose: Using '{{.*}}' for computing relative paths in map files
+CHECK: # Basepath: {{.*}}
+CHECK: {{0x[0-9a-z]+}} RelativePath.test.tmp1.1.o
+CHECK: {{0x[0-9a-z]+}} RelativePath.test.tmp1.lib2.a(RelativePath.test.tmp1.2.o)
+CHECK: {{0x[0-9a-z]+}} Linker Version
+CHECK-NOT: /RelativePath.test.tmp1.1.o
+DOT: # Basepath: {{.*}}
+DOT: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.1.o
+DOT: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.lib2.a(RelativePath.test.tmp1.2.o)
+DOT: {{0x[0-9a-z]+}} Linker Version
+DEFAULT: # Basepath: {{.*}}
+DEFAULT: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.1.o
+DEFAULT: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.lib2.a(RelativePath.test.tmp1.2.o)
+DEFAULT: {{0x[0-9a-z]+}} Linker Version
+CHECK_THIN: # Basepath: {{.*}}
+CHECK_THIN: {{0x[0-9a-z]+}} RelativePath.test.tmp1.1.o
+CHECK_THIN: {{0x[0-9a-z]+}} RelativePath.test.tmp1.lib2.a(RelativePath.test.tmp1.2.o)
+CHECK_THIN: {{0x[0-9a-z]+}} Linker Version
+CHECK_THIN-NOT: /RelativePath.test.tmp1.1.o
+DOT_THIN: # Basepath: {{.*}}
+DOT_THIN: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.1.o
+DOT_THIN: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.lib2.a({{.*}}RelativePath.test.tmp1.2.o)
+DOT_THIN: {{0x[0-9a-z]+}} Linker Version
+DEFAULT_THIN: # Basepath: {{.*}}
+DEFAULT_THIN: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.1.o
+DEFAULT_THIN: {{0x[0-9a-z]+}} {{[ -\(\)_A-Za-z0-9.\\/:]+}}RelativePath.test.tmp1.lib2.a({{.*}}RelativePath.test.tmp1.2.o)
+DEFAULT_THIN: {{0x[0-9a-z]+}} Linker Version
+

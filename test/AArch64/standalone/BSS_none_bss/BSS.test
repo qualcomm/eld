@@ -1,0 +1,7 @@
+RUN: %yaml2obj %p/t.yaml -o %t.o
+RUN: %link %linkopts -march aarch64 -T %p/t.t %t.o -o %t.out
+RUN: llvm-objdump -s %t.out | %filecheck %s
+
+CHECK: 0000 00000000 00000000 00474343 3a202863
+CHECK: 0020 726f2d31 2e31332e 312d342e 382d3230
+CHECK: 0050 3000

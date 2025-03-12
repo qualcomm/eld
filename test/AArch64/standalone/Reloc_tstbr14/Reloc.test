@@ -1,0 +1,8 @@
+RUN: %yaml2obj %p/Inputs/1.yaml -o %t.o
+RUN: %link %linkopts -march aarch64 -T %p/t.ld --defsym target=0xc000 --defsym target2=0x12340 %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: 363dff84
+CHECK: b745ffe7
+CHECK: 3619194c
+CHECK: b7c118d1

@@ -1,0 +1,16 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o.noffdf -g
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o.noffdf -g
+RUN: %link %linkopts -march aarch64 --strip-debug %t1.o.noffdf %t2.o.noffdf -o %t1.out.noffdf
+RUN: %readelf -p 2 %t1.out.noffdf | %filecheck %s -check-prefix=NOFFDF
+RUN: %clang %clangopts -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.o.ffdf
+RUN: %clang %clangopts -target aarch64 -c -fdata-sections -fdata-sections %p/Inputs/2.c -o %t2.o.ffdf
+RUN: %link %linkopts -march aarch64 --strip-debug %t1.o.ffdf %t2.o.ffdf -o %t1.out.ffdf
+RUN: %readelf -p 2 %t1.out.ffdf | %filecheck %s -check-prefix=FFDF
+RUN: %link %linkopts -march aarch64 --strip-debug --gc-sections --entry=main %t1.o.ffdf %t2.o.ffdf -o %t1.out.ffdfgc
+RUN: %readelf -S -W %t1.out.ffdfgc | %filecheck %s
+
+NOFFDF:   [     0]  qualcomm
+FFDF:   [     0]  qualcomm
+CHECK-NOT: .rodata
+
+

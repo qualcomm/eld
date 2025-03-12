@@ -1,0 +1,22 @@
+#-----HI20_LO12_I_TO_GP_MERGE_STRING.test------ Executable----#
+
+
+#BEGIN_COMMENT
+# Test that HI/LO relocations relaxed to GP for string merging
+# point to the right addresses
+#END_COMMENT
+#--------------------------------------------------------------------
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts  %t1.o -o %t.out -T %p/Inputs/script.t
+RUN: %objdump --no-print-imm-hex -d %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: 1233000: 01234537   lui     a0, 4660
+#CHECK: 1233004: 56150513   addi    a0, a0, 1377
+#CHECK: 1233008: 4110       lw      a2, 0(a0)
+#CHECK: 123300a: 01234537   lui     a0, 4660
+#CHECK: 123300e: 80218513   addi    a0, gp, -2046
+#CHECK: 1233012: 4110       lw      a2, 0(a0)
+#CHECK: 1233014: 80218513   addi    a0, gp, -2046
+#CHECK: 1233018: 4110       lw      a2, 0(a0)

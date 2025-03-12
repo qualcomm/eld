@@ -1,0 +1,16 @@
+#---SectionFlags.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# Make sure we set the permission of the section properly.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.a
+RUN: %readelf -S -W %t2.out.a | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.2.o
+RUN: %link %linkopts %t1.2.o -T %p/Inputs/script.t -o %t2.out.b
+RUN: %readelf -S -W %t2.out.b | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/m.s -o %t1.3.o
+RUN: %link %linkopts %t1.3.o -T %p/Inputs/m.t -o %t2.out.c
+RUN: %readelf -S -W %t2.out.c | %filecheck %s
+
+#CHECK-NOT: .rodata {{[.*]+}} AMS

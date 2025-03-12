@@ -1,0 +1,8 @@
+SECTIONS {
+    .text : {
+        *(.comment)
+        *(.text*)
+        *(.debug_info)
+    }
+    /DISCARD/ : { *(.ARM.exidx*) }
+}

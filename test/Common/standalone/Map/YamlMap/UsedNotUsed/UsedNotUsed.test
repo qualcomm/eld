@@ -1,0 +1,38 @@
+UNSUPPORTED: riscv32, riscv64
+XFAIL: aarch64
+#---UsedNotUsed.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This tests that the linker prints filename as used when they are really used
+# and not used when they are not used.
+# YAML form.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -ffunction-sections -o %t1.3.o
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o %t1.3.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o %t1.lib2.a -Map %t2.map.1 --gc-sections
+RUN: %filecheck %s -check-prefix=GC < %t2.map.1
+RUN: %link -MapStyle yaml %linkopts %t1.1.o %t1.2.o %t1.3.o -Map %t2.map.2 --gc-sections
+RUN: %filecheck %s -check-prefix=GCF < %t2.map.2
+#END_TEST
+
+#GC: InputInfo:
+#GC:   - Path:            {{.*}}1.o
+#GC:     Used:            Used
+#GC:   - Path:            {{.*}}lib2.a
+#GC:     Used:            NotUsed
+#GC:     Members:
+#GC:       - Path:            {{.*}}2.o
+#GC:         Used:            NotUsed
+#GC:       - Path:            {{.*}}3.o
+#GC:         Used:            NotUsed
+#GCF: InputInfo:
+#GCF:   - Path:            {{.*}}1.o
+#GCF:     Used:            Used
+#GCF:   - Path:            {{.*}}2.o
+#GCF:     Used:            NotUsed
+#GCF:   - Path:            {{.*}}3.o
+#GCF:     Used:            NotUsed

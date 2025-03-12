@@ -1,0 +1,35 @@
+@LIT_SITE_CFG_IN_HEADER@
+config.llvm_src_root = "@LLVM_SOURCE_DIR@"
+config.llvm_obj_root = "@LLVM_BINARY_DIR@"
+config.llvm_tools_dir = "@LLVM_TOOLS_DIR@"
+config.llvm_libs_dir = "@LLVM_LIBS_DIR@"
+config.lit_tools_dir = "@LLVM_LIT_TOOLS_DIR@"
+config.has_zlib = "@LLVM_ENABLE_ZLIB@"
+config.eld_obj_root = "@ELD_BINARY_DIR@"
+config.eld_src_root = "@ELD_SOURCE_DIR@"
+config.target_triple = "@TARGET_TRIPLE@"
+config.eld_targets_to_build = "@ELD_CURRENT_TARGET@"
+config.targets_to_build = "@ELD_CURRENT_TARGET@"
+config.python_executable = "@PYTHON_EXECUTABLE@"
+config.emulator = "@ELD_EMULATOR@"
+config.emulator64 = "@ELD_EMULATOR64@"
+config.has_sanitize = "@ELD_SANITIZE@"
+config.has_tsan = "@ELD_THREAD_SANITIZE@"
+config.eld_option = "@ELD_OPTION@"
+config.eld_option_name = "@ELD_OPTION_NAME@"
+config.cpp_compiler = "@CMAKE_CXX_COMPILER@"
+config.cmake_executable = "@CMAKE_COMMAND@"
+if "@HEXAGON_EXPERIMENTAL@" in ["ON", "1"]:
+    config.available_features.add("hexagon_experimental")
+
+# Support substitution of the tools and libs dirs with user parameters. This is
+# used when we can't determine the tool dir at configuration time.
+try:
+    config.llvm_tools_dir = config.llvm_tools_dir % lit_config.params
+    config.llvm_libs_dir = config.llvm_libs_dir % lit_config.params
+except KeyError as e:
+    key, = e.args
+    lit_config.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key,key))
+
+# Let the main config do the real work.
+lit_config.load_config(config, "@ELD_SOURCE_DIR@/test/lit.cfg")

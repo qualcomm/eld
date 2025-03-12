@@ -1,0 +1,31 @@
+#---OptimizationRemarks.test----------------- Executable/LTO---------------#
+
+
+# BEGIN_COMMENT
+# A test to determine whether remarks get emitted when passed the appropriate flag
+# END_COMMENT
+# BEGIN_TEST
+
+RUN: %clang %clangopts -O3 -g -c  %p/Inputs/foo.c -flto -o %t1.1.o
+RUN: %clang %clangopts -O3 -g -c  %p/Inputs/main.c -flto -o %t2.1.o
+RUN: %link %linkopts %t1.1.o %t2.1.o -flto -e main -o %t.out -g -mllvm -pass-remarks=.* -mllvm -pass-remarks-missed=.* -mllvm -pass-remarks-analysis=.* -opt-record-file 2>&1 | %filecheck %s
+RUN: cat %t.out-LTO.opt.yaml | %filecheck %s -check-prefix=YAML
+
+# Checking -opt-record-file flag
+#YAML: --- !Passed
+#YAML: Pass:            inline
+#YAML: Name:            Inlined
+#YAML: --- !Missed
+#YAML: Pass:            gvn
+#YAML: Name:            LoadClobbered
+#YAML: --- !Analysis
+#YAML: Pass:            asm-printer
+#YAML: Name:            InstructionCount
+
+# Checking -pass-remarks flag
+#CHECK: Remark: LTO: {{.*}}[-Rpass=inline]
+
+# Checking -pass-remarks-missed flag
+#CHECK: Remark: LTO: {{.*}}[-Rpass-missed=gvn]
+#CHECK: Remark: LTO: {{.*}}[-Rpass-analysis=asm-printer]
+#END_TEST

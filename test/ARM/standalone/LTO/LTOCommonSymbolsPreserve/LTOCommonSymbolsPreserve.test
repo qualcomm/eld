@@ -1,0 +1,14 @@
+#---LTOCommonSymbolsPreserve.test----------------- Executable,LTO ------------------#
+
+#BEGIN_COMMENT
+#Linker asserts because a symbol preserved is not bitcode. This is because when
+#a COMMON symbol is seen by the linker, and resolved with an ELF, the COMMON
+#symbol is still preserved, which otherwise will allow the compiler to
+#internalize the symbol.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o -flto
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -ffunction-sections -o %t1.3.o
+RUN: %link -o %t1.out %linkopts %t1.1.o %t1.2.o %t1.3.o -e main --trace=lto 2>&1 | %filecheck %s
+
+#CHECK: Preserving symbol foo

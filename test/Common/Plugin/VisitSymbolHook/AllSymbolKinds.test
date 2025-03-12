@@ -1,0 +1,25 @@
+#---AllSymbolKinds.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of visit symbol hook.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -fPIC
+RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared
+RUN: %link %linkopts -o %t1.1.out -dy %t1.1.o %t1.lib2.so %p/Inputs/script.t --defsym=defsym_A=13 -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.1.out -dy %t1.1.o %t1.lib2.so %p/Inputs/script.t --defsym=defsym_A=13 -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --trace plugin 2>&1 | %filecheck %s --check-prefix TRACE
+#END_TEST
+CHECK: Visiting symbol: local_A
+CHECK: Visiting symbol: foo
+CHECK: Visiting symbol: bar
+CHECK: Visiting symbol: shared_baz
+CHECK: Visiting symbol: linker_script_A
+CHECK: Visiting symbol: defsym_A
+
+TRACE: Trace: Enabled VisitSymbol hook for the plugin 'VisitSymbolHook'
+Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'local_A'
+TRACE: Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'foo'
+TRACE: Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'bar'
+Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'shared_baz'
+Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'linker_script_A'
+Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'defsym_A'

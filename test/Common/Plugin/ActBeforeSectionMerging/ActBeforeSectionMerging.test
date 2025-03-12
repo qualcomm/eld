@@ -1,0 +1,12 @@
+#---ActBeforeSectionMerging.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of ActBeforeSectionMerging plugin hook.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config \
+RUN:   %p/Inputs/PluginConfig.yaml --trace plugin 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Trace: Calling plugin hook handler ActBeforeSectionMergingPlugin::ActBeforeSectionMerging
+CHECK: In ActBeforeSectionMergingPlugin

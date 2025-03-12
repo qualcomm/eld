@@ -1,0 +1,12 @@
+#---SimpleNotEnoughSpaceForProgramHeadersError.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This a test to check if that the linker does not error out where SIZEOF_HEADERS is not
+# present and the script is requesting program headers and file headers to be
+# loaded.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=ERR --allow-empty
+#ERR-NOT: Not enough space for program headers, please use SIZEOF_HEADERS
+#END_TEST

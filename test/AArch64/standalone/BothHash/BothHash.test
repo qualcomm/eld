@@ -1,0 +1,8 @@
+# Check if BIND_NOW works.
+RUN: %clang %clangopts -target aarch64 -c -fPIC %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -march aarch64 -shared %t1.o -o %t2.so  -z now --hash-style=both
+RUN: %readelf -S -W %t2.so | %filecheck %s
+
+CHECK: HASH
+CHECK: GNU_HASH
+  

@@ -1,0 +1,12 @@
+#---PIEExportMain.test--------------------------- PIE -----------------#
+
+#BEGIN_COMMENT
+# This is insane that GNU exports "main" for PIE executables.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.1.o -flto -ffunction-sections
+RUN: %link %linkopts %t1.1.o -pie -e main -o %t2.out
+RUN: %readelf --dyn-syms %t2.out | %filecheck %s
+
+#CHECK: main
+#END_TEST

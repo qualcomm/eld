@@ -1,0 +1,5 @@
+# Test for tracing a relocation.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o --trace=reloc=R_ARM_CALL -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: 1.o

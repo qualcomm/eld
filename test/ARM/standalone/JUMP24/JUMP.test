@@ -1,0 +1,28 @@
+RUN: %clangas -c %p/Inputs/t.s -o %t.o
+RUN: %link %linkopts -shared %t.o -o %t.out
+RUN: llvm-objdump -d --start-address=0x100000 %t.out | %filecheck %s -check-prefix LDR_T2A
+
+# For the place where ldr pc, [pc, #n] is not supported . We have to use
+# different combination as veneer.
+#
+# T2T thunks should be compatible with Cortex-M3.
+RUN: %link %linkopts -static %t.o -o %t2.out -defsym=foo=0x10000000 --use-mov-veneer
+RUN: llvm-objdump --start-address=0x100000 -d --triple=thumbv8 %t2.out | %filecheck %s -check-prefix MOV_T2A
+RUN: %link %linkopts -static %t.o -o %t3.out -defsym=foo=0x10000001 --use-mov-veneer
+RUN: llvm-objdump --start-address=0x100000 -d --triple=thumbv8 %t3.out | %filecheck %s -check-prefix MOV_T2T
+
+#LDR_T2A: {{.*}} <__foo_T2A_veneer@island-1>:
+#LDR_T2A:   {{.*}}: 4778         bx      pc
+#LDR_T2A:   {{.*}}: 46c0         mov     r8, r8
+#LDR_T2A:   {{.*}}: e59fc000    ldr     r12, [pc]
+#LDR_T2A:   {{.*}}: e08cf00f    add     pc, r12, pc
+
+MOV_T2A: foo_T2A_veneer@island
+MOV_T2A-NEXT: movw r12, #0x0
+MOV_T2A-NEXT: movt r12, #0x1000
+MOV_T2A-NEXT: bx r12
+
+MOV_T2T: foo_T2T_veneer@island
+MOV_T2T-NEXT: movw r12, #0x1
+MOV_T2T-NEXT: movt r12, #0x1000
+MOV_T2T-NEXT: bx r12

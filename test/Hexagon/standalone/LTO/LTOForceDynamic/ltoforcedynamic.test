@@ -1,0 +1,4 @@
+# Test that LTO sets the mode to static when --force-dynamic is used.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -flto 
+RUN: %link %linkopts  %t1.1.o --force-dynamic -flto-options=preserve-sym=foo -o %t2.out --trace=lto 2>&1 | %filecheck %s
+#CHECK: Note: LTO Set codemodel to Auto Detect

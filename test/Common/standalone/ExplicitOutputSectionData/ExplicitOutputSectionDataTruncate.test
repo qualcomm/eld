@@ -1,0 +1,24 @@
+#---ExplicitOutputDataTruncate.test----------------- Executable----------------#
+
+#BEGIN_COMMENT
+# Verify value truncation is reported in output section data.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -Wlinker-script -o %t.a.out %t1.o -T %p/Inputs/script-not-truncated.t 2>&1 | %filecheck %s --allow-empty
+CHECK-NOT: Warning: Output data value {{.*}} was truncated
+
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -Wlinker-script -o %t.a.out %t1.o -T %p/Inputs/script-truncated.t --warn-limit=0 2>&1 | %filecheck %s --check-prefix=TRUNC
+TRUNC: Warning: Output data value 0x1cccccccc was truncated to 32 bits for type Long
+TRUNC: Warning: Output data value 0xffffffff33333334 was truncated to 32 bits for type Long
+TRUNC: Warning: Output data value 0xfffffffe33333334 was truncated to 32 bits for type Long
+TRUNC: Warning: Output data value 0x1bbbb was truncated to 16 bits for type Short
+TRUNC: Warning: Output data value 0xffffffffffff4445 was truncated to 16 bits for type Short
+TRUNC: Warning: Output data value 0xfffffffffffe4445 was truncated to 16 bits for type Short
+TRUNC: Warning: Output data value 0x1aa was truncated to 8 bits for type Byte
+TRUNC: Warning: Output data value 0xffffffffffffff56 was truncated to 8 bits for type Byte
+TRUNC: Warning: Output data value 0xfffffffffffffe56 was truncated to 8 bits for type Byte
+
+#END_TEST

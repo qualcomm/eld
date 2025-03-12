@@ -1,0 +1,9 @@
+RUN: %clang %clangopts -target arm-linux-gnueabi %p/t.c -c -o %t.o -fpic
+RUN: %link %linkopts -march=arm -static -nostdlib -T %p/t.t %t.o -o %t.out
+RUN: %link %linkopts -march=arm -static -nostdlib -T %p/t2.t %t.o -o %t2.out
+RUN: %readelf -a %t.out | %filecheck %s
+RUN: %readelf -a %t2.out | %filecheck %s --check-prefix=NOPHDR
+
+
+CHECK: 0x1101{{[0-9]}} RWE
+NOPHDR: 0x0000{{[0-9]}} R E

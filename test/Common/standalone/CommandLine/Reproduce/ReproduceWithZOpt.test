@@ -1,0 +1,12 @@
+#---ReprodceWithZOpt.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks that reproduce functionality translates -z option
+# arguments correctly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts %t.1.o -z lazy -shared -z lazy -z now --reproduce %t.1.tar --dump-response-file %t.response.txt
+RUN: %filecheck %s < %t.response.txt
+CHECK: -z lazy -shared -z lazy -z now --mapping-file=
+#END_TEST

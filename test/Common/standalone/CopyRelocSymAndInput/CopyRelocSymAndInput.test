@@ -1,0 +1,14 @@
+#---CopyRelocSymAndInput.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks the name of copy relocation sections and input file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.foo.o %p/Inputs/foo.c -c -fPIC
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -fno-pie
+RUN: %link %linkg0opts -shared -o %t1.libfoo.so %t1.foo.o
+RUN: %link %linkg0opts -o %t1.1.elf -Bdynamic %t1.1.o %t1.libfoo.so -Map %t2.map
+RUN: %filecheck %s < %t2.map
+#END_TEST
+#CHECK: .bss
+#CHECK: .dynbss.foo 0x{{.*}} 0x{{.*}} CopyRelocSymbols #SHT_NOBITS

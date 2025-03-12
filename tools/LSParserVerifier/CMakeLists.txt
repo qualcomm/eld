@@ -1,0 +1,3 @@
+add_llvm_executable(LSParserVerifier LSParserVerifier.cpp)
+target_link_libraries(LSParserVerifier PRIVATE ELDConfig ELDCore
+  ELDDiagnostics ELDTarget LW)

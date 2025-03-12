@@ -1,0 +1,8 @@
+# Check that the linker handles the case when functions are converted to local.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o  -flto
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t1.2.o  -flto
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/3.c -o %t1.3.o  -flto
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/4.c -o %t1.4.o
+RUN: %link %linkopts -march aarch64 %t1.1.o %t1.2.o %t1.3.o %t1.4.o -o %t3.out --trace=symbol=baz --trace=lto 2>&1 | %filecheck %s
+
+#CHECK: Symbol `baz' from Input file `{{[ -\(\)_A-Za-z0-9.\\/:]+}}' with info `(BITCODE)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being resolved from Namepool

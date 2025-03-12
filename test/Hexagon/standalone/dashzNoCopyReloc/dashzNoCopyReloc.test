@@ -1,0 +1,18 @@
+#XFAIL: tsan
+# This test uses the option -z nocopyreloc to report errors whenever a copy
+# relocation is needed.
+RUN: %clang %clangopts -fno-pic -c %clangg0opts -fPIC %p/Inputs/1.c -o %t1.1.o
+# Dont create this object file with fPIC.
+RUN: %clang %clangopts -fno-pic -c %clangg0opts %p/Inputs/2.c -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -fPIC %clangg0opts -o %t1.3.o
+RUN: %clang %clangopts -c %p/Inputs/3.c %clangg0opts -o %t1.3.nonpic.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -fPIC -o %t1.4.o
+RUN: %link %linkopts -shared %t1.4.o -o %t1.lib4.so
+RUN: %not %link %linkopts %t1.1.o %t1.2.o %t1.3.o -Bdynamic %t1.lib4.so -o %t2.out -z nocopyreloc 2>&1 | %filecheck %s -check-prefix=ERR
+RUN: %not %link %linkopts %t1.1.o %t1.2.o %t1.3.nonpic.o -Bdynamic %t1.lib4.so -o %t2.out.1 -z nocopyreloc 2>&1 | %filecheck %s -check-prefix=ERR
+RUN: %link %linkopts %t1.1.o %t1.2.o %t1.3.o -Bdynamic %t1.lib4.so -o %t2.out.noinhibit -z nocopyreloc --noinhibit-exec
+RUN: %link %linkopts %t1.1.o %t1.2.o %t1.3.nonpic.o -Bdynamic %t1.lib4.so -o %t2.out.1.noinhibit -z nocopyreloc --noinhibit-exec
+RUN: %readelf -r %t2.out.noinhibit | %filecheck %s
+RUN: %readelf -r %t2.out.1.noinhibit | %filecheck %s
+#ERR: Cannot copy symbol foo
+#CHECK-NOT: R_HEX_COPY

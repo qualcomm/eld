@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts --rosegment %t1.o -o %t2 -mtriple hexagon-unknown-linux --force-dynamic -z max-page-size=4096
+RUN: %readelf -l -W %t2 | %filecheck %s
+
+#CHECK:  PHDR           0x000034 0x00400034 0x00400034 0x000e0 0x000e0 R E
+#CHECK:  LOAD           0x000000 0x00400000 0x00400000 0x00114 0x00114 R E
+#CHECK:  LOAD           0x001000 0x00401000 0x00401000 0x00040 0x00040 R
+#CHECK:  LOAD           0x002000 0x00402000 0x00402000 0x0000c 0x0000c R E
+#CHECK:  LOAD           0x003000 0x00403000 0x00403000 0x00078 0x00080 RW
+#CHECK:  DYNAMIC        0x003000 0x00403000 0x00403000 0x00078 0x00078 RW
+

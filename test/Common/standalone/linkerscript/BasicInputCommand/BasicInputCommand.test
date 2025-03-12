@@ -1,0 +1,30 @@
+#---BasicInputCommand.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies the basic usage of INPUT linker script command.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.lib
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/4.c -c
+RUN: %ar cr %t1.lib3.a %t1.3.o
+RUN: %mkdir %t1.lib
+RUN: cd %t1.lib
+RUN: %ar cr lib4.a %t1.4.o
+RUN: echo "INPUT(%t1.2.o %t1.lib3.a -l4)" > %t1.script1.t
+RUN: %link %linkopts -o %t1.1.1.elf %t1.1.o -T %t1.script1.t
+RUN: %readelf -s %t1.1.1.elf | %filecheck %s
+RUN: echo "INPUT(%t1.2.o , %t1.lib3.a , -l4)" > %t1.script2.t
+RUN: %link %linkopts -o %t1.1.2.elf %t1.1.o -T %t1.script2.t
+RUN: %readelf -s %t1.1.2.elf | %filecheck %s
+#END_TEST
+CHECK: foo
+CHECK: call
+CHECK: bar
+CHECK: baz
+CHECK: asdf
+
+
+

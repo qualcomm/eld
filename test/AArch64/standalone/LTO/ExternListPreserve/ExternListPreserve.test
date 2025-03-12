@@ -1,0 +1,18 @@
+#--ExternListPreserve.test----------------- Executable,LTO ------------------#
+
+
+#BEGIN_COMMENT
+#A symbol in extern list must always be preserved
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -O2 -ffunction-sections -flto -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -O2 -ffunction-sections -flto -o %t3.o
+RUN: %ar cr %aropts %tlib.a %t2.o %t3.o
+RUN: %link %linkopts --extern-list %p/Inputs/list %t1.o %tlib.a --trace=lto -o %t1.out 2>&1| %filecheck %s
+RUN: %link %linkopts -u baz -u bar %t1.o %tlib.a --trace=lto -o %t1.out 2>&1 | %filecheck %s --check-prefix="CHECK2"
+
+CHECK: Preserving symbol baz
+
+CHECK2: Preserving symbol bar
+CHECK2: Preserving symbol baz

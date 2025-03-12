@@ -1,0 +1,12 @@
+#---Offset.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/t.s -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/t.ld -o %t.out -z max-page-size=0x1000
+RUN: %readelf -e %t.out | %filecheck %s
+#END_TEST
+
+CHECK: LOAD           0x00d000 0x148f5000
+

@@ -1,0 +1,19 @@
+#---LTOKeepPreserve.test-------------------------------- Executable,LTO,LS ---------------------#
+
+#BEGIN_COMMENT
+# This is a test for when the linker script decides to KEEP symbols, but the
+# symbol is not a bitcode symbol anymore.
+#END_COMMENT
+
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -O2 -ffunction-sections -o %t1.1.o %clangg0opts
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -O2 -ffunction-sections -o %t1.2.o -flto %clangg0opts
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/3.c -O2 -ffunction-sections -o %t1.3.o %clangg0opts
+RUN: %link %linkopts -march aarch64 -e foo %t1.1.o %t1.2.o %t1.3.o -o %t1.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+RUN: %link %linkopts -march aarch64 -e foo %t1.2.o %t1.1.o %t1.3.o -o %t2.out --trace=lto 2>&1 | %filecheck %s -check-prefix=KEEP
+RUN: %link %linkopts -march aarch64 -e foo %t1.3.o %t1.2.o %t1.1.o -o %t2.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+RUN: %link %linkopts -march aarch64 -e foo --gc-sections %t1.1.o %t1.2.o %t1.3.o -o %t1.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+RUN: %link %linkopts -march aarch64 -e foo --gc-sections %t1.2.o %t1.1.o %t1.3.o -o %t2.out --trace=lto 2>&1 | %filecheck %s -check-prefix=KEEP
+RUN: %link %linkopts -march aarch64 -e foo --gc-sections %t1.3.o %t1.2.o %t1.1.o -o %t2.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+
+#PRESERVE-NOT: Note: Preserving symbol a
+#KEEP: Preserving symbol a

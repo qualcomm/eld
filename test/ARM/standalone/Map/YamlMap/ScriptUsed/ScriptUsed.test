@@ -1,0 +1,15 @@
+#---InputFilesNotUsed.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+#This test checks the Map file output for script files that are used during
+#the link %linkopts.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -T %p/Inputs/script.t -Map %t2.map.x -o %t2.out.x 2>&1
+RUN: %filecheck %s -check-prefix=SCRIPT < %t2.map.x
+#END_TEST
+
+#SCRIPT: InputInfo:
+#SCRIPT:   - Path:            {{[ -\(\)_A-Za-z0-9.\\/:]+}}script.t
+#SCRIPT:     Used:            Used

@@ -1,0 +1,47 @@
+#---InvalidEhFrame.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker errors out when parsing the EhFrame sections when
+# creating EhFrameHeader sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame.s -o  %t1.invalid.eh.frame.1.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame2.s -o %t1.invalid.eh.frame.2.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame3.s -o %t1.invalid.eh.frame.3.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame4.s -o %t1.invalid.eh.frame.4.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame5.s -o %t1.invalid.eh.frame.5.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame6.s -o %t1.invalid.eh.frame.6.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame7.s -o %t1.invalid.eh.frame.7.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame8.s -o %t1.invalid.eh.frame.8.o
+RUN: %clang %clangopts -c %p/Inputs/invalid-eh-frame9.s -o %t1.invalid.eh.frame.9.o
+
+# Check Linker errors.
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.1.o -o %t2.out.1 2>&1 | %filecheck %s -check-prefix=ONE
+#ONE: Unexpected end of CIE from file
+#ONE: FDE version 1 or 3 expected
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.2.o -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=TWO
+#TWO: corrupted CIE (failed to read string)
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.3.o -o %t2.out.3 2>&1 | %filecheck %s -check-prefix=THREE
+#THREE: corrupted CIE (failed to read LEB128)
+#THREE: Unexpected end of CIE from file
+#THREE: unknown .eh_frame augmentation string
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.4.o -o %t2.out.4 2>&1 | %filecheck %s -check-prefix=FOUR
+#FOUR: unknown .eh_frame augmentation string
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.5.o -o %t2.out.5 2>&1 | %filecheck %s -check-prefix=FIVE
+#FIVE: unknown .eh_frame augmentation string
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.6.o -o %t2.out.6 2>&1 | %filecheck %s -check-prefix=SIX
+#SIX: unknown FDE encodin
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.7.o -o %t2.out.7 2>&1 | %filecheck %s -check-prefix=SEVEN
+#SEVEN: llvm::dwarf::DW_EH_PE_aligned encoding is not supported
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.8.o -o %t2.out.8 2>&1 | %filecheck %s -check-prefix=EIGHT
+#EIGHT: corrupted CIE (failed to skipAugP)
+
+RUN: %not %link %linkopts --eh-frame-hdr %t1.invalid.eh.frame.9.o -o %t2.out.9 2>&1 | %filecheck %s -check-prefix=NINE
+#NINE: CIE

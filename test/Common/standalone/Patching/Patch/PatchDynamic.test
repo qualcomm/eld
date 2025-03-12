@@ -1,0 +1,18 @@
+#---PatchPLT.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test errors when trying to build the patch image as a shared library.
+#END_COMMENT
+#START_TEST
+
+## Compile base.
+RUN: %clang %clangopts %p/Inputs/base.s -o %t.base.o -c
+RUN: %link %linkopts --no-emit-relocs --patch-enable %t.base.o -o %t.base
+
+RUN: %clang %clangopts -O3 -fno-pic -o %t.patch.o -c %p/Inputs/patch.c
+RUN: %not %link %linkopts --no-emit-relocs -shared --patch-base=%t.base %t.patch.o -o %t.patch 2>&1 | %filecheck %s
+RUN: %not %link %linkopts --no-emit-relocs -pie --patch-base=%t.base %t.patch.o -o %t.patch 2>&1 | %filecheck %s
+
+CHECK: Error: Patching is only supported for static linking
+
+#END_TEST

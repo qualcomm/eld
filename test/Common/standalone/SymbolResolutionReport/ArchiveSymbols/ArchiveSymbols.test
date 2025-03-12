@@ -1,0 +1,33 @@
+#---WeakVsCommonVsGlobal.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks the symbol resolution report when there are archive symbols.
+#END_COMMENT
+RUN: %rm %t1.lib2.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.lib2.a %t1.3.o -Map %t1.a.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s --check-prefix ARCHIVE_FIRST < %t1.a.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.b.out %t1.1.o %t1.3.o %t1.lib2.a -Map %t1.b.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s --check-prefix ARCHIVE_LATER < %t1.b.map.txt
+
+ARCHIVE_FIRST: # Symbol Resolution:
+ARCHIVE_FIRST fn
+ARCHIVE_FIRST fn({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+ARCHIVE_FIRST foo
+ARCHIVE_FIRST foo({{.*}}1.o) [Size={{.}}, Undef, Global, NoType]
+ARCHIVE_FIRST foo({{.*}}lib2.a({{.*}}2.o):.text) [Size={{.*}}, Def, Global, Function] [Selected]
+ARCHIVE_FIRST foo({{.*}}3.o:.text) [Size={{.*}}, Def, Weak, Function]
+
+ARCHIVE_LATER: # Symbol Resolution:
+ARCHIVE_LATER: fn
+ARCHIVE_LATER: fn({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+ARCHIVE_LATER: foo
+ARCHIVE_LATER: foo({{.*}}1.o) [Size={{.*}}, Undef, Global, NoType]
+ARCHIVE_LATER: foo({{.*}}3.o:.text) [Size={{.*}}, Def, Weak, Function] [Selected]
+
+
+
+

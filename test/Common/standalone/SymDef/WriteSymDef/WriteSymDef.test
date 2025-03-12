@@ -1,0 +1,15 @@
+#---WriteSymDef.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to write the symdef file properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o -o %t2.out.1 -T %p/Inputs/script.t --symdef 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o -o %t2.out.2 -T %p/Inputs/script.t --symdef-file %t2.x.symdef
+RUN: %filecheck %s < %t2.x.symdef
+#CHECK: #<SYMDEFS>#
+#CHECK: 0x100    FUNC	foo
+#CHECK: {{[xa-f0-9]+}}    FUNC	bar
+#CHECK: {{[xa-f0-9]+}}	FUNC	baz
+#END_TEST

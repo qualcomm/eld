@@ -1,0 +1,21 @@
+#---OverrideVMASize.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command and creates a memory layout as specified by the MEMORY command
+# with overrides specified by the user for sections for VMA
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections -fno-asynchronous-unwind-tables
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %readelf -l -W %t2.out 2>&1 | %filecheck %s -check-prefix=NOPHDRS
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/scriptphdr.t -o %t2.out.phdr -Map %t1.map \
+RUN: 2>&1
+RUN: %readelf -l -W %t2.out.phdr 2>&1 | %filecheck %s -check-prefix=PHDRS
+#END_TEST
+#NOPHDRS: 00 .empty
+#NOPHDRS: 01 .text
+#NOPHDRS: 02 .empty1
+#PHDRS: 00 .empty .text .empty1

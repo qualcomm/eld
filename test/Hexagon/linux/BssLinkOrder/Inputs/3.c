@@ -1,0 +1,10 @@
+int qurtos_phys_pools[6912];
+int default_virt_pool[184];
+int qurtos_memory_cache[32];
+int qurtos_pgtbl_cache[32];
+int qurtos_region_cache[32];
+int qurtos_vma_cache[32];
+int qurtos_shmem_cache[32];
+int qurtos_space_cache[32];
+int default_phys_pool[184];
+int kernel_virt_pool[184];

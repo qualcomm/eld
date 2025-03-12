@@ -1,0 +1,14 @@
+#---EmitNoteGNUPropertyLS.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests checks that the linker is able to emit a proper GNU property section
+#in the presence of a linker script
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts -march aarch64 %t1.o  -o %t1.out -T %p/Inputs/script.t
+RUN: %readelf -S -W -n %t1.out | %filecheck --check-prefix=NOTE %s
+
+#NOTE: .note NOTE
+#NOTE:  GNU                  0x00000010       NT_GNU_PROPERTY_TYPE_0 (property note)
+#NOTE:    Properties:    aarch64 feature: BTI, PAC

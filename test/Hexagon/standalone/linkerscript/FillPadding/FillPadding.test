@@ -1,0 +1,10 @@
+#---FillPadding.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that padding is filled properly in the output file.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck %s
+
+#CHECK-NOT: unknown

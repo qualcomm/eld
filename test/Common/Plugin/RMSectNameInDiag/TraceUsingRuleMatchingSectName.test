@@ -1,0 +1,18 @@
+#---TraceUsingRuleMatchingSectName.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies that the rule-matching section name can be used for
+# section tracing.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   --trace=section=.text.bar 2>&1 | %filecheck %s
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t \
+RUN:   -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml \
+RUN:   --trace=section=.text.myfoo 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Input Section : .text.bar(.text.myfoo) InputFile : {{.*}}1.o Alignment
+CHECK: Input Section : .text.bar(.text.myfoo) Symbol : bar
+

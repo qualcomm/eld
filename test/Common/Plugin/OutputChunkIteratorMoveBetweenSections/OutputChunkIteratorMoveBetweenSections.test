@@ -1,0 +1,22 @@
+#---OutputChunkIteratorMoveBetweenSections.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a output chunk iterator plugin which moves sections between rules.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -M %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=MAP
+
+#MAP: start_of_chunk
+#MAP: end_of_chunk
+#MAP: .foo
+#MAP: *(.text.foo)
+#MAP: *(.text.baz)
+#MAP: *(.text.bar)
+#MAP: .text.bar
+#MAP: *(COMMON)
+#MAP: COMMON.common
+#MAP: .bar
+#MAP: *(.bar) {{.*}}
+#MAP: .text.baz
+#MAP: .text.foo

@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --noinhibit-exec
+RUN: %readelf -S %t.out | %filecheck %s
+
+CHECK: .rodata           PROGBITS
+CHECK: 000018 01 AMS

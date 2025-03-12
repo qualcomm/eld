@@ -1,0 +1,9 @@
+#---OutputTarWriter.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the --Mapping-file option can reproduce the link
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts  %t1.1.o --reproduce %t1.tar -o %t2.mappingfile.out
+#END_TEST

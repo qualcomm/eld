@@ -1,0 +1,11 @@
+UNSUPPORTED: ndk-build
+# Check if LTO works for no groups and only archives and bitcodes
+RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1
+RUN: %clang %clangopts -c  %p/Inputs/b.c -flto -o %t2
+RUN: %link %linkopts --save-temps -M -flto-options verbose  %t1 %t2 -o %t3 2>&1\
+RUN:  | %filecheck %s -check-prefix YES
+
+YES: Note: Beginning LTO Phase 1
+YES: Note: LTO generated bitcode
+YES: Note: LTO generated native object
+YES: Note: Beginning LTO Phase 2

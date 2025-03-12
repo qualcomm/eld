@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -c -fpic %p/Inputs/trampoline.s -o %t.o
+RUN: %link %linkopts %t.o -static -o %t.out -T %p/Inputs/trampoline.script
+RUN: %readelf -s -W %t.out | %filecheck %s
+
+CHECK:      trampoline_for___hexagon_ie_tls_get_addr_from_.text_{{[0-9]+}}

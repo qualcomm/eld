@@ -1,0 +1,14 @@
+UNSUPPORTED: ndk-build
+#---AliasSymbols.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This options checks that Alias Symbols are not copied from the shared library.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -fno-pic -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts %t1.2.o -o %t2.lib2.so -shared
+RUN: %link %linkopts -Bdynamic --no-emit-relocs %t1.1.o %t2.lib2.so -o %t2.out
+RUN: %readelf -r %t2.out | %filecheck %s
+#CHECK-NOT: alias
+#END_TEST

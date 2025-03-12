@@ -1,0 +1,14 @@
+#---GarbageCollection.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that merge string relocations from garbage collected sections are ignored
+#END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c -g %p/Inputs/gc1.c -o %t.1.o
+RUN: %clang %clangopts -c -g %p/Inputs/gc2.c -o %t.2.o
+RUN: %clang %clangopts -c -g %p/Inputs/gc3.c -o %t.3.o
+RUN: %link %linkopts %t.1.o %t.2.o %t.3.o -o %t.out -e bar -T %p/Inputs/gc.t --gc-sections \
+RUN: --print-gc-sections 2>&1 | %filecheck %s --check-prefix=GC
+# END_TEST
+
+GC: {{.*}}1.o[.rodata.str1.1]

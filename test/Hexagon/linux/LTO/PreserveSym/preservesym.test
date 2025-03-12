@@ -1,0 +1,13 @@
+
+# Check if LTO works for no groups and only archives and bitcodes
+RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1
+RUN: %clang %clangopts -c  %p/Inputs/b1.c -o %t2
+RUN: %clang %clangopts -c  %p/Inputs/b2.c -o %t3
+RUN: %clang %clangopts -c  %p/Inputs/c.c -o %t4
+RUN: %ar cr %aropts %t5 %t2
+RUN: %ar cr %aropts %t6 %t3
+RUN: %ar cr %aropts %t7 %t4
+RUN: %link %linkopts -M -flto-options preserve-sym=foo %t1 %t5 %t7 %t6 -o %t8
+RUN: %readelf -s %t8 | %grep "foo" | %filecheck %s -check-prefix YES
+
+YES: 1

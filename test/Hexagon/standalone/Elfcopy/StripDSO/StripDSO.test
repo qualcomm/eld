@@ -1,0 +1,17 @@
+#---NonZeroVMa.test--------------------- Exe------------------#
+
+#BEGIN_COMMENT
+#When stripping shared libraries, make sure the VMA and LMA
+#for the program headers are sane
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -fpic -g -o %t1.o
+RUN: %link %linkopts -shared %t1.o -o %t.so
+RUN: %link %linkopts -mtriple=hexagon-unknown-linux  -shared %t1.o -o %t.linux.so
+RUN: %readelf -l %t.so | %grep -v None > %tunstripped
+RUN: %strip %t.so
+RUN: %readelf -l %t.so | %grep -v None > %tstripped
+RUN: diff %tunstripped %tstripped
+RUN: %readelf -l %t.linux.so | %grep -v None > %t.linux.unstripped
+RUN: %strip %t.linux.so
+RUN: %readelf -l %t.linux.so | %grep -v None > %t.linux.stripped
+RUN: diff %t.linux.unstripped %t.linux.stripped

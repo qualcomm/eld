@@ -1,0 +1,25 @@
+#---DiscardSectionReloc.test----------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# Check that relocations to a discarded or excluded section generate an error.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %not %link %linkopts %t.1.o -o %t.a.out -T %p/Inputs/1.t 2>&1 | %filecheck %s
+CHECK: `.text.foo' referenced in section `.data' of {{.*}}1.o: defined in discarded section
+
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t.2.o
+RUN: not %link %linkopts %t.2.o -o %t.2.out 2>&1 | %filecheck %s --check-prefix CHECK-EXCLUDED
+CHECK-EXCLUDED: `foo' referenced in section `.text' of {{.*}}.o: defined in discarded section
+
+# Check excluded sections with relocations from GC'd sections.
+RUN: %clang %clangopts -c %p/Inputs/3.s -o %t.3.o
+RUN: %not %link %linkopts %t.3.o -o %t.3.out 2>&1 | %filecheck %s --check-prefix CHECK-EXCLUDED
+RUN: %link %linkopts %t.3.o -e baz --gc-sections -o %t.3.out
+RUN: %readelf -s %t.3.out | %filecheck %s --check-prefix CHECK-FOO
+CHECK-FOO-NOT: foo
+RUN: %not %link %linkopts %t.3.o -e baz --gc-sections -T %p/Inputs/3.t -o %t.3.out 2>&1 | %filecheck %s --check-prefix CHECK-EXCLUDED
+
+#END_TEST

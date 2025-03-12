@@ -1,0 +1,19 @@
+#---LTOSaveTempsEq.test--------------------- Executable,LTO -------------#
+
+#BEGIN_COMMENT
+#Test that -save-temps=dir places the files in the right dir
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto -o %t1.o
+
+RUN: mkdir -p %t-dir
+RUN: %link %linkopts %t1.o -save-temps=%t-dir -o %t1.out
+
+# Only check for file presence
+CHECK: {{^}}
+RUN: %filecheck %s -allow-empty --input-file=%t-dir/%basename_t.tmp1.out.llvm-lto.0.0.preopt.bc
+RUN: %filecheck %s -allow-empty --input-file=%t-dir/%basename_t.tmp1.out.llvm-lto.0.2.internalize.bc
+RUN: %filecheck %s -allow-empty --input-file=%t-dir/%basename_t.tmp1.out.llvm-lto.0.4.opt.bc
+RUN: %filecheck %s -allow-empty --input-file=%t-dir/%basename_t.tmp1.out.llvm-lto.0.5.precodegen.bc
+RUN: %filecheck %s -allow-empty --input-file=%t-dir/%basename_t.tmp1.out.llvm-lto.resolution.txt
+#END_TEST

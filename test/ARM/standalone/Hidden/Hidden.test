@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t1.o -fPIC
+RUN: %clang %clangopts -target arm -c %p/Inputs/f.c -o %t2.o -fPIC
+RUN: %link %linkopts -march arm %t1.o %t2.o -shared -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: D foo
+

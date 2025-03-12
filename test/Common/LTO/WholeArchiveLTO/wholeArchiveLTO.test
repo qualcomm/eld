@@ -1,0 +1,13 @@
+
+# Test that LTO handles whole archive without reporting duplicate symbols
+RUN: %clang %clangopts -c %p/Inputs/main.c -flto -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t2.foo.o
+RUN: %ar %aropts cr %t1.libfoo.a %t2.foo.o
+RUN: %link %linkopts --whole-archive %t1.main.o %t1.libfoo.a --no-whole-archive -e main -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=RELEASEMEM
+RUN: %readelf -s %t2.out | %filecheck %s
+
+#RELEASEMEM: Release memory for file {{.*}}main.o
+
+#CHECK: {{[0-9a-f]+}}: {{[0-9a-f]+}}    {{[0-9a-f]+}} FUNC    GLOBAL DEFAULT    {{[0-9a-f]+}} main
+#CHECK: {{[0-9a-f]+}}: {{[0-9a-f]+}}    {{[0-9a-f]+}} FUNC    GLOBAL DEFAULT    {{[0-9a-f]+}} foo
+#CHECK: {{[0-9a-f]+}}: {{[0-9a-f]+}}    {{[0-9a-f]+}} FUNC    GLOBAL DEFAULT    {{[0-9a-f]+}} bar

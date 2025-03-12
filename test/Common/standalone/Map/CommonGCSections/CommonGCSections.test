@@ -1,0 +1,24 @@
+#---KeepCommonsymbols.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks the garbage collection of common symbols and the
+# output of garbage-collected common sections with <GC> attribute in
+# the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -O0 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o --gc-sections -e main -M 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: .bss
+#CHECK: # COMMON.b_common       <GC>
+#CHECK: # b_common
+#CHECK: # COMMON.c_common       <GC>
+#CHECK: # c_common
+#CHECK: # COMMON.d_common       <GC>
+#CHECK: # d_common
+#CHECK: # COMMON.e_common       <GC>
+#CHECK: # e_common
+#CHECK: COMMON.a_common
+#CHECK: 0x{{.*}} a_common
+#CHECK: COMMON.f_common
+#CHECK: 0x{{.*}} f_common

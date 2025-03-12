@@ -1,0 +1,13 @@
+#---EmbeddedBC.test------------- Executable,SharedLibrary,LTO -----------------#
+#XFAIL: hexagonv
+
+#BEGIN_COMMENT
+# Add test for verbose message print for Embedded bitcode link %linkopts
+#END_COMMENT
+
+RUN: %clang %embedclangopts -c -fembed-bitcode %p/Inputs/1.c -o %t1.1.o
+
+RUN: %link %linkopts  -flto -o %t.out %t1.1.o --verbose=1 2>&1 | %filecheck %s
+
+CHECK: Verbose: Using embedded bitcode section from file
+CHECK-DAG:  Release memory for file

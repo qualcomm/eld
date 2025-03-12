@@ -1,0 +1,22 @@
+#---InitialLayoutMergeStrings.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks that show-initial-layout MapDetail option only prints
+# one fragment for merge string section instead of printing one fragment
+# per merge string.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -g
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -g
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.2.o -T %p/Inputs/script.t -MapDetail show-initial-layout -Map %t1.main.map.txt
+RUN: %filecheck %s < %t1.main.map.txt
+#END_TEST
+CHECK: Initial layout:
+CHECK: .debug_str
+CHECK: *(*debug_str*)
+CHECK-COUNT-2: .debug_str 0x
+CHECK-NOT: .debug_str 0x
+CHECK: *(.debug_str)
+CHECK: Output Section and Layout
+CHECK: .debug_str
+CHECK-COUNT-7: .debug_str 0x

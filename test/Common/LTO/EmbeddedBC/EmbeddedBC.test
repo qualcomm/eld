@@ -1,0 +1,23 @@
+UNSUPPORTED: iu
+#---EmbeddedBC.test------------- Executable,SharedLibrary,LTO -----------------#
+
+
+#BEGIN_COMMENT
+# Flag -flto is now used to tell linker to use the embedded bitcode section
+# for linking. This test verifies creating shared library, dynamic executable
+# and a static executable using members from an archive
+#END_COMMENT
+
+RUN: %clangxx %embedclangxxopts -c -fembed-bitcode %p/Inputs/1.cpp -o %t1.1.o
+RUN: %clangxx %embedclangxxopts -c -fembed-bitcode -fpic %p/Inputs/2.cpp -o %t1.2.o
+RUN: %clangxx %embedclangxxopts -c -fembed-bitcode -fpic %p/Inputs/3.cpp -o %t1.3.o
+RUN: %ar crs %aropts %tlibembed.a %t1.2.o %t1.3.o
+
+RUN: %link %linkopts -flto -shared -o %t.shlib.so --whole-archive %tlibembed.a --no-whole-archive
+RUN: %link %linkopts -M -flto -e main %t1.1.o %tlibembed.a -o %t.typical.out 2>&1 | %filecheck --check-prefix="TYPICAL" %s
+RUN: %link %linkopts -M -flto -r --whole-archive %tlibembed.a --no-whole-archive -o %t.reloc.o 2>&1| %filecheck --check-prefix="RELOC" %s
+RUN: %link %linkopts -M -flto -dy -e main %t1.1.o  %t.shlib.so -o %t.dyn.out --noinhibit-exec 2>&1 |  %filecheck --check-prefix="DYN" %s
+
+TYPICAL: Bitcode type
+RELOC: Bitcode origin
+DYN: Bitcode origin

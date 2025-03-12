@@ -1,0 +1,17 @@
+#---LinkerScript5.test------------------------- Executable -------------------#
+
+
+#BEGIN_COMMENT
+# This checks that --reproduce can handle INCLUDE_OPTIONAL in a linker script
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o
+RUN: %link %linkopts -L%p/Inputs -T %p/Inputs/script5.t %t1.1.o -o %t1.out.script5 --reproduce %t0.tar --dump-mapping-file %t0.mapping --dump-response-file %t0.response
+RUN: %filecheck %s --check-prefix="CHECK_MAPPING" < %t0.mapping
+RUN: %filecheck %s --check-prefix="CHECK_RESPONSE" < %t0.response
+CHECK_MAPPING: script5.t=
+CHECK_MAPPING: bar.t=
+CHECK_MAPPING: tmp/bar.t=
+CHECK_MAPPING-NOT: doesnotexist.t
+CHECK_RESPONSE-NOT: script5.t{{[ ]}}
+#END_TEST

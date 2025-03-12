@@ -1,0 +1,10 @@
+#---SignalHandling.test--------------Executable----------------------------#
+
+#BEGIN_COMMENT
+# Tests that the default linker signal handler is registered
+#END_COMMENT
+#BEGIN TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t0.out --verbose
+CHECK: Registered default signal handler
+#END TEST

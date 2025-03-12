@@ -1,0 +1,24 @@
+#---RevisionInfoUpdateOnBuild.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# It checks that the Linker revision is updated when the repository updated
+# and the linker is rebuilt.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.1.out
+RUN: %readelf -p .comment %t1.1.out 2>&1 > %t1.1.revision_info.txt
+RUN: %filecheck %s < %t1.1.revision_info.txt
+RUN: %git -C %eldsrcroot commit --allow-empty -m "Empty commit"
+RUN: %cmake --build %llvmobjroot --target ld.eld 1>/dev/null 2>&1
+RUN: %link %linkopts %t1.1.o -o %t1.2.out
+RUN: %readelf -p .comment %t1.2.out 2>&1 > %t1.2.revision_info.txt
+RUN: %readelf -p .comment %t1.2.out 2>&1
+RUN: %filecheck %s < %t1.1.revision_info.txt
+RUN: %git -C %eldsrcroot reset HEAD~
+RUN: %cmake --build %llvmobjroot --target ld.eld 1>/dev/null 2>&1
+RUN: %not %diff %t1.1.revision_info.txt %t1.2.revision_info.txt 2>&1 | %filecheck %s --check-prefix=DIFF
+#CHECK: Linker {{.*}} ({{.*}})
+#CHECK: {{(LLVM .* \(.*\))?}}
+#DIFF: 3c3
+#END_TEST

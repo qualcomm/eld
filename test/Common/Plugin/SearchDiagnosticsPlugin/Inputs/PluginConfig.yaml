@@ -1,0 +1,5 @@
+---
+GlobalPlugins:
+  - Type : SectionIterator
+    Name : SECTIONTYPES
+    Library: SectionTypes

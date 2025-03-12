@@ -1,0 +1,7 @@
+# Appropriate check for symbol is needed before reporting the warning.
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -fPIC -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -T %p/Inputs/script.t -o %t1.lib2.so
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -fPIC -o %t1.1.o
+RUN: %link %linkopts -Bdynamic  %t1.1.o -T %p/Inputs/script.t %t1.lib2.so -o %t2.out
+RUN: %readelf -s %t2.out | %filecheck %s
+#CHECK: end_of_foo

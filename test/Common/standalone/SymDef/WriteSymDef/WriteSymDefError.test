@@ -1,0 +1,11 @@
+#---WriteSymDefError.test--------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This checks that the error message when linker is unable to write the symdef file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %not %link %linkopts %t1.1.o -o %t2.out.2 -T %p/Inputs/script.t --symdef-file /nonpath/nonfile --symdef-style default 2>&1 | %filecheck %s
+#CHECK: Fatal: Unable to write symdef file {{.*}}/nonpath/nonfile
+#END_TEST

@@ -1,0 +1,16 @@
+#---LTOMisplacingSections.test------------------------------ Executable,LTO,LS ---------------------#
+
+#BEGIN_COMMENT
+# LTO misplaces an input section to the first rule that matches in the linker
+# script. This tests that the functionality is not broken and the linker
+# searches for all rules appropriately.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -flto -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts -e main %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/1.c -flto=thin -ffunction-sections -o %t1.2.o
+RUN: %link %linkopts -e main %t1.2.o -T %p/Inputs/script.t -o %t2.out.2
+RUN: %readelf -S -W %t2.out.2 | %filecheck %s
+
+#CHECK: .rodata.island
+#CHECK: .rodata

@@ -1,0 +1,12 @@
+#---R_ARM_GOT_BREL.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle R_ARM_GOT_BREL relocations
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/brel.s -o %t1.1.o
+RUN: %link %linkopts -march arm %t1.1.o -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck %s
+
+#CHECK: 0xfffffffc
+#END_TEST

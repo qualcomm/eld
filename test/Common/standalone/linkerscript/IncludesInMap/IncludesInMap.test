@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
+RUN: %link %linkopts %t1.o -o %t.out -L%p/Inputs -T=%p/Inputs/1.t -M 2>&1 | %filecheck %s
+
+#CHECK: Linker scripts used
+#CHECK: 1.t
+#CHECK: 3.t
+#CHECK: 2.t

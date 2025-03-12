@@ -1,0 +1,13 @@
+#---StartStopSymsSectionsZeroSized.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle and create section magic symbols
+# identified by {start,stop}_<sectionname> and when the section is zero sized.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/startstop.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %nm -n %t2.out | %filecheck %s
+#CHECK: 00001000 A __start_zerosized
+#CHECK: 00001000 A __stop_zerosized
+#END_TEST

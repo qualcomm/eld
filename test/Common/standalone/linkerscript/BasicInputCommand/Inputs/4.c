@@ -1,0 +1,1 @@
+int asdf() { return 7; }

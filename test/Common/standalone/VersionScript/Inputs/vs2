@@ -1,0 +1,7 @@
+{
+ /* all local symbols appear here */
+  local:
+  bar;
+  global:
+  *;
+};

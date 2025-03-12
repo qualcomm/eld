@@ -1,0 +1,18 @@
+#---SimpleNamespec.test------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test verifies the behavior of '-l<namespec>' and '-l <namespec>' option.
+#END_COMMENT
+#START_TEST
+
+RUN: %rm %t && mkdir %t
+RUN: %rm %t/libfoobar.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %ar cr %aropts %t/libfoobar.a %t1.1.o
+RUN: %link -MapStyle txt %linkopts -o %t1.a1.out %t1.2.o -L %t -lfoobar -Map %t1.a1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.a2.out %t1.2.o -L %t -l foobar -Map %t1.a2.map.txt
+RUN: %filecheck %s < %t1.a1.map.txt
+RUN: %filecheck %s < %t1.a2.map.txt
+
+CHECK: Count for Loaded archive member/Total archive members
+CHECK: {{.*}}libfoobar.a 1/1

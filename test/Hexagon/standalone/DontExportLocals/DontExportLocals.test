@@ -1,0 +1,12 @@
+#---DontExportLocals.test--------------------------- SharedLibrary -----------------#
+
+#BEGIN_COMMENT
+#This test checks that there are no local symbols exported from shared
+#libraries.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts -shared %t1.1.o -o %t2.so
+RUN: %readelf --dyn-syms %t2.so | %filecheck %s
+#CHECK-NOT: SECTION LOCAL  DEFAULT
+#END_TEST

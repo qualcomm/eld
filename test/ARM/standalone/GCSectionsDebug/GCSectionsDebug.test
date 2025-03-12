@@ -1,0 +1,18 @@
+#---GCSectionsDebug.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# There is an upstream ARM change, that relies on breaking a ELD optimization,
+# which happens to treat references from Debug sections as not live. We forgive
+# this in a very tricky way. The sections are still marked garbage collected for
+# allocatable sections properly, so they will still be garbage collected but the
+# symbol is treated as not ignored, for the case of relocation processing if the
+# symbol is a local symbol. This way we keep the ELD optimization and respect
+# the object file as well. I really dont know what the LLVM optimization is for
+# this though.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -g
+RUN: %link %linkopts %t1.1.o -o %t2.out --gc-sections
+RUN: %dwarfdump -debug-info %t2.out | %filecheck %s
+#CHECK: foo
+#END_TEST

@@ -1,0 +1,17 @@
+UNSUPPORTED: ndk-build
+#---TLSPHdrs.test--------------------------- Executable  -----------------#
+
+
+
+#BEGIN_COMMENT
+# This tests that TLS is supported with Linker scripts and PHDRS.
+# Unsuppported for NDK builds.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls.c -o %t1.1.o -fdata-sections %clangg0opts
+RUN: %link %linkopts  %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+RUN: %not %link %linkopts  %t1.1.o -T %p/Inputs/notls.t -o %t2.out 2>&1 | %filecheck %s -check-prefix=NOTLS
+#CHECK: TLS
+#NOTLS: PT_TLS segment not found, required by the image
+#END_TEST

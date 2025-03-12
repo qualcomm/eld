@@ -1,0 +1,13 @@
+#---LTOTraceTest.test-------------------------------------------------#
+
+#BEGIN_COMMENT
+# Print same traces for lto using --trace-lto and -trace=lto
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -M  %t1.o %t2.o -o %t3.out --trace-lto 2>&1 | %filecheck %s
+RUN: %link %linkopts -M  %t1.o %t2.o -o %t3.out -trace=lto 2>&1 | %filecheck %s
+
+#CHECK: Note: Preserving symbol common
+#END_TEST

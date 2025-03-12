@@ -1,0 +1,7 @@
+RUN: %link %linkopts %p/t.o -T %p/t.t -o %t.out
+RUN: %readelf -l %t.out | %filecheck %s
+RUN: %not %link %linkopts %p/t.o -T %p/n.t -o %t.out -G0 2>&1 | %filecheck -check-prefix=NOLOAD %s
+
+CHECK: 00     .text .bss
+
+#NOLOAD: Section .rodata.str1.1 does not have segment assignment in linker script

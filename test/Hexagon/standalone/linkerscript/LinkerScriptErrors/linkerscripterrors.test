@@ -1,0 +1,5 @@
+# Test that linker script errors are fatal.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link  -o %t1.out %linkopts %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+
+#CHECK: Fatal: Linker script {{[ -\(\)_A-Za-z0-9.\\/:]+}} has errors

@@ -1,0 +1,28 @@
+#---BackslashGlobPattern.test--------------------- Executable,LS ------------------#
+
+#BEGIN_COMMENT
+# This test checks that a backslash is accepted as a valid glob pattern.
+#END_COMMENT
+RUN: %rm %t1.lib34.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t.a.out -T %p/Inputs/script.t %t1.1.o %t1.2.o %t1.3.o -Map %t1.a.map.txt
+RUN: %filecheck %s < %t1.a.map.txt
+
+CHECK: Output Section and Layout
+CHECK: FOO
+CHECK: EXCLUDE_FILE ( \  *2.o  \  *3.o ) *(.text.foo \ .text.bar \ .text.baz)
+CHECK: .text.foo {{.*}}1.o
+CHECK: foo
+
+CHECK: BAR
+CHECK: *( EXCLUDE_FILE ( *1.o  \  *3.o )*.text* \)
+CHECK: .text.bar {{.*}}2.o
+CHECK: bar
+
+CHECK: BAZ
+CHECK: EXCLUDE_FILE ( *1.o  \  \  *2.o ) *(.text.foo \ .text.bar \ .text.baz)
+CHECK: .text.baz {{.*}}3.o
+CHECK: baz
+

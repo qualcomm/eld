@@ -1,0 +1,12 @@
+
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -ffunction-sections -fdata-sections -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c %clangg0opts -ffunction-sections -fdata-sections -o %t2.o
+RUN: %ar cr %aropts  %tliba.a %t2.o
+RUN: %link %linkopts %t1.o --whole-archive %tliba.a --no-whole-archive -o %t.out -T=%p/Inputs/script --gc-sections --entry=main 2>&1
+RUN: %nm -n %t.out  | %filecheck %s
+
+#CHECK: 00000000 D foo
+#CHECK: 00000004 D bar
+#CHECK: 00000008 D baz
+#CHECK: 00000010 T main
+#CHECK-NOT: func

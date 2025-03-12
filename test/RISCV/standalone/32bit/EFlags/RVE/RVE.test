@@ -1,0 +1,14 @@
+#---RVE.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check mix of RVE inputs and non RVE inputs as per RISCV ABI.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %yaml2obj %p/Inputs/norve.yaml -o %t.0.o
+RUN: %yaml2obj %p/Inputs/rve.yaml -o %t.1.o
+RUN: %yaml2obj %p/Inputs/rve.yaml -o %t.2.o
+# This should not produce an error
+RUN: %link %linkopts %t.1.o %t.2.o -o %t1.out
+# Mixing RVE and non RVE should produce incompatible error
+RUN: %not %link %linkopts %t.1.o %t.0.o -o %t1.out

@@ -1,0 +1,13 @@
+#---R_AARCH64_ADD_ABS_LO12_NC.test--------------------- SharedLibrary------------------#
+
+#BEGIN_COMMENT
+# This tests that the relocation R_AARCH64_ADD_ABS_LO12_NC points to the PLT.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/a.s -fPIC -o %t1.1.o  -target aarch64
+RUN: %link %linkopts %t1.1.o -shared -o %t1.so -march aarch64
+RUN: %objdump -d %t1.so | %filecheck %s
+
+#CHECK: 180: 90000000     adrp    x0, 0x0
+#CHECK: 184: 9105c000     add     x0, x0, #0x170
+#CHECK: 188: d63f0000     blr     x0
+

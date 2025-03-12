@@ -1,0 +1,12 @@
+#---ErrorStyle.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the linker supports --error-style option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --error-style=llvm 2>&1 | %filecheck %s --allow-empty
+RUN: %not %link %linkopts %t1.1.o -o %t2.out --error-style=abcd 2>&1 | %filecheck %s -check-prefix=INVALID
+#CHECK-NOT: Not Implemented
+#INVALID: error-style can only take options llvm/gnu
+#END_TEST

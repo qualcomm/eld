@@ -1,0 +1,2 @@
+mytext = .;
+.text : { *(.text*) }

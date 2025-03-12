@@ -1,0 +1,13 @@
+UNSUPPORTED: ndk-build
+#---NoteGNUStack.test--------------------------- Executable ----------#
+
+#BEGIN_COMMENT
+#This test shows PT_GNU_STACK segment that contains properties of
+#section .note.GNU-stack section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out 2>&1 | %filecheck %s
+
+#CHECK: GNU_STACK{{.*}}RW

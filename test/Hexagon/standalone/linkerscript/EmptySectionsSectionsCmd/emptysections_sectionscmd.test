@@ -1,0 +1,14 @@
+# This test checks that empty sections are ignored by the linker when assigning
+# file offsets.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=SEGMENTS
+
+#SEGMENTS:  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#SEGMENTS:  LOAD           0x001000 0xd0000000 0xd0000000 0x00000 0x00064 RW  0x1000
+#SEGMENTS:  LOAD           0x001000 0x00000000 0x00000000 0x0000c 0x0000c R E 0x1000
+#SEGMENTS:  LOAD           0x004000 0x00004000 0x00004000 0x00190 0x00194 RW  0x1000
+#SEGMENTS:  Segment Sections...
+#SEGMENTS:   00     .reclaim
+#SEGMENTS:   01     .text
+#SEGMENTS:   02     .data .bss

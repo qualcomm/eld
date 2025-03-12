@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -c %p/Inputs/hello.c -o %t1.o
+RUN: %clang %clangopts -c -fpic %p/Inputs/bye.c -o %t2.o
+RUN: %link %linkopts -shared %t2.o -o %t2.so
+RUN: %link %linkopts -mtriple=hexagon-unknown-linux-musl %t1.o %t2.so -o %t1.out
+RUN: %readelf -l %t1.out | %filecheck --check-prefix=CHECK-MUSL %s
+
+CHECK-MUSL: INTERP           {{[0x1-9a-f]+}}  {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} {{[0x1-9a-f]+}} R   0x1
+CHECK-MUSL-NEXT:  [Requesting program interpreter: /lib/ld-musl-hexagon.so.1]

@@ -1,0 +1,26 @@
+#---CommonsGnuHash.test----------------- SharedLib --------------------#
+
+#BEGIN_COMMENT
+# Calculate correct .gnu.hash size
+# When there are not enough buckets and commons are to be exported to 
+# .dynsym with .gnu.hash style of hashes, the size of the .gnu.hash
+# is incorrectly calculated. The commons need to be looked up
+# to account for them.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -shared -hash-style=gnu -o %t.so %t.o
+RUN: %readelf -I %t.so
+
+CHECK: Histogram for `.gnu.hash' bucket list length (total of 3 buckets):
+CHECK-NEXT:  Length  Number     % of total  Coverage
+CHECK-NEXT:       0  0          (  0.0%)
+CHECK-NEXT:       1  0          (  0.0%)      0.0%
+CHECK-NEXT:       2  1          ( 33.3%)     16.7%
+CHECK-NEXT:       3  1          ( 33.3%)     41.7%
+CHECK-NEXT:       4  0          (  0.0%)     41.7%
+CHECK-NEXT:       5  0          (  0.0%)     41.7%
+CHECK-NEXT:       6  0          (  0.0%)     41.7%
+CHECK-NEXT:       7  1          ( 33.3%)    100.0%
+#END_TEST

@@ -1,0 +1,15 @@
+#---ReadCompressedSections.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This checks that the linker can read debug information in compressed format and
+#produce uncompressed output
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -gz -g -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=COMPRESS
+
+#COMPRESS-DAG: Verbose: Reading compressed section .debug{{.*}} from file {{.*}}1.o
+
+RUN: %dwarfdump %t2.out 2>&1 | %filecheck %s
+#CHECK: {{.*}}: DW_TAG_compile_unit
+#END_TEST

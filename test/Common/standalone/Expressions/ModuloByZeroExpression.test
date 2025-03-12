@@ -1,0 +1,13 @@
+#---ModuloByZeroExpression.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Test if linker exists gracefully when dividing by zero in a modulo operator.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/modulo-by-zero.t 2>&1 | %filecheck %s
+
+#CHECK: {{.*}}modulo-by-zero.t: modulo by zero in expression 0xa % 0x0
+#CHECK: Fatal: Linking had errors
+
+#END_TEST

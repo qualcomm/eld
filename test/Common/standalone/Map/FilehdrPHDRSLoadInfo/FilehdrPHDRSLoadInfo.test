@@ -1,0 +1,18 @@
+UNSUPPORTED: riscv32, riscv64
+#---FilehdrPHDRSLoadInfo.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks that the text map file contains information for
+# 'is FILEHDR loaded?' and 'IS PHDRS loaded?'.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.nols.elf %t1.1.o -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.ls.elf %t1.1.o -T %p/Inputs/1.linker.script -Map %t1.1.ws.map.txt
+RUN: %filecheck %s --check-prefix=ONLYPHDRS < %t1.1.ws.map.txt
+#END_TEST
+CHECK: # Is file header loaded: false
+CHECK: # Is PHDRS loaded: false
+ONLYPHDRS: # Is file header loaded: false
+ONLYPHDRS: # Is PHDRS loaded: false

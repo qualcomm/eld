@@ -1,0 +1,6 @@
+SECTIONS {
+  .text : { *(.text) }
+
+  . = 0xF0000000;
+  .far : { *(.text*) }
+}

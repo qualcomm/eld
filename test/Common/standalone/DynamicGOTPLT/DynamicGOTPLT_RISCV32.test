@@ -1,0 +1,38 @@
+REQUIRES: riscv32
+#----------DynamicGOTPLT.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check the content of the GOTPLT entries and its pointer in DT_PLTGOT.
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
+RUN: %link %linkopts -shared %t.1.o -o %t.so
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+
+## Case 2: GOTPLT is in the beginning of the .got.plt section
+RUN: %link %linkopts %t.2.o %t.so -o %t.out -T %p/Inputs/script.t
+RUN: %readelf -S --dynamic %t.out >%t.out.txt
+RUN: %objcopy -O binary --only-section=.got.plt %t.out - | od -v -Ax -w64 -t x4 >>%t.out.txt
+RUN: %filecheck %s --input-file=%t.out.txt
+
+CHECK: Section Headers:
+CHECK-DAG: [{{[ 0-9]+}}] .plt PROGBITS [[PLT:[[:xdigit:]]+]] {{[[:xdigit:]]+}}
+CHECK-DAG: [{{[ 0-9]+}}] .got.plt PROGBITS {{0*}}70000 {{[[:xdigit:]]+}}
+CHECK: Dynamic section at
+CHECK: 0x{{[[:xdigit:]]+}} (PLTGOT) 0x70000
+CHECK: {{0*}}0 {{0*}}0 {{0*}}0 [[PLT]]
+
+## Case 2: GOTPLT is not in the beginning of the .got.plt section
+RUN: %link %linkopts %t.2.o %t.so -o %t-got.out -T %p/Inputs/script-gap.t
+RUN: %readelf -S --dynamic -x .got.plt %t-got.out >%t-gap.out.txt
+RUN: %objcopy -O binary --only-section=.got %t-got.out - | od -v -Ax -w64 -t x4 >>%t-gap.out.txt
+RUN: %filecheck %s --input-file=%t-gap.out.txt --check-prefix=GAP
+
+GAP: Section Headers:
+GAP-DAG: [{{[ 0-9]+}}] .plt PROGBITS [[PLT:[[:xdigit:]]+]] {{[[:xdigit:]]+}}
+GAP-DAG: [{{[ 0-9]+}}] .got PROGBITS {{0*}}90000 {{[[:xdigit:]]+}}
+GAP: Dynamic section at
+GAP: 0x{{[[:xdigit:]]+}} (PLTGOT) 0x90008
+GAP: {{0*}}0 deadc00c {{0*}}0 {{0*}}0 {{0*}}0 [[PLT]]

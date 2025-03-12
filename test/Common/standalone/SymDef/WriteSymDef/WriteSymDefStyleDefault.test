@@ -1,0 +1,18 @@
+#---WriteSymDefStyleDefault.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to write the symdef file properly with style default.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o -o %t2.out.1 -T %p/Inputs/script.t --symdef --symdef-style default 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o -o %t2.out.2 -T %p/Inputs/script.t --symdef-file %t2.x.symdef.1 --symdef-style default
+RUN: %link %linkopts %t1.1.o -o %t2.out.3 -T %p/Inputs/script.t --symdef --symdef-style DEFAULT 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o -o %t2.out.4 -T %p/Inputs/script.t --symdef-file %t2.x.symdef.2 --symdef-style DEFAULT
+RUN: %filecheck %s < %t2.x.symdef.1
+RUN: %filecheck %s < %t2.x.symdef.2
+#CHECK: #<SYMDEFS>#
+#CHECK: 0x100    FUNC   foo
+#CHECK: {{[xa-f0-9]+}}    FUNC  bar
+#CHECK: {{[xa-f0-9]+}}  FUNC    baz
+#END_TEST

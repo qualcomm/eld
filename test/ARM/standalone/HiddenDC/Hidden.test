@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/f.c -o %t2.o
+RUN: %link %linkopts -march arm %t1.o %t2.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+RUN: %link %linkopts -march arm %t2.o %t1.o -o %t2.out
+RUN: %readelf -a %t2.out | %filecheck %s
+
+CHECK: GLOBAL HIDDEN    1 foo

@@ -1,0 +1,65 @@
+#---shared.test--------------------- Executable --------------------#
+
+
+
+
+
+
+#BEGIN_COMMENT
+# Check that the linker enables all the supported options to build shared
+# objects.
+# Check that the linker does not produce warning for static links.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %not %link -o %t1.out.1 %linkopts --as-needed null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -Bdynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -Bgroup 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -Bshareable 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -Bsymbolic-functions 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -Bsymbolic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -call_shared 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --copy-dt-needed-entries null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -dynamic-linker=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --dynamic-linker=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -dynamic-linker null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --dynamic-linker null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -dynamic-list=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --dynamic-list=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -dynamic-list null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --dynamic-list null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -dy 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -force-dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --force-dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -g 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --hash-size=0 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --hash-size 0 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --no-allow-shlib-undefined 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --no-as-needed 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --no-export-dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --no-warn-shared-textrel 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -rpath-link %linkopts=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -rpath-link %linkopts null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -rpath=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -rpath null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -shared 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -soname=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --soname=null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts -soname null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --soname null 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --use-shlib-undefines 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --warn-shared-textrel 2>&1 | %filecheck %s
+
+RUN: %link -o %t1.out.2 %linkopts --disable-new-dtags %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.3 %linkopts --enable-new-dtags %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.4 %linkopts -hash-style=gnu %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.5 %linkopts --hash-style=gnu %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.6 %linkopts -hash-style gnu %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.7 %linkopts --hash-style gnu %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.8 %linkopts --hash-style gnu %t1.o \
+RUN: -static 2>&1 | %filecheck %s -allow-empty -check-prefix=STATIC
+
+CHECK-NOT: Shared libraries are not supported for RISCV target
+STATIC-NOT: Shared libraries
+#END_TEST

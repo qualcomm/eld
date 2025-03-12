@@ -1,0 +1,14 @@
+#---PartialLinkTLSSymbol.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies the basic usage of ASSERT linker script command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o %p/Inputs/script.t
+RUN: %link %linkopts -o %t1.no_object.elf %p/Inputs/script.t
+RUN: %not %link %linkopts -o %t1.1.elf %t1.1.o %p/Inputs/script.bad.t 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -o %t1.no_object.elf %p/Inputs/script.bad.t 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Assertion failed ASSERT(u(0x1) * v(0x3) * w(0x5) == 0xe, "Incorrect basic multiplication!")
+

@@ -1,0 +1,17 @@
+#---KeepCommonsymbols.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the KEEP linker script directive works for common
+# symbols input description.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o --gc-sections -e main -T %p/Inputs/1.script
+RUN: %readelf -s %t1.1.out | %filecheck %s
+#END_TEST
+#CHECK: b_common
+#CHECK: a_common
+#CHECK: f_common
+#CHECK-NOT: c_common
+#CHECK-NOT: d_common
+#CHECK-NOT: e_common

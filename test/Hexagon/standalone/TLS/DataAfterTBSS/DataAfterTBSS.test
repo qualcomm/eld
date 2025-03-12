@@ -1,0 +1,14 @@
+#---.test--------------------------- Executable,LS -----------------#
+
+#BEGIN_COMMENT
+# This test checks that the segments contain all the sections that need
+# to be loaded for the program to run properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls.c %clangg0opts  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t.out -T %p/Inputs/script.t
+RUN: %readelf -l -W %t.out | %filecheck %s
+#CHECK: .text
+#CHECK: .data
+#CHECK: .tbss
+#END_TEST

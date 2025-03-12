@@ -1,0 +1,19 @@
+UNSUPPORTED: riscv32, riscv64
+#---Map.test----------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# Checks that the map file shows how string fragments were merged
+#END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/map.s -o %t.1.o
+RUN: %link %linkopts %linkopts %t.1.o -o %t.out -Map %t.map --MapDetail=show-strings
+RUN: %filecheck %s < %t.map
+#END_TEST
+
+CHECK: .rodata.str1.1 0x0 {{.*}} {{.*}}1.o #SHT_PROGBITS,SHF_ALLOC|SHF_MERGE|SHF_STRINGS,1[ Contents: abc]
+CHECK:  # .rodata.str2.1  0x0 {{.*}}1.o
+CHECK:  # .rodata.str2.1  0x4 {{.*}}1.o
+CHECK:  # .rodata.str2.1  0x8 {{.*}}1.o
+CHECK:  # .rodata.str2.1  0xc {{.*}}1.o
+

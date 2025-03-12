@@ -1,0 +1,15 @@
+#---AbsAndRelPathError.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This test checks the reported error when both -MapDetail absolute-path and
+# -MapDetail relative-path=<BasePath> are used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %ar cr %t1.lib2.a %t1.2.o
+RUN: %not %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path=%T -MapDetail absolute-path -Map %t1.1.map.txt 2>&1 | %filecheck %s
+#END_TEST
+CHECK: The absolute-path and relative-path MapDetail options can not be used together
+

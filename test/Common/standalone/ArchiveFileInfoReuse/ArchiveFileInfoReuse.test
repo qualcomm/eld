@@ -1,0 +1,23 @@
+#---ArchiveFileInfoReuse.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that linker reuses archive file info if an archive file is
+# repeated in the link command.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.libbar.a %t1.libfoo.a
+RUN: %clang %clangopts -o %t1.foo.o %p/Inputs/foo.c -c
+RUN: %clang %clangopts -o %t1.bar.o %p/Inputs/bar.c -c
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %ar cr %aropts %t1.libbar.a %t1.bar.o
+RUN: %ar cr %aropts %t1.libfoo.a %t1.foo.o
+RUN: %link %linkopts -o %t1.a.out %t1.libfoo.a %t1.libbar.a \
+RUN: %t1.1.o %t1.libfoo.a %t1.libbar.a %t1.libfoo.a %t1.libbar.a --verbose 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Verbose: Initializing Archive {{.*}}libfoo.a
+CHECK: Verbose: Initializing Archive {{.*}}libbar.a
+CHECK-NOT: Verbose: Initializing Archive {{.*}}libfoo.a
+CHECK-NOT: Verbose: Initializing Archive {{.*}}libbar.a
+CHECK: Verbose: Reusing archive file info for '{{.*}}libfoo.a'
+CHECK: Verbose: Reusing archive file info for '{{.*}}libbar.a'
+CHECK: Verbose: Reusing archive file info for '{{.*}}libfoo.a'
+CHECK: Verbose: Reusing archive file info for '{{.*}}libbar.a'

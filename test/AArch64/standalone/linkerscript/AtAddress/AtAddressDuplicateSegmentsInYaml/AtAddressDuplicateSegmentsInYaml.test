@@ -1,0 +1,17 @@
+#---AtAddressDuplicateSegmentsInYaml.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that duplicate sections are not shown in the YAML map file inside
+# LoadRegions. This is only seen when AT is used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts -march aarch64 %t1.1.o -o %t2.out -T %p/Inputs/script.t -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+#CHECK: LoadRegions:
+#CHECK:   - Name: TXT
+#CHECK:     Type:            [ PT_LOAD ]
+#CHECK:     Permissions:     [ ]
+#CHECK:     Sections:
+#END_TEST

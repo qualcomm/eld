@@ -1,0 +1,22 @@
+#---DynamicExecutableSymbols.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks that a dynamic executable only contains symbols from shared
+# libraries that are actually used in the dynamic executable.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -fPIC -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared
+RUN: %clang %clangg0opts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %link %linkopts -o %t1.main.elf %t1.main.o -dynamic %t1.lib1.so -e main
+RUN: %readelf -s %t1.main.elf 2>&1 | %filecheck %s
+#CHECK-DAG: foo
+#CHECK-DAG: common_a
+#CHECK-DAG: data_a
+#CHECK-NOT: bar
+#CHECK-NOT: baz
+#CHECK-NOT: common_b
+#CHECK-NOT: common_c
+#CHECK-NOT: data_b
+#CHECK-NOT: data_c
+#END_TEST

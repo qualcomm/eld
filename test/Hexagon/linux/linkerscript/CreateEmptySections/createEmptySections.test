@@ -1,0 +1,10 @@
+# This test checks that the linker is able to create empty sections.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -o %t2.out.nophdr
+RUN: %link %linkopts %t1.o -T %p/Inputs/p.t -o %t2.out.phdr
+RUN: %readelf -l -W %t2.out.nophdr | %filecheck %s
+RUN: %readelf -l -W %t2.out.phdr | %filecheck %s
+
+#CHECK:   00     .text
+#CHECK:   01     .empty0 .empty1
+#CHECK:   02     .data

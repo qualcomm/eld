@@ -1,0 +1,11 @@
+#---ReadSymDef.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to read the symdef file properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link %linkopts %t1.1.o %p/Inputs/x.symdef -o %t2.out.2
+RUN: %readelf -s -W %t2.out.2 | %filecheck %s
+#CHECK: baz
+#END_TEST

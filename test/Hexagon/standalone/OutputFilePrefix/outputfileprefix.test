@@ -1,0 +1,5 @@
+# Test that linker is able to create an output file with -o<prefix> option.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o%t2.out
+RUN: %readelf -S %t2.out | %filecheck %s
+#CHECK: .symtab

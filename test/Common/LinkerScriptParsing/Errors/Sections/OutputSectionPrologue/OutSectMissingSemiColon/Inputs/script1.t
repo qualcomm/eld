@@ -1,0 +1,5 @@
+SECTIONS {
+  FOO {
+    *(*foo*)
+  }
+}

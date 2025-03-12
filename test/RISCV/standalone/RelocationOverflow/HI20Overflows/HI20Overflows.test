@@ -1,0 +1,13 @@
+UNSUPPORTED: riscv32
+#---HI20Overflows.test--------------------- Executable,LS------------------#
+
+
+
+#BEGIN_COMMENT
+# This tests checks R_RISCV_HI20 relocation overflows diagnostics
+#END_COMMENT
+RUN: %clang %clangopts  -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections -msmall-data-limit=8
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script_1.t 2>&1 | %filecheck %s -check-prefix=OVERFLOW1
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script_2.t 2>&1 | %filecheck %s -check-prefix=OVERFLOW1
+
+OVERFLOW1: Error: Relocation overflow when applying relocation `R_RISCV_HI20' for symbol `global_var' referred from {{.*}}1.o[.text.main] symbol defined in {{.*}}1.o[.sdata]

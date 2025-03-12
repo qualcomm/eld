@@ -1,0 +1,23 @@
+#---EmptyRegions.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests memory layout when linker scripts are used with DISCARD and
+# empty sections, tests the linker is able to handle this layout.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link  -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map
+RUN: %readelf -l -W %t2.out | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+#CHECK: LOAD
+#CHECK: LOAD
+#CHECK: LOAD
+#CHECK: 00 .foo
+#CHECK: 01 .bar
+#CHECK: 02 .baz
+#MAP: .foo {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [text1, text1]
+#MAP: .bar {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_PROGBITS, Memory : [text2, text2]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS
+#MAP: .empty {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS, Memory : [text2, text2]
+#MAP: .baz {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [text1, text1]

@@ -1,0 +1,32 @@
+#---ExcludeFileOutsideSectionPatternWithArchivePatterns.test--------------------- Executable,LS ------------------#
+
+#BEGIN_COMMENT
+# This test checks the behavior of EXCLUDE_FILE linker script directive
+# outside the section pattern with archive patterns.
+#END_COMMENT
+RUN: %rm %t1.lib34.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/4.c -c
+RUN: %ar cr %aropts %t1.lib34.a %t1.3.o %t1.4.o
+
+RUN: %link -MapStyle txt %linkopts -o %t.c.out -T %p/Inputs/script.t %t1.1.o %t1.2.o --whole-archive %t1.lib34.a -Map %t1.c.map.txt
+RUN: %filecheck %s --check-prefix=ARCHIVE < %t1.c.map.txt
+
+ARCHIVE: Output Section and Layout
+ARCHIVE: FOO_BAZ
+ARCHIVE: EXCLUDE_FILE (*lib34.a:*4.o *1.o: *2.o ) *(*text*)
+ARCHIVE: .text {{.*}}1.o
+ARCHIVE: foo
+ARCHIVE: .text {{.*}}lib34.a({{.*}}3.o)
+ARCHIVE: baz
+ARCHIVE: BAR_FRED
+ARCHIVE: EXCLUDE_FILE (*asdf:*4.o *2.o: ) *(*text*)
+ARCHIVE: .text {{.*}}2.o
+ARCHIVE: bar
+ARCHIVE: .text {{.*}}lib34.a({{.*}}4.o)
+ARCHIVE: fred
+ARCHIVE: OTHERS
+ARCHIVE: *(*text*)
+ARCHIVE: *(OTHERS)

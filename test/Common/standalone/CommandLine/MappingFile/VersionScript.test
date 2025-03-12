@@ -1,0 +1,12 @@
+#---VersionScript.test------------------------- Executable ----------------------#
+
+#BEGIN_COMMENT
+# This checks that --mapping-file can handle version scripts
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -o %t1.2.o
+RUN: cat %p/Inputs/versionscript > versionscript
+RUN: cat %p/Inputs/9999 > 9999
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.2.o --version-script=9999 --mapping-file=%p/Inputs/mapping.ini -Map=%t0.map
+RUN: %filecheck %s < %t0.map
+CHECK: versionscript(9999)

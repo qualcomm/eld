@@ -1,0 +1,11 @@
+#---ErrorFileSize.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple FileOffset plugin for Error in linker script.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/scripterr.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s -check-prefix=PLUGINTRACE
+
+#PLUGINTRACE: Error: Plugin Type Mismatch
+#END_TEST

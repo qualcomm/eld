@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %ar cr %tlib.a %t2.o
+RUN: %link %linkopts %t1.o %tlib.a -o %t.out -T=%p/Inputs/list 2>&1
+RUN: %nm -n %t.out  | %filecheck %s
+
+#CHECK:          U externSym
+#CHECK:          T foo

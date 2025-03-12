@@ -1,0 +1,20 @@
+#---JustSymbolsOptionsForObjectFiles.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to set the attribute of just symbols correctly for the passed input object file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections -fdata-sections
+RUN: %elfcopy -R .ARM.exidx.text.bar -R .rel.ARM.exidx.text.bar -R .ARM.exidx.text.baz -R .rel.ARM.exidx.text.baz %t1.3.o %t1.3.o.1
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o --just-symbols=%t1.3.o.1 -T %p/Inputs/script.t -o %t.out.elf -Map %t.map --trace=symbol=bar --verbose 2>&1 | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+RUN: %readelf -s %t.out.elf 2>&1 | %filecheck %s --check-prefix=ELFCHECK
+#CHECK-COUNT-1: Using just symbols for input
+#CHECK: Symbol `bar' from Input file `{{.*}}2.o' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being resolved from Namepool
+#MAPCHECK: --just-symbols
+#MAPCHECK: bar{{.*}}2.o
+#ELFCHECK: {{[0-9a-f]+}}     0 FUNC    GLOBAL DEFAULT   ABS baz
+#END_TEST
+

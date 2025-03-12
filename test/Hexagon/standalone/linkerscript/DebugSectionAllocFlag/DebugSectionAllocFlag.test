@@ -1,0 +1,10 @@
+#---DebugSectionAllocFlag.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that debug sections are not associated with SHF_ALLOC flag.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/n.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/n.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .symtab

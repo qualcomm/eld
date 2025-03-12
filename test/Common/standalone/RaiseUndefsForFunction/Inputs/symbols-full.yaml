@@ -1,0 +1,16 @@
+Symbols:
+  - Name:            .text
+    Type:            STT_SECTION
+    Section:         .text
+  - Name:            main
+    Type:            STT_FUNC
+    Section:         .text
+    Binding:         STB_GLOBAL
+    Size:            0x18
+  - Name:            1.c
+    Type:            STT_FILE
+    Index:           SHN_ABS
+  - Name:            f
+    Type:            STT_FUNC
+    Binding:         STB_GLOBAL
+...

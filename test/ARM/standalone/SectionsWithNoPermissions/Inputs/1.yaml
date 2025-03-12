@@ -1,0 +1,41 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_ARM
+  Flags:           [ EF_ARM_EABI_VER5 ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x4
+  - Name:            .text.foo
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+    Content:         00F020E3
+  - Name:            .rodata.foo
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+    Content:         00F020E3
+  - Name:            .sdata.foo
+    Type:            SHT_PROGBITS
+    AddressAlign:    0x1
+    Content:         00F020E3
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .text.foo
+      - Name:            .rodata.foo
+      - Name:            .sdata.foo
+      - Name:            .symtab
+Symbols:
+  - Name:            '$a.0'
+    Section:         .text.foo
+  - Name:            '$a.1'
+    Section:         .rodata.foo
+  - Name:            '$a.2'
+    Section:         .sdata.foo
+...

@@ -1,0 +1,11 @@
+#---SectionVMAWithPHDR.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker is able to set a VMA on an empty PHDR segment.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+# CHECK:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}
+# CHECK:  LOAD            {{[x0-9a-z]+}}  {{.*}}1024  {{.*}}1024  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}

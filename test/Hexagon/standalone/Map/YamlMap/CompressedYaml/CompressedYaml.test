@@ -1,0 +1,9 @@
+#---CompressedYaml.test--------------------- Executable,GC ------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker can write compressed yaml files to the output.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts %t1.1.o  --gc-sections -e foo -Map %t2.map -MapStyle compressed -o %t2.out
+#END_TEST

@@ -1,0 +1,18 @@
+#----------DontRelaxToGP.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+#This test case creates a behavior that should not make the linker relax
+#to GP.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts  %t1.o -T %p/Inputs/script.t -o %t.out
+RUN: %objdump -d %t.out | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t1.2.o
+RUN: %link %linkopts  %t1.2.o -T %p/Inputs/script.t \
+RUN: -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=GP
+
+CHECK-NOT: gp
+GP-NOT: RISCV_PC_GP

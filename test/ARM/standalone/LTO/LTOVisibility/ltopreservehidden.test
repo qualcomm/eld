@@ -1,0 +1,10 @@
+# Tests that hidden symbols are preserved
+RUN: %clang %clangopts -target arm -c -flto %p/Inputs/t.c -o %t1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/f.c -o %t2.o
+RUN: %link %linkopts -march arm %t1.o %t2.o -o %t2.out --trace=lto 2>&1 | %filecheck %s -check-prefix=TRACELTO
+RUN: %nm -n %t2.out | %filecheck %s -check-prefix=SYMBOLS
+
+#TRACELTO: Note: Preserving symbol foo
+#TRACELTO: Note: Adding LTO module {{[ -\(\)_A-Za-z0-9.\\/:]+}}
+
+#SYMBOLS: {{[0-9a-f]+}} T foo

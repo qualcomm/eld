@@ -1,0 +1,10 @@
+# Tests trampolines when there is a ALIGN directive
+RUN: %clang %clangopts -c %p/Inputs/main.c -ffunction-sections -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/FarFunction.S -o %t2.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o %t2.o -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck -check-prefix=TRAMPOLINE %s
+
+#TRAMPOLINE: <trampoline_for_FarFunction_from_.text.main_{{[0-9]+}}>:
+#TRAMPOLINE:       14:       ff 7f 7f 00 007f7fff { immext(#0x7ffffc0)
+#TRAMPOLINE:       18:       58 c0 00 58 5800c058   jump 0x8000000
+

@@ -1,0 +1,14 @@
+#---ABS64RelocationPIE.test--------------------------- PIE -----------------#
+
+#BEGIN_COMMENT
+# ABS{32,16} relocations should not create dynamic relocations.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.1.o -fPIC
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.s -o %t1.2.o -fPIC
+RUN: %link %linkopts -march aarch64 %t1.1.o %t1.2.o -o %t2.out.1 -pie
+RUN: %link %linkopts -march aarch64 %t1.1.o --defsym foo=0x20 --defsym bar=0x20 -o %t2.out.2 -pie
+RUN: %readelf -r %t2.out.1 | %filecheck %s
+RUN: %readelf -r %t2.out.1 | %filecheck %s
+#CHECK-NOT: RELATIVE
+#END_TEST

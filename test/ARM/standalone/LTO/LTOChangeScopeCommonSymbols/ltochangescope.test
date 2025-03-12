@@ -1,0 +1,11 @@
+# Tests that the linker handles cases when the scope of a symbol changes from
+# global to local as part of LTO.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -flto -o %t1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -march arm %t1.o %t2.o -o %t3.out --trace=symbol=a 2>&1 | %filecheck %s -check-prefix=LTO
+RUN: %readelf -s %t3.out | %filecheck %s
+
+#LTO: Note: Symbol `a' from Input file `{{[ -\(\)_A-Za-z0-9.\\/:]+}}' with info `(BITCODE)(OBJECT)(COMMON)[Global]{DEFAULT}' being added to Namepool
+#CHECK: OBJECT  LOCAL  DEFAULT    {{[1-6]}} a
+
+

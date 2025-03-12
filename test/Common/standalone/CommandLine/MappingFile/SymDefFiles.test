@@ -1,0 +1,12 @@
+#---SymDefFiles.test------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that --mapping-file can handle symdef files
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --symdef -o %t2.out > good.symdef
+RUN: %link %linkopts %t1.1.o --symdef -o %t2.out > 5555
+RUN: %link -MapStyle txt %linkopts 5555 -o %t2.out --mapping-file=%p/Inputs/mapping.ini -Map=%t0.map
+RUN: %filecheck %s < %t0.map
+CHECK: good.symdef(5555)

@@ -1,0 +1,12 @@
+#---OutputFileSize.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the output file stat in text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+#END_TEST
+CHECK: # OutputFileSize : {{.*}} bytes
+

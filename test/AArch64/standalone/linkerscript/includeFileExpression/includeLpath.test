@@ -1,0 +1,2 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -march aarch64 -L%p/Inputs/ -T %p/script_with_expression.t %t.o -o %t.out 2>&1

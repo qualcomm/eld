@@ -1,0 +1,19 @@
+#---link %linkopts.test---------------------------------- PartialLink -------------------#
+
+#BEGIN_COMMENT
+# It is important to set sh_link for ARM.exidx sections, especially for partial
+# linking
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.cpp -o %t.o
+RUN: %link %linkopts -r %t.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s
+RUN: %link %linkopts -T %p/Inputs/t.l   %t.o -o %t2.out -defsym=__aeabi_unwind_cpp_pr0=0x0 -defsym=__cxa_allocate_exception=0x0 -defsym=__cxa_throw=0x0 -defsym=__cxa_begin_catch=0x0 -defsym=__cxa_end_catch=0x0 -defsym=__gxx_personality_v0=0x0 -defsym=_ZTIi=0x0
+RUN: %readelf -S -W %t2.out | %filecheck %s -check-prefix EXE
+
+CHECK: .ARM.exidx        ARM_EXIDX       00000000 {{[0-9a-f]+}} {{[0-9a-f]+}} 00  AL  2
+CHECK: .ARM.exidx.text._ZN1A3fooEv ARM_EXIDX       00000000 {{[0-9a-f]+}} {{[0-9a-f]+}} 00 ALG  3
+EXE: .exidx            ARM_EXIDX       {{[0-9a-f]+}} {{[0-9a-f]+}} {{[0-9a-f]+}} 00  AL  1
+EXE: .ARM.exidx.text._ZN1A3fooEv ARM_EXIDX       {{[0-9a-f]+}} {{[0-9a-f]+}} {{[0-9a-f]+}} 00 AL  2
+
+#END_TEST

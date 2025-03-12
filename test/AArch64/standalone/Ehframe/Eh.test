@@ -1,0 +1,9 @@
+
+RUN: %clang %clangopts -target aarch64 -funwind-tables %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts -march aarch64 --gc-sections %t.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+RUN: %clang -target aarch64 -funwind-tables %p/Inputs/eh.s -c -o %t.eh.o
+RUN: %link %linkopts -march aarch64 %t.eh.o -o %t.out
+
+CHECK: .eh_frame         PROGBITS
+

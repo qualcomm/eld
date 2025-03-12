@@ -1,0 +1,19 @@
+#---T2T.test--------- Executable-----------------------------------#
+
+#BEGIN_COMMENT
+#Check Thumb to Thumb Veneers
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -target armv7m-none-eabi %p/Inputs/1.c -o %t1.t2t.1.o
+RUN: %link %linkopts %t1.t2t.1.o  -o %t2.t2t.1.out --defsym bar=0x80000001
+RUN: %objdump --triple armv7m -d %t2.t2t.1.out | %filecheck %s -check-prefix=STATIC
+RUN: %not %link %linkopts %t1.t2t.1.o  -o %t2.t2t.2.out --defsym bar=0x80000001 -shared 2>&1 | %filecheck %s -check-prefix=SHARED
+
+#STATIC: {{.*}} <__bar_T2T_veneer@island-1>:
+#STATIC:       {{.*}}: f240 0c01     movw    r12, #0x1
+#STATIC:       {{.*}}: f2c8 0c00     movt    r12, #0x8000
+#STATIC:       {{.*}}: 4760          bx      r12
+#STATIC:       {{.*}}: defe          trap
+#SHARED: SharedLibrary/PIE is not supported for Cortex-M
+
+#END_TEST

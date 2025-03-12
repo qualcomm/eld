@@ -1,0 +1,19 @@
+# --TrampolinesTLS.test--------------------- Shared Library-----------------------#
+
+#--- -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# Linker needs to create PLT entries for calls to __tls_get_addr and if not
+# reachable, calls should create trampolines to PLT entries.
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c -fPIC %p/Inputs/getaddr.c -o %t2.o
+RUN: %link %linkopts -shared %t2.o -o %t2.getaddr.so
+RUN: %link %linkopts -Bdynamic %t1.o -shared  -T %p/Inputs/script.t -o %t3.so
+RUN: %objdump -d %t3.so | %filecheck %s
+RUN: %link %linkopts -Bdynamic %t1.o %t2.getaddr.so -shared -o %t4.so -T %p/Inputs/script.t
+RUN: %objdump -d %t4.so | %filecheck %s
+
+#CHECK: trampoline_for___tls_get_addr_from_.text_{{[0-9]+}}
+#END_TEST

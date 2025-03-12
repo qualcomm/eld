@@ -1,0 +1,11 @@
+# Tests symbols resolved as a result of LTO
+RUN: %clang %clangopts -c  -flto %p/Inputs/main.c -o %t1.o
+RUN: %clang %clangopts -c   %p/Inputs/foo.c -o %t2.o
+RUN: %link %linkopts -M %t1.o %t2.o -e main -o %t2.out --trace=symbol=main 2>&1 | %filecheck %s
+RUN: %nm -n %t2.out | %filecheck %s -check-prefix=SYMBOLS
+
+#CHECK: Note: Symbol `main' from Input file `{{[ -\(\)_A-Za-z0-9.\\/:]+}}' with info `(BITCODE)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+#CHECK: Note: Symbol `main' from Input file `{{[ -\(\)_A-Za-z0-9.\\/:]+}}' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+
+SYMBOLS: {{[0-9a-f]+}} T main
+SYMBOLS: {{[0-9a-f]+}} T foo

@@ -1,0 +1,14 @@
+#---UndefError.test--------- Executable-----------------------------#
+
+
+#BEGIN_COMMENT
+#Show the full resolved name when reporting an undefined symbol
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %ar cr %aropts %t1.lib1.a %t1.1.o
+RUN: %not %link %linkopts --whole-archive %t1.lib1.a  -o %t2.out 2>&1 | %filecheck %s
+
+#CHECK: {{.*}}lib1.a{{.*}}1.o
+
+#END_TEST

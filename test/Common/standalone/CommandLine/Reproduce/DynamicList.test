@@ -1,0 +1,13 @@
+#---DynamicList.test------------------------- Executable ---------------------#
+
+
+#BEGIN_COMMENT
+# This checks that --reproduce can handle dynamic list
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -shared --dynamic-list=%p/Inputs/list1 %t1.1.o -o %t1.so --reproduce %t0.tar --dump-mapping-file %t0.mapping --dump-response-file %t0.response
+RUN: %filecheck %s --check-prefix="CHECK_MAPPING" < %t0.mapping
+RUN: %filecheck %s --check-prefix="CHECK_RESPONSE" < %t0.response
+CHECK_MAPPING: list1={{.*list1.[0-9]+}}
+CHECK_RESPONSE-NOT: list1{{[ ]}}

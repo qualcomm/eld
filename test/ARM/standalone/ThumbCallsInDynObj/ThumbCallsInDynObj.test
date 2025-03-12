@@ -1,0 +1,17 @@
+#---ThumbCallsInDynObj.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks that the linker creates a transition stub to call bar.
+# The function bar resides in a shared object. The current assumption is that
+# all PLT stubs are created as ARM, when this assumption is thrown away, this
+# test may need to get revised.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+RUN: %link %linkopts %t1.1.o -Bdynamic %t1.lib2.so -o %t2.out --trace=trampolines --wrap bar
+RUN: %nm %t2.out | %filecheck %s
+CHECK: ____wrap_bar_T2A_veneer
+
+#END_TEST

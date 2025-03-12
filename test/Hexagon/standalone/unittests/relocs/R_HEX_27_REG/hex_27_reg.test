@@ -1,0 +1,13 @@
+
+#Unit test to check R_HEX_27_REG applies and overflows as needed
+RUN: %clang %clangopts -c %p/Inputs/noaddend.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/addend.s -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/overflow.s -o %t3.o
+RUN: %link %linkopts %t1.o -o %t1.out -T %p/Inputs/script.t
+RUN: %link %linkopts %t2.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -x .text %t1.out | %filecheck %s
+CHECK:  0x00000000 2ac000b0
+RUN: %readelf -x .text %t2.out | %filecheck %s  --check-prefix="CHECK2"
+CHECK2: 0x00000000 2cc000b0
+RUN: %not %link %linkopts %t3.o -o %t3.out -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix="ERR"
+ERR:  Relocation overflow when applying relocation `R_HEX_27_REG'

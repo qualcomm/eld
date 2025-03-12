@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -target aarch64-linux-gnu -w %p/Inputs/1.c -c -o %t1.o
+RUN: %link %linkopts -march=aarch64 -shared -T %p/Inputs/t.t %t1.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck %s
+
+CHECK: ELF64
+CHECK-NOT: dynsym
+CHECK-NOT: hash
+CHECK-NOT: dynstr

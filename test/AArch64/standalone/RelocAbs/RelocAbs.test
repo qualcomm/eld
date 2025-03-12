@@ -1,0 +1,11 @@
+#---RelocAbs.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# This tests that the linker should check for overflow with Absolute
+# relocations.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/a.c -o %t1.1.o
+RUN: %not %link %linkopts -march aarch64 %t1.1.o -o %t2.out -z max-page-size=0x10000 2> log
+#CHECK: Relocation overflow when applying relocation `R_AARCH64_ABS16' for symbol `a'
+#END_TEST

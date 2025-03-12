@@ -1,0 +1,19 @@
+#---PIE.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that SIZEOF_HEADERS works when used with the linker script and
+# would load program headers if rightly done.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+# Check that headers are loaded at 0.
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/loadhdrsat0.t -o %t2.out.0 -pie -z max-page-size=0x1000
+RUN: %readelf -l -W %t2.out.0 | %filecheck %s
+# Check that headers are loaded at 0x4000000.
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/loadhdrsatnon0.t -o %t2.out.non0 -pie -z max-page-size=0x1000
+RUN: %readelf -l -W %t2.out.non0 | %filecheck %s
+# Check that headers are not loaded.
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/dontloadhdrs.t -o %t2.out.noload -z max-page-size=0x1000
+RUN: %readelf -l -W %t2.out.noload | %filecheck %s -check-prefix=DONTLOAD
+
+#CHECK: 0x000000
+#DONTLOAD: 0x001000

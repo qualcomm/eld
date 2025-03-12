@@ -1,0 +1,14 @@
+#---PtPhdrFileHdrPhdr.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This is a test which tests the linker is able to handle PT_PHDR which contains
+# PHDR and FILEHDR. PHDRS and FILEHDR are not loaded.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --trace=assignments 2>&1 | %filecheck %s -check-prefix=EHDRPHDR
+RUN: %readelf -l -W %t2.out  | %filecheck %s -check-prefix=SEGMENTS
+#EHDRPHDR: __ehdr__
+#EHDRPHDR: __pHdr__
+#SEGMENTS:  PHDR           {{[0x0]+}} {{[0x0]+}} {{[0x0]+}} [[FILESZ1:[0xa-f0-9]+]] [[FILESZ1]]
+#END_TEST

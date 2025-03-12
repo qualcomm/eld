@@ -1,0 +1,13 @@
+#---ForwardReferenceErrorInclude.test--------------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This tests check for eld to error out in case of forward reference for output sections
+# in sections command while using INCLUDE
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -L %p/Inputs -T %p/Inputs/main_script.t -o %t2.out.1 -Wbad-dot-assignments --fatal-warnings 2>&1 | %filecheck %s
+
+#CHECK: Fatal: {{.*}}include_script.t: forward reference address expression to section USER_BSS_SECTION
+#END_TEST

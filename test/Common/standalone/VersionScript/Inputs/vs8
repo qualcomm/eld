@@ -1,0 +1,7 @@
+{
+#The following are locals
+    local:
+    /*this is a local*/ bar; #changed scope
+};
+
+

@@ -1,0 +1,11 @@
+UNSUPPORTED: iu
+#---LTOPreserveProtected.test-------------------------------- SharedLibrary,LTO ---------------------#
+
+#BEGIN_COMMENT
+# This is a test to show that the linker preserves protected symbols.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -o %t1.1.o  -flto
+RUN: %link %linkopts -shared %t1.1.o -o %t1.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+
+#PRESERVE: Note: Preserving symbol a

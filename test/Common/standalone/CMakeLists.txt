@@ -1,0 +1,2 @@
+add_subdirectory(PluginAPI)
+add_subdirectory(SymbolResolutionReport)

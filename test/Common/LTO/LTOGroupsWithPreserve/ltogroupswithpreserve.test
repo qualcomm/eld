@@ -1,0 +1,22 @@
+
+# This test, checks that LTO is able to handle a .o within a group and create a
+# proper preserve list
+RUN: %clang %clangopts -c -flto %p/Inputs/a.c -o %t1.a.o
+RUN: %clang %clangopts -c %p/Inputs/a1.c -o %t1.a1.o
+RUN: %clang %clangopts -c %p/Inputs/b1.c -o %t1.b1.o
+RUN: %clang %clangopts -flto -c %p/Inputs/b1.c -o %t1.b1.llvm.o
+RUN: %clang %clangopts -flto -c %p/Inputs/b2.c -o %t1.b2.o
+RUN: %clang %clangopts -c %p/Inputs/c.c -o %t1.c.o
+RUN: %clang %clangopts -c %p/Inputs/crap.c -o %t1.crap.o
+RUN: %ar crs %aropts %t2.libb1.a %t1.b1.o
+RUN: %ar crs %t2.libb1.llvm.a %t1.b1.llvm.o
+RUN: %ar cr %t2.libb2.a %t1.b2.o
+RUN: %ar cr %aropts %t2.libc.a %t1.c.o
+RUN: %link %linkopts -M %t1.a.o -e main %t1.a1.o --start-group %t2.libb1.a %t2.libb2.a %t2.libc.a %t1.crap.o --end-group --trace=lto -t -o %t.out 2>&1 | %filecheck %s --check-prefix=PRESERVEA
+RUN: %link %linkopts -M %t1.a.o -e main %t1.a1.o --start-group %t2.libb1.llvm.a %t2.libb2.a %t2.libc.a %t1.crap.o --end-group --trace=lto -t -o %t.out 2>&1 | %filecheck %s --check-prefix=PRESERVEB
+
+#PRESERVEA: boo
+#PRESERVEA: main
+#PRESERVEB: bar
+#PRESERVEB: boo
+#PRESERVEB: main

@@ -1,0 +1,11 @@
+# Test that GC cref prints section names and symbol names from application
+# sites.
+RUN: %clang %clangopts -c %p/Inputs/override.s -o %t1.override.o
+RUN: %link  -o %t1.out %linkopts --gc-sections %t1.override.o -e foo --gc-cref .text.foo 2>&1 | %filecheck %s
+
+CHECK-DAG: Trace: Symbols referring .text.foo [
+CHECK-DAG: Trace:       foo     .text.foo       [
+CHECK-DAG: Trace: Symbols referring .text.foo [
+CHECK-DAG: Trace:       baz     .text.foo       [
+CHECK-DAG: Trace: Symbols referring .text.foo [
+CHECK-DAG: Trace:       bar     .text.foo       [

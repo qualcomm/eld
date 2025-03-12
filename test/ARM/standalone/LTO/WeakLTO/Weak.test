@@ -1,0 +1,9 @@
+RUN: %clang %clangopts -target arm %p/Inputs/t.c -flto -c -o %t1.o
+RUN: %clang %clangopts -target arm %p/Inputs/f.c -c -o %t2.o
+RUN: %link %linkopts -march arm %t1.o %t2.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+
+; Because linker will always use lto.o to override anything before
+; 0100a0e3 is
+; mov     r0, #1
+CHECK: 0100a0e3

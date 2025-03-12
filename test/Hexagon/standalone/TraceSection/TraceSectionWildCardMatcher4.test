@@ -1,0 +1,18 @@
+#---TraceSectionWildCardMatcher4.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Check tracing of sections with wildcard matching.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/2.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --trace=section="foo|bar" 2>&1 | %filecheck %s
+
+CHECK-DAG: Note: Input Section : .text.foo InputFile :{{.*}}.o Alignment : 0x10 Size : 0xc Flags : SHF_ALLOC|SHF_EXECINSTR
+CHECK-DAG:Note: Input Section : .text.bar InputFile : {{.*}}.o Alignment : 0x10 Size : 0xc Flags : SHF_ALLOC|SHF_EXECINSTR
+CHECK-DAG:Note: Input Section : .text.bar Symbol : bar
+CHECK-DAG:Note: Input Section : .text.foo Symbol : foo
+CHECK-DAG:Note: Input Section : .text.foo PMA : 0x0 VMA : 0x0 Offset : 0x0 Size : 0xc
+CHECK-DAG:Note: Input Section : .text.bar PMA : 0x10 VMA : 0x10 Offset : 0x10 Size : 0xc
+CHECK-DAG:Note: Input Section : .text.foo PMA : 0x0 VMA : 0x0 Offset : 0x0 Size : 0xc
+CHECK-DAG: Note: Input Section : .text.bar PMA : 0x10 VMA : 0x10 Offset : 0x10 Size : 0xc
+

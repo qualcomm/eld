@@ -1,0 +1,7 @@
+# This tests that the linker is able to handle outputsections that match input.
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .myfoo
+#CHECK: .bar

@@ -1,0 +1,15 @@
+#---DivideByZeroExpression.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Test if linker exists gracefully when dividing by zero in an expression.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/a.t 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/a.t 2>&1 | %filecheck %s -check-prefix=MSG
+
+#CHECK-NOT: UNEXPECTED LINKER BEHAVIOR
+#MSG: {{.*}}a.t: division by zero in expression 0xa / 0x0
+#MSG: Fatal: Linking had errors
+
+#END_TEST

@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -ffunction-sections  -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -march aarch64 %t1.o %t2.o -o %t.out --extern-list=%p/Inputs/list 2>&1
+RUN: %readelf -s %t.out  | %filecheck %s
+
+#CHECK:  1 xinit

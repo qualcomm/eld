@@ -1,0 +1,18 @@
+#----------fPICAndNonFPICMix.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+# Test that nonfPIC and fPIC code mix causes the linker to create
+# proper executables. The first check would be a reloc fixed up using GOT
+# and the second check is a direct access.
+#to GP.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -O2
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -O2 -fPIC
+RUN: %link %linkopts  %t1.2.o %t1.1.o -o %t.out
+RUN: %objdump --no-print-imm-hex -d %t.out | %filecheck %s
+
+#CHECK: l{{[wd]}}      a0, -{{.*}}(a0)
+#CHECK: lw      a0, 0(a0)

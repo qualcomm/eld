@@ -1,0 +1,37 @@
+#---BinaryFormatInputFiles.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This test checks the support of binary format input files with
+# linker scripts.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -b binary %p/Inputs/hello.txt -Map %t1.1.map.txt
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix=SYMBOLS
+RUN: %readelf -p .hello %t1.1.out | %filecheck %s --check-prefix=CONTENT
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -b binary %p/Inputs/hello.txt -Map %t1.1.map.txt -T %p/Inputs/script.t
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix=SYMBOLS
+RUN: %readelf -p .hello %t1.1.out | %filecheck %s --check-prefix=CONTENT
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.MixWithCode.out %t1.1.o -b binary %p/Inputs/hello.txt -Map %t1.1.map.MixWithCode.txt -T %p/Inputs/script.MixWithCode.t
+RUN: %readelf -s %t1.1.MixWithCode.out | %filecheck %s --check-prefix=SYMBOLS
+RUN: %readelf -p .CodeAndData %t1.1.MixWithCode.out | %filecheck %s --check-prefix=CONTENT
+RUN: %filecheck %s --check-prefix=MIX_WITH_CODE_MAP < %t1.1.map.MixWithCode.txt
+#END_TEST
+SYMBOLS-DAG: GLOBAL DEFAULT {{.*}} _binary_{{.*}}_hello_txt_start
+SYMBOLS-DAG: GLOBAL DEFAULT {{.*}} _binary_{{.*}}_hello_txt_end
+SYMBOLS-DAG: GLOBAL DEFAULT ABS _binary_{{.*}}_hello_txt_size
+CONTENT: Hello World!
+MAP: Linker Script and memory map
+MAP: LOAD {{.*}}hello.txt (Binary)
+MAP: .hello
+MAP: *hello.txt(.data)
+MAP: .data
+MIX_WITH_CODE_MAP: Linker Script and memory map
+MIX_WITH_CODE_MAP: LOAD {{.*}}hello.txt (Binary)
+MIX_WITH_CODE_MAP: .CodeAndData
+MIX_WITH_CODE_MAP: .text
+MIX_WITH_CODE_MAP: *hello.txt(.data)
+MIX_WITH_CODE_MAP: .data

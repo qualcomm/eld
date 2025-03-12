@@ -1,0 +1,6 @@
+RUN: %clang %clangopts -target aarch64 %p/Inputs/t.c -c -flto -o %t.o
+RUN: %clang %clangopts -target aarch64 %p/Inputs/f.c -c -o %t1.o
+RUN: %link %linkopts -march aarch64 %t.o %t1.o -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: w weak_func

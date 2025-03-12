@@ -1,0 +1,12 @@
+#---TargetChunkOffset.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests the targetChunkOffset API
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.s -o %t1.1.o  -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out -L %p/Inputs 2>&1 | %filecheck %s
+
+#CHECK: hello
+#CHECK: world
+#END_TEST

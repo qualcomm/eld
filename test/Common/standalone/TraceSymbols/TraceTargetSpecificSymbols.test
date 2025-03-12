@@ -1,0 +1,13 @@
+#---TraceSymbolGOTPLT1.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Tracing of target specific symbols
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %clang %clangopts  -ffunction-sections -c %p/Inputs/2.c -o %t2.o -fPIC
+RUN: %link %linkopts -shared %t1.o  -o %t3.so
+RUN: %link %linkopts -o %t.out %t2.o -dy %t3.so --trace=symbol="^_GLOBAL_OFFSET_TABLE_" 2>&1 | %filecheck %s
+CHECK: Note: Target Specific Symbol _GLOBAL_OFFSET_TABLE_ added
+
+

@@ -1,0 +1,4 @@
+SECTIONS
+{
+  INCLUDE include.t
+}

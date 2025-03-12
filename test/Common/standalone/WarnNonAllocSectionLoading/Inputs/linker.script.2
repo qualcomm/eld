@@ -1,0 +1,10 @@
+SECTIONS {
+    .text : {
+        *(.debug_info)
+        *(.text.fn1)
+        *(.text.fn2)
+    }
+    /DISCARD/ : {
+        *(.text*)
+    }
+}

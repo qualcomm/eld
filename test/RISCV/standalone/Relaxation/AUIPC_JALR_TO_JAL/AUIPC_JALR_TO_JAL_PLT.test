@@ -1,0 +1,14 @@
+#----------AUIPC_JALR_TO_JAL_PLT.test-------------------------------#
+
+#BEGIN_COMMENT
+# Check that offset to PLT is used when relaxing.
+#END_COMMENT
+#--------------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/shared.s -o %t.shared.o
+RUN: %link %linkopts -shared %t.shared.o -o %t.so --section-start=.text=0x1000 --section-start=.plt=0x20000
+RUN: %objdump -d %t.so 2>&1 | %filecheck %s
+
+CHECK: {{0+}}20000 <.plt>:
+CHECK: {{0+}}01000 <f>:
+    1000: 0201f0ef      jal     0x20020 <.plt+0x20>
+    1004: 01c1f06f      j       0x20020 <.plt+0x20>

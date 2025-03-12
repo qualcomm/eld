@@ -1,0 +1,14 @@
+UNSUPPORTED: riscv32, riscv64
+#---OutputTarWriter.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the --reproduce option can produce a tarball with simple inputs
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %t1.1.o -o %t2.out --reproduce %t1.tar
+RUN: %filecheck %s < %t1.tar
+CHECK: mapping.ini
+CHECK: version.txt
+CHECK: response.txt
+#END_TEST

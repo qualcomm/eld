@@ -1,0 +1,14 @@
+# Check that PHDR's work properly.
+RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/foo.c -o %t1.o
+RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -c -ffunction-sections -fdata-sections %p/Inputs/bar.c -o %t2.o
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t %t1.o %t2.o -o %t.out --section-start .start=0x1300000 -z max-page-size=0x1000
+RUN: %readelf -W -l %t.out | %filecheck %s
+
+#CHECK:   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#CHECK:   LOAD           0x001000 0x0000000001300000 0x0000000001300000 0x000018 0x000018 R E 0x1000
+#CHECK:   LOAD           0x002000 0x00000000d0000000 0x00000000d0000000 0x000008 0x000008 R E 0x1000
+#CHECK:  Section to Segment mapping:
+#CHECK:   Segment Sections...
+#CHECK:    00     .start
+#CHECK:    01     .compress_sect
+

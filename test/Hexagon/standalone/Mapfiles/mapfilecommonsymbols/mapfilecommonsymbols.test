@@ -1,0 +1,14 @@
+# This test shows that the map file prints the originating fragment information
+# type to be shown as NOBITS for common symbols.
+RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -M -o %t2.out 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.o -M -o %t2.out.noscript 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -M --MapStyle=yaml -o %t3.out.noscript 2>&1 | %filecheck %s --check-prefix=YAML
+
+#CHECK: SHT_NOBITS,SHF_ALLOC|SHF_WRITE,4
+
+#YAML: Type:            [ SHT_NOBITS ]
+#YAML: Permissions:     [ SHF_ALLOC, SHF_WRITE ]
+#YAML: Type:            [ SHT_NOBITS ]
+#YAML: Permissions:     [ SHF_ALLOC, SHF_WRITE ]
+#YAML: LinkerScript:    '*(.scommon.*) {{.*}}'

@@ -1,0 +1,19 @@
+#---PartialLinkDontMergeSections.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# This test checks that the strings that have mergeable strings are not merged
+# during partial link %linkopts as one section. Lets keep theme separate and merge them in
+# the final link %linkopts. This is a differentiation with GNU Linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.s -o %t1.1.o -fintegrated-as
+RUN: %clang %clangopts -c %p/Inputs/bar.s -o %t1.2.o -fintegrated-as
+RUN: %link %linkopts -r %t1.1.o  %t1.2.o -o %t2.r.o
+RUN: %readelf -S -W %t2.r.o | %filecheck %s
+
+#CHECK: .rodata.str1.1    PROGBITS        00000000 {{[x0-9a-f]+}} {{[x0-9a-f]+}} 04 AMS
+#CHECK: .rodata.str1.1    PROGBITS        00000000 {{[x0-9a-f]+}} {{[x0-9a-f]+}} 01 AMS
+#CHECK: .rel.rodata.str1.1 REL            00000000 {{[x0-9a-f]+}} {{[x0-9a-f]+}}
+#CHECK: .rel.rodata.str1.1 REL            00000000 {{[x0-9a-f]+}} {{[x0-9a-f]+}}
+
+#END_TEST

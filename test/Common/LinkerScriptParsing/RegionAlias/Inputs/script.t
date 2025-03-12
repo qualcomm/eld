@@ -1,0 +1,1 @@
+REGION_ALIAS("foo", bar)

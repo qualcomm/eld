@@ -1,0 +1,16 @@
+#---ExcludeLibsResolvedPath.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Test -exclude-libs option with resolved paths.
+#END_COMMENT
+#-------------------------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o -fPIC
+RUN: mkdir -p %t2
+RUN: %ar -cr %t2/lib2.a %t2.o
+RUN: %link %linkopts -shared %t1.o %t2/lib2.a --exclude-libs lib2.a -o %t2.out.1
+RUN: %readelf --dyn-symbols  %t2.out.1 |%filecheck %s
+RUN: %link %linkopts -shared %t1.o -L %t2 -l2 --exclude-libs lib2.a -o %t2.out.2
+RUN: %readelf --dyn-symbols  %t2.out.2 |%filecheck %s
+
+#CHECK-NOT: foo

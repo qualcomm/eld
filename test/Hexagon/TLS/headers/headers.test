@@ -1,0 +1,40 @@
+# Test that correst program headers are generated for thread templates
+# .tbss .tdata and .data are considered in different combinations to
+# cover enough code and make sure all cases work.
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangg0opts -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangg0opts -c %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangg0opts -c %p/Inputs/4.c -o %t4.o
+RUN: %clang %clangg0opts -c %p/Inputs/5.c -o %t5.o
+RUN: %clang %clangg0opts -c %p/Inputs/6.c -o %t6.o
+RUN: %link %linkopts  -o %t1.out %t1.o --noinhibit-exec -G0 2>&1
+RUN: %link %linkopts  -o %t2.out %t2.o --noinhibit-exec -G0 2>&1
+RUN: %link %linkopts  -o %t3.out %t3.o --noinhibit-exec -G0 2>&1
+RUN: %link %linkopts  -o %t4.out %t4.o --noinhibit-exec -G0 2>&1
+RUN: %link %linkopts  -o %t5.out %t5.o --noinhibit-exec -G0 2>&1
+RUN: %link %linkopts  -o %t6.out %t6.o --noinhibit-exec -G0 2>&1
+RUN: %readelf -l -S -s -W %t1.out |   %filecheck %s --check-prefix="ALL"
+RUN: %readelf -l -S -s -W %t2.out |   %filecheck %s --check-prefix="TBSSTDATA"
+RUN: %readelf -l -S -s -W %t3.out |   %filecheck %s --check-prefix="TBSS"
+RUN: %readelf -l -S -s -W %t4.out |   %filecheck %s --check-prefix="TDATADATA"
+RUN: %readelf -l -S -s -W %t5.out |   %filecheck %s --check-prefix="TDATA"
+RUN: %readelf -l -S -s -W %t6.out |   %filecheck %s --check-prefix="TBSSDATA"
+
+#ALL: .tdata            PROGBITS        {{[x0-9a-f]+}} {{[x0-9a-f]+}} {{[x0-9a-f]+}} 00 WAT  0   0  8
+#ALL: .tbss             NOBITS          {{[x0-9a-f]+}} {{[x0-9a-f]+}} {{[x0-9a-f]+}} 00 WAT  0   0  4
+#ALL: TLS            {{[x0-9a-f]+}} {{[x0-9a-f]+}} {{[x0-9a-f]+}} 0x00008 0x00010 R   0x8
+#ALL: 01     .tdata .data .bss
+#ALL: 02     .tdata .tbss
+#ALL: 00000000     8 TLS     GLOBAL DEFAULT    {{[0-9]}} a
+#ALL: 00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} b
+#TBSSTDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
+#TBSSTDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
+#TBSS:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} R E 0x1000
+#TBSS:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00000 0x00008 R   0x8
+#TDATADATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00008 0x00008 RW  0x1000
+#TDATADATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
+#TDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
+#TDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
+#TBSSDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
+#TBSSDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00000 0x00008 R   0x8
+

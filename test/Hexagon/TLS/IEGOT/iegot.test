@@ -1,0 +1,11 @@
+# Test R_HEX_IE* relocations
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.s  -o %t1.o
+RUN: %clang %clangopts -c -fpic %p/Inputs/2.s   -o %t2.o
+RUN: %link %linkopts -shared %t2.o -o %t2.so
+RUN: %link %linkopts -G0 --force-dynamic  %t1.o -Bdynamic  %t2.so  -o %t.out
+RUN: %readelf -l -r -S -s -W %t.out |   %filecheck %s
+
+# CHECK-DAG:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
+# CHECK-DAG:  R_HEX_TPREL_32         00000000   src1 + 0
+# CHECK-DAG:  R_HEX_TPREL_32         00000000   src2 + 0
+# CHECK-DAG:  00000000     4 TLS     GLOBAL DEFAULT    {{[0-9]}} dst

@@ -1,0 +1,16 @@
+#---DiagUsedef.test--------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+#Detect a use of the linker script variable before the variable is defined.
+#Add checks for -Wall, -Wlinker-script,-Wno-linker-script
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections -fdata-sections
+RUN: %not %link %linkopts %t1.1.o -o %t2.out.1 -T %p/Inputs/script.t --fatal-warnings -Wall 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o -o %t2.out.2 -T %p/Inputs/script.t --fatal-warnings -Wlinker-script 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o -o %t2.out.2 -T %p/Inputs/script.t --fatal-warnings -Wno-linker-script 2>&1
+#END_TEST
+
+#CHECK: foo_text_end used
+

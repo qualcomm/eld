@@ -1,0 +1,26 @@
+#---ChangeSymbol.test----------------------- Executable,LS --------------------#
+
+
+
+
+#BEGIN_COMMENT
+#This tests that the plugin can replace the symbol bar with some content.
+#Add testing for trampolines
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o  -ffunction-sections -fdata-sections
+RUN: %link %linkopts -M %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out -L %p/Inputs 2>&1 | %filecheck %s -check-prefix=MAP
+RUN: %objdump -d %t2.out 2>&1 | %filecheck %s -check-prefix=NOP
+#MAP: Checksum for Image Layout = {{.*}}
+#MAP: Data symbol in the Linker has address = 40
+#MAP: .car    0xf0000000      0xc # Offset: 0x2000, LMA: 0xf0000000, Alignment: 0x4
+#MAP: *(.text.car) #Rule {{.*}}
+#MAP: *(.car) #Rule {{.*}}
+#MAP: .text.codechunk.carfoo.changesymbol     0xf0000000      0x4     Plugin  #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4 [Plugin : {A,CHANGESYMBOL}]
+#MAP: trampoline_for_foo_from_.text.codechunk.carfoo.changesymbol_{{[0-9]+}}      0xf0000004      0x8     TRAMPOLINE      #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+#MAP: # Plugin #0     changesymbol
+#MAP: #       Modification #1 {A}
+#MAP: #       Section :.text.codechunk.nop.changesymbol   Plugin
+#MAP: #       Rule : *(.bar)
+#NOP: nop
+#END_TEST

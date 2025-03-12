@@ -1,0 +1,13 @@
+# This tests that the linker is able to partial link %linkopts and handles variable
+# assignments in the linker script.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts -r -T %p/Inputs/script.t %t1.o -o %t2.out.global
+RUN: %readelf -s %t2.out.global | %filecheck %s -check-prefix=GLOBAL
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t2.o
+RUN: %link %linkopts -r -T %p/Inputs/script.t %t2.o -o %t2.out.abs
+RUN: %readelf -s %t2.out.abs | %filecheck %s -check-prefix=ABS
+
+#GLOBAL-DAG: 00000000     0 NOTYPE  GLOBAL DEFAULT    1 __foo_start
+#GLOBAL-DAG: 0000000c     0 NOTYPE  GLOBAL DEFAULT    1 __foo_end
+#ABS-DAG: 00000000     0 NOTYPE  GLOBAL DEFAULT    ABS  __foo_end
+#ABS-DAG: 00000000     0 NOTYPE  GLOBAL DEFAULT    ABS  __foo_start

@@ -1,0 +1,9 @@
+#---InvalidNewDTags.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks if the linker throws error when both --enable-new-dtags and --disable-new-tags are given.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -o %t2.out --enable-new-dtags --disable-new-dtags 2>&1 | %filecheck %s
+#CHECK: Cannot specify enable and disable DTAGS
+#END_TEST

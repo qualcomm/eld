@@ -1,0 +1,28 @@
+#---IFuncRelative.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests the contents of the .got.plt section contains the function pointer
+# that IFUNC is pointing to.
+
+#        3f40ad7ba83ecf6f374039191ae7ceeb1f5fe831 added ifunc support for
+#        Windows on AArch64. We should specify this is for arm-linux.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-none-linux -c %p/Inputs/ifunc.c -o %t1.ifunc.o
+RUN: %link %linkopts %t1.ifunc.o -o %t2.out --section-start .text=0x1000
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %readelf -x .got.plt %t2.out | %filecheck %s -check-prefix=GOTCONTENTS
+
+RUN: %clang %clangopts -target arm-linux-androideabi -c %p/Inputs/ifunc.c -o %t1.ifunc.o
+RUN: %link %linkopts %t1.ifunc.o -o %t2.out --section-start .text=0x1000
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %readelf -x .got.plt %t2.out | %filecheck %s -check-prefix=GOTCONTENTS
+
+#CHECK: .rel.plt
+#CHECK: .plt
+#CHECK: .got.plt
+#CHECK-NOT: .dynamic
+
+#GOTCONTENTS: 00100000
+
+#END_TEST

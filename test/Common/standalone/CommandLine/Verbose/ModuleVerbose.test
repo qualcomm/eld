@@ -1,0 +1,12 @@
+#---ModuleVerbose.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Checks verbose output from Module.cpp
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -o %t.out --verbose 2>&1 | %filecheck %s --allow-empty
+CHECK-DAG: Created linker internal section {{.*}} with type {{.*}} alignment {{.*}} entry size {{.*}}
+CHECK-DAG: Adding symbol {{.*}}
+CHECK-DAG: Creating output section {{.*}} with type {{.*}} flag {{.*}} alignment {{.*}}
+#END_TEST

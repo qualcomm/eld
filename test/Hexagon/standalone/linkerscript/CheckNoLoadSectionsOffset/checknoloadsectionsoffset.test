@@ -1,0 +1,8 @@
+# Check that NOLOAD sections do not cause offset to increase.
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x001000 0x00000000 0x00000000 0x0000c 0x0000c R E 0x1000
+#CHECK:  LOAD           0x00100c 0x0000000c 0x0000000c 0x00020 0x00020 RWE 0x1000
+

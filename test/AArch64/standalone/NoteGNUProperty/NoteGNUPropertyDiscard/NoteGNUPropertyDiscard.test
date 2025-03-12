@@ -1,0 +1,12 @@
+#---NoteGNUPropertyDiscard.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests checks that the linker does not emit a proper GNU property section
+#in the presence of a linker script, and when the section is discarded
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts -march aarch64 %t1.o  -o %t1.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t1.out | %filecheck --check-prefix=NOTE %s
+
+#NOTE-NOT: NOTE

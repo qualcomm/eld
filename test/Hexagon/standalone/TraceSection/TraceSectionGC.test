@@ -1,0 +1,14 @@
+#---TraceSectionDiscard.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check tracing of input sections which are garbage collected.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang -ffunction-sections -c %p/Inputs/2.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --gc-sections --trace=section=.text.bar 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t2.out %t1.o --gc-sections --trace-section=.text.bar 2>&1 | %filecheck %s --check-prefix=ALIAS
+RUN: %link %linkopts -o %t2.out %t1.o --gc-sections --trace-section .text.bar 2>&1 | %filecheck %s --check-prefix=ALIAS2
+CHECK: Note: Section : .text.bar is being garbage collected
+ALIAS: Note: Section : .text.bar is being garbage collected
+ALIAS2: Note: Section : .text.bar is being garbage collected

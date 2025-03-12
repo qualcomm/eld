@@ -1,0 +1,14 @@
+#---CompactFiles.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+# Test that the linker can work with no AT keyword specified in the linker
+# script.
+#END_COMMENT
+#----------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link %linkopts --compact %t1.1.o -T %p/Inputs/script_without_at.t  -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:   LOAD   0x000054 0x00001000 0x00001000 0x00020 0x0f010 R E 0x4
+
+

@@ -1,0 +1,17 @@
+#---tracereloc.test--------------------- Executable --------------------------#
+
+
+#BEGIN_COMMENT
+# Test for tracing a relocation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o --trace=reloc=R_HEX_B22_PCREL -o %t2.out 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --trace-reloc=R_HEX_B22_PCREL -o %t3.out 2>&1 | %filecheck %s --check-prefix=ALIAS
+RUN: %link %linkopts %t1.1.o --trace-reloc R_HEX_B22_PCREL -o %t4.out 2>&1 | %filecheck %s --check-prefix=ALIAS2
+#CHECK: 1.o
+#ALIAS: 1.o
+#ALIAS2: 1.o
+#END_TEST
+
+

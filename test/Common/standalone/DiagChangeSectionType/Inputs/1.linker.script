@@ -1,0 +1,4 @@
+SECTIONS {
+  .text (PROGBITS) : { *(.text*) }
+  .bss (PROGBITS) : { *(.text*) }
+}

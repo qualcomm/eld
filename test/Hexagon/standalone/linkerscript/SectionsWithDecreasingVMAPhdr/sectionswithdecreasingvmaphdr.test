@@ -1,0 +1,9 @@
+# This tests that the linker handles sections with decreasing VMA's with PHDR
+# command.
+RUN: %clang %clangopts -c %p/Inputs/1.c  %clangg0opts -o %t1.o -ffunction-sections
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x001000 0x00007000 0x00007000 0x0100c 0x0100c R E 0x1000
+#CHECK:  Segment Sections...
+#CHECK:   00     a b c

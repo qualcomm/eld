@@ -1,0 +1,6 @@
+# Tests that empty sections dont result in SHT_NULL with partial linking.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -march arm -r %t1.o -o %t2.o -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.o | %filecheck %s
+
+#CHECK-NOT: .blah

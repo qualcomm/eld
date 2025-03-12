@@ -1,0 +1,13 @@
+# This tests that the map file records information for weak symbols properly,
+# when a weak symbol is overridden by a strong symbol, the map file shows the
+# original place of the weak symbol on how it was, with the address of the
+# resolved symbol. This is wrong and confuses the user.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/w1.c -o %t1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/w2.c -o %t2.o
+RUN: %link %linkopts -march aarch64 %t1.o %t2.o -M -o %t3.out 2>&1 | %filecheck %s
+
+#CHECK: .bar {{[0x0-9a-f]+}}    {{[0x0-9a-f]+}}
+#CHECK:  {{[0x0-9a-f]+}}     bar
+#CHECK: .bar {{[0x0-9a-f]+}} {{[0x0-9a-f]+}}
+#CHECK:  {{[0x0-9a-f]+}}  foo
+

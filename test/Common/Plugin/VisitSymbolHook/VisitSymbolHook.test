@@ -1,0 +1,15 @@
+#---VisitSymbolHook.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of visit symbol hook of universal plugins.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --trace plugin 2>&1 | %filecheck %s --check-prefix TRACE
+#END_TEST
+CHECK: Visiting symbol: foo
+CHECK: Visiting symbol: bar
+
+TRACE: Trace: Enabled VisitSymbol hook for the plugin 'VisitSymbolHook'
+TRACE: Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'foo'
+TRACE: Trace: Calling plugin hook handler VisitSymbolHook::VisitSymbol for the symbol 'bar'

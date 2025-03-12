@@ -1,0 +1,18 @@
+#---DiscardedComdats.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print the sections that are duplicate
+# COMDAT groups in the YAML map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t1.2.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o %t1.2.o -Map %t2.map -o %t2.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: DiscardedComdats:
+#CHECK:   - Name:            .text.foo
+#CHECK:     Type:            [ SHT_PROGBITS ]
+#CHECK:     Permissions:     [ SHF_ALLOC, SHF_EXECINSTR, SHF_GROUP ]
+#CHECK:     Alignment:       1

@@ -1,0 +1,13 @@
+#----------KeepLabels.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# Add option to keep labels on RISC-V
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fPIC
+RUN: %link %linkopts  %t1.o  -o %t.out --keep-labels
+RUN: %readelf -s %t.out  2>&1 | %filecheck %s -check-prefix=LABEL
+#END_TEST
+
+#LABEL: .L{{.*}}

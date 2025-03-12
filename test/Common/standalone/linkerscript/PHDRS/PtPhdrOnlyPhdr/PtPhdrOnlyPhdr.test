@@ -1,0 +1,15 @@
+#---PtPhdrOnlyPhdr.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This is a test which tests the linker where the PT_PHDR segment only contains
+# PHDR and not FILEHDRS. Program headers and file headers are not loaded.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --trace=assignments 2>& 1| %filecheck %s -check-prefix=EHDRPHDR
+RUN: %readelf -l -W %t2.out  | %filecheck %s -check-prefix=SEGMENTS
+#EHDRPHDR: __pHdr__
+#SEGMENTS:  PHDR           {{.*}} [[ADDR1:[0xa-f0-9]+]] [[ADDR1]] [[FILESZ1:[0xa-f0-9]+]] [[FILESZ1]]
+#SEGMENTS:  LOAD           {{.*}} [[ADDR2:[0xa-f0-9]+]] [[ADDR2]] [[FILESZ2:[0xa-f0-9]+]] [[FILESZ2]]
+#SEGMENTS:  LOAD           {{.*}} [[ADDR3:[0xa-f0-9]+]] [[ADDR3]] [[FILESZ3:[0xa-f0-9]+]] [[FILESZ3]]
+#END_TEST

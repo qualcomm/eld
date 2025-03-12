@@ -1,0 +1,15 @@
+#---ArchiveReaderVersbose.test------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# This tests the verbose output from GNUArchiveReader.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -flto
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -flto
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o
+RUN: %link %linkopts %t1.3.o %t1.1.o %t2.lib2.a -o %t2.out --verbose 2>&1 | %filecheck %s
+
+#CHECK: Initializing {{.*}}lib2.a
+#CHECK-NOT: Initializing {{.*}}lib2.a
+

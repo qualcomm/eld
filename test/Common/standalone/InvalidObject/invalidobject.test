@@ -1,0 +1,9 @@
+UNSUPPORTED: riscv32, riscv64
+# This tests that the linker does not error when there is an executable
+# given as input.
+RUN: %clang %clangopts -c %p/Inputs/a.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2 --no-emit-relocs
+RUN: %link -o %t1.out %linkopts %t2 2>&1
+RUN: %readelf -s -W %t1.out | %filecheck %s
+
+#CHECK: foo

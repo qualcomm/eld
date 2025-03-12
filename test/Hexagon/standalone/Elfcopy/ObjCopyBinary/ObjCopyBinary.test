@@ -1,0 +1,12 @@
+#---ObjCopyBinary.test--------------------- Exe------------------#
+
+#BEGIN_COMMENT
+#When users use objcopy to create binary files, the ELF file returned by objcopy
+#doesnot have any flags set. It would be useful to support the usecase since
+#objcopy doesnot know what flag needs to be set.
+#END_COMMENT
+RUN: %elfcopy -I binary -O elf32-hexagon %p/Inputs/txtfile %t1.1.o
+RUN: %link %t1.1.o -o %t2.out
+RUN: %readelf -h %t2.out | %filecheck %s -check-prefix=FLAGS
+
+#FLAGS: 0x68

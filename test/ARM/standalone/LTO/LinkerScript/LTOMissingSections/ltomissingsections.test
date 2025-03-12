@@ -1,0 +1,14 @@
+# This tests that LTO doesnot miss default sections in the output.
+RUN: %clang %clangopts -target arm -c -flto %p/Inputs/main.c -o %t1.main.o  -ffunction-sections
+RUN: %clang %clangopts -target arm -c -flto %p/Inputs/foo.c -o %t1.foo.o  -ffunction-sections
+RUN: %clang %clangopts -target arm -c %p/Inputs/bar.c -o %t1.bar.o -ffunction-sections
+RUN: %link %linkopts -march arm %t1.bar.o %t1.main.o %t1.foo.o -o %t2.out -T %p/Inputs/script.t --trace=lto -e main -M 2>&1 | %filecheck %s
+RUN: %readelf -p .blah %t2.out | %filecheck %s -check-prefix=STRINGS
+#CHECK: .blah
+#
+# FIXME: Investigate why the order of the strings is reversed by LTO (the -DAG
+# should not be needed).
+#
+#STRINGS: great
+
+

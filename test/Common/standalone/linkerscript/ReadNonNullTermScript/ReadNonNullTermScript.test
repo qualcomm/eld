@@ -1,0 +1,11 @@
+#---ReadNonNullTermScript.test------------ Executable-------------------------#
+
+#BEGIN_COMMENT
+# Linker script with no null termination should not cause linker to crash
+# due to read beyond memory
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+#CHECK: foo

@@ -1,0 +1,10 @@
+#---NoloadGPRelaxation.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies the relaxation of NOLOAD symbol references.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.bss_with_segment.t
+#END_TEST

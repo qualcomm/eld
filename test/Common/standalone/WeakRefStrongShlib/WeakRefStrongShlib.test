@@ -1,0 +1,19 @@
+#---WeakRefStrongShlib.test----------------Shlib/Exe-------------#
+
+#BEGIN_COMMENT
+# Make sure a weak reference resolved form a shared library
+# is kept weak. It is dynamic loaders job to decide what symbol
+# to pick
+#----------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t2.o
+RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t3.o
+RUN: %link %linkopts -shared -o %t2.so %t2.o
+RUN: %link %linkopts -dy %t1.o %t2.so -o %t1.out
+RUN: %nm %t1.out | %filecheck %s --check-prefix="EXE"
+
+EXE: w foo
+RUN: %link %linkopts -dy -shared %t1.o %t2.so -o %t3.so
+RUN: %nm %t3.so |  %filecheck %s --check-prefix="DSO"
+DSO: w foo

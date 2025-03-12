@@ -1,0 +1,30 @@
+UNSUPPORTED: riscv64
+#---DebugTombStone32bit.test----------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Debug sections need to be set with tombstone values for sections
+# garbage collected or discarded.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/32bit/ranges1.asm -o %t1.1.o
+RUN: %clang %clangopts -c %p/32bit/ranges2.asm -o %t1.2.o
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t1.out -e baz --gc-sections 2>&1
+RUN: %dwarfdump %t1.out | %filecheck %s
+
+### Ranges are replaced with ones (three times) and subroutine addresses are
+### zeros.
+
+CHECK: DW_TAG_compile_unit
+CHECK:   DW_AT_name ("ranges.c")
+CHECK:   DW_AT_ranges (0x00000000
+CHECK:     [0x00000001, 0x00000001)
+CHECK:     [0x00000001, 0x00000001)
+CHECK:     [0x00000001, 0x00000001)
+CHECK:   DW_TAG_subprogram
+CHECK:     DW_AT_low_pc    (0x00000000)
+CHECK:     DW_AT_high_pc   (0x00000016)
+CHECK:     DW_AT_name ("foo")
+
+#END_TEST

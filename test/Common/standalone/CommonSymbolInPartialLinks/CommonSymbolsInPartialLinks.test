@@ -1,0 +1,37 @@
+#---CommonSymbolsInPartialLinks.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks the usage of common symbols in partial links.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %link %linkg0opts -o %t1.1.r.out %t1.1.o -r 2>&1
+RUN: %readelf -sS %t1.1.r.out 2>&1 | %filecheck %s --check-prefix=PARTIAL
+RUN: %link %linkg0opts -o %t1.1.rd.out %t1.1.o -r -d 2>&1
+RUN: %readelf -sS %t1.1.rd.out 2>&1 | %filecheck %s --check-prefix=PARTIALD
+RUN: %link %linkg0opts -o %t1.1.ws.r.out %t1.1.o -T %p/Inputs/1.linker.script -r 2>&1
+RUN: %readelf -sS %t1.1.ws.r.out 2>&1 | %filecheck %s --check-prefix=PARTIALWS
+RUN: %link %linkg0opts -o %t1.1.ws.rd.out %t1.1.o -T %p/Inputs/1.linker.script -r -d 2>&1
+RUN: %readelf -sS %t1.1.ws.rd.out 2>&1 | %filecheck %s --check-prefix=PARTIALDWS
+#END_TEST
+PARTIAL-DAG: COM common_short
+PARTIAL-DAG: COM common_int
+PARTIAL-DAG: COM common_long
+PARTIAL-DAG: COM common_double
+
+PARTIALD:  [ [[idx:[0-9]+]]] .bss
+PARTIALD-DAG:  [[idx]] common_short
+PARTIALD-DAG:  [[idx]] common_int
+PARTIALD-DAG:  [[idx]] common_long
+PARTIALD-DAG:  [[idx]] common_double
+
+PARTIALWS-DAG: COM common_short
+PARTIALWS-DAG: COM common_int
+PARTIALWS-DAG: COM common_long
+PARTIALWS-DAG: COM common_double
+
+PARTIALDWS:  [ [[idx:[0-9]+]]] common
+PARTIALDWS-DAG:  [[idx]] common_short
+PARTIALDWS-DAG:  [[idx]] common_int
+PARTIALDWS-DAG:  [[idx]] common_long
+PARTIALDWS-DAG:  [[idx]] common_double

@@ -1,0 +1,20 @@
+#---UsingBothUPAndNonUP.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior when both a universal plugin and a
+# non-universal plugins are used in the link.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml --verbose 2>&1 | %filecheck %s --check-prefix VERBOSE
+#END_TEST
+
+CHECK: UP: Hello World!
+CHECK: nonUP: Hello World!
+CHECK: nonUP: Bye World!
+CHECK: UP: Bye World!
+
+VERBOSE: Verbose: Loading universal plugins
+VERBOSE: Verbose: Loaded plugin UP from script
+VERBOSE: Verbose: Loading non universal plugins
+VERBOSE: Verbose: Loaded plugin NonUP from script

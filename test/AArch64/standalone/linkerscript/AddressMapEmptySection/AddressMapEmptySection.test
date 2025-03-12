@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts -march aarch64 %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/script -z max-page-size=0x1000
+RUN: %readelf -W -S %t.out  | %filecheck %s
+
+#CHECK: .text             PROGBITS        0000000000001000 001000 000014

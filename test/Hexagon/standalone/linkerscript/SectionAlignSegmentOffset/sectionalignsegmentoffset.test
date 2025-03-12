@@ -1,0 +1,7 @@
+# This checks that the linker aligns the offset to the maximum alignment in the
+# segment.
+RUN: %clang %clangopts -c %p/Inputs/foo.c -ffunction-sections -fdata-sections %clangg0opts  -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x00a000 0x00002000 0x00002000 0x06004 0x06004 RW  0x1000

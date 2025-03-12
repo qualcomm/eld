@@ -1,0 +1,17 @@
+#---trampolinesMap.test-------Executable----------------------------#
+
+# BEGIN_COMMENT
+# This test checks the trampolines count per output section and trampolines
+# information in the text map file.
+# END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t2.o
+RUN: %link -MapStyle txt %linkopts %t2.o %t1.o -o %t2.out -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+#CHECK: .text {{.*}} # {{.*}}
+#CHECK: # NumTrampolines: 2
+#CHECK: .text.trampoline_for_foo_from_.text.callfoo_{{[0-9]+}}	{{.*}}	{{.*}}	TRAMPOLINE	#SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+#CHECK: 	{{.*}}		trampoline_for_foo_from_.text.callfoo_{{[0-9]+}}
+#CHECK: .text.trampoline_for_bar_from_.text.callfoo_{{[0-9]+}}	{{.*}}	{{.*}}	TRAMPOLINE	#SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+#CHECK: 	{{.*}}		trampoline_for_bar_from_.text.callfoo_{{[0-9]+}}

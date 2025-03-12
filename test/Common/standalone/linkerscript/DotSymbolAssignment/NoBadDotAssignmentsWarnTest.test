@@ -1,0 +1,18 @@
+#---NoBadDotAssignmentWarn.test------- Executable,LS ---------------------#
+
+#BEGIN_COMMENT
+# This tests for suppressed bad-dot-assignments warnings.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %not %link %linkopts -e foo -T %p/Inputs/script1.t %t1.1.o -o %t1.out.1 \
+RUN: -Wbad-dot-assignments --fatal-warnings --no-check-sections 2>&1 | %filecheck %s
+#CHECK: unable to move "." symbol backwards for output section .text with assignment expression
+RUN: %link %linkopts -e foo -T %p/Inputs/script1.t %t1.1.o -o %t1.out.1 \
+RUN: -Wbad-dot-assignments --fatal-warnings --no-check-sections \
+RUN: -Wno-bad-dot-assignments --verbose 2>&1 | %filecheck %s -check-prefix=NOWARN
+RUN: %link %linkopts -e foo -T %p/Inputs/script1.t %t1.1.o -o %t1.out.1 \
+RUN: -Wall --fatal-warnings --no-check-sections \
+RUN: -Wno-bad-dot-assignments --verbose 2>&1 | %filecheck %s -check-prefix=NOWARN
+#NOWARN-NOT: unable to move "." symbol backwards for output section .text with assignment expression
+#END_TEST

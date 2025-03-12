@@ -1,0 +1,10 @@
+#---ExpressionParser.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Test that the linker does not emit an error with multiple expressions
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/script.t -o %t.out 2>&1
+#END_TEST
+

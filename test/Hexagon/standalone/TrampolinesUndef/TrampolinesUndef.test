@@ -1,0 +1,15 @@
+# --TrampolinesUndef.test--------------------- Shared Library-----------------------#
+
+#--- -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# Linker needs to create PLT entries for calls to undefined symbols.
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -Bdynamic %t1.o -shared  -T %p/Inputs/script.t -o %t2.so
+RUN: %objdump -d %t2.so | %filecheck %s
+
+#CHECK: trampoline_for_bar_from_.text_{{[0-9]+}}
+#CHECK: trampoline_for_baz_from_.text_{{[0-9]+}}
+#END_TEST

@@ -1,0 +1,12 @@
+#---T2AError.test--------- Executable-----------------------------------#
+
+#BEGIN_COMMENT
+#Check Thumb to ARM for Cortex-M is an error.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -ffunction-sections -c --target=armv7m-none-eabi %p/Inputs/1.c -o %t1.t2aerr.1.o
+RUN: %not %link %linkopts %t1.t2aerr.1.o  -o %t2.t2a.err.out --defsym bar=0x80000000 2>&1 | %filecheck %s
+
+#CHECK: Relocation overflow when applying relocation `R_ARM_THM_CALL' for symbol `bar' referred
+
+#END_TEST

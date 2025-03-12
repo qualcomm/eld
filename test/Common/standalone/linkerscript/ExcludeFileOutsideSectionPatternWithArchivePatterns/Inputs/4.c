@@ -1,0 +1,1 @@
+int fred() { return 7; }

@@ -1,0 +1,17 @@
+#---LoadOnlyPhdrsWithPtPhdrHavingFileHdr.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This is a test which tests the linker where the PT_LOAD segment contains only
+# PHDRS and not FILEHDRS. In addition the PT_PHDR segment contains only FILEHDR
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --trace=assignments 2>&1 | %filecheck %s -check-prefix=EHDRPHDR
+RUN: %readelf -l -W %t2.out  | %filecheck %s -check-prefix=SEGMENTS
+#EHDRPHDR: __ehdr__
+#EHDRPHDR: __pHdr__
+#SEGMENTS:  PHDR           {{[0x0]+}} {{[0x0]+}} {{[0x0]+}} [[FILESZ1:[0xa-f0-9]+]] [[FILESZ1]] {{.*}}
+#SEGMENTS:  LOAD           {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} [[FILESZ2:[0xa-f0-9]+]] [[FILESZ2]] {{.*}}
+#SEGMENTS:  LOAD           {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} [[FILESZ3:[0xa-f0-9]+]] [[FILESZ3]] {{.*}}
+#SEGMENTS:  LOAD           {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} {{[0xa-f0-9]+}} [[FILESZ4:[0xa-f0-9]+]] [[FILESZ4]] {{.*}}
+#END_TEST

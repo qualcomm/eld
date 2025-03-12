@@ -1,0 +1,3 @@
+SECTIONS {
+  .myrodata : { *(.rodata) }
+}

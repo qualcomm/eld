@@ -1,0 +1,11 @@
+#---GCEhFrameRef.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker parsing the EhFrame sections and garbage collects
+# functions not referenced.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -e _start --gc-sections --print-gc-sections --no-emit-relocs 2>&1 | %filecheck %s
+#CHECK: .text.foobar
+#END_TEST

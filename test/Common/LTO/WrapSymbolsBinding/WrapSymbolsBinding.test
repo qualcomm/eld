@@ -1,0 +1,21 @@
+#---WrapSymbolsBinding.test----------------------- Executable,LTO --------------------#
+
+
+#BEGIN_COMMENT
+# This tests that the linker is restoring bindings of wrapped symbols.
+#END_COMMENT
+#START_TEST
+#
+# Make sure the below test pulls 2.o from the archive library.
+#
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -flto
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o
+RUN: %link %linkopts %t1.1.o --start-group %t2.lib2.a %t1.3.o --end-group --wrap foo -t -o %t2.out 2>&1 | %filecheck %s -check-prefix=PULLFROMARCHIVE
+RUN: %readelf -s %t2.out | %filecheck %s -check-prefix=SYMBOLS
+
+#PULLFROMARCHIVE: {{.*}}lib2.a{{.*}}2.o
+#SYMBOLS-DAG: {{.*}} WEAK {{.*}} foo
+#SYMBOLS-DAG: {{.*}} WEAK {{.*}} __wrap_foo
+#END_TEST

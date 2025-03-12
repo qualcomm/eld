@@ -1,0 +1,14 @@
+#---DiscardedAlloctableInputSections.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker produces warning if a non-allocatable input
+# section is being assigned to an allocatable output section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.2.1.o -ffunction-sections
+RUN: %clang %clangopts -c -g %p/Inputs/2.c -o %t1.2.2.o -ffunction-sections
+RUN: %link %linkopts %t1.2.2.o %t1.2.1.o -T %p/Inputs/linker.script.2 -o %t1.2.out.2 2>&1 | %filecheck %s
+#CHECK-NOT: {{.*DISCARD.*}}
+#CHECK: Warning: Non-allocatable section '.debug_info' from input file '{{.*}}2.o' is being merged into loadable output section '.text'
+#CHECK-NOT: {{.*DISCARD.*}}
+#END_TEST

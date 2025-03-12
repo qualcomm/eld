@@ -1,0 +1,36 @@
+# Check that commons exist in the Map file.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o.g0 %clangg0opts
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+# Test G0 with and without linker scripts
+RUN: %link -o %t1.out.1 %linkopts %t1.o.g0 -z max-page-size=4096 -M 2>&1 | %filecheck -check-prefix=COMMONSWITHOUTLSG0 %s
+RUN: %link -o %t1.out.2 %linkopts %t1.o.g0 -z max-page-size=4096 -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLSG0 %s
+RUN: %link -o %t1.out.3 %linkopts %t1.o.g0 -z max-page-size=4096  %linkg0opts  -M 2>&1 | %filecheck -check-prefix=COMMONSWITHOUTLSLINKG0 %s
+RUN: %link -o %t1.out.4 %linkopts %t1.o.g0 -z max-page-size=4096  %linkg0opts  -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLSLINKG0 %s
+# Test G8 with linker scripts
+RUN: %link -o %t1.out.5 %linkopts %t1.o -z max-page-size=4096 -M  2>&1| %filecheck -check-prefix=COMMONSWITHOUTLS %s
+RUN: %link -o %t1.out.6 %linkopts %t1.o -z max-page-size=4096 -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLS %s
+
+#COMMONSWITHOUTLSG0:common1 0x4
+#COMMONSWITHOUTLSG0:common2 0x4
+#COMMONSWITHOUTLSG0:        {{.*}}          common1
+#COMMONSWITHOUTLSG0:        {{.*}}	common2
+#COMMONSWITHLSG0:common1 0x4
+#COMMONSWITHLSG0:common2 0x4
+#COMMONSWITHLSG0:        {{.*}}	common1
+#COMMONSWITHLSG0:        {{.*}}	common2
+#COMMONSWITHOUTLSLINKG0:common1 0x4
+#COMMONSWITHOUTLSLINKG0:common2 0x4
+#COMMONSWITHOUTLSLINKG0:        {{.*}}	common1
+#COMMONSWITHOUTLSLINKG0:        {{.*}}	common2
+#COMMONSWITHLSLINKG0:common1 0x4
+#COMMONSWITHLSLINKG0:common2 0x4
+#COMMONSWITHLSLINKG0:        {{.*}}	common1
+#COMMONSWITHLSLINKG0:        {{.*}}	common2
+#COMMONSWITHOUTLS:common1 0x4
+#COMMONSWITHOUTLS:common2 0x4
+#COMMONSWITHOUTLS:        {{.*}}	common1
+#COMMONSWITHOUTLS:        {{.*}}	common2
+#COMMONSWITHLS:common1 0x4
+#COMMONSWITHLS:common2 0x4
+#COMMONSWITHLS:        {{.*}}	common1
+#COMMONSWITHLS:        {{.*}}	common2

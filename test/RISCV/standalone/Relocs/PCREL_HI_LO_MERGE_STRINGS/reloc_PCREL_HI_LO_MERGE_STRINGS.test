@@ -1,0 +1,18 @@
+#---reloc_PCREL_HI_LO_MERGE_STRINGS.test--------Executable---------#
+
+
+#BEGIN_COMMENT
+# Check patching of R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_I relocation,
+# specifically when referring to the merge strings symbol with addend.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out | %filecheck %s
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t1.2.o
+RUN: %link %linkopts  -T %p/Inputs/script.t  %t1.2.o -o %t2.out
+RUN: %objdump --no-print-imm-hex -d %t2.out | %filecheck %s
+
+CHECK-LABEL: foo
+CHECK-NEXT:  auipc   a0, 1
+CHECK-NEXT:  addi    a0, a0, 1377
+CHECK-NEXT:  lw      a2, 0(a0)

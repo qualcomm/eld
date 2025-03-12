@@ -1,0 +1,17 @@
+#---WeakUndefs.test--------- Executable,Shared --------------------#
+
+#BEGIN_COMMENT
+# The weak undefined symbol prologue check is made sure that the symbol doesnot
+# become strong. This allows the weak symbol to never get called.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fno-pic %p/Inputs/1.c -o %t1.1.o -c
+RUN: %clang %clangopts  %p/Inputs/2.c -o %t1.2.o -c -fpic
+RUN: %link %linkopts %t1.2.o -shared  -o %t2.so
+RUN: %link %linkopts -dy %t1.1.o %t2.so -o %t.out --no-emit-relocs
+RUN: %objdump -d %t.out | %filecheck %s
+
+CHECK: { immext(#0x0)
+CHECK-NEXT r{{[0-9]+}}=##0x0 }
+
+#END_TEST

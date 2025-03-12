@@ -1,0 +1,13 @@
+#---PartialRelRO.test--------------------- SharedLibrary------------------#
+
+# This tests that -z relro is su
+#BEGIN_COMMENT
+# This tests that -z relro flag is able to create a PT_GNU_RELRO segment. This
+# tests that the sections .ctors,.dtors,.got,.got.plt are nort part of the
+# PT_GNU_RELRO segment.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o -fno-use-init-array
+RUN: %link %linkopts %t1.1.o -shared -o %t1.so -z relro
+RUN: %readelf -l -W %t1.so | %filecheck %s
+
+#CHECK-NOT: 03 .dynamic .got

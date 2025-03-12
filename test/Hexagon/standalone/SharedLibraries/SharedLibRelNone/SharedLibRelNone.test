@@ -1,0 +1,10 @@
+#---SharedLibRelNone.test----------------------- SharedLibrary --------------------#
+
+#BEGIN_COMMENT
+# Verify that R_HEX_NONE relocations are permitted when linking a shared library.
+#END_COMMENT
+#START_TEST
+RUN: %yaml2obj %p/Inputs/1.yaml >%t.o
+RUN: %link %linkopts -shared -o %t.so %t.o 2>&1 | %filecheck --allow-empty %s
+#CHECK-NOT: Current link configuration does not support relocation type `R_HEX_NONE' for symbol
+#END_TEST

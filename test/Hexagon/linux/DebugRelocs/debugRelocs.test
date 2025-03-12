@@ -1,0 +1,9 @@
+# Check that Debug sections are fixed up properly.
+RUN: %clang %clangopts -c %p/Inputs/crap.c -o %t1.o -g
+RUN: %clang %clangopts -c %p/Inputs/hello.c -o %t2.o -g
+RUN: %link %linkopts %t1.o %t2.o -o %t.out --noinhibit-exec
+RUN: %dwarfdump -debug-info %t.out | %filecheck %s
+
+#CHECK:   DW_AT_producer ("{{.*}}{{[cC]}}lang
+#CHECK:   DW_AT_name ("{{[ -\(\)_A-Za-z0-9.\\/:]+}}DebugRelocs{{[\\/]+}}Inputs{{[\\/]+}}crap.c")
+#CHECK:   DW_AT_name ("crap")

@@ -1,0 +1,15 @@
+#---WarnWholeArchiveReproduce.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks for -Wwhole-archive option to warn when whole-archive is enabled
+# along with additional warnings when used in reproduce.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %ar cr %aropts %t1.lib1.a %t1.1.o
+RUN: %link %linkopts --reproduce %t1.1.reproduce.tar -whole-archive %t1.lib1.a \
+RUN: %t1.2.o --warn-common -o %t2.out -Wwhole-archive \
+RUN: --dump-response-file %t1.1.response.txt
+RUN: %filecheck %s --check-prefix=WARN < %t1.1.response.txt
+#WARN: -Wwhole-archive

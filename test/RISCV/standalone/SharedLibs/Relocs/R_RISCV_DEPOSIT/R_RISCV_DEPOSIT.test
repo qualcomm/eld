@@ -1,0 +1,14 @@
+#----------R_RISCV_DEPOSIT.test--------------------- SharedLibrary------#
+
+#BEGIN_COMMENT
+#This tests checks that the linker is able to create a dynamic relocation
+#to support word deposits such as pointers to other variables.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts -shared %t1.1.o  -o %t1.out 2>&1
+RUN: %readelf -r -W %t1.out 2>&1 | %filecheck %s
+#END_Test
+
+CHECK-COUNT-2: R_RISCV_{{[3264]+}}

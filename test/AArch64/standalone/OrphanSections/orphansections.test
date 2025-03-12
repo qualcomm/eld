@@ -1,0 +1,8 @@
+# Test that orphan sections are handled properly when the following section have
+# assignments.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t.withphdrs %t1.1.o -o %t2.out.phdrs
+RUN: %link %linkopts -march aarch64 -T %p/Inputs/script.t %t1.1.o -o %t2.out
+RUN: %readelf -S -W %t2.out.phdrs | %filecheck %s
+RUN: %readelf -S -W %t2.out | %filecheck %s
+#CHECK:  .bss              NOBITS          0000000000008000

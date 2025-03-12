@@ -1,0 +1,8 @@
+# Check symbol assignments when there is an empty section.
+RUN: %clang %clangopts -target arm -c  %p/Inputs/foo.c  -o %t0.o
+RUN: %link %linkopts -march arm -T %p/Inputs/script.t %t0.o -o %t1
+RUN: %readelf -s -W %t1 | %filecheck %s
+
+#CHECK:   00001000     0 NOTYPE  GLOBAL DEFAULT  ABS __tcm_qurt_pa_load_end__
+#CHECK:   00001000     0 NOTYPE  GLOBAL DEFAULT  ABS __tcm_qurt_pa_load_start__
+

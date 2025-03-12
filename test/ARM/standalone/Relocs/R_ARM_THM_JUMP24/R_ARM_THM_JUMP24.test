@@ -1,0 +1,13 @@
+#---R_ARM_THM_JUMP24.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle R_ARM_THM_JUMP24 relocations
+# properly for global symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/x.s -o %t1.1.o
+RUN: %link %linkopts -march arm %t1.1.o --defsym arm_callee1=1 -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck %s
+
+#CHECK:  0: f7ff bffe
+#END_TEST

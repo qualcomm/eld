@@ -1,0 +1,7 @@
+SECTIONS
+{
+  .sdata          :
+  {
+    *(.gnu.linkonce.l[a4].*)
+  }
+}

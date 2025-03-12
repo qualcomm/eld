@@ -1,0 +1,10 @@
+# Check that common symbols when resolved are put in the proper section
+# There might be a case where we just want to match the section name and put
+# them into .sdata to match default linker script rules.
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o %clangg0opts
+RUN: %link %linkopts %t1.o %t2.o -o %t3.out
+RUN: %readelf -S %t3.out | %filecheck %s
+
+#CHECK: .sdata            PROGBITS        00001000 002000 000001
+

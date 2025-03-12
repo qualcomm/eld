@@ -1,0 +1,11 @@
+#---WeakUndefReference.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker doesnot insert a guard stub.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck %s
+#CHECK: jump 0x1000
+#END_TEST

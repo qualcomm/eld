@@ -1,0 +1,66 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_AARCH64
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x1
+    Content:         0000008A0000008A0000008A0000008A04003836070040B70C0018361100C0B7
+  - Name:            .data
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x1
+  - Name:            .bss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x1
+  - Name:            .rela.text
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x8
+    Info:            .text
+    Relocations:
+      - Offset:          0x10
+        Symbol:          target
+        Type:            R_AARCH64_TSTBR14
+      - Offset:          0x14
+        Symbol:          target
+        Type:            R_AARCH64_TSTBR14
+        Addend:          16
+      - Offset:          0x18
+        Symbol:          target2
+        Type:            R_AARCH64_TSTBR14
+      - Offset:          0x1C
+        Symbol:          target2
+        Type:            R_AARCH64_TSTBR14
+        Addend:          -12
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .text
+      - Name:            .rela.text
+      - Name:            .data
+      - Name:            .bss
+      - Name:            .shstrtab
+      - Name:            .symtab
+      - Name:            .strtab
+Symbols:
+  - Name:            .text
+    Type:            STT_SECTION
+    Section:         .text
+  - Name:            .data
+    Type:            STT_SECTION
+    Section:         .data
+  - Name:            .bss
+    Type:            STT_SECTION
+    Section:         .bss
+  - Name:            '$x'
+    Section:         .text
+  - Name:            target
+    Binding:         STB_GLOBAL
+  - Name:            target2
+    Binding:         STB_GLOBAL
+...

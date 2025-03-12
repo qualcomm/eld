@@ -1,0 +1,10 @@
+RUN: %clang -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %link -march aarch64 -execute-only -shared %t1.o -o %t.out 2>&1
+RUN: %readelf -l -W %t.out |   %filecheck %s
+
+# CHECK: Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align
+# CHECK-NEXT:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  R  {{[x0-9a-z]+}}
+# CHECK-NEXT:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}    E  {{[x0-9a-z]+}}
+# CHECK-NEXT:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  R   {{[x0-9a-z]+}}
+# CHECK-NEXT:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  RW   {{[x0-9a-z]+}}
+

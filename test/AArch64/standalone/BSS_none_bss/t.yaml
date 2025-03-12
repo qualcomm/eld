@@ -1,0 +1,97 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_AARCH64
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x4
+    Content:         0000009000000091000040F9020400910100009021000091220000F90100009021000091200000F90000009000000091000040F9C0035FD6
+  - Name:            .data
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x1
+  - Name:            .bss
+    Type:            SHT_NOBITS
+    Flags:           [ SHF_WRITE, SHF_ALLOC ]
+    AddressAlign:    0x8
+    Size:            0x8
+  - Name:            .comment
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_MERGE, SHF_STRINGS ]
+    AddressAlign:    0x1
+    EntSize:         0x1
+    Content:         004743433A202863726F7373746F6F6C2D4E47206C696E61726F2D312E31332E312D342E382D323031342E3031202D204C696E61726F2047434320323031332E31312920342E392E3000
+  - Name:            .rela.text
+    Type:            SHT_RELA
+    Link:            .symtab
+    AddressAlign:    0x8
+    Info:            .text
+    Relocations:
+      - Symbol:          value
+        Type:            R_AARCH64_ADR_PREL_PG_HI21
+      - Offset:          0x4
+        Symbol:          value
+        Type:            R_AARCH64_ADD_ABS_LO12_NC
+      - Offset:          0x10
+        Symbol:          value
+        Type:            R_AARCH64_ADR_PREL_PG_HI21
+      - Offset:          0x14
+        Symbol:          value
+        Type:            R_AARCH64_ADD_ABS_LO12_NC
+      - Offset:          0x1C
+        Symbol:          value
+        Type:            R_AARCH64_ADR_PREL_PG_HI21
+      - Offset:          0x20
+        Symbol:          value
+        Type:            R_AARCH64_ADD_ABS_LO12_NC
+      - Offset:          0x28
+        Symbol:          value
+        Type:            R_AARCH64_ADR_PREL_PG_HI21
+      - Offset:          0x2C
+        Symbol:          value
+        Type:            R_AARCH64_ADD_ABS_LO12_NC
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .text
+      - Name:            .rela.text
+      - Name:            .data
+      - Name:            .bss
+      - Name:            .comment
+      - Name:            .shstrtab
+      - Name:            .symtab
+      - Name:            .strtab
+Symbols:
+  - Name:            t.c
+    Type:            STT_FILE
+    Index:           SHN_ABS
+  - Name:            .text
+    Type:            STT_SECTION
+    Section:         .text
+  - Name:            .data
+    Type:            STT_SECTION
+    Section:         .data
+  - Name:            .bss
+    Type:            STT_SECTION
+    Section:         .bss
+  - Name:            '$d'
+    Section:         .bss
+  - Name:            '$x'
+    Section:         .text
+  - Name:            .comment
+    Type:            STT_SECTION
+    Section:         .comment
+  - Name:            value
+    Type:            STT_OBJECT
+    Section:         .bss
+    Binding:         STB_GLOBAL
+    Size:            0x8
+  - Name:            main
+    Type:            STT_FUNC
+    Section:         .text
+    Binding:         STB_GLOBAL
+    Size:            0x38
+...

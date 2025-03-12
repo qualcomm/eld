@@ -1,0 +1,1 @@
+int boo() { return baz(); }

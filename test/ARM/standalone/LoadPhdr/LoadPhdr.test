@@ -1,0 +1,11 @@
+#---LoadPhdr.test------------------------------------ Executable --------------------#
+
+#BEGIN_COMMENT
+# Linker should make the program header loadable on Linux.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %t.o
+RUN: %link %linkopts -m armelf_linux_eabi  %t.o -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK: LOAD 0x{{[0]+}}

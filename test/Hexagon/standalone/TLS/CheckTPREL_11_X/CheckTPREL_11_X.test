@@ -1,0 +1,15 @@
+# --CheckTPREL_11_X.test--------------------- Executable-----------------------#
+# -----------------------------------------------------------------------------#
+
+# -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# R_HEX_TPREL_11_X was mistreated as R_HEX_GD_GOT_11_X. This tests its not done
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK: TLS            {{[0-9xa-f]+}} {{[0-9xa-f]+}} {{[0-9xa-f]+}} 0x00000 0x00008
+#END_TEST

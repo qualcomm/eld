@@ -1,0 +1,10 @@
+# Test that an empty section with a LMA doesnot create a extra hole in the
+# physical address space.
+RUN: %clang %clangopts -c %p/Inputs/lma.c %clangg0opts -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/lmahole.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+RUN: %link %linkopts -T %p/Inputs/lmaphdrhole.t %t1.o -o %t2.out.phdr
+RUN: %readelf -l -W %t2.out.phdr | %filecheck %s
+
+#CHECK:  LOAD           0x0010c0 0x000000c0 0x000000c0 0x00004 0x00004 RW  0x1000
+

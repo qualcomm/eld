@@ -1,0 +1,49 @@
+#---SharedLibs.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks the symbol resolution report with shared libraries.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.lib1.so %t1.1.o -shared -Map %t1.lib1.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s --check-prefix=LIB1 < %t1.lib1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.lib2.so %t1.2.o -shared -Map %t1.lib2.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s --check-prefix=LIB2 < %t1.lib2.map.txt
+RUN: %link -MapStyle txt %linkopts -dy -o %t1.3.out %t1.3.o %t1.lib1.so %t1.lib2.so -Map %t1.3.map.txt -MapDetail show-symbol-resolution
+RUN: %filecheck %s < %t1.3.map.txt
+
+LIB1: # Symbol Resolution:
+LIB1: foo
+LIB1-NEXT: foo({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+LIB1: bar
+LIB1-NEXT: bar({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function, Hidden] [Selected]
+LIB1: baz
+LIB1-NEXT: baz({{.*}}1.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+
+LIB2: # Symbol Resolution:
+LIB2: foo
+LIB2-NEXT: foo({{.*}}.2.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+LIB2: bar
+LIB2-NEXT: bar({{.*}}.2.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+LIB2: baz
+LIB2-NEXT: baz({{.*}}.2.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+
+
+CHECK: # Symbol Resolution:
+CHECK-DAG: foo
+CHECK-DAG: foo({{.*}}3.o) [Size=0, Undef, Global, NoType]
+CHECK-DAG: foo({{.*}}lib1.so) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: foo({{.*}}lib2.so) [Size={{.*}}, Def, Global, Function]
+CHECK-DAG: baz
+CHECK-DAG: baz({{.*}}3.o) [Size=0, Undef, Global, NoType]
+CHECK-DAG: baz({{.*}}lib1.so) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: baz({{.*}}lib2.so) [Size={{.*}}, Def, Global, Function]
+CHECK-DAG: bar
+CHECK-DAG: bar({{.*}}3.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+CHECK-DAG: bar({{.*}}lib2.so) [Size={{.*}}, Def, Global, Function]
+CHECK-DAG: main
+CHECK-DAG: main({{.*}}3.o:.text) [Size={{.*}}, Def, Global, Function] [Selected]
+
+
+

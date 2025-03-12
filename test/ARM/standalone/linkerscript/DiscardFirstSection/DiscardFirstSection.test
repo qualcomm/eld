@@ -1,0 +1,13 @@
+#--DiscardFirstSection.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that if a linker script specifies DISCARD as the first output
+# section, orphan section placements ignore that and move on to the first
+# section defined in the linker script.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -g -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .text
+#CHECK: .debug

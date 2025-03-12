@@ -1,0 +1,10 @@
+
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -target arm -c %p/Inputs/2.c -o %t2.o -ffunction-sections -fdata-sections
+RUN: %ar cr %aropts %tlib.a %t2.o
+RUN: %link %linkopts -march arm %t1.o %tlib.a --entry main -o %t.out --extern-list=%p/Inputs/list --gc-sections -z max-page-size=0x1000 2>&1
+RUN: %nm -n %t.out  | %filecheck %s
+
+#CHECK:         U externSym
+#CHECK:00000014 T foo
+

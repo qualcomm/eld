@@ -1,0 +1,25 @@
+#---ExternListSearch.test-------Executable/SharedLibrary----------------------------#
+
+
+#BEGIN_COMMENT
+#Improve extern list parsing by using linker script parser.
+#END_COMMENT
+#START_TEST
+RUN: %rm %libt.a
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %ar cr %aropts %libt.a %t1.1.o
+# Check that the behavior is not affected
+RUN: %link %linkopts  %libt.a -L %p/Inputs/ --extern-list extlist -o %t1.so \
+RUN: --verbose -Map %t1.map 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+# Check for non existent file
+RUN: %not %link %linkopts  %libt.a -L %p/Inputs/ --extern-list nonexistent -o %t1.so \
+RUN: --verbose -Map %t1.map.2 2>&1 | %filecheck %s -check-prefix=NONEXISTENT
+#END_TEST
+
+#CHECK: Verbose: Extern List[{{.*}}extlist] : foo
+#CHECK: Verbose: Extern List[{{.*}}extlist] : bar
+#CHECK: Verbose: Extern List[{{.*}}extrasym.t] : baz
+#MAP: {{.*}}extlist
+#MAP: {{.*}}extrasym.t
+#NONEXISTENT: cannot read file nonexistent

@@ -1,0 +1,39 @@
+#---SegmentInfo.test--------------------- Executable --------------------#
+
+
+# BEGIN_COMMENT
+# tests that plugins are able to view properties of load segments
+# END_COMMENT
+# START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/script.t --force-dynamic %t.o -o %t.out 2>&1 | %filecheck %s
+# END_TEST
+
+     CHECK: .dynamic
+CHECK-NEXT:        name A
+CHECK-NEXT:        load segment 1
+CHECK-NEXT:        dynamic 0
+CHECK-NEXT:        offset 4096
+CHECK-NEXT:        vaddr 0
+CHECK-NEXT:        paddr 0
+CHECK-NEXT:        filesz 196
+CHECK-NEXT:        memsz 196
+CHECK-NEXT:        flag 7
+CHECK-NEXT:        align 4096
+CHECK-NEXT:        max section align 16
+CHECK-NEXT:        .interp .dynsym .hash .dynstr .text .dynamic
+CHECK-NEXT: .dynamic
+CHECK-NEXT:        name B
+CHECK-NEXT:        load segment 0
+CHECK-NEXT:        dynamic 1
+CHECK-NEXT:        offset 4172
+CHECK-NEXT:        vaddr 76
+CHECK-NEXT:        paddr 76
+CHECK-NEXT:        filesz 120
+CHECK-NEXT:        memsz 120
+CHECK-NEXT:        flag 6
+CHECK-NEXT:        align 4096
+CHECK-NEXT:        max section align 4
+CHECK-NEXT:        .dynamic
+CHECK-NEXT: A
+CHECK-NEXT: B

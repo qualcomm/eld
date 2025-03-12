@@ -1,0 +1,23 @@
+# This tests that the linker is able to handle read-only and read-write note
+# sections. One of the sections have a huge alignment and this checks if a note
+# segment is created for any new load segment.
+RUN: %clang %clangopts -c %p/Inputs/note.s -o %t1.note.o
+RUN: %link %linkopts %t1.note.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:   Type
+#CHECK:   LOAD
+#CHECK:   LOAD
+#CHECK:   LOAD
+#CHECK:   NOTE
+#CHECK:   NOTE
+#CHECK:   NOTE
+#CHECK:  Section to Segment mapping:
+#CHECK:   Segment Sections...
+#CHECK:    00     .note.ro
+#CHECK:    01     .note.another.ro
+#CHECK:    02     .data .anotherdata .note.rw
+#CHECK:    03     .note.ro
+#CHECK:    04     .note.another.ro
+#CHECK:    05     .note.rw
+

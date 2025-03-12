@@ -1,0 +1,22 @@
+#---AddSymbolDiag.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This test checks that the linker produces 'Adding symbol' diagnostic
+# correctly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/static.c -o %t1.static.o
+RUN: %clang %clangopts -c -fpic %p/Inputs/shared.c -o %t1.shared.o
+RUN: %ar cr %aropts %t1.libstatic.a %t1.static.o
+RUN: %link %linkopts -shared %t1.shared.o -o %t1.libshared.so
+RUN: %link %linkopts -dy %t1.1.o %t1.libstatic.a %t1.libshared.so --verbose 2>&1 | %filecheck %s
+#CHECK-DAG: Verbose: Adding symbol double_variable (ELF)(OBJECT)(DEFINE)[Global]{DEFAULT}
+#CHECK-DAG: Verbose: Adding symbol foo (ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}
+#CHECK-DAG: Verbose: Adding symbol main (ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}
+#CHECK-DAG: Verbose: Adding symbol from_shared (ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}{DYN}
+#CHECK-DAG: Verbose: Adding symbol int_var (ELF)(OBJECT)(DEFINE)[Global]{DEFAULT}
+#CHECK-DAG: Verbose: Adding symbol bar (ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}
+#CHECK-DAG: Verbose: Adding symbol from_static (ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}
+#END_TEST

@@ -1,0 +1,14 @@
+#---FloatABI.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check mix of Float ABI inputs and non Float ABI inputs as per RISCV ABI.
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %yaml2obj %p/Inputs/nofloat.yaml -o %t.0.o
+RUN: %yaml2obj %p/Inputs/float1.yaml  -o %t.1.o
+RUN: %yaml2obj %p/Inputs/float2.yaml  -o %t.2.o
+# This should not produce an error
+RUN: %link %linkopts %t.1.o %t.2.o -o %t1.out
+# Mixing Float ABI and no float abi should produce an error.
+RUN: %not %link %linkopts  %p/Inputs/float1.o %t.0.o -o %t1.out

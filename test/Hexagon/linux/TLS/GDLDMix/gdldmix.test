@@ -1,0 +1,17 @@
+# Test TLS transformation stubs.
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/1.c -ftls-model=global-dynamic  -o %t1.o
+RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/2.s  -o %t2.o
+# The symbols that are created may change order, due to threading behavior.
+# Switch off threads to just make the test output consistent.
+RUN: %link %linkopts  %linkg0opts  -static  %t1.o  %t2.o  -o %t.out -M 2>&1 | %filecheck %s --check-prefix="MAP"
+RUN: %readelf -l -r -S -s -W %t.out |   %filecheck %s
+
+#MAP:  Linker created TLS transformation stubs
+#MAP:  Linker created TLS transformation stubs
+# CHECK-NOT: TPREL
+# CHECK-NOT:  R_HEX_DTPMOD_32
+# CHECK-NOT:  R_HEX_DTPREL_32
+# CHECK:  __hexagon_ie_tls_get_addr
+# CHECK:  __hexagon_le_tls_get_addr
+
+

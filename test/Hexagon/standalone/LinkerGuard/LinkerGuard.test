@@ -1,0 +1,10 @@
+#---LinkerGuard.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is creating a guard only for function symbols
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/immext.s  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %readelf -s -W %t2.out | %filecheck %s
+
+#CHECK-NOT:  guard

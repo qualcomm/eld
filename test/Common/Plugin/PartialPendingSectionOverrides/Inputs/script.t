@@ -1,0 +1,2 @@
+PLUGIN_OUTPUT_SECTION_ITER("TestPartialPendingSectionOverrides", "PendingSectionOverrides")
+PLUGIN_OUTPUT_SECTION_ITER("TestPartialPendingSectionOverrides", "NotPendingSectionOverrides")

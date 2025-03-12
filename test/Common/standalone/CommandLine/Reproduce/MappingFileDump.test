@@ -1,0 +1,12 @@
+#---MappingFileDump.test-------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks for proper output for --dump-mapping-file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --reproduce %t0.tar --dump-mapping-file %t1.dump -o %t1.out.dumpmap
+RUN: %filecheck %s < %t1.dump
+CHECK Object Files
+CHECK: 1.o=
+#END_TEST

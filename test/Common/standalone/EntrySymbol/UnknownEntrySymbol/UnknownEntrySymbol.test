@@ -1,0 +1,14 @@
+#---UnknownEntrySymbol.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks the behavior of the linker when incorrect entry symbol
+# is passed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --verbose --entry unknown_symbol -Map %t.map -o %t.out 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix=CHECKMAP < %t.map
+#CHECK: Verbose: Entry symbol unknown_symbol
+#CHECK: Warning: unknown_symbol Entry symbol not found, defaulting to 0
+#CHECKMAP-NOT: Entry Point:
+#END_TEST

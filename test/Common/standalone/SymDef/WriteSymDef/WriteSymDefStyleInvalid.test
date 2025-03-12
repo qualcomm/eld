@@ -1,0 +1,11 @@
+#---WriteSymDefStyleInvalid.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to terminate gracefully if invalid symdef style is given.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %not %link %linkopts %t1.1.o -o %t2.out.1 -T %p/Inputs/script.t --symdef --symdef-style abdc11@ 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o -o %t2.out.2 -T %p/Inputs/script.t --symdef-file %t2.x.symdef --symdef-style abdc11@ 2>&1 | %filecheck %s
+#CHECK: Invalid options specified for -symdef-style=abdc11@ valid values are default/provide
+#END_TEST

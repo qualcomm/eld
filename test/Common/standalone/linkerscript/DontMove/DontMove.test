@@ -1,0 +1,13 @@
+#---DontMove.test-------------------------------- Executable,LS ---------------------#
+
+#BEGIN_COMMENT
+# This tests that linker script DONTMOVE and KEEP_DONTMOVE are honored properly.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/main.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -ffunction-sections -o %t1.2.o
+RUN: %link %linkopts --gc-sections -e main -T %p/Inputs/script.t %t1.1.o %t1.2.o -o %t1.out
+RUN: %nm -n %t1.out | %filecheck %s
+
+#CHECK-NOT: foo
+#CHECK: bar

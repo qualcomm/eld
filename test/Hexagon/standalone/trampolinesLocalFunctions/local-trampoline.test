@@ -1,0 +1,11 @@
+# Checks that the linker is able to create/reuse a local trampoline properly.
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/link.script %t.o -o %t.out --trace=trampolines --use-old-style-trampoline-name 2>&1 | %filecheck %s -check-prefix=TRAMPOLINES
+RUN: %readelf -s -W %t.out | %filecheck %s -check-prefix=CHECKTRAMPOLINESYMS
+
+#TRAMPOLINES: Creating Stub trampoline_for_.tcm_static_from_.text_{{[0-9]+}}#(0)
+#TRAMPOLINES: Creating Stub trampoline_for_.tcm_static_from_.text_{{[0-9]+}}#(
+#TRAMPOLINES: Reusing Stub trampoline_for_.tcm_static_from_.text_{{[0-9]+}}#(
+
+#CHECKTRAMPOLINESYMS: trampoline_for_.tcm_static_from_.text_{{[0-9]+}}#(0)
+#CHECKTRAMPOLINESYMS: trampoline_for_.tcm_static_from_.text_{{[0-9]+}}#(

@@ -1,0 +1,24 @@
+#---A2T.test--------- Executable-----------------------------------#
+
+#BEGIN_COMMENT
+#Check ARM to Thumb Veneers
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -target arm %p/Inputs/1.c -o %t1.a2t.1.o
+RUN: %link %linkopts %t1.a2t.1.o  -o %t2.a2t.1.out --defsym bar=0x80000001
+RUN: %objdump -d %t2.a2t.1.out | %filecheck %s -check-prefix=STATIC
+RUN: %link %linkopts %t1.a2t.1.o  -o %t2.a2t.2.out --defsym bar=0x80000001 -shared
+RUN: %objdump -d %t2.a2t.2.out | %filecheck %s -check-prefix=SHARED
+
+#STATIC: {{.*}} <__bar_A2T_veneer@island-1>:
+#STATIC:       {{.*}}: e59fc000      ldr     r12, [pc]
+#STATIC:       {{.*}}: e12fff1c      bx      r12
+#STATIC:       {{.*}}:       01 00 00 80     .word   {{.*}}
+
+#SHARED: {{.*}} <__bar_A2T_veneer@island-1>:
+#SHARED:      {{.*}}: e59fc004      ldr     r12, [pc, #0x4]
+#SHARED:      {{.*}}: e08fc00c      add     r12, pc, r12
+#SHARED:      {{.*}}: e12fff1c      bx      r12
+#SHARED:      1c0:        d4 ff ff ff     .word   {{.*}}
+
+#END_TEST

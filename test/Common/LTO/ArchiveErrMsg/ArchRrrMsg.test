@@ -1,0 +1,8 @@
+# Check if LTO works for no groups and only archives and bitcodes
+UNSUPPORTED: windows
+RUN: %clang %clangopts -c -flto  %p/Inputs/main.c -o %t1.o
+RUN: %not %link %linkopts -flto-options=preserveall  -M --whole-archive %p/Inputs/Arch.a --no-whole-archive -o %t.out 2>&1 | %filecheck %s -check-prefix=NO-MEMHDR
+RUN: %not %link %linkopts -flto-options=preserveall  -M %t1.o %p/Inputs/ArchNoSymtab.a -o %t.out 2>&1 | %filecheck %s -check-prefix=NO-SYMTAB
+
+#NO-MEMHDR: {{(`[ -\(\)_A-Za-z0-9.\\/:]+Arch.a': Could not read archive member)|(Fatal: LLVM: truncated or malformed archive \(remaining size of archive too small for next archive member header for NotASymbolTable)}}
+#NO-SYMTAB: `{{[ -\(\)_A-Za-z0-9.\\/:]+}}ArchNoSymtab.a': Could not read symbol table. Run ranlib to generate one.

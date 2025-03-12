@@ -1,0 +1,18 @@
+XFAIL: aarch64
+#---StripAllSymbols.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that strip-all, --discard-locals work properly
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/g.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.lib1.so -shared --strip-all --no-emit-relocs
+RUN: %readelf --dyn-syms %t1.lib1.so | %filecheck %s
+RUN: %link %linkopts %t1.1.o -o %t2.out --strip-all --no-emit-relocs
+RUN: %readelf -S -W %t2.out | %filecheck %s -check-prefix=SYMTAB
+RUN: %link %linkopts %t1.1.o -o %t2.out --discard-all --no-emit-relocs
+RUN: %readelf -s %t2.out | %filecheck %s -check-prefix=LOCAL
+#CHECK: foo
+#SYMTAB-NOT: .symtab
+#LOCAL-NOT: local
+#END_TEST

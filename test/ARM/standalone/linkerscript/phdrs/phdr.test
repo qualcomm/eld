@@ -1,0 +1,14 @@
+# Check that PHDR's work properly.
+RUN: %clang %clangopts -target arm -c -ffunction-sections -fdata-sections %p/Inputs/foo.c -o %t1.o
+RUN: %clang %clangopts -target arm -c -ffunction-sections -fdata-sections %p/Inputs/bar.c -o %t2.o
+RUN: %link %linkopts -march arm -T %p/Inputs/script.t %t1.o %t2.o -o %t.out --section-start .start=0x1300000
+RUN: %readelf -W -l %t.out | %filecheck %s
+
+#CHECK:   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#CHECK:   LOAD           0x000074 0x01300000 0x01300000 0x00028 0x00028 R E 0x4
+#CHECK:   LOAD           0x00009c 0xd0000000 0xd0000000 0x00008 0x00008 R E 0x4
+#CHECK:  Section to Segment mapping:
+#CHECK:   Segment Sections...
+#CHECK:    00     .start
+#CHECK:    01     .compress_sect
+

@@ -1,0 +1,13 @@
+SECTIONS {
+    .sdata :
+    {
+        *(COMMON.a_common)
+        *(COMMON.b_common)
+        *(COMMON.c_common)
+        *(COMMON.d_common)
+        *(COMMON.e_common)
+        *(COMMON.a1_common)
+        *(COMMON.c1_common)
+    }
+    .bss : { *(COMMON) }
+}

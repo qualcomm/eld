@@ -1,0 +1,9 @@
+# Test that eh frame,.ctors,.dtors,.init_array,.fini_array is kept and not garbage collected.
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link  -o %t1.out %linkopts %t2.o %t1.o --gc-sections --print-gc-sections 2>&1 | %filecheck %s
+#CHECK-NOT: .eh_frame
+#CHECK-NOT: .ctors
+#CHECK-NOT: .dtors
+#CHECK-NOT: .init_array
+#CHECK-NOT: .fini_array

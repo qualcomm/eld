@@ -1,0 +1,16 @@
+#---ExplicitOSDLazyEvaluation.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test checks the lazy expression evaluation for output section
+# data commands . These commands include BYTE, SHORT, LONG, QUAD, SQUAD.
+#
+# riscv tests are unsupported because elfcopy is giving the below error for riscv target:
+# error: Info field value 4294967295 in section .rela.text is invalid
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -x out %t1.1.elf | %filecheck %s
+#END_TEST
+CHECK: 09090009 00000009 00000000 00000009
+CHECK: 00000000 000000

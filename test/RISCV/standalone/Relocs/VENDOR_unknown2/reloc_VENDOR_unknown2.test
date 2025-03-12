@@ -1,0 +1,13 @@
+#---reloc_VENDOR_missing.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+#  Error when we have R_RELOC_VENDOR QUALCOMM with relocations that
+#  are not yet defined (192-195 are defined).
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}1.o: Unknown Vendor Relocation 'R_RISCV_CUSTOM255' for Vendor Symbol 'QUALCOMM'

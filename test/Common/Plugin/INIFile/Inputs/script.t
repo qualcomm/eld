@@ -1,0 +1,1 @@
+PLUGIN_OUTPUT_SECTION_ITER("INIFilePlugin","INIFILE", "test.ini");

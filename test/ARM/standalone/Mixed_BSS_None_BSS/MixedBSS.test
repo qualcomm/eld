@@ -1,0 +1,2 @@
+RUN: %clang %clangopts -target arm -mcpu=cortex-a8 -integrated-as -c %p/test.c -o %t.o
+RUN: %link %linkopts -march=arm -static  %t.o -T %p/test.ld -o %t.out

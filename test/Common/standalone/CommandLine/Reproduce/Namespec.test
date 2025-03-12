@@ -1,0 +1,17 @@
+#---Namespec.test------------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# This checks for proper output for proper response file with -l option
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+RUN: %ar -cr libNamespecTest.a %t.2.o
+RUN: %link %linkopts %t.1.o -L . -lNamespecTest --reproduce %t0.tar --dump-response-file %t0.dump -o %t1.out.namespec
+RUN: %filecheck %s < %t0.dump
+CHECK NOT: -l
+CHECK NOT: -L
+CHECK: {{[0-9]+}}
+CHECK-NOT: "NamespecTest"

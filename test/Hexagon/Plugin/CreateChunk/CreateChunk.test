@@ -1,0 +1,25 @@
+#---CreateChunk.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#Test code, initialized, and unitialized data chunk creation.
+#END_COMMENT
+#START_TEST
+RUN: %yaml2obj %p/Inputs/1.yaml >%t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/script.t --trace=plugin -o %ta.out 2>&1
+RUN: %obj2yaml %ta.out | %filecheck %s
+
+#CHECK: Sections:
+#CHECK:   - Name:            .text
+#CHECK:     Type:            SHT_PROGBITS
+#CHECK:     Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+#CHECK:     Content:         1234567800C0007F
+#CHECK:   - Name:            .rodata
+#CHECK:     Type:            SHT_PROGBITS
+#CHECK:     Flags:           [ SHF_WRITE, SHF_ALLOC ]
+#CHECK:     AddressAlign:    0x4
+#CHECK:     Content:         '78563412'
+#CHECK:   - Name:            .bss
+#CHECK:     Type:            SHT_NOBITS
+#CHECK:     Flags:           [ SHF_WRITE, SHF_ALLOC ]
+#CHECK:     AddressAlign:    0x4
+#CHECK:     Size:            0x4

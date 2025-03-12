@@ -1,0 +1,11 @@
+# If a section is renamed, the .rel(a) section that corresponds to it
+# must have a corresponding suffix to .rel(a)
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t2.o
+RUN: %link %linkopts -r %t1.o -o %t1_r.o -T %p/Inputs/script.t
+RUN: %link %linkopts -r %t1_r.o %t2.o -o %t_r.o 
+RUN: %readelf -S -W %t1_r.o  | %filecheck %s --check-prefix="FIRST"
+RUN: %readelf -S -W %t_r.o  | %filecheck %s --check-prefix="SECOND"
+
+#FIRST: .rela.myrodata
+#SECOND: .rela.myrodata

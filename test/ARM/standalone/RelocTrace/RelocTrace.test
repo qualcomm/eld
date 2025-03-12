@@ -1,0 +1,8 @@
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/3.c -o %t3.o
+RUN: %link %linkopts -march arm --no-align-segments --section-start=main2=0x20  %t1.o %t2.o %t3.o -o %t.out --trace=symbol=main_1 2>&1 | %filecheck %s
+
+CHECK:  Note: Symbol `main_1' from Input file {{.*}} with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+CHECK:  Note: Symbol `main_1' from Input file {{.*}} with info `(ELF)(NOTYPE)(UNDEFINED)[Global]{DEFAULT}' being added to Namepool
+CHECK:  Note: Symbol `main_1' from Input file {{.*}} with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being resolved from Namepool

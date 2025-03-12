@@ -1,0 +1,9 @@
+# Check that absolute takes an expression and not a section name.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %nm -n %t2.out | %filecheck %s
+
+#CHECK: 00040000 T abs_inside_text_before_sect
+#CHECK: 00040000 A abs_text
+#CHECK: 000400{{[0-9a-f]+}} A abs_dot
+#CHECK: 000400{{[0-9a-f]+}} T abs_inside_text_after_sect

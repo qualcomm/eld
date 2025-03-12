@@ -1,0 +1,12 @@
+#---Veneer_R_ARM_THM_JUMP24.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Fix THM to ARM interworking for local symbols. The relocation R_ARM_THM_JUMP24
+# should generate a veneer, whether the symbol is global.
+#END_COMMENT
+#START_TEST
+RUN: %clang  -O2 --target=armv7-eabi -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts -march arm %t1.1.o --trace=trampolines -o %t2.out 2>&1 | %filecheck %s
+#CHECK: Trace: Creating Stub __bar_T2A_veneer@island-1
+#CHECK: Trace: Reusing Stub __bar_T2A_veneer@island-1
+#END_TEST

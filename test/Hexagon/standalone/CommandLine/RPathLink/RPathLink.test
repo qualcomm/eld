@@ -1,0 +1,12 @@
+#---RPathLink.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks for option -{,-}rpath-link[=]<path> that is being handled in the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out -rpath-link /tmp/foo 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --rpath-link=/tmp/foo -undefined 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out -rpath-link=/tmp/foo -undefined 2>&1 | %filecheck %s
+#CHECK-NOT: Not Implemented
+#END_TEST

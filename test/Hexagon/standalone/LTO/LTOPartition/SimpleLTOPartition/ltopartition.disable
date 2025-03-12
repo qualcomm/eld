@@ -1,0 +1,13 @@
+# Module partitioning can currently only produce assembly files so it won't
+# work without -save-temps; however, after the recent re-externalization
+# changes, it is no longer working correctly anyway. So XFAIL it for now.
+#
+# This tests that partitioning with LTO works.
+RUN: %clang -c %p/Inputs/main.c -ffunction-sections -fdata-sections -o %t1.main.o
+RUN: %clang -c %p/Inputs/3.c -ffunction-sections -fdata-sections -o %t1.3.o
+RUN: %clang -c %p/Inputs/1.c -ffunction-sections -fdata-sections -o %t1.1.o -flto
+RUN: %clang -c %p/Inputs/2.c -ffunction-sections -fdata-sections -o %t1.2.o -flto
+RUN: %link -T %p/Inputs/script.t %t1.main.o %t1.1.o %t1.2.o %t1.3.o -flto-options=no-merge-modules -flto-options=codegen="-resolved-sections-conservatively=false -Os -split-lto-cg   -data-sections -function-sections" --gc-sections --print-gc-sections 2>&1 | %filecheck %s
+RUN: %link  %t1.main.o %t1.1.o %t1.2.o %t1.3.o -flto-options=no-merge-modules -flto-options=codegen="-resolved-sections-conservatively=false -Os -split-lto-cg   -data-sections -function-sections"  --gc-sections --print-gc-sections 2>&1 | %filecheck %s
+#CHECK-NOT: foostr
+#CHECK-NOT: barstr

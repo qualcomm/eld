@@ -1,0 +1,26 @@
+
+# Test that map file is properly produced when the link %linkopts involves whole archive
+# command line.
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t1.bar.o
+RUN: %ar cr %aropts %t1.library.a %t1.foo.o %t1.bar.o
+RUN: %link %linkopts %t1.main.o --whole-archive %t1.library.a -M -o %t2.out 2>&1 | %filecheck %s
+
+
+#CHECK: Archive member included because of file (symbol)
+#CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
+#CHECK: 		-whole-archive
+#CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}bar.o
+#CHECK: 		-whole-archive
+#CHECK: Common symbol	size	file
+#CHECK: common_array	0x50	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: Linker Script and memory map
+#CHECK: .text	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}
+#CHECK: .text	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: 	{{[0-9a-fx]+}}  	main
+#CHECK: .text	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
+#CHECK: 	{{[0-9a-fx]+}}  	foo
+#CHECK: .bss	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}
+#CHECK: COMMON.common_array	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: 	{{[0-9a-fx]+}}		common_array

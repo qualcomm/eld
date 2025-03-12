@@ -1,0 +1,16 @@
+#---EXIDXSorting.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is sorting the fragments as per EXIDX design.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+#CHECK: .ARM.exidx.text.f2      0x11010 0x8
+#CHECK: .ARM.exidx.text.f2      0x11018 0x8
+#CHECK: .ARM.exidx.text.f1      0x11020 0x8
+#CHECK: .ARM.exidx.text.start   0x11028 0x8
+
+#END_TEST

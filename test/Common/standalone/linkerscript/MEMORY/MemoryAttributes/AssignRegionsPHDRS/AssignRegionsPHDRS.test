@@ -1,0 +1,22 @@
+#---AssignRegionsPHDRS.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command and assigns sections to regions based on memory constraints.
+# This uses PHDRS command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+#CHECK:  [ 1] .t1  PROGBITS  {{[0]+}}200
+#CHECK:  [ 2] .t2  PROGBITS  {{[0]+}}2{{.*}}
+#CHECK:  [ 3] .t3  PROGBITS  {{[0]+}}2{{.*}}
+#MAP: .t1 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [b2, b2]
+#MAP: .t2 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [b2, b2]
+#MAP: .t3 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [b2, b2]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS, Segments : [ A ]

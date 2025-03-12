@@ -1,0 +1,47 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_RISCV
+  Flags:           [ EF_RISCV_RVC, EF_RISCV_FLOAT_ABI_SOFT ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x2
+    # 0x8082 foo: ret
+    # 0x00000297 auipc t0, 0
+    # 0x00028167 jalr x2,t0
+    Content:         82809702000067810200
+  - Name:            .riscv.attributes
+    Type:            SHT_RISCV_ATTRIBUTES
+    AddressAlign:    0x1
+    Content:         4125000000726973637600011B00000004100572763332693270315F6D3270305F6332703000
+  - Name:            .rela.text
+    Type:            SHT_RELA
+    Flags:           [ SHF_INFO_LINK ]
+    Link:            .symtab
+    AddressAlign:    0x4
+    Info:            .text
+    Relocations:
+      - Offset:          0x2
+        Symbol:          foo
+        Type:            R_RISCV_CALL_PLT
+      - Offset:          0x2
+        Type:            R_RISCV_RELAX
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .rela.text
+      - Name:            .riscv.attributes
+      - Name:            .symtab
+Symbols:
+  - Name:            foo
+    Type:            STT_FUNC
+    Section:         .text
+    Binding:         STB_GLOBAL
+    Size:            0x4
+...

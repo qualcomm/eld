@@ -1,0 +1,13 @@
+#---VirtualAddress.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+#This tests a simple VirtualAddress plugin that tries to override how the blocks
+#are merged in a specific linker script section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t --trace=plugin -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: .plugin
+#END_TEST

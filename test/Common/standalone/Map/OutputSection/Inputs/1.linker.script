@@ -1,0 +1,7 @@
+SECTIONS {
+  .text : { *(.text*) }
+  .bss (UNINIT) : { *(.bss*) }
+  .data (INFO) : { *(.data*) BYTE(1)}
+  .debug_info (UNINIT) : { *(.debug_info*) }
+  .comment : { *(.comment*) }
+}

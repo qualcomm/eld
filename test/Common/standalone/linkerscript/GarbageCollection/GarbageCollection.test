@@ -1,0 +1,43 @@
+#---GarbageCollection.test--------------------- Executable,LS---------------#
+
+
+
+#BEGIN_COMMENT
+# This tests that Garbage collection can handle symbols defined in linker
+# scripts as ENTRY symbols and they may not be defined. This currently crashes
+# the linker so just run the linker and make sure undefined symbol error is produced.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.lib2.a -T %p/Inputs/s.t --noinhibit-exec \
+RUN: -MapDetail show-timing -Map %t1.map  -o %t2.out --gc-sections 2>&1 | %filecheck %s
+RUN_UNSUPPORTED %filecheck %s -check-prefix=GCTIMER < %t1.map
+
+#CHECK: undefined reference to `baz'
+#GCTIMER-DAG: #   {{.*}}    {{.*}}    {{.*}}    {{.*}} Constructing Image ( Image construction )
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Merge Sections
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} Update Output Section ( Plugin )
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} Init
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} Create Output Section
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} Merge Sections
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} OutputSectionIterator Plugin Before Layout ( Plugin )
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} Output Section Iterator ( Creating Sections )
+#GCTIMER-DAG: #   {{.*}}    {{.*}}    {{.*}}    {{.*}} Garbage Collection ( GC )
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Strip Dead code
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Find Dead Code
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Setup Reached Sections
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Get entry sections
+#GCTIMER-DAG: #   {{.*}}    {{.*}}    {{.*}}    {{.*}} LinkerScriptRuleMatch ( Linker script rule matching )
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} {{.*}}1.o
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} {{.*}}2.o
+#GCTIMER-DAG: #   {{.*}}    {{.*}}    {{.*}}    {{.*}} Relocation ( Relocation scan and apply )
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Apply Relocations
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} {{.*}}1.o
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} {{.*}}2.o
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Scan Relocations
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} {{.*}}1.o
+#GCTIMER-DAG: #         {{.*}}    {{.*}}    {{.*}}    {{.*}} {{.*}}2.o
+#GCTIMER-DAG: #   {{.*}}    {{.*}}    {{.*}}    {{.*}} Layout ( Create Layout )
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Assign Address
+#GCTIMER-DAG: #      {{.*}}    {{.*}}    {{.*}}    {{.*}} Trampolines

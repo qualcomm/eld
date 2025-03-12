@@ -1,0 +1,58 @@
+REQUIRES: riscv32
+#---PatchPLT.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test creation of PLT/GOT slots for patchable symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -mno-relax %p/Inputs/1.riscv.s -o %t.1.o -c
+RUN: %link %linkopts --no-emit-relocs --patch-enable --section-start=.plt=0x1000 --section-start=.text=0x2000 %t.1.o -o %t.1.out
+RUN: %readelf -Srs %t.1.out | %filecheck %s --check-prefix=ELF
+RUN: %objdump -d %t.1.out | %filecheck %s --check-prefix=OD --check-prefix=OD1
+
+RUN: %clang %clangopts -O3 -mno-relax %p/Inputs/2.riscv.s -o %t.2.o -c
+RUN: %link %linkopts --no-emit-relocs --patch-enable --section-start=.plt=0x1000 --section-start=.text=0x2000 %t.2.o -o %t.2.out
+RUN: %readelf -Srs %t.2.out | %filecheck %s --check-prefix=ELF
+RUN: %objdump -d %t.2.out | %filecheck %s --check-prefix=OD --check-prefix=OD2
+
+RUN: %clang %clangopts -mno-relax %p/Inputs/3.riscv32.s -o %t.3.o -c
+RUN: %link %linkopts --no-emit-relocs --patch-enable --section-start=.plt=0x1000 --section-start=.text=0x2000 %t.3.o -o %t.3.out
+RUN: %readelf -Srs %t.3.out | %filecheck %s --check-prefix=ELF
+RUN: %objdump -d -s %t.3.out | %filecheck %s --check-prefix=OD3
+
+ELF:      [ [[PGOTNO:[0-9]+]]]  .pgot              PROGBITS    [[#%x,PGOT:]]        {{[[:xdigit:]]+}} {{0*}}4
+ELF:      [ {{[[:digit:]]+}}]   .rela.pgot         RELA        {{[[:xdigit:]]+}}    {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} {{[[:xdigit:]]+}} [[PGOTNO]] {{[[:digit:]]+}}
+
+ELF:      Relocation section '.rela.pgot' at offset 0x{{[[:xdigit:]]+}} contains 1 entries:
+ELF:      [[#PGOT]]             {{[[:xdigit:]]+}}  R_RISCV_32  {{0*}}[[#%x,0x2000]] f + 0
+
+ELF:      00001000     {{[[:xdigit:]]+}} NOTYPE  GLOBAL DEFAULT     {{[[:digit:]]+}} __llvm_patchable_f
+ELF:      00002000     {{[[:xdigit:]]+}} FUNC    GLOBAL DEFAULT     {{[[:digit:]]+}} f
+
+OD:       Disassembly of section .plt:
+
+OD:       [[PLT:]] <__llvm_patchable_f>:
+OD-NEXT:  auipc t3, 0x2
+OD-NEXT:  lw t3, 0xc(t3)
+OD-NEXT:  jalr t1, t3
+OD-NEXT:  nop
+
+OD:       Disassembly of section .text:
+
+OD:       00002000 <f>:
+OD-NEXT:  nop
+
+OD1:      00002002 <main>:
+OD1-NEXT: auipc ra, 0xfffff
+OD1-NEXT: jalr -0x2(ra)
+
+OD2:      00002002 <main>:
+OD2-NEXT: lui	a0, 0x1
+OD2-NEXT: mv	a0, a0
+
+OD3:      Contents of section .data:
+OD3-NEXT: 3000 00100000
+OD3:      Contents of section .pgot:
+OD3-NEXT: 3010 00200000
+
+#END_TEST

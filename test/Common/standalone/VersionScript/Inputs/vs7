@@ -1,0 +1,10 @@
+VER0_2 {
+ /* all global
+# symbols
+appear here */
+  global:
+  foo;
+#The following are locals
+  local:
+  /*this is a local*/ bar; #changed scope
+} VER0_1;

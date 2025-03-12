@@ -1,0 +1,6 @@
+#---BadArchive.test-----------------------------------------------------------#
+
+tests that errors are reported when archive files cannot be read
+RUN: %not %link %linkopts --whole-archive %p/Inputs/bad.a 2>&1 | %filecheck %s
+RUN: %not %link %linkopts --whole-archive %p/Inputs/bad.a --use-new-readers 2>&1 | %filecheck %s
+CHECK: failed to read archive

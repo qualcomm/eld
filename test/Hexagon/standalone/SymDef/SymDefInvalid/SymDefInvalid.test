@@ -1,0 +1,13 @@
+#---SymDefInvalid.test--------------------------- Relocatable,Shared --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to error that symdef is available only
+# when building executables
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c
+RUN: %not %link %linkopts %t1.1.o %p/Inputs/x.symdef -o %t2.out.1 -r 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o %p/Inputs/x.symdef -o %t2.out.2 -shared 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o %p/Inputs/x.symdef -o %t2.out.3 -pie 2>&1 | %filecheck %s
+#CHECK: Fatal: SymDef files are valid only when building executables
+#END_TEST

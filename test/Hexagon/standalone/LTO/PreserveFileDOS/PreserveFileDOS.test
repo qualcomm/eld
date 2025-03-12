@@ -1,0 +1,12 @@
+#---PreserveFileDOS.test----------------------- Executable,LTO --------------------#
+
+#BEGIN_COMMENT
+# This test checks that files can be read in DOS mode too.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1
+RUN: %clang %clangopts -c  %p/Inputs/b.c -flto -o %t2
+RUN: %link %linkopts -flto-options=preserve-file=%p/Inputs/preserve1 %t1 %t2 -o %t3
+RUN: %readelf -s %t3 | %filecheck %s
+#CHECK: boo
+#END_TEST

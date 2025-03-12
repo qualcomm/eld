@@ -1,0 +1,63 @@
+#---EhFrameFormatParse.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the linker parsing the EhFrame sections when
+# creating EhFrameHeader sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format1.s -o  %t1.eh-frame.value-format.1.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format2.s -o %t1.eh-frame.value-format.2.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format3.s -o %t1.eh-frame.value-format.3.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format4.s -o %t1.eh-frame.value-format.4.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format5.s -o %t1.eh-frame.value-format.5.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format6.s -o %t1.eh-frame.value-format.6.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format7.s -o %t1.eh-frame.value-format.7.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format8.s -o %t1.eh-frame.value-format.8.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-value-format9.s -o %t1.eh-frame.value-format.9.o
+
+# Check Linker errors.
+RUN: %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.1.o -o %t2.out.1 2>&1 | %filecheck %s -check-prefix=ONE
+#ONE: Verbose: EhFrame Reading CIE of size 24
+#ONE: Verbose: EhFrame Handling : Creating EhFrame Filler
+#ONE: Verbose: EhFrame Handling : Creating EhFrame Hdr
+
+
+RUN: %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.2.o -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=TWO
+#TWO: Verbose: EhFrame Reading CIE of size 24
+#TWO: Verbose: EhFrame Handling : Creating EhFrame Filler
+#TWO: Verbose: EhFrame Handling : Creating EhFrame Hdr
+
+
+RUN: %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.3.o -o %t2.out.3 2>&1 | %filecheck %s -check-prefix=THREE
+#THREE: Verbose: EhFrame Reading CIE of size 18
+#THREE: Verbose: EhFrame Handling : Creating EhFrame Filler
+#THREE: Verbose: EhFrame Handling : Creating EhFrame Hdr
+
+
+RUN: %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.4.o -o %t2.out.4 2>&1 | %filecheck %s -check-prefix=FOUR
+#FOUR: Verbose: EhFrame Reading CIE of size 18
+#FOUR: Verbose: EhFrame Handling : Creating EhFrame Filler
+#FOUR: Verbose: EhFrame Handling : Creating EhFrame Hdr
+
+RUN: %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.5.o -o %t2.out.5 2>&1 | %filecheck %s -check-prefix=FIVE
+#FIVE: Verbose: EhFrame Reading CIE of size 24
+#FIVE: Verbose: EhFrame Handling : Creating EhFrame Filler
+#FIVE: Verbose: EhFrame Handling : Creating EhFrame Hdr
+
+
+RUN: %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.6.o -o %t2.out.6 2>&1 | %filecheck %s -check-prefix=SIX
+#SIX: Verbose: EhFrame Reading CIE of size 24
+#SIX: Verbose: EhFrame Handling : Creating EhFrame Filler
+#SIX: Verbose: EhFrame Handling : Creating EhFrame Hdr
+
+
+RUN: %not %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.7.o -o %t2.out.7 2>&1 | %filecheck %s -check-prefix=SEVEN
+#SEVEN: Splitting EhFrame records by foo
+#SEVEN: Error: EhFrame Read Error : CIE/FDE too small from file
+
+RUN: %not %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.8.o -o %t2.out.8 2>&1 | %filecheck %s -check-prefix=EIGHT
+#EIGHT: Error: EhFrame Read Error : CIE/FDE ends past the end of the section from file
+
+
+RUN: %not %link %linkopts --verbose --eh-frame-hdr %t1.eh-frame.value-format.9.o -o %t2.out.9 2>&1 | %filecheck %s -check-prefix=NINE
+#NINE: EhFrame Read Error : CIE/FDE ends past the end of the section from file

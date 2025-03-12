@@ -1,0 +1,21 @@
+#---BothProvideStyleSymDef.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the linker is able to read multiple symdef files properly when both are provide type.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections
+RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections
+RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections
+RUN: %clang %clangopts %p/Inputs/4.c -o %t1.4.o -c -ffunction-sections
+RUN: %link %linkopts %t1.3.o --symdef-file %t.r3.symdef -T %p/Inputs/image.t --symdef-style provide -o %t3.out
+RUN: %link %linkopts %t1.4.o --symdef-file %t.r4.symdef -T %p/Inputs/image.t --symdef-style provide -o %t4.out
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o %t.r3.symdef %t.r4.symdef -T %p/Inputs/script.t -o %t.out.elf -Map %t.map --trace=symbol=baz 2>&1 | %filecheck %s
+RUN: %readelf -s %t.out.elf 2>&1 | %filecheck %s --check-prefix=ELFCHECK
+RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
+#CHECK: Symbol `baz' from Input file `{{.*}}r3.symdef' with info `(ELF)(FUNCTION)(DEFINE)[Absolute]{DEFAULT}' being resolved from Namepool
+#CHECK: Resolving symbol 'baz' from provide style sym def file {{.*}}r3.symdef'
+#MAPCHECK: bar{{.*}}2.o
+#ELFCHECK: {{[0-9a-f]+}}     0 FUNC    GLOBAL DEFAULT   ABS baz
+#END_TEST
+

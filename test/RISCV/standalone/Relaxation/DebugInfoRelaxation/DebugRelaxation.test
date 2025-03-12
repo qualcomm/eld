@@ -1,0 +1,15 @@
+#----------DebugInfoRelaxation.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check that linker fixes up DWARF information properly.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %clangopts -g -mrelax -ffunction-sections -gdwarf-3 %p/Inputs/foo.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %dwarfdump --verify %t2.out 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: No errors
+

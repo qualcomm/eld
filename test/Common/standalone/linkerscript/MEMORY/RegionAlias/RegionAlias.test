@@ -1,0 +1,37 @@
+#---RegionAlias.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command with AT command used to set physical addresses. Verify that physical
+# address is appropriately set using AT. This uses REGION_ALIAS
+# region
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+# duplicate region
+RUN: %not %link -Wlinker-script-memory -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/scripterr-dup.t -o %t2.out -Map %t1.map \
+RUN: 2>&1 | %filecheck %s -check-prefix=DUPREGION
+# no region assigned
+RUN: %not %link -Wlinker-script-memory -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/scripterr-no-region.t -o %t2.out -Map %t1.map \
+RUN: 2>&1 | %filecheck %s -check-prefix=NOREGION
+RUN: %link -Wlinker-script-memory -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %not %link  -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/alias_mem_region.t -o %t2.out.err -Map %t1.map \
+RUN: 2>&1 | %filecheck %s -check-prefix=ALIASMEMREGION
+RUN: %readelf -l -W %t2.out | %filecheck %s
+#END_TEST
+#DUPREGION: Duplicate memory region alias for r1 in script {{.*}}scripterr-dup.t
+#NOREGION: Cannot find memory region b4
+#ALIASMEMREGION: Alias a defined in linker script {{.*}} is name of a memory region
+#CHECK: Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}3000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}6000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: LOAD           {{.*}} {{.*}} 0x{{[0]+}}9000 {{.*}} {{.*}} R E {{.*}}
+#CHECK: Segment Sections...
+#CHECK:  00     .t1
+#CHECK:  01     .t2
+#CHECK:  02     .t3

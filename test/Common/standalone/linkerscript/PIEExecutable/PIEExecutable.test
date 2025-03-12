@@ -1,0 +1,20 @@
+#---PIEExecutable.test--------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# When relocation sections are processed and those that contain assignments, it
+# so happens that the size gets reset and gets computed as 0. The sections do
+# not have any fragments and appropriately needs to be set.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections %clangg0opts
+RUN: %clang %clangopts -fPIC -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections %clangg0opts
+RUN: %link %linkopts -pie %t1.1.o %t1.2.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out 2>&1 | %filecheck %s -check-prefix=REL
+RUN: %link %linkopts --no-dynamic-linker -static -pie %t1.1.o %t1.2.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out 2>&1 | %filecheck %s -check-prefix=INTERP
+
+#REL: .rel{{.*}}dyn
+#INTERP-NOT: .interp
+
+#END_TEST
+

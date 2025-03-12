@@ -1,0 +1,15 @@
+
+# Tests that start group and end group works in all cases.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/fn.c -o %t1.fn.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/fn1.c -o %t1.fn1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/fn2.c -o %t1.fn2.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/fn3.c -o %t1.fn3.o
+RUN: %ar cr %aropts %t1.libfn3.a %t1.fn3.o
+RUN: %ar cr %aropts %t1.libfn.a %t1.fn.o
+RUN: %ar cr %aropts %t1.libfn2.a %t1.fn1.o %t1.fn2.o
+RUN: %link -o %t1.out.1 %linkopts -march arm --start-group %t1.libfn3.a %t1.libfn2.a %t1.libfn.a %t1.1.o --end-group --trace=symbol=fn3 2>&1 | %filecheck %s -check-prefix=FN3
+
+FN3: Note: Symbol `fn3' from Input file {{.*}} with info `(ELF)(NOTYPE)(UNDEFINED)[Global]{DEFAULT}' being added to Namepool
+FN3: Note: Symbol `fn3' from Input file {{.*}} with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+FN3: Note: Symbol `fn3' from Input file {{.*}} with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}' being resolved from Namepool

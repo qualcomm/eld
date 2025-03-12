@@ -1,0 +1,22 @@
+#---RaiseUndefs.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Test the error message for an undef symbol with the function type.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c -o %t.o %p/Inputs/1.c 2>&1
+
+### Both caller function and its file are missing
+RUN: %obj2yaml %t.o | sed '/^Symbols:/,$d' >%t-short.yaml
+RUN: cat %t-short.yaml %p/Inputs/symbols-short.yaml | %yaml2obj -o %t-short.o
+RUN: %not %link %linkopts %t-short.o 2>&1 | %filecheck %s --check-prefix=SHORT
+SHORT: -short.o(.text+0x{{.*}}): undefined reference to `f'
+
+### Caller file and function are present, but functions goes before file
+RUN: %obj2yaml %t.o | sed '/^Symbols:/,$d' >%t-full.yaml
+RUN: cat %t-short.yaml %p/Inputs/symbols-full.yaml | %yaml2obj -o %t-full.o
+RUN: %not %link %linkopts %t-full.o 2>&1 | %filecheck %s --check-prefix=FULL
+FULL: -full.o:1.c:function main: undefined reference to `f'
+
+#END_TEST

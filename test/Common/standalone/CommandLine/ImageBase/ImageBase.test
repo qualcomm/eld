@@ -1,0 +1,46 @@
+#---ImageBase.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Verify the --image-base option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+
+RUN: %link %linkopts %t.1.o -o %t.1.out -image-base 2>&1 | %filecheck %s --check-prefix=CHECK-UNRECOGNIZED
+CHECK-UNRECOGNIZED: Warning: Unrecognized option `-image-base'
+
+RUN: not %link %linkopts %t.1.o -o %t.2.out --image-base 2>&1 | %filecheck %s --check-prefix=CHECK-MISSING
+CHECK-MISSING: Error: Missing arg value for '--image-base' expected 1 argument(s)
+
+RUN: not %link %linkopts %t.1.o -o %t.3.out --image-base=BLA 2>&1 | %filecheck %s --check-prefix=CHECK-NUMBER
+CHECK-NUMBER: Error: --image-base: number expected, but got BLA
+
+CHECK-12340000: .text {{[[:xdigit:]]+}} {{0*}}1234{{([[:xdigit:]]{4})}} TEXT
+
+RUN: %link %linkopts %t.1.o -o %t.4.out --image-base=0x12340000
+RUN: %objdump -h %t.4.out | %filecheck %s --check-prefix=CHECK-12340000
+
+RUN: %link %linkopts %t.1.o -o %t.5.out --image-base=305397760
+RUN: %objdump -h %t.5.out | %filecheck %s --check-prefix=CHECK-12340000
+
+RUN: %link %linkopts %t.1.o -o %t.6.out --image-base 0x12340000
+RUN: %objdump -h %t.6.out | %filecheck %s --check-prefix=CHECK-12340000
+
+CHECK-PAGE: Warning: --image-base: address isn't multiple of page size: 0x12340001
+
+RUN: %link %linkopts %t.1.o -o %t.7.out -z max-page-size=0x1000 --image-base=0x12340001 2>&1 | %filecheck %s --check-prefix=CHECK-PAGE
+RUN: %objdump -h %t.7.out | %filecheck %s --check-prefix=CHECK-12340000
+
+RUN: %link %linkopts %t.1.o -o %t.8.out --image-base=0x12340001 -z max-page-size=0x1000 2>&1 | %filecheck %s --check-prefix=CHECK-PAGE
+RUN: %objdump -h %t.8.out | %filecheck %s --check-prefix=CHECK-12340000
+
+### Check that --image-base takes effect even with SECTIONS command in the script
+RUN: %link %linkopts %t.1.o -o %t.9.out --image-base=0x12340000 -t %p/Inputs/1.t
+RUN: %objdump -h %t.9.out | %filecheck %s --check-prefix=CHECK-12340000
+
+### Check that dot assignment overrides --mage-base (not sure how it can't)
+RUN: %link %linkopts %t.1.o -o %t.10.out --image-base=0x12340000 -t %p/Inputs/2.t
+RUN: %objdump -h %t.10.out | %filecheck %s --check-prefix=CHECK-90000000
+CHECK-90000000: .text {{[[:xdigit:]]+}} {{0*}}9000{{([[:xdigit:]]{4})}} TEXT
+
+#END_TEST

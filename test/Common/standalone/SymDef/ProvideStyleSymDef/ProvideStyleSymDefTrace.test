@@ -1,0 +1,14 @@
+#---ProvideStyleSymDefTrace.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks the trace info when linker reads the symdef file properly with provide symdef style.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections -fdata-sections
+RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.3.o --symdef-file %t.r.symdef -T %p/Inputs/image.t --symdef-style provide -o %t3.out
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o %t.r.symdef -T %p/Inputs/script.t -o %t.out.elf -Map %t.map --trace=symdef 2>&1 | %filecheck %s
+#CHECK: Note: Read symbol 'a1' from sym def file{{.*}}r.symdef'
+#CHECK: Resolving symbol 'a1' from provide style sym def file '{{.*}}/Inputs/script.t'
+#END_TEST

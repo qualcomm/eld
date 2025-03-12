@@ -1,0 +1,12 @@
+UNSUPPORTED: 64BitsArch
+#---OutputFileTooLarge.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that the error is reported if output file size is too large.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %not %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t1.1.map.txt 2>&1 | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+
+CHECK: Error: Output file too large: {{([0-9]{10})}} bytes
+MAP: # Output Section and Layout

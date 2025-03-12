@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -target aarch64  -ffunction-sections -c %p/test.c -o %t.o
+RUN: %link %linkopts -march=aarch64  -static %t.o -default-script=%p/default.ld --script=%p/test.ld -o %t1.override.out
+RUN: %readelf -W -S -s %t1.override.out | %filecheck %s --check-prefix=OVERRIDE
+
+RUN: %link %linkopts -march=aarch64  -static %t.o -default-script=%p/default.ld  -o %t2.default.out
+RUN: %readelf -W -S -s %t2.default.out | %filecheck %s --check-prefix=DEFAULTONLY
+
+OVERRIDE-NOT: DEFAULT_CODE
+OVERRIDE: [ 1] CODE              PROGBITS
+
+DEFAULTONLY: DEFAULT_CODE        PROGBITS

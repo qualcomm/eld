@@ -1,0 +1,18 @@
+#---RelocationTargetEmptyWithPadding.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the text map file has the empty section recorded if its used in as
+# a relocation target along with padding
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.x.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %link -MapStyle txt %linkopts %t.x.o %t.main.o -o %t.main.out -T %p/Inputs/script.t -Map %t.main.map --trace=section=.text.baz 2>&1 | %filecheck %s
+RUN: %filecheck %s < %t.main.map --check-prefix=MAPCHECK
+#CHECK: Note: Input Section : .text.baz InputFile :{{.*}}x.o Alignment : 0x{{[0-9]}} Size : 0x0
+#MAPCHECK: PADDING
+#MAPCHECK: .text.baz
+#MAPCHECK: PADDING
+#MAPCHECK: PADDING
+#MAPCHECK: .text.c1
+#END_TEST

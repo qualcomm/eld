@@ -1,0 +1,17 @@
+#---TraceSymbolWildCardMatcher1.test--------------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Check tracing of symbols with wildcard matching.
+#--------------------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -o %t.out %t1.o --trace=symbol="^hel" 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t2.out %t1.o --trace-symbol="^hel" 2>&1 | %filecheck %s --check-prefix=ALIAS
+RUN: %link %linkopts -o %t3.out %t1.o --trace-symbol "^hel" 2>&1 | %filecheck %s --check-prefix=ALIAS2
+CHECK: Note: Symbol `hello2' from Input file `{{.*}}.o' with info `(ELF)(OBJECT)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+CHECK: Symbol hello2, application site: 0x{{[[:xdigit:]]+}}
+ALIAS: Note: Symbol `hello2' from Input file `{{.*}}.o' with info `(ELF)(OBJECT)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+ALIAS: Symbol hello2, application site: 0x{{[[:xdigit:]]+}}
+ALIAS2: Note: Symbol `hello2' from Input file `{{.*}}.o' with info `(ELF)(OBJECT)(DEFINE)[Global]{DEFAULT}' being added to Namepool
+ALIAS2: Symbol hello2, application site: 0x{{[[:xdigit:]]+}}

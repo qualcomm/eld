@@ -1,0 +1,13 @@
+#---ProvideSymbolRedecl.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies the PROVIDE command behavior when the provide command is
+# outside the SECTIONS command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+RUN: %readelf -Ss %t1.1.out 2>&1 | %filecheck %s --check-prefix=READELF
+#END_TEST
+CHECK: Warning: {{.*}}/script.t: Ignoring provide symbol 'baz' redeclaration
+READELF: 0b 0 NOTYPE GLOBAL DEFAULT ABS baz

@@ -1,0 +1,1 @@
+INCLUDE bar.t

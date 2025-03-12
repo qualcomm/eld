@@ -1,0 +1,12 @@
+#---DotSymbolAssignmentForSectionEndTest.test------- Executable,LS ---------------------#
+
+
+#BEGIN_COMMENT
+# This tests for backward movement of dot symbol at end of section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %not %link %linkopts -e foo -T %p/Inputs/script1.t %t1.1.o -o %t1.out.1 -Wbad-dot-assignments --fatal-warnings --no-check-sections 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: unable to move "." symbol backwards for output section .text with assignment expression  . = 0x80000 + 0x10 - 0x64; {{.*}}script1.t

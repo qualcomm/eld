@@ -1,0 +1,15 @@
+#---PendingSectionOverrides.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks that a fatal diagnostic is given if a plugin modifies
+# section mapping but does not call 'LinkerWrapper::finishAssignOutputSections'.
+# It also checks that the 'LinkerWrapper::finishAssignOutputSections' is plugin
+# specific. That means, 'LinkerWrapper::finishAssignOutputSections' only updates
+# section mapping associated with the plugin which called the
+# 'LinkerWrapper::finishAssignOutputSections' function.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkg0opts %t1.1.o -L%libsdir/test -T %p/Inputs/script.t --trace=plugin -o %t2.out 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Fatal: Plugin 'PendingSectionOverrides' has pending section overrides. Please call 'LinkerWrapper::finishAssignOutputSections'

@@ -1,0 +1,13 @@
+#---NoEmptySymbols.test--------------------------- Executable -----------------#
+
+
+
+#BEGIN_COMMENT
+# Checks that there are no empty symbols present in the yaml linker map
+#END_COMMENT
+#START_TEST
+RUN: %clangxx %clangopts -c %p/Inputs/1.cpp -o %t1.o
+RUN: %link %linkopts %t1.o -Map %t0.map -MapStyle yaml --noinhibit-exec
+RUN: %filecheck %s < %t0.map
+CHECK-NOT: Symbol:          ''
+#END_TEST

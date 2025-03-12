@@ -1,0 +1,12 @@
+.section .text.foo
+.p2align 2
+.word 100
+.word 200
+.section .text.baz
+.p2align 2
+.word 100
+.word 200
+.section .comment
+.string "Hello"
+.section .debug_str
+.string "World"

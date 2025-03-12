@@ -1,0 +1,15 @@
+#---TBSSSectionEndAssignments.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# The values at the end of TBSS sections show up with a DOT value increased by
+# the size of the section. TBSS sections are quite special that they dont occupy
+# virtual address space or file space(NOBITS). They belong to the TLS segment.
+# This tests tests that the DOT value stays consistent with the section.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/tls.c  -o %t1.1.o -ffunction-sections -fdata-sections %clangg0opts
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map.out
+RUN: %filecheck %s < %t2.map.out
+
+#CHECK: .tbss [[ADDR:[xa-f0-9]+]]
+#CHECK: __s_data([[ADDR]])
+#CHECK: __e_data([[ADDR]])

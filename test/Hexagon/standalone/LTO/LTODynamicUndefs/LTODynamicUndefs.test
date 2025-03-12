@@ -1,0 +1,16 @@
+#---LTODynamicUndefs.test----------------------- Executable,LTO --------------------#
+
+#BEGIN_COMMENT
+# This test makes sure that we are not asserting and preserving a undefined
+# symbol from an ELF file!. This was an insane behavior.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c  %p/Inputs/1.c -fPIC -o %t1.1.o
+RUN: %clang %clangopts -c  %p/Inputs/2.c -fPIC -flto -o %t1.2.o
+RUN: %clang %clangopts -c  %p/Inputs/3.c -fPIC -o %t1.3.o
+RUN: %link %linkopts -shared %t1.1.o -o %t2.lib1.so
+RUN: %link %linkopts -shared %t1.3.o -o %t2.lib3.so
+RUN: %link %linkopts -Bdynamic %t2.lib1.so %t1.2.o %t2.lib3.so -o %t2.out --trace=symbol=foo
+
+#CHECK-NOT: {{[.*]+}}foo{{[.*]+}}PRESERVE
+#END_TEST

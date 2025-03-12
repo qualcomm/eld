@@ -1,0 +1,16 @@
+UNSUPPORTED: old_lsparser
+#---OutputSectionPrologue.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the error reported by linker script parser for incorrect
+# output section type and permissions.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
+
+CHECK1: Error: {{.*}}/script1.t:2: Invalid output section type: PROGBYTES
+CHECK1: >>>   FOO 0x1000 (PROGBYTES) { *(*foo*) }
+CHECK1: >>>
+
+CHECK2: Error: {{.*}}/script2.t:2: Invalid permission flag: WX
+CHECK2: >>>   FOO 0x1000 (PROGBITS, WX) { *(*foo*) }
+CHECK2: >>>

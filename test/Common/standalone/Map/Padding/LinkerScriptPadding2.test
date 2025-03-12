@@ -1,0 +1,18 @@
+#---LinkerScriptPadding2.test---------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# This checks that linker script padding information is recorded correctly
+# in text map file
+#END_COMMENT
+
+#START_TEST
+
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/script2.t -o %t.out -M 2>&1 | %filecheck %s
+
+CHECK: PADDING{{.*}}0xa
+CHECK: PADDING	0x40	0x40	0xa
+CHECK: PADDING	0x80	0x80	0xa
+CHECK: PADDING	0x100	0x100	0xa
+CHECK: PADDING	0x200	0x200	0xa

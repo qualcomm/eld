@@ -1,0 +1,8 @@
+RUN: %clang %clangopts --target=arm-linux-gnu %p/t.c -c -w -o %t.o
+RUN: %link %linkopts -march arm %t.o -o %t.out
+RUN: %link %linkopts -march arm %t.o -T %p/t.ld -o %t2.out
+RUN: %readelf -l %t.out | %filecheck %s
+RUN: %readelf -l %t2.out | %filecheck %s --check-prefix=SCRIPT
+
+CHECK: LOAD {{.*}} R E 0x1000
+SCRIPT: LOAD {{.*}} R E 0x4

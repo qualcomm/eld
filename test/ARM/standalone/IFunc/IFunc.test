@@ -1,0 +1,39 @@
+UNSUPPORTED: ndk-build
+#---IFunc.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Programs with IFunc symbols only run with Linaro sysroot.
+# this test only checks setup, now only static linked supported
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/m.c -o %tm.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %tt.o
+RUN: %link %linkopts -march arm %tm.o %tt.o -o %t.out
+RUN: %readelf -a %t.out | %filecheck --check-prefix=STANDALONE %s
+RUN: %link %linkopts -march arm %tm.o %tt.o -pie -o %t2.out
+RUN: %readelf -a %t2.out | %filecheck --check-prefix=PIE %s
+RUN: %link %linkopts -march arm %tm.o %tt.o -shared -o %t3.out
+RUN: %readelf -a %t3.out | %filecheck --check-prefix=SHARED %s
+RUN: %link %linkopts -march arm %tt.o -shared -o %t4.so
+RUN: %link %linkopts -march arm %tm.o %t4.so -o %t4.out
+RUN: %readelf -a %t4.out | %filecheck --check-prefix=LINKSHARED %s
+
+STANDALONE: .rel.plt
+STANDALONE: .plt
+STANDALONE: .got.plt
+STANDALONE: R_ARM_IRELATIVE
+STANDALONE: __rel_iplt_start
+STANDALONE: __rel_iplt_end
+STANDALONE: IFUNC   GLOBAL DEFAULT
+STANDALONE-NOT: .dynamic
+
+PIE: func1
+PIE-NOT: R_ARM_IRELATIVE
+
+SHARED: func1
+SHARED-NOT: R_ARM_IRELATIVE
+
+LINKSHARED:  R_ARM_JUMP_SLOT   00000000   func1
+LINKSHARED-NOT: R_ARM_IRELATIVE
+
+#END_TEST

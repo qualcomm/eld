@@ -1,0 +1,15 @@
+#---PartialLinkComdat.test--------------------- PartialLink ------------------#
+
+#BEGIN_COMMENT
+# This tests that the COMDAT group is properly preserved with Partial Link.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/p.s -o %t1.p.o
+RUN: %link %linkopts -r %t1.p.o -o %t2.o
+RUN: %readelf -g %t2.o | %filecheck %s
+
+#CHECK: COMDAT group section [    1] `.group' [foo] contains 1 sections:
+#CHECK:    [Index]    Name
+#CHECK:    [    4]   .rodata.foo
+#CHECK: COMDAT group section [    2] `.group' [bar] contains 1 sections:
+#CHECK:    [Index]    Name
+#CHECK:    [    5]   .rodata.bar

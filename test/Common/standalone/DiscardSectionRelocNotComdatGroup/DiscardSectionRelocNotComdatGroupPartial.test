@@ -1,0 +1,33 @@
+#---DiscardSectionRelocNotComdatGroup.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# A group section that is not a COMDAT should be preserved.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t.2.o
+RUN: %link %linkopts -r %t.1.o %t.2.o -o %t.a
+RUN: (%readelf -s %t.a; %readelf -Sgr %t.a) | %filecheck %s
+
+CHECK:     Symbol table '.symtab' contains
+CHECK:             Num:       Value  Size    Type  Bind      Vis                 Ndx Name
+CHECK-DAG: [[#%d,FOOSYM1:]]:  {{0+}}    0  NOTYPE  LOCAL  DEFAULT   [[#%d,FOOSEC1:]] foo
+CHECK-DAG: [[#%d,FOOSYM2:]]:  {{0+}}    0  NOTYPE  WEAK   HIDDEN    [[#%d,FOOSEC2:]] foo
+
+CHECK:     Section Headers:
+CHECK-DAG: [ [[#%d,GRPSEC1:]]]  .group   GROUP    {{0+}} [[#%x,]] [[#%x,]] [[#%x,]]     [[#%x,]] [[#FOOSYM1]] 0
+CHECK-DAG: [ [[#%d,GRPSEC2:]]]  .group   GROUP    {{0+}} [[#%x,]] [[#%x,]] [[#%x,]]     [[#%x,]] [[#FOOSYM2]] 0
+CHECK-DAG: [ [[#FOOSEC1]]]      .foo     PROGBITS {{0+}} [[#%x,]] [[#%x,]] [[#%x,]] WAG 0 0 1
+CHECK-DAG: [ [[#FOOSEC2]]]      .foo     PROGBITS {{0+}} [[#%x,]] [[#%x,]] [[#%x,]] WAG 0 0 1
+
+## Unfortunately, there is no way to figure which symbol corresponds to which section because multiple combinations are possible.
+CHECK-DAG:    (unknown) group section [ [[#GRPSEC1]]] `.group' [foo] contains 1 sections:
+CHECK-DAG:       [Index]    Name
+CHECK-DAG:       [ [[#FOOSEC1]]]   .foo
+
+CHECK-DAG:    COMDAT group section [ [[#GRPSEC2]]] `.group' [foo] contains 1 sections:
+CHECK-DAG:       [Index]    Name
+CHECK-DAG:       [ [[#FOOSEC2]]]   .foo
+
+#END_TEST

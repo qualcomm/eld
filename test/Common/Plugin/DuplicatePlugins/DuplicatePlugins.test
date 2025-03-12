@@ -1,0 +1,13 @@
+#---DuplicatePlugins.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests that the linker detects duplicate plugins
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/linkerplugindup.t -o %t2.out.1 -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=LINKERPLUGIN
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/layoutplugins.t -o %t2.out.2 -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=LAYOUTPLUGIN
+RUN: %not %link %linkopts %t1.1.o --plugin-config %p/Inputs/plugin.config -o %t2.out.3 -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=CONFIG
+#END_TEST
+#LINKERPLUGIN: Plugin name LINKMODE needs to be unique
+#LAYOUTPLUGIN: Plugin name GETOUTPUT needs to be unique
+#CONFIG: Plugin name MATCHANDFINDUSES needs to be unique

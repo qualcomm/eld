@@ -1,0 +1,34 @@
+RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -c %p/test1.c -o %test1.o
+RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -ffunction-sections -c %p/test2.c -o %test2.o
+
+RUN: %link %linkopts -emit-relocs-llvm -march aarch64 -Ttext=0x1000 --noinhibit-exec %test1.o -o %test1.out
+RUN: %link %linkopts -emit-relocs-llvm -march aarch64 -Ttext=0x1000 --noinhibit-exec %test2.o -o %test2.out
+RUN: %link %linkopts -emit-relocs -Ttext=0x1000 -march aarch64 --noinhibit-exec %test1.o -z max-page-size=0x1000 -o %test1.gnu.out
+RUN: %link %linkopts -emit-relocs -Ttext=0x1000 -march aarch64 --noinhibit-exec %test2.o -z max-page-size=0x1000 -o %test2.gnu.out
+
+RUN: %readelf -r %test1.out | %filecheck %s --check-prefix=TEST1
+RUN: %readelf -r %test2.out | %filecheck %s --check-prefix=TEST2
+RUN: %readelf -r %test1.gnu.out | %filecheck %s --check-prefix=TEST1_GNU
+RUN: %readelf -r %test2.gnu.out | %filecheck %s --check-prefix=TEST2_GNU
+
+TEST1:Relocation section '.rela.text' at offset 0x{{.*}} contains 3 entries:
+TEST1:{{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}    .static + 0
+TEST1:{{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}    .static + 20
+TEST1:{{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}    .static + 20
+
+TEST2: Relocation section '.rela.text' at offset 0x{{.*}} contains 4 entries:
+TEST2: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .text + {{[0-9a-f]+}}
+TEST2: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .text + {{[0-9a-f]+}}
+TEST2: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .text + {{[0-9a-f]+}}
+TEST2: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   foo + {{[0-9a-f]+}}
+
+TEST1_GNU: Relocation section '.rela.text' at offset 0x{{.*}} contains 3 entries:
+TEST1_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .static + 0
+TEST1_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .static + 20
+TEST1_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .static + 20
+
+TEST2_GNU: Relocation section '.rela.text' at offset 0x{{.*}} contains 4 entries:
+TEST2_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .text + 0
+TEST2_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .text + 0
+TEST2_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   .text + 0
+TEST2_GNU: {{[0-9a-f]*}}  {{[0-9a-f]*}} {{.*}} {{[0-9a-f]*}}   foo + 0

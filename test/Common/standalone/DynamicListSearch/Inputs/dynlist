@@ -1,0 +1,10 @@
+{
+  /* My name is foo */
+  foo;
+  /* My name is main */
+  bar;
+  //
+  // C++ comment
+  //
+  INCLUDE extrasym.t
+}

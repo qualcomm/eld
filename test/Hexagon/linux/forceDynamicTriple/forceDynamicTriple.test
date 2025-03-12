@@ -1,0 +1,11 @@
+# Checks and runs the test only if the environment has hexagon-linux
+REQUIRES: hexagon-linux-env
+
+RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts --rosegment %t1.o -o %t2 --force-dynamic -z max-page-size=4096
+RUN: %readelf -l -W %t2 | %filecheck %s
+
+#CHECK:  LOAD           0x000000 {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} R E 0x1000
+#CHECK:  LOAD           0x001000 {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} R   0x1000
+#CHECK:  LOAD           0x002000 {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} R E 0x1000
+#CHECK:  LOAD           0x003000 {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} {{[xa-f0-9]*}} RW  0x1000

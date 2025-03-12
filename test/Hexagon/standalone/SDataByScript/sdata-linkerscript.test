@@ -1,0 +1,17 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.3.o
+RUN: %link %linkopts %t1.1.o %t2.2.o %t3.3.o -T %p/Inputs/script -o %t.out
+RUN: %nm -n %t.out | %filecheck %s
+
+#CHECK: 00000018 B y
+#CHECK: 0000001a B z
+#CHECK: 0000001c B x
+#CHECK: 00000020 B b
+#CHECK: 00000022 B c
+#CHECK: 00000024 B a
+#CHECK: 00000028 B d
+#CHECK: 00000030 B m
+#CHECK: 00000032 B l
+#CHECK: 00000034 B k
+

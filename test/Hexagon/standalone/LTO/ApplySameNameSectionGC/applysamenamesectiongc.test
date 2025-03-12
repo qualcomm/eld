@@ -1,0 +1,10 @@
+# Test that the output layout respects same name sections from LTO. This tests
+# that baz gets garbage collected too.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -flto -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o -flto -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.4.o -flto -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/override.s -o %t1.override.o
+RUN: %link %linkopts %t1.1.o %t1.2.o %t1.3.o %t1.4.o -flto-options=codegen="-function-sections -data-sections"  -flto-options=lto-output-file=%t1.override.o -o %t2.out -T %p/Inputs/script.t --save-temps --gc-sections -e main
+RUN: %readelf -s %t2.out | %filecheck %s
+#CHECK-NOT: baz

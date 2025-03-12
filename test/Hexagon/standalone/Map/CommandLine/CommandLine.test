@@ -1,0 +1,14 @@
+#---CommandLine.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This tests shows that the linker is able to print the command line information
+# in the Map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
+RUN: %link %linkopts --emit-relocs -Map %t2.map %t1.1.o %t1.2.o -o %t2.out -T %p/Inputs/script.t
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: --emit-relocs -Map

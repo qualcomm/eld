@@ -1,0 +1,14 @@
+#---ForwardReferenceErrorAddr.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This test checks that the linker reports forward reference error when an
+# output section is forward-referenced in ADDR command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.addr.t -o %t2.out.1 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.addr.t -o %t2.out.1 --fatal-warnings 2>&1 | %filecheck %s --check-prefix=FATAL
+
+#CHECK: Warning: {{.*}}script.addr.t: forward reference address expression to section BAR
+#FATAL: Fatal: {{.*}}script.addr.t: forward reference address expression to section BAR
+#END_TEST

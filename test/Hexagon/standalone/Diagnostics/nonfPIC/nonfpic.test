@@ -1,0 +1,5 @@
+# This is a test that an appropriate error is given when creating a shared
+# library with non PIC code
+RUN: %clang %clangopts -fno-pic -c %p/Inputs/1.c -o %t1.nonpic.o
+RUN: %not %link %linkopts %t1.nonpic.o -shared -o %t2.out 2>&1 | %filecheck %s
+#CHECK: Fatal: Current link configuration does not support relocation type `R_HEX_GPREL16_2' for symbol `a' referred from {{[ -\(\)_A-Za-z0-9.\\/:]+}}

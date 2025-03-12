@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/t.c -o %t.o
+RUN: %link %linkopts -march=aarch64 -no-gc-sections %t.o -o %t.out
+RUN: %nm %t.o | %filecheck %s
+
+CHECK: main

@@ -1,0 +1,2 @@
+PROVIDE(baz = 11);
+PROVIDE(baz = SOME_UNDEF_SYMBOL);

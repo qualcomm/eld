@@ -1,0 +1,13 @@
+SECTIONS {
+
+  .my_start : { } 
+
+ . = ADDR(.my_start);
+  .text : 
+  { *(*.text*) }
+
+  . = ADDR(.text) + 0x100;
+
+  .data : 
+  { *(*.data*) }
+}

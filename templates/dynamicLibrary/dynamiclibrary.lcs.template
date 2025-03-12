@@ -1,0 +1,122 @@
+OUTPUT_FORMAT("elf32-littlehexagon", "elf32-littlehexagon",
+	      "elf32-littlehexagon")
+SECTIONS
+{
+  /* SysV hash section */
+  .hash           :  { *(.hash) }
+
+  /* GNU hash section */
+  .gnu.hash       :  { *(.gnu.hash) }
+
+  /* Dynamic Symbol Table section */
+  .dynsym         :  { *(.dynsym) }
+
+  /* Dynamic string table section */
+  .dynstr         :  { *(.dynstr) }
+
+  /* Dynamic relocations for data */
+  .rela.dyn       :  { *(.rela.dyn) }
+
+  /* Dynamic relocations for PLT */
+  .rela.plt       :  { *(.rela.plt) }
+
+  /* Initializer */
+  .init           :
+  {
+    KEEP (*(.init))
+  }
+
+  /* Procedure Linkage table */
+  .plt            :  { *(.plt) }
+
+  /* Text section */
+  .text           :
+  {
+    *(.text*)
+    . = ALIGN(16);
+    __start___lcxx_override = .;
+    *(__lcxx_override)
+    __stop___lcxx_override = .;
+  }
+
+  /* Finalizer section */
+  .fini           :
+  {
+    KEEP (*(.fini))
+  }
+
+  /* Standard symbols for Text */
+  PROVIDE (__etext = .);
+  PROVIDE (_etext = .);
+  PROVIDE (etext = .);
+
+  /* Read Only Data */
+  .rodata         : { *(.rodata*) }
+
+  /* EH Frame Information */
+  .eh_frame_hdr   :  { *(.eh_frame_hdr) }
+  .eh_frame       :  ONLY_IF_RO { KEEP (*(.eh_frame)) }
+
+   /* TLS Initialized Data */
+  .tdata	  :  { _TLS_START_ = .; *(.tdata .tdata.* *.gnu.linkonce.td.*) }
+   _TLS_DATA_END_ = .;
+
+   /* TLS Uninitialized BSS */
+  .tbss		  :  { *(.tbss .tbss.* .gnu.linkonce.tb.*)  }
+  _TLS_END_  = . + SIZEOF(.tbss);
+
+  /* Constructors and Destructors */
+  .init_array     :  { KEEP (*(.init_array)) }
+  .fini_array     :  { KEEP (*(.fini_array.*)) }
+  .ctors          : { KEEP (*(.ctors)) }
+  .dtors          : { KEEP (*(.dtors)) }
+
+
+  .data.rel.ro    :  { *(.data.rel.ro*) }
+
+   /* Dynamic Sections */
+  .dynamic        :  { *(.dynamic) }
+
+   /* GOT section */
+  .got            :  { *(.got) }
+
+  /* GOT slots for PLT section  */
+  .got.plt        :  { *(.got.plt) }
+
+  .data           :
+  {
+    *(.data .data.*)
+  }
+  _edata = .; PROVIDE (edata = .);
+
+  /* BSS */
+  .bss            :
+  {
+    __bss_start = .;
+   *(.bss*)
+   *(COMMON)
+  }
+  . = ALIGN (64);
+  _end = .;
+
+  /* Non alloc sections */
+  PROVIDE (end = .);
+  .hexagon.attributes 0 : { *(.hexagon.attributes) }
+  .comment       0 :  { *(.comment) }
+  /* GNU DWARF 1 extensions */
+  .debug_srcinfo  0 :  { *(.debug_srcinfo) }
+  .debug_sfnames  0 :  { *(.debug_sfnames) }
+  /* DWARF 1.1 and DWARF 2 */
+  .debug_aranges  0 :  { *(.debug_aranges) }
+  .debug_pubnames 0 :  { *(.debug_pubnames) }
+  /* DWARF 2 */
+  .debug_info     0 :  { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 :  { *(.debug_abbrev) }
+  .debug_line     0 :  { *(.debug_line) }
+  .debug_frame    0 :  { *(.debug_frame) }
+  .debug_str      0 :  { *(.debug_str) }
+  .debug_loc      0 :  { *(.debug_loc) }
+  /* DWARF 3 */
+  .debug_pubtypes 0 :  { *(.debug_pubtypes) }
+  .debug_ranges   0 :  { *(.debug_ranges) }
+}

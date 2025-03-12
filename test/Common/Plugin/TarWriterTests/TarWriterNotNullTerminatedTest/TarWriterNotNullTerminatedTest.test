@@ -1,0 +1,18 @@
+UNSUPPORTED: windows
+#---TarWriterNotNullTerminatedTest.test----------------------- Executable,LS --------------------#
+
+
+#BEGIN_COMMENT
+# This checks a tar file being created and non-null terminating data is correctly written in it.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.test.out 2>&1 | %filecheck %s --check-prefix=TARMSG
+#RUN: %tar %gnutaropts -tf testTar.tar 2>&1 | %filecheck %s --check-prefix=TARFILELIST
+#RUN: %tar %gnutaropts -xf testTar.tar
+#RUN: od -x NonStringTestFile 2>&1 | %filecheck %s --check-prefix=TARCONTENT
+#TARMSG: TarWriterNotNullTerminatedTest:Note: Initialized Tar File testTar.tar
+#TARFILELIST: NonStringTestFile
+#TARCONTENT: 04d2
+#END_TEST

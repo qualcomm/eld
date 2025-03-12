@@ -1,0 +1,4 @@
+GlobalPlugins:
+  - Type: LinkerPlugin
+    Name: ActBeforeWritingOutputPlugin
+    Library: ActBeforeWritingOutputPlugin

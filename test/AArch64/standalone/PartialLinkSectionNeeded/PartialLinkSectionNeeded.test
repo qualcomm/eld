@@ -1,0 +1,12 @@
+#---PartialLinkSectionNeeded.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# This tests that partial linking emits a proper relocation for a section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/a.s -o %t1.1.o
+RUN: %link %linkopts -march aarch64 -r %t1.1.o -o %t2.r.o
+RUN: %readelf -S -W %t2.r.o | %filecheck %s
+
+#CHECK: .text.foo
+#END_TEST

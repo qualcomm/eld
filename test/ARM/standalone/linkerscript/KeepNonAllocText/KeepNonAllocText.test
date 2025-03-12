@@ -1,0 +1,13 @@
+#---KeepNonAllocText.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that GC handles sections marked with KEEP even if they are of non
+# allocatable type.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t  -o %t2.out --gc-sections
+RUN: %objdump -d %t2.out | %filecheck %s
+
+#CHECK: {{.*}} <bar>
+#CHECK: {{.*}} <foo>
+#CHECK: {{.*}} <foo>

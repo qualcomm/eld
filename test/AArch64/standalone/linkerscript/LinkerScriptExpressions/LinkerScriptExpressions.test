@@ -1,0 +1,22 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -march aarch64 %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/script.t 2>&1
+RUN: %readelf -s %t.out  | %filecheck %s
+RUN: %not %link %linkopts -march aarch64 %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/errorexpn.t 2>&1 | %filecheck -check-prefix=ERR %s
+RUN: %link %linkopts -march aarch64 %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/addr.t 2>&1
+RUN: %readelf -s %t.out | %filecheck --check-prefix=ADDR %s
+RUN: %not %link %linkopts -march aarch64 %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/addr_error.t 2>&1 | %filecheck -check-prefix=ERR2 %s
+
+#CHECK-DAG: {{[0-9]+}}: {{[0-9]+}}   0 NOTYPE  GLOBAL DEFAULT  ABS _myvar2
+#CHECK-DAG: {{[0-9]+}}: {{[0-9]+}}   0 NOTYPE  GLOBAL DEFAULT  ABS _myvar3
+#ERR: Fatal: {{.*}}errorexpn.t: Error: undefined symbol '.my_start' referenced in expression
+
+#ADDR-DAG: {{[0-9]+}}: {{0+}}1000     0 NOTYPE  GLOBAL DEFAULT  ABS _my_section1_lma
+#ADDR-DAG: {{[0-9]+}}: {{0+}}1000     0 NOTYPE  GLOBAL DEFAULT  ABS _my_section1_vma
+#ADDR-DAG: {{[0-9]+}}: {{0+}}4000     0 NOTYPE  GLOBAL DEFAULT  ABS _my_section2_lma
+#ADDR-DAG: {{[0-9]+}}: {{0+}}3000     0 NOTYPE  GLOBAL DEFAULT  ABS _my_section2_vma
+#ADDR-DAG: {{[0-9]+}}: {{0+}}8000     0 NOTYPE  GLOBAL DEFAULT  ABS _my_section3_lma
+#ADDR-DAG: {{[0-9]+}}: {{0+}}5000     0 NOTYPE  GLOBAL DEFAULT  ABS _my_section3_vma
+
+#ERR2: Fatal: {{.*}}addr_error.t: Error: undefined symbol '.none_exist_section' referenced in expression
+
+

@@ -1,0 +1,27 @@
+#---BuildAndReproduce.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Reproduce option should work and extract files properly and able to execute
+#END_COMMENT
+#UNSUPPORTED: windows
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts %t1.1.o %t1.2.o -L %p/Inputs/ -T %p/Inputs/script.t -o %t1.out.1 --reproduce repro.tar
+RUN: %echo "[Hash]" > %t1.mapping.ini
+RUN: %echo 1.o=%t1.1.o >> %t1.mapping.ini
+RUN: %echo 2.o=%t1.2.o >> %t1.mapping.ini
+RUN: %echo %p/Inputs/script.t=%p/3 >> %t1.mapping.ini
+RUN: %echo bar.t=%p/4 >> %t1.mapping.ini
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -T %p/3 -o x -Map %t2.out.map --mapping-file=%t1.mapping.ini -o %t1.out.2
+RUN: %filecheck %s < %t2.out.map
+
+#CHECK: LOAD 1.o{{.*}}
+#CHECK: LOAD 2.o{{.*}}
+#CHECK: Linker scripts used (including INCLUDE command)
+#CHECK: {{.*}}script.t({{.*}})
+#CHECK: 	bar.t({{.*}})
+#CHECK: Linker Plugin Information
+#CHECK: foo.o*(.text*) #Rule 1, {{.*}}script.t {{.*}}
+#CHECK: bar.o*(.text*) #Rule 3, bar.t {{.*}}
+#END_TEST

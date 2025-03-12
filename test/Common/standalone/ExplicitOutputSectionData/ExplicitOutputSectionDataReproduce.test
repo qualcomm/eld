@@ -1,0 +1,54 @@
+UNSUPPORTED: riscv32, riscv64
+#XFAIL: reproduce_fail
+#---ExplicitOutputSectionData.test--------------------- Executable---------------------#
+
+
+
+
+
+#BEGIN_COMMENT
+# This test checks the behavior of reproduce functionality with the linker
+# script commands that allows to explicitly insert bytes of data in an
+# output section. These commands include BYTE, SHORT, LONG, QUAD, SQUAD.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.1.reproduce %t1.1.2.reproduce
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o -T %p/Inputs/script.t --reproduce %t1.1.reproduce.tar --dump-response-file %t1.1.response.txt
+RUN: %mkdir %t1.1.reproduce
+RUN: %tar %gnutaropts -xf %t1.1.reproduce.tar -C %t1.1.reproduce --strip-components=1
+RUN: cd %t1.1.reproduce
+RUN: %link @%t1.1.reproduce/response.txt -o %t1.1.rep.elf
+RUN: %readelf -S %t1.1.rep.elf 2>&1 | %filecheck %s
+RUN: %objdump -d %t1.1.rep.elf --section .one | %filecheck %s --check-prefix=ONE
+RUN: %objdump -d %t1.1.rep.elf --section .some_value | %filecheck %s --check-prefix=SOME_VALUE
+RUN: %objdump -d %t1.1.rep.elf --section .empty | %filecheck %s --check-prefix=EMPTY
+RUN: cd ..
+RUN: %link %linkopts -o %t1.1.2.elf %t1.1.o -T %p/Inputs/script2.t --reproduce %t1.1.2.reproduce.tar --dump-response-file %t1.1.2.response.txt
+RUN: %mkdir %t1.1.2.reproduce
+RUN: %tar %gnutaropts -xf %t1.1.2.reproduce.tar -C %t1.1.2.reproduce --strip-components=1
+RUN: cd %t1.1.2.reproduce
+RUN: sed -i '$s|$|'" -o %t1.1.rep.elf"'|' %t1.1.2.reproduce/response.txt
+RUN: %link @%t1.1.2.reproduce/response.txt -o %t1.1.2.rep.elf
+RUN: %readelf -S %t1.1.2.rep.elf 2>&1 | %filecheck %s --check-prefix=MULTIPLE_OSD
+RUN: %objdump -d %t1.1.2.rep.elf --section .five | %filecheck %s --check-prefix=FIVE_MULTIPLE_OSD
+RUN: %objdump -d %t1.1.2.rep.elf --section .some_value | %filecheck %s --check-prefix=SOME_VALUE_MULTIPLE_OSD
+RUN: %objdump -d %t1.1.2.rep.elf --section .empty | %filecheck %s --check-prefix=EMPTY_MULTIPLE_OSD
+#END_TEST
+CHECK: .one PROGBITS {{.*}} {{0+1}} {{.*}} A
+CHECK: .some_value PROGBITS {{.*}} {{0+4}} {{.*}} A
+CHECK: .empty PROGBITS {{.*}} {{0+2}} {{.*}} A
+ONE: 01
+SOME_VALUE: 0f
+EMPTY: {{0+}}
+
+MULTIPLE_OSD: .five PROGBITS {{.*}} {{0+4}} {{.*}} A
+MULTIPLE_OSD: .some_value PROGBITS {{.*}} {{0+11}} {{.*}} A
+MULTIPLE_OSD: .empty PROGBITS {{.*}} {{0+e}} {{.*}} A
+FIVE_MULTIPLE_OSD: 00000401
+SOME_VALUE_MULTIPLE_OSD: 0000000f
+SOME_VALUE_MULTIPLE_OSD: 0000000b
+SOME_VALUE_MULTIPLE_OSD: 00000005
+SOME_VALUE_MULTIPLE_OSD: 64001e05
+SOME_VALUE_MULTIPLE_OSD: 00
+EMPTY_MULTIPLE_OSD: {{0+}}

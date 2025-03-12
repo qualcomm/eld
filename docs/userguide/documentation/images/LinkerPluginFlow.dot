@@ -1,0 +1,16 @@
+digraph G {
+    node [shape=rectangle]
+    A [label="Read input files and \n assign output section to \n input sections"]
+    B [label="Perform garbage \n collection if enabled"]
+    C [label="UserPlugin::Init"]
+    D [label="UserPlugin::Run"]
+    E [label="UserPlugin::Destroy"]
+    F [label="Merge Sections"]
+    G [label="Move chunks from input sections \n to output sections and prepare \n output file layout."]
+    A -> B
+    B -> C
+    C -> D
+    D -> E
+    E -> F
+    F -> G
+}

@@ -1,0 +1,29 @@
+#---PatchPatchPLT.test-------------- Executable------------------------#
+
+#BEGIN_COMMENT
+#Test creation of PLT/GOT slots for patchable symbols.
+#END_COMMENT
+#START_TEST
+
+## Compile base.
+RUN: %clang %clangopts %p/Inputs/base.s -o %t.base.o -c
+RUN: %link %linkopts --no-emit-relocs --patch-enable --section-start=.plt=0x1000 --section-start=.text=0x2000 %t.base.o -o %t.base
+
+## Compile patch.
+RUN: %clang %clangopts -mno-relax -O3 -fno-pic %p/Inputs/f.c -o %t.f.o -c
+RUN: %clang %clangopts -mno-relax -O3 -fno-pic %p/Inputs/3.riscv%xlen.s -o %t.3.o -c
+RUN: %link %linkopts --patch-base=%t.base --section-start=.text=0x8000 --section-start=.data=0xa000 --section-start=.pgot=0x9000 %t.f.o %t.3.o -o %t.3
+RUN: (%readelf -s %t.3; %elfcopy -O binary -j .data %t.3 - | od -v -Ax -t x%xlen -w%xlen) | %filecheck %s --match-full-lines -D#XLEN=%xlen
+
+## Read symbol values.
+CHECK-DAG: [[#]]: [[#%x,F:]]     [[#]] NOTYPE  GLOBAL DEFAULT   ABS __llvm_patchable_xxx_f
+CHECK-DAG: [[#]]: [[#%x,G:]]     [[#]] NOTYPE  GLOBAL DEFAULT   ABS __llvm_patchable_xxx_g
+CHECK-DAG: [[#]]: [[#%x,H:]]     [[#]] FUNC    GLOBAL DEFAULT   ABS xxx_h
+
+## Check the data section.
+CHECK:      {{0*}}0                   {{0*}}[[#F]]
+CHECK-NEXT: {{0*}}[[#%x,mul(XLEN,1)]] {{0*}}[[#G]]
+CHECK-NEXT: {{0*}}[[#%x,mul(XLEN,2)]] {{0*}}[[#H]]
+CHECK-NEXT: {{0*}}[[#%x,mul(XLEN,3)]]
+
+#END_TEST

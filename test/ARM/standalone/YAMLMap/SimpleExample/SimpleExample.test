@@ -1,0 +1,11 @@
+#---SimpleExample.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that YAML output doesnot crash the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm %p/Inputs/1.c -o %t1.1.o -c
+RUN: %link -o %t1.out.1 -MapStyle=yaml %linkopts %t1.1.o -Map %t2.map
+RUN: %filecheck %s < %t2.map
+#CHECK: .symtab
+#END_TEST

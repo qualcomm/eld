@@ -1,0 +1,4 @@
+RUN: %link -march arm -shared %p/Inputs/rvds.o -o %t.out
+RUN: nm %t.out | %filecheck %s
+
+CHECK: T ak_rate_hz

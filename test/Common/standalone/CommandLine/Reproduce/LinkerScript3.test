@@ -1,0 +1,10 @@
+#---LinkerScript3.test------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that --reproduce can handle linkerscripts
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o
+RUN: %link %linkopts -L%p/Inputs -T %p/Inputs/script3.t %t1.1.o -o %t1.out.script3 --reproduce %t0.tar --dump-mapping-file %t0.dump
+RUN: %filecheck %s < %t0.dump
+CHECK: script3bar.t=

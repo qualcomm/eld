@@ -1,0 +1,10 @@
+#---acrossrules.test--------------------------- Executable -----------------#
+
+# This tests that strings in AMS sections are merged across rules
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -T %p/Inputs/script.t -o %t.out
+RUN: %readelf -p .out %t.out | %filecheck %s
+CHECK: String dump of section '.out':
+CHECK: [     0] blah
+CHECK-NOT: [     5] blah

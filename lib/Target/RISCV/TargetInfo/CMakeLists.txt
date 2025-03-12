@@ -1,0 +1,2 @@
+add_llvm_library(ELDRISCVTargetInfo RISCVTargetInfo.cpp)
+target_link_libraries(ELDRISCVTargetInfo  LLVMRISCVAsmParser LLVMRISCVCodeGen)

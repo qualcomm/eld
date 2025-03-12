@@ -1,0 +1,13 @@
+#---GroupSetionsmatch.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that linker is able to match section, with section SHF_GROUP flag
+# set.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out | %filecheck %s
+#CHECK: .ro
+#CHECK: .rw
+#END_TEST

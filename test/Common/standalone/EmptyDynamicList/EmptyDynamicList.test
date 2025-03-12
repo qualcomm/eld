@@ -1,0 +1,13 @@
+#---EmptyDynamicList.test-------Executable/SharedLibrary----------------------------#
+
+#BEGIN_COMMENT
+#Check that the linker is able to use an empty dynamic list
+#ignored.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %touch %t1.list
+RUN: %link %linkopts %t1.1.o --force-dynamic --dynamic-list %t1.list -o %t1.out.1
+RUN: %link %linkopts %t1.1.o --force-dynamic --dynamic-list %p/Inputs/empty.lst -o %t1.out.2
+RUN: %link %linkopts %t1.1.o --force-dynamic --dynamic-list %p/Inputs/emptynosym.lst -o %t1.out.3
+#END_TEST

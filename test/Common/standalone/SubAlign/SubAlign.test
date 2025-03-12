@@ -1,0 +1,15 @@
+#---SubAlign.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# Test for linker script SUBALIGN directive.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.o -Map %t2.map
+RUN: %filecheck %s < %t2.map
+#CHECK: .a {{.*}} Alignment: 0x40
+#CHECK: .text.foo	0x40
+#CHECK: .text.bar	0x80
+#CHECK: .text.car	0xc0
+#CHECK: .b {{.*}} Alignment: 0x1
+#END_TEST

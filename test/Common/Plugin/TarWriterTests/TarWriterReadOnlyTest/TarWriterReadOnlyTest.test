@@ -1,0 +1,11 @@
+#---TarWriterReadOnlyTest.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Test checks if a pre-existing file with no wrote permissions can be overwritten by the tar writer.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %not %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.test.out 2>&1 | %filecheck %s --check-prefix=TARMSG
+#TARMSG: TarWriterReadOnlyTest:Fatal: LLVM: cannot open Inputs/testTar.tar
+#END_TEST

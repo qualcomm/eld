@@ -1,0 +1,10 @@
+RUN: %clang %clangopts -c %p/Inputs/t.c -target aarch64-linux-gnueabi -fPIC -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/f.c -target aarch64-linux-gnueabi -fPIC -o %t2.o
+RUN: %link %linkopts -march aarch64 -shared %t1.o %t2.o -o %tlibt.so
+RUN: %link %linkopts -march aarch64 -shared %t1.o %t2.o -o %tlibt.sym.so -Bsymbolic
+RUN: %readelf -r %tlibt.so | %filecheck %s --check-prefix=WITHOUT
+RUN: %readelf -r %tlibt.sym.so | %filecheck %s --check-prefix=WITH
+
+WITHOUT: bar
+
+WITH: There are no relocations in this file

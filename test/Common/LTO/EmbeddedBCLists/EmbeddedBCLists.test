@@ -1,0 +1,28 @@
+UNSUPPORTED: iu
+#---EmbeddedBC.test------------- Executable,SharedLibrary,LTO -----------------#
+
+
+#BEGIN_COMMENT
+# Test --include-lto-filelist and --exclude-lto-filelist
+# --include-lto-filelist is useful when no -flto switch is used
+# --exclude-lto-filelist is used to disable selective inputs from using embedded
+# bitcode sections
+#END_COMMENT
+
+RUN: %clangxx %embedclangxxopts -c -fembed-bitcode %p/Inputs/1.cpp -o %t1.1.o
+RUN: %clangxx %embedclangxxopts -c -fembed-bitcode -fpic %p/Inputs/2.cpp -o %t1.2.o
+RUN: %clangxx %embedclangxxopts -c -fembed-bitcode -fpic %p/Inputs/3.cpp -o %t1.3.o
+RUN: %ar crs %aropts %tlibembed.a %t1.2.o %t1.3.o
+
+RUN: %link %linkopts  -flto -shared -o %t.shlib.so --whole-archive %tlibembed.a --no-whole-archive
+RUN: %link %linkopts -M -include-lto-filelist=%p/Inputs/list1 -e main %t1.1.o %tlibembed.a -o %t.typical.out --noinhibit-exec --verbose=1 2>&1 | %filecheck --check-prefix="TYPICAL" %s
+RUN: %link %linkopts -M -include-lto-filelist=%p/Inputs/list1 -r --whole-archive %tlibembed.a --no-whole-archive -o %t.reloc.o 2>&1| %filecheck --check-prefix="RELOC" %s
+RUN: %link %linkopts -M -include-lto-filelist=%p/Inputs/list2 -dy -e main %t1.1.o  %t.shlib.so -o %t.dyn.out --noinhibit-exec 2>&1 |  %filecheck --check-prefix="DYN" %s
+
+TYPICAL: Verbose: Using embedded bitcode section from file
+TYPICAL: Bitcode type
+RELOC: Bitcode origin
+DYN: Bitcode origin
+
+RUN: %link %linkopts -M -flto -exclude-lto-filelist=%p/Inputs/list2 -dy -e main %t1.1.o  %t.shlib.so -o %t.dyn.out --noinhibit-exec 2>&1 |  %filecheck --check-prefix="EXCLUDE" %s
+EXCLUDE-NOT: Bitcode origin

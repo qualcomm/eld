@@ -1,0 +1,34 @@
+UNSUPPORTED: hexagon
+#---Padding_02.test-------------------------#
+
+#BEGIN_COMMENT
+#This tests basic padding detection functionality of addr2struct
+#END_COMMENT
+
+RUN: %clang %clangopts -c -g -gdwarf-4 %p/Inputs/p2.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t2.out
+RUN: llvm-addr2struct %t2.out -lookup=0x00001000 -size=24 |  %filecheck %s
+#CHECK: {{[ A-Za-z0-9.,]+}},str.val,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.val+1(OUT_OF_RANGE),dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.val+2(OUT_OF_RANGE),dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.val+3(OUT_OF_RANGE),dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[0],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[1],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[2],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[3],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[4],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[5],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[6],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[7],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[8],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[9],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[10],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.StrData[11],dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_1,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_2,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_3,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_3+1(OUT_OF_RANGE),dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_4,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_4,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_4,dbg
+#CHECK-NEXT: {{[ A-Za-z0-9.,]+}},str.ValStruct.field_4,dbg

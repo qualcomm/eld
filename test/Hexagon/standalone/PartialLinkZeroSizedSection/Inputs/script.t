@@ -1,0 +1,3 @@
+SECTIONS {
+  .bar : { *(.text.bar) }
+}

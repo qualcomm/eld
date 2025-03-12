@@ -1,0 +1,481 @@
+
+Header:
+  Architecture:    arm
+  Emulation:       ''
+  AddressSize:     32bit
+  ABIPageSize:     0x1000
+VersionInformation:
+  CompilerVersion: 3.9.0
+  LinkerVersion:   '3.9'
+Inputs:
+  - 'LOAD a.o[]'
+InputInfo:
+  - Path:            ../src/channelSM.o
+    Used:            Used
+  - Path:            ../src/cpu_comm.o
+    Used:            Used
+  - Path:            /prj/llvm-arm/home/nightly/install/qc-mainline/cross/2017-03-23/armv7m-none-eabi/lib/libunwind.a
+    Used:            NotUsed
+    Members:
+      - Path:            libunwind.cpp.o
+        Used:            NotUsed
+      - Path:            Unwind-EHABI.cpp.o
+        Used:            NotUsed
+  - Path:            '/prj/llvm-arm/home/nightly/install/qc-mainline/cross/2017-03-23/armv7m-none-eabi/lib/libc++.a'
+    Used:            NotUsed
+    Members:
+      - Path:            mutex.cpp.obj
+        Used:            NotUsed
+      - Path:            shared_mutex.cpp.obj
+        Used:            NotUsed
+      - Path:            exception.cpp.obj
+        Used:            NotUsed
+      - Path:            stdexcept.cpp.obj
+        Used:            NotUsed
+      - Path:            random.cpp.obj
+        Used:            NotUsed
+      - Path:            utility.cpp.obj
+        Used:            NotUsed
+      - Path:            condition_variable.cpp.obj
+        Used:            NotUsed
+  - Path:            '/prj/llvm-arm/hexbuild_home/nightly/install/qc-40/cross/2017-03-23/bin/../lib/libc++abi.a'
+    Used:            NotUsed
+    Members:
+      - Path:            abort_message.cpp.o
+        Used:            NotUsed
+      - Path:            cxa_aux_runtime.cpp.o
+        Used:            NotUsed
+      - Path:            cxa_default_handlers.cpp.o
+        Used:            NotUsed
+      - Path:            cxa_demangle.cpp.o
+        Used:            NotUsed
+  - Path:            /prj/llvm-arm/hexbuild_home/nightly/install/qc-40/cross/2017-03-23/lib/clang/5.0.0/lib/baremetal/libclang_rt.builtins-armv7m.a
+    Used:            NotUsed
+    Members:
+      - Path:            aeabi_dcmp.S.obj
+        Used:            NotUsed
+      - Path:            aeabi_div0.c.obj
+        Used:            NotUsed
+LinkerScriptsUsed:
+  - test.ld
+BuildType:       Executable
+OutputFile:      test.elf
+EntryAddress:    0x0000000000DEAD01
+CommandLine:     '/prj/llvm-arm/home/weimingz/llvm/qc-39/bin/ld.eld a.o -e boot -static -Ttest.ld -Map out.yaml -MapStyle YAML -o test.elf '
+CommandLineDefaults:
+  - Name:            NoVerify
+    Value:           '1'
+    Description:     Enable Linker verification
+  - Name:            MaxGPSize
+    Value:           '8'
+    Description:     GP Size value for Small Data
+OutputSections:
+  - Name:            .debug_info
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [  ]
+    Address:         0xE0
+    Offset:          0x88
+    Size:            0xA7
+    Contents:
+      - Name:            .debug_info
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [  ]
+        LinkerScript:    ''
+        Offset:          0x0
+        Size:            0xA7
+        Origin:          1.o
+        Alignment:       1
+        Symbols:
+          - Symbol:          .debug_info
+            Type:            [ STT_OBJECT, STT_FUNC, STT_SECT ]
+            Scope:           Local
+            Size:            0x0
+            Value:           0x0
+  - Name:            SEC_BOOT
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+    Address:         0x0000000000DEAD00
+    Offset:          0x00000000000000B4
+    Size:            0x0000000000000002
+    Contents:
+      - Name:            .text.boot
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+        LinkerScript:    '*(.text.boot )'
+        Offset:          0x0000000000000000
+        Size:            0x0000000000000002
+        Origin:          a.o
+        Alignment:       2
+        Symbols:
+          - Symbol:          .text.boot
+            Type:            [ STT_OBJECT, STT_FUNC, STT_SECT ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEAD00
+          - Symbol:          '$t.8'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEAD00
+          - Symbol:          boot
+            Type:            [ STT_FUNC ]
+            Scope:           0
+            Size:            0x00000002
+            Value:           0x0000000000DEAD01
+  - Name:            SEC_DATA
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [ SHF_ALLOC, SHF_WRITE ]
+    Address:         0x0000000000DEAD04
+    Offset:          0x00000000000000B8
+    Size:            0x0000000000000008
+    Contents:
+      - Name:            .data.data0
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_WRITE ]
+        LinkerScript:    '*(.data* )'
+        Offset:          0x0000000000000000
+        Size:            0x0000000000000004
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.10'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEAD04
+          - Symbol:          data0
+            Type:            [ STT_OBJECT ]
+            Scope:           0
+            Size:            0x00000004
+            Value:           0x0000000000DEAD04
+      - Name:            .data.data1
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_WRITE ]
+        LinkerScript:    '*(.data* )'
+        Offset:          0x0000000000000004
+        Size:            0x0000000000000004
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.11'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEAD08
+          - Symbol:          data1
+            Type:            [ STT_OBJECT ]
+            Scope:           0
+            Size:            0x00000004
+            Value:           0x0000000000DEAD08
+  - Name:            SEC_BSS
+    Type:            [ SHT_NOBITS ]
+    Permissions:     [ SHF_ALLOC, SHF_WRITE ]
+    Address:         0x0000000000DEAD0C
+    Offset:          0x00000000000000C0
+    Size:            0x0000000000001000
+    Contents:
+  - Name:            SEC_CODE
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+    Address:         0x0000000000DEBD0C
+    Offset:          0x00000000000000C0
+    Size:            0x0000000000000008
+    Contents:
+      - Name:            .text.foo
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+        LinkerScript:    '*(.text* )'
+        Offset:          0x0000000000000000
+        Size:            0x0000000000000002
+        Origin:          a.o
+        Alignment:       2
+        Symbols:
+          - Symbol:          .text.foo
+            Type:            [ STT_OBJECT, STT_FUNC, STT_SECT ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD0C
+          - Symbol:          '$t.0'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD0C
+          - Symbol:          foo
+            Type:            [ STT_FUNC ]
+            Scope:           0
+            Size:            0x00000002
+            Value:           0x0000000000DEBD0D
+      - Name:            .text.bar
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+        LinkerScript:    '*(.text* )'
+        Offset:          0x0000000000000002
+        Size:            0x0000000000000002
+        Origin:          a.o
+        Alignment:       2
+        Symbols:
+          - Symbol:          .text.bar
+            Type:            [ STT_OBJECT, STT_FUNC, STT_SECT ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD0E
+          - Symbol:          '$t.2'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD0E
+          - Symbol:          bar
+            Type:            [ STT_FUNC ]
+            Scope:           0
+            Size:            0x00000002
+            Value:           0x0000000000DEBD0F
+      - Name:            .text.test0
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+        LinkerScript:    '*(.text* )'
+        Offset:          0x0000000000000004
+        Size:            0x0000000000000002
+        Origin:          a.o
+        Alignment:       2
+        Symbols:
+          - Symbol:          .text.test0
+            Type:            [ STT_OBJECT, STT_FUNC, STT_SECT ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD10
+          - Symbol:          '$t.4'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD10
+          - Symbol:          test0
+            Type:            [ STT_FUNC ]
+            Scope:           0
+            Size:            0x00000002
+            Value:           0x0000000000DEBD11
+      - Name:            .text.test1
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC, SHF_EXECINSTR ]
+        LinkerScript:    '*(.text* )'
+        Offset:          0x0000000000000006
+        Size:            0x0000000000000002
+        Origin:          a.o
+        Alignment:       2
+        Symbols:
+          - Symbol:          .text.test1
+            Type:            [ STT_OBJECT, STT_FUNC, STT_SECT ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD12
+          - Symbol:          '$t.6'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD12
+          - Symbol:          test1
+            Type:            [ STT_FUNC ]
+            Scope:           0
+            Size:            0x00000002
+            Value:           0x0000000000DEBD13
+  - Name:            SEC_MISC
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [ SHF_ALLOC ]
+    Address:         0x0000000000DEBD14
+    Offset:          0x00000000000000C8
+    Size:            0x0000000000000028
+    Contents:
+      - Name:            .ARM.exidx.text.foo
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC ]
+        LinkerScript:    '*(.ARM.exidx.* )'
+        Offset:          0x0000000000000000
+        Size:            0x0000000000000008
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.1'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD14
+      - Name:            .ARM.exidx.text.bar
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC ]
+        LinkerScript:    '*(.ARM.exidx.* )'
+        Offset:          0x0000000000000008
+        Size:            0x0000000000000008
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.3'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD1C
+      - Name:            .ARM.exidx.text.test0
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC ]
+        LinkerScript:    '*(.ARM.exidx.* )'
+        Offset:          0x0000000000000010
+        Size:            0x0000000000000008
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.5'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD24
+      - Name:            .ARM.exidx.text.test1
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC ]
+        LinkerScript:    '*(.ARM.exidx.* )'
+        Offset:          0x0000000000000018
+        Size:            0x0000000000000008
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.7'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD2C
+      - Name:            .ARM.exidx.text.boot
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_ALLOC ]
+        LinkerScript:    '*(.ARM.exidx.* )'
+        Offset:          0x0000000000000020
+        Size:            0x0000000000000008
+        Origin:          a.o
+        Alignment:       4
+        Symbols:
+          - Symbol:          '$d.9'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000DEBD34
+  - Name:            .ARM.attributes
+    Type:            [ SHT_PROGBITS, SHT_SYMTAB, SHT_STRTAB ]
+    Permissions:     [  ]
+    Address:         0x0000000000DEBD3C
+    Offset:          0x00000000000000F0
+    Size:            0x000000000000003D
+    Contents:
+  - Name:            .comment
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [ SHF_MERGE, SHF_STRINGS ]
+    Address:         0x0000000000DEBD79
+    Offset:          0x000000000000012D
+    Size:            0x000000000000003A
+    Contents:
+      - Name:            .comment
+        Type:            [ SHT_PROGBITS ]
+        Permissions:     [ SHF_MERGE, SHF_STRINGS ]
+        LinkerScript:    ''
+        Offset:          0x0000000000000000
+        Size:            0x0000000000000001
+        Origin:          a.o
+        Alignment:       1
+        Symbols:
+          - Symbol:          '$d.12'
+            Type:            [  ]
+            Scope:           2
+            Size:            0x00000000
+            Value:           0x0000000000000000
+  - Name:            .note.GNU-stack
+    Type:            [ SHT_PROGBITS ]
+    Permissions:     [  ]
+    Address:         0x0000000000DEBDB3
+    Offset:          0x0000000000000167
+    Size:            0x0000000000000000
+    Contents:
+  - Name:            .shstrtab
+    Type:            [ SHT_PROGBITS, SHT_SYMTAB, SHT_STRTAB ]
+    Permissions:     [  ]
+    Address:         0x0000000000DEBDB3
+    Offset:          0x0000000000000167
+    Size:            0x0000000000000060
+    Contents:
+  - Name:            .symtab
+    Type:            [ SHT_SYMTAB ]
+    Permissions:     [  ]
+    Address:         0x0000000000DEBDB4
+    Offset:          0x00000000000001C8
+    Size:            0x0000000000000220
+    Contents:
+  - Name:            .strtab
+    Type:            [ SHT_PROGBITS, SHT_SYMTAB, SHT_STRTAB ]
+    Permissions:     [  ]
+    Address:         0x0000000000DEBFD4
+    Offset:          0x00000000000003E8
+    Size:            0x00000000000000AF
+    Contents:
+LoadRegions:
+  - Name:            SEG_BOOT
+    Type:            [ PT_LOAD ]
+    Permissions:     [ READ, EXECUTE ]
+    FileOffset:      0x00000000000000B4
+    VirtualAddress:  0x0000000000DEAD00
+    PhysicalAddress: 0x0000000000DEAD00
+    FileSize:        0x0000000000000002
+    MemorySize:      0x0000000000000002
+    Alignment:       4
+    Sections:
+      - SEC_BOOT
+  - Name:            SEG_DATA
+    Type:            [ PT_NULL ]
+    Permissions:     [ READ, WRITE ]
+    FileOffset:      0x00000000000000B8
+    VirtualAddress:  0x0000000000DEAD04
+    PhysicalAddress: 0x0000000000DEAD04
+    FileSize:        0x0000000000000008
+    MemorySize:      0x0000000000001008
+    Alignment:       4
+    Sections:
+      - SEC_DATA
+      - SEC_BSS
+  - Name:            SEG_EXEC
+    Type:            [ PT_LOAD ]
+    Permissions:     [ READ, EXECUTE ]
+    FileOffset:      0x00000000000000C0
+    VirtualAddress:  0x0000000000DEBD0C
+    PhysicalAddress: 0x0000000000DEBD0C
+    FileSize:        0x0000000000000008
+    MemorySize:      0x0000000000000008
+    Alignment:       4
+    Sections:
+      - SEC_CODE
+  - Name:            SEG_OTHERS
+    Type:            [ PT_LOAD ]
+    Permissions:     [ READ ]
+    FileOffset:      0x00000000000000C8
+    VirtualAddress:  0x0000000000DEBD14
+    PhysicalAddress: 0x0000000000DEBD14
+    FileSize:        0x0000000000000028
+    MemorySize:      0x0000000000000028
+    Alignment:       4
+    Sections:
+      - SEC_MISC
+CrossReference:
+  - Symbol:          bar
+    ReferencedBy:
+      - a.o
+  - Symbol:          boot
+    ReferencedBy:
+      - a.o
+  - Symbol:          data0
+    ReferencedBy:
+      - a.o
+  - Symbol:          data1
+    ReferencedBy:
+      - a.o
+  - Symbol:          foo
+    ReferencedBy:
+      - a.o
+  - Symbol:          test0
+    ReferencedBy:
+      - a.o
+  - Symbol:          test1
+    ReferencedBy:
+      - a.o
+...

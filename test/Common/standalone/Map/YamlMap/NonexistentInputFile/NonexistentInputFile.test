@@ -1,0 +1,12 @@
+#---NonexistentInputFile.test--------------- Executable ------------------#
+
+#BEGIN_COMMENT
+#This test checks that -MapStyle yaml does not crash if user specifies an input file which the linker cannot find
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link -MapStyle yaml %linkopts %t1.1.o badinputfile -Map %t0.map
+RUN: %filecheck %s < %t0.map
+CHECK: ---
+CHECK: OutputSections:  []
+#END_TEST

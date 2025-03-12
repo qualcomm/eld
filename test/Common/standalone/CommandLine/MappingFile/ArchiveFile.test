@@ -1,0 +1,13 @@
+#----ArchiveFile.test------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that the --mapping-file option is able to handle archive files
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/1.c -o %t1.1.o
+RUN: %ar -cr foo.a %t1.1.o
+RUN: %ar -cr abcdef %t1.1.o
+RUN: %link abcdef --mapping-file=%p/Inputs/mapping.ini -Map=%t0.map -o %t2.ar.out
+RUN: %filecheck %s < %t0.map
+CHECK: ArchiveFiles : 1
+#END_TEST

@@ -1,0 +1,20 @@
+#---IFuncRelative.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests the contents of the .got.plt section contains the function pointer
+# that IFUNC is pointing to.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64-linux -c %p/Inputs/ifunc.c -o %t1.ifunc.o
+RUN: %link %linkopts -march aarch64 %t1.ifunc.o -o %t2.out --section-start .text=0x1000
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %readelf -x .got.plt %t2.out | %filecheck %s -check-prefix=GOTCONTENTS
+
+#CHECK: .rela.plt
+#CHECK: .plt
+#CHECK: .got.plt
+#CHECK-NOT: .dynamic
+
+#GOTCONTENTS: 00100000
+
+#END_TEST

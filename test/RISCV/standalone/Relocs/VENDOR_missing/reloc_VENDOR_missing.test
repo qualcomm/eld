@@ -1,0 +1,13 @@
+#---reloc_VENDOR_missing.test--------------------- Executable------------#
+
+#BEGIN_COMMENT
+#  Error when Relocation 192-255 does not have a corresponding
+#  R_RISCV_VENDOR (191) relocation on the same location
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}1.o: Could not find R_RISCV_VENDOR relocation for relocation 'R_RISCV_CUSTOM192'

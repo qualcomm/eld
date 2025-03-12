@@ -1,0 +1,7 @@
+# Check if the linker recognizes -M and -M-options flags
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -flto %t1.o --trace=command-line -M  -flto-options=verbose -o %t.out 2>&1 \
+RUN:   | %filecheck %s -check-prefix YES
+
+YES: LTO Flag: Enabled
+YES: LTO Options: verbose

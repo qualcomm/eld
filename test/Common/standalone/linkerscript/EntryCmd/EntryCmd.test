@@ -1,0 +1,12 @@
+#---EntryCmd.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests that the GNU rules for setting entry is used by ELD.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t3.pb
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out -e 0
+RUN: %readelf -h %t2.out | %filecheck %s
+#CHECK: Entry point address: 0x0
+#END_TEST

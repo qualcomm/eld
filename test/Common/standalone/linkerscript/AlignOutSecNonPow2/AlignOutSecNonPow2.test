@@ -1,0 +1,19 @@
+#---AlignOutSecNonPow2.test----------------- Executable----------------#
+#BEGIN_COMMENT
+# Verify that non-power-of-2 values passed into the output section description's
+# ALIGN() are handled correctly. ELF only allows 0 and positive integral powers
+# of 2 for sh_addralign--ld.bfd accepts non-0 non-power-of-2 values but will
+# round these up to the nearest power of 2 while ld.lld rejects these altogether
+# (besides 0).
+#
+# Align with lld's behavior here and issue an error.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+
+RUN: not %link %linkopts -o %t.a.out %t1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}Inputs/script.t: non-power-of-2 value 0x1e passed to ALIGN in 'text' output section description, value must be 0 or a power of 2
+CHECK-NOT: Error: {{.*}}Inputs/script.t: non-power-of-2 value 0x0 {{.*}}
+#END_TEST

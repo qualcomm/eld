@@ -1,0 +1,21 @@
+#---SectionWithZeroSizedSymbolGCAndPadding.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the text map file has the empty section recorded if it has a zero sized
+# symbol in it
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.x.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %link -MapStyle txt %linkopts %t.x.o %t.main.o -o %t.main.out1 -T %p/Inputs/padding_script.t -Map %t.main.map1 --trace=section=.text.baz --gc-sections -Wall  2>&1 | %filecheck %s
+RUN: %link -MapStyle txt %linkopts %t.x.o %t.main.o -o %t.main.out2 -T %p/Inputs/padding_script.t -Map %t.main.map2 --trace=section=.text.baz --gc-sections -Wzero-sized-sections  2>&1 | %filecheck %s
+RUN: %filecheck %s < %t.main.map1 --check-prefix=MAPCHECK
+RUN: %filecheck %s < %t.main.map2 --check-prefix=MAPCHECK
+#CHECK: Note: Input Section : .text.baz InputFile : {{.*}}x.o Alignment : 0x{{[0-9]}} Size : 0x0
+#CHECK: Warning: Zero sized fragment .foo for non zero sized symbol sym from input file {{.*}}x.o
+#CHECK: Note: Input Section : .text.baz Symbol : baz
+#CHECK: Note: Section : .text.baz is being garbage collected. Section originated from input : {{.*}}x.o
+#MAPCHECK: *(.text.bar)
+#MAPCHECK: .text.bar
+#MAPCHECK: # .text.baz	<GC>
+#END_TEST

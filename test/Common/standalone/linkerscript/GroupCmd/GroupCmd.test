@@ -1,0 +1,23 @@
+#---GroupCmd.test--------------------- Executable,LS------------------#
+
+
+
+
+#BEGIN_COMMENT
+# This tests that the GROUP specified in the linker script is handled properly.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
+RUN: echo "INPUT(-lnonexistent)" > %t2.error.t
+RUN: %not %link %linkopts %t2.error.t -o %t2.out.err 2>&1 | %filecheck %s -check-prefix=ERR
+#ERR: cannot recognize namespec -lnonexistent
+RUN: %ar cr %aropts %t2.lib2.a %t1.2.o
+RUN: echo "GROUP(%t2.lib2.a)" > %t2.script.t
+RUN: echo "SECTIONS { " >> %t2.script.t
+RUN: echo "} " >> %t2.script.t
+RUN: %link %linkopts %t1.1.o -T %t2.script.t -o %t2.out
+RUN: %readelf -s %t2.out | %filecheck %s
+
+#CHECK-DAG: bar
+#CHECK-DAG: foo
+

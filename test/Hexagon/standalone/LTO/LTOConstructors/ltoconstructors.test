@@ -1,0 +1,10 @@
+# Leave .ctors and .dtors in their original order as they cant be tracked.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o 
+RUN: %clang %clangopts -c %p/Inputs/2.c -flto -o %t1.2.o 
+RUN: %clang %clangopts -c %p/Inputs/3.c  -o %t1.3.o 
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o %t1.3.o  -T %p/Inputs/script.t -Map %t2.out.map --trace=lto -flto-options=codegen="-use-ctors"
+RUN: %filecheck %s < %t2.out.map
+
+#CHECK: .ctors  {{[0-9xa-f]+}}    {{[0-9xa-f]+}}     {{[ -\(\)_A-Za-z0-9.\\/:]+}}1.o
+#CHECK: .ctors  {{[0-9xa-f]+}}    {{[0-9xa-f]+}}     {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto
+#CHECK: .ctors  {{[0-9xa-f]+}}    {{[0-9xa-f]+}}     {{[ -\(\)_A-Za-z0-9.\\/:]+}}3.o

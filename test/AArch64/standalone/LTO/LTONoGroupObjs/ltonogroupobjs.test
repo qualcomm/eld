@@ -1,0 +1,12 @@
+# Check if LTO works for no groups and only object files and bitcode
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/a.c -flto -o %t1
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/b1.c -o %t2
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/b2.c -o %t3
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/c.c -o %t4
+RUN: %link %linkopts -march aarch64 -M -flto-options=preserveall %t1 %t2 %t4 %t3 -o %t5
+RUN: %readelf -s %t5 | %grep "foo" | %filecheck %s -check-prefix YES
+RUN: %readelf -s %t5 | %grep "bar" | %filecheck %s -check-prefix YES
+RUN: %readelf -s %t5 | %grep "baz" | %filecheck %s -check-prefix YES
+RUN: %readelf -s %t5 | %grep "boo" | %filecheck %s -check-prefix YES
+
+YES: 1

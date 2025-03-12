@@ -1,0 +1,15 @@
+#---LinuxTriple.test--------------------- Executable------------------#
+
+# Based on target triple, set the interpreter in dynamic executable
+#BEGIN_COMMENT
+# This tests that Musl have respective .interp set
+#END_COMMENT
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t1.o -fPIC
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/2.c -o %t2.o -fPIC
+RUN: %link %linkopts -shared %t2.o -o %t2.so
+RUN: %link %linkopts  -mtriple hexagon-unknown-linux-musl -Map %tmusl.map %t1.o %t2.so -o %tmusl.out
+RUN: %readelf -l -W %tmusl.out | %filecheck %s --check-prefix="MUSL"
+RUN: %filecheck %s --check-prefix="MUSLMAP" < %tmusl.map
+
+MUSL:  /lib/ld-musl-hexagon.so.1
+MUSLMAP:  Target triple environment for the link: musl

@@ -1,0 +1,26 @@
+#---OutputSection.test--------------------- Executable---------------------#
+
+
+
+
+
+#BEGIN_COMMENT
+# This test checks that the text map file correcty contains
+the output file properties.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c -g %p/Inputs/1.c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.elf %t1.1.o -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.with_ls.elf %t1.1.o -T %p/Inputs/1.linker.script -Map %t1.1.with_ls.map.txt
+RUN: %filecheck %s --check-prefix=WITH_LS < %t1.1.with_ls.map.txt
+#END_TEST
+#CHECK: .text   0x{{.*}}     0x{{.*}} # Offset: 0x{{.*}}, LMA: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+#CHECK: .bss  0x{{.*}}  0x{{.*}} # Offset: 0x{{.*}}, LMA: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS
+#CHECK: .debug_info 0x{{.*}} 0x{{.*}} # Offset: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: NONE, Type: SHT_PROGBITS
+#CHECK: .comment        0x{{.*}}  0x{{.*}} # Offset: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: SHF_MERGE|SHF_STRINGS, Type: SHT_PROGBITS
+#WITH_LS: .text   0x{{.*}}     0x{{.*}} # Offset: 0x{{.*}}, LMA: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+#WITH_LS: .bss  0x{{.*}}  0x{{.*}} # Offset: 0x{{.*}}, LMA: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS
+#WITH_LS: .data   0x{{.*}}   0x{{.*}} # Offset: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: NONE, Type: SHT_PROGBITS
+#WITH_LS: .debug_info 0x{{.*}} 0x{{.*}} # Offset: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: NONE, Type: SHT_PROGBITS
+#WITH_LS: .comment        0x{{.*}}  0x{{.*}} # Offset: 0x{{.*}}, Alignment: 0x{{.*}}, Flags: SHF_MERGE|SHF_STRINGS, Type: SHT_PROGBITS

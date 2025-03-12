@@ -1,0 +1,20 @@
+RUN: %link %linkopts  -march aarch64 -T %p/t.ld --defsym tempy=0x1012 --defsym tempy2=0x4500 --defsym tempy3=292 %p/270.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+RUN: %link %linkopts  -march aarch64 -T %p/t.ld --defsym tempy=0x1012 --defsym tempy2=0x674500 --defsym tempy3=292 %p/271.o -o %t2.out
+RUN: llvm-objdump -d %t2.out | %filecheck %s -check-prefix TEST271
+RUN: %link %linkopts  -march aarch64 -T %p/t.ld --defsym tempy=0x1012 --defsym tempy2=12345678912345 --defsym tempy3=292 %p/272.o -o %t3.out
+RUN: llvm-objdump -d %t3.out | %filecheck %s -check-prefix TEST272
+
+CHECK: d2820244
+CHECK: d288a007
+CHECK: d2802491
+
+TEST271: d2a00004
+TEST271: d2a00ce7
+TEST271: d2a00011
+
+TEST272: d2c00004
+TEST272: d2c16747
+TEST272: d2c00011
+
+

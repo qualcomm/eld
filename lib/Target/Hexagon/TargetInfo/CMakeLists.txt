@@ -1,0 +1,2 @@
+add_llvm_library(ELDHexagonTargetInfo HexagonTargetInfo.cpp)
+target_link_libraries(ELDHexagonTargetInfo  LLVMHexagonAsmParser LLVMHexagonCodeGen)

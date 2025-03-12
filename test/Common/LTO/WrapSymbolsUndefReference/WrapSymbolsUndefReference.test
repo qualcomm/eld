@@ -1,0 +1,15 @@
+UNSUPPORTED: iu, riscv32, riscv64
+#---WrapSymbolsUndefReference.test----------------------- Executable,SharedLibrary,LTO --------------------#
+
+#BEGIN_COMMENT
+#This test when the wrap symbols are not defined, they produce an appropriate
+#undefined symbol for that reference, set to the wrap symbol.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -flto -o %t1.1.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/2.c -flto -o %t1.2.o -fPIC
+RUN: %link %linkopts %t1.1.o %t1.2.o -shared -o %t2.out --wrap foo
+RUN: %readelf -r %t2.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.1.o %t1.2.o -e main -o %t2.out --wrap foo 2>&1 | %filecheck %s
+#CHECK: __wrap_foo
+#END_TEST

@@ -1,0 +1,52 @@
+UNSUPPORTED: true
+#---relocmap.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Look for output/input section name mappings in .note.qc.reloc.section.map
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -fdata-sections -o %t.o
+RUN: %link %linkopts %t.o -r --unique-output-sections -t %p/Inputs/script1.t -o %t.1.o
+RUN: %link %linkopts %t.o -r --unique-output-sections -t %p/Inputs/withdata.t -o %t.withdata.o
+RUN: %link %linkopts %t.o -r --unique-output-sections -o %t.noscript.o
+RUN: %link %linkopts --unique-output-sections -t %p/Inputs/script2.t %t.1.o -r -o %t.2.o 2>&1 | %filecheck %s
+RUN: %readelf %t.1.o -p .note.qc.reloc.section.map | %filecheck %s --check-prefix=ONE
+RUN: %readelf %t.2.o -p .note.qc.reloc.section.map | %filecheck %s --check-prefix=TWO
+RUN: %readelf %t.noscript.o -p .note.qc.reloc.section.map | %filecheck %s --check-prefix=NOSCRIPT
+RUN: %readelf %t.withdata.o -p .note.qc.reloc.section.map | %filecheck %s --check-prefix=WITHDATA
+
+CHECK: Note: Discarding section .note.qc.reloc.section.map from input file {{.*}}1.o
+
+ONE: String dump of section '.note.qc.reloc.section.map':
+ONE: [     0] .
+ONE: [     4] .text.foo
+ONE: [     e] .
+ONE: [    12] .text.bar
+ONE: [    1c] .
+ONE: [    20] .text.baz
+
+TWO:String dump of section '.note.qc.reloc.section.map':
+TWO:[     0] .
+TWO:[     4] .allfuncs
+TWO:[     e] .
+TWO:[    12] .allfuncs
+TWO:[    1c] .
+TWO:[    20] .allfuncs
+
+NOSCRIPT: String dump of section '.note.qc.reloc.section.map':
+NOSCRIPT: [     0] .
+NOSCRIPT: [     4] .text.foo
+NOSCRIPT: [     e] .
+NOSCRIPT: [    12] .text.bar
+NOSCRIPT: [    1c] .
+NOSCRIPT: [    20] .text.baz
+
+WITHDATA: String dump of section '.note.qc.reloc.section.map':
+WITHDATA: [     0] .
+WITHDATA: [     4] .text.foo
+WITHDATA: [     e] .
+WITHDATA: [    12] .text.bar
+WITHDATA: [    1c] .
+WITHDATA: [    20] .text.baz
+
+#END_TEST

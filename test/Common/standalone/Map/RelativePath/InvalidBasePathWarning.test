@@ -1,0 +1,13 @@
+#---InvalidBasePathWarning.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This test checks the warning reported when invalid basepath is provided.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %ar cr %t1.lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.lib2.a -MapDetail relative-path="a/b/c" -Map %t1.1.map.txt 2>&1 | %filecheck %s
+#END_TEST
+CHECK: Warning: Unable to compute relative path of '{{.*}}1.o' for '{{.*}}a{{[\\/]}}b{{[\\/]}}c'

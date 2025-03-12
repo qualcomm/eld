@@ -1,0 +1,20 @@
+#---Errata843419.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle the errata and fix the errata
+# 843419.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 %p/Inputs/1.s -c -o %t.1.o
+RUN: %link %linkopts %t.1.o -march aarch64 -z max-page-size=0x1 -fix-cortex-a53-843419 -e 0 --section-start .e843419=0x20000000 -o %t2.out
+RUN: %readelf -h -l -S -s -W %t2.out | %filecheck %s
+RUN: %clang %clangopts -target aarch64 %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts %t.o %t.1.o -march aarch64 -z max-page-size=0x1 -fix-cortex-a53-843419 -e 0 --section-start .e843419=0x1FFFFE00 -o %t.out
+RUN: %objdump -d %t.out | %filecheck %s --check-prefix=OFFSET
+
+#CHECK: .data             PROGBITS        0000000020001024
+#CHECK: __errata_stub__#1_for_.e843419
+
+#OFFSET: 2000101c: f9001008      str     x8, [x0, #0x20]
+
+#END_TEST

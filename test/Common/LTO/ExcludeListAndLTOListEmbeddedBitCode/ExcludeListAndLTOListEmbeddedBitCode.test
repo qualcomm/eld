@@ -1,0 +1,25 @@
+UNSUPPORTED: aarch64
+#---ExcludeListAndLTOListEmbeddedBitCode.test------------- Executable,LTO -----------------#
+
+
+#BEGIN_COMMENT
+# This checks that include and exclude lto file list properly work with LTO.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -fembed-bitcode -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fembed-bitcode -o %t1.3.o
+RUN: %ar cr %aropts %t1.lib2.a %t1.3.o
+
+# Check that include-lto-filelist, selects the files to be chosen.
+RUN: %link %linkopts %t1.1.o %t1.3.o -include-lto-filelist=%p/Inputs/lto.lst -o %t2.out --verbose 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o %t1.lib2.a -include-lto-filelist=%p/Inputs/lto.lst -o %t2.out --verbose 2>&1 | %filecheck %s
+#CHECK: Using embedded bitcode section from file {{.*}}1.o
+#CHECK: Using embedded bitcode section from file {{.*}}3.o
+
+RUN: %link %linkopts %t1.1.o %t1.lib2.a -include-lto-filelist=%p/Inputs/archiveincludelto.lst -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=ARCHIVE
+#ARCHIVE: Using embedded bitcode section from file {{.*}}3.o
+
+# Check that exclude-lto-filelist, selects the files not to be chosen.
+RUN: %link %linkopts -flto %t1.1.o %t1.3.o -exclude-lto-filelist=%p/Inputs/lto.lst --trace=lto -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=EMBED
+RUN: %link %linkopts -flto %t1.1.o %t1.lib2.a -exclude-lto-filelist=%p/Inputs/lto.lst --trace=lto -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=EMBED
+#EMBED-NOT: Using embedded bitcode section

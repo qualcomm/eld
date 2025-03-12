@@ -1,0 +1,15 @@
+# Test that we actually Reserve space in file.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o  %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t1.out  %linkg0opts  -z max-page-size=0x1000
+RUN: %readelf -l -W %t1.out | %filecheck %s -check-prefix=PHDR
+RUN: %readelf -s -W %t1.out | %filecheck %s -check-prefix=SYMBOLS
+
+PHDR:  LOAD           0x001000 0x00000000 0x00000000 0x0001{{.*}} 0x0001{{.*}} R E 0x1000
+PHDR:  LOAD           0x002000 0x00001000 0x00001000 0x00000 0x27f4c0 RW  0x1000
+PHDR:   04     .text
+PHDR:   07     .bss
+
+SYMBOLS: {{[x0-9a-z]+}}    {{.*}} FUNC    GLOBAL DEFAULT    1 val
+SYMBOLS: {{[x0-9a-z]+}}     0 NOTYPE  GLOBAL DEFAULT    3 __hw_demback_buffer_start__
+SYMBOLS: {{[x0-9a-z]+}}     0 NOTYPE  GLOBAL DEFAULT  ABS __hw_demback_buffer_size__
+SYMBOLS: {{[x0-9a-z]+}}     0 NOTYPE  GLOBAL DEFAULT    3 __hw_demback_buffer_end__

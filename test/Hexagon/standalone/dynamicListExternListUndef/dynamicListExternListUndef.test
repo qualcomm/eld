@@ -1,0 +1,13 @@
+# This checks that the linker reports undefined symbol errors when a symbol is
+# specified in the dynamic list and the extern list. This tests the option
+# error-style=llvm
+
+RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -fPIC -o %t1.o
+RUN: %not %link -o %t1.out.1 %linkopts %t1.o --error-style=llvm  %linkg0opts  --extern-list=%p/Inputs/lst --force-dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.2 %linkopts %t1.o --error-style=llvm  %linkg0opts  --dynamic-list=%p/Inputs/lst --force-dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.3 %linkopts %t1.o --error-style=llvm  %linkg0opts  -u qualcomm  2>&1 | %filecheck %s
+RUN: %link -o %t1.out.4 %linkopts %t1.o  %linkg0opts  --extern-list=%p/Inputs/lst --force-dynamic 2>&1
+RUN: %link -o %t1.out.5 %linkopts %t1.o  %linkg0opts  --dynamic-list=%p/Inputs/lst --force-dynamic 2>&1
+RUN: %link -o %t1.out.6 %linkopts %t1.o  %linkg0opts  --dynamic-list=%p/Inputs/lst --force-dynamic -shared 2>&1
+
+#CHECK: qualcomm

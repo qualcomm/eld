@@ -1,0 +1,27 @@
+#---RelocationTargetEmptyWithGC.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks that the text map file has the empty section recorded if its used in as
+# a relocation target with garbage collection enabled and check for the numbers in linker stats
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.x.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %link -MapStyle txt,yaml %linkopts %t.x.o %t.main.o -o %t.main.out -T %p/Inputs/script.t -Map %t.main.map --gc-sections -e main --print-gc-sections --trace=section=.text.baz 2>&1 | %filecheck %s
+RUN: %filecheck %s < %t.main.map --check-prefix=MAPCHECK
+RUN: %filecheck %s < %t.main.map.yaml --check-prefix=YAMLMAPCHECK
+#CHECK: Note: Input Section : .text.baz InputFile :{{.*}}x.o Alignment : 0x{{[0-9]}} Size : 0x0
+#CHECK: Trace: GC : {{.*}}.x.o[.text.foo]
+#CHECK: Trace: GC : {{.*}}.x.o[.text.baz]
+#CHECK: Note: Section : .text.baz is being garbage collected.
+#CHECK: Trace: GC : {{.*}}.x.o[.text.c1]
+#CHECK: Trace: GC : {{.*}}.x.o[.text.empty]
+#MAPCHECK: # ZeroSizedSections : {{[0-9]+}}
+#MAPCHECK: # ZeroSizedSectionsGarbageCollected : 4
+#MAPCHECK: # .text.baz	<GC>
+#MAPCHECK: # .text.c1	<GC>
+#YAMLMAPCHECK: - Name:            ZeroSizedSections
+#YAMLMAPCHECK: Count:           {{[0-9]+}}
+#YAMLMAPCHECK: - Name:            ZeroSizedSectionsGarbageCollected
+#YAMLMAPCHECK: Count:           4
+#END_TEST

@@ -1,0 +1,18 @@
+#---BuildID.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This checks for option -build-id=<xxx> that is being handled in the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id 2>&1
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id=none 2>&1
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id=md5 2>&1
+RUN: %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id=fast 2>&1
+RUN: %not %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id none 2>&1
+RUN: %not %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id md5 2>&1
+RUN: %not %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id sha1 2>&1
+RUN: %not %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id fast 2>&1
+RUN: %not %link %linkopts %t1.1.o --trace=symbol=foo -o %t2.out --build-id=sha2 2>&1
+#END_TEST

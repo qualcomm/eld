@@ -1,0 +1,13 @@
+#---EntryPoint.test--------------------------- Executable -----------------#
+
+
+#BEGIN_COMMENT
+# This test checks that the text map file contains entry point information only if its
+# passed as a symbol.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -g %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -MapStyle txt -Map %t1.1.map.txt -o %t1.1.out
+RUN: %filecheck %s < %t1.1.map.txt
+#CHECK-NOT: Entry point: _start
+#END_TEST

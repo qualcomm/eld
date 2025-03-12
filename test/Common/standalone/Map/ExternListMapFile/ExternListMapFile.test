@@ -1,0 +1,54 @@
+#---ExternListMapFile.test-------Executable/SharedLibrary----------------------------#
+
+
+
+#BEGIN_COMMENT
+# Check extern list is added to text map file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -fdata-sections -o %t3.o
+RUN: %ar crs %aropts %t.a %t1.o %t2.o %t3.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -ffunction-sections -o %tmain.o
+RUN: %link -MapStyle txt %linkopts --force-dynamic --entry=main --gc-sections --extern-list %p/Inputs/ExtList.t %tmain.o %t.a -o %t.out.1 -Map %t.map.1
+RUN: %link -MapStyle txt %linkopts --force-dynamic --entry=main --gc-sections -T %p/Inputs/ExternScript.t %tmain.o %t.a -o %t.out.2 -Map %t.map.2
+RUN: %link -MapStyle txt %linkopts --force-dynamic --entry=main --gc-sections --extern-list %p/Inputs/IncludeExtList.t --extern-list %p/Inputs/ExtList.t -L%p/Inputs %tmain.o %t.a -o %t.out.3 -Map %t.map.3
+RUN: %filecheck %s < %t.map.1
+RUN: %filecheck %s --check-prefix=INCLUDECHECK < %t.map.3
+RUN: %filecheck %s --check-prefix=SCRIPTCHECK < %t.map.2
+RUN: %filecheck %s --check-prefix=INCLUDESCRIPTCHECK < %t.map.3
+#END_TEST
+
+CHECK: Extern list files
+CHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExtList.t
+CHECK-NEXT: Pattern: commonSym
+CHECK-NEXT:	#{{.*}}commonSym{{.*}}3.o
+CHECK-NEXT: Pattern: NoGC
+CHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
+
+SCRIPTCHECK: Extern list files
+SCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExternScript.t
+SCRIPTCHECK-NEXT: Pattern: commonSym
+SCRIPTCHECK-NEXT: #{{.*}}commonSym{{.*}}3.o
+SCRIPTCHECK-NEXT: Pattern: NoGC
+SCRIPTCHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
+
+INCLUDECHECK: Extern list files
+INCLUDECHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExtList.t
+INCLUDECHECK-NEXT: Pattern: commonSym
+INCLUDECHECK-NEXT: #{{.*}}commonSym{{.*}}3.o
+INCLUDECHECK-NEXT: Pattern: NoGC
+INCLUDECHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
+INCLUDECHECK-NEXT: {{.*}}Inputs{{[/\\]}}IncludeExtList.t
+INCLUDECHECK-NEXT: Pattern: commonSym
+INCLUDECHECK-NEXT: #{{.*}}commonSym{{.*}}3.o
+INCLUDECHECK-NEXT: Pattern: NoGC
+INCLUDECHECK-NEXT: #{{.*}}NoGC{{.*}}1.o
+
+INCLUDESCRIPTCHECK: Linker scripts used (including INCLUDE command)
+INCLUDESCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}ExtList.t
+INCLUDESCRIPTCHECK-NEXT: {{.*}}Inputs{{[/\\]}}IncludeExtList.t
+INCLUDESCRIPTCHECK-NEXT:     {{.*}}Inputs{{[/\\]}}IncludeScript.t
+INCLUDESCRIPTCHECK-NEXT:     nonexistent.t(NOTFOUND)
+

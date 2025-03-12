@@ -1,0 +1,11 @@
+#---StartGroupEndGroup_1.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This checks and errors when there is not a proper match for
+# --start-group/--end-group
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link -o %t1.outerr.1 %linkopts --end-group 2>&1 | %filecheck %s
+#CHECK: Mismatched --start-group/--end-group
+#END_TEST

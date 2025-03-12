@@ -1,0 +1,8 @@
+# This tests that Linker script KEEP is handled properly. The KEEP sections are
+# also the list of entry sections if an entry symbol is not present in the
+# command line.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.1.o -o %t2.out  --emit-relocs-llvm --section-start .rodata=0xF0000000
+RUN: %readelf -r %t2.out | %filecheck %s
+
+#CHECK: f0000000   .rodata + 0

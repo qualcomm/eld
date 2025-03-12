@@ -1,0 +1,15 @@
+# This test checks that the linker is able to create empty sections.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -o %t2.out.nophdr
+RUN: %link %linkopts %t1.o -T %p/Inputs/p.t -o %t2.out.phdr
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/perr.t -o %t2.out.errphdr -Map %t2.map
+RUN: %readelf -s %t2.out.nophdr | %filecheck %s -check-prefix=CHECK-SYMVALUE
+RUN: %readelf -l -W %t2.out.nophdr | %filecheck %s
+RUN: %readelf -l -W %t2.out.phdr | %filecheck %s
+RUN: %filecheck -check-prefix MAP %s < %t2.map
+
+#CHECK-SYMVALUE: {{[0-9 ]+}}: {{[0-9a-f]+}}{{[1-9a-f]+}} 0 NOTYPE GLOBAL DEFAULT ABS val
+#CHECK:   00     .text
+#CHECK:   01     .empty0 .empty1
+#CHECK:   02     .data
+#MAP: .symtab

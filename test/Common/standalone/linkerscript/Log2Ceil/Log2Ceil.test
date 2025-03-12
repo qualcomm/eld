@@ -1,0 +1,20 @@
+#---Log2Ceil.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests the functionality of when the linker script uses LOG2CEIL
+# linker script command
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/log2ceil.t -o %t2.out
+RUN: %nm -n %t2.out | %filecheck %s
+#END_TEST
+
+#CHECK: 00000000 A log2ceil0
+#CHECK: 00000000 A log2ceil1
+#CHECK: 00000001 A log2ceil2
+#CHECK: 00000002 A log2ceil3
+#CHECK: 00000002 A log2ceil4
+#CHECK: 00000020 A log2ceil100000000
+#CHECK: 00000021 A log2ceil100000001
+#CHECK: 00000040 A log2ceilmax

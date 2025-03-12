@@ -1,0 +1,20 @@
+#----------R_RISCV_JuMP_SLOT.test--------------------- SharedLibrary,LS------#
+
+
+#BEGIN_COMMENT
+#This test checks that the linker emits relocations to access symbols
+#that require PLT. RISC-V like other targets uses JUMP_SLOT relocations.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC -ffunction-sections
+RUN: %link %linkopts -shared %t1.1.o  -o %t1.out 2>&1
+RUN: %readelf -r -W %t1.out 2>&1 | %filecheck %s
+RUN: %link %linkopts -shared %t1.1.o -T %p/Inputs/script.t -o %t1.out.ls 2>&1
+RUN: %readelf -x .got.plt %t1.out.ls 2>&1 | %filecheck %s -check-prefix=GOTPLT
+RUN: %link %linkopts -shared %t1.1.o  -o %t1.out.now -z now 2>&1
+RUN: %readelf -r -W %t1.out.now 2>&1 | %filecheck %s
+#END_Test
+
+CHECK-COUNT-1: R_RISCV_JUMP_SLOT
+#GOTPLT: f0c0

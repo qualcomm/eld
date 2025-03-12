@@ -1,0 +1,16 @@
+#---SBRELSimple.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that SBREL32 relocation is implemented and the relocation is
+# applied properly by picking the value of the relocation to be computed based
+# on the base address of the segment.
+#END_COMMENT
+RUN: %clang %clangopts -fno-pie -c %p/Inputs/1.c -o %t1.1.o -frwpi
+RUN: %link %linkopts %t1.1.o  -frwpi -o %t2.out
+RUN: %objdump -d %t2.out | %filecheck %s
+RUN: %nm -n %t2.out | %filecheck %s -check-prefix=SYM
+
+#CHECK-DAG:  .word   0x00000004
+#CHECK-DAG:  .word   0x00000000
+
+#SYM: 00001000 A __RWPI_BASE__

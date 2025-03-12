@@ -1,0 +1,18 @@
+# This tests that linker doesnot emit a text rel relocation when building shared
+# libraries.
+RUN: %clang %clangopts -target arm -c -fPIC %p/Inputs/textrel.c -o %t1.o
+RUN: %link %linkopts -march arm -shared %t1.o -o %t2.so
+RUN: %readelf -d %t2.so | %filecheck %s
+
+#CHECK: {{[x0-9a-f]+}} (HASH)                       {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (SYMTAB)                     {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (SYMENT)                     16 (bytes)
+#CHECK: {{[x0-9a-f]+}} (STRTAB)                     {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (STRSZ)                      {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (PLTGOT)                     {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (PLTREL)                     REL
+#CHECK: {{[x0-9a-f]+}} (JMPREL)                     {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (PLTRELSZ)                   8 (bytes)
+#CHECK: {{[x0-9a-f]+}} (REL)                        {{[0-9a-fx]+}}
+#CHECK: {{[x0-9a-f]+}} (RELSZ)                      8 (bytes)
+#CHECK: {{[x0-9a-f]+}} (RELENT)                     8 (bytes)

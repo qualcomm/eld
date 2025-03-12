@@ -1,0 +1,8 @@
+# Check that LTO doesnot preserve undefined symbols from bitcode.
+RUN: %clang %clangopts -target aarch64 -c  %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -target aarch64 -c -flto %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -target aarch64 -c -flto %p/Inputs/bar.c -o %t1.bar.o
+RUN: %link %linkopts -march aarch64 %t1.main.o %t1.foo.o %t1.bar.o -o %t2.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+
+#PRESERVE-NOT: bar
+#PRESERVE: foo

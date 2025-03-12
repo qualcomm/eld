@@ -1,0 +1,52 @@
+UNSUPPORTED: riscv32, riscv64
+#---ExplicitOutputSectionData.test--------------------- Executable---------------------#
+
+
+
+
+
+#BEGIN_COMMENT
+# This test checks the behavior of linker script commands that allows to
+# explicitly insert bytes of data in an output section. These commands include
+# BYTE, SHORT, LONG, QUAD, SQUAD.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.elf %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -S %t1.1.elf 2>&1 | %filecheck %s
+RUN: %objdump -d %t1.1.elf --section .text | %filecheck %s --check-prefix=TEXT
+RUN: %objdump -d %t1.1.elf --section .one | %filecheck %s --check-prefix=ONE
+RUN: %objdump -d %t1.1.elf --section .some_value | %filecheck %s --check-prefix=SOME_VALUE
+RUN: %objdump -d %t1.1.elf --section .empty | %filecheck %s --check-prefix=EMPTY
+RUN: %objdump -d %t1.1.elf --section .values | %filecheck %s --check-prefix=VALUES
+RUN: %link %linkopts -o %t1.1.2.elf %t1.1.o -T %p/Inputs/script2.t
+RUN: %readelf -S %t1.1.2.elf | %filecheck %s --check-prefix=MULTIPLE_OSD
+RUN: %objdump -d %t1.1.2.elf --section .five | %filecheck %s --check-prefix=FIVE_MULTIPLE_OSD
+RUN: %objdump -d %t1.1.2.elf --section .some_value | %filecheck %s --check-prefix=SOME_VALUE_MULTIPLE_OSD
+RUN: %objdump -d %t1.1.2.elf --section .empty | %filecheck %s --check-prefix=EMPTY_MULTIPLE_OSD
+#END_TEST
+CHECK: .text PROGBITS {{.*}} AX
+CHECK: .one PROGBITS {{.*}} {{0+1}} {{.*}} A
+CHECK: .some_value PROGBITS {{.*}} {{0+4}} {{.*}} A
+CHECK: .empty PROGBITS {{.*}} {{0+2}} {{.*}} A
+CHECK: .values PROGBITS {{.*}} {{0+10}} {{.*}} A
+TEXT: 00000002
+ONE: 01
+SOME_VALUE: 0f
+EMPTY: {{0+}}
+VALUES: 00000001
+VALUES: 00000001
+VALUES: 00000005
+VALUES: 00000005
+
+MULTIPLE_OSD: .five PROGBITS {{.*}} {{0+4}} {{.*}} A
+MULTIPLE_OSD: .some_value PROGBITS {{.*}} {{0+11}} {{.*}} A
+MULTIPLE_OSD: .empty PROGBITS {{.*}} {{0+e}} {{.*}} A
+FIVE_MULTIPLE_OSD: 00000401
+SOME_VALUE_MULTIPLE_OSD: 0000000f
+SOME_VALUE_MULTIPLE_OSD: 0000000b
+SOME_VALUE_MULTIPLE_OSD: 00000005
+SOME_VALUE_MULTIPLE_OSD: 64001e05
+SOME_VALUE_MULTIPLE_OSD: 00
+EMPTY_MULTIPLE_OSD: {{0+}}
+

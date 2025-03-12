@@ -1,0 +1,11 @@
+#---LinkerScript3.test------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks that --mapping-file can handle linkerscripts
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c  -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts -L%p/Inputs -T %p/Inputs/1111 %t1.1.o -o %t1.out.script3 --mapping-file=%p/Inputs/mapping.ini -Map=%t0.map
+RUN: %filecheck %s < %t0.map
+CHECK: 1111)
+CHECK: {{   *script3bar.t\(}}

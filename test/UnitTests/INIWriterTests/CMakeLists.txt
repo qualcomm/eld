@@ -1,0 +1,1 @@
+add_eld_unittest(INIWriterTests INIWriterTest.cpp)

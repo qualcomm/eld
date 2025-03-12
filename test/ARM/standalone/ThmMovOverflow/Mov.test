@@ -1,0 +1,14 @@
+#---Mov.test------------------------------------ Executable --------------------#
+
+#BEGIN_COMMENT
+# Remove wrong overflow check.
+#END_COMMENT
+#START_TEST
+
+RUN: %clangas -c %p/Inputs/t.s -o %t.o
+RUN: %link %linkopts -march=arm -T %p/Inputs/t.t  %t.o -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: T g_mon_did_irq_exit
+
+#END_TEST

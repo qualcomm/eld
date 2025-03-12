@@ -1,0 +1,13 @@
+UNSUPPORTED: ndk-build
+#---PHDRPtGnuRelro.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+#Support PHDRS with RELRO
+#segment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/s.t -o %t2.out 2>&1
+RUN: %readelf -l -W %t2.out | %filecheck %s
+#CHECK: RELRO
+#END_TEST

@@ -1,0 +1,59 @@
+#----------AUIPC_JALR_TO_CJ.test----------------- Executable------------------#
+
+
+#BEGIN_COMMENT
+# Relaxing AUIPC/JR to compressed C.J (tail call).
+#END_COMMENT
+#--------------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+
+RUN: %link %linkopts %t.o -o %t.1.out --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
+RUN: %objdump -d %t.1.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
+
+RUN: %link %linkopts -shared %t.o -o %t.1.so --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
+RUN: %objdump -d %t.1.so 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
+
+## The first jump is compressed
+VERBOSE_RELAX: RISCV_CALL_J : relaxing instruction 0x00000317,00030067 to compressed instruction 0xa001 for symbol foo in section .text+0x4 file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL_C : Deleting 6 bytes for symbol 'foo' in section .text+0x6 file {{.*}}.o
+DUMP_RELAX: bff5         j 0x{{[0-9a-f]+}} <foo>
+
+## The second jump is compressed too
+VERBOSE_RELAX: RISCV_CALL_J : relaxing instruction 0x00000317,00030067 to compressed instruction 0xa001 for symbol foo in section .text+0x7FC file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL_C : Deleting 6 bytes for symbol 'foo' in section .text+0x7fe file {{.*}}.o
+DUMP_RELAX: b011         j 0x{{[0-9a-f]+}} <foo>
+
+## The third jump is never compressed because it's too far
+VERBOSE_RELAX: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'foo' in section .text+0xff6 file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL : Deleting 4 bytes for symbol 'foo' in section .text+0xffa file {{.*}}.o
+DUMP_RELAX: 80aff06f   j 0x{{[0-9a-f]+}} <foo>
+
+RUN: %link %linkopts %t.o -o %t.2.out --verbose --no-relax 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
+RUN: %objdump -d %t.2.out 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX
+
+RUN: %link %linkopts -shared %t.o -o %t.2.so --verbose --no-relax 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
+RUN: %objdump -d %t.2.so 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX
+
+## First two jumps when relaxation is completely disabled
+VERBOSE_NORELAX: RISCV_CALL : Cannot relax 6 bytes for symbol 'foo' in section .text+0x4 file {{.*}}.o
+VERBOSE_NORELAX: RISCV_CALL : Cannot relax 6 bytes for symbol 'foo' in section .text+0x802 file {{.*}}.o
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jr
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jr
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jr
+
+RUN: %link %linkopts %t.o -o %t.3.out --verbose --no-relax-c 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX_C
+RUN: %objdump -d %t.3.out 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX_C
+
+RUN: %link %linkopts -shared %t.o -o %t.3.so --verbose --no-relax-c 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX_C
+RUN: %objdump -d %t.3.so 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX_C
+
+## First two jumps when only compressed relaxation is disabled
+VERBOSE_NORELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'foo' in section .text+0x4 file {{.*}}.o
+VERBOSE_NORELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'foo' in section .text+0x7fe file {{.*}}.o
+VERBOSE_NORELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'foo' in section .text+0xffa file {{.*}}.o
+DUMP_NORELAX_C: ffdff06f j 0x{{[0-9a-f]+}} <foo>
+DUMP_NORELAX_C: 803ff06f j 0x{{[0-9a-f]+}} <foo>
+DUMP_NORELAX_C: 806ff06f j 0x{{[0-9a-f]+}} <foo>

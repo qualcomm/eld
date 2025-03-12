@@ -1,0 +1,7 @@
+# This tests empty sections that for they get proper permissions.
+RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -c %p/Inputs/main.c -o %t1.o
+RUN: %link %linkopts -march aarch64 --rosegment --script %p/Inputs/linker_script.t %t1.o -o %t1 -z max-page-size=0x1000
+RUN: %readelf -l -W %t1 | %filecheck %s
+
+#CHECK: LOAD           0x001000 0x0000000000000000 0x0000000000000000 0x000004 0x000004 R   0x1000
+#CHECK: LOAD           0x001010 0x0000000000000010 0x0000000000000010 0x000014 0x000014 R E 0x1000

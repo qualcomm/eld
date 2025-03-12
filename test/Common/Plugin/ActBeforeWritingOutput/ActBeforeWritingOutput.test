@@ -1,0 +1,17 @@
+#---ActBeforeWritingOutput.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests verifies the behavior of ActBeforeWritingOutput plugin hook.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config \
+RUN:   %p/Inputs/PluginConfig.yaml --verbose --trace plugin 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Trace: Calling plugin hook handler ActBeforeWritingOutputPlugin::ActBeforeSectionMerging
+CHECK: Trace: Calling plugin hook handler ActBeforeWritingOutputPlugin::ActBeforePerformingLayout
+CHECK: Verbose: Writing output file {{.*}}1.out
+CHECK: Trace: Calling plugin hook handler ActBeforeWritingOutputPlugin::ActBeforeWritingOutput
+CHECK: ActBeforeWritingOutputPlugin:Note: In ActBeforeWritingOutput
+
+

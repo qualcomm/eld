@@ -1,0 +1,12 @@
+#---NoNoteGNUProperty.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#This tests checks that the linker is read a improper proper GNU property section
+#and not emit a note GNU property section in the output
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts -march aarch64 %t1.o  -o %t1.out 2>&1
+RUN: %readelf -S -W %t1.out | %filecheck --check-prefix=NOTE %s
+
+#NOTE-NOT: NOTE

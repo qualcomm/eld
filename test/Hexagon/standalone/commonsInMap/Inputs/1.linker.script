@@ -1,0 +1,3 @@
+SECTIONS {
+  commons : { *(*short) *(*common1) }
+}

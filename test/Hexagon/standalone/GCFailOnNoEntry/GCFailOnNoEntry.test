@@ -1,0 +1,10 @@
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o -ffunction-sections -fdata-sections
+RUN: %ar cr %aropts %tlib.a %t2.o
+RUN: %link %linkopts %t1.o %tlib.a -o %t.out --extern-list=%p/Inputs/list --gc-sections -e FOO -u FOO 2>&1 | %filecheck -check-prefix=GCWARN %s
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o -ffunction-sections -fdata-sections
+RUN: %not %link %linkopts %t3.o -o %t3.out  --gc-sections -u main 2>&1 | %filecheck %s -check-prefix=GCERR
+
+#GCWARN: FOO Entry symbol not found
+#GCERR: Garbage collection cannot continue due to missing or undefined entry symbol. Use --entry=<symbol>

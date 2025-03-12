@@ -1,0 +1,7 @@
+# This tests empty sections that for they get proper permissions.
+RUN: %clang %clangopts -target arm -c %p/Inputs/main.c -o %t1.o
+RUN: %link %linkopts -march arm --rosegment --script %p/Inputs/linker_script.t %t1.o -o %t1
+RUN: %readelf -l -W %t1 | %filecheck %s
+
+#CHECK:  LOAD           {{[0-9a-fx]+}}  {{[0-9a-fx]+}} {{[0-9a-fx]+}} 0x00004 0x00004 R   0x4
+#CHECK:  LOAD           {{[0-9a-fx]+}}  {{[0-9a-fx]+}} {{[0-9a-fx]+}} 0x00018 0x00018 R E 0x4

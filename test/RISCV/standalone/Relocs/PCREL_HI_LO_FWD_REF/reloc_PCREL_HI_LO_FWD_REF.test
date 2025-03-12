@@ -1,0 +1,19 @@
+#---reloc_PCREL_HI_LO_FWD_REF.test----------- Executable------------#
+
+
+
+#BEGIN_COMMENT
+# Check patching of R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_{I|S} relocations,
+# particularly with both forward and backward references to pcrel_hi entries.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out | %filecheck %s
+
+CHECK-LABEL: test
+CHECK:       auipc   a0, 1
+CHECK-NEXT:  lw      s0, {{[0-9]+}}(a0)
+CHECK:       sw      zero, {{[0-9]+}}(a0)
+CHECK:       jal     0x1233560 <foo>
+CHECK:       auipc   a0, 1
+CHECK-NEXT:  lw      a1, {{[0-9]+}}(a0)

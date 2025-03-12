@@ -1,0 +1,39 @@
+#---CopyReloc.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests for dynamic copy relocation generated for symbols defined
+# in shared objects.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -fno-pie -c %p/Inputs/1.c -o %t1.o
+# Test for alignment of 1
+RUN: %clang %clangg0opts -c %p/Inputs/0.c -o %t0.o -fPIC
+RUN: %link %linkg0opts -shared %t0.o -o %t0.so
+RUN: %link %linkg0opts -Bdynamic %t1.o %t0.so -o %t0.out -Map %t0.map 0>&1
+RUN: %filecheck %s -check-prefix=ALIGN1 < %t0.map
+RUN: %readelf -r %t0.out 0>&1 | %filecheck %s -check-prefix=COPYRELOC
+# Test for alignment of 4
+RUN: %clang %clangg0opts -c %p/Inputs/2.c -o %t2.o -fPIC
+RUN: %link %linkg0opts -shared %t2.o -o %t2.so
+RUN: %link %linkg0opts -Bdynamic %t1.o %t2.so -o %t1.out -Map %t1.map 2>&1
+RUN: %filecheck %s -check-prefix=ALIGN4 < %t1.map
+RUN: %readelf -r %t1.out 2>&1 | %filecheck %s -check-prefix=COPYRELOC
+# Test for alignment of 8
+RUN: %clang %clangg0opts -c %p/Inputs/3.c -o %t3.o -fPIC
+RUN: %link %linkg0opts -shared %t3.o -o %t3.so
+RUN: %link %linkg0opts -Bdynamic %t1.o %t3.so -o %t2.out -Map %t2.map 2>&1
+RUN: %filecheck %s -check-prefix=ALIGN8 < %t2.map
+RUN: %readelf -r %t2.out 2>&1 | %filecheck %s -check-prefix=COPYRELOC
+# Test for alignment of 256
+RUN: %clang %clangg0opts -c %p/Inputs/4.c -o %t4.o -fPIC
+RUN: %link %linkg0opts -shared %t4.o -o %t4.so
+RUN: %link %linkg0opts -Bdynamic %t1.o %t4.so -o %t4.out -Map %t4.map 2>&1
+RUN: %filecheck %s -check-prefix=ALIGN256 < %t4.map
+RUN: %readelf -r %t4.out 2>&1 | %filecheck %s -check-prefix=COPYRELOC
+#END_TEST
+
+#ALIGN1: #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,1
+#ALIGN4: #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,4
+#ALIGN8: #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,8
+#ALIGN256: #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,256
+#COPYRELOC: COPY

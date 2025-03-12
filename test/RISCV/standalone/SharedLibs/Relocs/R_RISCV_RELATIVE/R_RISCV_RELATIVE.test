@@ -1,0 +1,14 @@
+#----------R_RISCV_RELATIVE.test--------------------- SharedLibrary------#
+
+#BEGIN_COMMENT
+#This test checks that the linker emits relative relocations when building
+#shared objects on RISC-V
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts -shared %t1.1.o  -o %t1.out 2>&1
+RUN: %readelf -r -W %t1.out 2>&1 | %filecheck %s
+#END_Test
+
+CHECK-COUNT-2: R_RISCV_RELATIVE

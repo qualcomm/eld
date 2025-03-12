@@ -1,0 +1,26 @@
+#---MatchGNU.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This test checks the behavior of the --script-options=match-gnu option.
+#END_COMMENT
+RUN: %rm %t1.lib1.a
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %ar cr %aropts %t1.lib1.a %t1.1.o
+RUN: %link -MapStyle txt %linkopts -o %t1.2.out %t1.2.o %t1.lib1.a -T %p/Inputs/script.t -Map %t1.2.map.txt
+RUN: %filecheck %s --check-prefix=NON_GNU < %t1.2.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.2.MatchGNU.out %t1.2.o %t1.lib1.a -T %p/Inputs/script.t --script-options=match-gnu -Map %t1.2.MatchGNU.map.txt
+RUN: %filecheck %s --check-prefix=GNU < %t1.2.MatchGNU.map.txt
+
+NON_GNU: # Output Section and Layout
+NON_GNU: FOO
+NON_GNU: *lib1*(*foo*)
+NON_GNU-NEXT: .text.foo
+
+
+GNU: # Output Section and Layout
+GNU: .text.foo
+GNU: *(.text.foo)
+GNU-NEXT: .text.foo
+
+

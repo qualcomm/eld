@@ -1,0 +1,16 @@
+#---BasicChunkMover.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests checks the RuleContainer linked list invariants. Each RuleContainer points to
+# the next rule container, forming a linked list.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t -Map %t1.1.map
+RUN: %filecheck %s < %t1.1.map
+#END_TEST
+CHECK: foo {{.*}} {{.*}} # Offset
+CHECK-NEXT: *(*.foo)
+CHECK-NOT: PADDING 0x{{.*}}
+CHECK: foo.BasicChunkMover
+CHECK: PADDING 0x{{.*}}

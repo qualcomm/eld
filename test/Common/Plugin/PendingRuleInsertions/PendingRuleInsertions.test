@@ -1,0 +1,11 @@
+#---BasicChunkMover.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This test checks the pending rule insertion diagnostic.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#END_TEST
+CHECK-DAG: Warning: The rule '*(foo.CreateRulesNew foo rule)' created by 'CreateRules' has not been inserted to the output section 'foo'
+CHECK-DAG: Warning: The rule '*(bar.CreateRulesNew bar rule)' created by 'CreateRules' has not been inserted to the output section 'bar'

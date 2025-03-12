@@ -1,0 +1,9 @@
+#---MapStyle.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This checks for invalid values used for MapStyle.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -MapStyle crap -o %t2.out
+#END_TEST

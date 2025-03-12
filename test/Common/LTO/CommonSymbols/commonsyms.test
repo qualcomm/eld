@@ -1,0 +1,6 @@
+# Tests that common symbols are preserved.
+RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts -M  %t1.o %t2.o -o %t3.out -Map %t2.out.map --trace=lto 2>&1 | %filecheck %s
+
+#CHECK: common

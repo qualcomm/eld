@@ -1,0 +1,19 @@
+#---PartialLinkSharedLibrary.test--------------------------- PartialLink -----------------#
+
+#BEGIN_COMMENT
+# Linker should prefer static libraries over dynamic libraries with partial
+# linking
+#END_COMMENT
+#START_TEST
+RUN: %rm -rf %t.dir
+RUN: %mkdir %t.dir
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t.dir/lib2.so
+RUN: %ar cr %t.dir/lib2.a %t1.2.o
+RUN: %link -MapStyle txt %linkopts -r %t1.1.o -Bdynamic -L%t.dir -l2 -o %t2.o -Map %t1.map
+RUN: %filecheck %s -check-prefix=CHOOSEARCHIVE < %t1.map
+RUN: %not %link -MapStyle txt %linkopts -r %t1.1.o %t.dir/lib2.so -Map %t1.error.map 2>&1 | %filecheck %s
+#END_TEST
+#CHOOSEARCHIVE: {{.*}}lib2.a
+#CHECK: Shared libraries are not allowed with partial links, found {{.*}}lib2.so

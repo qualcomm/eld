@@ -1,0 +1,16 @@
+UNSUPPORTED: ndk-build
+#---TLSMemoryRegionNoOverflow.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that TBSS sections do not overflow MEMORY regions
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+#MAP: .t1 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [b1, b1]
+#MAP: .tbss {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE|SHF_TLS, Type: SHT_NOBITS, Memory : [b1, b1]
+#MAP: /DISCARD/ {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS

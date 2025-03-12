@@ -1,0 +1,14 @@
+#---ExcludeFileWithFilePattern.test--------------------- Executable --------------------#
+
+
+#BEGIN_COMMENT
+# This tests that EXCLUDE_FILE works with file patterns, that appears to be
+# broken.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/ddrss.c -o %t1.ddrss.o
+RUN: %ar cr %aropts %t2.libd.a %t1.ddrss.o
+RUN: %link %linkopts --whole-archive %t2.libd.a -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+#CHECK-NOT: .text.foo
+#END_TEST

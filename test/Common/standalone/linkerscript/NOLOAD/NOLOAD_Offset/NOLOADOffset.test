@@ -1,0 +1,11 @@
+#--NoLoadNoSegment.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Test sections following NOLOAD sections are assigned offsets properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.1 -Map %t1.map -z max-page-size=32
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+#MAP-NOT: .comment {{.*}} Offset:0x{{[0]+}}
+

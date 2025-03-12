@@ -1,0 +1,3 @@
+.text
+.thumb
+bl foo

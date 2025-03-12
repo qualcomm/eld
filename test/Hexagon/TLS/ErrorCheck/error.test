@@ -1,0 +1,10 @@
+# Tests:
+# 1. .tbss must always be after all .tdatas
+# 2. TLS sections must be contiguous
+RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c  -fdata-sections -o %t1.o
+RUN: %not %link %linkopts  %linkg0opts  -T %p/Inputs/tbss_before_tdata.t %t1.o -o %t1.out 2>&1 | %filecheck --check-prefix="BSSDATA" %s
+RUN: %not %link %linkopts  %linkg0opts  -T %p/Inputs/non_contiguous.t %t1.o -o %t2.out 2>&1 | %filecheck --check-prefix="NONCONTIGUOUS" %s
+
+#BSSDATA:  non-BSS '.tdata3' is after BSS '.tbss'
+#NONCONTIGUOUS:  TLS sections .tdata1 and .tdata2 are not contiguous
+

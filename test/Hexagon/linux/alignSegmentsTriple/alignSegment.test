@@ -1,0 +1,15 @@
+# Checks and runs the test only if the environment has hexagon-linux
+REQUIRES: hexagon-linux-env
+
+RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t2 -z max-page-size=4096
+RUN: %readelf -l -W %t2 | %filecheck %s
+RUN: %link %linkopts %t1.o -o %t2.phdr -T %p/Inputs/phdr_test.t -z max-page-size=4096
+RUN: %readelf -l -W %t2.phdr | %filecheck %s -check-prefix=PHDR
+
+#CHECK:  LOAD           0x000000 {{.*}} 0x0008c 0x0008c R E 0x1000
+#CHECK:  LOAD           {{.*}} {{.*}} 0x00000 0x00008 RW  0x1000
+
+#PHDR:  LOAD           {{.*}} 0x0000c 0x0000c R E 0x1000
+#PHDR:  LOAD           {{.*}} 0x00000 0x00008 RW  0x1000
+

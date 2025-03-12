@@ -1,0 +1,22 @@
+#---MemoryCmd.test--------------------- Executable,LS------------------#
+
+
+#BEGIN_COMMENT
+# This tests checks that the linker is able to parse MEMORY linker script
+# command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/mem.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %filecheck %s < %t1.map
+RUN: %filecheck %s -check-prefix=MAP < %t1.map
+#END_TEST
+CHECK: # MEMORY
+CHECK: #{
+CHECK: #       bootloader (rx) ORIGIN = 0x3e8 + 0xa * 0x64 ,  LENGTH = 0x64 * 0x14
+CHECK: #       newbootloader  ORIGIN = 0x3e8 + 0xa * 0x64 ,  LENGTH = 0x64 * 0x14
+CHECK: #}
+
+#MAP: .text {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Memory : [bootloader, bootloader]

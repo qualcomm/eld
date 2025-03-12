@@ -1,0 +1,17 @@
+#---Tram.test----------------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Fix for a trampoline with section symbol and addend on AArch64
+# setup
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -main-file-name t2.s -target-cpu cortex-a53 -o %t2.o %p/Inputs/t2.s
+RUN: %clang %clangopts -target aarch64 %p/Inputs/t.c -c -o %t.o
+RUN: %link %linkopts -march aarch64 %t.o %t2.o -T %p/Inputs/t.l  -o %t.out --trace=trampolines 2>&1 | %filecheck %s --check-prefix=TRAM
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+#CHECK: 1234e010: 94000004 bl 0x1234e020 <trampoline_for_bar_from_.text_{{[0-9]+}}>
+
+TRAM: trampoline_for_bar_from_.text_{{[0-9]+}}
+
+#END_TEST

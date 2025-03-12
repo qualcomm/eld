@@ -1,0 +1,10 @@
+# This tests that the linker handles sections with decreasing VMA's.
+RUN: %clang %clangopts -c %p/Inputs/1.c  %clangg0opts -o %t1.o -ffunction-sections
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x001000 0x00008000 0x00008000 0x0000c 0x0000c R E 0x1000
+#CHECK:  LOAD           0x002000 0x00007000 0x00007000 0x0000c 0x0000c R E 0x1000
+#CHECK:   00     a
+#CHECK:   01     c
+

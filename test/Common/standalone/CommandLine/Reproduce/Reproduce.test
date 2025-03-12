@@ -1,0 +1,21 @@
+UNSUPPORTED: reproduce_fail
+#---Reproduce.test--------------------------- Executable -----------------#
+
+
+
+
+#BEGIN_COMMENT
+# Checks that the --reproduce functionality work as expected.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.1.out -T %p/Inputs/1.script.t --reproduce %t1.1.reproduce.tar --dump-response-file %t1.1.response
+RUN: %mkdir %t1.1.reproduce
+RUN: %tar %gnutaropts -xvf %t1.1.reproduce.tar -C %t1.1.reproduce --strip-components=1
+RUN: cd %t1.1.reproduce
+RUN: %rm %t1.1.o
+RUN: %mkdir %t1.1.o
+RUN: %link @%t1.1.reproduce/response.txt -o %t1.1.rep.out
+RUN: %diff %t1.1.rep.out %t1.1.out
+#END_TEST

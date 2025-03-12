@@ -1,0 +1,12 @@
+#---TrampolineNameTest.test-------Executable/SharedLibrary----------------------------#
+
+#BEGIN_COMMENT
+# Test for the contextual naming convention of trampolines
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.out
+RUN: %readelf -s %t1.out | %filecheck %s
+#END_TEST
+#CHECK: trampoline_for_.text.foobar#(foo)_from_.text_{{[0-9]+}}#(0)
+#CHECK: trampoline_for_.text.foobar#(bar)_from_.text_{{[0-9]+}}#(4)

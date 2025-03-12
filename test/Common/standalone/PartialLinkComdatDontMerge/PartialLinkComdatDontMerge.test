@@ -1,0 +1,14 @@
+#---PartialLinkComdatDontmerge.test--------------------- PartialLink ------------------#
+
+#BEGIN_COMMENT
+# Dont merge non COMDAT sections in the same COMDAT group.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t1.2.o
+RUN: %link %linkopts -r %t1.1.o %t1.2.o -o %t2.out
+RUN: %readelf -S %t2.out | %filecheck %s
+RUN: %link %linkopts -r %t1.1.o %t1.2.o -o %t2.out.ls -T %p/Inputs/script.t
+RUN: %readelf -S %t2.out.ls | %filecheck %s
+
+#CHECK: QSR_section
+#CHECK: QSR_section

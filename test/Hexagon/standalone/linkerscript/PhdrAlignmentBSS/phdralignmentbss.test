@@ -1,0 +1,22 @@
+# This tests that the fileoffset is not aligned to section alignment if the
+# current section is BSS.
+RUN: %clang %clangopts -c %p/Inputs/1.c  -fdata-sections %clangg0opts -o %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c  -fdata-sections %clangg0opts -o %t1.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c  -fdata-sections %clangg0opts -o %t1.3.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t  %linkg0opts  -o %t2.out.1
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/nophdr.t  %linkg0opts  -o %t2.out.2
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/scripta.t  %linkg0opts  -o %t2.out.3
+RUN: %link %linkopts %t1.2.o -T %p/Inputs/scriptb.t  %linkg0opts  -o %t2.out.4
+RUN: %link %linkopts %t1.3.o -T %p/Inputs/nophdr.t  %linkg0opts  -o %t2.out.5
+RUN: %readelf -l %t2.out.1 | %filecheck %s -check-prefix=PHDRCASEA
+RUN: %readelf -l %t2.out.3 | %filecheck %s -check-prefix=PHDRCASEB
+RUN: %readelf -l %t2.out.4 | %filecheck %s -check-prefix=PHDRCASEC
+RUN: %readelf -l %t2.out.2 | %filecheck %s -check-prefix=NOPHDRCASEA
+RUN: %readelf -l %t2.out.5 | %filecheck %s -check-prefix=NOPHDRCASEB
+
+#PHDRCASEA:    LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}}  {{[0-9a-fx]+}} 0x00000  {{[0-9a-fx]+}} RW  0x1000
+#PHDRCASEB:    LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}}  {{[0-9a-fx]+}} 0x00000  {{[0-9a-fx]+}} RW  0x1000
+#PHDRCASEB:    LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}}  {{[0-9a-fx]+}} 0x00000  {{[0-9a-fx]+}} RW  0x1000
+#PHDRCASEC:    LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}}  {{[0-9a-fx]+}} 0x00008  {{[0-9a-fx]+}} RW  0x1000
+#NOPHDRCASEA:  LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}}  {{[0-9a-fx]+}} 0x00000  {{[0-9a-fx]+}} RW  0x1000
+#NOPHDRCASEB:    LOAD           {{[0-9a-fx]+}} {{[0-9a-fx]+}}  {{[0-9a-fx]+}} 0x00008  {{[0-9a-fx]+}} RW  0x1000

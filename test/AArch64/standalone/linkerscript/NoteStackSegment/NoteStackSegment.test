@@ -1,0 +1,15 @@
+#---NoteStackSegment.test--------------------------- Executable,LS -----------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to create a .note.GNU-stack segment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts -march aarch64 %t1.1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.s -o %t1.2.o
+RUN: %link %linkopts -march aarch64 %t1.2.o -o %t2.out.none -T %p/Inputs/script.t
+RUN: %readelf -l -W %t2.out | %filecheck %s
+RUN: %readelf -l -W %t2.out.none | %filecheck %s -check-prefix=NOTE
+#CHECK: GNU_STACK
+#NOTE-NOT: GNU_STACK
+#END_TEST

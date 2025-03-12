@@ -1,0 +1,22 @@
+#---reloc_HI_LO_RISCV64.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+# Check patching of R_RISCV_BRANCH relocation
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts --emit-relocs --no-relax  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %link %linkopts --emit-relocs  --no-relax-c -T %p/Inputs/script.t  %t1.1.o -o %t2.out
+RUN: %link %linkopts --emit-relocs  -T %p/Inputs/script.t  %t1.1.o -o %t3.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s
+RUN: %objdump --no-print-imm-hex -d %t2.out |  %filecheck %s -check-prefix=RELAX
+
+
+CHECK:     lui     a5, 74565
+CHECK-DAG: lw      a5, 1536(a5)
+CHECK-DAG: beqz    a5, 0x1233012 <.L4>
+
+RELAX: beqz    a5, 0x123300e <.L4>

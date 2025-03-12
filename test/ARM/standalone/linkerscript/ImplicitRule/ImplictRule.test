@@ -1,0 +1,13 @@
+#---ImplictRule.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# Display that an implicit rule was added by the linker to choose and annotate
+# it in the Map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: *(.data){{.*}}Implicit
+
+#END_TEST

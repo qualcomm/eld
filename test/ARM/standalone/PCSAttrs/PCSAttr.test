@@ -1,0 +1,24 @@
+#---PCSAttrs.test-------------------- Executable --------------------#
+
+
+
+#BEGIN_COMMENT
+#Objects cannot have conflicting Tag_ABI_PCS_R9_use, Tag_ABI_PCS_R[WO]_data tags
+#This test is revised to use the map file which uses input file features to ease
+#debugging attributes that are conflicting.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fno-pie -march=armv7 -fropi -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -fno-pie -march=armv7 -frwpi -c %p/Inputs/2.c -o %t2.o
+RUN: %not %link --warn-mismatch %linkopts -Map %t1.map -march armv7 %t1.o %t2.o -o %t2.out 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix MAP < %t1.map
+RUN: %not %link --warn-mismatch -MapStyle yaml %linkopts -Map %t1.yaml.map -march armv7 %t1.o %t2.o -o %t2.out.2 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix MAP < %t1.yaml.map
+
+CHECK: conflicting way to use R9. {{[ -\(\)_A-Za-z0-9.\\/:]+}}: `SB', previously seen: `GPR'
+
+
+#MAP: LOAD {{.*}}1.o[arm][blx,j1j2,movtmovw,GPR,PCRel,EnumSize 2,Application]
+#MAP: LOAD {{.*}}2.o[arm][blx,j1j2,movtmovw,SB,SBRel,EnumSize 2,Application]
+
+#END_TEST

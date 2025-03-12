@@ -1,0 +1,11 @@
+#---LTOCommonsLinkerScript.test--------------------- Executable,LTO,LS ------------------#
+
+#BEGIN_COMMENT
+# This tests that commons that have been specified by linker script rules are
+# handled properly with LTO.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -flto -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.out
+RUN: %readelf -S -W %t1.out | %filecheck %s
+
+#CHECK: data

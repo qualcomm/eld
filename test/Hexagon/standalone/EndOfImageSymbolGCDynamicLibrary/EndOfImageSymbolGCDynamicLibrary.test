@@ -1,0 +1,13 @@
+#---EndOfImageSymbolGCDynamicLibrary.test----------------------- SharedLibrary --------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker is able to garbage collect and apply a proper
+#relocation value to symbols in debug sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC -ffunction-sections -g
+RUN: %link %linkopts -shared %t1.o -e foo --gc-sections -o %t2.out -T %p/Inputs/script.t
+RUN: %nm -n %t2.out | %filecheck %s
+
+#CHECK: __end
+#END_TEST

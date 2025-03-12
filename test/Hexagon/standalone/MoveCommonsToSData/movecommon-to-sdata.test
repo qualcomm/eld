@@ -1,0 +1,16 @@
+# Test that commons are moved appropriately as defined by LS.
+RUN: %clang %clangopts -c %p/Inputs/bug.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/bug.c -o %t2.o %clangg0opts
+RUN: %link %linkopts %t1.o -T %p/Inputs/ld.lsc -o %t3.out.nog0 2>&1
+RUN: %link %linkopts  %linkg0opts  %t2.o -T %p/Inputs/ld.lsc -o %t3.out.withg0 2>&1
+RUN: %nm -n %t3.out.nog0 | %filecheck %s -check-prefix=NOG0
+RUN: %nm -n %t3.out.withg0 | %filecheck %s -check-prefix=G0
+
+#NOG0: 00000040  B  a
+#NOG0: 00000042  B  b
+#NOG0: 00000044  B  c
+#NOG0: 00000048  B  d
+#G0: {{[0-9a-f]+}}  B a
+#G0: {{[0-9a-f]+}}  B b
+#G0: {{[0-9a-f]+}}  B c
+#G0: {{[0-9a-f]+}}  B d

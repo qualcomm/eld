@@ -1,0 +1,13 @@
+#---DebugSymbolsGC.test----------------------- Executable,LS --------------------
+
+#BEGIN_COMMENT
+#Symbols from debug sections should not participate in garbage collection
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts %t.1.o %t.2.o -o %t1.out --gc-sections
+RUN: %dwarfdump %t1.out
+#CHECK-DAG: bar
+#CHECK-DAG: foo
+#END_TEST

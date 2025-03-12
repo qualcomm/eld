@@ -1,0 +1,24 @@
+#---NoPHDRS.test--------------------------- Executable,LS -----------------#
+
+#BEGIN_COMMENT
+# This test checks for the region table thats emitted by the linker when there
+# are no program headers specified in the linker script. This allows BSS and
+# NONBSS sections to be mixed in one segment.
+#END_COMMENT
+#START_TEST
+RUN: %clang -target arm -c %p/Inputs/1.c -o %t1.1.o -fdata-sections
+RUN: %link -march arm %t1.1.o -o %t2.out -T %p/Inputs/script.t -M 2>&1 | %filecheck %s -check-prefix=MAP
+RUN: %readelf -l -W %t2.out 2>&1 | %filecheck %s -check-prefix=SEGMENTS
+RUN: %link -march arm %t1.1.o -o %t2.out -T %p/Inputs/uninit.t -M 2>&1 | %filecheck %s -check-prefix=UNINIT
+
+#MAP: .region_table
+#MAP: *(__region_table__)
+#MAP: __region_table__	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}	RegionTable		#SHT_PROGBITS,SHF_ALLOC,4
+#MAP: #	.BSSA	.BSSC	[{{[0-9a-fx]+}},{{[0-9a-fx]+}}]
+#UNINIT: #	.BSSA	.BSSA	[{{[0-9a-fx]+}},{{[0-9a-fx]+}}]
+#UNINIT: #	.BSSC	.BSSC	[{{[0-9a-fx]+}},{{[0-9a-fx]+}}]
+
+#SEGMENTS: 00     .region_table
+#SEGMENTS: 01     .BSSA .BSSB .BSSC .FOO
+
+#END_TEST

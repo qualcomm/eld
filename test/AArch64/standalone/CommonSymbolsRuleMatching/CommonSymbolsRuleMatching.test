@@ -1,0 +1,35 @@
+#---CommonSymbolsRuleMatching.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests checks the linker script rule matching for common symbols.
+#END_COMMENT
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/1.script -M 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: .sdata
+#CHECK: *(COMMON.a_common)
+#CHECK: COMMON.a_common
+#CHECK: a_common
+#CHECK: *(COMMON.b_common)
+#CHECK: COMMON.b_common
+#CHECK: b_common
+#CHECK: *(COMMON.c_common)
+#CHECK: COMMON.c_common
+#CHECK: c_common
+#CHECK: *(COMMON.d_common)
+#CHECK: COMMON.d_common
+#CHECK: d_common
+#CHECK: *(COMMON.e_common)
+#CHECK: COMMON.e_common
+#CHECK: e_common
+#CHECK: *(COMMON.a1_common)
+#CHECK: COMMON.a1_common
+#CHECK: a1_common
+#CHECK: *(COMMON.c1_common)
+#CHECK: COMMON.c1_common
+#CHECK: c1_common
+#CHECK: .bss
+#CHECK: *(COMMON)
+#CHECK: COMMON.f_common

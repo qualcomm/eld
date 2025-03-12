@@ -1,0 +1,14 @@
+# Test that linker is able to create new DTAGS when enabled and
+# ignores related options when disables
+# This also checks new flags DF_1_NODELETE
+RUN: %clang %clangopts -c -fPIC %p/Inputs/a.c -o %t1.o
+RUN: %link %linkopts -shared %t1.o -z nodelete -z now --enable-new-dtags -o %t1.so
+RUN: %link %linkopts -shared %t1.o -z nodelete -z now --disable-new-dtags -o %t2.so
+RUN: %link %linkopts -shared %t1.o -z now --disable-new-dtags -o %t3.so
+RUN: %readelf -d %t1.so | %filecheck %s --check-prefix="NEWFLAGS"
+RUN: %readelf -d %t2.so | %filecheck %s --check-prefix="NEW"
+RUN: %readelf -d %t3.so | %filecheck %s --check-prefix="NEW"
+
+#NEWFLAGS: 0x0000001e (FLAGS)                      BIND_NOW
+#NEWFLAGS: 0x6ffffffb (FLAGS_1)                    NOW NODELETE
+#NEW-NOT: (FLAGS)                      BIND_NOW

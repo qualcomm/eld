@@ -1,0 +1,2 @@
+add_llvm_library(ELDARMTargetInfo ARMTargetInfo.cpp)
+target_link_libraries(ELDARMTargetInfo  LLVMARMAsmParser LLVMARMCodeGen)

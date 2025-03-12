@@ -1,0 +1,14 @@
+#---UndefinedSymbolIgnoreAll.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+#This checks that undefined symbols are not reported by the linker as usual, even when the
+#user uses the policy --unresolved-symbols=ignore-all because symbol visibility
+#is set to be protected or hidden. Note, this is building an executable.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.1.o -fPIC
+RUN: %link %linkopts %t1.1.o -o %t2.out --unresolved-symbols=ignore-all
+RUN: %clang %clangopts -c %p/Inputs/foohid.c -o %t1.2.o -fPIC
+RUN: %link %linkopts %t1.2.o -o %t2.out --unresolved-symbols=ignore-all
+
+#END_TEST

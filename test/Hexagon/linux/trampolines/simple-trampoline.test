@@ -1,0 +1,5 @@
+RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.out
+RUN: %readelf -s %t.out | %filecheck %s
+
+#CHECK:      {{[0-9a-f]+}}: {{[0-9a-fx]+}} {{[0-9a-f]+}} FUNC    LOCAL  DEFAULT    1 trampoline_for_myfn_from_.text.othermain_{{[0-9]+}}

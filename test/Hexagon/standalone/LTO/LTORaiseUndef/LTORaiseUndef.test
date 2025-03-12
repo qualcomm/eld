@@ -1,0 +1,14 @@
+#---LTORaiseUndef.test-------------------------- Executable,LTO  --------------#
+
+#BEGIN_COMMENT
+# This test is basically driven for testing LTO easier or workaround LTO
+# behavior manually, if there is a bug in LTO generated code. It is used to
+# check if the symbol being relocated to is Bitcode.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/lto.c -o %t1.lto.o -flto
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
+# Replace asm files.
+RUN: %not %link %linkopts  %t1.lto.o %t1.main.o -flto-options=lto-asm-file=%p/Inputs/lto.s -o %t2.out.asmoverride 2>&1 | %filecheck %s -check-prefix=UNDEF
+#UNDEF: function main: undefined reference to `bar'
+#END_TEST

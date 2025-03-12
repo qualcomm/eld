@@ -1,0 +1,11 @@
+#---SmallCommons.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker treats small commons properly. The test uses an
+# array of size 7, that should be treated as a small common.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o %clangg0opts
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+
+#CHECK: smallcommon

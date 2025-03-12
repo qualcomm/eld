@@ -1,0 +1,12 @@
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/t.c -o %t.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/f.c -o %t1.o
+RUN: %link %linkopts -march aarch64 %t.o %t1.o -o %t.out
+RUN: %nm %t.out | %filecheck %s
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.c -o %tt1.o
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.c -o %tt2.o
+RUN: %link %linkopts -march aarch64 %tt1.o %tt2.o -o %t1.out
+RUN: %readelf -S -W %t1.out | %filecheck %s --check-prefix=READELF
+
+CHECK: 8 B foo
+
+READELF: 32768

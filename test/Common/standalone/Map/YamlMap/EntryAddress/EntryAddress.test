@@ -1,0 +1,12 @@
+#---EntryAddress.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to print the entry address properly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %link -MapStyle yaml %linkopts %t1.1.o -Map %t2.map -o %t2.yamlmap.out
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+#CHECK: EntryAddress: {{[0x0-9a-fA-F]+}}

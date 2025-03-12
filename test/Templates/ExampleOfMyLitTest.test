@@ -1,0 +1,21 @@
+#---ExampleOfMyLitTest.test--------------------- Executable --------------------#
+#---ExampleOfMyLitTest.test--------------------- SharedLibrary------------------#
+#---ExampleOfMyLitTest.test--------------------- PartialLink -------------------#
+#---ExampleOfMyLitTest.test--------------------- PIE ---------------------------#
+#---ExampleOfMyLitTest.test--------------------- Executable,LS -----------------#
+#---ExampleOfMyLitTest.test--------------------- SharedLibrary,LS --------------#
+#---ExampleOfMyLitTest.test--------------------- Executable,LS -----------------#
+#---ExampleOfMyLitTest.test--------------------- PIE,LS ------------------------#
+#---ExampleOfMyLitTest.test--------------------- SharedLibrary,LTO -------------#
+#---ExampleOfMyLitTest.test--------------------- PartialLink,LTO  --------------#
+#---ExampleOfMyLitTest.test--------------------- PartialLink,LTO  --------------#
+#---ExampleOfMyLitTest.test--------------------- PIE,LTO -----------------------#
+#---ExampleOfMyLitTest.test--------------------- Executable,LS,LTO -------------#
+#---ExampleOfMyLitTest.test--------------------- SharedLibrary,LS,LTO ----------#
+#---ExampleOfMyLitTest.test--------------------- PartialLink,LS,LTO ------------#
+#---ExampleOfMyLitTest.test--------------------- PIE,LS,LTO --------------------#
+#BEGIN_COMMENT
+#END_COMMENT
+#START_TEST
+RUN: %not %not
+#END_TEST

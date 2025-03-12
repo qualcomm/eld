@@ -1,0 +1,7 @@
+# Tests that the linker should not be preserving a undefined symbol.
+RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -flto -o %t1.1.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/2.c -o %t1.2.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/3.c -o %t1.3.o
+RUN: %link %linkopts -march arm %t1.1.o %t1.2.o %t1.3.o -o %t3.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+
+#PRESERVE-NOT: Preserving symbol baz

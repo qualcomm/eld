@@ -1,0 +1,22 @@
+# Test that shows that Map file displays information in the right way.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t2.out -MapDetail only-layout -M 2>&1
+
+#CHECK: 	.({{[0-9a-fx]+}}) = .({{[0-9a-fx]+}}) + 0xa;
+#CHECK: *(.text.foo)
+#CHECK: .text.foo
+#CHECK: 	.({{[0-9a-fx]+}}) = .({{[0-9a-fx]+}}) + 0x32;
+#CHECK: *(.text.bar)
+#CHECK: .text.bar
+#CHECK: 	.({{[0-9a-fx]+}}) = .({{[0-9a-fx]+}}) + 0x50;
+#CHECK: *(.text.baz)
+#CHECK: .text.baz
+#CHECK: 	.({{[0-9a-fx]+}}) = .({{[0-9a-fx]+}}) + 0x64;
+#CHECK: *(.text)
+#CHECK: .({{[0-9a-fx]+}}) = .({{[0-9a-fx]+}}) + 0xc8;
+#CHECK: .comment
+#CHECK: .note.GNU-stack
+#CHECK: .shstrtab
+#CHECK: .symtab
+#CHECK: .strtab

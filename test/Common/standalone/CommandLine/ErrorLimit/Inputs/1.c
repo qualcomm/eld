@@ -1,0 +1,12 @@
+int foo() { return 0; }
+int bar() { return foo(); }
+int baz() { return bar(); }
+int foo1() { return 0; }
+int bar1() { return foo1(); }
+int baz1() { return bar1(); }
+int foo2() { return 0; }
+int bar2() { return foo2(); }
+int baz2() { return bar2(); }
+int foo3() { return 0; }
+int bar3() { return foo3(); }
+int baz3() { return bar3(); }

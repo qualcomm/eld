@@ -1,0 +1,19 @@
+UNSUPPORTED: iu
+#---SearchDiagnostics.test---- ----------------- Executable --------------------#
+
+#BEGIN_COMMENT
+Verify that library search messages are printed with --verbose.
+#END_COMMENT
+#START_TEST
+
+RUN: rm -rf %t-fake-path
+RUN: mkdir %t-fake-path
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts --verbose -L%t-fake-path -L %libsdir/test/ --plugin-config %p/Inputs/PluginConfig.yaml --plugin-config %p/Inputs/plugin.config  %t1.o 2>&1 | %filecheck %s
+
+CHECK: Verbose: Trying to open `libSearchDiagnosticsPlugin.so' for linker plugin `libSearchDiagnosticsPlugin.so' (file path):
+CHECK: Verbose: Trying to open `{{.+}}fake-path/libSearchDiagnosticsPlugin.so' for linker plugin `libSearchDiagnosticsPlugin.so' (search path): not found
+CHECK: Verbose: Trying to open `{{.+}}libSearchDiagnosticsPlugin.so' for linker plugin `libSearchDiagnosticsPlugin.so' (rpath):
+CHECK: Verbose: Trying to open `libSectionTypes.so' for linker plugin `libSectionTypes.so' (file path):
+
+#END_TEST

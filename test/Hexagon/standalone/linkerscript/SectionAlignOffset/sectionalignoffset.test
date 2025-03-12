@@ -1,0 +1,6 @@
+# This checks that the linker aligns the offset to save on file size.
+RUN: %clang %clangopts -c %p/Inputs/foo.c -ffunction-sections -fdata-sections %clangg0opts  -o %t1.o
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK:  LOAD           0x001010 0x00000010 0x00000010 0x00008 0x00008 RW  0x1000

@@ -1,0 +1,20 @@
+#---reloc_HI_LO.test--------------------- Executable------------------#
+
+
+
+#BEGIN_COMMENT
+# Check patching of R_RISCV_HI20 and R_RISCV_LO12 relocs
+#--------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s --check-prefix="ITYPE"
+
+ITYPE:     lui     a1, 4660
+ITYPE-DAG: addi    a1, a1, 1376
+
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t1.2.o
+RUN: %link %linkopts  -T %p/Inputs/script.2.t  %t1.2.o -o %t2.out
+RUN: %objdump --no-print-imm-hex -d %t2.out | %filecheck %s --check-prefix="STYPE"
+STYPE:     lui     a5, 4660
+STYPE-DAG: sw      zero, 1376(a5)

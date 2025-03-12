@@ -1,0 +1,13 @@
+#---KeepARMAttributes.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This tests that .ARM.attributes need to be kept around when there is no linker
+# script and when garbage collection is used.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --gc-sections
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %readelf -S -W %t2.out | %filecheck %s -check-prefix=ATTRPERM
+
+#CHECK: .ARM.attributes
+ATTRPERM-NOT: .ARM.attributes {{[.*]+}} WA

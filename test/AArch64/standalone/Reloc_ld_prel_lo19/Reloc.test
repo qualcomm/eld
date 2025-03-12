@@ -1,0 +1,19 @@
+#RUN: %clang %clangopts -target aarch64 -c -x assembler -integrated-as %s -o %t.o
+#RUN: %link %linkopts -march=aarch64 -static %t.o  -Ttext=0x85800000 -Tdata=0x85825000 -z max-page-size=0x1000 -o %t.out
+#RUN: %readelf -r %t.o | %filecheck %s -check-prefix=RELOC
+#RUN: llvm-objdump --arch=aarch64 -d %t.out | %filecheck %s -check-prefix=DUMP
+
+#RELOC: 0000000000000000  0000000{{[0-9]}}00000111
+#DUMP: 58128004      ldr     x4, 0x85825000 <x>
+#DUMP: d65f03c0      ret
+
+.global foo
+.section ".text", "ax", %progbits
+foo:
+  LDR x4, x
+  ret
+
+.section ".data", "aw", %progbits
+x:
+.long 100
+

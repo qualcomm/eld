@@ -1,0 +1,28 @@
+#---MultithreadedDiagnostics.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This test checks that the diagnostic framework is thread-safe by trying
+# to emit 100s of diagnostics across many threads. This test output is not
+# deterministic due to multithreading constraints.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -o %t2.out %t1.1.o -L%libsdir/test -T %p/Inputs/1.script --warn-limit=0 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t2.out %t1.1.o -L%libsdir/test -T %p/Inputs/1.eldTP.script --warn-limit=0 2>&1 | %filecheck %s --check-prefix=UsingELDTP
+#END_TEST
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 1.[[t:.*]]: Warning message 1.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 2.[[t:.*]]: Warning message 2.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 4.[[t:.*]]: Warning message 4.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 8.[[t:.*]]: Warning message 8.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 16.[[t:.*]]: Warning message 16.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 32.[[t:.*]]: Warning message 32.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 64.[[t:.*]]: Warning message 64.[[t]]
+#CHECK-COUNT-2000: MultithreadedDiagnostics:Warning: Warning 128.[[t:.*]]: Warning message 128.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 1.[[t:.*]]: Warning message 1.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 2.[[t:.*]]: Warning message 2.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 4.[[t:.*]]: Warning message 4.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 8.[[t:.*]]: Warning message 8.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 16.[[t:.*]]: Warning message 16.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 32.[[t:.*]]: Warning message 32.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 64.[[t:.*]]: Warning message 64.[[t]]
+#UsingELDTP-COUNT-2000: MultithreadedDiagnosticsUsingELDTP:Warning: Warning 128.[[t:.*]]: Warning message 128.[[t]]

@@ -1,0 +1,68 @@
+#----------AUIPC_JALR_TO_JAL.test----------------- Executable------------------#
+
+
+
+
+
+#BEGIN_COMMENT
+# Do relaxation based from AUIPC/JALR to uncompressed and compressed (32 bit only) JAL.
+# Only common parts between rv32 and rv64 are included here.
+#END_COMMENT
+#--------------------------------------------------------------------
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.o
+
+# Only non-compressed relaxations are enabled.
+RUN: %link %linkopts --no-relax-c %t.o -o %t.2.out -MapStyle txt -Map %t.2.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
+RUN: %link %linkopts --no-relax-c %t.o -o %t.2.so -shared -MapStyle txt -Map %t.2.so.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
+VERBOSE_RELAX: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x6 file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x780 file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x87c file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffef8 file {{.*}}.o
+
+RUN: %objdump -d %t.2.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
+RUN: %objdump -d %t.2.so 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
+DUMP_RELAX: fffff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 885ff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: f88ff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 90c000ef jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: fff00097 auipc
+DUMP_RELAX: f10080e7  jalr
+
+RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP_RELAX
+RUN: %filecheck %s --input-file=%t.2.so.map --check-prefix=MAP_RELAX
+MAP_RELAX: # LinkStats Begin
+MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: # LinkStats End
+
+MAP_RELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+### Relaxations are disabled.
+RUN: %link %linkopts --no-relax %t.o -o %t.3.out -MapStyle txt -Map %t.3.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
+RUN: %link %linkopts --no-relax %t.o -o %t.3.so -shared -MapStyle txt -Map %t.3.so.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
+VERBOSE_NORELAX-COUNT-5: RISCV_CALL : Cannot relax
+VERBOSE_NORELAX-NOT: Deleting
+
+RUN: %objdump -d %t.3.out 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX
+RUN: %objdump -d %t.3.so 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jalr
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jalr
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jalr
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jalr
+DUMP_NORELAX: auipc
+DUMP_NORELAX: jalr
+
+RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP_NORELAX
+RUN: %filecheck %s --input-file=%t.3.so.map --check-prefix=MAP_NORELAX
+MAP_NORELAX: # LinkStats Begin
+MAP_NORELAX-NOT: # RelaxationBytesDeleted
+MAP_NORELAX: # LinkStats End
+
+MAP_NORELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_NORELAX-NOT: # RelaxationBytesDeleted
+MAP_NORELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2

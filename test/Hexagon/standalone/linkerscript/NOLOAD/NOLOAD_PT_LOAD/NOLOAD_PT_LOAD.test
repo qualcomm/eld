@@ -1,0 +1,12 @@
+#--NOLOAD_PT_LOAD.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# NOLOAD sections are assigned PT_LOAD segments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=READELF
+#READELF: LOAD 0x001010 0x00000010 0x00000010 0x00000 0x00320 RW  0x1000
+#END_TEST
+

@@ -1,0 +1,15 @@
+#---OrderChunks.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+#This tests that the linker is able to sort the contents of the section
+#"reordersection" using how the linker visited the input files
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts  %t1.1.o %t1.2.o %t1.3.o -T %p/Inputs/script.t -o %t2.out -Map %t1.map
+RUN: %filecheck %s < %t1.map
+#END_TEST
+#CHECK: .text.one
+#CHECK: .text.two
+#CHECK: .text.three

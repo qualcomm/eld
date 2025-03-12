@@ -1,0 +1,13 @@
+# Test that relocations to debug strings from debug sections, that dont use
+# symbols point at the right strings. This only affects rel relocations as the
+# addend is encoded in the relocation record.
+# FIXME: Once clang %clangopts generates relocations to debug strings by not using symbols,
+# this testcase needs to change.
+RUN: %clang %clangopts -g -c %p/Inputs/a.c -o %t.a.o
+RUN: %link %linkopts %t.a.o -o %t1.out -z max-page-size=0x1000
+RUN: %dwarfdump -debug-info %t1.out | %filecheck %s
+
+CHECK:  DW_AT_name ("foo1")
+CHECK:  DW_AT_name ("foo2")
+CHECK:  DW_AT_name ("bar1")
+CHECK:  DW_AT_name ("bar2")

@@ -1,0 +1,2 @@
+# PluginConf.ini is the plugin configuration file name.
+PLUGIN_SECTION_MATCHER("PrintSectionsInfo", "PrintSectionsInfo", "PluginConf.ini");

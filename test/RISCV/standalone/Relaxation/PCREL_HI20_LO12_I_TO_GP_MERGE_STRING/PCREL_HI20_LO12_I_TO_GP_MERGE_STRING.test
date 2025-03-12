@@ -1,0 +1,15 @@
+#-----PCREL_HI20_LO12_I_TO_GP_MERGE_STRING.test------ Executable----#
+
+
+#BEGIN_COMMENT
+# PCREL relocations relaxed to GP for string merging may end up
+# pointing to wrong addresses.
+#END_COMMENT
+#--------------------------------------------------------------------
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts  %t1.o -o %t.out -T %p/Inputs/script.t
+RUN: %objdump --no-print-imm-hex -d %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: addi a0, gp, -2047

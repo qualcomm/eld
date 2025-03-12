@@ -1,0 +1,17 @@
+#---overflow.test--------------------- Executable --------------------#
+
+#START_COMMENT
+# Check correctly overflow for CONDBR19 relocation
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -mrelocation-model static -o %t.o %p/Inputs/t.s
+RUN: %link %linkopts -march aarch64 %t.o --defsym bar=0xFFFFF -o %t.out
+RUN: %nm %t.out | %filecheck %s
+
+CHECK: foo
+
+RUN: %not %link %linkopts -march aarch64 %t.o --defsym bar=0x100000 -o %t.out 2>&1 | %filecheck %s -check-prefix=OVER
+
+OVER: overflow
+
+#END_TEST

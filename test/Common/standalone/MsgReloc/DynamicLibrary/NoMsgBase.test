@@ -1,0 +1,12 @@
+#---NoMsgBase.test----------------- SharedLibrary --------------------#
+
+#BEGIN_COMMENT
+#This tests that the linker doesnot emit a _MSG_BASE absolute symbol when
+#building shared objects.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fdata-sections -ffunction-sections %p/Inputs/1.c -o %t.o -c -fPIC
+RUN: %link %linkopts -shared %t.o -o %t2.so
+RUN: %readelf -s %t2.so | %filecheck %s
+#CHECK-NOT: _MSG_BASE
+#END_TEST

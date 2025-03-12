@@ -1,0 +1,11 @@
+#--ProvideEhdrStart.test--------------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+#Allow targets to PROVIDE standard symbols on reference.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out 2>&1
+RUN: %readelf -s %t2.out 2>&1 | %filecheck %s
+#CHECK: __ehdr_start
+#END_TEST

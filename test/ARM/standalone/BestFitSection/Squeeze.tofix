@@ -1,0 +1,19 @@
+#---Squeeze.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This patch will sort the section for code size and use the mininal
+# alignment assigned to the section
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm  -c %p/Inputs/t.c -o %t.o -fdata-sections
+RUN: %link %linkopts -march arm -T %p/Inputs/t.ld %t.o -o %t.out -Map t.map -best-fit-section=.rodata_kernel
+RUN: %link %linkopts -march arm -T %p/Inputs/t2.ld %t.o -o %t2.out -Map t.map -best-fit-section=.rodata_kernel
+RUN: readelf -a %t.out | %filecheck %s
+RUN: readelf -a %t2.out | %filecheck %s --check-prefix=NOPH
+
+CHECK: .rodata_kernel    PROGBITS        00018440 000080 000200
+NOPH: .rodata_kernel    PROGBITS        00018440 0000a0 000200
+CHECK: 00018440     0 NOTYPE  GLOBAL DEFAULT    2 ro_start
+CHECK: 00018640     0 NOTYPE  GLOBAL DEFAULT    2 ro_end
+
+#END_TEST

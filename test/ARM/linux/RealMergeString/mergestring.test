@@ -1,0 +1,9 @@
+# Check that merge strings work properly.
+RUN: %clang %clangopts -target arm-linux-gnueabi %p/Inputs/const1.c -o %t1.const1.o -c
+RUN: %clang %clangopts -target arm-linux-gnueabi %p/Inputs/const2.c -o %t1.const2.o -c
+RUN: %clang %clangopts -target arm-linux-gnueabi %p/Inputs/bar.c -o %t1.bar.o -c
+RUN: %link %linkopts  %t1.const1.o %t1.const2.o %t1.bar.o -o %t.out
+RUN: %readelf -p .rodata %t.out | %filecheck %s
+
+#CHECK:  [     0]  Hello
+#CHECK:  [     6]  World

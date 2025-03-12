@@ -1,0 +1,8 @@
+PHDRS {
+  text PT_LOAD;
+}
+
+SECTIONS {
+  . = SIZEOF_HEADERS;
+  .text (0x5000) : { *(.text*) } :text
+}

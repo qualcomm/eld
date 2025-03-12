@@ -1,0 +1,12 @@
+# Checks that linker is able to copy code instead of inserting a trampoline and
+# reuse them.
+RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/myfn.s -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out  --section-start .boo=0x80000000 -copy-farcalls-from-file=%p/Inputs/dup --trace=trampolines 2>&1 | %filecheck %s -check-prefix=CLONES
+RUN: %readelf -s -W %t.out | %filecheck %s -check-prefix=CLONESYMS
+
+#CLONES: Creating Stub clone_1_for_myfn
+#CLONES: Reusing Stub clone_1_for_myfn
+#CLONES: Reusing Stub clone_1_for_myfn
+
+#CLONESYMS: clone_1_for_myfn

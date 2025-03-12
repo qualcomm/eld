@@ -1,0 +1,10 @@
+#---InvalidSegmentName.test--- Executable ----#
+
+#BEGIN_COMMENT
+# Linker crashes when a segment is referenced which does not exist.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: not %link %linkopts %t1.o -o %ta.out -T %p/Inputs/1.t 2>&1 | %filecheck %s
+#CHECK: Segment B is not defined in linker script
+#END_TEST

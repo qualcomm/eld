@@ -1,0 +1,13 @@
+#---PartialLinkPIC.test----------------------------- PartialLink,LTO --------------------#
+
+#BEGIN_COMMENT
+# Tests that LTO detects -fPIC from the module flags during partial linking
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -O2 %clangg0opts -fPIC -flto
+RUN: %link %linkopts -r %t1.1.o -o %t1.1.reloc
+RUN: %readelf -r %t1.1.reloc | %filecheck %s
+
+#CHECK: _GLOBAL_OFFSET_TABLE_ + 0
+#CHECK: R_HEX_GOT{{.*}}data + 0
+#CHECK: R_HEX_GOT{{.*}}ptr + 0
+

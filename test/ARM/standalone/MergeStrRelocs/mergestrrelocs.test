@@ -1,0 +1,17 @@
+# Check that merge strings is able to merge strings properly with appropriate
+# debug relocations and appropriate relocation entries when emit-relocs is used
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -g -o %t1.1.o -marm -O2
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -g -o %t1.2.o -marm -O2
+RUN: %link %linkopts %t1.1.o %t1.2.o -shared -o %t2.so -z max-page-size=0x1000
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t2.out -z max-page-size=0x1000
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t2.out.emitrelocs --emit-relocs -z max-page-size=0x1000
+RUN: %dwarfdump -debug-info %t2.so | %filecheck %s
+RUN: %dwarfdump -debug-info %t2.out | %filecheck %s
+RUN: %dwarfdump -debug-info %t2.out.emitrelocs | %filecheck %s
+
+CHECK:  DW_AT_name ("{{.*}}MergeStrRelocs/Inputs{{.*}}1.c")
+CHECK:  DW_AT_name ("foo1")
+CHECK:  DW_AT_name ("int")
+CHECK:  DW_AT_name ("{{.*}}MergeStrRelocs/Inputs{{.*}}2.c")
+CHECK:  DW_AT_name ("bar")
+CHECK:  DW_AT_name ("int")

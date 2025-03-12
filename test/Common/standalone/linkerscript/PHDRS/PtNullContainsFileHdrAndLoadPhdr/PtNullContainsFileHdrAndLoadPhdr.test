@@ -1,0 +1,15 @@
+#---PtNullContainsFileHdrAndLoadPhdr.test--------------------------- Executable,LS,PHDRS -----------------#
+
+#BEGIN_COMMENT
+# This test tests the linker that a PT_NULL segment holds only FILEHDR and PHDR
+# is loaded.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o -Os
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --trace=assignments 2>&1 | %filecheck %s -check-prefix=EHDRPHDR
+RUN: %readelf -l -W %t2.out  | %filecheck %s -check-prefix=SEGMENTS
+#EHDRPHDR: __ehdr__
+#EHDRPHDR: __pHdr__
+#SEGMENTS:  NULL           {{[0x0]+}} {{[0x0]+}} {{[0x0]+}} [[FILESZ1:[0xa-f0-9]+]] [[FILESZ1]]
+#SEGMENTS:  LOAD           {{.*}}
+#END_TEST

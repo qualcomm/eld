@@ -1,0 +1,11 @@
+#---SectionsWithNoPermissions.test--------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that linker will warn sections that dont have proper permissions.
+#END_COMMENT
+#START_TEST
+RUN: %yaml2obj %p/Inputs/1.yaml -o %t.1.o
+RUN: %link %linkopts %t.1.o -o %t2.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t.1.o -o %t2.out --fatal-warnings 2>&1 | %filecheck %s
+#CHECK: .text.foo
+#END_TEST

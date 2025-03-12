@@ -1,0 +1,14 @@
+#---CPUArchProfile.test--------- Executable-----------------------------------#
+
+#BEGIN_COMMENT
+#Check CPUArchProfile before the linker rewrites BL to BLX
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c --target=thumbv7em-unknown-none-eabi -mthumb \
+RUN: -march=armv7e-m -mcpu=cortex-m7 -mfloat-abi=hard -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out
+RUN: %objdump -d %t2.out 2>&1 | %filecheck %s
+
+#CHECK: {{bl}} {{.*}}foo
+
+#END_TEST

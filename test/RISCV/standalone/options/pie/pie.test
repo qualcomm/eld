@@ -1,0 +1,27 @@
+#---pie.test------------------------ Executable --------------------#
+#BEGIN_COMMENT
+# Check that the linker supports PIE and PIE-related options work as expected.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -fPIC -o %t1.o -c %p/Inputs/1.c
+
+RUN: %link -o %t1.out %t1.o %linkopts --pic-executable --no-emit-relocs 2>&1 | %filecheck %s --check-prefix=PIE-SUPPORTED --allow-empty
+RUN: %link -o %t1.out %t1.o %linkopts -pie --no-emit-relocs 2>&1 | %filecheck %s --check-prefix=PIE-SUPPORTED --allow-empty
+
+#PIE-SUPPORTED-NOT: Error: PIE executables are not supported for RISCV target
+
+# Ensure the last specified of -pie/--pic-executable/-no-pie wins out
+RUN: %link -o %t2.out %t1.o %linkopts --pic-executable -no-pie
+RUN: %link -o %t3.out %t1.o %linkopts -pie -no-pie
+RUN: %link -o %t4.out %t1.o %linkopts -no-pie --pic-executable --no-emit-relocs
+RUN: %link -o %t5.out %t1.o %linkopts -no-pie -pie --no-emit-relocs
+
+RUN: %readelf --file-header %t2.out 2>&1 | %filecheck %s --check-prefix=PIE-DISABLED
+RUN: %readelf --file-header %t3.out 2>&1 | %filecheck %s --check-prefix=PIE-DISABLED
+RUN: %readelf --file-header %t4.out 2>&1 | %filecheck %s --check-prefix=PIE-ENABLED
+RUN: %readelf --file-header %t5.out 2>&1 | %filecheck %s --check-prefix=PIE-ENABLED
+
+#PIE-DISABLED: EXEC (Executable file)
+#PIE-ENABLED: DYN (Shared object file)
+#END_TEST

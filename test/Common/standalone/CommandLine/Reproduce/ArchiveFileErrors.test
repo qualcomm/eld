@@ -1,0 +1,25 @@
+UNSUPPORTED: fat_archives
+#----ArchiveFile.test------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test verifies the errors diagnostics seen when using reproduce with
+# thin archives.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.lib14.a %t1.2.reproduce.tar %t1.2.reproduce %t1.four
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %mkdir %t1.four
+RUN: cd %t1.four
+RUN: %clang %clangopts -o 4.o %p/Inputs/4.c -c
+RUN: %ar -cr %aropts %t1.lib14.a %t1.1.o 4.o
+RUN: cd ..
+RUN: %link %linkopts -o %t1.2.out %t1.2.o %t1.lib14.a --reproduce %t1.2.reproduce.tar --dump-mapping-file %t1.2.mapping --dump-response-file %t1.2.response --use-old-readers
+RUN: %mkdir %t1.2.reproduce
+RUN: %tar -xf %t1.2.reproduce.tar -C %t1.2.reproduce --strip-components 1
+RUN: cd %t1.2.reproduce
+RUN: %rm Object/*4.o*
+RUN: %not %link @response.txt -o %t1.2.reproduce.out 2>&1 | %filecheck %s --check-prefix=ERROR
+#END_TEST
+ERROR: Fatal: cannot read file Object/4.o.{{.*}}, because of error No such file or directory
+ERROR: Error: Failed to read thin archive member {{.*}}lib14.a({{.*}}four/4.o): Object/4.o.{{.*}}

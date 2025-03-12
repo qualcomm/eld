@@ -1,0 +1,16 @@
+UNSUPPORTED: riscv32
+#----------PCRELOverflow.test--------------------- Executable------------------#
+
+#BEGIN_COMMENT
+#This test checks for relocation overflows from PCREL relocations
+#to GP.
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/t.c -ffunction-sections \
+RUN: -fno-asynchronous-unwind-tables -o %t1.o -mno-relax
+RUN: %not %link %linkopts  %t1.o -T %p/Inputs/script.t -o %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+#CHECK: Error: Relocation overflow when applying relocation `R_RISCV_PCREL_HI20' for symbol `__var2'
+#CHECK: Error: Relocation overflow when applying relocation `R_RISCV_PCREL_HI20' for symbol `__var4'

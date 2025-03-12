@@ -1,0 +1,12 @@
+#---TBSSWithData.test--------------------------- TLS, Executable -----------------#
+
+#BEGIN_COMMENT
+# This tests that TLS is properly handled when a TBSS section is followed by a
+# section that contains non TLS data.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls.c  -o %t1.tls.o %clangg0opts
+RUN: %link %linkopts %t1.tls.o -o %t2.out  %linkg0opts
+RUN: %readelf -l -W %t2.out | %filecheck %s
+
+#CHECK: .data .bss

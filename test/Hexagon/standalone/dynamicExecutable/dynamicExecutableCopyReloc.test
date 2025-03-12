@@ -1,0 +1,15 @@
+#XFAIL: tsan
+# This tests that appropriate R_HEX_COPY relocations are created by the linker
+# when the referenced symbol is in a dynamic shared library.
+RUN: %clang %clangopts -c %clangg0opts -fPIC %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c %clangg0opts -fPIC %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib2.so
+# Dont create this object file with fPIC.
+RUN: %clang %clangopts -c %p/Inputs/3.c %clangg0opts -o %t1.3.o
+RUN: %link %linkopts %t1.1.o %t1.3.o -Bdynamic %t1.lib2.so -o %t2.out
+RUN: %readelf -r %t2.out | %filecheck %s
+RUN: %readelf -d -s %t2.out | %filecheck %s -check-prefix=DYNSYMS
+
+#CHECK: {{[0-9a-f]+}} {{[0-9a-f]+}}  R_HEX_COPY        {{[0-9a-f]+}}    foo
+#DYNSYMS: baz
+#DYNSYMS-NOT: baz

@@ -1,0 +1,20 @@
+UNSUPPORTED: riscv64
+#---DiscardedCOMDAT32bit.test----------- Executable------------------#
+
+#BEGIN_COMMENT
+# Make sure that COMDAT sections are discarded and the relocations are n
+# not applied
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections  -g %p/32bit/ranges1.asm -o %t1.1.o
+RUN: %clang %clangopts -c -ffunction-sections -fdata-sections  -g %p/32bit/ranges2.asm -o %t1.2.o
+RUN: %link %linkopts %t1.1.o %t1.2.o -o %t1.out 2>&1
+RUN: %dwarfdump %t1.out | %filecheck %s
+#END_TEST
+
+#CHECK: DW_AT_ranges      (indexed (0x0) rangelist =
+#CHECK:    [0x00000000, 0x00000000)
+#CHECK:    [0x00000000, 0x00000000)
+
+

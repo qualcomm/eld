@@ -1,0 +1,14 @@
+#---StartStopSectionSymbolsGOT.test----------------------- Executable --------------------#
+
+#BEGIN_COMMENT
+# This tests that the linker is able to handle and create section magic symbols
+# identified by {start,stop}_<sectionname> and appropriate GOT slots initialized
+# appropriately
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
+RUN: %link %linkopts %t1.1.o -o %t2.out --thread-count 1
+RUN: %readelf -x .got %t2.out | %filecheck %s
+#END_TEST
+# These point to the __stop_bar and __start_bar
+#CHECK: 44000000 20000000

@@ -1,0 +1,16 @@
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/le.s -o %t.o
+RUN: %link %linkopts  -march aarch64 -static %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: <l_test_tls_le>:
+CHECK: 91004020      add
+CHECK: 91{{[04]}}00020     add
+CHECK: 91{{[04]}}00020     add
+CHECK: 91004020       add
+CHECK: <l_test_tls_le_local>:
+CHECK: 91006020       add
+CHECK: 91{{[04]}}00020     add
+CHECK: 91{{[04]}}00020     add
+CHECK: 91006020       add
+
+

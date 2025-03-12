@@ -1,0 +1,19 @@
+#---ChunkMovesInInvalidLinkStates.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# This tests verifies that plugin reports an error if a chunk is moved in
+# invalid link states.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.ChunkMovesInBeforeLayout.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.ChunkMovesInBeforeLayout.t 2>&1 | %filecheck %s --check-prefix=BEFORE_LAYOUT
+RUN: %not %link %linkopts -o %t1.1.ChunkMovesInAfterLayout.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.ChunkMovesInAfterLayout.t 2>&1 | %filecheck %s --check-prefix=AFTER_LAYOUT
+#END_TEST
+CHECK: Error: The chunk '.text.bar{{.*}}' was removed from the rule '*(*bar*) #Rule 3, {{.*}}/Inputs/script.{{ChunkRemoveButNotAdd|ChunkRemoveUsingUpdate}}.t' by the plugin '{{ChunkRemoveButNotAdd|ChunkRemoveUsingUpdate}}' but has not been inserted back
+MULTIPLE_ADDS: MultipleChunkAdds:Error: The chunk '.text.bar' cannot be added to the rule '*(*foo*) #Rule 1, {{.*}}script.MultipleChunkAdds.t' because it was previously added to the rule '*(*foo*) #Rule 1, {{.*}}/script.MultipleChunkAdds.t' and has not been removed from there
+BEFORE_LAYOUT: ChunkMovesInBeforeLayout:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}removeChunk{{.*}}'. Valid link states: [CreatingSections]
+BEFORE_LAYOUT: ChunkMovesInBeforeLayout:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}addChunk{{.*}}'. Valid link states: [CreatingSections]
+BEFORE_LAYOUT: ChunkMovesInBeforeLayout:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}updateChunks{{.*}}'. Valid link states: [CreatingSections]
+AFTER_LAYOUT: ChunkMovesInAfterLayout:Error: Link state 'AfterLayout' is invalid for the API '{{.*}}removeChunk{{.*}}'. Valid link states: [CreatingSections]
+AFTER_LAYOUT: ChunkMovesInAfterLayout:Error: Link state 'AfterLayout' is invalid for the API '{{.*}}addChunk{{.*}}'. Valid link states: [CreatingSections]
+AFTER_LAYOUT: ChunkMovesInAfterLayout:Error: Link state 'AfterLayout' is invalid for the API '{{.*}}updateChunks{{.*}}'. Valid link states: [CreatingSections]

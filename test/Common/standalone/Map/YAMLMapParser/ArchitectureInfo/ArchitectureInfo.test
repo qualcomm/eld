@@ -1,0 +1,14 @@
+#---ArchitectureInfo.test--------------------- Executable ------------------#
+
+#BEGIN_COMMENT
+# This test checks the architecture info output by YAMLMapParser.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link -MapStyle yaml %linkopts -o %t1.1.elf %t1.1.o -Map %t1.1.map.yaml
+RUN: %python %yamlmapparser --info architecture %t1.1.map.yaml 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: Architecture: {{.*}}
+#CHECK: Emulation: {{.*}}
+#CHECK: AddressSize: {{.*}}
+#CHECK: ABIPageSize: {{.*}}

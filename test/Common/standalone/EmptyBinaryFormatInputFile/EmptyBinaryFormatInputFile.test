@@ -1,0 +1,26 @@
+UNSUPPORTED: reproduce_fail
+#---EmptyBinaryFormatInputFile.test--------------------- Executable---------------------#
+
+#BEGIN_COMMENT
+# This test verifies that linker works as expected when an empty binary
+# format input file is provided.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %touch hello.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -b binary hello.txt -Map %t1.1.map.txt 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix=SYMBOLS
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.r.out %t1.1.o -b binary hello.txt --reproduce %t1.1.reproduce.tar --dump-response-file %t1.1.response.txt 2>&1 | %filecheck %s
+RUN: %mkdir %t1.1.reproduce
+RUN: %tar -xf %t1.1.reproduce.tar -C %t1.1.reproduce --strip-components=1
+RUN: cd %t1.1.reproduce
+RUN: %link @response.txt -o %t1.1.reproduce.out
+RUN: %diff %t1.1.r.out %t1.1.reproduce.out
+#END_TEST
+CHECK: Note: Input file hello.txt has no contents
+SYMBOLS-DAG: GLOBAL DEFAULT ABS _binary_hello_txt_start
+SYMBOLS-DAG: GLOBAL DEFAULT ABS _binary_hello_txt_end
+SYMBOLS-DAG: GLOBAL DEFAULT ABS _binary_hello_txt_size
+MAP: Linker Script and memory map
+MAP: LOAD {{.*}}hello.txt (Binary)

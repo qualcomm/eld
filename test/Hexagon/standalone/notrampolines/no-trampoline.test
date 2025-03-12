@@ -1,0 +1,4 @@
+RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t.o
+RUN: %not %link %linkopts --no-trampolines %t.o -o %t.out 2>&1 | %filecheck %s
+
+CHECK: Error: Relocation overflow when applying relocation `R_HEX_B22_PCREL' for symbol `myfn'

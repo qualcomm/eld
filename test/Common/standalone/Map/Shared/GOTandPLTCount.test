@@ -1,0 +1,18 @@
+#---GOTandPLTCount.test--------------------- Executable---------------------#
+
+
+#BEGIN_COMMENT
+# This test checks the GOT and PLT count stats in the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.foo.o %p/Inputs/foo.c -c -fPIC
+RUN: %link %linkg0opts -o %t1.libfoo.so %t1.foo.o -shared
+RUN: %clang %clangg0opts -o %t1.bar.o %p/Inputs/bar.c -c -fPIC
+RUN: %link %linkg0opts -o %t1.libbar.so %t1.bar.o -shared
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link -MapStyle txt %linkg0opts -o %t1.lib1.so -dy %t1.1.o %t1.libfoo.so %t1.libbar.so -Map %t1.1.map.txt -shared
+RUN: %filecheck %s < %t1.1.map.txt
+#END_TEST
+CHECK: # NumGOTEntries : 2
+CHECK: # NumPLTEntries : 2
+

@@ -1,0 +1,19 @@
+#---InputFile.test----------------------- Executable,LS --------------------#
+
+
+
+
+#BEGIN_COMMENT
+# Tests that the plugin is able to print the input files visited by the Linker.
+# This also prints the sections from the input file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o -ffunction-sections
+RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
+RUN: %link %linkopts %t1.1.o %t1.lib2.a -T %p/Inputs/script.t -o %t2.out -L %p/Inputs 2>&1  | %filecheck %s -check-prefix=INPUTS
+#INPUTS: {{.*}}1.o ELF {{.*}}
+#INPUTS: {{.*}}2.o) ELF {{.*}}
+#INPUTS: .text.foo
+#INPUTS: .text.bar
+#END_TEST

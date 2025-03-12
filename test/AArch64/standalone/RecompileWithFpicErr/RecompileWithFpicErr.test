@@ -1,0 +1,20 @@
+# --RecompileWithFpicErr.test------------ Executable/DSO-----------------------#
+# -----------------------------------------------------------------------------#
+
+# -----------------------------------------------------------------------------#
+# BEGIN_COMMENT
+# When building shared libraries, no static TLS relocations must be  allowed
+# END_COMMENT
+# -----------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c  %p/Inputs/1.c -ftls-model=initial-exec -o %t1.o
+RUN: %clang %clangopts -c  %p/Inputs/2.c -ftls-model=initial-exec -o %t2IE.o
+RUN: %clang %clangopts -c  %p/Inputs/2.c -ftls-model=local-exec -o %t2LE.o
+RUN: %clang %clangopts -c  -fpic %p/Inputs/2.c -ftls-model=initial-exec -o %t2pic.o
+RUN: %link %linkopts -shared %t2pic.o  -o %tlib.so 2>&1
+RUN: %link %linkopts -Bdynamic %t1.o %tlib.so --noinhibit-exec -o %t.out 2>&1
+RUN: %readelf -r %t.out
+
+#IEERR:  recompile with -fPIC
+#LEERR:  recompile with -fPIC
+#CHECK: TPREL

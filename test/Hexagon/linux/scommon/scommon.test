@@ -1,0 +1,8 @@
+# Check that common symbols when resolved are put in the proper section
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t3.out -G0 -z max-page-size=4096
+RUN: %readelf -S %t3.out | %filecheck %s
+
+#CHECK:  [ 1] .bss            NOBITS        {{.*}} 000004
+

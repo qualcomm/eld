@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts -L%p/Inputs -T %p/Inputs/script.t %t.o -o %t.out -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+#CHECK: script.t
+#CHECK: 	a.t
+#CHECK: 		b.t
+#CHECK: 			c.t
+#CHECK: 			d.t
+#CHECK: 		e.t
+#CHECK:	f.t

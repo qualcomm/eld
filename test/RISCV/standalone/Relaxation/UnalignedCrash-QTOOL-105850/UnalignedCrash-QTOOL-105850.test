@@ -1,0 +1,10 @@
+#----------UnalignedCrash-QTOOL-105850.test----------------- Executable------------------#
+
+# BEGIN_COMMENT
+# Test that the linker does not crash.
+# END_COMMENT
+# START_TEST
+#RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+#RUN: not %link %linkopts %t.o -T %p/Inputs/1.t -o %t.out 2>&1 | %filecheck %s
+# CHECK: Error: Insufficient number of spare bytes for alignment relaxation: present 30, needed 31 in section .text+0x1f file {{.*}}.o
+# END_TEST

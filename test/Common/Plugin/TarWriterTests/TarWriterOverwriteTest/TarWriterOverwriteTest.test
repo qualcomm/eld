@@ -1,0 +1,13 @@
+#---TarWriterOverwriteTest.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Test checks if a pre-existing tar file can be overriten by the tar writer.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c -g %p/Inputs/1.c -o %t.o
+RUN: %clang -c %p/Inputs/1.c -o %t2.o
+RUN: %link %t.o -T %p/Inputs/script.t -L%libsdir -o %t.test.out 2>&1 | %filecheck %s --check-prefix=TARMSG
+#TARMSG: TarWriterOverwriteTest:Note: Initialized Tar File testTar.tar
+#TARMSG: TarWriterOverwriteTest:Note: Initialized Tar File testTar.tar
+#TARMSG: TarWriterOverwriteTest:Note: Initialized Tar File testFile
+#END_TEST

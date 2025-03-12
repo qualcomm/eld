@@ -1,0 +1,23 @@
+#---Directories.test------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test uses many file kinds and checks that
+# they are placed in their respective directories based on type
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -o %t1.2.o
+RUN: %link %linkopts -shared %t1.2.o -o %t1.lib1.so
+RUN: %clang %clangopts -c -flto %p/Inputs/3.c -o %t1.3.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.4.o
+RUN: %ar -cr %t1.lib.a %t1.4.o
+RUN: %link %linkopts --reproduce %t0.tar --dump-response-file %t0.response --save-temps -T %p/Inputs/script1.t \
+RUN: --extern-list=%p/Inputs/externlist %p/Inputs/good.symdef -dy %t1.1.o %t1.lib1.so %t1.3.o %t1.lib.a -o %t.directories.out
+RUN: %filecheck < %t0.response %s --check-prefix=RESPONSE
+RESPONSE-DAG: Bitcode/
+RESPONSE-DAG: Object/
+RESPONSE-DAG: Archives/
+RESPONSE-DAG: SharedLibrary/
+RESPONSE-DAG: SymDef/
+RESPONSE-DAG: LinkerScript/
+#END_TEST

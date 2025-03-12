@@ -1,0 +1,8 @@
+#---GarbageCollectionCommonSymbols.test------------- Executable------------------#
+
+#BEGIN_COMMENT
+# This tests that Garbage collection can handle symbols defined in linker
+# scripts as COMMON symbols.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o --gc-sections -e a -o %t2.out

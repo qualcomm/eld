@@ -1,0 +1,5 @@
+#---OutputArch.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test verifies linker script parsing for OUTPUT_ARCH commands.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t

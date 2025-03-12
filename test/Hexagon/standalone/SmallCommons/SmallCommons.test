@@ -1,0 +1,18 @@
+#---SmallCommons.test--------------------------- Executable -----------------#
+
+#BEGIN_COMMENT
+# This test checks the default mapping of small common symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.elf %t1.1.o -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+#END_TEST
+#CHECK: .scommon.1
+#CHECK: common_char
+#CHECK: .scommon.2
+#CHECK: common_short
+#CHECK: .scommon.4
+#CHECK: common_int
+#CHECK: .scommon.8
+#CHECK: common_ll

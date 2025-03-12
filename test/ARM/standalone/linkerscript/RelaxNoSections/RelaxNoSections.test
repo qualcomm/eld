@@ -1,0 +1,13 @@
+#---RelaxNoSections.test--------------------- Executable,LS------------------#
+
+#BEGIN_COMMENT
+# Relax the restriction when linker script doesnot have sections, and the
+# default linker script rules are applied properly.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out
+RUN: %readelf -S -W %t2.out | %filecheck %s
+RUN: %nm -n %t2.out | %filecheck %s -check-prefix=SYMBOLS
+
+#CHECK-NOT: .text.foo
+#SYMBOLS: __bar
