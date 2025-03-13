@@ -5,7 +5,7 @@ It aims to be a drop-in replacement for the GNU linker, with a smaller memory
 footprint, faster link times and a customizable link behavior.
 
 ELD supports targets Hexagon, ARM, AArch64 and RISCV
-and is designed in a way that it is trivial to add more backends.
+and is designed for easy addition of more backends.
 
 ## Supported features
 - Static linking
@@ -19,7 +19,7 @@ and is designed in a way that it is trivial to add more backends.
   Highly detailed map-files are essential to debug complex image layouts.
 - Linker plugins
 
-  Linker plugin functionality is a programmatical way to customize link
+  Linker plugins allow a user to programmatically customize link
   behavior for advanced use-cases and complex image layouts.
 - Reproduce functionality
 
@@ -28,13 +28,13 @@ and is designed in a way that it is trivial to add more backends.
 
 ## Building ELD and running tests
 
-ELD depends upon the LLVM-tip and thus it is required to build LLVM when
+ELD depends upon the LLVM. It is required to build LLVM when
 building ELD. You will need a recent C++ compiler for building LLVM and ELD.
 
 ```
 git clone https://github.com/llvm/llvm-project.git
 cd llvm-project/
-git clone git@github.qualcomm.com:cgit/eld.git
+git https://github.com/qualcomm/eld.git
 cd ../
 cmake -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
@@ -54,7 +54,7 @@ Some (optional) helpful CMake options:
 
 - `-DLLVM_USE_SPLIT_DWARF=On`
 
-  It helps to save on disk space with debug builds.
+  This option helps save on disk space with debug builds
 
 - `-DLLVM_PARALLEL_LINK_JOBS`
 
