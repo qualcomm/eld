@@ -1,0 +1,123 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    concurrency: 
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+    - name: Set PR number and branch names
+      run: |
+        echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
+        echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+        echo "BASE_BRANCH_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+
+    - name: Restore repository cache
+      uses: actions/cache@v4
+      with:
+        path: pr-${{ env.PR_NUMBER }}/llvm-project
+        key: ${{ runner.os }}-repo-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-repo-
+
+    - name: Checkout llvm-project
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: llvm/llvm-project
+        path: pr-${{ env.PR_NUMBER }}/llvm-project
+
+    - name: Checkout qualcomm/eld
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: qualcomm/eld
+        path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+
+    - name: Fetch and update repository
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: |
+        cd pr-${{ env.PR_NUMBER }}/llvm-project
+        git fetch origin
+        git reset --hard origin/${{ github.event.pull_request.head.ref }}
+
+    - name: Run CMake
+      run: |
+        ccache --set-config max_size=32GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        rm -rf pr-${{ env.PR_NUMBER }}/obj  # Remove the existing obj directory
+        mkdir -p pr-${{ env.PR_NUMBER }}/obj
+        cd pr-${{ env.PR_NUMBER }}/obj
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+          -DLLVM_CCACHE_DIR=/local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }} \
+          -DLLVM_CCACHE_BUILD:BOOL=ON \
+          -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
+          -DCMAKE_C_COMPILER:STRING=`which clang` \
+          -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+          -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
+          -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+          ../llvm-project/llvm
+
+    - name: Cache Usage before build
+      run: |
+           cd pr-${{ env.PR_NUMBER }}/obj
+           ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+           
+    - name: Build Project
+      run: |
+          cd pr-${{ env.PR_NUMBER }}/obj
+          ninja
+
+    - name: Cache Usage after build 
+      run: |
+         cd pr-${{ env.PR_NUMBER }}/obj
+         ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+
+    - name: Run Tests
+      run: |
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ninja check-eld
+
+    - name: Update PR status
+      if: success()
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo } = context.repo;
+          const sha = context.sha;
+
+          await github.rest.repos.createCommitStatus({
+            owner,
+            repo,
+            sha,
+            state: 'success',
+            description: 'Build verified',
+            context: 'ci/build'
+          });
+
+    - name: Save repository cache
+      uses: actions/cache@v4
+      with:
+        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        key: ${{ runner.os }}-repo-${{ github.sha }}
+
+    - name: Save ccache
+      uses: actions/cache@v4
+      with:
+        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
+
+  cleanup:
+    runs-on: self-hosted
+    needs: build
+    steps:
+    - name: Cleanup build directory
+      run: |
+        rm -rf pr-${{ needs.build.outputs.PR_NUMBER }}
