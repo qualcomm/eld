@@ -55,8 +55,11 @@ In general, contributors should develop on branches based off of `main` and pull
 
 Here are a few things you can do that will increase the likelihood of your pull request to be accepted:
 
-- Follow the existing style where possible. **INSERT LINK TO STYLE, e.g. PEP8 for python**
-- Write tests.
+- Use GitHub issues to report bugs, propose features, suggest architecture adjustments, or make modifications to the core codebase.
+- Provide documentation to support any changes that alter existing behavior.
+- Follow [LLVM coding conventions](https://llvm.org/docs/CodingStandards.html) when contributing new code to the repository.
+> **_NOTE:_** The current codebase incorporates a mix of coding styles, and we are in the process of transitioning to LLVM coding standards for consistency.
+- Write unit tests.
 - Keep your change as focused as possible.
   If you want to make multiple independent changes, please consider submitting them as separate pull requests.
 - Write a [good commit message](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
