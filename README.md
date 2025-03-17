@@ -28,13 +28,16 @@ and is designed for easy addition of more backends.
 
 ## Building ELD and running tests
 
-ELD depends upon the LLVM. It is required to build LLVM when
-building ELD. You will need a recent C++ compiler for building LLVM and ELD.
+ELD supports building and running tests on Linux and Windows utilizing LLVM.
+
+ELD depends on LLVM. It is required to build LLVM when building ELD.
+
+You will need a recent C++ compiler for building LLVM and ELD.
 
 ```
 git clone https://github.com/llvm/llvm-project.git
 cd llvm-project/
-git https://github.com/qualcomm/eld.git
+git clone https://github.com/qualcomm/eld.git
 cd ../
 cmake -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
@@ -83,13 +86,6 @@ Finally, to build documentation:
 
 - Configure CMake with the option `-DLLVM_ENABLE_SPHINX=On`
 - Build documentation by building `eld-docs` target: `cmake --build . --target eld-docs`
-
-## Hexagon Linux open source toolchain
-
-* `-DLLVM_DEFAULT_TARGET_TRIPLE:STRING=hexagon-unknown-linux-musl`
-* `-DLLVM_TARGETS_TO_BUILD="Hexagon"`
-
-   Use this triple and llvm target to configure linker for hexagon linux
 
 ## Running DCO Checks Locally
 
