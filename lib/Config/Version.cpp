@@ -95,8 +95,8 @@ StringRef getLLVMVersion() {
 }
 
 std::string getELDRepositoryVersion() {
-  std::string buf;
-  llvm::raw_string_ostream OS(buf);
+  std::string Buf;
+  llvm::raw_string_ostream OS(Buf);
   std::string Path = getELDRepositoryPath().str();
   std::string Revision = getELDRevision().str();
   if (!Path.empty() || !Revision.empty()) {
@@ -114,8 +114,8 @@ std::string getELDRepositoryVersion() {
 }
 
 std::string getLLVMRepositoryVersion() {
-  std::string buf;
-  llvm::raw_string_ostream OS(buf);
+  std::string Buf;
+  llvm::raw_string_ostream OS(Buf);
   std::string Path = getLLVMRepositoryPath().str();
   std::string Revision = getLLVMRevision().str();
   if (!Path.empty() || !Revision.empty()) {

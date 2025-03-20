@@ -16,39 +16,39 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // MemoryDesc
 //===----------------------------------------------------------------------===//
-MemoryDesc::MemoryDesc(const MemorySpec &pSpec)
-    : ScriptCommand(ScriptCommand::MEMORY_DESC), m_Spec(pSpec) {}
+MemoryDesc::MemoryDesc(const MemorySpec &PSpec)
+    : ScriptCommand(ScriptCommand::MEMORY_DESC), InputSpec(PSpec) {}
 
 MemoryDesc::~MemoryDesc() {}
 
-void MemoryDesc::dump(llvm::raw_ostream &outs) const {
-  outs << m_Spec.getMemoryDescriptor();
-  outs << " " << m_Spec.getMemoryAttributes();
-  outs << " ORIGIN = ";
-  m_Spec.getOrigin()->dump(outs);
-  outs << " , ";
-  outs << " LENGTH = ";
-  m_Spec.getLength()->dump(outs);
-  outs << "\n";
+void MemoryDesc::dump(llvm::raw_ostream &Outs) const {
+  Outs << InputSpec.getMemoryDescriptor();
+  Outs << " " << InputSpec.getMemoryAttributes();
+  Outs << " ORIGIN = ";
+  InputSpec.getOrigin()->dump(Outs);
+  Outs << " , ";
+  Outs << " LENGTH = ";
+  InputSpec.getLength()->dump(Outs);
+  Outs << "\n";
 }
 
-eld::Expected<void> MemoryDesc::activate(Module &pModule) {
-  if (m_Spec.getMemoryDescriptor().empty())
+eld::Expected<void> MemoryDesc::activate(Module &CurModule) {
+  if (InputSpec.getMemoryDescriptor().empty())
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::error_memory_region_empty, {}));
-  std::string MemoryDescName = m_Spec.getMemoryDescriptor();
-  LinkerScript &script = pModule.getLinkerScript();
-  if (script.insertMemoryDescriptor(MemoryDescName))
+        plugin::DiagnosticEntry(Diag::error_memory_region_empty, {}));
+  std::string MemoryDescName = InputSpec.getMemoryDescriptor();
+  LinkerScript &Script = CurModule.getLinkerScript();
+  if (Script.insertMemoryDescriptor(MemoryDescName))
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::error_duplicate_memory_region, {MemoryDescName}));
+        Diag::error_duplicate_memory_region, {MemoryDescName}));
   ScriptMemoryRegion *Region = eld::make<ScriptMemoryRegion>(this);
   eld::Expected<void> E = Region->parseMemoryAttributes();
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
-  script.addMemoryRegion(MemoryDescName, Region);
-  if (m_Spec.getOrigin())
-    m_Spec.getOrigin()->setContext(getContext());
-  if (m_Spec.getLength())
-    m_Spec.getLength()->setContext(getContext());
+  Script.addMemoryRegion(MemoryDescName, Region);
+  if (InputSpec.getOrigin())
+    InputSpec.getOrigin()->setContext(getContext());
+  if (InputSpec.getLength())
+    InputSpec.getLength()->setContext(getContext());
 
   return eld::Expected<void>();
 }

@@ -25,7 +25,7 @@ x86_64PLT0 *x86_64PLT0::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
 
   std::string name = "__gotplt0__";
   // create LDSymbol for the stub
-  LDSymbol *symbol = I.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
       ResolveInfo::Local,
       8, // size
@@ -57,7 +57,7 @@ x86_64PLTN *x86_64PLTN::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
   Relocation *r2 = nullptr;
   std::string name = "__gotpltn_for_" + std::string(R->name());
   // create LDSymbol for the stub
-  LDSymbol *symbol = I.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
       ResolveInfo::Local,
       8, // size

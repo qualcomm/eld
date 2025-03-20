@@ -43,40 +43,40 @@ using namespace llvm;
 // Non-member functions
 //===----------------------------------------------------------------------===//
 namespace {
-static inline Section *getInputSectionForSymbol(ResolveInfo &pInfo) {
-  if (pInfo.isBitCode())
-    return llvm::dyn_cast<eld::BitcodeFile>(pInfo.resolvedOrigin())
-        ->getInputSectionForSymbol(pInfo);
-  if (pInfo.outSymbol() && pInfo.outSymbol()->hasFragRef())
-    return pInfo.getOwningSection();
+static inline Section *getInputSectionForSymbol(ResolveInfo &PInfo) {
+  if (PInfo.isBitCode())
+    return llvm::dyn_cast<eld::BitcodeFile>(PInfo.resolvedOrigin())
+        ->getInputSectionForSymbol(PInfo);
+  if (PInfo.outSymbol() && PInfo.outSymbol()->hasFragRef())
+    return PInfo.getOwningSection();
   return nullptr;
 }
 } // namespace
 
 /// shouldProcessGC - check if the section kind is handled in GC
-bool GarbageCollection::mayProcessGC(ELFSection &pSection) {
-  bool ret = false;
-  if (pSection.isExcludedFromGC())
+bool GarbageCollection::mayProcessGC(ELFSection &CurSection) {
+  bool Ret = false;
+  if (CurSection.isExcludedFromGC())
     return false;
-  std::optional<bool> backendShouldProcess =
-      m_Backend.shouldProcessSectionForGC(pSection);
-  if (backendShouldProcess)
-    return *backendShouldProcess;
-  switch (pSection.getKind()) {
+  std::optional<bool> BackendShouldProcess =
+      MBackend.shouldProcessSectionForGC(CurSection);
+  if (BackendShouldProcess)
+    return *BackendShouldProcess;
+  switch (CurSection.getKind()) {
   case LDFileFormat::Ignore:
-    ret = false;
+    Ret = false;
     break;
   // take nullptr and StackNote directly
   case LDFileFormat::Null:
   case LDFileFormat::StackNote:
-    ret = false;
+    Ret = false;
     break;
   case LDFileFormat::Relocation:
-    ret = false;
+    Ret = false;
     break;
   // Make these flags go along with whatever is part of the root set.
   case LDFileFormat::EhFrame:
-    ret = false;
+    Ret = false;
     break;
   case LDFileFormat::Regular:
   case LDFileFormat::Common:
@@ -84,10 +84,10 @@ bool GarbageCollection::mayProcessGC(ELFSection &pSection) {
   case LDFileFormat::Target:
   case LDFileFormat::MetaData:
   case LDFileFormat::GCCExceptTable:
-    ret = true;
+    Ret = true;
     break;
   case LDFileFormat::MergeStr:
-    if (pSection.isAlloc())
+    if (CurSection.isAlloc())
       return true;
     LLVM_FALLTHROUGH;
   case LDFileFormat::Note:
@@ -99,98 +99,98 @@ bool GarbageCollection::mayProcessGC(ELFSection &pSection) {
   case LDFileFormat::Version:
   case LDFileFormat::OutputSectData:
   default:
-    ret = false;
+    Ret = false;
     break;
   } // end of switch
-  return ret;
+  return Ret;
 }
 
 //===----------------------------------------------------------------------===//
 // GarbageCollection::SectionReachedListMap
 //===----------------------------------------------------------------------===//
-void GarbageCollection::SectionReachedListMap::addReference(Section &pFrom,
-                                                            Section &pTo) {
-  m_ReachedSections[&pFrom].insert(&pTo);
+void GarbageCollection::SectionReachedListMap::addReference(Section &From,
+                                                            Section &To) {
+  ReachedSections[&From].insert(&To);
 }
 
 GarbageCollection::SectionListTy &
-GarbageCollection::SectionReachedListMap::getReachedList(Section &pSection) {
-  return m_ReachedSections[&pSection];
+GarbageCollection::SectionReachedListMap::getReachedList(Section &CurSection) {
+  return ReachedSections[&CurSection];
 }
 
 GarbageCollection::SectionListTy *
-GarbageCollection::SectionReachedListMap::findReachedList(Section &pSection) {
-  ReachedSectionsTy::iterator it = m_ReachedSections.find(&pSection);
-  if (it == m_ReachedSections.end())
+GarbageCollection::SectionReachedListMap::findReachedList(Section &CurSection) {
+  ReachedSectionsTy::iterator It = ReachedSections.find(&CurSection);
+  if (It == ReachedSections.end())
     return nullptr;
-  return &it->second;
+  return &It->second;
 }
 
 GarbageCollection::SymbolListTy &
 GarbageCollection::SectionReachedListMap::getReachedSymbolList(
-    Section &pSection) {
-  return m_ReachedSymbols[&pSection];
+    Section &CurSection) {
+  return ReachedSymbols[&CurSection];
 }
 
 GarbageCollection::SymbolListTy *
 GarbageCollection::SectionReachedListMap::findReachedSymbolList(
-    Section &pSection) {
-  ReachedSymbolsTy::iterator it = m_ReachedSymbols.find(&pSection);
-  if (it == m_ReachedSymbols.end())
+    Section &CurSection) {
+  ReachedSymbolsTy::iterator It = ReachedSymbols.find(&CurSection);
+  if (It == ReachedSymbols.end())
     return nullptr;
-  return &it->second;
+  return &It->second;
 }
 
 void GarbageCollection::SectionReachedListMap::
-    findReachedBitCodeSectionsAndSymbols(Module &pModule) {
+    findReachedBitCodeSectionsAndSymbols(Module &ThisModule) {
 
-  while (!m_InputBitcodeSections.empty()) {
-    Section *sect = m_InputBitcodeSections.front();
-    m_InputBitcodeSections.pop();
-    if (findReachedList(*sect))
+  while (!InputBitcodeSections.empty()) {
+    Section *Sect = InputBitcodeSections.front();
+    InputBitcodeSections.pop();
+    if (findReachedList(*Sect))
       continue;
     // If the bitcode section has already been traversed, just continue;
-    SectionListTy &reached_sects = getReachedList(*sect);
-    SymbolListTy &reached_syms = getReachedSymbolList(*sect);
+    SectionListTy &ReachedSects = getReachedList(*Sect);
+    SymbolListTy &ReachedSyms = getReachedSymbolList(*Sect);
 
-    auto processSym = [&](ResolveInfo *symInfo) {
-      InputFile *input = symInfo->resolvedOrigin();
-      if (!input->isBitcode()) {
-        if (symInfo->outSymbol()->hasFragRef()) {
-          reached_sects.insert(symInfo->getOwningSection());
-          reached_syms.insert(symInfo->outSymbol());
+    auto ProcessSym = [&](ResolveInfo *SymInfo) {
+      InputFile *Input = SymInfo->resolvedOrigin();
+      if (!Input->isBitcode()) {
+        if (SymInfo->outSymbol()->hasFragRef()) {
+          ReachedSects.insert(SymInfo->getOwningSection());
+          ReachedSyms.insert(SymInfo->outSymbol());
         }
       } else {
-        BitcodeFile *BitcodeFile = llvm::dyn_cast<eld::BitcodeFile>(input);
-        if (Section *sectionForSymbol =
-                BitcodeFile->getInputSectionForSymbol(*symInfo)) {
-          reached_sects.insert(sectionForSymbol);
+        BitcodeFile *BitcodeFile = llvm::dyn_cast<eld::BitcodeFile>(Input);
+        if (Section *SectionForSymbol =
+                BitcodeFile->getInputSectionForSymbol(*SymInfo)) {
+          ReachedSects.insert(SectionForSymbol);
           // If the bitcode section has already been traversed, just
           // continue;
-          if (!findReachedList(*sectionForSymbol))
-            addToWorkQ(sectionForSymbol);
+          if (!findReachedList(*SectionForSymbol))
+            addToWorkQ(SectionForSymbol);
         }
       }
     };
 
-    auto RefIt = pModule.getBitcodeReferencedSymbols().find(sect);
-    if (RefIt == pModule.getBitcodeReferencedSymbols().end())
+    auto RefIt = ThisModule.getBitcodeReferencedSymbols().find(Sect);
+    if (RefIt == ThisModule.getBitcodeReferencedSymbols().end())
       continue;
 
     for (const auto &S : RefIt->second) {
-      LDSymbol *sym = S->outSymbol();
+      LDSymbol *Sym = S->outSymbol();
       // check if this sym is defined in linker script
-      if (sym->resolveInfo()->outSymbol() &&
-          sym->resolveInfo()->outSymbol()->scriptDefined()) {
+      if (Sym->resolveInfo()->outSymbol() &&
+          Sym->resolveInfo()->outSymbol()->scriptDefined()) {
         if (const Assignment *Assignment =
-                pModule.getAssignmentForSymbol(sym->name())) {
+                ThisModule.getAssignmentForSymbol(Sym->name())) {
           std::vector<ResolveInfo *> SymbolsForAssignment;
           Assignment->getSymbols(SymbolsForAssignment);
-          for (auto &symInfo : SymbolsForAssignment)
-            processSym(symInfo);
+          for (auto &SymInfo : SymbolsForAssignment)
+            ProcessSym(SymInfo);
         }
       } else
-        processSym(sym->resolveInfo());
+        ProcessSym(Sym->resolveInfo());
     }
   }
 }
@@ -198,10 +198,10 @@ void GarbageCollection::SectionReachedListMap::
 //===----------------------------------------------------------------------===//
 // GarbageCollection
 //===----------------------------------------------------------------------===//
-GarbageCollection::GarbageCollection(LinkerConfig &pConfig,
-                                     const GNULDBackend &pBackend,
-                                     Module &pModule)
-    : m_Config(pConfig), m_Backend(pBackend), m_Module(pModule) {}
+GarbageCollection::GarbageCollection(LinkerConfig &Config,
+                                     const GNULDBackend &PBackend,
+                                     Module &ThisModule)
+    : ThisConfig(Config), MBackend(PBackend), ThisModule(ThisModule) {}
 
 GarbageCollection::~GarbageCollection() {}
 
@@ -210,35 +210,35 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
   // section
   {
     eld::RegisterTimer T("Get Reachable Sections", "Garbage Collection",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
 
     setUpReachedSectionsAndSymbols();
-    m_Backend.setUpReachedSectionsForGC(m_SectionReachedListMap);
+    MBackend.setUpReachedSectionsForGC(MSectionReachedListMap);
   }
 
-  SectionSetTy entry;
+  SectionSetTy Entry;
   SectionSetTy LiveSet;
   {
     eld::RegisterTimer T("Compute Entry Sections", "Garbage Collection",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     // 2. get all sections defined the entry point
-    if (!getEntrySections(entry))
+    if (!getEntrySections(Entry))
       return false;
   }
 
   {
     eld::RegisterTimer T("Find Dead Code", "Garbage Collection",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     // 3. find all the referenced sections those can be reached by entry
-    if (m_Module.getPrinter()->traceGCLive())
-      m_Config.raise(diag::tracing_gc_phase) << Phase;
-    findReferencedSectionsAndSymbols(entry, LiveSet);
+    if (ThisModule.getPrinter()->traceGCLive())
+      ThisConfig.raise(Diag::tracing_gc_phase) << Phase;
+    findReferencedSectionsAndSymbols(Entry, LiveSet);
   }
 
   // 4. stripSections - set the unreached sections to Ignore
   {
     eld::RegisterTimer T("Apply Dead Code Elimination", "Garbage Collection",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     stripSections(LiveSet, CommonSectionsOnly);
   }
   return true;
@@ -246,141 +246,141 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
 
 void GarbageCollection::setUpReachedSectionsAndSymbols() {
   // traverse all the input relocations to setup the reached sections
-  Module::obj_iterator input, inEnd = m_Module.obj_end();
+  Module::obj_iterator Input, InEnd = ThisModule.objEnd();
   llvm::raw_ostream *stream = nullptr;
   llvm::DenseMap<uint64_t,
                  llvm::DenseSet<std::pair<ELFSection *, ResolveInfo *>>>
       crefMap;
-  LinkerScript::Assignments::iterator symit, symite;
-  symite = m_Module.getScript().assignments().end();
-  symit = m_Module.getScript().assignments().begin();
-  for (; symit != symite; symit++) {
-    ResolveInfo *info =
-        m_Module.getNamePool().findInfo((*symit).second->name().str());
-    if (info != nullptr && info->outSymbol() != nullptr &&
-        (*symit).second->type() == Assignment::DEFAULT)
-      info->outSymbol()->setScriptDefined();
+  LinkerScript::Assignments::iterator Symit, Symite;
+  Symite = ThisModule.getScript().assignments().end();
+  Symit = ThisModule.getScript().assignments().begin();
+  for (; Symit != Symite; Symit++) {
+    ResolveInfo *Info =
+        ThisModule.getNamePool().findInfo((*Symit).second->name().str());
+    if (Info != nullptr && Info->outSymbol() != nullptr &&
+        (*Symit).second->type() == Assignment::DEFAULT)
+      Info->outSymbol()->setScriptDefined();
   }
 
   size_t column = 54;
-  size_t space_bw_field = 4;
-  if (m_Module.getPrinter()->traceGC()) {
+  size_t SpaceBwField = 4;
+  if (ThisModule.getPrinter()->traceGC()) {
     stream = &(llvm::outs());
-    m_Config.raise(diag::trace_gc_header)
+    ThisConfig.raise(Diag::trace_gc_header)
         << std::string(column - strlen("Referring site"), ' ');
   }
-  for (input = m_Module.obj_begin(); input != inEnd; ++input) {
-    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
+  for (Input = ThisModule.objBegin(); Input != InEnd; ++Input) {
+    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*Input);
     if (!ObjFile)
       continue;
-    for (auto &reloc_sect : ObjFile->getRelocationSections()) {
+    for (auto &RelocSect : ObjFile->getRelocationSections()) {
       // bypass the discarded relocation section
       // 1. its section kind is changed to Ignore. (The target section is a
       // discarded group section.)
       // 2. it has no reloc data. (All symbols in the input relocs are in the
       // discarded group sections)
-      auto *apply_sect =
-          llvm::dyn_cast_or_null<ELFSection>(reloc_sect->getLink());
-      if (reloc_sect->isIgnore())
+      auto *ApplySect =
+          llvm::dyn_cast_or_null<ELFSection>(RelocSect->getLink());
+      if (RelocSect->isIgnore())
         continue;
-      if (reloc_sect->isDiscard())
+      if (RelocSect->isDiscard())
         continue;
 
       std::string name;
-      bool first_field = true;
+      bool FirstField = true;
 
-      if (m_Module.getPrinter()->traceGC() && apply_sect &&
-          mayProcessGC(*apply_sect)) {
-        name = apply_sect->getDecoratedName(m_Config.options());
-        if (name.size() > (column - space_bw_field))
+      if (ThisModule.getPrinter()->traceGC() && ApplySect &&
+          mayProcessGC(*ApplySect)) {
+        name = ApplySect->getDecoratedName(ThisConfig.options());
+        if (name.size() > (column - SpaceBwField))
           name = llvm::StringRef(name)
-                     .drop_back(name.size() - (column - space_bw_field))
+                     .drop_back(name.size() - (column - SpaceBwField))
                      .str();
         *stream << "\n" << name;
       }
 
-      for (auto &reloc : apply_sect->getRelocations()) {
-        auto recordOneRef = [&](Relocation *reloc) -> void {
-          ResolveInfo *sym = reloc->symInfo();
+      for (auto &Reloc : ApplySect->getRelocations()) {
+        auto RecordOneRef = [&](Relocation *Reloc) -> void {
+          ResolveInfo *Sym = Reloc->symInfo();
 
           // only the target symbols defined in the input fragments can make the
           // reference
-          if (nullptr == sym)
+          if (nullptr == Sym)
             return;
 
           // Reached symbols from section.
-          SymbolListTy *reached_syms =
-              &m_SectionReachedListMap.getReachedSymbolList(*apply_sect);
+          SymbolListTy *ReachedSyms =
+              &MSectionReachedListMap.getReachedSymbolList(*ApplySect);
           // Reached sections from section.
-          SectionListTy *reached_sects =
-              &m_SectionReachedListMap.getReachedList(*apply_sect);
+          SectionListTy *ReachedSects =
+              &MSectionReachedListMap.getReachedList(*ApplySect);
 
-          if (sym->isBitCode()) {
-            InputFile *input = sym->resolvedOrigin();
-            Section *bs = llvm::dyn_cast<eld::BitcodeFile>(input)
-                              ->getInputSectionForSymbol(*sym);
-            if (!bs)
+          if (Sym->isBitCode()) {
+            InputFile *Input = Sym->resolvedOrigin();
+            Section *Bs = llvm::dyn_cast<eld::BitcodeFile>(Input)
+                              ->getInputSectionForSymbol(*Sym);
+            if (!Bs)
               return;
-            reached_syms->insert(sym->outSymbol());
+            ReachedSyms->insert(Sym->outSymbol());
 
-            reached_sects->insert(bs);
+            ReachedSects->insert(Bs);
 
-            m_SectionReachedListMap.addToWorkQ(bs);
+            MSectionReachedListMap.addToWorkQ(Bs);
             return;
           }
           // If symbol is script defined, traverse over the symbols that is
           // referenced by the expression and make them live, if this symbol is
           // live.
-          if (!sym->isDefine() || (!sym->outSymbol()->scriptDefined() &&
-                                   !sym->outSymbol()->hasFragRef())) {
-            if (sym->isCommon() || sym->outSymbol()) {
-              std::pair<SymbolListTy::iterator, bool> result =
-                  reached_syms->insert(sym->outSymbol());
+          if (!Sym->isDefine() || (!Sym->outSymbol()->scriptDefined() &&
+                                   !Sym->outSymbol()->hasFragRef())) {
+            if (Sym->isCommon() || Sym->outSymbol()) {
+              std::pair<SymbolListTy::iterator, bool> Result =
+                  ReachedSyms->insert(Sym->outSymbol());
 
               // For section magic symbol, we mark every section seen before
               // it refers as reached
-              llvm::StringRef sym_name(sym->outSymbol()->name());
-              llvm::StringRef sect_name;
-              if (sym_name.starts_with("__start_")) {
-                sect_name = sym_name.drop_front(8);
-              } else if (sym_name.starts_with("__stop_")) {
-                sect_name = sym_name.drop_front(7);
+              llvm::StringRef SymName(Sym->outSymbol()->name());
+              llvm::StringRef SectName;
+              if (SymName.starts_with("__start_")) {
+                SectName = SymName.drop_front(8);
+              } else if (SymName.starts_with("__stop_")) {
+                SectName = SymName.drop_front(7);
               }
-              if (sect_name.size() > 0) {
+              if (SectName.size() > 0) {
                 // We need keep this section.
-                for (auto &O : m_Module.getObjectList()) {
+                for (auto &O : ThisModule.getObjectList()) {
                   ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(O);
                   if (!ObjFile)
                     continue;
-                  for (auto &sect : ObjFile->getSections()) {
-                    ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-                    if (section->name() == sect_name)
-                      reached_sects->insert(section);
+                  for (auto &Sect : ObjFile->getSections()) {
+                    ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
+                    if (Section->name() == SectName)
+                      ReachedSects->insert(Section);
                   }
                 }
               }
 
-              ELFSection *target_sec = nullptr;
-              if (sym->outSymbol()->hasFragRef()) {
-                target_sec = sym->getOwningSection();
-                reached_sects->insert(target_sec);
+              ELFSection *TargetSec = nullptr;
+              if (Sym->outSymbol()->hasFragRef()) {
+                TargetSec = Sym->getOwningSection();
+                ReachedSects->insert(TargetSec);
               }
 
-              if (result.second && m_Module.getPrinter()->traceGC() &&
-                  apply_sect && mayProcessGC(*apply_sect)) {
-                if (first_field)
+              if (Result.second && ThisModule.getPrinter()->traceGC() &&
+                  ApplySect && mayProcessGC(*ApplySect)) {
+                if (FirstField)
                   stream->indent(column - name.size());
                 else
                   stream->indent(column);
-                *stream << m_Module.getNamePool().getDecoratedName(
-                               sym, m_Config.options().shouldDemangle())
+                *stream << ThisModule.getNamePool().getDecoratedName(
+                               Sym, ThisConfig.options().shouldDemangle())
                         << " (Symbol)\n";
-                first_field = false;
+                FirstField = false;
               }
-              if ((m_Config.options().gcCref() == sym->name()) &&
-                  mayProcessGC(*apply_sect)) {
-                crefMap[sym->outSymbol()->sectionIndex()].insert(
-                    std::make_pair(apply_sect, sym));
+              if ((ThisConfig.options().gcCref() == Sym->name()) &&
+                  mayProcessGC(*ApplySect)) {
+                crefMap[Sym->outSymbol()->sectionIndex()].insert(
+                    std::make_pair(ApplySect, Sym));
               }
             }
             return;
@@ -388,23 +388,23 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
 
           // only the target symbols defined in the concerned sections can make
           // the reference
-          ELFSection *target_sect = nullptr;
+          ELFSection *TargetSect = nullptr;
 
           // check if this sym is defined in linker script
-          if (sym->outSymbol()->scriptDefined()) {
-            if (target_sect)
-              m_Config.raise(diag::warn_gc_duplicate_symbol)
-                  << sym->outSymbol()->name();
+          if (Sym->outSymbol()->scriptDefined()) {
+            if (TargetSect)
+              ThisConfig.raise(Diag::warn_gc_duplicate_symbol)
+                  << Sym->outSymbol()->name();
             std::vector<ResolveInfo *> SymbolsForAssignment;
             const Assignment *Assignment =
-                m_Module.getAssignmentForSymbol(sym->name());
+                ThisModule.getAssignmentForSymbol(Sym->name());
             if (Assignment) {
               Assignment->getSymbols(SymbolsForAssignment);
               for (auto &S : SymbolsForAssignment) {
                 if (S->outSymbol()) {
                   if (S->outSymbol()->hasFragRef()) {
-                    reached_sects->insert(S->getOwningSection());
-                    reached_syms->insert(S->outSymbol());
+                    ReachedSects->insert(S->getOwningSection());
+                    ReachedSyms->insert(S->outSymbol());
                   }
                 }
               }
@@ -412,293 +412,292 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
             return;
           }
 
-          target_sect = sym->getOwningSection();
+          TargetSect = Sym->getOwningSection();
 
-          reached_sects->insert(target_sect);
-          reached_syms->insert(sym->outSymbol());
+          ReachedSects->insert(TargetSect);
+          ReachedSyms->insert(Sym->outSymbol());
 
-          if (m_Module.getPrinter()->traceGC() && apply_sect &&
-              mayProcessGC(*apply_sect)) {
-            if (first_field)
+          if (ThisModule.getPrinter()->traceGC() && ApplySect &&
+              mayProcessGC(*ApplySect)) {
+            if (FirstField)
               stream->indent(column - name.size());
             else
               stream->indent(column);
-            *stream << target_sect->getDecoratedName(m_Config.options())
+            *stream << TargetSect->getDecoratedName(ThisConfig.options())
                     << " (section) \n";
-            first_field = false;
+            FirstField = false;
           }
-          if ((m_Config.options().gcCref() == target_sect->name()) &&
-              mayProcessGC(*apply_sect)) {
-            crefMap[target_sect->getIndex()].insert(
-                std::make_pair(apply_sect, sym));
+          if ((ThisConfig.options().gcCref() == TargetSect->name()) &&
+              mayProcessGC(*ApplySect)) {
+            crefMap[TargetSect->getIndex()].insert(
+                std::make_pair(ApplySect, Sym));
           }
         };
-        recordOneRef(reloc);
+        RecordOneRef(Reloc);
       }
     }
   }
-  m_SectionReachedListMap.findReachedBitCodeSectionsAndSymbols(m_Module);
-  if (!m_Config.options().gcCref().empty()) {
-    for (auto &i : crefMap) {
-      m_Config.raise(diag::symbols_referring)
-          << m_Config.options().gcCref() << i.first;
-      for (auto &j : i.second)
-        m_Config.raise(diag::referred_symbol)
-            << m_Module.getNamePool().getDecoratedName(
-                   j.second, m_Config.options().shouldDemangle())
-            << j.first->getDecoratedName(m_Config.options())
-            << j.first->getIndex();
+  MSectionReachedListMap.findReachedBitCodeSectionsAndSymbols(ThisModule);
+  if (!ThisConfig.options().gcCref().empty()) {
+    for (auto &I : crefMap) {
+      ThisConfig.raise(Diag::symbols_referring)
+          << ThisConfig.options().gcCref() << I.first;
+      for (auto &J : I.second)
+        ThisConfig.raise(Diag::referred_symbol)
+            << ThisModule.getNamePool().getDecoratedName(
+                   J.second, ThisConfig.options().shouldDemangle())
+            << J.first->getDecoratedName(ThisConfig.options())
+            << J.first->getIndex();
     }
   }
 }
 
-bool GarbageCollection::getEntrySections(SectionSetTy &pEntry) {
+bool GarbageCollection::getEntrySections(SectionSetTy &EntrySections) {
   // all the KEEP sections defined in ldscript are entries, traverse all the
   // input sections and check the SectionMap to find the KEEP sections
-  bool hasEntrySymbol = false;
-  ELFSection *firstTextSect = nullptr;
-  LDSymbol *entry_sym =
-      m_Module.getNamePool().findSymbol(m_Backend.getEntry().str());
-  if ((entry_sym != nullptr) && (entry_sym->hasFragRef())) {
-    pEntry.insert(entry_sym->fragRef()->frag()->getOwningSection());
-    hasEntrySymbol = true;
+  bool HasEntrySymbol = false;
+  ELFSection *FirstTextSect = nullptr;
+  LDSymbol *EntrySym =
+      ThisModule.getNamePool().findSymbol(MBackend.getEntry().str());
+  if ((EntrySym != nullptr) && (EntrySym->hasFragRef())) {
+    EntrySections.insert(EntrySym->fragRef()->frag()->getOwningSection());
+    HasEntrySymbol = true;
   } else {
-    ResolveInfo *entryInfo =
-        m_Module.getNamePool().findInfo(m_Backend.getEntry().str());
-    if (entryInfo && entryInfo->isBitCode()) {
-      entryInfo->shouldPreserve(true);
-      Section *sect = getInputSectionForSymbol(*entryInfo);
-      if (sect) {
-        pEntry.insert(sect);
-        hasEntrySymbol = true;
+    ResolveInfo *EntryInfo =
+        ThisModule.getNamePool().findInfo(MBackend.getEntry().str());
+    if (EntryInfo && EntryInfo->isBitCode()) {
+      EntryInfo->shouldPreserve(true);
+      Section *Sect = getInputSectionForSymbol(*EntryInfo);
+      if (Sect) {
+        EntrySections.insert(Sect);
+        HasEntrySymbol = true;
       }
     }
   }
 
-  if (!hasEntrySymbol) {
-    Module::obj_iterator obj, objEnd = m_Module.obj_end();
-    for (obj = m_Module.obj_begin(); obj != objEnd; ++obj) {
-      ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*obj);
+  if (!HasEntrySymbol) {
+    Module::obj_iterator Obj, ObjEnd = ThisModule.objEnd();
+    for (Obj = ThisModule.objBegin(); Obj != ObjEnd; ++Obj) {
+      ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*Obj);
       if (!ObjFile)
         continue;
-      for (auto &sect : ObjFile->getSections()) {
-        ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-        if (firstTextSect == nullptr) {
-          if (section->size() && section->isCode()) {
-            firstTextSect = section;
+      for (auto &Sect : ObjFile->getSections()) {
+        ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
+        if (FirstTextSect == nullptr) {
+          if (Section->size() && Section->isCode()) {
+            FirstTextSect = Section;
             break;
           }
         }
       }
       // No point running through the rest of the sections.
-      if (firstTextSect)
+      if (FirstTextSect)
         break;
     }
   }
-  for (auto &sec : m_Module.getScript().sectionMap().getEntrySections()) {
-    bool isCommonSection = llvm::isa<CommonELFSection>(sec);
+  for (auto &Sec : ThisModule.getScript().sectionMap().getEntrySections()) {
+    bool IsCommonSection = llvm::isa<CommonELFSection>(Sec);
     // Common sections can be entry sections for garbage collection even
     // though they are part of an internal input file.
-    if (!sec->getInputFile()->isInternal() || isCommonSection)
-      pEntry.insert(sec);
+    if (!Sec->getInputFile()->isInternal() || IsCommonSection)
+      EntrySections.insert(Sec);
   }
 
-  addRetainSections(pEntry);
+  addRetainSections(EntrySections);
 
-  GeneralOptions::const_undef_sym_iterator undef_sym, undef_symEnd;
-  undef_symEnd = m_Module.getConfig().options().undef_sym_end();
-  undef_sym = m_Module.getConfig().options().undef_sym_begin();
-  auto add_list_entry = [&](llvm::StringRef name) -> void {
-    ResolveInfo *symInfo = m_Module.getNamePool().findInfo(name.str());
-    if (!symInfo)
+  GeneralOptions::const_undef_sym_iterator UndefSym, UndefSymEnd;
+  UndefSymEnd = ThisModule.getConfig().options().undefSymEnd();
+  UndefSym = ThisModule.getConfig().options().undefSymBegin();
+  auto AddListEntry = [&](llvm::StringRef Name) -> void {
+    ResolveInfo *SymInfo = ThisModule.getNamePool().findInfo(Name.str());
+    if (!SymInfo)
       return;
-    if (symInfo->isBitCode())
-      symInfo->shouldPreserve(true);
-    Section *sec = getInputSectionForSymbol(*symInfo);
-    if (sec != nullptr)
-      pEntry.insert(sec);
-    if (symInfo->outSymbol())
-      symInfo->outSymbol()->setShouldIgnore(false);
+    if (SymInfo->isBitCode())
+      SymInfo->shouldPreserve(true);
+    Section *Sec = getInputSectionForSymbol(*SymInfo);
+    if (Sec != nullptr)
+      EntrySections.insert(Sec);
+    if (SymInfo->outSymbol())
+      SymInfo->outSymbol()->setShouldIgnore(false);
   };
-  for (; undef_sym != undef_symEnd; undef_sym++)
-    add_list_entry((*undef_sym)->name());
+  for (; UndefSym != UndefSymEnd; UndefSym++)
+    AddListEntry((*UndefSym)->name());
 
-  auto &DynExpSymbols = m_Config.options().getExportDynSymList();
+  auto &DynExpSymbols = ThisConfig.options().getExportDynSymList();
   for (const auto &S : DynExpSymbols)
-    add_list_entry(S->name());
+    AddListEntry(S->name());
 
-  const auto &symScopes = m_Backend.symbolScopes();
-  LinkerScript::Assignments::iterator symit, symite;
-  symite = m_Module.getScript().assignments().end();
-  symit = m_Module.getScript().assignments().begin();
-  for (; symit != symite; symit++) {
-    ResolveInfo *info =
-        m_Module.getNamePool().findInfo((*symit).second->name().str());
+  const auto &SymScopes = MBackend.symbolScopes();
+  LinkerScript::Assignments::iterator Symit, Symite;
+  Symite = ThisModule.getScript().assignments().end();
+  Symit = ThisModule.getScript().assignments().begin();
+  for (; Symit != Symite; Symit++) {
+    ResolveInfo *Info =
+        ThisModule.getNamePool().findInfo((*Symit).second->name().str());
     // Bitcode symbols that are "Common" doesnot have an outsymbol. They do
     // have an outSymbol only if they are preserved.
-    if (info != nullptr && info->isCommon() && info->outSymbol()) {
-      ELFSection *S = info->getOwningSection();
-      pEntry.insert(S);
+    if (Info != nullptr && Info->isCommon() && Info->outSymbol()) {
+      ELFSection *S = Info->getOwningSection();
+      EntrySections.insert(S);
     }
   }
 
   // get the sections those the entry symbols defined in
-  if (LinkerConfig::Exec == m_Config.codeGenType() ||
-      m_Config.options().isPIE()) {
+  if (LinkerConfig::Exec == ThisConfig.codeGenType() ||
+      ThisConfig.options().isPIE()) {
     // when building executable
     // 1. the entry symbol is the entry
-    LDSymbol *entry_sym =
-        m_Module.getNamePool().findSymbol(m_Backend.getEntry().str());
+    LDSymbol *EntrySym =
+        ThisModule.getNamePool().findSymbol(MBackend.getEntry().str());
     // First, try to use entry_sym specifed by command line option,
     // LD script or target specific symbol. If no success, then try to use the
     // first ".text" section.
-    if (entry_sym != nullptr && entry_sym->hasFragRef())
-      pEntry.insert(entry_sym->fragRef()->frag()->getOwningSection());
-    else if (firstTextSect)
-      pEntry.insert(firstTextSect);
-    else if (!pEntry.size()) {
-      m_Config.raise(diag::no_entry_sym_for_GC);
+    if (EntrySym != nullptr && EntrySym->hasFragRef())
+      EntrySections.insert(EntrySym->fragRef()->frag()->getOwningSection());
+    else if (FirstTextSect)
+      EntrySections.insert(FirstTextSect);
+    else if (!EntrySections.size()) {
+      ThisConfig.raise(Diag::no_entry_sym_for_GC);
       return false;
     }
 
     // 2. the symbols have been seen in dynamice objects are entries
-    for (auto &G : m_Module.getNamePool().getGlobals()) {
-      ResolveInfo *info = G.getValue();
-      LDSymbol *sym = info->outSymbol();
-      if (nullptr == sym || !sym->hasFragRef())
+    for (auto &G : ThisModule.getNamePool().getGlobals()) {
+      ResolveInfo *Info = G.getValue();
+      LDSymbol *Sym = Info->outSymbol();
+      if (nullptr == Sym || !Sym->hasFragRef())
         continue;
 
-      if (m_Config.isCodeDynamic() || m_Config.options().forceDynamic()) {
+      if (ThisConfig.isCodeDynamic() || ThisConfig.options().forceDynamic()) {
         // Skip entry symbolse that have explicitly been marked as local by
         // version script
-        const auto &found = symScopes.find(info);
-        if (found != symScopes.end() && !(found->second->isGlobal()))
+        const auto &Found = SymScopes.find(Info);
+        if (Found != SymScopes.end() && !(Found->second->isGlobal()))
           continue;
       }
 
-      if (!treatSymbolAsEntry(info))
+      if (!treatSymbolAsEntry(Info))
         continue;
 
       // only the target symbols defined in the concerned sections can be
       // entries
-      ELFSection *sect = sym->fragRef()->frag()->getOwningSection();
-      if (!mayProcessGC(*sect))
+      ELFSection *Sect = Sym->fragRef()->frag()->getOwningSection();
+      if (!mayProcessGC(*Sect))
         continue;
 
-      pEntry.insert(sect);
+      EntrySections.insert(Sect);
     }
   } else {
     // when building shared objects, the global define symbols are entries
-    for (auto &G : m_Module.getNamePool().getGlobals()) {
-      ResolveInfo *info = G.getValue();
+    for (auto &G : ThisModule.getNamePool().getGlobals()) {
+      ResolveInfo *Info = G.getValue();
       // Bitcode symbols that are "Common" doesnot have an outsymbol. They do
       // have an outSymbol only if they are preserved.
-      if (info->isCommon() && info->outSymbol()) {
-        ELFSection *sect = info->getOwningSection();
-        pEntry.insert(sect);
+      if (Info->isCommon() && Info->outSymbol()) {
+        ELFSection *Sect = Info->getOwningSection();
+        EntrySections.insert(Sect);
         continue;
       }
-      if (!info->isDefine() || info->isLocal() ||
-          ((info->visibility() == ResolveInfo::Hidden ||
-            info->visibility() == ResolveInfo::Internal) &&
-           (info->isGlobal() || info->isWeak()) &&
-           (info->isDefine() || info->isCommon())))
+      if (!Info->isDefine() || Info->isLocal() ||
+          ((Info->visibility() == ResolveInfo::Hidden ||
+            Info->visibility() == ResolveInfo::Internal) &&
+           (Info->isGlobal() || Info->isWeak()) &&
+           (Info->isDefine() || Info->isCommon())))
         continue;
 
-      const auto &found = symScopes.find(info);
+      const auto &Found = SymScopes.find(Info);
       // Skip entry symbolse that have explicitly been marked as local by
       // version script
-      if (found != symScopes.end() && found->second->isLocal())
+      if (Found != SymScopes.end() && Found->second->isLocal())
         continue;
 
-      LDSymbol *sym = info->outSymbol();
-      if (nullptr == sym || !sym->hasFragRef())
+      LDSymbol *Sym = Info->outSymbol();
+      if (nullptr == Sym || !Sym->hasFragRef())
         continue;
 
       // only the target symbols defined in the concerned sections can be
       // entries
-      ELFSection *sect = sym->fragRef()->frag()->getOwningSection();
-      if (!mayProcessGC(*sect))
+      ELFSection *Sect = Sym->fragRef()->frag()->getOwningSection();
+      if (!mayProcessGC(*Sect))
         continue;
-      pEntry.insert(sect);
+      EntrySections.insert(Sect);
     }
   }
   return true;
 }
 
 void GarbageCollection::findReferencedSectionsAndSymbols(
-    SectionSetTy &pEntry, SectionSetTy &LiveSet) {
+    SectionSetTy &EntrySections, SectionSetTy &LiveSet) {
   // list of sections waiting to be processed
   typedef std::queue<std::pair<Section *, Section *>> WorkListTy;
-  WorkListTy work_list;
+  WorkListTy WorkList;
 
-  if (!pEntry.size())
+  if (!EntrySections.size())
     return;
 
   // start from each entry, resolve the transitive closure
-  for (const auto &entry_it : pEntry) {
+  for (const auto &EntryIt : EntrySections) {
     // add entry point to work list
-    work_list.push(std::make_pair(entry_it, nullptr));
-    LiveSet.insert(entry_it);
+    WorkList.push(std::make_pair(EntryIt, nullptr));
+    LiveSet.insert(EntryIt);
 
     // add section from the work_list to the referencedSections until every
     // reached sections are added
-    while (!work_list.empty()) {
-      std::pair<Section *, Section *> P = work_list.front();
-      work_list.pop();
+    while (!WorkList.empty()) {
+      std::pair<Section *, Section *> P = WorkList.front();
+      WorkList.pop();
 
-      Section *sect = P.first;
+      Section *Sect = P.first;
 
-      if (ELFSection *elfSect = dyn_cast<ELFSection>(sect)) {
+      if (ELFSection *ElfSect = dyn_cast<ELFSection>(Sect)) {
         // A section listed as KEEP in a discarded rule also needs to be checked
         // for references from that section, and those references may need to be
         // kept
-        if (!mayProcessGC(*elfSect) &&
-            !(elfSect->isIgnore() && pEntry.count(elfSect)))
+        if (!mayProcessGC(*ElfSect) &&
+            !(ElfSect->isIgnore() && EntrySections.count(ElfSect)))
           continue;
       }
 
       // add section to the ReferencedSections, if the section has been put into
       // referencedSections, skip this section
-      if (!m_ReferencedSections.insert(sect).second)
+      if (!MReferencedSections.insert(Sect).second)
         continue;
 
-      if (m_Module.getPrinter()->traceGCLive()) {
-        m_Config.raise(diag::refers_to)
-            << sect->getDecoratedName(m_Config.options());
-        if (sect->getInputFile())
-          m_Config.raise(diag::referenced_input_file)
-              << sect->getInputFile()->getInput()->decoratedPath();
-        if (sect->getOldInputFile())
-          m_Config.raise(diag::referenced_bc_file)
-              << sect->getOldInputFile()->getInput()->decoratedPath();
+      if (ThisModule.getPrinter()->traceGCLive()) {
+        ThisConfig.raise(Diag::refers_to)
+            << Sect->getDecoratedName(ThisConfig.options());
+        if (Sect->getInputFile())
+          ThisConfig.raise(Diag::referenced_input_file)
+              << Sect->getInputFile()->getInput()->decoratedPath();
+        if (Sect->getOldInputFile())
+          ThisConfig.raise(Diag::referenced_bc_file)
+              << Sect->getOldInputFile()->getInput()->decoratedPath();
         if (!P.second)
-          m_Config.raise(diag::referenced_by_root_symbol);
+          ThisConfig.raise(Diag::referenced_by_root_symbol);
         else {
-          m_Config.raise(diag::referenced_by)
-              << P.second->getDecoratedName(m_Config.options());
+          ThisConfig.raise(Diag::referenced_by)
+              << P.second->getDecoratedName(ThisConfig.options());
           if (P.second->getInputFile())
-            m_Config.raise(diag::referenced_input_file)
+            ThisConfig.raise(Diag::referenced_input_file)
                 << P.second->getInputFile()->getInput()->decoratedPath();
           if (P.second->getOldInputFile())
-            m_Config.raise(diag::referenced_bc_file)
+            ThisConfig.raise(Diag::referenced_bc_file)
                 << P.second->getOldInputFile()->getInput()->decoratedPath();
         }
       }
 
       // get the section reached list, if the section do not has one, which
       // means no referenced between it and other sections, then skip it
-      SectionListTy *reach_list =
-          m_SectionReachedListMap.findReachedList(*sect);
-      if (nullptr == reach_list)
+      SectionListTy *ReachList = MSectionReachedListMap.findReachedList(*Sect);
+      if (nullptr == ReachList)
         continue;
 
       // put the reached sections to work list, skip the one already be in
       // referencedSections
-      for (const auto &i : *reach_list) {
-        if (m_ReferencedSections.find(i) == m_ReferencedSections.end()) {
-          work_list.push(std::make_pair(i, sect));
-          LiveSet.insert(i);
+      for (const auto &I : *ReachList) {
+        if (MReferencedSections.find(I) == MReferencedSections.end()) {
+          WorkList.push(std::make_pair(I, Sect));
+          LiveSet.insert(I);
         }
       }
     }
@@ -709,105 +708,105 @@ void GarbageCollection::stripSections(SectionSetTy &S,
                                       bool CommonSectionsOnly) {
   // Traverse all the input Regular and BSS sections, if a section is not found
   // in the ReferencedSections, then it should be garbage collected
-  Module::obj_iterator obj, objEnd = m_Module.obj_end();
+  Module::obj_iterator Obj, ObjEnd = ThisModule.objEnd();
 
-  std::vector<std::pair<ELFSection *, LDFileFormat::Kind>> _ignoredSections;
+  std::vector<std::pair<ELFSection *, LDFileFormat::Kind>> IgnoredSections;
 
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
-  bool shouldDemangle = m_Config.options().shouldDemangle();
+  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  bool ShouldDemangle = ThisConfig.options().shouldDemangle();
 
-  for (obj = m_Module.obj_begin(); obj != objEnd; ++obj) {
-    ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*obj);
+  for (Obj = ThisModule.objBegin(); Obj != ObjEnd; ++Obj) {
+    ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*Obj);
     if (!ObjFile)
       continue;
     // CommonSymbols internal input file content can be stripped by garbage
     // collection.
-    if (ObjFile->isInternal() && ObjFile != m_Module.getCommonInternalInput())
+    if (ObjFile->isInternal() && ObjFile != ThisModule.getCommonInternalInput())
       continue;
-    for (auto &sect : ObjFile->getSections()) {
-      if (sect->isBitcode())
+    for (auto &Sect : ObjFile->getSections()) {
+      if (Sect->isBitcode())
         continue;
-      ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-      if (!mayProcessGC(*section))
+      ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
+      if (!mayProcessGC(*Section))
         continue;
-      if (m_ReferencedSections.find(section) == m_ReferencedSections.end()) {
-        bool isCommonSection = false;
+      if (MReferencedSections.find(Section) == MReferencedSections.end()) {
+        bool IsCommonSection = false;
         Input *I = ObjFile->getInput();
-        if (CommonELFSection *commonSection =
-                dyn_cast<CommonELFSection>(section)) {
-          I = commonSection->getOrigin()->getInput();
-          isCommonSection = true;
+        if (CommonELFSection *CommonSection =
+                dyn_cast<CommonELFSection>(Section)) {
+          I = CommonSection->getOrigin()->getInput();
+          IsCommonSection = true;
         }
         // Print the GC collected input section if Tracing is enabled.
-        if (m_Config.options().printGCSections() ||
-            m_Module.getPrinter()->traceGC()) {
-          if (CommonELFSection *commonSection =
-                  dyn_cast<CommonELFSection>(section)) {
-            ResolveInfo *commResolveInfo =
-                m_Backend.getCommonSymbol(commonSection)->resolveInfo();
-            assert(commResolveInfo && "Symbol ResolveInfo is missing!");
-            std::string decoratedSymName =
-                m_Module.getNamePool().getDecoratedName(commResolveInfo,
-                                                        shouldDemangle);
-            m_Config.raise(diag::trace_gc_symbol)
-                << I->decoratedPath() << decoratedSymName;
+        if (ThisConfig.options().printGCSections() ||
+            ThisModule.getPrinter()->traceGC()) {
+          if (CommonELFSection *CommonSection =
+                  dyn_cast<CommonELFSection>(Section)) {
+            ResolveInfo *CommResolveInfo =
+                MBackend.getCommonSymbol(CommonSection)->resolveInfo();
+            assert(CommResolveInfo && "Symbol ResolveInfo is missing!");
+            std::string DecoratedSymName =
+                ThisModule.getNamePool().getDecoratedName(CommResolveInfo,
+                                                          ShouldDemangle);
+            ThisConfig.raise(Diag::trace_gc_symbol)
+                << I->decoratedPath() << DecoratedSymName;
           } else
-            m_Config.raise(diag::trace_gc_section)
+            ThisConfig.raise(Diag::trace_gc_section)
                 << I->decoratedPath()
-                << section->getDecoratedName(m_Config.options());
+                << Section->getDecoratedName(ThisConfig.options());
         }
-        if (m_Config.options().isSectionTracingRequested() &&
-            m_Config.options().traceSection(section->name().str()))
-          m_Config.raise(diag::gc_section_info)
-              << section->getDecoratedName(m_Config.options())
+        if (ThisConfig.options().isSectionTracingRequested() &&
+            ThisConfig.options().traceSection(Section->name().str()))
+          ThisConfig.raise(Diag::gc_section_info)
+              << Section->getDecoratedName(ThisConfig.options())
               << I->decoratedPath();
-        if (CommonSectionsOnly && !isCommonSection)
-          _ignoredSections.push_back(
-              std::make_pair(section, section->getKind()));
-        else if (printer)
-          printer->recordGC(section);
-        section->setKind(LDFileFormat::Ignore);
+        if (CommonSectionsOnly && !IsCommonSection)
+          IgnoredSections.push_back(
+              std::make_pair(Section, Section->getKind()));
+        else if (Printer)
+          Printer->recordGC(Section);
+        Section->setKind(LDFileFormat::Ignore);
       }
     }
   }
 
-  for (obj = m_Module.obj_begin(); obj != objEnd; ++obj) {
-    ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*obj);
+  for (Obj = ThisModule.objBegin(); Obj != ObjEnd; ++Obj) {
+    ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*Obj);
     if (!ObjFile)
       continue;
-    if (ObjFile->isInternal() && ObjFile != m_Module.getCommonInternalInput())
+    if (ObjFile->isInternal() && ObjFile != ThisModule.getCommonInternalInput())
       continue;
-    for (auto &sect : ObjFile->getSections()) {
-      if (sect->isBitcode())
+    for (auto &Sect : ObjFile->getSections()) {
+      if (Sect->isBitcode())
         continue;
-      bool noAllocSection = false;
-      bool isEntrySection = false;
-      ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
+      bool NoAllocSection = false;
+      bool IsEntrySection = false;
+      ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
       // Dont keep references from non allocatable sections. This is ELD
       // optimization to reduce memory at runtime.
-      if (!section->isAlloc())
-        noAllocSection = true;
-      if (section->isIgnore())
+      if (!Section->isAlloc())
+        NoAllocSection = true;
+      if (Section->isIgnore())
         continue;
-      if (section->isDiscard())
+      if (Section->isDiscard())
         continue;
-      if (S.find(sect) != S.end())
-        isEntrySection = true;
-      SymbolListTy *referred_syms =
-          m_SectionReachedListMap.findReachedSymbolList(*section);
-      if (referred_syms) {
-        SymbolListTy::iterator it, ite = referred_syms->end();
-        for (it = referred_syms->begin(); it != ite; it++)
-          if (!noAllocSection || isEntrySection ||
-              ((*it)->binding() == ResolveInfo::Local)) {
-            (*it)->setShouldIgnore(false);
+      if (S.find(Sect) != S.end())
+        IsEntrySection = true;
+      SymbolListTy *ReferredSyms =
+          MSectionReachedListMap.findReachedSymbolList(*Section);
+      if (ReferredSyms) {
+        SymbolListTy::iterator It, Ite = ReferredSyms->end();
+        for (It = ReferredSyms->begin(); It != Ite; It++)
+          if (!NoAllocSection || IsEntrySection ||
+              ((*It)->binding() == ResolveInfo::Local)) {
+            (*It)->setShouldIgnore(false);
           }
       }
     }
   }
 
-  for (auto &sec : _ignoredSections)
-    sec.first->setKind(sec.second);
+  for (auto &Sec : IgnoredSections)
+    Sec.first->setKind(Sec.second);
 }
 
 bool GarbageCollection::treatSymbolAsEntry(ResolveInfo *R) const {
@@ -822,30 +821,30 @@ bool GarbageCollection::treatSymbolAsEntry(ResolveInfo *R) const {
   if (R->isHidden() || R->isAbsolute())
     return false;
 
-  if (m_Config.options().isPIE() && m_Config.options().exportDynamic())
+  if (ThisConfig.options().isPIE() && ThisConfig.options().exportDynamic())
     return true;
 
-  if (m_Config.options().exportDynamic())
+  if (ThisConfig.options().exportDynamic())
     return true;
 
   return false;
 }
 
-void GarbageCollection::addRetainSections(SectionSetTy &entrySections) {
-  Module::obj_iterator obj, objEnd = m_Module.obj_end();
-  for (obj = m_Module.obj_begin(); obj != objEnd; ++obj) {
-    ObjectFile *objFile = llvm::dyn_cast<ObjectFile>(*obj);
-    if (!objFile)
+void GarbageCollection::addRetainSections(SectionSetTy &EntrySections) {
+  Module::obj_iterator Obj, ObjEnd = ThisModule.objEnd();
+  for (Obj = ThisModule.objBegin(); Obj != ObjEnd; ++Obj) {
+    ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*Obj);
+    if (!ObjFile)
       continue;
-    for (Section *sect : objFile->getSections()) {
-      ELFSection *S = llvm::dyn_cast<ELFSection>(sect);
+    for (Section *Sect : ObjFile->getSections()) {
+      ELFSection *S = llvm::dyn_cast<ELFSection>(Sect);
       if (S && S->isRetain()) {
-        entrySections.insert(S);
-        if (m_Module.getLayoutPrinter())
-          m_Module.getLayoutPrinter()->recordRetainedSections();
-        if (m_Module.getPrinter()->isVerbose() ||
-            m_Config.options().traceSection(S->name().str()))
-          m_Config.raise(diag::retaining_section)
+        EntrySections.insert(S);
+        if (ThisModule.getLayoutPrinter())
+          ThisModule.getLayoutPrinter()->recordRetainedSections();
+        if (ThisModule.getPrinter()->isVerbose() ||
+            ThisConfig.options().traceSection(S->name().str()))
+          ThisConfig.raise(Diag::retaining_section)
               << S->name() << S->originalInput()->getInput()->decoratedPath();
       }
     }

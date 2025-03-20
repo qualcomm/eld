@@ -11,17 +11,17 @@ using namespace eld;
 
 EnterScopeCmd::EnterScopeCmd() : ScriptCommand(ScriptCommand::ENTER_SCOPE) {}
 
-eld::Expected<void> EnterScopeCmd::activate(Module &pModule) {
+eld::Expected<void> EnterScopeCmd::activate(Module &CurModule) {
   return eld::Expected<void>();
 }
 
-void EnterScopeCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "{"
+void EnterScopeCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "{"
        << "\n";
 }
 
-void EnterScopeCmd::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  outs << " ";
-  outs << "{"
+void EnterScopeCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  Outs << " ";
+  Outs << "{"
        << "\n";
 }

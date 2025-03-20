@@ -14,7 +14,7 @@ struct CommandLine {
 public:
   typedef enum { Flag, Option, MultiValueOption } CmdType;
 
-  CommandLine(CmdType type) : T(type) {}
+  CommandLine(CmdType Type) : T(Type) {}
 
   CmdType getType() const { return T; }
 
@@ -23,14 +23,14 @@ private:
 };
 
 struct Flags : public CommandLine {
-  Flags(const std::string &opt, bool flag)
-      : CommandLine(CmdType::Flag), Option(opt), Flag(flag) {}
+  Flags(const std::string &Opt, bool Flag)
+      : CommandLine(CmdType::Flag), Option(Opt), Flag(Flag) {}
 
   bool getFlag() const { return Flag; }
   std::string getOption() const { return Option; }
 
-  static bool classof(const CommandLine *cmd) {
-    return cmd->getType() == CmdType::Flag;
+  static bool classof(const CommandLine *Cmd) {
+    return Cmd->getType() == CmdType::Flag;
   }
 
 private:
@@ -39,14 +39,14 @@ private:
 };
 
 struct Options : public CommandLine {
-  Options(const std::string &opt, const std::string &arg)
-      : CommandLine(CmdType::Option), Option(opt), Argument(arg) {}
+  Options(const std::string &Opt, const std::string &Arg)
+      : CommandLine(CmdType::Option), Option(Opt), Argument(Arg) {}
 
   std::string getOption() const { return Option; }
   std::string getArgument() const { return Argument; }
 
-  static bool classof(const CommandLine *cmd) {
-    return cmd->getType() == CmdType::Option;
+  static bool classof(const CommandLine *Cmd) {
+    return Cmd->getType() == CmdType::Option;
   }
 
 private:
@@ -55,15 +55,15 @@ private:
 };
 
 struct MultiValueOption : public CommandLine {
-  MultiValueOption(const std::string &opt, const std::vector<std::string> &arg)
-      : CommandLine(CmdType::MultiValueOption), Option(opt), ArgumentList(arg) {
+  MultiValueOption(const std::string &Opt, const std::vector<std::string> &Arg)
+      : CommandLine(CmdType::MultiValueOption), Option(Opt), ArgumentList(Arg) {
   }
 
   std::string getOption() const { return Option; }
   std::vector<std::string> getArgumentList() const { return ArgumentList; }
 
-  static bool classof(const CommandLine *cmd) {
-    return cmd->getType() == CmdType::MultiValueOption;
+  static bool classof(const CommandLine *Cmd) {
+    return Cmd->getType() == CmdType::MultiValueOption;
   }
 
 private:

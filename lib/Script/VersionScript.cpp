@@ -12,84 +12,84 @@
 using namespace eld;
 
 // -----------------------VersionScript -------------------------------
-VersionScript::VersionScript(InputFile *inp) : m_InputFile(inp) {}
+VersionScript::VersionScript(InputFile *Inp) : MInputFile(Inp) {}
 
 VersionScriptNode *VersionScript::createVersionScriptNode() {
-  m_CurrentNode = eld::make<VersionScriptNode>();
-  m_Nodes.push_back(m_CurrentNode);
-  return m_CurrentNode;
+  MCurrentNode = eld::make<VersionScriptNode>();
+  VersionScriptNodes.push_back(MCurrentNode);
+  return MCurrentNode;
 }
 
 void VersionScript::setExternLanguage(eld::StrToken *Language) {
-  m_CurrentNode->setExternLanguage(Language);
+  MCurrentNode->setExternLanguage(Language);
 }
 
 void VersionScript::resetExternLanguage() {
-  m_CurrentNode->resetExternLanguage();
+  MCurrentNode->resetExternLanguage();
 }
 
 void VersionScript::addSymbol(eld::ScriptSymbol *S) {
-  m_CurrentNode->addSymbol(S);
+  MCurrentNode->addSymbol(S);
 }
 
 void VersionScript::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  if (m_Nodes.empty() || !m_InputFile)
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  if (VersionScriptNodes.empty() || !MInputFile)
     return;
-  ostream << "\nVersion Script file\n";
-  ostream << getDecoratedPath(m_InputFile->getInput());
-  for (const VersionScriptNode *versionNodes : m_Nodes)
-    versionNodes->dump(ostream, getDecoratedPath);
+  Ostream << "\nVersion Script file\n";
+  Ostream << GetDecoratedPath(MInputFile->getInput());
+  for (const VersionScriptNode *VersionNodes : VersionScriptNodes)
+    VersionNodes->dump(Ostream, GetDecoratedPath);
 }
 
 // -----------------------VersionScriptNode -------------------------------
 VersionScriptNode::VersionScriptNode() {}
 
 VersionScriptBlock *VersionScriptNode::switchToGlobal() {
-  if (m_Local && !m_Global) {
-    m_HasErrorDuringParsing = true;
+  if (MLocal && !MGlobal) {
+    MHasErrorDuringParsing = true;
     return nullptr;
   }
-  if (m_HasErrorDuringParsing)
+  if (MHasErrorDuringParsing)
     return nullptr;
-  if (m_Global)
-    return m_CurrentBlock = m_Global;
-  m_Global = eld::make<GlobalVersionScriptBlock>(this);
-  m_CurrentBlock = m_Global;
-  return m_Global;
+  if (MGlobal)
+    return MCurrentBlock = MGlobal;
+  MGlobal = eld::make<GlobalVersionScriptBlock>(this);
+  MCurrentBlock = MGlobal;
+  return MGlobal;
 }
 
 void VersionScriptNode::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  if (m_Global)
-    m_Global->dump(ostream, getDecoratedPath);
-  if (m_Local)
-    m_Local->dump(ostream, getDecoratedPath);
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  if (MGlobal)
+    MGlobal->dump(Ostream, GetDecoratedPath);
+  if (MLocal)
+    MLocal->dump(Ostream, GetDecoratedPath);
 }
 
 VersionScriptBlock *VersionScriptNode::switchToLocal() {
-  if (m_Local)
-    return m_CurrentBlock = m_Local;
-  m_Local = eld::make<LocalVersionScriptBlock>(this);
-  m_CurrentBlock = m_Local;
-  return m_Local;
+  if (MLocal)
+    return MCurrentBlock = MLocal;
+  MLocal = eld::make<LocalVersionScriptBlock>(this);
+  MCurrentBlock = MLocal;
+  return MLocal;
 }
 
 void VersionScriptNode::addSymbol(eld::ScriptSymbol *S) {
-  if (m_HasErrorDuringParsing)
+  if (MHasErrorDuringParsing)
     return;
-  if (!m_CurrentBlock)
+  if (!MCurrentBlock)
     switchToGlobal();
-  m_CurrentBlock->addSymbol(S, m_Language);
+  MCurrentBlock->addSymbol(S, VersionScriptLanguage);
   S->activate();
 }
 
-bool VersionScriptNode::isAnonymous() const { return (m_Name == nullptr); }
+bool VersionScriptNode::isAnonymous() const { return (Name == nullptr); }
 
 bool VersionScriptNode::hasDependency() const {
-  return (m_Dependency != nullptr);
+  return (MDependency != nullptr);
 }
 // --------------------------------VersionScriptBlock -------------------
 
@@ -99,49 +99,49 @@ void VersionScriptBlock::addSymbol(eld::ScriptSymbol *S,
     VersionSymbol *V =
         eld::make<VersionSymbol>(VersionSymbol::VersionSymbolKind::Simple, S);
     V->setBlock(this);
-    m_Symbols.push_back(V);
+    ThisSymbols.push_back(V);
     return;
   }
   VersionSymbol *V = eld::make<VersionSymbol>(
       VersionSymbol::VersionSymbolKind::Extern, S, Language);
   V->setBlock(this);
-  m_Symbols.push_back(V);
+  ThisSymbols.push_back(V);
 }
 
 void VersionScriptBlock::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  for (VersionSymbol *sym : m_Symbols)
-    sym->dump(ostream, getDecoratedPath);
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  for (VersionSymbol *Sym : ThisSymbols)
+    Sym->dump(Ostream, GetDecoratedPath);
 }
 // -----------------------GlobalVersionScriptBlock --------------------------
 void GlobalVersionScriptBlock::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  ostream << "\nGlobal:";
-  VersionScriptBlock::dump(ostream, getDecoratedPath);
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  Ostream << "\nGlobal:";
+  VersionScriptBlock::dump(Ostream, GetDecoratedPath);
 }
 
 // -----------------------LocalVersionScriptBlock --------------------------
 void LocalVersionScriptBlock::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  ostream << "\nLocal:";
-  VersionScriptBlock::dump(ostream, getDecoratedPath);
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  Ostream << "\nLocal:";
+  VersionScriptBlock::dump(Ostream, GetDecoratedPath);
 }
 
 // -----------------------VersionScriptSymbol -------------------------------
-bool VersionSymbol::isGlobal() const { return m_Block->isGlobal(); }
+bool VersionSymbol::isGlobal() const { return VersionScriptBlock->isGlobal(); }
 
-bool VersionSymbol::isLocal() const { return m_Block->isLocal(); }
+bool VersionSymbol::isLocal() const { return VersionScriptBlock->isLocal(); }
 
 void VersionSymbol::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  if (!m_Symbol)
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  if (!ThisSymbol)
     return;
-  ostream << "\n#<Pattern: "
-          << m_Symbol->getSymbolContainer()->getWildcardPatternAsString()
+  Ostream << "\n#<Pattern: "
+          << ThisSymbol->getSymbolContainer()->getWildcardPatternAsString()
           << ">\n";
-  m_Symbol->getSymbolContainer()->dump(ostream, getDecoratedPath);
+  ThisSymbol->getSymbolContainer()->dump(Ostream, GetDecoratedPath);
 }

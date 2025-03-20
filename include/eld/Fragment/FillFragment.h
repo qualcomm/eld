@@ -22,8 +22,8 @@ class LinkerConfig;
 
 class FillFragment : public Fragment {
 public:
-  FillFragment(Module &M, uint64_t pValue, size_t pSize,
-               ELFSection *O = nullptr, size_t pAlignment = 1);
+  FillFragment(Module &M, uint64_t PValue, size_t PSize,
+               ELFSection *O = nullptr, size_t PAlignment = 1);
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Fillment;
@@ -33,11 +33,11 @@ public:
 
   size_t size() const override;
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
 private:
-  /// m_Size - The number of bytes to insert.
-  size_t m_Size;
+  /// ThisSize - The number of bytes to insert.
+  size_t ThisSize;
 };
 
 } // namespace eld

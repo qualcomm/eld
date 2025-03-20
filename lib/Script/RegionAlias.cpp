@@ -13,36 +13,36 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // RegionAlias
 //===----------------------------------------------------------------------===//
-RegionAlias::RegionAlias(const StrToken *alias, const StrToken *region)
-    : ScriptCommand(ScriptCommand::REGION_ALIAS), m_Alias(alias),
-      m_Region(region) {}
+RegionAlias::RegionAlias(const StrToken *Alias, const StrToken *Region)
+    : ScriptCommand(ScriptCommand::REGION_ALIAS), MemoryAliasName(Alias),
+      MemoryRegionName(Region) {}
 
 RegionAlias::~RegionAlias() {}
 
-void RegionAlias::dump(llvm::raw_ostream &outs) const {
-  outs << "REGION_ALIAS";
-  outs << "(";
-  outs << "\"" << m_Alias->name() << "\"";
-  outs << ",";
-  outs << "\"" << m_Region->name() << "\"";
-  outs << ")";
-  outs << "\n";
+void RegionAlias::dump(llvm::raw_ostream &Outs) const {
+  Outs << "REGION_ALIAS";
+  Outs << "(";
+  Outs << "\"" << MemoryAliasName->name() << "\"";
+  Outs << ",";
+  Outs << "\"" << MemoryRegionName->name() << "\"";
+  Outs << ")";
+  Outs << "\n";
 }
 
-eld::Expected<void> RegionAlias::activate(Module &pModule) {
-  LinkerScript &script = pModule.getLinkerScript();
-  std::string RegionAliasName = m_Alias->name();
-  std::string RegionName = m_Region->name();
+eld::Expected<void> RegionAlias::activate(Module &CurModule) {
+  LinkerScript &Script = CurModule.getLinkerScript();
+  std::string RegionAliasName = MemoryAliasName->name();
+  std::string RegionName = MemoryRegionName->name();
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(
-      script.insertRegionAlias(RegionAliasName, getContext()));
-  auto Region = script.getMemoryRegionForRegionAlias(RegionName, getContext());
+      Script.insertRegionAlias(RegionAliasName, getContext()));
+  auto Region = Script.getMemoryRegionForRegionAlias(RegionName, getContext());
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Region);
-  auto memRegion = script.getMemoryRegion(RegionAliasName, getContext());
-  if (memRegion) {
+  auto MemRegion = Script.getMemoryRegion(RegionAliasName, getContext());
+  if (MemRegion) {
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::error_alias_already_is_memory_region,
+        plugin::DiagnosticEntry(Diag::error_alias_already_is_memory_region,
                                 {RegionAliasName, getContext()}));
   }
-  script.addMemoryRegion(RegionAliasName, Region.value());
+  Script.addMemoryRegion(RegionAliasName, Region.value());
   return eld::Expected<void>();
 }

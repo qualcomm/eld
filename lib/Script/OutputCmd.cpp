@@ -15,23 +15,24 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // OutputCmd
 //===----------------------------------------------------------------------===//
-OutputCmd::OutputCmd(const std::string &pOutputFile)
-    : ScriptCommand(ScriptCommand::OUTPUT), m_OutputFile(pOutputFile) {}
+OutputCmd::OutputCmd(const std::string &POutputFile)
+    : ScriptCommand(ScriptCommand::OUTPUT), OutputFileName(POutputFile) {}
 
 OutputCmd::~OutputCmd() {}
 
-void OutputCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "OUTPUT(" << m_OutputFile << ")\n";
+void OutputCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "OUTPUT(" << OutputFileName << ")\n";
 }
 
-eld::Expected<void> OutputCmd::activate(Module &pModule) {
-  GeneralOptions &options = pModule.getConfig().options();
+eld::Expected<void> OutputCmd::activate(Module &CurModule) {
+  GeneralOptions &Options = CurModule.getConfig().options();
   // Sets output filename if an output filename is not specified using
   // '-o|--output' linker command-line options.
-  if (!options.hasOutputFileName()) {
-    options.setOutputFileName(m_OutputFile);
-    pModule.getConfig().raise(diag::verbose_linker_script_output_file)
-        << m_OutputFile << getInputFileInContext()->getInput()->decoratedPath();
+  if (!Options.hasOutputFileName()) {
+    Options.setOutputFileName(OutputFileName);
+    CurModule.getConfig().raise(Diag::verbose_linker_script_output_file)
+        << OutputFileName
+        << getInputFileInContext()->getInput()->decoratedPath();
   }
   return eld::Expected<void>();
 }

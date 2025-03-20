@@ -113,7 +113,7 @@ bool GnuLdDriver::emitStats(eld::Module &M) const {
   if (!File.empty()) {
     StatsFile = new llvm::raw_fd_ostream(File, error, llvm::sys::fs::OF_None);
     if (error) {
-      m_Config.raise(diag::fatal_unwritable_output) << File << error.message();
+      m_Config.raise(Diag::fatal_unwritable_output) << File << error.message();
       return false;
     }
   }
@@ -165,7 +165,7 @@ bool GnuLdDriver::checkOptions(llvm::opt::InputArgList &Args) const {
   // check --thread-count and if threads are disabled.
   if (Args.getLastArg(T::thread_count)) {
     if (!m_Config.options().threadsEnabled()) {
-      m_Config.raise(diag::thread_count_with_no_threads);
+      m_Config.raise(Diag::thread_count_with_no_threads);
       return false;
     }
   }
@@ -194,7 +194,7 @@ uint32_t GnuLdDriver::getUnsignedInteger(llvm::opt::Arg *arg,
   // The string is considered erroneous if empty or if it overflows the type
   // of V.
   if (S.getAsInteger(10, V)) {
-    m_Config.raise(diag::invalid_value_for_option)
+    m_Config.raise(Diag::invalid_value_for_option)
         << arg->getOption().getPrefixedName() << S;
     V = Default;
   }
@@ -324,7 +324,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   std::vector<std::string> searchDirs;
   for (auto *Ldir : Args.filtered(T::L)) {
     if (!m_Config.directories().insert(Ldir->getValue()))
-      m_Config.raise(diag::cannot_open_search_dir) << Ldir->getValue();
+      m_Config.raise(Diag::cannot_open_search_dir) << Ldir->getValue();
     searchDirs.push_back(Ldir->getValue());
   }
   m_Config.addCommandLine(Table->getOptionName(T::L), searchDirs);
@@ -346,13 +346,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     llvm::StringRef value = arg->getValue();
     uint32_t verboseLevel = 0;
     if (value.getAsInteger(0, verboseLevel)) {
-      m_Config.raise(diag::invalid_value_for_option)
+      m_Config.raise(Diag::invalid_value_for_option)
           << arg->getOption().getPrefixedName() << arg->getValue();
       return false;
     }
     // Just to be GNU compatible.
     if (verboseLevel > 2) {
-      m_Config.raise(diag::invalid_value_for_option)
+      m_Config.raise(Diag::invalid_value_for_option)
           << arg->getOption().getPrefixedName() << arg->getValue();
       return false;
     }
@@ -369,7 +369,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::time_region)) {
     m_Config.options().setPrintTimingStats();
     if (!m_Config.options().setRequestedTimingRegions(arg->getValue())) {
-      m_Config.raise(diag::invalid_value_for_option)
+      m_Config.raise(Diag::invalid_value_for_option)
           << arg->getOption().getPrefixedName() << arg->getValue();
       return false;
     }
@@ -503,7 +503,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     m_Config.addCommandLine(Table->getOptionName(T::MapStyle),
                             style->getValue());
     if (!m_Config.options().setMapStyle(style->getValue())) {
-      m_Config.raise(diag::invalid_option_mapstyle);
+      m_Config.raise(Diag::invalid_option_mapstyle);
       return false;
     }
   }
@@ -529,7 +529,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --error-style=[gnu|llvm]
   if (llvm::opt::Arg *arg = Args.getLastArg(T::error_style)) {
     if (!m_Config.options().setErrorStyle(arg->getValue())) {
-      m_Config.raise(diag::invalid_option_error_style);
+      m_Config.raise(Diag::invalid_option_error_style);
       return false;
     }
   }
@@ -537,7 +537,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --script-options=[match-gnu|match-llvm]
   if (llvm::opt::Arg *arg = Args.getLastArg(T::script_options)) {
     if (!m_Config.options().setScriptOption(arg->getValue())) {
-      m_Config.raise(diag::invalid_option_match_error_style);
+      m_Config.raise(Diag::invalid_option_match_error_style);
       return false;
     }
   }
@@ -670,7 +670,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   for (auto *arg : Args.filtered(T::dash_z)) {
     StringRef zOpt = arg->getValue();
     uint64_t zVal = 0;
-    eld::ZOption::Kind zkind = eld::ZOption::Unknown;
+    eld::ZOption::ZOptionKind zkind = eld::ZOption::Unknown;
     if (0 == zOpt.compare("combreloc"))
       zkind = eld::ZOption::CombReloc;
     else if (0 == zOpt.compare("nocombreloc"))
@@ -731,13 +731,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     llvm::StringRef value = arg->getValue();
     uint64_t addr = 0;
     if (value.getAsInteger(0, addr)) {
-      m_Config.raise(diag::err_invalid_image_base) << value;
+      m_Config.raise(Diag::err_invalid_image_base) << value;
       return false;
     }
     m_Config.options().setImageBase(addr);
     if (m_Config.options().hasMaxPageSize() &&
         (addr % m_Config.options().maxPageSize()) != 0)
-      m_Config.raise(diag::warn_image_base_not_multiple_page_size) << value;
+      m_Config.raise(Diag::warn_image_base_not_multiple_page_size) << value;
     m_Config.addCommandLine(Table->getOptionName(T::image_base), value);
   }
 
@@ -877,7 +877,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     m_Config.setCodeGenType(eld::LinkerConfig::Object);
     conflictingOption = "relocatable";
     if (Args.hasArg(T::gc_sections))
-      m_Config.raise(diag::warn_gc_sections_relocatable);
+      m_Config.raise(Diag::warn_gc_sections_relocatable);
   } else
     m_Config.setCodeGenType(eld::LinkerConfig::Exec);
 
@@ -893,7 +893,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // Disable emit relocs if -shared/-pie/relocatable
   if (m_Config.options().emitRelocs() && !conflictingOption.empty()) {
-    m_Config.raise(diag::warn_incompatible_option)
+    m_Config.raise(Diag::warn_incompatible_option)
         << "-emit-relocs" << conflictingOption;
     m_Config.options().setEmitRelocs(false);
     m_Config.options().setEmitGNUCompatRelocs(false);
@@ -903,13 +903,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
        m_Config.codeGenType() == eld::LinkerConfig::Object) &&
       (m_Config.options().getStripSymbolMode() !=
        eld::GeneralOptions::KeepAllSymbols)) {
-    m_Config.raise(diag::warn_strip_symbols) << "-emit-relocs/-r";
+    m_Config.raise(Diag::warn_strip_symbols) << "-emit-relocs/-r";
     m_Config.options().setStripSymbols(eld::GeneralOptions::KeepAllSymbols);
   }
 
   if (m_Config.options().isPatchEnable()) {
     if (!m_Config.options().isStripTemporaryOrLocalSymbols())
-      m_Config.raise(diag::warn_strip_symbols) << "--patch-enable";
+      m_Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
     m_Config.options().setStripSymbols(eld::GeneralOptions::KeepAllSymbols);
   }
 
@@ -965,7 +965,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --symdef-style=<style>
   if (llvm::opt::Arg *arg = Args.getLastArg(T::symdef_style)) {
     if (!m_Config.options().setSymDefFileStyle(arg->getValue())) {
-      m_Config.raise(diag::error_invalid_option_symdef_style)
+      m_Config.raise(Diag::error_invalid_option_symdef_style)
           << arg->getValue();
       return false;
     }
@@ -974,7 +974,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // Disable symdef if -shared/-pie/-relocatable
   if (m_Config.options().symDef() && !conflictingOption.empty()) {
-    m_Config.raise(diag::warn_incompatible_option)
+    m_Config.raise(Diag::warn_incompatible_option)
         << "-symdef/--symdef-file" << conflictingOption;
     m_Config.options().setSymDef(false);
   }
@@ -1046,12 +1046,12 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     std::error_code EC =
         llvm::sys::fs::createTemporaryFile("reproduce", "tar", outputPath);
     if (EC) {
-      m_Config.raise(diag::unable_to_create_temporary_file) << "reproduce.tar";
+      m_Config.raise(Diag::unable_to_create_temporary_file) << "reproduce.tar";
       return false;
     }
     m_Config.options().setTarFile(outputPath.str().str());
     if (m_Config.getPrinter()->isVerbose())
-      m_Config.raise(diag::reproduce_in_env);
+      m_Config.raise(Diag::reproduce_in_env);
   }
 
   // --mapping-file
@@ -1060,7 +1060,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     m_Config.options().setMappingFileName(arg->getValue());
     eld::MappingFileReader reader(arg->getValue());
     if (!reader.readMappingFile(m_Config))
-      m_Config.raise(diag::unable_to_find_mapping_file)
+      m_Config.raise(Diag::unable_to_find_mapping_file)
           << m_Config.options().getMappingFileName();
   }
 
@@ -1093,7 +1093,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     if (m_Config.isLinkPartial())
       m_Config.options().setEmitUniqueOutputSections(true);
     else
-      m_Config.raise(diag::unique_output_sections_unsupported);
+      m_Config.raise(Diag::unique_output_sections_unsupported);
   }
 
   // --global-merge-non-alloc-strings
@@ -1130,7 +1130,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --sort-common=ascending/descending
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sort_common_val)) {
     if (!m_Config.options().setSortCommon(arg->getValue())) {
-      m_Config.raise(diag::invalid_option) << arg->getValue() << "sort-common";
+      m_Config.raise(Diag::invalid_option) << arg->getValue() << "sort-common";
       return false;
     }
   }
@@ -1138,7 +1138,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --sort-section=alignment/name
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sort_section)) {
     if (!m_Config.options().setSortSection(arg->getValue())) {
-      m_Config.raise(diag::invalid_option) << arg->getValue() << "sort-section";
+      m_Config.raise(Diag::invalid_option) << arg->getValue() << "sort-section";
       return false;
     }
   }
@@ -1252,10 +1252,10 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
     // --start-group
     case T::start_group: {
       if (arg->getNumValues() == 0 && m_Config.showCommandLineWarnings())
-        m_Config.raise(diag::warn_group_is_empty);
+        m_Config.raise(Diag::warn_group_is_empty);
       if (GroupMatchCount) {
-        m_Config.raise(diag::nested_group_not_allowed);
-        m_Config.raise(diag::linking_had_errors);
+        m_Config.raise(Diag::nested_group_not_allowed);
+        m_Config.raise(Diag::linking_had_errors);
         return false;
       }
       ++GroupMatchCount;
@@ -1289,14 +1289,14 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   }
 
   if (GroupMatchCount != 0) {
-    m_Config.raise(diag::mismatched_group);
-    m_Config.raise(diag::linking_had_errors);
+    m_Config.raise(Diag::mismatched_group);
+    m_Config.raise(Diag::linking_had_errors);
     return false;
   }
 
   if (input_num == 0) {
-    m_Config.raise(diag::err_no_inputs);
-    m_Config.raise(diag::linking_had_errors);
+    m_Config.raise(Diag::err_no_inputs);
+    m_Config.raise(Diag::linking_had_errors);
     return false;
   }
 
@@ -1414,15 +1414,15 @@ void GnuLdDriver::writeReproduceTar(void *cookie) {
   DiagnosticEngine *DiagEngine = ThisModule->getConfig().getDiagEngine();
   bool mappingfile = outputTar->createMappingFile();
   if (!mappingfile)
-    DiagEngine->raise(diag::unable_to_add_ini_hash_entry);
+    DiagEngine->raise(Diag::unable_to_add_ini_hash_entry);
   bool versionfile = outputTar->createVersionFile();
   if (!versionfile)
-    DiagEngine->raise(diag::unable_to_add_version_file)
+    DiagEngine->raise(Diag::unable_to_add_version_file)
         << outputTar->getVersionFileName() << outputTar->getTarFileName();
   bool out = outputTar->writeOutput(
       ThisModule->getConfig().options().showProgressBar());
   if (!out)
-    DiagEngine->raise(diag::unable_to_write_reproduce_tarball);
+    DiagEngine->raise(Diag::unable_to_write_reproduce_tarball);
   if (ThisModule->getConfig().options().getDumpMappings())
     writeDump(ThisModule->getConfig().options().getMappingDumpFile(),
               outputTar->getMappings());
@@ -1538,7 +1538,7 @@ bool GnuLdDriver::processReproduceOption(
 void GnuLdDriver::defaultSignalHandler(void *cookie) {
   DiagnosticEngine *DiagEngine = ThisModule->getConfig().getDiagEngine();
   std::string commandLine = "";
-  for (auto arg : ThisModule->getConfig().options().Args()) {
+  for (auto arg : ThisModule->getConfig().options().args()) {
     if (arg) {
       commandLine.append(std::string(arg));
       commandLine.append(" ");
@@ -1557,21 +1557,21 @@ void GnuLdDriver::defaultSignalHandler(void *cookie) {
   for (eld::Plugin *P : ThisModule->getScript().getPlugins()) {
     if (P->isRunning()) {
       pluginCrash = true;
-      DiagEngine->raise(diag::plugin_crash) << P->getName();
+      DiagEngine->raise(Diag::plugin_crash) << P->getName();
     }
   }
 
   if (!pluginCrash) {
-    DiagEngine->raise(diag::unexpected_linker_behavior);
+    DiagEngine->raise(Diag::unexpected_linker_behavior);
   }
 
   // FIXME: EC should be checked before using outputPath variable.
   if (EC || error) {
-    DiagEngine->raise(diag::linker_crash_use_reproduce) << "--reproduce";
+    DiagEngine->raise(Diag::linker_crash_use_reproduce) << "--reproduce";
     return;
   }
   *file << commandLine;
-  DiagEngine->raise(diag::linker_crash_use_reproduce) << outputPath.str();
+  DiagEngine->raise(Diag::linker_crash_use_reproduce) << outputPath.str();
 }
 
 eld::Module *GnuLdDriver::ThisModule = nullptr;
@@ -1585,13 +1585,13 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
   const llvm::Target *LLVMTarget =
       llvm::TargetRegistry::lookupTarget(Triple.str(), error);
   if (nullptr == LLVMTarget) {
-    m_Config.raise(diag::cannot_find_target) << error;
+    m_Config.raise(Diag::cannot_find_target) << error;
     return false;
   }
   const eld::Target *ELDTarget =
       eld::TargetRegistry::lookupTarget(Triple.str(), error);
   if (nullptr == ELDTarget) {
-    m_Config.raise(diag::cannot_find_target) << error;
+    m_Config.raise(Diag::cannot_find_target) << error;
     return false;
   }
 
@@ -1613,13 +1613,13 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     if (m_Config.options().checkAndUpdateMapStyleForPrintMap())
       MapStyles = m_Config.options().mapStyle();
     // Create LayoutPrinters.
-    m_Config.raise(diag::mapstyles_used) << llvm::join(MapStyles, ",");
+    m_Config.raise(Diag::mapstyles_used) << llvm::join(MapStyles, ",");
     for (auto &Style : MapStyles) {
       if (!ThisModule->createLayoutPrintersForMapStyle(Style))
         return false; // fail the link
     }
   } else {
-    m_Config.raise(diag::mapstyles_used)
+    m_Config.raise(Diag::mapstyles_used)
         << m_Config.options().getDefaultMapStyle();
     if (!ThisModule->createLayoutPrintersForMapStyle(
             m_Config.options().getDefaultMapStyle()))
@@ -1630,7 +1630,7 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
   {
     eld::Linker linker(*ThisModule, m_Config);
     llvm::sys::AddSignalHandler(defaultSignalHandler, nullptr);
-    m_Config.raise(diag::default_signal_handler);
+    m_Config.raise(Diag::default_signal_handler);
     linkStatus = linker.prepare(actions, ELDTarget);
     // llvm::errs() << "prepare: linkStatus: " << linkStatus << "\n";
     if (!linkStatus || m_Config.options().getRecordInputFiles())
@@ -1649,7 +1649,7 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
   if (m_Config.options().displaySummary())
     m_Config.getDiagEngine()->finalize();
   if (!linkStatus)
-    m_Config.raise(diag::linking_had_errors);
+    m_Config.raise(Diag::linking_had_errors);
   eld::freeArena();
   return linkStatus;
 }
@@ -1678,7 +1678,7 @@ bool GnuLdDriver::handleReproduce(llvm::opt::InputArgList &Args,
     llvm::sys::SetInterruptFunction(ReproduceInterruptHandler);
     llvm::sys::SetInfoSignalFunction(ReproduceInterruptHandler);
     if (m_Config.getPrinter()->isVerbose())
-      m_Config.raise(diag::reproduce_signal_handler);
+      m_Config.raise(Diag::reproduce_signal_handler);
   });
   // If needed to write files, then write files
   if (writeFiles) {

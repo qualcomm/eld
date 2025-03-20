@@ -26,87 +26,89 @@ namespace eld {
  */
 class Diagnostic {
 public:
-  Diagnostic(DiagnosticEngine &pEngine);
+  Diagnostic(DiagnosticEngine &PEngine);
 
   ~Diagnostic();
 
   DiagnosticEngine::DiagIDType getID() const {
-    assert(m_Engine.state().ID.has_value() && "Invalid diagnostic state!");
-    return m_Engine.state().ID.value();
+    assert(DiagEngine.state().ID.has_value() && "Invalid diagnostic state!");
+    return DiagEngine.state().ID.value();
   }
 
-  unsigned int getNumArgs() const { return m_Engine.state().numArgs; }
+  unsigned int getNumArgs() const { return DiagEngine.state().NumArgs; }
 
-  DiagnosticEngine::ArgumentKind getArgKind(unsigned int pIdx) const {
-    assert(pIdx < getNumArgs() && "Argument index is out of range!");
-    return (DiagnosticEngine::ArgumentKind)m_Engine.state().ArgumentKinds[pIdx];
+  DiagnosticEngine::ArgumentKind getArgKind(unsigned int PIdx) const {
+    assert(PIdx < getNumArgs() && "Argument index is out of range!");
+    return (DiagnosticEngine::ArgumentKind)DiagEngine.state()
+        .ArgumentKinds[PIdx];
   }
 
-  const std::string &getArgStdStr(unsigned int pIdx) const {
-    assert(getArgKind(pIdx) == DiagnosticEngine::ak_std_string &&
+  const std::string &getArgStdStr(unsigned int PIdx) const {
+    assert(getArgKind(PIdx) == DiagnosticEngine::ak_std_string &&
            "Invalid argument accessor!");
-    return m_Engine.state().ArgumentStrs[pIdx];
+    return DiagEngine.state().ArgumentStrs[PIdx];
   }
 
-  const char *getArgCStr(unsigned int pIdx) const {
-    assert(getArgKind(pIdx) == DiagnosticEngine::ak_c_string &&
+  const char *getArgCStr(unsigned int PIdx) const {
+    assert(getArgKind(PIdx) == DiagnosticEngine::ak_c_string &&
            "Invalid argument accessor!");
-    return reinterpret_cast<const char *>(m_Engine.state().ArgumentVals[pIdx]);
+    return reinterpret_cast<const char *>(
+        DiagEngine.state().ArgumentVals[PIdx]);
   }
 
-  int getArgSInt(unsigned int pIdx) const {
-    assert(getArgKind(pIdx) == DiagnosticEngine::ak_sint &&
+  int getArgSInt(unsigned int PIdx) const {
+    assert(getArgKind(PIdx) == DiagnosticEngine::ak_sint &&
            "Invalid argument accessor!");
-    return (int)m_Engine.state().ArgumentVals[pIdx];
+    return (int)DiagEngine.state().ArgumentVals[PIdx];
   }
 
-  unsigned int getArgUInt(unsigned int pIdx) const {
-    assert(getArgKind(pIdx) == DiagnosticEngine::ak_uint &&
+  unsigned int getArgUInt(unsigned int PIdx) const {
+    assert(getArgKind(PIdx) == DiagnosticEngine::ak_uint &&
            "Invalid argument accessor!");
-    return (unsigned int)m_Engine.state().ArgumentVals[pIdx];
+    return (unsigned int)DiagEngine.state().ArgumentVals[PIdx];
   }
 
-  unsigned long long getArgULongLong(unsigned long long pIdx) const {
-    assert(getArgKind(pIdx) == DiagnosticEngine::ak_ulonglong &&
+  unsigned long long getArgULongLong(unsigned long long PIdx) const {
+    assert(getArgKind(PIdx) == DiagnosticEngine::ak_ulonglong &&
            "Invalid argument accessor!");
-    return (unsigned long long)m_Engine.state().ArgumentVals[pIdx];
+    return (unsigned long long)DiagEngine.state().ArgumentVals[PIdx];
   }
 
-  bool getArgBool(unsigned int pIdx) const {
-    assert(getArgKind(pIdx) == DiagnosticEngine::ak_bool &&
+  bool getArgBool(unsigned int PIdx) const {
+    assert(getArgKind(PIdx) == DiagnosticEngine::ak_bool &&
            "Invalid argument accessor!");
-    return (bool)m_Engine.state().ArgumentVals[pIdx];
+    return (bool)DiagEngine.state().ArgumentVals[PIdx];
   }
 
-  intptr_t getRawVals(unsigned int pIdx) const {
-    assert(getArgKind(pIdx) != DiagnosticEngine::ak_std_string &&
+  intptr_t getRawVals(unsigned int PIdx) const {
+    assert(getArgKind(PIdx) != DiagnosticEngine::ak_std_string &&
            "Invalid argument accessor!");
-    return m_Engine.state().ArgumentVals[pIdx];
+    return DiagEngine.state().ArgumentVals[PIdx];
   }
 
   // format - format this diagnostic into string, subsituting the formal
   // arguments. The result is appended at on the pOutStr.
-  eld::Expected<void> format(std::string &pOutStr) const;
+  eld::Expected<void> format(std::string &POutStr) const;
 
   // format - format the given formal string, subsituting the formal
   // arguments. The result is appended at on the pOutStr.
-  eld::Expected<void> format(const char *pBegin, const char *pEnd,
-                             std::string &pOutStr) const;
+  eld::Expected<void> format(const char *PBegin, const char *PEnd,
+                             std::string &POutStr) const;
 
   /// If the diagnostic is raised by a plugin, then return the name of the
   /// corresponding plugin; Otherwise return an empty string.
   std::string getPluginName() const {
-    const Plugin *plugin = m_Engine.state().plugin;
-    if (plugin)
-      return plugin->getPluginName();
+    const Plugin *Plugin = DiagEngine.state().Plugin;
+    if (Plugin)
+      return Plugin->getPluginName();
     return "";
   }
 
 private:
-  const char *findMatch(char pVal, const char *pBegin, const char *pEnd) const;
+  const char *findMatch(char PVal, const char *PBegin, const char *PEnd) const;
 
 private:
-  DiagnosticEngine &m_Engine;
+  DiagnosticEngine &DiagEngine;
 };
 
 } // namespace eld

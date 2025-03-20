@@ -32,26 +32,26 @@ public:
   typedef FormatList::iterator iterator;
 
 public:
-  OutputFormatCmd(const std::string &pFormat);
-  OutputFormatCmd(const std::string &pDefault, const std::string &pBig,
-                  const std::string &pLittle);
+  OutputFormatCmd(const std::string &PFormat);
+  OutputFormatCmd(const std::string &PDefault, const std::string &PBig,
+                  const std::string &PLittle);
   ~OutputFormatCmd();
 
-  const_iterator begin() const { return m_FormatList.begin(); }
-  iterator begin() { return m_FormatList.begin(); }
-  const_iterator end() const { return m_FormatList.end(); }
-  iterator end() { return m_FormatList.end(); }
+  const_iterator begin() const { return OutputFormatList.begin(); }
+  iterator begin() { return OutputFormatList.begin(); }
+  const_iterator end() const { return OutputFormatList.end(); }
+  iterator end() { return OutputFormatList.end(); }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::OUTPUT_FORMAT;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_FORMAT;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  FormatList m_FormatList;
+  FormatList OutputFormatList;
 };
 
 } // namespace eld

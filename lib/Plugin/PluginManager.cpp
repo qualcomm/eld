@@ -24,7 +24,7 @@ void PluginManager::storeUniversalPlugins() {
 
 bool PluginManager::callInitHook() {
   RegisterTimer T("Init", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callInitHook();
     if (!DE.diagnose())
       return false;
@@ -34,7 +34,7 @@ bool PluginManager::callInitHook() {
 
 bool PluginManager::callDestroyHook() {
   RegisterTimer T("Destroy", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callDestroyHook();
     if (!DE.diagnose())
       return false;
@@ -42,43 +42,43 @@ bool PluginManager::callDestroyHook() {
   return true;
 }
 
-bool PluginManager::processPluginCommandLineOptions(GeneralOptions &options) {
+bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
   RegisterTimer T("PluginCommandLineOptions", "Plugins",
                   ShouldPrintTimingStats);
-  const auto &unknownOpts = options.getUnknownOptions();
-  std::unordered_set<std::size_t> usedOpts;
+  const auto &UnknownOpts = Options.getUnknownOptions();
+  std::unordered_set<std::size_t> UsedOpts;
   for (Plugin *P : UniversalPlugins) {
-    for (std::size_t unknownOptIdx = 0; unknownOptIdx < unknownOpts.size();
-         ++unknownOptIdx) {
-      const std::string &option = unknownOpts[unknownOptIdx];
-      std::string::size_type pos = option.find("=");
-      std::string optName = option.substr(0, pos);
-      std::optional<std::string> optValue;
-      if (pos != std::string::npos)
-        optValue = string::unquote(option.substr(pos + 1));
-      for (const auto &optSpec : P->getPluginCommandLineOptions()) {
-        if (optSpec.match(optName, optValue)) {
-          P->callCommandLineOptionHandler(optName, optValue,
-                                          optSpec.OptionHandler);
-          usedOpts.insert(unknownOptIdx);
+    for (std::size_t UnknownOptIdx = 0; UnknownOptIdx < UnknownOpts.size();
+         ++UnknownOptIdx) {
+      const std::string &Option = UnknownOpts[UnknownOptIdx];
+      std::string::size_type Pos = Option.find("=");
+      std::string OptName = Option.substr(0, Pos);
+      std::optional<std::string> OptValue;
+      if (Pos != std::string::npos)
+        OptValue = string::unquote(Option.substr(Pos + 1));
+      for (const auto &OptSpec : P->getPluginCommandLineOptions()) {
+        if (OptSpec.match(OptName, OptValue)) {
+          P->callCommandLineOptionHandler(OptName, OptValue,
+                                          OptSpec.OptionHandler);
+          UsedOpts.insert(UnknownOptIdx);
           if (!DE.diagnose())
             return false;
         }
       }
     }
   }
-  std::vector<std::string> unusedOpts;
-  for (std::size_t i = 0; i < unknownOpts.size(); ++i) {
-    if (!usedOpts.count(i))
-      unusedOpts.push_back(unknownOpts[i]);
+  std::vector<std::string> UnusedOpts;
+  for (std::size_t I = 0; I < UnknownOpts.size(); ++I) {
+    if (!UsedOpts.count(I))
+      UnusedOpts.push_back(UnknownOpts[I]);
   }
-  options.setUnknownOptions(unusedOpts);
+  Options.setUnknownOptions(UnusedOpts);
   return true;
 }
 
 bool PluginManager::callVisitSectionsHook(InputFile &IF) {
   RegisterTimer T("VisitSections", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callVisitSectionsHook(IF);
     if (!DE.diagnose())
       return false;
@@ -88,7 +88,7 @@ bool PluginManager::callVisitSectionsHook(InputFile &IF) {
 
 bool PluginManager::callActBeforeRuleMatchingHook() {
   RegisterTimer T("ActBeforeRuleMatching", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callActBeforeRuleMatchingHook();
     if (!DE.diagnose())
       return false;
@@ -96,12 +96,12 @@ bool PluginManager::callActBeforeRuleMatchingHook() {
   return true;
 }
 
-bool PluginManager::callVisitSymbolHook(LDSymbol *sym, llvm::StringRef symName,
-                                        const SymbolInfo &symInfo) {
+bool PluginManager::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
+                                        const SymbolInfo &SymInfo) {
   RegisterTimer T("VisitSymbol", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     if (SymbolVisitors.count(P)) {
-      P->callVisitSymbolHook(sym, symName, symInfo);
+      P->callVisitSymbolHook(Sym, SymName, SymInfo);
       if (!DE.diagnose())
         return false;
     }
@@ -112,12 +112,12 @@ bool PluginManager::callVisitSymbolHook(LDSymbol *sym, llvm::StringRef symName,
 void PluginManager::addSymbolVisitor(eld::Plugin *P) {
   SymbolVisitors.insert(P);
   if (DE.getPrinter()->tracePlugins())
-    DE.raise(diag::trace_plugin_enable_visit_symbol) << P->getPluginName();
+    DE.raise(Diag::trace_plugin_enable_visit_symbol) << P->getPluginName();
 }
 
 bool PluginManager::callActBeforeSectionMergingHook() {
   RegisterTimer T("ActBeforeSectionMerging", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callActBeforeSectionMergingHook();
     if (!DE.diagnose())
       return false;
@@ -125,26 +125,26 @@ bool PluginManager::callActBeforeSectionMergingHook() {
   return true;
 }
 
-void PluginManager::enableShowRMSectNameInDiag(LinkerConfig &config,
+void PluginManager::enableShowRMSectNameInDiag(LinkerConfig &Config,
                                                const eld::Plugin &P) {
-  DE.raise(diag::trace_show_RM_sect_name_in_diag) << P.getPluginName();
-  config.options().enableShowRMSectNameInDiag();
+  DE.raise(Diag::trace_show_RM_sect_name_in_diag) << P.getPluginName();
+  Config.options().enableShowRMSectNameInDiag();
 }
 
 void PluginManager::setAuxiliarySymbolNameMap(
-    ObjectFile *objFile,
-    const ObjectFile::AuxiliarySymbolNameMap &auxSymNameMap, const Plugin *P) {
-  objFile->setAuxiliarySymbolNameMap(auxSymNameMap);
-  AuxSymNameMapProvider[objFile] = P;
+    ObjectFile *ObjFile,
+    const ObjectFile::AuxiliarySymbolNameMap &AuxSymNameMap, const Plugin *P) {
+  ObjFile->setAuxiliarySymbolNameMap(AuxSymNameMap);
+  AuxSymNameMapProvider[ObjFile] = P;
   if (DE.getPrinter()->tracePlugins())
-    DE.raise(diag::trace_set_aux_sym_name_map)
-        << P->getPluginName() << objFile->getInput()->decoratedPath();
+    DE.raise(Diag::trace_set_aux_sym_name_map)
+        << P->getPluginName() << ObjFile->getInput()->decoratedPath();
 }
 
 bool PluginManager::callActBeforePerformingLayoutHook() {
   RegisterTimer T("ActBeforePerformingLayout", "Plugins",
                   ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callActBeforePerformingLayoutHook();
     if (!DE.diagnose())
       return false;
@@ -154,7 +154,7 @@ bool PluginManager::callActBeforePerformingLayoutHook() {
 
 bool PluginManager::callActBeforeWritingOutputHook() {
   RegisterTimer T("ActBeforeWritingOutput", "Plugins", ShouldPrintTimingStats);
-  for (auto P : UniversalPlugins) {
+  for (auto *P : UniversalPlugins) {
     P->callActBeforeWritingOutputHook();
     if (!DE.diagnose())
       return false;

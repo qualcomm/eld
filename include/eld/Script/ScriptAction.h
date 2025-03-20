@@ -25,14 +25,14 @@ class LinkerConfig;
 /// ScriptAction
 class ScriptAction : public InputFileAction {
 public:
-  ScriptAction(const std::string &pFileName, ScriptFile::Kind pKind,
-               const LinkerConfig &pConfig, DiagnosticPrinter *Printer);
+  ScriptAction(const std::string &PFileName, ScriptFile::Kind PKind,
+               const LinkerConfig &PConfig, DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
 
-  const std::string &filename() const { return m_FileName; }
+  const std::string &filename() const { return FileNamePatternName; }
 
-  ScriptFile::Kind kind() const { return m_Kind; }
+  ScriptFile::Kind kind() const { return ScriptFileKind; }
 
   LinkerScriptFile *getLinkerScriptFile() const {
     return llvm::dyn_cast<eld::LinkerScriptFile>(I->getInputFile());
@@ -43,9 +43,9 @@ public:
   static bool classof(const ScriptAction *S) { return true; }
 
 private:
-  std::string m_FileName;
-  ScriptFile::Kind m_Kind;
-  const LinkerConfig &m_Config;
+  std::string FileNamePatternName;
+  ScriptFile::Kind ScriptFileKind;
+  const LinkerConfig &ThisConfig;
 };
 } // namespace eld
 

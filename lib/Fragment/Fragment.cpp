@@ -28,12 +28,12 @@ using namespace eld;
 // Fragment
 //===----------------------------------------------------------------------===//
 Fragment::Fragment()
-    : UnalignedOffset(~uint32_t(0)), m_Kind((Type)~0),
-      m_pOwningSection(nullptr), m_Alignment(1) {}
+    : UnalignedOffset(~uint32_t(0)), Kind((Type)~0), OwningSection(nullptr),
+      Alignment(1) {}
 
-Fragment::Fragment(Type pKind, ELFSection *pSection, uint32_t align)
-    : UnalignedOffset(~uint32_t(0)), m_Kind(pKind), m_pOwningSection(pSection),
-      m_Alignment((align == 0) ? 1 : align) {}
+Fragment::Fragment(Type PKind, ELFSection *CurSection, uint32_t Align)
+    : UnalignedOffset(~uint32_t(0)), Kind(PKind), OwningSection(CurSection),
+      Alignment((Align == 0) ? 1 : Align) {}
 
 Fragment::~Fragment() {}
 
@@ -49,15 +49,15 @@ uint32_t Fragment::getOffset(DiagnosticEngine *DiagEngine) const {
             ->dumpMap(S, false, false);
     }
     if (getOwningSection()->isDiscard()) {
-      DiagEngine->raise(diag::offset_not_assigned)
+      DiagEngine->raise(Diag::offset_not_assigned)
           << getOwningSection()->name() << "Discarded"
           << getOwningSection()->getInputFile()->getInput()->decoratedPath();
     } else if (!I)
-      DiagEngine->raise(diag::offset_not_assigned)
+      DiagEngine->raise(Diag::offset_not_assigned)
           << getOwningSection()->name() << getOutputELFSection()->name()
           << getOwningSection()->getInputFile()->getInput()->decoratedPath();
     else
-      DiagEngine->raise(diag::offset_not_assigned_with_rule)
+      DiagEngine->raise(Diag::offset_not_assigned_with_rule)
           << getOwningSection()->name()
           << getOwningSection()->getInputFile()->getInput()->decoratedPath()
           << RuleStr << getOutputELFSection()->name();
@@ -72,7 +72,7 @@ llvm::SmallVectorImpl<Fragment *>::iterator Fragment::getIterator() {
                         ->getMatchedLinkerScriptRule()
                         ->getSection()
                         ->getFragmentList();
-  auto Iter = std::find(Fragments.begin(), Fragments.end(), this);
+  auto *Iter = std::find(Fragments.begin(), Fragments.end(), this);
   return Iter;
 }
 
@@ -81,8 +81,8 @@ Fragment *Fragment::getPrevNode() {
                         ->getMatchedLinkerScriptRule()
                         ->getSection()
                         ->getFragmentList();
-  auto Begin = Fragments.begin();
-  auto Iter = std::find(Begin, Fragments.end(), this);
+  auto *Begin = Fragments.begin();
+  auto *Iter = std::find(Begin, Fragments.end(), this);
   assert(Iter != Fragments.end());
   if (Iter == Begin)
     return nullptr;
@@ -95,8 +95,8 @@ Fragment *Fragment::getNextNode() {
                         ->getMatchedLinkerScriptRule()
                         ->getSection()
                         ->getFragmentList();
-  auto End = Fragments.end();
-  auto Iter = std::find(Fragments.begin(), End, this);
+  auto *End = Fragments.end();
+  auto *Iter = std::find(Fragments.begin(), End, this);
   assert(Iter != Fragments.end());
   ++Iter;
   if (Iter == End)
@@ -107,28 +107,28 @@ Fragment *Fragment::getNextNode() {
 size_t Fragment::paddingSize() const {
   if (!hasOffset())
     return 0;
-  return llvm::offsetToAlignment(UnalignedOffset, llvm::Align(m_Alignment));
+  return llvm::offsetToAlignment(UnalignedOffset, llvm::Align(Alignment));
 }
 
-void Fragment::setOffset(uint32_t pOffset) {
+void Fragment::setOffset(uint32_t POffset) {
   if (isNull())
     return;
-  UnalignedOffset = pOffset;
-  if (m_pOwningSection) {
-    m_pOwningSection->setOffsetAndAddr(UnalignedOffset + paddingSize());
+  UnalignedOffset = POffset;
+  if (OwningSection) {
+    OwningSection->setOffsetAndAddr(UnalignedOffset + paddingSize());
     // Dont count inputs that dont have allocatable sections
-    if (m_pOwningSection->isAlloc() && m_pOwningSection->getInputFile() &&
-        !m_pOwningSection->getInputFile()->isUsed())
-      m_pOwningSection->getInputFile()->setUsed(true);
+    if (OwningSection->isAlloc() && OwningSection->getInputFile() &&
+        !OwningSection->getInputFile()->isUsed())
+      OwningSection->getInputFile()->setUsed(true);
   }
 }
 
-uint32_t Fragment::getNewOffset(uint32_t pOffset) const {
-  return (pOffset + llvm::offsetToAlignment(pOffset, llvm::Align(m_Alignment)));
+uint32_t Fragment::getNewOffset(uint32_t POffset) const {
+  return (POffset + llvm::offsetToAlignment(POffset, llvm::Align(Alignment)));
 }
 
 ELFSection *Fragment::getOutputELFSection() const {
-  return m_pOwningSection->getOutputELFSection();
+  return OwningSection->getOutputELFSection();
 }
 
 // Pass DiagEngine here.
@@ -138,7 +138,7 @@ uint64_t Fragment::getAddr(DiagnosticEngine *DiagEngine) const {
 
 bool Fragment::isMergeStr() const { return getOwningSection()->isMergeKind(); }
 
-bool Fragment::originatesFromPlugin(const Module &module) const {
+bool Fragment::originatesFromPlugin(const Module &Module) const {
   return getOwningSection()->getInputFile() ==
-         module.getInternalInput(Module::InternalInputType::Plugin);
+         Module.getInternalInput(Module::InternalInputType::Plugin);
 }

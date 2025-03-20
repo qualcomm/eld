@@ -23,25 +23,25 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // ScriptSymbol
 //===----------------------------------------------------------------------===//
-ScriptSymbol::ScriptSymbol(const std::string &pString)
-    : WildcardPattern(Saver.save(pString)) {}
+ScriptSymbol::ScriptSymbol(const std::string &PString)
+    : WildcardPattern(Saver.save(PString)) {}
 
 eld::Expected<void> ScriptSymbol::activate() {
-  assert(!m_SymbolContainer);
-  m_SymbolContainer = eld::make<SymbolContainer>(*this);
+  assert(!ThisSymbolContainer);
+  ThisSymbolContainer = eld::make<SymbolContainer>(*this);
   return eld::Expected<void>();
 }
 
-void ScriptSymbol::addResolveInfoToContainer(const ResolveInfo *info) const {
-  assert(m_SymbolContainer);
-  m_SymbolContainer->addResolveInfo(info);
+void ScriptSymbol::addResolveInfoToContainer(const ResolveInfo *Info) const {
+  assert(ThisSymbolContainer);
+  ThisSymbolContainer->addResolveInfo(Info);
 }
 
-bool ScriptSymbol::matched(const ResolveInfo &sym) const {
-  llvm::StringRef name = sym.name();
-  uint64_t hash = llvm::hash_combine(name);
-  if ((hasHash() && hashValue() == hash) || WildcardPattern::matched(name)) {
-    addResolveInfoToContainer(&sym);
+bool ScriptSymbol::matched(const ResolveInfo &Sym) const {
+  llvm::StringRef Name = Sym.name();
+  uint64_t Hash = llvm::hash_combine(Name);
+  if ((hasHash() && hashValue() == Hash) || WildcardPattern::matched(Name)) {
+    addResolveInfoToContainer(&Sym);
     return true;
   }
   return false;

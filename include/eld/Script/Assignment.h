@@ -43,86 +43,93 @@ public:
   enum Type { DEFAULT, HIDDEN, PROVIDE, PROVIDE_HIDDEN, FILL, ASSERT };
 
 public:
-  Assignment(Level pLevel, Type pType, std::string pSymbol,
-             Expression *pExpression);
+  Assignment(Level AssignmentLevel, Type AssignmentType, std::string Symbol,
+             Expression *ScriptExpression);
 
   ~Assignment();
 
-  Level level() const { return m_Level; }
+  Level level() const { return AssignmentLevel; }
 
-  void setLevel(enum Level pLevel) { m_Level = pLevel; }
+  void setLevel(enum Level AssignmentLevel) {
+    this->AssignmentLevel = AssignmentLevel;
+  }
 
-  Type type() const { return m_Type; }
+  Type type() const { return ThisType; }
 
-  Expression *getExpression() const { return m_Expr; }
+  Expression *getExpression() const { return ExpressionToEvaluate; }
 
-  llvm::StringRef name() const { return m_Name; }
+  llvm::StringRef name() const { return Name; }
 
-  uint64_t value() const { return m_Value; }
+  uint64_t value() const { return ExpressionValue; }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void trace(llvm::raw_ostream &outs) const;
+  void trace(llvm::raw_ostream &Outs) const;
 
-  void dumpMap(llvm::raw_ostream &out = llvm::outs(), bool color = false,
-               bool endWithNewLine = true, bool withValues = false,
-               bool addIndent = true) const override;
+  void dumpMap(llvm::raw_ostream &Out = llvm::outs(), bool Color = false,
+               bool EndWithNewLine = true, bool WithValues = false,
+               bool AddIndent = true) const override;
 
   bool isDot() const;
 
   // Does the assignment have any dot usage ?
   bool hasDot() const;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::ASSIGNMENT;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::ASSIGNMENT;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
   /// assign - evaluate the rhs and assign the result to lhs.
-  bool assign(Module &pModule, const ELFSection *Section);
+  bool assign(Module &CurModule, const ELFSection *Section);
 
-  LDSymbol *symbol() const { return m_Symbol; }
+  LDSymbol *symbol() const { return ThisSymbol; }
 
   void getSymbols(std::vector<ResolveInfo *> &Symbols) const;
 
   /// Returns a set of all the symbol names contained in the assignment
   /// expression.
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) const;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) const;
 
   /// Query functions on Assignment Kinds.
   bool isOutsideSections() const {
-    return m_Level == OUTSIDE_SECTIONS || m_Level == SECTIONS_END;
+    return AssignmentLevel == OUTSIDE_SECTIONS ||
+           AssignmentLevel == SECTIONS_END;
   }
 
-  bool isOutsideOutputSection() const { return m_Level == OUTPUT_SECTION; }
+  bool isOutsideOutputSection() const {
+    return AssignmentLevel == OUTPUT_SECTION;
+  }
 
-  bool isInsideOutputSection() const { return m_Level == INPUT_SECTION; }
+  bool isInsideOutputSection() const {
+    return AssignmentLevel == INPUT_SECTION;
+  }
 
-  bool isHidden() const { return m_Type == HIDDEN; }
+  bool isHidden() const { return ThisType == HIDDEN; }
 
-  bool isProvide() const { return m_Type == PROVIDE; }
+  bool isProvide() const { return ThisType == PROVIDE; }
 
-  bool isProvideHidden() const { return m_Type == PROVIDE_HIDDEN; }
+  bool isProvideHidden() const { return ThisType == PROVIDE_HIDDEN; }
 
   bool isProvideOrProvideHidden() const {
     return isProvide() || isProvideHidden();
   }
 
-  bool isFill() const { return m_Type == FILL; }
+  bool isFill() const { return ThisType == FILL; }
 
-  bool isAssert() const { return m_Type == ASSERT; }
-
-private:
-  bool checkLinkerScript(Module &pModule);
+  bool isAssert() const { return ThisType == ASSERT; }
 
 private:
-  Level m_Level;
-  Type m_Type;
-  uint64_t m_Value;
-  std::string m_Name;
-  Expression *m_Expr;
-  LDSymbol *m_Symbol;
+  bool checkLinkerScript(Module &CurModule);
+
+private:
+  Level AssignmentLevel;
+  Type ThisType;
+  uint64_t ExpressionValue;
+  std::string Name;
+  Expression *ExpressionToEvaluate;
+  LDSymbol *ThisSymbol;
 };
 
 } // namespace eld

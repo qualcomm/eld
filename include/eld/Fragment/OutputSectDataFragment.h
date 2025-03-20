@@ -13,7 +13,7 @@
 namespace eld {
 class OutputSectDataFragment : public Fragment {
 public:
-  OutputSectDataFragment(OutputSectData &outSectData);
+  OutputSectDataFragment(OutputSectData &OutSectData);
 
   ~OutputSectDataFragment() = default;
 
@@ -23,10 +23,10 @@ public:
 
   size_t size() const override;
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
 private:
-  OutputSectData &m_OutSectData;
+  OutputSectData &OutSectData;
 };
 } // namespace eld
 

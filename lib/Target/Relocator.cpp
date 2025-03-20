@@ -85,7 +85,7 @@ void Relocator::traceMergeStrings(const ELFSection *RelocationSection,
                             ->getInput()
                             ->decoratedPath();
 
-  m_Config.raise(diag::modifying_mergestr_reloc)
+  m_Config.raise(Diag::modifying_mergestr_reloc)
       << SymName << Addend << Section << File << OldOffset << OldSection
       << OldFile << NewOffset << NewSection << NewFile;
 }
@@ -173,7 +173,7 @@ void Relocator::issueInvisibleRef(Relocation &pReloc, InputFile &pInput) {
   llvm::StringRef link_type = m_Config.codeGenType() == LinkerConfig::DynObj
                                   ? "a shared object"
                                   : "an executable";
-  config().raise(diag::undef_sym_visibility)
+  config().raise(Diag::undef_sym_visibility)
       << pInput.getInput()->decoratedPath() << getName(pReloc.type())
       << getSymbolName(rsym) << rsym->getVisibilityString() << link_type;
 }
@@ -211,7 +211,7 @@ void Relocator::checkCrossReferences(Relocation &pReloc, InputFile &pInput,
   std::string caller_file_name = pInput.getInput()->decoratedPath();
   InputFile *defined_file = outSym->resolveInfo()->resolvedOrigin();
   std::string callee_file_name = defined_file->getInput()->decoratedPath();
-  config().raise(diag::prohibited_cross_ref)
+  config().raise(Diag::prohibited_cross_ref)
       << getSymbolName(pReloc.symInfo()) << caller_file_name
       << getSectionName(&pReferredSect) << caller_sym_pos_hex
       << getSectionName(src_sect->getSection()) << getSectionName(target_sect)
@@ -260,13 +260,13 @@ void Relocator::issueUndefRef(const Relocation &pReloc, InputFile &pInput,
   }
 
   if (!caller_file || !caller_func) {
-    config().raise(diag::undefined_reference)
+    config().raise(Diag::undefined_reference)
         << getSymbolName(pReloc.symInfo()) << pInput.getInput()->decoratedPath()
         << getSectionName(pSection) << undef_sym_pos_hex;
     return;
   }
 
-  config().raise(diag::undefined_reference_text)
+  config().raise(Diag::undefined_reference_text)
       << getSymbolName(pReloc.symInfo()) << pInput.getInput()->decoratedPath()
       << getSymbolName(caller_file) << getSymbolName(caller_func);
 }

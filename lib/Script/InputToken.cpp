@@ -18,5 +18,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // InputToken
 //===----------------------------------------------------------------------===//
-InputToken::InputToken(Type pType, const std::string &pName, bool pAsNeeded)
-    : StrToken(pName, StrToken::Input), m_Type(pType), m_bAsNeeded(pAsNeeded) {}
+InputToken::InputToken(Type AssignmentType, const std::string &PName,
+                       bool PAsNeeded)
+    : StrToken(PName, StrToken::Input), ThisType(AssignmentType),
+      LinkerScriptHasAsNeeded(PAsNeeded) {}

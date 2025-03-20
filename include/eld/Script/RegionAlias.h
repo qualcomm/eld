@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_SCRIPT_REGION_ALIAS_H
-#define ELD_SCRIPT_REGION_ALIAS_H
+#ifndef ELD_SCRIPT_REGIONALIAS_H
+#define ELD_SCRIPT_REGIONALIAS_H
 
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Script/StrToken.h"
@@ -30,21 +30,21 @@ class StrToken;
 
 class RegionAlias : public ScriptCommand {
 public:
-  explicit RegionAlias(const StrToken *alias, const StrToken *region);
+  explicit RegionAlias(const StrToken *Alias, const StrToken *Region);
 
   ~RegionAlias();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::REGION_ALIAS;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::REGION_ALIAS;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  const StrToken *m_Alias = nullptr;
-  const StrToken *m_Region = nullptr;
+  const StrToken *MemoryAliasName = nullptr;
+  const StrToken *MemoryRegionName = nullptr;
 };
 
 } // namespace eld

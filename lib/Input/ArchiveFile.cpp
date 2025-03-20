@@ -11,8 +11,8 @@
 
 using namespace eld;
 
-ArchiveFile::ArchiveFile(Input *I, DiagnosticEngine *diagEngine)
-    : InputFile(I, diagEngine, InputFile::GNUArchiveFileKind) {
+ArchiveFile::ArchiveFile(Input *I, DiagnosticEngine *DiagEngine)
+    : InputFile(I, DiagEngine, InputFile::GNUArchiveFileKind) {
   // FIXME: We should be more strict with usage of 'Input' while creating
   // an 'InputFile'. The 'if' check in constructor is very misleading as now the
   // user can not be sure if the attributes will be set properly or not.
@@ -23,110 +23,111 @@ ArchiveFile::ArchiveFile(Input *I, DiagnosticEngine *diagEngine)
 }
 
 // Get the Input file from the Lazy Load Member map.
-Input *ArchiveFile::getLazyLoadMember(off_t pFileOffset) const {
-  ASSERT(m_AFI, "m_AFI must not be null!");
+Input *ArchiveFile::getLazyLoadMember(off_t PFileOffset) const {
+  ASSERT(AFI, "AFI must not be null!");
 
-  auto I = m_AFI->m_LazyLoadMemberMap.find(pFileOffset);
-  if (I == m_AFI->m_LazyLoadMemberMap.end())
+  auto I = AFI->LazyLoadMemberMap.find(PFileOffset);
+  if (I == AFI->LazyLoadMemberMap.end())
     return nullptr;
   return I->second;
 }
 
 /// getSymbolTable - get the symtab
 ArchiveFile::SymTabType &ArchiveFile::getSymbolTable() {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  return m_AFI->m_SymTab;
+  ASSERT(AFI, "AFI must not be null!");
+  return AFI->SymTab;
 }
 
 /// numOfSymbols - return the number of symbols in symtab
 size_t ArchiveFile::numOfSymbols() const {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  return m_AFI->m_SymTab.size();
+  ASSERT(AFI, "AFI must not be null!");
+  return AFI->SymTab.size();
 }
 
 /// addSymbol - add a symtab entry to symtab
 /// @param pName - symbol name
 /// @param pFileOffset - file offset in symtab represents a object file
-void ArchiveFile::addSymbol(const char *pName, uint32_t pFileOffset,
-                            enum ArchiveFile::Symbol::Type pType,
-                            enum ArchiveFile::Symbol::Status pStatus) {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  Symbol *entry = make<Symbol>(pName, pFileOffset, pType, pStatus);
-  m_AFI->m_SymTab.push_back(entry);
+void ArchiveFile::addSymbol(const char *PName, uint32_t PFileOffset,
+                            enum ArchiveFile::Symbol::SymbolType PType,
+                            enum ArchiveFile::Symbol::SymbolStatus PStatus) {
+  ASSERT(AFI, "AFI must not be null!");
+  Symbol *Entry = make<Symbol>(PName, PFileOffset, PType, PStatus);
+  AFI->SymTab.push_back(Entry);
 }
 
 /// getObjFileOffset - get the file offset that represent a object file
-uint32_t ArchiveFile::getObjFileOffset(size_t pSymIdx) const {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  return m_AFI->m_SymTab[pSymIdx]->fileOffset;
+uint32_t ArchiveFile::getObjFileOffset(size_t PSymIdx) const {
+  ASSERT(AFI, "AFI must not be null!");
+  return AFI->SymTab[PSymIdx]->FileOffset;
 }
 
 /// getSymbolStatus - get the status of a symbol
-ArchiveFile::Symbol::Status ArchiveFile::getSymbolStatus(size_t pSymIdx) const {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  return m_AFI->m_SymTab[pSymIdx]->status;
+ArchiveFile::Symbol::SymbolStatus
+ArchiveFile::getSymbolStatus(size_t PSymIdx) const {
+  ASSERT(AFI, "AFI must not be null!");
+  return AFI->SymTab[PSymIdx]->Status;
 }
 
 /// setSymbolStatus - set the status of a symbol
-void ArchiveFile::setSymbolStatus(size_t pSymIdx,
-                                  enum ArchiveFile::Symbol::Status pStatus) {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  m_AFI->m_SymTab[pSymIdx]->status = pStatus;
+void ArchiveFile::setSymbolStatus(
+    size_t PSymIdx, enum ArchiveFile::Symbol::SymbolStatus PStatus) {
+  ASSERT(AFI, "AFI must not be null!");
+  AFI->SymTab[PSymIdx]->Status = PStatus;
 }
 
-Input *ArchiveFile::createMemberInput(llvm::StringRef memberName,
-                                      MemoryArea *data, off_t childOffset) {
-  Input *inp = ArchiveMemberInput::Create(m_DiagEngine, this, memberName, data,
-                                          childOffset);
-  return inp;
+Input *ArchiveFile::createMemberInput(llvm::StringRef MemberName,
+                                      MemoryArea *Data, off_t ChildOffset) {
+  Input *Inp = ArchiveMemberInput::create(DiagEngine, this, MemberName, Data,
+                                          ChildOffset);
+  return Inp;
 }
 
-void ArchiveFile::releaseMemory(bool isVerbose) {
+void ArchiveFile::releaseMemory(bool IsVerbose) {
   if (isELFArchive())
     return;
-  if (m_Input)
-    m_Input->releaseMemory(isVerbose);
+  if (I)
+    I->releaseMemory(IsVerbose);
 }
 
 bool ArchiveFile::isAlreadyReleased() const {
-  return m_Input && m_Input->isAlreadyReleased();
+  return I && I->isAlreadyReleased();
 }
 
 // Returns all members of the archive file.
-const std::vector<Input *> &ArchiveFile::GetAllMembers() const {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  return m_AFI->Members;
+const std::vector<Input *> &ArchiveFile::getAllMembers() const {
+  ASSERT(AFI, "AFI must not be null!");
+  return AFI->Members;
 }
 
 // Add a member.
-void ArchiveFile::AddMember(Input *I) {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  m_AFI->Members.push_back(std::move(I));
+void ArchiveFile::addMember(Input *I) {
+  ASSERT(AFI, "AFI must not be null!");
+  AFI->Members.push_back(std::move(I));
 }
 
 // Add a member that needs to be loaded.
 void ArchiveFile::addLazyLoadMember(off_t FileOffset, Input *I) {
-  ASSERT(m_AFI, "m_AFI must not be null!");
-  m_AFI->m_LazyLoadMemberMap[FileOffset] = I;
+  ASSERT(AFI, "AFI must not be null!");
+  AFI->LazyLoadMemberMap[FileOffset] = I;
 }
 
 // Does the archive have Members already parsed ?
 bool ArchiveFile::hasMembers() const {
-  if (!m_AFI)
+  if (!AFI)
     return false;
-  return (m_AFI->Members.size() > 0);
+  return (AFI->Members.size() > 0);
 }
 
-void ArchiveFile::initArchiveFileInfo() { m_AFI = make<ArchiveFileInfo>(); }
+void ArchiveFile::initArchiveFileInfo() { AFI = make<ArchiveFileInfo>(); }
 
 size_t ArchiveFile::getLoadedMemberCount() const {
-  return m_ProcessedMemberCount;
+  return ProcessedMemberCount;
 }
 
-void ArchiveFile::incrementLoadedMemberCount() { m_ProcessedMemberCount++; }
+void ArchiveFile::incrementLoadedMemberCount() { ProcessedMemberCount++; }
 
 size_t ArchiveFile::getTotalMemberCount() const {
-  if (!m_AFI)
+  if (!AFI)
     return 0;
-  return m_AFI->Members.size();
+  return AFI->Members.size();
 }

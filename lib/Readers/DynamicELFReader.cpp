@@ -79,7 +79,7 @@ eld::Expected<bool> DynamicELFReader<ELFT>::readDynamic() {
       llvm::dyn_cast<ELFSection>(dynObjFile->getDynamic());
   if (!dynamicSect) {
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::err_cannot_read_section, {".dynamic"}));
+        plugin::DiagnosticEntry(Diag::err_cannot_read_section, {".dynamic"}));
   }
   const typename ELFReader<ELFT>::Elf_Shdr &rawDynSectHdr =
       (*(this->m_RawSectHdrs))[dynamicSect->getIndex()];

@@ -52,7 +52,7 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
       Module::InternalInputType::Trampoline);
 
   // create LDSymbol for the stub
-  LDSymbol *symbol = pBuilder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       trampolineInput, name, ResolveInfo::Function, ResolveInfo::Define,
       ResolveInfo::Local,
       stub->size(),         // size
@@ -63,7 +63,7 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
   pBuilder.getModule().addSymbol(symbol->resolveInfo());
   if (pBuilder.getModule().getConfig().options().isSymbolTracingRequested() &&
       pBuilder.getModule().getConfig().options().traceSymbol(name))
-    DiagEngine->raise(diag::target_specific_symbol) << name;
+    DiagEngine->raise(Diag::target_specific_symbol) << name;
 
   clone->setSymInfo(symbol->resolveInfo());
 
@@ -73,7 +73,7 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
 
   std::string returnName(ss.str());
   LDSymbol *returnSymbol =
-      pBuilder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           frag->getOwningSection()->getInputFile(), returnName,
           ResolveInfo::Function, ResolveInfo::Define, ResolveInfo::Local,
           4, // size
@@ -84,9 +84,9 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
   pBuilder.getModule().addSymbol(returnSymbol->resolveInfo());
   if (pBuilder.getModule().getConfig().options().isSymbolTracingRequested() &&
       pBuilder.getModule().getConfig().options().traceSymbol(returnName))
-    DiagEngine->raise(diag::target_specific_symbol) << returnName;
+    DiagEngine->raise(Diag::target_specific_symbol) << returnName;
   // Set the branch target of this cloned stub.
-  for (Stub::fixup_iterator it = clone->fixup_begin(), ie = clone->fixup_end();
+  for (Stub::fixup_iterator it = clone->fixupBegin(), ie = clone->fixupEnd();
        it != ie; ++it) {
 
     Relocation *reloc = Relocation::Create(

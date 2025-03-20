@@ -28,7 +28,7 @@ ELFReaderBase::Create(Module &module, InputFile &inputFile) {
   LinkerConfig &config = module.getConfig();
   if (config.targets().isBigEndian())
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::fatal_big_endian_target,
+        plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
                                 {inputFile.getInput()->decoratedPath()}));
 
   if (config.targets().is32Bits())
@@ -38,11 +38,11 @@ ELFReaderBase::Create(Module &module, InputFile &inputFile) {
   else {
     if (config.targets().hasTriple()) {
       return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(diag::fatal_unsupported_target,
+          plugin::DiagnosticEntry(Diag::fatal_unsupported_target,
                                   {config.targets().triple().getTriple()}));
     } else
       return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(diag::fatal_missing_target_triple, {}));
+          plugin::DiagnosticEntry(Diag::fatal_missing_target_triple, {}));
   }
 }
 
@@ -112,7 +112,7 @@ ResolveInfo::Desc ELFReaderBase::getSymbolDesc(const GNULDBackend &backend,
        (ObjFile->getELFSection(shndx)->isIgnore() ||
         ObjFile->getELFSection(shndx)->isDiscard()))) {
     // Sections of patch-base symbols are not loaded, but the symbols will be
-    // converted to absolute later in IRBuilder::AddSymbol.
+    // converted to absolute later in IRBuilder::addSymbol.
     if (!inputFile.getInput()->getAttribute().isPatchBase())
       return ResolveInfo::Undefined;
   }

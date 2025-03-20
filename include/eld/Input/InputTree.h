@@ -21,7 +21,7 @@ class Node {
 public:
   enum Kind { File, GroupStart, GroupEnd };
 
-  Node(Kind k) : NodeKind(k) {}
+  Node(Kind K) : NodeKind(K) {}
 
   Kind kind() const { return NodeKind; }
 
@@ -32,84 +32,83 @@ private:
 class Attribute {
 public:
   // -----  modifiers  ----- //
-  void setWholeArchive() { m_WholeArchive = true; }
+  void setWholeArchive() { WholeArchive = true; }
 
-  void unsetWholeArchive() { m_WholeArchive = false; }
+  void unsetWholeArchive() { WholeArchive = false; }
 
-  void setAsNeeded() { m_AsNeeded = true; }
+  void setAsNeeded() { AsNeeded = true; }
 
-  void unsetAsNeeded() { m_AsNeeded = false; }
+  void unsetAsNeeded() { AsNeeded = false; }
 
-  void setAddNeeded() { m_AddNeeded = true; }
+  void setAddNeeded() { AddNeeded = true; }
 
-  void unsetAddNeeded() { m_AddNeeded = false; }
+  void unsetAddNeeded() { AddNeeded = false; }
 
-  void setStatic() { m_Static = true; }
+  void setStatic() { Static = true; }
 
-  void setDynamic() { m_Static = false; }
+  void setDynamic() { Static = false; }
 
-  void setJustSymbols() { m_JustSymbols = true; }
+  void setJustSymbols() { JustSymbols = true; }
 
-  void unsetJustSymbols() { m_JustSymbols = false; }
+  void unsetJustSymbols() { JustSymbols = false; }
 
-  bool isWholeArchive() const { return m_WholeArchive; }
+  bool isWholeArchive() const { return WholeArchive; }
 
-  bool isAsNeeded() const { return m_AsNeeded; }
+  bool isAsNeeded() const { return AsNeeded; }
 
-  bool isAddNeeded() const { return m_AddNeeded; }
+  bool isAddNeeded() const { return AddNeeded; }
 
-  bool isStatic() const { return m_Static; }
+  bool isStatic() const { return Static; }
 
-  bool isDynamic() const { return !m_Static; }
+  bool isDynamic() const { return !Static; }
 
-  bool isJustSymbols() const { return m_JustSymbols; }
+  bool isJustSymbols() const { return JustSymbols; }
 
-  void setIsBinary(bool isBinary = true) { m_IsBinary = true; }
+  void setIsBinary(bool pIsBinary = true) { IsBinary = true; }
 
-  bool isBinary() const { return m_IsBinary; }
+  bool isBinary() const { return IsBinary; }
 
-  void setPatchBase(bool Value = true) { m_PatchBase = Value; }
+  void setPatchBase(bool Value = true) { PatchBase = Value; }
 
-  bool isPatchBase() const { return m_PatchBase; }
+  bool isPatchBase() const { return PatchBase; }
 
   Attribute &operator=(const Attribute &) = default;
 
   Attribute(const Attribute &) = default;
 
   Attribute()
-      : m_WholeArchive(false), m_AsNeeded(false), m_AddNeeded(false),
-        m_Static(false), m_JustSymbols(false), m_IsBinary(false),
-        m_PatchBase(false) {}
+      : WholeArchive(false), AsNeeded(false), AddNeeded(false), Static(false),
+        JustSymbols(false), IsBinary(false), PatchBase(false) {}
 
 private:
   // FIXME: Convert to std::optional<bool>
-  bool m_WholeArchive;
-  bool m_AsNeeded;
-  bool m_AddNeeded;
-  bool m_Static;
-  bool m_JustSymbols;
-  bool m_IsBinary;
-  bool m_PatchBase;
+  bool WholeArchive;
+  bool AsNeeded;
+  bool AddNeeded;
+  bool Static;
+  bool JustSymbols;
+  bool IsBinary;
+  bool PatchBase;
 };
 
 // -----  comparisons  ----- //
-inline bool operator==(const Attribute &pLHS, const Attribute &pRHS) {
-  return ((pLHS.isWholeArchive() == pRHS.isWholeArchive()) &&
-          (pLHS.isAsNeeded() == pRHS.isAsNeeded()) &&
-          (pLHS.isAddNeeded() == pRHS.isAddNeeded()) &&
-          (pLHS.isStatic() == pRHS.isStatic()) &&
-          (pLHS.isJustSymbols() == pRHS.isJustSymbols()));
+inline bool operator==(const Attribute &PLhs, const Attribute &PRhs) {
+  return ((PLhs.isWholeArchive() == PRhs.isWholeArchive()) &&
+          (PLhs.isAsNeeded() == PRhs.isAsNeeded()) &&
+          (PLhs.isAddNeeded() == PRhs.isAddNeeded()) &&
+          (PLhs.isStatic() == PRhs.isStatic()) &&
+          (PLhs.isJustSymbols() == PRhs.isJustSymbols()));
 }
 
-inline bool operator!=(const Attribute &pLHS, const Attribute &pRHS) {
-  return !(pLHS == pRHS);
+inline bool operator!=(const Attribute &PLhs, const Attribute &PRhs) {
+  return !(PLhs == PRhs);
 }
 
 class FileNode : public Node {
 public:
   FileNode(Input *I) : Node(Node::File), In(I) {}
 
-  static bool classof(const Node *n) { return (n->kind() == Node::File); }
+  static bool classof(const Node *N) { return (N->kind() == Node::File); }
 
   Input *getInput() const { return In; }
 
@@ -121,14 +120,14 @@ class GroupStart : public Node {
 public:
   GroupStart() : Node(Node::GroupStart) {}
 
-  static bool classof(const Node *n) { return (n->kind() == Node::GroupStart); }
+  static bool classof(const Node *N) { return (N->kind() == Node::GroupStart); }
 };
 
 class GroupEnd : public Node {
 public:
   GroupEnd() : Node(Node::GroupEnd) {}
 
-  static bool classof(const Node *n) { return (n->kind() == Node::GroupEnd); }
+  static bool classof(const Node *N) { return (N->kind() == Node::GroupEnd); }
 };
 } // namespace eld
 

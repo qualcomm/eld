@@ -45,31 +45,31 @@ public:
 
 public:
   explicit WildcardPattern(llvm::StringRef Pattern,
-                           SortPolicy pPolicy = SORT_NONE,
-                           ExcludeFiles *pExcludeFileList = nullptr);
+                           SortPolicy PPolicy = SORT_NONE,
+                           ExcludeFiles *PExcludeFileList = nullptr);
 
-  explicit WildcardPattern(StrToken *S, SortPolicy pPolicy = SORT_NONE,
-                           ExcludeFiles *pExcludeFileList = nullptr);
+  explicit WildcardPattern(StrToken *S, SortPolicy PPolicy = SORT_NONE,
+                           ExcludeFiles *PExcludeFileList = nullptr);
 
   ~WildcardPattern();
 
-  SortPolicy sortPolicy() const { return m_SortPolicy; }
+  SortPolicy sortPolicy() const { return MSortPolicy; }
 
   bool hasGlob() const;
 
   llvm::StringRef prefix() const {
-    if (m_bPatternIsPrefix)
-      return llvm::StringRef(m_Name.c_str(), m_Name.length() - 1);
+    if (MBPatternIsPrefix)
+      return llvm::StringRef(Name.c_str(), Name.length() - 1);
     return "";
   }
 
-  bool isPrefix() const { return m_bPatternIsPrefix; }
+  bool isPrefix() const { return MBPatternIsPrefix; }
 
-  bool isSuffix() const { return m_bPatternIsSuffix; }
+  bool isSuffix() const { return MBPatternIsSuffix; }
 
   llvm::StringRef suffix() const {
-    if (m_bPatternIsSuffix)
-      return llvm::StringRef(m_Name.c_str() + 1, m_Name.length() - 1);
+    if (MBPatternIsSuffix)
+      return llvm::StringRef(Name.c_str() + 1, Name.length() - 1);
     return "";
   }
 
@@ -78,45 +78,45 @@ public:
     return llvm::StringRef(Suffix.data() + 1, Suffix.size() - 1);
   }
 
-  static bool classof(const StrToken *pToken) {
-    return pToken->kind() == StrToken::Wildcard;
+  static bool classof(const StrToken *ThisInputToken) {
+    return ThisInputToken->kind() == StrToken::Wildcard;
   }
 
-  const ExcludeFiles *excludeFiles() const { return m_ExcudeFiles; }
+  const ExcludeFiles *excludeFiles() const { return MExcudeFiles; }
 
-  void setHash(uint64_t hashValue) {
-    m_bhasHash = true;
-    m_hashValue = hashValue;
+  void setHash(uint64_t HashValue) {
+    MBhasHash = true;
+    this->HashValue = HashValue;
   }
 
-  uint64_t hashValue() const { return m_hashValue; }
+  uint64_t hashValue() const { return HashValue; }
 
-  bool hasHash() const { return m_bhasHash; }
+  bool hasHash() const { return MBhasHash; }
 
-  void setPrefix() { m_bPatternIsPrefix = true; }
+  void setPrefix() { MBPatternIsPrefix = true; }
 
-  void setSuffix() { m_bPatternIsSuffix = true; }
+  void setSuffix() { MBPatternIsSuffix = true; }
 
-  bool matched(llvm::StringRef pName) const;
+  bool matched(llvm::StringRef PName) const;
 
-  bool matched(llvm::StringRef pName, uint64_t hash) const;
+  bool matched(llvm::StringRef PName, uint64_t Hash) const;
 
-  void setID(size_t ID) { m_ID = ID; }
+  void setID(size_t ID) { CurID = ID; }
 
-  bool isMatchAll() const { return m_Name == "*"; }
+  bool isMatchAll() const { return Name == "*"; }
 
 private:
   void createGlobPattern(llvm::StringRef Name);
 
 private:
-  SortPolicy m_SortPolicy;
-  ExcludeFiles *m_ExcudeFiles;
-  uint64_t m_hashValue;
-  bool m_bhasHash;
-  bool m_bPatternIsPrefix;
-  bool m_bPatternIsSuffix;
-  size_t m_ID;
-  llvm::GlobPattern m_Pattern;
+  SortPolicy MSortPolicy;
+  ExcludeFiles *MExcudeFiles;
+  uint64_t HashValue;
+  bool MBhasHash;
+  bool MBPatternIsPrefix;
+  bool MBPatternIsSuffix;
+  size_t CurID;
+  llvm::GlobPattern MPattern;
 };
 
 } // namespace eld

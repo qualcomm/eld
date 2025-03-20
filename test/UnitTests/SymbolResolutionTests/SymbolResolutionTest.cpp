@@ -51,7 +51,7 @@ TEST_F(SymbolResolutionTest, StaticSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Regular, ".data.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooWeak = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooWeak = m_IRBuilder->addSymbol(
       *inFile1, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Define,
       ResolveInfo::Binding::Weak, /*pSize=*/12, /*pValue=*/0x10, sect1,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -67,7 +67,7 @@ TEST_F(SymbolResolutionTest, StaticSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooCommon = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooCommon = m_IRBuilder->addSymbol(
       *inFile2, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Common,
       ResolveInfo::Binding::Global, /*pSize=*/10, /*pValue=*/0x0, sect2,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -83,7 +83,7 @@ TEST_F(SymbolResolutionTest, StaticSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Regular, ".data.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooGlobalDef = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooGlobalDef = m_IRBuilder->addSymbol(
       *inFile3, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Define,
       ResolveInfo::Binding::Global, /*pSize=*/10, /*pValue=*/0x30, sect3,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -101,7 +101,7 @@ TEST_F(SymbolResolutionTest, CommonSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooCommon50 = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooCommon50 = m_IRBuilder->addSymbol(
       *inFile1, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Common,
       ResolveInfo::Binding::Global, /*pSize=*/50, /*pValue=*/0x0, sect1,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -115,7 +115,7 @@ TEST_F(SymbolResolutionTest, CommonSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooCommon10 = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooCommon10 = m_IRBuilder->addSymbol(
       *inFile2, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Common,
       ResolveInfo::Binding::Global, /*pSize=*/10, /*pValue=*/0x20, sect2,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -130,7 +130,7 @@ TEST_F(SymbolResolutionTest, CommonSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Common, ".bss.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, 0, 0,
                        llvm::ELF::SHT_NOBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooCommon200 = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooCommon200 = m_IRBuilder->addSymbol(
       *inFile3, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Common,
       ResolveInfo::Binding::Global, /*pSize=*/200, /*pValue=*/0x0, sect3,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -147,7 +147,7 @@ TEST_F(SymbolResolutionTest, DynamicSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooDyn1 = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooDyn1 = m_IRBuilder->addSymbol(
       *inFile1, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Define,
       ResolveInfo::Binding::Global, /*pSize=*/12, /*pValue=*/0x10, sect1,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -158,7 +158,7 @@ TEST_F(SymbolResolutionTest, DynamicSymbolResolution) {
 
   Input *in2 = make<Input>("b.o", m_DiagEngine);
   InputFile *inFile2 = make<ELFObjectFile>(in2, m_DiagEngine);
-  LDSymbol *symFooUndef = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooUndef = m_IRBuilder->addSymbol(
       *inFile2, "foo", ResolveInfo::Type::Function,
       ResolveInfo::Desc::Undefined, ResolveInfo::Binding::Global, /*pSize=*/10,
       /*pValue=*/0x0, /*pSection=*/nullptr, ResolveInfo::Visibility::Default,
@@ -176,9 +176,9 @@ TEST_F(SymbolResolutionTest, DynamicSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooDyn2 = m_IRBuilder->AddSymbol(
-      *inFile3, "foo", ResolveInfo::Type::Function,
-      ResolveInfo::Desc::Define, ResolveInfo::Binding::Global, /*pSize=*/10,
+  LDSymbol *symFooDyn2 = m_IRBuilder->addSymbol(
+      *inFile3, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Define,
+      ResolveInfo::Binding::Global, /*pSize=*/10,
       /*pValue=*/0x30, sect3, ResolveInfo::Visibility::Default,
       /*isPostLTOPhase=*/false, /*shndx=*/1,
       /*idx=*/1);
@@ -194,7 +194,7 @@ TEST_F(SymbolResolutionTest, LTOSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooBitcode = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooBitcode = m_IRBuilder->addSymbol(
       *inFile1, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Define,
       ResolveInfo::Binding::Global, /*pSize=*/12, /*pValue=*/0x10, sect1,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/false, /*shndx=*/1,
@@ -211,7 +211,7 @@ TEST_F(SymbolResolutionTest, LTOSymbolResolution) {
       make<ELFSection>(LDFileFormat::Kind::Regular, ".text.foo",
                        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 0, 0,
                        llvm::ELF::SHT_PROGBITS, 0, nullptr, 0, 0);
-  LDSymbol *symFooLTOObject = m_IRBuilder->AddSymbol(
+  LDSymbol *symFooLTOObject = m_IRBuilder->addSymbol(
       *inFile2, "foo", ResolveInfo::Type::Function, ResolveInfo::Desc::Define,
       ResolveInfo::Binding::Global, /*pSize=*/12, /*pValue=*/0x10, sect2,
       ResolveInfo::Visibility::Default, /*isPostLTOPhase=*/true, /*shndx=*/1,

@@ -36,7 +36,7 @@ public:
 
   static bool classof(const RegionTableFragment *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   virtual bool updateInfo(GNULDBackend *G) override;
 

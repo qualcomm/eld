@@ -78,70 +78,70 @@ public:
   typedef CommandQueue::reference reference;
 
 public:
-  ScriptFile(Kind pKind, Module &pModule, LinkerScriptFile &pInput,
-             InputBuilder &pBuilder, GNULDBackend &pBackend);
+  ScriptFile(Kind PKind, Module &CurModule, LinkerScriptFile &PInput,
+             InputBuilder &PBuilder, GNULDBackend &PBackend);
 
   ~ScriptFile();
 
-  const_iterator begin() const { return m_CommandQueue.begin(); }
-  iterator begin() { return m_CommandQueue.begin(); }
-  const_iterator end() const { return m_CommandQueue.end(); }
-  iterator end() { return m_CommandQueue.end(); }
+  const_iterator begin() const { return LinkerScriptCommandQueue.begin(); }
+  iterator begin() { return LinkerScriptCommandQueue.begin(); }
+  const_iterator end() const { return LinkerScriptCommandQueue.end(); }
+  iterator end() { return LinkerScriptCommandQueue.end(); }
 
-  const_reference front() const { return m_CommandQueue.front(); }
-  reference front() { return m_CommandQueue.front(); }
-  const_reference back() const { return m_CommandQueue.back(); }
-  reference back() { return m_CommandQueue.back(); }
+  const_reference front() const { return LinkerScriptCommandQueue.front(); }
+  reference front() { return LinkerScriptCommandQueue.front(); }
+  const_reference back() const { return LinkerScriptCommandQueue.back(); }
+  reference back() { return LinkerScriptCommandQueue.back(); }
 
-  size_t size() const { return m_CommandQueue.size(); }
+  size_t size() const { return LinkerScriptCommandQueue.size(); }
 
-  std::string findIncludeFile(const std::string &filename, bool &result,
+  std::string findIncludeFile(const std::string &Filename, bool &Result,
                               bool State);
 
-  Kind getKind() const { return m_Kind; }
+  Kind getKind() const { return ScriptFileKind; }
 
-  bool isExternListFile() const { return m_Kind == ExternList; }
+  bool isExternListFile() const { return ScriptFileKind == ExternList; }
 
-  const std::string &name() const { return m_Name; }
-  std::string &name() { return m_Name; }
+  const std::string &name() const { return Name; }
+  std::string &name() { return Name; }
 
-  void dump(llvm::raw_ostream &outs) const;
-  eld::Expected<void> activate(Module &pModule);
+  void dump(llvm::raw_ostream &Outs) const;
+  eld::Expected<void> activate(Module &CurModule);
 
   /// ENTRY(symbol)
-  ScriptCommand *addEntryPoint(const std::string &pSymbol);
+  ScriptCommand *addEntryPoint(const std::string &Symbol);
 
-  ExternCmd *addExtern(StringList &pList);
+  ExternCmd *addExtern(StringList &List);
 
   // NOCROSSREFS
-  void addNoCrossRefs(StringList &pList);
+  void addNoCrossRefs(StringList &List);
 
   /// OUTPUT_FORMAT(bfdname)
   /// OUTPUT_FORMAT(default, big, little)
-  void addOutputFormatCmd(const std::string &pFormat);
-  void addOutputFormatCmd(const std::string &pDefault, const std::string &pBig,
-                          const std::string &pLittle);
+  void addOutputFormatCmd(const std::string &PFormat);
+  void addOutputFormatCmd(const std::string &PDefault, const std::string &PBig,
+                          const std::string &PLittle);
 
   /// GROUP(file, file, ...)
   /// GROUP(file file ...)
-  void addGroupCmd(StringList &pStringList, const Attribute &attribute);
+  void addGroupCmd(StringList &PStringList, const Attribute &Attribute);
 
   /// INPUT(file, file, ...)
   /// INPUT(file file ...)
-  void addInputCmd(StringList &pStringList, const Attribute &attribute);
+  void addInputCmd(StringList &PStringList, const Attribute &Attribute);
 
   /// OUTPUT(filename)
-  void addOutputCmd(const std::string &pFileName);
+  void addOutputCmd(const std::string &PFileName);
 
   /// SEARCH_DIR(path)
-  void addSearchDirCmd(const std::string &pPath);
+  void addSearchDirCmd(const std::string &PPath);
 
   /// OUTPUT_ARCH(bfdarch)
-  void addOutputArchCmd(const std::string &pArch);
+  void addOutputArchCmd(const std::string &PArch);
 
   /// assignment
-  void addAssignment(const std::string &pSymbol, Expression *pExpr,
-                     Assignment::Type pType = Assignment::DEFAULT);
+  void addAssignment(const std::string &Symbol, Expression *ScriptExpression,
+                     Assignment::Type AssignmentType = Assignment::DEFAULT);
 
   bool linkerScriptHasSectionsCommand() const;
 
@@ -153,29 +153,29 @@ public:
 
   void leavePhdrsCmd();
 
-  void enterOutputSectDesc(const std::string &pName,
-                           const OutputSectDesc::Prolog &pProlog);
+  void enterOutputSectDesc(const std::string &PName,
+                           const OutputSectDesc::Prolog &PProlog);
 
-  void leaveOutputSectDesc(const OutputSectDesc::Epilog &pEpilog);
+  void leaveOutputSectDesc(const OutputSectDesc::Epilog &PEpilog);
 
-  void addInputSectDesc(InputSectDesc::Policy pPolicy,
-                        const InputSectDesc::Spec &pSpec);
+  void addInputSectDesc(InputSectDesc::Policy PPolicy,
+                        const InputSectDesc::Spec &PSpec);
 
   void addPhdrDesc(const PhdrSpec &Spec);
 
-  void setAsNeeded(bool pEnable = true);
+  void setAsNeeded(bool PEnable = true);
 
-  bool asNeeded() const { return m_bAsNeeded; }
+  bool asNeeded() const { return LinkerScriptHasAsNeeded; }
 
-  Module &module() { return m_Module; }
+  Module &module() { return ThisModule; }
 
   /* StringList */
   StringList *createStringList();
-  StringList *getCurrentStringList() { return m_pStringList; }
+  StringList *getCurrentStringList() { return ScriptFileStringList; }
 
   /* ExcludeFiles */
   ExcludeFiles *createExcludeFiles();
-  ExcludeFiles *getCurrentExcludeFiles() { return m_pExcludeFiles; }
+  ExcludeFiles *getCurrentExcludeFiles() { return MPExcludeFiles; }
 
   /* Exclude Pattern */
   ExcludePattern *createExcludePattern(StrToken *S);
@@ -202,17 +202,17 @@ public:
 
   NameSpec *createNameSpecToken(const std::string &, bool);
 
-  StrToken *createParserStr(const char *pText, size_t pLength);
+  StrToken *createParserStr(const char *PText, size_t PLength);
 
-  StrToken *createParserStr(llvm::StringRef s);
+  StrToken *createParserStr(llvm::StringRef S);
 
-  LinkerScriptFile &getLinkerScriptFile() { return m_LinkerScriptFile; }
+  LinkerScriptFile &getLinkerScriptFile() { return ThisLinkerScriptFile; }
 
-  GNULDBackend &backend() { return m_Backend; }
+  GNULDBackend &backend() { return ThisBackend; }
 
   /* Identify the first output section inside the first linker script */
   bool firstLinkerScriptWithOutputSection() const {
-    return m_firstLinkerScriptWithOutputSection;
+    return IsFirstLinkerScriptWithSectionCommand;
   }
 
   PluginCmd *addPlugin(plugin::Plugin::Type T, std::string Name, std::string R,
@@ -229,8 +229,8 @@ public:
   InputFile *getContext() const;
 
   // Adds included linkerscript to --reproduce tarball
-  void addInputToTar(const std::string &filename,
-                     const std::string &resolvedPath) const;
+  void addInputToTar(const std::string &Filename,
+                     const std::string &ResolvedPath) const;
 
   // Opens scope
   ScriptCommand *enterScope();
@@ -273,7 +273,9 @@ public:
 
   ExternCmd *createExternCmd();
 
-  const StringList &getExternList() { return m_ExternCmd->getExternList(); }
+  const StringList &getExternList() {
+    return ScriptFileExternCommand->getExternList();
+  }
 
   void addSymbolToExternList(StrToken *S);
 
@@ -291,37 +293,38 @@ public:
   /// This adds support for explicit output section data keywords. They include
   /// BYTE, SHORT, LONG, QUAD, and SQUAD.
   ///
-  void addOutputSectData(OutputSectData::OSDKind dataKind, Expression *expr);
+  void addOutputSectData(OutputSectData::OSDKind DataKind, Expression *Expr);
 
   // ------------------------ REGION_ALIAS ------------------------------------
-  void addRegionAlias(const StrToken *alias, const StrToken *region);
+  void addRegionAlias(const StrToken *Alias, const StrToken *Region);
 
 private:
-  Kind m_Kind;
-  Module &m_Module;
-  LinkerScriptFile &m_LinkerScriptFile;
-  GNULDBackend &m_Backend;
-  std::string m_Name;
-  CommandQueue m_CommandQueue;
-  bool m_bHasSectionsCmd;
-  bool m_bInSectionsCmd;
-  bool m_bInOutputSectDesc;
-  StringList *m_pStringList;
-  ExternCmd *m_ExternCmd = nullptr;
-  ExcludeFiles *m_pExcludeFiles;
-  SectionsCmd *m_SectionsCmd;
-  PhdrsCmd *m_PhdrsCmd;
-  OutputSectDesc *m_OutputSectDesc;
-  bool m_bAsNeeded;
-  bool m_bInPhdrsCmd;
-  static bool m_firstLinkerScriptWithOutputSection;
-  std::unordered_map<std::string, eld::WildcardPattern *> m_WildcardPatternMap;
+  Kind ScriptFileKind;
+  Module &ThisModule;
+  LinkerScriptFile &ThisLinkerScriptFile;
+  GNULDBackend &ThisBackend;
+  std::string Name;
+  CommandQueue LinkerScriptCommandQueue;
+  bool LinkerScriptHasSectionsCommand;
+  bool ScriptStateInSectionsCommmand;
+  bool ScriptStateInsideOutputSection;
+  StringList *ScriptFileStringList;
+  ExternCmd *ScriptFileExternCommand = nullptr;
+  ExcludeFiles *MPExcludeFiles;
+  SectionsCmd *LinkerScriptSectionsCommand;
+  PhdrsCmd *LinkerScriptPHDRSCommand;
+  OutputSectDesc *OutputSectionDescription;
+  bool LinkerScriptHasAsNeeded;
+  bool ScriptStateInPHDRSCommand;
+  static bool IsFirstLinkerScriptWithSectionCommand;
+  std::unordered_map<std::string, eld::WildcardPattern *>
+      ScriptWildcardPatternMap;
   std::stack<eld::ScriptCommand *> ScriptCommandStack;
   std::stack<InputFile *> ScriptFileStack;
   std::vector<ScriptSymbol *> *DynamicListSymbols = nullptr;
-  bool m_LeavingOutputSectDesc = false;
-  eld::VersionScript *m_VersionScript = nullptr;
-  eld::MemoryCmd *m_MemoryCmd = nullptr;
+  bool IsLeavingOutputSectDesc = false;
+  eld::VersionScript *LinkerVersionScript = nullptr;
+  eld::MemoryCmd *MemoryCmd = nullptr;
 };
 
 } // namespace eld

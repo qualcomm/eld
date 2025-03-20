@@ -19,32 +19,32 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // FillFragment
 //===----------------------------------------------------------------------===//
-FillFragment::FillFragment(Module &M, uint64_t pValue, size_t pSize,
-                           ELFSection *O, size_t pAlignment)
-    : Fragment(Fragment::Fillment, O, pAlignment), m_Size(pSize) {
-  M.setFragmentPaddingValue(this, pValue);
+FillFragment::FillFragment(Module &M, uint64_t PValue, size_t PSize,
+                           ELFSection *O, size_t PAlignment)
+    : Fragment(Fragment::Fillment, O, PAlignment), ThisSize(PSize) {
+  M.setFragmentPaddingValue(this, PValue);
 }
 
-size_t FillFragment::size() const { return m_Size; }
+size_t FillFragment::size() const { return ThisSize; }
 
-eld::Expected<void> FillFragment::emit(MemoryRegion &mr, Module &M) {
-  uint8_t *out = mr.begin() + getOffset(M.getConfig().getDiagEngine());
-  uint64_t paddingValue = *M.getFragmentPaddingValue(this);
-  uint32_t valueSize = Fragment::getPaddingValueSize(paddingValue);
-  if (!valueSize)
+eld::Expected<void> FillFragment::emit(MemoryRegion &Mr, Module &M) {
+  uint8_t *Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine());
+  uint64_t PaddingValue = *M.getFragmentPaddingValue(this);
+  uint32_t ValueSize = Fragment::getPaddingValueSize(PaddingValue);
+  if (!ValueSize)
     return {};
-  if (valueSize == 1) {
-    memset(out, paddingValue, size());
+  if (ValueSize == 1) {
+    memset(Out, PaddingValue, size());
     return {};
   }
 
   // pattern fillment
-  size_t numTiles = size() / valueSize;
-  size_t remainder = size() % valueSize;
-  for (size_t i = 0; i != numTiles; ++i)
-    memcpy(out + i * valueSize, &paddingValue, valueSize);
+  size_t NumTiles = size() / ValueSize;
+  size_t Remainder = size() % ValueSize;
+  for (size_t I = 0; I != NumTiles; ++I)
+    memcpy(Out + I * ValueSize, &PaddingValue, ValueSize);
 
-  if (remainder > 0)
-    memcpy(out + numTiles * valueSize, &paddingValue, remainder);
+  if (Remainder > 0)
+    memcpy(Out + NumTiles * ValueSize, &PaddingValue, Remainder);
   return {};
 }

@@ -25,7 +25,7 @@ ARMPLT0 *ARMPLT0::Create(eld::IRBuilder &I, ARMGOT *G, ELFSection *O,
 
   std::string name = "__gotplt0__";
   // create LDSymbol for the stub
-  LDSymbol *symbol = I.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
       ResolveInfo::Local,
       4, // size
@@ -51,7 +51,7 @@ ARMPLTN *ARMPLTN::Create(eld::IRBuilder &I, ARMGOT *G, ELFSection *O,
 
   std::string name = "__gotpltn_for_" + std::string(R->name());
   // create LDSymbol for the stub
-  LDSymbol *symbol = I.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
       ResolveInfo::Local,
       4, // size

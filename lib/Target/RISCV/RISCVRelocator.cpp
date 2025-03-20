@@ -336,7 +336,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
     return;
 
   if (!isRelocSupported(pReloc)) {
-    config().raise(diag::unsupported_reloc)
+    config().raise(Diag::unsupported_reloc)
         << pReloc.type() << pSection.getDecoratedName(config().options())
         << pInputFile.getInput()->decoratedPath();
     m_Target.getModule().setFailure(true);
@@ -346,7 +346,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
   // If we are generating a shared library check for invalid relocations
   if (isInvalidReloc(pReloc)) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(diag::non_pic_relocation)
+    config().raise(Diag::non_pic_relocation)
         << getName(pReloc.type()) << pReloc.symInfo()->name()
         << pReloc.getSourcePath(config().options());
     m_Target.getModule().setFailure(true);
@@ -364,7 +364,7 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       std::string relocName = getName(pReloc.type());
       if (config().options().traceReloc(relocName))
-        config().raise(diag::reloc_trace)
+        config().raise(Diag::reloc_trace)
             << relocName << pReloc.symInfo()->name()
             << pInputFile.getInput()->decoratedPath();
     }
@@ -447,7 +447,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_RISCV_TLS_GD_HI20: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
@@ -476,7 +476,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_RISCV_TLS_GOT_HI20: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
@@ -535,7 +535,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
       if (ld_backend.symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
-          config().raise(diag::copyrelocs_is_error)
+          config().raise(Diag::copyrelocs_is_error)
               << rsym->name() << pInputFile.getInput()->decoratedPath()
               << rsym->resolvedOrigin()->getInput()->decoratedPath();
           return;
@@ -593,7 +593,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   case llvm::ELF::R_RISCV_TLS_GD_HI20: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
@@ -626,7 +626,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   case llvm::ELF::R_RISCV_TLS_GOT_HI20: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
@@ -715,7 +715,7 @@ VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
 
   if ((RelocInfo.VerifyAlignment || pRelocDesc.forceVerify) &&
       !verifyRISCVAlignment(RelocInfo, Result))
-    config.raise(diag::not_aligned)
+    config.raise(Diag::not_aligned)
         << RelocInfo.Name << pReloc.symInfo()->name()
         << pReloc.getTargetPath(config.options())
         << pReloc.getSourcePath(config.options()) << RelocInfo.Alignment;
@@ -725,7 +725,7 @@ VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
     R = Relocator::Overflow;
 
   if ((pRelocDesc.forceVerify) && (isTruncatedRISCV(RelocInfo, Result))) {
-    config.raise(diag::reloc_truncated)
+    config.raise(Diag::reloc_truncated)
         << RelocInfo.Name << pReloc.symInfo()->name()
         << pReloc.getTargetPath(config.options())
         << pReloc.getSourcePath(config.options());

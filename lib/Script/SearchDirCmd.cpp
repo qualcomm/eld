@@ -20,16 +20,16 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // SearchDirCmd
 //===----------------------------------------------------------------------===//
-SearchDirCmd::SearchDirCmd(const std::string &pPath)
-    : ScriptCommand(ScriptCommand::SEARCH_DIR), m_Path(pPath) {}
+SearchDirCmd::SearchDirCmd(const std::string &PPath)
+    : ScriptCommand(ScriptCommand::SEARCH_DIR), MPath(PPath) {}
 
 SearchDirCmd::~SearchDirCmd() {}
 
-void SearchDirCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "SEARCH_DIR(\"" << m_Path << "\");\n";
+void SearchDirCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "SEARCH_DIR(\"" << MPath << "\");\n";
 }
 
-eld::Expected<void> SearchDirCmd::activate(Module &pModule) {
-  pModule.getConfig().directories().insert(m_Path);
+eld::Expected<void> SearchDirCmd::activate(Module &CurModule) {
+  CurModule.getConfig().directories().insert(MPath);
   return eld::Expected<void>();
 }

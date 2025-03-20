@@ -17,24 +17,24 @@ PhdrsCmd::PhdrsCmd() : ScriptCommand(ScriptCommand::PHDRS) {}
 
 PhdrsCmd::~PhdrsCmd() {}
 
-void PhdrsCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "PHDRS\n{\n";
+void PhdrsCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "PHDRS\n{\n";
 
-  for (const auto &elem : m_Phdrs) {
-    outs << "\t";
-    elem->dump(outs);
+  for (const auto &Elem : MPhdrs) {
+    Outs << "\t";
+    Elem->dump(Outs);
   }
-  outs << "}\n";
+  Outs << "}\n";
 }
 
-void PhdrsCmd::push_back(ScriptCommand *Cmd) { m_Phdrs.push_back(Cmd); }
+void PhdrsCmd::pushBack(ScriptCommand *Cmd) { MPhdrs.push_back(Cmd); }
 
-eld::Expected<void> PhdrsCmd::activate(Module &pModule) {
-  for (auto &elem : m_Phdrs) {
-    eld::Expected<void> E = elem->activate(pModule);
+eld::Expected<void> PhdrsCmd::activate(Module &CurModule) {
+  for (auto &Elem : MPhdrs) {
+    eld::Expected<void> E = Elem->activate(CurModule);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
   }
   return eld::Expected<void>();
 }
 
-void PhdrsCmd::dumpOnlyThis(llvm::raw_ostream &outs) const { outs << "PHDRS"; }
+void PhdrsCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const { Outs << "PHDRS"; }

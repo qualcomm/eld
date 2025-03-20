@@ -15,16 +15,16 @@ using namespace eld::LinkerPlugin;
 namespace llvm {
 namespace yaml {
 template <> struct ScalarEnumerationTraits<plugin::Plugin::Type> {
-  static void enumeration(IO &io, plugin::Plugin::Type &T) {
-    io.enumCase(T, "SectionMatcher", plugin::Plugin::Type::SectionMatcher);
-    io.enumCase(T, "SectionIterator", plugin::Plugin::Type::SectionIterator);
-    io.enumCase(T, "OutputSectionIterator",
+  static void enumeration(IO &Io, plugin::Plugin::Type &T) {
+    Io.enumCase(T, "SectionMatcher", plugin::Plugin::Type::SectionMatcher);
+    Io.enumCase(T, "SectionIterator", plugin::Plugin::Type::SectionIterator);
+    Io.enumCase(T, "OutputSectionIterator",
                 plugin::Plugin::Type::OutputSectionIterator);
-    io.enumCase(T, "", plugin::Plugin::Type::OutputSectionIterator);
-    io.enumCase(T, "ControlFileSize", plugin::Plugin::Type::ControlFileSize);
-    io.enumCase(T, "ControlMemorySize",
+    Io.enumCase(T, "", plugin::Plugin::Type::OutputSectionIterator);
+    Io.enumCase(T, "ControlFileSize", plugin::Plugin::Type::ControlFileSize);
+    Io.enumCase(T, "ControlMemorySize",
                 plugin::Plugin::Type::ControlMemorySize);
-    io.enumCase(T, "LinkerPlugin", plugin::Plugin::Type::LinkerPlugin);
+    Io.enumCase(T, "LinkerPlugin", plugin::Plugin::Type::LinkerPlugin);
   }
 };
 

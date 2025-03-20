@@ -60,7 +60,7 @@ eld::Expected<bool> INIReader::readINIFile() {
         return !eld::string::isASCII(S);
       }) != Lines.end()) {
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::ini_invalid_character, {INIFileName},
+        plugin::DiagnosticEntry(Diag::ini_invalid_character, {INIFileName},
                                 plugin::DiagnosticEntry::Severity::Error));
   }
 

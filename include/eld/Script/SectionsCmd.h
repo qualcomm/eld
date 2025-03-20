@@ -37,36 +37,36 @@ public:
   SectionsCmd();
   ~SectionsCmd();
 
-  const_iterator begin() const { return m_SectionCommands.begin(); }
-  iterator begin() { return m_SectionCommands.begin(); }
-  const_iterator end() const { return m_SectionCommands.end(); }
-  iterator end() { return m_SectionCommands.end(); }
+  const_iterator begin() const { return ThisSectionCommands.begin(); }
+  iterator begin() { return ThisSectionCommands.begin(); }
+  const_iterator end() const { return ThisSectionCommands.end(); }
+  iterator end() { return ThisSectionCommands.end(); }
 
-  const_reference front() const { return m_SectionCommands.front(); }
-  reference front() { return m_SectionCommands.front(); }
-  const_reference back() const { return m_SectionCommands.back(); }
-  reference back() { return m_SectionCommands.back(); }
+  const_reference front() const { return ThisSectionCommands.front(); }
+  reference front() { return ThisSectionCommands.front(); }
+  const_reference back() const { return ThisSectionCommands.back(); }
+  reference back() { return ThisSectionCommands.back(); }
 
-  size_t size() const { return m_SectionCommands.size(); }
+  size_t size() const { return ThisSectionCommands.size(); }
 
-  bool empty() const { return m_SectionCommands.empty(); }
+  bool empty() const { return ThisSectionCommands.empty(); }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::SECTIONS;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::SECTIONS;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  void push_back(ScriptCommand *pCommand) override;
+  void pushBack(ScriptCommand *PCommand) override;
 
-  SectionCommands &getSectionCommands() { return m_SectionCommands; }
+  SectionCommands &getSectionCommands() { return ThisSectionCommands; }
 
 private:
-  SectionCommands m_SectionCommands;
+  SectionCommands ThisSectionCommands;
 };
 
 } // namespace eld

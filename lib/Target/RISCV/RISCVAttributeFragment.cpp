@@ -123,7 +123,7 @@ bool RISCVAttributeFragment::updateInfo(llvm::StringRef Contents,
   llvm::ArrayRef<uint8_t> Data =
       llvm::ArrayRef((const uint8_t *)Contents.data(), Contents.size());
   if (llvm::Error E = Parser.parse(Data, llvm::endianness::little)) {
-    DiagEngine->raise(diag::attribute_parsing_error)
+    DiagEngine->raise(Diag::attribute_parsing_error)
         << InputFile->getInput()->decoratedPath()
         << llvm::toString(std::move(E));
     retval = false;
@@ -140,7 +140,7 @@ bool RISCVAttributeFragment::updateInfo(llvm::StringRef Contents,
     PreviousInputFileDecoratedPath =
         PreviousInputFile->getInput()->decoratedPath();
 
-  auto DiagID = diag::riscv_attribute_parsing_mix_warn;
+  auto DiagID = Diag::riscv_attribute_parsing_mix_warn;
 
   if (getStringAttribute(Parser, llvm::RISCVAttrs::ARCH, Str)) {
     if (!addAttributeStringItem(llvm::RISCVAttrs::ARCH, Str, OldStr) &&
@@ -182,7 +182,7 @@ bool RISCVAttributeFragment::updateInfo(llvm::StringRef Contents,
 
   if (getIntegerAttribute(Parser, llvm::RISCVAttrs::STACK_ALIGN, Val)) {
     if (!addAttributeIntegerItem(llvm::RISCVAttrs::STACK_ALIGN, Val, OldVal)) {
-      DiagEngine->raise(diag::riscv_attribute_parsing_mix_error)
+      DiagEngine->raise(Diag::riscv_attribute_parsing_mix_error)
           << PreviousInputFileDecoratedPath
           << InputFile->getInput()->decoratedPath() << "STACK_ALIGN" << Val
           << OldVal;
@@ -212,7 +212,7 @@ eld::Expected<void> RISCVAttributeFragment::mergeArch(
   auto maybeInfo = llvm::RISCVISAInfo::parseNormalizedArchString(s);
   if (!maybeInfo) {
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::attribute_parsing_error,
+        plugin::DiagnosticEntry(Diag::attribute_parsing_error,
                                 {I->getInput()->decoratedPath(),
                                  llvm::toString(maybeInfo.takeError())}));
   }
@@ -299,7 +299,7 @@ eld::Expected<void> RISCVAttributeFragment::mergeRISCVAttributes(
       StringAttributes[llvm::RISCVAttrs::ARCH] = R;
     } else {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::attribute_parsing_error, {I->getInput()->decoratedPath(),
+          Diag::attribute_parsing_error, {I->getInput()->decoratedPath(),
                                           llvm::toString(result.takeError())}));
     }
   }

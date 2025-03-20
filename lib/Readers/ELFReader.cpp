@@ -156,7 +156,7 @@ void ELFReader<ELFT>::processAndReportSymbolAliases(
       aliasSyms->resolveInfo()->setAlias(globalSym->second->resolveInfo());
     }
     if (!aliasNames.empty())
-      m_Module.getConfig().raise(diag::verbose_symbol_has_aliases)
+      m_Module.getConfig().raise(Diag::verbose_symbol_has_aliases)
           << globalSym->second->resolveInfo()->getDecoratedName(
                  m_Module.getConfig().options().shouldDemangle())
           << globalSym->second->resolveInfo()
@@ -263,7 +263,7 @@ ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
   if (isPatchable) {
     if (ldDesc != ResolveInfo::Define || ldBinding != ResolveInfo::Global) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::error_patch_invalid_symbol,
+          Diag::error_patch_invalid_symbol,
           {ldName.str(), m_InputFile.getInput()->decoratedPath()}));
     }
   }
@@ -272,7 +272,7 @@ ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
     section->setWanted(true);
 
   bool isPostLTOPhase = backend.getModule().isPostLTOPhase();
-  LDSymbol *sym = builder.AddSymbol(
+  LDSymbol *sym = builder.addSymbol(
       m_InputFile, ldName.str(), ldType, ldDesc, ldBinding, rawSym.st_size,
       ldValue, section, ldVis, isPostLTOPhase, st_shndx, idx, isPatchable);
   eld::Expected<bool> expVerifySym = verifySymbol(sym);
@@ -289,11 +289,11 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
   IRBuilder &builder = *m_Module.getIRBuilder();
   LinkerConfig &config = m_Module.getConfig();
 
-  const Elf_Shdr *symTabSec =
-      findSection(m_RawSectHdrs.value(),
-                  (m_InputFile.getKind() == InputFile::Kind::ELFDynObjFileKind
-                       ? llvm::ELF::SHT_DYNSYM
-                       : llvm::ELF::SHT_SYMTAB));
+  const Elf_Shdr *symTabSec = findSection(
+      m_RawSectHdrs.value(),
+      (m_InputFile.getKind() == InputFile::InputFileKind::ELFDynObjFileKind
+           ? llvm::ELF::SHT_DYNSYM
+           : llvm::ELF::SHT_SYMTAB));
   if (!symTabSec)
     return false;
   auto expElfSyms = m_LLVMELFFile->symbols(symTabSec);
@@ -306,7 +306,7 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
   llvm::StringRef strTab = expStrTab.get();
 
   if (builder.getModule().getPrinter()->traceSymbols())
-    config.raise(diag::process_file) << m_InputFile.getInput()->decoratedPath();
+    config.raise(Diag::process_file) << m_InputFile.getInput()->decoratedPath();
 
   switch (m_InputFile.getKind()) {
   case InputFile::ELFObjFileKind:
@@ -315,7 +315,7 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
   default:
     if (m_Module.getConfig().options().isPatchEnable()) {
       return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(diag::error_patch_dynamic_input,
+          plugin::DiagnosticEntry(Diag::error_patch_dynamic_input,
                                   {m_InputFile.getInput()->decoratedPath()}));
     }
   }
@@ -323,7 +323,7 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
   ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
 
   // skip the first nullptr symbol
-  EFileBase->addSymbol(LDSymbol::Null());
+  EFileBase->addSymbol(LDSymbol::null());
 
   auto IsPatchableAlias = [&](llvm::StringRef &Name) -> bool {
     // TODO: Check other symbol attributes e.g. type value binding etc.
@@ -407,7 +407,7 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
 
   if (!checkMachine())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::err_unrecognized_input_file,
+        Diag::err_unrecognized_input_file,
         {inputFile.getInput()->getResolvedPath().native(),
          config.targets().triple().str()}));
 
@@ -418,7 +418,7 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
 
   if (!checkClass())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::invalid_elf_class,
+        Diag::invalid_elf_class,
         {inputFile.getInput()->decoratedPath(), config.targets().getArch()}));
 
   return true;
@@ -451,7 +451,7 @@ eld::Expected<llvm::StringRef> ELFReader<ELFT>::computeSymbolName(
   if (ldType == ResolveInfo::Section) {
     if (!S)
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::idx_sect_not_found,
+          Diag::idx_sect_not_found,
           {std::to_string(st_shndx), m_InputFile.getInput()->decoratedPath()}));
     return S->name();
   } else {
@@ -471,7 +471,7 @@ eld::Expected<bool> ELFReader<ELFT>::verifySymbol(const LDSymbol *sym) {
   const Fragment *frag = fragRef->frag();
   // Warn if fragment size is zero and the recorded symbol is non zero
   if (frag && !frag->size())
-    config.raise(diag::warning_zero_sized_fragment_for_non_zero_symbol)
+    config.raise(Diag::warning_zero_sized_fragment_for_non_zero_symbol)
         << frag->getOwningSection()->name() << sym->name()
         << sym->resolveInfo()->resolvedOrigin()->getInput()->getName();
   return true;
@@ -488,7 +488,7 @@ void ELFReader<ELFT>::checkAndMayBeReportZeroSizedSection(
   const Fragment *frag = fragRef->frag();
   // Warn if fragment size is zero and the recorded symbol is non zero
   if (frag && !frag->size())
-    config.raise(diag::warning_zero_sized_fragment_for_non_zero_symbol)
+    config.raise(Diag::warning_zero_sized_fragment_for_non_zero_symbol)
         << frag->getOwningSection()->name() << sym->name()
         << sym->resolveInfo()->resolvedOrigin()->getInput()->getName();
 }
@@ -497,7 +497,7 @@ template <class ELFT>
 eld::Expected<bool> ELFReader<ELFT>::readCompressedSection(ELFSection *S) {
   LinkerConfig &config = this->m_Module.getConfig();
 
-  config.raise(diag::reading_compressed_section)
+  config.raise(Diag::reading_compressed_section)
       << S->name() << S->originalInput()->getInput()->decoratedPath();
   if (!S->size())
     return true;

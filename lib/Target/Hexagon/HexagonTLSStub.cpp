@@ -27,15 +27,15 @@ HexagonTLSStub *HexagonGDStub::Create(Module &pModule, ELFSection *O) {
   DiagnosticEngine *DiagEngine = pModule.getConfig().getDiagEngine();
   std::string name = HexagonTLSStub::stubName(HexagonTLSStub::GD).str();
   LDSymbol *symbol =
-      pModule.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      pModule.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           O->getInputFile(), name, ResolveInfo::Function,
           ResolveInfo::Undefined, ResolveInfo::Global,
           0, // size
           0, // value
-          FragmentRef::Null(), ResolveInfo::Default, true /* isPostLTOPhase */);
+          FragmentRef::null(), ResolveInfo::Default, true /* isPostLTOPhase */);
   if (pModule.getConfig().options().isSymbolTracingRequested() &&
       pModule.getConfig().options().traceSymbol(name))
-    DiagEngine->raise(diag::target_specific_symbol) << name;
+    DiagEngine->raise(Diag::target_specific_symbol) << name;
   // GC is already complete, mark this stub as it is needed
   symbol->setShouldIgnore(false);
   HexagonTLSStub *T = make<HexagonGDStub>(O, symbol->resolveInfo());
@@ -46,7 +46,7 @@ HexagonTLSStub *HexagonGDIEStub::Create(Module &pModule, ELFSection *O) {
   DiagnosticEngine *DiagEngine = pModule.getConfig().getDiagEngine();
   HexagonTLSStub *T = make<HexagonGDIEStub>(O, nullptr);
   LDSymbol *symbol =
-      pModule.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      pModule.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           O->getInputFile(), T->name(), ResolveInfo::Function,
           ResolveInfo::Define, ResolveInfo::Global,
           T->size(), // size
@@ -55,7 +55,7 @@ HexagonTLSStub *HexagonGDIEStub::Create(Module &pModule, ELFSection *O) {
           true /* isPostLTOPhase */);
   if (pModule.getConfig().options().isSymbolTracingRequested() &&
       pModule.getConfig().options().traceSymbol(T->name()))
-    DiagEngine->raise(diag::target_specific_symbol) << T->name();
+    DiagEngine->raise(Diag::target_specific_symbol) << T->name();
   // GC is already complete, mark this stub as it is needed
   symbol->setShouldIgnore(false);
   symbol->resolveInfo()->setResolvedOrigin(O->getInputFile());
@@ -72,7 +72,7 @@ HexagonTLSStub *HexagonLDLEStub::Create(Module &pModule, ELFSection *O) {
   DiagnosticEngine *DiagEngine = pModule.getConfig().getDiagEngine();
   HexagonTLSStub *T = make<HexagonLDLEStub>(O, nullptr);
   LDSymbol *symbol =
-      pModule.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      pModule.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           O->getInputFile(), T->name(), ResolveInfo::Function,
           ResolveInfo::Define, ResolveInfo::Global,
           T->size(), // size
@@ -82,7 +82,7 @@ HexagonTLSStub *HexagonLDLEStub::Create(Module &pModule, ELFSection *O) {
   symbol->resolveInfo()->setResolvedOrigin(O->getInputFile());
   if (pModule.getConfig().options().isSymbolTracingRequested() &&
       pModule.getConfig().options().traceSymbol(T->name()))
-    DiagEngine->raise(diag::target_specific_symbol) << T->name();
+    DiagEngine->raise(Diag::target_specific_symbol) << T->name();
   // GC is already complete, mark this stub as it is needed
   symbol->setShouldIgnore(false);
   T->setSymInfo(symbol->resolveInfo());

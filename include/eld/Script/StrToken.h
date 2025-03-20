@@ -26,16 +26,16 @@ class StrToken {
 public:
   enum Kind { Unknown, String, Input, Wildcard };
 
-  explicit StrToken(const std::string &pString, Kind K = StrToken::String);
+  explicit StrToken(const std::string &PString, Kind K = StrToken::String);
 
   virtual ~StrToken() {}
 
-  Kind kind() const { return m_Kind; }
+  Kind kind() const { return ScriptFileKind; }
 
-  const std::string &name() const { return m_Name; }
+  const std::string &name() const { return Name; }
 
-  static bool classof(const StrToken *pToken) {
-    return pToken->kind() == StrToken::String;
+  static bool classof(const StrToken *ThisInputToken) {
+    return ThisInputToken->kind() == StrToken::String;
   }
 
   bool isQuoted() const { return Quoted; }
@@ -45,9 +45,9 @@ public:
   std::string getDecoratedName() const;
 
 protected:
-  std::string m_Name;
+  std::string Name;
   bool Quoted = false;
-  Kind m_Kind;
+  Kind ScriptFileKind;
 };
 
 } // namespace eld

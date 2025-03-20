@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_SCRIPT_OutputSectData_H
-#define ELD_SCRIPT_OutputSectData_H
+#ifndef ELD_SCRIPT_OUTPUTSECTDATA_H
+#define ELD_SCRIPT_OUTPUTSECTDATA_H
 
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/ScriptCommand.h"
@@ -44,24 +44,24 @@ public:
   enum OSDKind { None, Byte, Short, Long, Quad, Squad };
 
   /// Creates an OutputSectData object.
-  static OutputSectData *Create(uint32_t ID, OutputSectDesc &outSectDesc,
-                                OSDKind kind, Expression &expr);
+  static OutputSectData *create(uint32_t ID, OutputSectDesc &OutSectDesc,
+                                OSDKind Kind, Expression &Expr);
 
   // FIXME: Ideally, it should be private. Users of this class should only
   // use OutputSectData::Create function to create objects of this class.
   // It needs to be public so that eld::make can be used to handle lifetime
   // of the object.
-  OutputSectData(uint32_t ID, InputSectDesc::Policy policy,
-                 const InputSectDesc::Spec spec, OutputSectDesc &outSectDesc,
-                 OSDKind kind, Expression &expr);
+  OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
+                 const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
+                 OSDKind Kind, Expression &Expr);
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpMap(llvm::raw_ostream &outs, bool useColor = false,
-               bool useNewLine = true, bool withValues = false,
-               bool addIndent = true) const override;
+  void dumpMap(llvm::raw_ostream &Outs, bool UseColor = false,
+               bool UseNewLine = true, bool WithValues = false,
+               bool AddIndent = true) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
   /// It creates a section that contains the explicit output section data, and
   /// assign it to the output section.
@@ -73,25 +73,25 @@ public:
   /// Returns the size of the data.
   std::size_t getDataSize() const;
 
-  ELFSection *getELFSection() const { return m_Section; }
+  ELFSection *getELFSection() const { return ThisSectionion; }
 
-  Expression &getExpr() { return m_Expr; }
+  Expression &getExpr() { return ExpressionToEvaluate; }
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::OUTPUT_SECT_DATA;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_SECT_DATA;
   }
 
-  static constexpr uint32_t defaultSectionType = llvm::ELF::SHT_PROGBITS;
-  static constexpr uint32_t defaultSectionFlags = llvm::ELF::SHF_ALLOC;
+  static constexpr uint32_t DefaultSectionType = llvm::ELF::SHT_PROGBITS;
+  static constexpr uint32_t DefaultSectionFlags = llvm::ELF::SHF_ALLOC;
 
 private:
   /// Creates the section along with the required fragment for the output
   /// section data.
-  ELFSection *createOSDSection(Module &module);
+  ELFSection *createOSDSection(Module &Module);
 
-  const OSDKind m_OSDKind = OSDKind::None;
-  Expression &m_Expr;
-  ELFSection *m_Section = nullptr;
+  const OSDKind MOsdKind = OSDKind::None;
+  Expression &ExpressionToEvaluate;
+  ELFSection *ThisSectionion = nullptr;
 };
 } // namespace eld
 #endif

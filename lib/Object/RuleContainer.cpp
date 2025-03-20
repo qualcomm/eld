@@ -12,56 +12,55 @@
 
 using namespace eld;
 
-RuleContainer::RuleContainer(SectionMap *parent, std::string pName,
-                             InputSectDesc::Policy pPolicy)
-    : m_Policy(pPolicy), m_Dirty(false), m_Frag(nullptr), m_Desc(nullptr),
-      m_matchCount(0), m_matchTime(0), m_NextRule(nullptr) {
+RuleContainer::RuleContainer(SectionMap *Parent, std::string PName,
+                             InputSectDesc::Policy PPolicy)
+    : MPolicy(PPolicy), MDirty(false), MFrag(nullptr), MDesc(nullptr),
+      MMatchCount(0), MMatchTime(0), MNextRule(nullptr) {
   WildcardPattern *P1 = make<WildcardPattern>("*");
-  parent->getLinkerScript().registerWildCardPattern(P1);
-  m_Spec.m_pWildcardFile = P1;
-  m_Spec.m_pArchiveMember = nullptr;
-  m_Spec.m_pIsArchive = false;
-  m_Spec.m_ExcludeFiles = nullptr;
-  StringList *sections = make<StringList>();
+  Parent->getLinkerScript().registerWildCardPattern(P1);
+  MSpec.WildcardFilePattern = P1;
+  MSpec.InputArchiveMember = nullptr;
+  MSpec.InputIsArchive = false;
+  MSpec.ExcludeFilesRule = nullptr;
+  StringList *Sections = make<StringList>();
   WildcardPattern *P2 =
-      make<WildcardPattern>(parent->getLinkerScript().saveString(pName));
-  parent->getLinkerScript().registerWildCardPattern(P2);
-  sections->push_back(P2);
+      make<WildcardPattern>(Parent->getLinkerScript().saveString(PName));
+  Parent->getLinkerScript().registerWildCardPattern(P2);
+  Sections->pushBack(P2);
 
-  m_Spec.m_pWildcardSections = sections;
+  MSpec.WildcardSectionPattern = Sections;
 
-  m_pSection = parent->createELFSection(pName, LDFileFormat::Regular,
-                                        /*Type=*/0, /*Flags=*/0, /*EntSize=*/0);
-  m_pSection->setMatchedLinkerScriptRule(this);
+  MPSection = Parent->createELFSection(PName, LDFileFormat::Regular,
+                                       /*Type=*/0, /*Flags=*/0, /*EntSize=*/0);
+  MPSection->setMatchedLinkerScriptRule(this);
 }
 
-RuleContainer::RuleContainer(SectionMap *parent,
-                             const InputSectDesc &pInputDesc)
-    : m_Policy(pInputDesc.policy()), m_Dirty(false), m_Frag(nullptr),
-      m_Desc(&pInputDesc), m_matchCount(0), m_matchTime(0),
-      m_NextRule(nullptr) {
+RuleContainer::RuleContainer(SectionMap *Parent,
+                             const InputSectDesc &PInputDesc)
+    : MPolicy(PInputDesc.policy()), MDirty(false), MFrag(nullptr),
+      MDesc(&PInputDesc), MMatchCount(0), MMatchTime(0), MNextRule(nullptr) {
   // FIXME: We can use an overloaded assignment operator of InputSectDesc::Spec
   // instead of explicitly setting each value.
-  m_Spec.m_pWildcardFile = pInputDesc.spec().m_pWildcardFile;
-  m_Spec.m_pWildcardSections = pInputDesc.spec().m_pWildcardSections;
-  m_Spec.m_pArchiveMember = pInputDesc.spec().m_pArchiveMember;
-  m_Spec.m_pIsArchive = pInputDesc.spec().m_pIsArchive;
-  m_Spec.m_ExcludeFiles = pInputDesc.spec().getExcludeFiles();
-  m_pSection = parent->createELFSection("", LDFileFormat::Regular, /*Type=*/0,
-                                        /*Flags=*/0, /*EntSize=*/0);
-  m_pSection->setMatchedLinkerScriptRule(this);
+  MSpec.WildcardFilePattern = PInputDesc.spec().WildcardFilePattern;
+  MSpec.WildcardSectionPattern = PInputDesc.spec().WildcardSectionPattern;
+  MSpec.InputArchiveMember = PInputDesc.spec().InputArchiveMember;
+  MSpec.InputIsArchive = PInputDesc.spec().InputIsArchive;
+  MSpec.ExcludeFilesRule = PInputDesc.spec().getExcludeFiles();
+  MPSection = Parent->createELFSection("", LDFileFormat::Regular, /*Type=*/0,
+                                       /*Flags=*/0, /*EntSize=*/0);
+  MPSection->setMatchedLinkerScriptRule(this);
 }
 
-void RuleContainer::clearFragments() { m_pSection->clearFragments(); }
+void RuleContainer::clearFragments() { MPSection->clearFragments(); }
 
 void RuleContainer::init(ELFSection *S) {
-  m_pSection->setAddrAlign(S->getAddrAlign());
-  m_pSection->setType(S->getType());
-  m_pSection->setFlags(S->getFlags());
+  MPSection->setAddrAlign(S->getAddrAlign());
+  MPSection->setType(S->getType());
+  MPSection->setFlags(S->getFlags());
 }
 
-void RuleContainer::dumpMap(llvm::raw_ostream &ostream) {
-  ostream << " [" << getMatchCount() << ":"
+void RuleContainer::dumpMap(llvm::raw_ostream &Ostream) {
+  Ostream << " [" << getMatchCount() << ":"
           << static_cast<int>(
                  std::chrono::duration_cast<std::chrono::milliseconds>(
                      getMatchTime())
@@ -70,41 +69,41 @@ void RuleContainer::dumpMap(llvm::raw_ostream &ostream) {
 }
 
 bool RuleContainer::hasContent() const {
-  return !m_pSection->getFragmentList().empty();
+  return !MPSection->getFragmentList().empty();
 }
 
 RuleContainer *RuleContainer::getNextRuleWithContent() const {
-  RuleContainer *result = this->getNextRule();
-  while (result) {
-    if (result->hasContent())
-      return result;
-    result = result->getNextRule();
+  RuleContainer *Result = this->getNextRule();
+  while (Result) {
+    if (Result->hasContent())
+      return Result;
+    Result = Result->getNextRule();
   }
-  return result;
+  return Result;
 }
 
 Fragment *RuleContainer::getFirstFrag() const {
-  return m_pSection && !m_pSection->getFragmentList().empty()
-             ? m_pSection->getFragmentList().front()
+  return MPSection && !MPSection->getFragmentList().empty()
+             ? MPSection->getFragmentList().front()
              : nullptr;
 }
 
 Fragment *RuleContainer::getLastFrag() const {
-  return m_pSection && !m_pSection->getFragmentList().empty()
-             ? m_pSection->getFragmentList().back()
+  return MPSection && !MPSection->getFragmentList().empty()
+             ? MPSection->getFragmentList().back()
              : nullptr;
 }
 
-void RuleContainer::updateMatchedSections(const Module &module) {
+void RuleContainer::updateMatchedSections(const Module &Module) {
   // Clear the vector of sections collected by the rules.
-  for (OutputSectionEntry *outSect : module.getScript().sectionMap()) {
-    for (RuleContainer *rule : *outSect)
-      rule->clearSections();
+  for (OutputSectionEntry *OutSect : Module.getScript().sectionMap()) {
+    for (RuleContainer *Rule : *OutSect)
+      Rule->clearSections();
   }
 
-  for (const InputFile *inputFile : module.getObjectList()) {
-    const ObjectFile *objFile = llvm::dyn_cast<ObjectFile>(inputFile);
-    for (Section *S : objFile->getSections()) {
+  for (const InputFile *InputFile : Module.getObjectList()) {
+    const ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(InputFile);
+    for (Section *S : ObjFile->getSections()) {
       ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(S);
       if (!ELFSect)
         continue;
@@ -116,10 +115,10 @@ void RuleContainer::updateMatchedSections(const Module &module) {
 }
 
 std::string RuleContainer::getAsString() const {
-  std::string s;
-  llvm::raw_string_ostream stream(s);
+  std::string S;
+  llvm::raw_string_ostream Stream(S);
   if (!desc())
     return "";
-  desc()->dumpMap(stream, /*useColor=*/false, /*useNewLine=*/false);
-  return stream.str();
+  desc()->dumpMap(Stream, /*useColor=*/false, /*useNewLine=*/false);
+  return Stream.str();
 }

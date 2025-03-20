@@ -91,19 +91,19 @@ public:
 
   static bool classof(const InputFileAction *I) { return true; }
 
-  void setFileName(std::string FileName) { m_Name = FileName; }
+  void setFileName(std::string FileName) { Name = FileName; }
 
 protected:
-  std::string m_Name;
+  std::string Name;
   Input *I = nullptr;
 };
 
 /// NamespecAction
 class NamespecAction : public InputAction {
 public:
-  NamespecAction(const std::string &pNamespec, DiagnosticPrinter *Printer);
+  NamespecAction(const std::string &PNamespec, DiagnosticPrinter *Printer);
 
-  const std::string &namespec() const { return m_Namespec; }
+  const std::string &namespec() const { return MNamespec; }
 
   bool activate(InputBuilder &) override;
 
@@ -116,7 +116,7 @@ public:
   Input *getInput() const override { return I; }
 
 private:
-  std::string m_Namespec;
+  std::string MNamespec;
   Input *I = nullptr;
 };
 
@@ -263,11 +263,11 @@ public:
 /// DefSymAction
 class DefSymAction : public InputAction {
 public:
-  explicit DefSymAction(std::string pAssignment, DiagnosticPrinter *Printer);
+  explicit DefSymAction(std::string PAssignment, DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
 
-  const std::string &assignment() const { return m_Assignment; }
+  const std::string &assignment() const { return MAssignment; }
 
   virtual ~DefSymAction() {}
 
@@ -278,15 +278,15 @@ public:
   static bool classof(const DefSymAction *D) { return true; }
 
 private:
-  std::string m_Assignment;
+  std::string MAssignment;
 };
 
 /// InputFormatAction handles the processing of '--format|-b <input_format>'
 /// command-line options.
 class InputFormatAction : public InputAction {
 public:
-  explicit InputFormatAction(const std::string &inputFormat,
-                             DiagnosticPrinter *printer);
+  explicit InputFormatAction(const std::string &InputFormat,
+                             DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
 
@@ -295,7 +295,7 @@ public:
   }
 
 private:
-  const std::string m_InputFormat;
+  const std::string InputFormat;
 };
 
 } // namespace eld

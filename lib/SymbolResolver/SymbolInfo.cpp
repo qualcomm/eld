@@ -8,54 +8,54 @@
 #include "llvm/Support/ErrorHandling.h"
 using namespace eld;
 
-SymbolInfo::SymbolInfo(const InputFile *inputFile, size_t size,
-                       ResolveInfo::Binding binding, ResolveInfo::Type symType,
-                       ResolveInfo::Visibility visibility,
-                       ResolveInfo::Desc symDesc, bool isBitcode)
-    : m_InputFile(inputFile), m_Size(size) {
-  setSymbolBinding(binding);
-  setSymbolType(symType);
-  setSymbolVisibility(visibility);
-  setSymbolSectionIndexKind(binding, symDesc);
-  setBitcodeAttribute(isBitcode);
+SymbolInfo::SymbolInfo(const InputFile *InputFile, size_t Size,
+                       ResolveInfo::Binding Binding, ResolveInfo::Type SymType,
+                       ResolveInfo::Visibility Visibility,
+                       ResolveInfo::Desc SymDesc, bool IsBitcode)
+    : SymbolOrigin(InputFile), SymbolSize(Size) {
+  setSymbolBinding(Binding);
+  setSymbolType(SymType);
+  setSymbolVisibility(Visibility);
+  setSymbolSectionIndexKind(Binding, SymDesc);
+  setBitcodeAttribute(IsBitcode);
 }
 
-void SymbolInfo::setSymbolBinding(ResolveInfo::Binding binding) {
-  if (binding == ResolveInfo::Local)
-    m_SymbolInfoBitfield.symBinding = SymbolBinding::Local;
-  else if (binding == ResolveInfo::Global)
-    m_SymbolInfoBitfield.symBinding = SymbolBinding::Global;
-  else if (binding == ResolveInfo::Weak)
-    m_SymbolInfoBitfield.symBinding = SymbolBinding::Weak;
+void SymbolInfo::setSymbolBinding(ResolveInfo::Binding Binding) {
+  if (Binding == ResolveInfo::Local)
+    SymbolInfoBitfield.SymBinding = SymbolBinding::Local;
+  else if (Binding == ResolveInfo::Global)
+    SymbolInfoBitfield.SymBinding = SymbolBinding::Global;
+  else if (Binding == ResolveInfo::Weak)
+    SymbolInfoBitfield.SymBinding = SymbolBinding::Weak;
 }
 
-void SymbolInfo::setSymbolType(ResolveInfo::Type symType) {
-  m_SymbolInfoBitfield.symType = symType;
+void SymbolInfo::setSymbolType(ResolveInfo::Type SymType) {
+  SymbolInfoBitfield.SymType = SymType;
 }
 
-void SymbolInfo::setSymbolVisibility(ResolveInfo::Visibility visibility) {
-  m_SymbolInfoBitfield.symVisibility = visibility;
+void SymbolInfo::setSymbolVisibility(ResolveInfo::Visibility Visibility) {
+  SymbolInfoBitfield.SymVisibility = Visibility;
 }
 
-void SymbolInfo::setSymbolSectionIndexKind(ResolveInfo::Binding binding,
-                                           ResolveInfo::Desc symDesc) {
-  if (binding == ResolveInfo::Absolute)
-    m_SymbolInfoBitfield.symSectIndexKind = SectionIndexKind::Abs;
-  else if (symDesc == ResolveInfo::Desc::Define)
-    m_SymbolInfoBitfield.symSectIndexKind = SectionIndexKind::Def;
-  else if (symDesc == ResolveInfo::Desc::Undefined)
-    m_SymbolInfoBitfield.symSectIndexKind = SectionIndexKind::Undef;
-  else if (symDesc == ResolveInfo::Desc::Common)
-    m_SymbolInfoBitfield.symSectIndexKind = SectionIndexKind::Common;
+void SymbolInfo::setSymbolSectionIndexKind(ResolveInfo::Binding Binding,
+                                           ResolveInfo::Desc SymDesc) {
+  if (Binding == ResolveInfo::Absolute)
+    SymbolInfoBitfield.SymSectIndexKind = SectionIndexKind::Abs;
+  else if (SymDesc == ResolveInfo::Desc::Define)
+    SymbolInfoBitfield.SymSectIndexKind = SectionIndexKind::Def;
+  else if (SymDesc == ResolveInfo::Desc::Undefined)
+    SymbolInfoBitfield.SymSectIndexKind = SectionIndexKind::Undef;
+  else if (SymDesc == ResolveInfo::Desc::Common)
+    SymbolInfoBitfield.SymSectIndexKind = SectionIndexKind::Common;
 }
 
-void SymbolInfo::setBitcodeAttribute(bool isBitcode) {
-  m_SymbolInfoBitfield.isBitcode = isBitcode;
+void SymbolInfo::setBitcodeAttribute(bool IsBitcode) {
+  SymbolInfoBitfield.IsBitcode = IsBitcode;
 }
 
 llvm::StringRef SymbolInfo::getSymbolBindingAsStr() const {
-  SymbolBinding symBinding = getSymbolBinding();
-  switch (symBinding) {
+  SymbolBinding SymBinding = getSymbolBinding();
+  switch (SymBinding) {
 #define ADD_CASE(binding)                                                      \
   case SymbolBinding::binding:                                                 \
     return #binding;
@@ -69,8 +69,8 @@ llvm::StringRef SymbolInfo::getSymbolBindingAsStr() const {
 }
 
 llvm::StringRef SymbolInfo::getSymbolTypeAsStr() const {
-  ResolveInfo::Type symType = getSymbolType();
-  switch (symType) {
+  ResolveInfo::Type SymType = getSymbolType();
+  switch (SymType) {
 #define ADD_CASE(type)                                                         \
   case ResolveInfo::Type::type:                                                \
     return #type;
@@ -89,8 +89,8 @@ llvm::StringRef SymbolInfo::getSymbolTypeAsStr() const {
 }
 
 llvm::StringRef SymbolInfo::getSymbolVisibilityAsStr() const {
-  ResolveInfo::Visibility symVisibility = getSymbolVisibility();
-  switch (symVisibility) {
+  ResolveInfo::Visibility SymVisibility = getSymbolVisibility();
+  switch (SymVisibility) {
 #define ADD_CASE(visibility)                                                   \
   case ResolveInfo::Visibility::visibility:                                    \
     return #visibility;
@@ -104,8 +104,8 @@ llvm::StringRef SymbolInfo::getSymbolVisibilityAsStr() const {
 }
 
 llvm::StringRef SymbolInfo::getSymbolSectionIndexKindAsStr() const {
-  SectionIndexKind symSectIndexKind = getSymbolSectionIndexKind();
-  switch (symSectIndexKind) {
+  SectionIndexKind SymSectIndexKind = getSymbolSectionIndexKind();
+  switch (SymSectIndexKind) {
 #define ADD_CASE(sectIndexKind)                                                \
   case SectionIndexKind::sectIndexKind:                                        \
     return #sectIndexKind;

@@ -24,11 +24,11 @@ using namespace eld;
 /// \param S Magic number of File used to identify it
 /// If input file is not an ELF file, bitcode file, or archive,
 /// It will be treated as a linker script
-InputFile::Kind InputFile::GetInputFileKind(llvm::StringRef S) {
+InputFile::InputFileKind InputFile::getInputFileKind(llvm::StringRef S) {
   auto magic = llvm::identify_magic(S);
   if (magic == llvm::file_magic::elf_relocatable)
     return InputFile::ELFObjFileKind;
-  else if (magic == llvm::file_magic::elf_shared_object)
+  if (magic == llvm::file_magic::elf_shared_object)
     return InputFile::ELFDynObjFileKind;
   else if (magic == llvm::file_magic::elf_executable)
     return InputFile::ELFExecutableFileKind;
@@ -42,9 +42,9 @@ InputFile::Kind InputFile::GetInputFileKind(llvm::StringRef S) {
 }
 
 /// Create an Embedded file.
-InputFile *InputFile::CreateEmbedded(Input *I, llvm::StringRef S,
+InputFile *InputFile::createEmbedded(Input *I, llvm::StringRef S,
                                      DiagnosticEngine *DiagEngine) {
-  InputFile::Kind K = GetInputFileKind(S);
+  InputFile::InputFileKind K = getInputFileKind(S);
   InputFile *EmbeddedFile = nullptr;
   switch (K) {
   case InputFile::ELFObjFileKind:
@@ -76,18 +76,20 @@ InputFile *InputFile::CreateEmbedded(Input *I, llvm::StringRef S,
 }
 
 /// Create an Input File.
-InputFile *InputFile::Create(Input *I, DiagnosticEngine *diagEngine) {
+InputFile *InputFile::create(Input *I, DiagnosticEngine *DiagEngine) {
   llvm::StringRef S;
   if (I->getSize())
     S = I->getFileContents();
-  bool isBinaryFile =
-      I->getAttribute().isBinary() && I->getInputType() == Input::Type::Default;
-  InputFile::Kind K =
-      (isBinaryFile ? InputFile::Kind::BinaryFileKind : GetInputFileKind(S));
-  return InputFile::Create(I, K, diagEngine);
+  bool IsBinaryFile = I->getAttribute().isBinary() &&
+                      I->getInputType() == Input::InputType::Default;
+  InputFile::InputFileKind K =
+      (IsBinaryFile ? InputFile::InputFileKind::BinaryFileKind
+                    : getInputFileKind(S));
+  return InputFile::create(I, K, DiagEngine);
 }
 
-InputFile *InputFile::Create(Input *I, Kind K, DiagnosticEngine *DiagEngine) {
+InputFile *InputFile::create(Input *I, InputFileKind K,
+                             DiagnosticEngine *DiagEngine) {
   switch (K) {
   case InputFile::ELFObjFileKind:
     return make<ELFObjectFile>(I, DiagEngine);
@@ -117,21 +119,21 @@ const char *InputFile::getCopyForWrite(uint32_t S, uint32_t E) {
   return Buf;
 }
 
-void InputFile::setUsed(bool Used) {
+void InputFile::setUsed(bool PUsed) {
   std::lock_guard<std::mutex> Guard(Mutex);
   Input *I = getInput();
   if (I->isArchiveMember()) {
     ArchiveMemberInput *AMI = llvm::dyn_cast<eld::ArchiveMemberInput>(I);
-    AMI->getArchiveFile()->setUsed(Used);
+    AMI->getArchiveFile()->setUsed(PUsed);
   }
-  m_Used = true;
+  Used = true;
 }
 
 bool InputFile::isUsed() {
   std::lock_guard<std::mutex> Guard(Mutex);
-  return m_Used;
+  return Used;
 }
 
 bool InputFile::isInternal() const {
-  return m_Kind == InternalInputKind || (m_Input && m_Input->isInternal());
+  return Kind == InternalInputKind || (I && I->isInternal());
 }

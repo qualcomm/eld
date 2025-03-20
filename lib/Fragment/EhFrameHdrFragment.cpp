@@ -26,17 +26,17 @@ using namespace eld;
 //
 // EhFrameHdr
 //
-EhFrameHdrFragment::EhFrameHdrFragment(EhFrameHdrSection *P, bool createTable,
-                                       bool is64bit)
-    : Fragment(Fragment::EhFrameHdr, P, P->getAddrAlign()), m_is64Bit(is64bit),
-      m_createTable(createTable) {}
+EhFrameHdrFragment::EhFrameHdrFragment(EhFrameHdrSection *P, bool CreateTable,
+                                       bool Is64bit)
+    : Fragment(Fragment::EhFrameHdr, P, P->getAddrAlign()), Is64Bit(Is64bit),
+      CreateTable(CreateTable) {}
 
 const std::string EhFrameHdrFragment::name() const { return "EhFrameHdr"; }
 
 size_t EhFrameHdrFragment::size() const {
   EhFrameHdrSection *S =
       llvm::dyn_cast<eld::EhFrameHdrSection>(getOwningSection());
-  if (!m_createTable)
+  if (!CreateTable)
     return S->sizeOfHeader();
   return S->sizeOfHeader() + S->getNumFDE() * 8;
 }
@@ -45,16 +45,16 @@ void EhFrameHdrFragment::dump(llvm::raw_ostream &OS) {}
 
 EhFrameHdrFragment::~EhFrameHdrFragment() {}
 
-eld::Expected<void> EhFrameHdrFragment::emit(MemoryRegion &mr, Module &M) {
+eld::Expected<void> EhFrameHdrFragment::emit(MemoryRegion &Mr, Module &M) {
   std::vector<FdeData> Fdes;
-  uint8_t *Buf = mr.begin() +
+  uint8_t *Buf = Mr.begin() +
                  getOwningSection()->getOutputELFSection()->offset() +
                  getOffset(M.getConfig().getDiagEngine());
   Buf[0] = 1;
   Buf[1] = llvm::dwarf::DW_EH_PE_pcrel | llvm::dwarf::DW_EH_PE_sdata4;
 
-  if (m_createTable) {
-    Fdes = getFdeData(mr.begin(), M.getConfig().getDiagEngine());
+  if (CreateTable) {
+    Fdes = getFdeData(Mr.begin(), M.getConfig().getDiagEngine());
     Buf[2] = llvm::dwarf::DW_EH_PE_udata4;
     Buf[3] = llvm::dwarf::DW_EH_PE_datarel | llvm::dwarf::DW_EH_PE_sdata4;
   } else {
@@ -88,7 +88,7 @@ EhFrameHdrFragment::getFdeData(uint8_t *Data, DiagnosticEngine *DiagEngine) {
   uint64_t VA = getOwningSection()->getOutputELFSection()->addr();
   for (CIEFragment *CIE :
        llvm::dyn_cast<eld::EhFrameHdrSection>(getOwningSection())->getCIEs()) {
-    uint8_t Enc = CIE->getFdeEncoding(m_is64Bit, DiagEngine);
+    uint8_t Enc = CIE->getFdeEncoding(Is64Bit, DiagEngine);
     for (FDEFragment *FDE : CIE->getFDEs()) {
       uint64_t PC = getFdePc(Data, FDE, Enc, DiagEngine);
       uint64_t FdeVA = FDE->getOwningSection()->getOutputELFSection()->addr() +
@@ -96,7 +96,7 @@ EhFrameHdrFragment::getFdeData(uint8_t *Data, DiagnosticEngine *DiagEngine) {
       // With noinhbit-exec there may be an issue that the VA might not fit,
       // just because the symbol is not resolved.
       if (!llvm::isInt<32>(PC - VA)) {
-        DiagEngine->raise(diag::eh_frame_read_warn)
+        DiagEngine->raise(Diag::eh_frame_read_warn)
             << "PC Offset is too large in " +
                    std::string(FDE->getOwningSection()->name())
             << FDE->getOwningSection()
@@ -140,12 +140,12 @@ uint64_t EhFrameHdrFragment::readFdeAddr(uint8_t *Buf, int Size,
   case llvm::dwarf::DW_EH_PE_sdata8:
     return llvm::support::endian::read64le(Buf);
   case llvm::dwarf::DW_EH_PE_absptr:
-    if (m_is64Bit)
+    if (Is64Bit)
       return llvm::support::endian::read64le(Buf);
     else
       return llvm::support::endian::read32le(Buf);
   }
-  DiagEngine->raise(diag::eh_frame_read_error) << "unsupported"
+  DiagEngine->raise(Diag::eh_frame_read_error) << "unsupported"
                                                << "eh_frame_hdr";
   return 0;
 }
@@ -162,10 +162,9 @@ uint64_t EhFrameHdrFragment::getFdePc(uint8_t *Buf, FDEFragment *F, uint8_t Enc,
   if ((Enc & 0x70) == llvm::dwarf::DW_EH_PE_absptr)
     return Addr;
   if ((Enc & 0x70) == llvm::dwarf::DW_EH_PE_pcrel) {
-    if (m_is64Bit)
+    if (Is64Bit)
       return (int64_t)Addr + S->addr() + F->getOffset(DiagEngine) + 8;
-    else
-      return (int32_t)Addr + S->addr() + F->getOffset(DiagEngine) + 8;
+    return (int32_t)Addr + S->addr() + F->getOffset(DiagEngine) + 8;
   }
   return 0;
 }

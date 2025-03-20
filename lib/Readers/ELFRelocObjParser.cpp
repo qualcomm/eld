@@ -85,7 +85,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
   GNULDBackend &backend = *m_Module.getBackend();
 
   if (m_Module.getPrinter()->traceFiles())
-    config.raise(diag::trace_file) << inputFile->getInput()->decoratedPath();
+    config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
   ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(inputFile);
 
   // FIXME: We create section headers (ELFSection) for each section header.
@@ -140,11 +140,11 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
         ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
         if (!expReadCompressedSection.value())
           return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(diag::err_cannot_read_section,
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       } else if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                     {S->name().str()}));
       }
     } break;
@@ -167,7 +167,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
     case LDFileFormat::Target: {
       if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_target_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_target_section,
                                     {S->name().str()}));
       }
       break;
@@ -186,14 +186,14 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
     // warning
     case LDFileFormat::EhFrameHdr:
     default: {
-      config.raise(diag::warn_illegal_input_section)
+      config.raise(Diag::warn_illegal_input_section)
           << S->name() << inputFile->getInput()->decoratedPath();
       break;
     }
     }
     if (config.options().isSectionTracingRequested() &&
         config.options().traceSection(S))
-      config.raise(diag::read_section)
+      config.raise(Diag::read_section)
           << S->getDecoratedName(config.options())
           << inputFile->getInput()->decoratedPath()
           << utility::toHex(S->getAddrAlign()) << utility::toHex(S->size())
@@ -245,14 +245,14 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
       else {
         if (!backend.readSection(*inputFile, S))
           return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(diag::err_cannot_read_section,
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       }
     } else {
       S->setKind(LDFileFormat::Regular);
       if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                     {S->name().str()}));
       }
     }
@@ -275,7 +275,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
   // Only GRP_COMDAT flag is supported, in addition to no flags at all.
   if (groupFlag & ~llvm::ELF::GRP_COMDAT)
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::error_group_flags,
+        Diag::error_group_flags,
         std::vector<std::string>{S->name().str(), utility::toHex(S->getIndex()),
                                  inputFile->getInput()->decoratedPath(),
                                  utility::toHex(groupFlag)});
@@ -321,7 +321,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
     ELFSection *groupMemberSect = EObj->getELFSection(index);
     if (!groupMemberSect)
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::idx_sect_not_found,
+          Diag::idx_sect_not_found,
           {std::to_string(index), EObj->getInput()->decoratedPath()}));
 
     // Discard member sections, if the group is preempted.
@@ -341,7 +341,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
     GNULDBackend &backend = *m_Module.getBackend();
     if (!backend.readSection(*inputFile, S))
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::err_cannot_read_section, {S->name().str()}));
+          Diag::err_cannot_read_section, {S->name().str()}));
     EObj->addSectionGroup(S);
   }
 
@@ -357,7 +357,7 @@ ELFRelocObjParser::readMergeStrSection(ELFReaderBase &ELFReader,
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
     if (!expReadCompressedSection.value())
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::err_cannot_read_section, {S->name().str()}));
+          Diag::err_cannot_read_section, {S->name().str()}));
   }
 
   LinkerConfig &config = m_Module.getConfig();
@@ -369,7 +369,7 @@ ELFRelocObjParser::readMergeStrSection(ELFReaderBase &ELFReader,
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadMergeStringSection);
     if (!expReadMergeStringSection.value()) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::err_cannot_read_section, {S->name().str()}));
+          Diag::err_cannot_read_section, {S->name().str()}));
     }
   }
   return true;
@@ -391,11 +391,11 @@ ELFRelocObjParser::readDebugSection(ELFReaderBase &ELFReader, ELFSection *S) {
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressed);
       if (!expReadCompressed.value())
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                     {S->name().str()}));
     } else if (!backend.readSection(*inputFile, S)) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::err_cannot_read_section, {S->name().str()}));
+          Diag::err_cannot_read_section, {S->name().str()}));
     }
   }
   return true;
@@ -417,7 +417,7 @@ ELFRelocObjParser::readTimingSection(ELFReaderBase &ELFReader, ELFSection *S) {
     for (const Fragment *TF : TimingSection->getFragmentList()) {
       const TimingSlice *t =
           llvm::dyn_cast<TimingFragment>(TF)->getTimingSlice();
-      config.raise(diag::reading_timing_data)
+      config.raise(Diag::reading_timing_data)
           << t->getModuleName() << std::to_string(t->getBeginningOfTime())
           << std::to_string(t->getDuration())
           << inputFile->getInput()->decoratedPath();
@@ -426,7 +426,7 @@ ELFRelocObjParser::readTimingSection(ELFReaderBase &ELFReader, ELFSection *S) {
   GNULDBackend &backend = *m_Module.getBackend();
   if (!backend.readSection(*inputFile, S)) {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::err_cannot_read_target_section, {S->name().str()}));
+        Diag::err_cannot_read_target_section, {S->name().str()}));
   }
   return true;
 }
@@ -439,14 +439,14 @@ ELFRelocObjParser::readDiscardSection(ELFReaderBase &ELFReader, ELFSection *S) {
 
   // Discarded sections will be read, but it will be discarded in the final
   // output.
-  config.raise(diag::discarding_section)
+  config.raise(Diag::discarding_section)
       << S->name() << inputFile->getInput()->decoratedPath();
   if (!backend.readSection(*inputFile, S)) {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::err_cannot_read_section, {S->name().str()}));
+        Diag::err_cannot_read_section, {S->name().str()}));
   }
   if (S->name() == ".note.qc.reloc.section.map")
-    config.raise(diag::discard_reloc_section_map)
+    config.raise(Diag::discard_reloc_section_map)
         << inputFile->getInput()->decoratedPath();
   return true;
 }

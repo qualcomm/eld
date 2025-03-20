@@ -27,22 +27,22 @@ public:
 
 protected:
   InputToken();
-  InputToken(Type pType, const std::string &pName, bool pAsNeeded);
+  InputToken(Type AssignmentType, const std::string &PName, bool PAsNeeded);
 
 public:
-  Type type() const { return m_Type; }
+  Type type() const { return ThisType; }
 
-  bool asNeeded() const { return m_bAsNeeded; }
+  bool asNeeded() const { return LinkerScriptHasAsNeeded; }
 
-  static bool classof(const StrToken *pToken) {
-    return pToken->kind() == StrToken::Input;
+  static bool classof(const StrToken *ThisInputToken) {
+    return ThisInputToken->kind() == StrToken::Input;
   }
 
   virtual ~InputToken() {}
 
 private:
-  Type m_Type;
-  bool m_bAsNeeded;
+  Type ThisType;
+  bool LinkerScriptHasAsNeeded;
 };
 
 } // namespace eld

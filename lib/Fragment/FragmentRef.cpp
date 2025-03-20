@@ -28,87 +28,86 @@
 
 using namespace eld;
 
-FragmentRef FragmentRef::g_NullFragmentRef;
-FragmentRef FragmentRef::g_DiscardFragmentRef;
+FragmentRef FragmentRef::GNullFragmentRef;
+FragmentRef FragmentRef::GDiscardFragmentRef;
 
 //===----------------------------------------------------------------------===//
 // FragmentRef
 //===----------------------------------------------------------------------===//
-FragmentRef::FragmentRef() : m_pFragment(nullptr), m_Offset(0) {}
+FragmentRef::FragmentRef() : ThisFragment(nullptr), ThisOffset(0) {}
 
-FragmentRef::FragmentRef(Fragment &pFrag, FragmentRef::Offset pOffset)
-    : m_pFragment(&pFrag), m_Offset(pOffset) {}
+FragmentRef::FragmentRef(Fragment &PFrag, FragmentRef::Offset POffset)
+    : ThisFragment(&PFrag), ThisOffset(POffset) {}
 
-FragmentRef *FragmentRef::Null() { return &g_NullFragmentRef; }
+FragmentRef *FragmentRef::null() { return &GNullFragmentRef; }
 
-FragmentRef *FragmentRef::Discard() { return &g_DiscardFragmentRef; }
+FragmentRef *FragmentRef::discard() { return &GDiscardFragmentRef; }
 
-void FragmentRef::memcpy(void *pDest, size_t pNBytes, Offset pOffset) const {
+void FragmentRef::memcpy(void *PDest, size_t PNBytes, Offset POffset) const {
   // check if the offset is still in a legal range.
-  if (nullptr == m_pFragment)
+  if (nullptr == ThisFragment)
     return;
-  unsigned int total_offset = m_Offset + pOffset;
-  switch (m_pFragment->getKind()) {
+  unsigned int TotalOffset = ThisOffset + POffset;
+  switch (ThisFragment->getKind()) {
   /// FIXME: there is lots of unecessary code duplication here
   case Fragment::MergeString: {
-    auto *Strings = static_cast<MergeStringFragment *>(m_pFragment);
-    unsigned int total_length = Strings->size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
-    Strings->copyData(pDest, pNBytes, total_offset);
+    auto *Strings = static_cast<MergeStringFragment *>(ThisFragment);
+    unsigned int TotalLength = Strings->size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
+    Strings->copyData(PDest, PNBytes, TotalOffset);
     return;
   }
   case Fragment::Region: {
-    RegionFragment *region_frag = static_cast<RegionFragment *>(m_pFragment);
-    unsigned int total_length = region_frag->getRegion().size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
+    RegionFragment *RegionFrag = static_cast<RegionFragment *>(ThisFragment);
+    unsigned int TotalLength = RegionFrag->getRegion().size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
 
-    region_frag->copyData(pDest, pNBytes, total_offset);
+    RegionFrag->copyData(PDest, PNBytes, TotalOffset);
     return;
   }
   case Fragment::RegionFragmentEx: {
-    RegionFragmentEx *region_frag =
-        static_cast<RegionFragmentEx *>(m_pFragment);
-    unsigned int total_length = region_frag->getRegion().size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
+    RegionFragmentEx *RegionFrag =
+        static_cast<RegionFragmentEx *>(ThisFragment);
+    unsigned int TotalLength = RegionFrag->getRegion().size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
 
-    region_frag->copyData(pDest, pNBytes, total_offset);
+    RegionFrag->copyData(PDest, PNBytes, TotalOffset);
     return;
   }
   case Fragment::String: {
-    StringFragment *string_frag = static_cast<StringFragment *>(m_pFragment);
-    unsigned int total_length = string_frag->getString().size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
+    StringFragment *StringFrag = static_cast<StringFragment *>(ThisFragment);
+    unsigned int TotalLength = StringFrag->getString().size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
 
-    std::memcpy(pDest, string_frag->getString().c_str() + total_offset,
-                pNBytes);
+    std::memcpy(PDest, StringFrag->getString().c_str() + TotalOffset, PNBytes);
     return;
   }
   case Fragment::Stub: {
-    Stub *stub_frag = static_cast<Stub *>(m_pFragment);
-    unsigned int total_length = stub_frag->size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
-    std::memcpy(pDest, stub_frag->getContent() + total_offset, pNBytes);
+    Stub *StubFrag = static_cast<Stub *>(ThisFragment);
+    unsigned int TotalLength = StubFrag->size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
+    std::memcpy(PDest, StubFrag->getContent() + TotalOffset, PNBytes);
     return;
   }
   case Fragment::Plt: {
-    PLT *P = static_cast<PLT *>(m_pFragment);
-    unsigned int total_length = P->size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
-    std::memcpy(pDest, P->getContent().data() + total_offset, pNBytes);
+    PLT *P = static_cast<PLT *>(ThisFragment);
+    unsigned int TotalLength = P->size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
+    std::memcpy(PDest, P->getContent().data() + TotalOffset, PNBytes);
     return;
   }
   case Fragment::Got: {
-    GOT *G = static_cast<GOT *>(m_pFragment);
-    unsigned int total_length = G->size();
-    if (total_length < (total_offset + pNBytes))
-      pNBytes = total_length - total_offset;
-    std::memcpy(pDest, G->getContent().data() + total_offset, pNBytes);
+    GOT *G = static_cast<GOT *>(ThisFragment);
+    unsigned int TotalLength = G->size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
+    std::memcpy(PDest, G->getContent().data() + TotalOffset, PNBytes);
     return;
   }
   case Fragment::OutputSectDataFragType:
@@ -120,31 +119,31 @@ void FragmentRef::memcpy(void *pDest, size_t pNBytes, Offset pOffset) const {
 }
 
 FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
-  if (m_pFragment->getOwningSection()->getKind() == LDFileFormat::EhFrame) {
+  if (ThisFragment->getOwningSection()->getKind() == LDFileFormat::EhFrame) {
     // Find the proper piece
     EhFrameSection *S =
-        llvm::dyn_cast<eld::EhFrameSection>(m_pFragment->getOwningSection());
+        llvm::dyn_cast<eld::EhFrameSection>(ThisFragment->getOwningSection());
     std::vector<EhFramePiece> &Pieces = S->getPieces();
     size_t I = 0;
     while (I != Pieces.size() &&
-           Pieces[I].getOffset() + Pieces[I].getSize() <= m_Offset)
+           Pieces[I].getOffset() + Pieces[I].getSize() <= ThisOffset)
       ++I;
     if (I == Pieces.size())
-      return m_Offset + Pieces.back().getOutputOffset() -
+      return ThisOffset + Pieces.back().getOutputOffset() -
              Pieces.back().getOffset();
 
     if (!Pieces[I].hasOutputOffset())
       return -1;
-    return m_Offset + Pieces[I].getOutputOffset() - Pieces[I].getOffset();
+    return ThisOffset + Pieces[I].getOutputOffset() - Pieces[I].getOffset();
   }
   /// Correct the output offset for merged strings
-  if (m_pFragment->isMergeStr()) {
-    auto *MSF = llvm::cast<MergeStringFragment>(m_pFragment);
+  if (ThisFragment->isMergeStr()) {
+    auto *MSF = llvm::cast<MergeStringFragment>(ThisFragment);
     OutputSectionEntry *O = getOutputSection();
-    MergeableString *S = MSF->findString(m_Offset);
+    MergeableString *S = MSF->findString(ThisOffset);
     assert(S);
     /// The target string could be a suffix
-    uint32_t OffsetInString = m_Offset - S->InputOffset;
+    uint32_t OffsetInString = ThisOffset - S->InputOffset;
     bool GlobalMerge = M.getConfig().options().shouldGlobalStringMerge();
     if (const MergeableString *Merged = (!S->isAlloc() && GlobalMerge)
                                             ? M.getMergedNonAllocString(S)
@@ -158,10 +157,10 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
     assert(S->hasOutputOffset());
     return S->OutputOffset + OffsetInString;
   }
-  Offset result = 0;
-  if (nullptr != m_pFragment)
-    result = m_pFragment->getOffset(M.getConfig().getDiagEngine());
-  return (result + m_Offset);
+  Offset Result = 0;
+  if (nullptr != ThisFragment)
+    Result = ThisFragment->getOffset(M.getConfig().getDiagEngine());
+  return (Result + ThisOffset);
 }
 
 ELFSection *FragmentRef::getOutputELFSection() const {

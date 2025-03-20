@@ -41,7 +41,7 @@ class DiagnosticPrinter;
  */
 class Input {
 public:
-  enum Type {
+  enum InputType {
     Archive,       // This is used mainly by -Bstatic
     DynObj,        // This is used mainly by -Bdynamic
     Script,        // Linker script
@@ -51,86 +51,86 @@ public:
     Default
   };
 
-  explicit Input(std::string Name, DiagnosticEngine *diagEngine,
-                 Type T = Input::Default);
+  explicit Input(std::string Name, DiagnosticEngine *DiagEngine,
+                 InputType T = Input::Default);
 
-  explicit Input(std::string Name, const Attribute &pAttr,
-                 DiagnosticEngine *diagEngine, Type T = Input::Default);
+  explicit Input(std::string Name, const Attribute &PAttr,
+                 DiagnosticEngine *DiagEngine, InputType T = Input::Default);
 
   virtual ~Input();
 
   static bool classof(const Input *I) { return true; }
 
   /// Return a user-facing text representation of input type.
-  static llvm::StringRef toString(Type);
+  static llvm::StringRef toString(InputType);
 
   /// getFileName returns the FileName passed to the driver otherwise.
-  const std::string getFileName() const { return m_FileName; }
+  const std::string getFileName() const { return FileName; }
 
   /// getName for the Input class returns the FileName
-  const std::string getName() const { return m_Name; }
+  const std::string getName() const { return Name; }
 
-  const sys::fs::Path &getResolvedPath() const { return *m_ResolvedPath; }
+  const sys::fs::Path &getResolvedPath() const { return *ResolvedPath; }
 
-  void setResolvedPath(std::string Path) { m_ResolvedPath = Path; }
+  void setResolvedPath(std::string Path) { ResolvedPath = Path; }
 
-  uint32_t getInputOrdinal() { return m_InputOrdinal; }
+  uint32_t getInputOrdinal() { return InputOrdinal; }
 
-  Attribute &getAttribute() { return m_pAttr; }
+  Attribute &getAttribute() { return Attr; }
 
-  uint64_t getSize() const { return (m_pMemArea ? m_pMemArea->size() : 0); }
+  uint64_t getSize() const { return (MemArea ? MemArea->size() : 0); }
 
   // -----  memory area  ----- //
-  void setMemArea(MemoryArea *pMemArea) { m_pMemArea = pMemArea; }
+  void setMemArea(MemoryArea *PMemArea) { MemArea = PMemArea; }
 
-  MemoryArea *getMemArea() const { return m_pMemArea; }
+  MemoryArea *getMemArea() const { return MemArea; }
 
   llvm::StringRef getFileContents() const;
 
   llvm::MemoryBufferRef getMemoryBufferRef() const {
-    return m_pMemArea->getMemoryBufferRef();
+    return MemArea->getMemoryBufferRef();
   }
 
-  virtual std::string decoratedPath(bool showAbsolute = false) const {
+  virtual std::string decoratedPath(bool ShowAbsolute = false) const {
     // FIXME: We do not need to do llvm::Twine(...).str() because
     // getFullPath() and native() already returns std::string.
-    if (showAbsolute)
+    if (ShowAbsolute)
       return llvm::Twine(getResolvedPath().getFullPath()).str();
     return llvm::Twine(getResolvedPath().native()).str();
   }
 
   virtual std::string
-  getDecoratedRelativePath(const std::string &basepath) const;
+  getDecoratedRelativePath(const std::string &Basepath) const;
 
   // Returns Object File Name.
   virtual std::pair<std::string, std::string>
-  decoratedPathPair(bool showAbsolute = false) const {
-    if (showAbsolute)
+  decoratedPathPair(bool ShowAbsolute = false) const {
+    if (ShowAbsolute)
       return std::make_pair(getResolvedPath().getFullPath(), "");
     return std::make_pair(getResolvedPath().native(), "");
   }
 
-  uint64_t getResolvedPathHash() const { return m_ResolvedPathHash; }
+  uint64_t getResolvedPathHash() const { return ResolvedPathHash; }
 
-  uint64_t getArchiveMemberNameHash() const { return m_MemberNameHash; }
+  uint64_t getArchiveMemberNameHash() const { return MemberNameHash; }
 
   // -----------------------Namespec support -------------------------------
-  bool resolvePath(const LinkerConfig &pConfig);
+  bool resolvePath(const LinkerConfig &PConfig);
 
-  bool resolvePathMappingFile(const LinkerConfig &pConfig);
+  bool resolvePathMappingFile(const LinkerConfig &PConfig);
 
   /// -------------------------Input Type ---------------------------
-  void setInputType(Input::Type T) { m_Type = T; }
+  void setInputType(Input::InputType T) { Type = T; }
 
-  Type getInputType() const { return m_Type; }
+  InputType getInputType() const { return Type; }
 
-  bool isInternal() const { return m_Type == Internal; }
+  bool isInternal() const { return Type == Internal; }
 
   /// -------------------------InputFile support---------------------
   InputFile *getInputFile() const {
-    if (!m_InputFile)
+    if (!IF)
       return nullptr;
-    return m_InputFile;
+    return IF;
   }
 
   void setInputFile(InputFile *Inp);
@@ -138,33 +138,33 @@ public:
   void overrideInputFile(InputFile *Inp);
 
   /// -------------------------Helper functions ---------------------
-  bool isArchiveMember() const { return m_Type == ArchiveMember; }
+  bool isArchiveMember() const { return Type == ArchiveMember; }
 
-  bool isNamespec() const { return m_Type == Namespec; }
+  bool isNamespec() const { return Type == Namespec; }
 
-  void setName(std::string Name) { m_Name = Name; }
+  void setName(std::string N) { Name = N; }
 
   /// -----------------------Release Memory-------------------------
-  void releaseMemory(bool isVerbose = false);
+  void releaseMemory(bool IsVerbose = false);
 
-  bool isAlreadyReleased() const { return isReleased; }
+  bool isAlreadyReleased() const { return IsReleased; }
 
   /// --------------------- WildcardPattern ------------------------
   void addFileMatchedPattern(const WildcardPattern *W, bool R) {
     FilePatternMap[W] = R;
   }
 
-  bool findFileMatchedPattern(const WildcardPattern *W, bool &result) {
+  bool findFileMatchedPattern(const WildcardPattern *W, bool &Result) {
     auto F = FilePatternMap.find(W);
     if (F == FilePatternMap.end())
       return false;
-    result = F->second;
+    Result = F->second;
     return true;
   }
 
   void addMemberMatchedPattern(const WildcardPattern *W, bool R);
 
-  bool findMemberMatchedPattern(const WildcardPattern *W, bool &result);
+  bool findMemberMatchedPattern(const WildcardPattern *W, bool &Result);
 
   uint64_t getWildcardPatternSize();
 
@@ -174,46 +174,46 @@ public:
 
   bool isPatternMapInitialized() const { return PatternMapInitialized; }
 
-  static llvm::hash_code computeFilePathHash(llvm::StringRef filePath);
+  static llvm::hash_code computeFilePathHash(llvm::StringRef FilePath);
 
   /// If MemoryArea is previously allocated for filepath, then return it;
   /// Otherwise returns nullptr.
-  static MemoryArea *getMemoryAreaForPath(const std::string &filepath,
-                                          DiagnosticEngine *diagEngine);
+  static MemoryArea *getMemoryAreaForPath(const std::string &Filepath,
+                                          DiagnosticEngine *DiagEngine);
 
-  static MemoryArea *createMemoryArea(const std::string &filepath,
-                                      DiagnosticEngine *diagEngine);
+  static MemoryArea *createMemoryArea(const std::string &Filepath,
+                                      DiagnosticEngine *DiagEngine);
 
 private:
   // Check if a path is valid and emit any errors
   bool isPathValid(const std::string &Path) const;
 
 protected:
-  InputFile *m_InputFile = nullptr;
-  MemoryArea *m_pMemArea = nullptr;
-  std::string m_FileName;                      // Filename as what is passed to
-                                               //   the linker
-  std::string m_Name;                          // Resolved Name or
-                                               // Member Name or the SONAME.
-  std::optional<sys::fs::Path> m_ResolvedPath; // Resolved path.
-  Attribute m_pAttr;                           // Attribute
-  uint32_t m_InputOrdinal = 0;
-  uint64_t m_ResolvedPathHash = 0;
-  uint64_t m_MemberNameHash = 0;
-  Type m_Type = Default; // The type of input file.
-  bool isReleased = false;
+  InputFile *IF = nullptr;
+  MemoryArea *MemArea = nullptr;
+  std::string FileName;                      // Filename as what is passed to
+                                             //   the linker
+  std::string Name;                          // Resolved Name or
+                                             // Member Name or the SONAME.
+  std::optional<sys::fs::Path> ResolvedPath; // Resolved path.
+  Attribute Attr;                            // Attribute
+  uint32_t InputOrdinal = 0;
+  uint64_t ResolvedPathHash = 0;
+  uint64_t MemberNameHash = 0;
+  InputType Type = Default; // The type of input file.
+  bool IsReleased = false;
   bool TraceMe = false;
   llvm::DenseMap<const WildcardPattern *, bool> FilePatternMap;
   llvm::DenseMap<const WildcardPattern *, bool> MemberPatternMap;
   bool PatternMapInitialized = false;
-  DiagnosticEngine *m_DiagEngine = nullptr;
+  DiagnosticEngine *DiagEngine = nullptr;
 
   /// Keeps track of already created MemoryAreas.
   ///
   /// It is used to reuse Inputs' MemoryArea when an input file is repeated in
   /// the link command-line.
   static std::unordered_map<std::string, MemoryArea *>
-      m_ResolvedPathToMemoryAreaMap;
+      ResolvedPathToMemoryAreaMap;
 };
 
 } // namespace eld

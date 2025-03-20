@@ -35,24 +35,24 @@ class ELDDirectory;
  *  @see ELDDirectory.
  */
 class SearchDirs {
-  static const std::string m_MainExecutablePath;
+  static const std::string MainExecutablePath;
 
 public:
-  typedef std::vector<ELDDirectory *> DirList;
-  typedef DirList::iterator iterator;
-  typedef DirList::const_iterator const_iterator;
+  typedef std::vector<ELDDirectory *> DirListType;
+  typedef DirListType::iterator iterator;
+  typedef DirListType::const_iterator const_iterator;
 
 public:
-  SearchDirs(DiagnosticEngine *diag) : m_DiagEngine(diag) {}
+  SearchDirs(DiagnosticEngine *Diag) : DiagEngine(Diag) {}
 
-  SearchDirs(DiagnosticEngine *diag, const sys::fs::Path &pSysRoot)
-      : m_SysRoot(pSysRoot), m_DiagEngine(diag) {}
+  SearchDirs(DiagnosticEngine *Diag, const sys::fs::Path &PSysRoot)
+      : SysRoot(PSysRoot), DiagEngine(Diag) {}
 
   ~SearchDirs() {}
 
   // find - give a namespec, return a real path of the shared object.
-  const sys::fs::Path *find(const std::string &pNamespec,
-                            Input::Type pPreferType) const;
+  const sys::fs::Path *find(const std::string &PNamespec,
+                            Input::InputType PPreferType) const;
 
   const eld::sys::fs::Path *findLibrary(llvm::StringRef Type,
                                         std::string LibraryName,
@@ -67,7 +67,7 @@ public:
                                           const std::string &FileName,
                                           const std::string &PluginName) const;
   const eld::sys::fs::Path *
-  findInDefaultConfigPath(llvm::StringRef type, llvm::StringRef configName,
+  findInDefaultConfigPath(llvm::StringRef Type, llvm::StringRef ConfigName,
                           llvm::StringRef PluginName) const;
 
   const eld::sys::fs::Path *findInRPath(llvm::StringRef Type,
@@ -79,32 +79,32 @@ public:
 
   const eld::sys::fs::Path *findInCurDir(llvm::StringRef LibraryName) const;
 
-  void setSysRoot(const sys::fs::Path &pSysRoot) { m_SysRoot = pSysRoot; }
-  const sys::fs::Path &sysroot() const { return m_SysRoot; }
-  bool hasSysRoot() const { return !m_SysRoot.empty(); }
+  void setSysRoot(const sys::fs::Path &PSysRoot) { SysRoot = PSysRoot; }
+  const sys::fs::Path &sysroot() const { return SysRoot; }
+  bool hasSysRoot() const { return !SysRoot.empty(); }
 
   // -----  iterators  ----- //
-  const_iterator begin() const { return m_DirList.begin(); }
-  iterator begin() { return m_DirList.begin(); }
-  const_iterator end() const { return m_DirList.end(); }
-  iterator end() { return m_DirList.end(); }
+  const_iterator begin() const { return DirList.begin(); }
+  iterator begin() { return DirList.begin(); }
+  const_iterator end() const { return DirList.end(); }
+  iterator end() { return DirList.end(); }
 
   // -----  modifiers  ----- //
-  bool insert(const char *pDirectory);
+  bool insert(const char *PDirectory);
 
-  bool insert(const std::string &pDirectory);
+  bool insert(const std::string &PDirectory);
 
-  bool insert(const sys::fs::Path &pDirectory);
+  bool insert(const sys::fs::Path &PDirectory);
 
-  const DirList &getDirList() const { return m_DirList; }
+  const DirListType &getDirList() const { return DirList; }
 
   // Support loading of default plugins
   std::vector<eld::sys::fs::Path> getDefaultPluginConfigs() const;
 
 private:
-  DirList m_DirList;
-  sys::fs::Path m_SysRoot;
-  DiagnosticEngine *m_DiagEngine;
+  DirListType DirList;
+  sys::fs::Path SysRoot;
+  DiagnosticEngine *DiagEngine;
 };
 
 } // namespace eld

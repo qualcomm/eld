@@ -55,30 +55,30 @@ template <class ELFT>
 bool RegionTableFragment<ELFT>::updateInfo(GNULDBackend *G) {
   uint32_t NumEntriesInTable = (Table.size() * 2);
   Table.clear();
-  const std::vector<ELFSegment *> &segments = G->elfSegmentTable().segments();
-  for (auto &seg : segments) {
-    OutputSectionEntry *firstBSSInSeg = nullptr;
-    OutputSectionEntry *lastBSSInSeg = nullptr;
-    for (auto &sec : seg->sections()) {
+  const std::vector<ELFSegment *> &Segments = G->elfSegmentTable().segments();
+  for (auto &Seg : Segments) {
+    OutputSectionEntry *FirstBssInSeg = nullptr;
+    OutputSectionEntry *LastBssInSeg = nullptr;
+    for (auto &Sec : Seg->sections()) {
       // Continue until we find a non empty BSS section.
-      if (!sec->getSection()->size())
+      if (!Sec->getSection()->size())
         continue;
-      bool isCurrBSS = sec->getSection()->isBSS();
-      if (sec->prolog().type() == OutputSectDesc::UNINIT)
-        isCurrBSS = false;
-      if (isCurrBSS && !firstBSSInSeg)
-        firstBSSInSeg = sec;
-      if (firstBSSInSeg && !isCurrBSS) {
-        Table.push_back(std::make_pair(firstBSSInSeg->getSection(),
-                                       lastBSSInSeg->getSection()));
-        firstBSSInSeg = nullptr;
-        lastBSSInSeg = nullptr;
+      bool IsCurrBss = Sec->getSection()->isBSS();
+      if (Sec->prolog().type() == OutputSectDesc::UNINIT)
+        IsCurrBss = false;
+      if (IsCurrBss && !FirstBssInSeg)
+        FirstBssInSeg = Sec;
+      if (FirstBssInSeg && !IsCurrBss) {
+        Table.push_back(std::make_pair(FirstBssInSeg->getSection(),
+                                       LastBssInSeg->getSection()));
+        FirstBssInSeg = nullptr;
+        LastBssInSeg = nullptr;
       }
-      lastBSSInSeg = sec;
+      LastBssInSeg = Sec;
     }
-    if (firstBSSInSeg)
-      Table.push_back(std::make_pair(firstBSSInSeg->getSection(),
-                                     lastBSSInSeg->getSection()));
+    if (FirstBssInSeg)
+      Table.push_back(std::make_pair(FirstBssInSeg->getSection(),
+                                     LastBssInSeg->getSection()));
   }
   return (NumEntriesInTable != (Table.size() * 2));
 }

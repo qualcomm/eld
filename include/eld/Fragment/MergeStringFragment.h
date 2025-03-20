@@ -3,8 +3,8 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
-#ifndef ELD_FRAGMENT_MERGE_STRING_FRAGMENT_H
-#define ELD_FRAGMENT_MERGE_STRING_FRAGMENT_H
+#ifndef ELD_FRAGMENT_MERGESTRINGFRAGMENT_H
+#define ELD_FRAGMENT_MERGESTRINGFRAGMENT_H
 
 #include "eld/Fragment/Fragment.h"
 #include "llvm/ADT/StringRef.h"

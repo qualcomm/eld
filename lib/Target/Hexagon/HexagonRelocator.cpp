@@ -92,7 +92,7 @@ void HexagonRelocator::CreateGOTGD(ELFObjectFile *Obj, const Relocation &pReloc,
   ResolveInfo *rsym = pReloc.symInfo();
 
   if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-    config().raise(diag::tls_non_tls_mix)
+    config().raise(Diag::tls_non_tls_mix)
         << (int)pReloc.type() << pReloc.symInfo()->name();
 
   std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
@@ -125,7 +125,7 @@ void HexagonRelocator::CreateGOTIE(ELFObjectFile *Obj,
   ResolveInfo *rsym = pReloc.symInfo();
 
   if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-    config().raise(diag::tls_non_tls_mix)
+    config().raise(Diag::tls_non_tls_mix)
         << (int)pReloc.type() << pReloc.symInfo()->name();
 
   std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
@@ -156,7 +156,7 @@ void HexagonRelocator::CreateTLSPLT(ELFObjectFile *Obj, Relocation &pReloc,
                                     HexagonTLSStub::StubType DynStub) {
   ResolveInfo *rsym = pReloc.symInfo();
   if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-    config().raise(diag::tls_non_tls_mix)
+    config().raise(Diag::tls_non_tls_mix)
         << (int)pReloc.type() << pReloc.symInfo()->name();
   std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
 
@@ -282,7 +282,7 @@ void HexagonRelocator::scanRelocation(Relocation &pReloc,
     return;
 
   if (!isRelocSupported(pReloc)) {
-    config().raise(diag::unsupported_reloc)
+    config().raise(Diag::unsupported_reloc)
         << pReloc.type() << pSection.getDecoratedName(config().options())
         << pInputFile.getInput()->decoratedPath();
     return;
@@ -291,7 +291,7 @@ void HexagonRelocator::scanRelocation(Relocation &pReloc,
   // If we are generating a shared library check for invalid relocations
   if (isInvalidReloc(pReloc)) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(diag::non_pic_relocation)
+    config().raise(Diag::non_pic_relocation)
         << getName(pReloc.type()) << pReloc.symInfo()->name()
         << pReloc.getSourcePath(config().options());
     m_Target.getModule().setFailure(true);
@@ -308,7 +308,7 @@ void HexagonRelocator::scanRelocation(Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))
-      config().raise(diag::reloc_trace)
+      config().raise(Diag::reloc_trace)
           << relocName << pReloc.symInfo()->name()
           << pInputFile.getInput()->decoratedPath();
   }
@@ -390,7 +390,7 @@ void HexagonRelocator::scanLocalReloc(InputFile &InputFile, Relocation &pReloc,
   case llvm::ELF::R_HEX_LD_GOT_11_X:
 
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     getTLSModuleID(rsym);
     return;
@@ -484,7 +484,7 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
       if (ld_backend.symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
-          config().raise(diag::copyrelocs_is_error)
+          config().raise(Diag::copyrelocs_is_error)
               << rsym->name() << InputFile.getInput()->decoratedPath()
               << rsym->resolvedOrigin()->getInput()->decoratedPath();
           return;
@@ -542,7 +542,7 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
   case llvm::ELF::R_HEX_LD_GOT_16_X:
   case llvm::ELF::R_HEX_LD_GOT_11_X:
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     getTLSModuleID(rsym);
     return;
@@ -632,7 +632,7 @@ void HexagonRelocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
         llvm::StringRef((const char *)jmprr31, sizeof(jmprr31)), guardSection,
         Fragment::Type::Region, 4);
     guardSection->addFragmentAndUpdateSize(frag);
-    m_Guard = pBuilder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+    m_Guard = pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
         frag->getOwningSection()->getInputFile(), SymbolName,
         ResolveInfo::Function, ResolveInfo::Define, ResolveInfo::Global, 4, 0,
         make<FragmentRef>(*frag, 0), ResolveInfo::Default,
@@ -640,12 +640,12 @@ void HexagonRelocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
     m_Guard->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     if (layoutPrinter)
       layoutPrinter->recordFragment(guardSection->getInputFile(), guardSection,
                                     frag);
   }
-  config().raise(diag::resolve_undef_weak_guard)
+  config().raise(Diag::resolve_undef_weak_guard)
       << pSym->name() << pSym->resolvedOrigin()->getInput()->decoratedPath()
       << SymbolName;
   pSym->outSymbol()->setFragmentRef(m_Guard->fragRef());
@@ -703,7 +703,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
 
   if ((RelocInfo.VerifyAlignment || pRelocDesc.forceVerify) &&
       !llvm::Hexagon::verifyAlignment(RelocType, Result))
-    DiagEngine->raise(diag::not_aligned)
+    DiagEngine->raise(Diag::not_aligned)
         << RelocInfo.Name << pReloc.symInfo()->name()
         << pReloc.getTargetPath(options) << pReloc.getSourcePath(options)
         << RelocInfo.Alignment;
@@ -717,7 +717,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
 
   if ((pRelocDesc.forceVerify) &&
       (llvm::Hexagon::isTruncated(RelocType, Result))) {
-    DiagEngine->raise(diag::reloc_truncated)
+    DiagEngine->raise(Diag::reloc_truncated)
         << RelocInfo.Name << pReloc.symInfo()->name()
         << pReloc.getTargetPath(options) << pReloc.getSourcePath(options);
   }
@@ -831,7 +831,7 @@ Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
     Relocator::Result R = applyRel(pReloc, Result, pRelocDesc, DiagEngine,
                                    pParent.config().options());
     if (R == Relocator::Overflow)
-      DiagEngine->raise(diag::pcrel_reloc_overflow)
+      DiagEngine->raise(Diag::pcrel_reloc_overflow)
           << llvm::utohexstr(S) << llvm::utohexstr(A) << llvm::utohexstr(P)
           << llvm::utohexstr(Result);
     return R;
@@ -845,7 +845,7 @@ Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
       Relocator::Result R = applyRel(pReloc, Result, pRelocDesc, DiagEngine,
                                      pParent.config().options());
       if (R == Relocator::Overflow)
-        DiagEngine->raise(diag::pcrel_reloc_overflow)
+        DiagEngine->raise(Diag::pcrel_reloc_overflow)
             << llvm::utohexstr(S) << llvm::utohexstr(A) << llvm::utohexstr(P)
             << llvm::utohexstr(Result);
       return R;
@@ -855,7 +855,7 @@ Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
   Relocator::Result R = applyRel(pReloc, Result, pRelocDesc, DiagEngine,
                                  pParent.config().options());
   if (R == Relocator::Overflow)
-    DiagEngine->raise(diag::pcrel_reloc_overflow)
+    DiagEngine->raise(Diag::pcrel_reloc_overflow)
         << llvm::utohexstr(S) << llvm::utohexstr(A) << llvm::utohexstr(P)
         << llvm::utohexstr(Result);
   return R;

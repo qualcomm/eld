@@ -36,16 +36,16 @@ public:
 
   static bool classof(const RegionFragmentEx *) { return true; }
 
-  bool replaceInstruction(uint32_t offset, Relocation *reloc, uint32_t instr,
-                          uint8_t size);
-  void deleteInstruction(uint32_t offset, uint32_t size);
+  bool replaceInstruction(uint32_t Offset, Relocation *Reloc, uint32_t Instr,
+                          uint8_t Size);
+  void deleteInstruction(uint32_t Offset, uint32_t Size);
   void addRequiredNops(uint32_t Offset, uint32_t NumNopsToAdd);
 
   size_t size() const override;
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
-  void copyData(void *pDest, uint32_t pNBytes, uint64_t pOffset) const;
+  void copyData(void *PDest, uint32_t PNBytes, uint64_t POffset) const;
 
   virtual void addSymbol(ResolveInfo *R) override;
 

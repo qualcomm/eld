@@ -23,21 +23,21 @@ class Relocation;
 class EhFramePiece {
 public:
   EhFramePiece(size_t Off, size_t Sz, Relocation *R, EhFrameSection *O)
-      : m_Offset(Off), m_Size(Sz), m_Relocation(R), m_Section(O) {}
+      : MOffset(Off), ThisSize(Sz), MRelocation(R), MSection(O) {}
 
-  size_t getSize() const { return m_Size; }
+  size_t getSize() const { return ThisSize; }
 
-  size_t getOffset() const { return m_Offset; }
+  size_t getOffset() const { return MOffset; }
 
-  bool hasOutputOffset() const { return m_OutputOffset != (size_t)-1; };
+  bool hasOutputOffset() const { return MOutputOffset != (size_t)-1; };
 
-  size_t getOutputOffset() const { return m_OutputOffset; }
+  size_t getOutputOffset() const { return MOutputOffset; }
 
-  void setOutputOffset(size_t Off) { m_OutputOffset = Off; }
+  void setOutputOffset(size_t Off) { MOutputOffset = Off; }
 
-  Relocation *getRelocation() const { return m_Relocation; }
+  Relocation *getRelocation() const { return MRelocation; }
 
-  EhFrameSection *getOwningSection() const { return m_Section; }
+  EhFrameSection *getOwningSection() const { return MSection; }
 
   llvm::ArrayRef<uint8_t> getData();
 
@@ -49,19 +49,19 @@ public:
 
   void skipLeb128(DiagnosticEngine *DiagEngine);
 
-  size_t getAugPSize(unsigned Enc, bool is64Bit, DiagnosticEngine *DiagEngine);
+  size_t getAugPSize(unsigned Enc, bool Is64Bit, DiagnosticEngine *DiagEngine);
 
-  void skipAugP(bool is64Bit, DiagnosticEngine *DiagEngine);
+  void skipAugP(bool Is64Bit, DiagnosticEngine *DiagEngine);
 
-  uint8_t getFdeEncoding(bool is64Bit, DiagnosticEngine *DiagEngine);
+  uint8_t getFdeEncoding(bool Is64Bit, DiagnosticEngine *DiagEngine);
 
 private:
   llvm::ArrayRef<uint8_t> D;
-  size_t m_Offset = 0;
-  size_t m_OutputOffset = -1;
-  size_t m_Size = 0;
-  Relocation *m_Relocation = nullptr;
-  EhFrameSection *m_Section = nullptr;
+  size_t MOffset = 0;
+  size_t MOutputOffset = -1;
+  size_t ThisSize = 0;
+  Relocation *MRelocation = nullptr;
+  EhFrameSection *MSection = nullptr;
 };
 
 class FDEFragment : public Fragment {
@@ -83,7 +83,7 @@ public:
 
   static bool classof(const FDEFragment *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   virtual void dump(llvm::raw_ostream &OS) override;
 
@@ -114,7 +114,7 @@ public:
 
   static bool classof(const CIEFragment *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   virtual void dump(llvm::raw_ostream &OS) override;
 
@@ -126,7 +126,7 @@ public:
 
   size_t getNumFDE() const { return FDEs.size(); }
 
-  uint8_t getFdeEncoding(bool is64Bit, DiagnosticEngine *DiagEngine);
+  uint8_t getFdeEncoding(bool Is64Bit, DiagnosticEngine *DiagEngine);
 
 protected:
   EhFramePiece &CIE;

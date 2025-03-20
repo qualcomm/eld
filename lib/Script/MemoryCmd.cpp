@@ -17,28 +17,28 @@ MemoryCmd::MemoryCmd() : ScriptCommand(ScriptCommand::MEMORY) {}
 
 MemoryCmd::~MemoryCmd() {}
 
-void MemoryCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "MEMORY\n{\n";
-  for (const auto &elem : m_MemoryDescriptors) {
-    outs << "\t";
-    elem->dump(outs);
+void MemoryCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "MEMORY\n{\n";
+  for (const auto &Elem : MemoryDescriptors) {
+    Outs << "\t";
+    Elem->dump(Outs);
   }
-  outs << "}\n";
+  Outs << "}\n";
 }
 
-void MemoryCmd::push_back(ScriptCommand *Desc) {
-  m_MemoryDescriptors.push_back(llvm::cast<MemoryDesc>(Desc));
+void MemoryCmd::pushBack(ScriptCommand *Desc) {
+  MemoryDescriptors.push_back(llvm::cast<MemoryDesc>(Desc));
 }
 
-eld::Expected<void> MemoryCmd::activate(Module &pModule) {
-  for (auto &elem : m_MemoryDescriptors) {
-    eld::Expected<void> E = elem->activate(pModule);
+eld::Expected<void> MemoryCmd::activate(Module &CurModule) {
+  for (auto &Elem : MemoryDescriptors) {
+    eld::Expected<void> E = Elem->activate(CurModule);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
   }
-  pModule.getScript().setMemoryCommand(this);
+  CurModule.getScript().setMemoryCommand(this);
   return eld::Expected<void>();
 }
 
-void MemoryCmd::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  outs << "MEMORY";
+void MemoryCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  Outs << "MEMORY";
 }

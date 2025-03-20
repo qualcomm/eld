@@ -42,68 +42,71 @@ class Input;
  */
 class NamePool {
 public:
-  explicit NamePool(eld::LinkerConfig &Config, PluginManager &pm);
+  explicit NamePool(eld::LinkerConfig &Config, PluginManager &Pm);
 
   ~NamePool();
 
-  ResolveInfo createInputSymbolRI(const std::string &symName, InputFile &IF,
-                                  bool isDyn, ResolveInfo::Type symType,
-                                  ResolveInfo::Desc symDesc,
-                                  ResolveInfo::Binding symBinding,
-                                  ResolveInfo::SizeType symSize,
-                                  ResolveInfo::Visibility symVisibility,
-                                  LDSymbol::ValueType symValue,
-                                  bool isPatchable) const;
+  ResolveInfo createInputSymbolRI(const std::string &SymName, InputFile &IF,
+                                  bool IsDyn, ResolveInfo::Type SymType,
+                                  ResolveInfo::Desc SymDesc,
+                                  ResolveInfo::Binding SymBinding,
+                                  ResolveInfo::SizeType SymSize,
+                                  ResolveInfo::Visibility SymVisibility,
+                                  LDSymbol::ValueType SymValue,
+                                  bool IsPatchable) const;
 
   // -----  modifiers  ----- //
   /// createSymbol - create a symbol but do not insert into the pool.
-  ResolveInfo *createSymbol(InputFile *pInput, std::string pName, bool pIsDyn,
-                            ResolveInfo::Type pType, ResolveInfo::Desc pDesc,
-                            ResolveInfo::Binding pBinding,
-                            ResolveInfo::SizeType pSize,
-                            ResolveInfo::Visibility pVisibility,
-                            bool isPostLTOPhase);
+  ResolveInfo *createSymbol(InputFile *Input, std::string SymbolName,
+                            bool IsSymbolInDynamicLibrary,
+                            ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+                            ResolveInfo::Binding Binding,
+                            ResolveInfo::SizeType Size,
+                            ResolveInfo::Visibility Visibility,
+                            bool IsPostLtoPhase);
 
-  ResolveInfo *insertLocalSymbol(ResolveInfo inputSymRI, const LDSymbol &sym);
+  ResolveInfo *insertLocalSymbol(ResolveInfo InputSymbolResolveInfo,
+                                 const LDSymbol &Sym);
 
-  bool insertNonLocalSymbol(ResolveInfo inputSymRI, const LDSymbol &sym,
-                            bool isPostLTOPhase, Resolver::Result &pResult);
+  bool insertNonLocalSymbol(ResolveInfo InputSymbolResolveInfo,
+                            const LDSymbol &Sym, bool IsPostLtoPhase,
+                            Resolver::Result &PResult);
 
   /// insertSymbol - insert a symbol and resolve the symbol immediately
-  bool insertSymbol(InputFile *pInput, std::string pName, bool pIsDyn,
-                    ResolveInfo::Type pType, ResolveInfo::Desc pDesc,
-                    ResolveInfo::Binding pBinding, ResolveInfo::SizeType pSize,
-                    LDSymbol::ValueType pValue,
-                    ResolveInfo::Visibility pVisibility, ResolveInfo *pOldInfo,
-                    Resolver::Result &pResult, bool isLTOPhase, bool isBitCode,
-                    unsigned int pSymIdx, bool isPatchable,
-                    DiagnosticPrinter *Printer);
+  bool insertSymbol(InputFile *Input, std::string SymbolName,
+                    bool IsSymbolInDynamicLibrary, ResolveInfo::Type Type,
+                    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+                    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+                    ResolveInfo::Visibility Visibility,
+                    ResolveInfo *OldSymbolInfo, Resolver::Result &PResult,
+                    bool IsLtoPhase, bool IsBitCode, unsigned int PSymIdx,
+                    bool IsPatchable, DiagnosticPrinter *Printer);
 
-  LDSymbol *createPluginSymbol(InputFile *pInput, std::string pName,
-                               Fragment *pFragment, uint64_t Val,
+  LDSymbol *createPluginSymbol(InputFile *Input, std::string SymbolName,
+                               Fragment *CurFragment, uint64_t Val,
                                LayoutPrinter *LP);
 
-  size_t getNumGlobalSize() const { return m_Globals.size(); }
+  size_t getNumGlobalSize() const { return GlobalSymbols.size(); }
 
   /// findSymbol - find the resolved output LDSymbol
-  const LDSymbol *findSymbol(std::string pName) const;
-  LDSymbol *findSymbol(std::string pName);
+  const LDSymbol *findSymbol(std::string SymbolName) const;
+  LDSymbol *findSymbol(std::string SymbolName);
 
   /// findInfo - find the resolved ResolveInfo
-  const ResolveInfo *findInfo(std::string pName) const;
-  ResolveInfo *findInfo(std::string pName);
+  const ResolveInfo *findInfo(std::string SymbolName) const;
+  ResolveInfo *findInfo(std::string SymbolName);
 
   // Get Local symbols.
-  std::vector<ResolveInfo *> &getLocals() { return m_Locals; }
+  std::vector<ResolveInfo *> &getLocals() { return LocalSymbols; }
 
   // Get Global symbols.
-  llvm::StringMap<ResolveInfo *> &getGlobals() { return m_Globals; }
+  llvm::StringMap<ResolveInfo *> &getGlobals() { return GlobalSymbols; }
 
   void setupNullSymbol();
 
   std::string getDecoratedName(const ResolveInfo *R, bool DoDemangle) const;
 
-  std::string getDecoratedName(const LDSymbol &sym,
+  std::string getDecoratedName(const LDSymbol &Sym,
                                const ResolveInfo &RI) const;
 
   bool getSymbolTracingRequested() const;
@@ -112,28 +115,28 @@ public:
   bool canSymbolsBeResolved(const ResolveInfo *, const ResolveInfo *) const;
   bool checkTLSTypes(const ResolveInfo *, const ResolveInfo *) const;
 
-  SymbolResolutionInfo &getSRI() { return m_SRI; }
+  SymbolResolutionInfo &getSRI() { return SymbolResInfo; }
 
-  void addSharedLibSymbol(LDSymbol *sym) {
-    ASSERT(sym->resolveInfo(), "symbol must have a resolveInfo!");
-    m_SharedLibsSymbols[sym->resolveInfo()] = sym;
+  void addSharedLibSymbol(LDSymbol *Sym) {
+    ASSERT(Sym->resolveInfo(), "symbol must have a resolveInfo!");
+    SharedLibsSymbols[Sym->resolveInfo()] = Sym;
   }
 
   LDSymbol *getSharedLibSymbol(const ResolveInfo *RI) {
-    auto iter = m_SharedLibsSymbols.find(RI);
-    if (iter != m_SharedLibsSymbols.end())
-      return iter->second;
+    auto Iter = SharedLibsSymbols.find(RI);
+    if (Iter != SharedLibsSymbols.end())
+      return Iter->second;
     return nullptr;
   }
 
 private:
-  eld::LinkerConfig &m_Config;
-  Resolver *m_pResolver;
-  llvm::StringMap<ResolveInfo *> m_Globals;
-  std::vector<ResolveInfo *> m_Locals;
-  bool m_SymbolTracingRequested;
-  SymbolResolutionInfo m_SRI;
-  std::map<const ResolveInfo *, LDSymbol *> m_SharedLibsSymbols;
+  eld::LinkerConfig &ThisConfig;
+  Resolver *SymbolResolver;
+  llvm::StringMap<ResolveInfo *> GlobalSymbols;
+  std::vector<ResolveInfo *> LocalSymbols;
+  bool IsSymbolTracingRequested;
+  SymbolResolutionInfo SymbolResInfo;
+  std::map<const ResolveInfo *, LDSymbol *> SharedLibsSymbols;
   PluginManager &PM;
 };
 

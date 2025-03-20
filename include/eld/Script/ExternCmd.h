@@ -25,33 +25,33 @@ class Module;
 
 class ExternCmd : public ScriptCommand {
 public:
-  ExternCmd(StringList &pExtern);
+  ExternCmd(StringList &PExtern);
   ~ExternCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::EXTERN;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::EXTERN;
   }
 
-  void addExternCommand(StrToken *S) { m_Extern.push_back(S); }
+  void addExternCommand(StrToken *S) { ExternSymbolList.pushBack(S); }
 
-  const StringList &getExternList() const { return m_Extern; }
+  const StringList &getExternList() const { return ExternSymbolList; }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  void addSymbolContainer(SymbolContainer *symContainer) {
-    assert(symContainer);
-    m_SymbolContainers.push_back(symContainer);
+  void addSymbolContainer(SymbolContainer *SymContainer) {
+    assert(SymContainer);
+    ThisSymbolContainers.push_back(SymContainer);
   }
 
   llvm::ArrayRef<SymbolContainer *> getSymbolContainers() const {
-    return m_SymbolContainers;
+    return ThisSymbolContainers;
   }
 
 private:
-  StringList m_Extern;
-  llvm::SmallVector<SymbolContainer *> m_SymbolContainers;
+  StringList ExternSymbolList;
+  llvm::SmallVector<SymbolContainer *> ThisSymbolContainers;
 };
 
 } // namespace eld

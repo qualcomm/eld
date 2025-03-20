@@ -21,11 +21,10 @@ class Plugin;
 /// routines for calling a plugin hook for all plugins.
 class PluginManager {
 public:
-  explicit PluginManager(const LinkerScript &linkerScript,
-                         DiagnosticEngine &diagEngine,
-                         bool shouldPrintTimingStats)
-      : LS(linkerScript), DE(diagEngine),
-        ShouldPrintTimingStats(shouldPrintTimingStats) {}
+  explicit PluginManager(const LinkerScript &LinkerScript,
+                         DiagnosticEngine &DiagEngine, bool PrintTimingStats)
+      : LS(LinkerScript), DE(DiagEngine),
+        ShouldPrintTimingStats(PrintTimingStats) {}
 
   /// Stores all the plugins having the UniversalPlugin type.
   ///
@@ -46,14 +45,14 @@ public:
 
   /// Invokes command-line option handlers for registered options present in the
   /// link command-line.
-  bool processPluginCommandLineOptions(GeneralOptions &options);
+  bool processPluginCommandLineOptions(GeneralOptions &Options);
 
   /// Call VisitSection hook handler of each universal plugin. Returns false if
   /// any of the callback fails.
   bool callVisitSectionsHook(InputFile &IF);
 
-  bool callVisitSymbolHook(LDSymbol *sym, llvm::StringRef,
-                           const SymbolInfo &symInfo);
+  bool callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef,
+                           const SymbolInfo &SymInfo);
 
   void addSymbolVisitor(eld::Plugin *P);
 
@@ -62,9 +61,9 @@ public:
   }
 
   const Plugin *getRMSectionNameMapProvider(const InputFile *IF) {
-    auto it = RMSectNameMapProvider.find(IF);
-    if (it != RMSectNameMapProvider.end())
-      return it->second;
+    auto It = RMSectNameMapProvider.find(IF);
+    if (It != RMSectNameMapProvider.end())
+      return It->second;
     return nullptr;
   }
 
@@ -72,16 +71,16 @@ public:
 
   bool callActBeforeSectionMergingHook();
 
-  void enableShowRMSectNameInDiag(LinkerConfig &config, const eld::Plugin &P);
+  void enableShowRMSectNameInDiag(LinkerConfig &Config, const eld::Plugin &P);
 
   void setAuxiliarySymbolNameMap(
-      ObjectFile *objFile,
-      const ObjectFile::AuxiliarySymbolNameMap &auxSymNameMap, const Plugin *P);
+      ObjectFile *ObjFile,
+      const ObjectFile::AuxiliarySymbolNameMap &AuxSymNameMap, const Plugin *P);
 
   const Plugin *getAuxiliarySymbolNameMapProvider(const InputFile *IF) {
-    auto it = AuxSymNameMapProvider.find(IF);
-    if (it != AuxSymNameMapProvider.end())
-      return it->second;
+    auto It = AuxSymNameMapProvider.find(IF);
+    if (It != AuxSymNameMapProvider.end())
+      return It->second;
     return nullptr;
   }
 

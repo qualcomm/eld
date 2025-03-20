@@ -37,7 +37,7 @@ bool OutputTarWriter::createOutput() {
   // If we want to compress the files, then let us create a tempoary file.
   if (m_Compress) {
     if (!llvm::compression::zlib::isAvailable()) {
-      m_Config.raise(diag::zlib_not_available);
+      m_Config.raise(Diag::zlib_not_available);
       return false;
     }
     llvm::SmallString<256> OutputFileName;
@@ -50,7 +50,7 @@ bool OutputTarWriter::createOutput() {
   llvm::Expected<std::unique_ptr<llvm::TarWriter>> TarOrErr =
       llvm::TarWriter::create(tarFilePath, "reproduce." + BaseName);
   if (!TarOrErr) {
-    m_Config.raise(diag::fail_to_create_tarball)
+    m_Config.raise(Diag::fail_to_create_tarball)
         << tarFilePath << llvm::toString(TarOrErr.takeError());
     return false;
   }
@@ -93,12 +93,12 @@ bool OutputTarWriter::createMappingFile() {
       Hash = "./" + Hash;
     std::string Path = Pair.first().str();
     if (m_Verbose)
-      m_Config.raise(diag::adding_ini_hash_entry) << Path << Hash;
+      m_Config.raise(Diag::adding_ini_hash_entry) << Path << Hash;
     std::string Category = MappingFile::getMappingCategoryForInputFile(F);
     (*INIFileWriter)[Category][Path] = Hash;
   }
   if (m_Verbose)
-    m_Config.raise(diag::created_mapping_file)
+    m_Config.raise(Diag::created_mapping_file)
         << mappingFileName << getMappings();
   return true;
 }
@@ -120,7 +120,7 @@ bool OutputTarWriter::doCompress() {
   llvm::raw_fd_ostream *File =
       new llvm::raw_fd_ostream(m_OutputPath, Error, llvm::sys::fs::OF_None);
   if (Error) {
-    m_Config.raise(diag::unable_to_write_compressed_tar) << m_OutputPath;
+    m_Config.raise(Diag::unable_to_write_compressed_tar) << m_OutputPath;
     return false;
   }
   *File << llvm::toStringRef(Compressed).str();
@@ -136,10 +136,10 @@ bool OutputTarWriter::writeOutput(bool ShowProgress) {
     return false;
   if (INIFileWriter == nullptr)
     return false;
-  m_Config.raise(diag::creating_tarball) << getTarFileName();
+  m_Config.raise(Diag::creating_tarball) << getTarFileName();
   auto Contents = getMappings();
   if (m_Verbose)
-    m_Config.raise(diag::adding_mappingfile_to_tarball) << mappingFileName;
+    m_Config.raise(Diag::adding_mappingfile_to_tarball) << mappingFileName;
   m_ProgressBar = make<ProgressBar>(InputMap.size() + 3, 80, ShowProgress);
   writeFile(mappingFileName, Contents);
   writeFile(versionFileName, versionContents);
@@ -159,7 +159,7 @@ bool OutputTarWriter::writeOutput(bool ShowProgress) {
 /// \returns true if successful, false otherwise
 bool OutputTarWriter::createVersionFile() {
   if (m_Verbose)
-    m_Config.raise(diag::creating_version_file) << versionFileName;
+    m_Config.raise(Diag::creating_version_file) << versionFileName;
   auto eldVersion = getELDVersion();
   auto LlvmVersion = getLLVMVersion();
   versionContents =
@@ -170,7 +170,7 @@ bool OutputTarWriter::createVersionFile() {
 bool OutputTarWriter::createResponseFile(llvm::StringRef Response) {
   responseContents = Saver.save(Response);
   if (m_Verbose)
-    m_Config.raise(diag::created_response_file) << responseFileName << Response;
+    m_Config.raise(Diag::created_response_file) << responseFileName << Response;
   return true;
 }
 
@@ -242,7 +242,7 @@ const std::string OutputTarWriter::getMappings() const {
 
 void OutputTarWriter::addThinArchiveMembers(const ArchiveFile *AF) {
   ASSERT(AF->isThinArchive(), "Must only be called for thin archives!");
-  for (Input *Inp : AF->GetAllMembers()) {
+  for (Input *Inp : AF->getAllMembers()) {
     ArchiveMemberInput *Mem = llvm::cast<eld::ArchiveMemberInput>(Inp);
     InputFile *MemFile = Mem->getInputFile();
     MemFile->setMappedPath(Mem->getName());

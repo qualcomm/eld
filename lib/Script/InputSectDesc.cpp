@@ -30,199 +30,202 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // InputSectDesc
 //===----------------------------------------------------------------------===//
-InputSectDesc::InputSectDesc(uint32_t ID, Policy pPolicy, const Spec &pSpec,
-                             OutputSectDesc &pOutputDesc)
-    : InputSectDesc(ScriptCommand::Kind::INPUT_SECT_DESC, ID, pPolicy, pSpec,
-                    pOutputDesc) {}
+InputSectDesc::InputSectDesc(uint32_t ID, Policy PPolicy, const Spec &PSpec,
+                             OutputSectDesc &POutputDesc)
+    : InputSectDesc(ScriptCommand::Kind::INPUT_SECT_DESC, ID, PPolicy, PSpec,
+                    POutputDesc) {}
 
-InputSectDesc::InputSectDesc(ScriptCommand::Kind kind, uint32_t ID,
-                             Policy policy, const Spec &spec,
-                             OutputSectDesc &outputDesc)
-    : ScriptCommand(kind), m_RuleContainer(nullptr), m_Policy(policy),
-      m_OutputSectDesc(outputDesc), ID(ID) {
-  m_Spec.initialize(spec);
+InputSectDesc::InputSectDesc(ScriptCommand::Kind Kind, uint32_t ID,
+                             Policy Policy, const Spec &Spec,
+                             OutputSectDesc &OutputDesc)
+    : ScriptCommand(Kind), ThisRuleContainer(nullptr), InputSpecPolicy(Policy),
+      OutputSectionDescription(OutputDesc), ID(ID) {
+  InputSpec.initialize(Spec);
 }
 
 InputSectDesc::~InputSectDesc() {}
 
-void InputSectDesc::dump(llvm::raw_ostream &outs) const { dumpMap(outs); }
+void InputSectDesc::dump(llvm::raw_ostream &Outs) const { dumpMap(Outs); }
 
-void InputSectDesc::dumpSpec(llvm::raw_ostream &outs) const {
-  if (m_Spec.hasFile()) {
-    if (m_Spec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
-      outs << "SORT (";
-    if (!m_Spec.file().name().empty())
-      outs << m_Spec.file().getDecoratedName();
-    if (m_Spec.isArchive())
-      outs << ":";
-    if (m_Spec.isArchive() && m_Spec.hasArchiveMember())
-      outs << m_Spec.archiveMember().getDecoratedName();
+void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
+  if (InputSpec.hasFile()) {
+    if (InputSpec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
+      Outs << "SORT (";
+    if (!InputSpec.file().name().empty())
+      Outs << InputSpec.file().getDecoratedName();
+    if (InputSpec.isArchive())
+      Outs << ":";
+    if (InputSpec.isArchive() && InputSpec.hasArchiveMember())
+      Outs << InputSpec.archiveMember().getDecoratedName();
   }
 
-  if (!m_Spec.hasSections()) {
-    if (m_Spec.hasFile()) {
-      if (m_Spec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
-        outs << ")";
+  if (!InputSpec.hasSections()) {
+    if (InputSpec.hasFile()) {
+      if (InputSpec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
+        Outs << ")";
     }
     return;
   }
 
-  outs << "(";
+  Outs << "(";
 
-  if (m_Spec.hasSections()) {
-    bool isFirst = true;
-    for (const auto &elem : m_Spec.sections()) {
-      assert((elem)->kind() == StrToken::Wildcard);
-      WildcardPattern *wildcard = llvm::cast<WildcardPattern>(elem);
+  if (InputSpec.hasSections()) {
+    bool IsFirst = true;
+    for (const auto &Elem : InputSpec.sections()) {
+      assert((Elem)->kind() == StrToken::Wildcard);
+      WildcardPattern *Wildcard = llvm::cast<WildcardPattern>(Elem);
 
-      switch (wildcard->sortPolicy()) {
+      switch (Wildcard->sortPolicy()) {
       case WildcardPattern::SORT_BY_NAME:
-        outs << " SORT_BY_NAME(";
+        Outs << " SORT_BY_NAME(";
         break;
       case WildcardPattern::SORT_BY_INIT_PRIORITY:
-        outs << " SORT_BY_INIT_PRIORITY(";
+        Outs << " SORT_BY_INIT_PRIORITY(";
         break;
       case WildcardPattern::SORT_BY_ALIGNMENT:
-        outs << " SORT_BY_ALIGNMENT(";
+        Outs << " SORT_BY_ALIGNMENT(";
         break;
       case WildcardPattern::SORT_BY_NAME_ALIGNMENT:
-        outs << " SORT_BY_NAME_ALIGNMENT(";
+        Outs << " SORT_BY_NAME_ALIGNMENT(";
         break;
       case WildcardPattern::SORT_BY_ALIGNMENT_NAME:
-        outs << " SORT_BY_ALIGNMENT_NAME(";
+        Outs << " SORT_BY_ALIGNMENT_NAME(";
         break;
       case WildcardPattern::EXCLUDE:
-        if (wildcard->excludeFiles()) {
-          const ExcludeFiles *list = wildcard->excludeFiles();
-          outs << " EXCLUDE_FILE (";
-          for (const auto &list_it : *list) {
-            if ((list_it)->isArchive())
-              outs << (list_it)->archive()->getDecoratedName() << ":";
-            if (!((list_it)->isFileInArchive()))
-              outs << " ";
-            if ((list_it)->isFile())
-              outs << (list_it)->file()->getDecoratedName() << " ";
+        if (Wildcard->excludeFiles()) {
+          const ExcludeFiles *List = Wildcard->excludeFiles();
+          Outs << " EXCLUDE_FILE (";
+          for (const auto &ListIt : *List) {
+            if ((ListIt)->isArchive())
+              Outs << (ListIt)->archive()->getDecoratedName() << ":";
+            if (!((ListIt)->isFileInArchive()))
+              Outs << " ";
+            if ((ListIt)->isFile())
+              Outs << (ListIt)->file()->getDecoratedName() << " ";
           }
         }
-        outs << ")";
+        Outs << ")";
         LLVM_FALLTHROUGH;
       default:
         break;
       }
 
-      if (isFirst) {
-        outs << wildcard->getDecoratedName();
-        isFirst = false;
+      if (IsFirst) {
+        Outs << Wildcard->getDecoratedName();
+        IsFirst = false;
       } else {
-        outs << " ";
-        outs << wildcard->getDecoratedName();
+        Outs << " ";
+        Outs << Wildcard->getDecoratedName();
       }
-      if ((wildcard->sortPolicy() != WildcardPattern::SORT_NONE) &&
-          (wildcard->sortPolicy() != WildcardPattern::EXCLUDE))
-        outs << ")";
+      if ((Wildcard->sortPolicy() != WildcardPattern::SORT_NONE) &&
+          (Wildcard->sortPolicy() != WildcardPattern::EXCLUDE))
+        Outs << ")";
     }
   }
-  outs << ")";
-  if (m_Spec.hasFile()) {
-    if (m_Spec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
-      outs << ")";
+  Outs << ")";
+  if (InputSpec.hasFile()) {
+    if (InputSpec.file().sortPolicy() == WildcardPattern::SORT_BY_NAME)
+      Outs << ")";
   }
 }
 
-void InputSectDesc::dumpMap(llvm::raw_ostream &outs, bool useColor,
-                            bool useNewLine, bool withValues,
-                            bool addIndent) const {
-  if (useColor)
-    outs.changeColor(llvm::raw_ostream::BLUE);
+void InputSectDesc::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
+                            bool UseNewLine, bool WithValues,
+                            bool AddIndent) const {
+  if (UseColor)
+    Outs.changeColor(llvm::raw_ostream::BLUE);
   // FIXME: Remove this code duplication.
-  if (m_Spec.hasExcludeFiles()) {
-    const ExcludeFiles *EF = m_Spec.getExcludeFiles();
-    outs << "EXCLUDE_FILE (";
-    for (const auto &it : *EF) {
-      if ((it)->isArchive())
-        outs << (it)->archive()->getDecoratedName() << ":";
-      if (!((it)->isFileInArchive()))
-        outs << " ";
-      if ((it)->isFile())
-        outs << (it)->file()->getDecoratedName() << " ";
+  if (InputSpec.hasExcludeFiles()) {
+    const ExcludeFiles *EF = InputSpec.getExcludeFiles();
+    Outs << "EXCLUDE_FILE (";
+    for (const auto &It : *EF) {
+      if ((It)->isArchive())
+        Outs << (It)->archive()->getDecoratedName() << ":";
+      if (!((It)->isFileInArchive()))
+        Outs << " ";
+      if ((It)->isFile())
+        Outs << (It)->file()->getDecoratedName() << " ";
     }
-    outs << ") ";
+    Outs << ") ";
   }
 
-  if (m_Policy == Fixed)
-    outs << "DONTMOVE (";
+  if (InputSpecPolicy == Fixed)
+    Outs << "DONTMOVE (";
 
-  if (m_Policy == Keep)
-    outs << "KEEP (";
+  if (InputSpecPolicy == Keep)
+    Outs << "KEEP (";
 
-  if (m_Policy == KeepFixed)
-    outs << "KEEP_DONTMOVE (";
+  if (InputSpecPolicy == KeepFixed)
+    Outs << "KEEP_DONTMOVE (";
 
-  dumpSpec(outs);
+  dumpSpec(Outs);
 
-  if (m_Policy == Keep || m_Policy == KeepFixed || m_Policy == Fixed)
-    outs << ")";
+  if (InputSpecPolicy == Keep || InputSpecPolicy == KeepFixed ||
+      InputSpecPolicy == Fixed)
+    Outs << ")";
 
-  outs << " #Rule " << ID;
+  Outs << " #Rule " << ID;
 
   if (hasInputFileInContext())
-    outs << ", " << getContext();
+    Outs << ", " << getContext();
 
   if (isSpecial())
-    outs << " (Implicit rule inserted by Linker)";
+    Outs << " (Implicit rule inserted by Linker)";
 
-  if (useNewLine)
-    outs << "\n";
+  if (UseNewLine)
+    Outs << "\n";
 
-  if (useColor)
-    outs.resetColor();
+  if (UseColor)
+    Outs.resetColor();
 }
 
-void InputSectDesc::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  doIndent(outs);
+void InputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  doIndent(Outs);
 
   // FIXME: Remove this code duplication.
-  if (m_Spec.hasExcludeFiles()) {
-    const ExcludeFiles *EF = m_Spec.getExcludeFiles();
-    outs << "EXCLUDE_FILE (";
-    for (const auto &it : *EF) {
-      if ((it)->isArchive())
-        outs << (it)->archive()->getDecoratedName() << ":";
-      if (!((it)->isFileInArchive()))
-        outs << " ";
-      if ((it)->isFile())
-        outs << (it)->file()->getDecoratedName() << " ";
+  if (InputSpec.hasExcludeFiles()) {
+    const ExcludeFiles *EF = InputSpec.getExcludeFiles();
+    Outs << "EXCLUDE_FILE (";
+    for (const auto &It : *EF) {
+      if ((It)->isArchive())
+        Outs << (It)->archive()->getDecoratedName() << ":";
+      if (!((It)->isFileInArchive()))
+        Outs << " ";
+      if ((It)->isFile())
+        Outs << (It)->file()->getDecoratedName() << " ";
     }
-    outs << ") ";
+    Outs << ") ";
   }
 
-  if (m_Policy == Fixed)
-    outs << "DONTMOVE(";
+  if (InputSpecPolicy == Fixed)
+    Outs << "DONTMOVE(";
 
-  if (m_Policy == Keep)
-    outs << "KEEP(";
+  if (InputSpecPolicy == Keep)
+    Outs << "KEEP(";
 
-  if (m_Policy == KeepFixed)
-    outs << "KEEP_DONTMOVE(";
+  if (InputSpecPolicy == KeepFixed)
+    Outs << "KEEP_DONTMOVE(";
 
-  dumpSpec(outs);
+  dumpSpec(Outs);
 
-  if (m_Policy == Keep || m_Policy == KeepFixed || m_Policy == Fixed)
-    outs << ")";
+  if (InputSpecPolicy == Keep || InputSpecPolicy == KeepFixed ||
+      InputSpecPolicy == Fixed)
+    Outs << ")";
 
-  outs << "\n";
+  Outs << "\n";
 }
 
-eld::Expected<void> InputSectDesc::activate(Module &pModule) {
+eld::Expected<void> InputSectDesc::activate(Module &CurModule) {
   std::pair<SectionMap::mapping, bool> Mapping =
-      pModule.getScript().sectionMap().insert(*this, m_OutputSectDesc);
-  this->m_RuleContainer = Mapping.first.second;
-  llvm::raw_string_ostream RuleSS(m_RuleText);
+      CurModule.getScript().sectionMap().insert(*this,
+                                                OutputSectionDescription);
+  this->ThisRuleContainer = Mapping.first.second;
+  llvm::raw_string_ostream RuleSS(RuleText);
   dumpMap(RuleSS, false, false, false, false);
-  auto OutSectionEntry =
-      this->m_RuleContainer->getSection()->getOutputSection();
-  m_Hash = llvm::hash_combine(OutSectionEntry->name(), m_RuleText,
-                              OutSectionEntry->getSection()->getIndex());
-  pModule.addIntoRuleContainerMap(m_Hash, this->m_RuleContainer);
+  auto *OutSectionEntry =
+      this->ThisRuleContainer->getSection()->getOutputSection();
+  Hash = llvm::hash_combine(OutSectionEntry->name(), RuleText,
+                            OutSectionEntry->getSection()->getIndex());
+  CurModule.addIntoRuleContainerMap(Hash, this->ThisRuleContainer);
   return eld::Expected<void>();
 }

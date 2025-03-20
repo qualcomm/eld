@@ -26,7 +26,7 @@ class Module;
 class Plugin {
 public:
   explicit Plugin(plugin::Plugin::Type T, std::string Name, std::string R,
-                  std::string O, bool Stats, Module &module);
+                  std::string O, bool Stats, Module &Module);
 
   ~Plugin();
 
@@ -34,48 +34,48 @@ public:
     using OptionHandlerType =
         plugin::LinkerWrapper::CommandLineOptionHandlerType;
 
-    CommandLineOptionSpec(const std::string &option, bool hasValue,
-                          const OptionHandlerType &optionHandler)
-        : Option(option), HasValue(hasValue), OptionHandler(optionHandler) {}
+    CommandLineOptionSpec(const std::string &Option, bool HasValue,
+                          const OptionHandlerType &OptionHandler)
+        : Option(Option), HasValue(HasValue), OptionHandler(OptionHandler) {}
 
     std::string Option;
     bool HasValue;
     OptionHandlerType OptionHandler;
 
     /// Returns true if `optionName` and `val` matches the option spec.
-    bool match(const std::string &optionName,
-               const std::optional<std::string> &val) const {
-      return Option == optionName && HasValue == val.has_value();
+    bool match(const std::string &OptionName,
+               const std::optional<std::string> &Val) const {
+      return Option == OptionName && HasValue == Val.has_value();
     }
   };
 
   // -------------- Diagnostic Functions ------------------------
-  plugin::Plugin::Type getType() const { return m_Type; }
+  plugin::Plugin::Type getType() const { return ThisType; }
 
   std::string getLibraryName() const;
 
-  std::string getName() const { return m_Name; }
+  std::string getName() const { return Name; }
 
-  std::string getPluginType() const { return m_PluginType; }
+  std::string getPluginType() const { return PluginType; }
 
-  std::string getPluginOptions() const { return m_Options; }
+  std::string getPluginOptions() const { return PluginOptions; }
 
-  plugin::PluginBase *getLinkerPlugin() const { return m_UserPlugin; }
+  plugin::PluginBase *getLinkerPlugin() const { return UserPluginHandle; }
 
-  void *getLibraryHandle() const { return m_LibraryHandle; }
+  void *getLibraryHandle() const { return PluginLibraryHandle; }
   /// Set plugin library handle.
-  void setLibraryHandle(void *handle) { m_LibraryHandle = handle; }
+  void setLibraryHandle(void *Handle) { PluginLibraryHandle = Handle; }
 
   // -------------- Search Plugin --------------------------------
   std::string resolvePath(const LinkerConfig &Config);
 
   void setResolvedPath(std::string ResolvedPath) {
-    m_LibraryName = ResolvedPath;
+    PluginLibraryName = ResolvedPath;
   }
 
-  void setID(uint32_t ID) { m_ID = ID; }
+  void setID(uint32_t ID) { CurID = ID; }
 
-  uint32_t getID() const { return m_ID; }
+  uint32_t getID() const { return CurID; }
 
   // -------------- Register Plugin --------------------------------
 
@@ -84,45 +84,45 @@ public:
   ///
   /// \note This function should only be called after setting
   /// m_LibraryHandle member.
-  bool SetFunctions();
+  bool setFunctions();
 
   /// Call the 'RegisterAll' function if provided by the plugin
   /// library.
   ///
   /// \note This function should only be called after setting all
   /// plugin functions using 'Plugin::SetFunctions'.
-  bool RegisterAll() const;
-  bool RegisterPlugin(void *Handle);
+  bool registerAll() const;
+  bool registerPlugin(void *Handle);
 
   // -------------- Load/Unload/Reset Plugin ------------------------
-  static void *LoadPlugin(std::string Name, Module *Module);
+  static void *loadPlugin(std::string Name, Module *Module);
 
-  static bool Unload(std::string Name, void *LibraryHandle, Module *Module);
+  static bool unload(std::string Name, void *LibraryHandle, Module *Module);
 
-  void Reset();
+  void reset();
 
   // -------------- Run -------------------------------------------
-  bool Run(std::vector<Plugin *> &L);
+  bool run(std::vector<Plugin *> &L);
 
   // -------------- GetUserPlugin --------------------------------
-  bool GetUserPlugin();
+  bool getUserPlugin();
 
   // -------------- GetUserPluginConfig --------------------------
-  void GetUserPluginConfig();
+  void getUserPluginConfig();
 
   // --------------Destroy the Plugin----------------------------
-  bool Destroy();
+  bool destroy();
 
   // --------------Cleanup the Plugin----------------------------
-  bool Cleanup();
+  bool cleanup();
 
   // --------------Initialize the Plugin-----------------------
-  bool Init(eld::OutputTarWriter *outputTar);
+  bool init(eld::OutputTarWriter *OutputTar);
 
   /// ----------------User Plugin functions --------------------
   std::string getPluginName() const;
 
-  std::string GetDescription() const;
+  std::string getDescription() const;
 
   //  -------------- Relocation Callback support ----------------
   void initializeLinkerPluginConfig();
@@ -141,9 +141,9 @@ public:
   bool isTimingEnabled() const { return Stats; }
 
   /// -----------------Handle crash -------------------
-  bool isRunning() const { return m_isRunning; }
+  bool isRunning() const { return PluginIsRunning; }
 
-  void setRunning(bool isRunning) { m_isRunning = isRunning; }
+  void setRunning(bool IsRunning) { PluginIsRunning = IsRunning; }
 
   plugin::LinkerWrapper *getLinkerWrapper() {
     return getLinkerPlugin()->getLinker();
@@ -174,7 +174,7 @@ public:
   eld::Expected<void> verifyFragmentMovements() const;
 
   const UnbalancedFragmentMoves &getUnbalancedFragmentMoves() const {
-    return m_UnbalancedFragmentMoves;
+    return PluginUnbalancedFragmentMoves;
   }
 
   eld::Expected<std::pair<void *, std::string>>
@@ -185,8 +185,8 @@ public:
   void callDestroyHook();
 
   void registerCommandLineOption(
-      const std::string &option, bool hasValue,
-      const CommandLineOptionSpec::OptionHandlerType &optionHandler);
+      const std::string &Option, bool HasValue,
+      const CommandLineOptionSpec::OptionHandlerType &OptionHandler);
 
   const std::vector<CommandLineOptionSpec> &
   getPluginCommandLineOptions() const {
@@ -194,14 +194,14 @@ public:
   }
 
   void callCommandLineOptionHandler(
-      const std::string &option, const std::optional<std::string> &val,
-      const CommandLineOptionSpec::OptionHandlerType &optionHandler);
+      const std::string &Option, const std::optional<std::string> &Val,
+      const CommandLineOptionSpec::OptionHandlerType &OptionHandler);
 
   /// Calls VisitSections hook handler for input file IF.
   void callVisitSectionsHook(InputFile &IF);
 
-  void callVisitSymbolHook(LDSymbol *sym, llvm::StringRef symName,
-                           const SymbolInfo &symInfo);
+  void callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
+                           const SymbolInfo &SymInfo);
 
   /// Calls ActBeforeSectionMerging hook handler.
   void callActBeforeSectionMergingHook();
@@ -214,32 +214,32 @@ public:
   void callActBeforeRuleMatchingHook();
 
 private:
-  bool Check();
+  bool check();
 
   std::string findInRPath(llvm::StringRef LibraryName, llvm::StringRef RPath);
 
 private:
-  plugin::Plugin::Type m_Type;
-  uint32_t m_ID;
-  std::string m_Name;
-  std::string m_LibraryName;
-  std::string m_PluginType;
-  std::string m_Options;
-  void *m_LibraryHandle = nullptr;
-  plugin::RegisterAllFuncT *m_RegisterFunc = nullptr;
-  plugin::PluginFuncT *m_PluginFunc = nullptr;
-  plugin::PluginBase *m_UserPlugin = nullptr;
-  plugin::PluginCleanupFuncT *m_PluginCleanupFunc = nullptr;
-  plugin::PluginConfigFuncT *m_PluginConfigFunc = nullptr;
-  plugin::LinkerPluginConfig *m_LinkerPluginConfig = nullptr;
-  bool m_isRunning = false;
+  plugin::Plugin::Type ThisType;
+  uint32_t CurID;
+  std::string Name;
+  std::string PluginLibraryName;
+  std::string PluginType;
+  std::string PluginOptions;
+  void *PluginLibraryHandle = nullptr;
+  plugin::RegisterAllFuncT *PluginRegisterFunction = nullptr;
+  plugin::PluginFuncT *GetPluginFunction = nullptr;
+  plugin::PluginBase *UserPluginHandle = nullptr;
+  plugin::PluginCleanupFuncT *PluginCleanupFunction = nullptr;
+  plugin::PluginConfigFuncT *PluginConfigFunction = nullptr;
+  plugin::LinkerPluginConfig *LinkerPluginConfigHandle = nullptr;
+  bool PluginIsRunning = false;
   llvm::BitVector *RelocBitVector = nullptr;
   llvm::BitVector *SlowPathRelocBitVector = nullptr;
   std::unordered_map<uint32_t, std::string> RelocPayLoadMap;
   bool Stats = false;
-  Module &m_Module;
-  LinkerConfig &m_Config;
-  UnbalancedFragmentMoves m_UnbalancedFragmentMoves;
+  Module &ThisModule;
+  LinkerConfig &ThisConfig;
+  UnbalancedFragmentMoves PluginUnbalancedFragmentMoves;
   std::vector<void *> LibraryHandles;
   std::vector<CommandLineOptionSpec> PluginCommandLineOptions;
 };

@@ -55,100 +55,103 @@ public:
     REGION_ALIAS
   };
 
-  ScriptCommand(Kind pKind) : m_Kind(pKind), m_Parent(nullptr) {}
+  ScriptCommand(Kind PKind)
+      : ScriptFileKind(PKind), ParentScriptCommand(nullptr) {}
 
   virtual ~ScriptCommand() = 0;
 
-  virtual void dump(llvm::raw_ostream &outs) const = 0;
+  virtual void dump(llvm::raw_ostream &Outs) const = 0;
 
-  virtual void dumpMap(llvm::raw_ostream &out, bool color = false,
-                       bool endWithNewLine = true, bool withValues = false,
-                       bool addIndent = true) const;
+  virtual void dumpMap(llvm::raw_ostream &Out, bool Color = false,
+                       bool EndWithNewLine = true, bool WithValues = false,
+                       bool AddIndent = true) const;
 
-  virtual void dumpOnlyThis(llvm::raw_ostream &outs) const {
-    doIndent(outs);
-    dump(outs);
+  virtual void dumpOnlyThis(llvm::raw_ostream &Outs) const {
+    doIndent(Outs);
+    dump(Outs);
   }
 
   virtual eld::Expected<void> activate(Module &) = 0;
 
-  Kind getKind() const { return m_Kind; }
+  Kind getKind() const { return ScriptFileKind; }
 
   /// ----------------- Extra Informative Context --------------
-  void setInputFileInContext(InputFile *file) { m_ScriptFile = file; }
+  void setInputFileInContext(InputFile *File) { ThisScriptFile = File; }
 
-  void setLineNumberInContext(size_t context) { m_LineNum = context; }
+  void setLineNumberInContext(size_t Context) { LineNumber = Context; }
 
-  bool hasInputFileInContext() const { return m_ScriptFile; }
+  bool hasInputFileInContext() const { return ThisScriptFile; }
 
-  InputFile *getInputFileInContext() const { return m_ScriptFile; }
+  InputFile *getInputFileInContext() const { return ThisScriptFile; }
 
-  bool hasLineNumberInContext() const { return m_LineNum.has_value(); }
+  bool hasLineNumberInContext() const { return LineNumber.has_value(); }
 
-  size_t getLineNumberInContext() const { return *m_LineNum; }
+  size_t getLineNumberInContext() const { return *LineNumber; }
 
   std::string getContext() const;
 
   /// -------------------- Parent Information --------------------
   virtual uint32_t getDepth() const;
 
-  void setParent(ScriptCommand *Parent) { m_Parent = Parent; }
+  void setParent(ScriptCommand *Parent) { ParentScriptCommand = Parent; }
 
-  ScriptCommand *getParent() const { return m_Parent; }
+  ScriptCommand *getParent() const { return ParentScriptCommand; }
 
-  void doIndent(llvm::raw_ostream &outs) const;
+  void doIndent(llvm::raw_ostream &Outs) const;
 
   /// ------------------Helper functions---------------------------
 
-  bool isAssert() const { return m_Kind == ASSERT; }
+  bool isAssert() const { return ScriptFileKind == ASSERT; }
 
-  bool isAssignment() const { return m_Kind == ASSIGNMENT; }
+  bool isAssignment() const { return ScriptFileKind == ASSIGNMENT; }
 
-  bool isEnterScope() const { return m_Kind == ENTER_SCOPE; }
+  bool isEnterScope() const { return ScriptFileKind == ENTER_SCOPE; }
 
-  bool isExitScope() const { return m_Kind == EXIT_SCOPE; }
+  bool isExitScope() const { return ScriptFileKind == EXIT_SCOPE; }
 
-  bool isEntry() const { return m_Kind == ENTRY; }
+  bool isEntry() const { return ScriptFileKind == ENTRY; }
 
-  bool isExtern() const { return m_Kind == EXTERN; }
+  bool isExtern() const { return ScriptFileKind == EXTERN; }
 
-  bool isGroup() const { return m_Kind == GROUP; }
+  bool isGroup() const { return ScriptFileKind == GROUP; }
 
-  bool isInput() const { return m_Kind == INPUT; }
+  bool isInput() const { return ScriptFileKind == INPUT; }
 
-  bool isRuleContainer() const { return m_Kind == INPUT_SECT_DESC; }
+  bool isRuleContainer() const { return ScriptFileKind == INPUT_SECT_DESC; }
 
-  bool isNoCrossRefs() const { return m_Kind == NOCROSSREFS; }
+  bool isNoCrossRefs() const { return ScriptFileKind == NOCROSSREFS; }
 
-  bool isOutput() const { return m_Kind == OUTPUT; }
+  bool isOutput() const { return ScriptFileKind == OUTPUT; }
 
-  bool isOutputArch() const { return m_Kind == OUTPUT_ARCH; }
+  bool isOutputArch() const { return ScriptFileKind == OUTPUT_ARCH; }
 
-  bool isOutputFormat() const { return m_Kind == OUTPUT_FORMAT; }
+  bool isOutputFormat() const { return ScriptFileKind == OUTPUT_FORMAT; }
 
-  bool isOutputSectionDescription() const { return m_Kind == OUTPUT_SECT_DESC; }
+  bool isOutputSectionDescription() const {
+    return ScriptFileKind == OUTPUT_SECT_DESC;
+  }
 
-  bool isPhdrDesc() const { return m_Kind == PHDR_DESC; }
+  bool isPhdrDesc() const { return ScriptFileKind == PHDR_DESC; }
 
-  bool isPhdrs() const { return m_Kind == PHDRS; }
+  bool isPhdrs() const { return ScriptFileKind == PHDRS; }
 
-  bool isPlugin() const { return m_Kind == PLUGIN; }
+  bool isPlugin() const { return ScriptFileKind == PLUGIN; }
 
-  bool isSearchDir() const { return m_Kind == SEARCH_DIR; }
+  bool isSearchDir() const { return ScriptFileKind == SEARCH_DIR; }
 
-  bool isSections() const { return m_Kind == SECTIONS; }
+  bool isSections() const { return ScriptFileKind == SECTIONS; }
 
-  bool isMemoryDesc() const { return m_Kind == MEMORY_DESC; }
+  bool isMemoryDesc() const { return ScriptFileKind == MEMORY_DESC; }
 
-  virtual void push_back(ScriptCommand *) {}
+  virtual void pushBack(ScriptCommand *) {}
 
 private:
-  Kind m_Kind;
-  InputFile *m_ScriptFile = nullptr;
+  Kind ScriptFileKind;
+  InputFile *ThisScriptFile = nullptr;
   // m_LineNum represents the line number corresponding to the script command in
   // m_ScriptFile
-  std::optional<size_t> m_LineNum;
-  ScriptCommand *m_Parent;
+  std::optional<size_t> LineNumber;
+  ScriptCommand *ParentScriptCommand;
 };
 
 } // namespace eld

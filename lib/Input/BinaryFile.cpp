@@ -9,8 +9,8 @@
 
 using namespace eld;
 
-BinaryFile::BinaryFile(Input *I, DiagnosticEngine *diagEngine)
-    : ObjectFile(I, InputFile::Kind::BinaryFileKind, diagEngine) {
+BinaryFile::BinaryFile(Input *I, DiagnosticEngine *DiagEngine)
+    : ObjectFile(I, InputFile::InputFileKind::BinaryFileKind, DiagEngine) {
   if (I->getSize())
     Contents = I->getFileContents();
 }

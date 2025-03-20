@@ -58,196 +58,200 @@ public:
   enum Constraint { NO_CONSTRAINT, ONLY_IF_RO, ONLY_IF_RW };
 
   struct Prolog {
-    bool hasVMA() const { return m_pVMA != nullptr; }
+    bool hasVMA() const { return OutputSectionVMA != nullptr; }
     const Expression &vma() const {
       assert(hasVMA());
-      return *m_pVMA;
+      return *OutputSectionVMA;
     }
     Expression &vma() {
       assert(hasVMA());
-      return *m_pVMA;
+      return *OutputSectionVMA;
     }
 
-    void setType(Type pType) { m_Type = pType; }
+    void setType(Type AssignmentType) { ThisType = AssignmentType; }
 
-    Type type() const { return m_Type; }
+    Type type() const { return ThisType; }
 
-    bool hasFlag() const { return (m_Flag != DEFAULT_PERMISSIONS); }
+    bool hasFlag() const { return (SectionFlag != DEFAULT_PERMISSIONS); }
 
-    void setFlag(uint32_t pPerm) { m_Flag = pPerm; }
+    void setFlag(uint32_t PPerm) { SectionFlag = PPerm; }
 
-    uint32_t flag() const { return m_Flag; }
+    uint32_t flag() const { return SectionFlag; }
 
-    bool hasLMA() const { return m_pLMA != nullptr; }
+    bool hasLMA() const { return OutputSectionLMA != nullptr; }
     const Expression &lma() const {
       assert(hasLMA());
-      return *m_pLMA;
+      return *OutputSectionLMA;
     }
     Expression &lma() {
       assert(hasLMA());
-      return *m_pLMA;
+      return *OutputSectionLMA;
     }
-    void setLMA(Expression *pLMA) { m_pLMA = pLMA; }
+    void setLMA(Expression *PLma) { OutputSectionLMA = PLma; }
 
-    bool hasAlign() const { return m_pAlign != nullptr; }
+    bool hasAlign() const { return Alignment != nullptr; }
     const Expression &align() const {
       assert(hasAlign());
-      return *m_pAlign;
+      return *Alignment;
     }
     Expression &align() {
       assert(hasAlign());
-      return *m_pAlign;
+      return *Alignment;
     }
 
-    bool hasSubAlign() const { return m_pSubAlign != nullptr; }
+    bool hasSubAlign() const { return OutputSectionSubaAlign != nullptr; }
     const Expression &subAlign() const {
       assert(hasSubAlign());
-      return *m_pSubAlign;
+      return *OutputSectionSubaAlign;
     }
     Expression &subAlign() {
       assert(hasSubAlign());
-      return *m_pSubAlign;
+      return *OutputSectionSubaAlign;
     }
 
-    Constraint constraint() const { return m_Constraint; }
+    Constraint constraint() const { return SectionConstraint; }
 
-    bool hasPlugin() const { return m_pPluginCmd != nullptr; }
+    bool hasPlugin() const { return PluginCmd != nullptr; }
 
     eld::Plugin *getPlugin() const {
-      if (m_pPluginCmd)
-        return m_pPluginCmd->getPlugin();
-      return m_pPlugin;
+      if (PluginCmd)
+        return PluginCmd->getPlugin();
+      return ThisPlugin;
     }
 
-    void setPlugin(eld::PluginCmd *P) { m_pPluginCmd = P; }
+    void setPlugin(eld::PluginCmd *P) { PluginCmd = P; }
 
-    void setPlugin(eld::Plugin *P) { m_pPlugin = P; }
+    void setPlugin(eld::Plugin *P) { ThisPlugin = P; }
 
-    bool operator==(const Prolog &pRHS) const {
+    bool operator==(const Prolog &RHS) const {
       /* FIXME: currently I don't check the real content */
-      if (this == &pRHS)
+      if (this == &RHS)
         return true;
-      if (m_pVMA != pRHS.m_pVMA)
+      if (OutputSectionVMA != RHS.OutputSectionVMA)
         return false;
-      if (m_Type != pRHS.m_Type)
+      if (ThisType != RHS.ThisType)
         return false;
-      if (m_pLMA != pRHS.m_pLMA)
+      if (OutputSectionLMA != RHS.OutputSectionLMA)
         return false;
-      if (m_pAlign != pRHS.m_pAlign)
+      if (Alignment != RHS.Alignment)
         return false;
-      if (m_pSubAlign != pRHS.m_pSubAlign)
+      if (OutputSectionSubaAlign != RHS.OutputSectionSubaAlign)
         return false;
-      if (m_Constraint != pRHS.m_Constraint)
+      if (SectionConstraint != RHS.SectionConstraint)
         return false;
-      if (m_pPluginCmd != pRHS.m_pPluginCmd)
+      if (PluginCmd != RHS.PluginCmd)
         return false;
-      if (m_pPlugin != pRHS.m_pPlugin)
+      if (ThisPlugin != RHS.ThisPlugin)
         return false;
       return true;
     }
 
     void init() {
-      m_pVMA = nullptr;
-      m_Type = OutputSectDesc::Type::DEFAULT_TYPE;
-      m_Flag = OutputSectDesc::Permissions::DEFAULT_PERMISSIONS;
-      m_pLMA = nullptr;
-      m_pAlign = nullptr;
-      m_pSubAlign = nullptr;
-      m_Constraint = OutputSectDesc::Constraint::NO_CONSTRAINT;
-      m_pPluginCmd = nullptr;
-      m_pPlugin = nullptr;
+      OutputSectionVMA = nullptr;
+      ThisType = OutputSectDesc::Type::DEFAULT_TYPE;
+      SectionFlag = OutputSectDesc::Permissions::DEFAULT_PERMISSIONS;
+      OutputSectionLMA = nullptr;
+      Alignment = nullptr;
+      OutputSectionSubaAlign = nullptr;
+      SectionConstraint = OutputSectDesc::Constraint::NO_CONSTRAINT;
+      PluginCmd = nullptr;
+      ThisPlugin = nullptr;
     }
 
-    Expression *m_pVMA;
-    Type m_Type;
-    uint32_t m_Flag;
-    Expression *m_pLMA;
-    Expression *m_pAlign;
-    Expression *m_pSubAlign;
-    Constraint m_Constraint;
-    eld::PluginCmd *m_pPluginCmd;
-    eld::Plugin *m_pPlugin;
+    Expression *OutputSectionVMA;
+    Type ThisType;
+    uint32_t SectionFlag;
+    Expression *OutputSectionLMA;
+    Expression *Alignment;
+    Expression *OutputSectionSubaAlign;
+    Constraint SectionConstraint;
+    eld::PluginCmd *PluginCmd;
+    eld::Plugin *ThisPlugin;
   };
 
   struct Epilog {
-    bool hasRegion() const { return m_pRegion != nullptr; }
+    bool hasRegion() const { return OutputSectionMemoryRegion != nullptr; }
     const eld::ScriptMemoryRegion &region() const {
       assert(hasRegion());
-      return *m_pScriptMemoryRegion;
+      return *ScriptVMAMemoryRegion;
     }
 
-    bool hasLMARegion() const { return m_pLMARegion != nullptr; }
+    bool hasLMARegion() const { return OutputSectionLMARegion != nullptr; }
     const eld::ScriptMemoryRegion &lmaRegion() const {
       assert(hasLMARegion());
-      return *m_pScriptMemoryLMARegion;
+      return *ScriptLMAMemoryRegion;
     }
 
     eld::ScriptMemoryRegion &region() {
       assert(hasRegion());
-      return *m_pScriptMemoryRegion;
+      return *ScriptVMAMemoryRegion;
     }
 
     eld::ScriptMemoryRegion &lmaRegion() {
       assert(hasLMARegion());
-      return *m_pScriptMemoryLMARegion;
+      return *ScriptLMAMemoryRegion;
     }
 
-    llvm::StringRef getVMARegionName() const { return m_pRegion->name(); }
+    llvm::StringRef getVMARegionName() const {
+      return OutputSectionMemoryRegion->name();
+    }
 
-    llvm::StringRef getLMARegionName() const { return m_pLMARegion->name(); }
+    llvm::StringRef getLMARegionName() const {
+      return OutputSectionLMARegion->name();
+    }
 
     bool hasPhdrs() const {
-      return (m_pPhdrs != nullptr && !(m_pPhdrs->empty()));
+      return (ScriptPhdrs != nullptr && !(ScriptPhdrs->empty()));
     }
     StringList *phdrs() const {
       assert(hasPhdrs());
-      return m_pPhdrs;
+      return ScriptPhdrs;
     }
 
-    bool hasFillExp() const { return m_pFillExp != nullptr; }
+    bool hasFillExp() const { return FillExpression != nullptr; }
 
-    Expression *fillExp() const { return m_pFillExp; }
+    Expression *fillExp() const { return FillExpression; }
 
-    bool operator==(const Epilog &pRHS) const {
+    bool operator==(const Epilog &RHS) const {
       /* FIXME: currently I don't check the real content */
-      if (this == &pRHS)
+      if (this == &RHS)
         return true;
-      if (m_pRegion != pRHS.m_pRegion)
+      if (OutputSectionMemoryRegion != RHS.OutputSectionMemoryRegion)
         return false;
-      if (m_pLMARegion != pRHS.m_pLMARegion)
+      if (OutputSectionLMARegion != RHS.OutputSectionLMARegion)
         return false;
-      if (m_pPhdrs != pRHS.m_pPhdrs)
+      if (ScriptPhdrs != RHS.ScriptPhdrs)
         return false;
-      if (m_pFillExp != pRHS.m_pFillExp)
+      if (FillExpression != RHS.FillExpression)
         return false;
       return true;
     }
 
     void setRegion(ScriptMemoryRegion *S, const StrToken *R) {
-      m_pScriptMemoryRegion = S;
-      m_pRegion = R;
+      ScriptVMAMemoryRegion = S;
+      OutputSectionMemoryRegion = R;
     }
 
     void setLMARegion(ScriptMemoryRegion *S, const StrToken *R) {
-      m_pScriptMemoryLMARegion = S;
-      m_pLMARegion = R;
+      ScriptLMAMemoryRegion = S;
+      OutputSectionLMARegion = R;
     }
 
     void init() {
-      m_pRegion = nullptr;
-      m_pLMARegion = nullptr;
-      m_pScriptMemoryRegion = nullptr;
-      m_pScriptMemoryLMARegion = nullptr;
-      m_pPhdrs = nullptr;
-      m_pFillExp = nullptr;
+      OutputSectionMemoryRegion = nullptr;
+      OutputSectionLMARegion = nullptr;
+      ScriptVMAMemoryRegion = nullptr;
+      ScriptLMAMemoryRegion = nullptr;
+      ScriptPhdrs = nullptr;
+      FillExpression = nullptr;
     }
 
-    const StrToken *m_pRegion;
-    const StrToken *m_pLMARegion;
-    ScriptMemoryRegion *m_pScriptMemoryRegion;
-    ScriptMemoryRegion *m_pScriptMemoryLMARegion;
-    mutable StringList *m_pPhdrs;
-    Expression *m_pFillExp;
+    const StrToken *OutputSectionMemoryRegion;
+    const StrToken *OutputSectionLMARegion;
+    ScriptMemoryRegion *ScriptVMAMemoryRegion;
+    ScriptMemoryRegion *ScriptLMAMemoryRegion;
+    mutable StringList *ScriptPhdrs;
+    Expression *FillExpression;
   };
 
   typedef std::vector<ScriptCommand *> OutputSectCmds;
@@ -257,60 +261,60 @@ public:
   typedef OutputSectCmds::reference reference;
 
 public:
-  OutputSectDesc(const std::string &pName);
+  OutputSectDesc(const std::string &PName);
   ~OutputSectDesc();
 
-  const_iterator begin() const { return m_OutputSectCmds.begin(); }
-  iterator begin() { return m_OutputSectCmds.begin(); }
-  const_iterator end() const { return m_OutputSectCmds.end(); }
-  iterator end() { return m_OutputSectCmds.end(); }
+  const_iterator begin() const { return OutputSectionCommands.begin(); }
+  iterator begin() { return OutputSectionCommands.begin(); }
+  const_iterator end() const { return OutputSectionCommands.end(); }
+  iterator end() { return OutputSectionCommands.end(); }
 
-  const_reference front() const { return m_OutputSectCmds.front(); }
-  reference front() { return m_OutputSectCmds.front(); }
-  const_reference back() const { return m_OutputSectCmds.back(); }
-  reference back() { return m_OutputSectCmds.back(); }
+  const_reference front() const { return OutputSectionCommands.front(); }
+  reference front() { return OutputSectionCommands.front(); }
+  const_reference back() const { return OutputSectionCommands.back(); }
+  reference back() { return OutputSectionCommands.back(); }
 
-  std::string name() const { return m_Name; }
+  std::string name() const { return Name; }
 
-  size_t size() const { return m_OutputSectCmds.size(); }
+  size_t size() const { return OutputSectionCommands.size(); }
 
-  bool empty() const { return m_OutputSectCmds.empty(); }
+  bool empty() const { return OutputSectionCommands.empty(); }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::OUTPUT_SECT_DESC;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_SECT_DESC;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  void push_back(ScriptCommand *pCommand) override;
+  void pushBack(ScriptCommand *PCommand) override;
 
-  void setProlog(const Prolog &pEpilog);
+  void setProlog(const Prolog &PEpilog);
 
-  eld::Expected<void> setEpilog(const Epilog &pEpilog);
+  eld::Expected<void> setEpilog(const Epilog &PEpilog);
 
-  const Prolog &prolog() const { return m_Prolog; }
+  const Prolog &prolog() const { return OutpuSectDescProlog; }
 
-  const Epilog &epilog() const { return m_Epilog; }
+  const Epilog &epilog() const { return OutpuSectDescEpilog; }
 
-  Prolog &prolog() { return m_Prolog; }
+  Prolog &prolog() { return OutpuSectDescProlog; }
 
-  Epilog &epilog() { return m_Epilog; }
+  Epilog &epilog() { return OutpuSectDescEpilog; }
 
   void initialize();
 
-  OutputSectCmds &getOutputSectCommands() { return m_OutputSectCmds; }
+  OutputSectCmds &getOutputSectCommands() { return OutputSectionCommands; }
 
-  void dumpEpilogue(llvm::raw_ostream &outs) const;
+  void dumpEpilogue(llvm::raw_ostream &Outs) const;
 
 private:
-  OutputSectCmds m_OutputSectCmds;
-  std::string m_Name;
-  Prolog m_Prolog;
-  Epilog m_Epilog;
+  OutputSectCmds OutputSectionCommands;
+  std::string Name;
+  Prolog OutpuSectDescProlog;
+  Epilog OutpuSectDescEpilog;
 };
 
 } // namespace eld

@@ -28,81 +28,81 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // StubFactory
 //===----------------------------------------------------------------------===//
-StubFactory::StubFactory(Stub *targetStub) { m_Stubs.emplace_back(targetStub); }
+StubFactory::StubFactory(Stub *TargetStub) { Stubs.emplace_back(TargetStub); }
 
 StubFactory::StubFactory() {}
 
 StubFactory::~StubFactory() {}
 
-void StubFactory::registerStub(Stub *pStub) { m_Stubs.emplace_back(pStub); }
+void StubFactory::registerStub(Stub *PStub) { Stubs.emplace_back(PStub); }
 
 /// create - create a stub if needed, otherwise return nullptr
 std::pair<BranchIsland *, bool>
-StubFactory::create(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                    BranchIslandFactory &pBRIslandFactory,
-                    GNULDBackend &pBackend) {
-  DiagnosticEngine *DiagEngine = pBackend.config().getDiagEngine();
+StubFactory::create(Relocation &PReloc, eld::IRBuilder &PBuilder,
+                    BranchIslandFactory &PBrIslandFactory,
+                    GNULDBackend &PBackend) {
+  DiagnosticEngine *DiagEngine = PBackend.config().getDiagEngine();
   // If the target has not registered a stub to check relocations
   // against, we cannot create a stub.
-  if (m_Stubs.empty()) {
+  if (Stubs.empty()) {
     assert(0 && "target is calling relaxation without a stub registered");
     return std::make_pair(nullptr, false);
   }
 
-  int64_t targetSymbolValue = 0;
+  int64_t TargetSymbolValue = 0;
 
-  LDSymbol *symbol = pReloc.symInfo()->outSymbol();
-  if (symbol->hasFragRef()) {
-    uint64_t value = symbol->fragRef()->getOutputOffset(pBuilder.getModule());
-    uint64_t addr = symbol->fragRef()->getOutputELFSection()->addr();
-    targetSymbolValue = addr + value;
+  LDSymbol *Symbol = PReloc.symInfo()->outSymbol();
+  if (Symbol->hasFragRef()) {
+    uint64_t Value = Symbol->fragRef()->getOutputOffset(PBuilder.getModule());
+    uint64_t Addr = Symbol->fragRef()->getOutputELFSection()->addr();
+    TargetSymbolValue = Addr + Value;
   } else
-    targetSymbolValue = symbol->value();
+    TargetSymbolValue = Symbol->value();
 
-  Stub *Stub = pBackend.getBranchIslandStub(&pReloc, targetSymbolValue);
+  Stub *Stub = PBackend.getBranchIslandStub(&PReloc, TargetSymbolValue);
 
   if (!Stub)
     return std::make_pair(nullptr, false);
 
   // We need to explicitly check the range for PLT slot if the stub supports
   // PIC code and we have a slot for it in PLT
-  if (Stub->supportsPIC() && pReloc.shouldUsePLTAddr())
-    targetSymbolValue = pBackend.getPLTAddr(pReloc.symInfo());
+  if (Stub->supportsPIC() && PReloc.shouldUsePLTAddr())
+    TargetSymbolValue = PBackend.getPLTAddr(PReloc.symInfo());
 
   int64_t Offset = 0;
-  if (!Stub->isNeeded(&pReloc, targetSymbolValue, pBuilder.getModule()) &&
-      Stub->isRelocInRange(&pReloc, targetSymbolValue, Offset,
-                           pBuilder.getModule()))
+  if (!Stub->isNeeded(&PReloc, TargetSymbolValue, PBuilder.getModule()) &&
+      Stub->isRelocInRange(&PReloc, TargetSymbolValue, Offset,
+                           PBuilder.getModule()))
     return std::make_pair(nullptr, false);
 
-  std::pair<BranchIsland *, bool> branchIsland =
-      pBRIslandFactory.createBranchIsland(pReloc, Stub, pBuilder,
-                                          pBackend.getRelocator());
+  std::pair<BranchIsland *, bool> BranchIsland =
+      PBrIslandFactory.createBranchIsland(PReloc, Stub, PBuilder,
+                                          PBackend.getRelocator());
 
-  const LinkerConfig &Config = pBuilder.getModule().getConfig();
-  if (branchIsland.first) {
-    if (pBuilder.getModule().getPrinter()->traceTrampolines()) {
+  const LinkerConfig &Config = PBuilder.getModule().getConfig();
+  if (BranchIsland.first) {
+    if (PBuilder.getModule().getPrinter()->traceTrampolines()) {
       std::lock_guard<std::mutex> Guard(Mutex);
-      DiagEngine->raise(diag::trampoline_symbol) << pReloc.getSymbolName(
-          pReloc.symInfo(), Config.options().shouldDemangle());
+      DiagEngine->raise(Diag::trampoline_symbol) << PReloc.getSymbolName(
+          PReloc.symInfo(), Config.options().shouldDemangle());
       llvm::outs() << " ";
-      if (branchIsland.second) {
-        DiagEngine->raise(diag::reuse_stub) << pReloc.getSymbolName(
-            branchIsland.first->symInfo(), Config.options().shouldDemangle());
+      if (BranchIsland.second) {
+        DiagEngine->raise(Diag::reuse_stub) << PReloc.getSymbolName(
+            BranchIsland.first->symInfo(), Config.options().shouldDemangle());
       } else {
-        DiagEngine->raise(diag::create_stub) << pReloc.getSymbolName(
-            branchIsland.first->symInfo(), Config.options().shouldDemangle());
+        DiagEngine->raise(Diag::create_stub) << PReloc.getSymbolName(
+            BranchIsland.first->symInfo(), Config.options().shouldDemangle());
       }
-      DiagEngine->raise(diag::set_call_from_stub)
-          << pReloc.getFragmentPath(nullptr, pReloc.targetRef()->frag(),
+      DiagEngine->raise(Diag::set_call_from_stub)
+          << PReloc.getFragmentPath(nullptr, PReloc.targetRef()->frag(),
                                     Config.options())
-          << pReloc.getSymbolName(branchIsland.first->symInfo(),
+          << PReloc.getSymbolName(BranchIsland.first->symInfo(),
                                   Config.options().shouldDemangle());
-      DiagEngine->raise(diag::destination_stub) << llvm::utohexstr(
-          pReloc.place(pBuilder.getModule()), /*LowerCase*/ true);
+      DiagEngine->raise(Diag::destination_stub) << llvm::utohexstr(
+          PReloc.place(PBuilder.getModule()), /*LowerCase*/ true);
     }
-    pReloc.setSymInfo(branchIsland.first->symInfo());
-    return branchIsland;
+    PReloc.setSymInfo(BranchIsland.first->symInfo());
+    return BranchIsland;
   }
 
   return std::make_pair(nullptr, false);

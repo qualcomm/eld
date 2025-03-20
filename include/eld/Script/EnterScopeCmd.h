@@ -23,15 +23,15 @@ class EnterScopeCmd : public ScriptCommand {
 public:
   EnterScopeCmd();
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::ENTER_SCOPE;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::ENTER_SCOPE;
   }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 };
 
 } // namespace eld

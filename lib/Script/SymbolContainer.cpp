@@ -11,20 +11,20 @@
 
 using namespace eld;
 
-SymbolContainer::SymbolContainer(StrToken &token) : m_StrToken(token) {}
+SymbolContainer::SymbolContainer(StrToken &Token) : MStrToken(Token) {}
 
-void SymbolContainer::addResolveInfo(const ResolveInfo *info) {
-  m_MatchedSymbols.push_back(info);
+void SymbolContainer::addResolveInfo(const ResolveInfo *Info) {
+  MMatchedSymbols.push_back(Info);
 }
 
 void SymbolContainer::dump(
-    llvm::raw_ostream &ostream,
-    std::function<std::string(const Input *)> getDecoratedPath) const {
-  for (const ResolveInfo *sym : m_MatchedSymbols)
-    ostream << "#\t" << sym->name() << "\t"
-            << getDecoratedPath(sym->resolvedOrigin()->getInput()) << "\n";
+    llvm::raw_ostream &Ostream,
+    std::function<std::string(const Input *)> GetDecoratedPath) const {
+  for (const ResolveInfo *Sym : MMatchedSymbols)
+    Ostream << "#\t" << Sym->name() << "\t"
+            << GetDecoratedPath(Sym->resolvedOrigin()->getInput()) << "\n";
 }
 
 llvm::StringRef SymbolContainer::getWildcardPatternAsString() const {
-  return m_StrToken.name();
+  return MStrToken.name();
 }

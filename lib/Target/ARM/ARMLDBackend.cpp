@@ -132,15 +132,15 @@ void ARMGNULDBackend::initTargetSymbols() {
   if (LinkerConfig::Object != config().codeGenType()) {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
                 0x0, // value
-                FragmentRef::Null(), ResolveInfo::Hidden);
+                FragmentRef::null(), ResolveInfo::Hidden);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     if (m_pGOTSymbol)
       m_pGOTSymbol->setShouldIgnore(false);
   }
@@ -152,45 +152,45 @@ void ARMGNULDBackend::initTargetSymbols() {
   SymbolName = "__exidx_start";
   m_pEXIDXStart =
       m_Module.getIRBuilder()
-          ->AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+          ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
               m_Module.getInternalInput(Module::Script), SymbolName,
               ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
               0x0, // size
               0x0, // value
-              FragmentRef::Null(), ResolveInfo::Default);
+              FragmentRef::null(), ResolveInfo::Default);
   if (m_pEXIDXStart)
     m_pEXIDXStart->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 
   SymbolName = "__exidx_end";
   m_pEXIDXEnd =
       m_Module.getIRBuilder()
-          ->AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+          ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
               m_Module.getInternalInput(Module::Script), SymbolName,
               ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
               0x0, // size
               0x0, // value
-              FragmentRef::Null(), ResolveInfo::Default);
+              FragmentRef::null(), ResolveInfo::Default);
 
   if (m_pEXIDXEnd)
     m_pEXIDXEnd->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 
   SymbolName = "__RWPI_BASE__";
   m_pRWPIBase =
-      m_Module.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           m_Module.getInternalInput(Module::Script), SymbolName,
           ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Absolute,
           0x0, // size
           0x0, // value
-          FragmentRef::Null());
+          FragmentRef::null());
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
   if (m_pRWPIBase)
     m_pRWPIBase->setShouldIgnore(false);
 }
@@ -211,7 +211,7 @@ void ARMGNULDBackend::doPreLayout() {
   if (isMicroController() &&
       ((config().codeGenType() == LinkerConfig::DynObj) ||
        (config().options().isPIE()))) {
-    config().raise(diag::not_supported) << "SharedLibrary/PIE"
+    config().raise(Diag::not_supported) << "SharedLibrary/PIE"
                                         << "Cortex-M";
     m_Module.setFailure(true);
     return;
@@ -282,8 +282,8 @@ void ARMGNULDBackend::doPreLayout() {
   }
 
   // We need link ARM.EXIDX.xx to .xx
-  Module::obj_iterator input, inEnd = m_Module.obj_end();
-  for (input = m_Module.obj_begin(); input != inEnd; ++input) {
+  Module::obj_iterator input, inEnd = m_Module.objEnd();
+  for (input = m_Module.objBegin(); input != inEnd; ++input) {
     ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
     if (!ObjFile)
       continue;
@@ -563,7 +563,7 @@ void ARMGNULDBackend::initSegmentFromLinkerScript(ELFSegment *pSegment) {
       // Convert to PROBIT
       cur->setType(llvm::ELF::SHT_PROGBITS);
       cur->setKind(LDFileFormat::Regular);
-      config().raise(diag::warn_mix_bss_section)
+      config().raise(Diag::warn_mix_bss_section)
           << lastMixedNonBSSSection->name() << cur->name();
     }
   }
@@ -579,7 +579,7 @@ void ARMGNULDBackend::defineGOTSymbol(Fragment &pFrag) {
   if (m_pGOTSymbol != nullptr) {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
@@ -588,7 +588,7 @@ void ARMGNULDBackend::defineGOTSymbol(Fragment &pFrag) {
   } else {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 pFrag.getOwningSection()->getInputFile(), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
@@ -597,7 +597,7 @@ void ARMGNULDBackend::defineGOTSymbol(Fragment &pFrag) {
   }
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
   m_pGOTSymbol->setShouldIgnore(false);
 }
 
@@ -627,33 +627,33 @@ void ARMGNULDBackend::defineIRelativeRange(ResolveInfo &pSym) {
     auto SymbolName = "__rel_iplt_start";
     m_pIRelativeStart =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define,
                 (ResolveInfo::Binding)pSym.binding(),
                 0,   // size
                 0x0, // value
-                FragmentRef::Null(), (ResolveInfo::Visibility)pSym.other());
+                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
 
     m_pIRelativeStart->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     SymbolName = "__rel_iplt_end";
     m_pIRelativeEnd =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define,
                 (ResolveInfo::Binding)pSym.binding(),
                 pSym.size(), // size
                 0x0,         // value
-                FragmentRef::Null(), (ResolveInfo::Visibility)pSym.other());
+                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
 
     m_pIRelativeEnd->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
   }
 }
 
@@ -699,7 +699,7 @@ ELFSection *ARMGNULDBackend::mergeSection(ELFSection *pSection) {
     return m_pARMAttributeSection;
   case llvm::ELF::SHT_ARM_EXIDX: {
     if (!pSection->getLink() && pSection->getInputFile())
-      config().raise(diag::warn_armexidx_no_link)
+      config().raise(Diag::warn_armexidx_no_link)
           << pSection->getInputFile()->getInput()->getName()
           << pSection->name();
     else if (pSection->getLink()->isIgnore()) {
@@ -709,7 +709,7 @@ ELFSection *ARMGNULDBackend::mergeSection(ELFSection *pSection) {
       return nullptr;
     }
     ObjectBuilder builder(config(), m_Module);
-    if (builder.MoveSection(pSection, m_pEXIDX)) {
+    if (builder.moveSection(pSection, m_pEXIDX)) {
       pSection->setMatchedLinkerScriptRule(
           m_pEXIDX->getMatchedLinkerScriptRule());
       pSection->setOutputSection(m_pEXIDX->getOutputSection());
@@ -725,8 +725,8 @@ void ARMGNULDBackend::setUpReachedSectionsForGC(
     GarbageCollection::SectionReachedListMap &pSectReachedListMap) const {
   // traverse all the input relocations to find the relocation sections applying
   // .ARM.exidx sections
-  Module::const_obj_iterator input, inEnd = m_Module.obj_end();
-  for (input = m_Module.obj_begin(); input != inEnd; ++input) {
+  Module::const_obj_iterator input, inEnd = m_Module.objEnd();
+  for (input = m_Module.objBegin(); input != inEnd; ++input) {
     ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
     if (!ObjFile)
       continue;
@@ -832,8 +832,8 @@ void ARMGNULDBackend::mayBeRelax(int, bool &pFinished) {
   pFinished = true;
 
   // check branch relocs and create the related stubs if needed
-  Module::obj_iterator input, inEnd = m_Module.obj_end();
-  for (input = m_Module.obj_begin(); input != inEnd; ++input) {
+  Module::obj_iterator input, inEnd = m_Module.objEnd();
+  for (input = m_Module.objBegin(); input != inEnd; ++input) {
     ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
     if (!ObjFile)
       continue;
@@ -1027,7 +1027,7 @@ bool ARMGNULDBackend::ltoCallExternalAssembler(const std::string &Input,
       if (s.data())
         ss << s.data() << " ";
     }
-    config().raise(diag::process_launch) << ss.str();
+    config().raise(Diag::process_launch) << ss.str();
   }
 
   return !(llvm::sys::ExecuteAndWait(assemblerPath->c_str(), assemblerArgs));
@@ -1039,7 +1039,7 @@ ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_got_entry) << R->name();
+    config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->getFragmentList().size()) {
     // TODO: This should be GOT0, not GOTPLT0.
@@ -1119,7 +1119,7 @@ ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_plt_entry) << R->name();
+    config().raise(Diag::create_plt_entry) << R->name();
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!getPLT()->getFragmentList().size()) {
     ARMPLT0::Create(*m_Module.getIRBuilder(),
@@ -1226,7 +1226,7 @@ bool ARMGNULDBackend::handleRelocation(ELFSection *Section,
                                        bool LastVisit) {
   if (auto *EXIDX = llvm::dyn_cast<ARMEXIDXSection>(Section)) {
     EXIDXEntry Entry = EXIDX->getEntry(Offset);
-    Relocation *R = eld::IRBuilder::AddRelocation(
+    Relocation *R = eld::IRBuilder::addRelocation(
         getRelocator(), *Entry.Fragment, Type, Sym, Offset - Entry.InputOffset);
     EXIDX->addRelocation(R);
     return true;

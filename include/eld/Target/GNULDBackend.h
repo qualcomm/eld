@@ -151,12 +151,12 @@ public:
 
   // -----  readers/writers  ----- //
   ArchiveParser *createArchiveParser();
-  ELFRelocObjParser *createNewRelocObjParser();
+  ELFRelocObjParser *createRelocObjParser();
   ELFExecObjParser *createELFExecObjParser();
   BinaryFileParser *createBinaryFileParser();
   BitcodeReader *createBitcodeReader();
   SymDefReader *createSymDefReader();
-  ELFDynObjParser *createNewDynObjReader();
+  ELFDynObjParser *createDynObjReader();
   ELFObjectWriter *createWriter();
 
   // -----  output sections  ----- //
@@ -1091,7 +1091,7 @@ protected:
 
   std::vector<ResolveInfo *> DynamicSymbols;
 
-  bool m_IsSectionTracingRequested = false;
+  bool IsSectionTracingRequested = false;
 
   std::unordered_map<LDSymbol *, ELFSection *> m_SymbolToSection;
 

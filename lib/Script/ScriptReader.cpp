@@ -27,24 +27,24 @@
 
 using namespace eld;
 
-ScriptReader::ScriptReader() : m_bTraceScanning(false), m_bTraceParsing(false) {
+ScriptReader::ScriptReader() : MBTraceScanning(false), MBTraceParsing(false) {
   std::optional<std::string> ScriptDebug =
       llvm::sys::Process::GetEnv("LDSCRIPT_DEBUG");
   if (ScriptDebug && *ScriptDebug == "true") {
-    m_bTraceScanning = true;
-    m_bTraceParsing = true;
+    MBTraceScanning = true;
+    MBTraceParsing = true;
   }
 }
 
 ScriptReader::~ScriptReader() {}
 
-bool ScriptReader::readScript(LinkerConfig &pConfig, ScriptFile &pScriptFile) {
-  return readLinkerScriptUsingNewParser(pConfig, pScriptFile);
+bool ScriptReader::readScript(LinkerConfig &PConfig, ScriptFile &PScriptFile) {
+  return readLinkerScriptUsingNewParser(PConfig, PScriptFile);
 }
 
-bool ScriptReader::readLinkerScriptUsingNewParser(LinkerConfig &pConfig,
-                                                  ScriptFile &pScriptFile) {
-  v2::ScriptParser newScriptParser(pConfig, pScriptFile);
-  newScriptParser.parse();
-  return pConfig.getDiagEngine()->diagnose();
+bool ScriptReader::readLinkerScriptUsingNewParser(LinkerConfig &PConfig,
+                                                  ScriptFile &PScriptFile) {
+  v2::ScriptParser NewScriptParser(PConfig, PScriptFile);
+  NewScriptParser.parse();
+  return PConfig.getDiagEngine()->diagnose();
 }

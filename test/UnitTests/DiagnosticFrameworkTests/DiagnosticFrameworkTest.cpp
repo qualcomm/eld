@@ -32,28 +32,29 @@ void DiagnosticFrameworkTest::SetUp() {}
 void DiagnosticFrameworkTest::TearDown() {}
 
 TEST_F(DiagnosticFrameworkTest, DiagnosticEntrySeverityTest) {
-  eld::plugin::DiagnosticEntry errorNoInputsDE{diag::err_no_inputs};
+  eld::plugin::DiagnosticEntry errorNoInputsDE{Diag::err_no_inputs};
   EXPECT_TRUE(errorNoInputsDE.isError());
   EXPECT_FALSE(errorNoInputsDE.isFatal());
 
   eld::plugin::DiagnosticEntry fatalNoInputsDE{
-      diag::err_no_inputs, {}, eld::plugin::DiagnosticEntry::Severity::Fatal};
+      Diag::err_no_inputs, {}, eld::plugin::DiagnosticEntry::Severity::Fatal};
   EXPECT_TRUE(fatalNoInputsDE.isFatal());
 
   eld::plugin::DiagnosticEntry verboseNoInputsDE{
-      diag::err_no_inputs, {}, eld::plugin::DiagnosticEntry::Severity::Verbose};
+      Diag::err_no_inputs, {}, eld::plugin::DiagnosticEntry::Severity::Verbose};
   EXPECT_TRUE(verboseNoInputsDE.isVerbose());
 
-  eld::plugin::DiagnosticEntry warnIncompatibleOption{diag::warn_incompatible_option};
+  eld::plugin::DiagnosticEntry warnIncompatibleOption{
+      Diag::warn_incompatible_option};
   EXPECT_TRUE(warnIncompatibleOption.isWarning());
 
   eld::plugin::DiagnosticEntry noteIncompatibleOption{
-      diag::warn_incompatible_option,
+      Diag::warn_incompatible_option,
       {},
       eld::plugin::DiagnosticEntry::Severity::Note};
   EXPECT_TRUE(noteIncompatibleOption.isNote());
 
-  eld::plugin::DiagnosticEntry noteELDFlags{diag::note_eld_flags};
+  eld::plugin::DiagnosticEntry noteELDFlags{Diag::note_eld_flags};
   EXPECT_TRUE(noteELDFlags.isNote());
   EXPECT_FALSE(noteELDFlags.isError());
 
@@ -64,7 +65,7 @@ TEST_F(DiagnosticFrameworkTest, DiagnosticEntrySeverityTest) {
 
 TEST_F(DiagnosticFrameworkTest, InvalidDiagnosticsTestRaise) {
   testing::internal::CaptureStderr();
-  m_DiagEngine->raise(diag::err_cannot_find_scriptfile);
+  m_DiagEngine->raise(Diag::err_cannot_find_scriptfile);
   std::string output = testing::internal::GetCapturedStderr();
   EXPECT_EQ(output, "Fatal: Missing argument 0 when reporting diagnostic "
                     "'cannot open %0 file %1'\n");
@@ -74,7 +75,7 @@ TEST_F(DiagnosticFrameworkTest, InvalidDiagnosticsTestRaise) {
 TEST_F(DiagnosticFrameworkTest, InvalidDiagnosticsTestRaiseDiagEntry) {
   testing::internal::CaptureStderr();
   std::unique_ptr<eld::plugin::DiagnosticEntry> de(
-      new eld::plugin::DiagnosticEntry(diag::err_cannot_find_scriptfile, {}));
+      new eld::plugin::DiagnosticEntry(Diag::err_cannot_find_scriptfile, {}));
   m_DiagEngine->raiseDiagEntry(std::move(de));
   std::string output = testing::internal::GetCapturedStderr();
   EXPECT_EQ(output, "Fatal: Missing argument 0 when reporting diagnostic "

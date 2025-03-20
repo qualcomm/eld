@@ -18,7 +18,7 @@ ELFSection *ELFFileBase::getELFSection(uint32_t Index) {
 
 void ELFFileBase::addSection(ELFSection *S) {
   if (S->isRelocationKind())
-    m_RelocationSections.push_back(S);
-  S->setIndex(m_SectionTable.size());
+    RelocationSections.push_back(S);
+  S->setIndex(MSectionTable.size());
   ObjectFile::addSection(S);
 }

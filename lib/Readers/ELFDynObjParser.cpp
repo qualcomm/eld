@@ -63,7 +63,7 @@ eld::Expected<bool> ELFDynObjParser::readSymbols(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
   InputFile *inputFile = ELFReader.getInputFile();
   if (m_Module.getPrinter()->traceFiles())
-    config.raise(diag::trace_file) << inputFile->getInput()->decoratedPath();
+    config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
 
   eld::Expected<bool> expCreateSyms = ELFReader.readSymbols();
   if (!expCreateSyms.has_value() || !expCreateSyms.value())

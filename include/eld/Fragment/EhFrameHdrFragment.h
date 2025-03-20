@@ -30,7 +30,7 @@ public:
     uint32_t FdeVARel;
   };
 
-  EhFrameHdrFragment(EhFrameHdrSection *O, bool createTable, bool is64Bit);
+  EhFrameHdrFragment(EhFrameHdrSection *O, bool CreateTable, bool Is64Bit);
 
   virtual ~EhFrameHdrFragment();
 
@@ -47,7 +47,7 @@ public:
 
   static bool classof(const EhFrameHdrFragment *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   virtual void dump(llvm::raw_ostream &OS) override;
 
@@ -59,9 +59,9 @@ private:
   uint64_t getFdePc(uint8_t *, FDEFragment *, uint8_t Enc,
                     DiagnosticEngine *DiagEngine);
 
-  bool m_is64Bit = false;
+  bool Is64Bit = false;
 
-  bool m_createTable = true;
+  bool CreateTable = true;
 };
 
 } // namespace eld

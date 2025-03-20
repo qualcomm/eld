@@ -26,36 +26,36 @@ using namespace eld;
 
 BuildIDFragment::BuildIDFragment(ELFSection *O)
     : Fragment(Fragment::BuildID, O) {
-  m_BuildIDKind = BuildIDKind::NONE;
+  BuildIdKind = BuildIDKind::NONE;
 }
 
 eld::Expected<void>
 BuildIDFragment::setBuildIDStyle(const LinkerConfig &Config) {
-  std::string buildID;
+  std::string BuildId;
   if (!Config.options().hasBuildIDValue())
-    buildID = "fast";
+    BuildId = "fast";
   else
-    buildID = Config.options().getBuildID().lower();
-  if (buildID == "fast")
-    m_BuildIDKind = BuildIDKind::FAST;
-  else if (buildID == "md5")
-    m_BuildIDKind = BuildIDKind::MD5;
-  else if (buildID == "sha1" || buildID == "tree")
-    m_BuildIDKind = BuildIDKind::SHA1;
-  else if (buildID == "uuid") {
-    m_BuildIDKind = BuildIDKind::UUID;
-  } else if (llvm::StringRef(buildID).starts_with("0x")) {
-    m_BuildIDKind = BuildIDFragment::BuildIDKind::HEXSTRING;
-    if (!llvm::all_of(llvm::StringRef(buildID.substr(2)), llvm::isHexDigit)) {
+    BuildId = Config.options().getBuildID().lower();
+  if (BuildId == "fast")
+    BuildIdKind = BuildIDKind::FAST;
+  else if (BuildId == "md5")
+    BuildIdKind = BuildIDKind::MD5;
+  else if (BuildId == "sha1" || BuildId == "tree")
+    BuildIdKind = BuildIDKind::SHA1;
+  else if (BuildId == "uuid") {
+    BuildIdKind = BuildIDKind::UUID;
+  } else if (llvm::StringRef(BuildId).starts_with("0x")) {
+    BuildIdKind = BuildIDFragment::BuildIDKind::HEXSTRING;
+    if (!llvm::all_of(llvm::StringRef(BuildId.substr(2)), llvm::isHexDigit)) {
       return std::make_unique<plugin::DiagnosticEntry>(
-          diag::error_build_id_not_hex, std::vector<std::string>{buildID});
+          Diag::error_build_id_not_hex, std::vector<std::string>{BuildId});
     }
-    m_BuildID = llvm::fromHex(buildID.substr(2));
-  } else if (buildID == "none") {
-    m_BuildIDKind = BuildIDKind::NONE;
+    BuildIdString = llvm::fromHex(BuildId.substr(2));
+  } else if (BuildId == "none") {
+    BuildIdKind = BuildIDKind::NONE;
   } else {
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::error_unknown_build_id, std::vector<std::string>{buildID});
+        Diag::error_unknown_build_id, std::vector<std::string>{BuildId});
   }
   return eld::Expected<void>();
 }
@@ -70,7 +70,7 @@ size_t BuildIDFragment::size() const {
 }
 
 size_t BuildIDFragment::getHashSize() const {
-  switch (m_BuildIDKind) {
+  switch (BuildIdKind) {
   case BuildIDKind::FAST:
     return 8;
   case BuildIDKind::MD5:
@@ -79,7 +79,7 @@ size_t BuildIDFragment::getHashSize() const {
   case BuildIDKind::SHA1:
     return 20;
   case BuildIDKind::HEXSTRING:
-    return m_BuildID.size();
+    return BuildIdString.size();
   default:
     break;
   }
@@ -88,31 +88,31 @@ size_t BuildIDFragment::getHashSize() const {
 
 void BuildIDFragment::dump(llvm::raw_ostream &OS) {}
 
-eld::Expected<void> BuildIDFragment::emit(MemoryRegion &mr, Module &M) {
-  if (m_BuildIDKind == BuildIDKind::NONE)
+eld::Expected<void> BuildIDFragment::emit(MemoryRegion &Mr, Module &M) {
+  if (BuildIdKind == BuildIDKind::NONE)
     return eld::Expected<void>();
-  uint8_t *out = mr.begin() + getOffset(M.getConfig().getDiagEngine());
-  llvm::support::endian::write32le(out, 4);                 // Name size
-  llvm::support::endian::write32le(out + 4, getHashSize()); // Content size
-  llvm::support::endian::write32le(out + 8, llvm::ELF::NT_GNU_BUILD_ID); // Type
-  std::memcpy(out + 12, "GNU", 4); // Name string
-  std::memcpy(out + 16, m_BuildID.c_str(), m_BuildID.size());
+  uint8_t *Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine());
+  llvm::support::endian::write32le(Out, 4);                 // Name size
+  llvm::support::endian::write32le(Out + 4, getHashSize()); // Content size
+  llvm::support::endian::write32le(Out + 8, llvm::ELF::NT_GNU_BUILD_ID); // Type
+  std::memcpy(Out + 12, "GNU", 4); // Name string
+  std::memcpy(Out + 16, BuildIdString.c_str(), BuildIdString.size());
   return eld::Expected<void>();
 }
 
 namespace {
 
 // Split one uint8 array into small pieces of uint8 arrays.
-std::vector<llvm::ArrayRef<uint8_t>> split(llvm::ArrayRef<uint8_t> arr,
-                                           size_t chunkSize) {
-  std::vector<llvm::ArrayRef<uint8_t>> ret;
-  while (arr.size() > chunkSize) {
-    ret.push_back(arr.take_front(chunkSize));
-    arr = arr.drop_front(chunkSize);
+std::vector<llvm::ArrayRef<uint8_t>> split(llvm::ArrayRef<uint8_t> Arr,
+                                           size_t ChunkSize) {
+  std::vector<llvm::ArrayRef<uint8_t>> Ret;
+  while (Arr.size() > ChunkSize) {
+    Ret.push_back(Arr.take_front(ChunkSize));
+    Arr = Arr.drop_front(ChunkSize);
   }
-  if (!arr.empty())
-    ret.push_back(arr);
-  return ret;
+  if (!Arr.empty())
+    Ret.push_back(Arr);
+  return Ret;
 }
 
 // Computes a hash value of Data using a given hash function.
@@ -120,19 +120,19 @@ std::vector<llvm::ArrayRef<uint8_t>> split(llvm::ArrayRef<uint8_t> arr,
 // chunks, compute a hash for each chunk, and then compute a hash value
 // of the hash values.
 void computeHash(
-    llvm::MutableArrayRef<uint8_t> hashBuf, llvm::ArrayRef<uint8_t> data,
-    std::function<void(uint8_t *dest, llvm::ArrayRef<uint8_t> arr)> hashFn) {
-  std::vector<llvm::ArrayRef<uint8_t>> chunks = split(data, 1024 * 1024);
-  const size_t hashesSize = chunks.size() * hashBuf.size();
-  std::unique_ptr<uint8_t[]> hashes(new uint8_t[hashesSize]);
+    llvm::MutableArrayRef<uint8_t> HashBuf, llvm::ArrayRef<uint8_t> Data,
+    std::function<void(uint8_t *Dest, llvm::ArrayRef<uint8_t> Arr)> hashFn) {
+  std::vector<llvm::ArrayRef<uint8_t>> chunks = split(Data, 1024 * 1024);
+  const size_t HashesSize = chunks.size() * HashBuf.size();
+  std::unique_ptr<uint8_t[]> hashes(new uint8_t[HashesSize]);
 
   // Compute hash values.
-  llvm::parallelFor(0, chunks.size(), [&](size_t i) {
-    hashFn(hashes.get() + i * hashBuf.size(), chunks[i]);
+  llvm::parallelFor(0, chunks.size(), [&](size_t I) {
+    hashFn(hashes.get() + I * HashBuf.size(), chunks[I]);
   });
 
   // Write to the final output buffer.
-  hashFn(hashBuf.data(), llvm::ArrayRef(hashes.get(), hashesSize));
+  hashFn(HashBuf.data(), llvm::ArrayRef(hashes.get(), HashesSize));
 }
 } // namespace
 
@@ -140,8 +140,7 @@ eld::Expected<void> BuildIDFragment::finalizeBuildID(uint8_t *BufferStart,
                                                      size_t BufSize) {
 
   // Nothing to compute for NONE/HEXSTRING
-  if (m_BuildIDKind == BuildIDKind::NONE ||
-      m_BuildIDKind == BuildIDKind::HEXSTRING)
+  if (BuildIdKind == BuildIDKind::NONE || BuildIdKind == BuildIDKind::HEXSTRING)
     return eld::Expected<void>();
 
   // Fedora introduced build ID as "approximation of true uniqueness across all
@@ -150,37 +149,39 @@ eld::Expected<void> BuildIDFragment::finalizeBuildID(uint8_t *BufferStart,
   // (second-)preimage and collision resistance. In practice people use 'md5'
   // and 'sha1' just for different lengths. Implement them with the more
   // efficient BLAKE3.
-  size_t hashSize = getHashSize();
-  llvm::ArrayRef<uint8_t> input{BufferStart, BufSize};
-  std::unique_ptr<uint8_t[]> buildId(new uint8_t[hashSize]);
-  llvm::MutableArrayRef<uint8_t> output(buildId.get(), hashSize);
+  size_t HashSize = getHashSize();
+  llvm::ArrayRef<uint8_t> Input{BufferStart, BufSize};
+  std::unique_ptr<uint8_t[]> BuildId(new uint8_t[HashSize]);
+  llvm::MutableArrayRef<uint8_t> Output(BuildId.get(), HashSize);
 
-  switch (m_BuildIDKind) {
+  switch (BuildIdKind) {
   case BuildIDKind::NONE:
   case BuildIDKind::HEXSTRING:
     break;
   case BuildIDKind::FAST:
-    computeHash(output, input, [](uint8_t *dest, llvm::ArrayRef<uint8_t> arr) {
-      llvm::support::endian::write64le(dest, llvm::xxh3_64bits(arr));
+    computeHash(Output, Input, [](uint8_t *Dest, llvm::ArrayRef<uint8_t> Arr) {
+      llvm::support::endian::write64le(Dest, llvm::xxh3_64bits(Arr));
     });
     break;
   case BuildIDKind::MD5:
-    computeHash(output, input, [&](uint8_t *dest, llvm::ArrayRef<uint8_t> arr) {
-      std::memcpy(dest, llvm::BLAKE3::hash<16>(arr).data(), hashSize);
-    });
+    computeHash(
+        Output, Input, [HashSize](uint8_t *Dest, llvm::ArrayRef<uint8_t> Arr) {
+          std::memcpy(Dest, llvm::BLAKE3::hash<16>(Arr).data(), HashSize);
+        });
     break;
   case BuildIDKind::SHA1:
-    computeHash(output, input, [&](uint8_t *dest, llvm::ArrayRef<uint8_t> arr) {
-      std::memcpy(dest, llvm::BLAKE3::hash<20>(arr).data(), hashSize);
-    });
+    computeHash(
+        Output, Input, [HashSize](uint8_t *Dest, llvm::ArrayRef<uint8_t> Arr) {
+          std::memcpy(Dest, llvm::BLAKE3::hash<20>(Arr).data(), HashSize);
+        });
     break;
   case BuildIDKind::UUID:
-    if (auto ec = llvm::getRandomBytes(buildId.get(), hashSize))
+    if (auto Ec = llvm::getRandomBytes(BuildId.get(), HashSize))
       return std::make_unique<plugin::DiagnosticEntry>(
-          diag::error_entropy_source_failure,
-          std::vector<std::string>{ec.message()});
+          Diag::error_entropy_source_failure,
+          std::vector<std::string>{Ec.message()});
     break;
   }
-  m_BuildID = std::string((const char *)(output.data()), hashSize);
+  BuildIdString = std::string((const char *)(Output.data()), HashSize);
   return eld::Expected<void>();
 }

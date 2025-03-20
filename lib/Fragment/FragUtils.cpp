@@ -10,14 +10,14 @@
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "llvm/Support/Casting.h"
 
-llvm::StringRef eld::getRegionFromFragment(const Fragment *frag) {
-  assert(frag->getKind() == Fragment::Region ||
-         frag->getKind() == Fragment::RegionFragmentEx);
+llvm::StringRef eld::getRegionFromFragment(const Fragment *Frag) {
+  assert(Frag->getKind() == Fragment::Region ||
+         Frag->getKind() == Fragment::RegionFragmentEx);
   llvm::StringRef RegionStr;
-  const RegionFragment *R = llvm::dyn_cast<const RegionFragment>(frag);
+  const RegionFragment *R = llvm::dyn_cast<const RegionFragment>(Frag);
   if (!R) {
     const class RegionFragmentEx *RFEx =
-        llvm::dyn_cast<const class RegionFragmentEx>(frag);
+        llvm::dyn_cast<const class RegionFragmentEx>(Frag);
     RegionStr = RFEx->getRegion();
   } else {
     RegionStr = R->getRegion();

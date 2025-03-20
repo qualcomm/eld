@@ -23,15 +23,15 @@ class ExitScopeCmd : public ScriptCommand {
 public:
   ExitScopeCmd();
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::EXIT_SCOPE;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::EXIT_SCOPE;
   }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
   uint32_t getDepth() const override;
 };

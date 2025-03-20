@@ -23,7 +23,7 @@
 
 namespace ELD {
 class LinkerWrapper;
-}
+} // namespace ELD
 namespace eld {
 
 class ELFSection;
@@ -42,44 +42,44 @@ class SectionMap;
  */
 class ObjectBuilder {
 public:
-  ObjectBuilder(LinkerConfig &pConfig, Module &pTheModule);
+  ObjectBuilder(LinkerConfig &PConfig, Module &PTheModule);
 
-  ELFSection *CreateSection(const std::string &pInputName,
-                            LDFileFormat::Kind pKind, uint32_t pType,
-                            uint32_t pFlag, uint32_t pAlign = 0x0);
+  ELFSection *createSection(const std::string &PInputName,
+                            LDFileFormat::Kind PKind, uint32_t PType,
+                            uint32_t PFlag, uint32_t PAlign = 0x0);
 
-  ELFSection *MergeSection(GNULDBackend &pGNULDBackend,
-                           ELFSection *pInputSection);
+  ELFSection *mergeSection(GNULDBackend &PGnuldBackend,
+                           ELFSection *PInputSection);
 
-  /// MoveSection - move the fragment of pFrom to pTo section data.
-  bool MoveSection(ELFSection *pFrom, ELFSection *pTo);
+  /// moveSection - move the fragment of pFrom to pTo section data.
+  bool moveSection(ELFSection *PFrom, ELFSection *PTo);
 
   /// MoveIntoOutputSection - move the fragment of pFrom to pTo section data.
-  bool MoveIntoOutputSection(ELFSection *pFrom, ELFSection *pTo);
+  bool moveIntoOutputSection(ELFSection *PFrom, ELFSection *PTo);
 
-  LinkerConfig &config() { return m_Config; }
+  LinkerConfig &config() { return ThisConfig; }
 
-  void assignInputFromOutput(eld::InputFile *obj);
+  void assignInputFromOutput(eld::InputFile *Obj);
 
-  void assignOutputSections(std::vector<InputFile *> inputs, bool);
+  void assignOutputSections(std::vector<InputFile *> Inputs, bool);
 
   /// Update section mappings for pending section overrides associated with the
   /// LinkerWrapper LW. If LW is nullptr, then update section mappings all the
   /// pending section overrides.
   void reAssignOutputSections(const plugin::LinkerWrapper *LW);
 
-  bool InitializePluginsAndProcess(const std::vector<eld::InputFile *> &inputs,
+  bool initializePluginsAndProcess(const std::vector<eld::InputFile *> &Inputs,
                                    plugin::Plugin::Type T);
 
-  void DoPluginIterateSections(eld::InputFile *obj, plugin::PluginBase *P);
+  void doPluginIterateSections(eld::InputFile *Obj, plugin::PluginBase *P);
 
-  bool DoPluginOutputSectionsIterate(plugin::PluginBase *P);
+  bool doPluginOutputSectionsIterate(plugin::PluginBase *P);
 
   void printStats();
 
-  Module &module() { return m_Module; }
+  Module &module() { return ThisModule; }
 
-  void updateSectionFlags(ELFSection *pTo, ELFSection *pFrom);
+  void updateSectionFlags(ELFSection *PTo, ELFSection *PFrom);
 
   void mayChangeSectionTypeOrKind(ELFSection *, ELFSection *) const;
 
@@ -102,7 +102,7 @@ private:
 
   /// Returns input sections on which linker script rule-matching needs to be
   /// performed.
-  std::vector<Section *> getInputSectionsForRuleMatching(ObjectFile *objFile);
+  std::vector<Section *> getInputSectionsForRuleMatching(ObjectFile *ObjFile);
 
   /// (try to) Match section S using cache.
   ///
@@ -110,10 +110,10 @@ private:
   /// false.
 
 private:
-  LinkerConfig &m_Config;
-  Module &m_Module;
+  LinkerConfig &ThisConfig;
+  Module &ThisModule;
   std::mutex Mutex;
-  bool m_hasLinkerScript;
+  bool HasLinkerScript;
 };
 
 } // namespace eld

@@ -53,146 +53,146 @@ ScriptParser::ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &File)
 
 void ScriptParser::readLinkerScript() {
   while (!atEOF()) {
-    StringRef tok = peek();
+    StringRef Tok = peek();
     if (atEOF())
       break;
 
-    if (tok == ";") {
+    if (Tok == ";") {
       skip();
       continue;
     }
 
-    if (tok == "ENTRY") {
+    if (Tok == "ENTRY") {
       skip();
       readEntry();
-    } else if (tok == "SECTIONS") {
+    } else if (Tok == "SECTIONS") {
       skip();
       readSections();
-    } else if (tok == "INPUT" || tok == "GROUP") {
-      bool isInputCmd = (tok == "INPUT");
+    } else if (Tok == "INPUT" || Tok == "GROUP") {
+      bool IsInputCmd = (Tok == "INPUT");
       skip();
-      readInputOrGroup(isInputCmd);
-    } else if (tok == "OUTPUT") {
+      readInputOrGroup(IsInputCmd);
+    } else if (Tok == "OUTPUT") {
       skip();
       readOutput();
-    } else if (tok == "PHDRS") {
+    } else if (Tok == "PHDRS") {
       skip();
       readPhdrs();
-    } else if (tok == "NOCROSSREFS") {
+    } else if (Tok == "NOCROSSREFS") {
       skip();
       readNoCrossRefs();
-    } else if (tok == "SEARCH_DIR") {
+    } else if (Tok == "SEARCH_DIR") {
       skip();
       readSearchDir();
-    } else if (tok == "OUTPUT_ARCH") {
+    } else if (Tok == "OUTPUT_ARCH") {
       skip();
       readOutputArch();
-    } else if (tok == "MEMORY") {
+    } else if (Tok == "MEMORY") {
       skip();
       readMemory();
-    } else if (tok == "EXTERN") {
+    } else if (Tok == "EXTERN") {
       skip();
       readExtern();
-    } else if (tok == "REGION_ALIAS") {
+    } else if (Tok == "REGION_ALIAS") {
       skip();
       readRegionAlias();
-    } else if (tok == "OUTPUT_FORMAT") {
+    } else if (Tok == "OUTPUT_FORMAT") {
       skip();
       readOutputFormat();
-    } else if (tok == "VERSION") {
+    } else if (Tok == "VERSION") {
       skip();
       readVersion();
     } else if (readInclude()) {
     } else if (readAssignment()) {
     } else if (readPluginDirective()) {
     } else {
-      setError("unknown directive: " + tok);
+      setError("unknown directive: " + Tok);
     }
   }
 }
 
 bool ScriptParser::readAssignment() {
-  llvm::StringRef defTok = peek();
-  llvm::StringRef tok = next(LexState::Expr);
-  if (llvm::StringRef(defTok.data() + tok.size()).starts_with("/*")) {
+  llvm::StringRef DefTok = peek();
+  llvm::StringRef Tok = next(LexState::Expr);
+  if (llvm::StringRef(DefTok.data() + Tok.size()).starts_with("/*")) {
     prev();
     return false;
   }
-  if (tok == "ASSERT") {
+  if (Tok == "ASSERT") {
     readAssert();
     // Read optional semi-colon at the end of ASSERT.
     consume(";");
     return true;
   }
-  bool ret = false;
-  StringRef op = peek(LexState::Expr);
+  bool Ret = false;
+  StringRef Op = peek(LexState::Expr);
   // TODO: Support '^=' operator.
-  if (op.starts_with("=") ||
-      (op.size() == 2 && op[1] == '=' && strchr("*/+-&|", op[0])) ||
-      op == "<<=" || op == ">>=") {
-    ret = readSymbolAssignment(tok);
-    if (!ret)
+  if (Op.starts_with("=") ||
+      (Op.size() == 2 && Op[1] == '=' && strchr("*/+-&|", Op[0])) ||
+      Op == "<<=" || Op == ">>=") {
+    Ret = readSymbolAssignment(Tok);
+    if (!Ret)
       return false;
-  } else if (tok == "PROVIDE" || tok == "HIDDEN" || tok == "PROVIDE_HIDDEN") {
-    readProvideHidden(tok);
-    ret = true;
+  } else if (Tok == "PROVIDE" || Tok == "HIDDEN" || Tok == "PROVIDE_HIDDEN") {
+    readProvideHidden(Tok);
+    Ret = true;
   } else
     prev();
-  if (ret)
+  if (Ret)
     expectButContinue(";");
-  return ret;
+  return Ret;
 }
 
 void ScriptParser::readEntry() {
   expect("(");
-  StringRef tok = next();
-  StringRef entrySymbol = unquote(tok);
+  StringRef Tok = next();
+  StringRef EntrySymbol = unquote(Tok);
   expect(")");
-  auto EntryCmd = m_ScriptFile.addEntryPoint(entrySymbol.str());
-  EntryCmd->setLineNumberInContext(prevTokLine);
-  if (m_Config.options().shouldTraceLinkerScript())
+  auto *EntryCmd = ThisScriptFile.addEntryPoint(EntrySymbol.str());
+  EntryCmd->setLineNumberInContext(PrevTokLine);
+  if (ThisConfig.options().shouldTraceLinkerScript())
     EntryCmd->dump(llvm::outs());
 }
 
 eld::Expression *ScriptParser::readExpr() {
   // Our lexer is context-aware. Set the in-expression bit so that
   // they apply different tokenization rules.
-  LexState orig = lexState;
-  lexState = LexState::Expr;
-  eld::Expression *e = readExpr1(readPrimary(), /*minPrec=*/0);
-  lexState = orig;
-  return e;
+  enum LexState Orig = LexState;
+  LexState = LexState::Expr;
+  eld::Expression *E = readExpr1(readPrimary(), /*minPrec=*/0);
+  LexState = Orig;
+  return E;
 }
 
-eld::Expression *ScriptParser::readExpr1(eld::Expression *lhs, int minPrec) {
-  while (!atEOF() && Diagnose()) {
+eld::Expression *ScriptParser::readExpr1(eld::Expression *Lhs, int MinPrec) {
+  while (!atEOF() && diagnose()) {
     // Read an operator and an expression.
-    StringRef op1 = peek();
-    if (precedence(op1) < minPrec)
+    StringRef Op1 = peek();
+    if (precedence(Op1) < MinPrec)
       break;
     if (consume("?"))
-      return readTernary(lhs);
+      return readTernary(Lhs);
     skip();
-    eld::Expression *rhs = readPrimary();
+    eld::Expression *Rhs = readPrimary();
 
     // Evaluate the remaining part of the expression first if the
     // next operator has greater precedence than the previous one.
     // For example, if we have read "+" and "3", and if the next
     // operator is "*", then we'll evaluate 3 * ... part first.
     while (!atEOF()) {
-      StringRef op2 = peek();
-      if (precedence(op2) <= precedence(op1))
+      StringRef Op2 = peek();
+      if (precedence(Op2) <= precedence(Op1))
         break;
-      rhs = readExpr1(rhs, precedence(op2));
+      Rhs = readExpr1(Rhs, precedence(Op2));
     }
 
-    lhs = &combine(op1, *lhs, *rhs);
+    Lhs = &combine(Op1, *Lhs, *Rhs);
   }
-  return lhs;
+  return Lhs;
 }
 
-int ScriptParser::precedence(StringRef op) {
-  return StringSwitch<int>(op)
+int ScriptParser::precedence(StringRef Op) {
+  return StringSwitch<int>(Op)
       .Cases("*", "/", "%", 11)
       .Cases("+", "-", 10)
       .Cases("<<", ">>", 9)
@@ -207,53 +207,53 @@ int ScriptParser::precedence(StringRef op) {
       .Default(-1);
 }
 
-eld::Expression &ScriptParser::combine(llvm::StringRef op, eld::Expression &l,
-                                       eld::Expression &r) {
-  Module &module = m_ScriptFile.module();
-  GNULDBackend &backend = m_ScriptFile.backend();
-  if (op == "+")
-    return *(make<Add>(module, backend, l, r));
-  if (op == "-")
-    return *(make<Subtract>(module, backend, l, r));
-  if (op == "*")
-    return *(make<Multiply>(module, backend, l, r));
-  if (op == "/") {
+eld::Expression &ScriptParser::combine(llvm::StringRef Op, eld::Expression &L,
+                                       eld::Expression &R) {
+  Module &Module = ThisScriptFile.module();
+  GNULDBackend &Backend = ThisScriptFile.backend();
+  if (Op == "+")
+    return *(make<Add>(Module, Backend, L, R));
+  if (Op == "-")
+    return *(make<Subtract>(Module, Backend, L, R));
+  if (Op == "*")
+    return *(make<Multiply>(Module, Backend, L, R));
+  if (Op == "/") {
     // FIXME: It be useful to pass current location for reporting
     // division by zero error!
-    return *(make<Divide>(module, backend, l, r));
+    return *(make<Divide>(Module, Backend, L, R));
   }
-  if (op == "%") {
+  if (Op == "%") {
     // FIXME: It be useful to pass current location for reporting
     // modulo by zero error!
-    return *(make<Modulo>(module, backend, l, r));
+    return *(make<Modulo>(Module, Backend, L, R));
   }
-  if (op == "<<")
-    return *(make<LeftShift>(module, backend, l, r));
-  if (op == ">>")
-    return *(make<RightShift>(module, backend, l, r));
-  if (op == "<")
-    return *(make<ConditionLT>(module, backend, l, r));
-  if (op == ">")
-    return *(make<ConditionGT>(module, backend, l, r));
-  if (op == ">=")
-    return *(make<ConditionGTE>(module, backend, l, r));
-  if (op == "<=")
-    return *(make<ConditionLTE>(module, backend, l, r));
-  if (op == "==")
-    return *(make<ConditionEQ>(module, backend, l, r));
-  if (op == "!=")
-    return *(make<ConditionNEQ>(module, backend, l, r));
-  if (op == "||")
-    return *(make<LogicalOp>(Expression::LOGICAL_OR, module, backend, l, r));
-  if (op == "&&")
-    return *(make<LogicalOp>(Expression::LOGICAL_AND, module, backend, l, r));
-  if (op == "&")
-    return *(make<BitwiseAnd>(module, backend, l, r));
+  if (Op == "<<")
+    return *(make<LeftShift>(Module, Backend, L, R));
+  if (Op == ">>")
+    return *(make<RightShift>(Module, Backend, L, R));
+  if (Op == "<")
+    return *(make<ConditionLT>(Module, Backend, L, R));
+  if (Op == ">")
+    return *(make<ConditionGT>(Module, Backend, L, R));
+  if (Op == ">=")
+    return *(make<ConditionGTE>(Module, Backend, L, R));
+  if (Op == "<=")
+    return *(make<ConditionLTE>(Module, Backend, L, R));
+  if (Op == "==")
+    return *(make<ConditionEQ>(Module, Backend, L, R));
+  if (Op == "!=")
+    return *(make<ConditionNEQ>(Module, Backend, L, R));
+  if (Op == "||")
+    return *(make<LogicalOp>(Expression::LOGICAL_OR, Module, Backend, L, R));
+  if (Op == "&&")
+    return *(make<LogicalOp>(Expression::LOGICAL_AND, Module, Backend, L, R));
+  if (Op == "&")
+    return *(make<BitwiseAnd>(Module, Backend, L, R));
   // FIXME: Support xor operator!
   // if (op == "^")
   //   return *(make<op>(module, backend, l, r));
-  if (op == "|")
-    return *(make<BitwiseOr>(module, backend, l, r));
+  if (Op == "|")
+    return *(make<BitwiseOr>(Module, Backend, L, R));
   llvm_unreachable("invalid operator");
 }
 
@@ -261,323 +261,323 @@ eld::Expression *ScriptParser::readPrimary() {
   if (peek() == "(")
     return readParenExpr(/*setParen=*/true);
 
-  Module &module = m_ScriptFile.module();
-  GNULDBackend &backend = m_ScriptFile.backend();
+  Module &Module = ThisScriptFile.module();
+  GNULDBackend &Backend = ThisScriptFile.backend();
   if (consume("~")) {
-    Expression *e = readPrimary();
-    return make<Complement>(module, backend, *e);
+    Expression *E = readPrimary();
+    return make<Complement>(Module, Backend, *E);
   }
   if (consume("!")) {
-    Expression *e = readPrimary();
-    return make<UnaryNot>(module, backend, *e);
+    Expression *E = readPrimary();
+    return make<UnaryNot>(Module, Backend, *E);
   }
   if (consume("-")) {
-    Expression *e = readPrimary();
-    return make<UnaryMinus>(module, backend, *e);
+    Expression *E = readPrimary();
+    return make<UnaryMinus>(Module, Backend, *E);
   }
   if (consume("+")) {
-    Expression *e = readPrimary();
-    return make<UnaryPlus>(module, backend, *e);
+    Expression *E = readPrimary();
+    return make<UnaryPlus>(Module, Backend, *E);
   }
 
-  StringRef tok = next();
-  std::string location = getCurrentLocation();
+  StringRef Tok = next();
+  std::string Location = getCurrentLocation();
 
   // Built-in functions are parsed here.
   // https://sourceware.org/binutils/docs/ld/Builtin-Functions.html.
-  if (tok == "ABSOLUTE") {
-    Expression *e = readParenExpr(/*setParen=*/true);
-    return make<Absolute>(module, backend, *e);
+  if (Tok == "ABSOLUTE") {
+    Expression *E = readParenExpr(/*setParen=*/true);
+    return make<Absolute>(Module, Backend, *E);
   }
-  if (tok == "ADDR") {
-    StringRef name = unquote(readParenLiteral());
+  if (Tok == "ADDR") {
+    StringRef Name = unquote(readParenLiteral());
     // FIXME: Location might be handly for 'undefined section' error.
-    return make<Addr>(module, backend, name.str());
+    return make<Addr>(Module, Backend, Name.str());
   }
-  if (tok == "ALIGN") {
+  if (Tok == "ALIGN") {
     expect("(");
-    Expression *e = readExpr();
+    Expression *E = readExpr();
     if (consume(")")) {
       // FIXME: Location given here may be overwritten for outermost ALIGN
       // expressions.
-      return make<AlignExpr>(module, backend, location, *e,
-                             *make<Symbol>(module, backend, "."));
+      return make<AlignExpr>(Module, Backend, Location, *E,
+                             *make<Symbol>(Module, Backend, "."));
     }
     expect(",");
-    Expression *e2 = readExpr();
+    Expression *E2 = readExpr();
     expect(")");
     // FIXME: Location given here may be overwritten for outermost ALIGN
     // expressions.
-    return make<AlignExpr>(module, backend, location, *e2, *e);
+    return make<AlignExpr>(Module, Backend, Location, *E2, *E);
   }
-  if (tok == "ALIGNOF") {
-    StringRef name = unquote(readParenLiteral());
+  if (Tok == "ALIGNOF") {
+    StringRef Name = unquote(readParenLiteral());
     // FIXME: Location might be useful for undefined section related errors.
-    return make<AlignOf>(module, backend, name.str());
+    return make<AlignOf>(Module, Backend, Name.str());
   }
-  if (tok == "ASSERT")
+  if (Tok == "ASSERT")
     return readAssert();
-  if (tok == "CONSTANT")
+  if (Tok == "CONSTANT")
     return readConstant();
-  if (tok == "DATA_SEGMENT_ALIGN") {
+  if (Tok == "DATA_SEGMENT_ALIGN") {
     expect("(");
-    Expression *e1 = readExpr();
+    Expression *E1 = readExpr();
     expect(",");
-    Expression *e2 = readExpr();
+    Expression *E2 = readExpr();
     expect(")");
-    return make<DataSegmentAlign>(module, backend, *e1, *e2);
+    return make<DataSegmentAlign>(Module, Backend, *E1, *E2);
   }
-  if (tok == "DATA_SEGMENT_END") {
+  if (Tok == "DATA_SEGMENT_END") {
     expect("(");
-    Expression *e = readExpr();
+    Expression *E = readExpr();
     expect(")");
-    return make<DataSegmentEnd>(module, backend, *e);
+    return make<DataSegmentEnd>(Module, Backend, *E);
   }
-  if (tok == "DATA_SEGMENT_RELRO_END") {
+  if (Tok == "DATA_SEGMENT_RELRO_END") {
     expect("(");
-    Expression *e1 = readExpr();
+    Expression *E1 = readExpr();
     expect(",");
-    Expression *e2 = readExpr();
+    Expression *E2 = readExpr();
     expect(")");
-    return make<DataSegmentRelRoEnd>(module, backend, *e1, *e2);
+    return make<DataSegmentRelRoEnd>(Module, Backend, *E1, *E2);
   }
-  if (tok == "DEFINED") {
-    StringRef name = unquote(readParenLiteral());
-    return make<Defined>(module, backend, name.str());
+  if (Tok == "DEFINED") {
+    StringRef Name = unquote(readParenLiteral());
+    return make<Defined>(Module, Backend, Name.str());
   }
-  if (tok == "LENGTH") {
-    StringRef name = readParenLiteral();
-    return make<QueryMemory>(Expression::LENGTH, module, backend, name.str());
+  if (Tok == "LENGTH") {
+    StringRef Name = readParenLiteral();
+    return make<QueryMemory>(Expression::LENGTH, Module, Backend, Name.str());
   }
-  if (tok == "LOADADDR") {
-    StringRef name = unquote(readParenLiteral());
-    return make<LoadAddr>(module, backend, name.str());
+  if (Tok == "LOADADDR") {
+    StringRef Name = unquote(readParenLiteral());
+    return make<LoadAddr>(Module, Backend, Name.str());
   }
-  if (tok == "LOG2CEIL") {
+  if (Tok == "LOG2CEIL") {
     expect("(");
-    Expression *e = readExpr();
+    Expression *E = readExpr();
     expect(")");
-    return make<Log2Ceil>(module, backend, *e);
+    return make<Log2Ceil>(Module, Backend, *E);
   }
-  if (tok == "MAX" || tok == "MIN") {
+  if (Tok == "MAX" || Tok == "MIN") {
     expect("(");
-    Expression *e1 = readExpr();
+    Expression *E1 = readExpr();
     expect(",");
-    Expression *e2 = readExpr();
+    Expression *E2 = readExpr();
     expect(")");
-    if (tok == "MIN")
-      return make<Min>(module, backend, *e1, *e2);
-    return make<Max>(module, backend, *e1, *e2);
+    if (Tok == "MIN")
+      return make<Min>(Module, Backend, *E1, *E2);
+    return make<Max>(Module, Backend, *E1, *E2);
   }
-  if (tok == "ORIGIN") {
-    StringRef name = readParenLiteral();
-    return make<QueryMemory>(Expression::ORIGIN, module, backend, name.str());
+  if (Tok == "ORIGIN") {
+    StringRef Name = readParenLiteral();
+    return make<QueryMemory>(Expression::ORIGIN, Module, Backend, Name.str());
   }
-  if (tok == "SEGMENT_START") {
+  if (Tok == "SEGMENT_START") {
     expect("(");
-    StringRef name = unquote(next());
+    StringRef Name = unquote(next());
     expect(",");
-    Expression *e = readExpr();
+    Expression *E = readExpr();
     expect(")");
-    return make<SegmentStart>(module, backend, name.str(), *e);
+    return make<SegmentStart>(Module, Backend, Name.str(), *E);
   }
-  if (tok == "SIZEOF") {
-    StringRef name = readParenName();
-    return make<SizeOf>(module, backend, name.str());
+  if (Tok == "SIZEOF") {
+    StringRef Name = readParenName();
+    return make<SizeOf>(Module, Backend, Name.str());
   }
-  if (tok == "SIZEOF_HEADERS")
-    return make<SizeOfHeaders>(module, backend, &m_ScriptFile);
+  if (Tok == "SIZEOF_HEADERS")
+    return make<SizeOfHeaders>(Module, Backend, &ThisScriptFile);
 
   // Tok is a literal number.
-  if (std::optional<uint64_t> val = parseInt(tok))
-    return make<Integer>(module, backend, tok.str(), val.value());
+  if (std::optional<uint64_t> Val = parseInt(Tok))
+    return make<Integer>(Module, Backend, Tok.str(), Val.value());
 
   // Tok is a symbol name.
-  if (tok.starts_with("\""))
-    tok = unquote(tok);
-  if (!isValidSymbolName(tok))
-    setError("malformed number: " + tok);
-  return make<Symbol>(module, backend, tok.str());
+  if (Tok.starts_with("\""))
+    Tok = unquote(Tok);
+  if (!isValidSymbolName(Tok))
+    setError("malformed number: " + Tok);
+  return make<Symbol>(Module, Backend, Tok.str());
 }
 
-Expression *ScriptParser::readParenExpr(bool setParen) {
+Expression *ScriptParser::readParenExpr(bool SetParen) {
   expect("(");
-  Expression *e = readExpr();
+  Expression *E = readExpr();
   expect(")");
-  if (setParen)
-    e->setParen();
-  return e;
+  if (SetParen)
+    E->setParen();
+  return E;
 }
 
 StringRef ScriptParser::readParenLiteral() {
   expect("(");
-  LexState orig = lexState;
-  lexState = LexState::Expr;
-  StringRef tok = next();
-  lexState = orig;
+  enum LexState Orig = LexState;
+  LexState = LexState::Expr;
+  StringRef Tok = next();
+  LexState = Orig;
   expect(")");
-  return tok;
+  return Tok;
 }
 
 Expression *ScriptParser::readConstant() {
-  StringRef s = readParenLiteral();
-  Module &module = m_ScriptFile.module();
-  GNULDBackend &backend = m_ScriptFile.backend();
-  if (s == "COMMONPAGESIZE")
-    return make<Constant>(module, backend, "COMMONPAGESIZE",
+  StringRef S = readParenLiteral();
+  Module &Module = ThisScriptFile.module();
+  GNULDBackend &Backend = ThisScriptFile.backend();
+  if (S == "COMMONPAGESIZE")
+    return make<Constant>(Module, Backend, "COMMONPAGESIZE",
                           Expression::COMMONPAGESIZE);
-  if (s == "MAXPAGESIZE")
-    return make<Constant>(module, backend, "MAXPAGESIZE",
+  if (S == "MAXPAGESIZE")
+    return make<Constant>(Module, Backend, "MAXPAGESIZE",
                           Expression::MAXPAGESIZE);
-  setError("unknown constant: " + s);
-  return make<Integer>(module, backend, "", 0);
+  setError("unknown constant: " + S);
+  return make<Integer>(Module, Backend, "", 0);
 }
 
-std::optional<uint64_t> ScriptParser::parseInt(StringRef tok) const {
+std::optional<uint64_t> ScriptParser::parseInt(StringRef Tok) const {
   // Hexadecimal
-  uint64_t val = 0;
-  if (tok.starts_with_insensitive("0x")) {
-    if (!to_integer(tok.substr(2), val, 16))
+  uint64_t Val = 0;
+  if (Tok.starts_with_insensitive("0x")) {
+    if (!to_integer(Tok.substr(2), Val, 16))
       return std::nullopt;
-    return val;
+    return Val;
   }
-  if (tok.ends_with_insensitive("H")) {
-    if (!to_integer(tok.drop_back(), val, 16))
+  if (Tok.ends_with_insensitive("H")) {
+    if (!to_integer(Tok.drop_back(), Val, 16))
       return std::nullopt;
-    return val;
+    return Val;
   }
 
   // Decimal
-  if (tok.ends_with_insensitive("K")) {
-    if (!to_integer(tok.drop_back(), val, 10))
+  if (Tok.ends_with_insensitive("K")) {
+    if (!to_integer(Tok.drop_back(), Val, 10))
       return std::nullopt;
-    return val * 1024;
+    return Val * 1024;
   }
-  if (tok.ends_with_insensitive("M")) {
-    if (!to_integer(tok.drop_back(), val, 10))
+  if (Tok.ends_with_insensitive("M")) {
+    if (!to_integer(Tok.drop_back(), Val, 10))
       return std::nullopt;
-    return val * 1024 * 1024;
+    return Val * 1024 * 1024;
   }
-  if (!to_integer(tok, val, 10))
+  if (!to_integer(Tok, Val, 10))
     return std::nullopt;
-  return val;
+  return Val;
 }
 
-bool ScriptParser::isValidSymbolName(StringRef s) {
-  auto valid = [](char c) {
-    return isAlnum(c) || c == '$' || c == '.' || c == '_';
+bool ScriptParser::isValidSymbolName(StringRef S) {
+  auto Valid = [](char C) {
+    return isAlnum(C) || C == '$' || C == '.' || C == '_';
   };
-  return !s.empty() && !isDigit(s[0]) && llvm::all_of(s, valid);
+  return !S.empty() && !isDigit(S[0]) && llvm::all_of(S, Valid);
 }
 
-bool ScriptParser::readSymbolAssignment(StringRef tok,
-                                        Assignment::Type assignType) {
-  StringRef name = unquote(tok);
-  StringRef op = next(LexState::Expr);
+bool ScriptParser::readSymbolAssignment(StringRef Tok,
+                                        Assignment::Type AssignType) {
+  StringRef Name = unquote(Tok);
+  StringRef Op = next(LexState::Expr);
   // TODO: Support '^='
-  assert(op == "=" || op == "*=" || op == "/=" || op == "+=" || op == "-=" ||
-         op == "&=" || op == "|=" || op == "<<=" || op == ">>=");
+  assert(Op == "=" || Op == "*=" || Op == "/=" || Op == "+=" || Op == "-=" ||
+         Op == "&=" || Op == "|=" || Op == "<<=" || Op == ">>=");
   // Note: GNU ld does not support %=.
-  Expression *e = readExpr();
-  Module &module = m_ScriptFile.module();
-  GNULDBackend &backend = m_ScriptFile.backend();
-  if (op != "=") {
-    Symbol *S = make<Symbol>(module, backend, name.str());
-    std::string loc = getCurrentLocation();
-    char subOp = op[0];
-    switch (subOp) {
+  Expression *E = readExpr();
+  Module &Module = ThisScriptFile.module();
+  GNULDBackend &Backend = ThisScriptFile.backend();
+  if (Op != "=") {
+    Symbol *S = make<Symbol>(Module, Backend, Name.str());
+    std::string Loc = getCurrentLocation();
+    char SubOp = Op[0];
+    switch (SubOp) {
     case '*':
-      e = make<Multiply>(module, backend, *S, *e);
+      E = make<Multiply>(Module, Backend, *S, *E);
       break;
     case '/':
-      e = make<Divide>(module, backend, *S, *e);
+      E = make<Divide>(Module, Backend, *S, *E);
       break;
     case '+':
-      e = make<Add>(module, backend, *S, *e);
+      E = make<Add>(Module, Backend, *S, *E);
       break;
     case '-':
-      e = make<Subtract>(module, backend, *S, *e);
+      E = make<Subtract>(Module, Backend, *S, *E);
       break;
     case '<':
-      e = make<LeftShift>(module, backend, *S, *e);
+      E = make<LeftShift>(Module, Backend, *S, *E);
       break;
     case '>':
-      e = make<RightShift>(module, backend, *S, *e);
+      E = make<RightShift>(Module, Backend, *S, *E);
       break;
     case '&':
-      e = make<BitwiseAnd>(module, backend, *S, *e);
+      E = make<BitwiseAnd>(Module, Backend, *S, *E);
       break;
     case '|':
-      e = make<BitwiseOr>(module, backend, *S, *e);
+      E = make<BitwiseOr>(Module, Backend, *S, *E);
       break;
     default:
       llvm_unreachable("");
     }
-    e->setAssign();
+    E->setAssign();
   }
-  m_ScriptFile.addAssignment(name.str(), e, assignType);
+  ThisScriptFile.addAssignment(Name.str(), E, AssignType);
   return true;
 }
 
-Expression *ScriptParser::readTernary(Expression *cond) {
-  Expression *l = readExpr();
+Expression *ScriptParser::readTernary(Expression *Cond) {
+  Expression *L = readExpr();
   expect(":");
-  Expression *r = readExpr();
-  return make<Ternary>(m_ScriptFile.module(), m_ScriptFile.backend(), *cond, *l,
-                       *r);
+  Expression *R = readExpr();
+  return make<Ternary>(ThisScriptFile.module(), ThisScriptFile.backend(), *Cond,
+                       *L, *R);
 }
 
-void ScriptParser::readProvideHidden(StringRef tok) {
-  Assignment::Type assignType;
-  if (tok == "PROVIDE")
-    assignType = Assignment::Type::PROVIDE;
-  else if (tok == "HIDDEN")
-    assignType = Assignment::Type::HIDDEN;
-  else if (tok == "PROVIDE_HIDDEN")
-    assignType = Assignment::Type::PROVIDE_HIDDEN;
+void ScriptParser::readProvideHidden(StringRef Tok) {
+  Assignment::Type AssignType;
+  if (Tok == "PROVIDE")
+    AssignType = Assignment::Type::PROVIDE;
+  else if (Tok == "HIDDEN")
+    AssignType = Assignment::Type::HIDDEN;
+  else if (Tok == "PROVIDE_HIDDEN")
+    AssignType = Assignment::Type::PROVIDE_HIDDEN;
   else
     llvm_unreachable("Expected PROVIDE/HIDDEN/PROVIDE_HIDDEN assignments!");
   expect("(");
-  tok = next();
+  Tok = next();
   if (peek() != "=") {
     setError("= expected, but got " + next());
     while (!atEOF() && next() != ")")
       ;
   }
-  readSymbolAssignment(tok, assignType);
+  readSymbolAssignment(Tok, AssignType);
   expect(")");
 }
 
 void ScriptParser::readSections() {
   expect("{");
-  m_ScriptFile.enterSectionsCmd();
+  ThisScriptFile.enterSectionsCmd();
   while (peek() != "}" && !atEOF()) {
     if (readInclude()) {
     } else if (readAssignment()) {
     } else {
-      llvm::StringRef sectName = unquote(next(LexState::SectionName));
-      readOutputSectionDescription(sectName);
+      llvm::StringRef SectName = unquote(next(LexState::SectionName));
+      readOutputSectionDescription(SectName);
     }
   }
   expect("}");
-  m_ScriptFile.leaveSectionsCmd();
+  ThisScriptFile.leaveSectionsCmd();
 }
 
 Expression *ScriptParser::readAssert() {
   expect("(");
-  Expression *e = readExpr();
+  Expression *E = readExpr();
   expect(",");
-  StringRef msg = unquote(next());
+  StringRef Msg = unquote(next());
   expect(")");
-  Expression *assertCmd = make<eld::AssertCmd>(
-      m_ScriptFile.module(), m_ScriptFile.backend(), msg.str(), *e);
-  m_ScriptFile.addAssignment("ASSERT", assertCmd, Assignment::ASSERT);
-  return assertCmd;
+  Expression *AssertCmd = make<eld::AssertCmd>(
+      ThisScriptFile.module(), ThisScriptFile.backend(), Msg.str(), *E);
+  ThisScriptFile.addAssignment("ASSERT", AssertCmd, Assignment::ASSERT);
+  return AssertCmd;
 }
 
-void ScriptParser::readInputOrGroup(bool isInputCmd) {
+void ScriptParser::readInputOrGroup(bool IsInputCmd) {
   expect("(");
-  m_ScriptFile.createStringList();
+  ThisScriptFile.createStringList();
   while (peek() != ")" && !atEOF()) {
     if (consume("AS_NEEDED")) {
       readAsNeeded();
@@ -586,191 +586,193 @@ void ScriptParser::readInputOrGroup(bool isInputCmd) {
     consume(",");
   }
   expect(")");
-  StringList *inputs = m_ScriptFile.getCurrentStringList();
-  if (isInputCmd)
-    m_ScriptFile.addInputCmd(
-        *inputs, m_ScriptFile.getLinkerScriptFile().getInput()->getAttribute());
+  StringList *Inputs = ThisScriptFile.getCurrentStringList();
+  if (IsInputCmd)
+    ThisScriptFile.addInputCmd(
+        *Inputs,
+        ThisScriptFile.getLinkerScriptFile().getInput()->getAttribute());
   else
-    m_ScriptFile.addGroupCmd(
-        *inputs, m_ScriptFile.getLinkerScriptFile().getInput()->getAttribute());
+    ThisScriptFile.addGroupCmd(
+        *Inputs,
+        ThisScriptFile.getLinkerScriptFile().getInput()->getAttribute());
 }
 
 void ScriptParser::readAsNeeded() {
   expect("(");
-  m_ScriptFile.setAsNeeded(true);
+  ThisScriptFile.setAsNeeded(true);
   while (peek() != ")" && !atEOF()) {
     addFile(unquote(next()));
     consume(",");
   }
   expect(")");
-  m_ScriptFile.setAsNeeded(false);
+  ThisScriptFile.setAsNeeded(false);
 }
 
-void ScriptParser::addFile(StringRef name) {
-  StrToken *inputStrTok = nullptr;
-  if (name.consume_front("-l"))
-    inputStrTok =
-        m_ScriptFile.createNameSpecToken(name.str(), m_ScriptFile.asNeeded());
+void ScriptParser::addFile(StringRef Name) {
+  StrToken *InputStrTok = nullptr;
+  if (Name.consume_front("-l"))
+    InputStrTok = ThisScriptFile.createNameSpecToken(Name.str(),
+                                                     ThisScriptFile.asNeeded());
   else
-    inputStrTok =
-        m_ScriptFile.createFileToken(name.str(), m_ScriptFile.asNeeded());
-  m_ScriptFile.getCurrentStringList()->push_back(inputStrTok);
+    InputStrTok =
+        ThisScriptFile.createFileToken(Name.str(), ThisScriptFile.asNeeded());
+  ThisScriptFile.getCurrentStringList()->pushBack(InputStrTok);
 }
 
 void ScriptParser::readOutput() {
   expect("(");
-  StringRef name = next();
-  m_ScriptFile.addOutputCmd(unquote(name).str());
+  StringRef Name = next();
+  ThisScriptFile.addOutputCmd(unquote(Name).str());
   expect(")");
 }
 
-void ScriptParser::readOutputSectionDescription(llvm::StringRef outSectName) {
-  OutputSectDesc::Prolog prologue = readOutputSectDescPrologue();
-  m_ScriptFile.enterOutputSectDesc(outSectName.str(), prologue);
+void ScriptParser::readOutputSectionDescription(llvm::StringRef OutSectName) {
+  OutputSectDesc::Prolog Prologue = readOutputSectDescPrologue();
+  ThisScriptFile.enterOutputSectDesc(OutSectName.str(), Prologue);
   expect("{");
   while (peek() != "}" && !atEOF()) {
-    StringRef tok = peek();
-    if (tok == ";") {
+    StringRef Tok = peek();
+    if (Tok == ";") {
       // Empty commands are allowed. Do nothing.
       skip();
-    } else if (tok == "FILL") {
+    } else if (Tok == "FILL") {
       skip();
       readFill();
     } else if (readInclude()) {
     } else if (readOutputSectionData()) {
     } else if (readAssignment()) {
     } else {
-      tok = next();
-      readInputSectionDescription(tok);
+      Tok = next();
+      readInputSectionDescription(Tok);
     }
   }
   expect("}");
-  OutputSectDesc::Epilog epilogue = readOutputSectDescEpilogue();
-  m_ScriptFile.leavingOutputSectDesc();
-  m_ScriptFile.leaveOutputSectDesc(epilogue);
+  OutputSectDesc::Epilog Epilogue = readOutputSectDescEpilogue();
+  ThisScriptFile.leavingOutputSectDesc();
+  ThisScriptFile.leaveOutputSectDesc(Epilogue);
 }
 
-void ScriptParser::readInputSectionDescription(StringRef tok) {
-  InputSectDesc::Policy policy = InputSectDesc::Policy::NoKeep;
-  if (tok == "KEEP")
-    policy = InputSectDesc::Policy::Keep;
-  else if (tok == "DONTMOVE")
-    policy = InputSectDesc::Policy::Fixed;
-  else if (tok == "KEEP_DONTMOVE")
-    policy = InputSectDesc::Policy::KeepFixed;
-  if (policy != InputSectDesc::Policy::NoKeep) {
+void ScriptParser::readInputSectionDescription(StringRef Tok) {
+  InputSectDesc::Policy Policy = InputSectDesc::Policy::NoKeep;
+  if (Tok == "KEEP")
+    Policy = InputSectDesc::Policy::Keep;
+  else if (Tok == "DONTMOVE")
+    Policy = InputSectDesc::Policy::Fixed;
+  else if (Tok == "KEEP_DONTMOVE")
+    Policy = InputSectDesc::Policy::KeepFixed;
+  if (Policy != InputSectDesc::Policy::NoKeep) {
     expect("(");
-    tok = next();
+    Tok = next();
   }
-  InputSectDesc::Spec ISDSpec = readInputSectionDescSpec(tok);
-  if (policy != InputSectDesc::Policy::NoKeep)
+  InputSectDesc::Spec ISDSpec = readInputSectionDescSpec(Tok);
+  if (Policy != InputSectDesc::Policy::NoKeep)
     expect(")");
-  m_ScriptFile.addInputSectDesc(policy, ISDSpec);
+  ThisScriptFile.addInputSectDesc(Policy, ISDSpec);
 }
 
-InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef tok) {
+InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   ExcludeFiles *EF = nullptr;
-  if (tok == "EXCLUDE_FILE") {
+  if (Tok == "EXCLUDE_FILE") {
     EF = readExcludeFile();
-    tok = next();
+    Tok = next();
   }
-  WildcardPattern *filePat = nullptr, *archiveMem = nullptr;
-  bool isArchive = false;
-  if (!tok.contains(':'))
-    filePat = m_ScriptFile.createWildCardPattern(tok);
+  WildcardPattern *FilePat = nullptr, *ArchiveMem = nullptr;
+  bool IsArchive = false;
+  if (!Tok.contains(':'))
+    FilePat = ThisScriptFile.createWildCardPattern(Tok);
   else {
-    std::pair<llvm::StringRef, llvm::StringRef> split = tok.split(':');
-    filePat = m_ScriptFile.createWildCardPattern(split.first);
-    if (!split.second.empty())
-      archiveMem = m_ScriptFile.createWildCardPattern(split.second);
-    isArchive = true;
+    std::pair<llvm::StringRef, llvm::StringRef> Split = Tok.split(':');
+    FilePat = ThisScriptFile.createWildCardPattern(Split.first);
+    if (!Split.second.empty())
+      ArchiveMem = ThisScriptFile.createWildCardPattern(Split.second);
+    IsArchive = true;
   }
-  StringList *wildcardSections = nullptr;
+  StringList *WildcardSections = nullptr;
   if (consume("(")) {
-    m_ScriptFile.createStringList();
+    ThisScriptFile.createStringList();
     while (peek() != ")" && !atEOF()) {
-      WildcardPattern *sectPat = readWildcardPattern();
-      m_ScriptFile.getCurrentStringList()->push_back(sectPat);
+      WildcardPattern *SectPat = readWildcardPattern();
+      ThisScriptFile.getCurrentStringList()->pushBack(SectPat);
     }
     expect(")");
-    wildcardSections = m_ScriptFile.getCurrentStringList();
+    WildcardSections = ThisScriptFile.getCurrentStringList();
   }
   InputSectDesc::Spec ISDSpec;
   ISDSpec.initialize();
-  ISDSpec.m_pWildcardFile = filePat;
-  ISDSpec.m_pWildcardSections = wildcardSections;
-  ISDSpec.m_pArchiveMember = archiveMem;
-  ISDSpec.m_pIsArchive = isArchive;
-  ISDSpec.m_ExcludeFiles = EF;
+  ISDSpec.WildcardFilePattern = FilePat;
+  ISDSpec.WildcardSectionPattern = WildcardSections;
+  ISDSpec.InputArchiveMember = ArchiveMem;
+  ISDSpec.InputIsArchive = IsArchive;
+  ISDSpec.ExcludeFilesRule = EF;
   return ISDSpec;
 }
 
 OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
-  OutputSectDesc::Prolog prologue;
-  prologue.init();
+  OutputSectDesc::Prolog Prologue;
+  Prologue.init();
 
   if (peek() != ":") {
     if (consume("(")) {
-      if (!readOutputSectTypeAndPermissions(prologue, peek()))
-        prologue.m_pVMA = readExpr();
+      if (!readOutputSectTypeAndPermissions(Prologue, peek()))
+        Prologue.OutputSectionVMA = readExpr();
       expect(")");
     } else if (peek() == "{") {
       expect(":");
     } else {
-      prologue.m_pPluginCmd = readOutputSectionPluginDirective();
-      if (!prologue.m_pPluginCmd)
-        prologue.m_pVMA = readExpr();
+      Prologue.PluginCmd = readOutputSectionPluginDirective();
+      if (!Prologue.PluginCmd)
+        Prologue.OutputSectionVMA = readExpr();
     }
 
-    if (prologue.m_pVMA != nullptr && consume("(")) {
-      StringRef tok = peek();
-      if (!readOutputSectTypeAndPermissions(prologue, tok))
-        setError("Invalid output section type: " + tok);
+    if (Prologue.OutputSectionVMA != nullptr && consume("(")) {
+      StringRef Tok = peek();
+      if (!readOutputSectTypeAndPermissions(Prologue, Tok))
+        setError("Invalid output section type: " + Tok);
       expect(")");
     }
 
-    if (!prologue.m_pPluginCmd)
-      prologue.m_pPluginCmd = readOutputSectionPluginDirective();
+    if (!Prologue.PluginCmd)
+      Prologue.PluginCmd = readOutputSectionPluginDirective();
   }
 
   expect(":");
 
   if (consume("AT"))
-    prologue.m_pLMA = readParenExpr(/*setParen=*/false);
+    Prologue.OutputSectionLMA = readParenExpr(/*setParen=*/false);
   if (consume("ALIGN"))
-    prologue.m_pAlign = readParenExpr(/*setParen=*/false);
+    Prologue.Alignment = readParenExpr(/*setParen=*/false);
   if (consume("SUBALIGN"))
-    prologue.m_pSubAlign = readParenExpr(/*setParen=*/false);
+    Prologue.OutputSectionSubaAlign = readParenExpr(/*setParen=*/false);
 
   if (consume("ONLY_IF_RO"))
-    prologue.m_Constraint = OutputSectDesc::Constraint::ONLY_IF_RO;
+    Prologue.SectionConstraint = OutputSectDesc::Constraint::ONLY_IF_RO;
   else if (consume("ONLY_IF_RW"))
-    prologue.m_Constraint = OutputSectDesc::Constraint::ONLY_IF_RW;
-  return prologue;
+    Prologue.SectionConstraint = OutputSectDesc::Constraint::ONLY_IF_RW;
+  return Prologue;
 }
 
 bool ScriptParser::readOutputSectTypeAndPermissions(
-    OutputSectDesc::Prolog &prologue, llvm::StringRef tok) {
-  std::optional<OutputSectDesc::Type> expType = readOutputSectType(tok);
-  if (expType)
-    prologue.m_Type = expType.value();
+    OutputSectDesc::Prolog &Prologue, llvm::StringRef Tok) {
+  std::optional<OutputSectDesc::Type> ExpType = readOutputSectType(Tok);
+  if (ExpType)
+    Prologue.ThisType = ExpType.value();
   else
     return false;
   next();
   if (consume(",")) {
-    tok = next();
-    std::optional<uint32_t> expFlag = readOutputSectPermissions(tok);
-    if (expFlag)
-      prologue.m_Flag = expFlag.value();
+    Tok = next();
+    std::optional<uint32_t> ExpFlag = readOutputSectPermissions(Tok);
+    if (ExpFlag)
+      Prologue.SectionFlag = ExpFlag.value();
     else
-      setError("Invalid permission flag: " + tok);
+      setError("Invalid permission flag: " + Tok);
   }
   return true;
 }
 
 std::optional<OutputSectDesc::Type>
-ScriptParser::readOutputSectType(StringRef tok) {
-  return StringSwitch<std::optional<OutputSectDesc::Type>>(tok)
+ScriptParser::readOutputSectType(StringRef Tok) {
+  return StringSwitch<std::optional<OutputSectDesc::Type>>(Tok)
       .Case("NOLOAD", OutputSectDesc::Type::NOLOAD)
       .Case("DSECT", OutputSectDesc::Type::DSECT)
       .Case("COPY", OutputSectDesc::Type::COPY)
@@ -782,10 +784,10 @@ ScriptParser::readOutputSectType(StringRef tok) {
 }
 
 std::optional<uint32_t>
-ScriptParser::readOutputSectPermissions(llvm::StringRef tok) {
-  if (std::optional<uint64_t> permissions = parseInt(tok))
-    return permissions;
-  return StringSwitch<std::optional<uint32_t>>(tok)
+ScriptParser::readOutputSectPermissions(llvm::StringRef Tok) {
+  if (std::optional<uint64_t> Permissions = parseInt(Tok))
+    return Permissions;
+  return StringSwitch<std::optional<uint32_t>>(Tok)
       .Case("RW", OutputSectDesc::Permissions::RW)
       .Case("RWX", OutputSectDesc::Permissions::RWX)
       .Case("RX", OutputSectDesc::Permissions::RX)
@@ -795,45 +797,45 @@ ScriptParser::readOutputSectPermissions(llvm::StringRef tok) {
 
 void ScriptParser::readPhdrs() {
   expect("{");
-  m_ScriptFile.enterPhdrsCmd();
+  ThisScriptFile.enterPhdrsCmd();
   while (peek() != "}" && !atEOF()) {
-    PhdrSpec phdrSpec;
-    phdrSpec.init();
-    llvm::StringRef nameTok = next();
-    phdrSpec.m_Name =
-        m_ScriptFile.createParserStr(nameTok.data(), nameTok.size());
-    llvm::StringRef typeTok = next();
-    auto optPhdrType = readPhdrType(typeTok);
-    if (optPhdrType.has_value())
-      phdrSpec.m_Type = optPhdrType.value();
+    PhdrSpec PhdrSpec;
+    PhdrSpec.init();
+    llvm::StringRef NameTok = next();
+    PhdrSpec.Name =
+        ThisScriptFile.createParserStr(NameTok.data(), NameTok.size());
+    llvm::StringRef TypeTok = next();
+    auto OptPhdrType = readPhdrType(TypeTok);
+    if (OptPhdrType.has_value())
+      PhdrSpec.ThisType = OptPhdrType.value();
     else
-      setError("invalid program header type: " + typeTok);
+      setError("invalid program header type: " + TypeTok);
     while (peek() != ";" && !atEOF()) {
       if (consume("FILEHDR"))
-        phdrSpec.m_HasFileHdr = true;
+        PhdrSpec.ScriptHasFileHdr = true;
       else if (consume("PHDRS"))
-        phdrSpec.m_HasPhdr = true;
+        PhdrSpec.ScriptHasPhdr = true;
       else if (consume("AT"))
-        phdrSpec.m_AtAddress = readParenExpr(/*setParen=*/false);
+        PhdrSpec.FixedAddress = readParenExpr(/*setParen=*/false);
       else if (consume("FLAGS"))
-        phdrSpec.m_Flags = readParenExpr(/*setParen=*/false);
+        PhdrSpec.SectionFlags = readParenExpr(/*setParen=*/false);
       else
         setError("unexpected header attribute: " + next());
     }
     expect(";");
-    if (Diagnose())
-      m_ScriptFile.addPhdrDesc(phdrSpec);
+    if (diagnose())
+      ThisScriptFile.addPhdrDesc(PhdrSpec);
   }
   expect("}");
-  m_ScriptFile.leavePhdrsCmd();
+  ThisScriptFile.leavePhdrsCmd();
 }
 
-std::optional<uint32_t> ScriptParser::readPhdrType(llvm::StringRef tok) const {
-  if (std::optional<uint64_t> val = parseInt(tok))
-    return *val;
+std::optional<uint32_t> ScriptParser::readPhdrType(llvm::StringRef Tok) const {
+  if (std::optional<uint64_t> Val = parseInt(Tok))
+    return *Val;
 
-  std::optional<uint32_t> ret =
-      llvm::StringSwitch<std::optional<uint32_t>>(tok)
+  std::optional<uint32_t> Ret =
+      llvm::StringSwitch<std::optional<uint32_t>>(Tok)
           .Case("PT_NULL", llvm::ELF::PT_NULL)
           .Case("PT_LOAD", llvm::ELF::PT_LOAD)
           .Case("PT_DYNAMIC", llvm::ELF::PT_DYNAMIC)
@@ -847,99 +849,99 @@ std::optional<uint32_t> ScriptParser::readPhdrType(llvm::StringRef tok) const {
           .Case("PT_GNU_STACK", llvm::ELF::PT_GNU_STACK)
           .Case("PT_GNU_RELRO", llvm::ELF::PT_GNU_RELRO)
           .Default(std::nullopt);
-  return ret;
+  return Ret;
 }
 
 OutputSectDesc::Epilog ScriptParser::readOutputSectDescEpilogue() {
-  m_InOutputSectEpilogue = true;
-  OutputSectDesc::Epilog epilogue;
-  epilogue.init();
+  MInOutputSectEpilogue = true;
+  OutputSectDesc::Epilog Epilogue;
+  Epilogue.init();
 
   if (consume(">")) {
-    llvm::StringRef region = unquote(next());
-    epilogue.m_pRegion =
-        m_ScriptFile.createParserStr(region.data(), region.size());
+    llvm::StringRef Region = unquote(next());
+    Epilogue.OutputSectionMemoryRegion =
+        ThisScriptFile.createParserStr(Region.data(), Region.size());
   }
 
   if (consume("AT")) {
     expect(">");
-    llvm::StringRef region = unquote(next());
-    epilogue.m_pLMARegion =
-        m_ScriptFile.createParserStr(region.data(), region.size());
+    llvm::StringRef Region = unquote(next());
+    Epilogue.OutputSectionLMARegion =
+        ThisScriptFile.createParserStr(Region.data(), Region.size());
   }
 
-  m_ScriptFile.createStringList();
-  while (Diagnose() && peek().starts_with(":")) {
-    llvm::StringRef tok = next(LexState::Expr);
-    llvm::StringRef phdrName =
-        (tok.size() == 1 ? unquote(next(LexState::Expr)) : tok.substr(1));
-    m_ScriptFile.getCurrentStringList()->push_back(
-        m_ScriptFile.createParserStr(phdrName.data(), phdrName.size()));
+  ThisScriptFile.createStringList();
+  while (diagnose() && peek().starts_with(":")) {
+    llvm::StringRef Tok = next(LexState::Expr);
+    llvm::StringRef PhdrName =
+        (Tok.size() == 1 ? unquote(next(LexState::Expr)) : Tok.substr(1));
+    ThisScriptFile.getCurrentStringList()->pushBack(
+        ThisScriptFile.createParserStr(PhdrName.data(), PhdrName.size()));
   }
-  epilogue.m_pPhdrs = m_ScriptFile.getCurrentStringList();
+  Epilogue.ScriptPhdrs = ThisScriptFile.getCurrentStringList();
 
   if (peek() == "=" || peek().starts_with("=")) {
-    lexState = LexState::Expr;
+    LexState = LexState::Expr;
     consume("=");
-    epilogue.m_pFillExp = readExpr();
-    lexState = LexState::Default;
+    Epilogue.FillExpression = readExpr();
+    LexState = LexState::Default;
   }
   // Consume optional comma following output section command.
   consume(",");
-  m_InOutputSectEpilogue = false;
-  return epilogue;
+  MInOutputSectEpilogue = false;
+  return Epilogue;
 }
 
 void ScriptParser::readNoCrossRefs() {
   expect("(");
-  m_ScriptFile.createStringList();
+  ThisScriptFile.createStringList();
   while (peek() != ")" && !atEOF()) {
-    llvm::StringRef sectionName = unquote(next());
-    m_ScriptFile.getCurrentStringList()->push_back(
-        m_ScriptFile.createScriptSymbol(sectionName));
+    llvm::StringRef SectionName = unquote(next());
+    ThisScriptFile.getCurrentStringList()->pushBack(
+        ThisScriptFile.createScriptSymbol(SectionName));
   }
   expect(")");
-  StringList *SL = m_ScriptFile.getCurrentStringList();
-  m_ScriptFile.addNoCrossRefs(*SL);
+  StringList *SL = ThisScriptFile.getCurrentStringList();
+  ThisScriptFile.addNoCrossRefs(*SL);
 }
 
 bool ScriptParser::readPluginDirective() {
-  llvm::StringRef tok = peek();
-  std::optional<plugin::Plugin::Type> optPluginType =
-      llvm::StringSwitch<std::optional<plugin::Plugin::Type>>(tok)
+  llvm::StringRef Tok = peek();
+  std::optional<plugin::Plugin::Type> OptPluginType =
+      llvm::StringSwitch<std::optional<plugin::Plugin::Type>>(Tok)
           .Case("PLUGIN_SECTION_MATCHER", plugin::Plugin::Type::SectionMatcher)
           .Case("PLUGIN_ITER_SECTIONS", plugin::Plugin::Type::SectionIterator)
           .Case("PLUGIN_OUTPUT_SECTION_ITER",
                 plugin::Plugin::Type::OutputSectionIterator)
           .Case("LINKER_PLUGIN", plugin::Plugin::Type::LinkerPlugin)
           .Default(std::nullopt);
-  if (!optPluginType.has_value())
+  if (!OptPluginType.has_value())
     return false;
   skip();
   expect("(");
-  llvm::StringRef libName = unquote(next());
+  llvm::StringRef LibName = unquote(next());
   expect(",");
-  llvm::StringRef pluginName = unquote(next());
-  llvm::StringRef configName;
+  llvm::StringRef PluginName = unquote(next());
+  llvm::StringRef ConfigName;
   if (consume(","))
-    configName = unquote(next());
+    ConfigName = unquote(next());
   expect(")");
-  m_ScriptFile.addPlugin(optPluginType.value(), libName.str(), pluginName.str(),
-                         configName.str());
+  ThisScriptFile.addPlugin(OptPluginType.value(), LibName.str(),
+                           PluginName.str(), ConfigName.str());
   return true;
 }
 
 void ScriptParser::readSearchDir() {
   expect("(");
-  llvm::StringRef searchDir = unquote(next());
-  m_ScriptFile.addSearchDirCmd(searchDir.str());
+  llvm::StringRef SearchDir = unquote(next());
+  ThisScriptFile.addSearchDirCmd(SearchDir.str());
   expect(")");
 }
 
 void ScriptParser::readOutputArch() {
   expect("(");
-  llvm::StringRef arch = unquote(next());
-  m_ScriptFile.addOutputArchCmd(arch.str());
+  llvm::StringRef Arch = unquote(next());
+  ThisScriptFile.addOutputArchCmd(Arch.str());
   expect(")");
 }
 
@@ -948,46 +950,46 @@ void ScriptParser::readMemory() {
   while (peek() != "}" && !atEOF()) {
     if (readInclude())
       continue;
-    llvm::StringRef tok = next();
-    llvm::StringRef name = tok;
-    StrToken *memoryAttrs = nullptr;
+    llvm::StringRef Tok = next();
+    llvm::StringRef Name = Tok;
+    StrToken *MemoryAttrs = nullptr;
     if (consume("(")) {
-      memoryAttrs = readMemoryAttributes();
+      MemoryAttrs = readMemoryAttributes();
       expect(")");
     }
     expect(":");
-    Expression *origin = readMemoryAssignment({"ORIGIN", "org", "o"});
+    Expression *Origin = readMemoryAssignment({"ORIGIN", "org", "o"});
     expect(",");
-    Expression *length = readMemoryAssignment({"LENGTH", "len", "l"});
-    if (origin && length) {
-      StrToken *nameToken =
-          m_ScriptFile.createParserStr(name.data(), name.size());
-      m_ScriptFile.addMemoryRegion(nameToken, memoryAttrs, origin, length);
+    Expression *Length = readMemoryAssignment({"LENGTH", "len", "l"});
+    if (Origin && Length) {
+      StrToken *NameToken =
+          ThisScriptFile.createParserStr(Name.data(), Name.size());
+      ThisScriptFile.addMemoryRegion(NameToken, MemoryAttrs, Origin, Length);
     }
   }
   expect("}");
 }
 
 Expression *
-ScriptParser::readMemoryAssignment(std::vector<llvm::StringRef> names) {
-  bool expectedToken = false;
-  llvm::StringRef tok = next();
-  for (llvm::StringRef name : names) {
-    if (tok == name) {
-      expectedToken = true;
+ScriptParser::readMemoryAssignment(std::vector<llvm::StringRef> Names) {
+  bool ExpectedToken = false;
+  llvm::StringRef Tok = next();
+  for (llvm::StringRef Name : Names) {
+    if (Tok == Name) {
+      ExpectedToken = true;
       break;
     }
   }
-  if (!expectedToken) {
-    std::string namesJoined;
-    for (auto iter = names.begin(); iter != names.end(); ++iter) {
-      llvm::StringRef name = *iter;
-      if (iter != names.end() - 1)
-        namesJoined += name.str() + ", ";
+  if (!ExpectedToken) {
+    std::string NamesJoined;
+    for (auto Iter = Names.begin(); Iter != Names.end(); ++Iter) {
+      llvm::StringRef Name = *Iter;
+      if (Iter != Names.end() - 1)
+        NamesJoined += Name.str() + ", ";
       else
-        namesJoined += "or " + name.str();
+        NamesJoined += "or " + Name.str();
     }
-    setError("expected one of: " + namesJoined);
+    setError("expected one of: " + NamesJoined);
     return nullptr;
   }
   expect("=");
@@ -995,64 +997,64 @@ ScriptParser::readMemoryAssignment(std::vector<llvm::StringRef> names) {
 }
 
 StrToken *ScriptParser::readMemoryAttributes() {
-  llvm::StringRef attrs = next();
-  llvm::StringRef::size_type sz = attrs.find_first_not_of("rRwWxXaA!iIlL");
-  if (sz != llvm::StringRef::npos) {
+  llvm::StringRef Attrs = next();
+  llvm::StringRef::size_type Sz = Attrs.find_first_not_of("rRwWxXaA!iIlL");
+  if (Sz != llvm::StringRef::npos) {
     setError("invalid memory region attribute");
     return nullptr;
   }
-  return m_ScriptFile.createStrToken("(" + attrs.str() + ")");
+  return ThisScriptFile.createStrToken("(" + Attrs.str() + ")");
 }
 
 void ScriptParser::readExtern() {
   expect("(");
-  m_ScriptFile.createStringList();
+  ThisScriptFile.createStringList();
   while (peek() != ")" && !atEOF()) {
-    llvm::StringRef sym = unquote(next());
-    ScriptSymbol *scriptSym = m_ScriptFile.createScriptSymbol(sym);
-    m_ScriptFile.getCurrentStringList()->push_back(scriptSym);
+    llvm::StringRef Sym = unquote(next());
+    ScriptSymbol *ScriptSym = ThisScriptFile.createScriptSymbol(Sym);
+    ThisScriptFile.getCurrentStringList()->pushBack(ScriptSym);
   }
   expect(")");
-  StringList *symbolList = m_ScriptFile.getCurrentStringList();
-  m_ScriptFile.addExtern(*symbolList);
+  StringList *SymbolList = ThisScriptFile.getCurrentStringList();
+  ThisScriptFile.addExtern(*SymbolList);
 }
 
 void ScriptParser::readRegionAlias() {
   expect("(");
-  llvm::StringRef alias = unquote(next());
+  llvm::StringRef Alias = unquote(next());
   expect(",");
-  llvm::StringRef region = unquote(next());
+  llvm::StringRef Region = unquote(next());
   expect(")");
 
-  StrToken *aliasToken = m_ScriptFile.createStrToken(alias.str());
-  StrToken *regionToken = m_ScriptFile.createStrToken(region.str());
-  m_ScriptFile.addRegionAlias(aliasToken, regionToken);
+  StrToken *AliasToken = ThisScriptFile.createStrToken(Alias.str());
+  StrToken *RegionToken = ThisScriptFile.createStrToken(Region.str());
+  ThisScriptFile.addRegionAlias(AliasToken, RegionToken);
 }
 
 bool ScriptParser::readOutputSectionData() {
-  llvm::StringRef tok = peek();
-  std::optional<OutputSectData::OSDKind> optDataKind =
-      llvm::StringSwitch<std::optional<OutputSectData::OSDKind>>(tok)
+  llvm::StringRef Tok = peek();
+  std::optional<OutputSectData::OSDKind> OptDataKind =
+      llvm::StringSwitch<std::optional<OutputSectData::OSDKind>>(Tok)
           .Case("BYTE", OutputSectData::OSDKind::Byte)
           .Case("SHORT", OutputSectData::OSDKind::Short)
           .Case("LONG", OutputSectData::OSDKind::Long)
           .Case("QUAD", OutputSectData::OSDKind::Quad)
           .Case("SQUAD", OutputSectData::OSDKind::Squad)
           .Default(std::nullopt);
-  if (!optDataKind.has_value())
+  if (!OptDataKind.has_value())
     return false;
   skip();
   expect("(");
-  Expression *exp = readExpr();
+  Expression *Exp = readExpr();
   expect(")");
-  m_ScriptFile.addOutputSectData(optDataKind.value(), exp);
+  ThisScriptFile.addOutputSectData(OptDataKind.value(), Exp);
   return true;
 }
 
 std::optional<WildcardPattern::SortPolicy> ScriptParser::readSortPolicy() {
-  llvm::StringRef tok = peek();
-  std::optional<WildcardPattern::SortPolicy> optSortPolicy =
-      llvm::StringSwitch<std::optional<WildcardPattern::SortPolicy>>(tok)
+  llvm::StringRef Tok = peek();
+  std::optional<WildcardPattern::SortPolicy> OptSortPolicy =
+      llvm::StringSwitch<std::optional<WildcardPattern::SortPolicy>>(Tok)
           .Case("SORT_NONE", WildcardPattern::SortPolicy::SORT_NONE)
           .Cases("SORT", "SORT_BY_NAME",
                  WildcardPattern::SortPolicy::SORT_BY_NAME)
@@ -1061,141 +1063,142 @@ std::optional<WildcardPattern::SortPolicy> ScriptParser::readSortPolicy() {
           .Case("SORT_BY_INIT_PRIORITY",
                 WildcardPattern::SortPolicy::SORT_BY_INIT_PRIORITY)
           .Default(std::nullopt);
-  if (optSortPolicy.has_value())
+  if (OptSortPolicy.has_value())
     skip();
-  return optSortPolicy;
+  return OptSortPolicy;
 }
 
 WildcardPattern::SortPolicy ScriptParser::computeSortPolicy(
-    WildcardPattern::SortPolicy outerSortPolicy,
-    std::optional<WildcardPattern::SortPolicy> innerSortPolicy) {
-  if (!innerSortPolicy.has_value())
-    return outerSortPolicy;
-  if (outerSortPolicy == innerSortPolicy.value())
-    return outerSortPolicy;
-  if (outerSortPolicy == WildcardPattern::SortPolicy::SORT_BY_NAME &&
-      innerSortPolicy.value() == WildcardPattern::SortPolicy::SORT_BY_ALIGNMENT)
+    WildcardPattern::SortPolicy OuterSortPolicy,
+    std::optional<WildcardPattern::SortPolicy> InnerSortPolicy) {
+  if (!InnerSortPolicy.has_value())
+    return OuterSortPolicy;
+  if (OuterSortPolicy == InnerSortPolicy.value())
+    return OuterSortPolicy;
+  if (OuterSortPolicy == WildcardPattern::SortPolicy::SORT_BY_NAME &&
+      InnerSortPolicy.value() == WildcardPattern::SortPolicy::SORT_BY_ALIGNMENT)
     return WildcardPattern::SortPolicy::SORT_BY_NAME_ALIGNMENT;
-  if (outerSortPolicy == WildcardPattern::SortPolicy::SORT_BY_ALIGNMENT &&
-      innerSortPolicy.value() == WildcardPattern::SortPolicy::SORT_BY_NAME)
+  if (OuterSortPolicy == WildcardPattern::SortPolicy::SORT_BY_ALIGNMENT &&
+      InnerSortPolicy.value() == WildcardPattern::SortPolicy::SORT_BY_NAME)
     return WildcardPattern::SortPolicy::SORT_BY_ALIGNMENT_NAME;
   setError("Invalid sort policy combination");
   return WildcardPattern::SortPolicy::SORT_NONE;
 }
 
 WildcardPattern *ScriptParser::readWildcardPattern() {
-  WildcardPattern *sectPat = nullptr;
+  WildcardPattern *SectPat = nullptr;
   if (peek() == "EXCLUDE_FILE") {
     skip();
     ExcludeFiles *EF = readExcludeFile();
-    sectPat = m_ScriptFile.createWildCardPattern(
-        m_ScriptFile.createParserStr(next()),
+    SectPat = ThisScriptFile.createWildCardPattern(
+        ThisScriptFile.createParserStr(next()),
         WildcardPattern::SortPolicy::EXCLUDE, EF);
-    return sectPat;
+    return SectPat;
   }
-  std::optional<WildcardPattern::SortPolicy> outerSortPolicy = readSortPolicy();
-  if (outerSortPolicy.has_value()) {
+  std::optional<WildcardPattern::SortPolicy> OuterSortPolicy = readSortPolicy();
+  if (OuterSortPolicy.has_value()) {
     expect("(");
-    std::optional<WildcardPattern::SortPolicy> innerSortPolicy =
+    std::optional<WildcardPattern::SortPolicy> InnerSortPolicy =
         readSortPolicy();
-    if (innerSortPolicy.has_value()) {
-      WildcardPattern::SortPolicy sortPolicy =
-          computeSortPolicy(outerSortPolicy.value(), innerSortPolicy);
+    if (InnerSortPolicy.has_value()) {
+      WildcardPattern::SortPolicy SortPolicy =
+          computeSortPolicy(OuterSortPolicy.value(), InnerSortPolicy);
       expect("(");
-      sectPat = m_ScriptFile.createWildCardPattern(
-          m_ScriptFile.createParserStr(next()), sortPolicy);
+      SectPat = ThisScriptFile.createWildCardPattern(
+          ThisScriptFile.createParserStr(next()), SortPolicy);
       expect(")");
     } else {
-      WildcardPattern::SortPolicy sortPolicy =
-          computeSortPolicy(outerSortPolicy.value());
-      sectPat = m_ScriptFile.createWildCardPattern(
-          m_ScriptFile.createParserStr(next()), sortPolicy);
+      WildcardPattern::SortPolicy SortPolicy =
+          computeSortPolicy(OuterSortPolicy.value());
+      SectPat = ThisScriptFile.createWildCardPattern(
+          ThisScriptFile.createParserStr(next()), SortPolicy);
     }
     expect(")");
   } else {
-    sectPat = m_ScriptFile.createWildCardPattern(
-        m_ScriptFile.createParserStr(next()));
+    SectPat = ThisScriptFile.createWildCardPattern(
+        ThisScriptFile.createParserStr(next()));
   }
-  return sectPat;
+  return SectPat;
 }
 
 PluginCmd *ScriptParser::readOutputSectionPluginDirective() {
-  llvm::StringRef tok = peek();
-  std::optional<plugin::Plugin::Type> optPluginType =
-      llvm::StringSwitch<std::optional<plugin::Plugin::Type>>(tok)
+  llvm::StringRef Tok = peek();
+  std::optional<plugin::Plugin::Type> OptPluginType =
+      llvm::StringSwitch<std::optional<plugin::Plugin::Type>>(Tok)
           .Case("PLUGIN_CONTROL_FILESZ", plugin::Plugin::Type::ControlFileSize)
           .Case("PLUGIN_CONTROL_MEMSZ", plugin::Plugin::Type::ControlMemorySize)
           .Default(std::nullopt);
-  if (!optPluginType.has_value())
+  if (!OptPluginType.has_value())
     return nullptr;
   skip();
   expect("(");
-  llvm::StringRef libName = unquote(next());
+  llvm::StringRef LibName = unquote(next());
   expect(",");
-  llvm::StringRef pluginName = unquote(next());
-  llvm::StringRef configName;
+  llvm::StringRef PluginName = unquote(next());
+  llvm::StringRef ConfigName;
   if (consume(","))
-    configName = unquote(next());
+    ConfigName = unquote(next());
   expect(")");
-  return m_ScriptFile.addPlugin(optPluginType.value(), libName.str(),
-                                pluginName.str(), configName.str());
+  return ThisScriptFile.addPlugin(OptPluginType.value(), LibName.str(),
+                                  PluginName.str(), ConfigName.str());
 }
 
 void ScriptParser::readFill() {
   expect("(");
   Expression *E = readExpr();
-  Fill *fill = make<Fill>(m_ScriptFile.module(), m_ScriptFile.backend(), *E);
-  m_ScriptFile.addAssignment("FILL", fill, Assignment::FILL);
+  Fill *Fill =
+      make<eld::Fill>(ThisScriptFile.module(), ThisScriptFile.backend(), *E);
+  ThisScriptFile.addAssignment("FILL", Fill, Assignment::FILL);
   expect(")");
 }
 
 ExcludeFiles *ScriptParser::readExcludeFile() {
   expect("(");
-  m_ScriptFile.createExcludeFiles();
-  ExcludeFiles *currentExcludeFiles = m_ScriptFile.getCurrentExcludeFiles();
-  while (Diagnose() && !consume(")")) {
-    llvm::StringRef excludePat = next();
-    StrToken *excludePatTok = m_ScriptFile.createStrToken(excludePat.str());
-    ExcludePattern *P = m_ScriptFile.createExcludePattern(excludePatTok);
-    currentExcludeFiles->push_back(P);
+  ThisScriptFile.createExcludeFiles();
+  ExcludeFiles *CurrentExcludeFiles = ThisScriptFile.getCurrentExcludeFiles();
+  while (diagnose() && !consume(")")) {
+    llvm::StringRef ExcludePat = next();
+    StrToken *ExcludePatTok = ThisScriptFile.createStrToken(ExcludePat.str());
+    ExcludePattern *P = ThisScriptFile.createExcludePattern(ExcludePatTok);
+    CurrentExcludeFiles->pushBack(P);
   }
-  return currentExcludeFiles;
+  return CurrentExcludeFiles;
 }
 
 bool ScriptParser::readInclude() {
-  llvm::StringRef tok = peek();
-  if (tok != "INCLUDE" && tok != "INCLUDE_OPTIONAL")
+  llvm::StringRef Tok = peek();
+  if (Tok != "INCLUDE" && Tok != "INCLUDE_OPTIONAL")
     return false;
   skip();
-  bool isOptionalInclude = tok == "INCLUDE_OPTIONAL";
-  llvm::StringRef fileName = unquote(next());
-  LayoutPrinter *LP = m_ScriptFile.module().getLayoutPrinter();
-  bool result = true;
-  std::string resolvedFileName = m_ScriptFile.findIncludeFile(
-      fileName.str(), result, /*state=*/!isOptionalInclude);
+  bool IsOptionalInclude = Tok == "INCLUDE_OPTIONAL";
+  llvm::StringRef FileName = unquote(next());
+  LayoutPrinter *LP = ThisScriptFile.module().getLayoutPrinter();
+  bool Result = true;
+  std::string ResolvedFileName = ThisScriptFile.findIncludeFile(
+      FileName.str(), Result, /*state=*/!IsOptionalInclude);
   if (LP)
-    LP->recordLinkerScript(resolvedFileName, result);
-  if (!result && isOptionalInclude)
+    LP->recordLinkerScript(ResolvedFileName, Result);
+  if (!Result && IsOptionalInclude)
     return true;
-  m_ScriptFile.module().getScript().addToHash(resolvedFileName);
-  if (result) {
-    Input *input =
-        make<Input>(resolvedFileName, m_Config.getDiagEngine(), Input::Script);
-    if (!input->resolvePath(m_Config)) {
-      setError("Cannot resolve path " + resolvedFileName);
+  ThisScriptFile.module().getScript().addToHash(ResolvedFileName);
+  if (Result) {
+    Input *Input = make<eld::Input>(ResolvedFileName,
+                                    ThisConfig.getDiagEngine(), Input::Script);
+    if (!Input->resolvePath(ThisConfig)) {
+      setError("Cannot resolve path " + ResolvedFileName);
       // return value by ScriptParser functions indicates that the command was
       // parsed.
       return true;
     }
-    InputFile *IF = InputFile::Create(input, InputFile::GNULinkerScriptKind,
-                                      m_Config.getDiagEngine());
-    input->setInputFile(IF);
-    m_ScriptFile.setContext(IF);
-    llvm::MemoryBufferRef memRef = input->getMemoryBufferRef();
-    buffers.push_back(curBuf);
-    curBuf = Buffer(memRef);
-    mbs.push_back(memRef);
-    if (!activeFilenames.insert(curBuf.filename).second)
+    InputFile *IF = InputFile::create(Input, InputFile::GNULinkerScriptKind,
+                                      ThisConfig.getDiagEngine());
+    Input->setInputFile(IF);
+    ThisScriptFile.setContext(IF);
+    llvm::MemoryBufferRef MemRef = Input->getMemoryBufferRef();
+    Buffers.push_back(CurBuf);
+    CurBuf = Buffer(MemRef);
+    MemoryBuffers.push_back(MemRef);
+    if (!ActiveFilenames.insert(CurBuf.Filename).second)
       setError("there is a cycle in linker script INCLUDEs");
   }
   return true;
@@ -1203,23 +1206,23 @@ bool ScriptParser::readInclude() {
 
 llvm::StringRef ScriptParser::readParenName() {
   expect("(");
-  llvm::SaveAndRestore saveLexState(lexState, LexState::Default);
-  StringRef tok = unquote(next());
+  llvm::SaveAndRestore SaveLexState(LexState, LexState::Default);
+  StringRef Tok = unquote(next());
   expect(")");
-  return tok;
+  return Tok;
 }
 
 void ScriptParser::readOutputFormat() {
   expect("(");
-  llvm::StringRef defaultFormat = unquote(next());
+  llvm::StringRef DefaultFormat = unquote(next());
   if (consume(",")) {
-    llvm::StringRef bigFormat = unquote(next());
+    llvm::StringRef BigFormat = unquote(next());
     expect(",");
-    llvm::StringRef littleFormat = unquote(next());
-    m_ScriptFile.addOutputFormatCmd(defaultFormat.str(), bigFormat.str(),
-                                    littleFormat.str());
+    llvm::StringRef LittleFormat = unquote(next());
+    ThisScriptFile.addOutputFormatCmd(DefaultFormat.str(), BigFormat.str(),
+                                      LittleFormat.str());
   } else {
-    m_ScriptFile.addOutputFormatCmd(defaultFormat.str());
+    ThisScriptFile.addOutputFormatCmd(DefaultFormat.str());
   }
   expect(")");
 }
@@ -1231,35 +1234,35 @@ void ScriptParser::readVersion() {
 }
 
 void ScriptParser::readVersionScriptCommand() {
-  m_ScriptFile.createVersionScript();
+  ThisScriptFile.createVersionScript();
   if (consume("{")) {
     VersionScriptNode *VSN =
-        m_ScriptFile.getVersionScript()->createVersionScriptNode();
+        ThisScriptFile.getVersionScript()->createVersionScriptNode();
     readVersionSymbols(*VSN);
     expect(";");
     return;
   }
   while (peek() != "}" && !atEOF()) {
-    llvm::StringRef verStr = next();
-    if (verStr == "{") {
+    llvm::StringRef VerStr = next();
+    if (VerStr == "{") {
       setError("anonymous version definition is used in "
                "combination with other version definitions");
       return;
     }
     expect("{");
-    readVersionDeclaration(verStr);
+    readVersionDeclaration(VerStr);
   }
 }
 
-void ScriptParser::readVersionDeclaration(llvm::StringRef verStr) {
+void ScriptParser::readVersionDeclaration(llvm::StringRef VerStr) {
   VersionScriptNode *VSN =
-      m_ScriptFile.getVersionScript()->createVersionScriptNode();
+      ThisScriptFile.getVersionScript()->createVersionScriptNode();
   ASSERT(VSN, "must not be null!");
-  StrToken *verStrTok = m_ScriptFile.createStrToken(verStr.str());
-  VSN->setName(verStrTok);
+  StrToken *VerStrTok = ThisScriptFile.createStrToken(VerStr.str());
+  VSN->setName(VerStrTok);
   readVersionSymbols(*VSN);
   if (!consume(";")) {
-    VSN->setDependency(m_ScriptFile.createStrToken(next().str()));
+    VSN->setDependency(ThisScriptFile.createStrToken(next().str()));
     expect(";");
   }
 }
@@ -1268,35 +1271,35 @@ void ScriptParser::readVersionSymbols(VersionScriptNode &VSN) {
   while (!consume("}") && !atEOF()) {
     if (readInclude())
       continue;
-    llvm::StringRef tok = next();
-    if (tok == "extern") {
+    llvm::StringRef Tok = next();
+    if (Tok == "extern") {
       readVersionExtern(VSN);
     } else {
-      if (tok == "local:" || (tok == "local" && consume(":"))) {
+      if (Tok == "local:" || (Tok == "local" && consume(":"))) {
         VSN.switchToLocal();
         continue;
       }
-      if (tok == "global:" || (tok == "global" && consume(":"))) {
+      if (Tok == "global:" || (Tok == "global" && consume(":"))) {
         VSN.switchToGlobal();
         continue;
       }
-      VSN.addSymbol(m_ScriptFile.createScriptSymbol(tok.str()));
+      VSN.addSymbol(ThisScriptFile.createScriptSymbol(Tok.str()));
     }
     expect(";");
   }
 }
 
 void ScriptParser::readVersionExtern(VersionScriptNode &VSN) {
-  llvm::StringRef tok = next();
-  bool isCXX = (tok == "\"C++\"");
-  if (!isCXX && tok != "\"C\"")
+  llvm::StringRef Tok = next();
+  bool IsCxx = (Tok == "\"C++\"");
+  if (!IsCxx && Tok != "\"C\"")
     setError("Unknown language");
-  VSN.setExternLanguage(m_ScriptFile.createStrToken(tok.str()));
+  VSN.setExternLanguage(ThisScriptFile.createStrToken(Tok.str()));
   expect("{");
   while (!consume("}") && !atEOF()) {
-    tok = next();
-    WildcardPattern *tokPat = m_ScriptFile.createWildCardPattern(tok);
-    VSN.addSymbol(m_ScriptFile.createScriptSymbol(tokPat));
+    Tok = next();
+    WildcardPattern *TokPat = ThisScriptFile.createWildCardPattern(Tok);
+    VSN.addSymbol(ThisScriptFile.createScriptSymbol(TokPat));
     if (consume("}"))
       break;
     expect(";");
@@ -1306,13 +1309,13 @@ void ScriptParser::readVersionExtern(VersionScriptNode &VSN) {
 
 void ScriptParser::readVersionScript() {
   readVersionScriptCommand();
-  llvm::StringRef tok = peek();
-  if (tok.size())
-    setError("EOF expected, but got " + tok);
+  llvm::StringRef Tok = peek();
+  if (Tok.size())
+    setError("EOF expected, but got " + Tok);
 }
 
 void ScriptParser::parse() {
-  switch (m_ScriptFile.getKind()) {
+  switch (ThisScriptFile.getKind()) {
   case ScriptFile::Kind::VersionScript:
     return readVersionScript();
   case ScriptFile::Kind::DynamicList:
@@ -1328,14 +1331,14 @@ void ScriptParser::parse() {
 
 void ScriptParser::readDynamicList() {
   while (!atEOF() && consume("{")) {
-    m_ScriptFile.createDynamicList();
+    ThisScriptFile.createDynamicList();
     while (!consume("}") && !atEOF()) {
       if (readInclude())
         continue;
-      llvm::StringRef tok = next();
-      WildcardPattern *tokPat = m_ScriptFile.createWildCardPattern(tok);
-      m_ScriptFile.addSymbolToDynamicList(
-          m_ScriptFile.createScriptSymbol(tokPat));
+      llvm::StringRef Tok = next();
+      WildcardPattern *TokPat = ThisScriptFile.createWildCardPattern(Tok);
+      ThisScriptFile.addSymbolToDynamicList(
+          ThisScriptFile.createScriptSymbol(TokPat));
       expect(";");
     }
     consume(";");
@@ -1346,12 +1349,13 @@ void ScriptParser::readDynamicList() {
 
 void ScriptParser::readExternList() {
   while (!atEOF() && consume("{")) {
-    m_ScriptFile.createExternCmd();
+    ThisScriptFile.createExternCmd();
     while (!consume("}") && !atEOF()) {
       if (readInclude())
         continue;
-      llvm::StringRef tok = next();
-      m_ScriptFile.addSymbolToExternList(m_ScriptFile.createScriptSymbol(tok));
+      llvm::StringRef Tok = next();
+      ThisScriptFile.addSymbolToExternList(
+          ThisScriptFile.createScriptSymbol(Tok));
       expect(";");
     }
     // Optionally consume semi-colon

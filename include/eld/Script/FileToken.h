@@ -26,10 +26,10 @@ namespace eld {
 
 class FileToken : public InputToken {
 public:
-  explicit FileToken(const std::string &pName, bool pAsNeeded);
+  explicit FileToken(const std::string &PName, bool PAsNeeded);
 
-  static bool classof(const InputToken *pToken) {
-    return pToken->type() == InputToken::File;
+  static bool classof(const InputToken *ThisInputToken) {
+    return ThisInputToken->type() == InputToken::File;
   }
 
   virtual ~FileToken() {}

@@ -111,7 +111,7 @@ uint64_t GNULDBackend::m_TLSBaseSize = 0;
 GNULDBackend::GNULDBackend(Module &pModule, TargetInfo *pInfo)
     : m_Module(pModule), m_pInfo(pInfo) {
   m_pELFSegmentTable = make<ELFSegmentFactory>();
-  m_IsSectionTracingRequested = config().options().isSectionTracingRequested();
+  IsSectionTracingRequested = config().options().isSectionTracingRequested();
 }
 
 GNULDBackend::~GNULDBackend() {}
@@ -130,7 +130,7 @@ size_t GNULDBackend::sectionStartOffset() const {
            (elfSegmentTable().size() + numReservedSegments()) *
                sizeof(llvm::ELF::Elf64_Phdr);
   default:
-    config().raise(diag::unsupported_bitclass)
+    config().raise(Diag::unsupported_bitclass)
         << config().targets().triple().str() << config().targets().bitclass();
     return 0;
   }
@@ -141,12 +141,12 @@ bool GNULDBackend::handleOrphanSection(const ELFSection *elem) const {
     return false;
   if (m_Module.getConfig().options().getOrphanMode() ==
       GeneralOptions::OrphanMode::Error) {
-    m_Module.getConfig().raise(diag::err_found_orphan_section)
+    m_Module.getConfig().raise(Diag::err_found_orphan_section)
         << elem->getDecoratedName(config().options());
     return true;
   } else if (m_Module.getConfig().options().getOrphanMode() ==
              GeneralOptions::OrphanMode::Warn) {
-    m_Module.getConfig().raise(diag::warn_found_orphan_section)
+    m_Module.getConfig().raise(Diag::warn_found_orphan_section)
         << elem->getDecoratedName(config().options());
   }
   return false;
@@ -199,12 +199,12 @@ SymDefReader *GNULDBackend::createSymDefReader() {
   return m_pSymDefReader;
 }
 
-ELFDynObjParser *GNULDBackend::createNewDynObjReader() {
+ELFDynObjParser *GNULDBackend::createDynObjReader() {
   m_NewDynObjReader = make<ELFDynObjParser>(getModule());
   return m_NewDynObjReader;
 }
 
-ELFRelocObjParser *GNULDBackend::createNewRelocObjParser() {
+ELFRelocObjParser *GNULDBackend::createRelocObjParser() {
   m_NewRelocObjParser = make<ELFRelocObjParser>(getModule());
   return m_NewRelocObjParser;
 }
@@ -530,12 +530,12 @@ void GNULDBackend::defineStandardAndSectionMagicSymbol(const ResolveInfo &R) {
     if (isStandardSymbol(SymbolName)) {
       LDSymbol *magic_sym =
           m_Module.getIRBuilder()
-              ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+              ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                   m_Module.getInternalInput(Module::Script), SymbolName.str(),
                   ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
                   0x0,                 // size
                   0x0,                 // value
-                  FragmentRef::Null(), // FragRef
+                  FragmentRef::null(), // FragRef
                   ResolveInfo::Default);
       if (magic_sym)
         magic_sym->setShouldIgnore(false);
@@ -563,7 +563,7 @@ void GNULDBackend::defineStandardAndSectionMagicSymbol(const ResolveInfo &R) {
     info.override(*m_Module.getNamePool().findInfo(SymbolName.str()));
     LDSymbol *magic_sym =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName.str(),
                 ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
                 0x0,           // size
@@ -652,7 +652,7 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
   // the value of a TLS symbol is the offset to the TLS segment
   ELFSegment *tls_seg = elfSegmentTable().find(llvm::ELF::PT_TLS);
   if (!tls_seg) {
-    config().raise(diag::no_pt_tls_segment);
+    config().raise(Diag::no_pt_tls_segment);
     return false;
   }
   uint64_t value = pSymbol->fragRef()->getOutputOffset(m_Module);
@@ -786,7 +786,7 @@ void GNULDBackend::sizeDynNamePools() {
         std::stable_partition(RVect.begin(), RVect.end(),
                               [](ResolveInfo *R) { return !R->exportToDyn(); });
 
-    DynamicSymbols.push_back(LDSymbol::Null()->resolveInfo());
+    DynamicSymbols.push_back(LDSymbol::null()->resolveInfo());
 
     // Move all the DynamicSymbols.
     std::move(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
@@ -836,7 +836,7 @@ void GNULDBackend::createEhFrameFillerAndHdrSection() {
   // terminator. Thus we add one unconditionally.
   if (!m_pEhFrameFillerFragment && m_pEhFrameFillerSection) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::verbose_ehframe_log) << "Creating EhFrame Filler";
+      config().raise(Diag::verbose_ehframe_log) << "Creating EhFrame Filler";
 
     m_pEhFrameFillerFragment =
         make<FillFragment>(getModule(), 0, 4, m_pEhFrameFillerSection);
@@ -845,7 +845,7 @@ void GNULDBackend::createEhFrameFillerAndHdrSection() {
 
   if (!m_pEhFrameHdrFragment && m_pEhFrameHdrSection) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::verbose_ehframe_log) << "Creating EhFrame Hdr";
+      config().raise(Diag::verbose_ehframe_log) << "Creating EhFrame Hdr";
     m_pEhFrameHdrFragment = make<EhFrameHdrFragment>(
         m_pEhFrameHdrSection, m_EhFrameHdrContainsTable,
         config().targets().is64Bits());
@@ -885,8 +885,8 @@ void GNULDBackend::sizeDynamic() {
   if (!config().options().getRpathList().empty()) {
     dynamic()->reserveNeedEntry();
     GeneralOptions::const_rpath_iterator rpath,
-        rpathEnd = config().options().rpath_end();
-    for (rpath = config().options().rpath_begin(); rpath != rpathEnd; ++rpath)
+        rpathEnd = config().options().rpathEnd();
+    for (rpath = config().options().rpathBegin(); rpath != rpathEnd; ++rpath)
       dynstr += (*rpath).size() + 1;
   }
   // set size
@@ -1080,18 +1080,18 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
   else if (config().targets().is64Bits())
     symtab64 = (llvm::ELF::Elf64_Sym *)symtab_region.begin();
   else {
-    config().raise(diag::unsupported_bitclass)
+    config().raise(Diag::unsupported_bitclass)
         << config().targets().triple().str() << config().targets().bitclass();
   }
   char *strtab = (char *)strtab_region.begin();
 
   // emit the first ELF symbol
   if (config().targets().is32Bits())
-    emitSymbol32(symtab32[0], LDSymbol::Null(), strtab, 0, 0);
+    emitSymbol32(symtab32[0], LDSymbol::null(), strtab, 0, 0);
   else
-    emitSymbol64(symtab64[0], LDSymbol::Null(), strtab, 0, 0);
+    emitSymbol64(symtab64[0], LDSymbol::null(), strtab, 0, 0);
 
-  m_pSymIndexMap[LDSymbol::Null()] = 0;
+  m_pSymIndexMap[LDSymbol::null()] = 0;
 
   size_t symIdx = 1;
   size_t strtabsize = 1;
@@ -1102,7 +1102,7 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
     m_pSymIndexMap[S->outSymbol()] = symIdx;
     // Null symbol is already emitted.
     if ((isStripLocal && S->isLocal()) || m_SymbolsToRemove.count(S)) {
-      config().raise(diag::stripping_symbol) << S->name();
+      config().raise(Diag::stripping_symbol) << S->name();
       continue;
     }
     if (config().targets().is32Bits())
@@ -1171,7 +1171,7 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
     } else if (config().targets().is64Bits()) {
       symtab64 = (llvm::ELF::Elf64_Sym *)symtab_region.begin();
     } else {
-      config().raise(diag::unsupported_bitclass)
+      config().raise(Diag::unsupported_bitclass)
           << config().targets().triple().str() << config().targets().bitclass();
     }
   }
@@ -1182,7 +1182,7 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
     // Lets make sure that strtab section is not ignored.
     if (!strtab_sect ||
         (strtab_sect && strtab_sect->getKind() == LDFileFormat::Ignore)) {
-      config().raise(diag::section_ignored) << ".dynstr";
+      config().raise(Diag::section_ignored) << ".dynstr";
       return false;
     }
     MemoryRegion strtab_region = getFileOutputRegion(
@@ -1233,8 +1233,8 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
       ++dt_need;
 
       GeneralOptions::const_rpath_iterator rpath,
-          rpathEnd = config().options().rpath_end();
-      for (rpath = config().options().rpath_begin(); rpath != rpathEnd;
+          rpathEnd = config().options().rpathEnd();
+      for (rpath = config().options().rpathBegin(); rpath != rpathEnd;
            ++rpath) {
         memcpy((strtab + strtabsize), (*rpath).data(), (*rpath).size());
         strtabsize += (*rpath).size();
@@ -1593,7 +1593,7 @@ size_t GNULDBackend::getSymbolIdx(LDSymbol *pSymbol, bool IgnoreUnknown) const {
   auto Entry = m_pSymIndexMap.find(pSymbol);
   if (Entry == m_pSymIndexMap.end()) {
     if (!IgnoreUnknown)
-      config().raise(diag::symbol_not_found) << pSymbol->name();
+      config().raise(Diag::symbol_not_found) << pSymbol->name();
     return 0;
   }
   return Entry->second;
@@ -1603,7 +1603,7 @@ size_t GNULDBackend::getSymbolIdx(LDSymbol *pSymbol, bool IgnoreUnknown) const {
 size_t GNULDBackend::getDynSymbolIdx(LDSymbol *pSymbol) const {
   auto Entry = m_pDynSymIndexMap.find(pSymbol);
   if (Entry == m_pDynSymIndexMap.end()) {
-    config().raise(diag::symbol_not_found) << pSymbol->name();
+    config().raise(Diag::symbol_not_found) << pSymbol->name();
     return 0;
   }
   return Entry->second;
@@ -1694,8 +1694,8 @@ void GNULDBackend::changeSymbolsFromAbsoluteToGlobal(OutputSectionEntry *out) {
                        m_Module.getConfig().options().printTimingStats());
   for (OutputSectionEntry::iterator in = out->begin(), inEnd = out->end();
        in != inEnd; ++in) {
-    for (RuleContainer::sym_iterator it = (*in)->sym_begin(),
-                                     ie = (*in)->sym_end();
+    for (RuleContainer::sym_iterator it = (*in)->symBegin(),
+                                     ie = (*in)->symEnd();
          it != ie; ++it) {
       LDSymbol *symbol = (*it)->symbol();
       if (symbol && symbol->resolveInfo()->isAbsolute()) {
@@ -1739,8 +1739,8 @@ bool GNULDBackend::InsertAtSectionToEnd(ELFSection *OutSection,
   LDSymbol *dotSymbol = m_Module.getDotSymbol();
   if (OutSection->isAlloc())
     dotSymbol->setValue(OutSection->addr() + NewOffset);
-  for (RuleContainer::sym_iterator it = NextRule->sym_begin(),
-                                   ie = NextRule->sym_end();
+  for (RuleContainer::sym_iterator it = NextRule->symBegin(),
+                                   ie = NextRule->symEnd();
        it != ie; ++it) {
     Assignment *assign = (*it);
     if (shouldskipAssert(assign))
@@ -1855,7 +1855,7 @@ bool GNULDBackend::TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
                                    atSection->getFragmentList().begin(),
                                    atSection->getFragmentList().end());
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::verbose_inserting_section_at_fixed_addr)
+      config().raise(Diag::verbose_inserting_section_at_fixed_addr)
           << atSectionName << utility::toHex(atSectionAddress)
           << Section->getOutputSection()->name();
 
@@ -1876,15 +1876,15 @@ static void checkFragOffset(const Fragment *F, DiagnosticEngine *DiagEngine) {
             ->dumpMap(S, false, false);
     }
     if (F->getOwningSection()->isDiscard()) {
-      DiagEngine->raise(diag::offset_not_assigned)
+      DiagEngine->raise(Diag::offset_not_assigned)
           << F->getOwningSection()->name() << "Discarded"
           << F->getOwningSection()->getInputFile()->getInput()->decoratedPath();
     } else if (!I)
-      DiagEngine->raise(diag::offset_not_assigned)
+      DiagEngine->raise(Diag::offset_not_assigned)
           << F->getOwningSection()->name() << F->getOutputELFSection()->name()
           << F->getOwningSection()->getInputFile()->getInput()->decoratedPath();
     else
-      DiagEngine->raise(diag::offset_not_assigned_with_rule)
+      DiagEngine->raise(Diag::offset_not_assigned_with_rule)
           << F->getOwningSection()->name()
           << F->getOwningSection()->getInputFile()->getInput()->decoratedPath()
           << RuleStr << F->getOutputELFSection()->name();
@@ -1907,7 +1907,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
   dotSymbol->setValue(OutSection->addr());
 
   if (m_Module.getPrinter()->traceAssignments())
-    config().raise(diag::trace_output_section_addr)
+    config().raise(Diag::trace_output_section_addr)
         << (out->name().empty() ? "<nullptr>" : out->name())
         << utility::toHex(static_cast<uint64_t>(OutSection->addr()))
         << utility::toHex(static_cast<uint64_t>(OutSection->pAddr()));
@@ -1939,8 +1939,8 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
     RuleContainer *CurRule = (*in);
     ELFSection *InSection = CurRule->getSection();
     // Evaluate all assignments at the beginning of input section.
-    for (RuleContainer::sym_iterator it = (*in)->sym_begin(),
-                                     ie = (*in)->sym_end();
+    for (RuleContainer::sym_iterator it = (*in)->symBegin(),
+                                     ie = (*in)->symEnd();
          it != ie; ++it) {
       Assignment *assign = (*it);
       if (shouldskipAssert(assign))
@@ -1959,7 +1959,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
         std::string expressionStr;
         llvm::raw_string_ostream SS(expressionStr);
         assign->dumpMap(SS, false, false);
-        config().raise(diag::warn_dot_value_backward_movement)
+        config().raise(Diag::warn_dot_value_backward_movement)
             << OutSection->name() << SS.str();
       }
       if (!OutSection->hasNoFragments())
@@ -2023,10 +2023,10 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
       hasAssignmentsOrFragments = true;
       F->setOffset(offset);
       checkFragOffset(F, config().getDiagEngine());
-      if (m_IsSectionTracingRequested &&
+      if (IsSectionTracingRequested &&
           config().options().traceSection(OwningSection)) {
         auto FragOffset = F->getOffset(config().getDiagEngine());
-        config().raise(diag::input_section_info)
+        config().raise(Diag::input_section_info)
             << OwningSection->getDecoratedName(config().options())
             << utility::toHex(static_cast<uint64_t>(
                    F->getOutputELFSection()->pAddr() + FragOffset))
@@ -2072,14 +2072,14 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
   if (!(m_Module.getPrinter()->traceAssignments()))
     return;
 
-  config().raise(diag::output_section_fill)
+  config().raise(Diag::output_section_fill)
       << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
   if (m_PaddingMap.find(OutSection) != m_PaddingMap.end()) {
     auto &fvector = m_PaddingMap[OutSection];
     for (auto &f : fvector) {
       if (f.Exp)
         f.Exp->dump(llvm::outs(), true);
-      config().raise(diag::padding_map)
+      config().raise(Diag::padding_map)
           << llvm::utostr(f.startOffset) << llvm::utostr(f.endOffset);
     }
   }
@@ -2090,11 +2090,11 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
   eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (m_Module.getPrinter()->traceAssignments())
-    config().raise(diag::output_section_eval)
+    config().raise(Diag::output_section_eval)
         << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
   // Evaluate all assignments at the end of the output section.
-  for (OutputSectionEntry::sym_iterator it = out->sectionendsym_begin(),
-                                        ie = out->sectionendsym_end();
+  for (OutputSectionEntry::sym_iterator it = out->sectionendsymBegin(),
+                                        ie = out->sectionendsymEnd();
        it != ie; ++it) {
     Assignment *assign = (*it);
     // We do not need to evaluate PROVIDE expressions for PROVIDE
@@ -2106,7 +2106,7 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
         std::string expressionStr;
         llvm::raw_string_ostream SS(expressionStr);
         assign->dumpMap(SS, false, false);
-        config().raise(diag::executing_assert_after_layout_is_complete)
+        config().raise(Diag::executing_assert_after_layout_is_complete)
             << SS.str();
       }
       continue;
@@ -2207,7 +2207,7 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
           } else if (iter == _segments.end()) {
             // This message needs a context because it's also raised.
             // TODO: each phdr name can be associated with a context.
-            config().raise(diag::fatal_segment_not_defined_ldscript)
+            config().raise(Diag::fatal_segment_not_defined_ldscript)
                 << "(layout)" << phdrName;
             return false;
           } else {
@@ -2217,7 +2217,7 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
         }
       } else if (!isCurNoLoad) {
         if (prev->prolog().type() == OutputSectDesc::NOLOAD)
-          config().raise(diag::warn_section_no_segment) << cur->name();
+          config().raise(Diag::warn_section_no_segment) << cur->name();
         else if (prevPhdrList) {
           curPhdrList = prevPhdrList;
           // Construct a bucket for the current section before copying it.
@@ -2239,7 +2239,7 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
         phdrName += s->name();
         phdrName += ",";
       }
-      config().raise(diag::fatal_paddr_ignored)
+      config().raise(Diag::fatal_paddr_ignored)
           << (*out)->getSection()->name() << phdrName;
       return false;
     }
@@ -2310,7 +2310,7 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
     return (Sec->prolog().type() == OutputSectDesc::NOLOAD);
   };
 
-  if (config().options().AllowBSSConversion()) {
+  if (config().options().allowBssConversion()) {
     std::vector<ELFSection *> NoBitsSections;
     for (; iterB != iterE; ++iterB) {
       OutputSectionEntry *outSection = (*iterB);
@@ -2326,7 +2326,7 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
         if (next && !next->isNoBits()) {
           // reset all nobits sections to section type PROGBITS
           for (auto &S : NoBitsSections) {
-            config().raise(diag::promoting_bss_to_progbits)
+            config().raise(Diag::promoting_bss_to_progbits)
                 << S->name()
                 << ELFSection::getELFTypeStr(S->name(), S->getType())
                 << ELFSection::getELFTypeStr(next->name(), next->getType())
@@ -2399,14 +2399,14 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
         offset = new_offset;
       if (config().options().isCompact() &&
           ((uint64_t)offset % segAlign != Seg->front()->pAddr() % segAlign))
-        config().raise(diag::physical_address_and_offset_are_not_congruent)
+        config().raise(Diag::physical_address_and_offset_are_not_congruent)
             << Seg->front()->name();
       isBeginningOfSection = false;
       BeginOffset = offset;
     }
     cur->setOffset(offset);
-    if (m_IsSectionTracingRequested && config().options().traceSection(cur))
-      config().raise(diag::section_info)
+    if (IsSectionTracingRequested && config().options().traceSection(cur))
+      config().raise(Diag::section_info)
           << cur->getDecoratedName(config().options())
           << utility::toHex(static_cast<uint64_t>(cur->pAddr()))
           << utility::toHex(static_cast<uint64_t>(cur->addr()))
@@ -2417,7 +2417,7 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
       if (config().options().isCompact() && cur->isAlloc() &&
           (uint64_t)(offset - BeginOffset + Seg->front()->pAddr()) !=
               cur->pAddr())
-        config().raise(diag::physical_address_not_in_syn_with_offset)
+        config().raise(Diag::physical_address_not_in_syn_with_offset)
             << cur->name();
     }
     prev = cur;
@@ -2604,7 +2604,7 @@ bool GNULDBackend::setOutputSectionOffset() {
     evaluateAssignments(*out, atIndex);
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
     if (prev) {
@@ -2670,13 +2670,13 @@ bool GNULDBackend::checkCrossReferences() {
   if (config().options().numThreads() <= 1 ||
       !config().isCheckCrossRefsMultiThreaded()) {
     if (m_Module.getPrinter()->traceThreads())
-      config().raise(diag::threads_disabled) << "CheckCrossRefs";
+      config().raise(Diag::threads_disabled) << "CheckCrossRefs";
     for (auto &input : m_Module.getObjectList()) {
       checkCrossReferencesHelper(input);
     }
   } else {
     if (m_Module.getPrinter()->traceThreads())
-      config().raise(diag::threads_enabled)
+      config().raise(Diag::threads_enabled)
           << "CheckCrossRefs" << config().options().numThreads();
     llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
     for (auto &input : m_Module.getObjectList()) {
@@ -2686,7 +2686,7 @@ bool GNULDBackend::checkCrossReferences() {
   }
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
   return true;
@@ -2708,9 +2708,8 @@ bool GNULDBackend::placeOutputSections() {
     for (auto &elem : m_Module) {
       bool wanted = false;
       if (elem->isDiscard() || elem->isIgnore()) {
-        if (m_IsSectionTracingRequested &&
-            config().options().traceSection(elem))
-          config().raise(diag::discarded_section_info)
+        if (IsSectionTracingRequested && config().options().traceSection(elem))
+          config().raise(Diag::discarded_section_info)
               << elem->getDecoratedName(config().options());
         continue;
       }
@@ -2764,7 +2763,7 @@ bool GNULDBackend::placeOutputSections() {
       case LDFileFormat::Version:
         if ((elem)->hasSectionData() || elem->size()) {
           wanted = true;
-          config().raise(diag::warn_unsupported_symbolic_versioning)
+          config().raise(Diag::warn_unsupported_symbolic_versioning)
               << (elem)->name();
         }
         break;
@@ -2772,7 +2771,7 @@ bool GNULDBackend::placeOutputSections() {
         break;
       default:
         if ((elem)->size())
-          config().raise(diag::err_unsupported_section)
+          config().raise(Diag::err_unsupported_section)
               << (elem)->name() << (elem)->getKind();
         break;
       } // end of switch
@@ -2954,7 +2953,7 @@ bool GNULDBackend::placeOutputSections() {
         orphan->setAddr(addr);
         orphan->setFixedAddr();
         if ((addr % orphan->getAddrAlign()) != 0) {
-          config().raise(diag::at_section_not_aligned) << orphan->name();
+          config().raise(Diag::at_section_not_aligned) << orphan->name();
           alignAddress(addr, orphan->getAddrAlign());
           orphan->setAddr(addr);
         }
@@ -3023,7 +3022,7 @@ bool GNULDBackend::placeOutputSections() {
         (*out)->prolog().setType(OutputSectDesc::LOAD);
       else if (type == OutputSectDesc::PROGBITS) {
         if (!cur->isProgBits()) {
-          config().raise(diag::change_section_type)
+          config().raise(Diag::change_section_type)
               << ELFSection::getELFTypeStr("", llvm::ELF::SHT_PROGBITS)
               << ELFSection::getELFTypeStr(cur->name(), cur->getType())
               << cur->name();
@@ -3042,7 +3041,7 @@ bool GNULDBackend::placeOutputSections() {
         // as the default flag.
         if (!cur->size())
           new_flag = flag;
-        config().raise(diag::change_section_perm)
+        config().raise(Diag::change_section_perm)
             << ELFSection::getELFPermissionsStr(new_flag)
             << ELFSection::getELFPermissionsStr(old_flag) << cur->name();
         cur->setFlags(new_flag);
@@ -3068,7 +3067,7 @@ bool GNULDBackend::layout() {
 
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
 
@@ -3077,7 +3076,7 @@ bool GNULDBackend::layout() {
     checkCrossReferences();
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
   }
@@ -3105,7 +3104,7 @@ bool GNULDBackend::layout() {
   }
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
 
@@ -3119,7 +3118,7 @@ bool GNULDBackend::layout() {
 
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
 
@@ -3150,7 +3149,7 @@ bool GNULDBackend::layout() {
 
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
 
@@ -3218,8 +3217,8 @@ void GNULDBackend::preLayout() {
   if (LinkerConfig::Object == config().codeGenType()) {
     eld::RegisterTimer T("Copy Input Relocations to Output", "Perform Layout",
                          m_Module.getConfig().options().printTimingStats());
-    Module::obj_iterator input, inEnd = m_Module.obj_end();
-    for (input = m_Module.obj_begin(); input != inEnd; ++input) {
+    Module::obj_iterator input, inEnd = m_Module.objEnd();
+    for (input = m_Module.objBegin(); input != inEnd; ++input) {
       ELFObjectFile *ObjFile = llvm::dyn_cast<eld::ELFObjectFile>(*input);
       if (!ObjFile)
         continue;
@@ -3268,7 +3267,7 @@ void GNULDBackend::preLayout() {
           output_sect->setSize(output_sect->getRelocations().size() *
                                getRelaEntrySize());
         else {
-          config().raise(diag::unknown_reloc_section_type)
+          config().raise(Diag::unknown_reloc_section_type)
               << output_sect->getType() << output_sect->name();
         }
       } // end of for each relocation section
@@ -3300,7 +3299,7 @@ bool GNULDBackend::postLayout() {
   }
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
 
@@ -3370,7 +3369,7 @@ void GNULDBackend::checkOverlap(llvm::StringRef name,
     SectionOffset b = sections[i];
     if (b.offset >= a.offset + a.sec->size())
       continue;
-    config().raise(diag::error_section_overlap)
+    config().raise(Diag::error_section_overlap)
         << a.sec->name() << std::string(name) << b.sec->name() << a.sec->name()
         << rangeToString(a.offset, a.sec->size()) << b.sec->name()
         << rangeToString(b.offset, b.sec->size());
@@ -3477,10 +3476,10 @@ void GNULDBackend::printCref(bool pIsPostLTO) const {
   eld::RegisterTimer T("Emit CRef", "Diagnostics",
                        m_Module.getConfig().options().printTimingStats());
 
-  const GeneralOptions::CrefTable &table = config().options().crefTable();
+  const GeneralOptions::CrefTableType &table = config().options().crefTable();
   std::vector<const ResolveInfo *> symVector;
-  GeneralOptions::CrefTable::const_iterator itr = table.begin(),
-                                            ite = table.end();
+  GeneralOptions::CrefTableType::const_iterator itr = table.begin(),
+                                                ite = table.end();
   for (; itr != ite; itr++)
     symVector.push_back(itr->first);
 
@@ -3712,10 +3711,10 @@ bool GNULDBackend::isSymbolPreemptible(const ResolveInfo &pSym) const {
   if (LinkerConfig::DynObj != config().codeGenType())
     return false;
 
-  if (config().options().Bsymbolic())
+  if (config().options().bsymbolic())
     return false;
 
-  if (config().options().BsymbolicFunctions() && pSym.isDefine() &&
+  if (config().options().bsymbolicFunctions() && pSym.isDefine() &&
       pSym.type() == ResolveInfo::Function)
     return false;
 
@@ -3958,7 +3957,7 @@ bool GNULDBackend::maySkipRelocProcessing(Relocation *pReloc) const {
           // don't have this information because such sections are not loaded,
           // there are no fragments, and resolve info points to a discard
           // fragment instead.
-          config().raise(diag::error_referenced_discarded_section)
+          config().raise(Diag::error_referenced_discarded_section)
               << info->getDecoratedName(config().options().shouldDemangle())
               << OwningSection->name()
               << OwningSection->getInputFile()->getInput()->decoratedPath();
@@ -3995,7 +3994,7 @@ bool GNULDBackend::relax() {
 
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
     {
@@ -4006,12 +4005,12 @@ bool GNULDBackend::relax() {
 
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
     auto end = std::chrono::steady_clock::now();
     if (m_Module.getPrinter()->allStats())
-      config().raise(diag::layout_stats)
+      config().raise(Diag::layout_stats)
           << iteration
           << (int)std::chrono::duration<double, std::milli>(end - start)
                  .count();
@@ -4051,7 +4050,7 @@ void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
         std::string expressionStr;
         llvm::raw_string_ostream SS(expressionStr);
         assign->dumpMap(SS, false, false);
-        config().raise(diag::executing_assert_after_layout_is_complete)
+        config().raise(Diag::executing_assert_after_layout_is_complete)
             << SS.str();
       }
       continue;
@@ -4071,7 +4070,7 @@ void GNULDBackend::evaluateAsserts() {
         std::string expressionStr;
         llvm::raw_string_ostream SS(expressionStr);
         a.second->dumpMap(SS, false, false);
-        config().raise(diag::skipping_executed_asserts) << SS.str();
+        config().raise(Diag::skipping_executed_asserts) << SS.str();
       }
       continue;
     }
@@ -4079,7 +4078,7 @@ void GNULDBackend::evaluateAsserts() {
       std::string expressionStr;
       llvm::raw_string_ostream SS(expressionStr);
       a.second->dumpMap(SS, false, false);
-      config().raise(diag::executing_assert_after_layout) << SS.str();
+      config().raise(Diag::executing_assert_after_layout) << SS.str();
     }
     a.second->assign(m_Module, nullptr);
   }
@@ -4098,7 +4097,7 @@ void GNULDBackend::mayWarnSection(ELFSection *sect) const {
                        .Default(false);
   if (!raiseWarn)
     return;
-  config().raise(diag::section_does_not_have_proper_permissions)
+  config().raise(Diag::section_does_not_have_proper_permissions)
       << sectionName << sect->getInputFile()->getInput()->decoratedPath();
 }
 
@@ -4129,7 +4128,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
   if (aliasSym && aliasSym->outSymbol() &&
       aliasSym->outSymbol()->hasFragRef()) {
     LDSymbol *cpy_sym =
-        pBuilder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+        pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
             pSym->resolvedOrigin(), pSym->name(),
             (ResolveInfo::Type)pSym->type(), ResolveInfo::Define,
             ResolveInfo::Global,
@@ -4175,7 +4174,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
     binding = ResolveInfo::Global;
 
   // Define the copy symbol in the bss section and resolve it
-  LDSymbol *cpy_sym = pBuilder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *cpy_sym = pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       pSym->resolvedOrigin(), pSym->name(), (ResolveInfo::Type)pSym->type(),
       ResolveInfo::Define, binding,
       pSym->size(), // size
@@ -4187,7 +4186,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
   if ((curSym != pSym) && aliasSym && aliasSym->outSymbol() &&
       aliasSym->outSymbol()->hasFragRef()) {
     LDSymbol *new_cur_sym =
-        pBuilder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+        pBuilder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
             curSym->resolvedOrigin(), curSym->name(),
             (ResolveInfo::Type)curSym->type(), ResolveInfo::Define,
             ResolveInfo::Global,
@@ -4219,7 +4218,7 @@ bool GNULDBackend::checkBssMixing(const ELFSegment &Seg) const {
     if (bssSect) {
       if (!isCurSectionNoLoad && !Seg.isNoneSegment() &&
           handleBSS(bssSect, cur)) {
-        config().raise(diag::err_mix_bss_section)
+        config().raise(Diag::err_mix_bss_section)
             << cur->name() << bssSect->name();
         return false;
       }
@@ -4242,7 +4241,7 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
   LinkerScript &script = m_Module.getScript();
 
   if (!allocateHeaders()) {
-    config().raise(diag::not_enough_space_for_phdrs);
+    config().raise(Diag::not_enough_space_for_phdrs);
     return false;
   }
 
@@ -4252,7 +4251,7 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
   SectionMap::OutputSectionEntryDescList OList =
       m_Module.getScript()
           .sectionMap()
-          .GetOutputSectionEntrySectionsForPluginType(
+          .getOutputSectionEntrySectionsForPluginType(
               plugin::Plugin::Type::ControlFileSize);
 
   // Iterate through all sections to get to the debug sections
@@ -4301,7 +4300,7 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
     prev = SF.second;
     // raise an error if there is a BSS section and the following
     // section is non BSS.
-    if (!config().options().AllowBSSMixing() && !checkBssMixing(*Seg))
+    if (!config().options().allowBssMixing() && !checkBssMixing(*Seg))
       return false;
   }
   // All segments have offsets assigned.
@@ -4321,7 +4320,7 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
       cur->setWanted(true);
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
     prev = cur;
@@ -4351,7 +4350,7 @@ bool GNULDBackend::CleanupPlugins(SectionMap::OutputSectionEntryDescList &O) {
       "Cleanup", "Plugins",
       m_Module.getConfig().options().printTimingStats("Plugin"));
   for (auto &P : O) {
-    if (!P->prolog().getPlugin()->Destroy())
+    if (!P->prolog().getPlugin()->destroy())
       return false;
   }
   return true;
@@ -4390,12 +4389,12 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
           S->size(), nullptr,
           llvm::sys::Memory::MF_READ | llvm::sys::Memory::MF_WRITE, ec);
       if (ec != std::error_code()) {
-        config().raise(diag::unable_to_reserve_memory) << S->size();
+        config().raise(Diag::unable_to_reserve_memory) << S->size();
         return false;
       }
 
       if (m_Module.getPrinter()->tracePlugins())
-        config().raise(diag::allocating_memory) << S->size() << S->name();
+        config().raise(Diag::allocating_memory) << S->size() << S->name();
 
       MemoryRegion mr(reinterpret_cast<uint8_t *>(MB.base()),
                       MB.allocatedSize());
@@ -4408,10 +4407,10 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
         }
       }
       if (m_Module.getPrinter()->tracePlugins())
-        config().raise(diag::applying_relocations) << S->name();
+        config().raise(Diag::applying_relocations) << S->name();
       m_Module.getLinker()->getObjLinker()->relocation(false);
       if (m_Module.getPrinter()->tracePlugins())
-        config().raise(diag::syncing_relocations) << S->name();
+        config().raise(Diag::syncing_relocations) << S->name();
       m_Module.getLinker()->getObjLinker()->syncRelocations(
           reinterpret_cast<uint8_t *>(MB.base()));
 
@@ -4424,7 +4423,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       }
 
       // Initialize the plugin.
-      if (!O->prolog().getPlugin()->Init(m_Module.getOutputTarWriter())) {
+      if (!O->prolog().getPlugin()->init(m_Module.getOutputTarWriter())) {
         m_Module.setFailure(true);
         return false;
       }
@@ -4437,7 +4436,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
       // Add the Memory Block.
       if (m_Module.getPrinter()->tracePlugins())
-        config().raise(diag::adding_memory_blocks) << S->name();
+        config().raise(Diag::adding_memory_blocks) << S->name();
 
       // Add Memory Blocks.
       if (MatchSections)
@@ -4446,10 +4445,10 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
         FOP->AddBlocks(std::move(B));
 
       if (m_Module.getPrinter()->tracePlugins())
-        config().raise(diag::calling_handler) << S->name();
+        config().raise(Diag::calling_handler) << S->name();
 
       // Run the algorithm.
-      if (!O->prolog().getPlugin()->Run(
+      if (!O->prolog().getPlugin()->run(
               m_Module.getScript().getPluginRunList())) {
         m_Module.setFailure(true);
         return false;
@@ -4458,7 +4457,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       auto RB = MatchSections ? VAP->GetBlocks() : FOP->GetBlocks();
 
       if (m_Module.getPrinter()->tracePlugins())
-        config().raise(diag::plugin_returned_blocks) << RB.size() << S->name();
+        config().raise(Diag::plugin_returned_blocks) << RB.size() << S->name();
 
       ELFSection *OutputSection = S;
 
@@ -4478,14 +4477,14 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
         Offset = frag->getOffset(config().getDiagEngine()) + frag->size();
       }
       if (!MatchSections && (Offset > S->size()))
-        config().raise(diag::plugin_returned_blocks_more_than_input_size)
+        config().raise(Diag::plugin_returned_blocks_more_than_input_size)
             << N->GetName() << Offset << S->size();
       OutputSection->setSize(Offset);
 
       if (!MatchSections) {
         ELFSection *DefaultRuleSection = O->getLastRule()->getSection();
         for (auto &P : PluginSections)
-          builder.MoveSection(P, DefaultRuleSection);
+          builder.moveSection(P, DefaultRuleSection);
       }
     }
 
@@ -4514,18 +4513,18 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
           nameHash,
           (config().options().getScriptOption() == GeneralOptions::MatchGNU));
       if (!pair.first) {
-        config().raise(diag::cannot_find_output_section_for_input)
+        config().raise(Diag::cannot_find_output_section_for_input)
             << sec->name();
         hasError = true;
         continue;
       }
       sec->setOutputSection(pair.first);
-      if (m_IsSectionTracingRequested && config().options().traceSection(sec))
-        config().raise(diag::section_mapping_info)
+      if (IsSectionTracingRequested && config().options().traceSection(sec))
+        config().raise(Diag::section_mapping_info)
             << sec->getDecoratedName(config().options())
             << pair.first->getSection()->getDecoratedName(config().options());
       sec->setMatchedLinkerScriptRule(pair.second);
-      builder.MoveSection(sec, pair.second->getSection());
+      builder.moveSection(sec, pair.second->getSection());
       OutputSectionSet.insert(pair.first);
     }
 
@@ -4553,7 +4552,7 @@ void GNULDBackend::pluginLinkSections(OutputSectionEntry *A,
   A->getSection()->setLink(B->getSection());
   PluginLinkedSections.insert(A);
   if (m_Module.getPrinter()->isVerbose())
-    config().raise(diag::chaining_sections) << A->name() << B->name();
+    config().raise(Diag::chaining_sections) << A->name() << B->name();
 }
 
 void GNULDBackend::resolveTargetDefinedSymbols() {
@@ -4595,13 +4594,13 @@ void GNULDBackend::doPostLayout() {
     SectionMap::OutputSectionEntryDescList OList =
         m_Module.getScript()
             .sectionMap()
-            .GetOutputSectionEntrySectionsForPluginType(
+            .getOutputSectionEntrySectionsForPluginType(
                 plugin::Plugin::Type::ControlMemorySize);
     if (!OList.size())
       return;
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return;
     }
     if (!RunVAPluginsAndProcess(OList)) {
@@ -4617,7 +4616,7 @@ void GNULDBackend::doPostLayout() {
   }
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return;
   }
 }
@@ -4657,12 +4656,12 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
     return nullptr;
 
   LDSymbol *provided_sym =
-      m_Module.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           file, symName.str(), resolverType, ResolveInfo::Define,
           ResolveInfo::Absolute,
           0x0,                 // size
           symVal,              // value
-          FragmentRef::Null(), // FragRef
+          FragmentRef::null(), // FragRef
           V, /* isPostLTOPhase */ false, /* isBitCode */ false, Patchable);
   if (provided_sym != nullptr) {
     provided_sym->setShouldIgnore(false);
@@ -4671,7 +4670,7 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
         ((config().options().isSymbolTracingRequested() &&
           config().options().traceSymbol(*(provided_sym->resolveInfo()))) ||
          m_Module.getPrinter()->traceSymDef()))
-      config().raise(diag::note_resolving_from_provide_symdef_file)
+      config().raise(Diag::note_resolving_from_provide_symdef_file)
           << symName << file->getInput()->decoratedPath();
   }
   return provided_sym;
@@ -4712,7 +4711,7 @@ void GNULDBackend::makeVersionString() {
   // Add the command line information to the link
   std::string CommandLine = "Command:";
   std::string Separator = "";
-  for (auto arg : config().options().Args()) {
+  for (auto arg : config().options().args()) {
     if (!arg)
       continue;
     CommandLine.append(Separator);
@@ -4744,7 +4743,7 @@ bool GNULDBackend::addPhdrsIfNeeded(void) {
         (Phdr->spec().hasFileHdr() || Phdr->spec().hasPhdr())) {
       if (firstPTLOAD &&
           (!firstPTLOAD->hasFileHdr() || !firstPTLOAD->hasPhdr())) {
-        config().raise(diag::first_pt_load_doesnot_have_phdr);
+        config().raise(Diag::first_pt_load_doesnot_have_phdr);
         return false;
       }
     }
@@ -4801,7 +4800,7 @@ void GNULDBackend::addTargetSpecificSegments() { return; }
 bool GNULDBackend::hasFatalError() const {
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+      config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return true;
   }
   return false;
@@ -4894,14 +4893,14 @@ bool GNULDBackend::checkForLinkerScriptPhdrErrors() const {
         break;
       }
       if (seg->isNoneSegment() && cur->getSection()->size()) {
-        config().raise(diag::warn_loadable_section_in_none_segment)
+        config().raise(Diag::warn_loadable_section_in_none_segment)
             << cur->name();
         found = true;
       }
     }
     if (!found && cur->getSection() && cur->getSection()->size()) {
       hasError = true;
-      config().raise(diag::loadable_section_not_in_load_segment) << cur->name();
+      config().raise(Diag::loadable_section_not_in_load_segment) << cur->name();
     }
   }
 
@@ -4943,7 +4942,7 @@ bool GNULDBackend::assignMemoryRegions() {
       continue;
     if (!out->epilog().hasRegion()) {
       status = false;
-      config().raise(eld::diag::error_no_memory_region) << out->name();
+      config().raise(eld::Diag::error_no_memory_region) << out->name();
     }
   }
   return status;

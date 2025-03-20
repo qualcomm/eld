@@ -18,5 +18,5 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // NameSpec
 //===----------------------------------------------------------------------===//
-NameSpec::NameSpec(const std::string &pName, bool pAsNeeded)
-    : InputToken(InputToken::NameSpec, pName, pAsNeeded) {}
+NameSpec::NameSpec(const std::string &PName, bool PAsNeeded)
+    : InputToken(InputToken::NameSpec, PName, PAsNeeded) {}

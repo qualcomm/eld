@@ -23,68 +23,68 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // RegionFragment
 //===----------------------------------------------------------------------===//
-RegionFragment::RegionFragment(llvm::StringRef pRegion, ELFSection *O,
+RegionFragment::RegionFragment(llvm::StringRef PRegion, ELFSection *O,
                                Fragment::Type K, uint32_t Align)
-    : Fragment(K, O, Align), m_Region(std::move(pRegion)) {}
+    : Fragment(K, O, Align), FragmentRegion(std::move(PRegion)) {}
 
 RegionFragment::~RegionFragment() {}
 
 size_t RegionFragment::size() const {
   if (isNull())
     return 0;
-  return m_Region.size();
+  return FragmentRegion.size();
 }
 
-eld::Expected<void> RegionFragment::emit(MemoryRegion &mr, Module &M) {
+eld::Expected<void> RegionFragment::emit(MemoryRegion &Mr, Module &M) {
   if (!size())
     return {};
 
-  uint8_t *out = mr.begin() + getOffset(M.getConfig().getDiagEngine());
-  memcpy(out, m_Region.begin(), size());
+  uint8_t *Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine());
+  memcpy(Out, FragmentRegion.begin(), size());
   // Fill with padding value as requested by the user.
   if (this->paddingSize() == 0)
     return {};
-  out = mr.begin() + getOffset(M.getConfig().getDiagEngine()) -
+  Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine()) -
         this->paddingSize();
-  std::optional<uint64_t> optPaddingValue = M.getFragmentPaddingValue(this);
-  if (!optPaddingValue)
+  std::optional<uint64_t> OptPaddingValue = M.getFragmentPaddingValue(this);
+  if (!OptPaddingValue)
     return {};
-  uint64_t paddingValue = *optPaddingValue;
-  uint32_t valueSize = Fragment::getPaddingValueSize(paddingValue);
-  if (paddingValue == 0)
+  uint64_t PaddingValue = *OptPaddingValue;
+  uint32_t ValueSize = Fragment::getPaddingValueSize(PaddingValue);
+  if (PaddingValue == 0)
     return {};
-  uint64_t fillPaddingSize = this->paddingSize();
+  uint64_t FillPaddingSize = this->paddingSize();
   // pattern fillment
-  size_t numTiles = fillPaddingSize / valueSize;
-  for (size_t i = 0; i != numTiles; ++i) {
-    switch (valueSize) {
+  size_t NumTiles = FillPaddingSize / ValueSize;
+  for (size_t I = 0; I != NumTiles; ++I) {
+    switch (ValueSize) {
     case 1:
       llvm::support::endian::write<uint8_t, llvm::endianness::big>(
-          out + i * valueSize, paddingValue);
+          Out + I * ValueSize, PaddingValue);
       break;
     case 2:
-      llvm::support::endian::write16be(out + i * valueSize, paddingValue);
+      llvm::support::endian::write16be(Out + I * ValueSize, PaddingValue);
       break;
     case 4:
-      llvm::support::endian::write32be(out + i * valueSize, paddingValue);
+      llvm::support::endian::write32be(Out + I * ValueSize, PaddingValue);
       break;
     case 8:
-      llvm::support::endian::write64be(out + i * valueSize, paddingValue);
+      llvm::support::endian::write64be(Out + I * ValueSize, PaddingValue);
       break;
     }
   }
   return {};
 }
 
-void RegionFragment::copyData(void *pDest, uint32_t pNBytes,
-                              uint64_t pOffset) const {
-  std::memcpy(pDest, this->getRegion().begin() + pOffset, pNBytes);
+void RegionFragment::copyData(void *PDest, uint32_t PNBytes,
+                              uint64_t POffset) const {
+  std::memcpy(PDest, this->getRegion().begin() + POffset, PNBytes);
 }
 
 template <typename T> bool RegionFragment::setContent(T Val) {
   if (size() < sizeof(T))
     return false;
-  std::memcpy((void *)m_Region.data(), &Val, sizeof(T));
+  std::memcpy((void *)FragmentRegion.data(), &Val, sizeof(T));
   return true;
 }
 

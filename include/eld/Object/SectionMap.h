@@ -47,118 +47,117 @@ public:
   typedef OutputSectionEntryDescList::reverse_iterator reverse_iterator;
 
 public:
-  SectionMap(LinkerScript &L, const LinkerConfig &config,
-             LayoutPrinter *layoutPrinter);
+  SectionMap(LinkerScript &L, const LinkerConfig &Config,
+             LayoutPrinter *LayoutPrinter);
 
   ~SectionMap();
 
-  void assignOutputSectionEntrySections(std::vector<eld::Input *> &inputs,
-                                        bool isPartialLink);
+  void assignOutputSectionEntrySections(std::vector<eld::Input *> &Inputs,
+                                        bool IsPartialLink);
 
-  mapping findOnlyIn(iterator output, std::string pInputFile,
-                     const ELFSection &pInputSection, bool isArchive,
-                     std::string name, uint64_t inputSectionHash,
-                     uint64_t inputFileHash, uint64_t nameHash,
+  mapping findOnlyIn(iterator Output, std::string PInputFile,
+                     const ELFSection &CurInputSection, bool IsArchive,
+                     std::string Name, uint64_t InputSectionHash,
+                     uint64_t InputFileHash, uint64_t NameHash,
                      bool GNUCompatible);
 
-  mapping findIn(iterator output, std::string pInputFile,
-                 const ELFSection &pInputSection, bool isArchive,
-                 std::string name, uint64_t inputSectionHash,
-                 uint64_t inputFileHash, uint64_t nameHash, bool GNUCompatible);
+  mapping findIn(iterator Output, std::string PInputFile,
+                 const ELFSection &CurInputSection, bool IsArchive,
+                 std::string Name, uint64_t InputSectionHash,
+                 uint64_t InputFileHash, uint64_t NameHash, bool GNUCompatible);
 
   /// FIXME: this is not used
-  mapping find(std::string pInputFile, std::string pInputSection,
-               bool isArchive, std::string name, uint64_t inputSectionHash,
-               uint64_t inputFileHash, uint64_t inputNameHash,
-               bool GNUCompatible, bool isCommonSection);
+  mapping find(std::string PInputFile, std::string CurInputSection,
+               bool IsArchive, std::string Name, uint64_t InputSectionHash,
+               uint64_t InputFileHash, uint64_t InputNameHash,
+               bool GNUCompatible, bool IsCommonSection);
 
-  ELFSection *find(std::string pOutputSectionEntrySection);
+  ELFSection *find(std::string EntrySection);
 
   ELFSection *find(uint32_t SectionType);
 
   /// FIXME: this is not used or implemented
   ELFSection *findSectionIfNotEmpty(std::string Section);
 
-  iterator findIter(std::string pOutputSectionEntrySection);
+  iterator findIter(std::string EntrySection);
 
   std::pair<mapping, bool>
-  insert(std::string pInputSection, std::string pOutputSectionEntrySection,
-         InputSectDesc::Policy pPolicy = InputSectDesc::NoKeep);
-  std::pair<mapping, bool> insert(const InputSectDesc &pInputDesc,
-                                  OutputSectDesc &pOutputSectionEntryDesc);
+  insert(std::string CurInputSection, std::string EntrySection,
+         InputSectDesc::Policy PPolicy = InputSectDesc::NoKeep);
+  std::pair<mapping, bool> insert(const InputSectDesc &PInputDesc,
+                                  OutputSectDesc &POutputSectionEntryDesc);
 
-  bool empty() const { return m_OutputSectionEntryDescList.empty(); }
-  size_t size() const { return m_OutputSectionEntryDescList.size(); }
+  bool empty() const { return MOutputSectionEntryDescList.empty(); }
+  size_t size() const { return MOutputSectionEntryDescList.size(); }
 
-  iterator begin() { return m_OutputSectionEntryDescList.begin(); }
-  const_iterator begin() const { return m_OutputSectionEntryDescList.begin(); }
-  iterator end() { return m_OutputSectionEntryDescList.end(); }
-  const_iterator end() const { return m_OutputSectionEntryDescList.end(); }
+  iterator begin() { return MOutputSectionEntryDescList.begin(); }
+  const_iterator begin() const { return MOutputSectionEntryDescList.begin(); }
+  iterator end() { return MOutputSectionEntryDescList.end(); }
+  const_iterator end() const { return MOutputSectionEntryDescList.end(); }
 
-  const_reference front() const { return m_OutputSectionEntryDescList.front(); }
-  reference front() { return m_OutputSectionEntryDescList.front(); }
-  const_reference back() const { return m_OutputSectionEntryDescList.back(); }
-  reference back() { return m_OutputSectionEntryDescList.back(); }
+  const_reference front() const { return MOutputSectionEntryDescList.front(); }
+  reference front() { return MOutputSectionEntryDescList.front(); }
+  const_reference back() const { return MOutputSectionEntryDescList.back(); }
+  reference back() { return MOutputSectionEntryDescList.back(); }
 
-  reverse_iterator rbegin() { return m_OutputSectionEntryDescList.rbegin(); }
-  reverse_iterator rend() { return m_OutputSectionEntryDescList.rend(); }
+  reverse_iterator rbegin() { return MOutputSectionEntryDescList.rbegin(); }
+  reverse_iterator rend() { return MOutputSectionEntryDescList.rend(); }
 
-  iterator insert(iterator pPosition, ELFSection *pSection);
-  iterator insert(iterator pPosition, OutputSectionEntry *Output);
+  iterator insert(iterator PPosition, ELFSection *PSection);
+  iterator insert(iterator PPosition, OutputSectionEntry *Output);
 
-  ELFSection *createOutputSectionEntry(std::string section,
-                                       LDFileFormat::Kind kind, uint32_t type,
-                                       uint32_t flag, uint32_t align);
+  ELFSection *createOutputSectionEntry(std::string Section,
+                                       LDFileFormat::Kind Kind, uint32_t Type,
+                                       uint32_t Flag, uint32_t Align);
 
   ELFSection *createELFSection(const std::string &Name, LDFileFormat::Kind K,
                                uint32_t Type, uint32_t Flags, uint32_t EntSize);
 
-  EhFrameHdrSection *createEhFrameHdrSection(std::string section, uint32_t type,
-                                             uint32_t flag,
-                                             uint32_t entSize = 0,
-                                             uint64_t size = 0);
+  EhFrameHdrSection *createEhFrameHdrSection(std::string Section, uint32_t Type,
+                                             uint32_t Flag,
+                                             uint32_t EntSize = 0,
+                                             uint64_t Size = 0);
 
-  ELFSection *createEhFrameSection(std::string section, uint32_t type,
-                                   uint32_t flag, uint32_t entSize = 0,
-                                   uint64_t size = 0);
+  ELFSection *createEhFrameSection(std::string Section, uint32_t Type,
+                                   uint32_t Flag, uint32_t EntSize = 0,
+                                   uint64_t Size = 0);
 
-  std::vector<ELFSection *> &getEntrySections() { return m_entrySections; }
+  std::vector<ELFSection *> &getEntrySections() { return MEntrySections; }
 
-  void addEntrySection(ELFSection *sec) { m_entrySections.push_back(sec); }
+  void addEntrySection(ELFSection *Sec) { MEntrySections.push_back(Sec); }
 
-  bool matched(const RuleContainer &pInput, InputFile *I,
-               std::string const &pInputFile, std::string const &pInputSection,
-               bool isArchive, std::string const &name,
-               uint64_t pInputSectionHash, uint64_t fileNameHash,
-               uint64_t nameHash, bool GNUCompatible, bool isCommonSection,
-               bool storePatterns = true) const;
+  bool matched(const RuleContainer &PInput, InputFile *I,
+               std::string const &PInputFile,
+               std::string const &CurInputSection, bool IsArchive,
+               std::string const &Name, uint64_t CurInputSectionHash,
+               uint64_t FileNameHash, uint64_t NameHash, bool GNUCompatible,
+               bool IsCommonSection, bool StorePatterns = true) const;
 
-  bool matched(const WildcardPattern &pPattern, llvm::StringRef pName,
-               uint64_t hash) const;
+  bool matched(const WildcardPattern &PPattern, llvm::StringRef PName,
+               uint64_t Hash) const;
 
   OutputSectionEntryDescList
-  GetOutputSectionEntrySectionsForPluginType(plugin::Plugin::Type T);
+  getOutputSectionEntrySectionsForPluginType(plugin::Plugin::Type T);
 
-  LinkerScript &getLinkerScript() const { return m_LinkerScript; }
+  LinkerScript &getLinkerScript() const { return MLinkerScript; }
 
-  bool matched(const WildcardPattern &pPattern, llvm::StringRef pName) const;
+  bool matched(const WildcardPattern &PPattern, llvm::StringRef PName) const;
 
   /// Returns a pointer to an OutputSectionEntry object with name 'name',
   /// if any; Otherwise returns nullptr.
-  OutputSectionEntry *findOutputSectionEntry(const std::string &name);
+  OutputSectionEntry *findOutputSectionEntry(const std::string &Name);
 
   bool doesRuleMatchWithSection(const RuleContainer &R, const Section &S,
-                                bool doNotUseRMName) const;
+                                bool DoNotUseRmName) const;
 
 private:
-  bool matched_sections(InputFile *I, const WildcardPattern &inputFilePattern,
-                        const WildcardPattern &pPattern,
-                        std::string const &pName, std::string const &Filename,
-                        std::string const &pInputSection, bool isArchive,
-                        uint64_t pInputSectionHash, uint64_t fileNameHash,
-                        uint64_t nameHash, bool isCommonSection,
-                        const ExcludeFiles &EF,
-                        bool storePatterns = true) const;
+  bool matchedSections(InputFile *I, const WildcardPattern &InputFilePattern,
+                       const WildcardPattern &PPattern,
+                       std::string const &PName, std::string const &Filename,
+                       std::string const &CurInputSection, bool IsArchive,
+                       uint64_t CurInputSectionHash, uint64_t FileNameHash,
+                       uint64_t NameHash, bool IsCommonSection,
+                       const ExcludeFiles &EF, bool StorePatterns = true) const;
 
   /// If 'pattern' is COMMON or one of the .scommon.x, then return the pattern
   /// COMMON.* or .scommon.x.* repectively. Otherwise, return 'pattern' as
@@ -171,19 +170,19 @@ private:
   /// corresponding common patterns. It is required to be consistent with the
   /// existing behavior.
   static WildcardPattern
-  getWithSyntacticSugarForCommonPattern(const WildcardPattern &pattern);
+  getWithSyntacticSugarForCommonPattern(const WildcardPattern &Pattern);
 
 private:
-  LinkerScript &m_LinkerScript;
-  const LinkerConfig &m_LinkerConfig;
-  bool m_IsSectionTracingRequested;
-  OutputSectionEntryDescList m_OutputSectionEntryDescList;
+  LinkerScript &MLinkerScript;
+  const LinkerConfig &ThisConfig;
+  bool IsSectionTracingRequested;
+  OutputSectionEntryDescList MOutputSectionEntryDescList;
   std::unordered_map<std::string,
                      std::pair<OutputSectionEntry *, RuleContainer *>>
-      _specialSections;
-  std::vector<ELFSection *> m_entrySections;
-  const DiagnosticPrinter *m_Printer;
-  LayoutPrinter *m_LayoutPrinter = nullptr;
+      SpecialSections;
+  std::vector<ELFSection *> MEntrySections;
+  const DiagnosticPrinter *MPrinter;
+  LayoutPrinter *MLayoutPrinter = nullptr;
 };
 
 } // namespace eld

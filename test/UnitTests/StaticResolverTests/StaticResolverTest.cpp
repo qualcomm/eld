@@ -54,8 +54,8 @@ TEST_F(StaticResolverTest, MDEF) {
   old_sym->setDesc(ResolveInfo::Define);
   ASSERT_TRUE(eld::ResolveInfo::Define == new_sym->desc());
   ASSERT_TRUE(eld::ResolveInfo::Define == old_sym->desc());
-  ASSERT_TRUE(eld::ResolveInfo::define_flag == new_sym->info());
-  ASSERT_TRUE(eld::ResolveInfo::define_flag == old_sym->info());
+  ASSERT_TRUE(eld::ResolveInfo::DefineFlag == new_sym->info());
+  ASSERT_TRUE(eld::ResolveInfo::DefineFlag == old_sym->info());
   bool override = true;
   bool result =
       m_pResolver->resolve(*old_sym, *new_sym, override, 0x0, m_pConfig, false);
@@ -310,8 +310,8 @@ TEST_F(StaticResolverTest, OverrideWeakByGlobal) {
   ASSERT_TRUE(eld::ResolveInfo::Global == new_sym->binding());
   ASSERT_TRUE(eld::ResolveInfo::Weak == old_sym->binding());
 
-  ASSERT_TRUE(eld::ResolveInfo::global_flag == new_sym->info());
-  ASSERT_TRUE(eld::ResolveInfo::weak_flag == old_sym->info());
+  ASSERT_TRUE(eld::ResolveInfo::GlobalFlag == new_sym->info());
+  ASSERT_TRUE(eld::ResolveInfo::WeakFlag == old_sym->info());
   bool override = false;
   bool result =
       m_pResolver->resolve(*old_sym, *new_sym, override, 0x0, m_pConfig, false);
@@ -374,8 +374,8 @@ TEST_F(StaticResolverTest, MarkByBiggerCommon) {
   ASSERT_TRUE(eld::ResolveInfo::Common == new_sym->desc());
   ASSERT_TRUE(eld::ResolveInfo::Common == old_sym->desc());
 
-  ASSERT_TRUE(eld::ResolveInfo::common_flag == new_sym->info());
-  ASSERT_TRUE(eld::ResolveInfo::common_flag == old_sym->info());
+  ASSERT_TRUE(eld::ResolveInfo::CommonFlag == new_sym->info());
+  ASSERT_TRUE(eld::ResolveInfo::CommonFlag == old_sym->info());
   bool override = true;
   bool result =
       m_pResolver->resolve(*old_sym, *new_sym, override, 0x0, m_pConfig, false);
@@ -403,8 +403,8 @@ TEST_F(StaticResolverTest, OverrideByBiggerCommon) {
   ASSERT_TRUE(ResolveInfo::Common == old_sym->desc());
   ASSERT_TRUE(ResolveInfo::Weak == old_sym->binding());
 
-  ASSERT_TRUE(ResolveInfo::common_flag == new_sym->info());
-  ASSERT_TRUE((ResolveInfo::weak_flag | ResolveInfo::common_flag) ==
+  ASSERT_TRUE(ResolveInfo::CommonFlag == new_sym->info());
+  ASSERT_TRUE((ResolveInfo::WeakFlag | ResolveInfo::CommonFlag) ==
               old_sym->info());
 
   bool override = false;
@@ -433,8 +433,8 @@ TEST_F(StaticResolverTest, OverrideCommonByDefine) {
   ASSERT_TRUE(ResolveInfo::Define == new_sym->desc());
   ASSERT_TRUE(ResolveInfo::Common == old_sym->desc());
 
-  ASSERT_TRUE(ResolveInfo::define_flag == new_sym->info());
-  ASSERT_TRUE(ResolveInfo::common_flag == old_sym->info());
+  ASSERT_TRUE(ResolveInfo::DefineFlag == new_sym->info());
+  ASSERT_TRUE(ResolveInfo::CommonFlag == old_sym->info());
 
   bool override = false;
   bool result =

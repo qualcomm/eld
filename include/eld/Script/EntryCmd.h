@@ -27,19 +27,19 @@ class Module;
 
 class EntryCmd : public ScriptCommand {
 public:
-  EntryCmd(const std::string &pEntry);
+  EntryCmd(const std::string &PEntry);
   ~EntryCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::ENTRY;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::ENTRY;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  std::string m_Entry;
+  std::string EntrySymbol;
 };
 
 } // namespace eld

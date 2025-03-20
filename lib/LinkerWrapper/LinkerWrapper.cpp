@@ -43,7 +43,7 @@
 
 #define RETURN_INVALID_LINK_STATE_ERR(validStates)                             \
   return std::make_unique<DiagnosticEntry>(                                    \
-      diag::error_invalid_link_state,                                          \
+      Diag::error_invalid_link_state,                                          \
       std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),        \
                                std::string(LLVM_PRETTY_FUNCTION),              \
                                std::string(validStates)});
@@ -82,7 +82,7 @@ eld::Expected<void> LinkerWrapper::setPreserveSymbol(Symbol Symbol) {
   assert(R->isBitCode());
   if (!R || !R->outSymbol())
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_invalid_symbol, {}));
+        DiagnosticEntry(Diag::error_invalid_symbol, {}));
 
   R->shouldPreserve(true);
   R->outSymbol()->setShouldIgnore(false);
@@ -146,7 +146,7 @@ eld::Expected<plugin::Symbol> LinkerWrapper::addSymbol(
       llvm::dyn_cast<eld::BitcodeFile>(InputFile.getInputFile());
   if (!BitcodeFile)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_input_file,
+        Diag::error_invalid_input_file,
         std::vector<std::string>{InputFile.getFileName()});
 
   // We cast from an unsigned value to ResolveInfo::Type, assuming the
@@ -168,7 +168,7 @@ LinkerWrapper::getOutputSection(Section &S) const {
   eld::ELFSection *ES = llvm::dyn_cast<eld::ELFSection>(S.getSection());
   if (!ES)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_no_output_section, {S.getName()}));
+        DiagnosticEntry(Diag::error_no_output_section, {S.getName()}));
   return plugin::OutputSection(ES->getOutputSection());
 }
 
@@ -176,13 +176,13 @@ eld::Expected<std::unique_ptr<const uint8_t[]>>
 LinkerWrapper::getOutputSectionContents(OutputSection &O) const {
   if (getState() <= LinkerWrapper::CreatingSections)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
                                  __FUNCTION__,
                                  "CreatingSegments, AfterLayout"});
   if (O.getOutputSection()->getSection()->isNoBits())
     return std::make_unique<DiagnosticEntry>(
-        diag::error_nobits_unsupported, std::vector<std::string>{O.getName()});
+        Diag::error_nobits_unsupported, std::vector<std::string>{O.getName()});
   auto Data = std::make_unique<uint8_t[]>(O.getSize());
   eld::MemoryRegion Region(Data.get(), O.getSize());
   for (LinkerScriptRule &R : O.getLinkerScriptRules()) {
@@ -203,7 +203,7 @@ LinkerWrapper::getOutputSection(const std::string &OS) {
   eld::ELFSection *S = SM.find(OS);
   if (!S)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_output_section_not_found, {OS}));
+        DiagnosticEntry(Diag::error_output_section_not_found, {OS}));
   return plugin::OutputSection(S->getOutputSection());
 }
 
@@ -224,7 +224,7 @@ eld::Expected<void> LinkerWrapper::reassignVirtualAddresses() {
 eld::Expected<std::vector<Segment>> LinkerWrapper::getSegmentTable() const {
   if (getState() < LinkerWrapper::AfterLayout)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
                                  LLVM_PRETTY_FUNCTION,
                                  "'CreatingSegments, AfterLayout'"});
@@ -249,7 +249,7 @@ LinkerWrapper::getFunction(void *LibraryHandle,
   void *Func = eld::DynamicLibrary::GetFunction(LibraryHandle, FunctionName);
   if (!Func)
     return std::make_unique<DiagnosticEntry>(
-        diag::unable_to_find_func,
+        Diag::unable_to_find_func,
         std::vector<std::string>{"", FunctionName,
                                  eld::DynamicLibrary::GetLastError()});
   return Func;
@@ -269,7 +269,7 @@ eld::Expected<void> LinkerWrapper::doRelocation() {
   /// eld::Expected
   if (!m_Module.getLinker()->getObjectLinker()->relocation(
           m_Module.getConfig().options().emitRelocs()))
-    return std::make_unique<DiagnosticEntry>(diag::error_relocations_plugin);
+    return std::make_unique<DiagnosticEntry>(Diag::error_relocations_plugin);
   return {};
 }
 
@@ -289,7 +289,7 @@ eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
 
   S->setOutputSection(OutputSection.getOutputSection());
   S->setMatchedLinkerScriptRule(Rule.getRuleContainer());
-  Builder.MoveSection(S, Rule.getRuleContainer()->getSection());
+  Builder.moveSection(S, Rule.getRuleContainer()->getSection());
 
   m_Module.getLinker()->getObjLinker()->createOutputSection(
       Builder, OutputSection.getOutputSection(), true);
@@ -348,7 +348,7 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
 
   if (!Section)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_invalid_input_section, {S.getName()}));
+        DiagnosticEntry(Diag::error_invalid_input_section, {S.getName()}));
 
   return std::make_pair(OutputSection(Section), LinkerScriptRule(Rule));
 }
@@ -368,7 +368,7 @@ LinkerWrapper::getSymbol(const std::string &Sym) const {
   eld::ResolveInfo *Info = m_Module.getNamePool().findInfo(Sym);
   if (!Info)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_symbol_not_found, {Sym}));
+        DiagnosticEntry(Diag::error_symbol_not_found, {Sym}));
   return plugin::Symbol(Info);
 }
 
@@ -414,7 +414,7 @@ eld::Expected<void>
 LinkerWrapper::addReferencedSymbol(plugin::Section ReferencingSection,
                                    plugin::Symbol ReferencedSymbol) {
   if (!ReferencingSection || !ReferencedSymbol)
-    return std::make_unique<DiagnosticEntry>(diag::error_invalid_argument);
+    return std::make_unique<DiagnosticEntry>(Diag::error_invalid_argument);
 
   m_Module.addReferencedSymbol(*ReferencingSection.getSection(),
                                *ReferencedSymbol.getSymbol());
@@ -423,7 +423,7 @@ LinkerWrapper::addReferencedSymbol(plugin::Section ReferencingSection,
 
 void LinkerWrapper::runGarbageCollection(const std::string &Phase) {
   if (!m_Module.getIRBuilder()->shouldRunGarbageCollection()) {
-    m_DiagEngine->raise(diag::error_call_gc_without_request);
+    m_DiagEngine->raise(Diag::error_call_gc_without_request);
     return;
   }
 
@@ -435,7 +435,7 @@ eld::Expected<void> LinkerWrapper::addSymbolToChunk(Chunk &C,
                                                     uint64_t Val) {
   if (!C.getFragment())
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_failed_to_add_sym_to_chunk, {Symbol}));
+        DiagnosticEntry(Diag::error_failed_to_add_sym_to_chunk, {Symbol}));
   m_Module.addSymbolCreatedByPluginToFragment(C.getFragment(), Symbol, Val,
                                               getPlugin());
   return {};
@@ -495,27 +495,27 @@ eld::Expected<void> LinkerWrapper::replaceSymbolContent(plugin::Symbol S,
   eld::LDSymbol *Sym = S.getSymbol()->outSymbol();
   if (!Sym)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_invalid_symbol, {}));
+        DiagnosticEntry(Diag::error_invalid_symbol, {}));
 
   if (!Sym->hasFragRefSection())
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_symbol_has_no_chunk, {S.getName()}));
+        DiagnosticEntry(Diag::error_symbol_has_no_chunk, {S.getName()}));
 
   eld::FragmentRef *FragRef = Sym->fragRef();
 
   if (FragRef->getOutputELFSection()->isBSS())
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_chunk_is_bss, {S.getName()}));
+        DiagnosticEntry(Diag::error_chunk_is_bss, {S.getName()}));
 
   eld::RegionFragment *R = llvm::dyn_cast<eld::RegionFragment>(FragRef->frag());
 
   if (!R)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_chunk_is_bss, {S.getName()}));
+        DiagnosticEntry(Diag::error_chunk_is_bss, {S.getName()}));
 
   if (Sz > Sym->size())
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_symbol_is_small,
+        DiagnosticEntry(Diag::error_symbol_is_small,
                         {S.getName(), std::to_string(Sz - Sym->size())}));
 
   m_Module.replaceFragment(FragRef, Buf, Sz);
@@ -592,7 +592,7 @@ llvm::Timer *LinkerWrapper::CreateTimer(const std::string &Name,
     return nullptr;
   return m_Module.getScript().getTimer(
       Name, Description, getPlugin()->getPluginName() + " USER PROFILE",
-      getPlugin()->GetDescription() + " USER PROFILE");
+      getPlugin()->getDescription() + " USER PROFILE");
 }
 
 eld::Expected<void> LinkerWrapper::registerReloc(uint32_t RelocType,
@@ -601,7 +601,7 @@ eld::Expected<void> LinkerWrapper::registerReloc(uint32_t RelocType,
   if (b)
     return {};
   return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
-      diag::error_failed_to_register_reloc, {std::to_string(RelocType)}));
+      Diag::error_failed_to_register_reloc, {std::to_string(RelocType)}));
 }
 
 RelocationHandler LinkerWrapper::getRelocationHandler() const {
@@ -639,7 +639,7 @@ std::string LinkerWrapper::getFileContents(std::string FileName) {
   bool success = buf.Init(m_DiagEngine);
   std::string ErrorMsg = "";
   if (!success) {
-    m_DiagEngine->raise(diag::fatal_cannot_read_input) << FileName;
+    m_DiagEngine->raise(Diag::fatal_cannot_read_input) << FileName;
     return "";
   }
   return buf.getContents().str();
@@ -677,7 +677,7 @@ LinkerWrapper::writeINIFile(INIFile &INI, const std::string &OutputPath) const {
   INI.setLastError(ec ? INIFile::WriteError : INIFile::Success);
   if (ec)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_write_file, {OutputPath, ec.message()}));
+        DiagnosticEntry(Diag::error_write_file, {OutputPath, ec.message()}));
   return {};
 }
 
@@ -733,13 +733,13 @@ LinkerWrapper::getDWARFInfoForInputFile(plugin::InputFile F,
   eld::ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(IF);
   if (!EObj)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_invalid_input_file, {F.getFileName()}));
+        DiagnosticEntry(Diag::error_invalid_input_file, {F.getFileName()}));
   if (!EObj->hasDWARFContext())
     EObj->createDWARFContext(is32bit);
   llvm::DWARFContext *DC = EObj->getDWARFContext();
   if (!DC)
     return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
-        diag::error_dwarf_context_not_available, {F.getFileName()}));
+        Diag::error_dwarf_context_not_available, {F.getFileName()}));
   return DWARFInfo(DC);
 }
 
@@ -761,7 +761,7 @@ bool LinkerWrapper::writeSmallJSONFile(const std::string &FileName,
   std::error_code EC;
   llvm::raw_fd_ostream OS(FileName, EC);
   if (EC) {
-    m_DiagEngine->raise(diag::unable_to_write_json_file)
+    m_DiagEngine->raise(Diag::unable_to_write_json_file)
         << FileName << EC.message();
     return false;
   }
@@ -787,7 +787,7 @@ eld::Expected<void> LinkerWrapper::resetSymbol(plugin::Symbol S, Chunk C) {
   bool b = m_Module.resetSymbol(S.getSymbol(), C.getFragment());
   if (!b)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_failed_to_reset_symbol, {S.getName()}));
+        DiagnosticEntry(Diag::error_failed_to_reset_symbol, {S.getName()}));
   return {};
 }
 
@@ -796,7 +796,7 @@ eld::Expected<Use> LinkerWrapper::createAndAddUse(Chunk C, off_t Offset,
                                                   plugin::Symbol S,
                                                   int64_t Addend) {
   Use ChunkUse(nullptr);
-  eld::Relocation *relocation = m_Module.getIRBuilder()->CreateRelocation(
+  eld::Relocation *relocation = m_Module.getIRBuilder()->createRelocation(
       m_Module.getBackend()->getRelocator(), *C.getFragment(), RelocationType,
       *S.getSymbol()->outSymbol(), Offset, Addend);
   C.getFragment()->getOwningSection()->addRelocation(relocation);
@@ -809,7 +809,7 @@ eld::Expected<void> LinkerWrapper::getTargetDataForUse(Use &U,
   auto *R = U.getRelocation();
   if (!R)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_invalid_use));
+        DiagnosticEntry(Diag::error_invalid_use));
   if (m_Module.getRelocationData(R, Data))
     return {};
   Data = R->target();
@@ -820,7 +820,7 @@ eld::Expected<void> LinkerWrapper::setTargetDataForUse(Use &U, uint64_t Data) {
   auto *R = U.getRelocation();
   if (!R)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_invalid_use));
+        DiagnosticEntry(Diag::error_invalid_use));
   m_Module.setRelocationData(R, Data);
   if (LayoutPrinter *printer = m_Module.getLayoutPrinter()) {
     auto *Op = eld::make<RelocationDataPluginOp>(this, R);
@@ -864,7 +864,7 @@ LinkerWrapper::insertAfterRule(plugin::OutputSection O,
       Rule.getRuleContainer(), RuleToAdd.getRuleContainer());
   if (!inserted)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_failed_to_insert_rule, {}));
+        DiagnosticEntry(Diag::error_failed_to_insert_rule, {}));
   script.removePendingRuleInsertion(this, RuleToAdd.getRuleContainer());
   return {};
 }
@@ -878,7 +878,7 @@ LinkerWrapper::insertBeforeRule(plugin::OutputSection O,
       Rule.getRuleContainer(), RuleToAdd.getRuleContainer());
   if (!inserted)
     return std::make_unique<DiagnosticEntry>(
-        DiagnosticEntry(diag::error_failed_to_insert_rule, {}));
+        DiagnosticEntry(Diag::error_failed_to_insert_rule, {}));
   script.removePendingRuleInsertion(this, RuleToAdd.getRuleContainer());
   return {};
 }
@@ -982,7 +982,7 @@ eld::Expected<std::vector<Segment>>
 LinkerWrapper::getSegmentsForOutputSection(const OutputSection &O) const {
   if (getState() < LinkerWrapper::CreatingSections)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
                                  __FUNCTION__,
                                  "'CreatingSections, AfterLayout'"});
@@ -1031,14 +1031,14 @@ eld::Expected<void> LinkerWrapper::registerCommandLineOption(
     const CommandLineOptionHandlerType &optionHandler) {
   if (getState() != LinkerWrapper::Initializing)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
                                  __FUNCTION__, "Initializing"});
   if (!(opt.size() >= 2 && opt[0] == '-' && opt[1] == '-'))
-    return std::make_unique<DiagnosticEntry>(diag::error_plugin_opt_prefix,
+    return std::make_unique<DiagnosticEntry>(Diag::error_plugin_opt_prefix,
                                              std::vector<std::string>{opt});
   if (opt.size() == 2)
-    return std::make_unique<DiagnosticEntry>(diag::error_plugin_opt_empty,
+    return std::make_unique<DiagnosticEntry>(Diag::error_plugin_opt_empty,
                                              std::vector<std::string>{opt});
   m_Plugin->registerCommandLineOption(opt, hasValue, optionHandler);
   return {};
@@ -1047,7 +1047,7 @@ eld::Expected<void> LinkerWrapper::registerCommandLineOption(
 eld::Expected<void> LinkerWrapper::enableVisitSymbol() {
   if (getState() != LinkerWrapper::Initializing)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
                                  __FUNCTION__, "Initializing"});
   PluginManager &PM = m_Module.getPluginManager();
@@ -1061,11 +1061,11 @@ eld::Expected<void> LinkerWrapper::setRuleMatchingSectionNameMap(
     RETURN_INVALID_LINK_STATE_ERR("Initializing")
   eld::InputFile *inputFile = IF.getInputFile();
   if (!inputFile)
-    return std::make_unique<DiagnosticEntry>(diag::error_empty_input_file);
+    return std::make_unique<DiagnosticEntry>(Diag::error_empty_input_file);
   eld::ObjectFile *objectFile = llvm::dyn_cast<eld::ObjectFile>(inputFile);
   if (!objectFile)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_input_file_for_api,
+        Diag::error_invalid_input_file_for_api,
         std::vector<std::string>{inputFile->getInput()->decoratedPath(),
                                  LLVM_PRETTY_FUNCTION});
   PluginManager &PM = m_Module.getPluginManager();
@@ -1073,7 +1073,7 @@ eld::Expected<void> LinkerWrapper::setRuleMatchingSectionNameMap(
     const eld::Plugin *P = PM.getRMSectionNameMapProvider(inputFile);
     ASSERT(P, "P must be non-null");
     return std::make_unique<DiagnosticEntry>(
-        diag::error_RM_sect_name_map_already_set,
+        Diag::error_RM_sect_name_map_already_set,
         std::vector<std::string>{inputFile->getInput()->decoratedPath(),
                                  P->getPluginName()});
   }
@@ -1096,11 +1096,11 @@ eld::Expected<void> LinkerWrapper::setAuxiliarySymbolNameMap(
     InputFile IF, const AuxiliarySymbolNameMap &symbolNameMap) {
   eld::InputFile *inputFile = IF.getInputFile();
   if (!inputFile)
-    return std::make_unique<DiagnosticEntry>(diag::error_empty_input_file);
+    return std::make_unique<DiagnosticEntry>(Diag::error_empty_input_file);
   eld::ObjectFile *objectFile = llvm::dyn_cast<eld::ObjectFile>(inputFile);
   if (!objectFile)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_input_file_for_api,
+        Diag::error_invalid_input_file_for_api,
         std::vector<std::string>{inputFile->getInput()->decoratedPath(),
                                  LLVM_PRETTY_FUNCTION});
   PluginManager &PM = m_Module.getPluginManager();
@@ -1108,7 +1108,7 @@ eld::Expected<void> LinkerWrapper::setAuxiliarySymbolNameMap(
     const eld::Plugin *P = PM.getAuxiliarySymbolNameMapProvider(objectFile);
     ASSERT(P, "P must be non-null");
     return std::make_unique<DiagnosticEntry>(
-        diag::error_aux_sym_name_map_already_set,
+        Diag::error_aux_sym_name_map_already_set,
         std::vector<std::string>{inputFile->getInput()->decoratedPath(),
                                  P->getPluginName()});
   }
@@ -1142,16 +1142,15 @@ eld::Expected<uint64_t> LinkerWrapper::getOutputSymbolIndex(plugin::Symbol S) {
   return backend.getSymbolIdx(S.getSymbol()->outSymbol());
 }
 
-eld::Expected<bool>
-LinkerWrapper::doesRuleMatchWithSection(const LinkerScriptRule &R,
-                                        const Section &S, bool doNotUseRMName) {
+eld::Expected<bool> LinkerWrapper::doesRuleMatchWithSection(
+    const LinkerScriptRule &R, const Section &S, bool doNotUseRSymbolName) {
   if (!R)
-    return std::make_unique<DiagnosticEntry>(diag::error_empty_rule,
+    return std::make_unique<DiagnosticEntry>(Diag::error_empty_rule,
                                              std::vector<std::string>{});
   if (!S)
-    return std::make_unique<DiagnosticEntry>(diag::error_empty_section,
+    return std::make_unique<DiagnosticEntry>(Diag::error_empty_section,
                                              std::vector<std::string>{});
   const SectionMap &SM = m_Module.getLinkerScript().sectionMap();
   return SM.doesRuleMatchWithSection(*(R.getRuleContainer()), *(S.getSection()),
-                                     doNotUseRMName);
+                                     doNotUseRSymbolName);
 }

@@ -115,15 +115,15 @@ void AArch64GNUInfoLDBackend::initTargetSymbols() {
   if (LinkerConfig::Object != config().codeGenType()) {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
                 0x0, // value
-                FragmentRef::Null(), ResolveInfo::Hidden);
+                FragmentRef::null(), ResolveInfo::Hidden);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     if (m_pGOTSymbol)
       m_pGOTSymbol->setShouldIgnore(false);
   }
@@ -163,7 +163,7 @@ bool AArch64GNUInfoLDBackend::processInputFile(InputFile *In) {
     features |= llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_BTI;
     m_pGPF->updateInfo(features);
     NoteGNUPropertyMap[In] = features;
-    config().raise(diag::no_feature_found_in_file)
+    config().raise(Diag::no_feature_found_in_file)
         << "BTI features recorded" << In->getInput()->decoratedPath();
     hasWarning = true;
   }
@@ -172,7 +172,7 @@ bool AArch64GNUInfoLDBackend::processInputFile(InputFile *In) {
     features |= llvm::ELF::GNU_PROPERTY_AARCH64_FEATURE_1_PAC;
     m_pGPF->updateInfo(features);
     NoteGNUPropertyMap[In] = features;
-    config().raise(diag::no_feature_found_in_file)
+    config().raise(Diag::no_feature_found_in_file)
         << "PAC features recorded" << In->getInput()->decoratedPath();
     hasWarning = true;
   }
@@ -208,7 +208,7 @@ void AArch64GNUInfoLDBackend::defineGOTSymbol(Fragment &pFrag) {
   if (m_pGOTSymbol != nullptr) {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
                 pFrag.getOwningSection()->getInputFile(), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
@@ -217,7 +217,7 @@ void AArch64GNUInfoLDBackend::defineGOTSymbol(Fragment &pFrag) {
   } else {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
@@ -226,7 +226,7 @@ void AArch64GNUInfoLDBackend::defineGOTSymbol(Fragment &pFrag) {
   }
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
   m_pGOTSymbol->setShouldIgnore(false);
 }
 
@@ -290,7 +290,7 @@ void AArch64GNUInfoLDBackend::initSegmentFromLinkerScript(
       // Convert to PROBIT
       cur->setType(llvm::ELF::SHT_PROGBITS);
       cur->setKind(LDFileFormat::Regular);
-      config().raise(diag::warn_mix_bss_section)
+      config().raise(Diag::warn_mix_bss_section)
           << lastMixedNonBSSSection->name() << cur->name();
     }
   }
@@ -334,8 +334,8 @@ void AArch64GNUInfoLDBackend::mayBeRelax(int pass, bool &pFinished) {
   }
 
   // check branch relocs and create the related stubs if needed
-  Module::obj_iterator input, inEnd = m_Module.obj_end();
-  for (input = m_Module.obj_begin(); input != inEnd; ++input) {
+  Module::obj_iterator input, inEnd = m_Module.objEnd();
+  for (input = m_Module.objBegin(); input != inEnd; ++input) {
     ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
     if (!ObjFile)
       continue;
@@ -568,31 +568,31 @@ void AArch64GNUInfoLDBackend::defineIRelativeRange(ResolveInfo &pSym) {
   if (!m_pIRelativeStart && !m_pIRelativeEnd) {
     m_pIRelativeStart =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define,
                 (ResolveInfo::Binding)pSym.binding(),
                 0,   // size
                 0x0, // value
-                FragmentRef::Null(), (ResolveInfo::Visibility)pSym.other());
+                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName)) {
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     }
     m_pIRelativeStart->setShouldIgnore(false);
     SymbolName = "__rela_iplt_end";
     m_pIRelativeEnd =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define,
                 (ResolveInfo::Binding)pSym.binding(),
                 pSym.size(), // size
                 0x0,         // value
-                FragmentRef::Null(), (ResolveInfo::Visibility)pSym.other());
+                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName)) {
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     }
     m_pIRelativeEnd->setShouldIgnore(false);
   }
@@ -691,7 +691,7 @@ bool AArch64GNUInfoLDBackend::ltoCallExternalAssembler(
       if (s.data())
         ss << s.data() << " ";
     }
-    config().raise(diag::process_launch) << ss.str();
+    config().raise(Diag::process_launch) << ss.str();
   }
 
   return !llvm::sys::ExecuteAndWait(assemblerPath->c_str(), assemblerArgs);
@@ -706,7 +706,7 @@ AArch64GOT *AArch64GNUInfoLDBackend::createGOT(GOT::GOTType T,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_got_entry) << R->name();
+    config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->getFragmentList().size()) {
     // TODO: This should be GOT0, not GOTPLT0.
@@ -781,7 +781,7 @@ AArch64PLT *AArch64GNUInfoLDBackend::createPLT(ELFObjectFile *Obj,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_plt_entry) << R->name();
+    config().raise(Diag::create_plt_entry) << R->name();
   if (!getPLT()->getFragmentList().size()) {
     AArch64PLT0::Create(*m_Module.getIRBuilder(),
                         createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
@@ -879,7 +879,7 @@ bool AArch64GNUInfoLDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
   llvm::ArrayRef<uint8_t> data =
       llvm::ArrayRef((const uint8_t *)Contents.data(), Contents.size());
   auto reportFatal = [&](const char *msg) {
-    config().raise(diag::gnu_property_read_error)
+    config().raise(Diag::gnu_property_read_error)
         << pInput.getInput()->decoratedPath() << msg;
   };
   while (!data.empty()) {

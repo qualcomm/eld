@@ -27,7 +27,7 @@
 
 namespace ELD {
 class DiagnosticEntry;
-}
+} // namespace ELD
 
 namespace eld {
 class DiagnosticEngine;
@@ -88,116 +88,116 @@ public:
 public:
   LinkerConfig(DiagnosticEngine *);
 
-  explicit LinkerConfig(DiagnosticEngine *diagEngine,
-                        const std::string &pTripleString);
+  explicit LinkerConfig(DiagnosticEngine *DiagEngine,
+                        const std::string &PTripleString);
 
   ~LinkerConfig();
 
   typedef std::vector<CommandLine *> CommandLineVectorT;
 
-  const GeneralOptions &options() const { return m_Options; }
-  GeneralOptions &options() { return m_Options; }
+  const GeneralOptions &options() const { return GenOptions; }
+  GeneralOptions &options() { return GenOptions; }
 
-  const TargetOptions &targets() const { return m_Targets; }
-  TargetOptions &targets() { return m_Targets; }
+  const TargetOptions &targets() const { return Targets; }
+  TargetOptions &targets() { return Targets; }
 
-  CodeGenType codeGenType() const { return m_CodeGenType; }
+  CodeGenType codeGenType() const { return CodeGen; }
 
-  void setCodeGenType(CodeGenType pType) { m_CodeGenType = pType; }
+  void setCodeGenType(CodeGenType PType) { CodeGen = PType; }
 
-  CodePosition codePosition() const { return m_CodePosition; }
-  void setCodePosition(CodePosition pPosition) { m_CodePosition = pPosition; }
+  CodePosition codePosition() const { return CodePos; }
+  void setCodePosition(CodePosition PPosition) { CodePos = PPosition; }
 
-  bool isCodeIndep() const { return (Independent == m_CodePosition); }
+  bool isCodeIndep() const { return (Independent == CodePos); }
   bool isCodeDynamic() const {
-    return ((m_CodeGenType == DynObj) || (DynamicDependent == m_CodePosition));
+    return ((CodeGen == DynObj) || (DynamicDependent == CodePos));
   }
 
   bool isBuildingExecutable() const {
-    return (m_CodeGenType == Exec || m_Options.isPIE());
+    return (CodeGen == Exec || GenOptions.isPIE());
   }
 
-  bool isLinkPartial() const { return m_CodeGenType == LinkerConfig::Object; }
+  bool isLinkPartial() const { return CodeGen == LinkerConfig::Object; }
 
-  bool isCodeStatic() const { return (StaticDependent == m_CodePosition); }
+  bool isCodeStatic() const { return (StaticDependent == CodePos); }
 
   static const char *version();
 
   void printOptions(llvm::raw_ostream &, GNULDBackend const &,
-                    bool useColor = false);
+                    bool UseColor = false);
 
   bool isAssignOutputSectionsMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::AssignOutputSections;
+    return EnableThreads & LinkerConfig::AssignOutputSections;
   }
 
   bool isScanRelocationsMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::ScanRelocations;
+    return EnableThreads & LinkerConfig::ScanRelocations;
   }
 
   bool isSyncRelocationsMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::SyncRelocations;
+    return EnableThreads & LinkerConfig::SyncRelocations;
   }
 
   bool isCheckCrossRefsMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::CheckCrossRefs;
+    return EnableThreads & LinkerConfig::CheckCrossRefs;
   }
 
   bool isCreateOutputSectionsMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::CreateOutputSections;
+    return EnableThreads & LinkerConfig::CreateOutputSections;
   }
 
   bool isApplyRelocationsMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::ApplyRelocations;
+    return EnableThreads & LinkerConfig::ApplyRelocations;
   }
 
   bool isLinkerRelaxationMultiThreaded() const {
-    return m_EnableThreads & LinkerConfig::LinkerRelaxation;
+    return EnableThreads & LinkerConfig::LinkerRelaxation;
   }
 
   void setThreadOptions(uint32_t EnableThreadsOpt) {
-    m_EnableThreads = NoThreads;
+    EnableThreads = NoThreads;
     if (EnableThreadsOpt & AssignOutputSections)
-      m_EnableThreads |= AssignOutputSections;
+      EnableThreads |= AssignOutputSections;
     if (EnableThreadsOpt & ScanRelocations)
-      m_EnableThreads |= ScanRelocations;
+      EnableThreads |= ScanRelocations;
     if (EnableThreadsOpt & SyncRelocations)
-      m_EnableThreads |= SyncRelocations;
+      EnableThreads |= SyncRelocations;
     if (EnableThreadsOpt & CheckCrossRefs)
-      m_EnableThreads |= CheckCrossRefs;
+      EnableThreads |= CheckCrossRefs;
     if (EnableThreadsOpt & CreateOutputSections)
-      m_EnableThreads |= CreateOutputSections;
+      EnableThreads |= CreateOutputSections;
     if (EnableThreadsOpt & ApplyRelocations)
-      m_EnableThreads |= ApplyRelocations;
+      EnableThreads |= ApplyRelocations;
     if (EnableThreadsOpt & LinkerRelaxation)
-      m_EnableThreads |= LinkerRelaxation;
+      EnableThreads |= LinkerRelaxation;
   }
 
-  void disableThreadOptions(uint32_t threadOptions) {
-    m_EnableThreads &= ~threadOptions;
+  void disableThreadOptions(uint32_t ThreadOptions) {
+    EnableThreads &= ~ThreadOptions;
   }
 
-  bool isGlobalThreadingEnabled() const { return m_GlobalThreadingEnabled; }
+  bool isGlobalThreadingEnabled() const { return GlobalThreadingEnabled; }
 
   void setGlobalThreadingEnabled() {
-    m_EnableThreads = AllThreads;
-    m_GlobalThreadingEnabled = true;
+    EnableThreads = AllThreads;
+    GlobalThreadingEnabled = true;
   }
 
-  void addCommandLine(llvm::StringRef option, bool flag);
+  void addCommandLine(llvm::StringRef Option, bool Flag);
 
-  void addCommandLine(llvm::StringRef option, const char *);
+  void addCommandLine(llvm::StringRef Option, const char *);
 
-  void addCommandLine(llvm::StringRef option,
-                      const std::vector<std::string> &args);
+  void addCommandLine(llvm::StringRef Option,
+                      const std::vector<std::string> &Args);
 
-  void addCommandLine(llvm::StringRef option, llvm::StringRef args);
+  void addCommandLine(llvm::StringRef Option, llvm::StringRef Args);
 
-  CommandLineVectorT getCommandLineVectorT() { return m_CommandLineVector; }
+  CommandLineVectorT getCommandLineVectorT() { return CommandLineVector; }
 
   /// ---------------------Mapping file functionality---------------------------
   void addMapping(const std::string Name, const std::string Hash) {
-    m_HashToPath[Hash] = Name;
-    m_PathToHash[Name] = Hash;
+    HashToPath[Hash] = Name;
+    PathToHash[Name] = Hash;
   }
 
   // FIXME: parameter name is confusing here. Why the parameter name is filename
@@ -213,182 +213,177 @@ public:
   const std::string getHashFromFile(const std::string &Hash) const;
 
   bool hasMappingForFile(const std::string &FileName) const {
-    return m_PathToHash.find(FileName) != m_PathToHash.end();
+    return PathToHash.find(FileName) != PathToHash.end();
   }
 
   bool hasMappingForHash(const std::string &Hash) const {
-    return m_PathToHash.find(Hash) != m_HashToPath.end();
+    return PathToHash.find(Hash) != HashToPath.end();
   }
 
   /// Returns the path to the file that maps to the thin archive member as
   /// per the provided mapping file.
-  std::string getMappedThinArchiveMember(const std::string &archiveName,
-                                         const std::string &memberName) const;
+  std::string getMappedThinArchiveMember(const std::string &ArchiveName,
+                                         const std::string &MemberName) const;
 
-  DiagnosticPrinter *getPrinter() const { return m_DiagEngine->getPrinter(); }
+  DiagnosticPrinter *getPrinter() const { return DiagEngine->getPrinter(); }
 
-  DiagnosticEngine *getDiagEngine() const { return m_DiagEngine; }
+  DiagnosticEngine *getDiagEngine() const { return DiagEngine; }
 
   /// Raise diagnostics.
-  MsgHandler raise(unsigned int pID) const;
+  MsgHandler raise(unsigned int PId) const;
 
   /// Raise diagnostic using a DiagnosticEntry.
-  void raiseDiagEntry(std::unique_ptr<plugin::DiagnosticEntry> diagEntry) const;
+  void raiseDiagEntry(std::unique_ptr<plugin::DiagnosticEntry> DiagEntry) const;
 
   /// search directory
-  const SearchDirs &directories() const { return m_SearchDirs; }
+  const SearchDirs &directories() const { return SearchDirs; }
 
-  SearchDirs &directories() { return m_SearchDirs; }
+  SearchDirs &directories() { return SearchDirs; }
 
-  void setSysRoot(std::string sysRoot) { m_SearchDirs.setSysRoot(sysRoot); }
+  void setSysRoot(std::string SysRoot) { SearchDirs.setSysRoot(SysRoot); }
 
-  const SearchDirs &searchDirs() const { return m_SearchDirs; }
+  const SearchDirs &searchDirs() const { return SearchDirs; }
 
   /// ---------------------Wall functionality---------------------------
   bool hasShowAllWarnings() const {
-    return m_WarnOptions.EnableAllWarnings.has_value();
+    return WarnOpt.EnableAllWarnings.has_value();
   }
 
   bool hasShowLinkerScriptWarnings() const {
-    return m_WarnOptions.EnableLinkerScriptWarnings.has_value();
+    return WarnOpt.EnableLinkerScriptWarnings.has_value();
   }
 
   bool hasShowZeroSizedSectionsWarnings() const {
-    return m_WarnOptions.EnableZeroSizedSectionsWarnings.has_value();
+    return WarnOpt.EnableZeroSizedSectionsWarnings.has_value();
   }
 
   bool hasCommandLineWarnings() const {
-    return m_WarnOptions.EnableCommandLineWarnings.has_value();
+    return WarnOpt.EnableCommandLineWarnings.has_value();
   }
 
   bool hasShowAttributeMixWarnings() const {
-    return m_WarnOptions.EnableAttributeMixWarnings.has_value();
+    return WarnOpt.EnableAttributeMixWarnings.has_value();
   }
 
   bool hasShowArchiveFileWarnings() const {
-    return m_WarnOptions.EnableArchiveFileWarnings.has_value();
+    return WarnOpt.EnableArchiveFileWarnings.has_value();
   }
 
   bool hasShowLinkerScriptMemoryWarnings() const {
-    return m_WarnOptions.EnableLinkerScriptMemoryWarnings.has_value();
+    return WarnOpt.EnableLinkerScriptMemoryWarnings.has_value();
   }
 
   bool hasBadDotAssignmentsWarnings() const {
-    return m_WarnOptions.EnableBadDotAssignmentWarnings.has_value();
+    return WarnOpt.EnableBadDotAssignmentWarnings.has_value();
   }
 
   bool hasWholeArchiveWarnings() const {
-    return m_WarnOptions.EnableWholeArchiveWarnings.has_value();
+    return WarnOpt.EnableWholeArchiveWarnings.has_value();
   }
 
   bool showAllWarnings() const {
-    return (hasShowAllWarnings() && *m_WarnOptions.EnableAllWarnings);
+    return (hasShowAllWarnings() && *WarnOpt.EnableAllWarnings);
   }
 
   bool showLinkerScriptWarnings() const {
     return (hasShowLinkerScriptWarnings() &&
-            *m_WarnOptions.EnableLinkerScriptWarnings);
+            *WarnOpt.EnableLinkerScriptWarnings);
   }
 
   bool showZeroSizedSectionsWarnings() const {
     return (hasShowZeroSizedSectionsWarnings() &&
-            *m_WarnOptions.EnableZeroSizedSectionsWarnings);
+            *WarnOpt.EnableZeroSizedSectionsWarnings);
   }
 
   bool showCommandLineWarnings() const {
-    return (hasCommandLineWarnings() &&
-            *m_WarnOptions.EnableCommandLineWarnings);
+    return (hasCommandLineWarnings() && *WarnOpt.EnableCommandLineWarnings);
   }
 
   bool showAttributeMixWarnings() const {
     return (hasShowAttributeMixWarnings() &&
-            *m_WarnOptions.EnableAttributeMixWarnings);
+            *WarnOpt.EnableAttributeMixWarnings);
   }
 
   bool showArchiveFileWarnings() const {
-    return (hasShowArchiveFileWarnings() &&
-            *m_WarnOptions.EnableArchiveFileWarnings);
+    return (hasShowArchiveFileWarnings() && *WarnOpt.EnableArchiveFileWarnings);
   }
 
   bool showLinkerScriptMemoryWarnings() const {
     return (hasShowLinkerScriptMemoryWarnings() &&
-            *m_WarnOptions.EnableLinkerScriptMemoryWarnings);
+            *WarnOpt.EnableLinkerScriptMemoryWarnings);
   }
 
   bool showBadDotAssignmentWarnings() const {
     return (hasBadDotAssignmentsWarnings() &&
-            *m_WarnOptions.EnableBadDotAssignmentWarnings);
+            *WarnOpt.EnableBadDotAssignmentWarnings);
   }
 
   bool showWholeArchiveWarnings() const {
-    return (hasWholeArchiveWarnings() &&
-            *m_WarnOptions.EnableWholeArchiveWarnings);
+    return (hasWholeArchiveWarnings() && *WarnOpt.EnableWholeArchiveWarnings);
   }
 
   void setShowAllWarnings() {
-    m_WarnOptions.EnableAllWarnings = true;
-    m_WarnOptions.EnableLinkerScriptWarnings = true;
-    m_WarnOptions.EnableZeroSizedSectionsWarnings = true;
-    m_WarnOptions.EnableAttributeMixWarnings = true;
-    m_WarnOptions.EnableArchiveFileWarnings = true;
-    m_WarnOptions.EnableLinkerScriptMemoryWarnings = true;
-    m_WarnOptions.EnableBadDotAssignmentWarnings = true;
-    m_WarnOptions.EnableWholeArchiveWarnings = true;
+    WarnOpt.EnableAllWarnings = true;
+    WarnOpt.EnableLinkerScriptWarnings = true;
+    WarnOpt.EnableZeroSizedSectionsWarnings = true;
+    WarnOpt.EnableAttributeMixWarnings = true;
+    WarnOpt.EnableArchiveFileWarnings = true;
+    WarnOpt.EnableLinkerScriptMemoryWarnings = true;
+    WarnOpt.EnableBadDotAssignmentWarnings = true;
+    WarnOpt.EnableWholeArchiveWarnings = true;
   }
 
-  void setShowLinkerScriptWarning(bool option) {
-    m_WarnOptions.EnableLinkerScriptWarnings = option;
+  void setShowLinkerScriptWarning(bool Option) {
+    WarnOpt.EnableLinkerScriptWarnings = Option;
   }
 
-  void setShowCommandLineWarning(bool option) {
-    m_WarnOptions.EnableCommandLineWarnings = option;
+  void setShowCommandLineWarning(bool Option) {
+    WarnOpt.EnableCommandLineWarnings = Option;
   }
 
-  void setShowZeroSizedSectionsWarning(bool option) {
-    m_WarnOptions.EnableZeroSizedSectionsWarnings = option;
+  void setShowZeroSizedSectionsWarning(bool Option) {
+    WarnOpt.EnableZeroSizedSectionsWarnings = Option;
   }
 
-  void setShowAttributeMixWarning(bool option) {
-    m_WarnOptions.EnableAttributeMixWarnings = option;
+  void setShowAttributeMixWarning(bool Option) {
+    WarnOpt.EnableAttributeMixWarnings = Option;
   }
 
-  void setShowArchiveFileWarning(bool option) {
-    m_WarnOptions.EnableArchiveFileWarnings = option;
+  void setShowArchiveFileWarning(bool Option) {
+    WarnOpt.EnableArchiveFileWarnings = Option;
   }
 
-  void setShowLinkerScriptMemoryWarning(bool option) {
-    m_WarnOptions.EnableLinkerScriptMemoryWarnings = option;
+  void setShowLinkerScriptMemoryWarning(bool Option) {
+    WarnOpt.EnableLinkerScriptMemoryWarnings = Option;
   }
 
-  void setShowBadDotAssginmentsWarning(bool option) {
-    m_WarnOptions.EnableBadDotAssignmentWarnings = option;
+  void setShowBadDotAssginmentsWarning(bool Option) {
+    WarnOpt.EnableBadDotAssignmentWarnings = Option;
   }
 
-  void setShowWholeArchiveWarning(bool option) {
-    m_WarnOptions.EnableWholeArchiveWarnings = option;
+  void setShowWholeArchiveWarning(bool Option) {
+    WarnOpt.EnableWholeArchiveWarnings = Option;
   }
 
-  bool setWarningOption(llvm::StringRef warnOpt);
+  bool setWarningOption(llvm::StringRef WarnOpt);
 
-  /// Returns true if m_UseOldStyleTrampolineNames contains any value.
+  /// Returns true if UseOldStyleTrampolineNames contains any value.
   bool hasUseOldStyleTrampolineName() const {
-    return m_UseOldStyleTrampolineNames.has_value();
+    return UseOldStyleTrampolineNames.has_value();
   }
 
   /// Returns true if old trampoline naming style must be used.
   bool useOldStyleTrampolineName() const {
-    return hasUseOldStyleTrampolineName() && *m_UseOldStyleTrampolineNames;
+    return hasUseOldStyleTrampolineName() && *UseOldStyleTrampolineNames;
   }
 
   /// Set the value for use old style for trampoline naming convention.
-  void setUseOldStyleTrampolineName(bool b) {
-    m_UseOldStyleTrampolineNames = b;
-  }
+  void setUseOldStyleTrampolineName(bool B) { UseOldStyleTrampolineNames = B; }
 
   /// Returns true if reproduce tar should be created.
   bool shouldCreateReproduceTar() const;
 
-  void setSymDefStyle(llvm::StringRef style);
+  void setSymDefStyle(llvm::StringRef Style);
 
   bool isSymDefStyleValid() const;
 
@@ -399,23 +394,23 @@ public:
   std::string getSymDefString() const;
 
 protected:
-  CommandLineVectorT m_CommandLineVector;
+  CommandLineVectorT CommandLineVector;
 
 private:
   // -----  General Options  ----- //
-  GeneralOptions m_Options;
-  TargetOptions m_Targets;
-  CodeGenType m_CodeGenType;
-  CodePosition m_CodePosition;
-  SymDefStyle m_SymDefStyle = Default;
-  std::unordered_map<std::string, std::string> m_HashToPath;
-  std::unordered_map<std::string, std::string> m_PathToHash;
-  bool m_GlobalThreadingEnabled = false;
-  uint32_t m_EnableThreads = LinkerConfig::EnableThreadsOpt::AllThreads;
-  DiagnosticEngine *m_DiagEngine;
-  SearchDirs m_SearchDirs;
-  WarnOptions m_WarnOptions;
-  std::optional<bool> m_UseOldStyleTrampolineNames;
+  GeneralOptions GenOptions;
+  TargetOptions Targets;
+  CodeGenType CodeGen;
+  CodePosition CodePos;
+  SymDefStyle SymDefStyleValue = Default;
+  std::unordered_map<std::string, std::string> HashToPath;
+  std::unordered_map<std::string, std::string> PathToHash;
+  bool GlobalThreadingEnabled = false;
+  uint32_t EnableThreads = LinkerConfig::EnableThreadsOpt::AllThreads;
+  DiagnosticEngine *DiagEngine;
+  SearchDirs SearchDirs;
+  WarnOptions WarnOpt;
+  std::optional<bool> UseOldStyleTrampolineNames;
 };
 
 } // namespace eld

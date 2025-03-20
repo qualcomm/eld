@@ -102,7 +102,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   }
 
   if (m_Builder.getModule().getPrinter()->traceFiles())
-    m_Config.raise(diag::trace_file) << InputFile.getInput()->decoratedPath();
+    m_Config.raise(Diag::trace_file) << InputFile.getInput()->decoratedPath();
 
   BitcodeFile *BitcodeFile = llvm::dyn_cast<eld::BitcodeFile>(&InputFile);
   assert(BitcodeFile);
@@ -155,7 +155,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
     return false;
 
   if (LTOPlugin) {
-    if (!BitcodeFile->CreatePluginModule(*LTOPlugin, ModuleHash))
+    if (!BitcodeFile->createPluginModule(*LTOPlugin, ModuleHash))
       return false;
   }
 
@@ -216,16 +216,16 @@ bool BitcodeReader::readInput(InputFile &InputFile,
       continue;
     std::string wrapName = std::string("__wrap_") + name.str();
     if (m_Config.getPrinter()->traceWrapSymbols())
-      m_Config.raise(diag::insert_wrapper) << wrapName;
+      m_Config.raise(Diag::insert_wrapper) << wrapName;
     Resolver::Result result;
     m_Builder.getModule().getNamePool().insertSymbol(
         &InputFile, wrapName, false, eld::ResolveInfo::NoType,
         eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
         eld::ResolveInfo::Default, nullptr, result, false, false, 0,
         false /* isPatchable */, m_Builder.getModule().getPrinter());
-    sym = make<LDSymbol>(result.info, false);
-    if (result.overriden || !result.info->outSymbol())
-      result.info->setOutSymbol(sym);
+    sym = make<LDSymbol>(result.Info, false);
+    if (result.Overriden || !result.Info->outSymbol())
+      result.Info->setOutSymbol(sym);
   }
 
   return true;

@@ -18,7 +18,7 @@ class LinkerConfig;
  */
 class StringFragment : public Fragment {
 public:
-  StringFragment(std::string str, ELFSection *O = nullptr);
+  StringFragment(std::string Str, ELFSection *O = nullptr);
 
   ~StringFragment();
 
@@ -26,16 +26,16 @@ public:
     return F->getKind() == Fragment::String;
   }
 
-  std::string getString() const { return m_String; }
+  std::string getString() const { return FragmentString; }
 
   static bool classof(const StringFragment *) { return true; }
 
   size_t size() const override;
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
 private:
-  std::string m_String;
+  std::string FragmentString;
 };
 
 } // namespace eld

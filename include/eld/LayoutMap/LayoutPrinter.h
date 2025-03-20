@@ -40,37 +40,37 @@ class Module;
 class Stats;
 
 struct LayoutFragmentInfo {
-  LayoutFragmentInfo(InputFile *F, const ELFSection *section)
-      : m_InputFile(F), m_Section(section) {}
+  LayoutFragmentInfo(InputFile *F, const ELFSection *Section)
+      : ThisInputFile(F), ThisSection(Section) {}
 
-  LayoutFragmentInfo(const ELFSection *section)
-      : m_InputFile(nullptr), m_Section(section) {}
+  LayoutFragmentInfo(const ELFSection *Section)
+      : ThisInputFile(nullptr), ThisSection(Section) {}
 
-  InputFile *m_InputFile;
-  const ELFSection *m_Section;
+  InputFile *ThisInputFile;
+  const ELFSection *ThisSection;
 
   std::string getResolvedPath() const {
-    if (m_InputFile != nullptr)
-      return m_InputFile->getInput()->decoratedPath();
+    if (ThisInputFile != nullptr)
+      return ThisInputFile->getInput()->decoratedPath();
     return "";
   }
 
-  std::string getDecoratedName(const GeneralOptions &options) const {
-    return m_Section->getDecoratedName(options);
+  std::string getDecoratedName(const GeneralOptions &Options) const {
+    return ThisSection->getDecoratedName(Options);
   }
 
-  std::string name() const { return m_Section->name().str(); }
+  std::string name() const { return ThisSection->name().str(); }
 
-  std::string getRealName() const { return m_Section->name().str(); }
+  std::string getRealName() const { return ThisSection->name().str(); }
 
-  uint32_t flag() const { return m_Section->getFlags(); }
-  uint32_t type() const { return m_Section->getType(); }
-  const ELFSection *section() const { return m_Section; }
-  std::vector<LDSymbol *> m_symbols;
+  uint32_t flag() const { return ThisSection->getFlags(); }
+  uint32_t type() const { return ThisSection->getType(); }
+  const ELFSection *section() const { return ThisSection; }
+  std::vector<LDSymbol *> Symbols;
 };
 
 class LayoutPrinter {
-  static uint32_t m_LayoutDetail;
+  static uint32_t LayoutDetail;
 
 public:
   enum LayoutDetail {
@@ -95,46 +95,46 @@ public:
   };
 
   struct Stats {
-    uint64_t numELFObjectFiles = 0;
-    uint64_t numELFExecutableFiles = 0;
-    uint64_t numLinkerScripts = 0;
-    uint64_t numSharedObjectFiles = 0;
-    uint64_t numSymDefFiles = 0;
-    uint64_t numArchiveFiles = 0;
-    uint64_t numGroupTraversal = 0;
-    uint64_t numBitCodeFiles = 0;
-    uint64_t numSectionsGarbageCollected = 0;
-    uint64_t numZeroSizedSection = 0;
-    uint64_t numZeroSizedSectionsGarbageCollected = 0;
-    uint64_t numLinkerScriptRules = 0;
-    uint64_t numOutputSections = 0;
-    uint64_t numPlugins = 0;
-    uint64_t numThreads = 0;
-    uint64_t numOrphans = 0;
-    uint64_t numTrampolines = 0;
-    uint64_t numNoRuleMatch = 0;
+    uint64_t NumElfObjectFiles = 0;
+    uint64_t NumElfExecutableFiles = 0;
+    uint64_t NumLinkerScripts = 0;
+    uint64_t NumSharedObjectFiles = 0;
+    uint64_t NumSymDefFiles = 0;
+    uint64_t NumArchiveFiles = 0;
+    uint64_t NumGroupTraversal = 0;
+    uint64_t NumBitCodeFiles = 0;
+    uint64_t NumSectionsGarbageCollected = 0;
+    uint64_t NumZeroSizedSection = 0;
+    uint64_t NumZeroSizedSectionsGarbageCollected = 0;
+    uint64_t NumLinkerScriptRules = 0;
+    uint64_t NumOutputSections = 0;
+    uint64_t NumPlugins = 0;
+    uint64_t NumThreads = 0;
+    uint64_t NumOrphans = 0;
+    uint64_t NumTrampolines = 0;
+    uint64_t NumNoRuleMatch = 0;
     uint32_t LinkTime = 0;
-    uint64_t numRetainedSections = 0;
-    uint32_t numBinaryFiles = 0;
+    uint64_t NumRetainedSections = 0;
+    uint32_t NumBinaryFiles = 0;
     std::optional<uint32_t> OutputFileSize;
 
     bool hasStats() const {
-      return (numELFObjectFiles + numELFExecutableFiles + numLinkerScripts +
-                  numSharedObjectFiles + numSymDefFiles + numArchiveFiles +
-                  numGroupTraversal + numBitCodeFiles +
-                  numSectionsGarbageCollected + numZeroSizedSection +
-                  numZeroSizedSectionsGarbageCollected + numLinkerScriptRules +
-                  numOutputSections + numPlugins + numOrphans + numTrampolines +
-                  numNoRuleMatch + LinkTime + numRetainedSections +
-                  numBinaryFiles >
+      return (NumElfObjectFiles + NumElfExecutableFiles + NumLinkerScripts +
+                  NumSharedObjectFiles + NumSymDefFiles + NumArchiveFiles +
+                  NumGroupTraversal + NumBitCodeFiles +
+                  NumSectionsGarbageCollected + NumZeroSizedSection +
+                  NumZeroSizedSectionsGarbageCollected + NumLinkerScriptRules +
+                  NumOutputSections + NumPlugins + NumOrphans + NumTrampolines +
+                  NumNoRuleMatch + LinkTime + NumRetainedSections +
+                  NumBinaryFiles >
               0);
     }
   };
 
   struct InputSequenceT {
-    InputKindPrefix prefix;
-    Input *input;
-    std::string archFlag;
+    InputKindPrefix Prefix;
+    Input *Input;
+    std::string ArchFlag;
   };
 
   // -------------------- Public Typedefs ----------------------------
@@ -173,101 +173,101 @@ public:
 
   // Linker Script support
   struct ScriptInputT {
-    std::string include;
-    std::string parent;
-    bool found = false;
+    std::string Include;
+    std::string Parent;
+    bool Found = false;
     uint32_t Depth = 0;
   };
   typedef std::vector<ScriptInputT> ScriptVectorT;
 
   // -------------------End Typedefs ---------------------------------
 
-  LayoutPrinter(LinkerConfig &pConfig);
+  LayoutPrinter(LinkerConfig &PConfig);
 
-  bool showStrings() const { return m_LayoutDetail & ShowStrings; }
+  bool showStrings() const { return LayoutDetail & ShowStrings; }
 
-  bool showOnlyLayout() const { return m_LayoutDetail & OnlyLayout; }
+  bool showOnlyLayout() const { return LayoutDetail & OnlyLayout; }
 
-  bool showAbsolutePath() const { return m_LayoutDetail & ShowAbsolutePath; }
+  bool showAbsolutePath() const { return LayoutDetail & ShowAbsolutePath; }
 
-  bool showRelativePath() const { return m_LayoutDetail & ShowRelativePath; }
+  bool showRelativePath() const { return LayoutDetail & ShowRelativePath; }
 
-  bool dontShowTiming() const { return m_LayoutDetail & NoTimeStats; }
+  bool dontShowTiming() const { return LayoutDetail & NoTimeStats; }
 
-  bool showDebugStrings() const { return m_LayoutDetail & ShowDebugStrings; }
+  bool showDebugStrings() const { return LayoutDetail & ShowDebugStrings; }
 
   bool showTimers() const {
-    return !dontShowTiming() && (m_LayoutDetail & ShowTiming);
+    return !dontShowTiming() && (LayoutDetail & ShowTiming);
   }
 
-  bool showHeaderDetails() const {
-    return (m_LayoutDetail & ShowHeaderDetails);
-  }
+  bool showHeaderDetails() const { return (LayoutDetail & ShowHeaderDetails); }
 
-  bool showInitialLayout() const { return m_LayoutDetail & ShowInitialLayout; }
+  bool showInitialLayout() const { return LayoutDetail & ShowInitialLayout; }
 
-  static eld::Expected<void> setLayoutDetail(llvm::StringRef option,
+  static eld::Expected<void> setLayoutDetail(llvm::StringRef Option,
                                              DiagnosticEngine *);
 
-  void recordFragment(InputFile *input, const ELFSection *inputELFSection,
-                      const Fragment *frag);
+  void recordFragment(InputFile *Input, const ELFSection *InputElfSection,
+                      const Fragment *Frag);
 
   // Record commandline history string from .comment
   void recordCommentFragment(const std::string &CommentStr) {
-    m_Comments.push_back(CommentStr);
+    Comments.push_back(CommentStr);
   }
 
-  void recordSymbol(const Fragment *frag, LDSymbol *symbol);
+  void recordSymbol(const Fragment *Frag, LDSymbol *Symbol);
 
   void recordThreadCount();
 
-  void recordSectionStat(const Section *sect);
+  void recordSectionStat(const Section *Sect);
 
-  void recordSection(ELFSection *s, InputFile *i) { _sectionInfoMap[s] = i; }
+  void recordSection(ELFSection *S, InputFile *I) { SectionInfoMap[S] = I; }
 
-  void recordPlugin(ELFSection *S, Plugin *P) { m_PluginInfo[S].push_back(P); }
+  void recordPlugin(ELFSection *S, Plugin *P) {
+    ThisPluginInfo[S].push_back(P);
+  }
 
-  void recordOutputFileSize(uint32_t sz) { LinkStats.OutputFileSize = sz; }
+  void recordOutputFileSize(uint32_t Sz) { LinkStats.OutputFileSize = Sz; }
 
   // FIXME: Destructor is redundant here.
   ~LayoutPrinter() { destroy(); }
 
   // FIXME: This function is not required.
   void destroy() {
-    _inputActions.clear();
-    _scriptIncludes.clear();
-    _archiveRecords.clear();
-    _fragmentInfoMap.clear();
-    _fragmentInfoVector.clear();
+    InputActions.clear();
+    ScriptIncludes.clear();
+    ArchiveRecords.clear();
+    FragmentInfoMap.clear();
+    FragmentInfoVector.clear();
   }
 
-  void recordArchiveMember(Input *origin, InputFile *referred,
-                           ArchiveFile::Symbol *archSym, LDSymbol *sym);
+  void recordArchiveMember(Input *Origin, InputFile *Referred,
+                           ArchiveFile::Symbol *ArchSym, LDSymbol *Sym);
 
-  void recordWholeArchiveMember(Input *origin);
+  void recordWholeArchiveMember(Input *Origin);
 
-  std::string getPath(const Input *inp) const {
+  std::string getPath(const Input *Inp) const {
     if (showAbsolutePath())
-      return inp->getResolvedPath().getFullPath();
-    return inp->getResolvedPath().native();
+      return Inp->getResolvedPath().getFullPath();
+    return Inp->getResolvedPath().native();
   }
 
-  std::string getFileTypeStringIfBitcode(InputFile *f) {
-    return (f->isBitcode()) ? " (Bitcode type)" : "";
+  std::string getFileTypeStringIfBitcode(InputFile *F) {
+    return (F->isBitcode()) ? " (Bitcode type)" : "";
   }
 
-  void resetArchiveRecords() { _archiveRecords.clear(); }
+  void resetArchiveRecords() { ArchiveRecords.clear(); }
 
-  std::string getStringFromLoadSequence(InputSequenceT ist);
+  std::string getStringFromLoadSequence(InputSequenceT Ist);
 
-  void recordInputActions(InputKindPrefix prefix, Input *input,
-                          std::string fileType = "");
+  void recordInputActions(InputKindPrefix Prefix, Input *Input,
+                          std::string FileType = "");
 
-  void resetInputActions() { _inputActions.clear(); }
+  void resetInputActions() { InputActions.clear(); }
 
-  std::string infoForFrag(const Fragment *frag);
+  std::string infoForFrag(const Fragment *Frag);
 
-  bool isSectionDetailedInfoAvailable(ELFSection *section);
+  bool isSectionDetailedInfoAvailable(ELFSection *Section);
 
   void sortFragmentSymbols(LayoutFragmentInfo *FragInfo);
 
@@ -275,13 +275,13 @@ public:
 
   std::string showSymbolName(llvm::StringRef Name) const;
 
-  void recordInputKind(InputFile::Kind K);
+  void recordInputKind(InputFile::InputFileKind K);
 
   void recordGroup();
 
   void recordOutputSection();
 
-  std::string getPath(const std::string &filename) const;
+  std::string getPath(const std::string &Filename) const;
 
   void recordLinkerScript(std::string File, bool Found = true);
 
@@ -289,7 +289,7 @@ public:
 
   void recordOrphanSection();
 
-  void recordGC(const ELFSection *section);
+  void recordGC(const ELFSection *Section);
 
   void recordPlugin();
 
@@ -327,71 +327,70 @@ public:
   }
 
   void recordVersionScript(std::string VersionScript) {
-    m_VersionScripts.push_back(VersionScript);
+    VersionScripts.push_back(VersionScript);
   }
 
   std::pair<std::string, std::string>
-  getArchiveRecord(ArchiveReferenceRecordT &itr) {
+  getArchiveRecord(ArchiveReferenceRecordT &Itr) {
     // Only first item in tuple is not null in case of --whole-archive
-    Input *orig = std::get<0>(itr);
-    InputFile *ref = std::get<1>(itr);
-    LDSymbol *sym = std::get<3>(itr);
+    Input *orig = std::get<0>(Itr);
+    InputFile *ref = std::get<1>(Itr);
+    LDSymbol *Sym = std::get<3>(Itr);
     std::string SymName;
-    if (sym)
-      SymName = sym->name();
+    if (Sym)
+      SymName = Sym->name();
     else
       SymName = getWholeArchiveString();
     if (ref == nullptr) {
       return std::make_pair(orig->decoratedPath(), SymName);
-    } else {
-      std::string referred = ref->getInput()->decoratedPath();
-      std::string inputType = getFileTypeStringIfBitcode(ref);
-      referred = referred + " (" + SymName + ")" + inputType;
-      std::string membType = getFileTypeStringIfBitcode(orig->getInputFile());
-      std::string memberPath = orig->decoratedPath() + membType;
-      return std::make_pair(memberPath, referred);
     }
+    std::string referred = ref->getInput()->decoratedPath();
+    std::string inputType = getFileTypeStringIfBitcode(ref);
+    referred = referred + " (" + SymName + ")" + inputType;
+    std::string membType = getFileTypeStringIfBitcode(orig->getInputFile());
+    std::string memberPath = orig->decoratedPath() + membType;
+    return std::make_pair(memberPath, referred);
   }
 
   std::string getWholeArchiveString() const { return "-whole-archive"; }
 
-  llvm::DenseSet<plugin::LinkerWrapper *> &getPlugins() { return m_Plugins; }
+  llvm::DenseSet<plugin::LinkerWrapper *> &getPlugins() { return Plugins; }
 
   const RemoveSymbolOpsMapT &getRemovedSymbols() { return RemovedSymbols; }
 
-  ChunkOpsMapT &getChunkOps() { return m_ChunkOps; }
+  ChunkOpsMapT &getChunkOps() { return ChunkOps; }
 
-  SectionOpsMapT &getSectionOps() { return m_ChangeOutputSectionOps; }
+  SectionOpsMapT &getSectionOps() { return ChangeOutputSectionOps; }
 
-  PluginOpsMapT &getPluginOps() { return m_PluginOps; }
+  PluginOpsMapT &getPluginOps() { return PluginOps; }
 
-  LinkerConfig &getConfig() const { return m_Config; }
+  LinkerConfig &getConfig() const { return ThisConfig; }
 
-  FragmentInfoMapT &getFragmentInfoMap() { return _fragmentInfoMap; }
+  FragmentInfoMapT &getFragmentInfoMap() { return FragmentInfoMap; }
 
-  SectionInfoMapT &getSectionInfoMap() { return _sectionInfoMap; }
+  SectionInfoMapT &getSectionInfoMap() { return SectionInfoMap; }
 
-  PluginInfoSectionMapT &getPluginInfo() { return m_PluginInfo; }
+  PluginInfoSectionMapT &getPluginInfo() { return ThisPluginInfo; }
 
-  ResolveInfoVectorT getAllocatedCommonSymbols(Module &module);
+  ResolveInfoVectorT getAllocatedCommonSymbols(Module &Module);
 
-  ResolveInfoVectorT getCommonsGarbageCollected(Module &module);
+  ResolveInfoVectorT getCommonsGarbageCollected(Module &Module);
 
   std::vector<std::string> &getFeatures() { return Features; }
 
   Stats &getLinkStats() { return LinkStats; }
 
   std::vector<ArchiveReferenceRecordT> &getArchiveRecords() {
-    return _archiveRecords;
+    return ArchiveRecords;
   }
 
-  ScriptVectorT &getLinkerScripts() { return m_LinkerScripts; }
+  ScriptVectorT &getLinkerScripts() { return LinkerScripts; }
 
-  std::vector<std::string> &getVersionScripts() { return m_VersionScripts; }
+  std::vector<std::string> &getVersionScripts() { return VersionScripts; }
 
-  InputSequenceVectorT &getInputActions() { return _inputActions; }
+  InputSequenceVectorT &getInputActions() { return InputActions; }
 
-  std::vector<std::string> &getComments() { return m_Comments; }
+  std::vector<std::string> &getComments() { return Comments; }
 
   void buildMergedStringMap(Module &M);
 
@@ -410,7 +409,7 @@ public:
     return MergedStrings.at(S);
   }
 
-  static std::optional<std::string> getBasepath() { return m_Basepath; }
+  static std::optional<std::string> getBasepath() { return ThisBasepath; }
 
   // -------------------------- Stats ---------------------------------
   void registerStats(void *H, const LinkStats *R) {
@@ -421,40 +420,40 @@ public:
   void printStats(void *H, llvm::raw_ostream &OS) const;
 
   bool showSymbolResolution() const {
-    return m_LayoutDetail & LayoutDetail::ShowSymbolResolution;
+    return LayoutDetail & LayoutDetail::ShowSymbolResolution;
   }
 
 private:
   Stats LinkStats;
   std::vector<std::string> Features;
-  PluginInfoSectionMapT m_PluginInfo;
-  PluginOpsMapT m_PluginOps;
-  SectionOpsMapT m_ChangeOutputSectionOps;
-  ChunkOpsMapT m_ChunkOps;
+  PluginInfoSectionMapT ThisPluginInfo;
+  PluginOpsMapT PluginOps;
+  SectionOpsMapT ChangeOutputSectionOps;
+  ChunkOpsMapT ChunkOps;
   RemoveSymbolOpsMapT RemovedSymbols;
-  llvm::DenseSet<plugin::LinkerWrapper *> m_Plugins;
+  llvm::DenseSet<plugin::LinkerWrapper *> Plugins;
   // FIXME: Why do member names here start from underscore?
   // Names starting from an underscore is generally used to
   // indicate internal implementation use.
-  InputSequenceVectorT _inputActions;
-  StringVectorT _scriptIncludes;
-  std::vector<ArchiveReferenceRecordT> _archiveRecords;
-  FragmentInfoMapT _fragmentInfoMap;
-  SectionInfoMapT _sectionInfoMap;
-  FragmentInfoVectorT _fragmentInfoVector;
+  InputSequenceVectorT InputActions;
+  StringVectorT ScriptIncludes;
+  std::vector<ArchiveReferenceRecordT> ArchiveRecords;
+  FragmentInfoMapT FragmentInfoMap;
+  SectionInfoMapT SectionInfoMap;
+  FragmentInfoVectorT FragmentInfoVector;
   std::stack<std::string> LinkerScriptStack;
-  ScriptVectorT m_LinkerScripts;
-  std::vector<std::string> m_VersionScripts;
-  std::vector<std::string> m_Comments;
+  ScriptVectorT LinkerScripts;
+  std::vector<std::string> VersionScripts;
+  std::vector<std::string> Comments;
   std::unordered_map<MergeableString *, std::vector<MergeableString *>>
       MergedStrings;
-  LinkerConfig &m_Config;
+  LinkerConfig &ThisConfig;
   /// It is required to compute relative path when -MapDetail
   /// 'show-relative-path=...' is used.
   // It needs to be 'static' because LayoutPrinter::setLayoutDetail member
   // function is static.
-  static std::optional<std::string> m_Basepath;
-  std::optional<uint32_t> m_OutputFileSize;
+  static std::optional<std::string> ThisBasepath;
+  std::optional<uint32_t> OutputFileSize;
   std::unordered_map<void *, std::unordered_set<const class LinkStats *>>
       HandleToStats;
 };

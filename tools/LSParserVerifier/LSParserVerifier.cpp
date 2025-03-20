@@ -97,7 +97,7 @@ public:
     eld::Input *I = eld::make<eld::Input>(filename, &m_DiagEngine);
     if (!I->resolvePath(*m_Config))
       return nullptr;
-    eld::InputFile *IF = eld::InputFile::Create(I, &m_DiagEngine);
+    eld::InputFile *IF = eld::InputFile::create(I, &m_DiagEngine);
     I->setInputFile(IF);
     return llvm::cast<eld::LinkerScriptFile>(IF);
   }

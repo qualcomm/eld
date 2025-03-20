@@ -32,28 +32,28 @@ class FragmentRef;
  */
 class BranchIslandFactory {
 public:
-  BranchIslandFactory(bool useAddends, LinkerConfig &config);
+  BranchIslandFactory(bool UseAddends, LinkerConfig &Config);
 
   ~BranchIslandFactory();
 
   // Create a branch island.
   std::pair<BranchIsland *, bool>
-  createBranchIsland(Relocation &pReloc, Stub *stub, eld::IRBuilder &pBuilder,
-                     const Relocator *pRelocator);
+  createBranchIsland(Relocation &PReloc, Stub *Stub, eld::IRBuilder &PBuilder,
+                     const Relocator *PRelocator);
 
 private:
-  BranchIsland *findBranchIsland(Module &pModule, Relocation &pReloc,
-                                 Stub *stub, int64_t addend);
+  BranchIsland *findBranchIsland(Module &PModule, Relocation &PReloc,
+                                 Stub *Stub, int64_t Addend);
 
-  LDSymbol *createSymbol(Module &pModule, InputFile *pInput,
-                         const std::string &Name, ResolveInfo::SizeType pSize,
-                         LDSymbol::ValueType pValue, FragmentRef *pFragmentRef);
+  LDSymbol *createSymbol(Module &PModule, InputFile *PInput,
+                         const std::string &Name, ResolveInfo::SizeType PSize,
+                         LDSymbol::ValueType PValue, FragmentRef *PFragmentRef);
 
-  int64_t numBranchIsland;
-  int64_t numClone;
-  bool _useAddends;
+  int64_t NumBranchIsland;
+  int64_t NumClone;
+  bool UseAddends;
   std::mutex Mutex;
-  LinkerConfig &m_Config;
+  LinkerConfig &Config;
 };
 
 } // namespace eld

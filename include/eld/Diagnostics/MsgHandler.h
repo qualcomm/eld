@@ -48,83 +48,83 @@ namespace eld {
  */
 class MsgHandler {
 public:
-  MsgHandler(DiagnosticEngine &pEngine, std::unique_lock<std::mutex> lock);
+  MsgHandler(DiagnosticEngine &PEngine, std::unique_lock<std::mutex> Lock);
   ~MsgHandler();
 
   bool emit();
 
-  void addString(llvm::StringRef pStr) const;
+  void addString(llvm::StringRef PStr) const;
 
-  void addString(const std::string &pStr) const;
+  void addString(const std::string &PStr) const;
 
-  void addTaggedVal(intptr_t pValue,
-                    DiagnosticEngine::ArgumentKind pKind) const;
-
-private:
-  void flushCounts() { m_Engine.state().numArgs = m_NumArgs; }
+  void addTaggedVal(intptr_t PValue,
+                    DiagnosticEngine::ArgumentKind PKind) const;
 
 private:
-  DiagnosticEngine &m_Engine;
-  mutable unsigned int m_NumArgs;
-  std::unique_lock<std::mutex> m_Lock;
+  void flushCounts() { DiagEngine.state().NumArgs = NumArgs; }
+
+private:
+  DiagnosticEngine &DiagEngine;
+  mutable unsigned int NumArgs;
+  std::unique_lock<std::mutex> Lock;
 };
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    llvm::StringRef pStr) {
-  pHandler.addString(pStr);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &PHandler,
+                                    llvm::StringRef PStr) {
+  PHandler.addString(PStr);
+  return PHandler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    const std::string &pStr) {
-  pHandler.addString(pStr);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &PHandler,
+                                    const std::string &PStr) {
+  PHandler.addString(PStr);
+  return PHandler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    const sys::fs::Path &pPath) {
-  pHandler.addString(pPath.native());
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler,
+                                    const sys::fs::Path &Path) {
+  Handler.addString(Path.native());
+  return Handler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    const char *pStr) {
-  pHandler.addTaggedVal(reinterpret_cast<intptr_t>(pStr),
-                        DiagnosticEngine::ak_c_string);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler,
+                                    const char *Str) {
+  Handler.addTaggedVal(reinterpret_cast<intptr_t>(Str),
+                       DiagnosticEngine::ak_c_string);
+  return Handler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler, int pValue) {
-  pHandler.addTaggedVal(pValue, DiagnosticEngine::ak_sint);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &PHandler, int PValue) {
+  PHandler.addTaggedVal(PValue, DiagnosticEngine::ak_sint);
+  return PHandler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    unsigned int pValue) {
-  pHandler.addTaggedVal(pValue, DiagnosticEngine::ak_uint);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler,
+                                    unsigned int Value) {
+  Handler.addTaggedVal(Value, DiagnosticEngine::ak_uint);
+  return Handler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler, long pValue) {
-  pHandler.addTaggedVal(pValue, DiagnosticEngine::ak_sint);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler, long Value) {
+  Handler.addTaggedVal(Value, DiagnosticEngine::ak_sint);
+  return Handler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    unsigned long pValue) {
-  pHandler.addTaggedVal(pValue, DiagnosticEngine::ak_ulonglong);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler,
+                                    unsigned long Value) {
+  Handler.addTaggedVal(Value, DiagnosticEngine::ak_ulonglong);
+  return Handler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler,
-                                    unsigned long long pValue) {
-  pHandler.addTaggedVal(pValue, DiagnosticEngine::ak_ulonglong);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler,
+                                    unsigned long long Value) {
+  Handler.addTaggedVal(Value, DiagnosticEngine::ak_ulonglong);
+  return Handler;
 }
 
-inline const MsgHandler &operator<<(const MsgHandler &pHandler, bool pValue) {
-  pHandler.addTaggedVal(pValue, DiagnosticEngine::ak_bool);
-  return pHandler;
+inline const MsgHandler &operator<<(const MsgHandler &Handler, bool Value) {
+  Handler.addTaggedVal(Value, DiagnosticEngine::ak_bool);
+  return Handler;
 }
 
 } // namespace eld

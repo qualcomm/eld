@@ -19,79 +19,79 @@
 
 using namespace eld;
 
-GroupReader::GroupReader(Module &pModule, ObjectLinker *O)
-    : m_Module(pModule), m_ObjLinker(O) {}
+GroupReader::GroupReader(Module &PModule, ObjectLinker *O)
+    : MModule(PModule), MObjLinker(O) {}
 
 GroupReader::~GroupReader() {}
 
-bool GroupReader::readGroup(InputBuilder::InputIteratorT &curNode,
-                            InputBuilder &pBuilder, LinkerConfig &pConfig,
-                            bool isPostLTOPhase) {
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+bool GroupReader::readGroup(InputBuilder::InputIteratorT &CurNode,
+                            InputBuilder &PBuilder, LinkerConfig &PConfig,
+                            bool IsPostLtoPhase) {
+  LayoutPrinter *Printer = MModule.getLayoutPrinter();
 
-  Module::LibraryList &ArchiveLibraryList = m_Module.getArchiveLibraryList();
+  Module::LibraryList &ArchiveLibraryList = MModule.getArchiveLibraryList();
   size_t ArchiveLibraryListSize = ArchiveLibraryList.size();
 
-  if (printer) {
-    printer->recordInputActions(LayoutPrinter::StartGroup, nullptr);
-    printer->recordGroup();
+  if (Printer) {
+    Printer->recordInputActions(LayoutPrinter::StartGroup, nullptr);
+    Printer->recordGroup();
   }
 
-  std::vector<ArchiveFile *> archives;
+  std::vector<ArchiveFile *> Archives;
 
   // first time read the sub-tree
-  while ((*curNode)->kind() != Node::GroupEnd) {
+  while ((*CurNode)->kind() != Node::GroupEnd) {
 
-    FileNode *node = llvm::dyn_cast<FileNode>(*curNode);
-    if (!node) {
-      ++curNode;
+    FileNode *Node = llvm::dyn_cast<FileNode>(*CurNode);
+    if (!Node) {
+      ++CurNode;
       continue;
     }
-    Input *input = node->getInput();
+    Input *Input = Node->getInput();
     // Resolve the path.
-    if (!input->resolvePath(pConfig))
+    if (!Input->resolvePath(PConfig))
       return false;
 
-    if (!m_ObjLinker->readAndProcessInput(input, isPostLTOPhase))
+    if (!MObjLinker->readAndProcessInput(Input, IsPostLtoPhase))
       return false;
 
-    if (input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
-      if (!m_ObjLinker->readInputs(
-              llvm::dyn_cast<eld::LinkerScriptFile>(input->getInputFile())
+    if (Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+      if (!MObjLinker->readInputs(
+              llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile())
                   ->getNodes()))
         return false;
     }
 
-    ++curNode;
+    ++CurNode;
   }
 
-  size_t cur_name_pool_size = 0;
-  size_t new_size = 0;
+  size_t CurNamePoolSize = 0;
+  size_t NewSize = 0;
   // Traverse all archives in the group.
   do {
-    cur_name_pool_size = m_Module.getNamePool().getNumGlobalSize();
+    CurNamePoolSize = MModule.getNamePool().getNumGlobalSize();
     for (Module::lib_iterator
              It = ArchiveLibraryList.begin() + ArchiveLibraryListSize,
              Ie = ArchiveLibraryList.end();
          It != Ie; ++It) {
       if ((*It)->getInput()->getAttribute().isWholeArchive())
         continue;
-      eld::Expected<uint32_t> expNumObjects =
-          m_ObjLinker->getArchiveParser()->parseFile(**It);
-      if (!expNumObjects) {
-        pConfig.raise(diag::error_read_archive)
+      eld::Expected<uint32_t> ExpNumObjects =
+          MObjLinker->getArchiveParser()->parseFile(**It);
+      if (!ExpNumObjects) {
+        PConfig.raise(Diag::error_read_archive)
             << (*It)->getInput()->decoratedPath();
-        pConfig.raiseDiagEntry(std::move(expNumObjects.error()));
+        PConfig.raiseDiagEntry(std::move(ExpNumObjects.error()));
         return false;
       }
     }
-    new_size = m_Module.getNamePool().getNumGlobalSize();
-    if (printer)
-      printer->recordGroup();
-  } while (cur_name_pool_size != new_size);
+    NewSize = MModule.getNamePool().getNumGlobalSize();
+    if (Printer)
+      Printer->recordGroup();
+  } while (CurNamePoolSize != NewSize);
 
-  if (printer)
-    printer->recordInputActions(LayoutPrinter::EndGroup, nullptr);
+  if (Printer)
+    Printer->recordInputActions(LayoutPrinter::EndGroup, nullptr);
 
   return true;
 }

@@ -35,14 +35,14 @@ ARMToARMStub::ARMToARMStub(uint32_t type, ARMGNULDBackend *Target)
       m_Type(type) {
   if (type == ARMGNULDBackend::VENEER_PIC) {
     m_pData = PIC_TEMPLATE;
-    m_Size = sizeof(PIC_TEMPLATE);
+    ThisSize = sizeof(PIC_TEMPLATE);
     addFixup(8u, -4, llvm::ELF::R_ARM_REL32);
   } else {
     m_pData = TEMPLATE;
-    m_Size = sizeof(TEMPLATE);
+    ThisSize = sizeof(TEMPLATE);
     addFixup(4u, 0x0, llvm::ELF::R_ARM_ABS32);
   }
-  m_Alignment = alignment();
+  Alignment = alignment();
   m_Target = Target;
 }
 
@@ -51,8 +51,8 @@ ARMToARMStub::ARMToARMStub(const uint32_t *pData, size_t pSize,
                            const_fixup_iterator pEnd, size_t align,
                            uint32_t pNumStub)
     : Stub(), m_Name("A2A_veneer"), m_pData(pData), m_NumStub(pNumStub) {
-  m_Size = pSize;
-  m_Alignment = align;
+  ThisSize = pSize;
+  Alignment = align;
   for (auto it = pBegin, ie = pEnd; it != ie; ++it)
     addFixup(**it);
 }
@@ -108,8 +108,8 @@ size_t ARMToARMStub::alignment() const { return 4u; }
 
 Stub *ARMToARMStub::clone(InputFile *F, Relocation *, eld::IRBuilder *pBuilder,
                           DiagnosticEngine *) {
-  Stub *S = make<ARMToARMStub>(m_pData, m_Size, fixup_begin(), fixup_end(),
-                               m_Alignment, m_NumStub++);
+  Stub *S = make<ARMToARMStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
+                               Alignment, m_NumStub++);
   pBuilder->addLinkerInternalLocalSymbol(F,
                                          "$a.a2a." + std::to_string(m_NumStub),
                                          eld::make<FragmentRef>(*S, 0), 0);

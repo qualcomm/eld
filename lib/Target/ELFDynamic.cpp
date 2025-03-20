@@ -45,7 +45,7 @@ ELFDynamic::ELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig)
     if (m_Config.targets().isLittleEndian())
       m_pEntryFactory = new Entry<64, true>();
   } else {
-    m_Config.raise(diag::unsupported_bitclass)
+    m_Config.raise(Diag::unsupported_bitclass)
         << m_Config.targets().triple().str() << m_Config.targets().bitclass();
   }
 }
@@ -133,7 +133,7 @@ void ELFDynamic::reserveEntries(const ELFFileFormat &pFormat, Module &pModule) {
     if (pModule.getSection(".dynstr") && !m_Config.options().soname().empty())
       reserveOne(llvm::ELF::DT_SONAME); // DT_SONAME
 
-    if (m_Config.options().Bsymbolic())
+    if (m_Config.options().bsymbolic())
       reserveOne(llvm::ELF::DT_SYMBOLIC); // DT_SYMBOLIC
   }
 
@@ -208,7 +208,7 @@ void ELFDynamic::reserveEntries(const ELFFileFormat &pFormat, Module &pModule) {
   uint64_t dt_flags = 0x0;
   if (m_Config.options().hasNow())
     dt_flags |= llvm::ELF::DF_BIND_NOW;
-  if (m_Config.options().Bsymbolic())
+  if (m_Config.options().bsymbolic())
     dt_flags |= llvm::ELF::DF_SYMBOLIC;
   if (m_Backend.hasTextRel())
     dt_flags |= llvm::ELF::DF_TEXTREL;
@@ -238,7 +238,7 @@ void ELFDynamic::reserveEntries(const ELFFileFormat &pFormat, Module &pModule) {
 void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
                               const Module &pModule) {
   if (LinkerConfig::DynObj == m_Config.codeGenType() &&
-      m_Config.options().Bsymbolic()) {
+      m_Config.options().bsymbolic()) {
     applyOne(llvm::ELF::DT_SYMBOLIC, 0x0); // DT_SYMBOLIC
   }
 
@@ -357,7 +357,7 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
 
     if (m_Config.options().warnSharedTextrel() &&
         LinkerConfig::DynObj == m_Config.codeGenType())
-      m_Config.raise(diag::warn_shared_textrel);
+      m_Config.raise(Diag::warn_shared_textrel);
   }
 
   if (m_Config.options().hasNow() && !m_Config.options().hasNewDTags())
@@ -365,7 +365,7 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
 
   // All values for new flags go here.
   uint64_t dt_flags = 0x0;
-  if (m_Config.options().Bsymbolic())
+  if (m_Config.options().bsymbolic())
     dt_flags |= llvm::ELF::DF_SYMBOLIC;
   if (m_Config.options().hasNow())
     dt_flags |= llvm::ELF::DF_BIND_NOW;

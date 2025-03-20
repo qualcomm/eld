@@ -9,4 +9,4 @@
 using namespace eld;
 
 PluginData::PluginData(uint32_t Key, void *Data, std::string Annotation)
-    : m_Key(Key), m_Data(Data), m_Annotation(Annotation) {}
+    : Key(Key), Data(Data), Annotation(Annotation) {}

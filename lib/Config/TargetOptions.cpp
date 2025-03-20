@@ -19,39 +19,35 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // TargetOptions
 //===----------------------------------------------------------------------===//
-TargetOptions::TargetOptions() : m_Endian(Unknown), m_BitClass(0) {}
+TargetOptions::TargetOptions() : Endian(Unknown), BitClass(0) {}
 
-TargetOptions::TargetOptions(const std::string &pTriple)
-    : m_Endian(Unknown), m_BitClass(0) {
-  setTriple(pTriple);
+TargetOptions::TargetOptions(const std::string &PTriple)
+    : Endian(Unknown), BitClass(0) {
+  setTriple(PTriple);
 }
 
 TargetOptions::~TargetOptions() {}
 
-void TargetOptions::setTriple(const llvm::Triple &pTriple) {
-  m_Triple = pTriple;
+void TargetOptions::setTriple(const llvm::Triple &PTriple) { Triple = PTriple; }
+
+void TargetOptions::setTriple(const std::string &PTriple) {
+  llvm::Triple triple(PTriple);
+  Triple = triple;
 }
 
-void TargetOptions::setTriple(const std::string &pTriple) {
-  llvm::Triple Triple(pTriple);
-  m_Triple = Triple;
+void TargetOptions::setArch(const std::string &PArchName) {
+  ArchName = PArchName;
 }
 
-void TargetOptions::setArch(const std::string &pArchName) {
-  m_ArchName = pArchName;
-}
+void TargetOptions::setTargetCPU(const std::string &PCpu) { TargetCPU = PCpu; }
 
-void TargetOptions::setTargetCPU(const std::string &pCPU) {
-  m_TargetCPU = pCPU;
-}
-
-void TargetOptions::addEntrySection(LinkerScript &pScript,
-                                    llvm::StringRef pPattern) {
-  WildcardPattern *Pat = make<WildcardPattern>(pPattern);
-  m_EntrySections.emplace_back(Pat);
-  pScript.registerWildCardPattern(Pat);
+void TargetOptions::addEntrySection(LinkerScript &PScript,
+                                    llvm::StringRef PPattern) {
+  WildcardPattern *Pat = make<WildcardPattern>(PPattern);
+  EntrySections.emplace_back(Pat);
+  PScript.registerWildCardPattern(Pat);
 }
 
 TargetOptions::WildCardVecTy &TargetOptions::getEntrySections() {
-  return m_EntrySections;
+  return EntrySections;
 }

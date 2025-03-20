@@ -36,7 +36,7 @@ bool GNULDBackend::createProgramHdrs() {
   // Module AT Table.
   std::vector<ELFSection *> &atTable = m_Module.getAtTable();
 
-  GeneralOptions::AddressMap::iterator addr,
+  GeneralOptions::AddressMapType::iterator addr,
       addrEnd = config().options().addressMap().end();
 
   // Support for PT_GNU_RELRO.
@@ -91,7 +91,7 @@ bool GNULDBackend::createProgramHdrs() {
     auto sec = (*out)->getSection();
     if (sec->isTLS() && (sec->size() > 0)) {
       if (seenTLS && !lastSectTLS) {
-        config().raise(diag::non_contiguous_TLS)
+        config().raise(Diag::non_contiguous_TLS)
             << firstTLS->name() << sec->name();
         hasError = true;
       }
@@ -315,7 +315,7 @@ bool GNULDBackend::createProgramHdrs() {
         SectionMap::iterator outCur = ++out;
         (*outCur)->setOrder((*outPrev)->order());
         if (m_Module.getPrinter()->isVerbose())
-          config().raise(diag::verbose_inserting_section_at_fixed_addr)
+          config().raise(Diag::verbose_inserting_section_at_fixed_addr)
               << atSection->name() << cur->addr()
               << atSection->getInputFile()->getInput()->decoratedPath()
               << (*out)->name();
@@ -458,7 +458,7 @@ bool GNULDBackend::createProgramHdrs() {
         congruentAlign = segAlign;
       }
       if (cur->isFixedAddr() && (vma != cur->addr())) {
-        config().raise(diag::cannot_set_at_address) << cur->name();
+        config().raise(Diag::cannot_set_at_address) << cur->name();
         hasError = true;
       }
       cur->setAddr(vma);
@@ -515,7 +515,7 @@ bool GNULDBackend::createProgramHdrs() {
 
       if (m_AtTableIndex < atTable.size() &&
           (atTable[m_AtTableIndex]->addr() < (cur->addr() + cur->size()))) {
-        config().raise(diag::cannot_place_at_section)
+        config().raise(Diag::cannot_place_at_section)
             << atTable[m_AtTableIndex]->name() << cur->name();
         ++m_AtTableIndex;
         hasError = true;
@@ -552,7 +552,7 @@ bool GNULDBackend::createProgramHdrs() {
           !linkerScriptHasSectionsCommand)
         vma += abiPageSize();
       if (cur->isFixedAddr() && (vma != cur->addr())) {
-        config().raise(diag::cannot_set_at_address) << cur->name();
+        config().raise(Diag::cannot_set_at_address) << cur->name();
         hasError = true;
       }
       if (doAlign)
@@ -584,7 +584,7 @@ bool GNULDBackend::createProgramHdrs() {
       }
       if (m_AtTableIndex < atTable.size() &&
           (atTable[m_AtTableIndex]->addr() < (cur->addr() + cur->size()))) {
-        config().raise(diag::cannot_place_at_section)
+        config().raise(Diag::cannot_place_at_section)
             << atTable[m_AtTableIndex]->name() << cur->name();
         ++m_AtTableIndex;
         hasError = true;

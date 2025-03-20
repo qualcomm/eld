@@ -27,28 +27,28 @@ public:
   MemoryCmd();
   ~MemoryCmd();
 
-  size_t size() const { return m_MemoryDescriptors.size(); }
+  size_t size() const { return MemoryDescriptors.size(); }
 
-  bool empty() const { return m_MemoryDescriptors.empty(); }
+  bool empty() const { return MemoryDescriptors.empty(); }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::MEMORY;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::MEMORY;
   }
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  void push_back(ScriptCommand *Cmd) override;
+  void pushBack(ScriptCommand *Cmd) override;
 
   const std::vector<MemoryDesc *> &getMemoryDescriptors() const {
-    return m_MemoryDescriptors;
+    return MemoryDescriptors;
   }
 
 private:
-  std::vector<MemoryDesc *> m_MemoryDescriptors;
+  std::vector<MemoryDesc *> MemoryDescriptors;
 };
 
 } // namespace eld

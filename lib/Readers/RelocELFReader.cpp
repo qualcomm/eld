@@ -189,7 +189,7 @@ template <class ELFT>
 eld::Expected<bool> RelocELFReader<ELFT>::readCompressedSection(ELFSection *S) {
   LinkerConfig &config = this->m_Module.getConfig();
 
-  config.raise(diag::reading_compressed_section)
+  config.raise(Diag::reading_compressed_section)
       << S->name() << S->originalInput()->getInput()->decoratedPath();
   if (!S->size())
     return true;
@@ -342,7 +342,7 @@ RelocELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
     LDSymbol *symbol = EObj->getSymbol(rSym);
     if (!symbol) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::err_cannot_read_symbol,
+          Diag::err_cannot_read_symbol,
           {std::to_string(rSym),
            inputFile->getInput()->getResolvedPath().getFullPath()}));
     }
@@ -367,7 +367,7 @@ RelocELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
     if (backend.handleRelocation(linkSect, rType, *symbol, R.r_offset, rAddend))
       continue;
 
-    Relocation *relocation = eld::IRBuilder::AddRelocation(
+    Relocation *relocation = eld::IRBuilder::addRelocation(
         backend.getRelocator(), linkSect, rType, *symbol, R.r_offset, rAddend);
     if (relocation)
       linkSect->addRelocation(relocation);
@@ -392,7 +392,7 @@ LDSymbol *RelocELFReader<ELFT>::fixWrapSyms(LDSymbol *sym) {
     realSym = createUndefReference(realName);
   LinkerConfig &config = this->m_Module.getConfig();
   if (this->m_Module.getPrinter()->traceWrapSymbols())
-    config.raise(diag::real_sym_reference) << realName << sym->name();
+    config.raise(Diag::real_sym_reference) << realName << sym->name();
   return realSym;
 }
 
@@ -406,9 +406,9 @@ LDSymbol *RelocELFReader<ELFT>::createUndefReference(llvm::StringRef symName) {
       eld::ResolveInfo::Default, nullptr, result, false, false, 0,
       false /* isPatchable */, this->m_Module.getPrinter());
 
-  LDSymbol *sym = make<LDSymbol>(result.info, false);
-  result.info->setOutSymbol(sym);
-  result.info->setResolvedOrigin(inputFile);
+  LDSymbol *sym = make<LDSymbol>(result.Info, false);
+  result.Info->setOutSymbol(sym);
+  result.Info->setResolvedOrigin(inputFile);
   return sym;
 }
 

@@ -22,52 +22,52 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // InputCmd
 //===----------------------------------------------------------------------===//
-InputCmd::InputCmd(const LinkerConfig &config, StringList &pStringList,
-                   const Attribute &attribute, ScriptFile &scriptFile)
-    : ScriptCommand(ScriptCommand::INPUT), m_StringList(pStringList),
-      m_InputBuilder(config, attribute), m_ScriptFile(scriptFile) {}
+InputCmd::InputCmd(const LinkerConfig &Config, StringList &PStringList,
+                   const Attribute &Attribute, ScriptFile &ScriptFile)
+    : ScriptCommand(ScriptCommand::INPUT), ThisStringList(PStringList),
+      ThisBuilder(Config, Attribute), ThisScriptFile(ScriptFile) {}
 
 InputCmd::~InputCmd() {}
 
-void InputCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "INPUT(";
-  bool prev = false, cur = false;
-  bool hasInput = false;
-  for (auto &S : m_StringList) {
-    InputToken *input = llvm::cast<InputToken>(S);
-    cur = input->asNeeded();
-    if (!prev && cur)
-      outs << "AS_NEEDED(";
-    else if (prev && !cur)
-      outs << ")";
-    if (hasInput)
-      outs << " ";
-    if (input->type() == InputToken::NameSpec)
-      outs << "-l";
-    outs << input->name();
-    hasInput = true;
-    prev = cur;
+void InputCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "INPUT(";
+  bool Prev = false, Cur = false;
+  bool HasInput = false;
+  for (auto &S : ThisStringList) {
+    InputToken *Input = llvm::cast<InputToken>(S);
+    Cur = Input->asNeeded();
+    if (!Prev && Cur)
+      Outs << "AS_NEEDED(";
+    else if (Prev && !Cur)
+      Outs << ")";
+    if (HasInput)
+      Outs << " ";
+    if (Input->type() == InputToken::NameSpec)
+      Outs << "-l";
+    Outs << Input->name();
+    HasInput = true;
+    Prev = Cur;
   }
 
-  if (!m_StringList.empty() && prev)
-    outs << ")";
+  if (!ThisStringList.empty() && Prev)
+    Outs << ")";
 
-  outs << ")\n";
+  Outs << ")\n";
 }
 
-eld::Expected<void> InputCmd::activate(Module &pModule) {
-  for (auto &S : m_StringList) {
-    InputToken *token = llvm::cast<InputToken>(S);
-    if (token->asNeeded())
-      m_InputBuilder.getAttributes().setAsNeeded();
+eld::Expected<void> InputCmd::activate(Module &CurModule) {
+  for (auto &S : ThisStringList) {
+    InputToken *Token = llvm::cast<InputToken>(S);
+    if (Token->asNeeded())
+      ThisBuilder.getAttributes().setAsNeeded();
     else
-      m_InputBuilder.getAttributes().unsetAsNeeded();
-    switch (token->type()) {
+      ThisBuilder.getAttributes().unsetAsNeeded();
+    switch (Token->type()) {
     case InputToken::File:
-      m_InputBuilder.createDeferredInput(token->name(), Input::Script);
+      ThisBuilder.createDeferredInput(Token->name(), Input::Script);
       break;
     case InputToken::NameSpec: {
-      m_InputBuilder.createDeferredInput(token->name(), Input::Namespec);
+      ThisBuilder.createDeferredInput(Token->name(), Input::Namespec);
       break;
     }
     default:
@@ -76,9 +76,9 @@ eld::Expected<void> InputCmd::activate(Module &pModule) {
   }
 
   // Add all inputs that were read from the script to the input itself.
-  for (auto &N : m_InputBuilder.getTree())
-    m_ScriptFile.getLinkerScriptFile().addNode(N);
+  for (auto &N : ThisBuilder.getTree())
+    ThisScriptFile.getLinkerScriptFile().addNode(N);
 
-  m_InputBuilder.getTree().clear();
+  ThisBuilder.getTree().clear();
   return eld::Expected<void>();
 }

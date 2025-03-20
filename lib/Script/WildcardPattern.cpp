@@ -25,21 +25,21 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // WildcardPattern
 //===----------------------------------------------------------------------===//
-WildcardPattern::WildcardPattern(StrToken *pPattern, SortPolicy pPolicy,
-                                 ExcludeFiles *pExcludeFileList)
-    : StrToken(pPattern->name(), StrToken::Wildcard), m_SortPolicy(pPolicy),
-      m_ExcudeFiles(pExcludeFileList), m_bhasHash(false),
-      m_bPatternIsPrefix(false), m_bPatternIsSuffix(false), m_ID(0) {
-  if (pPattern->isQuoted())
+WildcardPattern::WildcardPattern(StrToken *PPattern, SortPolicy PPolicy,
+                                 ExcludeFiles *PExcludeFileList)
+    : StrToken(PPattern->name(), StrToken::Wildcard), MSortPolicy(PPolicy),
+      MExcudeFiles(PExcludeFileList), MBhasHash(false),
+      MBPatternIsPrefix(false), MBPatternIsSuffix(false), CurID(0) {
+  if (PPattern->isQuoted())
     setQuoted();
-  createGlobPattern(llvm::StringRef(pPattern->name()));
+  createGlobPattern(llvm::StringRef(PPattern->name()));
 }
 
-WildcardPattern::WildcardPattern(llvm::StringRef Pattern, SortPolicy pPolicy,
-                                 ExcludeFiles *pExcludeFileList)
-    : StrToken(std::string(Pattern), StrToken::Wildcard), m_SortPolicy(pPolicy),
-      m_ExcudeFiles(pExcludeFileList), m_bhasHash(false),
-      m_bPatternIsPrefix(false), m_bPatternIsSuffix(false), m_ID(0) {
+WildcardPattern::WildcardPattern(llvm::StringRef Pattern, SortPolicy PPolicy,
+                                 ExcludeFiles *PExcludeFileList)
+    : StrToken(std::string(Pattern), StrToken::Wildcard), MSortPolicy(PPolicy),
+      MExcudeFiles(PExcludeFileList), MBhasHash(false),
+      MBPatternIsPrefix(false), MBPatternIsSuffix(false), CurID(0) {
   createGlobPattern(Pattern);
 }
 
@@ -51,27 +51,27 @@ bool WildcardPattern::hasGlob() const {
   return true;
 }
 
-bool WildcardPattern::matched(llvm::StringRef pName, uint64_t hash) const {
-  if (m_bhasHash)
-    return m_hashValue == hash;
-  return matched(pName);
+bool WildcardPattern::matched(llvm::StringRef PName, uint64_t Hash) const {
+  if (MBhasHash)
+    return HashValue == Hash;
+  return matched(PName);
 }
 
-bool WildcardPattern::matched(llvm::StringRef pName) const {
-  if (pName.empty())
+bool WildcardPattern::matched(llvm::StringRef PName) const {
+  if (PName.empty())
     return false;
 
-  if (m_Name == "*")
+  if (Name == "*")
     return true;
 
   // It is added for GNU-compatiblity. A single backslash is an invalid glob
   // pattern and hence it should not match anything. Please note that the
   // '\' glob pattern should not even match '\'. To match '\', the glob
   // pattern should be '\\' (backslash needs to be escaped).
-  if (m_Name == "\\")
+  if (Name == "\\")
     return false;
 
-  return !name().empty() && (m_Pattern.match(pName));
+  return !name().empty() && (MPattern.match(PName));
 }
 
 void WildcardPattern::createGlobPattern(llvm::StringRef Pattern) {
@@ -82,7 +82,7 @@ void WildcardPattern::createGlobPattern(llvm::StringRef Pattern) {
   auto E = llvm::GlobPattern::create(Pattern);
   if (!E)
     ASSERT(0, "Pattern cannot be created for " + Pattern.str());
-  m_Pattern = std::move(*E);
+  MPattern = std::move(*E);
   if (!hasGlob())
     setHash(llvm::hash_combine(Pattern));
 }

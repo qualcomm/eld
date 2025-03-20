@@ -13,7 +13,7 @@
 
 using namespace eld;
 
-ScriptMemoryRegion::ScriptMemoryRegion(MemoryDesc *Desc) : m_MemoryDesc(Desc) {}
+ScriptMemoryRegion::ScriptMemoryRegion(MemoryDesc *Desc) : MMemoryDesc(Desc) {}
 
 void ScriptMemoryRegion::addOutputSectionVMA(const OutputSectionEntry *O) {
   CurrentCursor = O->getSection()->addr();
@@ -29,38 +29,38 @@ void ScriptMemoryRegion::addOutputSection(const OutputSectionEntry *O) {
   const ELFSection *S = O->getSection();
   if (!S->isTBSS())
     CurrentCursor = CurrentCursor.value() + S->size();
-  m_OutputSections.push_back(O);
+  MOutputSections.push_back(O);
   if (getSize() > getLength().value())
     FirstOutputSectionExceededLimit = O;
 }
 
 eld::Expected<void>
-ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &config) {
+ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
   if (FirstOutputSectionExceededLimit)
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::error_memory_region_exceeded_limit,
+        Diag::error_memory_region_exceeded_limit,
         {getName(), std::string(FirstOutputSectionExceededLimit->name())}));
-  if (!getSize() && config.showLinkerScriptMemoryWarnings())
-    config.raise(diag::warn_memory_region_zero_sized) << getName();
-  config.raise(diag::verbose_verified_add_memory_region) << getName();
+  if (!getSize() && Config.showLinkerScriptMemoryWarnings())
+    Config.raise(Diag::warn_memory_region_zero_sized) << getName();
+  Config.raise(Diag::verbose_verified_add_memory_region) << getName();
   return eld::Expected<void>();
 }
 
 eld::Expected<uint64_t> ScriptMemoryRegion::getOrigin() const {
-  MemorySpec *spec = m_MemoryDesc->getMemorySpec();
-  Expression *Origin = spec->getOrigin();
+  MemorySpec *Spec = MMemoryDesc->getMemorySpec();
+  Expression *Origin = Spec->getOrigin();
   return Origin->evaluateAndReturnError();
 }
 
 eld::Expected<uint64_t> ScriptMemoryRegion::getLength() const {
-  MemorySpec *spec = m_MemoryDesc->getMemorySpec();
-  Expression *Length = spec->getLength();
+  MemorySpec *Spec = MMemoryDesc->getMemorySpec();
+  Expression *Length = Spec->getLength();
   return Length->evaluateAndReturnError();
 }
 
 size_t ScriptMemoryRegion::getSize() const {
   size_t Sz = 0;
-  if (!m_OutputSections.size())
+  if (!MOutputSections.size())
     return Sz;
   Sz = CurrentCursor.value() - getOrigin().value();
   return Sz;
@@ -76,27 +76,27 @@ uint64_t ScriptMemoryRegion::getAddr() {
 // flags when placing output sections in a memory region. These flags
 // are only used when an explicit memory region name is not used.
 eld::Expected<void> ScriptMemoryRegion::parseMemoryAttributes() {
-  MemorySpec *spec = m_MemoryDesc->getMemorySpec();
-  std::string Attributes = spec->getMemoryAttributes();
+  MemorySpec *Spec = MMemoryDesc->getMemorySpec();
+  std::string Attributes = Spec->getMemoryAttributes();
   // Nothing to do
   if (Attributes.empty())
     return eld::Expected<void>();
-  bool foundInvertedFlags = false;
-  char prev = 0;
-  for (const auto &c : Attributes) {
-    char attr = tolower(c);
-    switch (attr) {
+  bool FoundInvertedFlags = false;
+  char Prev = 0;
+  for (const auto &C : Attributes) {
+    char Attr = tolower(C);
+    switch (Attr) {
     case '(':
     case ')':
       break;
     case '!': {
-      if (foundInvertedFlags && prev == '!')
+      if (FoundInvertedFlags && Prev == '!')
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::error_inverted_allowed_only_once,
+            plugin::DiagnosticEntry(Diag::error_inverted_allowed_only_once,
                                     {getName()}));
       std::swap(AttrFlags, AttrNegFlags);
       std::swap(AttrInvertedFlags, AttrInvertedNegFlags);
-      foundInvertedFlags = !foundInvertedFlags;
+      FoundInvertedFlags = !FoundInvertedFlags;
       break;
     }
     case 'r':
@@ -118,15 +118,15 @@ eld::Expected<void> ScriptMemoryRegion::parseMemoryAttributes() {
     default:
       break;
     }
-    prev = c;
+    Prev = C;
   }
-  if (foundInvertedFlags && (AttrFlags || AttrNegFlags)) {
+  if (FoundInvertedFlags && (AttrFlags || AttrNegFlags)) {
     std::swap(AttrFlags, AttrNegFlags);
     std::swap(AttrInvertedFlags, AttrInvertedNegFlags);
   }
-  if (foundInvertedFlags && (!AttrInvertedFlags && !AttrNegFlags)) {
+  if (FoundInvertedFlags && (!AttrInvertedFlags && !AttrNegFlags)) {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::error_no_inverted_flags_present, {getName()}));
+        Diag::error_no_inverted_flags_present, {getName()}));
   }
   return eld::Expected<void>();
 }
@@ -156,51 +156,51 @@ bool ScriptMemoryRegion::checkCompatibilityAndAssignMemorySpecToOutputSection(
     return true;
   if (!isCompatible(S))
     return false;
-  MemorySpec *spec = m_MemoryDesc->getMemorySpec();
-  O->epilog().setRegion(this, spec->getMemoryDescriptorToken());
+  MemorySpec *Spec = MMemoryDesc->getMemorySpec();
+  O->epilog().setRegion(this, Spec->getMemoryDescriptorToken());
   if (!O->epilog().hasLMARegion() && !O->prolog().hasLMA())
-    O->epilog().setLMARegion(this, spec->getMemoryDescriptorToken());
+    O->epilog().setLMARegion(this, Spec->getMemoryDescriptorToken());
   return true;
 }
 
 eld::Expected<void>
-ScriptMemoryRegion::printMemoryUsage(llvm::raw_ostream &os) const {
-  auto printSize = [&](uint64_t size) {
-    if ((size & 0x3fffffff) == 0)
-      os << llvm::format_decimal(size >> 30, 10) << " GB";
-    else if ((size & 0xfffff) == 0)
-      os << llvm::format_decimal(size >> 20, 10) << " MB";
-    else if ((size & 0x3ff) == 0)
-      os << llvm::format_decimal(size >> 10, 10) << " KB";
+ScriptMemoryRegion::printMemoryUsage(llvm::raw_ostream &Os) const {
+  auto PrintSize = [&](uint64_t Size) {
+    if ((Size & 0x3fffffff) == 0)
+      Os << llvm::format_decimal(Size >> 30, 10) << " GB";
+    else if ((Size & 0xfffff) == 0)
+      Os << llvm::format_decimal(Size >> 20, 10) << " MB";
+    else if ((Size & 0x3ff) == 0)
+      Os << llvm::format_decimal(Size >> 10, 10) << " KB";
     else
-      os << " " << llvm::format_decimal(size, 10) << " B";
+      Os << " " << llvm::format_decimal(Size, 10) << " B";
   };
-  auto Length = getLength();
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Length);
+  auto MemoryLength = getLength();
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(MemoryLength);
   uint64_t Size = getSize();
-  os << llvm::right_justify(getName(), 16);
-  os << ": ";
-  printSize(Size);
-  uint64_t length = Length.value();
-  if (length != 0) {
-    printSize(length);
-    double percent = Size * 100.0 / length;
-    os << "    " << llvm::format("%6.2f%%", percent);
+  Os << llvm::right_justify(getName(), 16);
+  Os << ": ";
+  PrintSize(Size);
+  uint64_t Length = MemoryLength.value();
+  if (Length != 0) {
+    PrintSize(Length);
+    double Percent = Size * 100.0 / Length;
+    Os << "    " << llvm::format("%6.2f%%", Percent);
   }
-  os << '\n';
+  Os << '\n';
   return eld::Expected<void>();
 }
 
-void ScriptMemoryRegion::printHeaderForMemoryUsage(llvm::raw_ostream &os) {
-  os << "Memory region         Used Size  Region Size  %age Used\n";
+void ScriptMemoryRegion::printHeaderForMemoryUsage(llvm::raw_ostream &Os) {
+  Os << "Memory region         Used Size  Region Size  %age Used\n";
 }
 
 std::string ScriptMemoryRegion::getName() const {
   return getMemoryDesc()->getMemorySpec()->getMemoryDescriptor();
 }
 
-bool ScriptMemoryRegion::containsVMA(uint64_t addr) const {
+bool ScriptMemoryRegion::containsVMA(uint64_t Addr) const {
   uint64_t Origin = getOrigin().value();
   uint64_t Length = getLength().value();
-  return (addr >= Origin) && (addr <= Origin + Length);
+  return (Addr >= Origin) && (Addr <= Origin + Length);
 }

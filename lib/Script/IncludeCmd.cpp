@@ -12,29 +12,29 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // IncludeCmd
 //===----------------------------------------------------------------------===//
-IncludeCmd::IncludeCmd(const std::string FileName, bool isOptional)
+IncludeCmd::IncludeCmd(const std::string FileName, bool IsOptional)
     : ScriptCommand(ScriptCommand::INCLUDE), FileName(FileName),
-      m_isOptional(isOptional) {}
+      IsOptional(IsOptional) {}
 
-void IncludeCmd::dump(llvm::raw_ostream &outs) const {
-  if (m_isOptional)
-    outs << "INCLUDE_OPTIONAL";
+void IncludeCmd::dump(llvm::raw_ostream &Outs) const {
+  if (IsOptional)
+    Outs << "INCLUDE_OPTIONAL";
   else
-    outs << "INCLUDE";
-  outs << " ";
-  outs << FileName;
-  outs << "\n";
+    Outs << "INCLUDE";
+  Outs << " ";
+  Outs << FileName;
+  Outs << "\n";
 }
 
-void IncludeCmd::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  if (m_isOptional)
-    outs << "INCLUDE_OPTIONAL";
+void IncludeCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  if (IsOptional)
+    Outs << "INCLUDE_OPTIONAL";
   else
-    outs << "INCLUDE";
-  outs << " ";
-  outs << FileName;
+    Outs << "INCLUDE";
+  Outs << " ";
+  Outs << FileName;
 }
 
-eld::Expected<void> IncludeCmd::activate(Module &pModule) {
+eld::Expected<void> IncludeCmd::activate(Module &CurModule) {
   return eld::Expected<void>();
 }

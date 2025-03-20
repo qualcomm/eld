@@ -54,7 +54,7 @@ public:
 
 private:
   using ArchiveSymbolInfoTable =
-      std::unordered_map<ArchiveSymbol, ArchiveFile::Symbol::Type>;
+      std::unordered_map<ArchiveSymbol, ArchiveFile::Symbol::SymbolType>;
 
   Module &m_Module;
 
@@ -135,13 +135,13 @@ private:
   eld::Expected<bool> includeMember(Input *member) const;
 
   /// Determines if a symbol should be included or not.
-  ArchiveFile::Symbol::Status
+  ArchiveFile::Symbol::SymbolStatus
   shouldIncludeSymbol(const ArchiveFile::Symbol &pSym, InputFile **pSite) const;
 
   /// Returns true if both info and type represents the same type of
   /// information.
   bool definedSameType(const ResolveInfo *info,
-                       ArchiveFile::Symbol::Type type) const;
+                       ArchiveFile::Symbol::SymbolType type) const;
 
   eld::Expected<MemoryArea *>
   getMemberData(const ArchiveFile &archiveFile,

@@ -14,8 +14,8 @@ class LinkerConfig;
 
 class TimingFragment : public Fragment {
 public:
-  TimingFragment(uint64_t beginningOfTime, uint64_t duration,
-                 llvm::StringRef moduleName, ELFSection *O);
+  TimingFragment(uint64_t BeginningOfTime, uint64_t Duration,
+                 llvm::StringRef ModuleName, ELFSection *O);
 
   TimingFragment(llvm::StringRef Slice, llvm::StringRef InputFileName,
                  ELFSection *O, DiagnosticEngine *DiagEngine);
@@ -27,17 +27,17 @@ public:
 
   size_t size() const override;
 
-  eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   void dump(llvm::raw_ostream &OS) override;
 
   // set the actual timing info after linking is done
-  void setData(uint64_t beginningOfTime, uint64_t duration);
+  void setData(uint64_t BeginningOfTime, uint64_t Duration);
 
-  const TimingSlice *getTimingSlice() const { return m_Slice; }
+  const TimingSlice *getTimingSlice() const { return TimeSlice; }
 
 private:
-  TimingSlice *m_Slice;
+  TimingSlice *TimeSlice;
 };
 
 } // namespace eld

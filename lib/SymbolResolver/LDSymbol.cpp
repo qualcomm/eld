@@ -24,38 +24,38 @@
 
 using namespace eld;
 
-static LDSymbol g_NullSymbol;
+static LDSymbol GNullSymbol;
 
 //===----------------------------------------------------------------------===//
 // LDSymbol
 //===----------------------------------------------------------------------===//
-LDSymbol::LDSymbol(ResolveInfo *R, bool isGC)
-    : m_pResolveInfo(R), m_pFragRef(nullptr), m_Shndx(0), m_SymIdx(0),
-      m_ScriptDefined(false), m_ScriptValueDefined(false),
-      m_ShouldIgnore(isGC) {}
+LDSymbol::LDSymbol(ResolveInfo *R, bool IsGc)
+    : ThisResolveInfo(R), ThisFragRef(nullptr), ThisShndx(0), ThisSymIdx(0),
+      ThisSymbolsIsScriptDefined(false), ThisSymbolHasScriptValue(false),
+      ThisSymbolGarbageCollected(IsGc) {}
 
 LDSymbol::~LDSymbol() {}
 
-LDSymbol *LDSymbol::Null() { return &g_NullSymbol; }
+LDSymbol *LDSymbol::null() { return &GNullSymbol; }
 
-void LDSymbol::setFragmentRef(FragmentRef *pFragmentRef) {
-  m_pFragRef = pFragmentRef;
-  Fragment *frag = pFragmentRef->frag();
+void LDSymbol::setFragmentRef(FragmentRef *CurFragmentRef) {
+  ThisFragRef = CurFragmentRef;
+  Fragment *Frag = CurFragmentRef->frag();
   // Set zero-sized section as wanted if they have any associated symbol.
-  if (!frag || !frag->isZeroSizedFrag())
+  if (!Frag || !Frag->isZeroSizedFrag())
     return;
-  frag->getOwningSection()->setWanted(true);
+  Frag->getOwningSection()->setWanted(true);
 }
 
-void LDSymbol::setResolveInfo(const ResolveInfo &pInfo) {
-  m_pResolveInfo = const_cast<ResolveInfo *>(&pInfo);
+void LDSymbol::setResolveInfo(const ResolveInfo &CurInfo) {
+  ThisResolveInfo = const_cast<ResolveInfo *>(&CurInfo);
 }
 
-bool LDSymbol::isNull() const { return (this == Null()); }
+bool LDSymbol::isNull() const { return (this == null()); }
 
 bool LDSymbol::hasFragRef() const {
-  if (m_pFragRef)
-    return !m_pFragRef->isNull() && !m_pFragRef->isDiscard();
+  if (ThisFragRef)
+    return !ThisFragRef->isNull() && !ThisFragRef->isDiscard();
   return false;
 }
 
@@ -63,10 +63,10 @@ bool LDSymbol::hasFragRefSection() const {
   if (!hasFragRef())
     return false;
 
-  if (!m_pFragRef->frag())
+  if (!ThisFragRef->frag())
     return false;
 
-  if (!m_pFragRef->frag()->getOwningSection())
+  if (!ThisFragRef->frag()->getOwningSection())
     return false;
 
   return true;

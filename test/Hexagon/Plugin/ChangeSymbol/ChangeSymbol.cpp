@@ -131,7 +131,7 @@ private:
     if (U.getName() == "bar")
       changeSymbol(U);
     if (U.getName() == "baz")
-      changeSymbolAndAddRelocation(U);
+      changeSymbolAndaddRelocation(U);
     if (U.getName() == "car")
       changeSymbolCar(U);
   }
@@ -170,7 +170,7 @@ private:
         P->getLinker(), expResetSym)
   }
 
-  void changeSymbolAndAddRelocation(eld::plugin::Use &U) {
+  void changeSymbolAndaddRelocation(eld::plugin::Use &U) {
     const unsigned char callBytes[] = {0x00, 0x40, 0x00, 0x00,  // immext #foo
                                        0x00, 0xc0, 0x00, 0x5a}; // call #foo
     const char *Buf = P->getLinker()->getUninitBuffer(sizeof(callBytes));

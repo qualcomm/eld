@@ -15,34 +15,34 @@
 
 using namespace eld;
 
-BitcodeFile::BitcodeFile(Input *I, DiagnosticEngine *diagEngine)
-    : ObjectFile(I, InputFile::BitcodeFileKind, diagEngine) {
+BitcodeFile::BitcodeFile(Input *I, DiagnosticEngine *PDiagEngine)
+    : ObjectFile(I, InputFile::BitcodeFileKind, PDiagEngine) {
   if (I->getSize())
     Contents = I->getFileContents();
-  m_DiagEngine = diagEngine;
+  DiagEngine = PDiagEngine;
 }
 
 BitcodeFile::~BitcodeFile() {}
 
 /// Helper function to create a LTO module from a file.
-bool BitcodeFile::createLTOInputFile(const std::string &ModuleID) {
+bool BitcodeFile::createLTOInputFile(const std::string &PModuleID) {
 
-  m_ModuleID = ModuleID;
+  ModuleID = PModuleID;
 
   llvm::Expected<std::unique_ptr<llvm::lto::InputFile>> IFOrErr =
-      llvm::lto::InputFile::create(llvm::MemoryBufferRef(Contents, m_ModuleID));
+      llvm::lto::InputFile::create(llvm::MemoryBufferRef(Contents, ModuleID));
   if (!IFOrErr) {
-    m_DiagEngine->raise(diag::fatal_cannot_make_module)
+    DiagEngine->raise(Diag::fatal_cannot_make_module)
         << getInput()->decoratedPath() << llvm::toString(IFOrErr.takeError());
     return false;
   }
 
-  m_LTOInputFile = std::move(*IFOrErr);
+  LTOInputFile = std::move(*IFOrErr);
   return true;
 }
 
 std::unique_ptr<llvm::lto::InputFile> BitcodeFile::takeLTOInputFile() {
-  return std::move(m_LTOInputFile);
+  return std::move(LTOInputFile);
 }
 
 bool BitcodeFile::canReleaseMemory() const {
@@ -57,37 +57,37 @@ bool BitcodeFile::canReleaseMemory() const {
   return false;
 }
 
-void BitcodeFile::releaseMemory(bool isVerbose) {
-  assert(!m_LTOInputFile);
+void BitcodeFile::releaseMemory(bool IsVerbose) {
+  assert(!LTOInputFile);
   Input *I = getInput();
-  if (m_DiagEngine->getPrinter()->isVerbose())
-    m_DiagEngine->raise(diag::release_memory_bitcode) << I->decoratedPath();
+  if (DiagEngine->getPrinter()->isVerbose())
+    DiagEngine->raise(Diag::release_memory_bitcode) << I->decoratedPath();
   if (I->getInputType() != Input::ArchiveMember) {
-    I->releaseMemory(isVerbose);
+    I->releaseMemory(IsVerbose);
     return;
   }
   ArchiveMemberInput *AMI = llvm::dyn_cast<eld::ArchiveMemberInput>(I);
   // Some one already destroyed it!
   if (AMI->getArchiveFile()->isAlreadyReleased())
     return;
-  AMI->getArchiveFile()->releaseMemory(isVerbose);
+  AMI->getArchiveFile()->releaseMemory(IsVerbose);
 }
 
-bool BitcodeFile::CreatePluginModule(plugin::LinkerPlugin &Plugin,
+bool BitcodeFile::createPluginModule(plugin::LinkerPlugin &Plugin,
                                      uint64_t ModuleHash) {
   plugin::LTOModule *Module =
       Plugin.CreateLTOModule(plugin::BitcodeFile(*this), ModuleHash);
   if (!Module)
     return false;
-  m_PluginModule = Module;
+  PluginModule = Module;
   return true;
 }
 
 void BitcodeFile::setInputSectionForSymbol(const ResolveInfo &R, Section &S) {
-  m_InputSectionForSymbol[&R] = &S;
+  InputSectionForSymbol[&R] = &S;
 }
 
 Section *BitcodeFile::getInputSectionForSymbol(const ResolveInfo &R) const {
-  auto It = m_InputSectionForSymbol.find(&R);
-  return It != m_InputSectionForSymbol.end() ? It->second : nullptr;
+  auto It = InputSectionForSymbol.find(&R);
+  return It != InputSectionForSymbol.end() ? It->second : nullptr;
 }

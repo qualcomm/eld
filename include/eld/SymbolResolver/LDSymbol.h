@@ -29,125 +29,130 @@ public:
   typedef uint64_t ValueType;
 
 public:
-  LDSymbol(ResolveInfo *R = nullptr, bool isGC = false);
+  LDSymbol(ResolveInfo *R = nullptr, bool IsGc = false);
 
   ~LDSymbol();
 
   /// NullSymbol() - This returns a reference to a LDSymbol that represents Null
   /// symbol.
-  static LDSymbol *Null();
+  static LDSymbol *null();
 
   // -----  observers  ----- //
   bool isNull() const;
 
   const char *name() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->name();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->name();
   }
 
   bool hasName() const {
-    assert(nullptr != m_pResolveInfo);
+    assert(nullptr != ThisResolveInfo);
     return !str().empty();
   }
 
   unsigned int nameSize() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->nameSize();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->nameSize();
   }
 
   llvm::StringRef str() const {
-    assert(nullptr != m_pResolveInfo);
-    return llvm::StringRef(m_pResolveInfo->name(), m_pResolveInfo->nameSize());
+    assert(nullptr != ThisResolveInfo);
+    return llvm::StringRef(ThisResolveInfo->name(),
+                           ThisResolveInfo->nameSize());
   }
 
   bool isDyn() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->isDyn();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->isDyn();
   }
 
   bool isSection() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->isSection();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->isSection();
   }
 
   unsigned int type() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->type();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->type();
   }
   unsigned int desc() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->desc();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->desc();
   }
   unsigned int binding() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->binding();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->binding();
   }
 
   uint8_t other() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->other();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->other();
   }
 
   uint8_t visibility() const {
-    assert(nullptr != m_pResolveInfo);
-    return m_pResolveInfo->other();
+    assert(nullptr != ThisResolveInfo);
+    return ThisResolveInfo->other();
   }
 
-  ValueType value() const { return m_pResolveInfo->value(); }
+  ValueType value() const { return ThisResolveInfo->value(); }
 
   //  This is  method is used only for COMMONS
   // and is effective when GC ios turned on.
-  bool shouldIgnore() const { return m_ShouldIgnore; }
+  bool shouldIgnore() const { return ThisSymbolGarbageCollected; }
 
-  void setShouldIgnore(bool ignore = true) { m_ShouldIgnore = ignore; }
-
-  bool scriptDefined() const { return m_ScriptDefined; }
-
-  void setScriptDefined(bool value = true) { m_ScriptDefined = value; }
-
-  bool scriptValueDefined() const { return m_ScriptValueDefined; }
-
-  void setScriptValueDefined(bool value = true) {
-    m_ScriptValueDefined = value;
+  void setShouldIgnore(bool Ignore = true) {
+    ThisSymbolGarbageCollected = Ignore;
   }
 
-  const FragmentRef *fragRef() const { return m_pFragRef; }
+  bool scriptDefined() const { return ThisSymbolsIsScriptDefined; }
 
-  FragmentRef *fragRef() { return m_pFragRef; }
+  void setScriptDefined(bool Value = true) {
+    ThisSymbolsIsScriptDefined = Value;
+  }
 
-  SizeType size() const { return m_pResolveInfo->size(); }
+  bool scriptValueDefined() const { return ThisSymbolHasScriptValue; }
 
-  ResolveInfo *resolveInfo() { return m_pResolveInfo; }
+  void setScriptValueDefined(bool Value = true) {
+    ThisSymbolHasScriptValue = Value;
+  }
 
-  const ResolveInfo *resolveInfo() const { return m_pResolveInfo; }
+  const FragmentRef *fragRef() const { return ThisFragRef; }
+
+  FragmentRef *fragRef() { return ThisFragRef; }
+
+  SizeType size() const { return ThisResolveInfo->size(); }
+
+  ResolveInfo *resolveInfo() { return ThisResolveInfo; }
+
+  const ResolveInfo *resolveInfo() const { return ThisResolveInfo; }
 
   bool hasFragRef() const;
 
   bool hasFragRefSection() const;
 
   // -----  modifiers  ----- //
-  void setSize(SizeType pSize) {
-    assert(nullptr != m_pResolveInfo);
-    m_pResolveInfo->setSize(pSize);
+  void setSize(SizeType Size) {
+    assert(nullptr != ThisResolveInfo);
+    ThisResolveInfo->setSize(Size);
   }
 
-  void setValue(ValueType pValue, bool isFinal = true) {
-    m_pResolveInfo->setValue(pValue, isFinal);
+  void setValue(ValueType Value, bool IsFinal = true) {
+    ThisResolveInfo->setValue(Value, IsFinal);
   }
 
-  void setFragmentRef(FragmentRef *pFragmentRef);
+  void setFragmentRef(FragmentRef *CurFragmentRef);
 
-  void setResolveInfo(const ResolveInfo &pInfo);
+  void setResolveInfo(const ResolveInfo &CurInfo);
 
   // Set the section index to record the symbol
   // from which section it came from
-  void setSectionIndex(uint32_t shndx) { m_Shndx = shndx; }
+  void setSectionIndex(uint32_t Shndx) { ThisShndx = Shndx; }
 
-  uint32_t sectionIndex() const { return m_Shndx; }
+  uint32_t sectionIndex() const { return ThisShndx; }
 
-  uint32_t getSymbolIndex() const { return m_SymIdx; }
+  uint32_t getSymbolIndex() const { return ThisSymIdx; }
 
-  void setSymbolIndex(uint32_t symIdx) { m_SymIdx = symIdx; }
+  void setSymbolIndex(uint32_t SymIdx) { ThisSymIdx = SymIdx; }
 
   /// Casting support.
   static bool classof(const LDSymbol *E) { return true; }
@@ -155,14 +160,14 @@ public:
 
 protected:
   // -----  Symbol's fields  ----- //
-  ResolveInfo *m_pResolveInfo;
-  FragmentRef *m_pFragRef;
-  uint32_t m_Shndx;
-  uint32_t m_SymIdx;
-  bool m_ScriptDefined;
-  bool m_ScriptValueDefined;
+  ResolveInfo *ThisResolveInfo;
+  FragmentRef *ThisFragRef;
+  uint32_t ThisShndx;
+  uint32_t ThisSymIdx;
+  bool ThisSymbolsIsScriptDefined;
+  bool ThisSymbolHasScriptValue;
   // used for ignore garbage collected Common symbols
-  bool m_ShouldIgnore;
+  bool ThisSymbolGarbageCollected;
 };
 
 } // namespace eld

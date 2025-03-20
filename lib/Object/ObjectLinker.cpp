@@ -80,20 +80,20 @@
 using namespace llvm;
 using namespace eld;
 namespace {
-static DiagnosticEngine *sDiagEngineForLTO = nullptr;
+static DiagnosticEngine *SDiagEngineForLto = nullptr;
 class PrepareDiagEngineForLTO {
 public:
-  PrepareDiagEngineForLTO(DiagnosticEngine *diagEngine) {
-    m_Mutex.lock();
-    sDiagEngineForLTO = diagEngine;
+  PrepareDiagEngineForLTO(DiagnosticEngine *DiagEngine) {
+    MMutex.lock();
+    SDiagEngineForLto = DiagEngine;
   }
   ~PrepareDiagEngineForLTO() {
-    sDiagEngineForLTO = nullptr;
-    m_Mutex.unlock();
+    SDiagEngineForLto = nullptr;
+    MMutex.unlock();
   }
 
 private:
-  std::mutex m_Mutex;
+  std::mutex MMutex;
 };
 
 codegen::RegisterCodeGenFlags CGF;
@@ -103,167 +103,166 @@ codegen::RegisterCodeGenFlags CGF;
 //===----------------------------------------------------------------------===//
 // ObjectLinker
 //===----------------------------------------------------------------------===//
-ObjectLinker::ObjectLinker(LinkerConfig &pConfig, GNULDBackend &pLDBackend)
-    : m_Config(pConfig), m_pModule(nullptr), m_pBuilder(nullptr),
-      m_LDBackend(pLDBackend), m_pGroupReader(nullptr),
-      m_pScriptReader(nullptr), m_pWriter(nullptr), m_pBitcodeReader(nullptr),
-      m_pSymDefReader(nullptr), m_postLTOPhase(false), m_SaveTemps(false),
-      m_TraceLTO(false) {
-  m_SaveTemps = m_Config.options().getSaveTemps();
-  m_TraceLTO = m_Config.options().traceLTO();
-  m_LTOTempPrefix = getLTOTempPrefix();
+ObjectLinker::ObjectLinker(LinkerConfig &PConfig, GNULDBackend &PLdBackend)
+    : ThisConfig(PConfig), ThisModule(nullptr), CurBuilder(nullptr),
+      ThisBackend(PLdBackend), GroupReader(nullptr), ScriptReader(nullptr),
+      ObjWriter(nullptr), MPBitcodeReader(nullptr), SymDefReader(nullptr),
+      MPostLtoPhase(false), MSaveTemps(false), MTraceLTO(false) {
+  MSaveTemps = ThisConfig.options().getSaveTemps();
+  MTraceLTO = ThisConfig.options().traceLTO();
+  MLtoTempPrefix = getLTOTempPrefix();
 }
 
 void ObjectLinker::close() {
   // Cleanup all the temporary files created as a result of LTO.
-  if (!m_SaveTemps) {
-    for (auto &p : filesToRemove) {
-      if (!p.empty()) {
-        if (m_TraceLTO || m_Config.getPrinter()->isVerbose())
-          m_Config.raise(diag::lto_deleting_temp_file) << p;
-        llvm::sys::fs::remove(p);
+  if (!MSaveTemps) {
+    for (auto &P : FilesToRemove) {
+      if (!P.empty()) {
+        if (MTraceLTO || ThisConfig.getPrinter()->isVerbose())
+          ThisConfig.raise(Diag::lto_deleting_temp_file) << P;
+        llvm::sys::fs::remove(P);
       }
     }
   }
 }
 
-bool ObjectLinker::initialize(eld::Module &pModule, eld::IRBuilder &pBuilder) {
-  m_pModule = &pModule;
-  m_pBuilder = &pBuilder;
+bool ObjectLinker::initialize(eld::Module &PModule, eld::IRBuilder &PBuilder) {
+  ThisModule = &PModule;
+  CurBuilder = &PBuilder;
 
-  m_pBitcodeReader = m_LDBackend.createBitcodeReader();
+  MPBitcodeReader = ThisBackend.createBitcodeReader();
   // initialize the readers and writers
-  m_NewRelocObjParser = m_LDBackend.createNewRelocObjParser();
-  m_NewDynObjReader = m_LDBackend.createNewDynObjReader();
-  m_ArchiveParser = m_LDBackend.createArchiveParser();
-  m_ELFExecObjParser = m_LDBackend.createELFExecObjParser();
-  m_BinaryFileParser = m_LDBackend.createBinaryFileParser();
+  RelocObjParser = ThisBackend.createRelocObjParser();
+  DynObjReader = ThisBackend.createDynObjReader();
+  ArchiveParser = ThisBackend.createArchiveParser();
+  ELFExecObjParser = ThisBackend.createELFExecObjParser();
+  BinaryFileParser = ThisBackend.createBinaryFileParser();
   // SymDef Reader.
-  m_pSymDefReader = m_LDBackend.createSymDefReader();
-  m_pGroupReader = make<GroupReader>(*m_pModule, this);
-  m_pScriptReader = make<ScriptReader>();
-  m_pWriter = m_LDBackend.createWriter();
+  SymDefReader = ThisBackend.createSymDefReader();
+  GroupReader = make<eld::GroupReader>(*ThisModule, this);
+  ScriptReader = make<eld::ScriptReader>();
+  ObjWriter = ThisBackend.createWriter();
   // initialize Relocator
-  m_LDBackend.initRelocator();
+  ThisBackend.initRelocator();
 
   return true;
 }
 
 /// initStdSections - initialize standard sections
 bool ObjectLinker::initStdSections() {
-  ObjectBuilder builder(m_Config, *m_pModule);
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
 
   // initialize standard sections
-  eld::Expected<void> E = m_LDBackend.initStdSections();
+  eld::Expected<void> E = ThisBackend.initStdSections();
   if (!E) {
-    m_Config.raiseDiagEntry(std::move(E.error()));
+    ThisConfig.raiseDiagEntry(std::move(E.error()));
     return false;
   }
 
   // initialize dynamic sections
-  if (LinkerConfig::Object != m_Config.codeGenType()) {
-    m_LDBackend.initDynamicSections(
-        *m_LDBackend.getDynamicSectionHeadersInputFile());
+  if (LinkerConfig::Object != ThisConfig.codeGenType()) {
+    ThisBackend.initDynamicSections(
+        *ThisBackend.getDynamicSectionHeadersInputFile());
 
     // Note that patch section are only created in one internal input file
     // (DynamicSectionHeadersInputFile).
-    if (m_Config.options().isPatchEnable())
-      m_LDBackend.initPatchSections(
-          *m_LDBackend.getDynamicSectionHeadersInputFile());
+    if (ThisConfig.options().isPatchEnable())
+      ThisBackend.initPatchSections(
+          *ThisBackend.getDynamicSectionHeadersInputFile());
   }
 
   // initialize target-dependent sections
-  m_LDBackend.initTargetSections(builder);
+  ThisBackend.initTargetSections(Builder);
 
   return true;
 }
 
 // Read Linker script Helper.
-bool ObjectLinker::readLinkerScript(InputFile *input) {
+bool ObjectLinker::readLinkerScript(InputFile *Input) {
 
-  LinkerScriptFile *LSFile = llvm::dyn_cast<eld::LinkerScriptFile>(input);
+  LinkerScriptFile *LSFile = llvm::dyn_cast<eld::LinkerScriptFile>(Input);
 
   if (LSFile->isParsed())
     return true;
 
   // Record the linker script in the Map file.
-  LayoutPrinter *printer = m_pModule->getLayoutPrinter();
-  if (printer)
-    printer->recordLinkerScript(input->getInput()->getFileName());
+  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  if (Printer)
+    Printer->recordLinkerScript(Input->getInput()->getFileName());
 
-  m_pModule->getScript().addToHash(input->getInput()->decoratedPath());
+  ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
-  ScriptFile script(ScriptFile::LDScript, *m_pModule, *LSFile,
-                    m_pBuilder->getInputBuilder(), getTargetBackend());
-  bool successFullInParse = getScriptReader()->readScript(m_Config, script);
-  if (printer)
-    printer->closeLinkerScript();
+  ScriptFile Script(ScriptFile::LDScript, *ThisModule, *LSFile,
+                    CurBuilder->getInputBuilder(), getTargetBackend());
+  bool SuccessFullInParse = getScriptReader()->readScript(ThisConfig, Script);
+  if (Printer)
+    Printer->closeLinkerScript();
 
   // Error if the linker script has an issue parsing.
-  if (!successFullInParse) {
-    m_Config.raise(diag::file_has_error)
-        << input->getInput()->getResolvedPath();
+  if (!SuccessFullInParse) {
+    ThisConfig.raise(Diag::file_has_error)
+        << Input->getInput()->getResolvedPath();
     return false;
   }
   LSFile->setParsed();
   // Update the caller with information if the linker script had sections et
   // all.
-  if (script.linkerScriptHasSectionsCommand())
-    m_pModule->getScript().setHasSectionsCmd();
+  if (Script.linkerScriptHasSectionsCommand())
+    ThisModule->getScript().setHasSectionsCmd();
 
   // Activate the Linker script.
-  eld::Expected<void> E = script.activate(*m_pModule);
+  eld::Expected<void> E = Script.activate(*ThisModule);
   if (!E) {
-    m_Config.raiseDiagEntry(std::move(E.error()));
-    if (!m_Config.getDiagEngine()->diagnose())
+    ThisConfig.raiseDiagEntry(std::move(E.error()));
+    if (!ThisConfig.getDiagEngine()->diagnose())
       return false;
   }
 
-  input->setUsed(true);
+  Input->setUsed(true);
 
   // Error if the linker script had semantic errors .
-  if (m_LDBackend.checkForLinkerScriptErrors()) {
-    m_Config.raise(diag::file_has_error)
-        << input->getInput()->getResolvedPath();
+  if (ThisBackend.checkForLinkerScriptErrors()) {
+    ThisConfig.raise(Diag::file_has_error)
+        << Input->getInput()->getResolvedPath();
     return false;
   }
   return true;
 }
 
-bool ObjectLinker::readInputs(const std::vector<Node *> &inputVector) {
+bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
   typedef std::vector<Node *>::const_iterator Iter;
 
-  for (Iter begin = inputVector.begin(), end = inputVector.end(); begin != end;
-       ++begin) {
+  for (Iter Begin = InputVector.begin(), End = InputVector.end(); Begin != End;
+       ++Begin) {
     // is a group node
-    if ((*begin)->kind() == Node::GroupStart) {
+    if ((*Begin)->kind() == Node::GroupStart) {
       eld::RegisterTimer T("Read Start Group and End Group",
                            "Read all Input files",
-                           m_Config.options().printTimingStats());
-      getGroupReader()->readGroup(begin, m_pBuilder->getInputBuilder(),
-                                  m_Config, m_postLTOPhase);
+                           ThisConfig.options().printTimingStats());
+      getGroupReader()->readGroup(Begin, CurBuilder->getInputBuilder(),
+                                  ThisConfig, MPostLtoPhase);
       continue;
     }
 
-    FileNode *node = llvm::dyn_cast<FileNode>(*begin);
+    FileNode *Node = llvm::dyn_cast<FileNode>(*Begin);
 
-    if (!node)
+    if (!Node)
       continue;
 
-    Input *input = node->getInput();
+    Input *Input = Node->getInput();
     // Resolve the path.
-    if (!input->resolvePath(m_Config)) {
-      m_pModule->setFailure(true);
+    if (!Input->resolvePath(ThisConfig)) {
+      ThisModule->setFailure(true);
       return false;
     }
-    if (input->isAlreadyReleased())
+    if (Input->isAlreadyReleased())
       continue;
-    if (!readAndProcessInput(input, m_postLTOPhase))
+    if (!readAndProcessInput(Input, MPostLtoPhase))
       return false;
-    if (input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
+    if (Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
       // Read inputs that the script contains.
       if (!readInputs(
-              llvm::dyn_cast<eld::LinkerScriptFile>(input->getInputFile())
+              llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile())
                   ->getNodes())) {
         return false;
       }
@@ -273,109 +272,109 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &inputVector) {
 }
 
 bool ObjectLinker::normalize() {
-  if (m_postLTOPhase) {
+  if (MPostLtoPhase) {
     if (!insertPostLTOELF())
       return false;
   } else {
     parseIncludeOrExcludeLTOfiles();
-    m_pModule->getNamePool().setupNullSymbol();
+    ThisModule->getNamePool().setupNullSymbol();
     addUndefSymbols();
     addDuplicateCodeInsteadOfTrampolines();
     addNoReuseOfTrampolines();
   }
 
   // Read all the inputs
-  auto readSuccess = readInputs(m_pBuilder->getInputBuilder().getInputs());
-  if (!readSuccess) {
+  auto ReadSuccess = readInputs(CurBuilder->getInputBuilder().getInputs());
+  if (!ReadSuccess) {
     return false;
   }
 
   // Create patch base input.
-  if (const auto &PatchBase = m_Config.options().getPatchBase()) {
-    Input *input = make<Input>(*PatchBase, m_Config.getDiagEngine());
+  if (const auto &PatchBase = ThisConfig.options().getPatchBase()) {
+    Input *Input = make<eld::Input>(*PatchBase, ThisConfig.getDiagEngine());
     // Resolve the path.
-    if (!input->resolvePath(m_Config)) {
-      m_pModule->setFailure(true);
+    if (!Input->resolvePath(ThisConfig)) {
+      ThisModule->setFailure(true);
       return false;
     }
-    input->getAttribute().setPatchBase();
-    if (!readAndProcessInput(input, m_postLTOPhase))
+    Input->getAttribute().setPatchBase();
+    if (!readAndProcessInput(Input, MPostLtoPhase))
       return false;
   }
 
-  m_LDBackend.addSymbols();
+  ThisBackend.addSymbols();
 
   // Initialize Default section mappings.
-  if (!m_pModule->getScript().linkerScriptHasSectionsCommand())
-    m_LDBackend.getInfo().InitializeDefaultMappings(*m_pModule);
+  if (!ThisModule->getScript().linkerScriptHasSectionsCommand())
+    ThisBackend.getInfo().InitializeDefaultMappings(*ThisModule);
   return true;
 }
 
 bool ObjectLinker::parseVersionScript() {
-  if (!m_Config.options().hasVersionScript())
+  if (!ThisConfig.options().hasVersionScript())
     return true;
-  LayoutPrinter *printer = m_pModule->getLayoutPrinter();
-  for (const auto &list : m_Config.options().getVersionScripts()) {
-    Input *versionScriptInput =
-        eld::make<Input>(list, m_Config.getDiagEngine(), Input::Script);
-    if (!versionScriptInput->resolvePath(m_Config))
+  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  for (const auto &List : ThisConfig.options().getVersionScripts()) {
+    Input *VersionScriptInput =
+        eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
+    if (!VersionScriptInput->resolvePath(ThisConfig))
       return false;
     // Create an Input file and set the input file to be of kind DynamicList
-    InputFile *versionScriptInputFile =
-        InputFile::Create(versionScriptInput, InputFile::GNULinkerScriptKind,
-                          m_Config.getDiagEngine());
-    addInputFileToTar(versionScriptInputFile, eld::MappingFile::VersionScript);
-    versionScriptInput->setInputFile(versionScriptInputFile);
+    InputFile *VersionScriptInputFile =
+        InputFile::create(VersionScriptInput, InputFile::GNULinkerScriptKind,
+                          ThisConfig.getDiagEngine());
+    addInputFileToTar(VersionScriptInputFile, eld::MappingFile::VersionScript);
+    VersionScriptInput->setInputFile(VersionScriptInputFile);
     // Record the dynamic list script in the Map file.
-    if (printer)
-      printer->recordVersionScript(list);
+    if (Printer)
+      Printer->recordVersionScript(List);
     // Read the dynamic List file
-    ScriptFile versionScriptReader(
-        ScriptFile::VersionScript, *m_pModule,
-        *(llvm::dyn_cast<eld::LinkerScriptFile>(versionScriptInputFile)),
-        m_pBuilder->getInputBuilder(), getTargetBackend());
-    bool successFullInParse =
-        getScriptReader()->readScript(m_Config, versionScriptReader);
-    if (!successFullInParse)
+    ScriptFile VersionScriptReader(
+        ScriptFile::VersionScript, *ThisModule,
+        *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
+        CurBuilder->getInputBuilder(), getTargetBackend());
+    bool SuccessFullInParse =
+        getScriptReader()->readScript(ThisConfig, VersionScriptReader);
+    if (!SuccessFullInParse)
       return false;
-    m_pModule->addVersionScript(versionScriptReader.getVersionScript());
-    for (auto &versionScriptNode :
-         versionScriptReader.getVersionScript()->getNodes()) {
-      if (!versionScriptNode->isAnonymous()) {
-        m_Config.raise(diag::unsupported_version_node)
-            << versionScriptInput->decoratedPath();
+    ThisModule->addVersionScript(VersionScriptReader.getVersionScript());
+    for (auto &VersionScriptNode :
+         VersionScriptReader.getVersionScript()->getNodes()) {
+      if (!VersionScriptNode->isAnonymous()) {
+        ThisConfig.raise(Diag::unsupported_version_node)
+            << VersionScriptInput->decoratedPath();
         continue;
       }
-      if (versionScriptNode->hasDependency()) {
-        m_Config.raise(diag::unsupported_dependent_node)
-            << versionScriptInput->decoratedPath();
+      if (VersionScriptNode->hasDependency()) {
+        ThisConfig.raise(Diag::unsupported_dependent_node)
+            << VersionScriptInput->decoratedPath();
         continue;
       }
-      if (versionScriptNode->hasError()) {
-        m_Config.raise(diag::error_parsing_version_script)
-            << versionScriptInput->decoratedPath();
+      if (VersionScriptNode->hasError()) {
+        ThisConfig.raise(Diag::error_parsing_version_script)
+            << VersionScriptInput->decoratedPath();
         return false;
       }
-      m_pModule->addVersionScriptNode(versionScriptNode);
+      ThisModule->addVersionScriptNode(VersionScriptNode);
     }
   }
-  auto &SymbolScopes = m_LDBackend.symbolScopes();
-  for (auto &G : m_pModule->getNamePool().getGlobals()) {
+  auto &SymbolScopes = ThisBackend.symbolScopes();
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
     ResolveInfo *R = G.getValue();
-    for (auto &versionScriptNode : m_pModule->getVersionScriptNodes()) {
-      if (versionScriptNode->getGlobalBlock()) {
-        for (auto Sym : versionScriptNode->getGlobalBlock()->getSymbols()) {
+    for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
+      if (VersionScriptNode->getGlobalBlock()) {
+        for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
           if (Sym->getSymbolPattern()->matched(*R)) {
-            m_LDBackend.addSymbolScope(R, Sym);
+            ThisBackend.addSymbolScope(R, Sym);
           } // end Symbol Match
         } // end Symbols
       } // end Global
       if (SymbolScopes.find(R) != SymbolScopes.end())
         continue;
-      if (versionScriptNode->getLocalBlock()) {
-        for (auto Sym : versionScriptNode->getLocalBlock()->getSymbols()) {
+      if (VersionScriptNode->getLocalBlock()) {
+        for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
           if (Sym->getSymbolPattern()->matched(*R)) {
-            m_LDBackend.addSymbolScope(R, Sym);
+            ThisBackend.addSymbolScope(R, Sym);
           } // end Symbol Match
         } // end Symbols
       } // end Local
@@ -385,10 +384,10 @@ bool ObjectLinker::parseVersionScript() {
 }
 
 std::string ObjectLinker::getLTOTempPrefix() const {
-  std::string OutFileName = m_Config.options().outputFileName();
-  auto &saveTempsDir = m_Config.options().getSaveTempsDir();
-  if (saveTempsDir) {
-    llvm::SmallString<256> Path(*saveTempsDir);
+  std::string OutFileName = ThisConfig.options().outputFileName();
+  auto &SaveTempsDir = ThisConfig.options().getSaveTempsDir();
+  if (SaveTempsDir) {
+    llvm::SmallString<256> Path(*SaveTempsDir);
     llvm::sys::path::append(Path,
                             Twine(llvm::sys::path::filename(OutFileName)));
     OutFileName = std::string(Path);
@@ -403,9 +402,9 @@ ObjectLinker::createLTOTempFile(size_t Task, const std::string &Suffix,
   int FD;
   std::error_code EC;
   std::string ErrMsg;
-  if (m_SaveTemps) {
+  if (MSaveTemps) {
     FileName =
-        (Twine(m_LTOTempPrefix) + Twine(Task) + Twine(".") + Twine(Suffix))
+        (Twine(MLtoTempPrefix) + Twine(Task) + Twine(".") + Twine(Suffix))
             .str();
     EC = llvm::sys::fs::openFileForWrite(FileName, FD);
     ErrMsg = std::string(FileName);
@@ -415,54 +414,54 @@ ObjectLinker::createLTOTempFile(size_t Task, const std::string &Suffix,
   }
   if (EC) {
     ErrMsg += ": " + EC.message();
-    m_Config.raise(diag::fatal_no_codegen_compile) << ErrMsg;
+    ThisConfig.raise(Diag::fatal_no_codegen_compile) << ErrMsg;
     return make_error<StringError>(EC);
   }
 
   return std::make_unique<llvm::raw_fd_ostream>(FD, true);
 }
 
-void ObjectLinker::addInputFileToTar(const std::string &name,
+void ObjectLinker::addInputFileToTar(const std::string &Name,
                                      eld::MappingFile::Kind K) {
-  auto outputTar = m_pModule->getOutputTarWriter();
-  if (!outputTar || !llvm::sys::fs::exists(name))
+  auto *OutputTar = ThisModule->getOutputTarWriter();
+  if (!OutputTar || !llvm::sys::fs::exists(Name))
     return;
-  outputTar->createAndAddFile(name, name, K, /*isLTO*/ false);
+  OutputTar->createAndAddFile(Name, Name, K, /*isLTO*/ false);
 }
 
 void ObjectLinker::parseDynList() {
-  if (!m_Config.options().hasDynamicList())
+  if (!ThisConfig.options().hasDynamicList())
     return;
 
-  GeneralOptions::const_dyn_list_iterator it =
-      m_Config.options().dyn_list_begin();
-  GeneralOptions::const_dyn_list_iterator ie =
-      m_Config.options().dyn_list_end();
-  for (; it != ie; it++) {
-    if (!parseListFile(*it, ScriptFile::DynamicList))
+  GeneralOptions::const_dyn_list_iterator It =
+      ThisConfig.options().dynListBegin();
+  GeneralOptions::const_dyn_list_iterator Ie =
+      ThisConfig.options().dynListEnd();
+  for (; It != Ie; It++) {
+    if (!parseListFile(*It, ScriptFile::DynamicList))
       return;
   }
 }
 
 void ObjectLinker::dataStrippingOpt() {
   // Garbege collection
-  if (m_pModule->getIRBuilder()->shouldRunGarbageCollection())
+  if (ThisModule->getIRBuilder()->shouldRunGarbageCollection())
     runGarbageCollection("GC");
 }
 
 void ObjectLinker::runGarbageCollection(const std::string &Phase,
                                         bool CommonSectionsOnly) {
   eld::RegisterTimer T("Perform Garbage collection", "Garbage Collection",
-                       m_Config.options().printTimingStats());
-  GarbageCollection GC(m_Config, m_LDBackend, *m_pModule);
+                       ThisConfig.options().printTimingStats());
+  GarbageCollection GC(ThisConfig, ThisBackend, *ThisModule);
   GC.run(Phase, CommonSectionsOnly);
-  m_GCHasRun = true;
+  MGcHasRun = true;
 }
 
-bool ObjectLinker::getInputs(std::vector<InputFile *> &inputs) {
-  eld::Module::obj_iterator obj, objEnd = m_pModule->obj_end();
-  for (obj = m_pModule->obj_begin(); obj != objEnd; ++obj)
-    inputs.push_back(*obj);
+bool ObjectLinker::getInputs(std::vector<InputFile *> &Inputs) {
+  eld::Module::obj_iterator Obj, ObjEnd = ThisModule->objEnd();
+  for (Obj = ThisModule->objBegin(); Obj != ObjEnd; ++Obj)
+    Inputs.push_back(*Obj);
   return true;
 }
 
@@ -470,36 +469,37 @@ bool ObjectLinker::getInputs(std::vector<InputFile *> &inputs) {
 /// readRelocations - read all relocation entries
 ///
 bool ObjectLinker::readRelocations() {
-  std::vector<InputFile *> inputs;
-  getInputs(inputs);
-  for (auto ai : inputs) {
-    if (ai->getInput()->getAttribute().isPatchBase()) {
-      if (auto *ELFFile = llvm::dyn_cast<ELFFileBase>(ai)) {
-        eld::Expected<bool> exp =
+  std::vector<InputFile *> Inputs;
+  getInputs(Inputs);
+  for (auto *Ai : Inputs) {
+    if (Ai->getInput()->getAttribute().isPatchBase()) {
+      if (auto *ELFFile = llvm::dyn_cast<ELFFileBase>(Ai)) {
+        eld::Expected<bool> Exp =
             getELFExecObjParser()->parsePatchBase(*ELFFile);
-        if (!exp.has_value())
-          m_Config.raiseDiagEntry(std::move(exp.error()));
-        if (!exp.has_value() || !exp.value())
+        if (!Exp.has_value())
+          ThisConfig.raiseDiagEntry(std::move(Exp.error()));
+        if (!Exp.has_value() || !Exp.value())
           return false;
       }
     }
-    if (!ai->isObjectFile())
+    if (!Ai->isObjectFile())
       continue;
     // Dont read relocations from inputs that are specified
     // with just symbols attribute
-    if (ai->getInput()->getAttribute().isJustSymbols())
+    if (Ai->getInput()->getAttribute().isJustSymbols())
       continue;
-    ObjectFile *Obj = llvm::dyn_cast<ObjectFile>(ai);
+    ObjectFile *Obj = llvm::dyn_cast<ObjectFile>(Ai);
     if (Obj->isInputRelocsRead())
       continue;
-    if (m_pModule->getPrinter()->isVerbose())
-      m_Config.raise(diag::reading_relocs) << Obj->getInput()->decoratedPath();
+    if (ThisModule->getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::reading_relocs)
+          << Obj->getInput()->decoratedPath();
     Obj->setInputRelocsRead();
-    eld::Expected<bool> expReadRelocs =
-        getNewRelocObjParser()->readRelocations(*ai);
-    if (!expReadRelocs.has_value())
-      m_Config.raiseDiagEntry(std::move(expReadRelocs.error()));
-    if (!expReadRelocs.has_value() || !expReadRelocs.value())
+    eld::Expected<bool> ExpReadRelocs =
+        getRelocObjParser()->readRelocations(*Ai);
+    if (!ExpReadRelocs.has_value())
+      ThisConfig.raiseDiagEntry(std::move(ExpReadRelocs.error()));
+    if (!ExpReadRelocs.has_value() || !ExpReadRelocs.value())
       return false;
   }
   return true;
@@ -524,14 +524,14 @@ void ObjectLinker::mergeNonAllocStrings(
 
 void ObjectLinker::mergeIdenticalStrings() const {
   /// FIXME: Why do we not have ObjectBuilder as a member variable?
-  ObjectBuilder Builder(m_Config, *m_pModule);
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
   /// We can multithread across output sections as there is no shared state
   /// between them wrt string merging. When global string merging is enabled,
   /// strings would need to be placed in one Module, so threads should
   /// not be used.
-  bool UseThreads = m_Config.options().numThreads() > 1;
-  bool GlobalMerge = m_Config.options().shouldGlobalStringMerge();
-  llvm::ThreadPoolInterface *Pool = m_pModule->getThreadPool();
+  bool UseThreads = ThisConfig.options().numThreads() > 1;
+  bool GlobalMerge = ThisConfig.options().shouldGlobalStringMerge();
+  llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
   auto MergeStrings = [&](OutputSectionEntry *O) {
     for (RuleContainer *RC : *O) {
       for (Fragment *F : RC->getSection()->getFragmentList()) {
@@ -553,7 +553,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
   /// between the section table contained in Module and SectionMap depending
   /// on if the section is an orphan section. These two sets of output sections
   /// are non-overlapping.
-  for (ELFSection *S : *m_pModule) {
+  for (ELFSection *S : *ThisModule) {
     if (!S->getOutputSection())
       continue;
     /// REL/RELA linker internal input sections are added to the section table
@@ -564,7 +564,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
       continue;
     OutputSections.push_back(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : m_pModule->getScript().sectionMap()) {
+  for (OutputSectionEntry *O : ThisModule->getScript().sectionMap()) {
     OutputSections.push_back(O);
   }
 
@@ -584,130 +584,132 @@ void ObjectLinker::mergeIdenticalStrings() const {
 }
 
 void ObjectLinker::fixMergeStringRelocations() const {
-  for (InputFile *I : m_pModule->getObjectList()) {
+  for (InputFile *I : ThisModule->getObjectList()) {
     if (I->isInternal())
       continue;
     ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(I);
     if (!Obj)
       continue;
     for (ELFSection *S : Obj->getRelocationSections()) {
-      if (m_pModule->getPrinter()->isVerbose() ||
-          m_pModule->getPrinter()->traceMergeStrings())
-        m_Config.raise(diag::handling_merge_strings_for_section)
-            << S->getDecoratedName(m_Config.options())
+      if (ThisModule->getPrinter()->isVerbose() ||
+          ThisModule->getPrinter()->traceMergeStrings())
+        ThisConfig.raise(Diag::handling_merge_strings_for_section)
+            << S->getDecoratedName(ThisConfig.options())
             << S->getInputFile()->getInput()->decoratedPath(true);
-      m_LDBackend.getRelocator()->doMergeStrings(S);
+      ThisBackend.getRelocator()->doMergeStrings(S);
     }
   }
 }
 
 void ObjectLinker::doMergeStrings() {
-  if (m_Config.isLinkPartial())
+  if (ThisConfig.isLinkPartial())
     return;
   mergeIdenticalStrings();
   fixMergeStringRelocations();
 }
 
-void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &inputs) {
-  ObjectBuilder builder(m_Config, *m_pModule);
-  auto start = std::chrono::steady_clock::now();
-  builder.assignOutputSections(inputs, m_postLTOPhase);
+void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
+  auto Start = std::chrono::steady_clock::now();
+  Builder.assignOutputSections(Inputs, MPostLtoPhase);
   // FIXME: Perhaps transfer entry section ownership to GarbageCollection as
   // Entry sections are only relevant with garbage collection.
   // Currently, entry section are computed even if garbage-collection is not
   // enabled.
   collectEntrySections();
-  LayoutPrinter *layoutPrinter = m_pModule->getLayoutPrinter();
-  if (layoutPrinter && layoutPrinter->LayoutPrinter::showInitialLayout()) {
-    TextLayoutPrinter *textMapPrinter = m_pModule->getTextMapPrinter();
-    if (textMapPrinter) {
+  LayoutPrinter *LayoutPrinter = ThisModule->getLayoutPrinter();
+  if (LayoutPrinter && LayoutPrinter->LayoutPrinter::showInitialLayout()) {
+    TextLayoutPrinter *TextMapPrinter = ThisModule->getTextMapPrinter();
+    if (TextMapPrinter) {
       // FIXME: ideally, we should not need 'updateMatchedSections' call here.
       // However, we need it because currently we do not maintain the list of
       // matched input sections for rule containers consistently.
-      RuleContainer::updateMatchedSections(*m_pModule);
-      textMapPrinter->printLayout(*m_pModule);
+      RuleContainer::updateMatchedSections(*ThisModule);
+      TextMapPrinter->printLayout(*ThisModule);
     }
   }
   // FIXME: SectionMatcher plugins should not consume time under
   // 'LinkerScriptRuleMatch' timing category!
-  if (!builder.InitializePluginsAndProcess(inputs,
+  if (!Builder.initializePluginsAndProcess(Inputs,
                                            plugin::Plugin::SectionMatcher))
     return;
-  auto end = std::chrono::steady_clock::now();
-  if (m_pModule->getPrinter()->allStats())
-    m_Config.raise(diag::linker_script_rule_matching_time)
-        << (int)std::chrono::duration<double, std::milli>(end - start).count();
+  auto End = std::chrono::steady_clock::now();
+  if (ThisModule->getPrinter()->allStats())
+    ThisConfig.raise(Diag::linker_script_rule_matching_time)
+        << (int)std::chrono::duration<double, std::milli>(End - Start).count();
 }
 
 // Sections in ELFFileFormat are not internal but are Output sections.
 // At the moment, there is  no way being marked with assignOutputSections
 // We traverse them explicitly to mark them as ignore before placing them.
 void ObjectLinker::markDiscardFileFormatSections() {
-  auto &sectionMap = m_pModule->getScript().sectionMap();
-  SectionMap::iterator it = sectionMap.findIter("/DISCARD/");
-  bool isGNUCompatible =
-      (m_Config.options().getScriptOption() == GeneralOptions::MatchGNU);
-  for (auto &sec : m_LDBackend.getOutputFormat()->getSections()) {
-    SectionMap::mapping pair =
-        sectionMap.findIn(it, "internal", *sec, false, "internal",
-                          sec->sectionNameHash(), 0, 0, isGNUCompatible);
-    if (pair.first && pair.first->isDiscard()) {
-      sec->setKind(LDFileFormat::Ignore);
-      if (m_Config.options().isSectionTracingRequested() &&
-          m_Config.options().traceSection(pair.first->name().str())) {
-        m_Config.raise(diag::discarded_section_info)
-            << pair.first->getSection()->getDecoratedName(m_Config.options());
+  auto &SectionMap = ThisModule->getScript().sectionMap();
+  SectionMap::iterator It = SectionMap.findIter("/DISCARD/");
+  bool IsGnuCompatible =
+      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
+  for (auto &Sec : ThisBackend.getOutputFormat()->getSections()) {
+    SectionMap::mapping Pair =
+        SectionMap.findIn(It, "internal", *Sec, false, "internal",
+                          Sec->sectionNameHash(), 0, 0, IsGnuCompatible);
+    if (Pair.first && Pair.first->isDiscard()) {
+      Sec->setKind(LDFileFormat::Ignore);
+      if (ThisConfig.options().isSectionTracingRequested() &&
+          ThisConfig.options().traceSection(Pair.first->name().str())) {
+        ThisConfig.raise(Diag::discarded_section_info)
+            << Pair.first->getSection()->getDecoratedName(ThisConfig.options());
       }
     }
   }
 }
 
-bool ObjectLinker::mayBeSortSections(std::vector<Section *> &sections) {
+bool ObjectLinker::mayBeSortSections(std::vector<Section *> &Sections) {
   // If no linker scripts, we dont store the original input. Lets not sort.
-  if (!m_pModule->getScript().linkerScriptHasSectionsCommand())
+  if (!ThisModule->getScript().linkerScriptHasSectionsCommand())
     return true;
-  if (m_Config.options().disableLTOLinkOrder())
+  if (ThisConfig.options().disableLTOLinkOrder())
     return true;
   // If we are doing partial link, lets not sort it.
-  bool isPartialLink = (LinkerConfig::Object == m_Config.codeGenType());
-  if (isPartialLink || ltoObjects.empty())
+  bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
+  if (IsPartialLink || LtoObjects.empty())
     return true;
-  std::stable_sort(
-      sections.begin(), sections.end(), [](Section *A, Section *B) {
-        ELFSection *a = llvm::dyn_cast<ELFSection>(A);
-        ELFSection *b = llvm::dyn_cast<ELFSection>(B);
-        if (a == nullptr or b == nullptr)
-          return false;
-        if (!a->originalInput())
-          return false;
-        if (!b->originalInput())
-          return false;
-        if ((a->name().starts_with(".ctors")) ||
-            (b->name().starts_with(".ctors")))
-          return false;
-        if ((a->name().starts_with(".dtors")) ||
-            (b->name().starts_with(".dtors")))
-          return false;
-        int64_t aOrdinal = a->originalInput()->getInput()->getInputOrdinal();
-        int64_t bOrdinal = b->originalInput()->getInput()->getInputOrdinal();
-        if (aOrdinal == bOrdinal)
-          return false;
-        return (aOrdinal < bOrdinal);
-      });
+  std::stable_sort(Sections.begin(), Sections.end(),
+                   [](Section *ASection, Section *BSection) {
+                     ELFSection *A = llvm::dyn_cast<ELFSection>(ASection);
+                     ELFSection *B = llvm::dyn_cast<ELFSection>(BSection);
+                     if (A == nullptr or B == nullptr)
+                       return false;
+                     if (!A->originalInput())
+                       return false;
+                     if (!B->originalInput())
+                       return false;
+                     if ((A->name().starts_with(".ctors")) ||
+                         (B->name().starts_with(".ctors")))
+                       return false;
+                     if ((A->name().starts_with(".dtors")) ||
+                         (B->name().starts_with(".dtors")))
+                       return false;
+                     int64_t AOrdinal =
+                         A->originalInput()->getInput()->getInputOrdinal();
+                     int64_t BOrdinal =
+                         B->originalInput()->getInput()->getInputOrdinal();
+                     if (AOrdinal == BOrdinal)
+                       return false;
+                     return (AOrdinal < BOrdinal);
+                   });
   return true;
 }
 
-bool ObjectLinker::mergeInputSections(ObjectBuilder &builder,
-                                      std::vector<Section *> &sections) {
-  bool isPartialLink = m_Config.isLinkPartial();
-  for (auto &section : sections) {
-    if (section->isBitcode())
+bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
+                                      std::vector<Section *> &Sections) {
+  bool IsPartialLink = ThisConfig.isLinkPartial();
+  for (auto &Section : Sections) {
+    if (Section->isBitcode())
       continue;
-    ELFSection *sect = llvm::dyn_cast<ELFSection>(section);
-    bool hasSectionData = sect->hasSectionData();
-    if (sect->isIgnore() || sect->isDiscard())
+    ELFSection *Sect = llvm::dyn_cast<ELFSection>(Section);
+    bool HasSectionData = Sect->hasSectionData();
+    if (Sect->isIgnore() || Sect->isDiscard())
       continue;
-    switch (sect->getKind()) {
+    switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
     case LDFileFormat::Null:
     case LDFileFormat::NamePool:
@@ -716,43 +718,43 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &builder,
       continue;
     case LDFileFormat::Relocation:
     case LDFileFormat::LinkOnce: {
-      if (sect->getLink()->isIgnore() || sect->getLink()->isDiscard())
-        sect->setKind(LDFileFormat::Ignore);
+      if (Sect->getLink()->isIgnore() || Sect->getLink()->isDiscard())
+        Sect->setKind(LDFileFormat::Ignore);
       break;
     }
     case LDFileFormat::Target:
-      if (m_LDBackend.DoesOverrideMerge(sect)) {
-        m_LDBackend.mergeSection(sect);
+      if (ThisBackend.DoesOverrideMerge(Sect)) {
+        ThisBackend.mergeSection(Sect);
         break;
       }
       LLVM_FALLTHROUGH;
     case LDFileFormat::EhFrame: {
-      if (sect->getKind() == LDFileFormat::EhFrame) {
-        if (!llvm::dyn_cast<eld::EhFrameSection>(sect)->splitEhFrameSection())
+      if (Sect->getKind() == LDFileFormat::EhFrame) {
+        if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)->splitEhFrameSection())
           return false;
-        if (!llvm::dyn_cast<eld::EhFrameSection>(sect)
+        if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
                  ->createCIEAndFDEFragments())
           return false;
-        llvm::dyn_cast<eld::EhFrameSection>(sect)->finishAddingFragments();
-        if (m_LDBackend.getEhFrameHdr() &&
-            sect->getKind() == LDFileFormat::EhFrame) {
-          m_LDBackend.getEhFrameHdr()->addCIE(
-              llvm::dyn_cast<eld::EhFrameSection>(sect)->getCIEs());
+        llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments();
+        if (ThisBackend.getEhFrameHdr() &&
+            Sect->getKind() == LDFileFormat::EhFrame) {
+          ThisBackend.getEhFrameHdr()->addCIE(
+              llvm::dyn_cast<eld::EhFrameSection>(Sect)->getCIEs());
           // Since we found an EhFrame section, lets go ahead and start creating
           // the fragments necessary to create the .eh_frame_hdr section and
           // the filler eh_frame section.
-          m_LDBackend.createEhFrameFillerAndHdrSection();
+          ThisBackend.createEhFrameFillerAndHdrSection();
         }
       }
     }
       LLVM_FALLTHROUGH;
     default: {
-      if (!(hasSectionData || (isPartialLink && sect->isWanted())))
+      if (!(HasSectionData || (IsPartialLink && Sect->isWanted())))
         continue; // skip
 
-      ELFSection *out_sect = nullptr;
-      if (nullptr != (out_sect = builder.MergeSection(m_LDBackend, sect))) {
-        builder.updateSectionFlags(out_sect, sect);
+      ELFSection *OutSect = nullptr;
+      if (nullptr != (OutSect = Builder.mergeSection(ThisBackend, Sect))) {
+        Builder.updateSectionFlags(OutSect, Sect);
       }
       break;
     }
@@ -813,7 +815,7 @@ void ObjectLinker::sortByInitPriority(RuleContainer *I, bool SortRule) {
 
 bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
   eld::RegisterTimer T("Sort Sections", "Merge Sections",
-                       m_Config.options().printTimingStats());
+                       ThisConfig.options().printTimingStats());
   if (!SortRule && (!(I->getSection()->hasSectionData())))
     return false;
 
@@ -831,14 +833,14 @@ bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
     if (E->kind() != StrToken::Wildcard)
       return false;
 
-    WildcardPattern &pattern =
+    WildcardPattern &Pattern =
         llvm::cast<WildcardPattern>(*I->spec().sections().front());
-    P = pattern.sortPolicy();
+    P = Pattern.sortPolicy();
     if (P == WildcardPattern::SortPolicy::SORT_NONE &&
-        m_Config.options().isSortSectionEnabled()) {
-      if (m_Config.options().isSortSectionByName())
+        ThisConfig.options().isSortSectionEnabled()) {
+      if (ThisConfig.options().isSortSectionByName())
         P = WildcardPattern::SORT_BY_NAME;
-      else if (m_Config.options().isSortSectionByAlignment())
+      else if (ThisConfig.options().isSortSectionByAlignment())
         P = WildcardPattern::SORT_BY_ALIGNMENT;
     }
   }
@@ -867,101 +869,101 @@ bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
   return false;
 }
 
-bool ObjectLinker::createOutputSection(ObjectBuilder &builder,
-                                       OutputSectionEntry *output,
-                                       bool postLayout) {
-  uint64_t out_align = 0x0, in_align = 0x0;
-  bool isPartialLink = (LinkerConfig::Object == m_Config.codeGenType());
+bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
+                                       OutputSectionEntry *Output,
+                                       bool PostLayout) {
+  uint64_t OutAlign = 0x0, InAlign = 0x0;
+  bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
 
-  ELFSection *out_sect = output->getSection();
-  out_sect->setOutputSection(output);
-  if (out_sect->getKind() != LDFileFormat::NamePool)
-    out_sect->setAddrAlign(0);
-  OutputSectionEntry::iterator in, inBegin, inEnd;
-  inBegin = output->begin();
-  inEnd = output->end();
-  bool hasSubAlign = false;
+  ELFSection *OutSect = Output->getSection();
+  OutSect->setOutputSection(Output);
+  if (OutSect->getKind() != LDFileFormat::NamePool)
+    OutSect->setAddrAlign(0);
+  OutputSectionEntry::iterator In, InBegin, InEnd;
+  InBegin = Output->begin();
+  InEnd = Output->end();
+  bool HasSubAlign = false;
 
   // force input alignment from ldscript if any
-  if (output->prolog().hasSubAlign()) {
-    output->prolog().subAlign().eval();
-    output->prolog().subAlign().commit();
-    in_align = output->prolog().subAlign().result();
-    hasSubAlign = true;
+  if (Output->prolog().hasSubAlign()) {
+    Output->prolog().subAlign().eval();
+    Output->prolog().subAlign().commit();
+    InAlign = Output->prolog().subAlign().result();
+    HasSubAlign = true;
   }
 
   // force output alignment from ldscript if any
-  if (output->prolog().hasAlign()) {
-    output->prolog().align().eval();
-    output->prolog().align().commit();
-    out_align = output->prolog().align().result();
-    if (out_align && !isPowerOf2_64(out_align)) {
-      m_Config.raise(diag::error_non_power_of_2_value_to_align_output_section)
-          << output->prolog().align().getContext() << utility::toHex(out_align)
-          << out_sect->name();
+  if (Output->prolog().hasAlign()) {
+    Output->prolog().align().eval();
+    Output->prolog().align().commit();
+    OutAlign = Output->prolog().align().result();
+    if (OutAlign && !isPowerOf2_64(OutAlign)) {
+      ThisConfig.raise(Diag::error_non_power_of_2_value_to_align_output_section)
+          << Output->prolog().align().getContext() << utility::toHex(OutAlign)
+          << OutSect->name();
       return false;
     }
-    if (out_sect->getAddrAlign() < out_align)
-      out_sect->setAddrAlign(out_align);
+    if (OutSect->getAddrAlign() < OutAlign)
+      OutSect->setAddrAlign(OutAlign);
   }
 
   /// FIXME: this vector is unused?
-  std::vector<RuleContainer *> inputsWithNoData;
+  std::vector<RuleContainer *> InputsWithNoData;
   RuleContainer *FirstNonEmptyRule = nullptr;
 
-  for (in = inBegin; in != inEnd; ++in) {
-    ELFSection *in_sect = (*in)->getSection();
-    bool isDirty = (*in)->isDirty();
-    if (isDirty) {
-      in_sect->setType(0);
-      in_sect->setFlags(0);
+  for (In = InBegin; In != InEnd; ++In) {
+    ELFSection *InSect = (*In)->getSection();
+    bool IsDirty = (*In)->isDirty();
+    if (IsDirty) {
+      InSect->setType(0);
+      InSect->setFlags(0);
     }
-    if (in_sect->isWanted())
-      out_sect->setWanted(true);
+    if (InSect->isWanted())
+      OutSect->setWanted(true);
     // Recalculate alignment if the input rule is dirty.
-    if (isDirty) {
+    if (IsDirty) {
       size_t Alignment = 1;
-      for (auto &F : in_sect->getFragmentList()) {
+      for (auto &F : InSect->getFragmentList()) {
         if (Alignment < F->alignment())
           Alignment = F->alignment();
-        F->getOwningSection()->setMatchedLinkerScriptRule(*in);
-        F->getOwningSection()->setOutputSection(output);
-        builder.mayChangeSectionTypeOrKind(in_sect, F->getOwningSection());
-        builder.updateSectionFlags(in_sect, F->getOwningSection());
+        F->getOwningSection()->setMatchedLinkerScriptRule(*In);
+        F->getOwningSection()->setOutputSection(Output);
+        Builder.mayChangeSectionTypeOrKind(InSect, F->getOwningSection());
+        Builder.updateSectionFlags(InSect, F->getOwningSection());
       }
-      in_sect->setAddrAlign(Alignment);
+      InSect->setAddrAlign(Alignment);
     }
-    if (hasSubAlign && (in_sect->getAddrAlign() < in_align)) {
-      if (in_sect->getFragmentList().size()) {
-        in_sect->getFragmentList().front()->setAlignment(in_align);
-        in_sect->setAddrAlign(in_align);
+    if (HasSubAlign && (InSect->getAddrAlign() < InAlign)) {
+      if (InSect->getFragmentList().size()) {
+        InSect->getFragmentList().front()->setAlignment(InAlign);
+        InSect->setAddrAlign(InAlign);
       }
     }
-    if (in_sect->getFragmentList().size() && !FirstNonEmptyRule)
-      FirstNonEmptyRule = *in;
+    if (InSect->getFragmentList().size() && !FirstNonEmptyRule)
+      FirstNonEmptyRule = *In;
 
-    if (builder.MoveIntoOutputSection(in_sect, out_sect)) {
-      builder.mayChangeSectionTypeOrKind(out_sect, in_sect);
-      builder.updateSectionFlags(out_sect, in_sect);
+    if (Builder.moveIntoOutputSection(InSect, OutSect)) {
+      Builder.mayChangeSectionTypeOrKind(OutSect, InSect);
+      Builder.updateSectionFlags(OutSect, InSect);
     }
-    in_sect->setOutputSection(output);
+    InSect->setOutputSection(Output);
   }
 
-  finalizeOutputSectionFlags(output);
+  finalizeOutputSectionFlags(Output);
 
   // Set the first fragment in the output section.
-  output->setFirstNonEmptyRule(FirstNonEmptyRule);
+  Output->setFirstNonEmptyRule(FirstNonEmptyRule);
 
-  output->setOrder(m_LDBackend.getSectionOrder(*out_sect));
+  Output->setOrder(ThisBackend.getSectionOrder(*OutSect));
 
   // Assign offsets.
-  assignOffset(output);
+  assignOffset(Output);
 
-  if (out_sect->size() || out_sect->isWanted()) {
+  if (OutSect->size() || OutSect->isWanted()) {
     std::lock_guard<std::mutex> Guard(Mutex);
-    if (isPartialLink)
-      out_sect->setWanted(true);
-    m_pModule->addOutputSectionToTable(out_sect);
+    if (IsPartialLink)
+      OutSect->setWanted(true);
+    ThisModule->addOutputSectionToTable(OutSect);
   }
 
   return true;
@@ -972,25 +974,25 @@ bool ObjectLinker::initializeMerge() {
     return true;
   {
     eld::RegisterTimer T("Prepare Input Files For Merge", "Merge Sections",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     // Gather all input sections.
-    eld::Module::obj_iterator obj, objEnd = m_pModule->obj_end();
-    for (obj = m_pModule->obj_begin(); obj != objEnd; ++obj) {
-      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*obj);
+    eld::Module::obj_iterator Obj, ObjEnd = ThisModule->objEnd();
+    for (Obj = ThisModule->objBegin(); Obj != ObjEnd; ++Obj) {
+      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(*Obj);
       if (!ObjFile)
         ASSERT(0, "input is not an object file :" +
-                      (*obj)->getInput()->decoratedPath());
-      for (auto &sect : ObjFile->getSections()) {
-        addInputSection(sect);
-        if (!m_pModule->getLayoutPrinter())
+                      (*Obj)->getInput()->decoratedPath());
+      for (auto &Sect : ObjFile->getSections()) {
+        addInputSection(Sect);
+        if (!ThisModule->getLayoutPrinter())
           continue;
-        m_pModule->getLayoutPrinter()->recordSectionStat(sect);
+        ThisModule->getLayoutPrinter()->recordSectionStat(Sect);
       }
     }
   }
   {
     eld::RegisterTimer T("Sort sections if LTO enabled", "Merge Sections",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     // Sort sections if we have LTO enabled.
     mayBeSortSections(AllInputSections);
   }
@@ -999,33 +1001,33 @@ bool ObjectLinker::initializeMerge() {
 
 bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   eld::RegisterTimer T("Update Input Rules For Plugin", "Merge Sections",
-                       m_Config.options().printTimingStats());
+                       ThisConfig.options().printTimingStats());
   // Initialize merging of sections.
   initializeMerge();
 
   // Clear the vector of sections collected by the rules.
-  for (auto &Out : m_pModule->getScript().sectionMap()) {
+  for (auto &Out : ThisModule->getScript().sectionMap()) {
     for (auto &In : *Out)
       In->clearSections();
   }
-  for (auto &section : AllInputSections) {
-    if (section->isBitcode())
+  for (auto &Section : AllInputSections) {
+    if (Section->isBitcode())
       continue;
-    ELFSection *sect = llvm::dyn_cast<ELFSection>(section);
-    switch (sect->getKind()) {
+    ELFSection *Sect = llvm::dyn_cast<ELFSection>(Section);
+    switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
     case LDFileFormat::Null:
     case LDFileFormat::NamePool:
       continue;
     default:
-      if (!sect->getMatchedLinkerScriptRule())
+      if (!Sect->getMatchedLinkerScriptRule())
         continue;
-      sect->getMatchedLinkerScriptRule()->addMatchedSection(sect);
+      Sect->getMatchedLinkerScriptRule()->addMatchedSection(Sect);
     }
   }
 
   // Sort the rule.
-  for (auto &Out : m_pModule->getScript().sectionMap()) {
+  for (auto &Out : ThisModule->getScript().sectionMap()) {
     for (auto &In : *Out)
       sortSections(In, true);
   }
@@ -1034,85 +1036,86 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
 
 bool ObjectLinker::finishAssignOutputSections() {
   eld::RegisterTimer T("Update Input Rules From Plugin", "Perform Layout",
-                       m_Config.options().printTimingStats());
-  ObjectBuilder builder(m_Config, *m_pModule);
+                       ThisConfig.options().printTimingStats());
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
   // Override output sections again!!
-  builder.reAssignOutputSections(/*LW=*/nullptr);
+  Builder.reAssignOutputSections(/*LW=*/nullptr);
   // Clear the section match map.
-  m_pModule->getScript().clearAllSectionOverrides();
+  ThisModule->getScript().clearAllSectionOverrides();
   updateInputSectionMappingsForPlugin();
   return true;
 }
 
 bool ObjectLinker::finishAssignOutputSections(const plugin::LinkerWrapper *LW) {
   eld::RegisterTimer T("Update Input Rules From Plugin", "Perform Layout",
-                       m_Config.options().printTimingStats());
-  ObjectBuilder builder(m_Config, *m_pModule);
+                       ThisConfig.options().printTimingStats());
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
   // Update section mapping of pending section overrides associated with the
   // LinkerWrapper LW.
-  builder.reAssignOutputSections(LW);
+  Builder.reAssignOutputSections(LW);
   // Clear section overrides associated with the LinkerWrapper LW.
-  m_pModule->getScript().clearSectionOverrides(LW);
+  ThisModule->getScript().clearSectionOverrides(LW);
   updateInputSectionMappingsForPlugin();
   return true;
 }
 
 bool ObjectLinker::runOutputSectionIteratorPlugin() {
   LinkerScript::PluginVectorT PluginList =
-      m_pModule->getScript().getPluginForType(
+      ThisModule->getScript().getPluginForType(
           plugin::Plugin::OutputSectionIterator);
   if (!PluginList.size())
     return true;
 
   for (auto &P : PluginList) {
-    if (!P->Init(m_pModule->getOutputTarWriter()))
+    if (!P->init(ThisModule->getOutputTarWriter()))
       return false;
   }
 
   for (auto &P : PluginList) {
     plugin::PluginBase *L = P->getLinkerPlugin();
-    for (auto &Out : m_pModule->getScript().sectionMap())
+    for (auto &Out : ThisModule->getScript().sectionMap())
       (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(L))
           ->processOutputSection(plugin::OutputSection(Out));
   }
 
   for (auto &P : PluginList) {
-    if (!P->Run(m_pModule->getScript().getPluginRunList())) {
-      m_pModule->setFailure(true);
+    if (!P->run(ThisModule->getScript().getPluginRunList())) {
+      ThisModule->setFailure(true);
       return false;
     }
   }
 
   if (PluginList.size()) {
     for (auto &P : PluginList) {
-      if (!P->Destroy()) {
-        m_pModule->setFailure(true);
+      if (!P->destroy()) {
+        ThisModule->setFailure(true);
         return false;
       }
     }
   }
   // Fragment movement verification is only done for CreatingSections link state
   // because fragments cannot be moved in any other link state.
-  if (m_pModule->getState() == plugin::LinkerWrapper::State::CreatingSections) {
-    for (auto P : PluginList) {
-      auto expVerifyFragmentMoves = P->verifyFragmentMovements();
-      if (!expVerifyFragmentMoves) {
-        m_Config.raiseDiagEntry(std::move(expVerifyFragmentMoves.error()));
-        m_pModule->setFailure(true);
+  if (ThisModule->getState() ==
+      plugin::LinkerWrapper::State::CreatingSections) {
+    for (auto *P : PluginList) {
+      auto ExpVerifyFragmentMoves = P->verifyFragmentMovements();
+      if (!ExpVerifyFragmentMoves) {
+        ThisConfig.raiseDiagEntry(std::move(ExpVerifyFragmentMoves.error()));
+        ThisModule->setFailure(true);
         return false;
       }
     }
   }
-  return !m_pModule->linkFail();
+  return !ThisModule->linkFail();
 }
 
 /// mergeSections - put allinput sections into output sections
 bool ObjectLinker::mergeSections() {
-  ObjectBuilder builder(m_Config, *m_pModule);
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
   // Output section iterator plugin.
   {
     eld::RegisterTimer T("Init", "Merge Sections",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     // Initialize merging of input sections.
     if (!initializeMerge())
       return false;
@@ -1127,8 +1130,8 @@ bool ObjectLinker::mergeSections() {
 
   {
     eld::RegisterTimer T("Universal Plugin", "Merge Sections",
-                         m_Config.options().printTimingStats());
-    auto &PM = m_pModule->getPluginManager();
+                         ThisConfig.options().printTimingStats());
+    auto &PM = ThisModule->getPluginManager();
     if (!PM.callActBeforeSectionMergingHook())
       return false;
   }
@@ -1137,7 +1140,7 @@ bool ObjectLinker::mergeSections() {
   {
     eld::RegisterTimer T("Plugin: Output Section Iterator Before Layout",
                          "Merge Sections",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     if (!runOutputSectionIteratorPlugin())
       return false;
   }
@@ -1145,34 +1148,34 @@ bool ObjectLinker::mergeSections() {
   // Merge all the input sections.
   {
     eld::RegisterTimer T("Merge Input Sections", "Merge Sections",
-                         m_Config.options().printTimingStats());
-    mergeInputSections(builder, AllInputSections);
+                         ThisConfig.options().printTimingStats());
+    mergeInputSections(Builder, AllInputSections);
   }
 
   // Update plugins from the YAML config file specified.
   {
     eld::RegisterTimer T("Update Output Sections With Plugins",
                          "Merge Sections",
-                         m_Config.options().printTimingStats());
-    if (!m_pModule->updateOutputSectionsWithPlugins()) {
-      m_pModule->setFailure(true);
+                         ThisConfig.options().printTimingStats());
+    if (!ThisModule->updateOutputSectionsWithPlugins()) {
+      ThisModule->setFailure(true);
       return false;
     }
   }
 
   // Create output sections.
-  SectionMap::iterator out, outBegin, outEnd;
-  outBegin = m_pModule->getScript().sectionMap().begin();
-  outEnd = m_pModule->getScript().sectionMap().end();
+  SectionMap::iterator Out, OutBegin, OutEnd;
+  OutBegin = ThisModule->getScript().sectionMap().begin();
+  OutEnd = ThisModule->getScript().sectionMap().end();
 
-  m_pModule->setState(plugin::LinkerWrapper::CreatingSections);
-  if (!m_Config.getDiagEngine()->diagnose())
+  ThisModule->setState(plugin::LinkerWrapper::CreatingSections);
+  if (!ThisConfig.getDiagEngine()->diagnose())
     return false;
 
   {
     eld::RegisterTimer T("Plugin: Output Section Iterator Creating Sections",
                          "Merge Sections",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     if (!initializeOutputSectionsAndRunPlugin())
       return false;
   }
@@ -1181,36 +1184,36 @@ bool ObjectLinker::mergeSections() {
 
   {
     eld::RegisterTimer T("Create Output Section", "Merge Sections",
-                         m_Config.options().printTimingStats());
+                         ThisConfig.options().printTimingStats());
     std::vector<OutputSectionEntry *> OutSections;
-    for (out = outBegin; out != outEnd; ++out) {
-      OutSections.push_back(*out);
+    for (Out = OutBegin; Out != OutEnd; ++Out) {
+      OutSections.push_back(*Out);
     }
-    for (auto &S : *m_pModule) {
+    for (auto &S : *ThisModule) {
       OutputSectionEntry *O = S->getOutputSection();
       if (O)
         OutSections.push_back(O);
     }
 
-    if (m_Config.options().numThreads() <= 1 ||
-        !m_Config.isCreateOutputSectionsMultiThreaded()) {
+    if (ThisConfig.options().numThreads() <= 1 ||
+        !ThisConfig.isCreateOutputSectionsMultiThreaded()) {
       for (auto &O : OutSections)
-        createOutputSection(builder, O);
+        createOutputSection(Builder, O);
     } else {
-      llvm::ThreadPoolInterface *Pool = m_pModule->getThreadPool();
+      llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
       for (auto &O : OutSections)
-        Pool->async([&] { createOutputSection(builder, O); });
+        Pool->async([&] { createOutputSection(Builder, O); });
       Pool->wait();
     }
 
-    if (!m_Config.getDiagEngine()->diagnose()) {
-      if (m_pModule->getPrinter()->isVerbose())
-        m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+    if (!ThisConfig.getDiagEngine()->diagnose()) {
+      if (ThisModule->getPrinter()->isVerbose())
+        ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
     {
       eld::RegisterTimer T("Assign Group Sections Offset", "Merge Sections",
-                           m_Config.options().printTimingStats());
+                           ThisConfig.options().printTimingStats());
       assignOffsetToGroupSections();
     }
   }
@@ -1218,37 +1221,37 @@ bool ObjectLinker::mergeSections() {
 }
 
 bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
-  for (auto &O : m_pModule->getScript().sectionMap()) {
-    for (auto &in : *O)
-      sortSections(in, false);
+  for (auto &O : ThisModule->getScript().sectionMap()) {
+    for (auto &In : *O)
+      sortSections(In, false);
   }
   return runOutputSectionIteratorPlugin();
 }
 
 void ObjectLinker::assignOffset(OutputSectionEntry *Out) {
   int64_t O = 0;
-  const ELFSection *outSection = Out->getSection();
-  bool hasRules = m_pModule->getScript().linkerScriptHasRules();
+  const ELFSection *OutSection = Out->getSection();
+  bool HasRules = ThisModule->getScript().linkerScriptHasRules();
   for (auto &C : *Out) {
     C->getSection()->setOffset(O);
     for (auto &F : C->getSection()->getFragmentList()) {
       if (!F->isNull()) {
         F->setOffset(O);
-        O = (F->getOffset(m_Config.getDiagEngine()) + F->size());
+        O = (F->getOffset(ThisConfig.getDiagEngine()) + F->size());
       }
 
       // Warn if any non-allocatable input section has been assigned to an
       // allocatable output section. Only check for this diagnostic if
       // section mapping rules are defined in the linker script.
-      if (!hasRules)
+      if (!HasRules)
         continue;
-      const ELFSection *owningSection = F->getOwningSection();
-      if (outSection->isAlloc() && !owningSection->isAlloc())
-        m_Config.raise(
-            diag::non_allocatable_section_in_allocatable_output_section)
-            << owningSection->name()
-            << owningSection->getInputFile()->getInput()->decoratedPath()
-            << outSection->name();
+      const ELFSection *OwningSection = F->getOwningSection();
+      if (OutSection->isAlloc() && !OwningSection->isAlloc())
+        ThisConfig.raise(
+            Diag::non_allocatable_section_in_allocatable_output_section)
+            << OwningSection->name()
+            << OwningSection->getInputFile()->getInput()->decoratedPath()
+            << OutSection->name();
     }
     C->getSection()->setSize(O - C->getSection()->offset());
   }
@@ -1259,34 +1262,34 @@ void ObjectLinker::assignOffset(ELFSection *C) {
   int64_t O = 0;
   for (auto &F : C->getFragmentList()) {
     F->setOffset(O);
-    O = (F->getOffset(m_Config.getDiagEngine()) + F->size());
+    O = (F->getOffset(ThisConfig.getDiagEngine()) + F->size());
   }
   C->setSize(O);
 }
 
 void ObjectLinker::assignOffsetToGroupSections() {
-  for (auto &S : *m_pModule) {
+  for (auto &S : *ThisModule) {
     if (S->hasNoFragments())
       continue;
     if (!S->hasSectionData())
       continue;
     if (!S->isGroupKind())
-      m_Config.raise(diag::expected_group_section)
-          << S->getDecoratedName(m_Config.options());
+      ThisConfig.raise(Diag::expected_group_section)
+          << S->getDecoratedName(ThisConfig.options());
     assignOffset(S);
   }
 }
 
 bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
-  LayoutPrinter *printer = m_pModule->getLayoutPrinter();
+  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
   Input *SymbolListInput =
-      eld::make<Input>(Filename, m_Config.getDiagEngine(), Input::Script);
-  if (!SymbolListInput->resolvePath(m_Config))
+      eld::make<Input>(Filename, ThisConfig.getDiagEngine(), Input::Script);
+  if (!SymbolListInput->resolvePath(ThisConfig))
     return false;
   // Create an Input file and set the input file to be of kind ExternList
   InputFile *SymbolListInputFile =
-      InputFile::Create(SymbolListInput, InputFile::GNULinkerScriptKind,
-                        m_Config.getDiagEngine());
+      InputFile::create(SymbolListInput, InputFile::GNULinkerScriptKind,
+                        ThisConfig.getDiagEngine());
   eld::MappingFile::Kind K = MappingFile::Other;
   if (Type == ScriptFile::ExternList)
     K = MappingFile::ExternList;
@@ -1296,181 +1299,182 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   addInputFileToTar(SymbolListInputFile, K);
   SymbolListInput->setInputFile(SymbolListInputFile);
   // Record the dynamic list script in the Map file.
-  if (printer)
-    printer->recordLinkerScript(SymbolListInput->decoratedPath());
+  if (Printer)
+    Printer->recordLinkerScript(SymbolListInput->decoratedPath());
   // Read the dynamic List file
   ScriptFile SymbolListReader(
-      (ScriptFile::Kind)Type, *m_pModule,
+      (ScriptFile::Kind)Type, *ThisModule,
       *(llvm::dyn_cast<eld::LinkerScriptFile>(SymbolListInputFile)),
-      m_pBuilder->getInputBuilder(), getTargetBackend());
-  bool parseSuccess = getScriptReader()->readScript(m_Config, SymbolListReader);
-  if (!parseSuccess)
+      CurBuilder->getInputBuilder(), getTargetBackend());
+  bool ParseSuccess =
+      getScriptReader()->readScript(ThisConfig, SymbolListReader);
+  if (!ParseSuccess)
     return false;
   if (Type == ScriptFile::DynamicList && SymbolListReader.getDynamicList()) {
     for (const auto &Sym : *SymbolListReader.getDynamicList()) {
-      m_pModule->addScriptSymbolForDynamicListFile(SymbolListInputFile, Sym);
-      m_pModule->dynListSyms().push_back(Sym);
+      ThisModule->addScriptSymbolForDynamicListFile(SymbolListInputFile, Sym);
+      ThisModule->dynListSyms().push_back(Sym);
     }
   }
   if (Type == ScriptFile::ExternList || Type == ScriptFile::DynamicList) {
-    if (!SymbolListReader.activate(*m_pModule))
+    if (!SymbolListReader.activate(*ThisModule))
       return false;
   } else
     for (const auto &Sym : SymbolListReader.getExternList()) {
       if (Type == ScriptFile::DuplicateCodeList)
-        m_pModule->addToCopyFarCallSet(Sym->name());
+        ThisModule->addToCopyFarCallSet(Sym->name());
       else if (Type == ScriptFile::NoReuseTrampolineList)
-        m_pModule->addToNoReuseOfTrampolines(Sym->name());
+        ThisModule->addToNoReuseOfTrampolines(Sym->name());
     }
   return true;
 }
 
 void ObjectLinker::addDuplicateCodeInsteadOfTrampolines() {
-  if (m_Config.options().hasNoCopyFarCallsFromFile())
+  if (ThisConfig.options().hasNoCopyFarCallsFromFile())
     return;
-  parseListFile(m_Config.options().copyFarCallsFromFile(),
+  parseListFile(ThisConfig.options().copyFarCallsFromFile(),
                 ScriptFile::DuplicateCodeList);
 }
 
 void ObjectLinker::addNoReuseOfTrampolines() {
-  if (m_Config.options().hasNoReuseOfTrampolinesFile())
+  if (ThisConfig.options().hasNoReuseOfTrampolinesFile())
     return;
-  parseListFile(m_Config.options().noReuseOfTrampolinesFile(),
+  parseListFile(ThisConfig.options().noReuseOfTrampolinesFile(),
                 ScriptFile::NoReuseTrampolineList);
 }
 
 /// addUndefSymbols - add any symbols specified by the -u flag
 ///   @return true if symbols added
 bool ObjectLinker::addUndefSymbols() {
-  GeneralOptions::const_ext_list_iterator it =
-      m_Config.options().ext_list_begin();
-  GeneralOptions::const_ext_list_iterator ie =
-      m_Config.options().ext_list_end();
+  GeneralOptions::const_ext_list_iterator It =
+      ThisConfig.options().extListBegin();
+  GeneralOptions::const_ext_list_iterator Ie =
+      ThisConfig.options().extListEnd();
 
-  for (; it != ie; it++) {
-    if (!parseListFile(*it, ScriptFile::ExternList))
+  for (; It != Ie; It++) {
+    if (!parseListFile(*It, ScriptFile::ExternList))
       return false;
   }
 
-  LDSymbol *output_sym = nullptr;
-  Resolver::Result result;
+  LDSymbol *OutputSym = nullptr;
+  Resolver::Result Result;
   // Add the entry symbol.
-  if (m_Config.options().hasEntry()) {
-    if (string::isValidCIdentifier(m_Config.options().entry()))
-      m_Config.options().getUndefSymList().emplace_back(
-          eld::make<StrToken>(m_Config.options().entry()));
+  if (ThisConfig.options().hasEntry()) {
+    if (string::isValidCIdentifier(ThisConfig.options().entry()))
+      ThisConfig.options().getUndefSymList().emplace_back(
+          eld::make<StrToken>(ThisConfig.options().entry()));
   }
 
-  if (!m_Config.options().getUndefSymList().empty()) {
-    GeneralOptions::const_undef_sym_iterator undef_sym,
-        undef_symEnd = m_Config.options().undef_sym_end();
-    for (undef_sym = m_Config.options().undef_sym_begin();
-         undef_sym != undef_symEnd; ++undef_sym) {
-      InputFile *I = m_pModule->getInternalInput(
+  if (!ThisConfig.options().getUndefSymList().empty()) {
+    GeneralOptions::const_undef_sym_iterator UndefSym,
+        UndefSymEnd = ThisConfig.options().undefSymEnd();
+    for (UndefSym = ThisConfig.options().undefSymBegin();
+         UndefSym != UndefSymEnd; ++UndefSym) {
+      InputFile *I = ThisModule->getInternalInput(
           eld::Module::InternalInputType::ExternList);
-      m_pModule->getNamePool().insertSymbol(
-          I, (*undef_sym)->name(), false, eld::ResolveInfo::NoType,
+      ThisModule->getNamePool().insertSymbol(
+          I, (*UndefSym)->name(), false, eld::ResolveInfo::NoType,
           eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
-          eld::ResolveInfo::Default, nullptr, result,
+          eld::ResolveInfo::Default, nullptr, Result,
           false /* isPostLTOPhase */, false, 0, false /* isPatchable */,
-          m_pModule->getPrinter());
+          ThisModule->getPrinter());
       // create a output LDSymbol. All external symbols are entry symbols.
-      output_sym = make<LDSymbol>(result.info, false);
-      result.info->setOutSymbol(output_sym);
+      OutputSym = make<LDSymbol>(Result.Info, false);
+      Result.Info->setOutSymbol(OutputSym);
       // Initialize origin.
-      result.info->setResolvedOrigin(I);
-      m_pModule->addNeededSymbol((*undef_sym)->name());
+      Result.Info->setResolvedOrigin(I);
+      ThisModule->addNeededSymbol((*UndefSym)->name());
     }
   }
 
-  auto &DynExpSymbols = m_Config.options().getExportDynSymList();
+  auto &DynExpSymbols = ThisConfig.options().getExportDynSymList();
   for (const auto &S : DynExpSymbols) {
-    InputFile *I = m_pModule->getInternalInput(
+    InputFile *I = ThisModule->getInternalInput(
         eld::Module::InternalInputType::DynamicExports);
-    m_pModule->getNamePool().insertSymbol(
+    ThisModule->getNamePool().insertSymbol(
         I, S->name(), false, eld::ResolveInfo::NoType,
         eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
-        eld::ResolveInfo::Default, NULL, result, false /* isPostLTOPhase */,
-        false, 0, false /* isPatchable */, m_pModule->getPrinter());
+        eld::ResolveInfo::Default, NULL, Result, false /* isPostLTOPhase */,
+        false, 0, false /* isPatchable */, ThisModule->getPrinter());
     // create a output LDSymbol. All external symbols are entry symbols.
-    output_sym = make<LDSymbol>(result.info, false);
-    result.info->setOutSymbol(output_sym);
+    OutputSym = make<LDSymbol>(Result.Info, false);
+    Result.Info->setOutSymbol(OutputSym);
     // Initialize origin.
-    result.info->setResolvedOrigin(I);
-    m_pModule->addNeededSymbol(S->name());
+    Result.Info->setResolvedOrigin(I);
+    ThisModule->addNeededSymbol(S->name());
   }
   return true;
 }
 
-bool ObjectLinker::addSymbolToOutput(const ResolveInfo &pInfo) const {
+bool ObjectLinker::addSymbolToOutput(const ResolveInfo &PInfo) const {
   // Dont add bitcode symbols to output.
-  if (pInfo.isBitCode())
+  if (PInfo.isBitCode())
     return false;
 
   // Dont add section symbols.
-  if (pInfo.isSection())
+  if (PInfo.isSection())
     return false;
 
   // Dont add internal symbols.
-  if (pInfo.visibility() == ResolveInfo::Internal)
+  if (PInfo.visibility() == ResolveInfo::Internal)
     return false;
 
   // Dont add undefined symbols, that are garbage collected
-  if (pInfo.isUndef() && pInfo.outSymbol() && pInfo.outSymbol()->shouldIgnore())
+  if (PInfo.isUndef() && PInfo.outSymbol() && PInfo.outSymbol()->shouldIgnore())
     return false;
 
   // If its the dot symbol, dont add to output.
-  if (pInfo.outSymbol() && pInfo.outSymbol() == m_pModule->getDotSymbol())
+  if (PInfo.outSymbol() && PInfo.outSymbol() == ThisModule->getDotSymbol())
     return false;
 
   // Dont add symbols for which we dont have an outsymbol.
-  if (nullptr == pInfo.outSymbol())
+  if (nullptr == PInfo.outSymbol())
     return false;
 
-  if (pInfo.outSymbol()->fragRef() && pInfo.outSymbol()->fragRef()->isDiscard())
+  if (PInfo.outSymbol()->fragRef() && PInfo.outSymbol()->fragRef()->isDiscard())
     return false;
 
   // if the symbols defined in the Ignore sections (e.g. discared by GC), then
   // not to put them to output
-  if ((pInfo.outSymbol()->hasFragRef() && pInfo.getOwningSection()->isIgnore()))
+  if ((PInfo.outSymbol()->hasFragRef() && PInfo.getOwningSection()->isIgnore()))
     return false;
 
   // if the symbols defined in the Ignore sections (e.g. discared by Plugin),
   // then not to put them to output.
-  if ((pInfo.outSymbol()->hasFragRef() &&
-       pInfo.getOwningSection()->isDiscard()))
+  if ((PInfo.outSymbol()->hasFragRef() &&
+       PInfo.getOwningSection()->isDiscard()))
     return false;
 
   // Set the Used property.
-  InputFile *resolvedOrigin = pInfo.resolvedOrigin();
+  InputFile *ResolvedOrigin = PInfo.resolvedOrigin();
 
-  if (resolvedOrigin) {
-    if (!pInfo.isFile())
-      resolvedOrigin->setUsed(true);
+  if (ResolvedOrigin) {
+    if (!PInfo.isFile())
+      ResolvedOrigin->setUsed(true);
   }
 
-  static InputFile *I = m_pModule->getInternalInput(
+  static InputFile *I = ThisModule->getInternalInput(
       eld::Module::InternalInputType::DynamicExports);
-  if (pInfo.isUndef() && resolvedOrigin && resolvedOrigin == I)
+  if (PInfo.isUndef() && ResolvedOrigin && ResolvedOrigin == I)
     return false;
 
-  if ((resolvedOrigin && resolvedOrigin->isInternal()) &&
-      (!pInfo.isWeak() && pInfo.isUndef() &&
-       (m_Config.options().getErrorStyle() == GeneralOptions::llvm))) {
-    m_Config.raise(diag::symbol_undefined_by_user)
-        << pInfo.name() << resolvedOrigin->getInput()->decoratedPath();
+  if ((ResolvedOrigin && ResolvedOrigin->isInternal()) &&
+      (!PInfo.isWeak() && PInfo.isUndef() &&
+       (ThisConfig.options().getErrorStyle() == GeneralOptions::llvm))) {
+    ThisConfig.raise(Diag::symbol_undefined_by_user)
+        << PInfo.name() << ResolvedOrigin->getInput()->decoratedPath();
     return false;
   }
 
   // If this is a undefined reference to wrapper in LTO generated native
   // object, it is handled with references. It is now an artifact from its
   // bitcode file. So ignore this symbol
-  if (pInfo.isUndef() && resolvedOrigin &&
-      m_pModule->hasWrapReference(pInfo.name()) && resolvedOrigin->isBitcode())
+  if (PInfo.isUndef() && ResolvedOrigin &&
+      ThisModule->hasWrapReference(PInfo.name()) && ResolvedOrigin->isBitcode())
     return false;
 
   // Let the backend choose to add the symbol to the output.
-  if (!m_LDBackend.addSymbolToOutput(const_cast<ResolveInfo *>(&pInfo)))
+  if (!ThisBackend.addSymbolToOutput(const_cast<ResolveInfo *>(&PInfo)))
     return false;
 
   return true;
@@ -1480,34 +1484,34 @@ bool ObjectLinker::mayBeAddSectionSymbol(ELFSection *S) {
   if (S->isRelocationKind())
     return false;
   InputFile *I =
-      m_pModule->getInternalInput(Module::InternalInputType::Sections);
+      ThisModule->getInternalInput(Module::InternalInputType::Sections);
   if (!S->isWanted() && !S->size())
     return false;
-  ResolveInfo *sym_info = m_pModule->getNamePool().createSymbol(
+  ResolveInfo *SymInfo = ThisModule->getNamePool().createSymbol(
       I, S->name().str(), false, ResolveInfo::Section, ResolveInfo::Define,
       ResolveInfo::Local,
       0x0, // size
       ResolveInfo::Default, false /*isPostLTOPhase*/);
-  LDSymbol *sym = make<LDSymbol>(sym_info, false);
-  sym_info->setOutSymbol(sym);
+  LDSymbol *Sym = make<LDSymbol>(SymInfo, false);
+  SymInfo->setOutSymbol(Sym);
   Fragment *F = S->getOutputSection()->getFirstFrag();
-  FragmentRef *FragRef = FragmentRef::Null();
+  FragmentRef *FragRef = FragmentRef::null();
   if (!F)
     return false;
   FragRef = make<FragmentRef>(*F, 0);
-  sym->setFragmentRef(FragRef);
+  Sym->setFragmentRef(FragRef);
   // Record the section for lookup.
-  m_pModule->recordSectionSymbol(S, sym_info);
+  ThisModule->recordSectionSymbol(S, SymInfo);
   // Add to the symbol table.
-  m_pModule->addSymbol(sym_info);
+  ThisModule->addSymbol(SymInfo);
   return true;
 }
 
 bool ObjectLinker::addSectionSymbols() {
   // create and add section symbols for each output section
-  for (auto &S : m_pModule->getScript().sectionMap())
+  for (auto &S : ThisModule->getScript().sectionMap())
     mayBeAddSectionSymbol(S->getSection());
-  for (auto &S : *m_pModule)
+  for (auto &S : *ThisModule)
     mayBeAddSectionSymbol(S);
   return true;
 }
@@ -1515,10 +1519,10 @@ bool ObjectLinker::addSectionSymbols() {
 bool ObjectLinker::addSymbolsToOutput() {
 
   // Traverse all the free ResolveInfo and add the output symobols to output
-  for (auto &L : m_pModule->getNamePool().getLocals()) {
+  for (auto &L : ThisModule->getNamePool().getLocals()) {
     accountSymForTotalSymStats(*L);
     if (addSymbolToOutput(*L))
-      m_pModule->addSymbol(L);
+      ThisModule->addSymbol(L);
     else
       accountSymForDiscardedSymStats(*L);
   }
@@ -1526,44 +1530,44 @@ bool ObjectLinker::addSymbolsToOutput() {
   // We should not be adding any symbol from dynamic shared libraries into
   // getGlobals.
   // Traverse all the resolveInfo and add the output symbol to output
-  for (auto &G : m_pModule->getNamePool().getGlobals()) {
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
     ResolveInfo *R = G.getValue();
     accountSymForTotalSymStats(*R);
     if (addSymbolToOutput(*R))
-      m_pModule->addSymbol(R);
+      ThisModule->addSymbol(R);
     else
       accountSymForDiscardedSymStats(*R);
   }
 
   // The option --unresolved-symbols is ignored for partial linking
-  if (LinkerConfig::Object == m_Config.codeGenType())
+  if (LinkerConfig::Object == ThisConfig.codeGenType())
     return true;
 
   // Note the string version is checked here. This is to make sure the default
   // behavior is not affected by this functionality. The default behavior is
   // really used by so many customers and lets not break it.
-  if (m_Config.options().reportUndefPolicy().empty() ||
-      (m_Config.options().reportUndefPolicy() == "ignore-all"))
+  if (ThisConfig.options().reportUndefPolicy().empty() ||
+      (ThisConfig.options().reportUndefPolicy() == "ignore-all"))
     return true;
 
-  bool hasError = false;
-  for (auto &G : m_pModule->getNamePool().getGlobals()) {
+  bool HasError = false;
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
     ResolveInfo *R = G.getValue();
-    bool AddSymbolToOutput = addSymbolToOutput(*R);
+    bool NeedSymbolInOutput = addSymbolToOutput(*R);
     // All dynamic symbols in shared libraries are processed here.
-    if (!AddSymbolToOutput) {
+    if (!NeedSymbolInOutput) {
       // Skip if the symbol is not dynamic.
       if (!R->isDyn())
         continue;
       // Unfortunately we need to check again.
-      if (R->outSymbol() && R->outSymbol() == m_pModule->getDotSymbol())
+      if (R->outSymbol() && R->outSymbol() == ThisModule->getDotSymbol())
         continue;
       // If the symbol is undef and not weak, and the symbol needs to be
       // reported, lets report it
       if (R->isUndef() && !R->isWeak()) {
-        if (!m_pModule->getLinker()->shouldIgnoreUndefine(R->isDyn())) {
-          hasError = true;
-          m_Config.raise(diag::undefined_symbol)
+        if (!ThisModule->getLinker()->shouldIgnoreUndefine(R->isDyn())) {
+          HasError = true;
+          ThisConfig.raise(Diag::undefined_symbol)
               << R->name() << R->resolvedOrigin()->getInput()->decoratedPath();
         }
       }
@@ -1571,17 +1575,17 @@ bool ObjectLinker::addSymbolsToOutput() {
     }
     // If the undefined symbol needs to be reported because the linker
     // was passed an option for unresolved symbol policy, lets do that.
-    if (m_LDBackend.canIssueUndef(R)) {
-      hasError = true;
-      m_Config.raise(diag::undefined_symbol)
+    if (ThisBackend.canIssueUndef(R)) {
+      HasError = true;
+      ThisConfig.raise(Diag::undefined_symbol)
           << R->name() << R->resolvedOrigin()->getInput()->decoratedPath();
     }
   }
 
-  if (hasError)
-    m_pModule->setFailure(true);
+  if (HasError)
+    ThisModule->setFailure(true);
 
-  return !hasError;
+  return !HasError;
 }
 
 /// addStandardSymbols - shared object and executable files need some
@@ -1589,7 +1593,7 @@ bool ObjectLinker::addSymbolsToOutput() {
 ///   @return if there are some input symbols with the same name to the
 ///   standard symbols, return false
 bool ObjectLinker::addStandardSymbols() {
-  return m_LDBackend.initStandardSymbols();
+  return ThisBackend.initStandardSymbols();
 }
 
 /// addTargetSymbols - some targets, such as MIPS and ARM, need some
@@ -1597,97 +1601,97 @@ bool ObjectLinker::addStandardSymbols() {
 ///   @return if there are some input symbols with the same name to the
 ///   target symbols, return false
 bool ObjectLinker::addTargetSymbols() {
-  m_LDBackend.initTargetSymbols();
+  ThisBackend.initTargetSymbols();
   return true;
 }
 
 bool ObjectLinker::processInputFiles() {
-  std::vector<InputFile *> inputs;
-  getInputs(inputs);
-  return m_LDBackend.processInputFiles(inputs);
+  std::vector<InputFile *> Inputs;
+  getInputs(Inputs);
+  return ThisBackend.processInputFiles(Inputs);
 }
 
 /// addScriptSymbols - define symbols from the command line option or linker
 /// scripts.
 bool ObjectLinker::addScriptSymbols() {
-  LinkerScript &script = m_pModule->getScript();
-  LinkerScript::Assignments::iterator it, ie = script.assignments().end();
-  uint64_t symValue = 0x0;
-  LDSymbol *symbol = nullptr;
-  bool ret = true;
+  LinkerScript &Script = ThisModule->getScript();
+  LinkerScript::Assignments::iterator It, Ie = Script.assignments().end();
+  uint64_t SymValue = 0x0;
+  LDSymbol *Symbol = nullptr;
+  bool Ret = true;
   // go through the entire symbol assignments
-  for (it = script.assignments().begin(); it != ie; ++it) {
-    Assignment *assignCmd = (*it).second;
-    InputFile *ScriptInput = m_pModule->getInternalInput(eld::Module::Script);
+  for (It = Script.assignments().begin(); It != Ie; ++It) {
+    Assignment *AssignCmd = (*It).second;
+    InputFile *ScriptInput = ThisModule->getInternalInput(eld::Module::Script);
     // FIXME: Ideally, assignCmd should always have a context. We should perhaps
     // add an internal error if the context is missing.
-    if (assignCmd->hasInputFileInContext())
-      ScriptInput = assignCmd->getInputFileInContext();
-    if (assignCmd->level() == Assignment::OUTSIDE_SECTIONS) {
-      if (assignCmd->type() == Assignment::ASSERT)
+    if (AssignCmd->hasInputFileInContext())
+      ScriptInput = AssignCmd->getInputFileInContext();
+    if (AssignCmd->level() == Assignment::OUTSIDE_SECTIONS) {
+      if (AssignCmd->type() == Assignment::ASSERT)
         continue;
-      (*it).first = nullptr;
+      (*It).first = nullptr;
     }
-    llvm::StringRef symName = assignCmd->name();
-    ResolveInfo::Type type = ResolveInfo::NoType;
-    ResolveInfo::Visibility vis = ResolveInfo::Default;
-    size_t size = 0;
-    ResolveInfo *old_info = m_pModule->getNamePool().findInfo(symName.str());
-    symbol = nullptr;
+    llvm::StringRef SymName = AssignCmd->name();
+    ResolveInfo::Type Type = ResolveInfo::NoType;
+    ResolveInfo::Visibility Vis = ResolveInfo::Default;
+    size_t Size = 0;
+    ResolveInfo *OldInfo = ThisModule->getNamePool().findInfo(SymName.str());
+    Symbol = nullptr;
 
-    if (assignCmd->isProvideOrProvideHidden()) {
-      if (m_LDBackend.isSymInProvideMap(symName)) {
-        if (m_Config.showLinkerScriptWarnings())
-          m_Config.raise(diag::warn_provide_sym_redecl)
-              << assignCmd->getContext() << symName;
+    if (AssignCmd->isProvideOrProvideHidden()) {
+      if (ThisBackend.isSymInProvideMap(SymName)) {
+        if (ThisConfig.showLinkerScriptWarnings())
+          ThisConfig.raise(Diag::warn_provide_sym_redecl)
+              << AssignCmd->getContext() << SymName;
         continue;
       }
-      m_LDBackend.addProvideSymbol(symName, assignCmd);
-      if (!m_pModule->getAssignmentForSymbol(symName))
-        m_pModule->addAssignment(symName, assignCmd);
+      ThisBackend.addProvideSymbol(SymName, AssignCmd);
+      if (!ThisModule->getAssignmentForSymbol(SymName))
+        ThisModule->addAssignment(SymName, AssignCmd);
       continue;
     }
     // if the symbol does not exist, we can set type to NOTYPE
     // else we retain its type, same goes for size - 0 or retain old value
     // and visibility - Default or retain
-    if (old_info != nullptr) {
-      type = static_cast<ResolveInfo::Type>(old_info->type());
-      vis = old_info->visibility();
-      size = old_info->size();
+    if (OldInfo != nullptr) {
+      Type = static_cast<ResolveInfo::Type>(OldInfo->type());
+      Vis = OldInfo->visibility();
+      Size = OldInfo->size();
 
-      if (old_info->outSymbol() && old_info->outSymbol()->hasFragRefSection()) {
-        if (old_info->isPatchable())
-          m_Config.raise(diag::error_patchable_script)
-              << old_info->outSymbol()->name();
+      if (OldInfo->outSymbol() && OldInfo->outSymbol()->hasFragRefSection()) {
+        if (OldInfo->isPatchable())
+          ThisConfig.raise(Diag::error_patchable_script)
+              << OldInfo->outSymbol()->name();
         else
-          m_Config.raise(diag::warn_gc_duplicate_symbol)
-              << old_info->outSymbol()->name();
+          ThisConfig.raise(Diag::warn_gc_duplicate_symbol)
+              << OldInfo->outSymbol()->name();
       }
     }
-    PluginManager &PM = m_pModule->getPluginManager();
-    SymbolInfo symInfo(ScriptInput, size, ResolveInfo::Absolute, type, vis,
+    PluginManager &PM = ThisModule->getPluginManager();
+    SymbolInfo SymInfo(ScriptInput, Size, ResolveInfo::Absolute, Type, Vis,
                        ResolveInfo::Define,
                        /*isBitCode=*/false);
     // We do not create input symbols for non object file symbols!
-    DiagnosticPrinter *DP = m_Config.getPrinter();
-    auto oldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-    PM.callVisitSymbolHook(/*sym=*/nullptr, symName, symInfo);
-    auto newErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-    if (newErrorCount > oldErrorCount)
-      ret = false;
+    DiagnosticPrinter *DP = ThisConfig.getPrinter();
+    auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+    PM.callVisitSymbolHook(/*sym=*/nullptr, SymName, SymInfo);
+    auto NewErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+    if (NewErrorCount > OldErrorCount)
+      Ret = false;
     // Add symbol and refine the visibility if needed
-    switch ((*it).second->type()) {
+    switch ((*It).second->type()) {
     case Assignment::HIDDEN:
-      vis = ResolveInfo::Hidden;
+      Vis = ResolveInfo::Hidden;
       LLVM_FALLTHROUGH;
     // Fall through
     case Assignment::DEFAULT:
-      symbol =
-          m_pBuilder
-              ->AddSymbol<eld::IRBuilder::Force, eld::IRBuilder::Unresolve>(
-                  ScriptInput, symName.str(), type, ResolveInfo::Define,
-                  ResolveInfo::Absolute, size, symValue, FragmentRef::Null(),
-                  vis, true /*PostLTOPhase*/);
+      Symbol =
+          CurBuilder
+              ->addSymbol<eld::IRBuilder::Force, eld::IRBuilder::Unresolve>(
+                  ScriptInput, SymName.str(), Type, ResolveInfo::Define,
+                  ResolveInfo::Absolute, Size, SymValue, FragmentRef::null(),
+                  Vis, true /*PostLTOPhase*/);
       break;
     case Assignment::PROVIDE_HIDDEN:
     case Assignment::PROVIDE:
@@ -1695,60 +1699,60 @@ bool ObjectLinker::addScriptSymbols() {
     case Assignment::ASSERT:
       continue;
     }
-    if (symbol) {
-      symbol->setShouldIgnore(false);
-      symbol->resolveInfo()->setResolvedOrigin(ScriptInput);
-      symbol->setScriptDefined();
-      symbol->resolveInfo()->setInBitCode(false);
+    if (Symbol) {
+      Symbol->setShouldIgnore(false);
+      Symbol->resolveInfo()->setResolvedOrigin(ScriptInput);
+      Symbol->setScriptDefined();
+      Symbol->resolveInfo()->setInBitCode(false);
     }
     // Set symbol of this assignment.
-    (*it).first = symbol;
+    (*It).first = Symbol;
 
     // Record that there was an assignment for this symbol.
     // If there is a relocation to this symbol, the symbols contained in the
     // assignment also need to be considered as part of the list of symbols
     // that will be live.
-    if (symbol)
-      m_pModule->addAssignment(symbol->resolveInfo()->name(), (*it).second);
+    if (Symbol)
+      ThisModule->addAssignment(Symbol->resolveInfo()->name(), (*It).second);
   }
 
-  Resolver::Result resolved_result;
+  Resolver::Result ResolvedResult;
   InputFile *I =
-      m_pModule->getInternalInput(eld::Module::InternalInputType::Script);
-  m_pModule->getNamePool().insertSymbol(
+      ThisModule->getInternalInput(eld::Module::InternalInputType::Script);
+  ThisModule->getNamePool().insertSymbol(
       I, ".", true, ResolveInfo::NoType, ResolveInfo::Undefined,
       ResolveInfo::NoneBinding, 0, 0, ResolveInfo::Hidden, nullptr,
-      resolved_result, true, false, 0, false /* isPatchable */,
-      m_pModule->getPrinter());
-  LDSymbol *dot_sym = make<LDSymbol>(resolved_result.info, true);
-  dot_sym->setFragmentRef(FragmentRef::Null());
-  dot_sym->setValue(0);
-  resolved_result.info->setOutSymbol(dot_sym);
-  m_pModule->setDotSymbol(dot_sym);
-  return ret;
+      ResolvedResult, true, false, 0, false /* isPatchable */,
+      ThisModule->getPrinter());
+  LDSymbol *DotSym = make<LDSymbol>(ResolvedResult.Info, true);
+  DotSym->setFragmentRef(FragmentRef::null());
+  DotSym->setValue(0);
+  ResolvedResult.Info->setOutSymbol(DotSym);
+  ThisModule->setDotSymbol(DotSym);
+  return Ret;
 }
 
 bool ObjectLinker::addDynListSymbols() {
   // Dynamic list is only for non-shared libraries that use dynamic symbol
   // tables
-  if (m_Config.codeGenType() == LinkerConfig::DynObj &&
-      !m_Config.options().isPIE())
+  if (ThisConfig.codeGenType() == LinkerConfig::DynObj &&
+      !ThisConfig.options().isPIE())
     return true;
-  bool noError = true;
-  std::vector<ScriptSymbol *> &dynListSyms = m_pModule->dynListSyms();
+  bool NoError = true;
+  std::vector<ScriptSymbol *> &DynListSyms = ThisModule->dynListSyms();
   std::unordered_set<ScriptSymbol *> UsedPatterns;
-  for (auto &G : m_pModule->getNamePool().getGlobals()) {
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
     ResolveInfo *R = G.getValue();
-    LDSymbol *sym = m_pModule->getNamePool().findSymbol(R->name());
+    LDSymbol *Sym = ThisModule->getNamePool().findSymbol(R->name());
     bool ShouldExport = !R->isUndef() &&
-                        R->visibility() == ResolveInfo::Default && sym &&
-                        !sym->shouldIgnore();
-    if (m_DynlistExports.count(R->name())) {
+                        R->visibility() == ResolveInfo::Default && Sym &&
+                        !Sym->shouldIgnore();
+    if (MDynlistExports.count(R->name())) {
       if (ShouldExport)
         R->setExportToDyn();
       continue;
     }
-    for (auto &Pattern : dynListSyms) {
+    for (auto &Pattern : DynListSyms) {
       if (Pattern->matched(*R)) {
         if (ShouldExport)
           R->setExportToDyn();
@@ -1757,112 +1761,111 @@ bool ObjectLinker::addDynListSymbols() {
       }
     }
   }
-  if (m_Config.options().getErrorStyle() == GeneralOptions::llvm) {
-    for (const auto &E : dynListSyms)
+  if (ThisConfig.options().getErrorStyle() == GeneralOptions::llvm) {
+    for (const auto &E : DynListSyms)
       if (!UsedPatterns.count(E)) {
-        noError = false;
-        m_Config.raise(diag::dynlist_symbol_undefined_by_user) << E->name();
+        NoError = false;
+        ThisConfig.raise(Diag::dynlist_symbol_undefined_by_user) << E->name();
       }
   }
   // No further processing is done for dynamic list symbols
-  dynListSyms.clear();
-  m_DynlistExports.clear();
-  return noError;
+  DynListSyms.clear();
+  MDynlistExports.clear();
+  return NoError;
 }
 
-size_t ObjectLinker::getRelocSectSize(uint32_t type, uint32_t count) {
-  return count * (type == llvm::ELF::SHT_RELA ? m_LDBackend.getRelaEntrySize()
-                                              : m_LDBackend.getRelEntrySize());
+size_t ObjectLinker::getRelocSectSize(uint32_t Type, uint32_t Count) {
+  return Count * (Type == llvm::ELF::SHT_RELA ? ThisBackend.getRelaEntrySize()
+                                              : ThisBackend.getRelEntrySize());
 }
 
 void ObjectLinker::createRelocationSections() {
 
-  if (!m_Config.options().emitRelocs())
+  if (!ThisConfig.options().emitRelocs())
     return;
 
   // SectionName, contentPermissions, filepath
   struct SectionKey {
-    SectionKey() : _name(""), _type(-1) {}
+    SectionKey() : Name(""), Type(-1) {}
 
-    SectionKey(llvm::StringRef name, int32_t type) : _name(name), _type(type) {}
+    SectionKey(llvm::StringRef Name, int32_t Type) : Name(Name), Type(Type) {}
 
     // Data members
-    StringRef _name;
-    int32_t _type;
+    StringRef Name;
+    int32_t Type;
   };
 
   struct SectionKeyInfo {
     static SectionKey getEmptyKey() { return SectionKey(); }
     static SectionKey getTombstoneKey() { return SectionKey(); }
-    static unsigned getHashValue(const SectionKey &k) {
-      return llvm::hash_combine(k._name, k._type);
+    static unsigned getHashValue(const SectionKey &K) {
+      return llvm::hash_combine(K.Name, K.Type);
     }
-    static bool isEqual(const SectionKey &lhs, const SectionKey &rhs) {
-      return ((lhs._name == rhs._name) && (lhs._type == rhs._type));
+    static bool isEqual(const SectionKey &Lhs, const SectionKey &Rhs) {
+      return ((Lhs.Name == Rhs.Name) && (Lhs.Type == Rhs.Type));
     }
   };
 
   // apply all relocations of all inputs
-  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> outputRelocCount;
-  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> outputRelocAlignment;
+  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocCount;
+  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocAlignment;
   llvm::DenseMap<SectionKey, ELFSection *, SectionKeyInfo>
-      outputRelocTargetSect;
+      OutputRelocTargetSect;
 
-  eld::Module::obj_iterator input, inEnd = m_pModule->obj_end();
-  for (input = m_pModule->obj_begin(); input != inEnd; ++input) {
-    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
+  eld::Module::obj_iterator Input, InEnd = ThisModule->objEnd();
+  for (Input = ThisModule->objBegin(); Input != InEnd; ++Input) {
+    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*Input);
     if (!ObjFile)
       continue;
-    for (auto &rs : ObjFile->getRelocationSections()) {
-      if (rs->isIgnore())
+    for (auto &Rs : ObjFile->getRelocationSections()) {
+      if (Rs->isIgnore())
         continue;
-      if (rs->isDiscard())
+      if (Rs->isDiscard())
         continue;
 
-      for (auto &relocation : rs->getLink()->getRelocations()) {
-        if (m_LDBackend.maySkipRelocProcessing(relocation))
+      for (auto &Relocation : Rs->getLink()->getRelocations()) {
+        if (ThisBackend.maySkipRelocProcessing(Relocation))
           continue;
 
-        auto countRelocEntries = [&](Relocation *relocation) -> void {
-          ELFSection *output_sect =
-              relocation->targetRef()->frag()->getOwningSection();
+        auto CountRelocEntries = [&](class Relocation *Relocation) -> void {
+          ELFSection *OutputSect =
+              Relocation->targetRef()->frag()->getOwningSection();
 
-          if (output_sect->getOutputSection())
-            output_sect = output_sect->getOutputSection()->getSection();
+          if (OutputSect->getOutputSection())
+            OutputSect = OutputSect->getOutputSection()->getSection();
 
-          ELFSection *targetSection = relocation->targetSection();
+          ELFSection *TargetSection = Relocation->targetSection();
 
-          if (targetSection &&
-              (!targetSection->isDiscard() && !targetSection->isIgnore())) {
-            ELFSection *targetOutputSection =
-                targetSection->getOutputELFSection();
-            targetOutputSection->setWantedInOutput();
+          if (TargetSection &&
+              (!TargetSection->isDiscard() && !TargetSection->isIgnore())) {
+            ELFSection *TargetOutputSection =
+                TargetSection->getOutputELFSection();
+            TargetOutputSection->setWantedInOutput();
           }
 
           // Count the num of entries that refers to that section.
-          SectionKey sectKey(output_sect->name(),
-                             m_LDBackend.getRelocator()->relocType());
-          outputRelocCount[sectKey] += 1;
-          outputRelocAlignment[sectKey] =
-              std::max(rs->getAddrAlign(), outputRelocAlignment[sectKey]);
-          outputRelocTargetSect[sectKey] = output_sect;
+          SectionKey SectKey(OutputSect->name(),
+                             ThisBackend.getRelocator()->relocType());
+          OutputRelocCount[SectKey] += 1;
+          OutputRelocAlignment[SectKey] =
+              std::max(Rs->getAddrAlign(), OutputRelocAlignment[SectKey]);
+          OutputRelocTargetSect[SectKey] = OutputSect;
         };
-        countRelocEntries(relocation);
+        CountRelocEntries(Relocation);
       } // for all relocations
     } // for all relocation section
   } // for all inputs
-  for (const auto &kv : outputRelocCount) {
-    ELFSection *output_sect = m_pModule->createOutputSection(
-        m_LDBackend.getOutputRelocSectName(kv.first._name.str(),
-                                           kv.first._type),
-        LDFileFormat::Relocation, kv.first._type /* Reloc Kind */, 0x0,
-        outputRelocAlignment[kv.first]);
-    output_sect->setEntSize(kv.first._type == llvm::ELF::SHT_RELA
-                                ? m_LDBackend.getRelaEntrySize()
-                                : m_LDBackend.getRelEntrySize());
-    outputRelocTargetSect[kv.first]->setWantedInOutput(true);
-    output_sect->setLink(outputRelocTargetSect[kv.first]);
-    output_sect->setSize(getRelocSectSize(kv.first._type, kv.second));
+  for (const auto &Kv : OutputRelocCount) {
+    ELFSection *OutputSect = ThisModule->createOutputSection(
+        ThisBackend.getOutputRelocSectName(Kv.first.Name.str(), Kv.first.Type),
+        LDFileFormat::Relocation, Kv.first.Type /* Reloc Kind */, 0x0,
+        OutputRelocAlignment[Kv.first]);
+    OutputSect->setEntSize(Kv.first.Type == llvm::ELF::SHT_RELA
+                               ? ThisBackend.getRelaEntrySize()
+                               : ThisBackend.getRelEntrySize());
+    OutputRelocTargetSect[Kv.first]->setWantedInOutput(true);
+    OutputSect->setLink(OutputRelocTargetSect[Kv.first]);
+    OutputSect->setSize(getRelocSectSize(Kv.first.Type, Kv.second));
   }
 }
 
@@ -1896,51 +1899,51 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
   // make the alias symbl point to the original symbol.
   if (AliasSym && !AliasSym->outSymbol()) {
     LDSymbol &GlobalSymbol =
-        m_LDBackend.defineSymbolforCopyReloc(*m_pBuilder, AliasSym, &Sym);
+        ThisBackend.defineSymbolforCopyReloc(*CurBuilder, AliasSym, &Sym);
     GlobalSymbol.resolveInfo()->setResolvedOrigin(Sym.resolvedOrigin());
-    addCopyReloc(m_LDBackend, *GlobalSymbol.resolveInfo(), Type);
+    addCopyReloc(ThisBackend, *GlobalSymbol.resolveInfo(), Type);
   }
   LDSymbol &CopySym =
-      m_LDBackend.defineSymbolforCopyReloc(*m_pBuilder, &Sym, &Sym);
+      ThisBackend.defineSymbolforCopyReloc(*CurBuilder, &Sym, &Sym);
   if (!AliasSym)
-    addCopyReloc(m_LDBackend, *CopySym.resolveInfo(), Type);
+    addCopyReloc(ThisBackend, *CopySym.resolveInfo(), Type);
 }
 
-void ObjectLinker::scanRelocationsHelper(InputFile *input, bool isPartialLink,
+void ObjectLinker::scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
                                          LinkerScript::PluginVectorT PVect,
                                          Relocator::CopyRelocs &CopyRelocs) {
-  ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(input);
+  ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(Input);
   if (!ObjFile)
     return;
   uint32_t NumPlugins = PVect.size();
-  for (auto &rs : ObjFile->getRelocationSections()) {
-    if (rs->isIgnore())
+  for (auto &Rs : ObjFile->getRelocationSections()) {
+    if (Rs->isIgnore())
       continue;
-    if (rs->isDiscard())
+    if (Rs->isDiscard())
       continue;
-    for (auto &relocation : rs->getLink()->getRelocations()) {
+    for (auto &Relocation : Rs->getLink()->getRelocations()) {
       // Skip unneeded relocations
-      if (m_LDBackend.maySkipRelocProcessing(relocation))
+      if (ThisBackend.maySkipRelocProcessing(Relocation))
         continue;
       if (NumPlugins) {
         for (auto &P : PVect)
-          P->callReloc(relocation->type(), relocation);
+          P->callReloc(Relocation->type(), Relocation);
       }
-      ELFSection *relocSection = rs;
+      ELFSection *RelocSection = Rs;
       // scan relocation
-      if (!isPartialLink)
-        m_LDBackend.getRelocator()->scanRelocation(
-            *relocation, *m_pBuilder, *relocSection, *input, CopyRelocs);
+      if (!IsPartialLink)
+        ThisBackend.getRelocator()->scanRelocation(
+            *Relocation, *CurBuilder, *RelocSection, *Input, CopyRelocs);
       else
-        m_LDBackend.getRelocator()->partialScanRelocation(*relocation,
-                                                          *relocSection);
+        ThisBackend.getRelocator()->partialScanRelocation(*Relocation,
+                                                          *RelocSection);
     } // for all relocations
   } // for all relocation section
 }
 
 LinkerScript::PluginVectorT ObjectLinker::getLinkerPluginWithLinkerConfigs() {
   const LinkerScript::PluginVectorT PluginVect =
-      m_pModule->getScript().getPlugins();
+      ThisModule->getScript().getPlugins();
   LinkerScript::PluginVectorT PluginVectHavingLinkerConfigs;
   for (auto &P : PluginVect) {
     if (P->getLinkerPluginConfig())
@@ -1949,51 +1952,51 @@ LinkerScript::PluginVectorT ObjectLinker::getLinkerPluginWithLinkerConfigs() {
   return PluginVectHavingLinkerConfigs;
 }
 
-bool ObjectLinker::scanRelocations(bool isPartialLink) {
+bool ObjectLinker::scanRelocations(bool IsPartialLink) {
   LinkerScript::PluginVectorT PluginVect = getLinkerPluginWithLinkerConfigs();
 
-  m_LDBackend.provideSymbols();
+  ThisBackend.provideSymbols();
 
   std::vector<std::unique_ptr<Relocator::CopyRelocs>> AllCopyRelocs;
-  if (m_Config.options().numThreads() <= 1 ||
-      !m_Config.isScanRelocationsMultiThreaded()) {
-    if (m_pModule->getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_disabled) << "ScanRelocations";
-    for (auto &input : m_pModule->getObjectList()) {
+  if (ThisConfig.options().numThreads() <= 1 ||
+      !ThisConfig.isScanRelocationsMultiThreaded()) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "ScanRelocations";
+    for (auto &Input : ThisModule->getObjectList()) {
       auto CopyRelocs = std::make_unique<Relocator::CopyRelocs>();
-      scanRelocationsHelper(input, isPartialLink, PluginVect, *CopyRelocs);
+      scanRelocationsHelper(Input, IsPartialLink, PluginVect, *CopyRelocs);
       AllCopyRelocs.push_back(std::move(CopyRelocs));
     }
   } else {
-    if (m_pModule->getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_enabled)
-          << "ScanRelocations" << m_Config.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = m_pModule->getThreadPool();
-    for (auto &input : m_pModule->getObjectList()) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "ScanRelocations" << ThisConfig.options().numThreads();
+    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    for (auto &Input : ThisModule->getObjectList()) {
       auto CopyRelocs = std::make_unique<Relocator::CopyRelocs>();
       auto &CopyRelocsRef = *CopyRelocs; // must dereference in the main thread
       Pool->async([&] {
-        scanRelocationsHelper(input, isPartialLink, PluginVect, CopyRelocsRef);
+        scanRelocationsHelper(Input, IsPartialLink, PluginVect, CopyRelocsRef);
       });
       AllCopyRelocs.push_back(std::move(CopyRelocs));
     }
     Pool->wait();
   }
   // assume there is only one copy relocation type per target
-  Relocation::Type CopyRelocType = m_LDBackend.getCopyRelType();
+  Relocation::Type CopyRelocType = ThisBackend.getCopyRelType();
   for (const auto &RelocVec : AllCopyRelocs)
     for (auto &Reloc : *RelocVec)
       createCopyRelocation(*Reloc, CopyRelocType);
 
   // Merge per-file relocations
-  if (!isPartialLink) {
-    ELFObjectFile *RelocInput = m_LDBackend.getDynamicSectionHeadersInputFile();
+  if (!IsPartialLink) {
+    ELFObjectFile *RelocInput = ThisBackend.getDynamicSectionHeadersInputFile();
     auto MergeRelocs = [](llvm::SmallVectorImpl<Relocation *> &To,
                           const llvm::SmallVectorImpl<Relocation *> &From) {
       To.insert(To.end(), From.begin(), From.end());
     };
-    for (auto &input : m_pModule->getObjectList())
-      if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(input))
+    for (auto &Input : ThisModule->getObjectList())
+      if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input))
         if (Obj != RelocInput) {
           if (const auto &S = Obj->getRelaDyn())
             MergeRelocs(RelocInput->getRelaDyn()->getRelocations(),
@@ -2006,19 +2009,19 @@ bool ObjectLinker::scanRelocations(bool isPartialLink) {
 
   // If there is a undefined symbol, fail the link. No point fixing the
   // relocations. This is overridden by --noinhibit-exec.
-  if (!m_Config.getDiagEngine()->diagnose()) {
-    if (m_pModule->getPrinter()->isVerbose())
-      m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+  if (!ThisConfig.getDiagEngine()->diagnose()) {
+    if (ThisModule->getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
   return true;
 }
 
 bool ObjectLinker::finalizeScanRelocations() {
-  m_LDBackend.finalizeScanRelocations();
-  if (!m_Config.getDiagEngine()->diagnose()) {
-    if (m_pModule->getPrinter()->isVerbose())
-      m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+  ThisBackend.finalizeScanRelocations();
+  if (!ThisConfig.getDiagEngine()->diagnose()) {
+    if (ThisModule->getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
   return true;
@@ -2027,48 +2030,48 @@ bool ObjectLinker::finalizeScanRelocations() {
 /// initStubs - initialize stub-related stuff.
 bool ObjectLinker::initStubs() {
   // initialize BranchIslandFactory
-  m_LDBackend.initBRIslandFactory();
+  ThisBackend.initBRIslandFactory();
 
   // initialize StubFactory
-  m_LDBackend.initStubFactory();
+  ThisBackend.initStubFactory();
 
   // initialize target stubs
-  m_LDBackend.initTargetStubs();
+  ThisBackend.initTargetStubs();
   return true;
 }
 
 bool ObjectLinker::allocateCommonSymbols() {
-  for (auto &G : m_pModule->getNamePool().getGlobals()) {
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
     ResolveInfo *R = G.getValue();
     if (R->isCommon() && !R->isBitCode())
-      m_pModule->addCommonSymbol(R);
+      ThisModule->addCommonSymbol(R);
   }
 
   // Do not allocate common symbols for partial link unless define common
   // option is provided.
-  if (LinkerConfig::Object == m_Config.codeGenType() &&
-      !m_Config.options().isDefineCommon())
+  if (LinkerConfig::Object == ThisConfig.codeGenType() &&
+      !ThisConfig.options().isDefineCommon())
     return true;
-  if (!m_pModule->sortCommonSymbols())
+  if (!ThisModule->sortCommonSymbols())
     return false;
-  return m_LDBackend.allocateCommonSymbols();
+  return ThisBackend.allocateCommonSymbols();
 }
 
 bool ObjectLinker::addDynamicSymbols() {
-  m_LDBackend.sizeDynNamePools();
+  ThisBackend.sizeDynNamePools();
   return true;
 }
 
 /// prelayout - help backend to do some modification before layout
 bool ObjectLinker::prelayout() {
-  m_LDBackend.preLayout();
+  ThisBackend.preLayout();
 
-  if (!m_Config.getDiagEngine()->diagnose())
+  if (!ThisConfig.getDiagEngine()->diagnose())
     return false;
 
-  m_LDBackend.sizeDynamic();
+  ThisBackend.sizeDynamic();
 
-  m_LDBackend.initSymTab();
+  ThisBackend.initSymTab();
 
   createRelocationSections();
 
@@ -2080,15 +2083,15 @@ bool ObjectLinker::prelayout() {
 ///   Because we do not support instruction relaxing in this early version,
 ///   if there is a branch can not jump to its target, we return false
 ///   directly
-bool ObjectLinker::layout() { return m_LDBackend.layout(); }
+bool ObjectLinker::layout() { return ThisBackend.layout(); }
 
 /// prelayout - help backend to do some modification after layout
-bool ObjectLinker::postlayout() { return m_LDBackend.postLayout(); }
+bool ObjectLinker::postlayout() { return ThisBackend.postLayout(); }
 
-bool ObjectLinker::printlayout() { return m_LDBackend.printLayout(); }
+bool ObjectLinker::printlayout() { return ThisBackend.printLayout(); }
 
 bool ObjectLinker::finalizeBeforeWrite() {
-  m_LDBackend.finalizeBeforeWrite();
+  ThisBackend.finalizeBeforeWrite();
   return true;
 }
 
@@ -2097,40 +2100,40 @@ bool ObjectLinker::finalizeBeforeWrite() {
 ///   all
 ///   symbol.
 bool ObjectLinker::finalizeSymbolValues() {
-  for (auto i : m_pModule->getSymbols())
-    finalizeSymbolValue(i);
+  for (auto *I : ThisModule->getSymbols())
+    finalizeSymbolValue(I);
   return true;
 }
 
 /// Finalize one symbol.
-void ObjectLinker::finalizeSymbolValue(ResolveInfo *i) const {
-  if (i->isAbsolute() || i->type() == ResolveInfo::File)
+void ObjectLinker::finalizeSymbolValue(ResolveInfo *I) const {
+  if (I->isAbsolute() || I->type() == ResolveInfo::File)
     return;
 
-  if (i->type() == ResolveInfo::ThreadLocal) {
-    i->outSymbol()->setValue(m_LDBackend.finalizeTLSSymbol(i->outSymbol()));
+  if (I->type() == ResolveInfo::ThreadLocal) {
+    I->outSymbol()->setValue(ThisBackend.finalizeTLSSymbol(I->outSymbol()));
     return;
   }
 
-  if (i->outSymbol()->hasFragRef() &&
-      i->outSymbol()->fragRef()->frag()->getOwningSection()->isDiscard())
+  if (I->outSymbol()->hasFragRef() &&
+      I->outSymbol()->fragRef()->frag()->getOwningSection()->isDiscard())
     return;
 
-  if (i->outSymbol()->hasFragRef()) {
+  if (I->outSymbol()->hasFragRef()) {
     // set the virtual address of the symbol. If the output file is
     // relocatable object file, the section's virtual address becomes zero.
     // And the symbol's value become section relative offset.
-    uint64_t value = i->outSymbol()->fragRef()->getOutputOffset(*m_pModule);
-    assert(nullptr != i->outSymbol()->fragRef()->frag());
+    uint64_t Value = I->outSymbol()->fragRef()->getOutputOffset(*ThisModule);
+    assert(nullptr != I->outSymbol()->fragRef()->frag());
     // For sections that are zero in size, there is no output section. Just
     // rely on the owning section name for now.
-    ELFSection *section = i->getOwningSection();
-    if (section->getOutputSection())
-      section = section->getOutputSection()->getSection();
-    if (section->isAlloc())
-      i->outSymbol()->setValue(value + section->addr());
+    ELFSection *Section = I->getOwningSection();
+    if (Section->getOutputSection())
+      Section = Section->getOutputSection()->getSection();
+    if (Section->isAlloc())
+      I->outSymbol()->setValue(Value + Section->addr());
     else
-      i->outSymbol()->setValue(value);
+      I->outSymbol()->setValue(Value);
   }
 }
 
@@ -2139,72 +2142,72 @@ void ObjectLinker::finalizeSymbolValue(ResolveInfo *i) const {
 /// Create relocation section, asking GNULDBackend to
 /// read the relocation information into RelocationEntry
 /// and push_back into the relocation section
-bool ObjectLinker::relocation(bool emitRelocs) {
+bool ObjectLinker::relocation(bool EmitRelocs) {
   // when producing relocatables, no need to apply relocation
-  if (LinkerConfig::Object == m_Config.codeGenType())
+  if (LinkerConfig::Object == ThisConfig.codeGenType())
     return true;
 
   // Mapping section to count and max_size.
-  llvm::DenseMap<ELFSection *, unsigned> reloc_count, max_sect_size;
+  llvm::DenseMap<ELFSection *, unsigned> RelocCount, MaxSectSize;
 
-  auto emitOneReloc = [&](Relocation *relocation) -> bool {
-    if (!emitRelocs)
+  auto EmitOneReloc = [&](Relocation *Relocation) -> bool {
+    if (!EmitRelocs)
       return true;
-    ResolveInfo *info = relocation->symInfo();
-    ELFSection *output_sect =
-        m_pModule->getSection(m_LDBackend.getOutputRelocSectName(
-            relocation->targetRef()->getOutputELFSection()->name().str(),
-            m_LDBackend.getRelocator()->relocType()));
+    ResolveInfo *Info = Relocation->symInfo();
+    ELFSection *OutputSect =
+        ThisModule->getSection(ThisBackend.getOutputRelocSectName(
+            Relocation->targetRef()->getOutputELFSection()->name().str(),
+            ThisBackend.getRelocator()->relocType()));
 
-    if (!output_sect)
+    if (!OutputSect)
       return true;
 
     // Make sure we have an entry for each section because it's possible
     // that the whole section has no any valid relocs.
-    if (reloc_count.find(output_sect) == reloc_count.end()) {
-      reloc_count[output_sect] = 0;
-      max_sect_size[output_sect] = output_sect->size();
+    if (RelocCount.find(OutputSect) == RelocCount.end()) {
+      RelocCount[OutputSect] = 0;
+      MaxSectSize[OutputSect] = OutputSect->size();
     }
-    Relocation *r = Relocation::Create(
-        relocation->type(),
-        m_LDBackend.getRelocator()->getSize(relocation->type()),
-        relocation->targetRef(), relocation->addend());
+    eld::Relocation *R = eld::Relocation::Create(
+        Relocation->type(),
+        ThisBackend.getRelocator()->getSize(Relocation->type()),
+        Relocation->targetRef(), Relocation->addend());
 
-    ResolveInfo *sym_info = info;
+    ResolveInfo *SymInfo = Info;
 
-    if (info->type() == ResolveInfo::Section) {
-      sym_info = m_pModule->getSectionSymbol(relocation->outputSection());
+    if (Info->type() == ResolveInfo::Section) {
+      SymInfo = ThisModule->getSectionSymbol(Relocation->outputSection());
       // Get symbol offset from the relocation itself.
-      if (!m_Config.options().emitGNUCompatRelocs()) {
-        r->setAddend(relocation->symOffset(*m_pModule));
+      if (!ThisConfig.options().emitGNUCompatRelocs()) {
+        R->setAddend(Relocation->symOffset(*ThisModule));
       }
     }
     // set relocation target symbol to the output section symbol's
     // resolveInfo
-    r->setSymInfo(sym_info);
-    output_sect->addRelocation(r);
-    reloc_count[output_sect] += 1;
+    R->setSymInfo(SymInfo);
+    OutputSect->addRelocation(R);
+    RelocCount[OutputSect] += 1;
     return true;
   };
 
-  auto processObjectFile = [&](ObjectFile *ObjFile) -> bool {
-    for (auto &sect : ObjFile->getSections()) {
-      if (sect->isBitcode())
+  auto ProcessObjectFile = [&](ObjectFile *ObjFile) -> bool {
+    for (auto &Sect : ObjFile->getSections()) {
+      if (Sect->isBitcode())
         continue;
-      ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-      if (!section->hasRelocData())
+      ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
+      if (!Section->hasRelocData())
         continue;
-      if (section->getKind() != LDFileFormat::Internal)
+      if (Section->getKind() != LDFileFormat::Internal)
         continue;
       // Skip internal relocation sections.
-      if (section->isRelocationSection())
+      if (Section->isRelocationSection())
         continue;
-      for (auto &relocation : section->getRelocations()) {
-        relocation->apply(*m_LDBackend.getRelocator());
+      for (auto &Relocation : Section->getRelocations()) {
+        Relocation->apply(*ThisBackend.getRelocator());
       }
     }
 
-    if (!m_Config.getDiagEngine()->diagnose()) {
+    if (!ThisConfig.getDiagEngine()->diagnose()) {
       return false;
     }
 
@@ -2213,186 +2216,187 @@ bool ObjectLinker::relocation(bool emitRelocs) {
     if (!EObjFile)
       return false;
 
-    for (auto &rs : EObjFile->getRelocationSections()) {
-      if (rs->isIgnore())
+    for (auto &Rs : EObjFile->getRelocationSections()) {
+      if (Rs->isIgnore())
         continue;
-      if (rs->isDiscard())
+      if (Rs->isDiscard())
         continue;
-      auto processReloc = [&](Relocation *relocation) -> bool {
+      auto ProcessReloc = [&](Relocation *Relocation) -> bool {
         // bypass the reloc if the symbol is in the discarded input section
-        ResolveInfo *info = relocation->symInfo();
+        ResolveInfo *Info = Relocation->symInfo();
 
         // Dont process relocations that are relaxed.
-        if (m_LDBackend.isRelocationRelaxed(relocation))
+        if (ThisBackend.isRelocationRelaxed(Relocation))
           return false;
 
-        if (!info->outSymbol()->hasFragRef() &&
-            ResolveInfo::Section == info->type() &&
-            ResolveInfo::Undefined == info->desc())
+        if (!Info->outSymbol()->hasFragRef() &&
+            ResolveInfo::Section == Info->type() &&
+            ResolveInfo::Undefined == Info->desc())
           return false;
 
-        if ((info->outSymbol()->hasFragRef() && info->outSymbol()
+        if ((Info->outSymbol()->hasFragRef() && Info->outSymbol()
                                                     ->fragRef()
                                                     ->frag()
                                                     ->getOwningSection()
                                                     ->isDiscard()))
           return false;
 
-        ELFSection *applySect =
-            relocation->targetRef()->frag()->getOwningSection();
+        ELFSection *ApplySect =
+            Relocation->targetRef()->frag()->getOwningSection();
         // bypass the reloc if the section where it sits will be discarded.
-        if (applySect->isIgnore())
+        if (ApplySect->isIgnore())
           return false;
-        if (applySect->isDiscard())
+        if (ApplySect->isDiscard())
           return false;
-        ELFSection *targetSect = relocation->targetSection();
-        if (info->outSymbol()->shouldIgnore() ||
-            (info->outSymbol()->fragRef() &&
-             info->outSymbol()->fragRef()->isDiscard()) ||
-            (targetSect && targetSect->isIgnore())) {
-          if (m_pModule->getPrinter()->isVerbose())
-            m_Config.raise(diag::applying_endof_image_address)
-                << info->name() << relocation->getTargetPath(m_Config.options())
-                << relocation->getSourcePath(m_Config.options());
-          relocation->target() =
-              m_LDBackend.getValueForDiscardedRelocations(relocation);
+        ELFSection *TargetSect = Relocation->targetSection();
+        if (Info->outSymbol()->shouldIgnore() ||
+            (Info->outSymbol()->fragRef() &&
+             Info->outSymbol()->fragRef()->isDiscard()) ||
+            (TargetSect && TargetSect->isIgnore())) {
+          if (ThisModule->getPrinter()->isVerbose())
+            ThisConfig.raise(Diag::applying_endof_image_address)
+                << Info->name()
+                << Relocation->getTargetPath(ThisConfig.options())
+                << Relocation->getSourcePath(ThisConfig.options());
+          Relocation->target() =
+              ThisBackend.getValueForDiscardedRelocations(Relocation);
           return false;
         }
         return true;
       };
-      for (auto &relocation : rs->getLink()->getRelocations()) {
-        if (processReloc(relocation)) {
-          if (emitRelocs)
-            emitOneReloc(relocation);
-          relocation->apply(*m_LDBackend.getRelocator());
+      for (auto &Relocation : Rs->getLink()->getRelocations()) {
+        if (ProcessReloc(Relocation)) {
+          if (EmitRelocs)
+            EmitOneReloc(Relocation);
+          Relocation->apply(*ThisBackend.getRelocator());
         }
       } // for all relocations
     } // for all relocation section
 
-    if (!m_Config.getDiagEngine()->diagnose()) {
+    if (!ThisConfig.getDiagEngine()->diagnose()) {
       return false;
     }
 
-    if (m_Config.options().emitRelocs()) {
-      for (auto &kv : reloc_count)
-        kv.first->setSize(getRelocSectSize(kv.first->getType(), kv.second));
+    if (ThisConfig.options().emitRelocs()) {
+      for (auto &Kv : RelocCount)
+        Kv.first->setSize(getRelocSectSize(Kv.first->getType(), Kv.second));
     }
     return true;
   };
 
   // apply all relocations of all inputs
-  if (m_Config.options().numThreads() <= 1 ||
-      !m_Config.isApplyRelocationsMultiThreaded()) {
-    if (m_pModule->getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_disabled) << "ApplyRelocations";
-    for (auto &input : m_pModule->getObjectList()) {
-      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(input);
+  if (ThisConfig.options().numThreads() <= 1 ||
+      !ThisConfig.isApplyRelocationsMultiThreaded()) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "ApplyRelocations";
+    for (auto &Input : ThisModule->getObjectList()) {
+      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
       if (!ObjFile)
         continue;
-      processObjectFile(ObjFile);
+      ProcessObjectFile(ObjFile);
     }
   } else {
-    if (m_pModule->getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_enabled)
-          << "ApplyRelocations" << m_Config.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = m_pModule->getThreadPool();
-    for (auto &input : m_pModule->getObjectList()) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "ApplyRelocations" << ThisConfig.options().numThreads();
+    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    for (auto &Input : ThisModule->getObjectList()) {
       Pool->async([&] {
-        ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(input);
+        ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
         if (!ObjFile)
           return;
-        processObjectFile(ObjFile);
+        ProcessObjectFile(ObjFile);
       });
     }
     Pool->wait();
   }
 
   // apply relocations created by relaxation
-  SectionMap::iterator out, outBegin, outEnd;
+  SectionMap::iterator Out, OutBegin, OutEnd;
   typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-  outBegin = m_pModule->getScript().sectionMap().begin();
-  outEnd = m_pModule->getScript().sectionMap().end();
-  for (out = outBegin; out != outEnd; ++out) {
-    branch_island_iter bi = (*out)->islands_begin();
-    branch_island_iter be = (*out)->islands_end();
-    for (; bi != be; ++bi) {
-      BranchIsland::reloc_iterator iter, iterEnd = (*bi)->reloc_end();
-      for (iter = (*bi)->reloc_begin(); iter != iterEnd; ++iter) {
-        (*iter)->apply(*m_LDBackend.getRelocator());
+  OutBegin = ThisModule->getScript().sectionMap().begin();
+  OutEnd = ThisModule->getScript().sectionMap().end();
+  for (Out = OutBegin; Out != OutEnd; ++Out) {
+    branch_island_iter Bi = (*Out)->islandsBegin();
+    branch_island_iter Be = (*Out)->islandsEnd();
+    for (; Bi != Be; ++Bi) {
+      BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
+      for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter) {
+        (*Iter)->apply(*ThisBackend.getRelocator());
       }
     }
   }
 
   // apply linker created relocations
-  for (auto R : m_LDBackend.getInternalRelocs()) {
-    R->apply(*m_LDBackend.getRelocator());
+  for (auto *R : ThisBackend.getInternalRelocs()) {
+    R->apply(*ThisBackend.getRelocator());
   }
 
   // apply relocations
-  if (!m_Config.getDiagEngine()->diagnose()) {
+  if (!ThisConfig.getDiagEngine()->diagnose()) {
     return false;
   }
   return true;
 }
 
 /// emitOutput - emit the output file.
-bool ObjectLinker::emitOutput(llvm::FileOutputBuffer &pOutput) {
-  return std::error_code() == getWriter()->writeObject(*m_pModule, pOutput);
+bool ObjectLinker::emitOutput(llvm::FileOutputBuffer &POutput) {
+  return std::error_code() == getWriter()->writeObject(*ThisModule, POutput);
 }
 
 /// postProcessing - do modification after all processes
 eld::Expected<void>
-ObjectLinker::postProcessing(llvm::FileOutputBuffer &pOutput) {
+ObjectLinker::postProcessing(llvm::FileOutputBuffer &POutput) {
   {
     eld::RegisterTimer T("Sync Relocations", "Emit Output File",
-                         m_Config.options().printTimingStats());
-    syncRelocations(pOutput.getBufferStart());
+                         ThisConfig.options().printTimingStats());
+    syncRelocations(POutput.getBufferStart());
   }
 
   {
     eld::RegisterTimer T("Post Process Output File", "Emit Output File",
-                         m_Config.options().printTimingStats());
-    eld::Expected<void> expPostProcess = m_LDBackend.postProcessing(pOutput);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expPostProcess);
+                         ThisConfig.options().printTimingStats());
+    eld::Expected<void> ExpPostProcess = ThisBackend.postProcessing(POutput);
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpPostProcess);
   }
   return {};
 }
 
-void ObjectLinker::syncRelocations(uint8_t *buffer) {
+void ObjectLinker::syncRelocations(uint8_t *Buffer) {
 
   // We MUST write relocation by relaxation before those
   // from the inputs because something like R_AARCH64_COPY_INSN
   // must be written before the input relocation overwritten the same
   // location again.
-  auto syncBranchIslandsForOutputSection = [&](OutputSectionEntry *O) -> void {
+  auto SyncBranchIslandsForOutputSection = [&](OutputSectionEntry *O) -> void {
     typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-    branch_island_iter bi = O->islands_begin();
-    branch_island_iter be = O->islands_end();
-    for (; bi != be; ++bi) {
-      BranchIsland::reloc_iterator iter, iterEnd = (*bi)->reloc_end();
-      for (iter = (*bi)->reloc_begin(); iter != iterEnd; ++iter)
-        writeRelocationResult(**iter, buffer);
+    branch_island_iter Bi = O->islandsBegin();
+    branch_island_iter Be = O->islandsEnd();
+    for (; Bi != Be; ++Bi) {
+      BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
+      for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter)
+        writeRelocationResult(**Iter, Buffer);
     }
   };
   // sync relocations created by relaxation
-  if (m_Config.options().numThreads() <= 1 ||
-      !m_Config.isSyncRelocationsMultiThreaded()) {
-    if (m_pModule->getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_disabled) << "SyncRelocations";
-    for (auto &out : m_pModule->getScript().sectionMap())
-      syncBranchIslandsForOutputSection(out);
+  if (ThisConfig.options().numThreads() <= 1 ||
+      !ThisConfig.isSyncRelocationsMultiThreaded()) {
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "SyncRelocations";
+    for (auto &Out : ThisModule->getScript().sectionMap())
+      SyncBranchIslandsForOutputSection(Out);
     // sync linker created internal relocations
-    for (auto R : m_LDBackend.getInternalRelocs()) {
-      writeRelocationResult(*R, buffer);
+    for (auto *R : ThisBackend.getInternalRelocs()) {
+      writeRelocationResult(*R, Buffer);
     }
-    for (auto &input : m_pModule->getObjectList()) {
-      syncRelocationResult(buffer, input);
+    for (auto &Input : ThisModule->getObjectList()) {
+      syncRelocationResult(Buffer, Input);
     }
   } else {
-    llvm::ThreadPoolInterface *Pool = m_pModule->getThreadPool();
-    if (m_pModule->getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_enabled)
-          << "SyncRelocations" << m_Config.options().numThreads();
+    llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+    if (ThisModule->getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "SyncRelocations" << ThisConfig.options().numThreads();
     // QTOOL-112094: When R_AARCH_COPY_INSN is used, it may point to the same
     // target as other input relocations. Since R_AARCH_COPY_INSN is created for
     // a branch island, it may be written from a different thread than the input
@@ -2400,66 +2404,66 @@ void ObjectLinker::syncRelocations(uint8_t *buffer) {
     // of the input relocation to be overwritten by R_AARCH_COPY_INSN.
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
-    for (auto &out : m_pModule->getScript().sectionMap()) {
-      Pool->async([&] { syncBranchIslandsForOutputSection(out); });
+    for (auto &Out : ThisModule->getScript().sectionMap()) {
+      Pool->async([&] { SyncBranchIslandsForOutputSection(Out); });
     }
     Pool->wait();
     // sync linker created internal relocations
-    for (auto &R : m_LDBackend.getInternalRelocs()) {
-      Pool->async([this, &R, &buffer] { writeRelocationResult(*R, buffer); });
+    for (auto &R : ThisBackend.getInternalRelocs()) {
+      Pool->async([this, &R, &Buffer] { writeRelocationResult(*R, Buffer); });
     }
     Pool->wait();
-    for (auto &input : m_pModule->getObjectList()) {
+    for (auto &Input : ThisModule->getObjectList()) {
       Pool->async(
-          [this, &buffer, input] { syncRelocationResult(buffer, input); });
+          [this, &Buffer, Input] { syncRelocationResult(Buffer, Input); });
     }
     Pool->wait();
   }
 }
 
-void ObjectLinker::syncRelocationResult(uint8_t *data, InputFile *input) {
-  ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(input);
+void ObjectLinker::syncRelocationResult(uint8_t *Data, InputFile *Input) {
+  ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
   if (!ObjFile)
     return;
-  for (auto &sect : ObjFile->getSections()) {
-    if (sect->isBitcode())
+  for (auto &Sect : ObjFile->getSections()) {
+    if (Sect->isBitcode())
       continue;
-    ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-    if (!section->hasRelocData())
+    ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
+    if (!Section->hasRelocData())
       continue;
-    if (section->getKind() != LDFileFormat::Internal)
+    if (Section->getKind() != LDFileFormat::Internal)
       continue;
     // Skip internal relocation sections.
-    if (section->isRelocationSection())
+    if (Section->isRelocationSection())
       continue;
-    for (auto &relocation : section->getRelocations()) {
-      writeRelocationResult(*relocation, data);
+    for (auto &Relocation : Section->getRelocations()) {
+      writeRelocationResult(*Relocation, Data);
     }
   }
   ELFFileBase *EObjFile = llvm::dyn_cast<ELFFileBase>(ObjFile);
   if (!EObjFile)
     return;
-  for (auto &rs : EObjFile->getRelocationSections()) {
-    if (rs->isIgnore())
+  for (auto &Rs : EObjFile->getRelocationSections()) {
+    if (Rs->isIgnore())
       continue;
-    if (rs->isDiscard())
+    if (Rs->isDiscard())
       continue;
 
-    for (auto &relocation : rs->getLink()->getRelocations()) {
+    for (auto &Relocation : Rs->getLink()->getRelocations()) {
 
-      auto syncOneReloc = [&](Relocation *relocation) -> bool {
+      auto SyncOneReloc = [&](class Relocation *Relocation) -> bool {
         // bypass the reloc if the symbol is in the discarded input section
-        ResolveInfo *info = relocation->symInfo();
+        ResolveInfo *Info = Relocation->symInfo();
 
-        if (!info->outSymbol()->hasFragRef() &&
-            ResolveInfo::Section == info->type() &&
-            ResolveInfo::Undefined == info->desc())
+        if (!Info->outSymbol()->hasFragRef() &&
+            ResolveInfo::Section == Info->type() &&
+            ResolveInfo::Undefined == Info->desc())
           return false;
 
-        if (relocation->targetRef()->frag()->getOwningSection()->isIgnore())
+        if (Relocation->targetRef()->frag()->getOwningSection()->isIgnore())
           return false;
 
-        if (relocation->targetRef()->frag()->getOwningSection()->isDiscard())
+        if (Relocation->targetRef()->frag()->getOwningSection()->isDiscard())
           return false;
 
         // bypass the relocation with NONE type. This is to avoid overwrite
@@ -2468,53 +2472,53 @@ void ObjectLinker::syncRelocationResult(uint8_t *data, InputFile *input) {
         // result we want is the value of the other relocation result. For
         // example, in .exidx, there are usually an R_ARM_NONE and
         // R_ARM_PREL31 apply to the same place
-        if (0x0 == relocation->type())
+        if (0x0 == Relocation->type())
           return false;
 
         return true;
       };
       uint64_t ModifiedRelocData = 0;
-      if (m_pModule->getRelocationDataForSync(relocation, ModifiedRelocData))
-        writeRelocationData(*relocation, ModifiedRelocData, data);
-      else if (syncOneReloc(relocation))
-        writeRelocationResult(*relocation, data);
+      if (ThisModule->getRelocationDataForSync(Relocation, ModifiedRelocData))
+        writeRelocationData(*Relocation, ModifiedRelocData, Data);
+      else if (SyncOneReloc(Relocation))
+        writeRelocationResult(*Relocation, Data);
     } // for all relocations
   } // for all relocation section
 }
 
-void ObjectLinker::writeRelocationResult(Relocation &pReloc, uint8_t *pOutput) {
+void ObjectLinker::writeRelocationResult(Relocation &PReloc, uint8_t *POutput) {
   // Certain relocations such as R_RISCV_RELAX and R_RISCV_ALIGN do not
   // really apply. They are way to communicate linker to do certain
   // optimizations. Applying them may overrite the immediate bits based on
   // sequence in which they appear w.r.t. "real" relocation
-  if (m_LDBackend.shouldIgnoreRelocSync(&pReloc))
+  if (ThisBackend.shouldIgnoreRelocSync(&PReloc))
     return;
 
-  writeRelocationData(pReloc, pReloc.target(), pOutput);
+  writeRelocationData(PReloc, PReloc.target(), POutput);
 }
 
-void ObjectLinker::writeRelocationData(Relocation &pReloc, uint64_t Data,
-                                       uint8_t *pOutput) {
+void ObjectLinker::writeRelocationData(Relocation &PReloc, uint64_t Data,
+                                       uint8_t *POutput) {
 
-  if (!pReloc.targetRef()->getOutputELFSection()->hasOffset())
+  if (!PReloc.targetRef()->getOutputELFSection()->hasOffset())
     return;
 
-  FragmentRef::Offset Off = pReloc.targetRef()->getOutputOffset(*m_pModule);
+  FragmentRef::Offset Off = PReloc.targetRef()->getOutputOffset(*ThisModule);
   if (Off == (FragmentRef::Offset)-1)
     return;
 
   // get output file offset
-  size_t out_offset = pReloc.targetRef()->getOutputELFSection()->offset() + Off;
+  size_t OutOffset = PReloc.targetRef()->getOutputELFSection()->offset() + Off;
 
-  uint8_t *target_addr = pOutput + out_offset;
+  uint8_t *TargetAddr = POutput + OutOffset;
 
-  Off = pReloc.targetRef()->getOutputOffset(*m_pModule);
+  Off = PReloc.targetRef()->getOutputOffset(*ThisModule);
 
-  std::memcpy(target_addr, &Data, pReloc.size(*m_LDBackend.getRelocator()) / 8);
+  std::memcpy(TargetAddr, &Data, PReloc.size(*ThisBackend.getRelocator()) / 8);
 }
 
 static void ltoDiagnosticHandler(const llvm::DiagnosticInfo &DI) {
-  ASSERT(sDiagEngineForLTO, "sDiagEngineForLTO is not set!!");
+  ASSERT(SDiagEngineForLto, "sDiagEngineForLTO is not set!!");
   std::string ErrStorage;
   {
     llvm::raw_string_ostream OS(ErrStorage);
@@ -2523,14 +2527,14 @@ static void ltoDiagnosticHandler(const llvm::DiagnosticInfo &DI) {
   }
   switch (DI.getSeverity()) {
   case DS_Error: {
-    sDiagEngineForLTO->raise(diag::lto_codegen_error) << ErrStorage;
+    SDiagEngineForLto->raise(Diag::lto_codegen_error) << ErrStorage;
     break;
   }
   case DS_Warning:
-    sDiagEngineForLTO->raise(diag::lto_codegen_warning) << ErrStorage;
+    SDiagEngineForLto->raise(Diag::lto_codegen_warning) << ErrStorage;
     break;
   case DS_Note:
-    sDiagEngineForLTO->raise(diag::lto_codegen_note) << ErrStorage;
+    SDiagEngineForLto->raise(Diag::lto_codegen_note) << ErrStorage;
     break;
   case DS_Remark:
     switch (DI.getKind()) {
@@ -2583,46 +2587,46 @@ static void ltoDiagnosticHandler(const llvm::DiagnosticInfo &DI) {
       break;
     }
     }
-    sDiagEngineForLTO->raise(diag::lto_codegen_remark) << ErrStorage;
+    SDiagEngineForLto->raise(Diag::lto_codegen_remark) << ErrStorage;
     break;
   }
 }
 
 bool ObjectLinker::runAssembler(
-    std::vector<std::string> &files, std::string RelocModel,
-    const std::vector<std::string> &asmFilesFromLTO) {
-  std::vector<std::string> fileList;
+    std::vector<std::string> &Files, std::string RelocModel,
+    const std::vector<std::string> &AsmFilesFromLto) {
+  std::vector<std::string> FileList;
 
-  if (m_Config.options().hasLTOAsmFile()) {
-    for (auto &f : m_Config.options().ltoAsmFile()) {
-      m_Config.raise(diag::using_lto_asm_file) << f;
-      fileList.push_back(f);
+  if (ThisConfig.options().hasLTOAsmFile()) {
+    for (auto &F : ThisConfig.options().ltoAsmFile()) {
+      ThisConfig.raise(Diag::using_lto_asm_file) << F;
+      FileList.push_back(F);
     }
   } else {
-    for (auto &f : asmFilesFromLTO) {
-      if (!f.empty())
-        fileList.push_back(f);
+    for (auto &F : AsmFilesFromLto) {
+      if (!F.empty())
+        FileList.push_back(F);
     }
   }
 
-  if (m_Config.options().hasLTOOutputFile()) {
-    for (auto &f : m_Config.options().ltoOutputFile()) {
-      m_Config.raise(diag::using_lto_output_file) << f;
-      files.push_back(f);
+  if (ThisConfig.options().hasLTOOutputFile()) {
+    for (auto &F : ThisConfig.options().ltoOutputFile()) {
+      ThisConfig.raise(Diag::using_lto_output_file) << F;
+      Files.push_back(F);
     }
     return true;
   }
 
   uint32_t Count = 0;
-  for (auto f : fileList) {
-    SmallString<256> outputFileName;
-    auto OS = createLTOTempFile(Count, "o", outputFileName);
+  for (auto F : FileList) {
+    SmallString<256> OutputFileName;
+    auto OS = createLTOTempFile(Count, "o", OutputFileName);
     if (!OS)
       return false;
-    files.push_back(std::string(outputFileName));
+    Files.push_back(std::string(OutputFileName));
 
-    if (!m_LDBackend.ltoCallExternalAssembler(f, RelocModel,
-                                              std::string(outputFileName)))
+    if (!ThisBackend.ltoCallExternalAssembler(F, RelocModel,
+                                              std::string(OutputFileName)))
       return false;
 
     ++Count;
@@ -2630,41 +2634,41 @@ bool ObjectLinker::runAssembler(
   return true;
 }
 
-std::unique_ptr<llvm::lto::LTO> ObjectLinker::LTOInit(llvm::lto::Config Conf) {
+std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf) {
   // Parse codegen options and pre-initialize the config
   eld::RegisterTimer T("Initialize LTO", "LTO",
-                       m_Config.options().printTimingStats());
-  if (m_TraceLTO) {
-    if (m_Config.options().codegenOpts()) {
-      std::stringstream ss;
-      for (auto ai : m_Config.options().codeGenOpts())
-        ss << ai << " ";
-      m_Config.raise(diag::codegen_options)
-          << m_Config.targets().triple().str() << ss.str();
+                       ThisConfig.options().printTimingStats());
+  if (MTraceLTO) {
+    if (ThisConfig.options().codegenOpts()) {
+      std::stringstream Ss;
+      for (auto Ai : ThisConfig.options().codeGenOpts())
+        Ss << Ai << " ";
+      ThisConfig.raise(Diag::codegen_options)
+          << ThisConfig.targets().triple().str() << Ss.str();
     } else {
-      m_Config.raise(diag::codegen_options)
-          << m_Config.targets().triple().str() << "none";
+      ThisConfig.raise(Diag::codegen_options)
+          << ThisConfig.targets().triple().str() << "none";
     }
   }
 
   Conf.DiagHandler = ltoDiagnosticHandler;
-  if (m_Config.options().hasLTOOptRemarksFile()) {
+  if (ThisConfig.options().hasLTOOptRemarksFile()) {
     std::string OptYamlFileName =
-        m_Config.options().outputFileName() + std::string("-LTO.opt.yaml");
+        ThisConfig.options().outputFileName() + std::string("-LTO.opt.yaml");
     Conf.RemarksFilename = OptYamlFileName;
-    if (m_Config.options().hasLTOOptRemarksDisplayHotness())
+    if (ThisConfig.options().hasLTOOptRemarksDisplayHotness())
       Conf.RemarksWithHotness = true;
   }
-  std::string Cpu = m_LDBackend.getInfo().getOutputMCPU().str();
+  std::string Cpu = ThisBackend.getInfo().getOutputMCPU().str();
   if (!Cpu.empty()) {
     Conf.CPU = Cpu;
-    if (m_TraceLTO)
-      m_Config.raise(diag::set_codegen_mcpu) << Cpu;
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::set_codegen_mcpu) << Cpu;
   }
 
-  Conf.DefaultTriple = m_Config.targets().triple().str();
+  Conf.DefaultTriple = ThisConfig.targets().triple().str();
 
-  if (m_LDBackend.ltoNeedAssembler())
+  if (ThisBackend.ltoNeedAssembler())
     Conf.CGFileType = llvm::CodeGenFileType::AssemblyFile;
 
   auto Model = ltoCodegenModel();
@@ -2675,25 +2679,25 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::LTOInit(llvm::lto::Config Conf) {
   // TODO: This will write out *lots* of files at different stages. We may
   // want to curtail this to just two as before (for RegularLTO) and perhaps
   // more for ThinLTO.
-  if (m_TraceLTO || m_SaveTemps) {
-    if (llvm::Error E = Conf.addSaveTemps(m_LTOTempPrefix)) {
-      m_Config.raise(diag::lto_cannot_save_temps)
+  if (MTraceLTO || MSaveTemps) {
+    if (llvm::Error E = Conf.addSaveTemps(MLtoTempPrefix)) {
+      ThisConfig.raise(Diag::lto_cannot_save_temps)
           << llvm::toString(std::move(E));
       return {};
     }
     // FIXME: Output actual file names (this will go with the above TODO).
-    m_Config.raise(diag::note_temp_lto_bitcode) << m_LTOTempPrefix + "*";
+    ThisConfig.raise(Diag::note_temp_lto_bitcode) << MLtoTempPrefix + "*";
   }
 
   // Set the number of backend threads to use in ThinLTO
   unsigned NumThreads = 1;
-  if (m_Config.options().threadsEnabled()) {
-    NumThreads = m_Config.options().numThreads();
+  if (ThisConfig.options().threadsEnabled()) {
+    NumThreads = ThisConfig.options().numThreads();
     if (!NumThreads)
       NumThreads = std::thread::hardware_concurrency();
     if (!NumThreads)
       NumThreads = 4; // if hardware_concurrency returns 0
-    m_Config.raise(diag::note_lto_threads) << NumThreads;
+    ThisConfig.raise(Diag::note_lto_threads) << NumThreads;
   }
 
   // Initialize the LTO backend
@@ -2702,97 +2706,97 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::LTOInit(llvm::lto::Config Conf) {
   return std::make_unique<llvm::lto::LTO>(std::move(Conf), std::move(Backend));
 }
 
-bool ObjectLinker::FinalizeLTOSymbolResolution(
-    llvm::lto::LTO &LTO, const std::vector<BitcodeFile *> &bitCodeInputs) {
+bool ObjectLinker::finalizeLtoSymbolResolution(
+    llvm::lto::LTO &LTO, const std::vector<BitcodeFile *> &BitCodeInputs) {
 
   eld::RegisterTimer T("Finalize Symbol Resolution", "LTO",
-                       m_Config.options().printTimingStats());
-  bool isPreserveAllSet = m_Config.options().preserveAllLTO();
-  bool isPreserveGlobals = m_Config.options().exportDynamic();
+                       ThisConfig.options().printTimingStats());
+  bool IsPreserveAllSet = ThisConfig.options().preserveAllLTO();
+  bool IsPreserveGlobals = ThisConfig.options().exportDynamic();
 
-  bool traceWrap = m_pModule->getPrinter()->traceWrapSymbols();
+  bool TraceWrap = ThisModule->getPrinter()->traceWrapSymbols();
 
-  std::set<std::string> symbolsToPreserve;
+  std::set<std::string> SymbolsToPreserve;
   std::set<ResolveInfo *> PreserveSyms;
 
-  for (auto &L : m_pModule->getNamePool().getLocals()) {
-    if (L->shouldPreserve() || (isPreserveAllSet && L->isBitCode()))
+  for (auto &L : ThisModule->getNamePool().getLocals()) {
+    if (L->shouldPreserve() || (IsPreserveAllSet && L->isBitCode()))
       PreserveSyms.insert(L);
   }
 
   // Traverse all the resolveInfo and add the output symbol to output
-  for (auto &G : m_pModule->getNamePool().getGlobals()) {
-    ResolveInfo *info = G.getValue();
+  for (auto &G : ThisModule->getNamePool().getGlobals()) {
+    ResolveInfo *Info = G.getValue();
     // preserve all defined global non-hidden symbol in bitcode when building
     // shared library.
-    if (m_Config.options().hasShared()) {
+    if (ThisConfig.options().hasShared()) {
       // Symbols with reduced scope in version script must be skipped
-      auto symbolScopes = m_LDBackend.symbolScopes();
-      const auto &found = symbolScopes.find(info);
-      bool DoNotPreserve = found != symbolScopes.end() &&
-                           found->second->isLocal() && !info->isUndef();
+      auto SymbolScopes = ThisBackend.symbolScopes();
+      const auto &Found = SymbolScopes.find(Info);
+      bool DoNotPreserve = Found != SymbolScopes.end() &&
+                           Found->second->isLocal() && !Info->isUndef();
 
-      if (info->isBitCode() &&
-          (info->desc() == ResolveInfo::Define ||
-           info->desc() == ResolveInfo::Common) &&
-          info->binding() != ResolveInfo::Local &&
-          (info->visibility() == ResolveInfo::Default ||
-           info->visibility() == ResolveInfo::Protected) &&
+      if (Info->isBitCode() &&
+          (Info->desc() == ResolveInfo::Define ||
+           Info->desc() == ResolveInfo::Common) &&
+          Info->binding() != ResolveInfo::Local &&
+          (Info->visibility() == ResolveInfo::Default ||
+           Info->visibility() == ResolveInfo::Protected) &&
           !DoNotPreserve) {
-        PreserveSyms.insert(info);
+        PreserveSyms.insert(Info);
       }
     }
     // preserve all defined global symbol in bitcode when building
     // relocatable.
-    if (m_Config.codeGenType() == LinkerConfig::Object) {
-      if (info->isBitCode() &&
-          (info->desc() == ResolveInfo::Define ||
-           info->desc() == ResolveInfo::Common) &&
-          info->binding() != ResolveInfo::Local)
-        info->shouldPreserve(true);
+    if (ThisConfig.codeGenType() == LinkerConfig::Object) {
+      if (Info->isBitCode() &&
+          (Info->desc() == ResolveInfo::Define ||
+           Info->desc() == ResolveInfo::Common) &&
+          Info->binding() != ResolveInfo::Local)
+        Info->shouldPreserve(true);
     }
-    if (info->shouldPreserve() ||
-        ((isPreserveAllSet || isPreserveGlobals) && info->isBitCode())) {
-      if (info->outSymbol() &&
-          !(m_GCHasRun && info->outSymbol()->shouldIgnore()))
-        PreserveSyms.insert(info);
-      else if (m_TraceLTO)
-        m_Config.raise(diag::note_not_preserving_symbol) << info->name();
+    if (Info->shouldPreserve() ||
+        ((IsPreserveAllSet || IsPreserveGlobals) && Info->isBitCode())) {
+      if (Info->outSymbol() &&
+          !(MGcHasRun && Info->outSymbol()->shouldIgnore()))
+        PreserveSyms.insert(Info);
+      else if (MTraceLTO)
+        ThisConfig.raise(Diag::note_not_preserving_symbol) << Info->name();
     }
-    if (info->isBitCode() && info->isCommon() &&
-        m_pModule->getScript().linkerScriptHasSectionsCommand()) {
+    if (Info->isBitCode() && Info->isCommon() &&
+        ThisModule->getScript().linkerScriptHasSectionsCommand()) {
       // never internalize common symbols.
-      m_pModule->recordCommon(info->name(), info->resolvedOrigin());
-      if (m_TraceLTO)
-        m_Config.raise(diag::note_preserving_common)
-            << info->name() << "COMMON"
-            << info->resolvedOrigin()->getInput()->decoratedPath();
-      PreserveSyms.insert(info);
+      ThisModule->recordCommon(Info->name(), Info->resolvedOrigin());
+      if (MTraceLTO)
+        ThisConfig.raise(Diag::note_preserving_common)
+            << Info->name() << "COMMON"
+            << Info->resolvedOrigin()->getInput()->decoratedPath();
+      PreserveSyms.insert(Info);
     }
-    if (!(m_GCHasRun && info->outSymbol()->shouldIgnore())) {
-      std::vector<ScriptSymbol *> &dynListSyms = m_pModule->dynListSyms();
-      for (auto &Pattern : dynListSyms) {
-        if (Pattern->matched(*info)) {
-          PreserveSyms.insert(info);
-          if (m_TraceLTO)
-            m_Config.raise(diag::preserve_dyn_list_sym) << info->name();
+    if (!(MGcHasRun && Info->outSymbol()->shouldIgnore())) {
+      std::vector<ScriptSymbol *> &DynListSyms = ThisModule->dynListSyms();
+      for (auto &Pattern : DynListSyms) {
+        if (Pattern->matched(*Info)) {
+          PreserveSyms.insert(Info);
+          if (MTraceLTO)
+            ThisConfig.raise(Diag::preserve_dyn_list_sym) << Info->name();
         }
       }
     }
     // Wrapped functions using --wrap need to be preserved as well
-    if (info->isBitCode() && !m_Config.options().renameMap().empty()) {
-      llvm::StringMap<std::string>::iterator renameSym =
-          m_Config.options().renameMap().find(info->name());
-      if (m_Config.options().renameMap().end() != renameSym) {
-        if (m_TraceLTO || traceWrap)
-          m_Config.raise(diag::preserve_wrap) << info->name();
-        PreserveSyms.insert(info);
-        ResolveInfo *wrapper =
-            m_pModule->getNamePool().findInfo(renameSym->second);
-        if (wrapper && wrapper->isBitCode()) {
-          PreserveSyms.insert(wrapper);
-          if (m_TraceLTO || traceWrap)
-            m_Config.raise(diag::preserve_wrap) << wrapper->name();
+    if (Info->isBitCode() && !ThisConfig.options().renameMap().empty()) {
+      llvm::StringMap<std::string>::iterator RenameSym =
+          ThisConfig.options().renameMap().find(Info->name());
+      if (ThisConfig.options().renameMap().end() != RenameSym) {
+        if (MTraceLTO || TraceWrap)
+          ThisConfig.raise(Diag::preserve_wrap) << Info->name();
+        PreserveSyms.insert(Info);
+        ResolveInfo *Wrapper =
+            ThisModule->getNamePool().findInfo(RenameSym->second);
+        if (Wrapper && Wrapper->isBitCode()) {
+          PreserveSyms.insert(Wrapper);
+          if (MTraceLTO || TraceWrap)
+            ThisConfig.raise(Diag::preserve_wrap) << Wrapper->name();
         }
       }
     }
@@ -2803,11 +2807,11 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
     InputFile *ResolvedOrigin = S->resolvedOrigin();
     if (ResolvedOrigin)
       ResolvedOrigin->setUsed(true);
-    symbolsToPreserve.insert(S->name());
+    SymbolsToPreserve.insert(S->name());
   }
-  if (m_Config.options().preserveSymbolsLTO()) {
-    for (auto sym : m_Config.options().getPreserveList())
-      symbolsToPreserve.insert(sym);
+  if (ThisConfig.options().preserveSymbolsLTO()) {
+    for (auto Sym : ThisConfig.options().getPreserveList())
+      SymbolsToPreserve.insert(Sym);
   }
   /// Prevailing = False
   /// The linker has not chosen the definition, and compiler can be free to
@@ -2824,35 +2828,36 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
   /// Linker redefined version of the symbol which appeared in -wrap or
   /// -defsym linker option.
 
-  bool HasSectionsCmd = m_pModule->getScript().linkerScriptHasSectionsCommand();
+  bool HasSectionsCmd =
+      ThisModule->getScript().linkerScriptHasSectionsCommand();
 
   // Add the input files
-  for (BitcodeFile *inp : bitCodeInputs) {
+  for (BitcodeFile *Inp : BitCodeInputs) {
 
     // Compute the LTO resolutions
     std::vector<llvm::lto::SymbolResolution> LTOResolutions;
-    for (const auto &Sym : inp->getInputFile().symbols()) {
+    for (const auto &Sym : Inp->getInputFile().symbols()) {
 
       // Only needed: name, isCommon, isUndefined
 
       llvm::lto::SymbolResolution LTORes;
 
       ResolveInfo *Info =
-          m_pModule->getNamePool().findInfo(Sym.getName().str());
+          ThisModule->getNamePool().findInfo(Sym.getName().str());
 
       if (!Info) {
         llvm_unreachable("Global LTO symbol not in namepool");
       } else if (!Sym.isUndefined()) {
 
         // If this definition is chosen, set the prevailing property.
-        if (Info->resolvedOrigin() == inp)
+        if (Info->resolvedOrigin() == Inp)
           LTORes.Prevailing = true;
         // If a symbol needs to be preserved, because its being referenced
         // from regular object files, set the VisibletoRegularObj property
         // appropriately.
-        if (symbolsToPreserve.count(Sym.getName().str())) {
-          if (m_TraceLTO)
-            m_Config.raise(diag::note_preserve_symbol) << Sym.getName();
+        if (SymbolsToPreserve.count(Sym.getName().str())) {
+          if (MTraceLTO)
+            ThisConfig.raise(Diag::note_preserve_symbol) << Sym.getName();
           LTORes.VisibleToRegularObj = true;
         }
 
@@ -2865,13 +2870,13 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
         if (WrapSymbolName.starts_with("__wrap_") ||
             WrapSymbolName.starts_with("__real_"))
           WrapSymbolName = WrapSymbolName.drop_front(7);
-        llvm::StringMap<std::string>::iterator renameSym =
-            m_Config.options().renameMap().find(WrapSymbolName);
-        if (m_Config.options().renameMap().end() != renameSym) {
+        llvm::StringMap<std::string>::iterator RenameSym =
+            ThisConfig.options().renameMap().find(WrapSymbolName);
+        if (ThisConfig.options().renameMap().end() != RenameSym) {
           LTORes.Prevailing = true;
           LTORes.VisibleToRegularObj = true;
-          if (m_TraceLTO || traceWrap)
-            m_Config.raise(diag::preserve_wrapper_def) << Sym.getName();
+          if (MTraceLTO || TraceWrap)
+            ThisConfig.raise(Diag::preserve_wrapper_def) << Sym.getName();
           // If the symbol is part of --wrap mechanism, mark it as linker
           // renamed
           // and save its binding. Post LTO phase will restore the binding to
@@ -2879,7 +2884,7 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
           // original value.
           if (Info->isDefine()) {
             LTORes.LinkerRedefined = true;
-            m_pModule->saveWrapSymBinding(Info->name(), Info->binding());
+            ThisModule->saveWrapSymBinding(Info->name(), Info->binding());
           }
         }
 
@@ -2895,14 +2900,14 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
 
         // This copies the behavior of the gold plugin.
         if (!Info->isDyn() && !Info->isUndef() &&
-            (m_Config.codeGenType() == LinkerConfig::Exec ||
-             m_Config.options().isPIE() ||
+            (ThisConfig.codeGenType() == LinkerConfig::Exec ||
+             ThisConfig.options().isPIE() ||
              Info->visibility() != ResolveInfo::Default))
           LTORes.FinalDefinitionInLinkageUnit = true;
       }
 
-      if (m_TraceLTO)
-        m_Config.raise(diag::lto_resolution)
+      if (MTraceLTO)
+        ThisConfig.raise(Diag::lto_resolution)
             << Sym.getName() << LTORes.Prevailing << LTORes.VisibleToRegularObj
             << LTORes.FinalDefinitionInLinkageUnit
             << (Info ? Info->resolvedOrigin()->getInput()->decoratedPath()
@@ -2912,13 +2917,13 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
       LTOResolutions.push_back(LTORes);
     }
 
-    if (m_TraceLTO)
-      m_Config.raise(diag::adding_module) << inp->getInput()->decoratedPath();
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::adding_module) << Inp->getInput()->decoratedPath();
 
-    if (llvm::Error E = LTO.add(inp->takeLTOInputFile(), LTOResolutions)) {
-      m_Config.raise(diag::fatal_lto_merge_error)
+    if (llvm::Error E = LTO.add(Inp->takeLTOInputFile(), LTOResolutions)) {
+      ThisConfig.raise(Diag::fatal_lto_merge_error)
           << llvm::toString(std::move(E));
-      m_pModule->setFailure(true);
+      ThisModule->setFailure(true);
       return false;
     }
   }
@@ -2926,65 +2931,65 @@ bool ObjectLinker::FinalizeLTOSymbolResolution(
   return true;
 }
 
-void ObjectLinker::addTempFilesToTar(size_t maxTasks) {
-  if (!m_SaveTemps)
+void ObjectLinker::addTempFilesToTar(size_t MaxTasks) {
+  if (!MSaveTemps)
     return;
-  std::vector<std::string> suffix = {".0.preopt.bc",      ".1.promote.bc",
+  std::vector<std::string> Suffix = {".0.preopt.bc",      ".1.promote.bc",
                                      ".2.internalize.bc", ".3.import.bc",
                                      ".4.opt.bc",         ".5.precodegen.bc"};
-  auto prefix = m_Config.options().outputFileName();
-  prefix += ".llvm-lto.";
+  auto Prefix = ThisConfig.options().outputFileName();
+  Prefix += ".llvm-lto.";
   // not a bitcode file but should probably be placed in Bitcode category
-  addInputFileToTar(prefix + "resolution.txt", eld::MappingFile::Kind::Bitcode);
-  for (size_t task = 0; task <= maxTasks; ++task)
-    for (auto &s : suffix)
-      addInputFileToTar(prefix + llvm::utostr(task) + s,
+  addInputFileToTar(Prefix + "resolution.txt", eld::MappingFile::Kind::Bitcode);
+  for (size_t Task = 0; Task <= MaxTasks; ++Task)
+    for (auto &S : Suffix)
+      addInputFileToTar(Prefix + llvm::utostr(Task) + S,
                         eld::MappingFile::Kind::Bitcode);
 }
 
 void ObjectLinker::addLTOOutputToTar() {
-  if (!m_pModule->getOutputTarWriter())
+  if (!ThisModule->getOutputTarWriter())
     return;
-  for (auto &ipt : LTOELFFiles) {
-    eld::InputFile *iptFile = ipt->getInputFile();
-    iptFile->setMappedPath(ipt->getName());
-    iptFile->setMappingFileKind(eld::MappingFile::Kind::ObjectFile);
-    m_pModule->getOutputTarWriter()->addInputFile(iptFile,
-                                                  /*isLTO*/ true);
+  for (auto &Ipt : LTOELFFiles) {
+    eld::InputFile *IptFile = Ipt->getInputFile();
+    IptFile->setMappedPath(Ipt->getName());
+    IptFile->setMappingFileKind(eld::MappingFile::Kind::ObjectFile);
+    ThisModule->getOutputTarWriter()->addInputFile(IptFile,
+                                                   /*isLTO*/ true);
   }
 }
 
-bool ObjectLinker::DoLTO(llvm::lto::LTO &LTO) {
+bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
   eld::RegisterTimer T("Invoke LTO", "LTO",
-                       m_Config.options().printTimingStats());
+                       ThisConfig.options().printTimingStats());
   // Run LTO
-  std::vector<std::string> files;
-  if (!m_Config.options().hasLTOOutputFile())
-    files.resize(LTO.getMaxTasks());
-  filesToRemove.resize(LTO.getMaxTasks());
+  std::vector<std::string> Files;
+  if (!ThisConfig.options().hasLTOOutputFile())
+    Files.resize(LTO.getMaxTasks());
+  FilesToRemove.resize(LTO.getMaxTasks());
 
-  auto AddStream = [&](size_t Task, const Twine &moduleName)
+  auto AddStream = [&](size_t Task, const Twine &ModuleName)
       -> llvm::Expected<std::unique_ptr<llvm::CachedFileStream>> {
     SmallString<256> ObjFileName;
     auto OS = createLTOTempFile(
-        Task, m_LDBackend.ltoNeedAssembler() ? "s" : "o", ObjFileName);
+        Task, ThisBackend.ltoNeedAssembler() ? "s" : "o", ObjFileName);
 
     if (!OS) {
-      m_pModule->setFailure(true);
+      ThisModule->setFailure(true);
       return OS.takeError();
     }
 
-    assert(files[Task].empty() && "LTO task already produced an output!");
-    files[Task] = std::string(ObjFileName);
-    if (!m_SaveTemps)
-      filesToRemove[Task] = std::string(ObjFileName);
+    assert(Files[Task].empty() && "LTO task already produced an output!");
+    Files[Task] = std::string(ObjFileName);
+    if (!MSaveTemps)
+      FilesToRemove[Task] = std::string(ObjFileName);
     return std::make_unique<llvm::CachedFileStream>(std::move(*OS));
   };
 
   // Callback to add a file from the cache
-  auto AddBuffer = [&](size_t Task, const Twine &moduleName,
+  auto AddBuffer = [&](size_t Task, const Twine &ModuleName,
                        std::unique_ptr<MemoryBuffer> MB) {
-    auto S = AddStream(Task, moduleName);
+    auto S = AddStream(Task, ModuleName);
     if (!S)
       report_fatal_error(Twine("unable to add memory buffer: ") +
                          toString(S.takeError()));
@@ -2993,82 +2998,83 @@ bool ObjectLinker::DoLTO(llvm::lto::LTO &LTO) {
 
   llvm::FileCache ThinLTOCache;
   std::string CacheDirectory;
-  if (m_Config.options().isLTOCacheEnabled()) {
-    if (m_Config.options().getLTOCacheDirectory().empty())
+  if (ThisConfig.options().isLTOCacheEnabled()) {
+    if (ThisConfig.options().getLTOCacheDirectory().empty())
       CacheDirectory =
-          (llvm::Twine(m_Config.options().outputFileName() + ".ltocache"))
+          (llvm::Twine(ThisConfig.options().outputFileName() + ".ltocache"))
               .str();
     else
-      CacheDirectory = m_Config.options().getLTOCacheDirectory().str();
+      CacheDirectory = ThisConfig.options().getLTOCacheDirectory().str();
 
     llvm::Expected<llvm::FileCache> LC =
         llvm::localCache("ThinLTO", "Thin", CacheDirectory, AddBuffer);
 
     if (!LC) {
-      m_Config.raise(diag::fatal_lto_cache_error)
+      ThisConfig.raise(Diag::fatal_lto_cache_error)
           << CacheDirectory << llvm::toString(LC.takeError());
-      m_pModule->setFailure(true);
+      ThisModule->setFailure(true);
       return false;
-    } else if (m_TraceLTO)
-      m_Config.raise(diag::note_lto_cache) << CacheDirectory;
+    }
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::note_lto_cache) << CacheDirectory;
 
     ThinLTOCache = *LC;
   }
 
-  if (m_LDBackend.ltoNeedAssembler()) {
+  if (ThisBackend.ltoNeedAssembler()) {
     // If the output files haven't already been provided, run compilation now
     std::vector<std::string> LTOAsmOutput;
-    if (!m_Config.options().hasLTOOutputFile() &&
-        !m_Config.options().hasLTOAsmFile()) {
+    if (!ThisConfig.options().hasLTOOutputFile() &&
+        !ThisConfig.options().hasLTOAsmFile()) {
       if (llvm::Error E = LTO.run(AddStream, ThinLTOCache)) {
-        m_Config.raise(diag::fatal_no_codegen_compile)
+        ThisConfig.raise(Diag::fatal_no_codegen_compile)
             << llvm::toString(std::move(E));
-        m_pModule->setFailure(true);
+        ThisModule->setFailure(true);
         return false;
       }
       // AddStream adds the LTO output files to 'files', but in this case
       // they're just the input files to the assembler so we need to move them
       // to their own array. ltoRunAssembler will add the assembled objects to
       // files.
-      LTOAsmOutput = std::move(files);
+      LTOAsmOutput = std::move(Files);
     }
-    if (!runAssembler(files, ltoCodegenModel().second, LTOAsmOutput)) {
-      m_Config.raise(diag::lto_codegen_error) << "Assembler error occurred";
-      m_pModule->setFailure(true);
+    if (!runAssembler(Files, ltoCodegenModel().second, LTOAsmOutput)) {
+      ThisConfig.raise(Diag::lto_codegen_error) << "Assembler error occurred";
+      ThisModule->setFailure(true);
       return false;
     }
 
-    if (!m_SaveTemps && !m_Config.options().hasLTOOutputFile())
-      filesToRemove.insert(filesToRemove.end(), files.begin(), files.end());
+    if (!MSaveTemps && !ThisConfig.options().hasLTOOutputFile())
+      FilesToRemove.insert(FilesToRemove.end(), Files.begin(), Files.end());
   } else {
     // If the output files haven't already been provided, run compilation now
-    if (!m_Config.options().hasLTOOutputFile()) {
+    if (!ThisConfig.options().hasLTOOutputFile()) {
       if (llvm::Error E = LTO.run(AddStream, ThinLTOCache)) {
-        m_Config.raise(diag::fatal_no_codegen_compile)
+        ThisConfig.raise(Diag::fatal_no_codegen_compile)
             << llvm::toString(std::move(E));
-        m_pModule->setFailure(true);
+        ThisModule->setFailure(true);
         return false;
       }
     } else {
-      for (auto &f : m_Config.options().ltoOutputFile()) {
-        m_Config.raise(diag::using_lto_output_file) << f;
-        files.push_back(f);
+      for (auto &F : ThisConfig.options().ltoOutputFile()) {
+        ThisConfig.raise(Diag::using_lto_output_file) << F;
+        Files.push_back(F);
       }
     }
   }
-  if (!m_Config.getDiagEngine()->diagnose()) {
-    if (m_pModule->getPrinter()->isVerbose())
-      m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+  if (!ThisConfig.getDiagEngine()->diagnose()) {
+    if (ThisModule->getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
 
   // Add the generated object files into the InputBuilder structure
-  for (auto &f : files) {
-    if (f.empty())
+  for (auto &F : Files) {
+    if (F.empty())
       continue;
-    ltoObjects.push_back(f);
-    if (m_SaveTemps)
-      m_Config.raise(diag::note_temp_lto_object) << f;
+    LtoObjects.push_back(F);
+    if (MSaveTemps)
+      ThisConfig.raise(Diag::note_temp_lto_object) << F;
   }
   addTempFilesToTar(LTO.getMaxTasks());
   return true;
@@ -3083,13 +3089,13 @@ void processCodegenOptions(
   for (const std::string &Arg : CmdOpts) {
     // Options coming from the linker may not be tokenized, so we need to
     // split them into individual options.
-    for (std::pair<StringRef, StringRef> o = getToken(Arg); !o.first.empty();
-         o = getToken(o.second)) {
+    for (std::pair<StringRef, StringRef> O = getToken(Arg); !O.first.empty();
+         O = getToken(O.second)) {
 
-      if (o.first.starts_with("-O")) {
+      if (O.first.starts_with("-O")) {
         auto ParsedCGOptLevel =
             llvm::StringSwitch<std::optional<CodeGenOptLevel>>(
-                o.first.substr(2))
+                O.first.substr(2))
                 .Case("s", CodeGenOptLevel::Default)
                 .Case("z", CodeGenOptLevel::Default)
                 .Case("g", CodeGenOptLevel::Less)
@@ -3104,20 +3110,20 @@ void processCodegenOptions(
         } else
           llvm::errs()
               << "LTOCodeGenOptions: Ignoring invalid opt level " // TODO
-              << o.first << "\n";
-      } else if (o.first.starts_with("debug-pass-manager") ||
-                 o.first.starts_with("-debug-pass-manager")) {
+              << O.first << "\n";
+      } else if (O.first.starts_with("debug-pass-manager") ||
+                 O.first.starts_with("-debug-pass-manager")) {
         // TODO: Clean up compiler code that uses "debug-pass-manager".
         // The compiler also passes all kinds of options in codegen=,
         // even those that are not codegen options. That's why we
         // have to special case these here.
         Conf.DebugPassManager = true;
-      } else if (o.first.consume_front("-mcpu=")) {
-        Conf.CPU = o.first.str();
-      } else if (o.first.consume_front("-mattr=")) {
-        Conf.MAttrs.push_back(o.first.str());
+      } else if (O.first.consume_front("-mcpu=")) {
+        Conf.CPU = O.first.str();
+      } else if (O.first.consume_front("-mattr=")) {
+        Conf.MAttrs.push_back(O.first.str());
       } else
-        UserArgs.push_back(o.first.str());
+        UserArgs.push_back(O.first.str());
     }
   }
 }
@@ -3129,35 +3135,35 @@ void ObjectLinker::setLTOPlugin(plugin::LinkerPlugin &LTOPlugin) {
 }
 
 bool ObjectLinker::createLTOObject(void) {
-  std::vector<BitcodeFile *> bitCodeInputs;
-  std::vector<InputFile *> allInputs;
+  std::vector<BitcodeFile *> BitCodeInputs;
+  std::vector<InputFile *> AllInputs;
 
-  eld::Module::const_obj_iterator input, inEnd = m_pModule->obj_end();
-  for (input = m_pModule->obj_begin(); input != inEnd; ++input) {
-    if ((*input)->isBitcode()) {
-      bitCodeInputs.push_back(llvm::dyn_cast<eld::BitcodeFile>(*input));
+  eld::Module::const_obj_iterator Input, InEnd = ThisModule->objEnd();
+  for (Input = ThisModule->objBegin(); Input != InEnd; ++Input) {
+    if ((*Input)->isBitcode()) {
+      BitCodeInputs.push_back(llvm::dyn_cast<eld::BitcodeFile>(*Input));
     }
     // Dont assign output sections to input files that are specified
     // with just symbols
-    if ((*input)->getInput()->getAttribute().isJustSymbols())
+    if ((*Input)->getInput()->getAttribute().isJustSymbols())
       continue;
-    allInputs.push_back(*input);
+    AllInputs.push_back(*Input);
   }
 
-  if (!bitCodeInputs.size())
+  if (!BitCodeInputs.size())
     return true;
   {
     eld::RegisterTimer T("Assign Output sections to Bitcode sections and ELF",
-                         "LTO", m_Config.options().printTimingStats());
+                         "LTO", ThisConfig.options().printTimingStats());
     // Centralize assigning output sections.
-    assignOutputSections(allInputs);
+    assignOutputSections(AllInputs);
   }
 
   llvm::lto::Config Conf;
   std::vector<std::string> Options;
-  processCodegenOptions(m_Config.options().codeGenOpts(), Conf, Options);
+  processCodegenOptions(ThisConfig.options().codeGenOpts(), Conf, Options);
 
-  m_LDBackend.AddLTOOptions(Options);
+  ThisBackend.AddLTOOptions(Options);
 
   if (LTOPlugin)
     LTOPlugin->ModifyLTOOptions(Conf, Options);
@@ -3169,7 +3175,7 @@ bool ObjectLinker::createLTOObject(void) {
   cl::ParseCommandLineOptions(CodegenArgv.size(), CodegenArgv.data());
 
   Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(
-      m_Config.targets().triple());
+      ThisConfig.targets().triple());
 
   if (LTOPlugin) {
 
@@ -3180,74 +3186,74 @@ bool ObjectLinker::createLTOObject(void) {
     LTOPlugin->ActBeforeLTO(Conf);
   }
 
-  PrepareDiagEngineForLTO prepareDiagnosticsForLTO(m_Config.getDiagEngine());
+  PrepareDiagEngineForLTO PrepareDiagnosticsForLto(ThisConfig.getDiagEngine());
 
-  std::unique_ptr<llvm::lto::LTO> LTO = LTOInit(std::move(Conf));
+  std::unique_ptr<llvm::lto::LTO> LTO = ltoInit(std::move(Conf));
   if (!LTO)
     return false;
 
-  if (!FinalizeLTOSymbolResolution(*LTO, bitCodeInputs))
+  if (!finalizeLtoSymbolResolution(*LTO, BitCodeInputs))
     return false;
 
-  if (!DoLTO(*LTO)) {
-    m_pModule->setFailure(true);
+  if (!doLto(*LTO)) {
+    ThisModule->setFailure(true);
     return false;
   }
   return true;
 }
 
 void ObjectLinker::beginPostLTO() {
-  TextLayoutPrinter *printer = m_pModule->getTextMapPrinter();
-  if (printer) {
-    printer->addLayoutMessage("Pre-LTO Map records\n");
-    printer->printArchiveRecords(*m_pModule);
-    printer->printInputActions();
-    printer->clearInputRecords();
-    printer->addLayoutMessage("Post-LTO Map records");
+  TextLayoutPrinter *Printer = ThisModule->getTextMapPrinter();
+  if (Printer) {
+    Printer->addLayoutMessage("Pre-LTO Map records\n");
+    Printer->printArchiveRecords(*ThisModule);
+    Printer->printInputActions();
+    Printer->clearInputRecords();
+    Printer->addLayoutMessage("Post-LTO Map records");
   }
-  if (m_Config.options().cref())
-    m_LDBackend.printCref(m_postLTOPhase);
-  m_postLTOPhase = true;
+  if (ThisConfig.options().cref())
+    ThisBackend.printCref(MPostLtoPhase);
+  MPostLtoPhase = true;
 }
 
 bool ObjectLinker::insertPostLTOELF() {
-  if (ltoObjects.empty())
+  if (LtoObjects.empty())
     return true;
 
-  eld::Module::obj_iterator obj, bitcodeObj, objEnd = m_pModule->obj_end();
+  eld::Module::obj_iterator Obj, BitcodeObj, ObjEnd = ThisModule->objEnd();
 
   InputFile *BitcodeObject = nullptr;
-  for (obj = m_pModule->obj_begin(); obj != objEnd; ++obj) {
-    if ((*obj)->isBitcode()) {
+  for (Obj = ThisModule->objBegin(); Obj != ObjEnd; ++Obj) {
+    if ((*Obj)->isBitcode()) {
       if (!BitcodeObject) {
-        BitcodeObject = (*obj);
-        bitcodeObj = obj;
+        BitcodeObject = (*Obj);
+        BitcodeObj = Obj;
       }
       // Release memory with Any Bitcode files.
-      BitcodeFile *BCFile = llvm::dyn_cast<eld::BitcodeFile>(*obj);
+      BitcodeFile *BCFile = llvm::dyn_cast<eld::BitcodeFile>(*Obj);
       if (BCFile && BCFile->canReleaseMemory())
-        BCFile->releaseMemory(m_pModule->getPrinter()->isVerbose());
+        BCFile->releaseMemory(ThisModule->getPrinter()->isVerbose());
     }
   }
 
-  assert(bitcodeObj != objEnd);
+  assert(BitcodeObj != ObjEnd);
 
-  for (auto &ltoobj : ltoObjects) {
-    sys::fs::Path path = ltoobj;
-    Input *In = m_pBuilder->getInputBuilder().createInput(ltoobj);
-    if (!In->resolvePath(m_Config)) {
-      m_pModule->setFailure(true);
+  for (auto &Ltoobj : LtoObjects) {
+    sys::fs::Path Path = Ltoobj;
+    Input *In = CurBuilder->getInputBuilder().createInput(Ltoobj);
+    if (!In->resolvePath(ThisConfig)) {
+      ThisModule->setFailure(true);
       return false;
     }
-    InputFile *I = InputFile::Create(In, m_Config.getDiagEngine());
+    InputFile *I = InputFile::create(In, ThisConfig.getDiagEngine());
     if (I->getKind() == InputFile::ELFObjFileKind) {
       // FIXME: We should convert all llvm::dyn_cast which should always be
       // successful to llvm::cast.
       ELFObjectFile *ELFObj = llvm::dyn_cast<ELFObjectFile>(I);
       ELFObj->setLTOObject();
       bool ELFOverridenWithBC = false;
-      eld::Expected<bool> expParseFile =
-          getNewRelocObjParser()->parseFile(*I, ELFOverridenWithBC);
+      eld::Expected<bool> ExpParseFile =
+          getRelocObjParser()->parseFile(*I, ELFOverridenWithBC);
       ASSERT(!ELFOverridenWithBC, "Invalid ELF override to BC operation!");
       // Currently, we have to consider two cases:
       // expParseFile returns an error: In this case, we report the error and
@@ -3256,25 +3262,25 @@ bool ObjectLinker::insertPostLTOELF() {
       // have error info available. In this case, we just return false.
       // There should ideally be no case when reading fails but there is no
       // error information available. All such cases must be removed.
-      if (!expParseFile)
-        m_Config.raiseDiagEntry(std::move(expParseFile.error()));
-      if (!expParseFile.has_value() || !expParseFile.value()) {
+      if (!ExpParseFile)
+        ThisConfig.raiseDiagEntry(std::move(ExpParseFile.error()));
+      if (!ExpParseFile.has_value() || !ExpParseFile.value()) {
         return false;
       }
       In->setInputFile(I);
     } else {
       // Issue an error if the object is not recognized.
-      m_Config.raise(diag::err_unrecognized_input_file)
-          << In->decoratedPath() << m_Config.targets().triple().str();
-      m_pModule->setFailure(true);
+      ThisConfig.raise(Diag::err_unrecognized_input_file)
+          << In->decoratedPath() << ThisConfig.targets().triple().str();
+      ThisModule->setFailure(true);
       return false;
     }
-    if (m_TraceLTO)
-      m_Config.raise(diag::note_insert_object) << In->getResolvedPath();
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::note_insert_object) << In->getResolvedPath();
 
-    if (!m_Config.getDiagEngine()->diagnose()) {
-      if (m_pModule->getPrinter()->isVerbose())
-        m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+    if (!ThisConfig.getDiagEngine()->diagnose()) {
+      if (ThisModule->getPrinter()->isVerbose())
+        ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
       return false;
     }
 
@@ -3283,40 +3289,40 @@ bool ObjectLinker::insertPostLTOELF() {
 
   addLTOOutputToTar();
 
-  std::vector<InputFile *> ltoobjectfiles;
-  for (auto &elffile : LTOELFFiles)
-    ltoobjectfiles.push_back(elffile->getInputFile());
+  std::vector<InputFile *> Ltoobjectfiles;
+  for (auto &Elffile : LTOELFFiles)
+    Ltoobjectfiles.push_back(Elffile->getInputFile());
 
-  m_pModule->insertLTOObjects(bitcodeObj, ltoobjectfiles);
+  ThisModule->insertLTOObjects(BitcodeObj, Ltoobjectfiles);
 
-  if (!m_pModule->getScript().linkerScriptHasSectionsCommand())
+  if (!ThisModule->getScript().linkerScriptHasSectionsCommand())
     return true;
 
-  llvm::StringMap<InputFile *> m_SectionWithOldInputMap;
+  llvm::StringMap<InputFile *> MSectionWithOldInputMap;
   // Record the section and the map that contains the old input for a section.
-  for (auto &elffile : ltoobjectfiles) {
-    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(elffile);
-    for (auto &sect : ObjFile->getSections()) {
-      ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-      if (section->hasOldInputFile())
-        m_SectionWithOldInputMap[section->name()] = section->getOldInputFile();
+  for (auto &Elffile : Ltoobjectfiles) {
+    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(Elffile);
+    for (auto &Sect : ObjFile->getSections()) {
+      ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
+      if (Section->hasOldInputFile())
+        MSectionWithOldInputMap[Section->name()] = Section->getOldInputFile();
     }
   }
   // If a section appears with the same name, then associate the same input
   // for the section that contains the old symbol too.
-  for (auto &elffile : ltoobjectfiles) {
-    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(elffile);
-    for (auto &sect : ObjFile->getSections()) {
-      ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
+  for (auto &Elffile : Ltoobjectfiles) {
+    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(Elffile);
+    for (auto &Sect : ObjFile->getSections()) {
+      ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
       // If the section already has an old input associated with it, move on.
-      if (section->getOldInputFile())
+      if (Section->getOldInputFile())
         continue;
       // Very important to note, that sections that are not tracked and that
       // sections that have the same name will be assigned the same input.
-      auto oldInput = m_SectionWithOldInputMap.find(section->name());
-      if (oldInput == m_SectionWithOldInputMap.end())
+      auto OldInput = MSectionWithOldInputMap.find(Section->name());
+      if (OldInput == MSectionWithOldInputMap.end())
         continue;
-      section->setOldInputFile(oldInput->second);
+      Section->setOldInputFile(OldInput->second);
     }
   }
   return true;
@@ -3328,145 +3334,146 @@ ObjectLinker::ltoCodegenModel() const {
   // Only
   // Non static builds, Shared library builds or PIE builds will set the LTO
   // Codegen model to be Dynamic.
-  if ((!m_Config.isCodeStatic() &&
-       m_Config.codeGenType() != LinkerConfig::Exec) ||
-      (LinkerConfig::DynObj == m_Config.codeGenType()) ||
-      m_Config.options().isPIE()) {
-    if (m_TraceLTO)
-      m_Config.raise(diag::lto_code_model) << "Dynamic";
+  if ((!ThisConfig.isCodeStatic() &&
+       ThisConfig.codeGenType() != LinkerConfig::Exec) ||
+      (LinkerConfig::DynObj == ThisConfig.codeGenType()) ||
+      ThisConfig.options().isPIE()) {
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::lto_code_model) << "Dynamic";
     return std::make_pair(llvm::Reloc::PIC_, "pic");
   }
   // -frwpi, -fropi
-  if (m_Config.options().hasRWPI() && m_Config.options().hasROPI()) {
-    if (m_TraceLTO)
-      m_Config.raise(diag::lto_code_model) << "ROPI, RWPI";
+  if (ThisConfig.options().hasRWPI() && ThisConfig.options().hasROPI()) {
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::lto_code_model) << "ROPI, RWPI";
     return std::make_pair(llvm::Reloc::ROPI_RWPI, "ropi-rwpi");
   }
   // -frwpi
-  if (m_Config.options().hasRWPI()) {
-    if (m_TraceLTO)
-      m_Config.raise(diag::lto_code_model) << "RWPI";
+  if (ThisConfig.options().hasRWPI()) {
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::lto_code_model) << "RWPI";
     return std::make_pair(llvm::Reloc::RWPI, "rwpi");
   }
   // --fropi
-  if (m_Config.options().hasROPI()) {
-    if (m_TraceLTO)
-      m_Config.raise(diag::lto_code_model) << "ROPI";
+  if (ThisConfig.options().hasROPI()) {
+    if (MTraceLTO)
+      ThisConfig.raise(Diag::lto_code_model) << "ROPI";
     return std::make_pair(llvm::Reloc::ROPI, "ropi");
   }
   // If the relocation model is static (the default),
   // we'll let LLVM decide which RelocModel to use based on the "PIC Level"
   // module flag which is set if -fPIC was specified during bitcode
   // compilation. This allows partial linking of -fPIC code with LTO.
-  if (m_TraceLTO)
-    m_Config.raise(diag::lto_code_model) << "Auto Detect (Default: Static)";
+  if (MTraceLTO)
+    ThisConfig.raise(Diag::lto_code_model) << "Auto Detect (Default: Static)";
   return std::make_pair(std::nullopt, "static");
 }
 
 bool ObjectLinker::runSectionIteratorPlugin() {
-  ObjectBuilder builder(m_Config, *m_pModule);
-  std::vector<InputFile *> inputs;
-  std::vector<ELFSection *> entrySections;
-  getInputs(inputs);
-  builder.InitializePluginsAndProcess(inputs,
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
+  std::vector<InputFile *> Inputs;
+  std::vector<ELFSection *> EntrySections;
+  getInputs(Inputs);
+  Builder.initializePluginsAndProcess(Inputs,
                                       plugin::Plugin::Type::SectionIterator);
 
-  builder.reAssignOutputSections(/*LW=*/nullptr);
+  Builder.reAssignOutputSections(/*LW=*/nullptr);
   return true;
 }
 
-void ObjectLinker::addInputFileToTar(InputFile *ipt, MappingFile::Kind K) {
-  auto outputTar = m_pModule->getOutputTarWriter();
-  if (!outputTar || !ipt)
+void ObjectLinker::addInputFileToTar(InputFile *Ipt, MappingFile::Kind K) {
+  auto *OutputTar = ThisModule->getOutputTarWriter();
+  if (!OutputTar || !Ipt)
     return;
-  if (ipt->isInternal())
+  if (Ipt->isInternal())
     return;
-  if (ipt->getInput()->isArchiveMember())
+  if (Ipt->getInput()->isArchiveMember())
     return;
-  Input *i = ipt->getInput();
-  bool useDecorated =
-      !i->isNamespec() && ipt->getKind() == InputFile::Kind::ELFDynObjFileKind;
-  ipt->setMappedPath(useDecorated ? i->decoratedPath() : i->getName());
-  ipt->setMappingFileKind(K);
-  outputTar->addInputFile(ipt, /*isLTO*/ false);
+  Input *I = Ipt->getInput();
+  bool UseDecorated =
+      !I->isNamespec() &&
+      Ipt->getKind() == InputFile::InputFileKind::ELFDynObjFileKind;
+  Ipt->setMappedPath(UseDecorated ? I->decoratedPath() : I->getName());
+  Ipt->setMappingFileKind(K);
+  OutputTar->addInputFile(Ipt, /*isLTO*/ false);
 }
 
-bool ObjectLinker::readAndProcessInput(Input *input, bool isPostLTO) {
-  if (input->isInternal())
+bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
+  if (Input->isInternal())
     return true;
-  if (input->isAlreadyReleased())
+  if (Input->isAlreadyReleased())
     return true;
-  if (!input->getSize())
-    m_Config.raise(diag::input_file_has_zero_size) << input->decoratedPath();
-  LayoutPrinter *printer = m_pModule->getLayoutPrinter();
-  std::string path = input->getResolvedPath().native();
-  InputFile *CurInput = input->getInputFile();
+  if (!Input->getSize())
+    ThisConfig.raise(Diag::input_file_has_zero_size) << Input->decoratedPath();
+  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  std::string Path = Input->getResolvedPath().native();
+  InputFile *CurInput = Input->getInputFile();
   if (!CurInput) {
-    InputFile *I = InputFile::Create(input, m_Config.getDiagEngine());
+    InputFile *I = InputFile::create(Input, ThisConfig.getDiagEngine());
     if (!I) {
-      m_Config.raise(diag::err_unrecognized_input_file)
-          << input->getResolvedPath() << m_Config.targets().triple().str();
-      m_pModule->setFailure(true);
+      ThisConfig.raise(Diag::err_unrecognized_input_file)
+          << Input->getResolvedPath() << ThisConfig.targets().triple().str();
+      ThisModule->setFailure(true);
       return false;
     }
     CurInput = I;
-    input->setInputFile(I);
+    Input->setInputFile(I);
   }
   if (CurInput->shouldSkipFile()) {
-    if (printer) {
-      printer->recordInputActions(LayoutPrinter::Skipped, input);
+    if (Printer) {
+      Printer->recordInputActions(LayoutPrinter::Skipped, Input);
     }
     return true;
   }
 
-  if (input->getAttribute().isPatchBase() &&
+  if (Input->getAttribute().isPatchBase() &&
       CurInput->getKind() != InputFile::ELFExecutableFileKind) {
-    m_Config.raise(diag::err_patch_base_not_executable)
-        << input->getResolvedPath();
-    m_pModule->setFailure(true);
+    ThisConfig.raise(Diag::err_patch_base_not_executable)
+        << Input->getResolvedPath();
+    ThisModule->setFailure(true);
     return false;
   }
 
   if (CurInput->isBinaryFile()) {
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(InputFile::Kind::BinaryFileKind);
-    eld::Expected<void> expParseFile =
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
+    eld::Expected<void> ExpParseFile =
         getBinaryFileParser()->parseFile(*CurInput);
-    if (!expParseFile) {
-      m_Config.raiseDiagEntry(std::move(expParseFile.error()));
+    if (!ExpParseFile) {
+      ThisConfig.raiseDiagEntry(std::move(ExpParseFile.error()));
       return false;
     }
-    m_pModule->getObjectList().push_back(CurInput);
+    ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFExecutableFileKind) {
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
     bool ELFOverriddenWithBC = false;
-    eld::Expected<bool> expParseFile =
+    eld::Expected<bool> ExpParseFile =
         getELFExecObjParser()->parseFile(*CurInput, ELFOverriddenWithBC);
-    if (!expParseFile)
-      m_Config.raiseDiagEntry(std::move(expParseFile.error()));
-    if (!expParseFile.has_value() || !expParseFile.value()) {
-      m_pModule->setFailure(true);
+    if (!ExpParseFile)
+      ThisConfig.raiseDiagEntry(std::move(ExpParseFile.error()));
+    if (!ExpParseFile.has_value() || !ExpParseFile.value()) {
+      ThisModule->setFailure(true);
       return false;
     }
-    if (!isPostLTO && overrideELFObjectWithBitCode(CurInput)) {
-      return readAndProcessInput(input, isPostLTO);
+    if (!IsPostLto && overrideELFObjectWithBitCode(CurInput)) {
+      return readAndProcessInput(Input, IsPostLto);
     }
-    m_pModule->getObjectList().push_back(CurInput);
+    ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::ELFObjFileKind) {
     eld::RegisterTimer T("Read ELF Object Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
     bool ELFOverridenWithBC = false;
-    eld::Expected<bool> expParseFile =
-        getNewRelocObjParser()->parseFile(*CurInput, ELFOverridenWithBC);
+    eld::Expected<bool> ExpParseFile =
+        getRelocObjParser()->parseFile(*CurInput, ELFOverridenWithBC);
     // Currently, we have to consider two cases:
     // expParseFile returns an error: In this case, we report the error and
     // return false.
@@ -3474,141 +3481,141 @@ bool ObjectLinker::readAndProcessInput(Input *input, bool isPostLTO) {
     // have error info available. In this case, we just return false.
     // There should ideally be no case when reading fails but there is no
     // error information available. All such cases must be removed.
-    if (!expParseFile)
-      m_Config.raiseDiagEntry(std::move(expParseFile.error()));
-    if (!expParseFile.has_value() || !expParseFile.value()) {
-      m_pModule->setFailure(true);
+    if (!ExpParseFile)
+      ThisConfig.raiseDiagEntry(std::move(ExpParseFile.error()));
+    if (!ExpParseFile.has_value() || !ExpParseFile.value()) {
+      ThisModule->setFailure(true);
       return false;
     }
     if (ELFOverridenWithBC) {
-      return readAndProcessInput(input, isPostLTO);
+      return readAndProcessInput(Input, IsPostLto);
     }
     CurInput->setToSkip();
-    m_pModule->getObjectList().push_back(CurInput);
+    ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, eld::MappingFile::Kind::ObjectFile);
   } else if (CurInput->getKind() == InputFile::BitcodeFileKind) {
     eld::RegisterTimer T("Read Bitcode Object Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
-    if (isPostLTO)
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
+    if (IsPostLto)
       return true;
     CurInput->setToSkip();
     // LTO is needed.
-    m_pModule->setLTONeeded();
+    ThisModule->setLTONeeded();
     if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
       return false;
-    m_pModule->getObjectList().push_back(CurInput);
+    ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, MappingFile::Bitcode);
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
     eld::RegisterTimer T("Read SymDef Object Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
-    if (m_Config.codeGenType() != LinkerConfig::Exec) {
-      m_Config.raise(diag::symdef_incompatible_option);
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
+    if (ThisConfig.codeGenType() != LinkerConfig::Exec) {
+      ThisConfig.raise(Diag::symdef_incompatible_option);
       return false;
     }
     addInputFileToTar(CurInput, eld::MappingFile::Kind::SymDef);
     CurInput->setToSkip();
     // Just to make it simple, I just added template code.
-    if (!getSymDefReader()->readHeader(*CurInput, isPostLTO))
+    if (!getSymDefReader()->readHeader(*CurInput, IsPostLto))
       return false;
-    if (!getSymDefReader()->readSections(*CurInput, isPostLTO))
+    if (!getSymDefReader()->readSections(*CurInput, IsPostLto))
       return false;
-    if (!getSymDefReader()->readSymbols(*CurInput, isPostLTO)) {
-      m_Config.raise(diag::file_has_error) << input->decoratedPath();
+    if (!getSymDefReader()->readSymbols(*CurInput, IsPostLto)) {
+      ThisConfig.raise(Diag::file_has_error) << Input->decoratedPath();
       return false;
     }
-    if (printer)
-      printer->recordInputActions(LayoutPrinter::Load, input);
+    if (Printer)
+      Printer->recordInputActions(LayoutPrinter::Load, Input);
   } else if (CurInput->getKind() == InputFile::ELFDynObjFileKind) {
     eld::RegisterTimer T("Read ELF Shared Object Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
     addInputFileToTar(CurInput, eld::MappingFile::SharedLibrary);
     CurInput->setToSkip();
-    if (m_Config.isLinkPartial()) {
-      m_Config.raise(diag::err_shared_objects_in_partial_link)
-          << input->decoratedPath();
+    if (ThisConfig.isLinkPartial()) {
+      ThisConfig.raise(Diag::err_shared_objects_in_partial_link)
+          << Input->decoratedPath();
       return false;
     }
-    if (input->getAttribute().isStatic()) {
-      m_Config.raise(diag::err_mixed_shared_static_objects)
-          << input->decoratedPath();
+    if (Input->getAttribute().isStatic()) {
+      ThisConfig.raise(Diag::err_mixed_shared_static_objects)
+          << Input->decoratedPath();
       return false;
     }
-    auto expRead = getNewDynObjReader()->parseFile(*CurInput);
+    auto ExpRead = getNewDynObjReader()->parseFile(*CurInput);
     // Currently, we have to consider two cases:
     // expRead returns an error: In this case, we report the error and return.
     // expRead returns false: Reading failed but we do not have error info
     // available. In this case, we just return false.
-    if (!expRead.has_value() || !expRead.value()) {
-      if (!expRead.has_value())
-        m_Config.raiseDiagEntry(std::move(expRead.error()));
+    if (!ExpRead.has_value() || !ExpRead.value()) {
+      if (!ExpRead.has_value())
+        ThisConfig.raiseDiagEntry(std::move(ExpRead.error()));
       return false;
     }
-    m_pModule->getDynLibraryList().push_back(CurInput);
+    ThisModule->getDynLibraryList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
     eld::RegisterTimer T("Read Archive Files", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
     std::string NameSpecPath;
-    if (input->getInputType() == Input::Namespec)
-      NameSpecPath = "-l" + input->getFileName();
+    if (Input->getInputType() == Input::Namespec)
+      NameSpecPath = "-l" + Input->getFileName();
     ArchiveFile *CurArchive = llvm::dyn_cast<eld::ArchiveFile>(CurInput);
-    if (m_Config.options().isInExcludeLIBS(path, NameSpecPath))
+    if (ThisConfig.options().isInExcludeLIBS(Path, NameSpecPath))
       CurArchive->setNoExport();
-    MemoryArea *memArea = CurInput->getInput()->getMemArea();
-    if (const ArchiveFile *AF = getArchiveFileFromMemoryAreaToAFMap(memArea)) {
-      m_Config.raise(diag::verbose_reusing_archive_file_info)
-          << input->decoratedPath() << "\n";
+    MemoryArea *MemArea = CurInput->getInput()->getMemArea();
+    if (const ArchiveFile *AF = getArchiveFileFromMemoryAreaToAFMap(MemArea)) {
+      ThisConfig.raise(Diag::verbose_reusing_archive_file_info)
+          << Input->decoratedPath() << "\n";
       CurArchive->setArchiveFileInfo(AF->getArchiveFileInfo());
     }
-    uint32_t numObjects = 0;
-    eld::Expected<uint32_t> expNumObjects =
+    uint32_t NumObjects = 0;
+    eld::Expected<uint32_t> ExpNumObjects =
         getArchiveParser()->parseFile(*CurInput);
-    if (!expNumObjects) {
-      m_Config.raise(diag::error_read_archive) << input->decoratedPath();
-      m_Config.raiseDiagEntry(std::move(expNumObjects.error()));
+    if (!ExpNumObjects) {
+      ThisConfig.raise(Diag::error_read_archive) << Input->decoratedPath();
+      ThisConfig.raiseDiagEntry(std::move(ExpNumObjects.error()));
       return false;
     }
-    numObjects = expNumObjects.value();
-    if ((numObjects == 0) && isPostLTO) {
-      llvm::StringRef fileType = " (ELF)";
+    NumObjects = ExpNumObjects.value();
+    if ((NumObjects == 0) && IsPostLto) {
+      llvm::StringRef FileType = " (ELF)";
       if (CurArchive->isMixedArchive())
-        fileType = " (Mixed)";
+        FileType = " (Mixed)";
       else if (CurArchive->isBitcodeArchive())
-        fileType = " (Bitcode)";
+        FileType = " (Bitcode)";
       else if (CurArchive->isELFArchive())
-        fileType = " (ELF)";
-      if (printer) {
-        printer->recordInputActions(LayoutPrinter::SkippedRescan, input,
-                                    fileType.str());
+        FileType = " (ELF)";
+      if (Printer) {
+        Printer->recordInputActions(LayoutPrinter::SkippedRescan, Input,
+                                    FileType.str());
       }
     }
-    m_pModule->getArchiveLibraryList().push_back(CurInput);
+    ThisModule->getArchiveLibraryList().push_back(CurInput);
     addInputFileToTar(CurInput, MappingFile::Kind::Archive);
     addToMemoryAreaToAFMap(*CurArchive);
   }
   // try to parse input as a linker script
   else if (CurInput->getKind() == InputFile::GNULinkerScriptKind) {
     eld::RegisterTimer T("Read Linker Script", "Read all Input files",
-                         m_Config.options().printTimingStats());
-    if (printer)
-      printer->recordInputKind(CurInput->getKind());
+                         ThisConfig.options().printTimingStats());
+    if (Printer)
+      Printer->recordInputKind(CurInput->getKind());
     addInputFileToTar(CurInput, eld::MappingFile::LinkerScript);
     CurInput->setToSkip();
     if (!readLinkerScript(CurInput)) {
-      m_pModule->setFailure(true);
+      ThisModule->setFailure(true);
       return false;
     }
   }
-  if (!m_Config.getDiagEngine()->diagnose()) {
-    if (m_pModule->getPrinter()->isVerbose())
-      m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+  if (!ThisConfig.getDiagEngine()->diagnose()) {
+    if (ThisModule->getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
   return true;
@@ -3617,12 +3624,12 @@ bool ObjectLinker::readAndProcessInput(Input *input, bool isPostLTO) {
 bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   // If -flto option is not passed to the linker, and there is not a list
   // to include, then just move on.
-  if (!m_Config.options().hasLTO() && !LTOPatternList.size())
+  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size())
     return false;
 
   eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
                        "Read all Input files",
-                       m_Config.options().printTimingStats());
+                       ThisConfig.options().printTimingStats());
 
   ELFObjectFile *EObj = llvm::dyn_cast<eld::ELFObjectFile>(CurInputFile);
   if (!EObj)
@@ -3638,10 +3645,10 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
 
   bool MatchedPattern = false;
   if (LTOPatternList.size()) {
-    uint64_t hash = llvm::hash_combine(Path);
+    uint64_t Hash = llvm::hash_combine(Path);
     // Check exclude list
     for (auto &I : LTOPatternList) {
-      if (I->hasHash() && I->hashValue() == hash) {
+      if (I->hasHash() && I->hashValue() == Hash) {
         MatchedPattern = true;
         break;
       }
@@ -3656,7 +3663,7 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
 
   // if -flto is used use --exclude-lto-filelist
   // if -flto is not used, use --include-lto-filelist
-  if (m_Config.options().hasLTO()) {
+  if (ThisConfig.options().hasLTO()) {
     if (MatchedPattern)
       return false;
   } else {
@@ -3666,17 +3673,17 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
       return false;
   }
 
-  if (m_pModule->getPrinter()->isVerbose())
-    m_Config.raise(diag::use_embedded_bitcode) << Path;
+  if (ThisModule->getPrinter()->isVerbose())
+    ThisConfig.raise(Diag::use_embedded_bitcode) << Path;
 
   // LTO is needed. Since Bitcode was chosen.
-  m_pModule->setLTONeeded();
+  ThisModule->setLTONeeded();
 
   llvm::StringRef LLVMBCContents =
       CurInputFile->getSlice(LLVMBCSection->offset(), LLVMBCSection->size());
 
-  InputFile *OverrideBCFile = InputFile::CreateEmbedded(
-      CurInput, LLVMBCContents, m_Config.getDiagEngine());
+  InputFile *OverrideBCFile = InputFile::createEmbedded(
+      CurInput, LLVMBCContents, ThisConfig.getDiagEngine());
 
   ASSERT(OverrideBCFile->getKind() == InputFile::BitcodeFileKind,
          CurInput->decoratedPath());
@@ -3687,26 +3694,26 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
 }
 
 bool ObjectLinker::parseIncludeOrExcludeLTOfiles() {
-  std::set<std::string> listFiles;
+  std::set<std::string> ListFiles;
   // if -flto is used use --exclude-lto-filelist
   // if -flto is not used, use --include-lto-filelist
-  if (m_Config.options().hasLTO())
-    listFiles = m_Config.options().getExcludeLTOFiles();
+  if (ThisConfig.options().hasLTO())
+    ListFiles = ThisConfig.options().getExcludeLTOFiles();
   else
-    listFiles = m_Config.options().getIncludeLTOFiles();
+    ListFiles = ThisConfig.options().getIncludeLTOFiles();
 
-  for (const std::string &Name : listFiles) {
+  for (const std::string &Name : ListFiles) {
     std::unique_ptr<MemoryArea> List(new MemoryArea(Name));
-    if (!List->Init(m_Config.getDiagEngine()))
+    if (!List->Init(ThisConfig.getDiagEngine()))
       return false;
-    llvm::StringRef buffer = List->getContents();
-    while (!buffer.empty()) {
-      std::pair<StringRef, StringRef> lineAndRest = buffer.split('\n');
-      StringRef line = lineAndRest.first.trim();
+    llvm::StringRef Buffer = List->getContents();
+    while (!Buffer.empty()) {
+      std::pair<StringRef, StringRef> LineAndRest = Buffer.split('\n');
+      StringRef Line = LineAndRest.first.trim();
       // Comment lines starts with #
-      if (!line.empty() || !line.starts_with("#"))
-        LTOPatternList.emplace_back(make<WildcardPattern>(line.str()));
-      buffer = lineAndRest.second;
+      if (!Line.empty() || !Line.starts_with("#"))
+        LTOPatternList.emplace_back(make<WildcardPattern>(Line.str()));
+      Buffer = LineAndRest.second;
     }
   }
   return true;
@@ -3714,145 +3721,146 @@ bool ObjectLinker::parseIncludeOrExcludeLTOfiles() {
 
 bool ObjectLinker::provideGlobalSymbolAndContents(std::string Name, size_t Sz,
                                                   uint32_t Alignment) {
-  LDSymbol *sym = m_pModule->getNamePool().findSymbol(Name);
+  LDSymbol *Sym = ThisModule->getNamePool().findSymbol(Name);
 
-  if (!sym || !sym->resolveInfo() || !sym->resolveInfo()->isUndef())
+  if (!Sym || !Sym->resolveInfo() || !Sym->resolveInfo()->isUndef())
     return true;
 
-  char *Buf = m_pModule->getUninitBuffer(Sz);
-  ELFSection *inputSect = m_pModule->createInternalSection(
+  char *Buf = ThisModule->getUninitBuffer(Sz);
+  ELFSection *InputSect = ThisModule->createInternalSection(
       Module::InternalInputType::GlobalDataSymbols, LDFileFormat::Regular,
       ".rodata.internal." + Name, llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
       Alignment, 0);
-  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), inputSect,
+  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
                                      Fragment::Type::Region, Alignment);
-  inputSect->addFragmentAndUpdateSize(F);
+  InputSect->addFragmentAndUpdateSize(F);
   ELFObjectFile *EObj =
-      llvm::dyn_cast<eld::ELFObjectFile>(inputSect->getInputFile());
+      llvm::dyn_cast<eld::ELFObjectFile>(InputSect->getInputFile());
   if (!EObj)
     return false;
-  LayoutPrinter *P = m_pModule->getLayoutPrinter();
+  LayoutPrinter *P = ThisModule->getLayoutPrinter();
   if (P)
-    P->recordFragment(EObj, inputSect, F);
-  LDSymbol *Sym = m_pBuilder->AddSymbol(
-      *EObj, Name, (ResolveInfo::Type)sym->resolveInfo()->type(),
-      ResolveInfo::Define, ResolveInfo::Global, Sz, 0, inputSect,
-      sym->resolveInfo()->visibility(), true, EObj->getSections().size(),
+    P->recordFragment(EObj, InputSect, F);
+  LDSymbol *ProvideSym = CurBuilder->addSymbol(
+      *EObj, Name, (ResolveInfo::Type)Sym->resolveInfo()->type(),
+      ResolveInfo::Define, ResolveInfo::Global, Sz, 0, InputSect,
+      Sym->resolveInfo()->visibility(), true, EObj->getSections().size(),
       EObj->getSymbols().size());
-  EObj->addSymbol(Sym);
+  EObj->addSymbol(ProvideSym);
   return true;
 }
 
 bool ObjectLinker::setCommonSectionsFallbackToBSS() {
-  ObjectFile *commonInput =
-      llvm::dyn_cast<ObjectFile>(m_pModule->getCommonInternalInput());
-  auto iter = std::find_if(commonInput->getSections().begin(),
-                           commonInput->getSections().end(), [](Section *S) {
+  ObjectFile *CommonInput =
+      llvm::dyn_cast<ObjectFile>(ThisModule->getCommonInternalInput());
+  auto Iter = std::find_if(CommonInput->getSections().begin(),
+                           CommonInput->getSections().end(), [](Section *S) {
                              return llvm::isa<CommonELFSection>(S) &&
                                     !S->getOutputSection();
                            });
   // Do not proceed if there are no unassigned common sections.
-  if (iter == commonInput->getSections().end())
+  if (Iter == CommonInput->getSections().end())
     return true;
-  SectionMap &sectionMap = m_pModule->getScript().sectionMap();
-  OutputSectionEntry *outSecEntry = sectionMap.findOutputSectionEntry(".bss");
-  ELFSection *outSection = nullptr;
-  RuleContainer *rule = nullptr;
+  SectionMap &SectionMap = ThisModule->getScript().sectionMap();
+  OutputSectionEntry *OutSecEntry = SectionMap.findOutputSectionEntry(".bss");
+  ELFSection *OutSection = nullptr;
+  RuleContainer *Rule = nullptr;
 
-  if (outSecEntry)
-    outSection = outSecEntry->getSection();
+  if (OutSecEntry)
+    OutSection = OutSecEntry->getSection();
   else {
-    outSection = m_pModule->createOutputSection(".bss", LDFileFormat::Regular,
-                                                /*pType=*/0, /*pFlag=*/0,
-                                                /*pAlign=*/0);
-    outSecEntry = outSection->getOutputSection();
+    OutSection = ThisModule->createOutputSection(".bss", LDFileFormat::Regular,
+                                                 /*pType=*/0, /*pFlag=*/0,
+                                                 /*pAlign=*/0);
+    OutSecEntry = OutSection->getOutputSection();
   }
 
-  rule = outSecEntry->getLastRule();
-  if (!rule)
-    rule = outSecEntry->createDefaultRule(*m_pModule);
+  Rule = OutSecEntry->getLastRule();
+  if (!Rule)
+    Rule = OutSecEntry->createDefaultRule(*ThisModule);
 
-  for (auto S : commonInput->getSections()) {
+  for (auto *S : CommonInput->getSections()) {
     if (!llvm::isa<CommonELFSection>(S) || S->getOutputSection())
       continue;
-    S->setOutputSection(outSecEntry);
-    S->setMatchedLinkerScriptRule(rule);
+    S->setOutputSection(OutSecEntry);
+    S->setMatchedLinkerScriptRule(Rule);
   }
   return true;
 }
 
 bool ObjectLinker::setCopyRelocSectionsFallbackToBSS() {
-  ObjectFile *copyRelocInput = llvm::dyn_cast<ObjectFile>(
-      m_pModule->getInternalInput(Module::InternalInputType::CopyRelocSymbols));
+  ObjectFile *CopyRelocInput =
+      llvm::dyn_cast<ObjectFile>(ThisModule->getInternalInput(
+          Module::InternalInputType::CopyRelocSymbols));
 
-  SectionMap &sectionMap = m_pModule->getScript().sectionMap();
-  OutputSectionEntry *outSecEntry = sectionMap.findOutputSectionEntry(".bss");
-  ELFSection *outSection = nullptr;
-  RuleContainer *rule = nullptr;
+  SectionMap &SectionMap = ThisModule->getScript().sectionMap();
+  OutputSectionEntry *OutSecEntry = SectionMap.findOutputSectionEntry(".bss");
+  ELFSection *OutSection = nullptr;
+  RuleContainer *Rule = nullptr;
 
-  if (outSecEntry)
-    outSection = outSecEntry->getSection();
+  if (OutSecEntry)
+    OutSection = OutSecEntry->getSection();
   else {
-    outSection = m_pModule->createOutputSection(".bss", LDFileFormat::Regular,
-                                                /*pType=*/0, /*pFlag=*/0,
-                                                /*pAlign=*/0);
-    outSecEntry = outSection->getOutputSection();
+    OutSection = ThisModule->createOutputSection(".bss", LDFileFormat::Regular,
+                                                 /*pType=*/0, /*pFlag=*/0,
+                                                 /*pAlign=*/0);
+    OutSecEntry = OutSection->getOutputSection();
   }
 
-  rule = outSecEntry->getLastRule();
-  if (!rule)
-    rule = outSecEntry->createDefaultRule(*m_pModule);
+  Rule = OutSecEntry->getLastRule();
+  if (!Rule)
+    Rule = OutSecEntry->createDefaultRule(*ThisModule);
 
-  for (auto S : copyRelocInput->getSections()) {
+  for (auto *S : CopyRelocInput->getSections()) {
     if (S->getOutputSection())
       continue;
-    S->setOutputSection(outSecEntry);
-    S->setMatchedLinkerScriptRule(rule);
+    S->setOutputSection(OutSecEntry);
+    S->setMatchedLinkerScriptRule(Rule);
   }
   return true;
 }
 
-void ObjectLinker::accountSymForSymStats(SymbolStats &symbolStats,
+void ObjectLinker::accountSymForSymStats(SymbolStats &SymbolStats,
                                          const ResolveInfo &RI) {
-  symbolStats.local += RI.isLocal();
+  SymbolStats.Local += RI.isLocal();
   // NOTE: We are not counting absolute symbols here.
-  symbolStats.global += RI.isGlobal();
-  symbolStats.weak += RI.isWeak();
-  symbolStats.hidden += RI.isHidden();
+  SymbolStats.Global += RI.isGlobal();
+  SymbolStats.Weak += RI.isWeak();
+  SymbolStats.Hidden += RI.isHidden();
   // NOTE: We have to explicitly add isFile() here because
   // we set absolute property to false for STT_File symbols.
-  symbolStats.absolute += RI.isAbsolute() || RI.isFile();
-  symbolStats.protectedSyms += RI.isProtected();
-  symbolStats.file += RI.isFile();
+  SymbolStats.Absolute += RI.isAbsolute() || RI.isFile();
+  SymbolStats.ProtectedSyms += RI.isProtected();
+  SymbolStats.File += RI.isFile();
 }
 
 void ObjectLinker::accountSymForTotalSymStats(const ResolveInfo &RI) {
-  accountSymForSymStats(m_TotalSymStats, RI);
+  accountSymForSymStats(MTotalSymStats, RI);
 }
 
 void ObjectLinker::accountSymForDiscardedSymStats(const ResolveInfo &RI) {
-  accountSymForSymStats(m_DiscardedSymStats, RI);
+  accountSymForSymStats(MDiscardedSymStats, RI);
 }
 
 const ObjectLinker::SymbolStats &ObjectLinker::getTotalSymbolStats() const {
-  return m_TotalSymStats;
+  return MTotalSymStats;
 }
 
 const ObjectLinker::SymbolStats &ObjectLinker::getDiscardedSymbolStats() const {
-  return m_DiscardedSymStats;
+  return MDiscardedSymStats;
 }
 
 void ObjectLinker::reportPendingPluginRuleInsertions() const {
-  const LinkerScript &script = m_pModule->getLinkerScript();
-  const auto &pendingRuleInsertions = script.getPendingRuleInsertions();
-  for (const auto &item : pendingRuleInsertions) {
-    const plugin::LinkerWrapper *LW = item.first;
-    for (const RuleContainer *R : item.second) {
-      std::string ruleString;
-      llvm::raw_string_ostream ss(ruleString);
-      R->desc()->dumpSpec(ss);
-      m_Config.raise(diag::warn_pending_rule_insertion)
-          << ss.str() << LW->getPlugin()->getPluginName()
+  const LinkerScript &Script = ThisModule->getLinkerScript();
+  const auto &PendingRuleInsertions = Script.getPendingRuleInsertions();
+  for (const auto &Item : PendingRuleInsertions) {
+    const plugin::LinkerWrapper *LW = Item.first;
+    for (const RuleContainer *R : Item.second) {
+      std::string RuleString;
+      llvm::raw_string_ostream Ss(RuleString);
+      R->desc()->dumpSpec(Ss);
+      ThisConfig.raise(Diag::warn_pending_rule_insertion)
+          << Ss.str() << LW->getPlugin()->getPluginName()
           << R->desc()->getOutputDesc().name();
     }
   }
@@ -3860,30 +3868,30 @@ void ObjectLinker::reportPendingPluginRuleInsertions() const {
 
 void ObjectLinker::finalizeOutputSectionFlags(OutputSectionEntry *OSE) const {
   ELFSection *S = OSE->getSection();
-  uint32_t outFlags = S->getFlags();
-  auto outSectType = OSE->prolog().type();
+  uint32_t OutFlags = S->getFlags();
+  auto OutSectType = OSE->prolog().type();
 
-  if (outSectType == OutputSectDesc::Type::DSECT ||
-      outSectType == OutputSectDesc::Type::COPY ||
-      outSectType == OutputSectDesc::Type::INFO ||
-      outSectType == OutputSectDesc::Type::OVERLAY) {
-    outFlags = S->getFlags();
-    S->setFlags(outFlags & ~llvm::ELF::SHF_ALLOC);
+  if (OutSectType == OutputSectDesc::Type::DSECT ||
+      OutSectType == OutputSectDesc::Type::COPY ||
+      OutSectType == OutputSectDesc::Type::INFO ||
+      OutSectType == OutputSectDesc::Type::OVERLAY) {
+    OutFlags = S->getFlags();
+    S->setFlags(OutFlags & ~llvm::ELF::SHF_ALLOC);
   }
 }
 
 void ObjectLinker::collectEntrySections() const {
-  const std::vector<InputFile *> &inputFiles = m_pModule->getObjectList();
-  SectionMap &SM = m_pModule->getLinkerScript().sectionMap();
-  std::vector<std::vector<ELFSection *>> inputToEntrySections(
-      inputFiles.size());
+  const std::vector<InputFile *> &InputFiles = ThisModule->getObjectList();
+  SectionMap &SM = ThisModule->getLinkerScript().sectionMap();
+  std::vector<std::vector<ELFSection *>> InputToEntrySections(
+      InputFiles.size());
 
-  llvm::parallelFor(0, inputFiles.size(), [&](std::size_t i) {
-    if (isPostLTOPhase() && inputFiles[i]->isBitcode())
+  llvm::parallelFor(0, InputFiles.size(), [&](std::size_t I) {
+    if (isPostLTOPhase() && InputFiles[I]->isBitcode())
       return;
-    const ObjectFile *objFile = llvm::cast<ObjectFile>(inputFiles[i]);
+    const ObjectFile *ObjFile = llvm::cast<ObjectFile>(InputFiles[I]);
 
-    for (Section *S : objFile->getSections()) {
+    for (Section *S : ObjFile->getSections()) {
       ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(S);
       if (!ELFSect)
         continue;
@@ -3891,22 +3899,22 @@ void ObjectLinker::collectEntrySections() const {
 
       if ((R && R->isEntry()) ||
           ELFSect->name().find("@") != llvm::StringRef::npos) {
-        inputToEntrySections[i].push_back(ELFSect);
+        InputToEntrySections[I].push_back(ELFSect);
         continue;
       }
 
-      for (auto entry : m_Config.targets().getEntrySections()) {
-        if (SM.matched(*entry, ELFSect->name(), ELFSect->getSectionHash())) {
-          inputToEntrySections[i].push_back(ELFSect);
+      for (auto *Entry : ThisConfig.targets().getEntrySections()) {
+        if (SM.matched(*Entry, ELFSect->name(), ELFSect->getSectionHash())) {
+          InputToEntrySections[I].push_back(ELFSect);
           break;
         }
       }
     }
   });
 
-  for (const auto &entrySections : inputToEntrySections) {
-    for (ELFSection *ELFSect : entrySections) {
-      m_Config.raise(diag::keeping_section)
+  for (const auto &EntrySections : InputToEntrySections) {
+    for (ELFSection *ELFSect : EntrySections) {
+      ThisConfig.raise(Diag::keeping_section)
           << ELFSect->name()
           << ELFSect->originalInput()->getInput()->decoratedPath();
       SM.addEntrySection(ELFSect);

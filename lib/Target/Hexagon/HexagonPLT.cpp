@@ -23,7 +23,7 @@ HexagonPLT0 *HexagonPLT0::Create(eld::IRBuilder &I, HexagonGOT *G,
 
   std::string name = "__gotplt0__";
   // create LDSymbol for the stub
-  LDSymbol *symbol = I.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
       ResolveInfo::Local,
       4, // size
@@ -55,7 +55,7 @@ HexagonPLTN *HexagonPLTN::Create(eld::IRBuilder &I, HexagonGOT *G,
   Relocation *r2 = nullptr;
   std::string name = "__gotpltn_for_" + std::string(R->name());
   // create LDSymbol for the stub
-  LDSymbol *symbol = I.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
       O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
       ResolveInfo::Local,
       4, // size

@@ -22,16 +22,16 @@ class RelocMap;
  */
 class ELFObjectFile : public ELFFileBase {
 public:
-  ELFObjectFile(Input *I, DiagnosticEngine *diagEngine);
+  ELFObjectFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.
   static bool classof(const InputFile *E) {
     return (E->getKind() == InputFile::ELFObjFileKind);
   }
 
-  void setLTOObject() { m_isResultFromLTO = true; }
+  void setLTOObject() { IsResultFromLTO = true; }
 
-  bool isLTOObject() const override { return m_isResultFromLTO; }
+  bool isLTOObject() const override { return IsResultFromLTO; }
 
   void setLLVMBCSection(ELFSection *S) { LLVMBCSection = S; }
 
@@ -39,58 +39,58 @@ public:
 
   TimingSection *getTimingSection() const { return TimingSection; }
 
-  void setTimingSection(TimingSection *t) { TimingSection = t; }
+  void setTimingSection(TimingSection *T) { TimingSection = T; }
 
   void setDynamicSections(ELFSection &GOT, ELFSection &GOTPLT, ELFSection &PLT,
                           ELFSection &RelDyn, ELFSection &RelPLT);
 
-  ELFSection *getGOT() const { return m_GOT; }
-  ELFSection *getGOTPLT() const { return m_GOTPLT; }
-  ELFSection *getPLT() const { return m_PLT; }
-  ELFSection *getRelaDyn() const { return m_RelaDyn; }
-  ELFSection *getRelaPLT() const { return m_RelaPLT; }
+  ELFSection *getGOT() const { return GOT; }
+  ELFSection *getGOTPLT() const { return GOTPLT; }
+  ELFSection *getPLT() const { return PLT; }
+  ELFSection *getRelaDyn() const { return RelaDyn; }
+  ELFSection *getRelaPLT() const { return RelaPLT; }
 
   // Patching sections.
   void setPatchSections(ELFSection &GOTPatch, ELFSection &RelaPatch);
 
-  ELFSection *getGOTPatch() const { return m_GOTPatch; }
-  ELFSection *getRelaPatch() const { return m_RelaPatch; }
+  ELFSection *getGOTPatch() const { return GOTPatch; }
+  ELFSection *getRelaPatch() const { return RelaPatch; }
 
   ~ELFObjectFile() {}
 
   // --- DWARF Support
 
-  void createDWARFContext(bool is32);
+  void createDWARFContext(bool Is32);
 
-  llvm::DWARFContext *getDWARFContext() { return m_DWARFContext.get(); }
+  llvm::DWARFContext *getDWARFContext() { return DWARFContext.get(); }
 
-  void deleteDWARFContext() { m_DWARFContext.reset(); }
+  void deleteDWARFContext() { DWARFContext.reset(); }
 
-  bool hasDWARFContext() { return !!m_DWARFContext; }
+  bool hasDWARFContext() { return !!DWARFContext; }
 
   void populateDebugSections();
 
   // --- SectionGroup Support
-  void addSectionGroup(ELFSection *S) { m_GroupSections.push_back(S); }
+  void addSectionGroup(ELFSection *S) { GroupSections.push_back(S); }
 
   const std::vector<ELFSection *> &getELFSectionGroupSections() const {
-    return m_GroupSections;
+    return GroupSections;
   }
 
 private:
   eld::ELFSection *LLVMBCSection = nullptr;
   eld::TimingSection *TimingSection = nullptr;
-  bool m_isResultFromLTO = false;
-  std::unique_ptr<llvm::DWARFContext> m_DWARFContext;
-  std::vector<std::unique_ptr<llvm::MemoryBuffer>> m_DebugSections;
-  std::vector<ELFSection *> m_GroupSections;
-  ELFSection *m_GOT = nullptr;
-  ELFSection *m_GOTPLT = nullptr;
-  ELFSection *m_PLT = nullptr;
-  ELFSection *m_RelaDyn = nullptr;
-  ELFSection *m_RelaPLT = nullptr;
-  ELFSection *m_GOTPatch = nullptr;
-  ELFSection *m_RelaPatch = nullptr;
+  bool IsResultFromLTO = false;
+  std::unique_ptr<llvm::DWARFContext> DWARFContext;
+  std::vector<std::unique_ptr<llvm::MemoryBuffer>> DebugSections;
+  std::vector<ELFSection *> GroupSections;
+  ELFSection *GOT = nullptr;
+  ELFSection *GOTPLT = nullptr;
+  ELFSection *PLT = nullptr;
+  ELFSection *RelaDyn = nullptr;
+  ELFSection *RelaPLT = nullptr;
+  ELFSection *GOTPatch = nullptr;
+  ELFSection *RelaPatch = nullptr;
 };
 
 } // namespace eld

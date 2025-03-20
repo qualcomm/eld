@@ -130,7 +130,7 @@ eld::Expected<bool> ExecELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
     LDSymbol *symbol = EFile->getSymbol(rSym);
     if (!symbol) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::err_cannot_read_symbol,
+          Diag::err_cannot_read_symbol,
           {std::to_string(rSym),
            inputFile->getInput()->getResolvedPath().getFullPath()}));
     }
@@ -143,7 +143,7 @@ eld::Expected<bool> ExecELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
     if (backend.handleRelocation(linkSect, rType, *symbol, offset, rAddend))
       continue;
 
-    Relocation *relocation = eld::IRBuilder::AddRelocation(
+    Relocation *relocation = eld::IRBuilder::addRelocation(
         backend.getRelocator(), linkSect, rType, *symbol, offset, rAddend);
     if (relocation)
       linkSect->addRelocation(relocation);

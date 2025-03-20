@@ -34,32 +34,32 @@ public:
 
   StringList();
 
-  ~StringList() { m_Tokens.clear(); }
+  ~StringList() { TokenList.clear(); }
 
-  const_iterator begin() const { return m_Tokens.begin(); }
-  iterator begin() { return m_Tokens.begin(); }
-  const_iterator end() const { return m_Tokens.end(); }
-  iterator end() { return m_Tokens.end(); }
-  const_iterator find(StrToken *token) const;
-  iterator find(StrToken *token);
+  const_iterator begin() const { return TokenList.begin(); }
+  iterator begin() { return TokenList.begin(); }
+  const_iterator end() const { return TokenList.end(); }
+  iterator end() { return TokenList.end(); }
+  const_iterator find(StrToken *Token) const;
+  iterator find(StrToken *Token);
 
-  const_reference front() const { return m_Tokens.front(); }
-  reference front() { return m_Tokens.front(); }
-  const_reference back() const { return m_Tokens.back(); }
-  reference back() { return m_Tokens.back(); }
+  const_reference front() const { return TokenList.front(); }
+  reference front() { return TokenList.front(); }
+  const_reference back() const { return TokenList.back(); }
+  reference back() { return TokenList.back(); }
 
-  bool empty() const { return m_Tokens.empty(); }
+  bool empty() const { return TokenList.empty(); }
 
-  size_t size() const { return m_Tokens.size(); }
+  size_t size() const { return TokenList.size(); }
 
-  void push_back(StrToken *pToken);
+  void pushBack(StrToken *ThisInputToken);
 
-  void dump(llvm::raw_ostream &outs) const;
+  void dump(llvm::raw_ostream &Outs) const;
 
-  const Tokens &getTokens() const { return m_Tokens; }
+  const Tokens &getTokens() const { return TokenList; }
 
 private:
-  Tokens m_Tokens;
+  Tokens TokenList;
 };
 
 } // namespace eld

@@ -46,7 +46,7 @@
 
 namespace llvm {
 class StringSaver;
-}
+} // namespace llvm
 
 namespace eld {
 
@@ -139,220 +139,223 @@ public:
   typedef std::pair<uint64_t, uint64_t> DynamicListStartEndIndexPair;
 
 public:
-  explicit Module(LinkerScript &pScript, LinkerConfig &pConfig,
-                  LayoutPrinter *layoutPrinter);
+  explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
+                  LayoutPrinter *LayoutPrinter);
 
-  Module(const std::string &pName, LinkerScript &pScript, LinkerConfig &pConfig,
-         LayoutPrinter *layoutPrinter);
+  Module(const std::string &Name, LinkerScript &CurScript, LinkerConfig &Config,
+         LayoutPrinter *LayoutPrinter);
 
   ~Module();
 
-  LinkerScript &getScript() const { return m_Script; }
+  LinkerScript &getScript() const { return UserLinkerScript; }
 
-  LinkerConfig &getConfig() const { return m_Config; }
+  LinkerConfig &getConfig() const { return ThisConfig; }
 
-  const LinkerScript &getLinkerScript() const { return m_Script; }
+  const LinkerScript &getLinkerScript() const { return UserLinkerScript; }
 
-  LinkerScript &getLinkerScript() { return m_Script; }
+  LinkerScript &getLinkerScript() { return UserLinkerScript; }
 
   // -----  link-in objects ----- //
-  std::vector<InputFile *> &getObjectList() { return m_ObjectList; }
+  std::vector<InputFile *> &getObjectList() { return InputObjectList; }
 
-  const std::vector<InputFile *> &getObjectList() const { return m_ObjectList; }
+  const std::vector<InputFile *> &getObjectList() const {
+    return InputObjectList;
+  }
 
-  obj_iterator obj_begin() { return m_ObjectList.begin(); }
-  obj_iterator obj_end() { return m_ObjectList.end(); }
+  obj_iterator objBegin() { return InputObjectList.begin(); }
+  obj_iterator objEnd() { return InputObjectList.end(); }
 
-  void insertLTOObjects(obj_iterator iter, std::vector<InputFile *> &inp) {
-    m_ObjectList.insert(iter, inp.begin(), inp.end());
+  void insertLTOObjects(obj_iterator Iter, std::vector<InputFile *> &Inp) {
+    InputObjectList.insert(Iter, Inp.begin(), Inp.end());
   }
 
   // -----  link-in libraries  ----- //
-  LibraryList &getDynLibraryList() { return m_DynLibraryList; }
-  LibraryList &getArchiveLibraryList() { return m_ArchiveLibraryList; }
+  LibraryList &getDynLibraryList() { return DynLibraryList; }
+  LibraryList &getArchiveLibraryList() { return ArchiveLibraryList; }
 
   /// @}
   /// @name Section Accessors
   /// @{
 
   // -----  sections  ----- //
-  const SectionTable &getSectionTable() const { return m_SectionTable; }
-  SectionTable &getSectionTable() { return m_SectionTable; }
+  const SectionTable &getSectionTable() const { return OutputSectionTable; }
+  SectionTable &getSectionTable() { return OutputSectionTable; }
 
   void clearOutputSections() {
-    m_SectionTable.clear();
-    m_OutputSectionTableMap.clear();
+    OutputSectionTable.clear();
+    OutputSectionTableMap.clear();
   }
 
   void addOutputSectionToTable(ELFSection *S) {
-    m_OutputSectionTableMap[S->name()] = S;
+    OutputSectionTableMap[S->name()] = S;
   }
 
   void addOutputSection(ELFSection *S) {
-    m_SectionTable.push_back(S);
-    m_OutputSectionTableMap[S->name()] = S;
+    OutputSectionTable.push_back(S);
+    OutputSectionTableMap[S->name()] = S;
   }
 
-  iterator begin() { return m_SectionTable.begin(); }
-  const_iterator begin() const { return m_SectionTable.begin(); }
-  iterator end() { return m_SectionTable.end(); }
-  const_iterator end() const { return m_SectionTable.end(); }
-  ELFSection *front() { return m_SectionTable.front(); }
-  const ELFSection *front() const { return m_SectionTable.front(); }
-  ELFSection *back() { return m_SectionTable.back(); }
-  const ELFSection *back() const { return m_SectionTable.back(); }
-  size_t size() const { return m_SectionTable.size(); }
-  bool empty() const { return m_SectionTable.empty(); }
+  iterator begin() { return OutputSectionTable.begin(); }
+  const_iterator begin() const { return OutputSectionTable.begin(); }
+  iterator end() { return OutputSectionTable.end(); }
+  const_iterator end() const { return OutputSectionTable.end(); }
+  ELFSection *front() { return OutputSectionTable.front(); }
+  const ELFSection *front() const { return OutputSectionTable.front(); }
+  ELFSection *back() { return OutputSectionTable.back(); }
+  const ELFSection *back() const { return OutputSectionTable.back(); }
+  size_t size() const { return OutputSectionTable.size(); }
+  bool empty() const { return OutputSectionTable.empty(); }
 
-  ELFSection *getSection(const std::string &pName) const;
+  ELFSection *getSection(const std::string &Name) const;
 
   // --- Sections with @ --- //
-  SectionTable &getAtTable() { return m_AtTable; }
+  SectionTable &getAtTable() { return AtTable; }
 
   /// @}
   /// @name Symbol Accessors
   /// @{
 
-  const NamePool &getNamePool() const { return m_NamePool; }
-  NamePool &getNamePool() { return m_NamePool; }
+  const NamePool &getNamePool() const { return SymbolNamePool; }
+  NamePool &getNamePool() { return SymbolNamePool; }
 
   // ------ Dynamic List symbols ----//
-  ScriptSymbolList &dynListSyms() { return m_DynamicListSymbols; }
+  ScriptSymbolList &dynListSyms() { return DynamicListSymbols; }
 
-  VersionScriptNodes &getVersionScriptNodes() { return m_VersionScriptNodes; }
+  VersionScriptNodes &getVersionScriptNodes() {
+    return LinkerVersionScriptNodes;
+  }
 
   void addVersionScriptNode(const VersionScriptNode *N) {
-    m_VersionScriptNodes.push_back(N);
+    LinkerVersionScriptNodes.push_back(N);
   }
 
   void clear();
 
-  void addToCopyFarCallSet(llvm::StringRef sym) {
-    m_DuplicateFarCalls.insert(sym);
+  void addToCopyFarCallSet(llvm::StringRef Sym) {
+    DuplicateFarCalls.insert(Sym);
   }
 
-  bool findInCopyFarCallSet(llvm::StringRef sym) const {
-    if (m_DuplicateFarCalls.find(sym) != m_DuplicateFarCalls.end())
+  bool findInCopyFarCallSet(llvm::StringRef Sym) const {
+    if (DuplicateFarCalls.find(Sym) != DuplicateFarCalls.end())
       return true;
     return false;
   }
 
-  void removeFromCopyFarCallSet(llvm::StringRef sym) {
-    m_DuplicateFarCalls.erase(m_DuplicateFarCalls.find(sym));
+  void removeFromCopyFarCallSet(llvm::StringRef Sym) {
+    DuplicateFarCalls.erase(DuplicateFarCalls.find(Sym));
   }
 
-  void addToNoReuseOfTrampolines(llvm::StringRef sym) {
-    m_NoReuseTrampolines.insert(sym);
+  void addToNoReuseOfTrampolines(llvm::StringRef Sym) {
+    NoReuseTrampolines.insert(Sym);
   }
 
-  bool findCanReuseTrampolinesForSymbol(llvm::StringRef sym) const {
-    if (m_NoReuseTrampolines.find(sym) != m_NoReuseTrampolines.end())
+  bool findCanReuseTrampolinesForSymbol(llvm::StringRef Sym) const {
+    if (NoReuseTrampolines.find(Sym) != NoReuseTrampolines.end())
       return true;
     return false;
   }
 
   // Find the common symbol recorded previously.
-  InputFile *findCommon(std::string name) const {
-    auto It = m_CommonMap.find(name);
-    if (It == m_CommonMap.end())
+  InputFile *findCommon(std::string Name) const {
+    auto It = CommonMap.find(Name);
+    if (It == CommonMap.end())
       return nullptr;
     return It->getValue();
   }
 
   // Record commons as we dont have a section for them.
-  void recordCommon(std::string name, InputFile *I) { m_CommonMap[name] = I; }
+  void recordCommon(std::string Name, InputFile *I) { CommonMap[Name] = I; }
 
-  void setDotSymbol(LDSymbol *dotSymbol) { m_DotSymbol = dotSymbol; }
+  void setDotSymbol(LDSymbol *S) { DotSymbol = S; }
 
-  LDSymbol *getDotSymbol() const { return m_DotSymbol; }
+  LDSymbol *getDotSymbol() const { return DotSymbol; }
 
   eld::IRBuilder *getIRBuilder() const;
 
-  void setFailure(bool fails = false);
+  void setFailure(bool Fails = false);
 
-  bool linkFail() const { return m_Failure; }
+  bool linkFail() const { return Failure; }
 
-  Linker *getLinker() const { return m_pLinker; }
+  Linker *getLinker() const { return Linker; }
 
-  void setLinker(Linker *l) { m_pLinker = l; }
+  void setLinker(Linker *L) { Linker = L; }
 
   bool createInternalInputs();
 
-  InputFile *createInternalInputFile(Input *I, bool createELFObjectFile);
+  InputFile *createInternalInputFile(Input *I, bool CreateElfObjectFile);
 
-  InputFile *getInternalInput(InternalInputType type) const {
-    return m_InternalFiles[type];
+  InputFile *getInternalInput(InternalInputType Type) const {
+    return InternalFiles[Type];
   }
 
-  InternalInputArray &getInternalFiles() { return m_InternalFiles; }
+  InternalInputArray &getInternalFiles() { return InternalFiles; }
 
   InternalInputArray::iterator beginInternalFiles() {
-    return std::begin(m_InternalFiles);
+    return std::begin(InternalFiles);
   }
 
   InternalInputArray::iterator endInternalFiles() {
-    return std::end(m_InternalFiles);
+    return std::end(InternalFiles);
   }
 
-  ELFSection *createOutputSection(const std::string &pName,
-                                  LDFileFormat::Kind pKind, uint32_t pType,
-                                  uint32_t pFlag, uint32_t pAlign);
+  ELFSection *createOutputSection(const std::string &Name,
+                                  LDFileFormat::Kind PKind, uint32_t Type,
+                                  uint32_t PFlag, uint32_t PAlign);
 
   ELFSection *createInternalSection(InputFile &I, LDFileFormat::Kind K,
-                                    std::string pName, uint32_t pType,
-                                    uint32_t pFlag, uint32_t pAlign,
-                                    uint32_t entSize = 0);
+                                    std::string Name, uint32_t Type,
+                                    uint32_t PFlag, uint32_t PAlign,
+                                    uint32_t EntSize = 0);
 
-  ELFSection *createInternalSection(InternalInputType type,
+  ELFSection *createInternalSection(InternalInputType Type,
                                     LDFileFormat::Kind K, std::string Name,
-                                    uint32_t Type, uint32_t Flag,
+                                    uint32_t SectionType, uint32_t Flag,
                                     uint32_t Align, uint32_t EntSize = 0) {
-    return createInternalSection(*m_InternalFiles[type], K, Name, Type, Flag,
-                                 Align, EntSize);
+    return createInternalSection(*InternalFiles[Type], K, Name, SectionType,
+                                 Flag, Align, EntSize);
   }
 
-  EhFrameHdrSection *createEhFrameHdrSection(InternalInputType type,
-                                             std::string pName, uint32_t pType,
-                                             uint32_t pFlag, uint32_t pAlign);
+  EhFrameHdrSection *createEhFrameHdrSection(InternalInputType IType,
+                                             std::string Name, uint32_t Type,
+                                             uint32_t PFlag, uint32_t PAlign);
 
-  LayoutPrinter *getLayoutPrinter() { return m_LayoutPrinter; }
+  LayoutPrinter *getLayoutPrinter() { return ThisLayoutPrinter; }
 
   // Section symbols and all other symbols that live in the output.
   void recordSectionSymbol(ELFSection *S, ResolveInfo *R) {
-    m_SectionSymbol[S] = R;
+    SectionSymbol[S] = R;
   }
 
   ResolveInfo *getSectionSymbol(ELFSection *S) {
-    auto Iter = m_SectionSymbol.find(S);
-    if (Iter == m_SectionSymbol.end())
+    auto Iter = SectionSymbol.find(S);
+    if (Iter == SectionSymbol.end())
       return nullptr;
     return Iter->second;
   }
 
   void addSymbol(ResolveInfo *R);
 
-  LDSymbol *addSymbolFromBitCode(ObjectFile &pInput, const std::string &pName,
-                                 ResolveInfo::Type pType,
-                                 ResolveInfo::Desc pDesc,
-                                 ResolveInfo::Binding pBinding,
-                                 ResolveInfo::SizeType pSize,
-                                 ResolveInfo::Visibility pVisibility,
-                                 unsigned int pIdx);
+  LDSymbol *addSymbolFromBitCode(ObjectFile &CurInput, const std::string &Name,
+                                 ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+                                 ResolveInfo::Binding Binding,
+                                 ResolveInfo::SizeType Size,
+                                 ResolveInfo::Visibility Visibility,
+                                 unsigned int PIdx);
 
-  const std::vector<ResolveInfo *> &getSymbols() const { return m_Symbols; }
+  const std::vector<ResolveInfo *> &getSymbols() const { return Symbols; }
 
-  std::vector<ResolveInfo *> &getSymbols() { return m_Symbols; }
+  std::vector<ResolveInfo *> &getSymbols() { return Symbols; }
 
   // Common symbols.
-  void addCommonSymbol(ResolveInfo *R) { m_CommonSymbols.push_back(R); }
+  void addCommonSymbol(ResolveInfo *R) { CommonSymbols.push_back(R); }
 
-  std::vector<ResolveInfo *> &getCommonSymbols() { return m_CommonSymbols; }
+  std::vector<ResolveInfo *> &getCommonSymbols() { return CommonSymbols; }
 
   bool sortCommonSymbols();
 
   bool sortSymbols();
 
-  GroupSignatureMap &signatureMap() { return f_GroupSignatureMap; }
+  GroupSignatureMap &signatureMap() { return SectionGroupSignatureMap; }
 
   // ------------------Plugin Support-----------------------------------
   bool readPluginConfig();
@@ -360,26 +363,26 @@ public:
   bool updateOutputSectionsWithPlugins();
 
   // -------------------Linker script symbol and GC support ----------
-  void addAssignment(llvm::StringRef symName, const Assignment *A) {
-    m_AssignmentsLive[symName] = A;
+  void addAssignment(llvm::StringRef SymName, const Assignment *A) {
+    AssignmentsLive[SymName] = A;
   }
 
   const Assignment *getAssignmentForSymbol(llvm::StringRef Sym) {
-    auto AssignExpr = m_AssignmentsLive.find(Sym);
-    if (AssignExpr == m_AssignmentsLive.end())
+    auto AssignExpr = AssignmentsLive.find(Sym);
+    if (AssignExpr == AssignmentsLive.end())
       return nullptr;
     return AssignExpr->getValue();
   }
 
   // Save the binding info for symbols taking part in --wrap
   void saveWrapSymBinding(llvm::StringRef Name, uint32_t Binding) {
-    m_WrapBindings[Name] = Binding;
+    WrapBindings[Name] = Binding;
   }
 
   uint32_t getWrapSymBinding(llvm::StringRef Name) const {
-    assert(m_WrapBindings.count(Name) != 0);
-    auto Entry = m_WrapBindings.find(Name);
-    if (Entry != m_WrapBindings.end())
+    assert(WrapBindings.count(Name) != 0);
+    auto Entry = WrapBindings.find(Name);
+    if (Entry != WrapBindings.end())
       return Entry->second;
     return ResolveInfo::NoneBinding;
   }
@@ -392,23 +395,7 @@ public:
     return WrappedReferences.count(Name);
   }
 
-  void addOutputArchOption(llvm::StringRef Option, Expression *expr) {
-    m_ArchOptions[Option] = expr;
-  }
-
-  void addOutputArchOptionMap(llvm::StringRef K, llvm::StringRef V) {
-    OutputArchOptionMap.insert({K, V});
-  }
-
-  llvm::StringMap<Expression *> &getOutputArchOptions() {
-    return m_ArchOptions;
-  }
-
-  llvm::StringMap<llvm::StringRef> &getOutputArchOptionMap() {
-    return OutputArchOptionMap;
-  }
-
-  NoCrossRefSet &getNonRefSections() { return m_NonRefSections; }
+  NoCrossRefSet &getNonRefSections() { return NonRefSections; }
 
   /* Add support for symbols that need to be selected from archive, if the
    * symbol remains to be undefined */
@@ -421,9 +408,9 @@ public:
   /// ------------- LTO-related functions ------------------
 
   /// A flag that is used to check if LTO is really needed.
-  bool needLTOToBeInvoked() const { return usesLTO; }
+  bool needLTOToBeInvoked() const { return UsesLto; }
 
-  void setLTONeeded() { usesLTO = true; }
+  void setLTONeeded() { UsesLto = true; }
 
   bool isPostLTOPhase() const;
 
@@ -433,13 +420,13 @@ public:
   /// returns false.
   bool setState(plugin::LinkerWrapper::State S);
 
-  plugin::LinkerWrapper::State getState() const { return m_State; }
+  plugin::LinkerWrapper::State getState() const { return State; }
 
   llvm::StringRef getStateStr() const;
 
   void addSymbolCreatedByPluginToFragment(Fragment *F, std::string Name,
                                           uint64_t Val,
-                                          const eld::Plugin *plugin);
+                                          const eld::Plugin *Plugin);
 
   // Create a Plugin Fragment.
   Fragment *createPluginFillFragment(std::string PluginName, uint32_t Alignment,
@@ -467,8 +454,8 @@ public:
 
   // Create a Note fragment wtih custom section name
   Fragment *createPluginFragmentWithCustomName(std::string Name,
-                                               size_t sectType,
-                                               size_t sectFlags,
+                                               size_t SectType,
+                                               size_t SectFlags,
                                                uint32_t Alignment,
                                                const char *Buf, size_t Size);
 
@@ -488,31 +475,31 @@ public:
   std::vector<eld::PluginData *> getPluginData(std::string PluginName);
 
   /// OutputTarWriter get/set
-  eld::OutputTarWriter *getOutputTarWriter() { return m_OutputTar; }
+  eld::OutputTarWriter *getOutputTarWriter() { return OutputTar; }
 
   void createOutputTarWriter();
 
-  DiagnosticPrinter *getPrinter() { return m_Printer; }
+  DiagnosticPrinter *getPrinter() { return Printer; }
 
   /// ------------------ Linker Caching Feature --------------------
   void addIntoRuleContainerMap(uint64_t RuleHash, RuleContainer *R) {
-    m_RuleContainerMap[RuleHash] = R;
+    RuleContainerMap[RuleHash] = R;
   }
   RuleContainer *getRuleContainer(uint64_t RuleHash) const {
-    auto it = m_RuleContainerMap.find(RuleHash);
-    if (it != m_RuleContainerMap.end())
-      return it->second;
+    auto It = RuleContainerMap.find(RuleHash);
+    if (It != RuleContainerMap.end())
+      return It->second;
     return nullptr;
   }
 
   OutputSectionEntry *getOutputSectionEntry(uint64_t OutSectionHash) const {
-    auto it = m_OutputSectionIndexMap.find(OutSectionHash);
-    if (it != m_OutputSectionIndexMap.end())
-      return it->second;
+    auto It = OutputSectionIndexMap.find(OutSectionHash);
+    if (It != OutputSectionIndexMap.end())
+      return It->second;
     return nullptr;
   }
   void setOutputSectionEntry(uint64_t OutSectionId, OutputSectionEntry *Out) {
-    m_OutputSectionIndexMap[OutSectionId] = Out;
+    OutputSectionIndexMap[OutSectionId] = Out;
   }
 
   // -----------------------------Saver support ------------------------------
@@ -521,9 +508,9 @@ public:
   llvm::StringRef saveString(llvm::StringRef S);
 
   // ----------------------------LayoutPrinters ------------------------------
-  TextLayoutPrinter *getTextMapPrinter() const { return m_TextMapPrinter; }
+  TextLayoutPrinter *getTextMapPrinter() const { return TextMapPrinter; }
 
-  YamlLayoutPrinter *getYAMLMapPrinter() const { return m_YAMLMapPrinter; }
+  YamlLayoutPrinter *getYAMLMapPrinter() const { return YamlMapPrinter; }
 
   bool createLayoutPrintersForMapStyle(llvm::StringRef);
 
@@ -538,10 +525,10 @@ public:
   // ---------------------------ImageLayoutChecksum support------------------
   uint64_t getImageLayoutChecksum() const;
 
-  void addVisitedAssignment(std::string s) { m_VisitedAssignments.insert(s); }
+  void addVisitedAssignment(std::string S) { VisitedAssignments.insert(S); }
 
-  bool isVisitedAssignment(std::string s) {
-    return m_VisitedAssignments.count(s) > 0;
+  bool isVisitedAssignment(std::string S) {
+    return VisitedAssignments.count(S) > 0;
   }
   // -------------------------Writable Chunks -------------------------------
   bool makeChunkWritable(eld::Fragment *F);
@@ -554,7 +541,7 @@ public:
   void addReferencedSymbol(Section &, ResolveInfo &);
 
   const ReferencedSymbols &getBitcodeReferencedSymbols() const {
-    return m_BitcodeReferencedSymbols;
+    return BitcodeReferencedSymbols;
   }
 
   // ---------------------------Central Thread Pool ------------------------
@@ -563,19 +550,19 @@ public:
   // ---------------Internal Input Files ------------------------------
   /// Returns the common internal input file.
   InputFile *getCommonInternalInput() const {
-    return m_InternalFiles[InternalInputType::Common];
+    return InternalFiles[InternalInputType::Common];
   }
 
   /// Create a common section. Common section is an internal input section. Each
   /// common section contains one common symbol.
-  CommonELFSection *createCommonELFSection(const std::string &sectionName,
-                                           uint32_t align,
-                                           InputFile *originatingInputFile);
+  CommonELFSection *createCommonELFSection(const std::string &SectionName,
+                                           uint32_t Align,
+                                           InputFile *OriginatingInputFile);
 
   MergeableString *getMergedNonAllocString(const MergeableString *S) const {
     ASSERT(!S->isAlloc(), "string is alloc!");
-    auto Str = m_UniqueNonAllocStrings.find(S->String);
-    if (Str == m_UniqueNonAllocStrings.end())
+    auto Str = UniqueNonAllocStrings.find(S->String);
+    if (Str == UniqueNonAllocStrings.end())
       return nullptr;
     MergeableString *MergedString = Str->second;
     if (MergedString == S)
@@ -584,40 +571,40 @@ public:
   }
 
   llvm::SmallVectorImpl<MergeableString *> &getNonAllocStrings() {
-    return m_AllNonAllocStrings;
+    return AllNonAllocStrings;
   }
 
   void addNonAllocString(MergeableString *S) {
     ASSERT(!S->isAlloc(), "string is alloc!");
-    m_AllNonAllocStrings.push_back(S);
-    m_UniqueNonAllocStrings.insert({S->String, S});
+    AllNonAllocStrings.push_back(S);
+    UniqueNonAllocStrings.insert({S->String, S});
   }
 
-  void addScriptSymbolForDynamicListFile(InputFile *dynamicListFile,
-                                         ScriptSymbol *sym) {
-    m_DynamicListFileToScriptSymbolsMap[dynamicListFile].push_back(sym);
+  void addScriptSymbolForDynamicListFile(InputFile *DynamicListFile,
+                                         ScriptSymbol *Sym) {
+    DynamicListFileToScriptSymbolsMap[DynamicListFile].push_back(Sym);
   }
 
   const llvm::DenseMap<InputFile *, ScriptSymbolList> &
   getDynamicListFileToScriptSymbolsMap() const {
-    return m_DynamicListFileToScriptSymbolsMap;
+    return DynamicListFileToScriptSymbolsMap;
   }
 
-  void addToOutputSectionDescNameSet(llvm::StringRef name) {
-    m_OutputSectDescNameSet.insert(name);
+  void addToOutputSectionDescNameSet(llvm::StringRef Name) {
+    OutputSectDescNameSet.insert(Name);
   }
 
-  bool findInOutputSectionDescNameSet(llvm::StringRef name) {
-    return m_OutputSectDescNameSet.find(name) != m_OutputSectDescNameSet.end();
+  bool findInOutputSectionDescNameSet(llvm::StringRef Name) {
+    return OutputSectDescNameSet.find(Name) != OutputSectDescNameSet.end();
   }
 
-  void addVersionScript(const VersionScript *verScr) {
-    m_VersionScripts.push_back(verScr);
+  void addVersionScript(const VersionScript *VerScr) {
+    VersionScripts.push_back(VerScr);
   }
 
   const llvm::SmallVectorImpl<const VersionScript *> &
   getVersionScripts() const {
-    return m_VersionScripts;
+    return VersionScripts;
   }
 
   bool isBeforeLayoutState() const {
@@ -630,7 +617,7 @@ public:
 
   PluginManager &getPluginManager() { return PM; }
 
-  Section *createBitcodeSection(const std::string &section, BitcodeFile &File,
+  Section *createBitcodeSection(const std::string &Section, BitcodeFile &File,
                                 bool Internal = false);
 
 private:
@@ -645,75 +632,73 @@ private:
   bool readOnePluginConfig(llvm::StringRef Cfg);
 
 private:
-  LinkerScript &m_Script;
-  ObjectList m_ObjectList;
-  InternalInputArray m_InternalFiles;
-  LibraryList m_ArchiveLibraryList;
-  LibraryList m_DynLibraryList;
-  SectionTable m_SectionTable;
-  llvm::StringMap<ELFSection *> m_OutputSectionTableMap;
+  LinkerScript &UserLinkerScript;
+  ObjectList InputObjectList;
+  InternalInputArray InternalFiles;
+  LibraryList ArchiveLibraryList;
+  LibraryList DynLibraryList;
+  SectionTable OutputSectionTable;
+  llvm::StringMap<ELFSection *> OutputSectionTableMap;
   std::unordered_map<Fragment *, std::vector<LDSymbol *>>
-      m_PluginFragmentToSymbols;
-  SectionTable m_AtTable;
-  LinkerConfig &m_Config;
-  ScriptSymbolList m_DynamicListSymbols;
-  llvm::StringSet<> m_DuplicateFarCalls;
-  llvm::StringSet<> m_NoReuseTrampolines;
-  std::vector<ResolveInfo *> m_Symbols;
-  std::vector<ResolveInfo *> m_CommonSymbols;
-  llvm::DenseMap<ELFSection *, ResolveInfo *> m_SectionSymbol;
-  llvm::StringMap<const Assignment *> m_AssignmentsLive;
-  VersionScriptNodes m_VersionScriptNodes;
-  llvm::StringMap<InputFile *> m_CommonMap;
-  GroupSignatureMap f_GroupSignatureMap;
-  llvm::StringMap<uint32_t> m_WrapBindings;
-  llvm::StringMap<Expression *> m_ArchOptions;
-  llvm::StringMap<llvm::StringRef> OutputArchOptionMap;
+      PluginFragmentToSymbols;
+  SectionTable AtTable;
+  LinkerConfig &ThisConfig;
+  ScriptSymbolList DynamicListSymbols;
+  llvm::StringSet<> DuplicateFarCalls;
+  llvm::StringSet<> NoReuseTrampolines;
+  std::vector<ResolveInfo *> Symbols;
+  std::vector<ResolveInfo *> CommonSymbols;
+  llvm::DenseMap<ELFSection *, ResolveInfo *> SectionSymbol;
+  llvm::StringMap<const Assignment *> AssignmentsLive;
+  VersionScriptNodes LinkerVersionScriptNodes;
+  llvm::StringMap<InputFile *> CommonMap;
+  GroupSignatureMap SectionGroupSignatureMap;
+  llvm::StringMap<uint32_t> WrapBindings;
   llvm::StringSet<> WrappedReferences;
   llvm::StringSet<> NeededSymbols;
-  NoCrossRefSet m_NonRefSections;
-  LDSymbol *m_DotSymbol = nullptr;
-  Linker *m_pLinker = nullptr;
-  GNULDBackend *m_pBackend = nullptr;
-  LayoutPrinter *m_LayoutPrinter = nullptr;
-  bool m_Failure = false;
-  bool usesLTO = false;
-  plugin::LinkerWrapper::State m_State = plugin::LinkerWrapper::Unknown;
+  NoCrossRefSet NonRefSections;
+  LDSymbol *DotSymbol = nullptr;
+  Linker *Linker = nullptr;
+  GNULDBackend *Backend = nullptr;
+  LayoutPrinter *ThisLayoutPrinter = nullptr;
+  bool Failure = false;
+  bool UsesLto = false;
+  plugin::LinkerWrapper::State State = plugin::LinkerWrapper::Unknown;
   ReplaceFragsVectorT ReplaceFrags;
   PluginDataMapT PluginDataMap;
-  eld::OutputTarWriter *m_OutputTar = nullptr;
-  eld::DiagnosticPrinter *m_Printer;
+  eld::OutputTarWriter *OutputTar = nullptr;
+  eld::DiagnosticPrinter *Printer;
   // -----------Linker Caching Feature -----------------------
-  std::unordered_map<uint64_t, RuleContainer *> m_RuleContainerMap;
-  std::unordered_map<uint64_t, OutputSectionEntry *> m_OutputSectionIndexMap;
+  std::unordered_map<uint64_t, RuleContainer *> RuleContainerMap;
+  std::unordered_map<uint64_t, OutputSectionEntry *> OutputSectionIndexMap;
   // ------------------Plugin Fragment -----------------------------------
-  std::vector<Fragment *> m_PluginFragments;
+  std::vector<Fragment *> PluginFragments;
   // -------------- StringSaver Support -----------------------------
   llvm::BumpPtrAllocator BAlloc;
   llvm::StringSaver Saver;
   // -----------------Multiple Map file generation support --------------
-  TextLayoutPrinter *m_TextMapPrinter = nullptr;
-  YamlLayoutPrinter *m_YAMLMapPrinter = nullptr;
+  TextLayoutPrinter *TextMapPrinter = nullptr;
+  YamlLayoutPrinter *YamlMapPrinter = nullptr;
   // ----------------- Use/Def support for linker script --------------
-  std::unordered_set<std::string> m_VisitedAssignments;
+  std::unordered_set<std::string> VisitedAssignments;
   // ----------------- Relocation Data set by plugins ------------------
-  std::unordered_map<const eld::Relocation *, uint64_t> m_RelocationData;
+  std::unordered_map<const eld::Relocation *, uint64_t> RelocationData;
   // ----------------- Section references set by plugins --------------
-  ReferencedSymbols m_BitcodeReferencedSymbols;
+  ReferencedSymbols BitcodeReferencedSymbols;
   // ----------------- Mutex guard -----------------------------------
-  std::mutex m_Mutex;
+  std::mutex Mutex;
   // ----------------- Central thread pool for Linker ---------------
-  llvm::ThreadPoolInterface *m_ThreadPool = nullptr;
+  llvm::ThreadPoolInterface *LinkerThreadPool = nullptr;
 
-  llvm::StringMap<MergeableString *> m_UniqueNonAllocStrings;
-  llvm::SmallVector<MergeableString *> m_AllNonAllocStrings;
+  llvm::StringMap<MergeableString *> UniqueNonAllocStrings;
+  llvm::SmallVector<MergeableString *> AllNonAllocStrings;
   llvm::DenseMap<InputFile *, ScriptSymbolList>
-      m_DynamicListFileToScriptSymbolsMap;
-  llvm::StringSet<> m_OutputSectDescNameSet;
-  llvm::SmallVector<const VersionScript *> m_VersionScripts;
+      DynamicListFileToScriptSymbolsMap;
+  llvm::StringSet<> OutputSectDescNameSet;
+  llvm::SmallVector<const VersionScript *> VersionScripts;
   llvm::DenseMap<Fragment *, uint64_t> FragmentPaddingValues;
   PluginManager PM;
-  NamePool m_NamePool;
+  NamePool SymbolNamePool;
 };
 
 } // namespace eld

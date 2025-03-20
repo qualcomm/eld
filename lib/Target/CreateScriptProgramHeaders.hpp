@@ -17,7 +17,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
   std::vector<ELFSegment *> segmentsForSection;
   ELFSection *prev = nullptr;
   SectionMap::iterator out, outBegin, outEnd;
-  GeneralOptions::AddressMap::iterator addr,
+  GeneralOptions::AddressMapType::iterator addr,
       addrEnd = config().options().addressMap().end();
   bool hasInterp = false;
   uint32_t m_AtTableIndex = 0;
@@ -217,7 +217,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
           _segmentsForSection[*outCur];
         }
         if (m_Module.getPrinter()->isVerbose())
-          config().raise(diag::verbose_inserting_section_at_fixed_addr)
+          config().raise(Diag::verbose_inserting_section_at_fixed_addr)
               << atSection->name() << cur->addr()
               << atSection->getInputFile()->getInput()->decoratedPath()
               << (*out)->name();
@@ -298,7 +298,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     }
 
     if (cur->isFixedAddr() && (vma != cur->addr())) {
-      config().raise(diag::cannot_set_at_address) << cur->name();
+      config().raise(Diag::cannot_set_at_address) << cur->name();
       hasError = true;
     }
 
@@ -332,7 +332,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     }
     if (m_AtTableIndex < atTable.size() &&
         (atTable[m_AtTableIndex]->addr() < (cur->addr() + cur->size()))) {
-      config().raise(diag::cannot_place_at_section)
+      config().raise(Diag::cannot_place_at_section)
           << atTable[m_AtTableIndex]->name() << cur->name();
       ++m_AtTableIndex;
       hasError = true;

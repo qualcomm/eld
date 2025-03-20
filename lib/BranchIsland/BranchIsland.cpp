@@ -22,17 +22,17 @@ using namespace eld;
 //==========================
 // BranchIsland
 
-BranchIsland::BranchIsland(Stub *stub) : m_Stub(stub), m_Reloc(nullptr) {}
+BranchIsland::BranchIsland(Stub *Stub) : S(Stub), Reloc(nullptr) {}
 
 BranchIsland::~BranchIsland() {}
 
 int64_t BranchIsland::branchIslandAddr(Module &M) {
-  ResolveInfo *branchIslandInfo = m_Stub->symInfo();
-  if (branchIslandInfo->outSymbol()->hasFragRef()) {
-    const FragmentRef *fragRef = branchIslandInfo->outSymbol()->fragRef();
-    return fragRef->getOutputELFSection()->addr() + fragRef->getOutputOffset(M);
+  ResolveInfo *BranchIslandInfo = S->symInfo();
+  if (BranchIslandInfo->outSymbol()->hasFragRef()) {
+    const FragmentRef *FragRef = BranchIslandInfo->outSymbol()->fragRef();
+    return FragRef->getOutputELFSection()->addr() + FragRef->getOutputOffset(M);
   }
-  return branchIslandInfo->outSymbol()->value();
+  return BranchIslandInfo->outSymbol()->value();
 }
 
-ResolveInfo *BranchIsland::symInfo() const { return m_Stub->symInfo(); }
+ResolveInfo *BranchIsland::symInfo() const { return S->symInfo(); }

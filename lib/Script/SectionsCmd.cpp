@@ -24,17 +24,17 @@ SectionsCmd::SectionsCmd() : ScriptCommand(ScriptCommand::SECTIONS) {}
 
 SectionsCmd::~SectionsCmd() {}
 
-void SectionsCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "SECTIONS\n{\n";
+void SectionsCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "SECTIONS\n{\n";
 
-  for (const auto &elem : *this) {
-    switch ((elem)->getKind()) {
+  for (const auto &Elem : *this) {
+    switch ((Elem)->getKind()) {
     case ScriptCommand::ENTRY:
     case ScriptCommand::ASSIGNMENT:
     case ScriptCommand::OUTPUT_SECT_DESC:
     case ScriptCommand::ASSERT:
-      outs << "\t";
-      (elem)->dump(outs);
+      Outs << "\t";
+      (Elem)->dump(Outs);
       break;
     case ScriptCommand::INCLUDE:
     case ScriptCommand::ENTER_SCOPE:
@@ -46,15 +46,15 @@ void SectionsCmd::dump(llvm::raw_ostream &outs) const {
     }
   }
 
-  outs << "}\n";
+  Outs << "}\n";
 }
 
-void SectionsCmd::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  outs << "SECTIONS";
+void SectionsCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  Outs << "SECTIONS";
 }
 
-void SectionsCmd::push_back(ScriptCommand *pCommand) {
-  switch (pCommand->getKind()) {
+void SectionsCmd::pushBack(ScriptCommand *PCommand) {
+  switch (PCommand->getKind()) {
   case ScriptCommand::ENTRY:
   case ScriptCommand::ENTER_SCOPE:
   case ScriptCommand::EXIT_SCOPE:
@@ -62,38 +62,38 @@ void SectionsCmd::push_back(ScriptCommand *pCommand) {
   case ScriptCommand::OUTPUT_SECT_DESC:
   case ScriptCommand::ASSERT:
   case ScriptCommand::INCLUDE:
-    m_SectionCommands.push_back(pCommand);
+    ThisSectionCommands.push_back(PCommand);
     break;
   default:
     break;
   }
 }
 
-eld::Expected<void> SectionsCmd::activate(Module &pModule) {
+eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
   // Assignment between output sections
-  SectionCommands assignments;
+  SectionCommands Assignments;
 
-  for (const_iterator it = begin(), ie = end(); it != ie; ++it) {
-    switch ((*it)->getKind()) {
+  for (const_iterator It = begin(), Ie = end(); It != Ie; ++It) {
+    switch ((*It)->getKind()) {
     case ScriptCommand::ENTRY:
-      (*it)->activate(pModule);
+      (*It)->activate(CurModule);
       break;
     case ScriptCommand::ASSIGNMENT:
-      assignments.push_back(*it);
+      Assignments.push_back(*It);
       break;
     case ScriptCommand::ASSERT:
-      (*it)->activate(pModule);
+      (*It)->activate(CurModule);
       break;
     case ScriptCommand::OUTPUT_SECT_DESC: {
-      if (!assignments.empty()) {
-        iterator assign, assignEnd = assignments.end();
-        for (assign = assignments.begin(); assign != assignEnd; ++assign) {
-          llvm::cast<Assignment>(*assign)->setLevel(Assignment::SECTIONS_END);
-          (*assign)->activate(pModule);
+      if (!Assignments.empty()) {
+        iterator Assign, AssignEnd = Assignments.end();
+        for (Assign = Assignments.begin(); Assign != AssignEnd; ++Assign) {
+          llvm::cast<Assignment>(*Assign)->setLevel(Assignment::SECTIONS_END);
+          (*Assign)->activate(CurModule);
         }
-        assignments.clear();
+        Assignments.clear();
       }
-      eld::Expected<void> E = (*it)->activate(pModule);
+      eld::Expected<void> E = (*It)->activate(CurModule);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
       break;
     }
@@ -107,14 +107,14 @@ eld::Expected<void> SectionsCmd::activate(Module &pModule) {
     }
   }
   // The assignment may be the last set too.
-  if (!assignments.empty()) {
-    iterator assign, assignEnd = assignments.end();
-    for (assign = assignments.begin(); assign != assignEnd; ++assign) {
-      llvm::cast<Assignment>(*assign)->setLevel(Assignment::SECTIONS_END);
-      eld::Expected<void> E = (*assign)->activate(pModule);
+  if (!Assignments.empty()) {
+    iterator Assign, AssignEnd = Assignments.end();
+    for (Assign = Assignments.begin(); Assign != AssignEnd; ++Assign) {
+      llvm::cast<Assignment>(*Assign)->setLevel(Assignment::SECTIONS_END);
+      eld::Expected<void> E = (*Assign)->activate(CurModule);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
     }
-    assignments.clear();
+    Assignments.clear();
   }
   return eld::Expected<void>();
 }

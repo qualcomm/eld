@@ -63,7 +63,7 @@ public:
       if (m_ReservedValue != UINT32_MAX)
         Content.a = m_ReservedValue;
       else if (symInfo()) {
-        if ((m_GOTType == GOT::TLS_GD) || (m_GOTType == GOT::TLS_LD))
+        if ((GotType == GOT::TLS_GD) || (GotType == GOT::TLS_LD))
           Content.a = symInfo()->outSymbol()->value();
         else
           Content.a = 0x8 + symInfo()->outSymbol()->value();

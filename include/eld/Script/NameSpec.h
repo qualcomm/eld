@@ -26,12 +26,12 @@ namespace eld {
 
 class NameSpec : public InputToken {
 public:
-  explicit NameSpec(const std::string &pName, bool pAsNeeded);
+  explicit NameSpec(const std::string &PName, bool PAsNeeded);
 
   ~NameSpec() {}
 
-  static bool classof(const InputToken *pToken) {
-    return pToken->type() == InputToken::NameSpec;
+  static bool classof(const InputToken *ThisInputToken) {
+    return ThisInputToken->type() == InputToken::NameSpec;
   }
 };
 

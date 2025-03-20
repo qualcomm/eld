@@ -127,17 +127,17 @@ void RISCVLDBackend::initTargetSymbols() {
   }
   std::string SymbolName = "__global_pointer$";
   m_pGlobalPointer =
-      m_Module.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           m_Module.getInternalInput(Module::Script), SymbolName,
           ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
           0x0, // size
           0x0, // value
-          FragmentRef::Null(), ResolveInfo::Hidden);
+          FragmentRef::null(), ResolveInfo::Hidden);
   if (m_pGlobalPointer)
     m_pGlobalPointer->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 }
 
 bool RISCVLDBackend::initBRIslandFactory() { return true; }
@@ -195,7 +195,7 @@ void RISCVLDBackend::relaxDeleteBytes(StringRef Name, RegionFragmentEx &Region,
   auto &Section = *Region.getOwningSection();
   Region.deleteInstruction(Offset, NumBytes);
   if (m_Module.getPrinter()->isVerbose())
-    config().raise(diag::deleting_instructions)
+    config().raise(Diag::deleting_instructions)
         << Name << NumBytes << SymbolName << Section.name()
         << llvm::utohexstr(Offset, true)
         << Section.getInputFile()->getInput()->decoratedPath();
@@ -208,7 +208,7 @@ void RISCVLDBackend::reportMissedRelaxation(StringRef Name,
                                             StringRef SymbolName) {
   auto &Section = *Region.getOwningSection();
   if (m_Module.getPrinter()->isVerbose())
-    config().raise(diag::not_relaxed)
+    config().raise(Diag::not_relaxed)
         << Name << NumBytes << SymbolName << Section.name()
         << llvm::utohexstr(Offset, true)
         << Section.getInputFile()->getInput()->decoratedPath();
@@ -257,7 +257,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc, bool DoCompressed) {
       uint32_t compressed = rd == 1 ? 0x2001 : 0xa001;
       const char *msg = rd == 1 ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::relax_to_compress)
+        config().raise(Diag::relax_to_compress)
             << msg
             << llvm::utohexstr(reloc->target(), true, 8) + "," +
                    llvm::utohexstr(jalr_instr, true, 8)
@@ -372,7 +372,7 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
       relaxDeleteBytes("RISCV_LUI_C", *region, offset + 2, 2,
                        reloc->symInfo()->name());
       if (m_Module.getPrinter()->isVerbose())
-        config().raise(diag::relax_to_compress)
+        config().raise(Diag::relax_to_compress)
             << "RISCV_LUI_C" << llvm::utohexstr(instr, true, 8)
             << llvm::utohexstr(compressed, true, 4) << reloc->symInfo()->name()
             << region->getOwningSection()->name()
@@ -442,7 +442,7 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
     return false;
 
   if (NopBytesToAdd > pReloc->addend()) {
-    config().raise(diag::error_riscv_relaxation_align)
+    config().raise(Diag::error_riscv_relaxation_align)
         << pReloc->addend() << NopBytesToAdd
         << region->getOwningSection()->name()
         << llvm::utohexstr(offset + NopBytesToAdd, true)
@@ -454,7 +454,7 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   }
 
   if (m_Module.getPrinter()->isVerbose())
-    config().raise(diag::add_nops)
+    config().raise(Diag::add_nops)
         << "RISCV_ALIGN" << NopBytesToAdd << region->getOwningSection()->name()
         << llvm::utohexstr(offset, true)
         << region->getOwningSection()
@@ -797,7 +797,7 @@ bool RISCVLDBackend::checkABIStr(llvm::StringRef abi) const {
     }
   }
   if (hasError) {
-    config().raise(diag::unsupported_abi) << abi;
+    config().raise(Diag::unsupported_abi) << abi;
     return false;
   }
   return true;
@@ -834,7 +834,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
   case llvm::ELF::R_RISCV_TLS_DTPREL64:
   case llvm::ELF::R_RISCV_TLS_TPREL32:
   case llvm::ELF::R_RISCV_TLS_TPREL64: {
-    config().raise(diag::unsupported_rv_reloc)
+    config().raise(Diag::unsupported_rv_reloc)
         << getRISCVRelocName(pType) << pSym.name()
         << pSection->originalInput()->getInput()->decoratedPath();
     m_Module.setFailure(true);
@@ -846,8 +846,8 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
   // real symbols but not this one. We need to map it to null, otherwise
   // --emit relocs will not find symbol in index map.
   case llvm::ELF::R_RISCV_RELAX: {
-    Relocation *reloc = IRBuilder::AddRelocation(
-        getRelocator(), pSection, pType, *(LDSymbol::Null()), pOffset, pAddend);
+    Relocation *reloc = IRBuilder::addRelocation(
+        getRelocator(), pSection, pType, *(LDSymbol::null()), pOffset, pAddend);
     pSection->addRelocation(reloc);
     return true;
   }
@@ -869,7 +869,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
   case llvm::ELF::R_RISCV_SET16:
   case llvm::ELF::R_RISCV_SET32:
   case llvm::ELF::R_RISCV_SET_ULEB128: {
-    Relocation *reloc = IRBuilder::AddRelocation(getRelocator(), pSection,
+    Relocation *reloc = IRBuilder::addRelocation(getRelocator(), pSection,
                                                  pType, pSym, pOffset, pAddend);
     pSection->addRelocation(reloc);
     std::unordered_map<uint32_t, Relocation *> &relocMap =
@@ -889,7 +889,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
   case llvm::ELF::R_RISCV_PCREL_LO12_S: {
     Relocation *hi_reloc = findHIRelocation(pSection, pSym.value());
     if (!hi_reloc && pLastVisit) {
-      config().raise(diag::rv_hi20_not_found)
+      config().raise(Diag::rv_hi20_not_found)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
       m_Module.setFailure(true);
@@ -904,12 +904,12 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       return true;
     }
     if (pAddend) {
-      config().raise(diag::warn_ignore_pcrel_lo_addend)
+      config().raise(Diag::warn_ignore_pcrel_lo_addend)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
       pAddend = 0;
     }
-    Relocation *reloc = IRBuilder::AddRelocation(
+    Relocation *reloc = IRBuilder::addRelocation(
         getRelocator(), pSection, pType, *hi_reloc->symInfo()->outSymbol(),
         pOffset, pAddend);
     m_PairedRelocs[reloc] = hi_reloc;
@@ -937,7 +937,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       if (!VendorReloc) {
         // The ABI requires that R_RISCV_VENDOR preceeds any R_RISCV_CUSTOM<n>
         // Relocation.
-        config().raise(diag::error_rv_vendor_not_found)
+        config().raise(Diag::error_rv_vendor_not_found)
             << getRISCVRelocName(pType)
             << pSection->originalInput()->getInput()->decoratedPath();
         m_Module.setFailure(true);
@@ -955,7 +955,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
 
       // Check if we support this vendor at all
       if (VendorOffset == 0) {
-        config().raise(diag::error_rv_unknown_vendor_symbol)
+        config().raise(Diag::error_rv_unknown_vendor_symbol)
             << VendorSymbol << getRISCVRelocName(pType)
             << pSection->originalInput()->getInput()->decoratedPath();
         m_Module.setFailure(true);
@@ -967,7 +967,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       // Check if it's an internal vendor relocation we support
       if ((InternalType < VendorFirst) || (VendorLast < InternalType)) {
         // This uses the original (not vendor) relocation name
-        config().raise(diag::error_rv_unknown_vendor_relocation)
+        config().raise(Diag::error_rv_unknown_vendor_relocation)
             << VendorSymbol << getRISCVRelocName(pType)
             << pSection->originalInput()->getInput()->decoratedPath();
         m_Module.setFailure(true);
@@ -980,7 +980,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
         return true;
 
       // Add a relocation using the internal type
-      Relocation *InternalReloc = IRBuilder::AddRelocation(
+      Relocation *InternalReloc = IRBuilder::addRelocation(
           getRelocator(), pSection, InternalType, pSym, pOffset, pAddend);
       pSection->addRelocation(InternalReloc);
       return true;
@@ -1004,7 +1004,7 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
             llvm::ELF::R_RISCV_SET_ULEB128) ||
            (lastRelocationVisited.value()->getOffset() !=
             Relocation->getOffset()))) {
-        config().raise(diag::error_relocation_not_paired)
+        config().raise(Diag::error_relocation_not_paired)
             << section->originalInput()->getInput()->decoratedPath()
             << section->name() << Relocation->getOffset()
             << getRISCVRelocName(Relocation->type()) << "R_RISCV_SET_ULEB128";
@@ -1023,7 +1023,7 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
   }
 
   if (lastSetUleb128RelocationVisited) {
-    config().raise(diag::error_relocation_not_paired)
+    config().raise(Diag::error_relocation_not_paired)
         << section->originalInput()->getInput()->decoratedPath()
         << section->name()
         << lastSetUleb128RelocationVisited.value()->getOffset()
@@ -1104,7 +1104,7 @@ void RISCVLDBackend::evaluateTargetSymbolsBeforeRelaxation() {
     if (m_psdata)
       m_pGlobalPointer->setValue(m_psdata->addr() + 0x800);
     if (m_Module.getPrinter()->isVerbose())
-      config().raise(diag::set_symbol)
+      config().raise(Diag::set_symbol)
           << m_pGlobalPointer->str() << m_pGlobalPointer->value();
     if (m_pGlobalPointer) {
       m_pGlobalPointer->resolveInfo()->setBinding(ResolveInfo::Global);
@@ -1119,7 +1119,7 @@ void RISCVLDBackend::defineGOTSymbol(Fragment &pFrag) {
   if (m_pGOTSymbol != nullptr) {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
                 pFrag.getOwningSection()->getInputFile(), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
@@ -1128,7 +1128,7 @@ void RISCVLDBackend::defineGOTSymbol(Fragment &pFrag) {
   } else {
     m_pGOTSymbol =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 pFrag.getOwningSection()->getInputFile(), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
                 0x0, // size
@@ -1139,7 +1139,7 @@ void RISCVLDBackend::defineGOTSymbol(Fragment &pFrag) {
     m_pGOTSymbol->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 }
 
 bool RISCVLDBackend::finalizeScanRelocations() {
@@ -1159,7 +1159,7 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_got_entry) << R->name();
+    config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->getFragmentList().size()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
@@ -1236,7 +1236,7 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   if ((config().options().isSymbolTracingRequested() &&
        config().options().traceSymbol(*R)) ||
       m_Module.getPrinter()->traceDynamicLinking())
-    config().raise(diag::create_plt_entry) << R->name();
+    config().raise(Diag::create_plt_entry) << R->name();
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
   RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
   recordPLT(R, P);
@@ -1257,7 +1257,7 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
     LDSymbol *PatchableAlias = m_Module.getNamePool().findSymbol(
         std::string("__llvm_patchable_") + R->name());
     if (!PatchableAlias || PatchableAlias->shouldIgnore())
-      config().raise(diag::error_patchable_alias_not_found)
+      config().raise(Diag::error_patchable_alias_not_found)
           << std::string("__llvm_patchable_") + R->name();
     else
       PatchableAlias->setFragmentRef(make<FragmentRef>(*P));

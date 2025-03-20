@@ -22,8 +22,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // AArch64ErrataFactory
 //===----------------------------------------------------------------------===//
-AArch64ErrataFactory::AArch64ErrataFactory(Stub *targetStub)
-    : m_Stub(targetStub) {}
+AArch64ErrataFactory::AArch64ErrataFactory(Stub *targetStub) : S(targetStub) {}
 
 AArch64ErrataFactory::~AArch64ErrataFactory() {}
 
@@ -34,13 +33,13 @@ AArch64ErrataFactory::create(Fragment *frag, uint32_t pOffset,
                              AArch64ErrataIslandFactory &pErrataIslandFactory) {
   // If the target has not registered a stub to check relocations
   // against, we cannot create a stub.
-  if (!m_Stub) {
+  if (!S) {
     assert(0 && "target is calling relaxation without a stub registered");
     return nullptr;
   }
 
   BranchIsland *errataIsland = pErrataIslandFactory.createAArch64ErrataIsland(
-      frag, pOffset, m_Stub, pBuilder);
+      frag, pOffset, S, pBuilder);
 
   if (errataIsland) {
     return errataIsland;

@@ -21,9 +21,9 @@ RegionFragmentEx::RegionFragmentEx(const char *Buf, size_t Sz, ELFSection *O,
 
 RegionFragmentEx::~RegionFragmentEx() {}
 
-bool RegionFragmentEx::replaceInstruction(uint32_t offset, Relocation *reloc,
-                                          uint32_t instr, uint8_t size) {
-  std::memcpy((void *)(Data + offset), &instr, size);
+bool RegionFragmentEx::replaceInstruction(uint32_t Offset, Relocation *Reloc,
+                                          uint32_t Instr, uint8_t Size) {
+  std::memcpy((void *)(Data + Offset), &Instr, Size);
   return true;
 }
 
@@ -68,15 +68,15 @@ void RegionFragmentEx::deleteInstruction(uint32_t DeleteOffset,
 
 size_t RegionFragmentEx::size() const { return Size; }
 
-eld::Expected<void> RegionFragmentEx::emit(MemoryRegion &mr, Module &M) {
-  uint8_t *out = mr.begin() + getOffset(M.getConfig().getDiagEngine());
-  memcpy(out, getRegion().begin(), Size);
+eld::Expected<void> RegionFragmentEx::emit(MemoryRegion &Mr, Module &M) {
+  uint8_t *Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine());
+  memcpy(Out, getRegion().begin(), Size);
   return {};
 }
 
-void RegionFragmentEx::copyData(void *pDest, uint32_t pNBytes,
-                                uint64_t pOffset) const {
-  std::memcpy(pDest, this->getRegion().begin() + pOffset, pNBytes);
+void RegionFragmentEx::copyData(void *PDest, uint32_t PNBytes,
+                                uint64_t POffset) const {
+  std::memcpy(PDest, this->getRegion().begin() + POffset, PNBytes);
 }
 
 void RegionFragmentEx::addSymbol(ResolveInfo *R) { Symbols.push_back(R); }

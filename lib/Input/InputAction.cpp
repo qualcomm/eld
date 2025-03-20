@@ -36,34 +36,34 @@ InputAction::~InputAction() {}
 // InputFileAction
 //===----------------------------------------------------------------------===//
 InputFileAction::InputFileAction(std::string Name, DiagnosticPrinter *Printer)
-    : InputAction(InputAction::InputFile, Printer), m_Name(Name), I(nullptr) {}
+    : InputAction(InputAction::InputFile, Printer), Name(Name), I(nullptr) {}
 
 InputFileAction::InputFileAction(std::string Name,
                                  InputAction::InputActionKind K,
                                  DiagnosticPrinter *Printer)
-    : InputAction(K, Printer), m_Name(Name), I(nullptr) {}
+    : InputAction(K, Printer), Name(Name), I(nullptr) {}
 
-bool InputFileAction::activate(InputBuilder &pBuilder) {
-  std::ifstream is;
-  is.open(m_Name.c_str(), std::ifstream::in);
-  if (!is.good()) {
-    pBuilder.getDiagEngine()->raise(diag::fatal_cannot_read_input) << m_Name;
+bool InputFileAction::activate(InputBuilder &PBuilder) {
+  std::ifstream Is;
+  Is.open(Name.c_str(), std::ifstream::in);
+  if (!Is.good()) {
+    PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input) << Name;
     return false;
   }
-  is.close();
-  I = pBuilder.createInputNode(m_Name);
+  Is.close();
+  I = PBuilder.createInputNode(Name);
   return true;
 }
 
 //===----------------------------------------------------------------------===//
 // NamespecAction
 //===----------------------------------------------------------------------===//
-NamespecAction::NamespecAction(const std::string &pNamespec,
+NamespecAction::NamespecAction(const std::string &PNamespec,
                                DiagnosticPrinter *Printer)
-    : InputAction(InputAction::Namespec, Printer), m_Namespec(pNamespec) {}
+    : InputAction(InputAction::Namespec, Printer), MNamespec(PNamespec) {}
 
-bool NamespecAction::activate(InputBuilder &pBuilder) {
-  I = pBuilder.createDeferredInput(m_Namespec, Input::Namespec);
+bool NamespecAction::activate(InputBuilder &PBuilder) {
+  I = PBuilder.createDeferredInput(MNamespec, Input::Namespec);
   return true;
 }
 
@@ -73,8 +73,8 @@ bool NamespecAction::activate(InputBuilder &pBuilder) {
 StartGroupAction::StartGroupAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::StartGroup, Printer) {}
 
-bool StartGroupAction::activate(InputBuilder &pBuilder) {
-  pBuilder.enterGroup();
+bool StartGroupAction::activate(InputBuilder &PBuilder) {
+  PBuilder.enterGroup();
   return true;
 }
 
@@ -84,8 +84,8 @@ bool StartGroupAction::activate(InputBuilder &pBuilder) {
 EndGroupAction::EndGroupAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::EndGroup, Printer) {}
 
-bool EndGroupAction::activate(InputBuilder &pBuilder) {
-  pBuilder.exitGroup();
+bool EndGroupAction::activate(InputBuilder &PBuilder) {
+  PBuilder.exitGroup();
   return true;
 }
 
@@ -95,8 +95,8 @@ bool EndGroupAction::activate(InputBuilder &pBuilder) {
 WholeArchiveAction::WholeArchiveAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::WholeArchive, Printer) {}
 
-bool WholeArchiveAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().setWholeArchive();
+bool WholeArchiveAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().setWholeArchive();
   return true;
 }
 
@@ -106,8 +106,8 @@ bool WholeArchiveAction::activate(InputBuilder &pBuilder) {
 NoWholeArchiveAction::NoWholeArchiveAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::NoWholeArchive, Printer) {}
 
-bool NoWholeArchiveAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().unsetWholeArchive();
+bool NoWholeArchiveAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().unsetWholeArchive();
   return true;
 }
 
@@ -117,8 +117,8 @@ bool NoWholeArchiveAction::activate(InputBuilder &pBuilder) {
 AsNeededAction::AsNeededAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::AsNeeded, Printer) {}
 
-bool AsNeededAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().setAsNeeded();
+bool AsNeededAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().setAsNeeded();
   return true;
 }
 
@@ -128,8 +128,8 @@ bool AsNeededAction::activate(InputBuilder &pBuilder) {
 NoAsNeededAction::NoAsNeededAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::NoAsNeeded, Printer) {}
 
-bool NoAsNeededAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().unsetAsNeeded();
+bool NoAsNeededAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().unsetAsNeeded();
   return true;
 }
 
@@ -139,8 +139,8 @@ bool NoAsNeededAction::activate(InputBuilder &pBuilder) {
 AddNeededAction::AddNeededAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::AddNeeded, Printer) {}
 
-bool AddNeededAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().setAddNeeded();
+bool AddNeededAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().setAddNeeded();
   return true;
 }
 
@@ -150,8 +150,8 @@ bool AddNeededAction::activate(InputBuilder &pBuilder) {
 NoAddNeededAction::NoAddNeededAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::NoAddNeeded, Printer) {}
 
-bool NoAddNeededAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().unsetAddNeeded();
+bool NoAddNeededAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().unsetAddNeeded();
   return true;
 }
 
@@ -161,12 +161,12 @@ bool NoAddNeededAction::activate(InputBuilder &pBuilder) {
 BDynamicAction::BDynamicAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::BDynamic, Printer) {}
 
-bool BDynamicAction::activate(InputBuilder &pBuilder) {
+bool BDynamicAction::activate(InputBuilder &PBuilder) {
   // For partial links prefer archive libraries over shared objects
-  if (pBuilder.getLinkerConfig().isLinkPartial())
-    pBuilder.getAttributes().setStatic();
+  if (PBuilder.getLinkerConfig().isLinkPartial())
+    PBuilder.getAttributes().setStatic();
   else
-    pBuilder.getAttributes().setDynamic();
+    PBuilder.getAttributes().setDynamic();
   return true;
 }
 
@@ -176,43 +176,43 @@ bool BDynamicAction::activate(InputBuilder &pBuilder) {
 BStaticAction::BStaticAction(DiagnosticPrinter *Printer)
     : InputAction(InputAction::BStatic, Printer) {}
 
-bool BStaticAction::activate(InputBuilder &pBuilder) {
-  pBuilder.getAttributes().setStatic();
+bool BStaticAction::activate(InputBuilder &PBuilder) {
+  PBuilder.getAttributes().setStatic();
   return true;
 }
 
 //===----------------------------------------------------------------------===//
 // DefSymAction
 //===----------------------------------------------------------------------===//
-DefSymAction::DefSymAction(std::string pAssignment, DiagnosticPrinter *Printer)
-    : InputAction(InputAction::DefSym, Printer), m_Assignment(pAssignment) {}
+DefSymAction::DefSymAction(std::string PAssignment, DiagnosticPrinter *Printer)
+    : InputAction(InputAction::DefSym, Printer), MAssignment(PAssignment) {}
 
 // FIXME: add an assignment of type DefSym. This is so strange to create a
 // Defsym Expression and create an input for it.
-bool DefSymAction::activate(InputBuilder &pBuilder) {
-  std::string fileName =
-      (llvm::Twine("Expression(Defsym)") + llvm::Twine(m_Assignment)).str();
-  Input *input = pBuilder.createInputNode(fileName, true /*isSpecial*/);
-  input->setInputType(Input::Script);
-  input->setResolvedPath(fileName);
-  m_Assignment.append(";");
-  pBuilder.setMemory(*input, &m_Assignment[0], m_Assignment.size());
+bool DefSymAction::activate(InputBuilder &PBuilder) {
+  std::string FileName =
+      (llvm::Twine("Expression(Defsym)") + llvm::Twine(MAssignment)).str();
+  Input *Input = PBuilder.createInputNode(FileName, true /*isSpecial*/);
+  Input->setInputType(Input::Script);
+  Input->setResolvedPath(FileName);
+  MAssignment.append(";");
+  PBuilder.setMemory(*Input, &MAssignment[0], MAssignment.size());
   return true;
 }
 
-InputFormatAction::InputFormatAction(const std::string &inputFormat,
-                                     DiagnosticPrinter *printer)
-    : InputAction(InputAction::InputActionKind::InputFormat, printer),
-      m_InputFormat(inputFormat) {}
+InputFormatAction::InputFormatAction(const std::string &InputFormat,
+                                     DiagnosticPrinter *Printer)
+    : InputAction(InputAction::InputActionKind::InputFormat, Printer),
+      InputFormat(InputFormat) {}
 
-bool InputFormatAction::activate(InputBuilder &builder) {
-  if (m_InputFormat == "binary")
-    builder.getAttributes().setIsBinary(true);
-  else if (m_InputFormat == "default")
-    builder.getAttributes().setIsBinary(false);
+bool InputFormatAction::activate(InputBuilder &Builder) {
+  if (InputFormat == "binary")
+    Builder.getAttributes().setIsBinary(true);
+  else if (InputFormat == "default")
+    Builder.getAttributes().setIsBinary(false);
   else {
-    builder.getDiagEngine()->raise(diag::error_invalid_input_format)
-        << m_InputFormat;
+    Builder.getDiagEngine()->raise(Diag::error_invalid_input_format)
+        << InputFormat;
     return false;
   }
   return true;

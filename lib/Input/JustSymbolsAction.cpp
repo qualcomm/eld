@@ -12,15 +12,15 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // JustSymbolsAction
 //===----------------------------------------------------------------------===//
-JustSymbolsAction::JustSymbolsAction(const std::string &fileName,
-                                     const LinkerConfig &config,
-                                     DiagnosticPrinter *diagPrinter)
-    : InputFileAction(fileName, InputAction::JustSymbols, diagPrinter),
-      m_Config(config) {}
+JustSymbolsAction::JustSymbolsAction(const std::string &FileName,
+                                     const LinkerConfig &Config,
+                                     DiagnosticPrinter *DiagPrinter)
+    : InputFileAction(FileName, InputAction::JustSymbols, DiagPrinter),
+      Config(Config) {}
 
-bool JustSymbolsAction::activate(InputBuilder &pBuilder) {
-  InputFileAction::activate(pBuilder);
+bool JustSymbolsAction::activate(InputBuilder &PBuilder) {
+  InputFileAction::activate(PBuilder);
   I->getAttribute().setJustSymbols();
-  m_Config.raise(diag::verbose_using_just_symbols) << I->getFileName();
+  Config.raise(Diag::verbose_using_just_symbols) << I->getFileName();
   return true;
 }

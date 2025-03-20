@@ -20,9 +20,9 @@ class DiagnosticPrinter;
 
 class ArchiveMemberInput : public Input {
 public:
-  explicit ArchiveMemberInput(DiagnosticEngine *diagEngine,
-                              ArchiveFile *archiveFile, llvm::StringRef name,
-                              MemoryArea *data, off_t childOffset);
+  explicit ArchiveMemberInput(DiagnosticEngine *DiagEngine,
+                              ArchiveFile *ArchiveFile, llvm::StringRef Name,
+                              MemoryArea *Data, off_t ChildOffset);
 
   ~ArchiveMemberInput() {}
 
@@ -30,52 +30,52 @@ public:
     return I->getInputType() == Input::ArchiveMember;
   }
 
-  static Input *Create(DiagnosticEngine *diagEngine, ArchiveFile *archiveFile,
-                       llvm::StringRef name, MemoryArea *data,
-                       off_t childOffset);
+  static Input *create(DiagnosticEngine *DiagEngine, ArchiveFile *ArchiveFile,
+                       llvm::StringRef Name, MemoryArea *Data,
+                       off_t ChildOffset);
 
   // -----  memory area  ----- //
   llvm::StringRef getFileContents() const;
 
-  std::string decoratedPath(bool showAbsolute = false) const override {
-    if (showAbsolute)
+  std::string decoratedPath(bool ShowAbsolute = false) const override {
+    if (ShowAbsolute)
       return llvm::Twine(getResolvedPath().getFullPath() +
-                         llvm::Twine("(" + m_Name + ")"))
+                         llvm::Twine("(" + Name + ")"))
           .str();
     return llvm::Twine(getResolvedPath().native() +
-                       llvm::Twine("(" + m_Name + ")"))
+                       llvm::Twine("(" + Name + ")"))
         .str();
   }
 
   std::string
-  getDecoratedRelativePath(const std::string &basepath) const override;
+  getDecoratedRelativePath(const std::string &Basepath) const override;
 
   // Returns Archive and ArchiveMember Name.
   std::pair<std::string, std::string>
-  decoratedPathPair(bool showAbsolute = false) const override {
-    if (showAbsolute)
-      return std::make_pair(getResolvedPath().getFullPath(), m_Name);
-    return std::make_pair(getResolvedPath().native(), m_Name);
+  decoratedPathPair(bool ShowAbsolute = false) const override {
+    if (ShowAbsolute)
+      return std::make_pair(getResolvedPath().getFullPath(), Name);
+    return std::make_pair(getResolvedPath().native(), Name);
   }
 
-  llvm::StringRef getMemberName() const { return m_Name; }
+  llvm::StringRef getMemberName() const { return Name; }
 
-  off_t getChildOffset() const { return m_ChildOffset; }
+  off_t getChildOffset() const { return ChildOffset; }
 
   bool noExport() const;
 
-  ArchiveFile *getArchiveFile() const { return m_ArchiveFile; }
+  ArchiveFile *getArchiveFile() const { return AF; }
 
-  void setArchiveFile(ArchiveFile *A) { m_ArchiveFile = A; }
+  void setArchiveFile(ArchiveFile *A) { AF = A; }
 
   std::string getMemberAbsPath() const;
 
 private:
-  void setMemberName(llvm::StringRef Name) { m_Name = Name.str(); }
+  void setMemberName(llvm::StringRef N) { Name = N.str(); }
 
 protected:
-  ArchiveFile *m_ArchiveFile = nullptr;
-  const off_t m_ChildOffset;
+  ArchiveFile *AF = nullptr;
+  const off_t ChildOffset;
 };
 
 } // namespace eld

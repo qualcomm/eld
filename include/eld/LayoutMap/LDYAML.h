@@ -212,7 +212,7 @@ struct LoadRegion {
 // Cross Reference Table.
 struct CRef {
   virtual void mapping(llvm::yaml::IO &IO);
-  std::string symbolName;
+  std::string SymbolName;
   std::vector<std::string> FileRefs;
   virtual ~CRef() {}
 };

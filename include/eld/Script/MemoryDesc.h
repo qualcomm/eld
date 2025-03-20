@@ -22,28 +22,28 @@ struct MemorySpec {
 
   MemorySpec(const StrToken *Name, const StrToken *Attributes,
              Expression *Origin, Expression *Length)
-      : m_Name(Name), m_Attributes(Attributes), m_Origin(Origin),
-        m_Length(Length) {}
+      : Name(Name), MemoryAttributesString(Attributes),
+        OriginExpression(Origin), LengthExpression(Length) {}
 
-  const std::string getMemoryDescriptor() const { return m_Name->name(); }
+  const std::string getMemoryDescriptor() const { return Name->name(); }
 
   const std::string getMemoryAttributes() const {
-    if (m_Attributes)
-      return m_Attributes->name();
+    if (MemoryAttributesString)
+      return MemoryAttributesString->name();
     return std::string();
   }
 
-  const StrToken *getMemoryDescriptorToken() const { return m_Name; }
+  const StrToken *getMemoryDescriptorToken() const { return Name; }
 
-  Expression *getOrigin() const { return m_Origin; }
+  Expression *getOrigin() const { return OriginExpression; }
 
-  Expression *getLength() const { return m_Length; }
+  Expression *getLength() const { return LengthExpression; }
 
 private:
-  const StrToken *m_Name = nullptr;
-  const StrToken *m_Attributes = nullptr;
-  Expression *m_Origin = nullptr;
-  Expression *m_Length = nullptr;
+  const StrToken *Name = nullptr;
+  const StrToken *MemoryAttributesString = nullptr;
+  Expression *OriginExpression = nullptr;
+  Expression *LengthExpression = nullptr;
 };
 
 /** \class MemoryDesc
@@ -53,24 +53,24 @@ private:
 
 class MemoryDesc : public ScriptCommand {
 public:
-  MemoryDesc(const MemorySpec &pSpec);
+  MemoryDesc(const MemorySpec &PSpec);
 
   ~MemoryDesc();
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->isMemoryDesc();
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->isMemoryDesc();
   }
 
-  MemorySpec *getMemorySpec() { return &m_Spec; }
+  MemorySpec *getMemorySpec() { return &InputSpec; }
 
-  const MemorySpec *getMemorySpec() const { return &m_Spec; }
+  const MemorySpec *getMemorySpec() const { return &InputSpec; }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  MemorySpec m_Spec;
+  MemorySpec InputSpec;
 };
 
 } // namespace eld

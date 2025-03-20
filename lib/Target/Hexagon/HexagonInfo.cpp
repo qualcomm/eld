@@ -97,7 +97,7 @@ bool HexagonInfo::initialize() {
                       .Case("hexagonv85", llvm::ELF::EF_HEXAGON_MACH_V85)
                       .Default(LINK_UNKNOWN);
   if (m_CmdLineFlag == -1) {
-    m_Config.raise(diag::fatal_unsupported_emulation)
+    m_Config.raise(Diag::fatal_unsupported_emulation)
         << targetOptions().getTargetCPU();
     return false;
   }
@@ -245,19 +245,19 @@ bool HexagonInfo::checkFlags(uint64_t pFlag,
   HexagonInfo::ArchSupport archSupport = getArchSupport(pFlag);
 
   if (archSupport == ArchSupport::NotSupported) {
-    m_Config.raise(diag::not_supported_isa)
+    m_Config.raise(Diag::not_supported_isa)
         << getArchStr(pFlag) << pInputFile->getInput()->decoratedPath();
     return false;
   }
 
   if (archSupport == ArchSupport::DeprecatedAndNoSupportExists) {
-    m_Config.raise(diag::deprecated_and_no_support_exists)
+    m_Config.raise(Diag::deprecated_and_no_support_exists)
         << getArchStr(pFlag) << pInputFile->getInput()->decoratedPath();
     return false;
   }
 
   if (archSupport == ArchSupport::Deprecated) {
-    m_Config.raise(diag::deprecated_isa)
+    m_Config.raise(Diag::deprecated_isa)
         << getArchStr(pFlag) << pInputFile->getInput()->decoratedPath();
     // Reset Flag to the architecture that is supported by the toolchain.
     pFlag = getLowestSupportedArch();
@@ -273,13 +273,13 @@ bool HexagonInfo::checkFlags(uint64_t pFlag,
   switch (action) {
   case NS:
   case ER:
-    m_Config.raise(diag::fatal_unsupported_ISA)
+    m_Config.raise(Diag::fatal_unsupported_ISA)
         << pInputFile->getInput()->decoratedPath()
         << ISAs[translateFlag(pFlag)];
     return false;
   case WA:
     if (!m_Config.options().noWarnMismatch())
-      m_Config.raise(diag::incompatible_input_architecture)
+      m_Config.raise(Diag::incompatible_input_architecture)
           << pInputFile->getInput()->decoratedPath() << getArchStr(pFlag)
           << getArchStr(m_OutputFlag);
     LLVM_FALLTHROUGH;
@@ -303,12 +303,12 @@ uint64_t HexagonInfo::flags() const {
     switch (action) {
     case NS:
     case ER:
-      m_Config.raise(diag::fatal_unsupported_ISA)
+      m_Config.raise(Diag::fatal_unsupported_ISA)
           << targetOptions().getTargetCPU() << ISAs[translateFlag(OutputFlag)];
       LLVM_FALLTHROUGH;
     case WA:
       if (!m_Config.options().noWarnMismatch())
-        m_Config.raise(diag::incompatible_architecture)
+        m_Config.raise(Diag::incompatible_architecture)
             << targetOptions().getTargetCPU();
       LLVM_FALLTHROUGH;
     case OK:

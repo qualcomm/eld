@@ -56,21 +56,21 @@ class SymbolContainer;
 
 class Phdrs {
 public:
-  Phdrs(const PhdrSpec &pPhdrDesc) {
-    m_Spec.m_Name = pPhdrDesc.m_Name;
-    m_Spec.m_Type = pPhdrDesc.m_Type;
-    m_Spec.m_HasFileHdr = pPhdrDesc.m_HasFileHdr;
-    m_Spec.m_HasPhdr = pPhdrDesc.m_HasPhdr;
-    m_Spec.m_AtAddress = pPhdrDesc.m_AtAddress;
-    m_Spec.m_Flags = pPhdrDesc.m_Flags;
+  Phdrs(const PhdrSpec &PPhdrDesc) {
+    ScriptSpec.Name = PPhdrDesc.Name;
+    ScriptSpec.ThisType = PPhdrDesc.ThisType;
+    ScriptSpec.ScriptHasFileHdr = PPhdrDesc.ScriptHasFileHdr;
+    ScriptSpec.ScriptHasPhdr = PPhdrDesc.ScriptHasPhdr;
+    ScriptSpec.FixedAddress = PPhdrDesc.FixedAddress;
+    ScriptSpec.SectionFlags = PPhdrDesc.SectionFlags;
   }
 
-  const PhdrSpec &spec() const { return m_Spec; }
+  const PhdrSpec &spec() const { return ScriptSpec; }
 
-  const PhdrSpec *getSpec() const { return &m_Spec; }
+  const PhdrSpec *getSpec() const { return &ScriptSpec; }
 
 private:
-  PhdrSpec m_Spec;
+  PhdrSpec ScriptSpec;
 };
 
 /** \class LinkerScript
@@ -92,57 +92,57 @@ public:
 
   ~LinkerScript();
 
-  const PhdrSpecList &phdrList() const { return m_PhdrList; }
-  PhdrSpecList &phdrList() { return m_PhdrList; }
+  const PhdrSpecList &phdrList() const { return PhdrList; }
+  PhdrSpecList &phdrList() { return PhdrList; }
 
-  void createSectionMap(LinkerScript &L, const LinkerConfig &config,
-                        LayoutPrinter *layoutPrinter);
+  void createSectionMap(LinkerScript &L, const LinkerConfig &Config,
+                        LayoutPrinter *LayoutPrinter);
 
-  SectionMap &sectionMap() const { return *m_SectionMap; }
+  SectionMap &sectionMap() const { return *OutputSectionMap; }
 
-  const Assignments &assignments() const { return m_Assignments; }
-  Assignments &assignments() { return m_Assignments; }
+  const Assignments &assignments() const { return LinkerScriptAssignments; }
+  Assignments &assignments() { return LinkerScriptAssignments; }
 
   /// sysroot
   sys::fs::Path &sysroot() const;
 
-  void setSysroot(const sys::fs::Path &pPath);
+  void setSysroot(const sys::fs::Path &Path);
 
-  void insertPhdrSpec(const PhdrSpec &phdrsSpec);
+  void insertPhdrSpec(const PhdrSpec &PhdrsSpec);
 
-  void setPhdrsSpecified() { m_hasPhdrsSpecified = true; }
+  void setPhdrsSpecified() { HasPhdrsSpecified = true; }
 
-  bool phdrsSpecified() const { return m_hasPhdrsSpecified; }
+  bool phdrsSpecified() const { return HasPhdrsSpecified; }
 
-  void sethasPTPHDR() { m_hasPTPHDR = true; }
+  void sethasPTPHDR() { HasPtphdr = true; }
 
-  bool hasPTPHDR() const { return m_hasPTPHDR; }
+  bool hasPTPHDR() const { return HasPtphdr; }
 
-  bool hasSizeOfHeader() const { return m_HasSizeOfHeader; }
+  bool hasSizeOfHeader() const { return HasSizeOfHeader; }
 
-  void setSizeOfHeader() { m_HasSizeOfHeader = true; }
+  void setSizeOfHeader() { HasSizeOfHeader = true; }
 
-  bool hasFileHeader() const { return m_HasFileHeader; }
+  bool hasFileHeader() const { return HasFileHeader; }
 
-  void setFileHeader() { m_HasFileHeader = true; }
+  void setFileHeader() { HasFileHeader = true; }
 
-  bool hasProgramHeader() const { return m_HasProgramHeader; }
+  bool hasProgramHeader() const { return HasProgramHeader; }
 
-  void setProgramHeader() { m_HasProgramHeader = true; }
+  void setProgramHeader() { HasProgramHeader = true; }
 
-  void setError() { m_hasError = true; }
+  void setError() { HasError = true; }
 
-  bool hasError() const { return m_hasError; }
+  bool hasError() const { return HasError; }
 
-  bool linkerScriptHasSectionsCommand() const { return m_HasSectionsCmd; }
+  bool linkerScriptHasSectionsCommand() const { return HasSectionsCmd; }
 
-  bool hasExternCommand() const { return m_HasExternCmd; }
+  bool hasExternCommand() const { return HasExternCmd; }
 
   bool linkerScriptHasRules() const { return RuleCount > 0; };
 
-  void setHasSectionsCmd() { m_HasSectionsCmd = true; }
+  void setHasSectionsCmd() { HasSectionsCmd = true; }
 
-  void setHasExternCmd() { m_HasExternCmd = true; }
+  void setHasExternCmd() { HasExternCmd = true; }
 
   // ---------------- Plugin Support ------------------------------
   Plugin *addPlugin(plugin::PluginBase::Type T, std::string Name,
@@ -151,12 +151,12 @@ public:
 
   void addPlugin(Plugin *, Module &Module);
 
-  const PluginVectorT &getPlugins() const { return m_Plugins; }
+  const PluginVectorT &getPlugins() const { return MPlugins; }
 
   PluginVectorT getPluginForType(plugin::PluginBase::Type T) const;
 
-  void addPluginToTar(std::string filename, std::string &resolvedPath,
-                      OutputTarWriter *outputTar);
+  void addPluginToTar(std::string Filename, std::string &ResolvedPath,
+                      OutputTarWriter *OutputTar);
 
   bool loadUniversalPlugins(eld::Module &M);
   bool loadNonUniversalPlugins(eld::Module &M);
@@ -164,10 +164,10 @@ public:
   void unloadPlugins(eld::Module *Module);
 
   void setNumWildCardPatterns(size_t NumPatterns) {
-    m_NumWildCardPatterns = NumPatterns;
+    NumWildCardPatterns = NumPatterns;
   }
 
-  size_t getNumWildCardPatterns() const { return m_NumWildCardPatterns; }
+  size_t getNumWildCardPatterns() const { return NumWildCardPatterns; }
 
   // --------------- Plugin Config support -----------------------
 
@@ -184,7 +184,7 @@ public:
 
   // --------------- ThinLTO Caching support -----------------------
 
-  void setHashingEnabled() { m_HashingEnabled = true; }
+  void setHashingEnabled() { HashingEnabled = true; }
   std::string getHash();
 
   void addToHash(llvm::StringRef FilenameOrText);
@@ -215,7 +215,7 @@ public:
   bool hasPendingSectionOverride(const plugin::LinkerWrapper *LW) const;
 
   // -------------- Plugin Runlist support -------------------
-  std::vector<Plugin *> &getPluginRunList() { return m_RunList; }
+  std::vector<Plugin *> &getPluginRunList() { return MRunList; }
 
   // -------------- Annotate Rule Count ------------------------
   uint32_t getRuleCount() const { return RuleCount; }
@@ -248,7 +248,7 @@ public:
 
   // ------------------ Plugin Map --------------------------------
   void recordPlugin(plugin::LinkerWrapper *Wrapper, Plugin *P) {
-    m_PluginMap[Wrapper] = P;
+    MPluginMap[Wrapper] = P;
   }
 
   plugin::LinkerPluginConfig *getLinkerPluginConfig(plugin::LinkerWrapper *LW);
@@ -259,26 +259,26 @@ public:
                      std::string Name);
 
   // ------------------- Script Commands -------------------------
-  void addScriptCommand(ScriptCommand *pCommand);
+  void addScriptCommand(ScriptCommand *PCommand);
 
   const std::vector<ScriptCommand *> &getScriptCommands() const {
-    return m_ScriptCommands;
+    return UserLinkerScriptCommands;
   }
 
   // ------------------ MEMORY Support --------------------------
-  MemoryCmd *getMemoryCommand() const { return m_MemoryCmd; }
+  MemoryCmd *getMemoryCommand() const { return MemoryCmd; }
 
-  bool hasMemoryCommand() const { return m_MemoryCmd != nullptr; }
+  bool hasMemoryCommand() const { return MemoryCmd != nullptr; }
 
-  void setMemoryCommand(MemoryCmd *cmd) { m_MemoryCmd = cmd; }
+  void setMemoryCommand(MemoryCmd *Cmd) { MemoryCmd = Cmd; }
 
   bool insertMemoryDescriptor(llvm::StringRef DescName) {
-    return !m_MemoryDescriptors.insert(DescName).second;
+    return !MemoryDescriptors.insert(DescName).second;
   }
 
   void addMemoryRegion(std::string DescName, eld::ScriptMemoryRegion *M) {
-    m_MemoryRegionMap[DescName] = M;
-    m_MemoryRegions.push_back(M);
+    MMemoryRegionMap[DescName] = M;
+    MMemoryRegions.push_back(M);
   }
 
   eld::Expected<eld::ScriptMemoryRegion *>
@@ -288,22 +288,22 @@ public:
   getMemoryRegion(llvm::StringRef DescName) const;
 
   const llvm::SmallVector<ScriptMemoryRegion *, 4> &getMemoryRegions() const {
-    return m_MemoryRegions;
+    return MMemoryRegions;
   }
   void addPendingRuleInsertion(const plugin::LinkerWrapper *LW,
                                const RuleContainer *R) {
-    m_PendingRuleInsertions[LW].insert(R);
+    MPendingRuleInsertions[LW].insert(R);
   }
 
   void removePendingRuleInsertion(const plugin::LinkerWrapper *LW,
                                   const RuleContainer *R) {
-    m_PendingRuleInsertions[LW].erase(R);
+    MPendingRuleInsertions[LW].erase(R);
   }
 
   const std::unordered_map<const plugin::LinkerWrapper *,
                            std::unordered_set<const RuleContainer *>> &
   getPendingRuleInsertions() const {
-    return m_PendingRuleInsertions;
+    return MPendingRuleInsertions;
   }
 
   eld::Expected<bool> insertRegionAlias(llvm::StringRef Alias,
@@ -330,46 +330,46 @@ public:
   bool loadPlugin(Plugin &P, Module &M);
 
 private:
-  SectionMap *m_SectionMap = nullptr;
-  Assignments m_Assignments;
-  std::string m_Entry;
-  PhdrSpecList m_PhdrList;
-  bool m_hasPhdrsSpecified;
-  bool m_hasPTPHDR;
-  bool m_HasSizeOfHeader;
-  bool m_HasFileHeader;
-  bool m_HasProgramHeader;
-  bool m_hasError;
-  bool m_HasSectionsCmd;
-  bool m_HasExternCmd;
-  PluginVectorT m_Plugins;
-  std::atomic<uint64_t> m_NumWildCardPatterns;
+  SectionMap *OutputSectionMap = nullptr;
+  Assignments LinkerScriptAssignments;
+  std::string EntrySymbol;
+  PhdrSpecList PhdrList;
+  bool HasPhdrsSpecified;
+  bool HasPtphdr;
+  bool HasSizeOfHeader;
+  bool HasFileHeader;
+  bool HasProgramHeader;
+  bool HasError;
+  bool HasSectionsCmd;
+  bool HasExternCmd;
+  PluginVectorT MPlugins;
+  std::atomic<uint64_t> NumWildCardPatterns;
   std::unordered_map<std::string, Plugin *> PluginForOutputSection;
   /// Mapping of plugin library to the first plugin that is loaded from
   /// the library.
-  std::unordered_map<std::string, Plugin *> m_LibraryToPluginMap;
+  std::unordered_map<std::string, Plugin *> MLibraryToPluginMap;
   llvm::DenseMap<const plugin::LinkerWrapper *,
                  std::vector<ChangeOutputSectionPluginOp *>>
-      m_OverrideSectionMatch;
-  std::vector<Plugin *> m_RunList;
-  llvm::DenseMap<plugin::LinkerWrapper *, Plugin *> m_PluginMap;
+      OverrideSectionMatch;
+  std::vector<Plugin *> MRunList;
+  llvm::DenseMap<plugin::LinkerWrapper *, Plugin *> MPluginMap;
   llvm::StringMap<std::pair<llvm::TimerGroup *, Name2TimerMap>> Map;
-  llvm::StringSet<> m_MemoryDescriptors;
-  llvm::StringSet<> m_RegionAlias;
-  llvm::StringMap<eld::ScriptMemoryRegion *> m_MemoryRegionMap;
-  llvm::SmallVector<ScriptMemoryRegion *, 4> m_MemoryRegions;
-  bool m_HashingEnabled;
+  llvm::StringSet<> MemoryDescriptors;
+  llvm::StringSet<> MemoryRegionNameAlias;
+  llvm::StringMap<eld::ScriptMemoryRegion *> MMemoryRegionMap;
+  llvm::SmallVector<ScriptMemoryRegion *, 4> MMemoryRegions;
+  bool HashingEnabled;
   llvm::SHA1 Hasher;
   uint32_t RuleCount;
-  std::vector<ScriptCommand *> m_ScriptCommands;
-  std::vector<SymbolContainer *> m_SymbolContainers;
-  DiagnosticEngine *m_DiagEngine = nullptr;
+  std::vector<ScriptCommand *> UserLinkerScriptCommands;
+  std::vector<SymbolContainer *> ThisSymbolContainers;
+  DiagnosticEngine *Diag = nullptr;
   // Support MEMORY commmand
-  MemoryCmd *m_MemoryCmd = nullptr;
+  MemoryCmd *MemoryCmd = nullptr;
   std::unordered_map<const plugin::LinkerWrapper *,
                      std::unordered_set<const RuleContainer *>>
-      m_PendingRuleInsertions;
-  std::unordered_map<std::string, Plugin *> m_PluginInfo;
+      MPendingRuleInsertions;
+  std::unordered_map<std::string, Plugin *> MPluginInfo;
 };
 
 } // namespace eld

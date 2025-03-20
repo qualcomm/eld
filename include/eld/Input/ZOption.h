@@ -23,7 +23,7 @@ namespace eld {
  */
 class ZOption {
 public:
-  enum Kind {
+  enum ZOptionKind {
     CombReloc,
     CommPageSize,
     Defs,
@@ -53,26 +53,26 @@ public:
   };
 
 public:
-  ZOption(Kind k, uint64_t zVal) : m_Kind(k), m_PageSize(zVal) {}
+  ZOption(ZOptionKind k, uint64_t zVal) : Kind(k), PageSize(zVal) {}
 
-  ZOption(Kind k, std::string file) : m_Kind(k), m_File(file) {}
+  ZOption(ZOptionKind k, std::string file) : Kind(k), File(file) {}
 
-  Kind kind() const { return m_Kind; }
+  ZOptionKind kind() const { return Kind; }
 
-  void setKind(Kind pKind) { m_Kind = pKind; }
+  void setKind(ZOptionKind pKind) { Kind = pKind; }
 
-  uint64_t pageSize() const { return m_PageSize; }
+  uint64_t pageSize() const { return PageSize; }
 
-  void setPageSize(uint64_t pPageSize) { m_PageSize = pPageSize; }
+  void setPageSize(uint64_t pPageSize) { PageSize = pPageSize; }
 
-  void setFile(std::string file) { m_File = file; }
+  void setFile(std::string file) { File = file; }
 
-  std::string file() const { return m_File; }
+  std::string file() const { return File; }
 
 private:
-  Kind m_Kind;
-  uint64_t m_PageSize;
-  std::string m_File;
+  ZOptionKind Kind;
+  uint64_t PageSize;
+  std::string File;
 };
 
 } // namespace eld

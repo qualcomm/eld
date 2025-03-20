@@ -17,9 +17,9 @@ namespace eld {
 struct ArchiveFileInfo {
   ArchiveFileInfo() = default;
   ~ArchiveFileInfo() = default;
-  llvm::DenseMap<off_t, Input *> m_LazyLoadMemberMap;
+  llvm::DenseMap<off_t, Input *> LazyLoadMemberMap;
   std::vector<Input *> Members;
-  ArchiveFile::SymTabType m_SymTab;
+  ArchiveFile::SymTabType SymTab;
 };
 } // namespace eld
 #endif

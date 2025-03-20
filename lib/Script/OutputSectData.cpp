@@ -24,29 +24,29 @@
 
 using namespace eld;
 
-OutputSectData *OutputSectData::Create(uint32_t ID, OutputSectDesc &outSectDesc,
-                                       OSDKind kind, Expression &expr) {
-  InputSectDesc::Spec spec;
-  spec.initialize();
-  InputSectDesc::Policy policy = InputSectDesc::Policy::Keep;
+OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
+                                       OSDKind Kind, Expression &Expr) {
+  InputSectDesc::Spec Spec;
+  Spec.initialize();
+  InputSectDesc::Policy Policy = InputSectDesc::Policy::Keep;
   OutputSectData *OSD =
-      eld::make<OutputSectData>(ID, policy, spec, outSectDesc, kind, expr);
+      eld::make<OutputSectData>(ID, Policy, Spec, OutSectDesc, Kind, Expr);
   return OSD;
 }
 
-OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy policy,
-                               const InputSectDesc::Spec spec,
-                               OutputSectDesc &outSectDesc, OSDKind kind,
-                               Expression &expr)
-    : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, policy, spec,
-                    outSectDesc),
-      m_OSDKind(kind), m_Expr(expr) {}
+OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
+                               const InputSectDesc::Spec Spec,
+                               OutputSectDesc &OutSectDesc, OSDKind Kind,
+                               Expression &Expr)
+    : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, Policy, Spec,
+                    OutSectDesc),
+      MOsdKind(Kind), ExpressionToEvaluate(Expr) {}
 
 llvm::StringRef OutputSectData::getOSDKindAsStr() const {
 #define ADD_CASE(dataKind)                                                     \
   case OSDKind::dataKind:                                                      \
     return #dataKind;
-  switch (m_OSDKind) {
+  switch (MOsdKind) {
     ADD_CASE(None);
     ADD_CASE(Byte);
     ADD_CASE(Short);
@@ -58,7 +58,7 @@ llvm::StringRef OutputSectData::getOSDKindAsStr() const {
 }
 
 std::size_t OutputSectData::getDataSize() const {
-  switch (m_OSDKind) {
+  switch (MOsdKind) {
   case Byte:
     return 1;
   case Short:
@@ -73,76 +73,76 @@ std::size_t OutputSectData::getDataSize() const {
   }
 }
 
-eld::Expected<void> OutputSectData::activate(Module &module) {
-  m_Expr.setContext(getContext());
-  std::pair<SectionMap::mapping, bool> mapping =
-      module.getScript().sectionMap().insert(*this, m_OutputSectDesc);
-  ASSERT(mapping.second,
+eld::Expected<void> OutputSectData::activate(Module &Module) {
+  ExpressionToEvaluate.setContext(getContext());
+  std::pair<SectionMap::mapping, bool> Mapping =
+      Module.getScript().sectionMap().insert(*this, OutputSectionDescription);
+  ASSERT(Mapping.second,
          "New rule must be created for each output section data!");
-  m_RuleContainer = mapping.first.second;
+  ThisRuleContainer = Mapping.first.second;
 
-  m_Section = createOSDSection(module);
+  ThisSectionion = createOSDSection(Module);
 
   // FIXME: We need to perform the below steps whenever we associate
   // a rule with a section. We can perhaps simplify this process by
   // creating a utility function which performs the below steps.
-  RuleContainer *R = m_RuleContainer;
-  m_Section->setOutputSection(R->getSection()->getOutputSection());
+  RuleContainer *R = ThisRuleContainer;
+  ThisSectionion->setOutputSection(R->getSection()->getOutputSection());
   R->incMatchCount();
-  m_Section->setMatchedLinkerScriptRule(R);
+  ThisSectionion->setMatchedLinkerScriptRule(R);
   return eld::Expected<void>();
 }
 
-ELFSection *OutputSectData::createOSDSection(Module &module) {
-  ASSERT(m_RuleContainer, "Rule container must be set before the output data "
-                          "section can be created!");
-  RuleContainer *R = m_RuleContainer;
+ELFSection *OutputSectData::createOSDSection(Module &Module) {
+  ASSERT(ThisRuleContainer, "Rule container must be set before the output data "
+                            "section can be created!");
+  RuleContainer *R = ThisRuleContainer;
 
-  llvm::StringRef outputSectName = R->getSection()->getOutputSection()->name();
-  std::string name = "__OutputSectData." + outputSectName.str() + "." +
+  llvm::StringRef OutputSectName = R->getSection()->getOutputSection()->name();
+  std::string Name = "__OutputSectData." + OutputSectName.str() + "." +
                      getOSDKindAsStr().str();
-  ELFSection *S = module.createInternalSection(
+  ELFSection *S = Module.createInternalSection(
       Module::InternalInputType::OutputSectData, LDFileFormat::OutputSectData,
-      name, defaultSectionType, defaultSectionFlags, /*alignment=*/1);
+      Name, DefaultSectionType, DefaultSectionFlags, /*alignment=*/1);
   Fragment *F = make<OutputSectDataFragment>(*this);
-  LayoutPrinter *printer = module.getLayoutPrinter();
-  if (printer)
-    printer->recordFragment(
-        module.getInternalInput(Module::InternalInputType::OutputSectData), S,
+  LayoutPrinter *Printer = Module.getLayoutPrinter();
+  if (Printer)
+    Printer->recordFragment(
+        Module.getInternalInput(Module::InternalInputType::OutputSectData), S,
         F);
   S->addFragmentAndUpdateSize(F);
   return S;
 }
 
-void OutputSectData::dump(llvm::raw_ostream &outs) const {
-  return dumpMap(outs);
+void OutputSectData::dump(llvm::raw_ostream &Outs) const {
+  return dumpMap(Outs);
 }
 
-void OutputSectData::dumpMap(llvm::raw_ostream &outs, bool useColor,
-                             bool useNewLine, bool withValues,
-                             bool addIndent) const {
-  if (useColor)
-    outs.changeColor(llvm::raw_ostream::BLUE);
-  outs << getOSDKindAsStr().upper() << " ";
-  outs << "(";
-  m_Expr.dump(outs);
-  outs << ") ";
+void OutputSectData::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
+                             bool UseNewLine, bool WithValues,
+                             bool AddIndent) const {
+  if (UseColor)
+    Outs.changeColor(llvm::raw_ostream::BLUE);
+  Outs << getOSDKindAsStr().upper() << " ";
+  Outs << "(";
+  ExpressionToEvaluate.dump(Outs);
+  Outs << ") ";
   ELFSection *S = getRuleContainer()->getSection();
-  outs << "\t0x";
-  outs.write_hex(S->offset());
-  outs << "\t0x";
-  outs.write_hex(S->size());
-  if (useNewLine)
-    outs << "\n";
-  if (useColor)
-    outs.resetColor();
+  Outs << "\t0x";
+  Outs.write_hex(S->offset());
+  Outs << "\t0x";
+  Outs.write_hex(S->size());
+  if (UseNewLine)
+    Outs << "\n";
+  if (UseColor)
+    Outs.resetColor();
 }
 
-void OutputSectData::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  doIndent(outs);
-  outs << getOSDKindAsStr().upper() << " ";
-  outs << "(";
-  m_Expr.dump(outs);
-  outs << ")";
-  outs << "\n";
+void OutputSectData::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  doIndent(Outs);
+  Outs << getOSDKindAsStr().upper() << " ";
+  Outs << "(";
+  ExpressionToEvaluate.dump(Outs);
+  Outs << ")";
+  Outs << "\n";
 }

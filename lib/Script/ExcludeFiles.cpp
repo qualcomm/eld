@@ -16,8 +16,8 @@ ExcludeFiles::ExcludeFiles() {}
 
 ExcludeFiles::~ExcludeFiles() {}
 
-void ExcludeFiles::push_back(ExcludePattern *pPattern) {
-  m_ExcludeFiles.push_back(pPattern);
+void ExcludeFiles::pushBack(ExcludePattern *PPattern) {
+  ExcludeFilesRule.push_back(PPattern);
 }
 
 // ExcludeFiles represents list of exclude patterns specified in EXCLUDE_FILE
@@ -28,11 +28,13 @@ void ExcludeFiles::push_back(ExcludePattern *pPattern) {
 // EF2 may refer to the list [*c.o *d.o]
 ExcludeFiles::ExcludeFiles(const ExcludeFiles *EF1, const ExcludeFiles *EF2) {
   if (EF1) {
-    m_ExcludeFiles.insert(m_ExcludeFiles.end(), EF1->m_ExcludeFiles.begin(),
-                          EF1->m_ExcludeFiles.end());
+    ExcludeFilesRule.insert(ExcludeFilesRule.end(),
+                            EF1->ExcludeFilesRule.begin(),
+                            EF1->ExcludeFilesRule.end());
   }
   if (EF2) {
-    m_ExcludeFiles.insert(m_ExcludeFiles.end(), EF2->m_ExcludeFiles.begin(),
-                          EF2->m_ExcludeFiles.end());
+    ExcludeFilesRule.insert(ExcludeFilesRule.end(),
+                            EF2->ExcludeFilesRule.begin(),
+                            EF2->ExcludeFilesRule.end());
   }
 }

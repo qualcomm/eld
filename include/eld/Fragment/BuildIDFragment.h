@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_FRAGMENT_BUILD_ID_FRAGMENT_H
-#define ELD_FRAGMENT_BUILD_ID_FRAGMENT_H
+#ifndef ELD_FRAGMENT_BUILDIDFRAGMENT_H
+#define ELD_FRAGMENT_BUILDIDFRAGMENT_H
 
 #include "eld/Fragment/Fragment.h"
 
@@ -31,11 +31,11 @@ public:
 
   size_t size() const override;
 
-  eld::Expected<void> setBuildIDStyle(const LinkerConfig &config);
+  eld::Expected<void> setBuildIDStyle(const LinkerConfig &Config);
 
   void dump(llvm::raw_ostream &OS) override;
 
-  eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   eld::Expected<void> finalizeBuildID(uint8_t *BufferStart, size_t BufSize);
 
@@ -43,8 +43,8 @@ private:
   size_t getHashSize() const;
 
 private:
-  BuildIDKind m_BuildIDKind = NONE;
-  std::string m_BuildID;
+  BuildIDKind BuildIdKind = NONE;
+  std::string BuildIdString;
 };
 
 } // namespace eld

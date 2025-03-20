@@ -51,23 +51,23 @@ THMToTHMStub::THMToTHMStub(uint32_t type, ARMGNULDBackend *Target)
       m_Type(type) {
   if (type == ARMGNULDBackend::VENEER_PIC) {
     m_pData = PIC_TEMPLATE;
-    m_Size = sizeof(PIC_TEMPLATE);
+    ThisSize = sizeof(PIC_TEMPLATE);
     addFixup(16u, 0x0, llvm::ELF::R_ARM_REL32);
   } else if (type == ARMGNULDBackend::VENEER_MOV) {
     m_pData = TEMPLATE_MOV;
-    m_Size = sizeof(TEMPLATE_MOV);
+    ThisSize = sizeof(TEMPLATE_MOV);
     addFixup(0u, 0x0, llvm::ELF::R_ARM_THM_MOVW_ABS_NC);
     addFixup(4u, 0x0, llvm::ELF::R_ARM_THM_MOVT_ABS);
   } else if (type == ARMGNULDBackend::VENEER_THUMB1) {
     m_pData = TEMPLATE_THUMB1;
-    m_Size = sizeof(TEMPLATE_THUMB1);
+    ThisSize = sizeof(TEMPLATE_THUMB1);
     addFixup(8u, 0x0, llvm::ELF::R_ARM_ABS32);
   } else {
     m_pData = TEMPLATE;
-    m_Size = sizeof(TEMPLATE);
+    ThisSize = sizeof(TEMPLATE);
     addFixup(12u, 0x0, llvm::ELF::R_ARM_ABS32);
   }
-  m_Alignment = alignment();
+  Alignment = alignment();
   m_Target = Target;
 }
 
@@ -77,8 +77,8 @@ THMToTHMStub::THMToTHMStub(const uint32_t *pData, size_t pSize,
                            const_fixup_iterator pEnd, size_t align,
                            uint32_t pNumStub)
     : Stub(), m_Name("T2T_veneer"), m_pData(pData), m_NumStub(pNumStub) {
-  m_Size = pSize;
-  m_Alignment = align;
+  ThisSize = pSize;
+  Alignment = align;
   for (auto it = pBegin, ie = pEnd; it != ie; ++it)
     addFixup(**it);
 }
@@ -130,8 +130,8 @@ uint64_t THMToTHMStub::initSymValue() const { return 0x1; }
 
 Stub *THMToTHMStub::clone(InputFile *F, Relocation *, eld::IRBuilder *pBuilder,
                           DiagnosticEngine *) {
-  Stub *S = make<THMToTHMStub>(m_pData, m_Size, fixup_begin(), fixup_end(),
-                               m_Alignment, m_NumStub++);
+  Stub *S = make<THMToTHMStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
+                               Alignment, m_NumStub++);
   uint32_t DataOffset = 0;
   if (m_Type == ARMGNULDBackend::VENEER_PIC) {
     pBuilder->addLinkerInternalLocalSymbol(

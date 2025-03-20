@@ -58,17 +58,17 @@ void BinaryFileParser::addDescriptionSymbols(InputFile &inputFile,
                                              ELFSection *S) {
   IRBuilder &builder = *m_Module.getIRBuilder();
   std::string symPrefix = getSymPrefix(inputFile);
-  LDSymbol *startSym = builder.AddSymbol(
+  LDSymbol *startSym = builder.addSymbol(
       inputFile, symPrefix + "_start", ResolveInfo::Type::Object,
       ResolveInfo::Define, ResolveInfo::Binding::Global,
       /*size=*/0, /*value=*/0, S, ResolveInfo::Visibility::Default,
       /*isPostLTOPhase=*/0, /*idx=*/0, /*idx=*/0);
-  LDSymbol *endSym = builder.AddSymbol(
+  LDSymbol *endSym = builder.addSymbol(
       inputFile, symPrefix + "_end", ResolveInfo::Type::Object,
       ResolveInfo::Define, ResolveInfo::Binding::Global,
       /*size=*/0, /*value=*/S->size(), S, ResolveInfo::Visibility::Default,
       /*isPostLTOPhase=*/0, /*idx=*/1, /*idx=*/0);
-  LDSymbol *sizeSym = builder.AddSymbol(
+  LDSymbol *sizeSym = builder.addSymbol(
       inputFile, symPrefix + "_size", ResolveInfo::Type::Object,
       ResolveInfo::Define, ResolveInfo::Binding::Absolute, /*size=*/0,
       /*value=*/S->size(), S, ResolveInfo::Visibility::Default,

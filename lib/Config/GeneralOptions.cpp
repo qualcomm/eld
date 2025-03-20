@@ -31,78 +31,77 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 // GeneralOptions
 //===----------------------------------------------------------------------===//
-GeneralOptions::GeneralOptions(DiagnosticEngine *diagEngine)
-    : m_DiagEngine(diagEngine) {}
+GeneralOptions::GeneralOptions(DiagnosticEngine *DE) : DiagEngine(DE) {}
 
-GeneralOptions::~GeneralOptions() { m_ScriptList.clear(); }
+GeneralOptions::~GeneralOptions() { ScriptList.clear(); }
 
-void GeneralOptions::setOutputFileName(const std::string &pName) {
-  m_OutputFileName = pName;
+void GeneralOptions::setOutputFileName(const std::string &PName) {
+  OutputFileName = PName;
 }
 
-bool GeneralOptions::addZOption(const ZOption &pOption) {
-  switch (pOption.kind()) {
+bool GeneralOptions::addZOption(const ZOption &POption) {
+  switch (POption.kind()) {
   case ZOption::CombReloc:
-    m_bCombReloc = true;
+    BCombReloc = true;
     break;
   case ZOption::NoCombReloc:
-    m_bCombReloc = false;
+    BCombReloc = false;
     break;
   case ZOption::Defs:
-    m_NoUndefined = YES;
+    NoUndefined = YES;
     break;
   case ZOption::InitFirst:
-    m_bInitFirst = true;
+    BInitFirst = true;
     break;
   case ZOption::MulDefs:
-    m_MulDefs = YES;
+    MulDefs = YES;
     break;
   case ZOption::NoCopyReloc:
-    m_bNoCopyReloc = true;
+    BNoCopyReloc = true;
     break;
   case ZOption::NoRelro:
-    m_bRelro = false;
+    BRelro = false;
     break;
   case ZOption::Relro:
-    m_bRelro = true;
+    BRelro = true;
     break;
   case ZOption::Lazy:
-    m_bNow = false;
+    BNow = false;
     break;
   case ZOption::Now:
-    m_bNow = true;
+    BNow = true;
     break;
   case ZOption::CommPageSize:
-    m_CommPageSize = pOption.pageSize();
+    CommPageSize = POption.pageSize();
     break;
   case ZOption::MaxPageSize:
-    m_MaxPageSize = pOption.pageSize();
+    MaxPageSize = POption.pageSize();
     break;
   case ZOption::NoDelete:
-    m_bNoDelete = true;
+    BNoDelete = true;
     break;
   case ZOption::Text:
     break;
   case ZOption::ExecStack:
-    m_ExecStack = YES;
+    ExecStack = YES;
     break;
   case ZOption::NoExecStack:
-    m_ExecStack = NO;
+    ExecStack = NO;
     break;
   case ZOption::NoGnuStack:
-    m_NoGnuStack = true;
+    NoGnuStack = true;
     break;
   case ZOption::Global:
-    m_bGlobal = true;
+    BGlobal = true;
     break;
   case ZOption::CompactDyn:
-    m_bCompactDyn = true;
+    BCompactDyn = true;
     break;
   case ZOption::ForceBTI:
-    m_bForceBTI = true;
+    BForceBTI = true;
     break;
   case ZOption::ForcePACPLT:
-    m_bForcePACPLT = true;
+    BForcePACPLT = true;
     break;
   case ZOption::Unknown:
   default:
@@ -112,47 +111,48 @@ bool GeneralOptions::addZOption(const ZOption &pOption) {
   return true;
 }
 
-const std::string &GeneralOptions::entry() const { return m_Entry; }
+const std::string &GeneralOptions::entry() const { return Entry; }
 
-void GeneralOptions::setEntry(const std::string &pEntry) { m_Entry = pEntry; }
+void GeneralOptions::setEntry(const std::string &PEntry) { Entry = PEntry; }
 
-bool GeneralOptions::hasEntry() const { return !m_Entry.empty(); }
+bool GeneralOptions::hasEntry() const { return !Entry.empty(); }
 
-void GeneralOptions::setTrace(bool enableTrace) {
-  m_DiagEngine->getPrinter()->setTrace(m_DiagEngine->getPrinter()->TraceFiles);
+void GeneralOptions::setTrace(bool EnableTrace) {
+  DiagEngine->getPrinter()->setTrace(DiagEngine->getPrinter()->TraceFiles);
 }
 
 void GeneralOptions::setVerbose(int8_t Verbose) {
-  m_DiagEngine->getPrinter()->setVerbose(Verbose);
+  DiagEngine->getPrinter()->setVerbose(Verbose);
 }
 
 bool GeneralOptions::printTimingStats(const char *TimeRegion) const {
-  if (!m_bPrintTimeStats)
+  if (!BPrintTimeStats)
     return false;
-  if (m_RequestedTimeRegions.empty())
+  if (RequestedTimeRegions.empty())
     return true;
-  return ::std::any_of(
-      m_RequestedTimeRegions.begin(), m_RequestedTimeRegions.end(),
-      [&](const llvm::StringRef &TimingRegion) {
-        return (TimingRegion.compare_insensitive(TimeRegion) == 0);
-      });
+  return ::std::any_of(RequestedTimeRegions.begin(), RequestedTimeRegions.end(),
+                       [&](const llvm::StringRef &TimingRegion) {
+                         return (TimingRegion.compare_insensitive(TimeRegion) ==
+                                 0);
+                       });
 }
-bool GeneralOptions::setRequestedTimingRegions(const char *timingRegion) {
-  StringRef TimeRegion(timingRegion);
+bool GeneralOptions::setRequestedTimingRegions(const char *TimingRegion) {
+  StringRef TimeRegion(TimingRegion);
   if (TimeRegion.compare_insensitive("all-user-plugins") == 0) {
-    m_bPrintAllUserPluginTimeStats = true;
-    m_RequestedTimeRegions.emplace_back(TimeRegion);
+    BPrintAllUserPluginTimeStats = true;
+    RequestedTimeRegions.emplace_back(TimeRegion);
     return true;
-  } else if (TimeRegion.starts_with_insensitive("Plugin")) {
+  }
+  if (TimeRegion.starts_with_insensitive("Plugin")) {
     size_t pos = TimeRegion.find_last_of('=');
     if (pos == std::string::npos) {
       if (TimeRegion.compare_insensitive("Plugin") == 0) {
-        m_RequestedTimeRegions.emplace_back(TimeRegion);
+        RequestedTimeRegions.emplace_back(TimeRegion);
         return true;
       }
     } else {
       StringRef PluginName = TimeRegion.substr(pos + 1);
-      m_RequestedTimeRegions.emplace_back(PluginName);
+      RequestedTimeRegions.emplace_back(PluginName);
       return true;
     }
   }
@@ -160,7 +160,7 @@ bool GeneralOptions::setRequestedTimingRegions(const char *timingRegion) {
 }
 
 bool GeneralOptions::shouldTraceMergeStrSection(const ELFSection *S) const {
-  switch (m_MergeStrTraceType) {
+  switch (MergeStrTraceValue) {
   case NONE:
     return false;
   case ALL:
@@ -168,195 +168,194 @@ bool GeneralOptions::shouldTraceMergeStrSection(const ELFSection *S) const {
   case ALLOC:
     return S->isAlloc();
   case SECTIONS:
-    for (auto &Regex : m_MergeStrSectionsToTrace)
+    for (auto &Regex : MergeStrSectionsToTrace)
       if (Regex.match(S->name()))
         return true;
     return false;
   }
 }
 
-eld::Expected<void> GeneralOptions::setTrace(const char *TraceType) {
-  std::optional<uint32_t> traceMe = m_DiagEngine->getPrinter()->trace();
-  StringRef traceType = TraceType;
-  if (traceType.starts_with("reloc")) {
-    traceMe = m_DiagEngine->getPrinter()->TraceReloc;
-    size_t pos = traceType.find_last_of('=');
-    std::string reloc = traceType.substr(pos + 1).str();
-    m_RelocTrace.emplace_back(llvm::Regex(reloc));
-    m_RelocsToTrace.emplace_back(reloc);
-  } else if (traceType.starts_with("symbol")) {
+eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
+  std::optional<uint32_t> TraceMe = DiagEngine->getPrinter()->trace();
+  StringRef TraceType = PTraceType;
+  if (TraceType.starts_with("reloc")) {
+    TraceMe = DiagEngine->getPrinter()->TraceReloc;
+    size_t Pos = TraceType.find_last_of('=');
+    std::string Reloc = TraceType.substr(Pos + 1).str();
+    RelocTrace.emplace_back(llvm::Regex(Reloc));
+    RelocsToTrace.emplace_back(Reloc);
+  } else if (TraceType.starts_with("symbol")) {
     setSymbolTracingRequested();
-    traceMe = m_DiagEngine->getPrinter()->TraceSym;
-    size_t pos = traceType.find_last_of('=');
-    std::string sym = traceType.substr(pos + 1).str();
-    m_SymbolTrace.emplace_back(llvm::Regex(sym));
-    m_SymbolsToTrace.emplace_back(sym);
-  } else if (traceType.starts_with("section")) {
+    TraceMe = DiagEngine->getPrinter()->TraceSym;
+    size_t Pos = TraceType.find_last_of('=');
+    std::string Sym = TraceType.substr(Pos + 1).str();
+    SymbolTrace.emplace_back(llvm::Regex(Sym));
+    SymbolsToTrace.emplace_back(Sym);
+  } else if (TraceType.starts_with("section")) {
     setSectionTracingRequested();
-    traceMe = m_DiagEngine->getPrinter()->TraceSection;
-    size_t pos = traceType.find_last_of('=');
-    std::string sym = traceType.substr(pos + 1).str();
-    m_SectionTrace.emplace_back(llvm::Regex(sym));
-    m_SectionsToTrace.emplace_back(sym);
-  } else if (traceType.starts_with("merge-strings")) {
-    size_t Pos = traceType.find_last_of('=');
-    std::string Arg = traceType.substr(Pos + 1).str();
+    TraceMe = DiagEngine->getPrinter()->TraceSection;
+    size_t Pos = TraceType.find_last_of('=');
+    std::string Sym = TraceType.substr(Pos + 1).str();
+    SectionTrace.emplace_back(llvm::Regex(Sym));
+    SectionsToTrace.emplace_back(Sym);
+  } else if (TraceType.starts_with("merge-strings")) {
+    size_t Pos = TraceType.find_last_of('=');
+    std::string Arg = TraceType.substr(Pos + 1).str();
     GeneralOptions::MergeStrTraceType Type =
         llvm::StringSwitch<GeneralOptions::MergeStrTraceType>(Arg)
             .Case("all", GeneralOptions::MergeStrTraceType::ALL)
             .Case("allocatable_sections",
                   GeneralOptions::MergeStrTraceType::ALLOC)
             .Default(GeneralOptions::MergeStrTraceType::SECTIONS);
-    m_MergeStrTraceType = Type;
+    MergeStrTraceValue = Type;
     if (Type == SECTIONS)
       addMergeStrTraceSection(Arg);
-    traceMe = m_DiagEngine->getPrinter()->TraceMergeStrings;
+    TraceMe = DiagEngine->getPrinter()->TraceMergeStrings;
   } else {
-    traceMe =
-        llvm::StringSwitch<std::optional<uint32_t>>(traceType)
-            .Case("all-symbols", m_DiagEngine->getPrinter()->TraceSymbols)
-            .Case("assignments", m_DiagEngine->getPrinter()->TraceAssignments)
-            .Case("command-line", m_DiagEngine->getPrinter()->TraceCommandLine)
-            .Case("files", m_DiagEngine->getPrinter()->TraceFiles)
-            .Case("garbage-collection", m_DiagEngine->getPrinter()->TraceGC)
-            .Case("live-edges", m_DiagEngine->getPrinter()->TraceGCLive)
-            .Case("lto", m_DiagEngine->getPrinter()->TraceLTO)
-            .Case("merge-strings",
-                  m_DiagEngine->getPrinter()->TraceMergeStrings)
-            .Case("plugin", m_DiagEngine->getPrinter()->TracePlugin)
-            .Case("threads", m_DiagEngine->getPrinter()->TraceThreads)
-            .Case("trampolines", m_DiagEngine->getPrinter()->TraceTrampolines)
-            .Case("wrap-symbols", m_DiagEngine->getPrinter()->TraceWrap)
+    TraceMe =
+        llvm::StringSwitch<std::optional<uint32_t>>(TraceType)
+            .Case("all-symbols", DiagEngine->getPrinter()->TraceSymbols)
+            .Case("assignments", DiagEngine->getPrinter()->TraceAssignments)
+            .Case("command-line", DiagEngine->getPrinter()->TraceCommandLine)
+            .Case("files", DiagEngine->getPrinter()->TraceFiles)
+            .Case("garbage-collection", DiagEngine->getPrinter()->TraceGC)
+            .Case("live-edges", DiagEngine->getPrinter()->TraceGCLive)
+            .Case("lto", DiagEngine->getPrinter()->TraceLTO)
+            .Case("merge-strings", DiagEngine->getPrinter()->TraceMergeStrings)
+            .Case("plugin", DiagEngine->getPrinter()->TracePlugin)
+            .Case("threads", DiagEngine->getPrinter()->TraceThreads)
+            .Case("trampolines", DiagEngine->getPrinter()->TraceTrampolines)
+            .Case("wrap-symbols", DiagEngine->getPrinter()->TraceWrap)
             .Case("dynamic-linking",
-                  m_DiagEngine->getPrinter()->TraceDynamicLinking)
-            .Case("linker-script",
-                  m_DiagEngine->getPrinter()->TraceLinkerScript)
-            .Case("symdef", m_DiagEngine->getPrinter()->TraceSymDef)
+                  DiagEngine->getPrinter()->TraceDynamicLinking)
+            .Case("linker-script", DiagEngine->getPrinter()->TraceLinkerScript)
+            .Case("symdef", DiagEngine->getPrinter()->TraceSymDef)
             .Default(std::nullopt);
   }
   // Warn if trace category is unknown.
-  if (!traceMe)
+  if (!TraceMe)
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::WarningDiagnosticEntry(diag::warn_unknown_trace_option,
-                                       {TraceType}));
-  m_DiagEngine->getPrinter()->setTrace(*traceMe);
+        plugin::WarningDiagnosticEntry(Diag::warn_unknown_trace_option,
+                                       {PTraceType}));
+  DiagEngine->getPrinter()->setTrace(*TraceMe);
   return {};
 }
 
 void GeneralOptions::setVerify(llvm::StringRef VerifyType) {
-  uint32_t verify = m_DiagEngine->getPrinter()->verify();
+  uint32_t Verify = DiagEngine->getPrinter()->verify();
   if (VerifyType.starts_with("reloc")) {
-    verify = m_DiagEngine->getPrinter()->VerifyReloc;
-    auto relocList = VerifyType.rsplit('=').second;
-    while (relocList.size()) {
-      auto relocs = relocList.split(',');
-      m_RelocVerify.insert(relocs.first.str());
-      relocList = relocs.second;
+    Verify = DiagEngine->getPrinter()->VerifyReloc;
+    auto RelocList = VerifyType.rsplit('=').second;
+    while (RelocList.size()) {
+      auto Relocs = RelocList.split(',');
+      RelocVerify.insert(Relocs.first.str());
+      RelocList = Relocs.second;
     }
-    m_DiagEngine->getPrinter()->setVerify(verify);
+    DiagEngine->getPrinter()->setVerify(Verify);
   } else {
-    m_DiagEngine->raise(diag::warn_unknown_verify_type) << VerifyType;
+    DiagEngine->raise(Diag::warn_unknown_verify_type) << VerifyType;
     // issue a warning of unknown and ignored verify type
   }
 }
 
 // Reads the preserve list from the file specified in the preserve-file
 // option
-void GeneralOptions::getSymbolsFromFile(StringRef filename,
-                                        std::vector<std::string> &symbols) {
-  ErrorOr<std::unique_ptr<MemoryBuffer>> fileBuf =
-      MemoryBuffer::getFile(filename);
-  if (!fileBuf)
+void GeneralOptions::getSymbolsFromFile(StringRef Filename,
+                                        std::vector<std::string> &Symbols) {
+  ErrorOr<std::unique_ptr<MemoryBuffer>> FileBuf =
+      MemoryBuffer::getFile(Filename);
+  if (!FileBuf)
     report_fatal_error("Could not read preserve symbols from file\n");
-  StringRef buffer = fileBuf->get()->getBuffer();
-  while (!buffer.empty()) {
-    std::pair<StringRef, StringRef> linePlus = buffer.split('\n');
-    symbols.push_back(linePlus.first.rtrim().str());
-    buffer = linePlus.second;
+  StringRef Buffer = FileBuf->get()->getBuffer();
+  while (!Buffer.empty()) {
+    std::pair<StringRef, StringRef> LinePlus = Buffer.split('\n');
+    Symbols.push_back(LinePlus.first.rtrim().str());
+    Buffer = LinePlus.second;
   }
 }
 
 // Set LTO Options based on command line
-void GeneralOptions::setLTOOptions(llvm::StringRef optionType) {
+void GeneralOptions::setLTOOptions(llvm::StringRef OptionType) {
   // Save the original option string too, in case the plugin may read it.
-  m_UnparsedLTOOptions.push_back(optionType.str());
-  if (optionType.starts_with("preserve-sym")) {
-    m_LTOOptions |= LTOPreserve;
-    size_t pos = optionType.find_last_of('=');
-    std::string symList = optionType.substr(pos + 1).str();
+  UnparsedLTOOptions.push_back(OptionType.str());
+  if (OptionType.starts_with("preserve-sym")) {
+    LTOOptions |= LTOPreserve;
+    size_t Pos = OptionType.find_last_of('=');
+    std::string SymList = OptionType.substr(Pos + 1).str();
     do {
-      pos = symList.find_first_of(',');
-      std::string sym = symList.substr(0, pos);
-      symList = symList.substr(pos + 1);
-      m_PreserveCmdLine.push_back(sym);
-    } while (pos != std::string::npos);
-  } else if (optionType.starts_with("codegen")) {
-    m_LTOOptions |= LTOCodeGen;
-    size_t pos = optionType.find_first_of('=');
-    m_codegenOpts.push_back(optionType.substr(pos + 1).str());
-  } else if (optionType.starts_with("preserve-file")) {
-    m_LTOOptions |= LTOPreserve;
-    size_t pos = optionType.find_last_of('=');
-    std::string preserveFile = optionType.substr(pos + 1).str();
-    getSymbolsFromFile(preserveFile, m_PreserveCmdLine);
-  } else if (optionType.starts_with("asmopts")) {
-    m_LTOOptions |= LTOAsmOpts;
-    size_t pos = optionType.find_first_of('=');
-    m_asmOpts.push_back(optionType.substr(pos + 1).str());
-  } else if (optionType.starts_with("lto-asm-file")) {
-    m_LTOOptions |= LTOAsmFile;
-    size_t pos = optionType.find_first_of('=');
-    setLTOAsmFile(optionType.substr(pos + 1).str());
-  } else if (optionType.starts_with("lto-output-file")) {
-    m_LTOOptions |= LTOOutputFile;
-    size_t pos = optionType.find_first_of('=');
-    setLTOOutputFile(optionType.substr(pos + 1).str());
-  } else if (optionType.starts_with("cache")) {
-    m_LTOOptions |= LTOCacheEnabled;
-    size_t pos = optionType.find_first_of('=');
-    if (pos != llvm::StringRef::npos)
-      m_LTOCacheDirectory = optionType.substr(pos + 1).str();
+      Pos = SymList.find_first_of(',');
+      std::string Sym = SymList.substr(0, Pos);
+      SymList = SymList.substr(Pos + 1);
+      PreserveCmdLine.push_back(Sym);
+    } while (Pos != std::string::npos);
+  } else if (OptionType.starts_with("codegen")) {
+    LTOOptions |= LTOCodeGen;
+    size_t Pos = OptionType.find_first_of('=');
+    CodegenOpts.push_back(OptionType.substr(Pos + 1).str());
+  } else if (OptionType.starts_with("preserve-file")) {
+    LTOOptions |= LTOPreserve;
+    size_t Pos = OptionType.find_last_of('=');
+    std::string PreserveFile = OptionType.substr(Pos + 1).str();
+    getSymbolsFromFile(PreserveFile, PreserveCmdLine);
+  } else if (OptionType.starts_with("asmopts")) {
+    LTOOptions |= LTOAsmOpts;
+    size_t Pos = OptionType.find_first_of('=');
+    AsmOpts.push_back(OptionType.substr(Pos + 1).str());
+  } else if (OptionType.starts_with("lto-asm-file")) {
+    LTOOptions |= LTOAsmFileOpt;
+    size_t Pos = OptionType.find_first_of('=');
+    setLTOAsmFile(OptionType.substr(Pos + 1).str());
+  } else if (OptionType.starts_with("lto-output-file")) {
+    LTOOptions |= LTOOutputFileOpt;
+    size_t Pos = OptionType.find_first_of('=');
+    setLTOOutputFile(OptionType.substr(Pos + 1).str());
+  } else if (OptionType.starts_with("cache")) {
+    LTOOptions |= LTOCacheEnabled;
+    size_t Pos = OptionType.find_first_of('=');
+    if (Pos != llvm::StringRef::npos)
+      LTOCacheDirectory = OptionType.substr(Pos + 1).str();
   } else {
-    m_LTOOptions |= llvm::StringSwitch<uint32_t>(optionType)
-                        .Case("verbose", LTOVerbose)
-                        .Case("preserveall", LTOPreserve)
-                        .Case("disable-linkorder", LTODisableLinkOrder)
-                        .Default(LTONone);
+    LTOOptions |=
+        llvm::StringSwitch<uint32_t>(OptionType)
+            .Case("verbose", LTOOptionType::LTOVerbose)
+            .Case("preserveall", LTOOptionType::LTOPreserve)
+            .Case("disable-linkorder", LTOOptionType::LTODisableLinkOrder)
+            .Default(LTOOptionType::LTONone);
   }
 }
 
 void GeneralOptions::addLTOCodeGenOptions(std::string O) {
-  m_codegenOpts.push_back(O);
+  CodegenOpts.push_back(O);
 }
 
-void GeneralOptions::setLTOOptions(uint32_t ltoOption) {
-  m_LTOOptions |= ltoOption;
+void GeneralOptions::setLTOOptions(uint32_t LtoOption) {
+  LTOOptions |= LtoOption;
 }
 
-bool GeneralOptions::traceSymbol(std::string const &pSym) const {
-  StringRef SymRef(pSym);
+bool GeneralOptions::traceSymbol(std::string const &PSym) const {
+  StringRef SymRef(PSym);
   // Try to improve performance a bit.
-  if (!m_SymbolTrace.size())
+  if (!SymbolTrace.size())
     return false;
-  if (m_DiagEngine->getPrinter()->traceSym()) {
-    return llvm::any_of(m_SymbolsToTrace,
-                        [&](const std::string &S) { return S == pSym; }) ||
-           llvm::any_of(m_SymbolTrace, [&](const llvm::Regex &Regex) {
+  if (DiagEngine->getPrinter()->traceSym()) {
+    return llvm::any_of(SymbolsToTrace,
+                        [&](const std::string &S) { return S == PSym; }) ||
+           llvm::any_of(SymbolTrace, [&](const llvm::Regex &Regex) {
              return Regex.match(SymRef);
            });
   }
   return false;
 }
 
-bool GeneralOptions::traceSection(std::string const &pSec) const {
-  StringRef SecRef(pSec);
+bool GeneralOptions::traceSection(std::string const &PSec) const {
+  StringRef SecRef(PSec);
   // Try to improve performance a bit.
-  if (m_SectionTrace.empty())
+  if (SectionTrace.empty())
     return false;
-  if (m_DiagEngine->getPrinter()->traceSection()) {
-    return llvm::any_of(m_SectionsToTrace,
-                        [&](const std::string &S) { return S == pSec; }) ||
-           llvm::any_of(m_SectionTrace, [&](const llvm::Regex &Regex) {
+  if (DiagEngine->getPrinter()->traceSection()) {
+    return llvm::any_of(SectionsToTrace,
+                        [&](const std::string &S) { return S == PSec; }) ||
+           llvm::any_of(SectionTrace, [&](const llvm::Regex &Regex) {
              return Regex.match(SecRef);
            });
   }
@@ -378,114 +377,114 @@ bool GeneralOptions::traceSection(const Section *S) const {
 bool GeneralOptions::traceReloc(std::string const &RelocName) const {
   StringRef RelocRef(RelocName);
   // Look for an exact match first
-  return llvm::any_of(m_RelocsToTrace,
+  return llvm::any_of(RelocsToTrace,
                       [&](const std::string &S) { return S == RelocName; }) ||
-         llvm::any_of(m_RelocTrace, [&](const llvm::Regex &Regex) {
+         llvm::any_of(RelocTrace, [&](const llvm::Regex &Regex) {
            return Regex.match(RelocRef);
          });
 }
 
 std::vector<llvm::StringRef> GeneralOptions::getLTOOptionsAsString() const {
-  std::vector<llvm::StringRef> returnValue;
-  if ((m_LTOOptions & LTOVerbose) == LTOVerbose)
-    returnValue.push_back("verbose");
-  if (((m_LTOOptions & LTOPreserve) == LTOPreserve) & m_PreserveCmdLine.empty())
-    returnValue.push_back("preserveall");
-  if ((m_LTOOptions & LTOCodeGen) == LTOCodeGen)
-    returnValue.push_back("codegen");
-  if ((m_LTOOptions & LTOAsmOpts) == LTOAsmOpts)
-    returnValue.push_back("asmopts");
-  if ((m_LTOOptions & LTODisableLinkOrder) == LTODisableLinkOrder)
-    returnValue.push_back("Disable link order with linker scripts/LTO");
+  std::vector<llvm::StringRef> ReturnValue;
+  if ((LTOOptions & LTOVerbose) == LTOVerbose)
+    ReturnValue.push_back("verbose");
+  if (((LTOOptions & LTOPreserve) == LTOPreserve) & PreserveCmdLine.empty())
+    ReturnValue.push_back("preserveall");
+  if ((LTOOptions & LTOCodeGen) == LTOCodeGen)
+    ReturnValue.push_back("codegen");
+  if ((LTOOptions & LTOAsmOpts) == LTOAsmOpts)
+    ReturnValue.push_back("asmopts");
+  if ((LTOOptions & LTODisableLinkOrder) == LTODisableLinkOrder)
+    ReturnValue.push_back("Disable link order with linker scripts/LTO");
   // Extend this later or for other -flto-options
-  return returnValue;
+  return ReturnValue;
 }
 
 /// Returns true if LTO trace is required
 bool GeneralOptions::traceLTO(void) const {
-  return (trace() & m_DiagEngine->getPrinter()->TraceLTO) ||
-         (m_LTOOptions & LTOVerbose);
+  return (trace() & DiagEngine->getPrinter()->TraceLTO) ||
+         (LTOOptions & LTOVerbose);
 }
 
 /// Returns true if LTO has to preserve all bitcode symbols
 bool GeneralOptions::preserveAllLTO(void) const {
-  return (m_LTOOptions & LTOPreserve) && m_PreserveCmdLine.empty();
+  return (LTOOptions & LTOPreserve) && PreserveCmdLine.empty();
 }
 
 /// Returns true if a list of symbols to be preserved is supplied
 bool GeneralOptions::preserveSymbolsLTO(void) const {
-  return (m_LTOOptions & LTOPreserve) && !m_PreserveCmdLine.empty();
+  return (LTOOptions & LTOPreserve) && !PreserveCmdLine.empty();
 }
 
 /// Returns true if code generator options are supplied
 bool GeneralOptions::codegenOpts(void) const {
-  return (m_LTOOptions & LTOCodeGen);
+  return (LTOOptions & LTOCodeGen);
 }
 
 /// Returns true if assembler options are supplied
-bool GeneralOptions::asmopts(void) const { return (m_LTOOptions & LTOAsmOpts); }
+bool GeneralOptions::asmopts(void) const { return (LTOOptions & LTOAsmOpts); }
 
 bool GeneralOptions::hasLTOAsmFile(void) const {
-  return (m_LTOOptions & LTOAsmFile);
+  return (LTOOptions & LTOAsmFileOpt);
 }
 
 llvm::iterator_range<GeneralOptions::StringVectorIterT>
 GeneralOptions::ltoAsmFile(void) const {
-  return llvm::make_range(m_LTOAsmFile.cbegin(), m_LTOAsmFile.cend());
+  return llvm::make_range(LTOAsmFile.cbegin(), LTOAsmFile.cend());
 }
 
-void GeneralOptions::setLTOAsmFile(StringRef ltoAsmFile) {
-  size_t pos = StringRef::npos;
-  size_t lastPos = 0;
-  while ((pos = ltoAsmFile.find(",", lastPos)) != StringRef::npos) {
-    m_LTOAsmFile.push_back(ltoAsmFile.slice(lastPos, pos).str());
-    lastPos = pos + 1;
+void GeneralOptions::setLTOAsmFile(StringRef LtoAsmFile) {
+  size_t Pos = StringRef::npos;
+  size_t LastPos = 0;
+  while ((Pos = LtoAsmFile.find(",", LastPos)) != StringRef::npos) {
+    LTOAsmFile.push_back(LtoAsmFile.slice(LastPos, Pos).str());
+    LastPos = Pos + 1;
   }
-  m_LTOAsmFile.push_back(ltoAsmFile.slice(lastPos, ltoAsmFile.size()).str());
+  LTOAsmFile.push_back(LtoAsmFile.slice(LastPos, LtoAsmFile.size()).str());
 }
 
 bool GeneralOptions::hasLTOOutputFile(void) const {
-  return (m_LTOOptions & LTOOutputFile);
+  return (LTOOptions & LTOOutputFileOpt);
 }
 
 llvm::iterator_range<GeneralOptions::StringVectorIterT>
 GeneralOptions::ltoOutputFile(void) const {
-  return llvm::make_range(m_LTOOutputFile.cbegin(), m_LTOOutputFile.cend());
+  return llvm::make_range(LTOOutputFile.cbegin(), LTOOutputFile.cend());
 }
 
-void GeneralOptions::setLTOOutputFile(StringRef ltoOutputFile) {
-  size_t pos = StringRef::npos;
-  size_t lastPos = 0;
-  while ((pos = ltoOutputFile.find(",", lastPos)) != StringRef::npos) {
-    m_LTOOutputFile.push_back(ltoOutputFile.slice(lastPos, pos).str());
-    lastPos = pos + 1;
+void GeneralOptions::setLTOOutputFile(StringRef LtoOutputFile) {
+  size_t Pos = StringRef::npos;
+  size_t LastPos = 0;
+  while ((Pos = LtoOutputFile.find(",", LastPos)) != StringRef::npos) {
+    LTOOutputFile.push_back(LtoOutputFile.slice(LastPos, Pos).str());
+    LastPos = Pos + 1;
   }
-  m_LTOOutputFile.push_back(
-      ltoOutputFile.slice(lastPos, ltoOutputFile.size()).str());
+  LTOOutputFile.push_back(
+      LtoOutputFile.slice(LastPos, LtoOutputFile.size()).str());
 }
 
 bool GeneralOptions::disableLTOLinkOrder() const {
-  return (m_LTOOptions & LTODisableLinkOrder);
+  return (LTOOptions & LTODisableLinkOrder);
 }
 
 /// Returns true if an input is in exclude libs list
 bool GeneralOptions::isInExcludeLIBS(StringRef ResolvedPath,
                                      StringRef NameSpecPath) const {
-  if (m_ExcludeLIBS.empty())
+  if (ExcludeLIBS.empty())
     return false;
 
   // Specifying "--exclude-libs ALL" excludes symbols in all archive libraries
   // from automatic export.
-  if (m_ExcludeLIBS.count("ALL"))
+  if (ExcludeLIBS.count("ALL"))
     return true;
 
-  if (m_ExcludeLIBS.count(NameSpecPath.str()))
+  if (ExcludeLIBS.count(NameSpecPath.str()))
     return true;
 
-  if (m_ExcludeLIBS.count(ResolvedPath.str()))
+  if (ExcludeLIBS.count(ResolvedPath.str()))
     return true;
 
-  if (m_ExcludeLIBS.count(llvm::sys::path::filename(ResolvedPath).str()))
+  if (ExcludeLIBS.count(llvm::sys::path::filename(ResolvedPath).str()))
     return true;
 
   return false;
@@ -493,10 +492,11 @@ bool GeneralOptions::isInExcludeLIBS(StringRef ResolvedPath,
 
 bool GeneralOptions::setErrorStyle(std::string errStyle) {
   if (errStyle == "gnu") {
-    m_ErrorStyle = gnu;
+    ErrorStyle = gnu;
     return true;
-  } else if (errStyle == "llvm") {
-    m_ErrorStyle = llvm;
+  }
+  if (errStyle == "llvm") {
+    ErrorStyle = llvm;
     return true;
   }
   return false;
@@ -504,79 +504,80 @@ bool GeneralOptions::setErrorStyle(std::string errStyle) {
 
 bool GeneralOptions::setScriptOption(std::string scriptOption) {
   if (scriptOption == "match-gnu") {
-    m_ScriptOption = MatchGNU;
+    ScriptOption = MatchGNU;
     return true;
-  } else if (scriptOption == "match-llvm") {
-    m_ScriptOption = MatchLLVM;
+  }
+  if (scriptOption == "match-llvm") {
+    ScriptOption = MatchLLVM;
     return true;
   }
   return false;
 }
 
-GeneralOptions::ScriptOption GeneralOptions::getScriptOption() const {
-  return m_ScriptOption;
+GeneralOptions::ScriptOptionType GeneralOptions::getScriptOption() const {
+  return ScriptOption;
 }
 
-GeneralOptions::ErrorStyle GeneralOptions::getErrorStyle() const {
-  return m_ErrorStyle;
+GeneralOptions::ErrorStyleType GeneralOptions::getErrorStyle() const {
+  return ErrorStyle;
 }
 
-void GeneralOptions::setStats(llvm::StringRef stats) {
-  if (stats == "all")
-    m_DiagEngine->getPrinter()->setStats(m_DiagEngine->getPrinter()->AllStats);
+void GeneralOptions::setStats(llvm::StringRef Stats) {
+  if (Stats == "all")
+    DiagEngine->getPrinter()->setStats(DiagEngine->getPrinter()->AllStats);
 }
 
-void GeneralOptions::setHashStyle(std::string hashStyle) {
-  m_HashStyle = llvm::StringSwitch<int>(hashStyle)
-                    .Case("gnu", GeneralOptions::GNU)
-                    .Case("sysv", GeneralOptions::SystemV)
-                    .Case("both", GeneralOptions::Both)
-                    .Default(GeneralOptions::SystemV);
+void GeneralOptions::setHashStyle(std::string HashStyleOption) {
+  HashStyle = llvm::StringSwitch<int>(HashStyleOption)
+                  .Case("gnu", GeneralOptions::GNU)
+                  .Case("sysv", GeneralOptions::SystemV)
+                  .Case("both", GeneralOptions::Both)
+                  .Default(GeneralOptions::SystemV);
 }
 
 bool GeneralOptions::setDemangleStyle(llvm::StringRef Option) {
   if (Option == "none") {
-    m_bDemangle = false;
+    BDemangle = false;
     return true;
   }
   if (Option == "demangle") {
-    m_bDemangle = true;
+    BDemangle = true;
     return true;
   }
   return false;
 }
 
-void GeneralOptions::setNoInhibitExec(bool pEnable) {
-  m_NoInhibitExec = pEnable;
-  if (pEnable)
-    m_DiagEngine->getPrinter()->setNoInhibitExec();
+void GeneralOptions::setNoInhibitExec(bool PEnable) {
+  NoInhibitExec = PEnable;
+  if (PEnable)
+    DiagEngine->getPrinter()->setNoInhibitExec();
 }
 
 bool GeneralOptions::isDefaultMapStyleText() const {
-  return (llvm::StringRef(m_DefaultMapStyle).compare_insensitive("txt") == 0) ||
-         (llvm::StringRef(m_DefaultMapStyle).compare_insensitive("gnu") == 0) ||
-         (llvm::StringRef(m_DefaultMapStyle).compare_insensitive("llvm") == 0);
+  return (llvm::StringRef(DefaultMapStyle).compare_insensitive("txt") == 0) ||
+         (llvm::StringRef(DefaultMapStyle).compare_insensitive("gnu") == 0) ||
+         (llvm::StringRef(DefaultMapStyle).compare_insensitive("llvm") == 0);
 }
 
 bool GeneralOptions::isDefaultMapStyleYAML() const {
-  return llvm::StringRef(m_DefaultMapStyle).compare_insensitive("yaml") == 0;
+  return llvm::StringRef(DefaultMapStyle).compare_insensitive("yaml") == 0;
 }
 
 bool GeneralOptions::appendMapStyle(const std::string MapStyle) {
   std::vector<std::string> MapStyleSplit = eld::string::split(MapStyle, ',');
-  for (std::string &style : MapStyleSplit) {
+  for (std::string &Style : MapStyleSplit) {
     // Check for valid map styles
-    llvm::StringRef styleRef = llvm::StringRef(style);
-    if (!(styleRef.equals_insensitive("llvm") ||
-          styleRef.equals_insensitive("gnu") ||
-          styleRef.equals_insensitive("yaml") ||
-          styleRef.equals_insensitive("compressed") ||
-          styleRef.equals_insensitive("txt"))) {
+    llvm::StringRef StyleRef = llvm::StringRef(Style);
+    if (!(StyleRef.equals_insensitive("llvm") ||
+          StyleRef.equals_insensitive("gnu") ||
+          StyleRef.equals_insensitive("yaml") ||
+          StyleRef.equals_insensitive("compressed") ||
+          StyleRef.equals_insensitive("txt"))) {
       return false;
     }
-    if (std::find(m_MapStyles.begin(), m_MapStyles.end(), style) ==
-        m_MapStyles.end()) {
-      m_MapStyles.push_back(style);
+    if (std::find(MapStyles.begin(), MapStyles.end(), Style) ==
+        MapStyles.end()) {
+      MapStyles.push_back(Style);
     }
   }
   return true;
@@ -596,14 +597,14 @@ bool GeneralOptions::setMapStyle(llvm::StringRef MapStyle) {
 }
 
 bool GeneralOptions::shouldTraceLinkerScript() const {
-  return m_DiagEngine->getPrinter()->traceLinkerScript();
+  return DiagEngine->getPrinter()->traceLinkerScript();
 }
 
 bool GeneralOptions::checkAndUpdateMapStyleForPrintMap() {
-  if (!m_bPrintMap)
+  if (!BPrintMap)
     return false;
-  if (m_MapStyles.size() == 1) {
-    m_MapStyles.push_back("txt");
+  if (MapStyles.size() == 1) {
+    MapStyles.push_back("txt");
     return true;
   }
   return false;
@@ -612,27 +613,27 @@ bool GeneralOptions::checkAndUpdateMapStyleForPrintMap() {
 bool GeneralOptions::isLinkerRelaxationEnabled(llvm::StringRef Name) const {
   if (!isLinkerRelaxationEnabled())
     return false;
-  if (!m_RelaxSections.size())
+  if (!RelaxSections.size())
     return true;
   llvm::StringRef RelaxSection(Name);
-  return llvm::any_of(m_RelaxSections, [&](const llvm::Regex &Regex) {
+  return llvm::any_of(RelaxSections, [&](const llvm::Regex &Regex) {
     return Regex.match(RelaxSection);
   });
 }
 
 void GeneralOptions::addRelaxSection(llvm::StringRef Name) {
-  m_RelaxSections.emplace_back(llvm::Regex(Name));
+  RelaxSections.emplace_back(llvm::Regex(Name));
 }
 
-bool GeneralOptions::traceSymbol(const LDSymbol &sym,
+bool GeneralOptions::traceSymbol(const LDSymbol &Sym,
                                  const ResolveInfo &RI) const {
   if (traceSymbol(RI.getName().str()))
     return true;
   InputFile *IF = RI.resolvedOrigin();
   if (ObjectFile *OF = llvm::dyn_cast<ObjectFile>(IF)) {
-    auto optAuxSymName = OF->getAuxiliarySymbolName(sym.getSymbolIndex());
-    if (optAuxSymName) {
-      if (traceSymbol(optAuxSymName.value()))
+    auto OptAuxSymName = OF->getAuxiliarySymbolName(Sym.getSymbolIndex());
+    if (OptAuxSymName) {
+      if (traceSymbol(OptAuxSymName.value()))
         return true;
     }
   }
@@ -642,19 +643,19 @@ bool GeneralOptions::traceSymbol(const LDSymbol &sym,
 bool GeneralOptions::traceSymbol(const ResolveInfo &RI) const {
   if (traceSymbol(RI.getName().str()))
     return true;
-  LDSymbol *outSym = RI.outSymbol();
+  LDSymbol *OutSym = RI.outSymbol();
   // Out symbol can be false for ResolveInfo created for shared library symbols.
   // ResolveInfo created for shared library symbols only have outSymbol if the
   // symbol is referenced.
   /// resolvedOrigin can be nullptr for Relocation::symInfo() when relocation is
   /// not associated with a symbol.
-  if (!outSym || !RI.resolvedOrigin())
+  if (!OutSym || !RI.resolvedOrigin())
     return false;
   InputFile *IF = RI.resolvedOrigin();
   if (ObjectFile *OF = llvm::dyn_cast<ObjectFile>(IF)) {
-    auto optAuxSymName = OF->getAuxiliarySymbolName(outSym->getSymbolIndex());
-    if (optAuxSymName) {
-      if (traceSymbol(optAuxSymName.value()))
+    auto OptAuxSymName = OF->getAuxiliarySymbolName(OutSym->getSymbolIndex());
+    if (OptAuxSymName) {
+      if (traceSymbol(OptAuxSymName.value()))
         return true;
     }
   }

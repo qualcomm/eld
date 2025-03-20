@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_OBJECT_SYMBOLCONTAINER_H
-#define ELD_OBJECT_SYMBOLCONTAINER_H
+#ifndef ELD_SCRIPT_SYMBOLCONTAINER_H
+#define ELD_SCRIPT_SYMBOLCONTAINER_H
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
@@ -18,20 +18,20 @@ class Input;
 
 class SymbolContainer {
 public:
-  explicit SymbolContainer(StrToken &token);
+  explicit SymbolContainer(StrToken &Token);
 
-  void addResolveInfo(const ResolveInfo *info);
+  void addResolveInfo(const ResolveInfo *Info);
 
   llvm::StringRef getWildcardPatternAsString() const;
 
-  bool isEmpty() { return m_MatchedSymbols.empty(); }
+  bool isEmpty() { return MMatchedSymbols.empty(); }
 
-  void dump(llvm::raw_ostream &ostream,
-            std::function<std::string(const Input *)> getDecoratedPath) const;
+  void dump(llvm::raw_ostream &Ostream,
+            std::function<std::string(const Input *)> GetDecoratedPath) const;
 
 private:
-  const StrToken &m_StrToken;
-  llvm::SmallVector<const ResolveInfo *> m_MatchedSymbols;
+  const StrToken &MStrToken;
+  llvm::SmallVector<const ResolveInfo *> MMatchedSymbols;
 };
 
 } // end namespace eld

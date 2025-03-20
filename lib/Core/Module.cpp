@@ -43,212 +43,213 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // Module
 //===----------------------------------------------------------------------===//
-Module::Module(LinkerScript &pScript, LinkerConfig &pConfig,
-               LayoutPrinter *layoutPrinter)
-    : m_Script(pScript), m_Config(pConfig), m_DotSymbol(nullptr),
-      m_pLinker(nullptr), m_LayoutPrinter(layoutPrinter), m_Failure(false),
-      usesLTO(false), Saver(BAlloc), PM(pScript, *pConfig.getDiagEngine(),
-                                        pConfig.options().printTimingStats()),
-      m_NamePool(pConfig, PM) {
-  m_State = plugin::LinkerWrapper::Initializing;
-  if (pConfig.options().isLTOCacheEnabled())
-    m_Script.setHashingEnabled();
-  m_Script.createSectionMap(pScript, pConfig, layoutPrinter);
-  m_Printer = m_Config.getPrinter();
-  if (m_Config.shouldCreateReproduceTar())
+Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
+               LayoutPrinter *LayoutPrinter)
+    : UserLinkerScript(CurScript), ThisConfig(Config), DotSymbol(nullptr),
+      Linker(nullptr), ThisLayoutPrinter(LayoutPrinter), Failure(false),
+      UsesLto(false), Saver(BAlloc), PM(CurScript, *Config.getDiagEngine(),
+                                        Config.options().printTimingStats()),
+      SymbolNamePool(Config, PM) {
+  State = plugin::LinkerWrapper::Initializing;
+  if (Config.options().isLTOCacheEnabled())
+    UserLinkerScript.setHashingEnabled();
+  UserLinkerScript.createSectionMap(CurScript, Config, LayoutPrinter);
+  Printer = ThisConfig.getPrinter();
+  if (ThisConfig.shouldCreateReproduceTar())
     createOutputTarWriter();
 }
 
-Module::Module(const std::string &pName, LinkerScript &pScript,
-               LinkerConfig &pConfig, LayoutPrinter *layoutPrinter)
-    : m_Script(pScript), m_Config(pConfig), m_DotSymbol(nullptr),
-      m_pLinker(nullptr), m_LayoutPrinter(layoutPrinter), m_Failure(false),
-      usesLTO(false), Saver(BAlloc), PM(pScript, *pConfig.getDiagEngine(),
-                                        pConfig.options().printTimingStats()),
-      m_NamePool(pConfig, PM) {
-  if (pConfig.options().isLTOCacheEnabled())
-    m_Script.setHashingEnabled();
-  m_Script.createSectionMap(pScript, pConfig, layoutPrinter);
-  m_Printer = m_Config.getPrinter();
+Module::Module(const std::string &Name, LinkerScript &CurScript,
+               LinkerConfig &Config, LayoutPrinter *LayoutPrinter)
+    : UserLinkerScript(CurScript), ThisConfig(Config), DotSymbol(nullptr),
+      Linker(nullptr), ThisLayoutPrinter(LayoutPrinter), Failure(false),
+      UsesLto(false), Saver(BAlloc), PM(CurScript, *Config.getDiagEngine(),
+                                        Config.options().printTimingStats()),
+      SymbolNamePool(Config, PM) {
+  if (Config.options().isLTOCacheEnabled())
+    UserLinkerScript.setHashingEnabled();
+  UserLinkerScript.createSectionMap(CurScript, Config, LayoutPrinter);
+  Printer = ThisConfig.getPrinter();
 }
 
 Module::~Module() {
-  m_ObjectList.clear();
-  m_ArchiveLibraryList.clear();
-  m_DynLibraryList.clear();
-  m_SectionTable.clear();
-  m_AtTable.clear();
-  m_DynamicListSymbols.clear();
-  m_DuplicateFarCalls.clear();
-  m_NoReuseTrampolines.clear();
-  m_Symbols.clear();
-  m_CommonSymbols.clear();
-  m_SectionSymbol.clear();
-  m_CommonMap.clear();
-  f_GroupSignatureMap.clear();
-  delete m_OutputTar;
+  InputObjectList.clear();
+  ArchiveLibraryList.clear();
+  DynLibraryList.clear();
+  OutputSectionTable.clear();
+  AtTable.clear();
+  DynamicListSymbols.clear();
+  DuplicateFarCalls.clear();
+  NoReuseTrampolines.clear();
+  Symbols.clear();
+  CommonSymbols.clear();
+  SectionSymbol.clear();
+  CommonMap.clear();
+  SectionGroupSignatureMap.clear();
+  delete OutputTar;
 }
 
 /// Returns an already existing output section with name 'pName', if any;
 /// Otherwise returns nullptr.
-ELFSection *Module::getSection(const std::string &pName) const {
-  auto OutputSect = m_OutputSectionTableMap.find(pName);
-  if (OutputSect == m_OutputSectionTableMap.end())
+ELFSection *Module::getSection(const std::string &Name) const {
+  auto OutputSect = OutputSectionTableMap.find(Name);
+  if (OutputSect == OutputSectionTableMap.end())
     return nullptr;
   return OutputSect->second;
 }
 
 eld::IRBuilder *Module::getIRBuilder() const {
-  ASSERT(m_pLinker->getIRBuilder(), "Value must be non-null!");
-  return m_pLinker->getIRBuilder();
+  ASSERT(Linker->getIRBuilder(), "Value must be non-null!");
+  return Linker->getIRBuilder();
 }
 
 /// createSection - create an output section.
-ELFSection *Module::createOutputSection(const std::string &pName,
-                                        LDFileFormat::Kind pKind,
-                                        uint32_t pType, uint32_t pFlag,
-                                        uint32_t pAlign) {
-  ELFSection *output_sect = getScript().sectionMap().createOutputSectionEntry(
-      pName, pKind, pType, pFlag, pAlign);
-  addOutputSection(output_sect);
+ELFSection *Module::createOutputSection(const std::string &Name,
+                                        LDFileFormat::Kind PKind, uint32_t Type,
+                                        uint32_t PFlag, uint32_t PAlign) {
+  ELFSection *OutputSect = getScript().sectionMap().createOutputSectionEntry(
+      Name, PKind, Type, PFlag, PAlign);
+  addOutputSection(OutputSect);
   if (getPrinter()->isVerbose())
-    m_Config.raise(diag::creating_output_section)
-        << pName << ELFSection::getELFTypeStr(pName, pType)
-        << ELFSection::getELFPermissionsStr(pFlag) << pAlign;
-  return output_sect;
+    ThisConfig.raise(Diag::creating_output_section)
+        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << ELFSection::getELFPermissionsStr(PFlag) << PAlign;
+  return OutputSect;
 }
 
-InputFile *Module::createInternalInputFile(Input *I, bool createELFObjectFile) {
+InputFile *Module::createInternalInputFile(Input *I, bool CreateElfObjectFile) {
   if (getPrinter()->isVerbose())
-    m_Config.raise(diag::creating_internal_inputs) << I->getFileName();
+    ThisConfig.raise(Diag::creating_internal_inputs) << I->getFileName();
   I->setInputType(Input::Internal);
-  if (!I->resolvePath(m_Config))
+  if (!I->resolvePath(ThisConfig))
     return {};
-  if (createELFObjectFile)
-    return InputFile::Create(I, InputFile::ELFObjFileKind,
-                             m_Config.getDiagEngine());
-  else
-    return make<InternalInputFile>(I, m_Config.getDiagEngine());
+  if (CreateElfObjectFile)
+    return InputFile::create(I, InputFile::ELFObjFileKind,
+                             ThisConfig.getDiagEngine());
+  return make<InternalInputFile>(I, ThisConfig.getDiagEngine());
 }
 
 bool Module::createInternalInputs() {
-  for (int i = Module::InternalInputType::Attributes;
-       i < Module::InternalInputType::MAX; ++i) {
+  for (int IType = Module::InternalInputType::Attributes;
+       IType < Module::InternalInputType::MAX; ++IType) {
     Input *I = nullptr;
-    bool createELFObjectFile = false;
-    switch (i) {
+    bool CreateElfObjectFile = false;
+    switch (IType) {
     case Module::InternalInputType::Attributes:
-      I = make<Input>("Attributes", m_Config.getDiagEngine());
+      I = make<Input>("Attributes", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::BitcodeSections:
-      I = make<Input>("BitcodeSections", m_Config.getDiagEngine());
+      I = make<Input>("BitcodeSections", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Common:
-      I = make<Input>("CommonSymbols", m_Config.getDiagEngine());
+      I = make<Input>("CommonSymbols", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::CopyRelocSymbols:
-      I = make<Input>("CopyRelocSymbols", m_Config.getDiagEngine());
+      I = make<Input>("CopyRelocSymbols", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::DynamicExports:
-      I = make<Input>("Dynamic symbol table exports", m_Config.getDiagEngine());
+      I = make<Input>("Dynamic symbol table exports",
+                      ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::DynamicList:
-      I = make<Input>("DynamicList", m_Config.getDiagEngine());
+      I = make<Input>("DynamicList", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::DynamicSections:
       I = make<Input>("Linker created sections for dynamic linking",
-                      m_Config.getDiagEngine());
+                      ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::EhFrameFiller:
-      I = make<Input>("EH Frame filler", m_Config.getDiagEngine());
+      I = make<Input>("EH Frame filler", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::EhFrameHdr:
-      I = make<Input>("Eh Frame Header", m_Config.getDiagEngine());
+      I = make<Input>("Eh Frame Header", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Exception:
-      I = make<Input>("Exceptions", m_Config.getDiagEngine());
+      I = make<Input>("Exceptions", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::ExternList:
-      I = make<Input>("ExternList", m_Config.getDiagEngine());
+      I = make<Input>("ExternList", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Guard:
       I = make<Input>("Linker Guard for Weak Undefined Symbols",
-                      m_Config.getDiagEngine());
+                      ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::LinkerVersion:
-      I = make<Input>("Linker Version", m_Config.getDiagEngine());
+      I = make<Input>("Linker Version", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Plugin:
-      I = make<Input>("Plugin", m_Config.getDiagEngine());
+      I = make<Input>("Plugin", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::RegionTable:
-      I = make<Input>("RegionTable", m_Config.getDiagEngine());
+      I = make<Input>("RegionTable", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Script:
-      I = make<Input>("Internal-LinkerScript", m_Config.getDiagEngine());
+      I = make<Input>("Internal-LinkerScript", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Sections:
-      I = make<Input>("Sections", m_Config.getDiagEngine());
+      I = make<Input>("Sections", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::SmallData:
-      I = make<Input>("SmallData", m_Config.getDiagEngine());
+      I = make<Input>("SmallData", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::TLSStub:
       I = make<Input>("Linker created TLS transformation stubs",
-                      m_Config.getDiagEngine());
+                      ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Trampoline:
-      I = make<Input>("TRAMPOLINE", m_Config.getDiagEngine());
+      I = make<Input>("TRAMPOLINE", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::Timing:
-      I = make<Input>("TIMING", m_Config.getDiagEngine());
+      I = make<Input>("TIMING", ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::SectionRelocMap:
       I = make<Input>("Section map for --unique-output-sections",
-                      m_Config.getDiagEngine());
+                      ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::GlobalDataSymbols:
-      I = make<Input>("Internal global data symbols", m_Config.getDiagEngine());
-      createELFObjectFile = true;
+      I = make<Input>("Internal global data symbols",
+                      ThisConfig.getDiagEngine());
+      CreateElfObjectFile = true;
       break;
 
     case Module::InternalInputType::OutputSectData:
-      I = make<Input>("Explicit output section data", m_Config.getDiagEngine());
+      I = make<Input>("Explicit output section data",
+                      ThisConfig.getDiagEngine());
       break;
 
     case Module::InternalInputType::GNUBuildID:
-      I = make<Input>("Build ID", m_Config.getDiagEngine());
+      I = make<Input>("Build ID", ThisConfig.getDiagEngine());
       break;
 
     default:
       break;
     }
-    auto *IF = createInternalInputFile(I, createELFObjectFile);
+    auto *IF = createInternalInputFile(I, CreateElfObjectFile);
     if (!IF)
       return false;
-    m_InternalFiles[i] = IF;
+    InternalFiles[IType] = IF;
   }
 
   getBackend()->createInternalInputs();
@@ -257,64 +258,64 @@ bool Module::createInternalInputs() {
 }
 
 ELFSection *Module::createInternalSection(InputFile &I, LDFileFormat::Kind K,
-                                          std::string pName, uint32_t pType,
-                                          uint32_t pFlag, uint32_t pAlign,
-                                          uint32_t entSize) {
-  ELFSection *inputSect = getScript().sectionMap().createELFSection(
-      pName, K, pType, pFlag, /*EntSize=*/0);
-  inputSect->setAddrAlign(pAlign);
-  inputSect->setEntSize(entSize);
-  if (m_Config.options().isSectionTracingRequested() &&
-      m_Config.options().traceSection(pName))
-    m_Config.raise(diag::internal_section_create)
-        << inputSect->getDecoratedName(m_Config.options())
-        << utility::toHex(inputSect->getAddrAlign())
-        << utility::toHex(inputSect->size())
-        << ELFSection::getELFPermissionsStr(inputSect->getFlags());
-  inputSect->setInputFile(&I);
-  if (I.getKind() == InputFile::Kind::InternalInputKind)
-    llvm::dyn_cast<eld::InternalInputFile>(&I)->addSection(inputSect);
-  else if (I.getKind() == InputFile::Kind::ELFObjFileKind)
-    llvm::dyn_cast<eld::ELFObjectFile>(&I)->addSection(inputSect);
-  if (pType == llvm::ELF::SHT_REL || pType == llvm::ELF::SHT_RELA)
-    inputSect->setHasNoFragments();
+                                          std::string Name, uint32_t Type,
+                                          uint32_t PFlag, uint32_t PAlign,
+                                          uint32_t EntSize) {
+  ELFSection *InputSect = getScript().sectionMap().createELFSection(
+      Name, K, Type, PFlag, /*EntSize=*/0);
+  InputSect->setAddrAlign(PAlign);
+  InputSect->setEntSize(EntSize);
+  if (ThisConfig.options().isSectionTracingRequested() &&
+      ThisConfig.options().traceSection(Name))
+    ThisConfig.raise(Diag::internal_section_create)
+        << InputSect->getDecoratedName(ThisConfig.options())
+        << utility::toHex(InputSect->getAddrAlign())
+        << utility::toHex(InputSect->size())
+        << ELFSection::getELFPermissionsStr(InputSect->getFlags());
+  InputSect->setInputFile(&I);
+  if (I.getKind() == InputFile::InputFileKind::InternalInputKind)
+    llvm::dyn_cast<eld::InternalInputFile>(&I)->addSection(InputSect);
+  else if (I.getKind() == InputFile::InputFileKind::ELFObjFileKind)
+    llvm::dyn_cast<eld::ELFObjectFile>(&I)->addSection(InputSect);
+  if (Type == llvm::ELF::SHT_REL || Type == llvm::ELF::SHT_RELA)
+    InputSect->setHasNoFragments();
   if (getPrinter()->isVerbose())
-    m_Config.raise(diag::created_internal_section)
-        << pName << ELFSection::getELFTypeStr(pName, pType)
-        << ELFSection::getELFPermissionsStr(pFlag) << pAlign << entSize;
-  return inputSect;
+    ThisConfig.raise(Diag::created_internal_section)
+        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << ELFSection::getELFPermissionsStr(PFlag) << PAlign << EntSize;
+  return InputSect;
 }
 
 /// createSection - create an internal input section.
-EhFrameHdrSection *Module::createEhFrameHdrSection(InternalInputType type,
-                                                   std::string pName,
-                                                   uint32_t pType,
-                                                   uint32_t pFlag,
-                                                   uint32_t pAlign) {
-  EhFrameHdrSection *inputSect =
-      getScript().sectionMap().createEhFrameHdrSection(pName, pType, pFlag);
-  inputSect->setAddrAlign(pAlign);
-  inputSect->setInputFile(m_InternalFiles[type]);
-  llvm::dyn_cast<eld::InternalInputFile>(m_InternalFiles[type])
-      ->addSection(inputSect);
+EhFrameHdrSection *Module::createEhFrameHdrSection(InternalInputType IType,
+                                                   std::string Name,
+                                                   uint32_t Type,
+                                                   uint32_t PFlag,
+                                                   uint32_t PAlign) {
+  EhFrameHdrSection *InputSect =
+      getScript().sectionMap().createEhFrameHdrSection(Name, Type, PFlag);
+  InputSect->setAddrAlign(PAlign);
+  InputSect->setInputFile(InternalFiles[Type]);
+  llvm::dyn_cast<eld::InternalInputFile>(InternalFiles[IType])
+      ->addSection(InputSect);
   if (getPrinter()->isVerbose())
-    m_Config.raise(diag::created_eh_frame_hdr)
-        << pName << ELFSection::getELFTypeStr(pName, pType)
-        << ELFSection::getELFPermissionsStr(pFlag) << pAlign;
-  return inputSect;
+    ThisConfig.raise(Diag::created_eh_frame_hdr)
+        << Name << ELFSection::getELFTypeStr(Name, Type)
+        << ELFSection::getELFPermissionsStr(PFlag) << PAlign;
+  return InputSect;
 }
 
-Section *Module::createBitcodeSection(const std::string &section,
+Section *Module::createBitcodeSection(const std::string &Section,
                                       BitcodeFile &InputFile, bool Internal) {
 
-  Section *S = make<Section>(Section::Bitcode, section, 0 /*size */);
+  eld::Section *S = make<eld::Section>(Section::Bitcode, Section, 0 /*size */);
 
   if (S) {
     if (!Internal) {
-      if (m_Config.options().isSectionTracingRequested() &&
-          m_Config.options().traceSection(section))
-        m_Config.raise(diag::read_bitcode_section)
-            << S->getDecoratedName(m_Config.options())
+      if (ThisConfig.options().isSectionTracingRequested() &&
+          ThisConfig.options().traceSection(Section))
+        ThisConfig.raise(Diag::read_bitcode_section)
+            << S->getDecoratedName(ThisConfig.options())
             << InputFile.getInput()->decoratedPath();
     }
 
@@ -333,30 +334,30 @@ Section *Module::createBitcodeSection(const std::string &section,
 // Sort common symbols.
 //
 bool Module::sortCommonSymbols() {
-  if (m_Config.options().isSortCommonEnabled()) {
-    bool isSortingCommonSymbolsAscendingAlignment =
-        m_Config.options().isSortCommonSymbolsAscendingAlignment();
-    std::sort(m_CommonSymbols.begin(), m_CommonSymbols.end(),
+  if (ThisConfig.options().isSortCommonEnabled()) {
+    bool IsSortingCommonSymbolsAscendingAlignment =
+        ThisConfig.options().isSortCommonSymbolsAscendingAlignment();
+    std::sort(CommonSymbols.begin(), CommonSymbols.end(),
               [&](const ResolveInfo *A, const ResolveInfo *B) {
-                if (isSortingCommonSymbolsAscendingAlignment)
+                if (IsSortingCommonSymbolsAscendingAlignment)
                   return A->value() < B->value();
                 return A->value() > B->value();
               });
     return true;
   }
   std::stable_sort(
-      m_CommonSymbols.begin(), m_CommonSymbols.end(),
+      CommonSymbols.begin(), CommonSymbols.end(),
       static_cast<bool (*)(ResolveInfo *, ResolveInfo *)>(
           [](ResolveInfo *A, ResolveInfo *B) -> bool {
-            auto ordA = A->resolvedOrigin()->getInput()->getInputOrdinal();
-            auto ordB = B->resolvedOrigin()->getInput()->getInputOrdinal();
-            if (ordA == ordB) {
-              auto valA = A->outSymbol()->value();
-              auto valB = B->outSymbol()->value();
-              if (valA == valB)
+            auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
+            auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
+            if (OrdA == OrdB) {
+              auto ValA = A->outSymbol()->value();
+              auto ValB = B->outSymbol()->value();
+              if (ValA == ValB)
                 return A->outSymbol()->getSymbolIndex() <
                        B->outSymbol()->getSymbolIndex();
-              return valA < valB;
+              return ValA < ValB;
             }
             return A->resolvedOrigin()->getInput()->getInputOrdinal() <
                    B->resolvedOrigin()->getInput()->getInputOrdinal();
@@ -365,7 +366,7 @@ bool Module::sortCommonSymbols() {
 }
 
 bool Module::sortSymbols() {
-  std::stable_sort(m_Symbols.begin(), m_Symbols.end(),
+  std::stable_sort(Symbols.begin(), Symbols.end(),
                    static_cast<bool (*)(ResolveInfo *, ResolveInfo *)>(
                        [](ResolveInfo *A, ResolveInfo *B) -> bool {
                          // Section symbols always appear first.
@@ -391,17 +392,17 @@ bool Module::sortSymbols() {
 }
 
 bool Module::readPluginConfig() {
-  if (m_Config.options().useDefaultPlugins()) {
+  if (ThisConfig.options().useDefaultPlugins()) {
     std::vector<eld::sys::fs::Path> DefaultPlugins =
-        m_Config.directories().getDefaultPluginConfigs();
-    if (!m_Config.getDiagEngine()->diagnose())
+        ThisConfig.directories().getDefaultPluginConfigs();
+    if (!ThisConfig.getDiagEngine()->diagnose())
       return false;
     for (auto &Cfg : DefaultPlugins) {
       if (!readOnePluginConfig(Cfg.native()))
         return false;
     }
   }
-  for (const auto &Cfg : m_Config.options().getPluginConfig()) {
+  for (const auto &Cfg : ThisConfig.options().getPluginConfig()) {
     if (!readOnePluginConfig(Cfg))
       return false;
   }
@@ -414,11 +415,11 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile) {
   if (CfgFile.empty())
     return true;
 
-  const eld::sys::fs::Path *P = m_Config.directories().findFile(
+  const eld::sys::fs::Path *P = ThisConfig.directories().findFile(
       "plugin configuration file", CfgFile.str(), /*PluginName*/ "");
 
   if (!P) {
-    m_Config.raise(diag::error_config_file_not_found) << CfgFile.str();
+    ThisConfig.raise(Diag::error_config_file_not_found) << CfgFile.str();
     return false;
   }
 
@@ -428,7 +429,7 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile) {
       llvm::MemoryBuffer::getFile(CfgFilePath);
 
   if (!MBOrErr) {
-    m_Config.raise(diag::plugin_config_error) << CfgFilePath;
+    ThisConfig.raise(Diag::plugin_config_error) << CfgFilePath;
     return false;
   }
 
@@ -436,24 +437,25 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile) {
   YamlIn >> Config;
 
   if (YamlIn.error()) {
-    m_Config.raise(diag::plugin_config_parse_error) << CfgFilePath;
+    ThisConfig.raise(Diag::plugin_config_parse_error) << CfgFilePath;
     return false;
   }
 
   for (auto &G : Config.GlobalPlugins) {
     getScript().addPlugin(G.PluginType, G.LibraryName, G.PluginName, G.Options,
-                          m_Config.options().printTimingStats("Plugin"), *this);
+                          ThisConfig.options().printTimingStats("Plugin"),
+                          *this);
     if (getPrinter()->isVerbose())
-      m_Config.raise(diag::intializing_plugin) << G.PluginName;
+      ThisConfig.raise(Diag::intializing_plugin) << G.PluginName;
   }
 
   for (auto &O : Config.OutputSectionPlugins) {
     eld::Plugin *P = getScript().addPlugin(
         O.PluginType, O.LibraryName, O.PluginName, O.Options,
-        m_Config.options().printTimingStats("Plugin"), *this);
+        ThisConfig.options().printTimingStats("Plugin"), *this);
     getScript().addPluginOutputSection(O.OutputSection, P);
     if (getPrinter()->isVerbose())
-      m_Config.raise(diag::adding_output_section_for_plugin)
+      ThisConfig.raise(Diag::adding_output_section_for_plugin)
           << O.OutputSection << O.PluginName;
   }
   return true;
@@ -472,7 +474,8 @@ bool Module::updateOutputSectionsWithPlugins() {
     eld::Plugin *P = Plugin.second;
     auto OutputSection = OutputSections.find(OS);
     if (OutputSection == OutputSections.end()) {
-      m_Config.raise(diag::no_output_section_for_plugin) << OS << P->getName();
+      ThisConfig.raise(Diag::no_output_section_for_plugin)
+          << OS << P->getName();
       continue;
     }
     OutputSectionEntry *CurOutputSection = OutputSection->getValue();
@@ -500,36 +503,36 @@ llvm::StringRef Module::getStateStr() const {
 
 void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
                                                 uint64_t Val,
-                                                const eld::Plugin *plugin) {
+                                                const eld::Plugin *Plugin) {
   LayoutPrinter *LP = getLayoutPrinter();
-  LDSymbol *S = m_NamePool.createPluginSymbol(
+  LDSymbol *S = SymbolNamePool.createPluginSymbol(
       getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val, LP);
   if (S && LP && LP->showSymbolResolution())
-    m_NamePool.getSRI().recordPluginSymbol(S, plugin);
-  m_PluginFragmentToSymbols[F];
-  m_PluginFragmentToSymbols[F].push_back(S);
+    SymbolNamePool.getSRI().recordPluginSymbol(S, Plugin);
+  PluginFragmentToSymbols[F];
+  PluginFragmentToSymbols[F].push_back(S);
   llvm::dyn_cast<eld::ObjectFile>(F->getOwningSection()->getInputFile())
       ->addLocalSymbol(S);
   addSymbol(S->resolveInfo());
   if (getPrinter()->isVerbose())
-    m_Config.raise(diag::adding_symbol_to_fragment) << Symbol;
+    ThisConfig.raise(Diag::adding_symbol_to_fragment) << Symbol;
 }
 
 Fragment *Module::createPluginFillFragment(std::string PluginName,
                                            uint32_t Alignment,
                                            uint32_t PaddingSize) {
   LayoutPrinter *P = getLayoutPrinter();
-  ELFSection *inputSect = getScript().sectionMap().createELFSection(
+  ELFSection *InputSect = getScript().sectionMap().createELFSection(
       ".bss.paddingchunk." + PluginName, LDFileFormat::Regular,
       llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC, /*EntSize=*/0);
-  inputSect->setAddrAlign(Alignment);
-  inputSect->setInputFile(m_InternalFiles[Plugin]);
+  InputSect->setAddrAlign(Alignment);
+  InputSect->setInputFile(InternalFiles[Plugin]);
   Fragment *F =
-      make<FillFragment>(*this, 0x0, PaddingSize, inputSect, Alignment);
+      make<FillFragment>(*this, 0x0, PaddingSize, InputSect, Alignment);
   addPluginFrag(F);
-  inputSect->addFragmentAndUpdateSize(F);
+  InputSect->addFragmentAndUpdateSize(F);
   if (P)
-    P->recordFragment(m_InternalFiles[Plugin], inputSect, F);
+    P->recordFragment(InternalFiles[Plugin], InputSect, F);
   return F;
 }
 
@@ -537,17 +540,17 @@ Fragment *Module::createPluginCodeFragment(std::string PluginName,
                                            std::string Name, uint32_t Alignment,
                                            const char *Buf, size_t Sz) {
   LayoutPrinter *P = getLayoutPrinter();
-  ELFSection *inputSect = getScript().sectionMap().createELFSection(
+  ELFSection *InputSect = getScript().sectionMap().createELFSection(
       ".text.codechunk." + Name + "." + PluginName, LDFileFormat::Internal,
       llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR,
       /*EntSize=*/0);
-  inputSect->setAddrAlign(Alignment);
-  inputSect->setInputFile(m_InternalFiles[Plugin]);
-  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), inputSect,
+  InputSect->setAddrAlign(Alignment);
+  InputSect->setInputFile(InternalFiles[Plugin]);
+  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
                                      Fragment::Type::Region, Alignment);
   addPluginFrag(F);
   if (P)
-    P->recordFragment(m_InternalFiles[Plugin], inputSect, F);
+    P->recordFragment(InternalFiles[Plugin], InputSect, F);
   return F;
 }
 
@@ -555,17 +558,17 @@ Fragment *Module::createPluginDataFragmentWithCustomName(
     const std::string &PluginName, std::string Name, uint32_t Alignment,
     const char *Buf, size_t Sz) {
   LayoutPrinter *P = getLayoutPrinter();
-  ELFSection *inputSect = getScript().sectionMap().createELFSection(
+  ELFSection *InputSect = getScript().sectionMap().createELFSection(
       Name, LDFileFormat::Internal, llvm::ELF::SHT_PROGBITS,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE, /*EntSize=*/0);
-  inputSect->setAddrAlign(Alignment);
-  inputSect->setInputFile(m_InternalFiles[Plugin]);
-  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), inputSect,
+  InputSect->setAddrAlign(Alignment);
+  InputSect->setInputFile(InternalFiles[Plugin]);
+  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
                                      Fragment::Type::Region, Alignment);
-  inputSect->addFragment(F);
+  InputSect->addFragment(F);
   addPluginFrag(F);
   if (P)
-    P->recordFragment(m_InternalFiles[Plugin], inputSect, F);
+    P->recordFragment(InternalFiles[Plugin], InputSect, F);
   return F;
 }
 
@@ -581,40 +584,40 @@ Fragment *Module::createPluginBSSFragment(std::string PluginName,
                                           std::string Name, uint32_t Alignment,
                                           size_t Sz) {
   LayoutPrinter *P = getLayoutPrinter();
-  ELFSection *inputSect = getScript().sectionMap().createELFSection(
+  ELFSection *InputSect = getScript().sectionMap().createELFSection(
       ".data.bsschunk." + Name + "." + PluginName, LDFileFormat::Internal,
       llvm::ELF::SHT_NOBITS, llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
       /*EntSize=*/0);
-  inputSect->setAddrAlign(Alignment);
-  inputSect->setInputFile(m_InternalFiles[Plugin]);
-  Fragment *F = make<FillFragment>(*this, 0, Sz, inputSect, Alignment);
+  InputSect->setAddrAlign(Alignment);
+  InputSect->setInputFile(InternalFiles[Plugin]);
+  Fragment *F = make<FillFragment>(*this, 0, Sz, InputSect, Alignment);
   addPluginFrag(F);
   if (P)
-    P->recordFragment(m_InternalFiles[Plugin], inputSect, F);
+    P->recordFragment(InternalFiles[Plugin], InputSect, F);
   return F;
 }
 
 Fragment *
-Module::createPluginFragmentWithCustomName(std::string Name, size_t sectType,
-                                           size_t sectFlags, uint32_t Alignment,
+Module::createPluginFragmentWithCustomName(std::string Name, size_t SectType,
+                                           size_t SectFlags, uint32_t Alignment,
                                            const char *Buf, size_t Sz) {
   LayoutPrinter *P = getLayoutPrinter();
-  ELFSection *inputSect = getScript().sectionMap().createELFSection(
-      Name, LDFileFormat::Internal, sectType, sectFlags, /*EntSize=*/0);
-  inputSect->setAddrAlign(Alignment);
-  inputSect->setInputFile(m_InternalFiles[Plugin]);
-  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), inputSect,
+  ELFSection *InputSect = getScript().sectionMap().createELFSection(
+      Name, LDFileFormat::Internal, SectType, SectFlags, /*EntSize=*/0);
+  InputSect->setAddrAlign(Alignment);
+  InputSect->setInputFile(InternalFiles[Plugin]);
+  Fragment *F = make<RegionFragment>(llvm::StringRef(Buf, Sz), InputSect,
                                      Fragment::Type::Region, Alignment);
-  inputSect->addFragment(F);
+  InputSect->addFragment(F);
   addPluginFrag(F);
   if (P)
-    P->recordFragment(m_InternalFiles[Plugin], inputSect, F);
+    P->recordFragment(InternalFiles[Plugin], InputSect, F);
   return F;
 }
 
 GNULDBackend *Module::getBackend() const {
-  ASSERT(m_pLinker->getBackend(), "The value must be non-null.");
-  return m_pLinker->getBackend();
+  ASSERT(Linker->getBackend(), "The value must be non-null.");
+  return Linker->getBackend();
 }
 
 void Module::replaceFragment(FragmentRef *F, const uint8_t *Data, size_t Sz) {
@@ -627,79 +630,78 @@ void Module::addSymbol(ResolveInfo *R) {
   FragmentRef *Ref = R->outSymbol()->fragRef();
   if (Ref && Ref->frag())
     Ref->frag()->addSymbol(R);
-  m_Symbols.push_back(R);
+  Symbols.push_back(R);
   if (getPrinter()->isVerbose())
-    m_Config.raise(diag::added_symbol)
-        << R->getDecoratedName(m_Config.options().shouldDemangle())
+    ThisConfig.raise(Diag::added_symbol)
+        << R->getDecoratedName(ThisConfig.options().shouldDemangle())
         << R->infoAsString();
 }
 
 LDSymbol *Module::addSymbolFromBitCode(
-    ObjectFile &pInput, const std::string &pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, ResolveInfo::Visibility pVisibility,
-    unsigned int pIdx) {
+    ObjectFile &CurInput, const std::string &Name, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, ResolveInfo::Visibility Visibility,
+    unsigned int PIdx) {
 
   // insert symbol and resolve it immediately
   // resolved_result is a triple <resolved_info, existent, override>
-  Resolver::Result resolved_result = {nullptr, false, false};
+  Resolver::Result ResolvedResult = {nullptr, false, false};
 
-  bool isLocalSym = false;
+  bool IsLocalSym = false;
 
-  if (pBinding == ResolveInfo::Local || pVisibility == ResolveInfo::Internal) {
-    resolved_result.info =
-        getNamePool().createSymbol(&pInput, pName, false, pType, pDesc,
-                                   pBinding, pSize, pVisibility, false);
-    resolved_result.info->setInBitCode(true);
-    isLocalSym = true;
+  if (Binding == ResolveInfo::Local || Visibility == ResolveInfo::Internal) {
+    ResolvedResult.Info = getNamePool().createSymbol(
+        &CurInput, Name, false, Type, Desc, Binding, Size, Visibility, false);
+    ResolvedResult.Info->setInBitCode(true);
+    IsLocalSym = true;
   } else {
-    getNamePool().insertSymbol(&pInput, pName, false, pType, pDesc, pBinding,
-                               pSize, 0, pVisibility, nullptr, resolved_result,
-                               false /*isPostLTOPhase*/, true, pIdx, false,
+    getNamePool().insertSymbol(&CurInput, Name, false, Type, Desc, Binding,
+                               Size, 0, Visibility, nullptr, ResolvedResult,
+                               false /*isPostLTOPhase*/, true, PIdx, false,
                                getPrinter());
-    if (!m_Config.options().renameMap().empty() &&
-        pDesc == ResolveInfo::Undefined) {
-      if (m_Config.options().renameMap().count(pName))
-        saveWrapReference(pName);
+    if (!ThisConfig.options().renameMap().empty() &&
+        Desc == ResolveInfo::Undefined) {
+      if (ThisConfig.options().renameMap().count(Name))
+        saveWrapReference(Name);
     }
   }
 
-  if (!resolved_result.info)
+  if (!ResolvedResult.Info)
     return nullptr;
 
-  if (m_Config.options().cref())
-    getIRBuilder()->addToCref(pInput, resolved_result);
+  if (ThisConfig.options().cref())
+    getIRBuilder()->addToCref(CurInput, ResolvedResult);
 
-  if (resolved_result.overriden || !resolved_result.existent)
-    pInput.setNeeded();
+  if (ResolvedResult.Overriden || !ResolvedResult.Existent)
+    CurInput.setNeeded();
 
   // create a LDSymbol for the input file.
-  LDSymbol *input_sym = getIRBuilder()->makeLDSymbol(resolved_result.info);
-  input_sym->setFragmentRef(FragmentRef::Null());
+  LDSymbol *InputSym = getIRBuilder()->makeLDSymbol(ResolvedResult.Info);
+  InputSym->setFragmentRef(FragmentRef::null());
 
-  if (!isLocalSym) {
+  if (!IsLocalSym) {
     SymbolResolutionInfo &SRI = getNamePool().getSRI();
-    SRI.recordSymbolInfo(input_sym,
-                         SymbolInfo(&pInput, pSize, pBinding, pType,
-                                    pVisibility, pDesc, /*isBitcode=*/true));
+    SRI.recordSymbolInfo(InputSym,
+                         SymbolInfo(&CurInput, Size, Binding, Type, Visibility,
+                                    Desc, /*isBitcode=*/true));
   }
 
-  if (!resolved_result.info->outSymbol())
-    resolved_result.info->setOutSymbol(input_sym);
+  if (!ResolvedResult.Info->outSymbol())
+    ResolvedResult.Info->setOutSymbol(InputSym);
 
-  if (isLocalSym)
-    pInput.addLocalSymbol(input_sym);
+  if (IsLocalSym)
+    CurInput.addLocalSymbol(InputSym);
   else
-    pInput.addSymbol(input_sym);
+    CurInput.addSymbol(InputSym);
 
-  if (input_sym->resolveInfo() &&
-      m_Config.options().traceSymbol(*(input_sym->resolveInfo()))) {
-    m_Config.raise(diag::add_new_symbol)
-        << input_sym->name() << pInput.getInput()->decoratedPath()
-        << input_sym->resolveInfo()->infoAsString();
+  if (InputSym->resolveInfo() &&
+      ThisConfig.options().traceSymbol(*(InputSym->resolveInfo()))) {
+    ThisConfig.raise(Diag::add_new_symbol)
+        << InputSym->name() << CurInput.getInput()->decoratedPath()
+        << InputSym->resolveInfo()->infoAsString();
   }
 
-  return input_sym;
+  return InputSym;
 }
 
 void Module::recordPluginData(std::string PluginName, uint32_t Key, void *Data,
@@ -709,21 +711,21 @@ void Module::recordPluginData(std::string PluginName, uint32_t Key, void *Data,
 }
 
 std::vector<eld::PluginData *> Module::getPluginData(std::string PluginName) {
-  auto iter = PluginDataMap.find(PluginName);
-  if (iter != PluginDataMap.end())
-    return iter->second;
+  auto Iter = PluginDataMap.find(PluginName);
+  if (Iter != PluginDataMap.end())
+    return Iter->second;
   return {};
 }
 
 void Module::createOutputTarWriter() {
   // FIXME: Should we perhaps use eld::make<OutputTarWriter> here?
-  m_OutputTar = new eld::OutputTarWriter(m_Config);
+  OutputTar = new eld::OutputTarWriter(ThisConfig);
 }
 
-void Module::setFailure(bool fails) {
-  m_Failure = fails;
-  if (m_Failure)
-    m_Printer->recordFatalError();
+void Module::setFailure(bool Fails) {
+  Failure = Fails;
+  if (Failure)
+    Printer->recordFatalError();
 }
 
 llvm::StringRef Module::saveString(std::string S) { return Saver.save(S); }
@@ -733,31 +735,31 @@ llvm::StringRef Module::saveString(llvm::StringRef S) { return Saver.save(S); }
 bool Module::checkAndRaiseLayoutPrinterDiagEntry(eld::Expected<void> E) const {
   if (E)
     return true;
-  m_Config.getDiagEngine()->raiseDiagEntry(std::move(E.error()));
+  ThisConfig.getDiagEngine()->raiseDiagEntry(std::move(E.error()));
   return false;
 }
 
-bool Module::createLayoutPrintersForMapStyle(llvm::StringRef mapStyle) {
-  if (!m_LayoutPrinter)
+bool Module::createLayoutPrintersForMapStyle(llvm::StringRef MapStyle) {
+  if (!ThisLayoutPrinter)
     return true;
   // Text
-  if (mapStyle.empty() || mapStyle.equals_insensitive("llvm") ||
-      mapStyle.equals_insensitive("gnu") ||
-      mapStyle.equals_insensitive("txt")) {
-    m_TextMapPrinter = eld::make<eld::TextLayoutPrinter>(m_LayoutPrinter);
-    return checkAndRaiseLayoutPrinterDiagEntry(m_TextMapPrinter->init());
+  if (MapStyle.empty() || MapStyle.equals_insensitive("llvm") ||
+      MapStyle.equals_insensitive("gnu") ||
+      MapStyle.equals_insensitive("txt")) {
+    TextMapPrinter = eld::make<eld::TextLayoutPrinter>(ThisLayoutPrinter);
+    return checkAndRaiseLayoutPrinterDiagEntry(TextMapPrinter->init());
   }
   // YAML
-  if (mapStyle.equals_insensitive("yaml") ||
-      mapStyle.equals_insensitive("compressed")) {
-    m_YAMLMapPrinter = eld::make<eld::YamlLayoutPrinter>(m_LayoutPrinter);
-    return checkAndRaiseLayoutPrinterDiagEntry(m_YAMLMapPrinter->init());
+  if (MapStyle.equals_insensitive("yaml") ||
+      MapStyle.equals_insensitive("compressed")) {
+    YamlMapPrinter = eld::make<eld::YamlLayoutPrinter>(ThisLayoutPrinter);
+    return checkAndRaiseLayoutPrinterDiagEntry(YamlMapPrinter->init());
   }
   return true;
 }
 
 void Module::addPluginFrag(Fragment *F) {
-  m_PluginFragments.push_back(F);
+  PluginFragments.push_back(F);
   llvm::dyn_cast<eld::ObjectFile>(F->getOwningSection()->getInputFile())
       ->addSection(F->getOwningSection());
 }
@@ -777,7 +779,7 @@ bool Module::resetSymbol(ResolveInfo *R, Fragment *F) {
 
 uint64_t Module::getImageLayoutChecksum() const {
   uint64_t Hash = 0;
-  if (m_State != plugin::LinkerWrapper::AfterLayout)
+  if (State != plugin::LinkerWrapper::AfterLayout)
     return 0;
   for (const eld::ELFSection *S : *this) {
     Hash = llvm::hash_combine(Hash, S->getIndex(), std::string(S->name()),
@@ -796,19 +798,19 @@ uint64_t Module::getImageLayoutChecksum() const {
 }
 
 void Module::setRelocationData(const eld::Relocation *R, uint64_t Data) {
-  std::lock_guard<std::mutex> Guard(m_Mutex);
-  m_RelocationData.insert({R, Data});
+  std::lock_guard<std::mutex> Guard(Mutex);
+  RelocationData.insert({R, Data});
 }
 
 bool Module::getRelocationData(const eld::Relocation *R, uint64_t &Data) {
-  std::lock_guard<std::mutex> Guard(m_Mutex);
+  std::lock_guard<std::mutex> Guard(Mutex);
   return getRelocationDataForSync(R, Data);
 }
 
 bool Module::getRelocationDataForSync(const eld::Relocation *R,
                                       uint64_t &Data) {
-  auto It = m_RelocationData.find(R);
-  if (It == m_RelocationData.end())
+  auto It = RelocationData.find(R);
+  if (It == RelocationData.end())
     return false;
   Data = It->second;
   return true;
@@ -816,63 +818,63 @@ bool Module::getRelocationDataForSync(const eld::Relocation *R,
 
 void Module::addReferencedSymbol(Section &RefencingSection,
                                  ResolveInfo &RefencedSymbol) {
-  m_BitcodeReferencedSymbols[&RefencingSection].push_back(&RefencedSymbol);
+  BitcodeReferencedSymbols[&RefencingSection].push_back(&RefencedSymbol);
 }
 
 llvm::ThreadPoolInterface *Module::getThreadPool() {
-  if (m_ThreadPool)
-    return m_ThreadPool;
-  m_ThreadPool = eld::make<llvm::StdThreadPool>(
-      llvm::hardware_concurrency(m_Config.options().numThreads()));
-  return m_ThreadPool;
+  if (LinkerThreadPool)
+    return LinkerThreadPool;
+  LinkerThreadPool = eld::make<llvm::StdThreadPool>(
+      llvm::hardware_concurrency(ThisConfig.options().numThreads()));
+  return LinkerThreadPool;
 }
 
 bool Module::verifyInvariantsForCreatingSectionsState() const {
   if (!getScript().hasPendingSectionOverride(/*LW=*/nullptr))
     return true;
   // Emit 'Error' diagnostic for each plugin with pending section overrides.
-  std::unordered_set<std::string> pluginsWithPendingOverrides;
-  for (auto sectionOverride : getScript().getAllSectionOverrides())
-    pluginsWithPendingOverrides.insert(sectionOverride->getPluginName());
-  for (const auto &pluginName : pluginsWithPendingOverrides)
-    m_Config.raise(diag::fatal_pending_section_override) << pluginName;
+  std::unordered_set<std::string> PluginsWithPendingOverrides;
+  for (auto *SectionOverride : getScript().getAllSectionOverrides())
+    PluginsWithPendingOverrides.insert(SectionOverride->getPluginName());
+  for (const auto &PluginName : PluginsWithPendingOverrides)
+    ThisConfig.raise(Diag::fatal_pending_section_override) << PluginName;
   return false;
 }
 
 bool Module::setState(plugin::LinkerWrapper::State S) {
-  bool verification = true;
-  if (m_State == plugin::LinkerWrapper::State::BeforeLayout &&
+  bool Verification = true;
+  if (State == plugin::LinkerWrapper::State::BeforeLayout &&
       S == plugin::LinkerWrapper::State::CreatingSections)
-    verification = verifyInvariantsForCreatingSectionsState();
-  m_State = S;
-  return verification;
+    Verification = verifyInvariantsForCreatingSectionsState();
+  State = S;
+  return Verification;
 }
 
 CommonELFSection *
-Module::createCommonELFSection(const std::string &sectionName, uint32_t align,
-                               InputFile *originatingInputFile) {
-  CommonELFSection *commonSection =
-      make<CommonELFSection>(sectionName, originatingInputFile, align);
-  InternalInputFile *commonInputFile =
+Module::createCommonELFSection(const std::string &SectionName, uint32_t Align,
+                               InputFile *OriginatingInputFile) {
+  CommonELFSection *CommonSection =
+      make<CommonELFSection>(SectionName, OriginatingInputFile, Align);
+  InternalInputFile *CommonInputFile =
       llvm::cast<InternalInputFile>(getCommonInternalInput());
-  commonSection->setInputFile(commonInputFile);
-  commonInputFile->addSection(commonSection);
-  if (m_Config.options().isSectionTracingRequested() &&
-      m_Config.options().traceSection(commonSection->name().str()))
-    m_Config.raise(diag::internal_section_create)
-        << commonSection->getDecoratedName(m_Config.options())
-        << utility::toHex(commonSection->getAddrAlign())
-        << utility::toHex(commonSection->size())
-        << ELFSection::getELFPermissionsStr(commonSection->getFlags());
-  m_Config.raise(diag::created_internal_section)
-      << commonSection->name() << commonSection->getType()
-      << commonSection->getFlags() << commonSection->getAddrAlign()
-      << commonSection->getEntSize();
-  return commonSection;
+  CommonSection->setInputFile(CommonInputFile);
+  CommonInputFile->addSection(CommonSection);
+  if (ThisConfig.options().isSectionTracingRequested() &&
+      ThisConfig.options().traceSection(CommonSection->name().str()))
+    ThisConfig.raise(Diag::internal_section_create)
+        << CommonSection->getDecoratedName(ThisConfig.options())
+        << utility::toHex(CommonSection->getAddrAlign())
+        << utility::toHex(CommonSection->size())
+        << ELFSection::getELFPermissionsStr(CommonSection->getFlags());
+  ThisConfig.raise(Diag::created_internal_section)
+      << CommonSection->name() << CommonSection->getType()
+      << CommonSection->getFlags() << CommonSection->getAddrAlign()
+      << CommonSection->getEntSize();
+  return CommonSection;
 }
 
 bool Module::isPostLTOPhase() const {
-  return m_pLinker->getObjLinker()->isPostLTOPhase();
+  return Linker->getObjLinker()->isPostLTOPhase();
 }
 
 void Module::setFragmentPaddingValue(Fragment *F, uint64_t V) {

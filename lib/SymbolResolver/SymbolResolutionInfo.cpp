@@ -17,28 +17,28 @@
 using namespace eld;
 
 void SymbolResolutionInfo::setupCandidatesInfo(NamePool &NP,
-                                               const LinkerScript &script) {
+                                               const LinkerScript &Script) {
   std::vector<const LDSymbol *> LTOObjSyms;
   using SymNameToBitcodeSym = llvm::StringMap<const LDSymbol *>;
   // The mapping is this way so that it is efficient to find the bitcode
   // symbol corresponding to a LTO-object symbol.
-  std::unordered_map<const InputFile *, SymNameToBitcodeSym> bitcodeSymbolsMap;
+  std::unordered_map<const InputFile *, SymNameToBitcodeSym> BitcodeSymbolsMap;
 
-  for (const auto &[sym, symInfo] : m_SymbolInfoMap) {
+  for (const auto &[sym, symInfo] : SymbolInfoMap) {
     const InputFile *IF = symInfo.getInputFile();
     if (IF->isLTOObject()) {
       LTOObjSyms.push_back(sym);
       continue;
     }
-    llvm::StringRef symName = sym->resolveInfo()->getName();
-    m_Candidates[symName].push_back(sym);
+    llvm::StringRef SymName = sym->resolveInfo()->getName();
+    Candidates[SymName].push_back(sym);
 
     if (symInfo.isBitcodeSymbol()) {
-      bitcodeSymbolsMap[IF][symName] = sym;
+      BitcodeSymbolsMap[IF][SymName] = sym;
     }
   }
   for (const LDSymbol *S : LTOObjSyms) {
-    if (m_SymbolInfoMap[S].getSymbolSectionIndexKind() ==
+    if (SymbolInfoMap[S].getSymbolSectionIndexKind() ==
         SymbolInfo::SectionIndexKind::Undef)
       continue;
     // Ideally, all the non-undef LTO-object symbols must have a corresponding
@@ -47,101 +47,101 @@ void SymbolResolutionInfo::setupCandidatesInfo(NamePool &NP,
     if (!S->fragRef() || !S->fragRef()->frag() ||
         !S->fragRef()->frag()->getOwningSection())
       continue;
-    InputFile *originalInput =
+    InputFile *OriginalInput =
         S->fragRef()->frag()->getOwningSection()->originalInput();
-    llvm::StringRef symName = S->resolveInfo()->getName();
-    auto bitcodeSymIter = bitcodeSymbolsMap[originalInput].find(symName);
-    m_BitcodeSymToLTOObjectSymMap[bitcodeSymIter->second] = S;
+    llvm::StringRef SymName = S->resolveInfo()->getName();
+    auto BitcodeSymIter = BitcodeSymbolsMap[OriginalInput].find(SymName);
+    BitcodeSymToLtoObjectSymMap[BitcodeSymIter->second] = S;
   }
 }
 
 const SymbolResolutionInfo::CandidatesType &
-SymbolResolutionInfo::getCandidates(llvm::StringRef symName) {
-  static const CandidatesType empty{};
-  auto iter = m_Candidates.find(symName);
-  if (iter == m_Candidates.end())
-    return empty;
-  return iter->second;
+SymbolResolutionInfo::getCandidates(llvm::StringRef SymName) {
+  static const CandidatesType Empty{};
+  auto Iter = Candidates.find(SymName);
+  if (Iter == Candidates.end())
+    return Empty;
+  return Iter->second;
 }
 
 std::string
-SymbolResolutionInfo::getSymbolInfoAsString(const LDSymbol *sym,
-                                            const GeneralOptions &options) {
-  std::optional<SymbolInfo> optSymInfo = getSymbolInfo(sym);
-  if (!optSymInfo)
+SymbolResolutionInfo::getSymbolInfoAsString(const LDSymbol *Sym,
+                                            const GeneralOptions &Options) {
+  std::optional<SymbolInfo> OptSymInfo = getSymbolInfo(Sym);
+  if (!OptSymInfo)
     return "";
-  SymbolInfo symInfo = optSymInfo.value();
-  std::string inputFile = symInfo.getInputFile()->getInput()->decoratedPath();
+  SymbolInfo SymInfo = OptSymInfo.value();
+  std::string InputFile = SymInfo.getInputFile()->getInput()->decoratedPath();
 
-  auto pluginSymIter = m_SymbolToPluginMap.find(sym);
-  if (pluginSymIter != m_SymbolToPluginMap.end()) {
-    const Plugin *P = pluginSymIter->second;
-    inputFile += "[" + P->getPluginName() + "]";
+  auto PluginSymIter = SymbolToPluginMap.find(Sym);
+  if (PluginSymIter != SymbolToPluginMap.end()) {
+    const Plugin *P = PluginSymIter->second;
+    InputFile += "[" + P->getPluginName() + "]";
   }
 
-  std::string symName =
-      sym->resolveInfo()->getDecoratedName(/*DoDemangle=*/false);
-  std::string symbolInfo = symName + "(" + inputFile;
-  if (symInfo.getSymbolSectionIndexKind() ==
+  std::string SymName =
+      Sym->resolveInfo()->getDecoratedName(/*DoDemangle=*/false);
+  std::string SymbolInfo = SymName + "(" + InputFile;
+  if (SymInfo.getSymbolSectionIndexKind() ==
       SymbolInfo::SectionIndexKind::Def) {
-    std::string sectName;
-    if (symInfo.isBitcodeSymbol()) {
-      const BitcodeFile *bitcodeInputFile =
-          llvm::cast<const BitcodeFile>(symInfo.getInputFile());
-      Section *bitcodeSect =
-          bitcodeInputFile->getInputSectionForSymbol(*sym->resolveInfo());
+    std::string SectName;
+    if (SymInfo.isBitcodeSymbol()) {
+      const BitcodeFile *BitcodeInputFile =
+          llvm::cast<const BitcodeFile>(SymInfo.getInputFile());
+      Section *BitcodeSect =
+          BitcodeInputFile->getInputSectionForSymbol(*Sym->resolveInfo());
       // The check is required here because it is undefined behavior to
       // initialize std::string with nullptr.
       // bitcodeSect can be nullptr in cases where bitcode section cannot be
       // determined. For example: we cannot know input sections for asm symbols.
-      if (bitcodeSect)
-        sectName = bitcodeSect->name();
+      if (BitcodeSect)
+        SectName = BitcodeSect->name();
     } else {
-      const FragmentRef *fragRef = sym->fragRef();
-      if (fragRef != FragmentRef::Null() && fragRef != FragmentRef::Discard() &&
-          fragRef != nullptr && fragRef->frag()) {
-        Section *S = fragRef->frag()->getOwningSection();
+      const FragmentRef *FragRef = Sym->fragRef();
+      if (FragRef != FragmentRef::null() && FragRef != FragmentRef::discard() &&
+          FragRef != nullptr && FragRef->frag()) {
+        Section *S = FragRef->frag()->getOwningSection();
         // Ideally, we should never have a fragment without an owning section.
         // Thus, this can be an assert. However, if in some corner case this
         // condition is not satisfied, then I don't think we should fail
         // the link because of some information required for diagnostics.
         if (S)
-          sectName = S->getDecoratedName(options);
+          SectName = S->getDecoratedName(Options);
       }
     }
-    if (!sectName.empty())
-      symbolInfo += ":" + sectName;
+    if (!SectName.empty())
+      SymbolInfo += ":" + SectName;
   }
-  symbolInfo += ")";
-  std::vector<std::string> symbolAttributes;
-  symbolInfo += " [";
-  symbolAttributes.push_back("Size=" + std::to_string(symInfo.getSize()));
-  if (symInfo.isBitcodeSymbol())
-    symbolAttributes.push_back("bitcode");
-  symbolAttributes.push_back(symInfo.getSymbolSectionIndexKindAsStr().str());
-  if (symInfo.getSymbolSectionIndexKind() != SymbolInfo::SectionIndexKind::Abs)
-    symbolAttributes.push_back(symInfo.getSymbolBindingAsStr().str());
-  symbolAttributes.push_back(symInfo.getSymbolTypeAsStr().str());
-  if (symInfo.getSymbolVisibility() != ResolveInfo::Visibility::Default)
-    symbolAttributes.push_back(symInfo.getSymbolVisibilityAsStr().str());
-  for (size_t i = 0; i < symbolAttributes.size(); ++i) {
-    symbolInfo += symbolAttributes[i];
-    if (i != symbolAttributes.size() - 1)
-      symbolInfo += ", ";
+  SymbolInfo += ")";
+  std::vector<std::string> SymbolAttributes;
+  SymbolInfo += " [";
+  SymbolAttributes.push_back("Size=" + std::to_string(SymInfo.getSize()));
+  if (SymInfo.isBitcodeSymbol())
+    SymbolAttributes.push_back("bitcode");
+  SymbolAttributes.push_back(SymInfo.getSymbolSectionIndexKindAsStr().str());
+  if (SymInfo.getSymbolSectionIndexKind() != SymbolInfo::SectionIndexKind::Abs)
+    SymbolAttributes.push_back(SymInfo.getSymbolBindingAsStr().str());
+  SymbolAttributes.push_back(SymInfo.getSymbolTypeAsStr().str());
+  if (SymInfo.getSymbolVisibility() != ResolveInfo::Visibility::Default)
+    SymbolAttributes.push_back(SymInfo.getSymbolVisibilityAsStr().str());
+  for (size_t I = 0; I < SymbolAttributes.size(); ++I) {
+    SymbolInfo += SymbolAttributes[I];
+    if (I != SymbolAttributes.size() - 1)
+      SymbolInfo += ", ";
   }
-  symbolInfo += "]";
-  return symbolInfo;
+  SymbolInfo += "]";
+  return SymbolInfo;
 }
 
-void SymbolResolutionInfo::recordSymbolInfo(const LDSymbol *sym,
-                                            SymbolInfo symInfo) {
-  m_SymbolInfoMap[sym] = symInfo;
+void SymbolResolutionInfo::recordSymbolInfo(const LDSymbol *Sym,
+                                            SymbolInfo SymInfo) {
+  SymbolInfoMap[Sym] = SymInfo;
 }
 
 const LDSymbol *SymbolResolutionInfo::getCorrespondingLTOObjectSymIfAny(
     const LDSymbol *S) const {
-  auto it = m_BitcodeSymToLTOObjectSymMap.find(S);
-  if (it != m_BitcodeSymToLTOObjectSymMap.end())
-    return it->second;
+  auto It = BitcodeSymToLtoObjectSymMap.find(S);
+  if (It != BitcodeSymToLtoObjectSymMap.end())
+    return It->second;
   return nullptr;
 }

@@ -20,19 +20,19 @@ class Module;
 
 class OutputArchCmd : public ScriptCommand {
 public:
-  OutputArchCmd(const std::string &pArch);
+  OutputArchCmd(const std::string &PArch);
   ~OutputArchCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::OUTPUT_ARCH;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_ARCH;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  std::string m_Arch;
+  std::string OutputArch;
 };
 
 } // namespace eld

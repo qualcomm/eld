@@ -48,10 +48,10 @@ public:
   virtual size_t size() const override;
 
   /// symInfo - ResolveInfo of this GOT.
-  ResolveInfo *symInfo() const { return m_pSymInfo; }
+  ResolveInfo *symInfo() const { return ThisSymInfo; }
 
   /// ----- modifiers ----- ///
-  void setSymInfo(ResolveInfo *pSymInfo);
+  void setSymInfo(ResolveInfo *PSymInfo);
 
   // Stub is a kind of Fragment with type of GOT.
   static bool classof(const Fragment *F) {
@@ -60,20 +60,20 @@ public:
 
   static bool classof(const GOT *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
-  void setValueType(ValueType V) { m_ValueType = V; }
+  void setValueType(ValueType V) { ThisValueType = V; }
 
-  ValueType getValueType() const { return m_ValueType; }
+  ValueType getValueType() const { return ThisValueType; }
 
   // -- GOT Type
-  GOTType getType() const { return m_GOTType; }
+  GOTType getType() const { return GotType; }
 
 protected:
-  ResolveInfo *m_pSymInfo;
-  size_t m_Size;
-  ValueType m_ValueType;
-  GOTType m_GOTType;
+  ResolveInfo *ThisSymInfo;
+  size_t ThisSize;
+  ValueType ThisValueType;
+  GOTType GotType;
 };
 
 } // namespace eld

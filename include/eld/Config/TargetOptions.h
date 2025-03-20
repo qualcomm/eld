@@ -33,52 +33,52 @@ public:
   typedef std::vector<WildcardPattern *> WildCardVecTy;
   TargetOptions();
 
-  TargetOptions(const std::string &pTriple);
+  TargetOptions(const std::string &PTriple);
 
   ~TargetOptions();
 
-  const llvm::Triple &triple() const { return *m_Triple; }
+  const llvm::Triple &triple() const { return *Triple; }
 
-  void setTriple(const std::string &pTriple);
+  void setTriple(const std::string &PTriple);
 
-  void setTriple(const llvm::Triple &pTriple);
+  void setTriple(const llvm::Triple &PTriple);
 
-  const std::string &getArch() const { return m_ArchName; }
+  const std::string &getArch() const { return ArchName; }
 
-  void setArch(const std::string &pArchName);
+  void setArch(const std::string &PArchName);
 
-  const std::string &getTargetCPU() const { return m_TargetCPU; }
+  const std::string &getTargetCPU() const { return TargetCPU; }
 
-  void setTargetCPU(const std::string &pCPU);
+  void setTargetCPU(const std::string &PCpu);
 
-  Endian endian() const { return m_Endian; }
+  Endian endian() const { return Endian; }
 
-  void setEndian(Endian pEndian) { m_Endian = pEndian; }
+  void setEndian(Endian PEndian) { Endian = PEndian; }
 
-  bool isLittleEndian() const { return (Little == m_Endian); }
-  bool isBigEndian() const { return (Big == m_Endian); }
+  bool isLittleEndian() const { return (Little == Endian); }
+  bool isBigEndian() const { return (Big == Endian); }
 
-  unsigned int bitclass() const { return m_BitClass; }
+  unsigned int bitclass() const { return BitClass; }
 
-  void setBitClass(unsigned int pBitClass) { m_BitClass = pBitClass; }
+  void setBitClass(unsigned int PBitClass) { BitClass = PBitClass; }
 
-  bool is32Bits() const { return (32 == m_BitClass); }
-  bool is64Bits() const { return (64 == m_BitClass); }
+  bool is32Bits() const { return (32 == BitClass); }
+  bool is64Bits() const { return (64 == BitClass); }
 
-  bool hasTriple() const { return !!m_Triple; }
+  bool hasTriple() const { return !!Triple; }
 
-  void addEntrySection(LinkerScript &pScript, llvm::StringRef pPattern);
+  void addEntrySection(LinkerScript &PScript, llvm::StringRef PPattern);
 
   WildCardVecTy &getEntrySections();
 
 private:
-  std::optional<llvm::Triple> m_Triple;
-  std::string m_ArchName;
-  std::string m_TargetCPU;
-  std::string m_TargetFS;
-  Endian m_Endian;
-  unsigned int m_BitClass;
-  std::vector<WildcardPattern *> m_EntrySections;
+  std::optional<llvm::Triple> Triple;
+  std::string ArchName;
+  std::string TargetCPU;
+  std::string TargetFS;
+  Endian Endian;
+  unsigned int BitClass;
+  std::vector<WildcardPattern *> EntrySections;
 };
 
 } // namespace eld

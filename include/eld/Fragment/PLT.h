@@ -43,10 +43,10 @@ public:
   virtual size_t size() const override;
 
   /// symInfo - ResolveInfo of this PLT.
-  ResolveInfo *symInfo() const { return m_pSymInfo; }
+  ResolveInfo *symInfo() const { return ThisSymInfo; }
 
   /// ----- modifiers ----- ///
-  void setSymInfo(ResolveInfo *pSymInfo);
+  void setSymInfo(ResolveInfo *PSymInfo);
 
   // Stub is a kind of Fragment with type of PLT.
   static bool classof(const Fragment *F) {
@@ -55,19 +55,19 @@ public:
 
   static bool classof(const PLT *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   // -- PLT Type
-  PLTType getType() const { return m_PLTType; }
+  PLTType getType() const { return ThisPltType; }
 
   // Get the GOT for the PLT.
-  GOT *getGOT() const { return m_GOT; }
+  GOT *getGOT() const { return ThisGot; }
 
 protected:
-  GOT *m_GOT;
-  ResolveInfo *m_pSymInfo;
-  size_t m_Size;
-  PLTType m_PLTType;
+  GOT *ThisGot;
+  ResolveInfo *ThisSymInfo;
+  size_t ThisSize;
+  PLTType ThisPltType;
 };
 
 } // namespace eld

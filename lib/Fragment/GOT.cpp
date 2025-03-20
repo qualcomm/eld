@@ -14,23 +14,23 @@ using namespace eld;
 
 GOT::GOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
          uint32_t Size)
-    : Fragment(Fragment::Got, O, Align), m_pSymInfo(R), m_Size(Size),
-      m_ValueType(Default), m_GOTType(T) {}
+    : Fragment(Fragment::Got, O, Align), ThisSymInfo(R), ThisSize(Size),
+      ThisValueType(Default), GotType(T) {}
 
 GOT::~GOT() {}
 
-void GOT::setSymInfo(ResolveInfo *pSymInfo) { m_pSymInfo = pSymInfo; }
+void GOT::setSymInfo(ResolveInfo *PSymInfo) { ThisSymInfo = PSymInfo; }
 
-size_t GOT::size() const { return m_Size; }
+size_t GOT::size() const { return ThisSize; }
 
-eld::Expected<void> GOT::emit(MemoryRegion &mr, Module &M) {
-  std::memcpy(mr.begin() + getOffset(M.getConfig().getDiagEngine()),
+eld::Expected<void> GOT::emit(MemoryRegion &Mr, Module &M) {
+  std::memcpy(Mr.begin() + getOffset(M.getConfig().getDiagEngine()),
               getContent().data(), size());
   return {};
 }
 
 const std::string GOT::name() const {
-  if (!m_pSymInfo)
+  if (!ThisSymInfo)
     return "";
-  return (llvm::Twine("GOT entry for ") + m_pSymInfo->name()).str();
+  return (llvm::Twine("GOT entry for ") + ThisSymInfo->name()).str();
 }

@@ -12,35 +12,35 @@
 using namespace llvm;
 using namespace eld;
 
-SymDefWriter::SymDefWriter(LinkerConfig &pConfig)
-    : m_Config(pConfig), m_SymDefFile(nullptr) {}
+SymDefWriter::SymDefWriter(LinkerConfig &PConfig)
+    : Config(PConfig), SymDefFile(nullptr) {}
 
 eld::Expected<void> SymDefWriter::init() {
-  std::error_code error;
-  if (!m_Config.options().symDefFile().empty()) {
-    m_SymDefFile = new llvm::raw_fd_ostream(
-        m_Config.options().symDefFile().c_str(), error, llvm::sys::fs::OF_None);
-    if (error && m_Config.options().symDefFile().c_str()[0] != '\0') {
+  std::error_code Error;
+  if (!Config.options().symDefFile().empty()) {
+    SymDefFile = new llvm::raw_fd_ostream(Config.options().symDefFile().c_str(),
+                                          Error, llvm::sys::fs::OF_None);
+    if (Error && Config.options().symDefFile().c_str()[0] != '\0') {
       return std::make_unique<plugin::DiagnosticEntry>(
           plugin::FatalDiagnosticEntry(
-              diag::unable_to_write_symdef,
-              {m_Config.options().symDefFile().c_str(), error.message()}));
+              Diag::unable_to_write_symdef,
+              {Config.options().symDefFile().c_str(), Error.message()}));
     }
   }
   return {};
 }
 
 SymDefWriter::~SymDefWriter() {
-  if (m_SymDefFile) {
-    m_SymDefFile->flush();
-    delete m_SymDefFile;
+  if (SymDefFile) {
+    SymDefFile->flush();
+    delete SymDefFile;
   }
 }
 
 llvm::raw_ostream &SymDefWriter::outputStream() const {
-  if (m_SymDefFile) {
-    m_SymDefFile->flush();
-    return *m_SymDefFile;
+  if (SymDefFile) {
+    SymDefFile->flush();
+    return *SymDefFile;
   }
   return llvm::errs();
 }
@@ -48,18 +48,18 @@ llvm::raw_ostream &SymDefWriter::outputStream() const {
 void SymDefWriter::addHeader() {
   outputStream() << "#<"
                  << "SYMDEFS";
-  if (m_Config.isSymDefStyleValid() && !m_Config.isSymDefStyleDefault())
-    outputStream() << "-" << m_Config.getSymDefString();
+  if (Config.isSymDefStyleValid() && !Config.isSymDefStyleDefault())
+    outputStream() << "-" << Config.getSymDefString();
   outputStream() << ">#"
                  << "\n";
   outputStream() << "#DO NOT EDIT#"
                  << "\n";
 }
 
-std::error_code SymDefWriter::writeSymDef(Module &pModule) {
+std::error_code SymDefWriter::writeSymDef(Module &CurModule) {
   addHeader();
-  std::vector<ResolveInfo *> &symbols = pModule.getSymbols();
-  for (auto &S : symbols) {
+  std::vector<ResolveInfo *> &Symbols = CurModule.getSymbols();
+  for (auto &S : Symbols) {
     if (S->isDyn())
       continue;
     if (S->isAbsolute())

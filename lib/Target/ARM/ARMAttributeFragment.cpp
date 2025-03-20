@@ -130,7 +130,7 @@ void ARMAttributeFragment::updateSupportedARMFeatures(
   case llvm::ARMBuildAttrs::v6KZ:
   case llvm::ARMBuildAttrs::v6K: {
     if (M.getPrinter()->isVerbose())
-      DiagEngine->raise(diag::record_arm_attribute)
+      DiagEngine->raise(Diag::record_arm_attribute)
           << "BLX" << Obj->getInput()->decoratedPath();
     OutputAttributes.armHasBlx = true;
     Obj->recordFeature("blx");
@@ -144,12 +144,12 @@ void ARMAttributeFragment::updateSupportedARMFeatures(
     OutputAttributes.armHasBlx = true;
     Obj->recordFeature("blx");
     if (M.getPrinter()->isVerbose())
-      DiagEngine->raise(diag::record_arm_attribute)
+      DiagEngine->raise(Diag::record_arm_attribute)
           << "BLX" << Obj->getInput()->decoratedPath();
     OutputAttributes.armJ1J2BranchEncoding = true;
     Obj->recordFeature("j1j2");
     if (M.getPrinter()->isVerbose())
-      DiagEngine->raise(diag::record_arm_attribute)
+      DiagEngine->raise(Diag::record_arm_attribute)
           << "J1J2" << Obj->getInput()->decoratedPath();
     if (arch != llvm::ARMBuildAttrs::v6_M &&
         arch != llvm::ARMBuildAttrs::v6S_M) {
@@ -158,7 +158,7 @@ void ARMAttributeFragment::updateSupportedARMFeatures(
       OutputAttributes.armHasMovtMovw = true;
       Obj->recordFeature("movtmovw");
       if (M.getPrinter()->isVerbose())
-        DiagEngine->raise(diag::record_arm_attribute)
+        DiagEngine->raise(Diag::record_arm_attribute)
             << "MovtMovw" << Obj->getInput()->decoratedPath();
       break;
     }
@@ -202,7 +202,7 @@ bool ARMAttributeFragment::updateARMVFPArgs(
     if (!Config.options().noWarnMismatch()) {
       std::string ErrorMsg =
           "unknown Tag_ABI_VFP_args value: " + std::to_string(vfpArgs);
-      DiagEngine->raise(diag::attribute_parsing_error)
+      DiagEngine->raise(Diag::attribute_parsing_error)
           << f->getInput()->decoratedPath() << ErrorMsg;
       return false;
     }
@@ -212,14 +212,14 @@ bool ARMAttributeFragment::updateARMVFPArgs(
   if (!Config.options().noWarnMismatch() &&
       (OutputAttributes.armVFPArgs != arg &&
        OutputAttributes.armVFPArgs != ARMVFPArgKind::Default)) {
-    DiagEngine->raise(diag::attribute_parsing_error)
+    DiagEngine->raise(Diag::attribute_parsing_error)
         << f->getInput()->decoratedPath() << "incompatible Tag_ABI_VFP_args";
     return false;
   }
   std::string VFPStr = "ARM VFP " + std::to_string((uint32_t)arg);
   f->recordFeature(VFPStr);
   if (M.getPrinter()->isVerbose()) {
-    DiagEngine->raise(diag::record_arm_attribute)
+    DiagEngine->raise(Diag::record_arm_attribute)
         << VFPStr << f->getInput()->decoratedPath();
   }
   OutputAttributes.armVFPArgs = arg;
@@ -238,7 +238,7 @@ bool ARMAttributeFragment::updatePCS(const llvm::ARMAttributeParser &attributes,
   std::string R9_Str = R9Str(r9args);
   f->recordFeature(R9_Str);
   if (M.getPrinter()->isVerbose()) {
-    DiagEngine->raise(diag::record_arm_attribute)
+    DiagEngine->raise(Diag::record_arm_attribute)
         << R9_Str << f->getInput()->decoratedPath();
   }
   if (!OutputAttributes.armR9Args) {
@@ -247,7 +247,7 @@ bool ARMAttributeFragment::updatePCS(const llvm::ARMAttributeParser &attributes,
   }
   if (!Config.options().noWarnMismatch() &&
       (OutputAttributes.armR9Args != r9args)) {
-    DiagEngine->raise(diag::err_mismatch_r9_use)
+    DiagEngine->raise(Diag::err_mismatch_r9_use)
         << R9Str(*OutputAttributes.armR9Args) << R9Str(r9args)
         << f->getInput()->decoratedPath();
     return false;
@@ -266,7 +266,7 @@ bool ARMAttributeFragment::updatePCSRO(
   std::string PCS_RO_data_str = PCS_ROStr(ABI_PCS_RO_data_val);
   f->recordFeature(PCS_RO_data_str);
   if (M.getPrinter()->isVerbose()) {
-    Config.raise(diag::record_arm_attribute)
+    Config.raise(Diag::record_arm_attribute)
         << PCS_RO_data_str << f->getInput()->decoratedPath();
   }
   if (!OutputAttributes.ABI_PCS_RO_data) {
@@ -275,7 +275,7 @@ bool ARMAttributeFragment::updatePCSRO(
   }
   if (!Config.options().noWarnMismatch() &&
       (OutputAttributes.ABI_PCS_RO_data != ABI_PCS_RO_data_val)) {
-    Config.raise(diag::err_mismatch_r9_use)
+    Config.raise(Diag::err_mismatch_r9_use)
         << PCS_ROStr(*OutputAttributes.ABI_PCS_RO_data)
         << PCS_ROStr(ABI_PCS_RO_data_val) << f->getInput()->decoratedPath();
     return false;
@@ -295,7 +295,7 @@ bool ARMAttributeFragment::updatePCSRW(
   std::string PCS_RW_data_str = PCS_RWStr(ABI_PCS_RW_data_val);
   f->recordFeature(PCS_RW_data_str);
   if (M.getPrinter()->isVerbose()) {
-    DiagEngine->raise(diag::record_arm_attribute)
+    DiagEngine->raise(Diag::record_arm_attribute)
         << PCS_RW_data_str << f->getInput()->decoratedPath();
   }
   if (!OutputAttributes.ABI_PCS_RW_data) {
@@ -304,7 +304,7 @@ bool ARMAttributeFragment::updatePCSRW(
   }
   if (!Config.options().noWarnMismatch() &&
       (OutputAttributes.ABI_PCS_RW_data != ABI_PCS_RW_data_val)) {
-    DiagEngine->raise(diag::err_mismatch_r9_use)
+    DiagEngine->raise(Diag::err_mismatch_r9_use)
         << PCS_RWStr(*OutputAttributes.ABI_PCS_RW_data)
         << PCS_RWStr(ABI_PCS_RW_data_val) << f->getInput()->decoratedPath();
     return false;
@@ -324,7 +324,7 @@ bool ARMAttributeFragment::updateEnumSize(
   std::string enumSizeStr = "EnumSize " + std::to_string(enumSize);
   f->recordFeature(enumSizeStr);
   if (M.getPrinter()->isVerbose()) {
-    DiagEngine->raise(diag::record_arm_attribute)
+    DiagEngine->raise(Diag::record_arm_attribute)
         << enumSizeStr << f->getInput()->decoratedPath();
   }
   if (!OutputAttributes.armEnumSize) {
@@ -333,7 +333,7 @@ bool ARMAttributeFragment::updateEnumSize(
   }
   if (!Config.options().noWarnMismatch() &&
       (OutputAttributes.armEnumSize != enumSize)) {
-    DiagEngine->raise(diag::warn_mismatch_enum_size)
+    DiagEngine->raise(Diag::warn_mismatch_enum_size)
         << f->getInput()->decoratedPath() << enumSize
         << *OutputAttributes.armEnumSize;
     return false;
@@ -354,7 +354,7 @@ bool ARMAttributeFragment::updateCPUArchProfile(
   if (M.getPrinter()->isVerbose()) {
     std::string cpuArchProfileStr =
         "CPUArchProfile " + CPUArchProfileStr(cpuArchProfile);
-    DiagEngine->raise(diag::record_arm_attribute)
+    DiagEngine->raise(Diag::record_arm_attribute)
         << cpuArchProfileStr << f->getInput()->decoratedPath();
   }
   if (!OutputAttributes.cpuArchProfile) {
@@ -362,7 +362,7 @@ bool ARMAttributeFragment::updateCPUArchProfile(
     return true;
   }
   if (OutputAttributes.cpuArchProfile != cpuArchProfile) {
-    DiagEngine->raise(diag::err_mismatch_attr)
+    DiagEngine->raise(Diag::err_mismatch_attr)
         << "CPU Arch Profile" << f->getInput()->decoratedPath()
         << CPUArchProfileStr(cpuArchProfile)
         << CPUArchProfileStr(*OutputAttributes.cpuArchProfile);
@@ -380,7 +380,7 @@ bool ARMAttributeFragment::updateAttributes(llvm::StringRef Contents,
   llvm::ArrayRef<uint8_t> Data =
       llvm::ArrayRef((const uint8_t *)Contents.data(), Contents.size());
   if (llvm::Error E = Parser.parse(Data, llvm::endianness::little)) {
-    DiagEngine->raise(diag::attribute_parsing_error)
+    DiagEngine->raise(Diag::attribute_parsing_error)
         << Obj->getInput()->decoratedPath() << llvm::toString(std::move(E));
     // Ignore error
     (void)(std::move(E));

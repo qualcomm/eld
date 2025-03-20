@@ -29,19 +29,19 @@ class Module;
 
 class SearchDirCmd : public ScriptCommand {
 public:
-  SearchDirCmd(const std::string &pPath);
+  SearchDirCmd(const std::string &PPath);
   ~SearchDirCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::SEARCH_DIR;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::SEARCH_DIR;
   }
 
 private:
-  std::string m_Path;
+  std::string MPath;
 };
 
 } // namespace eld

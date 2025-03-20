@@ -19,8 +19,8 @@ namespace eld {
 // Used to hash elfsection and addend to indentify local symbols uniquely
 struct HashPair {
   template <class T1, class T2>
-  size_t operator()(const std::pair<T1, T2> &p) const {
-    return llvm::hash_combine(p.first, p.second);
+  size_t operator()(const std::pair<T1, T2> &P) const {
+    return llvm::hash_combine(P.first, P.second);
   }
 };
 
@@ -39,76 +39,76 @@ public:
   using RuleMatchingSectionNameMap = std::unordered_map<uint64_t, std::string>;
   using AuxiliarySymbolNameMap = std::unordered_map<uint64_t, std::string>;
 
-  ObjectFile(Input *I, InputFile::Kind K, DiagnosticEngine *diagEngine)
-      : InputFile(I, diagEngine, K) {}
+  ObjectFile(Input *I, InputFile::InputFileKind K, DiagnosticEngine *DiagEngine)
+      : InputFile(I, DiagEngine, K) {}
 
   /// Casting support.
   static bool classof(const InputFile *E);
 
-  bool isInputUsed() const { return m_bUsed; }
+  bool isInputUsed() const { return BUsed; }
 
-  void setInputUsed() { m_bUsed = true; }
+  void setInputUsed() { BUsed = true; }
 
   /// -------------- Symbol Helpers -------------------------------
-  LDSymbol *getSymbol(unsigned int pIdx) const;
+  LDSymbol *getSymbol(unsigned int PIdx) const;
 
-  LDSymbol *getSymbol(std::string pName) const;
+  LDSymbol *getSymbol(std::string PName) const;
 
   void addSymbol(LDSymbol *S);
 
   /// -------------- Local Symbol Helpers -------------------------------
-  LDSymbol *getLocalSymbol(unsigned int pIdx) const;
+  LDSymbol *getLocalSymbol(unsigned int PIdx) const;
 
-  void addLocalSymbol(LDSymbol *pSym) { m_LocalSymTab.push_back(pSym); }
+  void addLocalSymbol(LDSymbol *PSym) { MLocalSymTab.push_back(PSym); }
 
-  LDSymbol *getLocalSymbol(llvm::StringRef pName) const;
+  LDSymbol *getLocalSymbol(llvm::StringRef PName) const;
 
   /// -------------- SymbolTable Helpers -------------------------------
   const std::vector<LDSymbol *> &getLocalSymbols() const {
-    return m_LocalSymTab;
+    return MLocalSymTab;
   }
 
-  const std::vector<LDSymbol *> &getSymbols() const { return m_SymTab; }
+  const std::vector<LDSymbol *> &getSymbols() const { return SymTab; }
 
   /// ----------------- Section Helpers ----------------------------
   void addSection(Section *S);
 
-  std::vector<Section *> &getSections() { return m_SectionTable; }
+  std::vector<Section *> &getSections() { return MSectionTable; }
 
-  const std::vector<Section *> &getSections() const { return m_SectionTable; }
+  const std::vector<Section *> &getSections() const { return MSectionTable; }
 
   Section *getSection(uint32_t Idx) const {
-    if (Idx >= m_SectionTable.size())
+    if (Idx >= MSectionTable.size())
       return nullptr;
-    return m_SectionTable.at(Idx);
+    return MSectionTable.at(Idx);
   }
 
-  bool isInputRelocsRead() const { return m_isInputRelocsRead; }
+  bool isInputRelocsRead() const { return IsInputRelocsRead; }
 
-  void setInputRelocsRead() { m_isInputRelocsRead = true; }
+  void setInputRelocsRead() { IsInputRelocsRead = true; }
 
-  size_t getSectionSize() const { return m_SectionTable.size(); }
+  size_t getSectionSize() const { return MSectionTable.size(); }
 
-  void setHasHighSectionCount() { m_HasHighSectionCount = true; }
+  void setHasHighSectionCount() { HasHighSectionCount = true; }
 
-  // FIXME: Can we remove 'm_HasHighSectionCount' member by
+  // FIXME: Can we remove 'HasHighSectionCount' member by
   // checking the existence of extended symbol section index table
   // or by comparing number of section using m_SectionTable.size()?
-  bool hasHighSectionCount() const { return m_HasHighSectionCount; }
+  bool hasHighSectionCount() const { return HasHighSectionCount; }
 
   virtual ~ObjectFile() {}
 
   // --- Add Object File Features ----
   void recordFeature(const std::string &Feature) {
-    m_Features.push_back(Feature);
+    Features.push_back(Feature);
   }
 
   std::string getFeaturesStr() const;
 
-  const ResolveInfo *getMatchingLocalSymbol(uint64_t sectionIndex,
-                                            uint64_t value) const;
+  const ResolveInfo *getMatchingLocalSymbol(uint64_t SectionIndex,
+                                            uint64_t Value) const;
 
-  size_t getNumSections() const override { return m_SectionTable.size(); }
+  size_t getNumSections() const override { return MSectionTable.size(); }
 
   void setRuleMatchingSectionNameMap(const RuleMatchingSectionNameMap &SM) {
     RMSectNameMap = SM;
@@ -123,12 +123,12 @@ public:
     return RMSectNameMap;
   }
 
-  std::optional<std::string> getRuleMatchingSectName(uint64_t index) const {
+  std::optional<std::string> getRuleMatchingSectName(uint64_t Index) const {
     if (!RMSectNameMap.has_value())
       return std::nullopt;
-    auto it = RMSectNameMap->find(index);
-    if (it != RMSectNameMap->end())
-      return it->second;
+    auto It = RMSectNameMap->find(Index);
+    if (It != RMSectNameMap->end())
+      return It->second;
     return std::nullopt;
   }
 
@@ -141,19 +141,19 @@ public:
     return AuxSymbolNameMap.has_value();
   }
 
-  std::optional<std::string> getAuxiliarySymbolName(uint64_t index) const {
+  std::optional<std::string> getAuxiliarySymbolName(uint64_t Index) const {
     if (!hasAuxiliarySymbolNameMap())
       return std::nullopt;
-    auto it = AuxSymbolNameMap->find(index);
-    if (it != AuxSymbolNameMap->end())
-      return it->second;
+    auto It = AuxSymbolNameMap->find(Index);
+    if (It != AuxSymbolNameMap->end())
+      return It->second;
     return std::nullopt;
   }
 
 protected:
-  std::vector<Section *> m_SectionTable;
-  std::vector<LDSymbol *> m_SymTab;
-  std::vector<LDSymbol *> m_LocalSymTab;
+  std::vector<Section *> MSectionTable;
+  std::vector<LDSymbol *> SymTab;
+  std::vector<LDSymbol *> MLocalSymTab;
 
   /// Stores the mapping of section index to rule-matching section name. If a
   /// section has rule matching section name, then this name is used instead of
@@ -163,12 +163,12 @@ protected:
   std::optional<AuxiliarySymbolNameMap> AuxSymbolNameMap;
 
 private:
-  bool m_bUsed = false;
-  bool m_isInputRelocsRead = false;
-  bool m_HasHighSectionCount = false;
-  std::vector<std::string> m_Features;
+  bool BUsed = false;
+  bool IsInputRelocsRead = false;
+  bool HasHighSectionCount = false;
+  std::vector<std::string> Features;
   std::unordered_map<std::pair<uint64_t, uint64_t>, LDSymbol *, HashPair>
-      m_LocalSymbolInfoMap;
+      LocalSymbolInfoMap;
 };
 
 } // namespace eld

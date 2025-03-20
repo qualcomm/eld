@@ -28,211 +28,208 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // LinkerConfig
 //===----------------------------------------------------------------------===//
-LinkerConfig::LinkerConfig(DiagnosticEngine *diagEngine)
-    : m_Options(diagEngine), m_Targets(), m_CodeGenType(Unknown),
-      m_CodePosition(Unset), m_DiagEngine(diagEngine),
-      m_SearchDirs(diagEngine) {}
+LinkerConfig::LinkerConfig(DiagnosticEngine *DiagEngine)
+    : GenOptions(DiagEngine), Targets(), CodeGen(Unknown), CodePos(Unset),
+      DiagEngine(DiagEngine), SearchDirs(DiagEngine) {}
 
-LinkerConfig::LinkerConfig(DiagnosticEngine *diagEngine,
-                           const std::string &pTripleString)
-    : m_Options(diagEngine), m_Targets(pTripleString), m_CodeGenType(Unknown),
-      m_CodePosition(Unset), m_DiagEngine(diagEngine),
-      m_SearchDirs(diagEngine) {}
+LinkerConfig::LinkerConfig(DiagnosticEngine *DiagEngine,
+                           const std::string &PTripleString)
+    : GenOptions(DiagEngine), Targets(PTripleString), CodeGen(Unknown),
+      CodePos(Unset), DiagEngine(DiagEngine), SearchDirs(DiagEngine) {}
 
 LinkerConfig::~LinkerConfig() {}
 
-void LinkerConfig::addCommandLine(llvm::StringRef option, bool flag) {
-  m_CommandLineVector.push_back(eld::make<Flags>(option.str(), flag));
+void LinkerConfig::addCommandLine(llvm::StringRef Option, bool Flag) {
+  CommandLineVector.push_back(eld::make<Flags>(Option.str(), Flag));
 }
 
-void LinkerConfig::addCommandLine(llvm::StringRef option,
-                                  const char *argument) {
-  m_CommandLineVector.push_back(eld::make<Options>(option.str(), argument));
+void LinkerConfig::addCommandLine(llvm::StringRef Option,
+                                  const char *Argument) {
+  CommandLineVector.push_back(eld::make<Options>(Option.str(), Argument));
 }
 
-void LinkerConfig::addCommandLine(llvm::StringRef option,
-                                  const std::vector<std::string> &args) {
-  m_CommandLineVector.push_back(
-      eld::make<MultiValueOption>(option.str(), args));
+void LinkerConfig::addCommandLine(llvm::StringRef Option,
+                                  const std::vector<std::string> &Args) {
+  CommandLineVector.push_back(eld::make<MultiValueOption>(Option.str(), Args));
 }
 
-void LinkerConfig::addCommandLine(llvm::StringRef option,
-                                  llvm::StringRef args) {
-  if (args.empty())
+void LinkerConfig::addCommandLine(llvm::StringRef Option,
+                                  llvm::StringRef Args) {
+  if (Args.empty())
     return;
-  std::vector<std::string> mapStyles = eld::string::split(args.str(), ',');
-  addCommandLine(option, mapStyles);
+  std::vector<std::string> MapStyles = eld::string::split(Args.str(), ',');
+  addCommandLine(Option, MapStyles);
 }
 
 // TODO: Use DIAG here.
-void LinkerConfig::printOptions(llvm::raw_ostream &outs,
-                                GNULDBackend const &backend, bool useColor) {
-  outs << "# Notable linker command/script options:\n";
-  outs << "# CPU Architecture Version: ";
-  if (useColor) {
-    outs.changeColor(llvm::raw_ostream::YELLOW)
+void LinkerConfig::printOptions(llvm::raw_ostream &Outs,
+                                GNULDBackend const &Backend, bool UseColor) {
+  Outs << "# Notable linker command/script options:\n";
+  Outs << "# CPU Architecture Version: ";
+  if (UseColor) {
+    Outs.changeColor(llvm::raw_ostream::YELLOW)
         << targets().getTargetCPU() << "\n";
-    outs.resetColor();
+    Outs.resetColor();
   } else {
-    outs << targets().getTargetCPU() << "\n";
+    Outs << targets().getTargetCPU() << "\n";
   }
-  outs << "# Target triple environment for the link: ";
+  Outs << "# Target triple environment for the link: ";
   auto TheTriple = targets().triple();
-  if (useColor) {
-    outs.changeColor(llvm::raw_ostream::YELLOW)
+  if (UseColor) {
+    Outs.changeColor(llvm::raw_ostream::YELLOW)
         << TheTriple.getEnvironmentTypeName(TheTriple.getEnvironment()) << "\n";
-    outs.resetColor();
+    Outs.resetColor();
   } else {
-    outs << TheTriple.getEnvironmentTypeName(TheTriple.getEnvironment())
+    Outs << TheTriple.getEnvironmentTypeName(TheTriple.getEnvironment())
          << "\n";
   }
 
-  outs << "# Maximum GP size: ";
-  if (useColor) {
-    outs.changeColor(llvm::raw_ostream::YELLOW)
+  Outs << "# Maximum GP size: ";
+  if (UseColor) {
+    Outs.changeColor(llvm::raw_ostream::YELLOW)
         << options().getGPSize() << "\n";
-    outs.resetColor();
+    Outs.resetColor();
   } else {
-    outs << options().getGPSize() << "\n";
+    Outs << options().getGPSize() << "\n";
   }
-  outs << "# Link type: ";
-  if (useColor)
-    outs.changeColor(llvm::raw_ostream::YELLOW);
+  Outs << "# Link type: ";
+  if (UseColor)
+    Outs.changeColor(llvm::raw_ostream::YELLOW);
   if (isCodeDynamic()) {
-    outs << "Dynamic";
-    if (options().Bsymbolic())
-      outs << " and Bsymbolic set\n";
+    Outs << "Dynamic";
+    if (options().bsymbolic())
+      Outs << " and Bsymbolic set\n";
     else
-      outs << " and Bsymbolic not set\n";
+      Outs << " and Bsymbolic not set\n";
   } else {
-    outs << "Static\n";
+    Outs << "Static\n";
   }
   // Print LTO flag status and parameters
-  if (backend.getModule().needLTOToBeInvoked() || options().hasLTO()) {
-    std::vector<llvm::StringRef> ltoOptions;
-    if (useColor)
-      outs.resetColor();
-    outs << "# LTO Flag: ";
-    if (useColor)
-      outs.changeColor(llvm::raw_ostream::YELLOW);
-    outs << "Enabled\n";
-    ltoOptions = options().getLTOOptionsAsString();
-    if (!ltoOptions.empty()) {
-      if (useColor)
-        outs.resetColor();
-      outs << "# LTO Options: ";
-      if (useColor)
-        outs.changeColor(llvm::raw_ostream::YELLOW);
-      while (!ltoOptions.empty()) {
-        llvm::StringRef ltoOption = ltoOptions.back();
-        ltoOptions.pop_back();
-        outs << ltoOption;
-        if (ltoOptions.size() != 0)
-          outs << ", ";
+  if (Backend.getModule().needLTOToBeInvoked() || options().hasLTO()) {
+    std::vector<llvm::StringRef> LtoOptions;
+    if (UseColor)
+      Outs.resetColor();
+    Outs << "# LTO Flag: ";
+    if (UseColor)
+      Outs.changeColor(llvm::raw_ostream::YELLOW);
+    Outs << "Enabled\n";
+    LtoOptions = options().getLTOOptionsAsString();
+    if (!LtoOptions.empty()) {
+      if (UseColor)
+        Outs.resetColor();
+      Outs << "# LTO Options: ";
+      if (UseColor)
+        Outs.changeColor(llvm::raw_ostream::YELLOW);
+      while (!LtoOptions.empty()) {
+        llvm::StringRef LtoOption = LtoOptions.back();
+        LtoOptions.pop_back();
+        Outs << LtoOption;
+        if (LtoOptions.size() != 0)
+          Outs << ", ";
       }
-      outs << "\n";
+      Outs << "\n";
     }
   }
 
-  if (useColor)
-    outs.resetColor();
-  outs << "# ABI Page Size: ";
-  if (useColor)
-    outs.changeColor(llvm::raw_ostream::YELLOW);
-  outs << "0x";
-  outs.write_hex(backend.abiPageSize());
-  outs << "\n";
-  if (useColor)
-    outs.resetColor();
+  if (UseColor)
+    Outs.resetColor();
+  Outs << "# ABI Page Size: ";
+  if (UseColor)
+    Outs.changeColor(llvm::raw_ostream::YELLOW);
+  Outs << "0x";
+  Outs.write_hex(Backend.abiPageSize());
+  Outs << "\n";
+  if (UseColor)
+    Outs.resetColor();
 }
 
 const char *LinkerConfig::version() { return eld::getELDVersion().data(); }
 
 const std::string LinkerConfig::getFileFromHash(const std::string &Hash) const {
-  const auto F = m_HashToPath.find(Hash);
-  if (F == m_HashToPath.end())
+  const auto F = HashToPath.find(Hash);
+  if (F == HashToPath.end())
     return Hash;
   return F->second;
 }
 
 const std::string LinkerConfig::getHashFromFile(const std::string &File) const {
-  const auto H = m_PathToHash.find(File);
-  if (H == m_PathToHash.end())
+  const auto H = PathToHash.find(File);
+  if (H == PathToHash.end())
     return File;
   return H->second;
 }
 
 std::string
-LinkerConfig::getMappedThinArchiveMember(const std::string &archiveName,
-                                         const std::string &memberName) const {
+LinkerConfig::getMappedThinArchiveMember(const std::string &ArchiveName,
+                                         const std::string &MemberName) const {
   return getHashFromFile(
-      archiveName + MappingFile::getThinArchiveMemSeparator() + memberName);
+      ArchiveName + MappingFile::getThinArchiveMemSeparator() + MemberName);
 }
 
-MsgHandler LinkerConfig::raise(unsigned int pID) const {
-  return m_DiagEngine->raise(pID);
+MsgHandler LinkerConfig::raise(unsigned int PId) const {
+  return DiagEngine->raise(PId);
 }
 
 void LinkerConfig::raiseDiagEntry(
-    std::unique_ptr<plugin::DiagnosticEntry> diagEntry) const {
-  return m_DiagEngine->raiseDiagEntry(std::move(diagEntry));
+    std::unique_ptr<plugin::DiagnosticEntry> DiagEntry) const {
+  return DiagEngine->raiseDiagEntry(std::move(DiagEntry));
 }
 
-bool LinkerConfig::setWarningOption(llvm::StringRef warnOption) {
-  std::string warnOpt = warnOption.lower();
-  if (warnOpt == "all") {
+bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
+  std::string WarnOpt = WarnOption.lower();
+  if (WarnOpt == "all") {
     setShowAllWarnings();
     return true;
   }
-  if (warnOpt == "command-line") {
+  if (WarnOpt == "command-line") {
     setShowCommandLineWarning(true);
     return true;
   }
-  if (warnOpt == "linker-script") {
+  if (WarnOpt == "linker-script") {
     setShowLinkerScriptWarning(true);
     return true;
   }
-  if (warnOpt == "no-linker-script") {
+  if (WarnOpt == "no-linker-script") {
     setShowLinkerScriptWarning(false);
     return true;
   }
-  if (warnOpt == "zero-sized-sections") {
+  if (WarnOpt == "zero-sized-sections") {
     setShowZeroSizedSectionsWarning(true);
     return true;
   }
-  if (warnOpt == "attribute-mix") {
+  if (WarnOpt == "attribute-mix") {
     setShowAttributeMixWarning(true);
     return true;
   }
-  if (warnOpt == "no-attribute-mix") {
+  if (WarnOpt == "no-attribute-mix") {
     setShowAttributeMixWarning(false);
     return true;
   }
-  if (warnOpt == "archive-file") {
+  if (WarnOpt == "archive-file") {
     setShowArchiveFileWarning(true);
     return true;
   }
-  if (warnOpt == "no-archive-file") {
+  if (WarnOpt == "no-archive-file") {
     setShowArchiveFileWarning(false);
     return true;
   }
-  if (warnOpt == "linker-script-memory") {
+  if (WarnOpt == "linker-script-memory") {
     setShowLinkerScriptMemoryWarning(true);
     return true;
   }
-  if (warnOpt == "no-linker-script-memory") {
+  if (WarnOpt == "no-linker-script-memory") {
     setShowLinkerScriptMemoryWarning(false);
     return true;
   }
-  if (warnOpt == "bad-dot-assignments") {
+  if (WarnOpt == "bad-dot-assignments") {
     setShowBadDotAssginmentsWarning(true);
     return true;
   }
-  if (warnOpt == "no-bad-dot-assignments") {
+  if (WarnOpt == "no-bad-dot-assignments") {
     setShowBadDotAssginmentsWarning(false);
     return true;
   }
-  if (warnOpt == "whole-archive") {
+  if (WarnOpt == "whole-archive") {
     setShowWholeArchiveWarning(true);
     return true;
   }
@@ -243,25 +240,25 @@ bool LinkerConfig::shouldCreateReproduceTar() const {
   return options().getRecordInputFiles() || options().isReproduceOnFail();
 }
 
-void LinkerConfig::setSymDefStyle(llvm::StringRef style) {
-  if (style.lower() == "provide")
-    m_SymDefStyle = Provide;
+void LinkerConfig::setSymDefStyle(llvm::StringRef Style) {
+  if (Style.lower() == "provide")
+    SymDefStyleValue = Provide;
   else
-    m_SymDefStyle = Default;
+    SymDefStyleValue = Default;
 }
 
 bool LinkerConfig::isSymDefStyleDefault() const {
-  return m_SymDefStyle == Default;
+  return SymDefStyleValue == Default;
 }
 
 bool LinkerConfig::isSymDefStyleProvide() const {
-  return m_SymDefStyle == Provide;
+  return SymDefStyleValue == Provide;
 }
 
 bool LinkerConfig::isSymDefStyleValid() const {
-  return m_SymDefStyle != UnknownSymDefStyle;
+  return SymDefStyleValue != UnknownSymDefStyle;
 }
 
 std::string LinkerConfig::getSymDefString() const {
-  return m_Options.symDefFileStyle().upper();
+  return GenOptions.symDefFileStyle().upper();
 }

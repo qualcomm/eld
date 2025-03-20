@@ -45,26 +45,26 @@ public:
     SectionReachedListMap() {}
 
     /// addReference - add a reference from pFrom to pTo
-    void addReference(Section &pFrom, Section &pTo);
+    void addReference(Section &From, Section &To);
 
     /// getReachedList - get the list of sections which can be reached by
     /// pSection, create one if the list has not existed
-    SectionListTy &getReachedList(Section &pSection);
+    SectionListTy &getReachedList(Section &CurSection);
 
     // Like wise for symbols (commons)
-    SymbolListTy &getReachedSymbolList(Section &pSection);
+    SymbolListTy &getReachedSymbolList(Section &CurSection);
 
     /// findReachedList - find the list of sections which can be reached by
     /// pSection, return nullptr if the list not exists
-    SectionListTy *findReachedList(Section &pSection);
+    SectionListTy *findReachedList(Section &CurSection);
 
     // Like wise for symbols (commons)
-    SymbolListTy *findReachedSymbolList(Section &pSection);
+    SymbolListTy *findReachedSymbolList(Section &CurSection);
 
     // For bit code sections
-    void findReachedBitCodeSectionsAndSymbols(Module &pModule);
+    void findReachedBitCodeSectionsAndSymbols(Module &CurModule);
 
-    void addToWorkQ(Section *w) { m_InputBitcodeSections.push(w); }
+    void addToWorkQ(Section *W) { InputBitcodeSections.push(W); }
 
   private:
     typedef llvm::DenseMap<Section *, SectionListTy> ReachedSectionsTy;
@@ -72,49 +72,49 @@ public:
 
   private:
     /// m_ReachedSections - map a section to the reachable sections list
-    ReachedSectionsTy m_ReachedSections;
+    ReachedSectionsTy ReachedSections;
     // Common symbols dot reside in any sections, hence we need to have
     // a reachibility map for them too
-    ReachedSymbolsTy m_ReachedSymbols;
+    ReachedSymbolsTy ReachedSymbols;
     // A queue of sections that needs to be postprocessed.
-    std::queue<Section *> m_InputBitcodeSections;
+    std::queue<Section *> InputBitcodeSections;
   };
 
 public:
-  GarbageCollection(LinkerConfig &pConfig, const GNULDBackend &pBackend,
-                    Module &pModule);
+  GarbageCollection(LinkerConfig &PConfig, const GNULDBackend &PBackend,
+                    Module &CurModule);
   ~GarbageCollection();
 
   /// run - do garbage collection
   bool run(const std::string &Phase, bool CommonSectionsOnly = false);
 
   // is section part of garbage collection ?
-  bool mayProcessGC(ELFSection &pSection);
+  bool mayProcessGC(ELFSection &CurSection);
 
 private:
   void setUpReachedSectionsAndSymbols();
-  void findReferencedSectionsAndSymbols(SectionSetTy &pEntry,
+  void findReferencedSectionsAndSymbols(SectionSetTy &PEntry,
                                         SectionSetTy &LiveSet);
-  bool getEntrySections(SectionSetTy &pEntry);
+  bool getEntrySections(SectionSetTy &PEntry);
   void stripSections(SectionSetTy &S, bool CommonSectionsOnly);
   bool treatSymbolAsEntry(ResolveInfo *R) const;
 
   // Add sections marked with SHF_GNU_RETAIN flag to entrySections.
   // Sections marked with SHF_GNU_RETAIN flag should be treated
   // as an entry section.
-  void addRetainSections(SectionSetTy &entrySections);
+  void addRetainSections(SectionSetTy &EntrySections);
 
 private:
   /// m_SectionReachedListMap - map the section to the list of sections which it
   /// can reach directly
-  SectionReachedListMap m_SectionReachedListMap;
+  SectionReachedListMap MSectionReachedListMap;
 
   /// m_ReferencedSections - a list of sections which can be reached from entry
-  SectionListTy m_ReferencedSections;
+  SectionListTy MReferencedSections;
 
-  LinkerConfig &m_Config;
-  const GNULDBackend &m_Backend;
-  Module &m_Module;
+  LinkerConfig &ThisConfig;
+  const GNULDBackend &MBackend;
+  Module &ThisModule;
 };
 
 } // namespace eld

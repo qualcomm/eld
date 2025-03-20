@@ -55,208 +55,208 @@ using namespace eld::v2;
 
 // Returns a whole line containing the current token.
 StringRef ScriptLexer::getLine() {
-  StringRef s = getCurrentMB().getBuffer();
+  StringRef S = getCurrentMB().getBuffer();
 
-  size_t pos = s.rfind('\n', prevTok.data() - s.data());
-  if (pos != StringRef::npos)
-    s = s.substr(pos + 1);
-  return s.substr(0, s.find_first_of("\r\n"));
+  size_t Pos = S.rfind('\n', PrevTok.data() - S.data());
+  if (Pos != StringRef::npos)
+    S = S.substr(Pos + 1);
+  return S.substr(0, S.find_first_of("\r\n"));
 }
 
 // Returns 0-based column number of the current token.
 size_t ScriptLexer::getColumnNumber() {
-  return prevTok.data() - getLine().data();
+  return PrevTok.data() - getLine().data();
 }
 
 std::string ScriptLexer::getCurrentLocation() {
-  std::string filename = std::string(getCurrentMB().getBufferIdentifier());
-  return (filename + ":" + Twine(prevTokLine)).str();
+  std::string Filename = std::string(getCurrentMB().getBufferIdentifier());
+  return (Filename + ":" + Twine(PrevTokLine)).str();
 }
 
-ScriptLexer::ScriptLexer(eld::LinkerConfig &Config, ScriptFile &scriptFile)
-    : m_Config(Config), m_ScriptFile(scriptFile) {
-  activeFilenames.insert(m_ScriptFile.getPath());
-  InputFile *IF = m_ScriptFile.getContext();
-  llvm::MemoryBufferRef memBufRef = IF->getInput()->getMemoryBufferRef();
-  curBuf = Buffer(memBufRef);
-  mbs.push_back(memBufRef);
+ScriptLexer::ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile)
+    : ThisConfig(Config), ThisScriptFile(ScriptFile) {
+  ActiveFilenames.insert(ThisScriptFile.getPath());
+  InputFile *IF = ThisScriptFile.getContext();
+  llvm::MemoryBufferRef MemBufRef = IF->getInput()->getMemoryBufferRef();
+  CurBuf = Buffer(MemBufRef);
+  MemoryBuffers.push_back(MemBufRef);
 }
 
-bool ScriptLexer::Diagnose() const {
-  DiagnosticPrinter *DP = m_Config.getPrinter();
-  if (DP->getNumFatalErrors() == 0 && DP->getNumErrors() == m_NonFatalErrors) {
+bool ScriptLexer::diagnose() const {
+  DiagnosticPrinter *DP = ThisConfig.getPrinter();
+  if (DP->getNumFatalErrors() == 0 && DP->getNumErrors() == MNonFatalErrors) {
     return true;
   }
-  return m_Config.getDiagEngine()->diagnose();
+  return ThisConfig.getDiagEngine()->diagnose();
 }
 
 // We don't want to record cascading errors. Keep only the first one.
-void ScriptLexer::setError(const Twine &msg) {
-  if (!Diagnose())
+void ScriptLexer::setError(const Twine &Msg) {
+  if (!diagnose())
     return;
 
-  std::string s = (getCurrentLocation() + ": " + msg).str();
-  if (prevTok.size())
-    s += "\n>>> " + getLine().str() + "\n>>> " +
+  std::string S = (getCurrentLocation() + ": " + Msg).str();
+  if (PrevTok.size())
+    S += "\n>>> " + getLine().str() + "\n>>> " +
          std::string(getColumnNumber(), ' ') + "^";
-  m_Config.raise(diag::error_linker_script) << s;
+  ThisConfig.raise(Diag::error_linker_script) << S;
 }
 
 void ScriptLexer::lex() {
   for (;;) {
-    StringRef &s = curBuf.s;
-    s = skipSpace(s);
-    if (s.empty()) {
+    StringRef &S = CurBuf.S;
+    S = skipSpace(S);
+    if (S.empty()) {
       // If this buffer is from an INCLUDE command, switch to the "return
       // value"; otherwise, mark EOF.
-      if (buffers.empty()) {
-        eof = true;
+      if (Buffers.empty()) {
+        Eof = true;
         return;
       }
-      activeFilenames.erase(curBuf.filename);
-      m_ScriptFile.popScriptStack();
-      curBuf = buffers.pop_back_val();
-      LayoutPrinter *LP = m_ScriptFile.module().getLayoutPrinter();
+      ActiveFilenames.erase(CurBuf.Filename);
+      ThisScriptFile.popScriptStack();
+      CurBuf = Buffers.pop_back_val();
+      LayoutPrinter *LP = ThisScriptFile.module().getLayoutPrinter();
       if (LP)
         LP->closeLinkerScript();
       continue;
     }
-    curTokLexState = lexState;
+    CurTokLexState = LexState;
 
     // Quoted token. Note that double-quote characters are parts of a token
     // because, in a glob match context, only unquoted tokens are interpreted
     // as glob patterns. Double-quoted tokens are literal patterns in that
     // context.
-    if (s.starts_with("\"")) {
-      size_t e = s.find("\"", 1);
-      if (e == StringRef::npos) {
-        size_t lineno =
-            StringRef(curBuf.begin, s.data() - curBuf.begin).count('\n');
-        m_Config.raise(diag::error_linker_script)
-            << llvm::Twine(curBuf.filename + ":" + Twine(lineno + 1) +
+    if (S.starts_with("\"")) {
+      size_t E = S.find("\"", 1);
+      if (E == StringRef::npos) {
+        size_t Lineno =
+            StringRef(CurBuf.Begin, S.data() - CurBuf.Begin).count('\n');
+        ThisConfig.raise(Diag::error_linker_script)
+            << llvm::Twine(CurBuf.Filename + ":" + Twine(Lineno + 1) +
                            ": unclosed quote")
                    .str();
         return;
       }
 
-      curTok = s.take_front(e + 1);
-      s = s.substr(e + 1);
+      CurTok = S.take_front(E + 1);
+      S = S.substr(E + 1);
       return;
     }
 
     // Some operators form separate tokens.
-    if (s.starts_with("<<=") || s.starts_with(">>=")) {
-      curTok = s.substr(0, 3);
-      s = s.substr(3);
+    if (S.starts_with("<<=") || S.starts_with(">>=")) {
+      CurTok = S.substr(0, 3);
+      S = S.substr(3);
       return;
     }
 
-    if (s.size() > 1 && (s[1] == '=' && strchr("+-*/!&^|", s[0]))) {
-      curTok = s.substr(0, 2);
-      s = s.substr(2);
+    if (S.size() > 1 && (S[1] == '=' && strchr("+-*/!&^|", S[0]))) {
+      CurTok = S.substr(0, 2);
+      S = S.substr(2);
       return;
     }
 
     // Unquoted token. The non-expression token is more relaxed than tokens in
     // C-like languages, so that you can write "file-name.cpp" as one bare
     // token.
-    size_t pos;
-    if (curTokLexState == LexState::Expr) {
-      pos = s.find_first_not_of(
+    size_t Pos;
+    if (CurTokLexState == LexState::Expr) {
+      Pos = S.find_first_not_of(
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
           "0123456789_.$");
-      if (pos == 0 && s.size() >= 2 &&
-          ((s[0] == s[1] && strchr("<>&|", s[0])) ||
-           is_contained({"==", "!=", "<=", ">=", "<<", ">>"}, s.substr(0, 2))))
-        pos = 2;
-      if (s.starts_with("/DISCARD/"))
-        pos = llvm::StringRef("/DISCARD/").size();
+      if (Pos == 0 && S.size() >= 2 &&
+          ((S[0] == S[1] && strchr("<>&|", S[0])) ||
+           is_contained({"==", "!=", "<=", ">=", "<<", ">>"}, S.substr(0, 2))))
+        Pos = 2;
+      if (S.starts_with("/DISCARD/"))
+        Pos = llvm::StringRef("/DISCARD/").size();
     } else {
       // Last char must be ':'!!!
-      llvm::StringRef tokenChars =
+      llvm::StringRef TokenChars =
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
           "0123456789_.$/\\~=+[]*?-!^:";
       // Drop ':' if we are lexing output section name
-      if (curTokLexState == LexState::SectionName)
-        tokenChars = tokenChars.drop_back();
+      if (CurTokLexState == LexState::SectionName)
+        TokenChars = TokenChars.drop_back();
 
-      pos = s.find_first_not_of(tokenChars);
+      Pos = S.find_first_not_of(TokenChars);
     }
 
-    if (pos == 0)
-      pos = 1;
-    curTok = s.substr(0, pos);
-    s = s.substr(pos);
+    if (Pos == 0)
+      Pos = 1;
+    CurTok = S.substr(0, Pos);
+    S = S.substr(Pos);
     break;
   }
 }
 
 // Skip leading whitespace characters or comments.
-StringRef ScriptLexer::skipSpace(StringRef s) {
+StringRef ScriptLexer::skipSpace(StringRef S) {
   for (;;) {
-    if (s.starts_with("/*")) {
-      size_t e = s.find("*/", 2);
-      if (e == StringRef::npos) {
+    if (S.starts_with("/*")) {
+      size_t E = S.find("*/", 2);
+      if (E == StringRef::npos) {
         setError("unclosed comment in a linker script");
         return "";
       }
-      curBuf.lineNumber += s.substr(0, e).count('\n');
-      s = s.substr(e + 2);
+      CurBuf.LineNumber += S.substr(0, E).count('\n');
+      S = S.substr(E + 2);
       continue;
     }
-    if (s.starts_with("#") || s.starts_with("//")) {
-      size_t e = s.find('\n', 1);
-      if (e == StringRef::npos)
-        e = s.size() - 1;
+    if (S.starts_with("#") || S.starts_with("//")) {
+      size_t E = S.find('\n', 1);
+      if (E == StringRef::npos)
+        E = S.size() - 1;
       else
-        ++curBuf.lineNumber;
-      s = s.substr(e + 1);
+        ++CurBuf.LineNumber;
+      S = S.substr(E + 1);
       continue;
     }
-    StringRef saved = s;
-    s = s.ltrim();
-    auto len = saved.size() - s.size();
-    if (len == 0)
-      return s;
-    curBuf.lineNumber += saved.substr(0, len).count('\n');
+    StringRef Saved = S;
+    S = S.ltrim();
+    auto Len = Saved.size() - S.size();
+    if (Len == 0)
+      return S;
+    CurBuf.LineNumber += Saved.substr(0, Len).count('\n');
   }
 }
 
 // Used to determine whether to stop parsing. Treat errors like EOF.
-bool ScriptLexer::atEOF() { return eof || !Diagnose(); }
+bool ScriptLexer::atEOF() { return Eof || !diagnose(); }
 
 StringRef ScriptLexer::next() {
-  prevTok = peek();
+  PrevTok = peek();
   // `prevTokLine` is not updated for EOF so that the line number in `setError`
   // will be more useful.
-  if (prevTok.size())
-    prevTokLine = curBuf.lineNumber;
-  return std::exchange(curTok, StringRef(curBuf.s.data(), 0));
+  if (PrevTok.size())
+    PrevTokLine = CurBuf.LineNumber;
+  return std::exchange(CurTok, StringRef(CurBuf.S.data(), 0));
 }
 
-llvm::StringRef ScriptLexer::next(LexState pLexState) {
-  llvm::SaveAndRestore saveLexState(lexState, pLexState);
+llvm::StringRef ScriptLexer::next(enum LexState PLexState) {
+  llvm::SaveAndRestore SaveLexState(LexState, PLexState);
   return next();
 }
 
 StringRef ScriptLexer::peek() {
   // curTok is invalid if curTokLexState and lexState mismatch.
-  if (curTok.size() && curTokLexState != lexState) {
-    curBuf.s = StringRef(curTok.data(), curBuf.s.end() - curTok.data());
-    curTok = {};
+  if (CurTok.size() && CurTokLexState != LexState) {
+    CurBuf.S = StringRef(CurTok.data(), CurBuf.S.end() - CurTok.data());
+    CurTok = {};
   }
-  if (curTok.empty())
+  if (CurTok.empty())
     lex();
-  return curTok;
+  return CurTok;
 }
 
-llvm::StringRef ScriptLexer::peek(LexState pLexState) {
-  llvm::SaveAndRestore saveLexState(lexState, pLexState);
+llvm::StringRef ScriptLexer::peek(enum LexState PLexState) {
+  llvm::SaveAndRestore SaveLexState(LexState, PLexState);
   return peek();
 }
 
-bool ScriptLexer::consume(StringRef tok) {
-  if (peek() != tok)
+bool ScriptLexer::consume(StringRef Tok) {
+  if (peek() != Tok)
     return false;
   next();
   return true;
@@ -264,28 +264,28 @@ bool ScriptLexer::consume(StringRef tok) {
 
 void ScriptLexer::skip() { (void)next(); }
 
-void ScriptLexer::expect(StringRef expect) {
-  if (!Diagnose())
+void ScriptLexer::expect(StringRef Expect) {
+  if (!diagnose())
     return;
-  StringRef tok = next();
-  if (tok != expect) {
+  StringRef Tok = next();
+  if (Tok != Expect) {
     if (atEOF())
       setError("unexpected EOF");
     else
-      setError(expect + " expected, but got " + tok);
+      setError(Expect + " expected, but got " + Tok);
   }
 }
 
-void ScriptLexer::expectButContinue(StringRef expect) {
-  if (!Diagnose())
+void ScriptLexer::expectButContinue(StringRef Expect) {
+  if (!diagnose())
     return;
-  StringRef tok = peek();
-  if (tok != expect) {
+  StringRef Tok = peek();
+  if (Tok != Expect) {
     if (atEOF())
       setError("unexpected EOF");
     else {
-      setError(expect + " expected, but got " + tok);
-      ++m_NonFatalErrors;
+      setError(Expect + " expected, but got " + Tok);
+      ++MNonFatalErrors;
     }
   } else {
     next();
@@ -293,28 +293,28 @@ void ScriptLexer::expectButContinue(StringRef expect) {
 }
 
 // Returns true if S encloses T.
-bool ScriptLexer::encloses(StringRef s, StringRef t) {
-  return s.bytes_begin() <= t.bytes_begin() && t.bytes_end() <= s.bytes_end();
+bool ScriptLexer::encloses(StringRef S, StringRef T) {
+  return S.bytes_begin() <= T.bytes_begin() && T.bytes_end() <= S.bytes_end();
 }
 
 MemoryBufferRef ScriptLexer::getCurrentMB() {
   // Find input buffer containing the current token.
-  assert(!mbs.empty());
-  for (MemoryBufferRef mb : mbs)
-    if (encloses(mb.getBuffer(), curBuf.s))
-      return mb;
+  assert(!MemoryBuffers.empty());
+  for (MemoryBufferRef Mb : MemoryBuffers)
+    if (encloses(Mb.getBuffer(), CurBuf.S))
+      return Mb;
   return MemoryBufferRef();
 }
 
-StringRef ScriptLexer::unquote(StringRef s) {
-  if (s.starts_with("\""))
-    return s.substr(1, s.size() - 2);
-  return s;
+StringRef ScriptLexer::unquote(StringRef S) {
+  if (S.starts_with("\""))
+    return S.substr(1, S.size() - 2);
+  return S;
 }
 
 void ScriptLexer::prev() {
-  if (!prevTok.empty()) {
-    curBuf.s = prevTok.data();
-    curTok = {};
+  if (!PrevTok.empty()) {
+    CurBuf.S = PrevTok.data();
+    CurTok = {};
   }
 }

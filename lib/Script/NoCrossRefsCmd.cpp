@@ -15,30 +15,30 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // NoCrossRefsCmd
 //===----------------------------------------------------------------------===//
-NoCrossRefsCmd::NoCrossRefsCmd(StringList &pSections, size_t ID)
-    : ScriptCommand(ScriptCommand::NOCROSSREFS), m_Sections(pSections),
-      m_ID(ID) {}
+NoCrossRefsCmd::NoCrossRefsCmd(StringList &PSections, size_t ID)
+    : ScriptCommand(ScriptCommand::NOCROSSREFS), ThisSectionions(PSections),
+      CurID(ID) {}
 
 NoCrossRefsCmd::~NoCrossRefsCmd() {}
 
-void NoCrossRefsCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "NOCROSSREFS(";
-  bool isFirst = true;
-  for (auto &I : m_Sections) {
-    if (isFirst)
-      isFirst = false;
+void NoCrossRefsCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "NOCROSSREFS(";
+  bool IsFirst = true;
+  for (auto &I : ThisSectionions) {
+    if (IsFirst)
+      IsFirst = false;
     else
-      outs << ", ";
-    outs << I->name();
+      Outs << ", ";
+    Outs << I->name();
   }
-  outs << ");\n";
+  Outs << ");\n";
 }
 
-eld::Expected<void> NoCrossRefsCmd::activate(Module &pModule) {
-  StringList::iterator it, ite = m_Sections.end();
-  for (it = m_Sections.begin(); it != ite; it++) {
-    std::string name = (*it)->name();
-    pModule.getNonRefSections().emplace(std::make_pair(name, m_ID));
+eld::Expected<void> NoCrossRefsCmd::activate(Module &CurModule) {
+  StringList::iterator It, Ite = ThisSectionions.end();
+  for (It = ThisSectionions.begin(); It != Ite; It++) {
+    std::string Name = (*It)->name();
+    CurModule.getNonRefSections().emplace(std::make_pair(Name, CurID));
   }
   return eld::Expected<void>();
 }

@@ -34,65 +34,67 @@ class Output;
  */
 class ELFObjectWriter {
 public:
-  ELFObjectWriter(GNULDBackend &pBackend, LinkerConfig &pConfig);
+  ELFObjectWriter(GNULDBackend &CurBackend, LinkerConfig &CurConfig);
 
   ~ELFObjectWriter();
 
-  std::error_code writeObject(Module &pModule, llvm::FileOutputBuffer &pOutput);
+  std::error_code writeObject(Module &CurModule,
+                              llvm::FileOutputBuffer &CurOutput);
 
   // write timing stats into .note.qc.timing when -emit-timing-stats-in-output
   // enabled
-  void writeLinkTimeStats(Module &pModule, uint64_t beginningOfTime,
-                          uint64_t duration);
+  void writeLinkTimeStats(Module &CurModule, uint64_t BeginningOfTime,
+                          uint64_t Duration);
 
   // Helper function, also used by compression.
-  eld::Expected<void> writeRegion(Module &pModule, ELFSection *section,
-                                  MemoryRegion &region);
+  eld::Expected<void> writeRegion(Module &CurModule, ELFSection *Section,
+                                  MemoryRegion &Region);
 
-  template <typename ELFT> size_t getOutputSize(const Module &pModule) const;
+  template <typename ELFT> size_t getOutputSize(const Module &CurModule) const;
 
-  eld::Expected<void> writeSection(Module &pModule,
-                                   llvm::FileOutputBuffer &pOutput,
-                                   ELFSection *section);
+  eld::Expected<void> writeSection(Module &CurModule,
+                                   llvm::FileOutputBuffer &CurOutput,
+                                   ELFSection *Section);
 
 private:
-  GNULDBackend &target() { return m_Backend; }
+  GNULDBackend &target() { return Backend; }
 
-  const GNULDBackend &target() const { return m_Backend; }
+  const GNULDBackend &target() const { return Backend; }
 
   // writeELFHeader - emit ElfXX_Ehdr
   template <typename ELFT>
-  void writeELFHeader(LinkerConfig &pConfig, const Module &pModule,
-                      llvm::FileOutputBuffer &pOutput) const;
+  void writeELFHeader(LinkerConfig &CurConfig, const Module &CurModule,
+                      llvm::FileOutputBuffer &CurOutput) const;
 
-  uint64_t getEntryPoint(LinkerConfig &pConfig, const Module &pModule) const;
+  uint64_t getEntryPoint(LinkerConfig &CurConfig,
+                         const Module &CurModule) const;
 
   // emitSectionHeader - emit ElfXX_Shdr
   template <typename ELFT>
-  void emitSectionHeader(const Module &pModule, LinkerConfig &pConfig,
-                         llvm::FileOutputBuffer &pOutput) const;
+  void emitSectionHeader(const Module &CurModule, LinkerConfig &CurConfig,
+                         llvm::FileOutputBuffer &CurOutput) const;
 
   // emitProgramHeader - emit ElfXX_Phdr
   template <typename ELFT>
-  void emitProgramHeader(llvm::FileOutputBuffer &pOutput) const;
+  void emitProgramHeader(llvm::FileOutputBuffer &CurOutput) const;
 
   // emitShStrTab - emit .shstrtab
-  void emitShStrTab(ELFSection *shStrTab, const Module &pModule,
-                    llvm::FileOutputBuffer &pOutput);
+  void emitShStrTab(ELFSection *ShStrTab, const Module &CurModule,
+                    llvm::FileOutputBuffer &CurOutput);
 
   template <typename ELFT>
-  void emitRelocation(Module &Module, ELFSection *pSection,
-                      MemoryRegion &pRegion, bool isDyn) const;
+  void emitRelocation(Module &Module, ELFSection *CurSection,
+                      MemoryRegion &CurRegion, bool IsDyn) const;
 
   // emitRel - emit ElfXX_Rel
   template <typename ELFT>
-  void emitRel(Module &Module, ELFSection *S, MemoryRegion &pRegion,
-               bool isDyn) const;
+  void emitRel(Module &Module, ELFSection *S, MemoryRegion &CurRegion,
+               bool IsDyn) const;
 
   // emitRela - emit ElfXX_Rela
   template <typename ELFT>
-  void emitRela(Module &Module, ELFSection *S, MemoryRegion &pRegion,
-                bool isDyn) const;
+  void emitRela(Module &Module, ELFSection *S, MemoryRegion &CurRegion,
+                bool IsDyn) const;
 
   // getSectEntrySize - compute ElfXX_Shdr::sh_entsize
   template <typename ELFT> uint64_t getSectEntrySize(ELFSection *S) const;
@@ -104,29 +106,29 @@ private:
   uint64_t getSectInfo(ELFSection *S) const;
 
   template <typename ELFT>
-  uint64_t getLastStartOffset(const Module &pModule) const;
+  uint64_t getLastStartOffset(const Module &CurModule) const;
 
-  eld::Expected<void> emitSection(ELFSection *pSection,
-                                  MemoryRegion &pRegion) const;
+  eld::Expected<void> emitSection(ELFSection *CurSection,
+                                  MemoryRegion &CurRegion) const;
 
-  void emitGroup(ELFSection *S, MemoryRegion &pRegion);
+  void emitGroup(ELFSection *S, MemoryRegion &CurRegion);
 
   bool shouldEmitReloc(const Relocation *R) const;
 
   // Emit SHT_REL/SHT_RELA relocations
   template <typename ELFT>
-  void emitRelocation(typename ELFT::Rel &pRel, Relocation::Type pType,
-                      uint32_t pSymIdx, uint32_t pOffset) const;
+  void emitRelocation(typename ELFT::Rel &PRel, Relocation::Type CurType,
+                      uint32_t CurSymIdx, uint32_t CurOffset) const;
 
   template <typename ELFT>
-  void emitRelocation(typename ELFT::Rela &pRel, Relocation::Type pType,
-                      uint32_t pSymIdx, uint32_t pOffset,
-                      int32_t pAddend) const;
+  void emitRelocation(typename ELFT::Rela &PRel, Relocation::Type CurType,
+                      uint32_t CurSymIdx, uint32_t CurOffset,
+                      int32_t CurAddend) const;
 
 private:
-  GNULDBackend &m_Backend;
+  GNULDBackend &Backend;
 
-  LinkerConfig &m_Config;
+  LinkerConfig &Config;
 };
 
 } // namespace eld

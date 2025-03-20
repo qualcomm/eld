@@ -20,19 +20,19 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // EntryCmd
 //===----------------------------------------------------------------------===//
-EntryCmd::EntryCmd(const std::string &pEntry)
-    : ScriptCommand(ScriptCommand::ENTRY), m_Entry(pEntry) {}
+EntryCmd::EntryCmd(const std::string &PEntry)
+    : ScriptCommand(ScriptCommand::ENTRY), EntrySymbol(PEntry) {}
 
 EntryCmd::~EntryCmd() {}
 
-void EntryCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "ENTRY(" << m_Entry << ")";
-  outs << " # " << getContext();
-  outs << "\n";
+void EntryCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "ENTRY(" << EntrySymbol << ")";
+  Outs << " # " << getContext();
+  Outs << "\n";
 }
 
-eld::Expected<void> EntryCmd::activate(Module &pModule) {
-  if ((!m_Entry.empty()) && (!(pModule.getConfig().options().hasEntry())))
-    pModule.getConfig().options().setEntry(m_Entry);
+eld::Expected<void> EntryCmd::activate(Module &CurModule) {
+  if ((!EntrySymbol.empty()) && (!(CurModule.getConfig().options().hasEntry())))
+    CurModule.getConfig().options().setEntry(EntrySymbol);
   return eld::Expected<void>();
 }

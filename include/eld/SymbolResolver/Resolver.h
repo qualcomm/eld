@@ -42,9 +42,9 @@ public:
    *   - overriden, if true, the info is being overriden.
    */
   struct Result {
-    ResolveInfo *info;
-    bool existent;
-    bool overriden;
+    ResolveInfo *Info;
+    bool Existent;
+    bool Overriden;
   };
 
 public:
@@ -54,9 +54,9 @@ public:
   /// @return the action should be taken.
   /// @param pOld the symbol which may be overridden.
   /// @param pNew the symbol which is used to replace pOld
-  virtual bool resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
-                       bool &pOverride, LDSymbol::ValueType pValue,
-                       LinkerConfig *Config, bool isPostLTOPhase) const = 0;
+  virtual bool resolve(ResolveInfo &OldSymbol, const ResolveInfo &NewSymbol,
+                       bool &CurOverride, LDSymbol::ValueType Value,
+                       LinkerConfig *Config, bool IsPostLtoPhase) const = 0;
 };
 
 } // namespace eld

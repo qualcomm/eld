@@ -31,20 +31,20 @@ public:
 
   ~ScriptReader();
 
-  void setTraceParsing() { m_bTraceParsing = true; }
+  void setTraceParsing() { MBTraceParsing = true; }
 
-  void setTraceScanning() { m_bTraceScanning = true; }
+  void setTraceScanning() { MBTraceScanning = true; }
 
   /// readScript
-  bool readScript(LinkerConfig &pConfig, ScriptFile &pScriptFile);
+  bool readScript(LinkerConfig &PConfig, ScriptFile &PScriptFile);
 
 private:
-  bool readLinkerScriptUsingNewParser(LinkerConfig &pConfig,
-                                      ScriptFile &pScriptFile);
+  bool readLinkerScriptUsingNewParser(LinkerConfig &PConfig,
+                                      ScriptFile &PScriptFile);
 
 private:
-  bool m_bTraceScanning;
-  bool m_bTraceParsing;
+  bool MBTraceScanning;
+  bool MBTraceParsing;
 };
 
 } // namespace eld

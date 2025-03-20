@@ -316,7 +316,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
-          config().raise(diag::copyrelocs_is_error)
+          config().raise(Diag::copyrelocs_is_error)
               << rsym->name() << pInput.getInput()->decoratedPath()
               << rsym->resolvedOrigin()->getInput()->decoratedPath();
           return;
@@ -360,7 +360,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
       // check if the option -z nocopyreloc is given
       if (config().options().hasNoCopyReloc()) {
-        config().raise(diag::copyrelocs_is_error)
+        config().raise(Diag::copyrelocs_is_error)
             << rsym->name() << pInput.getInput()->decoratedPath()
             << rsym->resolvedOrigin()->getInput()->decoratedPath();
         return;
@@ -409,7 +409,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
-          config().raise(diag::copyrelocs_is_error)
+          config().raise(Diag::copyrelocs_is_error)
               << rsym->name() << pInput.getInput()->decoratedPath()
               << rsym->resolvedOrigin()->getInput()->decoratedPath();
           return;
@@ -536,7 +536,7 @@ void AArch64Relocator::scanRelocation(Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))
-      config().raise(diag::reloc_trace)
+      config().raise(Diag::reloc_trace)
           << relocName << pReloc.symInfo()->name()
           << pInputFile.getInput()->decoratedPath();
   }

@@ -15,35 +15,35 @@
 
 using namespace eld;
 
-MsgHandler::MsgHandler(DiagnosticEngine &pEngine,
-                       std::unique_lock<std::mutex> lock)
-    : m_Engine(pEngine), m_NumArgs(0), m_Lock(std::move(lock)) {}
+MsgHandler::MsgHandler(DiagnosticEngine &PEngine,
+                       std::unique_lock<std::mutex> PLock)
+    : DiagEngine(PEngine), NumArgs(0), Lock(std::move(PLock)) {}
 
 MsgHandler::~MsgHandler() { emit(); }
 
 bool MsgHandler::emit() {
   flushCounts();
-  return m_Engine.emit(std::move(m_Lock));
+  return DiagEngine.emit(std::move(Lock));
 }
 
-void MsgHandler::addString(llvm::StringRef pStr) const {
-  assert(m_NumArgs < DiagnosticEngine::MaxArguments &&
+void MsgHandler::addString(llvm::StringRef PStr) const {
+  assert(NumArgs < DiagnosticEngine::MaxArguments &&
          "Too many arguments to diagnostic!");
-  m_Engine.state().ArgumentKinds[m_NumArgs] = DiagnosticEngine::ak_std_string;
-  m_Engine.state().ArgumentStrs[m_NumArgs++] = pStr.str();
+  DiagEngine.state().ArgumentKinds[NumArgs] = DiagnosticEngine::ak_std_string;
+  DiagEngine.state().ArgumentStrs[NumArgs++] = PStr.str();
 }
 
-void MsgHandler::addString(const std::string &pStr) const {
-  assert(m_NumArgs < DiagnosticEngine::MaxArguments &&
+void MsgHandler::addString(const std::string &PStr) const {
+  assert(NumArgs < DiagnosticEngine::MaxArguments &&
          "Too many arguments to diagnostic!");
-  m_Engine.state().ArgumentKinds[m_NumArgs] = DiagnosticEngine::ak_std_string;
-  m_Engine.state().ArgumentStrs[m_NumArgs++] = pStr;
+  DiagEngine.state().ArgumentKinds[NumArgs] = DiagnosticEngine::ak_std_string;
+  DiagEngine.state().ArgumentStrs[NumArgs++] = PStr;
 }
 
-void MsgHandler::addTaggedVal(intptr_t pValue,
-                              DiagnosticEngine::ArgumentKind pKind) const {
-  assert(m_NumArgs < DiagnosticEngine::MaxArguments &&
+void MsgHandler::addTaggedVal(intptr_t PValue,
+                              DiagnosticEngine::ArgumentKind PKind) const {
+  assert(NumArgs < DiagnosticEngine::MaxArguments &&
          "Too many arguments to diagnostic!");
-  m_Engine.state().ArgumentKinds[m_NumArgs] = pKind;
-  m_Engine.state().ArgumentVals[m_NumArgs++] = pValue;
+  DiagEngine.state().ArgumentKinds[NumArgs] = PKind;
+  DiagEngine.state().ArgumentVals[NumArgs++] = PValue;
 }

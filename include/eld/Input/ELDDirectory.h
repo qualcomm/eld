@@ -25,22 +25,22 @@ namespace eld {
  */
 class ELDDirectory {
 public:
-  explicit ELDDirectory(llvm::StringRef pName, std::string sysRoot);
+  explicit ELDDirectory(llvm::StringRef PName, std::string SysRoot);
   virtual ~ELDDirectory();
 
 public:
-  bool isInSysroot() const { return m_bInSysroot; }
+  bool isInSysroot() const { return BInSysroot; }
 
-  bool getIsFound() const { return m_isFound; }
+  bool getIsFound() const { return IsFound; }
 
-  void setIsFound(bool isFound) { m_isFound = isFound; }
+  void setIsFound(bool PIsFound) { IsFound = PIsFound; }
 
-  const std::string &name() const { return m_Name; }
+  const std::string &name() const { return Name; }
 
 private:
-  std::string m_Name;
-  bool m_bInSysroot;
-  bool m_isFound;
+  std::string Name;
+  bool BInSysroot;
+  bool IsFound;
 };
 
 } // namespace eld

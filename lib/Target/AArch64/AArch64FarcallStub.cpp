@@ -40,12 +40,12 @@ AArch64FarcallStub::AArch64FarcallStub(bool pIsOutputPIC)
     : Stub(), m_Name("__trampoline"), m_pData(nullptr) {
   if (pIsOutputPIC) {
     m_pData = TEMPLATE_PIC;
-    m_Size = sizeof(TEMPLATE_PIC);
+    ThisSize = sizeof(TEMPLATE_PIC);
   } else {
     m_pData = TEMPLATE;
-    m_Size = sizeof(TEMPLATE);
+    ThisSize = sizeof(TEMPLATE);
   }
-  m_Alignment = alignment();
+  Alignment = alignment();
   if (pIsOutputPIC)
     addFixup(16u, 12, llvm::ELF::R_AARCH64_PREL64);
   else
@@ -56,8 +56,8 @@ AArch64FarcallStub::AArch64FarcallStub(const uint32_t *pData, size_t pSize,
                                        const_fixup_iterator pBegin,
                                        const_fixup_iterator pEnd, size_t align)
     : Stub(), m_Name("__trampoline"), m_pData(pData) {
-  m_Size = pSize;
-  m_Alignment = align;
+  ThisSize = pSize;
+  Alignment = align;
   for (auto it = pBegin, ie = pEnd; it != ie; ++it)
     addFixup(**it);
 }
@@ -106,6 +106,6 @@ size_t AArch64FarcallStub::alignment() const { return 8u; }
 
 Stub *AArch64FarcallStub::clone(InputFile *, Relocation *, eld::IRBuilder *,
                                 DiagnosticEngine *) {
-  return make<AArch64FarcallStub>(m_pData, m_Size, fixup_begin(), fixup_end(),
-                                  m_Alignment);
+  return make<AArch64FarcallStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
+                                  Alignment);
 }

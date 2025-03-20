@@ -21,8 +21,9 @@ class DiagnosticPrinter;
  */
 class ELFFileBase : public ObjectFile {
 public:
-  ELFFileBase(Input *I, DiagnosticEngine *diagEngine, InputFile::Kind K)
-      : ObjectFile(I, K, diagEngine) {}
+  ELFFileBase(Input *I, DiagnosticEngine *DiagEngine,
+              InputFile::InputFileKind K)
+      : ObjectFile(I, K, DiagEngine) {}
 
   /// Casting support.
   static bool classof(const InputFile *E) {
@@ -36,26 +37,26 @@ public:
   }
 
   /// ------------ Symbol Table ---------------------------------------
-  void setSymbolTable(ELFSection *SymTab) { m_SymbolTable = SymTab; }
+  void setSymbolTable(ELFSection *SymTab) { SymbolTable = SymTab; }
 
-  ELFSection *getSymbolTable() const { return m_SymbolTable; }
+  ELFSection *getSymbolTable() const { return SymbolTable; }
 
   /// ------------ String Table ---------------------------------------
-  void setStringTable(ELFSection *SymTab) { m_StringTable = SymTab; }
+  void setStringTable(ELFSection *SymTab) { StringTable = SymTab; }
 
-  ELFSection *getStringTable() const { return m_StringTable; }
+  ELFSection *getStringTable() const { return StringTable; }
 
   /// ------------ Extended Symbol Table ---------------------------------------
   void setExtendedSymbolTable(ELFSection *SymTab) {
-    m_ExtendedSymbolTable = SymTab;
+    ExtendedSymbolTable = SymTab;
   }
 
-  ELFSection *getExtendedSymbolTable() const { return m_ExtendedSymbolTable; }
+  ELFSection *getExtendedSymbolTable() const { return ExtendedSymbolTable; }
 
   /// ------------------- Dynamic Section --------------------------------
-  void setDynamic(ELFSection *SymTab) { m_Dynamic = SymTab; }
+  void setDynamic(ELFSection *SymTab) { Dynamic = SymTab; }
 
-  ELFSection *getDynamic() const { return m_Dynamic; }
+  ELFSection *getDynamic() const { return Dynamic; }
 
   /// ------------------- ELFSection Helpers --------------------------------
   ELFSection *getELFSection(uint32_t Index);
@@ -64,21 +65,21 @@ public:
   void addSection(ELFSection *S);
 
   const std::vector<ELFSection *> &getRelocationSections() const {
-    return m_RelocationSections;
+    return RelocationSections;
   }
 
-  uint32_t getCurrentSectionIndex() const { return m_SectionTable.size(); }
+  uint32_t getCurrentSectionIndex() const { return MSectionTable.size(); }
 
   virtual bool isELFNeeded() { return true; }
 
   virtual ~ELFFileBase() {}
 
 protected:
-  std::vector<ELFSection *> m_RelocationSections;
-  ELFSection *m_SymbolTable = nullptr;
-  ELFSection *m_StringTable = nullptr;
-  ELFSection *m_ExtendedSymbolTable = nullptr;
-  ELFSection *m_Dynamic = nullptr;
+  std::vector<ELFSection *> RelocationSections;
+  ELFSection *SymbolTable = nullptr;
+  ELFSection *StringTable = nullptr;
+  ELFSection *ExtendedSymbolTable = nullptr;
+  ELFSection *Dynamic = nullptr;
 };
 
 } // namespace eld

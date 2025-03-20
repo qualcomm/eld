@@ -9,8 +9,8 @@
 
 using namespace eld;
 
-ELFDynObjectFile::ELFDynObjectFile(Input *I, DiagnosticEngine *diagEngine)
-    : ELFFileBase(I, diagEngine, InputFile::ELFDynObjFileKind) {
+ELFDynObjectFile::ELFDynObjectFile(Input *I, DiagnosticEngine *DiagEngine)
+    : ELFFileBase(I, DiagEngine, InputFile::ELFDynObjFileKind) {
   if (I->getSize())
     Contents = I->getFileContents();
 }

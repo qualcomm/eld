@@ -14,37 +14,37 @@ PluginCmd::PluginCmd(plugin::Plugin::Type T, const std::string &Name,
     : ScriptCommand(ScriptCommand::PLUGIN), T(T), Name(Name), R(R), Options(O) {
 }
 
-eld::Expected<void> PluginCmd::activate(Module &pModule) {
+eld::Expected<void> PluginCmd::activate(Module &CurModule) {
   auto PrintTimingStats =
-      pModule.getConfig().options().printTimingStats("Plugin") ||
-      pModule.getConfig().options().printTimingStats(Name.c_str()) ||
-      pModule.getConfig().options().allUserPluginStatsRequested();
-  Plugin = pModule.getScript().addPlugin(T, Name, R, Options, PrintTimingStats,
-                                         pModule);
+      CurModule.getConfig().options().printTimingStats("Plugin") ||
+      CurModule.getConfig().options().printTimingStats(Name.c_str()) ||
+      CurModule.getConfig().options().allUserPluginStatsRequested();
+  Plugin = CurModule.getScript().addPlugin(T, Name, R, Options,
+                                           PrintTimingStats, CurModule);
   return eld::Expected<void>();
 }
 
-void PluginCmd::dump(llvm::raw_ostream &outs) const {
+void PluginCmd::dump(llvm::raw_ostream &Outs) const {
   if (!Options.empty()) {
-    outs << getPluginType() << "(\"" << Name << "\", "
+    Outs << getPluginType() << "(\"" << Name << "\", "
          << "\"" << R << "\", "
          << "\"" << Options << "\");";
-    outs << "\n";
+    Outs << "\n";
     return;
   }
-  outs << getPluginType() << "(\"" << Name << "\", "
+  Outs << getPluginType() << "(\"" << Name << "\", "
        << "\"" << R << "\");";
-  outs << "\n";
+  Outs << "\n";
 }
 
-void PluginCmd::dumpPluginInfo(llvm::raw_ostream &outs) const {
+void PluginCmd::dumpPluginInfo(llvm::raw_ostream &Outs) const {
   if (!Options.empty()) {
-    outs << getPluginType() << "(\"" << Name << "\", "
+    Outs << getPluginType() << "(\"" << Name << "\", "
          << "\"" << R << "\", "
          << "\"" << Options << "\")";
     return;
   }
-  outs << getPluginType() << "(\"" << Name << "\", "
+  Outs << getPluginType() << "(\"" << Name << "\", "
        << "\"" << R << "\")";
 }
 

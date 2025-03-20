@@ -80,7 +80,7 @@ void TemplateRelocator::scanRelocation(Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))
-      config().place(config().getDiagEngine())(diag::reloc_trace)
+      config().place(config().getDiagEngine())(Diag::reloc_trace)
           << relocName << pInput.decoratedPath();
   }
 

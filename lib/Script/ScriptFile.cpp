@@ -58,81 +58,84 @@
 
 using namespace eld;
 
-static eld::StringList *oldEpilogPhdrs = nullptr;
-static bool hasEpilogPhdrs = false;
-bool ScriptFile::m_firstLinkerScriptWithOutputSection = false;
+static eld::StringList *OldEpilogPhdrs = nullptr;
+static bool HasEpilogPhdrs = false;
+bool ScriptFile::IsFirstLinkerScriptWithSectionCommand = false;
 
 //===----------------------------------------------------------------------===//
 // ScriptFile
 //===----------------------------------------------------------------------===//
-ScriptFile::ScriptFile(Kind pKind, Module &pModule, LinkerScriptFile &pInput,
-                       InputBuilder &pBuilder, GNULDBackend &pBackend)
-    : m_Kind(pKind), m_Module(pModule), m_LinkerScriptFile(pInput),
-      m_Backend(pBackend),
-      m_Name(pInput.getInput()->getResolvedPath().native()),
-      m_bHasSectionsCmd(false), m_bInSectionsCmd(false),
-      m_bInOutputSectDesc(false), m_pStringList(nullptr),
-      m_SectionsCmd(nullptr), m_PhdrsCmd(nullptr), m_OutputSectDesc(nullptr),
-      m_bAsNeeded(false) {
-  setContext(&pInput);
+ScriptFile::ScriptFile(Kind PKind, Module &CurModule, LinkerScriptFile &PInput,
+                       InputBuilder &PBuilder, GNULDBackend &PBackend)
+    : ScriptFileKind(PKind), ThisModule(CurModule),
+      ThisLinkerScriptFile(PInput), ThisBackend(PBackend),
+      Name(PInput.getInput()->getResolvedPath().native()),
+      LinkerScriptHasSectionsCommand(false),
+      ScriptStateInSectionsCommmand(false),
+      ScriptStateInsideOutputSection(false), ScriptFileStringList(nullptr),
+      LinkerScriptSectionsCommand(nullptr), LinkerScriptPHDRSCommand(nullptr),
+      OutputSectionDescription(nullptr), LinkerScriptHasAsNeeded(false) {
+  setContext(&PInput);
 }
 
 ScriptFile::~ScriptFile() {}
 
-void ScriptFile::dump(llvm::raw_ostream &outs) const {
-  for (const auto &elem : *this)
-    (elem)->dump(outs);
+void ScriptFile::dump(llvm::raw_ostream &Outs) const {
+  for (const auto &Elem : *this)
+    (Elem)->dump(Outs);
 }
 
-eld::Expected<void> ScriptFile::activate(Module &pModule) {
+eld::Expected<void> ScriptFile::activate(Module &CurModule) {
   for (auto &SC : *this) {
-    eld::Expected<void> E = SC->activate(pModule);
+    eld::Expected<void> E = SC->activate(CurModule);
     if (!E)
       return E;
     // There can be multiple scripts included and the linker needs to be parse
     // each one of them.
-    pModule.getScript().addScriptCommand(SC);
+    CurModule.getScript().addScriptCommand(SC);
   }
-  if (m_Kind == Kind::DynamicList && DynamicListSymbols) {
-    for (ScriptSymbol *sym : *DynamicListSymbols)
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(sym->activate());
+  if (ScriptFileKind == Kind::DynamicList && DynamicListSymbols) {
+    for (ScriptSymbol *Sym : *DynamicListSymbols)
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Sym->activate());
   }
   return eld::Expected<void>();
 }
 
-ScriptCommand *ScriptFile::addEntryPoint(const std::string &pSymbol) {
-  auto entry = make<EntryCmd>(pSymbol);
-  entry->setInputFileInContext(getContext());
-  entry->setParent(getParent());
+ScriptCommand *ScriptFile::addEntryPoint(const std::string &Symbol) {
+  auto *Entry = make<EntryCmd>(Symbol);
+  Entry->setInputFileInContext(getContext());
+  Entry->setParent(getParent());
 
-  if (m_bInSectionsCmd) {
-    m_SectionsCmd->push_back(entry);
+  if (ScriptStateInSectionsCommmand) {
+    LinkerScriptSectionsCommand->pushBack(Entry);
   } else {
-    m_CommandQueue.push_back(entry);
+    LinkerScriptCommandQueue.push_back(Entry);
   }
-  return entry;
+  return Entry;
 }
 
-ExternCmd *ScriptFile::addExtern(StringList &pList) {
-  auto externCmd = make<ExternCmd>(pList);
-  externCmd->setInputFileInContext(getContext());
-  externCmd->setParent(getParent());
-  m_CommandQueue.push_back(externCmd);
-  return externCmd;
+ExternCmd *ScriptFile::addExtern(StringList &List) {
+  auto *ExternCmd = make<eld::ExternCmd>(List);
+  ExternCmd->setInputFileInContext(getContext());
+  ExternCmd->setParent(getParent());
+  LinkerScriptCommandQueue.push_back(ExternCmd);
+  return ExternCmd;
 }
 
-void ScriptFile::addNoCrossRefs(StringList &pList) {
-  auto noCrossRefs = make<NoCrossRefsCmd>(pList, m_CommandQueue.size());
-  noCrossRefs->setInputFileInContext(getContext());
-  noCrossRefs->setParent(getParent());
-  m_CommandQueue.push_back(noCrossRefs);
+void ScriptFile::addNoCrossRefs(StringList &List) {
+  auto *NoCrossRefs =
+      make<NoCrossRefsCmd>(List, LinkerScriptCommandQueue.size());
+  NoCrossRefs->setInputFileInContext(getContext());
+  NoCrossRefs->setParent(getParent());
+  LinkerScriptCommandQueue.push_back(NoCrossRefs);
 }
 
-void ScriptFile::addInputToTar(const std::string &filename,
-                               const std::string &resolvedPath) const {
-  if (!m_Module.getOutputTarWriter())
+void ScriptFile::addInputToTar(const std::string &Filename,
+                               const std::string &ResolvedPath) const {
+  if (!ThisModule.getOutputTarWriter())
     return;
-  m_Module.getOutputTarWriter()->createAndAddScriptFile(filename, resolvedPath);
+  ThisModule.getOutputTarWriter()->createAndAddScriptFile(Filename,
+                                                          ResolvedPath);
 }
 
 namespace {
@@ -140,370 +143,379 @@ namespace {
 inline bool searchIncludeFile(llvm::StringRef Name, llvm::StringRef FileName,
                               DiagnosticEngine *DiagEngine) {
   bool Found = llvm::sys::fs::exists(FileName);
-  DiagEngine->raise(diag::verbose_trying_script_include_file)
+  DiagEngine->raise(Diag::verbose_trying_script_include_file)
       << FileName << Name << (Found ? "found" : "not found");
   return Found;
 }
 
 } // namespace
 
-std::string ScriptFile::findIncludeFile(const std::string &filename,
-                                        bool &result, bool state) {
-  LinkerConfig &Config = m_Module.getConfig();
-  auto iterb = Config.directories().begin();
-  auto itere = Config.directories().end();
-  bool hasMapping = Config.options().hasMappingFile();
-  result = true;
+std::string ScriptFile::findIncludeFile(const std::string &Filename,
+                                        bool &Result, bool State) {
+  LinkerConfig &Config = ThisModule.getConfig();
+  auto Iterb = Config.directories().begin();
+  auto Itere = Config.directories().end();
+  bool HasMapping = Config.options().hasMappingFile();
+  Result = true;
 
   // Add INCLUDE Command
-  auto includeCmd = eld::make<IncludeCmd>(filename, !state);
-  includeCmd->setInputFileInContext(getContext());
-  if (m_LeavingOutputSectDesc) {
-    m_SectionsCmd->push_back(includeCmd);
-    includeCmd->setParent(m_SectionsCmd);
+  auto *IncludeCmd = eld::make<eld::IncludeCmd>(Filename, !State);
+  IncludeCmd->setInputFileInContext(getContext());
+  if (IsLeavingOutputSectDesc) {
+    LinkerScriptSectionsCommand->pushBack(IncludeCmd);
+    IncludeCmd->setParent(LinkerScriptSectionsCommand);
   } else if (getParent()) {
-    includeCmd->setParent(getParent());
-    getParent()->push_back(includeCmd);
+    IncludeCmd->setParent(getParent());
+    getParent()->pushBack(IncludeCmd);
   } else
-    m_CommandQueue.push_back(includeCmd);
+    LinkerScriptCommandQueue.push_back(IncludeCmd);
 
   // If there is a mapping file, find the hash from the mapping file and
   // return a proper status.
-  if (hasMapping) {
-    std::string resolvedFilePath =
-        m_Module.getConfig().getHashFromFile(filename);
-    if (!llvm::sys::fs::exists(resolvedFilePath)) {
-      if (state) {
-        m_Module.setFailure(true);
-        Config.raise(diag::fatal_cannot_read_input) << filename;
+  if (HasMapping) {
+    std::string ResolvedFilePath =
+        ThisModule.getConfig().getHashFromFile(Filename);
+    if (!llvm::sys::fs::exists(ResolvedFilePath)) {
+      if (State) {
+        ThisModule.setFailure(true);
+        Config.raise(Diag::fatal_cannot_read_input) << Filename;
       }
-      result = false;
+      Result = false;
     }
-    return resolvedFilePath;
+    return ResolvedFilePath;
   }
 
-  if (searchIncludeFile(filename, filename,
-                        m_Module.getConfig().getDiagEngine())) {
-    addInputToTar(filename, filename);
-    return filename;
+  if (searchIncludeFile(Filename, Filename,
+                        ThisModule.getConfig().getDiagEngine())) {
+    addInputToTar(Filename, Filename);
+    return Filename;
   }
 
-  for (; iterb != itere; ++iterb) {
-    std::string path = (*iterb)->name();
-    path += "/";
-    path += filename;
-    if (searchIncludeFile(filename, path,
-                          m_Module.getConfig().getDiagEngine())) {
-      addInputToTar(filename, path);
-      return path;
+  for (; Iterb != Itere; ++Iterb) {
+    std::string Path = (*Iterb)->name();
+    Path += "/";
+    Path += Filename;
+    if (searchIncludeFile(Filename, Path,
+                          ThisModule.getConfig().getDiagEngine())) {
+      addInputToTar(Filename, Path);
+      return Path;
     }
   }
-  result = false;
-  if (!result && state) {
-    Config.raise(diag::fatal_cannot_read_input) << filename;
-    m_Module.setFailure(true);
-    return filename;
+  Result = false;
+  if (!Result && State) {
+    Config.raise(Diag::fatal_cannot_read_input) << Filename;
+    ThisModule.setFailure(true);
+    return Filename;
   }
-  return filename;
+  return Filename;
 }
 
-void ScriptFile::addOutputFormatCmd(const std::string &pName) {
-  auto Cmd = make<OutputFormatCmd>(pName);
+void ScriptFile::addOutputFormatCmd(const std::string &PName) {
+  auto *Cmd = make<OutputFormatCmd>(PName);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addOutputFormatCmd(const std::string &pDefault,
-                                    const std::string &pBig,
-                                    const std::string &pLittle) {
-  auto Cmd = make<OutputFormatCmd>(pDefault, pBig, pLittle);
+void ScriptFile::addOutputFormatCmd(const std::string &PDefault,
+                                    const std::string &PBig,
+                                    const std::string &PLittle) {
+  auto *Cmd = make<OutputFormatCmd>(PDefault, PBig, PLittle);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addGroupCmd(StringList &pStringList,
-                             const Attribute &attributes) {
-  auto Cmd =
-      make<GroupCmd>(m_Module.getConfig(), pStringList, attributes, *this);
+void ScriptFile::addGroupCmd(StringList &PStringList,
+                             const Attribute &Attributes) {
+  auto *Cmd =
+      make<GroupCmd>(ThisModule.getConfig(), PStringList, Attributes, *this);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addInputCmd(StringList &pStringList,
-                             const Attribute &attributes) {
-  auto Cmd =
-      make<InputCmd>(m_Module.getConfig(), pStringList, attributes, *this);
+void ScriptFile::addInputCmd(StringList &PStringList,
+                             const Attribute &Attributes) {
+  auto *Cmd =
+      make<InputCmd>(ThisModule.getConfig(), PStringList, Attributes, *this);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addOutputCmd(const std::string &pFileName) {
-  auto Cmd = make<OutputCmd>(pFileName);
+void ScriptFile::addOutputCmd(const std::string &PFileName) {
+  auto *Cmd = make<OutputCmd>(PFileName);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addSearchDirCmd(const std::string &pPath) {
-  auto Cmd = make<SearchDirCmd>(pPath);
+void ScriptFile::addSearchDirCmd(const std::string &PPath) {
+  auto *Cmd = make<SearchDirCmd>(PPath);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addOutputArchCmd(const std::string &pArch) {
-  auto Cmd = make<OutputArchCmd>(pArch);
+void ScriptFile::addOutputArchCmd(const std::string &PArch) {
+  auto *Cmd = make<OutputArchCmd>(PArch);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_CommandQueue.push_back(Cmd);
+  LinkerScriptCommandQueue.push_back(Cmd);
 }
 
-void ScriptFile::addAssignment(const std::string &pSymbolName,
-                               Expression *pExpr, Assignment::Type pType) {
-  Assignment *newAssignment;
-  if (m_bInSectionsCmd) {
-    assert(!m_CommandQueue.empty());
-    SectionsCmd *sections = m_SectionsCmd;
-    if (m_bInOutputSectDesc) {
-      assert(!sections->empty());
-      newAssignment = make<Assignment>(Assignment::INPUT_SECTION, pType,
-                                       pSymbolName, pExpr);
-      newAssignment->setInputFileInContext(getContext());
-      newAssignment->setParent(getParent());
-      m_OutputSectDesc->push_back(newAssignment);
+void ScriptFile::addAssignment(const std::string &SymbolName,
+                               Expression *ScriptExpression,
+                               Assignment::Type AssignmentType) {
+  Assignment *NewAssignment;
+  if (ScriptStateInSectionsCommmand) {
+    assert(!LinkerScriptCommandQueue.empty());
+    SectionsCmd *Sections = LinkerScriptSectionsCommand;
+    if (ScriptStateInsideOutputSection) {
+      assert(!Sections->empty());
+      NewAssignment =
+          make<Assignment>(Assignment::INPUT_SECTION, AssignmentType,
+                           SymbolName, ScriptExpression);
+      NewAssignment->setInputFileInContext(getContext());
+      NewAssignment->setParent(getParent());
+      OutputSectionDescription->pushBack(NewAssignment);
     } else {
-      newAssignment = make<Assignment>(Assignment::OUTPUT_SECTION, pType,
-                                       pSymbolName, pExpr);
-      newAssignment->setInputFileInContext(getContext());
-      newAssignment->setParent(getParent());
-      sections->push_back(newAssignment);
+      NewAssignment =
+          make<Assignment>(Assignment::OUTPUT_SECTION, AssignmentType,
+                           SymbolName, ScriptExpression);
+      NewAssignment->setInputFileInContext(getContext());
+      NewAssignment->setParent(getParent());
+      Sections->pushBack(NewAssignment);
     }
   } else {
-    newAssignment = make<Assignment>(Assignment::OUTSIDE_SECTIONS, pType,
-                                     pSymbolName, pExpr);
-    newAssignment->setInputFileInContext(getContext());
-    newAssignment->setParent(getParent());
-    m_CommandQueue.push_back(newAssignment);
+    NewAssignment =
+        make<Assignment>(Assignment::OUTSIDE_SECTIONS, AssignmentType,
+                         SymbolName, ScriptExpression);
+    NewAssignment->setInputFileInContext(getContext());
+    NewAssignment->setParent(getParent());
+    LinkerScriptCommandQueue.push_back(NewAssignment);
   }
 }
 
 bool ScriptFile::linkerScriptHasSectionsCommand() const {
-  return m_bHasSectionsCmd;
+  return LinkerScriptHasSectionsCommand;
 }
 
 void ScriptFile::enterSectionsCmd() {
-  m_bHasSectionsCmd = true;
-  m_bInSectionsCmd = true;
-  auto Cmd = make<SectionsCmd>();
+  LinkerScriptHasSectionsCommand = true;
+  ScriptStateInSectionsCommmand = true;
+  auto *Cmd = make<SectionsCmd>();
   Cmd->setInputFileInContext(getContext());
-  m_CommandQueue.push_back(Cmd);
-  m_SectionsCmd = Cmd;
-  push(m_SectionsCmd);
-  m_SectionsCmd->push_back(enterScope());
+  LinkerScriptCommandQueue.push_back(Cmd);
+  LinkerScriptSectionsCommand = Cmd;
+  push(LinkerScriptSectionsCommand);
+  LinkerScriptSectionsCommand->pushBack(enterScope());
 }
 
 ScriptCommand *ScriptFile::enterScope() {
-  auto Cmd = make<EnterScopeCmd>();
+  auto *Cmd = make<EnterScopeCmd>();
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
   return Cmd;
 }
 
 ScriptCommand *ScriptFile::exitScope() {
-  auto Cmd = make<ExitScopeCmd>();
+  auto *Cmd = make<ExitScopeCmd>();
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
   pop();
   return Cmd;
 }
 
-void ScriptFile::leavingOutputSectDesc() { m_LeavingOutputSectDesc = true; }
+void ScriptFile::leavingOutputSectDesc() { IsLeavingOutputSectDesc = true; }
 
 void ScriptFile::leaveSectionsCmd() {
-  m_SectionsCmd->push_back(exitScope());
-  m_bInSectionsCmd = false;
+  LinkerScriptSectionsCommand->pushBack(exitScope());
+  ScriptStateInSectionsCommmand = false;
 }
 
-void ScriptFile::enterOutputSectDesc(const std::string &pName,
-                                     const OutputSectDesc::Prolog &pProlog) {
-  assert(!m_CommandQueue.empty());
-  assert(m_bInSectionsCmd);
-  ASSERT(m_OutputSectDesc == nullptr, "OutputSectDesc should be null");
-  m_OutputSectDesc = make<OutputSectDesc>(pName);
-  m_OutputSectDesc->setParent(getParent());
-  m_OutputSectDesc->setInputFileInContext(getContext());
-  m_OutputSectDesc->setProlog(pProlog);
-  m_SectionsCmd->push_back(m_OutputSectDesc);
-  m_bInOutputSectDesc = true;
-  m_firstLinkerScriptWithOutputSection = true;
-  push(m_OutputSectDesc);
-  m_OutputSectDesc->push_back(enterScope());
-  m_LeavingOutputSectDesc = false;
-  m_Module.addToOutputSectionDescNameSet(pName);
+void ScriptFile::enterOutputSectDesc(const std::string &PName,
+                                     const OutputSectDesc::Prolog &PProlog) {
+  assert(!LinkerScriptCommandQueue.empty());
+  assert(ScriptStateInSectionsCommmand);
+  ASSERT(OutputSectionDescription == nullptr, "OutputSectDesc should be null");
+  OutputSectionDescription = make<OutputSectDesc>(PName);
+  OutputSectionDescription->setParent(getParent());
+  OutputSectionDescription->setInputFileInContext(getContext());
+  OutputSectionDescription->setProlog(PProlog);
+  LinkerScriptSectionsCommand->pushBack(OutputSectionDescription);
+  ScriptStateInsideOutputSection = true;
+  IsFirstLinkerScriptWithSectionCommand = true;
+  push(OutputSectionDescription);
+  OutputSectionDescription->pushBack(enterScope());
+  IsLeavingOutputSectDesc = false;
+  ThisModule.addToOutputSectionDescNameSet(PName);
 }
 
-void ScriptFile::leaveOutputSectDesc(const OutputSectDesc::Epilog &pEpilog) {
+void ScriptFile::leaveOutputSectDesc(const OutputSectDesc::Epilog &PEpilog) {
   if (ScriptFileStack.empty())
     return;
-  assert(!m_CommandQueue.empty() && m_bInSectionsCmd);
-  bool outhasPhdrs = pEpilog.hasPhdrs();
-  hasEpilogPhdrs |= outhasPhdrs;
+  assert(!LinkerScriptCommandQueue.empty() && ScriptStateInSectionsCommmand);
+  bool OuthasPhdrs = PEpilog.hasPhdrs();
+  HasEpilogPhdrs |= OuthasPhdrs;
 
-  assert(!m_SectionsCmd->empty() && m_bInOutputSectDesc);
-  auto E = m_OutputSectDesc->setEpilog(pEpilog);
+  assert(!LinkerScriptSectionsCommand->empty() &&
+         ScriptStateInsideOutputSection);
+  auto E = OutputSectionDescription->setEpilog(PEpilog);
   if (!E)
-    m_Module.getConfig().raiseDiagEntry(std::move(E.error()));
+    ThisModule.getConfig().raiseDiagEntry(std::move(E.error()));
 
-  m_LeavingOutputSectDesc = true;
+  IsLeavingOutputSectDesc = true;
 
   // Add a default spec to catch rules that belong to the output section.
-  InputSectDesc::Spec defaultSpec;
-  defaultSpec.initialize();
-  StringList *stringList = createStringList();
-  defaultSpec.m_pWildcardFile = createWildCardPattern(createParserStr("*", 1));
-  stringList->push_back(
-      createWildCardPattern(eld::make<StrToken>(m_OutputSectDesc->name())));
-  defaultSpec.m_pWildcardSections = stringList;
-  defaultSpec.m_pArchiveMember = nullptr;
-  defaultSpec.m_pIsArchive = 0;
-  InputSectDesc *DefaultSpec = make<InputSectDesc>(
-      m_Module.getScript().getIncrementedRuleCount(),
-      InputSectDesc::SpecialNoKeep, defaultSpec, *m_OutputSectDesc);
-  DefaultSpec->setInputFileInContext(
-      m_Module.getInternalInput(Module::InternalInputType::Script));
-  DefaultSpec->setParent(getParent());
-  m_OutputSectDesc->push_back(DefaultSpec);
+  InputSectDesc::Spec DefaultSpec;
+  DefaultSpec.initialize();
+  StringList *StringList = createStringList();
+  DefaultSpec.WildcardFilePattern =
+      createWildCardPattern(createParserStr("*", 1));
+  StringList->pushBack(createWildCardPattern(
+      eld::make<StrToken>(OutputSectionDescription->name())));
+  DefaultSpec.WildcardSectionPattern = StringList;
+  DefaultSpec.InputArchiveMember = nullptr;
+  DefaultSpec.InputIsArchive = 0;
+  InputSectDesc *Spec = make<InputSectDesc>(
+      ThisModule.getScript().getIncrementedRuleCount(),
+      InputSectDesc::SpecialNoKeep, DefaultSpec, *OutputSectionDescription);
+  Spec->setInputFileInContext(
+      ThisModule.getInternalInput(Module::InternalInputType::Script));
+  Spec->setParent(getParent());
+  OutputSectionDescription->pushBack(Spec);
 
-  m_OutputSectDesc->push_back(exitScope());
+  OutputSectionDescription->pushBack(exitScope());
 
-  m_bInOutputSectDesc = false;
+  ScriptStateInsideOutputSection = false;
 
-  if (outhasPhdrs)
-    oldEpilogPhdrs = pEpilog.phdrs();
+  if (OuthasPhdrs)
+    OldEpilogPhdrs = PEpilog.phdrs();
 
   // If no PHDR specified and output has NOLOAD, we need to consider this
   // separately.
-  if (m_OutputSectDesc->prolog().type() == OutputSectDesc::NOLOAD) {
-    m_OutputSectDesc = nullptr;
+  if (OutputSectionDescription->prolog().type() == OutputSectDesc::NOLOAD) {
+    OutputSectionDescription = nullptr;
     return;
   }
 
-  if (hasEpilogPhdrs && !outhasPhdrs && oldEpilogPhdrs) {
-    if (oldEpilogPhdrs->size() == 1)
-      m_OutputSectDesc->epilog().m_pPhdrs = oldEpilogPhdrs;
-    else if (oldEpilogPhdrs->size() > 1) {
-      m_OutputSectDesc->epilog().m_pPhdrs = createStringList();
-      m_OutputSectDesc->epilog().m_pPhdrs->push_back(
-          createStrToken(oldEpilogPhdrs->back()->name()));
+  if (HasEpilogPhdrs && !OuthasPhdrs && OldEpilogPhdrs) {
+    if (OldEpilogPhdrs->size() == 1)
+      OutputSectionDescription->epilog().ScriptPhdrs = OldEpilogPhdrs;
+    else if (OldEpilogPhdrs->size() > 1) {
+      OutputSectionDescription->epilog().ScriptPhdrs = createStringList();
+      OutputSectionDescription->epilog().ScriptPhdrs->pushBack(
+          createStrToken(OldEpilogPhdrs->back()->name()));
     } else
-      m_Module.getConfig().raise(diag::err_cant_figure_which_phdr)
-          << m_OutputSectDesc->name();
+      ThisModule.getConfig().raise(Diag::err_cant_figure_which_phdr)
+          << OutputSectionDescription->name();
   }
-  m_OutputSectDesc = nullptr;
+  OutputSectionDescription = nullptr;
 }
 
-void ScriptFile::addInputSectDesc(InputSectDesc::Policy pPolicy,
-                                  const InputSectDesc::Spec &pSpec) {
-  assert(!m_CommandQueue.empty());
-  assert(m_bInSectionsCmd);
+void ScriptFile::addInputSectDesc(InputSectDesc::Policy PPolicy,
+                                  const InputSectDesc::Spec &PSpec) {
+  assert(!LinkerScriptCommandQueue.empty());
+  assert(ScriptStateInSectionsCommmand);
 
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
 
-  assert(!m_SectionsCmd->empty() && m_bInOutputSectDesc);
+  assert(!LinkerScriptSectionsCommand->empty() &&
+         ScriptStateInsideOutputSection);
 
-  if (printer)
-    printer->recordLinkerScriptRule();
+  if (Printer)
+    Printer->recordLinkerScriptRule();
 
   InputSectDesc *Desc = nullptr;
 
-  if (!pSpec.m_pWildcardSections) {
-    m_Module.getConfig().raise(diag::files_no_wildcard_rules)
-        << pSpec.file().name() << m_OutputSectDesc->name();
-    InputSectDesc::Spec NoWildcardSectionsSpec = pSpec;
-    StringList *stringList = createStringList();
+  if (!PSpec.WildcardSectionPattern) {
+    ThisModule.getConfig().raise(Diag::files_no_wildcard_rules)
+        << PSpec.file().name() << OutputSectionDescription->name();
+    InputSectDesc::Spec NoWildcardSectionsSpec = PSpec;
+    StringList *StringList = createStringList();
     // Add a rule to grab all the sections from the input file
     // This way no rule matching logic needs to be modified
-    stringList->push_back(createWildCardPattern(eld::make<StrToken>("*")));
-    NoWildcardSectionsSpec.m_pWildcardSections = stringList;
-    Desc =
-        make<InputSectDesc>(m_Module.getScript().getIncrementedRuleCount(),
-                            pPolicy, NoWildcardSectionsSpec, *m_OutputSectDesc);
+    StringList->pushBack(createWildCardPattern(eld::make<StrToken>("*")));
+    NoWildcardSectionsSpec.WildcardSectionPattern = StringList;
+    Desc = make<InputSectDesc>(ThisModule.getScript().getIncrementedRuleCount(),
+                               PPolicy, NoWildcardSectionsSpec,
+                               *OutputSectionDescription);
   } else {
-    Desc = make<InputSectDesc>(m_Module.getScript().getIncrementedRuleCount(),
-                               pPolicy, pSpec, *m_OutputSectDesc);
+    Desc = make<InputSectDesc>(ThisModule.getScript().getIncrementedRuleCount(),
+                               PPolicy, PSpec, *OutputSectionDescription);
   }
   Desc->setInputFileInContext(getContext());
   Desc->setParent(getParent());
-  m_OutputSectDesc->push_back(Desc);
+  OutputSectionDescription->pushBack(Desc);
 }
 
 StringList *ScriptFile::createStringList() {
-  return (m_pStringList = make<StringList>());
+  return (ScriptFileStringList = make<StringList>());
 }
 
 ExcludeFiles *ScriptFile::createExcludeFiles() {
-  return (m_pExcludeFiles = make<ExcludeFiles>(ExcludeFiles()));
+  return (MPExcludeFiles = make<ExcludeFiles>(ExcludeFiles()));
 }
 
 ExcludePattern *ScriptFile::createExcludePattern(StrToken *S) {
-  std::string name = S->name();
-  size_t colonPos = name.find(":");
-  WildcardPattern *archivePattern = nullptr;
-  WildcardPattern *filePattern = nullptr;
-  StrToken *archiveToken = nullptr;
-  StrToken *fileToken = nullptr;
+  std::string Name = S->name();
+  size_t ColonPos = Name.find(":");
+  WildcardPattern *ArchivePattern = nullptr;
+  WildcardPattern *FilePattern = nullptr;
+  StrToken *ArchiveToken = nullptr;
+  StrToken *FileToken = nullptr;
   // Handles: <file>
-  if (colonPos == std::string::npos) {
-    fileToken = createStrToken(name);
-    filePattern = createWildCardPattern(fileToken);
+  if (ColonPos == std::string::npos) {
+    FileToken = createStrToken(Name);
+    FilePattern = createWildCardPattern(FileToken);
   } else {
     // Handles: <archive>:
-    archiveToken = createStrToken(name.substr(0, colonPos));
-    archivePattern = createWildCardPattern(archiveToken);
+    ArchiveToken = createStrToken(Name.substr(0, ColonPos));
+    ArchivePattern = createWildCardPattern(ArchiveToken);
     // Handles: <archive>:<member>
-    if (colonPos != name.size() - 1) {
-      fileToken = createStrToken(name.substr(colonPos + 1));
-      filePattern = createWildCardPattern(fileToken);
+    if (ColonPos != Name.size() - 1) {
+      FileToken = createStrToken(Name.substr(ColonPos + 1));
+      FilePattern = createWildCardPattern(FileToken);
     }
   }
-  return make<ExcludePattern>(archivePattern, filePattern);
+  return make<ExcludePattern>(ArchivePattern, FilePattern);
 }
 
-void ScriptFile::setAsNeeded(bool pEnable) { m_bAsNeeded = pEnable; }
-
-StrToken *ScriptFile::createStrToken(const std::string &pString) {
-  return make<StrToken>(pString);
+void ScriptFile::setAsNeeded(bool PEnable) {
+  LinkerScriptHasAsNeeded = PEnable;
 }
 
-FileToken *ScriptFile::createFileToken(const std::string &pString,
+StrToken *ScriptFile::createStrToken(const std::string &PString) {
+  return make<StrToken>(PString);
+}
+
+FileToken *ScriptFile::createFileToken(const std::string &PString,
                                        bool AsNeeded) {
-  return make<FileToken>(pString, AsNeeded);
+  return make<FileToken>(PString, AsNeeded);
 }
 
-NameSpec *ScriptFile::createNameSpecToken(const std::string &pString,
+NameSpec *ScriptFile::createNameSpecToken(const std::string &PString,
                                           bool AsNeeded) {
-  return make<NameSpec>(pString, AsNeeded);
+  return make<NameSpec>(PString, AsNeeded);
 }
 
 WildcardPattern *
 ScriptFile::createWildCardPattern(StrToken *S, WildcardPattern::SortPolicy P,
                                   ExcludeFiles *E) {
-  auto F = m_WildcardPatternMap.find(S->name());
-  if (F != m_WildcardPatternMap.end())
+  auto F = ScriptWildcardPatternMap.find(S->name());
+  if (F != ScriptWildcardPatternMap.end())
     return F->second;
   WildcardPattern *Pat = make<WildcardPattern>(S, P, E);
-  m_Module.getScript().registerWildCardPattern(Pat);
+  ThisModule.getScript().registerWildCardPattern(Pat);
   return Pat;
 }
 
 WildcardPattern *ScriptFile::createWildCardPattern(
     llvm::StringRef S, WildcardPattern::SortPolicy P, ExcludeFiles *E) {
-  StrToken *tok = createStrToken(S.str());
-  return createWildCardPattern(tok, P, E);
+  StrToken *Tok = createStrToken(S.str());
+  return createWildCardPattern(Tok, P, E);
 }
 
 ScriptSymbol *ScriptFile::createScriptSymbol(const StrToken *S) const {
@@ -514,56 +526,56 @@ ScriptSymbol *ScriptFile::createScriptSymbol(llvm::StringRef S) const {
   return make<ScriptSymbol>(S.str());
 }
 
-StrToken *ScriptFile::createParserStr(const char *pText, size_t pLength) {
-  std::string text = std::string(pText, pLength);
+StrToken *ScriptFile::createParserStr(const char *PText, size_t PLength) {
+  std::string Text = std::string(PText, PLength);
   // Remove double-quote characters.
-  text.erase(std::remove(text.begin(), text.end(), '"'), text.end());
-  return make<eld::StrToken>(text);
+  Text.erase(std::remove(Text.begin(), Text.end(), '"'), Text.end());
+  return make<eld::StrToken>(Text);
 }
 
-StrToken *ScriptFile::createParserStr(llvm::StringRef s) {
-  bool isQuoted = false;
-  if (s.starts_with("\"")) {
-    s = s.substr(1, s.size() - 2);
-    isQuoted = true;
+StrToken *ScriptFile::createParserStr(llvm::StringRef S) {
+  bool IsQuoted = false;
+  if (S.starts_with("\"")) {
+    S = S.substr(1, S.size() - 2);
+    IsQuoted = true;
   }
-  StrToken *tok = make<eld::StrToken>(s.str());
-  if (isQuoted)
-    tok->setQuoted();
-  return tok;
+  StrToken *Tok = make<eld::StrToken>(S.str());
+  if (IsQuoted)
+    Tok->setQuoted();
+  return Tok;
 }
 
 void ScriptFile::enterPhdrsCmd() {
-  m_bInPhdrsCmd = true;
-  m_Module.getScript().setPhdrsSpecified();
-  auto Cmd = make<PhdrsCmd>();
+  ScriptStateInPHDRSCommand = true;
+  ThisModule.getScript().setPhdrsSpecified();
+  auto *Cmd = make<PhdrsCmd>();
   Cmd->setInputFileInContext(getContext());
-  m_CommandQueue.push_back(Cmd);
-  m_PhdrsCmd = Cmd;
-  push(m_PhdrsCmd);
-  m_PhdrsCmd->push_back(enterScope());
+  LinkerScriptCommandQueue.push_back(Cmd);
+  LinkerScriptPHDRSCommand = Cmd;
+  push(LinkerScriptPHDRSCommand);
+  LinkerScriptPHDRSCommand->pushBack(enterScope());
 }
 
 void ScriptFile::leavePhdrsCmd() {
-  m_bInPhdrsCmd = false;
-  m_PhdrsCmd->push_back(exitScope());
+  ScriptStateInPHDRSCommand = false;
+  LinkerScriptPHDRSCommand->pushBack(exitScope());
 }
 
-void ScriptFile::addPhdrDesc(const PhdrSpec &pSpec) {
-  assert(!m_CommandQueue.empty());
-  assert(m_bInPhdrsCmd);
-  auto Cmd = make<PhdrDesc>(pSpec);
+void ScriptFile::addPhdrDesc(const PhdrSpec &PSpec) {
+  assert(!LinkerScriptCommandQueue.empty());
+  assert(ScriptStateInPHDRSCommand);
+  auto *Cmd = make<PhdrDesc>(PSpec);
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
-  m_PhdrsCmd->push_back(Cmd);
+  LinkerScriptPHDRSCommand->pushBack(Cmd);
 }
 
 PluginCmd *ScriptFile::addPlugin(plugin::Plugin::Type T, std::string Name,
                                  std::string R, std::string O) {
-  auto Plugin = make<PluginCmd>(T, Name, R, O);
+  auto *Plugin = make<PluginCmd>(T, Name, R, O);
   Plugin->setParent(getParent());
   Plugin->setInputFileInContext(getContext());
-  m_CommandQueue.push_back(Plugin);
+  LinkerScriptCommandQueue.push_back(Plugin);
   return Plugin;
 }
 
@@ -571,15 +583,16 @@ InputFile *ScriptFile::getContext() const {
   return ScriptFileStack.empty() ? nullptr : ScriptFileStack.top();
 }
 
-void ScriptFile::setContext(InputFile *file) {
+void ScriptFile::setContext(InputFile *File) {
   // FIXME: Ideally this should never be hit, maybe add an assert?
-  if (getContext() == file)
+  if (getContext() == File)
     return;
-  ScriptFileStack.push(file);
+  ScriptFileStack.push(File);
 }
 
 llvm::StringRef ScriptFile::getPath() const {
-  return m_Module.saveString(m_LinkerScriptFile.getInput()->decoratedPath());
+  return ThisModule.saveString(
+      ThisLinkerScriptFile.getInput()->decoratedPath());
 }
 
 std::vector<ScriptSymbol *> *ScriptFile::createDynamicList() {
@@ -590,69 +603,69 @@ std::vector<ScriptSymbol *> *ScriptFile::createDynamicList() {
 }
 
 void ScriptFile::addSymbolToDynamicList(ScriptSymbol *S) {
-  if (m_Module.getPrinter()->isVerbose())
-    m_Module.getConfig().raise(diag::reading_dynamic_list)
+  if (ThisModule.getPrinter()->isVerbose())
+    ThisModule.getConfig().raise(Diag::reading_dynamic_list)
         << getContext()->getInput()->decoratedPath() << S->name();
   DynamicListSymbols->push_back(S);
 }
 
 void ScriptFile::addSymbolToExternList(StrToken *S) {
-  if (m_Module.getPrinter()->isVerbose())
-    m_Module.getConfig().raise(diag::reading_extern_list)
+  if (ThisModule.getPrinter()->isVerbose())
+    ThisModule.getConfig().raise(Diag::reading_extern_list)
         << getContext()->getInput()->decoratedPath() << S->name();
-  m_ExternCmd->addExternCommand(S);
+  ScriptFileExternCommand->addExternCommand(S);
 }
 
 ExternCmd *ScriptFile::createExternCmd() {
-  if (!m_ExternCmd)
-    m_ExternCmd = addExtern(*createStringList());
-  return m_ExternCmd;
+  if (!ScriptFileExternCommand)
+    ScriptFileExternCommand = addExtern(*createStringList());
+  return ScriptFileExternCommand;
 }
 
 VersionScript *ScriptFile::createVersionScript() {
-  if (!m_VersionScript)
-    m_VersionScript = make<eld::VersionScript>(&m_LinkerScriptFile);
-  return m_VersionScript;
+  if (!LinkerVersionScript)
+    LinkerVersionScript = make<eld::VersionScript>(&ThisLinkerScriptFile);
+  return LinkerVersionScript;
 }
 
-VersionScript *ScriptFile::getVersionScript() { return m_VersionScript; }
+VersionScript *ScriptFile::getVersionScript() { return LinkerVersionScript; }
 
 void ScriptFile::addMemoryRegion(StrToken *Name, StrToken *Attributes,
                                  Expression *Origin, Expression *Length) {
-  if (!m_MemoryCmd) {
-    m_MemoryCmd = eld::make<MemoryCmd>();
-    m_MemoryCmd->setInputFileInContext(getContext());
-    m_MemoryCmd->setParent(getParent());
-    m_CommandQueue.push_back(m_MemoryCmd);
+  if (!MemoryCmd) {
+    MemoryCmd = eld::make<eld::MemoryCmd>();
+    MemoryCmd->setInputFileInContext(getContext());
+    MemoryCmd->setParent(getParent());
+    LinkerScriptCommandQueue.push_back(MemoryCmd);
   }
   MemoryDesc *Desc =
       eld::make<MemoryDesc>(MemorySpec(Name, Attributes, Origin, Length));
   Desc->setInputFileInContext(getContext());
   Desc->setParent(getParent());
-  m_MemoryCmd->push_back(Desc);
+  MemoryCmd->pushBack(Desc);
 }
 
-void ScriptFile::addOutputSectData(OutputSectData::OSDKind dataKind,
-                                   Expression *expr) {
-  assert(m_bInSectionsCmd);
+void ScriptFile::addOutputSectData(OutputSectData::OSDKind DataKind,
+                                   Expression *Expr) {
+  assert(ScriptStateInSectionsCommmand);
 
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
-  if (printer)
-    printer->recordLinkerScriptRule();
+  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  if (Printer)
+    Printer->recordLinkerScriptRule();
 
-  ASSERT(expr, "expr must not be null!");
+  ASSERT(Expr, "expr must not be null!");
 
   OutputSectData *OSD =
-      OutputSectData::Create(m_Module.getScript().getIncrementedRuleCount(),
-                             *m_OutputSectDesc, dataKind, *expr);
+      OutputSectData::create(ThisModule.getScript().getIncrementedRuleCount(),
+                             *OutputSectionDescription, DataKind, *Expr);
   OSD->setInputFileInContext(getContext());
   OSD->setParent(getParent());
-  m_OutputSectDesc->push_back(OSD);
+  OutputSectionDescription->pushBack(OSD);
 }
 
-void ScriptFile::addRegionAlias(const StrToken *alias, const StrToken *region) {
-  RegionAlias *R = eld::make<RegionAlias>(alias, region);
+void ScriptFile::addRegionAlias(const StrToken *Alias, const StrToken *Region) {
+  RegionAlias *R = eld::make<RegionAlias>(Alias, Region);
   R->setInputFileInContext(getContext());
   R->setParent(getParent());
-  m_CommandQueue.push_back(R);
+  LinkerScriptCommandQueue.push_back(R);
 }

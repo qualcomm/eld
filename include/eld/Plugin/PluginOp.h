@@ -11,7 +11,7 @@
 
 namespace eld::plugin {
 class LinkerWrapper;
-}
+} // namespace eld::plugin
 
 namespace eld {
 class Fragment;
@@ -36,9 +36,9 @@ public:
   explicit PluginOp(plugin::LinkerWrapper *, PluginOpType T,
                     std::string Annotation);
 
-  PluginOpType getPluginOpType() const { return m_OpType; }
+  PluginOpType getPluginOpType() const { return OpType; }
 
-  std::string getAnnotation() const { return m_Annotation; }
+  std::string getAnnotation() const { return Annotation; }
 
   std::string getPluginName() const;
 
@@ -48,8 +48,8 @@ public:
 
 protected:
   plugin::LinkerWrapper *Wrapper = nullptr;
-  PluginOpType m_OpType;
-  std::string m_Annotation;
+  PluginOpType OpType;
+  std::string Annotation;
 };
 
 class ChangeOutputSectionPluginOp : public PluginOp {

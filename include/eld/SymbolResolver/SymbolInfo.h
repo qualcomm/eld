@@ -23,10 +23,10 @@ namespace eld {
 class SymbolInfo {
 public:
   SymbolInfo() = default;
-  SymbolInfo(const InputFile *inputFile, size_t size,
-             ResolveInfo::Binding binding, ResolveInfo::Type symType,
-             ResolveInfo::Visibility visibility, ResolveInfo::Desc symDesc,
-             bool isBitcode);
+  SymbolInfo(const InputFile *InputFile, size_t Size,
+             ResolveInfo::Binding Binding, ResolveInfo::Type SymType,
+             ResolveInfo::Visibility Visibility, ResolveInfo::Desc SymDesc,
+             bool IsBitcode);
 
   enum SymbolBinding { SB_None = 0, Local = 1, Global = 2, Weak = 3 };
 
@@ -38,26 +38,26 @@ public:
     Common = 4
   };
 
-  const InputFile *getInputFile() const { return m_InputFile; }
+  const InputFile *getInputFile() const { return SymbolOrigin; }
 
   SymbolBinding getSymbolBinding() const {
-    return static_cast<SymbolBinding>(m_SymbolInfoBitfield.symBinding);
+    return static_cast<SymbolBinding>(SymbolInfoBitfield.SymBinding);
   }
 
   ResolveInfo::Type getSymbolType() const {
-    return static_cast<ResolveInfo::Type>(m_SymbolInfoBitfield.symType);
+    return static_cast<ResolveInfo::Type>(SymbolInfoBitfield.SymType);
   }
 
   ResolveInfo::Visibility getSymbolVisibility() const {
     return static_cast<ResolveInfo::Visibility>(
-        m_SymbolInfoBitfield.symVisibility);
+        SymbolInfoBitfield.SymVisibility);
   }
 
   SectionIndexKind getSymbolSectionIndexKind() const {
-    return static_cast<SectionIndexKind>(m_SymbolInfoBitfield.symSectIndexKind);
+    return static_cast<SectionIndexKind>(SymbolInfoBitfield.SymSectIndexKind);
   }
 
-  bool isBitcodeSymbol() const { return m_SymbolInfoBitfield.isBitcode; }
+  bool isBitcodeSymbol() const { return SymbolInfoBitfield.IsBitcode; }
 
   llvm::StringRef getSymbolBindingAsStr() const;
 
@@ -67,35 +67,35 @@ public:
 
   llvm::StringRef getSymbolSectionIndexKindAsStr() const;
 
-  size_t getSize() const { return m_Size; }
+  size_t getSize() const { return SymbolSize; }
 
 private:
   struct SymbolInfoBitField {
     SymbolInfoBitField()
-        : symBinding(0), symType(0), symVisibility(0), symSectIndexKind(0),
-          isBitcode(0) {}
-    unsigned int symBinding : 2;
-    unsigned int symType : 2;
-    unsigned int symVisibility : 2;
-    unsigned int symSectIndexKind : 3;
-    unsigned int isBitcode : 1;
+        : SymBinding(0), SymType(0), SymVisibility(0), SymSectIndexKind(0),
+          IsBitcode(0) {}
+    unsigned int SymBinding : 2;
+    unsigned int SymType : 2;
+    unsigned int SymVisibility : 2;
+    unsigned int SymSectIndexKind : 3;
+    unsigned int IsBitcode : 1;
   };
 
-  void setSymbolBinding(ResolveInfo::Binding binding);
-  void setSymbolType(ResolveInfo::Type symType);
-  void setSymbolVisibility(ResolveInfo::Visibility visibility);
-  void setSymbolSectionIndexKind(ResolveInfo::Binding binding,
-                                 ResolveInfo::Desc symDesc);
-  void setBitcodeAttribute(bool isBitcode);
+  void setSymbolBinding(ResolveInfo::Binding Binding);
+  void setSymbolType(ResolveInfo::Type SymType);
+  void setSymbolVisibility(ResolveInfo::Visibility Visibility);
+  void setSymbolSectionIndexKind(ResolveInfo::Binding Binding,
+                                 ResolveInfo::Desc SymDesc);
+  void setBitcodeAttribute(bool IsBitcode);
   /// Information is stored as follows in this bitfield:
   /// 0b000000000000000000000sssvvttttbb
   /// b: bits used to represent symbol binding.
   /// t: bits used to represent symbol type.
   /// v: bits used to represent symbol visibility.
   /// s: bits used to represent symbol section index kind.
-  SymbolInfoBitField m_SymbolInfoBitfield;
-  const InputFile *m_InputFile;
-  size_t m_Size;
+  SymbolInfoBitField SymbolInfoBitfield;
+  const InputFile *SymbolOrigin;
+  size_t SymbolSize;
 };
 } // namespace eld
 

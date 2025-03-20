@@ -45,7 +45,7 @@ public:
       if (isReserved())
         Content = ReservedValue;
       else if (symInfo()) {
-        if ((m_GOTType == GOT::TLS_GD) || (m_GOTType == GOT::TLS_LD))
+        if ((GotType == GOT::TLS_GD) || (GotType == GOT::TLS_LD))
           Content = symInfo()->outSymbol()->value() - 0x800;
         else
           Content = symInfo()->outSymbol()->value();

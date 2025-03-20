@@ -33,8 +33,8 @@ public:
 public:
   llvm::StringRef getDescription() const { return DescriptionStr; }
 
-  bool operator<(const DiagStaticInfo &pRHS) const {
-    return (BaseDiagID < pRHS.BaseDiagID);
+  bool operator<(const DiagStaticInfo &PRhs) const {
+    return (BaseDiagID < PRhs.BaseDiagID);
   }
 };
 
@@ -42,10 +42,10 @@ public:
 
 static const DiagStaticInfo DiagCommonInfo[] = {
 #define DIAG(diagName, severity, formatStr)                                    \
-  {DiagnosticEngine::getBaseDiagID(diag::diagName), formatStr},
+  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr},
 // PluginDiags.inc file should always be first!
 // This is to ensure that Plugin Diags IDs are consistent in
-// eld::diag:: and plugin::Diagnostic:: namespaces.
+// eld::Diag:: and plugin::Diagnostic:: namespaces.
 // clang-format off
 #include "eld/Diagnostics/PluginDiags.inc"
 // clang-format on
@@ -76,10 +76,10 @@ static const unsigned int DiagCommonInfoSize =
 
 static const DiagStaticInfo DiagLoCInfo[] = {
 #define DIAG(diagName, severity, formatStr)                                    \
-  {DiagnosticEngine::getBaseDiagID(diag::diagName), formatStr},
+  {DiagnosticEngine::getBaseDiagID(Diag::diagName), formatStr},
 // PluginDiags.inc file should always be first!
 // This is to ensure that Plugin Diags IDs are consistent in
-// eld::diag:: and plugin::Diagnostic:: namespaces.
+// eld::Diag:: and plugin::Diagnostic:: namespaces.
 // clang-format off
 #include "eld/Diagnostics/PluginDiags.inc"
 // clang-format on
@@ -109,110 +109,109 @@ static const unsigned int DiagLoCInfoSize =
     sizeof(DiagLoCInfo) / sizeof(DiagLoCInfo[0]) - 1;
 
 static const DiagStaticInfo *getDiagInfo(DiagnosticEngine::DiagIDType ID,
-                                         bool pInLoC = false) {
-  const DiagStaticInfo *static_info = (pInLoC) ? DiagLoCInfo : DiagCommonInfo;
-  unsigned int info_size = (pInLoC) ? DiagLoCInfoSize : DiagCommonInfoSize;
-  DiagnosticEngine::DiagIDType baseDiagID = DiagnosticEngine::getBaseDiagID(ID);
-  DiagStaticInfo key = {baseDiagID, ""};
+                                         bool PInLoC = false) {
+  const DiagStaticInfo *StaticInfo = (PInLoC) ? DiagLoCInfo : DiagCommonInfo;
+  unsigned int InfoSize = (PInLoC) ? DiagLoCInfoSize : DiagCommonInfoSize;
+  DiagnosticEngine::DiagIDType BaseDiagId = DiagnosticEngine::getBaseDiagID(ID);
+  DiagStaticInfo Key = {BaseDiagId, ""};
   // FIXME: Why don't we simply use static_info[baseDiagID] here?
-  const DiagStaticInfo *result =
-      std::lower_bound(static_info, static_info + info_size, key);
+  const DiagStaticInfo *Result =
+      std::lower_bound(StaticInfo, StaticInfo + InfoSize, Key);
 
-  if (result == (static_info + info_size) || result->BaseDiagID != ID)
+  if (Result == (StaticInfo + InfoSize) || Result->BaseDiagID != ID)
     return nullptr;
 
-  return result;
+  return Result;
 }
 
 //===----------------------------------------------------------------------===//
 //  DiagnosticInfos
 //===----------------------------------------------------------------------===//
-DiagnosticInfos::DiagnosticInfos(LinkerConfig &pConfig) : m_Config(pConfig) {}
+DiagnosticInfos::DiagnosticInfos(LinkerConfig &PConfig) : Config(PConfig) {}
 
 DiagnosticInfos::~DiagnosticInfos() {}
 
 eld::Expected<llvm::StringRef>
-DiagnosticInfos::getDescription(DiagnosticEngine::DiagIDType pID,
-                                bool pInLoC) const {
-  DiagnosticEngine::DiagIDType baseDiagID =
-      DiagnosticEngine::getBaseDiagID(pID);
-  if (baseDiagID >= numOfDiags()) {
+DiagnosticInfos::getDescription(DiagnosticEngine::DiagIDType PId,
+                                bool PInLoC) const {
+  DiagnosticEngine::DiagIDType BaseDiagId =
+      DiagnosticEngine::getBaseDiagID(PId);
+  if (BaseDiagId >= numOfDiags()) {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::fatal_invalid_diag_id, {std::to_string(pID)}));
+        Diag::fatal_invalid_diag_id, {std::to_string(PId)}));
   }
-  if (baseDiagID < diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO)
-    return getDiagInfo(baseDiagID, pInLoC)->getDescription();
-  return m_CustomDiags[baseDiagID - diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO]
+  if (BaseDiagId < Diag::NumOfBuildinDiagnosticInfo)
+    return getDiagInfo(BaseDiagId, PInLoC)->getDescription();
+  return CustomDiags[BaseDiagId - Diag::NumOfBuildinDiagnosticInfo]
       .getDescription();
 }
 
 DiagnosticEngine::Severity
-DiagnosticInfos::getSeverity(const Diagnostic &diagnostic, bool loc) const {
-  DiagnosticEngine::DiagIDType id = diagnostic.getID();
-  return DiagnosticEngine::getSeverity(id);
+DiagnosticInfos::getSeverity(const Diagnostic &Diagnostic, bool Loc) const {
+  DiagnosticEngine::DiagIDType Id = Diagnostic.getID();
+  return DiagnosticEngine::getSeverity(Id);
 }
 
-eld::Expected<void> DiagnosticInfos::process(DiagnosticEngine &pEngine) const {
-  Diagnostic info(pEngine);
-  DiagnosticEngine::DiagIDType ID = info.getID();
-  DiagnosticEngine::DiagIDType baseDiagID = DiagnosticEngine::getBaseDiagID(ID);
-  if (baseDiagID >= numOfDiags()) {
+eld::Expected<void> DiagnosticInfos::process(DiagnosticEngine &PEngine) const {
+  Diagnostic Info(PEngine);
+  DiagnosticEngine::DiagIDType ID = Info.getID();
+  DiagnosticEngine::DiagIDType BaseDiagId = DiagnosticEngine::getBaseDiagID(ID);
+  if (BaseDiagId >= numOfDiags()) {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::fatal_invalid_diag_id, {std::to_string(ID)}));
+        Diag::fatal_invalid_diag_id, {std::to_string(ID)}));
   }
-  DiagnosticEngine::Severity severity = getSeverity(info, /*loc=*/false);
+  DiagnosticEngine::Severity Severity = getSeverity(Info, /*loc=*/false);
 
-  if (baseDiagID ==
-          DiagnosticEngine::getBaseDiagID(diag::multiple_definitions) &&
-      m_Config.options().isMulDefs())
-    severity = DiagnosticEngine::Ignore;
+  if (BaseDiagId ==
+          DiagnosticEngine::getBaseDiagID(Diag::multiple_definitions) &&
+      Config.options().isMulDefs())
+    Severity = DiagnosticEngine::Ignore;
 
   // If --fatal-warnings is turned on, then switch warnings and errors to fatal
-  if (m_Config.options().isFatalWarnings()) {
-    if (severity == DiagnosticEngine::Warning ||
-        severity == DiagnosticEngine::CriticalWarning ||
-        severity == DiagnosticEngine::Error ||
-        severity == DiagnosticEngine::InternalError) {
-      severity = DiagnosticEngine::Fatal;
+  if (Config.options().isFatalWarnings()) {
+    if (Severity == DiagnosticEngine::Warning ||
+        Severity == DiagnosticEngine::CriticalWarning ||
+        Severity == DiagnosticEngine::Error ||
+        Severity == DiagnosticEngine::InternalError) {
+      Severity = DiagnosticEngine::Fatal;
     }
   }
 
   // If --fatal-internal-errors is used, then switch internal errors to fatal
   // errors.
-  if (m_Config.options().isFatalInternalErrors()) {
-    if (severity == DiagnosticEngine::InternalError)
-      severity = DiagnosticEngine::Fatal;
+  if (Config.options().isFatalInternalErrors()) {
+    if (Severity == DiagnosticEngine::InternalError)
+      Severity = DiagnosticEngine::Fatal;
   }
 
   // finally, report it.
-  eld::Expected<void> expReportRes =
-      pEngine.getPrinter()->handleDiagnostic(severity, info);
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReportRes);
+  eld::Expected<void> ExpReportRes =
+      PEngine.getPrinter()->handleDiagnostic(Severity, Info);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpReportRes);
   return {};
 }
 
 DiagnosticEngine::DiagIDType
-DiagnosticInfos::getOrCreateCustomDiagID(DiagnosticEngine::Severity severity,
-                                         llvm::StringRef formatStr) {
-  DiagnosticEngine::DiagIDType idx = 0;
-  CustomDiagInfo diagInfo{formatStr.str()};
-  auto it = std::find(m_CustomDiags.begin(), m_CustomDiags.end(), diagInfo);
-  if (it != m_CustomDiags.end())
-    idx = it - m_CustomDiags.begin();
+DiagnosticInfos::getOrCreateCustomDiagID(DiagnosticEngine::Severity Severity,
+                                         llvm::StringRef FormatStr) {
+  DiagnosticEngine::DiagIDType Idx = 0;
+  CustomDiagInfo DiagInfo{FormatStr.str()};
+  auto It = std::find(CustomDiags.begin(), CustomDiags.end(), DiagInfo);
+  if (It != CustomDiags.end())
+    Idx = It - CustomDiags.begin();
   else {
-    idx = m_CustomDiags.size();
-    m_CustomDiags.push_back(diagInfo);
+    Idx = CustomDiags.size();
+    CustomDiags.push_back(DiagInfo);
   }
 
-  DiagnosticEngine::DiagIDType baseID =
-      idx + diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO;
+  DiagnosticEngine::DiagIDType BaseId = Idx + Diag::NumOfBuildinDiagnosticInfo;
 
-  ASSERT(baseID < (1 << DiagnosticEngine::NumOfBaseDiagBits),
+  ASSERT(BaseId < (1 << DiagnosticEngine::NumOfBaseDiagBits),
          "Base diagnostic limit exceeded!");
 
-  return DiagnosticEngine::updateSeverity(baseID, severity);
+  return DiagnosticEngine::updateSeverity(BaseId, Severity);
 }
 
 size_t DiagnosticInfos::numOfDiags() const {
-  return diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO + m_CustomDiags.size();
+  return Diag::NumOfBuildinDiagnosticInfo + CustomDiags.size();
 }

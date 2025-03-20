@@ -33,22 +33,22 @@ class IRBuilder;
 class StubFactory {
 public:
   typedef std::vector<Stub *> StubVector;
-  StubFactory(Stub *targetStub);
+  StubFactory(Stub *TargetStub);
   StubFactory();
   ~StubFactory();
 
   /// create - create a stub if needed.
-  std::pair<BranchIsland *, bool> create(Relocation &pReloc,
-                                         eld::IRBuilder &pBuilder,
-                                         BranchIslandFactory &pBRIslandFactory,
-                                         GNULDBackend &pBackend);
+  std::pair<BranchIsland *, bool> create(Relocation &PReloc,
+                                         eld::IRBuilder &PBuilder,
+                                         BranchIslandFactory &PBrIslandFactory,
+                                         GNULDBackend &PBackend);
 
-  void registerStub(Stub *pStub);
+  void registerStub(Stub *PStub);
 
-  StubVector &getAllStubs() { return m_Stubs; }
+  StubVector &getAllStubs() { return Stubs; }
 
 private:
-  std::vector<Stub *> m_Stubs;
+  std::vector<Stub *> Stubs;
   std::mutex Mutex;
 };
 

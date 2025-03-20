@@ -33,17 +33,17 @@ public:
   llvm::raw_ostream &outputStream() const;
 
   eld::LDYAML::Module buildYaml(eld::Module &Module,
-                                GNULDBackend const &backend);
+                                GNULDBackend const &Backend);
 
-  void printLayout(eld::Module &Module, GNULDBackend const &backend);
+  void printLayout(eld::Module &Module, GNULDBackend const &Backend);
 
   ~YamlLayoutPrinter() {
-    delete layoutFile;
-    delete trampolineLayoutFile;
+    delete LayoutFile;
+    delete TrampolineLayoutFile;
   }
 
-  uint64_t getEntryAddress(eld::Module const &pModule,
-                           GNULDBackend const &backend);
+  uint64_t getEntryAddress(eld::Module const &CurModule,
+                           GNULDBackend const &Backend);
 
   void addInputs(std::vector<std::shared_ptr<eld::LDYAML::InputFile>> &Inputs,
                  eld::Module &Module);
@@ -62,10 +62,9 @@ public:
 private:
   std::vector<CommandLineDefault> Defaults;
   std::string CommandLine;
-  llvm::raw_fd_ostream *layoutFile;
-  llvm::raw_fd_ostream *trampolineLayoutFile;
-  std::string LayoutFile;
-  LayoutPrinter *m_LayoutPrinter = nullptr;
+  llvm::raw_fd_ostream *LayoutFile;
+  llvm::raw_fd_ostream *TrampolineLayoutFile;
+  LayoutPrinter *ThisLayoutPrinter = nullptr;
 };
 
 } // namespace eld

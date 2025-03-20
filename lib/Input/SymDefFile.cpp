@@ -10,8 +10,8 @@
 
 using namespace eld;
 
-SymDefFile::SymDefFile(Input *I, DiagnosticEngine *diagEngine)
-    : InputFile(I, diagEngine, InputFile::ELFSymDefFileKind) {
+SymDefFile::SymDefFile(Input *I, DiagnosticEngine *DiagEngine)
+    : InputFile(I, DiagEngine, InputFile::ELFSymDefFileKind) {
   if (I->getSize())
     Contents = I->getFileContents();
 }

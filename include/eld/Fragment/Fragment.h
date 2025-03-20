@@ -54,15 +54,15 @@ public:
 public:
   Fragment();
 
-  Fragment(Type pKind, ELFSection *pOwningSection = nullptr,
-           uint32_t align = 1);
+  Fragment(Type PKind, ELFSection *CurOwningSection = nullptr,
+           uint32_t Align = 1);
 
   virtual ~Fragment();
 
-  Type getKind() const { return m_Kind; }
+  Type getKind() const { return Kind; }
 
   // Return the owning section that contains this fragment.
-  ELFSection *getOwningSection() const { return m_pOwningSection; }
+  ELFSection *getOwningSection() const { return OwningSection; }
 
   // Return the output section that this fragment is placed in.
   ELFSection *getOutputELFSection() const;
@@ -70,7 +70,7 @@ public:
   uint32_t getOffset(DiagnosticEngine * = nullptr) const;
 
   /// offset will be adjusted automatically by alignment
-  virtual void setOffset(uint32_t pOffset);
+  virtual void setOffset(uint32_t POffset);
 
   static constexpr uint32_t getPaddingValueSize(uint64_t PaddingValue) {
     return (PaddingValue > 0xFFFFFFFF
@@ -87,7 +87,7 @@ public:
 
   virtual bool isZeroSizedFrag() const { return !size(); }
 
-  void setFragmentKind(Type t) { m_Kind = t; }
+  void setFragmentKind(Type T) { Kind = T; }
 
   // Get the virtual address of the fragment
   uint64_t getAddr(DiagnosticEngine *DiagEngine) const;
@@ -99,29 +99,29 @@ public:
 
   size_t paddingSize() const;
 
-  void setAlignment(size_t align) {
-    if (align == 0)
-      align = 1;
-    m_Alignment = align;
+  void setAlignment(size_t Align) {
+    if (Align == 0)
+      Align = 1;
+    Alignment = Align;
   }
 
-  virtual size_t alignment() const { return m_Alignment; }
+  virtual size_t alignment() const { return Alignment; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) = 0;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) = 0;
 
-  uint32_t getNewOffset(uint32_t offset) const;
+  uint32_t getNewOffset(uint32_t Offset) const;
 
-  void setOwningSection(ELFSection *O) { this->m_pOwningSection = O; }
+  void setOwningSection(ELFSection *O) { this->OwningSection = O; }
 
-  virtual void dump(llvm::raw_ostream &ostream) {}
+  virtual void dump(llvm::raw_ostream &Ostream) {}
 
   virtual void addSymbol(ResolveInfo *R) {}
 
   bool isMergeStr() const;
 
-  bool isNull() const { return m_Kind == Null; }
+  bool isNull() const { return Kind == Null; }
 
-  bool originatesFromPlugin(const Module &module) const;
+  bool originatesFromPlugin(const Module &Module) const;
 
 private:
   Fragment(const Fragment &);            // DO NOT IMPLEMENT
@@ -131,9 +131,9 @@ private:
   uint32_t UnalignedOffset;
 
 protected:
-  Type m_Kind;
-  ELFSection *m_pOwningSection;
-  size_t m_Alignment;
+  Type Kind;
+  ELFSection *OwningSection;
+  size_t Alignment;
 };
 
 } // namespace eld

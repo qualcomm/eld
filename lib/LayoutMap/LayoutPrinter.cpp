@@ -30,112 +30,112 @@ using namespace eld;
 
 //===----------------------------------------------------------------------===//
 // LayoutPrinter
-LayoutPrinter::LayoutPrinter(LinkerConfig &config) : m_Config(config) {}
+LayoutPrinter::LayoutPrinter(LinkerConfig &Config) : ThisConfig(Config) {}
 
-std::string LayoutPrinter::infoForFrag(const Fragment *frag) {
-  FragmentInfoMapIterT fragmentInfoIter = _fragmentInfoMap.find(frag);
-  if (fragmentInfoIter == _fragmentInfoMap.end())
+std::string LayoutPrinter::infoForFrag(const Fragment *Frag) {
+  FragmentInfoMapIterT FragmentInfoIter = FragmentInfoMap.find(Frag);
+  if (FragmentInfoIter == FragmentInfoMap.end())
     return "";
-  LayoutFragmentInfo *fragmentInfo = fragmentInfoIter->second;
-  std::string info =
-      llvm::Twine(fragmentInfo->getResolvedPath() + "[" +
-                  fragmentInfo->getDecoratedName(m_Config.options()) + "]")
+  LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
+  std::string Info =
+      llvm::Twine(FragmentInfo->getResolvedPath() + "[" +
+                  FragmentInfo->getDecoratedName(ThisConfig.options()) + "]")
           .str();
-  return info;
+  return Info;
 }
 
-void LayoutPrinter::recordFragment(InputFile *input,
-                                   const ELFSection *inputELFSection,
-                                   const Fragment *frag) {
-  if (!frag)
+void LayoutPrinter::recordFragment(InputFile *Input,
+                                   const ELFSection *InputElfSection,
+                                   const Fragment *Frag) {
+  if (!Frag)
     return;
 
-  if (_fragmentInfoMap.find(frag) != _fragmentInfoMap.end())
+  if (FragmentInfoMap.find(Frag) != FragmentInfoMap.end())
     return;
 
-  if (auto *Strings = llvm::dyn_cast<MergeStringFragment>(frag)) {
+  if (auto *Strings = llvm::dyn_cast<MergeStringFragment>(Frag)) {
     llvm::StringRef CommandLinePrefix = "Command:";
     for (const MergeableString *String : Strings->getStrings())
       if (String->String.starts_with(CommandLinePrefix))
         recordCommentFragment(String->String.data());
   }
 
-  LayoutFragmentInfo *fragmentInfo;
-  if (input)
-    fragmentInfo = make<LayoutFragmentInfo>(input, inputELFSection);
+  LayoutFragmentInfo *FragmentInfo;
+  if (Input)
+    FragmentInfo = make<LayoutFragmentInfo>(Input, InputElfSection);
   else
-    fragmentInfo = make<LayoutFragmentInfo>(inputELFSection);
-  _fragmentInfoMap[frag] = fragmentInfo;
-  _fragmentInfoVector.push_back(fragmentInfo);
+    FragmentInfo = make<LayoutFragmentInfo>(InputElfSection);
+  FragmentInfoMap[Frag] = FragmentInfo;
+  FragmentInfoVector.push_back(FragmentInfo);
 }
 
-void LayoutPrinter::recordSymbol(const Fragment *frag, LDSymbol *symbol) {
-  FragmentInfoMapIterT fragmentInfoIter = _fragmentInfoMap.find(frag);
-  if (fragmentInfoIter == _fragmentInfoMap.end() || !symbol->hasName())
+void LayoutPrinter::recordSymbol(const Fragment *Frag, LDSymbol *Symbol) {
+  FragmentInfoMapIterT FragmentInfoIter = FragmentInfoMap.find(Frag);
+  if (FragmentInfoIter == FragmentInfoMap.end() || !Symbol->hasName())
     return;
-  LayoutFragmentInfo *fragmentInfo = fragmentInfoIter->second;
-  fragmentInfo->m_symbols.push_back(symbol);
+  LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
+  FragmentInfo->Symbols.push_back(Symbol);
 }
 
 void LayoutPrinter::recordThreadCount() {
-  if (m_Config.options().threadsEnabled())
-    LinkStats.numThreads = m_Config.options().numThreads();
+  if (ThisConfig.options().threadsEnabled())
+    LinkStats.NumThreads = ThisConfig.options().numThreads();
 }
 
-void LayoutPrinter::recordSectionStat(const Section *sect) {
-  if (sect->isBitcode() || sect->size())
+void LayoutPrinter::recordSectionStat(const Section *Sect) {
+  if (Sect->isBitcode() || Sect->size())
     return;
-  LinkStats.numZeroSizedSection++;
+  LinkStats.NumZeroSizedSection++;
 }
 
 int64_t LayoutPrinter::calculateSymbolValue(LDSymbol *Symbol, Module &M) {
-  const ELFSection *section = nullptr;
-  const FragmentRef *fragRef = nullptr;
-  int64_t symbolValue = 0;
+  const ELFSection *Section = nullptr;
+  const FragmentRef *FragRef = nullptr;
+  int64_t SymbolValue = 0;
   if (Symbol->resolveInfo()->outSymbol()->hasFragRef()) {
-    fragRef = Symbol->resolveInfo()->outSymbol()->fragRef();
-    section = fragRef->getOutputELFSection();
+    FragRef = Symbol->resolveInfo()->outSymbol()->fragRef();
+    Section = FragRef->getOutputELFSection();
   }
 
-  Fragment *frag = nullptr;
-  if (fragRef)
-    frag = fragRef->frag();
+  Fragment *Frag = nullptr;
+  if (FragRef)
+    Frag = FragRef->frag();
 
   // If allocatable section, value => (address + offset)
-  if (section && (frag && frag->getOwningSection() &&
-                  !frag->getOwningSection()->isIgnore() &&
-                  !frag->getOwningSection()->isDiscard())) {
-    if (section->isAlloc())
-      symbolValue = section->addr() + fragRef->getOutputOffset(M);
+  if (Section && (Frag && Frag->getOwningSection() &&
+                  !Frag->getOwningSection()->isIgnore() &&
+                  !Frag->getOwningSection()->isDiscard())) {
+    if (Section->isAlloc())
+      SymbolValue = Section->addr() + FragRef->getOutputOffset(M);
     else
-      symbolValue = fragRef->getOutputOffset(M);
+      SymbolValue = FragRef->getOutputOffset(M);
   } else
-    symbolValue = Symbol->resolveInfo()->outSymbol()->value();
-  return symbolValue;
+    SymbolValue = Symbol->resolveInfo()->outSymbol()->value();
+  return SymbolValue;
 }
 
 void LayoutPrinter::sortFragmentSymbols(LayoutFragmentInfo *FragInfo) {
-  std::sort(FragInfo->m_symbols.begin(), FragInfo->m_symbols.end(),
+  std::sort(FragInfo->Symbols.begin(), FragInfo->Symbols.end(),
             static_cast<bool (*)(LDSymbol *, LDSymbol *)>(
-                [](LDSymbol *a, LDSymbol *b) -> bool {
-                  return a->resolveInfo()->outSymbol()->value() <
-                         b->resolveInfo()->outSymbol()->value();
+                [](LDSymbol *A, LDSymbol *B) -> bool {
+                  return A->resolveInfo()->outSymbol()->value() <
+                         B->resolveInfo()->outSymbol()->value();
                 }));
 }
 
-bool LayoutPrinter::isSectionDetailedInfoAvailable(ELFSection *section) {
-  if (!section->hasSectionData())
+bool LayoutPrinter::isSectionDetailedInfoAvailable(ELFSection *Section) {
+  if (!Section->hasSectionData())
     return false;
 
-  if (section->isMergeKind())
+  if (Section->isMergeKind())
     return false;
 
-  if (section->isIgnore())
+  if (Section->isIgnore())
     return false;
 
   // These sections are handled seperately and they dont follow
   // the same path of merging
-  switch (section->getKind()) {
+  switch (Section->getKind()) {
   case LDFileFormat::Discard:
   case LDFileFormat::Null:
   case LDFileFormat::Relocation:
@@ -150,26 +150,26 @@ bool LayoutPrinter::isSectionDetailedInfoAvailable(ELFSection *section) {
   return true;
 }
 
-void LayoutPrinter::recordArchiveMember(Input *origin, InputFile *referred,
-                                        ArchiveFile::Symbol *archSym,
-                                        LDSymbol *sym) {
-  _archiveRecords.push_back(std::make_tuple(origin, referred, archSym, sym));
+void LayoutPrinter::recordArchiveMember(Input *Origin, InputFile *Referred,
+                                        ArchiveFile::Symbol *ArchSym,
+                                        LDSymbol *Sym) {
+  ArchiveRecords.push_back(std::make_tuple(Origin, Referred, ArchSym, Sym));
 }
 
-void LayoutPrinter::recordWholeArchiveMember(Input *wholeArch) {
-  _archiveRecords.push_back(
-      std::make_tuple(wholeArch, nullptr, nullptr, nullptr));
+void LayoutPrinter::recordWholeArchiveMember(Input *WholeArch) {
+  ArchiveRecords.push_back(
+      std::make_tuple(WholeArch, nullptr, nullptr, nullptr));
 }
 
-uint32_t LayoutPrinter::m_LayoutDetail = 0;
+uint32_t LayoutPrinter::LayoutDetail = 0;
 
-std::optional<std::string> LayoutPrinter::m_Basepath;
+std::optional<std::string> LayoutPrinter::ThisBasepath;
 
 eld::Expected<void>
 LayoutPrinter::setLayoutDetail(llvm::StringRef Option,
-                               DiagnosticEngine *diagEngine) {
-  const llvm::StringLiteral showRelativePathOptionStr = "relative-path";
-  uint32_t optionLayoutDetail =
+                               DiagnosticEngine *DiagEngine) {
+  const llvm::StringLiteral ShowRelativePathOptionStr = "relative-path";
+  uint32_t OptionLayoutDetail =
       llvm::StringSwitch<uint32_t>(Option)
           .Case("show-strings", ShowStrings)
           .Case("absolute-path", ShowAbsolutePath)
@@ -180,82 +180,81 @@ LayoutPrinter::setLayoutDetail(llvm::StringRef Option,
           .Case("show-debug-strings", ShowDebugStrings)
           .Case("show-initial-layout", ShowInitialLayout)
           .Case("show-symbol-resolution", ShowSymbolResolution)
-          .StartsWith(showRelativePathOptionStr, ShowRelativePath)
+          .StartsWith(ShowRelativePathOptionStr, ShowRelativePath)
           .Default(0);
-  m_LayoutDetail |= optionLayoutDetail;
-  if (Option.starts_with(showRelativePathOptionStr)) {
-    Option.consume_front(showRelativePathOptionStr);
+  LayoutDetail |= OptionLayoutDetail;
+  if (Option.starts_with(ShowRelativePathOptionStr)) {
+    Option.consume_front(ShowRelativePathOptionStr);
     Option = Option.ltrim("=");
-    std::string basepath;
+    std::string Basepath;
     if (Option.empty())
-      basepath = std::filesystem::current_path().string();
+      Basepath = std::filesystem::current_path().string();
     else
-      basepath = Option;
-    m_Basepath = std::filesystem::absolute(basepath).string();
-    diagEngine->raise(diag::verbose_using_basepath_for_mapfiles)
-        << m_Basepath.value();
+      Basepath = Option;
+    ThisBasepath = std::filesystem::absolute(Basepath).string();
+    DiagEngine->raise(Diag::verbose_using_basepath_for_mapfiles)
+        << ThisBasepath.value();
   }
 
-  if (!optionLayoutDetail)
+  if (!OptionLayoutDetail)
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::invalid_option, {Option.str(), "--MapDetail"}));
-  if ((m_LayoutDetail & ShowAbsolutePath) &&
-      (m_LayoutDetail & ShowRelativePath))
+        Diag::invalid_option, {Option.str(), "--MapDetail"}));
+  if ((LayoutDetail & ShowAbsolutePath) && (LayoutDetail & ShowRelativePath))
     return std::make_unique<plugin::DiagnosticEntry>(
-        plugin::DiagnosticEntry(diag::error_map_detail_absrel_path));
+        plugin::DiagnosticEntry(Diag::error_map_detail_absrel_path));
   return {};
 }
 
 std::string LayoutPrinter::showSymbolName(llvm::StringRef Name) const {
-  if (!m_Config.options().shouldDemangle())
+  if (!ThisConfig.options().shouldDemangle())
     return Name.str();
   return eld::string::getDemangledName(Name);
 }
 
-void LayoutPrinter::recordInputKind(InputFile::Kind K) {
+void LayoutPrinter::recordInputKind(InputFile::InputFileKind K) {
   switch (K) {
   case InputFile::ELFObjFileKind:
-    LinkStats.numELFObjectFiles++;
+    LinkStats.NumElfObjectFiles++;
     break;
   case InputFile::ELFExecutableFileKind:
-    LinkStats.numELFExecutableFiles++;
+    LinkStats.NumElfExecutableFiles++;
     break;
   case InputFile::ELFDynObjFileKind:
-    LinkStats.numSharedObjectFiles++;
+    LinkStats.NumSharedObjectFiles++;
     break;
   case InputFile::BitcodeFileKind:
-    LinkStats.numBitCodeFiles++;
+    LinkStats.NumBitCodeFiles++;
     break;
   case InputFile::ELFSymDefFileKind:
-    LinkStats.numSymDefFiles++;
+    LinkStats.NumSymDefFiles++;
     break;
   case InputFile::GNUArchiveFileKind:
-    LinkStats.numArchiveFiles++;
+    LinkStats.NumArchiveFiles++;
     break;
   case InputFile::GNULinkerScriptKind:
-    LinkStats.numLinkerScripts++;
+    LinkStats.NumLinkerScripts++;
     break;
-  case InputFile::Kind::BinaryFileKind:
-    LinkStats.numBinaryFiles++;
+  case InputFile::InputFileKind::BinaryFileKind:
+    LinkStats.NumBinaryFiles++;
     break;
   default:
     break;
   }
 }
 
-std::string LayoutPrinter::getStringFromLoadSequence(InputSequenceT ist) {
-  InputKindPrefix prefix = ist.prefix;
-  std::string archFlag = ist.archFlag;
-  std::string pref;
-  switch (prefix) {
+std::string LayoutPrinter::getStringFromLoadSequence(InputSequenceT Ist) {
+  InputKindPrefix Prefix = Ist.Prefix;
+  std::string ArchFlag = Ist.ArchFlag;
+  std::string Pref;
+  switch (Prefix) {
   case Load:
-    pref = "LOAD ";
+    Pref = "LOAD ";
     break;
   case Skipped:
-    pref = "SKIPPED ";
+    Pref = "SKIPPED ";
     break;
   case SkippedRescan:
-    pref = "SKIPPED (Rescan) ";
+    Pref = "SKIPPED (Rescan) ";
     break;
   case StartGroup:
     return "START GROUP";
@@ -263,117 +262,117 @@ std::string LayoutPrinter::getStringFromLoadSequence(InputSequenceT ist) {
     return "END GROUP";
   }
 
-  Input *input = ist.input;
-  std::string files = "";
-  InputFile::Kind K;
+  Input *Input = Ist.Input;
+  std::string Files = "";
+  InputFile::InputFileKind K;
 
-  if (input != nullptr) {
-    files = input->decoratedPath();
-    if (m_Config.options().hasMappingFile())
-      files += "(" + input->getName() + ")";
-    K = input->getInputFile()->getKind();
+  if (Input != nullptr) {
+    Files = Input->decoratedPath();
+    if (ThisConfig.options().hasMappingFile())
+      Files += "(" + Input->getName() + ")";
+    K = Input->getInputFile()->getKind();
   }
 
-  std::string fileType;
-  if (archFlag.empty()) {
+  std::string FileType;
+  if (ArchFlag.empty()) {
     switch (K) {
     case InputFile::BitcodeFileKind:
-      fileType = " [Bitcode]";
+      FileType = " [Bitcode]";
       break;
     case InputFile::ELFSymDefFileKind:
-      fileType = " [SymDef]";
+      FileType = " [SymDef]";
       break;
     case InputFile::ELFObjFileKind:
     case InputFile::ELFExecutableFileKind:
     case InputFile::ELFDynObjFileKind:
-      fileType = " (ELF)";
+      FileType = " (ELF)";
       break;
     case InputFile::GNUArchiveFileKind: {
       ArchiveFile *ARFile = nullptr;
-      ARFile = llvm::dyn_cast<eld::ArchiveFile>(input->getInputFile());
+      ARFile = llvm::dyn_cast<eld::ArchiveFile>(Input->getInputFile());
       if (ARFile->isELFArchive())
-        fileType = " (ELF Archive)";
+        FileType = " (ELF Archive)";
       else
-        fileType = " (Bitcode Archive)";
+        FileType = " (Bitcode Archive)";
     } break;
     case InputFile::GNULinkerScriptKind:
-      fileType = " (GNULinkerScript)";
+      FileType = " (GNULinkerScript)";
       break;
     case InputFile::BinaryFileKind:
-      fileType = " (Binary)";
+      FileType = " (Binary)";
       break;
     default:
       ASSERT(0, "Unhandled Input File Kind");
     }
-    return pref + files + fileType;
+    return Pref + Files + FileType;
   }
 
-  std::string inputFileStr = pref + files + archFlag;
-  const ObjectFile *Obj = llvm::dyn_cast<ObjectFile>(input->getInputFile());
+  std::string InputFileStr = Pref + Files + ArchFlag;
+  const ObjectFile *Obj = llvm::dyn_cast<ObjectFile>(Input->getInputFile());
   if (Obj) {
-    std::string featureStr = Obj->getFeaturesStr();
-    if (!featureStr.empty())
-      inputFileStr += "[" + featureStr + "]";
+    std::string FeatureStr = Obj->getFeaturesStr();
+    if (!FeatureStr.empty())
+      InputFileStr += "[" + FeatureStr + "]";
   }
-  return inputFileStr;
+  return InputFileStr;
 }
 
-void LayoutPrinter::recordInputActions(InputKindPrefix prefix, Input *input,
-                                       std::string fileType) {
+void LayoutPrinter::recordInputActions(InputKindPrefix Prefix, Input *Input,
+                                       std::string FileType) {
   InputSequenceT IS;
-  IS.prefix = prefix;
-  IS.input = input;
-  IS.archFlag = fileType;
-  _inputActions.push_back(IS);
+  IS.Prefix = Prefix;
+  IS.Input = Input;
+  IS.ArchFlag = FileType;
+  InputActions.push_back(IS);
 }
 
-void LayoutPrinter::recordGroup() { LinkStats.numGroupTraversal++; }
+void LayoutPrinter::recordGroup() { LinkStats.NumGroupTraversal++; }
 
-void LayoutPrinter::recordOutputSection() { LinkStats.numOutputSections++; }
+void LayoutPrinter::recordOutputSection() { LinkStats.NumOutputSections++; }
 
-void LayoutPrinter::recordGC(const ELFSection *section) {
-  LinkStats.numSectionsGarbageCollected++;
-  if (!section->size())
-    LinkStats.numZeroSizedSectionsGarbageCollected++;
+void LayoutPrinter::recordGC(const ELFSection *Section) {
+  LinkStats.NumSectionsGarbageCollected++;
+  if (!Section->size())
+    LinkStats.NumZeroSizedSectionsGarbageCollected++;
 }
 
 void LayoutPrinter::recordLinkerScript(std::string LinkerScriptFile,
                                        bool Found) {
-  ScriptInputT script;
-  LinkStats.numLinkerScripts++;
-  script.include = LinkerScriptFile;
-  script.Depth = LinkerScriptStack.size();
+  ScriptInputT Script;
+  LinkStats.NumLinkerScripts++;
+  Script.Include = LinkerScriptFile;
+  Script.Depth = LinkerScriptStack.size();
   if (LinkerScriptStack.size() > 0)
-    script.parent = LinkerScriptStack.top();
-  script.found = Found;
+    Script.Parent = LinkerScriptStack.top();
+  Script.Found = Found;
   if (Found)
     LinkerScriptStack.push(LinkerScriptFile);
-  m_LinkerScripts.push_back(script);
+  LinkerScripts.push_back(Script);
 }
 
-std::string LayoutPrinter::getPath(const std::string &hash) const {
-  if (!m_Config.options().hasMappingFile())
-    return hash;
-  return m_Config.getFileFromHash(hash);
+std::string LayoutPrinter::getPath(const std::string &Hash) const {
+  if (!ThisConfig.options().hasMappingFile())
+    return Hash;
+  return ThisConfig.getFileFromHash(Hash);
 }
 
 void LayoutPrinter::recordLinkerScriptRule() {
-  LinkStats.numLinkerScriptRules++;
+  LinkStats.NumLinkerScriptRules++;
 }
 
-void LayoutPrinter::recordOrphanSection() { LinkStats.numOrphans++; }
+void LayoutPrinter::recordOrphanSection() { LinkStats.NumOrphans++; }
 
-void LayoutPrinter::recordTrampolines() { LinkStats.numTrampolines++; }
+void LayoutPrinter::recordTrampolines() { LinkStats.NumTrampolines++; }
 
 void LayoutPrinter::recordRetainedSections() {
-  LinkStats.numRetainedSections++;
+  LinkStats.NumRetainedSections++;
 }
 
 void LayoutPrinter::recordNoLinkerScriptRuleMatch() {
-  LinkStats.numNoRuleMatch++;
+  LinkStats.NumNoRuleMatch++;
 }
 
-void LayoutPrinter::recordPlugin() { LinkStats.numPlugins++; }
+void LayoutPrinter::recordPlugin() { LinkStats.NumPlugins++; }
 
 void LayoutPrinter::recordFeature(std::string Feature) {
   Features.push_back(Feature);
@@ -381,85 +380,85 @@ void LayoutPrinter::recordFeature(std::string Feature) {
 
 void LayoutPrinter::recordSectionOverride(plugin::LinkerWrapper *W,
                                           ChangeOutputSectionPluginOp *O) {
-  m_PluginOps[W].push_back(O);
-  m_Plugins.insert(W);
-  m_ChangeOutputSectionOps[O->getELFSection()].push_back(O);
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+  ChangeOutputSectionOps[O->getELFSection()].push_back(O);
 }
 
 void LayoutPrinter::recordAddChunk(plugin::LinkerWrapper *W,
                                    AddChunkPluginOp *O) {
-  m_PluginOps[W].push_back(O);
-  m_Plugins.insert(W);
-  m_ChunkOps[O->getFrag()].push_back(O);
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+  ChunkOps[O->getFrag()].push_back(O);
 }
 
 void LayoutPrinter::recordResetOffset(plugin::LinkerWrapper *W,
                                       ResetOffsetPluginOp *O) {
-  m_PluginOps[W].push_back(O);
+  PluginOps[W].push_back(O);
 }
 
 void LayoutPrinter::recordRemoveChunk(plugin::LinkerWrapper *W,
                                       RemoveChunkPluginOp *O) {
-  m_PluginOps[W].push_back(O);
-  m_Plugins.insert(W);
-  m_ChunkOps[O->getFrag()].push_back(O);
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+  ChunkOps[O->getFrag()].push_back(O);
 }
 
 void LayoutPrinter::recordUpdateChunks(plugin::LinkerWrapper *W,
                                        UpdateChunksPluginOp *O) {
-  m_PluginOps[W].push_back(O);
-  m_Plugins.insert(W);
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
 }
 
 void LayoutPrinter::recordRemoveSymbol(plugin::LinkerWrapper *W,
                                        RemoveSymbolPluginOp *O) {
-  m_PluginOps[W].push_back(O);
-  m_Plugins.insert(W);
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
   RemovedSymbols[O->getRemovedSymbol()] = O;
 }
 
 LayoutPrinter::ResolveInfoVectorT
-LayoutPrinter::getAllocatedCommonSymbols(Module &module) {
-  GNULDBackend &backend = *module.getBackend();
-  ObjectFile *commonInputFile =
-      llvm::cast<ObjectFile>(module.getCommonInternalInput());
-  ResolveInfoVectorT commonSymbols;
-  for (const Section *S : commonInputFile->getSections()) {
-    const CommonELFSection *comSect = llvm::cast<const CommonELFSection>(S);
-    if (comSect->isIgnore() || comSect->isDiscard())
+LayoutPrinter::getAllocatedCommonSymbols(Module &Module) {
+  GNULDBackend &Backend = *Module.getBackend();
+  ObjectFile *CommonInputFile =
+      llvm::cast<ObjectFile>(Module.getCommonInternalInput());
+  ResolveInfoVectorT CommonSymbols;
+  for (const Section *S : CommonInputFile->getSections()) {
+    const CommonELFSection *ComSect = llvm::cast<const CommonELFSection>(S);
+    if (ComSect->isIgnore() || ComSect->isDiscard())
       continue;
-    LDSymbol *sym = backend.getCommonSymbol(comSect);
-    ASSERT(sym, "sym must be non-null!");
+    LDSymbol *Sym = Backend.getCommonSymbol(ComSect);
+    ASSERT(Sym, "sym must be non-null!");
     // Skip non-allocated common symbols.
-    if (!sym->hasFragRef())
+    if (!Sym->hasFragRef())
       continue;
-    commonSymbols.push_back(sym->resolveInfo());
+    CommonSymbols.push_back(Sym->resolveInfo());
   }
-  return commonSymbols;
+  return CommonSymbols;
 }
 
 LayoutPrinter::ResolveInfoVectorT
-LayoutPrinter::getCommonsGarbageCollected(Module &module) {
-  GNULDBackend &backend = *module.getBackend();
-  ObjectFile *commonInputFile =
-      llvm::cast<ObjectFile>(module.getCommonInternalInput());
-  ResolveInfoVectorT commonSymbols;
-  for (const Section *S : commonInputFile->getSections()) {
-    const CommonELFSection *comSect = llvm::cast<const CommonELFSection>(S);
-    if (comSect->isIgnore()) {
-      LDSymbol *sym = backend.getCommonSymbol(comSect);
-      ASSERT(sym, "sym must be non-null!");
-      commonSymbols.push_back(sym->resolveInfo());
+LayoutPrinter::getCommonsGarbageCollected(Module &Module) {
+  GNULDBackend &Backend = *Module.getBackend();
+  ObjectFile *CommonInputFile =
+      llvm::cast<ObjectFile>(Module.getCommonInternalInput());
+  ResolveInfoVectorT CommonSymbols;
+  for (const Section *S : CommonInputFile->getSections()) {
+    const CommonELFSection *ComSect = llvm::cast<const CommonELFSection>(S);
+    if (ComSect->isIgnore()) {
+      LDSymbol *Sym = Backend.getCommonSymbol(ComSect);
+      ASSERT(Sym, "sym must be non-null!");
+      CommonSymbols.push_back(Sym->resolveInfo());
     }
   }
-  return commonSymbols;
+  return CommonSymbols;
 }
 
 void LayoutPrinter::recordRelocationData(plugin::LinkerWrapper *W,
                                          RelocationDataPluginOp *O) {
-  m_PluginOps[W].push_back(O);
-  m_Plugins.insert(W);
-  m_ChunkOps[O->getFrag()].push_back(O);
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+  ChunkOps[O->getFrag()].push_back(O);
 }
 
 void LayoutPrinter::buildMergedStringMap(Module &M) {
@@ -496,6 +495,6 @@ void LayoutPrinter::printStats(void *Handle, llvm::raw_ostream &OS) const {
   auto Stat = HandleToStats.find(Handle);
   if (Stat == HandleToStats.end())
     return;
-  for (auto S : Stat->second)
+  for (const auto *S : Stat->second)
     S->dumpStat(OS);
 }

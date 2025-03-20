@@ -25,48 +25,48 @@ class LinkerConfig;
 
 class TextLayoutPrinter {
 public:
-  TextLayoutPrinter(LayoutPrinter *Printer);
+  TextLayoutPrinter(LayoutPrinter *ThisLayoutPrinter);
 
   eld::Expected<void> init();
 
   llvm::raw_ostream &outputStream() const;
 
-  void printInputActions(bool useColor = false);
+  void printInputActions(bool UseColor = false);
 
-  void printLinkerInsertedTimingStats(Module &pModule);
+  void printLinkerInsertedTimingStats(Module &CurModule);
 
-  void printBuildStatistics(Module &pModule, bool useColor = false);
+  void printBuildStatistics(Module &CurModule, bool UseColor = false);
 
-  void printArchiveRecords(Module &module, bool useColor = false);
+  void printArchiveRecords(Module &Module, bool UseColor = false);
 
-  void printScriptIncludes(bool useColor = false);
+  void printScriptIncludes(bool UseColor = false);
 
-  void printVersionScripts(bool useColor = false);
+  void printVersionScripts(bool UseColor = false);
 
-  void printExternList(Module &pModule, bool useColor);
+  void printExternList(Module &CurModule, bool UseColor);
 
-  void printCommons(eld::Module &pModule, bool useColor = false);
+  void printCommons(eld::Module &CurModule, bool UseColor = false);
 
-  void printFrag(eld::Module &pModule, ELFSection *section, Fragment *frag,
-                 bool color = false);
+  void printFrag(eld::Module &CurModule, ELFSection *Section, Fragment *Frag,
+                 bool Color = false);
 
-  void printSection(GNULDBackend const &backend,
-                    const OutputSectionEntry *section, bool useColor);
+  void printSection(GNULDBackend const &Backend,
+                    const OutputSectionEntry *Section, bool UseColor);
 
-  void printArchAndVersion(bool useColor, GNULDBackend const &backend);
+  void printArchAndVersion(bool UseColor, GNULDBackend const &Backend);
 
   void printFragInfo(Fragment *F, LayoutFragmentInfo *Info, ELFSection *Section,
                      Module &M) const;
 
-  void printPadding(ELFSection *sec, int64_t startOffset, int64_t sz,
-                    int64_t fillValue, bool isAlign,
-                    bool useColor = false) const;
+  void printPadding(ELFSection *Sec, int64_t StartOffset, int64_t Sz,
+                    int64_t FillValue, bool IsAlign,
+                    bool UseColor = false) const;
 
-  void printMapFile(eld::Module &module);
+  void printMapFile(eld::Module &Module);
 
-  void printLayout(eld::Module &module);
+  void printLayout(eld::Module &Module);
 
-  void printGlobalPluginInfo(eld::Module &M, bool useColor);
+  void printGlobalPluginInfo(eld::Module &M, bool UseColor);
 
   void printPluginInfo(eld::Module &M);
 
@@ -76,15 +76,15 @@ public:
 
   void clearInputRecords();
 
-  void addLayoutMessage(std::string pMsg) {
+  void addLayoutMessage(std::string Msg) {
     outputStream() << "\n\n=======================================\n";
-    outputStream() << pMsg << "\n";
+    outputStream() << Msg << "\n";
     outputStream() << "=======================================\n";
   }
 
   /// Prints rule-matching info in the map file. This function must only be
   /// called before section-merging.
-  void printRuleMatchingInfo(Module &module);
+  void printRuleMatchingInfo(Module &Module);
 
 private:
   void printChangeOutputSectionInfo(const ELFSection *S) const;
@@ -107,23 +107,23 @@ private:
 
   bool printRelocationDataPluginOp(eld::Module &M, PluginOp *Pop) const;
 
-  void printOnlyLayoutFrag(eld::Module &pModule, ELFSection *section,
-                           Fragment *frag, bool color = false);
+  void printOnlyLayoutFrag(eld::Module &CurModule, ELFSection *Section,
+                           Fragment *Frag, bool Color = false);
 
   void printOnlyLayoutSection(GNULDBackend const &Backend,
-                              const OutputSectionEntry *section, bool useColor);
+                              const OutputSectionEntry *Section, bool UseColor);
 
-  void printOnlyLayoutPadding(ELFSection *sec, int64_t startOffset, int64_t sz,
-                              int64_t fillValue, bool isAlign,
-                              bool useColor = false) const;
+  void printOnlyLayoutPadding(ELFSection *Sec, int64_t StartOffset, int64_t Sz,
+                              int64_t FillValue, bool IsAlign,
+                              bool UseColor = false) const;
 
-  void printStats(LayoutPrinter::Stats &L, const Module &module);
+  void printStats(LayoutPrinter::Stats &L, const Module &Module);
 
   void printStat(llvm::StringRef S, uint64_t Stats);
 
-  void printStat(llvm::StringRef S, const std::string &stat) const;
+  void printStat(llvm::StringRef S, const std::string &Stat) const;
 
-  std::string showDecoratedSymbolName(eld::Module &pModule,
+  std::string showDecoratedSymbolName(eld::Module &CurModule,
                                       const ResolveInfo *R) const;
 
   std::string commandLineWithMappings();
@@ -135,34 +135,34 @@ private:
 
   void printMergeString(MergeableString *S, Module &M) const;
 
-  void printIsFileHeaderLoadedInfo(bool isLoaded, bool useColor);
+  void printIsFileHeaderLoadedInfo(bool IsLoaded, bool UseColor);
 
-  void printIsPHDRSLoadedInfo(bool isLoaded, bool useColor);
+  void printIsPHDRSLoadedInfo(bool IsLoaded, bool UseColor);
 
-  void printScriptCommands(const LinkerScript &script);
+  void printScriptCommands(const LinkerScript &Script);
 
   void printMemoryCommand(const MemoryCmd *Cmd);
 
-  void printTotalSymbolStats(const Module &module);
+  void printTotalSymbolStats(const Module &Module);
 
-  void printDiscardedSymbolStats(const Module &module);
+  void printDiscardedSymbolStats(const Module &Module);
 
-  void printDynamicList(Module &pModule, bool useColor);
+  void printDynamicList(Module &CurModule, bool UseColor);
 
-  void printVersionList(Module &pModule, bool useColor);
+  void printVersionList(Module &CurModule, bool UseColor);
 
   std::string getDecoratedPath(const Input *I) const;
 
-  void printFragments(Module &module, ELFSection &outSect, RuleContainer &R,
-                      bool useColor);
+  void printFragments(Module &Module, ELFSection &OutSect, RuleContainer &R,
+                      bool UseColor);
 
-  void printSymbolResolution(Module &module);
+  void printSymbolResolution(Module &Module);
 
 private:
   std::string Storage;
   std::unique_ptr<llvm::raw_string_ostream> Buffer = nullptr;
-  std::unique_ptr<llvm::raw_fd_ostream> layoutFile = nullptr;
-  LayoutPrinter *m_LayoutPrinter = nullptr;
+  std::unique_ptr<llvm::raw_fd_ostream> LayoutFile = nullptr;
+  LayoutPrinter *ThisLayoutPrinter = nullptr;
 };
 
 } // namespace eld

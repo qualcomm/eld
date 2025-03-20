@@ -34,10 +34,10 @@ public:
                        eld::IRBuilder &pBuilder,
                        AArch64ErrataIslandFactory &pBRIslandFactory);
 
-  Stub *targetStub() const { return m_Stub; }
+  Stub *targetStub() const { return S; }
 
 private:
-  Stub *m_Stub;
+  Stub *S;
 };
 
 } // namespace eld

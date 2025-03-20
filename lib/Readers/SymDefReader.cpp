@@ -43,23 +43,23 @@ bool SymDefReader::readSymbols(InputFile &pFile, bool isPostLTOPhase) {
     ResolveInfo::Type resolverType = std::get<1>(symDef);
     std::string symName = std::get<2>(symDef);
     if (m_Builder.getModule().getPrinter()->traceSymDef())
-      m_Config.raise(diag::note_read_from_symdef_file)
+      m_Config.raise(Diag::note_read_from_symdef_file)
           << symName << pFile.getInput()->decoratedPath();
     if (m_Config.isSymDefStyleProvide())
       m_Builder.getModule().getBackend()->addSymDefProvideSymbol(
           symName, resolverType, symVal, &pFile);
     else {
-      m_Builder.AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Builder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           &pFile, symName, resolverType, ResolveInfo::Define,
           ResolveInfo::Absolute,
           0x0,                 // size
           symVal,              // value
-          FragmentRef::Null(), // FragRef
+          FragmentRef::null(), // FragRef
           ResolveInfo::Default,
           false,  // isPostLTOPhase
           false); // isBitCode
       if (m_Builder.getModule().getPrinter()->traceSymDef())
-        m_Config.raise(diag::note_resolving_from_symdef_file)
+        m_Config.raise(Diag::note_resolving_from_symdef_file)
             << symName << pFile.getInput()->decoratedPath();
     }
   }

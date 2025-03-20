@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_SCRIPT_LEXER_V2_H
-#define ELD_SCRIPT_LEXER_V2_H
+#ifndef ELD_SCRIPTPARSER_SCRIPTLEXER_H
+#define ELD_SCRIPTPARSER_SCRIPTLEXER_H
 
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
@@ -35,15 +35,15 @@ public:
     SectionName,
   };
 
-  explicit ScriptLexer(eld::LinkerConfig &Config, ScriptFile &scriptFile);
+  explicit ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile);
 
   // Set error as needed
-  void setError(const llvm::Twine &msg);
+  void setError(const llvm::Twine &Msg);
 
   void lex();
 
   // Skip spaces
-  llvm::StringRef skipSpace(llvm::StringRef s);
+  llvm::StringRef skipSpace(llvm::StringRef S);
 
   // Is lexer reached EOF ?
   bool atEOF();
@@ -52,43 +52,43 @@ public:
   llvm::StringRef next();
 
   // Go to next token and use 'pLexState' for lexing the token.
-  llvm::StringRef next(LexState pLexState);
+  llvm::StringRef next(LexState PLexState);
 
   // Peek next token
   llvm::StringRef peek();
 
   // Peek next token using the pLexState.
-  llvm::StringRef peek(LexState pLexState);
+  llvm::StringRef peek(LexState PLexState);
 
   // Skip current token
   void skip();
 
   // Consume otken
-  bool consume(llvm::StringRef tok);
+  bool consume(llvm::StringRef Tok);
 
   // Expect next token to be expect
-  void expect(llvm::StringRef expect);
+  void expect(llvm::StringRef Expect);
 
-  void expectButContinue(llvm::StringRef expect);
+  void expectButContinue(llvm::StringRef Expect);
 
   // Consume label
-  bool consumeLabel(llvm::StringRef tok);
+  bool consumeLabel(llvm::StringRef Tok);
 
   // Check if s encloses t
-  bool encloses(llvm::StringRef s, llvm::StringRef t);
+  bool encloses(llvm::StringRef S, llvm::StringRef T);
 
   // Get current location of token including filename
   std::string getCurrentLocation();
 
   // Unquote string if quoted
-  llvm::StringRef unquote(llvm::StringRef s);
+  llvm::StringRef unquote(llvm::StringRef S);
 
   // Get Line and column information
   llvm::StringRef getLine();
 
   /// Returns true if there are no reported errors that should
   /// end the link abruptly.
-  bool Diagnose() const;
+  bool diagnose() const;
 
   /// Move the cursor to the previous token. This can be used to move the cursor
   /// back by at most one token. Consecutive calls to prev, without any next()
@@ -111,22 +111,22 @@ private:
 protected:
   struct Buffer {
     // The remaining content to parse and the filename.
-    llvm::StringRef s, filename;
-    const char *begin = nullptr;
-    size_t lineNumber = 1;
+    llvm::StringRef S, Filename;
+    const char *Begin = nullptr;
+    size_t LineNumber = 1;
     Buffer() = default;
-    Buffer(llvm::MemoryBufferRef mb)
-        : s(mb.getBuffer()), filename(mb.getBufferIdentifier()),
-          begin(mb.getBufferStart()) {}
+    Buffer(llvm::MemoryBufferRef Mb)
+        : S(Mb.getBuffer()), Filename(Mb.getBufferIdentifier()),
+          Begin(Mb.getBufferStart()) {}
   };
 
-  eld::LinkerConfig &m_Config;
+  eld::LinkerConfig &ThisConfig;
 
   // This changes the tokenization rules. Expression tokenization rules are
   // different than non-expression tokenization rules. The difference in Default
   // and SectionName tokenization rule is that SectionName lex state considers
   // ':' as token separator whereas Default does not.
-  LexState lexState = LexState::Default;
+  LexState LexState = LexState::Default;
 
   // This is required to support '=<fill-expression>'
   // before /DISCARD/ output section description. For example:
@@ -142,41 +142,41 @@ protected:
   // than the part of '/DISCARD/'. m_InOutputSectEpilogue is used to modify
   // the expression parsing behavior to not split '/DISCARD/' into multiple
   // tokens when expression parsing is happening in output section epilogue.
-  bool m_InOutputSectEpilogue = false;
+  bool MInOutputSectEpilogue = false;
 
   // The current buffer and parent buffers due to INCLUDE.
-  Buffer curBuf;
-  llvm::SmallVector<Buffer, 0> buffers;
+  Buffer CurBuf;
+  llvm::SmallVector<Buffer, 0> Buffers;
 
   // Used to detect INCLUDE() cycles.
-  llvm::DenseSet<llvm::StringRef> activeFilenames;
+  llvm::DenseSet<llvm::StringRef> ActiveFilenames;
 
   // The token before the last next().
-  llvm::StringRef prevTok;
+  llvm::StringRef PrevTok;
   // Rules for what is a token are different when we are in an expression.
   // curTok holds the cached return value of peek() and is invalid when the
   // expression state changes.
-  llvm::StringRef curTok;
-  size_t prevTokLine = 1;
+  llvm::StringRef CurTok;
+  size_t PrevTokLine = 1;
   /// This stores the lex state which was used to tokenize the current token.
   /// Current token term is a little confusing/misleading. Current token here
   /// refers to the token that is returned by the peek() / next() calls. It is
   /// useful to store the current token lex state to know whether the current
   /// token is invalidated and must be recomputed.
-  LexState curTokLexState = LexState::Default;
-  bool eof = false;
+  enum LexState CurTokLexState = LexState::Default;
+  bool Eof = false;
 
   // All the memory buffers that need to be parsed.
-  std::vector<llvm::MemoryBufferRef> mbs;
+  std::vector<llvm::MemoryBufferRef> MemoryBuffers;
 
-  ScriptFile &m_ScriptFile;
+  ScriptFile &ThisScriptFile;
 
 private:
   // State of the lexer.
-  size_t lastLineNumber = 0;
-  size_t lastLineNumberOffset = 0;
+  size_t LastLineNumber = 0;
+  size_t LastLineNumberOffset = 0;
 
-  size_t m_NonFatalErrors = 0;
+  size_t MNonFatalErrors = 0;
 };
 
 } // namespace v2

@@ -17,14 +17,14 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // StrToken
 //===----------------------------------------------------------------------===//
-StrToken::StrToken(const std::string &pString, StrToken::Kind K)
-    : m_Name(pString), Quoted(false), m_Kind(K) {}
+StrToken::StrToken(const std::string &PString, StrToken::Kind K)
+    : Name(PString), Quoted(false), ScriptFileKind(K) {}
 
 std::string StrToken::getDecoratedName() const {
   std::string R = "";
   if (isQuoted())
     R = "\"";
-  R += m_Name;
+  R += Name;
   if (isQuoted())
     R += "\"";
   return R;

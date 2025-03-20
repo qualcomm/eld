@@ -26,28 +26,28 @@ public:
   PhdrsCmd();
   ~PhdrsCmd();
 
-  size_t size() const { return m_Phdrs.size(); }
+  size_t size() const { return MPhdrs.size(); }
 
-  bool empty() const { return m_Phdrs.empty(); }
+  bool empty() const { return MPhdrs.empty(); }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::PHDRS;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::PHDRS;
   }
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  void push_back(ScriptCommand *Cmd) override;
+  void pushBack(ScriptCommand *Cmd) override;
 
   const std::vector<ScriptCommand *> &getPhdrDescriptors() const {
-    return m_Phdrs;
+    return MPhdrs;
   }
 
 private:
-  std::vector<ScriptCommand *> m_Phdrs;
+  std::vector<ScriptCommand *> MPhdrs;
 };
 
 } // namespace eld

@@ -21,7 +21,7 @@ MemoryArea::MemoryArea(llvm::StringRef Filename) : m_FileName(Filename) {}
 bool MemoryArea::Init(DiagnosticEngine *DiagEngine) {
   auto MBOrErr = llvm::MemoryBuffer::getFile(m_FileName);
   if (auto EC = MBOrErr.getError()) {
-    DiagEngine->raise(diag::fatal_cannot_read_input_err)
+    DiagEngine->raise(Diag::fatal_cannot_read_input_err)
         << m_FileName << EC.message();
     return false;
   }

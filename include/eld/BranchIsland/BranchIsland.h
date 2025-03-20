@@ -38,43 +38,42 @@ public:
   typedef RelocationListType::iterator reloc_iterator;
 
 public:
-  BranchIsland(Stub *stub);
+  BranchIsland(Stub *Stub);
 
   ~BranchIsland();
 
   /// relocation iterators of the island
-  reloc_iterator reloc_begin() { return m_Relocations.begin(); }
+  reloc_iterator relocBegin() { return Relocations.begin(); }
 
-  reloc_iterator reloc_end() { return m_Relocations.end(); }
+  reloc_iterator relocEnd() { return Relocations.end(); }
 
-  bool canReuseBranchIsland(ResolveInfo *pInfo, int64_t addend, bool useAddends,
-                            Stub *S) {
-    if (m_Stub && !m_Stub->isCompatible(S))
+  bool canReuseBranchIsland(ResolveInfo *PInfo, int64_t PAddend,
+                            bool UseAddends, Stub *PS) {
+    if (S && !S->isCompatible(PS))
       return false;
     // For local symbols, the filename should also match.
-    if (pInfo->type() == ResolveInfo::Section ||
-        pInfo->binding() == ResolveInfo::Local) {
-      if (m_Stub->savedSymInfo() &&
-          (pInfo->resolvedOrigin() != m_Stub->savedSymInfo()->resolvedOrigin()))
+    if (PInfo->type() == ResolveInfo::Section ||
+        PInfo->binding() == ResolveInfo::Local) {
+      if (S->savedSymInfo() &&
+          (PInfo->resolvedOrigin() != S->savedSymInfo()->resolvedOrigin()))
         return false;
     }
-    if (!m_Stub->savedSymInfo() ||
-        m_Stub->savedSymInfo()->name() != pInfo->name())
+    if (!S->savedSymInfo() || S->savedSymInfo()->name() != PInfo->name())
       return false;
-    if (!useAddends)
+    if (!UseAddends)
       return true;
-    if (addend == m_Addend)
+    if (PAddend == Addend)
       return true;
     return false;
   }
 
   /// addRelocation - add a relocation into island
-  void addRelocation(Relocation &pReloc) { m_Relocations.push_back(&pReloc); }
+  void addRelocation(Relocation &PReloc) { Relocations.push_back(&PReloc); }
 
   /// save relocation.
-  bool saveTrampolineInfo(Relocation &R, int64_t addend) {
-    m_Reloc = &R;
-    m_Addend = addend;
+  bool saveTrampolineInfo(Relocation &R, int64_t PAddend) {
+    Reloc = &R;
+    Addend = PAddend;
     return true;
   }
 
@@ -82,22 +81,22 @@ public:
 
   ResolveInfo *symInfo() const;
 
-  Stub *stub() const { return m_Stub; }
+  Stub *stub() const { return S; }
 
-  eld::Relocation *getOrigRelocation() const { return m_Reloc; }
+  eld::Relocation *getOrigRelocation() const { return Reloc; }
 
-  uint64_t getAddend() const { return m_Addend; }
+  uint64_t getAddend() const { return Addend; }
 
-  void addReuse(Relocation *R) { m_Reuse.insert(R); }
+  void addReuse(Relocation *R) { Reuse.insert(R); }
 
-  const std::set<Relocation *> &getReuses() const { return m_Reuse; }
+  const std::set<Relocation *> &getReuses() const { return Reuse; }
 
 protected:
-  Stub *m_Stub;
-  eld::Relocation *m_Reloc;
-  int64_t m_Addend;
-  RelocationListType m_Relocations;
-  std::set<Relocation *> m_Reuse;
+  Stub *S;
+  eld::Relocation *Reloc;
+  int64_t Addend;
+  RelocationListType Relocations;
+  std::set<Relocation *> Reuse;
 };
 
 } // namespace eld

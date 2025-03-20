@@ -54,7 +54,7 @@ static Triple ParseEmulation(std::string pEmulation, Triple &triple,
           .Default(Triple("unknown", "", "", ""));
   // Report invalid emulation error for unknown emulation.
   if (result.getArchName() == "unknown")
-    DiagEngine->raise(diag::err_invalid_emulation) << pEmulation << "\n";
+    DiagEngine->raise(Diag::err_invalid_emulation) << pEmulation << "\n";
   return result;
 }
 
@@ -79,7 +79,7 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
-    m_Config.raise(eld::diag::error_missing_arg_value)
+    m_Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
     return nullptr;
   }
@@ -147,7 +147,7 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
                         llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
   std::vector<const char *> allArgs = getAllArgs(Args, ELDFlagsArgs);
   if (!ELDFlagsArgs.empty())
-    m_Config.raise(eld::diag::note_eld_flags_without_output_name)
+    m_Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
   llvm::opt::InputArgList ArgList(allArgs.data(),
                                   allArgs.data() + allArgs.size());
@@ -187,7 +187,7 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
       return LINK_FAIL;
 
     if (!ELDFlagsArgs.empty())
-      m_Config.raise(eld::diag::note_eld_flags)
+      m_Config.raise(eld::Diag::note_eld_flags)
           << m_Config.options().outputFileName()
           << llvm::join(ELDFlagsArgs, " ");
 

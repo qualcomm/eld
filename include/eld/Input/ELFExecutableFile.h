@@ -17,7 +17,7 @@ namespace eld {
  */
 class ELFExecutableFile : public ELFFileBase {
 public:
-  ELFExecutableFile(Input *I, DiagnosticEngine *diagEngine);
+  ELFExecutableFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.
   static bool classof(const InputFile *E) {

@@ -26,17 +26,17 @@ using namespace eld;
 
 namespace {
 llvm::DenseSet<llvm::CachedHashStringRef> CommonBCSet;
-}
+} // namespace
 
 //==========================
 // StaticResolver
 StaticResolver::~StaticResolver() {}
 
 bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
-                             bool &pOverride, LDSymbol::ValueType pValue,
-                             LinkerConfig *Config, bool isPostLTOPhase) const {
-  bool amITracing = Config->getPrinter()->traceSymbols();
-  bool warnCommon = Config->options().warnCommon();
+                             bool &CurOverride, LDSymbol::ValueType pValue,
+                             LinkerConfig *Config, bool IsPostLtoPhase) const {
+  bool AmITracing = Config->getPrinter()->traceSymbols();
+  bool WarnCommon = Config->options().warnCommon();
 
   /* The state table itself.
    * The first index is a link_row and the second index is a bfd_link_hash_type.
@@ -45,7 +45,7 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
    * Is -> all kind of indirect
    */
   // clang-format off
-  static const enum LinkAction link_action[LAST_ORD][LAST_ORD] =
+  static const enum LinkAction LinkAction[LAST_ORD][LAST_ORD] =
   {
     /* new\old  U       w_U     d_U    wd_U   D      w_D    d_D    wd_D   C      w_C,   Cs,    */
     /* U    */ {NOACT,  UND,    UND,   UND,   NOACT, NOACT, DUND,  DUND,  NOACT, NOACT, NOACT },
@@ -74,38 +74,38 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
   //   undefined symbol meets a dynamic defined symbol, should override.
   // * When a common symbol meets a weak common symbol, adjust the size of
 
-  unsigned int row = getOrdinate(pNew);
-  unsigned int col = getOrdinate(pOld);
-  bool isOldBitCode = pOld.isBitCode();
-  bool isNewBitCode = pNew.isBitCode();
+  unsigned int Row = getOrdinate(pNew);
+  unsigned int Col = getOrdinate(pOld);
+  bool IsOldBitCode = pOld.isBitCode();
+  bool IsNewBitCode = pNew.isBitCode();
 
-  bool cycle = false;
-  pOverride = false;
-  ResolveInfo *old = &pOld;
-  LinkAction action;
+  bool Cycle = false;
+  CurOverride = false;
+  ResolveInfo *Old = &pOld;
+  enum LinkAction Action;
 
   do {
-    cycle = false;
-    action = link_action[row][col];
+    Cycle = false;
+    Action = LinkAction[Row][Col];
 
-    switch (action) {
+    switch (Action) {
     case FAIL: { /* abort.  */
-      Config->raise(diag::fail_sym_resolution) << __FILE__ << __LINE__;
+      Config->raise(Diag::fail_sym_resolution) << __FILE__ << __LINE__;
       return false;
     }
     case NOACT: { /* no action.  */
-      pOverride = false;
-      if (!isPostLTOPhase) {
-        if (!isNewBitCode && isOldBitCode && !pOld.isUndef())
+      CurOverride = false;
+      if (!IsPostLtoPhase) {
+        if (!IsNewBitCode && IsOldBitCode && !pOld.isUndef())
           pOld.shouldPreserve(true);
-        else if (pOld.isUndef() && !isNewBitCode && pNew.isUndef())
+        else if (pOld.isUndef() && !IsNewBitCode && pNew.isUndef())
           // If there are two undefined symbols one in bitcode and the other
           // undefined symbol in ELF, we should preserve the symbol if there
           // is a definition in ELF.
           pOld.setInBitCode(false);
       }
-      if (!old->isDyn())
-        old->overrideVisibility(pNew);
+      if (!Old->isDyn())
+        Old->overrideVisibility(pNew);
       break;
     }
     case UND:   /* override by symbol undefined symbol.  */
@@ -115,81 +115,81 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
     case DEFD:  /* override by symbol dynamic defined.  */
     case DEFWD: /* override by symbol dynamic weak defined. */
     case COM: { /* override by symbol common defined.  */
-      pOverride = true;
-      if (!isPostLTOPhase) {
+      CurOverride = true;
+      if (!IsPostLtoPhase) {
         // If the old symbol is weak and the new symbol is a defined symbol,
         // we should not preserve the old symbol. We should make sure that they
         // are not common symbols.
         if (!pOld.isCommon() && !pNew.isCommon()) {
-          if (pOld.isWeak() && !pNew.isWeak() && isOldBitCode &&
-              !isNewBitCode) {
+          if (pOld.isWeak() && !pNew.isWeak() && IsOldBitCode &&
+              !IsNewBitCode) {
             pOld.setInBitCode(false);
             pOld.shouldPreserve(false);
           }
         }
-        if (!isOldBitCode && isNewBitCode && pOld.isUndef())
+        if (!IsOldBitCode && IsNewBitCode && pOld.isUndef())
           pOld.shouldPreserve(true);
-        if (!isNewBitCode && pOld.isBitCode() && !pOld.isUndef())
+        if (!IsNewBitCode && pOld.isBitCode() && !pOld.isUndef())
           pOld.shouldPreserve(true);
-        if (isNewBitCode && !pNew.isUndef() && !isOldBitCode)
+        if (IsNewBitCode && !pNew.isUndef() && !IsOldBitCode)
           pOld.shouldPreserve(true);
       }
-      if (old->isPatchable() && !pNew.isPatchable())
-        Config->raise(diag::error_patchable_override)
+      if (Old->isPatchable() && !pNew.isPatchable())
+        Config->raise(Diag::error_patchable_override)
           << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
           << pNew.resolvedOrigin()->getInput()->decoratedPath();
-      old->override(pNew);
-      if (!old->isDyn())
-        old->overrideVisibility(pNew);
-      if (amITracing) {
-        Config->raise(diag::adding_new_sym)
-          << getOrdinateDesc(row) << pNew.name();
-        Config->raise(diag::overriding_old_sym) << old->name()
-          << getOrdinateDesc(col) << pNew.name();
+      Old->override(pNew);
+      if (!Old->isDyn())
+        Old->overrideVisibility(pNew);
+      if (AmITracing) {
+        Config->raise(Diag::adding_new_sym)
+          << getOrdinateDesc(Row) << pNew.name();
+        Config->raise(Diag::overriding_old_sym) << Old->name()
+          << getOrdinateDesc(Col) << pNew.name();
       }
       break;
     }
     case MDEFD:    /* mark symbol dynamic defined.  */
     case MDEFWD: { /* mark symbol dynamic weak defined.  */
-      if (amITracing)
-        Config->raise(diag::marking_sym)
-          << old->name() << getOrdinateDesc(row);
+      if (AmITracing)
+        Config->raise(Diag::marking_sym)
+          << Old->name() << getOrdinateDesc(Row);
 
       if (pOld.visibility() != ResolveInfo::Default) {
-        cycle = true;
-        row = 0;
-        col = 0;
+        Cycle = true;
+        Row = 0;
+        Col = 0;
         break;
       }
-      bool isOldWeakUndef = pOld.isWeakUndef();
-      old->override(pNew);
-      if (isOldWeakUndef)
-        old->setBinding(ResolveInfo::Weak);
-      Config->raise(diag::mark_dynamic_defined) << old->name();
-      pOverride = true;
+      bool IsOldWeakUndef = pOld.isWeakUndef();
+      Old->override(pNew);
+      if (IsOldWeakUndef)
+        Old->setBinding(ResolveInfo::Weak);
+      Config->raise(Diag::mark_dynamic_defined) << Old->name();
+      CurOverride = true;
       break;
     }
     case DUND:
     case DUNDW: {
-      old->setVisibility(pNew.visibility());
-      pOverride = false;
-      if (amITracing) {
-        Config->raise(diag::override_dyn_sym)
-          << old->name() << old->resolvedOrigin()
-          << getOrdinateDesc(row);
+      Old->setVisibility(pNew.visibility());
+      CurOverride = false;
+      if (AmITracing) {
+        Config->raise(Diag::override_dyn_sym)
+          << Old->name() << Old->resolvedOrigin()
+          << getOrdinateDesc(Row);
       }
       break;
     }
     case CREF: { /* Possibly warn about common reference to defined symbol.  */
       // A common symbol does not override a definition.
-      if (warnCommon)
-      Config->raise(diag::common_symbol_doesnot_override_definition)
+      if (WarnCommon)
+      Config->raise(Diag::common_symbol_doesnot_override_definition)
             << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
             << pNew.resolvedOrigin()->getInput()->decoratedPath();
-      old->overrideVisibility(pNew);
-      if (!isPostLTOPhase && !isNewBitCode && isOldBitCode)
+      Old->overrideVisibility(pNew);
+      if (!IsPostLtoPhase && !IsNewBitCode && IsOldBitCode)
         pOld.shouldPreserve(true);
-      pOverride = false;
+      CurOverride = false;
       break;
     }
     case CDEF: { /* redefine existing common symbol.  */
@@ -198,60 +198,60 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
       //
       // NOTE: m_Mesg uses 'name' instead of `name' for being compatible to GNU
       // ld.
-      if (!isPostLTOPhase && ((isNewBitCode && !pNew.isUndef()) ||
-                              (isOldBitCode ^ isNewBitCode))) {
-        CommonBCSet.insert(llvm::CachedHashStringRef(old->name()));
-        old->shouldPreserve(true);
+      if (!IsPostLtoPhase && ((IsNewBitCode && !pNew.isUndef()) ||
+                              (IsOldBitCode ^ IsNewBitCode))) {
+        CommonBCSet.insert(llvm::CachedHashStringRef(Old->name()));
+        Old->shouldPreserve(true);
       }
-      if (warnCommon)
-        Config->raise(diag::comm_override_by_definition)
+      if (WarnCommon)
+        Config->raise(Diag::comm_override_by_definition)
               << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
               << pNew.resolvedOrigin()->getInput()->decoratedPath();
-      old->override(pNew);
-      old->overrideVisibility(pNew);
-      pOverride = true;
+      Old->override(pNew);
+      Old->overrideVisibility(pNew);
+      CurOverride = true;
       break;
     }
     case BIG: { /* override by symbol common using largest size.  */
-      if (warnCommon)
-      Config->raise(diag::comm_override_by_comm)
+      if (WarnCommon)
+      Config->raise(Diag::comm_override_by_comm)
             << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
             << pNew.resolvedOrigin()->getInput()->decoratedPath();
-      if (old->size() < pNew.size()) {
-        old->setSize(pNew.size());
-        old->setInBitCode(pNew.isBitCode());
-        old->setResolvedOrigin(pNew.resolvedOrigin());
+      if (Old->size() < pNew.size()) {
+        Old->setSize(pNew.size());
+        Old->setInBitCode(pNew.isBitCode());
+        Old->setResolvedOrigin(pNew.resolvedOrigin());
       }
-      if (!isPostLTOPhase && (isOldBitCode ^ isNewBitCode)) {
-        CommonBCSet.insert(llvm::CachedHashStringRef(old->name()));
-        old->shouldPreserve(true);
+      if (!IsPostLtoPhase && (IsOldBitCode ^ IsNewBitCode)) {
+        CommonBCSet.insert(llvm::CachedHashStringRef(Old->name()));
+        Old->shouldPreserve(true);
       }
-      old->overrideAttributes(pNew);
-      old->overrideVisibility(pNew);
-      pOverride = true;
-      if (amITracing)
-        Config->raise(diag::override_common_sym) << old->name() << old->size();
+      Old->overrideAttributes(pNew);
+      Old->overrideVisibility(pNew);
+      CurOverride = true;
+      if (AmITracing)
+        Config->raise(Diag::override_common_sym) << Old->name() << Old->size();
       break;
     }
     case MBIG: { /* mark common symbol by larger size. */
-      if (warnCommon)
-      Config->raise(diag::comm_override_by_comm)
+      if (WarnCommon)
+      Config->raise(Diag::comm_override_by_comm)
             << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
             << pNew.resolvedOrigin()->getInput()->decoratedPath();
-      if (old->size() < pNew.size()) {
-        old->setSize(pNew.size());
-        old->setInBitCode(pNew.isBitCode());
-        old->setResolvedOrigin(pNew.resolvedOrigin());
-        pOverride = true;
+      if (Old->size() < pNew.size()) {
+        Old->setSize(pNew.size());
+        Old->setInBitCode(pNew.isBitCode());
+        Old->setResolvedOrigin(pNew.resolvedOrigin());
+        CurOverride = true;
       } else
-        pOverride = false;
-      if (!isPostLTOPhase && (isOldBitCode ^ isNewBitCode)) {
-        CommonBCSet.insert(llvm::CachedHashStringRef(old->name()));
-        old->shouldPreserve(true);
+        CurOverride = false;
+      if (!IsPostLtoPhase && (IsOldBitCode ^ IsNewBitCode)) {
+        CommonBCSet.insert(llvm::CachedHashStringRef(Old->name()));
+        Old->shouldPreserve(true);
       }
-      old->overrideVisibility(pNew);
-      if (amITracing)
-        Config->raise(diag::mark_common_sym) << old->name() << old->size();
+      Old->overrideVisibility(pNew);
+      if (AmITracing)
+        Config->raise(Diag::mark_common_sym) << Old->name() << Old->size();
       break;
     }
     case MDEF: { /* multiple definition error.  */
@@ -260,23 +260,22 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
           (pOld.desc() == pNew.desc() || pOld.desc() == ResolveInfo::NoType ||
            pNew.desc() == ResolveInfo::NoType)) {
         if (pOld.outSymbol()->value() == pValue) {
-          pOverride = true;
-          old->override(pNew);
-          old->overrideVisibility(pNew);
+          CurOverride = true;
+          Old->override(pNew);
+          Old->overrideVisibility(pNew);
 
           break;
-        } else {
-            Config->raise(diag::multiple_absolute_definitions)
+        }             Config->raise(Diag::multiple_absolute_definitions)
                 << pNew.name() << pOld.outSymbol()->value() << pValue;
           break;
-        }
+
       }
-        Config->raise(diag::multiple_definitions)
+        Config->raise(Diag::multiple_definitions)
             << pOld.name() << pOld.resolvedOrigin()->getInput()->decoratedPath()
             << pNew.resolvedOrigin()->getInput()->decoratedPath();
       break;
     }
     } // end of the big switch (action)
-  } while (cycle);
+  } while (Cycle);
   return true;
 }

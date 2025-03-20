@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_OBJECT_SCRIPT_MEMORY_REGION_H
-#define ELD_OBJECT_SCRIPT_MEMORY_REGION_H
+#ifndef ELD_OBJECT_SCRIPTMEMORYREGION_H
+#define ELD_OBJECT_SCRIPTMEMORYREGION_H
 
 #include "eld/PluginAPI/Expected.h"
 #include "eld/Script/MemoryDesc.h"
@@ -45,10 +45,10 @@ public:
 
   void dumpMemoryUsage(llvm::raw_ostream &O);
 
-  const MemoryDesc *getMemoryDesc() const { return m_MemoryDesc; }
+  const MemoryDesc *getMemoryDesc() const { return MMemoryDesc; }
 
   void clearMemoryRegion() {
-    m_OutputSections.clear();
+    MOutputSections.clear();
     CurrentCursor.reset();
     FirstOutputSectionExceededLimit = nullptr;
   }
@@ -71,7 +71,7 @@ public:
   // user for any override. If the VMA is within the memory region it will
   // be included, if not it will not be part of the image layout but not
   // counted against the memory region
-  bool containsVMA(uint64_t addr) const;
+  bool containsVMA(uint64_t Addr) const;
 
 private:
   size_t getSize() const;
@@ -81,8 +81,8 @@ private:
   void addOutputSection(const OutputSectionEntry *O);
 
 private:
-  MemoryDesc *m_MemoryDesc = nullptr;
-  llvm::SmallVector<const OutputSectionEntry *, 4> m_OutputSections;
+  MemoryDesc *MMemoryDesc = nullptr;
+  llvm::SmallVector<const OutputSectionEntry *, 4> MOutputSections;
   uint32_t AttrFlags = 0;
   uint32_t AttrNegFlags = 0;
   uint32_t AttrInvertedFlags = 0;

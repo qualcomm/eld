@@ -10,8 +10,8 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-#ifndef ELD_READERS_GROUPREADER_H
-#define ELD_READERS_GROUPREADER_H
+#ifndef ELD_OBJECT_GROUPREADER_H
+#define ELD_OBJECT_GROUPREADER_H
 
 #include "eld/Core/Module.h"
 
@@ -31,16 +31,16 @@ class Node;
  */
 class GroupReader {
 public:
-  GroupReader(Module &pModule, ObjectLinker *ObjLinker);
+  GroupReader(Module &PModule, ObjectLinker *ObjLinker);
 
   ~GroupReader();
 
-  bool readGroup(InputBuilder::InputIteratorT &node, InputBuilder &pBuilder,
-                 LinkerConfig &pConfig, bool isPostLTOPhase = false);
+  bool readGroup(InputBuilder::InputIteratorT &Node, InputBuilder &PBuilder,
+                 LinkerConfig &PConfig, bool IsPostLtoPhase = false);
 
 private:
-  Module &m_Module;
-  ObjectLinker *m_ObjLinker;
+  Module &MModule;
+  ObjectLinker *MObjLinker;
 };
 
 } // namespace eld

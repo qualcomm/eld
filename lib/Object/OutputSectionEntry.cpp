@@ -14,77 +14,77 @@ using namespace eld;
 
 namespace {
 uint64_t Index = 0;
-}
+} // namespace
 
-OutputSectionEntry::OutputSectionEntry(SectionMap *parent, std::string pName)
-    : m_Name(pName), m_pSection(nullptr), m_pLoadSegment(nullptr),
-      m_Order(UINT_MAX), FirstNonEmptyRule(nullptr), m_LastRule(nullptr) {
-  m_OutputSectDesc = eld::make<OutputSectDesc>(pName);
-  m_pSection = parent->createELFSection(pName, LDFileFormat::Regular,
-                                        /*Type=*/0, /*Flags=*/0, /*EntSize=*/0);
+OutputSectionEntry::OutputSectionEntry(SectionMap *Parent, std::string PName)
+    : Name(PName), MPSection(nullptr), MPLoadSegment(nullptr), MOrder(UINT_MAX),
+      FirstNonEmptyRule(nullptr), MLastRule(nullptr) {
+  MOutputSectDesc = eld::make<OutputSectDesc>(PName);
+  MPSection = Parent->createELFSection(PName, LDFileFormat::Regular,
+                                       /*Type=*/0, /*Flags=*/0, /*EntSize=*/0);
   // Set a default index. This index will be overwritten later by postLayout.
-  m_pSection->setIndex(Index++);
-  m_pSection->setOutputSection(this);
-  m_bIsDiscard = pName.compare("/DISCARD/") == 0;
+  MPSection->setIndex(Index++);
+  MPSection->setOutputSection(this);
+  MBIsDiscard = PName.compare("/DISCARD/") == 0;
 }
 
-OutputSectionEntry::OutputSectionEntry(SectionMap *parent, ELFSection *S)
-    : m_Name(S->name()), m_pSection(S), m_pLoadSegment(nullptr),
-      m_Order(UINT_MAX), FirstNonEmptyRule(nullptr), m_LastRule(nullptr) {
-  m_OutputSectDesc = eld::make<OutputSectDesc>(m_Name);
+OutputSectionEntry::OutputSectionEntry(SectionMap *Parent, ELFSection *S)
+    : Name(S->name()), MPSection(S), MPLoadSegment(nullptr), MOrder(UINT_MAX),
+      FirstNonEmptyRule(nullptr), MLastRule(nullptr) {
+  MOutputSectDesc = eld::make<OutputSectDesc>(Name);
   S->setOutputSection(this);
-  m_bIsDiscard = m_Name.compare("/DISCARD/") == 0;
+  MBIsDiscard = Name.compare("/DISCARD/") == 0;
 }
 
-OutputSectionEntry::OutputSectionEntry(SectionMap *parent, std::string pName,
-                                       LDFileFormat::Kind pKind, uint32_t pType,
-                                       uint32_t pFlag, uint32_t pAlign)
-    : m_Name(pName), m_pLoadSegment(nullptr), m_Order(UINT_MAX),
-      FirstNonEmptyRule(nullptr), m_LastRule(nullptr) {
-  m_OutputSectDesc = eld::make<OutputSectDesc>(pName);
-  m_pSection =
-      parent->createELFSection(pName, pKind, pType, pFlag, /*EntSize*/ 0);
-  m_pSection->setAddrAlign(pAlign);
-  m_pSection->setOutputSection(this);
+OutputSectionEntry::OutputSectionEntry(SectionMap *Parent, std::string PName,
+                                       LDFileFormat::Kind PKind, uint32_t PType,
+                                       uint32_t PFlag, uint32_t PAlign)
+    : Name(PName), MPLoadSegment(nullptr), MOrder(UINT_MAX),
+      FirstNonEmptyRule(nullptr), MLastRule(nullptr) {
+  MOutputSectDesc = eld::make<OutputSectDesc>(PName);
+  MPSection =
+      Parent->createELFSection(PName, PKind, PType, PFlag, /*EntSize*/ 0);
+  MPSection->setAddrAlign(PAlign);
+  MPSection->setOutputSection(this);
   // Set a default index. This index will be overwritten later by postLayout.
-  m_pSection->setIndex(Index++);
-  m_bIsDiscard = pName.compare("/DISCARD/") == 0;
+  MPSection->setIndex(Index++);
+  MBIsDiscard = PName.compare("/DISCARD/") == 0;
 }
 
-OutputSectionEntry::OutputSectionEntry(SectionMap *parent,
-                                       OutputSectDesc &pOutputDesc)
-    : m_Name(pOutputDesc.name()), m_OutputSectDesc(&pOutputDesc),
-      m_pSection(nullptr), m_pLoadSegment(nullptr), m_Order(UINT_MAX),
-      FirstNonEmptyRule(nullptr), m_LastRule(nullptr) {
-  m_pSection = parent->createELFSection(m_Name, LDFileFormat::Regular,
-                                        /*Type*/ 0, /*Flags*/ 0, /*EntSize*/ 0);
+OutputSectionEntry::OutputSectionEntry(SectionMap *Parent,
+                                       OutputSectDesc &POutputDesc)
+    : Name(POutputDesc.name()), MOutputSectDesc(&POutputDesc),
+      MPSection(nullptr), MPLoadSegment(nullptr), MOrder(UINT_MAX),
+      FirstNonEmptyRule(nullptr), MLastRule(nullptr) {
+  MPSection = Parent->createELFSection(Name, LDFileFormat::Regular,
+                                       /*Type*/ 0, /*Flags*/ 0, /*EntSize*/ 0);
   // Set a default index. This index will be overwritten later by postLayout.
-  m_pSection->setIndex(Index++);
-  m_pSection->setOutputSection(this);
-  m_bIsDiscard = m_Name.compare("/DISCARD/") == 0;
+  MPSection->setIndex(Index++);
+  MPSection->setOutputSection(this);
+  MBIsDiscard = Name.compare("/DISCARD/") == 0;
 }
 
 bool OutputSectionEntry::hasContent() const {
-  return m_pSection != nullptr &&
-         (m_pSection->isWanted() || (m_pSection->size() != 0));
+  return MPSection != nullptr &&
+         (MPSection->isWanted() || (MPSection->size() != 0));
 }
 void OutputSectionEntry::computeHash() {
   std::string Res;
   llvm::raw_string_ostream OSS(Res);
   dump(OSS);
-  m_Hash = llvm::hash_combine(name(), m_pSection->getIndex(), Res);
+  MHash = llvm::hash_combine(name(), MPSection->getIndex(), Res);
 }
 
 uint64_t
-OutputSectionEntry::getTrampolineCount(const std::string &trampolineName) {
-  return m_TrampolineNameToCountMap[trampolineName]++;
+OutputSectionEntry::getTrampolineCount(const std::string &TrampolineName) {
+  return MTrampolineNameToCountMap[TrampolineName]++;
 }
 
 uint64_t OutputSectionEntry::getTotalTrampolineCount() const {
-  uint64_t count = 0;
-  for (const auto &item : m_TrampolineNameToCountMap)
-    count += item.second;
-  return count;
+  uint64_t Count = 0;
+  for (const auto &Item : MTrampolineNameToCountMap)
+    Count += Item.second;
+  return Count;
 }
 
 Fragment *OutputSectionEntry::getFirstFrag() const {
@@ -96,39 +96,39 @@ Fragment *OutputSectionEntry::getFirstFrag() const {
 
 RuleContainer *OutputSectionEntry::createDefaultRule(eld::Module &M) {
   // Add a default spec to catch rules that belong to the output section.
-  InputSectDesc::Spec defaultSpec;
-  defaultSpec.initialize();
-  StringList *stringList = eld::make<StringList>();
+  InputSectDesc::Spec DefaultSpec;
+  DefaultSpec.initialize();
+  StringList *StringList = eld::make<eld::StringList>();
 
   WildcardPattern *PatOne = make<WildcardPattern>("*");
   M.getScript().registerWildCardPattern(PatOne);
-  defaultSpec.m_pWildcardFile = PatOne;
+  DefaultSpec.WildcardFilePattern = PatOne;
 
-  WildcardPattern *PatTwo = make<WildcardPattern>(m_Name);
+  WildcardPattern *PatTwo = make<WildcardPattern>(Name);
   M.getScript().registerWildCardPattern(PatTwo);
-  stringList->push_back(PatTwo);
+  StringList->pushBack(PatTwo);
 
-  defaultSpec.m_pWildcardSections = stringList;
-  defaultSpec.m_pIsArchive = 0;
+  DefaultSpec.WildcardSectionPattern = StringList;
+  DefaultSpec.InputIsArchive = 0;
 
-  static OutputSectDesc O(m_Name);
+  static OutputSectDesc O(Name);
   O.initialize();
   InputSectDesc *Input =
       make<InputSectDesc>(M.getScript().getIncrementedRuleCount(),
-                          InputSectDesc::SpecialNoKeep, defaultSpec, O);
+                          InputSectDesc::SpecialNoKeep, DefaultSpec, O);
   Input->setInputFileInContext(
       M.getInternalInput(Module::InternalInputType::Script));
 
-  auto input = make<RuleContainer>(&M.getScript().sectionMap(), *Input);
-  input->getSection()->setOutputSection(this);
+  auto *RC = make<RuleContainer>(&M.getScript().sectionMap(), *Input);
+  RC->getSection()->setOutputSection(this);
 
   if (this->getLastRule())
-    this->getLastRule()->setNextRule(input);
-  this->setLastRule(input);
+    this->getLastRule()->setNextRule(RC);
+  this->setLastRule(RC);
 
-  append(input);
+  append(RC);
 
-  return input;
+  return RC;
 }
 
 RuleContainer *OutputSectionEntry::createRule(eld::Module &M,
@@ -136,22 +136,22 @@ RuleContainer *OutputSectionEntry::createRule(eld::Module &M,
                                               InputFile *I) {
   InputSectDesc::Spec Spec;
   Spec.initialize();
-  StringList *stringList = eld::make<StringList>();
+  StringList *StringList = eld::make<eld::StringList>();
 
   WildcardPattern *PatOne = make<WildcardPattern>("*");
   M.getScript().registerWildCardPattern(PatOne);
-  Spec.m_pWildcardFile = PatOne;
+  Spec.WildcardFilePattern = PatOne;
 
-  WildcardPattern *PatTwo = make<WildcardPattern>(
-      M.getScript().saveString(m_Name + "." + Annotation));
+  WildcardPattern *PatTwo =
+      make<WildcardPattern>(M.getScript().saveString(Name + "." + Annotation));
 
   M.getScript().registerWildCardPattern(PatTwo);
-  stringList->push_back(PatTwo);
+  StringList->pushBack(PatTwo);
 
-  Spec.m_pWildcardSections = stringList;
-  Spec.m_pIsArchive = 0;
+  Spec.WildcardSectionPattern = StringList;
+  Spec.InputIsArchive = 0;
 
-  OutputSectDesc *O = eld::make<OutputSectDesc>(m_Name);
+  OutputSectDesc *O = eld::make<OutputSectDesc>(Name);
   O->initialize();
   InputSectDesc *Input =
       make<InputSectDesc>(M.getScript().getIncrementedRuleCount(),
@@ -163,44 +163,34 @@ RuleContainer *OutputSectionEntry::createRule(eld::Module &M,
   return R;
 }
 
-void OutputSectionEntry::dump(llvm::raw_ostream &outs) const {
-  m_OutputSectDesc->dump(outs);
+void OutputSectionEntry::dump(llvm::raw_ostream &Outs) const {
+  MOutputSectDesc->dump(Outs);
 }
 
 bool OutputSectionEntry::insertAfterRule(RuleContainer *C, RuleContainer *R) {
-  auto Iter = std::find(m_InputList.begin(), m_InputList.end(), C);
-  if (Iter == m_InputList.end())
+  auto Iter = std::find(MInputList.begin(), MInputList.end(), C);
+  if (Iter == MInputList.end())
     return false;
   ++Iter;
-  Iter = m_InputList.insert(Iter, R);
+  Iter = MInputList.insert(Iter, R);
   R->setNextRule(C->getNextRule());
   C->setNextRule(R);
   return true;
 }
 
 bool OutputSectionEntry::insertBeforeRule(RuleContainer *C, RuleContainer *R) {
-  auto iter = std::find(m_InputList.begin(), m_InputList.end(), C);
-  if (iter == m_InputList.end())
+  auto Iter = std::find(MInputList.begin(), MInputList.end(), C);
+  if (Iter == MInputList.end())
     return false;
-  if (iter != m_InputList.begin()) {
-    auto prevIter = iter - 1;
-    (*prevIter)->setNextRule(R);
+  if (Iter != MInputList.begin()) {
+    auto PrevIter = Iter - 1;
+    (*PrevIter)->setNextRule(R);
   }
-  m_InputList.insert(iter, R);
+  MInputList.insert(Iter, R);
   R->setNextRule(C);
   return true;
 }
 
-std::optional<llvm::StringRef> getRegion(const Fragment *F) {
-  if (!F)
-    return {};
-  if (auto *R = llvm::dyn_cast<RegionFragment>(F))
-    return R->getRegion();
-  if (auto *R = llvm::dyn_cast<RegionFragmentEx>(F))
-    return R->getRegion();
-  return {};
-}
-
 std::string OutputSectionEntry::getSectionTypeStr() const {
-  return ELFSection::getELFTypeStr(m_Name, m_pSection->getType()).str();
+  return ELFSection::getELFTypeStr(Name, MPSection->getType()).str();
 }

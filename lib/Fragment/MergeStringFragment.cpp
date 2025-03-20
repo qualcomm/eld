@@ -39,7 +39,7 @@ bool MergeStringFragment::readStrings(LinkerConfig &Config) {
   while (!Contents.empty()) {
     size_t End = Contents.find('\0');
     if (End == llvm::StringRef::npos) {
-      Config.raise(diag::string_not_null_terminated)
+      Config.raise(Diag::string_not_null_terminated)
           << S->getInputFile()->getInput()->decoratedPath()
           << S->getDecoratedName(Config.options()) << llvm::utohexstr(Offset);
       return false;
@@ -51,7 +51,7 @@ bool MergeStringFragment::readStrings(LinkerConfig &Config) {
         this, String, Offset, std::numeric_limits<uint32_t>::max(), false));
     Contents = Contents.drop_front(Size);
     if (Config.getPrinter()->isVerbose()) {
-      Config.raise(diag::splitting_merge_string_section)
+      Config.raise(Diag::splitting_merge_string_section)
           << S->getInputFile()->getInput()->decoratedPath()
           << S->getDecoratedName(Config.options()) << llvm::utohexstr(Offset)
           << String.data() << 1;

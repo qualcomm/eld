@@ -44,117 +44,121 @@ public:
   enum SymbolResolvePolicy { Unresolve, Resolve };
 
 public:
-  IRBuilder(Module &pModule, LinkerConfig &pConfig);
+  IRBuilder(Module &CurModule, LinkerConfig &Config);
 
   ~IRBuilder();
 
-  InputBuilder &getInputBuilder() { return m_InputBuilder; }
+  InputBuilder &getInputBuilder() { return ThisInputBuilder; }
 
-  Module &getModule() { return m_Module; }
+  Module &getModule() { return ThisModule; }
 
-  LinkerConfig &getConfig() { return m_Config; }
+  LinkerConfig &getConfig() { return ThisConfig; }
 
   void requestGarbageCollection();
 
-  bool shouldRunGarbageCollection() const { return m_isGC; }
+  bool shouldRunGarbageCollection() const { return IsGarbageCollected; }
 
   /// Create an empty LDSymbol. The purpose of this wrapper is to automatically
   /// set the initial state (isIgnore), depending on the GC options.
   LDSymbol *makeLDSymbol(ResolveInfo *);
 
-  LDSymbol *AddSymbol(InputFile &pInput, const std::string &pName,
-                      ResolveInfo::Type pType, ResolveInfo::Desc pDesc,
-                      ResolveInfo::Binding pBind, ResolveInfo::SizeType pSize,
-                      LDSymbol::ValueType pValue = 0x0,
-                      ELFSection *pSection = nullptr,
-                      ResolveInfo::Visibility pVis = ResolveInfo::Default,
-                      bool isPostLTOPhase = true, uint32_t shndx = 0,
-                      uint32_t idx = 0, bool isPatchable = false);
+  LDSymbol *addSymbol(InputFile &Input, const std::string &SymbolName,
+                      ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+                      ResolveInfo::Binding Bind, ResolveInfo::SizeType Size,
+                      LDSymbol::ValueType Value = 0x0,
+                      ELFSection *CurSection = nullptr,
+                      ResolveInfo::Visibility Vis = ResolveInfo::Default,
+                      bool IsPostLtoPhase = true, uint32_t Shndx = 0,
+                      uint32_t Idx = 0, bool IsPatchable = false);
 
   template <SymbolDefinePolicy POLICY, SymbolResolvePolicy RESOLVE>
   LDSymbol *
-  AddSymbol(InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-            ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-            ResolveInfo::SizeType pSize = 0, LDSymbol::ValueType pValue = 0x0,
-            FragmentRef *pFragmentRef = FragmentRef::Null(),
-            ResolveInfo::Visibility pVisibility = ResolveInfo::Default,
-            bool isPostLTOPhase = true, bool isBitCode = false,
-            bool isPatchable = false);
+  addSymbol(InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+            ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+            ResolveInfo::SizeType Size = 0, LDSymbol::ValueType Value = 0x0,
+            FragmentRef *CurFragmentRef = FragmentRef::null(),
+            ResolveInfo::Visibility Visibility = ResolveInfo::Default,
+            bool IsPostLtoPhase = true, bool IsBitCode = false,
+            bool IsPatchable = false);
 
-  static Relocation *AddRelocation(const Relocator *pRelocator,
-                                   ELFSection *pSection, Relocation::Type pType,
-                                   LDSymbol &pSym, uint32_t pOffset,
-                                   Relocation::Address pAddend = 0);
+  static Relocation *addRelocation(const Relocator *CurRelocator,
+                                   ELFSection *CurSection,
+                                   Relocation::Type Type, LDSymbol &PSym,
+                                   uint32_t POffset,
+                                   Relocation::Address CurAddend = 0);
 
-  static Relocation *AddRelocation(const Relocator *pRelocator, Fragment &pFrag,
-                                   Relocation::Type pType, LDSymbol &pSym,
-                                   uint32_t pOffset,
-                                   Relocation::Address pAddend = 0);
+  static Relocation *addRelocation(const Relocator *CurRelocator,
+                                   Fragment &CurFrag, Relocation::Type Type,
+                                   LDSymbol &PSym, uint32_t POffset,
+                                   Relocation::Address CurAddend = 0);
 
-  Relocation *CreateRelocation(const Relocator *pRelocator, Fragment &pFrag,
-                               Relocation::Type pType, LDSymbol &pSym,
-                               uint32_t pOffset, Relocation::Address pAddend);
+  Relocation *createRelocation(const Relocator *CurRelocator, Fragment &CurFrag,
+                               Relocation::Type Type, LDSymbol &PSym,
+                               uint32_t POffset, Relocation::Address CurAddend);
 
 private:
-  LDSymbol *addSymbolFromObject(
-      InputFile &pInput, const std::string &pName, ResolveInfo::Type pType,
-      ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-      ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-      FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-      uint32_t shndx, bool isPostLTOPhase, uint32_t Idx, bool isPatchable);
+  LDSymbol *
+  addSymbolFromObject(InputFile &Input, const std::string &SymbolName,
+                      ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+                      ResolveInfo::Binding Binding, ResolveInfo::SizeType Size,
+                      LDSymbol::ValueType Value, FragmentRef *CurFragmentRef,
+                      ResolveInfo::Visibility Visibility, uint32_t Shndx,
+                      bool IsPostLtoPhase, uint32_t Idx, bool IsPatchable);
 
-  LDSymbol *addSymbolFromDynObj(
-      InputFile &pInput, const std::string &pName, ResolveInfo::Type pType,
-      ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-      ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-      ResolveInfo::Visibility pVisibility, uint32_t shndx, bool isPostLTOPhase);
+  LDSymbol *addSymbolFromDynObj(InputFile &Input, const std::string &SymbolName,
+                                ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+                                ResolveInfo::Binding Binding,
+                                ResolveInfo::SizeType Size,
+                                LDSymbol::ValueType Value,
+                                ResolveInfo::Visibility Visibility,
+                                uint32_t Shndx, bool IsPostLtoPhase);
 
 public:
-  void addToCref(InputFile &pInput, Resolver::Result pResult);
+  void addToCref(InputFile &Input, Resolver::Result PResult);
 
-  Fragment *findMergeStr(uint64_t hash) const;
+  Fragment *findMergeStr(uint64_t Hash) const;
 
   void addLinkerInternalLocalSymbol(InputFile *F, std::string Name,
-                                    FragmentRef *fragRef, size_t Size);
+                                    FragmentRef *FragRef, size_t Size);
 
 private:
-  Module &m_Module;
-  LinkerConfig &m_Config;
-  bool m_isGC;
-  InputBuilder m_InputBuilder;
+  Module &ThisModule;
+  LinkerConfig &ThisConfig;
+  bool IsGarbageCollected;
+  InputBuilder ThisInputBuilder;
 };
 
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable);
+LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
 
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable);
+LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
 
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable);
+LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
 
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable);
+LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable);
 
 } // end of namespace eld
 

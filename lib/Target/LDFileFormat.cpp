@@ -113,7 +113,7 @@ LDFileFormat::Kind LDFileFormat::getELFSectionKind(
         (Type >= llvm::ELF::SHT_LOOS && Type <= llvm::ELF::SHT_HIOS) ||
         (Type >= llvm::ELF::SHT_LOUSER && Type <= llvm::ELF::SHT_HIUSER))
       return LDFileFormat::Target;
-    Config.raise(diag::err_unsupported_section) << Name << Type;
+    Config.raise(Diag::err_unsupported_section) << Name << Type;
     return LDFileFormat::Error;
   }
   return LDFileFormat::MetaData;

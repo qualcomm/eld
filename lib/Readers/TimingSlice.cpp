@@ -51,7 +51,7 @@ bool eld::TimingSlice::ReadSlice(llvm::StringRef Slice,
                                  DiagnosticEngine *DiagEngine) {
   // should hold at least two 8 byte integers plus module name
   if (Slice.size() <= 16) {
-    DiagEngine->raise(diag::unexpected_section_size)
+    DiagEngine->raise(Diag::unexpected_section_size)
         << Slice.size() << getTimingSectionName() << InputFileName;
     return false;
   }
@@ -62,7 +62,7 @@ bool eld::TimingSlice::ReadSlice(llvm::StringRef Slice,
     m_BeginningOfTime = buf[0];
     m_Duration = buf[1];
   } else {
-    DiagEngine->raise(diag::invalid_timing_value)
+    DiagEngine->raise(Diag::invalid_timing_value)
         << buf[0] << getTimingSectionName() << InputFileName;
     return false;
   }

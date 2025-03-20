@@ -16,43 +16,43 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // PhdrDesc
 //===----------------------------------------------------------------------===//
-PhdrDesc::PhdrDesc(const PhdrSpec &pSpec)
-    : ScriptCommand(ScriptCommand::PHDR_DESC), m_Spec(pSpec) {}
+PhdrDesc::PhdrDesc(const PhdrSpec &PSpec)
+    : ScriptCommand(ScriptCommand::PHDR_DESC), InputSpec(PSpec) {}
 
 PhdrDesc::~PhdrDesc() {}
 
-void PhdrDesc::dump(llvm::raw_ostream &outs) const {
-  outs << m_Spec.name();
-  outs << " " << eld::ELFSegment::TypeToELFTypeStr(m_Spec.type()).str();
-  if (m_Spec.hasFileHdr())
-    outs << " "
+void PhdrDesc::dump(llvm::raw_ostream &Outs) const {
+  Outs << InputSpec.name();
+  Outs << " " << eld::ELFSegment::TypeToELFTypeStr(InputSpec.type()).str();
+  if (InputSpec.hasFileHdr())
+    Outs << " "
          << "FILEHDR";
-  if (m_Spec.hasPhdr())
-    outs << " "
+  if (InputSpec.hasPhdr())
+    Outs << " "
          << "PHDRS";
-  if (m_Spec.atAddress()) {
-    outs << " "
+  if (InputSpec.atAddress()) {
+    Outs << " "
          << "AT(";
-    m_Spec.atAddress()->dump(outs);
-    outs << ")";
+    InputSpec.atAddress()->dump(Outs);
+    Outs << ")";
   }
-  if (m_Spec.flags()) {
-    outs << " "
+  if (InputSpec.flags()) {
+    Outs << " "
          << "FLAGS(";
-    m_Spec.flags()->dump(outs);
-    outs << ")";
+    InputSpec.flags()->dump(Outs);
+    Outs << ")";
   }
-  outs << ";";
-  outs << "\n";
+  Outs << ";";
+  Outs << "\n";
 }
 
-eld::Expected<void> PhdrDesc::activate(Module &pModule) {
-  if (m_Spec.flags())
-    m_Spec.flags()->setContext(getContext());
-  if (m_Spec.atAddress())
-    m_Spec.atAddress()->setContext(getContext());
-  pModule.getScript().insertPhdrSpec(this->spec());
-  if (m_Spec.type() == llvm::ELF::PT_PHDR)
-    pModule.getScript().sethasPTPHDR();
+eld::Expected<void> PhdrDesc::activate(Module &CurModule) {
+  if (InputSpec.flags())
+    InputSpec.flags()->setContext(getContext());
+  if (InputSpec.atAddress())
+    InputSpec.atAddress()->setContext(getContext());
+  CurModule.getScript().insertPhdrSpec(this->spec());
+  if (InputSpec.type() == llvm::ELF::PT_PHDR)
+    CurModule.getScript().sethasPTPHDR();
   return eld::Expected<void>();
 }

@@ -35,17 +35,17 @@ public:
   /// Stores custom diagnostic info
   class CustomDiagInfo {
   public:
-    CustomDiagInfo(const std::string &formatStr) : m_FormatStr(formatStr) {}
-    llvm::StringRef getDescription() const { return m_FormatStr; }
-    bool operator==(const CustomDiagInfo &rhs) const {
-      return m_FormatStr == rhs.m_FormatStr;
+    CustomDiagInfo(const std::string &PFormatStr) : FormatStr(PFormatStr) {}
+    llvm::StringRef getDescription() const { return FormatStr; }
+    bool operator==(const CustomDiagInfo &Rhs) const {
+      return FormatStr == Rhs.FormatStr;
     }
 
   private:
-    const std::string m_FormatStr;
+    const std::string FormatStr;
   };
 
-  DiagnosticInfos(LinkerConfig &pConfig);
+  DiagnosticInfos(LinkerConfig &PConfig);
 
   ~DiagnosticInfos();
 
@@ -54,13 +54,13 @@ public:
   /// \note Function call to this function is thread-safe only if it is called
   /// from within the diagnostic framework.
   eld::Expected<llvm::StringRef>
-  getDescription(DiagnosticEngine::DiagIDType pID, bool pLoC) const;
+  getDescription(DiagnosticEngine::DiagIDType PId, bool PLoC) const;
 
   /// Returns the corresponding severity of the diagnostic ID 'pID'.
   ///
   /// \note Function call to this function is thread-safe only if it is called
   /// from within the diagnostic framework.
-  DiagnosticEngine::Severity getSeverity(const Diagnostic &id, bool ploc) const;
+  DiagnosticEngine::Severity getSeverity(const Diagnostic &Id, bool Ploc) const;
 
   /// Returns the diagnostic ID for a diagnostic that has severity and formatStr
   /// attributes same as the ones provided through parameters.
@@ -68,22 +68,22 @@ public:
   /// \note Function call to this function is thread-safe only if it is called
   /// from DiagnosticEngine.
   DiagnosticEngine::DiagIDType
-  getOrCreateCustomDiagID(DiagnosticEngine::Severity severity,
-                          llvm::StringRef formatStr);
+  getOrCreateCustomDiagID(DiagnosticEngine::Severity Severity,
+                          llvm::StringRef FormatStr);
 
   /// Process the diagnostic. This performs basic processing of diagnostic and
   /// then forwards to DiagnosticPrinter to finally print the diagnostic.
   ///
   /// \note Function call to this function is thread-safe only if it is called
   /// from DiagnosticEngine.
-  eld::Expected<void> process(DiagnosticEngine &pEngine) const;
+  eld::Expected<void> process(DiagnosticEngine &PEngine) const;
 
   /// Returns total number of diagnostics
   size_t numOfDiags() const;
 
 private:
-  LinkerConfig &m_Config;
-  std::vector<CustomDiagInfo> m_CustomDiags;
+  LinkerConfig &Config;
+  std::vector<CustomDiagInfo> CustomDiags;
 };
 
 } // namespace eld

@@ -24,21 +24,21 @@ using namespace eld;
 // ScriptCommand
 //===----------------------------------------------------------------------===//
 ScriptCommand::~ScriptCommand() {}
-void ScriptCommand::dumpMap(llvm::raw_ostream &ostream, bool color,
-                            bool useNewLine, bool withValues,
-                            bool addIndent) const {
-  if (color)
-    ostream.changeColor(llvm::raw_ostream::CYAN);
-  dump(ostream);
-  if (useNewLine)
-    ostream << "\n";
-  if (color)
-    ostream.resetColor();
+void ScriptCommand::dumpMap(llvm::raw_ostream &Ostream, bool Color,
+                            bool UseNewLine, bool WithValues,
+                            bool AddIndent) const {
+  if (Color)
+    Ostream.changeColor(llvm::raw_ostream::CYAN);
+  dump(Ostream);
+  if (UseNewLine)
+    Ostream << "\n";
+  if (Color)
+    Ostream.resetColor();
 }
 
 uint32_t ScriptCommand::getDepth() const {
   uint32_t Depth = 0;
-  eld::ScriptCommand *Parent = m_Parent;
+  eld::ScriptCommand *Parent = ParentScriptCommand;
   while (Parent != nullptr) {
     Parent = Parent->getParent();
     ++Depth;
@@ -46,13 +46,13 @@ uint32_t ScriptCommand::getDepth() const {
   return Depth;
 }
 
-void ScriptCommand::doIndent(llvm::raw_ostream &outs) const {
-  for (uint32_t i = 0; i < getDepth(); ++i)
-    outs << "  ";
+void ScriptCommand::doIndent(llvm::raw_ostream &Outs) const {
+  for (uint32_t I = 0; I < getDepth(); ++I)
+    Outs << "  ";
 }
 
 std::string ScriptCommand::getContext() const {
-  return m_ScriptFile->getInput()->decoratedPath() +
+  return ThisScriptFile->getInput()->decoratedPath() +
          (hasLineNumberInContext()
               ? ":" + std::to_string(getLineNumberInContext())
               : "");

@@ -9,8 +9,8 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-#ifndef ELD_SCRIPT_PARSER_V2_H
-#define ELD_SCRIPT_PARSER_V2_H
+#ifndef ELD_SCRIPTPARSER_SCRIPTPARSER_H
+#define ELD_SCRIPTPARSER_SCRIPTPARSER_H
 
 #include "eld/Script/Assignment.h"
 #include "eld/Script/InputSectDesc.h"
@@ -29,7 +29,7 @@ class ScriptLexer;
 
 class ScriptParser final : ScriptLexer {
 public:
-  ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &scriptFile);
+  ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &ScriptFile);
 
   void readLinkerScript();
 
@@ -62,18 +62,18 @@ private:
 
   /// This is a part of the operator-precedence parser. This function
   /// assumes that the remaining token stream starts with an operator.
-  Expression *readExpr1(Expression *lhs, int minPrec);
+  Expression *readExpr1(Expression *Lhs, int MinPrec);
 
   /// Returns operator precedence.
-  int precedence(llvm::StringRef op);
+  int precedence(llvm::StringRef Op);
 
   /// Creates a new expression object: 'l op r'
-  Expression &combine(llvm::StringRef op, Expression &l, Expression &r);
+  Expression &combine(llvm::StringRef Op, Expression &L, Expression &R);
 
   /// Reads an expression until a binary operator is found.
   Expression *readPrimary();
 
-  Expression *readParenExpr(bool setParen);
+  Expression *readParenExpr(bool SetParen);
 
   /// Reads a string literal enclosed within parenthesis.
   llvm::StringRef readParenLiteral();
@@ -84,16 +84,16 @@ private:
   /// Parses Tok as an integer. It recognizes hexadecimal (prefixed with
   /// "0x" or suffixed with "H") and decimal numbers. Decimal numbers may
   /// have "K" (Ki) or "M" (Mi) suffixes.
-  std::optional<uint64_t> parseInt(llvm::StringRef tok) const;
+  std::optional<uint64_t> parseInt(llvm::StringRef Tok) const;
 
-  bool isValidSymbolName(llvm::StringRef name);
+  bool isValidSymbolName(llvm::StringRef Name);
 
-  bool readSymbolAssignment(llvm::StringRef tok,
-                            Assignment::Type type = Assignment::Type::DEFAULT);
+  bool readSymbolAssignment(llvm::StringRef Tok,
+                            Assignment::Type Type = Assignment::Type::DEFAULT);
 
-  Expression *readTernary(Expression *cond);
+  Expression *readTernary(Expression *Cond);
 
-  void readProvideHidden(llvm::StringRef tok);
+  void readProvideHidden(llvm::StringRef Tok);
 
   /// Parses SECTIONS command.
   ///
@@ -116,20 +116,20 @@ private:
   void readSections();
 
   /// Reads INPUT(...) and GROUP(...) command.
-  void readInputOrGroup(bool isInputCmd);
+  void readInputOrGroup(bool IsInputCmd);
 
-  void addFile(llvm::StringRef name);
+  void addFile(llvm::StringRef Name);
 
   /// Reads AS_NEEDED(...) subcommand.
   void readAsNeeded();
 
   void readOutput();
 
-  void readOutputSectionDescription(llvm::StringRef outSectName);
+  void readOutputSectionDescription(llvm::StringRef OutSectName);
 
-  void readInputSectionDescription(llvm::StringRef tok);
+  void readInputSectionDescription(llvm::StringRef Tok);
 
-  InputSectDesc::Spec readInputSectionDescSpec(llvm::StringRef tok);
+  InputSectDesc::Spec readInputSectionDescSpec(llvm::StringRef Tok);
 
   /// Reads output section description prologue. It currently supports reading
   /// output section VMA, type and permissions.
@@ -137,16 +137,16 @@ private:
 
   /// Reads output section type and permissions. Returns false if the token tok
   /// does not point to output section type keyword. Otherwise returns true.
-  bool readOutputSectTypeAndPermissions(OutputSectDesc::Prolog &prologue,
-                                        llvm::StringRef tok);
+  bool readOutputSectTypeAndPermissions(OutputSectDesc::Prolog &Prologue,
+                                        llvm::StringRef Tok);
 
-  std::optional<OutputSectDesc::Type> readOutputSectType(llvm::StringRef tok);
+  std::optional<OutputSectDesc::Type> readOutputSectType(llvm::StringRef Tok);
 
-  std::optional<uint32_t> readOutputSectPermissions(llvm::StringRef tok);
+  std::optional<uint32_t> readOutputSectPermissions(llvm::StringRef Tok);
 
   void readPhdrs();
 
-  std::optional<uint32_t> readPhdrType(llvm::StringRef tok) const;
+  std::optional<uint32_t> readPhdrType(llvm::StringRef Tok) const;
 
   OutputSectDesc::Epilog readOutputSectDescEpilogue();
 
@@ -162,7 +162,7 @@ private:
 
   StrToken *readMemoryAttributes();
 
-  Expression *readMemoryAssignment(std::vector<llvm::StringRef> names);
+  Expression *readMemoryAssignment(std::vector<llvm::StringRef> Names);
 
   void readExtern();
 
@@ -173,8 +173,8 @@ private:
   std::optional<WildcardPattern::SortPolicy> readSortPolicy();
 
   WildcardPattern::SortPolicy
-  computeSortPolicy(WildcardPattern::SortPolicy outerSortPolicy,
-                    std::optional<WildcardPattern::SortPolicy> innerSortPolicy =
+  computeSortPolicy(WildcardPattern::SortPolicy OuterSortPolicy,
+                    std::optional<WildcardPattern::SortPolicy> InnerSortPolicy =
                         std::nullopt);
 
   WildcardPattern *readWildcardPattern();
@@ -195,7 +195,7 @@ private:
 
   void readVersionScriptCommand();
 
-  void readVersionDeclaration(llvm::StringRef verStr);
+  void readVersionDeclaration(llvm::StringRef VerStr);
 
   // Reads a list of symbols, e.g. "{ global: foo; bar; local: *; };".
   void readVersionSymbols(VersionScriptNode &VSN);

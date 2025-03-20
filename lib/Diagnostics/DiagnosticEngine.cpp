@@ -26,124 +26,124 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // DiagnosticEngine
 //===----------------------------------------------------------------------===//
-DiagnosticEngine::DiagnosticEngine(bool useColor) {
-  m_pPrinter = new DiagnosticPrinter(llvm::errs(), useColor);
+DiagnosticEngine::DiagnosticEngine(bool UseColor) {
+  Printer = new DiagnosticPrinter(llvm::errs(), UseColor);
 }
 
-DiagnosticEngine::~DiagnosticEngine() { delete m_pPrinter; }
+DiagnosticEngine::~DiagnosticEngine() { delete Printer; }
 
-void DiagnosticEngine::setInfoMap(std::unique_ptr<DiagnosticInfos> pInfo) {
-  m_pInfoMap = std::move(pInfo);
+void DiagnosticEngine::setInfoMap(std::unique_ptr<DiagnosticInfos> PInfo) {
+  InfoMap = std::move(PInfo);
 }
 
 // emit - process current diagnostic.
-bool DiagnosticEngine::emit(std::unique_lock<std::mutex> lock) {
-  if (!m_pInfoMap)
+bool DiagnosticEngine::emit(std::unique_lock<std::mutex> Lock) {
+  if (!InfoMap)
     return true;
 
-  eld::Expected<void> expRes = m_pInfoMap->process(*this);
-  m_State.reset();
-  if (!expRes) {
-    lock.unlock();
-    raiseDiagEntry(std::move(expRes.error()));
+  eld::Expected<void> ExpRes = InfoMap->process(*this);
+  State.reset();
+  if (!ExpRes) {
+    Lock.unlock();
+    raiseDiagEntry(std::move(ExpRes.error()));
     return false;
   }
   return true;
 }
 
-MsgHandler DiagnosticEngine::raise(DiagIDType pID) {
-  std::unique_lock<std::mutex> lock(m_Mutex);
-  m_State.ID = pID;
-  return MsgHandler(*this, std::move(lock));
+MsgHandler DiagnosticEngine::raise(DiagIDType PId) {
+  std::unique_lock<std::mutex> Lock(Mutex);
+  State.ID = PId;
+  return MsgHandler(*this, std::move(Lock));
 }
 
 MsgHandler *DiagnosticEngine::raisePluginDiag(DiagIDType ID,
-                                              const Plugin *plugin) {
-  std::unique_lock<std::mutex> lock(m_Mutex);
+                                              const Plugin *Plugin) {
+  std::unique_lock<std::mutex> Lock(Mutex);
   // FIXME: Verify that diagnostic ID is valid. ID should be less than
-  // diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO + m_CustomDiags.size()
-  m_State.ID = ID;
-  m_State.plugin = plugin;
-  return new MsgHandler(*this, std::move(lock));
+  // Diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO + CustomDiags.size()
+  State.ID = ID;
+  State.Plugin = Plugin;
+  return new MsgHandler(*this, std::move(Lock));
 }
 
 bool DiagnosticEngine::diagnose() {
-  if (m_pPrinter->getNumErrors() > 0 || m_pPrinter->getNumFatalErrors()) {
-    if (!m_pPrinter->isNoInhibitExec())
+  if (Printer->getNumErrors() > 0 || Printer->getNumFatalErrors()) {
+    if (!Printer->isNoInhibitExec())
       return false;
   }
-  return !m_pPrinter->getNumFatalErrors() && true;
+  return !Printer->getNumFatalErrors() && true;
 }
 
 void DiagnosticEngine::finalize() {
-  raise(diag::linker_run_summary)
-      << m_pPrinter->getNumWarnings() << m_pPrinter->getNumErrors()
-      << m_pPrinter->getNumFatalErrors();
+  raise(Diag::linker_run_summary)
+      << Printer->getNumWarnings() << Printer->getNumErrors()
+      << Printer->getNumFatalErrors();
 }
 
 DiagnosticEngine::DiagIDType
-DiagnosticEngine::getCustomDiagID(DiagnosticEngine::Severity severity,
-                                  llvm::StringRef formatStr) const {
-  std::lock_guard<std::mutex> lock(m_Mutex);
-  ASSERT(m_pInfoMap, "Diagnostics info map is not initialized!");
-  DiagnosticEngine::DiagIDType res =
-      m_pInfoMap->getOrCreateCustomDiagID(severity, formatStr);
-  return res;
+DiagnosticEngine::getCustomDiagID(DiagnosticEngine::Severity Severity,
+                                  llvm::StringRef FormatStr) const {
+  std::lock_guard<std::mutex> Lock(Mutex);
+  ASSERT(InfoMap, "Diagnostics info map is not initialized!");
+  DiagnosticEngine::DiagIDType Res =
+      InfoMap->getOrCreateCustomDiagID(Severity, FormatStr);
+  return Res;
 }
 
 DiagnosticInfos &DiagnosticEngine::infoMap() {
-  assert(nullptr != m_pInfoMap && "DiagnosticEngine was not initialized!");
-  return *m_pInfoMap.get();
+  assert(nullptr != InfoMap && "DiagnosticEngine was not initialized!");
+  return *InfoMap.get();
 }
 
 void DiagnosticEngine::raiseDiagEntry(
-    std::unique_ptr<plugin::DiagnosticEntry> diagEntry) {
+    std::unique_ptr<plugin::DiagnosticEntry> DiagEntry) {
   // If diagEntry does not contain any diagnostic, then simply return.
-  if (!diagEntry)
+  if (!DiagEntry)
     return;
-  MsgHandler diagnostic = raise(diagEntry->diagID());
-  for (const auto &arg : diagEntry->args())
-    diagnostic << arg;
+  MsgHandler Diagnostic = raise(DiagEntry->diagID());
+  for (const auto &Arg : DiagEntry->args())
+    Diagnostic << Arg;
 }
 
 void DiagnosticEngine::raisePluginDiag(
-    std::unique_ptr<plugin::DiagnosticEntry> diagEntry, const Plugin *plugin) {
-  if (!diagEntry)
+    std::unique_ptr<plugin::DiagnosticEntry> DiagEntry, const Plugin *Plugin) {
+  if (!DiagEntry)
     return;
-  MsgHandler *diagnostic = raisePluginDiag(diagEntry->diagID(), plugin);
-  for (const auto &arg : diagEntry->args())
-    *diagnostic << arg;
-  delete diagnostic;
+  MsgHandler *Diagnostic = raisePluginDiag(DiagEntry->diagID(), Plugin);
+  for (const auto &Arg : DiagEntry->args())
+    *Diagnostic << Arg;
+  delete Diagnostic;
 }
 
 plugin::DiagnosticEntry
-DiagnosticEngine::convertToDiagEntry(llvm::Error err) const {
-  std::string errMessage;
-  llvm::raw_string_ostream sstream(errMessage);
-  sstream << err;
-  DiagnosticEngine::DiagIDType diagID = getCustomDiagID(
-      DiagnosticEngine::Severity::Fatal, "LLVM: " + sstream.str());
+DiagnosticEngine::convertToDiagEntry(llvm::Error Err) const {
+  std::string ErrMessage;
+  llvm::raw_string_ostream Sstream(ErrMessage);
+  Sstream << Err;
+  DiagnosticEngine::DiagIDType DiagId = getCustomDiagID(
+      DiagnosticEngine::Severity::Fatal, "LLVM: " + Sstream.str());
 
-  llvm::Error ignoreErr = llvm::handleErrors(
-      std::move(err),
-      [](std::unique_ptr<llvm::ErrorInfoBase> payload) -> llvm::Error {
+  llvm::Error IgnoreErr = llvm::handleErrors(
+      std::move(Err),
+      [](std::unique_ptr<llvm::ErrorInfoBase> Payload) -> llvm::Error {
         return llvm::Error::success();
       });
 
   // llvm::Error must always be checked.
-  if (ignoreErr) {
-    ASSERT(!ignoreErr, "ignoreErr must always be false");
+  if (IgnoreErr) {
+    ASSERT(!IgnoreErr, "ignoreErr must always be false");
     return plugin::DiagnosticEntry{};
   }
 
-  return plugin::DiagnosticEntry(diagID);
+  return plugin::DiagnosticEntry(DiagId);
 }
 
-void DiagnosticEngine::resetSeverity(DiagIDType &id) { id &= ~m_SeverityMask; }
+void DiagnosticEngine::resetSeverity(DiagIDType &Id) { Id &= ~SeverityMask; }
 
-DiagnosticEngine::Severity DiagnosticEngine::getSeverity(DiagIDType id) {
-  DiagIDType severityVal = (id & m_SeverityMask) >> NumOfBaseDiagBits;
-  switch (severityVal) {
+DiagnosticEngine::Severity DiagnosticEngine::getSeverity(DiagIDType Id) {
+  DiagIDType SeverityVal = (Id & SeverityMask) >> NumOfBaseDiagBits;
+  switch (SeverityVal) {
 #define ADD_CASE(severity)                                                     \
   case Severity::severity:                                                     \
     return Severity::severity;
@@ -167,22 +167,22 @@ DiagnosticEngine::Severity DiagnosticEngine::getSeverity(DiagIDType id) {
 }
 
 DiagnosticEngine::DiagIDType
-DiagnosticEngine::updateSeverity(DiagIDType id, Severity severity) {
-  DiagIDType severityValue = static_cast<DiagIDType>(severity);
-  severityValue = severityValue << NumOfBaseDiagBits;
-  resetSeverity(id);
-  id |= severityValue;
-  return id;
+DiagnosticEngine::updateSeverity(DiagIDType Id, Severity Severity) {
+  DiagIDType SeverityValue = static_cast<DiagIDType>(Severity);
+  SeverityValue = SeverityValue << NumOfBaseDiagBits;
+  resetSeverity(Id);
+  Id |= SeverityValue;
+  return Id;
 }
 
-DiagnosticEngine::DiagIDType DiagnosticEngine::getBaseDiagID(DiagIDType id) {
-  resetSeverity(id);
-  return id;
+DiagnosticEngine::DiagIDType DiagnosticEngine::getBaseDiagID(DiagIDType Id) {
+  resetSeverity(Id);
+  return Id;
 }
 
 DiagnosticEngine::Severity DiagnosticEngine::getDiagEngineSeverity(
-    plugin::DiagnosticEntry::Severity severity) {
-  switch (severity) {
+    plugin::DiagnosticEntry::Severity Severity) {
+  switch (Severity) {
 #define ADD_CASE(severity)                                                     \
   case plugin::DiagnosticEntry::Severity::severity:                            \
     return DiagnosticEngine::Severity::severity;
@@ -197,8 +197,8 @@ DiagnosticEngine::Severity DiagnosticEngine::getDiagEngineSeverity(
 }
 
 plugin::DiagnosticEntry::Severity DiagnosticEngine::getDiagEntrySeverity(
-    eld::DiagnosticEngine::Severity severity) {
-  switch (severity) {
+    eld::DiagnosticEngine::Severity Severity) {
+  switch (Severity) {
 #define ADD_CASE(severity)                                                     \
   case eld::DiagnosticEngine::Severity::severity:                              \
     return plugin::DiagnosticEntry::Severity::severity;
@@ -226,13 +226,13 @@ plugin::DiagnosticEntry::Severity DiagnosticEngine::getDiagEntrySeverity(
 // Base diagnostic IDs and complete diagnostic IDs are unique for each
 // diagnostic.
 #define DIAG(diagName, severity, formatStr)                                    \
-  const DiagnosticEngine::DiagIDType diag::diagName =                          \
-      DiagnosticEngine::updateSeverity(++m_Counter, severity);
+  const DiagnosticEngine::DiagIDType Diag::diagName =                          \
+      DiagnosticEngine::updateSeverity(++Counter, severity);
 
-DiagnosticEngine::DiagIDType diag::m_Counter = 0;
+DiagnosticEngine::DiagIDType Diag::Counter = 0;
 // PluginDiags.inc file should always be first!
 // This is to ensure that Plugin Diags IDs are consistent in
-// eld::diag:: and plugin::Diagnostic:: namespaces.
+// eld::Diag:: and plugin::Diagnostic:: namespaces.
 // clang-format off
 #include "eld/Diagnostics/PluginDiags.inc"
 // clang-format on
@@ -257,5 +257,4 @@ DiagnosticEngine::DiagIDType diag::m_Counter = 0;
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG
 // This is used to determine where to start base IDs for custom diagnostics.
-const DiagnosticEngine::DiagIDType diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO =
-    ++m_Counter;
+const DiagnosticEngine::DiagIDType Diag::NumOfBuildinDiagnosticInfo = ++Counter;

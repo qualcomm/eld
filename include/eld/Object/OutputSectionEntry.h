@@ -41,90 +41,88 @@ public:
   typedef std::vector<Assignment *> SymbolAssignments;
   typedef SymbolAssignments::iterator sym_iterator;
 
-  OutputSectionEntry(SectionMap *, std::string pName);
+  OutputSectionEntry(SectionMap *, std::string PName);
   OutputSectionEntry(SectionMap *, ELFSection *);
-  OutputSectionEntry(SectionMap *, OutputSectDesc &pOutputDesc);
-  OutputSectionEntry(SectionMap *parent, std::string pName,
-                     LDFileFormat::Kind pKind, uint32_t pType, uint32_t pFlag,
-                     uint32_t pAlign);
+  OutputSectionEntry(SectionMap *, OutputSectDesc &POutputDesc);
+  OutputSectionEntry(SectionMap *Parent, std::string PName,
+                     LDFileFormat::Kind PKind, uint32_t PType, uint32_t PFlag,
+                     uint32_t PAlign);
 
-  llvm::StringRef name() const { return m_Name; }
+  llvm::StringRef name() const { return Name; }
 
   const OutputSectDesc::Prolog &prolog() const {
-    return m_OutputSectDesc->prolog();
+    return MOutputSectDesc->prolog();
   }
-  OutputSectDesc::Prolog &prolog() { return m_OutputSectDesc->prolog(); }
+  OutputSectDesc::Prolog &prolog() { return MOutputSectDesc->prolog(); }
 
   const OutputSectDesc::Epilog &epilog() const {
-    return m_OutputSectDesc->epilog();
+    return MOutputSectDesc->epilog();
   }
-  OutputSectDesc::Epilog &epilog() { return m_OutputSectDesc->epilog(); }
+  OutputSectDesc::Epilog &epilog() { return MOutputSectDesc->epilog(); }
 
-  size_t order() const { return m_Order; }
+  size_t order() const { return MOrder; }
 
-  bool hasOrder() const { return (m_Order != UINT_MAX); }
+  bool hasOrder() const { return (MOrder != UINT_MAX); }
 
-  void setOrder(size_t pOrder) { m_Order = pOrder; }
+  void setOrder(size_t POrder) { MOrder = POrder; }
 
   bool hasContent() const;
 
-  const ELFSection *getSection() const { return m_pSection; }
-  ELFSection *getSection() { return m_pSection; }
+  const ELFSection *getSection() const { return MPSection; }
+  ELFSection *getSection() { return MPSection; }
 
-  void setSection(ELFSection *pSection) {
-    m_pSection = pSection;
+  void setSection(ELFSection *PSection) {
+    MPSection = PSection;
     computeHash();
   }
   void computeHash();
-  iterator begin() { return m_InputList.begin(); }
-  iterator end() { return m_InputList.end(); }
+  iterator begin() { return MInputList.begin(); }
+  iterator end() { return MInputList.end(); }
 
-  const_iterator begin() const { return m_InputList.begin(); }
-  const_iterator end() const { return m_InputList.end(); }
+  const_iterator begin() const { return MInputList.begin(); }
+  const_iterator end() const { return MInputList.end(); }
 
-  const InputList &getRuleContainer() const { return m_InputList; }
+  const InputList &getRuleContainer() const { return MInputList; }
 
-  const_reference front() const { return m_InputList.front(); }
-  reference front() { return m_InputList.front(); }
-  const_reference back() const { return m_InputList.back(); }
-  reference back() { return m_InputList.back(); }
+  const_reference front() const { return MInputList.front(); }
+  reference front() { return MInputList.front(); }
+  const_reference back() const { return MInputList.back(); }
+  reference back() { return MInputList.back(); }
 
-  size_t size() const { return m_InputList.size(); }
+  size_t size() const { return MInputList.size(); }
 
-  bool empty() const { return m_InputList.empty(); }
+  bool empty() const { return MInputList.empty(); }
 
-  bool isDiscard() const { return m_bIsDiscard; }
+  bool isDiscard() const { return MBIsDiscard; }
 
-  void append(RuleContainer *pInput) { m_InputList.push_back(pInput); }
+  void append(RuleContainer *PInput) { MInputList.push_back(PInput); }
 
-  sym_iterator sym_begin() { return m_SymbolAssignments.begin(); }
-  sym_iterator sym_end() { return m_SymbolAssignments.end(); }
+  sym_iterator symBegin() { return MSymbolAssignments.begin(); }
+  sym_iterator symEnd() { return MSymbolAssignments.end(); }
 
-  const SymbolAssignments &symAssignments() const {
-    return m_SymbolAssignments;
+  const SymbolAssignments &symAssignments() const { return MSymbolAssignments; }
+  SymbolAssignments &symAssignments() { return MSymbolAssignments; }
+
+  const SymbolAssignments &sectionsEndAssignments() const {
+    return MSectionEndAssignments;
   }
-  SymbolAssignments &symAssignments() { return m_SymbolAssignments; }
+  SymbolAssignments &sectionEndAssignments() { return MSectionEndAssignments; }
 
-  const SymbolAssignments &sections_end_assignments() const {
-    return m_SectionEndAssignments;
-  }
-  SymbolAssignments &sectionEndAssignments() { return m_SectionEndAssignments; }
+  sym_iterator sectionendsymBegin() { return MSectionEndAssignments.begin(); }
+  sym_iterator sectionendsymEnd() { return MSectionEndAssignments.end(); }
 
-  sym_iterator sectionendsym_begin() { return m_SectionEndAssignments.begin(); }
-  sym_iterator sectionendsym_end() { return m_SectionEndAssignments.end(); }
-
-  void moveSectionAssignments(OutputSectionEntry *out) {
-    m_SectionEndAssignments = out->sectionEndAssignments();
-    out->sectionEndAssignments().clear();
+  void moveSectionAssignments(OutputSectionEntry *Out) {
+    MSectionEndAssignments = Out->sectionEndAssignments();
+    Out->sectionEndAssignments().clear();
   }
 
-  bool hasAssignments() const { return (m_SymbolAssignments.size() > 0); }
+  bool hasAssignments() const { return (MSymbolAssignments.size() > 0); }
 
   // A section may be part of multiple segments, this only returns the
   // segment where the section would get loaded.
-  void setLoadSegment(ELFSegment *E) { m_pLoadSegment = E; }
+  void setLoadSegment(ELFSegment *E) { MPLoadSegment = E; }
 
-  ELFSegment *getLoadSegment() const { return m_pLoadSegment; }
+  ELFSegment *getLoadSegment() const { return MPLoadSegment; }
 
   // Set the first fragment in the output section.
   void setFirstNonEmptyRule(RuleContainer *R) { FirstNonEmptyRule = R; }
@@ -133,42 +131,42 @@ public:
 
   Fragment *getFirstFrag() const;
 
-  RuleContainer *getLastRule() const { return m_LastRule; }
+  RuleContainer *getLastRule() const { return MLastRule; }
 
-  void setLastRule(RuleContainer *R) { m_LastRule = R; }
+  void setLastRule(RuleContainer *R) { MLastRule = R; }
 
   RuleContainer *createDefaultRule(Module &M);
 
   // ------------------Branch island support ------------------------
-  BranchIslandsIter islands_begin() { return m_BranchIslands.begin(); }
+  BranchIslandsIter islandsBegin() { return MBranchIslands.begin(); }
 
-  BranchIslandsIter islands_end() { return m_BranchIslands.end(); }
+  BranchIslandsIter islandsEnd() { return MBranchIslands.end(); }
 
-  void addBranchIsland(BranchIsland *b) { m_BranchIslands.push_back(b); }
+  void addBranchIsland(BranchIsland *B) { MBranchIslands.push_back(B); }
 
-  void addBranchIsland(ResolveInfo *pSym, BranchIsland *b) {
-    BranchIslandForSymbol[pSym];
-    BranchIslandForSymbol[pSym].push_back(b);
-    m_BranchIslands.push_back(b);
+  void addBranchIsland(ResolveInfo *PSym, BranchIsland *B) {
+    BranchIslandForSymbol[PSym];
+    BranchIslandForSymbol[PSym].push_back(B);
+    MBranchIslands.push_back(B);
   }
 
-  uint32_t getNumBranchIslands() const { return m_BranchIslands.size(); }
+  uint32_t getNumBranchIslands() const { return MBranchIslands.size(); }
 
-  void dump(llvm::raw_ostream &outs) const;
+  void dump(llvm::raw_ostream &Outs) const;
 
   uint64_t getHash() {
-    if (!m_Hash)
+    if (!MHash)
       computeHash();
-    return m_Hash;
+    return MHash;
   }
 
   std::string getSectionTypeStr() const;
 
   // ----------------------Reuse trampolines optimization---------------
   std::vector<BranchIsland *>
-  getBranchIslandsForSymbol(ResolveInfo *pSym) const {
+  getBranchIslandsForSymbol(ResolveInfo *PSym) const {
     std::vector<BranchIsland *> Islands;
-    auto Iter = BranchIslandForSymbol.find(pSym);
+    auto Iter = BranchIslandForSymbol.find(PSym);
     if (Iter == BranchIslandForSymbol.end())
       return Islands;
     return Iter->second;
@@ -199,7 +197,7 @@ public:
     UniqueStrings.insert({S->String, S});
   }
 
-  uint64_t getTrampolineCount(const std::string &trampolineName);
+  uint64_t getTrampolineCount(const std::string &TrampolineName);
 
   uint64_t getTotalTrampolineCount() const;
 
@@ -212,24 +210,24 @@ public:
   }
 
 private:
-  std::string m_Name;
-  OutputSectDesc *m_OutputSectDesc = nullptr;
-  ELFSection *m_pSection;
-  ELFSegment *m_pLoadSegment;
-  size_t m_Order;
-  bool m_bIsDiscard;
-  InputList m_InputList;
-  SymbolAssignments m_SymbolAssignments;
-  SymbolAssignments m_SectionEndAssignments;
+  std::string Name;
+  OutputSectDesc *MOutputSectDesc = nullptr;
+  ELFSection *MPSection;
+  ELFSegment *MPLoadSegment;
+  size_t MOrder;
+  bool MBIsDiscard;
+  InputList MInputList;
+  SymbolAssignments MSymbolAssignments;
+  SymbolAssignments MSectionEndAssignments;
   RuleContainer *FirstNonEmptyRule;
-  RuleContainer *m_LastRule;
-  std::vector<BranchIsland *> m_BranchIslands;
+  RuleContainer *MLastRule;
+  std::vector<BranchIsland *> MBranchIslands;
   std::unordered_map<ResolveInfo *, std::vector<BranchIsland *>>
       BranchIslandForSymbol;
   llvm::StringMap<MergeableString *> UniqueStrings;
   llvm::SmallVector<MergeableString *, 0> AllStrings;
-  uint64_t m_Hash = 0;
-  llvm::StringMap<uint64_t> m_TrampolineNameToCountMap;
+  uint64_t MHash = 0;
+  llvm::StringMap<uint64_t> MTrampolineNameToCountMap;
 };
 
 } // namespace eld

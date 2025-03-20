@@ -111,7 +111,7 @@ public:
   using DiagIDType = uint32_t;
 
 public:
-  DiagnosticEngine(bool useColor);
+  DiagnosticEngine(bool UseColor);
 
   ~DiagnosticEngine();
 
@@ -121,12 +121,12 @@ public:
   DiagnosticEngine(const DiagnosticEngine &) = delete;
   DiagnosticEngine &operator=(const DiagnosticEngine &) = delete;
 
-  void setInfoMap(std::unique_ptr<DiagnosticInfos> pInfo);
+  void setInfoMap(std::unique_ptr<DiagnosticInfos> PInfo);
 
-  DiagnosticPrinter *getPrinter() const { return m_pPrinter; }
+  DiagnosticPrinter *getPrinter() const { return Printer; }
 
   // report - issue the message to the printer
-  MsgHandler raise(DiagIDType pID);
+  MsgHandler raise(DiagIDType PId);
 
   /// Raise a plugin diagnostic.
   /// Plugin diagnostic function has two differences from the already
@@ -136,14 +136,14 @@ public:
   /// - It returns std::unique_ptr<MsgHandler> instead of MsgHandler.
   ///   This is because, in case of plugin diagnostics, the lifecycle
   ///   of MsgHandler needs to be managed by plugin::DiagnosticBuilder.
-  MsgHandler *raisePluginDiag(DiagIDType ID, const Plugin *plugin);
+  MsgHandler *raisePluginDiag(DiagIDType ID, const Plugin *Plugin);
 
   /// Raise diagnostic from a DiagnosticEntry object.
-  void raiseDiagEntry(std::unique_ptr<plugin::DiagnosticEntry> diagEntry);
+  void raiseDiagEntry(std::unique_ptr<plugin::DiagnosticEntry> DiagEntry);
 
   /// Raise a plugin diagnostic from a DiagnosticEntry object.
-  void raisePluginDiag(std::unique_ptr<plugin::DiagnosticEntry> diagEntry,
-                       const Plugin *plugin);
+  void raisePluginDiag(std::unique_ptr<plugin::DiagnosticEntry> DiagEntry,
+                       const Plugin *Plugin);
   enum {
     /// MaxArguments - The maximum number of arguments we can hold. We currently
     /// only support up to 10 arguments (%0-%9).
@@ -156,22 +156,22 @@ public:
     ~State() {}
 
     void reset() {
-      numArgs = 0;
+      NumArgs = 0;
       ID.reset();
-      severity = None;
-      file = nullptr;
-      plugin = nullptr;
+      Severity = None;
+      File = nullptr;
+      Plugin = nullptr;
     }
 
   public:
     std::string ArgumentStrs[MaxArguments];
     intptr_t ArgumentVals[MaxArguments];
     uint8_t ArgumentKinds[MaxArguments];
-    int8_t numArgs = 0;
+    int8_t NumArgs = 0;
     std::optional<DiagIDType> ID;
-    Severity severity = Severity::None;
-    Input *file = nullptr;
-    const eld::Plugin *plugin = nullptr;
+    Severity Severity = Severity::None;
+    Input *File = nullptr;
+    const eld::Plugin *Plugin = nullptr;
   };
 
   DiagnosticInfos &infoMap();
@@ -183,41 +183,41 @@ public:
   ///
   /// If this is the first request for this diagnostic, it is created and
   /// registered; otherwise the existing ID is returned.
-  DiagIDType getCustomDiagID(DiagnosticEngine::Severity severity,
-                             llvm::StringRef formatStr) const;
+  DiagIDType getCustomDiagID(DiagnosticEngine::Severity Severity,
+                             llvm::StringRef FormatStr) const;
 
   /// Converts a llvm::Error to plugin::DiagnosticEntry.
   /// DiagnosticEntry message is: "LLVM: " + error message from llvm::Error.
-  plugin::DiagnosticEntry convertToDiagEntry(llvm::Error err) const;
+  plugin::DiagnosticEntry convertToDiagEntry(llvm::Error Err) const;
 
   /// Resets the severity component of diagnostic ID to
   /// DiagnosticEngine::Severity::None.
-  static void resetSeverity(DiagIDType &id);
+  static void resetSeverity(DiagIDType &Id);
 
   /// Returns the diagnostic severity.
-  static Severity getSeverity(DiagIDType id);
+  static Severity getSeverity(DiagIDType Id);
 
   /// Returns the base diagnostic ID.
   ///
   /// Diagnostic ID is composed of two main components:
   /// diagnostic severity and base diagnostic ID. Base diagnostic ID associates
   /// a diagnostic with it's corresponding format string.
-  static DiagnosticEngine::DiagIDType getBaseDiagID(DiagIDType id);
+  static DiagnosticEngine::DiagIDType getBaseDiagID(DiagIDType Id);
 
   /// Updates the diagnostic severity to the specified severity,
   /// and returns the diagnostic ID with the updated severity.
-  static DiagIDType updateSeverity(DiagIDType id,
-                                   DiagnosticEngine::Severity severity);
+  static DiagIDType updateSeverity(DiagIDType Id,
+                                   DiagnosticEngine::Severity Severity);
 
   /// Returns the corresponding DiagnosticEngine::Severity for the
   /// DiagnosticEntry::Severity.
   static eld::DiagnosticEngine::Severity
-  getDiagEngineSeverity(plugin::DiagnosticEntry::Severity severity);
+  getDiagEngineSeverity(plugin::DiagnosticEntry::Severity Severity);
 
   /// Returns the corresponding DiagnosticEntry::Severity for the
   /// DiagnosticEngine::Severity.
   static plugin::DiagnosticEntry::Severity
-  getDiagEntrySeverity(eld::DiagnosticEngine::Severity severity);
+  getDiagEntrySeverity(eld::DiagnosticEngine::Severity Severity);
 
   /// Number of bits that are used to represent diagnostic severity.
   static constexpr uint32_t NumOfSeverityBits = 4;
@@ -229,28 +229,28 @@ public:
 private:
   // -----  emission  ----- //
   // emit - process the message to printer
-  bool emit(std::unique_lock<std::mutex> lock);
+  bool emit(std::unique_lock<std::mutex> Lock);
 
-  State &state() { return m_State; }
+  State &state() { return State; }
 
-  const State &state() const { return m_State; }
+  const State &state() const { return State; }
 
 private:
-  DiagnosticPrinter *m_pPrinter = nullptr;
-  std::unique_ptr<DiagnosticInfos> m_pInfoMap;
-  State m_State;
-  mutable std::mutex m_Mutex;
+  DiagnosticPrinter *Printer = nullptr;
+  std::unique_ptr<DiagnosticInfos> InfoMap;
+  State State;
+  mutable std::mutex Mutex;
 
   /// In severity mask, the severity associated bits are 1 valued and
   /// the other bits are 0 valued.
-  static constexpr DiagIDType m_SeverityMask = ((1 << NumOfSeverityBits) - 1)
-                                               << NumOfBaseDiagBits;
+  static constexpr DiagIDType SeverityMask = ((1 << NumOfSeverityBits) - 1)
+                                             << NumOfBaseDiagBits;
   friend class MsgHandler;
   friend class Diagnostic;
 };
 
-class diag {
-  static DiagnosticEngine::DiagIDType m_Counter;
+class Diag {
+  static DiagnosticEngine::DiagIDType Counter;
 
 public:
 #define DIAG(diagName, severity, formatStr)                                    \
@@ -261,7 +261,7 @@ public:
 //
 // PluginDiags.inc file should always be first!
 // This is to ensure that Plugin Diags IDs are consistent in
-// eld::diag:: and plugin::Diagnostic:: namespaces.
+// eld::Diag:: and plugin::Diagnostic:: namespaces.
 // clang-format off
 #include "eld/Diagnostics/PluginDiags.inc"
 // clang-format on
@@ -285,7 +285,7 @@ public:
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG
-  static DiagnosticEngine::DiagIDType const NUM_OF_BUILDIN_DIAGNOSTIC_INFO;
+  static DiagnosticEngine::DiagIDType const NumOfBuildinDiagnosticInfo;
 }; // struct diag
 } // namespace eld
 

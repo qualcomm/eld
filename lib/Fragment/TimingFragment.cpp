@@ -12,57 +12,58 @@
 
 using namespace eld;
 
-TimingFragment::TimingFragment(uint64_t beginningOfTime, uint64_t duration,
-                               llvm::StringRef moduleName, ELFSection *O)
+TimingFragment::TimingFragment(uint64_t BeginningOfTime, uint64_t Duration,
+                               llvm::StringRef ModuleName, ELFSection *O)
     : Fragment(Fragment::Type::Timing, O),
-      m_Slice(make<TimingSlice>(beginningOfTime, duration, moduleName)) {}
+      TimeSlice(make<TimingSlice>(BeginningOfTime, Duration, ModuleName)) {}
 
 TimingFragment::TimingFragment(llvm::StringRef Slice,
                                llvm::StringRef InputFileName, ELFSection *O,
                                DiagnosticEngine *DiagEngine)
     : Fragment(Fragment::Type::Timing, O),
-      m_Slice(make<TimingSlice>(Slice, InputFileName, DiagEngine)) {}
+      TimeSlice(make<TimingSlice>(Slice, InputFileName, DiagEngine)) {}
 
 TimingFragment::~TimingFragment() {}
 
 size_t TimingFragment::size() const {
   if (isNull())
     return 0;
-  return 8 + 8 + m_Slice->getModuleName().size() + 1;
+  return 8 + 8 + TimeSlice->getModuleName().size() + 1;
 }
 
-void TimingFragment::setData(uint64_t beginningOfTime, uint64_t duration) {
-  m_Slice->setData(beginningOfTime, duration);
+void TimingFragment::setData(uint64_t BeginningOfTime, uint64_t Duration) {
+  TimeSlice->setData(BeginningOfTime, Duration);
 }
 
 void TimingFragment::dump(llvm::raw_ostream &OS) {
-  uint32_t fragmentSize = size();
-  uint8_t *buf = new uint8_t[fragmentSize];
+  uint32_t FragmentSize = size();
+  uint8_t *Buf = new uint8_t[FragmentSize];
   llvm::MutableArrayRef<uint8_t> Data =
-      llvm::MutableArrayRef(buf, fragmentSize);
+      llvm::MutableArrayRef(Buf, FragmentSize);
   llvm::BinaryStreamWriter Writer(Data, llvm::endianness::little);
 
-  llvm::Error E = Writer.writeInteger<uint64_t>(m_Slice->getBeginningOfTime());
+  llvm::Error E =
+      Writer.writeInteger<uint64_t>(TimeSlice->getBeginningOfTime());
   if (!E)
     llvm::consumeError(std::move(E));
-  E = Writer.writeInteger<uint64_t>(m_Slice->getDuration());
+  E = Writer.writeInteger<uint64_t>(TimeSlice->getDuration());
   if (!E)
     llvm::consumeError(std::move(E));
-  E = Writer.writeCString(m_Slice->getModuleName());
+  E = Writer.writeCString(TimeSlice->getModuleName());
   if (!E)
     llvm::consumeError(std::move(E));
 
-  std::string linkStats(reinterpret_cast<const char *>(Data.data()),
-                        fragmentSize);
-  OS << linkStats;
-  delete[] buf;
+  std::string LinkStats(reinterpret_cast<const char *>(Data.data()),
+                        FragmentSize);
+  OS << LinkStats;
+  delete[] Buf;
 }
 
-eld::Expected<void> TimingFragment::emit(MemoryRegion &mr, Module &M) {
+eld::Expected<void> TimingFragment::emit(MemoryRegion &Mr, Module &M) {
   std::string S;
   llvm::raw_string_ostream OS(S);
   dump(OS);
-  uint8_t *out = mr.begin() + getOffset(M.getConfig().getDiagEngine());
-  memcpy(out, OS.str().c_str(), size());
+  uint8_t *Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine());
+  memcpy(Out, OS.str().c_str(), size());
   return {};
 }

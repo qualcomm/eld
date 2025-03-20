@@ -21,25 +21,25 @@ class Node;
 
 class LinkerScriptFile : public InputFile {
 public:
-  LinkerScriptFile(Input *I, DiagnosticEngine *diagEngine);
+  LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.
   static bool classof(const InputFile *I) {
     return I->getKind() == GNULinkerScriptKind;
   }
 
-  bool isParsed() const { return m_Parsed; }
+  bool isParsed() const { return Parsed; }
 
-  void setParsed() { m_Parsed = true; }
+  void setParsed() { Parsed = true; }
 
   // -----------------------Linkerscript support -------------------------------
-  std::vector<Node *> const &getNodes() { return m_Nodes; }
+  std::vector<Node *> const &getNodes() { return Nodes; }
 
-  void addNode(Node *N) { m_Nodes.push_back(N); }
+  void addNode(Node *N) { Nodes.push_back(N); }
 
 private:
-  std::vector<Node *> m_Nodes;
-  bool m_Parsed = false;
+  std::vector<Node *> Nodes;
+  bool Parsed = false;
 };
 
 } // namespace eld

@@ -19,26 +19,26 @@
 
 using namespace eld;
 
-InputBuilder::InputBuilder(const LinkerConfig &pConfig)
-    : m_Attr(), m_Config(pConfig) {}
+InputBuilder::InputBuilder(const LinkerConfig &PConfig)
+    : Attr(), Config(PConfig) {}
 
-InputBuilder::InputBuilder(const LinkerConfig &pConfig, const Attribute &attr)
-    : m_Attr(attr), m_Config(pConfig) {}
+InputBuilder::InputBuilder(const LinkerConfig &PConfig, const Attribute &Attr)
+    : Attr(Attr), Config(PConfig) {}
 
 InputBuilder::~InputBuilder() { Tree.clear(); }
 
-Input *InputBuilder::createInput(const std::string pName, Input::Type T) {
-  return make<Input>(pName, m_Attr, m_Config.getDiagEngine(), T);
+Input *InputBuilder::createInput(const std::string PName, Input::InputType T) {
+  return make<Input>(PName, Attr, Config.getDiagEngine(), T);
 }
 
-Input *InputBuilder::createInputNode(std::string Name, bool isSpecial) {
+Input *InputBuilder::createInputNode(std::string Name, bool IsSpecial) {
   Input *I = createInput(Name);
   Tree.push_back(make<FileNode>(I));
   return I;
 }
 
 Input *InputBuilder::createDeferredInput(const std::string &Namespec,
-                                         Input::Type T) {
+                                         Input::InputType T) {
   Input *I = createInput(Namespec, T);
   Tree.push_back(make<FileNode>(I));
   return I;
@@ -48,15 +48,15 @@ void InputBuilder::enterGroup() { Tree.push_back(make<GroupStart>()); }
 
 void InputBuilder::exitGroup() { Tree.push_back(make<GroupEnd>()); }
 
-bool InputBuilder::setMemory(Input &pInput, void *pMemBuffer, size_t pSize) {
+bool InputBuilder::setMemory(Input &PInput, void *PMemBuffer, size_t PSize) {
   MemoryArea *MemBufCopy = MemoryArea::CreateCopy(
-      llvm::StringRef(static_cast<const char *>(pMemBuffer), pSize));
-  pInput.setMemArea(MemBufCopy);
+      llvm::StringRef(static_cast<const char *>(PMemBuffer), PSize));
+  PInput.setMemArea(MemBufCopy);
   return true;
 }
 
 void InputBuilder::makeBStatic() { getAttributes().setStatic(); }
 
 DiagnosticEngine *InputBuilder::getDiagEngine() const {
-  return m_Config.getDiagEngine();
+  return Config.getDiagEngine();
 }

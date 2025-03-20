@@ -25,79 +25,79 @@
 using namespace eld;
 
 Stub::Stub()
-    : Fragment(Fragment::Stub), m_pSymInfo(nullptr), m_pSavedSymInfo(nullptr),
-      m_Size(0) {}
+    : Fragment(Fragment::Stub), ThisSymInfo(nullptr), ThisSavedSymInfo(nullptr),
+      ThisSize(0) {}
 
-Stub::~Stub() { m_FixupList.clear(); }
+Stub::~Stub() { FixupList.clear(); }
 
-void Stub::setSymInfo(ResolveInfo *pSymInfo) { m_pSymInfo = pSymInfo; }
+void Stub::setSymInfo(ResolveInfo *CurSymInfo) { ThisSymInfo = CurSymInfo; }
 
-void Stub::addFixup(DWord pOffset, SWord pAddend, Type pType) {
-  assert(pOffset < size());
-  m_FixupList.push_back(make<Fixup>(pOffset, pAddend, pType));
+void Stub::addFixup(DWord POffset, SWord PAddend, Type PType) {
+  assert(POffset < size());
+  FixupList.push_back(make<Fixup>(POffset, PAddend, PType));
 }
 
-void Stub::addFixup(const Fixup &pFixup) {
-  assert(pFixup.offset() < size());
-  m_FixupList.push_back(make<Fixup>(pFixup));
+void Stub::addFixup(const Fixup &PFixup) {
+  assert(PFixup.offset() < size());
+  FixupList.push_back(make<Fixup>(PFixup));
 }
 
-size_t Stub::size() const { return m_Size; }
+size_t Stub::size() const { return ThisSize; }
 
-eld::Expected<void> Stub::emit(MemoryRegion &mr, Module &M) {
-  memcpy(mr.begin() + getOffset(M.getConfig().getDiagEngine()), getContent(),
+eld::Expected<void> Stub::emit(MemoryRegion &Mr, Module &M) {
+  memcpy(Mr.begin() + getOffset(M.getConfig().getDiagEngine()), getContent(),
          size());
   return {};
 }
 
 std::string
-Stub::getTargetSymbolContextForReloc(const Relocation &reloc,
-                                     uint32_t relocAddend,
-                                     bool useOldStyleTrampolineName) const {
-  const ResolveInfo *info = reloc.symInfo();
-  if (useOldStyleTrampolineName)
-    return info->name();
-  if (!info->isLocal())
-    return info->name();
-  ObjectFile *objfile =
-      llvm::dyn_cast_or_null<ObjectFile>(info->resolvedOrigin());
-  if (!objfile)
-    return info->name();
-  ELFSection *owningSection = info->getOwningSection();
-  if (!owningSection)
-    return info->name();
-  const ResolveInfo *targetLocalSymbol =
-      objfile->getMatchingLocalSymbol(owningSection->getIndex(), relocAddend);
-  if (!targetLocalSymbol)
-    return info->name();
-  return std::string(info->name()) + "#(" + targetLocalSymbol->name() + ")";
+Stub::getTargetSymbolContextForReloc(const Relocation &Reloc,
+                                     uint32_t RelocAddend,
+                                     bool UseOldStyleTrampolineName) const {
+  const ResolveInfo *Info = Reloc.symInfo();
+  if (UseOldStyleTrampolineName)
+    return Info->name();
+  if (!Info->isLocal())
+    return Info->name();
+  ObjectFile *Objfile =
+      llvm::dyn_cast_or_null<ObjectFile>(Info->resolvedOrigin());
+  if (!Objfile)
+    return Info->name();
+  ELFSection *OwningSection = Info->getOwningSection();
+  if (!OwningSection)
+    return Info->name();
+  const ResolveInfo *TargetLocalSymbol =
+      Objfile->getMatchingLocalSymbol(OwningSection->getIndex(), RelocAddend);
+  if (!TargetLocalSymbol)
+    return Info->name();
+  return std::string(Info->name()) + "#(" + TargetLocalSymbol->name() + ")";
 }
 
-std::string Stub::getStubName(const Relocation &pReloc, bool isClone,
-                              bool isSectionRelative, int64_t numBranchIsland,
-                              int64_t numClone, uint32_t relocAddend,
-                              bool useOldStyleTrampolineName) const {
-  const ResolveInfo *info = pReloc.symInfo();
-  std::stringstream ss;
-  if (isClone)
-    ss << "clone_" << numClone << "_for_" << info->name();
-  else if (pReloc.targetRef() && pReloc.targetRef()->frag())
-    ss << "trampoline_for_"
-       << getTargetSymbolContextForReloc(pReloc, relocAddend,
-                                         useOldStyleTrampolineName)
+std::string Stub::getStubName(const Relocation &PReloc, bool IsClone,
+                              bool IsSectionRelative, int64_t NumBranchIsland,
+                              int64_t NumClone, uint32_t RelocAddend,
+                              bool UseOldStyleTrampolineName) const {
+  const ResolveInfo *Info = PReloc.symInfo();
+  std::stringstream Ss;
+  if (IsClone)
+    Ss << "clone_" << NumClone << "_for_" << Info->name();
+  else if (PReloc.targetRef() && PReloc.targetRef()->frag())
+    Ss << "trampoline_for_"
+       << getTargetSymbolContextForReloc(PReloc, RelocAddend,
+                                         UseOldStyleTrampolineName)
        << "_from_"
-       << pReloc.targetRef()->frag()->getOwningSection()->name().str() << "_"
-       << pReloc.targetRef()
+       << PReloc.targetRef()->frag()->getOwningSection()->name().str() << "_"
+       << PReloc.targetRef()
               ->frag()
               ->getOwningSection()
               ->getInputFile()
               ->getInput()
               ->getInputOrdinal();
   else
-    ss << "trampoline_" << numBranchIsland << "_for_" << info->name();
+    Ss << "trampoline_" << NumBranchIsland << "_for_" << Info->name();
 
-  if (isSectionRelative)
-    ss << "#"
-       << "(" << relocAddend << ")";
-  return ss.str();
+  if (IsSectionRelative)
+    Ss << "#"
+       << "(" << RelocAddend << ")";
+  return Ss.str();
 }

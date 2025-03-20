@@ -14,8 +14,8 @@
 
 using namespace eld;
 
-ELFExecutableFile::ELFExecutableFile(Input *I, DiagnosticEngine *diagEngine)
-    : ELFFileBase(I, diagEngine, InputFile::ELFExecutableFileKind) {
+ELFExecutableFile::ELFExecutableFile(Input *I, DiagnosticEngine *DiagEngine)
+    : ELFFileBase(I, DiagEngine, InputFile::ELFExecutableFileKind) {
   if (I->getSize())
     Contents = I->getFileContents();
 }

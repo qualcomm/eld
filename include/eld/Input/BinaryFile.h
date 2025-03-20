@@ -18,7 +18,7 @@ namespace eld {
 /// output file.
 class BinaryFile : public ObjectFile {
 public:
-  BinaryFile(Input *I, DiagnosticEngine *diagEngine);
+  BinaryFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.
   static bool classof(const InputFile *I);

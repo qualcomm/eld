@@ -12,24 +12,24 @@ using namespace eld;
 
 ExitScopeCmd::ExitScopeCmd() : ScriptCommand(ScriptCommand::EXIT_SCOPE) {}
 
-eld::Expected<void> ExitScopeCmd::activate(Module &pModule) {
+eld::Expected<void> ExitScopeCmd::activate(Module &CurModule) {
   return eld::Expected<void>();
 }
 
-void ExitScopeCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "}";
-  outs << "\n";
+void ExitScopeCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "}";
+  Outs << "\n";
 }
 
-void ExitScopeCmd::dumpOnlyThis(llvm::raw_ostream &outs) const {
-  doIndent(outs);
-  outs << "}";
+void ExitScopeCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  doIndent(Outs);
+  Outs << "}";
   if (getParent() && getParent()->isOutputSectionDescription()) {
-    auto Cmd = llvm::dyn_cast<eld::OutputSectDesc>(getParent());
-    outs << " ";
-    Cmd->dumpEpilogue(outs);
+    auto *Cmd = llvm::dyn_cast<eld::OutputSectDesc>(getParent());
+    Outs << " ";
+    Cmd->dumpEpilogue(Outs);
   }
-  outs << "\n";
+  Outs << "\n";
 }
 
 uint32_t ExitScopeCmd::getDepth() const {

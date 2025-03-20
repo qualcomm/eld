@@ -40,30 +40,30 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // IRBuilder
 //===----------------------------------------------------------------------===//
-IRBuilder::IRBuilder(Module &pModule, LinkerConfig &pConfig)
-    : m_Module(pModule), m_Config(pConfig), m_InputBuilder(pConfig) {
-  m_isGC = pConfig.options().GCSections();
+IRBuilder::IRBuilder(Module &CurModule, LinkerConfig &Config)
+    : ThisModule(CurModule), ThisConfig(Config), ThisInputBuilder(Config) {
+  IsGarbageCollected = Config.options().gcSections();
 }
 
 IRBuilder::~IRBuilder() {}
 
-void IRBuilder::requestGarbageCollection() { m_isGC = true; }
+void IRBuilder::requestGarbageCollection() { IsGarbageCollected = true; }
 
 LDSymbol *IRBuilder::makeLDSymbol(ResolveInfo *R) {
-  return make<LDSymbol>(R, m_isGC);
+  return make<LDSymbol>(R, IsGarbageCollected);
 }
 
-/// AddSymbol - To add a symbol in the input file and resolve the symbol
+/// addSymbol - To add a symbol in the input file and resolve the symbol
 /// immediately
-LDSymbol *IRBuilder::AddSymbol(InputFile &pInput, const std::string &pName,
-                               ResolveInfo::Type pType, ResolveInfo::Desc pDesc,
-                               ResolveInfo::Binding pBind,
-                               ResolveInfo::SizeType pSize,
-                               LDSymbol::ValueType pValue, ELFSection *pSection,
-                               ResolveInfo::Visibility pVis,
-                               bool isPostLTOPhase, uint32_t shndx,
-                               uint32_t idx, bool isPatchable) {
-  if (pInput.getInput()->getAttribute().isPatchBase()) {
+LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
+                               ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+                               ResolveInfo::Binding Bind,
+                               ResolveInfo::SizeType Size,
+                               LDSymbol::ValueType Value,
+                               ELFSection *CurSection,
+                               ResolveInfo::Visibility Vis, bool IsPostLtoPhase,
+                               uint32_t Shndx, uint32_t Idx, bool IsPatchable) {
+  if (Input.getInput()->getAttribute().isPatchBase()) {
     // Add patchable symbols from the base image because they will be referred
     // from relocation by indexes. We have to add all symbols including local
     // to ensure indexes the indexes are correct.
@@ -74,148 +74,148 @@ LDSymbol *IRBuilder::AddSymbol(InputFile &pInput, const std::string &pName,
     // could be added in the future. In that case, they have to become undefined
     // + provide, cannot be weak. But it won't work with provide? But the bigger
     // problem with local symbols is that they can't be resolved by name.
-    if (isPatchable) {
+    if (IsPatchable) {
       // Add patchable symbols as "sym-def".
       // Ignore patchable non-global or hidden symbols.
-      if (pBind == ResolveInfo::Global || pBind == ResolveInfo::Absolute) {
-        m_Module.getBackend()->addSymDefProvideSymbol(
-            pName, pType, pValue, &pInput, /* isPatchable */ true);
+      if (Bind == ResolveInfo::Global || Bind == ResolveInfo::Absolute) {
+        ThisModule.getBackend()->addSymDefProvideSymbol(
+            SymbolName, Type, Value, &Input, /* isPatchable */ true);
         // Also add them as undefined because it's needed to process
         // relocations.
-        pDesc = ResolveInfo::Undefined;
-        pBind = ResolveInfo::Global;
-        pSection = nullptr;
-        shndx = llvm::ELF::SHN_UNDEF;
+        Desc = ResolveInfo::Undefined;
+        Bind = ResolveInfo::Global;
+        CurSection = nullptr;
+        Shndx = llvm::ELF::SHN_UNDEF;
       }
     } else {
       // Non-patchable patch-base symbols are added as Absolute.
-      if (pBind == ResolveInfo::Global && pDesc == ResolveInfo::Define) {
-        pBind = ResolveInfo::Absolute;
-        pSection = nullptr;
-        shndx = llvm::ELF::SHN_ABS;
+      if (Bind == ResolveInfo::Global && Desc == ResolveInfo::Define) {
+        Bind = ResolveInfo::Absolute;
+        CurSection = nullptr;
+        Shndx = llvm::ELF::SHN_ABS;
       }
     }
     // Non-patchable symbols are added as normal defined symbols.
-  } else if (pInput.getInput()->getAttribute().isJustSymbols()) {
-    m_Module.getBackend()->addSymDefProvideSymbol(pName, pType, pValue,
-                                                  &pInput);
+  } else if (Input.getInput()->getAttribute().isJustSymbols()) {
+    ThisModule.getBackend()->addSymDefProvideSymbol(SymbolName, Type, Value,
+                                                    &Input);
     return nullptr;
   }
   // rename symbols
-  std::string name = pName;
-  ResolveInfo::Binding binding = pBind;
-  ELFObjectFile *EObj = llvm::dyn_cast<ELFObjectFile>(&pInput);
-  if (!m_Config.options().renameMap().empty()) {
-    auto renameSym = m_Config.options().renameMap().find(pName);
-    if (m_Config.options().renameMap().end() != renameSym) {
-      bool traceWrap = m_Module.getPrinter()->traceWrapSymbols();
+  std::string Name = SymbolName;
+  ResolveInfo::Binding Binding = Bind;
+  ELFObjectFile *EObj = llvm::dyn_cast<ELFObjectFile>(&Input);
+  if (!ThisConfig.options().renameMap().empty()) {
+    auto RenameSym = ThisConfig.options().renameMap().find(SymbolName);
+    if (ThisConfig.options().renameMap().end() != RenameSym) {
+      bool TraceWrap = ThisModule.getPrinter()->traceWrapSymbols();
       // If the renameMap is not empty, some symbols should be renamed.
       // --wrap and --portable defines the symbol rename map.
-      if (ResolveInfo::Undefined == pDesc && (!EObj || !EObj->isLTOObject())) {
-        name = renameSym->getValue();
-        if (traceWrap)
-          m_Config.raise(diag::rename_undef_sym)
-              << pInput.getInput()->decoratedPath() << pName
-              << renameSym->getValue();
-      } else if (pDesc == ResolveInfo::Define && EObj && EObj->isLTOObject()) {
-        if (traceWrap)
-          m_Config.raise(diag::restore_def_binding) << pName;
-        binding = static_cast<ResolveInfo::Binding>(
-            m_Module.getWrapSymBinding(pName));
+      if (ResolveInfo::Undefined == Desc && (!EObj || !EObj->isLTOObject())) {
+        Name = RenameSym->getValue();
+        if (TraceWrap)
+          ThisConfig.raise(Diag::rename_undef_sym)
+              << Input.getInput()->decoratedPath() << SymbolName
+              << RenameSym->getValue();
+      } else if (Desc == ResolveInfo::Define && EObj && EObj->isLTOObject()) {
+        if (TraceWrap)
+          ThisConfig.raise(Diag::restore_def_binding) << SymbolName;
+        Binding = static_cast<ResolveInfo::Binding>(
+            ThisModule.getWrapSymBinding(SymbolName));
       }
     }
   }
 
   ArchiveMemberInput *AMI =
-      llvm::dyn_cast<eld::ArchiveMemberInput>(pInput.getInput());
+      llvm::dyn_cast<eld::ArchiveMemberInput>(Input.getInput());
   // Fix up the visibility if object has no export set.
-  if (AMI && AMI->noExport() && (pDesc != ResolveInfo::Undefined)) {
-    if ((pVis == ResolveInfo::Default) || (pVis == ResolveInfo::Protected)) {
-      pVis = ResolveInfo::Hidden;
+  if (AMI && AMI->noExport() && (Desc != ResolveInfo::Undefined)) {
+    if ((Vis == ResolveInfo::Default) || (Vis == ResolveInfo::Protected)) {
+      Vis = ResolveInfo::Hidden;
     }
   }
 
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
 
-  switch (pInput.getKind()) {
+  switch (Input.getKind()) {
   case InputFile::BinaryFileKind:
   case InputFile::ELFObjFileKind:
   case InputFile::ELFExecutableFileKind: {
 
-    FragmentRef *fragRef = nullptr;
-    if (nullptr == pSection || ResolveInfo::Undefined == pDesc ||
-        ResolveInfo::Common == pDesc || ResolveInfo::Absolute == binding ||
-        pSection->isIgnore() || pSection->isDiscard() ||
-        (pSection->isGroupKind() &&
-         LinkerConfig::Object != m_Config.codeGenType())) {
-      if (pSection && (pSection->isIgnore() || pSection->isDiscard()))
-        fragRef = FragmentRef::Discard();
+    FragmentRef *FragRef = nullptr;
+    if (nullptr == CurSection || ResolveInfo::Undefined == Desc ||
+        ResolveInfo::Common == Desc || ResolveInfo::Absolute == Binding ||
+        CurSection->isIgnore() || CurSection->isDiscard() ||
+        (CurSection->isGroupKind() &&
+         LinkerConfig::Object != ThisConfig.codeGenType())) {
+      if (CurSection && (CurSection->isIgnore() || CurSection->isDiscard()))
+        FragRef = FragmentRef::discard();
       else
-        fragRef = FragmentRef::Null();
+        FragRef = FragmentRef::null();
     } else {
-      if (pSection->isMergeKind()) {
+      if (CurSection->isMergeKind()) {
         auto *Strings = llvm::cast<MergeStringFragment>(
-            pSection->getFragmentList().front());
-        fragRef = make<FragmentRef>(*Strings, pValue);
+            CurSection->getFragmentList().front());
+        FragRef = make<FragmentRef>(*Strings, Value);
       }
-      if (!fragRef) {
-        fragRef = FragmentRef::Null();
-        if (pSection->hasSectionData()) {
-          Fragment *frag = pSection->getFragmentList().front();
-          fragRef = make<FragmentRef>(*frag, pValue - pSection->addr());
+      if (!FragRef) {
+        FragRef = FragmentRef::null();
+        if (CurSection->hasSectionData()) {
+          Fragment *Frag = CurSection->getFragmentList().front();
+          FragRef = make<FragmentRef>(*Frag, Value - CurSection->addr());
         }
       }
     }
 
-    ObjectFile *ObjFile = llvm::dyn_cast<eld::ObjectFile>(&pInput);
+    ObjectFile *ObjFile = llvm::dyn_cast<eld::ObjectFile>(&Input);
 
-    LDSymbol *input_sym = nullptr;
+    LDSymbol *InputSym = nullptr;
     {
       eld::RegisterTimer T("Add symbols from object files", "Symbol Resolution",
-                           m_Config.options().printTimingStats());
+                           ThisConfig.options().printTimingStats());
 
-      input_sym = addSymbolFromObject(pInput, name, pType, pDesc, binding,
-                                      pSize, pValue, fragRef, pVis, shndx,
-                                      isPostLTOPhase, idx, isPatchable);
+      InputSym = addSymbolFromObject(Input, Name, Type, Desc, Binding, Size,
+                                     Value, FragRef, Vis, Shndx, IsPostLtoPhase,
+                                     Idx, IsPatchable);
     }
     // Symbols from non allocatable sections should not participate in garbage
     // collection
-    if (isPostLTOPhase && pSection && !pSection->isAlloc()) {
-      input_sym->setShouldIgnore(false);
-      LDSymbol *outSymbol = input_sym->resolveInfo()->outSymbol();
-      if (outSymbol)
-        outSymbol->setShouldIgnore(false);
+    if (IsPostLtoPhase && CurSection && !CurSection->isAlloc()) {
+      InputSym->setShouldIgnore(false);
+      LDSymbol *OutSymbol = InputSym->resolveInfo()->outSymbol();
+      if (OutSymbol)
+        OutSymbol->setShouldIgnore(false);
     }
     // FIXME: Why is input_sym nullptr? Shouldn't there be any error in this
     // case?
-    if (!input_sym)
+    if (!InputSym)
       return nullptr;
 
     // FIXME: Why don't we record symbol if there is no pSection?
-    if (printer && pSection) {
-      printer->recordFragment(&pInput, pSection, fragRef->frag());
-      printer->recordSymbol(fragRef->frag(), input_sym);
+    if (Printer && CurSection) {
+      Printer->recordFragment(&Input, CurSection, FragRef->frag());
+      Printer->recordSymbol(FragRef->frag(), InputSym);
     }
-    ObjFile->addSymbol(input_sym);
-    if (pSection && m_Config.options().isSectionTracingRequested() &&
-        m_Config.options().traceSection(pSection))
-      m_Config.raise(diag::symbols_in_section_info)
-          << pSection->getDecoratedName(m_Config.options())
-          << input_sym->name();
-    return input_sym;
+    ObjFile->addSymbol(InputSym);
+    if (CurSection && ThisConfig.options().isSectionTracingRequested() &&
+        ThisConfig.options().traceSection(CurSection))
+      ThisConfig.raise(Diag::symbols_in_section_info)
+          << CurSection->getDecoratedName(ThisConfig.options())
+          << InputSym->name();
+    return InputSym;
   }
   case InputFile::ELFDynObjFileKind: {
     {
       eld::RegisterTimer T("Add symbols from dynamic object files",
                            "Symbol Resolution",
-                           m_Config.options().printTimingStats());
+                           ThisConfig.options().printTimingStats());
 
-      LDSymbol *input_sym =
-          addSymbolFromDynObj(pInput, name, pType, pDesc, binding, pSize,
-                              pValue, pVis, shndx, isPostLTOPhase);
-      if (input_sym)
-        llvm::cast<ELFDynObjectFile>(&pInput)->addSymbol(input_sym);
-      return input_sym;
+      LDSymbol *InputSym =
+          addSymbolFromDynObj(Input, Name, Type, Desc, Binding, Size, Value,
+                              Vis, Shndx, IsPostLtoPhase);
+      if (InputSym)
+        llvm::cast<ELFDynObjectFile>(&Input)->addSymbol(InputSym);
+      return InputSym;
     }
   }
   default:
@@ -225,422 +225,423 @@ LDSymbol *IRBuilder::AddSymbol(InputFile &pInput, const std::string &pName,
 }
 
 LDSymbol *IRBuilder::addSymbolFromObject(
-    InputFile &pInput, const std::string &pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    uint32_t shndx, bool isPostLTOPhase, uint32_t Idx, bool isPatchable) {
+    InputFile &Input, const std::string &SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    uint32_t Shndx, bool IsPostLtoPhase, uint32_t Idx, bool IsPatchable) {
   // Step 1. calculate a Resolver::Result
-  // resolved_result is a triple <resolved_info, existent, override>
-  Resolver::Result resolved_result = {nullptr, false, false};
+  // ResolvedResult is a triple <resolved_info, existent, override>
+  Resolver::Result ResolvedResult = {nullptr, false, false};
   eld::RegisterTimer T("Create && Resolve symbols", "Symbol Resolution",
-                       m_Config.options().printTimingStats());
-  NamePool &NP = m_Module.getNamePool();
-  ResolveInfo inputSymRI =
-      NP.createInputSymbolRI(pName, pInput, /*isDyn=*/false, pType, pDesc,
-                             pBinding, pSize, pVisibility, pValue, isPatchable);
-  LDSymbol *input_sym = makeLDSymbol(nullptr);
-  input_sym->setFragmentRef(pFragmentRef);
-  input_sym->setSectionIndex(shndx);
-  input_sym->setSymbolIndex(Idx);
+                       ThisConfig.options().printTimingStats());
+  NamePool &NP = ThisModule.getNamePool();
+  ResolveInfo InputSymbolResolveInfo =
+      NP.createInputSymbolRI(SymbolName, Input, /*isDyn=*/false, Type, Desc,
+                             Binding, Size, Visibility, Value, IsPatchable);
+  LDSymbol *InputSym = makeLDSymbol(nullptr);
+  InputSym->setFragmentRef(CurFragmentRef);
+  InputSym->setSectionIndex(Shndx);
+  InputSym->setSymbolIndex(Idx);
 
-  auto &PM = m_Module.getPluginManager();
-  SymbolInfo symInfo(&pInput, pSize, pBinding, pType, pVisibility, pDesc,
+  auto &PM = ThisModule.getPluginManager();
+  SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
                      /*isBitcode=*/false);
-  DiagnosticPrinter *DP = m_Config.getPrinter();
-  auto oldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  PM.callVisitSymbolHook(input_sym, inputSymRI.getName(), symInfo);
-  auto newErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  if (newErrorCount != oldErrorCount)
+  DiagnosticPrinter *DP = ThisConfig.getPrinter();
+  auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+  PM.callVisitSymbolHook(InputSym, InputSymbolResolveInfo.getName(), SymInfo);
+  auto NewErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+  if (NewErrorCount != OldErrorCount)
     return nullptr;
 
-  if (pBinding == ResolveInfo::Binding::Local) {
-    ResolveInfo *RI = NP.insertLocalSymbol(inputSymRI, *input_sym);
-    RI->setOutSymbol(input_sym);
-    input_sym->setResolveInfo(*RI);
-    return input_sym;
+  if (Binding == ResolveInfo::Binding::Local) {
+    ResolveInfo *RI = NP.insertLocalSymbol(InputSymbolResolveInfo, *InputSym);
+    RI->setOutSymbol(InputSym);
+    InputSym->setResolveInfo(*RI);
+    return InputSym;
   }
 
-  if (m_Module.getLayoutPrinter() &&
-      m_Module.getLayoutPrinter()->showSymbolResolution())
-    NP.getSRI().recordSymbolInfo(input_sym, symInfo);
+  if (ThisModule.getLayoutPrinter() &&
+      ThisModule.getLayoutPrinter()->showSymbolResolution())
+    NP.getSRI().recordSymbolInfo(InputSym, SymInfo);
 
-  bool S = NP.insertNonLocalSymbol(inputSymRI, *input_sym, isPostLTOPhase,
-                                   resolved_result);
+  bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
+                                   IsPostLtoPhase, ResolvedResult);
   if (!S)
     return nullptr;
 
-  if (m_Config.options().cref() || m_Config.options().buildCRef())
-    addToCref(pInput, resolved_result);
+  if (ThisConfig.options().cref() || ThisConfig.options().buildCRef())
+    addToCref(Input, ResolvedResult);
 
   // Step 3. Set up corresponding output LDSymbol
-  LDSymbol *output_sym = resolved_result.info->outSymbol();
+  LDSymbol *OutputSym = ResolvedResult.Info->outSymbol();
 
-  bool has_output_sym = (nullptr != output_sym);
+  bool HasOutputSym = (nullptr != OutputSym);
 
-  input_sym->setResolveInfo(*resolved_result.info);
+  InputSym->setResolveInfo(*ResolvedResult.Info);
 
-  if (resolved_result.overriden) {
-    if (pFragmentRef->frag()) {
-      ELFSection *S = pFragmentRef->frag()->getOwningSection();
-      pValue = pValue - S->addr();
+  if (ResolvedResult.Overriden) {
+    if (CurFragmentRef->frag()) {
+      ELFSection *S = CurFragmentRef->frag()->getOwningSection();
+      Value = Value - S->addr();
     }
-    resolved_result.info->setValue(pValue, /*isFinal=*/false);
-    resolved_result.info->setOutSymbol(input_sym);
-  } else if (!resolved_result.overriden && !has_output_sym) {
+    ResolvedResult.Info->setValue(Value, /*isFinal=*/false);
+    ResolvedResult.Info->setOutSymbol(InputSym);
+  } else if (!ResolvedResult.Overriden && !HasOutputSym) {
     // Set the out symbol for the corresponding shared library symbol because
     // the symbol is referenced by an object file.
     // For shared library symbols, out symbol in ResolveInfo is only set if the
     // symbol is referenced by a relocatable object file.
-    LDSymbol *sharedLibSym = NP.getSharedLibSymbol(resolved_result.info);
-    if (sharedLibSym)
-      resolved_result.info->setOutSymbol(sharedLibSym);
+    LDSymbol *SharedLibSym = NP.getSharedLibSymbol(ResolvedResult.Info);
+    if (SharedLibSym)
+      ResolvedResult.Info->setOutSymbol(SharedLibSym);
   }
 
-  if (m_Module.getPrinter()->traceSymbols())
-    m_Config.raise(diag::obj_symbol_created)
-        << input_sym->name() << input_sym->sectionIndex()
-        << input_sym->resolveInfo()->infoAsString();
-  return input_sym;
+  if (ThisModule.getPrinter()->traceSymbols())
+    ThisConfig.raise(Diag::obj_symbol_created)
+        << InputSym->name() << InputSym->sectionIndex()
+        << InputSym->resolveInfo()->infoAsString();
+  return InputSym;
 }
 
 LDSymbol *IRBuilder::addSymbolFromDynObj(
-    InputFile &pInput, const std::string &pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    ResolveInfo::Visibility pVisibility, uint32_t shndx, bool isPostLTOPhase) {
+    InputFile &Input, const std::string &SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    ResolveInfo::Visibility Visibility, uint32_t Shndx, bool IsPostLtoPhase) {
   // We don't need sections of dynamic objects. So we ignore section symbols.
-  if (pType == ResolveInfo::Section)
+  if (Type == ResolveInfo::Section)
     return nullptr;
 
   // ignore symbols with local binding or that have internal or hidden
   // visibility
-  if (pBinding == ResolveInfo::Local || pVisibility == ResolveInfo::Internal ||
-      pVisibility == ResolveInfo::Hidden)
+  if (Binding == ResolveInfo::Local || Visibility == ResolveInfo::Internal ||
+      Visibility == ResolveInfo::Hidden)
     return nullptr;
 
   eld::RegisterTimer T("Create && Resolve dynamic symbols", "Symbol Resolution",
-                       m_Config.options().printTimingStats());
+                       ThisConfig.options().printTimingStats());
   // create an input LDSymbol.
-  LDSymbol *input_sym = makeLDSymbol(nullptr);
-  input_sym->setFragmentRef(FragmentRef::Null());
-  input_sym->setSectionIndex(shndx);
+  LDSymbol *InputSym = makeLDSymbol(nullptr);
+  InputSym->setFragmentRef(FragmentRef::null());
+  InputSym->setSectionIndex(Shndx);
 
-  SymbolInfo symInfo(&pInput, pSize, pBinding, pType, pVisibility, pDesc,
+  SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
                      /*isBitcode=*/false);
 
-  if (m_Module.getLayoutPrinter() &&
-      m_Module.getLayoutPrinter()->showSymbolResolution())
-    m_Module.getNamePool().getSRI().recordSymbolInfo(input_sym, symInfo);
+  if (ThisModule.getLayoutPrinter() &&
+      ThisModule.getLayoutPrinter()->showSymbolResolution())
+    ThisModule.getNamePool().getSRI().recordSymbolInfo(InputSym, SymInfo);
   // insert symbol and resolve it immediately
-  Resolver::Result resolved_result = {nullptr, false, false};
-  NamePool &NP = m_Module.getNamePool();
-  ResolveInfo inputSymRI = NP.createInputSymbolRI(
-      pName, pInput, /*isDyn=*/true, pType, pDesc, pBinding, pSize, pVisibility,
-      pValue, /*isPatchable=*/false);
+  Resolver::Result ResolvedResult = {nullptr, false, false};
+  NamePool &NP = ThisModule.getNamePool();
+  ResolveInfo InputSymbolResolveInfo = NP.createInputSymbolRI(
+      SymbolName, Input, /*isDyn=*/true, Type, Desc, Binding, Size, Visibility,
+      Value, /*isPatchable=*/false);
 
-  auto &PM = m_Module.getPluginManager();
-  DiagnosticPrinter *DP = m_Config.getPrinter();
-  auto oldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  PM.callVisitSymbolHook(input_sym, inputSymRI.getName(), symInfo);
-  auto newErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  if (newErrorCount != oldErrorCount)
+  auto &PM = ThisModule.getPluginManager();
+  DiagnosticPrinter *DP = ThisConfig.getPrinter();
+  auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+  PM.callVisitSymbolHook(InputSym, InputSymbolResolveInfo.getName(), SymInfo);
+  auto NewErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+  if (NewErrorCount != OldErrorCount)
     return nullptr;
   // Resolve symbol
-  bool S = NP.insertNonLocalSymbol(inputSymRI, *input_sym, isPostLTOPhase,
-                                   resolved_result);
+  bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
+                                   IsPostLtoPhase, ResolvedResult);
   if (!S)
     return nullptr;
 
   // the return ResolveInfo should not nullptr
-  assert(nullptr != resolved_result.info);
-  if (m_Config.options().cref() || m_Config.options().buildCRef())
-    addToCref(pInput, resolved_result);
+  assert(nullptr != ResolvedResult.Info);
+  if (ThisConfig.options().cref() || ThisConfig.options().buildCRef())
+    addToCref(Input, ResolvedResult);
 
-  input_sym->setResolveInfo(*(resolved_result.info));
+  InputSym->setResolveInfo(*(ResolvedResult.Info));
 
-  if (resolved_result.overriden || !resolved_result.existent) {
-    resolved_result.info->setValue(pValue, false);
-    pInput.setNeeded();
-    NP.addSharedLibSymbol(input_sym);
+  if (ResolvedResult.Overriden || !ResolvedResult.Existent) {
+    ResolvedResult.Info->setValue(Value, false);
+    Input.setNeeded();
+    NP.addSharedLibSymbol(InputSym);
   }
-  if (resolved_result.overriden && resolved_result.existent) {
-    resolved_result.info->setOutSymbol(input_sym);
+  if (ResolvedResult.Overriden && ResolvedResult.Existent) {
+    ResolvedResult.Info->setOutSymbol(InputSym);
   }
   // If the symbol is from dynamic library and we are not making a dynamic
   // library, we either need to export the symbol by dynamic list or sometimes
   // we export it since the dynamic library may be referring it defined in
   // executable, either case it must be in .dynsym
-  if (m_Config.codeGenType() != LinkerConfig::DynObj &&
-      ((input_sym->resolveInfo()->outSymbol() &&
-        input_sym->resolveInfo()->outSymbol()->hasFragRef()) ||
-       input_sym->resolveInfo()->isCommon()))
-    input_sym->resolveInfo()->setExportToDyn();
-  return input_sym;
+  if (ThisConfig.codeGenType() != LinkerConfig::DynObj &&
+      ((InputSym->resolveInfo()->outSymbol() &&
+        InputSym->resolveInfo()->outSymbol()->hasFragRef()) ||
+       InputSym->resolveInfo()->isCommon()))
+    InputSym->resolveInfo()->setExportToDyn();
+  return InputSym;
 }
 
-void IRBuilder::addToCref(InputFile &pInput, Resolver::Result pResult) {
+void IRBuilder::addToCref(InputFile &Input, Resolver::Result PResult) {
   eld::RegisterTimer T("Add Symbols to Cross Reference Table",
                        "Symbol Resolution",
-                       m_Config.options().printTimingStats());
+                       ThisConfig.options().printTimingStats());
 
-  GeneralOptions &options = m_Config.options();
-  GeneralOptions::CrefTable &table = options.crefTable();
-  ResolveInfo *info = pResult.info;
+  GeneralOptions &Options = ThisConfig.options();
+  GeneralOptions::CrefTableType &Table = Options.crefTable();
+  ResolveInfo *Info = PResult.Info;
 
-  assert(nullptr != info);
+  assert(nullptr != Info);
 
-  std::vector<std::pair<const InputFile *, bool>> &RHS = table[info];
-  if (pResult.overriden == true && info->isDefine()) {
+  std::vector<std::pair<const InputFile *, bool>> &RHS = Table[Info];
+  if (PResult.Overriden == true && Info->isDefine()) {
     // we add symbol to cref in front if it is defined in this file
     RHS.insert(RHS.begin(),
-               std::pair<const InputFile *, bool>(&pInput, info->isBitCode()));
+               std::pair<const InputFile *, bool>(&Input, Info->isBitCode()));
   } else {
     // otherwise we simply add it to the end.
     RHS.push_back(
-        std::pair<const InputFile *, bool>(&pInput, info->isBitCode()));
+        std::pair<const InputFile *, bool>(&Input, Info->isBitCode()));
   }
 }
 
 void IRBuilder::addLinkerInternalLocalSymbol(InputFile *F, std::string Name,
-                                             FragmentRef *fragRef,
+                                             FragmentRef *FragRef,
                                              size_t Size) {
-  LDSymbol *Sym = AddSymbol<Force, Resolve>(
+  LDSymbol *Sym = addSymbol<Force, Resolve>(
       F, Name, ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Local,
-      Size, 0, fragRef, ResolveInfo::Default, true);
+      Size, 0, FragRef, ResolveInfo::Default, true);
   getModule().addSymbol(Sym->resolveInfo());
 }
 
-/// AddRelocation - add a relocation entry
+/// addRelocation - add a relocation entry
 ///
 /// All symbols should be read and resolved before calling this function.
-Relocation *IRBuilder::AddRelocation(const Relocator *pRelocator,
-                                     ELFSection *pSection,
-                                     Relocation::Type pType, LDSymbol &pSym,
-                                     uint32_t pOffset,
-                                     Relocation::Address pAddend) {
+Relocation *IRBuilder::addRelocation(const Relocator *CurRelocator,
+                                     ELFSection *CurSection,
+                                     Relocation::Type Type, LDSymbol &PSym,
+                                     uint32_t POffset,
+                                     Relocation::Address CurAddend) {
 
-  ResolveInfo *resolve_info = pSym.resolveInfo();
+  ResolveInfo *ResolveInfo = PSym.resolveInfo();
 
-  if (!resolve_info)
+  if (!ResolveInfo)
     return nullptr;
 
-  FragmentRef *frag_ref = FragmentRef::Null();
-  if (pSection->hasSectionData()) {
-    Fragment *frag = pSection->getFragmentList().front();
-    frag_ref = make<FragmentRef>(*frag, pOffset);
+  FragmentRef *FragRef = FragmentRef::null();
+  if (CurSection->hasSectionData()) {
+    Fragment *Frag = CurSection->getFragmentList().front();
+    FragRef = make<FragmentRef>(*Frag, POffset);
   }
-  Relocation *relocation =
-      Relocation::Create(pType, pRelocator->getSize(pType), frag_ref, pAddend);
+  Relocation *Relocation =
+      Relocation::Create(Type, CurRelocator->getSize(Type), FragRef, CurAddend);
 
-  relocation->setSymInfo(pSym.resolveInfo());
+  Relocation->setSymInfo(PSym.resolveInfo());
 
-  return relocation;
+  return Relocation;
 }
 
-Relocation *IRBuilder::AddRelocation(const Relocator *pRelocator,
-                                     Fragment &pFrag, Relocation::Type pType,
-                                     LDSymbol &pSym, uint32_t pOffset,
-                                     Relocation::Address pAddend) {
+Relocation *IRBuilder::addRelocation(const Relocator *CurRelocator,
+                                     Fragment &CurFrag, Relocation::Type Type,
+                                     LDSymbol &PSym, uint32_t POffset,
+                                     Relocation::Address CurAddend) {
 
-  ResolveInfo *resolve_info = pSym.resolveInfo();
+  ResolveInfo *ResolveInfo = PSym.resolveInfo();
 
-  if (!resolve_info)
+  if (!ResolveInfo)
     return nullptr;
 
-  if (!pSym.hasFragRef() && ResolveInfo::Section == resolve_info->type() &&
-      ResolveInfo::Undefined == resolve_info->desc())
+  if (!PSym.hasFragRef() && ResolveInfo::Section == ResolveInfo->type() &&
+      ResolveInfo::Undefined == ResolveInfo->desc())
     return nullptr;
 
-  FragmentRef *frag_ref = make<FragmentRef>(pFrag, pOffset);
+  FragmentRef *FragRef = make<FragmentRef>(CurFrag, POffset);
 
-  Relocation *relocation =
-      Relocation::Create(pType, pRelocator->getSize(pType), frag_ref, pAddend);
+  Relocation *Relocation =
+      Relocation::Create(Type, CurRelocator->getSize(Type), FragRef, CurAddend);
 
-  relocation->setSymInfo(pSym.resolveInfo());
+  Relocation->setSymInfo(PSym.resolveInfo());
 
-  return relocation;
+  return Relocation;
 }
 
-Relocation *IRBuilder::CreateRelocation(const Relocator *pRelocator,
-                                        Fragment &pFrag, Relocation::Type pType,
-                                        LDSymbol &pSym, uint32_t pOffset,
-                                        Relocation::Address pAddend) {
+Relocation *IRBuilder::createRelocation(const Relocator *CurRelocator,
+                                        Fragment &CurFrag,
+                                        Relocation::Type Type, LDSymbol &PSym,
+                                        uint32_t POffset,
+                                        Relocation::Address CurAddend) {
 
-  ResolveInfo *resolve_info = pSym.resolveInfo();
+  ResolveInfo *ResolveInfo = PSym.resolveInfo();
 
-  if (!resolve_info)
+  if (!ResolveInfo)
     return nullptr;
 
-  if (!pSym.hasFragRef() && ResolveInfo::Section == resolve_info->type() &&
-      ResolveInfo::Undefined == resolve_info->desc())
+  if (!PSym.hasFragRef() && ResolveInfo::Section == ResolveInfo->type() &&
+      ResolveInfo::Undefined == ResolveInfo->desc())
     return nullptr;
 
-  FragmentRef *frag_ref = make<FragmentRef>(pFrag, pOffset);
+  FragmentRef *FragRef = make<FragmentRef>(CurFrag, POffset);
 
-  Relocation *relocation =
-      make<Relocation>(pRelocator, pType, frag_ref, pAddend);
+  Relocation *Relocation =
+      make<eld::Relocation>(CurRelocator, Type, FragRef, CurAddend);
 
-  relocation->setSymInfo(pSym.resolveInfo());
+  Relocation->setSymInfo(PSym.resolveInfo());
 
-  return relocation;
+  return Relocation;
 }
 
-/// AddSymbol - define an output symbol and override it immediately
+/// addSymbol - define an output symbol and override it immediately
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable) {
-  ResolveInfo *info = m_Module.getNamePool().findInfo(pName);
-  LDSymbol *output_sym = nullptr;
-  if (nullptr == info) {
+LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
+  ResolveInfo *Info = ThisModule.getNamePool().findInfo(SymbolName);
+  LDSymbol *OutputSym = nullptr;
+  if (nullptr == Info) {
     // the symbol is not in the pool, create a new one.
     // create a ResolveInfo
-    Resolver::Result result;
-    bool S = m_Module.getNamePool().insertSymbol(
-        pInput, pName, false, pType, pDesc, pBinding, pSize, pValue,
-        pVisibility, nullptr, result, isPostLTOPhase, isBitCode, 0, isPatchable,
-        m_Module.getPrinter());
+    Resolver::Result Result;
+    bool S = ThisModule.getNamePool().insertSymbol(
+        Input, SymbolName, false, Type, Desc, Binding, Size, Value, Visibility,
+        nullptr, Result, IsPostLtoPhase, IsBitCode, 0, IsPatchable,
+        ThisModule.getPrinter());
     if (!S)
       return nullptr;
-    assert(!result.existent);
+    assert(!Result.Existent);
 
     // create a output LDSymbol
-    output_sym = makeLDSymbol(result.info);
-    result.info->setOutSymbol(output_sym);
+    OutputSym = makeLDSymbol(Result.Info);
+    Result.Info->setOutSymbol(OutputSym);
   } else {
     // the symbol is already in the pool, override it
-    ResolveInfo old_info;
-    old_info.override(*info);
+    ResolveInfo OldInfo;
+    OldInfo.override(*Info);
 
-    info->setRegular();
-    info->setType(pType);
-    info->setDesc(pDesc);
-    info->setBinding(pBinding);
-    info->setVisibility(pVisibility);
-    info->setIsSymbol(true);
-    info->setSize(pSize);
+    Info->setRegular();
+    Info->setType(Type);
+    Info->setDesc(Desc);
+    Info->setBinding(Binding);
+    Info->setVisibility(Visibility);
+    Info->setIsSymbol(true);
+    Info->setSize(Size);
 
     // create a output LDSymbol
-    output_sym = makeLDSymbol(info);
-    info->setOutSymbol(output_sym);
+    OutputSym = makeLDSymbol(Info);
+    Info->setOutSymbol(OutputSym);
   }
 
-  if (nullptr != output_sym) {
-    output_sym->setFragmentRef(pFragmentRef);
-    output_sym->setValue(pValue, false);
+  if (nullptr != OutputSym) {
+    OutputSym->setFragmentRef(CurFragmentRef);
+    OutputSym->setValue(Value, false);
   }
 
-  if (m_Module.getLayoutPrinter() &&
-      m_Module.getLayoutPrinter()->showSymbolResolution()) {
-    SymbolResolutionInfo &SRI = m_Module.getNamePool().getSRI();
-    SRI.recordSymbolInfo(output_sym,
-                         SymbolInfo{pInput, pSize, pBinding, pType, pVisibility,
-                                    pDesc, /*isBitcode=*/false});
+  if (ThisModule.getLayoutPrinter() &&
+      ThisModule.getLayoutPrinter()->showSymbolResolution()) {
+    SymbolResolutionInfo &SRI = ThisModule.getNamePool().getSRI();
+    SRI.recordSymbolInfo(OutputSym,
+                         SymbolInfo{Input, Size, Binding, Type, Visibility,
+                                    Desc, /*isBitcode=*/false});
   }
 
-  return output_sym;
+  return OutputSym;
 }
 
-/// AddSymbol - define an output symbol and override it immediately
+/// addSymbol - define an output symbol and override it immediately
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable) {
-  assert(!isPatchable);
-  ResolveInfo *info = m_Module.getNamePool().findInfo(pName);
+LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Unresolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
+  assert(!IsPatchable);
+  ResolveInfo *Info = ThisModule.getNamePool().findInfo(SymbolName);
 
-  if (nullptr == info || !(info->isUndef() || info->isDyn())) {
+  if (nullptr == Info || !(Info->isUndef() || Info->isDyn())) {
     // only undefined symbol and dynamic symbol can make a reference.
     return nullptr;
   }
 
   // the symbol is already in the pool, override it
-  ResolveInfo old_info;
-  old_info.override(*info);
+  ResolveInfo OldInfo;
+  OldInfo.override(*Info);
 
-  info->setRegular();
-  info->setType(pType);
-  info->setDesc(pDesc);
-  info->setBinding(pBinding);
-  info->setVisibility(pVisibility);
-  info->setIsSymbol(true);
-  info->setSize(pSize);
-  if (!info->resolvedOrigin())
-    info->setResolvedOrigin(pInput);
+  Info->setRegular();
+  Info->setType(Type);
+  Info->setDesc(Desc);
+  Info->setBinding(Binding);
+  Info->setVisibility(Visibility);
+  Info->setIsSymbol(true);
+  Info->setSize(Size);
+  if (!Info->resolvedOrigin())
+    Info->setResolvedOrigin(Input);
 
-  LDSymbol *output_sym = info->outSymbol();
-  if (nullptr != output_sym) {
-    output_sym->setFragmentRef(pFragmentRef);
-    output_sym->setValue(pValue, false);
+  LDSymbol *OutputSym = Info->outSymbol();
+  if (nullptr != OutputSym) {
+    OutputSym->setFragmentRef(CurFragmentRef);
+    OutputSym->setValue(Value, false);
   } else {
     // create a output LDSymbol
-    output_sym = makeLDSymbol(info);
-    info->setOutSymbol(output_sym);
+    OutputSym = makeLDSymbol(Info);
+    Info->setOutSymbol(OutputSym);
   }
 
-  return output_sym;
+  return OutputSym;
 }
 
-/// AddSymbol - define an output symbol and resolve it
+/// addSymbol - define an output symbol and resolve it
 /// immediately
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable) {
+LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
   // Result is <info, existent, override>
-  Resolver::Result result;
-  ResolveInfo old_info;
+  Resolver::Result Result;
+  ResolveInfo OldInfo;
 
-  bool S = m_Module.getNamePool().insertSymbol(
-      pInput, pName, false, pType, pDesc, pBinding, pSize, pValue, pVisibility,
-      &old_info, result, isPostLTOPhase, isBitCode, 0, isPatchable,
-      m_Module.getPrinter());
+  bool S = ThisModule.getNamePool().insertSymbol(
+      Input, SymbolName, false, Type, Desc, Binding, Size, Value, Visibility,
+      &OldInfo, Result, IsPostLtoPhase, IsBitCode, 0, IsPatchable,
+      ThisModule.getPrinter());
 
   if (!S)
     return nullptr;
 
-  LDSymbol *output_sym = result.info->outSymbol();
-  bool has_output_sym = (nullptr != output_sym);
+  LDSymbol *OutputSym = Result.Info->outSymbol();
+  bool HasOutputSym = (nullptr != OutputSym);
 
-  if (!result.existent || !has_output_sym) {
-    output_sym = makeLDSymbol(result.info);
-    result.info->setOutSymbol(output_sym);
+  if (!Result.Existent || !HasOutputSym) {
+    OutputSym = makeLDSymbol(Result.Info);
+    Result.Info->setOutSymbol(OutputSym);
   }
 
-  if (result.overriden || !has_output_sym) {
-    output_sym->setFragmentRef(pFragmentRef);
-    output_sym->setValue(pValue, false);
+  if (Result.Overriden || !HasOutputSym) {
+    OutputSym->setFragmentRef(CurFragmentRef);
+    OutputSym->setValue(Value, false);
   }
 
-  return output_sym;
+  return OutputSym;
 }
 
 /// defineSymbol - define an output symbol and resolve it immediately.
 template <>
-LDSymbol *IRBuilder::AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-    InputFile *pInput, std::string pName, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    FragmentRef *pFragmentRef, ResolveInfo::Visibility pVisibility,
-    bool isPostLTOPhase, bool isBitCode, bool isPatchable) {
-  ResolveInfo *info = m_Module.getNamePool().findInfo(pName);
+LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+    InputFile *Input, std::string SymbolName, ResolveInfo::Type Type,
+    ResolveInfo::Desc Desc, ResolveInfo::Binding Binding,
+    ResolveInfo::SizeType Size, LDSymbol::ValueType Value,
+    FragmentRef *CurFragmentRef, ResolveInfo::Visibility Visibility,
+    bool IsPostLtoPhase, bool IsBitCode, bool IsPatchable) {
+  ResolveInfo *Info = ThisModule.getNamePool().findInfo(SymbolName);
 
-  if (nullptr == info || !(info->isUndef() || info->isDyn())) {
+  if (nullptr == Info || !(Info->isUndef() || Info->isDyn())) {
     // only undefined symbol and dynamic symbol can make a reference.
     return nullptr;
   }
 
-  return AddSymbol<Force, Resolve>(pInput, pName, pType, pDesc, pBinding, pSize,
-                                   pValue, pFragmentRef, pVisibility,
-                                   isPostLTOPhase, isBitCode, isPatchable);
+  return addSymbol<Force, Resolve>(Input, SymbolName, Type, Desc, Binding, Size,
+                                   Value, CurFragmentRef, Visibility,
+                                   IsPostLtoPhase, IsBitCode, IsPatchable);
 }

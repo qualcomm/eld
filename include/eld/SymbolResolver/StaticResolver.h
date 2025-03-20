@@ -58,30 +58,30 @@ private:
    *  C -> common
    */
   enum {
-    U = ResolveInfo::global_flag | ResolveInfo::regular_flag |
-        ResolveInfo::undefine_flag,
-    w_U = ResolveInfo::weak_flag | ResolveInfo::regular_flag |
-          ResolveInfo::undefine_flag,
-    d_U = ResolveInfo::global_flag | ResolveInfo::dynamic_flag |
-          ResolveInfo::undefine_flag,
-    wd_U = ResolveInfo::weak_flag | ResolveInfo::dynamic_flag |
-           ResolveInfo::undefine_flag,
-    D = ResolveInfo::global_flag | ResolveInfo::regular_flag |
-        ResolveInfo::define_flag,
-    w_D = ResolveInfo::weak_flag | ResolveInfo::regular_flag |
-          ResolveInfo::define_flag,
-    d_D = ResolveInfo::global_flag | ResolveInfo::dynamic_flag |
-          ResolveInfo::define_flag,
-    wd_D = ResolveInfo::weak_flag | ResolveInfo::dynamic_flag |
-           ResolveInfo::define_flag,
-    C = ResolveInfo::global_flag | ResolveInfo::regular_flag |
-        ResolveInfo::common_flag,
-    w_C = ResolveInfo::weak_flag | ResolveInfo::regular_flag |
-          ResolveInfo::common_flag,
-    d_C = ResolveInfo::global_flag | ResolveInfo::dynamic_flag |
-          ResolveInfo::common_flag,
-    wd_C = ResolveInfo::weak_flag | ResolveInfo::dynamic_flag |
-           ResolveInfo::common_flag,
+    U = ResolveInfo::GlobalFlag | ResolveInfo::RegularFlag |
+        ResolveInfo::UndefineFlag,
+    w_U = ResolveInfo::WeakFlag | ResolveInfo::RegularFlag |
+          ResolveInfo::UndefineFlag,
+    d_U = ResolveInfo::GlobalFlag | ResolveInfo::DynamicFlag |
+          ResolveInfo::UndefineFlag,
+    wd_U = ResolveInfo::WeakFlag | ResolveInfo::DynamicFlag |
+           ResolveInfo::UndefineFlag,
+    D = ResolveInfo::GlobalFlag | ResolveInfo::RegularFlag |
+        ResolveInfo::DefineFlag,
+    w_D = ResolveInfo::WeakFlag | ResolveInfo::RegularFlag |
+          ResolveInfo::DefineFlag,
+    d_D = ResolveInfo::GlobalFlag | ResolveInfo::DynamicFlag |
+          ResolveInfo::DefineFlag,
+    wd_D = ResolveInfo::WeakFlag | ResolveInfo::DynamicFlag |
+           ResolveInfo::DefineFlag,
+    C = ResolveInfo::GlobalFlag | ResolveInfo::RegularFlag |
+        ResolveInfo::CommonFlag,
+    w_C = ResolveInfo::WeakFlag | ResolveInfo::RegularFlag |
+          ResolveInfo::CommonFlag,
+    d_C = ResolveInfo::GlobalFlag | ResolveInfo::DynamicFlag |
+          ResolveInfo::CommonFlag,
+    wd_C = ResolveInfo::WeakFlag | ResolveInfo::DynamicFlag |
+           ResolveInfo::CommonFlag,
   };
 
   enum ORDINATE {
@@ -106,27 +106,27 @@ public:
   /// @return successfully resolved, return true; otherwise, return false.
   /// @param pOld the symbol which may be overridden.
   /// @param pNew the symbol which is used to replace pOld
-  virtual bool resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
-                       bool &pOverride, LDSymbol::ValueType pValue,
+  virtual bool resolve(ResolveInfo &OldSymbol, const ResolveInfo &NewSymbol,
+                       bool &CurOverride, LDSymbol::ValueType Value,
                        LinkerConfig *Config,
-                       bool isPostLTOPhase) const override;
+                       bool IsPostLtoPhase) const override;
 
-  unsigned int getOrdinate(const ResolveInfo &pInfo) const {
-    if (pInfo.isAbsolute() && pInfo.isDyn())
+  unsigned int getOrdinate(const ResolveInfo &CurInfo) const {
+    if (CurInfo.isAbsolute() && CurInfo.isDyn())
       return d_D_ORD;
-    if (pInfo.isAbsolute())
+    if (CurInfo.isAbsolute())
       return D_ORD;
-    if (pInfo.isCommon() && pInfo.isDyn())
+    if (CurInfo.isCommon() && CurInfo.isDyn())
       return Cs_ORD;
-    if (pInfo.isCommon() && pInfo.isDefine())
+    if (CurInfo.isCommon() && CurInfo.isDefine())
       return C_ORD;
-    if (pInfo.isCommon() && pInfo.isWeak())
+    if (CurInfo.isCommon() && CurInfo.isWeak())
       return w_C_ORD;
-    return pInfo.info();
+    return CurInfo.info();
   }
 
-  llvm::StringRef getOrdinateDesc(unsigned int pOrdinate) const {
-    switch (pOrdinate) {
+  llvm::StringRef getOrdinateDesc(unsigned int POrdinate) const {
+    switch (POrdinate) {
     case U_ORD:
       return "undefined";
     case w_U_ORD:

@@ -24,7 +24,7 @@ class LinkerConfig;
 
 class SymDefWriter {
 public:
-  SymDefWriter(LinkerConfig &config);
+  SymDefWriter(LinkerConfig &Config);
 
   eld::Expected<void> init();
 
@@ -32,13 +32,13 @@ public:
 
   llvm::raw_ostream &outputStream() const;
 
-  std::error_code writeSymDef(Module &pModule);
+  std::error_code writeSymDef(Module &CurModule);
 
 private:
   void addHeader();
 
-  LinkerConfig &m_Config;
-  llvm::raw_fd_ostream *m_SymDefFile;
+  LinkerConfig &Config;
+  llvm::raw_fd_ostream *SymDefFile;
 };
 
 } // namespace eld

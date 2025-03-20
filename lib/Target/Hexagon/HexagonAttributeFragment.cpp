@@ -94,7 +94,7 @@ bool HexagonAttributeFragment::update(ELFSection &S, DiagnosticEngine &Engine,
   llvm::ArrayRef<uint8_t> Data(
       reinterpret_cast<const uint8_t *>(S.getContents().data()), S.size());
   if (auto E = Parser.parse(Data, llvm::endianness::little)) {
-    Engine.raise(diag::warn_attribute_parse_fail)
+    Engine.raise(Diag::warn_attribute_parse_fail)
         << S.getInputFile()->getInput()->decoratedPath() << S.name()
         << llvm::toString(std::move(E));
   }

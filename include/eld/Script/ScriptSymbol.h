@@ -27,18 +27,18 @@ class ResolveInfo;
 
 class ScriptSymbol : public WildcardPattern {
 public:
-  explicit ScriptSymbol(const std::string &pString);
+  explicit ScriptSymbol(const std::string &PString);
 
   eld::Expected<void> activate();
 
-  SymbolContainer *getSymbolContainer() const { return m_SymbolContainer; }
+  SymbolContainer *getSymbolContainer() const { return ThisSymbolContainer; }
 
-  bool matched(const ResolveInfo &sym) const;
+  bool matched(const ResolveInfo &Sym) const;
 
-  void addResolveInfoToContainer(const ResolveInfo *info) const;
+  void addResolveInfoToContainer(const ResolveInfo *Info) const;
 
 private:
-  SymbolContainer *m_SymbolContainer = nullptr;
+  SymbolContainer *ThisSymbolContainer = nullptr;
 };
 
 } // namespace eld

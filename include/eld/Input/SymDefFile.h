@@ -12,7 +12,7 @@ namespace eld {
 
 class SymDefFile : public InputFile {
 public:
-  SymDefFile(Input *I, DiagnosticEngine *diagEngine);
+  SymDefFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.
   static bool classof(const InputFile *I) {

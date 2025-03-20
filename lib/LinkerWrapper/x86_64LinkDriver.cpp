@@ -54,7 +54,7 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
-    m_Config.raise(eld::diag::error_missing_arg_value)
+    m_Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
     return nullptr;
   }
@@ -86,7 +86,7 @@ int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
                            llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
   std::vector<const char *> allArgs = getAllArgs(Args, ELDFlagsArgs);
   if (!ELDFlagsArgs.empty())
-    m_Config.raise(eld::diag::note_eld_flags_without_output_name)
+    m_Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
   llvm::opt::InputArgList ArgList(allArgs.data(),
                                   allArgs.data() + allArgs.size());

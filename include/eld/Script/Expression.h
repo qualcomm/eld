@@ -87,101 +87,101 @@ public:
 
 public:
   /// Inspection functions used for Querying expressions and casting
-  bool isString() const { return m_Type == STRING; }
+  bool isString() const { return ThisType == STRING; }
 
-  bool isSymbol() const { return (m_Type == SYMBOL); }
+  bool isSymbol() const { return (ThisType == SYMBOL); }
 
-  bool isInteger() const { return (m_Type == INTEGER); }
+  bool isInteger() const { return (ThisType == INTEGER); }
 
-  bool isAdd() const { return (m_Type == ADD); }
+  bool isAdd() const { return (ThisType == ADD); }
 
-  bool isSubtract() const { return (m_Type == SUBTRACT); }
+  bool isSubtract() const { return (ThisType == SUBTRACT); }
 
-  bool isModulo() const { return (m_Type == MODULO); }
+  bool isModulo() const { return (ThisType == MODULO); }
 
-  bool isMultiply() const { return (m_Type == MULTIPLY); }
+  bool isMultiply() const { return (ThisType == MULTIPLY); }
 
-  bool isDivide() const { return (m_Type == DIVIDE); }
+  bool isDivide() const { return (ThisType == DIVIDE); }
 
-  bool isSizeOf() const { return (m_Type == SIZEOF); }
+  bool isSizeOf() const { return (ThisType == SIZEOF); }
 
-  bool isSizeOfHeaders() const { return (m_Type == SIZEOF_HEADERS); }
+  bool isSizeOfHeaders() const { return (ThisType == SIZEOF_HEADERS); }
 
-  bool isAddr() const { return (m_Type == ADDR); }
+  bool isAddr() const { return (ThisType == ADDR); }
 
-  bool isLoadAddr() const { return (m_Type == LOADADDR); }
+  bool isLoadAddr() const { return (ThisType == LOADADDR); }
 
-  bool isTernary() const { return (m_Type == TERNARY); }
+  bool isTernary() const { return (ThisType == TERNARY); }
 
-  bool isAlign() const { return (m_Type == ALIGN); }
+  bool isAlign() const { return (ThisType == ALIGN); }
 
-  bool isAlignOf() const { return (m_Type == ALIGNOF); }
+  bool isAlignOf() const { return (ThisType == ALIGNOF); }
 
-  bool isAbsolute() const { return (m_Type == ABSOLUTE); }
+  bool isAbsolute() const { return (ThisType == ABSOLUTE); }
 
-  bool isDataSegmentAlign() const { return (m_Type == DATA_SEGMENT_ALIGN); }
+  bool isDataSegmentAlign() const { return (ThisType == DATA_SEGMENT_ALIGN); }
 
   bool isDataSegmentRelRoEnd() const {
-    return (m_Type == DATA_SEGMENT_RELRO_END);
+    return (ThisType == DATA_SEGMENT_RELRO_END);
   }
 
-  bool isDataSegmentEnd() const { return (m_Type == DATA_SEGMENT_END); }
+  bool isDataSegmentEnd() const { return (ThisType == DATA_SEGMENT_END); }
 
-  bool isOffsetOf() const { return (m_Type == OFFSETOF); }
+  bool isOffsetOf() const { return (ThisType == OFFSETOF); }
 
-  bool isGreater() const { return (m_Type == GT); }
+  bool isGreater() const { return (ThisType == GT); }
 
-  bool isLessThan() const { return (m_Type == LT); }
+  bool isLessThan() const { return (ThisType == LT); }
 
-  bool isEqual() const { return (m_Type == EQ); }
+  bool isEqual() const { return (ThisType == EQ); }
 
-  bool isGreaterThanOrEqual() const { return (m_Type == GTE); }
+  bool isGreaterThanOrEqual() const { return (ThisType == GTE); }
 
-  bool isLesserThanOrEqual() const { return (m_Type == LTE); }
+  bool isLesserThanOrEqual() const { return (ThisType == LTE); }
 
-  bool isNotEqual() const { return (m_Type == NEQ); }
+  bool isNotEqual() const { return (ThisType == NEQ); }
 
-  bool isComplement() const { return (m_Type == COM); }
+  bool isComplement() const { return (ThisType == COM); }
 
-  bool isUnaryPlus() const { return (m_Type == UNARYPLUS); }
+  bool isUnaryPlus() const { return (ThisType == UNARYPLUS); }
 
-  bool isUnaryMinus() const { return (m_Type == UNARYMINUS); }
+  bool isUnaryMinus() const { return (ThisType == UNARYMINUS); }
 
-  bool isUnaryNot() const { return (m_Type == UNARYNOT); }
+  bool isUnaryNot() const { return (ThisType == UNARYNOT); }
 
-  bool isMaxPageSize() const { return (m_Type == MAXPAGESIZE); }
+  bool isMaxPageSize() const { return (ThisType == MAXPAGESIZE); }
 
-  bool isCommonPageSize() const { return (m_Type == COMMONPAGESIZE); }
+  bool isCommonPageSize() const { return (ThisType == COMMONPAGESIZE); }
 
-  bool isSegmentStart() const { return (m_Type == SEGMENT_START); }
+  bool isSegmentStart() const { return (ThisType == SEGMENT_START); }
 
-  bool isAssert() const { return (m_Type == ASSERT); }
+  bool isAssert() const { return (ThisType == ASSERT); }
 
-  bool isDefined() const { return (m_Type == DEFINED); }
+  bool isDefined() const { return (ThisType == DEFINED); }
 
-  bool isBitWiseRightShift() const { return (m_Type == BITWISE_RS); }
+  bool isBitWiseRightShift() const { return (ThisType == BITWISE_RS); }
 
-  bool isBitWiseLeftShift() const { return (m_Type == BITWISE_LS); }
+  bool isBitWiseLeftShift() const { return (ThisType == BITWISE_LS); }
 
-  bool isBitWiseOR() const { return (m_Type == BITWISE_OR); }
+  bool isBitWiseOR() const { return (ThisType == BITWISE_OR); }
 
-  bool isBitWiseAND() const { return (m_Type == BITWISE_AND); }
+  bool isBitWiseAND() const { return (ThisType == BITWISE_AND); }
 
-  bool isMax() const { return (m_Type == MAX); }
+  bool isMax() const { return (ThisType == MAX); }
 
-  bool isMin() const { return (m_Type == MIN); }
+  bool isMin() const { return (ThisType == MIN); }
 
-  bool isFill() const { return (m_Type == FILL); }
+  bool isFill() const { return (ThisType == FILL); }
 
-  bool isLog2Ceil() const { return (m_Type == LOG2CEIL); }
+  bool isLog2Ceil() const { return (ThisType == LOG2CEIL); }
 
-  bool isLogicalAnd() const { return (m_Type == LOGICAL_AND); }
+  bool isLogicalAnd() const { return (ThisType == LOGICAL_AND); }
 
-  bool isLogicalOR() const { return (m_Type == LOGICAL_OR); }
+  bool isLogicalOR() const { return (ThisType == LOGICAL_OR); }
 
-  bool isOrigin() const { return (m_Type == ORIGIN); }
+  bool isOrigin() const { return (ThisType == ORIGIN); }
 
-  bool isLength() const { return (m_Type == LENGTH); }
+  bool isLength() const { return (ThisType == LENGTH); }
 
   /// evaluateAndReturnError
   /// \brief Evaluate the expression, commit and return the value when
@@ -214,42 +214,42 @@ private:
   virtual eld::Expected<uint64_t> evalImpl() = 0;
 
   static std::unique_ptr<plugin::DiagnosticEntry>
-  AddContextToDiagEntry(std::unique_ptr<plugin::DiagnosticEntry>,
+  addContextToDiagEntry(std::unique_ptr<plugin::DiagnosticEntry>,
                         const std::string &Context);
 
 public:
-  const std::string &getContext() const { return m_Context; }
+  const std::string &getContext() const { return MContext; }
 
   void setContext(const std::string &Context);
 
-  void setContextRecursively(const std::string &context);
+  void setContextRecursively(const std::string &Context);
 
   /// getSymbols
   /// \brief The symbols that the expression refers to will be returned from
   ///        function.
   virtual void getSymbols(std::vector<ResolveInfo *> &Symbols) = 0;
   virtual void
-  getSymbolNames(std::unordered_set<std::string> &symbolTokens) = 0;
+  getSymbolNames(std::unordered_set<std::string> &SymbolTokens) = 0;
 
   /// commit
   /// \brief commit should commit the m_Eval to m_Result and also invoke any
   ///        commits for sub expressions that may be present.
-  virtual void commit() { m_Result = m_Eval; }
+  virtual void commit() { MResult = EvaluatedValue; }
 
   /// dump
   /// \brief print a formatted string for each expression.
-  virtual void dump(llvm::raw_ostream &outs, bool showValues = true) const = 0;
+  virtual void dump(llvm::raw_ostream &Outs, bool ShowValues = true) const = 0;
 
   uint64_t result() const;
-  const std::string &name() const { return m_Name; }
-  Type type() const { return m_Type; }
-  Type getType() const { return m_Type; }
+  const std::string &name() const { return Name; }
+  Type type() const { return ThisType; }
+  Type getType() const { return ThisType; }
 
-  void setParen() { m_Paren = true; }
+  void setParen() { ExpressionHasParenthesis = true; }
 
-  void setAssign() { m_Assign = true; }
+  void setAssign() { ExpressionIsAssignment = true; }
 
-  bool hasAssign() const { return m_Assign; }
+  bool hasAssign() const { return ExpressionIsAssignment; }
 
   // Get left side expression to get name and result.
   // Return nullptr when left and right expressions are not available.
@@ -269,24 +269,24 @@ public:
   // Get the assignment sign
   virtual std::string getAssignStr() const {
     if (hasAssign())
-      return m_Name + "=";
+      return Name + "=";
     return "=";
   }
 
 protected:
-  std::string m_Name; /// string representation of the expression
-  Type m_Type;        /// type of expression which is being evaluated
-  Module &m_Module;   /// pointer to Module to be used for evaluation purposes.
-  GNULDBackend &m_Backend; /// pointer to Target Backend for target data
-  bool m_Paren = false;
-  bool m_Assign =
+  std::string Name;   /// string representation of the expression
+  Type ThisType;      /// type of expression which is being evaluated
+  Module &ThisModule; /// pointer to Module to be used for evaluation purposes.
+  GNULDBackend &ThisBackend; /// pointer to Target Backend for target data
+  bool ExpressionHasParenthesis = false;
+  bool ExpressionIsAssignment =
       false; /// Is this expression an assignment like +=/-=/*= etc..
   // TODO: remove this and return the value from commit?
-  std::string m_Context; // context is only set in the outermost expression
-  std::optional<uint64_t> m_Result; /// committed result from the evaluation
+  std::string MContext; // context is only set in the outermost expression
+  std::optional<uint64_t> MResult; /// committed result from the evaluation
 
 private:
-  uint64_t m_Eval; /// temporary assignment to hold evaluation result
+  uint64_t EvaluatedValue; /// temporary assignment to hold evaluation result
 };
 
 /** \class Symbol
@@ -301,15 +301,15 @@ public:
 
 private:
   bool hasDot() const override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   /// Returns a set of all the symbol names contained in the expression.
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  mutable LDSymbol *m_Symbol = nullptr;
+  mutable LDSymbol *ThisSymbol = nullptr;
 };
 
 //===----------------------------------------------------------------------===//
@@ -321,21 +321,21 @@ public:
   Integer(Module &Module, GNULDBackend &Backend, std::string Name,
           uint64_t Value)
       : Expression(Name, Expression::INTEGER, Module, Backend, Value),
-        m_Value(Value) {}
+        ExpressionValue(Value) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isInteger(); }
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  const uint64_t m_Value;
+  const uint64_t ExpressionValue;
 };
 
 //===----------------------------------------------------------------------===//
@@ -346,8 +346,8 @@ class Add : public Expression {
 public:
   Add(Module &Module, GNULDBackend &Backend, Expression &Left,
       Expression &Right)
-      : Expression("+", Expression::ADD, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("+", Expression::ADD, Module, Backend), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isAdd(); }
@@ -355,15 +355,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -374,8 +374,8 @@ class Subtract : public Expression {
 public:
   Subtract(Module &Module, GNULDBackend &Backend, Expression &Left,
            Expression &Right)
-      : Expression("-", Expression::SUBTRACT, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("-", Expression::SUBTRACT, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isSubtract(); }
@@ -383,15 +383,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -402,8 +402,8 @@ class Modulo : public Expression {
 public:
   Modulo(Module &Module, GNULDBackend &Backend, Expression &Left,
          Expression &Right)
-      : Expression("%", Expression::MODULO, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("%", Expression::MODULO, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isModulo(); }
@@ -411,15 +411,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -430,8 +430,8 @@ class Multiply : public Expression {
 public:
   Multiply(Module &Module, GNULDBackend &Backend, Expression &Left,
            Expression &Right)
-      : Expression("*", Expression::MULTIPLY, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("*", Expression::MULTIPLY, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isMultiply(); }
@@ -439,15 +439,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -458,8 +458,8 @@ class Divide : public Expression {
 public:
   Divide(Module &Module, GNULDBackend &Backend, Expression &Left,
          Expression &Right)
-      : Expression("/", Expression::DIVIDE, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("/", Expression::DIVIDE, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isDivide(); }
@@ -467,15 +467,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -491,14 +491,14 @@ public:
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  ELFSection *m_Sect; /// the section size which should be evaluated.
+  ELFSection *ThisSection; /// the section size which should be evaluated.
 };
 
 //===----------------------------------------------------------------------===//
@@ -514,10 +514,10 @@ public:
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 };
@@ -529,24 +529,24 @@ class OffsetOf : public Expression {
 public:
   OffsetOf(Module &Module, GNULDBackend &Backend, std::string Name)
       : Expression(Name, Expression::OFFSETOF, Module, Backend),
-        m_Sect(nullptr) {}
+        ThisSection(nullptr) {}
   OffsetOf(Module &Module, GNULDBackend &Backend, ELFSection *Sect)
       : Expression(Sect->name().str(), Expression::OFFSETOF, Module, Backend),
-        m_Sect(Sect) {}
+        ThisSection(Sect) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isOffsetOf(); }
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  ELFSection *m_Sect; /// the section size which should be evaluated.
+  ELFSection *ThisSection; /// the section size which should be evaluated.
 };
 
 //===----------------------------------------------------------------------===//
@@ -556,21 +556,22 @@ private:
 class Addr : public Expression {
 public:
   Addr(Module &Module, GNULDBackend &Backend, std::string Name)
-      : Expression(Name, Expression::ADDR, Module, Backend), m_Sect(nullptr) {}
+      : Expression(Name, Expression::ADDR, Module, Backend),
+        ThisSection(nullptr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isAddr(); }
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  ELFSection *m_Sect; /// the section addr which should be evaluated.
+  ELFSection *ThisSection; /// the section addr which should be evaluated.
 };
 
 //===----------------------------------------------------------------------===//
@@ -586,15 +587,15 @@ public:
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  ELFSection *m_Sect; /// the section addr which should be evaluated.
-  bool m_ForwardReference;
+  ELFSection *ThisSection; /// the section addr which should be evaluated.
+  bool ForwardReference;
 };
 //===----------------------------------------------------------------------===//
 /** \class AlignExpr
@@ -604,8 +605,8 @@ class AlignExpr : public Expression {
 public:
   AlignExpr(Module &Module, GNULDBackend &Backend, const std::string &Context,
             Expression &Align, Expression &Expr)
-      : Expression("ALIGN", Expression::ALIGN, Module, Backend), m_Align(Align),
-        m_Expr(Expr) {
+      : Expression("ALIGN", Expression::ALIGN, Module, Backend),
+        AlignmentExpression(Align), ExpressionToEvaluate(Expr) {
     setContext(Context);
   }
 
@@ -615,15 +616,20 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Expr; }
-  Expression *getRightExpression() const override { return &m_Align; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override {
+    return &ExpressionToEvaluate;
+  }
+  Expression *getRightExpression() const override {
+    return &AlignmentExpression;
+  }
 
-  Expression &m_Align; /// represents the alignment value
-  Expression &m_Expr;  /// represents the dot or expression to be aligned
+  Expression &AlignmentExpression; /// represents the alignment value
+  Expression
+      &ExpressionToEvaluate; /// represents the dot or expression to be aligned
 };
 
 //===----------------------------------------------------------------------===//
@@ -634,24 +640,24 @@ class AlignOf : public Expression {
 public:
   AlignOf(Module &Module, GNULDBackend &Backend, std::string Name)
       : Expression(Name, Expression::ALIGNOF, Module, Backend),
-        m_Sect(nullptr) {}
+        ThisSection(nullptr) {}
   AlignOf(Module &Module, GNULDBackend &Backend, ELFSection *Sect)
       : Expression(Sect->name().str(), Expression::ALIGNOF, Module, Backend),
-        m_Sect(Sect) {}
+        ThisSection(Sect) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isAlignOf(); }
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 
-  ELFSection *m_Sect; /// represents the section alignment to return
+  ELFSection *ThisSection; /// represents the section alignment to return
 };
 
 //===----------------------------------------------------------------------===//
@@ -660,9 +666,9 @@ private:
  */
 class Absolute : public Expression {
 public:
-  Absolute(Module &Module, GNULDBackend &Backend, Expression &expr)
+  Absolute(Module &Module, GNULDBackend &Backend, Expression &Expr)
       : Expression("ABSOLUTE", Expression::ABSOLUTE, Module, Backend),
-        m_Expr(expr) {}
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isAbsolute(); }
@@ -670,14 +676,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr;
+  Expression &ExpressionToEvaluate;
 };
 
 //===----------------------------------------------------------------------===//
@@ -688,27 +696,29 @@ class Ternary : public Expression {
 public:
   Ternary(Module &Module, GNULDBackend &Backend, Expression &Cond,
           Expression &Left, Expression &Right)
-      : Expression("?", Expression::TERNARY, Module, Backend), m_Cond(Cond),
-        m_Left(Left), m_Right(Right) {}
+      : Expression("?", Expression::TERNARY, Module, Backend),
+        ConditionExpression(Cond), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isTernary(); }
 
-  Expression *getConditionalExpression() const { return &m_Cond; }
+  Expression *getConditionalExpression() const { return &ConditionExpression; }
 
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Cond; /// represents the conditional expression to be evaluated.
-  Expression &m_Left; /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &ConditionExpression; /// represents the conditional expression to
+                                   /// be evaluated.
+  Expression &LeftExpression;      /// represents the left hand expression.
+  Expression &RightExpression;     /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -719,8 +729,8 @@ class ConditionGT : public Expression {
 public:
   ConditionGT(Module &Module, GNULDBackend &Backend, Expression &Left,
               Expression &Right)
-      : Expression(">", Expression::GT, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression(">", Expression::GT, Module, Backend), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isGreater(); }
@@ -728,15 +738,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &LeftExpression;  /// represents the left hand expression.
+  Expression &RightExpression; /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -747,8 +757,8 @@ class ConditionLT : public Expression {
 public:
   ConditionLT(Module &Module, GNULDBackend &Backend, Expression &Left,
               Expression &Right)
-      : Expression("<", Expression::LT, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("<", Expression::LT, Module, Backend), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isLessThan(); }
@@ -756,15 +766,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &LeftExpression;  /// represents the left hand expression.
+  Expression &RightExpression; /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -775,8 +785,8 @@ class ConditionEQ : public Expression {
 public:
   ConditionEQ(Module &Module, GNULDBackend &Backend, Expression &Left,
               Expression &Right)
-      : Expression("==", Expression::EQ, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("==", Expression::EQ, Module, Backend), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isEqual(); }
@@ -784,15 +794,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &LeftExpression;  /// represents the left hand expression.
+  Expression &RightExpression; /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -803,8 +813,8 @@ class ConditionGTE : public Expression {
 public:
   ConditionGTE(Module &Module, GNULDBackend &Backend, Expression &Left,
                Expression &Right)
-      : Expression(">=", Expression::GTE, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression(">=", Expression::GTE, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -814,15 +824,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &LeftExpression;  /// represents the left hand expression.
+  Expression &RightExpression; /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -833,8 +843,8 @@ class ConditionLTE : public Expression {
 public:
   ConditionLTE(Module &Module, GNULDBackend &Backend, Expression &Left,
                Expression &Right)
-      : Expression("<=", Expression::LTE, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("<=", Expression::LTE, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -844,15 +854,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &LeftExpression;  /// represents the left hand expression.
+  Expression &RightExpression; /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -863,8 +873,8 @@ class ConditionNEQ : public Expression {
 public:
   ConditionNEQ(Module &Module, GNULDBackend &Backend, Expression &Left,
                Expression &Right)
-      : Expression("!=", Expression::NEQ, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("!=", Expression::NEQ, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isNotEqual(); }
@@ -872,15 +882,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand expression.
-  Expression &m_Right; /// represents the right hand expression.
+  Expression &LeftExpression;  /// represents the left hand expression.
+  Expression &RightExpression; /// represents the right hand expression.
 };
 
 //===----------------------------------------------------------------------===//
@@ -890,7 +900,8 @@ private:
 class Complement : public Expression {
 public:
   Complement(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("~", Expression::COM, Module, Backend), m_Expr(Expr) {}
+      : Expression("~", Expression::COM, Module, Backend),
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isComplement(); }
@@ -898,14 +909,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to complement
+  Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 
 //===----------------------------------------------------------------------===//
@@ -915,8 +928,8 @@ private:
 class UnaryPlus : public Expression {
 public:
   UnaryPlus(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("+", Expression::UNARYMINUS, Module, Backend), m_Expr(Expr) {
-  }
+      : Expression("+", Expression::UNARYMINUS, Module, Backend),
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isUnaryPlus(); }
@@ -924,14 +937,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to complement
+  Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 
 //===----------------------------------------------------------------------===//
@@ -941,8 +956,8 @@ private:
 class UnaryMinus : public Expression {
 public:
   UnaryMinus(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("-", Expression::UNARYMINUS, Module, Backend), m_Expr(Expr) {
-  }
+      : Expression("-", Expression::UNARYMINUS, Module, Backend),
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isUnaryMinus(); }
@@ -950,14 +965,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to complement
+  Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 
 //===----------------------------------------------------------------------===//
@@ -967,7 +984,8 @@ private:
 class UnaryNot : public Expression {
 public:
   UnaryNot(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("~", Expression::UNARYNOT, Module, Backend), m_Expr(Expr) {}
+      : Expression("~", Expression::UNARYNOT, Module, Backend),
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isUnaryNot(); }
@@ -975,14 +993,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to complement
+  Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 //===----------------------------------------------------------------------===//
 /** \class Constant
@@ -1000,10 +1020,10 @@ public:
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 };
@@ -1017,25 +1037,27 @@ public:
   SegmentStart(Module &Module, GNULDBackend &Backend, std::string Segment,
                Expression &Expr)
       : Expression("SEGMENT_START", Expression::SEGMENT_START, Module, Backend),
-        m_Segment(Segment), m_Expr(Expr) {}
+        SegmentName(Segment), ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isSegmentStart(); }
 
-  const std::string &getSegmentString() const { return m_Segment; }
+  const std::string &getSegmentString() const { return SegmentName; }
 
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  std::string m_Segment;
-  Expression &m_Expr;
+  std::string SegmentName;
+  Expression &ExpressionToEvaluate;
 };
 
 //===----------------------------------------------------------------------===//
@@ -1046,26 +1068,28 @@ class AssertCmd : public Expression {
 public:
   AssertCmd(Module &Module, GNULDBackend &Backend, std::string Msg,
             Expression &Expr)
-      : Expression("ASSERT", Expression::ASSERT, Module, Backend), m_Expr(Expr),
-        m_Msg(Msg) {}
+      : Expression("ASSERT", Expression::ASSERT, Module, Backend),
+        ExpressionToEvaluate(Expr), AssertionMessage(Msg) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isAssert(); }
 
-  const std::string &getAssertString() const { return m_Msg; }
+  const std::string &getAssertString() const { return AssertionMessage; }
 
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to evaluate
-  std::string m_Msg;  /// represents the message to print if we assert
+  Expression &ExpressionToEvaluate; /// represents the expression to evaluate
+  std::string AssertionMessage; /// represents the message to print if we assert
 };
 
 /** \class RightShift
@@ -1075,8 +1099,8 @@ class RightShift : public Expression {
 public:
   RightShift(Module &Module, GNULDBackend &Backend, Expression &Left,
              Expression &Right)
-      : Expression(">>", Expression::BITWISE_RS, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression(">>", Expression::BITWISE_RS, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1086,15 +1110,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1105,8 +1129,8 @@ class LeftShift : public Expression {
 public:
   LeftShift(Module &Module, GNULDBackend &Backend, Expression &Left,
             Expression &Right)
-      : Expression("<<", Expression::BITWISE_LS, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("<<", Expression::BITWISE_LS, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1116,15 +1140,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1135,8 +1159,8 @@ class BitwiseOr : public Expression {
 public:
   BitwiseOr(Module &Module, GNULDBackend &Backend, Expression &Left,
             Expression &Right)
-      : Expression("|", Expression::BITWISE_OR, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("|", Expression::BITWISE_OR, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isBitWiseOR(); }
@@ -1144,15 +1168,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1163,8 +1187,8 @@ class BitwiseAnd : public Expression {
 public:
   BitwiseAnd(Module &Module, GNULDBackend &Backend, Expression &Left,
              Expression &Right)
-      : Expression("&", Expression::BITWISE_AND, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("&", Expression::BITWISE_AND, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isBitWiseAND(); }
@@ -1172,15 +1196,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1197,10 +1221,10 @@ public:
 
 private:
   bool hasDot() const override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 };
@@ -1215,7 +1239,7 @@ public:
                    Expression &MaxPageSize, Expression &CommonPageSize)
       : Expression("DATA_SEGMENT_ALIGN", Expression::DATA_SEGMENT_ALIGN, Module,
                    Backend),
-        m_maxPageSize(MaxPageSize), m_commonPageSize(CommonPageSize) {}
+        MaxPageSize(MaxPageSize), CommonPageSize(CommonPageSize) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1225,15 +1249,15 @@ public:
 private:
   bool hasDot() const override { return false; }
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_maxPageSize; }
-  Expression *getRightExpression() const override { return &m_commonPageSize; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &MaxPageSize; }
+  Expression *getRightExpression() const override { return &CommonPageSize; }
 
-  Expression &m_maxPageSize;    /// represents the max page size
-  Expression &m_commonPageSize; /// represents the common page size
+  Expression &MaxPageSize;    /// represents the max page size
+  Expression &CommonPageSize; /// represents the common page size
 };
 
 //===----------------------------------------------------------------------===//
@@ -1247,9 +1271,9 @@ public:
                       Expression &Expr2)
       : Expression("DATA_SEGMENT_RELRO_END", Expression::DATA_SEGMENT_RELRO_END,
                    Module, Backend),
-        m_Expr1(Expr1), m_Expr2(Expr2),
-        m_commonPageSize(*make<Constant>(Module, Backend, "COMMONPAGESIZE",
-                                         Expression::COMMONPAGESIZE)) {}
+        LeftExpression(Expr1), RightExpression(Expr2),
+        CommonPageSize(*make<Constant>(Module, Backend, "COMMONPAGESIZE",
+                                       Expression::COMMONPAGESIZE)) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1259,17 +1283,17 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Expr1; }
-  Expression *getRightExpression() const override { return &m_Expr2; }
-  Expression *getCommonPageSizeExpression() const { return &m_commonPageSize; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
+  Expression *getCommonPageSizeExpression() const { return &CommonPageSize; }
 
-  Expression &m_Expr1;        /// represents the expression to be added
-  Expression &m_Expr2;        /// represents the expression to be added
-  Constant &m_commonPageSize; /// represents the common page size
+  Expression &LeftExpression;  /// represents the expression to be added
+  Expression &RightExpression; /// represents the expression to be added
+  Constant &CommonPageSize;    /// represents the common page size
 };
 
 //===----------------------------------------------------------------------===//
@@ -1281,7 +1305,7 @@ public:
   DataSegmentEnd(Module &Module, GNULDBackend &Backend, Expression &Expr)
       : Expression("DATA_SEGMENT_END", Expression::DATA_SEGMENT_END, Module,
                    Backend),
-        m_Expr(Expr) {}
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isDataSegmentEnd(); }
@@ -1289,14 +1313,17 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to be evaluated
+  Expression
+      &ExpressionToEvaluate; /// represents the expression to be evaluated
 };
 
 //===----------------------------------------------------------------------===//
@@ -1307,8 +1334,8 @@ class Max : public Expression {
 public:
   Max(Module &Module, GNULDBackend &Backend, Expression &Left,
       Expression &Right)
-      : Expression("MAX", Expression::MAX, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("MAX", Expression::MAX, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isMax(); }
@@ -1316,15 +1343,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1335,8 +1362,8 @@ class Min : public Expression {
 public:
   Min(Module &Module, GNULDBackend &Backend, Expression &Left,
       Expression &Right)
-      : Expression("MIN", Expression::MIN, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("MIN", Expression::MIN, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isMin(); }
@@ -1344,15 +1371,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 /** \class Fill
@@ -1360,8 +1387,9 @@ private:
  */
 class Fill : public Expression {
 public:
-  Fill(Module &Module, GNULDBackend &Backend, Expression &expr)
-      : Expression("FILL", Expression::FILL, Module, Backend), m_Expr(expr) {}
+  Fill(Module &Module, GNULDBackend &Backend, Expression &Expr)
+      : Expression("FILL", Expression::FILL, Module, Backend),
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isFill(); }
@@ -1369,14 +1397,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the left hand operand.
+  Expression &ExpressionToEvaluate; /// represents the left hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1387,7 +1417,7 @@ class Log2Ceil : public Expression {
 public:
   Log2Ceil(Module &Module, GNULDBackend &Backend, Expression &Expr)
       : Expression("LOG2CEIL", Expression::LOG2CEIL, Module, Backend),
-        m_Expr(Expr) {}
+        ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isLog2Ceil(); }
@@ -1395,14 +1425,16 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
-  Expression *getRightExpression() const override { return &m_Expr; }
+  Expression *getRightExpression() const override {
+    return &ExpressionToEvaluate;
+  }
 
-  Expression &m_Expr; /// represents the expression to complement
+  Expression &ExpressionToEvaluate; /// represents the expression to complement
 };
 
 //===----------------------------------------------------------------------===//
@@ -1413,8 +1445,8 @@ class LogicalOp : public Expression {
 public:
   LogicalOp(Expression::Type Type, Module &Module, GNULDBackend &Backend,
             Expression &Left, Expression &Right)
-      : Expression("LogicalOperator", Type, Module, Backend), m_Left(Left),
-        m_Right(Right) {}
+      : Expression("LogicalOperator", Type, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1424,15 +1456,15 @@ public:
 private:
   bool hasDot() const override;
   void commit() override;
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
-  Expression *getLeftExpression() const override { return &m_Left; }
-  Expression *getRightExpression() const override { return &m_Right; }
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
 
-  Expression &m_Left;  /// represents the left hand operand.
-  Expression &m_Right; /// represents the right hand operand.
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
 };
 
 //===----------------------------------------------------------------------===//
@@ -1452,17 +1484,17 @@ public:
 
 private:
   bool hasDot() const override { return false; }
-  void dump(llvm::raw_ostream &outs, bool withValues = true) const override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
   eld::Expected<uint64_t> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
-  void getSymbolNames(std::unordered_set<std::string> &symbolTokens) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
   Expression *getRightExpression() const override { return nullptr; }
 };
 
-inline void alignAddress(uint64_t &pAddr, uint64_t pAlignConstraint) {
-  if (pAlignConstraint != 0)
-    pAddr = (pAddr + pAlignConstraint - 1) & ~(pAlignConstraint - 1);
+inline void alignAddress(uint64_t &PAddr, uint64_t AlignConstraint) {
+  if (AlignConstraint != 0)
+    PAddr = (PAddr + AlignConstraint - 1) & ~(AlignConstraint - 1);
 }
 
 } // namespace eld

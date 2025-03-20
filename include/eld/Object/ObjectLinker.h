@@ -66,9 +66,9 @@ class ScriptReader;
  */
 class ObjectLinker {
 public:
-  ObjectLinker(LinkerConfig &pConfig, GNULDBackend &pLDBackend);
+  ObjectLinker(LinkerConfig &PConfig, GNULDBackend &PLdBackend);
 
-  bool initialize(Module &pModule, eld::IRBuilder &pBuilder);
+  bool initialize(Module &PModule, eld::IRBuilder &PBuilder);
 
   void close();
 
@@ -79,7 +79,7 @@ public:
   bool normalize();
 
   // process the input file.
-  bool readAndProcessInput(Input *input, bool isPostLTO);
+  bool readAndProcessInput(Input *Input, bool IsPostLto);
 
   void parseDynList();
 
@@ -162,9 +162,9 @@ public:
   bool addDynListSymbols();
 
   /// scanRelocations - scan all relocation entries by output symbols.
-  bool scanRelocations(bool isPartialLink = false);
+  bool scanRelocations(bool IsPartialLink = false);
 
-  void scanRelocationsHelper(InputFile *input, bool isPartialLink,
+  void scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
                              LinkerScript::PluginVectorT PluginVect,
                              Relocator::CopyRelocs &);
 
@@ -199,7 +199,7 @@ public:
   /// Create relocation section, asking GNULDBackend to
   /// read the relocation information into RelocationEntry
   /// and push_back into the relocation section
-  bool relocation(bool emitRelocs);
+  bool relocation(bool EmitRelocs);
 
   /// finalizeSymbolValue - finalize the symbol value for symbols
   /// originating from object files.
@@ -209,58 +209,56 @@ public:
   void finalizeSymbolValue(ResolveInfo *I) const;
 
   /// emitOutput - emit the output file.
-  bool emitOutput(llvm::FileOutputBuffer &pOutput);
+  bool emitOutput(llvm::FileOutputBuffer &POutput);
 
   /// postProcessing - do modificatiion after all processes
-  eld::Expected<void> postProcessing(llvm::FileOutputBuffer &pOutput);
+  eld::Expected<void> postProcessing(llvm::FileOutputBuffer &POutput);
 
   // -----  readers and writers  ----- //
-  ELFRelocObjParser *getNewRelocObjParser() const {
-    return m_NewRelocObjParser;
-  }
+  ELFRelocObjParser *getRelocObjParser() const { return RelocObjParser; }
 
-  ELFExecObjParser *getELFExecObjParser() const { return m_ELFExecObjParser; }
+  ELFExecObjParser *getELFExecObjParser() const { return ELFExecObjParser; }
 
-  BinaryFileParser *getBinaryFileParser() const { return m_BinaryFileParser; }
+  BinaryFileParser *getBinaryFileParser() const { return BinaryFileParser; }
 
-  ELFDynObjParser *getNewDynObjReader() const { return m_NewDynObjReader; }
+  ELFDynObjParser *getNewDynObjReader() const { return DynObjReader; }
 
-  ArchiveParser *getArchiveParser() const { return m_ArchiveParser; }
+  ArchiveParser *getArchiveParser() const { return ArchiveParser; }
 
-  GroupReader *getGroupReader() const { return m_pGroupReader; }
+  GroupReader *getGroupReader() const { return GroupReader; }
 
-  ScriptReader *getScriptReader() const { return m_pScriptReader; }
+  ScriptReader *getScriptReader() const { return ScriptReader; }
 
-  BitcodeReader *getBitcodeReader() const { return m_pBitcodeReader; }
+  BitcodeReader *getBitcodeReader() const { return MPBitcodeReader; }
 
-  ObjectReader *getSymDefReader() const { return m_pSymDefReader; }
+  ObjectReader *getSymDefReader() const { return SymDefReader; }
 
-  ELFObjectWriter *getWriter() const { return m_pWriter; }
+  ELFObjectWriter *getWriter() const { return ObjWriter; }
 
   /// LTO specific methods
   void setLTOPlugin(plugin::LinkerPlugin &LTOPlugin);
   bool createLTOObject();
-  bool runAssembler(std::vector<std::string> &files, std::string RelocModel,
-                    const std::vector<std::string> &asmFilesFromLTO);
+  bool runAssembler(std::vector<std::string> &Files, std::string RelocModel,
+                    const std::vector<std::string> &AsmFilesFromLto);
   void beginPostLTO();
 
-  const GNULDBackend &getTargetBackend() const { return m_LDBackend; }
-  GNULDBackend &getTargetBackend() { return m_LDBackend; }
+  const GNULDBackend &getTargetBackend() const { return ThisBackend; }
+  GNULDBackend &getTargetBackend() { return ThisBackend; }
 
-  void assignOutputSections(std::vector<eld::InputFile *> &inputs);
+  void assignOutputSections(std::vector<eld::InputFile *> &Inputs);
 
   // Sync Relocations.
-  void syncRelocations(uint8_t *buffer);
+  void syncRelocations(uint8_t *Buffer);
 
-  void syncRelocationResult(uint8_t *data, InputFile *input);
+  void syncRelocationResult(uint8_t *Data, InputFile *Input);
 
-  bool mergeInputSections(ObjectBuilder &builder,
-                          std::vector<Section *> &sections);
+  bool mergeInputSections(ObjectBuilder &Builder,
+                          std::vector<Section *> &Sections);
 
-  bool mayBeSortSections(std::vector<Section *> &sections);
+  bool mayBeSortSections(std::vector<Section *> &Sections);
 
-  bool createOutputSection(ObjectBuilder &builder, OutputSectionEntry *output,
-                           bool postLayout = false);
+  bool createOutputSection(ObjectBuilder &Builder, OutputSectionEntry *Output,
+                           bool PostLayout = false);
 
   // For sections inside ELFFileFormat
   void markDiscardFileFormatSections();
@@ -286,7 +284,7 @@ public:
 
   bool readInputs(const std::vector<Node *> &N);
 
-  bool getInputs(std::vector<InputFile *> &inputs);
+  bool getInputs(std::vector<InputFile *> &Inputs);
 
   // ---------------------SectionIterator Plugin Support ------------------
   bool runSectionIteratorPlugin();
@@ -319,8 +317,8 @@ public:
     return AllInputSections;
   }
 
-  void addInputSection(Section *inputSection) {
-    AllInputSections.push_back(inputSection);
+  void addInputSection(Section *InputSection) {
+    AllInputSections.push_back(InputSection);
   }
 
   // -------------------------Backend input processing -------------
@@ -331,16 +329,16 @@ public:
                                       uint32_t Alignment);
 
   // --------------------Export LTO Phase --------------------------
-  bool isPostLTOPhase() const { return m_postLTOPhase; }
+  bool isPostLTOPhase() const { return MPostLtoPhase; }
 
   struct SymbolStats {
-    uint64_t global = 0;
-    uint64_t local = 0;
-    uint64_t weak = 0;
-    uint64_t hidden = 0;
-    uint64_t absolute = 0;
-    uint64_t protectedSyms = 0;
-    uint64_t file = 0;
+    uint64_t Global = 0;
+    uint64_t Local = 0;
+    uint64_t Weak = 0;
+    uint64_t Hidden = 0;
+    uint64_t Absolute = 0;
+    uint64_t ProtectedSyms = 0;
+    uint64_t File = 0;
   };
 
   const SymbolStats &getTotalSymbolStats() const;
@@ -351,42 +349,42 @@ public:
   void collectEntrySections() const;
 
   const ArchiveFile *
-  getArchiveFileFromMemoryAreaToAFMap(const MemoryArea *memArea) const {
-    auto iter = m_MemoryAreaToArchiveFileMap.find(memArea);
-    if (iter == m_MemoryAreaToArchiveFileMap.end())
+  getArchiveFileFromMemoryAreaToAFMap(const MemoryArea *MemArea) const {
+    auto Iter = MMemoryAreaToArchiveFileMap.find(MemArea);
+    if (Iter == MMemoryAreaToArchiveFileMap.end())
       return nullptr;
-    return iter->second;
+    return Iter->second;
   }
 
   void addToMemoryAreaToAFMap(const ArchiveFile &AF) {
-    const MemoryArea *memArea = AF.getInput()->getMemArea();
-    m_MemoryAreaToArchiveFileMap[memArea] = &AF;
+    const MemoryArea *MemArea = AF.getInput()->getMemArea();
+    MMemoryAreaToArchiveFileMap[MemArea] = &AF;
   }
 
 private:
-  std::unique_ptr<llvm::lto::LTO> LTOInit(llvm::lto::Config Conf);
+  std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf);
 
   bool
-  FinalizeLTOSymbolResolution(llvm::lto::LTO &LTO,
-                              const std::vector<BitcodeFile *> &bitCodeFiles);
+  finalizeLtoSymbolResolution(llvm::lto::LTO &LTO,
+                              const std::vector<BitcodeFile *> &BitCodeFiles);
 
-  bool DoLTO(llvm::lto::LTO &LTO);
+  bool doLto(llvm::lto::LTO &LTO);
 
   /// writeRelocationResult - helper function of syncRelocationResult, write
   /// relocation target data to output
-  void writeRelocationResult(Relocation &pReloc, uint8_t *pOutput);
+  void writeRelocationResult(Relocation &PReloc, uint8_t *POutput);
 
   /// writeRelocationData - another helper to write relocation data into the
   /// output
-  void writeRelocationData(Relocation &pReloc, uint64_t Data, uint8_t *pOutput);
+  void writeRelocationData(Relocation &PReloc, uint64_t Data, uint8_t *POutput);
 
   /// addSymbolToOutput - add a symbol to output symbol table if it's not a
   /// section symbol and not defined in the discarded section
-  bool addSymbolToOutput(const ResolveInfo &pInfo) const;
+  bool addSymbolToOutput(const ResolveInfo &PInfo) const;
 
   bool insertPostLTOELF();
 
-  size_t getRelocSectSize(uint32_t type, uint32_t count);
+  size_t getRelocSectSize(uint32_t Type, uint32_t Count);
 
   std::pair<std::optional<llvm::Reloc::Model>, std::string>
   ltoCodegenModel() const;
@@ -408,7 +406,7 @@ private:
   // ------------------ exclude-lto-filelist, include-lto-filelist --------
   bool parseIncludeOrExcludeLTOfiles();
 
-  bool DoVerifyPlugin(plugin::Plugin *P);
+  bool doVerifyPlugin(plugin::Plugin *P);
 
   bool mayBeAddSectionSymbol(ELFSection *S);
 
@@ -419,20 +417,20 @@ private:
                     llvm::SmallString<256> &FileName) const;
 
   /// Adds input files to outputTar if --reproduce option is used
-  void addInputFileToTar(InputFile *ipt, MappingFile::Kind K);
+  void addInputFileToTar(InputFile *Ipt, MappingFile::Kind K);
 
-  void addInputFileToTar(const std::string &name, MappingFile::Kind kind);
+  void addInputFileToTar(const std::string &Name, MappingFile::Kind Kind);
 
   void addLTOOutputToTar();
 
-  void addTempFilesToTar(size_t maxTasks);
+  void addTempFilesToTar(size_t MaxTasks);
 
   // ---------------------extern-list, other extern list files parsing----------
   bool parseListFile(std::string File, uint32_t Type);
 
   void createCopyRelocation(ResolveInfo &Sym, Relocation::Type Type);
 
-  void accountSymForSymStats(SymbolStats &symbolStats, const ResolveInfo &RI);
+  void accountSymForSymStats(SymbolStats &SymbolStats, const ResolveInfo &RI);
 
   void accountSymForTotalSymStats(const ResolveInfo &RI);
 
@@ -456,43 +454,43 @@ private:
   void finalizeOutputSectionFlags(OutputSectionEntry *OSE) const;
 
 private:
-  LinkerConfig &m_Config;
-  Module *m_pModule;
-  eld::IRBuilder *m_pBuilder;
+  LinkerConfig &ThisConfig;
+  Module *ThisModule;
+  eld::IRBuilder *CurBuilder;
 
-  GNULDBackend &m_LDBackend;
+  GNULDBackend &ThisBackend;
 
   // -----  readers and writers  ----- //
-  ELFRelocObjParser *m_NewRelocObjParser = nullptr;
-  ELFDynObjParser *m_NewDynObjReader = nullptr;
-  ArchiveParser *m_ArchiveParser = nullptr;
-  ELFExecObjParser *m_ELFExecObjParser = nullptr;
-  BinaryFileParser *m_BinaryFileParser = nullptr;
-  GroupReader *m_pGroupReader;
-  ScriptReader *m_pScriptReader;
-  ELFObjectWriter *m_pWriter;
-  BitcodeReader *m_pBitcodeReader;
-  ObjectReader *m_pSymDefReader;
-  llvm::StringSet<> m_DynlistExports;
+  ELFRelocObjParser *RelocObjParser = nullptr;
+  ELFDynObjParser *DynObjReader = nullptr;
+  ArchiveParser *ArchiveParser = nullptr;
+  ELFExecObjParser *ELFExecObjParser = nullptr;
+  BinaryFileParser *BinaryFileParser = nullptr;
+  GroupReader *GroupReader;
+  ScriptReader *ScriptReader;
+  ELFObjectWriter *ObjWriter;
+  BitcodeReader *MPBitcodeReader;
+  ObjectReader *SymDefReader;
+  llvm::StringSet<> MDynlistExports;
 
   // Is this the second phase of normalize for LTO
-  bool m_postLTOPhase;
+  bool MPostLtoPhase;
 
   // Set to true once any GC pass has run. Used to know if shouldIgnore() on
   // a symbol is meaningful.
-  bool m_GCHasRun = false;
+  bool MGcHasRun = false;
 
-  bool m_SaveTemps;
+  bool MSaveTemps;
 
-  bool m_TraceLTO;
+  bool MTraceLTO;
 
-  std::string m_LTOTempPrefix;
+  std::string MLtoTempPrefix;
 
   // Paths of all generated LTO objects
-  std::vector<std::string> ltoObjects;
+  std::vector<std::string> LtoObjects;
 
   // Paths of other temporary files, that need to be cleaned up.
-  std::vector<std::string> filesToRemove;
+  std::vector<std::string> FilesToRemove;
 
   std::vector<Input *> LTOELFFiles;
 
@@ -504,14 +502,14 @@ private:
 
   std::mutex Mutex;
 
-  SymbolStats m_TotalSymStats;
+  SymbolStats MTotalSymStats;
 
-  SymbolStats m_DiscardedSymStats;
+  SymbolStats MDiscardedSymStats;
 
   /// It is used to reuse ArchiveFileInfo when an archive is read multiple
   /// times. ArchiveFileInfo is obtained as 'archiveFile->getArchiveFileInfo()'.
   std::unordered_map<const MemoryArea *, const ArchiveFile *>
-      m_MemoryAreaToArchiveFileMap;
+      MMemoryAreaToArchiveFileMap;
 };
 
 } // end namespace eld

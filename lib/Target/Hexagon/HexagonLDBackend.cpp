@@ -163,7 +163,7 @@ void HexagonLDBackend::defineGOTSymbol(Fragment &pFrag) {
   // define symbol _GLOBAL_OFFSET_TABLE_
   if (m_pGOTSymbol != nullptr) {
     m_pGOTSymbol = m_Module.getIRBuilder()
-                       ->AddSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+                       ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
                            pFrag.getOwningSection()->getInputFile(),
                            "_GLOBAL_OFFSET_TABLE_", ResolveInfo::Object,
                            ResolveInfo::Define, ResolveInfo::Local,
@@ -172,7 +172,7 @@ void HexagonLDBackend::defineGOTSymbol(Fragment &pFrag) {
                            make<FragmentRef>(pFrag, 0x0), ResolveInfo::Hidden);
   } else {
     m_pGOTSymbol = m_Module.getIRBuilder()
-                       ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                       ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                            pFrag.getOwningSection()->getInputFile(),
                            "_GLOBAL_OFFSET_TABLE_", ResolveInfo::Object,
                            ResolveInfo::Define, ResolveInfo::Local,
@@ -315,33 +315,33 @@ void HexagonLDBackend::initTargetSymbols() {
   // same name in input
   m_pGOTSymbol =
       m_Module.getIRBuilder()
-          ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
               m_Module.getInternalInput(Module::Script), SymbolName,
               ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
               0x0, // size
               0x0, // value
-              FragmentRef::Null(), ResolveInfo::Hidden);
+              FragmentRef::null(), ResolveInfo::Hidden);
   if (m_pGOTSymbol)
     m_pGOTSymbol->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
   SymbolName = "__end";
   m_pEndOfImage = m_Module.getNamePool().findSymbol(SymbolName);
   if (!m_pEndOfImage)
     m_pEndOfImage =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Absolute,
                 0x0, // size
                 0x0, // value
-                FragmentRef::Null());
+                FragmentRef::null());
   if (m_pEndOfImage)
     m_pEndOfImage->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
   // If linker script, lets not add this symbol.
   if (m_Module.getScript().linkerScriptHasSectionsCommand()) {
     m_pMSGBase = m_Module.getNamePool().findSymbol("_MSG_BASE_");
@@ -351,46 +351,46 @@ void HexagonLDBackend::initTargetSymbols() {
   SymbolName = "_SDA_BASE_";
   m_psdabase =
       m_Module.getIRBuilder()
-          ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
               m_Module.getInternalInput(Module::Script), SymbolName,
               ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
               0x0, // size
               0x0, // value
-              FragmentRef::Null(), ResolveInfo::Hidden);
+              FragmentRef::null(), ResolveInfo::Hidden);
   if (m_psdabase)
     m_psdabase->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 
   SymbolName = "__sbss_start";
   LDSymbol *sbssStart =
       m_Module.getIRBuilder()
-          ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
               m_Module.getInternalInput(Module::Script), SymbolName,
               ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
               0x0, // size
               0x0, // value
-              FragmentRef::Null(), ResolveInfo::Hidden);
+              FragmentRef::null(), ResolveInfo::Hidden);
   if (sbssStart)
     sbssStart->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
   SymbolName = "__sbss_end";
   LDSymbol *sbssEnd =
       m_Module.getIRBuilder()
-          ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
               m_Module.getInternalInput(Module::Script), "__sbss_end",
               ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
               0x0, // size
               0x0, // value
-              FragmentRef::Null(), ResolveInfo::Hidden);
+              FragmentRef::null(), ResolveInfo::Hidden);
   if (sbssEnd)
     sbssEnd->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 
   // OSABI for linux and standalone is Sys V - UNIX. Need to see triple
   // for standalone verification
@@ -398,63 +398,63 @@ void HexagonLDBackend::initTargetSymbols() {
     SymbolName = "_TLS_START_";
     m_pTLSBASE =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
                 0x0, // size
                 0x0, // value
-                FragmentRef::Null(), ResolveInfo::Hidden);
+                FragmentRef::null(), ResolveInfo::Hidden);
     if (m_pTLSBASE)
       m_pTLSBASE->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
     SymbolName = "_TLS_DATA_END_";
     m_pTDATAEND =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
                 0x0, // size
                 0x0, // value
-                FragmentRef::Null(), ResolveInfo::Hidden);
+                FragmentRef::null(), ResolveInfo::Hidden);
     if (m_pTDATAEND)
       m_pTDATAEND->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
 
     SymbolName = "_TLS_END_";
     m_pTLSEND =
         m_Module.getIRBuilder()
-            ->AddSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
                 ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Absolute,
                 0x0, // size
                 0x0, // value
-                FragmentRef::Null(), ResolveInfo::Hidden);
+                FragmentRef::null(), ResolveInfo::Hidden);
     if (m_pTLSEND)
       m_pTLSEND->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(diag::target_specific_symbol) << SymbolName;
+      config().raise(Diag::target_specific_symbol) << SymbolName;
   }
 
   if (LinkerConfig::DynObj == config().codeGenType())
     return;
   SymbolName = "_MSG_BASE_";
   m_pMSGBase =
-      m_Module.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           m_Module.getInternalInput(Module::Script), SymbolName,
           ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Absolute,
           0x0, // size
           0x0, // value
-          FragmentRef::Null());
+          FragmentRef::null());
   if (m_pMSGBase)
     m_pMSGBase->setShouldIgnore(false);
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(diag::target_specific_symbol) << SymbolName;
+    config().raise(Diag::target_specific_symbol) << SymbolName;
 }
 
 bool HexagonLDBackend::initTargetStubs() { return true; }
@@ -503,7 +503,7 @@ bool HexagonLDBackend::haslinkerRelaxed(
           // We are not done.
           isFinished = false;
           if (m_Module.getPrinter()->isVerbose())
-            config().raise(diag::deleting_instructions)
+            config().raise(Diag::deleting_instructions)
                 << "B22_PCREL" << 4 << reloc->symInfo()->name()
                 << F->getOwningSection()->name()
                 << llvm::utohexstr(reloc->getOffset(), true)
@@ -598,7 +598,7 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
           }
           if (!config().getDiagEngine()->diagnose()) {
             if (m_Module.getPrinter()->isVerbose())
-              config().raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+              config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
             pFinished = true;
           }
         } break;
@@ -726,11 +726,11 @@ uint32_t HexagonLDBackend::getGP() {
   if (m_psdabase)
     return m_psdabase->value();
   if (!warned && m_Module.getScript().linkerScriptHasSectionsCommand()) {
-    config().raise(diag::sda_base_not_found);
+    config().raise(Diag::sda_base_not_found);
     warned = true;
   }
   if (m_psdata == nullptr) {
-    config().raise(diag::small_data_not_found);
+    config().raise(Diag::small_data_not_found);
     m_Module.setFailure(true);
     // prevent warning
     return 1;
@@ -744,12 +744,12 @@ uint32_t HexagonLDBackend::getMsgBase() const {
       m_Module.getScript().linkerScriptHasSectionsCommand();
   if (linkerScriptHasSectionsCommand) {
     if (!m_pMSGBase) {
-      config().raise(diag::msg_base_not_found_linker_script);
+      config().raise(Diag::msg_base_not_found_linker_script);
       m_Module.setFailure(true);
       return 0;
     }
   } else if (m_pMSGBase && !m_pMSGBase->hasFragRef()) {
-    config().raise(diag::msg_base_not_found_no_linker_script);
+    config().raise(Diag::msg_base_not_found_no_linker_script);
     m_Module.setFailure(true);
     return 0;
   }
@@ -786,7 +786,7 @@ bool HexagonLDBackend::MoveSectionAndSort(ELFSection *pFrom, ELFSection *pTo) {
   if (pFrom->getFragmentList().size() == 0)
     return true;
 
-  if (builder.MoveSection(pFrom, pTo)) {
+  if (builder.moveSection(pFrom, pTo)) {
     std::sort(pTo->getFragmentList().begin(), pTo->getFragmentList().end(),
               [](Fragment *A, Fragment *B) {
                 return (A->alignment() < B->alignment());
@@ -811,7 +811,7 @@ void HexagonLDBackend::mayWarnSection(ELFSection *sect) const {
                        .StartsWith(".tcm", true)
                        .Default(false);
   if (raiseWarn) {
-    config().raise(diag::section_does_not_have_proper_permissions)
+    config().raise(Diag::section_does_not_have_proper_permissions)
         << sectionName << sect->getInputFile()->getInput()->decoratedPath();
     return;
   }
@@ -917,7 +917,7 @@ bool HexagonLDBackend::ltoCallExternalAssembler(const std::string &Input,
       if (s.data())
         ss << s.data() << " ";
     }
-    config().raise(diag::process_launch) << ss.str();
+    config().raise(Diag::process_launch) << ss.str();
   }
 
   int exec = llvm::sys::ExecuteAndWait(assemblerPath->c_str(), assemblerArgs);
@@ -942,7 +942,7 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_got_entry) << R->name();
+    config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->getFragmentList().size()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
@@ -1015,7 +1015,7 @@ HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_plt_entry) << R->name();
+    config().raise(Diag::create_plt_entry) << R->name();
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!hasNow && !getPLT()->getFragmentList().size()) {
     HexagonPLT0::Create(*m_Module.getIRBuilder(),

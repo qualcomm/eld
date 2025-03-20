@@ -18,5 +18,5 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // FileToken
 //===----------------------------------------------------------------------===//
-FileToken::FileToken(const std::string &pName, bool pAsNeeded)
-    : InputToken(InputToken::File, pName, pAsNeeded) {}
+FileToken::FileToken(const std::string &PName, bool PAsNeeded)
+    : InputToken(InputToken::File, PName, PAsNeeded) {}

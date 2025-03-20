@@ -197,7 +197,7 @@ std::string Relocation::getFragmentPath(ResolveInfo *symInfo, Fragment *frag,
                          llvm::Twine("]"))
           .str();
   }
-  if (symInfo && (symInfo != ResolveInfo::Null()))
+  if (symInfo && (symInfo != ResolveInfo::null()))
     return symInfo->resolvedOrigin()->getInput()->decoratedPath(0);
   return "(Not Applicable)";
 }
@@ -205,7 +205,7 @@ std::string Relocation::getFragmentPath(ResolveInfo *symInfo, Fragment *frag,
 bool Relocation::issueOverflow(Relocator &pRelocator) {
   DiagnosticEngine *DiagEngine = pRelocator.config().getDiagEngine();
   const GeneralOptions &options = pRelocator.config().options();
-  DiagEngine->raise(diag::result_overflow_moreinfo)
+  DiagEngine->raise(Diag::result_overflow_moreinfo)
       << pRelocator.getName(type())
       << getSymbolName(symInfo(), pRelocator.doDeMangle())
       << getFragmentPath(nullptr, targetRef()->frag(), options)
@@ -224,7 +224,7 @@ bool Relocation::apply(Relocator &pRelocator) {
   Module &module = pRelocator.module();
   if (symInfo() && module.getPrinter()->traceSym() &&
       pRelocator.config().options().traceSymbol(*symInfo())) {
-    pRelocator.config().raise(diag::apply_relocation)
+    pRelocator.config().raise(Diag::apply_relocation)
         << symInfo()->name()
         << llvm::utohexstr(place(module),
                            /*LowerCase*/ true);
@@ -243,7 +243,7 @@ bool Relocation::apply(Relocator &pRelocator) {
     return issueOverflow(pRelocator);
 
   case Relocator::BadReloc: {
-    DiagEngine->raise(diag::result_badreloc_moreinfo)
+    DiagEngine->raise(Diag::result_badreloc_moreinfo)
         << pRelocator.getName(type())
         << getSymbolName(symInfo(), pRelocator.doDeMangle())
         << getFragmentPath(nullptr, targetRef()->frag(), options)
@@ -255,7 +255,7 @@ bool Relocation::apply(Relocator &pRelocator) {
     return false;
   }
   case Relocator::Unsupport: {
-    DiagEngine->raise(diag::unsupported_relocation_moreinfo)
+    DiagEngine->raise(Diag::unsupported_relocation_moreinfo)
         << pRelocator.getName(type())
         << getSymbolName(symInfo(), pRelocator.doDeMangle())
         << getFragmentPath(nullptr, targetRef()->frag(), options)
@@ -267,7 +267,7 @@ bool Relocation::apply(Relocator &pRelocator) {
     return false;
   }
   case Relocator::Unknown: {
-    DiagEngine->raise(diag::unknown_relocation_moreinfo)
+    DiagEngine->raise(Diag::unknown_relocation_moreinfo)
         << pRelocator.getName(type())
         << getSymbolName(symInfo(), pRelocator.doDeMangle())
         << getFragmentPath(nullptr, targetRef()->frag(), options)

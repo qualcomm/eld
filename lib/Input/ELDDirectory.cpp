@@ -20,14 +20,14 @@ using namespace eld::sys::fs;
 //===----------------------------------------------------------------------===//
 // ELDDirectory
 //===----------------------------------------------------------------------===//
-ELDDirectory::ELDDirectory(llvm::StringRef pName, std::string sysRoot)
-    : m_Name(pName), m_isFound(false) {
-  if (pName.starts_with("=/")) {
+ELDDirectory::ELDDirectory(llvm::StringRef PName, std::string SysRoot)
+    : Name(PName), IsFound(false) {
+  if (PName.starts_with("=/")) {
     // If a search directory begins with "=", "=" is replaced
     // with the sysroot path.
-    m_Name.assign(sysRoot);
-    m_Name.append(pName.substr(1).str());
-    m_bInSysroot = true;
+    Name.assign(SysRoot);
+    Name.append(PName.substr(1).str());
+    BInSysroot = true;
   }
 }
 

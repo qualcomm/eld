@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#ifndef ELD_SCRIPT_JUSTSYMBOLSACTION_H
-#define ELD_SCRIPT_JUSTSYMBOLSACTION_H
+#ifndef ELD_INPUT_JUSTSYMBOLSACTION_H
+#define ELD_INPUT_JUSTSYMBOLSACTION_H
 
 #include "eld/Input/InputAction.h"
 
@@ -16,8 +16,8 @@ class LinkerConfig;
 /// JustSymbolsAction
 class JustSymbolsAction : public InputFileAction {
 public:
-  JustSymbolsAction(const std::string &fileName, const LinkerConfig &config,
-                    DiagnosticPrinter *diagPrinter);
+  JustSymbolsAction(const std::string &FileName, const LinkerConfig &Config,
+                    DiagnosticPrinter *DiagPrinter);
 
   bool activate(InputBuilder &) override;
 
@@ -26,7 +26,7 @@ public:
   static bool classof(const JustSymbolsAction *S) { return true; }
 
 private:
-  const LinkerConfig &m_Config;
+  const LinkerConfig &Config;
 };
 } // namespace eld
 

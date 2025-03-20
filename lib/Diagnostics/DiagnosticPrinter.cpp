@@ -31,14 +31,14 @@ const enum llvm::raw_ostream::Colors TraceColor = llvm::raw_ostream::CYAN;
 
 DiagnosticPrinter::~DiagnosticPrinter() {
   // If error count equals error limit print a message to make user aware
-  if (m_UserErrorLimit && (m_NumErrors.load() >= m_UserErrorLimit))
+  if (UserErrorLimit && (NumErrors.load() >= UserErrorLimit))
     printDiagnostic(
         ErrorColor, "Error",
         "Too many errors emitted, stopping now (use --error-limit=0 "
         "to see all errors)",
         /*pluginName=*/"");
   // If warning count equals warn limit print a message to make user aware
-  if (m_UserWarningLimit && (m_NumWarnings.load() >= m_UserWarningLimit))
+  if (UserWarningLimit && (NumWarnings.load() >= UserWarningLimit))
     printDiagnostic(WarningColor, "Warning",
                     "Too many warnings emitted (use --warn-limit=0 "
                     "to see all warnings)",
@@ -48,59 +48,59 @@ DiagnosticPrinter::~DiagnosticPrinter() {
 }
 
 void DiagnosticPrinter::printDiagnostic(
-    const enum llvm::raw_ostream::Colors color, llvm::StringRef type,
-    const std::string &outString, llvm::StringRef pluginName) {
-  if (m_UseColor)
-    m_OStream.changeColor(color, true);
-  if (!pluginName.empty())
-    m_OStream << pluginName << ":";
-  if (!type.empty())
-    m_OStream << type << ": ";
-  if (m_UseColor)
-    m_OStream.resetColor();
-  m_OStream << outString << "\n";
+    const enum llvm::raw_ostream::Colors Color, llvm::StringRef Type,
+    const std::string &OutString, llvm::StringRef PluginName) {
+  if (UseColor)
+    OStream.changeColor(Color, true);
+  if (!PluginName.empty())
+    OStream << PluginName << ":";
+  if (!Type.empty())
+    OStream << Type << ": ";
+  if (UseColor)
+    OStream.resetColor();
+  OStream << OutString << "\n";
 }
 
 /// HandleDiagnostic - Handle this diagnostic, reporting it to the user or
 /// capturing it to a log as needed.
 eld::Expected<void>
-DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity pSeverity,
-                                    const Diagnostic &pInfo) {
-  if (pSeverity == DiagnosticEngine::Warning) {
-    ++m_NumWarnings;
+DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity PSeverity,
+                                    const Diagnostic &PInfo) {
+  if (PSeverity == DiagnosticEngine::Warning) {
+    ++NumWarnings;
     // Skip printing warning messages above warning limit
     // Warning limit 0 is treated as no limit
-    if (m_UserWarningLimit && (m_NumWarnings >= m_UserWarningLimit))
+    if (UserWarningLimit && (NumWarnings >= UserWarningLimit))
       return {};
   }
 
-  if (pSeverity == DiagnosticEngine::CriticalWarning)
-    ++m_NumCriticalWarnings;
+  if (PSeverity == DiagnosticEngine::CriticalWarning)
+    ++NumCriticalWarnings;
 
-  if (pSeverity <= DiagnosticEngine::Error) {
-    ++m_NumErrors;
+  if (PSeverity <= DiagnosticEngine::Error) {
+    ++NumErrors;
     // Skip printing error messages above error limit
     // Error limit 0 is treated as no limit
-    if (m_UserErrorLimit && (m_NumErrors.load() >= m_UserErrorLimit))
+    if (UserErrorLimit && (NumErrors.load() >= UserErrorLimit))
       return {};
   }
 
-  if (pSeverity == DiagnosticEngine::Fatal)
-    ++m_NumFatalErrors;
+  if (PSeverity == DiagnosticEngine::Fatal)
+    ++NumFatalErrors;
 
-  if (pSeverity == DiagnosticEngine::InternalError)
-    ++m_NumInternalErrors;
+  if (PSeverity == DiagnosticEngine::InternalError)
+    ++NumInternalErrors;
 
-  std::string out_string;
-  eld::Expected<void> expFormatRes = pInfo.format(out_string);
-  if (!expFormatRes)
-    return expFormatRes;
+  std::string OutString;
+  eld::Expected<void> ExpFormatRes = PInfo.format(OutString);
+  if (!ExpFormatRes)
+    return ExpFormatRes;
 
   auto PrintDiagnostic = [&](const enum llvm::raw_ostream::Colors Color,
                              llvm::StringRef Type) {
-    printDiagnostic(Color, Type, out_string, pInfo.getPluginName());
+    printDiagnostic(Color, Type, OutString, PInfo.getPluginName());
   };
-  switch (pSeverity) {
+  switch (PSeverity) {
   case DiagnosticEngine::Unreachable: {
     PrintDiagnostic(UnreachableColor, "Fatal");
     break;
@@ -158,10 +158,10 @@ DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity pSeverity,
     break;
   }
 
-  switch (pSeverity) {
+  switch (PSeverity) {
   case DiagnosticEngine::Unreachable: {
-    m_OStream << "\n\n";
-    printDiagnostic(FatalColor, "", out_string, /*pluginName=*/"");
+    OStream << "\n\n";
+    printDiagnostic(FatalColor, "", OutString, /*pluginName=*/"");
   }
     LLVM_FALLTHROUGH;
 

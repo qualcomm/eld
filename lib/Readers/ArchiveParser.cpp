@@ -64,7 +64,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   LinkerConfig &config = m_Module.getConfig();
   if (isWholeArchive) {
     if (config.showWholeArchiveWarnings())
-      config.raise(diag::warn_whole_archive_enabled)
+      config.raise(Diag::warn_whole_archive_enabled)
           << archiveFile->getInput()->decoratedPath();
     if (archiveFile->shouldSkipFile())
       return 0;
@@ -74,7 +74,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   // Add members to the archive if they have not been added yet.
   if (!archiveFile->hasMembers()) {
     if (m_Module.getPrinter()->isVerbose())
-      config.raise(diag::loading_all_members)
+      config.raise(Diag::loading_all_members)
           << archiveFile->getInput()->decoratedPath();
     eld::Expected<bool> expAddMembers = addMembers(*archiveReader, archiveFile);
     if (!expAddMembers) {
@@ -103,7 +103,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   bool willSymResolved = false;
   InputFile *referredSite = nullptr;
   LayoutPrinter *printer = m_Module.getLayoutPrinter();
-  config.raise(diag::verbose_performing_archive_symbol_resolution)
+  config.raise(Diag::verbose_performing_archive_symbol_resolution)
       << inputFile.getInput()->decoratedPath();
   do {
     willSymResolved = false;
@@ -115,7 +115,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
 
       // check if we should include this defined symbol
       ArchiveFile::Symbol &symbol = *(archiveFile->getSymbolTable()[idx]);
-      ArchiveFile::Symbol::Status status =
+      ArchiveFile::Symbol::SymbolStatus status =
           shouldIncludeSymbol(symbol, &referredSite);
       if (ArchiveFile::Symbol::Include == status) {
         // include the object member from the given offset
@@ -129,7 +129,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
           printer->recordArchiveMember(
               I, referredSite, &symbol,
               llvm::cast<eld::ObjectFile>(I->getInputFile())
-                  ->getSymbol(symbol.name));
+                  ->getSymbol(symbol.Name));
       } // end of if
     } // end of for
   } while (willSymResolved);
@@ -143,7 +143,7 @@ ArchiveParser::readSymbolTable(const llvm::object::Archive &archiveReader,
   if (!archiveReader.hasSymbolTable()) {
     m_Module.setFailure(true);
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry{
-        diag::err_no_ar_symtab, {archive->getInput()->decoratedPath()}});
+        Diag::err_no_ar_symtab, {archive->getInput()->decoratedPath()}});
   }
 
   eld::Expected<ArchiveSymbolInfoTable> expSymbolInfoTable =
@@ -282,7 +282,7 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
         continue;
 
       GNULDBackend &backend = *m_Module.getBackend();
-      ArchiveFile::Symbol::Type &type = iter->second;
+      ArchiveFile::Symbol::SymbolType &type = iter->second;
       type = ArchiveFile::Symbol::NoType;
       if (rawSym->getBinding() == llvm::ELF::STB_WEAK) {
         type = ArchiveFile::Symbol::Weak;
@@ -325,7 +325,7 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForIRMember(
     auto it = symbolInfoTable.find({member.getChildOffset(), name});
     if (it == symbolInfoTable.end())
       continue;
-    ArchiveFile::Symbol::Type &type = it->second;
+    ArchiveFile::Symbol::SymbolType &type = it->second;
     if (flags & llvm::object::SymbolRef::SF_Common) {
       type = ArchiveFile::Symbol::Common;
     } else if (flags & llvm::object::SymbolRef::SF_Weak) {
@@ -352,8 +352,8 @@ ArchiveParser::addMembers(llvm::object::Archive &archiveReader,
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expInput);
     Input *I = expInput.value();
     archive->addLazyLoadMember(member.getChildOffset(), I);
-    archive->AddMember(I);
-    config.raise(diag::loading_member) << I->decoratedPath();
+    archive->addMember(I);
+    config.raise(Diag::loading_member) << I->decoratedPath();
   }
   if (err)
     return std::make_unique<plugin::DiagnosticEntry>(
@@ -380,7 +380,7 @@ ArchiveParser::createMemberInput(llvm::object::Archive &archiveReader,
   if (!memberInput) {
     std::string archiveName = archive->getInput()->decoratedPath();
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry{
-        diag::error_create_archive_member_input, {memName.str(), archiveName}});
+        Diag::error_create_archive_member_input, {memName.str(), archiveName}});
   }
 
   return memberInput;
@@ -390,7 +390,7 @@ eld::Expected<uint32_t>
 ArchiveParser::includeAllMembers(ArchiveFile *archive) const {
   LayoutPrinter *printer = m_Module.getLayoutPrinter();
   uint32_t IncludeMemberCount = 0;
-  for (Input *member : archive->GetAllMembers()) {
+  for (Input *member : archive->getAllMembers()) {
     if (includeMember(member)) {
       ++IncludeMemberCount;
       if (printer)
@@ -414,19 +414,19 @@ eld::Expected<bool> ArchiveParser::includeMember(Input *member) const {
   return true;
 }
 
-ArchiveFile::Symbol::Status
+ArchiveFile::Symbol::SymbolStatus
 ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
                                    InputFile **pSite) const {
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   // TODO: handle symbol version issue and user defined symbols
-  const ResolveInfo *info = m_Module.getNamePool().findInfo(sym.name);
+  const ResolveInfo *info = m_Module.getNamePool().findInfo(sym.Name);
   LayoutPrinter *printer = m_Module.getLayoutPrinter();
 
   if (!info)
     return ArchiveFile::Symbol::Unknown;
 
   if (!info->isUndef()) {
-    if (info->isCommon() && definedSameType(info, sym.type)) {
+    if (info->isCommon() && definedSameType(info, sym.Type)) {
       if (printer) {
         InputFile *oldInput = info->resolvedOrigin();
         if (oldInput) {
@@ -450,25 +450,25 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
   // Dont use a vector to lookup, as the lookup may prove costly.
   // The number of symbols in the extern list is very less, so adding a map
   // doesnot hurt performance.
-  if (m_Module.hasSymbolInNeededSet(sym.name))
+  if (m_Module.hasSymbolInNeededSet(sym.Name))
     return ArchiveFile::Symbol::Include;
 
   // If a Bitcode file has a reference to the wrap symbol, then lets use the
   // behavior below, since postLTOPhase may start pulling the symbol from
   // Archive libraries.
-  if (isPostLTOPhase && !m_Module.hasWrapReference(sym.name))
+  if (isPostLTOPhase && !m_Module.hasWrapReference(sym.Name))
     return ArchiveFile::Symbol::Include;
 
   // If there is no wrap option specified we default to the behavior (or
   // If there is no wrap option set for this symbol, lets use the default
   // behavior
   if (m_Module.getConfig().options().renameMap().empty() ||
-      !m_Module.getConfig().options().renameMap().count(sym.name))
+      !m_Module.getConfig().options().renameMap().count(sym.Name))
     return ArchiveFile::Symbol::Include;
 
   // If there is a wrap option specified for that symbol, we only pull from
   // an archive, if the real symbol is still undefined.
-  std::string realSymbol = "__real_" + sym.name;
+  std::string realSymbol = "__real_" + sym.Name;
   ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
   if (RealSymbol && RealSymbol->isUndef())
     return ArchiveFile::Symbol::Include;
@@ -476,8 +476,8 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
   return ArchiveFile::Symbol::Exclude;
 }
 
-bool ArchiveParser::definedSameType(const ResolveInfo *info,
-                                    ArchiveFile::Symbol::Type type) const {
+bool ArchiveParser::definedSameType(
+    const ResolveInfo *info, ArchiveFile::Symbol::SymbolType type) const {
   if (type == ArchiveFile::Symbol::DefineData &&
       info->type() == ResolveInfo::Object)
     return true;
@@ -519,7 +519,7 @@ ArchiveParser::createMemberReader(
           return expMemName.takeError();
         if (config.showArchiveFileWarnings()) {
           llvm::StringRef memName = expMemName.get();
-          diagEngine.raise(diag::warn_unsupported_archive_member)
+          diagEngine.raise(Diag::warn_unsupported_archive_member)
               << memName << archiveReader.getFileName();
         }
         return llvm::Error::success();
@@ -568,7 +568,7 @@ ArchiveParser::getMemberData(const ArchiveFile &archiveFile,
     memberData = make<MemoryArea>(memberPath);
     if (!memberData->Init(config.getDiagEngine())) {
       return std::make_unique<plugin::DiagnosticEntry>(
-          diag::error_failed_to_read_thin_archive_mem,
+          Diag::error_failed_to_read_thin_archive_mem,
           std::vector<std::string>{archiveFile.getInput()->decoratedPath(),
                                    memName.str(), memberPath});
     }
@@ -579,7 +579,7 @@ ArchiveParser::getMemberData(const ArchiveFile &archiveFile,
 void ArchiveParser::warnRepeatedMembers(const ArchiveFile &archiveFile) const {
   LinkerConfig &config = m_Module.getConfig();
   std::unordered_map<uint64_t, size_t> memDataHashToMemIdxMap;
-  const std::vector<Input *> &archiveMembers = archiveFile.GetAllMembers();
+  const std::vector<Input *> &archiveMembers = archiveFile.getAllMembers();
   std::vector<uint64_t> archiveMemberHashes(archiveMembers.size(), 0);
   size_t useThreads = config.options().numThreads() > 1;
   llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
@@ -604,7 +604,7 @@ void ArchiveParser::warnRepeatedMembers(const ArchiveFile &archiveFile) const {
       size_t prevMemIdx = iter->second;
       const ArchiveMemberInput *prevMember =
           llvm::cast<ArchiveMemberInput>(archiveMembers[prevMemIdx]);
-      config.raise(diag::warn_archive_mem_repeated_content)
+      config.raise(Diag::warn_archive_mem_repeated_content)
           << archiveFile.getInput()->decoratedPath() << member->getMemberName()
           << i << prevMember->getMemberName() << prevMemIdx;
     } else {

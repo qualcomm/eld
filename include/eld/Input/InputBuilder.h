@@ -40,20 +40,21 @@ private:
 public:
   typedef std::vector<Node *>::const_iterator InputIteratorT;
 
-  explicit InputBuilder(const LinkerConfig &pConfig);
+  explicit InputBuilder(const LinkerConfig &PConfig);
 
-  explicit InputBuilder(const LinkerConfig &pConfig, const Attribute &attr);
+  explicit InputBuilder(const LinkerConfig &PConfig, const Attribute &Attr);
 
   virtual ~InputBuilder();
 
   // -----  input operations  ----- //
-  Input *createInput(const std::string pName, Input::Type T = Input::Default);
+  Input *createInput(const std::string PName,
+                     Input::InputType T = Input::Default);
 
-  Input *createDeferredInput(const std::string &pName, Input::Type T);
+  Input *createDeferredInput(const std::string &PName, Input::InputType T);
 
-  Input *createInputNode(std::string Name, bool isSpecial = false);
+  Input *createInputNode(std::string Name, bool IsSpecial = false);
 
-  bool setMemory(Input &pInput, void *pMemBuffer, size_t pSize);
+  bool setMemory(Input &PInput, void *PMemBuffer, size_t PSize);
 
   void enterGroup();
 
@@ -61,7 +62,7 @@ public:
 
   void makeBStatic();
 
-  Attribute &getAttributes() { return m_Attr; }
+  Attribute &getAttributes() { return Attr; }
 
   std::vector<Node *> const &getInputs() { return Tree; }
 
@@ -69,12 +70,12 @@ public:
 
   DiagnosticEngine *getDiagEngine() const;
 
-  const LinkerConfig &getLinkerConfig() const { return m_Config; }
+  const LinkerConfig &getLinkerConfig() const { return Config; }
 
 private:
   std::vector<Node *> Tree;
-  Attribute m_Attr;
-  const LinkerConfig &m_Config;
+  Attribute Attr;
+  const LinkerConfig &Config;
 };
 
 } // end of namespace eld

@@ -36,21 +36,21 @@ public:
   typedef Relocation::Type Type;
   class Fixup {
   public:
-    Fixup(DWord pOffset, SWord pAddend, Type pType)
-        : m_Offset(pOffset), m_Addend(pAddend), m_Type(pType) {}
+    Fixup(DWord POffset, SWord PAddend, Type PType)
+        : MOffset(POffset), MAddend(PAddend), MType(PType) {}
 
     ~Fixup() {}
 
-    DWord offset() const { return m_Offset; }
+    DWord offset() const { return MOffset; }
 
-    SWord addend() const { return m_Addend; }
+    SWord addend() const { return MAddend; }
 
-    Type type() const { return m_Type; }
+    Type type() const { return MType; }
 
   private:
-    DWord m_Offset;
-    SWord m_Addend;
-    Type m_Type;
+    DWord MOffset;
+    SWord MAddend;
+    Type MType;
   };
 
 public:
@@ -69,16 +69,16 @@ public:
 
   /// clone - clone function for stub factory to create the corresponding stub
   /// from a fragment instead.
-  virtual Stub *clone(InputFile *, Relocation *R, Fragment *frag,
+  virtual Stub *clone(InputFile *, Relocation *R, Fragment *Frag,
                       eld::IRBuilder *, DiagnosticEngine *) {
     return nullptr;
   }
 
   // Check if reloc is in range.
-  virtual bool isRelocInRange(const Relocation *pReloc, int64_t targetAddr,
+  virtual bool isRelocInRange(const Relocation *PReloc, int64_t TargetAddr,
                               int64_t &Offset, Module &Module) const = 0;
 
-  virtual bool isNeeded(const Relocation *pReloc, int64_t pTargetAddr,
+  virtual bool isNeeded(const Relocation *PReloc, int64_t PTargetAddr,
                         Module &Module) const {
     return false;
   }
@@ -95,30 +95,32 @@ public:
   virtual size_t size() const override;
 
   /// symInfo - ResolveInfo of this Stub
-  ResolveInfo *symInfo() { return m_pSymInfo; }
+  ResolveInfo *symInfo() { return ThisSymInfo; }
 
-  const ResolveInfo *symInfo() const { return m_pSymInfo; }
+  const ResolveInfo *symInfo() const { return ThisSymInfo; }
 
   /// symValue - initial value for stub's symbol
   virtual uint64_t initSymValue() const { return 0x0; }
 
   /// getRealAddend - get the real value of addend
-  virtual uint32_t getRealAddend(const Relocation &reloc,
+  virtual uint32_t getRealAddend(const Relocation &Reloc,
                                  DiagnosticEngine *DiagEngine) const {
-    return reloc.addend();
+    return Reloc.addend();
   }
 
   ///  -----  Fixup  -----  ///
-  fixup_iterator fixup_begin() { return m_FixupList.begin(); }
+  fixup_iterator fixupBegin() { return FixupList.begin(); }
 
-  fixup_iterator fixup_end() { return m_FixupList.end(); }
+  fixup_iterator fixupEnd() { return FixupList.end(); }
 
   /// ----- modifiers ----- ///
-  void setSymInfo(ResolveInfo *pSymInfo);
+  void setSymInfo(ResolveInfo *CurSymInfo);
 
-  void setSavedSymInfo(ResolveInfo *pSymInfo) { m_pSavedSymInfo = pSymInfo; }
+  void setSavedSymInfo(ResolveInfo *CurSymInfo) {
+    ThisSavedSymInfo = CurSymInfo;
+  }
 
-  ResolveInfo *savedSymInfo() const { return m_pSavedSymInfo; }
+  ResolveInfo *savedSymInfo() const { return ThisSavedSymInfo; }
 
   // Stub is a kind of Fragment with type of Stub
   static bool classof(const Fragment *F) {
@@ -127,35 +129,35 @@ public:
 
   static bool classof(const Stub *) { return true; }
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
   virtual bool isCompatible(Stub *S) const { return true; }
 
-  virtual std::string getStubName(const Relocation &pReloc, bool isClone,
-                                  bool isSectionRelative,
-                                  int64_t numBranchIsland, int64_t numClone,
-                                  uint32_t relocAddend,
-                                  bool useOldStyleTrampolineName) const;
+  virtual std::string getStubName(const Relocation &PReloc, bool IsClone,
+                                  bool IsSectionRelative,
+                                  int64_t NumBranchIsland, int64_t NumClone,
+                                  uint32_t RelocAddend,
+                                  bool UseOldStyleTrampolineName) const;
 
   std::string
-  getTargetSymbolContextForReloc(const Relocation &reloc, uint32_t relocAddend,
-                                 bool useOldStyleTrampolineName) const;
+  getTargetSymbolContextForReloc(const Relocation &Reloc, uint32_t RelocAddend,
+                                 bool UseOldStyleTrampolineName) const;
 
 protected:
   /// addFixup - add a fixup for this stub to build a relocation
-  void addFixup(DWord pOffset, SWord pAddend, Type pType);
+  void addFixup(DWord POffset, SWord PAddend, Type PType);
 
   /// addFixup - add a fixup from a existing fixup of the prototype
-  void addFixup(const Fixup &pFixup);
+  void addFixup(const Fixup &PFixup);
 
 private:
-  ResolveInfo *m_pSymInfo;
-  ResolveInfo *
-      m_pSavedSymInfo; // Saves the symbol for which the trampoline was created.
-  FixupListType m_FixupList;
+  ResolveInfo *ThisSymInfo;
+  ResolveInfo *ThisSavedSymInfo; // Saves the symbol for which the trampoline
+                                 // was created.
+  FixupListType FixupList;
 
 protected:
-  size_t m_Size;
+  size_t ThisSize;
 };
 
 } // namespace eld

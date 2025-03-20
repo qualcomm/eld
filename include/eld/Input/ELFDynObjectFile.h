@@ -16,7 +16,7 @@ namespace eld {
  */
 class ELFDynObjectFile : public ELFFileBase {
 public:
-  ELFDynObjectFile(Input *I, DiagnosticEngine *diagEngine);
+  ELFDynObjectFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.
   static bool classof(const InputFile *I) {
@@ -27,14 +27,14 @@ public:
 
   void setSOName(std::string SOName) { getInput()->setName(SOName); }
 
-  ELFSection *getDynSym() const { return m_SymbolTable; }
+  ELFSection *getDynSym() const { return SymbolTable; }
 
   bool isELFNeeded() override;
 
   virtual ~ELFDynObjectFile() {}
 
 private:
-  std::vector<ELFSection *> m_Sections;
+  std::vector<ELFSection *> Sections;
 };
 
 } // namespace eld

@@ -37,147 +37,154 @@ public:
 
   struct Spec {
     void initialize() {
-      m_pWildcardFile = nullptr;
-      m_pArchiveMember = nullptr;
-      m_pWildcardSections = nullptr;
-      m_ExcludeFiles = nullptr;
-      m_pIsArchive = false;
+      WildcardFilePattern = nullptr;
+      InputArchiveMember = nullptr;
+      WildcardSectionPattern = nullptr;
+      ExcludeFilesRule = nullptr;
+      InputIsArchive = false;
     }
 
-    bool hasFile() const { return m_pWildcardFile != nullptr; }
+    bool hasFile() const { return WildcardFilePattern != nullptr; }
 
-    bool isArchive() const { return m_pIsArchive; }
+    bool isArchive() const { return InputIsArchive; }
 
     const WildcardPattern &file() const {
       assert(hasFile());
-      return *m_pWildcardFile;
+      return *WildcardFilePattern;
     }
 
     bool hasWildCard() const {
       if (!hasFile())
         return false;
-      return ((*m_pWildcardFile).hasGlob());
+      return ((*WildcardFilePattern).hasGlob());
     }
 
-    bool hasArchiveMember() const { return m_pArchiveMember != nullptr; }
+    bool hasArchiveMember() const { return InputArchiveMember != nullptr; }
 
-    const WildcardPattern &archiveMember() const { return *m_pArchiveMember; }
+    const WildcardPattern &archiveMember() const { return *InputArchiveMember; }
 
-    const WildcardPattern *getFile() const { return m_pWildcardFile; }
+    const WildcardPattern *getFile() const { return WildcardFilePattern; }
 
-    const WildcardPattern *getArchiveMember() const { return m_pArchiveMember; }
+    const WildcardPattern *getArchiveMember() const {
+      return InputArchiveMember;
+    }
 
     bool hasSections() const {
-      return m_pWildcardSections != nullptr && !m_pWildcardSections->empty();
+      return WildcardSectionPattern != nullptr &&
+             !WildcardSectionPattern->empty();
     }
 
     const StringList &sections() const {
       assert(hasSections());
-      return *m_pWildcardSections;
+      return *WildcardSectionPattern;
     }
 
-    bool operator==(const Spec &pRHS) const {
+    bool operator==(const Spec &RHS) const {
       /* FIXME: currently I don't check the real content */
-      if (this == &pRHS)
+      if (this == &RHS)
         return true;
-      if (m_pWildcardFile != pRHS.m_pWildcardFile)
+      if (WildcardFilePattern != RHS.WildcardFilePattern)
         return false;
-      if (m_pWildcardSections != pRHS.m_pWildcardSections)
+      if (WildcardSectionPattern != RHS.WildcardSectionPattern)
         return false;
-      if (m_ExcludeFiles != pRHS.m_ExcludeFiles)
+      if (ExcludeFilesRule != RHS.ExcludeFilesRule)
         return false;
       return true;
     }
 
-    void initialize(const Spec &spec) {
-      this->m_pWildcardFile = spec.m_pWildcardFile;
-      this->m_pArchiveMember = spec.m_pArchiveMember;
-      this->m_pWildcardSections = spec.m_pWildcardSections;
-      this->m_pIsArchive = spec.m_pIsArchive;
-      this->m_ExcludeFiles = spec.m_ExcludeFiles;
+    void initialize(const Spec &Spec) {
+      this->WildcardFilePattern = Spec.WildcardFilePattern;
+      this->InputArchiveMember = Spec.InputArchiveMember;
+      this->WildcardSectionPattern = Spec.WildcardSectionPattern;
+      this->InputIsArchive = Spec.InputIsArchive;
+      this->ExcludeFilesRule = Spec.ExcludeFilesRule;
     }
 
-    void setExcludeFiles(const ExcludeFiles *excludeFiles) {
-      m_ExcludeFiles = excludeFiles;
+    void setExcludeFiles(const ExcludeFiles *ExcludeFiles) {
+      ExcludeFilesRule = ExcludeFiles;
     }
 
-    const ExcludeFiles *getExcludeFiles() const { return m_ExcludeFiles; }
+    const ExcludeFiles *getExcludeFiles() const { return ExcludeFilesRule; }
 
-    bool hasExcludeFiles() const { return m_ExcludeFiles; }
+    bool hasExcludeFiles() const { return ExcludeFilesRule; }
 
-    const WildcardPattern *m_pWildcardFile;
-    const WildcardPattern *m_pArchiveMember;
-    const StringList *m_pWildcardSections;
+    const WildcardPattern *WildcardFilePattern;
+    const WildcardPattern *InputArchiveMember;
+    const StringList *WildcardSectionPattern;
     // This stores the exclude files specified using the EXCLUDE_FILE directive
     // outside the section pattern. For example:
     // outSect : { EXCLUDE_FILES(...) *(*text*) }
-    const ExcludeFiles *m_ExcludeFiles;
-    bool m_pIsArchive;
+    const ExcludeFiles *ExcludeFilesRule;
+    bool InputIsArchive;
   };
 
   bool isSpecial() const {
-    return ((m_Policy == InputSectDesc::SpecialKeep) ||
-            (m_Policy == InputSectDesc::SpecialNoKeep));
+    return ((InputSpecPolicy == InputSectDesc::SpecialKeep) ||
+            (InputSpecPolicy == InputSectDesc::SpecialNoKeep));
   }
 
   bool isFixed() const {
-    return ((m_Policy == InputSectDesc::Fixed) ||
-            (m_Policy == InputSectDesc::KeepFixed));
+    return ((InputSpecPolicy == InputSectDesc::Fixed) ||
+            (InputSpecPolicy == InputSectDesc::KeepFixed));
   }
 
 public:
-  InputSectDesc(uint32_t ID, Policy pPolicy, const Spec &pSpec,
-                OutputSectDesc &pOutputDesc);
+  InputSectDesc(uint32_t ID, Policy PPolicy, const Spec &PSpec,
+                OutputSectDesc &POutputDesc);
 
-  InputSectDesc(ScriptCommand::Kind kind, uint32_t ID, Policy policy,
-                const Spec &spec, OutputSectDesc &outputDesc);
+  InputSectDesc(ScriptCommand::Kind Kind, uint32_t ID, Policy Policy,
+                const Spec &Spec, OutputSectDesc &OutputDesc);
 
   ~InputSectDesc();
 
-  Policy policy() const { return m_Policy; }
+  Policy policy() const { return InputSpecPolicy; }
 
   bool isEntry() const {
-    return ((m_Policy == InputSectDesc::Keep) ||
-            (m_Policy == InputSectDesc::SpecialKeep) ||
-            (m_Policy == InputSectDesc::KeepFixed));
+    return ((InputSpecPolicy == InputSectDesc::Keep) ||
+            (InputSpecPolicy == InputSectDesc::SpecialKeep) ||
+            (InputSpecPolicy == InputSectDesc::KeepFixed));
   }
 
-  const Spec &spec() const { return m_Spec; }
+  const Spec &spec() const { return InputSpec; }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
-  void dumpSpec(llvm::raw_ostream &outs) const;
+  void dumpSpec(llvm::raw_ostream &Outs) const;
 
-  void dumpMap(llvm::raw_ostream &outs = llvm::outs(), bool useColor = false,
-               bool useNewLine = true, bool withValues = false,
-               bool addIndent = true) const override;
+  void dumpMap(llvm::raw_ostream &Outs = llvm::outs(), bool UseColor = false,
+               bool UseNewLine = true, bool WithValues = false,
+               bool AddIndent = true) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::INPUT_SECT_DESC ||
-           pCmd->getKind() == ScriptCommand::OUTPUT_SECT_DATA;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::INPUT_SECT_DESC ||
+           LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_SECT_DATA;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
   /// Rule Container.
-  RuleContainer *getRuleContainer() const { return m_RuleContainer; }
+  RuleContainer *getRuleContainer() const { return ThisRuleContainer; }
 
-  uint64_t getRuleHash() const { return m_Hash; }
+  uint64_t getRuleHash() const { return Hash; }
 
-  const OutputSectDesc &getOutputDesc() const { return m_OutputSectDesc; }
+  const OutputSectDesc &getOutputDesc() const {
+    return OutputSectionDescription;
+  }
 
-  void setExcludeFiles(const ExcludeFiles *EF) { m_Spec.setExcludeFiles(EF); }
+  void setExcludeFiles(const ExcludeFiles *EF) {
+    InputSpec.setExcludeFiles(EF);
+  }
 
 protected:
-  RuleContainer *m_RuleContainer;
-  Policy m_Policy;
-  Spec m_Spec;
-  OutputSectDesc &m_OutputSectDesc;
+  RuleContainer *ThisRuleContainer;
+  Policy InputSpecPolicy;
+  Spec InputSpec;
+  OutputSectDesc &OutputSectionDescription;
   uint32_t ID;
-  uint64_t m_Hash = 0;
-  std::string m_RuleText;
+  uint64_t Hash = 0;
+  std::string RuleText;
 };
 
 } // namespace eld

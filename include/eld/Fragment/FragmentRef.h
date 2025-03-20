@@ -35,13 +35,13 @@ public:
   typedef uint64_t Offset; // FIXME: use SizeTraits<T>::Offset
 
 public:
-  static FragmentRef *Null();
+  static FragmentRef *null();
 
-  static FragmentRef *Discard();
+  static FragmentRef *discard();
 
   FragmentRef();
 
-  FragmentRef(Fragment &pFrag, Offset pOffset = 0);
+  FragmentRef(Fragment &PFrag, Offset POffset = 0);
 
   /// memcpy - copy memory
   /// copy memory from the fragment to the pDesc.
@@ -49,26 +49,26 @@ public:
   /// @pNBytes - copies pNBytes from the fragment[offset()+pOffset]
   /// @pOffset - additional offset.
   ///            the start address offset from fragment[offset()]
-  void memcpy(void *pDest, size_t pNBytes, Offset pOffset = 0) const;
+  void memcpy(void *PDest, size_t PNBytes, Offset POffset = 0) const;
 
   uint32_t getWordAtDest() const {
-    uint32_t dest;
-    memcpy(&dest, sizeof(dest), 0);
-    return dest;
+    uint32_t Dest;
+    memcpy(&Dest, sizeof(Dest), 0);
+    return Dest;
   }
 
   // -----  observers  ----- //
-  bool isNull() const { return (this == Null()); }
+  bool isNull() const { return (this == null()); }
 
-  bool isDiscard() const { return this == Discard(); }
+  bool isDiscard() const { return this == discard(); }
 
-  Fragment *frag() const { return m_pFragment; }
+  Fragment *frag() const { return ThisFragment; }
 
-  void setFragment(Fragment *frag) { m_pFragment = frag; }
+  void setFragment(Fragment *Frag) { ThisFragment = Frag; }
 
-  Offset offset() const { return m_Offset; }
+  Offset offset() const { return ThisOffset; }
 
-  void setOffset(Offset offset) { m_Offset = offset; }
+  void setOffset(Offset Offset) { ThisOffset = Offset; }
 
   Offset getOutputOffset(Module &M) const;
 
@@ -77,11 +77,11 @@ public:
   OutputSectionEntry *getOutputSection() const;
 
 private:
-  Fragment *m_pFragment;
-  Offset m_Offset;
+  Fragment *ThisFragment;
+  Offset ThisOffset;
 
-  static FragmentRef g_NullFragmentRef;
-  static FragmentRef g_DiscardFragmentRef;
+  static FragmentRef GNullFragmentRef;
+  static FragmentRef GDiscardFragmentRef;
 };
 
 } // namespace eld

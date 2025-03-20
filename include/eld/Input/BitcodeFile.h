@@ -19,7 +19,7 @@
 namespace llvm {
 namespace lto {
 class QCInputFileAdapter;
-}
+} // namespace lto
 } // namespace llvm
 
 namespace eld::plugin {
@@ -37,7 +37,7 @@ class DiagnosticEngine;
  */
 class BitcodeFile : public ObjectFile {
 public:
-  BitcodeFile(Input *I, DiagnosticEngine *diagEngine);
+  BitcodeFile(Input *I, DiagnosticEngine *DiagEngine);
 
   ~BitcodeFile();
 
@@ -48,32 +48,32 @@ public:
 
   bool createLTOInputFile(const std::string &ModuleID);
 
-  llvm::lto::InputFile &getInputFile() const { return *m_LTOInputFile; }
+  llvm::lto::InputFile &getInputFile() const { return *LTOInputFile; }
 
   std::unique_ptr<llvm::lto::InputFile> takeLTOInputFile();
 
   /// Release Memory
   bool canReleaseMemory() const;
 
-  void releaseMemory(bool isVerbose = false);
+  void releaseMemory(bool IsVerbose = false);
 
   // --------- Comdat Table -------------------------
-  bool findIfKeptComdat(int index) const {
-    if (index == -1) /* Not a part of group */
+  bool findIfKeptComdat(int Index) const {
+    if (Index == -1) /* Not a part of group */
       return true;
-    const auto &it = m_BCComdats.find(index);
-    if (it != m_BCComdats.end() && it->second == false)
+    const auto &It = BCComdats.find(Index);
+    if (It != BCComdats.end() && It->second == false)
       return false;
     return true;
   }
 
-  void addKeptComdat(int index, bool Kept) { m_BCComdats[index] = Kept; }
+  void addKeptComdat(int Index, bool Kept) { BCComdats[Index] = Kept; }
 
-  bool CreatePluginModule(plugin::LinkerPlugin &, uint64_t Hash);
+  bool createPluginModule(plugin::LinkerPlugin &, uint64_t Hash);
 
   // TODO: Used by BitcodeReader, may not be needed.
   // TODO: class reference.
-  plugin::LTOModule *getPluginModule() { return m_PluginModule; }
+  plugin::LTOModule *getPluginModule() { return PluginModule; }
 
   void createBitcodeFilePlugin(plugin::LinkerPlugin &LTOPlugin);
 
@@ -82,13 +82,13 @@ public:
   Section *getInputSectionForSymbol(const ResolveInfo &) const;
 
 private:
-  DiagnosticEngine *m_DiagEngine = nullptr;
-  std::string m_ModuleID;
-  std::unique_ptr<llvm::lto::InputFile> m_LTOInputFile;
+  DiagnosticEngine *DiagEngine = nullptr;
+  std::string ModuleID;
+  std::unique_ptr<llvm::lto::InputFile> LTOInputFile;
   // Marked by comdat index in Module if accepted: (true if not rejected)
-  llvm::DenseMap<int, bool> m_BCComdats;
-  std::unordered_map<const ResolveInfo *, Section *> m_InputSectionForSymbol;
-  plugin::LTOModule *m_PluginModule;
+  llvm::DenseMap<int, bool> BCComdats;
+  std::unordered_map<const ResolveInfo *, Section *> InputSectionForSymbol;
+  plugin::LTOModule *PluginModule;
 };
 
 } // namespace eld

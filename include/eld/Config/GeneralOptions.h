@@ -46,7 +46,7 @@ class GeneralOptions {
 public:
   typedef llvm::StringMap<std::string> SymbolRenameMap;
 
-  typedef llvm::StringMap<uint64_t> AddressMap;
+  typedef llvm::StringMap<uint64_t> AddressMapType;
 
   enum StripSymbolMode {
     KeepAllSymbols,
@@ -55,26 +55,26 @@ public:
     StripAllSymbols
   };
 
-  enum WarnMismatchMode { None, WarnMismatch, NoWarnMismatch };
+  enum class WarnMismatchMode { None, WarnMismatch, NoWarnMismatch };
 
   enum OrphanMode { Place, Warn, Error, Invalid };
 
-  enum ErrorStyle { gnu, llvm };
+  enum ErrorStyleType { gnu, llvm };
 
-  enum ScriptOption { MatchGNU, MatchLLVM };
+  enum ScriptOptionType { MatchGNU, MatchLLVM };
 
   enum HashStyle { SystemV = 0x1, GNU = 0x2, Both = 0x3 };
 
   enum TraceType { T_Files = 0x1, T_Trampolines = 0x2, T_Symbols = 0x4 };
 
-  enum ltoOptions {
+  enum LTOOptionType {
     LTONone = 0x0,
     LTOVerbose = 0x1,
     LTOPreserve = 0x2,
     LTOCodeGen = 0x4,
     LTOAsmOpts = 0x10,
-    LTOAsmFile = 0x20,
-    LTOOutputFile = 0x40,
+    LTOAsmFileOpt = 0x20,
+    LTOOutputFileOpt = 0x40,
     LTODisableLinkOrder = 0x80,
     LTOCacheEnabled = 0x200
   };
@@ -83,31 +83,31 @@ public:
 
   enum SortSection { Name, Alignment };
 
-  typedef std::vector<std::string> RpathList;
-  typedef RpathList::iterator rpath_iterator;
-  typedef RpathList::const_iterator const_rpath_iterator;
+  typedef std::vector<std::string> RpathListType;
+  typedef RpathListType::iterator rpath_iterator;
+  typedef RpathListType::const_iterator const_rpath_iterator;
 
-  typedef std::vector<std::string> ScriptList;
-  typedef ScriptList::iterator script_iterator;
-  typedef ScriptList::const_iterator const_script_iterator;
+  typedef std::vector<std::string> ScriptListType;
+  typedef ScriptListType::iterator script_iterator;
+  typedef ScriptListType::const_iterator const_script_iterator;
 
-  typedef std::vector<StrToken *> UndefSymList;
-  typedef UndefSymList::iterator undef_sym_iterator;
-  typedef UndefSymList::const_iterator const_undef_sym_iterator;
+  typedef std::vector<StrToken *> UndefSymListType;
+  typedef UndefSymListType::iterator undef_sym_iterator;
+  typedef UndefSymListType::const_iterator const_undef_sym_iterator;
 
-  typedef std::set<std::string> ExcludeLIBS;
+  typedef std::set<std::string> ExcludeLIBSType;
 
-  typedef ExcludeLIBS DynList;
-  typedef DynList::iterator dyn_list_iterator;
-  typedef DynList::const_iterator const_dyn_list_iterator;
+  typedef ExcludeLIBSType DynListType;
+  typedef DynListType::iterator dyn_list_iterator;
+  typedef DynListType::const_iterator const_dyn_list_iterator;
 
-  typedef ExcludeLIBS ExtList;
+  typedef ExcludeLIBSType ExtList;
   typedef ExtList::iterator ext_list_iterator;
   typedef ExtList::const_iterator const_ext_list_iterator;
 
   typedef std::unordered_map<const ResolveInfo *,
                              std::vector<std::pair<const InputFile *, bool>>>
-      CrefTable;
+      CrefTableType;
 
   typedef std::vector<std::string> PreserveList;
   typedef std::vector<std::string>::const_iterator StringVectorIterT;
@@ -117,26 +117,26 @@ public:
   ~GeneralOptions();
 
   /// stats
-  void setStats(llvm::StringRef stats);
+  void setStats(llvm::StringRef Stats);
 
   /// trace
-  eld::Expected<void> setTrace(const char *traceType);
+  eld::Expected<void> setTrace(const char *TraceType);
 
-  bool setRequestedTimingRegions(const char *timingRegion);
+  bool setRequestedTimingRegions(const char *TimingRegion);
 
-  void setTrace(bool enableTrace);
+  void setTrace(bool EnableTrace);
 
-  bool traceSymbol(std::string const &pSym) const;
+  bool traceSymbol(std::string const &PSym) const;
 
-  bool traceSymbol(const LDSymbol &sym, const ResolveInfo &RI) const;
+  bool traceSymbol(const LDSymbol &Sym, const ResolveInfo &RI) const;
 
   bool traceSymbol(const ResolveInfo &RI) const;
 
-  bool traceSection(std::string const &pSym) const;
+  bool traceSection(std::string const &PSym) const;
 
   bool traceSection(const Section *S) const;
 
-  bool traceReloc(std::string const &relocName) const;
+  bool traceReloc(std::string const &RelocName) const;
 
   bool traceLTO(void) const;
 
@@ -144,253 +144,251 @@ public:
 
   bool asmopts(void) const;
 
-  uint32_t trace() const { return m_DiagEngine->getPrinter()->trace(); }
+  uint32_t trace() const { return DiagEngine->getPrinter()->trace(); }
 
-  void setBsymbolic(bool pBsymbolic = true) { m_Bsymbolic = pBsymbolic; }
+  void setBsymbolic(bool PBsymbolic = true) { Bsymbolic = PBsymbolic; }
 
-  bool Bsymbolic() const { return m_Bsymbolic; }
+  bool bsymbolic() const { return Bsymbolic; }
 
-  void setBsymbolicFunctions(bool pBsymbolicFn = true) {
-    m_BsymbolicFunctions = pBsymbolicFn;
+  void setBsymbolicFunctions(bool PBsymbolicFn = true) {
+    BsymbolicFunctions = PBsymbolicFn;
   }
 
-  bool BsymbolicFunctions() const { return m_BsymbolicFunctions; }
+  bool bsymbolicFunctions() const { return BsymbolicFunctions; }
 
-  void setPIE(bool pPIE = true) { m_bPIE = pPIE; }
+  void setPIE(bool PPie = true) { BPIE = PPie; }
 
-  bool isPIE() const { return m_bPIE; }
+  bool isPIE() const { return BPIE; }
 
-  void setBgroup(bool pBgroup = true) { m_Bgroup = pBgroup; }
+  void setBgroup(bool PBgroup = true) { Bgroup = PBgroup; }
 
-  bool Bgroup() const { return m_Bgroup; }
+  bool bgroup() const { return Bgroup; }
 
-  void setLinkerPath(const std::string &path) { m_LinkerPath = path; }
+  void setLinkerPath(const std::string &Path) { LinkerPath = Path; }
 
-  const std::string &linkerPath() const { return m_LinkerPath; }
+  const std::string &linkerPath() const { return LinkerPath; }
 
-  void setDyld(const std::string &pDyld) {
-    m_Dyld = pDyld;
-    m_bHasDyld = true;
+  void setDyld(const std::string &PDyld) {
+    Dyld = PDyld;
+    BHasDyld = true;
   }
 
-  std::string soname() const { return m_SoName; }
+  std::string soname() const { return SoName; }
 
-  void setSOName(std::string path) {
-    size_t pos = path.find_last_of(sys::fs::separator);
-    if (std::string::npos == pos)
-      m_SoName = path;
+  void setSOName(std::string Path) {
+    size_t Pos = Path.find_last_of(sys::fs::separator);
+    if (std::string::npos == Pos)
+      SoName = Path;
     else
-      m_SoName = path.substr(pos + 1);
+      SoName = Path.substr(Pos + 1);
   }
 
-  const std::string &dyld() const { return m_Dyld; }
+  const std::string &dyld() const { return Dyld; }
 
-  void setDtInit(const std::string &pDtInit) { m_DtInit = pDtInit; }
+  void setDtInit(const std::string &PDtInit) { DtInit = PDtInit; }
 
-  const std::string &dtinit() const { return m_DtInit; }
+  const std::string &dtinit() const { return DtInit; }
 
-  void setDtFini(const std::string &pDtFini) { m_DtFini = pDtFini; }
+  void setDtFini(const std::string &PDtFini) { DtFini = PDtFini; }
 
-  const std::string &dtfini() const { return m_DtFini; }
+  const std::string &dtfini() const { return DtFini; }
 
-  bool hasDyld() const { return m_bHasDyld; }
+  bool hasDyld() const { return BHasDyld; }
 
-  void setOutputFileName(const std::string &pName);
+  void setOutputFileName(const std::string &PName);
 
   std::string outputFileName() const {
-    if (m_OutputFileName.has_value())
-      return *m_OutputFileName;
+    if (OutputFileName.has_value())
+      return *OutputFileName;
     return "a.out";
   }
 
-  bool hasOutputFileName() const { return m_OutputFileName.has_value(); }
+  bool hasOutputFileName() const { return OutputFileName.has_value(); }
 
-  void setVerbose(int8_t pVerbose = 1);
+  void setVerbose(int8_t PVerbose = 1);
 
-  void setColor(bool pEnabled = true) { m_bColor = pEnabled; }
+  void setColor(bool PEnabled = true) { BColor = PEnabled; }
 
-  bool color() const { return m_bColor; }
+  bool color() const { return BColor; }
 
-  void setNoUndefined(bool pEnable = true) {
-    m_NoUndefined = (pEnable ? YES : NO);
+  void setNoUndefined(bool PEnable = true) {
+    NoUndefined = (PEnable ? YES : NO);
   }
 
-  void setNoInhibitExec(bool pEnable);
+  void setNoInhibitExec(bool PEnable);
 
-  bool noInhibitExec() const { return m_NoInhibitExec; }
+  bool noInhibitExec() const { return NoInhibitExec; }
 
-  bool noGnuStack() const { return m_NoGnuStack; }
+  bool noGnuStack() const { return NoGnuStack; }
 
-  void setNoTrampolines() { m_bNoTrampolines = true; }
+  void setNoTrampolines() { BNoTrampolines = true; }
 
-  bool noTrampolines() const { return m_bNoTrampolines; }
+  bool noTrampolines() const { return BNoTrampolines; }
 
-  void setMulDefs(bool pEnable = true) { m_MulDefs = (pEnable ? YES : NO); }
+  void setMulDefs(bool PEnable = true) { MulDefs = (PEnable ? YES : NO); }
 
-  void setWarnOnce(bool pWarn = true) { m_bWarnOnce = pWarn; }
+  void setWarnOnce(bool PWarn = true) { BWarnOnce = PWarn; }
 
-  bool warnOnce() const { return m_bWarnOnce; }
+  bool warnOnce() const { return BWarnOnce; }
 
-  void setEhFrameHdr(bool pEnable = true) {
-    m_bCreateEhFrameHdr = pEnable;
-    m_bCreateEhFrameHdrSet = true;
+  void setEhFrameHdr(bool PEnable = true) {
+    BCreateEhFrameHdr = PEnable;
+    BCreateEhFrameHdrSet = true;
   }
 
   ///  -----  the -z options  -----  ///
-  bool addZOption(const eld::ZOption &pOption);
+  bool addZOption(const eld::ZOption &POption);
 
-  bool hasCombReloc() const { return m_bCombReloc; }
+  bool hasCombReloc() const { return BCombReloc; }
 
-  bool hasNoUndefined() const { return (Unknown != m_NoUndefined); }
+  bool hasNoUndefined() const { return (Unknown != NoUndefined); }
 
-  bool isNoUndefined() const { return (YES == m_NoUndefined); }
+  bool isNoUndefined() const { return (YES == NoUndefined); }
 
-  bool hasStackSet() const { return (Unknown != m_ExecStack); }
+  bool hasStackSet() const { return (Unknown != ExecStack); }
 
-  bool hasExecStack() const { return (YES == m_ExecStack); }
+  bool hasExecStack() const { return (YES == ExecStack); }
 
-  bool hasInitFirst() const { return m_bInitFirst; }
+  bool hasInitFirst() const { return BInitFirst; }
 
-  bool hasMulDefs() const { return (Unknown != m_MulDefs); }
+  bool hasMulDefs() const { return (Unknown != MulDefs); }
 
-  bool isMulDefs() const { return (YES == m_MulDefs); }
+  bool isMulDefs() const { return (YES == MulDefs); }
 
-  bool hasNoCopyReloc() const { return m_bNoCopyReloc; }
+  bool hasNoCopyReloc() const { return BNoCopyReloc; }
 
-  bool hasRelro() const { return m_bRelro; }
+  bool hasRelro() const { return BRelro; }
 
-  bool hasNow() const { return m_bNow; }
+  bool hasNow() const { return BNow; }
 
-  void disableNow() { m_bNow = false; }
+  void disableNow() { BNow = false; }
 
-  bool hasGlobal() const { return m_bGlobal; }
+  bool hasGlobal() const { return BGlobal; }
 
-  uint64_t commPageSize() const { return *m_CommPageSize; }
+  uint64_t commPageSize() const { return *CommPageSize; }
 
-  uint64_t maxPageSize() const { return *m_MaxPageSize; }
+  uint64_t maxPageSize() const { return *MaxPageSize; }
 
   bool hasMaxPageSize() const {
-    if (m_MaxPageSize)
+    if (MaxPageSize)
       return true;
     return false;
   }
 
   bool hasCommPageSize() const {
-    if (m_CommPageSize)
+    if (CommPageSize)
       return true;
     return false;
   }
 
-  bool hasNoDelete() const { return m_bNoDelete; }
+  bool hasNoDelete() const { return BNoDelete; }
 
-  bool hasForceBTI() const { return m_bForceBTI; }
+  bool hasForceBTI() const { return BForceBTI; }
 
-  bool hasForcePACPLT() const { return m_bForcePACPLT; }
+  bool hasForcePACPLT() const { return BForcePACPLT; }
 
-  bool hasEhFrameHdr() const { return m_bCreateEhFrameHdr; }
-  bool isEhFrameHdrSet() const { return m_bCreateEhFrameHdrSet; }
+  bool hasEhFrameHdr() const { return BCreateEhFrameHdr; }
+  bool isEhFrameHdrSet() const { return BCreateEhFrameHdrSet; }
 
   // -n, --nmagic
-  void setNMagic(bool pMagic = true) { m_bNMagic = pMagic; }
+  void setNMagic(bool PMagic = true) { BNMagic = PMagic; }
 
-  bool nmagic() const { return m_bNMagic; }
+  bool nmagic() const { return BNMagic; }
 
   // -N, --omagic
-  void setOMagic(bool pMagic = true) { m_bOMagic = pMagic; }
+  void setOMagic(bool PMagic = true) { BOMagic = PMagic; }
 
-  bool omagic() const { return m_bOMagic; }
+  bool omagic() const { return BOMagic; }
 
   // -S, --strip-debug
-  void setStripDebug(bool pStripDebug = true) { m_bStripDebug = pStripDebug; }
+  void setStripDebug(bool PStripDebug = true) { BStripDebug = PStripDebug; }
 
-  bool stripDebug() const { return m_bStripDebug; }
+  bool stripDebug() const { return BStripDebug; }
 
   // -E, --export-dynamic
-  void setExportDynamic(bool pExportDynamic = true) {
-    m_bExportDynamic = pExportDynamic;
+  void setExportDynamic(bool PExportDynamic = true) {
+    BExportDynamic = PExportDynamic;
   }
 
-  bool exportDynamic() const { return m_bExportDynamic; }
+  bool exportDynamic() const { return BExportDynamic; }
 
   // --warn-shared-textrel
-  void setWarnSharedTextrel(bool pWarnSharedTextrel = true) {
-    m_bWarnSharedTextrel = pWarnSharedTextrel;
+  void setWarnSharedTextrel(bool PWarnSharedTextrel = true) {
+    BWarnSharedTextrel = PWarnSharedTextrel;
   }
 
-  bool warnSharedTextrel() const { return m_bWarnSharedTextrel; }
+  bool warnSharedTextrel() const { return BWarnSharedTextrel; }
 
-  void setBinaryInput(bool pBinaryInput = true) {
-    m_bBinaryInput = pBinaryInput;
+  void setBinaryInput(bool PBinaryInput = true) { BBinaryInput = PBinaryInput; }
+
+  bool isBinaryInput() const { return BBinaryInput; }
+
+  void setDefineCommon(bool PEnable = true) { BDefineCommon = PEnable; }
+
+  bool isDefineCommon() const { return BDefineCommon; }
+
+  void setFatalWarnings(bool PEnable = true) { BFatalWarnings = PEnable; }
+
+  bool isFatalWarnings() const { return BFatalWarnings; }
+
+  void setLTOOptRemarksFile(bool PEnable = false) {
+    BLTOOptRemarksFile = PEnable;
   }
 
-  bool isBinaryInput() const { return m_bBinaryInput; }
+  bool hasLTOOptRemarksFile() const { return BLTOOptRemarksFile; }
 
-  void setDefineCommon(bool pEnable = true) { m_bDefineCommon = pEnable; }
-
-  bool isDefineCommon() const { return m_bDefineCommon; }
-
-  void setFatalWarnings(bool pEnable = true) { m_bFatalWarnings = pEnable; }
-
-  bool isFatalWarnings() const { return m_bFatalWarnings; }
-
-  void setLTOOptRemarksFile(bool pEnable = false) {
-    m_bLTOOptRemarksFile = pEnable;
-  }
-
-  bool hasLTOOptRemarksFile() const { return m_bLTOOptRemarksFile; }
-
-  void setLTOOptRemarksDisplayHotness(std::string pSym) {
-    if (!pSym.empty())
-      m_bLTOOptRemarksDisplayHotness = true;
+  void setLTOOptRemarksDisplayHotness(std::string PSym) {
+    if (!PSym.empty())
+      BLTOOptRemarksDisplayHotness = true;
     else
-      m_bLTOOptRemarksDisplayHotness = false;
+      BLTOOptRemarksDisplayHotness = false;
   }
 
   bool hasLTOOptRemarksDisplayHotness() const {
-    return m_bLTOOptRemarksDisplayHotness;
+    return BLTOOptRemarksDisplayHotness;
   }
 
-  std::set<std::string> &getExcludeLTOFiles() { return m_ExcludeLTOFiles; }
+  std::set<std::string> &getExcludeLTOFiles() { return ExcludeLTOFiles; }
 
-  std::set<std::string> &getIncludeLTOFiles() { return m_IncludeLTOFiles; }
+  std::set<std::string> &getIncludeLTOFiles() { return IncludeLTOFiles; }
 
-  StripSymbolMode getStripSymbolMode() const { return m_StripSymbols; }
+  StripSymbolMode getStripSymbolMode() const { return StripSymbols; }
 
-  void setStripSymbols(StripSymbolMode pMode) { m_StripSymbols = pMode; }
+  void setStripSymbols(StripSymbolMode PMode) { StripSymbols = PMode; }
 
-  void setNoStdlib(bool pEnable = true) { m_bNoStdlib = pEnable; }
+  void setNoStdlib(bool PEnable = true) { BNoStdlib = PEnable; }
 
-  bool nostdlib() const { return m_bNoStdlib; }
+  bool nostdlib() const { return BNoStdlib; }
 
-  void setShared() { m_hasShared = true; }
+  void setShared() { HasShared = true; }
 
-  bool hasShared() { return m_hasShared; }
+  bool hasShared() { return HasShared; }
 
-  void setCref(bool pCref = true) { m_bCref = pCref; }
+  void setCref(bool PCref = true) { BCref = PCref; }
 
-  void setNewDTags(bool pEnable = true) { m_bNewDTags = pEnable; }
+  void setNewDTags(bool PEnable = true) { BNewDTags = PEnable; }
 
-  bool hasNewDTags() { return m_bNewDTags; }
+  bool hasNewDTags() { return BNewDTags; }
 
-  void setGCCref(std::string pSym) { GcCrefSym = pSym; }
+  void setGCCref(std::string PSym) { GcCrefSym = PSym; }
 
   // LTO Functions, -flto -flto-options
-  void setLTO(bool pLTO = false) { m_lto = pLTO; }
+  void setLTO(bool PLto = false) { Lto = PLto; }
 
-  bool hasLTO() const { return m_lto; }
+  bool hasLTO() const { return Lto; }
 
-  void setLTOOptions(llvm::StringRef optionType);
+  void setLTOOptions(llvm::StringRef OptionType);
 
   void addLTOCodeGenOptions(std::string O);
 
-  void setSaveTemps(bool pSaveTemps) { m_savetemps = pSaveTemps; }
+  void setSaveTemps(bool PSaveTemps) { Savetemps = PSaveTemps; }
 
-  bool getSaveTemps() const { return m_savetemps; }
+  bool getSaveTemps() const { return Savetemps; }
 
-  void setSaveTempsDir(const std::string &S) { m_saveTempsDir = S; }
+  void setSaveTempsDir(const std::string &S) { SaveTempsDir = S; }
 
   const std::optional<std::string> &getSaveTempsDir() const {
-    return m_saveTempsDir;
+    return SaveTempsDir;
   }
 
   bool preserveAllLTO() const;
@@ -402,87 +400,93 @@ public:
   std::vector<llvm::StringRef> getLTOOptionsAsString() const;
 
   const std::vector<std::string> &getUnparsedLTOOptions() const {
-    return m_UnparsedLTOOptions;
+    return UnparsedLTOOptions;
   }
 
-  void getSymbolsFromFile(llvm::StringRef filename, std::vector<std::string> &);
+  void getSymbolsFromFile(llvm::StringRef Filename, std::vector<std::string> &);
 
-  void setCopyFarCallsFromFile(std::string file) {
-    m_CopyFarCallsFromFile = file;
+  void setCopyFarCallsFromFile(std::string File) {
+    CopyFarCallsFromFile = File;
   }
 
-  std::string copyFarCallsFromFile() const { return m_CopyFarCallsFromFile; }
+  std::string copyFarCallsFromFile() const { return CopyFarCallsFromFile; }
 
   bool hasNoCopyFarCallsFromFile() const {
-    return m_CopyFarCallsFromFile.empty();
+    return CopyFarCallsFromFile.empty();
   }
 
   /// No reuse of trampolines file.
   bool hasNoReuseOfTrampolinesFile() const {
-    return m_NoReuseOfTrampolinesFile.empty();
+    return NoReuseOfTrampolinesFile.empty();
   }
 
   std::string noReuseOfTrampolinesFile() const {
-    return m_NoReuseOfTrampolinesFile;
+    return NoReuseOfTrampolinesFile;
   }
 
-  void setNoReuseOfTrampolinesFile(std::string file) {
-    m_NoReuseOfTrampolinesFile = file;
+  void setNoReuseOfTrampolinesFile(std::string File) {
+    NoReuseOfTrampolinesFile = File;
   }
 
-  bool cref() { return m_bCref; }
+  bool cref() { return BCref; }
 
-  bool cref() const { return m_bCref; }
+  bool cref() const { return BCref; }
 
-  CrefTable &crefTable() { return m_crefTable; }
+  CrefTableType &crefTable() { return CrefTable; }
 
-  const CrefTable &crefTable() const { return m_crefTable; }
+  const CrefTableType &crefTable() const { return CrefTable; }
 
   const std::string &gcCref() const { return GcCrefSym; }
 
   // --use-move-veneer
-  void setUseMovVeneer(bool pEnable = true) { m_bUseMovVeneer = pEnable; }
+  void setUseMovVeneer(bool PEnable = true) { BUseMovVeneer = PEnable; }
 
-  bool getUseMovVeneer() const { return m_bUseMovVeneer; }
+  bool getUseMovVeneer() const { return BUseMovVeneer; }
 
   // -M, --print-map
-  void setPrintMap(bool pEnable = true) { m_bPrintMap = pEnable; }
+  void setPrintMap(bool PEnable = true) { BPrintMap = PEnable; }
 
-  bool printMap() const { return m_bPrintMap; }
+  bool printMap() const { return BPrintMap; }
 
-  void setWarnMismatch(bool pEnable) {
-    if (pEnable) {
-      m_WarnMismatch = WarnMismatch;
+  void setWarnMismatch(bool PEnable) {
+    if (PEnable) {
+      WarnMismatch = WarnMismatchMode::WarnMismatch;
       return;
     }
-    m_WarnMismatch = NoWarnMismatch;
+    WarnMismatch = WarnMismatchMode::NoWarnMismatch;
   }
 
-  bool hasOptionWarnNoWarnMismatch() const { return (m_WarnMismatch != None); }
+  bool hasOptionWarnNoWarnMismatch() const {
+    return (WarnMismatch != WarnMismatchMode::None);
+  }
 
-  bool noWarnMismatch() const { return (m_WarnMismatch == NoWarnMismatch); }
+  bool noWarnMismatch() const {
+    return (WarnMismatch == WarnMismatchMode::NoWarnMismatch);
+  }
 
-  bool warnMismatch() const { return (m_WarnMismatch == WarnMismatch); }
+  bool warnMismatch() const {
+    return (WarnMismatch == WarnMismatchMode::WarnMismatch);
+  }
 
   // --gc-sections
-  void setGCSections(bool pEnable = true) { m_bGCSections = pEnable; }
+  void setGCSections(bool PEnable = true) { BGCSections = PEnable; }
 
-  bool GCSections() const { return m_bGCSections; }
+  bool gcSections() const { return BGCSections; }
 
   // --print-gc-sections
-  void setPrintGCSections(bool pEnable = true) { m_bPrintGCSections = pEnable; }
+  void setPrintGCSections(bool PEnable = true) { BPrintGCSections = PEnable; }
 
-  bool printGCSections() const { return m_bPrintGCSections; }
+  bool printGCSections() const { return BPrintGCSections; }
 
   // --ld-generated-unwind-info
-  void setGenUnwindInfo(bool pEnable = true) { m_bGenUnwindInfo = pEnable; }
+  void setGenUnwindInfo(bool PEnable = true) { BGenUnwindInfo = PEnable; }
 
-  bool genUnwindInfo() const { return m_bGenUnwindInfo; }
+  bool genUnwindInfo() const { return BGenUnwindInfo; }
 
   // --Map <file>
-  std::string layoutFile() const { return m_MapFile; }
+  std::string layoutFile() const { return MapFile; }
 
-  void setMapFile(std::string mapFile) { m_MapFile = mapFile; }
+  void setMapFile(std::string PMapFile) { MapFile = PMapFile; }
 
   // --TrampolineMap  <file>
   llvm::StringRef getTrampolineMapFile() const { return TrampolineMapFile; }
@@ -490,283 +494,281 @@ public:
   void setTrampolineMapFile(llvm::StringRef M) { TrampolineMapFile = M; }
 
   // -G, max GP size option
-  void setGPSize(int gpsize) { m_GPSize = gpsize; }
+  void setGPSize(int Gpsize) { GPSize = Gpsize; }
 
-  int getGPSize() const { return m_GPSize; }
+  int getGPSize() const { return GPSize; }
 
   // --force-dynamic
-  void setForceDynamic() { m_bForceDynamic = true; }
+  void setForceDynamic() { BForceDynamic = true; }
 
-  bool forceDynamic() const { return m_bForceDynamic; }
+  bool forceDynamic() const { return BForceDynamic; }
 
   // --dynamic-list
-  void setDynamicList() { m_bDynamicList = true; }
+  void setDynamicList() { BDynamicList = true; }
 
-  bool hasDynamicList() const { return m_bDynamicList; }
+  bool hasDynamicList() const { return BDynamicList; }
 
-  void setVersionScript() { m_bVersionScript = true; }
+  void setVersionScript() { BVersionScript = true; }
 
-  bool hasVersionScript() const { return m_bVersionScript; }
+  bool hasVersionScript() const { return BVersionScript; }
 
-  unsigned int getHashStyle() const { return m_HashStyle; }
+  unsigned int getHashStyle() const { return HashStyle; }
 
-  void setHashStyle(std::string hashStyle);
+  void setHashStyle(std::string HashStyleOption);
 
   // -----  link-in rpath  ----- //
-  const RpathList &getRpathList() const { return m_RpathList; }
-  RpathList &getRpathList() { return m_RpathList; }
+  const RpathListType &getRpathList() const { return RpathList; }
+  RpathListType &getRpathList() { return RpathList; }
 
-  const_rpath_iterator rpath_begin() const { return m_RpathList.begin(); }
-  rpath_iterator rpath_begin() { return m_RpathList.begin(); }
-  const_rpath_iterator rpath_end() const { return m_RpathList.end(); }
-  rpath_iterator rpath_end() { return m_RpathList.end(); }
+  const_rpath_iterator rpathBegin() const { return RpathList.begin(); }
+  rpath_iterator rpathBegin() { return RpathList.begin(); }
+  const_rpath_iterator rpathEnd() const { return RpathList.end(); }
+  rpath_iterator rpathEnd() { return RpathList.end(); }
 
   // -----  link-in script  ----- //
-  const ScriptList &getScriptList() const { return m_ScriptList; }
-  ScriptList &getScriptList() { return m_ScriptList; }
+  const ScriptListType &getScriptList() const { return ScriptList; }
+  ScriptListType &getScriptList() { return ScriptList; }
 
-  const_script_iterator script_begin() const { return m_ScriptList.begin(); }
-  script_iterator script_begin() { return m_ScriptList.begin(); }
-  const_script_iterator script_end() const { return m_ScriptList.end(); }
-  script_iterator script_end() { return m_ScriptList.end(); }
+  const_script_iterator scriptBegin() const { return ScriptList.begin(); }
+  script_iterator scriptBegin() { return ScriptList.begin(); }
+  const_script_iterator scriptEnd() const { return ScriptList.end(); }
+  script_iterator scriptEnd() { return ScriptList.end(); }
 
   // ----  forced undefined symbols ---- //
-  const UndefSymList &getUndefSymList() const { return m_UndefSymList; }
-  UndefSymList &getUndefSymList() { return m_UndefSymList; }
+  const UndefSymListType &getUndefSymList() const { return UndefSymList; }
+  UndefSymListType &getUndefSymList() { return UndefSymList; }
 
   // --- --export-dynamic-symbol
-  const UndefSymList &getExportDynSymList() const { return m_ExportDynSymList; }
-  UndefSymList &getExportDynSymList() { return m_ExportDynSymList; }
+  const UndefSymListType &getExportDynSymList() const {
+    return ExportDynSymList;
+  }
+  UndefSymListType &getExportDynSymList() { return ExportDynSymList; }
 
-  const_undef_sym_iterator undef_sym_begin() const {
-    return m_UndefSymList.begin();
+  const_undef_sym_iterator undefSymBegin() const {
+    return UndefSymList.begin();
   }
-  undef_sym_iterator undef_sym_begin() { return m_UndefSymList.begin(); }
-  const_undef_sym_iterator undef_sym_end() const {
-    return m_UndefSymList.end();
-  }
-  undef_sym_iterator undef_sym_end() { return m_UndefSymList.end(); }
+  undef_sym_iterator undefSymBegin() { return UndefSymList.begin(); }
+  const_undef_sym_iterator undefSymEnd() const { return UndefSymList.end(); }
+  undef_sym_iterator undefSymEnd() { return UndefSymList.end(); }
 
   // ---- add dynamic symbols from list file ---- //
-  const DynList &getDynList() const { return m_DynList; }
-  DynList &getDynList() { return m_DynList; }
+  const DynListType &getDynList() const { return DynList; }
+  DynListType &getDynList() { return DynList; }
 
-  const DynList &getVersionScripts() const { return m_VersionScripts; }
-  DynList &getVersionScripts() { return m_VersionScripts; }
+  const DynListType &getVersionScripts() const { return VersionScripts; }
+  DynListType &getVersionScripts() { return VersionScripts; }
 
   // ---- add extern symbols from list file ---- //
-  const ExtList &getExternList() const { return m_ExternList; }
-  ExtList &getExternList() { return m_ExternList; }
+  const ExtList &getExternList() const { return ExternList; }
+  ExtList &getExternList() { return ExternList; }
 
-  const_ext_list_iterator ext_list_begin() const {
-    return m_ExternList.begin();
-  }
-  const_ext_list_iterator ext_list_end() const { return m_ExternList.end(); }
+  const_ext_list_iterator extListBegin() const { return ExternList.begin(); }
+  const_ext_list_iterator extListEnd() const { return ExternList.end(); }
 
-  const_dyn_list_iterator dyn_list_begin() const { return m_DynList.begin(); }
-  dyn_list_iterator dyn_list_begin() { return m_DynList.begin(); }
-  const_dyn_list_iterator dyn_list_end() const { return m_DynList.end(); }
-  dyn_list_iterator dyn_list_end() { return m_DynList.end(); }
+  const_dyn_list_iterator dynListBegin() const { return DynList.begin(); }
+  dyn_list_iterator dynListBegin() { return DynList.begin(); }
+  const_dyn_list_iterator dynListEnd() const { return DynList.end(); }
+  dyn_list_iterator dynListEnd() { return DynList.end(); }
 
   // -----  filter and auxiliary filter  ----- //
-  void setFilter(const std::string &pFilter) { m_Filter = pFilter; }
+  void setFilter(const std::string &PFilter) { Filter = PFilter; }
 
-  const std::string &filter() const { return m_Filter; }
+  const std::string &filter() const { return Filter; }
 
-  bool hasFilter() const { return !m_Filter.empty(); }
+  bool hasFilter() const { return !Filter.empty(); }
 
   // -----  exclude libs  ----- //
-  ExcludeLIBS &excludeLIBS() { return m_ExcludeLIBS; }
+  ExcludeLIBSType &excludeLIBS() { return ExcludeLIBS; }
 
   bool isInExcludeLIBS(llvm::StringRef ResolvedPath,
                        llvm::StringRef NameSpecPath) const;
 
   // -- findPos --
-  void setMergeStrings(bool mergeStrings) { m_bMergeStrings = mergeStrings; }
+  void setMergeStrings(bool MergeStrings) { BMergeStrings = MergeStrings; }
 
-  bool mergeStrings() const { return m_bMergeStrings; }
+  bool mergeStrings() const { return BMergeStrings; }
 
-  void setEmitRelocs(bool emitRelocs) {
-    m_bEmitRelocs = emitRelocs;
+  void setEmitRelocs(bool EmitRelocs) {
+    BEmitRelocs = EmitRelocs;
     ;
   }
 
-  bool emitRelocs() const { return m_bEmitRelocs; }
+  bool emitRelocs() const { return BEmitRelocs; }
 
-  void setEmitGNUCompatRelocs(bool value = true) {
-    m_bEmitGNUCompatRelocs = value;
+  void setEmitGNUCompatRelocs(bool Value = true) {
+    BEmitGNUCompatRelocs = Value;
   }
 
-  bool emitGNUCompatRelocs() const { return m_bEmitGNUCompatRelocs; }
+  bool emitGNUCompatRelocs() const { return BEmitGNUCompatRelocs; }
 
   // Align segments to a page boundary by default. Use --no-align-segments
   // to disable it.
-  void setAlignSegments(bool align = true) { m_bPageAlignSegments = align; }
+  void setAlignSegments(bool Align = true) { BPageAlignSegments = Align; }
 
-  bool alignSegmentsToPage() const { return m_bPageAlignSegments; }
+  bool alignSegmentsToPage() const { return BPageAlignSegments; }
 
-  PreserveList &getPreserveList() { return m_PreserveCmdLine; }
+  PreserveList &getPreserveList() { return PreserveCmdLine; }
 
   llvm::iterator_range<StringVectorIterT> codeGenOpts() const {
-    return llvm::make_range(m_codegenOpts.cbegin(), m_codegenOpts.cend());
+    return llvm::make_range(CodegenOpts.cbegin(), CodegenOpts.cend());
   }
 
   llvm::iterator_range<StringVectorIterT> asmOpts() const {
-    return llvm::make_range(m_asmOpts.cbegin(), m_asmOpts.cend());
+    return llvm::make_range(AsmOpts.cbegin(), AsmOpts.cend());
   }
 
   bool hasLTOAsmFile(void) const;
 
   llvm::iterator_range<StringVectorIterT> ltoAsmFile(void) const;
 
-  void setLTOAsmFile(llvm::StringRef ltoAsmFile);
+  void setLTOAsmFile(llvm::StringRef LtoAsmFile);
 
   bool hasLTOOutputFile(void) const;
 
   llvm::iterator_range<StringVectorIterT> ltoOutputFile(void) const;
 
-  size_t ltoAsmFileSize() const { return m_LTOAsmFile.size(); }
+  size_t ltoAsmFileSize() const { return LTOAsmFile.size(); }
 
-  size_t ltoOutputFileSize() const { return m_LTOOutputFile.size(); }
+  size_t ltoOutputFileSize() const { return LTOOutputFile.size(); }
 
-  void setLTOOutputFile(llvm::StringRef ltoAsmFile);
+  void setLTOOutputFile(llvm::StringRef LtoAsmFile);
 
-  void setEmulation(std::string emulation) { m_Emulation = emulation; }
+  void setEmulation(std::string E) { Emulation = E; }
 
-  llvm::StringRef getEmulation() const { return m_Emulation.c_str(); }
+  llvm::StringRef getEmulation() const { return Emulation.c_str(); }
 
-  void setLTOUseAs() { m_LTOUseAs = true; }
+  void setLTOUseAs() { LTOUseAs = true; }
 
-  bool ltoUseAssembler() const { return m_LTOUseAs; }
+  bool ltoUseAssembler() const { return LTOUseAs; }
 
-  void setLTOOptions(uint32_t ltoOption);
+  void setLTOOptions(uint32_t LtoOption);
 
-  bool rosegment() const { return m_rosegment; }
+  bool rosegment() const { return Rosegment; }
 
-  void setROSegment(bool rosegment = false) { m_rosegment = rosegment; }
+  void setROSegment(bool R = false) { Rosegment = R; }
 
-  bool verifyLink() const { return m_verify; }
+  bool verifyLink() const { return Verify; }
 
-  void setVerifyLink(bool verify = true) { m_verify = verify; }
+  void setVerifyLink(bool V = true) { Verify = V; }
 
-  void setMapFileWithColor(bool color = false) { m_colormap = color; }
+  void setMapFileWithColor(bool Color = false) { Colormap = Color; }
 
-  bool colorMap() const { return m_colormap; }
+  bool colorMap() const { return Colormap; }
 
-  void setInsertTimingStats(bool t) { m_InsertTimingStats = t; };
+  void setInsertTimingStats(bool T) { InsertTimingStats = T; };
 
-  bool getInsertTimingStats() const { return m_InsertTimingStats; }
+  bool getInsertTimingStats() const { return InsertTimingStats; }
 
-  ErrorStyle getErrorStyle() const;
+  ErrorStyleType getErrorStyle() const;
 
-  bool setErrorStyle(std::string errorStyle);
+  bool setErrorStyle(std::string ErrorStyle);
 
-  ScriptOption getScriptOption() const;
+  ScriptOptionType getScriptOption() const;
 
-  bool setScriptOption(std::string scriptOptions);
+  bool setScriptOption(std::string ScriptOptions);
 
-  const SymbolRenameMap &renameMap() const { return m_SymbolRenames; }
-  SymbolRenameMap &renameMap() { return m_SymbolRenames; }
+  const SymbolRenameMap &renameMap() const { return SymbolRenames; }
+  SymbolRenameMap &renameMap() { return SymbolRenames; }
 
-  const AddressMap &addressMap() const { return m_AddressMap; }
-  AddressMap &addressMap() { return m_AddressMap; }
+  const AddressMapType &addressMap() const { return AddressMap; }
+  AddressMapType &addressMap() { return AddressMap; }
 
   /// image base
-  const std::optional<uint64_t> &imageBase() const { return m_ImageBase; }
+  const std::optional<uint64_t> &imageBase() const { return ImageBase; }
 
-  void setImageBase(uint64_t Value) { m_ImageBase = Value; }
+  void setImageBase(uint64_t Value) { ImageBase = Value; }
 
   /// entry point
   const std::string &entry() const;
 
-  void setEntry(const std::string &pEntry);
+  void setEntry(const std::string &PEntry);
 
   bool hasEntry() const;
 
-  llvm::ArrayRef<std::string> mapStyle() const { return m_MapStyles; }
+  llvm::ArrayRef<std::string> mapStyle() const { return MapStyles; }
 
   bool setMapStyle(llvm::StringRef MapStyle);
 
   void setArgs(llvm::ArrayRef<const char *> &Argv) { CommandLineArgs = Argv; }
 
-  const llvm::ArrayRef<const char *> &Args() const { return CommandLineArgs; }
+  const llvm::ArrayRef<const char *> &args() const { return CommandLineArgs; }
 
   // --Threads
-  void enableThreads() { m_enableThreads = true; }
+  void enableThreads() { EnableThreads = true; }
 
-  void disableThreads() { m_enableThreads = false; }
+  void disableThreads() { EnableThreads = false; }
 
-  bool threadsEnabled() const { return m_enableThreads; }
+  bool threadsEnabled() const { return EnableThreads; }
 
-  void setNumThreads(int numThreads) { m_NumThreads = numThreads; }
+  void setNumThreads(int N) { NumThreads = N; }
 
-  int numThreads() const { return m_NumThreads; }
+  int numThreads() const { return NumThreads; }
 
   // SymDef File.
-  void setSymDef(bool enable = true) { m_bSymDef = enable; }
+  void setSymDef(bool Enable = true) { BSymDef = Enable; }
 
-  bool symDef() const { return m_bSymDef; }
+  bool symDef() const { return BSymDef; }
 
-  void setAllowBSSMixing(bool enable = true) { m_bAllowBSSMixing = enable; }
-  bool AllowBSSMixing() const { return m_bAllowBSSMixing; }
+  void setAllowBSSMixing(bool Enable = true) { BAllowBSSMixing = Enable; }
+  bool allowBssMixing() const { return BAllowBSSMixing; }
 
-  void setAllowBSSConversion(bool enable = true) {
-    m_bAllowBSSConversion = enable;
+  void setAllowBSSConversion(bool Enable = true) {
+    BAllowBSSConversion = Enable;
   }
-  bool AllowBSSConversion() const { return m_bAllowBSSConversion; }
+  bool allowBssConversion() const { return BAllowBSSConversion; }
 
-  void setSymDefFile(std::string symDefFile) {
+  void setSymDefFile(std::string S) {
     setSymDef();
-    m_SymDefFile = symDefFile;
+    SymDefFile = S;
   }
 
-  std::string symDefFile() const { return m_SymDefFile; }
+  std::string symDefFile() const { return SymDefFile; }
 
-  bool setSymDefFileStyle(llvm::StringRef symDefFileStyle) {
-    m_SymDefFileStyle = symDefFileStyle;
-    return (m_SymDefFileStyle.lower() == "provide" ||
-            m_SymDefFileStyle.lower() == "default");
+  bool setSymDefFileStyle(llvm::StringRef S) {
+    SymDefFileStyle = S;
+    return (SymDefFileStyle.lower() == "provide" ||
+            SymDefFileStyle.lower() == "default");
   }
 
-  llvm::StringRef symDefFileStyle() const { return m_SymDefFileStyle; }
+  llvm::StringRef symDefFileStyle() const { return SymDefFileStyle; }
 
-  bool fixCortexA53Erratum843419() const { return m_bFixCortexA53Errata843419; }
+  bool fixCortexA53Erratum843419() const { return BFixCortexA53Errata843419; }
 
-  void setFixCortexA53Errata843419(bool enableErrata = true) {
-    m_bFixCortexA53Errata843419 = enableErrata;
+  void setFixCortexA53Errata843419(bool EnableErrata = true) {
+    BFixCortexA53Errata843419 = EnableErrata;
   }
 
-  void setBuildCRef() { m_bBuildCref = true; }
+  void setBuildCRef() { BBuildCref = true; }
 
-  bool buildCRef() const { return m_bBuildCref; }
+  bool buildCRef() const { return BBuildCref; }
 
   void setVerify(llvm::StringRef VerifyType);
 
-  uint32_t verify() const { return m_DiagEngine->getPrinter()->verify(); }
+  uint32_t verify() const { return DiagEngine->getPrinter()->verify(); }
 
-  std::set<std::string> &verifyRelocList() { return m_RelocVerify; }
+  std::set<std::string> &verifyRelocList() { return RelocVerify; }
 
-  void setCompact(bool compact = true) { m_Compact = compact; }
+  void setCompact(bool C = true) { Compact = C; }
 
-  bool isCompact() const { return m_Compact; }
+  bool isCompact() const { return Compact; }
 
-  void setCompactDyn(bool value = true) { m_bCompactDyn = value; }
+  void setCompactDyn(bool Value = true) { BCompactDyn = Value; }
 
-  bool isCompactDyn() const { return m_bCompactDyn; }
+  bool isCompactDyn() const { return BCompactDyn; }
 
   // --------------------ROPI/RWPI Support -----------------------------
-  bool hasRWPI() const { return m_bRWPI; }
+  bool hasRWPI() const { return BRWPI; }
 
-  void setRWPI() { m_bRWPI = true; }
+  void setRWPI() { BRWPI = true; }
 
-  bool hasROPI() const { return m_bROPI; }
+  bool hasROPI() const { return BROPI; }
 
-  void setROPI() { m_bROPI = true; }
+  void setROPI() { BROPI = true; }
 
   // --------------------AArch64 execute-only Support ------------------
 
-  bool hasExecuteOnlySegments() { return m_bExecuteOnly; }
-  void setExecuteOnlySegments() { m_bExecuteOnly = true; }
+  bool hasExecuteOnlySegments() { return BExecuteOnly; }
+  void setExecuteOnlySegments() { BExecuteOnly = true; }
 
   // -------------------Unresolved Symbol Policy -----------------------
   bool setUnresolvedSymbolPolicy(llvm::StringRef O) {
@@ -776,157 +778,157 @@ public:
   }
 
   bool setOrphanHandlingMode(llvm::StringRef O) {
-    m_Orphan_Mode = llvm::StringSwitch<OrphanMode>(O)
-                        .CaseLower("error", OrphanMode::Error)
-                        .CaseLower("warn", OrphanMode::Warn)
-                        .CaseLower("place", OrphanMode::Place)
-                        .Default(OrphanMode::Invalid);
+    MOrphanMode = llvm::StringSwitch<OrphanMode>(O)
+                      .CaseLower("error", OrphanMode::Error)
+                      .CaseLower("warn", OrphanMode::Warn)
+                      .CaseLower("place", OrphanMode::Place)
+                      .Default(OrphanMode::Invalid);
 
-    if (m_Orphan_Mode == OrphanMode::Invalid)
+    if (MOrphanMode == OrphanMode::Invalid)
       return false;
     return true;
   }
 
   llvm::StringRef reportUndefPolicy() const { return ReportUndefPolicy; }
-  OrphanMode getOrphanMode() const { return m_Orphan_Mode; }
+  OrphanMode getOrphanMode() const { return MOrphanMode; }
 
   // ------------------- ThinLTO Cache Support -------------------------
-  bool isLTOCacheEnabled() const { return m_LTOOptions & LTOCacheEnabled; }
-  llvm::StringRef getLTOCacheDirectory() const { return m_LTOCacheDirectory; }
+  bool isLTOCacheEnabled() const {
+    return LTOOptions & LTOOptionType::LTOCacheEnabled;
+  }
+  llvm::StringRef getLTOCacheDirectory() const { return LTOCacheDirectory; }
 
   //--------------------Timing statistics--------------------------------
   // --print-stats
-  bool printTimingStats(const char *timeRegion = nullptr) const;
+  bool printTimingStats(const char *TimeRegion = nullptr) const;
 
-  void setPrintTimingStats() { m_bPrintTimeStats = true; }
+  void setPrintTimingStats() { BPrintTimeStats = true; }
 
   bool allUserPluginStatsRequested() const {
-    return m_bPrintAllUserPluginTimeStats;
+    return BPrintAllUserPluginTimeStats;
   }
 
   // --emit-stats <file>
-  std::string timingStatsFile() const { return m_TimingStatsFile; }
+  std::string timingStatsFile() const { return TimingStatsFile; }
 
-  void setTimingStatsFile(std::string statsFile) {
-    m_TimingStatsFile = statsFile;
+  void setTimingStatsFile(std::string StatsFile) {
+    TimingStatsFile = StatsFile;
   }
   //--------------------Plugin Config--------------------------------
   void addPluginConfig(const std::string &Config) {
-    m_PluginConfig.push_back(Config);
+    PluginConfig.push_back(Config);
   }
 
   const std::vector<std::string> &getPluginConfig() const {
-    return m_PluginConfig;
+    return PluginConfig;
   }
 
   // ------------------Demangle Style----------------------------------
   bool setDemangleStyle(llvm::StringRef Option);
 
-  bool shouldDemangle() const { return m_bDemangle; }
+  bool shouldDemangle() const { return BDemangle; }
 
   // -----------------Arch specific checking --------------------------
-  bool validateArchOptions() const { return m_ValidateArchOpts; }
+  bool validateArchOptions() const { return ValidateArchOpts; }
 
-  void setValidateArchOptions() { m_ValidateArchOpts = true; }
+  void setValidateArchOptions() { ValidateArchOpts = true; }
 
-  void setABIstring(llvm::StringRef ABIStr) { m_ABIString = ABIStr; }
+  void setABIstring(llvm::StringRef ABIStr) { ABIString = ABIStr; }
 
-  llvm::StringRef abiString() const { return m_ABIString; }
+  llvm::StringRef abiString() const { return ABIString; }
 
   // ----------------- Disable Guard ------------------------
-  void setDisableGuardForWeakUndefs() { m_DisableGuardForWeakUndefs = true; }
+  void setDisableGuardForWeakUndefs() { DisableGuardForWeakUndefs = true; }
 
   bool getDisableGuardForWeakUndefs() const {
-    return m_DisableGuardForWeakUndefs;
+    return DisableGuardForWeakUndefs;
   }
 
-  void setRISCVRelax(bool value = true) { m_bRiscvRelax = value; }
+  void setRISCVRelax(bool Value = true) { BRiscvRelax = Value; }
 
-  bool getRISCVRelax() const { return m_bRiscvRelax; }
+  bool getRISCVRelax() const { return BRiscvRelax; }
 
-  void setRISCVGPRelax(bool Relax) { m_RiscvGPRelax = Relax; }
+  void setRISCVGPRelax(bool Relax) { RiscvGPRelax = Relax; }
 
-  bool getRISCVGPRelax() const { return m_RiscvGPRelax; }
+  bool getRISCVGPRelax() const { return RiscvGPRelax; }
 
-  void setRISCVRelaxToC(bool value = true) { m_bRiscvRelaxToC = value; }
+  void setRISCVRelaxToC(bool Value = true) { BRiscvRelaxToC = Value; }
 
-  bool getRISCVRelaxToC() const { return m_bRiscvRelaxToC; }
+  bool getRISCVRelaxToC() const { return BRiscvRelaxToC; }
 
-  bool warnCommon() const { return m_bWarnCommon; }
+  bool warnCommon() const { return BWarnCommon; }
 
-  void setWarnCommon() { m_bWarnCommon = true; }
+  void setWarnCommon() { BWarnCommon = true; }
 
-  void setAllowIncompatibleSectionsMix(bool f) {
-    m_AllowIncompatibleSectionsMix = f;
+  void setAllowIncompatibleSectionsMix(bool F) {
+    AllowIncompatibleSectionsMix = F;
   }
 
   bool allowIncompatibleSectionsMix() const {
-    return m_AllowIncompatibleSectionsMix;
+    return AllowIncompatibleSectionsMix;
   }
 
-  void setShowProgressBar() { m_ProgressBar = true; }
+  void setShowProgressBar() { ProgressBar = true; }
 
-  bool showProgressBar() const { return m_ProgressBar; }
+  bool showProgressBar() const { return ProgressBar; }
 
-  void setRecordInputfiles() { m_RecordInputFiles = true; }
+  void setRecordInputfiles() { RecordInputFiles = true; }
 
-  void setCompressTar() { m_CompressTar = true; }
+  void setCompressTar() { CompressTar = true; }
 
-  bool getCompressTar() const { return m_CompressTar; }
+  bool getCompressTar() const { return CompressTar; }
 
-  void setHasMappingFile(bool hasMap) { m_HasMappingFile = hasMap; }
+  void setHasMappingFile(bool HasMap) { HasMappingFile = HasMap; }
 
-  bool hasMappingFile() const { return m_HasMappingFile; }
+  bool hasMappingFile() const { return HasMappingFile; }
 
-  void setMappingFileName(const std::string &file) { m_MappingFileName = file; }
+  void setMappingFileName(const std::string &File) { MappingFileName = File; }
 
-  const std::string &getMappingFileName() const { return m_MappingFileName; }
+  const std::string &getMappingFileName() const { return MappingFileName; }
 
-  bool getRecordInputFiles() const { return m_RecordInputFiles; }
+  bool getRecordInputFiles() const { return RecordInputFiles; }
 
-  bool getDumpMappings() const { return m_DumpMappings; }
+  bool getDumpMappings() const { return DumpMappings; }
 
-  void setDumpMappings(bool dump) { m_DumpMappings = dump; }
+  void setDumpMappings(bool Dump) { DumpMappings = Dump; }
 
-  void setMappingDumpFile(const std::string dump) { m_MappingDumpFile = dump; }
+  void setMappingDumpFile(const std::string Dump) { MappingDumpFile = Dump; }
 
-  const std::string getMappingDumpFile() const { return m_MappingDumpFile; }
+  const std::string getMappingDumpFile() const { return MappingDumpFile; }
 
-  const std::string getResponseDumpFile() const { return m_ResponseDumpFile; }
+  const std::string getResponseDumpFile() const { return ResponseDumpFile; }
 
-  void setResponseDumpFile(const std::string dump) {
-    m_ResponseDumpFile = dump;
-  }
+  void setResponseDumpFile(const std::string Dump) { ResponseDumpFile = Dump; }
 
-  void setDumpResponse(bool dump) { m_DumpResponse = true; }
+  void setDumpResponse(bool Dump) { DumpResponse = true; }
 
-  bool getDumpResponse() const { return m_DumpResponse; }
+  bool getDumpResponse() const { return DumpResponse; }
 
-  void setTarFile(const std::string filename) { m_TarFile = filename; }
+  void setTarFile(const std::string Filename) { TarFile = Filename; }
 
-  const std::string getTarFile() const { return m_TarFile; }
+  const std::string getTarFile() const { return TarFile; }
 
-  void setDisplaySummary() { m_DisplaySummary = true; }
+  void setDisplaySummary() { DisplaySummary = true; }
 
-  bool displaySummary() { return m_DisplaySummary; }
+  bool displaySummary() { return DisplaySummary; }
 
-  void setSymbolTracingRequested() { m_SymbolTracingRequested = true; }
+  void setSymbolTracingRequested() { SymbolTracingRequested = true; }
 
-  bool isSymbolTracingRequested() const { return m_SymbolTracingRequested; }
+  bool isSymbolTracingRequested() const { return SymbolTracingRequested; }
 
-  void setSectionTracingRequested() { m_SectionTracingRequested = true; }
+  void setSectionTracingRequested() { SectionTracingRequested = true; }
 
-  bool isSectionTracingRequested() const { return m_SectionTracingRequested; }
+  bool isSectionTracingRequested() const { return SectionTracingRequested; }
 
   // --------------Dynamic Linker-------------------------
-  bool hasDynamicLinker() const { return m_bDynamicLinker; }
+  bool hasDynamicLinker() const { return BDynamicLinker; }
 
-  void setHasDynamicLinker(bool val) { m_bDynamicLinker = val; }
+  void setHasDynamicLinker(bool Val) { BDynamicLinker = Val; }
 
   // -------------Default Map Styles ------------------------
-  std::string getDefaultMapStyle() const { return m_DefaultMapStyle; }
+  std::string getDefaultMapStyle() const { return DefaultMapStyle; }
 
-  void setDefaultMapStyle(std::string Style) { m_DefaultMapStyle = Style; }
+  void setDefaultMapStyle(std::string Style) { DefaultMapStyle = Style; }
 
   bool isDefaultMapStyleText() const;
 
@@ -934,35 +936,35 @@ public:
 
   // --unique-output-sections
   bool shouldEmitUniqueOutputSections() const {
-    return m_EmitUniqueOutputSections;
+    return EmitUniqueOutputSections;
   }
 
   void setEmitUniqueOutputSections(bool Emit) {
-    m_EmitUniqueOutputSections = Emit;
+    EmitUniqueOutputSections = Emit;
   }
 
   // --reproduce-on-fail support
-  void setReproduceOnFail(bool v) { m_RecordInputFilesOnFail = v; }
+  void setReproduceOnFail(bool V) { RecordInputFilesOnFail = V; }
 
-  bool isReproduceOnFail() const { return m_RecordInputFilesOnFail; }
+  bool isReproduceOnFail() const { return RecordInputFilesOnFail; }
 
   // -- enable relaxation on hexagon ----
-  void enableRelaxation() { m_bRelaxation = true; }
+  void enableRelaxation() { BRelaxation = true; }
 
-  bool isLinkerRelaxationEnabled() const { return m_bRelaxation; }
+  bool isLinkerRelaxationEnabled() const { return BRelaxation; }
 
-  void setFatalInternalErrors(bool pEnable) { m_FatalInternalErrors = pEnable; }
+  void setFatalInternalErrors(bool PEnable) { FatalInternalErrors = PEnable; }
 
   // Returns true if internal errors should be considered fatal.
-  bool isFatalInternalErrors() const { return m_FatalInternalErrors; }
+  bool isFatalInternalErrors() const { return FatalInternalErrors; }
 
   // ----------------- --trace-merge-strings options --------------------------
   enum MergeStrTraceType { NONE, ALL, ALLOC, SECTIONS };
 
-  MergeStrTraceType getMergeStrTraceType() const { return m_MergeStrTraceType; }
+  MergeStrTraceType getMergeStrTraceType() const { return MergeStrTraceValue; }
 
   void addMergeStrTraceSection(const std::string Section) {
-    m_MergeStrSectionsToTrace.push_back(llvm::Regex(Section));
+    MergeStrSectionsToTrace.push_back(llvm::Regex(Section));
   }
 
   bool shouldTraceMergeStrSection(const ELFSection *S) const;
@@ -978,17 +980,17 @@ public:
   bool shouldGlobalStringMerge() const { return GlobalMergeNonAllocStrings; }
 
   // --keep-labels
-  void setKeepLabels() { m_bKeepLabels = true; }
+  void setKeepLabels() { BKeepLabels = true; }
 
-  bool shouldKeepLabels() const { return m_bKeepLabels; }
+  bool shouldKeepLabels() const { return BKeepLabels; }
 
   // --check-sections
-  void setEnableCheckSectionOverlaps() { m_bEnableOverlapChecks = true; }
+  void setEnableCheckSectionOverlaps() { BEnableOverlapChecks = true; }
 
   // --no-check-sections
-  void setDisableCheckSectionOverlaps() { m_bEnableOverlapChecks = false; }
+  void setDisableCheckSectionOverlaps() { BEnableOverlapChecks = false; }
 
-  bool doCheckOverlaps() const { return m_bEnableOverlapChecks; }
+  bool doCheckOverlaps() const { return BEnableOverlapChecks; }
 
   // --relax=<regex> support
   bool isLinkerRelaxationEnabled(llvm::StringRef Name) const;
@@ -996,69 +998,69 @@ public:
   void addRelaxSection(llvm::StringRef Name);
 
   void setThinArchiveRuleMatchingCompatibility() {
-    m_ThinArchiveRuleMatchingCompat = true;
+    ThinArchiveRuleMatchingCompat = true;
   }
 
   bool isThinArchiveRuleMatchingCompatibilityEnabled() const {
-    return m_ThinArchiveRuleMatchingCompat;
+    return ThinArchiveRuleMatchingCompat;
   }
 
   // --sort-common support
-  void setSortCommon() {
-    m_SortCommon = SortCommonSymbols::DescendingAlignment;
-  }
+  void setSortCommon() { SortCommon = SortCommonSymbols::DescendingAlignment; }
 
   bool setSortCommon(llvm::StringRef value) {
     if (value.lower() == "ascending") {
-      m_SortCommon = SortCommonSymbols::AscendingAlignment;
+      SortCommon = SortCommonSymbols::AscendingAlignment;
       return true;
-    } else if (value.lower() == "descending") {
-      m_SortCommon = SortCommonSymbols::DescendingAlignment;
+    }
+    if (value.lower() == "descending") {
+      SortCommon = SortCommonSymbols::DescendingAlignment;
       return true;
     }
     return false;
   }
 
-  bool isSortCommonEnabled() const { return !!m_SortCommon; }
+  bool isSortCommonEnabled() const { return !!SortCommon; }
 
   bool isSortCommonSymbolsAscendingAlignment() const {
     return isSortCommonEnabled() &&
-           m_SortCommon.value() == SortCommonSymbols::AscendingAlignment;
+           SortCommon.value() == SortCommonSymbols::AscendingAlignment;
   }
 
   bool isSortCommonSymbolsDescendingAlignment() const {
     return isSortCommonEnabled() &&
-           m_SortCommon.value() == SortCommonSymbols::DescendingAlignment;
+           SortCommon.value() == SortCommonSymbols::DescendingAlignment;
   }
 
   // --sort-section support
   bool setSortSection(llvm::StringRef value) {
     if (value.lower() == "alignment") {
-      m_SortSection = SortSection::Alignment;
+      SortSection = SortSection::Alignment;
       return true;
-    } else if (value.lower() == "name") {
-      m_SortSection = SortSection::Name;
+    }
+    if (value.lower() == "name") {
+      SortSection = SortSection::Name;
       return true;
     }
     return false;
   }
 
-  bool isSortSectionEnabled() const { return !!m_SortSection; }
+  bool isSortSectionEnabled() const { return !!SortSection; }
 
   bool isSortSectionByName() const {
-    return isSortSectionEnabled() && m_SortSection.value() == SortSection::Name;
+    return isSortSectionEnabled() && SortSection.value() == SortSection::Name;
   }
 
   bool isSortSectionByAlignment() const {
     return isSortSectionEnabled() &&
-           m_SortSection.value() == SortSection::Alignment;
+           SortSection.value() == SortSection::Alignment;
   }
 
   // --print-memory-usage support
-  bool shouldPrintMemoryUsage() const { return m_bPrintMemoryUsage; }
+  bool shouldPrintMemoryUsage() const { return BPrintMemoryUsage; }
 
-  void setShowPrintMemoryUsage(bool showUsage) {
-    m_bPrintMemoryUsage = showUsage;
+  void setShowPrintMemoryUsage(bool ShowUsage) {
+    BPrintMemoryUsage = ShowUsage;
   }
 
   void setLinkLaunchDirectory(std::string Dir) { LinkLaunchDirectory = Dir; }
@@ -1066,32 +1068,32 @@ public:
   std::string getLinkLaunchDirectory() const { return LinkLaunchDirectory; }
 
   // -------------------------- Build ID support -------------
-  void setDefaultBuildID() { m_BuildID = true; }
+  void setDefaultBuildID() { BuildID = true; }
 
   void setBuildIDValue(llvm::StringRef Val) {
-    m_BuildID = true;
-    m_BuildIDValue = Val;
+    BuildID = true;
+    BuildIDValue = Val;
   }
 
-  bool isBuildIDEnabled() const { return m_BuildID; }
+  bool isBuildIDEnabled() const { return BuildID; }
 
-  bool hasBuildIDValue() const { return !!m_BuildIDValue; }
+  bool hasBuildIDValue() const { return !!BuildIDValue; }
 
-  llvm::StringRef getBuildID() const { return m_BuildIDValue.value(); }
+  llvm::StringRef getBuildID() const { return BuildIDValue.value(); }
 
   // --patch-enable support
-  void setPatchEnable() { m_PatchEnable = true; }
-  bool isPatchEnable() const { return m_PatchEnable; }
+  void setPatchEnable() { PatchEnable = true; }
+  bool isPatchEnable() const { return PatchEnable; }
 
-  void setPatchBase(const std::string &Value) { m_PatchBase = Value; }
-  const std::optional<std::string> &getPatchBase() const { return m_PatchBase; }
+  void setPatchBase(const std::string &Value) { PatchBase = Value; }
+  const std::optional<std::string> &getPatchBase() const { return PatchBase; }
 
   void setIgnoreUnknownOptions() { IgnoreUnknownOptions = true; }
 
   bool shouldIgnoreUnknownOptions() const { return IgnoreUnknownOptions; }
 
-  void setUnknownOptions(const std::vector<std::string> &opts) {
-    UnknownOptions = opts;
+  void setUnknownOptions(const std::vector<std::string> &Opts) {
+    UnknownOptions = Opts;
   }
 
   const std::vector<std::string> &getUnknownOptions() const {
@@ -1109,196 +1111,195 @@ public:
 
   // -X or --discard-locals
   bool isStripTemporaryOrLocalSymbols() const {
-    return (m_StripSymbols == StripTemporaries ||
-            m_StripSymbols == StripLocals);
+    return (StripSymbols == StripTemporaries || StripSymbols == StripLocals);
   }
 
 private:
   bool appendMapStyle(const std::string MapStyle);
-  enum status { YES, NO, Unknown };
-  std::string m_LinkerPath;
-  std::string m_DefaultLDScript;
-  std::string m_Dyld;
-  std::string m_DtInit;
-  std::string m_DtFini;
-  std::optional<std::string> m_OutputFileName;
-  status m_ExecStack = Unknown;   // execstack, noexecstack
-  status m_NoUndefined = Unknown; // defs, --no-undefined
-  status m_MulDefs = Unknown;     // muldefs, --allow-multiple-definition
-  std::optional<uint64_t> m_CommPageSize; // common-page-size=value
-  std::optional<uint64_t> m_MaxPageSize;  // max-page-size=value
-  bool m_bCombReloc = true;               // combreloc, nocombreloc
-  bool m_bGlobal = false;                 // z,global
-  bool m_bInitFirst = false;              // initfirst
-  bool m_bNoCopyReloc = false;            // nocopyreloc
-  bool m_bRelro = false;                  // relro, norelro
-  bool m_bNow = false;                    // lazy, now
-  bool m_Bsymbolic = false;               // --Bsymbolic
-  bool m_BsymbolicFunctions = false;      // --Bsymbolic-functions
-  bool m_Bgroup = false;
-  bool m_bPIE = false;
-  bool m_bColor = true;             // --color[=true,false,auto]
-  bool m_bCreateEhFrameHdr = false; // --eh-frame-hdr
-  bool m_bCreateEhFrameHdrSet = false;
-  bool m_bNMagic = false;            // -n, --nmagic
-  bool m_bOMagic = false;            // -N, --omagic
-  bool m_bStripDebug = false;        // -S, --strip-debug
-  bool m_bExportDynamic = false;     //-E, --export-dynamic
-  bool m_bWarnSharedTextrel = false; // --warn-shared-textrel
-  bool m_bWarnCommon = false;        // --warn-common
-  bool m_bBinaryInput = false;   // -b [input-format], --format=[input-format]
-  bool m_bDefineCommon = false;  // -d, -dc, -dp
-  bool m_bFatalWarnings = false; // --fatal-warnings
-  bool m_bLTOOptRemarksFile = false;           // --opt-record-file
-  bool m_bLTOOptRemarksDisplayHotness = false; // --display-hotness-remarks
-  bool m_bNoStdlib = false;                    // -nostdlib
-  bool m_bPrintMap = false;                    // --print-map
-  WarnMismatchMode m_WarnMismatch =
-      GeneralOptions::None;            // --no{-warn}-mismatch
-  bool m_bGCSections = false;          // --gc-sections
-  bool m_bPrintGCSections = false;     // --print-gc-sections
-  bool m_bGenUnwindInfo = true;        // --ld-generated-unwind-info
-  bool m_bForceDynamic = false;        // --force-dynamic
-  bool m_bDynamicList = false;         // --dynamic-list flag
-  bool m_bVersionScript = false;       // --version-script
-  bool m_bHasDyld = false;             // user set dynamic linker ?
-  bool m_NoInhibitExec = false;        //--noinhibit-exec
-  bool m_NoGnuStack = false;           //--nognustack
-  bool m_bNoTrampolines = false;       //--no-trampolines
-  bool m_bMergeStrings = true;         //--merge-strings
-  bool m_bEmitRelocs = false;          //--emit-relocs
-  bool m_bEmitGNUCompatRelocs = false; // --emit-gnu-compat-relocs
-  bool m_bCref = false;                // --cref
-  bool m_bBuildCref = false;           // noflag, buildCRef
-  bool m_bUseMovVeneer = false;        // --use-mov-veneer
-  bool m_bNoDelete = false;            // -z nodelete
-  bool m_bNewDTags = false;            //--enable(disable)-new-dtags
-  bool m_bWarnOnce = false;            // --warn-once
-  bool m_bForceBTI = false;            // -z force-bti
-  bool m_bForcePACPLT = false;         // -z pac-plt
-  uint32_t m_GPSize = 8;               // -G, --gpsize
-  bool m_lto = false;
-  bool m_LTOUseAs = false;                         // -flto-use-as
-  StripSymbolMode m_StripSymbols = KeepAllSymbols; // Strip symbols ?
-  bool m_bPageAlignSegments = true; // Does the linker need to align segments to
+  enum Status { YES, NO, Unknown };
+  std::string LinkerPath;
+  std::string DefaultLDScript;
+  std::string Dyld;
+  std::string DtInit;
+  std::string DtFini;
+  std::optional<std::string> OutputFileName;
+  Status ExecStack = Unknown;           // execstack, noexecstack
+  Status NoUndefined = Unknown;         // defs, --no-undefined
+  Status MulDefs = Unknown;             // muldefs, --allow-multiple-definition
+  std::optional<uint64_t> CommPageSize; // common-page-size=value
+  std::optional<uint64_t> MaxPageSize;  // max-page-size=value
+  bool BCombReloc = true;               // combreloc, nocombreloc
+  bool BGlobal = false;                 // z,global
+  bool BInitFirst = false;              // initfirst
+  bool BNoCopyReloc = false;            // nocopyreloc
+  bool BRelro = false;                  // relro, norelro
+  bool BNow = false;                    // lazy, now
+  bool Bsymbolic = false;               // --Bsymbolic
+  bool BsymbolicFunctions = false;      // --Bsymbolic-functions
+  bool Bgroup = false;
+  bool BPIE = false;
+  bool BColor = true;             // --color[=true,false,auto]
+  bool BCreateEhFrameHdr = false; // --eh-frame-hdr
+  bool BCreateEhFrameHdrSet = false;
+  bool BNMagic = false;            // -n, --nmagic
+  bool BOMagic = false;            // -N, --omagic
+  bool BStripDebug = false;        // -S, --strip-debug
+  bool BExportDynamic = false;     //-E, --export-dynamic
+  bool BWarnSharedTextrel = false; // --warn-shared-textrel
+  bool BWarnCommon = false;        // --warn-common
+  bool BBinaryInput = false;       // -b [input-format], --format=[input-format]
+  bool BDefineCommon = false;      // -d, -dc, -dp
+  bool BFatalWarnings = false;     // --fatal-warnings
+  bool BLTOOptRemarksFile = false; // --opt-record-file
+  bool BLTOOptRemarksDisplayHotness = false; // --display-hotness-remarks
+  bool BNoStdlib = false;                    // -nostdlib
+  bool BPrintMap = false;                    // --print-map
+  WarnMismatchMode WarnMismatch =
+      WarnMismatchMode::None;        // --no{-warn}-mismatch
+  bool BGCSections = false;          // --gc-sections
+  bool BPrintGCSections = false;     // --print-gc-sections
+  bool BGenUnwindInfo = true;        // --ld-generated-unwind-info
+  bool BForceDynamic = false;        // --force-dynamic
+  bool BDynamicList = false;         // --dynamic-list flag
+  bool BVersionScript = false;       // --version-script
+  bool BHasDyld = false;             // user set dynamic linker ?
+  bool NoInhibitExec = false;        //--noinhibit-exec
+  bool NoGnuStack = false;           //--nognustack
+  bool BNoTrampolines = false;       //--no-trampolines
+  bool BMergeStrings = true;         //--merge-strings
+  bool BEmitRelocs = false;          //--emit-relocs
+  bool BEmitGNUCompatRelocs = false; // --emit-gnu-compat-relocs
+  bool BCref = false;                // --cref
+  bool BBuildCref = false;           // noflag, buildCRef
+  bool BUseMovVeneer = false;        // --use-mov-veneer
+  bool BNoDelete = false;            // -z nodelete
+  bool BNewDTags = false;            //--enable(disable)-new-dtags
+  bool BWarnOnce = false;            // --warn-once
+  bool BForceBTI = false;            // -z force-bti
+  bool BForcePACPLT = false;         // -z pac-plt
+  uint32_t GPSize = 8;               // -G, --gpsize
+  bool Lto = false;
+  bool LTOUseAs = false;                         // -flto-use-as
+  StripSymbolMode StripSymbols = KeepAllSymbols; // Strip symbols ?
+  bool BPageAlignSegments = true;   // Does the linker need to align segments to
                                     // a page.
-  bool m_hasShared = false;         // -shared
-  unsigned int m_HashStyle = SystemV;        // HashStyle
-  bool m_savetemps = false;                  // -save-temps
-  std::optional<std::string> m_saveTempsDir; // -save-temps=
-  bool m_rosegment = false; // merge read only with readonly/execute segments.
+  bool HasShared = false;           // -shared
+  unsigned int HashStyle = SystemV; // HashStyle
+  bool Savetemps = false;           // -save-temps
+  std::optional<std::string> SaveTempsDir; // -save-temps=
+  bool Rosegment = false; // merge read only with readonly/execute segments.
   std::vector<std::string>
-      m_UnparsedLTOOptions;    // Unparsed -flto-options, to pass to plugin.
-  uint32_t m_LTOOptions = 0;   // -flto-options
-  bool m_verify = true;        // Linker verifies output file.
-  bool m_colormap = false;     // Map file with color.
-  bool m_enableThreads = true; // threads enabled ?
-  uint32_t m_NumThreads = 1;   // thread count
-  bool m_bSymDef = false;      // --symdef
-  std::string m_SymDefFile;    // --symdef-file
-  llvm::StringRef m_SymDefFileStyle;        // --symdef-style
-  bool m_bAllowBSSMixing = false;           // --disable-bss-mixing
-  bool m_bAllowBSSConversion = false;       // --disable-bss-conversion
-  bool m_bFixCortexA53Errata843419 = false; // --fix-cortex-a53-843419
-  bool m_Compact = false;                   // --compact
-  bool m_bRWPI = false;                     // --frwpi
-  bool m_bROPI = false;                     // --fropi
-  bool m_bExecuteOnly = false;              // --execute-only
-  bool m_bPrintTimeStats = false;           // --print-stats
-  bool m_bPrintAllUserPluginTimeStats = false;
-  bool m_bDemangle = true;                  // --demangle-style
-  bool m_ValidateArchOpts = false;          // check -mabi with backend
-  bool m_DisableGuardForWeakUndefs = false; // hexagon specific option to
-                                            // disable guard functionality.
-  bool m_bRiscvRelax = true;                // enable riscv relaxation
-  bool m_RiscvGPRelax = true;               // GP relaxation
-  bool m_bRiscvRelaxToC = true; // enable riscv relax to compressed code
-  bool m_AllowIncompatibleSectionsMix = false; // Allow incompatibleSections;
-  bool m_ProgressBar = false;                  // Show progressbar.
-  bool m_RecordInputFiles = false;             // --reproduce
-  bool m_RecordInputFilesOnFail = false;       // --reproduce-on-fail
-  // FIXME: Change the name to m_CompressReproduceTar
-  bool m_CompressTar = false;         // --reproduce-compressed
-  bool m_DisplaySummary = false;      // display linker run summary
-  bool m_HasMappingFile = false;      // --Mapping-file
-  bool m_DumpMappings = false;        // --Dump-Mapping-file
-  bool m_DumpResponse = false;        // --Dump-Response-file
-  bool m_InsertTimingStats = false;   // -emit-timing-stats-in-output
-  bool m_FatalInternalErrors = false; // --fatal-internal-errors
+      UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
+  uint32_t LTOOptions = 0;         // -flto-options
+  bool Verify = true;              // Linker verifies output file.
+  bool Colormap = false;           // Map file with color.
+  bool EnableThreads = true;       // threads enabled ?
+  uint32_t NumThreads = 1;         // thread count
+  bool BSymDef = false;            // --symdef
+  std::string SymDefFile;          // --symdef-file
+  llvm::StringRef SymDefFileStyle; // --symdef-style
+  bool BAllowBSSMixing = false;    // --disable-bss-mixing
+  bool BAllowBSSConversion = false;       // --disable-bss-conversion
+  bool BFixCortexA53Errata843419 = false; // --fix-cortex-a53-843419
+  bool Compact = false;                   // --compact
+  bool BRWPI = false;                     // --frwpi
+  bool BROPI = false;                     // --fropi
+  bool BExecuteOnly = false;              // --execute-only
+  bool BPrintTimeStats = false;           // --print-stats
+  bool BPrintAllUserPluginTimeStats = false;
+  bool BDemangle = true;                  // --demangle-style
+  bool ValidateArchOpts = false;          // check -mabi with backend
+  bool DisableGuardForWeakUndefs = false; // hexagon specific option to
+                                          // disable guard functionality.
+  bool BRiscvRelax = true;                // enable riscv relaxation
+  bool RiscvGPRelax = true;               // GP relaxation
+  bool BRiscvRelaxToC = true; // enable riscv relax to compressed code
+  bool AllowIncompatibleSectionsMix = false; // Allow incompatibleSections;
+  bool ProgressBar = false;                  // Show progressbar.
+  bool RecordInputFiles = false;             // --reproduce
+  bool RecordInputFilesOnFail = false;       // --reproduce-on-fail
+  // FIXME: Change the name to CompressReproduceTar
+  bool CompressTar = false;         // --reproduce-compressed
+  bool DisplaySummary = false;      // display linker run summary
+  bool HasMappingFile = false;      // --Mapping-file
+  bool DumpMappings = false;        // --Dump-Mapping-file
+  bool DumpResponse = false;        // --Dump-Response-file
+  bool InsertTimingStats = false;   // -emit-timing-stats-in-output
+  bool FatalInternalErrors = false; // --fatal-internal-errors
 
-  RpathList m_RpathList;
-  ScriptList m_ScriptList;
-  UndefSymList m_UndefSymList;     // -u
-  UndefSymList m_ExportDynSymList; // --export-dynamic-symbol
-  DynList m_DynList;               // --dynamic-list files
-  DynList m_VersionScripts;        // --version-script files
-  DynList m_ExternList;            // --extern-list files
-  std::string m_Filter;
-  std::string m_MapFile; // Mapfile
-  std::string m_TarFile; // --reproduce output tarfile name
-  std::string m_TimingStatsFile;
-  std::string m_MappingFileName;           // --Mapping-file
-  std::string m_MappingDumpFile;           // --dump-mapping-file
-  std::string m_ResponseDumpFile;          // --dump-response-file
-  llvm::StringMap<int32_t> m_inputFileMap; // InputFile Map
-  std::vector<llvm::Regex> m_SymbolTrace;
-  std::vector<llvm::Regex> m_RelocTrace;
-  std::vector<llvm::Regex> m_SectionTrace;
-  std::vector<std::string> m_SymbolsToTrace;
-  std::vector<std::string> m_SectionsToTrace;
-  std::vector<std::string> m_RelocsToTrace;
-  std::vector<llvm::Regex> m_MergeStrSectionsToTrace;
-  MergeStrTraceType m_MergeStrTraceType = MergeStrTraceType::NONE;
-  std::set<std::string> m_RelocVerify;
-  std::set<std::string> m_ExcludeLTOFiles;
-  std::set<std::string> m_IncludeLTOFiles;
-  PreserveList m_PreserveCmdLine;
-  std::vector<std::string> m_codegenOpts;
-  std::vector<std::string> m_asmOpts;
-  CrefTable m_crefTable;
+  RpathListType RpathList;
+  ScriptListType ScriptList;
+  UndefSymListType UndefSymList;     // -u
+  UndefSymListType ExportDynSymList; // --export-dynamic-symbol
+  DynListType DynList;               // --dynamic-list files
+  DynListType VersionScripts;        // --version-script files
+  DynListType ExternList;            // --extern-list files
+  std::string Filter;
+  std::string MapFile; // Mapfile
+  std::string TarFile; // --reproduce output tarfile name
+  std::string TimingStatsFile;
+  std::string MappingFileName;           // --Mapping-file
+  std::string MappingDumpFile;           // --dump-mapping-file
+  std::string ResponseDumpFile;          // --dump-response-file
+  llvm::StringMap<int32_t> InputFileMap; // InputFile Map
+  std::vector<llvm::Regex> SymbolTrace;
+  std::vector<llvm::Regex> RelocTrace;
+  std::vector<llvm::Regex> SectionTrace;
+  std::vector<std::string> SymbolsToTrace;
+  std::vector<std::string> SectionsToTrace;
+  std::vector<std::string> RelocsToTrace;
+  std::vector<llvm::Regex> MergeStrSectionsToTrace;
+  MergeStrTraceType MergeStrTraceValue = MergeStrTraceType::NONE;
+  std::set<std::string> RelocVerify;
+  std::set<std::string> ExcludeLTOFiles;
+  std::set<std::string> IncludeLTOFiles;
+  PreserveList PreserveCmdLine;
+  std::vector<std::string> CodegenOpts;
+  std::vector<std::string> AsmOpts;
+  CrefTableType CrefTable;
   std::string GcCrefSym;
-  std::string m_Emulation;
-  std::string m_CopyFarCallsFromFile;
-  std::string m_NoReuseOfTrampolinesFile;
-  std::string m_SoName;
-  ExcludeLIBS m_ExcludeLIBS;
-  ErrorStyle m_ErrorStyle = gnu;
-  ScriptOption m_ScriptOption = MatchLLVM;
-  std::vector<std::string> m_LTOAsmFile;
-  std::vector<std::string> m_LTOOutputFile;
-  bool m_bCompactDyn = false;          // z,compactdyn
-  std::optional<uint64_t> m_ImageBase; // --image-base=value
-  std::string m_Entry;
-  SymbolRenameMap m_SymbolRenames;
-  AddressMap m_AddressMap;
+  std::string Emulation;
+  std::string CopyFarCallsFromFile;
+  std::string NoReuseOfTrampolinesFile;
+  std::string SoName;
+  ExcludeLIBSType ExcludeLIBS;
+  ErrorStyleType ErrorStyle = gnu;
+  ScriptOptionType ScriptOption = MatchLLVM;
+  std::vector<std::string> LTOAsmFile;
+  std::vector<std::string> LTOOutputFile;
+  bool BCompactDyn = false;          // z,compactdyn
+  std::optional<uint64_t> ImageBase; // --image-base=value
+  std::string Entry;
+  SymbolRenameMap SymbolRenames;
+  AddressMapType AddressMap;
   llvm::ArrayRef<const char *> CommandLineArgs;
   llvm::StringRef ReportUndefPolicy;
-  OrphanMode m_Orphan_Mode = OrphanMode::Place;
-  std::string m_LTOCacheDirectory = "";
-  std::vector<std::string> m_PluginConfig;
-  llvm::StringRef m_ABIString = "";
+  OrphanMode MOrphanMode = OrphanMode::Place;
+  std::string LTOCacheDirectory = "";
+  std::vector<std::string> PluginConfig;
+  llvm::StringRef ABIString = "";
   llvm::StringRef TrampolineMapFile; // TrampolineMap
-  bool m_SymbolTracingRequested = false;
-  bool m_SectionTracingRequested = false;
-  std::vector<llvm::StringRef> m_RequestedTimeRegions;
-  DiagnosticEngine *m_DiagEngine = nullptr;
-  bool m_bDynamicLinker = true;
-  std::string m_DefaultMapStyle = "txt";
-  bool m_EmitUniqueOutputSections = false; // --unique-output-sections
-  bool m_bRelaxation = false;              // --relaxation
-  llvm::SmallVector<std::string, 8> m_MapStyles;
+  bool SymbolTracingRequested = false;
+  bool SectionTracingRequested = false;
+  std::vector<llvm::StringRef> RequestedTimeRegions;
+  DiagnosticEngine *DiagEngine = nullptr;
+  bool BDynamicLinker = true;
+  std::string DefaultMapStyle = "txt";
+  bool EmitUniqueOutputSections = false; // --unique-output-sections
+  bool BRelaxation = false;              // --relaxation
+  llvm::SmallVector<std::string, 8> MapStyles;
   bool GlobalMergeNonAllocStrings = false; // --global-merge-non-alloc-strings
-  bool m_bKeepLabels = false;              // --keep-labels (RISC-V)
-  bool m_bEnableOverlapChecks = true; // --check-sections/--no-check-sections
-  bool m_ThinArchiveRuleMatchingCompat = false;
-  bool m_bPrintMemoryUsage = false;              // --print-memory-usage
-  std::optional<SortCommonSymbols> m_SortCommon; // --sort-common
-  std::optional<SortSection> m_SortSection;      // --sort-section
-  std::vector<llvm::Regex> m_RelaxSections;
-  bool m_BuildID = false;
-  std::optional<llvm::StringRef> m_BuildIDValue;
-  bool m_PatchEnable = false;
-  std::optional<std::string> m_PatchBase;
+  bool BKeepLabels = false;                // --keep-labels (RISC-V)
+  bool BEnableOverlapChecks = true; // --check-sections/--no-check-sections
+  bool ThinArchiveRuleMatchingCompat = false;
+  bool BPrintMemoryUsage = false;              // --print-memory-usage
+  std::optional<SortCommonSymbols> SortCommon; // --sort-common
+  std::optional<SortSection> SortSection;      // --sort-section
+  std::vector<llvm::Regex> RelaxSections;
+  bool BuildID = false;
+  std::optional<llvm::StringRef> BuildIDValue;
+  bool PatchEnable = false;
+  std::optional<std::string> PatchBase;
   bool IgnoreUnknownOptions = false;
   std::vector<std::string> UnknownOptions;
   std::string LinkLaunchDirectory;

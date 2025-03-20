@@ -47,38 +47,38 @@ public:
     IgnoreInSharedLibrary = 0x8,
   };
 
-  Linker(Module &module, LinkerConfig &config);
+  Linker(Module &Module, LinkerConfig &Config);
 
   ~Linker();
 
   // Prepare all the input files and various data structures for the link to
   // proceed further.
-  bool prepare(std::vector<InputAction *> &actions, const eld::Target *target);
+  bool prepare(std::vector<InputAction *> &Actions, const eld::Target *Target);
 
   // Do the actual linking process
   bool link();
 
-  ObjectLinker *getObjLinker() const { return m_pObjLinker; }
+  ObjectLinker *getObjLinker() const { return ObjLinker; }
 
-  eld::IRBuilder *getIRBuilder() const { return m_pBuilder; }
+  eld::IRBuilder *getIRBuilder() const { return IR; }
 
-  bool shouldIgnoreUndefine(bool isDyn) {
+  bool shouldIgnoreUndefine(bool IsDyn) {
     return (!UnresolvedSymbolPolicy ||
             (!(UnresolvedSymbolPolicy & UnresolvedPolicy::ReportAll) &&
              ((UnresolvedSymbolPolicy & UnresolvedPolicy::IgnoreAll) ||
-              (!isDyn && (UnresolvedSymbolPolicy &
+              (!IsDyn && (UnresolvedSymbolPolicy &
                           UnresolvedPolicy::IgnoreInObjectFiles)) ||
-              (isDyn && (UnresolvedSymbolPolicy &
+              (IsDyn && (UnresolvedSymbolPolicy &
                          UnresolvedPolicy::IgnoreInSharedLibrary)))));
   }
 
   void setUnresolvePolicy(llvm::StringRef Option);
 
-  GNULDBackend *getBackend() const { return m_pBackend; }
+  GNULDBackend *getBackend() const { return Backend; }
 
   ObjectLinker *getObjectLinker() const {
-    ASSERT(m_pObjLinker, "m_pObjLinker must not be null!");
-    return m_pObjLinker;
+    ASSERT(ObjLinker, "m_pObjLinker must not be null!");
+    return ObjLinker;
   }
 
   void printLayout();
@@ -86,13 +86,13 @@ public:
   void unloadPlugins();
 
 private:
-  bool initBackend(const eld::Target *pTarget);
+  bool initBackend(const eld::Target *PTarget);
 
-  bool initEmulator(LinkerScript &pScript, const eld::Target *pTarget);
+  bool initEmulator(LinkerScript &CurScript, const eld::Target *PTarget);
 
-  bool activateInputs(std::vector<InputAction *> &actions);
+  bool activateInputs(std::vector<InputAction *> &Actions);
 
-  bool initializeInputTree(std::vector<InputAction *> &actions);
+  bool initializeInputTree(std::vector<InputAction *> &Actions);
 
   bool emulate();
 
@@ -120,16 +120,16 @@ private:
   void reportUnknownOptions() const;
 
 private:
-  Module *m_pModule;
-  LinkerConfig *m_pConfig;
-  GNULDBackend *m_pBackend;
-  ObjectLinker *m_pObjLinker;
-  eld::IRBuilder *m_pBuilder;
-  ProgressBar *m_pProgressBar;
-  llvm::Timer *m_LinkTime;
-  llvm::Timer *m_TimingSectionTimer;
+  Module *ThisModule;
+  LinkerConfig *ThisConfig;
+  GNULDBackend *Backend;
+  ObjectLinker *ObjLinker;
+  eld::IRBuilder *IR;
+  ProgressBar *LinkerProgress;
+  llvm::Timer *LinkTime;
+  llvm::Timer *TimingSectionTimer;
   uint32_t UnresolvedSymbolPolicy;
-  uint64_t m_BeginningOfTime;
+  uint64_t BeginningOfTime;
 };
 
 } // namespace eld

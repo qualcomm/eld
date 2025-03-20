@@ -53,121 +53,121 @@ public:
 
   enum VerifyType { VerifyReloc = 0x1 };
 
-  DiagnosticPrinter(llvm::raw_ostream &ostream, bool useColor = false)
-      : m_OStream(ostream), m_NumErrors(0), m_NumFatalErrors(0),
-        m_NumWarnings(0), m_NumCriticalWarnings(0), m_NumInternalErrors(0),
-        m_UseColor(useColor), m_Verbose(Verbose::None) {}
+  DiagnosticPrinter(llvm::raw_ostream &Ostream, bool UseColor = false)
+      : OStream(Ostream), NumErrors(0), NumFatalErrors(0), NumWarnings(0),
+        NumCriticalWarnings(0), NumInternalErrors(0), UseColor(UseColor),
+        VerboseLevel(Verbose::None) {}
 
   ~DiagnosticPrinter();
 
   enum StatsType { AllStats = 0xFF };
 
-  void setTrace(uint32_t pTrace) { m_Trace |= pTrace; }
+  void setTrace(uint32_t PTrace) { Trace |= PTrace; }
 
-  bool traceTrampolines() { return m_Trace & TraceTrampolines; }
+  bool traceTrampolines() { return Trace & TraceTrampolines; }
 
-  bool traceAssignments() { return m_Trace & TraceAssignments; }
+  bool traceAssignments() { return Trace & TraceAssignments; }
 
-  bool traceFiles() { return m_Trace & TraceFiles; }
+  bool traceFiles() { return Trace & TraceFiles; }
 
-  bool traceSymbols() { return m_Trace & TraceSymbols; }
+  bool traceSymbols() { return Trace & TraceSymbols; }
 
-  bool traceDynamicLinking() { return m_Trace & TraceDynamicLinking; }
+  bool traceDynamicLinking() { return Trace & TraceDynamicLinking; }
 
-  bool traceCommandLine() { return m_Trace & TraceCommandLine; }
+  bool traceCommandLine() { return Trace & TraceCommandLine; }
 
-  bool traceGC() { return m_Trace & TraceGC; }
+  bool traceGC() { return Trace & TraceGC; }
 
-  bool traceGCLive() { return m_Trace & TraceGCLive; }
+  bool traceGCLive() { return Trace & TraceGCLive; }
 
-  bool traceSym() { return m_Trace & TraceSym; }
+  bool traceSym() { return Trace & TraceSym; }
 
-  bool traceReloc() { return m_Trace & TraceReloc; }
+  bool traceReloc() { return Trace & TraceReloc; }
 
-  bool traceThreads() { return m_Trace & TraceThreads; }
+  bool traceThreads() { return Trace & TraceThreads; }
 
-  bool tracePlugins() { return m_Trace & TracePlugin; }
+  bool tracePlugins() { return Trace & TracePlugin; }
 
-  bool traceWrapSymbols() { return m_Trace & TraceWrap; }
+  bool traceWrapSymbols() { return Trace & TraceWrap; }
 
-  bool traceSection() { return m_Trace & TraceSection; }
+  bool traceSection() { return Trace & TraceSection; }
 
-  bool traceMergeStrings() { return m_Trace & TraceMergeStrings; }
+  bool traceMergeStrings() { return Trace & TraceMergeStrings; }
 
-  bool traceLinkerScript() { return (m_Trace & TraceLinkerScript); }
+  bool traceLinkerScript() { return (Trace & TraceLinkerScript); }
 
-  bool traceSymDef() { return (m_Trace & TraceSymDef); }
+  bool traceSymDef() { return (Trace & TraceSymDef); }
 
-  uint32_t trace() { return m_Trace; }
+  uint32_t trace() { return Trace; }
 
-  uint32_t isVerbose() const { return m_Verbose & Verbose::Default; }
+  uint32_t isVerbose() const { return VerboseLevel & Verbose::Default; }
 
-  void setVerbose(int8_t Verbose) {
+  void setVerbose(int8_t PVerboseLevel) {
     // All levels of verbose is Default for now.
-    m_Verbose = Verbose::Default;
+    VerboseLevel = Verbose::Default;
   }
 
-  void setVerify(uint32_t pVerify) { m_Verify |= pVerify; }
+  void setVerify(uint32_t PVerify) { Verify |= PVerify; }
 
-  uint32_t verify() { return m_Verify; }
+  uint32_t verify() { return Verify; }
 
-  bool verifyReloc() { return m_Verify & VerifyReloc; }
+  bool verifyReloc() { return Verify & VerifyReloc; }
 
-  void setStats(uint32_t stats) { m_Stats = stats; }
+  void setStats(uint32_t PStats) { Stats = PStats; }
 
-  bool allStats() { return (m_Stats & AllStats); }
+  bool allStats() { return (Stats & AllStats); }
 
   void clear() {
-    m_NumErrors.store(0);
-    m_NumWarnings.store(0);
+    NumErrors.store(0);
+    NumWarnings.store(0);
   }
 
   /// HandleDiagnostic - Handle this diagnostic, reporting it to the user or
   /// capturing it to a log as needed.
-  eld::Expected<void> handleDiagnostic(DiagnosticEngine::Severity pSeverity,
-                                       const Diagnostic &pInfo);
+  eld::Expected<void> handleDiagnostic(DiagnosticEngine::Severity PSeverity,
+                                       const Diagnostic &PInfo);
 
   /// Prints a diagnostic.
   ///
   /// Diagnostic is printed as:
   /// pluginName:type: outString
   void printDiagnostic(const enum llvm::raw_ostream::Colors Color,
-                       llvm::StringRef type, const std::string &outString,
-                       llvm::StringRef pluginName);
+                       llvm::StringRef Type, const std::string &OutString,
+                       llvm::StringRef PluginName);
 
-  unsigned int getNumErrors() const { return m_NumErrors.load(); }
-  unsigned int getNumFatalErrors() const { return m_NumFatalErrors.load(); }
-  unsigned int getNumWarnings() const { return m_NumWarnings.load(); }
+  unsigned int getNumErrors() const { return NumErrors.load(); }
+  unsigned int getNumFatalErrors() const { return NumFatalErrors.load(); }
+  unsigned int getNumWarnings() const { return NumWarnings.load(); }
 
   // If we are in NoInhibit exec mode, only fatal errors count.
-  void setNoInhibitExec() { m_isNoInhibitExec = true; }
+  void setNoInhibitExec() { IsNoInhibitExec = true; }
 
-  bool isNoInhibitExec() const { return m_isNoInhibitExec; }
+  bool isNoInhibitExec() const { return IsNoInhibitExec; }
 
-  void setUserErrorLimit(uint32_t limit) { m_UserErrorLimit = limit; }
+  void setUserErrorLimit(uint32_t Limit) { UserErrorLimit = Limit; }
 
-  void setUserWarningLimit(uint32_t limit) { m_UserWarningLimit = limit; }
+  void setUserWarningLimit(uint32_t Limit) { UserWarningLimit = Limit; }
 
   // Increment fatal errors
-  void recordFatalError() { ++m_NumFatalErrors; }
+  void recordFatalError() { ++NumFatalErrors; }
 
-  void setUseColor(bool useColor) { m_UseColor = useColor; }
+  void setUseColor(bool PUseColor) { UseColor = PUseColor; }
 
 protected:
-  llvm::raw_ostream &m_OStream;
-  std::atomic<unsigned int> m_NumErrors = 0;
-  std::atomic<unsigned int> m_NumFatalErrors = 0;
-  std::atomic<unsigned int> m_NumWarnings = 0;
-  std::atomic<unsigned int> m_NumCriticalWarnings = 0;
-  std::atomic<unsigned int> m_NumInternalErrors = 0;
-  bool m_UseColor = false;
-  Verbose m_Verbose;
-  uint32_t m_Trace = 0;
-  uint32_t m_Verify = 0;
-  uint32_t m_Stats = 0;
-  uint32_t m_UserErrorLimit = 10;
-  uint32_t m_UserWarningLimit = 10;
-  bool m_isNoInhibitExec = false;
+  llvm::raw_ostream &OStream;
+  std::atomic<unsigned int> NumErrors = 0;
+  std::atomic<unsigned int> NumFatalErrors = 0;
+  std::atomic<unsigned int> NumWarnings = 0;
+  std::atomic<unsigned int> NumCriticalWarnings = 0;
+  std::atomic<unsigned int> NumInternalErrors = 0;
+  bool UseColor = false;
+  Verbose VerboseLevel;
+  uint32_t Trace = 0;
+  uint32_t Verify = 0;
+  uint32_t Stats = 0;
+  uint32_t UserErrorLimit = 10;
+  uint32_t UserWarningLimit = 10;
+  bool IsNoInhibitExec = false;
 };
 
 } // namespace eld

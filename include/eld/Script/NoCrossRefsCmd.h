@@ -21,20 +21,20 @@ class Module;
 
 class NoCrossRefsCmd : public ScriptCommand {
 public:
-  NoCrossRefsCmd(StringList &pExtern, size_t pID);
+  NoCrossRefsCmd(StringList &PExtern, size_t PId);
   ~NoCrossRefsCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::NOCROSSREFS;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::NOCROSSREFS;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  StringList m_Sections;
-  size_t m_ID;
+  StringList ThisSectionions;
+  size_t CurID;
 };
 
 } // namespace eld

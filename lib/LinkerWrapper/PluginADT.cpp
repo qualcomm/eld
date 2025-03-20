@@ -784,7 +784,7 @@ eld::Expected<std::vector<OutputSection>>
 plugin::Segment::getOutputSections(const LinkerWrapper &LW) const {
   if (LW.getState() < LinkerWrapper::CreatingSections)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
                                  __FUNCTION__,
                                  "'CreatingSections, AfterLayout'"});
@@ -846,7 +846,7 @@ eld::Expected<uint64_t>
 OutputSection::getVirtualAddress(const LinkerWrapper &LW) const {
   if (LW.getState() < LinkerWrapper::State::AfterLayout)
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
                                  __FUNCTION__,
                                  "'CreatingSegments, AfterLayout'"});
@@ -859,7 +859,7 @@ eld::Expected<uint64_t>
 OutputSection::getPhysicalAddress(const LinkerWrapper &LW) const {
   if (LW.getState() != LinkerWrapper::State::AfterLayout)
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
                                  __FUNCTION__, "'AfterLayout'"});
   if (!m_OutputSection)
@@ -878,7 +878,7 @@ eld::Expected<std::optional<Segment>>
 OutputSection::getLoadSegment(const LinkerWrapper &LW) const {
   if (LW.getState() < LinkerWrapper::CreatingSections)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
                                  __FUNCTION__,
                                  "'CreatingSections, AfterLayout'"});
@@ -892,7 +892,7 @@ OutputSection::getLoadSegment(const LinkerWrapper &LW) const {
 eld::Expected<uint64_t> OutputSection::getOffset() const {
   if (!getOutputSection()->getSection()->hasOffset())
     return std::make_unique<DiagnosticEntry>(
-        diag::error_offset_not_assigned_for_output_section,
+        Diag::error_offset_not_assigned_for_output_section,
         std::vector<std::string>{getName()});
   return getOutputSection()->getSection()->offset();
 }
@@ -901,7 +901,7 @@ eld::Expected<void> OutputSection::setOffset(uint64_t Offset,
                                              const LinkerWrapper &LW) {
   if (LW.getState() < LinkerWrapper::AfterLayout)
     return std::make_unique<DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
                                  LLVM_PRETTY_FUNCTION,
                                  "'CreatingSegments, AfterLayout'"});
@@ -929,8 +929,8 @@ std::vector<plugin::Stub> OutputSection::getStubs() const {
   if (!m_OutputSection)
     return {};
   std::vector<plugin::Stub> trampolines;
-  for (auto iter = m_OutputSection->islands_begin();
-       iter != m_OutputSection->islands_end(); ++iter) {
+  for (auto iter = m_OutputSection->islandsBegin();
+       iter != m_OutputSection->islandsEnd(); ++iter) {
     trampolines.emplace_back(*iter);
   }
   return trampolines;
@@ -940,7 +940,7 @@ Expected<void> OutputSection::setPluginOverride(Plugin *P,
                                                 const LinkerWrapper &LW) {
   if (LW.getState() != LinkerWrapper::State::CreatingSegments)
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::error_invalid_link_state,
+        Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
                                  __FUNCTION__, "'CreatingSegments'"});
   getOutputSection()->prolog().setPlugin(
@@ -1524,7 +1524,7 @@ plugin::MemoryBuffer::getBuffer(const std::string &Name, const uint8_t *Data,
                                 size_t Length, bool isNullTerminated) {
   if (Length == 0) {
     eld::Expected<bool> mb = std::make_unique<DiagnosticEntry>(
-        ErrorDiagnosticEntry(eld::diag::error_empty_data, {Name}));
+        ErrorDiagnosticEntry(eld::Diag::error_empty_data, {Name}));
     return std::move(mb.error());
   }
   std::unique_ptr<eld::MemoryArea> MA =
@@ -1615,7 +1615,7 @@ bool plugin::LinkerConfig::isAddressSize64Bits() const {
 std::string plugin::LinkerConfig::getLinkerCommandline() const {
   std::string CommandLine;
   std::string Separator = "";
-  for (auto arg : Config.options().Args()) {
+  for (auto arg : Config.options().args()) {
     CommandLine.append(Separator);
     Separator = " ";
     if (arg)
@@ -1633,11 +1633,11 @@ bool plugin::LinkerConfig::isDynamicLink() const {
 }
 
 bool plugin::LinkerConfig::hasBSymbolic() const {
-  return Config.options().Bsymbolic();
+  return Config.options().bsymbolic();
 }
 
 bool plugin::LinkerConfig::hasGCSections() const {
-  return Config.options().GCSections();
+  return Config.options().gcSections();
 }
 
 bool plugin::LinkerConfig::hasUniqueOutputSections() const {

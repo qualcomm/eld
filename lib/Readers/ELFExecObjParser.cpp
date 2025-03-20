@@ -78,7 +78,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
                        config.options().printTimingStats());
 
   if (m_Module.getPrinter()->traceFiles())
-    config.raise(diag::trace_file) << inputFile->getInput()->decoratedPath();
+    config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
 
   ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(inputFile);
   // handle sections
@@ -92,7 +92,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     // Do not support dynamic executables
     if (sect->name() == ".interp") {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::error_unsupported_section_in_executable,
+          Diag::error_unsupported_section_in_executable,
           {sect->name().str(), inputFile->getInput()->decoratedPath()}));
     }
 
@@ -104,7 +104,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     case llvm::ELF::SHT_GROUP:
     case llvm::ELF::SHT_HASH:
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::error_unsupported_section_in_executable,
+          Diag::error_unsupported_section_in_executable,
           {S->name().str(), inputFile->getInput()->decoratedPath()}));
     default:
       break;
@@ -126,12 +126,12 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
       if (S->isCompressed()) {
         if (!ELFReader.readCompressedSection(S))
           return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(diag::err_cannot_read_section,
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       }
       if (!backend.readSection(*inputFile, S))
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                     {S->name().str()}));
 
       break;
@@ -143,7 +143,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
         ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
         if (!expReadCompressedSection.value())
           return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(diag::err_cannot_read_section,
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       }
       if (config.options().stripDebug() && (S->name().find(".debug") == 0))
@@ -153,7 +153,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
             ELFReader.readMergeStringSection(S);
         if (!expReadMergeStringSect.value())
           return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(diag::err_cannot_read_section,
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       }
       break;
@@ -166,11 +166,11 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
         if (S->isCompressed()) {
           if (!ELFReader.readCompressedSection(S))
             return std::make_unique<plugin::DiagnosticEntry>(
-                plugin::DiagnosticEntry(diag::err_cannot_read_section,
+                plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                         {S->name().str()}));
         } else if (!backend.readSection(*inputFile, S))
           return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(diag::err_cannot_read_section,
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       }
       break;
@@ -182,7 +182,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     case LDFileFormat::Target: {
       if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_target_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_target_section,
                                     {S->name().str()}));
       }
       break;
@@ -201,11 +201,11 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     case LDFileFormat::Discard: {
       // Discarded sections will be read, but it will be discarded in the final
       // output.
-      config.raise(diag::discarding_section)
+      config.raise(Diag::discarding_section)
           << S->name().str() << inputFile->getInput()->decoratedPath();
       if (!backend.readSection(*inputFile, S)) {
         return std::make_unique<plugin::DiagnosticEntry>(
-            plugin::DiagnosticEntry(diag::err_cannot_read_section,
+            plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                     {S->name().str()}));
       }
       break;
@@ -213,14 +213,14 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     // warning
     case LDFileFormat::EhFrameHdr:
     default: {
-      config.raise(diag::warn_illegal_input_section)
+      config.raise(Diag::warn_illegal_input_section)
           << S->name() << inputFile->getInput()->decoratedPath();
       break;
     }
     }
     if (config.options().isSectionTracingRequested() &&
         config.options().traceSection(S))
-      config.raise(diag::read_section)
+      config.raise(Diag::read_section)
           << S->getDecoratedName(config.options())
           << inputFile->getInput()->decoratedPath()
           << utility::toHex(S->getAddrAlign()) << utility::toHex(S->size())

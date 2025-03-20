@@ -83,12 +83,12 @@ void x86_64LDBackend::initTargetSymbols() {
     return;
 
   m_pEndOfImage =
-      m_Module.getIRBuilder()->AddSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           m_Module.getInternalInput(Module::Script), "__end",
           ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Absolute,
           0x0, // size
           0x0, // value
-          FragmentRef::Null());
+          FragmentRef::null());
   if (m_pEndOfImage)
     m_pEndOfImage->setShouldIgnore(false);
 }
@@ -126,7 +126,7 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_got_entry) << R->name();
+    config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->getFragmentList().size()) {
     // TODO: This should be GOT0, not GOTPLT0.
@@ -195,7 +195,7 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
-    config().raise(diag::create_plt_entry) << R->name();
+    config().raise(Diag::create_plt_entry) << R->name();
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!hasNow && !getPLT()->getFragmentList().size()) {
     x86_64PLT0::Create(*m_Module.getIRBuilder(),

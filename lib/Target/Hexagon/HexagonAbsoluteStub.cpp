@@ -41,12 +41,12 @@ HexagonAbsoluteStub::HexagonAbsoluteStub(bool pIsOutputPIC)
     : Stub(), m_Name("__trampoline"), m_pData(nullptr) {
   if (pIsOutputPIC) {
     m_pData = (const uint8_t *)TEMPLATE_PIC;
-    m_Size = sizeof(TEMPLATE_PIC);
+    ThisSize = sizeof(TEMPLATE_PIC);
   } else {
     m_pData = (const uint8_t *)TEMPLATE;
-    m_Size = sizeof(TEMPLATE);
+    ThisSize = sizeof(TEMPLATE);
   }
-  m_Alignment = alignment();
+  Alignment = alignment();
   addFixup(0u, 0x0, llvm::ELF::R_HEX_B32_PCREL_X);
   if (pIsOutputPIC)
     addFixup(4u, 0x4, llvm::ELF::R_HEX_6_PCREL_X);
@@ -59,8 +59,8 @@ HexagonAbsoluteStub::HexagonAbsoluteStub(const uint8_t *pData, size_t pSize,
                                          const_fixup_iterator pEnd,
                                          size_t align)
     : Stub(), m_Name("__trampoline"), m_pData(pData) {
-  m_Size = pSize;
-  m_Alignment = align;
+  ThisSize = pSize;
+  Alignment = align;
   for (auto it = pBegin, ie = pEnd; it != ie; ++it)
     addFixup(**it);
 }
@@ -68,8 +68,8 @@ HexagonAbsoluteStub::HexagonAbsoluteStub(const uint8_t *pData, size_t pSize,
 HexagonAbsoluteStub::HexagonAbsoluteStub(const uint8_t *pData, size_t pSize,
                                          uint32_t align)
     : Stub(), m_Name("__copy_from"), m_pData(pData) {
-  m_Size = pSize;
-  m_Alignment = align;
+  ThisSize = pSize;
+  Alignment = align;
 }
 
 HexagonAbsoluteStub::~HexagonAbsoluteStub() {}
@@ -109,15 +109,15 @@ size_t HexagonAbsoluteStub::alignment() const { return 4u; }
 Stub *HexagonAbsoluteStub::clone(InputFile *, Relocation *, eld::IRBuilder *,
                                  DiagnosticEngine *) {
   std::lock_guard<std::mutex> Guard(Mutex);
-  return make<HexagonAbsoluteStub>(m_pData, m_Size, fixup_begin(), fixup_end(),
-                                   m_Alignment);
+  return make<HexagonAbsoluteStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
+                                   Alignment);
 }
 
 Stub *HexagonAbsoluteStub::clone(InputFile *, Relocation *, Fragment *frag,
                                  eld::IRBuilder *,
                                  DiagnosticEngine *DiagEngine) {
   if (frag->getKind() != Fragment::Region) {
-    DiagEngine->raise(diag::clone_is_not_supported)
+    DiagEngine->raise(Diag::clone_is_not_supported)
         << frag->getOwningSection()->name();
     return nullptr;
   }
@@ -125,7 +125,7 @@ Stub *HexagonAbsoluteStub::clone(InputFile *, Relocation *, Fragment *frag,
          frag->getKind() == Fragment::RegionFragmentEx);
   llvm::StringRef RegionStr = getRegionFromFragment(frag);
   return make<HexagonAbsoluteStub>((const uint8_t *)RegionStr.data(),
-                                   frag->size(), m_Alignment);
+                                   frag->size(), Alignment);
 }
 
 uint32_t
@@ -134,7 +134,7 @@ HexagonAbsoluteStub::getRealAddend(const Relocation &pReloc,
   const Fragment *frag = pReloc.targetRef()->frag();
   if ((frag->getKind() != Fragment::Region) &&
       (frag->getKind() != Fragment::RegionFragmentEx)) {
-    DiagEngine->raise(diag::addend_not_supported)
+    DiagEngine->raise(Diag::addend_not_supported)
         << frag->getOwningSection()->name();
     return 0;
   }

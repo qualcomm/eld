@@ -394,7 +394,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // PIC code should not contain these kinds of relocation
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      config().raise(diag::non_pic_relocation)
+      config().raise(Diag::non_pic_relocation)
           << (int)pReloc.type() << pReloc.symInfo()->name()
           << pReloc.getSourcePath(config().options());
     }
@@ -430,7 +430,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // FIXME: Currently we only support R_ARM_BASE_PREL against
     // symbol _GLOBAL_OFFSET_TABLE_
     if (rsym != getTarget().getGOTSymbol()->resolveInfo())
-      config().raise(diag::base_relocation)
+      config().raise(Diag::base_relocation)
           << (int)pReloc.type() << rsym->name();
     return;
   }
@@ -440,7 +440,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_RELATIVE: {
     // These are relocation type for dynamic linker, shold not
     // appear in object file.
-    config().raise(diag::dynamic_relocation) << (int)pReloc.type();
+    config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
     m_Target.getModule().setFailure(true);
     return;
   }
@@ -448,7 +448,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_TLS_GD32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
@@ -476,7 +476,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_TLS_LDM32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     ARMGOT *G = getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
     if (config().isCodeStatic()) {
@@ -491,7 +491,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_TLS_IE32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
@@ -564,7 +564,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
-          config().raise(diag::copyrelocs_is_error)
+          config().raise(Diag::copyrelocs_is_error)
               << rsym->name() << pInput.getInput()->decoratedPath()
               << rsym->resolvedOrigin()->getInput()->decoratedPath();
           return;
@@ -572,7 +572,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         CopyRelocs.insert(rsym);
       } else {
         if (!checkValidReloc(pReloc)) {
-          config().raise(diag::non_pic_relocation)
+          config().raise(Diag::non_pic_relocation)
               << (int)pReloc.type() << pReloc.symInfo()->name()
               << pReloc.getSourcePath(config().options());
           m_Target.getModule().setFailure(true);
@@ -603,7 +603,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     // FIXME: Currently we only support these relocations against
     // symbol _GLOBAL_OFFSET_TABLE_
     if (rsym != getTarget().getGOTSymbol()->resolveInfo()) {
-      config().raise(diag::base_relocation)
+      config().raise(Diag::base_relocation)
           << (int)pReloc.type() << rsym->name() << "ARM/Hexagon Support";
       m_Target.getModule().setFailure(true);
       return;
@@ -660,7 +660,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         CopyRelocs.insert(rsym);
       } else {
         if (!checkValidReloc(pReloc)) {
-          config().raise(diag::non_pic_relocation)
+          config().raise(Diag::non_pic_relocation)
               << (int)pReloc.type() << pReloc.symInfo()->name()
               << pReloc.getSourcePath(config().options());
           m_Target.getModule().setFailure(true);
@@ -749,7 +749,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_RELATIVE: {
     // These are relocation type for dynamic linker, shold not
     // appear in object file.
-    config().raise(diag::dynamic_relocation) << (int)pReloc.type();
+    config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
     m_Target.getModule().setFailure(true);
     return;
   }
@@ -757,7 +757,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_TLS_GD32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
@@ -786,7 +786,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_TLS_LDM32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     ARMGOT *G = getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
     if (config().isCodeStatic()) {
@@ -801,7 +801,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_TLS_IE32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->outSymbol()->type() != llvm::ELF::STT_TLS)
-      config().raise(diag::tls_non_tls_mix)
+      config().raise(Diag::tls_non_tls_mix)
           << (int)pReloc.type() << pReloc.symInfo()->name();
     if (rsym->reserved() & ReserveGOT)
       return;
@@ -832,7 +832,7 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
 
   if (isInvalidReloc(pReloc)) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(diag::non_pic_relocation)
+    config().raise(Diag::non_pic_relocation)
         << getName(pReloc.type()) << pReloc.symInfo()->name()
         << pReloc.getSourcePath(config().options());
     m_Target.getModule().setFailure(true);
@@ -849,7 +849,7 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))
-      config().raise(diag::reloc_trace)
+      config().raise(Diag::reloc_trace)
           << relocName << pReloc.symInfo()->name()
           << pInputFile.getInput()->decoratedPath();
   }
@@ -960,7 +960,7 @@ Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
       ELFSection *SInfo =
           pParent.getTarget().getSectionInfo(pReloc.symInfo()->outSymbol());
       if (!SInfo || !SInfo->getOutputSection()) {
-        DiagEngine->raise(diag::sbrel_reloc_no_section)
+        DiagEngine->raise(Diag::sbrel_reloc_no_section)
             << pReloc.symInfo()->name();
         return Relocator::BadReloc;
       }
@@ -973,7 +973,7 @@ Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
       pParent.setSBRELSegment(RSeg);
     }
     if (RSeg && (RSeg != S)) {
-      DiagEngine->raise(diag::sbrel_reloc_different_seg)
+      DiagEngine->raise(Diag::sbrel_reloc_different_seg)
           << pReloc.symInfo()->name()
           << pReloc.getSourcePath(pParent.config().options());
       return Relocator::BadReloc;
@@ -1108,7 +1108,7 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
 
   if (0x0 == T) {
     // FIXME: conditional branch to PLT in THUMB-2 not supported yet
-    DiagEngine->raise(diag::unsupport_cond_branch_reloc) << (int)pReloc.type();
+    DiagEngine->raise(Diag::unsupport_cond_branch_reloc) << (int)pReloc.type();
     return Relocator::BadReloc;
   }
 

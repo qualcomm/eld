@@ -22,7 +22,7 @@ using namespace eld;
 
 //===----------------------------------------------------------------------===//
 //  Diagnostic
-Diagnostic::Diagnostic(DiagnosticEngine &pEngine) : m_Engine(pEngine) {}
+Diagnostic::Diagnostic(DiagnosticEngine &PEngine) : DiagEngine(PEngine) {}
 
 // FIXME: We should use trivial destructor whenever possible.
 // Empty user-defined destructor is non-trivial.
@@ -30,153 +30,154 @@ Diagnostic::~Diagnostic() {}
 
 // format - format this diagnostic into string, subsituting the formal
 // arguments. The result is appended at on the pOutStr.
-eld::Expected<void> Diagnostic::format(std::string &pOutStr) const {
+eld::Expected<void> Diagnostic::format(std::string &POutStr) const {
   // we've not implemented DWARF LOC messages yet. So, keep pIsLoC false
-  eld::Expected<llvm::StringRef> expDesc =
-      m_Engine.infoMap().getDescription(getID(), false);
-  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expDesc);
-  llvm::StringRef desc = expDesc.value();
-  eld::Expected<void> expFormat = format(desc.begin(), desc.end(), pOutStr);
-  return expFormat;
+  eld::Expected<llvm::StringRef> ExpDesc =
+      DiagEngine.infoMap().getDescription(getID(), false);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpDesc);
+  llvm::StringRef Desc = ExpDesc.value();
+  eld::Expected<void> ExpFormat = format(Desc.begin(), Desc.end(), POutStr);
+  return ExpFormat;
 }
 
-const char *Diagnostic::findMatch(char pVal, const char *pBegin,
-                                  const char *pEnd) const {
-  unsigned int depth = 0;
-  for (; pBegin != pEnd; ++pBegin) {
-    if (0 == depth && *pBegin == pVal)
-      return pBegin;
-    if (0 != depth && *pBegin == '}')
-      --depth;
+const char *Diagnostic::findMatch(char PVal, const char *PBegin,
+                                  const char *PEnd) const {
+  unsigned int Depth = 0;
+  for (; PBegin != PEnd; ++PBegin) {
+    if (0 == Depth && *PBegin == PVal)
+      return PBegin;
+    if (0 != Depth && *PBegin == '}')
+      --Depth;
 
-    if ('%' == *pBegin) {
-      ++pBegin;
-      if (pBegin == pEnd)
+    if ('%' == *PBegin) {
+      ++PBegin;
+      if (PBegin == PEnd)
         break;
 
-      if (!isdigit(*pBegin) && !ispunct(*pBegin)) {
-        ++pBegin;
-        while (pBegin != pEnd && !isdigit(*pBegin) && *pBegin != '{')
-          ++pBegin;
+      if (!isdigit(*PBegin) && !ispunct(*PBegin)) {
+        ++PBegin;
+        while (PBegin != PEnd && !isdigit(*PBegin) && *PBegin != '{')
+          ++PBegin;
 
-        if (pBegin == pEnd)
+        if (PBegin == PEnd)
           break;
-        if ('{' == *pBegin)
-          ++depth;
+        if ('{' == *PBegin)
+          ++Depth;
       }
     }
   } // end of for
-  return pEnd;
+  return PEnd;
 }
 
 // format - format the given formal string, subsituting the formal
 // arguments. The result is appended at on the pOutStr.
-eld::Expected<void> Diagnostic::format(const char *pBegin, const char *pEnd,
-                                       std::string &pOutStr) const {
-  const char *cur_char = pBegin;
-  while (cur_char != pEnd) {
-    if ('%' != *cur_char) {
-      const char *new_end = std::find(cur_char, pEnd, '%');
-      pOutStr.append(cur_char, new_end);
-      cur_char = new_end;
+eld::Expected<void> Diagnostic::format(const char *PBegin, const char *PEnd,
+                                       std::string &POutStr) const {
+  const char *CurChar = PBegin;
+  while (CurChar != PEnd) {
+    if ('%' != *CurChar) {
+      const char *NewEnd = std::find(CurChar, PEnd, '%');
+      POutStr.append(CurChar, NewEnd);
+      CurChar = NewEnd;
       continue;
-    } else if (ispunct(cur_char[1])) {
-      pOutStr.push_back(cur_char[1]); // %% -> %.
-      cur_char += 2;
+    }
+    if (ispunct(CurChar[1])) {
+      POutStr.push_back(CurChar[1]); // %% -> %.
+      CurChar += 2;
       continue;
     }
 
     // skip the %.
-    ++cur_char;
+    ++CurChar;
 
-    const char *modifier = nullptr;
-    size_t modifier_len = 0;
+    const char *Modifier = nullptr;
+    size_t ModifierLen = 0;
 
     // we get a modifier
-    if (!isdigit(*cur_char)) {
-      modifier = cur_char;
-      while (*cur_char == '-' || (*cur_char >= 'a' && *cur_char <= 'z'))
-        ++cur_char;
-      modifier_len = cur_char - modifier;
+    if (!isdigit(*CurChar)) {
+      Modifier = CurChar;
+      while (*CurChar == '-' || (*CurChar >= 'a' && *CurChar <= 'z'))
+        ++CurChar;
+      ModifierLen = CurChar - Modifier;
 
       // we get an argument
-      if ('{' == *cur_char) {
-        ++cur_char; // skip '{'
-        cur_char = findMatch('}', cur_char, pEnd);
+      if ('{' == *CurChar) {
+        ++CurChar; // skip '{'
+        CurChar = findMatch('}', CurChar, PEnd);
 
-        if (cur_char == pEnd) {
+        if (CurChar == PEnd) {
           // DIAG's format error
           llvm::report_fatal_error(
               llvm::Twine("Mismatched {} in the diagnostic: ") +
               llvm::Twine(getID()));
         }
 
-        ++cur_char; // skip '}'
+        ++CurChar; // skip '}'
       }
     }
-    if (!isdigit(*cur_char)) {
+    if (!isdigit(*CurChar)) {
       // FIXME: This should be returned using eld::Expected as well!
       llvm::report_fatal_error(llvm::Twine("In diagnostic: ") +
                                llvm::Twine(getID()) + llvm::Twine(": ") +
-                               llvm::Twine(pBegin) +
+                               llvm::Twine(PBegin) +
                                llvm::Twine("\nNo given arugment number:\n"));
     }
 
-    unsigned int arg_no = *cur_char - '0';
-    if (arg_no >= getNumArgs()) {
+    unsigned int ArgNo = *CurChar - '0';
+    if (ArgNo >= getNumArgs()) {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          diag::fatal_missing_diag_args,
-          {std::to_string(arg_no), std::string(pBegin, pEnd)}));
+          Diag::fatal_missing_diag_args,
+          {std::to_string(ArgNo), std::string(PBegin, PEnd)}));
     }
-    ++cur_char; // skip argument number
+    ++CurChar; // skip argument number
 
-    DiagnosticEngine::ArgumentKind kind = getArgKind(arg_no);
-    switch (kind) {
+    DiagnosticEngine::ArgumentKind Kind = getArgKind(ArgNo);
+    switch (Kind) {
     case DiagnosticEngine::ak_std_string: {
-      if (0 != modifier_len) {
+      if (0 != ModifierLen) {
         llvm::report_fatal_error(
             llvm::Twine("In diagnostic: ") + llvm::Twine(getID()) +
-            llvm::Twine(": ") + llvm::Twine(pBegin) +
+            llvm::Twine(": ") + llvm::Twine(PBegin) +
             llvm::Twine("\nNo modifiers for strings yet\n"));
       }
-      const std::string &str = getArgStdStr(arg_no);
-      pOutStr.append(str.begin(), str.end());
+      const std::string &Str = getArgStdStr(ArgNo);
+      POutStr.append(Str.begin(), Str.end());
       break;
     }
     case DiagnosticEngine::ak_c_string: {
-      if (0 != modifier_len) {
+      if (0 != ModifierLen) {
         llvm::report_fatal_error(
             llvm::Twine("In diagnostic: ") + llvm::Twine(getID()) +
-            llvm::Twine(": ") + llvm::Twine(pBegin) +
+            llvm::Twine(": ") + llvm::Twine(PBegin) +
             llvm::Twine("\nNo modifiers for strings yet\n"));
       }
-      const char *str = getArgCStr(arg_no);
-      if (nullptr == str)
-        str = "(null)";
-      pOutStr.append(str);
+      const char *Str = getArgCStr(ArgNo);
+      if (nullptr == Str)
+        Str = "(null)";
+      POutStr.append(Str);
       break;
     }
     case DiagnosticEngine::ak_sint: {
-      int val = getArgSInt(arg_no);
-      llvm::raw_string_ostream(pOutStr) << val;
+      int Val = getArgSInt(ArgNo);
+      llvm::raw_string_ostream(POutStr) << Val;
       break;
     }
     case DiagnosticEngine::ak_uint: {
-      unsigned int val = getArgUInt(arg_no);
-      llvm::raw_string_ostream(pOutStr) << val;
+      unsigned int Val = getArgUInt(ArgNo);
+      llvm::raw_string_ostream(POutStr) << Val;
       break;
     }
     case DiagnosticEngine::ak_ulonglong: {
-      unsigned long long val = getArgULongLong(arg_no);
-      llvm::raw_string_ostream(pOutStr) << val;
+      unsigned long long Val = getArgULongLong(ArgNo);
+      llvm::raw_string_ostream(POutStr) << Val;
       break;
     }
     case DiagnosticEngine::ak_bool: {
-      bool val = getArgBool(arg_no);
-      if (val)
-        pOutStr.append("true");
+      bool Val = getArgBool(ArgNo);
+      if (Val)
+        POutStr.append("true");
       else
-        pOutStr.append("false");
+        POutStr.append("false");
       break;
     }
     } // end of switch

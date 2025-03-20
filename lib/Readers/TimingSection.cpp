@@ -21,7 +21,7 @@ bool eld::TimingSection::readContents(llvm::StringRef SectionData,
     auto end = SectionData.find('\0', currStart + 16);
     // should always end with null terminated string
     if (end == std::string::npos) {
-      DiagEngine->raise(diag::no_string_in_timing)
+      DiagEngine->raise(Diag::no_string_in_timing)
           << getTimingSectionName() << InputFileName;
       return false;
     }
@@ -45,12 +45,12 @@ eld::TimingSection::TimingSection(DiagnosticEngine *E,
   setInputFile(File);
   const std::string &InputFileName = File->getInput()->decoratedPath();
   if (SectionSize <= 16) {
-    E->raise(diag::unexpected_section_size)
+    E->raise(Diag::unexpected_section_size)
         << SectionSize << getTimingSectionName() << InputFileName;
     return;
   }
   if (Flags) {
-    E->raise(diag::invalid_section_flag)
+    E->raise(Diag::invalid_section_flag)
         << Flags << getTimingSectionName() << InputFileName;
     return;
   }

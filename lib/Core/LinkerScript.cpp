@@ -34,24 +34,24 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // LinkerScript
 //===----------------------------------------------------------------------===//
-LinkerScript::LinkerScript(DiagnosticEngine *diagEngine)
-    : m_hasPhdrsSpecified(false), m_hasPTPHDR(false), m_HasSizeOfHeader(false),
-      m_HasFileHeader(false), m_HasProgramHeader(false), m_hasError(false),
-      m_HasSectionsCmd(false), m_HasExternCmd(false), m_NumWildCardPatterns(0),
-      m_HashingEnabled(false), RuleCount(0), m_DiagEngine(diagEngine) {}
+LinkerScript::LinkerScript(DiagnosticEngine *DiagEngine)
+    : HasPhdrsSpecified(false), HasPtphdr(false), HasSizeOfHeader(false),
+      HasFileHeader(false), HasProgramHeader(false), HasError(false),
+      HasSectionsCmd(false), HasExternCmd(false), NumWildCardPatterns(0),
+      HashingEnabled(false), RuleCount(0), Diag(DiagEngine) {}
 
 LinkerScript::~LinkerScript() {}
 
 void LinkerScript::unloadPlugins(Module *Module) {
   // Unload the plugins.
-  for (auto &H : m_LibraryToPluginMap) {
+  for (auto &H : MLibraryToPluginMap) {
     if (!H.second)
       continue;
     // Run the cleanup function
-    H.second->Cleanup();
-    Plugin::Unload(H.first, H.second->getLibraryHandle(), Module);
+    H.second->cleanup();
+    Plugin::unload(H.first, H.second->getLibraryHandle(), Module);
     if (Module->getPrinter()->isVerbose())
-      m_DiagEngine->raise(diag::unloaded_plugin) << H.first;
+      Diag->raise(Diag::unloaded_plugin) << H.first;
   }
 }
 
@@ -66,13 +66,13 @@ void LinkerScript::printPluginTimers(llvm::raw_ostream &OS) {
 
 // FIXME: This member function does not need a reference argument
 // to the same class object.
-void LinkerScript::createSectionMap(LinkerScript &L, const LinkerConfig &config,
-                                    LayoutPrinter *layoutPrinter) {
-  m_SectionMap = make<SectionMap>(L, config, layoutPrinter);
+void LinkerScript::createSectionMap(LinkerScript &L, const LinkerConfig &Config,
+                                    LayoutPrinter *LayoutPrinter) {
+  OutputSectionMap = make<SectionMap>(L, Config, LayoutPrinter);
 }
 
-void LinkerScript::insertPhdrSpec(const PhdrSpec &phdrsSpec) {
-  m_PhdrList.push_back(make<Phdrs>(phdrsSpec));
+void LinkerScript::insertPhdrSpec(const PhdrSpec &PhdrsSpec) {
+  PhdrList.push_back(make<Phdrs>(PhdrsSpec));
 }
 
 Plugin *LinkerScript::addPlugin(plugin::PluginBase::Type T, std::string Name,
@@ -86,29 +86,29 @@ Plugin *LinkerScript::addPlugin(plugin::PluginBase::Type T, std::string Name,
 }
 
 void LinkerScript::addPlugin(Plugin *P, Module &Module) {
-  m_Plugins.push_back(P);
+  MPlugins.push_back(P);
   if (Module.getPrinter()->isVerbose())
-    m_DiagEngine->raise(diag::added_plugin) << P->getName();
+    Diag->raise(Diag::added_plugin) << P->getName();
 }
 
 LinkerScript::PluginVectorT
 LinkerScript::getPluginForType(plugin::PluginBase::Type T) const {
   std::vector<Plugin *> PluginsForType;
-  for (auto &P : m_Plugins) {
+  for (auto &P : MPlugins) {
     if (P->getType() == T)
       PluginsForType.push_back(P);
   }
   return PluginsForType;
 }
 
-void LinkerScript::addPluginToTar(std::string filename,
-                                  std::string &resolvedPath,
-                                  OutputTarWriter *outputTar) {
-  outputTar->createAndAddPlugin(filename, resolvedPath);
+void LinkerScript::addPluginToTar(std::string Filename,
+                                  std::string &ResolvedPath,
+                                  OutputTarWriter *OutputTar) {
+  OutputTar->createAndAddPlugin(Filename, ResolvedPath);
 }
 
 bool LinkerScript::loadNonUniversalPlugins(Module &M) {
-  for (auto &P : m_Plugins) {
+  for (auto &P : MPlugins) {
     ASSERT(P, "P must not be a nullptr");
     if (P->getType() == plugin::PluginBase::LinkerPlugin)
       continue;
@@ -120,7 +120,7 @@ bool LinkerScript::loadNonUniversalPlugins(Module &M) {
 }
 
 bool LinkerScript::loadUniversalPlugins(Module &M) {
-  for (auto &P : m_Plugins) {
+  for (auto &P : MPlugins) {
     ASSERT(P, "P must not be a nullptr");
     if (P->getType() != plugin::PluginBase::LinkerPlugin)
       continue;
@@ -134,7 +134,7 @@ bool LinkerScript::loadUniversalPlugins(Module &M) {
 /// Return a combined hash representing the linker script (and its included
 /// files)
 std::string LinkerScript::getHash() {
-  assert(m_HashingEnabled &&
+  assert(HashingEnabled &&
          "Linker script hash requested with hashing disabled!");
   return llvm::toHex(Hasher.result());
 }
@@ -144,7 +144,7 @@ std::string LinkerScript::getHash() {
 void LinkerScript::addToHash(llvm::StringRef FilenameOrText) {
   using namespace llvm;
 
-  if (!m_HashingEnabled)
+  if (!HashingEnabled)
     return;
 
   Hasher.update(FilenameOrText);
@@ -174,7 +174,7 @@ void LinkerScript::addToHash(llvm::StringRef FilenameOrText) {
 }
 
 void LinkerScript::registerWildCardPattern(WildcardPattern *P) {
-  P->setID(m_NumWildCardPatterns++);
+  P->setID(NumWildCardPatterns++);
 }
 
 void LinkerScript::addSectionOverride(plugin::LinkerWrapper *W, eld::Module *M,
@@ -182,14 +182,14 @@ void LinkerScript::addSectionOverride(plugin::LinkerWrapper *W, eld::Module *M,
                                       std::string Annotation) {
   ChangeOutputSectionPluginOp *Op = eld::make<ChangeOutputSectionPluginOp>(
       W, llvm::dyn_cast<ELFSection>(S), O, Annotation);
-  m_OverrideSectionMatch[W].push_back(Op);
+  OverrideSectionMatch[W].push_back(Op);
   if (M->getPrinter()->isVerbose())
-    m_DiagEngine->raise(diag::added_section_override)
+    Diag->raise(Diag::added_section_override)
         << W->getPlugin()->getPluginName() << O << S->name() << Annotation;
-  LayoutPrinter *printer = M->getLayoutPrinter();
-  if (!printer)
+  LayoutPrinter *Printer = M->getLayoutPrinter();
+  if (!Printer)
     return;
-  printer->recordSectionOverride(W, Op);
+  Printer->recordSectionOverride(W, Op);
 }
 
 void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
@@ -201,13 +201,11 @@ void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
   Printer->recordRemoveSymbol(W, Op);
 }
 
-void LinkerScript::clearAllSectionOverrides() {
-  m_OverrideSectionMatch.clear();
-}
+void LinkerScript::clearAllSectionOverrides() { OverrideSectionMatch.clear(); }
 
 void LinkerScript::clearSectionOverrides(const plugin::LinkerWrapper *LW) {
   if (LW)
-    m_OverrideSectionMatch.erase(LW);
+    OverrideSectionMatch.erase(LW);
   else
     clearAllSectionOverrides();
 }
@@ -215,7 +213,7 @@ void LinkerScript::clearSectionOverrides(const plugin::LinkerWrapper *LW) {
 std::vector<ChangeOutputSectionPluginOp *>
 LinkerScript::getAllSectionOverrides() {
   std::vector<ChangeOutputSectionPluginOp *> Ops;
-  for (auto &K : m_OverrideSectionMatch)
+  for (auto &K : OverrideSectionMatch)
     Ops.insert(Ops.end(), K.second.begin(), K.second.end());
   return Ops;
 }
@@ -224,8 +222,8 @@ LinkerScript::OverrideSectionMatchT
 LinkerScript::getSectionOverrides(const plugin::LinkerWrapper *LW) {
   if (!LW)
     return getAllSectionOverrides();
-  if (m_OverrideSectionMatch.count(LW))
-    return m_OverrideSectionMatch[LW];
+  if (OverrideSectionMatch.count(LW))
+    return OverrideSectionMatch[LW];
   return OverrideSectionMatchT{};
 }
 
@@ -234,16 +232,16 @@ eld::Expected<void> LinkerScript::addChunkOp(plugin::LinkerWrapper *W,
                                              eld::Fragment *F,
                                              std::string Annotation) {
   AddChunkPluginOp *Op = eld::make<AddChunkPluginOp>(W, R, F, Annotation);
-  LinkerConfig &config = M->getConfig();
-  const auto &unbalancedAdds =
+  LinkerConfig &Config = M->getConfig();
+  const auto &UnbalancedAdds =
       W->getPlugin()->getUnbalancedFragmentMoves().UnbalancedAdds;
-  auto fragUnbalancedAdds = unbalancedAdds.find(F);
-  if (fragUnbalancedAdds != unbalancedAdds.end()) {
+  auto FragUnbalancedAdds = UnbalancedAdds.find(F);
+  if (FragUnbalancedAdds != UnbalancedAdds.end()) {
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::err_multiple_chunk_add,
+        Diag::err_multiple_chunk_add,
         std::vector<std::string>{
-            F->getOwningSection()->getDecoratedName(config.options()),
-            R->getAsString(), fragUnbalancedAdds->second->getAsString()});
+            F->getOwningSection()->getDecoratedName(Config.options()),
+            R->getAsString(), FragUnbalancedAdds->second->getAsString()});
   }
 
   F->getOwningSection()->setOutputSection(R->getSection()->getOutputSection());
@@ -254,12 +252,12 @@ eld::Expected<void> LinkerScript::addChunkOp(plugin::LinkerWrapper *W,
 
   W->getPlugin()->recordFragmentAdd(R, F);
 
-  LayoutPrinter *printer = M->getLayoutPrinter();
-  if (!printer)
+  LayoutPrinter *Printer = M->getLayoutPrinter();
+  if (!Printer)
     return {};
-  printer->recordAddChunk(W, Op);
+  Printer->recordAddChunk(W, Op);
   if (M->getPrinter()->isVerbose())
-    m_DiagEngine->raise(diag::added_chunk_op)
+    Diag->raise(Diag::added_chunk_op)
         << R->getSection()->getOutputSection()->name() << Annotation;
   return {};
 }
@@ -271,27 +269,27 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
                                                 std::string Annotation) {
   RemoveChunkPluginOp *Op = eld::make<RemoveChunkPluginOp>(W, R, F, Annotation);
 
-  bool removed = R->getSection()->removeFragment(F);
+  bool Removed = R->getSection()->removeFragment(F);
   R->setDirty();
 
-  LinkerConfig &config = M->getConfig();
+  LinkerConfig &Config = M->getConfig();
 
-  if (removed)
+  if (Removed)
     W->getPlugin()->recordFragmentRemove(R, F);
   else
     return std::make_unique<plugin::DiagnosticEntry>(
-        diag::error_chunk_not_found,
+        Diag::error_chunk_not_found,
         std::vector<std::string>{
-            F->getOwningSection()->getDecoratedName(config.options()),
+            F->getOwningSection()->getDecoratedName(Config.options()),
             R->getAsString(),
-            F->getOutputELFSection()->getDecoratedName(config.options())});
+            F->getOutputELFSection()->getDecoratedName(Config.options())});
 
-  LayoutPrinter *printer = M->getLayoutPrinter();
-  if (!printer)
+  LayoutPrinter *Printer = M->getLayoutPrinter();
+  if (!Printer)
     return {};
-  printer->recordRemoveChunk(W, Op);
+  Printer->recordRemoveChunk(W, Op);
   if (M->getPrinter()->isVerbose())
-    m_DiagEngine->raise(diag::removed_chunk_op)
+    Diag->raise(Diag::removed_chunk_op)
         << R->getSection()->name() << Annotation;
   return {};
 }
@@ -299,24 +297,24 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
 eld::Expected<void> LinkerScript::updateChunksOp(
     plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
     std::vector<eld::Fragment *> &Frags, std::string Annotation) {
-  LayoutPrinter *printer = M->getLayoutPrinter();
-  if (printer) {
+  LayoutPrinter *Printer = M->getLayoutPrinter();
+  if (Printer) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::Start, Annotation);
-    printer->recordUpdateChunks(W, Op);
+    Printer->recordUpdateChunks(W, Op);
   }
 
   llvm::SmallVectorImpl<Fragment *> &FragmentsInRule =
       R->getSection()->getFragmentList();
-  if (printer) {
+  if (Printer) {
     for (auto &Frag : FragmentsInRule) {
       RemoveChunkPluginOp *Op =
           eld::make<RemoveChunkPluginOp>(W, R, Frag, Annotation);
-      printer->recordRemoveChunk(W, Op);
+      Printer->recordRemoveChunk(W, Op);
     }
   }
 
-  for (auto F : FragmentsInRule) {
+  for (auto *F : FragmentsInRule) {
     W->getPlugin()->recordFragmentRemove(R, F);
   }
 
@@ -324,14 +322,14 @@ eld::Expected<void> LinkerScript::updateChunksOp(
   R->clearFragments();
 
   for (auto &F : Frags) {
-    auto expAddChunk = addChunkOp(W, M, R, F);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expAddChunk);
+    auto ExpAddChunk = addChunkOp(W, M, R, F);
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpAddChunk);
   }
 
-  if (printer) {
+  if (Printer) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::End, Annotation);
-    printer->recordUpdateChunks(W, Op);
+    Printer->recordUpdateChunks(W, Op);
   }
   return {};
 }
@@ -356,23 +354,23 @@ llvm::Timer *LinkerScript::getTimer(llvm::StringRef Name,
 
 plugin::LinkerPluginConfig *
 LinkerScript::getLinkerPluginConfig(plugin::LinkerWrapper *LW) {
-  auto Plugin = m_PluginMap.find(LW);
-  if (Plugin == m_PluginMap.end())
+  auto Plugin = MPluginMap.find(LW);
+  if (Plugin == MPluginMap.end())
     return nullptr;
   return Plugin->second->getLinkerPluginConfig();
 }
 
 Plugin *LinkerScript::getPlugin(plugin::LinkerWrapper *LW) {
-  auto Plugin = m_PluginMap.find(LW);
-  if (Plugin == m_PluginMap.end())
+  auto Plugin = MPluginMap.find(LW);
+  if (Plugin == MPluginMap.end())
     return nullptr;
   return Plugin->second;
 }
 
 bool LinkerScript::registerReloc(plugin::LinkerWrapper *LW, uint32_t RelocType,
                                  std::string Name) {
-  auto Plugin = m_PluginMap.find(LW);
-  if (Plugin == m_PluginMap.end())
+  auto Plugin = MPluginMap.find(LW);
+  if (Plugin == MPluginMap.end())
     return false;
   Plugin->second->registerRelocType(RelocType, Name);
   return true;
@@ -381,53 +379,53 @@ bool LinkerScript::registerReloc(plugin::LinkerWrapper *LW, uint32_t RelocType,
 bool LinkerScript::hasPendingSectionOverride(
     const plugin::LinkerWrapper *LW) const {
   if (LW) {
-    auto iter = m_OverrideSectionMatch.find(LW);
-    return iter != m_OverrideSectionMatch.end() && !iter->second.empty();
-  } else
-    return !m_OverrideSectionMatch.empty();
+    auto Iter = OverrideSectionMatch.find(LW);
+    return Iter != OverrideSectionMatch.end() && !Iter->second.empty();
+  }
+  return !OverrideSectionMatch.empty();
 }
 
-void LinkerScript::addScriptCommand(ScriptCommand *pCommand) {
-  m_ScriptCommands.push_back(pCommand);
-  if (!hasExternCommand() && pCommand->isExtern())
+void LinkerScript::addScriptCommand(ScriptCommand *PCommand) {
+  UserLinkerScriptCommands.push_back(PCommand);
+  if (!hasExternCommand() && PCommand->isExtern())
     setHasExternCmd();
 }
 
 eld::Expected<eld::ScriptMemoryRegion *>
 LinkerScript::getMemoryRegion(llvm::StringRef DescName,
                               const std::string Context) const {
-  auto R = m_MemoryRegionMap.find(DescName);
-  if (R == m_MemoryRegionMap.end())
+  auto R = MMemoryRegionMap.find(DescName);
+  if (R == MMemoryRegionMap.end())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::error_region_not_found, {std::string(DescName), Context}));
+        Diag::error_region_not_found, {std::string(DescName), Context}));
   return R->second;
 }
 
 eld::Expected<eld::ScriptMemoryRegion *>
 LinkerScript::getMemoryRegion(llvm::StringRef DescName) const {
-  auto R = m_MemoryRegionMap.find(DescName);
-  if (R == m_MemoryRegionMap.end())
+  auto R = MMemoryRegionMap.find(DescName);
+  if (R == MMemoryRegionMap.end())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::error_exp_mem_region_not_found, {std::string(DescName)}));
+        Diag::error_exp_mem_region_not_found, {std::string(DescName)}));
   return R->second;
 }
 
 eld::Expected<eld::ScriptMemoryRegion *>
 LinkerScript::getMemoryRegionForRegionAlias(llvm::StringRef DescName,
                                             const std::string Context) const {
-  auto R = m_MemoryRegionMap.find(DescName);
-  if (R == m_MemoryRegionMap.end())
+  auto R = MMemoryRegionMap.find(DescName);
+  if (R == MMemoryRegionMap.end())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        diag::error_region_not_found, {std::string(DescName), Context}));
+        Diag::error_region_not_found, {std::string(DescName), Context}));
   return R->second;
 }
 
 eld::Expected<bool> LinkerScript::insertRegionAlias(llvm::StringRef Alias,
                                                     const std::string Context) {
-  if (m_RegionAlias.insert(Alias).second)
+  if (MemoryRegionNameAlias.insert(Alias).second)
     return true;
   return std::make_unique<plugin::DiagnosticEntry>(
-      plugin::DiagnosticEntry(diag::error_duplicate_memory_region_alias,
+      plugin::DiagnosticEntry(Diag::error_duplicate_memory_region_alias,
                               {std::string(Alias), Context}));
 }
 
@@ -436,57 +434,56 @@ llvm::StringRef LinkerScript::saveString(std::string S) {
 }
 
 bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
-  LayoutPrinter *printer = M.getLayoutPrinter();
-  LinkerConfig &config = M.getConfig();
+  LayoutPrinter *Printer = M.getLayoutPrinter();
+  LinkerConfig &Config = M.getConfig();
 
   ASSERT(!P.getID(), "Plugin " + P.getPluginName() + " is already loaded!");
 
-  if (m_PluginInfo.find(P.getPluginType()) != m_PluginInfo.end()) {
-    m_DiagEngine->raise(diag::error_plugin_name_not_unique)
-        << P.getPluginType();
+  if (MPluginInfo.find(P.getPluginType()) != MPluginInfo.end()) {
+    Diag->raise(Diag::error_plugin_name_not_unique) << P.getPluginType();
     return false;
   }
 
-  m_PluginInfo.insert(std::make_pair(P.getPluginType(), &P));
+  MPluginInfo.insert(std::make_pair(P.getPluginType(), &P));
 
-  std::string resolvedPath = P.resolvePath(config);
-  if (resolvedPath.empty())
+  std::string ResolvedPath = P.resolvePath(Config);
+  if (ResolvedPath.empty())
     return false;
-  if (M.getOutputTarWriter() && llvm::sys::fs::exists(resolvedPath))
-    addPluginToTar(P.getName(), resolvedPath, M.getOutputTarWriter());
-  auto I = m_LibraryToPluginMap.find(resolvedPath);
-  void *handle = nullptr;
-  if (I == m_LibraryToPluginMap.end()) {
-    handle = Plugin::LoadPlugin(resolvedPath, &M);
-    m_LibraryToPluginMap.insert(std::make_pair(resolvedPath, &P));
+  if (M.getOutputTarWriter() && llvm::sys::fs::exists(ResolvedPath))
+    addPluginToTar(P.getName(), ResolvedPath, M.getOutputTarWriter());
+  auto I = MLibraryToPluginMap.find(ResolvedPath);
+  void *Handle = nullptr;
+  if (I == MLibraryToPluginMap.end()) {
+    Handle = Plugin::loadPlugin(ResolvedPath, &M);
+    MLibraryToPluginMap.insert(std::make_pair(ResolvedPath, &P));
   } else {
-    handle = I->second->getLibraryHandle();
+    Handle = I->second->getLibraryHandle();
   }
-  if (!handle)
+  if (!Handle)
     return false;
-  P.setLibraryHandle(handle);
-  P.SetFunctions();
+  P.setLibraryHandle(Handle);
+  P.setFunctions();
   // Call RegisterAll function of the library if not already called.
-  if (I == m_LibraryToPluginMap.end())
-    if (!P.RegisterAll())
+  if (I == MLibraryToPluginMap.end())
+    if (!P.registerAll())
       return false;
-  if (!P.RegisterPlugin(handle))
+  if (!P.registerPlugin(Handle))
     return false;
   // Create the Bitvector.
   P.createRelocationVector(M.getBackend()->getRelocator()->getNumRelocs());
 
   plugin::LinkerWrapper *LW = eld::make<plugin::LinkerWrapper>(&P, M);
   P.getLinkerPlugin()->setLinkerWrapper(LW);
-  P.setID(m_PluginMap.size() + 1);
+  P.setID(MPluginMap.size() + 1);
   recordPlugin(LW, &P);
-  if (printer)
-    printer->recordPlugin();
+  if (Printer)
+    Printer->recordPlugin();
 
   // FIXME: Why are we calling Init hook if a plugin has LinkerPluginConfig?
   if (P.getLinkerPluginConfig())
-    P.Init(M.getOutputTarWriter());
+    P.init(M.getOutputTarWriter());
   P.initializeLinkerPluginConfig();
   if (M.getPrinter()->isVerbose())
-    m_DiagEngine->raise(diag::loaded_plugin) << P.getName();
+    Diag->raise(Diag::loaded_plugin) << P.getName();
   return true;
 }

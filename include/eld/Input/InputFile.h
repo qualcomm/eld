@@ -23,7 +23,7 @@ class Input;
  */
 class InputFile {
 public:
-  enum Kind {
+  enum InputFileKind {
     ELFObjFileKind,
     ELFDynObjFileKind,
     ELFExecutableFileKind,
@@ -40,51 +40,53 @@ public:
 
   virtual ~InputFile() {}
 
-  InputFile(Input *I, DiagnosticEngine *diagEngine, Kind K = UnknownKind)
-      : m_Input(I), m_Kind(K), m_DiagEngine(diagEngine) {}
+  InputFile(Input *I, DiagnosticEngine *DiagEngine,
+            InputFileKind K = UnknownKind)
+      : I(I), Kind(K), DiagEngine(DiagEngine) {}
 
   /// Create an Input File.
-  static InputFile *Create(Input *I, DiagnosticEngine *diagEngine);
+  static InputFile *create(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Create an Input File.
-  static InputFile *CreateEmbedded(Input *I, llvm::StringRef S,
-                                   DiagnosticEngine *diagEngine);
+  static InputFile *createEmbedded(Input *I, llvm::StringRef S,
+                                   DiagnosticEngine *DiagEngine);
 
   /// Create an Input File with a specific kind
-  static InputFile *Create(Input *I, Kind K, DiagnosticEngine *diagEngine);
+  static InputFile *create(Input *I, InputFileKind K,
+                           DiagnosticEngine *DiagEngine);
 
   /// Get the type of Input File.
-  static Kind GetInputFileKind(llvm::StringRef S);
+  static InputFileKind getInputFileKind(llvm::StringRef S);
 
   /// Casting support.
   static bool classof(const InputFile *I) { return true; }
 
   /// InputFile kind.
-  Kind getKind() const { return m_Kind; }
+  InputFileKind getKind() const { return Kind; }
 
   /// Get the associated Input.
-  Input *getInput() const { return m_Input; }
+  Input *getInput() const { return I; }
 
   /// Nice accessor functions.
-  bool isDynamicLibrary() const { return m_Kind == ELFDynObjFileKind; }
+  bool isDynamicLibrary() const { return Kind == ELFDynObjFileKind; }
 
-  bool isBitcode() const { return m_Kind == BitcodeFileKind; }
+  bool isBitcode() const { return Kind == BitcodeFileKind; }
 
-  bool isObjectFile() const { return m_Kind == ELFObjFileKind; }
+  bool isObjectFile() const { return Kind == ELFObjFileKind; }
 
   bool isInternal() const;
 
-  bool isLinkerScript() const { return m_Kind == GNULinkerScriptKind; }
+  bool isLinkerScript() const { return Kind == GNULinkerScriptKind; }
 
-  bool isArchive() const { return m_Kind == GNUArchiveFileKind; }
+  bool isArchive() const { return Kind == GNUArchiveFileKind; }
 
-  bool isExecutableELFFile() const { return m_Kind == ELFExecutableFileKind; }
+  bool isExecutableELFFile() const { return Kind == ELFExecutableFileKind; }
 
   virtual bool isLTOObject() const { return false; }
 
-  void setNeeded() { m_Needed = true; }
+  void setNeeded() { Needed = true; }
 
-  bool isNeeded() const { return m_Needed; }
+  bool isNeeded() const { return Needed; }
 
   bool isUsed();
 
@@ -92,9 +94,9 @@ public:
 
   bool hasMappedPath() const { return MappedPath.size() > 0; }
 
-  MappingFile::Kind getMappingFileKind() const { return m_MappingKind; }
+  MappingFile::Kind getMappingFileKind() const { return MappingKind; }
 
-  void setMappingFileKind(MappingFile::Kind K) { m_MappingKind = K; }
+  void setMappingFileKind(MappingFile::Kind K) { MappingKind = K; }
 
   std::string getMappedPath() const { return MappedPath; }
 
@@ -112,26 +114,26 @@ public:
 
   size_t getSize() const { return Contents.size(); }
 
-  void setToSkip() { m_Skip = true; }
+  void setToSkip() { Skip = true; }
 
-  bool shouldSkipFile() const { return m_Skip; }
+  bool shouldSkipFile() const { return Skip; }
 
   virtual size_t getNumSections() const { return 0; }
 
-  bool isBinaryFile() const { return m_Kind == Kind::BinaryFileKind; }
+  bool isBinaryFile() const { return Kind == InputFileKind::BinaryFileKind; }
 
   virtual bool isThinArchive() const { return false; }
 
 protected:
-  Input *m_Input = nullptr;
+  Input *I = nullptr;
   llvm::StringRef Contents;
   std::string MappedPath;
-  Kind m_Kind = UnknownKind;
-  MappingFile::Kind m_MappingKind = MappingFile::Kind::Other;
-  DiagnosticEngine *m_DiagEngine = nullptr;
-  bool m_Needed = false;
-  bool m_Used = false;
-  bool m_Skip = false;
+  InputFileKind Kind = UnknownKind;
+  MappingFile::Kind MappingKind = MappingFile::Kind::Other;
+  DiagnosticEngine *DiagEngine = nullptr;
+  bool Needed = false;
+  bool Used = false;
+  bool Skip = false;
   std::mutex Mutex;
 };
 

@@ -14,23 +14,23 @@ using namespace eld;
 
 PLT::PLT(PLTType T, GOT *G, ELFSection *O, ResolveInfo *R, uint32_t Align,
          uint32_t Size)
-    : Fragment(Fragment::Plt, O, Align), m_GOT(G), m_pSymInfo(R), m_Size(Size),
-      m_PLTType(T) {}
+    : Fragment(Fragment::Plt, O, Align), ThisGot(G), ThisSymInfo(R),
+      ThisSize(Size), ThisPltType(T) {}
 
 PLT::~PLT() {}
 
-void PLT::setSymInfo(ResolveInfo *pSymInfo) { m_pSymInfo = pSymInfo; }
+void PLT::setSymInfo(ResolveInfo *PSymInfo) { ThisSymInfo = PSymInfo; }
 
-size_t PLT::size() const { return m_Size; }
+size_t PLT::size() const { return ThisSize; }
 
-eld::Expected<void> PLT::emit(MemoryRegion &mr, Module &M) {
-  memcpy(mr.begin() + getOffset(M.getConfig().getDiagEngine()),
+eld::Expected<void> PLT::emit(MemoryRegion &Mr, Module &M) {
+  memcpy(Mr.begin() + getOffset(M.getConfig().getDiagEngine()),
          getContent().data(), size());
   return {};
 }
 
 const std::string PLT::name() const {
-  if (!m_pSymInfo)
+  if (!ThisSymInfo)
     return "";
-  return (llvm::Twine("PLT entry for ") + m_pSymInfo->name()).str();
+  return (llvm::Twine("PLT entry for ") + ThisSymInfo->name()).str();
 }

@@ -24,22 +24,22 @@ class LinkerConfig;
 
 class GroupCmd : public ScriptCommand {
 public:
-  GroupCmd(const LinkerConfig &config, StringList &pStringList,
-           const Attribute &attr, ScriptFile &pScriptFile);
+  GroupCmd(const LinkerConfig &Config, StringList &PStringList,
+           const Attribute &Attr, ScriptFile &PScriptFile);
   ~GroupCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::GROUP;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::GROUP;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  StringList &m_StringList;
-  InputBuilder m_InputBuilder;
-  ScriptFile &m_ScriptFile;
+  StringList &ThisStringList;
+  InputBuilder ThisBuilder;
+  ScriptFile &ThisScriptFile;
 };
 
 } // namespace eld

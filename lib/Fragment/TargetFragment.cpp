@@ -22,26 +22,24 @@ using namespace eld;
 
 TargetFragment::TargetFragment(Kind K, ELFSection *O, ResolveInfo *R,
                                uint32_t Align, uint32_t Size)
-    : Fragment(Fragment::Target, O, Align), m_pSymInfo(R), m_TargetKind(K),
-      m_Size(Size) {}
+    : Fragment(Fragment::Target, O, Align), SymInfo(R), TargetKind(K),
+      ThisSize(Size) {}
 
 TargetFragment::~TargetFragment() {}
 
-void TargetFragment::setSymInfo(ResolveInfo *pSymInfo) {
-  m_pSymInfo = pSymInfo;
-}
+void TargetFragment::setSymInfo(ResolveInfo *PSymInfo) { SymInfo = PSymInfo; }
 
-size_t TargetFragment::size() const { return m_Size; }
+size_t TargetFragment::size() const { return ThisSize; }
 
-eld::Expected<void> TargetFragment::emit(MemoryRegion &mr, Module &M) {
+eld::Expected<void> TargetFragment::emit(MemoryRegion &Mr, Module &M) {
   if (getContent().data())
-    memcpy(mr.begin() + getOffset(M.getConfig().getDiagEngine()),
+    memcpy(Mr.begin() + getOffset(M.getConfig().getDiagEngine()),
            getContent().data(), size());
   return {};
 }
 
 const std::string TargetFragment::name() const {
-  if (!m_pSymInfo)
+  if (!SymInfo)
     return "";
-  return std::string(m_pSymInfo->name());
+  return std::string(SymInfo->name());
 }

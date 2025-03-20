@@ -16,44 +16,44 @@
 
 using namespace eld;
 
-void ObjectFile::addSection(Section *S) { m_SectionTable.push_back(S); }
+void ObjectFile::addSection(Section *S) { MSectionTable.push_back(S); }
 
-LDSymbol *ObjectFile::getLocalSymbol(unsigned int pIdx) const {
-  if (pIdx >= m_LocalSymTab.size())
+LDSymbol *ObjectFile::getLocalSymbol(unsigned int PIdx) const {
+  if (PIdx >= MLocalSymTab.size())
     return nullptr;
-  return m_LocalSymTab[pIdx];
+  return MLocalSymTab[PIdx];
 }
 
-LDSymbol *ObjectFile::getSymbol(unsigned int pIdx) const {
-  if (pIdx >= m_SymTab.size())
+LDSymbol *ObjectFile::getSymbol(unsigned int PIdx) const {
+  if (PIdx >= SymTab.size())
     return nullptr;
-  return m_SymTab[pIdx];
+  return SymTab[PIdx];
 }
 
-LDSymbol *ObjectFile::getSymbol(std::string pName) const {
-  for (auto sym : m_SymTab) {
-    if (sym->name() == pName)
-      return sym;
+LDSymbol *ObjectFile::getSymbol(std::string PName) const {
+  for (auto *Sym : SymTab) {
+    if (Sym->name() == PName)
+      return Sym;
   }
   return nullptr;
 }
 
-LDSymbol *ObjectFile::getLocalSymbol(llvm::StringRef pName) const {
-  for (auto lsym : m_LocalSymTab) {
-    if (lsym->name() == pName)
-      return lsym;
+LDSymbol *ObjectFile::getLocalSymbol(llvm::StringRef PName) const {
+  for (auto *Lsym : MLocalSymTab) {
+    if (Lsym->name() == PName)
+      return Lsym;
   }
   return nullptr;
 }
 
 void ObjectFile::addSymbol(LDSymbol *S) {
-  m_SymTab.push_back(S);
-  const ResolveInfo *info = S->resolveInfo();
-  if (!info)
+  SymTab.push_back(S);
+  const ResolveInfo *Info = S->resolveInfo();
+  if (!Info)
     return;
-  if (!info->isLocal() || info->isSection())
+  if (!Info->isLocal() || Info->isSection())
     return;
-  m_LocalSymbolInfoMap[std::make_pair(S->sectionIndex(), S->value())] = S;
+  LocalSymbolInfoMap[std::make_pair(S->sectionIndex(), S->value())] = S;
 }
 
 bool ObjectFile::classof(const InputFile *E) {
@@ -62,16 +62,16 @@ bool ObjectFile::classof(const InputFile *E) {
 }
 
 std::string ObjectFile::getFeaturesStr() const {
-  return llvm::join(m_Features.begin(), m_Features.end(), ",");
+  return llvm::join(Features.begin(), Features.end(), ",");
 }
 
-const ResolveInfo *ObjectFile::getMatchingLocalSymbol(uint64_t sectionIndex,
-                                                      uint64_t value) const {
-  std::pair<uint64_t, uint64_t> entry = std::make_pair(sectionIndex, value);
-  if (m_LocalSymbolInfoMap.find(entry) == m_LocalSymbolInfoMap.end())
+const ResolveInfo *ObjectFile::getMatchingLocalSymbol(uint64_t SectionIndex,
+                                                      uint64_t Value) const {
+  std::pair<uint64_t, uint64_t> Entry = std::make_pair(SectionIndex, Value);
+  if (LocalSymbolInfoMap.find(Entry) == LocalSymbolInfoMap.end())
     return nullptr;
-  LDSymbol *sym = m_LocalSymbolInfoMap.at(entry);
-  if (!sym)
+  LDSymbol *Sym = LocalSymbolInfoMap.at(Entry);
+  if (!Sym)
     return nullptr;
-  return sym->resolveInfo();
+  return Sym->resolveInfo();
 }

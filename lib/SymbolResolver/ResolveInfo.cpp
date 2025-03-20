@@ -21,48 +21,48 @@
 using namespace eld;
 
 /// g_NullResolveInfo - a pointer to Null
-static ResolveInfo g_NullResolveInfo;
+static ResolveInfo GNullResolveInfo;
 
 //===----------------------------------------------------------------------===//
 // ResolveInfo
 //===----------------------------------------------------------------------===//
 ResolveInfo::ResolveInfo()
-    : m_Size(0), m_Value(0), m_BitField(0), m_Name(""), m_Alias(nullptr),
-      m_pResolvedOrigin(nullptr) {
-  m_SymPtr = nullptr;
+    : SymbolSize(0), SymbolValue(0), ThisBitField(0), SymbolName(""),
+      SymbolAlias(nullptr), SymbolResolvedOrigin(nullptr) {
+  OutputSymbol = nullptr;
 }
 
 ResolveInfo::ResolveInfo(llvm::StringRef Name)
-    : m_Size(0), m_Value(0), m_BitField(0), m_Name(Name), m_Alias(nullptr),
-      m_pResolvedOrigin(nullptr) {
-  m_SymPtr = nullptr;
+    : SymbolSize(0), SymbolValue(0), ThisBitField(0), SymbolName(Name),
+      SymbolAlias(nullptr), SymbolResolvedOrigin(nullptr) {
+  OutputSymbol = nullptr;
 }
 
 ResolveInfo::~ResolveInfo() {}
 
-void ResolveInfo::override(const ResolveInfo &pFrom, bool pOverrideOrigin) {
-  m_Size = pFrom.m_Size;
-  setValue(pFrom.value(), false);
-  overrideAttributes(pFrom);
-  if (pOverrideOrigin) {
-    setResolvedOrigin(pFrom.resolvedOrigin());
-    setAlias(pFrom.alias());
+void ResolveInfo::override(const ResolveInfo &PFrom, bool CurOverrideOrigin) {
+  SymbolSize = PFrom.SymbolSize;
+  setValue(PFrom.value(), false);
+  overrideAttributes(PFrom);
+  if (CurOverrideOrigin) {
+    setResolvedOrigin(PFrom.resolvedOrigin());
+    setAlias(PFrom.alias());
   }
 }
 
-void ResolveInfo::overrideAttributes(const ResolveInfo &pFrom) {
+void ResolveInfo::overrideAttributes(const ResolveInfo &PFrom) {
   // Do not override visibility
-  auto v = visibility();
-  bool p = shouldPreserve();
-  m_BitField &= ~RESOLVE_MASK;
-  m_BitField |= (pFrom.m_BitField & RESOLVE_MASK);
-  shouldPreserve(p);
-  setVisibility(v);
+  auto V = visibility();
+  bool P = shouldPreserve();
+  ThisBitField &= ~ResolveMask;
+  ThisBitField |= (PFrom.ThisBitField & ResolveMask);
+  shouldPreserve(P);
+  setVisibility(V);
 }
 
 /// overrideVisibility - override the visibility
 ///   always use the most strict visibility
-void ResolveInfo::overrideVisibility(const ResolveInfo &pFrom) {
+void ResolveInfo::overrideVisibility(const ResolveInfo &PFrom) {
   //
   // The rule for combining visibility is that we always choose the
   // most constrained visibility.  In order of increasing constraint,
@@ -78,87 +78,87 @@ void ResolveInfo::overrideVisibility(const ResolveInfo &pFrom) {
   // };
 
   assert(!isDyn());
-  Visibility from_vis = pFrom.visibility();
-  Visibility cur_vis = visibility();
-  if (0 != from_vis) {
-    if (0 == cur_vis)
-      setVisibility(from_vis);
-    else if (cur_vis > from_vis)
-      setVisibility(from_vis);
+  Visibility FromVis = PFrom.visibility();
+  Visibility CurVis = visibility();
+  if (0 != FromVis) {
+    if (0 == CurVis)
+      setVisibility(FromVis);
+    else if (CurVis > FromVis)
+      setVisibility(FromVis);
   }
 }
 
-void ResolveInfo::setRegular() { m_BitField &= (~dynamic_flag); }
+void ResolveInfo::setRegular() { ThisBitField &= (~DynamicFlag); }
 
-void ResolveInfo::setDynamic() { m_BitField |= dynamic_flag; }
+void ResolveInfo::setDynamic() { ThisBitField |= DynamicFlag; }
 
-void ResolveInfo::setSource(bool pIsDyn) {
-  if (pIsDyn)
-    m_BitField |= dynamic_flag;
+void ResolveInfo::setSource(bool IsSymbolInDynamicLibrary) {
+  if (IsSymbolInDynamicLibrary)
+    ThisBitField |= DynamicFlag;
   else
-    m_BitField &= (~dynamic_flag);
+    ThisBitField &= (~DynamicFlag);
 }
 
-void ResolveInfo::setExportToDyn() { m_BitField |= export_dyn_flag; }
-void ResolveInfo::clearExportToDyn() { m_BitField &= ~export_dyn_flag; }
+void ResolveInfo::setExportToDyn() { ThisBitField |= ExportDynFlag; }
+void ResolveInfo::clearExportToDyn() { ThisBitField &= ~ExportDynFlag; }
 
-void ResolveInfo::setType(uint32_t pType) {
-  m_BitField &= ~TYPE_MASK;
-  m_BitField |= ((pType << TYPE_OFFSET) & TYPE_MASK);
+void ResolveInfo::setType(uint32_t Type) {
+  ThisBitField &= ~TypeMask;
+  ThisBitField |= ((Type << TypeOffset) & TypeMask);
 }
 
-void ResolveInfo::setDesc(uint32_t pDesc) {
-  m_BitField &= ~DESC_MASK;
-  m_BitField |= ((pDesc << DESC_OFFSET) & DESC_MASK);
+void ResolveInfo::setDesc(uint32_t Desc) {
+  ThisBitField &= ~DescMask;
+  ThisBitField |= ((Desc << DescOffset) & DescMask);
 }
 
-void ResolveInfo::setBinding(uint32_t pBinding) {
-  m_BitField &= ~BINDING_MASK;
-  if (pBinding == Local || pBinding == Absolute)
-    m_BitField |= local_flag;
-  if (pBinding == Weak || pBinding == Absolute)
-    m_BitField |= weak_flag;
+void ResolveInfo::setBinding(uint32_t Binding) {
+  ThisBitField &= ~BindingMask;
+  if (Binding == Local || Binding == Absolute)
+    ThisBitField |= LocalFlag;
+  if (Binding == Weak || Binding == Absolute)
+    ThisBitField |= WeakFlag;
 }
 
-void ResolveInfo::setReserved(uint32_t pReserved) {
-  m_BitField &= ~RESERVED_MASK;
-  m_BitField |= ((pReserved << RESERVED_OFFSET) & RESERVED_MASK);
+void ResolveInfo::setReserved(uint32_t Reserved) {
+  ThisBitField &= ~ReservedMask;
+  ThisBitField |= ((Reserved << ReservedOffset) & ReservedMask);
 }
 
-void ResolveInfo::setOther(uint32_t pOther) {
-  setVisibility(static_cast<ResolveInfo::Visibility>(pOther & 0x3));
+void ResolveInfo::setOther(uint32_t Other) {
+  setVisibility(static_cast<ResolveInfo::Visibility>(Other & 0x3));
 }
 
-void ResolveInfo::setVisibility(ResolveInfo::Visibility pVisibility) {
-  m_BitField &= ~VISIBILITY_MASK;
-  m_BitField |= pVisibility << VISIBILITY_OFFSET;
+void ResolveInfo::setVisibility(ResolveInfo::Visibility Visibility) {
+  ThisBitField &= ~VisibilityMask;
+  ThisBitField |= Visibility << VisibilityOffset;
 }
 
-void ResolveInfo::setIsSymbol(bool pIsSymbol) {
-  if (pIsSymbol)
-    m_BitField |= symbol_flag;
+void ResolveInfo::setIsSymbol(bool IsSymbol) {
+  if (IsSymbol)
+    ThisBitField |= SymbolFlag;
   else
-    m_BitField &= ~symbol_flag;
+    ThisBitField &= ~SymbolFlag;
 }
 
-bool ResolveInfo::isNull() const { return (this == Null()); }
+bool ResolveInfo::isNull() const { return (this == null()); }
 
-ResolveInfo *ResolveInfo::Null() { return &g_NullResolveInfo; }
+ResolveInfo *ResolveInfo::null() { return &GNullResolveInfo; }
 
 bool ResolveInfo::isDyn() const {
-  return (dynamic_flag == (m_BitField & DYN_MASK));
+  return (DynamicFlag == (ThisBitField & DynMask));
 }
 
 bool ResolveInfo::isUndef() const {
-  return (undefine_flag == (m_BitField & DESC_MASK));
+  return (UndefineFlag == (ThisBitField & DescMask));
 }
 
 bool ResolveInfo::isDefine() const {
-  return (define_flag == (m_BitField & DESC_MASK));
+  return (DefineFlag == (ThisBitField & DescMask));
 }
 
 bool ResolveInfo::isCommon() const {
-  return (common_flag == (m_BitField & DESC_MASK));
+  return (CommonFlag == (ThisBitField & DescMask));
 }
 
 bool ResolveInfo::isHidden() const {
@@ -171,158 +171,158 @@ bool ResolveInfo::isProtected() const {
 
 // isGlobal - [L,W] == [0, 0]
 bool ResolveInfo::isGlobal() const {
-  return (global_flag == (m_BitField & BINDING_MASK));
+  return (GlobalFlag == (ThisBitField & BindingMask));
 }
 
 // isWeak - [L,W] == [0, 1]
 bool ResolveInfo::isWeak() const {
-  return (weak_flag == (m_BitField & BINDING_MASK));
+  return (WeakFlag == (ThisBitField & BindingMask));
 }
 
 // isLocal - [L,W] == [1, 0]
 bool ResolveInfo::isLocal() const {
-  return (local_flag == (m_BitField & BINDING_MASK));
+  return (LocalFlag == (ThisBitField & BindingMask));
 }
 
 // isAbsolute - [L,W] == [1, 1]
 bool ResolveInfo::isAbsolute() const {
-  return (absolute_flag == (m_BitField & BINDING_MASK));
+  return (AbsoluteFlag == (ThisBitField & BindingMask));
 }
 
 bool ResolveInfo::isSymbol() const {
-  return (symbol_flag == (m_BitField & SYMBOL_MASK));
+  return (SymbolFlag == (ThisBitField & SymbolMask));
 }
 
 bool ResolveInfo::isString() const {
-  return (string_flag == (m_BitField & SYMBOL_MASK));
+  return (StringFlag == (ThisBitField & SymbolMask));
 }
 
 bool ResolveInfo::exportToDyn() const {
-  return (export_dyn_flag == (m_BitField & EXPORT_DYN_MASK));
+  return (ExportDynFlag == (ThisBitField & ExportDynMask));
 }
 
 uint32_t ResolveInfo::type() const {
-  return (m_BitField & TYPE_MASK) >> TYPE_OFFSET;
+  return (ThisBitField & TypeMask) >> TypeOffset;
 }
 
 uint32_t ResolveInfo::desc() const {
-  return (m_BitField & DESC_MASK) >> DESC_OFFSET;
+  return (ThisBitField & DescMask) >> DescOffset;
 }
 
 uint32_t ResolveInfo::binding() const {
-  if (m_BitField & LOCAL_MASK) {
-    if (m_BitField & GLOBAL_MASK) {
+  if (ThisBitField & LocalMask) {
+    if (ThisBitField & GlobalMask) {
       return ResolveInfo::Absolute;
     }
     return ResolveInfo::Local;
   }
-  return m_BitField & GLOBAL_MASK;
+  return ThisBitField & GlobalMask;
 }
 
 uint32_t ResolveInfo::reserved() const {
-  return (m_BitField & RESERVED_MASK) >> RESERVED_OFFSET;
+  return (ThisBitField & ReservedMask) >> ReservedOffset;
 }
 
 ResolveInfo::Visibility ResolveInfo::visibility() const {
-  return static_cast<ResolveInfo::Visibility>((m_BitField & VISIBILITY_MASK) >>
-                                              VISIBILITY_OFFSET);
+  return static_cast<ResolveInfo::Visibility>((ThisBitField & VisibilityMask) >>
+                                              VisibilityOffset);
 }
 
-void ResolveInfo::setResolvedOrigin(InputFile *pInput) {
-  m_pResolvedOrigin = pInput;
+void ResolveInfo::setResolvedOrigin(InputFile *Input) {
+  SymbolResolvedOrigin = Input;
 }
 
 std::string ResolveInfo::infoAsString() const {
-  uint32_t symType = type();
-  std::string resolveType;
+  uint32_t SymType = type();
+  std::string ResolveType;
   if (isBitCode())
-    resolveType = "(BITCODE)";
+    ResolveType = "(BITCODE)";
   else
-    resolveType = "(ELF)";
-  switch (symType) {
+    ResolveType = "(ELF)";
+  switch (SymType) {
   case NoType:
-    resolveType += "(NOTYPE)";
+    ResolveType += "(NOTYPE)";
     break;
   case Object:
-    resolveType += "(OBJECT)";
+    ResolveType += "(OBJECT)";
     break;
   case Function:
-    resolveType += "(FUNCTION)";
+    ResolveType += "(FUNCTION)";
     break;
   case File:
-    resolveType += "(FILE)";
+    ResolveType += "(FILE)";
     break;
   case CommonBlock:
-    resolveType += "(COMMONBLOCK)";
+    ResolveType += "(COMMONBLOCK)";
     break;
   case Section:
-    resolveType += "(SECTION)";
+    ResolveType += "(SECTION)";
     break;
   case ThreadLocal:
-    resolveType += "(TLS)";
+    ResolveType += "(TLS)";
     break;
   default:
-    resolveType += "Unknown";
+    ResolveType += "Unknown";
   }
-  uint32_t symdesc = desc();
-  switch (symdesc) {
+  uint32_t Symdesc = desc();
+  switch (Symdesc) {
   case Undefined:
-    resolveType += "(UNDEFINED)";
+    ResolveType += "(UNDEFINED)";
     break;
   case Define:
-    resolveType += "(DEFINE)";
+    ResolveType += "(DEFINE)";
     break;
   case Common:
-    resolveType += "(COMMON)";
+    ResolveType += "(COMMON)";
     break;
   default:
-    resolveType += "(UNKNOWN)";
+    ResolveType += "(UNKNOWN)";
     break;
   }
-  uint32_t symBinding = binding();
-  switch (symBinding) {
+  uint32_t SymBinding = binding();
+  switch (SymBinding) {
   case Global:
-    resolveType += "[Global]";
+    ResolveType += "[Global]";
     break;
   case Weak:
-    resolveType += "[Weak]";
+    ResolveType += "[Weak]";
     break;
   case Local:
-    resolveType += "[Local]";
+    ResolveType += "[Local]";
     break;
   case Absolute:
-    resolveType += "[Absolute]";
+    ResolveType += "[Absolute]";
     break;
   default:
-    resolveType += "[Unknown]";
+    ResolveType += "[Unknown]";
     break;
   }
-  uint32_t symVisibility = visibility();
-  switch (symVisibility) {
+  uint32_t SymVisibility = visibility();
+  switch (SymVisibility) {
   case Default:
-    resolveType += "{DEFAULT}";
+    ResolveType += "{DEFAULT}";
     break;
   case Internal:
-    resolveType += "{INTERNAL}";
+    ResolveType += "{INTERNAL}";
     break;
   case Hidden:
-    resolveType += "{HIDDEN}";
+    ResolveType += "{HIDDEN}";
     break;
   case Protected:
-    resolveType += "{PROTECTED}";
+    ResolveType += "{PROTECTED}";
     break;
   default:
     break;
   }
   if (isDyn())
-    resolveType += "{DYN}";
+    ResolveType += "{DYN}";
   if (shouldPreserve())
-    resolveType += "{PRESERVE}";
+    ResolveType += "{PRESERVE}";
   if (outSymbol() && outSymbol()->shouldIgnore())
-    resolveType += "{IGNORE}";
+    ResolveType += "{IGNORE}";
   if (isPatchable())
-    resolveType += "{PATCHABLE}";
-  return resolveType;
+    ResolveType += "{PATCHABLE}";
+  return ResolveType;
 }
 
 llvm::StringRef ResolveInfo::getVisibilityString() const {
@@ -350,22 +350,23 @@ std::string ResolveInfo::getContextualLabel() const {
 }
 
 std::string ResolveInfo::getDecoratedName(bool DoDeMangle) const {
-  std::string decoratedName = name();
+  std::string DecoratedName = name();
   if (DoDeMangle)
-    decoratedName = eld::string::getDemangledName(name());
-  std::optional<std::string> auxSymName;
-  if (ObjectFile *objFile =
-          llvm::dyn_cast_or_null<ObjectFile>(m_pResolvedOrigin))
-    if (m_SymPtr)
-      auxSymName = objFile->getAuxiliarySymbolName(m_SymPtr->getSymbolIndex());
-  if (auxSymName) {
-    std::string auxName = auxSymName.value();
+    DecoratedName = eld::string::getDemangledName(name());
+  std::optional<std::string> AuxSymName;
+  if (ObjectFile *ObjFile =
+          llvm::dyn_cast_or_null<ObjectFile>(SymbolResolvedOrigin))
+    if (OutputSymbol)
+      AuxSymName =
+          ObjFile->getAuxiliarySymbolName(OutputSymbol->getSymbolIndex());
+  if (AuxSymName) {
+    std::string AuxName = AuxSymName.value();
     if (DoDeMangle) {
-      auxName = eld::string::getDemangledName(auxName);
+      AuxName = eld::string::getDemangledName(AuxName);
     }
-    decoratedName += "(" + auxName + ")";
+    DecoratedName += "(" + AuxName + ")";
   }
-  return decoratedName;
+  return DecoratedName;
 }
 
 ELFSection *ResolveInfo::getOwningSection() const {

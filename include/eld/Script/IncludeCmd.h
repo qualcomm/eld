@@ -16,27 +16,27 @@ namespace eld {
 
 class IncludeCmd : public ScriptCommand {
 public:
-  IncludeCmd(const std::string FileName, bool isOptional);
+  IncludeCmd(const std::string FileName, bool IsOptional);
 
   ~IncludeCmd() {};
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpOnlyThis(llvm::raw_ostream &outs) const override;
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::INCLUDE;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::INCLUDE;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
-  bool isOptional() const { return m_isOptional; }
+  bool isOptional() const { return IsOptional; }
 
   std::string getFileName() const { return FileName; }
 
 private:
   const std::string FileName;
-  bool m_isOptional;
+  bool IsOptional;
 };
 
 } // namespace eld

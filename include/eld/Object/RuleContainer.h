@@ -34,73 +34,71 @@ public:
   typedef std::vector<Assignment *> SymbolAssignments;
   typedef SymbolAssignments::iterator sym_iterator;
 
-  RuleContainer(SectionMap *, std::string pName, InputSectDesc::Policy pPolicy);
+  RuleContainer(SectionMap *, std::string PName, InputSectDesc::Policy PPolicy);
 
-  RuleContainer(SectionMap *, const InputSectDesc &pInputDesc);
+  RuleContainer(SectionMap *, const InputSectDesc &PInputDesc);
 
-  InputSectDesc::Policy policy() const { return m_Policy; }
+  InputSectDesc::Policy policy() const { return MPolicy; }
 
-  const InputSectDesc::Spec &spec() const { return m_Spec; }
+  const InputSectDesc::Spec &spec() const { return MSpec; }
 
-  const ELFSection *getSection() const { return m_pSection; }
-  ELFSection *getSection() { return m_pSection; }
+  const ELFSection *getSection() const { return MPSection; }
+  ELFSection *getSection() { return MPSection; }
 
   std::vector<ELFSection *> &getMatchedInputSections() {
-    return m_MatchedSections;
+    return MMatchedSections;
   }
 
   const std::vector<ELFSection *> &getMatchedInputSections() const {
-    return m_MatchedSections;
+    return MMatchedSections;
   }
 
-  void addMatchedSection(ELFSection *S) { m_MatchedSections.push_back(S); }
+  void addMatchedSection(ELFSection *S) { MMatchedSections.push_back(S); }
 
-  void clearSections() { m_MatchedSections.clear(); }
+  void clearSections() { MMatchedSections.clear(); }
 
   void clearFragments();
 
   void init(ELFSection *);
 
-  sym_iterator sym_begin() { return m_SymbolAssignments.begin(); }
-  sym_iterator sym_end() { return m_SymbolAssignments.end(); }
+  sym_iterator symBegin() { return MSymbolAssignments.begin(); }
+  sym_iterator symEnd() { return MSymbolAssignments.end(); }
 
-  const SymbolAssignments &symAssignments() const {
-    return m_SymbolAssignments;
-  }
-  SymbolAssignments &symAssignments() { return m_SymbolAssignments; }
+  const SymbolAssignments &symAssignments() const { return MSymbolAssignments; }
+  SymbolAssignments &symAssignments() { return MSymbolAssignments; }
 
-  void setFragment(Fragment *frag) { m_Frag = frag; }
+  void setFragment(Fragment *Frag) { MFrag = Frag; }
 
-  Fragment *frag() const { return m_Frag; }
+  Fragment *frag() const { return MFrag; }
 
-  const InputSectDesc *desc() const { return m_Desc; }
+  const InputSectDesc *desc() const { return MDesc; }
 
   bool isEntry() const {
-    return ((m_Policy == InputSectDesc::Keep) ||
-            (m_Policy == InputSectDesc::SpecialKeep) ||
-            (m_Policy == InputSectDesc::KeepFixed));
+    return ((MPolicy == InputSectDesc::Keep) ||
+            (MPolicy == InputSectDesc::SpecialKeep) ||
+            (MPolicy == InputSectDesc::KeepFixed));
   }
 
   bool isSpecial() const {
-    return ((m_Policy == InputSectDesc::SpecialKeep) ||
-            (m_Policy == InputSectDesc::SpecialNoKeep));
+    return ((MPolicy == InputSectDesc::SpecialKeep) ||
+            (MPolicy == InputSectDesc::SpecialNoKeep));
   }
 
   bool isFixed() const {
-    return ((m_Policy == InputSectDesc::Fixed) ||
-            (m_Policy == InputSectDesc::KeepFixed));
+    return ((MPolicy == InputSectDesc::Fixed) ||
+            (MPolicy == InputSectDesc::KeepFixed));
   }
 
-  int getMatchCount() const { return m_matchCount; }
-  void incMatchCount() { ++m_matchCount; }
+  int getMatchCount() const { return MMatchCount; }
+  void incMatchCount() { ++MMatchCount; }
 
   std::chrono::system_clock::duration const &getMatchTime() const {
-    return m_matchTime;
+    return MMatchTime;
   }
 
   void addMatchTime(std::chrono::system_clock::duration const &Inc) {
-    std::lock_guard<std::mutex> m_StatsGuard(m_Mutex);
-    m_matchTime += Inc;
+    std::lock_guard<std::mutex> MStatsGuard(MMutex);
+    MMatchTime += Inc;
   }
 
   // Does this rule container have any fragments?
@@ -112,39 +110,39 @@ public:
   // Get the last fragment contained in this rule
   Fragment *getLastFrag() const;
 
-  bool hasAssignments() const { return (m_SymbolAssignments.size() > 0); }
+  bool hasAssignments() const { return (MSymbolAssignments.size() > 0); }
 
-  bool isDirty() const { return m_Dirty; }
+  bool isDirty() const { return MDirty; }
 
-  void setDirty() { m_Dirty = true; }
+  void setDirty() { MDirty = true; }
 
-  void setNextRule(RuleContainer *R) { m_NextRule = R; }
+  void setNextRule(RuleContainer *R) { MNextRule = R; }
 
-  RuleContainer *getNextRule() const { return m_NextRule; }
+  RuleContainer *getNextRule() const { return MNextRule; }
 
   RuleContainer *getNextRuleWithContent() const;
 
   void dumpMap(llvm::raw_ostream &O);
 
   /// Updates matched sections property of all the rules.
-  static void updateMatchedSections(const Module &module);
+  static void updateMatchedSections(const Module &Module);
 
   /// Get rule container as a string for diagnostics.
   std::string getAsString() const;
 
 private:
-  InputSectDesc::Policy m_Policy;
-  InputSectDesc::Spec m_Spec;
-  ELFSection *m_pSection;
-  std::vector<ELFSection *> m_MatchedSections;
-  SymbolAssignments m_SymbolAssignments;
-  bool m_Dirty;
-  Fragment *m_Frag;
-  const InputSectDesc *m_Desc;
-  std::atomic<uint32_t> m_matchCount;
-  std::chrono::system_clock::duration m_matchTime;
-  std::mutex m_Mutex;
-  RuleContainer *m_NextRule;
+  InputSectDesc::Policy MPolicy;
+  InputSectDesc::Spec MSpec;
+  ELFSection *MPSection;
+  std::vector<ELFSection *> MMatchedSections;
+  SymbolAssignments MSymbolAssignments;
+  bool MDirty;
+  Fragment *MFrag;
+  const InputSectDesc *MDesc;
+  std::atomic<uint32_t> MMatchCount;
+  std::chrono::system_clock::duration MMatchTime;
+  std::mutex MMutex;
+  RuleContainer *MNextRule;
 };
 
 } // end namespace eld

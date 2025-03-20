@@ -47,102 +47,105 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // ObjectBuilder
 //===----------------------------------------------------------------------===//
-ObjectBuilder::ObjectBuilder(LinkerConfig &pConfig, Module &pTheModule)
-    : m_Config(pConfig), m_Module(pTheModule) {}
+ObjectBuilder::ObjectBuilder(LinkerConfig &PConfig, Module &PTheModule)
+    : ThisConfig(PConfig), ThisModule(PTheModule) {}
 
 /// MergeSection - merge the pInput section to the pOutput section
-ELFSection *ObjectBuilder::MergeSection(GNULDBackend &pGNULDBackend,
-                                        ELFSection *pInputSection) {
+ELFSection *ObjectBuilder::mergeSection(GNULDBackend &PGnuldBackend,
+                                        ELFSection *CurInputSection) {
 
-  SectionMap::mapping pair;
-  pair.first = pInputSection->getOutputSection();
-  pair.second = pInputSection->getMatchedLinkerScriptRule();
+  SectionMap::mapping Pair;
+  Pair.first = CurInputSection->getOutputSection();
+  Pair.second = CurInputSection->getMatchedLinkerScriptRule();
 
-  if (shouldSkipMergeSection(pInputSection))
+  if (shouldSkipMergeSection(CurInputSection))
     return nullptr;
 
-  std::string output_name;
+  std::string OutputName;
 
-  if (pair.first == nullptr)
-    output_name = pInputSection->name().str();
+  if (Pair.first == nullptr)
+    OutputName = CurInputSection->name().str();
   else
-    output_name = pair.first->name().str();
+    OutputName = Pair.first->name().str();
 
-  ELFSection *target = nullptr;
+  ELFSection *Target = nullptr;
 
-  if (pair.first)
-    target = pair.first->getSection();
-  else if (!target)
-    target = m_Module.getSection(output_name);
+  if (Pair.first)
+    Target = Pair.first->getSection();
+  else if (!Target)
+    Target = ThisModule.getSection(OutputName);
 
-  bool overrideOutput = false;
-  if (shouldCreateNewSection(target, pInputSection)) {
-    overrideOutput = true;
-    const OutputSectionEntry *OutputSection = pInputSection->getOutputSection();
+  bool OverrideOutput = false;
+  if (shouldCreateNewSection(Target, CurInputSection)) {
+    OverrideOutput = true;
+    const OutputSectionEntry *OutputSection =
+        CurInputSection->getOutputSection();
     std::string InputSectionName =
-        pInputSection->getDecoratedName(m_Config.options());
-    std::string OutputSectionName = OutputSection ? OutputSection->name().str()
-                                                  : pInputSection->name().str();
-    if (m_Module.getPrinter()->isVerbose())
-      m_Config.raise(diag::mapping_input_section_to_output_section)
+        CurInputSection->getDecoratedName(ThisConfig.options());
+    std::string OutputSectionName = OutputSection
+                                        ? OutputSection->name().str()
+                                        : CurInputSection->name().str();
+    if (ThisModule.getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::mapping_input_section_to_output_section)
           << InputSectionName << OutputSectionName;
-    target = m_Module.createOutputSection(
-        OutputSectionName, pInputSection->getKind(), pInputSection->getType(),
-        pInputSection->getFlags(), pInputSection->getAddrAlign());
-    target->setEntSize(pInputSection->getEntSize());
-    pair.first = target->getOutputSection();
-    pair.second = pair.first->getLastRule();
-    if (!pair.second)
-      pair.second = pair.first->createDefaultRule(m_Module);
-    pInputSection->setOutputSection(pair.first);
-    pInputSection->setMatchedLinkerScriptRule(pair.second);
-    if (pInputSection->getLink())
-      target->setLink(pInputSection->getLink());
+    Target = ThisModule.createOutputSection(
+        OutputSectionName, CurInputSection->getKind(),
+        CurInputSection->getType(), CurInputSection->getFlags(),
+        CurInputSection->getAddrAlign());
+    Target->setEntSize(CurInputSection->getEntSize());
+    Pair.first = Target->getOutputSection();
+    Pair.second = Pair.first->getLastRule();
+    if (!Pair.second)
+      Pair.second = Pair.first->createDefaultRule(ThisModule);
+    CurInputSection->setOutputSection(Pair.first);
+    CurInputSection->setMatchedLinkerScriptRule(Pair.second);
+    if (CurInputSection->getLink())
+      Target->setLink(CurInputSection->getLink());
   } else {
     // If the output section was created previously when merging a section of a
     // similiar name, lets get the output section from in there.
-    if (!pair.first) {
-      pair.first = target->getOutputSection();
-      pair.second = pair.first->getLastRule();
-      if (!pair.second)
-        pair.second = pair.first->createDefaultRule(m_Module);
-      pInputSection->setOutputSection(pair.first);
-      pInputSection->setMatchedLinkerScriptRule(pair.second);
+    if (!Pair.first) {
+      Pair.first = Target->getOutputSection();
+      Pair.second = Pair.first->getLastRule();
+      if (!Pair.second)
+        Pair.second = Pair.first->createDefaultRule(ThisModule);
+      CurInputSection->setOutputSection(Pair.first);
+      CurInputSection->setMatchedLinkerScriptRule(Pair.second);
     } else
-      target = pair.first->getSection();
+      Target = Pair.first->getSection();
   }
 
   // When we dont have linker scripts, the output section needs to be set
   // appropriately for each input section depending on what output section was
   // chosen above.
-  if (!pInputSection->getOutputSection() || overrideOutput)
-    pInputSection->setOutputSection(pair.first);
+  if (!CurInputSection->getOutputSection() || OverrideOutput)
+    CurInputSection->setOutputSection(Pair.first);
 
-  if (!pInputSection->getMatchedLinkerScriptRule())
-    pInputSection->setMatchedLinkerScriptRule(pair.second);
+  if (!CurInputSection->getMatchedLinkerScriptRule())
+    CurInputSection->setMatchedLinkerScriptRule(Pair.second);
 
   ELFSection *ToSection = nullptr;
 
-  if (pair.second) {
-    ToSection = pair.second->getSection();
+  if (Pair.second) {
+    ToSection = Pair.second->getSection();
   } else {
-    ToSection = target;
+    ToSection = Target;
   }
 
-  mayChangeSectionTypeOrKind(ToSection, pInputSection);
+  mayChangeSectionTypeOrKind(ToSection, CurInputSection);
 
-  if (pInputSection->isGroupKind()) {
-    if (MoveSection(pInputSection, target)) {
+  if (CurInputSection->isGroupKind()) {
+    if (moveSection(CurInputSection, Target)) {
       // Add all the input sections that were part of the group
-      for (auto *GroupSection : pInputSection->getGroupSections())
-        target->addSectionsToGroup(GroupSection);
-      target->setSymbol(pInputSection->getSymbol());
-      if (!pInputSection->getOutputSection())
-        pInputSection->setOutputSection(target->getOutputSection());
-      return target;
+      for (auto *GroupSection : CurInputSection->getGroupSections())
+        Target->addSectionsToGroup(GroupSection);
+      Target->setSymbol(CurInputSection->getSymbol());
+      if (!CurInputSection->getOutputSection())
+        CurInputSection->setOutputSection(Target->getOutputSection());
+      return Target;
     }
-  } else if (!pGNULDBackend.DoesOverrideMerge(pInputSection)) {
-    MoveSection(pInputSection, ToSection);
+  } else if (!PGnuldBackend.DoesOverrideMerge(CurInputSection)) {
+    moveSection(CurInputSection, ToSection);
     return ToSection;
   }
   return nullptr;
@@ -153,13 +156,13 @@ void ObjectBuilder::traceMergeStrings(const MergeableString *From,
   ELFSection *OutputSection =
       From->Fragment->getOwningSection()->getOutputELFSection();
   std::string OutputSectionName =
-      OutputSection->getDecoratedName(m_Config.options());
-  if (!m_Config.options().shouldTraceMergeStrSection(OutputSection) &&
-      m_Config.options().getMergeStrTraceType() != GeneralOptions::ALLOC)
+      OutputSection->getDecoratedName(ThisConfig.options());
+  if (!ThisConfig.options().shouldTraceMergeStrSection(OutputSection) &&
+      ThisConfig.options().getMergeStrTraceType() != GeneralOptions::ALLOC)
     return;
   /// The output section's alloc flag has not been set yet, so we will have to
   /// use the input section's flag here
-  if (m_Config.options().getMergeStrTraceType() == GeneralOptions::ALLOC &&
+  if (ThisConfig.options().getMergeStrTraceType() == GeneralOptions::ALLOC &&
       !From->Fragment->getOwningSection()->isAlloc())
     return;
   std::string FileFrom = From->Fragment->getOwningSection()
@@ -171,10 +174,11 @@ void ObjectBuilder::traceMergeStrings(const MergeableString *From,
                            ->getInput()
                            ->decoratedPath(true);
   std::string SectionFrom =
-      From->Fragment->getOwningSection()->getDecoratedName(m_Config.options());
-  std::string SectionTo =
-      From->Fragment->getOwningSection()->getDecoratedName(m_Config.options());
-  m_Config.raise(diag::merging_fragments)
+      From->Fragment->getOwningSection()->getDecoratedName(
+          ThisConfig.options());
+  std::string SectionTo = From->Fragment->getOwningSection()->getDecoratedName(
+      ThisConfig.options());
+  ThisConfig.raise(Diag::merging_fragments)
       << FileFrom << SectionFrom << FileTo << SectionTo << From->String
       << OutputSectionName;
   assert(From->String == To->String);
@@ -193,106 +197,106 @@ void ObjectBuilder::mergeStrings(MergeStringFragment *F,
   }
 }
 
-/// MoveSection - move the fragments of pTO section data to pTo
-bool ObjectBuilder::MoveSection(ELFSection *pFrom, ELFSection *pTo) {
-  assert(pFrom != pTo && "Cannot move section data to itself!");
+/// moveSection - move the fragments of pTO section data to pTo
+bool ObjectBuilder::moveSection(ELFSection *PFrom, ELFSection *PTo) {
+  assert(PFrom != PTo && "Cannot move section data to itself!");
 
-  int alignFrom = pFrom->getAddrAlign();
-  int alignTo = pTo->getAddrAlign();
+  int AlignFrom = PFrom->getAddrAlign();
+  int AlignTo = PTo->getAddrAlign();
 
-  if (alignFrom > alignTo)
-    pTo->setAddrAlign(alignFrom);
+  if (AlignFrom > AlignTo)
+    PTo->setAddrAlign(AlignFrom);
 
-  if (!pFrom->getFragmentList().size())
+  if (!PFrom->getFragmentList().size())
     return false;
 
-  if (pFrom->isWanted())
-    pTo->setWanted(true);
-  pTo->splice(pTo->getFragmentList().end(), pFrom->getFragmentList());
+  if (PFrom->isWanted())
+    PTo->setWanted(true);
+  PTo->splice(PTo->getFragmentList().end(), PFrom->getFragmentList());
   return true;
 }
 
-bool ObjectBuilder::MoveIntoOutputSection(ELFSection *pFrom, ELFSection *pTo) {
-  assert(pFrom != pTo && "Cannot move section data to itself!");
+bool ObjectBuilder::moveIntoOutputSection(ELFSection *PFrom, ELFSection *PTo) {
+  assert(PFrom != PTo && "Cannot move section data to itself!");
 
-  int alignFrom = pFrom->getAddrAlign();
-  int alignTo = pTo->getAddrAlign();
+  int AlignFrom = PFrom->getAddrAlign();
+  int AlignTo = PTo->getAddrAlign();
 
-  if (alignFrom > alignTo)
-    pTo->setAddrAlign(alignFrom);
+  if (AlignFrom > AlignTo)
+    PTo->setAddrAlign(AlignFrom);
 
-  if (!pFrom->getFragmentList().size())
+  if (!PFrom->getFragmentList().size())
     return false;
 
-  if (pFrom->isWanted())
-    pTo->setWanted(true);
+  if (PFrom->isWanted())
+    PTo->setWanted(true);
   return true;
 }
 
-void ObjectBuilder::DoPluginIterateSections(eld::InputFile *obj,
+void ObjectBuilder::doPluginIterateSections(eld::InputFile *Obj,
                                             plugin::PluginBase *P) {
-  bool isLinkerInternal = obj->isInternal();
-  ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(obj);
-  for (auto &sect : ObjFile->getSections()) {
-    if (sect->isBitcode())
+  bool IsLinkerInternal = Obj->isInternal();
+  ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
+  for (auto &Sect : ObjFile->getSections()) {
+    if (Sect->isBitcode())
       continue;
-    ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
+    ELFSection *Section = llvm::dyn_cast<eld::ELFSection>(Sect);
     // Get the section kind.
-    int32_t sectionKind = section->getKind();
-    if (sectionKind == LDFileFormat::Null ||
-        sectionKind == LDFileFormat::StackNote ||
-        (sectionKind == LDFileFormat::NamePool && !isLinkerInternal) ||
-        (sectionKind == LDFileFormat::Relocation && !isLinkerInternal) ||
-        sectionKind == LDFileFormat::Group)
+    int32_t SectionKind = Section->getKind();
+    if (SectionKind == LDFileFormat::Null ||
+        SectionKind == LDFileFormat::StackNote ||
+        (SectionKind == LDFileFormat::NamePool && !IsLinkerInternal) ||
+        (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
+        SectionKind == LDFileFormat::Group)
       continue;
     if (P->getType() == plugin::Plugin::Type::SectionIterator &&
-        section->isIgnore())
+        Section->isIgnore())
       continue;
     if (P->getType() == plugin::Plugin::Type::SectionIterator)
       (llvm::dyn_cast<plugin::SectionIteratorPlugin>(P))
-          ->processSection(plugin::Section(section));
+          ->processSection(plugin::Section(Section));
     else if (P->getType() == plugin::Plugin::Type::SectionMatcher)
       (llvm::dyn_cast<plugin::SectionMatcherPlugin>(P))
-          ->processSection(plugin::Section(section));
+          ->processSection(plugin::Section(Section));
   }
 }
 
-void ObjectBuilder::assignInputFromOutput(eld::InputFile *obj) {
-  std::unordered_map<Section *, bool> retrySections;
-  bool isPartialLink = (m_Config.codeGenType() == LinkerConfig::Object);
-  bool isGNUCompatible =
-      (m_Config.options().getScriptOption() == GeneralOptions::MatchGNU);
-  bool linkerScriptHasSectionsCommand =
-      m_Module.getScript().linkerScriptHasSectionsCommand();
-  SectionMap &sectionMap = m_Module.getScript().sectionMap();
-  ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(obj);
-  std::vector<Section *> sections = getInputSectionsForRuleMatching(ObjFile);
+void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
+  std::unordered_map<Section *, bool> RetrySections;
+  bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
+  bool IsGnuCompatible =
+      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
+  bool LinkerScriptHasSectionsCommand =
+      ThisModule.getScript().linkerScriptHasSectionsCommand();
+  SectionMap &SectionMap = ThisModule.getScript().sectionMap();
+  ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
+  std::vector<Section *> Sections = getInputSectionsForRuleMatching(ObjFile);
   // For all output sections.
-  for (auto out : sectionMap) {
+  for (auto *Out : SectionMap) {
     // For each input rule.
-    for (auto in : *out) {
-      auto start = std::chrono::system_clock::now();
+    for (auto *In : *Out) {
+      auto Start = std::chrono::system_clock::now();
       // For each input section.
-      for (Section *section : sections) {
-        ELFSection *ELFSect = llvm::dyn_cast<eld::ELFSection>(section);
+      for (Section *Section : Sections) {
+        ELFSection *ELFSect = llvm::dyn_cast<eld::ELFSection>(Section);
 
-        bool isRetrySect = false;
+        bool IsRetrySect = false;
 
         // If the section has an already assigned output section, skip.
         // If the section needs to be retried, we may need to revisit the
         // section to match the best rule.
-        if (section->getOutputSection()) {
-          if (!retrySections.size() ||
-              (retrySections.find(section) == retrySections.end())) {
+        if (Section->getOutputSection()) {
+          if (!RetrySections.size() ||
+              (RetrySections.find(Section) == RetrySections.end())) {
             continue;
           }
-          isRetrySect = true;
+          IsRetrySect = true;
         }
 
         if (ELFSect) {
           // If the rule needs to match on permissions, skip if the rule doesnot
           // satisfy.
-          switch (out->prolog().constraint()) {
+          switch (Out->prolog().constraint()) {
           case OutputSectDesc::NO_CONSTRAINT:
             break;
           case OutputSectDesc::ONLY_IF_RO:
@@ -307,115 +311,115 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *obj) {
         }
         // Skip sections with merge strings and if there is no linker scripts
         // provided.
-        if (isPartialLink && (ELFSect && ELFSect->isMergeStr()) &&
-            !linkerScriptHasSectionsCommand)
+        if (IsPartialLink && (ELFSect && ELFSect->isMergeStr()) &&
+            !LinkerScriptHasSectionsCommand)
           continue;
-        InputFile *input = obj;
-        bool isCommonSection = false;
-        if (CommonELFSection *commonSection =
-                llvm::dyn_cast<CommonELFSection>(section)) {
-          input = commonSection->getOrigin();
-          isCommonSection = true;
+        InputFile *Input = Obj;
+        bool IsCommonSection = false;
+        if (CommonELFSection *CommonSection =
+                llvm::dyn_cast<CommonELFSection>(Section)) {
+          Input = CommonSection->getOrigin();
+          IsCommonSection = true;
         }
-        if (section->getOldInputFile())
-          input = section->getOldInputFile();
-        std::string const &pInputFile =
-            input->getInput()->getResolvedPath().native();
-        std::string const &name = input->getInput()->getName();
-        bool isArchive =
-            input->isArchive() ||
-            llvm::dyn_cast<eld::ArchiveMemberInput>(input->getInput());
-        if (!input->getInput()->isPatternMapInitialized()) {
+        if (Section->getOldInputFile())
+          Input = Section->getOldInputFile();
+        std::string const &PInputFile =
+            Input->getInput()->getResolvedPath().native();
+        std::string const &Name = Input->getInput()->getName();
+        bool IsArchive =
+            Input->isArchive() ||
+            llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
+        if (!Input->getInput()->isPatternMapInitialized()) {
           std::lock_guard<std::mutex> Guard(Mutex);
-          input->getInput()->resize(
-              m_Module.getScript().getNumWildCardPatterns());
+          Input->getInput()->resize(
+              ThisModule.getScript().getNumWildCardPatterns());
         }
         // Hash of all the required things for Match.
-        uint64_t inputFileHash = input->getInput()->getResolvedPathHash();
-        uint64_t nameHash = input->getInput()->getArchiveMemberNameHash();
-        std::string sectName = section->name().str();
-        uint64_t inputSectionHash = section->sectionNameHash();
-        if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(section)) {
-          if (auto optRMSectName =
+        uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
+        uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
+        std::string SectName = Section->name().str();
+        uint64_t InputSectionHash = Section->sectionNameHash();
+        if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(Section)) {
+          if (auto OptRThisSectionName =
                   ObjFile->getRuleMatchingSectName(ELFSect->getIndex())) {
-            sectName = optRMSectName.value();
-            inputSectionHash = llvm::hash_combine(sectName);
+            SectName = OptRThisSectionName.value();
+            InputSectionHash = llvm::hash_combine(SectName);
           }
         }
-        if (sectionMap.matched(*in, input, pInputFile, sectName, isArchive,
-                               name, inputSectionHash, inputFileHash, nameHash,
-                               isGNUCompatible, isCommonSection)) {
-          in->incMatchCount();
-          section->setOutputSection(out);
-          section->setMatchedLinkerScriptRule(in);
+        if (SectionMap.matched(*In, Input, PInputFile, SectName, IsArchive,
+                               Name, InputSectionHash, InputFileHash, NameHash,
+                               IsGnuCompatible, IsCommonSection)) {
+          In->incMatchCount();
+          Section->setOutputSection(Out);
+          Section->setMatchedLinkerScriptRule(In);
           // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
-          if (ELFSect && out->isDiscard()) {
+          if (ELFSect && Out->isDiscard()) {
             ELFSect->setKind(LDFileFormat::Ignore);
-            if (m_Config.options().isSectionTracingRequested() &&
-                m_Config.options().traceSection(ELFSect->name().str()))
-              m_Config.raise(diag::discarded_section_info)
-                  << ELFSect->getDecoratedName(m_Config.options())
+            if (ThisConfig.options().isSectionTracingRequested() &&
+                ThisConfig.options().traceSection(ELFSect->name().str()))
+              ThisConfig.raise(Diag::discarded_section_info)
+                  << ELFSect->getDecoratedName(ThisConfig.options())
                   << ObjFile->getInput()->decoratedPath();
           }
-          if (isRetrySect && !in->isSpecial())
-            retrySections.erase(section);
+          if (IsRetrySect && !In->isSpecial())
+            RetrySections.erase(Section);
           // Retry the match until the closest match is found.
-          if (in->isSpecial())
-            retrySections.insert(std::make_pair(section, true));
+          if (In->isSpecial())
+            RetrySections.insert(std::make_pair(Section, true));
         } // end match
       } // end each input section
-      in->addMatchTime(std::chrono::system_clock::now() - start);
+      In->addMatchTime(std::chrono::system_clock::now() - Start);
     } // end each rule
   } // end each output section
 }
 
-bool ObjectBuilder::InitializePluginsAndProcess(
-    const std::vector<eld::InputFile *> &inputs, plugin::Plugin::Type T) {
+bool ObjectBuilder::initializePluginsAndProcess(
+    const std::vector<eld::InputFile *> &Inputs, plugin::Plugin::Type T) {
   LinkerScript::PluginVectorT PluginList =
-      m_Module.getScript().getPluginForType(T);
+      ThisModule.getScript().getPluginForType(T);
   if (!PluginList.size())
     return true;
 
   for (auto &P : PluginList) {
-    if (!P->Init(m_Module.getOutputTarWriter()))
+    if (!P->init(ThisModule.getOutputTarWriter()))
       return false;
   }
 
   if (T == plugin::Plugin::SectionMatcher ||
       T == plugin::Plugin::SectionIterator) {
-    for (auto &obj : inputs) {
-      if (obj->isLinkerScript())
+    for (auto &Obj : Inputs) {
+      if (Obj->isLinkerScript())
         continue;
       for (auto &P : PluginList) {
-        DoPluginIterateSections(obj, P->getLinkerPlugin());
+        doPluginIterateSections(Obj, P->getLinkerPlugin());
       }
     }
   }
 
   if (T == plugin::Plugin::OutputSectionIterator) {
     for (auto &P : PluginList)
-      DoPluginOutputSectionsIterate(P->getLinkerPlugin());
+      doPluginOutputSectionsIterate(P->getLinkerPlugin());
   }
 
   for (auto &P : PluginList) {
-    if (!P->Run(m_Module.getScript().getPluginRunList())) {
-      m_Module.setFailure(true);
+    if (!P->run(ThisModule.getScript().getPluginRunList())) {
+      ThisModule.setFailure(true);
       return false;
     }
   }
 
   if (PluginList.size()) {
     for (auto &P : PluginList) {
-      if (!P->Destroy()) {
-        m_Module.setFailure(true);
+      if (!P->destroy()) {
+        ThisModule.setFailure(true);
         return false;
       }
     }
   }
 
-  if (!m_Config.getDiagEngine()->diagnose()) {
-    if (m_Module.getPrinter()->isVerbose())
-      m_Config.raise(diag::function_has_error) << __PRETTY_FUNCTION__;
+  if (!ThisConfig.getDiagEngine()->diagnose()) {
+    if (ThisModule.getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
   return true;
@@ -425,94 +429,97 @@ bool ObjectBuilder::InitializePluginsAndProcess(
 // and sectionMap must not be modified in this function as modifying sectionMap
 // would be data-race undefined behavior. Passing sectionMap as const
 // will serve as a reminder that it must not be modified.
-void ObjectBuilder::storePatternsForInputFile(InputFile *obj,
-                                              eld::SectionMap &sectionMap) {
-  assert(obj != m_Module.getCommonInternalInput() &&
+void ObjectBuilder::storePatternsForInputFile(InputFile *Obj,
+                                              eld::SectionMap &SectionMap) {
+  assert(Obj != ThisModule.getCommonInternalInput() &&
          "Common internal input file contains common symbols from various "
          "different input files. StorePatternsForInputFile should be "
          "called on the actual input files.");
-  for (auto out : sectionMap) {
-    for (auto &in : *out) {
-      if (in->spec().hasArchiveMember() && obj->isArchive()) {
-        std::string const &InputName = obj->getInput()->getName();
-        uint64_t nameHash = obj->getInput()->getArchiveMemberNameHash();
-        bool result =
-            sectionMap.matched(in->spec().archiveMember(), InputName, nameHash);
-        obj->getInput()->addMemberMatchedPattern(in->spec().getArchiveMember(),
-                                                 result);
+  for (auto *Out : SectionMap) {
+    for (auto &In : *Out) {
+      if (In->spec().hasArchiveMember() && Obj->isArchive()) {
+        std::string const &InputName = Obj->getInput()->getName();
+        uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
+        bool Result =
+            SectionMap.matched(In->spec().archiveMember(), InputName, NameHash);
+        Obj->getInput()->addMemberMatchedPattern(In->spec().getArchiveMember(),
+                                                 Result);
       }
-      if (in->spec().hasFile() && obj->isArchive()) {
-        std::string const &InputName = obj->getInput()->getName();
-        uint64_t nameHash = obj->getInput()->getArchiveMemberNameHash();
-        bool result =
-            sectionMap.matched(in->spec().file(), InputName, nameHash);
-        obj->getInput()->addMemberMatchedPattern(in->spec().getFile(), result);
+      if (In->spec().hasFile() && Obj->isArchive()) {
+        std::string const &InputName = Obj->getInput()->getName();
+        uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
+        bool Result =
+            SectionMap.matched(In->spec().file(), InputName, NameHash);
+        Obj->getInput()->addMemberMatchedPattern(In->spec().getFile(), Result);
       }
-      if (in->spec().hasFile()) {
+      if (In->spec().hasFile()) {
         std::string const &InputFile =
-            obj->getInput()->getResolvedPath().native();
-        uint64_t inputFileHash = obj->getInput()->getResolvedPathHash();
-        bool result =
-            sectionMap.matched(in->spec().file(), InputFile, inputFileHash);
-        obj->getInput()->addFileMatchedPattern(in->spec().getFile(), result);
+            Obj->getInput()->getResolvedPath().native();
+        uint64_t InputFileHash = Obj->getInput()->getResolvedPathHash();
+        bool Result =
+            SectionMap.matched(In->spec().file(), InputFile, InputFileHash);
+        Obj->getInput()->addFileMatchedPattern(In->spec().getFile(), Result);
       }
     }
   }
 }
 
-void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> inputs,
-                                         bool isPostLTOPhase) {
-  auto &sectionMap = m_Module.getScript().sectionMap();
-  bool hasSectionsCommand =
-      m_Module.getScript().linkerScriptHasSectionsCommand();
+void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
+                                         bool IsPostLtoPhase) {
+  auto &SectionMap = ThisModule.getScript().sectionMap();
+  bool HasSectionsCommand =
+      ThisModule.getScript().linkerScriptHasSectionsCommand();
 
-  m_Module.setState(plugin::LinkerWrapper::BeforeLayout);
+  ThisModule.setState(plugin::LinkerWrapper::BeforeLayout);
 
-  std::sort(inputs.begin(), inputs.end(), [](InputFile *A, InputFile *B) {
+  std::sort(Inputs.begin(), Inputs.end(), [](InputFile *A, InputFile *B) {
     return A->getNumSections() > B->getNumSections();
   });
 
   // For each input object.
-  if (m_Config.options().numThreads() <= 1 ||
-      !m_Config.isAssignOutputSectionsMultiThreaded()) {
-    if (m_Module.getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_disabled) << "AssignOutputSections";
-    for (auto &obj : inputs) {
-      if (isPostLTOPhase && obj->isBitcode())
+  if (ThisConfig.options().numThreads() <= 1 ||
+      !ThisConfig.isAssignOutputSectionsMultiThreaded()) {
+    if (ThisModule.getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "AssignOutputSections";
+    for (auto &Obj : Inputs) {
+      if (IsPostLtoPhase && Obj->isBitcode())
         continue;
-      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(obj);
+      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
       if (!ObjFile)
         ASSERT(0, "input is not an object file :" +
-                      obj->getInput()->decoratedPath());
+                      Obj->getInput()->decoratedPath());
       /// Internal common sections are assigned output sections later.
-      if (obj == m_Module.getCommonInternalInput())
+      if (Obj == ThisModule.getCommonInternalInput())
         continue;
-      if (ObjFile && hasSectionsCommand && ObjFile->hasHighSectionCount())
-        m_Config.raise(diag::more_sections) << obj->getInput()->decoratedPath();
-      obj->getInput()->resize(m_Module.getScript().getNumWildCardPatterns());
-      storePatternsForInputFile(obj, sectionMap);
-      assignInputFromOutput(obj);
-      obj->getInput()->clear();
+      if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
+        ThisConfig.raise(Diag::more_sections)
+            << Obj->getInput()->decoratedPath();
+      Obj->getInput()->resize(ThisModule.getScript().getNumWildCardPatterns());
+      storePatternsForInputFile(Obj, SectionMap);
+      assignInputFromOutput(Obj);
+      Obj->getInput()->clear();
     }
   } else {
-    if (m_Module.getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_enabled)
-          << "AssignOutputSections" << m_Config.options().numThreads();
-    llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
-    for (auto &obj : inputs) {
-      if (isPostLTOPhase && obj->isBitcode())
+    if (ThisModule.getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "AssignOutputSections" << ThisConfig.options().numThreads();
+    llvm::ThreadPoolInterface *Pool = ThisModule.getThreadPool();
+    for (auto &Obj : Inputs) {
+      if (IsPostLtoPhase && Obj->isBitcode())
         continue;
       /// Internal common sections are assigned output sections later.
-      if (obj == m_Module.getCommonInternalInput())
+      if (Obj == ThisModule.getCommonInternalInput())
         continue;
-      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(obj);
-      if (ObjFile && hasSectionsCommand && ObjFile->hasHighSectionCount())
-        m_Config.raise(diag::more_sections) << obj->getInput()->decoratedPath();
+      ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
+      if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
+        ThisConfig.raise(Diag::more_sections)
+            << Obj->getInput()->decoratedPath();
       Pool->async([&] {
-        obj->getInput()->resize(m_Module.getScript().getNumWildCardPatterns());
-        storePatternsForInputFile(obj, sectionMap);
-        assignInputFromOutput(obj);
-        obj->getInput()->clear();
+        Obj->getInput()->resize(
+            ThisModule.getScript().getNumWildCardPatterns());
+        storePatternsForInputFile(Obj, SectionMap);
+        assignInputFromOutput(Obj);
+        Obj->getInput()->clear();
       });
     }
     Pool->wait();
@@ -525,25 +532,25 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> inputs,
 }
 
 void ObjectBuilder::printStats() {
-  if (!m_Module.getScript().linkerScriptHasSectionsCommand())
+  if (!ThisModule.getScript().linkerScriptHasSectionsCommand())
     return;
-  auto &sectionMap = m_Module.getScript().sectionMap();
-  LayoutPrinter *layoutPrinter = m_Module.getLayoutPrinter();
-  for (auto out : sectionMap) {
-    for (auto in : *out) {
-      if (layoutPrinter && !in->getMatchCount())
-        layoutPrinter->recordNoLinkerScriptRuleMatch();
-      if (!m_Module.getPrinter()->allStats())
+  auto &SectionMap = ThisModule.getScript().sectionMap();
+  LayoutPrinter *LayoutPrinter = ThisModule.getLayoutPrinter();
+  for (auto *Out : SectionMap) {
+    for (auto *In : *Out) {
+      if (LayoutPrinter && !In->getMatchCount())
+        LayoutPrinter->recordNoLinkerScriptRuleMatch();
+      if (!ThisModule.getPrinter()->allStats())
         continue;
-      if (in->desc()) {
+      if (In->desc()) {
         std::string Str;
-        llvm::raw_string_ostream ss(Str);
-        in->desc()->dumpMap(ss, false, false);
-        m_Config.raise(diag::linker_script_rule_matching_stats)
-            << ss.str() << in->getMatchCount()
+        llvm::raw_string_ostream Ss(Str);
+        In->desc()->dumpMap(Ss, false, false);
+        ThisConfig.raise(Diag::linker_script_rule_matching_stats)
+            << Ss.str() << In->getMatchCount()
             << static_cast<int>(
                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                       in->getMatchTime())
+                       In->getMatchTime())
                        .count());
       }
     }
@@ -552,138 +559,136 @@ void ObjectBuilder::printStats() {
 
 // Change kind of section if the section to be merged is different from the one
 // being merged into.
-void ObjectBuilder::mayChangeSectionTypeOrKind(ELFSection *target,
+void ObjectBuilder::mayChangeSectionTypeOrKind(ELFSection *Target,
                                                ELFSection *I) const {
-  if (target->isNullType()) {
-    target->setKind(I->getKind());
-    target->setType(I->getType());
+  if (Target->isNullType()) {
+    Target->setKind(I->getKind());
+    Target->setType(I->getType());
     return;
   }
-  if (target->isNoBits() && !I->isNoBits()) {
-    target->setKind(LDFileFormat::Regular);
-    target->setType(llvm::ELF::SHT_PROGBITS);
+  if (Target->isNoBits() && !I->isNoBits()) {
+    Target->setKind(LDFileFormat::Regular);
+    Target->setType(llvm::ELF::SHT_PROGBITS);
     return;
   }
-  if (target->isMergeKind() && !I->isMergeKind()) {
-    target->setKind(I->getKind());
-    target->setFlags(I->getFlags());
+  if (Target->isMergeKind() && !I->isMergeKind()) {
+    Target->setKind(I->getKind());
+    Target->setFlags(I->getFlags());
   }
 }
 
 /// updateSectionFlags - update pTo's flags when merging pFrom
-void ObjectBuilder::updateSectionFlags(ELFSection *pTo, ELFSection *pFrom) {
-  if (!pFrom->getFlags())
+void ObjectBuilder::updateSectionFlags(ELFSection *PTo, ELFSection *PFrom) {
+  if (!PFrom->getFlags())
     return;
 
   // union the flags from input
-  uint32_t flags = pTo->getFlags();
+  uint32_t Flags = PTo->getFlags();
 
-  flags |= pFrom->getFlags();
+  Flags |= PFrom->getFlags();
 
-  if (pTo->getFlags()) {
+  if (PTo->getFlags()) {
     // If the output section never had a MERGE property, dont set the merge.
-    if (0 == (pTo->getFlags() & llvm::ELF::SHF_MERGE))
-      flags &= ~llvm::ELF::SHF_MERGE;
+    if (0 == (PTo->getFlags() & llvm::ELF::SHF_MERGE))
+      Flags &= ~llvm::ELF::SHF_MERGE;
 
     // If the output section never had a STRING property, dont set strings.
-    if (0 == (pTo->getFlags() & llvm::ELF::SHF_STRINGS))
-      flags &= ~llvm::ELF::SHF_STRINGS;
+    if (0 == (PTo->getFlags() & llvm::ELF::SHF_STRINGS))
+      Flags &= ~llvm::ELF::SHF_STRINGS;
 
     // If the output section never had a LINKORDER property, dont set link
     // order.
-    if (0 == (pTo->getFlags() & llvm::ELF::SHF_LINK_ORDER))
-      flags &= ~llvm::ELF::SHF_LINK_ORDER;
+    if (0 == (PTo->getFlags() & llvm::ELF::SHF_LINK_ORDER))
+      Flags &= ~llvm::ELF::SHF_LINK_ORDER;
 
     // If any of the input sections cleared the merge property, clear the
     // merge property.
-    if (0 == (pFrom->getFlags() & llvm::ELF::SHF_MERGE))
-      flags &= ~llvm::ELF::SHF_MERGE;
+    if (0 == (PFrom->getFlags() & llvm::ELF::SHF_MERGE))
+      Flags &= ~llvm::ELF::SHF_MERGE;
 
     // if there is an input section is not SHF_STRINGS, clean this flag
-    if (0 == (pFrom->getFlags() & llvm::ELF::SHF_STRINGS))
-      flags &= ~llvm::ELF::SHF_STRINGS;
+    if (0 == (PFrom->getFlags() & llvm::ELF::SHF_STRINGS))
+      Flags &= ~llvm::ELF::SHF_STRINGS;
 
     // if there is an input section is not LINKORDER, clean this flag
-    if (0 == (pFrom->getFlags() & llvm::ELF::SHF_LINK_ORDER))
-      flags &= ~llvm::ELF::SHF_LINK_ORDER;
+    if (0 == (PFrom->getFlags() & llvm::ELF::SHF_LINK_ORDER))
+      Flags &= ~llvm::ELF::SHF_LINK_ORDER;
 
     // Merge Entry size.
     // If the entry sizes are not the same, lets reset the entry size.
-    if (pFrom->getEntSize() != pTo->getEntSize())
-      pTo->setEntSize(0);
+    if (PFrom->getEntSize() != PTo->getEntSize())
+      PTo->setEntSize(0);
   } else {
-    pTo->setEntSize(pFrom->getEntSize());
+    PTo->setEntSize(PFrom->getEntSize());
   }
 
   // Erase the group flag if not building a object.
   if (config().codeGenType() != LinkerConfig::Object) {
-    flags &= ~llvm::ELF::SHF_GROUP;
+    Flags &= ~llvm::ELF::SHF_GROUP;
     // Remove the retain flag.
-    flags &= ~llvm::ELF::SHF_GNU_RETAIN;
+    Flags &= ~llvm::ELF::SHF_GNU_RETAIN;
   } else {
-    if (pFrom->isLinkOrder() && !pTo->getLink() && !pTo->hasSectionData())
-      pTo->setLink(pFrom->getLink());
+    if (PFrom->isLinkOrder() && !PTo->getLink() && !PTo->hasSectionData())
+      PTo->setLink(PFrom->getLink());
   }
 
-  pTo->setFlags(flags);
+  PTo->setFlags(Flags);
 
-  if (pTo->getKind() != LDFileFormat::Internal &&
-      (flags & llvm::ELF::SHF_MASKPROC))
-    pTo->setKind(LDFileFormat::Target);
+  if (PTo->getKind() != LDFileFormat::Internal &&
+      (Flags & llvm::ELF::SHF_MASKPROC))
+    PTo->setKind(LDFileFormat::Target);
 }
 
 /// This function figures out if a new section section needs to be created, or
 /// can be merged with an existing output section.
 bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
                                            ELFSection *I) const {
-  if (!target || m_Config.options().shouldEmitUniqueOutputSections())
+  if (!target || ThisConfig.options().shouldEmitUniqueOutputSections())
     return true;
 
   if (I->name().find("@") != llvm::StringRef::npos)
     return true;
 
   bool hasLinkerScriptSectionsCommand =
-      m_Module.getScript().linkerScriptHasSectionsCommand();
-  if (m_Config.codeGenType() == LinkerConfig::Object) {
+      ThisModule.getScript().linkerScriptHasSectionsCommand();
+  if (ThisConfig.codeGenType() == LinkerConfig::Object) {
     // The linker only creates groups with partial link.
     if (target->isGroupKind())
       return true;
     if (I->isLinkOrder() && !I->isEXIDX()) {
       if (I->getLink() == target->getLink() || target->isUninit())
         return false;
-      else {
-        if (!hasLinkerScriptSectionsCommand)
-          return true;
-        if (m_Config.options().allowIncompatibleSectionsMix()) {
-          m_Config.raise(diag::note_incompatible_sections)
-              << I->name() << I->getInputFile()->getInput()->decoratedPath()
-              << target->name();
-          return false;
-        }
+      if (!hasLinkerScriptSectionsCommand)
+        return true;
+      if (ThisConfig.options().allowIncompatibleSectionsMix()) {
+        ThisConfig.raise(Diag::note_incompatible_sections)
+            << I->name() << I->getInputFile()->getInput()->decoratedPath()
+            << target->name();
+        return false;
+      }
         std::string Str;
         if (target->getLink())
           Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
         else
           Str = "No Available Sections";
-        m_Config.raise(diag::incompatible_sections)
+        ThisConfig.raise(Diag::incompatible_sections)
             << I->name() << I->getInputFile()->getInput()->decoratedPath()
             << target->name();
-        m_Module.setFailure(true);
+        ThisModule.setFailure(true);
         return false;
-      }
     }
 
-    uint64_t targetHasGroup = target->getFlags() & llvm::ELF::SHF_GROUP;
+    uint64_t TargetHasGroup = target->getFlags() & llvm::ELF::SHF_GROUP;
     uint64_t InputHasGroup = I->getFlags() & llvm::ELF::SHF_GROUP;
 
     // Sections that are part of a group are not merged with partial link.
-    if (InputHasGroup || targetHasGroup)
+    if (InputHasGroup || TargetHasGroup)
       return true;
 
     // With partial link, and no linker scripts any section that contains
     // strings that can be merged is not merged, so that the final link can
     // merge the sections to save space.
-    if (!m_Module.getScript().linkerScriptHasSectionsCommand() &&
+    if (!ThisModule.getScript().linkerScriptHasSectionsCommand() &&
         I->isMergeStr() && I->isAlloc())
       return true;
   }
@@ -693,113 +698,113 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
 bool ObjectBuilder::shouldSkipMergeSection(ELFSection *I) const {
   // Dont merge sections for input files that are specified with
   // just symbols
-  const InputFile *inputFile = I->getInputFile();
-  if (inputFile->getInput()->getAttribute().isJustSymbols())
+  const InputFile *InputFile = I->getInputFile();
+  if (InputFile->getInput()->getAttribute().isJustSymbols())
     return true;
 
-  SectionMap::mapping pair;
-  bool isPartialLink = (m_Config.codeGenType() == LinkerConfig::Object);
-  pair.first = I->getOutputSection();
-  pair.second = I->getMatchedLinkerScriptRule();
+  SectionMap::mapping Pair;
+  bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
+  Pair.first = I->getOutputSection();
+  Pair.second = I->getMatchedLinkerScriptRule();
 
-  if (pair.first != nullptr && pair.first->isDiscard())
+  if (Pair.first != nullptr && Pair.first->isDiscard())
     return true;
 
   // Dont merge .group sections.
-  if (I->isGroupKind() && !isPartialLink)
+  if (I->isGroupKind() && !IsPartialLink)
     return true;
 
   return false;
 }
 
-bool ObjectBuilder::DoPluginOutputSectionsIterate(plugin::PluginBase *P) {
+bool ObjectBuilder::doPluginOutputSectionsIterate(plugin::PluginBase *P) {
   if (P->getType() != plugin::Plugin::Type::OutputSectionIterator)
     return false;
-  for (auto &Out : m_Module.getScript().sectionMap())
+  for (auto &Out : ThisModule.getScript().sectionMap())
     (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(P))
         ->processOutputSection(plugin::OutputSection(Out));
   return true;
 }
 
 void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
-  auto &sectionMap = m_Module.getScript().sectionMap();
-  bool isGNUCompatible =
-      (m_Config.options().getScriptOption() == GeneralOptions::MatchGNU);
+  auto &SectionMap = ThisModule.getScript().sectionMap();
+  bool IsGnuCompatible =
+      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
 
   LinkerScript::OverrideSectionMatchT OverrideMatch =
-      m_Module.getScript().getSectionOverrides(LW);
+      ThisModule.getScript().getSectionOverrides(LW);
 
   if (!OverrideMatch.size())
     return;
 
-  auto OverrideFn = [&](size_t n) {
-    auto Override = OverrideMatch.at(n);
+  auto OverrideFn = [&](size_t N) {
+    auto *Override = OverrideMatch.at(N);
     ELFSection *ELFSect = Override->getELFSection();
     if (!ELFSect)
       return;
     std::string OutputSectionOverride = Override->getOutputSectionName();
-    InputFile *input = ELFSect->getInputFile();
-    if (CommonELFSection *commonSection =
+    InputFile *Input = ELFSect->getInputFile();
+    if (CommonELFSection *CommonSection =
             llvm::dyn_cast<CommonELFSection>(ELFSect))
-      input = commonSection->getOrigin();
-    SectionMap::iterator outputSectIter =
-        sectionMap.findIter(OutputSectionOverride);
-    if (outputSectIter != sectionMap.end()) {
+      Input = CommonSection->getOrigin();
+    SectionMap::iterator OutputSectIter =
+        SectionMap.findIter(OutputSectionOverride);
+    if (OutputSectIter != SectionMap.end()) {
       if (ELFSect->getOldInputFile())
-        input = ELFSect->getOldInputFile();
-      std::string const &name = input->getInput()->getName();
-      bool isArchive =
-          input->isArchive() ||
-          llvm::dyn_cast<eld::ArchiveMemberInput>(input->getInput());
+        Input = ELFSect->getOldInputFile();
+      std::string const &Name = Input->getInput()->getName();
+      bool IsArchive =
+          Input->isArchive() ||
+          llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
       // Hash of all the required things for Match.
-      uint64_t inputFileHash = input->getInput()->getResolvedPathHash();
-      uint64_t nameHash = input->getInput()->getArchiveMemberNameHash();
-      uint64_t inputSectionHash = ELFSect->sectionNameHash();
-      SectionMap::mapping pair = m_Module.getScript().sectionMap().findOnlyIn(
-          outputSectIter, input->getInput()->getResolvedPath().native(),
-          *ELFSect, isArchive, name, inputSectionHash, inputFileHash, nameHash,
-          isGNUCompatible);
-      if (pair.first) {
-        ELFSect->setOutputSection(pair.first);
-        ELFSect->setMatchedLinkerScriptRule(pair.second);
+      uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
+      uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
+      uint64_t InputSectionHash = ELFSect->sectionNameHash();
+      SectionMap::mapping Pair = ThisModule.getScript().sectionMap().findOnlyIn(
+          OutputSectIter, Input->getInput()->getResolvedPath().native(),
+          *ELFSect, IsArchive, Name, InputSectionHash, InputFileHash, NameHash,
+          IsGnuCompatible);
+      if (Pair.first) {
+        ELFSect->setOutputSection(Pair.first);
+        ELFSect->setMatchedLinkerScriptRule(Pair.second);
       }
-      Override->setModifiedRule(pair.second);
+      Override->setModifiedRule(Pair.second);
     } else {
       // FIXME: This guard can be removed!
-      std::lock_guard<std::mutex> warnGuard(Mutex);
-      m_Config.raise(diag::output_section_override_not_present)
-          << ELFSect->name() << input->getInput()->decoratedPath()
+      std::lock_guard<std::mutex> WarnGuard(Mutex);
+      ThisConfig.raise(Diag::output_section_override_not_present)
+          << ELFSect->name() << Input->getInput()->decoratedPath()
           << OutputSectionOverride;
     }
   };
 
   // For each input object.
-  if (m_Config.options().numThreads() <= 1 ||
-      !m_Config.isAssignOutputSectionsMultiThreaded()) {
-    if (m_Module.getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_disabled) << "ReAssign OutputSections";
-    for (uint32_t i = 0; i < OverrideMatch.size(); ++i)
-      OverrideFn(i);
+  if (ThisConfig.options().numThreads() <= 1 ||
+      !ThisConfig.isAssignOutputSectionsMultiThreaded()) {
+    if (ThisModule.getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_disabled) << "ReAssign OutputSections";
+    for (uint32_t I = 0; I < OverrideMatch.size(); ++I)
+      OverrideFn(I);
   } else {
-    if (m_Module.getPrinter()->traceThreads())
-      m_Config.raise(diag::threads_enabled)
-          << "ReAssign OutputSections" << m_Config.options().numThreads();
+    if (ThisModule.getPrinter()->traceThreads())
+      ThisConfig.raise(Diag::threads_enabled)
+          << "ReAssign OutputSections" << ThisConfig.options().numThreads();
     llvm::parallelFor((size_t)0, OverrideMatch.size(), OverrideFn);
   }
   // Clear the Overrides.
-  m_Module.getScript().clearSectionOverrides(LW);
+  ThisModule.getScript().clearSectionOverrides(LW);
 }
 
 bool ObjectBuilder::assignOutputSectionsToCommonSymbols() {
-  SectionMap &sectionMap = m_Module.getScript().sectionMap();
-  ObjectFile *commonSymbolsInput =
-      llvm::dyn_cast<ObjectFile>(m_Module.getCommonInternalInput());
-  llvm::SmallSet<InputFile *, 16> commonOriginInputs;
-  for (const auto &S : commonSymbolsInput->getSections()) {
-    if (CommonELFSection *commonSection = llvm::dyn_cast<CommonELFSection>(S)) {
-      InputFile *I = commonSection->getOrigin();
+  SectionMap &SectionMap = ThisModule.getScript().sectionMap();
+  ObjectFile *CommonSymbolsInput =
+      llvm::dyn_cast<ObjectFile>(ThisModule.getCommonInternalInput());
+  llvm::SmallSet<InputFile *, 16> CommonOriginInputs;
+  for (const auto &S : CommonSymbolsInput->getSections()) {
+    if (CommonELFSection *CommonSection = llvm::dyn_cast<CommonELFSection>(S)) {
+      InputFile *I = CommonSection->getOrigin();
       if (I)
-        commonOriginInputs.insert(I);
+        CommonOriginInputs.insert(I);
     }
   }
   // Store patterns for all the input files that contains common symbols,
@@ -810,44 +815,44 @@ bool ObjectBuilder::assignOutputSectionsToCommonSymbols() {
   // files at the same time. But we need to do this because internal input
   // file, 'commonSymbolsInput', contain common symbols from different
   // source inputs.
-  for (const auto &I : commonOriginInputs) {
-    I->getInput()->resize(m_Module.getScript().getNumWildCardPatterns());
-    storePatternsForInputFile(I, sectionMap);
+  for (const auto &I : CommonOriginInputs) {
+    I->getInput()->resize(ThisModule.getScript().getNumWildCardPatterns());
+    storePatternsForInputFile(I, SectionMap);
   }
-  assignInputFromOutput(commonSymbolsInput);
-  for (const auto &I : commonOriginInputs)
+  assignInputFromOutput(CommonSymbolsInput);
+  for (const auto &I : CommonOriginInputs)
     I->getInput()->clear();
   return true;
 }
 
 std::vector<Section *>
-ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *objFile) {
-  std::vector<Section *> sections;
-  bool isLinkerInternal = objFile->isInternal();
-  for (Section *S : objFile->getSections()) {
+ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *ObjFile) {
+  std::vector<Section *> Sections;
+  bool IsLinkerInternal = ObjFile->isInternal();
+  for (Section *S : ObjFile->getSections()) {
     if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(S)) {
       // Get the section kind.
-      int32_t sectionKind = ELFSect->getKind();
-      if (sectionKind == LDFileFormat::Discard ||
-          sectionKind == LDFileFormat::Ignore) {
-        if (m_Config.options().isSectionTracingRequested() &&
-            m_Config.options().traceSection(ELFSect->name().str()))
-          m_Config.raise(diag::discarded_section_info)
-              << ELFSect->getDecoratedName(m_Config.options())
-              << objFile->getInput()->decoratedPath();
+      int32_t SectionKind = ELFSect->getKind();
+      if (SectionKind == LDFileFormat::Discard ||
+          SectionKind == LDFileFormat::Ignore) {
+        if (ThisConfig.options().isSectionTracingRequested() &&
+            ThisConfig.options().traceSection(ELFSect->name().str()))
+          ThisConfig.raise(Diag::discarded_section_info)
+              << ELFSect->getDecoratedName(ThisConfig.options())
+              << ObjFile->getInput()->decoratedPath();
         continue;
       }
-      if (sectionKind == LDFileFormat::Null ||
-          sectionKind == LDFileFormat::StackNote ||
-          (sectionKind == LDFileFormat::NamePool && !isLinkerInternal) ||
-          (sectionKind == LDFileFormat::Relocation && !isLinkerInternal) ||
-          sectionKind == LDFileFormat::Group)
+      if (SectionKind == LDFileFormat::Null ||
+          SectionKind == LDFileFormat::StackNote ||
+          (SectionKind == LDFileFormat::NamePool && !IsLinkerInternal) ||
+          (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
+          SectionKind == LDFileFormat::Group)
         continue;
       if (ELFSect->getOutputSection())
         continue;
     }
-    sections.push_back(S);
+    Sections.push_back(S);
   }
 
-  return sections;
+  return Sections;
 }

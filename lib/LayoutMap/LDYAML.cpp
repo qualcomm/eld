@@ -120,7 +120,7 @@ void MappingTraits<std::shared_ptr<eld::LDYAML::DiscardedSection>>::mapping(
     DiscardedSection->mapping(IO);
     return;
   }
-  std::vector<llvm::StringRef> keys = IO.keys();
+  std::vector<llvm::StringRef> Keys = IO.keys();
   DiscardedSection = std::make_shared<eld::LDYAML::DiscardedSection>();
   DiscardedSection->mapping(IO);
 }
@@ -262,20 +262,20 @@ void MappingTraits<std::shared_ptr<eld::LDYAML::Content>>::mapping(
     Content->mapping(IO);
     return;
   }
-  std::vector<llvm::StringRef> keys = IO.keys();
-  if (llvm::find(keys, "Contents") != keys.end()) {
+  std::vector<llvm::StringRef> Keys = IO.keys();
+  if (llvm::find(Keys, "Contents") != Keys.end()) {
     Content = std::make_shared<eld::LDYAML::OutputSection>();
     Content->ContentKind = Content::Kind::OutputSection;
-  } else if (llvm::find(keys, "PostLTOFile") != keys.end()) {
+  } else if (llvm::find(Keys, "PostLTOFile") != Keys.end()) {
     Content = std::make_shared<eld::LDYAML::InputBitcodeSection>();
     Content->ContentKind = Content::Kind::InputSection;
-  } else if (llvm::find(keys, "Origin") != keys.end()) {
+  } else if (llvm::find(Keys, "Origin") != Keys.end()) {
     Content = std::make_shared<eld::LDYAML::InputSection>();
     Content->ContentKind = Content::Kind::InputSection;
-  } else if (llvm::find(keys, "Padding") != keys.end()) {
+  } else if (llvm::find(Keys, "Padding") != Keys.end()) {
     Content = std::make_shared<eld::LDYAML::Padding>();
     Content->ContentKind = Content::Kind::Padding;
-  } else if (llvm::find(keys, "LinkerScript") != keys.end()) {
+  } else if (llvm::find(Keys, "LinkerScript") != Keys.end()) {
     Content = std::make_shared<eld::LDYAML::LinkerScriptRule>();
     Content->ContentKind = Content::Kind::LinkerScriptRule;
   } else {
@@ -308,7 +308,7 @@ void eld::LDYAML::CRef::mapping(IO &IO) {
 }
 
 void MappingTraits<eld::LDYAML::CRef>::mapping(IO &IO, eld::LDYAML::CRef &C) {
-  IO.mapRequired("Symbol", C.symbolName);
+  IO.mapRequired("Symbol", C.SymbolName);
   IO.mapRequired("ReferencedBy", C.FileRefs);
 }
 
@@ -344,8 +344,8 @@ void MappingTraits<std::shared_ptr<eld::LDYAML::InputFile>>::mapping(
     InputFile->mapping(IO);
     return;
   }
-  std::vector<llvm::StringRef> keys = IO.keys();
-  if (llvm::find(keys, "Members") == keys.end()) {
+  std::vector<llvm::StringRef> Keys = IO.keys();
+  if (llvm::find(Keys, "Members") == Keys.end()) {
     InputFile = std::make_shared<eld::LDYAML::RegularInput>();
   } else {
     InputFile = std::make_shared<eld::LDYAML::Archive>();

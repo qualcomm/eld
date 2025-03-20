@@ -20,20 +20,20 @@ class Module;
 
 class OutputCmd : public ScriptCommand {
 public:
-  OutputCmd(const std::string &pOutputFile);
+  OutputCmd(const std::string &POutputFile);
 
   ~OutputCmd();
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::OUTPUT;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT;
   }
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  std::string m_OutputFile;
+  std::string OutputFileName;
 };
 
 } // namespace eld

@@ -26,21 +26,21 @@ public:
   explicit PluginCmd(plugin::Plugin::Type T, const std::string &Name,
                      const std::string &R, const std::string &O);
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
   Plugin *getPlugin() const { return Plugin; }
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::PLUGIN;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::PLUGIN;
   }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  void dumpPluginInfo(llvm::raw_ostream &outs) const;
+  void dumpPluginInfo(llvm::raw_ostream &Outs) const;
 
-  bool hasOutputSection() const { return m_HasOutputSection; }
+  bool hasOutputSection() const { return PluginHasOutputSection; }
 
-  void setHasOutputSection() { m_HasOutputSection = true; }
+  void setHasOutputSection() { PluginHasOutputSection = true; }
 
 private:
   std::string getPluginType() const;
@@ -51,7 +51,7 @@ private:
   std::string R;
   std::string Options;
   eld::Plugin *Plugin = nullptr;
-  bool m_HasOutputSection = false;
+  bool PluginHasOutputSection = false;
 };
 
 } // namespace eld

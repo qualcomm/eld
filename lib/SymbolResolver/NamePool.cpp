@@ -29,60 +29,60 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // NamePool
 //===----------------------------------------------------------------------===//
-NamePool::NamePool(eld::LinkerConfig &Config, PluginManager &pm)
-    : m_Config(Config), m_pResolver(make<StaticResolver>()),
-      m_SymbolTracingRequested(m_Config.options().isSymbolTracingRequested()),
-      m_SRI(), PM(pm) {}
+NamePool::NamePool(eld::LinkerConfig &Config, PluginManager &Pm)
+    : ThisConfig(Config), SymbolResolver(make<StaticResolver>()),
+      IsSymbolTracingRequested(ThisConfig.options().isSymbolTracingRequested()),
+      SymbolResInfo(), PM(Pm) {}
 
 NamePool::~NamePool() {}
 
 /// createSymbol - create a symbol
-ResolveInfo *NamePool::createSymbol(InputFile *pInput, std::string pName,
-                                    bool pIsDyn, ResolveInfo::Type pType,
-                                    ResolveInfo::Desc pDesc,
-                                    ResolveInfo::Binding pBinding,
-                                    ResolveInfo::SizeType pSize,
-                                    ResolveInfo::Visibility pVisibility,
-                                    bool isPostLTOPhase) {
-  llvm::StringRef SymName = Saver.save(pName);
+ResolveInfo *NamePool::createSymbol(
+    InputFile *Input, std::string SymbolName, bool IsSymbolInDynamicLibrary,
+    ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+    ResolveInfo::Binding Binding, ResolveInfo::SizeType Size,
+    ResolveInfo::Visibility Visibility, bool IsPostLtoPhase) {
+  llvm::StringRef SymName = Saver.save(SymbolName);
   // FIXME: Why not pass all the values in the constructor itself?
   // Passing values in the constructor will ensure that the caller
   // does not miss setting any important property.
-  ResolveInfo *info = make<ResolveInfo>(SymName);
-  info->setIsSymbol(true);
-  info->setSource(pIsDyn);
-  info->setType(pType);
-  info->setDesc(pDesc);
-  info->setBinding(pBinding);
-  info->setVisibility(pVisibility);
-  info->setSize(pSize);
-  if (pInput)
-    info->setResolvedOrigin(pInput);
-  if (pBinding != ResolveInfo::Local)
-    return info;
-  if (getSymbolTracingRequested() && m_Config.options().traceSymbol(pName)) {
-    std::string inputPath =
-        pInput ? pInput->getInput()->decoratedPath() : "(Not applicable)";
-    m_Config.raise(diag::add_new_symbol)
-        << pName << inputPath << info->infoAsString();
+  ResolveInfo *Info = make<ResolveInfo>(SymName);
+  Info->setIsSymbol(true);
+  Info->setSource(IsSymbolInDynamicLibrary);
+  Info->setType(Type);
+  Info->setDesc(Desc);
+  Info->setBinding(Binding);
+  Info->setVisibility(Visibility);
+  Info->setSize(Size);
+  if (Input)
+    Info->setResolvedOrigin(Input);
+  if (Binding != ResolveInfo::Local)
+    return Info;
+  if (getSymbolTracingRequested() &&
+      ThisConfig.options().traceSymbol(SymbolName)) {
+    std::string InputPath =
+        Input ? Input->getInput()->decoratedPath() : "(Not applicable)";
+    ThisConfig.raise(Diag::add_new_symbol)
+        << SymbolName << InputPath << Info->infoAsString();
   }
-  m_Locals.push_back(info);
-  return info;
+  LocalSymbols.push_back(Info);
+  return Info;
 }
 
-ResolveInfo *NamePool::insertLocalSymbol(ResolveInfo inputSymRI,
-                                         const LDSymbol &sym) {
-  ASSERT(inputSymRI.isLocal(), "Invalid symbol binding!");
-  ResolveInfo *RI = make<ResolveInfo>(inputSymRI);
-  InputFile *IF = inputSymRI.resolvedOrigin();
+ResolveInfo *NamePool::insertLocalSymbol(ResolveInfo InputSymbolResolveInfo,
+                                         const LDSymbol &Sym) {
+  ASSERT(InputSymbolResolveInfo.isLocal(), "Invalid symbol binding!");
+  ResolveInfo *RI = make<ResolveInfo>(InputSymbolResolveInfo);
+  InputFile *IF = InputSymbolResolveInfo.resolvedOrigin();
   if (getSymbolTracingRequested() &&
-      m_Config.options().traceSymbol(sym, inputSymRI)) {
-    std::string inputPath =
+      ThisConfig.options().traceSymbol(Sym, InputSymbolResolveInfo)) {
+    std::string InputPath =
         IF ? IF->getInput()->decoratedPath() : "(Not applicable)";
-    m_Config.raise(diag::add_new_symbol)
-        << getDecoratedName(sym, inputSymRI) << inputPath << RI->infoAsString();
+    ThisConfig.raise(Diag::add_new_symbol)
+        << getDecoratedName(Sym, InputSymbolResolveInfo) << InputPath
+        << RI->infoAsString();
   }
-  m_Locals.push_back(RI);
+  LocalSymbols.push_back(RI);
   return RI;
 }
 
@@ -102,83 +102,85 @@ ResolveInfo *NamePool::insertLocalSymbol(ResolveInfo inputSymRI,
 /// compatible.
 /// @returns pResult: a tuple of {resolveInfo, existent, overridden}.
 bool NamePool::insertSymbol(
-    InputFile *pInput, std::string pName, bool pIsDyn, ResolveInfo::Type pType,
-    ResolveInfo::Desc pDesc, ResolveInfo::Binding pBinding,
-    ResolveInfo::SizeType pSize, LDSymbol::ValueType pValue,
-    ResolveInfo::Visibility pVisibility, ResolveInfo *pOldInfo,
-    Resolver::Result &pResult, bool isPostLTOPhase, bool isBitCode,
-    unsigned int pSymIdx, bool isPatchable, DiagnosticPrinter *Printer) {
-  bool exist = false;
-  ResolveInfo *new_symbol = nullptr;
+    InputFile *Input, std::string SymbolName, bool IsSymbolInDynamicLibrary,
+    ResolveInfo::Type Type, ResolveInfo::Desc Desc,
+    ResolveInfo::Binding Binding, ResolveInfo::SizeType Size,
+    LDSymbol::ValueType Value, ResolveInfo::Visibility Visibility,
+    ResolveInfo *pOldInfo, Resolver::Result &PResult, bool IsPostLtoPhase,
+    bool IsBitCode, unsigned int PSymIdx, bool IsPatchable,
+    DiagnosticPrinter *Printer) {
+  bool Exist = false;
+  ResolveInfo *NewSymbol = nullptr;
   ResolveInfo *old_symbol = nullptr;
-  auto I = m_Globals.find(pName);
+  auto I = GlobalSymbols.find(SymbolName);
 
   // Setup the New symbol.
-  llvm::StringRef SymName = Saver.save(pName);
-  new_symbol = make<ResolveInfo>(SymName);
+  llvm::StringRef SymName = Saver.save(SymbolName);
+  NewSymbol = make<ResolveInfo>(SymName);
 
-  if (I == m_Globals.end()) {
-    m_Globals[pName] = new_symbol;
+  if (I == GlobalSymbols.end()) {
+    GlobalSymbols[SymbolName] = NewSymbol;
   } else {
     old_symbol = I->getValue();
-    exist = true;
+    Exist = true;
   }
 
-  new_symbol->setIsSymbol(true);
-  new_symbol->setSource(pIsDyn);
-  new_symbol->setType(pType);
-  new_symbol->setDesc(pDesc);
-  new_symbol->setBinding(pBinding);
-  new_symbol->setVisibility(pVisibility);
-  new_symbol->setSize(pSize);
-  if (pInput)
-    new_symbol->setResolvedOrigin(pInput);
-  if (isBitCode)
-    new_symbol->setInBitCode(isBitCode);
-  if (isPatchable)
-    new_symbol->setPatchable();
+  NewSymbol->setIsSymbol(true);
+  NewSymbol->setSource(IsSymbolInDynamicLibrary);
+  NewSymbol->setType(Type);
+  NewSymbol->setDesc(Desc);
+  NewSymbol->setBinding(Binding);
+  NewSymbol->setVisibility(Visibility);
+  NewSymbol->setSize(Size);
+  if (Input)
+    NewSymbol->setResolvedOrigin(Input);
+  if (IsBitCode)
+    NewSymbol->setInBitCode(IsBitCode);
+  if (IsPatchable)
+    NewSymbol->setPatchable();
 
-  SymbolInfo symInfo(pInput, pSize, pBinding, pType, pVisibility, pDesc,
-                     isBitCode);
+  SymbolInfo SymInfo(Input, Size, Binding, Type, Visibility, Desc, IsBitCode);
   // We do not create input symbols for non object file symbols!
-  DiagnosticPrinter *DP = m_Config.getPrinter();
-  auto oldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  PM.callVisitSymbolHook(/*sym=*/nullptr, SymName, symInfo);
-  auto newErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  if (newErrorCount != oldErrorCount)
+  DiagnosticPrinter *DP = ThisConfig.getPrinter();
+  auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+  PM.callVisitSymbolHook(/*sym=*/nullptr, SymName, SymInfo);
+  auto NewErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+  if (NewErrorCount != OldErrorCount)
     return false;
 
-  bool traceme = false;
+  bool Traceme = false;
 
-  if (getSymbolTracingRequested() && m_Config.options().traceSymbol(pName)) {
-    traceme = true;
-    std::string inputPath =
-        pInput ? pInput->getInput()->decoratedPath() : "(Not applicable)";
-    m_Config.raise(diag::add_new_symbol)
-        << pName << inputPath << new_symbol->infoAsString();
+  if (getSymbolTracingRequested() &&
+      ThisConfig.options().traceSymbol(SymbolName)) {
+    Traceme = true;
+    std::string InputPath =
+        Input ? Input->getInput()->decoratedPath() : "(Not applicable)";
+    ThisConfig.raise(Diag::add_new_symbol)
+        << SymbolName << InputPath << NewSymbol->infoAsString();
   }
 
-  if (!exist) {
+  if (!Exist) {
     // old_symbol is neither existed nor a symbol.
-    pResult.info = new_symbol;
-    pResult.existent = false;
-    pResult.overriden = true;
+    PResult.Info = NewSymbol;
+    PResult.Existent = false;
+    PResult.Overriden = true;
     return true;
-  } else if (nullptr != pOldInfo) {
+  }
+  if (nullptr != pOldInfo) {
     // existent, remember its attribute
     pOldInfo->override(*old_symbol);
   }
 
-  if (!canSymbolsBeResolved(old_symbol, new_symbol))
+  if (!canSymbolsBeResolved(old_symbol, NewSymbol))
     return false;
 
   // exist and is a symbol
   // symbol resolution
-  bool override = false;
+  bool Override = false;
 
-  bool overrideByLTO =
-      isPostLTOPhase && old_symbol->isBitCode() && !new_symbol->isBitCode();
-  if (isPostLTOPhase && !old_symbol->isBitCode() && !new_symbol->isBitCode() &&
+  bool OverrideByLto =
+      IsPostLtoPhase && old_symbol->isBitCode() && !NewSymbol->isBitCode();
+  if (IsPostLtoPhase && !old_symbol->isBitCode() && !NewSymbol->isBitCode() &&
       !old_symbol->isUndef() && !old_symbol->isDyn() &&
       !old_symbol->isCommon() && old_symbol->outSymbol()) {
     if (old_symbol->outSymbol()->hasFragRef() && old_symbol->outSymbol()
@@ -186,118 +188,118 @@ bool NamePool::insertSymbol(
                                                      ->frag()
                                                      ->getOwningSection()
                                                      ->isIgnore())
-      overrideByLTO = true;
+      OverrideByLto = true;
   }
-  if (overrideByLTO) {
+  if (OverrideByLto) {
 
-    old_symbol->override(*new_symbol, false);
-    old_symbol->setSize(new_symbol->size());
-    old_symbol->overrideAttributes(*new_symbol);
-    old_symbol->overrideVisibility(*new_symbol);
-    old_symbol->setBinding(new_symbol->binding());
-    old_symbol->setInBitCode(new_symbol->isBitCode());
+    old_symbol->override(*NewSymbol, false);
+    old_symbol->setSize(NewSymbol->size());
+    old_symbol->overrideAttributes(*NewSymbol);
+    old_symbol->overrideVisibility(*NewSymbol);
+    old_symbol->setBinding(NewSymbol->binding());
+    old_symbol->setInBitCode(NewSymbol->isBitCode());
 
-    pResult.info = old_symbol;
-    pResult.existent = true;
-    pResult.overriden = true;
-  } else if (m_pResolver->resolve(*old_symbol, *new_symbol, override, pValue,
-                                  &m_Config, isPostLTOPhase)) {
-    pResult.info = old_symbol;
-    pResult.existent = true;
-    pResult.overriden = override;
+    PResult.Info = old_symbol;
+    PResult.Existent = true;
+    PResult.Overriden = true;
+  } else if (SymbolResolver->resolve(*old_symbol, *NewSymbol, Override, Value,
+                                     &ThisConfig, IsPostLtoPhase)) {
+    PResult.Info = old_symbol;
+    PResult.Existent = true;
+    PResult.Overriden = Override;
     if (pOldInfo)
-      pResult.info->setReserved(pOldInfo->reserved());
+      PResult.Info->setReserved(pOldInfo->reserved());
   } else {
     return false;
   }
 
-  if (traceme) {
-    InputFile *resolvedOrigin = old_symbol->resolvedOrigin();
-    std::string inputPath = resolvedOrigin
-                                ? resolvedOrigin->getInput()->decoratedPath()
+  if (Traceme) {
+    InputFile *ResolvedOrigin = old_symbol->resolvedOrigin();
+    std::string InputPath = ResolvedOrigin
+                                ? ResolvedOrigin->getInput()->decoratedPath()
                                 : "(Not applicable)";
-    m_Config.raise(diag::resolve_new_symbol)
-        << pName << inputPath << old_symbol->infoAsString();
+    ThisConfig.raise(Diag::resolve_new_symbol)
+        << SymbolName << InputPath << old_symbol->infoAsString();
   }
   return true;
 }
 
 bool NamePool::getSymbolTracingRequested() const {
-  return m_SymbolTracingRequested;
+  return IsSymbolTracingRequested;
 }
 /// findInfo - find the resolved ResolveInfo
-ResolveInfo *NamePool::findInfo(std::string pName) {
-  auto I = m_Globals.find(pName);
-  if (I == m_Globals.end())
+ResolveInfo *NamePool::findInfo(std::string SymbolName) {
+  auto I = GlobalSymbols.find(SymbolName);
+  if (I == GlobalSymbols.end())
     return nullptr;
   return I->getValue();
 }
 
 /// findInfo - find the resolved ResolveInfo
 // FIXME: Pass name by const reference, or use llvm::StringRef
-const ResolveInfo *NamePool::findInfo(std::string pName) const {
-  auto I = m_Globals.find(pName);
-  if (I == m_Globals.end())
+const ResolveInfo *NamePool::findInfo(std::string SymbolName) const {
+  auto I = GlobalSymbols.find(SymbolName);
+  if (I == GlobalSymbols.end())
     return nullptr;
   return I->getValue();
 }
 
 /// findSymbol - find the resolved output LDSymbol
 // FIXME: Pass name by const reference, or use llvm::StringRef
-LDSymbol *NamePool::findSymbol(std::string pName) {
-  ResolveInfo *info = findInfo(pName);
-  if (nullptr == info)
+LDSymbol *NamePool::findSymbol(std::string SymbolName) {
+  ResolveInfo *Info = findInfo(SymbolName);
+  if (nullptr == Info)
     return nullptr;
-  return info->outSymbol();
+  return Info->outSymbol();
 }
 
 /// findSymbol - find the resolved output LDSymbol
 // FIXME: Pass name by const reference, or use llvm::StringRef
-const LDSymbol *NamePool::findSymbol(std::string pName) const {
-  const ResolveInfo *info = findInfo(pName);
-  if (nullptr == info)
+const LDSymbol *NamePool::findSymbol(std::string SymbolName) const {
+  const ResolveInfo *Info = findInfo(SymbolName);
+  if (nullptr == Info)
     return nullptr;
-  return info->outSymbol();
+  return Info->outSymbol();
 }
 
 void NamePool::setupNullSymbol() {
   // Setup Null LDSymbol.
-  LDSymbol *NullSymbol = LDSymbol::Null();
+  LDSymbol *NullSymbol = LDSymbol::null();
   if (!NullSymbol->resolveInfo()) {
-    ResolveInfo::Null()->setBinding(ResolveInfo::Local);
-    ResolveInfo::Null()->setOutSymbol(NullSymbol);
-    NullSymbol->setResolveInfo(*ResolveInfo::Null());
+    ResolveInfo::null()->setBinding(ResolveInfo::Local);
+    ResolveInfo::null()->setOutSymbol(NullSymbol);
+    NullSymbol->setResolveInfo(*ResolveInfo::null());
   }
 }
 
 /// createSymbol - create a symbol
-LDSymbol *NamePool::createPluginSymbol(InputFile *pInput, std::string pName,
-                                       Fragment *pFragment, uint64_t Val,
+LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
+                                       Fragment *CurFragment, uint64_t Val,
                                        LayoutPrinter *LP) {
-  llvm::StringRef SymName = Saver.save(pName);
-  ResolveInfo *info = make<ResolveInfo>(SymName);
-  info->setIsSymbol(true);
-  info->setSource(false);
-  info->setType(ResolveInfo::NoType);
-  info->setDesc(ResolveInfo::Define);
-  info->setBinding(ResolveInfo::Local);
-  info->setVisibility(ResolveInfo::Default);
-  info->setSize(0);
-  if (pInput)
-    info->setResolvedOrigin(pInput);
-  LDSymbol *Sym = make<LDSymbol>(info, false);
-  if (Val > pFragment->getOwningSection()->size())
-    Val = pFragment->getOwningSection()->size();
-  Sym->setFragmentRef(make<FragmentRef>(*pFragment, Val));
-  info->setOutSymbol(Sym);
-  m_Locals.push_back(info);
+  llvm::StringRef SymName = Saver.save(SymbolName);
+  ResolveInfo *Info = make<ResolveInfo>(SymName);
+  Info->setIsSymbol(true);
+  Info->setSource(false);
+  Info->setType(ResolveInfo::NoType);
+  Info->setDesc(ResolveInfo::Define);
+  Info->setBinding(ResolveInfo::Local);
+  Info->setVisibility(ResolveInfo::Default);
+  Info->setSize(0);
+  if (Input)
+    Info->setResolvedOrigin(Input);
+  LDSymbol *Sym = make<LDSymbol>(Info, false);
+  if (Val > CurFragment->getOwningSection()->size())
+    Val = CurFragment->getOwningSection()->size();
+  Sym->setFragmentRef(make<FragmentRef>(*CurFragment, Val));
+  Info->setOutSymbol(Sym);
+  LocalSymbols.push_back(Info);
   if (LP && LP->showSymbolResolution())
     getSRI().recordSymbolInfo(
-        Sym, SymbolInfo{pInput, info->size(),
-                        static_cast<ResolveInfo::Binding>(info->binding()),
-                        static_cast<ResolveInfo::Type>(info->type()),
-                        info->visibility(),
-                        static_cast<ResolveInfo::Desc>(info->desc()),
+        Sym, SymbolInfo{Input, Info->size(),
+                        static_cast<ResolveInfo::Binding>(Info->binding()),
+                        static_cast<ResolveInfo::Type>(Info->type()),
+                        Info->visibility(),
+                        static_cast<ResolveInfo::Desc>(Info->desc()),
                         /*isBitcode=*/false});
 
   return Sym;
@@ -338,7 +340,7 @@ bool NamePool::checkTLSTypes(const ResolveInfo *Old,
   else
     ErrMessage += "reference in ";
   ErrMessage += Old->resolvedOrigin()->getInput()->decoratedPath(false);
-  m_Config.raise(diag::tls_non_tls_symbol_mismatch) << ErrMessage;
+  ThisConfig.raise(Diag::tls_non_tls_symbol_mismatch) << ErrMessage;
   return false;
 }
 
@@ -348,115 +350,115 @@ bool NamePool::canSymbolsBeResolved(const ResolveInfo *Old,
 }
 
 ResolveInfo NamePool::createInputSymbolRI(
-    const std::string &symName, InputFile &IF, bool isDyn,
-    ResolveInfo::Type symType, ResolveInfo::Desc symDesc,
-    ResolveInfo::Binding symBinding, ResolveInfo::SizeType symSize,
-    ResolveInfo::Visibility symVisibility, LDSymbol::ValueType symValue,
-    bool isPatchable) const {
-  llvm::StringRef symNameRef = Saver.save(symName);
-  ResolveInfo RI(symNameRef);
+    const std::string &SymName, InputFile &IF, bool IsDyn,
+    ResolveInfo::Type SymType, ResolveInfo::Desc SymDesc,
+    ResolveInfo::Binding SymBinding, ResolveInfo::SizeType SymSize,
+    ResolveInfo::Visibility SymVisibility, LDSymbol::ValueType SymValue,
+    bool IsPatchable) const {
+  llvm::StringRef SymNameRef = Saver.save(SymName);
+  ResolveInfo RI(SymNameRef);
   RI.setIsSymbol(true);
-  RI.setSource(isDyn);
-  RI.setType(symType);
-  RI.setDesc(symDesc);
-  RI.setBinding(symBinding);
-  RI.setVisibility(symVisibility);
-  RI.setSize(symSize);
+  RI.setSource(IsDyn);
+  RI.setType(SymType);
+  RI.setDesc(SymDesc);
+  RI.setBinding(SymBinding);
+  RI.setVisibility(SymVisibility);
+  RI.setSize(SymSize);
   RI.setResolvedOrigin(&IF);
-  RI.setValue(symValue, /*isFinal=*/false);
+  RI.setValue(SymValue, /*isFinal=*/false);
   RI.setInBitCode(IF.isBitcode());
-  if (isPatchable)
+  if (IsPatchable)
     RI.setPatchable();
   return RI;
 }
 
-bool NamePool::insertNonLocalSymbol(ResolveInfo inputSymRI, const LDSymbol &sym,
-                                    bool isPostLTOPhase,
-                                    Resolver::Result &pResult) {
-  bool exist = false;
-  llvm::StringRef symName = inputSymRI.getName();
-  auto I = m_Globals.find(symName);
-  ResolveInfo *old_symbol = nullptr;
-  if (I == m_Globals.end()) {
-    m_Globals[symName] = make<ResolveInfo>(inputSymRI);
+bool NamePool::insertNonLocalSymbol(ResolveInfo InputSymbolResolveInfo,
+                                    const LDSymbol &Sym, bool IsPostLtoPhase,
+                                    Resolver::Result &PResult) {
+  bool Exist = false;
+  llvm::StringRef SymName = InputSymbolResolveInfo.getName();
+  auto I = GlobalSymbols.find(SymName);
+  ResolveInfo *OldSymbol = nullptr;
+  if (I == GlobalSymbols.end()) {
+    GlobalSymbols[SymName] = make<ResolveInfo>(InputSymbolResolveInfo);
   } else {
-    old_symbol = I->getValue();
-    exist = true;
+    OldSymbol = I->getValue();
+    Exist = true;
   }
 
-  bool traceme = false;
+  bool Traceme = false;
   if (getSymbolTracingRequested() &&
-      m_Config.options().traceSymbol(sym, inputSymRI)) {
-    traceme = true;
-    InputFile *IF = inputSymRI.resolvedOrigin();
-    std::string inputPath =
+      ThisConfig.options().traceSymbol(Sym, InputSymbolResolveInfo)) {
+    Traceme = true;
+    InputFile *IF = InputSymbolResolveInfo.resolvedOrigin();
+    std::string InputPath =
         IF ? IF->getInput()->decoratedPath() : "(Not applicable)";
-    m_Config.raise(diag::add_new_symbol)
-        << getDecoratedName(sym, inputSymRI) << inputPath
-        << inputSymRI.infoAsString();
+    ThisConfig.raise(Diag::add_new_symbol)
+        << getDecoratedName(Sym, InputSymbolResolveInfo) << InputPath
+        << InputSymbolResolveInfo.infoAsString();
   }
 
-  if (!exist) {
-    pResult.info = m_Globals[symName];
-    pResult.existent = false;
-    pResult.overriden = true;
+  if (!Exist) {
+    PResult.Info = GlobalSymbols[SymName];
+    PResult.Existent = false;
+    PResult.Overriden = true;
     return true;
   }
 
-  if (!canSymbolsBeResolved(old_symbol, &inputSymRI))
+  if (!canSymbolsBeResolved(OldSymbol, &InputSymbolResolveInfo))
     return false;
 
-  bool override = false;
+  bool Override = false;
 
-  bool overrideByLTO =
-      isPostLTOPhase && old_symbol->isBitCode() && !inputSymRI.isBitCode();
-  if (isPostLTOPhase && !old_symbol->isBitCode() && !inputSymRI.isBitCode() &&
-      !old_symbol->isUndef() && !old_symbol->isDyn() &&
-      !old_symbol->isCommon() && old_symbol->outSymbol()) {
-    if (old_symbol->outSymbol()->hasFragRef() && old_symbol->outSymbol()
-                                                     ->fragRef()
-                                                     ->frag()
-                                                     ->getOwningSection()
-                                                     ->isIgnore())
-      overrideByLTO = true;
+  bool OverrideByLto = IsPostLtoPhase && OldSymbol->isBitCode() &&
+                       !InputSymbolResolveInfo.isBitCode();
+  if (IsPostLtoPhase && !OldSymbol->isBitCode() &&
+      !InputSymbolResolveInfo.isBitCode() && !OldSymbol->isUndef() &&
+      !OldSymbol->isDyn() && !OldSymbol->isCommon() && OldSymbol->outSymbol()) {
+    if (OldSymbol->outSymbol()->hasFragRef() && OldSymbol->outSymbol()
+                                                    ->fragRef()
+                                                    ->frag()
+                                                    ->getOwningSection()
+                                                    ->isIgnore())
+      OverrideByLto = true;
   }
 
-  if (overrideByLTO) {
-    old_symbol->override(inputSymRI, false);
-    old_symbol->setSize(inputSymRI.size());
-    old_symbol->overrideAttributes(inputSymRI);
-    old_symbol->overrideVisibility(inputSymRI);
-    old_symbol->setBinding(inputSymRI.binding());
-    old_symbol->setInBitCode(inputSymRI.isBitCode());
+  if (OverrideByLto) {
+    OldSymbol->override(InputSymbolResolveInfo, false);
+    OldSymbol->setSize(InputSymbolResolveInfo.size());
+    OldSymbol->overrideAttributes(InputSymbolResolveInfo);
+    OldSymbol->overrideVisibility(InputSymbolResolveInfo);
+    OldSymbol->setBinding(InputSymbolResolveInfo.binding());
+    OldSymbol->setInBitCode(InputSymbolResolveInfo.isBitCode());
 
-    pResult.info = old_symbol;
-    pResult.existent = true;
-    pResult.overriden = true;
-  } else if (m_pResolver->resolve(*old_symbol, inputSymRI, override,
-                                  inputSymRI.value(), &m_Config,
-                                  isPostLTOPhase)) {
-    pResult.info = old_symbol;
-    pResult.existent = true;
-    pResult.overriden = override;
+    PResult.Info = OldSymbol;
+    PResult.Existent = true;
+    PResult.Overriden = true;
+  } else if (SymbolResolver->resolve(*OldSymbol, InputSymbolResolveInfo,
+                                     Override, InputSymbolResolveInfo.value(),
+                                     &ThisConfig, IsPostLtoPhase)) {
+    PResult.Info = OldSymbol;
+    PResult.Existent = true;
+    PResult.Overriden = Override;
   } else {
     return false;
   }
-  if (traceme) {
-    InputFile *resolvedOrigin = old_symbol->resolvedOrigin();
-    std::string inputPath = resolvedOrigin
-                                ? resolvedOrigin->getInput()->decoratedPath()
+  if (Traceme) {
+    InputFile *ResolvedOrigin = OldSymbol->resolvedOrigin();
+    std::string InputPath = ResolvedOrigin
+                                ? ResolvedOrigin->getInput()->decoratedPath()
                                 : "(Not applicable)";
-    m_Config.raise(diag::resolve_new_symbol)
-        << getDecoratedName(sym, inputSymRI) << inputPath
-        << old_symbol->infoAsString();
+    ThisConfig.raise(Diag::resolve_new_symbol)
+        << getDecoratedName(Sym, InputSymbolResolveInfo) << InputPath
+        << OldSymbol->infoAsString();
   }
   return true;
 }
 
-std::string NamePool::getDecoratedName(const LDSymbol &sym,
+std::string NamePool::getDecoratedName(const LDSymbol &Sym,
                                        const ResolveInfo &RI) const {
-  ResolveInfo info(RI);
-  LDSymbol S(sym);
-  info.setOutSymbol(&S);
-  return info.getDecoratedName(m_Config.options().shouldDemangle());
+  ResolveInfo Info(RI);
+  LDSymbol S(Sym);
+  Info.setOutSymbol(&S);
+  return Info.getDecoratedName(ThisConfig.options().shouldDemangle());
 }

@@ -48,7 +48,7 @@ AArch64Errata843419Stub::AArch64Errata843419Stub(const uint32_t *pData,
                                                  size_t align)
     : m_Name("__errata"), m_pData(pData) {
   m_Size = pSize;
-  m_Alignment = align;
+  Alignment = align;
   for (auto it = pBegin, ie = pEnd; it != ie; ++it)
     addFixup(**it);
 }
@@ -75,8 +75,8 @@ const std::string &AArch64Errata843419Stub::name() const { return m_Name; }
 
 Stub *AArch64Errata843419Stub::clone(InputFile *, Relocation *R,
                                      eld::IRBuilder *, DiagnosticEngine *) {
-  return make<AArch64Errata843419Stub>(m_pData, m_Size, fixup_begin(),
-                                       fixup_end(), m_Alignment);
+  return make<AArch64Errata843419Stub>(m_pData, m_Size, fixupBegin(),
+                                       fixupEnd(), Alignment);
 }
 
 } // namespace eld

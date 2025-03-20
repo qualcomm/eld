@@ -19,32 +19,32 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // OutputFormatCmd
 //===----------------------------------------------------------------------===//
-OutputFormatCmd::OutputFormatCmd(const std::string &pFormat)
+OutputFormatCmd::OutputFormatCmd(const std::string &PFormat)
     : ScriptCommand(ScriptCommand::OUTPUT_FORMAT) {
-  m_FormatList.push_back(pFormat);
+  OutputFormatList.push_back(PFormat);
 }
 
-OutputFormatCmd::OutputFormatCmd(const std::string &pDefault,
-                                 const std::string &pBig,
-                                 const std::string &pLittle)
+OutputFormatCmd::OutputFormatCmd(const std::string &PDefault,
+                                 const std::string &PBig,
+                                 const std::string &PLittle)
     : ScriptCommand(ScriptCommand::OUTPUT_FORMAT) {
-  m_FormatList.push_back(pDefault);
-  m_FormatList.push_back(pBig);
-  m_FormatList.push_back(pLittle);
+  OutputFormatList.push_back(PDefault);
+  OutputFormatList.push_back(PBig);
+  OutputFormatList.push_back(PLittle);
 }
 
 OutputFormatCmd::~OutputFormatCmd() {}
 
-void OutputFormatCmd::dump(llvm::raw_ostream &outs) const {
-  outs << "OUTPUT_FORMAT(";
-  for (size_t i = 0; i < m_FormatList.size(); ++i) {
-    if (i != 0)
-      outs << ", ";
-    outs << "\"" << m_FormatList[i] << "\"";
+void OutputFormatCmd::dump(llvm::raw_ostream &Outs) const {
+  Outs << "OUTPUT_FORMAT(";
+  for (size_t I = 0; I < OutputFormatList.size(); ++I) {
+    if (I != 0)
+      Outs << ", ";
+    Outs << "\"" << OutputFormatList[I] << "\"";
   }
-  outs << ")\n";
+  Outs << ")\n";
 }
 
-eld::Expected<void> OutputFormatCmd::activate(Module &pModule) {
+eld::Expected<void> OutputFormatCmd::activate(Module &CurModule) {
   return eld::Expected<void>();
 }

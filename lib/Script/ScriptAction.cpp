@@ -24,29 +24,29 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // ScriptAction
 //===----------------------------------------------------------------------===//
-ScriptAction::ScriptAction(const std::string &pFileName, ScriptFile::Kind pKind,
+ScriptAction::ScriptAction(const std::string &PFileName, ScriptFile::Kind PKind,
                            const LinkerConfig &Config,
                            DiagnosticPrinter *Printer)
-    : InputFileAction(pFileName, InputAction::Script, Printer), m_Kind(pKind),
-      m_Config(Config) {}
+    : InputFileAction(PFileName, InputAction::Script, Printer),
+      ScriptFileKind(PKind), ThisConfig(Config) {}
 
-bool ScriptAction::activate(InputBuilder &pBuilder) {
-  std::string Path = m_Name;
-  auto &searchDirs = m_Config.directories();
+bool ScriptAction::activate(InputBuilder &PBuilder) {
+  std::string Path = Name;
+  auto &SearchDirs = ThisConfig.directories();
   if (!llvm::sys::fs::exists(Path)) {
-    const sys::fs::Path *res = searchDirs.find(Path, Input::Script);
-    if (res == nullptr) {
-      switch (m_Kind) {
+    const sys::fs::Path *Res = SearchDirs.find(Path, Input::Script);
+    if (Res == nullptr) {
+      switch (ScriptFileKind) {
       case ScriptFile::LDScript:
-        m_Config.raise(diag::err_cannot_find_scriptfile)
+        ThisConfig.raise(Diag::err_cannot_find_scriptfile)
             << "linker script" << Path;
         break;
       case ScriptFile::VersionScript:
-        m_Config.raise(diag::err_cannot_find_scriptfile)
+        ThisConfig.raise(Diag::err_cannot_find_scriptfile)
             << "version script" << Path;
         break;
       case ScriptFile::DynamicList:
-        m_Config.raise(diag::err_cannot_find_scriptfile)
+        ThisConfig.raise(Diag::err_cannot_find_scriptfile)
             << "dynamic list" << Path;
         break;
       default:
@@ -54,19 +54,19 @@ bool ScriptAction::activate(InputBuilder &pBuilder) {
       }
       return false;
     }
-    Path = res->native();
+    Path = Res->native();
   }
   setFileName(Path);
-  InputFileAction::activate(pBuilder);
+  InputFileAction::activate(PBuilder);
 
   // Resolve the path so that the appropriate file has been read and the memory
   // area created for it.
-  if (!I->resolvePath(m_Config))
+  if (!I->resolvePath(ThisConfig))
     return false;
 
   // Create an InputFile and set the Input back.
   LinkerScriptFile *LSFile =
-      make<eld::LinkerScriptFile>(I, m_Config.getDiagEngine());
+      make<eld::LinkerScriptFile>(I, ThisConfig.getDiagEngine());
   I->setInputFile(LSFile);
 
   return true;

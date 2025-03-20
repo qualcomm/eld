@@ -20,35 +20,35 @@ namespace eld {
 
 struct PhdrSpec {
 
-  const std::string name() const { return m_Name->name(); }
+  const std::string name() const { return Name->name(); }
 
-  uint32_t type() const { return m_Type; }
+  uint32_t type() const { return ThisType; }
 
-  bool hasFileHdr() const { return m_HasFileHdr; }
+  bool hasFileHdr() const { return ScriptHasFileHdr; }
 
-  bool hasPhdr() const { return m_HasPhdr; }
+  bool hasPhdr() const { return ScriptHasPhdr; }
 
-  Expression *atAddress() const { return m_AtAddress; }
+  Expression *atAddress() const { return FixedAddress; }
 
-  bool lmaSet() const { return m_AtAddress != nullptr; }
+  bool lmaSet() const { return FixedAddress != nullptr; }
 
-  Expression *flags() const { return m_Flags; }
+  Expression *flags() const { return SectionFlags; }
 
   void init() {
-    m_Name = nullptr;
-    m_Type = 0;
-    m_HasFileHdr = false;
-    m_HasPhdr = false;
-    m_AtAddress = nullptr;
-    m_Flags = nullptr;
+    Name = nullptr;
+    ThisType = 0;
+    ScriptHasFileHdr = false;
+    ScriptHasPhdr = false;
+    FixedAddress = nullptr;
+    SectionFlags = nullptr;
   }
 
-  const StrToken *m_Name;
-  uint32_t m_Type;
-  bool m_HasFileHdr;
-  bool m_HasPhdr;
-  Expression *m_AtAddress;
-  Expression *m_Flags;
+  const StrToken *Name;
+  uint32_t ThisType;
+  bool ScriptHasFileHdr;
+  bool ScriptHasPhdr;
+  Expression *FixedAddress;
+  Expression *SectionFlags;
 };
 
 /** \class PhdrDesc
@@ -57,24 +57,24 @@ struct PhdrSpec {
 
 class PhdrDesc : public ScriptCommand {
 public:
-  PhdrDesc(const PhdrSpec &pSpec);
+  PhdrDesc(const PhdrSpec &PSpec);
 
   ~PhdrDesc();
 
-  static bool classof(const ScriptCommand *pCmd) {
-    return pCmd->getKind() == ScriptCommand::PHDR_DESC;
+  static bool classof(const ScriptCommand *LinkerScriptCommand) {
+    return LinkerScriptCommand->getKind() == ScriptCommand::PHDR_DESC;
   }
 
-  const PhdrSpec &spec() const { return m_Spec; }
+  const PhdrSpec &spec() const { return InputSpec; }
 
-  const PhdrSpec *getPhdrSpec() const { return &m_Spec; }
+  const PhdrSpec *getPhdrSpec() const { return &InputSpec; }
 
-  void dump(llvm::raw_ostream &outs) const override;
+  void dump(llvm::raw_ostream &Outs) const override;
 
-  eld::Expected<void> activate(Module &pModule) override;
+  eld::Expected<void> activate(Module &CurModule) override;
 
 private:
-  PhdrSpec m_Spec;
+  PhdrSpec InputSpec;
 };
 
 } // namespace eld

@@ -13,7 +13,7 @@ using namespace eld;
 
 PluginOp::PluginOp(plugin::LinkerWrapper *W, PluginOpType T,
                    std::string Annotation)
-    : Wrapper(W), m_OpType(T), m_Annotation(Annotation) {}
+    : Wrapper(W), OpType(T), Annotation(Annotation) {}
 
 std::string PluginOp::getPluginName() const {
   return Wrapper->getPlugin()->getPluginName();

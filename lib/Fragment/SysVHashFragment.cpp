@@ -50,15 +50,15 @@ eld::Expected<void> SysVHashFragment<ELFT>::emit(MemoryRegion &mr, Module &M) {
   Elf_Word *Buckets = P;
   Elf_Word *Chains = P + NumSymbols;
 
-  auto it = std::begin(DynamicSymbols);
+  auto It = std::begin(DynamicSymbols);
   for (auto &R : DynamicSymbols) {
     llvm::StringRef Name = R->name();
     // For the null entry.
-    unsigned I = it - DynamicSymbols.begin();
+    unsigned I = It - DynamicSymbols.begin();
     uint32_t Hash = llvm::object::hashSysV(Name) % NumSymbols;
     Chains[I] = Buckets[Hash];
     Buckets[Hash] = I;
-    ++it;
+    ++It;
   }
   return {};
 }

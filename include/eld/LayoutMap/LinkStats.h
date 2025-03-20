@@ -17,21 +17,21 @@ class LinkStats {
 public:
   enum Kind : uint8_t { None, Relaxation };
 
-  LinkStats(llvm::StringRef Name, Kind K) : m_Name(Name), m_Kind(K) {}
+  LinkStats(llvm::StringRef Name, Kind K) : StatsName(Name), StatsKind(K) {}
 
-  virtual llvm::StringRef getStatName() const { return m_Name; }
+  virtual llvm::StringRef getStatName() const { return StatsName; }
 
   virtual void dumpStat(llvm::raw_ostream &OS) const = 0;
 
   virtual ~LinkStats() {}
 
-  Kind getKind() const { return m_Kind; }
+  Kind getKind() const { return StatsKind; }
 
-  bool isRelaxationKind() const { return m_Kind == Kind::Relaxation; }
+  bool isRelaxationKind() const { return StatsKind == Kind::Relaxation; }
 
 private:
-  llvm::StringRef m_Name;
-  Kind m_Kind = None;
+  llvm::StringRef StatsName;
+  Kind StatsKind = None;
 };
 
 } // namespace eld

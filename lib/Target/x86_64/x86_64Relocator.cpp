@@ -118,7 +118,7 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))
-      config().raise(diag::reloc_trace)
+      config().raise(Diag::reloc_trace)
           << relocName << pReloc.symInfo()->name()
           << pInputFile.getInput()->decoratedPath();
   }
@@ -239,7 +239,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
   }
 
   if ((pRelocDesc.forceVerify) && (isTruncatedX86_64(RelocInfo, Result))) {
-    DiagEngine->raise(diag::reloc_truncated)
+    DiagEngine->raise(Diag::reloc_truncated)
         << RelocInfo.Name << pReloc.symInfo()->name()
         << pReloc.getTargetPath(options) << pReloc.getSourcePath(options);
   }

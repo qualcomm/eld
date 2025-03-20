@@ -26,32 +26,32 @@ class LinkerConfig;
 // Region fragment expression
 class RegionFragment : public Fragment {
 public:
-  RegionFragment(llvm::StringRef pRegion, ELFSection *O, Fragment::Type T,
+  RegionFragment(llvm::StringRef PRegion, ELFSection *O, Fragment::Type T,
                  uint32_t Align = 1);
 
   ~RegionFragment();
 
-  const llvm::StringRef getRegion() const { return m_Region; }
-  llvm::StringRef getRegion() { return m_Region; }
+  const llvm::StringRef getRegion() const { return FragmentRegion; }
+  llvm::StringRef getRegion() { return FragmentRegion; }
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Region;
   }
 
-  void setRegion(llvm::StringRef Region) { m_Region = Region; }
+  void setRegion(llvm::StringRef Region) { FragmentRegion = Region; }
 
   static bool classof(const RegionFragment *) { return true; }
 
-  template <typename T> bool setContent(T val);
+  template <typename T> bool setContent(T Val);
 
   size_t size() const override;
 
-  virtual eld::Expected<void> emit(MemoryRegion &mr, Module &M) override;
+  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
-  virtual void copyData(void *pDest, uint32_t pNBytes, uint64_t pOffset) const;
+  virtual void copyData(void *PDest, uint32_t PNBytes, uint64_t POffset) const;
 
 protected:
-  llvm::StringRef m_Region;
+  llvm::StringRef FragmentRegion;
 };
 
 } // namespace eld

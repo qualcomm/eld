@@ -40,7 +40,7 @@ size_t EhFrameSection::readEhRecordSize(size_t Off) {
   llvm::ArrayRef<uint8_t> D = Data.slice(Off);
 
   if (D.size() < 4) {
-    m_DiagEngine->raise(diag::eh_frame_read_error)
+    m_DiagEngine->raise(Diag::eh_frame_read_error)
         << "CIE/FDE too small" << getInputFile()->getInput()->decoratedPath();
     return -1;
   }
@@ -50,13 +50,13 @@ size_t EhFrameSection::readEhRecordSize(size_t Off) {
   // but we do not support that format yet.
   uint64_t V = llvm::support::endian::read32le(D.data());
   if (V == UINT32_MAX) {
-    m_DiagEngine->raise(diag::eh_frame_read_error)
+    m_DiagEngine->raise(Diag::eh_frame_read_error)
         << "CIE/FDE too large" << getInputFile()->getInput()->decoratedPath();
     return -1;
   }
   uint64_t Size = V + 4;
   if (Size > D.size()) {
-    m_DiagEngine->raise(diag::eh_frame_read_error)
+    m_DiagEngine->raise(Diag::eh_frame_read_error)
         << "CIE/FDE ends past the end of the section"
         << getInputFile()->getInput()->decoratedPath();
     return -1;
@@ -87,7 +87,7 @@ bool EhFrameSection::splitEhFrameSection() {
     Relocation *Reloc = getReloc(Off, Size);
     m_EhFramePieces.emplace_back(Off, Size, Reloc, this);
     if (Reloc && getDiagPrinter()->isVerbose())
-      m_DiagEngine->raise(diag::verbose_ehframe)
+      m_DiagEngine->raise(Diag::verbose_ehframe)
           << Reloc->symInfo()->name() << Off << Size;
     // The empty record is the end marker.
     if (Size == 4)
@@ -122,7 +122,7 @@ bool EhFrameSection::createCIEAndFDEFragments() {
     uint32_t CieOffset = Offset + 4 - ID;
     CIEFragment *Cie = m_OffsetToCie[CieOffset];
     if (!Cie) {
-      m_DiagEngine->raise(diag::eh_frame_read_error)
+      m_DiagEngine->raise(Diag::eh_frame_read_error)
           << "Invalid CIE Reference"
           << getInputFile()->getInput()->decoratedPath();
       return false;
@@ -130,14 +130,14 @@ bool EhFrameSection::createCIEAndFDEFragments() {
 
     if (!isFdeLive(Piece)) {
       if (Piece.getRelocation() && getDiagPrinter()->isVerbose())
-        m_DiagEngine->raise(diag::verbose_ehframe_remove_fde)
+        m_DiagEngine->raise(Diag::verbose_ehframe_remove_fde)
             << std::string("Removing FDE entry for ") +
                    Piece.getRelocation()->symInfo()->name();
       continue;
     }
 
     if (getDiagPrinter()->isVerbose())
-      m_DiagEngine->raise(diag::verbose_ehframe_read_fde)
+      m_DiagEngine->raise(Diag::verbose_ehframe_read_fde)
           << "Reading FDE of size " + std::to_string(Piece.getSize());
     Cie->appendFragment(make<eld::FDEFragment>(Piece, this));
     ++NumFDE;
@@ -152,7 +152,7 @@ CIEFragment *EhFrameSection::addCie(EhFramePiece &P) {
   CIEFragment *E = CieMap[{P.getData(), R}];
   if (!E) {
     if (getDiagPrinter()->isVerbose())
-      m_DiagEngine->raise(diag::verbose_ehframe_read_cie)
+      m_DiagEngine->raise(Diag::verbose_ehframe_read_cie)
           << "Reading CIE of size " + std::to_string(P.getSize());
     E = make<eld::CIEFragment>(P, this);
     m_CIEFragments.push_back(E);

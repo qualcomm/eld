@@ -55,31 +55,31 @@ bool RISCVInfo::isABIFlagSet(uint64_t inputFlag, uint32_t ABIFlag) const {
 bool RISCVInfo::isCompatible(uint64_t pFlag, const std::string &pFile) const {
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SOFT) ^
       isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SOFT)) {
-    m_Config.raise(diag::incompatible_architecture_versions)
+    m_Config.raise(Diag::incompatible_architecture_versions)
         << flagString(pFlag) << pFile << flagString(m_OutputFlag);
     return false;
   }
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE) ^
       isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE)) {
-    m_Config.raise(diag::incompatible_architecture_versions)
+    m_Config.raise(Diag::incompatible_architecture_versions)
         << flagString(pFlag) << pFile << flagString(m_OutputFlag);
     return false;
   }
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_DOUBLE) ^
       isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_DOUBLE)) {
-    m_Config.raise(diag::incompatible_architecture_versions)
+    m_Config.raise(Diag::incompatible_architecture_versions)
         << flagString(pFlag) << pFile << flagString(m_OutputFlag);
     return false;
   }
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_QUAD) ^
       isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_QUAD)) {
-    m_Config.raise(diag::incompatible_architecture_versions)
+    m_Config.raise(Diag::incompatible_architecture_versions)
         << flagString(pFlag) << pFile << flagString(m_OutputFlag);
     return false;
   }
   if ((pFlag & llvm::ELF::EF_RISCV_RVE) ^
       (m_OutputFlag & llvm::ELF::EF_RISCV_RVE)) {
-    m_Config.raise(diag::incompatible_architecture_versions)
+    m_Config.raise(Diag::incompatible_architecture_versions)
         << flagString(pFlag) << pFile << flagString(m_OutputFlag);
     return false;
   }

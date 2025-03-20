@@ -15,18 +15,18 @@ class PluginData {
 public:
   explicit PluginData(uint32_t Key, void *Data, std::string Annotation);
 
-  uint32_t getKey() const { return m_Key; }
+  uint32_t getKey() const { return Key; }
 
-  std::string getAnnotation() const { return m_Annotation; }
+  std::string getAnnotation() const { return Annotation; }
 
-  void *getData() const { return m_Data; }
+  void *getData() const { return Data; }
 
   virtual ~PluginData() {}
 
 protected:
-  uint32_t m_Key;
-  void *m_Data;
-  std::string m_Annotation;
+  uint32_t Key;
+  void *Data;
+  std::string Annotation;
 };
 
 } // namespace eld

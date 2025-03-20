@@ -22,23 +22,24 @@ class WildcardPattern;
 class ExcludePattern {
 public:
   struct Spec {
-    Spec(WildcardPattern *A, WildcardPattern *F) : m_Archive(A), m_File(F) {}
-    WildcardPattern *m_Archive;
-    WildcardPattern *m_File;
+    Spec(WildcardPattern *A, WildcardPattern *F)
+        : ArchiveLibraryNamePattern(A), FileNamePattern(F) {}
+    WildcardPattern *ArchiveLibraryNamePattern;
+    WildcardPattern *FileNamePattern;
   };
 
   explicit ExcludePattern(WildcardPattern *Archive = nullptr,
                           WildcardPattern *File = nullptr)
-      : m_Spec(Archive, File) {}
+      : InputSpec(Archive, File) {}
 
-  bool isArchive() { return m_Spec.m_Archive != nullptr; }
-  bool isFile() { return m_Spec.m_File != nullptr; }
+  bool isArchive() { return InputSpec.ArchiveLibraryNamePattern != nullptr; }
+  bool isFile() { return InputSpec.FileNamePattern != nullptr; }
   bool isFileInArchive() { return isArchive() && isFile(); }
-  WildcardPattern *archive() { return m_Spec.m_Archive; }
-  WildcardPattern *file() { return m_Spec.m_File; }
+  WildcardPattern *archive() { return InputSpec.ArchiveLibraryNamePattern; }
+  WildcardPattern *file() { return InputSpec.FileNamePattern; }
 
   ~ExcludePattern() {}
-  Spec m_Spec;
+  Spec InputSpec;
 };
 
 class ExcludeFiles {
@@ -55,26 +56,26 @@ public:
   ExcludeFiles(const ExcludeFiles &) = default;
 
 public:
-  const_iterator begin() const { return m_ExcludeFiles.begin(); }
-  iterator begin() { return m_ExcludeFiles.begin(); }
-  const_iterator end() const { return m_ExcludeFiles.end(); }
-  iterator end() { return m_ExcludeFiles.end(); }
+  const_iterator begin() const { return ExcludeFilesRule.begin(); }
+  iterator begin() { return ExcludeFilesRule.begin(); }
+  const_iterator end() const { return ExcludeFilesRule.end(); }
+  iterator end() { return ExcludeFilesRule.end(); }
 
-  const_reference front() const { return m_ExcludeFiles.front(); }
-  reference front() { return m_ExcludeFiles.front(); }
-  const_reference back() const { return m_ExcludeFiles.back(); }
-  reference back() { return m_ExcludeFiles.back(); }
+  const_reference front() const { return ExcludeFilesRule.front(); }
+  reference front() { return ExcludeFilesRule.front(); }
+  const_reference back() const { return ExcludeFilesRule.back(); }
+  reference back() { return ExcludeFilesRule.back(); }
 
-  bool empty() const { return m_ExcludeFiles.empty(); }
+  bool empty() const { return ExcludeFilesRule.empty(); }
 
-  uint32_t size() const { return m_ExcludeFiles.size(); }
+  uint32_t size() const { return ExcludeFilesRule.size(); }
 
-  void push_back(ExcludePattern *pPattern);
+  void pushBack(ExcludePattern *PPattern);
 
   ~ExcludeFiles();
 
 private:
-  ExcludeFileList m_ExcludeFiles;
+  ExcludeFileList ExcludeFilesRule;
 };
 
 } // namespace eld

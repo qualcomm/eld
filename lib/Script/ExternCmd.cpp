@@ -18,43 +18,43 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // ExternCmd
 //===----------------------------------------------------------------------===//
-ExternCmd::ExternCmd(StringList &pExtern)
-    : ScriptCommand(ScriptCommand::EXTERN), m_Extern(pExtern) {}
+ExternCmd::ExternCmd(StringList &PExtern)
+    : ScriptCommand(ScriptCommand::EXTERN), ExternSymbolList(PExtern) {}
 
 ExternCmd::~ExternCmd() {}
 
-void ExternCmd::dump(llvm::raw_ostream &outs) const {
-  for (auto &E : m_Extern)
-    outs << "EXTERN(" << E->name() << ")"
+void ExternCmd::dump(llvm::raw_ostream &Outs) const {
+  for (auto &E : ExternSymbolList)
+    Outs << "EXTERN(" << E->name() << ")"
          << "\n";
 }
 
-eld::Expected<void> ExternCmd::activate(Module &pModule) {
+eld::Expected<void> ExternCmd::activate(Module &CurModule) {
   InputFile *I =
-      pModule.getInternalInput(Module::InternalInputType::ExternList);
-  for (auto &E : m_Extern) {
-    std::string name = E->name();
-    Resolver::Result result;
-    pModule.getNamePool().insertSymbol(
-        I, name, false, eld::ResolveInfo::NoType, eld::ResolveInfo::Undefined,
+      CurModule.getInternalInput(Module::InternalInputType::ExternList);
+  for (auto &E : ExternSymbolList) {
+    std::string Name = E->name();
+    Resolver::Result Result;
+    CurModule.getNamePool().insertSymbol(
+        I, Name, false, eld::ResolveInfo::NoType, eld::ResolveInfo::Undefined,
         eld::ResolveInfo::Global, 0, 0, eld::ResolveInfo::Default, nullptr,
-        result, false /* postLTOPhase*/, false, 0, false /* isPatchable */,
-        pModule.getPrinter());
-    pModule.getConfig().options().getUndefSymList().emplace_back(
-        eld::make<StrToken>(name));
+        Result, false /* postLTOPhase*/, false, 0, false /* isPatchable */,
+        CurModule.getPrinter());
+    CurModule.getConfig().options().getUndefSymList().emplace_back(
+        eld::make<StrToken>(Name));
     // create a output LDSymbol
-    LDSymbol *output_sym =
-        make<LDSymbol>(result.info, pModule.getConfig().options().GCSections());
-    result.info->setOutSymbol(output_sym);
+    LDSymbol *OutputSym = make<LDSymbol>(
+        Result.Info, CurModule.getConfig().options().gcSections());
+    Result.Info->setOutSymbol(OutputSym);
     // Initialize origin.
-    result.info->setResolvedOrigin(I);
-    ScriptSymbol *scriptSym = llvm::dyn_cast_or_null<ScriptSymbol>(E);
-    if (scriptSym) {
-      eld::Expected<void> E = scriptSym->activate();
+    Result.Info->setResolvedOrigin(I);
+    ScriptSymbol *ScriptSym = llvm::dyn_cast_or_null<ScriptSymbol>(E);
+    if (ScriptSym) {
+      eld::Expected<void> E = ScriptSym->activate();
       if (!E)
         return E;
-      scriptSym->addResolveInfoToContainer(result.info);
-      m_SymbolContainers.push_back(scriptSym->getSymbolContainer());
+      ScriptSym->addResolveInfoToContainer(Result.Info);
+      ThisSymbolContainers.push_back(ScriptSym->getSymbolContainer());
     }
   }
   return eld::Expected<void>();
