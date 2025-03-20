@@ -610,11 +610,11 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
 
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_ABS32:
-    if (!llvm::isUInt<32>(S + A))
+    if (!llvm::isUInt<32>(S + A) && !llvm::isInt<32>(S + A))
       return Relocator::Overflow;
     break;
   case llvm::ELF::R_AARCH64_ABS16:
-    if (!llvm::isUInt<16>(S + A))
+    if (!llvm::isUInt<16>(S + A) && !llvm::isInt<16>(S + A))
       return Relocator::Overflow;
     break;
   default:
