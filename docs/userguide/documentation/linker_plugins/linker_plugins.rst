@@ -4,12 +4,15 @@ Linker Plugins
 .. contents::
    :local:
 
-Introduction
-===============
+What and why of linker plugins
+================================
 
 Linker plugins make it possible to run user-defined code during the link
 process. Implemented as a C++ class, they are a programmatical way to add
 new functionalities and modify default linker behavior.
+
+But why modify default linker behavior? We will now discuss the long answer
+we promised at the beginning of the linker plugins documentation.
 
 Plugins provide more control and flexibility over the output image layout as
 compared to the linker scripts.
@@ -28,7 +31,6 @@ This guide will describe all that you need to know about linker plugins,
 and how to effectively write one yourself. This guide assumes that the reader
 has a basic understanding of linkers, linker relocations and linker scripts.
 
-
 Elements of the link process
 ===============================
 
@@ -40,34 +42,27 @@ in turn will help to effectively design and write plugins.
 Symbols
 --------
 
-Each relocatable object module, *M*, has a `symbol table <http://www.sco.com/developers/gabi/latest/ch4.symtab.html>`_
-that contains information about the symbols that are defined and referenced
-by *M*. In the context of a linker, there are three different kinds of symbols:
+Formally, a symbol is a name associated with a value. This value can be
+an offset within a section, a virtual memory address, or simply an absolute value.
+Symbols are an integral component of an object file. Among other things, they are
+used to refer to global variables and functions in a program.
 
-- Global symbols that are defined in module *M* and that can be referenced
-  by other modules. These symbols correspond to nonstatic C functions and
-  nonstatic global variables defined in *M*.
-- Global symbols that are referenced by module *M* but are defined by some
-  other module. Such symbols are called *externals* and correspond to nonstatic
-  C functions and global variables that are defined in other modules.
-- Local symbols that are defined and referenced exclusively by module *M*.
-  These correspond to static C functions and static global variables.
-  These symbols cannot be accessed by other modules.
+.. note::
 
-It is important to note that the local linker symbols are different from the
-local program symbols such as non-static variables defined within a function.
-Non-static local program variables are managed at run-time on the stack, and
-thus, the linker is unaware of them.
+   Global variables were specifically mentioned because local variables are created and managed
+   on the stack at run-time and linker is blissfully unaware of them. Beware: local symbols
+   are not the same as local variables!
 
-:code:`eld::plugin::Symbol` is a handler for a linker symbol. It can be used to
-inspect symbol properties, address and value in the plugin code.
+
+:code:`eld::plugin::Symbol` represents a linker symbol.
 
 Symbol resolution
 ^^^^^^^^^^^^^^^^^^^
 
-Object files define and reference symbols. Symbol resolution refers to
-associating the correct symbol definition to each symbol reference.
-
+For each group of non-local symbols with the same name, symbol resolution
+selects one of these symbols using well-defined rules. The selected symbol
+is part of the output image symbol table and is used to resolve symbol
+references to that name.
 
 Input Section
 ---------------
@@ -76,8 +71,7 @@ Each relocatable object module, *M*, has input sections. Input sections
 contains most of the object file information for the linking view:
 instructions, data, symbol table, relocation information and so on.
 
-:code:`eld::plugin::Section` is a handler for an input section. It can be used in
-the plugin code to inspect and discard an input section among other things.
+:code:`eld::plugin::Section` represents an input section.
 
 
 Output Section
@@ -88,8 +82,7 @@ in turn mapped to a segment. A segment contains one or more output sections,
 and is used for finally loading the program. Typically, output sections with
 same *Alloc*, *Exec*, and *Write* permissions are mapped to the same segment.
 
-:code:`eld::plugin::OutputSection` is a handler for an output section. It can be used
-to inspect an output section, and get it's associated linker script rules.
+:code:`eld::plugin::OutputSection` represents an output section.
 
 Chunk
 --------
@@ -109,10 +102,7 @@ definitions. All symbolic references of the same symbol should be connected
 to the same definition. Object files contain relocation entries that
 describes how the relocations should be processed.
 
-:code:`eld::plugin::Use` represent relocations. It can be used to inspect all about
-a reloction -- souce, target and symbolic information.
-
-
+:code:`eld::plugin::Use` represent relocations.
 
 Section Mapping
 -----------------
@@ -126,25 +116,30 @@ command.
 Now, we have covered the basic elements of the link process. Let's dive
 into the linker plugin functionality.
 
-Plugin Interface Types
-========================
+Plugin Types
+=============
 
-ELD has different plugin interfaces. Each plugin interface
-provides different functionalities. Each plugin interface provides hooks
-at specific points in the linker and designed for specific use cases.
-For example, *SectionMatcher* plugin interface type provide hooks to process
-input sections, whereas *OutputSectionIterator* provides hooks to process
-output sections. Currently, there are 6 plugin interfaces, more interfaces
-will be added based on new use-cases.
+ELD has different plugin types. Plugin types differ in which hooks they provide.
+Hooks are pre-defined spots in the link pipeline where a plugin can tap into the
+linker to customize the link. Plugin taps into the linker by defining the callback
+function for the hooks. The linker calls these callback functions at the hook sites.
+For brevity, we will refer callback function for the hook as hook callback function.
 
-For each plugin interface, there is a specific plugin interface class. To
-create a plugin of a specific plugin interface, users have to create
-a class that inherits the corresponding plugin interface class.
-The user plugin class needs to provide implementation for the hooks
-by overriding virtual member functions.
+There two distinct kinds of plugins: LinkerPlugin plugin and layout plugins.
+LinkerPlugin plugin is more general and provides hook that covers the entire
+link process. On the other hand, the layout plugins have specialized hooks for
+iterating over certain link components (input sections, output sections, ...)
+instead of having general hooks. Different layout plugin types iterate over
+different link components. For example, :code:`SectionMatcher` plugin type provide
+hooks to process input sections and :code:`OutputSectionIterator` plugin type
+provides hooks to process output sections.
 
-A plugin can have functionalities of multiple plugin interfaces by inheriting
-from multiple plugin interface classes.
+There are a total of 6 plugin types. One LinkerPlugin plugin type and 5 layout plugin types.
+For each plugin type, there is a corresponding plugin class. Plugin authors create a new
+plugin by inheriting from the corresponding plugin class and implementing the hook
+callback functions.
+
+
 
 The 6 plugin interfaces along with their corresponding C++ class
 and header file are listed below.
@@ -181,20 +176,20 @@ Linker Wrapper
 Running a linker plugin
 =========================
 
-There are two ways to run linker plugins:
+There are two methods to run linker plugins:
 
-- Adding a plugin invocation command in a linker script.
-- Specifying plugin configuration file using `--plugin-config` option.
+- Adding a plugin invocation command in a linker script. *(Not supported for :code:`LinkerPlugin` plugins)*
+- Specifying plugin configuration file using `--plugin-config` option. *(Recommended way)*
 
-These ways are also called *plugin load specification*, as they specify how to
-load a plugin by the linker.
+We call these methods as *plugin load specification* because they specify
+how the linker should load a plugin.
 
 Adding a plugin invocation command in a linker script.
 --------------------------------------------------------
 
 ::
 
-   <PluginInterfaceKeyword>("LibraryName", "PluginName" [, "PluginOption"])
+   <PluginTypeKeyword>("LibraryName", "PluginName" [, "PluginOption"])
 
 For output section plugin types, :code:`ControlMemorySizePlugin` and
 :code:`ControlFileSizePlugin`, users should add the plugin invocation command to the
@@ -203,7 +198,7 @@ should run.
 For example::
 
   SECTIONS {
-    output_section <PluginInterfaceKeyword>("LibraryName", "PluginName" [, "PluginOption"]) : {
+    output_section <PluginTypeKeyword>("LibraryName", "PluginName" [, "PluginOption"]) : {
       *(.text)
     }
   }
@@ -212,10 +207,10 @@ For example::
 
    Only one output section plugin can be attached to an output section.
 
-- **PluginInterfaceKeyword**
+- **PluginTypeKeyword**
 
-   Each plugin interface type has a corresponding linker script plugin
-   interface keyword.
+   Each plugin type has a corresponding linker script plugin
+   keyword.
 
    .. list-table::
       :widths: 50 50
@@ -233,8 +228,6 @@ For example::
         - PLUGIN_CONTROL_MEMSZ
       * - OutputSectionIterator
         - PLUGIN_OUTPUT_SECTION_ITER
-      * - LinkerPlugin
-        - LINKER_PLUGIN
 
 - **LibraryName**
 
@@ -295,23 +288,8 @@ added to :code:`OutputSectionPlugins` list.
    Only one output section plugin can be attached to an output section.
 
 
-Running plugins which inherits multiple plugin interface classes
-------------------------------------------------------------------
-
-Plugins can inherit from multiple plugin interface classes to have
-functionalities of multiple plugin interfaces. For such plugins,
-the functionalities of each plugin interface, from which the plugin inherits,
-need to be selectively enabled. This means:
-
- - In the case of a linker script, there should be a separate plugin
-   invocation command for each plugin interface, from which the plugin
-   inherits.
- - In the case of plugin configuration file, there should be an entry in
-   the :code:`GlobalPlugins` list for each plugin interface type, from which
-   the plugin inherits.
-
 User Plugin Workflow
-====================
+=======================
 
 The following steps describe how to develop a plugin:
 
@@ -535,17 +513,22 @@ In this link state, a plugin can compute output image layout checksum using
 :code:`eld::plugin::LinkerWrapper::getImageLayoutChecksum`. A plugin cannot perform
 any action that tries to modify the image layout now.
 
-Deep Dive into the Plugin Interfaces
+Deep Dive into the Plugin Types
 ========================================
 
-Plugin class
+There are two distinct kinds of linker plugins: LinkerPlugin and layout plugins.
+LayoutPlugins focus on simplifying the modification of specific layout components,
+such as input and output sections. In contrast LinkerPlugins are more general, uniform and
+offer more functionalitier than the layout plugins.
+
+PluginBase class
 ------------------
 
 This is the base plugin class for all the plugin interface classes. It
-provides common functionalities to all the plugin interfaces. This class
-can not be directly used by a user.
+provides common functionalities to all the plugin interfaces. It is a pure virtual
+class and thus cannot be instantiated / directly used.
 
-.. doxygenclass:: eld::plugin::Plugin
+.. doxygenclass:: eld::plugin::PluginBase
    :members:
 
 Please note, that even though the virtual functions -- :code:`Plugin::Init`,
@@ -558,29 +541,26 @@ functionality is defined by overriding the :code:`Run` virtual function.
 For the base :code:`Plugin`, these functions are not mapped to any hook in
 the linker.
 
-Linker Plugin Interface
+LinkerPlugin Type
 ------------------------------
 
-:code:`LinkerPlugin` interface is the simplest plugin interface type that can
-be used to create plugins. It provides three hooks: :code:`Init`, :code:`Run`
-and :code:`Destroy` in the linker. To define behavior of these hooks, the
-functions, :code:`Plugin::Init`, :code:`Plugin::Run` and
-:code:`Plugin::Destroy` must be overridden.
+:code:`LinkerPlugin` is the most versatile and the recommended plugin type for
+creating new plugins. It has hooks that covers the entire linker flow and offers
+more functionality than the layout plugins. :code:`LinkerPlugin` has hooks of the two forms:
 
-It is called into action after linker performs garbage-collection of
-input sections and symbols, and before merging input sections.
-Merging input sections means merging all the input sections that are
-mapped to the same input section description. Link state
-throughout the plugin run is :code:`eld::plugin::LinkerWrapper::BeforeLayout`.
+- :code:`ActBefore<LinkState>`
+- :code:`Visit<LinkComponent>`
+
+The :code:`ActBefore<LinkState>` hooks are called *just* before the linker enters
+the link state :code:`LinkState`. The :code:`Visit<LinkComponent>` hooks are called
+*immediately* after the linker creates a link component (input section, symbol, ...).
+For example, :code:`VisitSymbol(eld::plugin::Symbol S)` is called immediately
+after the symbol is created.
+
 
 .. graphviz:: ../images/LinkerPluginFlow.dot
    :alt: LinkerPlugin flow
 --------------------------------------------
-
-Linker script keyword for :code:`LinkerPlugin` interface is :code:`LINKER_PLUGIN`. Therefore,
-to run a :code:`LinkerPlugin` using a linker script, add the following line to the linker script::
-
-  LINKER_PLUGIN("LibraryName", "PluginName" [, "PluginOption"])
 
 Section Matcher Interface
 ---------------------------

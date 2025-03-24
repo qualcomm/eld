@@ -1,7 +1,15 @@
-Linker Plugins User Guide
-===========================
+Linker Plugins
+===============
 
-Linker plugin functionality is an elegant and easy-to-use solution to add user-defined behavior to ELD.
+Linker plugin framework is a user-friendly solution to add custom link behavior.
+This allows non-linker developers to tweak and hack linker for the specialized use-cases.
+It is similar to how clang plugins let you tweak frontend compliation and LLVM passes
+let you transform the LLVM IR. [[The core idea is to make the tool extendable and hackable
+by providing the framework]].
+
+But why would you ever need to customize link?
+Short answer: Embedded development can get really fun at times. Long and more useful answer
+will be discussed as we move on.
 
 This guide contains all that you need to know about linker plugins, and how to effectively write one yourself.
 

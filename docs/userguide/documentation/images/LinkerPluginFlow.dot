@@ -1,16 +1,48 @@
 digraph G {
-    node [shape=rectangle]
-    A [label="Read input files and \n assign output section to \n input sections"]
-    B [label="Perform garbage \n collection if enabled"]
-    C [label="UserPlugin::Init"]
-    D [label="UserPlugin::Run"]
-    E [label="UserPlugin::Destroy"]
-    F [label="Merge Sections"]
-    G [label="Move chunks from input sections \n to output sections and prepare \n output file layout."]
-    A -> B
-    B -> C
-    C -> D
-    D -> E
-    E -> F
-    F -> G
+  node [shape=rect];
+  rankdir=TB;
+  splines=ortho;
+
+  Setup -> LoadLinkerPlugins;
+  LoadLinkerPlugins -> in1 [arrowhead=none];
+
+  in1 [label="", shape=point]
+  in1 -> ReadInputs;
+
+  ReadInputs -> in3;
+  in3 [label="", shape=point]
+  in3 -> RuleMatching;
+
+  RuleMatching -> in4;
+  in4 [label="", shape=point]
+  in4 -> SectionMerging;
+
+  SectionMerging -> in5;
+  in5 [label="", shape=point]
+  in5 -> PerformLayout;
+
+  PerformLayout -> in6;
+  in6 [label="", shape=point]
+  in6 -> WriteOutput;
+
+  node [shape=ellipse];
+  edge [minlen=5];
+
+  {rank=same; in1 Init}
+  in1 -> Init;
+
+  {rank=same; ReadInputs VisitSectionsAndSymbols}
+  ReadInputs -> VisitSectionsAndSymbols [minlen=3];
+
+  {rank=same; in3 BeforeRuleMatching}
+  in3 -> BeforeRuleMatching;
+
+  {rank=same; in4 BeforeSectionMerging}
+  in4 -> BeforeSectionMerging;
+
+  {rank=same; in5 BeforePerformingLayout}
+  in5 -> BeforePerformingLayout;
+
+  {rank=same; in6 BeforeWritingOutput}
+  in6 -> BeforeWritingOutput;
 }
