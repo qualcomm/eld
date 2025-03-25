@@ -83,7 +83,7 @@
 # CHECK-NEXT:       Attribute {
 # CHECK-NEXT:         Tag: 5
 # CHECK-NEXT:         TagName: arch
-# CHECK-NEXT:         Value: rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zmmul1p0_zaamo1p0_zalrsc1p0{{$}}
+# CHECK-NEXT:         Value: rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0{{$}}
 # CHECK-NEXT:       }
 # CHECK-NEXT:     }
 # CHECK-NEXT:   }
@@ -122,7 +122,7 @@
 # CHECK2-NEXT:       Attribute {
 # CHECK2-NEXT:         Tag: 5
 # CHECK2-NEXT:         TagName: arch
-# CHECK2-NEXT:         Value: rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zkt1p0_zve32f1p0_zve32x1p0_zvl32b1p0{{$}}
+# CHECK2-NEXT:         Value: rv64i2p1_m2p0_a2p1_f2p2_d2p2_c2p0_zicsr2p0_zmmul1p0_zaamo1p0_zalrsc1p0_zca1p0_zcd1p0_zkt1p0_zve32f1p0_zve32x1p0_zvl32b1p0{{$}}
 # CHECK2-NEXT:       }
 # CHECK2-NEXT:     }
 # CHECK2-NEXT:   }
