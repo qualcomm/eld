@@ -68,10 +68,10 @@ public:
 
 private:
   bool isInvalidReloc(Relocation &pType) const;
-  void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
+  void scanLocalReloc(InputFile &pInput, Relocation::Type, Relocation &pReloc,
                       const ELFSection &pSection);
 
-  void scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
+  void scanGlobalReloc(InputFile &pInput, Relocation::Type, Relocation &pReloc,
                        eld::IRBuilder &pBuilder, ELFSection &pSection,
                        CopyRelocs &);
 

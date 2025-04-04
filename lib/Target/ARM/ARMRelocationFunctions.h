@@ -39,6 +39,7 @@
   DECL_ARM_APPLY_RELOC_FUNC(thm_movw_brel)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(thm_movt_abs)                                      \
   DECL_ARM_APPLY_RELOC_FUNC(thm_movt_prel)                                     \
+  DECL_ARM_APPLY_RELOC_FUNC(target2)                                           \
   DECL_ARM_APPLY_RELOC_FUNC(prel31)                                            \
   DECL_ARM_APPLY_RELOC_FUNC(got_prel)                                          \
   DECL_ARM_APPLY_RELOC_FUNC(tls)                                               \
@@ -79,7 +80,7 @@
       {&unsupport, 36, "R_ARM_ALU_SBREL_19_12_NC"},                            \
       {&unsupport, 37, "R_ARM_ALU_SBREL_27_20_CK"},                            \
       {&abs32, 38, "R_ARM_TARGET1"}, {&unsupport, 39, "R_ARM_SBREL31"},        \
-      {&none, 40, "R_ARM_V4BX"}, {&got_prel, 41, "R_ARM_TARGET2"},             \
+      {&none, 40, "R_ARM_V4BX"}, {&target2, 41, "R_ARM_TARGET2"},              \
       {&prel31, 42, "R_ARM_PREL31"}, {&movw_abs_nc, 43, "R_ARM_MOVW_ABS_NC"},  \
       {&movt_abs, 44, "R_ARM_MOVT_ABS"},                                       \
       {&movw_prel_nc, 45, "R_ARM_MOVW_PREL_NC"},                               \

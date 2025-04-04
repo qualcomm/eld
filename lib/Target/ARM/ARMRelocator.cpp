@@ -351,13 +351,14 @@ bool ARMRelocator::checkValidReloc(Relocation &pReloc) const {
   return false;
 }
 
-void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
+void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
+                                  Relocation &pReloc,
                                   const ELFSection &pSection) {
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInput);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (pReloc.type()) {
+  switch (Type) {
 
   // Set R_ARM_TARGET1 to R_ARM_ABS32
   // Ref: GNU gold 1.11 arm.cc, line 9892
@@ -406,12 +407,6 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  // Set R_ARM_TARGET2 to R_ARM_GOT_PREL
-  // Ref: GNU gold 1.11 arm.cc, line 9892
-  // FIXME: R_ARM_TARGET2 should be set by option --target2
-  case llvm::ELF::R_ARM_TARGET2:
-    pReloc.setType(llvm::ELF::R_ARM_GOT_PREL);
-    LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_GOT_BREL:
   case llvm::ELF::R_ARM_GOT_PREL: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
@@ -516,15 +511,15 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   } // end switch
 }
 
-void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
-                                   eld::IRBuilder &pBuilder,
+void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
+                                   Relocation &pReloc, eld::IRBuilder &pBuilder,
                                    ELFSection &pSection,
                                    CopyRelocs &CopyRelocs) {
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInput);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (pReloc.type()) {
+  switch (Type) {
   // Set R_ARM_TARGET1 to R_ARM_ABS32
   // Ref: GNU gold 1.11 arm.cc, line 9892
   // FIXME: R_ARM_TARGET1 should be set by option --target1-rel
@@ -720,12 +715,6 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  // Set R_ARM_TARGET2 to R_ARM_GOT_PREL
-  // Ref: GNU gold 1.11 arm.cc, line 9892
-  // FIXME: R_ARM_TARGET2 should be set by option --target2
-  case llvm::ELF::R_ARM_TARGET2:
-    pReloc.setType(llvm::ELF::R_ARM_GOT_PREL);
-    LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_GOT_BREL:
   case llvm::ELF::R_ARM_GOT_ABS:
   case llvm::ELF::R_ARM_GOT_PREL: {
@@ -874,10 +863,27 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
   if (!section->isAlloc())
     return;
 
+  Relocation::Type Type = pReloc.type();
+
+  // Set R_ARM_TARGET2 to R_ARM_ABS32/R_ARM_REL32/R_ARM_GOT_PREL.
+  if (Type == llvm::ELF::R_ARM_TARGET2) {
+    switch (config().options().getTarget2Policy()) {
+    case GeneralOptions::Target2Policy::Abs:
+      Type = llvm::ELF::R_ARM_ABS32;
+      break;
+    case GeneralOptions::Target2Policy::Rel:
+      Type = llvm::ELF::R_ARM_REL32;
+      break;
+    case GeneralOptions::Target2Policy::GotRel:
+      Type = llvm::ELF::R_ARM_GOT_PREL;
+      break;
+    }
+  }
+
   if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, pReloc, *section);
+    scanLocalReloc(pInputFile, Type, pReloc, *section);
   else // rsym is external
-    scanGlobalReloc(pInputFile, pReloc, pBuilder, *section, CopyRelocs);
+    scanGlobalReloc(pInputFile, Type, pReloc, pBuilder, *section, CopyRelocs);
 }
 
 //=========================================//
@@ -1523,6 +1529,17 @@ Relocator::Result thm_movt_prel(Relocation &pReloc, ARMRelocator &pParent) {
   *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1) = val & 0xFFFFu;
 
   return Relocator::OK;
+}
+
+Relocator::Result target2(Relocation &R, ARMRelocator &Parent) {
+  switch (Parent.config().options().getTarget2Policy()) {
+  case GeneralOptions::Target2Policy::Abs:
+    return abs32(R, Parent);
+  case GeneralOptions::Target2Policy::Rel:
+    return rel32(R, Parent);
+  case GeneralOptions::Target2Policy::GotRel:
+    return got_prel(R, Parent);
+  }
 }
 
 // R_ARM_PREL31: ((S + A) | T) - P
