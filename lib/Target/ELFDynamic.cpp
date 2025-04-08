@@ -39,6 +39,7 @@ ELFDynamic::ELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig)
       m_Config(pConfig) {
   // FIXME: support big-endian machine.
   if (m_Config.targets().is32Bits()) {
+    // adding a ; to fix error
     if (m_Config.targets().isLittleEndian())
       m_pEntryFactory = new Entry<32, true>();
   } else if (m_Config.targets().is64Bits()) {
