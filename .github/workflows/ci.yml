@@ -92,7 +92,6 @@ jobs:
         script: |
           const { owner, repo } = context.repo;
           const sha = context.sha;
-
           await github.rest.repos.createCommitStatus({
             owner,
             repo,
@@ -117,7 +116,9 @@ jobs:
   cleanup:
     runs-on: self-hosted
     needs: build
+    if: always()
     steps:
     - name: Cleanup build directory
       run: |
-        rm -rf pr-${{ needs.build.outputs.PR_NUMBER }}
+        rm -rf pr-${{ github.event.number }}
+
