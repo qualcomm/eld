@@ -1,0 +1,27 @@
+# BEGIN_COMMENT
+## Test that relaxations use the PLT address (not the dynamic symbol address!)
+# END_COMMENT
+#--------------------------------------------------------------------
+
+# RUN: %clang %clangopts -fno-pic -O3 -c %p/Inputs/main.c -o %t.main.o
+
+## The dynamic symbol address (~0x3000) is c.lui-relaxable.
+# RUN: %clang %clangopts -O3 -fPIC -c %p/Inputs/f.c -o %t.f.o
+# RUN: %link %linkopts -shared --no-align-segments --section-start .text=0x3000 %t.f.o -o %t.f.clui.so
+# RUN: %link %linkopts --no-align-segments --section-start .plt=0x100000 -o %t.clui.out %t.main.o %t.f.clui.so
+# RUXN: %objdump -d %t.clui.out | %filecheck %s --check-prefix=INSTR
+
+## The same as above but lure it into relaxing into GP-rel.
+# RUN: %clang %clangopts -O3 -fPIC -c %p/Inputs/f.c -o %t.f.o
+# RUN: %link %linkopts -shared --no-align-segments --section-start .text=0x33000 %t.f.o -o %t.f.gp.so
+# RUN: %link %linkopts --no-align-segments --section-start .plt=0x100000 -o %t.gp.out -T %p/Inputs/main.gp.t %t.main.o %t.f.gp.so
+# RUN: %objdump -d %t.gp.out | %filecheck %s --check-prefix=INSTR
+
+## The same as above but with zero-page relaxation.
+# RUN: %clang %clangopts -O3 -fPIC -c %p/Inputs/f.c -o %t.f.o
+# RUN: %link %linkopts -shared --no-align-segments --section-start .text=0 %t.f.o -o %t.f.zero.so
+# RUN: %link %linkopts --no-align-segments --section-start .plt=0x100000 -o %t.zero.out %t.main.o %t.f.zero.so
+# RUN: %objdump -d %t.zero.out | %filecheck %s --check-prefix=INSTR
+
+INSTR:   100030: 00100537     lui	a0, 0x100
+INSTR:   100034: 02050513     addi a0, a0, 0x20

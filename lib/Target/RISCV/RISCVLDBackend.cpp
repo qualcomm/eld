@@ -317,7 +317,7 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
     return false;
 
   size_t SymbolSize = reloc->symInfo()->outSymbol()->size();
-  Relocator::DWord S = getRelocator()->getSymValue(reloc);
+  Relocator::DWord S = getSymbolValuePLT(*reloc);
   Relocator::DWord A = reloc->addend();
   uint64_t offset = reloc->targetRef()->offset();
   Relocation::Type type = reloc->type();
@@ -561,7 +561,7 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
 
   // Test if the symbol with size can fall in 12 bits.
   size_t SymbolSize = reloc->symInfo()->outSymbol()->size();
-  Relocator::DWord S = getRelocator()->getSymValue(reloc);
+  Relocator::DWord S = getSymbolValuePLT(*reloc);
   Relocator::DWord A = reloc->addend();
 
   Relocation::Type new_type = 0x0;
@@ -586,7 +586,7 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
       return false;
     if (!HIReloc)
       ASSERT(0, "HIReloc not found! Internal Error!");
-    S = getRelocator()->getSymValue(HIReloc);
+    S = getSymbolValuePLT(*HIReloc);
     A = HIReloc->addend();
     SymbolSize = HIReloc->symInfo()->outSymbol()->size();
   }

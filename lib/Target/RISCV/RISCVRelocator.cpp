@@ -809,7 +809,7 @@ RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVLDBackend &Backend,
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t S = Backend.getRelocator()->getSymValue(&pReloc);
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
   int64_t P = pReloc.place(Backend.getModule());
 
@@ -990,12 +990,12 @@ RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVLDBackend &Backend,
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t S = Backend.getRelocator()->getSymValue(&pReloc);
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
 
   // Get the symbol value always from the HIRELOC.
   Relocation *HIReloc = Backend.m_PairedRelocs[&pReloc];
   if (HIReloc)
-    S = Backend.getRelocator()->getSymValue(HIReloc);
+    S = Backend.getSymbolValuePLT(*HIReloc);
 
   int64_t A = pReloc.addend();
   int64_t G = 0x0;
@@ -1014,9 +1014,8 @@ RISCVRelocator::Result applyCompressedLUI(Relocation &pReloc,
                                           RISCVLDBackend &Backend,
                                           RelocationDescription &pRelocDesc) {
   // TODO: TEst what lld/bfd does.
-  // LUI has bottom 12 bits or 4K addressable target bits 0.
-  uint64_t Result =
-      Backend.getRelocator()->getSymValue(&pReloc) + pReloc.addend();
+  // LUI has bottom 12 bits or 4K addressible target bits 0.
+  uint64_t Result = Backend.getSymbolValuePLT(pReloc) + pReloc.addend();
   // The bottom 12 bits are signed.
   uint64_t LoImm = llvm::SignExtend64<12>(Result);
   return ApplyReloc(pReloc, Result - LoImm, pRelocDesc, Backend.config());
