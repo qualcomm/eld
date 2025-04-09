@@ -61,6 +61,17 @@ Relocator *RISCVLDBackend::getRelocator() const {
   return m_pRelocator;
 }
 
+Relocation::Address RISCVLDBackend::getSymbolValuePLT(Relocation &R) {
+  ResolveInfo *rsym = R.symInfo();
+  if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
+    if (const Fragment *S = findEntryInPLT(rsym))
+      return S->getAddr(config().getDiagEngine());
+    if (const ResolveInfo *S = findAbsolutePLT(rsym))
+      return S->value();
+  }
+  return getRelocator()->getSymValue(&R);
+}
+
 Relocation::Type RISCVLDBackend::getCopyRelType() const {
   return llvm::ELF::R_RISCV_COPY;
 }
@@ -234,8 +245,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc, bool DoCompressed) {
   bool canCompress = (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
   // test if it can fall into 21bits
-  Relocator::DWord S =
-      static_cast<RISCVRelocator *>(getRelocator())->getSymbolValuePLT(*reloc);
+  Relocator::DWord S = getSymbolValuePLT(*reloc);
   Relocator::DWord A = reloc->addend();
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;

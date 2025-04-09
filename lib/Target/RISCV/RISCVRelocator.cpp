@@ -23,7 +23,7 @@ namespace {
 struct RelocationDescription;
 
 typedef Relocator::Result (*ApplyFunctionType)(
-    eld::Relocation &pReloc, eld::RISCVRelocator &pParent,
+    eld::Relocation &pReloc, eld::RISCVLDBackend &,
     RelocationDescription &pRelocDesc);
 
 struct RelocationDescription {
@@ -40,7 +40,7 @@ struct RelocationDescription {
 };
 
 #define DECL_RISCV_APPLY_RELOC_FUNC(Name)                                      \
-  RISCVRelocator::Result Name(Relocation &pEntry, RISCVRelocator &pParent,     \
+  RISCVRelocator::Result Name(Relocation &pEntry, RISCVLDBackend &,            \
                               RelocationDescription &pRelocDesc);
 
 DECL_RISCV_APPLY_RELOC_FUNC(unsupported)
@@ -163,9 +163,9 @@ RelocationDescMap RelocDescs = {
 //===--------------------------------------------------------------------===//
 // RISCVRelocator
 //===--------------------------------------------------------------------===//
-RISCVRelocator::RISCVRelocator(RISCVLDBackend &pParent, LinkerConfig &pConfig,
+RISCVRelocator::RISCVRelocator(RISCVLDBackend &Backend, LinkerConfig &pConfig,
                                Module &pModule)
-    : Relocator(pConfig, pModule), m_Target(pParent) {
+    : Relocator(pConfig, pModule), m_Target(Backend) {
   // Mark force verify bit for specified relcoations
   if (m_Module.getPrinter()->verifyReloc() &&
       config().options().verifyRelocList().size()) {
@@ -280,7 +280,8 @@ Relocator::Result RISCVRelocator::applyRelocation(Relocation &pRelocation) {
   if (Desc == RelocDescs.end())
     return RISCVRelocator::Unsupport;
 
-  return Desc->second.func(pRelocation, *this, Desc->second);
+  return Desc->second.func(
+      pRelocation, static_cast<RISCVLDBackend &>(getTarget()), Desc->second);
 }
 
 const char *RISCVRelocator::getName(Relocation::Type pType) const {
@@ -688,17 +689,6 @@ RISCVGOT *RISCVRelocator::getTLSModuleID(ResolveInfo *R) {
   return G;
 }
 
-Relocation::Address RISCVRelocator::getSymbolValuePLT(Relocation &R) {
-  ResolveInfo *rsym = R.symInfo();
-  if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
-    if (const Fragment *S = m_Target.findEntryInPLT(rsym))
-      return S->getAddr(config().getDiagEngine());
-    if (const ResolveInfo *S = m_Target.findAbsolutePLT(rsym))
-      return S->value();
-  }
-  return Relocator::getSymValue(&R);
-}
-
 namespace {
 
 //=========================================//
@@ -754,7 +744,7 @@ Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
 // Each relocation function implementation //
 //=========================================//
 
-RISCVRelocator::Result applyNone(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyNone(Relocation &pReloc, RISCVLDBackend &,
                                  RelocationDescription &pRelocDesc) {
   return RISCVRelocator::OK;
 }
@@ -762,7 +752,7 @@ RISCVRelocator::Result applyNone(Relocation &pReloc, RISCVRelocator &pParent,
 // R_RISCV_[32|64]
 // R_RISCV_ADD*
 // R_RISCV_SUB*
-RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
                                 RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -777,12 +767,12 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVRelocator &pParent,
                             ->getInput()
                             ->getAttribute()
                             .isPatchBase();
-  uint64_t S = IsPatchSection ? pReloc.symValue(pParent.module())
-                              : pParent.getSymbolValuePLT(pReloc);
+  uint64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
+                              : Backend.getSymbolValuePLT(pReloc);
   uint64_t A = pReloc.addend();
   uint64_t Result = 0;
 
-  Relocation *pairedReloc = pParent.getTarget().getPairedReloc(&pReloc);
+  Relocation *pairedReloc = Backend.getPairedReloc(&pReloc);
   Relocation::DWord TargetData =
       pairedReloc ? pairedReloc->target() : pReloc.target();
 
@@ -806,7 +796,7 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVRelocator &pParent,
   }
 
   RISCVRelocator::Result Res =
-      ApplyReloc(pReloc, Result, pRelocDesc, pParent.config());
+      ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
   // Update the target word for the paired reloc
   if (pairedReloc) {
     pairedReloc->target() = pReloc.target();
@@ -814,30 +804,30 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVRelocator &pParent,
   return Res;
 }
 
-RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVLDBackend &Backend,
                                 RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t S = pParent.getSymValue(&pReloc);
+  int64_t S = Backend.getRelocator()->getSymValue(&pReloc);
   int64_t A = pReloc.addend();
-  int64_t P = pReloc.place(pParent.module());
+  int64_t P = pReloc.place(Backend.getModule());
 
-  return ApplyReloc(pReloc, S + A - P, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, S + A - P, pRelocDesc, Backend.config());
 }
 
-RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
                                RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t S = pParent.getSymbolValuePLT(pReloc);
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
   int64_t Result = S + A + 0x800;
 
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_HI20) {
-    int64_t P = pReloc.place(pParent.module());
-    bool isStaticLink = pParent.getTarget().config().isCodeStatic();
+    int64_t P = pReloc.place(Backend.getModule());
+    bool isStaticLink = Backend.config().isCodeStatic();
 
     // We would like to convert the PCREL relocation to LUI
     // a. For static linkins
@@ -854,7 +844,7 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVRelocator &pParent,
       pReloc.setType(llvm::ELF::R_RISCV_HI20);
     } else {
       Result -= P;
-      int wordSize = pParent.is32bit() ? 32 : 64;
+      int wordSize = Backend.config().targets().is32Bits() ? 32 : 64;
       int64_t ResultSignExend = llvm::SignExtend64(Result, wordSize);
       // Overflow if result does not fit
       if (!llvm::isInt<20>(ResultSignExend >> 12))
@@ -862,12 +852,12 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVRelocator &pParent,
     }
   }
 
-  return ApplyReloc(pReloc, Result, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
 }
 
-RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
                                RelocationDescription &pRelocDesc) {
-  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  DiagnosticEngine *DiagEngine = Backend.config().getDiagEngine();
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
@@ -875,25 +865,25 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVRelocator &pParent,
   Relocation *HIReloc = nullptr;
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
       pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_S) {
-    HIReloc = pParent.m_Target.m_PairedRelocs[&pReloc];
+    HIReloc = Backend.m_PairedRelocs[&pReloc];
     if (!HIReloc)
       return RISCVRelocator::BadReloc;
     if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
         HIReloc->type() == llvm::ELF::R_RISCV_TLS_GD_HI20 ||
         HIReloc->type() == llvm::ELF::R_RISCV_TLS_GOT_HI20) {
-      RISCVGOT *GOT = pParent.getTarget().findEntryInGOT(pReloc.symInfo());
+      RISCVGOT *GOT = Backend.findEntryInGOT(pReloc.symInfo());
       if (!GOT)
         return RISCVRelocator::BadReloc;
       S = GOT->getAddr(DiagEngine);
     } else
-      S = pParent.getSymbolValuePLT(*HIReloc);
+      S = Backend.getSymbolValuePLT(*HIReloc);
   } else
-    S = pParent.getSymbolValuePLT(pReloc);
+    S = Backend.getSymbolValuePLT(pReloc);
 
   int64_t A = pReloc.addend();
   int64_t Result_lo = S + A;
   int64_t Result_Hi = S + A + 0x800;
-  bool isStaticLink = pParent.getTarget().config().isCodeStatic();
+  bool isStaticLink = Backend.config().isCodeStatic();
   bool isRelocDirty = false;
 
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
@@ -905,11 +895,11 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVRelocator &pParent,
       isRelocDirty = true;
     } else if (HIReloc->type() == llvm::ELF::R_RISCV_PCREL_HI20) {
       int64_t Result_Hi_Check =
-          S + HIReloc->addend() - HIReloc->place(pParent.module()) + 0x800;
+          S + HIReloc->addend() - HIReloc->place(Backend.getModule()) + 0x800;
       if (isStaticLink && !llvm::isInt<20>(Result_Hi_Check >> 12) &&
           llvm::isInt<20>(Result_Hi >> 12)) {
-        int64_t Displacement =
-            pReloc.place(pParent.module()) - HIReloc->place(pParent.module());
+        int64_t Displacement = pReloc.place(Backend.getModule()) -
+                               HIReloc->place(Backend.getModule());
         Result_lo += Displacement;
         pReloc.setType(pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I
                            ? llvm::ELF::R_RISCV_LO12_I
@@ -918,12 +908,12 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVRelocator &pParent,
       }
     }
     if (!isRelocDirty) {
-      int64_t Displacement =
-          pReloc.place(pParent.module()) - HIReloc->place(pParent.module());
-      Result_lo =
-          S + HIReloc->addend() + Displacement - pReloc.place(pParent.module());
+      int64_t Displacement = pReloc.place(Backend.getModule()) -
+                             HIReloc->place(Backend.getModule());
+      Result_lo = S + HIReloc->addend() + Displacement -
+                  pReloc.place(Backend.getModule());
       Result_Hi =
-          S + HIReloc->addend() - HIReloc->place(pParent.module()) + 0x800;
+          S + HIReloc->addend() - HIReloc->place(Backend.getModule()) + 0x800;
     }
   }
 
@@ -939,28 +929,27 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVRelocator &pParent,
   default:
     break;
   }
-  return ApplyReloc(pReloc, Result_lo, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, Result_lo, pRelocDesc, Backend.config());
 }
 
-RISCVRelocator::Result relocGOT(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result relocGOT(Relocation &pReloc, RISCVLDBackend &Backend,
                                 RelocationDescription &pRelocDesc) {
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
     return Relocator::BadReloc;
   }
 
-  int64_t S = pParent.getTarget()
-                  .findEntryInGOT(pReloc.symInfo())
-                  ->getAddr(pParent.config().getDiagEngine());
+  int64_t S = Backend.findEntryInGOT(pReloc.symInfo())
+                  ->getAddr(Backend.config().getDiagEngine());
   int64_t A = pReloc.addend();
   int64_t Result = S + A + 0x800;
 
-  Result -= pReloc.place(pParent.module());
+  Result -= pReloc.place(Backend.getModule());
 
-  return ApplyReloc(pReloc, Result, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
 }
 
 // R_RISCV_RELAX
-RISCVRelocator::Result applyRelax(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyRelax(Relocation &pReloc, RISCVLDBackend &,
                                   RelocationDescription &pRelocDesc) {
   // TODO: Add support for relaxations
 
@@ -968,7 +957,7 @@ RISCVRelocator::Result applyRelax(Relocation &pReloc, RISCVRelocator &pParent,
 }
 
 RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
-                                       RISCVRelocator &pParent,
+                                       RISCVLDBackend &Backend,
                                        RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -982,69 +971,70 @@ RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
                             ->getInput()
                             ->getAttribute()
                             .isPatchBase();
-  int64_t S = IsPatchSection ? pReloc.symValue(pParent.module())
-                             : pParent.getSymbolValuePLT(pReloc);
+  int64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
+                             : Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
-  int64_t P = pReloc.place(pParent.module());
+  int64_t P = pReloc.place(Backend.getModule());
 
-  return ApplyReloc(pReloc, S + A - P, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, S + A - P, pRelocDesc, Backend.config());
 }
 
 // R_RISCV_ALIGN
-RISCVRelocator::Result applyAlign(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyAlign(Relocation &pReloc, RISCVLDBackend &Backend,
                                   RelocationDescription &pRelocDesc) {
   return RISCVRelocator::OK;
 }
 
-RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVLDBackend &Backend,
                                   RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t S = pParent.getSymValue(&pReloc);
+  int64_t S = Backend.getRelocator()->getSymValue(&pReloc);
 
   // Get the symbol value always from the HIRELOC.
-  Relocation *HIReloc = pParent.m_Target.m_PairedRelocs[&pReloc];
+  Relocation *HIReloc = Backend.m_PairedRelocs[&pReloc];
   if (HIReloc)
-    S = pParent.getSymValue(HIReloc);
+    S = Backend.getRelocator()->getSymValue(HIReloc);
 
   int64_t A = pReloc.addend();
   int64_t G = 0x0;
   LDSymbol *gpSymbol =
-      pParent.module().getNamePool().findSymbol("__global_pointer$");
+      Backend.getModule().getNamePool().findSymbol("__global_pointer$");
   if (gpSymbol)
     G = gpSymbol->value();
 
   if (!llvm::isInt<12>(S + A - G))
     return RISCVRelocator::Overflow;
 
-  return ApplyReloc(pReloc, S + A - G, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, S + A - G, pRelocDesc, Backend.config());
 }
 
 RISCVRelocator::Result applyCompressedLUI(Relocation &pReloc,
-                                          RISCVRelocator &pParent,
+                                          RISCVLDBackend &Backend,
                                           RelocationDescription &pRelocDesc) {
+  // TODO: TEst what lld/bfd does.
   // LUI has bottom 12 bits or 4K addressible target bits 0.
-  uint64_t Result = pParent.getSymValue(&pReloc) + pReloc.addend();
+  uint64_t Result =
+      Backend.getRelocator()->getSymValue(&pReloc) + pReloc.addend();
   // The bottom 12 bits are signed.
   uint64_t LoImm = llvm::SignExtend64<12>(Result);
-  return ApplyReloc(pReloc, Result - LoImm, pRelocDesc, pParent.config());
+  return ApplyReloc(pReloc, Result - LoImm, pRelocDesc, Backend.config());
 }
 
-Relocator::Result unsupported(Relocation &pReloc, RISCVRelocator &pParent,
+Relocator::Result unsupported(Relocation &pReloc, RISCVLDBackend &,
                               RelocationDescription &pRelocDesc) {
   return RISCVRelocator::Unsupport;
 }
 
-RISCVRelocator::Result applyTprelAdd(Relocation &pReloc,
-                                     RISCVRelocator &pParent,
+RISCVRelocator::Result applyTprelAdd(Relocation &pReloc, RISCVLDBackend &,
                                      RelocationDescription &pRelocDesc) {
   // TODO: Add support for R_RISCV_TPREL_ADD type relaxation
   return RISCVRelocator::OK;
 }
 
 // R_RISCV_VENDOR
-RISCVRelocator::Result applyVendor(Relocation &pReloc, RISCVRelocator &pParent,
+RISCVRelocator::Result applyVendor(Relocation &pReloc, RISCVLDBackend &,
                                    RelocationDescription &pRelocDesc) {
   return RISCVRelocator::OK;
 }
