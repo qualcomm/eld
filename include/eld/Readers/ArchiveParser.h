@@ -15,6 +15,7 @@
 #include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Object/IRObjectFile.h"
 #include <cstdint>
+#include <unordered_map>
 
 namespace eld {
 class Module;
