@@ -1,6 +1,7 @@
 #include "OutputSectionIteratorPlugin.h"
 #include "PluginVersion.h"
 #include "TarWriter.h"
+#include <cstring>
 
 using namespace eld::plugin;
 
@@ -25,7 +26,7 @@ public:
       // Non null terminating payload.
       uint32_t data = 1234;
       uint8_t contents[4];
-      memcpy(contents, &data, sizeof(uint32_t));
+      std::memcpy(contents, &data, sizeof(uint32_t));
       auto Buffer1 = eld::plugin::MemoryBuffer::getBuffer(
           "NonStringTestFile", &contents[0], sizeof(uint32_t), false);
       ExpectedTW->addBufferToTar(Buffer1.value());
