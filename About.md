@@ -21,7 +21,7 @@ The linker supports the following targets:
 - ARM
 - AArch64
 - Hexagon
-- RISC-V (including the Xqiu extension)
+- RISC-V (including the Xqci extension)
 
 The linker incorporates various features commonly available in GNU-compliant linkers, including:
 - Partial linking
