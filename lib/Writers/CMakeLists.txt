@@ -1,1 +1,1 @@
-add_llvm_library(ELDWriters ELFObjectWriter.cpp SymDefWriter.cpp)
+llvm_add_library(ELDWriters STATIC ELFObjectWriter.cpp SymDefWriter.cpp)

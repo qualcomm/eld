@@ -7,12 +7,11 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   set(BUILD_SHARED_LIBS ON)
 
-  add_llvm_library(GetEnvPlugin
-    ${SHARED_LIB_SOURCES} LINK_LIBS LW)
+  add_llvm_library(GetEnvPlugin ${SHARED_LIB_SOURCES} LINK_LIBS LW)
 
-  set_target_properties(GetEnvPlugin PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY
-    "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/test")
+  set_target_properties(
+    GetEnvPlugin PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                            "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/test")
 
   set(BUILD_SHARED_LIBS ${bsl})
 endif()

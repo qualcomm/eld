@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_COLOR_MAKEFILE ON)
 
-set(ELD_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE STRING "")
-set(ELD_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "")
+set(ELD_SOURCE_DIR
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    CACHE STRING "")
+set(ELD_BINARY_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}
+    CACHE STRING "")
 
 list(APPEND CMAKE_MODULE_PATH "${ELD_SOURCE_DIR}/cmake/modules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
@@ -16,8 +20,7 @@ set(LINKER_PLUGIN_API_MAJOR_VERSION "4")
 set(LINKER_PLUGIN_API_MINOR_VERSION "0")
 
 # Compute the ELD version from the LLVM version.
-string(REGEX MATCH "[0-9]+\\.[0-9]+(\\.[0-9]+)?" ELD_VERSION
-             ${PACKAGE_VERSION})
+string(REGEX MATCH "[0-9]+\\.[0-9]+(\\.[0-9]+)?" ELD_VERSION ${PACKAGE_VERSION})
 info("ELD version: ${ELD_VERSION}")
 
 string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" ELD_VERSION_MAJOR
@@ -43,14 +46,15 @@ else()
 endif()
 
 # Configures everything in the Version.inc file except ELD_REVISION.
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/eld/Config/Version.inc.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc.in @ONLY)
-# 'ELD_VERSION_PRE_CONFIGURED_FILE' and 'ELD_VERSION_POST_CONFIGURED'
-# variables are required in 'ELDVersionMonitor'.
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/eld/Config/Version.inc.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc.in @ONLY)
+# 'ELD_VERSION_PRE_CONFIGURED_FILE' and 'ELD_VERSION_POST_CONFIGURED' variables
+# are required in 'ELDVersionMonitor'.
 set(ELD_VERSION_PRE_CONFIGURED_FILE
-  ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc.in)
+    ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc.in)
 set(ELD_VERSION_POST_CONFIGURED_FILE
-  ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc)
+    ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc)
 include(ELDVersionMonitor)
 
 set(ELD_DEFAULT_TARGET_TRIPLE
@@ -67,15 +71,17 @@ set(ELD_RUNTIME_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/bin)
 set(ELD_EMULATOR "")
 set(ELD_EMULATOR64 "")
 
-set(ELD_ALL_TARGETS Hexagon AArch64 ARM RISCV X86_64)
+set(ELD_ALL_TARGETS Hexagon AArch64 ARM RISCV x86_64)
 
-set(ELD_TARGETS_TO_BUILD
-    ${LLVM_TARGETS_TO_BUILD}
-    CACHE STRING "ELD Target(Targets) to build")
 if(ELD_TARGETS_TO_BUILD STREQUAL "all")
   set(ELD_TARGETS_TO_BUILD ${ELD_ALL_TARGETS})
 endif()
 
+if(NOT ELD_TARGETS_TO_BUILD)
+  set(ELD_TARGETS_TO_BUILD
+      ${LLVM_TARGETS_TO_BUILD}
+      CACHE STRING "ELD Target(Targets) to build")
+endif()
 
 # set ELD_ENUM_TARGETS="ELD_TARGET($target_to_build)
 set(ELD_ENUM_TARGETS_STR "")
@@ -86,7 +92,9 @@ foreach(t ${ELD_TARGETS_TO_BUILD})
   set(ELD_ENUM_LINKERS_STR ${ELD_ENUM_LINKERS_STR} "ELD_LINKER(${t})\n")
   string(TOUPPER ${t} TARGET_UPPER)
   info("ELD built with support for ${t}")
-  set(ELD_ENABLE_TARGET_${TARGET_UPPER} ON CACHE BOOL ON FORCE)
+  set(ELD_ENABLE_TARGET_${TARGET_UPPER}
+      ON
+      CACHE BOOL ON FORCE)
 endforeach()
 
 string(REPLACE ";" "" ELD_ENUM_TARGETS "${ELD_ENUM_TARGETS_STR}")
@@ -153,8 +161,7 @@ option(ELD_SANITIZE "Build ELD with Sanitizer" OFF)
 if(LLVM_USE_SANITIZER OR ELD_SANITIZE)
   info("Sanitizing Linker for ${LLVM_USE_SANITIZER}")
   if(LLVM_USE_SANITIZER MATCHES "Undefined")
-    set(BLACKLIST_FILE
-        "${ELD_SOURCE_DIR}/utils/sanitizers/ubsan_blacklist.txt")
+    set(BLACKLIST_FILE "${ELD_SOURCE_DIR}/utils/sanitizers/ubsan_blacklist.txt")
     if(EXISTS "${BLACKLIST_FILE}")
       append("-fsanitize-blacklist=${BLACKLIST_FILE}" CMAKE_C_FLAGS
              CMAKE_CXX_FLAGS)
@@ -205,4 +212,3 @@ if(ELD_INSTALL_YAML_MAP_PARSER)
   install(PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
           DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR})
 endif()
-

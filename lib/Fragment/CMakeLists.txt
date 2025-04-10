@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDFragment
+  STATIC
   BuildIDFragment.cpp
   EhFrameFragment.cpp
   EhFrameHdrFragment.cpp

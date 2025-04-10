@@ -1,7 +1,8 @@
 set(tablegen_deps intrinsics_gen)
 
-add_llvm_library(
+llvm_add_library(
   ELDReaders
+  STATIC
   ArchiveParser.cpp
   BinaryFileParser.cpp
   BitcodeReader.cpp

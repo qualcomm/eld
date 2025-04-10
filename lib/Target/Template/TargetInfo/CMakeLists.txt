@@ -1,1 +1,1 @@
-add_llvm_library(ELDTemplateTargetInfo TemplateTargetInfo.cpp)
+llvm_add_library(ELDTemplateTargetInfo STATIC TemplateTargetInfo.cpp)

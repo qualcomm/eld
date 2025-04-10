@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDx86_64LDBackend
+  STATIC
   x86_64Emulation.cpp
   x86_64Info.cpp
   x86_64LDBackend.cpp
@@ -12,5 +13,5 @@ add_llvm_library(
 add_subdirectory(TargetInfo)
 
 target_link_libraries(
-  ELDx86_64LDBackend PRIVATE ELDx86_64TargetInfo ELDCore ELDFragment
-                              ELDObject ELDTarget LLVMX86CodeGen)
+  ELDx86_64LDBackend PRIVATE ELDx86_64TargetInfo ELDCore ELDFragment ELDObject
+                             ELDTarget LLVMX86CodeGen)

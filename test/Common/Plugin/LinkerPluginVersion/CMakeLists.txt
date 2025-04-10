@@ -6,8 +6,7 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   set(BUILD_SHARED_LIBS ON)
 
-  add_llvm_library(LinkerPluginVersion ${SOURCES} LINK_LIBS
-                   LW)
+  add_llvm_library(LinkerPluginVersion ${SOURCES} LINK_LIBS LW)
 
   set(BUILD_SHARED_LIBS ${bsl})
 
@@ -21,8 +20,7 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   set(BUILD_SHARED_LIBS ON)
 
-  add_llvm_library(LinkerPluginNoVersion ${SOURCES} LINK_LIBS
-                   LW)
+  add_llvm_library(LinkerPluginNoVersion ${SOURCES} LINK_LIBS LW)
   target_compile_definitions(LinkerPluginNoVersion PRIVATE NO_VERSION)
 
   set(BUILD_SHARED_LIBS ${bsl})

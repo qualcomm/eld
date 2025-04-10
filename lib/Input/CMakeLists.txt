@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDInput
+  STATIC
   ArchiveFile.cpp
   ArchiveMemberInput.cpp
   BinaryFile.cpp
@@ -20,4 +21,4 @@ add_llvm_library(
   SymDefFile.cpp)
 
 target_link_libraries(ELDInput PRIVATE ELDSupport ELDFragment
-                                        LLVMDebugInfoDWARF)
+                                       LLVMDebugInfoDWARF)

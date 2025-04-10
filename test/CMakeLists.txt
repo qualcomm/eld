@@ -13,8 +13,8 @@ set(OPTIONNAMES "default")
 
 foreach(args ${ELD_TESTS_TO_RUN})
   string(REPLACE "," ";" ELD_TESTS_TO_RUN_OPTIONS_STR "${args}")
-  list (GET ELD_TESTS_TO_RUN_OPTIONS_STR 0 OPTIONNAMES_STR)
-  list (GET ELD_TESTS_TO_RUN_OPTIONS_STR 1 OPTIONS_STR)
+  list(GET ELD_TESTS_TO_RUN_OPTIONS_STR 0 OPTIONNAMES_STR)
+  list(GET ELD_TESTS_TO_RUN_OPTIONS_STR 1 OPTIONS_STR)
   set(OPTIONS "${OPTIONS};${OPTIONS_STR}")
   set(OPTIONNAMES "${OPTIONNAMES};${OPTIONNAMES_STR}")
 endforeach()
@@ -56,8 +56,8 @@ set(TEST_DEPENDS
 set(TARGET_NAME check-eld)
 add_custom_target(${TARGET_NAME})
 
-process_options_and_generate_lit_test_suite("${TARGET_NAME}" "${TEST_TARGETS}" "${OPTIONS}"
-                                            "${OPTIONNAMES}")
+process_options_and_generate_lit_test_suite("${TARGET_NAME}" "${TEST_TARGETS}"
+                                            "${OPTIONS}" "${OPTIONNAMES}")
 
 add_subdirectory(UnitTests)
 add_subdirectory(Common)
@@ -66,14 +66,16 @@ add_subdirectory(Hexagon)
 # Setup a legacy alias for 'check-eld'. This will likely change to be an alias
 # for 'check-all' at some point in the future.
 set_target_properties(check-eld PROPERTIES FOLDER "Linker Tests")
-if (USE_LINKER_ALT_NAME)
+if(USE_LINKER_ALT_NAME)
   string(TOLOWER ${USE_LINKER_ALT_NAME} linker_alt_name_lower)
-  if (linker_alt_name_lower MATCHES "ld.([a-z]+)*")
-      set(linker_alt_name_suffix ${CMAKE_MATCH_1})
-      info("Registering alternate check: check-${linker_alt_name_suffix}")
-      add_custom_target(check-${linker_alt_name_suffix} DEPENDS check-eld)
+  if(linker_alt_name_lower MATCHES "ld.([a-z]+)*")
+    set(linker_alt_name_suffix ${CMAKE_MATCH_1})
+    info("Registering alternate check: check-${linker_alt_name_suffix}")
+    add_custom_target(check-${linker_alt_name_suffix} DEPENDS check-eld)
   else()
     error("linker alt name ${USE_LINKER_ALT_NAME} should always start with ld")
-    message(FATAL_ERROR "linker alt name ${USE_LINKER_ALT_NAME} should always start with ld")
+    message(
+      FATAL_ERROR
+        "linker alt name ${USE_LINKER_ALT_NAME} should always start with ld")
   endif()
 endif()

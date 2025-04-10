@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDObject
+  STATIC
   GroupReader.cpp
   ScriptMemoryRegion.cpp
   ObjectBuilder.cpp

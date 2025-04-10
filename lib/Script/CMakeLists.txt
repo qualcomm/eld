@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDScript
+  STATIC
   Expression.cpp
   Assignment.cpp
   EnterScopeCmd.cpp

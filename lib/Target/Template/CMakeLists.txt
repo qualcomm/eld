@@ -1,4 +1,5 @@
-add_llvm_library(
+llvm_add_library(
+  STATIC
   ELDTemplateLDBackend
   TemplateEmulation.cpp
   TemplateInfo.cpp
@@ -11,4 +12,4 @@ add_subdirectory(TargetInfo)
 
 target_link_libraries(
   ELDTemplateLDBackend PRIVATE ELDTemplateTargetInfo ELDCore ELDFragment
-                                ELDObject ELDTarget LLVMTemplateCodeGen)
+                               ELDObject ELDTarget LLVMTemplateCodeGen)

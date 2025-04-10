@@ -1,7 +1,8 @@
 add_subdirectory(TargetInfo)
 
-add_llvm_library(
+llvm_add_library(
   ELDHexagonLDBackend
+  STATIC
   HexagonAbsoluteStub.cpp
   HexagonAttributeFragment.cpp
   HexagonELFDynamic.cpp

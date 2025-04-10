@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDAArch64LDBackend
+  STATIC
   AArch64ELFDynamic.cpp
   AArch64GOT.cpp
   AArch64Info.cpp
@@ -18,4 +19,4 @@ add_subdirectory(TargetInfo)
 
 target_link_libraries(
   ELDAArch64LDBackend PRIVATE ELDAArch64TargetInfo ELDCore ELDFragment
-                               ELDObject ELDTarget)
+                              ELDObject ELDTarget)

@@ -8,4 +8,5 @@ target_link_libraries(
           ELDTarget
           ELDObject
           LLVMLTO
-          LW)
+          LW
+          ${system_libs})

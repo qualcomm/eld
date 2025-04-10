@@ -9,9 +9,9 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   add_llvm_library(FindOutSectAddresses ${SHARED_LIB_SOURCES} LINK_LIBS LW)
 
-  set_target_properties(FindOutSectAddresses PROPERTIES
-                        LIBRARY_OUTPUT_DIRECTORY
-                        "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/test")
+  set_target_properties(
+    FindOutSectAddresses PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                    "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/test")
 
   set(BUILD_SHARED_LIBS ${bsl})
 endif()

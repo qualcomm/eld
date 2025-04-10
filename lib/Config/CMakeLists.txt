@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDConfig
+  STATIC
   GeneralOptions.cpp
   LinkerConfig.cpp
   TargetOptions.cpp

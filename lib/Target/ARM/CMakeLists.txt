@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDARMLDBackend
+  STATIC
   ARMAttributeFragment.cpp
   ARMELFDynamic.cpp
   ARMEmulation.cpp
@@ -17,6 +18,5 @@ add_llvm_library(
 
 add_subdirectory(TargetInfo)
 
-target_link_libraries(
-  ELDARMLDBackend PRIVATE ELDARMTargetInfo ELDCore ELDFragment ELDObject
-                           ELDTarget)
+target_link_libraries(ELDARMLDBackend PRIVATE ELDARMTargetInfo ELDCore
+                                              ELDFragment ELDObject ELDTarget)

@@ -1,6 +1,3 @@
 add_eld_unittest(DiagnosticFrameworkTests DiagnosticFrameworkTest.cpp)
 
-target_link_libraries(
-  DiagnosticFrameworkTests
-  PRIVATE ELDInput
-          LW)
+target_link_libraries(DiagnosticFrameworkTests PRIVATE ELDInput LW)

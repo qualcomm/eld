@@ -1,7 +1,8 @@
 include(ELDColorMsg)
 
-add_llvm_library(
+llvm_add_library(
   ELDTarget
+  STATIC
   ELFDynamic.cpp
   ELFEmulation.cpp
   ELFFileFormat.cpp

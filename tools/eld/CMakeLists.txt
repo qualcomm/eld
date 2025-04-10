@@ -3,7 +3,7 @@ option(
   "Enable this option to create <target>-link symlinks in the bin folder of both the build and install directories."
   On)
 
-set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} irreader)
+set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} irreader Support)
 
 add_llvm_executable(ld.eld eld.cpp)
 add_dependencies(ld.eld update-eld-verinfo)

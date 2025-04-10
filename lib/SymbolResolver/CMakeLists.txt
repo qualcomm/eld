@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDSymbolResolver
+  STATIC
   IRBuilder.cpp
   LDSymbol.cpp
   NamePool.cpp

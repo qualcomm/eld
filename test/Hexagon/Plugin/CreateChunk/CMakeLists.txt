@@ -7,8 +7,7 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   set(BUILD_SHARED_LIBS ON)
 
-  add_llvm_library(CreateChunk ${SHARED_LIB_SOURCES} LINK_LIBS
-                   LW)
+  add_llvm_library(CreateChunk ${SHARED_LIB_SOURCES} LINK_LIBS LW)
 
   set(BUILD_SHARED_LIBS ${bsl})
 

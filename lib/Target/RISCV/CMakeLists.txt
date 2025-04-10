@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDRISCVLDBackend
+  STATIC
   RISCVAttributeFragment.cpp
   RISCVELFDynamic.cpp
   RISCVEmulation.cpp
@@ -16,5 +17,5 @@ add_llvm_library(
 add_subdirectory(TargetInfo)
 
 target_link_libraries(
-  ELDRISCVLDBackend PRIVATE ELDRISCVTargetInfo ELDCore ELDFragment
-                             ELDObject ELDTarget LLVMRISCVCodeGen)
+  ELDRISCVLDBackend PRIVATE ELDRISCVTargetInfo ELDCore ELDFragment ELDObject
+                            ELDTarget LLVMRISCVCodeGen)

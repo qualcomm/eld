@@ -1,5 +1,6 @@
-add_llvm_library(
+llvm_add_library(
   ELDSupport
+  STATIC
   DynamicLibrary.cpp
   FileSystem.cpp
   HashUtils.cpp
@@ -17,4 +18,4 @@ add_llvm_library(
   Utils.cpp)
 
 target_link_libraries(ELDSupport PRIVATE ELDConfig ELDDiagnostics LLVMDemangle
-  LLVMSupport)
+                                         LLVMSupport)
