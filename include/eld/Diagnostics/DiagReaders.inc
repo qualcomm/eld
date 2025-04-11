@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(fatal_cannot_read_input, DiagnosticEngine::Fatal, "cannot read file %0")
-DIAG(err_cannot_read_input, DiagnosticEngine::Error, "cannot read file %0")
+DIAG(fatal_cannot_read_input, DiagnosticEngine::Fatal, "cannot read file '%0'")
+DIAG(err_cannot_read_input, DiagnosticEngine::Error, "cannot read file '%0'")
 DIAG(fatal_cannot_read_input_err, DiagnosticEngine::Fatal,
      "cannot read file %0, because of error %1")
 DIAG(fatal_cannot_make_module, DiagnosticEngine::Fatal,

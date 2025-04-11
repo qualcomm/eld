@@ -7,7 +7,7 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/f.t -o %t2.out 2>&1 | %filecheck %s
 
-#CHECK: Fatal: cannot read file doenotexist.t
+#CHECK: Fatal: cannot read file 'doenotexist.t'
 #CHECK: Linker script {{.*}}f.t has errors, Please check
 #CHECK: Linking had errors.
 #END_TEST
