@@ -1,0 +1,86 @@
+#---R_RISCV_QC_E_JUMP_PLT.test------------------ Executable------------#
+#BEGIN_COMMENT
+#  Check that R_RISCV_QC_E_JUMP_PLT is correctly implemented.
+#  It fills in specific bits of `QC.EJ-type` instructions, and
+#  Can reach any 32-bit address.
+#--------------------------------------------------------------------
+#END_COMMENT
+REQUIRES: riscv32
+#START_TEST
+RUN: %clang %clangopts -march=rv32ixqcilb0p2 -menable-experimental-extensions -c %p/Inputs/1.s -o %t1.1.o
+RUN: %clang %clangopts -march=rv32ixqcilb0p2 -menable-experimental-extensions -c %p/Inputs/2.s -o %t2.1.o
+RUN: %link %linkopts %t1.1.o %t2.1.o -o %t1.out
+RUN: %objdump -dt %t1.out |  %filecheck %s
+#END_TEST
+
+CHECK-LABEL: SYMBOL TABLE:
+CHECK: 00000000 l   *ABS* 00000000 test_zero
+CHECK: 00000074 l   .text 00000000 test_j_1
+CHECK: 0000007a l   .text 00000000 test_j_2
+CHECK: 00000080 l   .text 00000000 test_j_3
+CHECK: 00000086 l   .text 00000000 test_j_4
+CHECK: 0000008c l   .text 00000000 test_j_5
+CHECK: 00000092 l   .text 00000000 test_j_6
+CHECK: 00000098 l   .text 00000000 test_j_7
+CHECK: 0000009e l   .text 00000000 test_j_8
+CHECK: 000000a4 l   .text 00000000 test_jal_1
+CHECK: 000000aa l   .text 00000000 test_jal_2
+CHECK: 000000b0 l   .text 00000000 test_jal_3
+CHECK: 000000b6 l   .text 00000000 test_jal_4
+CHECK: 000000bc l   .text 00000000 test_jal_5
+CHECK: 000000c2 l   .text 00000000 test_jal_6
+CHECK: 000000c8 l   .text 00000000 test_jal_7
+CHECK: 000000ce l   .text 00000000 test_jal_8
+CHECK: abcdef78 l   *ABS* 00000000 test_distinct
+CHECK: fffffffe l   *ABS* 00000000 test_fffe
+CHECK: 000000d4 g F .text 00000002 test_vis_default
+CHECK: 000000d6 g F .text 00000002 .hidden test_vis_hidden
+CHECK: 000000da g F .text 00000002 .protected test_vis_protected
+
+CHECK-LABEL: 00000074 <test_j_1>:
+CHECK: 469f f80e ffff qc.e.j 0x0
+
+CHECK-LABEL: 0000007a <test_j_2>:
+CHECK: 401f 0000 0000 qc.e.j 0x7a
+
+CHECK-LABEL: 00000080 <test_j_3>:
+CHECK: 4c9f 6e0e abcd qc.e.j 0xabcdef78
+
+CHECK-LABEL: 00000086 <test_j_4>:
+CHECK: 4c9f f60e ffff qc.e.j 0xfffffffe
+
+CHECK-LABEL: 0000008c <test_j_5>:
+CHECK: 441f 0400 0000 qc.e.j 0xd4
+
+CHECK-LABEL: 00000092 <test_j_6>:
+CHECK: 421f 0400 0000 qc.e.j 0xd6
+
+CHECK-LABEL: 00000098 <test_j_7>:
+CHECK: 401f 0400 0000 qc.e.j 0xd8
+
+CHECK-LABEL: 0000009e <test_j_8>:
+CHECK: 4e1f 0200 0000 qc.e.j 0xda
+
+CHECK-LABEL: 000000a4 <test_jal_1>:
+CHECK: ce9f f40e ffff qc.e.jal 0x0
+
+CHECK-LABEL: 000000aa <test_jal_2>:
+CHECK: c01f 0000 0000 qc.e.jal 0xaa
+
+CHECK-LABEL: 000000b0 <test_jal_3>:
+CHECK: c49f 6c0e abcd qc.e.jal 0xabcdef78
+
+CHECK-LABEL: 000000b6 <test_jal_4>:
+CHECK: c49f f40e ffff qc.e.jal 0xfffffffe
+
+CHECK-LABEL: 000000bc <test_jal_5>:
+CHECK: cc1f 0000 0000 qc.e.jal 0xd4
+
+CHECK-LABEL: 000000c2 <test_jal_6>:
+CHECK: ca1f 0000 0000 qc.e.jal 0xd6
+
+CHECK-LABEL: 000000c8 <test_jal_7>:
+CHECK: c81f 0000 0000 qc.e.jal 0xd8
+
+CHECK-LABEL: 000000ce <test_jal_8>:
+CHECK: c61f 0000 0000 qc.e.jal 0xda

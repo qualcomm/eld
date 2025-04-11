@@ -1,0 +1,35 @@
+#---R_RISCV_QC_ABS20_U.test------------------ Executable------------#
+#BEGIN_COMMENT
+#  Check that R_RISCV_QC_ABS20_U is correctly implemented.
+#  It fills in specific bits of `U-type` instructions, and
+#  Can reach any signed 20-bit address.
+#--------------------------------------------------------------------
+#END_COMMENT
+REQUIRES: riscv32
+#START_TEST
+RUN: %clang %clangopts -march=rv32ixqcili0p2 -menable-experimental-extensions -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -dt %t1.out |  %filecheck %s
+#END_TEST
+
+CHECK-LABEL: SYMBOL TABLE:
+CHECK: 00000000 l *ABS* 00000000 test_zero
+CHECK: 0007ffff l *ABS* 00000000 test_hi
+CHECK: fff80000 l *ABS* 00000000 test_lo
+CHECK: fffabcde l *ABS* 00000000 test_distinct
+CHECK: ffffffff l *ABS* 00000000 test_minus_one
+
+CHECK-LABEL: 00000074 <test1>:
+CHECK: 0000029b qc.li t0, 0
+
+CHECK-LABEL: 00000078 <test2>:
+CHECK: 7ffff29b qc.li t0, 524287
+
+CHECK-LABEL: 0000007c <test3>:
+CHECK: 8000029b qc.li t0, -524288
+
+CHECK-LABEL: 00000080 <test4>:
+CHECK: fffff29b qc.li t0, -1
+
+CHECK-LABEL: 00000084 <test5>:
+CHECK: bcde529b qc.li t0, -344866

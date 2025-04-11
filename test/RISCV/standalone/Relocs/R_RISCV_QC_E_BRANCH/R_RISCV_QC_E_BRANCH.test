@@ -1,0 +1,31 @@
+#---R_RISCV_QC_E_BRANCH.test------------------ Executable------------#
+#BEGIN_COMMENT
+#  Check that R_RISCV_QC_E_BRANCH is correctly implemented.
+#  It fills in specific bits of `QC.EB-type` instructions, and
+#  Can reach +- 4kib from PC.
+#--------------------------------------------------------------------
+#END_COMMENT
+REQUIRES: riscv32
+#START_TEST
+RUN: %clang %clangopts -march=rv32ixqcibi0p2 -menable-experimental-extensions -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s
+#END_TEST
+
+CHECK: 00000074 <test_before_4kib>:
+
+CHECK-LABEL: 00000174 <test1>:
+CHECK: c09f f182 7fff qc.e.beqi t0, 32767, 0x74 <test_before_4kib>
+
+CHECK-LABEL: 0000017a <test2>:
+CHECK: c01f 01d2 8000 qc.e.bgei t0, -32768, 0x17a <test2>
+
+CHECK-LABEL: 00000180 <test3>:
+CHECK: c51f 0bf2 ffff qc.e.bgeui t0, 65535, 0x22a <test_distinct>
+CHECK: 0000022a <test_distinct>:
+CHECK: nop
+
+CHECK-LABEL: 0000022c <test4>:
+CHECK: c01f 11e2 ffff qc.e.bltui t0, 65535, 0x32c <test_after_4kib>
+
+CHECK: 0000032c <test_after_4kib>:

@@ -1,0 +1,31 @@
+#---R_RISCV_QC_E_32.test------------------ Executable------------#
+#BEGIN_COMMENT
+#  Check that R_RISCV_QC_E_32 is correctly implemented.
+#  It fills in specific bits of `QC.EAI-type` instructions, and
+#  Can reach any 32-bit address.
+#--------------------------------------------------------------------
+#END_COMMENT
+REQUIRES: riscv32
+#START_TEST
+RUN: %clang %clangopts -march=rv32ixqcili0p2 -menable-experimental-extensions -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out
+RUN: %objdump -dt  %t1.out |  %filecheck %s
+#END_TEST
+
+CHECK-LABEL: SYMBOL TABLE:
+CHECK: 00000000 l *ABS* 00000000 test_zero
+CHECK: 0000007a l .text 00000000 test2
+CHECK: 89abcdef l *ABS* 00000000 test_distinct
+CHECK: ffffffff l *ABS* 00000000 test_ffff
+
+CHECK-LABEL: 00000074 <test1>:
+CHECK: 029f 0000 0000 qc.e.li t0, 0
+
+CHECK-LABEL: 0000007a <test2>:
+CHECK: 029f 007a 0000 qc.e.li t0, 0x7a
+
+CHECK-LABEL: 00000080 <test3>:
+CHECK: 029f ffff ffff qc.e.li t0, -0x1
+
+CHECK-LABEL: 00000086 <test4>:
+CHECK: 029f cdef 89ab qc.e.li t0, -0x76543211
