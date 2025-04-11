@@ -71,7 +71,7 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --map-section=<section>
 #CHECK:   --script=<linkerscriptfile>
 #CHECK:   --section-start=<address>
-#CHECK:   --sort-section=<option>
+#CHECK:   --sort-section=<sort_section>
 #CHECK:   -T=<linkerscriptfile>
 #CHECK:   --Tbss=<address>
 #CHECK:   -Ttext-segment=<address>
