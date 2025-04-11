@@ -8,6 +8,9 @@ jobs:
     concurrency: 
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
       cancel-in-progress: false
+    permissions:
+      contents: write
+      statuses: write
 
     steps:
     - name: Set PR number and branch names
