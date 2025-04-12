@@ -256,14 +256,6 @@ public:
 #define DIAG(diagName, severity, formatStr)                                    \
   static const DiagnosticEngine::DiagIDType diagName;
 
-// FIXME: The below constraint no longer exist.
-// PluginDiags.inc should be placed in the sorted position now.
-//
-// PluginDiags.inc file should always be first!
-// This is to ensure that Plugin Diags IDs are consistent in
-// eld::Diag:: and plugin::Diagnostic:: namespaces.
-// clang-format off
-#include "eld/Diagnostics/PluginDiags.inc"
 // clang-format on
 #include "eld/Diagnostics/DiagAttribute.inc"
 #include "eld/Diagnostics/DiagBackends.inc"
@@ -284,6 +276,7 @@ public:
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
+#include "eld/Diagnostics/PluginDiags.inc"
 #undef DIAG
   static DiagnosticEngine::DiagIDType const NumOfBuildinDiagnosticInfo;
 }; // struct diag
