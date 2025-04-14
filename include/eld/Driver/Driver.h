@@ -7,8 +7,11 @@
 #ifndef ELD_DRIVER_DRIVER_H
 #define ELD_DRIVER_DRIVER_H
 
+#include "Expected.h"
+#include "eld/Config/LinkerConfig.h"
 #include "eld/Driver/Flavor.h"
 #include "eld/Support/Defines.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Option/ArgList.h"
 #include "llvm/Support/CommandLine.h"
@@ -18,24 +21,31 @@
 #define LINK_SUCCESS 0
 #define LINK_FAIL 1
 
+namespace eld {
+class DiagnosticEngine;
+}
+
+class GnuLdDriver;
+
 class DLL_A_EXPORT Driver {
 public:
   Driver(Flavor F, std::string Triple);
 
-  Driver *getLinker();
+  bool setFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
 
-  int link(llvm::ArrayRef<const char *> Args);
+  static eld::Expected<Driver>
+  createDriverForLinkCommand(llvm::ArrayRef<const char *> Args);
 
-  virtual int link(llvm::ArrayRef<const char *> Args,
-                   llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
-    return 0;
-  }
+  GnuLdDriver *getLinker();
 
-  Driver() {}
+  virtual ~Driver();
 
-  virtual ~Driver() {}
+  /// Returns a sensible default value for whether or not the colors should be
+  /// used in the terminal output.
+  static bool shouldColorize();
 
-  const std::string &getProgramName() const { return m_LinkerProgramName; }
+  /// Returns arguments from ELDFLAGS environment variable.
+  static std::vector<llvm::StringRef> getELDFlagsArgs();
 
 private:
   std::string getStringFromTarget(llvm::StringRef Target) const;
@@ -44,14 +54,20 @@ private:
 
   void InitTarget();
 
-  /// Returns arguments from ELDFLAGS environment variable.
-  std::vector<llvm::StringRef> getELDFlagsArgs();
+  eld::Expected<std::pair<Flavor, std::string>>
+  getFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
+
+  std::pair<Flavor, std::string>
+  parseFlavorAndTripleFromProgramName(const char *argv0);
+
+protected:
+  eld::DiagnosticEngine *DiagEngine = nullptr;
+  eld::LinkerConfig Config;
 
 private:
   Flavor m_Flavor = Invalid;
   std::string m_Triple;
   std::vector<std::string> m_SupportedTargets;
-  std::string m_LinkerProgramName;
 };
 
 #endif
