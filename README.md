@@ -71,7 +71,7 @@ Some (optional) helpful CMake options:
 
 First install the prerequisites for building documentation:
 
-- Doxgyen (>=1.8.11)
+- Doxygen (>=1.8.11)
 - graphviz
 - Sphinx and other python dependencies as specified in 'docs/userguide/requirements.txt'
 
