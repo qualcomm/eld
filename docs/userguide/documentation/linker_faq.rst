@@ -2258,6 +2258,51 @@ Using a defsym symbol in linker script assignment expression
 always evaluated before in-sections symbols. This explains the readelf output
 that we see.
 
+What linker script changes are required for supporting thread-local storage (TLS)?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If any of the linker inputs use thread-local storage (TLS), then some linker script
+changes are required to correctly support thread-local storage functionality.
+
+To properly understand these linker script changes, it is helpful to understand
+the TLS functionality and how TLS is allocated and initialized.
+
+Thread-local storage functionality makes a variable local to each thread.
+This means that each thread has its own copy of the variable. This is unlike
+ordinary global/static variables that are shared across all threads.
+The runtime library allocates thread-local storage for each thread and
+it initializes the thread-local storage to the region pointed by the
+:code:`PT_TLS` segment. Among other things, :code:`PT_TLS` segment
+describes to the runtime library where to find the initial contents
+of the thread-local storage and the alignment requirements.
+
+The runtime library needs :code:`PT_TLS` segment for properly initializing
+TLS region for each block. Thus, the linker needs to emit :code:`PT_TLS`
+segment for the images that are utilizing TLS functionality. The linker
+script changes are required for instructing the linker how to properly
+emit :code:`PT_TLS` segment. In particular, we need to add a :code:`PT_TLS`
+program header and put the TLS sections (:code:`.tdata` and :code:`.tbss`)
+into both the :code:`PT_TLS` and a :code:`PT_LOAD` section. For example:
+
+.. code-block:: bash
+
+   PHDRS {
+     ...
+     DATA PT_LOAD;
+     TLS PT_TLS;
+     ...
+   }
+
+   SECTIONS {
+     ...
+     .tbss : { *(*.tbss) } :DATA :TLS
+     .tdata : { *(*.tdata) } :DATA :TLS
+     .data : { *(*.data) } :DATA // It is important to specify :DATA here
+                                 // otherwise ':DATA :TLS' will be assumed
+     ...
+   }
+
+
 Linker Script PHDRS
 ====================
 
