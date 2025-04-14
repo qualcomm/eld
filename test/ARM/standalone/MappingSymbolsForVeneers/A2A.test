@@ -15,7 +15,7 @@ RUN: %objdump -d %t2.a2a.2.out 2>&1 | %filecheck %s -check-prefix=SHARED
 #STATIC:       {{.*}}:       00 00 00 80 .word 0x80000000
 
 #SHARED: {{.*}} <__bar_A2A_veneer@island-1>:
-#SHARED:      {{.*}}: e59fc000      ldr     r12, [pc]               @ 0x1bc <__bar_A2A_veneer@island-1+0x8>
+#SHARED:      {{.*}}: e59fc000      ldr     r12, [pc]               @ 0x174 <__bar_A2A_veneer@island-1+0x8>
 #SHARED:      {{.*}}: e08ff00c      add     pc, pc, r12
 #SHARED:      {{.*}}:       d4 ff ff ff     .word   0xffffffd4
 

@@ -4,5 +4,8 @@ RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC %clangg0opts -o %t1.2.o
 RUN: %link %linkopts -shared %t1.2.o -o %t2.lib2.so -T %p/Inputs/script.t
 RUN: %link %linkopts -Bdynamic %t1.1.o  --as-needed %t2.lib2.so --no-as-needed -o %t1.out -T %p/Inputs/script.t
 RUN: %readelf -d %t1.out 2>&1 | %filecheck %s
+RUN: %link %linkopts -shared %t1.2.o -o %t2.lib2.without_ls.so
+RUN: %link %linkopts -Bdynamic -o %t1.1.without_ls.out %t1.1.o --as-needed %t2.lib2.without_ls.so --no-as-needed
+RUN: %readelf -d %t1.1.without_ls.out 2>&1 | %filecheck %s
 
-#CHECK-NOT: lib2.so
+#CHECK-NOT: lib2

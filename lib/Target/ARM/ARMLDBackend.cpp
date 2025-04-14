@@ -149,37 +149,44 @@ void ARMGNULDBackend::initTargetSymbols() {
   if (m_Module.getScript().linkerScriptHasSectionsCommand())
     return;
 
+  const NamePool& NP = m_Module.getNamePool();
   SymbolName = "__exidx_start";
-  m_pEXIDXStart =
-      m_Module.getIRBuilder()
-          ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
-              m_Module.getInternalInput(Module::Script), SymbolName,
-              ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
-              0x0, // size
-              0x0, // value
-              FragmentRef::null(), ResolveInfo::Default);
-  if (m_pEXIDXStart)
-    m_pEXIDXStart->setShouldIgnore(false);
-  if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-      m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(Diag::target_specific_symbol) << SymbolName;
-
+  const ResolveInfo *EXIDXStartInfo = NP.findInfo(SymbolName);
+  if (EXIDXStartInfo && EXIDXStartInfo->isUndef()) {
+    m_pEXIDXStart =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+                m_Module.getInternalInput(Module::Script), SymbolName,
+                ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
+                0x0, // size
+                0x0, // value
+                FragmentRef::null(), ResolveInfo::Visibility::Hidden);
+    if (m_pEXIDXStart) {
+      m_pEXIDXStart->setShouldIgnore(false);
+      if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+          m_Module.getConfig().options().traceSymbol(SymbolName))
+        config().raise(Diag::target_specific_symbol) << SymbolName;
+    }
+  }
   SymbolName = "__exidx_end";
-  m_pEXIDXEnd =
-      m_Module.getIRBuilder()
-          ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
-              m_Module.getInternalInput(Module::Script), SymbolName,
-              ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
-              0x0, // size
-              0x0, // value
-              FragmentRef::null(), ResolveInfo::Default);
+  const ResolveInfo *EXIDXEndInfo = NP.findInfo(SymbolName);
+  if (EXIDXEndInfo && EXIDXEndInfo->isUndef()) {
+    m_pEXIDXEnd =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+                m_Module.getInternalInput(Module::Script), SymbolName,
+                ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
+                0x0, // size
+                0x0, // value
+                FragmentRef::null(), ResolveInfo::Visibility::Hidden);
 
-  if (m_pEXIDXEnd)
-    m_pEXIDXEnd->setShouldIgnore(false);
-  if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-      m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(Diag::target_specific_symbol) << SymbolName;
-
+    if (m_pEXIDXEnd) {
+      m_pEXIDXEnd->setShouldIgnore(false);
+      if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+          m_Module.getConfig().options().traceSymbol(SymbolName))
+        config().raise(Diag::target_specific_symbol) << SymbolName;
+    }
+  }
   SymbolName = "__RWPI_BASE__";
   m_pRWPIBase =
       m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
