@@ -1,5 +1,4 @@
 #---ImageStartAddress.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks that the text map file contains image start address information.
 #END_COMMENT

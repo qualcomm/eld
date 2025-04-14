@@ -1,7 +1,4 @@
 #----------DontRelaxToGP.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 #This test case creates a behavior that should not make the linker relax
 #to GP.

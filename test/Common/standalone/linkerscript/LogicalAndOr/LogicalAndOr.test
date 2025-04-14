@@ -1,5 +1,4 @@
 #---LogicalAndOr.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # Add test for logical operators || and &&.
 #END_COMMENT

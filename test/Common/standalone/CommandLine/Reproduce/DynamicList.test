@@ -1,6 +1,4 @@
 #---DynamicList.test------------------------- Executable ---------------------#
-
-
 #BEGIN_COMMENT
 # This checks that --reproduce can handle dynamic list
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---ExplicitOutputDataTruncate.test----------------- Executable----------------#
-
 #BEGIN_COMMENT
 # Verify value truncation is reported in output section data.
 #END_COMMENT

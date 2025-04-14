@@ -1,5 +1,4 @@
 #---AbsolutePath.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print absolute paths in the Mapfile.
 #END_COMMENT

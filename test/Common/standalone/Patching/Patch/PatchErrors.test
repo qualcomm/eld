@@ -1,5 +1,4 @@
 #---PatchPLT.test-------------- Executable------------------------#
-
 #BEGIN_COMMENT
 #Test errors when trying to build the patch image as a shared library.
 #END_COMMENT

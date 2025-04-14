@@ -1,5 +1,4 @@
 #---ZRelRO.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker creates a valid segment with RELRO option.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---SBRELSimple.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that SBREL32 relocation is implemented and the relocation is
 # applied properly by picking the value of the relocation to be computed based

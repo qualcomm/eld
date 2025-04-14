@@ -1,5 +1,4 @@
 #---Log2Ceil.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests the functionality of when the linker script uses LOG2CEIL
 # linker script command

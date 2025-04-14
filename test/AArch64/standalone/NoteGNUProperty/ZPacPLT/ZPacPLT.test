@@ -1,5 +1,4 @@
 #---ZPacPLT.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker can handle the switch -z pac-plt
 #END_COMMENT

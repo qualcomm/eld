@@ -1,5 +1,4 @@
 #---DsectCopyInfoOverlayOutSectTypes.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This test checks the behavior of DSECT, COPY, INFO and OVERLAY
 # output section type linker script keywords.

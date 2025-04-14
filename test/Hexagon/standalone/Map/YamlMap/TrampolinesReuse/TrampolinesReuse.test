@@ -1,5 +1,4 @@
 #---TrampolinesYAML.test--------------------- Executable,LS ------------------#
-
 #BEGIN_COMMENT
 # This tests that the trampoline information is shown in the YAML file properly.
 #END_COMMENT

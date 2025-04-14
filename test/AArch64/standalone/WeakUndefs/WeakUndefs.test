@@ -1,5 +1,4 @@
 #---WeakUndefs.test--------- Executable,Shared --------------------#
-
 #BEGIN_COMMENT
 # The weak undefined symbol prologue check is made sure that the symbol doesnot
 # become strong. This allows the weak symbol to never get called.

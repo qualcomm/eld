@@ -1,7 +1,4 @@
 #---reloc_PCREL_HI_LO.test--------------------- Executable------------#
-
-
-
 #BEGIN_COMMENT
 # Check patching of R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_I relocations
 # Additionally this also check R_RISCV_JAL relocation

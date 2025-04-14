@@ -1,5 +1,4 @@
 #---UnterminatedComment.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that the script file name is displayed for script file with
 comment unterminated.

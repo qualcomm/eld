@@ -1,5 +1,4 @@
 #---MatchIslandSections.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a simple SectionIterator plugin that tries to figure out the
 #relationship between sections only for sections matching a particular pattern.

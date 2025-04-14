@@ -1,7 +1,4 @@
 #----------TLSLD.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 #This tests that the linker can support TLS LD model with static linking.
 #--------------------------------------------------------------------

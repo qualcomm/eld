@@ -1,5 +1,4 @@
 #---DashEL.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to eat the -EL switch.
 #END_COMMENT

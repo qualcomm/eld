@@ -1,5 +1,4 @@
 #---DefaultINIConfigFilePathTest.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # Tests that plugins are able to unable to load .config via the full path and .ini files from search dirs
 #END_COMMENT

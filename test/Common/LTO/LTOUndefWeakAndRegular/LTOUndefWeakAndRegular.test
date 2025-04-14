@@ -1,6 +1,4 @@
 #---LTOUndefWeakAndRegular.test-------------------------- Executable,LTO  --------------#
-
-
 #BEGIN_COMMENT
 # An undefined weak symbol reference from an ELF file overridden by a regular
 # undefined weak reference from a bitcode file should make the symbol still be

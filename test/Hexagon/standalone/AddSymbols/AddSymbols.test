@@ -1,5 +1,4 @@
 #---SharedLibs.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Verify that lw_image_layout_checksum is added with and without garbage
 # collection and whether it is garbage collected when not used.

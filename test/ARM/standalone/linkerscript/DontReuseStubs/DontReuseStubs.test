@@ -1,5 +1,4 @@
 #---DontReuseStubs.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # Dont reuse stubs when the stub is not compatible.
 #END_COMMENT

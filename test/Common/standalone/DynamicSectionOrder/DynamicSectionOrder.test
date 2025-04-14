@@ -1,5 +1,4 @@
 #---DynamicSectionOrder.test--------------------------- SharedLibrary -----------------#
-
 #BEGIN_COMMENT
 #Check that .got.plt is sorted after .got.
 #END_COMMENT

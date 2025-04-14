@@ -1,6 +1,4 @@
 #---TraceSectionDiscard.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Check tracing of input sections which are garbage collected.
 #--------------------------------------------------------------------------------------

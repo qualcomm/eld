@@ -1,5 +1,4 @@
 #------------------------EntrySections.test-----------------------------#
-
 #BEGIN_COMMENT
 This test verifies that a section which contain address information using '@' must
 be treated as an entry section.

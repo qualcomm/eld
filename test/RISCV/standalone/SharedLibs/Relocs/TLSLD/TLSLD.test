@@ -1,5 +1,4 @@
 #----------TLSLD.test--------------------- SharedLibrary------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker can support TLS LD model when building shared
 #objects

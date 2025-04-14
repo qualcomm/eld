@@ -1,5 +1,4 @@
 #---LTOPreserveCommonSymbolReference.test---------------------- Executable,LTO  --------------#
-
 #BEGIN_COMMENT
 # Test that Linker is preserving the symbol defined in bitcode, when the symbol
 # is referenced as a COMMON symbol.

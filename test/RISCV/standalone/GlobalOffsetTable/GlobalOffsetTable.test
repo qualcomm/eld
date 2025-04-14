@@ -1,5 +1,4 @@
 #----------GlobalOffsetTable.test--------------------- Executable ------#
-
 #BEGIN_COMMENT
 #Test the value of the variable _GLOBAL_OFFSET_TABLE_ and make sure it points
 #to .got.plt

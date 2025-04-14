@@ -1,5 +1,4 @@
 #---FindAllUsesHelloWorld.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This adds code to check that the linker is able to handle and list all uses
 #from an example like HelloWorld.

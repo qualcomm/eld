@@ -1,5 +1,4 @@
 #---InitialLayoutIgnoreSections.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks that 'LDFileFormat::ignored' sections are only printed
 # once in the initial layout.

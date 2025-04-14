@@ -1,10 +1,4 @@
 #---shared.test--------------------- Executable --------------------#
-
-
-
-
-
-
 #BEGIN_COMMENT
 # Check that the linker enables all the supported options to build shared
 # objects.

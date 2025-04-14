@@ -1,5 +1,4 @@
 #---AtAddressDuplicateSegmentsInYaml.test--------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that duplicate sections are not shown in the YAML map file inside
 # LoadRegions. This is only seen when AT is used.

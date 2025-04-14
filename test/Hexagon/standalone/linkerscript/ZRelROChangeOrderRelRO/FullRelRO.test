@@ -1,5 +1,4 @@
 #---FullRelRO.test--------------------- SharedLibrary,LS------------------#
-
 # This tests that -z relro is su
 #BEGIN_COMMENT
 # This tests that -z relro flag is able to create a PT_GNU_RELRO segment. This

@@ -1,5 +1,4 @@
 #---DynamicSection.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 #The dynamic section disapears from the output, This test checks that the
 #dynamic section does exist

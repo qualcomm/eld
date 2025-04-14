@@ -1,5 +1,4 @@
 #---RevisionInfoInOutputImage.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test checks that the output ELF image .comment section contains linker
 # and LLVM version and revision information.

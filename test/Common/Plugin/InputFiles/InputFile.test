@@ -1,8 +1,4 @@
 #---InputFile.test----------------------- Executable,LS --------------------#
-
-
-
-
 #BEGIN_COMMENT
 # Tests that the plugin is able to print the input files visited by the Linker.
 # This also prints the sections from the input file

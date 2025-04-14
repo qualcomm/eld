@@ -1,5 +1,4 @@
 #---WarnNonAllocSectionLoading.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the linker produces warning if a non-allocatable input
 # section is being assigned to an allocatable output section.

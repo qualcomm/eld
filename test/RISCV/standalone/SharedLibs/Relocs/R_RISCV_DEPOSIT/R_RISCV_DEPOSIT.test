@@ -1,5 +1,4 @@
 #----------R_RISCV_DEPOSIT.test--------------------- SharedLibrary------#
-
 #BEGIN_COMMENT
 #This tests checks that the linker is able to create a dynamic relocation
 #to support word deposits such as pointers to other variables.

@@ -1,5 +1,4 @@
 #---CommonsGnuHash.test----------------- SharedLib --------------------#
-
 #BEGIN_COMMENT
 # Calculate correct .gnu.hash size
 # When there are not enough buckets and commons are to be exported to 

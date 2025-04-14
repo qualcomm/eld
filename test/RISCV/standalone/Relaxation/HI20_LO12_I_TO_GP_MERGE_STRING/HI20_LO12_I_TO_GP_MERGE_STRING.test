@@ -1,6 +1,4 @@
 #-----HI20_LO12_I_TO_GP_MERGE_STRING.test------ Executable----#
-
-
 #BEGIN_COMMENT
 # Test that HI/LO relocations relaxed to GP for string merging
 # point to the right addresses

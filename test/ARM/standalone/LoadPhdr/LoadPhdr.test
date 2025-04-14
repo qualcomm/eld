@@ -1,5 +1,4 @@
 #---LoadPhdr.test------------------------------------ Executable --------------------#
-
 #BEGIN_COMMENT
 # Linker should make the program header loadable on Linux.
 #END_COMMENT

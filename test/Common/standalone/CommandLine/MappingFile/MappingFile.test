@@ -1,5 +1,4 @@
 #---OutputTarWriter.test-------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the --Mapping-file option can reproduce the link
 #END_COMMENT

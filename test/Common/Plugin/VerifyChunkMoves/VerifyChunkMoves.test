@@ -1,7 +1,4 @@
 #---VerifyChunkMoves.test----------------------- Executable,LS --------------------#
-
-
-
 #BEGIN_COMMENT
 # This tests verifies that plugin reports an error if a chunk is removed but
 # not added afterwards.

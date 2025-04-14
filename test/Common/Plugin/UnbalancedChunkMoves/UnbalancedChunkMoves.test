@@ -1,7 +1,4 @@
 #---VerifyChunkMoves.test----------------------- Executable,LS --------------------#
-
-
-
 #BEGIN_COMMENT
 # This test checks that plugins can access unbalanced fragment removes and
 # unbalanced fragment adds.

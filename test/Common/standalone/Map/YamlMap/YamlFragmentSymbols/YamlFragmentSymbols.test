@@ -1,5 +1,4 @@
 #---YamlFragmentSymbols.test--------------------- Executable,LS ------------------#
-
 #BEGIN_COMMENT
 # YamlLayoutPrinter shows symbols that are not selected by the link %linkopts step. In the
 # below example the function 'foo' is defined as weak in 2.o and the strong

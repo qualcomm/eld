@@ -1,5 +1,4 @@
 #---DynamicListPreserve.test----------------- Executable,LTO ------------------#
-
 #BEGIN_COMMENT
 #When symbols are included in dynamic list, they must be preserved. They may be
 #garbage collected in post LTO phase.

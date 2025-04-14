@@ -1,5 +1,4 @@
 #---DiscardedSectionGroupSymbols.test--------- Executable --------------------#
-
 #BEGIN_COMMENT
 #Linker should not emit symbols from rejected section groups.
 #END_COMMENT

@@ -1,7 +1,4 @@
 #---reloc_HI_LO_RISCV64.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 # Check patching of R_RISCV_BRANCH relocation
 #--------------------------------------------------------------------

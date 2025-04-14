@@ -1,5 +1,4 @@
 #---PtGnuEhFrame.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This tests by adding a program header for PT_GNU_EH_FRAME.
 #END_COMMENT

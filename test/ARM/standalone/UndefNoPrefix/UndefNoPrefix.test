@@ -1,6 +1,4 @@
 #---UndefNoPrefix.test--------------------- Exe------------------#
-
-
 #BEGIN_COMMENT
 # Test -u flag can be used with or without space between symbol
 # and the option

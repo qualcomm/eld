@@ -1,7 +1,4 @@
 #---RetainSection.test----------------------- Executable --------------------#
-
-
-
 #BEGIN_COMMENT
 # This tests checks that the sections marked with SHF_GNU_RETAIN are retained
 # i.e. they are not garbage-collected.

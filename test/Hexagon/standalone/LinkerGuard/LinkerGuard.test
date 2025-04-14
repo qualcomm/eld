@@ -1,5 +1,4 @@
 #---LinkerGuard.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is creating a guard only for function symbols
 #END_COMMENT

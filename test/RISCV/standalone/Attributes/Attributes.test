@@ -1,8 +1,4 @@
 #------Attributes.test---PartialLink,Executable,LS------------------#
-
-
-
-
 #BEGIN_COMMENT
 # This tests that the linker is able to handle the section .riscv.attributes
 # appropriately.

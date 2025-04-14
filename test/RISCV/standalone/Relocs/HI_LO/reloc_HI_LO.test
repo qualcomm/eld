@@ -1,7 +1,4 @@
 #---reloc_HI_LO.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 # Check patching of R_RISCV_HI20 and R_RISCV_LO12 relocs
 #--------------------------------------------------------------------

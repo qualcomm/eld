@@ -1,5 +1,4 @@
 #---PartialLink.test--------------------------- PartialLink -----------------#
-
 #BEGIN_COMMENT
 # This tests that TLS is supported with partial linking.
 #END_COMMENT

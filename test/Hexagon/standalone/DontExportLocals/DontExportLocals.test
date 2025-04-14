@@ -1,5 +1,4 @@
 #---DontExportLocals.test--------------------------- SharedLibrary -----------------#
-
 #BEGIN_COMMENT
 #This test checks that there are no local symbols exported from shared
 #libraries.

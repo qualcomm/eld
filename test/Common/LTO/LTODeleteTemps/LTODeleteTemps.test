@@ -1,5 +1,4 @@
 #---LTODeleteTemps.test--------------------- Executable,LTO -------------#
-
 #BEGIN_COMMENT
 #Test if LTO temporary files are deleted without -save-temps
 #END_COMMENT

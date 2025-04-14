@@ -1,5 +1,4 @@
 #---GetUsesSymbols.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a simple SectionIterator plugin that tries to figure out the
 #relationship between sections, their output sections and their uses.

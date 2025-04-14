@@ -1,5 +1,4 @@
 #---StrtabAfterSymtabInLayout.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks that there is no overlap in offsets of symtab and
 # strtab output sections.

@@ -1,6 +1,4 @@
 #--ExternListPreserve.test----------------- Executable,LTO ------------------#
-
-
 #BEGIN_COMMENT
 #A symbol in extern list must always be preserved
 #END_COMMENT

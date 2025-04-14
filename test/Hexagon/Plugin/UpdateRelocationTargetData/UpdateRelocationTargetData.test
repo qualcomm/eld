@@ -1,5 +1,4 @@
 #---UpdateRelocationTargetData.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #Add a plugin API to modify contents of relocation target data.
 #END_COMMENT

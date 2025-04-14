@@ -1,5 +1,4 @@
 #---EhFrameFormatParse.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the linker parsing the EhFrame sections when
 # creating EhFrameHeader sections.

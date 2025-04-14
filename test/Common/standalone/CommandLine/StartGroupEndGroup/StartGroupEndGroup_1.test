@@ -1,5 +1,4 @@
 #---StartGroupEndGroup_1.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks and errors when there is not a proper match for
 # --start-group/--end-group

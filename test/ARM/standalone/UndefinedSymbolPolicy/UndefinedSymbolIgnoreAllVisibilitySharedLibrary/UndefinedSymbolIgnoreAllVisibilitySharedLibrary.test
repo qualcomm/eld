@@ -1,5 +1,4 @@
 #---UndefinedSymbolIgnoreAllVisibilitySharedLibrary.test--------------------------- SharedLibrary -----------------#
-
 #BEGIN_COMMENT
 #This checks that undefined symbols are reported by the linker, when the
 #user uses the policy --unresolved-symbols=ignore-all because symbol visibility

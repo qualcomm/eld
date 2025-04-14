@@ -1,5 +1,4 @@
 #---LTOCommonSymbolsPreserve.test----------------- Executable,LTO ------------------#
-
 #BEGIN_COMMENT
 #Linker asserts because a symbol preserved is not bitcode. This is because when
 #a COMMON symbol is seen by the linker, and resolved with an ELF, the COMMON

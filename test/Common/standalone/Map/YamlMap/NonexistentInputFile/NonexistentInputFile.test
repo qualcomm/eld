@@ -1,5 +1,4 @@
 #---NonexistentInputFile.test--------------- Executable ------------------#
-
 #BEGIN_COMMENT
 #This test checks that -MapStyle yaml does not crash if user specifies an input file which the linker cannot find
 #END_COMMENT

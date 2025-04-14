@@ -1,5 +1,4 @@
 #---NoteGNUPropertyDiscard.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests checks that the linker does not emit a proper GNU property section
 #in the presence of a linker script, and when the section is discarded

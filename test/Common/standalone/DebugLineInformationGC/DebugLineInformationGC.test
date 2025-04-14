@@ -1,5 +1,4 @@
 #---DebugLineInformationGC.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests that the relocations that point from debug sections are set an
 #address which is set to the end of the image. The test also uses addr2line

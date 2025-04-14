@@ -1,6 +1,4 @@
 #---UndefError.test--------- Executable-----------------------------#
-
-
 #BEGIN_COMMENT
 #Show the full resolved name when reporting an undefined symbol
 #END_COMMENT

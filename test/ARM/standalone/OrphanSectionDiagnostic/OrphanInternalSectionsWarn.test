@@ -1,5 +1,4 @@
 #---OrphanInternalSectionWarn.test------------Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks if a diagnostic warning is emitted when an orphan internal
 # section is detected when orphan_handling is set to "warn".

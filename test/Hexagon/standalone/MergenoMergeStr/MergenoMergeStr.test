@@ -1,5 +1,4 @@
 #---MergenoMergeStr.test-------Executable--------------------------------------#
-
 # If a non alloc merge string and a non alloc section with no merge string
 # flag set is merged, the resulting section must not have the merge string
 # flag set

@@ -1,5 +1,4 @@
 #---TraceSymbolExactMatch.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This tests symbol tracing with exact matches
 #END_COMMENT

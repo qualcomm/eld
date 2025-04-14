@@ -1,8 +1,4 @@
 #----------HI20_LO12_I_TO_CLUI.test----------------- Executable------------------#
-
-
-
-
 #BEGIN_COMMENT
 # Relax LUI with a small operand to comppressed C.LUI.
 # This test was generated with the help of gcc:

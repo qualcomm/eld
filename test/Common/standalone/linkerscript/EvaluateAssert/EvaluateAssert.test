@@ -1,5 +1,4 @@
 #---EvaluateAssert.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is executing asserts properly.
 #END_COMMENT

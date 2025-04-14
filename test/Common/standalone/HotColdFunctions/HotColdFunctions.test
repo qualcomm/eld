@@ -1,5 +1,4 @@
 #---HotColdFunctions.test--------------------------- Executable ----------#
-
 #BEGIN_COMMENT
 # This test checks that linker has default mappings that group
 # unlikely, exit, hot, cold functions and emitted in the output file

@@ -1,5 +1,4 @@
 #---ExampleOfMyLitTest.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Without this patch, undefined reference to `__start_llvm_profile_data'
 # will be generated.like GNU ld, the input object order matters

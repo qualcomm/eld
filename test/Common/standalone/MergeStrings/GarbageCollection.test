@@ -1,5 +1,4 @@
 #---GarbageCollection.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests that merge string relocations from garbage collected sections are ignored
 #END_COMMENT

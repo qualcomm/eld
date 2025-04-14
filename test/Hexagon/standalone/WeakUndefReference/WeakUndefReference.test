@@ -1,5 +1,4 @@
 #---WeakUndefReference.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the linker doesnot insert a guard stub.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---PartialLinkSharedLibrary.test--------------------------- PartialLink -----------------#
-
 #BEGIN_COMMENT
 # Linker should prefer static libraries over dynamic libraries with partial
 # linking

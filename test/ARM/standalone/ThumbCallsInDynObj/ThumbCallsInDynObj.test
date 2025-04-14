@@ -1,5 +1,4 @@
 #---ThumbCallsInDynObj.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks that the linker creates a transition stub to call bar.
 # The function bar resides in a shared object. The current assumption is that

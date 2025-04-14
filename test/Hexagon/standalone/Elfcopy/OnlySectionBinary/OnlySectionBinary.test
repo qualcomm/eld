@@ -1,5 +1,4 @@
 #---NonZeroVMa.test--------------------- Exe------------------#
-
 #BEGIN_COMMENT
 #Make sure that copying/stripping a binary that does not load program headers
 #does not mess up the binary

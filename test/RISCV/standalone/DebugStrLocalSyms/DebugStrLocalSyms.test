@@ -1,6 +1,4 @@
 #---DebugStrLocalSyms.test------------------ Executable------------------#
-
-
 #BEGIN_COMMENT
 # If the symbols in .debug_str are accessed with a local symbol
 # the symbol itself has the correct fragment.

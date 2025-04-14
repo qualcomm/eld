@@ -1,6 +1,4 @@
 #---EntrySymArchive.test----------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This tests that the linker is able to add the entry symbol from an archive
 # mentioned via command line.

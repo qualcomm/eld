@@ -1,6 +1,4 @@
 #---RelocationOverflow.test--------------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This checks that relocation overflows result in a proper error message for
 # easier diagnosability.

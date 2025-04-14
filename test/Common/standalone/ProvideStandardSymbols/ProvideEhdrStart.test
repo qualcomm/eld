@@ -1,5 +1,4 @@
 #--ProvideEhdrStart.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #Allow targets to PROVIDE standard symbols on reference.
 #END_COMMENT

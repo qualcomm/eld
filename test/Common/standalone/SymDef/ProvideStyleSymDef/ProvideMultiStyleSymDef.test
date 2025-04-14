@@ -1,5 +1,4 @@
 #---ProvideMultiStyleSymDef.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to read multiple symdef files properly.
 #END_COMMENT

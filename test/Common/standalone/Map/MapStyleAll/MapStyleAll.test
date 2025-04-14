@@ -1,6 +1,4 @@
 #---MapStyleAll.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 # Teach linker to emit multiple map files
 #END_COMMENT

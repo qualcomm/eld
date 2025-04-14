@@ -1,6 +1,4 @@
 #---TrampolinesCopyWithRelocs.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This test checks the linker produces a proper message that it cannot clone
 # fragment for symbol since the symbol has relocations. This fixes the undefined

@@ -1,5 +1,4 @@
 #---LinkDriver.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # x86_64-link %linkopts should invoke the x86_64 bit driver
 #--------------------------------------------------------------------

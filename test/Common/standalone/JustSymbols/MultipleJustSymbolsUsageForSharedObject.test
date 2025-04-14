@@ -1,5 +1,4 @@
 #---MultipleJustSymbolsUsageForSharedObject.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to attach just symbols actions to multiple input shared object files.
 #END_COMMENT

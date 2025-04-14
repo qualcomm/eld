@@ -1,5 +1,4 @@
 #---NoNoteGNUProperty.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests checks that the linker is read a improper proper GNU property section
 #and not emit a note GNU property section in the output

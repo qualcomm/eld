@@ -1,5 +1,4 @@
 #---LoadOnlyPhdrsWithPtPhdrHavingFileHdr.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This is a test which tests the linker where the PT_LOAD segment contains only
 # PHDRS and not FILEHDRS. In addition the PT_PHDR segment contains only FILEHDR

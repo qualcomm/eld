@@ -1,5 +1,4 @@
 #---LMAOverlap.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This test checks that the linker does not create an image with overlapping
 # LMA's.

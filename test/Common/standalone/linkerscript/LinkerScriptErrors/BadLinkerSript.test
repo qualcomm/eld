@@ -1,6 +1,4 @@
 #---BadLinkerScript.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # Test that the linker emits a syntax error for a script with unmatched braces
 #END_COMMENT

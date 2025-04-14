@@ -1,5 +1,4 @@
 #---FillPaddingAlign.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that padding is filled properly in the output file, and tests that
 # the linker is not filling with extra bytes.

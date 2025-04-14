@@ -1,5 +1,4 @@
 #---ExternDynamicList.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks for option -extern-list/-dynamic-list that is being handled in the linker.
 #END_COMMENT

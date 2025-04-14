@@ -1,5 +1,4 @@
 #---LTODontRaiseUndefCommon.test-------------------------- Executable,LTO  --------------#
-
 #BEGIN_COMMENT
 # This test checks that the linker doesnot report undefined symbol for a symbol
 # that is marked IGNORE.

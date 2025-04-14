@@ -1,5 +1,4 @@
 #---OrphanSymTab.test------------Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks if orphan section diagnostic warnings are not emitted for
 # ".symtab", ".strtab" and ".shstrtab".

@@ -1,5 +1,4 @@
 #---PtPhdrFileHdrPhdr.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This is a test which tests the linker is able to handle PT_PHDR which contains
 # PHDR and FILEHDR. PHDRS and FILEHDR are not loaded.

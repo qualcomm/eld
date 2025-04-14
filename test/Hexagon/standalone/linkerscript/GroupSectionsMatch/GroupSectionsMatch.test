@@ -1,5 +1,4 @@
 #---GroupSetionsmatch.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that linker is able to match section, with section SHF_GROUP flag
 # set.

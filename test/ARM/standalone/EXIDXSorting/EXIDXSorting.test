@@ -1,5 +1,4 @@
 #---EXIDXSorting.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is sorting the fragments as per EXIDX design.
 #END_COMMENT

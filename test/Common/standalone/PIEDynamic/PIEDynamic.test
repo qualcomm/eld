@@ -1,5 +1,4 @@
 #---PIEDynamic.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests that PIE dynamic flag is enabled on targets that support PIE
 #END_COMMENT

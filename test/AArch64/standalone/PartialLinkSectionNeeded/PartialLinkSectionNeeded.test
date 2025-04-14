@@ -1,5 +1,4 @@
 #---PartialLinkSectionNeeded.test--------------------------- PartialLink -----------------#
-
 #BEGIN_COMMENT
 # This tests that partial linking emits a proper relocation for a section.
 #END_COMMENT

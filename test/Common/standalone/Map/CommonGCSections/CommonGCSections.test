@@ -1,5 +1,4 @@
 #---KeepCommonsymbols.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks the garbage collection of common symbols and the
 # output of garbage-collected common sections with <GC> attribute in

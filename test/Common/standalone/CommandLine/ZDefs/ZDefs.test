@@ -1,5 +1,4 @@
 #---ZDefs.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks if option with prefix -z is handled properly.
 #END_COMMENT

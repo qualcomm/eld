@@ -1,6 +1,4 @@
 #----------AUIPC_JALR_TO_CJ.test----------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Relaxing AUIPC/JR to compressed C.J (tail call).
 #END_COMMENT

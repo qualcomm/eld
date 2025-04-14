@@ -1,5 +1,4 @@
 #---EndOfImageSymbolGCDynamicLibrary.test----------------------- SharedLibrary --------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker is able to garbage collect and apply a proper
 #relocation value to symbols in debug sections.

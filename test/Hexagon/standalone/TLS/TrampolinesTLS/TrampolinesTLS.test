@@ -1,5 +1,4 @@
 # --TrampolinesTLS.test--------------------- Shared Library-----------------------#
-
 #--- -----------------------------------------------------------------------------#
 # BEGIN_COMMENT
 # Linker needs to create PLT entries for calls to __tls_get_addr and if not

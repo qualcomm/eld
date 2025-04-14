@@ -1,5 +1,4 @@
 #---ThinLTOCommonSymbols.test------------------------------ Executable,LS,LTO ---------------------#
-
 #BEGIN_COMMENT
 #Linker misplaces a symbol with ThinLTO.
 #END_COMMENT

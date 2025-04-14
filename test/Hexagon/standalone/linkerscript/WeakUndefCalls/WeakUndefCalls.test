@@ -1,5 +1,4 @@
 #---WeakUndefCalls.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that linker defined symbol is created for calls to weak undefined
 # symbols. The calls return back to the caller.

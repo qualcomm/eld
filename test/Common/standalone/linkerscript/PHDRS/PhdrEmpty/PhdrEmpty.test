@@ -1,5 +1,4 @@
 #---PhdrEmpty.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 #This is a test to make sure that filesz and memsz are both equal
 #END_COMMENT

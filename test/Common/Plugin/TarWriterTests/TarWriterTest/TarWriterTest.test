@@ -1,6 +1,4 @@
 #---TarWriterTest.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # This checks a tar file being created and file names and content in it.
 #END_COMMENT

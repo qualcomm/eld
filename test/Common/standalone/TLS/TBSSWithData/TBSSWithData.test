@@ -1,5 +1,4 @@
 #---TBSSWithData.test--------------------------- TLS, Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests that TLS is properly handled when a TBSS section is followed by a
 # section that contains non TLS data.

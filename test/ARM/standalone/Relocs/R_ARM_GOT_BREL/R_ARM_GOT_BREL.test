@@ -1,5 +1,4 @@
 #---R_ARM_GOT_BREL.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to handle R_ARM_GOT_BREL relocations
 #END_COMMENT

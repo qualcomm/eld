@@ -1,5 +1,4 @@
 #---DebugStrings.test----------------------- Executable -----------------#
-
 # START_COMMENT
 # Checks that merged debug strings are not shown by default
 # and are shown with -MapDetail=show-debug-strings in txt map file

@@ -1,5 +1,4 @@
 #---WithPHDRS.test--------------------------- Executable,LS -----------------#
-
 #BEGIN_COMMENT
 # This test checks for the region table thats emitted by the linker when there
 # are program headers specified in the linker script. This allows BSS and

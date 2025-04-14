@@ -1,5 +1,4 @@
 #---GarbageCollectionDiscardedSections.test------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This tests that Garbage collection can handle symbols defined in linker
 # scripts under DISCARD rules

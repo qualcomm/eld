@@ -1,5 +1,4 @@
 #---CorruptInputFiles.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This is a basic test to check for errors in input files. Pretty sure there are
 # more cases but lets handle it case by case.

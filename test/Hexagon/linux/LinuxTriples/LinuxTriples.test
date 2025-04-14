@@ -1,5 +1,4 @@
 #---LinuxTriple.test--------------------- Executable------------------#
-
 # Based on target triple, set the interpreter in dynamic executable
 #BEGIN_COMMENT
 # This tests that Musl have respective .interp set

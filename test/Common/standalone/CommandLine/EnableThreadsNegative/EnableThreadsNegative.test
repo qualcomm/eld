@@ -1,5 +1,4 @@
 #---EnableThreadsNegative.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker throws error if unsupported value given to --enable-threads option.
 #END_COMMENT

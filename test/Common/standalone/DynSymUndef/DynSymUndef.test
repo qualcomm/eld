@@ -1,5 +1,4 @@
 #---DynSymUndef.test--------------------------- SharedLibrary --------------------#
-
 #BEGIN_COMMENT
 #This checks that symbols specified as extern doesnot show up in the dynamic
 #symbol table

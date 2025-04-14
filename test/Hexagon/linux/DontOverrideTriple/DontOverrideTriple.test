@@ -1,5 +1,4 @@
 #---DontOverrideTriple.test--------------------- Executable------------------#
-
 #-----------------------------------------------------------------------------
 #BEGIN_COMMENT
 # If a triple is not passed in the command line and march is passed, dont override the triple unless

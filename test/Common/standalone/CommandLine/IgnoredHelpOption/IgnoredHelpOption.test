@@ -1,6 +1,4 @@
 #---IgnoredHelpOption.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This checks for build-id option present in ingnored options
 # help content group.

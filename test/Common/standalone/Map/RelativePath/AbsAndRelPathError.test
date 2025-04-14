@@ -1,6 +1,4 @@
 #---AbsAndRelPathError.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 # This test checks the reported error when both -MapDetail absolute-path and
 # -MapDetail relative-path=<BasePath> are used.

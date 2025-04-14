@@ -1,5 +1,4 @@
 #---DynamicList.test-------Executable/SharedLibrary----------------------------#
-
 # Rectify the dynamic-list behavior
 #BEGIN_COMMENT
 #The dynamic list is used to control what can be added to dynamic symbol table

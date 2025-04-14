@@ -1,5 +1,4 @@
 #---m0.test----------------------------------- Executable ---------------------#
-
 #BEGIN_COMMENT
 # Cortex-M0 doesn't use blx, which need test attribute
 #END_COMMENT

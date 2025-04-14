@@ -1,5 +1,4 @@
 #---AllowUserOverridesEmptySection.test---Executable --------------------#
-
 #BEGIN_COMMENT
 # This test shows that empty section permissions can be overridden by the user.
 #END_COMMENT

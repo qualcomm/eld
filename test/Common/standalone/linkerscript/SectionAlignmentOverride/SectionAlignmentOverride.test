@@ -1,5 +1,4 @@
 #---SectionAlignmentOverride.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # If the linker script has an expression that overrides the default VMA
 # associated with the section using a direct expression or an absolute value,

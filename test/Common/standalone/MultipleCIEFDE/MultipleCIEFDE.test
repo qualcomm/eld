@@ -1,5 +1,4 @@
 #---MultipleCIEFDE.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the linker parsing the EhFrame sections and creating
 # appropriate output.

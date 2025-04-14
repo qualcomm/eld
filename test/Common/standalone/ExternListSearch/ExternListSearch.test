@@ -1,6 +1,4 @@
 #---ExternListSearch.test-------Executable/SharedLibrary----------------------------#
-
-
 #BEGIN_COMMENT
 #Improve extern list parsing by using linker script parser.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---Used.test----------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Simple check for input containing merge strings marked used/unused
 #END_COMMENT

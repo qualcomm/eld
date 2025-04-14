@@ -1,5 +1,4 @@
 #---NoMerge.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests cases where strings should NOT be merged
 #END_COMMENT

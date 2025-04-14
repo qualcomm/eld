@@ -1,5 +1,4 @@
 #---DiscardDynSymSection.test--------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # When a dynsym section is ignored or discarded, the link %linkopts field in the rela.dyn
 # section needs to be populated appropriately.

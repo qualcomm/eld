@@ -1,5 +1,4 @@
 #----------AUIPC_JALR_TO_CJ.test----------------- Executable------------------#
-
 # REQUIRES: riscv32
 #BEGIN_COMMENT
 # Platform-dependent test for tail call relaxation with incorrect register.

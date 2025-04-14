@@ -1,6 +1,4 @@
 #---AbsolutePaths.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # Ensure that what is given to the linker as an absolute path is shown as an absolute path in the mapping file
 #END_COMMENT

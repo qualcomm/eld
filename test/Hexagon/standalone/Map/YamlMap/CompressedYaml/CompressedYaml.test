@@ -1,5 +1,4 @@
 #---CompressedYaml.test--------------------- Executable,GC ------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker can write compressed yaml files to the output.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---ThinArchiveRuleMatchingCompatibility.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the rule-matching of archive members is consistent for
 # fat archives and thin archives when

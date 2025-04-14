@@ -1,6 +1,4 @@
 #---EntryPoint.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This test checks that the text map file contains entry point information only if its
 # passed as a symbol.

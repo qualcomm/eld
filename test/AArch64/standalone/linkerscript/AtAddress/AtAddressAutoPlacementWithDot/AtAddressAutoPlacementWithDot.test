@@ -1,5 +1,4 @@
 #---AtAddressAutoPlacementWithDot.test--------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that a section specified with a @ attribute along with an address
 # is handled by the linker. This CHECK-DAGs that the @ section is automatically laid

@@ -1,7 +1,4 @@
 #---INIFile.test----------------------- Executable,LS --------------------#
-
-
-
 #BEGIN_COMMENT
 # Tests that plugins are able to read and write .ini files with plugin APIs
 #END_COMMENT

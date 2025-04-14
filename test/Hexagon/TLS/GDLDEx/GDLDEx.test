@@ -1,5 +1,4 @@
 #---GDLDEx.test---------------------SharedLibrary------------------#
-
 #BEGIN_COMMENT
 # Add two more relocations with GD and LD PLT calls for stub
 #END_COMMENT

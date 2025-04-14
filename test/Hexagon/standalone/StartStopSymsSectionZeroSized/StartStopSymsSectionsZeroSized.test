@@ -1,5 +1,4 @@
 #---StartStopSymsSectionsZeroSized.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to handle and create section magic symbols
 # identified by {start,stop}_<sectionname> and when the section is zero sized.

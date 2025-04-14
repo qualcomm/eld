@@ -1,5 +1,4 @@
 #---LongDynamicList.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 #Check that the linker is able to parse a long dynamic list
 #END_COMMENT

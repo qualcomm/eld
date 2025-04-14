@@ -1,5 +1,4 @@
 #---link %linkopts.test---------------------------------- PartialLink -------------------#
-
 #BEGIN_COMMENT
 # It is important to set sh_link for ARM.exidx sections, especially for partial
 # linking

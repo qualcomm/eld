@@ -1,5 +1,4 @@
 #---veneer.test----------------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Make sure we make a Thumb-to-ARM veneer for distances greater than 4MB
 #END_COMMENT

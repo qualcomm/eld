@@ -1,6 +1,4 @@
 #----------GP.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Add symbol __global_pointer$ symbol. This is the small data area
 # base pointer

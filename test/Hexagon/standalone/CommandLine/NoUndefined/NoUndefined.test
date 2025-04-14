@@ -1,5 +1,4 @@
 #---NoUndefined.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks for option -{,-}no-undefined that is being handled in the linker.
 #END_COMMENT

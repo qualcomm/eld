@@ -1,5 +1,4 @@
 #---BadEntrySize.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # When the sections that have varying entry sizes need to merged to an output
 # section, its invalid to set the entry size to the max of the entry sizes.

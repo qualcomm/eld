@@ -1,5 +1,4 @@
 #---Executable.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that SIZEOF_HEADERS works when used with the linker script and
 # would load program headers if rightly done.

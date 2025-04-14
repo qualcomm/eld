@@ -1,5 +1,4 @@
 #---TrampoolineMap.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that linker is able to generate trampoline maps without issues when
 # the symbol is absolute.

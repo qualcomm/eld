@@ -1,7 +1,4 @@
 #---ExternListMapFile.test-------Executable/SharedLibrary----------------------------#
-
-
-
 #BEGIN_COMMENT
 # Check extern list is added to text map file
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---OrphanSectionDynamic.test------------Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks if orphan section diagnostic warnings are emitted for
 # ".dynsym" and ".dynstr".

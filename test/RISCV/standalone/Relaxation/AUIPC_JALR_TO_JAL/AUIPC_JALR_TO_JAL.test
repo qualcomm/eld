@@ -1,9 +1,4 @@
 #----------AUIPC_JALR_TO_JAL.test----------------- Executable------------------#
-
-
-
-
-
 #BEGIN_COMMENT
 # Do relaxation based from AUIPC/JALR to uncompressed and compressed (32 bit only) JAL.
 # Only common parts between rv32 and rv64 are included here.

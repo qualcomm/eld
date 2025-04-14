@@ -1,7 +1,4 @@
 #---Verbose.test--------------------------- Executable -----------------#
-
-
-
 #BEGIN_COMMENT
 # This checks if the linker supports --verbose option.
 #END_COMMENT

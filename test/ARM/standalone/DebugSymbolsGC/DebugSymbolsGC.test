@@ -1,5 +1,4 @@
 #---DebugSymbolsGC.test----------------------- Executable,LS --------------------
-
 #BEGIN_COMMENT
 #Symbols from debug sections should not participate in garbage collection
 #END_COMMENT

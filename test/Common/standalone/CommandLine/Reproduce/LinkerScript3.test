@@ -1,5 +1,4 @@
 #---LinkerScript3.test------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that --reproduce can handle linkerscripts
 #END_COMMENT

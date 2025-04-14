@@ -1,5 +1,4 @@
 #---InvalidInputFormat.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the invalid input format diagnostic.
 #END_COMMENT

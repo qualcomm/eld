@@ -1,6 +1,4 @@
 #---base-addr.test-------------------------- Executable -----------------------#
-
-
 #BEGIN_COMMENT
 # This test checks that the linker assigns a predefined base address for the
 # static images under linux environment when not using a linker script and the

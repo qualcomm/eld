@@ -1,5 +1,4 @@
 #---RepeatedArchiveMemberWarn.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This test checks that a warning is reported for multiple archive members
 # with the same contents.

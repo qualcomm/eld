@@ -1,5 +1,4 @@
 #---PartialLinkDebug.test--------------------------- PartialLink -----------------#
-
 #BEGIN_COMMENT
 #Linker should merge debug string mergeable sections into one section.
 #END_COMMENT

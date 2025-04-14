@@ -1,5 +1,4 @@
 #---MapFile.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that Mapfile prints that the file is of type SymDef.
 #END_COMMENT

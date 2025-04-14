@@ -1,6 +1,4 @@
 #---PartialLinkLTO.test----------------------------- PartialLink,LTO --------------------#
-
-
 #BEGIN_COMMENT
 # The linker was releasing memory for archives that contained Bitcode and ELF
 # files.

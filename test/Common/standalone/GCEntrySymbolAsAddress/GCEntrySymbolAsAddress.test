@@ -1,5 +1,4 @@
 #---GCEntrySymbolAsAddress.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Linker fails to parse the entry symbol as address, and doesnot associate the
 # entry field in the ELF header to the value specified by the user. The linker

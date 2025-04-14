@@ -1,6 +1,4 @@
 #---FirstPtLoadDoesnotContainPhdrsError.test--------------------------- Executable,LS,PHDRS -----------------#
-
-
 #BEGIN_COMMENT
 # This is a test which tests the linker that it produces an error when the first
 # PT_LOAD segment doesnot contain PHDRS / FILEHDRS but the next segment does

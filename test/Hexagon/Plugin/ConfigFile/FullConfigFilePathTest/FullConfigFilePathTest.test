@@ -1,5 +1,4 @@
 #---FullConfigFilePathTest.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # Tests that plugins are able to load .config via the full path and .ini files from search dirs
 # the verbose log should reflect only one match for plugin.conf

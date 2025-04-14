@@ -1,5 +1,4 @@
 #---StaticExePIC.test-------Static Executable----------------------------#
-
 #BEGIN_COMMENT
 # Test that GOT relocations in object files do not result dynamic relocations.
 #END_COMMENT

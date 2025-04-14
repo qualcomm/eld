@@ -1,5 +1,4 @@
 #---ZForceBTI.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker can handle the switch -z force-bti and -z pac-plt
 #END_COMMENT

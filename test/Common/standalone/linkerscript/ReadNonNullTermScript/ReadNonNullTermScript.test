@@ -1,5 +1,4 @@
 #---ReadNonNullTermScript.test------------ Executable-------------------------#
-
 #BEGIN_COMMENT
 # Linker script with no null termination should not cause linker to crash
 # due to read beyond memory

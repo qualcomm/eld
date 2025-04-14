@@ -1,6 +1,4 @@
 #---GCSectionsGroupReloc.test----------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Make sure --gc-sections works as expected with RISCV linker
 #--------------------------------------------------------------------

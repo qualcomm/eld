@@ -1,5 +1,4 @@
 #---AttributeSectionPermissions.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that the RISC-V attribute sections are assigned proper permissions
 #END_COMMENT

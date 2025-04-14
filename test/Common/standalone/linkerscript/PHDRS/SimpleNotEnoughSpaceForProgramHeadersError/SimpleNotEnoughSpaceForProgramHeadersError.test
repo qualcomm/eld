@@ -1,5 +1,4 @@
 #---SimpleNotEnoughSpaceForProgramHeadersError.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This a test to check if that the linker does not error out where SIZEOF_HEADERS is not
 # present and the script is requesting program headers and file headers to be

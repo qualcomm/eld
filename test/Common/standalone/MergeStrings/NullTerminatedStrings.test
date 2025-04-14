@@ -1,5 +1,4 @@
 #---NullTerminatedStrings.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests that strings in merge string sections are null terminated
 # and proper that proper error messages are emitted if they are not

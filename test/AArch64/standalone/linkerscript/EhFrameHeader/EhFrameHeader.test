@@ -1,5 +1,4 @@
 #---EhFrameHeader.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that AArch64 doesnot enable generating eh_frame_hdr section by
 # default when using Linker scripts. The linker will create an eh_frame_hdr

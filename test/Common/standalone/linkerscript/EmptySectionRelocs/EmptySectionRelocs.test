@@ -1,5 +1,4 @@
 #---EmptySectionRelocs.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests checks that empty section relocations are preserved with
 # emit relocs

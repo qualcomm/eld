@@ -1,5 +1,4 @@
 #---IFuncRelative.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests the contents of the .got.plt section contains the function pointer
 # that IFUNC is pointing to.

@@ -1,5 +1,4 @@
 #---SectionTypeEXIDX.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 #Generate PT_ARM_EXIDX segment, even if the section name is named differently.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---R_ARM_TARGET2.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to handle R_ARM_TARGET2 relocations
 # properly like BFD and LLD.

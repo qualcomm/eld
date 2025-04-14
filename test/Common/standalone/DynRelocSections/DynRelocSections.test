@@ -1,5 +1,4 @@
 #----------DynRelocSections.test--------------------- SharedLibrary------------------#
-
 #BEGIN_COMMENT
 # Check the info field of .rela.dyn and .rela.plt sections.
 #--------------------------------------------------------------------

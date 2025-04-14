@@ -1,7 +1,4 @@
 #---Namespec.test------------------------- Executable -----------------#
-
-
-
 #BEGIN_COMMENT
 # This checks for proper output for proper response file with -l option
 #END_COMMENT

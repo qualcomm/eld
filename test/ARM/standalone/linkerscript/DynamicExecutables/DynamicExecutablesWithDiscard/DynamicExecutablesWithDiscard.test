@@ -1,5 +1,4 @@
 #---DynamicExecutablesWithDiscard.test--------------------- DynamicExecutable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that the dynamic section still contains valid entries, even when
 # the important sections such as dynsym, dynstr are discarded by linker script

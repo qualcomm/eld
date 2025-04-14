@@ -1,6 +1,4 @@
 #---DumpScriptInfo.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Check dumping of linkerscript information in MAP file
 #--------------------------------------------------------------------------------------

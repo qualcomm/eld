@@ -1,5 +1,4 @@
 #---reloc_VENDOR_missing.test--------------------- Executable------------#
-
 #BEGIN_COMMENT
 #  Error when Relocation 192-255 has a R_RISCV_VENDOR (191)
 #  relocation but we don't support that vendor

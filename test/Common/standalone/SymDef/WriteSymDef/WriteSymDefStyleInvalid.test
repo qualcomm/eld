@@ -1,5 +1,4 @@
 #---WriteSymDefStyleInvalid.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to terminate gracefully if invalid symdef style is given.
 #END_COMMENT

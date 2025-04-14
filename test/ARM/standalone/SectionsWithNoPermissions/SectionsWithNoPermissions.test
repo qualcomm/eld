@@ -1,5 +1,4 @@
 #---SectionsWithNoPermissions.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that linker will warn sections that dont have proper permissions.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---LTOGC.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This test checks LTO with garbage-collection.
 #END_COMMENT

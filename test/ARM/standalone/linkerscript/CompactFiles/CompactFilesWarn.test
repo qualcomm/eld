@@ -1,5 +1,4 @@
 #---CompactFilesWarn.test--------------------- Executable------------#
-
 #BEGIN_COMMENT
 # Test that the linker produces a warning if it doesnot satisfy the requirement
 # when generating compact files.

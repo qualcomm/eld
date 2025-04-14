@@ -1,6 +1,4 @@
 #---AllOutSectAddresses.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # This tests checks the behavior of plugin framework APIs:
 # LinkerWrapper::getAllOutputSections, eld::plugin::OutputSection::getVirtualAddress,

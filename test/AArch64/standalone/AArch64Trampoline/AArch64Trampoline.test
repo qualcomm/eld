@@ -1,5 +1,4 @@
 #--AArch64Trampoline.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that AARCH64 creates a trampoline only when necessary.
 #END_COMMENT

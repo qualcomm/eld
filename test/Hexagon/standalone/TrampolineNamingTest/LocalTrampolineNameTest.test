@@ -1,5 +1,4 @@
 #---LocalTrampolineNameTest.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 # Test for the contextual naming convention of trampolines to local symbols
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---EntryAddress.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print the entry address properly.
 #END_COMMENT

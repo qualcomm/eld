@@ -1,5 +1,4 @@
 #---MatchGNU.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This test checks the behavior of the --script-options=match-gnu option.
 #END_COMMENT

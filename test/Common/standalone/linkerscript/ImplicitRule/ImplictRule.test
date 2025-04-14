@@ -1,5 +1,4 @@
 #---ImplictRule.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Display that an implicit rule was added by the linker to choose and annotate
 # it in the Map file.

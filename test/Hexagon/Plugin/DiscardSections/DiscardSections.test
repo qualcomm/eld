@@ -1,6 +1,4 @@
 #---DiscardSections.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # This tests that symbol f1 can be discarded by section matcher and section
 # iterator plugins.

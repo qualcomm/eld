@@ -1,5 +1,4 @@
 #---ExportFromExe.test--------------------- Exe------------------#
-
 #BEGIN_COMMENT
 # This tests that symbols refered in shared library and defined in executable
 # are exported by the executable

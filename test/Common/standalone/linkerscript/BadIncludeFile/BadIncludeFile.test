@@ -1,5 +1,4 @@
 #---BadIncludeFile.test-------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test checks for proper link failure messages if linker script parsing failed to 
 # find include files.

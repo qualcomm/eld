@@ -1,5 +1,4 @@
 #---LinkerComment.test--------------------- Executable,DSO,LTO --------------------#
-
 #BEGIN_COMMENT
 # Linker should emit specific comments in the .comment section
 #END_COMMENT

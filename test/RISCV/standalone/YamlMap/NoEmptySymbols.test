@@ -1,7 +1,4 @@
 #---NoEmptySymbols.test--------------------------- Executable -----------------#
-
-
-
 #BEGIN_COMMENT
 # Checks that there are no empty symbols present in the yaml linker map
 #END_COMMENT

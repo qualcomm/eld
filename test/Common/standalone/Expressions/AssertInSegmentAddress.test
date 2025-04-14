@@ -1,5 +1,4 @@
 #---ErrorInSegmentVMA.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Verify that assertion in segment address is raised.
 #END_COMMENT

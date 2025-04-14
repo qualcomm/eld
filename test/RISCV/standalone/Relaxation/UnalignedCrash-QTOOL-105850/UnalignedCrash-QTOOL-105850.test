@@ -1,5 +1,4 @@
 #----------UnalignedCrash-QTOOL-105850.test----------------- Executable------------------#
-
 # BEGIN_COMMENT
 # Test that the linker does not crash.
 # END_COMMENT

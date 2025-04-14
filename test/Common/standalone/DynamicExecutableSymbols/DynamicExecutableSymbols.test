@@ -1,5 +1,4 @@
 #---DynamicExecutableSymbols.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test checks that a dynamic executable only contains symbols from shared
 # libraries that are actually used in the dynamic executable.

@@ -1,5 +1,4 @@
 # --TrampolinesUndef.test--------------------- Shared Library-----------------------#
-
 #--- -----------------------------------------------------------------------------#
 # BEGIN_COMMENT
 # Linker needs to create PLT entries for calls to undefined symbols.

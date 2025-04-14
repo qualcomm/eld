@@ -1,5 +1,4 @@
 #---eh-frame.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 LLVM's libunwind requires a .eh_frame_hdr section
 #END_COMMENT

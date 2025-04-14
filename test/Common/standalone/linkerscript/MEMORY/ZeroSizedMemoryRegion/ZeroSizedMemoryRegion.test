@@ -1,5 +1,4 @@
 #---NoPHDRS.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the linker is able to parse MEMORY linker script
 # command. After layout is complete, the linker checks for zero sized

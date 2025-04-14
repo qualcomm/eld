@@ -1,6 +1,4 @@
 #---DebugSectionsWithGC.test------------ Executable------------------#
-
-
 #BEGIN_COMMENT
 #debug_aranges section abruptly ends with more entries need to be parsed
 #still. This patch fixes it. Affects only RISC-V

@@ -1,5 +1,4 @@
 #---RetainSectionTrace.test-------------- Executable------------------------#
-
 #BEGIN_COMMENT
 #This tests that a section with a property SHF_GNU_RETAIN is retained by
 #the linker.

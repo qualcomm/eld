@@ -1,5 +1,4 @@
 #---GetEnv.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests checks the API LinkerWrapper::GetEnv.
 #END_COMMENT

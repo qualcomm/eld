@@ -1,5 +1,4 @@
 #---CRefTable.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print the cross references in the YAML
 # Map file.

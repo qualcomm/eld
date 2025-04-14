@@ -1,5 +1,4 @@
 #---ARMPLTAddend.test--------------------------- SharedObject -----------------#
-
 #BEGIN_COMMENT
 # This checks that ARM Linker generates proper PLT code for accessing the GOT.
 # The below test when run with arm-linux-gnueabi-objdump would produce this result

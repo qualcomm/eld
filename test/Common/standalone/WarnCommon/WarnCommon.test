@@ -1,5 +1,4 @@
 #---WarnCommon.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the linker removes FDE entries that are garbage collected
 #END_COMMENT

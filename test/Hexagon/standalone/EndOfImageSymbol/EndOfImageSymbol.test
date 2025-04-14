@@ -1,5 +1,4 @@
 #---EndOfImageSymbol.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to add an end of image marker symbol that
 # points to the end of the image.

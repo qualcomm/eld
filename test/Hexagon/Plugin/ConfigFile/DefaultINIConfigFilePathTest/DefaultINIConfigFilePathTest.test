@@ -1,6 +1,4 @@
 #---DefaultINIConfigFilePathTest.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # Tests that plugins are able to load .config from search dirs and .ini files from default path
 # i.e. etc/ELD/Plugins/<Plugin name>/ and the link proceeds even if .ini is not found here it

@@ -1,5 +1,4 @@
 #---NoVerify.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker supports --no-verify option.
 #END_COMMENT

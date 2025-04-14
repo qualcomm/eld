@@ -1,5 +1,4 @@
 #---PrintSummary.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This option prints the Linker run summary.
 #END_COMMENT

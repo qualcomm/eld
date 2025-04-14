@@ -1,5 +1,4 @@
 #---OutputChunkIteratorMoveBetweenSections.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a output chunk iterator plugin which moves sections between rules.
 #END_COMMENT

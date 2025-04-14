@@ -1,5 +1,4 @@
 #---SectionWithZeroSizedSymbolGCAndPadding.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the text map file has the empty section recorded if it has a zero sized
 # symbol in it

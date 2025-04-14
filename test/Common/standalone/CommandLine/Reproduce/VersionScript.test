@@ -1,6 +1,4 @@
 #---VersionScript.test------------------------- Executable ----------------------#
-
-
 #BEGIN_COMMENT
 # This checks that --reproduce can handle version scripts
 #END_COMMENT

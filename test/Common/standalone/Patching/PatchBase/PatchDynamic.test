@@ -1,5 +1,4 @@
 #---PatchSections.test-------------- Executable------------------------#
-
 #BEGIN_COMMENT
 #Test errors for patching dynamic executables
 #END_COMMENT

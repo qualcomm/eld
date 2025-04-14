@@ -1,5 +1,4 @@
 #---VersionScriptSearch.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 #Improve version script parsing by using linker script parser.
 #END_COMMENT

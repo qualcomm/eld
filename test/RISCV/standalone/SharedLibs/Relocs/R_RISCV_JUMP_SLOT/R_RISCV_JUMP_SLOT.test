@@ -1,6 +1,4 @@
 #----------R_RISCV_JuMP_SLOT.test--------------------- SharedLibrary,LS------#
-
-
 #BEGIN_COMMENT
 #This test checks that the linker emits relocations to access symbols
 #that require PLT. RISC-V like other targets uses JUMP_SLOT relocations.

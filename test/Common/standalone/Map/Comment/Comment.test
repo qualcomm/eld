@@ -1,6 +1,4 @@
 #---Comment.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 #Make the linker show all sections that have comments.
 #END_COMMENT

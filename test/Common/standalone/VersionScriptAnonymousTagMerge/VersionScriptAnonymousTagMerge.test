@@ -1,5 +1,4 @@
 #---VersionScriptAnonymousTagMerge.test--------------------- Executable,VS------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to merge anonymous tags properly.
 #END_COMMENT

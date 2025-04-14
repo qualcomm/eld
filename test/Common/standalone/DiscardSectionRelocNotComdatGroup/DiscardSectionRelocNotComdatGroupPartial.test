@@ -1,5 +1,4 @@
 #---DiscardSectionRelocNotComdatGroup.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # A group section that is not a COMDAT should be preserved.
 #END_COMMENT

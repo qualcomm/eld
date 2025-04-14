@@ -1,5 +1,4 @@
 #---ExcludeWithKeep.test--------------------- Executable, LS------------------#
-
 #BEGIN_COMMENT
 # This test verifies the behavior with EXCLUDE_FILE is used within KEEP linker
 # script directive.

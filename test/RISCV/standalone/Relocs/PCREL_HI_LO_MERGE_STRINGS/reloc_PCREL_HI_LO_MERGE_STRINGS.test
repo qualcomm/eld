@@ -1,6 +1,4 @@
 #---reloc_PCREL_HI_LO_MERGE_STRINGS.test--------Executable---------#
-
-
 #BEGIN_COMMENT
 # Check patching of R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_I relocation,
 # specifically when referring to the merge strings symbol with addend.

@@ -1,5 +1,4 @@
 #---SymbolTableShInfo.test--------------------------- Executable,PartialLink,SharedLibrary -----------------#
-
 #BEGIN_COMMENT
 # This makes the linker set sh_info field appropriately in the symtab section.
 #END_COMMENT

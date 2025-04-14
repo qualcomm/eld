@@ -1,5 +1,4 @@
 #---SharedLibRelNone.test----------------------- SharedLibrary --------------------#
-
 #BEGIN_COMMENT
 # Verify that R_HEX_NONE relocations are permitted when linking a shared library.
 #END_COMMENT

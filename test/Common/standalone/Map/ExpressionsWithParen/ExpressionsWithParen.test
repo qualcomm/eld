@@ -1,5 +1,4 @@
 #---Expressions.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 #This tests that expressions with parenthesis are properly printed in the Map
 #file.

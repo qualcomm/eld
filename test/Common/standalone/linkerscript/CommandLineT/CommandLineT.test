@@ -1,5 +1,4 @@
 #---CommandLineT.test--------------------------- Executable,LS -----------------#
-
 #BEGIN_COMMENT
 # This checks for option -T<script> that is being handled in the linker.
 #END_COMMENT

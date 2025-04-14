@@ -1,5 +1,4 @@
 #---DiscardedComdats.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print the sections that are duplicate
 # COMDAT groups in the YAML map file.

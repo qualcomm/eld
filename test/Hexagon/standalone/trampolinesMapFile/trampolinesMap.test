@@ -1,5 +1,4 @@
 #---trampolinesMap.test-------Executable----------------------------#
-
 # BEGIN_COMMENT
 # This test checks the trampolines count per output section and trampolines
 # information in the text map file.

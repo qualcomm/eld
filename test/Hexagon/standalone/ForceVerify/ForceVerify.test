@@ -1,5 +1,4 @@
 #---ForceVerify.test--------------------- SharedLibrary------------------#
-
 # Add a verify-options=reloc=<reloc name> option
 #BEGIN_COMMENT
 # This will check if there is any alignment or truncation issues and warn

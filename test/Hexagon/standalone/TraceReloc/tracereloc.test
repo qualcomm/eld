@@ -1,6 +1,4 @@
 #---tracereloc.test--------------------- Executable --------------------------#
-
-
 #BEGIN_COMMENT
 # Test for tracing a relocation.
 #END_COMMENT

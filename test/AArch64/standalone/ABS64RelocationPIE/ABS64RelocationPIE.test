@@ -1,5 +1,4 @@
 #---ABS64RelocationPIE.test--------------------------- PIE -----------------#
-
 #BEGIN_COMMENT
 # ABS{32,16} relocations should not create dynamic relocations.
 #END_COMMENT

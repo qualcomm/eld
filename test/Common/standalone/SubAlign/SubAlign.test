@@ -1,5 +1,4 @@
 #---SubAlign.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Test for linker script SUBALIGN directive.
 #END_COMMENT

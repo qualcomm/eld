@@ -1,5 +1,4 @@
 #---OutputFile.test-------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the output file in the response file uses the base name
 #END_COMMENT

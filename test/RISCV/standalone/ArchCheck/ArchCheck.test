@@ -1,7 +1,4 @@
 #---ArchCheck.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 # Check that rv32i/rv32im is supported and emulation flag is honored
 #--------------------------------------------------------------------

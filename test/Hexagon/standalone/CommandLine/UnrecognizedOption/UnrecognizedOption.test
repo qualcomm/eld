@@ -1,5 +1,4 @@
 #---UnrecognizedOption.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks for the proper warning string when an unrecognized command line
 # Argument is passed to the linker

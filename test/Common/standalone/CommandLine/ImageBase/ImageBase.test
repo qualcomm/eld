@@ -1,5 +1,4 @@
 #---ImageBase.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Verify the --image-base option.
 #END_COMMENT

@@ -1,7 +1,4 @@
 #---BinaryFormatInputFiles.test--------------------- Executable---------------------#
-
-
-
 #BEGIN_COMMENT
 # This test checks the support of binary format input files when
 # garbage-collection is enabled.

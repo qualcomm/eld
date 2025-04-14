@@ -1,5 +1,4 @@
 #---Errata843419.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to handle the errata and fix the errata
 # 843419.

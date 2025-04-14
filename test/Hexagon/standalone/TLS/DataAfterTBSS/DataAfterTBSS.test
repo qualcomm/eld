@@ -1,5 +1,4 @@
 #---.test--------------------------- Executable,LS -----------------#
-
 #BEGIN_COMMENT
 # This test checks that the segments contain all the sections that need
 # to be loaded for the program to run properly.

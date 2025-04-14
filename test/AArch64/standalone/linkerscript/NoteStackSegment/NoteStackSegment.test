@@ -1,5 +1,4 @@
 #---NoteStackSegment.test--------------------------- Executable,LS -----------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to create a .note.GNU-stack segment.
 #END_COMMENT

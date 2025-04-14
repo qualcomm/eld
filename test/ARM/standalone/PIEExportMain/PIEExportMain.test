@@ -1,5 +1,4 @@
 #---PIEExportMain.test--------------------------- PIE -----------------#
-
 #BEGIN_COMMENT
 # This is insane that GNU exports "main" for PIE executables.
 #END_COMMENT

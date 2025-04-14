@@ -1,5 +1,4 @@
 #---reloc_VENDOR_missing.test--------------------- Executable------------#
-
 #BEGIN_COMMENT
 #  Error when we have R_RELOC_VENDOR QUALCOMM with relocations that
 #  are not yet defined (192-195 are defined).

@@ -1,5 +1,4 @@
 #---VerboseDiagnostics.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This test checks the verbose diagnostics LinkerWrapper API functionality.
 #END_COMMENT

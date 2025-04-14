@@ -1,5 +1,4 @@
 #---PIETrampoline.test--------------------- PIE/Executable------------------#
-
 #BEGIN_COMMENT
 # Test that linker inserts a trampoline when building PIE executable.
 #---------------------------------------------------------------------------

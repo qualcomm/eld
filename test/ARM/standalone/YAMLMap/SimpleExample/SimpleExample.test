@@ -1,5 +1,4 @@
 #---SimpleExample.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that YAML output doesnot crash the linker.
 #END_COMMENT

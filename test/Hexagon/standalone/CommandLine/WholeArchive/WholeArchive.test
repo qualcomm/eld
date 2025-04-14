@@ -1,6 +1,4 @@
 #---WholeArchive.test--------------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This checks for option -{,no-}whole-archive that is being handled in the linker.
 #END_COMMENT

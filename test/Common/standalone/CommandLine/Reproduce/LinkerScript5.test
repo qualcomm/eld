@@ -1,6 +1,4 @@
 #---LinkerScript5.test------------------------- Executable -------------------#
-
-
 #BEGIN_COMMENT
 # This checks that --reproduce can handle INCLUDE_OPTIONAL in a linker script
 #END_COMMENT

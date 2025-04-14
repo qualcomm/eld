@@ -1,7 +1,4 @@
 #---InputCmd.test--------------------- Executable,LS------------------#
-
-
-
 #BEGIN_COMMENT
 # This tests that the Input specified in the linker script is handled properly.
 #END_COMMENT

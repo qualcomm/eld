@@ -1,5 +1,4 @@
 #---NoMsgBase.test----------------- SharedLibrary --------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker doesnot emit a _MSG_BASE absolute symbol when
 #building shared objects.

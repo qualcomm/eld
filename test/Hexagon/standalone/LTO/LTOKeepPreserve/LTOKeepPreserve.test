@@ -1,5 +1,4 @@
 #---LTOKeepPreserve.test-------------------------------- Executable,LTO,LS ---------------------#
-
 #BEGIN_COMMENT
 # This is a test for when the linker script decides to KEEP symbols, but the
 # symbol is not a bitcode symbol anymore.

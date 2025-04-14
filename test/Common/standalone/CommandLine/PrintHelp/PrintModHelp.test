@@ -1,5 +1,4 @@
 #---PrintModHelp.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This option prints the linker help text.
 #END_COMMENT

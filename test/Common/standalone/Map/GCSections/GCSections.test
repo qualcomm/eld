@@ -1,6 +1,4 @@
 #---GCSections.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This test checks that the text map file contains information about GC sections
 # and symbols garbage collected

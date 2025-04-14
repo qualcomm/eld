@@ -1,5 +1,4 @@
 ---ZOpt.test------------------------- Executable -----------------#
-
 # Checks that the response file is written correctely with -z options
 #END_COMMENT
 #START_TEST

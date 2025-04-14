@@ -1,5 +1,4 @@
 #---LinkerScriptSymbols.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This test checks the symbol resolution report when there are linker script
 # symbols.

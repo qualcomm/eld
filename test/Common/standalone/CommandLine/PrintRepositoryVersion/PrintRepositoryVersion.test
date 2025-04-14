@@ -1,5 +1,4 @@
 #---PrintRepositoryVersion.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This option prints the Linker Repository version.
 #END_COMMENT

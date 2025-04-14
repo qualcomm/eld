@@ -1,6 +1,4 @@
 #---EhFrameRemoveFDE.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This checks that the linker removes FDE entries that are garbage collected.
 # This test checks that the CIE is also removed, and there is no eh_frame

@@ -1,5 +1,4 @@
 #---SymDefFiles.test-------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that --reproduce is able to handle symdef files
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---YAMLExpressions.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # Make sure expressions are printed properly inside the output section
 #END_COMMENT

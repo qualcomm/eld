@@ -1,5 +1,4 @@
 #---NoteGNUPropertyError.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests checks that the linker is able to error on a improper GNU property
 #section

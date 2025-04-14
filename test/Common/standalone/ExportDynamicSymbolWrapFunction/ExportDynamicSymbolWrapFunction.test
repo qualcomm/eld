@@ -1,6 +1,4 @@
 #---ExportDynamicSymbolWrapFunction.test--------------------------- Executable ----------#
-
-
 #BEGIN_COMMENT
 #If a symbol is mentioned in the command line as part of
 #--export-dynamic-symbol, the linker needs to pull it in.

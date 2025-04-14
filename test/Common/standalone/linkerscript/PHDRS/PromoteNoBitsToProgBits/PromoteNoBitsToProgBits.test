@@ -1,5 +1,4 @@
 #---PromoteNoBitsToProgBits.test--------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This test checks that the linker promotes sections from NOBITS to PROGBITS
 #END_COMMENT

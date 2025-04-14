@@ -1,5 +1,4 @@
 #---EntrySize.test--------------------------- PartialLink -----------------#
-
 #BEGIN_COMMENT
 # This handles the case where a string section that contains mergeable strings
 # has an entry size more than one. This checks that partial linking can handle

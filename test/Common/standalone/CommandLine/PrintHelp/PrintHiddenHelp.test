@@ -1,5 +1,4 @@
 #---PrintHiddenHelp.test--------------------------- Executable -----------------#
-
 # UNSUPPORTED: true
 #BEGIN_COMMENT
 # This option prints the hidden help flags.

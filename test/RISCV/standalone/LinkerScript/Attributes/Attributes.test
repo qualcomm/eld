@@ -1,6 +1,4 @@
 #------Attributes.test--------------------Executable---------------#
-
-
 #BEGIN_COMMENT
 # This tests that the linker is able to handle the section .riscv.attributes
 # appropriately and produce a proper index.

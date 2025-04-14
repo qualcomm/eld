@@ -1,5 +1,4 @@
 #---PhdrSpec.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This is a test which tests the linker where the PT_LOAD segment contains both
 # PHDRS and FILEHDRS. In addition the PT_PHDR segment contains both FILEHDR and

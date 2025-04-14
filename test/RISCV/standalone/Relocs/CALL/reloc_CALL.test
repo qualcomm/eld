@@ -1,7 +1,4 @@
 #---reloc_HI_LO.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 # Check patching of CALL reloc. This internally is converted to
 # R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_I relocation

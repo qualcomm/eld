@@ -1,5 +1,4 @@
 #---TracerelocWildCard.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Check tracing of wild card pattern matching in tracing a relocation.
 #--------------------------------------------------------------------------------------

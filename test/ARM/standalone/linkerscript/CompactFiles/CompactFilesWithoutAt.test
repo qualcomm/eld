@@ -1,5 +1,4 @@
 #---CompactFiles.test--------------------- Executable------------#
-
 #BEGIN_COMMENT
 # Test that the linker can work with no AT keyword specified in the linker
 # script.

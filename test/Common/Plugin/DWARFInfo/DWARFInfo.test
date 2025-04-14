@@ -1,5 +1,4 @@
 #---DWARFInfo.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # Test Plugin DWARF parsing
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---RemoveChunks.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This test checks if a diagnostic error is emitted if there
 # is a mismatch between chunk being removed and the linkerscript rule

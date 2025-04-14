@@ -1,5 +1,4 @@
 #---OutputSectionSameName.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests if the linker is capable of creating an output section with the
 # same name.

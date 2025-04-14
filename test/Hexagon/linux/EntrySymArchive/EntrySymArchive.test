@@ -1,6 +1,4 @@
 #---EntrySymArchive.test--------------------- Executable --------------------#
-
-
 # This tests if the entry symbol is correctly pulled from the archive.
 # Only foo and bar are defined in 1.c
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o

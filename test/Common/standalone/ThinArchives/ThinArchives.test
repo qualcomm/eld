@@ -1,8 +1,4 @@
 #---ThinArchives.test--------------------- Executable---------------------#
-
-
-
-
 #BEGIN_COMMENT
 # This test checks the basic thin archive support.
 #END_COMMENT

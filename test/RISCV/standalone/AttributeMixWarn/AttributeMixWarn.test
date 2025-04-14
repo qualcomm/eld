@@ -1,7 +1,4 @@
 #------AttributeMixWarn.test-----------------Executable------------------------#
-
-
-
 #BEGIN_COMMENT
 # Check that the linker, by default, generates a warning when object files of
 # different attributes are being linked and generates no warning if the

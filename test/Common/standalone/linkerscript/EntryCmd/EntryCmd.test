@@ -1,5 +1,4 @@
 #---EntryCmd.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that the GNU rules for setting entry is used by ELD.
 #END_COMMENT

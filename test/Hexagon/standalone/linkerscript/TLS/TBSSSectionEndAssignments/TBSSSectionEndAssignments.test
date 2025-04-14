@@ -1,5 +1,4 @@
 #---TBSSSectionEndAssignments.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # The values at the end of TBSS sections show up with a DOT value increased by
 # the size of the section. TBSS sections are quite special that they dont occupy

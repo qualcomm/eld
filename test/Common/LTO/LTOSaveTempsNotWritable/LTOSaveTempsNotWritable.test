@@ -1,5 +1,4 @@
 #---LTOSaveTempsNotWritable.test--------------------- Executable,LTO -------------#
-
 #BEGIN_COMMENT
 #Test that the compiler does not crash when the --save-temps directory is not writable
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---PtExidx.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 #Generate PT_ARM_EXIDX segment based on PHDRS command
 #END_COMMENT

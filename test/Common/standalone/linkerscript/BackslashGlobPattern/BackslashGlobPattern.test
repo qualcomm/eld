@@ -1,5 +1,4 @@
 #---BackslashGlobPattern.test--------------------- Executable,LS ------------------#
-
 #BEGIN_COMMENT
 # This test checks that a backslash is accepted as a valid glob pattern.
 #END_COMMENT

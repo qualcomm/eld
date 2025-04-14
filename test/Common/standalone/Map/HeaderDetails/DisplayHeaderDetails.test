@@ -1,5 +1,4 @@
 #---DisplayHeaderDetails.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print program headers and file headers in the Mapfile.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---DefSymReferenceGarbageCollect.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that when a symbol is defined as an alias for a different symbol
 # using the --defsym option, that symbol should not be garbage collected.
