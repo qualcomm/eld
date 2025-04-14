@@ -4,21 +4,35 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-
 #include "eld/Driver/Driver.h"
+#include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Diagnostics/DiagnosticInfos.h"
+#include "eld/Driver/ARMLinkDriver.h"
 #include "eld/Driver/GnuLdDriver.h"
+#include "eld/Driver/HexagonLinkDriver.h"
+#include "eld/Driver/RISCVLinkDriver.h"
+#include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
 #include "eld/Target/TargetMachine.h"
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
 #include <optional>
 
-Driver::Driver(Flavor F, std::string Triple) : m_Flavor(F), m_Triple(Triple) {}
+Driver::Driver(Flavor F, std::string Triple)
+    : DiagEngine(new eld::DiagnosticEngine(shouldColorize())),
+      Config(DiagEngine), m_Flavor(F), m_Triple(Triple) {
+  std::unique_ptr<eld::DiagnosticInfos> DiagInfo =
+      std::make_unique<eld::DiagnosticInfos>(Config);
+  DiagEngine->setInfoMap(std::move(DiagInfo));
+}
 
-Driver *Driver::getLinker() {
+Driver::~Driver() { delete DiagEngine; }
+
+GnuLdDriver *Driver::getLinker() {
   if (!m_SupportedTargets.size())
     InitTarget();
   GnuLdDriver *LinkDriver = nullptr;
@@ -29,7 +43,7 @@ Driver *Driver::getLinker() {
   case Flavor::RISCV32:
   case Flavor::RISCV64:
   case Flavor::x86_64: {
-    LinkDriver = GnuLdDriver::Create(m_Flavor, m_Triple);
+    LinkDriver = GnuLdDriver::Create(Config, m_Flavor, m_Triple);
     break;
   }
   default:
@@ -37,7 +51,7 @@ Driver *Driver::getLinker() {
   }
   if (!LinkDriver)
     LinkDriver = GnuLdDriver::Create(
-        getFlavorFromTarget(m_SupportedTargets.front()), m_Triple);
+        Config, getFlavorFromTarget(m_SupportedTargets.front()), m_Triple);
   LinkDriver->setSupportedTargets(m_SupportedTargets);
   return LinkDriver;
 }
@@ -93,13 +107,6 @@ Flavor Driver::getFlavorFromTarget(llvm::StringRef Target) const {
       .Default(Invalid);
 }
 
-int Driver::link(llvm::ArrayRef<const char *> Args) {
-  // If argv[0] is empty then use ld.eld.
-  m_LinkerProgramName =
-      (Args[0][0] ? llvm::sys::path::filename(Args[0]) : "ld.eld");
-  return link(Args, getELDFlagsArgs());
-}
-
 std::vector<llvm::StringRef> Driver::getELDFlagsArgs() {
   std::optional<std::string> ELDFlags = llvm::sys::Process::GetEnv("ELDFLAGS");
   if (!ELDFlags)
@@ -113,4 +120,123 @@ std::vector<llvm::StringRef> Driver::getELDFlagsArgs() {
   while (ss >> buf)
     ELDFlagsArgs.push_back(eld::Saver.save(buf.c_str()));
   return ELDFlagsArgs;
+}
+
+bool Driver::shouldColorize() {
+  const char *term = getenv("TERM");
+  return term && (0 != strcmp(term, "dumb")) &&
+         llvm::sys::Process::StandardOutIsDisplayed();
+}
+
+bool Driver::setFlavorAndTripleFromLinkCommand(
+    llvm::ArrayRef<const char *> Args) {
+  auto ExpFlavorAndTriple = getFlavorAndTripleFromLinkCommand(Args);
+  if (!ExpFlavorAndTriple) {
+    DiagEngine->raiseDiagEntry(std::move(ExpFlavorAndTriple.error()));
+    return false;
+  }
+  auto FlavorAndTriple = ExpFlavorAndTriple.value();
+  m_Flavor = FlavorAndTriple.first;
+  m_Triple = FlavorAndTriple.second;
+  return true;
+}
+
+eld::Expected<std::pair<Flavor, std::string>>
+Driver::getFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args) {
+  auto FlavorAndTriple = Driver::parseFlavorAndTripleFromProgramName(Args[0]);
+  if (FlavorAndTriple.first != Flavor::Invalid)
+    return FlavorAndTriple;
+
+  // We read the emulation options here to just select the driver.
+  // Emulation options are properly handled by the driver.
+  // Thus, the flavor selected here might not be accurate. But that's
+  // alright as long as the right driver is selected. For example,
+  // we set the Flavor to Flavor::RISCV32 for both riscv32 and riscv64
+  // emulations. It is fine because RISCVLinDriver will see the emulation
+  // options for riscv64 and properly set the emulation to riscv64.
+  OPT_GnuLdOptTable Table;
+  unsigned MissingIndex;
+  unsigned MissingCount;
+  llvm::opt::InputArgList ArgList =
+      Table.ParseArgs(Args.slice(1), MissingIndex, MissingCount);
+  Flavor F = Flavor::Invalid;
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::emulation)) {
+    std::string Emulation = Arg->getValue();
+#if defined(ELD_ENABLE_TARGET_HEXAGON)
+    // FIXME: Support -m hexagonelf in HexagonLinkDriver
+#endif
+#if defined(ELD_ENABLE_TARGET_RISCV)
+    // It is okay to consider RISCV64 emulation as RISCV32 flavor
+    // here because RISCVLinkDriver will properly set the emulation.
+    if (RISCVLinkDriver::isSupportedEmulation(Emulation))
+      F = Flavor::RISCV32;
+#endif
+#if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
+    // FIXME: Support -m aarch64elf and -m armelf in ARMLinkDriver
+#endif
+    // FIXME: Enable the below code once emulations of all the targets
+    // are covered.
+    // if (F == Flavor::Invalid)
+    //   return std::make_unique<eld::DiagnosticEntry>(
+    //       eld::Diag::fatal_unsupported_emulation,
+    //       std::vector<std::string>{Emulation});
+  }
+  return std::pair<Flavor, std::string>{F, ""};
+}
+
+static std::string parseProgName(llvm::StringRef ProgName) {
+  std::vector<llvm::StringRef> suffixes;
+  llvm::StringRef altName(LINKER_ALT_NAME);
+  suffixes.push_back("ld");
+  suffixes.push_back("ld.eld");
+  if (altName.size())
+    suffixes.push_back(altName);
+
+  for (auto suffix : suffixes) {
+    if (!ProgName.ends_with(suffix))
+      continue;
+    llvm::StringRef::size_type LastComponent =
+        ProgName.rfind('-', ProgName.size() - suffix.size());
+    if (LastComponent == llvm::StringRef::npos)
+      continue;
+    llvm::StringRef Prefix = ProgName.slice(0, LastComponent);
+    return Prefix.str();
+  }
+  return std::string();
+}
+
+std::pair<Flavor, std::string>
+Driver::parseFlavorAndTripleFromProgramName(const char *argv0) {
+  // Deduct the flavor from argv[0].
+  llvm::StringRef ProgramName = llvm::sys::path::filename(argv0);
+  if (ProgramName.ends_with_insensitive(".exe"))
+    ProgramName = ProgramName.drop_back(4);
+  std::string Triple;
+  Flavor F;
+  F = llvm::StringSwitch<Flavor>(ProgramName)
+          .Case("hexagon-link", Flavor::Hexagon)
+          .Case("hexagon-linux-link", Flavor::Hexagon)
+          .Case("arm-link", Flavor::ARM)
+          .Case("aarch64-link", Flavor::AArch64)
+          .Case("x86_64-link", Flavor::x86_64)
+          .Case("riscv-link", Flavor::RISCV32)
+          .Case("riscv32-link", Flavor::RISCV32)
+          .Case("riscv64-link", Flavor::RISCV64)
+          .Default(Invalid);
+  // Try to get the Flavor from the triple.
+  if (F == Invalid) {
+    Triple = parseProgName(ProgramName);
+    if (!Triple.empty()) {
+      llvm::StringRef TripleRef = Triple;
+      F = llvm::StringSwitch<Flavor>(TripleRef)
+              .StartsWith("hexagon", Flavor::Hexagon)
+              .StartsWith("arm", Flavor::ARM)
+              .StartsWith("aarch64", Flavor::AArch64)
+              .StartsWith("riscv", Flavor::RISCV32)
+              .StartsWith("riscv32", Flavor::RISCV32)
+              .StartsWith("riscv64", Flavor::RISCV64)
+              .StartsWith("x86", Flavor::x86_64);
+    }
+  }
+  return std::make_pair(F, Triple);
 }

@@ -31,9 +31,10 @@ public:
 
 class RISCVLinkDriver : public GnuLdDriver {
 public:
-  static RISCVLinkDriver *Create(Flavor F, std::string Triple);
+  static RISCVLinkDriver *Create(eld::LinkerConfig &C, Flavor F,
+                                 std::string Triple);
 
-  RISCVLinkDriver(Flavor F, std::string Triple);
+  RISCVLinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple);
 
   virtual ~RISCVLinkDriver() {}
 
@@ -64,6 +65,10 @@ public:
   template <class T = OPT_RISCVLinkOptTable>
   bool createInputActions(llvm::opt::InputArgList &Args,
                           std::vector<eld::InputAction *> &actions);
+
+  static bool isSupportedEmulation(llvm::StringRef Emulation) {
+    return Emulation == "elf64lriscv" || Emulation == "elf32lriscv";
+  }
 };
 
 #endif

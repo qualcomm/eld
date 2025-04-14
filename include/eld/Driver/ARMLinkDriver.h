@@ -30,9 +30,10 @@ public:
 
 class ARMLinkDriver : public GnuLdDriver {
 public:
-  static ARMLinkDriver *Create(Flavor F, std::string Triple);
+  static ARMLinkDriver *Create(eld::LinkerConfig &C, Flavor F,
+                               std::string Triple);
 
-  ARMLinkDriver(Flavor F, std::string Triple);
+  ARMLinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple);
 
   virtual ~ARMLinkDriver() {}
 

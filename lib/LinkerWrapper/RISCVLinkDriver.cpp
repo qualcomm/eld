@@ -55,16 +55,18 @@ static Triple ParseEmulation(std::string pEmulation, Triple &triple,
 OPT_RISCVLinkOptTable::OPT_RISCVLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-RISCVLinkDriver *RISCVLinkDriver::Create(Flavor F, std::string Triple) {
-  return eld::make<RISCVLinkDriver>(F, Triple);
+RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+                                         std::string Triple) {
+  return eld::make<RISCVLinkDriver>(C, F, Triple);
 }
 
-RISCVLinkDriver::RISCVLinkDriver(Flavor F, std::string Triple)
-    : GnuLdDriver(F) {
+RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, Flavor F,
+                                 std::string Triple)
+    : GnuLdDriver(C, F) {
   if (F == Flavor::RISCV32)
-    m_Config.targets().setArch("riscv32");
+    Config.targets().setArch("riscv32");
   else
-    m_Config.targets().setArch("riscv64");
+    Config.targets().setArch("riscv64");
 }
 
 opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
@@ -74,7 +76,7 @@ opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
-    m_Config.raise(eld::Diag::error_missing_arg_value)
+    Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
     return nullptr;
   }
@@ -100,40 +102,40 @@ opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
 
   // --no-relax
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_riscv_relax))
-    m_Config.options().setRISCVRelax(false);
+    Config.options().setRISCVRelax(false);
 
   // --no-relax-gp
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_gp))
-    m_Config.options().setRISCVGPRelax(false);
+    Config.options().setRISCVGPRelax(false);
 
   // --no-relax-c
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_riscv_relax_compressed))
-    m_Config.options().setRISCVRelaxToC(false);
+    Config.options().setRISCVRelaxToC(false);
 
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))
-    m_Config.options().setAllowBSSMixing(true);
+    Config.options().setAllowBSSMixing(true);
   else
-    m_Config.options().setAllowBSSMixing(false);
+    Config.options().setAllowBSSMixing(false);
 
   // --disable-bss-conversion
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::disable_bss_conversion))
-    m_Config.options().setAllowBSSConversion(false);
+    Config.options().setAllowBSSConversion(false);
   else
-    m_Config.options().setAllowBSSConversion(true);
+    Config.options().setAllowBSSConversion(true);
 
   // --keep-labels
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::keep_labels))
-    m_Config.options().setKeepLabels();
+    Config.options().setKeepLabels();
 
   // --patch-enable
   if (ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_enable))
-    m_Config.options().setPatchEnable();
+    Config.options().setPatchEnable();
 
   // --patch-base
   if (llvm::opt::Arg *arg =
           ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_base))
-    m_Config.options().setPatchBase(arg->getValue());
+    Config.options().setPatchBase(arg->getValue());
 
   return Table;
 }
@@ -143,11 +145,11 @@ int RISCVLinkDriver::link(llvm::ArrayRef<const char *> Args,
                           llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
   std::vector<const char *> allArgs = getAllArgs(Args, ELDFlagsArgs);
   if (!ELDFlagsArgs.empty())
-    m_Config.raise(eld::Diag::note_eld_flags_without_output_name)
+    Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
   llvm::opt::InputArgList ArgList(allArgs.data(),
                                   allArgs.data() + allArgs.size());
-  m_Config.options().setArgs(Args);
+  Config.options().setArgs(Args);
   std::vector<eld::InputAction *> Action;
 
   //===--------------------------------------------------------------------===//
@@ -158,7 +160,7 @@ int RISCVLinkDriver::link(llvm::ArrayRef<const char *> Args,
       llvm::sys::fs::getMainExecutable(allArgs[0], &StaticSymbol);
   SmallString<128> lpath(lfile);
   llvm::sys::path::remove_filename(lpath);
-  m_Config.options().setLinkerPath(std::string(lpath));
+  Config.options().setLinkerPath(std::string(lpath));
 
   //===--------------------------------------------------------------------===//
   // Begin Link preprocessing
@@ -181,9 +183,8 @@ int RISCVLinkDriver::link(llvm::ArrayRef<const char *> Args,
       return LINK_FAIL;
 
     if (!ELDFlagsArgs.empty())
-      m_Config.raise(eld::Diag::note_eld_flags)
-          << m_Config.options().outputFileName()
-          << llvm::join(ELDFlagsArgs, " ");
+      Config.raise(eld::Diag::note_eld_flags)
+          << Config.options().outputFileName() << llvm::join(ELDFlagsArgs, " ");
 
     if (!checkOptions<OPT_RISCVLinkOptTable>(ArgList))
       return LINK_FAIL;
@@ -218,24 +219,24 @@ bool RISCVLinkDriver::createInputActions(
 template <class T>
 bool RISCVLinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
   bool result = GnuLdDriver::processTargetOptions<T>(Args);
-  std::string emulation = m_Config.options().getEmulation().str();
+  std::string emulation = Config.options().getEmulation().str();
   // If a specific emulation was requested, apply it now.
   if (!emulation.empty()) {
-    llvm::Triple TheTriple = m_Config.targets().triple();
+    llvm::Triple TheTriple = Config.targets().triple();
     Triple EmulationTriple =
-        ParseEmulation(emulation, TheTriple, m_Config.getDiagEngine());
+        ParseEmulation(emulation, TheTriple, Config.getDiagEngine());
     if (EmulationTriple.getArch() != Triple::UnknownArch) {
       if (EmulationTriple.getArch() == Triple::riscv32)
-        m_Config.targets().setArch("riscv32");
+        Config.targets().setArch("riscv32");
       if (EmulationTriple.getArch() == Triple::riscv64)
-        m_Config.targets().setArch("riscv64");
+        Config.targets().setArch("riscv64");
       TheTriple.setArch(EmulationTriple.getArch());
     }
     if (EmulationTriple.getOS() != Triple::UnknownOS)
       TheTriple.setOS(EmulationTriple.getOS());
     if (EmulationTriple.getEnvironment() != Triple::UnknownEnvironment)
       TheTriple.setEnvironment(EmulationTriple.getEnvironment());
-    m_Config.targets().setTriple(TheTriple);
+    Config.targets().setTriple(TheTriple);
   }
   return result;
 }

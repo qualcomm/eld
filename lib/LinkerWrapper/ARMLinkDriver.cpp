@@ -61,15 +61,17 @@ static Triple ParseEmulation(std::string pEmulation, Triple &triple,
 OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-ARMLinkDriver *ARMLinkDriver::Create(Flavor F, std::string Triple) {
-  return eld::make<ARMLinkDriver>(F, Triple);
+ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+                                     std::string Triple) {
+  return eld::make<ARMLinkDriver>(C, F, Triple);
 }
 
-ARMLinkDriver::ARMLinkDriver(Flavor F, std::string Triple) : GnuLdDriver(F) {
+ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple)
+    : GnuLdDriver(C, F) {
   if (F == Flavor::ARM)
-    m_Config.targets().setArch("arm");
+    Config.targets().setArch("arm");
   else
-    m_Config.targets().setArch("aarch64");
+    Config.targets().setArch("aarch64");
 }
 
 opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
@@ -79,7 +81,7 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
-    m_Config.raise(eld::Diag::error_missing_arg_value)
+    Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
     return nullptr;
   }
@@ -104,39 +106,39 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
   }
   // --disable-bss-mixing
   if (ArgList.hasArg(OPT_ARMLinkOptTable::enable_bss_mixing))
-    m_Config.options().setAllowBSSMixing(true);
+    Config.options().setAllowBSSMixing(true);
   else
-    m_Config.options().setAllowBSSMixing(false);
+    Config.options().setAllowBSSMixing(false);
 
   // --disable-bss-convesion
   if (ArgList.hasArg(OPT_ARMLinkOptTable::disable_bss_conversion))
-    m_Config.options().setAllowBSSConversion(false);
+    Config.options().setAllowBSSConversion(false);
   else
-    m_Config.options().setAllowBSSConversion(true);
+    Config.options().setAllowBSSConversion(true);
 
   // --fix-cortex-a53-843419
   if (ArgList.hasArg(OPT_ARMLinkOptTable::fix_cortex_a53_843419))
-    m_Config.options().setFixCortexA53Errata843419();
+    Config.options().setFixCortexA53Errata843419();
 
   // --use-mov-veneer
   if (ArgList.hasArg(OPT_ARMLinkOptTable::use_mov_veneer))
-    m_Config.options().setUseMovVeneer(true);
+    Config.options().setUseMovVeneer(true);
 
   // --compact
   if (ArgList.hasArg(OPT_ARMLinkOptTable::compact))
-    m_Config.options().setCompact(true);
+    Config.options().setCompact(true);
 
   // -frwpi
   if (ArgList.hasArg(OPT_ARMLinkOptTable::frwpi))
-    m_Config.options().setRWPI();
+    Config.options().setRWPI();
 
   // -fropi
   if (ArgList.hasArg(OPT_ARMLinkOptTable::fropi))
-    m_Config.options().setROPI();
+    Config.options().setROPI();
 
   if (ArgList.hasArg(OPT_ARMLinkOptTable::execute_only)) {
-    m_Config.options().setExecuteOnlySegments();
-    m_Config.options().setROSegment(true);
+    Config.options().setExecuteOnlySegments();
+    Config.options().setROSegment(true);
   }
 
   // -target2
@@ -149,9 +151,9 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
                 .Case("abs", GeneralOptions::Target2Policy::Abs)
                 .Case("got-rel", GeneralOptions::Target2Policy::GotRel)
                 .Default(std::nullopt)) {
-      m_Config.options().setTarget2Policy(*ValueOpt);
+      Config.options().setTarget2Policy(*ValueOpt);
     } else
-      m_Config.raise(eld::Diag::error_invalid_target2) << Value;
+      Config.raise(eld::Diag::error_invalid_target2) << Value;
   }
 
   return Table;
@@ -162,11 +164,11 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
                         llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
   std::vector<const char *> allArgs = getAllArgs(Args, ELDFlagsArgs);
   if (!ELDFlagsArgs.empty())
-    m_Config.raise(eld::Diag::note_eld_flags_without_output_name)
+    Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
   llvm::opt::InputArgList ArgList(allArgs.data(),
                                   allArgs.data() + allArgs.size());
-  m_Config.options().setArgs(Args);
+  Config.options().setArgs(Args);
   std::vector<eld::InputAction *> Action;
 
   //===--------------------------------------------------------------------===//
@@ -177,7 +179,7 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
       llvm::sys::fs::getMainExecutable(allArgs[0], &StaticSymbol);
   SmallString<128> lpath(lfile);
   llvm::sys::path::remove_filename(lpath);
-  m_Config.options().setLinkerPath(std::string(lpath));
+  Config.options().setLinkerPath(std::string(lpath));
 
   //===--------------------------------------------------------------------===//
   // Begin Link preprocessing
@@ -202,9 +204,8 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
       return LINK_FAIL;
 
     if (!ELDFlagsArgs.empty())
-      m_Config.raise(eld::Diag::note_eld_flags)
-          << m_Config.options().outputFileName()
-          << llvm::join(ELDFlagsArgs, " ");
+      Config.raise(eld::Diag::note_eld_flags)
+          << Config.options().outputFileName() << llvm::join(ELDFlagsArgs, " ");
 
     if (!overrideOptions<OPT_ARMLinkOptTable>(ArgList))
       return LINK_FAIL;
@@ -238,19 +239,19 @@ template <class T>
 bool ARMLinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
   bool result = GnuLdDriver::processTargetOptions<T>(Args);
 
-  std::string emulation = m_Config.options().getEmulation().str();
-  std::string arch = m_Config.targets().getArch();
+  std::string emulation = Config.options().getEmulation().str();
+  std::string arch = Config.targets().getArch();
   // If a specific emulation was requested, apply it now.
   if (!emulation.empty()) {
-    llvm::Triple TheTriple = m_Config.targets().triple();
+    llvm::Triple TheTriple = Config.targets().triple();
     Triple EmulationTriple =
-        ParseEmulation(emulation, TheTriple, m_Config.getDiagEngine());
+        ParseEmulation(emulation, TheTriple, Config.getDiagEngine());
     if (EmulationTriple.getArch() != Triple::UnknownArch)
       TheTriple.setArch(EmulationTriple.getArch());
     TheTriple.setOS(EmulationTriple.getOS());
     if (EmulationTriple.getEnvironment() != Triple::UnknownEnvironment)
       TheTriple.setEnvironment(EmulationTriple.getEnvironment());
-    m_Config.targets().setTriple(TheTriple);
+    Config.targets().setTriple(TheTriple);
   }
   return result;
 }

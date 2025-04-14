@@ -6,7 +6,6 @@
 
 #include "eld/Driver/GnuLdDriver.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
-#include "eld/Diagnostics/DiagnosticInfos.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Input/InputAction.h"
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
@@ -21,6 +20,7 @@
 #ifdef ELD_ENABLE_TARGET_X86_64
 #include "eld/Driver/x86_64LinkDriver.h"
 #endif
+#include "eld/Config/LinkerConfig.h"
 #include "eld/Input/JustSymbolsAction.h"
 #include "eld/Input/ZOption.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
@@ -70,35 +70,32 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 OPT_GnuLdOptTable::OPT_GnuLdOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-GnuLdDriver::GnuLdDriver(Flavor F)
-    : m_DiagEngine(new eld::DiagnosticEngine(ShouldColorize())),
-      m_Config(m_DiagEngine), m_Script(m_DiagEngine), m_Flavor(F) {
-  std::unique_ptr<DiagnosticInfos> diagInfo =
-      std::make_unique<DiagnosticInfos>(m_Config);
-  m_DiagEngine->setInfoMap(std::move(diagInfo));
-}
+GnuLdDriver::GnuLdDriver(LinkerConfig &C, Flavor F)
+    : Config(C), DiagEngine(C.getDiagEngine()), m_Script(DiagEngine),
+      m_Flavor(F) {}
 
-GnuLdDriver::~GnuLdDriver() { delete m_DiagEngine; }
+GnuLdDriver::~GnuLdDriver() {}
 
-GnuLdDriver *GnuLdDriver::Create(Flavor F, std::string Triple) {
+GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, Flavor F,
+                                 std::string Triple) {
   switch (F) {
 #ifdef ELD_ENABLE_TARGET_HEXAGON
   case Flavor::Hexagon:
-    return HexagonLinkDriver::Create(F, Triple);
+    return HexagonLinkDriver::Create(C, F, Triple);
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
   case Flavor::ARM:
   case Flavor::AArch64:
-    return ARMLinkDriver::Create(F, Triple);
+    return ARMLinkDriver::Create(C, F, Triple);
 #endif
 #ifdef ELD_ENABLE_TARGET_RISCV
   case Flavor::RISCV32:
   case Flavor::RISCV64:
-    return RISCVLinkDriver::Create(F, Triple);
+    return RISCVLinkDriver::Create(C, F, Triple);
 #endif
 #ifdef ELD_ENABLE_TARGET_X86_64
   case Flavor::x86_64:
-    return x86_64LinkDriver::Create(F, Triple);
+    return x86_64LinkDriver::Create(C, F, Triple);
 #endif
   default:
     break;
@@ -107,13 +104,13 @@ GnuLdDriver *GnuLdDriver::Create(Flavor F, std::string Triple) {
 }
 
 bool GnuLdDriver::emitStats(eld::Module &M) const {
-  std::string File = m_Config.options().timingStatsFile();
+  std::string File = Config.options().timingStatsFile();
   std::error_code error;
   llvm::raw_fd_ostream *StatsFile = nullptr;
   if (!File.empty()) {
     StatsFile = new llvm::raw_fd_ostream(File, error, llvm::sys::fs::OF_None);
     if (error) {
-      m_Config.raise(Diag::fatal_unwritable_output) << File << error.message();
+      Config.raise(Diag::fatal_unwritable_output) << File << error.message();
       return false;
     }
   }
@@ -127,16 +124,10 @@ bool GnuLdDriver::emitStats(eld::Module &M) const {
   return true;
 }
 
-bool GnuLdDriver::ShouldColorize() {
-  const char *term = getenv("TERM");
-  return term && (0 != strcmp(term, "dumb")) &&
-         llvm::sys::Process::StandardOutIsDisplayed();
-}
-
 bool GnuLdDriver::checkAndRaiseTraceDiagEntry(eld::Expected<void> E) const {
   if (E)
     return true;
-  m_Config.getDiagEngine()->raiseDiagEntry(std::move(E.error()));
+  Config.getDiagEngine()->raiseDiagEntry(std::move(E.error()));
   return false;
 }
 
@@ -165,8 +156,8 @@ template <class T>
 bool GnuLdDriver::checkOptions(llvm::opt::InputArgList &Args) const {
   // check --thread-count and if threads are disabled.
   if (Args.getLastArg(T::thread_count)) {
-    if (!m_Config.options().threadsEnabled()) {
-      m_Config.raise(Diag::thread_count_with_no_threads);
+    if (!Config.options().threadsEnabled()) {
+      Config.raise(Diag::thread_count_with_no_threads);
       return false;
     }
   }
@@ -195,7 +186,7 @@ uint32_t GnuLdDriver::getUnsignedInteger(llvm::opt::Arg *arg,
   // The string is considered erroneous if empty or if it overflows the type
   // of V.
   if (S.getAsInteger(10, V)) {
-    m_Config.raise(Diag::invalid_value_for_option)
+    Config.raise(Diag::invalid_value_for_option)
         << arg->getOption().getPrefixedName() << S;
     V = Default;
   }
@@ -205,7 +196,7 @@ uint32_t GnuLdDriver::getUnsignedInteger(llvm::opt::Arg *arg,
 template <class T>
 bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --color=mode
-  bool res = ShouldColorize();
+  bool res = Driver::shouldColorize();
 
   if (llvm::opt::Arg *arg = Args.getLastArg(T::color)) {
     res = llvm::StringSwitch<bool>(arg->getValue())
@@ -214,286 +205,284 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
               .Case("auto", res)
               .Default(false);
   }
-  m_Config.options().setColor(res);
-  m_Config.getPrinter()->setUseColor(res);
+  Config.options().setColor(res);
+  Config.getPrinter()->setUseColor(res);
 
   // --error-limit
   if (llvm::opt::Arg *arg = Args.getLastArg(T::error_limit))
-    m_Config.getPrinter()->setUserErrorLimit(getUnsignedInteger(arg, 10));
+    Config.getPrinter()->setUserErrorLimit(getUnsignedInteger(arg, 10));
 
   // --warn-limit
   if (llvm::opt::Arg *arg = Args.getLastArg(T::warn_limit))
-    m_Config.getPrinter()->setUserWarningLimit(getUnsignedInteger(arg, 10));
+    Config.getPrinter()->setUserWarningLimit(getUnsignedInteger(arg, 10));
 
   // -t
   if (Args.hasArg(T::dash_t))
-    m_Config.options().setTrace(true);
+    Config.options().setTrace(true);
 
   // --trace
   for (auto *arg : Args.filtered(T::trace))
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace(arg->getValue()));
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace(arg->getValue()));
 
   // --trace-symbol, -y
   for (llvm::opt::Arg *arg : Args.filtered(T::trace_symbol)) {
     std::string symbolName = std::string(arg->getValue());
     std::string trace = "symbol=" + symbolName;
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace(trace.c_str()));
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace(trace.c_str()));
   }
 
   // --trace-reloc
   for (llvm::opt::Arg *arg : Args.filtered(T::trace_reloc)) {
     std::string symbolName = std::string(arg->getValue());
     std::string trace = "reloc=" + symbolName;
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace(trace.c_str()));
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace(trace.c_str()));
   }
 
   // --trace-lto
   if (Args.hasArg(T::trace_lto)) {
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace("lto"));
-    m_Config.addCommandLine(Table->getOptionName(T::trace_lto), true);
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace("lto"));
+    Config.addCommandLine(Table->getOptionName(T::trace_lto), true);
   }
 
   // --trace-merge-strings
   for (llvm::opt::Arg *Arg : Args.filtered(T::trace_merge_strings)) {
     std::string Args = Arg->getValue();
     std::string Trace = "merge-strings=" + Args;
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace(Trace.c_str()));
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace(Trace.c_str()));
   }
 
   // --trace-section
   for (llvm::opt::Arg *arg : Args.filtered(T::trace_section)) {
     auto sectionName = std::string(arg->getValue());
     auto trace = "section=" + sectionName;
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace(trace.c_str()));
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace(trace.c_str()));
   }
 
   // --relocation-options
   for (auto *arg : Args.filtered(T::verify_options))
-    m_Config.options().setVerify(arg->getValue());
+    Config.options().setVerify(arg->getValue());
 
   // -soname
   if (llvm::opt::Arg *arg = Args.getLastArg(T::soname)) {
-    m_Config.options().setSOName(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::soname), arg->getValue());
+    Config.options().setSOName(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::soname), arg->getValue());
   }
 
   // -rpath
   for (auto *arg : Args.filtered(T::rpath))
-    m_Config.options().getRpathList().push_back(arg->getValue());
+    Config.options().getRpathList().push_back(arg->getValue());
 
   // --script, -T
   if (Args.hasArg(T::T)) {
     // Dont align segments if a linker script is passed.
-    m_Config.options().setAlignSegments(false);
-    m_Config.addCommandLine(Table->getOptionName(T::T), true);
+    Config.options().setAlignSegments(false);
+    Config.addCommandLine(Table->getOptionName(T::T), true);
   }
 
   // --just-symbols, -R
   if (Args.hasArg(T::R))
-    m_Config.addCommandLine(Table->getOptionName(T::R), true);
+    Config.addCommandLine(Table->getOptionName(T::R), true);
 
   for (auto *arg : Args.filtered(T::u))
-    m_Config.options().getUndefSymList().emplace_back(
+    Config.options().getUndefSymList().emplace_back(
         eld::make<StrToken>(arg->getValue()));
 
   // --sysroot
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sysroot))
-    m_Config.setSysRoot(arg->getValue());
+    Config.setSysRoot(arg->getValue());
 
   // --fatal-warnings
-  m_Config.options().setFatalWarnings(Args.hasArg(T::fatal_warnings));
+  Config.options().setFatalWarnings(Args.hasArg(T::fatal_warnings));
 
   // --no-fatal-warnings
   if (Args.hasArg(T::no_fatal_warnings))
-    m_Config.options().setFatalWarnings(false);
+    Config.options().setFatalWarnings(false);
 
   // --opt-record-file
   if (Args.hasArg(T::opt_record_file)) {
-    m_Config.options().setLTOOptRemarksFile(true);
-    m_Config.addCommandLine(Table->getOptionName(T::opt_record_file), true);
+    Config.options().setLTOOptRemarksFile(true);
+    Config.addCommandLine(Table->getOptionName(T::opt_record_file), true);
   }
 
   // --display-hotness
   std::vector<std::string> remarks;
   for (auto *arg : Args.filtered(T::display_hotness)) {
-    m_Config.options().setLTOOptRemarksDisplayHotness(arg->getValue());
+    Config.options().setLTOOptRemarksDisplayHotness(arg->getValue());
     remarks.push_back(arg->getValue());
   }
-  m_Config.addCommandLine(Table->getOptionName(T::display_hotness), remarks);
+  Config.addCommandLine(Table->getOptionName(T::display_hotness), remarks);
 
   // add all search directories
   std::vector<std::string> searchDirs;
   for (auto *Ldir : Args.filtered(T::L)) {
-    if (!m_Config.directories().insert(Ldir->getValue()))
-      m_Config.raise(Diag::cannot_open_search_dir) << Ldir->getValue();
+    if (!Config.directories().insert(Ldir->getValue()))
+      Config.raise(Diag::cannot_open_search_dir) << Ldir->getValue();
     searchDirs.push_back(Ldir->getValue());
   }
-  m_Config.addCommandLine(Table->getOptionName(T::L), searchDirs);
+  Config.addCommandLine(Table->getOptionName(T::L), searchDirs);
 
   // Add current directory to search path.
   llvm::SmallString<128> curPath;
   llvm::sys::fs::current_path(curPath);
-  m_Config.directories().insert(std::string(curPath));
+  Config.directories().insert(std::string(curPath));
 
   // -pie
-  m_Config.options().setPIE(Args.hasFlag(T::pie, T::no_pie, false));
+  Config.options().setPIE(Args.hasFlag(T::pie, T::no_pie, false));
 
   // --verbose
   if (Args.hasArg(T::verbose))
-    m_Config.options().setVerbose();
+    Config.options().setVerbose();
 
   // --verbose=0,1,2,...
   if (llvm::opt::Arg *arg = Args.getLastArg(T::verbose_level)) {
     llvm::StringRef value = arg->getValue();
     uint32_t verboseLevel = 0;
     if (value.getAsInteger(0, verboseLevel)) {
-      m_Config.raise(Diag::invalid_value_for_option)
+      Config.raise(Diag::invalid_value_for_option)
           << arg->getOption().getPrefixedName() << arg->getValue();
       return false;
     }
     // Just to be GNU compatible.
     if (verboseLevel > 2) {
-      m_Config.raise(Diag::invalid_value_for_option)
+      Config.raise(Diag::invalid_value_for_option)
           << arg->getOption().getPrefixedName() << arg->getValue();
       return false;
     }
-    m_Config.options().setVerbose(verboseLevel);
+    Config.options().setVerbose(verboseLevel);
   }
 
   // --emit-stats
   if (llvm::opt::Arg *arg = Args.getLastArg(T::emit_timing_stats)) {
-    m_Config.options().setPrintTimingStats();
-    m_Config.options().setTimingStatsFile(arg->getValue());
+    Config.options().setPrintTimingStats();
+    Config.options().setTimingStatsFile(arg->getValue());
   }
 
   // --time-region
   if (llvm::opt::Arg *arg = Args.getLastArg(T::time_region)) {
-    m_Config.options().setPrintTimingStats();
-    if (!m_Config.options().setRequestedTimingRegions(arg->getValue())) {
-      m_Config.raise(Diag::invalid_value_for_option)
+    Config.options().setPrintTimingStats();
+    if (!Config.options().setRequestedTimingRegions(arg->getValue())) {
+      Config.raise(Diag::invalid_value_for_option)
           << arg->getOption().getPrefixedName() << arg->getValue();
       return false;
     }
   }
 
   if (Args.hasArg(T::print_timing_stats))
-    m_Config.options().setPrintTimingStats();
+    Config.options().setPrintTimingStats();
 
   // -Bsymbolic
-  m_Config.options().setBsymbolic(Args.hasArg(T::Bsymbolic));
+  Config.options().setBsymbolic(Args.hasArg(T::Bsymbolic));
 
   // -Bsymbolic-functions
   if (Args.hasArg(T::Bsymbolic_functions))
-    m_Config.options().setBsymbolicFunctions(true);
+    Config.options().setBsymbolicFunctions(true);
 
   // -Bgroup
-  m_Config.options().setBgroup(Args.hasArg(T::Bgroup));
+  Config.options().setBgroup(Args.hasArg(T::Bgroup));
 
   // --dynamic-linker
   if (llvm::opt::Arg *arg = Args.getLastArg(T::dynamic_linker))
-    m_Config.options().setDyld(arg->getValue());
+    Config.options().setDyld(arg->getValue());
 
   // -init
   if (llvm::opt::Arg *arg = Args.getLastArg(T::init))
-    m_Config.options().setDtInit(arg->getValue());
+    Config.options().setDtInit(arg->getValue());
 
   // -fini
   if (llvm::opt::Arg *arg = Args.getLastArg(T::fini))
-    m_Config.options().setDtFini(arg->getValue());
+    Config.options().setDtFini(arg->getValue());
 
   // --no-undefined.
-  m_Config.options().setNoUndefined(Args.hasArg(T::no_undefined));
+  Config.options().setNoUndefined(Args.hasArg(T::no_undefined));
 
   // --allow-multiple-definition
-  m_Config.options().setMulDefs(Args.hasArg(T::allow_multiple_definition));
+  Config.options().setMulDefs(Args.hasArg(T::allow_multiple_definition));
 
   // --warn-once
-  m_Config.options().setWarnOnce(Args.hasArg(T::warn_once));
+  Config.options().setWarnOnce(Args.hasArg(T::warn_once));
 
   // --noinhibit-exec
-  m_Config.options().setNoInhibitExec(Args.hasArg(T::noinhibit_exec));
+  Config.options().setNoInhibitExec(Args.hasArg(T::noinhibit_exec));
 
   // --eh-frame-hdr
   if (Args.hasArg(T::eh_frame_hdr))
-    m_Config.options().setEhFrameHdr(true);
+    Config.options().setEhFrameHdr(true);
 
   // -s, --strip-debug
   bool hasStripDebug = Args.hasArg(T::strip_debug) || Args.hasArg(T::strip_all);
-  m_Config.options().setStripDebug(hasStripDebug);
-  m_Config.addCommandLine(Table->getOptionName(T::strip_debug), hasStripDebug);
+  Config.options().setStripDebug(hasStripDebug);
+  Config.addCommandLine(Table->getOptionName(T::strip_debug), hasStripDebug);
 
   // --discard-all
   if (Args.hasArg(T::discard_all))
-    m_Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
+    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
   else {
     // --strip-all
     if (Args.hasArg(T::strip_all)) {
-      m_Config.options().setStripSymbols(eld::GeneralOptions::StripAllSymbols);
-      m_Config.addCommandLine(Table->getOptionName(T::strip_all), true);
+      Config.options().setStripSymbols(eld::GeneralOptions::StripAllSymbols);
+      Config.addCommandLine(Table->getOptionName(T::strip_all), true);
     } else {
       // --discard-locals
       if (Args.hasArg(T::discard_locals))
-        m_Config.options().setStripSymbols(
-            eld::GeneralOptions::StripTemporaries);
+        Config.options().setStripSymbols(eld::GeneralOptions::StripTemporaries);
     }
   }
 
   // --export-dynamic, -E
-  m_Config.options().setExportDynamic(Args.hasArg(T::export_dynamic));
+  Config.options().setExportDynamic(Args.hasArg(T::export_dynamic));
 
   // --export-dynamic-symbol
   for (auto *Arg : Args.filtered(T::export_dynamic_symbol))
-    m_Config.options().getExportDynSymList().emplace_back(
+    Config.options().getExportDynSymList().emplace_back(
         eld::make<StrToken>(Arg->getValue()));
 
   // -d, -dc
-  m_Config.options().setDefineCommon(Args.hasArg(T::d));
+  Config.options().setDefineCommon(Args.hasArg(T::d));
 
   // -nostdlib
-  m_Config.options().setNoStdlib(Args.hasArg(T::nostdlib));
+  Config.options().setNoStdlib(Args.hasArg(T::nostdlib));
 
   // -M
   if (Args.hasArg(T::MapText))
-    m_Config.options().setPrintMap(true);
+    Config.options().setPrintMap(true);
 
   // --hash-style
   if (llvm::opt::Arg *arg = Args.getLastArg(T::hash_style)) {
-    m_Config.options().setHashStyle(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::hash_style),
-                            arg->getValue());
+    Config.options().setHashStyle(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::hash_style), arg->getValue());
   }
 
   // -Map
   if (llvm::opt::Arg *arg = Args.getLastArg(T::Map)) {
-    m_Config.options().setMapFile(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::Map), arg->getValue());
+    Config.options().setMapFile(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::Map), arg->getValue());
   }
 
   // -TrampolineMap
   if (llvm::opt::Arg *arg = Args.getLastArg(T::TrampolineMap)) {
-    m_Config.options().setTrampolineMapFile(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::TrampolineMap),
-                            arg->getValue());
+    Config.options().setTrampolineMapFile(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::TrampolineMap),
+                          arg->getValue());
   }
 
   // -flto-use-as
   if (Args.hasArg(T::flto_use_as)) {
-    m_Config.options().setLTOUseAs();
-    m_Config.addCommandLine(Table->getOptionName(T::flto_use_as), true);
+    Config.options().setLTOUseAs();
+    Config.addCommandLine(Table->getOptionName(T::flto_use_as), true);
   }
 
   // -color-map
-  m_Config.options().setMapFileWithColor(Args.hasArg(T::color_map));
+  Config.options().setMapFileWithColor(Args.hasArg(T::color_map));
 
   // If -M option is used, lets try to use color.
-  m_Config.options().setMapFileWithColor(Args.hasArg(T::PrintMap));
+  Config.options().setMapFileWithColor(Args.hasArg(T::PrintMap));
 
   // -MapDetail
   for (llvm::opt::Arg *arg : Args.filtered(T::MapDetail)) {
     eld::Expected<void> E = eld::LayoutPrinter::setLayoutDetail(
-        arg->getValue(), m_Config.getDiagEngine());
+        arg->getValue(), Config.getDiagEngine());
     if (!E) {
-      m_Config.raiseDiagEntry(std::move(E.error()));
+      Config.raiseDiagEntry(std::move(E.error()));
       return false;
     }
   }
@@ -501,59 +490,58 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // -MapStyle
   for (auto *style : Args.filtered(T::MapStyle)) {
     // Record commandline in binary map
-    m_Config.addCommandLine(Table->getOptionName(T::MapStyle),
-                            style->getValue());
-    if (!m_Config.options().setMapStyle(style->getValue())) {
-      m_Config.raise(Diag::invalid_option_mapstyle);
+    Config.addCommandLine(Table->getOptionName(T::MapStyle), style->getValue());
+    if (!Config.options().setMapStyle(style->getValue())) {
+      Config.raise(Diag::invalid_option_mapstyle);
       return false;
     }
   }
 
   // --cref
   if (Args.getLastArg(T::cref))
-    m_Config.options().setCref();
+    Config.options().setCref();
 
   // --gc-cref
   if (llvm::opt::Arg *arg = Args.getLastArg(T::gc_cref)) {
-    m_Config.options().setGCCref(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::gc_cref), arg->getValue());
+    Config.options().setGCCref(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::gc_cref), arg->getValue());
   }
 
   // --rosegment
-  if (!m_Config.options().rosegment())
-    m_Config.options().setROSegment(Args.hasArg(T::rosegment));
+  if (!Config.options().rosegment())
+    Config.options().setROSegment(Args.hasArg(T::rosegment));
 
   // -emit-timing-stats-in-output
   if (Args.hasArg(T::emit_timing_stats_in_output))
-    m_Config.options().setInsertTimingStats(true);
+    Config.options().setInsertTimingStats(true);
 
   // --error-style=[gnu|llvm]
   if (llvm::opt::Arg *arg = Args.getLastArg(T::error_style)) {
-    if (!m_Config.options().setErrorStyle(arg->getValue())) {
-      m_Config.raise(Diag::invalid_option_error_style);
+    if (!Config.options().setErrorStyle(arg->getValue())) {
+      Config.raise(Diag::invalid_option_error_style);
       return false;
     }
   }
 
   // --script-options=[match-gnu|match-llvm]
   if (llvm::opt::Arg *arg = Args.getLastArg(T::script_options)) {
-    if (!m_Config.options().setScriptOption(arg->getValue())) {
-      m_Config.raise(Diag::invalid_option_match_error_style);
+    if (!Config.options().setScriptOption(arg->getValue())) {
+      Config.raise(Diag::invalid_option_match_error_style);
       return false;
     }
   }
 
   // --warn-shared-textrel
   if (Args.hasArg(T::warn_shared_textrel))
-    m_Config.options().setWarnSharedTextrel(true);
+    Config.options().setWarnSharedTextrel(true);
 
   // --warn-common
   if (Args.hasArg(T::warn_common))
-    m_Config.options().setWarnCommon();
+    Config.options().setWarnCommon();
 
   // --no-warn-shared_textrel
   if (Args.hasArg(T::no_warn_shared_textrel))
-    m_Config.options().setWarnSharedTextrel(false);
+    Config.options().setWarnSharedTextrel(false);
 
   // --enable-newdtags, --disable-newdtags
   if (Args.hasArg(T::enable_newdtags) && Args.hasArg(T::disable_newdtags)) {
@@ -563,93 +551,92 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // --enabld-new-dtags
   if (Args.hasArg(T::enable_newdtags))
-    m_Config.options().setNewDTags(true);
+    Config.options().setNewDTags(true);
 
   // --enabld-disable-new-dtags
   if (Args.hasArg(T::disable_newdtags))
-    m_Config.options().setNewDTags(false);
+    Config.options().setNewDTags(false);
 
   // --emit-relocs
   if (Args.hasArg(T::emit_relocs)) {
-    m_Config.options().setEmitGNUCompatRelocs(true);
-    m_Config.options().setEmitRelocs(true);
-    m_Config.addCommandLine(Table->getOptionName(T::emit_relocs), true);
+    Config.options().setEmitGNUCompatRelocs(true);
+    Config.options().setEmitRelocs(true);
+    Config.addCommandLine(Table->getOptionName(T::emit_relocs), true);
   }
 
   // --emit-relocs-llvm
   if (Args.hasArg(T::emit_relocs_llvm))
-    m_Config.options().setEmitRelocs(true);
+    Config.options().setEmitRelocs(true);
 
   // --no-emit-relocs
   if (Args.hasArg(T::no_emit_relocs)) {
-    m_Config.options().setEmitGNUCompatRelocs(false);
-    m_Config.options().setEmitRelocs(false);
+    Config.options().setEmitGNUCompatRelocs(false);
+    Config.options().setEmitRelocs(false);
   }
 
   // --no-merge-strings
-  m_Config.options().setMergeStrings(!Args.hasArg(T::no_merge_strings));
-  m_Config.addCommandLine(Table->getOptionName(T::no_merge_strings),
-                          Args.hasArg(T::no_merge_strings));
+  Config.options().setMergeStrings(!Args.hasArg(T::no_merge_strings));
+  Config.addCommandLine(Table->getOptionName(T::no_merge_strings),
+                        Args.hasArg(T::no_merge_strings));
 
   // --{no-}warn-mismatch
   if (Args.getLastArg(T::no_warn_mismatch))
-    m_Config.options().setWarnMismatch(false);
+    Config.options().setWarnMismatch(false);
 
   if (Args.getLastArg(T::warn_mismatch))
-    m_Config.options().setWarnMismatch(true);
+    Config.options().setWarnMismatch(true);
 
   // --no-trampolines
   if (Args.hasArg(T::no_trampolines)) {
-    m_Config.options().setNoTrampolines();
-    m_Config.addCommandLine(Table->getOptionName(T::no_trampolines), true);
+    Config.options().setNoTrampolines();
+    Config.addCommandLine(Table->getOptionName(T::no_trampolines), true);
   }
 
   // --copy-farcalls-from-file
   if (llvm::opt::Arg *arg = Args.getLastArg(T::copy_farcalls_from_file))
-    m_Config.options().setCopyFarCallsFromFile(arg->getValue());
+    Config.options().setCopyFarCallsFromFile(arg->getValue());
 
   // --noreuse-trampolines-from-file
   if (llvm::opt::Arg *arg = Args.getLastArg(T::no_reuse_trampolines_file))
-    m_Config.options().setNoReuseOfTrampolinesFile(arg->getValue());
+    Config.options().setNoReuseOfTrampolinesFile(arg->getValue());
 
   // --force-dynamic
   if (Args.hasArg(T::force_dynamic))
-    m_Config.options().setForceDynamic();
+    Config.options().setForceDynamic();
 
   // -flto
   bool opt_flto = Args.hasArg(T::flto);
-  m_Config.options().setLTO(opt_flto);
-  m_Config.addCommandLine(Table->getOptionName(T::flto), opt_flto);
+  Config.options().setLTO(opt_flto);
+  Config.addCommandLine(Table->getOptionName(T::flto), opt_flto);
 
   // --save-temps
-  m_Config.options().setSaveTemps(Args.hasArg(T::save_temps));
+  Config.options().setSaveTemps(Args.hasArg(T::save_temps));
 
   if (const Arg *arg = Args.getLastArg(T::save_temps_EQ)) {
-    m_Config.options().setSaveTempsDir(arg->getValue());
-    m_Config.options().setSaveTemps(true);
+    Config.options().setSaveTempsDir(arg->getValue());
+    Config.options().setSaveTemps(true);
   }
 
   // --flto-options
   std::vector<std::string> ltoOptions;
   for (auto *arg : Args.filtered(T::flto_options)) {
-    m_Config.options().setLTOOptions(arg->getValue());
+    Config.options().setLTOOptions(arg->getValue());
     ltoOptions.push_back(arg->getValue());
   }
-  m_Config.addCommandLine(Table->getOptionName(T::flto_options), ltoOptions);
+  Config.addCommandLine(Table->getOptionName(T::flto_options), ltoOptions);
 
   // --no-align-segments
   if (Args.hasArg(T::no_align_segments))
-    m_Config.options().setAlignSegments(false);
+    Config.options().setAlignSegments(false);
 
   bool enableFatalInternalErrors = Args.hasFlag(
       T::fatal_internal_errors, T::no_fatal_internal_errors, /*default=*/false);
-  m_Config.options().setFatalInternalErrors(enableFatalInternalErrors);
+  Config.options().setFatalInternalErrors(enableFatalInternalErrors);
 
   // set up entry point from -e
   if (llvm::opt::Arg *arg = Args.getLastArg(T::entrypoint)) {
-    m_Config.options().setEntry(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::entrypoint),
-                            arg->getValue());
+    Config.options().setEntry(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::entrypoint), arg->getValue());
   }
 
   // --wrap
@@ -658,14 +645,14 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     std::string wname = arg->getValue();
     wrapString.push_back(wname);
     std::string to_wrap_str = eld::Saver.save("__wrap_" + wname).str();
-    m_Config.options().renameMap().insert(std::make_pair(wname, to_wrap_str));
+    Config.options().renameMap().insert(std::make_pair(wname, to_wrap_str));
 
     // add __real_wname -> wname
     std::string from_real_str = eld::Saver.save("__real_" + wname).str();
-    m_Config.options().renameMap().insert(std::make_pair(from_real_str, wname));
+    Config.options().renameMap().insert(std::make_pair(from_real_str, wname));
   } // end of for
   if (Args.hasArg(T::wrap))
-    m_Config.addCommandLine(Table->getOptionName(T::wrap), wrapString);
+    Config.addCommandLine(Table->getOptionName(T::wrap), wrapString);
 
   // -z option
   for (auto *arg : Args.filtered(T::dash_z)) {
@@ -721,7 +708,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     } else if (0 == zOpt.compare("pac-plt")) {
       zkind = eld::ZOption::ForcePACPLT;
     }
-    if (!m_Config.options().addZOption(eld::ZOption(zkind, zVal))) {
+    if (!Config.options().addZOption(eld::ZOption(zkind, zVal))) {
       errs() << "Invalid -z option specified " << zOpt << "\n";
       return false;
     }
@@ -732,14 +719,14 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     llvm::StringRef value = arg->getValue();
     uint64_t addr = 0;
     if (value.getAsInteger(0, addr)) {
-      m_Config.raise(Diag::err_invalid_image_base) << value;
+      Config.raise(Diag::err_invalid_image_base) << value;
       return false;
     }
-    m_Config.options().setImageBase(addr);
-    if (m_Config.options().hasMaxPageSize() &&
-        (addr % m_Config.options().maxPageSize()) != 0)
-      m_Config.raise(Diag::warn_image_base_not_multiple_page_size) << value;
-    m_Config.addCommandLine(Table->getOptionName(T::image_base), value);
+    Config.options().setImageBase(addr);
+    if (Config.options().hasMaxPageSize() &&
+        (addr % Config.options().maxPageSize()) != 0)
+      Config.raise(Diag::warn_image_base_not_multiple_page_size) << value;
+    Config.addCommandLine(Table->getOptionName(T::image_base), value);
   }
 
   // --section-start=section=addr
@@ -752,13 +739,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
              << ": " << arg->getValue() << "\n";
       return false;
     }
-    m_Config.options().addressMap().insert(
+    Config.options().addressMap().insert(
         std::make_pair(value.substr(0, pos), addr));
   }
 
   if (llvm::opt::Arg *arg = Args.getLastArg(T::orphan_handling)) {
     llvm::StringRef value = arg->getValue();
-    if (!m_Config.options().setOrphanHandlingMode(value)) {
+    if (!Config.options().setOrphanHandlingMode(value)) {
       errs() << "Invalid value for" << arg->getOption().getPrefixedName()
              << ": " << arg->getValue() << "\n";
       return false;
@@ -774,7 +761,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
              << ": " << arg->getValue() << "\n";
       return false;
     }
-    m_Config.options().addressMap().insert(std::make_pair(".bss", addr));
+    Config.options().addressMap().insert(std::make_pair(".bss", addr));
   }
 
   // -Tdata=value
@@ -786,7 +773,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
              << ": " << arg->getValue() << "\n";
       return false;
     }
-    m_Config.options().addressMap().insert(std::make_pair(".data", addr));
+    Config.options().addressMap().insert(std::make_pair(".data", addr));
   }
 
   // -Ttext=value
@@ -798,68 +785,68 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
              << ": " << arg->getValue() << "\n";
       return false;
     }
-    m_Config.options().addressMap().insert(std::make_pair(".text", addr));
+    Config.options().addressMap().insert(std::make_pair(".text", addr));
   }
 
   // --dynamic-list
   for (auto *Arg : Args.filtered(T::dynamic_list))
-    m_Config.options().getDynList().emplace(Arg->getValue());
-  if (m_Config.options().getDynList().size())
-    m_Config.options().setDynamicList();
+    Config.options().getDynList().emplace(Arg->getValue());
+  if (Config.options().getDynList().size())
+    Config.options().setDynamicList();
 
   // --version-script
   for (auto *Arg : Args.filtered(T::version_script))
-    m_Config.options().getVersionScripts().emplace(Arg->getValue());
-  if (m_Config.options().getVersionScripts().size())
-    m_Config.options().setVersionScript();
+    Config.options().getVersionScripts().emplace(Arg->getValue());
+  if (Config.options().getVersionScripts().size())
+    Config.options().setVersionScript();
 
   // --extern-list
   for (auto *Arg : Args.filtered(T::extern_list))
-    m_Config.options().getExternList().emplace(Arg->getValue());
+    Config.options().getExternList().emplace(Arg->getValue());
 
   // --exclude-lto-filelist
   std::vector<std::string> ltoExcludes;
   std::vector<std::string> ltoincludes;
-  if (m_Config.options().hasLTO()) {
+  if (Config.options().hasLTO()) {
     for (auto *Arg : Args.filtered(T::exclude_lto_filelist)) {
-      m_Config.options().getExcludeLTOFiles().emplace(Arg->getValue());
+      Config.options().getExcludeLTOFiles().emplace(Arg->getValue());
       ltoExcludes.push_back(Arg->getValue());
     }
   } else {
     // --include-lto-filelist
     for (auto *Arg : Args.filtered(T::include_lto_filelist)) {
-      m_Config.options().getIncludeLTOFiles().emplace(Arg->getValue());
+      Config.options().getIncludeLTOFiles().emplace(Arg->getValue());
       ltoincludes.push_back(Arg->getValue());
     }
   }
-  m_Config.addCommandLine(Table->getOptionName(T::exclude_lto_filelist),
-                          ltoExcludes);
-  m_Config.addCommandLine(Table->getOptionName(T::include_lto_filelist),
-                          ltoincludes);
+  Config.addCommandLine(Table->getOptionName(T::exclude_lto_filelist),
+                        ltoExcludes);
+  Config.addCommandLine(Table->getOptionName(T::include_lto_filelist),
+                        ltoincludes);
 
   // --exclude-libs
   for (auto *Arg : Args.filtered(T::exclude_libs)) {
     llvm::StringRef list = Arg->getValue();
     while (list.size()) {
       auto libs = list.split(',');
-      m_Config.options().excludeLIBS().insert(libs.first.str());
+      Config.options().excludeLIBS().insert(libs.first.str());
       list = libs.second;
     }
   }
 
   // --no-verify
   if (Args.hasArg(T::no_verify))
-    m_Config.options().setVerifyLink(false);
+    Config.options().setVerifyLink(false);
 
   // --allow-incompatible-section-mix
   if (Args.hasArg(T::allow_incompatible_section_mix))
-    m_Config.options().setAllowIncompatibleSectionsMix(true);
+    Config.options().setAllowIncompatibleSectionsMix(true);
 
   if (llvm::opt::Arg *arg = Args.getLastArg(T::output_file)) {
     std::string outputFileName = arg->getValue();
-    m_Config.options().setOutputFileName(outputFileName);
-    m_Config.addCommandLine(Table->getOptionName(T::output_file),
-                            outputFileName.c_str());
+    Config.options().setOutputFileName(outputFileName);
+    Config.addCommandLine(Table->getOptionName(T::output_file),
+                          outputFileName.c_str());
   }
 
   std::string conflictingOption;
@@ -868,51 +855,51 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // This must occur after -pie/-no-pie is processed so the PIE mode is set
   // correctly.
   if (Args.getLastArg(T::shared)) {
-    m_Config.options().setShared();
-    m_Config.setCodeGenType(eld::LinkerConfig::DynObj);
+    Config.options().setShared();
+    Config.setCodeGenType(eld::LinkerConfig::DynObj);
     conflictingOption = "shared";
-  } else if (m_Config.options().isPIE()) {
-    m_Config.setCodeGenType(eld::LinkerConfig::DynObj);
+  } else if (Config.options().isPIE()) {
+    Config.setCodeGenType(eld::LinkerConfig::DynObj);
     conflictingOption = "pie";
   } else if (Args.getLastArg(T::relocatable)) {
-    m_Config.setCodeGenType(eld::LinkerConfig::Object);
+    Config.setCodeGenType(eld::LinkerConfig::Object);
     conflictingOption = "relocatable";
     if (Args.hasArg(T::gc_sections))
-      m_Config.raise(Diag::warn_gc_sections_relocatable);
+      Config.raise(Diag::warn_gc_sections_relocatable);
   } else
-    m_Config.setCodeGenType(eld::LinkerConfig::Exec);
+    Config.setCodeGenType(eld::LinkerConfig::Exec);
 
   // Disable --gc-sections, --print-gc-sections for Partial Linking.
-  if (m_Config.codeGenType() != eld::LinkerConfig::Object) {
+  if (Config.codeGenType() != eld::LinkerConfig::Object) {
     // --gc-sections
     bool enableGC = Args.hasArg(T::gc_sections);
-    m_Config.options().setGCSections(enableGC);
-    m_Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
+    Config.options().setGCSections(enableGC);
+    Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
     // --print-gc-sections
-    m_Config.options().setPrintGCSections(Args.hasArg(T::print_gc_sections));
+    Config.options().setPrintGCSections(Args.hasArg(T::print_gc_sections));
   }
 
   // Disable emit relocs if -shared/-pie/relocatable
-  if (m_Config.options().emitRelocs() && !conflictingOption.empty()) {
-    m_Config.raise(Diag::warn_incompatible_option)
+  if (Config.options().emitRelocs() && !conflictingOption.empty()) {
+    Config.raise(Diag::warn_incompatible_option)
         << "-emit-relocs" << conflictingOption;
-    m_Config.options().setEmitRelocs(false);
-    m_Config.options().setEmitGNUCompatRelocs(false);
+    Config.options().setEmitRelocs(false);
+    Config.options().setEmitGNUCompatRelocs(false);
   }
 
-  if ((m_Config.options().emitRelocs() ||
-       m_Config.codeGenType() == eld::LinkerConfig::Object) &&
-      (m_Config.options().getStripSymbolMode() !=
+  if ((Config.options().emitRelocs() ||
+       Config.codeGenType() == eld::LinkerConfig::Object) &&
+      (Config.options().getStripSymbolMode() !=
        eld::GeneralOptions::KeepAllSymbols)) {
-    m_Config.raise(Diag::warn_strip_symbols) << "-emit-relocs/-r";
-    m_Config.options().setStripSymbols(eld::GeneralOptions::KeepAllSymbols);
+    Config.raise(Diag::warn_strip_symbols) << "-emit-relocs/-r";
+    Config.options().setStripSymbols(eld::GeneralOptions::KeepAllSymbols);
   }
 
-  if (m_Config.options().isPatchEnable()) {
-    if (m_Config.options().getStripSymbolMode() ==
+  if (Config.options().isPatchEnable()) {
+    if (Config.options().getStripSymbolMode() ==
         GeneralOptions::StripAllSymbols)
-      m_Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    m_Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
+      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
+    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
   }
 
   //
@@ -921,21 +908,21 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // --no-threads, --threads
   if (!Args.getLastArg(T::no_threads) || Args.getLastArg(T::threads)) {
-    m_Config.options().enableThreads();
-    m_Config.addCommandLine(Table->getOptionName(T::threads), true);
+    Config.options().enableThreads();
+    Config.addCommandLine(Table->getOptionName(T::threads), true);
   } else if (Args.getLastArg(T::no_threads)) {
     // --no-threads
-    m_Config.options().disableThreads();
-    m_Config.options().setNumThreads(1);
-    m_Config.addCommandLine(Table->getOptionName(T::threads), false);
+    Config.options().disableThreads();
+    Config.options().setNumThreads(1);
+    Config.addCommandLine(Table->getOptionName(T::threads), false);
   }
 
   // If the user user --enable-threads=all
   if (llvm::opt::Arg *arg = Args.getLastArg(T::enable_threads)) {
     llvm::StringRef Opt = arg->getValue();
     if (Opt == "all") {
-      m_Config.setGlobalThreadingEnabled();
-      m_Config.options().enableThreads();
+      Config.setGlobalThreadingEnabled();
+      Config.options().enableThreads();
     } else {
       errs() << "Invalid value for" << arg->getOption().getPrefixedName()
              << ": " << arg->getValue() << "\n";
@@ -943,13 +930,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     }
   }
 
-  if (m_Config.options().threadsEnabled()) {
+  if (Config.options().threadsEnabled()) {
     // --thread-count
     int numThreads =
         getInteger(Args, T::thread_count, std::thread::hardware_concurrency());
-    m_Config.options().setNumThreads(numThreads);
-    m_Config.addCommandLine(Table->getOptionName(T::thread_count),
-                            std::to_string(numThreads).c_str());
+    Config.options().setNumThreads(numThreads);
+    Config.addCommandLine(Table->getOptionName(T::thread_count),
+                          std::to_string(numThreads).c_str());
   }
 
   //
@@ -958,33 +945,32 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // --symdef
   if (Args.getLastArg(T::symdef))
-    m_Config.options().setSymDef();
+    Config.options().setSymDef();
 
   // --symdef-file=<file>
   if (llvm::opt::Arg *arg = Args.getLastArg(T::symdef_file))
-    m_Config.options().setSymDefFile(arg->getValue());
+    Config.options().setSymDefFile(arg->getValue());
 
   // --symdef-style=<style>
   if (llvm::opt::Arg *arg = Args.getLastArg(T::symdef_style)) {
-    if (!m_Config.options().setSymDefFileStyle(arg->getValue())) {
-      m_Config.raise(Diag::error_invalid_option_symdef_style)
-          << arg->getValue();
+    if (!Config.options().setSymDefFileStyle(arg->getValue())) {
+      Config.raise(Diag::error_invalid_option_symdef_style) << arg->getValue();
       return false;
     }
-    m_Config.setSymDefStyle(m_Config.options().symDefFileStyle());
+    Config.setSymDefStyle(Config.options().symDefFileStyle());
   }
 
   // Disable symdef if -shared/-pie/-relocatable
-  if (m_Config.options().symDef() && !conflictingOption.empty()) {
-    m_Config.raise(Diag::warn_incompatible_option)
+  if (Config.options().symDef() && !conflictingOption.empty()) {
+    Config.raise(Diag::warn_incompatible_option)
         << "-symdef/--symdef-file" << conflictingOption;
-    m_Config.options().setSymDef(false);
+    Config.options().setSymDef(false);
   }
 
   // --unresolved-symbols=ignore-all,report-all,ignore-in-object-files,
   //                      ignore-in-shared-libs
   if (llvm::opt::Arg *arg = Args.getLastArg(T::unresolved_symbols)) {
-    if (!m_Config.options().setUnresolvedSymbolPolicy(arg->getValue())) {
+    if (!Config.options().setUnresolvedSymbolPolicy(arg->getValue())) {
       errs() << "Invalid value for" << arg->getOption().getPrefixedName()
              << ": " << arg->getValue() << "\n";
       return false;
@@ -993,11 +979,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // --plugin-config=<config>.yaml
   for (const auto *Arg : Args.filtered(T::plugin_config))
-    m_Config.options().addPluginConfig(Arg->getValue());
+    Config.options().addPluginConfig(Arg->getValue());
 
   // --demangle-style
   if (llvm::opt::Arg *arg = Args.getLastArg(T::demangle_style)) {
-    if (!m_Config.options().setDemangleStyle(arg->getValue())) {
+    if (!Config.options().setDemangleStyle(arg->getValue())) {
       errs() << "Invalid value for" << arg->getOption().getPrefixedName()
              << ": " << arg->getValue() << "\n";
       return false;
@@ -1006,164 +992,163 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // --no-demangle
   if (Args.getLastArg(T::no_demangle))
-    m_Config.options().setDemangleStyle("none");
+    Config.options().setDemangleStyle("none");
 
   // --demangle
   if (Args.getLastArg(T::demangle))
-    m_Config.options().setDemangleStyle("demangle");
+    Config.options().setDemangleStyle("demangle");
 
   /// --progress-bar
   if (Args.getLastArg(T::progress_bar))
-    m_Config.options().setShowProgressBar();
+    Config.options().setShowProgressBar();
 
   std::optional<std::string> reproduceFileName;
   // --reproduce
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce)) {
-    m_Config.options().setRecordInputfiles();
+    Config.options().setRecordInputfiles();
     reproduceFileName = arg->getValue();
   }
 
   // --reproduce-compressed
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce_compressed)) {
-    m_Config.options().setRecordInputfiles();
-    m_Config.options().setCompressTar();
+    Config.options().setRecordInputfiles();
+    Config.options().setCompressTar();
     reproduceFileName = arg->getValue();
   }
 
   // --reproduce-on-fail
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce_on_fail)) {
-    m_Config.options().setReproduceOnFail(true);
+    Config.options().setReproduceOnFail(true);
     reproduceFileName = arg->getValue();
   }
 
   if (reproduceFileName)
-    m_Config.options().setTarFile(*reproduceFileName);
+    Config.options().setTarFile(*reproduceFileName);
 
   std::optional<std::string> reproduceInEnvironment =
       llvm::sys::Process::GetEnv("ELD_REPRODUCE_CREATE_TAR");
 
-  if (reproduceInEnvironment && !m_Config.options().getRecordInputFiles()) {
-    m_Config.options().setRecordInputfiles();
+  if (reproduceInEnvironment && !Config.options().getRecordInputFiles()) {
+    Config.options().setRecordInputfiles();
     llvm::SmallString<256> outputPath;
     std::error_code EC =
         llvm::sys::fs::createTemporaryFile("reproduce", "tar", outputPath);
     if (EC) {
-      m_Config.raise(Diag::unable_to_create_temporary_file) << "reproduce.tar";
+      Config.raise(Diag::unable_to_create_temporary_file) << "reproduce.tar";
       return false;
     }
-    m_Config.options().setTarFile(outputPath.str().str());
-    if (m_Config.getPrinter()->isVerbose())
-      m_Config.raise(Diag::reproduce_in_env);
+    Config.options().setTarFile(outputPath.str().str());
+    if (Config.getPrinter()->isVerbose())
+      Config.raise(Diag::reproduce_in_env);
   }
 
   // --mapping-file
   if (llvm::opt::Arg *arg = Args.getLastArg(T::mapping_file)) {
-    m_Config.options().setHasMappingFile(true);
-    m_Config.options().setMappingFileName(arg->getValue());
+    Config.options().setHasMappingFile(true);
+    Config.options().setMappingFileName(arg->getValue());
     eld::MappingFileReader reader(arg->getValue());
-    if (!reader.readMappingFile(m_Config))
-      m_Config.raise(Diag::unable_to_find_mapping_file)
-          << m_Config.options().getMappingFileName();
+    if (!reader.readMappingFile(Config))
+      Config.raise(Diag::unable_to_find_mapping_file)
+          << Config.options().getMappingFileName();
   }
 
   // --dump-mapping-file
   if (llvm::opt::Arg *arg = Args.getLastArg(T::dump_mapping_file)) {
-    m_Config.options().setDumpMappings(true);
-    m_Config.options().setMappingDumpFile(arg->getValue());
+    Config.options().setDumpMappings(true);
+    Config.options().setMappingDumpFile(arg->getValue());
   }
 
   // --dump-response-file
   if (llvm::opt::Arg *arg = Args.getLastArg(T::dump_response_file)) {
-    m_Config.options().setDumpResponse(true);
-    m_Config.options().setResponseDumpFile(arg->getValue());
+    Config.options().setDumpResponse(true);
+    Config.options().setResponseDumpFile(arg->getValue());
   }
 
   // --summary
   if (Args.getLastArg(T::summary))
-    m_Config.options().setDisplaySummary();
+    Config.options().setDisplaySummary();
 
   // --allow-bss-conversion
   if (Args.hasArg(T::allow_bss_conversion))
-    m_Config.options().setAllowBSSConversion(true);
+    Config.options().setAllowBSSConversion(true);
 
   // --no-dynamic-linker
   if (Args.hasArg(T::no_dynamic_linker))
-    m_Config.options().setHasDynamicLinker(false);
+    Config.options().setHasDynamicLinker(false);
 
   // --unique-output-sections
   if (Args.hasArg(T::unique_output_sections)) {
-    if (m_Config.isLinkPartial())
-      m_Config.options().setEmitUniqueOutputSections(true);
+    if (Config.isLinkPartial())
+      Config.options().setEmitUniqueOutputSections(true);
     else
-      m_Config.raise(Diag::unique_output_sections_unsupported);
+      Config.raise(Diag::unique_output_sections_unsupported);
   }
 
   // --global-merge-non-alloc-strings
   if (Args.hasArg(T::global_merge_non_alloc_strings))
-    m_Config.options().enableGlobalStringMerge();
+    Config.options().enableGlobalStringMerge();
 
   // --trace-linker-script
   if (Args.hasArg(T::trace_linker_script))
-    checkAndRaiseTraceDiagEntry(m_Config.options().setTrace("linker-script"));
+    checkAndRaiseTraceDiagEntry(Config.options().setTrace("linker-script"));
 
   // -Wall support
   for (auto *Arg : Args.filtered(T::W)) {
-    m_Config.setWarningOption(Arg->getValue());
+    Config.setWarningOption(Arg->getValue());
   }
 
   if (Args.hasArg(T::use_old_style_trampoline_name))
-    m_Config.setUseOldStyleTrampolineName(true);
+    Config.setUseOldStyleTrampolineName(true);
 
   // --check-sections
   if (Args.hasArg(T::enable_overlap_checks))
-    m_Config.options().setEnableCheckSectionOverlaps();
+    Config.options().setEnableCheckSectionOverlaps();
 
   // --no-check-sections
   if (Args.hasArg(T::disable_overlap_checks))
-    m_Config.options().setDisableCheckSectionOverlaps();
+    Config.options().setDisableCheckSectionOverlaps();
 
   if (Args.hasArg(T::thin_archive_rule_matching_compatibility))
-    m_Config.options().setThinArchiveRuleMatchingCompatibility();
+    Config.options().setThinArchiveRuleMatchingCompatibility();
 
   // --sort-common
   if (Args.hasArg(T::sort_common))
-    m_Config.options().setSortCommon();
+    Config.options().setSortCommon();
 
   // --sort-common=ascending/descending
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sort_common_val)) {
-    if (!m_Config.options().setSortCommon(arg->getValue())) {
-      m_Config.raise(Diag::invalid_option) << arg->getValue() << "sort-common";
+    if (!Config.options().setSortCommon(arg->getValue())) {
+      Config.raise(Diag::invalid_option) << arg->getValue() << "sort-common";
       return false;
     }
   }
 
   // --sort-section=alignment/name
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sort_section)) {
-    if (!m_Config.options().setSortSection(arg->getValue())) {
-      m_Config.raise(Diag::invalid_option) << arg->getValue() << "sort-section";
+    if (!Config.options().setSortSection(arg->getValue())) {
+      Config.raise(Diag::invalid_option) << arg->getValue() << "sort-section";
       return false;
     }
   }
 
   // --print-memory-usage
-  m_Config.options().setShowPrintMemoryUsage(
-      Args.hasArg(T::print_memory_usage));
+  Config.options().setShowPrintMemoryUsage(Args.hasArg(T::print_memory_usage));
 
   if (Args.hasArg(T::build_id))
-    m_Config.options().setDefaultBuildID();
+    Config.options().setDefaultBuildID();
 
   if (auto *Arg = Args.getLastArg(T::build_id_val))
-    m_Config.options().setBuildIDValue(Arg->getValue());
+    Config.options().setBuildIDValue(Arg->getValue());
 
   // --ignore-unknown-opts
   if (Args.hasArg(T::ignore_unknown_opts))
-    m_Config.options().setIgnoreUnknownOptions();
+    Config.options().setIgnoreUnknownOptions();
 
   // --no-default-plugins
   if (Args.hasArg(T::noDefaultPlugins))
-    m_Config.options().setNoDefaultPlugins();
+    Config.options().setNoDefaultPlugins();
 
-  m_Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
+  Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }
 
@@ -1185,103 +1170,101 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
       LLVM_FALLTHROUGH;
 
     case T::T: {
-      m_Config.options().getScriptList().push_back(arg->getValue());
+      Config.options().getScriptList().push_back(arg->getValue());
       actions.push_back(eld::make<eld::ScriptAction>(
-          arg->getValue(), eld::ScriptFile::LDScript, m_Config,
-          m_Config.getPrinter()));
+          arg->getValue(), eld::ScriptFile::LDScript, Config,
+          Config.getPrinter()));
       ++input_num;
     } break;
 
     case T::R: {
-      m_Config.options().getScriptList().push_back(arg->getValue());
+      Config.options().getScriptList().push_back(arg->getValue());
       actions.push_back(eld::make<eld::JustSymbolsAction>(
-          arg->getValue(), m_Config, m_Config.getPrinter()));
+          arg->getValue(), Config, Config.getPrinter()));
       ++input_num;
     } break;
 
     // --defsym=symbol=expr
     case T::defsym: {
       actions.push_back(
-          eld::make<eld::DefSymAction>(arg->getValue(), m_Config.getPrinter()));
+          eld::make<eld::DefSymAction>(arg->getValue(), Config.getPrinter()));
     } break;
 
     // -l namespec
     case T::l:
     case T::namespec: {
-      actions.push_back(eld::make<eld::NamespecAction>(arg->getValue(),
-                                                       m_Config.getPrinter()));
+      actions.push_back(
+          eld::make<eld::NamespecAction>(arg->getValue(), Config.getPrinter()));
       ++input_num;
     } break;
 
     // --whole-archive
     case T::whole_archive:
       actions.push_back(
-          eld::make<eld::WholeArchiveAction>(m_Config.getPrinter()));
-      m_Config.addCommandLine(Table->getOptionName(T::whole_archive), true);
+          eld::make<eld::WholeArchiveAction>(Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::whole_archive), true);
       break;
 
     // --no-whole-archive
     case T::no_whole_archive:
       actions.push_back(
-          eld::make<eld::NoWholeArchiveAction>(m_Config.getPrinter()));
-      m_Config.addCommandLine(Table->getOptionName(T::whole_archive), false);
+          eld::make<eld::NoWholeArchiveAction>(Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::whole_archive), false);
       break;
 
     // --as-needed
     case T::as_needed:
-      actions.push_back(eld::make<eld::AsNeededAction>(m_Config.getPrinter()));
+      actions.push_back(eld::make<eld::AsNeededAction>(Config.getPrinter()));
       break;
 
     // --no-as-needed
     case T::no_as_needed:
-      actions.push_back(
-          eld::make<eld::NoAsNeededAction>(m_Config.getPrinter()));
+      actions.push_back(eld::make<eld::NoAsNeededAction>(Config.getPrinter()));
       break;
 
     // FIXME: Shouldn't we also add -call_shared here?
     // -Bdynamic
     case T::Bdynamic:
     case T::dynamic:
-      actions.push_back(eld::make<eld::BDynamicAction>(m_Config.getPrinter()));
+      actions.push_back(eld::make<eld::BDynamicAction>(Config.getPrinter()));
       break;
 
     // FIXME: Shouldn't we also add -dn, -non_shared and -Bstatic here?
     // -Bstatic
     case T::static_link:
-      actions.push_back(eld::make<eld::BStaticAction>(m_Config.getPrinter()));
+      actions.push_back(eld::make<eld::BStaticAction>(Config.getPrinter()));
       break;
 
     // --start-group
     case T::start_group: {
-      if (arg->getNumValues() == 0 && m_Config.showCommandLineWarnings())
-        m_Config.raise(Diag::warn_group_is_empty);
+      if (arg->getNumValues() == 0 && Config.showCommandLineWarnings())
+        Config.raise(Diag::warn_group_is_empty);
       if (GroupMatchCount) {
-        m_Config.raise(Diag::nested_group_not_allowed);
-        m_Config.raise(Diag::linking_had_errors);
+        Config.raise(Diag::nested_group_not_allowed);
+        Config.raise(Diag::linking_had_errors);
         return false;
       }
       ++GroupMatchCount;
-      actions.push_back(
-          eld::make<eld::StartGroupAction>(m_Config.getPrinter()));
-      m_Config.addCommandLine(Table->getOptionName(T::start_group), true);
+      actions.push_back(eld::make<eld::StartGroupAction>(Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::start_group), true);
     } break;
 
     // --end-group
     case T::end_group: {
       --GroupMatchCount;
-      actions.push_back(eld::make<eld::EndGroupAction>(m_Config.getPrinter()));
-      m_Config.addCommandLine(Table->getOptionName(T::end_group), true);
+      actions.push_back(eld::make<eld::EndGroupAction>(Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::end_group), true);
     } break;
 
     case T::input_format: {
-      actions.push_back(eld::make<eld::InputFormatAction>(
-          arg->getValue(), m_Config.getPrinter()));
-      m_Config.addCommandLine(Table->getOptionName(T::input_format), true);
+      actions.push_back(eld::make<eld::InputFormatAction>(arg->getValue(),
+                                                          Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::input_format), true);
     } break;
 
     case T::INPUT: {
       actions.push_back(eld::make<eld::InputFileAction>(arg->getValue(),
-                                                        m_Config.getPrinter()));
+                                                        Config.getPrinter()));
       ++input_num;
     } break;
 
@@ -1291,14 +1274,14 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   }
 
   if (GroupMatchCount != 0) {
-    m_Config.raise(Diag::mismatched_group);
-    m_Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::mismatched_group);
+    Config.raise(Diag::linking_had_errors);
     return false;
   }
 
   if (input_num == 0) {
-    m_Config.raise(Diag::err_no_inputs);
-    m_Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::err_no_inputs);
+    Config.raise(Diag::linking_had_errors);
     return false;
   }
 
@@ -1338,10 +1321,10 @@ bool GnuLdDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
     if (arg->getValue() != nullptr)
       mtriplePos = arg->getIndex();
   } else {
-    if (!m_Config.targets().hasTriple())
+    if (!Config.targets().hasTriple())
       triple.setTriple(llvm::sys::getDefaultTargetTriple());
     else
-      triple = m_Config.targets().triple();
+      triple = Config.targets().triple();
   }
 
   // -march=value
@@ -1352,12 +1335,12 @@ bool GnuLdDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
       marchPos = arg->getIndex();
       march = parseMarchShortName(march);
     }
-    m_Config.targets().setArch(march);
-    m_Config.addCommandLine(Table->getOptionName(T::march), arg->getValue());
+    Config.targets().setArch(march);
+    Config.addCommandLine(Table->getOptionName(T::march), arg->getValue());
   }
 
   if ((marchPos == -1) && (mtriplePos == -1)) {
-    std::string MArch = m_Config.targets().getArch();
+    std::string MArch = Config.targets().getArch();
     if (MArch != triple.getArchTypeName(triple.getArch()))
       triple.setTriple(MArch);
   } else if ((marchPos != -1) && mtriplePos == -1) {
@@ -1369,30 +1352,29 @@ bool GnuLdDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
   } else if (marchPos > mtriplePos) {
     triple.setTriple(march);
   } else if (mtriplePos > marchPos) {
-    m_Config.targets().setArch(triple.getArchTypeName(triple.getArch()).str());
+    Config.targets().setArch(triple.getArchTypeName(triple.getArch()).str());
   }
 
   if (llvm::opt::Arg *arg = Args.getLastArg(T::mcpu))
-    m_Config.targets().setTargetCPU(arg->getValue());
+    Config.targets().setTargetCPU(arg->getValue());
 
   // --mabi=value
   if (llvm::opt::Arg *arg = Args.getLastArg(T::mabi)) {
     llvm::StringRef abi(arg->getValue());
     if (abi.size()) {
-      m_Config.options().setABIstring(arg->getValue());
-      m_Config.options().setValidateArchOptions();
-      m_Config.addCommandLine(Table->getOptionName(T::mabi), arg->getValue());
+      Config.options().setABIstring(arg->getValue());
+      Config.options().setValidateArchOptions();
+      Config.addCommandLine(Table->getOptionName(T::mabi), arg->getValue());
     }
   }
 
   // -m <emulation>
   if (llvm::opt::Arg *arg = Args.getLastArg(T::emulation)) {
-    m_Config.options().setEmulation(arg->getValue());
-    m_Config.addCommandLine(Table->getOptionName(T::emulation),
-                            arg->getValue());
+    Config.options().setEmulation(arg->getValue());
+    Config.addCommandLine(Table->getOptionName(T::emulation), arg->getValue());
   }
 
-  m_Config.targets().setTriple(triple);
+  Config.targets().setTriple(triple);
   return true;
 }
 
@@ -1453,7 +1435,7 @@ bool GnuLdDriver::processReproduceOption(
   // create response string
   llvm::SmallString<0> responseData;
   llvm::raw_svector_ostream os(responseData);
-  if (!m_Config.options().getDumpResponse())
+  if (!Config.options().getDumpResponse())
     os << getProgramName() << " ";
   size_t lastNamespecId = -1;
 
@@ -1487,7 +1469,7 @@ bool GnuLdDriver::processReproduceOption(
       os << outputTar->rewritePath(arg->getValue()) << ' ';
       break;
     case T::plugin_config: {
-      const eld::sys::fs::Path *P = m_Config.directories().findFile(
+      const eld::sys::fs::Path *P = Config.directories().findFile(
           "plugin configuration file", arg->getValue(), "");
       outputTar->createAndAddConfigFile(arg->getValue(),
                                         P ? P->getFullPath() : "");
@@ -1532,8 +1514,8 @@ bool GnuLdDriver::processReproduceOption(
   }
   os << "--mapping-file=" << outputTar->getMappingFileName() << "\n";
   outputTar->createResponseFile(responseData.str());
-  if (m_Config.options().getDumpResponse())
-    writeDump(m_Config.options().getResponseDumpFile(), responseData.str());
+  if (Config.options().getDumpResponse())
+    writeDump(Config.options().getResponseDumpFile(), responseData.str());
   return true;
 }
 
@@ -1583,64 +1565,63 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
                          std::vector<eld::InputAction *> &actions) {
   // Get the target specific parser.
   std::string error;
-  llvm::Triple Triple = m_Config.targets().triple();
+  llvm::Triple Triple = Config.targets().triple();
   const llvm::Target *LLVMTarget =
       llvm::TargetRegistry::lookupTarget(Triple.str(), error);
   if (nullptr == LLVMTarget) {
-    m_Config.raise(Diag::cannot_find_target) << error;
+    Config.raise(Diag::cannot_find_target) << error;
     return false;
   }
   const eld::Target *ELDTarget =
       eld::TargetRegistry::lookupTarget(Triple.str(), error);
   if (nullptr == ELDTarget) {
-    m_Config.raise(Diag::cannot_find_target) << error;
+    Config.raise(Diag::cannot_find_target) << error;
     return false;
   }
 
   // This is needed to make sure for -march aarch64,
   // default triple is not arm--linux-gnu else it will cause issues in LTO
-  m_Config.targets().setTriple(Triple);
+  Config.targets().setTriple(Triple);
   std::unique_ptr<eld::ELDTargetMachine> target_machine(
-      ELDTarget->createTargetMachine(m_Config.targets().triple().getTriple(),
+      ELDTarget->createTargetMachine(Config.targets().triple().getTriple(),
                                      *LLVMTarget));
   eld::LayoutPrinter *layoutPrinter = nullptr;
-  if (!m_Config.options().layoutFile().empty() || m_Config.options().printMap())
-    layoutPrinter = eld::make<eld::LayoutPrinter>(m_Config);
-  ThisModule = eld::make<eld::Module>(m_Script, m_Config, layoutPrinter);
+  if (!Config.options().layoutFile().empty() || Config.options().printMap())
+    layoutPrinter = eld::make<eld::LayoutPrinter>(Config);
+  ThisModule = eld::make<eld::Module>(m_Script, Config, layoutPrinter);
 
   // Handle Map Style and set default MapStyle
-  llvm::ArrayRef<std::string> MapStyles = m_Config.options().mapStyle();
+  llvm::ArrayRef<std::string> MapStyles = Config.options().mapStyle();
   if (MapStyles.size()) {
-    m_Config.options().setDefaultMapStyle(MapStyles[0]);
-    if (m_Config.options().checkAndUpdateMapStyleForPrintMap())
-      MapStyles = m_Config.options().mapStyle();
+    Config.options().setDefaultMapStyle(MapStyles[0]);
+    if (Config.options().checkAndUpdateMapStyleForPrintMap())
+      MapStyles = Config.options().mapStyle();
     // Create LayoutPrinters.
-    m_Config.raise(Diag::mapstyles_used) << llvm::join(MapStyles, ",");
+    Config.raise(Diag::mapstyles_used) << llvm::join(MapStyles, ",");
     for (auto &Style : MapStyles) {
       if (!ThisModule->createLayoutPrintersForMapStyle(Style))
         return false; // fail the link
     }
   } else {
-    m_Config.raise(Diag::mapstyles_used)
-        << m_Config.options().getDefaultMapStyle();
+    Config.raise(Diag::mapstyles_used) << Config.options().getDefaultMapStyle();
     if (!ThisModule->createLayoutPrintersForMapStyle(
-            m_Config.options().getDefaultMapStyle()))
+            Config.options().getDefaultMapStyle()))
       return false; // fail the link
   }
 
   bool linkStatus = false;
   {
-    eld::Linker linker(*ThisModule, m_Config);
+    eld::Linker linker(*ThisModule, Config);
     llvm::sys::AddSignalHandler(defaultSignalHandler, nullptr);
-    m_Config.raise(Diag::default_signal_handler);
+    Config.raise(Diag::default_signal_handler);
     linkStatus = linker.prepare(actions, ELDTarget);
     // llvm::errs() << "prepare: linkStatus: " << linkStatus << "\n";
-    if (!linkStatus || m_Config.options().getRecordInputFiles())
+    if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, false);
     if (linkStatus)
       linkStatus = linker.link();
     // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
-    if (!linkStatus || m_Config.options().getRecordInputFiles())
+    if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);
     linker.printLayout();
     linkStatus &= ThisModule->getPluginManager().callDestroyHook();
@@ -1648,10 +1629,10 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     linker.unloadPlugins();
     linkStatus &= emitStats(*ThisModule);
   }
-  if (m_Config.options().displaySummary())
-    m_Config.getDiagEngine()->finalize();
+  if (Config.options().displaySummary())
+    Config.getDiagEngine()->finalize();
   if (!linkStatus)
-    m_Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::linking_had_errors);
   eld::freeArena();
   return linkStatus;
 }
@@ -1666,8 +1647,8 @@ bool GnuLdDriver::handleReproduce(llvm::opt::InputArgList &Args,
                                   std::vector<eld::InputAction *> &actions,
                                   bool writeFiles) {
   // FIXME: The below should perhaps be an assert?
-  if (!m_Config.options().getRecordInputFiles() &&
-      !m_Config.options().isReproduceOnFail())
+  if (!Config.options().getRecordInputFiles() &&
+      !Config.options().isReproduceOnFail())
     return true;
   // FIXME: Why call processReproduceOption<T>(...) twice? In the second run, we
   // can simply append any LTO objects instead of recomputing the entire thing.
@@ -1679,8 +1660,8 @@ bool GnuLdDriver::handleReproduce(llvm::opt::InputArgList &Args,
     llvm::sys::AddSignalHandler(writeReproduceTar, nullptr);
     llvm::sys::SetInterruptFunction(ReproduceInterruptHandler);
     llvm::sys::SetInfoSignalFunction(ReproduceInterruptHandler);
-    if (m_Config.getPrinter()->isVerbose())
-      m_Config.raise(Diag::reproduce_signal_handler);
+    if (Config.getPrinter()->isVerbose())
+      Config.raise(Diag::reproduce_signal_handler);
   });
   // If needed to write files, then write files
   if (writeFiles) {
@@ -1727,6 +1708,13 @@ std::vector<const char *> GnuLdDriver::getAllArgs(
   for (llvm::StringRef arg : ELDFlagsArgs)
     allArgs.push_back(arg.data());
   return allArgs;
+}
+
+int GnuLdDriver::link(llvm::ArrayRef<const char *> Args) {
+  // If argv[0] is empty then use ld.eld.
+  LinkerProgramName =
+      (Args[0][0] ? llvm::sys::path::filename(Args[0]) : "ld.eld");
+  return link(Args, Driver::getELDFlagsArgs());
 }
 
 #ifdef ELD_ENABLE_TARGET_HEXAGON
