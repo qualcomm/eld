@@ -218,6 +218,8 @@ private:
 
   std::string findInRPath(llvm::StringRef LibraryName, llvm::StringRef RPath);
 
+  void clearResources();
+
 private:
   plugin::Plugin::Type ThisType;
   uint32_t CurID;
