@@ -26,7 +26,7 @@ namespace eld {
 enum {
   // static relocations
   R_AARCH64_ADR_PREL_PG_HI21_NC = 0x114,
-  // dyanmic rlocations
+  // dynamic rlocations
   R_AARCH64_COPY = 1024,
   R_AARCH64_GLOB_DAT = 1025,
   R_AARCH64_JUMP_SLOT = 1026,

@@ -1255,7 +1255,7 @@ void ARMGNULDBackend::setDefaultConfigs() {
 namespace eld {
 
 //===----------------------------------------------------------------------===//
-/// createARMLDBackend - the help funtion to create corresponding ARMLDBackend
+/// createARMLDBackend - the help function to create corresponding ARMLDBackend
 ///
 GNULDBackend *createARMLDBackend(Module &pModule) {
   return make<ARMGNULDBackend>(pModule, make<ARMInfo>(pModule.getConfig()));

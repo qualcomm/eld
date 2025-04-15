@@ -49,7 +49,7 @@ public:
       return true;
     }
     // When linker script is present, unless SIZEOF_HEADERS is used in the
-    // linker script, the linker really doesnot know whether to load the program
+    // linker script, the linker really doesn't know whether to load the program
     // headers or not.
     if (linkerScriptHasSectionsCommand)
       return false;

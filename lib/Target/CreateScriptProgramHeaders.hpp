@@ -174,7 +174,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
       // If the output section descriptor has an alignment specified
       // honor the alignment specified, the alignment would have been
       // reflected in the section alignment.
-      // The linker doesnot align the section if there was no alignment
+      // The linker doesn't align the section if there was no alignment
       // specified for the output section but a "VMA" was specified.
       if (!(*out)->prolog().hasAlign())
         doAlign = false;

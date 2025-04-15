@@ -221,7 +221,7 @@ RISCVGOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
   uint8_t Reloc = llvm::ELF::R_RISCV_32;
   if (!B.config().targets().is32Bits())
     Reloc = llvm::ELF::R_RISCV_64;
-  // If the symbol is not preemptable and we are not building an executable,
+  // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.
   bool useRelative =
@@ -420,7 +420,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   switch (pReloc.type()) {
   case llvm::ELF::R_RISCV_32:
   case llvm::ELF::R_RISCV_64:
-    // If buiding PIC object (shared library or PIC executable),
+    // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
@@ -963,7 +963,7 @@ RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
     return RISCVRelocator::Unsupport;
 
   // Normally, relocations are resolved to the PLT if it exists for a symbol.
-  // Direct calls can be optimzied to use the real symbol.
+  // Direct calls can be optimized to use the real symbol.
   bool IsPatchSection = pReloc.targetRef()
                             ->frag()
                             ->getOwningSection()
@@ -1014,7 +1014,7 @@ RISCVRelocator::Result applyCompressedLUI(Relocation &pReloc,
                                           RISCVLDBackend &Backend,
                                           RelocationDescription &pRelocDesc) {
   // TODO: TEst what lld/bfd does.
-  // LUI has bottom 12 bits or 4K addressible target bits 0.
+  // LUI has bottom 12 bits or 4K addressable target bits 0.
   uint64_t Result =
       Backend.getRelocator()->getSymValue(&pReloc) + pReloc.addend();
   // The bottom 12 bits are signed.

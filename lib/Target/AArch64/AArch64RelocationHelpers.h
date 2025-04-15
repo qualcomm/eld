@@ -59,7 +59,7 @@ static inline uint32_t helper_reencode_adr_imm(uint32_t pInst, uint32_t pImm) {
          ((pImm & get_mask(2)) << 29) | ((pImm & (get_mask(19) << 2)) << 3);
 }
 
-// Reencode the imm field of add immediate.
+// Re-encode the imm field of add immediate.
 static inline uint32_t helper_reencode_add_imm(uint32_t pInst, uint32_t pImm) {
   return (pInst & ~(get_mask(12) << 10)) | ((pImm & get_mask(12)) << 10);
 }
@@ -82,7 +82,7 @@ static inline uint32_t helper_reencode_tbz_imm_14(uint32_t pInst,
   return (pInst & ~(get_mask(14) << 5)) | ((pImm & get_mask(14)) << 5);
 }
 
-// Reencode the imm field of ld/st pos immediate.
+// Re-encode the imm field of ld/st pos immediate.
 static inline uint32_t helper_reencode_ldst_pos_imm(uint32_t pInst,
                                                     uint32_t pImm) {
   return (pInst & ~(get_mask(12) << 10)) | ((pImm & get_mask(12)) << 10);
@@ -94,7 +94,7 @@ static inline uint32_t helper_reencode_ld_literal_19(uint32_t pInst,
   return (pInst & ~(get_mask(19) << 5)) | ((pImm & get_mask(19)) << 5);
 }
 
-// Reencode the imm field of movz/movk
+// Re-encode the imm field of movz/movk
 static inline uint32_t helper_reencode_movzk_imm(uint32_t pInst,
                                                  uint32_t pImm) {
   return (pInst & ~(get_mask(16) << 5)) | ((pImm & get_mask(16)) << 5);

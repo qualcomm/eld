@@ -79,7 +79,7 @@ public:
     uint64_t imm = ((adrp >> 29) & mask2) | (((adrp >> 5) & mask19) << 2);
     // Retrieve msb of 21-bit-signed imm for sign extension.
     uint64_t msbt = (imm >> 20) & 1;
-    // Real value is imm multipled by 4k. Value now has 33-bit information.
+    // Real value is imm multiplied by 4k. Value now has 33-bit information.
     int64_t value = imm << 12;
     // Sign extend to 64-bit by repeating msbt 31 (64-33) times and merge it
     // with value.
@@ -288,7 +288,7 @@ public:
   static bool mac(InsnType insn) { return (insn & 0xff000000) == 0x9b000000; }
 
   // Return true if INSN is multiply-accumulate.
-  // (This is similar to implementaton in elfnn-aarch64.c.)
+  // (This is similar to implementation in elfnn-aarch64.c.)
   static bool mlxl(InsnType insn) {
     uint32_t Op31 = op31(insn);
     if (mac(insn) &&

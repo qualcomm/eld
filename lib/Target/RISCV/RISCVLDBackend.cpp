@@ -631,7 +631,7 @@ bool RISCVLDBackend::shouldIgnoreRelocSync(Relocation *pReloc) const {
   case llvm::ELF::R_RISCV_RELAX:
   case llvm::ELF::R_RISCV_ALIGN:
   case llvm::ELF::R_RISCV_VENDOR:
-  // ULEB128 relocations are handled seperately
+  // ULEB128 relocations are handled separately
   case llvm::ELF::R_RISCV_SET_ULEB128:
   case llvm::ELF::R_RISCV_SUB_ULEB128:
     return true;
@@ -686,7 +686,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   if (m_pGlobalPointer)
     GP = m_pGlobalPointer->value();
 
-  // Compres
+  // Compress
   bool DoCompressed = config().options().getRISCVRelaxToC();
 
   // start relocation relaxation
@@ -945,7 +945,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       Relocation *VendorReloc =
           pSection->findRelocation(pOffset, llvm::ELF::R_RISCV_VENDOR);
       if (!VendorReloc) {
-        // The ABI requires that R_RISCV_VENDOR preceeds any R_RISCV_CUSTOM<n>
+        // The ABI requires that R_RISCV_VENDOR precedes any R_RISCV_CUSTOM<n>
         // Relocation.
         config().raise(Diag::error_rv_vendor_not_found)
             << getRISCVRelocName(pType)
@@ -1448,7 +1448,7 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 namespace eld {
 
 //===----------------------------------------------------------------------===//
-/// createRISCVLDBackend - the help funtion to create corresponding
+/// createRISCVLDBackend - the help function to create corresponding
 /// RISCVLDBackend
 GNULDBackend *createRISCVLDBackend(Module &pModule) {
   return make<RISCVLDBackend>(pModule,

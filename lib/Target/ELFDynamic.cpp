@@ -411,7 +411,7 @@ void ELFDynamic::reserveNeedEntry() {
 void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
   if (pRegion.size() < pSection.size()) {
     llvm::report_fatal_error(llvm::Twine("the given memory is smaller") +
-                             llvm::Twine(" than the section's demaind.\n"));
+                             llvm::Twine(" than the section's demand.\n"));
   }
 
   uint8_t *address = (uint8_t *)pRegion.begin();

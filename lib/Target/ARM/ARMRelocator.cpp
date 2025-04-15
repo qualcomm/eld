@@ -99,7 +99,7 @@ static ARMGOT *CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
     return G;
   }
 
-  // If the symbol is not preemptable and we are not building an executable,
+  // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.
   bool useRelative =
@@ -325,7 +325,7 @@ Relocator::Size ARMRelocator::getSize(Relocation::Type pType) const {
 }
 
 /// checkValidReloc - When we attempt to generate a dynamic relocation for
-/// ouput file, check if the relocation is supported by dynamic linker.
+/// output file, check if the relocation is supported by dynamic linker.
 bool ARMRelocator::checkValidReloc(Relocation &pReloc) const {
   // If not PIC object, no relocation type is invalid
   if (!config().isCodeIndep())
@@ -369,7 +369,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_ABS32:
   case llvm::ELF::R_ARM_ABS32_NOI: {
-    // If buiding PIC object (shared library or PIC executable),
+    // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
@@ -433,7 +433,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
   case llvm::ELF::R_ARM_GLOB_DAT:
   case llvm::ELF::R_ARM_JUMP_SLOT:
   case llvm::ELF::R_ARM_RELATIVE: {
-    // These are relocation type for dynamic linker, shold not
+    // These are relocation type for dynamic linker, should not
     // appear in object file.
     config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
     m_Target.getModule().setFailure(true);
@@ -698,7 +698,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       return;
     }
 
-    // if symbol is defined in the ouput file and it's not
+    // if symbol is defined in the output file and it's not
     // preemptible, no need plt
     if (!getTarget().isSymbolPreemptible(*rsym))
       return;
@@ -736,7 +736,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
   case llvm::ELF::R_ARM_GLOB_DAT:
   case llvm::ELF::R_ARM_JUMP_SLOT:
   case llvm::ELF::R_ARM_RELATIVE: {
-    // These are relocation type for dynamic linker, shold not
+    // These are relocation type for dynamic linker, should not
     // appear in object file.
     config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
     m_Target.getModule().setFailure(true);
