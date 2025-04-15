@@ -1,5 +1,4 @@
 #---Tram.test----------------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Fix for a trampoline with section symbol and addend on AArch64
 # setup

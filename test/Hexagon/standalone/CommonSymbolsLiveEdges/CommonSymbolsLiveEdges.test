@@ -1,5 +1,4 @@
 #---KeepCommonsymbols.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the KEEP linker script directive works for common
 # symbols input description.

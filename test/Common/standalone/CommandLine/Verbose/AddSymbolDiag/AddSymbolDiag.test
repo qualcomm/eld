@@ -1,6 +1,4 @@
 #---addSymbolDiag.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This test checks that the linker produces 'Adding symbol' diagnostic
 # correctly.

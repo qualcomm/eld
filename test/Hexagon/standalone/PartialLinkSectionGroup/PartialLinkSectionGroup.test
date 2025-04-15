@@ -1,5 +1,4 @@
 #---PartialLinkSectionGroup.test --------------------- PartialLink ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is not merging different section groups to the
 # same output section with partial links.

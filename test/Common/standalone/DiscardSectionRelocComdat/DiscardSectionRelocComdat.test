@@ -1,6 +1,4 @@
 #---DiscardSectionRelocComdat.test----------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # Check that relocations to a discarded section generate an error
 #END_COMMENT

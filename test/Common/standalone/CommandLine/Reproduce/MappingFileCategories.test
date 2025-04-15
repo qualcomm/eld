@@ -1,5 +1,4 @@
 #---MappingFileCategories.test------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test uses many file kinds and checks that
 # they are placed in their own categories in mapping.ini

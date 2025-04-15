@@ -1,5 +1,4 @@
 #---InvalidDiagnostics.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the linker reports fatal error when invalid
 # diagnostics are being reported.

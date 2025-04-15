@@ -1,5 +1,4 @@
 #---GDTransformLinkerScript.test------------- Exe------------------#
-
 #BEGIN_COMMENT
 # Transformation stubs should be availabe to linker when linking static
 # even in presence of linker script

@@ -765,6 +765,12 @@ public:
 
   void setROPI() { BROPI = true; }
 
+  enum class Target2Policy { Abs, Rel, GotRel };
+
+  void setTarget2Policy(Target2Policy Value) { Target2 = Value; }
+
+  Target2Policy getTarget2Policy() const { return Target2; }
+
   // --------------------AArch64 execute-only Support ------------------
 
   bool hasExecuteOnlySegments() { return BExecuteOnly; }
@@ -1199,6 +1205,7 @@ private:
   bool Compact = false;                   // --compact
   bool BRWPI = false;                     // --frwpi
   bool BROPI = false;                     // --fropi
+  Target2Policy Target2 = Target2Policy::GotRel; // --target2
   bool BExecuteOnly = false;              // --execute-only
   bool BPrintTimeStats = false;           // --print-stats
   bool BPrintAllUserPluginTimeStats = false;

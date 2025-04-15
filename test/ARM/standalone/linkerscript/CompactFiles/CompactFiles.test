@@ -1,5 +1,4 @@
 #---CompactFiles.test--------------------- Executable------------#
-
 #BEGIN_COMMENT
 # Test that the linker can generate compact files.
 #END_COMMENT

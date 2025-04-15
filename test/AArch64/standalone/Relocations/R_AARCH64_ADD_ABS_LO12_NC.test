@@ -1,5 +1,4 @@
 #---R_AARCH64_ADD_ABS_LO12_NC.test--------------------- SharedLibrary------------------#
-
 #BEGIN_COMMENT
 # This tests that the relocation R_AARCH64_ADD_ABS_LO12_NC points to the PLT.
 #END_COMMENT

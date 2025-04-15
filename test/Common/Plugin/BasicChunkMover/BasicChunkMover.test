@@ -1,5 +1,4 @@
 #---BasicChunkMover.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks the RuleContainer linked list invariants. Each RuleContainer points to
 # the next rule container, forming a linked list.

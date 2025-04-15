@@ -1,8 +1,4 @@
 #----------PCREL_HI20_LO12_I_TO_GP.test----------------- Executable------------------#
-
-
-
-
 #BEGIN_COMMENT
 # Do relaxation based on the value of global pointer register. This uses PC
 # relative relocations. Check for symbols size after relaxation

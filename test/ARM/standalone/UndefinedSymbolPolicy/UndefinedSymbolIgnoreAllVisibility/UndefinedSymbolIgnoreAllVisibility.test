@@ -1,5 +1,4 @@
 #---UndefinedSymbolIgnoreAll.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 #This checks that undefined symbols are not reported by the linker as usual, even when the
 #user uses the policy --unresolved-symbols=ignore-all because symbol visibility

@@ -1,5 +1,4 @@
 #---DiscardedSections.test--------------------- Executable,GC ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print the sections that are garbage
 # collected in the YAML map file.

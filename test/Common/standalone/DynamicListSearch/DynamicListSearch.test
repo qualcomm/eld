@@ -1,5 +1,4 @@
 #---DynamicListSearch.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 #Improve dynamic list parsing by using linker script parser.
 #END_COMMENT

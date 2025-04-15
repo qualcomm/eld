@@ -1,5 +1,4 @@
 #---CPUArchProfile.test--------- Executable-----------------------------------#
-
 #BEGIN_COMMENT
 #Check CPUArchProfile before the linker rewrites BL to BLX
 #END_COMMENT

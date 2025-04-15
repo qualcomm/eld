@@ -1,5 +1,4 @@
 #---OverlapAddress.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that the addresses dont overlap when using MEMORY, and checks that
 # the linker is not overlapping addresses

@@ -1,5 +1,4 @@
 #---DiscardWithDebug.test--------------------- Exe/------------------#
-
 #BEGIN_COMMENT
 # Debug relocs from discarded sections must not issue an Undef error
 #----------------------------------------------------------------

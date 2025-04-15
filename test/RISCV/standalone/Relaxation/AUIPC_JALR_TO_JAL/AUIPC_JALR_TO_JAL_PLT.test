@@ -1,5 +1,4 @@
 #----------AUIPC_JALR_TO_JAL_PLT.test-------------------------------#
-
 #BEGIN_COMMENT
 # Check that offset to PLT is used when relaxing.
 #END_COMMENT

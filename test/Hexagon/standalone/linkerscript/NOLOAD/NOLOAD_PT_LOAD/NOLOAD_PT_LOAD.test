@@ -1,5 +1,4 @@
 #--NOLOAD_PT_LOAD.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # NOLOAD sections are assigned PT_LOAD segments.
 #END_COMMENT

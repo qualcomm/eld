@@ -1,5 +1,4 @@
 #---UnknownEntrySymbol.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test checks the behavior of the linker when incorrect entry symbol
 # is passed.

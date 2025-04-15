@@ -1,6 +1,4 @@
 #---PartialLinkTLSSymbol.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 # This test checks that TLS symbols have correct values after partial link.
 # per merge string.

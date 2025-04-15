@@ -1,5 +1,4 @@
 #---AssignRegionsPHDRS.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the linker is able to parse MEMORY linker script
 # command and assigns sections to regions based on memory constraints.

@@ -1,5 +1,4 @@
 #---ReadCompressedSections.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This checks that the linker can read debug information in compressed format and
 #produce uncompressed output

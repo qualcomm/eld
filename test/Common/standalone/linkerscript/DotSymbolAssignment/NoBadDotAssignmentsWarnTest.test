@@ -1,5 +1,4 @@
 #---NoBadDotAssignmentWarn.test------- Executable,LS ---------------------#
-
 #BEGIN_COMMENT
 # This tests for suppressed bad-dot-assignments warnings.
 #END_COMMENT

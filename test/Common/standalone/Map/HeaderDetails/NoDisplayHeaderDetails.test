@@ -1,5 +1,4 @@
 #---DisplayHeaderDetails.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is not printing program headers or file headers
 # in the Mapfile without -MapDetail=--show-header-details option

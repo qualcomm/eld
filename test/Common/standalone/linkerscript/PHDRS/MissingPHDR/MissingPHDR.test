@@ -1,5 +1,4 @@
 #---MissingPHDR.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 #Linker should exit with a proper fatal error when a segment is not defined in
 #PHDR section

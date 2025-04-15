@@ -1,5 +1,4 @@
 #---nognustack.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Checks that the GNU_STACK segment is not present when -z nognustack option is used
 #END_COMMENT

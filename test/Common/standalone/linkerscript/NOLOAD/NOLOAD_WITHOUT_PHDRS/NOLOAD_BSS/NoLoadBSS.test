@@ -1,5 +1,4 @@
 #--NoLoadBSS.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # Support NOLOAD without PHDRS's
 #END_COMMENT

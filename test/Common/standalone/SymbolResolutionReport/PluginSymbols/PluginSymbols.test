@@ -1,5 +1,4 @@
 #---PluginSymbols.test--------------------- Executable, LS------------------#
-
 #BEGIN_COMMENT
 # This test checks the symbol resolution report when there are
 # plugin-inserted symbols.

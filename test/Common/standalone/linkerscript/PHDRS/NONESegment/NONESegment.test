@@ -1,6 +1,4 @@
 #---NONESegment.test--------------------------- Executable ----------#
-
-
 #BEGIN_COMMENT
 #Test for NONE segment support. Add text map file output and check for NONE
 #segment printed in the text map file.

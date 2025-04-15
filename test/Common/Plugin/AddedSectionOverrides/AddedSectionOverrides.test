@@ -1,5 +1,4 @@
 #---AddedSectionOverrides.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the behavior of 'added_section_override' diagnostic.
 #END_COMMENT

@@ -1,8 +1,4 @@
 #---excludesymbol.test--------------------- Executable,LS --------------------#
-
-
-
-
 # BEGIN_COMMENT
 # This test checks plugin API for excluding a symbol
 # END_COMMENT

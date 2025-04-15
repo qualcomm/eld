@@ -1,5 +1,4 @@
 #---CommonSymbolValue.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker sets the first slot in GOTPLT0 to be _DYNAMIC.
 #END_COMMENT

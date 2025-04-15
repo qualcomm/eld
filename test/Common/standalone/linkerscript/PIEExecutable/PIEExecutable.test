@@ -1,5 +1,4 @@
 #---PIEExecutable.test--------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # When relocation sections are processed and those that contain assignments, it
 # so happens that the size gets reset and gets computed as 0. The sections do

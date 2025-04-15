@@ -1,5 +1,4 @@
 #---LTOTempObjNotWritable.test--------------------- Executable,LTO -------------#
-
 #BEGIN_COMMENT
 # Test that the correct error message is printed when the temporary
 # LTO object file cannot be created.

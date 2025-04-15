@@ -1,6 +1,4 @@
 #---ExternList.test------------------------- Executable ----------------------#
-
-
 #BEGIN_COMMENT
 # This checks that --reproduce can handle extern list and binary map stability
 #END_COMMENT

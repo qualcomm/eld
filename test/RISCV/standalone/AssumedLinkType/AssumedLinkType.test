@@ -1,5 +1,4 @@
 #---AssumedLinkType.test--------------------- Executable ----------------------#
-
 #BEGIN_COMMENT
 # Check that the assumed link type is as expected, and that we are able to find
 # static/shared libraries as appropriate for the given link type.

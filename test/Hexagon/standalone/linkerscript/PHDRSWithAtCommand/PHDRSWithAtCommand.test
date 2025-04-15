@@ -1,5 +1,4 @@
 #---PHDRSWithAtCommand.test--------------------- Executable,LS ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker will handle PHDRS with AT command, that specifies
 # fixed physical address.

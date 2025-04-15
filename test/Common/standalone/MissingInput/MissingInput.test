@@ -1,5 +1,4 @@
 #---MissingInput.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the error when the input object file is missing.
 #END_COMMENT

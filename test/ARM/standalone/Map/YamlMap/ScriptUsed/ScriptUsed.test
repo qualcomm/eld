@@ -1,5 +1,4 @@
 #---InputFilesNotUsed.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 #This test checks the Map file output for script files that are used during
 #the link %linkopts.

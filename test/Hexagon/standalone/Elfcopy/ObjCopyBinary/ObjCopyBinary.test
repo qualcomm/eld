@@ -1,5 +1,4 @@
 #---ObjCopyBinary.test--------------------- Exe------------------#
-
 #BEGIN_COMMENT
 #When users use objcopy to create binary files, the ELF file returned by objcopy
 #doesnot have any flags set. It would be useful to support the usecase since

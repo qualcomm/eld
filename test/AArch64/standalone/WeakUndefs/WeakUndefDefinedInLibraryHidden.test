@@ -1,5 +1,4 @@
 #---WeakUndefDefinedInLibraryProtected.test--------- Executable,Shared --------------------#
-
 #BEGIN_COMMENT
 # Since the weak undefined symbol got resolved from the shared object, make sure
 # the access goes through the PLT.

@@ -175,6 +175,9 @@ public:
     return reloc->second;
   }
 
+  // Get the value of the symbol, using the PLT slot if one exists.
+  Relocation::Address getSymbolValuePLT(Relocation &R);
+
 private:
   Relocation *findHIRelocation(ELFSection *S, uint64_t Value);
 

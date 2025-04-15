@@ -1,5 +1,4 @@
 #---PIE.test--------------------- PIE ------------------#
-
 #BEGIN_COMMENT
 #This tests that .got.plt and .got sections are merged into a single .got
 #section for Android.

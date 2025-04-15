@@ -1,8 +1,4 @@
 #---ExplicitOutputSectionDataDump.test--------------------- Executable---------------------#
-
-
-
-
 #BEGIN_COMMENT
 # This test checks the text map file dump of linker script commands that
 # allows to explicitly insert bytes of data in an output section.

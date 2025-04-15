@@ -1,5 +1,4 @@
 #---InitialLayoutMergeStrings.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks that show-initial-layout MapDetail option only prints
 # one fragment for merge string section instead of printing one fragment

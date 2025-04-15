@@ -1,5 +1,4 @@
 #---DynamicExecutableCopyRelocWithAlignment.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This checks that the alignment of the dynamic symbol thats copied has the right
 #alignment by inspecting the Map file.

@@ -1,5 +1,4 @@
 #---AlignRelaxRelocsPartialLink.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies that partial linking preserves R_RISCV_ALIGN and
 # R_RISCV_RELAX reloc

@@ -1,5 +1,4 @@
 #---SmallCommons.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker treats small commons properly. The test uses an
 # array of size 7, that should be treated as a small common.

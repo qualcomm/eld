@@ -1,5 +1,4 @@
 #---MultiSegment.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the Map file can show multiple segments when PHDR's are used.
 #END_COMMENT

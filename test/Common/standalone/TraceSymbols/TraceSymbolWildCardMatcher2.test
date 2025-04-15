@@ -1,5 +1,4 @@
 #---TraceSymbolWildCardMatcher2.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Check tracing of symbols with wildcard matching.
 #--------------------------------------------------------------------------------------

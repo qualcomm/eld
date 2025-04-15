@@ -1,5 +1,4 @@
 #---IFunc.test---------------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Programs with IFunc symbols only run with Linaro sysroot.
 # this test only checks setup, now only static linked supported

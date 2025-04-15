@@ -1,5 +1,4 @@
 #---ExcludeOutsideAndInsideSectPattern.test--------------------- Executable,LS ------------------#
-
 #BEGIN_COMMENT
 # This test checks the behavior of EXCLUDE_FILE linker script directive
 # when it is used both outside and inside the section pattern for the same

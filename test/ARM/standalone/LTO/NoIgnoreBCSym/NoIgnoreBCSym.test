@@ -1,5 +1,4 @@
 #---NoIgnoreBCSym.test-------------------- Exe------------------#
-
 #BEGIN_COMMENT
 # When bitcode weak is overridden with ELF define in LTO phase
 # the symbol must not be ignored

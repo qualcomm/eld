@@ -1,5 +1,4 @@
 #---FileSize.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a simple FileOffset plugin that tries to override how the blocks
 #are merged in a specific linker script section.

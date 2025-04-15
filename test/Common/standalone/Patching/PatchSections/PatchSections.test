@@ -1,5 +1,4 @@
 #---PatchSections.test-------------- Executable------------------------#
-
 #BEGIN_COMMENT
 #Test creation of .pgot and .rela.pgot
 #END_COMMENT

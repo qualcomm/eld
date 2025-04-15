@@ -1,7 +1,4 @@
 #----------TLSGD.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 #This tests that the linker can support TLS GD model with static linking.
 #--------------------------------------------------------------------

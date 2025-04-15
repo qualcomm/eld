@@ -1,5 +1,4 @@
 #---CommonPageSize.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that DATA_SEGMENT_ALIGN calculates the right value of the symbol
 # DOT (.) when -z common-page-size is specified.

@@ -1,6 +1,4 @@
 #---FloatABI.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Check mix of Float ABI inputs and non Float ABI inputs as per RISCV ABI.
 #--------------------------------------------------------------------

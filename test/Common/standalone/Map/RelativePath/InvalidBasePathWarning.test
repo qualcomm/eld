@@ -1,6 +1,4 @@
 #---InvalidBasePathWarning.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 # This test checks the warning reported when invalid basepath is provided.
 #END_COMMENT

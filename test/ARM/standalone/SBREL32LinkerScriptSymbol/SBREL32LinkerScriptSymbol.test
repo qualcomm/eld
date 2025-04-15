@@ -1,5 +1,4 @@
 #---SBREL32LinkerScriptSymbol.test--------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Support R_ARM_SBREL32 relocation associated with a LinkerScript symbol.
 #END_COMMENT

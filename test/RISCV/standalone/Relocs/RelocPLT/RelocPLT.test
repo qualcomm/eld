@@ -1,5 +1,4 @@
 #---RelocPLT.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Check the value of PLT relocation in static link.
 #--------------------------------------------------------------------

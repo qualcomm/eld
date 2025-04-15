@@ -1,5 +1,4 @@
 #---ForwardReferenceErrorAddr.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks that the linker reports forward reference error when an
 # output section is forward-referenced in ADDR command.

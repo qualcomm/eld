@@ -1,6 +1,4 @@
 #---BuildID.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This checks for option -build-id=<xxx> that is being handled in the linker.
 #END_COMMENT

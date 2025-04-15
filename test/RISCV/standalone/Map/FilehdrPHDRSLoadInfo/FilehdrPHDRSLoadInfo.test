@@ -1,5 +1,4 @@
 #---FilehdrPHDRSLoadInfo.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks that the text map file contains information for
 # 'is FILEHDR loaded?' and 'IS PHDRS loaded?'.

@@ -1,5 +1,4 @@
 #---PartialLinktMergeSections.test--------------------------- PartialLink,LS -----------------#
-
 #BEGIN_COMMENT
 # This test checks that the strings that have mergeable strings are not merged
 # during partial link %linkopts as one section. Lets keep theme separate and merge them in

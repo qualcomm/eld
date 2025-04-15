@@ -1,6 +1,4 @@
 #---TrampolineStats.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 # This test checks the output section trampoline stats in the text map file.
 #END_COMMENT

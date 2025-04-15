@@ -1,5 +1,4 @@
 #---MultithreadedDiagnostics.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This test checks that the diagnostic framework is thread-safe by trying
 # to emit 100s of diagnostics across many threads. This test output is not

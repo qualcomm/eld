@@ -1,6 +1,4 @@
 #---ExportDynSymbol.test------------------ exe --------------------#
-
-
 #BEGIN_COMMENT
 # Implement --export-dynamic-symbol option. This option exports
 # the specified symbol to dynamic symbol table

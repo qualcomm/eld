@@ -1,5 +1,4 @@
 #---FillPadding.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that padding is filled properly in the output file.
 #END_COMMENT

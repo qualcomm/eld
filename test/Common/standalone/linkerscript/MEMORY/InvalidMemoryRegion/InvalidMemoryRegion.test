@@ -1,5 +1,4 @@
 #---InvalidMemoryRegion.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the linker is able to parse MEMORY linker script
 # command and errors out because an invalid memory region is specified in the

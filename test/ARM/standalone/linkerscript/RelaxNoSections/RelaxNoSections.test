@@ -1,5 +1,4 @@
 #---RelaxNoSections.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # Relax the restriction when linker script doesnot have sections, and the
 # default linker script rules are applied properly.

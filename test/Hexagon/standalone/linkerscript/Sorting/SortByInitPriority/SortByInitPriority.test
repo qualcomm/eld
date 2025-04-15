@@ -1,5 +1,4 @@
 #---SortByInitPriority.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker script directive SORT_BY_INIT_PRIORITY
 #END_COMMENT

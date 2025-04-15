@@ -1,5 +1,4 @@
 #---THM2Range.test--------- Executable --------------------------#
-
 #BEGIN_COMMENT
 # This tests that the THM2 call can reach only -2^24 to +2^24-1
 #END_COMMENT

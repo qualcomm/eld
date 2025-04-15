@@ -1,5 +1,4 @@
 #---ProvideSymsNotUsed.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies that PROVIDE symbols are not evaluated if
 # they are not used.

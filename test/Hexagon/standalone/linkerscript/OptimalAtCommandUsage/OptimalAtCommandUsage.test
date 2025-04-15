@@ -1,5 +1,4 @@
 #---OptimalAtCommandUsage.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # If there is not a VMA LMA difference, it might be optimal to not create a
 # segment, even if the user uses an AT command.

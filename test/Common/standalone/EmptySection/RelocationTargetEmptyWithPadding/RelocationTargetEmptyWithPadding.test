@@ -1,5 +1,4 @@
 #---RelocationTargetEmptyWithPadding.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the text map file has the empty section recorded if its used in as
 # a relocation target along with padding

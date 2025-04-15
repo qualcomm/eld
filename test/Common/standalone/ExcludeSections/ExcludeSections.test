@@ -1,5 +1,4 @@
 #---ExcludeSections.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Test that sections that are excluded are not shown in output.
 #END_COMMENT

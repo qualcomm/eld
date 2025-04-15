@@ -1,5 +1,4 @@
 #---PtNullContainsFileHdrAndLoadPhdr.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This test tests the linker that a PT_NULL segment holds only FILEHDR and PHDR
 # is loaded.

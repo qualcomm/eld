@@ -1,5 +1,4 @@
 #---NonZeroVMa.test--------------------- Exe------------------#
-
 #BEGIN_COMMENT
 #When stripping shared libraries, make sure the VMA and LMA
 #for the program headers are sane

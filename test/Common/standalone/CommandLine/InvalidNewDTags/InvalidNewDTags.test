@@ -1,5 +1,4 @@
 #---InvalidNewDTags.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker throws error when both --enable-new-dtags and --disable-new-tags are given.
 #START_TEST

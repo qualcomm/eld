@@ -1,5 +1,4 @@
 #---acrossrules.test--------------------------- Executable -----------------#
-
 # This tests that strings in AMS sections are merged across rules
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o

@@ -1,5 +1,4 @@
 #---EmptyExternList.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 #Check that the linker is able to use an empty extern list
 #ignored.

@@ -1,6 +1,4 @@
 #---GOTandPLTCount.test--------------------- Executable---------------------#
-
-
 #BEGIN_COMMENT
 # This test checks the GOT and PLT count stats in the text map file.
 #END_COMMENT

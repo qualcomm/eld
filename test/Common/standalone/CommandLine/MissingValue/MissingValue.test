@@ -1,6 +1,4 @@
 #----MissingValue.test------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This checks if the linker throws error when missing value when an argument expects its
 #END_COMMENT

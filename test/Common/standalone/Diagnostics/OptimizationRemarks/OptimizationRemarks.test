@@ -1,6 +1,4 @@
 #---OptimizationRemarks.test----------------- Executable/LTO---------------#
-
-
 # BEGIN_COMMENT
 # A test to determine whether remarks get emitted when passed the appropriate flag
 # END_COMMENT

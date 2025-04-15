@@ -17,7 +17,7 @@ namespace eld {
 
 static bool ELDEmulateTemplateELF(LinkerScript &pScript,
                                   LinkerConfig &pConfig) {
-  // Set Endianess and BitClass(32/64).
+  // Set Endianness and BitClass(32/64).
   pConfig.targets().setEndian(TargetOptions::Little);
   pConfig.targets().setBitClass(32);
 

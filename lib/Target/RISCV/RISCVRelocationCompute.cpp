@@ -203,7 +203,7 @@ uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
     Value = encode8(Value);
     break;
   case EncTy_LEB128:
-    /* Handled seperately by backend */
+    /* Handled separately by backend */
     LLVM_FALLTHROUGH;
   case EncTy_None:
     break;

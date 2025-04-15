@@ -1,6 +1,4 @@
 #----------DebugInfoRelaxation.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Check that linker fixes up DWARF information properly.
 #--------------------------------------------------------------------

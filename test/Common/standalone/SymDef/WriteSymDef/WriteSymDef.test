@@ -1,5 +1,4 @@
 #---WriteSymDef.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to write the symdef file properly.
 #END_COMMENT

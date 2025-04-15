@@ -1,5 +1,4 @@
 #---ShlibNonDefaultVis.test------------ DSO---------------------#
-
 #BEGIN_COMMENT
 # When a defined dynamic symbol resolved undefined, it must not
 # override visibility.

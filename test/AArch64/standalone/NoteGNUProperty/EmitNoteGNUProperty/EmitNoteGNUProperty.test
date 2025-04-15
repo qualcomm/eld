@@ -1,5 +1,4 @@
 #---EmitNoteGNUProperty.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests checks that the linker is able to emit a proper GNU property section
 #END_COMMENT

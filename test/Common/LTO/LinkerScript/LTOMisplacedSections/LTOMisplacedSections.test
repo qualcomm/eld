@@ -1,5 +1,4 @@
 #---LTOMisplacingSections.test------------------------------ Executable,LTO,LS ---------------------#
-
 #BEGIN_COMMENT
 # LTO misplaces an input section to the first rule that matches in the linker
 # script. This tests that the functionality is not broken and the linker

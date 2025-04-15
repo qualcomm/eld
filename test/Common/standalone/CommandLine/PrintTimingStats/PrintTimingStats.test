@@ -1,5 +1,4 @@
 #---PrintTimingStats.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker supports --print-timing-stats option.
 #END_COMMENT

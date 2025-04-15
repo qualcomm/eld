@@ -1,5 +1,4 @@
 #---ProvideSymbolRedecl.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies the behavior when the same provide symbol
 # is redeclared.

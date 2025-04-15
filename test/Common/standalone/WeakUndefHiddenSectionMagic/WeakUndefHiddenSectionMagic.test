@@ -1,5 +1,4 @@
 #---WeakUndefHiddenSectionMagic.test----------- Executable,Shared----------------#
-
 #BEGIN_COMMENT
 # Weak undefined symbols with non default visibility should be used
 # for "magic section" symbols resolution.

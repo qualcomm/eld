@@ -1,6 +1,4 @@
 #---DebugLineTable.test----------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # Handle group relocations to merge string relocations.
 #END_COMMENT

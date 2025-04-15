@@ -1,5 +1,4 @@
 #---RPathLink.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks for option -{,-}rpath-link[=]<path> that is being handled in the linker.
 #END_COMMENT

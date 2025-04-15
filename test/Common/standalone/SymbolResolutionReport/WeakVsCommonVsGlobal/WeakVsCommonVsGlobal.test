@@ -1,5 +1,4 @@
 #---WeakVsCommonVsGlobal.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This test checks the symbol resolution report when there are common, weak and
 # global symbol candidates for symbol resolution.

@@ -1583,7 +1583,7 @@ int64_t GNULDBackend::getSectionIdx(ELFSection *S) const {
   return entry->second->getIndex();
 }
 
-/// getSymbolIdx - called by emitRelocation to get the ouput symbol table index
+/// getSymbolIdx - called by emitRelocation to get the output symbol table index
 size_t GNULDBackend::getSymbolIdx(LDSymbol *pSymbol, bool IgnoreUnknown) const {
   // TODO: IgnoreUnknown was added as a kludge before QTOOL-102747 is resolved.
   // Given that this function dereferenced the past the end iterator, this error
@@ -2295,7 +2295,7 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
 
   int64_t offset = BeginOffset;
   // Sort the sections in the segment. This is to allow decreasing addresses
-  // in the same segment and making sure file offset is sane and doesnot
+  // in the same segment and making sure file offset is sane and doesn't
   // become negative. If we are doing a compact representation of the layout
   // this is just not needed, since the fileoffsets are incremented in the
   // order the sections are seen.
@@ -2868,7 +2868,7 @@ bool GNULDBackend::placeOutputSections() {
   bool debugSectionSeen = false;
   OutputSectDesc::Type type = OutputSectDesc::LOAD;
   {
-    eld::RegisterTimer T("Set Section Permssions", "Place Output Sections",
+    eld::RegisterTimer T("Set Section Permissions", "Place Output Sections",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &elem : sectionMap) {
       ELFSection *cur = (elem)->getSection();
@@ -2969,7 +2969,7 @@ bool GNULDBackend::placeOutputSections() {
       if ((orphan)->getKind() == LDFileFormat::Null)
         out = sectionMap.insert(outBegin, orphan);
       else {
-        // Orphan placemenet Doesnot matter so much for partial link steps.
+        // Orphan placement Doesn't matter so much for partial link steps.
         // Skip the first discard section if any. We cannot skip the discard
         // later
         // though. The value is initialized to -1, to skip the Null section
@@ -3030,7 +3030,7 @@ bool GNULDBackend::placeOutputSections() {
         }
         (*out)->prolog().setType(OutputSectDesc::LOAD);
       }
-      // If the prolog doesnot have a flag specified, then move on.
+      // If the prolog doesn't have a flag specified, then move on.
       if (!(*out)->prolog().hasFlag())
         continue;
       uint32_t flag = (*out)->prolog().flag();
@@ -4140,7 +4140,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
     return *cpy_sym;
   }
 
-  // If the alias symbol doesnot have a fragment, first create a fragment for
+  // If the alias symbol doesn't have a fragment, first create a fragment for
   // the alias.
   if (aliasSym && aliasSym->outSymbol() && !aliasSym->outSymbol()->hasFragRef())
     pSym = aliasSym;

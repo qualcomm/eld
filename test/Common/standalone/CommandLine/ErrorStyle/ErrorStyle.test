@@ -1,5 +1,4 @@
 #---ErrorStyle.test-------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker supports --error-style option.
 #END_COMMENT

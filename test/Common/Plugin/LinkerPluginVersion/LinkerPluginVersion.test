@@ -1,6 +1,4 @@
 #---LinkerPluginVersion.test--------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 #Test plugin API version.
 #END_COMMENT

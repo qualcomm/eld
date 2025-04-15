@@ -1,5 +1,4 @@
 #---OutputFileSize.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the output file stat in text map file.
 #END_COMMENT

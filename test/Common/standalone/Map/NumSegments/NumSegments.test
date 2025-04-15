@@ -1,5 +1,4 @@
 #---NumSegments.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the number of segments stat in the text map file.
 #END_COMMENT

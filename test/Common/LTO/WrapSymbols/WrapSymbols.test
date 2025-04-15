@@ -1,6 +1,4 @@
 #---WrapSymbols.test----------------------- Executable,LTO --------------------#
-
-
 #BEGIN_COMMENT
 # This test supports wrap symbols in Bitcode. If the definition is in the
 # bitcode file, the definition is preserved. This test checks that the link %linkopts is

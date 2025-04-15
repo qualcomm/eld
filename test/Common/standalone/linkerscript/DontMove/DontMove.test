@@ -1,5 +1,4 @@
 #---DontMove.test-------------------------------- Executable,LS ---------------------#
-
 #BEGIN_COMMENT
 # This tests that linker script DONTMOVE and KEEP_DONTMOVE are honored properly.
 #END_COMMENT

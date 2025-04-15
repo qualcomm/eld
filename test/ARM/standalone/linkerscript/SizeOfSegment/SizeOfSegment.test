@@ -1,5 +1,4 @@
 #---SizeOfSegment.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that SIZEOF on a segment doesnot clear all the offsets
 # that have been assigned to the segment.

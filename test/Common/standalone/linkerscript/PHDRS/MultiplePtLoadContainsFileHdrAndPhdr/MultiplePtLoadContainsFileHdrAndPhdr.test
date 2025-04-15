@@ -1,5 +1,4 @@
 #---MultiplePtLoadContainsFileHdrAndPhdr.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This is a test which tests the linker where there are multiple PT_LOAD segment contains both
 # PHDRS and FILEHDRS.

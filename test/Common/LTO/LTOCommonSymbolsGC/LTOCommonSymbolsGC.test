@@ -1,5 +1,4 @@
 #---LTOCommonSymbolsLTOGC.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This checks that common symbols are handled properly with LTO and GC.
 #END_COMMENT

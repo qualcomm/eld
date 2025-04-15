@@ -1,5 +1,4 @@
 #---JustSymbolsOptionsForExecutable.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to set the attribute of just symbols correctly for the passed input file
 #END_COMMENT

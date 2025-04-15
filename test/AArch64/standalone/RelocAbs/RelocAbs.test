@@ -1,5 +1,4 @@
 #---RelocAbs.test--------------------------- PartialLink -----------------#
-
 #BEGIN_COMMENT
 # This tests that the linker should check for overflow with Absolute
 # relocations.

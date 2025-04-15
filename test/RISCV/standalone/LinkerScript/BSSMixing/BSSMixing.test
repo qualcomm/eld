@@ -1,6 +1,4 @@
 #---BSSMixing.test----------------------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # Enable the linker to support the options enable bss mixing and disable conversion.
 #END_COMMENT

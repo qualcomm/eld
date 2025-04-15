@@ -1,7 +1,4 @@
 #---reloc_PCREL_HI_LO_FWD_REF.test----------- Executable------------#
-
-
-
 #BEGIN_COMMENT
 # Check patching of R_RISCV_PCREL_HI20 and R_RISCV_PCREL_LO12_{I|S} relocations,
 # particularly with both forward and backward references to pcrel_hi entries.

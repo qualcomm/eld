@@ -1,5 +1,4 @@
 #---SymDefFiles.test------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that --mapping-file can handle symdef files
 #END_COMMENT

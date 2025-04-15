@@ -1,5 +1,4 @@
 #---HugeVMA.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to create a new segment when the VMA/LMA
 # requirements need to be met.

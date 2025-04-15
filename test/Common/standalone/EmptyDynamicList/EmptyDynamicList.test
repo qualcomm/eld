@@ -1,5 +1,4 @@
 #---EmptyDynamicList.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 #Check that the linker is able to use an empty dynamic list
 #ignored.

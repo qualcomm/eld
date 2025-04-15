@@ -1,5 +1,4 @@
 #---PartialLinkComdat.test--------------------- PartialLink ------------------#
-
 #BEGIN_COMMENT
 # This tests that the COMDAT group is properly preserved with Partial Link.
 #END_COMMENT

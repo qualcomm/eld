@@ -1,6 +1,4 @@
 #----------Align.test----------------- Executable,LS------------------#
-
-
 #BEGIN_COMMENT
 # Do relaxation based on the value of ALIGN relocation.
 #END_COMMENT

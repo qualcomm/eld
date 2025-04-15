@@ -1,5 +1,4 @@
 # --PLTOverflow.test--------------------- Shared Lib---------------------------#
-
 # -----------------------------------------------------------------------------#
 # BEGIN_COMMENT
 # Check that linker creates trampolines for GD

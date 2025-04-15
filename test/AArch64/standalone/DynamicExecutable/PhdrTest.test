@@ -1,5 +1,4 @@
 #--PhdrTest.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # On Linux environment with QEMU on AArch64, the linker loads the program header
 # if we end up creating a dynamic executable or if there is thread local

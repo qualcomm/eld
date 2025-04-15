@@ -1,5 +1,4 @@
 #---Addend.test----------------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Fix for the offset computation bug with a string section with addend
 #END_COMMENT

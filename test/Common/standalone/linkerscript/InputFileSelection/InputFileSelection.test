@@ -1,5 +1,4 @@
 #---InputFileSelection.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that linker is able to use linkerscripts that take input from specific files
 #END_COMMENT

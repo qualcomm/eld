@@ -1,5 +1,4 @@
 #---GarbageCollectionUndefSymbols.test------------- Executable-----------------#
-
 #BEGIN_COMMENT
 #Symbols that are garbage collected include undefined symbols that may no longer
 #be referred.

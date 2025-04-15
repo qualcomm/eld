@@ -1,5 +1,4 @@
 #---MissingNote.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 #When a trampoline is created, the linker has a stale copy of segment mappings
 #which is not cleared.

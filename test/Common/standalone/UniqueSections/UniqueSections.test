@@ -1,7 +1,4 @@
 #---UniqueSections.test--------------------------- Executable -----------------#
-
-
-
 #BEGIN_COMMENT
 # Checks that the --unique-output-sections option creates unique output sections
 #END_COMMENT

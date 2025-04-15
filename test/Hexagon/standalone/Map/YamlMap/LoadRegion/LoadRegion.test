@@ -1,5 +1,4 @@
 #---LoadRegion.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print the load regions properly.
 #END_COMMENT

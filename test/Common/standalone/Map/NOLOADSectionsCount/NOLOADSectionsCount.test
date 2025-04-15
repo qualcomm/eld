@@ -1,5 +1,4 @@
 #---NOLOADSectionsCount.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the NOLOAD sections count stat in the text map file.
 #END_COMMENT

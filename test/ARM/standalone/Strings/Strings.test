@@ -1,5 +1,4 @@
 #---Strings.test------------------------------------ Executable --------------------#
-
 #BEGIN_COMMENT
 # Check that the rodata is split properly in the Map file
 # even if there are no symbols. The size reported by the YAMLMapParser should

@@ -1,6 +1,4 @@
 #---ForwardReferenceErrorFromExpression.test--------------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This tests check for eld to error out in case of forward reference for output sections
 # in sections command even incase of expressions

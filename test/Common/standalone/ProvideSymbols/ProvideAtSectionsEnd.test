@@ -1,5 +1,4 @@
 #---ProvideAtSectionsEnd.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the PROVIDE symbol evaluation for a more complicated
 # case in which PROVIDE expression is at end of SECTIONS command.

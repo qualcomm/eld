@@ -1,5 +1,4 @@
 #---OrphanEmptySection.test------------Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks if a diagnostic error is emitted despite the last
 # section being an empty orphan section (which are ignored by the linker.)

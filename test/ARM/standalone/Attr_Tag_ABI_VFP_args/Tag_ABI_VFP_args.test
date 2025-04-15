@@ -1,5 +1,4 @@
 #---Tag_ABI_VFP_args.test-------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This checks that the linker warns on mixing objects with inconsistent VFP ABI
 #tags.

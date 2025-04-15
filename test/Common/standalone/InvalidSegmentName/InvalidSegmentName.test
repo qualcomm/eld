@@ -1,5 +1,4 @@
 #---InvalidSegmentName.test--- Executable ----#
-
 #BEGIN_COMMENT
 # Linker crashes when a segment is referenced which does not exist.
 #END_COMMENT

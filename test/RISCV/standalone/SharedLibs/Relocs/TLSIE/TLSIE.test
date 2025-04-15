@@ -1,5 +1,4 @@
 #----------TLSIE.test--------------------- SharedLibrary------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker can support TLS IE model when building shared
 #objects

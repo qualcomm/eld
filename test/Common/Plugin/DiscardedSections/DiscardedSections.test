@@ -1,6 +1,4 @@
 #---DiscardedSections.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # This tests checks that SectIonMatcher plugins processes discarded sections
 # in the processSection hook.

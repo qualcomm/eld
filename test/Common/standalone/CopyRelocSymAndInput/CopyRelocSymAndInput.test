@@ -1,5 +1,4 @@
 #---CopyRelocSymAndInput.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks the name of copy relocation sections and input file.
 #END_COMMENT

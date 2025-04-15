@@ -1,5 +1,4 @@
 #---PartialLinkTLSSymbol.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies the basic usage of ASSERT linker script command.
 #END_COMMENT

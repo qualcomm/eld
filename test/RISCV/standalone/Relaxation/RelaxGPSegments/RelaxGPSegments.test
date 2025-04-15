@@ -1,6 +1,4 @@
 #----------RelaxGPSegments.test----------------- Executable------------------#
-
-
 # BEGIN_COMMENT
 # Test that --no-relax-gp disables gp relaxation
 # END_COMMENT

@@ -1,5 +1,4 @@
 #---SymDefAddend.test--------------------- Executable ------------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker doesn't treat a non-call symbol as Thumb
 #END_COMMENT

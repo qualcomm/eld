@@ -1,5 +1,4 @@
 #---CommonSymbolsRuleMatching.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests checks the linker script rule matching for common symbols.
 #END_COMMENT

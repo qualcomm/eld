@@ -1,5 +1,4 @@
 #---DiscardCommonSymbols.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test checks the usage of /DISCARD/ linker script functionality with
 # common symbol input description.

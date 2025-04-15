@@ -1,5 +1,4 @@
 #----------InvalidReloc.test--------------------- SharedLibrary------#
-
 #BEGIN_COMMENT
 #This test case checks for relocations that are invalid when generating
 #shared objects

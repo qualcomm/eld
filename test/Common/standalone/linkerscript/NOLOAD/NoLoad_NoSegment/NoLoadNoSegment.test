@@ -1,5 +1,4 @@
 #--NoLoadNoSegment.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # Test NOLOAD sections associated with no segment
 #END_COMMENT

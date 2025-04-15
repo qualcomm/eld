@@ -1,5 +1,4 @@
 #---PreserveFileDOS.test----------------------- Executable,LTO --------------------#
-
 #BEGIN_COMMENT
 # This test checks that files can be read in DOS mode too.
 #END_COMMENT

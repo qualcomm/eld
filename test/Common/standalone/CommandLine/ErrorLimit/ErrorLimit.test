@@ -1,6 +1,4 @@
 #---ErrorLimit.test--------------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This checks that the linker is able to limit the number of error.
 #END_COMMENT

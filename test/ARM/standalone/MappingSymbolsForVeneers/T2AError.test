@@ -1,5 +1,4 @@
 #---T2AError.test--------- Executable-----------------------------------#
-
 #BEGIN_COMMENT
 #Check Thumb to ARM for Cortex-M is an error.
 #END_COMMENT

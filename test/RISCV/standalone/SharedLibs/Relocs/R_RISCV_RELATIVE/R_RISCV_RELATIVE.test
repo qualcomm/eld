@@ -1,5 +1,4 @@
 #----------R_RISCV_RELATIVE.test--------------------- SharedLibrary------#
-
 #BEGIN_COMMENT
 #This test checks that the linker emits relative relocations when building
 #shared objects on RISC-V

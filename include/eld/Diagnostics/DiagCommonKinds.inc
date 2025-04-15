@@ -180,3 +180,5 @@ DIAG(err_patch_base_not_executable, DiagnosticEngine::Error,
      "The file %0, specified by --patch-base, must be an executable ELF file")
 DIAG(err_patch_not_static, DiagnosticEngine::Error,
      "Patching is only supported for static linking")
+DIAG(error_invalid_target2, DiagnosticEngine::Error,
+     "unknown --target2 option: %0")

@@ -250,7 +250,7 @@ void x86_64LDBackend::setDefaultConfigs() {
 namespace eld {
 
 //===----------------------------------------------------------------------===//
-/// createx86_64LDBackend - the help funtion to create corresponding
+/// createx86_64LDBackend - the help function to create corresponding
 /// x86_64LDBackend
 GNULDBackend *createx86_64LDBackend(Module &pModule) {
   return make<x86_64LDBackend>(pModule,

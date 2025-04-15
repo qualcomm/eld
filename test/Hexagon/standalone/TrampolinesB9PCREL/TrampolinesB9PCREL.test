@@ -1,6 +1,4 @@
 #---TrampolinesB9PCREL.test--------------------- Executable ------------------#
-
-
 #BEGIN_COMMENT
 # This tests that the linker fails when inserting trampolines. Without this
 # patch, this patch will result in an infinite loop or crash.

@@ -1,5 +1,4 @@
 #---TarWriterReadOnlyTest.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # Test checks if a pre-existing file with no wrote permissions can be overwritten by the tar writer.
 #END_COMMENT

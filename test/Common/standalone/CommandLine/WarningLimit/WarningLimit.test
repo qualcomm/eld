@@ -1,7 +1,4 @@
 #---WarningLimit.test--------------------------- Executable --------------------#
-
-
-
 #BEGIN_COMMENT
 # This checks that the linker is able to limit the number of warning.
 #END_COMMENT

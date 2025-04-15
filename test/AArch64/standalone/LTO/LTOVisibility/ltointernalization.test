@@ -1,5 +1,4 @@
 #---ltointernalization.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # YOU SHALL NOT XFAIL THIS TEST.
 # If you have to, please contact LLVM-ARM management.

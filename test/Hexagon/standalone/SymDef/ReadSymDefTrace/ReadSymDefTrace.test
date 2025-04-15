@@ -1,5 +1,4 @@
 #---ReadSymDefTrace.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks the trace info when linker reads the symdef file.
 #END_COMMENT

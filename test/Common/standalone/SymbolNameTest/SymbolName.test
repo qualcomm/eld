@@ -1,7 +1,4 @@
 #---SymbolName.test--------------------------- Executable -----------------#
-
-
-
 #BEGIN_COMMENT
 # This test checks for proper Symbol names printed in map file.
 #END_COMMENT

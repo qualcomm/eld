@@ -1,5 +1,4 @@
 #---PartialLinkMergeSections.test--------------------------- PartialLink,LS -----------------#
-
 #BEGIN_COMMENT
 # This test checks that the strings that have mergeable strings are merged
 # during partial link %linkopts as one section.

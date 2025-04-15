@@ -1,5 +1,4 @@
 #---LTO.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that linker doesnot emit Layout Messages in YAML format
 #END_COMMENT

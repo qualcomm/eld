@@ -1,5 +1,4 @@
 #---InvalidTimeRegionValue.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests for linker throwing error when  invalid value passed to --time-region option
 #END_COMMENT

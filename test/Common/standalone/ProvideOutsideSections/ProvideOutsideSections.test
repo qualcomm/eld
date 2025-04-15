@@ -1,5 +1,4 @@
 #---ProvideSymbolRedecl.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies the PROVIDE command behavior when the provide command is
 # outside the SECTIONS command.

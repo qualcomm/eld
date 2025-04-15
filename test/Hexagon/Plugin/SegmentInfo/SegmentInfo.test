@@ -1,6 +1,4 @@
 #---SegmentInfo.test--------------------- Executable --------------------#
-
-
 # BEGIN_COMMENT
 # tests that plugins are able to view properties of load segments
 # END_COMMENT

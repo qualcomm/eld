@@ -1,5 +1,4 @@
 #---reproduceDLL.test-------------------- Executable ---------------#
-
 #BEGIN_COMMENT
 # Checks that dll files are loaded properly with reproduce on windows
 #START_TEST

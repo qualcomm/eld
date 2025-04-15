@@ -1,6 +1,4 @@
 Verbose.test------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # This checks output for --verbose when used with --reproduce
 #END_COMMENT

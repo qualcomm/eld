@@ -1,5 +1,4 @@
 #---IterateSectionsWithGC.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that the section iterator is not going over sections that have been
 # garbage collected.

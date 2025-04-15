@@ -1,5 +1,4 @@
 #---CheckOptionsAfterInput.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Checks that the linker reports no inputs before checking for unknown options.
 #END_COMMENT

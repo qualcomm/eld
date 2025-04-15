@@ -1,5 +1,4 @@
 #---Entry.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that all possible options for entry are handled.
 #END_COMMENT

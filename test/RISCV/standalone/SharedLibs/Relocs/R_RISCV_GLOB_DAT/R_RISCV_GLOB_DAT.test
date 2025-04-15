@@ -1,5 +1,4 @@
 #----------R_RISCV_GLOB_DAT.test--------------------- SharedLibrary------#
-
 #BEGIN_COMMENT
 #This test checks that the linker emits relocations to access symbols
 #via GOT. Note there is no GLOB_DAT relocation but I am creating this test

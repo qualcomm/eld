@@ -1,6 +1,4 @@
 #---DiscardSections.test--------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # This tests that a orphan section is placed before the DISCARD rule.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---DemangleStyle.test--------------------- Executable--------------------#
-
 #BEGIN_COMMENT
 #This tests that the linker supports demangling symbols by default when showing
 #symbols in the Map file. The test shows the demangled output for common symbols

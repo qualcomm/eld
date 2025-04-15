@@ -1,5 +1,4 @@
 #---ExplicitOSDLazyEvaluation.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks the lazy expression evaluation for output section
 # data commands . These commands include BYTE, SHORT, LONG, QUAD, SQUAD.

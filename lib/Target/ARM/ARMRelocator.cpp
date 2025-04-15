@@ -99,7 +99,7 @@ static ARMGOT *CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
     return G;
   }
 
-  // If the symbol is not preemptable and we are not building an executable,
+  // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.
   bool useRelative =
@@ -325,7 +325,7 @@ Relocator::Size ARMRelocator::getSize(Relocation::Type pType) const {
 }
 
 /// checkValidReloc - When we attempt to generate a dynamic relocation for
-/// ouput file, check if the relocation is supported by dynamic linker.
+/// output file, check if the relocation is supported by dynamic linker.
 bool ARMRelocator::checkValidReloc(Relocation &pReloc) const {
   // If not PIC object, no relocation type is invalid
   if (!config().isCodeIndep())
@@ -351,13 +351,14 @@ bool ARMRelocator::checkValidReloc(Relocation &pReloc) const {
   return false;
 }
 
-void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
+void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
+                                  Relocation &pReloc,
                                   const ELFSection &pSection) {
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInput);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (pReloc.type()) {
+  switch (Type) {
 
   // Set R_ARM_TARGET1 to R_ARM_ABS32
   // Ref: GNU gold 1.11 arm.cc, line 9892
@@ -368,7 +369,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_ABS32:
   case llvm::ELF::R_ARM_ABS32_NOI: {
-    // If buiding PIC object (shared library or PIC executable),
+    // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
@@ -406,12 +407,6 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  // Set R_ARM_TARGET2 to R_ARM_GOT_PREL
-  // Ref: GNU gold 1.11 arm.cc, line 9892
-  // FIXME: R_ARM_TARGET2 should be set by option --target2
-  case llvm::ELF::R_ARM_TARGET2:
-    pReloc.setType(llvm::ELF::R_ARM_GOT_PREL);
-    LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_GOT_BREL:
   case llvm::ELF::R_ARM_GOT_PREL: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
@@ -438,7 +433,7 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_GLOB_DAT:
   case llvm::ELF::R_ARM_JUMP_SLOT:
   case llvm::ELF::R_ARM_RELATIVE: {
-    // These are relocation type for dynamic linker, shold not
+    // These are relocation type for dynamic linker, should not
     // appear in object file.
     config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
     m_Target.getModule().setFailure(true);
@@ -516,15 +511,15 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   } // end switch
 }
 
-void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
-                                   eld::IRBuilder &pBuilder,
+void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
+                                   Relocation &pReloc, eld::IRBuilder &pBuilder,
                                    ELFSection &pSection,
                                    CopyRelocs &CopyRelocs) {
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInput);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
 
-  switch (pReloc.type()) {
+  switch (Type) {
   // Set R_ARM_TARGET1 to R_ARM_ABS32
   // Ref: GNU gold 1.11 arm.cc, line 9892
   // FIXME: R_ARM_TARGET1 should be set by option --target1-rel
@@ -703,7 +698,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       return;
     }
 
-    // if symbol is defined in the ouput file and it's not
+    // if symbol is defined in the output file and it's not
     // preemptible, no need plt
     if (!getTarget().isSymbolPreemptible(*rsym))
       return;
@@ -720,12 +715,6 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     return;
   }
 
-  // Set R_ARM_TARGET2 to R_ARM_GOT_PREL
-  // Ref: GNU gold 1.11 arm.cc, line 9892
-  // FIXME: R_ARM_TARGET2 should be set by option --target2
-  case llvm::ELF::R_ARM_TARGET2:
-    pReloc.setType(llvm::ELF::R_ARM_GOT_PREL);
-    LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_GOT_BREL:
   case llvm::ELF::R_ARM_GOT_ABS:
   case llvm::ELF::R_ARM_GOT_PREL: {
@@ -747,7 +736,7 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_ARM_GLOB_DAT:
   case llvm::ELF::R_ARM_JUMP_SLOT:
   case llvm::ELF::R_ARM_RELATIVE: {
-    // These are relocation type for dynamic linker, shold not
+    // These are relocation type for dynamic linker, should not
     // appear in object file.
     config().raise(Diag::dynamic_relocation) << (int)pReloc.type();
     m_Target.getModule().setFailure(true);
@@ -874,10 +863,27 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
   if (!section->isAlloc())
     return;
 
+  Relocation::Type Type = pReloc.type();
+
+  // Set R_ARM_TARGET2 to R_ARM_ABS32/R_ARM_REL32/R_ARM_GOT_PREL.
+  if (Type == llvm::ELF::R_ARM_TARGET2) {
+    switch (config().options().getTarget2Policy()) {
+    case GeneralOptions::Target2Policy::Abs:
+      Type = llvm::ELF::R_ARM_ABS32;
+      break;
+    case GeneralOptions::Target2Policy::Rel:
+      Type = llvm::ELF::R_ARM_REL32;
+      break;
+    case GeneralOptions::Target2Policy::GotRel:
+      Type = llvm::ELF::R_ARM_GOT_PREL;
+      break;
+    }
+  }
+
   if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, pReloc, *section);
+    scanLocalReloc(pInputFile, Type, pReloc, *section);
   else // rsym is external
-    scanGlobalReloc(pInputFile, pReloc, pBuilder, *section, CopyRelocs);
+    scanGlobalReloc(pInputFile, Type, pReloc, pBuilder, *section, CopyRelocs);
 }
 
 //=========================================//
@@ -1523,6 +1529,17 @@ Relocator::Result thm_movt_prel(Relocation &pReloc, ARMRelocator &pParent) {
   *(reinterpret_cast<uint16_t *>(&pReloc.target()) + 1) = val & 0xFFFFu;
 
   return Relocator::OK;
+}
+
+Relocator::Result target2(Relocation &R, ARMRelocator &Parent) {
+  switch (Parent.config().options().getTarget2Policy()) {
+  case GeneralOptions::Target2Policy::Abs:
+    return abs32(R, Parent);
+  case GeneralOptions::Target2Policy::Rel:
+    return rel32(R, Parent);
+  case GeneralOptions::Target2Policy::GotRel:
+    return got_prel(R, Parent);
+  }
 }
 
 // R_ARM_PREL31: ((S + A) | T) - P

@@ -1,5 +1,4 @@
 #---CommandLine.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests shows that the linker is able to print the command line information
 # in the Map file.

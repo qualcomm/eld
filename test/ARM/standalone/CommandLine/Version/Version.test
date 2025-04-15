@@ -1,5 +1,4 @@
 #---Version.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Make sure that the linker shows version info properly with appropriate
 # targets.

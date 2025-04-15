@@ -1,5 +1,4 @@
 #---veneer.test----------------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Support Cortex-M0 type veneer
 #END_COMMENT

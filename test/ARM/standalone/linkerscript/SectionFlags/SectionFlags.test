@@ -1,5 +1,4 @@
 #---SectionFlags.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # Make sure we set the permission of the section properly.
 #END_COMMENT

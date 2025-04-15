@@ -1,6 +1,4 @@
 #---PartialLinkGCSections.test--------------------------- PartialLink -----------------#
-
-
 #BEGIN_COMMENT
 # Some users are trying to do partial link %linkopts steps and they enable gc sections,
 # which is weird, but the linker should handle it properly.

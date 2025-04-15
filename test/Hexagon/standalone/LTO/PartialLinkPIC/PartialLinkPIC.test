@@ -1,5 +1,4 @@
 #---PartialLinkPIC.test----------------------------- PartialLink,LTO --------------------#
-
 #BEGIN_COMMENT
 # Tests that LTO detects -fPIC from the module flags during partial linking
 #END_COMMENT

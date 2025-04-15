@@ -1,7 +1,4 @@
 #----------OverflowMemoryCheck.test----------------- Executable------------------#
-
-
-
 # BEGIN_COMMENT
 # Test that linker checks for overflows when using MEMORY command post
 # relaxation

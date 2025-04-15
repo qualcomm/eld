@@ -1,5 +1,4 @@
 #---LTOTraceTest.test-------------------------------------------------#
-
 #BEGIN_COMMENT
 # Print same traces for lto using --trace-lto and -trace=lto
 #END_COMMENT

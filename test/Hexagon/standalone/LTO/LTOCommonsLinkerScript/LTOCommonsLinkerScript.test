@@ -1,5 +1,4 @@
 #---LTOCommonsLinkerScript.test--------------------- Executable,LTO,LS ------------------#
-
 #BEGIN_COMMENT
 # This tests that commons that have been specified by linker script rules are
 # handled properly with LTO.

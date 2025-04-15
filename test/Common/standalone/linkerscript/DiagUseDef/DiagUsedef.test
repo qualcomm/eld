@@ -1,6 +1,4 @@
 #---DiagUsedef.test--------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 #Detect a use of the linker script variable before the variable is defined.
 #Add checks for -Wall, -Wlinker-script,-Wno-linker-script

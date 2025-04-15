@@ -1,5 +1,4 @@
 #---SearchPathErrorMessage.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This test check the error message when a search path can not be loaded.
 #END_COMMENT

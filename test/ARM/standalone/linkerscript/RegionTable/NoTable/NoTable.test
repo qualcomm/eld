@@ -1,5 +1,4 @@
 #---NoTable.test--------------------------- Executable,LS -----------------#
-
 #BEGIN_COMMENT
 # This test checks for the region table is not emitted if there is no rule that
 # selects it. This also makes sure that we dont mix BSS and DATA in one segment.

@@ -1,6 +1,4 @@
 #---ExcludeFileWithFilePattern.test--------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This tests that EXCLUDE_FILE works with file patterns, that appears to be
 # broken.

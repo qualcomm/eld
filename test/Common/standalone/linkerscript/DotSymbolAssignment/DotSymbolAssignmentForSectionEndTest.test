@@ -1,6 +1,4 @@
 #---DotSymbolAssignmentForSectionEndTest.test------- Executable,LS ---------------------#
-
-
 #BEGIN_COMMENT
 # This tests for backward movement of dot symbol at end of section.
 #END_COMMENT

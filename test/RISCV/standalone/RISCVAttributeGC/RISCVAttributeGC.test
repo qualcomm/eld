@@ -1,6 +1,4 @@
 #----------RISCVAttributeGC.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Prevent linker from garbage collecting riscv.attribute sections and check that
 # the linker creates an attribute segment

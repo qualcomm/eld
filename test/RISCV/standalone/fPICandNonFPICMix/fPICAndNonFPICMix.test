@@ -1,7 +1,4 @@
 #----------fPICAndNonFPICMix.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 # Test that nonfPIC and fPIC code mix causes the linker to create
 # proper executables. The first check would be a reloc fixed up using GOT

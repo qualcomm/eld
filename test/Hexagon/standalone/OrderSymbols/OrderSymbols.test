@@ -1,5 +1,4 @@
 #---OrderSymbols.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that we dont order LOCAL symbols after GLOBAL symbols.
 #END_COMMENT

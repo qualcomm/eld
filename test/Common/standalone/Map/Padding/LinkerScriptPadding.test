@@ -1,6 +1,4 @@
 #---LinkerScriptPadding.test---------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # This checks that linker script padding information is recorded correctly
 # in text map file

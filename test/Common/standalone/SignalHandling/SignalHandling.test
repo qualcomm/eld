@@ -1,5 +1,4 @@
 #---SignalHandling.test--------------Executable----------------------------#
-
 #BEGIN_COMMENT
 # Tests that the default linker signal handler is registered
 #END_COMMENT

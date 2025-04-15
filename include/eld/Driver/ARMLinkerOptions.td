@@ -53,6 +53,12 @@ def execute_only : Flag<["-", "--"], "execute-only">,
                    HelpText<"Mark executable sections execute-only on AArch64">,
                    Group<grp_arm_linker_only>;
 
+defm target2 : smDash<"target2", "target2",
+                      "Interpret R_ARM_TARGET2 as <type>, where <type> is one "
+                      "of abs, rel, or got-rel (default).">,
+               MetaVarName<"<type>">,
+               Group<grp_arm_linker_only>;
+
 //===----------------------------------------------------------------------===//
 /// Compatibility or ignored options
 //===----------------------------------------------------------------------===//

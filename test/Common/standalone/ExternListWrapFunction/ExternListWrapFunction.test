@@ -1,6 +1,4 @@
 #---ExternListWrapFunction.test--------------------------- Executable ----------#
-
-
 #BEGIN_COMMENT
 #If a symbol is mentioned in the extern list, the linker needs to pull it in.
 #The symbol also should not get garbage collected as usual.

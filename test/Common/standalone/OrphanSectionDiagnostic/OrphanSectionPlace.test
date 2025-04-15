@@ -1,5 +1,4 @@
 #---OrphanInternalSectionPlace.test------------Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks if an orphan section is placed correctly
 # in a separate output section when orphan_handling is

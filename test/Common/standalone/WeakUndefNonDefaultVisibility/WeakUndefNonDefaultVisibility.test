@@ -1,6 +1,4 @@
 #---WeakUndefNonDefaultVisibility.test----------- SharedLibrary----------------#
-
-
 #BEGIN_COMMENT
 # Weak undefined symbolos with non default visibility are not preemptible
 # They are converted to local default visibility and resolved to 0

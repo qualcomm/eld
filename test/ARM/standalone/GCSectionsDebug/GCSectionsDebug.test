@@ -1,5 +1,4 @@
 #---GCSectionsDebug.test--------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # There is an upstream ARM change, that relies on breaking a ELD optimization,
 # which happens to treat references from Debug sections as not live. We forgive

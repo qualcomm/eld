@@ -1,5 +1,4 @@
 #---VMAPhdr.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # Dont use zero sized section information to create program headers.
 #END_COMMENT

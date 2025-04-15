@@ -1,5 +1,4 @@
 #---PHDRFlags.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This tests that the PHDR command can also be used to specify the initial flags
 # for the segment. The test doesnot use %readelf since, GNU %readelf doesnot

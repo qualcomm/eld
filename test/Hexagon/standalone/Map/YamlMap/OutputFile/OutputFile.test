@@ -1,5 +1,4 @@
 #---OutputFile.test--------------------- Executable,GC ------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker is able to print the output file properly.
 #END_COMMENT

@@ -1,8 +1,4 @@
 #---ExplicitOutputSectionData.test--------------------- Executable---------------------#
-
-
-
-
 #BEGIN_COMMENT
 # This test checks that the explicit output section data are not
 # garbage-collected.

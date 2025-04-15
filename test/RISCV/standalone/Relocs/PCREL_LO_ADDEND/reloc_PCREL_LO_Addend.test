@@ -1,5 +1,4 @@
 #---reloc_PCREL_LO_Addend.test--------------------- Executable------------#
-
 #BEGIN_COMMENT
 # Warn when PCREL relocations are used with an addend
 #--------------------------------------------------------------------

@@ -1,5 +1,4 @@
 #---NoSectionOverrides.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that linker emits a diagnostic if a user calls,
 # 'LinkerWrapper::finishAssignOutputSections' but there are no section

@@ -1,5 +1,4 @@
 #---ProvideStyleSymDefTrace.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks the trace info when linker reads the symdef file properly with provide symdef style.
 #END_COMMENT

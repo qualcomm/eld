@@ -1,6 +1,4 @@
 #---RVE.test--------------------- Executable------------------#
-
-
 #BEGIN_COMMENT
 # Check mix of RVE inputs and non RVE inputs as per RISCV ABI.
 #--------------------------------------------------------------------

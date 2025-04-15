@@ -30,7 +30,7 @@ namespace eld {
 //===----------------------------------------------------------------------===//
 const uint32_t AArch64Errata843419Stub::TEMPLATE[] = {
     0x00000000, // Placeholder for erratum insn
-    0x00000000, // Palceholder for branch instruction
+    0x00000000, // Placeholder for branch instruction
 };
 
 AArch64Errata843419Stub::AArch64Errata843419Stub()

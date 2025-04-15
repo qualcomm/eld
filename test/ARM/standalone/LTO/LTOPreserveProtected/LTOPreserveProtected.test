@@ -1,5 +1,4 @@
 #---LTOPreserveProtected.test-------------------------------- SharedLibrary,LTO ---------------------#
-
 #BEGIN_COMMENT
 # This is a test to show that the linker preserves protected symbols.
 #END_COMMENT

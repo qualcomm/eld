@@ -1,5 +1,4 @@
 #---DuplicateDynsymEntries.test--------------------------- SharedLibrary --------------------#
-
 #BEGIN_COMMENT
 # This checks that there are no two duplicate symbols of the same name in the
 # dynsym table.

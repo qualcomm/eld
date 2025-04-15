@@ -1,5 +1,4 @@
 #---ModuleVerbose.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Checks verbose output from Module.cpp
 #END_COMMENT

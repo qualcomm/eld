@@ -1,5 +1,4 @@
 #----------ExportDynamic.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Enable export dynamic switch to work on RISC-V
 #--------------------------------------------------------------------

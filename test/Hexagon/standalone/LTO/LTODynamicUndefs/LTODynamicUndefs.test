@@ -1,5 +1,4 @@
 #---LTODynamicUndefs.test----------------------- Executable,LTO --------------------#
-
 #BEGIN_COMMENT
 # This test makes sure that we are not asserting and preserving a undefined
 # symbol from an ELF file!. This was an insane behavior.

@@ -1,5 +1,4 @@
 #---BasicInputCommand.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies the basic usage of INPUT linker script command.
 #END_COMMENT

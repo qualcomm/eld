@@ -1,5 +1,4 @@
 #---CPUArchProfileErr.test--------- Executable-----------------------------------#
-
 #BEGIN_COMMENT
 #Fail link if incompatible arch profile
 #END_COMMENT

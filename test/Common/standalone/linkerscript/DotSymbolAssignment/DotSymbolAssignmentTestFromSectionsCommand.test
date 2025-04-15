@@ -1,6 +1,4 @@
 #---DotSymbolAssignmentTestFromSectionsCommand.test------ Executable,LS ---------------------#
-
-
 #BEGIN_COMMENT
 # This tests for backward movement of dot symbol wrt to the value from sections command.
 #END_COMMENT

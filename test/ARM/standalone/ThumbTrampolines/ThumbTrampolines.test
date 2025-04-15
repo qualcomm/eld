@@ -1,5 +1,4 @@
 #---ThumbTrampolines.test--------- Executable --------------------------#
-
 #BEGIN_COMMENT
 # This tests that the THM2 call can create trampolines properly.
 #END_COMMENT

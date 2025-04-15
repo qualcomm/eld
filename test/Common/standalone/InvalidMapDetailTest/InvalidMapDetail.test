@@ -1,5 +1,4 @@
 #----InvalidMapDetail.test------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test checks for correct diagnostic message when an invalid --MapDetail option is used.
 #END_COMMENT

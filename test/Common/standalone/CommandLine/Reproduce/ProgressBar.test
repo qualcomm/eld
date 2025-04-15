@@ -1,5 +1,4 @@
 ---ProgressBar.test------------------------- Executable -----------------#
-
 # This checks for ProgressBar with reproduce
 #END_COMMENT
 #START_TEST

@@ -1,5 +1,4 @@
 #---NumInputSections.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test checks that the text map file contains number of input sections stats.
 #END_COMMENT

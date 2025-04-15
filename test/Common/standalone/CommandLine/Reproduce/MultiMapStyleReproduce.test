@@ -1,5 +1,4 @@
 #---MultiMapStyleReproduce.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # Checks that the --reproduce switch works with multiple map styles.
 #END_COMMENT

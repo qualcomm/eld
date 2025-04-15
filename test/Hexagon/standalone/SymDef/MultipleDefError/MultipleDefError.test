@@ -1,5 +1,4 @@
 #---MultipleDefError.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is able to report multiple definition errors.
 #END_COMMENT

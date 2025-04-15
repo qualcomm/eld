@@ -1,5 +1,4 @@
 #---UndefinedSymbolReportFromObjectFiles.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 #This checks that undefined symbols are not reported by the linker when using
 #the option --unresolved-symbols="ignore-in-object-files"

@@ -1,8 +1,4 @@
 #---OutputSectionIteratorWithConfig.test----------------------- Executable,LS --------------------#
-
-
-
-
 #BEGIN_COMMENT
 #This tests a simple output section iterator plugin that just displays the
 #relocations that the plugin ends up getting called for.

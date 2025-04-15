@@ -1,5 +1,4 @@
 #---ChangeSection.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the section override functionality work correctly
 # for section iterator plugins.

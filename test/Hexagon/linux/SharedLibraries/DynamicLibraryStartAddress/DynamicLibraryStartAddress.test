@@ -1,5 +1,4 @@
 #---DynamicLibraryStartAddress.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 #This test checks that shared libraries start at 0 address.
 #END_COMMENT

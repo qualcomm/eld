@@ -1,5 +1,4 @@
 #---TLSFullRelRO.test--------------------- SharedLibrary------------------#
-
 # Support TLS in GNU_RELRO segment
 #BEGIN_COMMENT
 # This tests that TLS sections are also included in GNU_RELRO segment

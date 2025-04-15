@@ -1,5 +1,4 @@
 #---SectionSizeReuse.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # Some sections are evaluated for size multiple times(a trampoline insert that
 # changes section sizes, will reevaluat all expressions again, because of

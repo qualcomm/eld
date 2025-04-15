@@ -5,7 +5,7 @@ on: [pull_request]
 jobs:
   build:
     runs-on: self-hosted
-    concurrency: 
+    concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
       cancel-in-progress: false
     permissions:
@@ -71,13 +71,13 @@ jobs:
       run: |
            cd pr-${{ env.PR_NUMBER }}/obj
            ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-           
+
     - name: Build Project
       run: |
           cd pr-${{ env.PR_NUMBER }}/obj
           ninja
 
-    - name: Cache Usage after build 
+    - name: Cache Usage after build
       run: |
          cd pr-${{ env.PR_NUMBER }}/obj
          ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
@@ -86,23 +86,6 @@ jobs:
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja check-eld
-
-    - name: Update PR status
-      if: success()
-      uses: actions/github-script@v5
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const { owner, repo } = context.repo;
-          const sha = context.sha;
-          await github.rest.repos.createCommitStatus({
-            owner,
-            repo,
-            sha,
-            state: 'success',
-            description: 'Build verified',
-            context: 'ci/build'
-          });
 
     - name: Save repository cache
       uses: actions/cache@v4

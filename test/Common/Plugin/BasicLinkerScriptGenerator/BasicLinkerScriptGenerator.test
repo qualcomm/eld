@@ -1,5 +1,4 @@
 #---BasicLinkerScriptGenerator.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the behavior of printing output section data commands
 # along with many other linker script commands.

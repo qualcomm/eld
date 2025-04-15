@@ -1,5 +1,4 @@
 #---RaiseUndefs.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # Test the error message for an undef symbol with the function type.
 #END_COMMENT

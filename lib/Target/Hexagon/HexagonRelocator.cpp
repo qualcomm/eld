@@ -68,7 +68,7 @@ void HexagonRelocator::CreateGOTAbsolute(ELFObjectFile *Obj,
     return;
   }
 
-  // If the symbol is not preemptable and we are not building an executable,
+  // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.
   bool useRelative =
@@ -361,7 +361,7 @@ void HexagonRelocator::scanLocalReloc(InputFile &InputFile, Relocation &pReloc,
 
   switch (pReloc.type()) {
   case llvm::ELF::R_HEX_32:
-    // If buiding PIC object (shared library or PIC executable),
+    // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {

@@ -1,6 +1,4 @@
 #---WriteSymDefError.test--------------------------- Executable --------------------#
-
-
 #BEGIN_COMMENT
 # This checks that the error message when linker is unable to write the symdef file.
 #END_COMMENT

@@ -1,6 +1,4 @@
 #---NOLOADSections.test--------------------- Executable ------------------#
-
-
 #BEGIN_COMMENT
 # Check that NOLOAD section sizes are properly shown
 #END_COMMENT

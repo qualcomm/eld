@@ -1,5 +1,4 @@
 #--DiscardFirstSection.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that if a linker script specifies DISCARD as the first output
 # section, orphan section placements ignore that and move on to the first

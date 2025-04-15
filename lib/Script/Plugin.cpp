@@ -245,6 +245,7 @@ bool Plugin::cleanup() {
       "Cleanup", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
   if (PluginCleanupFunction)
     (*PluginCleanupFunction)();
+  clearResources();
   return true;
 }
 
@@ -608,4 +609,8 @@ void Plugin::callActBeforeWritingOutputHook() {
   if (ThisModule.getPrinter()->tracePlugins())
     ThisConfig.raise(Diag::trace_plugin_hook) << getPluginName() << HookName;
   P->ActBeforeWritingOutput();
+}
+
+void Plugin::clearResources() {
+  PluginCommandLineOptions.clear();
 }

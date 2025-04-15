@@ -1,5 +1,4 @@
 #---TrampolineNameTest.test-------Executable/SharedLibrary----------------------------#
-
 #BEGIN_COMMENT
 # Test for the contextual naming convention of trampolines
 #END_COMMENT

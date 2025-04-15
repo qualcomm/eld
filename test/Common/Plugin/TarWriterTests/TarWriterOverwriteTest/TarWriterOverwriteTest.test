@@ -1,5 +1,4 @@
 #---TarWriterOverwriteTest.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # Test checks if a pre-existing tar file can be overriten by the tar writer.
 #END_COMMENT

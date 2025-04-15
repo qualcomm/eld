@@ -66,7 +66,7 @@ AArch64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
     return *G;
   }
 
-  // If the symbol is not preemptable and we are not building an executable,
+  // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.
   bool useRelative =
@@ -188,7 +188,7 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   ResolveInfo *rsym = pReloc.symInfo();
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_ABS64:
-    // If buiding PIC object (shared library or PIC executable),
+    // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
@@ -205,7 +205,7 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
 
   case llvm::ELF::R_AARCH64_ABS32:
   case llvm::ELF::R_AARCH64_ABS16:
-    // If buiding PIC object (shared library or PIC executable),
+    // If building PIC object (shared library or PIC executable),
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
@@ -386,7 +386,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       backend.defineIRelativeRange(*rsym);
       return;
     }
-    // if symbol is defined in the ouput file and it's not
+    // if symbol is defined in the output file and it's not
     // preemptible, no need plt
     if (!getTarget().isSymbolPreemptible(*rsym)) {
       return;

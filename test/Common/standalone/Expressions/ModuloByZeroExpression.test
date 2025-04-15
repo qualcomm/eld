@@ -1,5 +1,4 @@
 #---ModuloByZeroExpression.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Test if linker exists gracefully when dividing by zero in a modulo operator.
 #END_COMMENT

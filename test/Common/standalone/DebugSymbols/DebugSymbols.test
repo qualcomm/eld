@@ -1,5 +1,4 @@
 #---DebugSymbols.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #Symbols from debug sections should not have VMA addresses
 #END_COMMENT

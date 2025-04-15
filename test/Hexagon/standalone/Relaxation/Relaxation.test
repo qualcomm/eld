@@ -1,8 +1,4 @@
 #---Relaxation.test--------- Executable------- --------------------#
-
-
-
-
 #BEGIN_COMMENT
 #This tests that the linker is able to remove tail jumps
 #also adds a test that the linker should not relax.

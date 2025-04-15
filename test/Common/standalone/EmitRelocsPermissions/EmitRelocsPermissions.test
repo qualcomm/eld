@@ -1,5 +1,4 @@
 #---EmitRelocsPermissions.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that relocation sections that are not allocatable are properly
 # treated and they are not associated with RW permissions.

@@ -1,5 +1,4 @@
 #---ErrorFileSize.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a simple FileOffset plugin for Error in linker script.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---InitializeGOTPLT0DynamicZNow.test----------------------- SharedLibrary --------------------#
-
 #BEGIN_COMMENT
 # This tests that the linker sets the first slot in GOTPLT0 to zero.
 #END_COMMENT

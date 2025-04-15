@@ -1,8 +1,4 @@
 #---ChangeSymbol.test----------------------- Executable,LS --------------------#
-
-
-
-
 #BEGIN_COMMENT
 #This tests that the plugin can replace the symbol bar with some content.
 #Add testing for trampolines

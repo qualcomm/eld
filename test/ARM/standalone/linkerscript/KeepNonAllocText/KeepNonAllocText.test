@@ -1,5 +1,4 @@
 #---KeepNonAllocText.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that GC handles sections marked with KEEP even if they are of non
 # allocatable type.

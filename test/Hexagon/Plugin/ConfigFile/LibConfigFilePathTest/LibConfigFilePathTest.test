@@ -1,6 +1,4 @@
 #---LibConfigFilePathTest.test----------------------- Executable,LS --------------------#
-
-
 #BEGIN_COMMENT
 # Tests that plugins are able to load .config and .ini files from search dirs
 #END_COMMENT

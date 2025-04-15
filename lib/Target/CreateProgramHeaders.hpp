@@ -271,7 +271,7 @@ bool GNULDBackend::createProgramHdrs() {
       // If the output section descriptor has an alignment specified
       // honor the alignment specified, the alignment would have been
       // reflected in the section alignment.
-      // The linker doesnot align the section if there was no alignment
+      // The linker doesn't align the section if there was no alignment
       // specified for the output section but a "VMA" was specified.
       if (!(*out)->prolog().hasAlign())
         doAlign = false;
@@ -379,7 +379,7 @@ bool GNULDBackend::createProgramHdrs() {
                            ->getMemorySpec()
                            ->getMemoryDescriptor();
 
-    // If the user specifies the linker to create a seperate rosegment, do that.
+    // If the user specifies the linker to create a separate rosegment, do that.
     if (!config().options().rosegment())
       cur_flag = (cur_flag & ~llvm::ELF::PF_X);
 
@@ -542,7 +542,7 @@ bool GNULDBackend::createProgramHdrs() {
       // If the previous section is a RELRO section and the current section is
       // not a RELRO section, move the non RELRO section to a new page, as the
       // dynamic linker will mprotect the page after dynamic relocation.
-      // If this doesnot move to the next page, then any writes to the section
+      // If this doesn't move to the next page, then any writes to the section
       // will incur a pagefault and crash!. If there is a linker script dont do
       // any of this, as the user may want to configure sections to be in the
       // same page. This is a difference between ELD and GNU linker. This is

@@ -1,5 +1,4 @@
 #---RevisionInfoUpdateOnBuild.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # It checks that the Linker revision is updated when the repository updated
 # and the linker is rebuilt.

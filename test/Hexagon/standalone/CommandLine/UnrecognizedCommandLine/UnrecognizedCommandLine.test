@@ -1,5 +1,4 @@
 #---UnrecognizedCommandLine.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that unrecognized command line options are warned properly and the
 # message is appropriate.

@@ -1,5 +1,4 @@
 #---CopyReloc.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This tests for dynamic copy relocation generated for symbols defined
 # in shared objects.

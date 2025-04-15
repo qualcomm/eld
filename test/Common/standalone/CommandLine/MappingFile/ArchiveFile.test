@@ -1,5 +1,4 @@
 #----ArchiveFile.test------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the --mapping-file option is able to handle archive files
 #END_COMMENT

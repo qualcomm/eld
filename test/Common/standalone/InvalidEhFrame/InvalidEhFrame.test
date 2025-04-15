@@ -1,5 +1,4 @@
 #---InvalidEhFrame.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks that the linker errors out when parsing the EhFrame sections when
 # creating EhFrameHeader sections.

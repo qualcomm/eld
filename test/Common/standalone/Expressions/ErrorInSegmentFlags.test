@@ -1,5 +1,4 @@
 #---ErrorInSegmentFlags.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Verify that expression errors in segment flags are handled.
 #END_COMMENT

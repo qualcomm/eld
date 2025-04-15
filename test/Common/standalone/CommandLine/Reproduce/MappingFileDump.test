@@ -1,5 +1,4 @@
 #---MappingFileDump.test-------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks for proper output for --dump-mapping-file
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---PatchSections.test-------------- Executable------------------------#
-
 #BEGIN_COMMENT
 #Test diagnostics for patching and strip options.
 #END_COMMENT

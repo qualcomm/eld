@@ -1,5 +1,4 @@
 #--NOLOAD_FW.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # NOLOAD sections stress test
 #END_COMMENT

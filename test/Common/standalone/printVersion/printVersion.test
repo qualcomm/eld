@@ -1,6 +1,4 @@
 #---PrintVersionInfo.test--------------------------- Executable -----------------#
-
-
 #BEGIN_COMMENT
 # Check linker version.
 #END_COMMENT

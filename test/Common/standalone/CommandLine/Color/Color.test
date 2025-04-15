@@ -1,5 +1,4 @@
 #---Color.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker supports -color option.
 #END_COMMENT

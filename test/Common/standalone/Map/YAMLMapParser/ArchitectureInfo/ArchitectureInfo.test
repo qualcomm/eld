@@ -1,5 +1,4 @@
 #---ArchitectureInfo.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # This test checks the architecture info output by YAMLMapParser.
 #END_COMMENT

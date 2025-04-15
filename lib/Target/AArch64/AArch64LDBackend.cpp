@@ -945,7 +945,7 @@ void AArch64GNUInfoLDBackend::initializeAttributes() {
 namespace eld {
 
 //===----------------------------------------------------------------------===//
-//  createAArch64LDBackend - the help funtion to create corresponding
+//  createAArch64LDBackend - the help function to create corresponding
 //  AArch64LDBackend
 //===----------------------------------------------------------------------===//
 GNULDBackend *createAArch64LDBackend(Module &pModule) {

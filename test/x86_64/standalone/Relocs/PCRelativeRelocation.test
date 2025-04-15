@@ -1,5 +1,4 @@
 #---PCRelativeRelocation.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # This tests for x86_64 PC relative relocation :- R_X86_64_PC32
 #--------------------------------------------------------------------

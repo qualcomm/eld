@@ -1,5 +1,4 @@
 #--NOLOAD_TEXT_PT_NULL.test--------------------- Executable ------------------#
-
 #BEGIN_COMMENT
 # NOLOAD TEXT sections are assigned PT_NULL segments.
 #END_COMMENT

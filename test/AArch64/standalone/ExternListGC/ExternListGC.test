@@ -1,6 +1,4 @@
 #---ExternListGC.test-------Executable/SharedLibrary----------------------------#
-
-
 #BEGIN_COMMENT
 # Check extern list adds symbols to the root set for GC. Also --dynamic-list
 # must not add a symbol to root set

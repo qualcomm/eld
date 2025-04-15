@@ -1,5 +1,4 @@
 #---RelativeRelocAddend.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This tests that no time that the relative reloc addend when building shared
 # libraries is not set to 0

@@ -1,6 +1,4 @@
 #---WrapSymbolsAllBC.test----------------- Executable,LTO ---------------------#
-
-
 #BEGIN_COMMENT
 # This test supports wrap symbols in Bitcode.
 # #END_COMMENT

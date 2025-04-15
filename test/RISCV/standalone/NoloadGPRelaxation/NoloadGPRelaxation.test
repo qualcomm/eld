@@ -1,5 +1,4 @@
 #---NoloadGPRelaxation.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies the relaxation of NOLOAD symbol references.
 #END_COMMENT

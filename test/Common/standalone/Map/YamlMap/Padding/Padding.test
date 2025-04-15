@@ -1,5 +1,4 @@
 #---Padding.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This tests that the YAML file records padding information.
 #END_COMMENT

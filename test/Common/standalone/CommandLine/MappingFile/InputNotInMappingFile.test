@@ -1,5 +1,4 @@
 #---OutputTarWriter.test-------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the --mapping-file can accept a new input file not present in the mapping file
 #END_COMMENT

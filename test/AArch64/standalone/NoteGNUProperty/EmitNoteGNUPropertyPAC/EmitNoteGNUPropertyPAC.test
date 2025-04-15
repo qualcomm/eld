@@ -1,5 +1,4 @@
 #---EmitNoteGNUPropertyPAC.test----------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests checks that the linker is able to emit a proper GNU property section
 #the change in the test is that one of the property is GNU and the other is QCT

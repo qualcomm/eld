@@ -1,5 +1,4 @@
 #---WeakRefStrongShlib.test----------------Shlib/Exe-------------#
-
 #BEGIN_COMMENT
 # Make sure a weak reference resolved form a shared library
 # is kept weak. It is dynamic loaders job to decide what symbol

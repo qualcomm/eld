@@ -1,5 +1,4 @@
 #---PendingSectionOverrides.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that the behavior of 'no section overrides' and
 # 'has pending sections' diagnostics.

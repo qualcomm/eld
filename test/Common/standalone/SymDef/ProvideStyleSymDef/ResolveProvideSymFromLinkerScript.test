@@ -1,5 +1,4 @@
 #---ResolveProvideSymFromLinkerScript.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 # This checks that the linker is has higher precedence for linker script provide symbols over symdef provide symbols
 #END_COMMENT

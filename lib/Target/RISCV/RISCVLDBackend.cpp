@@ -61,6 +61,17 @@ Relocator *RISCVLDBackend::getRelocator() const {
   return m_pRelocator;
 }
 
+Relocation::Address RISCVLDBackend::getSymbolValuePLT(Relocation &R) {
+  ResolveInfo *rsym = R.symInfo();
+  if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
+    if (const Fragment *S = findEntryInPLT(rsym))
+      return S->getAddr(config().getDiagEngine());
+    if (const ResolveInfo *S = findAbsolutePLT(rsym))
+      return S->value();
+  }
+  return getRelocator()->getSymValue(&R);
+}
+
 Relocation::Type RISCVLDBackend::getCopyRelType() const {
   return llvm::ELF::R_RISCV_COPY;
 }
@@ -234,8 +245,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc, bool DoCompressed) {
   bool canCompress = (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
   // test if it can fall into 21bits
-  Relocator::DWord S =
-      static_cast<RISCVRelocator *>(getRelocator())->getSymbolValuePLT(*reloc);
+  Relocator::DWord S = getSymbolValuePLT(*reloc);
   Relocator::DWord A = reloc->addend();
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
@@ -621,7 +631,7 @@ bool RISCVLDBackend::shouldIgnoreRelocSync(Relocation *pReloc) const {
   case llvm::ELF::R_RISCV_RELAX:
   case llvm::ELF::R_RISCV_ALIGN:
   case llvm::ELF::R_RISCV_VENDOR:
-  // ULEB128 relocations are handled seperately
+  // ULEB128 relocations are handled separately
   case llvm::ELF::R_RISCV_SET_ULEB128:
   case llvm::ELF::R_RISCV_SUB_ULEB128:
     return true;
@@ -676,7 +686,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   if (m_pGlobalPointer)
     GP = m_pGlobalPointer->value();
 
-  // Compres
+  // Compress
   bool DoCompressed = config().options().getRISCVRelaxToC();
 
   // start relocation relaxation
@@ -935,7 +945,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       Relocation *VendorReloc =
           pSection->findRelocation(pOffset, llvm::ELF::R_RISCV_VENDOR);
       if (!VendorReloc) {
-        // The ABI requires that R_RISCV_VENDOR preceeds any R_RISCV_CUSTOM<n>
+        // The ABI requires that R_RISCV_VENDOR precedes any R_RISCV_CUSTOM<n>
         // Relocation.
         config().raise(Diag::error_rv_vendor_not_found)
             << getRISCVRelocName(pType)
@@ -1438,7 +1448,7 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 namespace eld {
 
 //===----------------------------------------------------------------------===//
-/// createRISCVLDBackend - the help funtion to create corresponding
+/// createRISCVLDBackend - the help function to create corresponding
 /// RISCVLDBackend
 GNULDBackend *createRISCVLDBackend(Module &pModule) {
   return make<RISCVLDBackend>(pModule,

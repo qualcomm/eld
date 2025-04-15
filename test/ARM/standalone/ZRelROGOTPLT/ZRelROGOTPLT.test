@@ -1,5 +1,4 @@
 #---ZRelROGOTPLT.test--------------------- SharedLibrary------------------#
-
 #BEGIN_COMMENT
 # This tests that the .got section is not considered RELRO.
 #END_COMMENT

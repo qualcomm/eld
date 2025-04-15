@@ -1,6 +1,4 @@
 #--TrampolinesB9PCREL.test--------------------- Executable ------------------#
-
-
 #BEGIN_COMMENT
 # Linker needs to emit trampolines for B9 PCREL locations, to handle a recent
 # change in the compiler that allows a function to be split by basic blocks.

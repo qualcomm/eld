@@ -119,7 +119,7 @@ void TemplateLDBackend::initializeAttributes() {
 namespace eld {
 
 //===----------------------------------------------------------------------===//
-/// createTemplateLDBackend - the help funtion to create corresponding
+/// createTemplateLDBackend - the help function to create corresponding
 /// TemplateLDBackend
 GNULDBackend *createTemplateLDBackend(Module &pModule) {
   return new TemplateLDBackend(pModule,

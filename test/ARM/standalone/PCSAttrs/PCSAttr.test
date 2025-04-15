@@ -1,7 +1,4 @@
 #---PCSAttrs.test-------------------- Executable --------------------#
-
-
-
 #BEGIN_COMMENT
 #Objects cannot have conflicting Tag_ABI_PCS_R9_use, Tag_ABI_PCS_R[WO]_data tags
 #This test is revised to use the map file which uses input file features to ease

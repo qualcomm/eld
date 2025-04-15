@@ -1,5 +1,4 @@
 #---SortCommon.test--------------------------- Executable --------------------#
-
 #BEGIN_COMMENT
 #This tests that the command line flag --sort-common
 #END_COMMENT

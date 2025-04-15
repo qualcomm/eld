@@ -1,5 +1,4 @@
 #---DivideByZeroExpression.test--------------------- Executable------------------#
-
 #BEGIN_COMMENT
 # Test if linker exists gracefully when dividing by zero in an expression.
 #END_COMMENT

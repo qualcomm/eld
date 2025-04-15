@@ -139,6 +139,21 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
     m_Config.options().setROSegment(true);
   }
 
+  // -target2
+  if (llvm::opt::Arg *arg = ArgList.getLastArg(OPT_ARMLinkOptTable::target2)) {
+    llvm::StringRef Value = arg->getValue();
+    if (auto ValueOpt =
+            llvm::StringSwitch<std::optional<GeneralOptions::Target2Policy>>(
+                Value)
+                .Case("rel", GeneralOptions::Target2Policy::Rel)
+                .Case("abs", GeneralOptions::Target2Policy::Abs)
+                .Case("got-rel", GeneralOptions::Target2Policy::GotRel)
+                .Default(std::nullopt)) {
+      m_Config.options().setTarget2Policy(*ValueOpt);
+    } else
+      m_Config.raise(eld::Diag::error_invalid_target2) << Value;
+  }
+
   return Table;
 }
 

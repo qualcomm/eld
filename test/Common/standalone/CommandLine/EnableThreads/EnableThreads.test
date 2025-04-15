@@ -1,5 +1,4 @@
 #---EnableThreads.test--------------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This checks if the linker supports --enable-threads option.
 #END_COMMENT

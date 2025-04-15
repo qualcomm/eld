@@ -1,5 +1,4 @@
 #---ErrorVirtualAddress.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a simple VirtualAddress plugin for Error in linker script.
 #END_COMMENT

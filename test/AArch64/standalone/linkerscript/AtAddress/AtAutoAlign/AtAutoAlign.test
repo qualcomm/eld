@@ -1,5 +1,4 @@
 #---AtAutoAlign.test--------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests that a section specified with a @ attribute along with an address
 # is handled by the linker when there is no PHDR specified. This also checks for

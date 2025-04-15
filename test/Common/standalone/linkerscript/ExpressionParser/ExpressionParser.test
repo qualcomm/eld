@@ -1,5 +1,4 @@
 #---ExpressionParser.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # Test that the linker does not emit an error with multiple expressions
 #END_COMMENT

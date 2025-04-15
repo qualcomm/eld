@@ -542,9 +542,9 @@ defm unresolved_symbols
           "report-all(Default), ignore-in-object-files, ignore-in-shared-libs">,
       MetaVarName<"<option>">,
       Group<grp_scriptopts>;
-defm sort_section : smDashOnlyEq<"sort-section", "sort_section",
-                       "Sort sections. Options availabe are name , alignment">,
-                       MetaVarName<"<option>">,
+defm sort_section : EEq<"sort-section",
+                       "Sort sections. Options available are name , alignment">,
+                       MetaVarName<"<sort_section>">,
                         Group<grp_scriptopts>;
 
 //===----------------------------------------------------------------------===//

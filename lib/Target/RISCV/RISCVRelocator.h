@@ -49,8 +49,6 @@ public:
 
   bool is32bit() const { return config().targets().is32Bits(); }
 
-  Relocation::Address getSymbolValuePLT(Relocation &R);
-
 private:
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                               eld::IRBuilder &pBuilder, ELFSection &pSection);

@@ -1,5 +1,4 @@
 #---Directories.test------------------- Executable -----------------#
-
 #BEGIN_COMMENT
 # This test uses many file kinds and checks that
 # they are placed in their respective directories based on type

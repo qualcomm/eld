@@ -1,5 +1,4 @@
 #---SectionStart.test--------------------------- Executable,LS -----------------#
-
 #BEGIN_COMMENT
 # This checks for option -section-start that is being handled in the linker.
 #END_COMMENT

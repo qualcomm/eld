@@ -1172,7 +1172,7 @@ bool HexagonLDBackend::isRelocationRelaxed(Relocation *R) const {
 }
 
 //===----------------------------------------------------------------------===//
-/// createHexagonLDBackend - the help funtion to create corresponding
+/// createHexagonLDBackend - the help function to create corresponding
 /// HexagonLDBackend
 GNULDBackend *createHexagonLDBackend(eld::Module &pModule) {
   if (pModule.getConfig().targets().triple().isOSLinux())

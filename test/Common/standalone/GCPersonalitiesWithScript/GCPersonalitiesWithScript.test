@@ -1,5 +1,4 @@
 #---GCPersonalitiesWithScript.test-------- Exe------------------#
-
 #BEGIN_COMMENT
 # When linker script is used, do not add exception related
 # sections into root set for GC

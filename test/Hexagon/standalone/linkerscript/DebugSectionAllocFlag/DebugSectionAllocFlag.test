@@ -1,5 +1,4 @@
 #---DebugSectionAllocFlag.test--------------------- Executable,LS------------------#
-
 #BEGIN_COMMENT
 # This tests that debug sections are not associated with SHF_ALLOC flag.
 #END_COMMENT

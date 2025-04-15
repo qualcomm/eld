@@ -1,5 +1,4 @@
 #---EhFrameOutOfBoundSymbol.test--------------------- Executable---------------------#
-
 #BEGIN_COMMENT
 # This test verifies the final value of an explicit out of bounds symbol in
 # .eh_frame section.

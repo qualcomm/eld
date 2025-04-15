@@ -1,5 +1,4 @@
 #---NonZeroVMa.test--------------------- Exe------------------#
-
 #BEGIN_COMMENT
 #When stripping binaries that have VMA or LMA that is not from 0
 #the segments must not change.

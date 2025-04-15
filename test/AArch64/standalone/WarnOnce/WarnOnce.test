@@ -1,5 +1,4 @@
 #---WarnOnce.test--------------------- Executable------------------#
-
 # Implement --warn-once
 #BEGIN_COMMENT
 # This tests that once --warn-once switch is thrown, linker should

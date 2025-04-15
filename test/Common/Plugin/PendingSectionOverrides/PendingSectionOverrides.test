@@ -1,5 +1,4 @@
 #---PendingSectionOverrides.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 # This tests checks that a fatal diagnostic is given if a plugin modifies
 # section mapping, but does not call 'LinkerWrapper::finishAssignOutputSections'

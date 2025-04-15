@@ -1,5 +1,4 @@
 #---ThinLTOThreads.test----------------------------- Executable,LTO ---------------------#
-
 #BEGIN_COMMENT
 # Test that ThinLTO respects the number of threads supplied using the --thread-count
 # command line option.

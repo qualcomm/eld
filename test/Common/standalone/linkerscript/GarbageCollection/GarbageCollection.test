@@ -1,7 +1,4 @@
 #---GarbageCollection.test--------------------- Executable,LS---------------#
-
-
-
 #BEGIN_COMMENT
 # This tests that Garbage collection can handle symbols defined in linker
 # scripts as ENTRY symbols and they may not be defined. This currently crashes

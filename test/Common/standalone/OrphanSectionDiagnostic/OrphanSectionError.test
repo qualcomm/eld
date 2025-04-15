@@ -1,5 +1,4 @@
 #---OrphanSectionsError.test------------Executable --------------------#
-
 #BEGIN_COMMENT
 # This test checks if a diagnostic error is emitted when an orphan section
 # is detected when orphan_handling is set to "error".

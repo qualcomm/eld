@@ -1,5 +1,4 @@
 #---OutputChunkIterator.test----------------------- Executable,LS --------------------#
-
 #BEGIN_COMMENT
 #This tests a simple output chunk iterator plugin.
 #END_COMMENT

@@ -1,5 +1,4 @@
 #---BSSMixing.test--------------------------- Executable,LS,PHDRS -----------------#
-
 #BEGIN_COMMENT
 # This tests that the linker would be able to print a message when mixing BSS
 # and non BSS sections

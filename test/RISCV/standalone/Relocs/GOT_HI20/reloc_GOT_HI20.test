@@ -1,7 +1,4 @@
 #---reloc_GOT_HI20.test--------------------- Executable------------------#
-
-
-
 #BEGIN_COMMENT
 #Check support for GOT relocations.
 #--------------------------------------------------------------------
