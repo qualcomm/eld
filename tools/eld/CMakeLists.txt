@@ -1,3 +1,8 @@
+option(
+  ELD_CREATE_SYMLINKS
+  "Enable this option to create <target>-link symlinks in the bin folder of both the build and install directories."
+  On)
+
 set(LLVM_LINK_COMPONENTS ${LLVM_TARGETS_TO_BUILD} irreader)
 
 add_llvm_executable(ld.eld eld.cpp)
@@ -30,44 +35,47 @@ if("${LLVM_TARGETS_TO_BUILD}" MATCHES "Hexagon" AND "${TARGET_TRIPLE}" MATCHES
                                                     "hexagon-unknown-linux")
   set(is_hexagon_linux 1)
 endif()
-foreach(target_name ${LLVM_TARGETS_TO_BUILD})
-  string(TOLOWER ${target_name} ld_eld_name)
-  if(${is_hexagon_linux})
-    set(ld_eld_name "${ld_eld_name}-linux-link${CMAKE_EXECUTABLE_SUFFIX}")
-  else(NOT ${is_hexagon_linux})
-    set(ld_eld_name "${ld_eld_name}-link${CMAKE_EXECUTABLE_SUFFIX}")
-  endif(${is_hexagon_linux})
-  if(${target_name} MATCHES "X86")
-    set(ld_eld_name "x86_64-link${CMAKE_EXECUTABLE_SUFFIX}")
-  endif()
-  add_custom_command(
-    TARGET ld.eld
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
-            "${ld_eld_name}"
-    WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
+if(ELD_CREATE_SYMLINKS)
+  foreach(target_name ${LLVM_TARGETS_TO_BUILD})
+    string(TOLOWER ${target_name} ld_eld_name)
+    if(${is_hexagon_linux})
+      set(ld_eld_name "${ld_eld_name}-linux-link${CMAKE_EXECUTABLE_SUFFIX}")
+    else(NOT ${is_hexagon_linux})
+      set(ld_eld_name "${ld_eld_name}-link${CMAKE_EXECUTABLE_SUFFIX}")
+    endif(${is_hexagon_linux})
+    if(${target_name} MATCHES "X86")
+      set(ld_eld_name "x86_64-link${CMAKE_EXECUTABLE_SUFFIX}")
+    endif()
+    add_custom_command(
+      TARGET ld.eld
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
+              "${ld_eld_name}"
+      WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
 
-  add_custom_target(
-    ${ld_eld_name}
-    DEPENDS ${ld_eld_binary}
-    COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
-            "${ld_eld_name}"
-    WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
-endforeach(target_name)
-if(DEFINED USE_LINKER_ALT_NAME)
-if(NOT "${USE_LINKER_ALT_NAME}" STREQUAL "")
-  add_custom_command(
-    TARGET ld.eld
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}" "${USE_LINKER_ALT_NAME}"
-    WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
-  add_custom_target(
-    ${USE_LINKER_ALT_NAME}
-    DEPENDS ${ld_eld_binary}
-    COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
-            "${USE_LINKER_ALT_NAME}"
-    WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
+    add_custom_target(
+      ${ld_eld_name}
+      DEPENDS ${ld_eld_binary}
+      COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
+              "${ld_eld_name}"
+      WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
+  endforeach(target_name)
 endif()
+if(DEFINED USE_LINKER_ALT_NAME)
+  if(NOT "${USE_LINKER_ALT_NAME}" STREQUAL "")
+    add_custom_command(
+      TARGET ld.eld
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
+              "${USE_LINKER_ALT_NAME}"
+      WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
+    add_custom_target(
+      ${USE_LINKER_ALT_NAME}
+      DEPENDS ${ld_eld_binary}
+      COMMAND ${CMAKE_COMMAND} -E ${LD_ELD_LINK_OR_COPY} "${ld_eld_binary}"
+              "${USE_LINKER_ALT_NAME}"
+      WORKING_DIRECTORY "${ELD_RUNTIME_OUTPUT_DIR}")
+  endif()
 endif()
 
 # Create the symlink at installation time.

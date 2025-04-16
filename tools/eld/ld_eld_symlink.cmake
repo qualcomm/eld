@@ -27,19 +27,22 @@ if("${LINK_TARGETS}" MATCHES "Hexagon" AND "${TARGET_TRIPLE}" MATCHES
   set(is_hexagon_linux 1)
 endif()
 
-foreach(target_name ${LINK_TARGETS})
-  string(TOLOWER ${target_name} ld_eld_name)
-  if(${is_hexagon_linux})
-    set(ld_eld_symlink "${ld_eld_name}-linux-link${EXECUTABLE_SUFFIX}")
-  else(NOT ${is_hexagon_linux})
-    set(ld_eld_symlink "${ld_eld_name}-link${EXECUTABLE_SUFFIX}")
-  endif(${is_hexagon_linux})
+# Create symlinks at install only if ELD_CREATE_SYMLINKS is ON
+if (ELD_CREATE_SYMLINKS)
+  foreach(target_name ${LINK_TARGETS})
+    string(TOLOWER ${target_name} ld_eld_name)
+    if(${is_hexagon_linux})
+      set(ld_eld_symlink "${ld_eld_name}-linux-link${EXECUTABLE_SUFFIX}")
+    else(NOT ${is_hexagon_linux})
+      set(ld_eld_symlink "${ld_eld_name}-link${EXECUTABLE_SUFFIX}")
+    endif(${is_hexagon_linux})
 
-  message("Creating ${ld_eld_symlink} symlink based on ${ld_eld}")
-  execute_process(
-    COMMAND "${CMAKE_COMMAND}" -E ${LD_ELD_LINK_OR_COPY} "${ld_eld}"
-            "${ld_eld_symlink}" WORKING_DIRECTORY "${bindir}")
-endforeach(target_name)
+    message("Creating ${ld_eld_symlink} symlink based on ${ld_eld}")
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E ${LD_ELD_LINK_OR_COPY} "${ld_eld}"
+              "${ld_eld_symlink}" WORKING_DIRECTORY "${bindir}")
+  endforeach(target_name)
+endif()
 
 if(NOT "${USE_LINKER_ALT_NAME}" STREQUAL "")
   message("Creating ${USE_LINKER_ALT_NAME} symlink based on ${ld_eld}")
