@@ -143,21 +143,22 @@ bool GnuLdDriver::checkAndRaiseTraceDiagEntry(eld::Expected<void> E) const {
 const char *GnuLdDriver::getLtoStatus() const { return "Enabled"; }
 
 void GnuLdDriver::printVersionInfo() const {
-  errs() << "Supported Targets: ";
+  outs() << "Supported Targets: ";
   for (const auto &x : m_SupportedTargets)
-    errs() << x << " ";
-  errs() << "\n";
+    outs() << x << " ";
+  outs() << "\n";
   if (!eld::getVendorName().empty()) {
-    errs() << "Linker from " << eld::getVendorName() << " Version "
+    outs() << "Linker from " << eld::getVendorName() << " Version "
            << eld::getVendorVersion() << "\n";
   }
-  errs() << "Linker based on LLVM version: " << eld::getELDVersion() << "\n";
-  errs() << "Linker Plugin Support Enabled\n";
-  errs() << "Linker Plugin Interface Version "
+  outs() << "Linker based on LLVM version: " << eld::getELDVersion() << "\n";
+  outs() << "Linker Plugin Support Enabled\n";
+  outs() << "Linker Plugin Interface Version "
          << LINKER_PLUGIN_API_MAJOR_VERSION << "."
          << LINKER_PLUGIN_API_MINOR_VERSION << "\n";
-  errs() << "LTO Support " << getLtoStatus() << "\n";
+  outs() << "LTO Support " << getLtoStatus() << "\n";
 }
+
 // Some command line options or some combinations of them are not allowed.
 // This function checks for such errors.
 template <class T>

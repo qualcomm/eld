@@ -4,5 +4,5 @@
 # targets.
 #END_COMMENT
 #START_TEST
-RUN: %link --version 2>&1 | %filecheck %s
+RUN: %link --version | %filecheck %s
 #CHECK-NOT: thumb
