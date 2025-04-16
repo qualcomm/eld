@@ -23,11 +23,6 @@ static bool ELDEmulateRISCVELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   else
     pConfig.targets().setBitClass(64);
 
-  // Always show attribute mix warnings on RISC-V unless the user has
-  // explicitly set the option.
-  if (!pConfig.hasShowAttributeMixWarnings())
-    pConfig.setShowAttributeMixWarning(true);
-
   if (!ELDEmulateELF(pScript, pConfig))
     return false;
 

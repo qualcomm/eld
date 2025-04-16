@@ -1,19 +1,33 @@
 #------AttributeMixWarn.test-----------------Executable------------------------#
 #BEGIN_COMMENT
-# Check that the linker, by default, generates a warning when object files of
-# different attributes are being linked and generates no warning if the
+# Check that the linker by default does not generate a warning when object
+# files of different attributes are being linked, but generates the warning
+# when -Wattribute-mix option is passed, and generates no warning if the
 # -Wno-attribute-mix option is passed.
+# Attribute mix that causes ABI incompatibility issues are treated as errors
+# by the linker.
 #END_COMMENT
 #-------------------------------------------------------------------------------
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/attr1.s -o %t1.attr1.o
 RUN: %clang %clangopts -c %p/Inputs/attr2.s -o %t1.attr2.o
 RUN: %clang %clangopts -c %p/Inputs/attr3.s -o %t1.attr3.o
+RUN: %clang %clangopts -c %p/Inputs/attr4.s -o %t1.attr4.o
+
 # This should not produce a warning
 RUN: %link %linkopts %t1.attr1.o %t1.attr2.o -o %t.out
-# This should produce a error for stack alignment
-RUN: %not %link %linkopts %t1.attr1.o %t1.attr3.o -o %t.out 2>&1 | %filecheck %s
-#CHECK: Reading incompatible attributes in file {{.*}}attr3.o, Error mixing attribute STACK_ALIGN, seen previous value 16 from input file {{.*}}attr1.o, now seen 8
+
+# This should produce an error for stack alignment
+RUN: %not %link %linkopts %t1.attr1.o %t1.attr3.o -o %t.out 2>&1 | %filecheck %s --check-prefix=ERROR
+ERROR: Reading incompatible attributes in file {{.*}}attr3.o, Error mixing attribute STACK_ALIGN, seen previous value 16 from input file {{.*}}attr1.o, now seen 8
+
+# This should produce a warning
+RUN: %link %linkopts -Wattribute-mix %t1.attr1.o %t1.attr4.o -o %t.out 2>&1 | %filecheck %s --check-prefix=WARN
+WARN:  Reading incompatible attributes in file {{.*}}attr4.o, Warning mixing attribute ARCH, seen previous value rv32i{{.*}}_m{{.*}}_a{{.*}}_c{{.*}} from input file {{.*}}attr1.o, now seen rv32i{{.*}}_m{{.*}}_c
+
+# This should not produce a warning by default
+RUN: %link %linkopts --fatal-warnings %t1.attr1.o %t1.attr4.o -o %t.out
+
 # This should not produce any warning
 RUN: %link %linkopts -Wno-attribute-mix --fatal-warnings %t1.attr1.o %t1.attr2.o -o %t.out
 #END_TEST

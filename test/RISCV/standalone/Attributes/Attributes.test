@@ -14,23 +14,25 @@ RUN: %clang %clangopts -c %p/Inputs/attr8.s -o %t1.attr8.o
 # Create executables
 RUN: %link %linkopts %t1.attr1.o %t1.attr2.o -o %t.out
 RUN: %readelf -A %t.out 2>&1 | %filecheck %s -check-prefix=ATTRS
-# Fails for bad attributes
+# Fails for bad attributes. Some attribute mixes require enabling warnings,
+# e.g., unaligned access, priv spec version.
 RUN: %not %link --fatal-warnings %linkopts %p/Inputs/BadAttr.o -o %t.out
 RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr3.o -o %t.out
-RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr5.o -o %t.out
-RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr6.o -o %t.out
+RUN: %not %link --fatal-warnings -Wattribute-mix %linkopts %t1.attr1.o %t1.attr5.o -o %t.out
+RUN: %not %link --fatal-warnings -Wattribute-mix %linkopts %t1.attr1.o %t1.attr6.o -o %t.out
 RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr7.o -o %t.out
-RUN: %not %link --fatal-warnings %linkopts %t1.attr1.o %t1.attr8.o -o %t.out
+RUN: %not %link --fatal-warnings -Wattribute-mix %linkopts %t1.attr1.o %t1.attr8.o -o %t.out
 # Create partial links
 RUN: %link %linkopts %t1.attr1.o %t1.attr2.o -o %t.r.out
 RUN: %readelf -A %t.r.out 2>&1 | %filecheck %s -check-prefix=ATTRS
-# Fails for bad attributes
+# Fails for bad attributes. Some attribute mixes require enabling warnings,
+# e.g., unaligned access, priv spec version.
 RUN: %not %link --fatal-warnings %linkopts -r %p/Inputs/BadAttr.o -o %t.out
 RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr3.o -o %t.out
-RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr5.o -o %t.out
-RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr6.o -o %t.out
+RUN: %not %link --fatal-warnings -Wattribute-mix %linkopts -r %t1.attr1.o %t1.attr5.o -o %t.out
+RUN: %not %link --fatal-warnings -Wattribute-mix %linkopts -r %t1.attr1.o %t1.attr6.o -o %t.out
 RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr7.o -o %t.out
-RUN: %not %link --fatal-warnings %linkopts -r %t1.attr1.o %t1.attr8.o -o %t.out
+RUN: %not %link --fatal-warnings -Wattribute-mix %linkopts -r %t1.attr1.o %t1.attr8.o -o %t.out
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t.script.out
 RUN: %readelf -S -W %t.script.out 2>&1 | %filecheck -check-prefix=SECTIONS %s
