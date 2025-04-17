@@ -427,3 +427,8 @@ void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
 void ELFDynamic::applySoname(uint64_t pStrTabIdx) {
   applyOne(llvm::ELF::DT_SONAME, pStrTabIdx); // DT_SONAME
 }
+
+void ELFDynamic::addDTNeededLib(const ELFDynObjectFile &dynObjFile) {
+  reserveNeedEntry();
+  DTNeededLibs.push_back(&dynObjFile);
+}

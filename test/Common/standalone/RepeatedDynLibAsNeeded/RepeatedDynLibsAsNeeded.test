@@ -1,0 +1,18 @@
+#---RepeatedDynLibsAsNeeded.test------------- Executable, SharedLibrary ----------#
+#BEGIN_COMMENT
+# This test checks that DT_NEEDED order is correct when a
+# shared library is specified with both --as-needed and --no-as-needed
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %link %linkopts -shared -o %t1.lib1.so %t1.1.o
+RUN: %link %linkopts -shared -o %t1.lib2.so %t1.2.o
+RUN: %link %linkopts -dy -o %t1.3.out %t1.3.o --as-needed %t1.lib1.so --no-as-needed %t1.lib2.so %t1.lib1.so
+RUN: %readelf --dynamic %t1.3.out | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}NEEDED{{.*}}lib2.so
+CHECK: {{.*}}NEEDED{{.*}}lib1.so
+CHECK-NOT: {{.*}}NEEDED{{.*}}lib1.so

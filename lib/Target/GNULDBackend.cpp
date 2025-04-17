@@ -873,10 +873,17 @@ void GNULDBackend::sizeDynamic() {
   }
 
   // add DT_NEEDED
-  for (auto &lib : m_Module.getDynLibraryList()) {
-    if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
-      dynstr += llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().size() + 1;
-      dynamic()->reserveNeedEntry();
+  {
+    std::unordered_set<MemoryArea *> addedLibs;
+    for (auto &lib : m_Module.getDynLibraryList()) {
+      if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
+        const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
+        if (addedLibs.count(dynObjFile->getInput()->getMemArea()))
+          continue;
+        dynstr += dynObjFile->getSOName().size() + 1;
+        dynamic()->addDTNeededLib(*dynObjFile);
+        addedLibs.insert(dynObjFile->getInput()->getMemArea());
+      }
     }
   }
 
@@ -1216,15 +1223,13 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
   // add DT_NEED strings into .dynstr
   if (strtab) {
     ELFDynamic::iterator dt_need = dynamic()->needBegin();
-    for (auto &lib : m_Module.getDynLibraryList()) {
-      if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
-        strcpy((strtab + strtabsize),
-               llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().c_str());
-        (*dt_need)->setValue(llvm::ELF::DT_NEEDED, strtabsize);
-        strtabsize +=
-            llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().size() + 1;
-        ++dt_need;
-      }
+    for (auto &lib : dynamic()->getDTNeededLibs()) {
+      strcpy((strtab + strtabsize),
+             llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().c_str());
+      (*dt_need)->setValue(llvm::ELF::DT_NEEDED, strtabsize);
+      strtabsize +=
+          llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().size() + 1;
+      ++dt_need;
     }
 
     if (!config().options().getRpathList().empty()) {
