@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include <Windows.h>
+#include <windows.h>
 #undef max
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
