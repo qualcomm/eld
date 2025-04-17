@@ -14,7 +14,7 @@
 #define ELD_SUPPORT_MSGHANDLING_H
 #include "eld/Diagnostics/MsgHandler.h"
 
-#ifdef _WIN32
+#if defined(_MSC_VER)
 #define __PRETTY_FUNCTION__ __FUNCSIG__
 #endif
 #endif
