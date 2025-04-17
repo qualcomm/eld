@@ -16,6 +16,7 @@
 #ifndef ELD_TARGET_ELFDYNAMIC_H
 #define ELD_TARGET_ELFDYNAMIC_H
 
+#include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/MemoryRegion.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -161,6 +162,12 @@ public:
 
   static std::string TagToString(uint64_t Tag);
 
+  void addDTNeededLib(const ELFDynObjectFile &dynObjFile);
+
+  const std::vector<const ELFDynObjectFile *> &getDTNeededLibs() const {
+    return DTNeededLibs;
+  }
+
 protected:
   /// reserveTargetEntries - reserve target dependent entries
   virtual void reserveTargetEntries() = 0;
@@ -185,6 +192,7 @@ private:
   // For better performance, we use a simple counter and apply entry one-by-one
   // by the counter. m_Idx is the counter indicating to the entry being applied.
   size_t m_Idx;
+  std::vector<const ELFDynObjectFile *> DTNeededLibs;
 
 protected:
   GNULDBackend &m_Backend;
