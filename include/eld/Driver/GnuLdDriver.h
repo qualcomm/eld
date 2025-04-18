@@ -49,17 +49,20 @@ public:
   OPT_GnuLdOptTable();
 };
 
-class GnuLdDriver : public Driver {
+class GnuLdDriver {
 public:
-  static GnuLdDriver *Create(Flavor F, std::string Triple);
+  static GnuLdDriver *Create(eld::LinkerConfig &C, Flavor F,
+                             std::string Triple);
 
-  GnuLdDriver(Flavor F = Flavor::Invalid);
+  GnuLdDriver(eld::LinkerConfig &C, Flavor F = Flavor::Invalid);
 
   virtual ~GnuLdDriver();
 
+  int link(llvm::ArrayRef<const char *> Args);
+
   // Main entry point.
   virtual int link(llvm::ArrayRef<const char *> Args,
-                   llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) override = 0;
+                   llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) = 0;
 
   virtual llvm::opt::OptTable *
   parseOptions(llvm::ArrayRef<const char *> ArgsArr,
@@ -136,22 +139,22 @@ protected:
   // Returns the driver's flavor name.
   std::string getFlavorName() const;
 
+  const std::string &getProgramName() const { return LinkerProgramName; }
+
 private:
-  /// Returns a sensible default value for whether or not the colors should be
-  /// used in the terminal output.
-  static bool ShouldColorize();
   // Raise diag entry for trace.
   bool checkAndRaiseTraceDiagEntry(eld::Expected<void> E) const;
 
 protected:
-  eld::DiagnosticEngine *m_DiagEngine;
-  eld::LinkerConfig m_Config;
+  eld::LinkerConfig &Config;
+  eld::DiagnosticEngine *DiagEngine;
   eld::LinkerScript m_Script;
   static eld::Module *ThisModule;
   llvm::opt::OptTable *Table;
   std::once_flag once_flag;
   const Flavor m_Flavor;
   std::vector<std::string> m_SupportedTargets;
+  std::string LinkerProgramName;
 };
 
 #endif

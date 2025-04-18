@@ -1,5 +1,6 @@
 extern "C++" { #
   Driver::*
+  GnuLdDriver::*
   eld::plugin::AutoTimer::*
   eld::plugin::BitcodeFile::*
   eld::plugin::Chunk::*

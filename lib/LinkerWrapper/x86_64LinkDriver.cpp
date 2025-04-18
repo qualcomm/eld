@@ -37,13 +37,15 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 OPT_x86_64LinkOptTable::OPT_x86_64LinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-x86_64LinkDriver *x86_64LinkDriver::Create(Flavor F, std::string Triple) {
-  return eld::make<x86_64LinkDriver>(F, Triple);
+x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+                                           std::string Triple) {
+  return eld::make<x86_64LinkDriver>(C, F, Triple);
 }
 
-x86_64LinkDriver::x86_64LinkDriver(Flavor F, std::string Triple)
-    : GnuLdDriver(F) {
-  m_Config.targets().setArch("x86_64");
+x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C, Flavor F,
+                                   std::string Triple)
+    : GnuLdDriver(C, F) {
+  Config.targets().setArch("x86_64");
 }
 
 opt::OptTable *
@@ -54,7 +56,7 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
-    m_Config.raise(eld::Diag::error_missing_arg_value)
+    Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
     return nullptr;
   }
@@ -86,11 +88,11 @@ int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
                            llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
   std::vector<const char *> allArgs = getAllArgs(Args, ELDFlagsArgs);
   if (!ELDFlagsArgs.empty())
-    m_Config.raise(eld::Diag::note_eld_flags_without_output_name)
+    Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
   llvm::opt::InputArgList ArgList(allArgs.data(),
                                   allArgs.data() + allArgs.size());
-  m_Config.options().setArgs(Args);
+  Config.options().setArgs(Args);
   std::vector<eld::InputAction *> Action;
 
   //===--------------------------------------------------------------------===//
@@ -101,7 +103,7 @@ int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
       llvm::sys::fs::getMainExecutable(allArgs[0], &StaticSymbol);
   SmallString<128> lpath(lfile);
   llvm::sys::path::remove_filename(lpath);
-  m_Config.options().setLinkerPath(std::string(lpath));
+  Config.options().setLinkerPath(std::string(lpath));
 
   //===--------------------------------------------------------------------===//
   // Begin Link preprocessing

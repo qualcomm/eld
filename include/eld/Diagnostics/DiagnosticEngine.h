@@ -48,6 +48,8 @@ class LinkerConfig;
 class MsgHandler;
 class Plugin;
 
+using DiagnosticEntry = plugin::DiagnosticEntry;
+
 /** \class DiagnosticEngine
  *  \brief DiagnosticEngine is used to report problems and issues.
  *

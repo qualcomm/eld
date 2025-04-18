@@ -1,0 +1,20 @@
+#----------Emulation.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks the behavior of '-m elf32lriscv|elf64lriscv' option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.32.o %p/Inputs/1.c -c -target riscv32
+RUN: %eld -o %t1.1.32.out %t1.1.32.o -m elf32lriscv
+RUN: %readelf -h %t1.1.32.out | %filecheck %s --check-prefix RISCV32
+RUN: %clang %clangopts -o %t1.1.64.o %p/Inputs/1.c -c -target riscv64
+RUN: %not %eld -o %t1.1.64.out %t1.1.64.o -m elf32lriscv 2>&1 | %filecheck %s --check-prefix RISCV64ERR
+RUN: %eld -o %t1.1.64.out %t1.1.64.o -m elf64lriscv
+RUN: %readelf -h %t1.1.64.out | %filecheck %s --check-prefix RISCV64
+#END_TEST
+RISCV32: ELF32
+RISCV32: RISC-V
+
+RISCV64ERR: Error: Invalid ELF file {{.*}}1.64.o for target riscv32
+
+RISCV64: ELF64
+RISCV64: RISC-V

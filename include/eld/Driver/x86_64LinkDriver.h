@@ -33,9 +33,10 @@ public:
 
 class x86_64LinkDriver : public GnuLdDriver {
 public:
-  static x86_64LinkDriver *Create(Flavor F, std::string Triple);
+  static x86_64LinkDriver *Create(eld::LinkerConfig &C, Flavor F,
+                                  std::string Triple);
 
-  x86_64LinkDriver(Flavor F, std::string Triple);
+  x86_64LinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple);
 
   virtual ~x86_64LinkDriver() {}
 
