@@ -303,7 +303,7 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
 
   /* Three types of relaxation can be applied here, in order of preference:
    * -- zero-page: LUI is deleted and the other instruction is converted to
-   *    x0-relative [ not implemented ];
+   *    x0-relative;
    * -- GP-relative, same as above but relative to GP, not available for PIC;
    * -- compressed LUI. */
 
@@ -315,8 +315,17 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
   size_t SymbolSize = reloc->symInfo()->outSymbol()->size();
   Relocator::DWord S = getSymbolValuePLT(*reloc);
   Relocator::DWord A = reloc->addend();
+  Relocator::DWord Value = S + A;
   uint64_t offset = reloc->targetRef()->offset();
   Relocation::Type type = reloc->type();
+
+  // Do not relax complete zeroes because they can be mistaken for
+  // not-yet-assigned values. This applies to both zero-page relaxation and GP
+  // relaxation when GP is close to zero.
+
+  // First, try zero-page relaxation. It's the cheapest and does not need GP.
+  bool canRelaxZero = config().options().getRISCVRelax() &&
+                      llvm::isInt<12>(Value) && S != 0;
 
   // HI will be deleted, LO will be converted to use GP as base.
   // GP must be available and relocation must fit in 12 bits relative to GP.
@@ -324,14 +333,19 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
   bool canRelaxToGP =
       config().options().getRISCVRelax() &&
       config().options().getRISCVGPRelax() && !config().isCodeIndep() &&
-      G != 0 && fitsInGP(G, S + A, frag, reloc->targetSection(), SymbolSize);
+      G != 0 && fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize) &&
+      S != 0;
 
   if (type == llvm::ELF::R_RISCV_HI20) {
 
-    if (canRelaxToGP) {
+    StringRef Msg;
+    if (canRelaxZero)
+      Msg = "RISCV_LUI_ZERO";
+    else if (canRelaxToGP)
+      Msg = "RISCV_LUI_GP";
+    if (!Msg.empty()) {
       reloc->setType(llvm::ELF::R_RISCV_NONE);
-      relaxDeleteBytes("RISCV_LUI_GP", *region, offset, 4,
-                       reloc->symInfo()->name());
+      relaxDeleteBytes(Msg, *region, offset, 4, reloc->symInfo()->name());
       return true;
     }
 
@@ -352,15 +366,15 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
     unsigned rd = (instr >> 7) & 0x1fu;
 
     // low 12 bits are signed
-    int64_t lo_imm = llvm::SignExtend64<12>(S + A);
+    int64_t lo_imm = llvm::SignExtend64<12>(Value);
 
     // The signed value must fit in 6 bits and not be zero.
     int64_t hi_imm =
-        (static_cast<int64_t>(A + S) - lo_imm) >> 12; //  note, arithmetic shift
+        (static_cast<int64_t>(Value) - lo_imm) >> 12; //  note, arithmetic shift
 
     // Check for the LUI instruction that does not use x0 or x2 ( these are not
     // allowed in C.LUI) and 6-bit non-zero offset.
-    // TODO: hi_imm == 0 will be relaxed as zero-page.
+    // hi_imm == 0 will be relaxed as zero-page.
     bool canCompressLUI = config().options().getRISCVRelax() &&
                           config().options().getRISCVRelaxToC() &&
                           (instr & 0x00000007fu) == 0x00000037u && rd != 0 &&
@@ -399,27 +413,32 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
     return false;
   }
 
-  if (!canRelaxToGP)
+  // The remaining code deals with LO relocations.
+  uint32_t rs;
+  if (canRelaxZero)
+    rs = 0; // zero = x0
+  else if (canRelaxToGP) {
+    rs = 3; // x3 = gp
+    Relocation::Type new_type;
+    switch (type) {
+    case llvm::ELF::R_RISCV_LO12_I:
+      new_type = ELF::riscv::internal::R_RISCV_GPREL_I;
+      break;
+    case llvm::ELF::R_RISCV_LO12_S:
+      new_type = ELF::riscv::internal::R_RISCV_GPREL_S;
+      break;
+    default:
+      ASSERT(0, "Unexpected relocation type for RISCV_LUI_GP");
+      return false;
+    }
+    reloc->setType(new_type);
+  } else
     return false;
-
-  Relocation::Type new_type = 0x0;
-  switch (type) {
-  case llvm::ELF::R_RISCV_LO12_I:
-    new_type = ELF::riscv::internal::R_RISCV_GPREL_I;
-    break;
-  case llvm::ELF::R_RISCV_LO12_S:
-    new_type = ELF::riscv::internal::R_RISCV_GPREL_S;
-    break;
-  default:
-    ASSERT(0, "Unexpected relocation type for RISCV_LUI_GP");
-    return false;
-  }
 
   // do relaxation
-  uint64_t instr = reloc->target();
-  uint64_t mask = 0xF8000;
-  instr = (instr & ~mask) | 0x18000;
-  reloc->setType(new_type);
+  uint32_t instr = reloc->target();
+  uint32_t mask = 0xF8000;
+  instr = (instr & ~mask) | rs << 15;
   reloc->setTargetData(instr);
   return true;
 }
