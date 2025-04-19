@@ -372,3 +372,7 @@ std::string ResolveInfo::getDecoratedName(bool DoDeMangle) const {
 ELFSection *ResolveInfo::getOwningSection() const {
   return outSymbol()->fragRef()->frag()->getOwningSection();
 }
+
+std::string ResolveInfo::getResolvedPath() const {
+  return resolvedOrigin()->getInput()->decoratedPath();
+}

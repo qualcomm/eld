@@ -254,6 +254,19 @@ bool Module::createInternalInputs() {
 
   getBackend()->createInternalInputs();
 
+  // Add implicit dot symbol
+  Resolver::Result ResolvedResult;
+  InputFile *I = getInternalInput(eld::Module::InternalInputType::Script);
+  getNamePool().insertSymbol(
+      I, ".", true, ResolveInfo::NoType, ResolveInfo::Define,
+      ResolveInfo::NoneBinding, 0, 0, ResolveInfo::Hidden, nullptr,
+      ResolvedResult, true, false, 0, false /* isPatchable */, getPrinter());
+  LDSymbol *DotSym = make<LDSymbol>(ResolvedResult.Info, true);
+  DotSym->setFragmentRef(FragmentRef::null());
+  DotSym->setValue(0);
+  ResolvedResult.Info->setOutSymbol(DotSym);
+  setDotSymbol(DotSym);
+
   return true;
 }
 

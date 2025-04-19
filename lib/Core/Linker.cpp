@@ -371,18 +371,19 @@ bool Linker::normalize() {
         ThisConfig->raise(Diag::parsing_dynlist);
       ObjLinker->parseDynList();
     }
+
+    {
+      LinkerProgress->incrementAndDisplayProgress();
+      eld::RegisterTimer T("Add Script Symbols", "Symbols from Linker Script",
+                           ThisConfig->options().printTimingStats());
+      // Add Linker script symbols.
+      if (!ObjLinker->addScriptSymbols())
+        return false;
+      if (ThisModule->getPrinter()->isVerbose())
+        ThisConfig->raise(Diag::adding_script_symbols);
+    }
   }
 
-  {
-    LinkerProgress->incrementAndDisplayProgress();
-    eld::RegisterTimer T("Add Script Symbols", "Symbols from Linker Script",
-                         ThisConfig->options().printTimingStats());
-    // Add Linker script symbols.
-    if (!ObjLinker->addScriptSymbols())
-      return false;
-    if (ThisModule->getPrinter()->isVerbose())
-      ThisConfig->raise(Diag::adding_script_symbols);
-  }
   // LTO Specific Steps
   if (ThisModule->needLTOToBeInvoked() || ThisConfig->options().hasLTO()) {
     LinkerProgress->addMoreTicks(3);

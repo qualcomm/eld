@@ -268,7 +268,7 @@ void ScriptFile::addOutputArchCmd(const std::string &PArch) {
 void ScriptFile::addAssignment(const std::string &SymbolName,
                                Expression *ScriptExpression,
                                Assignment::Type AssignmentType) {
-  Assignment *NewAssignment;
+  Assignment *NewAssignment = nullptr;
   if (ScriptStateInSectionsCommmand) {
     assert(!LinkerScriptCommandQueue.empty());
     SectionsCmd *Sections = LinkerScriptSectionsCommand;
@@ -296,6 +296,7 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
     NewAssignment->setParent(getParent());
     LinkerScriptCommandQueue.push_back(NewAssignment);
   }
+  Assignments.push_back(NewAssignment);
 }
 
 bool ScriptFile::linkerScriptHasSectionsCommand() const {
@@ -668,4 +669,10 @@ void ScriptFile::addRegionAlias(const StrToken *Alias, const StrToken *Region) {
   R->setInputFileInContext(getContext());
   R->setParent(getParent());
   LinkerScriptCommandQueue.push_back(R);
+}
+
+void ScriptFile::processAssignments() {
+  for (auto &Assign : getAssignments()) {
+    Assign->processAssignment(ThisModule, ThisLinkerScriptFile);
+  }
 }

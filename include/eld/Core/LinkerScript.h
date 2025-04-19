@@ -78,7 +78,7 @@ private:
  */
 class LinkerScript {
 public:
-  typedef std::vector<std::pair<LDSymbol *, Assignment *>> Assignments;
+  typedef std::vector<Assignment *> Assignments;
   typedef std::vector<ChangeOutputSectionPluginOp *> OverrideSectionMatchT;
   typedef std::vector<Plugin *> PluginVectorT;
   typedef PluginVectorT::iterator PluginVectorTIter;
@@ -100,7 +100,6 @@ public:
 
   SectionMap &sectionMap() const { return *OutputSectionMap; }
 
-  const Assignments &assignments() const { return LinkerScriptAssignments; }
   Assignments &assignments() { return LinkerScriptAssignments; }
 
   /// sysroot

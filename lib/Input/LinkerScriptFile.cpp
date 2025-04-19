@@ -14,3 +14,8 @@ LinkerScriptFile::LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine)
   if (I->getSize())
     Contents = I->getFileContents();
 }
+
+void LinkerScriptFile::processAssignments() {
+  ProcessAssignments = true;
+  Script->processAssignments();
+}

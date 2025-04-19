@@ -1,0 +1,38 @@
+#---DefSymProvide.test----------------- Executable----------------#
+#BEGIN_COMMENT
+# Verify that Defsym expressions and assignments refer to symbols that can be
+# provided are handled properly by not raising undefined symbol errors if those
+# symbol references can be satisfied.
+#END_COMMENT
+#START_TEST
+
+#
+# Handle Defsym expressions
+#
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o -c %p/Inputs/2.s
+RUN: %ar cr %t1.lib2.a %t1.2.o
+# This should pull bar from lib2.a
+RUN: %link %linkopts %t1.1.o --defsym foo=bar %t1.lib2.a -o %t2.out.1
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t %t1.lib2.a -o %t2.out.2
+# This link should fail because the undefined symbol bar
+# is added after it sees lib2.a in the link line
+RUN: %not %link %linkopts %t1.1.o %t1.lib2.a --defsym foo=bar -o %t2.out.3
+
+
+#
+# Handle provide expressions and assert referring to symbols
+# that can be provided
+#
+RUN: %clang %clangopts -o %t1.bar.o -c %p/Inputs/bar.c -ffunction-sections
+# This link should not fail
+RUN: %link %linkopts %t1.bar.o -T %p/Inputs/assert.t -o %t2.out.4
+
+#
+# Handle provide expressions and fill expressions referring to symbols
+# that can be provided
+#
+RUN: %link %linkopts %t1.1.o %t1.bar.o --defsym foo=bar -T %p/Inputs/fill.t \
+RUN:  -o %t2.out.4
+
+#END_TEST

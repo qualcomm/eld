@@ -462,3 +462,19 @@ std::string NamePool::getDecoratedName(const LDSymbol &Sym,
   Info.setOutSymbol(&S);
   return Info.getDecoratedName(ThisConfig.options().shouldDemangle());
 }
+
+void NamePool::addUndefinedELFSymbol(InputFile *I, std::string SymbolName,
+                                     ResolveInfo::Visibility Vis) {
+  // If we have a symbol already no need to add
+  if (findInfo(SymbolName))
+    return;
+  Resolver::Result Result;
+  insertSymbol(I, SymbolName, false, ResolveInfo::NoType,
+               ResolveInfo::Undefined, ResolveInfo::Global, 0, 0, Vis, nullptr,
+               Result, false /* postLTOPhase*/, false, 0,
+               false /* isPatchable */, ThisConfig.getPrinter());
+  // create a output LDSymbol
+  LDSymbol *OutputSym =
+      make<LDSymbol>(Result.Info, ThisConfig.options().gcSections());
+  Result.Info->setOutSymbol(OutputSym);
+}

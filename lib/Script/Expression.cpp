@@ -119,7 +119,8 @@ eld::Expected<uint64_t> Symbol::evalImpl() {
   if (!ThisSymbol)
     ThisSymbol = ThisModule.getNamePool().findSymbol(Name);
 
-  if (!ThisSymbol || ThisSymbol->resolveInfo()->isBitCode())
+  if (!ThisSymbol || ThisSymbol->resolveInfo()->isUndef() ||
+      ThisSymbol->resolveInfo()->isBitCode())
     return std::make_unique<plugin::DiagnosticEntry>(
         Diag::undefined_symbol_in_linker_script,
         std::vector<std::string>{Name});
@@ -687,6 +688,7 @@ void AlignExpr::getSymbols(std::vector<ResolveInfo *> &Symbols) {
 
 void AlignExpr::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
   ExpressionToEvaluate.getSymbolNames(SymbolTokens);
+  AlignmentExpression.getSymbolNames(SymbolTokens);
 }
 
 bool AlignExpr::hasDot() const {

@@ -129,6 +129,11 @@ public:
     return nullptr;
   }
 
+  // Helper function to add an undefined symbol to the NamePool
+  void
+  addUndefinedELFSymbol(InputFile *I, std::string SymbolName,
+                        ResolveInfo::Visibility Vis = ResolveInfo::Default);
+
 private:
   eld::LinkerConfig &ThisConfig;
   Resolver *SymbolResolver;
