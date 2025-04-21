@@ -156,7 +156,12 @@ public:
       SectionConstraint = OutputSectDesc::Constraint::NO_CONSTRAINT;
       PluginCmd = nullptr;
       ThisPlugin = nullptr;
+      HasAlignWithInput = false;
     }
+
+    void setAlignWithInput() { HasAlignWithInput = true; }
+
+    bool hasAlignWithInput() const { return HasAlignWithInput; }
 
     Expression *OutputSectionVMA;
     Type ThisType;
@@ -167,6 +172,7 @@ public:
     Constraint SectionConstraint;
     eld::PluginCmd *PluginCmd;
     eld::Plugin *ThisPlugin;
+    bool HasAlignWithInput;
   };
 
   struct Epilog {

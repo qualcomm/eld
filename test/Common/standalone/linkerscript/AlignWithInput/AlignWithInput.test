@@ -1,0 +1,17 @@
+#---AlignWithInput.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests that ALIGN_WITH_INPUT keyword in the output section description
+# aligns the physical address according to requirements of the output section.
+# This is default behavior so there is nothing to change
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -Map %t2.map -o %t2.out 2>&1
+RUN: %filecheck %s -check-prefix=LMA < %t2.map
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/scripterr.t -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=ERR
+
+#CHECK: .foo    0x200   {{.*}} # Offset: {{.*}}, LMA: 0x200, Alignment: 0x200, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [MEMA, LMEMA]
+#CHECK: .bar    0x800   {{.*}} # Offset: {{.*}}, LMA: 0x400, Alignment: 0x200, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ B ], Memory : [MEMB, LMEMB]
+#CHECK: .baz    0xc00   {{.*}} # Offset: {{.*}}, LMA: 0x600, Alignment: 0x200, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ C ], Memory : [MEMC, LMEMC]
+
+#ERR: ALIGN_WITH_INPUT specified with explicit alignment
+

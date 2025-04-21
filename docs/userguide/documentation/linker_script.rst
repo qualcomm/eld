@@ -307,3 +307,67 @@ NOCROSSREFS
      * A linker script can contain multiple NOCROSSREFS commands.
 
      * Each command is treated as an independent set of output sections that are checked for cross references.
+
+Output Section Description
+==========================
+
+A ``SECTIONS`` command can contain one or more output section descriptions.
+
+.. code-block:: plaintext
+
+    <section-name> [<virtual_addr>][(<type>)] :
+    [AT(<load_addr>)] [ALIGN(<section_align>) | ALIGN_WITH_INPUT]
+    [SUBALIGN(<subsection_align>)] [<constraint>]
+    {
+       ...
+       <output-section-command> <output-section-command>
+    }[><region>][AT><lma_region>][:<phdr>...][
+    =<fillexp>]
+
+Syntax
+------
+
+<section-name>
+    Specifies the name of the output section.
+
+<virtual_addr>
+    Specifies the virtual address of the output section (optional). The address value can be an expression (see Expressions).
+
+<type>
+    Specifies the section load property (optional).
+
+    - NOLOAD: Marks a section as not loadable.
+    - INFO: Parsed only; has no effect on linking.
+
+<load_addr>
+    Specifies the load address of the output section (optional). The address value can be specified as an expression (see Expressions).
+
+<section_align>
+    Specifies the section alignment of the output section (optional). The alignment value can be an expression (see Expressions).
+
+<subsection_align>
+    Specifies the subsection alignment of the output section (optional). The alignment value can be an expression (see Expressions).
+
+<constraint>
+    Specifies the access type of the input sections (optional).
+
+    - NOLOAD: All input sections are read-only.
+
+<output-section-command>
+    Specifies an output section command (see Output section commands). An output section description contains one or more output section commands.
+
+<region>
+    Specifies the region of the output section (optional). The region is expressed as a string. This option is parsed but has no effect on linking.
+
+<lma-region>
+    Specifies the load memory address (LMA) region of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.
+
+<fillexp>
+    Specifies the fill value of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.
+
+<phdr>
+    Specifies a program segment for the output section (optional). To assign multiple program segments to an output section, this option can appear more than once in an output section description.
+
+.. note::
+
+    ALIGN_WITH_INPUT currently does not do anything in the linker, linker defaults to always align the physical address according to the requirements of the output section

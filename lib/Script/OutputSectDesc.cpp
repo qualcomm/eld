@@ -86,6 +86,11 @@ void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
     Outs << ")\n";
   }
 
+  if (OutpuSectDescProlog.hasAlignWithInput()) {
+    Outs << "\tALIGN_WITH_INPUT";
+    Outs << ")\n";
+  }
+
   if (OutpuSectDescProlog.hasSubAlign()) {
     Outs << "\tSUBALIGN(";
     OutpuSectDescProlog.subAlign().dump(Outs);
@@ -187,6 +192,10 @@ void OutputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
     Outs << ")";
   }
 
+  if (OutpuSectDescProlog.hasAlignWithInput()) {
+    Outs << " ALIGN_WITH_INPUT";
+  }
+
   if (OutpuSectDescProlog.hasSubAlign()) {
     Outs << " SUBALIGN(";
     OutpuSectDescProlog.subAlign().dump(Outs);
@@ -231,6 +240,7 @@ void OutputSectDesc::setProlog(const Prolog &PProlog) {
   OutpuSectDescProlog.SectionConstraint = PProlog.SectionConstraint;
   OutpuSectDescProlog.ThisPlugin = PProlog.ThisPlugin;
   OutpuSectDescProlog.PluginCmd = PProlog.PluginCmd;
+  OutpuSectDescProlog.HasAlignWithInput = PProlog.HasAlignWithInput;
   if (OutpuSectDescProlog.OutputSectionVMA)
     OutpuSectDescProlog.OutputSectionVMA->setContextRecursively(getContext());
   if (OutpuSectDescProlog.OutputSectionLMA)

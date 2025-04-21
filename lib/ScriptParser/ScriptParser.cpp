@@ -741,6 +741,13 @@ OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
     Prologue.OutputSectionLMA = readParenExpr(/*setParen=*/false);
   if (consume("ALIGN"))
     Prologue.Alignment = readParenExpr(/*setParen=*/false);
+  if (consume("ALIGN_WITH_INPUT"))
+    Prologue.HasAlignWithInput = true;
+
+  if (Prologue.Alignment && Prologue.HasAlignWithInput) {
+    setError("ALIGN_WITH_INPUT specified with explicit alignment ");
+  }
+
   if (consume("SUBALIGN"))
     Prologue.OutputSectionSubaAlign = readParenExpr(/*setParen=*/false);
 
