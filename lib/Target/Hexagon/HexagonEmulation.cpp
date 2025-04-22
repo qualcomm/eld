@@ -10,6 +10,7 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Target/ELFEmulation.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 
 using namespace llvm;
@@ -20,21 +21,21 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   // set up bitclass and endian
   pConfig.targets().setEndian(TargetOptions::Little);
   pConfig.targets().setBitClass(32);
-  if (!pConfig.options().getEmulation().empty()) {
-    StringRef flag =
-        llvm::StringSwitch<StringRef>(pConfig.options().getEmulation())
-            .Case("v68", "hexagonv68")
-            .Case("v69", "hexagonv69")
-            .Case("v71", "hexagonv71")
-            .Case("v71t", "hexagonv71t")
-            .Case("v73", "hexagonv73")
-            .Case("v75", "hexagonv75")
-            .Case("v77", "hexagonv77")
-            .Case("v79", "hexagonv79")
-            .Case("v81", "hexagonv81")
-            .Case("v83", "hexagonv83")
-            .Case("v85", "hexagonv85")
-            .Default("invalid");
+  llvm::StringRef Emulation = pConfig.options().getEmulation();
+  if (!Emulation.empty()) {
+    llvm::StringRef flag = llvm::StringSwitch<StringRef>(Emulation)
+                               .Cases("v68", "hexagonelf", "hexagonv68")
+                               .Case("v69", "hexagonv69")
+                               .Case("v71", "hexagonv71")
+                               .Case("v71t", "hexagonv71t")
+                               .Case("v73", "hexagonv73")
+                               .Case("v75", "hexagonv75")
+                               .Case("v77", "hexagonv77")
+                               .Case("v79", "hexagonv79")
+                               .Case("v81", "hexagonv81")
+                               .Case("v83", "hexagonv83")
+                               .Case("v85", "hexagonv85")
+                               .Default("invalid");
     if (flag == "deprecated") {
       pConfig.raise(Diag::deprecated_emulation)
           << pConfig.options().getEmulation();
@@ -45,7 +46,13 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
           << pConfig.options().getEmulation();
       return false;
     }
-    pConfig.targets().setTargetCPU(flag.str());
+    TargetOptions &TargetOpts = pConfig.targets();
+    const std::string &CurTargetCPU = TargetOpts.getTargetCPU();
+    // -m hexagonelf -mcpu hexagonvx should be allowed and
+    // -mcpu should be given priority over hexagonelf.
+    if (Emulation != "hexagonelf" ||
+        (Emulation == "hexagonelf" && CurTargetCPU.empty()))
+      pConfig.targets().setTargetCPU(flag.str());
   }
   if (LinkerConfig::DynObj == pConfig.codeGenType())
     pConfig.options().setGPSize(0);

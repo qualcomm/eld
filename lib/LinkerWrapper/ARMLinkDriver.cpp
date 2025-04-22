@@ -15,6 +15,7 @@
 #include "llvm/Support/Process.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/raw_ostream.h"
+#include <optional>
 
 using namespace llvm;
 using namespace llvm::opt;
@@ -40,21 +41,21 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 #undef OPTION
 };
 
-static Triple ParseEmulation(std::string pEmulation, Triple &triple,
-                             DiagnosticEngine *DiagEngine) {
+std::optional<Triple>
+ARMLinkDriver::ParseEmulation(std::string pEmulation,
+                              DiagnosticEngine *DiagEngine) {
   // armelf_linux_androideabi -- used for android emulation.
-  Triple result =
-      StringSwitch<Triple>(pEmulation)
+  std::optional<Triple> result =
+      StringSwitch<std::optional<Triple>>(pEmulation)
           .Case("aarch64linux", Triple("aarch64", "", "linux", "gnu"))
           .Case("aarch64linux_androideabi",
                 Triple("aarch64", "", "linux", "androideabi"))
           .Case("armelf_linux_eabi", Triple("arm", "", "linux", "gnueabi"))
           .Case("armelf_linux_androideabi",
                 Triple("arm", "", "linux", "androideabi"))
-          .Default(Triple("unknown", "", "", ""));
-  // Report invalid emulation error for unknown emulation.
-  if (result.getArchName() == "unknown")
-    DiagEngine->raise(Diag::err_invalid_emulation) << pEmulation << "\n";
+          .Case("armelf", Triple("arm", "", "", ""))
+          .Case("aarch64elf", Triple("aarch64", "", "", ""))
+          .Default(std::nullopt);
   return result;
 }
 
@@ -244,11 +245,18 @@ bool ARMLinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
   // If a specific emulation was requested, apply it now.
   if (!emulation.empty()) {
     llvm::Triple TheTriple = Config.targets().triple();
-    Triple EmulationTriple =
-        ParseEmulation(emulation, TheTriple, Config.getDiagEngine());
+    std::optional<Triple> OptEmulationTriple =
+        ParseEmulation(emulation, Config.getDiagEngine());
+    // Report invalid emulation error for unknown emulation.
+    if (!OptEmulationTriple) {
+      DiagEngine->raise(Diag::err_invalid_emulation) << emulation << "\n";
+      return false;
+    }
+    Triple EmulationTriple = OptEmulationTriple.value();
     if (EmulationTriple.getArch() != Triple::UnknownArch)
       TheTriple.setArch(EmulationTriple.getArch());
-    TheTriple.setOS(EmulationTriple.getOS());
+    if (EmulationTriple.getOS() != Triple::OSType::UnknownOS)
+      TheTriple.setOS(EmulationTriple.getOS());
     if (EmulationTriple.getEnvironment() != Triple::UnknownEnvironment)
       TheTriple.setEnvironment(EmulationTriple.getEnvironment());
     Config.targets().setTriple(TheTriple);

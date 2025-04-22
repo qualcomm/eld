@@ -10,12 +10,12 @@ RUN: %clang -target riscv32 -c %p/Inputs/hello.c -o %t1.o
 RUN: %clang -target riscv64 -c %p/Inputs/hello.c -o %t2.o
 RUN: %clang -target riscv64 -c %p/Inputs/foo.c -o %t2.foo.o
 RUN: %clang -target riscv64 -c %p/Inputs/bar.c -o %t2.bar.o
-RUN: %link -mtriple riscv64-unknown-linux -shared %t2.bar.o -o %t2.bar.so
-RUN: %link -Bdynamic -mtriple riscv64-unknown-linux %t2.foo.o %t2.bar.so -o %t2.dynexec.out
-RUN: %link -mtriple riscv32-unknown-linux %t1.o -o %t1.out
-RUN: %link -mtriple riscv64-unknown-linux %t2.o -o %t2.out
-RUN: %link -mtriple riscv32-unknown-linux -T %p/Inputs/script.t %t1.o -o %t3.out
-RUN: %link -mtriple riscv64-unknown-linux -T %p/Inputs/script.t %t2.o -o %t4.out
+RUN: %link -m elf64lriscv -mtriple riscv64-unknown-linux -shared %t2.bar.o -o %t2.bar.so
+RUN: %link -m elf64lriscv -Bdynamic -mtriple riscv64-unknown-linux %t2.foo.o %t2.bar.so -o %t2.dynexec.out
+RUN: %link -m elf32lriscv -mtriple riscv32-unknown-linux %t1.o -o %t1.out
+RUN: %link -m elf64lriscv -mtriple riscv64-unknown-linux %t2.o -o %t2.out
+RUN: %link -m elf32lriscv -mtriple riscv32-unknown-linux -T %p/Inputs/script.t %t1.o -o %t3.out
+RUN: %link -m elf64lriscv -mtriple riscv64-unknown-linux -T %p/Inputs/script.t %t2.o -o %t4.out
 RUN: %readelf -l -W %t1.out | %filecheck --check-prefix=RV32 %s
 RUN: %readelf -l -W %t2.out | %filecheck --check-prefix=RV64 %s
 RUN: %readelf -l -W %t3.out | %filecheck --check-prefix=LCF32 %s

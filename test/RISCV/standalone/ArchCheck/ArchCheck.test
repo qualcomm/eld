@@ -7,15 +7,15 @@
 RUN: %yaml2obj %p/Inputs/t32.yaml -o %t.t32.o
 RUN: %yaml2obj %p/Inputs/t64.yaml -o %t.t64.o
 
-RUN: %link -march riscv32 %t.t32.o -o %t1.out
-RUN: %link -march riscv32 -mabi=ilp32 %t.t32.o -o %t2.out
-RUN: %link %linkopts -march rv32i -mabi=ilp32 %t.t32.o -o %t2.out
-RUN: %link %linkopts -march rv32im  %t.t32.o -o %t2.out
+RUN: %link -m elf32lriscv -march riscv32 %t.t32.o -o %t1.out
+RUN: %link -m elf32lriscv -march riscv32 -mabi=ilp32 %t.t32.o -o %t2.out
+RUN: %link %linkopts -m elf32lriscv -march rv32i -mabi=ilp32 %t.t32.o -o %t2.out
+RUN: %link %linkopts -m elf32lriscv -march rv32im  %t.t32.o -o %t2.out
 RUN: %link -m elf32lriscv %t.t32.o -o %t3.out
 RUN: %readelf -h %t3.out | %filecheck --check-prefix=RISCV32 %s
 RUN: %link -m elf64lriscv %t.t64.o -o %t4.out
 RUN: %readelf -h %t4.out | %filecheck --check-prefix=RISCV64 %s
-RUN: %link -march riscv64 %t.t64.o -o %t5.out
+RUN: %link -m elf64lriscv -march riscv64 %t.t64.o -o %t5.out
 RUN: %readelf -h %t5.out | %filecheck --check-prefix=RISCV64 %s
 
 RISCV32: Class:                             ELF32

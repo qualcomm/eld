@@ -66,6 +66,8 @@ public:
   template <class T = OPT_HexagonLinkOptTable>
   bool createInputActions(llvm::opt::InputArgList &Args,
                           std::vector<eld::InputAction *> &actions);
+
+  static bool isValidEmulation(llvm::StringRef Emulation);
 };
 
 #endif

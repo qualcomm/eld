@@ -163,7 +163,8 @@ Driver::getFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args) {
   if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::emulation)) {
     std::string Emulation = Arg->getValue();
 #if defined(ELD_ENABLE_TARGET_HEXAGON)
-    // FIXME: Support -m hexagonelf in HexagonLinkDriver
+    if (HexagonLinkDriver::isValidEmulation(Emulation))
+      F = Flavor::Hexagon;
 #endif
 #if defined(ELD_ENABLE_TARGET_RISCV)
     // It is okay to consider RISCV64 emulation as RISCV32 flavor
@@ -172,14 +173,20 @@ Driver::getFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args) {
       F = Flavor::RISCV32;
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
-    // FIXME: Support -m aarch64elf and -m armelf in ARMLinkDriver
+    std::optional<llvm::Triple> optTriple =
+        ARMLinkDriver::ParseEmulation(Emulation, DiagEngine);
+    if (optTriple.has_value()) {
+      llvm::Triple EmulationTriple = optTriple.value();
+      if (EmulationTriple.getArch() == llvm::Triple::arm)
+        F = Flavor::ARM;
+      else if (EmulationTriple.getArch() == llvm::Triple::aarch64)
+        F = Flavor::AArch64;
+    }
 #endif
-    // FIXME: Enable the below code once emulations of all the targets
-    // are covered.
-    // if (F == Flavor::Invalid)
-    //   return std::make_unique<eld::DiagnosticEntry>(
-    //       eld::Diag::fatal_unsupported_emulation,
-    //       std::vector<std::string>{Emulation});
+    if (F == Flavor::Invalid)
+      return std::make_unique<eld::DiagnosticEntry>(
+          eld::Diag::fatal_unsupported_emulation,
+          std::vector<std::string>{Emulation});
   }
   return std::pair<Flavor, std::string>{F, ""};
 }

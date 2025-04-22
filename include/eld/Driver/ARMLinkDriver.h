@@ -11,6 +11,12 @@
 #include "eld/Core/Module.h"
 #include "eld/Driver/GnuLdDriver.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/TargetParser/Triple.h"
+#include <optional>
+
+namespace eld {
+class DiagnosticEngine;
+}
 
 // Create OptTable class for parsing actual command line arguments
 class OPT_ARMLinkOptTable : public llvm::opt::GenericOptTable {
@@ -60,6 +66,9 @@ public:
   template <class T>
   bool createInputActions(llvm::opt::InputArgList &Args,
                           std::vector<eld::InputAction *> &actions);
+
+  static std::optional<llvm::Triple>
+  ParseEmulation(std::string pEmulation, eld::DiagnosticEngine *DiagEngine);
 };
 
 #endif

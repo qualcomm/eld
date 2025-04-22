@@ -11,5 +11,5 @@ RUN: %not %link -march riscv32 -map=test.map %t32.o -o %t2.out 2>&1 | %filecheck
 RUN: %not %link -mtriple riscv32-unknown-elf -map=test.map %t32.o -o %t3.out 2>&1 | %filecheck %s --check-prefix=RISCV32ERR
 RUN: %not %link -march riscv64 -map=test.map %p/Inputs/t64.o -o %t4.out 2>&1 | %filecheck %s --check-prefix=RISCV64ERR
 
-RISCV32ERR: Invalid target emulation: `ap=test.map
-RISCV64ERR: Invalid target emulation: `ap=test.map
+RISCV32ERR: Invalid Emulation ap=test.map
+RISCV64ERR: Invalid Emulation ap=test.map
