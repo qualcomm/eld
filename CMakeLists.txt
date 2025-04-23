@@ -8,6 +8,7 @@ set(ELD_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "")
 list(APPEND CMAKE_MODULE_PATH "${ELD_SOURCE_DIR}/cmake/modules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
+message(STATUS "[ELD] CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 include(CMakeRequiredVariablesCheck REQUIRED)
 include(VersionFromLinkerGit)
 include(ELDColorMsg)
