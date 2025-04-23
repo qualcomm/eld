@@ -1,4 +1,4 @@
-include(ColorMsg)
+include(ELDColorMsg)
 
 function(add_version_info_eld_git ELD_REPOSITORY ELD_GIT_REV ELD_REPO)
   execute_process(COMMAND git rev-parse HEAD

@@ -1,5 +1,5 @@
 # This module checks for cmake variables that must be defined.
-include(ColorMsg)
+include(ELDColorMsg)
 
 # Emit message for missing dependency and error out.
 function(missing_req_msg req_arg)

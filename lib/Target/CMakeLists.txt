@@ -1,4 +1,4 @@
-include(ColorMsg)
+include(ELDColorMsg)
 
 add_llvm_library(
   ELDTarget

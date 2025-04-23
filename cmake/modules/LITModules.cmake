@@ -1,4 +1,4 @@
-include(ColorMsg)
+include(ELDColorMsg)
 
 set(LLVM_UTILS_DIR "${LLVM_MAIN_SRC_DIR}/utils")
 if(NOT EXISTS "${LLVM_UTILS_DIR}/llvm-lit/llvm-lit.in")

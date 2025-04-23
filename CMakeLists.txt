@@ -10,7 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include(CMakeRequiredVariablesCheck REQUIRED)
 include(VersionFromLinkerGit)
-include(ColorMsg)
+include(ELDColorMsg)
 
 set(LINKER_PLUGIN_API_MAJOR_VERSION "4")
 set(LINKER_PLUGIN_API_MINOR_VERSION "0")
