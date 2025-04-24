@@ -116,6 +116,10 @@ public:
   GeneralOptions(DiagnosticEngine *);
   ~GeneralOptions();
 
+  GeneralOptions() = delete;
+  GeneralOptions(const GeneralOptions&) = delete;
+  GeneralOptions(GeneralOptions&&) = delete;
+
   /// stats
   void setStats(llvm::StringRef Stats);
 

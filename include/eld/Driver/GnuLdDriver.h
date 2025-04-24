@@ -49,7 +49,7 @@ public:
   OPT_GnuLdOptTable();
 };
 
-class GnuLdDriver {
+class DLL_A_EXPORT GnuLdDriver {
 public:
   static GnuLdDriver *Create(eld::LinkerConfig &C, Flavor F,
                              std::string Triple);
