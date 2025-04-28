@@ -678,6 +678,7 @@ bool ObjectLinker::mayBeSortSections(std::vector<Section *> &Sections) {
                      ELFSection *B = llvm::dyn_cast<ELFSection>(BSection);
                      if (A == nullptr or B == nullptr)
                        return false;
+                     // FIXME: Redundant checks. All files have original input.
                      if (!A->originalInput())
                        return false;
                      if (!B->originalInput())
@@ -965,7 +966,6 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       OutSect->setWanted(true);
     ThisModule->addOutputSectionToTable(OutSect);
   }
-
   return true;
 }
 

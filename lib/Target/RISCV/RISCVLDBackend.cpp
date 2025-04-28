@@ -104,7 +104,12 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   m_pRISCVAttributeSection = m_Module.createInternalSection(
       Module::InternalInputType::Attributes, LDFileFormat::Internal,
       ".riscv.attributes", llvm::ELF::SHT_RISCV_ATTRIBUTES, 0, 1);
-
+  AttributeFragment = make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
+  m_pRISCVAttributeSection->getFragmentList().push_back(AttributeFragment);
+  LayoutPrinter *printer = getModule().getLayoutPrinter();
+  if (printer)
+    printer->recordFragment(m_pRISCVAttributeSection->getInputFile(),
+                            m_pRISCVAttributeSection, AttributeFragment);
   if (LinkerConfig::Object == config().codeGenType())
     return;
 
@@ -179,15 +184,6 @@ bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
 
 ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
   if (S->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES) {
-    if (!AttributeFragment) {
-      AttributeFragment =
-          make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
-      m_pRISCVAttributeSection->getFragmentList().push_back(AttributeFragment);
-      LayoutPrinter *printer = getModule().getLayoutPrinter();
-      if (printer)
-        printer->recordFragment(m_pRISCVAttributeSection->getInputFile(),
-                                m_pRISCVAttributeSection, AttributeFragment);
-    }
     RegionFragment *R =
         llvm::dyn_cast<RegionFragment>(S->getFragmentList().front());
     if (R)
