@@ -18,6 +18,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/MemoryBufferRef.h"
+#include <optional>
 #include <vector>
 
 namespace eld {
@@ -39,6 +40,9 @@ public:
 
   // Set error as needed
   void setError(const llvm::Twine &Msg);
+
+  void setNote(const llvm::Twine &msg,
+               std::optional<llvm::StringRef> columnTok = std::nullopt) const;
 
   void lex();
 
@@ -75,16 +79,16 @@ public:
   bool consumeLabel(llvm::StringRef Tok);
 
   // Check if s encloses t
-  bool encloses(llvm::StringRef S, llvm::StringRef T);
+  bool encloses(llvm::StringRef S, llvm::StringRef T) const;
 
   // Get current location of token including filename
-  std::string getCurrentLocation();
+  std::string getCurrentLocation() const;
 
   // Unquote string if quoted
   llvm::StringRef unquote(llvm::StringRef S);
 
   // Get Line and column information
-  llvm::StringRef getLine();
+  llvm::StringRef getLine() const;
 
   /// Returns true if there are no reported errors that should
   /// end the link abruptly.
@@ -98,15 +102,23 @@ public:
 
 protected:
   // Get current memory buffer
-  llvm::MemoryBufferRef getCurrentMB();
+  llvm::MemoryBufferRef getCurrentMB() const;
 
-  size_t getColumnNumber();
+  size_t getColumnNumber() const;
+
+  size_t computeColumnWidth(llvm::StringRef s, llvm::StringRef e) const;
 
 private:
   // Handle expression splits.
   void maybeSplitExpr();
 
-  // Check if there is an error
+  llvm::StringRef noteAndSkipNonASCIIUnicodeChars(llvm::StringRef s) const;
+
+  bool isNonASCIIUnicode(char c) const { return c & 0x80; }
+
+  bool isFirstByteOfMultiByteUnicode(char c) const {
+    return (c & 0xc0) == 0xc0;
+  }
 
 protected:
   struct Buffer {

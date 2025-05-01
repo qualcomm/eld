@@ -54,7 +54,7 @@ using namespace eld;
 using namespace eld::v2;
 
 // Returns a whole line containing the current token.
-StringRef ScriptLexer::getLine() {
+StringRef ScriptLexer::getLine() const {
   StringRef S = getCurrentMB().getBuffer();
 
   size_t Pos = S.rfind('\n', PrevTok.data() - S.data());
@@ -64,11 +64,11 @@ StringRef ScriptLexer::getLine() {
 }
 
 // Returns 0-based column number of the current token.
-size_t ScriptLexer::getColumnNumber() {
-  return PrevTok.data() - getLine().data();
+size_t ScriptLexer::getColumnNumber() const {
+  return computeColumnWidth(getLine().data(), PrevTok.data());
 }
 
-std::string ScriptLexer::getCurrentLocation() {
+std::string ScriptLexer::getCurrentLocation() const {
   std::string Filename = std::string(getCurrentMB().getBufferIdentifier());
   return (Filename + ":" + Twine(PrevTokLine)).str();
 }
@@ -100,6 +100,21 @@ void ScriptLexer::setError(const Twine &Msg) {
     S += "\n>>> " + getLine().str() + "\n>>> " +
          std::string(getColumnNumber(), ' ') + "^";
   ThisConfig.raise(Diag::error_linker_script) << S;
+}
+
+void ScriptLexer::setNote(const Twine &msg,
+                          std::optional<llvm::StringRef> columnTok) const {
+  std::string s = (getCurrentLocation() + ": " + msg).str();
+  if (PrevTok.size()) {
+    std::size_t columnNumber = 0;
+    if (columnTok)
+      columnNumber = computeColumnWidth(getLine().data(), columnTok->data());
+    else
+      columnNumber = getColumnNumber();
+    s += "\n>>> " + getLine().str() + "\n>>> " +
+         std::string(columnNumber, ' ') + "^";
+  }
+  ThisConfig.raise(Diag::note_linker_script) << s;
 }
 
 void ScriptLexer::lex() {
@@ -214,6 +229,7 @@ StringRef ScriptLexer::skipSpace(StringRef S) {
       continue;
     }
     StringRef Saved = S;
+    S = noteAndSkipNonASCIIUnicodeChars(S);
     S = S.ltrim();
     auto Len = Saved.size() - S.size();
     if (Len == 0)
@@ -293,11 +309,11 @@ void ScriptLexer::expectButContinue(StringRef Expect) {
 }
 
 // Returns true if S encloses T.
-bool ScriptLexer::encloses(StringRef S, StringRef T) {
+bool ScriptLexer::encloses(StringRef S, StringRef T) const {
   return S.bytes_begin() <= T.bytes_begin() && T.bytes_end() <= S.bytes_end();
 }
 
-MemoryBufferRef ScriptLexer::getCurrentMB() {
+MemoryBufferRef ScriptLexer::getCurrentMB() const {
   // Find input buffer containing the current token.
   assert(!MemoryBuffers.empty());
   for (MemoryBufferRef Mb : MemoryBuffers)
@@ -317,4 +333,27 @@ void ScriptLexer::prev() {
     CurBuf.S = PrevTok.data();
     CurTok = {};
   }
+}
+
+llvm::StringRef
+ScriptLexer::noteAndSkipNonASCIIUnicodeChars(llvm::StringRef s) const {
+  bool DiagReported = false;
+  while (!s.empty() && isNonASCIIUnicode(s[0])) {
+    if (!DiagReported && isFirstByteOfMultiByteUnicode(s[0])) {
+      setNote("treating non-ascii unicode character as whitespace", s);
+      DiagReported = true;
+    }
+    s = s.drop_front();
+  }
+  return s;
+}
+
+size_t ScriptLexer::computeColumnWidth(llvm::StringRef s,
+                                       llvm::StringRef e) const {
+  size_t nonASCIIColumnOffset = 0;
+  std::for_each(s.data(), e.data(), [&nonASCIIColumnOffset, this](char c) {
+    if (isNonASCIIUnicode(c) && !isFirstByteOfMultiByteUnicode(c))
+      ++nonASCIIColumnOffset;
+  });
+  return e.data() - s.data() - nonASCIIColumnOffset;
 }

@@ -63,6 +63,7 @@ DIAG(no_pt_tls_segment, DiagnosticEngine::Error,
 DIAG(linker_script_var_used_before_define, DiagnosticEngine::Warning,
      "Symbol %0 used before being defined")
 DIAG(error_linker_script, DiagnosticEngine::Error, "%0")
+DIAG(note_linker_script, DiagnosticEngine::Note, "%0")
 DIAG(reading_dynamic_list, DiagnosticEngine::Verbose, "Dynamic List[%0] : %1")
 DIAG(reading_extern_list, DiagnosticEngine::Verbose, "Extern List[%0] : %1")
 DIAG(error_parsing_version_script, DiagnosticEngine::Error, "Error parsing version script %0")
