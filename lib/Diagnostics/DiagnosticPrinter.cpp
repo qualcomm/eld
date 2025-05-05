@@ -27,6 +27,7 @@ const enum llvm::raw_ostream::Colors IgnoreColor = llvm::raw_ostream::BLUE;
 const enum llvm::raw_ostream::Colors RemarkColor = llvm::raw_ostream::BLUE;
 const enum llvm::raw_ostream::Colors VerboseColor = llvm::raw_ostream::CYAN;
 const enum llvm::raw_ostream::Colors TraceColor = llvm::raw_ostream::CYAN;
+const enum llvm::raw_ostream::Colors DeprecatedColor = WarningColor;
 } // namespace
 
 DiagnosticPrinter::~DiagnosticPrinter() {
@@ -152,6 +153,10 @@ DiagnosticPrinter::handleDiagnostic(DiagnosticEngine::Severity PSeverity,
   }
   case DiagnosticEngine::InternalError: {
     PrintDiagnostic(ErrorColor, "InternalError");
+    break;
+  }
+  case DiagnosticEngine::Severity::Deprecated: {
+    PrintDiagnostic(DeprecatedColor, "Deprecated");
     break;
   }
   default:

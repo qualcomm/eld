@@ -102,6 +102,15 @@ void ScriptLexer::setError(const Twine &Msg) {
   ThisConfig.raise(Diag::error_linker_script) << S;
 }
 
+// We don't want to record cascading errors. Keep only the first one.
+void ScriptLexer::reportDeprecatedDiagnostic(const Twine &Msg) {
+  std::string S = (getCurrentLocation() + ": " + Msg).str();
+  if (PrevTok.size())
+    S += "\n>>> " + getLine().str() + "\n>>> " +
+         std::string(getColumnNumber(), ' ') + "^";
+  ThisConfig.raise(Diag::deprecated_linker_script) << S;
+}
+
 void ScriptLexer::lex() {
   for (;;) {
     StringRef &S = CurBuf.S;
@@ -130,10 +139,9 @@ void ScriptLexer::lex() {
     if (S.starts_with("\"")) {
       size_t E = S.find("\"", 1);
       if (E == StringRef::npos) {
-        size_t Lineno =
-            StringRef(CurBuf.Begin, S.data() - CurBuf.Begin).count('\n');
+        size_t Lineno = computeLineNumber(S);
         ThisConfig.raise(Diag::error_linker_script)
-            << llvm::Twine(CurBuf.Filename + ":" + Twine(Lineno + 1) +
+            << llvm::Twine(CurBuf.Filename + ":" + Twine(Lineno) +
                            ": unclosed quote")
                    .str();
         return;
@@ -314,7 +322,14 @@ StringRef ScriptLexer::unquote(StringRef S) {
 
 void ScriptLexer::prev() {
   if (!PrevTok.empty()) {
+    // FIXME: CurBuf.LineNumber needs to be updated!
     CurBuf.S = PrevTok.data();
     CurTok = {};
   }
+}
+
+size_t ScriptLexer::computeLineNumber(llvm::StringRef tok) {
+  size_t LineNumber =
+      llvm::StringRef(CurBuf.Begin, tok.data() - CurBuf.Begin).count('\n');
+  return LineNumber + 1;
 }
