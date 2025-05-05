@@ -44,6 +44,8 @@ public:
   void setNote(const llvm::Twine &msg,
                std::optional<llvm::StringRef> columnTok = std::nullopt) const;
 
+  void setWarn(const llvm::Twine &Msg);
+
   void lex();
 
   // Skip spaces
@@ -99,6 +101,12 @@ public:
   /// calls in between, does not change the cursor position. If there
   /// is no previous token, this function is no-op.
   void prev();
+
+  size_t computeLineNumber(llvm::StringRef tok);
+
+  size_t getCurrentLineNumber() {
+    return PrevTokLine;
+  }
 
 protected:
   // Get current memory buffer

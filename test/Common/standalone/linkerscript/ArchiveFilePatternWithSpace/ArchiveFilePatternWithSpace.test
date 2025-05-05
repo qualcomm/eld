@@ -1,0 +1,39 @@
+#---ArchiveFilePatternWithSpace.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# This tests that checks that 'archive: file' pattern works for now and a
+# deprecated diagnostic is emitted for this usage.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %ar cr %t1.lib12.a %t1.1.o %t1.2.o
+RUN: %link %linkopts -o %t1.a1.out --whole-archive %t1.lib12.a \
+RUN:   -T %p/Inputs/script.1.t -Map %t1.a1.map.txt -Wno-linker-script 2>&1 | %filecheck %s --allow-empty --check-prefix NO_WARN
+RUN: %link %linkopts -o %t1.a1.out --whole-archive %t1.lib12.a \
+RUN:   -T %p/Inputs/script.1.t -Map %t1.a1.map.txt -Wlinker-script 2>&1 | %filecheck %s --check-prefix WARN
+RUN: %filecheck %s --check-prefix MAP < %t1.a1.map.txt
+RUN: %link %linkopts -o %t1.a2.out --whole-archive %t1.lib12.a \
+RUN:   -T %p/Inputs/script.2.t -Map %t1.a2.map.txt
+RUN: %filecheck %s --check-prefix MEMBER_PATTERN_NEXT_LINE < %t1.a2.map.txt
+
+NO_WARN-NOT: Space between
+
+WARN: Warning: {{.*}}script.1.t:2: Space between archive:member file pattern is deprecated
+WARN: >>>   FOO: { *lib12.a: *1.o(*foo*) }
+WARN: >>>                    ^
+WARN: Warning: {{.*}}script.1.t:3: Space between archive:member file pattern is deprecated
+WARN: >>>   BAR: { *lib12.a: *(*bar*) }
+WARN: >>>
+
+MAP: FOO
+MAP: *lib12.a:*1.o(*foo*)
+MAP: .text.foo
+
+MAP: BAR
+MAP: *lib12.a:*(*bar*)
+MAP: .text.bar
+
+MEMBER_PATTERN_NEXT_LINE: WRONG_DATA
+MEMBER_PATTERN_NEXT_LINE: *lib12.a:(*)
+MEMBER_PATTERN_NEXT_LINE: .text.foo
+MEMBER_PATTERN_NEXT_LINE: .text.bar
+MEMBER_PATTERN_NEXT_LINE: *(*data*)

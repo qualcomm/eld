@@ -2302,6 +2302,59 @@ into both the :code:`PT_TLS` and a :code:`PT_LOAD` section. For example:
      ...
    }
 
+Why am I getting the warning 'Space between archive:member file pattern is deprecated'
+-----------------------------------------------------------------------------------------
+
+Linker script allows to specify archive members in input section descriptions
+using the `<archive-pattern>:<member-pattern>` syntax. For example in the below
+linker script `SECTIONS` command snippet, `foo_text` output section contains the
+`.text*` sections from the `foo.o` member of `libfoobar.a` archive.
+
+.. code-block:: bash
+
+   SECTIONS {
+     foo_text : { libfoobar.a:foo.o(.text*) }
+   }
+
+
+Please note that there should be no space between the `<archive-pattern>:`
+and the `<member-pattern>`. Previously, the linker accepted the space
+between the two patterns for convenience. This behavior is now
+deprecated and will be removed in the future.
+
+The below linker script snippet demonstrates some of the cases where
+the warning will be emitted and why.
+
+.. code-block:: bash
+
+   cat > 1.c << \!
+   int data = 10;
+   !
+
+   cat > script.t << \!
+   SECTIONS {
+     .data : {
+        /* The warning will be displayed because there is a space between
+           '*lib1.a:' and '1.o' */
+       *lib1.a: 1.o(.*data*)
+        /* No warning. When member-pattern is missing, all members of the
+           matched archives are matched. */
+       /tmp/lib1.a*: (.*data*)
+       *lib1.a: (.*data*)
+       /* The warning will be displayed because there is a space between
+          '*lib1.a:' and '*' */
+       *lib1.a: *(.*data*)
+       /* No warning. '*lib1.a:' and '*(.data*)' are considered as separate
+          input section descriptions. */
+       *lib1.a:
+       *(.data*)
+     }
+   }
+   !
+
+  clang -c   -c 1.c -g
+  llvm-ar cr lib1.a 1.o
+  ld.eld --whole-archive lib1.a -T script.t -Map x -Wlinker-script
 
 Linker Script PHDRS
 ====================
