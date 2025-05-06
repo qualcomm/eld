@@ -13,14 +13,17 @@
 
 namespace eld {
 
+// FIXME: perhaps it should be named relaxation stats?
 class LinkStats {
 public:
   enum Kind : uint8_t { None, Relaxation };
 
   LinkStats(llvm::StringRef Name, Kind K) : StatsName(Name), StatsKind(K) {}
 
+  // FIXME: Why virtual?
   virtual llvm::StringRef getStatName() const { return StatsName; }
 
+  // FIXME: Why virtual?
   virtual void dumpStat(llvm::raw_ostream &OS) const = 0;
 
   virtual ~LinkStats() {}
