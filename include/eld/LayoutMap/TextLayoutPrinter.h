@@ -72,8 +72,6 @@ public:
 
   virtual ~TextLayoutPrinter();
 
-  void destroy();
-
   void clearInputRecords();
 
   void addLayoutMessage(std::string Msg) {

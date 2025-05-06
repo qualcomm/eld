@@ -1332,8 +1332,6 @@ TextLayoutPrinter::~TextLayoutPrinter() {
     (*LayoutFile) << Buffer->str();
 }
 
-void TextLayoutPrinter::destroy() {}
-
 void TextLayoutPrinter::clearInputRecords() {
   ThisLayoutPrinter->resetArchiveRecords();
   ThisLayoutPrinter->resetInputActions();

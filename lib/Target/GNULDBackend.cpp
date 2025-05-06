@@ -3418,7 +3418,6 @@ bool GNULDBackend::printLayout() {
   TextLayoutPrinter *printer = m_Module.getTextMapPrinter();
   if (printer) {
     printer->printMapFile(m_Module);
-    printer->destroy();
   }
   // print Cross Reference table, either on stdout
   // or in map file
