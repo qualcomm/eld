@@ -160,6 +160,7 @@ DiagnosticEngine::Severity DiagnosticEngine::getSeverity(DiagIDType Id) {
     ADD_CASE(Warning);
     ADD_CASE(Trace);
     ADD_CASE(InternalError);
+    ADD_CASE(Deprecated);
   default:
     llvm_unreachable("Invalid severity value!");
 #undef ADD_CASE

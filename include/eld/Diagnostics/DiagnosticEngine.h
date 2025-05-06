@@ -98,7 +98,8 @@ public:
     Verbose,
     Warning,
     Trace,
-    InternalError
+    InternalError,
+    Deprecated
   };
 
   enum ArgumentKind {
