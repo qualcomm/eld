@@ -538,6 +538,7 @@ void ScriptParser::readProvideHidden(StringRef Tok) {
   else
     llvm_unreachable("Expected PROVIDE/HIDDEN/PROVIDE_HIDDEN assignments!");
   expect("(");
+  llvm::SaveAndRestore SaveLexState(LexState, LexState::Expr);
   Tok = next();
   if (peek() != "=") {
     setError("= expected, but got " + next());
