@@ -28,9 +28,8 @@ public:
     // read Inputs/test.ini
     eld::Expected<std::string> expConfigPath =
         getLinker()->findConfigFile(Options);
-    ELDEXP_REPORT_AND_RETURN_VOID_IF_ERROR(
-        getLinker(), expConfigPath);
-    std::string configPath = expConfigPath.value();
+    std::string configPath =
+        expConfigPath.has_value() ? expConfigPath.value() : "";
     eld::Expected<eld::plugin::INIFile> readFile = getLinker()->readINIFile(configPath);
     if (!readFile)
       return;

@@ -650,7 +650,10 @@ LinkerWrapper::findConfigFile(const std::string &FileName) const {
   eld::SearchDirs Directories = m_Module.getConfig().directories();
   const eld::sys::fs::Path *P = Directories.findFile(
       "plugin configuration INI file", FileName, getPlugin()->getPluginName());
-  return P ? P->getFullPath() : "";
+  if (P)
+    return P->getFullPath();
+  return std::make_unique<DiagnosticEntry>(
+      DiagnosticEntry(Diag::error_finding_plugin_config, {FileName}));
 }
 
 /// Read the contents of a file in .ini format
