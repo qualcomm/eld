@@ -67,10 +67,9 @@ enum : uint32_t {
   QUALCOMMVendorRelocationOffset =
       FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
 
-#define ELF_RISCV_NONSTANDARD_RELOC(vendor_symbol, name, value)                \
-  name = value + vendor_symbol##VendorRelocationOffset,
+#define ELF_RISCV_NONSTANDARD_RELOC_QUALCOMM(name, value)                \
+  name = value + QUALCOMMVendorRelocationOffset,
 #include "llvm/BinaryFormat/ELFRelocs/RISCV_nonstandard.def"
-#undef ELF_RISCV_NONSTANDARD_RELOC
 
   // TODO: Internal Relaxation Relocation IDs for relaxations which require
   // calculating a value or overwriting a field not represented by a relocation.
