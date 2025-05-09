@@ -8,7 +8,7 @@
 #include "AArch64InsnHelpers.h"
 #include "eld/Core/Module.h"
 #include "eld/Fragment/Fragment.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -30,7 +30,7 @@ AArch64ErrataIslandFactory::~AArch64ErrataIslandFactory() {}
 /// createAArch64ErrataIsland - create a errata island
 BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
     Fragment *frag, uint32_t pOffset, Stub *stub, eld::IRBuilder &pBuilder) {
-  LayoutPrinter *layoutPrinter = pBuilder.getModule().getLayoutPrinter();
+  LayoutInfo *layoutInfo = pBuilder.getModule().getLayoutInfo();
   DiagnosticEngine *DiagEngine =
       pBuilder.getModule().getConfig().getDiagEngine();
   ELFSection *outputELFSection = frag->getOutputELFSection();
@@ -185,11 +185,11 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
   for (auto &F : toBeInsertedFrags)
     F->getOwningSection()->setMatchedLinkerScriptRule(MatchedRule);
 
-  if (layoutPrinter) {
-    layoutPrinter->recordFragment(trampolineInput, clone->getOutputELFSection(),
+  if (layoutInfo) {
+    layoutInfo->recordFragment(trampolineInput, clone->getOutputELFSection(),
                                   clone);
-    layoutPrinter->recordSymbol(clone, symbol);
-    layoutPrinter->recordTrampolines();
+    layoutInfo->recordSymbol(clone, symbol);
+    layoutInfo->recordTrampolines();
   }
 
   // FIXME : insert all trampolines and do this only once per iteration.

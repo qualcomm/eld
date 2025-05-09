@@ -712,7 +712,7 @@ void GarbageCollection::stripSections(SectionSetTy &S,
 
   std::vector<std::pair<ELFSection *, LDFileFormat::Kind>> IgnoredSections;
 
-  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule.getLayoutInfo();
   bool ShouldDemangle = ThisConfig.options().shouldDemangle();
 
   for (Obj = ThisModule.objBegin(); Obj != ObjEnd; ++Obj) {
@@ -840,8 +840,8 @@ void GarbageCollection::addRetainSections(SectionSetTy &EntrySections) {
       ELFSection *S = llvm::dyn_cast<ELFSection>(Sect);
       if (S && S->isRetain()) {
         EntrySections.insert(S);
-        if (ThisModule.getLayoutPrinter())
-          ThisModule.getLayoutPrinter()->recordRetainedSections();
+        if (ThisModule.getLayoutInfo())
+          ThisModule.getLayoutInfo()->recordRetainedSections();
         if (ThisModule.getPrinter()->isVerbose() ||
             ThisConfig.options().traceSection(S->name().str()))
           ThisConfig.raise(Diag::retaining_section)

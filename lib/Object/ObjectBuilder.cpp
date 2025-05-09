@@ -535,11 +535,11 @@ void ObjectBuilder::printStats() {
   if (!ThisModule.getScript().linkerScriptHasSectionsCommand())
     return;
   auto &SectionMap = ThisModule.getScript().sectionMap();
-  LayoutPrinter *LayoutPrinter = ThisModule.getLayoutPrinter();
+  LayoutInfo *LayoutInfo = ThisModule.getLayoutInfo();
   for (auto *Out : SectionMap) {
     for (auto *In : *Out) {
-      if (LayoutPrinter && !In->getMatchCount())
-        LayoutPrinter->recordNoLinkerScriptRuleMatch();
+      if (LayoutInfo && !In->getMatchCount())
+        LayoutInfo->recordNoLinkerScriptRuleMatch();
       if (!ThisModule.getPrinter()->allStats())
         continue;
       if (In->desc()) {

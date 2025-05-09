@@ -8,7 +8,7 @@
 #define ELD_LAYOUTMAP_TEXTLAYOUTPRINTER_H
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Input/Input.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/MemoryRegion.h"
@@ -25,7 +25,7 @@ class LinkerConfig;
 
 class TextLayoutPrinter {
 public:
-  TextLayoutPrinter(LayoutPrinter *ThisLayoutPrinter);
+  TextLayoutPrinter(LayoutInfo *ThisLayoutInfo);
 
   eld::Expected<void> init();
 
@@ -115,7 +115,7 @@ private:
                               int64_t FillValue, bool IsAlign,
                               bool UseColor = false) const;
 
-  void printStats(LayoutPrinter::Stats &L, const Module &Module);
+  void printStats(LayoutInfo::Stats &L, const Module &Module);
 
   void printStat(llvm::StringRef S, uint64_t Stats);
 
@@ -160,7 +160,7 @@ private:
   std::string Storage;
   std::unique_ptr<llvm::raw_string_ostream> Buffer = nullptr;
   std::unique_ptr<llvm::raw_fd_ostream> LayoutFile = nullptr;
-  LayoutPrinter *ThisLayoutPrinter = nullptr;
+  LayoutInfo *ThisLayoutInfo = nullptr;
 };
 
 } // namespace eld

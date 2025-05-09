@@ -135,7 +135,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
     }
   }
 
-  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule.getLayoutInfo();
 
   switch (Input.getKind()) {
   case InputFile::BinaryFileKind:
@@ -261,8 +261,8 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     return InputSym;
   }
 
-  if (ThisModule.getLayoutPrinter() &&
-      ThisModule.getLayoutPrinter()->showSymbolResolution())
+  if (ThisModule.getLayoutInfo() &&
+      ThisModule.getLayoutInfo()->showSymbolResolution())
     NP.getSRI().recordSymbolInfo(InputSym, SymInfo);
 
   bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
@@ -329,8 +329,8 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
                      /*isBitcode=*/false);
 
-  if (ThisModule.getLayoutPrinter() &&
-      ThisModule.getLayoutPrinter()->showSymbolResolution())
+  if (ThisModule.getLayoutInfo() &&
+      ThisModule.getLayoutInfo()->showSymbolResolution())
     ThisModule.getNamePool().getSRI().recordSymbolInfo(InputSym, SymInfo);
   // insert symbol and resolve it immediately
   Resolver::Result ResolvedResult = {nullptr, false, false};
@@ -535,8 +535,8 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
     OutputSym->setValue(Value, false);
   }
 
-  if (ThisModule.getLayoutPrinter() &&
-      ThisModule.getLayoutPrinter()->showSymbolResolution()) {
+  if (ThisModule.getLayoutInfo() &&
+      ThisModule.getLayoutInfo()->showSymbolResolution()) {
     SymbolResolutionInfo &SRI = ThisModule.getNamePool().getSRI();
     SRI.recordSymbolInfo(OutputSym,
                          SymbolInfo{Input, Size, Binding, Type, Visibility,

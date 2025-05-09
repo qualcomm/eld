@@ -24,7 +24,7 @@
 #include "eld/Input/InternalInputFile.h"
 #include "eld/Input/LinkerScriptFile.h"
 #include "eld/Input/ObjectFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -186,7 +186,7 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
     return true;
 
   // Record the linker script in the Map file.
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   if (Printer)
     Printer->recordLinkerScript(Input->getInput()->getFileName());
 
@@ -313,7 +313,7 @@ bool ObjectLinker::normalize() {
 bool ObjectLinker::parseVersionScript() {
   if (!ThisConfig.options().hasVersionScript())
     return true;
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   for (const auto &List : ThisConfig.options().getVersionScripts()) {
     Input *VersionScriptInput =
         eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
@@ -617,8 +617,8 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   // Currently, entry section are computed even if garbage-collection is not
   // enabled.
   collectEntrySections();
-  LayoutPrinter *LayoutPrinter = ThisModule->getLayoutPrinter();
-  if (LayoutPrinter && LayoutPrinter->LayoutPrinter::showInitialLayout()) {
+  LayoutInfo *LayoutInfo = ThisModule->getLayoutInfo();
+  if (LayoutInfo && LayoutInfo->LayoutInfo::showInitialLayout()) {
     TextLayoutPrinter *TextMapPrinter = ThisModule->getTextMapPrinter();
     if (TextMapPrinter) {
       // FIXME: ideally, we should not need 'updateMatchedSections' call here.
@@ -984,9 +984,9 @@ bool ObjectLinker::initializeMerge() {
                       (*Obj)->getInput()->decoratedPath());
       for (auto &Sect : ObjFile->getSections()) {
         addInputSection(Sect);
-        if (!ThisModule->getLayoutPrinter())
+        if (!ThisModule->getLayoutInfo())
           continue;
-        ThisModule->getLayoutPrinter()->recordSectionStat(Sect);
+        ThisModule->getLayoutInfo()->recordSectionStat(Sect);
       }
     }
   }
@@ -1281,7 +1281,7 @@ void ObjectLinker::assignOffsetToGroupSections() {
 }
 
 bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   Input *SymbolListInput =
       eld::make<Input>(Filename, ThisConfig.getDiagEngine(), Input::Script);
   if (!SymbolListInput->resolvePath(ThisConfig))
@@ -3405,7 +3405,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     return true;
   if (!Input->getSize())
     ThisConfig.raise(Diag::input_file_has_zero_size) << Input->decoratedPath();
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   std::string Path = Input->getResolvedPath().native();
   InputFile *CurInput = Input->getInputFile();
   if (!CurInput) {
@@ -3421,7 +3421,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   }
   if (CurInput->shouldSkipFile()) {
     if (Printer) {
-      Printer->recordInputActions(LayoutPrinter::Skipped, Input);
+      Printer->recordInputActions(LayoutInfo::Skipped, Input);
     }
     return true;
   }
@@ -3528,7 +3528,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       return false;
     }
     if (Printer)
-      Printer->recordInputActions(LayoutPrinter::Load, Input);
+      Printer->recordInputActions(LayoutInfo::Load, Input);
   } else if (CurInput->getKind() == InputFile::ELFDynObjFileKind) {
     eld::RegisterTimer T("Read ELF Shared Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
@@ -3592,7 +3592,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       else if (CurArchive->isELFArchive())
         FileType = " (ELF)";
       if (Printer) {
-        Printer->recordInputActions(LayoutPrinter::SkippedRescan, Input,
+        Printer->recordInputActions(LayoutInfo::SkippedRescan, Input,
                                     FileType.str());
       }
     }
@@ -3738,7 +3738,7 @@ bool ObjectLinker::provideGlobalSymbolAndContents(std::string Name, size_t Sz,
       llvm::dyn_cast<eld::ELFObjectFile>(InputSect->getInputFile());
   if (!EObj)
     return false;
-  LayoutPrinter *P = ThisModule->getLayoutPrinter();
+  LayoutInfo *P = ThisModule->getLayoutInfo();
   if (P)
     P->recordFragment(EObj, InputSect, F);
   LDSymbol *ProvideSym = CurBuilder->addSymbol(

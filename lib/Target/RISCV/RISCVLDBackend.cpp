@@ -106,9 +106,9 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       ".riscv.attributes", llvm::ELF::SHT_RISCV_ATTRIBUTES, 0, 1);
   AttributeFragment = make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
   m_pRISCVAttributeSection->getFragmentList().push_back(AttributeFragment);
-  LayoutPrinter *printer = getModule().getLayoutPrinter();
-  if (printer)
-    printer->recordFragment(m_pRISCVAttributeSection->getInputFile(),
+  LayoutInfo *info = getModule().getLayoutInfo();
+  if (info)
+    info->recordFragment(m_pRISCVAttributeSection->getInputFile(),
                             m_pRISCVAttributeSection, AttributeFragment);
   if (LinkerConfig::Object == config().codeGenType())
     return;
@@ -161,7 +161,7 @@ bool RISCVLDBackend::initBRIslandFactory() { return true; }
 bool RISCVLDBackend::initStubFactory() { return true; }
 
 bool RISCVLDBackend::readSection(InputFile &pInput, ELFSection *S) {
-  eld::LayoutPrinter *P = m_Module.getLayoutPrinter();
+  eld::LayoutInfo *P = m_Module.getLayoutInfo();
   if (S->isCode()) {
     const char *Buf = pInput.getCopyForWrite(S->offset(), S->size());
     eld::RegionFragmentEx *F =
@@ -1354,7 +1354,7 @@ void RISCVLDBackend::recordRelaxationStats(ELFSection &Section,
                                            size_t NumBytesDeleted,
                                            size_t NumBytesNotDeleted) {
   OutputSectionEntry *O = Section.getOutputSection();
-  eld::LayoutPrinter *P = m_Module.getLayoutPrinter();
+  eld::LayoutInfo *P = m_Module.getLayoutInfo();
   LinkStats *R = m_Stats[O];
   if (!m_ModuleStats) {
     m_ModuleStats = eld::make<RISCVRelaxationStats>();
@@ -1365,7 +1365,7 @@ void RISCVLDBackend::recordRelaxationStats(ELFSection &Section,
     R = eld::make<RISCVRelaxationStats>();
     m_Stats[O] = R;
     if (P)
-      getModule().getLayoutPrinter()->registerStats(O, R);
+      getModule().getLayoutInfo()->registerStats(O, R);
   }
   llvm::dyn_cast<RISCVRelaxationStats>(R)->addBytesDeleted(NumBytesDeleted);
   m_ModuleStats->addBytesDeleted(NumBytesDeleted);

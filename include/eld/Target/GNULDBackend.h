@@ -13,7 +13,7 @@
 #ifndef ELD_TARGET_GNULDBACKEND_H
 #define ELD_TARGET_GNULDBACKEND_H
 #include "eld/GarbageCollection/GarbageCollection.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFExecObjParser.h"
