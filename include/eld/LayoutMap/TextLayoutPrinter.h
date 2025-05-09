@@ -31,42 +31,40 @@ public:
 
   llvm::raw_ostream &outputStream() const;
 
-  void printInputActions(bool UseColor = false);
+  void printInputActions();
 
   void printLinkerInsertedTimingStats(Module &CurModule);
 
-  void printBuildStatistics(Module &CurModule, bool UseColor = false);
+  void printBuildStatistics(Module &CurModule);
 
-  void printArchiveRecords(Module &Module, bool UseColor = false);
+  void printArchiveRecords(Module &Module);
 
-  void printScriptIncludes(bool UseColor = false);
+  void printScriptIncludes();
 
-  void printVersionScripts(bool UseColor = false);
+  void printVersionScripts();
 
-  void printExternList(Module &CurModule, bool UseColor);
+  void printExternList(Module &CurModule);
 
-  void printCommons(eld::Module &CurModule, bool UseColor = false);
+  void printCommons(eld::Module &CurModule);
 
-  void printFrag(eld::Module &CurModule, ELFSection *Section, Fragment *Frag,
-                 bool Color = false);
+  void printFrag(eld::Module &CurModule, ELFSection *Section, Fragment *Frag);
 
   void printSection(GNULDBackend const &Backend,
-                    const OutputSectionEntry *Section, bool UseColor);
+                    const OutputSectionEntry *Section);
 
-  void printArchAndVersion(bool UseColor, GNULDBackend const &Backend);
+  void printArchAndVersion(GNULDBackend const &Backend);
 
   void printFragInfo(Fragment *F, LayoutFragmentInfo *Info, ELFSection *Section,
                      Module &M) const;
 
   void printPadding(ELFSection *Sec, int64_t StartOffset, int64_t Sz,
-                    int64_t FillValue, bool IsAlign,
-                    bool UseColor = false) const;
+                    int64_t FillValue, bool IsAlign) const;
 
   void printMapFile(eld::Module &Module);
 
   void printLayout(eld::Module &Module);
 
-  void printGlobalPluginInfo(eld::Module &M, bool UseColor);
+  void printGlobalPluginInfo(eld::Module &M);
 
   void printPluginInfo(eld::Module &M);
 
@@ -106,14 +104,13 @@ private:
   bool printRelocationDataPluginOp(eld::Module &M, PluginOp *Pop) const;
 
   void printOnlyLayoutFrag(eld::Module &CurModule, ELFSection *Section,
-                           Fragment *Frag, bool Color = false);
+                           Fragment *Frag);
 
   void printOnlyLayoutSection(GNULDBackend const &Backend,
-                              const OutputSectionEntry *Section, bool UseColor);
+                              const OutputSectionEntry *Section);
 
   void printOnlyLayoutPadding(ELFSection *Sec, int64_t StartOffset, int64_t Sz,
-                              int64_t FillValue, bool IsAlign,
-                              bool UseColor = false) const;
+                              int64_t FillValue, bool IsAlign) const;
 
   void printStats(LayoutPrinter::Stats &L, const Module &Module);
 
@@ -133,9 +130,9 @@ private:
 
   void printMergeString(MergeableString *S, Module &M) const;
 
-  void printIsFileHeaderLoadedInfo(bool IsLoaded, bool UseColor);
+  void printIsFileHeaderLoadedInfo(bool IsLoaded);
 
-  void printIsPHDRSLoadedInfo(bool IsLoaded, bool UseColor);
+  void printIsPHDRSLoadedInfo(bool IsLoaded);
 
   void printScriptCommands(const LinkerScript &Script);
 
@@ -145,22 +142,24 @@ private:
 
   void printDiscardedSymbolStats(const Module &Module);
 
-  void printDynamicList(Module &CurModule, bool UseColor);
+  void printDynamicList(Module &CurModule);
 
-  void printVersionList(Module &CurModule, bool UseColor);
+  void printVersionList(Module &CurModule);
 
   std::string getDecoratedPath(const Input *I) const;
 
-  void printFragments(Module &Module, ELFSection &OutSect, RuleContainer &R,
-                      bool UseColor);
+  void printFragments(Module &Module, ELFSection &OutSect, RuleContainer &R);
 
   void printSymbolResolution(Module &Module);
+
+  void setUseColor(bool Color);
 
 private:
   std::string Storage;
   std::unique_ptr<llvm::raw_string_ostream> Buffer = nullptr;
   std::unique_ptr<llvm::raw_fd_ostream> LayoutFile = nullptr;
   LayoutPrinter *ThisLayoutPrinter = nullptr;
+  bool UseColor = false;
 };
 
 } // namespace eld
