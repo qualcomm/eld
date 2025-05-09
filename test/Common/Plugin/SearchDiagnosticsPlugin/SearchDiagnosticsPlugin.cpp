@@ -13,10 +13,7 @@ public:
   SearchDiagnosticsPlugin() : LinkerPlugin("TEST") {}
 
   void Init(const std::string &Options) override {
-    eld::Expected<std::string> expConfigFile =
-        getLinker()->findConfigFile(PluginName + ".config");
-    ELDEXP_REPORT_AND_RETURN_VOID_IF_ERROR(
-        getLinker(), expConfigFile);
+    getLinker()->findConfigFile(PluginName + ".config");
   }
 };
 

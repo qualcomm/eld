@@ -144,3 +144,5 @@ DIAG(verbose_find_default_plugins, DiagnosticEngine::Verbose,
      "Finding default plugin configuration in '%0'")
 DIAG(error_finding_default_plugins, DiagnosticEngine::Error,
      "Error finding default plugin configuration: '%0'")
+DIAG(error_finding_plugin_config, DiagnosticEngine::Error,
+     "plugin configuration file not found: '%0'")

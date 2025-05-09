@@ -457,7 +457,7 @@ public:
   std::string getFileContents(std::string FileName);
 
   /// \return path to file if it is found. If not found, then an
-  /// empty string is returned.
+  /// Error DiagnosticEntry is returned.
   eld::Expected<std::string> findConfigFile(const std::string &FileName) const;
 
   /// Read a config file in ini format.
