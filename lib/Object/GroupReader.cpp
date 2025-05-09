@@ -27,13 +27,13 @@ GroupReader::~GroupReader() {}
 bool GroupReader::readGroup(InputBuilder::InputIteratorT &CurNode,
                             InputBuilder &PBuilder, LinkerConfig &PConfig,
                             bool IsPostLtoPhase) {
-  LayoutPrinter *Printer = MModule.getLayoutPrinter();
+  LayoutInfo *Printer = MModule.getLayoutInfo();
 
   Module::LibraryList &ArchiveLibraryList = MModule.getArchiveLibraryList();
   size_t ArchiveLibraryListSize = ArchiveLibraryList.size();
 
   if (Printer) {
-    Printer->recordInputActions(LayoutPrinter::StartGroup, nullptr);
+    Printer->recordInputActions(LayoutInfo::StartGroup, nullptr);
     Printer->recordGroup();
   }
 
@@ -91,7 +91,7 @@ bool GroupReader::readGroup(InputBuilder::InputIteratorT &CurNode,
   } while (CurNamePoolSize != NewSize);
 
   if (Printer)
-    Printer->recordInputActions(LayoutPrinter::EndGroup, nullptr);
+    Printer->recordInputActions(LayoutInfo::EndGroup, nullptr);
 
   return true;
 }

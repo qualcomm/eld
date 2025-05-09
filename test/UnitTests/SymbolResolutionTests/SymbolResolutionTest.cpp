@@ -35,7 +35,7 @@ SymbolResolutionTest::SymbolResolutionTest() {
   m_DiagEngine = make<DiagnosticEngine>(/*useColor=*/false);
   m_Config = make<LinkerConfig>(m_DiagEngine);
   LinkerScript *LScript = make<LinkerScript>(m_DiagEngine);
-  m_Module = make<Module>(*LScript, *m_Config, /*layoutPrinter=*/nullptr);
+  m_Module = make<Module>(*LScript, *m_Config, /*layoutInfo=*/nullptr);
   m_IRBuilder = make<IRBuilder>(*m_Module, *m_Config);
 }
 

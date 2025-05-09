@@ -294,7 +294,7 @@ eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
   m_Module.getLinker()->getObjLinker()->createOutputSection(
       Builder, OutputSection.getOutputSection(), true);
 
-  if (auto *Printer = m_Module.getLayoutPrinter()) {
+  if (auto *Printer = m_Module.getLayoutInfo()) {
     auto *Op = make<AddChunkPluginOp>(this, Rule.getRuleContainer(),
                                       C.getFragment(), "");
     Printer->recordAddChunk(this, Op);
@@ -305,7 +305,7 @@ eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
 eld::Expected<void> LinkerWrapper::resetOffset(OutputSection O) {
   if (getState() < LinkerWrapper::AfterLayout)
     RETURN_INVALID_LINK_STATE_ERR("CreatingSegments, AfterLayout");
-  if (auto *Printer = m_Module.getLayoutPrinter()) {
+  if (auto *Printer = m_Module.getLayoutInfo()) {
     auto OldOffset = O.getOffset();
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(OldOffset);
     auto *Op =
@@ -822,7 +822,7 @@ eld::Expected<void> LinkerWrapper::setTargetDataForUse(Use &U, uint64_t Data) {
     return std::make_unique<DiagnosticEntry>(
         DiagnosticEntry(Diag::error_invalid_use));
   m_Module.setRelocationData(R, Data);
-  if (LayoutPrinter *printer = m_Module.getLayoutPrinter()) {
+  if (LayoutInfo *printer = m_Module.getLayoutInfo()) {
     auto *Op = eld::make<RelocationDataPluginOp>(this, R);
     printer->recordRelocationData(this, Op);
   }

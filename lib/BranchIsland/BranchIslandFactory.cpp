@@ -15,7 +15,7 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Fragment/Fragment.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
@@ -83,7 +83,7 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
                                         eld::IRBuilder &PBuilder,
                                         const Relocator *PRelocator) {
   Module &PModule = PBuilder.getModule();
-  LayoutPrinter *LayoutPrinter = PBuilder.getModule().getLayoutPrinter();
+  LayoutInfo *LayoutInfo = PBuilder.getModule().getLayoutInfo();
 
   bool CloneFrag = false;
 
@@ -331,12 +331,12 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
     MatchedSection->splice(CurNodeIter, ToBeInsertedFrags);
     Symbol->resolveInfo()->setResolvedOrigin(TrampolineInput);
 
-    if (LayoutPrinter && !LayoutPrinter->showOnlyLayout()) {
+    if (LayoutInfo && !LayoutInfo->showOnlyLayout()) {
       std::lock_guard<std::mutex> Guard(Mutex);
-      LayoutPrinter->recordFragment(TrampolineInput, TrampolineInputSection,
+      LayoutInfo->recordFragment(TrampolineInput, TrampolineInputSection,
                                     Clone);
-      LayoutPrinter->recordSymbol(Clone, Symbol);
-      LayoutPrinter->recordTrampolines();
+      LayoutInfo->recordSymbol(Clone, Symbol);
+      LayoutInfo->recordTrampolines();
     }
 
     OutputElfSection->getOutputSection()->addBranchIsland(PReloc.symInfo(),

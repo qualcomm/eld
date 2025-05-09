@@ -209,7 +209,7 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
   GNULDBackend &backend = *m_Module.getBackend();
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   InputFile *inputFile = ELFReader.getInputFile();
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
   LinkerConfig &config = m_Module.getConfig();
 
   Module::GroupSignatureMap &signatures = m_Module.signatureMap();
@@ -312,7 +312,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
   }
 
   bool PartialLinking = m_Module.getConfig().isLinkPartial();
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
 
   eld::Expected<std::vector<uint32_t>> expIndices =
       ELFReader.getGroupMemberIndices(S);

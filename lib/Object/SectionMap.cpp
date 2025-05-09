@@ -39,10 +39,10 @@ using namespace eld;
 using namespace llvm;
 
 SectionMap::SectionMap(LinkerScript &L, const LinkerConfig &Config,
-                       LayoutPrinter *LayoutPrinter)
+                       LayoutInfo *LayoutInfo)
     : MLinkerScript(L), ThisConfig(Config),
       IsSectionTracingRequested(Config.options().isSectionTracingRequested()),
-      MLayoutPrinter(LayoutPrinter) {
+      MLayoutInfo(LayoutInfo) {
   insert("", "");
   MPrinter = Config.getPrinter();
 }

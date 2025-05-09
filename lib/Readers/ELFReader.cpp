@@ -375,12 +375,12 @@ template <class ELFT> std::string ELFReader<ELFT>::getFlagString() const {
 
 template <class ELFT> void ELFReader<ELFT>::recordInputActions() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
   if (printer) {
     std::string flagStr = getFlagString();
     if (!flagStr.empty()) {
       flagStr = "[" + flagStr + "]";
-      printer->recordInputActions(LayoutPrinter::Load, m_InputFile.getInput(),
+      printer->recordInputActions(LayoutInfo::Load, m_InputFile.getInput(),
                                   flagStr);
     }
   }
@@ -537,7 +537,7 @@ eld::Expected<bool> ELFReader<ELFT>::readCompressedSection(ELFSection *S) {
   S->addFragment(frag);
 
   // Record stuff in the map file
-  LayoutPrinter *printer = this->m_Module.getLayoutPrinter();
+  LayoutInfo *printer = this->m_Module.getLayoutInfo();
   if (printer)
     printer->recordFragment(&this->m_InputFile, S, frag);
 
@@ -554,7 +554,7 @@ eld::Expected<bool> ELFReader<ELFT>::readMergeStringSection(ELFSection *S) {
   if (!F->readStrings(config))
     return false;
   S->addFragment(F);
-  LayoutPrinter *printer = this->m_Module.getLayoutPrinter();
+  LayoutInfo *printer = this->m_Module.getLayoutInfo();
   if (printer)
     printer->recordFragment(&this->m_InputFile, S, F);
   return true;

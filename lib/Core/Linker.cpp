@@ -18,7 +18,7 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputBuilder.h"
 #include "eld/Input/InternalInputFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/Expected.h"
@@ -235,7 +235,7 @@ void Linker::printLayout() {
 
   // Stop, record and clear the timer.
   LinkTime->stopTimer();
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   if (Printer) {
     Printer->recordLinkTime(LinkTime->getTotalTime().getWallTime());
     Printer->recordThreadCount();
@@ -734,7 +734,7 @@ bool Linker::emit() {
     ThisConfig->raise(Diag::err_output_size_too_large) << OutputFileSize;
     return false;
   }
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   if (Printer)
     Printer->recordOutputFileSize(OutputFileSize);
 
@@ -909,7 +909,7 @@ void Linker::setUnresolvePolicy(llvm::StringRef Option) {
 }
 
 void Linker::recordCommonSymbol(const ResolveInfo *R) {
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule->getLayoutInfo();
   if (!Printer)
     return;
   LDSymbol *Sym = R->outSymbol();
@@ -922,7 +922,7 @@ void Linker::recordCommonSymbol(const ResolveInfo *R) {
 }
 
 void Linker::recordCommonSymbols() {
-  if (!ThisModule->getLayoutPrinter())
+  if (!ThisModule->getLayoutInfo())
     return;
   // Common symbols are only allocated for partial links if define common
   // option is specified.

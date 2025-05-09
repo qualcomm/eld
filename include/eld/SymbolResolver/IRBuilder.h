@@ -33,7 +33,7 @@ class Module;
 class LinkerConfig;
 class InputTree;
 class InputFile;
-class LayoutPrinter;
+class LayoutInfo;
 
 class IRBuilder {
 public:

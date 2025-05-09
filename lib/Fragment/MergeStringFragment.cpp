@@ -8,7 +8,7 @@
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Readers/ELFSection.h"
 
 using namespace eld;
