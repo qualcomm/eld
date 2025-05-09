@@ -18,7 +18,7 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputBuilder.h"
 #include "eld/Input/InternalInputFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/Expected.h"
@@ -235,10 +235,10 @@ void Linker::printLayout() {
 
   // Stop, record and clear the timer.
   LinkTime->stopTimer();
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
-  if (Printer) {
-    Printer->recordLinkTime(LinkTime->getTotalTime().getWallTime());
-    Printer->recordThreadCount();
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  if (layoutInfo) {
+    layoutInfo->recordLinkTime(LinkTime->getTotalTime().getWallTime());
+    layoutInfo->recordThreadCount();
   }
   LinkTime->clear();
 
@@ -735,9 +735,9 @@ bool Linker::emit() {
     ThisConfig->raise(Diag::err_output_size_too_large) << OutputFileSize;
     return false;
   }
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
-  if (Printer)
-    Printer->recordOutputFileSize(OutputFileSize);
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordOutputFileSize(OutputFileSize);
 
   {
     std::error_code Ec;
@@ -910,20 +910,20 @@ void Linker::setUnresolvePolicy(llvm::StringRef Option) {
 }
 
 void Linker::recordCommonSymbol(const ResolveInfo *R) {
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
-  if (!Printer)
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  if (!layoutInfo)
     return;
   LDSymbol *Sym = R->outSymbol();
   Fragment *F = Sym->fragRef()->frag();
   ASSERT(F, "All non-bitcode common symbols should have a corresponding "
             "fragment!");
   ELFSection *S = F->getOwningSection();
-  Printer->recordFragment(Sym->resolveInfo()->resolvedOrigin(), S, F);
-  Printer->recordSymbol(F, Sym);
+  layoutInfo->recordFragment(Sym->resolveInfo()->resolvedOrigin(), S, F);
+  layoutInfo->recordSymbol(F, Sym);
 }
 
 void Linker::recordCommonSymbols() {
-  if (!ThisModule->getLayoutPrinter())
+  if (!ThisModule->getLayoutInfo())
     return;
   // Common symbols are only allocated for partial links if define common
   // option is specified.

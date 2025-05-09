@@ -11,7 +11,7 @@
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Fragment/OutputSectDataFragment.h"
 #include "eld/Fragment/RegionFragment.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Script/Expression.h"
@@ -105,9 +105,9 @@ ELFSection *OutputSectData::createOSDSection(Module &Module) {
       Module::InternalInputType::OutputSectData, LDFileFormat::OutputSectData,
       Name, DefaultSectionType, DefaultSectionFlags, /*alignment=*/1);
   Fragment *F = make<OutputSectDataFragment>(*this);
-  LayoutPrinter *Printer = Module.getLayoutPrinter();
-  if (Printer)
-    Printer->recordFragment(
+  LayoutInfo *layoutInfo = Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(
         Module.getInternalInput(Module::InternalInputType::OutputSectData), S,
         F);
   S->addFragmentAndUpdateSize(F);

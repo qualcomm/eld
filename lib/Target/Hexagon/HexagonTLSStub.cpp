@@ -7,7 +7,7 @@
 #include "HexagonTLSStub.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/IRBuilder.h"
@@ -60,10 +60,10 @@ HexagonTLSStub *HexagonGDIEStub::Create(Module &pModule, ELFSection *O) {
   symbol->setShouldIgnore(false);
   symbol->resolveInfo()->setResolvedOrigin(O->getInputFile());
   T->setSymInfo(symbol->resolveInfo());
-  LayoutPrinter *printer = pModule.getLayoutPrinter();
-  if (printer) {
-    printer->recordFragment(O->getInputFile(), O, T);
-    printer->recordSymbol(T, symbol);
+  LayoutInfo *layoutInfo = pModule.getLayoutInfo();
+  if (layoutInfo) {
+    layoutInfo->recordFragment(O->getInputFile(), O, T);
+    layoutInfo->recordSymbol(T, symbol);
   }
   return T;
 }
@@ -86,10 +86,10 @@ HexagonTLSStub *HexagonLDLEStub::Create(Module &pModule, ELFSection *O) {
   // GC is already complete, mark this stub as it is needed
   symbol->setShouldIgnore(false);
   T->setSymInfo(symbol->resolveInfo());
-  LayoutPrinter *printer = pModule.getLayoutPrinter();
-  if (printer) {
-    printer->recordFragment(O->getInputFile(), O, T);
-    printer->recordSymbol(T, symbol);
+  LayoutInfo *layoutInfo = pModule.getLayoutInfo();
+  if (layoutInfo) {
+    layoutInfo->recordFragment(O->getInputFile(), O, T);
+    layoutInfo->recordSymbol(T, symbol);
   }
   return T;
 }

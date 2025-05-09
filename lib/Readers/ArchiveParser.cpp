@@ -10,7 +10,7 @@
 #include "eld/Input/ArchiveFile.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/Expected.h"
@@ -102,7 +102,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   // include the needed members in the archive and build up the input tree
   bool willSymResolved = false;
   InputFile *referredSite = nullptr;
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   config.raise(Diag::verbose_performing_archive_symbol_resolution)
       << inputFile.getInput()->decoratedPath();
   do {
@@ -125,8 +125,8 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
           continue;
         archiveFile->setSymbolStatus(idx, status);
         willSymResolved = true;
-        if (printer && referredSite)
-          printer->recordArchiveMember(
+        if (layoutInfo && referredSite)
+          layoutInfo->recordArchiveMember(
               I, referredSite, &symbol,
               llvm::cast<eld::ObjectFile>(I->getInputFile())
                   ->getSymbol(symbol.Name));
@@ -388,13 +388,13 @@ ArchiveParser::createMemberInput(llvm::object::Archive &archiveReader,
 
 eld::Expected<uint32_t>
 ArchiveParser::includeAllMembers(ArchiveFile *archive) const {
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   uint32_t IncludeMemberCount = 0;
   for (Input *member : archive->getAllMembers()) {
     if (includeMember(member)) {
       ++IncludeMemberCount;
-      if (printer)
-        printer->recordWholeArchiveMember(member);
+      if (layoutInfo)
+        layoutInfo->recordWholeArchiveMember(member);
     }
   }
   return IncludeMemberCount;
@@ -420,14 +420,14 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   // TODO: handle symbol version issue and user defined symbols
   const ResolveInfo *info = m_Module.getNamePool().findInfo(sym.Name);
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
 
   if (!info)
     return ArchiveFile::Symbol::Unknown;
 
   if (!info->isUndef()) {
     if (info->isCommon() && definedSameType(info, sym.Type)) {
-      if (printer) {
+      if (layoutInfo) {
         InputFile *oldInput = info->resolvedOrigin();
         if (oldInput) {
           *pSite = oldInput;
@@ -440,7 +440,7 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
 
   if (info->isWeak())
     return ArchiveFile::Symbol::Unknown;
-  if (printer) {
+  if (layoutInfo) {
     InputFile *oldInput = info->resolvedOrigin();
     if (oldInput) {
       *pSite = oldInput;

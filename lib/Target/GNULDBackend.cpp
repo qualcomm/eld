@@ -30,7 +30,7 @@
 #include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputTree.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/LayoutMap/YamlLayoutPrinter.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -225,9 +225,9 @@ void GNULDBackend::insertTimingFragmentStub() {
   llvm::StringRef moduleName = Saver.save(config().options().outputFileName());
   TimingFragment *F = make<TimingFragment>(0, 0, moduleName, m_pTiming);
   m_pTiming->addFragmentAndUpdateSize(F);
-  LayoutPrinter *P = m_Module.getLayoutPrinter();
-  if (P)
-    P->recordFragment(F->getOwningSection()->getInputFile(),
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
                       F->getOwningSection(), F);
   m_pTimingFragment = F;
 }
@@ -314,10 +314,10 @@ eld::Expected<void> GNULDBackend::initStdSections() {
     F = make<StringFragment>(m_pInfo->dyld(), interp);
   interp->addFragmentAndUpdateSize(F);
 
-  LayoutPrinter *P = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
 
-  if (P)
-    P->recordFragment(F->getOwningSection()->getInputFile(),
+  if (layoutInfo)
+    layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
                       F->getOwningSection(), F);
 
   return eld::Expected<void>();
@@ -965,7 +965,7 @@ void GNULDBackend::sizeSymTab() {
 
 bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
   Fragment *F = nullptr;
-  static LayoutPrinter *P = m_Module.getLayoutPrinter();
+  static LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   if (!S->size() || S->isNoBits())
     F = make<FillFragment>(getModule(), 0x0, S->size(), S, S->getAddrAlign());
   else {
@@ -973,8 +973,8 @@ bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
     F = make<RegionFragment>(R, S, Fragment::Type::Region, S->getAddrAlign());
   }
   S->addFragment(F);
-  if (P)
-    P->recordFragment(&pInput, S, F);
+  if (layoutInfo)
+    layoutInfo->recordFragment(&pInput, S, F);
   return F;
 }
 
@@ -2708,7 +2708,7 @@ bool GNULDBackend::placeOutputSections() {
   bool isError = false;
   LinkerScript &script = m_Module.getScript();
   SectionMap &sectionMap = script.sectionMap();
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   {
     eld::RegisterTimer T("Select Sections Needed in Output",
                          "Place Output Sections",
@@ -2946,8 +2946,8 @@ bool GNULDBackend::placeOutputSections() {
     eld::RegisterTimer T("Place Orphan Sections", "Place Output Sections",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &orphan : orphans) {
-      if (printer)
-        printer->recordOrphanSection();
+      if (layoutInfo)
+        layoutInfo->recordOrphanSection();
       // If the section has an @ command, the section remains as an orphan
       // section
       // permanently, When the output sections are created, it assigns the right
@@ -3288,7 +3288,7 @@ bool GNULDBackend::postLayout() {
   eld::RegisterTimer T("Do Post Layout", "Post-Layout",
                        m_Module.getConfig().options().printTimingStats());
   size_t sectionIdx = 0;
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   std::vector<ELFSection *> outputSections;
   for (auto &out : m_Module.getScript().sectionMap()) {
     ELFSection *cur = out->getSection();
@@ -3296,8 +3296,8 @@ bool GNULDBackend::postLayout() {
         cur->getKind() == LDFileFormat::Null) {
       if (cur->isNullType() && !cur->name().empty())
         continue;
-      if (printer)
-        printer->recordOutputSection();
+      if (layoutInfo)
+        layoutInfo->recordOutputSection();
       m_OutputSectionMap[cur] = cur;
       m_Module.addOutputSection(cur);
       cur->setIndex(sectionIdx++);
@@ -4116,7 +4116,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
                                                  ResolveInfo *pSym,
                                                  ResolveInfo *origSym) {
 
-  LayoutPrinter *layoutPrinter = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   ResolveInfo *curSym = pSym;
   ResolveInfo *aliasSym = pSym->alias();
 
@@ -4170,8 +4170,8 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
   Fragment *frag = make<FillFragment>(getModule(), 0x0, pSym->size(),
                                       copyRelocSect, addralign);
   copyRelocSect->addFragmentAndUpdateSize(frag);
-  if (layoutPrinter)
-    layoutPrinter->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
+  if (layoutInfo)
+    layoutInfo->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
                                   frag);
 
   // change symbol binding to Global if it's a weak symbol
@@ -4373,7 +4373,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       return true;
 
     std::vector<ELFSection *> PluginSections;
-    LayoutPrinter *Printer = m_Module.getLayoutPrinter();
+    LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
     ObjectBuilder builder(config(), m_Module);
 
     // Build the memory blocks.
@@ -4386,8 +4386,8 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
 
       ELFSection *S = O->getSection();
 
-      if (Printer)
-        Printer->recordPlugin(S, O->prolog().getPlugin());
+      if (layoutInfo)
+        layoutInfo->recordPlugin(S, O->prolog().getPlugin());
 
       // Reserve memory region.
       std::error_code ec;
@@ -4692,9 +4692,9 @@ void GNULDBackend::makeVersionString() {
     VersionString += " LTO Enabled ";
   Fragment *F = make<StringFragment>(VersionString, m_pComment);
   m_pComment->addFragmentAndUpdateSize(F);
-  LayoutPrinter *P = m_Module.getLayoutPrinter();
-  if (P)
-    P->recordFragment(F->getOwningSection()->getInputFile(),
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
                       F->getOwningSection(), F);
   // Add LLVM revision information as well if available.
   // This check is required because eld do not necessarily have access
@@ -4706,8 +4706,8 @@ void GNULDBackend::makeVersionString() {
     Fragment *LLVMRevisionF =
         make<StringFragment>(LLVMRevisionInfo, m_pComment);
     m_pComment->addFragmentAndUpdateSize(LLVMRevisionF);
-    if (P)
-      P->recordFragment(LLVMRevisionF->getOwningSection()->getInputFile(),
+    if (layoutInfo)
+      layoutInfo->recordFragment(LLVMRevisionF->getOwningSection()->getInputFile(),
                         LLVMRevisionF->getOwningSection(), LLVMRevisionF);
   }
   if ((LinkerConfig::Object != config().codeGenType()) &&
@@ -4726,8 +4726,8 @@ void GNULDBackend::makeVersionString() {
   }
   Fragment *CmdLineFragment = make<StringFragment>(CommandLine, m_pComment);
   m_pComment->addFragmentAndUpdateSize(CmdLineFragment);
-  if (P)
-    P->recordFragment(CmdLineFragment->getOwningSection()->getInputFile(),
+  if (layoutInfo)
+    layoutInfo->recordFragment(CmdLineFragment->getOwningSection()->getInputFile(),
                       CmdLineFragment->getOwningSection(), CmdLineFragment);
 }
 

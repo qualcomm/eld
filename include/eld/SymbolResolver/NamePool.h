@@ -29,7 +29,7 @@
 
 namespace eld {
 
-class LayoutPrinter;
+class LayoutInfo;
 class LDSymbol;
 class Module;
 class PluginManager;
@@ -84,7 +84,7 @@ public:
 
   LDSymbol *createPluginSymbol(InputFile *Input, std::string SymbolName,
                                Fragment *CurFragment, uint64_t Val,
-                               LayoutPrinter *LP);
+                               LayoutInfo *layoutInfo);
 
   size_t getNumGlobalSize() const { return GlobalSymbols.size(); }
 

@@ -94,11 +94,11 @@ BitcodeReader::~BitcodeReader() {}
 
 bool BitcodeReader::readInput(InputFile &InputFile,
                               plugin::LinkerPlugin *LTOPlugin) {
-  LayoutPrinter *printer = m_Builder.getModule().getLayoutPrinter();
-  if (printer) {
+  LayoutInfo *layoutInfo = m_Builder.getModule().getLayoutInfo();
+  if (layoutInfo) {
     std::string action =
         "LOAD " + InputFile.getInput()->decoratedPath() + " [Bitcode]";
-    printer->recordInputActions(LayoutPrinter::Load, InputFile.getInput());
+    layoutInfo->recordInputActions(LayoutInfo::Load, InputFile.getInput());
   }
 
   if (m_Builder.getModule().getPrinter()->traceFiles())

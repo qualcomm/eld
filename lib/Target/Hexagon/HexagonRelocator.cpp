@@ -626,7 +626,7 @@ void HexagonRelocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
   std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
   // Create a fragment containing jumpr r31.
   if (!m_Guard) {
-    LayoutPrinter *layoutPrinter = pBuilder.getModule().getLayoutPrinter();
+    LayoutInfo *layoutInfo = pBuilder.getModule().getLayoutInfo();
     ELFSection *guardSection = pTarget.getGuard();
     Fragment *frag = make<RegionFragment>(
         llvm::StringRef((const char *)jmprr31, sizeof(jmprr31)), guardSection,
@@ -641,8 +641,8 @@ void HexagonRelocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(SymbolName))
       config().raise(Diag::target_specific_symbol) << SymbolName;
-    if (layoutPrinter)
-      layoutPrinter->recordFragment(guardSection->getInputFile(), guardSection,
+    if (layoutInfo)
+      layoutInfo->recordFragment(guardSection->getInputFile(), guardSection,
                                     frag);
   }
   config().raise(Diag::resolve_undef_weak_guard)

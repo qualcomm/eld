@@ -25,7 +25,7 @@
 namespace eld {
 
 class ELFSection;
-class LayoutPrinter;
+class LayoutInfo;
 class LinkerScript;
 class LinkerConfig;
 class EhFrameHdrSection;
@@ -48,7 +48,7 @@ public:
 
 public:
   SectionMap(LinkerScript &L, const LinkerConfig &Config,
-             LayoutPrinter *LayoutPrinter);
+             LayoutInfo *LayoutInfo);
 
   ~SectionMap();
 
@@ -182,7 +182,7 @@ private:
       SpecialSections;
   std::vector<ELFSection *> MEntrySections;
   const DiagnosticPrinter *MPrinter;
-  LayoutPrinter *MLayoutPrinter = nullptr;
+  LayoutInfo *MLayoutInfo = nullptr;
 };
 
 } // namespace eld

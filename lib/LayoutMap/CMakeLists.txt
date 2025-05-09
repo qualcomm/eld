@@ -1,4 +1,4 @@
-llvm_add_library(ELDLayout STATIC LayoutPrinter.cpp LDYAML.cpp
+llvm_add_library(ELDLayout STATIC LayoutInfo.cpp LDYAML.cpp
                  TextLayoutPrinter.cpp YamlLayoutPrinter.cpp)
 
 target_link_libraries(

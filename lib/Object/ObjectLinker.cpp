@@ -24,7 +24,7 @@
 #include "eld/Input/InternalInputFile.h"
 #include "eld/Input/LinkerScriptFile.h"
 #include "eld/Input/ObjectFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -187,9 +187,9 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
   }
 
   // Record the linker script in the Map file.
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
-  if (Printer)
-    Printer->recordLinkerScript(Input->getInput()->getFileName());
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordLinkerScript(Input->getInput()->getFileName());
 
   ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
@@ -201,8 +201,8 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
   LSFile->setScriptFile(S);
 
   bool SuccessFullInParse = getScriptReader()->readScript(ThisConfig, *S);
-  if (Printer)
-    Printer->closeLinkerScript();
+  if (layoutInfo)
+    layoutInfo->closeLinkerScript();
 
   // Error if the linker script has an issue parsing.
   if (!SuccessFullInParse) {
@@ -318,7 +318,7 @@ bool ObjectLinker::normalize() {
 bool ObjectLinker::parseVersionScript() {
   if (!ThisConfig.options().hasVersionScript())
     return true;
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   for (const auto &List : ThisConfig.options().getVersionScripts()) {
     Input *VersionScriptInput =
         eld::make<Input>(List, ThisConfig.getDiagEngine(), Input::Script);
@@ -331,8 +331,8 @@ bool ObjectLinker::parseVersionScript() {
     addInputFileToTar(VersionScriptInputFile, eld::MappingFile::VersionScript);
     VersionScriptInput->setInputFile(VersionScriptInputFile);
     // Record the dynamic list script in the Map file.
-    if (Printer)
-      Printer->recordVersionScript(List);
+    if (layoutInfo)
+      layoutInfo->recordVersionScript(List);
     // Read the dynamic List file
     ScriptFile VersionScriptReader(
         ScriptFile::VersionScript, *ThisModule,
@@ -622,8 +622,8 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   // Currently, entry section are computed even if garbage-collection is not
   // enabled.
   collectEntrySections();
-  LayoutPrinter *LayoutPrinter = ThisModule->getLayoutPrinter();
-  if (LayoutPrinter && LayoutPrinter->LayoutPrinter::showInitialLayout()) {
+  LayoutInfo *LayoutInfo = ThisModule->getLayoutInfo();
+  if (LayoutInfo && LayoutInfo->LayoutInfo::showInitialLayout()) {
     TextLayoutPrinter *TextMapPrinter = ThisModule->getTextMapPrinter();
     if (TextMapPrinter) {
       // FIXME: ideally, we should not need 'updateMatchedSections' call here.
@@ -989,9 +989,9 @@ bool ObjectLinker::initializeMerge() {
                       (*Obj)->getInput()->decoratedPath());
       for (auto &Sect : ObjFile->getSections()) {
         addInputSection(Sect);
-        if (!ThisModule->getLayoutPrinter())
+        if (!ThisModule->getLayoutInfo())
           continue;
-        ThisModule->getLayoutPrinter()->recordSectionStat(Sect);
+        ThisModule->getLayoutInfo()->recordSectionStat(Sect);
       }
     }
   }
@@ -1286,7 +1286,7 @@ void ObjectLinker::assignOffsetToGroupSections() {
 }
 
 bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   Input *SymbolListInput =
       eld::make<Input>(Filename, ThisConfig.getDiagEngine(), Input::Script);
   if (!SymbolListInput->resolvePath(ThisConfig))
@@ -1304,8 +1304,8 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   addInputFileToTar(SymbolListInputFile, K);
   SymbolListInput->setInputFile(SymbolListInputFile);
   // Record the dynamic list script in the Map file.
-  if (Printer)
-    Printer->recordLinkerScript(SymbolListInput->decoratedPath());
+  if (layoutInfo)
+    layoutInfo->recordLinkerScript(SymbolListInput->decoratedPath());
   // Read the dynamic List file
   ScriptFile SymbolListReader(
       (ScriptFile::Kind)Type, *ThisModule,
@@ -3391,7 +3391,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     return true;
   if (!Input->getSize())
     ThisConfig.raise(Diag::input_file_has_zero_size) << Input->decoratedPath();
-  LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   std::string Path = Input->getResolvedPath().native();
   InputFile *CurInput = Input->getInputFile();
   if (!CurInput) {
@@ -3406,8 +3406,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     Input->setInputFile(I);
   }
   if (CurInput->shouldSkipFile()) {
-    if (Printer) {
-      Printer->recordInputActions(LayoutPrinter::Skipped, Input);
+    if (layoutInfo) {
+      layoutInfo->recordInputActions(LayoutInfo::Skipped, Input);
     }
     return true;
   }
@@ -3423,8 +3423,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   if (CurInput->isBinaryFile()) {
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
+    if (layoutInfo)
+      layoutInfo->recordInputKind(InputFile::InputFileKind::BinaryFileKind);
     eld::Expected<void> ExpParseFile =
         getBinaryFileParser()->parseFile(*CurInput);
     if (!ExpParseFile) {
@@ -3436,8 +3436,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   } else if (CurInput->getKind() == InputFile::ELFExecutableFileKind) {
     eld::RegisterTimer T("Read ELF Executable Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     bool ELFOverriddenWithBC = false;
     eld::Expected<bool> ExpParseFile =
         getELFExecObjParser()->parseFile(*CurInput, ELFOverriddenWithBC);
@@ -3455,8 +3455,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   } else if (CurInput->getKind() == InputFile::ELFObjFileKind) {
     eld::RegisterTimer T("Read ELF Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     bool ELFOverridenWithBC = false;
     eld::Expected<bool> ExpParseFile =
         getRelocObjParser()->parseFile(*CurInput, ELFOverridenWithBC);
@@ -3482,8 +3482,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   } else if (CurInput->getKind() == InputFile::BitcodeFileKind) {
     eld::RegisterTimer T("Read Bitcode Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     if (IsPostLto)
       return true;
     CurInput->setToSkip();
@@ -3496,8 +3496,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
     eld::RegisterTimer T("Read SymDef Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     if (ThisConfig.codeGenType() != LinkerConfig::Exec) {
       ThisConfig.raise(Diag::symdef_incompatible_option);
       return false;
@@ -3513,13 +3513,13 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisConfig.raise(Diag::file_has_error) << Input->decoratedPath();
       return false;
     }
-    if (Printer)
-      Printer->recordInputActions(LayoutPrinter::Load, Input);
+    if (layoutInfo)
+      layoutInfo->recordInputActions(LayoutInfo::Load, Input);
   } else if (CurInput->getKind() == InputFile::ELFDynObjFileKind) {
     eld::RegisterTimer T("Read ELF Shared Object Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     addInputFileToTar(CurInput, eld::MappingFile::SharedLibrary);
     CurInput->setToSkip();
     if (ThisConfig.isLinkPartial()) {
@@ -3546,8 +3546,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
     eld::RegisterTimer T("Read Archive Files", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     std::string NameSpecPath;
     if (Input->getInputType() == Input::Namespec)
       NameSpecPath = "-l" + Input->getFileName();
@@ -3577,9 +3577,9 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
         FileType = " (Bitcode)";
       else if (CurArchive->isELFArchive())
         FileType = " (ELF)";
-      if (Printer) {
-        Printer->recordInputActions(LayoutPrinter::SkippedRescan, Input,
-                                    FileType.str());
+      if (layoutInfo) {
+        layoutInfo->recordInputActions(LayoutInfo::SkippedRescan, Input,
+                                       FileType.str());
       }
     }
     ThisModule->getArchiveLibraryList().push_back(CurInput);
@@ -3590,8 +3590,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   else if (CurInput->getKind() == InputFile::GNULinkerScriptKind) {
     eld::RegisterTimer T("Read Linker Script", "Read all Input files",
                          ThisConfig.options().printTimingStats());
-    if (Printer)
-      Printer->recordInputKind(CurInput->getKind());
+    if (layoutInfo)
+      layoutInfo->recordInputKind(CurInput->getKind());
     addInputFileToTar(CurInput, eld::MappingFile::LinkerScript);
     CurInput->setToSkip();
     if (!readLinkerScript(CurInput)) {
@@ -3727,9 +3727,9 @@ bool ObjectLinker::provideGlobalSymbolAndContents(std::string Name, size_t Sz,
       llvm::dyn_cast<eld::ELFObjectFile>(InputSect->getInputFile());
   if (!EObj)
     return false;
-  LayoutPrinter *P = ThisModule->getLayoutPrinter();
-  if (P)
-    P->recordFragment(EObj, InputSect, F);
+  LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(EObj, InputSect, F);
   LDSymbol *ProvideSym = CurBuilder->addSymbol(
       *EObj, Name, (ResolveInfo::Type)Sym->resolveInfo()->type(),
       ResolveInfo::Define, ResolveInfo::Global, Sz, 0, InputSect,

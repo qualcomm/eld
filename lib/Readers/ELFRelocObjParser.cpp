@@ -209,7 +209,7 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
   GNULDBackend &backend = *m_Module.getBackend();
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   InputFile *inputFile = ELFReader.getInputFile();
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   LinkerConfig &config = m_Module.getConfig();
 
   Module::GroupSignatureMap &signatures = m_Module.signatureMap();
@@ -232,8 +232,8 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
     oldSect->setKind(LDFileFormat::Ignore);
     signatureInfo->getInfo()->setResolvedOrigin(ELFReader.getInputFile());
     signatureInfo->setSection(S);
-    if (printer)
-      printer->recordSection(oldSect, inputFile);
+    if (layoutInfo)
+      layoutInfo->recordSection(oldSect, inputFile);
     exist = false;
   }
 
@@ -257,8 +257,8 @@ ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
       }
     }
   } else {
-    if (printer)
-      printer->recordSection(S, inputFile);
+    if (layoutInfo)
+      layoutInfo->recordSection(S, inputFile);
     S->setKind(LDFileFormat::Ignore);
   }
   return true;
@@ -312,7 +312,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
   }
 
   bool PartialLinking = m_Module.getConfig().isLinkPartial();
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
 
   eld::Expected<std::vector<uint32_t>> expIndices =
       ELFReader.getGroupMemberIndices(S);
@@ -327,8 +327,8 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
     // Discard member sections, if the group is preempted.
     if (alreadyExist) {
       groupMemberSect->setKind(LDFileFormat::Ignore);
-      if (printer)
-        printer->recordSection(groupMemberSect, EObj);
+      if (layoutInfo)
+        layoutInfo->recordSection(groupMemberSect, EObj);
     } else {
       // Otherwise, record group members, only if linking a relocatable.
       if (PartialLinking)

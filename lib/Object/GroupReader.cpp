@@ -27,14 +27,14 @@ GroupReader::~GroupReader() {}
 bool GroupReader::readGroup(InputBuilder::InputIteratorT &CurNode,
                             InputBuilder &PBuilder, LinkerConfig &PConfig,
                             bool IsPostLtoPhase) {
-  LayoutPrinter *Printer = MModule.getLayoutPrinter();
+  LayoutInfo *layoutInfo = MModule.getLayoutInfo();
 
   Module::LibraryList &ArchiveLibraryList = MModule.getArchiveLibraryList();
   size_t ArchiveLibraryListSize = ArchiveLibraryList.size();
 
-  if (Printer) {
-    Printer->recordInputActions(LayoutPrinter::StartGroup, nullptr);
-    Printer->recordGroup();
+  if (layoutInfo) {
+    layoutInfo->recordInputActions(LayoutInfo::StartGroup, nullptr);
+    layoutInfo->recordGroup();
   }
 
   std::vector<ArchiveFile *> Archives;
@@ -86,12 +86,12 @@ bool GroupReader::readGroup(InputBuilder::InputIteratorT &CurNode,
       }
     }
     NewSize = MModule.getNamePool().getNumGlobalSize();
-    if (Printer)
-      Printer->recordGroup();
+    if (layoutInfo)
+      layoutInfo->recordGroup();
   } while (CurNamePoolSize != NewSize);
 
-  if (Printer)
-    Printer->recordInputActions(LayoutPrinter::EndGroup, nullptr);
+  if (layoutInfo)
+    layoutInfo->recordInputActions(LayoutInfo::EndGroup, nullptr);
 
   return true;
 }

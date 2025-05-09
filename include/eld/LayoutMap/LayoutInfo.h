@@ -1,4 +1,4 @@
-//===- LayoutPrinter.h-----------------------------------------------------===//
+//===- LayoutInfo.h-----------------------------------------------------===//
 // Part of the eld Project, under the BSD License
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
@@ -69,7 +69,7 @@ struct LayoutFragmentInfo {
   std::vector<LDSymbol *> Symbols;
 };
 
-class LayoutPrinter {
+class LayoutInfo {
   static uint32_t LayoutDetail;
 
 public:
@@ -182,7 +182,7 @@ public:
 
   // -------------------End Typedefs ---------------------------------
 
-  LayoutPrinter(LinkerConfig &PConfig);
+  LayoutInfo(LinkerConfig &PConfig);
 
   bool showStrings() const { return LayoutDetail & ShowStrings; }
 
@@ -230,7 +230,7 @@ public:
   void recordOutputFileSize(uint32_t Sz) { LinkStats.OutputFileSize = Sz; }
 
   // FIXME: Destructor is redundant here.
-  ~LayoutPrinter() { destroy(); }
+  ~LayoutInfo() { destroy(); }
 
   // FIXME: This function is not required.
   void destroy() {
@@ -450,7 +450,7 @@ private:
   LinkerConfig &ThisConfig;
   /// It is required to compute relative path when -MapDetail
   /// 'show-relative-path=...' is used.
-  // It needs to be 'static' because LayoutPrinter::setLayoutDetail member
+  // It needs to be 'static' because LayoutInfo::setLayoutDetail member
   // function is static.
   static std::optional<std::string> ThisBasepath;
   std::optional<uint32_t> OutputFileSize;

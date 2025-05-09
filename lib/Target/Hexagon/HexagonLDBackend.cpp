@@ -22,7 +22,7 @@
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Fragment/Stub.h"
 #include "eld/Input/ELFObjectFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Readers/CommonELFSection.h"
@@ -245,8 +245,8 @@ void HexagonLDBackend::createAttributeSection() {
       ".hexagon.attributes", llvm::ELF::SHT_HEXAGON_ATTRIBUTES, 0, 1);
   AttributeFragment = make<HexagonAttributeFragment>(AttributeSection);
   AttributeSection->addFragment(AttributeFragment);
-  if (auto *Printer = getModule().getLayoutPrinter())
-    Printer->recordFragment(AttributeSection->getInputFile(), AttributeSection,
+  if (auto *layoutInfo = getModule().getLayoutInfo())
+    layoutInfo->recordFragment(AttributeSection->getInputFile(), AttributeSection,
                             AttributeFragment);
 }
 
@@ -1096,7 +1096,7 @@ bool HexagonLDBackend::readSection(InputFile &pInput, ELFSection *S) {
         createAttributeSection();
       AttributeFragment->update(*S, *getModule().getConfig().getDiagEngine(),
                                 *llvm::dyn_cast<ObjectFile>(&pInput),
-                                getModule().getLayoutPrinter());
+                                getModule().getLayoutInfo());
       return true;
     }
     break;
@@ -1109,13 +1109,13 @@ bool HexagonLDBackend::readSection(InputFile &pInput, ELFSection *S) {
     return GNULDBackend::readSection(pInput, S);
 
   // Create a optimal fragment.
-  eld::LayoutPrinter *P = m_Module.getLayoutPrinter();
+  eld::LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   const char *Buf = pInput.getCopyForWrite(S->offset(), S->size());
   eld::RegionFragmentEx *F =
       make<RegionFragmentEx>(Buf, S->size(), S, S->getAddrAlign());
   S->addFragment(F);
-  if (P)
-    P->recordFragment(&pInput, S, F);
+  if (layoutInfo)
+    layoutInfo->recordFragment(&pInput, S, F);
   return true;
 }
 

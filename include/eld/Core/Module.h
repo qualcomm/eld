@@ -20,7 +20,7 @@
 #include "eld/Config/GeneralOptions.h"
 #include "eld/Core/Linker.h"
 #include "eld/Input/InputFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
 #include "eld/Script/StrToken.h"
@@ -140,10 +140,10 @@ public:
 
 public:
   explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
-                  LayoutPrinter *LayoutPrinter);
+                  LayoutInfo *LayoutInfo);
 
   Module(const std::string &Name, LinkerScript &CurScript, LinkerConfig &Config,
-         LayoutPrinter *LayoutPrinter);
+         LayoutInfo *LayoutInfo);
 
   ~Module();
 
@@ -319,7 +319,7 @@ public:
                                              std::string Name, uint32_t Type,
                                              uint32_t PFlag, uint32_t PAlign);
 
-  LayoutPrinter *getLayoutPrinter() { return ThisLayoutPrinter; }
+  LayoutInfo *getLayoutInfo() { return ThisLayoutInfo; }
 
   // Section symbols and all other symbols that live in the output.
   void recordSectionSymbol(ELFSection *S, ResolveInfo *R) {
@@ -660,7 +660,7 @@ private:
   LDSymbol *DotSymbol = nullptr;
   Linker *Linker = nullptr;
   GNULDBackend *Backend = nullptr;
-  LayoutPrinter *ThisLayoutPrinter = nullptr;
+  LayoutInfo *ThisLayoutInfo = nullptr;
   bool Failure = false;
   bool UsesLto = false;
   plugin::LinkerWrapper::State State = plugin::LinkerWrapper::Unknown;

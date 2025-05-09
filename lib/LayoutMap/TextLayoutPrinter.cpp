@@ -51,27 +51,27 @@ using namespace eld;
 
 //===----------------------------------------------------------------------===//
 // TextLayoutPrinter
-// FIXME: It might be better to make m_LayoutPrinter
+// FIXME: It might be better to make m_LayoutInfo
 // as a const reference, as then there would be no
 // risk of nullptr dereference when accessing
-// m_LayoutPrinter.
-TextLayoutPrinter::TextLayoutPrinter(LayoutPrinter *P)
-    : LayoutFile(nullptr), ThisLayoutPrinter(P) {}
+// m_LayoutInfo.
+TextLayoutPrinter::TextLayoutPrinter(LayoutInfo *layoutInfo)
+    : LayoutFile(nullptr), ThisLayoutInfo(layoutInfo) {}
 
 eld::Expected<void> TextLayoutPrinter::init() {
-  if (ThisLayoutPrinter->getConfig().options().printMap())
+  if (ThisLayoutInfo->getConfig().options().printMap())
     return {};
   std::string SuffixExtension = "";
-  if (!ThisLayoutPrinter->getConfig().options().isDefaultMapStyleText())
+  if (!ThisLayoutInfo->getConfig().options().isDefaultMapStyleText())
     SuffixExtension = ".txt";
   std::error_code Error;
   // Check if a map file was provided in Linker arguments and open it for
   // writing.
-  if (!ThisLayoutPrinter->getConfig().options().layoutFile().empty()) {
+  if (!ThisLayoutInfo->getConfig().options().layoutFile().empty()) {
     std::string LayoutFileName =
-        ThisLayoutPrinter->getConfig().options().layoutFile();
+        ThisLayoutInfo->getConfig().options().layoutFile();
     if (!SuffixExtension.empty())
-      LayoutFileName = ThisLayoutPrinter->getConfig().options().layoutFile() +
+      LayoutFileName = ThisLayoutInfo->getConfig().options().layoutFile() +
                        SuffixExtension;
     LayoutFile = std::make_unique<llvm::raw_fd_ostream>(LayoutFileName, Error,
                                                         llvm::sys::fs::OF_None);
@@ -82,7 +82,7 @@ eld::Expected<void> TextLayoutPrinter::init() {
       return std::make_unique<plugin::DiagnosticEntry>(
           plugin::FatalDiagnosticEntry(
               Diag::fatal_unwritable_output,
-              {ThisLayoutPrinter->getConfig().options().layoutFile(),
+              {ThisLayoutInfo->getConfig().options().layoutFile(),
                Error.message()}));
     }
   }
@@ -114,8 +114,8 @@ void TextLayoutPrinter::printOnlyLayoutSection(GNULDBackend const &Backend,
   if (UseColor)
     outputStream().resetColor();
 
-  auto Info = ThisLayoutPrinter->getPluginInfo().find(Section);
-  if (Info == ThisLayoutPrinter->getPluginInfo().end())
+  auto Info = ThisLayoutInfo->getPluginInfo().find(Section);
+  if (Info == ThisLayoutInfo->getPluginInfo().end())
     return;
   for (auto &P : Info->second) {
     outputStream() << "# " << P->getName() << "\t" << P->getLibraryName()
@@ -137,7 +137,7 @@ void TextLayoutPrinter::printStat(llvm::StringRef S,
   outputStream() << "# " << S << " : " << Stat << "\n";
 }
 
-void TextLayoutPrinter::printStats(LayoutPrinter::Stats &L,
+void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
                                    const Module &Module) {
   const ObjectLinker &ObjLinker = *(Module.getLinker()->getObjectLinker());
   const GNULDBackend &Backend = *Module.getBackend();
@@ -179,7 +179,7 @@ void TextLayoutPrinter::printStats(LayoutPrinter::Stats &L,
               std::to_string(L.OutputFileSize.value()) + " bytes");
 
   printStat("LinkTime", L.LinkTime);
-  ThisLayoutPrinter->printStats((void *)(&Module), outputStream());
+  ThisLayoutInfo->printStats((void *)(&Module), outputStream());
   outputStream() << "# "
                  << "LinkStats End"
                  << "\n";
@@ -222,7 +222,7 @@ void TextLayoutPrinter::printMemoryRegions(GNULDBackend const &Backend,
 void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
                                      const OutputSectionEntry *OS,
                                      bool UseColor) {
-  if (ThisLayoutPrinter->showOnlyLayout()) {
+  if (ThisLayoutInfo->showOnlyLayout()) {
     printOnlyLayoutSection(Backend, OS, UseColor);
     return;
   }
@@ -278,10 +278,10 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
     outputStream() << "\n";
   }
 
-  ThisLayoutPrinter->printStats((void *)(OS), outputStream());
+  ThisLayoutInfo->printStats((void *)(OS), outputStream());
 
-  auto Info = ThisLayoutPrinter->getPluginInfo().find(Section);
-  if (Info == ThisLayoutPrinter->getPluginInfo().end())
+  auto Info = ThisLayoutInfo->getPluginInfo().find(Section);
+  if (Info == ThisLayoutInfo->getPluginInfo().end())
     return;
   for (auto &P : Info->second) {
     outputStream() << "# " << P->getName() << "\t" << P->getLibraryName()
@@ -503,17 +503,17 @@ bool TextLayoutPrinter::printChunkOps(PluginOp *Pop) const {
 }
 
 void TextLayoutPrinter::printPluginInfo(eld::Module &M) {
-  if (!ThisLayoutPrinter->getPlugins().size())
+  if (!ThisLayoutInfo->getPlugins().size())
     return;
   outputStream() << "# Detailed Plugin information "
                  << "\n";
   int PluginCount = 0;
-  for (auto &W : ThisLayoutPrinter->getPlugins()) {
+  for (auto &W : ThisLayoutInfo->getPlugins()) {
     eld::Plugin *Plugin = W->getPlugin();
     outputStream() << "# Plugin #" << PluginCount << "\t" << Plugin->getName()
                    << "\t" << Plugin->getLibraryName() << "\n";
     int Count = 0;
-    for (auto &Op : ThisLayoutPrinter->getPluginOps()[W]) {
+    for (auto &Op : ThisLayoutInfo->getPluginOps()[W]) {
       outputStream() << "#\tModification #" << ++Count;
       std::string Annotation = Op->getAnnotation();
       if (!Annotation.empty())
@@ -558,7 +558,7 @@ void TextLayoutPrinter::printPadding(ELFSection *Section, int64_t StartOffset,
                                      bool IsAlignment, bool UseColor) const {
   if (!Sz)
     return;
-  if (ThisLayoutPrinter->showOnlyLayout()) {
+  if (ThisLayoutInfo->showOnlyLayout()) {
     printOnlyLayoutPadding(Section, StartOffset, Sz, FillValue, IsAlignment,
                            UseColor);
     return;
@@ -589,11 +589,11 @@ void TextLayoutPrinter::printMergeString(MergeableString *S, Module &M) const {
     outputStream() << "\n";
     return;
   }
-  if (ThisLayoutPrinter->showStrings()) {
+  if (ThisLayoutInfo->showStrings()) {
     outputStream() << "[ Contents: " << S->String.data() << "]";
     outputStream() << "\n";
   }
-  for (MergeableString *Merged : ThisLayoutPrinter->getMergedStrings(S)) {
+  for (MergeableString *Merged : ThisLayoutInfo->getMergedStrings(S)) {
     assert(Merged->Exclude);
     outputStream() << "\t# ";
     ELFSection *S = Merged->Fragment->getOwningSection();
@@ -608,7 +608,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
                                       ELFSection *Section, Module &M) const {
 
   bool Onlylayout =
-      ThisLayoutPrinter->showOnlyLayout() || M.isBeforeLayoutState();
+      ThisLayoutInfo->showOnlyLayout() || M.isBeforeLayoutState();
   std::string Type =
       ELFSection::getELFTypeStr(Info->section()->name(), Info->type()).str();
   std::string Permissions = ELFSection::getELFPermissionsStr(Info->flag());
@@ -620,7 +620,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
 
   bool GC = Frag->getOwningSection()->isIgnore();
   uint32_t Alignment = Frag->alignment();
-  const GeneralOptions &Options = ThisLayoutPrinter->getConfig().options();
+  const GeneralOptions &Options = ThisLayoutInfo->getConfig().options();
   auto PrintOneFragOrString = [&](uint32_t Size, uint64_t AddressOrOffset) {
     if (GC && !Onlylayout)
       outputStream() << "# ";
@@ -657,7 +657,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
             (Section->isAlloc() ? Section->addr() : Section->offset());
       PrintOneFragOrString(S->size(), AddressOrOffset);
       /// if showStrings there is still extra content to be printed on this line
-      if (!ThisLayoutPrinter->showStrings())
+      if (!ThisLayoutInfo->showStrings())
         outputStream() << "\n";
       printMergeString(S, M);
     }
@@ -673,8 +673,8 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
 
 void TextLayoutPrinter::printChangeOutputSectionInfo(
     const ELFSection *S) const {
-  auto Ops = ThisLayoutPrinter->getSectionOps().find(S);
-  if (Ops == ThisLayoutPrinter->getSectionOps().end())
+  auto Ops = ThisLayoutInfo->getSectionOps().find(S);
+  if (Ops == ThisLayoutInfo->getSectionOps().end())
     return;
   outputStream() << " [Plugin : ";
   for (auto &Op : Ops->second) {
@@ -688,8 +688,8 @@ void TextLayoutPrinter::printChangeOutputSectionInfo(
 }
 
 void TextLayoutPrinter::printChunkOps(eld::Module &M, Fragment *F) const {
-  auto Ops = ThisLayoutPrinter->getChunkOps().find(F);
-  if (Ops == ThisLayoutPrinter->getChunkOps().end())
+  auto Ops = ThisLayoutInfo->getChunkOps().find(F);
+  if (Ops == ThisLayoutInfo->getChunkOps().end())
     return;
   outputStream() << " [Plugin : ";
   for (auto &Op : Ops->second) {
@@ -719,15 +719,15 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::YELLOW);
 
-  LayoutPrinter::FragmentInfoMapIterT FragmentInfoIter =
-      ThisLayoutPrinter->getFragmentInfoMap().find(Frag);
-  if (FragmentInfoIter == ThisLayoutPrinter->getFragmentInfoMap().end())
+  LayoutInfo::FragmentInfoMapIterT FragmentInfoIter =
+      ThisLayoutInfo->getFragmentInfoMap().find(Frag);
+  if (FragmentInfoIter == ThisLayoutInfo->getFragmentInfoMap().end())
     return;
   LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
   printFragInfo(Frag, FragmentInfo, Section, CurModule);
-  LayoutPrinter::SymVectorTIterT Syms, EndSymbols = FragmentInfo->Symbols.end();
+  LayoutInfo::SymVectorTIterT Syms, EndSymbols = FragmentInfo->Symbols.end();
 
-  ThisLayoutPrinter->sortFragmentSymbols(FragmentInfo);
+  ThisLayoutInfo->sortFragmentSymbols(FragmentInfo);
 
   for (Syms = FragmentInfo->Symbols.begin(); Syms != EndSymbols; ++Syms) {
     // Handle weak symbols.
@@ -768,7 +768,7 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
 /// printOnlyLayoutFrag()
 void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
                                   Fragment *Frag, bool UseColor) {
-  if (ThisLayoutPrinter->showOnlyLayout() ||
+  if (ThisLayoutInfo->showOnlyLayout() ||
       CurModule.getState() == plugin::LinkerWrapper::State::BeforeLayout) {
     printOnlyLayoutFrag(CurModule, Section, Frag, UseColor);
     return;
@@ -787,20 +787,20 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::YELLOW);
 
-  LayoutPrinter::FragmentInfoMapIterT FragmentInfoIter =
-      ThisLayoutPrinter->getFragmentInfoMap().find(Frag);
-  if (FragmentInfoIter == ThisLayoutPrinter->getFragmentInfoMap().end())
+  LayoutInfo::FragmentInfoMapIterT FragmentInfoIter =
+      ThisLayoutInfo->getFragmentInfoMap().find(Frag);
+  if (FragmentInfoIter == ThisLayoutInfo->getFragmentInfoMap().end())
     return;
 
   LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
   bool IsGc = Frag->getOwningSection()->isIgnore();
   printFragInfo(Frag, FragmentInfo, Section, CurModule);
-  LayoutPrinter::SymVectorTIterT Syms, EndSymbols = FragmentInfo->Symbols.end();
+  LayoutInfo::SymVectorTIterT Syms, EndSymbols = FragmentInfo->Symbols.end();
 
-  ThisLayoutPrinter->sortFragmentSymbols(FragmentInfo);
+  ThisLayoutInfo->sortFragmentSymbols(FragmentInfo);
 
-  const LayoutPrinter::RemoveSymbolOpsMapT RemovedSymbols =
-      ThisLayoutPrinter->getRemovedSymbols();
+  const LayoutInfo::RemoveSymbolOpsMapT RemovedSymbols =
+      ThisLayoutInfo->getRemovedSymbols();
 
   for (Syms = FragmentInfo->Symbols.begin(); Syms != EndSymbols; ++Syms) {
     // Handle weak symbols.
@@ -813,7 +813,7 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
     if (ResolvedOrigin->isBitcode())
       IsBitcode = true;
     else if (ResolvedOrigin->getInput()->decoratedPath(
-                 ThisLayoutPrinter->showAbsolutePath()) !=
+                 ThisLayoutInfo->showAbsolutePath()) !=
              FragmentInfo->getResolvedPath())
       continue;
 
@@ -828,7 +828,7 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
     if (!IsGc) {
       outputStream() << "\t0x";
       outputStream().write_hex(
-          ThisLayoutPrinter->calculateSymbolValue(*Syms, CurModule));
+          ThisLayoutInfo->calculateSymbolValue(*Syms, CurModule));
       outputStream() << "\t";
     } else {
       outputStream() << "#";
@@ -859,12 +859,12 @@ void TextLayoutPrinter::printArchiveRecords(Module &Module, bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::CYAN);
 
-  if (ThisLayoutPrinter->getArchiveRecords().size()) {
-    auto It = ThisLayoutPrinter->getArchiveRecords().begin(),
-         Ie = ThisLayoutPrinter->getArchiveRecords().end();
+  if (ThisLayoutInfo->getArchiveRecords().size()) {
+    auto It = ThisLayoutInfo->getArchiveRecords().begin(),
+         Ie = ThisLayoutInfo->getArchiveRecords().end();
     outputStream() << "Archive member included because of file (symbol)\n";
     for (; It != Ie; It++) {
-      auto Ret = ThisLayoutPrinter->getArchiveRecord(*It);
+      auto Ret = ThisLayoutInfo->getArchiveRecord(*It);
       outputStream() << Ret.first << "\n\t\t" << Ret.second << "\n";
     }
   }
@@ -889,7 +889,7 @@ std::string
 TextLayoutPrinter::showDecoratedSymbolName(eld::Module &CurModule,
                                            const ResolveInfo *R) const {
   return CurModule.getNamePool().getDecoratedName(
-      R, ThisLayoutPrinter->getConfig().options().shouldDemangle());
+      R, ThisLayoutInfo->getConfig().options().shouldDemangle());
 }
 
 // If common symbols are present, write them in Map file
@@ -898,7 +898,7 @@ void TextLayoutPrinter::printCommons(eld::Module &CurModule, bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::MAGENTA);
 
-  auto CommonSyms = ThisLayoutPrinter->getAllocatedCommonSymbols(CurModule);
+  auto CommonSyms = ThisLayoutInfo->getAllocatedCommonSymbols(CurModule);
 
   if (CommonSyms.empty())
     return;
@@ -996,15 +996,15 @@ void TextLayoutPrinter::printVersionList(Module &CurModule, bool UseColor) {
 void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::GREEN);
-  if (ThisLayoutPrinter->getLinkerScripts().size())
+  if (ThisLayoutInfo->getLinkerScripts().size())
     outputStream() << "\nLinker scripts used (including INCLUDE command)\n";
-  for (auto &Script : ThisLayoutPrinter->getLinkerScripts()) {
+  for (auto &Script : ThisLayoutInfo->getLinkerScripts()) {
     std::string Indent = "";
     for (uint32_t I = 0; I < Script.Depth; ++I)
       Indent += "\t";
     std::string LinkerScriptName = Script.Include;
-    if (ThisLayoutPrinter->getConfig().options().hasMappingFile())
-      LinkerScriptName = ThisLayoutPrinter->getPath(LinkerScriptName) + "(" +
+    if (ThisLayoutInfo->getConfig().options().hasMappingFile())
+      LinkerScriptName = ThisLayoutInfo->getPath(LinkerScriptName) + "(" +
                          LinkerScriptName + ")";
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
@@ -1018,12 +1018,12 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
 void TextLayoutPrinter::printVersionScripts(bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::GREEN);
-  if (ThisLayoutPrinter->getVersionScripts().size())
+  if (ThisLayoutInfo->getVersionScripts().size())
     outputStream() << "\nVersion scripts used\n";
-  for (auto &Script : ThisLayoutPrinter->getVersionScripts()) {
+  for (auto &Script : ThisLayoutInfo->getVersionScripts()) {
     std::string VersionScriptName = Script;
-    if (ThisLayoutPrinter->getConfig().options().hasMappingFile())
-      VersionScriptName = ThisLayoutPrinter->getPath(VersionScriptName) + "(" +
+    if (ThisLayoutInfo->getConfig().options().hasMappingFile())
+      VersionScriptName = ThisLayoutInfo->getPath(VersionScriptName) + "(" +
                           VersionScriptName + ")";
     outputStream() << VersionScriptName;
     outputStream() << "\n";
@@ -1044,7 +1044,7 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
     outputStream().changeColor(llvm::raw_ostream::MAGENTA);
   outputStream() << "\nBuild Statistics";
   outputStream() << "\n# <file> <start time> <duration>\n";
-  for (auto &I : ThisLayoutPrinter->getInputActions()) {
+  for (auto &I : ThisLayoutInfo->getInputActions()) {
     if (I.Input == nullptr || I.Input->getInputFile() == nullptr)
       continue;
     if (!I.Input->getInputFile()->isObjectFile())
@@ -1060,7 +1060,7 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
       }
     }
   }
-  if (ThisLayoutPrinter->getConfig().options().getInsertTimingStats()) {
+  if (ThisLayoutInfo->getConfig().options().getInsertTimingStats()) {
     printLinkerInsertedTimingStats(CurModule);
   }
   outputStream() << "\n";
@@ -1072,18 +1072,18 @@ void TextLayoutPrinter::printInputActions(bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::BLUE);
   outputStream() << "\nLinker Script and memory map\n";
-  for (auto &I : ThisLayoutPrinter->getInputActions())
-    outputStream() << ThisLayoutPrinter->getStringFromLoadSequence(I) << "\n";
+  for (auto &I : ThisLayoutInfo->getInputActions())
+    outputStream() << ThisLayoutInfo->getStringFromLoadSequence(I) << "\n";
   if (UseColor)
     outputStream().resetColor();
 }
 
 std::string TextLayoutPrinter::commandLineWithMappings() {
   std::string Original = "";
-  for (const auto *Arg : ThisLayoutPrinter->getConfig().options().args())
+  for (const auto *Arg : ThisLayoutInfo->getConfig().options().args())
     if (Arg) {
       Original.append(
-          ThisLayoutPrinter->getConfig().getFileFromHash(std::string(Arg)));
+          ThisLayoutInfo->getConfig().getFileFromHash(std::string(Arg)));
       Original.append(" ");
     }
   return Original;
@@ -1099,13 +1099,13 @@ void TextLayoutPrinter::printArchAndVersion(bool UseColor,
                  << "\n";
   outputStream() << "# Linker: " << getELDRevision() << "\n";
   outputStream() << "# LLVM: " << getLLVMRevision() << "\n";
-  this->ThisLayoutPrinter->getConfig().printOptions(outputStream(), Backend,
+  this->ThisLayoutInfo->getConfig().printOptions(outputStream(), Backend,
                                                     UseColor);
 
   // Print the command line in the Map file.
   std::string CommandLine;
   std::string Separator = "";
-  for (const auto *Arg : ThisLayoutPrinter->getConfig().options().args()) {
+  for (const auto *Arg : ThisLayoutInfo->getConfig().options().args()) {
     CommandLine.append(Separator);
     Separator = " ";
     if (Arg)
@@ -1113,7 +1113,7 @@ void TextLayoutPrinter::printArchAndVersion(bool UseColor,
   }
   outputStream() << "# CommandLine : " << CommandLine;
   outputStream() << "\n";
-  if (ThisLayoutPrinter->getConfig().options().hasMappingFile()) {
+  if (ThisLayoutInfo->getConfig().options().hasMappingFile()) {
     outputStream() << "# Original CommandLine : " << commandLineWithMappings();
     outputStream() << "\n";
   }
@@ -1150,14 +1150,14 @@ void TextLayoutPrinter::printScriptCommands(const LinkerScript &Script) {
 // etc. If use of color for text is enabled, print text with a foreground
 // color. Reset the colors to terminal defaults after writing.
 void TextLayoutPrinter::printMapFile(eld::Module &Module) {
-  ThisLayoutPrinter->buildMergedStringMap(Module);
+  ThisLayoutInfo->buildMergedStringMap(Module);
   GNULDBackend &Backend = *Module.getBackend();
   bool UseColor = Backend.config().options().color() &&
                   Backend.config().options().colorMap();
   LinkerScript const &Script = Module.getScript();
 
   printArchAndVersion(UseColor, Backend);
-  printStats(ThisLayoutPrinter->getLinkStats(), Module);
+  printStats(ThisLayoutInfo->getLinkStats(), Module);
   printIsFileHeaderLoadedInfo(Backend.isFileHeaderLoaded(), UseColor);
   printIsPHDRSLoadedInfo(Backend.isPHDRSLoaded(), UseColor);
   // Print image start address.
@@ -1168,8 +1168,8 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
     outputStream() << "\n";
   }
 
-  if (ThisLayoutPrinter->showRelativePath())
-    outputStream() << "# Basepath: " << ThisLayoutPrinter->getBasepath().value()
+  if (ThisLayoutInfo->showRelativePath())
+    outputStream() << "# Basepath: " << ThisLayoutInfo->getBasepath().value()
                    << "\n";
 
   printArchiveRecords(Module, UseColor);
@@ -1197,15 +1197,15 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
   for (const auto &X : (Script.getScriptCommands())) {
     if (X->getKind() == ScriptCommand::ASSIGNMENT)
       X->dumpMap(outputStream(), UseColor, true,
-                 !ThisLayoutPrinter->showOnlyLayout());
+                 !ThisLayoutInfo->showOnlyLayout());
   }
 
   printLayout(Module);
 
-  if (!ThisLayoutPrinter->showOnlyLayout())
+  if (!ThisLayoutInfo->showOnlyLayout())
     printPluginInfo(Module);
 
-  if (ThisLayoutPrinter->showSymbolResolution())
+  if (ThisLayoutInfo->showSymbolResolution())
     printSymbolResolution(Module);
 }
 
@@ -1227,7 +1227,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
   for (Out = OutBegin; Out != OutEnd; ++Out) {
 
     ELFSection *Cur = (*Out)->getSection();
-    if ((ThisLayoutPrinter->showHeaderDetails() &&
+    if ((ThisLayoutInfo->showHeaderDetails() &&
          (Cur->name() == "__ehdr__" || Cur->name() == "__pHdr__")) ||
         (!Cur->isNullType() &&
          (LinkerScriptHasSectionsCommand || Cur->isWanted() || Cur->size() ||
@@ -1250,7 +1250,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       for (RuleContainer::sym_iterator It = (*in)->symBegin(),
                                        Ie = (*in)->symEnd();
            It != Ie; ++It) {
-        if (!ThisLayoutPrinter->showOnlyLayout()) {
+        if (!ThisLayoutInfo->showOnlyLayout()) {
           (*It)->dumpMap(outputStream(), UseColor, false,
                          /*withValues=*/!Module.isBeforeLayoutState());
           // Show the actual expression as present in the linker script
@@ -1259,11 +1259,11 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
         // Show expression in the linker script.
         (*It)->dumpMap(outputStream(), UseColor, true /* NewLine */,
                        false /* No Values */,
-                       ThisLayoutPrinter->showOnlyLayout() /* Indent */);
+                       ThisLayoutInfo->showOnlyLayout() /* Indent */);
       }
       if ((*in)->desc()) {
         (*in)->desc()->dumpMap(outputStream(), UseColor, false);
-        if (!ThisLayoutPrinter->dontShowTiming() &&
+        if (!ThisLayoutInfo->dontShowTiming() &&
             !llvm::isa<OutputSectData>((*in)->desc()))
           (*in)->dumpMap(outputStream());
         outputStream() << "\n";
@@ -1313,7 +1313,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
     for (OutputSectionEntry::sym_iterator It = (*Out)->sectionendsymBegin(),
                                           Ie = (*Out)->sectionendsymEnd();
          It != Ie; ++It) {
-      if (!ThisLayoutPrinter->showOnlyLayout()) {
+      if (!ThisLayoutInfo->showOnlyLayout()) {
         (*It)->dumpMap(outputStream(), UseColor, false,
                        /*withValues=*/!Module.isBeforeLayoutState());
         // Show the actual expression as present in the linker script
@@ -1322,7 +1322,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       // Show expression in the linker script.
       (*It)->dumpMap(outputStream(), UseColor, true /* NewLine */,
                      false /* No Values */,
-                     ThisLayoutPrinter->showOnlyLayout() /* Indent */);
+                     ThisLayoutInfo->showOnlyLayout() /* Indent */);
     }
   }
 }
@@ -1333,8 +1333,8 @@ TextLayoutPrinter::~TextLayoutPrinter() {
 }
 
 void TextLayoutPrinter::clearInputRecords() {
-  ThisLayoutPrinter->resetArchiveRecords();
-  ThisLayoutPrinter->resetInputActions();
+  ThisLayoutInfo->resetArchiveRecords();
+  ThisLayoutInfo->resetInputActions();
 }
 
 void TextLayoutPrinter::printIsFileHeaderLoadedInfo(bool IsLoaded,
@@ -1395,10 +1395,10 @@ void TextLayoutPrinter::printDiscardedSymbolStats(const Module &Module) {
 }
 
 std::string TextLayoutPrinter::getDecoratedPath(const Input *I) const {
-  std::optional<std::string> Basepath = ThisLayoutPrinter->getBasepath();
+  std::optional<std::string> Basepath = ThisLayoutInfo->getBasepath();
   if (Basepath.has_value())
     return I->getDecoratedRelativePath(Basepath.value());
-  return I->decoratedPath(ThisLayoutPrinter->showAbsolutePath());
+  return I->decoratedPath(ThisLayoutInfo->showAbsolutePath());
 }
 
 void TextLayoutPrinter::printFragments(Module &Module, ELFSection &OutSect,
@@ -1418,7 +1418,7 @@ void TextLayoutPrinter::printSymbolResolution(Module &Module) {
   NamePool &NP = Module.getNamePool();
   SymbolResolutionInfo &SRI = NP.getSRI();
   const auto &Symbols = Module.getSymbols();
-  const GeneralOptions &Options = ThisLayoutPrinter->getConfig().options();
+  const GeneralOptions &Options = ThisLayoutInfo->getConfig().options();
   SRI.setupCandidatesInfo(NP, Module.getScript());
 
   outputStream() << "# Symbol Resolution: "

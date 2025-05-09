@@ -18,9 +18,9 @@
 using namespace eld;
 
 eld::Expected<void> BinaryFileParser::parseFile(InputFile &inputFile) {
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
-  if (printer)
-    printer->recordInputActions(LayoutPrinter::Load, inputFile.getInput());
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordInputActions(LayoutInfo::Load, inputFile.getInput());
   ELFSection *S = createDataSection(inputFile);
   ObjectFile *objFile = llvm::cast<ObjectFile>(&inputFile);
   objFile->addSection(S);

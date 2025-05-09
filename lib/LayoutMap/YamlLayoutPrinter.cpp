@@ -26,21 +26,21 @@
 using namespace eld;
 using namespace llvm;
 
-YamlLayoutPrinter::YamlLayoutPrinter(LayoutPrinter *P)
-    : LayoutFile(nullptr), TrampolineLayoutFile(nullptr), ThisLayoutPrinter(P) {
+YamlLayoutPrinter::YamlLayoutPrinter(LayoutInfo *layoutInfo)
+    : LayoutFile(nullptr), TrampolineLayoutFile(nullptr), ThisLayoutInfo(layoutInfo) {
 }
 
 eld::Expected<void> YamlLayoutPrinter::init() {
-  if (ThisLayoutPrinter->getConfig().options().printMap())
+  if (ThisLayoutInfo->getConfig().options().printMap())
     return {};
   std::string SuffixExtension = "";
-  if (!ThisLayoutPrinter->getConfig().options().isDefaultMapStyleYAML())
+  if (!ThisLayoutInfo->getConfig().options().isDefaultMapStyleYAML())
     SuffixExtension = ".yaml";
-  if (!ThisLayoutPrinter->getConfig().options().layoutFile().empty()) {
+  if (!ThisLayoutInfo->getConfig().options().layoutFile().empty()) {
     std::string LayoutFileName =
-        ThisLayoutPrinter->getConfig().options().layoutFile();
+        ThisLayoutInfo->getConfig().options().layoutFile();
     if (!SuffixExtension.empty())
-      LayoutFileName = ThisLayoutPrinter->getConfig().options().layoutFile() +
+      LayoutFileName = ThisLayoutInfo->getConfig().options().layoutFile() +
                        SuffixExtension;
     std::error_code Error;
     LayoutFile =
@@ -52,21 +52,21 @@ eld::Expected<void> YamlLayoutPrinter::init() {
     }
     Defaults.push_back(
         {"NoVerify",
-         std::to_string(ThisLayoutPrinter->getConfig().options().verifyLink()),
+         std::to_string(ThisLayoutInfo->getConfig().options().verifyLink()),
          "Enable Linker verification"});
     Defaults.push_back(
         {"MaxGPSize",
-         std::to_string(ThisLayoutPrinter->getConfig().options().getGPSize()),
+         std::to_string(ThisLayoutInfo->getConfig().options().getGPSize()),
          "GP Size value for Small Data"});
     char const *Separator = "";
-    for (const auto *Arg : ThisLayoutPrinter->getConfig().options().args()) {
+    for (const auto *Arg : ThisLayoutInfo->getConfig().options().args()) {
       CommandLine.append(Separator);
       Separator = " ";
       if (Arg)
         CommandLine.append(std::string(Arg));
     }
   }
-  ThisLayoutPrinter->getConfig().options().setBuildCRef();
+  ThisLayoutInfo->getConfig().options().setBuildCRef();
   return {};
 }
 
@@ -83,11 +83,11 @@ void YamlLayoutPrinter::insertCommons(std::vector<eld::LDYAML::Common> &Commons,
   for (auto &I : Infos) {
     eld::LDYAML::Common Common;
     Common.Name =
-        ThisLayoutPrinter->showSymbolName(StringRef(I->name(), I->nameSize()));
+        ThisLayoutInfo->showSymbolName(StringRef(I->name(), I->nameSize()));
     Common.Size = I->size();
     InputFile *Input = I->resolvedOrigin();
     if (Input != nullptr)
-      Common.InputPath = ThisLayoutPrinter->getPath(Input->getInput());
+      Common.InputPath = ThisLayoutInfo->getPath(Input->getInput());
     if (Input->getInput()->isArchiveMember() > 0)
       Common.InputName = Input->getInput()->getName();
     Commons.push_back(Common);
@@ -110,7 +110,7 @@ void YamlLayoutPrinter::addInputs(
     if (!InpFile)
       continue;
     if (InpFile->isArchive()) {
-      A.Name = ThisLayoutPrinter->getPath(Inp);
+      A.Name = ThisLayoutInfo->getPath(Inp);
       A.Used = InpFile->isUsed();
       for (auto &M :
            llvm::dyn_cast<eld::ArchiveFile>(InpFile)->getAllMembers()) {
@@ -122,7 +122,7 @@ void YamlLayoutPrinter::addInputs(
       Inputs.push_back(std::make_shared<eld::LDYAML::Archive>(std::move(A)));
       continue;
     }
-    I.Name = ThisLayoutPrinter->getPath(Inp);
+    I.Name = ThisLayoutInfo->getPath(Inp);
     I.Used = InpFile->isUsed();
     Inputs.push_back(std::make_shared<eld::LDYAML::RegularInput>(std::move(I)));
   }
@@ -136,7 +136,7 @@ eld::LDYAML::LinkStats YamlLayoutPrinter::addStat(std::string S,
   return L;
 }
 
-void YamlLayoutPrinter::addStats(LayoutPrinter::Stats &L,
+void YamlLayoutPrinter::addStats(LayoutInfo::Stats &L,
                                  std::vector<eld::LDYAML::LinkStats> &S) {
   S.push_back(addStat("ObjectFiles", L.NumElfObjectFiles));
   S.push_back(addStat("LinkerScripts", L.NumLinkerScripts));
@@ -181,27 +181,27 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.ModuleVersion.VendorVersion = eld::getVendorVersion().str();
   Result.ModuleVersion.ELDVersion = eld::getELDVersion().str();
 
-  for (auto &I : ThisLayoutPrinter->getArchiveRecords()) {
+  for (auto &I : ThisLayoutInfo->getArchiveRecords()) {
     std::pair<std::string, std::string> Ret =
-        ThisLayoutPrinter->getArchiveRecord(I);
+        ThisLayoutInfo->getArchiveRecord(I);
     Result.ArchiveRecords.push_back({Ret.first, Ret.second});
   }
   insertCommons(Result.Commons,
-                ThisLayoutPrinter->getAllocatedCommonSymbols(Module));
-  addStats(ThisLayoutPrinter->getLinkStats(), Result.Stats);
-  Result.Features = ThisLayoutPrinter->getFeatures();
+                ThisLayoutInfo->getAllocatedCommonSymbols(Module));
+  addStats(ThisLayoutInfo->getLinkStats(), Result.Stats);
+  Result.Features = ThisLayoutInfo->getFeatures();
   addInputs(Result.InputFileInfo, Module);
-  for (auto &I : ThisLayoutPrinter->getInputActions()) {
-    std::string Action = ThisLayoutPrinter->getStringFromLoadSequence(I);
+  for (auto &I : ThisLayoutInfo->getInputActions()) {
+    std::string Action = ThisLayoutInfo->getStringFromLoadSequence(I);
     Result.InputActions.push_back(Action);
   }
-  for (auto &Script : ThisLayoutPrinter->getLinkerScripts()) {
+  for (auto &Script : ThisLayoutInfo->getLinkerScripts()) {
     std::string Indent = "";
     for (uint32_t I = 0; I < Script.Depth; ++I)
       Indent += "\t";
     std::string LinkerScriptName = Script.Include;
-    if (ThisLayoutPrinter->getConfig().options().hasMappingFile())
-      LinkerScriptName = ThisLayoutPrinter->getPath(LinkerScriptName) + "(" +
+    if (ThisLayoutInfo->getConfig().options().hasMappingFile())
+      LinkerScriptName = ThisLayoutInfo->getPath(LinkerScriptName) + "(" +
                          LinkerScriptName + ")";
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
@@ -213,7 +213,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.EntryAddress = getEntryAddress(Module, Backend);
   for (auto *I : Module.getScript().sectionMap()) {
     auto *Section = I->getSection();
-    if (!(ThisLayoutPrinter->showHeaderDetails() &&
+    if (!(ThisLayoutInfo->showHeaderDetails() &&
           (Section->name() == "__ehdr__" || Section->name() == "__pHdr__")) &&
         (Section->isNullType() || (!HasSectionsCmd && !I->size() &&
                                    !Section->isWanted() && !Section->size())))
@@ -273,8 +273,8 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
             Value.Inputs.push_back(
                 std::make_shared<eld::LDYAML::Padding>(std::move(Padding)));
           }
-          auto Existing = ThisLayoutPrinter->getFragmentInfoMap().find(Frag);
-          if (Existing != ThisLayoutPrinter->getFragmentInfoMap().end()) {
+          auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(Frag);
+          if (Existing != ThisLayoutInfo->getFragmentInfoMap().end()) {
             eld::LDYAML::InputSection Input;
             eld::LDYAML::InputBitcodeSection BCInput;
             eld::LDYAML::InputSection *ELFInputSection = &Input;
@@ -319,27 +319,27 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
             if (IsBitcode)
               BCInput.BitcodeOrigin =
                   Info->section()->getOldInputFile()->getInput()->decoratedPath(
-                      ThisLayoutPrinter->showAbsolutePath());
-            ThisLayoutPrinter->sortFragmentSymbols(Info);
+                      ThisLayoutInfo->showAbsolutePath());
+            ThisLayoutInfo->sortFragmentSymbols(Info);
             for (auto *K : Info->Symbols) {
               eld::InputFile *RO = K->resolveInfo()
                                        ? K->resolveInfo()->resolvedOrigin()
                                        : nullptr;
               if (!RO->isBitcode() &&
                   (RO->getInput()->decoratedPath(
-                       ThisLayoutPrinter->showAbsolutePath()) !=
+                       ThisLayoutInfo->showAbsolutePath()) !=
                    Info->getResolvedPath()))
                 continue;
               if (IsBitcode) {
                 BCInput.Symbols.push_back(
                     {K->name(), K->type(), K->binding(), K->size(),
-                     (llvm::yaml::Hex64)ThisLayoutPrinter->calculateSymbolValue(
+                     (llvm::yaml::Hex64)ThisLayoutInfo->calculateSymbolValue(
                          K, Module)});
                 continue;
               }
               ELFInputSection->Symbols.push_back(
                   {K->name(), K->type(), K->binding(), K->size(),
-                   (llvm::yaml::Hex64)ThisLayoutPrinter->calculateSymbolValue(
+                   (llvm::yaml::Hex64)ThisLayoutInfo->calculateSymbolValue(
                        K, Module)});
             }
             if (IsBitcode && !BCInput.Symbols.empty())
@@ -408,8 +408,8 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
       if (!Section->isIgnore() && !Section->isDiscard())
         continue;
       if (!Section->hasSectionData()) {
-        auto Existing = ThisLayoutPrinter->getSectionInfoMap().find(Section);
-        if (Existing == ThisLayoutPrinter->getSectionInfoMap().end())
+        auto Existing = ThisLayoutInfo->getSectionInfoMap().find(Section);
+        if (Existing == ThisLayoutInfo->getSectionInfoMap().end())
           continue;
         eld::LDYAML::DiscardedSection DS;
         eld::LDYAML::DiscardedSection *ELFDiscardedSection = &DS;
@@ -418,7 +418,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
         ELFDiscardedSection->Type = Section->getType();
         ELFDiscardedSection->Origin =
             Existing->second->getInput()->decoratedPath(
-                ThisLayoutPrinter->showAbsolutePath());
+                ThisLayoutInfo->showAbsolutePath());
         ELFDiscardedSection->Alignment = Section->getAddrAlign();
         ELFDiscardedSection->InputPermissions = Section->getFlags();
         Result.DiscardedSectionGroups.emplace_back(
@@ -426,8 +426,8 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
         continue;
       }
       for (auto &F : Section->getFragmentList()) {
-        auto Existing = ThisLayoutPrinter->getFragmentInfoMap().find(F);
-        if (Existing == ThisLayoutPrinter->getFragmentInfoMap().end())
+        auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(F);
+        if (Existing == ThisLayoutInfo->getFragmentInfoMap().end())
           continue;
         eld::LDYAML::DiscardedSection DS;
         eld::LDYAML::DiscardedSection *ELFDiscardedSection = &DS;
@@ -438,7 +438,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
         ELFDiscardedSection->Origin = Info->getResolvedPath();
         ELFDiscardedSection->Alignment = F->alignment();
         ELFDiscardedSection->InputPermissions = Info->flag();
-        ThisLayoutPrinter->sortFragmentSymbols(Info);
+        ThisLayoutInfo->sortFragmentSymbols(Info);
         for (auto *K : Info->Symbols)
           ELFDiscardedSection->Symbols.push_back(
               {K->name(), K->type(), K->binding(), K->size(), 0});
@@ -451,11 +451,11 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     ResolveInfo *Info = G.getValue();
     if (Info->isCommon() && (Info->outSymbol()->shouldIgnore())) {
       eld::LDYAML::Common S;
-      S.Name = ThisLayoutPrinter->showSymbolName(Info->name());
+      S.Name = ThisLayoutInfo->showSymbolName(Info->name());
       S.Size = Info->size();
       InputFile *Input = Info->resolvedOrigin();
       if (Input != nullptr)
-        S.InputPath = ThisLayoutPrinter->getPath(Input->getInput());
+        S.InputPath = ThisLayoutInfo->getPath(Input->getInput());
       if (Input->getInput()->isArchiveMember())
         S.InputName = Input->getInput()->getName();
       Result.DiscardedCommons.emplace_back(S);
@@ -483,7 +483,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     Result.LoadRegions.push_back(L);
   }
   const GeneralOptions::CrefTableType &Table =
-      ThisLayoutPrinter->getConfig().options().crefTable();
+      ThisLayoutInfo->getConfig().options().crefTable();
   std::vector<const ResolveInfo *> SymVector;
   GeneralOptions::CrefTableType::const_iterator Itr = Table.begin(),
                                                 Ite = Table.end();
@@ -549,8 +549,8 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
       Fragment *PatchFrag = OrigRelocation->targetRef()->frag();
       T.From = PatchFrag->getOwningSection()->name().str();
       {
-        auto Existing = ThisLayoutPrinter->getFragmentInfoMap().find(PatchFrag);
-        if (Existing != ThisLayoutPrinter->getFragmentInfoMap().end()) {
+        auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(PatchFrag);
+        if (Existing != ThisLayoutInfo->getFragmentInfoMap().end()) {
           auto *Info = Existing->second;
           for (auto *K : Info->Symbols) {
             if (!K->isSection())
@@ -561,7 +561,7 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
       T.FromFile = PatchFrag->getOwningSection()
                        ->getInputFile()
                        ->getInput()
-                       ->decoratedPath(ThisLayoutPrinter->showAbsolutePath());
+                       ->decoratedPath(ThisLayoutInfo->showAbsolutePath());
       T.To = (*Bi)->stub()->savedSymInfo()->name();
       if (!(*Bi)->stub()->savedSymInfo()->isAbsolute()) {
         T.ToSection = (*Bi)
@@ -581,14 +581,14 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
                      ->savedSymInfo()
                      ->resolvedOrigin()
                      ->getInput()
-                     ->decoratedPath(ThisLayoutPrinter->showAbsolutePath());
+                     ->decoratedPath(ThisLayoutInfo->showAbsolutePath());
       T.Addend = (*Bi)->getAddend();
       {
         if ((*Bi)->stub()->savedSymInfo()->isLocal()) {
           Fragment *ToFrag =
               (*Bi)->stub()->savedSymInfo()->outSymbol()->fragRef()->frag();
-          auto Existing = ThisLayoutPrinter->getFragmentInfoMap().find(ToFrag);
-          if (Existing != ThisLayoutPrinter->getFragmentInfoMap().end()) {
+          auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(ToFrag);
+          if (Existing != ThisLayoutInfo->getFragmentInfoMap().end()) {
             auto *Info = Existing->second;
             for (auto *K : Info->Symbols) {
               if (!K->isSection())
@@ -606,8 +606,8 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
           continue;
         RSet.insert(F);
         R.From = F->getOwningSection()->name().str();
-        auto Existing = ThisLayoutPrinter->getFragmentInfoMap().find(F);
-        if (Existing != ThisLayoutPrinter->getFragmentInfoMap().end()) {
+        auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(F);
+        if (Existing != ThisLayoutInfo->getFragmentInfoMap().end()) {
           auto *Info = Existing->second;
           for (auto *K : Info->Symbols) {
             if (!K->isSection())
@@ -616,7 +616,7 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
         }
         R.FromFile =
             F->getOwningSection()->getInputFile()->getInput()->decoratedPath(
-                ThisLayoutPrinter->showAbsolutePath());
+                ThisLayoutInfo->showAbsolutePath());
         R.Addend = Reloc->addend();
         T.Uses.push_back(R);
       }
@@ -652,12 +652,12 @@ void YamlLayoutPrinter::printLayout(eld::Module &Module,
                                     GNULDBackend const &Backend) {
   DiagnosticEngine *DiagEngine = Backend.config().getDiagEngine();
   // Open Trampoline Map file.
-  if (!ThisLayoutPrinter->getConfig()
+  if (!ThisLayoutInfo->getConfig()
            .options()
            .getTrampolineMapFile()
            .empty()) {
     std::string File =
-        ThisLayoutPrinter->getConfig().options().getTrampolineMapFile().str();
+        ThisLayoutInfo->getConfig().options().getTrampolineMapFile().str();
     std::error_code Error;
     TrampolineLayoutFile =
         new llvm::raw_fd_ostream(File, Error, llvm::sys::fs::OF_None);
@@ -670,7 +670,7 @@ void YamlLayoutPrinter::printLayout(eld::Module &Module,
 
   auto Yaml = buildYaml(Module, Backend);
   llvm::ArrayRef<std::string> MapStyles =
-      ThisLayoutPrinter->getConfig().options().mapStyle();
+      ThisLayoutInfo->getConfig().options().mapStyle();
   if (std::find(MapStyles.begin(), MapStyles.end(), "compressed") ==
       MapStyles.end()) {
     yaml::Output Yout(outputStream());

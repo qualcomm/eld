@@ -45,7 +45,7 @@ class ChangeOutputSectionOp;
 class DiagnosticEngine;
 class ELFSection;
 class GeneralOptions;
-class LayoutPrinter;
+class LayoutInfo;
 class LDSymbol;
 class OutputTarWriter;
 class RuleContainer;
@@ -96,7 +96,7 @@ public:
   PhdrSpecList &phdrList() { return PhdrList; }
 
   void createSectionMap(LinkerScript &L, const LinkerConfig &Config,
-                        LayoutPrinter *LayoutPrinter);
+                        LayoutInfo *LayoutInfo);
 
   SectionMap &sectionMap() const { return *OutputSectionMap; }
 

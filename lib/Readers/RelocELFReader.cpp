@@ -229,9 +229,9 @@ eld::Expected<bool> RelocELFReader<ELFT>::readCompressedSection(ELFSection *S) {
   S->addFragment(frag);
 
   // Record stuff in the map file
-  LayoutPrinter *printer = this->m_Module.getLayoutPrinter();
-  if (printer)
-    printer->recordFragment(&this->m_InputFile, S, frag);
+  LayoutInfo *layoutInfo = this->m_Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(&this->m_InputFile, S, frag);
 
   return true;
 }
@@ -247,9 +247,9 @@ RelocELFReader<ELFT>::readMergeStringSection(ELFSection *S) {
   if (!F->readStrings(config))
     return false;
   S->addFragment(F);
-  LayoutPrinter *printer = this->m_Module.getLayoutPrinter();
-  if (printer)
-    printer->recordFragment(&this->m_InputFile, S, F);
+  LayoutInfo *layoutInfo = this->m_Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(&this->m_InputFile, S, F);
   return true;
 }
 

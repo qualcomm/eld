@@ -28,12 +28,12 @@ eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
 
   // FIXME: Linker should give some error if checkFlags return false.
   if (expCheckFlags.has_value() && expCheckFlags.value()) {
-    LayoutPrinter *printer = m_Module.getLayoutPrinter();
-    if (printer) {
+    LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
+    if (layoutInfo) {
       std::string flagStr = ELFReader->getFlagString();
       if (!flagStr.empty()) {
         std::string flag = "[" + std::string(flagStr) + "]";
-        printer->recordInputActions(LayoutPrinter::Load, inputFile.getInput(),
+        layoutInfo->recordInputActions(LayoutInfo::Load, inputFile.getInput(),
                                     flag);
       }
     }

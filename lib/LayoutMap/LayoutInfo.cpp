@@ -1,10 +1,10 @@
-//===- LayoutPrinter.cpp---------------------------------------------------===//
+//===- LayoutInfo.cpp---------------------------------------------------===//
 // Part of the eld Project, under the BSD License
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Config/Version.h"
 #include "eld/Core/Module.h"
@@ -29,10 +29,10 @@
 using namespace eld;
 
 //===----------------------------------------------------------------------===//
-// LayoutPrinter
-LayoutPrinter::LayoutPrinter(LinkerConfig &Config) : ThisConfig(Config) {}
+// LayoutInfo
+LayoutInfo::LayoutInfo(LinkerConfig &Config) : ThisConfig(Config) {}
 
-std::string LayoutPrinter::infoForFrag(const Fragment *Frag) {
+std::string LayoutInfo::infoForFrag(const Fragment *Frag) {
   FragmentInfoMapIterT FragmentInfoIter = FragmentInfoMap.find(Frag);
   if (FragmentInfoIter == FragmentInfoMap.end())
     return "";
@@ -44,7 +44,7 @@ std::string LayoutPrinter::infoForFrag(const Fragment *Frag) {
   return Info;
 }
 
-void LayoutPrinter::recordFragment(InputFile *Input,
+void LayoutInfo::recordFragment(InputFile *Input,
                                    const ELFSection *InputElfSection,
                                    const Fragment *Frag) {
   if (!Frag)
@@ -69,7 +69,7 @@ void LayoutPrinter::recordFragment(InputFile *Input,
   FragmentInfoVector.push_back(FragmentInfo);
 }
 
-void LayoutPrinter::recordSymbol(const Fragment *Frag, LDSymbol *Symbol) {
+void LayoutInfo::recordSymbol(const Fragment *Frag, LDSymbol *Symbol) {
   FragmentInfoMapIterT FragmentInfoIter = FragmentInfoMap.find(Frag);
   if (FragmentInfoIter == FragmentInfoMap.end() || !Symbol->hasName())
     return;
@@ -77,18 +77,18 @@ void LayoutPrinter::recordSymbol(const Fragment *Frag, LDSymbol *Symbol) {
   FragmentInfo->Symbols.push_back(Symbol);
 }
 
-void LayoutPrinter::recordThreadCount() {
+void LayoutInfo::recordThreadCount() {
   if (ThisConfig.options().threadsEnabled())
     LinkStats.NumThreads = ThisConfig.options().numThreads();
 }
 
-void LayoutPrinter::recordSectionStat(const Section *Sect) {
+void LayoutInfo::recordSectionStat(const Section *Sect) {
   if (Sect->isBitcode() || Sect->size())
     return;
   LinkStats.NumZeroSizedSection++;
 }
 
-int64_t LayoutPrinter::calculateSymbolValue(LDSymbol *Symbol, Module &M) {
+int64_t LayoutInfo::calculateSymbolValue(LDSymbol *Symbol, Module &M) {
   const ELFSection *Section = nullptr;
   const FragmentRef *FragRef = nullptr;
   int64_t SymbolValue = 0;
@@ -114,7 +114,7 @@ int64_t LayoutPrinter::calculateSymbolValue(LDSymbol *Symbol, Module &M) {
   return SymbolValue;
 }
 
-void LayoutPrinter::sortFragmentSymbols(LayoutFragmentInfo *FragInfo) {
+void LayoutInfo::sortFragmentSymbols(LayoutFragmentInfo *FragInfo) {
   std::sort(FragInfo->Symbols.begin(), FragInfo->Symbols.end(),
             static_cast<bool (*)(LDSymbol *, LDSymbol *)>(
                 [](LDSymbol *A, LDSymbol *B) -> bool {
@@ -123,7 +123,7 @@ void LayoutPrinter::sortFragmentSymbols(LayoutFragmentInfo *FragInfo) {
                 }));
 }
 
-bool LayoutPrinter::isSectionDetailedInfoAvailable(ELFSection *Section) {
+bool LayoutInfo::isSectionDetailedInfoAvailable(ELFSection *Section) {
   if (!Section->hasSectionData())
     return false;
 
@@ -150,23 +150,23 @@ bool LayoutPrinter::isSectionDetailedInfoAvailable(ELFSection *Section) {
   return true;
 }
 
-void LayoutPrinter::recordArchiveMember(Input *Origin, InputFile *Referred,
+void LayoutInfo::recordArchiveMember(Input *Origin, InputFile *Referred,
                                         ArchiveFile::Symbol *ArchSym,
                                         LDSymbol *Sym) {
   ArchiveRecords.push_back(std::make_tuple(Origin, Referred, ArchSym, Sym));
 }
 
-void LayoutPrinter::recordWholeArchiveMember(Input *WholeArch) {
+void LayoutInfo::recordWholeArchiveMember(Input *WholeArch) {
   ArchiveRecords.push_back(
       std::make_tuple(WholeArch, nullptr, nullptr, nullptr));
 }
 
-uint32_t LayoutPrinter::LayoutDetail = 0;
+uint32_t LayoutInfo::LayoutDetail = 0;
 
-std::optional<std::string> LayoutPrinter::ThisBasepath;
+std::optional<std::string> LayoutInfo::ThisBasepath;
 
 eld::Expected<void>
-LayoutPrinter::setLayoutDetail(llvm::StringRef Option,
+LayoutInfo::setLayoutDetail(llvm::StringRef Option,
                                DiagnosticEngine *DiagEngine) {
   const llvm::StringLiteral ShowRelativePathOptionStr = "relative-path";
   uint32_t OptionLayoutDetail =
@@ -205,13 +205,13 @@ LayoutPrinter::setLayoutDetail(llvm::StringRef Option,
   return {};
 }
 
-std::string LayoutPrinter::showSymbolName(llvm::StringRef Name) const {
+std::string LayoutInfo::showSymbolName(llvm::StringRef Name) const {
   if (!ThisConfig.options().shouldDemangle())
     return Name.str();
   return eld::string::getDemangledName(Name);
 }
 
-void LayoutPrinter::recordInputKind(InputFile::InputFileKind K) {
+void LayoutInfo::recordInputKind(InputFile::InputFileKind K) {
   switch (K) {
   case InputFile::ELFObjFileKind:
     LinkStats.NumElfObjectFiles++;
@@ -242,7 +242,7 @@ void LayoutPrinter::recordInputKind(InputFile::InputFileKind K) {
   }
 }
 
-std::string LayoutPrinter::getStringFromLoadSequence(InputSequenceT Ist) {
+std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
   InputKindPrefix Prefix = Ist.Prefix;
   std::string ArchFlag = Ist.ArchFlag;
   std::string Pref;
@@ -317,7 +317,7 @@ std::string LayoutPrinter::getStringFromLoadSequence(InputSequenceT Ist) {
   return InputFileStr;
 }
 
-void LayoutPrinter::recordInputActions(InputKindPrefix Prefix, Input *Input,
+void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
                                        std::string FileType) {
   InputSequenceT IS;
   IS.Prefix = Prefix;
@@ -326,17 +326,17 @@ void LayoutPrinter::recordInputActions(InputKindPrefix Prefix, Input *Input,
   InputActions.push_back(IS);
 }
 
-void LayoutPrinter::recordGroup() { LinkStats.NumGroupTraversal++; }
+void LayoutInfo::recordGroup() { LinkStats.NumGroupTraversal++; }
 
-void LayoutPrinter::recordOutputSection() { LinkStats.NumOutputSections++; }
+void LayoutInfo::recordOutputSection() { LinkStats.NumOutputSections++; }
 
-void LayoutPrinter::recordGC(const ELFSection *Section) {
+void LayoutInfo::recordGC(const ELFSection *Section) {
   LinkStats.NumSectionsGarbageCollected++;
   if (!Section->size())
     LinkStats.NumZeroSizedSectionsGarbageCollected++;
 }
 
-void LayoutPrinter::recordLinkerScript(std::string LinkerScriptFile,
+void LayoutInfo::recordLinkerScript(std::string LinkerScriptFile,
                                        bool Found) {
   ScriptInputT Script;
   LinkStats.NumLinkerScripts++;
@@ -350,75 +350,75 @@ void LayoutPrinter::recordLinkerScript(std::string LinkerScriptFile,
   LinkerScripts.push_back(Script);
 }
 
-std::string LayoutPrinter::getPath(const std::string &Hash) const {
+std::string LayoutInfo::getPath(const std::string &Hash) const {
   if (!ThisConfig.options().hasMappingFile())
     return Hash;
   return ThisConfig.getFileFromHash(Hash);
 }
 
-void LayoutPrinter::recordLinkerScriptRule() {
+void LayoutInfo::recordLinkerScriptRule() {
   LinkStats.NumLinkerScriptRules++;
 }
 
-void LayoutPrinter::recordOrphanSection() { LinkStats.NumOrphans++; }
+void LayoutInfo::recordOrphanSection() { LinkStats.NumOrphans++; }
 
-void LayoutPrinter::recordTrampolines() { LinkStats.NumTrampolines++; }
+void LayoutInfo::recordTrampolines() { LinkStats.NumTrampolines++; }
 
-void LayoutPrinter::recordRetainedSections() {
+void LayoutInfo::recordRetainedSections() {
   LinkStats.NumRetainedSections++;
 }
 
-void LayoutPrinter::recordNoLinkerScriptRuleMatch() {
+void LayoutInfo::recordNoLinkerScriptRuleMatch() {
   LinkStats.NumNoRuleMatch++;
 }
 
-void LayoutPrinter::recordPlugin() { LinkStats.NumPlugins++; }
+void LayoutInfo::recordPlugin() { LinkStats.NumPlugins++; }
 
-void LayoutPrinter::recordFeature(std::string Feature) {
+void LayoutInfo::recordFeature(std::string Feature) {
   Features.push_back(Feature);
 }
 
-void LayoutPrinter::recordSectionOverride(plugin::LinkerWrapper *W,
+void LayoutInfo::recordSectionOverride(plugin::LinkerWrapper *W,
                                           ChangeOutputSectionPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChangeOutputSectionOps[O->getELFSection()].push_back(O);
 }
 
-void LayoutPrinter::recordAddChunk(plugin::LinkerWrapper *W,
+void LayoutInfo::recordAddChunk(plugin::LinkerWrapper *W,
                                    AddChunkPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChunkOps[O->getFrag()].push_back(O);
 }
 
-void LayoutPrinter::recordResetOffset(plugin::LinkerWrapper *W,
+void LayoutInfo::recordResetOffset(plugin::LinkerWrapper *W,
                                       ResetOffsetPluginOp *O) {
   PluginOps[W].push_back(O);
 }
 
-void LayoutPrinter::recordRemoveChunk(plugin::LinkerWrapper *W,
+void LayoutInfo::recordRemoveChunk(plugin::LinkerWrapper *W,
                                       RemoveChunkPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChunkOps[O->getFrag()].push_back(O);
 }
 
-void LayoutPrinter::recordUpdateChunks(plugin::LinkerWrapper *W,
+void LayoutInfo::recordUpdateChunks(plugin::LinkerWrapper *W,
                                        UpdateChunksPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
 }
 
-void LayoutPrinter::recordRemoveSymbol(plugin::LinkerWrapper *W,
+void LayoutInfo::recordRemoveSymbol(plugin::LinkerWrapper *W,
                                        RemoveSymbolPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   RemovedSymbols[O->getRemovedSymbol()] = O;
 }
 
-LayoutPrinter::ResolveInfoVectorT
-LayoutPrinter::getAllocatedCommonSymbols(Module &Module) {
+LayoutInfo::ResolveInfoVectorT
+LayoutInfo::getAllocatedCommonSymbols(Module &Module) {
   GNULDBackend &Backend = *Module.getBackend();
   ObjectFile *CommonInputFile =
       llvm::cast<ObjectFile>(Module.getCommonInternalInput());
@@ -437,8 +437,8 @@ LayoutPrinter::getAllocatedCommonSymbols(Module &Module) {
   return CommonSymbols;
 }
 
-LayoutPrinter::ResolveInfoVectorT
-LayoutPrinter::getCommonsGarbageCollected(Module &Module) {
+LayoutInfo::ResolveInfoVectorT
+LayoutInfo::getCommonsGarbageCollected(Module &Module) {
   GNULDBackend &Backend = *Module.getBackend();
   ObjectFile *CommonInputFile =
       llvm::cast<ObjectFile>(Module.getCommonInternalInput());
@@ -454,14 +454,14 @@ LayoutPrinter::getCommonsGarbageCollected(Module &Module) {
   return CommonSymbols;
 }
 
-void LayoutPrinter::recordRelocationData(plugin::LinkerWrapper *W,
+void LayoutInfo::recordRelocationData(plugin::LinkerWrapper *W,
                                          RelocationDataPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChunkOps[O->getFrag()].push_back(O);
 }
 
-void LayoutPrinter::buildMergedStringMap(Module &M) {
+void LayoutInfo::buildMergedStringMap(Module &M) {
   if (!MergedStrings.empty())
     return;
   std::vector<OutputSectionEntry *> OutputSections;
@@ -491,7 +491,7 @@ void LayoutPrinter::buildMergedStringMap(Module &M) {
     AddString(nullptr, S);
 }
 
-void LayoutPrinter::printStats(void *Handle, llvm::raw_ostream &OS) const {
+void LayoutInfo::printStats(void *Handle, llvm::raw_ostream &OS) const {
   auto Stat = HandleToStats.find(Handle);
   if (Stat == HandleToStats.end())
     return;

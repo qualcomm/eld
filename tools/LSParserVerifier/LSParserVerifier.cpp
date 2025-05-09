@@ -87,7 +87,7 @@ public:
     m_DiagEngine.setInfoMap(std::move(diagInfo));
     m_LinkerScript = eld::make<eld::LinkerScript>(&m_DiagEngine);
     m_Module = eld::make<eld::Module>(*m_LinkerScript, *m_Config,
-                                      /*layoutPrinter=*/nullptr);
+                                      /*layoutInfo=*/nullptr);
     targetInfo = eld::make<CommonTargetInfo>(*m_Config);
     m_Backend = eld::make<CommonLDBackend>(*m_Module, targetInfo);
     m_Builder = eld::make<eld::IRBuilder>(*m_Module, *m_Config);

@@ -67,8 +67,8 @@ void LinkerScript::printPluginTimers(llvm::raw_ostream &OS) {
 // FIXME: This member function does not need a reference argument
 // to the same class object.
 void LinkerScript::createSectionMap(LinkerScript &L, const LinkerConfig &Config,
-                                    LayoutPrinter *LayoutPrinter) {
-  OutputSectionMap = make<SectionMap>(L, Config, LayoutPrinter);
+                                    LayoutInfo *LayoutInfo) {
+  OutputSectionMap = make<SectionMap>(L, Config, LayoutInfo);
 }
 
 void LinkerScript::insertPhdrSpec(const PhdrSpec &PhdrsSpec) {
@@ -186,19 +186,19 @@ void LinkerScript::addSectionOverride(plugin::LinkerWrapper *W, eld::Module *M,
   if (M->getPrinter()->isVerbose())
     Diag->raise(Diag::added_section_override)
         << W->getPlugin()->getPluginName() << O << S->name() << Annotation;
-  LayoutPrinter *Printer = M->getLayoutPrinter();
-  if (!Printer)
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (!layoutInfo)
     return;
-  Printer->recordSectionOverride(W, Op);
+  layoutInfo->recordSectionOverride(W, Op);
 }
 
 void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
                                   const ResolveInfo *S) {
   RemoveSymbolPluginOp *Op = make<RemoveSymbolPluginOp>(W, "", S);
-  LayoutPrinter *Printer = M->getLayoutPrinter();
-  if (!Printer)
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (!layoutInfo)
     return;
-  Printer->recordRemoveSymbol(W, Op);
+  layoutInfo->recordRemoveSymbol(W, Op);
 }
 
 void LinkerScript::clearAllSectionOverrides() { OverrideSectionMatch.clear(); }
@@ -252,10 +252,10 @@ eld::Expected<void> LinkerScript::addChunkOp(plugin::LinkerWrapper *W,
 
   W->getPlugin()->recordFragmentAdd(R, F);
 
-  LayoutPrinter *Printer = M->getLayoutPrinter();
-  if (!Printer)
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (!layoutInfo)
     return {};
-  Printer->recordAddChunk(W, Op);
+  layoutInfo->recordAddChunk(W, Op);
   if (M->getPrinter()->isVerbose())
     Diag->raise(Diag::added_chunk_op)
         << R->getSection()->getOutputSection()->name() << Annotation;
@@ -284,10 +284,10 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
             R->getAsString(),
             F->getOutputELFSection()->getDecoratedName(Config.options())});
 
-  LayoutPrinter *Printer = M->getLayoutPrinter();
-  if (!Printer)
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (!layoutInfo)
     return {};
-  Printer->recordRemoveChunk(W, Op);
+  layoutInfo->recordRemoveChunk(W, Op);
   if (M->getPrinter()->isVerbose())
     Diag->raise(Diag::removed_chunk_op)
         << R->getSection()->name() << Annotation;
@@ -297,20 +297,20 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
 eld::Expected<void> LinkerScript::updateChunksOp(
     plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
     std::vector<eld::Fragment *> &Frags, std::string Annotation) {
-  LayoutPrinter *Printer = M->getLayoutPrinter();
-  if (Printer) {
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (layoutInfo) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::Start, Annotation);
-    Printer->recordUpdateChunks(W, Op);
+    layoutInfo->recordUpdateChunks(W, Op);
   }
 
   llvm::SmallVectorImpl<Fragment *> &FragmentsInRule =
       R->getSection()->getFragmentList();
-  if (Printer) {
+  if (layoutInfo) {
     for (auto &Frag : FragmentsInRule) {
       RemoveChunkPluginOp *Op =
           eld::make<RemoveChunkPluginOp>(W, R, Frag, Annotation);
-      Printer->recordRemoveChunk(W, Op);
+      layoutInfo->recordRemoveChunk(W, Op);
     }
   }
 
@@ -326,10 +326,10 @@ eld::Expected<void> LinkerScript::updateChunksOp(
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpAddChunk);
   }
 
-  if (Printer) {
+  if (layoutInfo) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::End, Annotation);
-    Printer->recordUpdateChunks(W, Op);
+    layoutInfo->recordUpdateChunks(W, Op);
   }
   return {};
 }
@@ -434,7 +434,7 @@ llvm::StringRef LinkerScript::saveString(std::string S) {
 }
 
 bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
-  LayoutPrinter *Printer = M.getLayoutPrinter();
+  LayoutInfo *layoutInfo = M.getLayoutInfo();
   LinkerConfig &Config = M.getConfig();
 
   ASSERT(!P.getID(), "Plugin " + P.getPluginName() + " is already loaded!");
@@ -476,8 +476,8 @@ bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
   P.getLinkerPlugin()->setLinkerWrapper(LW);
   P.setID(MPluginMap.size() + 1);
   recordPlugin(LW, &P);
-  if (Printer)
-    Printer->recordPlugin();
+  if (layoutInfo)
+    layoutInfo->recordPlugin();
 
   // FIXME: Why are we calling Init hook if a plugin has LinkerPluginConfig?
   if (P.getLinkerPluginConfig())

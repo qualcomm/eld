@@ -15,7 +15,7 @@
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Input/InputFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -275,7 +275,7 @@ void NamePool::setupNullSymbol() {
 /// createSymbol - create a symbol
 LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
                                        Fragment *CurFragment, uint64_t Val,
-                                       LayoutPrinter *LP) {
+                                       LayoutInfo *layoutInfo) {
   llvm::StringRef SymName = Saver.save(SymbolName);
   ResolveInfo *Info = make<ResolveInfo>(SymName);
   Info->setIsSymbol(true);
@@ -293,7 +293,7 @@ LDSymbol *NamePool::createPluginSymbol(InputFile *Input, std::string SymbolName,
   Sym->setFragmentRef(make<FragmentRef>(*CurFragment, Val));
   Info->setOutSymbol(Sym);
   LocalSymbols.push_back(Info);
-  if (LP && LP->showSymbolResolution())
+  if (layoutInfo && layoutInfo->showSymbolResolution())
     getSRI().recordSymbolInfo(
         Sym, SymbolInfo{Input, Info->size(),
                         static_cast<ResolveInfo::Binding>(Info->binding()),

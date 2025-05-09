@@ -421,13 +421,13 @@ void ScriptFile::addInputSectDesc(InputSectDesc::Policy PPolicy,
   assert(!LinkerScriptCommandQueue.empty());
   assert(ScriptStateInSectionsCommmand);
 
-  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  LayoutInfo *layoutInfo = ThisModule.getLayoutInfo();
 
   assert(!LinkerScriptSectionsCommand->empty() &&
          ScriptStateInsideOutputSection);
 
-  if (Printer)
-    Printer->recordLinkerScriptRule();
+  if (layoutInfo)
+    layoutInfo->recordLinkerScriptRule();
 
   InputSectDesc *Desc = nullptr;
 
@@ -650,9 +650,9 @@ void ScriptFile::addOutputSectData(OutputSectData::OSDKind DataKind,
                                    Expression *Expr) {
   assert(ScriptStateInSectionsCommmand);
 
-  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
-  if (Printer)
-    Printer->recordLinkerScriptRule();
+  LayoutInfo *layoutInfo = ThisModule.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordLinkerScriptRule();
 
   ASSERT(Expr, "expr must not be null!");
 

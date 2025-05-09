@@ -374,7 +374,7 @@ void ARMGNULDBackend::doPreLayout() {
       }
     }
 
-    LayoutPrinter *printer = getModule().getLayoutPrinter();
+    LayoutInfo *layoutInfo = getModule().getLayoutInfo();
     if (!entry_reloc) {
       static const char raw_data[] = "\x00\x00\x00\x00\x01\x00\x00\x00";
       StringRef entry_data(raw_data, 8);
@@ -382,8 +382,8 @@ void ARMGNULDBackend::doPreLayout() {
       Fragment *frag =
           make<RegionFragment>(entry_data, Last, Fragment::Type::Region, align);
       Last->addFragmentAndUpdateSize(frag);
-      if (printer)
-        printer->recordFragment(Last->getInputFile(), Last, frag);
+      if (layoutInfo)
+        layoutInfo->recordFragment(Last->getInputFile(), Last, frag);
       // create the relocation against this entry
       entry_reloc = Relocation::Create(llvm::ELF::R_ARM_PREL31, 32,
                                        make<FragmentRef>(*frag, 0), 0);
@@ -495,13 +495,13 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
   // We need break them down to individual entry
   if (auto *EXIDX = llvm::dyn_cast<ARMEXIDXSection>(S)) {
     uint32_t Offset = 0;
-    LayoutPrinter *printer = getModule().getLayoutPrinter();
+    LayoutInfo *layoutInfo = getModule().getLayoutInfo();
     for (uint32_t i = 0; i < S->size(); i += 8) {
       llvm::StringRef region = pInput.getSlice(S->offset() + i, 8);
       Fragment *frag = make<RegionFragment>(region, S, Fragment::Type::Region,
                                             S->getAddrAlign());
-      if (printer)
-        printer->recordFragment(&pInput, S, frag);
+      if (layoutInfo)
+        layoutInfo->recordFragment(&pInput, S, frag);
       EXIDX->addFragment(frag);
       EXIDX->addEntry({Offset, frag});
       Offset += 8;
@@ -514,9 +514,9 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
       createAttributeSection(S->getFlags(), S->getAddrAlign());
       AttributeFragment = make<ARMAttributeFragment>(m_pARMAttributeSection);
       m_pARMAttributeSection->getFragmentList().push_back(AttributeFragment);
-      LayoutPrinter *printer = getModule().getLayoutPrinter();
-      if (printer)
-        printer->recordFragment(m_pARMAttributeSection->getInputFile(),
+      LayoutInfo *layoutInfo = getModule().getLayoutInfo();
+      if (layoutInfo)
+        layoutInfo->recordFragment(m_pARMAttributeSection->getInputFile(),
                                 m_pARMAttributeSection, AttributeFragment);
     }
     AttributeFragment->updateAttributes(
@@ -1183,9 +1183,9 @@ void ARMGNULDBackend::finishAssignOutputSections() {
   m_pRegionTableFragment =
       make<RegionTableFragment<llvm::object::ELF32LE>>(m_pRegionTableSection);
   m_pRegionTableSection->addFragmentAndUpdateSize(m_pRegionTableFragment);
-  LayoutPrinter *printer = getModule().getLayoutPrinter();
-  if (printer)
-    printer->recordFragment(m_pRegionTableSection->getInputFile(),
+  LayoutInfo *layoutInfo = getModule().getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(m_pRegionTableSection->getInputFile(),
                             m_pRegionTableSection, m_pRegionTableFragment);
 }
 
