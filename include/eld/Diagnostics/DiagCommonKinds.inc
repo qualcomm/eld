@@ -67,9 +67,6 @@ DIAG(error_call_gc_without_request, DiagnosticEngine::Error,
 DIAG(no_entry_sym_for_GC, DiagnosticEngine::Error,
      "Garbage collection cannot continue due to missing or undefined entry "
      "symbol. Use --entry=<symbol>")
-DIAG(warn_gc_duplicate_symbol, DiagnosticEngine::Warning,
-     "Symbol `%0' is defined in both linker script and input file. The one in "
-     "linker script will be used.")
 DIAG(fatal_unsupported_emulation, DiagnosticEngine::Fatal,
      "Invalid Emulation %0")
 DIAG(warn_entry_symbol_not_found, DiagnosticEngine::Warning,

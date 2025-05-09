@@ -625,8 +625,7 @@ void GNULDBackend::findIndirectlyReferencedProvideSyms(
   if (!assign)
     return;
   std::unordered_set<std::string> referencedSymNames;
-  assign->getSymbolNames(referencedSymNames);
-  for (const std::string &name : referencedSymNames) {
+  for (const std::string &name : assign->getSymbolNames()) {
     if (!indirectReferenceProvideSyms.count(name) && !NP.findInfo(name)) {
       indirectReferenceProvideSyms.insert(name);
       findIndirectlyReferencedProvideSyms(name, indirectReferenceProvideSyms);
@@ -4040,8 +4039,7 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
 }
 
 void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
-  for (auto &a : m_Module.getScript().assignments()) {
-    Assignment *assign = a.second;
+  for (auto &assign : m_Module.getScript().assignments()) {
     if (assign->level() != Assignment::OUTSIDE_SECTIONS)
       continue;
     if (shouldskipAssert(assign)) {
@@ -4062,13 +4060,13 @@ void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
 
 void GNULDBackend::evaluateAsserts() {
   for (auto &a : m_Module.getScript().assignments()) {
-    if (a.second->type() != Assignment::ASSERT)
+    if (a->type() != Assignment::ASSERT)
       continue;
-    if (a.second->hasDot()) {
+    if (a->hasDot()) {
       if (m_Module.getPrinter()->isVerbose()) {
         std::string expressionStr;
         llvm::raw_string_ostream SS(expressionStr);
-        a.second->dumpMap(SS, false, false);
+        a->dumpMap(SS, false, false);
         config().raise(Diag::skipping_executed_asserts) << SS.str();
       }
       continue;
@@ -4076,10 +4074,10 @@ void GNULDBackend::evaluateAsserts() {
     if (m_Module.getPrinter()->isVerbose()) {
       std::string expressionStr;
       llvm::raw_string_ostream SS(expressionStr);
-      a.second->dumpMap(SS, false, false);
+      a->dumpMap(SS, false, false);
       config().raise(Diag::executing_assert_after_layout) << SS.str();
     }
-    a.second->assign(m_Module, nullptr);
+    a->assign(m_Module, nullptr);
   }
 }
 

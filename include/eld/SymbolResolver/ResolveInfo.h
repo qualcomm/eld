@@ -248,6 +248,8 @@ public:
 
   ELFSection *getOwningSection() const;
 
+  std::string getResolvedPath() const;
+
 private:
   static const uint32_t GlobalOffset = 0;
   static const uint32_t GlobalMask = 1;

@@ -94,3 +94,5 @@ DIAG(error_patchable_script, DiagnosticEngine::Error,
      "Patchable symbol '%0' is overridden by linker script")
 DIAG(error_patchable_alias_not_found, DiagnosticEngine::Error,
      "Patchable alias '%0' was not found or was garbage collected")
+DIAG(warning_override_symbol, DiagnosticEngine::Warning,
+     "Symbol %0 defined in %1 overrides symbol in %2")

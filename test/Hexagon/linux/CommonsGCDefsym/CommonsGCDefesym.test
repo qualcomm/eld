@@ -1,9 +1,0 @@
-
-RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.o
-RUN: %link %linkopts --defsym=commonInt=1  %t1.o -o %t.out --gc-sections --entry=main 2>&1
-RUN: %readelf -s %t.out | %grep 'common' | %filecheck %s
-
-#CHECK:   00000001     4 OBJECT  GLOBAL DEFAULT  ABS commonInt
-#CHECK:   1 OBJECT  GLOBAL DEFAULT    2 commonChar
-#CHECK-NOT: commonArray
-

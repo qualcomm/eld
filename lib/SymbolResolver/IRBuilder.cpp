@@ -515,6 +515,10 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
   } else {
     // the symbol is already in the pool, override it
     ResolveInfo OldInfo;
+    if (!Info->isUndef())
+      ThisConfig.raise(Diag::warning_override_symbol)
+          << SymbolName << Input->getInput()->decoratedPath()
+          << Info->getResolvedPath();
     OldInfo.override(*Info);
 
     Info->setRegular();

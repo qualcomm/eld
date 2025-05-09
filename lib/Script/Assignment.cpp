@@ -172,9 +172,6 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
 
   ExpressionToEvaluate->setContext(getContext());
 
-  if (!isDot())
-    Script.assignments().push_back(std::make_pair((LDSymbol *)nullptr, this));
-
   switch (AssignmentLevel) {
   case OUTSIDE_SECTIONS:
     break;
@@ -202,11 +199,6 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
 
 void Assignment::getSymbols(std::vector<ResolveInfo *> &Symbols) const {
   ExpressionToEvaluate->getSymbols(Symbols);
-}
-
-void Assignment::getSymbolNames(
-    std::unordered_set<std::string> &SymbolTokens) const {
-  ExpressionToEvaluate->getSymbolNames(SymbolTokens);
 }
 
 bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
@@ -263,4 +255,20 @@ bool Assignment::isDot() const { return (Name.size() == 1 && Name[0] == '.'); }
 
 bool Assignment::hasDot() const {
   return isDot() || ExpressionToEvaluate->hasDot();
+}
+
+// Add undefined symbols for symbols referred by the assignment
+void Assignment::processAssignment(Module &CurModule, InputFile &I) {
+  CurModule.getScript().assignments().push_back(this);
+  if (isProvideOrProvideHidden())
+    return;
+  for (auto &Sym : getSymbolNames()) {
+    CurModule.getNamePool().addUndefinedELFSymbol(&I, Sym);
+  }
+}
+
+std::unordered_set<std::string> Assignment::getSymbolNames() const {
+  std::unordered_set<std::string> SymbolNames;
+  ExpressionToEvaluate->getSymbolNames(SymbolNames);
+  return SymbolNames;
 }

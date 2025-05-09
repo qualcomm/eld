@@ -13,11 +13,14 @@
 #define ELD_INPUT_LINKERSCRIPTFILE_H
 
 #include "eld/Input/InputFile.h"
+#include "eld/Script/ScriptFile.h"
+
 #include <vector>
 
 namespace eld {
 
 class Node;
+class ScriptFile;
 
 class LinkerScriptFile : public InputFile {
 public:
@@ -32,14 +35,26 @@ public:
 
   void setParsed() { Parsed = true; }
 
+  // -------------- process assignments in link order------------
+  bool isAssignmentsProcessed() const { return ProcessAssignments; }
+
+  void processAssignments();
+
   // -----------------------Linkerscript support -------------------------------
   std::vector<Node *> const &getNodes() { return Nodes; }
 
   void addNode(Node *N) { Nodes.push_back(N); }
 
+  // ----------------------Parsed LinkerScript -----------------------
+  void setScriptFile(ScriptFile *S) { Script = S; }
+
+  ScriptFile *getScript() const { return Script; }
+
 private:
+  ScriptFile *Script = nullptr;
   std::vector<Node *> Nodes;
   bool Parsed = false;
+  bool ProcessAssignments = false;
 };
 
 } // namespace eld

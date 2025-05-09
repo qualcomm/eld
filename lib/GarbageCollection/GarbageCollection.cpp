@@ -23,6 +23,7 @@
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
+#include "eld/Script/Assignment.h"
 #include "eld/Script/StrToken.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/RegisterTimer.h"
@@ -256,9 +257,9 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
   Symit = ThisModule.getScript().assignments().begin();
   for (; Symit != Symite; Symit++) {
     ResolveInfo *Info =
-        ThisModule.getNamePool().findInfo((*Symit).second->name().str());
+        ThisModule.getNamePool().findInfo((*Symit)->name().str());
     if (Info != nullptr && Info->outSymbol() != nullptr &&
-        (*Symit).second->type() == Assignment::DEFAULT)
+        (*Symit)->type() == Assignment::DEFAULT)
       Info->outSymbol()->setScriptDefined();
   }
 
@@ -392,9 +393,6 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
 
           // check if this sym is defined in linker script
           if (Sym->outSymbol()->scriptDefined()) {
-            if (TargetSect)
-              ThisConfig.raise(Diag::warn_gc_duplicate_symbol)
-                  << Sym->outSymbol()->name();
             std::vector<ResolveInfo *> SymbolsForAssignment;
             const Assignment *Assignment =
                 ThisModule.getAssignmentForSymbol(Sym->name());
@@ -533,7 +531,7 @@ bool GarbageCollection::getEntrySections(SectionSetTy &EntrySections) {
   Symit = ThisModule.getScript().assignments().begin();
   for (; Symit != Symite; Symit++) {
     ResolveInfo *Info =
-        ThisModule.getNamePool().findInfo((*Symit).second->name().str());
+        ThisModule.getNamePool().findInfo((*Symit)->name().str());
     // Bitcode symbols that are "Common" doesnot have an outsymbol. They do
     // have an outSymbol only if they are preserved.
     if (Info != nullptr && Info->isCommon() && Info->outSymbol()) {

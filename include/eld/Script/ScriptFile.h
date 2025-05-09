@@ -298,6 +298,12 @@ public:
   // ------------------------ REGION_ALIAS ------------------------------------
   void addRegionAlias(const StrToken *Alias, const StrToken *Region);
 
+  // -------------------------- All assignments --------------------------------
+  std::vector<Assignment *> getAssignments() { return Assignments; }
+
+  // ----------------- process assignments in link order --------
+  void processAssignments();
+
 private:
   Kind ScriptFileKind;
   Module &ThisModule;
@@ -325,6 +331,7 @@ private:
   bool IsLeavingOutputSectDesc = false;
   eld::VersionScript *LinkerVersionScript = nullptr;
   eld::MemoryCmd *MemoryCmd = nullptr;
+  std::vector<Assignment *> Assignments;
 };
 
 } // namespace eld

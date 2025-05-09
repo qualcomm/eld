@@ -182,8 +182,9 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
 
   LinkerScriptFile *LSFile = llvm::dyn_cast<eld::LinkerScriptFile>(Input);
 
-  if (LSFile->isParsed())
+  if (LSFile->isParsed()) {
     return true;
+  }
 
   // Record the linker script in the Map file.
   LayoutPrinter *Printer = ThisModule->getLayoutPrinter();
@@ -192,9 +193,14 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
 
   ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
-  ScriptFile Script(ScriptFile::LDScript, *ThisModule, *LSFile,
-                    CurBuilder->getInputBuilder(), getTargetBackend());
-  bool SuccessFullInParse = getScriptReader()->readScript(ThisConfig, Script);
+  ScriptFile *S =
+      make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
+                       CurBuilder->getInputBuilder(), getTargetBackend());
+
+  LSFile->setParsed();
+  LSFile->setScriptFile(S);
+
+  bool SuccessFullInParse = getScriptReader()->readScript(ThisConfig, *S);
   if (Printer)
     Printer->closeLinkerScript();
 
@@ -204,14 +210,13 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
         << Input->getInput()->getResolvedPath();
     return false;
   }
-  LSFile->setParsed();
   // Update the caller with information if the linker script had sections et
   // all.
-  if (Script.linkerScriptHasSectionsCommand())
+  if (S->linkerScriptHasSectionsCommand())
     ThisModule->getScript().setHasSectionsCmd();
 
   // Activate the Linker script.
-  eld::Expected<void> E = Script.activate(*ThisModule);
+  eld::Expected<void> E = S->activate(*ThisModule);
   if (!E) {
     ThisConfig.raiseDiagEntry(std::move(E.error()));
     if (!ThisConfig.getDiagEngine()->diagnose())
@@ -1614,24 +1619,19 @@ bool ObjectLinker::processInputFiles() {
 /// addScriptSymbols - define symbols from the command line option or linker
 /// scripts.
 bool ObjectLinker::addScriptSymbols() {
+
   LinkerScript &Script = ThisModule->getScript();
-  LinkerScript::Assignments::iterator It, Ie = Script.assignments().end();
+
   uint64_t SymValue = 0x0;
   LDSymbol *Symbol = nullptr;
   bool Ret = true;
   // go through the entire symbol assignments
-  for (It = Script.assignments().begin(); It != Ie; ++It) {
-    Assignment *AssignCmd = (*It).second;
+  for (auto &AssignCmd : Script.assignments()) {
     InputFile *ScriptInput = ThisModule->getInternalInput(eld::Module::Script);
     // FIXME: Ideally, assignCmd should always have a context. We should perhaps
     // add an internal error if the context is missing.
     if (AssignCmd->hasInputFileInContext())
       ScriptInput = AssignCmd->getInputFileInContext();
-    if (AssignCmd->level() == Assignment::OUTSIDE_SECTIONS) {
-      if (AssignCmd->type() == Assignment::ASSERT)
-        continue;
-      (*It).first = nullptr;
-    }
     llvm::StringRef SymName = AssignCmd->name();
     ResolveInfo::Type Type = ResolveInfo::NoType;
     ResolveInfo::Visibility Vis = ResolveInfo::Default;
@@ -1663,9 +1663,6 @@ bool ObjectLinker::addScriptSymbols() {
         if (OldInfo->isPatchable())
           ThisConfig.raise(Diag::error_patchable_script)
               << OldInfo->outSymbol()->name();
-        else
-          ThisConfig.raise(Diag::warn_gc_duplicate_symbol)
-              << OldInfo->outSymbol()->name();
       }
     }
     PluginManager &PM = ThisModule->getPluginManager();
@@ -1680,23 +1677,28 @@ bool ObjectLinker::addScriptSymbols() {
     if (NewErrorCount > OldErrorCount)
       Ret = false;
     // Add symbol and refine the visibility if needed
-    switch ((*It).second->type()) {
+    switch (AssignCmd->type()) {
     case Assignment::HIDDEN:
       Vis = ResolveInfo::Hidden;
       LLVM_FALLTHROUGH;
     // Fall through
-    case Assignment::DEFAULT:
-      Symbol =
-          CurBuilder
-              ->addSymbol<eld::IRBuilder::Force, eld::IRBuilder::Unresolve>(
-                  ScriptInput, SymName.str(), Type, ResolveInfo::Define,
-                  ResolveInfo::Absolute, Size, SymValue, FragmentRef::null(),
-                  Vis, true /*PostLTOPhase*/);
+    case Assignment::DEFAULT: {
+      LLVM_FALLTHROUGH;
+    case Assignment::FILL:
+      // Add an absolute symbol
+      if (!AssignCmd->isDot())
+        Symbol =
+            CurBuilder
+                ->addSymbol<eld::IRBuilder::Force, eld::IRBuilder::Unresolve>(
+                    ScriptInput, SymName.str(), Type, ResolveInfo::Define,
+                    ResolveInfo::Absolute, Size, SymValue, FragmentRef::null(),
+                    Vis, true /*PostLTOPhase*/);
+      LLVM_FALLTHROUGH;
+    case Assignment::ASSERT:
       break;
+    }
     case Assignment::PROVIDE_HIDDEN:
     case Assignment::PROVIDE:
-    case Assignment::FILL:
-    case Assignment::ASSERT:
       continue;
     }
     if (Symbol) {
@@ -1705,30 +1707,14 @@ bool ObjectLinker::addScriptSymbols() {
       Symbol->setScriptDefined();
       Symbol->resolveInfo()->setInBitCode(false);
     }
-    // Set symbol of this assignment.
-    (*It).first = Symbol;
-
     // Record that there was an assignment for this symbol.
     // If there is a relocation to this symbol, the symbols contained in the
     // assignment also need to be considered as part of the list of symbols
     // that will be live.
     if (Symbol)
-      ThisModule->addAssignment(Symbol->resolveInfo()->name(), (*It).second);
+      ThisModule->addAssignment(Symbol->resolveInfo()->name(), AssignCmd);
   }
 
-  Resolver::Result ResolvedResult;
-  InputFile *I =
-      ThisModule->getInternalInput(eld::Module::InternalInputType::Script);
-  ThisModule->getNamePool().insertSymbol(
-      I, ".", true, ResolveInfo::NoType, ResolveInfo::Undefined,
-      ResolveInfo::NoneBinding, 0, 0, ResolveInfo::Hidden, nullptr,
-      ResolvedResult, true, false, 0, false /* isPatchable */,
-      ThisModule->getPrinter());
-  LDSymbol *DotSym = make<LDSymbol>(ResolvedResult.Info, true);
-  DotSym->setFragmentRef(FragmentRef::null());
-  DotSym->setValue(0);
-  ResolvedResult.Info->setOutSymbol(DotSym);
-  ThisModule->setDotSymbol(DotSym);
   return Ret;
 }
 
@@ -3612,6 +3598,9 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisModule->setFailure(true);
       return false;
     }
+    LinkerScriptFile *LSFile = llvm::dyn_cast<eld::LinkerScriptFile>(CurInput);
+    if (!LSFile->isAssignmentsProcessed())
+      LSFile->processAssignments();
   }
   if (!ThisConfig.getDiagEngine()->diagnose()) {
     if (ThisModule->getPrinter()->isVerbose())

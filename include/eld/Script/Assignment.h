@@ -23,6 +23,7 @@
 
 namespace eld {
 
+class InputFile;
 class Module;
 class Expression;
 class ELFSection;
@@ -88,10 +89,6 @@ public:
 
   void getSymbols(std::vector<ResolveInfo *> &Symbols) const;
 
-  /// Returns a set of all the symbol names contained in the assignment
-  /// expression.
-  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) const;
-
   /// Query functions on Assignment Kinds.
   bool isOutsideSections() const {
     return AssignmentLevel == OUTSIDE_SECTIONS ||
@@ -119,6 +116,12 @@ public:
   bool isFill() const { return ThisType == FILL; }
 
   bool isAssert() const { return ThisType == ASSERT; }
+
+  // Retrieve the symbol names referred by the assignment expression
+  std::unordered_set<std::string> getSymbolNames() const;
+
+  // Add all undefined references from assignmnent expressions
+  void processAssignment(Module &M, InputFile &I);
 
 private:
   bool checkLinkerScript(Module &CurModule);
