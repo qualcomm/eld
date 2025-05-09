@@ -1,0 +1,14 @@
+#---DTNeededForRepeatedDynLibs.test------------- Executable, SharedLibrary ----------#
+#BEGIN_COMMENT
+#This test checks that DT_NEEDED entry is not repeated for repeated shared libs.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %link %linkopts -shared -o %t1.lib1.so %t1.1.o
+RUN: %link %linkopts -dy -o %t1.2.out %t1.2.o %t1.lib1.so
+RUN: %readelf --dynamic %t1.2.out | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}NEEDED{{.*}}lib1.so
+CHECK-NOT: {{.*}}NEEDED{{.*}}lib1.so
