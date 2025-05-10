@@ -1,6 +1,6 @@
 #----------HI20_LO12_I_TO_CLUI.test----------------- Executable------------------#
 #BEGIN_COMMENT
-# Relax LUI with a small operand to comppressed C.LUI.
+# Relax LUI with a small operand to comppressed C.LUI or eliminate it (zero-page).
 # This test was generated with the help of gcc:
 # riscv64-linux-gnu-gcc -march=rv32imac -mabi=ilp32 Inputs/1.s -Wl,-T,Inputs/1.t -nostdlib
 # Note that ld.bfd does not relax LUI with the immiate equal to 31 (0x1f) and -1 (0x3f).
@@ -16,94 +16,94 @@
 # a: 0555      	addi	a0, a0, 21
 # c: 8082      	ret
 # The output from bfd.ld is prefixed with LD-NEXT for reference.
-# Note that zero page relaxation is not yet supported (QTOOL-46847).
 #END_COMMENT
 #--------------------------------------------------------------------
 
 RUN: %clang %clangopts -c  %p/Inputs/1.s -o %t.1.o
 RUN: %link %linkopts -MapStyle txt -Map %t.1.map --verbose %t.1.o -o %t.1.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE
 
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'A' in section .text+0x0 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'B' in section .text+0x8 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'C' in section .text+0x10 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'D' in section .text+0x18 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'D' in section .text+0x1a file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol D in section .text+0x18 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'E' in section .text+0x1e file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'E' in section .text+0x20 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol E in section .text+0x1e file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'F' in section .text+0x24 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'F' in section .text+0x26 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol F in section .text+0x24 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'G' in section .text+0x2a file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'G' in section .text+0x2c file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol G in section .text+0x2a file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'H' in section .text+0x30 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'H' in section .text+0x32 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol H in section .text+0x30 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'I' in section .text+0x36 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'I' in section .text+0x38 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol I in section .text+0x36 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'J' in section .text+0x3c file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'K' in section .text+0x44 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'L' in section .text+0x4c file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'M' in section .text+0x54 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'M' in section .text+0x56 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol M in section .text+0x54 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'N' in section .text+0x5a file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'N' in section .text+0x5c file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol N in section .text+0x5a file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'O' in section .text+0x60 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'O' in section .text+0x62 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol O in section .text+0x60 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'P' in section .text+0x66 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'P' in section .text+0x68 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol P in section .text+0x66 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'Q' in section .text+0x6c file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'Q' in section .text+0x6e file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol Q in section .text+0x6c file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'R' in section .text+0x72 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'R' in section .text+0x74 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol R in section .text+0x72 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'S' in section .text+0x78 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'S' in section .text+0x7a file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol S in section .text+0x78 file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'T' in section .text+0x7e file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'T' in section .text+0x80 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol T in section .text+0x7e file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'U' in section .text+0x84 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'U' in section .text+0x86 file {{.*}}1.o
-VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol U in section .text+0x84 file {{.*}}1.o
+### This line is for relaxing value = 0.
+VERBOSE-ZERO: RISCV_LUI_ZERO : Deleting 4 bytes in Section .text File {{.*}}1.o
+
+### This line is for NOT relaxing value = 0.
+VERBOSE:RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'A' in section .text+0x0 file {{.*}}1.o
+
+VERBOSE: RISCV_LUI_ZERO : Deleting 4 bytes for symbol 'B' in section .text+0x8 file {{.*}}1.o
+VERBOSE: RISCV_LUI_ZERO : Deleting 4 bytes for symbol 'C' in section .text+0xc file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'D' in section .text+0x10 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'D' in section .text+0x12 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol D in section .text+0x10 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'E' in section .text+0x16 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'E' in section .text+0x18 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol E in section .text+0x16 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'F' in section .text+0x1c file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'F' in section .text+0x1e file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol F in section .text+0x1c file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'G' in section .text+0x22 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'G' in section .text+0x24 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol G in section .text+0x22 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'H' in section .text+0x28 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'H' in section .text+0x2a file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol H in section .text+0x28 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'I' in section .text+0x2e file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'I' in section .text+0x30 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol I in section .text+0x2e file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'J' in section .text+0x34 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'K' in section .text+0x3c file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'L' in section .text+0x44 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'M' in section .text+0x4c file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'M' in section .text+0x4e file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol M in section .text+0x4c file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'N' in section .text+0x52 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'N' in section .text+0x54 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol N in section .text+0x52 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'O' in section .text+0x58 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'O' in section .text+0x5a file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol O in section .text+0x58 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'P' in section .text+0x5e file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'P' in section .text+0x60 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol P in section .text+0x5e file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'Q' in section .text+0x64 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'Q' in section .text+0x66 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol Q in section .text+0x64 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'R' in section .text+0x6a file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'R' in section .text+0x6c file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol R in section .text+0x6a file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'S' in section .text+0x70 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'S' in section .text+0x72 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol S in section .text+0x70 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'T' in section .text+0x76 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'T' in section .text+0x78 file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol T in section .text+0x76 file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 2 bytes for symbol 'U' in section .text+0x7c file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : Deleting 2 bytes for symbol 'U' in section .text+0x7e file {{.*}}1.o
+VERBOSE: RISCV_LUI_C : relaxing instruction 0x00000537 to compressed instruction 0x6501 for symbol U in section .text+0x7c file {{.*}}1.o
+VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'D' in section .text+0x82 file {{.*}}1.o
 VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'D' in section .text+0x8a file {{.*}}1.o
-VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'D' in section .text+0x92 file {{.*}}1.o
 VERBOSE-NOT: RISCV_LUI_C
 
 RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
 MAP: # LinkStats Begin
-MAP: # RelaxationBytesDeleted : 30
-MAP: # RelaxationBytesMissed : 62
+MAP: # RelaxationBytesDeleted : 38
+MAP: # RelaxationBytesMissed : 54
 MAP: # LinkStats End
 
 MAP: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
-MAP: # RelaxationBytesDeleted : 30
-MAP: # RelaxationBytesMissed : 62
+MAP: # RelaxationBytesDeleted : 38
+MAP: # RelaxationBytesMissed : 54
 MAP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
 
 RUN: %objdump --no-print-imm-hex -d %t.1.out 2>&1 | %filecheck %s
 
 CHECK: <.text>:
 
-## TODO: zero page relaxation is not supported yet
-## TODO: 00002503  	lw	a0, 0(zero)
-## TODO: 7fc02503  	lw	a0, 2044(zero)
-## TODO: 80402503  	lw	a0, -2044(zero)
+## See above for relaxation of absolute zeroes.
+VERBOSE-ZERO-NEXT: 00002503  	lw	a0, 0(zero)
 
-CHECK-NEXT: 00000537  	lui	a0, 0
-CHECK-NEXT: 00052503  	lw	a0, 0(a0)
-CHECK-NEXT: 00000537  	lui	a0, 0
-CHECK-NEXT: 7fc52503  	lw	a0, 2044(a0)
-CHECK-NEXT: 00000537  	lui	a0, 0
-CHECK-NEXT: 80452503  	lw	a0, -2044(a0)
+CHECK-NEXT: 00000537      lui     a0, 0
+CHECK-NEXT: 00052503      lw      a0, 0(a0)
+CHECK-NEXT: 7fc02503  	lw	a0, 2044(zero)
+CHECK-NEXT: 80402503  	lw	a0, -2044(zero)
 
 ## positive addresses
 CHECK-NEXT: 6505      	lui	a0, 1

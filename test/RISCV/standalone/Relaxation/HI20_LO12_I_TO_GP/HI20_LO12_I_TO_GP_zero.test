@@ -1,0 +1,5 @@
+# Check that relaxation does not occur for zero values even when they reachable from GP.
+
+RUN: %clang %clangopts -O2 -c  %p/Inputs/gp-zero.c -o %t.gp-zero.o
+RUN: %link %linkopts --verbose %t.gp-zero.o -o %t.gp-zero.out -T %p/Inputs/gp-zero.t 2>&1 | %filecheck %s --check-prefix=VERBOSE
+VERBOSE: RISCV_LUI_GP : Cannot relax 4 bytes for symbol 'near' in section .text+0x0 file {{.*}}.o
