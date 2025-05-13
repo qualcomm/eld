@@ -1,0 +1,27 @@
+#---NonAllocSectionSymbolAssignment.test--------------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks that the linker properly evaluates symbol assignments in
+# non-alloc sections and that the layout is correct when non-alloc sections
+# contain symbol assignments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -g
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: (%readelf -sS %t1.1.out && %readelf -S %t1.1.out) | %filecheck %s -check-prefix=READELF1
+
+RUN: %link %linkopts -o %t1.1.2.out %t1.1.o -T %p/Inputs/script.2.t
+RUN: %readelf -sS %t1.1.2.out | %filecheck %s -check-prefix=READELF2
+
+READELF1: .foo PROGBITS [[#%x,FOO_ADDRESS:]] [[#%x,FOO_OFFSET:]] [[#%x,FOO_SIZE:]] {{.*}} AX 0 0 [[#%u,FOO_ALIGNMENT:]]
+READELF1: debug_info PROGBITS {{[a-z0-9]+}} {{[a-z0-9]+}} [[#%x,DEBUG_INFO_SIZE:]]
+READELF1: TEXT PROGBITS {{0+}}[[#%x,FOO_ADDRESS+max(FOO_SIZE,FOO_ALIGNMENT)]] {{0+}}[[#%x,FOO_OFFSET+max(FOO_SIZE,FOO_ALIGNMENT)]] [[#%x,TEXTSIZE:]]
+READELF1: {{.*}}: [[#%x,START_VALUE:]] {{.*}} start
+READELF1: {{.*}}: {{0+}}[[#%x,START_VALUE+DEBUG_INFO_SIZE]] {{.*}} end
+READELF1: debug_info PROGBITS {{[a-z0-9]+}} {{0+}}[[#%x,FOO_OFFSET+max(FOO_SIZE,FOO_ALIGNMENT)+TEXTSIZE]]
+
+READELF2: .foo PROGBITS [[#%x,FOO_ADDRESS:]] {{[a-z0-9]+}} [[#%x,FOO_SIZE:]] {{.*}} AX 0 0 [[#%u,FOO_ALIGNMENT:]]
+READELF2: mytext PROGBITS {{0+}}[[#%x,FOO_ADDRESS+max(FOO_SIZE,FOO_ALIGNMENT)+0x100]]
+READELF2-DAG: {{.*}}: {{0+}}[[#%x,MY_START_VALUE:FOO_ADDRESS+FOO_SIZE+0x100]] {{.*}} my_start
+READELF2-DAG: {{.*}}: {{0+}}[[#%x,MY_START_VALUE]] {{.*}} my_end
+
+#END_TEST
