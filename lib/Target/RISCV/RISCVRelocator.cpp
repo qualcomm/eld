@@ -70,13 +70,6 @@ typedef std::unordered_map<Relocator::Type, RelocationDescription>
     }                                                                          \
   }
 
-#define ELD_RELOC_DESC_ENTRY(type, fptr)                                       \
-  {                                                                            \
-    eld::ELF::type, {                                                          \
-      /*func=*/fptr, /*type=*/eld::ELF::type, /*forceVerify=*/false            \
-    }                                                                          \
-  }
-
 #define INTERNAL_RELOC_DESC_ENTRY(type, fptr)                                  \
   {                                                                            \
     eld::ELF::riscv::internal::type, {                                         \
@@ -141,11 +134,11 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_VENDOR, applyVendor),
 
     /* Internal Relocations for Relaxation */
-    ELD_RELOC_DESC_ENTRY(R_RISCV_RVC_LUI, applyCompressedLUI),
-    ELD_RELOC_DESC_ENTRY(R_RISCV_GPREL_I, applyGPRel),
-    ELD_RELOC_DESC_ENTRY(R_RISCV_GPREL_S, applyGPRel),
-    ELD_RELOC_DESC_ENTRY(R_RISCV_TPREL_I, unsupported),
-    ELD_RELOC_DESC_ENTRY(R_RISCV_TPREL_S, unsupported),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_RVC_LUI, applyCompressedLUI),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_GPREL_I, applyGPRel),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_GPREL_S, applyGPRel),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_I, unsupported),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_S, unsupported),
 
     /* Vendor Relocations: QUALCOMM */
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_ABS20_U, applyAbs),
@@ -155,7 +148,6 @@ RelocationDescMap RelocDescs = {
 };
 
 #undef INTERNAL_RELOC_DESC_ENTRY
-#undef ELD_RELOC_DESC_ENTRY
 #undef PUBLIC_RELOC_DESC_ENTRY
 
 } // anonymous namespace

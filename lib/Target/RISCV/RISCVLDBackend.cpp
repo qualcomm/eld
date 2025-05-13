@@ -374,7 +374,7 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
       // Replace encoding and relocation type, keep the register.
       unsigned compressed = 0x6001u | rd << 7;
       reloc->setTargetData(compressed);
-      reloc->setType(eld::ELF::R_RISCV_RVC_LUI);
+      reloc->setType(ELF::riscv::internal::R_RISCV_RVC_LUI);
       relaxDeleteBytes("RISCV_LUI_C", *region, offset + 2, 2,
                        reloc->symInfo()->name());
       if (m_Module.getPrinter()->isVerbose())
@@ -405,10 +405,10 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
   Relocation::Type new_type = 0x0;
   switch (type) {
   case llvm::ELF::R_RISCV_LO12_I:
-    new_type = ELF::R_RISCV_GPREL_I;
+    new_type = ELF::riscv::internal::R_RISCV_GPREL_I;
     break;
   case llvm::ELF::R_RISCV_LO12_S:
-    new_type = ELF::R_RISCV_GPREL_S;
+    new_type = ELF::riscv::internal::R_RISCV_GPREL_S;
     break;
   default:
     ASSERT(0, "Unexpected relocation type for RISCV_LUI_GP");
@@ -564,10 +564,10 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
   Relocation::Type type = reloc->type();
   switch (type) {
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
-    new_type = ELF::R_RISCV_GPREL_I;
+    new_type = ELF::riscv::internal::R_RISCV_GPREL_I;
     break;
   case llvm::ELF::R_RISCV_PCREL_LO12_S:
-    new_type = ELF::R_RISCV_GPREL_S;
+    new_type = ELF::riscv::internal::R_RISCV_GPREL_S;
     break;
   default:
     break;
