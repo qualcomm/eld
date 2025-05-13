@@ -41,6 +41,15 @@ def no_riscv_relax_compressed
       HelpText<"Disable relaxation to compressed instructions">,
       Group<grp_riscv_linker>;
 
+def riscv_relax_xqci
+    : Flag<["--"], "relax-xqci">,
+      HelpText<"Enable relaxing to/from Xqci instructions">,
+      Group<grp_riscv_linker>;
+def no_riscv_relax_xqci
+    : Flag<["--"], "no-relax-xqci">,
+      HelpText<"Disable relaxing to/from Xqci instructions (default behavior)">,
+      Group<grp_riscv_linker>;
+
 def riscv_relax : Flag<["--"], "relax">,
                   HelpText<"Enable relaxation (default behavior)">,
                   Group<grp_riscv_linker>;
