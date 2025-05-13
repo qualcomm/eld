@@ -116,6 +116,11 @@ opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_riscv_relax_compressed))
     Config.options().setRISCVRelaxToC(false);
 
+  // --relax-xqci (default), --no-relax-xqci
+  Config.options().setRISCVRelaxXqci(
+      ArgList.hasFlag(OPT_RISCVLinkOptTable::riscv_relax_xqci,
+                      OPT_RISCVLinkOptTable::no_riscv_relax_xqci, true));
+
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))
     Config.options().setAllowBSSMixing(true);
