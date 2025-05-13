@@ -2,6 +2,8 @@
   .text
   .p2align 1
 
+  .option exact
+
   .set test_zero, 0
   .set test_hi, 524287
   .set test_lo, -524288

@@ -2,6 +2,8 @@
   .text
   .p2align 1
 
+  .option exact
+
 QUALCOMM:
 
 test_before_4kib:

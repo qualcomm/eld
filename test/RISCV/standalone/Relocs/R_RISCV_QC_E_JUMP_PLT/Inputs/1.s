@@ -2,6 +2,8 @@
   .text
   .p2align 1
 
+  .option exact
+
   .set test_zero, 0x0
   .set test_distinct, 0xabcdef78
   .set test_fffe, 0xfffffffe
