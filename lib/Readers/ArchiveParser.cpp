@@ -10,7 +10,7 @@
 #include "eld/Input/ArchiveFile.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/InputFile.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/ObjectLinker.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/Expected.h"
@@ -102,7 +102,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   // include the needed members in the archive and build up the input tree
   bool willSymResolved = false;
   InputFile *referredSite = nullptr;
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
   config.raise(Diag::verbose_performing_archive_symbol_resolution)
       << inputFile.getInput()->decoratedPath();
   do {
@@ -388,7 +388,7 @@ ArchiveParser::createMemberInput(llvm::object::Archive &archiveReader,
 
 eld::Expected<uint32_t>
 ArchiveParser::includeAllMembers(ArchiveFile *archive) const {
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
   uint32_t IncludeMemberCount = 0;
   for (Input *member : archive->getAllMembers()) {
     if (includeMember(member)) {
@@ -420,7 +420,7 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   // TODO: handle symbol version issue and user defined symbols
   const ResolveInfo *info = m_Module.getNamePool().findInfo(sym.Name);
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
 
   if (!info)
     return ArchiveFile::Symbol::Unknown;

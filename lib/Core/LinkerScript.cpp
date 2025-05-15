@@ -67,8 +67,8 @@ void LinkerScript::printPluginTimers(llvm::raw_ostream &OS) {
 // FIXME: This member function does not need a reference argument
 // to the same class object.
 void LinkerScript::createSectionMap(LinkerScript &L, const LinkerConfig &Config,
-                                    LayoutPrinter *LayoutPrinter) {
-  OutputSectionMap = make<SectionMap>(L, Config, LayoutPrinter);
+                                    LayoutInfo *LayoutInfo) {
+  OutputSectionMap = make<SectionMap>(L, Config, LayoutInfo);
 }
 
 void LinkerScript::insertPhdrSpec(const PhdrSpec &PhdrsSpec) {
@@ -186,7 +186,7 @@ void LinkerScript::addSectionOverride(plugin::LinkerWrapper *W, eld::Module *M,
   if (M->getPrinter()->isVerbose())
     Diag->raise(Diag::added_section_override)
         << W->getPlugin()->getPluginName() << O << S->name() << Annotation;
-  LayoutPrinter *Printer = M->getLayoutPrinter();
+  LayoutInfo *Printer = M->getLayoutInfo();
   if (!Printer)
     return;
   Printer->recordSectionOverride(W, Op);
@@ -195,7 +195,7 @@ void LinkerScript::addSectionOverride(plugin::LinkerWrapper *W, eld::Module *M,
 void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
                                   const ResolveInfo *S) {
   RemoveSymbolPluginOp *Op = make<RemoveSymbolPluginOp>(W, "", S);
-  LayoutPrinter *Printer = M->getLayoutPrinter();
+  LayoutInfo *Printer = M->getLayoutInfo();
   if (!Printer)
     return;
   Printer->recordRemoveSymbol(W, Op);
@@ -252,7 +252,7 @@ eld::Expected<void> LinkerScript::addChunkOp(plugin::LinkerWrapper *W,
 
   W->getPlugin()->recordFragmentAdd(R, F);
 
-  LayoutPrinter *Printer = M->getLayoutPrinter();
+  LayoutInfo *Printer = M->getLayoutInfo();
   if (!Printer)
     return {};
   Printer->recordAddChunk(W, Op);
@@ -284,7 +284,7 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
             R->getAsString(),
             F->getOutputELFSection()->getDecoratedName(Config.options())});
 
-  LayoutPrinter *Printer = M->getLayoutPrinter();
+  LayoutInfo *Printer = M->getLayoutInfo();
   if (!Printer)
     return {};
   Printer->recordRemoveChunk(W, Op);
@@ -297,7 +297,7 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
 eld::Expected<void> LinkerScript::updateChunksOp(
     plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
     std::vector<eld::Fragment *> &Frags, std::string Annotation) {
-  LayoutPrinter *Printer = M->getLayoutPrinter();
+  LayoutInfo *Printer = M->getLayoutInfo();
   if (Printer) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::Start, Annotation);
@@ -434,7 +434,7 @@ llvm::StringRef LinkerScript::saveString(std::string S) {
 }
 
 bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
-  LayoutPrinter *Printer = M.getLayoutPrinter();
+  LayoutInfo *Printer = M.getLayoutInfo();
   LinkerConfig &Config = M.getConfig();
 
   ASSERT(!P.getID(), "Plugin " + P.getPluginName() + " is already loaded!");

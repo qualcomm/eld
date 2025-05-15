@@ -1179,7 +1179,7 @@ bool ScriptParser::readInclude() {
   skip();
   bool IsOptionalInclude = Tok == "INCLUDE_OPTIONAL";
   llvm::StringRef FileName = unquote(next());
-  LayoutPrinter *LP = ThisScriptFile.module().getLayoutPrinter();
+  LayoutInfo *LP = ThisScriptFile.module().getLayoutInfo();
   bool Result = true;
   std::string ResolvedFileName = ThisScriptFile.findIncludeFile(
       FileName.str(), Result, /*state=*/!IsOptionalInclude);

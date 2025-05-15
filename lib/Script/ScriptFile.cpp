@@ -421,7 +421,7 @@ void ScriptFile::addInputSectDesc(InputSectDesc::Policy PPolicy,
   assert(!LinkerScriptCommandQueue.empty());
   assert(ScriptStateInSectionsCommmand);
 
-  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule.getLayoutInfo();
 
   assert(!LinkerScriptSectionsCommand->empty() &&
          ScriptStateInsideOutputSection);
@@ -650,7 +650,7 @@ void ScriptFile::addOutputSectData(OutputSectData::OSDKind DataKind,
                                    Expression *Expr) {
   assert(ScriptStateInSectionsCommmand);
 
-  LayoutPrinter *Printer = ThisModule.getLayoutPrinter();
+  LayoutInfo *Printer = ThisModule.getLayoutInfo();
   if (Printer)
     Printer->recordLinkerScriptRule();
 

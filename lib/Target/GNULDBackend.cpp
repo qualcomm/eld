@@ -30,7 +30,7 @@
 #include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputTree.h"
-#include "eld/LayoutMap/LayoutPrinter.h"
+#include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/LayoutMap/YamlLayoutPrinter.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -225,7 +225,7 @@ void GNULDBackend::insertTimingFragmentStub() {
   llvm::StringRef moduleName = Saver.save(config().options().outputFileName());
   TimingFragment *F = make<TimingFragment>(0, 0, moduleName, m_pTiming);
   m_pTiming->addFragmentAndUpdateSize(F);
-  LayoutPrinter *P = m_Module.getLayoutPrinter();
+  LayoutInfo *P = m_Module.getLayoutInfo();
   if (P)
     P->recordFragment(F->getOwningSection()->getInputFile(),
                       F->getOwningSection(), F);
@@ -314,7 +314,7 @@ eld::Expected<void> GNULDBackend::initStdSections() {
     F = make<StringFragment>(m_pInfo->dyld(), interp);
   interp->addFragmentAndUpdateSize(F);
 
-  LayoutPrinter *P = m_Module.getLayoutPrinter();
+  LayoutInfo *P = m_Module.getLayoutInfo();
 
   if (P)
     P->recordFragment(F->getOwningSection()->getInputFile(),
@@ -958,7 +958,7 @@ void GNULDBackend::sizeSymTab() {
 
 bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
   Fragment *F = nullptr;
-  static LayoutPrinter *P = m_Module.getLayoutPrinter();
+  static LayoutInfo *P = m_Module.getLayoutInfo();
   if (!S->size() || S->isNoBits())
     F = make<FillFragment>(getModule(), 0x0, S->size(), S, S->getAddrAlign());
   else {
@@ -2699,7 +2699,7 @@ bool GNULDBackend::placeOutputSections() {
   bool isError = false;
   LinkerScript &script = m_Module.getScript();
   SectionMap &sectionMap = script.sectionMap();
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
   {
     eld::RegisterTimer T("Select Sections Needed in Output",
                          "Place Output Sections",
@@ -3279,7 +3279,7 @@ bool GNULDBackend::postLayout() {
   eld::RegisterTimer T("Do Post Layout", "Post-Layout",
                        m_Module.getConfig().options().printTimingStats());
   size_t sectionIdx = 0;
-  LayoutPrinter *printer = m_Module.getLayoutPrinter();
+  LayoutInfo *printer = m_Module.getLayoutInfo();
   std::vector<ELFSection *> outputSections;
   for (auto &out : m_Module.getScript().sectionMap()) {
     ELFSection *cur = out->getSection();
@@ -4107,7 +4107,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
                                                  ResolveInfo *pSym,
                                                  ResolveInfo *origSym) {
 
-  LayoutPrinter *layoutPrinter = m_Module.getLayoutPrinter();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   ResolveInfo *curSym = pSym;
   ResolveInfo *aliasSym = pSym->alias();
 
@@ -4161,8 +4161,8 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
   Fragment *frag = make<FillFragment>(getModule(), 0x0, pSym->size(),
                                       copyRelocSect, addralign);
   copyRelocSect->addFragmentAndUpdateSize(frag);
-  if (layoutPrinter)
-    layoutPrinter->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
+  if (layoutInfo)
+    layoutInfo->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
                                   frag);
 
   // change symbol binding to Global if it's a weak symbol
@@ -4364,7 +4364,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       return true;
 
     std::vector<ELFSection *> PluginSections;
-    LayoutPrinter *Printer = m_Module.getLayoutPrinter();
+    LayoutInfo *Printer = m_Module.getLayoutInfo();
     ObjectBuilder builder(config(), m_Module);
 
     // Build the memory blocks.
@@ -4683,7 +4683,7 @@ void GNULDBackend::makeVersionString() {
     VersionString += " LTO Enabled ";
   Fragment *F = make<StringFragment>(VersionString, m_pComment);
   m_pComment->addFragmentAndUpdateSize(F);
-  LayoutPrinter *P = m_Module.getLayoutPrinter();
+  LayoutInfo *P = m_Module.getLayoutInfo();
   if (P)
     P->recordFragment(F->getOwningSection()->getInputFile(),
                       F->getOwningSection(), F);
