@@ -325,6 +325,7 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
 
   // First, try zero-page relaxation. It's the cheapest and does not need GP.
   bool canRelaxZero = config().options().getRISCVRelax() &&
+                      config().options().getRISCVZeroRelax() &&
                       llvm::isInt<12>(Value) && S != 0;
 
   // HI will be deleted, LO will be converted to use GP as base.

@@ -28,9 +28,13 @@ def no_riscv_relax : Flag<["--"], "no-relax">,
                      HelpText<"Disable relaxation">,
                      Group<grp_riscv_linker>;
 
+def no_relax_zero : Flag<["--"], "no-relax-zero">,
+                    HelpText<"Disable zero-page relaxation">,
+                    Group<grp_riscv_linker>;
+
 def no_relax_gp : Flag<["--"], "no-relax-gp">,
-                     HelpText<"Disable GP relaxation">,
-                     Group<grp_riscv_linker>;
+                  HelpText<"Disable GP relaxation">,
+                  Group<grp_riscv_linker>;
 
 def no_riscv_relax_compressed
     : Flag<["--"], "no-relax-c">,

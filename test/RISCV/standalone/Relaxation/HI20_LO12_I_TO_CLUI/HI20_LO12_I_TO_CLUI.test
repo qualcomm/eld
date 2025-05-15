@@ -169,3 +169,7 @@ CHECK-NEXT: 00001037  	lui	zero, 1
 CHECK-NEXT: 80402503  	lw	a0, -2044(zero)
 CHECK-NEXT: 00001137  	lui	sp, 1
 CHECK-NEXT: 80412503  	lw	a0, -2044(sp)
+
+RUN: %clang %clangopts -c  %p/Inputs/1.s -o %t.1.o
+RUN: %link %linkopts -MapStyle txt -Map %t.1.map --verbose --no-relax-zero %t.1.o -o %t.1.no-relax-zero.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-RELAX-ZERO
+VERBOSE-NO-RELAX-ZERO-NOT: RISCV_LUI_ZERO : Deleting [[#]] bytes
