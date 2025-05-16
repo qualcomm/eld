@@ -141,10 +141,10 @@ public:
   size_t numOfBytes() const;
 
   /// reserveEntries - reserve entries
-  void reserveEntries(const ELFFileFormat &pFormat, Module &pModule);
+  void reserveEntries(ELFFileFormat &pFormat, Module &pModule);
 
   /// reserveNeedEntry - reserve on DT_NEED entry.
-  void reserveNeedEntry();
+  elf_dynamic::EntryIF *reserveNeedEntry();
 
   /// applyEntries - apply entries
   void applyEntries(const ELFFileFormat &pFormat, const Module &pModule);
@@ -161,12 +161,6 @@ public:
   void emit(const ELFSection &pSection, MemoryRegion &pRegion) const;
 
   static std::string TagToString(uint64_t Tag);
-
-  void addDTNeededLib(const ELFDynObjectFile &dynObjFile);
-
-  const std::vector<const ELFDynObjectFile *> &getDTNeededLibs() const {
-    return DTNeededLibs;
-  }
 
 protected:
   /// reserveTargetEntries - reserve target dependent entries
@@ -192,7 +186,6 @@ private:
   // For better performance, we use a simple counter and apply entry one-by-one
   // by the counter. m_Idx is the counter indicating to the entry being applied.
   size_t m_Idx;
-  std::vector<const ELFDynObjectFile *> DTNeededLibs;
 
 protected:
   GNULDBackend &m_Backend;

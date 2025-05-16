@@ -128,10 +128,13 @@ void ELFDynamic::applyOne(uint64_t pTag, uint64_t pValue) {
 }
 
 /// reserveEntries - reserve entries
-void ELFDynamic::reserveEntries(const ELFFileFormat &pFormat, Module &pModule) {
+void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
   if (LinkerConfig::DynObj == m_Config.codeGenType()) {
-    if (pModule.getSection(".dynstr") && !m_Config.options().soname().empty())
+    // DT_SONAME is the 0th entry in the dynamic section.
+    if (pModule.getSection(".dynstr") && !m_Config.options().soname().empty()) {
       reserveOne(llvm::ELF::DT_SONAME); // DT_SONAME
+      applySoname(pFormat.addStringToDynStrTab(m_Config.options().soname()));
+    }
 
     if (m_Config.options().bsymbolic())
       reserveOne(llvm::ELF::DT_SYMBOLIC); // DT_SYMBOLIC
@@ -403,8 +406,9 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
 size_t ELFDynamic::symbolSize() const { return m_pEntryFactory->symbolSize(); }
 
 /// reserveNeedEntry - reserve on DT_NEED entry.
-void ELFDynamic::reserveNeedEntry() {
+elf_dynamic::EntryIF * ELFDynamic::reserveNeedEntry() {
   m_NeedList.push_back(m_pEntryFactory->clone());
+  return m_NeedList.back();
 }
 
 /// emit
@@ -428,7 +432,3 @@ void ELFDynamic::applySoname(uint64_t pStrTabIdx) {
   applyOne(llvm::ELF::DT_SONAME, pStrTabIdx); // DT_SONAME
 }
 
-void ELFDynamic::addDTNeededLib(const ELFDynObjectFile &dynObjFile) {
-  reserveNeedEntry();
-  DTNeededLibs.push_back(&dynObjFile);
-}

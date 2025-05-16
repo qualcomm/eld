@@ -61,6 +61,46 @@ public:
 
   std::vector<ELFSection *> &getSections() { return f_pSections; }
 
+  std::size_t addStringToDynStrTab(const std::string &S) {
+    return DynamicStringTableContents.addString(S);
+  }
+
+  std::size_t getDynStrTabSize() const {
+    return DynamicStringTableContents.size();
+  }
+
+  std::optional<std::size_t> getOffsetInDynStrTab(const std::string &S) const {
+    return DynamicStringTableContents.getOffset(S);
+  }
+
+  const std::string &getDynStrTabContents() const {
+    return DynamicStringTableContents.Strings;
+  }
+
+private:
+  struct StringTableContents {
+    std::string Strings = std::string(1, '\0');
+    std::unordered_map<std::string, std::size_t> StringOffsets;
+
+    std::size_t addString(const std::string &S) {
+      auto iter = StringOffsets.find(S);
+      if (iter != StringOffsets.end())
+        return iter->second;
+      std::size_t Offset = Strings.size();
+      Strings += S + std::string(1, '\0');
+      return StringOffsets[S] = Offset;
+    }
+
+    std::size_t size() const { return Strings.size(); }
+
+    std::optional<std::size_t> getOffset(const std::string &S) const {
+      auto iter = StringOffsets.find(S);
+      if (iter != StringOffsets.end())
+        return iter->second;
+      return std::nullopt;
+    }
+  };
+
 private:
   ELFSection *createFileFormatSection(Module &pModule, llvm::StringRef pName,
                                       LDFileFormat::Kind pKind, uint32_t pType,
@@ -75,6 +115,7 @@ private:
 
   // House all the sections in this vector for convenient iteration
   std::vector<ELFSection *> f_pSections;
+  StringTableContents DynamicStringTableContents;
 };
 
 } // namespace eld

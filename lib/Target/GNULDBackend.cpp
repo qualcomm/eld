@@ -855,45 +855,50 @@ void GNULDBackend::createEhFrameFillerAndHdrSection() {
 void GNULDBackend::sizeDynamic() {
   eld::RegisterTimer T("Create Dynamic Output Section", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
-  size_t dynstr =
-      (config().isCodeStatic() && !config().options().forceDynamic()) ? 0 : 1;
-
-  if (!dynstr)
+  if (config().isCodeStatic() && !config().options().forceDynamic()) {
     return;
-
+  }
+  ELFFileFormat *FileFormat = getOutputFormat();
+  ASSERT(FileFormat, "Must not be null!");
   size_t symIdx = 0;
   for (auto &DynSym : DynamicSymbols) {
     m_pDynSymIndexMap[DynSym->outSymbol()] = symIdx;
-    dynstr += (std::string(DynSym->name()).size() + 1);
+    FileFormat->addStringToDynStrTab(std::string(DynSym->name()));
     ++symIdx;
   }
   if (config().codeGenType() == LinkerConfig::DynObj) {
     if (!config().options().soname().empty())
-      dynstr += config().options().soname().size() + 1;
+      FileFormat->addStringToDynStrTab(config().options().soname());
   }
 
   // add DT_NEEDED
-  {
-    std::unordered_set<MemoryArea *> addedLibs;
-    for (auto &lib : m_Module.getDynLibraryList()) {
-      if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
-        const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
-        if (addedLibs.count(dynObjFile->getInput()->getMemArea()))
+  std::unordered_set<MemoryArea *> addedLibs;
+  for (auto &lib : m_Module.getDynLibraryList()) {
+    if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
+      const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
+      if (addedLibs.count(dynObjFile->getInput()->getMemArea()))
           continue;
-        dynstr += dynObjFile->getSOName().size() + 1;
-        dynamic()->addDTNeededLib(*dynObjFile);
-        addedLibs.insert(dynObjFile->getInput()->getMemArea());
-      }
+      addedLibs.insert(dynObjFile->getInput()->getMemArea());
+      std::size_t SONameOffset = FileFormat->addStringToDynStrTab(
+          dynObjFile->getSOName());
+      auto DTEntry = dynamic()->reserveNeedEntry();
+      DTEntry->setValue(llvm::ELF::DT_NEEDED, SONameOffset);
     }
   }
 
   // add DT_RUNPATH
   if (!config().options().getRpathList().empty()) {
-    dynamic()->reserveNeedEntry();
+    auto DTEntry = dynamic()->reserveNeedEntry();
+    std::string RunPath;
     GeneralOptions::const_rpath_iterator rpath,
         rpathEnd = config().options().rpathEnd();
-    for (rpath = config().options().rpathBegin(); rpath != rpathEnd; ++rpath)
-      dynstr += (*rpath).size() + 1;
+    for (rpath = config().options().rpathBegin(); rpath != rpathEnd; ++rpath) {
+      RunPath += *rpath;
+      if (rpath + 1 != rpathEnd)
+        RunPath += ":";
+    }
+    std::size_t RunPathOffset = FileFormat->addStringToDynStrTab(RunPath);
+    DTEntry->setValue(llvm::ELF::DT_RUNPATH, RunPathOffset);
   }
   // set size
   if (config().targets().is32Bits()) {
@@ -904,7 +909,7 @@ void GNULDBackend::sizeDynamic() {
                                                sizeof(llvm::ELF::Elf64_Sym));
   }
   dynamic()->reserveEntries(*getOutputFormat(), m_Module);
-  getOutputFormat()->getDynStrTab()->setSize(dynstr);
+  getOutputFormat()->getDynStrTab()->setSize(FileFormat->getDynStrTabSize());
   getOutputFormat()->getDynamic()->setSize(dynamic()->numOfBytes());
 }
 
@@ -999,12 +1004,20 @@ void GNULDBackend::markSymbolForRemoval(const ResolveInfo *S) {
 /// emitSymbol32 - emit an ELF32 symbol
 void GNULDBackend::emitSymbol32(llvm::ELF::Elf32_Sym &pSym, LDSymbol *pSymbol,
                                 char *pStrtab, size_t pStrtabsize,
-                                size_t pSymtabIdx) {
+                                size_t pSymtabIdx, bool IsDynSymTab) {
   if (pSymbol->type() == ResolveInfo::Section)
     pSym.st_name = 0;
   else {
-    pSym.st_name = pStrtabsize;
-    strcpy((pStrtab + pStrtabsize), pSymbol->name());
+    if (IsDynSymTab) {
+      auto optSymNameOffset =
+          getOutputFormat()->getOffsetInDynStrTab(std::string(pSymbol->name()));
+      ASSERT(optSymNameOffset.has_value(),
+             "Symbol name must be present in .dynstr!");
+      pSym.st_name = optSymNameOffset.value();
+    } else {
+      pSym.st_name = pStrtabsize;
+      strcpy((pStrtab + pStrtabsize), pSymbol->name());
+    }
   }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
     pSym.st_value = 0;
@@ -1019,12 +1032,22 @@ void GNULDBackend::emitSymbol32(llvm::ELF::Elf32_Sym &pSym, LDSymbol *pSymbol,
 /// emitSymbol64 - emit an ELF64 symbol
 void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
                                 char *pStrtab, size_t pStrtabsize,
-                                size_t pSymtabIdx) {
+                                size_t pSymtabIdx, bool IsDynSymTab) {
   if (pSymbol->type() == ResolveInfo::Section)
     pSym.st_name = 0;
-  else
-    pSym.st_name = pStrtabsize;
-  strcpy((pStrtab + pStrtabsize), pSymbol->name());
+  else {
+    if (IsDynSymTab) {
+      auto optSymNameOffset =
+          getOutputFormat()->getOffsetInDynStrTab(std::string(pSymbol->name()));
+      ASSERT(optSymNameOffset.has_value(), "Symbol name (" +
+                                               std::string(pSymbol->name()) +
+                                               ") must be present in .dynstr!");
+      pSym.st_name = optSymNameOffset.value();
+    } else {
+      pSym.st_name = pStrtabsize;
+      strcpy((pStrtab + pStrtabsize), pSymbol->name());
+    }
+  }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
     pSym.st_value = 0;
   else
@@ -1093,9 +1116,9 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
 
   // emit the first ELF symbol
   if (config().targets().is32Bits())
-    emitSymbol32(symtab32[0], LDSymbol::null(), strtab, 0, 0);
+    emitSymbol32(symtab32[0], LDSymbol::null(), strtab, 0, 0, /*IsDynSymTab=*/false);
   else
-    emitSymbol64(symtab64[0], LDSymbol::null(), strtab, 0, 0);
+    emitSymbol64(symtab64[0], LDSymbol::null(), strtab, 0, 0, /*IsDynSymTab=*/false);
 
   m_pSymIndexMap[LDSymbol::null()] = 0;
 
@@ -1113,10 +1136,10 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
     }
     if (config().targets().is32Bits())
       emitSymbol32(symtab32[symIdx], S->outSymbol(), strtab, strtabsize,
-                   symIdx);
+                   symIdx, /*IsDynSymTab=*/false);
     else
       emitSymbol64(symtab64[symIdx], S->outSymbol(), strtab, strtabsize,
-                   symIdx);
+                   symIdx, /*IsDynSymTab=*/false);
     if ((S->isGlobal() || S->isWeak()) && !firstNonLocal)
       firstNonLocal = symIdx;
     strtabsize += std::string(S->name()).size() + 1;
@@ -1196,6 +1219,14 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
     strtab = (char *)strtab_region.begin();
   }
 
+  if (strtab) {
+    ELFFileFormat *FileFormat = getOutputFormat();
+    ASSERT(FileFormat, "Must not be null!");
+    const std::string &DynStrTabContents = FileFormat->getDynStrTabContents();
+    ASSERT(strtab_sect->size() == DynStrTabContents.size(),
+           "Size must be same!");
+    memcpy(strtab, DynStrTabContents.c_str(), DynStrTabContents.size());
+  }
   size_t symIdx = 0;
   size_t strtabsize = 0;
 
@@ -1205,10 +1236,10 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
     for (auto &D : DynamicSymbols) {
       if (config().targets().is32Bits())
         emitSymbol32(symtab32[symIdx], D->outSymbol(), strtab, strtabsize,
-                     symIdx);
+                     symIdx, /*IsDynSymTab=*/true);
       else
         emitSymbol64(symtab64[symIdx], D->outSymbol(), strtab, strtabsize,
-                     symIdx);
+                     symIdx, /*IsDynSymTab=*/true);
       if ((D->isGlobal() || D->isWeak()) && !firstNonLocal)
         firstNonLocal = symIdx;
       symIdx++;
@@ -1219,53 +1250,12 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
   if (firstNonLocal)
     symtab_sect->setInfo(*firstNonLocal);
 
-  // emit DT_NEED
-  // add DT_NEED strings into .dynstr
-  if (strtab) {
-    ELFDynamic::iterator dt_need = dynamic()->needBegin();
-    for (auto &lib : dynamic()->getDTNeededLibs()) {
-      strcpy((strtab + strtabsize),
-             llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().c_str());
-      (*dt_need)->setValue(llvm::ELF::DT_NEEDED, strtabsize);
-      strtabsize +=
-          llvm::dyn_cast<ELFDynObjectFile>(lib)->getSOName().size() + 1;
-      ++dt_need;
-    }
-
-    if (!config().options().getRpathList().empty()) {
-      (*dt_need)->setValue(llvm::ELF::DT_RUNPATH, strtabsize);
-      ++dt_need;
-
-      GeneralOptions::const_rpath_iterator rpath,
-          rpathEnd = config().options().rpathEnd();
-      for (rpath = config().options().rpathBegin(); rpath != rpathEnd;
-           ++rpath) {
-        memcpy((strtab + strtabsize), (*rpath).data(), (*rpath).size());
-        strtabsize += (*rpath).size();
-        strtab[strtabsize++] = (rpath + 1 == rpathEnd ? '\0' : ':');
-      }
-    }
-  }
-
-  // initialize value of ELF .dynamic section
-  if (LinkerConfig::DynObj == config().codeGenType() &&
-      !config().options().soname().empty()) {
-    // set pointer to SONAME entry in dynamic string table.
-    dynamic()->applySoname(strtabsize);
-  }
   dynamic()->applyEntries(*getOutputFormat(), m_Module);
 
   if (dyn_sect->getKind() != LDFileFormat::Null) {
     MemoryRegion dyn_region =
         getFileOutputRegion(pOutput, dyn_sect->offset(), dyn_sect->size());
     dynamic()->emit(*dyn_sect, dyn_region);
-  }
-
-  // emit soname
-  if (strtab && LinkerConfig::DynObj == config().codeGenType() &&
-      !config().options().soname().empty()) {
-    strcpy((strtab + strtabsize), config().options().soname().c_str());
-    strtabsize += config().options().soname().size() + 1;
   }
 
   return true;
