@@ -10,8 +10,6 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
   add_llvm_library(findconfig ${SHARED_LIB_SOURCES} LINK_LIBS
                    LW)
 
-  target_compile_definitions(findconfig PRIVATE IN_DLL)
-
   set(BUILD_SHARED_LIBS ${bsl})
 
 endif()

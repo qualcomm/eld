@@ -4,15 +4,9 @@
 #include "PluginVersion.h"
 #include <string>
 
-#ifdef _WIN32
-#define DLL_EXPORT __declspec(dllexport)
-#else
-#define DLL_EXPORT
-#endif
-
 using namespace eld::plugin;
 
-class DLL_EXPORT MissingINIFile : public OutputSectionIteratorPlugin {
+class DLL_A_EXPORT MissingINIFile : public OutputSectionIteratorPlugin {
 
 public:
   MissingINIFile() : OutputSectionIteratorPlugin("MissingINIFile") {}
@@ -59,14 +53,14 @@ public:
 MissingINIFile *ThisPlugin = nullptr;
 
 extern "C" {
-bool DLL_EXPORT RegisterAll() {
+bool DLL_A_EXPORT RegisterAll() {
   ThisPlugin = new MissingINIFile();
   return true;
 }
 
-Plugin DLL_EXPORT *getPlugin(const char *T) { return ThisPlugin; }
+Plugin DLL_A_EXPORT *getPlugin(const char *T) { return ThisPlugin; }
 
-void DLL_EXPORT Cleanup() {
+void DLL_A_EXPORT Cleanup() {
   if (ThisPlugin)
     delete ThisPlugin;
 }

@@ -9,8 +9,6 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
   add_llvm_library(missinginifile ${SHARED_LIB_SOURCES} LINK_LIBS LW)
 
-  target_compile_definitions(missinginifile PRIVATE IN_DLL)
-
   set(BUILD_SHARED_LIBS ${bsl})
 
 endif()
