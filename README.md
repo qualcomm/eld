@@ -81,15 +81,18 @@ To execute an individual ELD test without running the entire suite, follow the s
 
 #### 2. Invoke the Test Harness
 
-Use Python to run a single test by supplying:
+Use the following command to run a specific test case:
 
-- `python3` : Path to the Python interpreter
+```bash
+<path_to_lit_config> <path_to_test_file>
+```
+
 - `<path_to_lit_config>` : Path to the LIT configuration script
-- `<path_to_test_files>` : Path to the '.test' file you wish to execute
+- `<path_to_test_file>` : Path to the '.test' file you wish to execute
 
 #### Example
 ```bash
-python3 obj/tools/eld/test/llvm-lit-arm-default  llvm-project/eld/test/Common/standalone/AliasSymbolExportDynamic/AliasSymbolExportDynamic.test
+obj/tools/eld/test/llvm-lit-arm-default  llvm-project/eld/test/Common/standalone/AliasSymbolExportDynamic/AliasSymbolExportDynamic.test
 ```
 
 This command runs only the AliasSymbolExportDynamic test using the ARM default configuration. Results and diagnostics will be printed to the console.
@@ -98,9 +101,6 @@ This command runs only the AliasSymbolExportDynamic test using the ARM default c
 
 - -v: Always show detailed output.
 - -a: Show detailed otuput only when a test fails ("on failure" mode).
-
-
-
 
 ### Building documentation
 
