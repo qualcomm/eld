@@ -267,6 +267,11 @@ bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
 }
 
 bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
+
+  // Prefer static libraries over dynamic libraries with omagic
+  if (ThisConfig->options().isOMagic())
+    IR->getInputBuilder().makeBStatic();
+
   {
     LinkerProgress->incrementAndDisplayProgress();
     eld::RegisterTimer T("Input Activation", "Initialize",

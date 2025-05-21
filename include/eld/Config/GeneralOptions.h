@@ -302,7 +302,7 @@ public:
   // -N, --omagic
   void setOMagic(bool PMagic = true) { BOMagic = PMagic; }
 
-  bool omagic() const { return BOMagic; }
+  bool isOMagic() const { return BOMagic; }
 
   // -S, --strip-debug
   void setStripDebug(bool PStripDebug = true) { BStripDebug = PStripDebug; }
@@ -1150,8 +1150,8 @@ private:
   bool BColor = true;             // --color[=true,false,auto]
   bool BCreateEhFrameHdr = false; // --eh-frame-hdr
   bool BCreateEhFrameHdrSet = false;
-  bool BNMagic = false;            // -n, --nmagic
   bool BOMagic = false;            // -N, --omagic
+  bool BNMagic = false;            // -n, --nmagic
   bool BStripDebug = false;        // -S, --strip-debug
   bool BExportDynamic = false;     //-E, --export-dynamic
   bool BWarnSharedTextrel = false; // --warn-shared-textrel

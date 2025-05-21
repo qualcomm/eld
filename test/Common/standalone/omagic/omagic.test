@@ -1,0 +1,25 @@
+#--omagic.test------------------ Executable,LS----------------#
+#BEGIN_COMMENT
+#Verify that the linker is able to produce output that supports omagic
+#END_COMMENT
+#START_TEST
+
+# Compile required files
+RUN: %clang %clangg0opts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
+RUN: %clang %clangg0opts -o %t1.2.o -c %p/Inputs/2.c -ffunction-sections
+# link with omagic switch
+RUN: %link %linkg0opts %t1.1.o %t1.2.o -o %t2.out.omagic --omagic
+RUN: %readelf -l -W %t2.out.omagic | %filecheck %s -check-prefix=OMAGIC
+# link with no-omagic switch
+RUN: %link %linkg0opts %t1.1.o %t1.2.o -o %t2.out.noomagic --omagic --no-omagic
+RUN: %readelf -l -W %t2.out.noomagic | %filecheck %s -check-prefix=NOOMAGIC
+# link with omagic switch and linker script
+RUN: %link %linkg0opts %t1.1.o %t1.2.o -T %p/Inputs/script.t -o %t2.out.omagic.ls --omagic
+RUN: %readelf -l -W %t2.out.omagic.ls | %filecheck %s -check-prefix=OMAGICLS
+
+#OMAGIC: .text .rodata {{.*.data}}
+#NOOMAGIC: .text .rodata
+#NOOMAGIC: .data
+#OMAGICLS: .text .rodata .data
+
+#END_TEST

@@ -373,6 +373,24 @@ def nostdlib : Flag<["-"], "nostdlib">,
 def emit_relocs : Flag<["-", "--"], "emit-relocs">,
                   HelpText<"Make Emit relocs behave just like GNU.">,
                   Group<grp_main>;
+def omagic
+    : Flag<["--"], "omagic">,
+      HelpText<"Set the text and data sections to be readable and writable."
+               " Also, do not page-align the data segment, and"
+               " disable linking against shared libraries.">,
+      Group<grp_main>;
+def no_omagic
+    : Flag<["--"], "no-omagic">,
+      HelpText<"This option negates most of the effects of the -N option."
+               "Disable linking with shared libraries">,
+      Group<grp_main>;
+def omagic_alias
+    : Flag<["-"], "N">,
+      HelpText<"Set the text and data sections to be readable and writable."
+               " Also, do not page-align the data segment, and"
+               " disable linking against shared libraries.">,
+      Alias<omagic>,
+      Group<grp_main>;
 
 //===----------------------------------------------------------------------===//
 /// Dynamic Library/Executable Options
@@ -942,30 +960,12 @@ def nmagic : Flag<["--"], "nmagic">,
              HelpText<"Turn off page alignment of sections,"
                       " and disable linking against shared libraries">,
              Group<grp_compatorignoredopts>;
-def omagic
-    : Flag<["--"], "omagic">,
-      HelpText<"Set the text and data sections to be readable and writable."
-               " Also, do not page-align the data segment, and"
-               " disable linking against shared libraries.">,
-      Group<grp_compatorignoredopts>;
-def no_omagic
-    : Flag<["--"], "no-omagic">,
-      HelpText<"This option negates most of the effects of the -N option."
-               "Disable linking with shared libraries">,
-      Group<grp_compatorignoredopts>;
 // Compatible Aliases
 def nmagic_alias : Flag<["-"], "n">,
                    HelpText<"Turn off page alignment of sections,"
                             " and disable linking against shared libraries">,
                    Alias<nmagic>,
                    Group<grp_compatorignoredopts>;
-def omagic_alias
-    : Flag<["-"], "N">,
-      HelpText<"Set the text and data sections to be readable and writable."
-               " Also, do not page-align the data segment, and"
-               " disable linking against shared libraries.">,
-      Alias<omagic>,
-      Group<grp_compatorignoredopts>;
 def add_needed : Flag<["--"], "add-needed">,
                  Group<grp_compatorignoredopts>,
                  HelpText<"Deprecated">;

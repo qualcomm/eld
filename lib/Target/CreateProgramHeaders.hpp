@@ -380,8 +380,11 @@ bool GNULDBackend::createProgramHdrs() {
                            ->getMemoryDescriptor();
 
     // If the user specifies the linker to create a separate rosegment, do that.
-    if (!config().options().rosegment())
+    if (!config().options().rosegment() || config().options().isOMagic())
       cur_flag = (cur_flag & ~llvm::ELF::PF_X);
+
+    if (config().options().isOMagic())
+      cur_flag = (cur_flag & ~llvm::ELF::PF_W);
 
     // getSegmentFlag returns 0 if the section is not allocatable.
     if ((cur_flag != prev_flag) && (isCurAlloc))

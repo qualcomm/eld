@@ -1148,6 +1148,14 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Args.hasArg(T::noDefaultPlugins))
     Config.options().setNoDefaultPlugins();
 
+  // --no-omagic, --omagic, -N support
+  if (Args.hasArg(T::no_omagic))
+    Config.options().setOMagic(false);
+  else if (Args.hasArg(T::omagic)) {
+    Config.options().setAlignSegments(false);
+    Config.options().setOMagic(true);
+  }
+
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }
