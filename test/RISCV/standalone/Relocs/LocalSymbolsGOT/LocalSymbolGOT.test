@@ -1,0 +1,11 @@
+#---LocalSymbolGOT.test--------------------- SharedLibrary------------------#
+#BEGIN_COMMENT
+#got slots requested for local symbols need dynamic relocation if building
+#non static images
+#----------------------------------------------------------------------------
+#END_COMMENT
+RUN: %clang %clangopts -fPIC -c %p/Inputs/got.s -o %t1.got.o
+RUN: %link %linkopts -shared  %t1.got.o -o %t1.so
+RUN: %readelf -r %t1.so | %filecheck %s -check-prefix=DYNREL
+
+#DYNREL: R_RISCV_RELATIVE

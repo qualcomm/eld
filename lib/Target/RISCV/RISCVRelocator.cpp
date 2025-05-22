@@ -432,7 +432,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
       return;
     // If the GOT is used in statically linked binaries,
     // the GOT entry is enough and no relocation is needed.
-    CreateGOT(Obj, pReloc, false, m_Target,
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target,
               (config().codeGenType() == LinkerConfig::Exec));
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
