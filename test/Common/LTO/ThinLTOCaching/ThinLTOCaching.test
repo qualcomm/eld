@@ -1,0 +1,13 @@
+## A basic test for thin LTO cache
+
+RUN: %clang %clangopts -flto=thin -O2 -c %p/Inputs/1.c -o %t.1.bc
+RUN: %clang %clangopts -flto=thin -O2 -c %p/Inputs/2.c -o %t.2.bc
+
+## Test --save-temps with thin LTO cache
+RUN: rm -rf cache
+RUN: %link %linkopts -flto-options=cache=cache --save-temps -e _start -o out %t.2.bc %t.1.bc -M 2>&1 | FileCheck %s --check-prefix=MAP
+RUN: ls cache | count 2
+RUN: ls out.llvm-lto.1.o out.llvm-lto.1.0.preopt.bc out.llvm-lto.2.0.preopt.bc
+
+MAP-DAG: .text {{.*}} out.llvm-lto.1.o
+MAP-DAG: .text {{.*}} out.llvm-lto.2.o
