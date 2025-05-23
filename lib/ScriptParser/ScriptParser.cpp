@@ -684,8 +684,17 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   else {
     std::pair<llvm::StringRef, llvm::StringRef> Split = Tok.split(':');
     FilePat = ThisScriptFile.createWildCardPattern(Split.first);
-    if (!Split.second.empty())
+    if (!Split.second.empty()) {
       ArchiveMem = ThisScriptFile.createWildCardPattern(Split.second);
+    }
+    llvm::StringRef peekTok = peek();
+    if (!atEOF() && peekTok != "(" &&
+        computeLineNumber(peekTok) == getCurrentLineNumber()) {
+      next();
+      if (ThisConfig.showLinkerScriptWarnings())
+        setWarn("Space between archive:member file pattern is deprecated");
+      ArchiveMem = ThisScriptFile.createWildCardPattern(peekTok);
+    }
     IsArchive = true;
   }
   StringList *WildcardSections = nullptr;
