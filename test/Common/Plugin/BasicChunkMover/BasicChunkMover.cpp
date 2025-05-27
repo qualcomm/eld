@@ -3,6 +3,7 @@
 #include "LinkerWrapper.h"
 #include "OutputSectionIteratorPlugin.h"
 #include "PluginADT.h"
+#include "PluginBase.h"
 #include "PluginVersion.h"
 #include <cassert>
 
@@ -63,19 +64,4 @@ private:
   eld::plugin::OutputSection m_Bar{nullptr};
 };
 
-BasicChunkMover *ThisPlugin = nullptr;
-
-extern "C" {
-bool DLL_A_EXPORT RegisterAll() {
-  ThisPlugin = new BasicChunkMover();
-  return true;
-}
-
-eld::plugin::PluginBase DLL_A_EXPORT *getPlugin(const char *T) { return ThisPlugin; }
-
-void DLL_A_EXPORT Cleanup() {
-  if (ThisPlugin)
-    delete ThisPlugin;
-  ThisPlugin = nullptr;
-}
-}
+ELD_REGISTER_PLUGIN(BasicChunkMover)

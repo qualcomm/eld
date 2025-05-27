@@ -44,20 +44,4 @@ public:
 };
 
 
-std::unordered_map<std::string, Plugin *> Plugins;
-
-extern "C" {
-bool DLL_A_EXPORT RegisterAll() {
-  Plugins["AddedSectionOverrides"] = new AddedSectionOverrides();
-  return true;
-}
-
-PluginBase DLL_A_EXPORT *getPlugin(const char *T) { return Plugins[T]; }
-void DLL_A_EXPORT Cleanup() {
-  for (auto &item : Plugins) {
-    if (item.second)
-      delete item.second;
-  }
-  Plugins.clear();
-}
-}
+ELD_REGISTER_PLUGIN(AddedSectionOverrides)

@@ -164,4 +164,28 @@ typedef void *PluginCleanupFuncT();
 // LinkerPluginConfig
 typedef LinkerPluginConfig *PluginConfigFuncT(PluginType T);
 }
+
+/// A helper macro for registering a plugin.
+/// It simply provides good defaults for RegisterAll, getPlugin
+/// and Cleanup functions.
+/// \note It can be only be used once in a source file.
+#define ELD_REGISTER_PLUGIN(PluginType)                                        \
+  PluginType *ThisPlugin = nullptr;                                            \
+                                                                               \
+  extern "C" {                                                                 \
+  bool DLL_A_EXPORT RegisterAll() {                                            \
+    ThisPlugin = new PluginType();                                             \
+    return true;                                                               \
+  }                                                                            \
+                                                                               \
+  eld::plugin::PluginBase DLL_A_EXPORT *getPlugin(const char *T) {             \
+    return ThisPlugin;                                                         \
+  }                                                                            \
+                                                                               \
+  void DLL_A_EXPORT Cleanup() {                                                \
+    if (ThisPlugin)                                                            \
+      delete ThisPlugin;                                                       \
+    ThisPlugin = nullptr;                                                      \
+  }                                                                            \
+  }
 #endif
