@@ -195,6 +195,7 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
 
   {
     PluginManager &PM = ThisModule.getPluginManager();
+    ThisModule.setLinkState(Module::LinkState::ActBeforePerformingLayout);
     if (!PM.callActBeforeWritingOutputHook()) {
       // Return generic error-code. Actual error is already reported!
       return make_error_code(std::errc::not_supported);
