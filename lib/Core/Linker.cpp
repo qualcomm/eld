@@ -429,6 +429,18 @@ bool Linker::resolve() {
     return false;
   }
 
+  // Making sure that all of the required symbols from --require-defined are defined.
+  std::vector<std::string> UndefRequiredSymbols;
+  for (const std::string &S : ThisConfig->options().getRequireDefinedSymbols())
+    if (!ThisModule->getNamePool().isSymbolPresent(S))
+      UndefRequiredSymbols.push_back(S);
+  if (!UndefRequiredSymbols.empty()) {
+    for (const std::string &UndefSymbol : UndefRequiredSymbols)
+      ThisConfig->raise(Diag::missing_required_symbol) << UndefSymbol;
+    ThisModule->setFailure(true);
+    return false;
+  }
+
   {
     LinkerProgress->incrementAndDisplayProgress();
     eld::RegisterTimer T("Allocate Common Symbols", "Common Symbols",
