@@ -501,20 +501,22 @@ bool Module::updateOutputSectionsWithPlugins() {
 }
 
 llvm::StringRef Module::getStateStr() const {
+#define ADD_CASE(S)                                                            \
+  case LinkState::S:                                                           \
+    return #S;
   switch (getState()) {
-  case LinkState::Unknown:
-    return "Unknown";
-  case LinkState::Initializing:
-    return "Initializing";
-  case LinkState::BeforeLayout:
-    return "BeforeLayout";
-  case LinkState::CreatingSections:
-    return "CreatingSections";
-  case LinkState::AfterLayout:
-    return "AfterLayout";
-  case LinkState::CreatingSegments:
-    return "CreatingSegments";
+    ADD_CASE(Unknown)
+    ADD_CASE(Initializing)
+    ADD_CASE(ActBeforeRuleMatching)
+    ADD_CASE(BeforeLayout)
+    ADD_CASE(ActBeforeSectionMerging)
+    ADD_CASE(CreatingSections)
+    ADD_CASE(ActBeforePerformingLayout)
+    ADD_CASE(CreatingSegments)
+    ADD_CASE(AfterLayout)
+    ADD_CASE(ActBeforeWritingOutput)
   }
+#undef ADD_CASE
 }
 
 void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
@@ -522,7 +524,8 @@ void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
                                                 const eld::Plugin *Plugin) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   LDSymbol *S = SymbolNamePool.createPluginSymbol(
-      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val, layoutInfo);
+      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val,
+      layoutInfo);
   if (S && layoutInfo && layoutInfo->showSymbolResolution())
     SymbolNamePool.getSRI().recordPluginSymbol(S, Plugin);
   PluginFragmentToSymbols[F];

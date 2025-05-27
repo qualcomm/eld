@@ -1,0 +1,16 @@
+#---RecomputeSizeChecker.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test verifies the plugin::OutputSection::recomputeSize API.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: FOO size: [[#FN_SIZE:]]
+CHECK: BAR size: [[#FN_SIZE]]
+CHECK: FOO size: [[#FN_SIZE]]
+CHECK: BAR size: [[#FN_SIZE]]
+CHECK: FOO size: [[#FOO_UPDATED_SIZE:]]
+CHECK: BAR size: [[#FN_SIZE+(FN_SIZE-FOO_UPDATED_SIZE)]]

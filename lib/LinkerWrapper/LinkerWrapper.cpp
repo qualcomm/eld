@@ -176,7 +176,8 @@ LinkerWrapper::getOutputSection(Section &S) const {
 
 eld::Expected<std::unique_ptr<const uint8_t[]>>
 LinkerWrapper::getOutputSectionContents(OutputSection &O) const {
-  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout",
+                   "ActBeforeWritingOutput");
   if (O.getOutputSection()->getSection()->isNoBits())
     return std::make_unique<DiagnosticEntry>(
         Diag::error_nobits_unsupported, std::vector<std::string>{O.getName()});
@@ -218,7 +219,8 @@ eld::Expected<void> LinkerWrapper::reassignVirtualAddresses() {
 }
 
 eld::Expected<std::vector<Segment>> LinkerWrapper::getSegmentTable() const {
-  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout",
+                   "ActBeforeWritingOutput");
   std::vector<Segment> Segments;
   for (auto *S : m_Module.getBackend().elfSegmentTable())
     Segments.push_back(Segment(S));
@@ -263,7 +265,9 @@ eld::Expected<void> LinkerWrapper::doRelocation() {
 }
 
 eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "ActBeforeSectionMerging", "CreatingSections",
+                   "ActBeforePerformingLayout", "CreatingSegments",
+                   "AfterLayout");
 
   auto ExpMapping = getOutputSectionAndRule(C.getSection());
   if (!ExpMapping)
@@ -290,7 +294,8 @@ eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
 }
 
 eld::Expected<void> LinkerWrapper::resetOffset(OutputSection O) {
-  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "ActBeforePerformingLayout", "CreatingSegments",
+                   "AfterLayout");
   if (auto *layoutInfo = m_Module.getLayoutInfo()) {
     auto OldOffset = O.getOffset();
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(OldOffset);
@@ -304,7 +309,9 @@ eld::Expected<void> LinkerWrapper::resetOffset(OutputSection O) {
 
 eld::Expected<std::pair<OutputSection, LinkerScriptRule>>
 LinkerWrapper::getOutputSectionAndRule(Section S) {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "ActBeforeSectionMerging", "CreatingSections",
+                   "ActBeforePerformingLayout", "CreatingSegments",
+                   "AfterLayout", "ActBeforeWritingOutput");
 
   InputFile F = S.getInputFile();
 
@@ -339,9 +346,10 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
 
 eld::Expected<void> LinkerWrapper::linkSections(OutputSection A,
                                                 OutputSection B) const {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments");
+  CHECK_LINK_STATE(*this, "ActBeforeSectionMerging", "CreatingSections",
+                   "ActBeforePerformingLayout", "CreatingSegments");
   m_Module.getBackend().pluginLinkSections(A.getOutputSection(),
-                                            B.getOutputSection());
+                                           B.getOutputSection());
   return {};
 }
 
@@ -964,10 +972,14 @@ std::string_view LinkerWrapper::getCurrentLinkStateAsStr() const {
     return #linkerState;
     ADD_CASE(Unknown);
     ADD_CASE(Initializing);
+    ADD_CASE(ActBeforeRuleMatching);
     ADD_CASE(BeforeLayout);
+    ADD_CASE(ActBeforeSectionMerging);
     ADD_CASE(CreatingSections);
-    ADD_CASE(AfterLayout);
+    ADD_CASE(ActBeforePerformingLayout);
     ADD_CASE(CreatingSegments);
+    ADD_CASE(AfterLayout);
+    ADD_CASE(ActBeforeWritingOutput);
 #undef ADD_CASE
   }
   llvm_unreachable("Invalid link state!");
@@ -979,7 +991,9 @@ bool LinkerWrapper::isVerbose() const {
 
 eld::Expected<std::vector<plugin::OutputSection>>
 LinkerWrapper::getAllOutputSections() const {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "ActBeforeSectionMerging", "CreatingSections",
+                   "ActBeforePerformingLayout", "CreatingSegments",
+                   "ActBeforeWritingOutput", "AfterLayout");
 
   SectionMap sectMap = m_Module.getScript().sectionMap();
   std::vector<plugin::OutputSection> outputSects;
@@ -991,7 +1005,8 @@ LinkerWrapper::getAllOutputSections() const {
 
 eld::Expected<std::vector<Segment>>
 LinkerWrapper::getSegmentsForOutputSection(const OutputSection &O) const {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSections", "ActBeforePerformingLayout",
+                   "CreatingSegments", "AfterLayout", "ActBeforeWritingOutput");
   std::vector<Segment> Segments;
   for (auto *S :
        m_Module.getBackend().getSegmentsForSection(O.getOutputSection()))
@@ -1171,18 +1186,34 @@ bool LinkerWrapper::isLinkStateInitializing() const {
   return m_Module.getState() == Module::LinkState::Initializing;
 }
 
+bool LinkerWrapper::isLinkStateActBeforeRuleMatching() const {
+  return m_Module.getState() == Module::LinkState::ActBeforeRuleMatching;
+}
+
 bool LinkerWrapper::isLinkStateBeforeLayout() const {
   return m_Module.getState() == Module::LinkState::BeforeLayout;
+}
+
+bool LinkerWrapper::isLinkStateActBeforeSectionMerging() const {
+  return m_Module.getState() == Module::LinkState::ActBeforeSectionMerging;
 }
 
 bool LinkerWrapper::isLinkStateCreatingSections() const {
   return m_Module.getState() == Module::LinkState::CreatingSections;
 }
 
+bool LinkerWrapper::isLinkStateCreatingSegments() const {
+  return m_Module.getState() == Module::LinkState::CreatingSegments;
+}
+
+bool LinkerWrapper::isLinkStateActBeforePerformingLayout() const {
+  return m_Module.getState() == Module::LinkState::ActBeforePerformingLayout;
+}
+
 bool LinkerWrapper::isLinkStateAfterLayout() const {
   return m_Module.getState() == Module::LinkState::AfterLayout;
 }
 
-bool LinkerWrapper::isLinkStateCreatingSegments() const {
-  return m_Module.getState() == Module::LinkState::CreatingSegments;
+bool LinkerWrapper::isLinkStateActBeforeWritingOutput() const {
+  return m_Module.getState() == Module::LinkState::ActBeforeWritingOutput;
 }
