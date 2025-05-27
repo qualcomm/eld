@@ -929,6 +929,7 @@ private:
 
   eld::DiagnosticEngine *m_DiagEngine;
   friend class LayoutWrapper;
+  friend struct OutputSection;
 };
 } // namespace plugin
 } // namespace eld
