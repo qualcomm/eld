@@ -33,6 +33,8 @@ DIAG(symbol_undefined_by_user, DiagnosticEngine::Error,
      "Symbol %0 defined in %1 is undefined")
 DIAG(symbol_not_found, DiagnosticEngine::Fatal,
      "Malformed image: Symbol `%0' not found")
+DIAG(missing_required_symbol, DiagnosticEngine::Error,
+     "Required symbol `%0' not defined")
 DIAG(dynlist_symbol_undefined_by_user, DiagnosticEngine::Error,
      "Symbol %0 defined in Dynamic List  is undefined")
 DIAG(tls_non_tls_symbol_mismatch, DiagnosticEngine::Fatal, "%0")

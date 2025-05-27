@@ -1034,6 +1034,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     reproduceFileName = arg->getValue();
   }
 
+  // --require-defined
+  for (const auto *Arg : Args.filtered(T::require_defined))
+    Config.options().addRequireDefinedSymbol(Arg->getValue());
+
   if (reproduceFileName)
     Config.options().setTarFile(*reproduceFileName);
 

@@ -14,6 +14,7 @@
 #ifndef ELD_SYMBOLRESOLVER_NAMEPOOL_H
 #define ELD_SYMBOLRESOLVER_NAMEPOOL_H
 
+#include "eld/Input/ArchiveFile.h"
 #include "eld/Config/Config.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Script/Expression.h"
@@ -117,6 +118,24 @@ public:
 
   SymbolResolutionInfo &getSRI() { return SymbolResInfo; }
 
+  void addArchivedLibSymbol(ArchiveFile::Symbol *Sym) {
+    ArchivedLibsSymbols[Sym->Name] = Sym;
+  }
+
+  bool isSymbolPresent(std::string SymbolName) {
+    bool isSharedLibSymbol = false;
+    for (const auto& pair : SharedLibsSymbols) {
+      const ResolveInfo* info = pair.first;
+      if (info && info->name() == SymbolName) {
+        isSharedLibSymbol = true;
+        break;
+      }
+    }
+    return (GlobalSymbols.find(SymbolName) != GlobalSymbols.end() ||
+            ArchivedLibsSymbols.find(SymbolName) != ArchivedLibsSymbols.end() ||
+            isSharedLibSymbol);
+  }
+
   void addSharedLibSymbol(LDSymbol *Sym) {
     ASSERT(Sym->resolveInfo(), "symbol must have a resolveInfo!");
     SharedLibsSymbols[Sym->resolveInfo()] = Sym;
@@ -142,6 +161,7 @@ private:
   bool IsSymbolTracingRequested;
   SymbolResolutionInfo SymbolResInfo;
   std::map<const ResolveInfo *, LDSymbol *> SharedLibsSymbols;
+  llvm::StringMap<ArchiveFile::Symbol *> ArchivedLibsSymbols;
   PluginManager &PM;
 };
 
