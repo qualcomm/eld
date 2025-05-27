@@ -1135,6 +1135,7 @@ bool ObjectLinker::mergeSections() {
     eld::RegisterTimer T("Universal Plugin", "Merge Sections",
                          ThisConfig.options().printTimingStats());
     auto &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(Module::LinkState::ActBeforeSectionMerging);
     if (!PM.callActBeforeSectionMergingHook())
       return false;
   }

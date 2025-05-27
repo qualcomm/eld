@@ -14,7 +14,9 @@
 #include "eld/Input/BitcodeFile.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/ObjectLinker.h"
 #include "eld/Plugin/PluginData.h"
+#include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
 #include "eld/Readers/CommonELFSection.h"
@@ -30,7 +32,6 @@
 #include "llvm/Support/Timer.h"
 #include <memory>
 #include <optional>
-
 using namespace eld;
 using namespace eld::plugin;
 
@@ -1008,6 +1009,17 @@ Expected<void> OutputSection::setPluginOverride(Plugin *P,
   CHECK_LINK_STATE(LW, "CreatingSegments");
   getOutputSection()->prolog().setPlugin(
       make<PluginCmd>(P->getType(), P->GetName(), "", ""));
+  return {};
+}
+
+Expected<void> OutputSection::recomputeSize(LinkerWrapper &LW) {
+  CHECK_LINK_STATE(LW, "ActBeforeSectionMerging", "CreatingSections");
+  auto LS = LW.getLinkState();
+  ObjectLinker *OL = LW.getModule()->getLinker()->getObjectLinker();
+  if (!m_OutputSection)
+    return std::make_unique<DiagnosticEntry>(Diag::error_empty_object,
+                                             std::vector<std::string>{});
+  OL->assignOffset(m_OutputSection);
   return {};
 }
 
