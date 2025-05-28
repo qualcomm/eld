@@ -465,11 +465,13 @@ public:
 
   /// emitSymbol32 - emit an ELF32 symbol
   void emitSymbol32(llvm::ELF::Elf32_Sym &pSym32, LDSymbol *pSymbol,
-                    char *pStrtab, size_t pStrtabsize, size_t pSymtabIdx);
+                    char *pStrtab, size_t pStrtabsize, size_t pSymtabIdx,
+                    bool isDynSymTab);
 
   /// emitSymbol64 - emit an ELF64 symbol
   void emitSymbol64(llvm::ELF::Elf64_Sym &pSym64, LDSymbol *pSymbol,
-                    char *pStrtab, size_t pStrtabsize, size_t pSymtabIdx);
+                    char *pStrtab, size_t pStrtabsize, size_t pSymtabIdx,
+                    bool isDynSymTab);
 
   /// createProgramHdrs - base on output sections to create the program headers
   bool createProgramHdrs();
