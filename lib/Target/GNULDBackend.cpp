@@ -3142,7 +3142,7 @@ bool GNULDBackend::layout() {
     doPostLayout();
   }
 
-  if (m_Module.getScript().phdrsSpecified())
+  if (m_Module.getScript().phdrsSpecified() && !config().isLinkPartial())
     checkForLinkerScriptPhdrErrors();
 
   if (!config().getDiagEngine()->diagnose()) {
