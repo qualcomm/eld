@@ -61,3 +61,5 @@ DIAG(warning_zero_sized_fragment_for_non_zero_symbol, DiagnosticEngine::Warning,
      "Zero sized fragment %0 for non zero sized symbol %1 from input file %2")
 DIAG(error_offset_not_assigned_for_output_section, DiagnosticEngine::Error,
      "Requested offset for output section %0 has not yet been assigned")
+DIAG(warn_empty_segment, DiagnosticEngine::Warning,
+     "Empty segment: '%0'")

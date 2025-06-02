@@ -1,0 +1,10 @@
+#---WarnEmptySegments.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests checks that the linker emits a warning for empty segments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK:  Warning: Empty segment: 'A'

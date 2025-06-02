@@ -944,6 +944,8 @@ private:
   // --------------------------Provide target specific symbol values -------
   void resolveTargetDefinedSymbols();
 
+  bool verifySegments() const;
+
 private:
   // Reserved segments.
   int32_t m_NumReservedSegments = 0;

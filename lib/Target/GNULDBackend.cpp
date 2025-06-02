@@ -4034,6 +4034,8 @@ bool GNULDBackend::relax() {
     return config().getDiagEngine()->diagnose();
   }
 
+  verifySegments();
+
   return config().getDiagEngine()->diagnose();
 }
 
@@ -5168,4 +5170,13 @@ bool GNULDBackend::allocateHeaders() {
     return true;
   }
   return false;
+}
+
+bool GNULDBackend::verifySegments() const {
+  const auto &SegTable = elfSegmentTable();
+  for (const auto &S : SegTable.segments()) {
+    if (S->empty())
+      config().raise(Diag::warn_empty_segment) << S->name();
+  }
+  return true;
 }
