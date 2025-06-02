@@ -124,3 +124,5 @@ DIAG(error_non_power_of_2_value_to_align_output_section, DiagnosticEngine::Error
      "%0: non-power-of-2 value 0x%1 passed to ALIGN in '%2' output section description, value must "
      "be 0 or a power of 2")
 DIAG(warn_linker_script, DiagnosticEngine::Warning, "%0")
+DIAG(warn_memory_region_has_zero_size, DiagnosticEngine::Warning,
+     "%0: Memory region '%1' has zero size")

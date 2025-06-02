@@ -36,6 +36,13 @@ void ScriptMemoryRegion::addOutputSection(const OutputSectionEntry *O) {
 
 eld::Expected<void>
 ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
+  auto ExpLen = getLength();
+  if (ExpLen && !ExpLen.value() && Config.showLinkerScriptWarnings()) {
+    MemorySpec *Spec = MMemoryDesc->getMemorySpec();
+    Expression *Length = Spec->getLength();
+    Config.raise(Diag::warn_memory_region_has_zero_size)
+        << Length->getContext() << getName();
+  }
   if (FirstOutputSectionExceededLimit)
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::error_memory_region_exceeded_limit,
