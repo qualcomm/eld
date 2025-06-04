@@ -1,6 +1,6 @@
 
 # UNSUPPORTED: riscv64
-# RUN: %llvm-mc -filetype=obj -triple=riscv32-unknown-elf -mattr=-relax -riscv-asm-relax-branches=0 %s -o %t.rv32.o
+# RUN: %llvm-mc -filetype=obj -triple=riscv32-unknown-elf -mattr=-relax %s -o %t.rv32.o
 
 # RUN: %link %linkopts %t.rv32.o --defsym foo=_start+4 --defsym bar=_start -o %t.rv32
 # RUN: llvm-objdump -d %t.rv32 | FileCheck %s --check-prefix=CHECK-32
@@ -18,6 +18,8 @@
 
 # RUN: %link %linkopts %t.rv32.o --defsym foo=_start+1 --defsym bar=_start-1 -o %t.out 2>&1 | FileCheck --check-prefix=WARN-ALIGN %s
 # WARN-ALIGN: Relocation `R_RISCV_BRANCH' for symbol `foo' referred from `(Not Applicable)' and defined in `{{.*}}' has alignment 2 but is not aligned
+
+.option exact
 
 .global _start
 _start:
