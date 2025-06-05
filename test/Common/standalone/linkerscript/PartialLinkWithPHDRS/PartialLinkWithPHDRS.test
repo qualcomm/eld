@@ -1,0 +1,11 @@
+#---PartialLinkWithPHDRS.test--------------------------- Executable,LS,PHDRS -----------------#
+#BEGIN_COMMENT
+# This tests that the linker does not report any error when PHDRS is
+# specified with partial link.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t | %filecheck %s --allow-empty
+#END_TEST
+
+CHECK-NOT: error
