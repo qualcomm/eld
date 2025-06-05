@@ -73,3 +73,15 @@ if(LLVM_ENABLE_SPHINX)
 
   add_custom_target(eld-docs DEPENDS ${target_name})
 endif()
+
+if(ELD_ENABLE_ASCIIDOC)
+  message(STATUS "ASCIIDOC Documentation Enabled")
+  # Convert asciidoc to html documentation.
+  include(${ELD_SOURCE_DIR}/cmake/modules/BuildASCIIDOCTarget.cmake)
+  build_adoc_to_html(${ELD_SOURCE_DIR}/docs/userguide/documentation/asciidoc/)
+
+  # Build asciidocs with eld-docs
+  if(LLVM_ENABLE_SPHINX)
+    add_dependencies(eld-docs eld-asciidocs)
+  endif()
+endif()
