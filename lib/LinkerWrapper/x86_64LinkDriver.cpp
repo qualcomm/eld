@@ -161,3 +161,8 @@ template <class T>
 bool x86_64LinkDriver::processLLVMOptions(llvm::opt::InputArgList &Args) {
   return GnuLdDriver::processLLVMOptions<T>(Args);
 }
+
+
+bool x86_64LinkDriver::isValidEmulation(llvm::StringRef Emulation){
+  return Emulation == "elf_x86_64" || Emulation == "elf_amd64";
+}

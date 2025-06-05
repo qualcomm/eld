@@ -11,6 +11,7 @@
 #include "eld/Driver/GnuLdDriver.h"
 #include "eld/Driver/HexagonLinkDriver.h"
 #include "eld/Driver/RISCVLinkDriver.h"
+#include "eld/Driver/x86_64LinkDriver.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/TargetRegistry.h"
@@ -182,6 +183,10 @@ Driver::getFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args) {
       else if (EmulationTriple.getArch() == llvm::Triple::aarch64)
         F = Flavor::AArch64;
     }
+#endif
+#if defined(ELD_ENABLE_TARGET_X86_64)
+    if (x86_64LinkDriver::isValidEmulation(Emulation))
+      F = Flavor::x86_64;
 #endif
     if (F == Flavor::Invalid)
       return std::make_unique<eld::DiagnosticEntry>(
