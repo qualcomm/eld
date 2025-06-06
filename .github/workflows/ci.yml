@@ -50,7 +50,7 @@ jobs:
 
     - name: Run CMake
       run: |
-        ccache --set-config max_size=32GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        ccache --set-config max_size=9GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
         rm -rf pr-${{ env.PR_NUMBER }}/obj  # Remove the existing obj directory
         mkdir -p pr-${{ env.PR_NUMBER }}/obj
         cd pr-${{ env.PR_NUMBER }}/obj
