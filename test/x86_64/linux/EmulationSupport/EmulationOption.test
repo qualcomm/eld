@@ -1,0 +1,16 @@
+#---CommonsGnuHash.test----------------- Executable --------------------#
+
+BEGIN_COMMENT
+# Test x86_64 emulation support in eld
+# This test verifies that eld correctly handles the -m elf_x86_64 emulation flag.
+# It compiles a minimal C program with a custom _start() that performs a syscall
+# to exit with code 5. The program is linked using eld with --image-base.
+#The test uses CheckExitCode.sh to run the output binary and validate that it exits 
+#with the expected return code. 
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts -o %t.1.out %t.1.o --image-base=0x400000
+RUN: %p/Inputs/CheckExitCode.sh %t.1.out 5
+#END_TEST
