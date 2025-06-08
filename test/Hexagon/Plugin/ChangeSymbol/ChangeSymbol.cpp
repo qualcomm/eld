@@ -20,22 +20,22 @@ public:
   void Init(std::string Options) override {}
 
   void processOutputSection(OutputSection O) override {
-    if (getLinker()->getState() == LinkerWrapper::BeforeLayout)
+    if (getLinker()->isLinkStateBeforeLayout())
       return;
 
-    if (getLinker()->getState() == LinkerWrapper::CreatingSections)
+    if (getLinker()->isLinkStateCreatingSections())
       return;
 
-    if (getLinker()->getState() == LinkerWrapper::AfterLayout)
+    if (getLinker()->isLinkStateAfterLayout())
       return;
   }
 
   // After the linker lays out the image, but before it creates the elf file,
   // it will call this run function.
   Status Run(bool Trace) override {
-    if (getLinker()->getState() == LinkerWrapper::BeforeLayout)
+    if (getLinker()->isLinkStateBeforeLayout())
       return eld::plugin::Plugin::Status::SUCCESS;
-    if (getLinker()->getState() == LinkerWrapper::AfterLayout) {
+    if (getLinker()->isLinkStateAfterLayout()) {
       eld::Expected<uint32_t> expChecksum =
           getLinker()->getImageLayoutChecksum();
       ELDEXP_REPORT_AND_RETURN_ERROR_IF_ERROR(getLinker(), expChecksum);
@@ -57,7 +57,7 @@ public:
                 << "\n";
       return eld::plugin::Plugin::Status::SUCCESS;
     }
-    if (getLinker()->getState() == LinkerWrapper::CreatingSections) {
+    if (getLinker()->isLinkStateCreatingSections()) {
       for (auto &Section : m_SectionToChunks) {
         for (auto &C : Section.second) {
           addChunkToSection(Section.first, C);

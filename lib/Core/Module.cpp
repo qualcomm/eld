@@ -50,7 +50,7 @@ Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
       UsesLto(false), Saver(BAlloc), PM(CurScript, *Config.getDiagEngine(),
                                         Config.options().printTimingStats()),
       SymbolNamePool(Config, PM) {
-  State = plugin::LinkerWrapper::Initializing;
+  State = LinkState::Initializing;
   if (Config.options().isLTOCacheEnabled())
     UserLinkerScript.setHashingEnabled();
   UserLinkerScript.createSectionMap(CurScript, Config, LayoutInfo);
@@ -502,17 +502,17 @@ bool Module::updateOutputSectionsWithPlugins() {
 
 llvm::StringRef Module::getStateStr() const {
   switch (getState()) {
-  case plugin::LinkerWrapper::Unknown:
+  case LinkState::Unknown:
     return "Unknown";
-  case plugin::LinkerWrapper::Initializing:
+  case LinkState::Initializing:
     return "Initializing";
-  case plugin::LinkerWrapper::BeforeLayout:
+  case LinkState::BeforeLayout:
     return "BeforeLayout";
-  case plugin::LinkerWrapper::CreatingSections:
+  case LinkState::CreatingSections:
     return "CreatingSections";
-  case plugin::LinkerWrapper::AfterLayout:
+  case LinkState::AfterLayout:
     return "AfterLayout";
-  case plugin::LinkerWrapper::CreatingSegments:
+  case LinkState::CreatingSegments:
     return "CreatingSegments";
   }
 }
@@ -795,7 +795,7 @@ bool Module::resetSymbol(ResolveInfo *R, Fragment *F) {
 
 uint64_t Module::getImageLayoutChecksum() const {
   uint64_t Hash = 0;
-  if (State != plugin::LinkerWrapper::AfterLayout)
+  if (!isLinkStateAfterLayout())
     return 0;
   for (const eld::ELFSection *S : *this) {
     Hash = llvm::hash_combine(Hash, S->getIndex(), std::string(S->name()),
@@ -857,10 +857,9 @@ bool Module::verifyInvariantsForCreatingSectionsState() const {
   return false;
 }
 
-bool Module::setState(plugin::LinkerWrapper::State S) {
+bool Module::setLinkState(LinkState S) {
   bool Verification = true;
-  if (State == plugin::LinkerWrapper::State::BeforeLayout &&
-      S == plugin::LinkerWrapper::State::CreatingSections)
+  if (S == LinkState::CreatingSections)
     Verification = verifyInvariantsForCreatingSectionsState();
   State = S;
   return Verification;

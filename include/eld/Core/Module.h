@@ -138,6 +138,33 @@ public:
 
   typedef std::pair<uint64_t, uint64_t> DynamicListStartEndIndexPair;
 
+  /// Stages of the link process.
+  /// What actions a plugin can perform depends on the
+  /// link state. For example:
+  /// - Plugins can change the output section of an input
+  ///   section only in BeforeLayout link state.
+  /// - Plugins can move chunks from one output section to
+  ///   another only in CreatingSections link state.
+  /// - Plugins can only compute the output image layout checkum using
+  ///   `LinkerWrapper::getImageLayoutChecksum` only in AfterLayout linker
+  ///   state.
+  /// - Plugins can reassign virtual addresses using
+  ///   `LinkerWrapper::reassignVirtualAddresses()` only in CreatingSegments
+  ///   link state.
+  ///
+  /// Plugin authors should ensure that the action being performed by the
+  /// plugin is meaningful in the link state in which it is executed.
+  /// Executing invalid actions for a link state can result in undefined
+  /// behavior.
+  enum LinkState : uint8_t {
+    Unknown,
+    Initializing,
+    BeforeLayout,
+    CreatingSections,
+    CreatingSegments,
+    AfterLayout,
+  };
+
 public:
   explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
                   LayoutInfo *LayoutInfo);
@@ -418,9 +445,9 @@ public:
   /// On updating the state, this function also checks linker invariants for
   /// the state. It returns true if all the invariants are true; Otherwise it
   /// returns false.
-  bool setState(plugin::LinkerWrapper::State S);
+  bool setLinkState(LinkState S);
 
-  plugin::LinkerWrapper::State getState() const { return State; }
+  LinkState getState() const { return State; }
 
   llvm::StringRef getStateStr() const;
 
@@ -607,8 +634,16 @@ public:
     return VersionScripts;
   }
 
-  bool isBeforeLayoutState() const {
-    return getState() == plugin::LinkerWrapper::State::BeforeLayout;
+  bool isLinkStateBeforeLayout() const {
+    return getState() == Module::LinkState::BeforeLayout;
+  }
+
+  bool isLinkStateCreatingSections() const {
+    return getState() == Module::LinkState::CreatingSections;
+  }
+
+  bool isLinkStateAfterLayout() const {
+    return getState() == Module::LinkState::AfterLayout;
   }
 
   void setFragmentPaddingValue(Fragment *F, uint64_t V);
@@ -632,6 +667,8 @@ private:
 
   // Read one plugin config file
   bool readOnePluginConfig(llvm::StringRef Cfg, bool IsDefaultConfig);
+
+
 
 private:
   LinkerScript &UserLinkerScript;
@@ -664,7 +701,7 @@ private:
   LayoutInfo *ThisLayoutInfo = nullptr;
   bool Failure = false;
   bool UsesLto = false;
-  plugin::LinkerWrapper::State State = plugin::LinkerWrapper::Unknown;
+  LinkState State = LinkState::Unknown;
   ReplaceFragsVectorT ReplaceFrags;
   PluginDataMapT PluginDataMap;
   eld::OutputTarWriter *OutputTar = nullptr;
