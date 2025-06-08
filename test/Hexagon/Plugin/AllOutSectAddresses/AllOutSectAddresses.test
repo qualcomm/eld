@@ -18,5 +18,5 @@ RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/scri
 #CHECK: Output section: .comment
 #CHECK: Virtual address: {{.*}}
 #CHECK: Physical address: 0
-#INVALID_STATE: InvalidStateFindOutSectAddresses:Error: Link state 'BeforeLayout' is invalid for the API '{{(eld::plugin::OutputSection::)?}}getVirtualAddress'. Valid link states: ['CreatingSegments, AfterLayout']
-#INVALID_STATE: InvalidStateFindOutSectAddresses:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}eld::plugin::LinkerWrapper::getAllOutputSections({{.*}}) const'. Valid link states: [CreatingSegments, AfterLayout, CreatingSections]
+#INVALID_STATE: InvalidStateFindOutSectAddresses:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}getVirtualAddress{{.*}}'. Valid link states: [CreatingSegments, AfterLayout]
+#INVALID_STATE: InvalidStateFindOutSectAddresses:Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}eld::plugin::LinkerWrapper::getAllOutputSections({{.*}}) const'. Valid link states: [CreatingSections, CreatingSegments, AfterLayout]
