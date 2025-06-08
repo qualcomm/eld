@@ -22,7 +22,7 @@ public:
   void processOutputSection(OutputSection S) override { return; }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() == LinkerWrapper::State::BeforeLayout) {
+    if (getLinker()->isLinkStateBeforeLayout()) {
       eld::Expected<void> expFinishAssign =
           getLinker()->finishAssignOutputSections();
       ELDEXP_REPORT_AND_RETURN_ERROR_IF_ERROR(getLinker(), expFinishAssign);

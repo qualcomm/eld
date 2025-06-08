@@ -15,7 +15,7 @@ public:
 
   // Perform any initialization here
   void Init(std::string Options) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
      return;
     auto E = getLinker()->findConfigFile("some-file.txt");
     ELDEXP_REPORT_AND_RETURN_VOID_IF_ERROR(getLinker(), E);

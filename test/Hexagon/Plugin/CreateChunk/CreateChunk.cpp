@@ -20,7 +20,7 @@ public:
   std::string GetName() override { return PluginName; }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() == eld::plugin::LinkerWrapper::CreatingSections) {
+    if (getLinker()->isLinkStateCreatingSections()) {
       size_t Align = sizeof(uint32_t);
 
       const unsigned char NOPBytes[] = {0x00, 0xc0, 0x00, 0x7f};

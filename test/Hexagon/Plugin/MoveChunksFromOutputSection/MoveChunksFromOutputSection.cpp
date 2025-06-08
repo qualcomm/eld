@@ -28,11 +28,11 @@ public:
   void Init(std::string Options) override {}
 
   void processOutputSection(OutputSection O) override {
-    if (getLinker()->getState() == LinkerWrapper::AfterLayout) {
+    if (getLinker()->isLinkStateAfterLayout()) {
       std::cout << "Size of " << O.getName() << "\t" << O.getSize() << "\n";
       return;
     }
-    if (getLinker()->getState() != LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return;
 
     if (O.getName() == ".redistribute")
@@ -65,9 +65,9 @@ public:
   // After the linker lays out the image, but before it creates the elf file,
   // it will call this run function.
   Status Run(bool Trace) override {
-    if (getLinker()->getState() == LinkerWrapper::AfterLayout)
+    if (getLinker()->isLinkStateAfterLayout())
       return eld::plugin::Plugin::Status::SUCCESS;
-    if (getLinker()->getState() != LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return eld::plugin::Plugin::Status::SUCCESS;
 
     eld::plugin::LinkerScriptRule HotRule = Hot.getLinkerScriptRules().front();

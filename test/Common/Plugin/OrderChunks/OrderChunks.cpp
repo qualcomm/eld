@@ -26,7 +26,7 @@ public:
 
   // This function will be called whenever the linker processes a OutputSection.
   void processOutputSection(OutputSection O) override {
-    if (getLinker()->getState() != LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return;
     if (O.getName() != ".reordersection")
       return;
@@ -36,7 +36,7 @@ public:
   // After the linker lays out the image, but before it creates the elf file,
   // it will call this run function.
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return Plugin::Status::SUCCESS;
 
     if (!ReorderOutputSection.getOutputSection())

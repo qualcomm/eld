@@ -65,7 +65,7 @@ public:
   void Init(std::string options) override {}
 
   void processOutputSection(eld::plugin::OutputSection O) override {
-    if (getLinker()->getState() != eld::plugin::LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return;
     if (O.getName() == "FOO")
       m_Foo = O;
@@ -74,12 +74,12 @@ public:
   }
 
   Status Run(bool trace) override {
-    if (getLinker()->getState() == eld::plugin::LinkerWrapper::CreatingSections) {
+    if (getLinker()->isLinkStateCreatingSections()) {
       auto barRules = m_Bar.getLinkerScriptRules();
       m_BarChunk = barRules.front().getChunks().front();
       return Status::SUCCESS;
     }
-    if (getLinker()->getState() != eld::plugin::LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return Status::SUCCESS;
 
     assert(m_Foo && m_Bar && "foo and bar output sections must be present!");

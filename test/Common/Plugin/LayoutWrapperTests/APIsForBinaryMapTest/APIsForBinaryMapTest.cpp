@@ -14,7 +14,7 @@ public:
   // Perform any initialization here
   void Init(std::string Options) override {
     auto linker = getLinker();
-    if (linker->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return;
     std::cout << "\nMap File: " << linker->getLinkerConfig().getMapFileName();
     auto Sym = linker->getSymbol("foo").value();

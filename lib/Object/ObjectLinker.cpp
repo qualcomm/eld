@@ -1099,8 +1099,7 @@ bool ObjectLinker::runOutputSectionIteratorPlugin() {
   }
   // Fragment movement verification is only done for CreatingSections link state
   // because fragments cannot be moved in any other link state.
-  if (ThisModule->getState() ==
-      plugin::LinkerWrapper::State::CreatingSections) {
+  if (ThisModule->isLinkStateCreatingSections()) {
     for (auto *P : PluginList) {
       auto ExpVerifyFragmentMoves = P->verifyFragmentMovements();
       if (!ExpVerifyFragmentMoves) {
@@ -1172,7 +1171,7 @@ bool ObjectLinker::mergeSections() {
   OutBegin = ThisModule->getScript().sectionMap().begin();
   OutEnd = ThisModule->getScript().sectionMap().end();
 
-  ThisModule->setState(plugin::LinkerWrapper::CreatingSections);
+  ThisModule->setLinkState(Module::LinkState::CreatingSections);
   if (!ThisConfig.getDiagEngine()->diagnose())
     return false;
 

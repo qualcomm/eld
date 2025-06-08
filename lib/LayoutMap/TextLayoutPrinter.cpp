@@ -238,8 +238,7 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
     outputStream().changeColor(llvm::raw_ostream::GREEN);
   outputStream() << "\n";
   outputStream() << Section->name();
-  if (Backend.getModule().getState() ==
-      plugin::LinkerWrapper::State::BeforeLayout) {
+  if (Backend.getModule().isLinkStateBeforeLayout()) {
     outputStream() << "\n";
     return;
   }
@@ -612,7 +611,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
                                       ELFSection *Section, Module &M) const {
 
   bool Onlylayout =
-      ThisLayoutInfo->showOnlyLayout() || M.isBeforeLayoutState();
+      ThisLayoutInfo->showOnlyLayout() || M.isLinkStateBeforeLayout();
   std::string Type =
       ELFSection::getELFTypeStr(Info->section()->name(), Info->type()).str();
   std::string Permissions = ELFSection::getELFPermissionsStr(Info->flag());
@@ -655,7 +654,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
   };
 
   uint64_t AddressOrOffset = -1;
-  if (llvm::isa<MergeStringFragment>(Frag) && !M.isBeforeLayoutState()) {
+  if (llvm::isa<MergeStringFragment>(Frag) && !M.isLinkStateBeforeLayout()) {
     auto *Strings = llvm::cast<MergeStringFragment>(Frag);
     for (MergeableString *S : Strings->getStrings()) {
       if (S->Exclude)
@@ -778,7 +777,7 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
 void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
                                   Fragment *Frag, bool UseColor) {
   if (ThisLayoutInfo->showOnlyLayout() ||
-      CurModule.getState() == plugin::LinkerWrapper::State::BeforeLayout) {
+      CurModule.isLinkStateBeforeLayout()) {
     printOnlyLayoutFrag(CurModule, Section, Frag, UseColor);
     return;
   }
@@ -1229,7 +1228,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
 
   OutBegin = Script.sectionMap().begin();
   OutEnd = Script.sectionMap().end();
-  if (Module.isBeforeLayoutState())
+  if (Module.isLinkStateBeforeLayout())
     outputStream() << "Initial layout:\n";
   for (Out = OutBegin; Out != OutEnd; ++Out) {
 
@@ -1239,7 +1238,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
         (!Cur->isNullType() &&
          (LinkerScriptHasSectionsCommand || Cur->isWanted() || Cur->size() ||
           (*Out)->size())) ||
-        (Module.isBeforeLayoutState() && !(*Out)->name().empty()))
+        (Module.isLinkStateBeforeLayout() && !(*Out)->name().empty()))
       printSection(Backend, *Out, UseColor);
 
     // print padding from output section start to first frag
@@ -1259,7 +1258,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
            It != Ie; ++It) {
         if (!ThisLayoutInfo->showOnlyLayout()) {
           (*It)->dumpMap(outputStream(), UseColor, false,
-                         /*withValues=*/!Module.isBeforeLayoutState());
+                         /*withValues=*/!Module.isLinkStateBeforeLayout());
           // Show the actual expression as present in the linker script
           outputStream() << " # ";
         }
@@ -1282,7 +1281,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       // have happened and we are printing all the sections(fragments) later on
       // anyways. If we print ignored sections here too, then we will be
       // printing many sections two times.
-      if (!Module.isBeforeLayoutState()) {
+      if (!Module.isLinkStateBeforeLayout()) {
         for (auto *S : (*in)->getMatchedInputSections()) {
           if (!S->isIgnore())
             continue;
@@ -1291,7 +1290,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
         }
       }
       if ((!IS || !IS->getFragmentList().size()) &&
-          !Module.isBeforeLayoutState())
+          !Module.isLinkStateBeforeLayout())
         continue;
       // Do not print fragments of OutputSectData commands.
       // Fragments and sections of OutputSectData is an internal
@@ -1322,7 +1321,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
          It != Ie; ++It) {
       if (!ThisLayoutInfo->showOnlyLayout()) {
         (*It)->dumpMap(outputStream(), UseColor, false,
-                       /*withValues=*/!Module.isBeforeLayoutState());
+                       /*withValues=*/!Module.isLinkStateBeforeLayout());
         // Show the actual expression as present in the linker script
         outputStream() << " # ";
       }
@@ -1410,7 +1409,7 @@ std::string TextLayoutPrinter::getDecoratedPath(const Input *I) const {
 
 void TextLayoutPrinter::printFragments(Module &Module, ELFSection &OutSect,
                                        RuleContainer &R, bool UseColor) {
-  if (Module.isBeforeLayoutState()) {
+  if (Module.isLinkStateBeforeLayout()) {
     for (auto *S : R.getMatchedInputSections()) {
       for (auto *F : S->getFragmentList())
         printFrag(Module, &OutSect, F, UseColor);

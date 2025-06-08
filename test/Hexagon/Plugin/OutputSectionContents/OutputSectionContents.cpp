@@ -16,7 +16,7 @@ public:
   void Init(std::string Options) override {}
 
   void processOutputSection(OutputSection O) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return;
     if (O.getName() == ".rodata" || O.getName() == ".buffer")
       Sections.push_back(O);
@@ -25,7 +25,7 @@ public:
   // After the linker lays out the image, but before it creates the elf file,
   // it will call this run function.
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return {};
     for (OutputSection &O : Sections) {
       auto ExpContents = getLinker()->getOutputSectionContents(O);

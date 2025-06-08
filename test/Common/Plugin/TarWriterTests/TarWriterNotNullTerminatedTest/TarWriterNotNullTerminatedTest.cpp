@@ -14,7 +14,7 @@ public:
 
   // Perform any initialization here
   void Init(std::string Options) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return;
 
     // Create tar file and add files to it.

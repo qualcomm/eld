@@ -18,14 +18,14 @@ public:
   void Init(std::string Options) override {}
 
   void processOutputSection(OutputSection O) override {
-    if (getLinker()->getState() != eld::plugin::LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return;
     if (O.getName() == ".dynamic")
       OutputSections.push_back(O);
   }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != eld::plugin::LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return eld::plugin::Plugin::Status::SUCCESS;
     for (OutputSection &O : OutputSections) {
       auto ExpSegments = O.getSegments(*getLinker());

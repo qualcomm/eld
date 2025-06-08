@@ -23,7 +23,7 @@ public:
   // After the linker lays out the image, but before it creates the elf file,
   // it will call this run function.
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return SUCCESS;
     eld::Expected<std::vector<eld::plugin::Symbol>> expAllSyms =
         getLinker()->getAllSymbols();

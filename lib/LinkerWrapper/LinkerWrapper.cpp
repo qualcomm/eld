@@ -5,6 +5,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/PluginAPI/LinkerWrapper.h"
+#include "CheckLinkState.h"
 #include "eld/Config/Version.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
@@ -34,6 +35,7 @@
 #include "eld/Target/ELFSegmentFactory.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/GlobPattern.h"
 #include "llvm/Support/Memory.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -41,13 +43,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include <memory>
 #include <string>
-
-#define RETURN_INVALID_LINK_STATE_ERR(validStates)                             \
-  return std::make_unique<DiagnosticEntry>(                                    \
-      Diag::error_invalid_link_state,                                          \
-      std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),        \
-                               std::string(LLVM_PRETTY_FUNCTION),              \
-                               std::string(validStates)});
 
 using namespace eld;
 using namespace eld::plugin;
@@ -175,12 +170,7 @@ LinkerWrapper::getOutputSection(Section &S) const {
 
 eld::Expected<std::unique_ptr<const uint8_t[]>>
 LinkerWrapper::getOutputSectionContents(OutputSection &O) const {
-  if (getState() <= LinkerWrapper::CreatingSections)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
-                                 __FUNCTION__,
-                                 "CreatingSegments, AfterLayout"});
+  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
   if (O.getOutputSection()->getSection()->isNoBits())
     return std::make_unique<DiagnosticEntry>(
         Diag::error_nobits_unsupported, std::vector<std::string>{O.getName()});
@@ -216,19 +206,13 @@ eld::Expected<void> LinkerWrapper::finishAssignOutputSections() {
 }
 
 eld::Expected<void> LinkerWrapper::reassignVirtualAddresses() {
-  if (getState() != State::CreatingSegments)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSegments");
+  CHECK_LINK_STATE(*this, "CreatingSegments");
   m_Module.getBackend().createScriptProgramHdrs();
   return {};
 }
 
 eld::Expected<std::vector<Segment>> LinkerWrapper::getSegmentTable() const {
-  if (getState() < LinkerWrapper::AfterLayout)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
-                                 LLVM_PRETTY_FUNCTION,
-                                 "'CreatingSegments, AfterLayout'"});
+  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
   std::vector<Segment> Segments;
   for (auto *S : m_Module.getBackend().elfSegmentTable())
     Segments.push_back(Segment(S));
@@ -257,15 +241,13 @@ LinkerWrapper::getFunction(void *LibraryHandle,
 }
 
 eld::Expected<void> LinkerWrapper::applyRelocations(uint8_t *Buf) {
-  if (getState() < LinkerWrapper::AfterLayout)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSegments, AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
   m_Module.getLinker()->getObjectLinker()->syncRelocations(Buf);
   return {};
 }
 
 eld::Expected<void> LinkerWrapper::doRelocation() {
-  if (getState() != LinkerWrapper::CreatingSegments)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSegments");
+  CHECK_LINK_STATE(*this, "CreatingSegments");
   /// FIXME: we can report better errors if ObjectLinker::relocation() returned
   /// eld::Expected
   if (!m_Module.getLinker()->getObjectLinker()->relocation(
@@ -275,9 +257,7 @@ eld::Expected<void> LinkerWrapper::doRelocation() {
 }
 
 eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
-  if (getState() < State::CreatingSections)
-    RETURN_INVALID_LINK_STATE_ERR(
-        "CreatingSections, CreatingSegments, AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
 
   auto ExpMapping = getOutputSectionAndRule(C.getSection());
   if (!ExpMapping)
@@ -304,8 +284,7 @@ eld::Expected<void> LinkerWrapper::addChunkToOutput(Chunk C) {
 }
 
 eld::Expected<void> LinkerWrapper::resetOffset(OutputSection O) {
-  if (getState() < LinkerWrapper::AfterLayout)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSegments, AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout");
   if (auto *layoutInfo = m_Module.getLayoutInfo()) {
     auto OldOffset = O.getOffset();
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(OldOffset);
@@ -319,9 +298,7 @@ eld::Expected<void> LinkerWrapper::resetOffset(OutputSection O) {
 
 eld::Expected<std::pair<OutputSection, LinkerScriptRule>>
 LinkerWrapper::getOutputSectionAndRule(Section S) {
-  if (getState() < State::CreatingSections)
-    RETURN_INVALID_LINK_STATE_ERR(
-        "CreatingSections, CreatingSegments, AfterLayout");
+  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
 
   InputFile F = S.getInputFile();
 
@@ -356,11 +333,9 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
 
 eld::Expected<void> LinkerWrapper::linkSections(OutputSection A,
                                                 OutputSection B) const {
-  if (getState() != LinkerWrapper::CreatingSections &&
-      getState() != LinkerWrapper::CreatingSegments)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSections, CreatingSegments");
+  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments");
   m_Module.getBackend().pluginLinkSections(A.getOutputSection(),
-                                           B.getOutputSection());
+                                            B.getOutputSection());
   return {};
 }
 
@@ -381,10 +356,6 @@ bool LinkerWrapper::matchPattern(const std::string &Pattern,
     return false;
   }
   return E->match(Name);
-}
-
-LinkerWrapper::State LinkerWrapper::getState() const {
-  return m_Module.getState();
 }
 
 bool LinkerWrapper::isPostLTOPhase() const {
@@ -528,8 +499,7 @@ eld::Expected<void> LinkerWrapper::addChunk(const plugin::LinkerScriptRule &R,
                                             const Chunk &C,
                                             const std::string &Annotation) {
   /// Rules contain chunks only in CreatingSections state!
-  if (getState() != State::CreatingSections)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSections");
+  CHECK_LINK_STATE(*this, "CreatingSections");
 
   auto expAddChunk = m_Module.getScript().addChunkOp(
       this, &m_Module, R.getRuleContainer(), C.getFragment(), Annotation);
@@ -541,8 +511,7 @@ eld::Expected<void>
 LinkerWrapper::removeChunk(const plugin::LinkerScriptRule &R, const Chunk &C,
                            const std::string &Annotation) {
   /// Rules contain chunks only in CreatingSections state!
-  if (getState() != State::CreatingSections)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSections");
+  CHECK_LINK_STATE(*this, "CreatingSections");
   auto expRemoveChunk = m_Module.getScript().removeChunkOp(
       this, &m_Module, R.getRuleContainer(), C.getFragment(), Annotation);
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expRemoveChunk);
@@ -554,8 +523,7 @@ LinkerWrapper::updateChunks(const plugin::LinkerScriptRule &R,
                             const std::vector<Chunk> &Chunks,
                             const std::string &Annotation) {
   /// Rules contain chunks only in CreatingSections state!
-  if (getState() != State::CreatingSections)
-    RETURN_INVALID_LINK_STATE_ERR("CreatingSections");
+  CHECK_LINK_STATE(*this, "CreatingSections");
   std::vector<eld::Fragment *> Fragments;
   for (auto &C : Chunks)
     Fragments.push_back(C.getFragment());
@@ -869,7 +837,7 @@ eld::Expected<void> LinkerWrapper::setTargetDataForUse(Use &U, uint64_t Data) {
 eld::Expected<uint32_t> LinkerWrapper::getImageLayoutChecksum() const {
   uint64_t Hash = 0;
   // FIXME: Return error here!
-  if (getState() != LinkerWrapper::AfterLayout)
+  if (!isLinkStateAfterLayout())
     return 0;
   Hash = m_Module.getImageLayoutChecksum();
   return Hash & 0xFFFFFFFF;
@@ -972,11 +940,11 @@ bool LinkerWrapper::reportDiagEntry(std::unique_ptr<DiagnosticEntry> de) {
 bool LinkerWrapper::isChunkMovableFromOutputSection(const Chunk &C) const {
   // For linker states before layout, if Chunks are accessible, then they
   // can be moved
-  if (getState() <= LinkerWrapper::BeforeLayout)
+  if (isLinkStateInitializing() || isLinkStateBeforeLayout())
     return true;
 
   // For linker state After layout, Chunks cannot be moved
-  if (getState() == LinkerWrapper::AfterLayout)
+  if (isLinkStateAfterLayout())
     return false;
 
   // Everything else can be moved
@@ -984,9 +952,9 @@ bool LinkerWrapper::isChunkMovableFromOutputSection(const Chunk &C) const {
 }
 
 std::string_view LinkerWrapper::getCurrentLinkStateAsStr() const {
-  switch (getState()) {
+  switch (getLinkState()) {
 #define ADD_CASE(linkerState)                                                  \
-  case State::linkerState:                                                     \
+  case Module::LinkState::linkerState:                                         \
     return #linkerState;
     ADD_CASE(Unknown);
     ADD_CASE(Initializing);
@@ -996,6 +964,7 @@ std::string_view LinkerWrapper::getCurrentLinkStateAsStr() const {
     ADD_CASE(CreatingSegments);
 #undef ADD_CASE
   }
+  llvm_unreachable("Invalid link state!");
 }
 
 bool LinkerWrapper::isVerbose() const {
@@ -1004,9 +973,7 @@ bool LinkerWrapper::isVerbose() const {
 
 eld::Expected<std::vector<plugin::OutputSection>>
 LinkerWrapper::getAllOutputSections() const {
-  if (getState() < State::CreatingSections)
-    RETURN_INVALID_LINK_STATE_ERR(
-        "CreatingSegments, AfterLayout, CreatingSections");
+  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
 
   SectionMap sectMap = m_Module.getScript().sectionMap();
   std::vector<plugin::OutputSection> outputSects;
@@ -1018,12 +985,7 @@ LinkerWrapper::getAllOutputSections() const {
 
 eld::Expected<std::vector<Segment>>
 LinkerWrapper::getSegmentsForOutputSection(const OutputSection &O) const {
-  if (getState() < LinkerWrapper::CreatingSections)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
-                                 __FUNCTION__,
-                                 "'CreatingSections, AfterLayout'"});
+  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
   std::vector<Segment> Segments;
   for (auto *S :
        m_Module.getBackend().getSegmentsForSection(O.getOutputSection()))
@@ -1080,11 +1042,7 @@ LinkerWrapper::getEnv(const std::string &envVar) const {
 eld::Expected<void> LinkerWrapper::registerCommandLineOption(
     const std::string &opt, bool hasValue,
     const CommandLineOptionHandlerType &optionHandler) {
-  if (getState() != LinkerWrapper::Initializing)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
-                                 __FUNCTION__, "Initializing"});
+  CHECK_LINK_STATE(*this, "Initializing");
   if (!(opt.size() >= 2 && opt[0] == '-' && opt[1] == '-'))
     return std::make_unique<DiagnosticEntry>(Diag::error_plugin_opt_prefix,
                                              std::vector<std::string>{opt});
@@ -1096,11 +1054,7 @@ eld::Expected<void> LinkerWrapper::registerCommandLineOption(
 }
 
 eld::Expected<void> LinkerWrapper::enableVisitSymbol() {
-  if (getState() != LinkerWrapper::Initializing)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(getCurrentLinkStateAsStr()),
-                                 __FUNCTION__, "Initializing"});
+  CHECK_LINK_STATE(*this, "Initializing");
   PluginManager &PM = m_Module.getPluginManager();
   PM.addSymbolVisitor(m_Plugin);
   return {};
@@ -1108,8 +1062,7 @@ eld::Expected<void> LinkerWrapper::enableVisitSymbol() {
 
 eld::Expected<void> LinkerWrapper::setRuleMatchingSectionNameMap(
     InputFile IF, std::unordered_map<uint64_t, std::string> sectionMap) {
-  if (getState() != LinkerWrapper::Initializing)
-    RETURN_INVALID_LINK_STATE_ERR("Initializing")
+  CHECK_LINK_STATE(*this, "Initializing");
   eld::InputFile *inputFile = IF.getInputFile();
   if (!inputFile)
     return std::make_unique<DiagnosticEntry>(Diag::error_empty_input_file);
@@ -1204,4 +1157,26 @@ eld::Expected<bool> LinkerWrapper::doesRuleMatchWithSection(
   const SectionMap &SM = m_Module.getLinkerScript().sectionMap();
   return SM.doesRuleMatchWithSection(*(R.getRuleContainer()), *(S.getSection()),
                                      doNotUseRSymbolName);
+}
+
+uint8_t LinkerWrapper::getLinkState() const { return m_Module.getState(); }
+
+bool LinkerWrapper::isLinkStateInitializing() const {
+  return m_Module.getState() == Module::LinkState::Initializing;
+}
+
+bool LinkerWrapper::isLinkStateBeforeLayout() const {
+  return m_Module.getState() == Module::LinkState::BeforeLayout;
+}
+
+bool LinkerWrapper::isLinkStateCreatingSections() const {
+  return m_Module.getState() == Module::LinkState::CreatingSections;
+}
+
+bool LinkerWrapper::isLinkStateAfterLayout() const {
+  return m_Module.getState() == Module::LinkState::AfterLayout;
+}
+
+bool LinkerWrapper::isLinkStateCreatingSegments() const {
+  return m_Module.getState() == Module::LinkState::CreatingSegments;
 }

@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-
 #include "PluginADT.h"
+#include "CheckLinkState.h"
 #include "Diagnostics.h"
 #include "eld/Fragment/FragUtils.h"
 #include "eld/Fragment/Fragment.h"
@@ -676,7 +676,7 @@ eld::Expected<void>
 plugin::Section::overrideLinkerScriptRule(LinkerWrapper &LW,
                                           plugin::LinkerScriptRule R,
                                           const std::string &Annotation) {
-  if (!(LW.getState() < LinkerWrapper::BeforeLayout)) {
+  if (!LW.isLinkStateInitializing()) {
     return std::make_unique<plugin::DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
@@ -859,12 +859,7 @@ uint32_t Segment::getMaxSectionAlign() const { return S->getMaxSectionAlign(); }
 
 eld::Expected<std::vector<OutputSection>>
 plugin::Segment::getOutputSections(const LinkerWrapper &LW) const {
-  if (LW.getState() < LinkerWrapper::CreatingSections)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__,
-                                 "'CreatingSections, AfterLayout'"});
+  CHECK_LINK_STATE(LW, "CreatingSections", "CreatingSegments", "AfterLayout");
   std::vector<OutputSection> Sections;
   for (eld::OutputSectionEntry *O : S->sections())
     Sections.push_back(OutputSection(O));
@@ -935,12 +930,7 @@ uint64_t OutputSection::getSize() const {
 
 eld::Expected<uint64_t>
 OutputSection::getVirtualAddress(const LinkerWrapper &LW) const {
-  if (LW.getState() < LinkerWrapper::State::AfterLayout)
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__,
-                                 "'CreatingSegments, AfterLayout'"});
+  CHECK_LINK_STATE(LW, "CreatingSegments", "AfterLayout");
   if (!m_OutputSection)
     return 0;
   return m_OutputSection->getSection()->addr();
@@ -948,11 +938,7 @@ OutputSection::getVirtualAddress(const LinkerWrapper &LW) const {
 
 eld::Expected<uint64_t>
 OutputSection::getPhysicalAddress(const LinkerWrapper &LW) const {
-  if (LW.getState() != LinkerWrapper::State::AfterLayout)
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__, "'AfterLayout'"});
+  CHECK_LINK_STATE(LW, "AfterLayout");
   if (!m_OutputSection)
     return 0;
   return m_OutputSection->getSection()->pAddr();
@@ -967,12 +953,7 @@ OutputSection::getSegments(const LinkerWrapper &LW) const {
 
 eld::Expected<std::optional<Segment>>
 OutputSection::getLoadSegment(const LinkerWrapper &LW) const {
-  if (LW.getState() < LinkerWrapper::CreatingSections)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__,
-                                 "'CreatingSections, AfterLayout'"});
+  CHECK_LINK_STATE(LW, "CreatingSections", "CreatingSegments", "AfterLayout");
   if (!m_OutputSection)
     return std::nullopt;
   if (auto *Segment = m_OutputSection->getLoadSegment())
@@ -990,12 +971,7 @@ eld::Expected<uint64_t> OutputSection::getOffset() const {
 
 eld::Expected<void> OutputSection::setOffset(uint64_t Offset,
                                              const LinkerWrapper &LW) {
-  if (LW.getState() < LinkerWrapper::AfterLayout)
-    return std::make_unique<DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 LLVM_PRETTY_FUNCTION,
-                                 "'CreatingSegments, AfterLayout'"});
+  CHECK_LINK_STATE(LW, "CreatingSegments", "AfterLayout");
   getOutputSection()->getSection()->setOffset(Offset);
   return {};
 }
@@ -1029,11 +1005,7 @@ std::vector<plugin::Stub> OutputSection::getStubs() const {
 
 Expected<void> OutputSection::setPluginOverride(Plugin *P,
                                                 const LinkerWrapper &LW) {
-  if (LW.getState() != LinkerWrapper::State::CreatingSegments)
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__, "'CreatingSegments'"});
+  CHECK_LINK_STATE(LW, "CreatingSegments");
   getOutputSection()->prolog().setPlugin(
       make<PluginCmd>(P->getType(), P->GetName(), "", ""));
   return {};

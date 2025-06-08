@@ -13,7 +13,7 @@ public:
   void Init(std::string options) override {}
 
   void processOutputSection(eld::plugin::OutputSection O) override {
-    if (getLinker()->getState() != eld::plugin::LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return;
     if (O.getName() == "foo")
       m_Foo = O;
@@ -22,7 +22,7 @@ public:
   }
 
   Status Run(bool trace) override {
-    if (getLinker()->getState() != eld::plugin::LinkerWrapper::CreatingSections)
+    if (!getLinker()->isLinkStateCreatingSections())
       return Status::SUCCESS;
     assert(m_Foo && m_Bar && "foo and bar output sections must be present!");
     eld::Expected<eld::plugin::LinkerScriptRule> expNewFooRule =
