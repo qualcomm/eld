@@ -68,6 +68,40 @@ Some (optional) helpful CMake options:
 
   Using LLD instead of GNU LD can signficantly help in reducing link time and memory.
 
+### Running a Single Test Case
+To execute an individual ELD test without running the entire suite, follow the steps below from the build directory ('obj/' here).
+
+#### 1. Locate the Test Configuration and Test File
+
+- **Test configurations** are stored under:
+`obj/tools/eld/test/`
+
+- **Test files** reside in the source tree, for example:
+`llvm-project/eld/test/<Subdirectory>/<TestName>.test`
+
+#### 2. Invoke the Test Harness
+
+Use the following command to run a specific test case:
+
+```bash
+<path_to_lit_config> <path_to_test_file>
+```
+
+- `<path_to_lit_config>` : Path to the LIT configuration script
+- `<path_to_test_file>` : Path to the '.test' file you wish to execute
+
+#### Example
+```bash
+obj/tools/eld/test/llvm-lit-arm-default  llvm-project/eld/test/Common/standalone/AliasSymbolExportDynamic/AliasSymbolExportDynamic.test
+```
+
+This command runs only the AliasSymbolExportDynamic test using the ARM default configuration. Results and diagnostics will be printed to the console.
+
+#### Enabling Verbose Output
+
+- -a: Always show detailed output.
+- -v: Show detailed output only when a test fails ("on failure" mode).
+
 ### Building documentation
 
 First install the prerequisites for building documentation:
