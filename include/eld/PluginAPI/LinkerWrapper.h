@@ -80,33 +80,6 @@ using AuxiliarySymbolNameMap = std::unordered_map<uint64_t, std::string>;
 /// certain plugin interface types and link stages.
 class DLL_A_EXPORT LinkerWrapper {
 public:
-  /// Stages of the link process.
-  /// What actions a plugin can perform depends on the
-  /// link state. For example:
-  /// - Plugins can change the output section of an input
-  ///   section only in BeforeLayout link state.
-  /// - Plugins can move chunks from one output section to
-  ///   another only in CreatingSections link state.
-  /// - Plugins can only compute the output image layout checkum using
-  ///   `LinkerWrapper::getImageLayoutChecksum` only in AfterLayout linker
-  ///   state.
-  /// - Plugins can reassign virtual addresses using
-  ///   `LinkerWrapper::reassignVirtualAddresses()` only in CreatingSegments
-  ///   link state.
-  ///
-  /// Plugin authors should ensure that the action being performed by the
-  /// plugin is meaningful in the link state in which it is executed.
-  /// Executing invalid actions for a link state can result in undefined
-  /// behavior.
-  enum State {
-    Unknown,
-    Initializing,
-    BeforeLayout,
-    CreatingSections,
-    AfterLayout,
-    // CreatingSegments runs BEFORE AfterLayout despite having a greater value.
-    CreatingSegments,
-  };
 
   /// Link modes.
   enum LinkMode : uint8_t {
@@ -285,8 +258,6 @@ public:
   // TODO: Default destructor works well. Why do we need explicit destructor?
   ~LinkerWrapper();
 
-  /// Returns the current link state.
-  State getState() const;
 
   /// Return true if the linker is processing post LTO objects.
   bool isPostLTOPhase() const;
@@ -808,6 +779,16 @@ public:
   eld::Expected<bool> doesRuleMatchWithSection(const LinkerScriptRule &R,
                                                const Section &S,
                                                bool doNotUseRMName = false);
+  bool isLinkStateBeforeLayout() const;
+
+  bool isLinkStateCreatingSections() const;
+
+  bool isLinkStateAfterLayout() const;
+
+  bool isLinkStateCreatingSegments() const;
+
+private:
+  uint8_t getLinkState() const;
 
 private:
   /// Report a diagnostic using diagnostic builder and the
@@ -828,8 +809,11 @@ private:
 private:
   eld::Module &m_Module;
   eld::Plugin *m_Plugin;
+
   eld::DiagnosticEngine *m_DiagEngine;
   friend class LayoutWrapper;
+  friend struct OutputSection;
+  friend struct Segment;
 };
 } // namespace plugin
 } // namespace eld
