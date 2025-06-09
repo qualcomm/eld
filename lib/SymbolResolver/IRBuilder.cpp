@@ -371,11 +371,11 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   // library, we either need to export the symbol by dynamic list or sometimes
   // we export it since the dynamic library may be referring it defined in
   // executable, either case it must be in .dynsym
+  LDSymbol *OutSym = InputSym->resolveInfo()->outSymbol();
+  ResolveInfo *RI = InputSym->resolveInfo();
   if (ThisConfig.codeGenType() != LinkerConfig::DynObj &&
-      ((InputSym->resolveInfo()->outSymbol() &&
-        InputSym->resolveInfo()->outSymbol()->hasFragRef()) ||
-       InputSym->resolveInfo()->isCommon()))
-    InputSym->resolveInfo()->setExportToDyn();
+      ((OutSym && OutSym->hasFragRef()) || RI->isCommon()))
+    RI->setExportToDyn();
   return InputSym;
 }
 

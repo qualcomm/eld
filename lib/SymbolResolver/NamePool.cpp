@@ -369,6 +369,8 @@ ResolveInfo NamePool::createInputSymbolRI(
   RI.setInBitCode(IF.isBitcode());
   if (IsPatchable)
     RI.setPatchable();
+  if (IsDyn && RI.canBePreemptible())
+    RI.setExportToDyn();
   return RI;
 }
 
