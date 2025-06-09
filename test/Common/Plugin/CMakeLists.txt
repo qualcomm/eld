@@ -6,6 +6,9 @@ function(add_common_plugin pluginname)
   add_dependencies(CommonPluginUnitTests ${pluginname})
 endfunction()
 
+# Add HelloWorldPlugin as a test dependency!
+add_common_plugin(HelloWorldPlugin)
+
 add_subdirectory(ActBeforeRuleMatching)
 add_subdirectory(ActBeforeSectionMerging)
 add_subdirectory(AddedSectionOverrides)

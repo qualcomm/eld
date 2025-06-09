@@ -629,7 +629,7 @@ private:
   bool verifyInvariantsForCreatingSectionsState() const;
 
   // Read one plugin config file
-  bool readOnePluginConfig(llvm::StringRef Cfg);
+  bool readOnePluginConfig(llvm::StringRef Cfg, bool IsDefaultConfig);
 
 private:
   LinkerScript &UserLinkerScript;

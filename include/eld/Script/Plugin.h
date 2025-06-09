@@ -26,7 +26,8 @@ class Module;
 class Plugin {
 public:
   explicit Plugin(plugin::Plugin::Type T, std::string Name, std::string R,
-                  std::string O, bool Stats, Module &Module);
+                  std::string O, bool Stats, bool DefaultPlugin,
+                  Module &Module);
 
   ~Plugin();
 
@@ -213,6 +214,8 @@ public:
   /// Calls ActBeforeRuleMatching hook handler.
   void callActBeforeRuleMatchingHook();
 
+  bool isDefaultPlugin() const { return IsDefaultPlugin; }
+
 private:
   bool check();
 
@@ -244,6 +247,7 @@ private:
   UnbalancedFragmentMoves PluginUnbalancedFragmentMoves;
   std::vector<void *> LibraryHandles;
   std::vector<CommandLineOptionSpec> PluginCommandLineOptions;
+  bool IsDefaultPlugin = false;
 };
 } // namespace eld
 

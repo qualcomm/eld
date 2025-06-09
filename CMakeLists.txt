@@ -189,6 +189,7 @@ add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(docs)
 add_subdirectory(test)
+add_subdirectory(Plugins)
 
 install(
   DIRECTORY templates/
