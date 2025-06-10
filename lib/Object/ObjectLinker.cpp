@@ -2168,6 +2168,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
         R->setAddend(Relocation->symOffset(*ThisModule));
       }
     }
+
+    R->setType(ThisBackend.remapInternalRelocationType(R->type()));
     // set relocation target symbol to the output section symbol's
     // resolveInfo
     R->setSymInfo(SymInfo);
