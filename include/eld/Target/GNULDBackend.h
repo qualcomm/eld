@@ -705,7 +705,7 @@ public:
   // Vendor/Internal relocations), This maps the internal relocation type back
   // to the external relocation type it came from, for emit-relocs.
   virtual Relocation::Type
-  remapInternalRelocationType(Relocation::Type t) const {
+  getRemappedInternalRelocationType(Relocation::Type t) const {
     return t;
   }
 

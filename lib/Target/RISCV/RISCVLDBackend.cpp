@@ -1098,7 +1098,7 @@ bool RISCVLDBackend::handleVendorRelocation(ELFSection *pSection,
 }
 
 Relocation::Type
-RISCVLDBackend::remapInternalRelocationType(Relocation::Type pType) const {
+RISCVLDBackend::getRemappedInternalRelocationType(Relocation::Type pType) const {
   using namespace eld::ELF::riscv;
 
   // Valid public relocations are left alone.

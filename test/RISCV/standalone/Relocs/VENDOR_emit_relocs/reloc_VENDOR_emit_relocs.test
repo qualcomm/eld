@@ -6,7 +6,12 @@
 #
 REQUIRES: riscv32
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o -march=rv32gc_xqcili0p2_xqcilb0p2_xqcibi0p2 -menable-experimental-extensions
-RUN: %link %linkopts --emit-relocs --no-relax %t1.1.o -o %t.out
+RUN: %link %linkopts --emit-relocs --no-relax %t1.1.o -o %t.out --verbose 2>&1 | FileCheck %s --check-prefix=VERBOSE
+
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_E_JUMP_PLT to 195 in section {{.*}}.o[.text]
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_E_BRANCH to 193 in section {{.*}}.o[.text]
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_E_32 to 194 in section {{.*}}.o[.text]
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_ABS20_U to 192 in section {{.*}}.o[.text]
 
 RUN: %readelf -r %t.out | FileCheck %s --check-prefix=RELOCS
 

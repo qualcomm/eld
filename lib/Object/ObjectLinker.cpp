@@ -2154,8 +2154,18 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       RelocCount[OutputSect] = 0;
       MaxSectSize[OutputSect] = OutputSect->size();
     }
+
+    Relocation::Type ExtType = ThisBackend.getRemappedInternalRelocationType(Relocation->type());
+
+    if (ExtType != Relocation->type() && ThisModule->getPrinter()->isVerbose()) {
+      ThisConfig.raise(Diag::remapped_internal_reloc)
+        << ThisBackend.getRelocator()->getName(Relocation->type())
+        << ExtType
+        << Relocation->getSourcePath(ThisConfig.options());
+    }
+
     eld::Relocation *R = eld::Relocation::Create(
-        Relocation->type(),
+        ExtType,
         ThisBackend.getRelocator()->getSize(Relocation->type()),
         Relocation->targetRef(), Relocation->addend());
 
@@ -2169,7 +2179,6 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       }
     }
 
-    R->setType(ThisBackend.remapInternalRelocationType(R->type()));
     // set relocation target symbol to the output section symbol's
     // resolveInfo
     R->setSymInfo(SymInfo);

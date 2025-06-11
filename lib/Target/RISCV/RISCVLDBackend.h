@@ -90,7 +90,7 @@ public:
 
   void translatePseudoRelocation(Relocation *reloc);
 
-  Relocation::Type remapInternalRelocationType(Relocation::Type) const override;
+  Relocation::Type getRemappedInternalRelocationType(Relocation::Type) const override;
 
   Relocation::Type getCopyRelType() const override;
 
