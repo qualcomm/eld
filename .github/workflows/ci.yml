@@ -19,13 +19,13 @@ jobs:
         echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
         echo "BASE_BRANCH_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
 
-    - name: Restore repository cache
+    - name: Cache ccache
       uses: actions/cache@v4
       with:
-        path: pr-${{ env.PR_NUMBER }}/llvm-project
-        key: ${{ runner.os }}-repo-${{ github.sha }}
+        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        key: ${{ runner.os }}-ccache-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-repo-
+          ${{ runner.os }}-ccache-
 
     - name: Checkout llvm-project
       if: steps.cache.outputs.cache-hit != 'true'
@@ -50,8 +50,8 @@ jobs:
 
     - name: Run CMake
       run: |
-        ccache --set-config max_size=32GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        rm -rf pr-${{ env.PR_NUMBER }}/obj  # Remove the existing obj directory
+        ccache --set-config max_size=10GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        rm -rf pr-${{ env.PR_NUMBER }}/obj
         mkdir -p pr-${{ env.PR_NUMBER }}/obj
         cd pr-${{ env.PR_NUMBER }}/obj
         cmake -G Ninja \
@@ -66,6 +66,11 @@ jobs:
           -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
           ../llvm-project/llvm
+
+    - name: Check ccache directory size
+      run: |
+        echo "Current ccache size:"
+        du -sh /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
 
     - name: Cache Usage before build
       run: |
