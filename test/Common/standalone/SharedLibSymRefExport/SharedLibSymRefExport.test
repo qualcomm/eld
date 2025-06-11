@@ -1,0 +1,28 @@
+#---SharedLibUndefSymExport.test----------- SharedLibrary----------------#
+#BEGIN_COMMENT
+# This test checks that a symbol is exported if a shared library defines
+# and refers to a symbol but the symbol resolution has resolved that symbol
+# name to a symbol from a relocatable object file.
+#END_COMMENT
+#BEGIN_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib3.so %t1.3.o -shared
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %link %linkopts -o %t1.main.1.out -dy %t1.main.o %t1.lib1.so %t1.2.o
+RUN: %readelf --dyn-symbols %t1.main.1.out | %filecheck %s
+RUN: %link %linkopts -o %t1.main.2.out -dy %t1.main.o %t1.lib3.so %t1.2.o
+RUN: %readelf --dyn-symbols %t1.main.2.out | %filecheck %s
+RUN: %clang %clangopts -o %t1.2.bc.o %p/Inputs/2.c -c -flto
+RUN: %clang %clangopts -o %t1.main.bc.o %p/Inputs/main.c -c -flto
+RUN: %link %linkopts -o %t1.main.bc.1.out -dy %t1.main.bc.o %t1.lib1.so %t1.2.bc.o
+RUN: %readelf --dyn-symbols %t1.main.bc.1.out | %filecheck %s
+RUN: %link %linkopts -o %t1.main.bc.2.out -dy %t1.main.bc.o %t1.lib3.so %t1.2.bc.o
+RUN: %readelf --dyn-symbols %t1.main.bc.2.out | %filecheck %s
+#END_TEST
+
+CHECK-DAG: {{[0-9]}} bar
+CHECK-DAG: UND foo
+CHECK-DAG: {{[0-9]}} fred
