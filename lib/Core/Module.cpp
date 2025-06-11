@@ -411,18 +411,19 @@ bool Module::readPluginConfig() {
     if (!ThisConfig.getDiagEngine()->diagnose())
       return false;
     for (auto &Cfg : DefaultPlugins) {
-      if (!readOnePluginConfig(Cfg.native()))
+      if (!readOnePluginConfig(Cfg.native(), /*IsDefaultConfig=*/true))
         return false;
     }
   }
   for (const auto &Cfg : ThisConfig.options().getPluginConfig()) {
-    if (!readOnePluginConfig(Cfg))
+    if (!readOnePluginConfig(Cfg, /*IsDefaultConfig=*/false))
       return false;
   }
   return true;
 }
 
-bool Module::readOnePluginConfig(llvm::StringRef CfgFile) {
+bool Module::readOnePluginConfig(llvm::StringRef CfgFile,
+                                 bool IsDefaultConfig) {
   eld::LinkerPlugin::Config Config;
 
   if (CfgFile.empty())
@@ -457,7 +458,7 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile) {
   for (auto &G : Config.GlobalPlugins) {
     getScript().addPlugin(G.PluginType, G.LibraryName, G.PluginName, G.Options,
                           ThisConfig.options().printTimingStats("Plugin"),
-                          *this);
+                          IsDefaultConfig, *this);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::intializing_plugin) << G.PluginName;
   }
@@ -465,7 +466,8 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile) {
   for (auto &O : Config.OutputSectionPlugins) {
     eld::Plugin *P = getScript().addPlugin(
         O.PluginType, O.LibraryName, O.PluginName, O.Options,
-        ThisConfig.options().printTimingStats("Plugin"), *this);
+        ThisConfig.options().printTimingStats("Plugin"), IsDefaultConfig,
+        *this);
     getScript().addPluginOutputSection(O.OutputSection, P);
     if (getPrinter()->isVerbose())
       ThisConfig.raise(Diag::adding_output_section_for_plugin)

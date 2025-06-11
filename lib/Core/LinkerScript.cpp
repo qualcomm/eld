@@ -78,9 +78,9 @@ void LinkerScript::insertPhdrSpec(const PhdrSpec &PhdrsSpec) {
 Plugin *LinkerScript::addPlugin(plugin::PluginBase::Type T, std::string Name,
                                 std::string PluginRegisterType,
                                 std::string PluginOpts, bool Stats,
-                                Module &Module) {
-  Plugin *P =
-      make<Plugin>(T, Name, PluginRegisterType, PluginOpts, Stats, Module);
+                                bool IsDefaultPlugin, Module &Module) {
+  Plugin *P = make<Plugin>(T, Name, PluginRegisterType, PluginOpts, Stats,
+                           IsDefaultPlugin, Module);
   addPlugin(P, Module);
   return P;
 }

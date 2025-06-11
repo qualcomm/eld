@@ -19,8 +19,9 @@ eld::Expected<void> PluginCmd::activate(Module &CurModule) {
       CurModule.getConfig().options().printTimingStats("Plugin") ||
       CurModule.getConfig().options().printTimingStats(Name.c_str()) ||
       CurModule.getConfig().options().allUserPluginStatsRequested();
-  Plugin = CurModule.getScript().addPlugin(T, Name, R, Options,
-                                           PrintTimingStats, CurModule);
+  Plugin =
+      CurModule.getScript().addPlugin(T, Name, R, Options, PrintTimingStats,
+                                      /*IsDefaultPlugin=*/false, CurModule);
   return eld::Expected<void>();
 }
 
