@@ -1,0 +1,116 @@
+#----------QC_E_CALL_TO_JAL.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Do relaxation from QC.E.J and QC.E.JAL to JAL or C.J/C.JAL
+#END_COMMENT
+#--------------------------------------------------------------------
+REQUIRES: riscv32
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.o -menable-experimental-extensions -march=rv32gc_xqcilb0p2
+
+# Relaxations are enabled, including compressed ones.
+RUN: %link %linkopts --relax-xqci %t.o -o %t.1.out -MapStyle txt -Map %t.1.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX_C
+RUN: %link %linkopts --relax-xqci %t.o -o %t.1.so -shared -MapStyle txt -Map %t.1.so.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX_C
+VERBOSE_RELAX_C: RISCV_QC_E_JAL_C : relaxing instruction 0x00000000c01f to compressed instruction 0x2001 for symbol f in section .text+0x4 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_JAL_C : Deleting 4 bytes for symbol 'f' in section .text+0x6 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_J_C : relaxing instruction 0x00000000401f to compressed instruction 0xa001 for symbol f in section .text+0x6 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_J_C : Deleting 4 bytes for symbol 'f' in section .text+0x8 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_JAL_C : relaxing instruction 0x00000000c01f to compressed instruction 0x2001 for symbol f in section .text+0x778 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_JAL_C : Deleting 4 bytes for symbol 'f' in section .text+0x77a file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_J_C : relaxing instruction 0x00000000401f to compressed instruction 0xa001 for symbol f in section .text+0x77A file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_J_C : Deleting 4 bytes for symbol 'f' in section .text+0x77c file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x874 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x878 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0xffef0 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0xffef4 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000e8 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000ee file {{.*}}.o
+
+RUN: %objdump -d %t.1.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX_C
+RUN: %objdump -d %t.1.so 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX_C
+DUMP_RELAX_C: 3ff5        jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: bfed        j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: 3061        jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: b059        j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: f90ff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: f8cff06f  j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: 914000ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: 9100006f  j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: cc9f f00e ffef  qc.e.jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX_C: 499f f00e ffef  qc.e.j 0x{{[[:xdigit:]]+}} <f>
+
+RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP_RELAX_C
+RUN: %filecheck %s --input-file=%t.1.so.map --check-prefix=MAP_RELAX_C
+MAP_RELAX_C: # LinkStats Begin
+MAP_RELAX_C: # RelaxationBytesDeleted : 24
+MAP_RELAX_C: # RelaxationBytesMissed : 4
+MAP_RELAX_C: # LinkStats End
+
+MAP_RELAX_C: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_RELAX_C: # RelaxationBytesDeleted : 24
+MAP_RELAX_C: # RelaxationBytesMissed : 4
+MAP_RELAX_C: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+# Only non-compressed relaxations are enabled.
+RUN: %link %linkopts --relax-xqci --no-relax-c %t.o -o %t.2.out -MapStyle txt -Map %t.2.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
+RUN: %link %linkopts --relax-xqci --no-relax-c %t.o -o %t.2.so -shared -MapStyle txt -Map %t.2.so.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
+VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x8 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0xc file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x780 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x784 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x87c file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x880 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0xffef8 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0xffefc file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000f6 file {{.*}}.o
+
+RUN: %objdump -d %t.2.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
+RUN: %objdump -d %t.2.so 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
+DUMP_RELAX: ffdff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: ff9ff06f  j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 885ff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 881ff06f  j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: f88ff0ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: f84ff06f  j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 90c000ef  jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 9080006f  j 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: c89f f00e ffef  qc.e.jal 0x{{[[:xdigit:]]+}} <f>
+DUMP_RELAX: 459f f00e ffef  qc.e.j 0x{{[[:xdigit:]]+}} <f>
+
+RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP_RELAX
+RUN: %filecheck %s --input-file=%t.2.so.map --check-prefix=MAP_RELAX
+MAP_RELAX: # LinkStats Begin
+MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: # LinkStats End
+
+MAP_RELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+### Relaxations are disabled.
+RUN: %link %linkopts --no-relax-xqci --no-relax %t.o -o %t.3.out -MapStyle txt -Map %t.3.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
+RUN: %link %linkopts --no-relax-xqci --no-relax %t.o -o %t.3.so -shared -MapStyle txt -Map %t.3.so.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
+VERBOSE_NORELAX-COUNT-10: RISCV_QC_E_CALL : Cannot relax
+VERBOSE_NORELAX-NOT: Deleting
+
+RUN: %objdump -d %t.3.out 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX
+RUN: %objdump -d %t.3.so 2>&1 | %filecheck %s --check-prefix=DUMP_NORELAX
+DUMP_NORELAX: qc.e.jal
+DUMP_NORELAX: qc.e.j
+DUMP_NORELAX: qc.e.jal
+DUMP_NORELAX: qc.e.j
+DUMP_NORELAX: qc.e.jal
+DUMP_NORELAX: qc.e.j
+DUMP_NORELAX: qc.e.jal
+DUMP_NORELAX: qc.e.j
+DUMP_NORELAX: qc.e.jal
+DUMP_NORELAX: qc.e.j
+
+RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP_NORELAX
+RUN: %filecheck %s --input-file=%t.3.so.map --check-prefix=MAP_NORELAX
+MAP_NORELAX: # LinkStats Begin
+MAP_NORELAX-NOT: # RelaxationBytesDeleted
+MAP_NORELAX: # LinkStats End
+
+MAP_NORELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_NORELAX-NOT: # RelaxationBytesDeleted
+MAP_NORELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
