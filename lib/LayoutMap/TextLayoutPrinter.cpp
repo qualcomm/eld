@@ -231,8 +231,7 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
     outputStream().changeColor(llvm::raw_ostream::GREEN);
   outputStream() << "\n";
   outputStream() << Section->name();
-  if (Backend.getModule().getState() ==
-      plugin::LinkerWrapper::State::BeforeLayout) {
+  if (Backend.getModule().getState() == Module::LinkState::BeforeLayout) {
     outputStream() << "\n";
     return;
   }
@@ -769,7 +768,7 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
 void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
                                   Fragment *Frag, bool UseColor) {
   if (ThisLayoutInfo->showOnlyLayout() ||
-      CurModule.getState() == plugin::LinkerWrapper::State::BeforeLayout) {
+      CurModule.getState() == Module::LinkState::BeforeLayout) {
     printOnlyLayoutFrag(CurModule, Section, Frag, UseColor);
     return;
   }

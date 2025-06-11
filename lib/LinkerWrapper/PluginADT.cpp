@@ -782,7 +782,7 @@ uint32_t Segment::getMaxSectionAlign() const { return S->getMaxSectionAlign(); }
 
 eld::Expected<std::vector<OutputSection>>
 plugin::Segment::getOutputSections(const LinkerWrapper &LW) const {
-  if (LW.getState() < LinkerWrapper::CreatingSections)
+  if (LW.getLinkState() < Module::LinkState::CreatingSections)
     return std::make_unique<DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
@@ -844,7 +844,7 @@ uint64_t OutputSection::getSize() const {
 
 eld::Expected<uint64_t>
 OutputSection::getVirtualAddress(const LinkerWrapper &LW) const {
-  if (LW.getState() < LinkerWrapper::State::AfterLayout)
+  if (LW.getLinkState() < Module::LinkState::AfterLayout)
     return std::make_unique<plugin::DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
@@ -857,7 +857,7 @@ OutputSection::getVirtualAddress(const LinkerWrapper &LW) const {
 
 eld::Expected<uint64_t>
 OutputSection::getPhysicalAddress(const LinkerWrapper &LW) const {
-  if (LW.getState() != LinkerWrapper::State::AfterLayout)
+  if (LW.getLinkState() != Module::LinkState::AfterLayout)
     return std::make_unique<plugin::DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
@@ -876,7 +876,7 @@ OutputSection::getSegments(const LinkerWrapper &LW) const {
 
 eld::Expected<std::optional<Segment>>
 OutputSection::getLoadSegment(const LinkerWrapper &LW) const {
-  if (LW.getState() < LinkerWrapper::CreatingSections)
+  if (LW.getLinkState() < Module::LinkState::CreatingSections)
     return std::make_unique<DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
@@ -899,7 +899,7 @@ eld::Expected<uint64_t> OutputSection::getOffset() const {
 
 eld::Expected<void> OutputSection::setOffset(uint64_t Offset,
                                              const LinkerWrapper &LW) {
-  if (LW.getState() < LinkerWrapper::AfterLayout)
+  if (LW.getLinkState() < Module::LinkState::AfterLayout)
     return std::make_unique<DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
@@ -938,7 +938,7 @@ std::vector<plugin::Stub> OutputSection::getStubs() const {
 
 Expected<void> OutputSection::setPluginOverride(Plugin *P,
                                                 const LinkerWrapper &LW) {
-  if (LW.getState() != LinkerWrapper::State::CreatingSegments)
+  if (LW.getLinkState() != Module::LinkState::CreatingSegments)
     return std::make_unique<plugin::DiagnosticEntry>(
         Diag::error_invalid_link_state,
         std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
