@@ -1,4 +1,4 @@
-#----------AUIPC_JALR_TO_JAL.test----------------- Executable------------------#
+#----------QC_E_CALL_TO_JAL.test----------------- Executable------------------#
 #BEGIN_COMMENT
 # Do relaxation from QC.E.J and QC.E.JAL to JAL or C.J/C.JAL
 #END_COMMENT

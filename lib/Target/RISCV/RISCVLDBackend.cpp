@@ -750,7 +750,6 @@ void RISCVLDBackend::translatePseudoRelocation(Relocation *reloc) {
 
 enum RelaxationPass {
   RELAXATION_CALL, // Must start at zero
-  RELAXATION_QC_CALL,
   RELAXATION_PC,
   RELAXATION_LUI,
   RELAXATION_ALIGN,
