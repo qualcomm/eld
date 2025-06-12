@@ -153,6 +153,16 @@ public:
   /// \em BeforeLayout and beyond.
   eld::Expected<std::vector<Use>> getUses(Chunk &C);
 
+  /// Returns the internal input file which contains the common symbols.
+  /// \return Returns the common internal input
+  std::optional<eld::plugin::InputFile> getCommonInternalInput() const;
+
+  /// Returns the eld major version
+  uint32_t getEldMajorVersion() const;
+
+  /// Returns the eld minor version
+  uint32_t getEldMinorVersion() const;
+
   /// Returns a vector of Uses that are referred from the Section S.
   ///
   /// \param S Section
