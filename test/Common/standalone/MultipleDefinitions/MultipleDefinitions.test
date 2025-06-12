@@ -12,14 +12,14 @@ RUN: %clang %clangopts -o %t1.2.o -c %p/Inputs/2.c -ffunction-sections
 # Override symbols Defsym expressions
 #
 RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
-RUN: %link %linkopts %t1.1.o --defsym v=200 -o %t2.out 2>&1 | %filecheck %s -check-prefix=WARNDEF
+RUN: %link %linkopts -Wlinker-script %t1.1.o --defsym v=200 -o %t2.out 2>&1 | %filecheck %s -check-prefix=WARNDEF
 #WARNDEF: Warning: Symbol v defined in Expression(Defsym)v=200 overrides symbol in
 
 #
 # Check that linker script assignments are processed in link order
 #
-RUN: %link %linkopts %t1.1.o --defsym v=100 -o %t2.out.2 -T %p/Inputs/s.t 2>&1 | %filecheck %s -check-prefix=DEFSYMSCRIPT
-RUN: %link %linkopts %t1.1.o --defsym v=100 -o %t2.out.3 %p/Inputs/s.t 2>&1 | %filecheck %s -check-prefix=DEFSYMSCRIPT
+RUN: %link %linkopts -Wlinker-script %t1.1.o --defsym v=100 -o %t2.out.2 -T %p/Inputs/s.t 2>&1 | %filecheck %s -check-prefix=DEFSYMSCRIPT
+RUN: %link %linkopts -Wlinker-script %t1.1.o --defsym v=100 -o %t2.out.3 %p/Inputs/s.t 2>&1 | %filecheck %s -check-prefix=DEFSYMSCRIPT
 #DEFSYMSCRIPT: Warning: Symbol v defined in Expression(Defsym)v=100 overrides symbol in {{.*}}1.o
 
 
@@ -27,7 +27,7 @@ RUN: %link %linkopts %t1.1.o --defsym v=100 -o %t2.out.3 %p/Inputs/s.t 2>&1 | %f
 # Check that linker script assignment definitions are processed after all object
 # files are processed
 #
-RUN: %not %link %linkopts %t1.1.o --defsym v=100 -T %p/Inputs/s.t %t1.2.o 2>&1 | %filecheck %s -check-prefix=MULDEF
+RUN: %not %link %linkopts -Wlinker-script %t1.1.o --defsym v=100 -T %p/Inputs/s.t %t1.2.o 2>&1 | %filecheck %s -check-prefix=MULDEF
 #MULDEF: Error: multiple definition of symbol `v' in file {{.*}}1.o and {{.*}}2.o
 
 #END_TEST
