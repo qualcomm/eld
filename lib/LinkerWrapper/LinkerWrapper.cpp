@@ -6,6 +6,7 @@
 
 #include "eld/PluginAPI/LinkerWrapper.h"
 #include "eld/Config/Version.h"
+#include "eld/Config/Version.inc"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
@@ -710,6 +711,17 @@ std::vector<plugin::InputFile> LinkerWrapper::getInputFiles() const {
   }
   return InputFiles;
 }
+
+std::optional<plugin::InputFile> LinkerWrapper::getCommonInternalInput() const {
+  eld::InputFile *IF = m_Module.getCommonInternalInput();
+  if (!IF)
+    return eld::plugin::InputFile(nullptr);
+  return eld::plugin::InputFile(IF);
+}
+
+uint32_t LinkerWrapper::getEldMajorVersion() const { return ELD_VERSION_MAJOR; }
+
+uint32_t LinkerWrapper::getEldMinorVersion() const { return ELD_VERSION_MINOR; }
 
 plugin::LinkerWrapper::LinkMode LinkerWrapper::getLinkMode() const {
   const eld::LinkerConfig &Config = m_Module.getConfig();
