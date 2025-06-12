@@ -21,6 +21,19 @@ class Plugin;
 /// routines for calling a plugin hook for all plugins.
 class PluginManager {
 public:
+  enum LinkState : uint32_t {
+    None,
+    Init,
+    VisitSections,
+    VisitSymbols,
+    RuleMatching,
+    SectionMerging,
+    PerformingLayout,
+    WritingOutput,
+    Destroy
+  };
+
+public:
   explicit PluginManager(const LinkerScript &LinkerScript,
                          DiagnosticEngine &DiagEngine, bool PrintTimingStats)
       : LS(LinkerScript), DE(DiagEngine),
@@ -88,6 +101,12 @@ public:
 
   bool callActBeforeWritingOutputHook();
 
+  LinkState getLinkState() const { return LState; }
+
+  std::string_view getLinkStateAsString() const;
+
+  std::string_view getLinkStateAsString(LinkState S) const;
+
 private:
   const LinkerScript &LS;
   DiagnosticEngine &DE;
@@ -105,6 +124,8 @@ private:
   std::unordered_map<const InputFile *, const Plugin *> AuxSymNameMapProvider;
 
   const bool ShouldPrintTimingStats;
+
+  LinkState LState = LinkState::None;
 };
 } // namespace eld
 
