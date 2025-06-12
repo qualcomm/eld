@@ -1,6 +1,6 @@
-#---R_RISCV_QC_E_JUMP_PLT.test------------------ Executable------------#
+#---R_RISCV_QC_E_CALL_PLT.test------------------ Executable------------#
 #BEGIN_COMMENT
-#  Check that R_RISCV_QC_E_JUMP_PLT is correctly implemented.
+#  Check that R_RISCV_QC_E_CALL_PLT is correctly implemented.
 #  It fills in specific bits of `QC.EJ-type` instructions, and
 #  Can reach any 32-bit address.
 #--------------------------------------------------------------------

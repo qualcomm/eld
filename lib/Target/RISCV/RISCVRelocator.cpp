@@ -144,7 +144,7 @@ RelocationDescMap RelocDescs = {
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_ABS20_U, applyAbs),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_E_BRANCH, applyJumpOrCall),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_E_32, applyAbs),
-    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_E_JUMP_PLT, applyJumpOrCall),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_E_CALL_PLT, applyJumpOrCall),
 };
 
 #undef INTERNAL_RELOC_DESC_ENTRY
@@ -571,7 +571,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
 
   case llvm::ELF::R_RISCV_CALL:
   case llvm::ELF::R_RISCV_CALL_PLT:
-  case eld::ELF::riscv::internal::R_RISCV_QC_E_JUMP_PLT: {
+  case eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReservePLT)
       return;
