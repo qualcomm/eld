@@ -40,6 +40,8 @@ public:
 
   virtual ~x86_64LinkDriver() {}
 
+  static bool isValidEmulation(llvm::StringRef Emulation );
+
   // Main entry point.
   int link(llvm::ArrayRef<const char *> Args,
            llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) override;
