@@ -1,0 +1,10 @@
+#---StaticLinking.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Check that --require-defined works for static linking
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: not %link %linkopts --require-defined bar -o %t1.1.out %t1.1.o 2>&1 | %filecheck %s
+CHECK: Error: Required symbol `bar' not defined
+#END_TEST
