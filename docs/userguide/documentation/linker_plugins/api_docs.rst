@@ -140,7 +140,9 @@ The linker keeps track of diagnostics emitted from the diagnostic framework.
 This is required to maintain extensive logs for diagnostic purposes.
 The framework also adjusts diagnostic behavior based on linker command-line
 options that affect diagnostics. For example, if the :code:`--fatal-warnings`
-option is enabled, then warnings will be converted to fatal errors.
+option is enabled, then warnings will be converted to fatal errors.  If
+the :code:`-Werror` option is used, warnings are promoted to regular errors
+instead of fatals.
 
 The framework is thread-safe. Thus, diagnostics can be reported safely from
 multiple threads simultaneously. This is crucial in situations where

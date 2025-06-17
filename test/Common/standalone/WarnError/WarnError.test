@@ -1,0 +1,12 @@
+#---WarnError.test--------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Check -Werror converts warnings to errors
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o --invalid-opt -Werror 2>&1 | %filecheck %s -check-prefix=ERR
+RUN: %link %linkopts -o %t1.1.out %t1.1.o --invalid-opt 2>&1 | %filecheck %s -check-prefix=WARN
+RUN: %link %linkopts -o %t1.1.out %t1.1.o --invalid-opt -Werror -Wno-error 2>&1 | %filecheck %s -check-prefix=WARN
+#END_TEST
+ERR: Error: Unrecognized option `--invalid-opt'
+WARN: Warning: Unrecognized option `--invalid-opt'

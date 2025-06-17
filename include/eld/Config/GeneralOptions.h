@@ -335,6 +335,10 @@ public:
 
   bool isFatalWarnings() const { return BFatalWarnings; }
 
+  void setWarningsAsErrors(bool PEnable = true) { BWarningsAsErrors = PEnable; }
+
+  bool isWarningsAsErrors() const { return BWarningsAsErrors; }
+
   void setLTOOptRemarksFile(bool PEnable = false) {
     BLTOOptRemarksFile = PEnable;
   }
@@ -1159,6 +1163,7 @@ private:
   bool BBinaryInput = false;       // -b [input-format], --format=[input-format]
   bool BDefineCommon = false;      // -d, -dc, -dp
   bool BFatalWarnings = false;     // --fatal-warnings
+  bool BWarningsAsErrors = false;  // -Werror
   bool BLTOOptRemarksFile = false; // --opt-record-file
   bool BLTOOptRemarksDisplayHotness = false; // --display-hotness-remarks
   bool BNoStdlib = false;                    // -nostdlib

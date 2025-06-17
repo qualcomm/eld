@@ -193,6 +193,14 @@ bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
     setShowLinkerScriptWarning(false);
     return true;
   }
+  if (WarnOpt == "error") {
+    options().setWarningsAsErrors(true);
+    return true;
+  }
+  if (WarnOpt == "no-error") {
+    options().setWarningsAsErrors(false);
+    return true;
+  }
   if (WarnOpt == "zero-sized-sections") {
     setShowZeroSizedSectionsWarning(true);
     return true;

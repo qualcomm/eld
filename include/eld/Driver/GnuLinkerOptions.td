@@ -795,6 +795,7 @@ def W : Joined<["-"], "W">,
              "processing linker script memory command\n"
              "\t\t\t -W[no-]bad-dot-assignments : display warnings for bad "
              "dot assignments\n"
+             "\t\t\t -W[no-]error : treat warnings as errors\n"
              "\t\t\t -Wwhole-archive : display a warning when whole-archive "
              "is enabled for any archive file\n"
             >,

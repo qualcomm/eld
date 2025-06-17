@@ -3266,10 +3266,11 @@ Warnings
 Convert warning to error
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Users might want to add --fatal-warnings to convert all warnings that the \
-linker emits to errors.
+Users can add :code:`-Werror` to convert all warnings that the linker emits
+into non-fatal errors.  A stronger form is :code:`--fatal-warnings`, which
+promotes warnings to fatal errors.
 
-This is synonymous to -Wall -Werror when used with the compiler
+This is synonymous to using :code:`-Wall -Werror` with the compiler
 
 Non allocatable section assigned to an output section
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

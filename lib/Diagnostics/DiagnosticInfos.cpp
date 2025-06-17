@@ -177,6 +177,13 @@ eld::Expected<void> DiagnosticInfos::process(DiagnosticEngine &PEngine) const {
     }
   }
 
+  // If -Werror is turned on, then switch warnings to errors
+  if (Config.options().isWarningsAsErrors()) {
+    if (Severity == DiagnosticEngine::Warning ||
+        Severity == DiagnosticEngine::CriticalWarning)
+      Severity = DiagnosticEngine::Error;
+  }
+
   // If --fatal-internal-errors is used, then switch internal errors to fatal
   // errors.
   if (Config.options().isFatalInternalErrors()) {
