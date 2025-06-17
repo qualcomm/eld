@@ -1,0 +1,68 @@
+name: Generate and Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          path: llvm-project
+          ref: main
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.4'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y doxygen libxml2 libxml2-dev libxslt1-dev
+          pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
+
+      - name: Run CMake
+        run: |
+          mkdir obj
+          cd obj
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER:STRING=`which clang` \
+            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
+            -DLLVM_ENABLE_SPHINX=On \
+            ../llvm-project/llvm
+
+      - name: Generate documentation
+        run: |
+          cd obj
+          ninja eld-docs
+
+      - name: Deploy to docs branch
+        run: |
+          ROOT=$(pwd)
+          cd llvm-project/llvm/tools/eld
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git checkout --orphan docs
+          git rm -rf .
+          cp -r ${ROOT}/obj/tools/eld/docs/userguide/html/. .
+          touch .nojekyll
+          git add .
+          git commit -m "Update documentation"
+          git push -f origin HEAD:refs/heads/documentation
