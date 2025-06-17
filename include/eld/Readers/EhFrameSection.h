@@ -16,6 +16,7 @@ namespace eld {
 class DiagnosticEngine;
 class DiagnosticPrinter;
 class ELFSection;
+class Module;
 class Relocation;
 class RegionFragment;
 class EhFrameSection;
@@ -49,7 +50,7 @@ public:
 
   std::vector<CIEFragment *> &getCIEs() { return m_CIEFragments; }
 
-  void finishAddingFragments();
+  void finishAddingFragments(Module &M);
 
 private:
   size_t readEhRecordSize(size_t Off);

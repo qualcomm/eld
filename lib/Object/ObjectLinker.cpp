@@ -741,7 +741,7 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
                  ->createCIEAndFDEFragments())
           return false;
-        llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments();
+        llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(*ThisModule);
         if (ThisBackend.getEhFrameHdr() &&
             Sect->getKind() == LDFileFormat::EhFrame) {
           ThisBackend.getEhFrameHdr()->addCIE(

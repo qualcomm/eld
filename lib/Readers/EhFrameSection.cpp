@@ -10,12 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-
-#include "eld/Readers/EhFrameSection.h"
+#include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Diagnostics/MsgHandler.h"
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/RegionFragment.h"
+#include "eld/Readers/EhFrameSection.h"
 #include "eld/Readers/Relocation.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Endian.h"
@@ -161,7 +161,7 @@ CIEFragment *EhFrameSection::addCie(EhFramePiece &P) {
 }
 
 // Handle fake eh_frame sections.
-void EhFrameSection::finishAddingFragments() {
+void EhFrameSection::finishAddingFragments(Module &ThisModule) {
   if (!size()) {
     setKind(LDFileFormat::Regular);
     return;
@@ -169,10 +169,15 @@ void EhFrameSection::finishAddingFragments() {
   if (!m_CIEFragments.size()) {
     setKind(LDFileFormat::Regular);
     Fragments.push_back(m_EhFrame);
+    if (ThisModule.getLayoutInfo())
+      ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, m_EhFrame);
     return;
   }
-  for (auto &F : m_CIEFragments)
+  for (auto &F : m_CIEFragments) {
+    if (ThisModule.getLayoutInfo())
+      ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, F);
     Fragments.push_back(F);
+  }
 }
 
 bool EhFrameSection::isFdeLive(EhFramePiece &P) {
