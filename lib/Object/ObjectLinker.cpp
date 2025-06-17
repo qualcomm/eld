@@ -2155,18 +2155,19 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       MaxSectSize[OutputSect] = OutputSect->size();
     }
 
-    Relocation::Type ExtType = ThisBackend.getRemappedInternalRelocationType(Relocation->type());
+    Relocation::Type ExtType =
+        ThisBackend.getRemappedInternalRelocationType(Relocation->type());
 
-    if (ExtType != Relocation->type() && ThisModule->getPrinter()->isVerbose()) {
-      ThisConfig.raise(Diag::remapped_internal_reloc)
-        << ThisBackend.getRelocator()->getName(Relocation->type())
-        << ExtType
-        << Relocation->getSourcePath(ThisConfig.options());
+    if (ExtType != Relocation->type() &&
+        ThisModule->getPrinter()->isVerbose()) {
+      ThisConfig.raise(Diag::verbose_remapped_internal_reloc)
+          << ThisBackend.getRelocator()->getName(Relocation->type())
+          << ThisBackend.getRelocator()->getName(ExtType)
+          << Relocation->getSourcePath(ThisConfig.options());
     }
 
     eld::Relocation *R = eld::Relocation::Create(
-        ExtType,
-        ThisBackend.getRelocator()->getSize(Relocation->type()),
+        ExtType, ThisBackend.getRelocator()->getSize(Relocation->type()),
         Relocation->targetRef(), Relocation->addend());
 
     ResolveInfo *SymInfo = Info;
