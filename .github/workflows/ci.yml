@@ -1,13 +1,22 @@
 name: CI
 
-on: [pull_request]
+# dont start the job if there are changes only to .md files or docs
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 jobs:
   build:
     runs-on: self-hosted
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: write
       statuses: write
@@ -106,4 +115,3 @@ jobs:
     - name: Cleanup build directory
       run: |
         rm -rf pr-${{ github.event.number }}
-
