@@ -1,0 +1,16 @@
+#----MissingSymTab.test-----------#
+
+BEGIN_COMMENT
+# Test ELD handling of object files with missing symbol table sections.
+# The readSymbols() function should return true when the symbol table is missing.
+END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o -ffunction-sections
+RUN: %strip %t.1.o
+RUN: %readelf -S %t.1.o | %filecheck %s --check-prefix=SYMTAB
+RUN: %link %linkopts -o %t.1.eld.out %t.1.o
+
+SYMTAB-NOT: .symtab
+LINK-SUCCESS: 0
+#END_TEST

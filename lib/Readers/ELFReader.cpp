@@ -295,7 +295,7 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
            ? llvm::ELF::SHT_DYNSYM
            : llvm::ELF::SHT_SYMTAB));
   if (!symTabSec)
-    return false;
+    return true;
   auto expElfSyms = m_LLVMELFFile->symbols(symTabSec);
   LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expElfSyms);
   llvm::ArrayRef<Elf_Sym> elfSyms = expElfSyms.get();
@@ -381,7 +381,7 @@ template <class ELFT> void ELFReader<ELFT>::recordInputActions() const {
     if (!flagStr.empty()) {
       flagStr = "[" + flagStr + "]";
       layoutInfo->recordInputActions(LayoutInfo::Load, m_InputFile.getInput(),
-                                  flagStr);
+                                     flagStr);
     }
   }
 }
