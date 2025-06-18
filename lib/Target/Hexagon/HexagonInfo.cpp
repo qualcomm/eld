@@ -41,17 +41,20 @@ static const enum CompatibilityAction
  /* V81   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
  /* V83   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
  /* V85   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
+ /* V87   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
+ /* V89   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
 };
 // clang-format on
 
 static const char *ISAs[eld::HexagonInfo::LAST_ISA] = {
     "v68", "v69", "v71", "v71t", "v73", "v75",
-    "v77", "v79", "v81", "v83",  "v85"};
+    "v77", "v79", "v81", "v83",  "v85", "v87", "v89"};
 
 static const char *MCPUs[eld::HexagonInfo::LAST_ISA] = {
     "hexagonv68", "hexagonv69", "hexagonv71", "hexagonv71t",
     "hexagonv73", "hexagonv75", "hexagonv77", "hexagonv79",
-    "hexagonv81", "hexagonv83", "hexagonv85",
+    "hexagonv81", "hexagonv83", "hexagonv85", "hexagonv87",
+    "hexagonv89",
 };
 
 static const uint32_t ISAsToEFlag[eld::HexagonInfo::LAST_ISA] = {
@@ -60,7 +63,8 @@ static const uint32_t ISAsToEFlag[eld::HexagonInfo::LAST_ISA] = {
     llvm::ELF::EF_HEXAGON_MACH_V73, llvm::ELF::EF_HEXAGON_MACH_V75,
     llvm::ELF::EF_HEXAGON_MACH_V77, llvm::ELF::EF_HEXAGON_MACH_V79,
     llvm::ELF::EF_HEXAGON_MACH_V81, llvm::ELF::EF_HEXAGON_MACH_V83,
-    llvm::ELF::EF_HEXAGON_MACH_V85,
+    llvm::ELF::EF_HEXAGON_MACH_V85, llvm::ELF::EF_HEXAGON_MACH_V87,
+    llvm::ELF::EF_HEXAGON_MACH_V89,
 };
 
 std::string HexagonInfo::flagString(uint64_t flag) const {
@@ -95,6 +99,8 @@ bool HexagonInfo::initialize() {
                       .Case("hexagonv81", llvm::ELF::EF_HEXAGON_MACH_V81)
                       .Case("hexagonv83", llvm::ELF::EF_HEXAGON_MACH_V83)
                       .Case("hexagonv85", llvm::ELF::EF_HEXAGON_MACH_V85)
+                      .Case("hexagonv87", llvm::ELF::EF_HEXAGON_MACH_V87)
+                      .Case("hexagonv89", llvm::ELF::EF_HEXAGON_MACH_V89)
                       .Default(LINK_UNKNOWN);
   if (m_CmdLineFlag == -1) {
     m_Config.raise(Diag::fatal_unsupported_emulation)
@@ -140,6 +146,10 @@ uint64_t HexagonInfo::translateFlag(uint64_t pFlag) const {
     return LINK_V83;
   case llvm::ELF::EF_HEXAGON_MACH_V85:
     return LINK_V85;
+  case llvm::ELF::EF_HEXAGON_MACH_V87:
+    return LINK_V87;
+  case llvm::ELF::EF_HEXAGON_MACH_V89:
+    return LINK_V89;
   default:
     ASSERT(0, llvm::Twine("Unknown flag " + pflagStr).str().c_str());
   }
@@ -194,6 +204,10 @@ std::string HexagonInfo::getArchStr(uint64_t pFlag) const {
     return "hexagonv83";
   case llvm::ELF::EF_HEXAGON_MACH_V85:
     return "hexagonv85";
+  case llvm::ELF::EF_HEXAGON_MACH_V87:
+    return "hexagonv87";
+  case llvm::ELF::EF_HEXAGON_MACH_V89:
+    return "hexagonv89";
   default:
     break;
   }
@@ -230,6 +244,8 @@ HexagonInfo::ArchSupport HexagonInfo::getArchSupport(uint64_t pFlag) const {
   case llvm::ELF::EF_HEXAGON_MACH_V81:
   case llvm::ELF::EF_HEXAGON_MACH_V83:
   case llvm::ELF::EF_HEXAGON_MACH_V85:
+  case llvm::ELF::EF_HEXAGON_MACH_V87:
+  case llvm::ELF::EF_HEXAGON_MACH_V89:
     return HexagonInfo::ArchSupport::Supported;
   default:
     break;

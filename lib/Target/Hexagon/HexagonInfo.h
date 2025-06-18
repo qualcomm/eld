@@ -31,6 +31,8 @@ public:
     LINK_V81,
     LINK_V83,
     LINK_V85,
+    LINK_V87,
+    LINK_V89,
     LAST_ISA
   };
 
