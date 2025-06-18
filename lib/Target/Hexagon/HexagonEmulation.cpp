@@ -57,11 +57,6 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   if (LinkerConfig::DynObj == pConfig.codeGenType())
     pConfig.options().setGPSize(0);
 
-  // Always show warnings on Hexagon unless user
-  // used -Wno-linker-script
-  if (!pConfig.hasShowLinkerScriptWarnings())
-    pConfig.setShowLinkerScriptWarning(true);
-
   if (!ELDEmulateELF(pScript, pConfig))
     return false;
 
