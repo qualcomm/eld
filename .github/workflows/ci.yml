@@ -1,25 +1,25 @@
 name: CI
 
-# dont start the job if there are changes only to .md files or docs
 on:
   push:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: self-hosted
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
     permissions:
       contents: write
       statuses: write
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    paths:
+      - '**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
     steps:
     - name: Set PR number and branch names
