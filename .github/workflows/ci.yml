@@ -92,12 +92,6 @@ jobs:
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja check-eld
 
-    - name: Save repository cache
-      uses: actions/cache@v4
-      with:
-        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-repo-${{ github.sha }}
-
     - name: Save ccache
       uses: actions/cache@v4
       with:
