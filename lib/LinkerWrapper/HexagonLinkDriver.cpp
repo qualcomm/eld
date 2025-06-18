@@ -85,6 +85,11 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
     printVersionInfo();
     return nullptr;
   }
+  // --about
+  if (ArgList.hasArg(OPT_HexagonLinkOptTable::about)) {
+    printAboutInfo();
+    return nullptr;
+  }
   // -repository-version
   if (ArgList.hasArg(OPT_HexagonLinkOptTable::repository_version)) {
     printRepositoryVersion();
@@ -125,6 +130,7 @@ int HexagonLinkDriver::link(llvm::ArrayRef<const char *> Args,
     if (ArgList.hasArg(OPT_HexagonLinkOptTable::help) ||
         ArgList.hasArg(OPT_HexagonLinkOptTable::help_hidden) ||
         ArgList.hasArg(OPT_HexagonLinkOptTable::version) ||
+        ArgList.hasArg(OPT_HexagonLinkOptTable::about) ||
         ArgList.hasArg(OPT_HexagonLinkOptTable::repository_version)) {
       return LINK_SUCCESS;
     }

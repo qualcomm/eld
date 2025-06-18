@@ -918,6 +918,11 @@ defm dump_response_file
                     "Dump response file to output file">,
                     MetaVarName<"<outputfilename>">,
       Group<grp_extendedopts>;
+def about :
+     Flag<["--"], "about">,
+      HelpText<"Emit detailed information about the linker">,
+      Group<grp_extendedopts>;
+
 
 //===----------------------------------------------------------------------===//
 /// Map file

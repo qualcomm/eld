@@ -100,6 +100,11 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
     printVersionInfo();
     return nullptr;
   }
+  // --about
+  if (ArgList.hasArg(OPT_ARMLinkOptTable::about)) {
+    printAboutInfo();
+    return nullptr;
+  }
   // -repository-version
   if (ArgList.hasArg(OPT_ARMLinkOptTable::repository_version)) {
     printRepositoryVersion();
@@ -190,6 +195,7 @@ int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
     if (ArgList.hasArg(OPT_ARMLinkOptTable::help) ||
         ArgList.hasArg(OPT_ARMLinkOptTable::help_hidden) ||
         ArgList.hasArg(OPT_ARMLinkOptTable::version) ||
+        ArgList.hasArg(OPT_ARMLinkOptTable::about) ||
         ArgList.hasArg(OPT_ARMLinkOptTable::repository_version)) {
       return LINK_SUCCESS;
     }

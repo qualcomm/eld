@@ -94,6 +94,11 @@ opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
     printVersionInfo();
     return nullptr;
   }
+  // --about
+  if (ArgList.hasArg(OPT_RISCVLinkOptTable::about)) {
+    printAboutInfo();
+    return nullptr;
+  }
   // -repository-version
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::repository_version)) {
     printRepositoryVersion();
@@ -174,6 +179,7 @@ int RISCVLinkDriver::link(llvm::ArrayRef<const char *> Args,
     if (ArgList.hasArg(OPT_RISCVLinkOptTable::help) ||
         ArgList.hasArg(OPT_RISCVLinkOptTable::help_hidden) ||
         ArgList.hasArg(OPT_RISCVLinkOptTable::version) ||
+        ArgList.hasArg(OPT_RISCVLinkOptTable::about) ||
         ArgList.hasArg(OPT_RISCVLinkOptTable::repository_version)) {
       return LINK_SUCCESS;
     }

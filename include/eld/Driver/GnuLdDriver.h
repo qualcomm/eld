@@ -132,7 +132,13 @@ protected:
 
   bool hasZOption(llvm::opt::InputArgList &Args, llvm::StringRef Key) const;
   const char *getLtoStatus() const;
+
+  // print more information about the linker
+  void printAboutInfo() const;
+
+  // print version information
   void printVersionInfo() const;
+
   // Print repository revision information of both ELD and llvm-project.
   void printRepositoryVersion() const;
 

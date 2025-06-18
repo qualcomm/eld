@@ -4,6 +4,7 @@
 #END_COMMENT
 
 RUN: %link --version 2>&1 | %filecheck %s
+RUN: %link --about 2>&1 | %filecheck %s -check-prefix=ABOUT
 
-CHECK: Supported Targets:
-CHECK: Linker Plugin Interface Version {{[[:xdigit:]]+}}.{{[[:xdigit:]]+}}
+#CHECK: eld {{.*}} (GNU Compatible linker)
+#ABOUT: Linker Plugin Interface Version {{[[:xdigit:]]+}}.{{[[:xdigit:]]+}}
