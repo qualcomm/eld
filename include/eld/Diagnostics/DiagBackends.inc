@@ -107,3 +107,7 @@ DIAG(error_entropy_source_failure, DiagnosticEngine::Error,
 DIAG(warn_attribute_parse_fail, DiagnosticEngine::Warning, "%0:(%1): %2")
 DIAG(error_relocation_not_paired, DiagnosticEngine::Error,
     "%0:(%1+%2): %3 not paired with %4")
+DIAG(error_unsupported_atomic_attribute, DiagnosticEngine::Error,
+   "Unsupported atomic attribute %1 when reading attributes from file %0")
+DIAG(error_atomic_attribute_mix, DiagnosticEngine::Error,
+    "Atomic ABI mismatch reading attributes from %0, first seen atomic_abi=%1 incompatible with atomic_abi=%2")
