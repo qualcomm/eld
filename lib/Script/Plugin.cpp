@@ -40,13 +40,14 @@ private:
 };
 
 Plugin::Plugin(plugin::Plugin::Type T, std::string LibraryName,
-               std::string PluginName, std::string O, bool Stats,
-               Module &Module)
+               std::string PluginName, std::string O,
+               bool Stats, bool DefaultPlugin, Module &Module)
     : ThisType(T), CurID(0), Name(LibraryName), PluginType(PluginName),
       PluginOptions(O), PluginLibraryHandle(nullptr),
       PluginRegisterFunction(nullptr), GetPluginFunction(nullptr),
       UserPluginHandle(nullptr), PluginCleanupFunction(nullptr), Stats(Stats),
-      ThisModule(Module), ThisConfig(Module.getConfig()) {}
+      ThisModule(Module), ThisConfig(Module.getConfig()),
+      IsDefaultPlugin(DefaultPlugin) {}
 
 std::string Plugin::resolvePath(const LinkerConfig &PConfig) {
   // Library already loaded!

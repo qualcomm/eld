@@ -313,72 +313,62 @@ void TextLayoutPrinter::printGlobalPluginInfo(Module &M, bool UseColor) {
   if (UseColor)
     outputStream().resetColor();
 
+  auto PrintPlugin = [this](const Plugin &P) {
+    std::string features;
+    if (P.isDefaultPlugin())
+      features += "[autoloaded]";
+    outputStream() << "\t" << "\t" << P.getName() << "\t"
+                   << P.getLibraryName() << "\t" << P.getPluginType() << "\t"
+                   << P.getPluginOptions() << features << "\n";
+  };
+
   if (UniversalPlugins.size()) {
     outputStream() << "\t";
     outputStream() << "Linker Plugins" << "\n";
     for (auto &P : UniversalPlugins)
-      outputStream() << "\t" << "\t" << P->getName() << "\t"
-                     << P->getLibraryName() << "\t" << P->getPluginType()
-                     << "\t" << P->getPluginOptions() << "\n";
+      PrintPlugin(*P);
   }
   if (PluginListForSectionMatcher.size()) {
     outputStream() << "\t";
     outputStream() << "SectionMatcher Plugins"
                    << "\n";
     for (auto &P : PluginListForSectionMatcher)
-      outputStream() << "\t"
-                     << "\t" << P->getName() << "\t" << P->getLibraryName()
-                     << "\t" << P->getPluginType() << "\t"
-                     << P->getPluginOptions() << "\n";
+      PrintPlugin(*P);
   }
   if (PluginListForSectionIterator.size()) {
     outputStream() << "\t";
     outputStream() << "SectionIterator Plugins"
                    << "\n";
     for (auto &P : PluginListForSectionIterator)
-      outputStream() << "\t"
-                     << "\t" << P->getName() << "\t" << P->getLibraryName()
-                     << "\t" << P->getPluginType() << "\t"
-                     << P->getPluginOptions() << "\n";
+      PrintPlugin(*P);
   }
   if (PluginListForOutputSectionIterator.size()) {
     outputStream() << "\t";
     outputStream() << "Output SectionIterator Plugins"
                    << "\n";
     for (auto &P : PluginListForOutputSectionIterator)
-      outputStream() << "\t"
-                     << "\t" << P->getName() << "\t" << P->getLibraryName()
-                     << "\t" << P->getPluginType() << "\t"
-                     << P->getPluginOptions() << "\n";
+      PrintPlugin(*P);
   }
   if (PluginListForMemorySize.size()) {
     outputStream() << "\t";
     outputStream() << "Memory Size Plugin(s)"
                    << "\n";
     for (auto &P : PluginListForMemorySize)
-      outputStream() << "\t"
-                     << "\t" << P->getName() << "\t" << P->getLibraryName()
-                     << "\t" << P->getPluginType() << "\t"
-                     << P->getPluginOptions() << "\n";
+      PrintPlugin(*P);
   }
   if (PluginListForFileSize.size()) {
     outputStream() << "\t";
     outputStream() << "File Size Plugin(s)"
                    << "\n";
     for (auto &P : PluginListForFileSize)
-      outputStream() << "\t"
-                     << "\t" << P->getName() << "\t" << P->getLibraryName()
-                     << "\t" << P->getPluginType() << "\t"
-                     << P->getPluginOptions() << "\n";
+      PrintPlugin(*P);
   }
   outputStream() << "Linker Plugin Run Information"
                  << "\n";
   int Index = 0;
   for (auto &P : M.getScript().getPluginRunList()) {
     outputStream() << "#" << ++Index << "\t";
-    outputStream() << P->getName() << "\t" << P->getLibraryName() << "\t"
-                   << P->getPluginType() << "\t" << P->getPluginOptions()
-                   << "\n";
+    PrintPlugin(*P);
   }
 }
 
