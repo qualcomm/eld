@@ -2980,6 +2980,8 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
       report_fatal_error(Twine("unable to add memory buffer: ") +
                          toString(S.takeError()));
     *(*S)->OS << MB->getBuffer();
+    if (Error Err = (*S)->commit())
+      report_fatal_error(std::move(Err));
   };
 
   llvm::FileCache ThinLTOCache;
