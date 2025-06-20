@@ -1,0 +1,9 @@
+#---geteldversion.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests the APIS to get the linker version.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t2.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1  | %filecheck %s
+#CHECK: ELD Version is: {{[0-9]+}}
+#END_TEST

@@ -13,6 +13,7 @@
 #ifndef ELD_CONFIG_VERSION_H
 #define ELD_CONFIG_VERSION_H
 
+#include "eld/Config/Version.inc"
 #include "llvm/ADT/StringRef.h"
 #include <string>
 

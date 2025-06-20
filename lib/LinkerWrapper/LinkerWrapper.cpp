@@ -711,6 +711,10 @@ std::vector<plugin::InputFile> LinkerWrapper::getInputFiles() const {
   return InputFiles;
 }
 
+std::string eld::plugin::LinkerWrapper::getLinkerVersion() const {
+  return eld::getELDVersion().str();
+}
+
 plugin::LinkerWrapper::LinkMode LinkerWrapper::getLinkMode() const {
   const eld::LinkerConfig &Config = m_Module.getConfig();
 

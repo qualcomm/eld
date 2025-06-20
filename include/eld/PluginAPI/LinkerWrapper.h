@@ -153,6 +153,9 @@ public:
   /// \em BeforeLayout and beyond.
   eld::Expected<std::vector<Use>> getUses(Chunk &C);
 
+  /// Returns eld version
+  std::string getLinkerVersion() const;
+
   /// Returns a vector of Uses that are referred from the Section S.
   ///
   /// \param S Section
