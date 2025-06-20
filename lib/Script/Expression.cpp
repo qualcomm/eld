@@ -629,6 +629,7 @@ eld::Expected<uint64_t> Ternary::evalImpl() {
   return Cond.value() ? LeftExpression.eval() : RightExpression.eval();
 }
 void Ternary::getSymbols(std::vector<ResolveInfo *> &Symbols) {
+  ConditionExpression.getSymbols(Symbols);
   if (ConditionExpression.result())
     LeftExpression.getSymbols(Symbols);
   else
@@ -636,6 +637,7 @@ void Ternary::getSymbols(std::vector<ResolveInfo *> &Symbols) {
 }
 
 void Ternary::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
+  ConditionExpression.getSymbolNames(SymbolTokens);
   if (ConditionExpression.result())
     LeftExpression.getSymbolNames(SymbolTokens);
   else
