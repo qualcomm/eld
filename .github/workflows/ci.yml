@@ -63,7 +63,8 @@ jobs:
           -DCMAKE_C_COMPILER:STRING=`which clang` \
           -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
           -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-          -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
+          -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
+          -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
           ../llvm-project/llvm
 
