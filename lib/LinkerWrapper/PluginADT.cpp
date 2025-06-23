@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-
 #include "PluginADT.h"
 #include "Diagnostics.h"
 #include "eld/Fragment/FragUtils.h"
@@ -14,7 +13,9 @@
 #include "eld/Input/BitcodeFile.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/ObjectFile.h"
+#include "eld/Object/ObjectLinker.h"
 #include "eld/Plugin/PluginData.h"
+#include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
 #include "eld/Readers/ELFSection.h"
@@ -29,7 +30,6 @@
 #include "llvm/Support/Timer.h"
 #include <memory>
 #include <optional>
-
 using namespace eld;
 using namespace eld::plugin;
 
@@ -945,6 +945,23 @@ Expected<void> OutputSection::setPluginOverride(Plugin *P,
                                  __FUNCTION__, "'CreatingSegments'"});
   getOutputSection()->prolog().setPlugin(
       make<PluginCmd>(P->getType(), P->GetName(), "", ""));
+  return {};
+}
+
+Expected<void> OutputSection::recomputeSize(LinkerWrapper &LW) {
+  auto LS = LW.getLinkState();
+  if (LS != PluginManager::LinkState::SectionMerging)
+    return std::make_unique<DiagnosticEntry>(
+        Diag::error_invalid_link_state,
+        std::vector<std::string>{
+            std::string(LW.getLinkStateAsString()), __FUNCTION__,
+            std::string(LW.getLinkStateAsString(
+                PluginManager::LinkState::SectionMerging))});
+  ObjectLinker *OL = LW.getModule()->getLinker()->getObjectLinker();
+  if (!m_OutputSection)
+    return std::make_unique<DiagnosticEntry>(Diag::error_empty_object,
+                                             std::vector<std::string>{});
+  OL->assignOffset(m_OutputSection);
   return {};
 }
 

@@ -24,6 +24,7 @@ void PluginManager::storeUniversalPlugins() {
 
 bool PluginManager::callInitHook() {
   RegisterTimer T("Init", "Plugins", ShouldPrintTimingStats);
+  LState = Init;
   for (auto *P : UniversalPlugins) {
     P->callInitHook();
     if (!DE.diagnose())
@@ -34,6 +35,7 @@ bool PluginManager::callInitHook() {
 
 bool PluginManager::callDestroyHook() {
   RegisterTimer T("Destroy", "Plugins", ShouldPrintTimingStats);
+  LState = LinkState::Destroy;
   for (auto *P : UniversalPlugins) {
     P->callDestroyHook();
     if (!DE.diagnose())
@@ -78,6 +80,7 @@ bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
 
 bool PluginManager::callVisitSectionsHook(InputFile &IF) {
   RegisterTimer T("VisitSections", "Plugins", ShouldPrintTimingStats);
+  LState = LinkState::VisitSections;
   for (auto *P : UniversalPlugins) {
     P->callVisitSectionsHook(IF);
     if (!DE.diagnose())
@@ -93,12 +96,14 @@ bool PluginManager::callActBeforeRuleMatchingHook() {
     if (!DE.diagnose())
       return false;
   }
+  LState = LinkState::RuleMatching;
   return true;
 }
 
 bool PluginManager::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
                                         const SymbolInfo &SymInfo) {
   RegisterTimer T("VisitSymbol", "Plugins", ShouldPrintTimingStats);
+  LState = LinkState::VisitSymbols;
   for (auto *P : UniversalPlugins) {
     if (SymbolVisitors.count(P)) {
       P->callVisitSymbolHook(Sym, SymName, SymInfo);
@@ -122,6 +127,7 @@ bool PluginManager::callActBeforeSectionMergingHook() {
     if (!DE.diagnose())
       return false;
   }
+  LState = LinkState::SectionMerging;
   return true;
 }
 
@@ -149,6 +155,7 @@ bool PluginManager::callActBeforePerformingLayoutHook() {
     if (!DE.diagnose())
       return false;
   }
+  LState = LinkState::PerformingLayout;
   return true;
 }
 
@@ -159,5 +166,28 @@ bool PluginManager::callActBeforeWritingOutputHook() {
     if (!DE.diagnose())
       return false;
   }
+  LState = LinkState::WritingOutput;
   return true;
+}
+
+std::string_view PluginManager::getLinkStateAsString(LinkState S) const {
+#define ADD_CASE(C)                                                            \
+  case LinkState::C:                                                           \
+    return #C;
+  switch (S) {
+    ADD_CASE(None);
+    ADD_CASE(Init);
+    ADD_CASE(VisitSections);
+    ADD_CASE(VisitSymbols);
+    ADD_CASE(RuleMatching);
+    ADD_CASE(SectionMerging);
+    ADD_CASE(PerformingLayout);
+    ADD_CASE(WritingOutput);
+    ADD_CASE(Destroy);
+  }
+  llvm_unreachable("Unknown LinkState");
+}
+
+std::string_view PluginManager::getLinkStateAsString() const {
+  return getLinkStateAsString(LState);
 }
