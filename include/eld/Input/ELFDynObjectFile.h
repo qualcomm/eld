@@ -33,6 +33,8 @@ public:
 
   virtual ~ELFDynObjectFile() {}
 
+  std::string getFallbackSOName() const;
+
 private:
   std::vector<ELFSection *> Sections;
 };

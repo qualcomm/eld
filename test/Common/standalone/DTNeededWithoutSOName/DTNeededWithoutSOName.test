@@ -1,0 +1,22 @@
+#---DTNeededWithoutSOName.test--------------------------- Executable,SharedLibrary ---#
+#BEGIN_COMMENT
+# This test checks that the DT_NEEDED entry is correct for the shared libraries
+# without SOName.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c
+RUN: %mkdir %t1/a/b
+RUN: %link %linkopts -o %t1/a/b/lib1.so %t1.1.o -shared
+RUN: %link %linkopts -o %t1.main.out -dy %t1.main.o %t1/a/b/lib1.so
+RUN: %readelf -d %t1.main.out | %filecheck %s --check-prefix ABSOLUTE
+RUN: %link %linkopts -o %t1.main.namespec.out -dy %t1.main.o -L %t1/a -l:b/lib1.so
+RUN: %readelf -d %t1.main.namespec.out | %filecheck %s --check-prefix NAMESPEC
+RUN: cd %t1/a
+RUN: %link %linkopts -o %t1.main.relative.out -dy %t1.main.o b/lib1.so
+RUN: %readelf -d %t1.main.relative.out | %filecheck %s --check-prefix RELATIVE
+#END_TEST
+
+ABSOLUTE: (NEEDED) Shared library: [{{.*}}a/b/lib1.so]
+NAMESPEC: (NEEDED) Shared library: [b/lib1.so]
+RELATIVE: (NEEDED) Shared library: [b/lib1.so]
