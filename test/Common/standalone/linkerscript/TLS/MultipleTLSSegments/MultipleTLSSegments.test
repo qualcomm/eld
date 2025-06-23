@@ -1,0 +1,12 @@
+UNSUPPORTED:arm
+#---MultipleTLSSegments.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests that the linker can handle multiple TLS segments.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/tls.c  -o %t1.1.o -ffunction-sections -fdata-sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map.out
+RUN: %filecheck %s < %t2.map.out
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=SEGMENT
+
+#CHECK: .tbss [[ADDR:[xa-f0-9]+]]
+#SEGMENT-COUNT-2: TLS

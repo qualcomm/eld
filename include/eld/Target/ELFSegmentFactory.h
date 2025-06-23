@@ -44,6 +44,8 @@ public:
 
   ELFSegment *find(uint32_t pType);
 
+  std::vector<ELFSegment *> getSegments(uint32_t pType) const;
+
   ELFSegment *find(uint32_t pType, uint32_t pFlagSet, uint32_t pFlagClear);
 
   ELFSegment *findr(uint32_t pType, uint32_t pFlagSet, uint32_t pFlagClear);

@@ -649,11 +649,24 @@ uint64_t GNULDBackend::finalizeTLSSymbol(LDSymbol *pSymbol) {
     return true;
 
   // the value of a TLS symbol is the offset to the TLS segment
-  ELFSegment *tls_seg = elfSegmentTable().find(llvm::ELF::PT_TLS);
-  if (!tls_seg) {
+  std::vector<ELFSegment *> tls_segs =
+      elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
+  if (!tls_segs.size()) {
     config().raise(Diag::no_pt_tls_segment);
     return false;
   }
+  ELFSegment *tls_seg = nullptr;
+  for (auto &seg : tls_segs) {
+    if (seg->size()) {
+      tls_seg = seg;
+      break;
+    }
+  }
+  if (!tls_seg) {
+    config().raise(Diag::error_empty_pt_tls_segment);
+    return false;
+  }
+
   uint64_t value = pSymbol->fragRef()->getOutputOffset(m_Module);
   uint64_t addr = pSymbol->fragRef()->getOutputELFSection()->addr();
   return value + addr - tls_seg->vaddr();

@@ -40,6 +40,15 @@ ELFSegment *ELFSegmentFactory::find(uint32_t pType, uint32_t pFlagSet,
   return nullptr;
 }
 
+std::vector<ELFSegment *> ELFSegmentFactory::getSegments(uint32_t pType) const {
+  std::vector<ELFSegment *> ELFSegments;
+  for (auto &segment : m_Segments) {
+    if (segment->type() == pType)
+      ELFSegments.push_back(segment);
+  }
+  return ELFSegments;
+}
+
 ELFSegment *ELFSegmentFactory::findr(uint32_t pType, uint32_t pFlagSet,
                                      uint32_t pFlagClear) {
   riterator segment, segEnd = m_Segments.rend();

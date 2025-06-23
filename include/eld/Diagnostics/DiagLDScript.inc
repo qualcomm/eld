@@ -126,3 +126,5 @@ DIAG(error_non_power_of_2_value_to_align_output_section, DiagnosticEngine::Error
 DIAG(warn_linker_script, DiagnosticEngine::Warning, "%0")
 DIAG(warn_memory_region_has_zero_size, DiagnosticEngine::Warning,
      "%0: Memory region '%1' has zero size")
+DIAG(error_empty_pt_tls_segment, DiagnosticEngine::Error,
+      "TLS segments are empty")
