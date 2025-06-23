@@ -1,6 +1,6 @@
-## Check the -dwo-dir= option.
+## Check the -dwodir= option.
 RUN: %rm -rf %t.dwo
 RUN: %clang %clangopts -g -flto -c %p/Inputs/main.c -o %t.main.o
-RUN: %link %linkopts %t.main.o -flto-options=codegen="-dwo-dir=%t.dwo" -o %t.out --trace=lto 2>&1 | %filecheck %s
-CHECK: Setting Codegen options (triple {{.+}}): {{.*}}-dwo-dir=
-RUN: ls %t.dwo/*.dwo | count 1
+RUN: %link %linkopts %t.main.o -dwodir=%t.dwo -o %t.out --trace=lto
+RUN: llvm-readobj -h %t.dwo/0.dwo | FileCheck %s
+CHECK: ElfHeader

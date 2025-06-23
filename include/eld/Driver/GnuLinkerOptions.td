@@ -1042,6 +1042,10 @@ defm include_lto_filelist
           "be used for LTO. This has no effect if -flto switch is used">,
       MetaVarName<"<list_of_files>">,
       Group<grp_ltooptions>;
+defm dwodir
+    : smDash<"dwodir", "dwodir",
+             "Directory to save .dwo files when split DWARF is used in LTO">,
+      Group<grp_ltooptions>;
 
 //===----------------------------------------------------------------------===//
 /// Linker speedup and control

@@ -3108,8 +3108,6 @@ void processCodegenOptions(
         Conf.CPU = O.first.str();
       } else if (O.first.consume_front("-mattr=")) {
         Conf.MAttrs.push_back(O.first.str());
-      } else if (O.first.starts_with("-dwo-dir=")) {
-          Conf.DwoDir = O.first.substr(9);
       } else
         UserArgs.push_back(O.first.str());
     }
@@ -3150,6 +3148,9 @@ bool ObjectLinker::createLTOObject(void) {
   llvm::lto::Config Conf;
   std::vector<std::string> Options;
   processCodegenOptions(ThisConfig.options().codeGenOpts(), Conf, Options);
+
+  if (const auto &O = ThisConfig.options().getDwoDir())
+    Conf.DwoDir = *O;
 
   ThisBackend.AddLTOOptions(Options);
 
