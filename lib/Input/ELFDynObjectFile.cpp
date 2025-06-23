@@ -20,3 +20,13 @@ bool ELFDynObjectFile::isELFNeeded() {
     return true;
   return isUsed();
 }
+
+std::string ELFDynObjectFile::getFallbackSOName() const {
+  Input *I = getInput();
+  if (!getInput()->isNamespec())
+    return I->getResolvedPath().native();
+  const auto &filename = I->getFileName();
+  if (filename[0] == ':')
+    return filename.substr(1);
+  return I->getResolvedPath().filename().native();
+}

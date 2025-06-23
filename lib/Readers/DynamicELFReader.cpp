@@ -116,9 +116,7 @@ eld::Expected<bool> DynamicELFReader<ELFT>::readDynamic() {
 
   // if there is no SONAME in .dynamic, then set it from input path
   if (!hasSOName)
-    dynObjFile->setSOName(
-        this->m_InputFile.getInput()->getResolvedPath().filename().native());
-
+    dynObjFile->setSOName(dynObjFile->getFallbackSOName());
   return true;
 }
 
