@@ -743,6 +743,8 @@ OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
 
     if (!Prologue.PluginCmd)
       Prologue.PluginCmd = readOutputSectionPluginDirective();
+    if (Prologue.PluginCmd)
+      Prologue.PluginCmd->setHasOutputSection();
   }
 
   expect(":");
