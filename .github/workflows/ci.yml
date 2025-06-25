@@ -7,7 +7,7 @@ jobs:
     runs-on: self-hosted
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     permissions:
       contents: write
       statuses: write
@@ -23,8 +23,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        key: ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-${{ github.run_id }}
         restore-keys: |
+          ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-
+          ${{ runner.os }}-ccache-${{ env.BASE_BRANCH_NAME }}-
           ${{ runner.os }}-ccache-
 
     - name: Checkout llvm-project
@@ -97,7 +99,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-ccache-${{ github.sha }}
+        key: ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-${{ github.run_id }}
 
   cleanup:
     runs-on: self-hosted
@@ -107,4 +109,3 @@ jobs:
     - name: Cleanup build directory
       run: |
         rm -rf pr-${{ github.event.number }}
-
