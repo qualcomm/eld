@@ -21,13 +21,14 @@ public:
   // Going to be used by GOTPLT0
   x86_64GOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
             uint32_t Size)
-      : GOT(T, O, R, Align, Size), Value{0, 0, 0, 0} {
+      : GOT(T, O, R, Align, Size), Value(0) {
     if (O)
       O->addFragmentAndUpdateSize(this);
   }
 
   // Helper constructor for GOT.
-  x86_64GOT(GOTType T, ELFSection *O, ResolveInfo *R) : GOT(T, O, R, 4, 4) {
+  x86_64GOT(GOTType T, ELFSection *O, ResolveInfo *R)
+      : GOT(T, O, R, /*Align=*/8, /*Size=*/8) {
     if (O)
       O->addFragmentAndUpdateSize(this);
   }
@@ -39,22 +40,17 @@ public:
   virtual x86_64GOT *getNext() { return nullptr; }
 
   virtual llvm::ArrayRef<uint8_t> getContent() const override {
-    // Convert uint32_t to ArrayRef.
-    typedef union {
-      uint32_t a;
-      uint8_t b[4];
-    } C;
-    C Content;
-    Content.a = 0;
+    Value = 0;
     // If the GOT contents needs to reflect a symbol value, then we use the
     // symbol value.
     if (getValueType() == GOT::SymbolValue)
-      Content.a = symInfo()->outSymbol()->value();
+      Value = symInfo()->outSymbol()->value();
     if (getValueType() == GOT::TLSStaticSymbolValue)
-      Content.a =
+      Value =
           symInfo()->outSymbol()->value() - GNULDBackend::getTLSTemplateSize();
-    std::memcpy((void *)Value, (void *)&Content.a, sizeof(Value));
-    return llvm::ArrayRef(Value);
+
+    return llvm::ArrayRef(reinterpret_cast<const uint8_t *>(&Value),
+                          sizeof(Value));
   }
 
   static x86_64GOT *Create(ELFSection *O, ResolveInfo *R) {
@@ -62,13 +58,13 @@ public:
   }
 
 private:
-  uint8_t Value[4];
+  mutable uint64_t Value;
 };
 
 class x86_64GOTPLT0 : public x86_64GOT {
 public:
   x86_64GOTPLT0(ELFSection *O, ResolveInfo *R)
-      : x86_64GOT(GOT::GOTPLT0, O, R, 4, 16) {}
+      : x86_64GOT(GOT::GOTPLT0, O, R, /*Align=*/8, /*Size=*/16) {}
 
   x86_64GOT *getFirst() override { return this; }
 
@@ -80,7 +76,7 @@ public:
 class x86_64GOTPLTN : public x86_64GOT {
 public:
   x86_64GOTPLTN(ELFSection *O, ResolveInfo *R)
-      : x86_64GOT(GOT::GOTPLTN, O, R, 4, 4) {}
+      : x86_64GOT(GOT::GOTPLTN, O, R, /*Align=*/8, /*Size=*/8) {}
 
   x86_64GOT *getFirst() override { return this; }
 
