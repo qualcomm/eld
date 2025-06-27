@@ -1,0 +1,166 @@
+#----------QC_E_LI_QC_LI.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Do relaxation from QC.E.LI and QC.LI to C.LUI or QC.LI or ADDI (GP-Rel)
+#END_COMMENT
+#--------------------------------------------------------------------
+REQUIRES: riscv32
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.o -menable-experimental-extensions -march=rv32gc_xqcili0p2
+
+## Link with Xqci, C and GP relaxations enabled.
+RUN: %link %linkopts --relax-xqci -MapStyle txt -Map %t.1.map --verbose %t.o -o %t.1.out -T %p/Inputs/x.t 2>&1 | %filecheck %s --check-prefix=VERBOSE
+
+VERBOSE: RISCV_QC_LI_C_LUI : Deleting 2 bytes for symbol 'can_c_lui' in section .text+0x2 file {{.*}}.o
+VERBOSE: RISCV_QC_LI_C_LUI : relaxing instruction 0x0000051b to compressed instruction 0x6501 for symbol can_c_lui in section .text+0x0 file {{.*}}.o
+VERBOSE: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'cannot_c_lui' in section .text+0x2 file {{.*}}.o
+VERBOSE: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_qc_li' in section .text+0x6 file {{.*}}.o
+VERBOSE: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_c_lui' in section .text+0xa file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : Deleting 4 bytes for symbol 'can_c_lui' in section .text+0x10 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : relaxing instruction 0x00000000051f to compressed instruction 0x6501 for symbol can_c_lui in section .text+0xe file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'cannot_c_lui' in section .text+0x14 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'cannot_c_lui' in section .text+0x10 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'can_qc_li' in section .text+0x18 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_qc_li' in section .text+0x14 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'cannot_qc_li' in section .text+0x18 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_GP : Deleting 2 bytes for symbol 'can_addi_gprel' in section .text+0x22 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_addi_gprel' in section .text+0x1e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'cannot_addi_gprel' in section .text+0x22 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
+
+MAP: # LinkStats Begin
+MAP: # RelaxationBytesDeleted : 12
+MAP: # RelaxationBytesMissed : 20
+MAP: # LinkStats End
+
+MAP: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP: # RelaxationBytesDeleted : 12
+MAP: # RelaxationBytesMissed : 20
+MAP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+RUN: %objdump --no-print-imm-hex -d -M no-aliases %t.1.out 2>&1 | %filecheck %s --check-prefix=EXE
+
+EXE: <main>:
+EXE-NEXT: 657d          c.lui   a0, 31
+EXE-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NEXT: 7000311b      qc.li   sp, 126976
+EXE-NEXT: 657d          c.lui   a0, 31
+EXE-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NEXT: 051f 0000 0008        qc.e.li a0, 524288
+EXE-NEXT: 02018513      addi    a0, gp, 32
+EXE-NEXT: 051f 2000 0100        qc.e.li a0, 16785408
+
+## Link with Xqci and GP relaxations enabled, C disabled.
+RUN: %link %linkopts --relax-xqci --no-relax-c -MapStyle txt -Map %t.2.map --verbose %t.o -o %t.2.out -T %p/Inputs/x.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-C
+
+VERBOSE-NO-C: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_c_lui' in section .text+0x0 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'cannot_c_lui' in section .text+0x4 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_qc_li' in section .text+0x8 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_c_lui' in section .text+0xc file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'can_c_lui' in section .text+0x14 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_c_lui' in section .text+0x10 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'cannot_c_lui' in section .text+0x18 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'cannot_c_lui' in section .text+0x14 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'can_qc_li' in section .text+0x1c file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_qc_li' in section .text+0x18 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'cannot_qc_li' in section .text+0x1c file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_GP : Deleting 2 bytes for symbol 'can_addi_gprel' in section .text+0x26 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_addi_gprel' in section .text+0x22 file {{.*}}.o
+VERBOSE-NO-C: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'cannot_addi_gprel' in section .text+0x26 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP-NO-C
+
+MAP-NO-C: # LinkStats Begin
+MAP-NO-C: # RelaxationBytesDeleted : 8
+MAP-NO-C: # RelaxationBytesMissed : 24
+MAP-NO-C: # LinkStats End
+
+MAP-NO-C: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP-NO-C: # RelaxationBytesDeleted : 8
+MAP-NO-C: # RelaxationBytesMissed : 24
+MAP-NO-C: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+RUN: %objdump --no-print-imm-hex -d -M no-aliases %t.2.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-C
+
+EXE-NO-C: <main>:
+EXE-NO-C-NEXT: 7000351b      qc.li   a0, 126976
+EXE-NO-C-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NO-C-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NO-C-NEXT: 7000311b      qc.li   sp, 126976
+EXE-NO-C-NEXT: 7000351b      qc.li   a0, 126976
+EXE-NO-C-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NO-C-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NO-C-NEXT: 051f 0000 0008        qc.e.li a0, 524288
+EXE-NO-C-NEXT: 02018513      addi    a0, gp, 32
+EXE-NO-C-NEXT: 051f 2000 0100        qc.e.li a0, 16785408
+
+
+## Link with Xqci and C relaxations enabled, GP disabled.
+RUN: %link %linkopts --relax-xqci --no-relax-gp -MapStyle txt -Map %t.3.map --verbose %t.o -o %t.3.out -T %p/Inputs/x.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-GP
+
+VERBOSE-NO-GP: RISCV_QC_LI_C_LUI : Deleting 2 bytes for symbol 'can_c_lui' in section .text+0x2 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_LI_C_LUI : relaxing instruction 0x0000051b to compressed instruction 0x6501 for symbol can_c_lui in section .text+0x0 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'cannot_c_lui' in section .text+0x2 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_qc_li' in section .text+0x6 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_c_lui' in section .text+0xa file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_C_LUI : Deleting 4 bytes for symbol 'can_c_lui' in section .text+0x10 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'cannot_c_lui' in section .text+0x14 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'cannot_c_lui' in section .text+0x10 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'can_qc_li' in section .text+0x18 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_C_LUI : Cannot relax 2 bytes for symbol 'can_qc_li' in section .text+0x14 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'cannot_qc_li' in section .text+0x18 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'can_addi_gprel' in section .text+0x1e file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_C_LUI : Cannot relax 4 bytes for symbol 'cannot_addi_gprel' in section .text+0x24 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP-NO-GP
+
+MAP-NO-GP: # LinkStats Begin
+MAP-NO-GP: # RelaxationBytesDeleted : 10
+MAP-NO-GP: # RelaxationBytesMissed : 22
+MAP-NO-GP: # LinkStats End
+
+MAP-NO-GP: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP-NO-GP: # RelaxationBytesDeleted : 10
+MAP-NO-GP: # RelaxationBytesMissed : 22
+MAP-NO-GP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+RUN: %objdump --no-print-imm-hex -d -M no-aliases %t.3.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-GP
+
+EXE-NO-GP: <main>:
+EXE-NO-GP-NEXT: 657d          c.lui   a0, 31
+EXE-NO-GP-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NO-GP-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NO-GP-NEXT: 7000311b      qc.li   sp, 126976
+EXE-NO-GP-NEXT: 657d          c.lui   a0, 31
+EXE-NO-GP-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NO-GP-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NO-GP-NEXT: 051f 0000 0008        qc.e.li a0, 524288
+EXE-NO-GP-NEXT: 051f 0020 0100        qc.e.li a0, 16777248
+EXE-NO-GP-NEXT: 051f 2000 0100        qc.e.li a0, 16785408
+
+## Link with C and GP relaxations enabled, Xqci disabled.
+RUN: %link %linkopts --no-relax-xqci -MapStyle txt -Map %t.4.map --verbose %t.o -o %t.4.out -T %p/Inputs/x.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-XQCI
+
+VERBOSE-NO-XQCI-NOT: Deleting {{.*}} bytes
+VERBOSE-NO-XQCI-NOT: relaxing instruction
+VERBOSE-NO-XQCI-NOT: Cannot relax {{.*}} bytes
+
+RUN: %filecheck %s --input-file=%t.4.map --check-prefix=MAP-NO-XQCI
+
+MAP-NO-XQCI-NOT: RelaxationBytesDeleted
+MAP-NO-XQCI-NOT: RelaxationBytesMissed
+
+RUN: %objdump --no-print-imm-hex -d -M no-aliases %t.4.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-XQCI
+
+EXE-NO-XQCI: <main>:
+EXE-NO-XQCI-NEXT: 7000351b      qc.li   a0, 126976
+EXE-NO-XQCI-NEXT: 0800051b      qc.li   a0, 2048
+EXE-NO-XQCI-NEXT: 0000851b      qc.li   a0, 262144
+EXE-NO-XQCI-NEXT: 7000311b      qc.li   sp, 126976
+EXE-NO-XQCI-NEXT: 051f f000 0001        qc.e.li a0, 126976
+EXE-NO-XQCI-NEXT: 051f 0800 0000        qc.e.li a0, 2048
+EXE-NO-XQCI-NEXT: 051f 0000 0004        qc.e.li a0, 262144
+EXE-NO-XQCI-NEXT: 051f 0000 0008        qc.e.li a0, 524288
+EXE-NO-XQCI-NEXT: 051f 0020 0100        qc.e.li a0, 16777248
+EXE-NO-XQCI-NEXT: 051f 2000 0100        qc.e.li a0, 16785408
