@@ -201,6 +201,7 @@ private:
   bool doRelaxationQCCall(Relocation *R, bool DoCompressed);
 
   bool doRelaxationLui(Relocation *R, Relocation::DWord G);
+  bool doRelaxationQCLi(Relocation *R, Relocation::DWord G);
 
   bool doRelaxationAlign(Relocation *R);
 
