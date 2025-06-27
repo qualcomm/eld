@@ -1,0 +1,18 @@
+#---AutoloadPlugins.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests checks the autoloading of plugins from the
+# ${ORIGIN}/../etc/ELD/Plugins/Default directory.
+#END_COMMENT
+#START_TEST
+RUN: %mkdir -p %llvmobjroot/etc/ELD/Plugins/Default/HelloWorldPlugin
+RUN: %cp %eldsrcroot/Plugins/HelloWorldPlugin/HelloWorldPlugin.yaml \
+RUN:   %llvmobjroot/etc/ELD/Plugins/Default/HelloWorldPlugin
+RUN: %touch %t1.1.o
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -Map %t1.1.map.txt --trace=plugin 2>&1 | %filecheck %s
+RUN: %rm %llvmobjroot/etc/ELD/Plugins/Default/HelloWorldPlugin/HelloWorldPlugin.yaml
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+#END_TEST
+
+CHECK: Trace: Calling HelloWorldPlugin::Init plugin hook
+
+MAP: HelloWorldPlugin HelloWorldPlugin [autoloaded]

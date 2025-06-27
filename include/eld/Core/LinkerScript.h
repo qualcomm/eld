@@ -146,7 +146,7 @@ public:
   // ---------------- Plugin Support ------------------------------
   Plugin *addPlugin(plugin::PluginBase::Type T, std::string Name,
                     std::string PluginRegisterType, std::string PluginOpts,
-                    bool S, Module &Module);
+                    bool S, bool IsDefaultPlugin, Module &Module);
 
   void addPlugin(Plugin *, Module &Module);
 
