@@ -19,7 +19,7 @@ public:
 
   uint64_t startAddr(bool linkerScriptHasSectionsCmd, bool isDynExec,
                      bool loadPhdr) const override {
-    return 0;
+    return 0x400000;
   }
   void initializeAttributes(InputBuilder &pBuilder) override {
     pBuilder.makeBStatic();
