@@ -1,0 +1,17 @@
+#---DefaultImageBase.test-----Executable--------#
+
+BEGIN_COMMENT
+# Test x86_64 default image address
+# This test verifies that eld uses the correct default image base (0x400000)
+# without requiring manual --image-base=0x400000 flag.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts -o %t.1.out %t.1.o
+RUN: %t.1.out; echo $? > %t.code
+RUN: %filecheck --input-file=%t.code %s --check-prefix=EXITCODE
+RUN: %readelf -l %t.1.out | %grep LOAD -m 1 | %filecheck %s --check-prefix=IMAGEBASE
+EXITCODE: 7
+IMAGEBASE: {{.*}}400000{{.*}}
+#END_TEST

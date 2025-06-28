@@ -19,6 +19,9 @@ public:
 
   uint64_t startAddr(bool linkerScriptHasSectionsCmd, bool isDynExec,
                      bool loadPhdr) const override {
+    if (m_Config.codeGenType() == LinkerConfig::Exec) {
+      return 0x400000;
+    }
     return 0;
   }
   void initializeAttributes(InputBuilder &pBuilder) override {
