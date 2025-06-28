@@ -1,0 +1,14 @@
+#--PLT32Static.test----------Executable--------#
+
+BEGIN_COMMENT
+# Test x86_64 R_X86_64_PLT32 relocation type support in static linking.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/relocPLT32_test.c -o %t.relocPLT32_test.o
+RUN: %link %linkopts -o %t.relocPLT32_test.out %t.relocPLT32_test.o
+RUN: %t.relocPLT32_test.out; echo $? > %t.code
+RUN: cat %t.code
+RUN: %filecheck --input-file=%t.code %s --check-prefix=EXITCODE
+EXITCODE: 13
+#END_TEST
