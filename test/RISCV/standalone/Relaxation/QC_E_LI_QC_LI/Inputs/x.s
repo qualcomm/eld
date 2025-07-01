@@ -1,3 +1,7 @@
+  # Required until https://github.com/llvm/llvm-project/pull/146184 lands
+  .option exact
+
+  # Enable Relaxations
   .option relax
 
   .text
