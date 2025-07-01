@@ -207,7 +207,6 @@ bool Linker::link() {
     eld::RegisterTimer F("Emit output file", "Link Summary",
                          ThisConfig->options().printTimingStats());
     if (ThisConfig->options().getInsertTimingStats()) {
-      emit();
       TimingSectionTimer->stopTimer();
       uint64_t DurationMicro =
           TimingSectionTimer->getTotalTime().getWallTime() * 1000000;
