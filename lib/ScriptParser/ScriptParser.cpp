@@ -155,6 +155,8 @@ void ScriptParser::readEntry() {
 }
 
 eld::Expression *ScriptParser::readExpr() {
+  if (atEOF())
+    return nullptr;
   // Our lexer is context-aware. Set the in-expression bit so that
   // they apply different tokenization rules.
   enum LexState Orig = LexState;
