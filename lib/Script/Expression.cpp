@@ -5,6 +5,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Script/Expression.h"
+#include "DiagnosticEntry.h"
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Readers/ELFSection.h"
@@ -1748,4 +1749,24 @@ eld::Expected<uint64_t> QueryMemory::evalImpl() {
 void QueryMemory::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
 void QueryMemory::getSymbolNames(
+    std::unordered_set<std::string> &SymbolTokens) {}
+
+//===----------------------------------------------------------------------===//
+/// NullExpression support
+NullExpression::NullExpression(Module &Module,
+                         GNULDBackend &Backend)
+    : Expression("[NULL]", Expression::Type::NULLEXPR, Module, Backend) {}
+
+void NullExpression::dump(llvm::raw_ostream &Outs, bool WithValues) const {
+  Outs << Name;
+}
+
+eld::Expected<uint64_t> NullExpression::evalImpl() {
+  return std::make_unique<plugin::DiagnosticEntry>(
+      Diag::internal_error_null_expression, std::vector<std::string>{});
+}
+
+void NullExpression::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
+
+void NullExpression::getSymbolNames(
     std::unordered_set<std::string> &SymbolTokens) {}
