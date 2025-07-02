@@ -22,8 +22,8 @@ VERBOSE_RELAX: RISCV_CALL_C : Deleting 6 bytes for symbol 'foo' in section .text
 DUMP_RELAX: b011         j 0x{{[0-9a-f]+}} <foo>
 
 ## The third jump is never compressed because it's too far
-VERBOSE_RELAX: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'foo' in section .text+0xff6 file {{.*}}.o
 VERBOSE_RELAX: RISCV_CALL : Deleting 4 bytes for symbol 'foo' in section .text+0xffa file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'foo' in section .text+0xff6 file {{.*}}.o
 DUMP_RELAX: 80aff06f   j 0x{{[0-9a-f]+}} <foo>
 
 RUN: %link %linkopts %t.o -o %t.2.out --verbose --no-relax 2>&1 | %filecheck %s --check-prefix=VERBOSE_NORELAX
