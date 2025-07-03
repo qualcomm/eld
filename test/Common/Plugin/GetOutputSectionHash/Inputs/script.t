@@ -1,0 +1,6 @@
+SECTIONS {
+.foo : {
+  . = .;
+  *(.text.foo)
+}
+}
