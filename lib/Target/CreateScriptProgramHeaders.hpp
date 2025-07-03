@@ -361,6 +361,10 @@ bool GNULDBackend::createScriptProgramHdrs() {
         seg->append(*out);
         seg->updateFlagPhdr(getSegmentFlag(cur->getFlags()));
       }
+      if (seg->isLoadSegment())
+        seg->setAlign(abiPageSize());
+      else
+        seg->setAlign(seg->getMaxSectionAlign());
     }
 
     // Evaluate Assignments at the end of the output section.
@@ -371,6 +375,11 @@ bool GNULDBackend::createScriptProgramHdrs() {
     }
 
     ++out;
+  }
+
+  for (auto &seg : elfSegmentTable()) {
+    if (!seg->size())
+      seg->setAlign(abiPageSize());
   }
 
   evaluateTargetSymbolsBeforeRelaxation();

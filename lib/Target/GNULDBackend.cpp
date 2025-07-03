@@ -2149,7 +2149,6 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
     const std::string name = ((*phdr)->spec().name());
     _segments[name] = segment;
     segment->setName(name);
-    segment->setAlign(abiPageSize());
     elfSegmentTable().addSegment(segment);
     // If the linker script requests for a GNU stack segment to be
     // created, the linker should create one by using the properties

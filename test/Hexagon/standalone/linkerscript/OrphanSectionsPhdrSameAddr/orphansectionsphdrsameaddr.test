@@ -8,7 +8,7 @@ RUN: %readelf -l -W %t2.out | %filecheck %s
 
 #CHECK:  LOAD           0x001000 0x00000000 0x00000000 0x0004c 0x00038 R E 0x1000
 #CHECK:  LOAD           0x00200c 0x0000000c 0x0000000c 0x00078 0x00078 RW  0x1000
-#CHECK:  DYNAMIC        0x00200c 0x0000000c 0x0000000c 0x00078 0x00078 RW  0x1000
+#CHECK:  DYNAMIC        0x00200c 0x0000000c 0x0000000c 0x00078 0x00078 RW  0x4
 #CHECK:  Segment Sections...
 #CHECK:   00     .interp .dynsym .dynstr .hash .text
 #CHECK:   01     .dynamic

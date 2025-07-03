@@ -6,6 +6,9 @@ UNSUPPORTED:arm
 RUN: %clang %clangopts -c %p/Inputs/tls.c  -o %t1.1.o -ffunction-sections -fdata-sections
 RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.1 -Map %t2.map.out.1
 RUN: %readelf -S -W %t2.out.1 | %filecheck %s -check-prefix=SECTIONS
+RUN: %readelf -l -W %t2.out.1 | %filecheck %s -check-prefix=SEGMENTS
 RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/scriptphdrs.t -o %t2.out.2 -Map %t2.map.out.2
-RUN: %readelf -S -W %t2.out.2 | %filecheck %s -check-prefix=SECTIONS
+RUN: %readelf -S -W  %t2.out.2 | %filecheck %s -check-prefix=SECTIONS
+RUN: %readelf -l -W -l %t2.out.2 | %filecheck %s -check-prefix=SEGMENTS
 #SECTIONS: .tdata {{.*}} 256
+#SEGMENTS: TLS {{.*}} 0x100
