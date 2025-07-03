@@ -614,9 +614,12 @@ void ScriptParser::addFile(StringRef Name) {
   if (Name.consume_front("-l"))
     InputStrTok = ThisScriptFile.createNameSpecToken(Name.str(),
                                                      ThisScriptFile.asNeeded());
-  else
-    InputStrTok =
-        ThisScriptFile.createFileToken(Name.str(), ThisScriptFile.asNeeded());
+  else {
+    std::string ResolvedFilename =
+        ThisScriptFile.findResolvedFilename(Name.str());
+    InputStrTok = ThisScriptFile.createFileToken(ResolvedFilename,
+                                                 ThisScriptFile.asNeeded());
+  }
   ThisScriptFile.getCurrentStringList()->pushBack(InputStrTok);
 }
 
