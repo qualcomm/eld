@@ -42,6 +42,11 @@ bool GNULDBackend::createProgramHdrs() {
   // Support for PT_GNU_RELRO.
   llvm::DenseMap<OutputSectionEntry *, ELFSegment *> _relRoSegmentSections;
 
+  // Setup alignment and check for layout consistency if TLS is used
+  bool seenTLS = setupTLS();
+  if (!config().getDiagEngine()->diagnose())
+    return false;
+
   // If PHDRS are specified and the segment tables are empty
   // lets create the program headers as defined by the script
   if (m_Module.getScript().phdrsSpecified()) {
@@ -81,36 +86,7 @@ bool GNULDBackend::createProgramHdrs() {
   ELFSection *dynamic = script.sectionMap().find(".dynamic");
   ELFSection *eh_frame_hdr = script.sectionMap().find(".eh_frame_hdr");
 
-  ELFSegment *pt_tls = nullptr;
   ELFSegment *pt_gnu_relro = nullptr;
-  ELFSection *firstTLS = nullptr;
-  bool seenTLS = false;
-  bool lastSectTLS = false;
-  out = outBegin;
-  while (out != outEnd) {
-    auto sec = (*out)->getSection();
-    if (sec->isTLS() && (sec->size() > 0)) {
-      if (seenTLS && !lastSectTLS) {
-        config().raise(Diag::non_contiguous_TLS)
-            << firstTLS->name() << sec->name();
-        hasError = true;
-      }
-      if (!firstTLS)
-        firstTLS = sec;
-      lastSectTLS = true;
-      seenTLS = true;
-      if (pt_tls == nullptr) {
-        pt_tls = make<ELFSegment>(llvm::ELF::PT_TLS, llvm::ELF::PF_R);
-        elfSegmentTable().addSegment(pt_tls);
-      }
-      pt_tls->append(*out);
-      if (pt_tls->align() < sec->getAddrAlign())
-        pt_tls->setAlign(sec->getAddrAlign());
-    } else {
-      lastSectTLS = false;
-    }
-    out++;
-  }
   wantPhdr = seenTLS;
   // If there is PT_DYNAMIC, or PT_TLS or PT_GNU_EH_FRAME load the program
   // header, as the loader goes through the segments to do the corresponding
@@ -134,6 +110,9 @@ bool GNULDBackend::createProgramHdrs() {
 
   // make PT_GNU_EH_FRAME
   if (eh_frame_hdr && eh_frame_hdr->size())
+    ++m_NumReservedSegments;
+
+  if (seenTLS)
     ++m_NumReservedSegments;
 
   // make PT_GNU_STACK
@@ -729,6 +708,18 @@ bool GNULDBackend::createProgramHdrs() {
       gnu_stack_seg->setAlign(noteGNUStack->getAddrAlign());
     }
     elfSegmentTable().addSegment(gnu_stack_seg);
+  }
+
+  // Create PT_TLS segment
+  if (seenTLS) {
+    ELFSegment *pt_tls_segment = make<ELFSegment>(llvm::ELF::PT_TLS);
+    for (auto &section : script.sectionMap()) {
+      ELFSection *S = section->getSection();
+      if (S->isTLS() && S->isWanted())
+        pt_tls_segment->append(section);
+    }
+    pt_tls_segment->setAlign(pt_tls_segment->getMaxSectionAlign());
+    elfSegmentTable().addSegment(pt_tls_segment);
   }
 
   doCreateProgramHdrs();

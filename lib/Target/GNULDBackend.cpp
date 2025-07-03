@@ -5183,3 +5183,35 @@ bool GNULDBackend::verifySegments() const {
   }
   return true;
 }
+
+bool GNULDBackend::setupTLS() {
+  ELFSection *firstTLS = nullptr;
+  bool seenTLS = false;
+  bool lastSectTLS = false;
+  uint32_t MaxAlignment = 1;
+  SectionMap::iterator out, outBegin, outEnd;
+  outBegin = m_Module.getScript().sectionMap().begin();
+  outEnd = m_Module.getScript().sectionMap().end();
+  out = outBegin;
+  while (out != outEnd) {
+    auto sec = (*out)->getSection();
+    if (sec->isTLS() && (sec->size() > 0)) {
+      if (seenTLS && !lastSectTLS) {
+        config().raise(Diag::non_contiguous_TLS)
+            << firstTLS->name() << sec->name();
+      }
+      if (!firstTLS)
+        firstTLS = sec;
+      lastSectTLS = true;
+      seenTLS = true;
+    } else {
+      lastSectTLS = false;
+    }
+    if (lastSectTLS && MaxAlignment < sec->getAddrAlign())
+      MaxAlignment = sec->getAddrAlign();
+    out++;
+  }
+  if (firstTLS)
+    firstTLS->setAddrAlign(MaxAlignment);
+  return seenTLS;
+}

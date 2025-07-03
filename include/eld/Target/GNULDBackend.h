@@ -1004,6 +1004,9 @@ private:
   // header when loaded assign a proper virtual address
   bool allocateHeaders();
 
+  // Setup TLS alignment and check for any layout issues
+  bool setupTLS();
+
 protected:
   Module &m_Module;
 
