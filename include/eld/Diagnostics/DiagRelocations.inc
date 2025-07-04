@@ -70,3 +70,5 @@ DIAG(unsupported_reloc, DiagnosticEngine::Fatal,
 DIAG(resolve_undef_weak_guard, DiagnosticEngine::Warning,
      "Undefined weak symbol %0 referred from %1 is resolved to %2")
 DIAG(error_relocations_plugin, DiagnosticEngine::Error, "unable to apply relocations")
+DIAG(verbose_remapped_internal_reloc, DiagnosticEngine::Verbose,
+     "Remapped Internal Relocation %0 to %1 in section %2")
