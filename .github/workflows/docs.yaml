@@ -33,7 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get install -y doxygen libxml2 libxml2-dev libxslt1-dev
+          sudo apt-get install -y graphviz doxygen libxml2 libxml2-dev libxslt1-dev
           pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
 
       - name: Run CMake
