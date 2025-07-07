@@ -31,6 +31,7 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
+        fetch-depth: 2
         repository: llvm/llvm-project
         path: pr-${{ env.PR_NUMBER }}/llvm-project
 
@@ -38,6 +39,7 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
+        fetch-depth: 2
         repository: qualcomm/eld
         path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
 

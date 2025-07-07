@@ -16,6 +16,7 @@ jobs:
       - name: Checkout llvm-project
         uses: actions/checkout@v4
         with:
+          fetch-depth: 2
           repository: llvm/llvm-project
           path: llvm-project
           ref: main
@@ -23,6 +24,7 @@ jobs:
       - name: Checkout eld
         uses: actions/checkout@v4
         with:
+          fetch-depth: 2
           path: llvm-project/llvm/tools/eld
           ref: main
 
