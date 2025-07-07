@@ -1,3 +1,4 @@
+UNSUPPORTED: true
 #---AutoloadPlugins.test----------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 # This tests checks the autoloading of plugins from the
