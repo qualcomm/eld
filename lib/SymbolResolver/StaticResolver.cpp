@@ -106,6 +106,8 @@ bool StaticResolver::resolve(ResolveInfo &pOld, const ResolveInfo &pNew,
       }
       if (!Old->isDyn())
         Old->overrideVisibility(pNew);
+      if (Old->canBePreemptible() && pNew.isDyn() && pNew.canBePreemptible())
+        Old->setExportToDyn();
       break;
     }
     case UND:   /* override by symbol undefined symbol.  */

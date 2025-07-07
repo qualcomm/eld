@@ -5,8 +5,13 @@
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
 RUN: %link %linkopts %t1.o -T %p/Inputs/defined.t 2>&1 | %filecheck --allow-empty %s
+RUN: %link %linkopts -o %t1.1.out %t1.o -T %p/Inputs/defined-with-undef-sym.t
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix READELF
+#END_TEST
+
 CHECK-NOT: undefined symbol 'B' referenced in expression
 CHECK-NOT: Symbol D used before being defined
 CHECK-NOT: Assertion failed.
 CHECK-NOT: Linking had errors.
-#END_TEST
+
+READELF: {{0+}} 0 NOTYPE {{.*}} ABS A

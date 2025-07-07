@@ -1389,7 +1389,7 @@ eld::Expected<uint64_t> Defined::evalImpl() {
       return 1;
     return 0;
   }
-  return 1;
+  return !Symbol->resolveInfo()->isUndef();
 }
 
 void Defined::getSymbols(std::vector<ResolveInfo *> &Symbols) {}

@@ -54,10 +54,15 @@ void ResolveInfo::overrideAttributes(const ResolveInfo &PFrom) {
   // Do not override visibility
   auto V = visibility();
   bool P = shouldPreserve();
+  // exportToDyn should stay true after overriding if
+  // the overriding symbol can be a preemptible symbol.
+  bool PrevExportToDyn = exportToDyn();
   ThisBitField &= ~ResolveMask;
   ThisBitField |= (PFrom.ThisBitField & ResolveMask);
   shouldPreserve(P);
   setVisibility(V);
+  if (PrevExportToDyn && PFrom.canBePreemptible())
+    setExportToDyn();
 }
 
 /// overrideVisibility - override the visibility
@@ -375,4 +380,8 @@ ELFSection *ResolveInfo::getOwningSection() const {
 
 std::string ResolveInfo::getResolvedPath() const {
   return resolvedOrigin()->getInput()->decoratedPath();
+}
+
+bool ResolveInfo::canBePreemptible() const {
+  return !isLocal() && visibility() == ResolveInfo::Visibility::Default;
 }
