@@ -241,6 +241,13 @@ public:
   virtual void dump(llvm::raw_ostream &Outs, bool ShowValues = true) const = 0;
 
   uint64_t result() const;
+
+  bool hasResult() const {
+    return MResult.has_value();
+  }
+
+  uint64_t resultOrZero() const;
+
   const std::string &name() const { return Name; }
   Type type() const { return ThisType; }
   Type getType() const { return ThisType; }
