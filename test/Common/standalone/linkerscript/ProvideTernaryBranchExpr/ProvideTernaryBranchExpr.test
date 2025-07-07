@@ -1,0 +1,13 @@
+#---ProvideTernaryBranchExpr.test------------ Executable-------------------------#
+#BEGIN_COMMENT
+# This test checks that the symbols referenced in ternary branches are
+# used to pull in PROVIDE symbols.
+#END_COMMENT
+#START_TEST
+RUN: %touch %t1.1.o
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.1.out | %filecheck %s
+#END_TEST
+
+#CHECK-DAG: {{0+}}5 {{.*}} b
+#CHECK-DAG: {{0+}}5 {{.*}} a

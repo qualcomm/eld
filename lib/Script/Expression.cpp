@@ -638,10 +638,14 @@ void Ternary::getSymbols(std::vector<ResolveInfo *> &Symbols) {
 
 void Ternary::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
   ConditionExpression.getSymbolNames(SymbolTokens);
-  if (ConditionExpression.result())
-    LeftExpression.getSymbolNames(SymbolTokens);
-  else
-    RightExpression.getSymbolNames(SymbolTokens);
+  // FIXME: Ideally, one of the LeftExpression / RightExpression should
+  // be selected depending upon the ConditionExpression evaluation. However,
+  // we need to add undefined symbols before the expressions are ready to be
+  // evaluated. It is safer to add an extra (redundant) symbol as compared to
+  // not adding a required symbol, as the later can cause an undefined reference
+  // error.
+  LeftExpression.getSymbolNames(SymbolTokens);
+  RightExpression.getSymbolNames(SymbolTokens);
 }
 
 bool Ternary::hasDot() const {
