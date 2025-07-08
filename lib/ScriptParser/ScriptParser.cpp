@@ -260,9 +260,8 @@ eld::Expression &ScriptParser::combine(llvm::StringRef Op, eld::Expression &L,
     return *(make<LogicalOp>(Expression::LOGICAL_AND, Module, Backend, L, R));
   if (Op == "&")
     return *(make<BitwiseAnd>(Module, Backend, L, R));
-  // FIXME: Support xor operator!
-  // if (op == "^")
-  //   return *(make<op>(module, backend, l, r));
+  if (Op == "^")
+    return *(make<BitwiseXor>(Module, Backend, L, R));
   if (Op == "|")
     return *(make<BitwiseOr>(Module, Backend, L, R));
   llvm_unreachable("invalid operator");
@@ -485,9 +484,9 @@ bool ScriptParser::readSymbolAssignment(StringRef Tok,
                                         Assignment::Type AssignType) {
   StringRef Name = unquote(Tok);
   StringRef Op = next(LexState::Expr);
-  // TODO: Support '^='
+
   assert(Op == "=" || Op == "*=" || Op == "/=" || Op == "+=" || Op == "-=" ||
-         Op == "&=" || Op == "|=" || Op == "<<=" || Op == ">>=");
+         Op == "&=" || Op == "|=" || Op == "^=" || Op == "<<=" || Op == ">>=");
   // Note: GNU ld does not support %=.
   Expression *E = readExpr();
   Module &Module = ThisScriptFile.module();
@@ -520,6 +519,9 @@ bool ScriptParser::readSymbolAssignment(StringRef Tok,
       break;
     case '|':
       E = make<BitwiseOr>(Module, Backend, *S, *E);
+      break;
+    case '^':
+      E = make<BitwiseXor>(Module, Backend, *S, *E);
       break;
     default:
       llvm_unreachable("");
