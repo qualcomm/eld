@@ -12,7 +12,7 @@ Jinja2==3.1.2
 lxml==4.9.3
 MarkupSafe==2.1.1
 packaging==21.3
-Pillow==10.1.0
+Pillow==10.3.0
 Pygments==2.13.0
 pyparsing==3.0.9
 python-docx==1.1.0
