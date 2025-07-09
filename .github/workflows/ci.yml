@@ -18,6 +18,7 @@ jobs:
         echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
         echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
         echo "BASE_BRANCH_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+        echo "CACHE_DIR=/local/mnt/workspace/ccache/${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
 
     - name: Checkout llvm-project
       uses: actions/checkout@v4
@@ -33,14 +34,16 @@ jobs:
 
     - name: Run CMake
       run: |
-        ccache --set-config max_size=32GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        export CCACHE_BASEDIR=$GITHUB_WORKSPACE
+        export CCACHE_NOHASHDIR=true
+        ccache --set-config max_size=32GB --dir $CACHE_DIR
         rm -rf pr-${{ env.PR_NUMBER }}/obj
         mkdir -p pr-${{ env.PR_NUMBER }}/obj
         cd pr-${{ env.PR_NUMBER }}/obj
         cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
-          -DLLVM_CCACHE_DIR=/local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }} \
+          -DLLVM_CCACHE_DIR=$CACHE_DIR \
           -DLLVM_CCACHE_BUILD:BOOL=ON \
           -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
           -DCMAKE_C_COMPILER:STRING=`which clang` \
@@ -54,7 +57,7 @@ jobs:
     - name: Cache Usage before build
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
-        ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        ccache -s --dir $CACHE_DIR
 
     - name: Build Project
       run: |
@@ -64,7 +67,7 @@ jobs:
     - name: Cache Usage after build
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
-        ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        ccache -s --dir $CACHE_DIR
 
     - name: Run Tests
       run: |
@@ -74,4 +77,3 @@ jobs:
     - name: Clean up
       run: |
         rm -rf pr-${{ github.event.number }}
-
