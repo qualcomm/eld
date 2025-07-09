@@ -84,9 +84,9 @@ DUMP_NOXQCI: f94ff06f jal zero, 0x74 <f>
 DUMP_NOXQCI: 920000ef jal ra, 0x74 <f>
 DUMP_NOXQCI: 91c0006f jal zero, 0x74 <f>
 DUMP_NOXQCI: fff00097 auipc ra, 0xfff00
-DUMP_NOXQCI: f28080e7 jalr ra, -0xd8(ra) <f>
+DUMP_NOXQCI: f28080e7 jalr ra, -0xd8(ra)
 DUMP_NOXQCI: fff00317 auipc t1, 0xfff00
-DUMP_NOXQCI: f2030067 jalr zero, -0xe0(t1) <f>
+DUMP_NOXQCI: f2030067 jalr zero, -0xe0(t1)
 
 RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP_NOXQCI
 
