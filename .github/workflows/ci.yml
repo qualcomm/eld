@@ -19,40 +19,21 @@ jobs:
         echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
         echo "BASE_BRANCH_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
 
-    - name: Cache ccache
-      uses: actions/cache@v4
-      with:
-        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-
-          ${{ runner.os }}-ccache-${{ env.BASE_BRANCH_NAME }}-
-          ${{ runner.os }}-ccache-
-
     - name: Checkout llvm-project
-      if: steps.cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
         repository: llvm/llvm-project
         path: pr-${{ env.PR_NUMBER }}/llvm-project
 
     - name: Checkout qualcomm/eld
-      if: steps.cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
         repository: qualcomm/eld
         path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
 
-    - name: Fetch and update repository
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: |
-        cd pr-${{ env.PR_NUMBER }}/llvm-project
-        git fetch origin
-        git reset --hard origin/${{ github.event.pull_request.head.ref }}
-
     - name: Run CMake
       run: |
-        ccache --set-config max_size=10GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        ccache --set-config max_size=32GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
         rm -rf pr-${{ env.PR_NUMBER }}/obj
         mkdir -p pr-${{ env.PR_NUMBER }}/obj
         cd pr-${{ env.PR_NUMBER }}/obj
@@ -77,35 +58,25 @@ jobs:
 
     - name: Cache Usage before build
       run: |
-           cd pr-${{ env.PR_NUMBER }}/obj
-           ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
 
     - name: Build Project
       run: |
-          cd pr-${{ env.PR_NUMBER }}/obj
-          ninja
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ninja
 
     - name: Cache Usage after build
       run: |
-         cd pr-${{ env.PR_NUMBER }}/obj
-         ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
 
     - name: Run Tests
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja check-eld
 
-    - name: Save ccache
-      uses: actions/cache@v4
-      with:
-        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-${{ github.run_id }}
-
-  cleanup:
-    runs-on: self-hosted
-    needs: build
-    if: always()
-    steps:
-    - name: Cleanup build directory
+    - name: Clean up
       run: |
         rm -rf pr-${{ github.event.number }}
+
