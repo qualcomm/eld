@@ -51,11 +51,6 @@ jobs:
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
           ../llvm-project/llvm
 
-    - name: Check ccache directory size
-      run: |
-        echo "Current ccache size:"
-        du -sh /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-
     - name: Cache Usage before build
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
