@@ -26,10 +26,11 @@ jobs:
         repository: llvm/llvm-project
         path: pr-${{ env.PR_NUMBER }}/llvm-project
 
-    - name: Checkout qualcomm/eld
+    - name: Checkout qualcomm/eld PR branch
       uses: actions/checkout@v4
       with:
         repository: qualcomm/eld
+        ref: ${{ github.event.pull_request.head.ref }}
         path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
 
     - name: Run CMake
