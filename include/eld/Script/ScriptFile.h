@@ -95,6 +95,8 @@ public:
 
   size_t size() const { return LinkerScriptCommandQueue.size(); }
 
+  FileToken *findResolvedFilename(const std::string &FileName);
+
   std::string findIncludeFile(const std::string &Filename, bool &Result,
                               bool State);
 

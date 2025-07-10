@@ -60,7 +60,9 @@ eld::Expected<void> GroupCmd::activate(Module &CurModule) {
   ThisBuilder.enterGroup();
 
   for (auto &S : ThisStringList) {
-    InputToken *Token = llvm::cast<InputToken>(S);
+
+    InputToken *Token =
+        llvm::cast<InputToken>(ThisScriptFile.findResolvedFilename(S->name()));
     if (Token->asNeeded())
       ThisBuilder.getAttributes().setAsNeeded();
     else
