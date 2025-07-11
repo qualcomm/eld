@@ -1106,6 +1106,24 @@ plugin::InputFile plugin::Symbol::getInputFile() {
 //
 //-----------------------------LinkerScriptRule---------------------------------
 //
+
+plugin::Script::InputSectionSpec LinkerScriptRule::getInputSectionSpec() const {
+  return plugin::Script::InputSectionSpec(
+      const_cast<InputSectDesc *>(m_RuleContainer->desc()));
+}
+
+plugin::OutputSection LinkerScriptRule::getOutputSection() const {
+  if (!m_RuleContainer)
+    return plugin::OutputSection(nullptr);
+  auto S = m_RuleContainer->getSection();
+  ASSERT(S, "Must not be null");
+  return plugin::OutputSection(S->getOutputSection());
+}
+
+std::optional<uint64_t> LinkerScriptRule::getHash() const {
+  return m_RuleContainer->getRuleHash();
+}
+
 bool LinkerScriptRule::canMoveSections() const {
   if (!m_RuleContainer)
     return false;

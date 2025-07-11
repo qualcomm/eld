@@ -256,6 +256,18 @@ struct DLL_A_EXPORT LinkerScriptRule final {
   /// Returns true if the rule corresponds to KEEP sections.
   bool isKeep() const;
 
+  /// Returns the hash of the linkerscript rule
+  std::optional<uint64_t> getHash() const;
+
+  /// Returns the input section specification of the linker script rule.
+  ///
+  /// \note An Input Section description is an internal representation of
+  /// a linker script rule.
+  plugin::Script::InputSectionSpec getInputSectionSpec() const;
+
+  /// Returns the output section corresponding to the rule.
+  plugin::OutputSection getOutputSection() const;
+
   /// Returns true if the rule has any expression; Otherwise returns false.
   ///
   /// Expressions are symbol assignments.

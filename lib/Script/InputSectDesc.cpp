@@ -226,6 +226,6 @@ eld::Expected<void> InputSectDesc::activate(Module &CurModule) {
       this->ThisRuleContainer->getSection()->getOutputSection();
   Hash = llvm::hash_combine(OutSectionEntry->name(), RuleText,
                             OutSectionEntry->getSection()->getIndex());
-  CurModule.addIntoRuleContainerMap(Hash, this->ThisRuleContainer);
+  ThisRuleContainer->setRuleHash(Hash);
   return eld::Expected<void>();
 }
