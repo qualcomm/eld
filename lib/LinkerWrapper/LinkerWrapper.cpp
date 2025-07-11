@@ -647,11 +647,17 @@ std::string LinkerWrapper::getFileContents(std::string FileName) {
 
 eld::Expected<std::string>
 LinkerWrapper::findConfigFile(const std::string &FileName) const {
+  if (m_Module.getConfig().options().hasMappingFile())
+    return m_Module.getConfig().getHashFromFile(FileName);
   eld::SearchDirs Directories = m_Module.getConfig().directories();
   const eld::sys::fs::Path *P = Directories.findFile(
       "plugin configuration INI file", FileName, getPlugin()->getPluginName());
-  if (P)
-    return P->getFullPath();
+  if (P) {
+    std::string FullPath = P->getFullPath();
+    if (m_Module.getOutputTarWriter() && llvm::sys::fs::exists(FullPath))
+      m_Module.getOutputTarWriter()->addStringMapping(FileName, FullPath);
+    return FullPath;
+  }
   return std::make_unique<DiagnosticEntry>(
       DiagnosticEntry(Diag::error_finding_plugin_config, {FileName}));
 }

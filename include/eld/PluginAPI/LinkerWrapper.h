@@ -454,9 +454,12 @@ public:
   /// Return the associated LinkerScript
   LinkerScript getLinkerScript();
 
-  /// Get FileName file contents
+  /// Get FileName file contents.
   ///
   /// If FileName doesn't exist, then returns an empty string.
+  ///
+  /// For correct functionality with the reproducer, the `FileName` must
+  /// be the file path returned by the `LinkerWrapper::findConfigFile`.
   std::string getFileContents(std::string FileName);
 
   /// \return path to file if it is found. If not found, then an

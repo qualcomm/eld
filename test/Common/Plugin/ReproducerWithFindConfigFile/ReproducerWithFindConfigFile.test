@@ -1,0 +1,29 @@
+#---ReproducerWithFindConfigFile.test--------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Tests that the reproducer can find a config file that was used by a plugin
+# using LinkerWrapper::findConfigFile
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.reproduce
+RUN: %link %linkopts -L %p/Inputs -T %p/Inputs/script.t -o %t.out \
+RUN:   --reproduce %t1.a.tar --dump-response-file %t1.response.txt 2>&1 | %filecheck %s
+RUN: %mkdir %t1.reproduce
+RUN: %tar -xvf %t1.a.tar -C %t1.reproduce --strip-components=1
+RUN: %filecheck %s --check-prefix MAPPING < %t1.reproduce/mapping.ini
+RUN: ls %t1.reproduce/Config | %filecheck %s --check-prefix CONFIG_DIR
+RUN: cd %t1.reproduce
+RUN: %link @%t1.response.txt 2>&1 | %filecheck %s --check-prefix=REPRODUCE
+#END_TEST
+
+CHECK: Found config file {{.*}}some-file.txt
+CHECK: Contents of config file: Hello, World!
+
+MAPPING: [StringMap]
+MAPPING-DAG: some-file.txt={{.*}}/Inputs/some-file.txt
+MAPPING-DAG: other-file.txt={{.*}}/Inputs/other-file.txt
+
+CONFIG_DIR: some-file.txt{{.*}}
+CONFIG_DIR-NOT:other-file
+
+REPRODUCE: Found config file Config/some-file.txt.{{.*}}
+REPRODUCE: Contents of config file: Hello, World!
