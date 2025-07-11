@@ -128,3 +128,5 @@ DIAG(warn_memory_region_has_zero_size, DiagnosticEngine::Warning,
      "%0: Memory region '%1' has zero size")
 DIAG(error_empty_pt_tls_segment, DiagnosticEngine::Error,
       "TLS segments are empty")
+DIAG(internal_error_null_expression, DiagnosticEngine::InternalError,
+     "Trying to evaluate null expression")

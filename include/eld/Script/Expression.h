@@ -78,7 +78,8 @@ public:
     LOGICAL_AND,
     LOGICAL_OR,
     ORIGIN,
-    LENGTH
+    LENGTH,
+    NULLEXPR
   };
 
   Expression(std::string Name, Type Type, Module &Module, GNULDBackend &Backend,
@@ -183,6 +184,8 @@ public:
 
   bool isLength() const { return (ThisType == LENGTH); }
 
+  bool isNullExpr() const { return ThisType == Expression::Type::NULLEXPR; }
+
   /// evaluateAndReturnError
   /// \brief Evaluate the expression, commit and return the value when
   ///        evaluation is successful. Returns an error if evaluation fails.
@@ -241,6 +244,13 @@ public:
   virtual void dump(llvm::raw_ostream &Outs, bool ShowValues = true) const = 0;
 
   uint64_t result() const;
+
+  bool hasResult() const {
+    return MResult.has_value();
+  }
+
+  uint64_t resultOrZero() const;
+
   const std::string &name() const { return Name; }
   Type type() const { return ThisType; }
   Type getType() const { return ThisType; }
@@ -1496,6 +1506,25 @@ inline void alignAddress(uint64_t &PAddr, uint64_t AlignConstraint) {
   if (AlignConstraint != 0)
     PAddr = (PAddr + AlignConstraint - 1) & ~(AlignConstraint - 1);
 }
+
+/// NullExpression represents an invalid expression. It is used as a sentinel
+/// expression when the linker script parser fails to parse an expression.
+class NullExpression : public Expression {
+public:
+  NullExpression(Module &Module, GNULDBackend &Backend);
+
+  // Casting support
+  static bool classof(const Expression *Exp) { return Exp->isNullExpr(); }
+
+private:
+  bool hasDot() const override { return false; }
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
+  eld::Expected<uint64_t> evalImpl() override;
+  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return nullptr; }
+  Expression *getRightExpression() const override { return nullptr; }
+};
 
 } // namespace eld
 

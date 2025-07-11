@@ -155,6 +155,17 @@ void ScriptParser::readEntry() {
 }
 
 eld::Expression *ScriptParser::readExpr() {
+  if (atEOF()) {
+    Module &Module = ThisScriptFile.module();
+    GNULDBackend &Backend = ThisScriptFile.backend();
+    // We do not return nullptr here because the returned expression is
+    // dereferenced at many places. We can add a null-pointer check everywhere,
+    // but that would impose issues if we want to extend the parser to continue
+    // parsing despite errors (the way we do with --no-inhibit-exec for overall
+    // linking). Adding checks everywhere would also violate the parser design
+    // to be able to continue parsing even after errors have occurred.
+    return make<NullExpression>(Module, Backend);
+  }
   // Our lexer is context-aware. Set the in-expression bit so that
   // they apply different tokenization rules.
   enum LexState Orig = LexState;

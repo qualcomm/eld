@@ -200,17 +200,9 @@ public:
     PathToHash[Name] = Hash;
   }
 
-  // FIXME: parameter name is confusing here. Why the parameter name is filename
-  // in the function named 'getFileFromHash'. Shouldn't the parameter name be
-  // 'hash'?
-  // FIXME: const in return type is redundant and can inhibit optimizations.
-  const std::string getFileFromHash(const std::string &FileName) const;
+  std::string getFileFromHash(const std::string &Hash) const;
 
-  // FIXME: parameter name is confusing here. Why the parameter name is hash in
-  // the function named 'getHashFromFile'. Shouldn't the parameter name be
-  // 'filename' here?
-  // FIXME: const in return type is redundant and can inhibit optimizations.
-  const std::string getHashFromFile(const std::string &Hash) const;
+  std::string getHashFromFile(const std::string &FileName) const;
 
   bool hasMappingForFile(const std::string &FileName) const {
     return PathToHash.find(FileName) != PathToHash.end();

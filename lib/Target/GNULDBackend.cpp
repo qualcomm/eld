@@ -5178,7 +5178,7 @@ bool GNULDBackend::allocateHeaders() {
 bool GNULDBackend::verifySegments() const {
   const auto &SegTable = elfSegmentTable();
   for (const auto &S : SegTable.segments()) {
-    if (S->empty())
+    if (S->empty() && config().showLinkerScriptWarnings())
       config().raise(Diag::warn_empty_segment) << S->name();
   }
   return true;

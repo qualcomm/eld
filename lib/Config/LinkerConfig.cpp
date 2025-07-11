@@ -145,17 +145,17 @@ void LinkerConfig::printOptions(llvm::raw_ostream &Outs,
 
 const char *LinkerConfig::version() { return eld::getELDVersion().data(); }
 
-const std::string LinkerConfig::getFileFromHash(const std::string &Hash) const {
+std::string LinkerConfig::getFileFromHash(const std::string &Hash) const {
   const auto F = HashToPath.find(Hash);
   if (F == HashToPath.end())
     return Hash;
   return F->second;
 }
 
-const std::string LinkerConfig::getHashFromFile(const std::string &File) const {
-  const auto H = PathToHash.find(File);
+std::string LinkerConfig::getHashFromFile(const std::string &FileName) const {
+  const auto H = PathToHash.find(FileName);
   if (H == PathToHash.end())
-    return File;
+    return FileName;
   return H->second;
 }
 
