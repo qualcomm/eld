@@ -1,0 +1,17 @@
+#---InputSectionAPIs.test----------------------- Executable,LS --------------------#
+
+#BEGIN_COMMENT
+# Tests various input section APIs.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t1.p.o
+
+RUN: %link %linkopts %t1.p.o -o %t2.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1  | %filecheck %s --check-prefix=CHECK-GROUP
+RUN: %link %linkopts  %t1.main.o  %t1.1.o -T %p/Inputs/script.t  -o %t2.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1  | %filecheck %s
+
+#CHECK-GROUP: Section: .group is of group kind.
+#CHECK: Section: .text.foo is of Ignore kind.
+#CHECK: Section: {{[ -\(\)_A-Za-z0-9.\\/:]+}}text.f is of Relocation kind
+#END_TEST

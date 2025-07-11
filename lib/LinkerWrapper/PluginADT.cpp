@@ -17,6 +17,7 @@
 #include "eld/Plugin/PluginData.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
+#include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/INIReader.h"
 #include "eld/Support/MemoryArea.h"
@@ -671,6 +672,73 @@ std::vector<plugin::Symbol> plugin::Section::getSymbols() const {
   return SymbolsInSection;
 }
 
+void plugin::Section::setLinkerScriptRule(plugin::LinkerScriptRule R) {
+  if (!m_Section)
+    return;
+  ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);
+  RuleContainer *RC = R.getRuleContainer();
+  S->setOutputSection(RC->getSection()->getOutputSection());
+  S->setMatchedLinkerScriptRule(RC);
+  RC->incMatchCount();
+}
+
+uint64_t plugin::Section::getSectionHash() const {
+  ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(m_Section);
+  if (!ELFSect)
+    return 0;
+  return ELFSect->getSectionHash();
+}
+
+bool plugin::Section::hasOldInputFile() const {
+  if (!m_Section)
+    return false;
+  ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(m_Section);
+  if (!ELFSect)
+    return false;
+  return (ELFSect->hasOldInputFile());
+}
+
+bool plugin::Section::isELFSection() const {
+  ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(m_Section);
+  return (ELFSect != nullptr);
+}
+
+bool plugin::Section::isIgnore() const {
+  if (ELFSection *S = llvm::dyn_cast_or_null<ELFSection>(m_Section))
+    return S->isIgnore();
+  return false;
+}
+
+bool plugin::Section::isNull() const {
+  if (ELFSection *S = llvm::dyn_cast_or_null<ELFSection>(m_Section))
+    return S->isNullKind();
+  return false;
+}
+
+bool plugin::Section::isStackNote() const {
+  if (ELFSection *S = llvm::dyn_cast_or_null<ELFSection>(m_Section))
+    return S->isNoteGNUStack();
+  return false;
+}
+
+bool plugin::Section::isNamePool() const {
+  if (ELFSection *S = llvm::dyn_cast_or_null<ELFSection>(m_Section))
+    return S->isNamePool();
+  return false;
+}
+
+bool plugin::Section::isRelocation() const {
+  if (ELFSection *S = llvm::dyn_cast_or_null<ELFSection>(m_Section))
+    return S->isRelocationKind();
+  return false;
+}
+
+bool plugin::Section::isGroup() const {
+  if (ELFSection *S = llvm::dyn_cast_or_null<ELFSection>(m_Section))
+    return S->isGroupKind();
+  return false;
+}
+
 std::vector<plugin::Chunk> plugin::Section::getChunks() const {
   std::vector<plugin::Chunk> Chunks;
   if (!m_Section)
@@ -819,6 +887,20 @@ uint64_t OutputSection::getType() const {
   if (!m_OutputSection)
     return 0;
   return m_OutputSection->getSection()->getType();
+}
+
+uint64_t OutputSection::getHash() const {
+  if (!m_OutputSection)
+    return 0;
+  return m_OutputSection->getHash();
+}
+
+std::vector<eld::plugin::LinkerScriptRule> OutputSection::getRules() {
+  std::vector<eld::plugin::LinkerScriptRule> rules;
+  for (RuleContainer *RC : *m_OutputSection) {
+    rules.push_back(eld::plugin::LinkerScriptRule(RC));
+  }
+  return rules;
 }
 
 uint64_t OutputSection::getIndex() const {

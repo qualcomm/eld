@@ -1,0 +1,9 @@
+#---GetInputSectionHash.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests the API to get the inputsection hash.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1  | %filecheck %s
+#CHECK: The Section hash of .text.foo is: {{[0-9]+}}
+#END_TEST

@@ -507,6 +507,12 @@ struct DLL_A_EXPORT OutputSection final {
   /// Returns the alignment of the output section.
   uint64_t getAlignment() const;
 
+  /// Returns the output section hash
+  uint64_t getHash() const;
+
+  /// Returns the linkerscript rules corrsponding to the output section.
+  std::vector<eld::plugin::LinkerScriptRule> getRules();
+
   /// Returns the section attribute flags.
   /// Each bit of flag defines some attribute. If a flag bit is set, then
   /// the attribute which corresponds to that bit is on for the section.
@@ -680,6 +686,61 @@ struct DLL_A_EXPORT Section {
 
   /// Returns the alignment of the section if the object.
   uint32_t getAlignment() const;
+
+  /// Retuns true if the section is an ELF section; returns false otherwise.
+  bool isELFSection() const;
+
+  /// Returns true if the ignore property is set for the input section;
+  /// returns false otherwise.
+  /// \note The linker intentionally skips these sections during the linking
+  /// process. These sections are present in the input files but are not a part
+  /// of the final executable.
+  bool isIgnore() const;
+
+  /// Returns true if the input section is null false otherwise
+  /// \note A null input section typically refers to a section in an
+  /// object or executable file that has a type of SHT_NULL (in ELF format) or
+  /// is otherwise empty or unused.
+  bool isNull() const;
+
+  /// Returns true if the input section is a GNU stack note; returns
+  /// false otherwise
+  /// \note The GNU stack note refers to a special note section in ELF binaries
+  /// that specifies whether the program stack should be executable or not.
+  bool isStackNote() const;
+
+  /// Returns true if the input section has namepool kind set;
+  /// returns false otherwise.
+  /// \note A namepool input section is used to store names of symbols which
+  /// makes it easier to search for symbols thereby assisting in symbol
+  /// resolution.
+  bool isNamePool() const;
+
+  /// Returns true if the input section has relocation kind set;
+  ///  returns false otherwise.
+  /// \note A relocation type of input section refers to a section in an object
+  /// file that contains relocation entries. These entries are instructions for
+  /// the linker to adjust addresses or symbol references when combining object
+  /// files into a final executable or shared library.
+  bool isRelocation() const;
+
+  /// Returns true if the input section is of Group kind;
+  /// returns false otherwise.
+  /// \note A group input section refers to a section that belongs to a group
+  /// of related sections, this is often used to manage duplicate code or data
+  /// across multiple files.
+  bool isGroup() const;
+
+  /// Returns true if an old input file has been set for the input section;
+  /// returns false otherwise.
+  bool hasOldInputFile() const;
+
+  /// Returns the hash of the input section.
+  uint64_t getSectionHash() const;
+
+  /// Sets the linker script rule for the input section.
+  /// \param R the Linkerscript rule to be set.
+  void setLinkerScriptRule(plugin::LinkerScriptRule R);
 
   /// Returns true if the section name matches the pattern Pattern.
   ///
