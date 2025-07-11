@@ -5,6 +5,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Script/Expression.h"
+#include "DiagnosticEntry.h"
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Readers/ELFSection.h"
@@ -15,13 +16,14 @@
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/Support/MathExtras.h"
+#include <optional>
 
 using namespace eld;
 
 Expression::Expression(std::string Name, Type Type, Module &Module,
                        GNULDBackend &Backend, uint64_t Value)
     : Name(Name), ThisType(Type), ThisModule(Module), ThisBackend(Backend),
-      MResult(0), EvaluatedValue(Value) {}
+      MResult(std::nullopt), EvaluatedValue(Value) {}
 
 void Expression::setContext(const std::string &Context) {
   ASSERT(!Context.empty(), "Empty context for expression");
@@ -31,6 +33,12 @@ void Expression::setContext(const std::string &Context) {
 uint64_t Expression::result() const {
   ASSERT(MResult, "Expression result is not yet committed");
   return *MResult;
+}
+
+uint64_t Expression::resultOrZero() const {
+  if (hasResult())
+    return MResult.value();
+  return 0;
 }
 
 std::unique_ptr<plugin::DiagnosticEntry> Expression::addContextToDiagEntry(
@@ -1741,4 +1749,24 @@ eld::Expected<uint64_t> QueryMemory::evalImpl() {
 void QueryMemory::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
 void QueryMemory::getSymbolNames(
+    std::unordered_set<std::string> &SymbolTokens) {}
+
+//===----------------------------------------------------------------------===//
+/// NullExpression support
+NullExpression::NullExpression(Module &Module,
+                         GNULDBackend &Backend)
+    : Expression("[NULL]", Expression::Type::NULLEXPR, Module, Backend) {}
+
+void NullExpression::dump(llvm::raw_ostream &Outs, bool WithValues) const {
+  Outs << Name;
+}
+
+eld::Expected<uint64_t> NullExpression::evalImpl() {
+  return std::make_unique<plugin::DiagnosticEntry>(
+      Diag::internal_error_null_expression, std::vector<std::string>{});
+}
+
+void NullExpression::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
+
+void NullExpression::getSymbolNames(
     std::unordered_set<std::string> &SymbolTokens) {}

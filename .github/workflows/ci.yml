@@ -18,48 +18,33 @@ jobs:
         echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
         echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
         echo "BASE_BRANCH_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-
-    - name: Cache ccache
-      uses: actions/cache@v4
-      with:
-        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-
-          ${{ runner.os }}-ccache-${{ env.BASE_BRANCH_NAME }}-
-          ${{ runner.os }}-ccache-
+        echo "CACHE_DIR=/local/mnt/workspace/ccache/${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
 
     - name: Checkout llvm-project
-      if: steps.cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
         repository: llvm/llvm-project
         path: pr-${{ env.PR_NUMBER }}/llvm-project
 
-    - name: Checkout qualcomm/eld
-      if: steps.cache.outputs.cache-hit != 'true'
+    - name: Checkout qualcomm/eld PR branch
       uses: actions/checkout@v4
       with:
-        repository: qualcomm/eld
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
         path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
-
-    - name: Fetch and update repository
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: |
-        cd pr-${{ env.PR_NUMBER }}/llvm-project
-        git fetch origin
-        git reset --hard origin/${{ github.event.pull_request.head.ref }}
 
     - name: Run CMake
       run: |
-        ccache --set-config max_size=10GB --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        export CCACHE_BASEDIR=$GITHUB_WORKSPACE
+        export CCACHE_NOHASHDIR=true
+        ccache --set-config max_size=32GB --dir $CACHE_DIR
         rm -rf pr-${{ env.PR_NUMBER }}/obj
         mkdir -p pr-${{ env.PR_NUMBER }}/obj
         cd pr-${{ env.PR_NUMBER }}/obj
         cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
-          -DLLVM_CCACHE_DIR=/local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }} \
+          -DLLVM_CCACHE_DIR=$CACHE_DIR \
           -DLLVM_CCACHE_BUILD:BOOL=ON \
           -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
           -DCMAKE_C_COMPILER:STRING=`which clang` \
@@ -70,42 +55,26 @@ jobs:
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
           ../llvm-project/llvm
 
-    - name: Check ccache directory size
-      run: |
-        echo "Current ccache size:"
-        du -sh /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-
     - name: Cache Usage before build
       run: |
-           cd pr-${{ env.PR_NUMBER }}/obj
-           ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ccache -s --dir $CACHE_DIR
 
     - name: Build Project
       run: |
-          cd pr-${{ env.PR_NUMBER }}/obj
-          ninja
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ninja
 
     - name: Cache Usage after build
       run: |
-         cd pr-${{ env.PR_NUMBER }}/obj
-         ccache -s --dir /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
+        cd pr-${{ env.PR_NUMBER }}/obj
+        ccache -s --dir $CACHE_DIR
 
     - name: Run Tests
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja check-eld
 
-    - name: Save ccache
-      uses: actions/cache@v4
-      with:
-        path: /local/mnt/workspace/ccache/${{ env.BASE_BRANCH_NAME }}
-        key: ${{ runner.os }}-ccache-${{ github.event.pull_request.number }}-${{ github.run_id }}
-
-  cleanup:
-    runs-on: self-hosted
-    needs: build
-    if: always()
-    steps:
-    - name: Cleanup build directory
+    - name: Clean up
       run: |
         rm -rf pr-${{ github.event.number }}

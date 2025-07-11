@@ -143,7 +143,7 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
     Ostream << Name;
     if (WithValues) {
       Ostream << "(0x";
-      Ostream.write_hex(ExpressionToEvaluate->result());
+      Ostream.write_hex(ExpressionToEvaluate->resultOrZero());
       Ostream << ")";
     }
     Ostream << " " << ExpressionToEvaluate->getAssignStr() << " ";
