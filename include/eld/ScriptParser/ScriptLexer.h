@@ -13,6 +13,7 @@
 #ifndef ELD_SCRIPTPARSER_SCRIPTLEXER_H
 #define ELD_SCRIPTPARSER_SCRIPTLEXER_H
 
+#include "eld/Input/InputFile.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -112,6 +113,10 @@ protected:
   // Get current memory buffer
   llvm::MemoryBufferRef getCurrentMB() const;
 
+  llvm::MemoryBufferRef getAssociatedMB(llvm::StringRef S) const;
+
+  InputFile *getAssociatedIF(llvm::StringRef S) const;
+
   size_t getColumnNumber() const;
 
   size_t computeColumnWidth(llvm::StringRef s, llvm::StringRef e) const;
@@ -187,7 +192,7 @@ protected:
   bool Eof = false;
 
   // All the memory buffers that need to be parsed.
-  std::vector<llvm::MemoryBufferRef> MemoryBuffers;
+  std::vector<InputFile *> InputFileBuffers;
 
   ScriptFile &ThisScriptFile;
 

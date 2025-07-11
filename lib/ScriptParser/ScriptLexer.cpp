@@ -79,7 +79,7 @@ ScriptLexer::ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile)
   InputFile *IF = ThisScriptFile.getContext();
   llvm::MemoryBufferRef MemBufRef = IF->getInput()->getMemoryBufferRef();
   CurBuf = Buffer(MemBufRef);
-  MemoryBuffers.push_back(MemBufRef);
+  InputFileBuffers.push_back(IF);
 }
 
 bool ScriptLexer::diagnose() const {
@@ -322,11 +322,27 @@ bool ScriptLexer::encloses(StringRef S, StringRef T) const {
 
 MemoryBufferRef ScriptLexer::getCurrentMB() const {
   // Find input buffer containing the current token.
-  assert(!MemoryBuffers.empty());
-  for (MemoryBufferRef Mb : MemoryBuffers)
-    if (encloses(Mb.getBuffer(), CurBuf.S))
-      return Mb;
+  assert(!InputFileBuffers.empty());
+  return getAssociatedMB(CurBuf.S);
+}
+
+llvm::MemoryBufferRef ScriptLexer::getAssociatedMB(llvm::StringRef S) const {
+  InputFile *IF = getAssociatedIF(S);
+  if (IF) {
+    assert(IF->getInput());
+    return IF->getInput()->getMemoryBufferRef();
+  }
   return MemoryBufferRef();
+}
+
+InputFile *ScriptLexer::getAssociatedIF(llvm::StringRef S) const {
+  for (InputFile *IF : InputFileBuffers) {
+    assert(IF->getInput());
+    llvm::MemoryBufferRef MB = IF->getInput()->getMemoryBufferRef();
+    if (encloses(MB.getBuffer(), S))
+      return IF;
+  }
+  return nullptr;
 }
 
 StringRef ScriptLexer::unquote(StringRef S) {
@@ -336,10 +352,37 @@ StringRef ScriptLexer::unquote(StringRef S) {
 }
 
 void ScriptLexer::prev() {
+  // prev() is a no-op if the previous token is empty!
   if (!PrevTok.empty()) {
-    // FIXME: CurBuf.LineNumber needs to be updated!
-    CurBuf.S = PrevTok.data();
+    InputFile *PrevIF = getAssociatedIF(PrevTok);
+    assert(PrevIF->getInput());
+    auto PrevMB = PrevIF->getInput()->getMemoryBufferRef();
+    auto CurMB = getCurrentMB();
+    // CurMB is different than PrevMB if the previous token is from a different
+    // input file. This happens for cases such as:
+    //
+    // INCLUDE s.t
+    // u = 11;
+    //
+    // Here, when the current token is 'u', and the previous token is from 's.t',
+    // then CurMB is different from PrevMB.
+    if (CurMB != PrevMB) {
+      // Reset the current token of the current buffer.
+      CurBuf.S =
+          llvm::StringRef(CurTok.data(), CurMB.getBufferEnd() - CurTok.data());
+      Buffers.push_back(CurBuf);
+      // Change the active buffer to the previous one.
+      CurBuf = Buffer(PrevMB);
+      CurBuf.S = llvm::StringRef(PrevTok.data(),
+                                 PrevMB.getBufferEnd() - PrevTok.data());
+      ActiveFilenames.insert(CurBuf.Filename);
+      ThisScriptFile.setContext(PrevIF);
+    } else {
+      CurBuf.S = llvm::StringRef(PrevTok.data(),
+                                 CurMB.getBufferEnd() - PrevTok.data());
+    }
     CurTok = {};
+    CurBuf.LineNumber = PrevTokLine;
   }
 }
 
