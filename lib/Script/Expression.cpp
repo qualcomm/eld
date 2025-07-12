@@ -1343,6 +1343,49 @@ bool BitwiseOr::hasDot() const {
 }
 
 //===----------------------------------------------------------------------===//
+/// BitwiseXor Operator
+void BitwiseXor::commit() {
+  LeftExpression.commit();
+  RightExpression.commit();
+  Expression::commit();
+}
+void BitwiseXor::dump(llvm::raw_ostream &Outs, bool WithValues) const {
+  if (ExpressionHasParenthesis)
+    Outs << "(";
+  if (!hasAssign()) {
+    // format output for operator
+    LeftExpression.dump(Outs, WithValues);
+    Outs << " " << Name << " ";
+  }
+  RightExpression.dump(Outs, WithValues);
+  if (ExpressionHasParenthesis)
+    Outs << ")";
+}
+eld::Expected<uint64_t> BitwiseXor::evalImpl() {
+  // evaluate sub expressions
+  auto Left = LeftExpression.eval();
+  if (!Left)
+    return Left;
+  auto Right = RightExpression.eval();
+  if (!Right)
+    return Right;
+  return Left.value() ^ Right.value();
+}
+void BitwiseXor::getSymbols(std::vector<ResolveInfo *> &Symbols) {
+  LeftExpression.getSymbols(Symbols);
+  RightExpression.getSymbols(Symbols);
+}
+
+void BitwiseXor::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
+  LeftExpression.getSymbolNames(SymbolTokens);
+  RightExpression.getSymbolNames(SymbolTokens);
+}
+
+bool BitwiseXor::hasDot() const {
+  return LeftExpression.hasDot() || RightExpression.hasDot();
+}
+
+//===----------------------------------------------------------------------===//
 /// BitwiseAnd Operator
 void BitwiseAnd::commit() {
   LeftExpression.commit();
