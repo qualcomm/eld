@@ -361,7 +361,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
         seg->append(*out);
         seg->updateFlagPhdr(getSegmentFlag(cur->getFlags()));
       }
-      if (seg->isLoadSegment())
+      if (seg->isLoadSegment() && !config().options().isOMagic())
         seg->setAlign(abiPageSize());
       else
         seg->setAlign(seg->getMaxSectionAlign());
@@ -378,8 +378,13 @@ bool GNULDBackend::createScriptProgramHdrs() {
   }
 
   for (auto &seg : elfSegmentTable()) {
-    if (!seg->size())
-      seg->setAlign(abiPageSize());
+    // Handle empty segments
+    if (!seg->size()) {
+      if (!config().options().isOMagic())
+        seg->setAlign(abiPageSize());
+      else
+        seg->setAlign(config().targets().is32Bits() ? 4 : 8);
+    }
   }
 
   evaluateTargetSymbolsBeforeRelaxation();

@@ -434,11 +434,8 @@ bool GNULDBackend::createProgramHdrs() {
     }
 
     if (isCurAlloc && (createPT_LOAD || last_section_needs_new_segment)) {
-      uint64_t congruentAlign = abiPageSize();
-      if (config().options().alignSegmentsToPage()) {
+      if (config().options().alignSegmentsToPage())
         alignAddress(vma, segAlign);
-        congruentAlign = segAlign;
-      }
       if (cur->isFixedAddr() && (vma != cur->addr())) {
         config().raise(Diag::cannot_set_at_address) << cur->name();
         hasError = true;
@@ -512,8 +509,6 @@ bool GNULDBackend::createProgramHdrs() {
         load_seg = make<ELFSegment>(llvm::ELF::PT_LOAD,
                                     getSegmentFlag(cur->getFlags()));
         elfSegmentTable().addSegment(load_seg);
-        // Set the PT_LOAD alignment.
-        load_seg->setAlign(congruentAlign);
         last_section_needs_new_segment = false;
         newSegmentCreated = true;
       } else
@@ -663,6 +658,10 @@ bool GNULDBackend::createProgramHdrs() {
         if (!sectionHasLoadSeg) {
           _segmentsForSection[*out].push_back(load_seg);
           load_seg->append(*out);
+          // Set the PT_LOAD alignment.
+          load_seg->setAlign(config().options().isOMagic()
+                                 ? load_seg->getMaxSectionAlign()
+                                 : segAlign);
         }
         // Continue from beginning since we added a segment.
         if (newSegmentCreated) {
