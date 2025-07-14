@@ -280,10 +280,11 @@ bool ARMRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_ARM_MOVT_ABS:
   case llvm::ELF::R_ARM_THM_MOVW_ABS_NC:
   case llvm::ELF::R_ARM_THM_MOVT_ABS:
-  case llvm::ELF::R_ARM_TLS_LE32:
   case llvm::ELF::R_ARM_TLS_LE12:
   case llvm::ELF::R_ARM_TLS_IE12GP:
     return true;
+  case llvm::ELF::R_ARM_TLS_LE32:
+    return !config().options().isPIE();
   default:
     break;
   }

@@ -1,0 +1,10 @@
+UNSUPPORTED: ndk-build
+#---TLSPIE.test--------------------------- Executable  -----------------#
+#BEGIN_COMMENT
+# This tests that TLS and PIE with local-exec
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls.c -o %t1.1.o -fdata-sections -ftls-model=local-exec -fPIE
+RUN: %link %linkopts  %t1.1.o -pie -o %t.out --defsym __aeabi_read_tp=0
+RUN: %not %link %linkopts -shared %t1.1.o  -o %t1.out
+#END_TEST

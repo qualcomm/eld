@@ -128,14 +128,12 @@ bool AArch64Relocator::isInvalidReloc(Relocation &pReloc) const {
   if (!config().isCodeIndep())
     return false;
   switch (pReloc.type()) {
-  case llvm::ELF::R_AARCH64_ABS32:
   case llvm::ELF::R_AARCH64_ABS16:
-  case llvm::ELF::R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC:
-  case llvm::ELF::R_AARCH64_TLSLE_LDST64_TPREL_LO12_NC:
+    return true;
   case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_LO12_NC:
   case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_LO12:
   case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12:
-    return true;
+    return !config().options().isPIE();
   default:
     break;
   }
@@ -525,6 +523,15 @@ void AArch64Relocator::scanRelocation(Relocation &pReloc,
                                       CopyRelocs &CopyRelocs) {
   if (LinkerConfig::Object == config().codeGenType())
     return;
+
+  if (isInvalidReloc(pReloc)) {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    config().raise(Diag::non_pic_relocation)
+        << getName(pReloc.type()) << pReloc.symInfo()->name()
+        << pReloc.getSourcePath(config().options());
+    m_Target.getModule().setFailure(true);
+    return;
+  }
 
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
