@@ -150,6 +150,21 @@ inline bool searchIncludeFile(llvm::StringRef Name, llvm::StringRef FileName,
 
 } // namespace
 
+InputToken* ScriptFile::findResolvedFilename(InputToken *input) {
+  LinkerConfig &Config = ThisModule.getConfig();
+  if (Config.options().hasMappingFile()) {
+    std::string ResolvedFilename =
+        ThisModule.getConfig().getHashFromFile(input->name());
+    if (llvm::sys::fs::exists(ResolvedFilename)) {
+      if(llvm::isa<eld::NameSpec>(input))
+      return createNameSpecToken(ResolvedFilename, input->asNeeded());
+    else
+      return createFileToken(ResolvedFilename, input->asNeeded());
+    }
+  }
+  return input;
+}
+
 std::string ScriptFile::findIncludeFile(const std::string &Filename,
                                         bool &Result, bool State) {
   LinkerConfig &Config = ThisModule.getConfig();

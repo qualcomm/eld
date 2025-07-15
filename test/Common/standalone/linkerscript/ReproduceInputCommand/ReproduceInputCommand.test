@@ -1,0 +1,7 @@
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: echo "INPUT(%t1.1.o)" > %t1.script1.t
+RUN: %link %linkopts -o %t1.1.out -T %t1.script1.t --reproduce %t1.1.reproduce.tar
+RUN: %mkdir %t1.1.reproduce
+RUN: %tar %gnutaropts -xvf %t1.1.reproduce.tar -C %t1.1.reproduce
+RUN: cd %t1.1.reproduce
+RUN: %link @%t1.1.reproduce/response.txt -o %t1.1.rep.out
