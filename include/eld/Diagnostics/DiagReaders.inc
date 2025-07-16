@@ -25,6 +25,8 @@ DIAG(user_syntax_error, DiagnosticEngine::Fatal,
      "Syntax error found at line %1 while parsing file `%0'")
 DIAG(idx_sect_not_found, DiagnosticEngine::Fatal,
      "Section index `%0` out of bounds in file `%1`")
+DIAG(error_sect_invalid, DiagnosticEngine::Error,
+     "Invalid Section %0")
 DIAG(file_has_error, DiagnosticEngine::Fatal,
      "Linker script %0 has errors, Please check")
 DIAG(section_does_not_have_proper_permissions, DiagnosticEngine::Warning,
