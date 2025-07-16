@@ -75,6 +75,9 @@ public:
   // Expect next token to be expect
   void expect(llvm::StringRef Expect);
 
+  // Expect next token to be ExpectedToken using the LState as the LexState.
+  void expect(enum LexState LState, llvm::StringRef ExpectedTok);
+
   void expectButContinue(llvm::StringRef Expect);
 
   // Consume label

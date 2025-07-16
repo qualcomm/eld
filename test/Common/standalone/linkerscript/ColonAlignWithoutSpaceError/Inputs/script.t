@@ -1,4 +1,0 @@
-SECTIONS
-{
-  S :ALIGN(4096) {}
-}

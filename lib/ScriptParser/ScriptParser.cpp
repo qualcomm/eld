@@ -731,8 +731,7 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
 OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
   OutputSectDesc::Prolog Prologue;
   Prologue.init();
-
-  if (peek() != ":") {
+  if (peek(LexState::Expr) != ":") {
     if (consume("(")) {
       if (!readOutputSectTypeAndPermissions(Prologue, peek()))
         Prologue.OutputSectionVMA = readExpr();
@@ -758,7 +757,7 @@ OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
       Prologue.PluginCmd->setHasOutputSection();
   }
 
-  expect(":");
+  expect(LexState::Expr, ":");
 
   if (consume("AT"))
     Prologue.OutputSectionLMA = readParenExpr(/*setParen=*/false);

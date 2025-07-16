@@ -1,0 +1,27 @@
+#---ColonAttributeWithoutSpace.test----------------- Executable----------------#
+#BEGIN_COMMENT
+# Verify that the linker properly parses ':<Attibute>' in
+# output section description.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -S %t1.1.out | %filecheck %s
+#END_TEST
+
+CHECK: .foo1 {{.*}} 4096
+CHECK: .foo2 {{.*}} 4096
+CHECK: .foo3 {{.*}} 4096
+CHECK: .foo4 {{.*}} 4096
+CHECK: .foo5 {{.*}} 4096
+CHECK: .foo6 {{.*}} 4096
+CHECK: .foo7 {{.*}} 4096
+CHECK: .foo8 {{.*}} 4096
+CHECK: .foo9 {{.*}} {{2|4|16}}
+CHECK: .foo10 {{.*}} {{2|4|16}}
+CHECK: .foo11 {{.*}} {{2|4|16}}
+CHECK: .foo12 {{.*}} {{2|4|16}}
+CHECK: .foo13 {{.*}} {{2|4|16}}
+CHECK: .foo14 {{.*}} {{2|4|16}}
+CHECK: .foo15 {{.*}} {{2|4|16}}
+CHECK: .foo16 {{.*}} {{2|4|16}}
