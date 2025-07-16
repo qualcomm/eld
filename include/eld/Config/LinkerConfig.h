@@ -85,6 +85,21 @@ public:
     std::optional<bool> EnableCommandLineWarnings;
   };
 
+  struct MappingFileInfo {
+    std::unordered_map<std::string, std::string> StringMapKeyToValue;
+
+    void addStringMapEntry(llvm::StringRef Key, llvm::StringRef Value) {
+      StringMapKeyToValue[Key.str()] = Value.str();
+    }
+
+    llvm::StringRef getStringMapValueFromKey(llvm::StringRef Key) const  {
+      auto iter = StringMapKeyToValue.find(Key.str());
+      if (iter != StringMapKeyToValue.end())
+        return iter->second;
+      return "";
+    }
+  };
+
 public:
   LinkerConfig(DiagnosticEngine *);
 
@@ -211,6 +226,12 @@ public:
   bool hasMappingForHash(const std::string &Hash) const {
     return PathToHash.find(Hash) != HashToPath.end();
   }
+
+  void addStringMapEntry(llvm::StringRef Key, llvm::StringRef Value) {
+    MappingFile.addStringMapEntry(Key, Value);
+  }
+
+  const MappingFileInfo &getMappingFile() const { return MappingFile; }
 
   /// Returns the path to the file that maps to the thin archive member as
   /// per the provided mapping file.
@@ -403,6 +424,7 @@ private:
   SearchDirs SearchDirs;
   WarnOptions WarnOpt;
   std::optional<bool> UseOldStyleTrampolineNames;
+  MappingFileInfo MappingFile;
 };
 
 } // namespace eld

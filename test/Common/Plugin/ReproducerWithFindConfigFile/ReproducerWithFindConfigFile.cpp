@@ -17,7 +17,7 @@ public:
   void Init(std::string Options) override {
     if (getLinker()->getState() != LinkerWrapper::AfterLayout)
      return;
-    auto E = getLinker()->findConfigFile(Options);
+    auto E = getLinker()->findConfigFile("some-file.txt");
     ELDEXP_REPORT_AND_RETURN_VOID_IF_ERROR(getLinker(), E);
     std::cout << "Found config file " << E.value() << "\n";
 

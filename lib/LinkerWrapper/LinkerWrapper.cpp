@@ -630,7 +630,7 @@ plugin::LinkerScript LinkerWrapper::getLinkerScript() {
 
 std::string LinkerWrapper::getFileContents(std::string FileName) {
   if (m_Module.getConfig().options().hasMappingFile())
-    FileName = m_Module.getConfig().getFileFromHash(FileName);
+    FileName = m_Module.getConfig().getHashFromFile(FileName);
   if (!llvm::sys::fs::exists(FileName))
     return "";
   if (m_Module.getOutputTarWriter())
@@ -647,8 +647,14 @@ std::string LinkerWrapper::getFileContents(std::string FileName) {
 
 eld::Expected<std::string>
 LinkerWrapper::findConfigFile(const std::string &FileName) const {
-  if (m_Module.getConfig().options().hasMappingFile())
-    return m_Module.getConfig().getHashFromFile(FileName);
+  if (m_Module.getConfig().options().hasMappingFile()) {
+    const auto &MappingFile = m_Module.getConfig().getMappingFile();
+    llvm::StringRef MappedValue =
+        MappingFile.getStringMapValueFromKey(FileName);
+    if (!MappedValue.empty())
+      return MappedValue.str();
+  }
+
   eld::SearchDirs Directories = m_Module.getConfig().directories();
   const eld::sys::fs::Path *P = Directories.findFile(
       "plugin configuration INI file", FileName, getPlugin()->getPluginName());
