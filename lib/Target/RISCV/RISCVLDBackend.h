@@ -198,7 +198,7 @@ private:
   bool isGOTReloc(Relocation *reloc) const;
 
   bool doRelaxationCall(Relocation *R, bool DoCompressed);
-  bool doRelaxationQCCall(Relocation *R, bool DoCompressed);
+  bool doRelaxationQCCall(Relocation *R);
 
   bool doRelaxationLui(Relocation *R, Relocation::DWord G);
   bool doRelaxationQCLi(Relocation *R, Relocation::DWord G);
