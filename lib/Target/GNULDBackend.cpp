@@ -4647,16 +4647,16 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
   bool isPSymDef = PSymDef != m_SymDefProvideMap.end();
   bool Patchable = false;
   if (P != ProvideMap.end()) {
-    if (P->getValue().provideCmd->isProvideHidden())
+    if (P->second->isProvideHidden())
       V = ResolveInfo::Hidden;
     resolverType = ResolveInfo::NoType;
-    file = P->second.provideCmd->getInputFileInContext();
+    file = P->second->getInputFileInContext();
     // FIXME: We ideally should not need this. It is added so that the link
     // does not fail if the provide command does not have input file context due
     // to any corner case.
     if (!file)
       file = m_Module.getInternalInput(Module::Script);
-    P->getValue().isUsed = true;
+    P->second->setUsed(true);
   } else if (isPSymDef) {
     resolverType = std::get<0>(PSymDef->second);
     symVal = std::get<1>(PSymDef->second);
@@ -4959,11 +4959,7 @@ bool GNULDBackend::assignMemoryRegions() {
 }
 
 bool GNULDBackend::isProvideSymBeingUsed(const Assignment *provideCmd) const {
-  llvm::StringRef symName = provideCmd->name();
-  auto it = ProvideMap.find(symName);
-  ASSERT(it != ProvideMap.end(), "Provide symbol not found!");
-  const ProvideMapValueType &val = it->getValue();
-  return val.provideCmd == provideCmd && val.isUsed;
+  return provideCmd->isUsed();
 }
 
 eld::Expected<void> GNULDBackend::printMemoryRegionsUsage() {

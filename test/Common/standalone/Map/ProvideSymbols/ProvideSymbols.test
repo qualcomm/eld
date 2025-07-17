@@ -1,0 +1,12 @@
+#---ProvideSymbols.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This tests that the Map file can show symbols that are not provided
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/test.c -ffunction-sections  -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -Map %t2.map.1 -T %p/Inputs/script.t -o %t2.out.1
+RUN: %filecheck %s < %t2.map.1
+#END_TEST
+
+#CHECK: !PROVIDE(__text_loadaddr = LOADADDR(.text))
+#CHECK: !PROVIDE(__other_end = __text_end)

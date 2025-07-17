@@ -83,11 +83,6 @@ public:
     uint64_t offset = 0;
   };
 
-  struct ProvideMapValueType {
-    const Assignment *provideCmd = nullptr;
-    bool isUsed = false;
-  };
-
   typedef std::tuple<ResolveInfo::Type, uint64_t, InputFile *, bool> SymDefInfo;
 
   // Based on Kind in LDFileFormat to define basic section orders for ELF,
@@ -630,7 +625,7 @@ public:
   void addProvideSymbol(llvm::StringRef symName, Assignment *provideCmd) {
     ASSERT(!ProvideMap.count(symName),
            "Provide symbol of the same name already exists!");
-    ProvideMap[symName] = {provideCmd, /*isUsed=*/false};
+    ProvideMap[symName] = provideCmd;
   }
 
   bool isSymInProvideMap(llvm::StringRef symName) {
@@ -1113,7 +1108,7 @@ protected:
   std::unordered_map<const ResolveInfo *, VersionSymbol *> SymbolScopes;
   std::vector<ELFSection *> noLoadSections;
   // All provide symbols that may need to be defined.
-  llvm::StringMap<ProvideMapValueType> ProvideMap;
+  llvm::StringMap<Assignment *> ProvideMap;
 
   // All sym def provide symbols that may need to be defined.
   llvm::StringMap<SymDefInfo> m_SymDefProvideMap;
