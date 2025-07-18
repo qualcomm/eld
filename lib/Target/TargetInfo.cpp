@@ -14,6 +14,8 @@
 #include "eld/Core/Module.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
+#include <string>
+#include <vector>
 
 using namespace eld;
 
@@ -92,12 +94,9 @@ bool TargetInfo::checkFlags(uint64_t flag, const InputFile *pInputFile) const {
 std::string TargetInfo::flagString(uint64_t pFlag) const { return ""; }
 
 uint8_t TargetInfo::OSABI() const {
-  switch (m_Config.targets().triple().getOS()) {
-  case llvm::Triple::Linux:
-    return llvm::ELF::ELFOSABI_LINUX;
-  default:
-    return llvm::ELF::ELFOSABI_NONE;
-  }
+  if (OSAbi)
+    return *OSAbi;
+  return llvm::ELF::ELFOSABI_NONE;
 }
 
 bool TargetInfo::InitializeDefaultMappings(Module &pModule) {
@@ -137,4 +136,20 @@ uint8_t TargetInfo::ELFClass() const {
 
 TargetInfo::TargetRelocationType TargetInfo::getTargetRelocationType() const {
   return relocType;
+}
+
+void TargetInfo::setOSABI(const InputFile &In, const uint8_t ABI) {
+  if (!OSAbi) {
+    OSAbi = ABI;
+    return;
+  }
+  if ((OSAbi != ABI) && m_Config.showOSABIWarnings()) {
+    m_Config.raise(Diag::warning_abi_differences)
+        << In.getInput()->decoratedPath()
+        << std::string(llvm::ELF::convertOSABIToName(ABI))
+        << std::string(llvm::ELF::convertOSABIToName(*OSAbi));
+  }
+  auto isOSABINone = [](uint8_t T) { return T == llvm::ELF::ELFOSABI_NONE; };
+  if (isOSABINone(*OSAbi) && !isOSABINone(ABI))
+    OSAbi = ABI;
 }

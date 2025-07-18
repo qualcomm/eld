@@ -798,6 +798,8 @@ def W : Joined<["-"], "W">,
              "\t\t\t -W[no-]error : treat warnings as errors\n"
              "\t\t\t -Wwhole-archive : display a warning when whole-archive "
              "is enabled for any archive file\n"
+             "\t\t\t -W[no-]osabi : display a warning when linking objects "
+             "with different values for OS/ABI\n"
             >,
         Group<grp_diagopts>;
 

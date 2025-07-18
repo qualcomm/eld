@@ -400,6 +400,14 @@ template <class ELFT> bool ELFReader<ELFT>::checkClass() const {
   return elfHeader.e_ident[llvm::ELF::EI_CLASS] == backend.getInfo().ELFClass();
 }
 
+template <class ELFT> void ELFReader<ELFT>::checkOSABI() const {
+  ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
+  GNULDBackend &backend = *m_Module.getBackend();
+  const Elf_Ehdr &elfHeader = m_LLVMELFFile->getHeader();
+  backend.getInfo().setOSABI(this->m_InputFile,
+                             elfHeader.e_ident[llvm::ELF::EI_OSABI]);
+}
+
 template <class ELFT>
 eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
   const InputFile &inputFile = this->m_InputFile;
@@ -420,6 +428,8 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::invalid_elf_class,
         {inputFile.getInput()->decoratedPath(), config.targets().getArch()}));
+
+  checkOSABI();
 
   return true;
 }

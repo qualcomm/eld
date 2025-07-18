@@ -127,6 +127,10 @@ protected:
   /// target configuration.
   virtual bool checkClass() const = 0;
 
+  /// Checks that the ELF OS/ABI value (e_ident[EI_OSABI]) is compatible as per
+  /// the target configuration.
+  virtual void checkOSABI() const = 0;
+
 protected:
   /// Creates and returns an instance of a reader class.
   template <class ELFT>

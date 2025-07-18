@@ -241,6 +241,13 @@ bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
     setShowWholeArchiveWarning(true);
     return true;
   }
+  // -Wosabi and -Wno-osabi
+  if (WarnOpt == "osabi") {
+    setShowOSABIWarning(true);
+  }
+  if (WarnOpt == "no-osabi") {
+    setShowOSABIWarning(false);
+  }
   return false;
 }
 

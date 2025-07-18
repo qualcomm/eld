@@ -83,6 +83,7 @@ public:
     std::optional<bool> EnableBadDotAssignmentWarnings;
     std::optional<bool> EnableWholeArchiveWarnings;
     std::optional<bool> EnableCommandLineWarnings;
+    std::optional<bool> EnableOSABIWarnings;
   };
 
   struct MappingFileInfo {
@@ -92,7 +93,7 @@ public:
       StringMapKeyToValue[Key.str()] = Value.str();
     }
 
-    llvm::StringRef getStringMapValueFromKey(llvm::StringRef Key) const  {
+    llvm::StringRef getStringMapValueFromKey(llvm::StringRef Key) const {
       auto iter = StringMapKeyToValue.find(Key.str());
       if (iter != StringMapKeyToValue.end())
         return iter->second;
@@ -335,6 +336,14 @@ public:
     return (hasWholeArchiveWarnings() && *WarnOpt.EnableWholeArchiveWarnings);
   }
 
+  bool hasOSABIWarnings() const {
+    return WarnOpt.EnableOSABIWarnings.has_value();
+  }
+
+  bool showOSABIWarnings() const {
+    return (hasOSABIWarnings() && *WarnOpt.EnableOSABIWarnings);
+  }
+
   void setShowAllWarnings() {
     WarnOpt.EnableAllWarnings = true;
     WarnOpt.EnableLinkerScriptWarnings = true;
@@ -344,6 +353,7 @@ public:
     WarnOpt.EnableLinkerScriptMemoryWarnings = true;
     WarnOpt.EnableBadDotAssignmentWarnings = true;
     WarnOpt.EnableWholeArchiveWarnings = true;
+    WarnOpt.EnableOSABIWarnings = true;
   }
 
   void setShowLinkerScriptWarning(bool Option) {
@@ -376,6 +386,10 @@ public:
 
   void setShowWholeArchiveWarning(bool Option) {
     WarnOpt.EnableWholeArchiveWarnings = Option;
+  }
+
+  void setShowOSABIWarning(bool Option) {
+    WarnOpt.EnableOSABIWarnings = Option;
   }
 
   bool setWarningOption(llvm::StringRef WarnOpt);

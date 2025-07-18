@@ -106,10 +106,13 @@ public:
 
   uint8_t ELFClass() const;
 
+  void setOSABI(const InputFile &I, const uint8_t OSAbi);
+
   TargetRelocationType getTargetRelocationType() const;
 
 protected:
   LinkerConfig &m_Config;
+  std::optional<uint8_t> OSAbi;
 
 private:
   TargetRelocationType relocType;

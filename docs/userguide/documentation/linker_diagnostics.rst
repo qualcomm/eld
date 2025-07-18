@@ -95,6 +95,8 @@ General Warning Flags
      - Warns when ``--whole-archive`` is used inappropriately or causes symbol bloat.
    * - ``-Wzero-sized-sections``
      - Flags sections that are defined but have zero size, which may indicate a script or input error.
+   * - ``-Wosabi``
+     - Generates a warning when an input file's OS/ABI value differs from those encountered in previously processed files.
 
 Suppression Flags
 ------------------
@@ -112,3 +114,5 @@ Suppression Flags
      - Allows warnings to be emitted without halting the link process.
    * - ``-Wno-linker-script``
      - Disables linker script-related warnings.
+   * - ``-Wno-osabi``
+     - Disables OS/ABI warnings.

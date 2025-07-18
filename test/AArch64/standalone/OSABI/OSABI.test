@@ -1,0 +1,21 @@
+#---OSABI.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Check that the linker is able to infer the OSABI from the
+# object file and warnings with Wosabi switch. Test also
+# with LTO
+#END_COMMENT
+RUN: %clang --target=aarch64-none-elf  -c %p/Inputs/1.c  -o %t1.o
+RUN: %link -maarch64linux %t1.o  -o %t.out.1
+RUN: %readelf -h %t.out.1 | %filecheck %s -check-prefix=NONE
+RUN: %clang --target=aarch64-none-elf  -c %p/Inputs/1.c -flto  -o %t1.bc.o
+RUN: %link -maarch64linux %t1.o  -o %t.out.2
+RUN: %readelf -h %t.out.2 | %filecheck %s -check-prefix=NONE
+RUN: %clang --target=aarch64-linux-gnu -c %p/Inputs/gnu.c -o %t1.gnu.o
+RUN: %link %t1.o %t1.gnu.o -o %t2.out.abignu
+RUN: %readelf -h %t2.out.abignu | %filecheck %s -check-prefix=GNU
+RUN: %not %link %t1.o %t1.gnu.o -Wosabi -Werror -o %t2.out 2>&1 | %filecheck %s -check-prefix=ERR
+RUN: %link %t1.o %t1.gnu.o -Wno-osabi -Werror -o %t2.out.noerr
+RUN: %readelf -h %t2.out.noerr | %filecheck %s -check-prefix=GNU
+#NONE: OS/ABI:{{.*}} UNIX - System V
+#ERR: Error: '{{.*}}gnu.o' has OS/ABI set to gnu, previously seen none
+#GNU: OS/ABI:{{.*}} UNIX - GNU

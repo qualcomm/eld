@@ -174,6 +174,10 @@ protected:
   /// target configuration.
   bool checkClass() const override;
 
+  /// Checks that the ELF ABI value (e_ident[EI_OSABI]) is compatible as per the
+  /// target configuration.
+  void checkOSABI() const override;
+
   /// Verifies symbol.
   ///
   /// It implicitly reports non-error diagnostics. Error diagnostics
