@@ -380,7 +380,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
   for (auto &seg : elfSegmentTable()) {
     // Handle empty segments
     if (!seg->size()) {
-      if (!config().options().isOMagic())
+      if (seg->isLoadSegment() && !config().options().isOMagic())
         seg->setAlign(abiPageSize());
       else
         seg->setAlign(config().targets().is32Bits() ? 4 : 8);
