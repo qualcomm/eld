@@ -22,6 +22,7 @@ This document describes usage of ELD
    documentation/supported_targets.rst
    documentation/linker_script.rst
    documentation/linker_diagnostics.rst
+   documentation/linker_image_layout.rst
    documentation/linker_map_files.rst
    documentation/linker_plugins_updated.rst
    documentation/linker_optimizations.rst

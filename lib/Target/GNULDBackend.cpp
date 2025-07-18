@@ -5033,6 +5033,7 @@ void GNULDBackend::createFileHeader() {
     m_ehdr->setFlags(llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR);
   m_ehdr->setSize(getOneEhdrSize());
   m_ehdr->setHasNoFragments();
+  m_ehdr->setAddrAlign(config().targets().is32Bits() ? 4 : 8);
 }
 
 void GNULDBackend::addFileHeaderToLayout() {

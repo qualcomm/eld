@@ -1,0 +1,45 @@
+#---SegmentAlignment.test--------------------------- Executable,LS,PHDRS -----------------#
+#BEGIN_COMMENT
+# This test checks to make sure that the loadable, non loadable segments, empty
+# segments, segments with noload are all aligned appropriately as per the
+# documentation specified in eld
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -ffunction-sections -fdata-sections  -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -z max-page-size=4096 2>&1
+RUN: %readelf --elf-output-style LLVM -l -W %t2.out  | %filecheck %s -check-prefix=SEGMENTS
+#END_TEST
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_PHDR (0x6)
+#SEGMENTS:    Alignment: {{[48]}}
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_LOAD (0x1)
+#SEGMENTS:    Alignment: 4096
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_NULL (0x0)
+#SEGMENTS:    Alignment: {{[12486]+}}
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_NULL (0x0)
+#SEGMENTS:    Alignment: {{[12486]+}}
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_LOAD (0x1)
+#SEGMENTS:    FileSize: 0
+#SEGMENTS:    MemSize: 0
+#SEGMENTS:    Alignment: 4096
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_DYNAMIC (0x2)
+#SEGMENTS:    Alignment: {{[48]}}
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_TLS (0x7)
+#SEGMENTS:    Alignment: {{[48]}}
+#SEGMENTS:  }
+#SEGMENTS:  ProgramHeader {
+#SEGMENTS:    Type: PT_NOTE (0x4)
+#SEGMENTS:    Alignment: {{[48]}}
+#SEGMENTS:  }
