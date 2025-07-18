@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4. Linker Script &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6. Linker Map Files" href="linker_map_files.html" />
+    <link rel="prev" title="3. Supported Targets" href="supported_targets.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Linker Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">4.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-script-syntax">4.2. Basic script syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#script-commands">4.3. Script commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#expressions">4.4. Expressions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#symbol-assignment">4.5. Symbol assignment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#nocrossrefs">4.6. NOCROSSREFS</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#output-section-description">5. Output Section Description</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#syntax">5.1. Syntax</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">6. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">Linker Plugins User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">7. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">8. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command.html">9. Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">10. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">11. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">12. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4. </span>Linker Script</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-script">
+<h1><span class="section-number">4. </span>Linker Script<a class="headerlink" href="#linker-script" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#overview" id="id1">Overview</a></p></li>
+<li><p><a class="reference internal" href="#basic-script-syntax" id="id2">Basic script syntax</a></p></li>
+<li><p><a class="reference internal" href="#script-commands" id="id3">Script commands</a></p></li>
+<li><p><a class="reference internal" href="#expressions" id="id4">Expressions</a></p></li>
+<li><p><a class="reference internal" href="#symbol-assignment" id="id5">Symbol assignment</a></p></li>
+<li><p><a class="reference internal" href="#nocrossrefs" id="id6">NOCROSSREFS</a></p></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2><a class="toc-backref" href="#id1"><span class="section-number">4.1. </span>Overview</a><a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<div class="line-block">
+<div class="line">Linker scripts provide detailed specifications of how files are to be linked. They offer greater control over linking than is available using just the linker command options.</div>
+</div>
+<div class="line-block">
+<div class="line">NOTE Linker scripts are optional. In most cases, the default behavior of the linker is sufficient.</div>
+</div>
+<div class="line-block">
+<div class="line">Linker scripts control the following properties:</div>
+</div>
+<blockquote>
+<div><ul class="simple">
+<li><p>ELF program header</p></li>
+<li><p>Program entry point</p></li>
+<li><p>Input and output files and searching paths</p></li>
+<li><p>Section memory placement and runtime</p></li>
+<li><p>Section removal</p></li>
+<li><p>Symbol definition</p></li>
+</ul>
+</div></blockquote>
+<div class="line-block">
+<div class="line">A linker script consists of a sequence of commands stored in a text file.</div>
+</div>
+<div class="line-block">
+<div class="line">The script file can be specified on the command line either with -T, or by specifying the file as an input files.</div>
+</div>
+<div class="line-block">
+<div class="line">The linker distinguishes between script files and object files and handles each accordingly.</div>
+</div>
+<div class="line-block">
+<div class="line">To generate a map file that shows how a linker script controlled linking, use the M option.</div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PHDRS</p></td>
+<td><p>Program Headers</p></td>
+</tr>
+<tr class="row-odd"><td><p>SECTIONS</p></td>
+<td><p>Section mapping and memory placementELF program header definition</p></td>
+</tr>
+<tr class="row-even"><td><p>ENTRY</p></td>
+<td><p>ELF program headerProgram execution entry point</p></td>
+</tr>
+<tr class="row-odd"><td><p>OUTPUT_FORMAT</p></td>
+<td><p>Parsed, but no effect on linking</p></td>
+</tr>
+<tr class="row-even"><td><p>OUTPUT_ARCH</p></td>
+<td><p>Parsed, but no effect on linking</p></td>
+</tr>
+<tr class="row-odd"><td><p>SEARCH_DIR</p></td>
+<td><p>Add additional searching directory for libraries</p></td>
+</tr>
+<tr class="row-even"><td><p>INCLUDE</p></td>
+<td><p>Include linker script file</p></td>
+</tr>
+<tr class="row-odd"><td><p>OUTPUT</p></td>
+<td><p>Define output filename</p></td>
+</tr>
+<tr class="row-even"><td><p>GROUP</p></td>
+<td><p>Define files that will be searched repeatedly</p></td>
+</tr>
+<tr class="row-odd"><td><p>ASSERT</p></td>
+<td><p>Linker script assertion</p></td>
+</tr>
+<tr class="row-even"><td><p>NOCROSSREFS</p></td>
+<td><p>Check cross references among a group of sections</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="basic-script-syntax">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">4.2. </span>Basic script syntax</a><a class="headerlink" href="#basic-script-syntax" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul>
+<li><p>Symbols</p>
+<p>Symbol names must begin with a letter, underscore, or period. They can include letters, numbers, underscores, hyphens, or periods.</p>
+</li>
+<li><p>Comments</p>
+<p>Comments can appear in linker scripts</p>
+</li>
+<li><p>Strings</p>
+<p>Character strings can be specified as parameters with or without delimiter characters.</p>
+</li>
+<li><p>Expressions</p>
+<p>Expressions are similar to C, and support all C arithmetic operators. They are evaluated as type long or unsigned long</p>
+</li>
+<li><p>Location Counter</p>
+<div class="line-block">
+<div class="line">A period is used as a symbol to indicate the current location counter. It is used in the SECTIONS command only, where it designates locations in the output section:</div>
+<div class="line">. = ALIGN(0x1000); . = . + 0x1000;</div>
+<div class="line">Assigning a value to the location counter symbol changes the location counter to the specified value.</div>
+<div class="line">The location counter can be moved forward by arbitrary amounts to create gaps in an output section.</div>
+<div class="line">It cannot, however, be moved backwards.</div>
+</div>
+</li>
+<li><p>Symbol assignment</p>
+<div class="line-block">
+<div class="line">Symbols, including the location counter, can be assigned constants or expressions:</div>
+<div class="line">__text_start = . + 0x1000;</div>
+<div class="line">Assignment statements are similar to C, and support all C assignment operators. Terminate assignment statements with a semicolon</div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="script-commands">
+<h2><a class="toc-backref" href="#id3"><span class="section-number">4.3. </span>Script commands</a><a class="headerlink" href="#script-commands" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>The SECTIONS command must be specified in a linker script. All the other script commands are optional.</p>
+<blockquote>
+<div><ul>
+<li><p>PHDRS</p>
+<blockquote>
+<div><p>Syntax :- { name type [FILEHDR][PHDRS][AT (address)][FLAGS (flags)] }</p>
+<p>The PHDRS script command sets information in the program headers, also known as <em>segment header</em> of an ELF output file.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>name – Specifies the program header in the SECTIONS command</p></li>
+<li><p>type – Specifies the program header type</p></li>
+<li><p>PT_LOAD – Loadable segment</p></li>
+<li><p>PT_NULL – Linker does not include section in a segment. No loadable section should be set to PT_NULL.</p></li>
+<li><p>PT_DYNAMIC – Segment where dynamic linking information is stored</p></li>
+<li><p>PT_INTERP – Segment where the name of the dynamic linker is stored</p></li>
+<li><p>PT_NOTE – Segment where note information is stored</p></li>
+<li><p>PT_SHLIB – Reserved program header type</p></li>
+<li><p>PT_PHDR – Segment where program headers are stored</p></li>
+<li><dl class="simple">
+<dt>FLAGS - Specifies the p_flags field in the program header</dt><dd><ul>
+<li><p>The value of flags must be an integer. It is used to set the p_flags field of the program header: for instance, FLAGS(5) sets p_flags to PF_R | PF_X; and FLAGS(0x03000000) sets OS-specific flags.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the sections in an output file have different flag settings than what is specified in PHDRS, the linker combines the two different flags using bitwise or</p>
+</div>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>SECTIONS</p>
+<blockquote>
+<div><p>Syntax :- SECTIONS { section_statement section_statement … }</p>
+<p>The SECTIONS script command specifies how input sections are mapped to output sections, and where output sections are located in memory. The SECTIONS command must be specified once, and only once, in a linker script.</p>
+<ul>
+<li><p>Section statements</p>
+<blockquote>
+<div><p>A SECTIONS command contains one or more section statements, each of which can be one of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>An ENTRY command</p></li>
+<li><p>A symbol assignment statement to set the location counter. The location counter specifies the default address in subsequent section-mapping statements that do not explicitly specify an address.</p></li>
+<li><p>An output section description to specify one or more input sections in one or more library files, and maps those sections to an output section. The virtual memory address of the output section can be specified using attribute keywords.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>ENTRY</p>
+<blockquote>
+<div><p>Syntax :- ENTRY (symbol)</p>
+<ul class="simple">
+<li><p>The ENTRY script command specifies the program execution entry point.</p></li>
+<li><p>The entry point is the first instruction that is executed after a program is loaded.</p></li>
+<li><p>This command is equivalent to the linker command-line option,-e.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>OUTPUT_FORMAT</p>
+<blockquote>
+<div><p>Syntax :- OUTPUT_FORMAT (string)</p>
+<ul class="simple">
+<li><p>The OUTPUT_FORMAT script command specifies the output file properties.</p></li>
+<li><p>For compatibility with the GNU linker, this command is parsed but has no effect on linking.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>OUTPUT_ARCH</p>
+<blockquote>
+<div><p>Syntax :- OUTPUT_ARCH (“aarch64”)</p>
+<ul class="simple">
+<li><p>The OUTPUT_ARCH script command specifies the target processor architecture.</p></li>
+<li><p>For compatibility with the GNU linker, this command is parsed but has no effect on linking.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>SEARCH_DIR</p>
+<blockquote>
+<div><p>Syntax :- SEARCH_DIR (path)</p>
+<ul class="simple">
+<li><p>The SEARCH_DIR script command specifies which adds the specified path to the list of paths that the linker uses to search for libraries.</p></li>
+<li><p>This command is equivalent to the linker command-line option,-L.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>INCLUDE</p>
+<blockquote>
+<div><p>Syntax :- INCLUDE (file)</p>
+<ul class="simple">
+<li><p>The INCLUDE script command specifies the contents of the text file at the current location in the linker script.</p></li>
+<li><p>The specified file is searched for in the current directory and any directory that the linker uses to search for libraries.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Include files can be nested.</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>OUTPUT</p>
+<blockquote>
+<div><p>Syntax :- OUTPUT (file)</p>
+<ul class="simple">
+<li><p>The OUTPUT script command defines the location and file where the linker will write output data.</p></li>
+<li><p>Only one output is allowed per linking.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>GROUP</p>
+<blockquote>
+<div><p>Syntax :- GROUP (file, file, …)</p>
+<ul class="simple">
+<li><p>The GROUP script command includes a list of achieved file names.</p></li>
+<li><p>The achieved names defined in the list are searched repeatedly until all defined references are resolved.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>ASSERT</p>
+<blockquote>
+<div><p>Syntax :- ASSERT(expression, string)</p>
+<ul class="simple">
+<li><p>The ASSERT script command adds an assertion to the linker script.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="expressions">
+<h2><a class="toc-backref" href="#id4"><span class="section-number">4.4. </span>Expressions</a><a class="headerlink" href="#expressions" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>Expressions in linker scripts are identical to C expressions</p>
+<blockquote>
+<div><table class="docutils align-default">
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>.</p></td>
+<td><p>Return the location counter value representing the current virtual address.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ABSOLUTE (expression)</p></td>
+<td><p>Return the absolute value of the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p>ADDR (string)</p></td>
+<td><p>Return the virtual address of the symbol or section. Dot (.) is supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ALIGN (expression)</p></td>
+<td><p>Return value when the current location counter is aligned to the next expression
+boundary. The value of the current location counter is not changed.</p></td>
+</tr>
+<tr class="row-even"><td><p>ALIGN (expression1, expression2)</p></td>
+<td><p>Return value when the value of expression1 is aligned to the next expression2 boundary.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ALIGNOF (string)</p></td>
+<td><p>Return the align information of the symbol or section.</p></td>
+</tr>
+<tr class="row-even"><td><p>ASSERT (expression, string)</p></td>
+<td><p>Throw an assertion if the expression result is zero.</p></td>
+</tr>
+<tr class="row-odd"><td><p>BLOCK (expression)</p></td>
+<td><p>Synonym for ALIGN (expression).</p></td>
+</tr>
+<tr class="row-even"><td><dl class="simple">
+<dt>DATA_SEGMENT_ALIGN(maxpagesize</dt><dd><p>, commonpagesize)</p>
+</dd>
+</dl>
+</td>
+<td><p>Equivalent to:
+(ALIGN(maxpagesize)+(.&amp;(maxpagesize ‑ 1))) or
+(ALIGN(maxpagesize)+(.&amp;(maxpagesize -commonpagesize)))
+The linker computes both of these values and returns the larger one.</p></td>
+</tr>
+<tr class="row-odd"><td><p>DATA_SEGMENT_END (expression)</p></td>
+<td><p>Not used; return the value of the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p>DATA_SEGMENT_RELRO_END
+(expression )</p></td>
+<td><p>Not used; return the value of the expression.</p></td>
+</tr>
+<tr class="row-odd"><td><p>DEFINED (symbol)</p></td>
+<td><p>Return 1 if the symbol is defined in the global symbol table of the linker.</p></td>
+</tr>
+<tr class="row-even"><td><p>LOADADDR (string)</p></td>
+<td><p>Synonym for ADDR (string).</p></td>
+</tr>
+<tr class="row-odd"><td><p>MAX (expression, expression)</p></td>
+<td><p>Return the maximum value of two expressions.</p></td>
+</tr>
+<tr class="row-even"><td><p>MIN (expression1, expression2)</p></td>
+<td><p>Return the minimum value of two expressions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SEGMENT_START (string, expression)</p></td>
+<td><dl class="simple">
+<dt>If a string matches a known segment, return the start address of</dt><dd><p>that segment. If nothing is found, return the value of the expression.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="row-even"><td><p>SIZEOF (string)</p></td>
+<td><p>Return the size of the symbol, section, or segment.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SIZEOF_HEADERS</p></td>
+<td><p>Return the section start file offset.</p></td>
+</tr>
+<tr class="row-even"><td><p>CONSTANT (MAXPAGESIZE)</p></td>
+<td><p>Return the defined default page size required by ABI.</p></td>
+</tr>
+<tr class="row-odd"><td><p>CONSTANT (COMMONPAGESIZE)</p></td>
+<td><p>Return the defined common page size.</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="symbol-assignment">
+<h2><a class="toc-backref" href="#id5"><span class="section-number">4.5. </span>Symbol assignment</a><a class="headerlink" href="#symbol-assignment" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Any symbol defined in a linker script becomes a global symbol. The following C assignment operators
+are supported to assign a value to a symbol:</p></li>
+<li><p>symbol=expression;</p></li>
+<li><p>symbol+=expression;</p></li>
+<li><p>symbol-=expression;</p></li>
+<li><p>symbol*=expression;</p></li>
+<li><p>symbol/=expression;</p></li>
+<li><p>symbol&amp;=expression;</p></li>
+<li><p>symbol|=expression;</p></li>
+<li><p>symbol&lt;&lt;=expression;</p></li>
+<li><p>symbol&gt;&gt;=expression;</p></li>
+</ul>
+<p>..note:: The first statement above defines symbol and assigns it the value of expression. In
+the other statements, symbol must already be defined</p>
+<ul class="simple">
+<li><p>All the statements above must be terminated with a semicolon character.</p></li>
+<li><p>One way to create an empty space in memory is to use the expression.+=space_size: BSS1 { . += 0x2000 }</p></li>
+<li><p>This statement generates a section named BSS1 with size 0x2000</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>HIDDEN (symbol = expression)</p></td>
+<td><p>Hide the defined symbol so it is not exported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>FILL (expression)</p></td>
+<td><dl class="simple">
+<dt>Specify the fill value for the current section. The fill length can be</dt><dd><p>1, 2, 4, or 8. The linker determines the length by selecting the
+minimum fit length. In the following example, the fill length is 8:</p>
+</dd>
+</dl>
+<p>FILL( 0xdeadc0de )
+A FILL statement covers memory locations from the point at
+which it occurs to the end of the current section.
+Multiple FILL statements can be used in an output section
+definition to fill different parts of the section with different patterns.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>ASSERT (expression, string)</p></td>
+<td><p>When the specified expression is zero, the linker throws an
+assertion with the specified message string.</p></td>
+</tr>
+<tr class="row-odd"><td><p>PROVIDE (symbol = expression)</p></td>
+<td><p>Similar to symbol assignment, but does not perform checking for  an unresolved reference</p></td>
+</tr>
+<tr class="row-even"><td><p>PROVIDE_HIDDEN (symbol = expression)</p></td>
+<td><p>Similar to PROVIDE, but hides the defined symbol so it will not be exported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>PRINT (symbol = expression)</p></td>
+<td><p>Instruct the linker to print symbol name and expression value to
+standard output during parsing</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</div>
+<div class="section" id="nocrossrefs">
+<h2><a class="toc-backref" href="#id6"><span class="section-number">4.6. </span>NOCROSSREFS</a><a class="headerlink" href="#nocrossrefs" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>The NOCROSSREFS command takes a list of space-separated output section names as its arguments.</p></li>
+<li><p>Any cross references among these output sections will result in link editor failure.</p></li>
+<li><p>The list can also contain an orphan section that is not specified in the linker script.</p></li>
+<li><p>A linker script can contain multiple NOCROSSREFS commands.</p></li>
+<li><p>Each command is treated as an independent set of output sections that are checked for cross references.</p></li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="output-section-description">
+<h1><span class="section-number">5. </span>Output Section Description<a class="headerlink" href="#output-section-description" title="Permalink to this heading"></a></h1>
+<p>A <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command can contain one or more output section descriptions.</p>
+<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>&lt;section-name&gt; [&lt;virtual_addr&gt;][(&lt;type&gt;)] :
+[AT(&lt;load_addr&gt;)] [ALIGN(&lt;section_align&gt;) | ALIGN_WITH_INPUT]
+[SUBALIGN(&lt;subsection_align&gt;)] [&lt;constraint&gt;]
+{
+   ...
+   &lt;output-section-command&gt; &lt;output-section-command&gt;
+}[&gt;&lt;region&gt;][AT&gt;&lt;lma_region&gt;][:&lt;phdr&gt;...][
+=&lt;fillexp&gt;]
+</pre></div>
+</div>
+<div class="section" id="syntax">
+<h2><span class="section-number">5.1. </span>Syntax<a class="headerlink" href="#syntax" title="Permalink to this heading"></a></h2>
+<dl class="simple">
+<dt>&lt;section-name&gt;</dt><dd><p>Specifies the name of the output section.</p>
+</dd>
+<dt>&lt;virtual_addr&gt;</dt><dd><p>Specifies the virtual address of the output section (optional). The address value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;type&gt;</dt><dd><p>Specifies the section load property (optional).</p>
+<ul class="simple">
+<li><p>NOLOAD: Marks a section as not loadable.</p></li>
+<li><p>INFO: Parsed only; has no effect on linking.</p></li>
+</ul>
+</dd>
+<dt>&lt;load_addr&gt;</dt><dd><p>Specifies the load address of the output section (optional). The address value can be specified as an expression (see Expressions).</p>
+</dd>
+<dt>&lt;section_align&gt;</dt><dd><p>Specifies the section alignment of the output section (optional). The alignment value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;subsection_align&gt;</dt><dd><p>Specifies the subsection alignment of the output section (optional). The alignment value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;constraint&gt;</dt><dd><p>Specifies the access type of the input sections (optional).</p>
+<ul class="simple">
+<li><p>NOLOAD: All input sections are read-only.</p></li>
+</ul>
+</dd>
+<dt>&lt;output-section-command&gt;</dt><dd><p>Specifies an output section command (see Output section commands). An output section description contains one or more output section commands.</p>
+</dd>
+<dt>&lt;region&gt;</dt><dd><p>Specifies the region of the output section (optional). The region is expressed as a string. This option is parsed but has no effect on linking.</p>
+</dd>
+<dt>&lt;lma-region&gt;</dt><dd><p>Specifies the load memory address (LMA) region of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.</p>
+</dd>
+<dt>&lt;fillexp&gt;</dt><dd><p>Specifies the fill value of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.</p>
+</dd>
+<dt>&lt;phdr&gt;</dt><dd><p>Specifies a program segment for the output section (optional). To assign multiple program segments to an output section, this option can appear more than once in an output section description.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>ALIGN_WITH_INPUT currently does not do anything in the linker, linker defaults to always align the physical address according to the requirements of the output section</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="supported_targets.html" class="btn btn-neutral float-left" title="3. Supported Targets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_map_files.html" class="btn btn-neutral float-right" title="6. Linker Map Files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
