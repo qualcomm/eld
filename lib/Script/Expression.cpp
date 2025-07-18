@@ -726,7 +726,11 @@ eld::Expected<uint64_t> AlignOf::evalImpl() {
   // sections are known only after all the assignments are complete
   if (ThisSection == nullptr)
     ThisSection = ThisModule.getScript().sectionMap().find(Name);
-  assert(ThisSection != nullptr);
+  if (!ThisSection) {
+    ThisModule.getConfig().raise(Diag::error_sect_invalid) << Name;
+    ThisModule.setFailure(true);
+    return 0;
+  }
   // evaluate sub expressions
   return ThisSection->getAddrAlign();
 }
