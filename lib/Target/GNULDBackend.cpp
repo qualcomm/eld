@@ -3157,6 +3157,9 @@ bool GNULDBackend::layout() {
   if (m_Module.getScript().phdrsSpecified() && !config().isLinkPartial())
     checkForLinkerScriptPhdrErrors();
 
+  // Check for segment information and emit warnings if any
+  verifySegments();
+
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
@@ -4035,8 +4038,6 @@ bool GNULDBackend::relax() {
     config().raiseDiagEntry(std::move(E.error()));
     return config().getDiagEngine()->diagnose();
   }
-
-  verifySegments();
 
   return config().getDiagEngine()->diagnose();
 }
