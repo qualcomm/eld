@@ -1227,7 +1227,7 @@ bool ScriptParser::readInclude() {
     llvm::MemoryBufferRef MemRef = Input->getMemoryBufferRef();
     Buffers.push_back(CurBuf);
     CurBuf = Buffer(MemRef);
-    MemoryBuffers.push_back(MemRef);
+    InputFileBuffers.push_back(IF);
     if (!ActiveFilenames.insert(CurBuf.Filename).second)
       setError("there is a cycle in linker script INCLUDEs");
   }
