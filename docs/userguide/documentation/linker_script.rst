@@ -309,7 +309,7 @@ NOCROSSREFS
      * Each command is treated as an independent set of output sections that are checked for cross references.
 
 Output Section Description
-==========================
+---------------------------
 
 A ``SECTIONS`` command can contain one or more output section descriptions.
 
