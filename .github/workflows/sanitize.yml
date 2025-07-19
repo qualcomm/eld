@@ -1,0 +1,70 @@
+name: Nightly sanitizer check
+
+on:
+  schedule:
+    - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
+  workflow_dispatch:     # Allows manual triggering
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Clang 20
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: "20"
+          platform: x64
+
+      - name: CPU and Memory information
+        run: |
+          echo "Number of CPUs:"
+          nproc --all # or grep -c ^processor /proc/cpuinfo
+          echo "Memory information:"
+          free -h # or cat /proc/meminfo
+
+      - name: Check versions
+        run: |
+          echo "clang version"
+          clang --version
+          echo "clang++ version"
+          clang++ -stdlib=libc++ --version
+
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          path: llvm-project
+          ref: main
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+          ref: main
+
+      - name: Run CMake
+        run: |
+          mkdir obj
+          cd obj
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_USE_SANITIZER="Address;Undefined" \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DCMAKE_C_COMPILER:STRING=`which clang` \
+            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
+            -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
+            -DLLVM_ENABLE_SPHINX=OFF \
+            ../llvm-project/llvm
+
+      - name: Build Project
+        run: |
+          cd obj
+          ninja
+
+      - name: Run tests
+        run: |
+          cd obj
+          ninja check-eld
