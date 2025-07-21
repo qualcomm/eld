@@ -8,7 +8,7 @@ docxsphinx==1.0.0
 idna==3.7
 imagesize==1.4.1
 importlib-metadata==5.0.0
-Jinja2==3.1.2
+Jinja2==3.1.6
 lxml==4.9.3
 MarkupSafe==2.1.1
 packaging==21.3
