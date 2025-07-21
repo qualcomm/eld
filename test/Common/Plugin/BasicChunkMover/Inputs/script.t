@@ -1,10 +1,10 @@
 SECTIONS {
-  foo: {
+  foo : {
     *(*.foo)
     . = . + 1000;
     *(*.foo_*)
   }
-  bar: {
+  bar : {
     *(*.bar)
     *(.bar*)
   }

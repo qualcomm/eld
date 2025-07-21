@@ -1,3 +1,3 @@
 SECTIONS {
-  FOO: { *("*foo*") }
+  FOO : { *("*foo*") }
 }

@@ -1,8 +1,8 @@
 SECTIONS {
-  foo: {
+  foo : {
     *(*.foo)
   }
-  bar: {
+  bar : {
     *(*.bar)
   }
 }

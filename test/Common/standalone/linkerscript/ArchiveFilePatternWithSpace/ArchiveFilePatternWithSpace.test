@@ -18,10 +18,10 @@ RUN: %filecheck %s --check-prefix MEMBER_PATTERN_NEXT_LINE < %t1.a2.map.txt
 NO_WARN-NOT: Space between
 
 WARN: Warning: {{.*}}script.1.t:2: Space between archive:member file pattern is deprecated
-WARN: >>>   FOO: { *lib12.a: *1.o(*foo*) }
+WARN: >>>   FOO : { *lib12.a: *1.o(*foo*) }
 WARN: >>>                    ^
 WARN: Warning: {{.*}}script.1.t:3: Space between archive:member file pattern is deprecated
-WARN: >>>   BAR: { *lib12.a: *(*bar*) }
+WARN: >>>   BAR : { *lib12.a: *(*bar*) }
 WARN: >>>
 
 MAP: FOO

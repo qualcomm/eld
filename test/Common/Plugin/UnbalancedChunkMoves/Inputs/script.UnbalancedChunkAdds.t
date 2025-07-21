@@ -1,8 +1,8 @@
 SECTIONS {
-  FOO: {
+  FOO : {
     *(*foo*)
   }
-  BAR: {
+  BAR : {
     *(*bar*)
   }
 }

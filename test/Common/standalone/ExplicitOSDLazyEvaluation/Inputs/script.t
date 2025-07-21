@@ -1,5 +1,5 @@
 SECTIONS {
-  out: {
+  out : {
     BYTE(val);
     SHORT(val);
     LONG(val);

@@ -194,13 +194,9 @@ void ScriptLexer::lex() {
       if (S.starts_with("/DISCARD/"))
         Pos = llvm::StringRef("/DISCARD/").size();
     } else {
-      // Last char must be ':'!!!
       llvm::StringRef TokenChars =
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
           "0123456789_.$/\\~=+[]*?-!^:";
-      // Drop ':' if we are lexing output section name
-      if (CurTokLexState == LexState::SectionName)
-        TokenChars = TokenChars.drop_back();
 
       Pos = S.find_first_not_of(TokenChars);
     }
@@ -338,14 +334,6 @@ StringRef ScriptLexer::unquote(StringRef S) {
   if (S.starts_with("\""))
     return S.substr(1, S.size() - 2);
   return S;
-}
-
-void ScriptLexer::prev() {
-  if (!PrevTok.empty()) {
-    // FIXME: CurBuf.LineNumber needs to be updated!
-    CurBuf.S = PrevTok.data();
-    CurTok = {};
-  }
 }
 
 llvm::StringRef

@@ -1,5 +1,5 @@
 SECTIONS {
-  WRONG_DATA: {
+  WRONG_DATA : {
     *lib12.a:
       *(*data*)
   }

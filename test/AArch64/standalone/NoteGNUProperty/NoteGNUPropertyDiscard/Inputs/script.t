@@ -1,4 +1,4 @@
 SECTIONS {
   .comment : { *(.comment) }
-  /DISCARD/: { *(.note.gnu.property) }
+  /DISCARD/ : { *(.note.gnu.property) }
 }

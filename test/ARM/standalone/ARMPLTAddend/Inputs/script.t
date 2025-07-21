@@ -6,5 +6,5 @@ SECTIONS {
   . = ADDR(.plt) + 0x4500c;
   .got : { *(.got.plt) *(.got) }
   .data : { *(.data*) }
-  /DISCARD/: { *(.ARM.exidx*) }
+  /DISCARD/ : { *(.ARM.exidx*) }
 }

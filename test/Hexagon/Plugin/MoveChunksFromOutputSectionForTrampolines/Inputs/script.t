@@ -1,7 +1,7 @@
 PLUGIN_OUTPUT_SECTION_ITER("movechunksfromoutputsectionfortrampolines","MOVEOUTPUTCHUNKS");
 SECTIONS
 {
-  .redistribute:
+  .redistribute :
   {
 	*(.text.hot*)
 	*(.text.cold*)
