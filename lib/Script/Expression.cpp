@@ -112,7 +112,7 @@ void Symbol::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
   if (WithValues) {
     Outs << "(0x";
-    Outs.write_hex(*MResult) << ")";
+    Outs.write_hex(resultOrZero()) << ")";
   }
 }
 
@@ -426,7 +426,7 @@ void SizeOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "SIZEOF(" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
   Outs << ")";
 }
@@ -493,7 +493,7 @@ void SizeOfHeaders::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (WithValues) {
     Outs << "("
          << " = 0x";
-    Outs.write_hex(*MResult) << ")";
+    Outs.write_hex(resultOrZero()) << ")";
   }
 }
 
@@ -523,7 +523,7 @@ void Addr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "ADDR(\"" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
   Outs << "\")";
 }
@@ -561,7 +561,7 @@ void LoadAddr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "LOADADDR(" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
   Outs << ")";
 }
@@ -591,7 +591,7 @@ void OffsetOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "OFFSETOF(" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
 }
 eld::Expected<uint64_t> OffsetOf::evalImpl() {
