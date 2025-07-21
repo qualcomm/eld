@@ -1,0 +1,28 @@
+/*
+#---PaddingWithRemainder.test--------------------- Executable,LS -----------------#
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+RUN: %link %linkopts -T %s %t.o -o %t.out
+RUN: llvm-readobj --sections --section-data %t.out | %filecheck %s
+
+BEGIN_COMMENT
+Tests that padding values are written correctly when the padding size
+is not a multiple of 2/4/8 bytes.
+END_COMMENT
+
+#START_TEST
+CHECK: Name: two
+CHECK: AABBAA
+
+CHECK: Name: four
+CHECK: AABBCCDD AABBCC
+
+CHECK: Name: eight
+CHECK: AABBCCDD EEFF0011
+CHECK: AABBCCDD EEFF00
+*/
+
+SECTIONS {
+  two : {*(.text.foo) . = .+ 0x3;} =0xaabb
+  four : {*(.text.bar) . = . + 0x7;} =0xaabbccdd
+  eight : {*(.text.baz) . = . + 0xF;} =0xaabbccddeeff0011
+}

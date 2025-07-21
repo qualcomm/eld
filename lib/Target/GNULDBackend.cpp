@@ -3557,45 +3557,23 @@ void GNULDBackend::maybeFillRegion(const OutputSectionEntry *O,
   fillRegion(R, Fill->getSecond());
 }
 
-void GNULDBackend::fillRegion(MemoryRegion &region,
+void GNULDBackend::fillRegion(MemoryRegion &Region,
                               const std::vector<PaddingT> &FillV) const {
-  unsigned char *sectionBegin = region.begin();
-  for (auto &fval : FillV) {
-    Expression *fill = fval.Exp;
-    if (!fill)
+  for (auto &FV : FillV) {
+    Expression *Fill = FV.Exp;
+    if (!Fill)
       continue;
-    uint64_t fillValue = fill->result();
-    int64_t startOffset = fval.startOffset;
-    int fillValueSize =
-        (fillValue > 0xFFFFFFFF
-             ? 8
-             : (fillValue > 0xFFFF ? 4 : (fillValue > 0xFF ? 2 : 1)));
-    int64_t endOffset = fval.endOffset;
-    int64_t fillSize = endOffset - startOffset;
-
-    if (fillSize < 0)
-      continue;
-    uint64_t numTiles = fillSize / fillValueSize;
-    for (size_t i = 0; i != numTiles; ++i) {
-      switch (fillValueSize) {
-      case 1:
-        llvm::support::endian::write<uint8_t, llvm::endianness::big>(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      case 2:
-        llvm::support::endian::write16be(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      case 4:
-        llvm::support::endian::write32be(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      case 8:
-        llvm::support::endian::write64be(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      }
-    }
+    uint64_t FillValue = Fill->result();
+    uint64_t FillValueSize =
+        FillValue > 0xFFFFFFFF
+            ? 8
+            : (FillValue > 0xFFFF ? 4 : (FillValue > 0xFF ? 2 : 1));
+    std::array<uint8_t, sizeof(uint64_t)> Buf;
+    llvm::support::endian::write64be(Buf.data(), FillValue);
+    uint32_t StartIdx = 8 - FillValueSize;
+    for (uint32_t I = 0; I < FV.endOffset - FV.startOffset; ++I)
+      std::memcpy(Region.begin() + I + FV.startOffset,
+                  Buf.data() + I % FillValueSize + StartIdx, 1);
   }
 }
 
