@@ -6,15 +6,24 @@ on:
   workflow_dispatch:     # Allows manual triggering
 
 jobs:
-  generate-docs:
+  build-and-runtest-with-asan-ubsan:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up Clang 20
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: "20"
-          platform: x64
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install libc++ and libc++abi
+        run: |
+          sudo apt update
+          sudo apt install -y clang libc++-dev libc++abi-dev
+
+      - name: Build and Test with Clang
+        run: |
+          echo '#include <iostream>' > test.cpp
+          echo 'int main() { std::cout << "Hello, Clang on Ubuntu 24.04!" << std::endl; return 0; }' >> test.cpp
+          clang++ -std=c++17 -stdlib=libc++ test.cpp -o test
+          ./test
 
       - name: CPU and Memory information
         run: |
@@ -29,6 +38,7 @@ jobs:
           clang --version
           echo "clang++ version"
           clang++ -stdlib=libc++ --version
+          dpkg -L clang
 
       - name: Checkout llvm-project
         uses: actions/checkout@v4
