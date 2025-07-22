@@ -58,6 +58,7 @@ void InputCmd::dump(llvm::raw_ostream &Outs) const {
 eld::Expected<void> InputCmd::activate(Module &CurModule) {
   for (auto &S : ThisStringList) {
     InputToken *Token = llvm::cast<InputToken>(S);
+    Token = ThisScriptFile.findResolvedFilename(Token);
     if (Token->asNeeded())
       ThisBuilder.getAttributes().setAsNeeded();
     else
