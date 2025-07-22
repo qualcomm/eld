@@ -33,6 +33,12 @@ jobs:
         ref: ${{ github.event.pull_request.head.ref }}
         path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
 
+    - name: Checkout Picolibc
+      uses: actions/checkout@v4
+      with:
+        repository: picolibc/picolibc
+        path: pr-${{ env.PR_NUMBER }}/picolibc
+
     - name: Run CMake
       run: |
         export CCACHE_BASEDIR=$GITHUB_WORKSPACE
@@ -50,8 +56,8 @@ jobs:
           -DCMAKE_C_COMPILER:STRING=`which clang` \
           -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
           -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-          -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
-          -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
+          -DLLVM_TARGETS_TO_BUILD:STRING="RISCV" \
+          -DELD_TARGETS_TO_BUILD='RISCV' \
           -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
           ../llvm-project/llvm
 
@@ -74,6 +80,23 @@ jobs:
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja check-eld
+
+    - name: Configure Picolibc
+      run: |
+        export PATH=`realpath pr-${{ env.PR_NUMBER }}`/obj/bin/:$PATH
+        mkdir pr-${{ env.PR_NUMBER }}/picolibc_obj
+        cd pr-${{ env.PR_NUMBER }}/picolibc_obj
+        ../picolibc/scripts/do-clang-riscv-configure -Dc_ld=eld
+
+    - name: Build Picolibc
+      run: |
+        cd pr-${{ env.PR_NUMBER }}/picolibc_obj
+        ninja
+
+    - name: Run Picolibc tests
+      run: |
+        cd pr-${{ env.PR_NUMBER }}/picolibc_obj
+        ninja test
 
     - name: Clean up
       run: |
