@@ -636,12 +636,17 @@ eld::Expected<uint64_t> Ternary::evalImpl() {
     return Cond;
   return Cond.value() ? LeftExpression.eval() : RightExpression.eval();
 }
+
 void Ternary::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   ConditionExpression.getSymbols(Symbols);
-  if (ConditionExpression.result())
-    LeftExpression.getSymbols(Symbols);
-  else
-    RightExpression.getSymbols(Symbols);
+  // FIXME: Ideally, one of the LeftExpression / RightExpression should
+  // be selected depending upon the ConditionExpression evaluation. However,
+  // we need to add undefined symbols before the expressions are ready to be
+  // evaluated. It is safer to add an extra (redundant) symbol as compared to
+  // not adding a required symbol, as the latter can cause incorrect
+  // garbage-collection -- that is garbage-collecting a required symbol.
+  LeftExpression.getSymbols(Symbols);
+  RightExpression.getSymbols(Symbols);
 }
 
 void Ternary::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {

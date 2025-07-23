@@ -1,0 +1,18 @@
+#---GarbageCollectionTernaryExpression.test------------- Executable-----------------#
+#BEGIN_COMMENT
+# This test checks that garbage-collection does not remove a required section
+# when a symbol from the section is used in a linker script ternary expression
+# to initialize a useful linker script variable. Here useful means that the
+# symbol is reachable from an entry point.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t --gc-sections \
+RUN:   --print-gc-sections -e foo 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix=READELF
+#END_TEST
+
+#CHECK: GC : {{.*}}1.o[.text.v3]
+
+#READELF-DAG: v1
+#READELF-DAG: v2
