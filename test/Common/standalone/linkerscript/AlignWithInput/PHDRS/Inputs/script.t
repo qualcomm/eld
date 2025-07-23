@@ -17,5 +17,5 @@ SECTIONS {
   .foo : ALIGN_WITH_INPUT  { *(.text.foo) } >MEMA AT>LMEMA :A
   .bar : ALIGN_WITH_INPUT  { *(.text.bar) } >MEMB AT>LMEMB :B
   .baz : ALIGN_WITH_INPUT { *(.text.baz) } >MEMC AT>LMEMC :C
-  /DISCARD/ : { *(.ARM.exidx*) }
+  /DISCARD/ : { *(.ARM.exidx*) *(.riscv.attributes) }
 }

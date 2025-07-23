@@ -1,0 +1,9 @@
+#---TLS.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests that ALIGN_WITH_INPUT keyword in the output section description
+# aligns the physical address according to requirements of the output section
+# when it includes TLS
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -Map %t2.map -o %t2.out 2>&1
+

@@ -73,9 +73,29 @@ size_t ScriptMemoryRegion::getSize() const {
   return Sz;
 }
 
-uint64_t ScriptMemoryRegion::getAddr() {
+uint64_t ScriptMemoryRegion::getVirtualAddr(OutputSectionEntry *Out) {
   if (!CurrentCursor)
     CurrentCursor = getOrigin().value();
+  return CurrentCursor.value();
+}
+
+uint64_t ScriptMemoryRegion::getPhysicalAddr(OutputSectionEntry *O) {
+  if (!CurrentCursor) {
+    CurrentCursor = getOrigin().value();
+    // Happens only for the first output section in the memory region
+    if (O->prolog().hasAlignWithInput())
+      CurrentCursor =
+          CurrentCursor.value() +
+          (O->getSection()->addr() - O->epilog().region().getOrigin().value());
+  }
+  const OutputSectionEntry *Prev = getPrevOutputSection();
+  // If the physical address requested for the output section lives in the same
+  // memory region
+  if (O->prolog().hasAlignWithInput() && Prev) {
+    if (Prev->epilog().getVMARegionName() == O->epilog().getVMARegionName())
+      CurrentCursor = Prev->getSection()->pAddr() +
+                      (O->getSection()->addr() - Prev->getSection()->addr());
+  }
   return CurrentCursor.value();
 }
 

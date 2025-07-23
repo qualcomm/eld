@@ -370,4 +370,17 @@ Syntax
 
 .. note::
 
-    ALIGN_WITH_INPUT currently does not do anything in the linker, linker defaults to always align the physical address according to the requirements of the output section
+Controlling Physical addresses
+-------------------------------
+
+In GNU linker scripts, the AT command is used to control the Load Memory Address (LMA) of a section, while the section's placement in memory during execution is defined by its Virtual Memory Address (VMA).
+
+
+.. important::
+
+   When an AT command is specified as part of the output section, the linker
+   will not automatically align the load memory address of the section.
+
+ALIGN_WITH_INPUT attribute on an output section will make the difference between the VMA and LMA intact.
+
+We will expand this section with examples in future.
