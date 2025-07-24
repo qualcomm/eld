@@ -112,9 +112,12 @@ public:
 
   bool scriptValueDefined() const { return ThisSymbolHasScriptValue; }
 
-  void setScriptValueDefined(bool Value = true) {
-    ThisSymbolHasScriptValue = Value;
+  void setScriptValueDefined(bool Uncertain) {
+    ThisSymbolHasScriptValue = true;
+    ThisSymbolHasUncertainValue = Uncertain;
   }
+
+  bool isUncertain() const { return ThisSymbolHasUncertainValue; }
 
   const FragmentRef *fragRef() const { return ThisFragRef; }
 
@@ -166,6 +169,7 @@ protected:
   uint32_t ThisSymIdx;
   bool ThisSymbolsIsScriptDefined;
   bool ThisSymbolHasScriptValue;
+  bool ThisSymbolHasUncertainValue;
   // used for ignore garbage collected Common symbols
   bool ThisSymbolGarbageCollected;
 };

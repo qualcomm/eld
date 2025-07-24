@@ -76,7 +76,7 @@ Relocation::Address Relocation::place(Module &M) const {
   return sect_addr + m_TargetAddress->getOutputOffset(M);
 }
 
-Relocation::Address Relocation::symValue(Module &M) const {
+Relocation::Address Relocation::symValue(Module &M, bool &Uncertain) const {
   const ELFSection *section = nullptr;
   const FragmentRef *fragRef = nullptr;
   ResolveInfo *info = m_pSymInfo;
@@ -99,14 +99,24 @@ Relocation::Address Relocation::symValue(Module &M) const {
   bool isAllocSection = section ? section->isAlloc() : false;
 
   // If allocatable section, value => (address + offset)
-  if (isAllocSection)
+  if (isAllocSection) {
+    Uncertain = false;
     return section->addr() + fragRef->getOutputOffset(M);
+  }
 
   // If non allocatable section, value => (offset)
-  if (section && !isAllocSection)
+  if (section) {
+    Uncertain = false;
     return fragRef->getOutputOffset(M);
+  }
 
+  Uncertain = info->outSymbol()->isUncertain();
   return info->outSymbol()->value();
+}
+
+Relocation::Address Relocation::symValue(Module &M) const {
+  bool Ignored;
+  return symValue(M, Ignored);
 }
 
 Relocation::Address Relocation::symOffset(Module &M) const {

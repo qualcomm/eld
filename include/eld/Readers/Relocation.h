@@ -62,6 +62,7 @@ public:
   Type type() const { return m_Type; }
 
   /// symValue - S value - the symbol address
+  Address symValue(Module &M, bool &Uncertain) const;
   Address symValue(Module &M) const;
 
   /// symOffset - Offset of the symbol

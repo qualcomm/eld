@@ -211,10 +211,10 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
   }
 
   // evaluate, commit, then get the result of the expression
-  auto Result = ExpressionToEvaluate->evaluateAndRaiseError();
+  auto Result = ExpressionToEvaluate->evaluateUncertainAndRaiseError();
   if (!Result)
     return false;
-  ExpressionValue = *Result;
+  ExpressionValue = Result->value();
 
   if (!checkLinkerScript(CurModule))
     return false;
@@ -223,7 +223,7 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
   if (Sym != nullptr) {
     ThisSymbol = Sym;
     ThisSymbol->setValue(ExpressionValue);
-    ThisSymbol->setScriptValueDefined();
+    ThisSymbol->setScriptValueDefined(Result->isUncertain());
   }
 
   if (CurModule.getPrinter()->traceAssignments())
