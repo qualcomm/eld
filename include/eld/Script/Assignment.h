@@ -83,7 +83,8 @@ public:
   eld::Expected<void> activate(Module &CurModule) override;
 
   /// assign - evaluate the rhs and assign the result to lhs.
-  bool assign(Module &CurModule, const ELFSection *Section);
+  bool assign(Module &CurModule, const ELFSection *Section,
+              bool EvaluatePendingOnly);
 
   LDSymbol *symbol() const { return ThisSymbol; }
 

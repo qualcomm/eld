@@ -828,6 +828,24 @@ public:
 
   const ResolveInfo *findAbsolutePLT(ResolveInfo *I) const;
 
+  /// Returns true if the symbol is partially evaluated. That
+  /// is, the symbol assignment expression was partially evaluated.
+  bool isPartiallyEvaluated(const ResolveInfo *RI) const {
+    return PartiallyEvaluatedSymbols.count(RI);
+  }
+
+  void addPartiallyEvaluatedSymbol(const ResolveInfo *RI) {
+    PartiallyEvaluatedSymbols.insert(RI);
+  }
+
+  void removePartiallyEvaluatedSymbol(const ResolveInfo *RI) {
+    PartiallyEvaluatedSymbols.erase(RI);
+  }
+
+  void resetPartiallyEvaluatedSymbols() {
+    PartiallyEvaluatedSymbols.clear();
+  }
+
 protected:
   virtual int numReservedSegments() const { return m_NumReservedSegments; }
 
@@ -1002,6 +1020,11 @@ private:
   // Setup TLS alignment and check for any layout issues
   bool setupTLS();
 
+  void evaluateAssignmentAndTrackPartiallyEvalAssignments(Assignment &A,
+                                                          const ELFSection *S);
+
+  void evaluatePendingAssignments();
+
 protected:
   Module &m_Module;
 
@@ -1141,6 +1164,12 @@ protected:
   bool m_NeedEhdr = false;
 
   bool m_NeedPhdr = false;
+
+  std::unordered_set<const ResolveInfo *> PartiallyEvaluatedSymbols;
+
+  /// Stores the assignments which needs to be reevaluated later.
+  std::vector<std::pair<Assignment *, const ELFSection *>>
+      PartiallyEvaluatedAssignments;
 };
 
 } // namespace eld
