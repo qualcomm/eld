@@ -230,6 +230,8 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
                   DiagEngine->getPrinter()->TraceDynamicLinking)
             .Case("linker-script", DiagEngine->getPrinter()->TraceLinkerScript)
             .Case("symdef", DiagEngine->getPrinter()->TraceSymDef)
+            .Case("pending-assignments",
+                  DiagEngine->getPrinter()->TracePendingAssignments)
             .Default(std::nullopt);
   }
   // Warn if trace category is unknown.

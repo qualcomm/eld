@@ -1,0 +1,16 @@
+#---ForwardReference.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks that the linker performs correct expression evaluation
+# when the expression contains a forward-reference.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts  -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.ForwardReference.t
+RUN: %readelf -s %t1.1.out 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.1.phdr.out %t1.1.o -T %p/Inputs/script.ForwardReference.phdr.t
+RUN: %readelf -s %t1.1.phdr.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK-DAG: [[VALUE:[0-9a-f]+]] {{.*}} ABS u
+CHECK-DAG: [[VALUE]] {{.*}} ABS v
+

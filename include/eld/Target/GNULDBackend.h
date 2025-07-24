@@ -826,6 +826,28 @@ public:
 
   const ResolveInfo *findAbsolutePLT(ResolveInfo *I) const;
 
+  /// Returns true if the symbol is partially evaluated. That
+  /// is, the symbol assignment expression was partially evaluated.
+  bool isPartiallyEvaluated(const ResolveInfo *RI) const {
+    return PartiallyEvaluatedSymbols.count(RI);
+  }
+
+  void addPartiallyEvaluatedSymbol(const ResolveInfo *RI) {
+    PartiallyEvaluatedSymbols.insert(RI);
+  }
+
+  void removePartiallyEvaluatedSymbol(const ResolveInfo *RI) {
+    PartiallyEvaluatedSymbols.erase(RI);
+  }
+
+  void resetPartiallyEvalAssignsAndSymbols() {
+    PartiallyEvaluatedAssignments.clear();
+    PartiallyEvaluatedSymbols.clear();
+  }
+
+  /// Recursively evaluates the partially evaluated assignments.
+  void evaluatePendingAssignments();
+
 protected:
   virtual int numReservedSegments() const { return m_NumReservedSegments; }
 
@@ -1000,6 +1022,34 @@ private:
   // Setup TLS alignment and check for any layout issues
   bool setupTLS();
 
+  /// Evaluates the assignment and tracks the partially evaluated assignments.
+  /// Partially evaluated assignments can be requested to be (recursively)
+  /// reevaluated using evaluatePendingAssignments.
+  void evaluateAssignmentAndTrackPartiallyEvalAssignments(Assignment &A,
+                                                          const ELFSection *S);
+
+  /// Reset the tracked assignments and the TrackedAssignments vector.
+  /// Resetting an assignment resets the assignment node and all the
+  /// expression nodes contained in the assignment.
+  void resetTrackedAssignments();
+
+  /// Stores the snapshot of linker script symbols.
+  void takeLSSymbolsSnapshot();
+
+  /// Restores the value of linker script symbols using the linker script symbol
+  /// snapshot stored using takeLSSymbolsSnapshot.
+  void restoreLSSymbolsUsingSnapshot();
+
+  void takePartiallyEvalAssignsAndSymbolsSnapshot() {
+    PartiallyEvaluatedAssignmentsSnapshot = PartiallyEvaluatedAssignments;
+    PartiallyEvaluatedSymbolsSnapshot = PartiallyEvaluatedSymbols;
+  }
+
+  void restorePartiallyEvalAssignsAndSymbolsUsingSnapshot() {
+    PartiallyEvaluatedAssignments = PartiallyEvaluatedAssignmentsSnapshot;
+    PartiallyEvaluatedSymbols = PartiallyEvaluatedSymbolsSnapshot;
+  }
+
 protected:
   Module &m_Module;
 
@@ -1130,6 +1180,30 @@ protected:
   bool m_NeedEhdr = false;
 
   bool m_NeedPhdr = false;
+
+  std::unordered_set<const ResolveInfo *> PartiallyEvaluatedSymbols;
+
+  /// Stores the assignments which needs to be reevaluated later.
+  std::vector<std::pair<Assignment *, const ELFSection *>>
+      PartiallyEvaluatedAssignments;
+
+  std::unordered_set<const ResolveInfo *> PartiallyEvaluatedSymbolsSnapshot;
+
+  /// Stores the assignments which needs to be reevaluated later.
+  std::vector<std::pair<Assignment *, const ELFSection *>>
+      PartiallyEvaluatedAssignmentsSnapshot;
+
+  /// TrackedAssignments stores the assignments which gets evaluated if
+  /// TrackAssignments is true. It is used to reset the evaluated assignments.
+  bool TrackAssignments = false;
+  std::vector<Assignment *> TrackedAssignments;
+
+  struct LSSymbolInfo {
+    ResolveInfo *RI = nullptr;
+    uint64_t Value = 0;
+    bool HasScriptValue = false;
+  };
+  std::vector<LSSymbolInfo> LSSymbolsSnapshot;
 };
 
 } // namespace eld
