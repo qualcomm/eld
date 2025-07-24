@@ -19,6 +19,7 @@
 #include "eld/Readers/Section.h"
 #include "eld/Script/Expression.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/Target/GNULDBackend.h"
 #include "llvm/Support/Casting.h"
 #include <cassert>
 
@@ -205,7 +206,8 @@ void Assignment::getSymbols(std::vector<ResolveInfo *> &Symbols) const {
   ExpressionToEvaluate->getSymbols(Symbols);
 }
 
-bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
+bool Assignment::assign(Module &CurModule, const ELFSection *Section,
+                        bool EvaluatePendingOnly) {
 
   if (Section && !Section->isAlloc() && isDot()) {
     CurModule.getConfig().raise(Diag::error_dot_lhs_in_non_alloc)
@@ -215,7 +217,11 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
   }
 
   // evaluate, commit, then get the result of the expression
-  auto Result = ExpressionToEvaluate->evaluateAndRaiseError();
+  std::optional<uint64_t> Result;
+  if (EvaluatePendingOnly)
+    Result = ExpressionToEvaluate->evaluatePendingAndRaiseError();
+  else
+    Result = ExpressionToEvaluate->evaluateAndRaiseError();
   if (!Result)
     return false;
   ExpressionValue = *Result;
@@ -224,13 +230,23 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
     return false;
 
   LDSymbol *Sym = CurModule.getNamePool().findSymbol(Name);
+  // ASSERT(Sym, "Sym must exist!");
+  // FIXME: Why is it okay for the Sym to be nullptr?
   if (Sym != nullptr) {
     ThisSymbol = Sym;
     ThisSymbol->setValue(ExpressionValue);
     ThisSymbol->setScriptValueDefined();
+    GNULDBackend &Backend = CurModule.getBackend();
+    const ResolveInfo *RI = ThisSymbol->resolveInfo();
+    if (ExpressionToEvaluate->hasPendingEvaluation())
+      Backend.addPartiallyEvaluatedSymbol(RI);
+    else
+      Backend.removePartiallyEvaluatedSymbol(RI);
   }
 
-  if (CurModule.getPrinter()->traceAssignments())
+  auto DP = CurModule.getPrinter();
+  if (DP->traceAssignments() ||
+      (EvaluatePendingOnly && DP->tracePendingAssignments()))
     trace(llvm::outs());
   return true;
 }
@@ -275,4 +291,11 @@ std::unordered_set<std::string> Assignment::getSymbolNames() const {
   std::unordered_set<std::string> SymbolNames;
   ExpressionToEvaluate->getSymbolNames(SymbolNames);
   return SymbolNames;
+}
+
+void Assignment::reset() {
+  ExpressionValue = 0;
+  ThisSymbol = nullptr;
+  if (ExpressionToEvaluate)
+    ExpressionToEvaluate->resetRecursively();
 }
