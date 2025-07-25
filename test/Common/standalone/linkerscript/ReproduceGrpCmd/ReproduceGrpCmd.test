@@ -1,0 +1,20 @@
+#---ReproduceGrpCmd.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks if linking works with reproduce option on running
+# the response.txt file when input object files are passed through the GROUP
+# command of the linkerscript.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: echo "GROUP(%t.1.o %t.2.o)" > %t4.t
+RUN: %link %linkopts -o %t1.2.out -T %t4.t --reproduce %t1.2.reproduce.tar --dump-response-file %t1.2.response
+RUN: %mkdir %t1.2.reproduce
+RUN: %tar -xf %t1.2.reproduce.tar -C %t1.2.reproduce --strip-components 1
+RUN: cd %t1.2.reproduce
+RUN: %link @response.txt -Map %t1.1.map.txt -o %t1.2.reproduce.out
+RUN: %filecheck %s < %t1.1.map.txt
+
+#CHECK: foo
+#CHECK: bar
+#END_TEST
