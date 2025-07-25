@@ -53,71 +53,51 @@ ScriptParser::ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &File)
 
 void ScriptParser::readLinkerScript() {
   while (!atEOF()) {
-    StringRef Tok = peek();
+    StringRef Tok = next();
     if (atEOF())
       break;
 
     if (Tok == ";") {
-      skip();
       continue;
     }
 
     if (Tok == "ENTRY") {
-      skip();
       readEntry();
     } else if (Tok == "SECTIONS") {
-      skip();
       readSections();
     } else if (Tok == "INPUT" || Tok == "GROUP") {
       bool IsInputCmd = (Tok == "INPUT");
-      skip();
       readInputOrGroup(IsInputCmd);
     } else if (Tok == "OUTPUT") {
-      skip();
       readOutput();
     } else if (Tok == "PHDRS") {
-      skip();
       readPhdrs();
     } else if (Tok == "NOCROSSREFS") {
-      skip();
       readNoCrossRefs();
     } else if (Tok == "SEARCH_DIR") {
-      skip();
       readSearchDir();
     } else if (Tok == "OUTPUT_ARCH") {
-      skip();
       readOutputArch();
     } else if (Tok == "MEMORY") {
-      skip();
       readMemory();
     } else if (Tok == "EXTERN") {
-      skip();
       readExtern();
     } else if (Tok == "REGION_ALIAS") {
-      skip();
       readRegionAlias();
     } else if (Tok == "OUTPUT_FORMAT") {
-      skip();
       readOutputFormat();
     } else if (Tok == "VERSION") {
-      skip();
       readVersion();
-    } else if (readInclude()) {
-    } else if (readAssignment()) {
-    } else if (readPluginDirective()) {
+    } else if (readInclude(Tok)) {
+    } else if (readAssignment(Tok)) {
+    } else if (readPluginDirective(Tok)) {
     } else {
       setError("unknown directive: " + Tok);
     }
   }
 }
 
-bool ScriptParser::readAssignment() {
-  llvm::StringRef DefTok = peek();
-  llvm::StringRef Tok = next(LexState::Expr);
-  if (llvm::StringRef(DefTok.data() + Tok.size()).starts_with("/*")) {
-    prev();
-    return false;
-  }
+bool ScriptParser::readAssignment(llvm::StringRef Tok) {
   if (Tok == "ASSERT") {
     readAssert();
     // Read optional semi-colon at the end of ASSERT.
@@ -130,13 +110,10 @@ bool ScriptParser::readAssignment() {
       (Op.size() == 2 && Op[1] == '=' && strchr("*/+-&|^", Op[0])) ||
       Op == "<<=" || Op == ">>=") {
     Ret = readSymbolAssignment(Tok);
-    if (!Ret)
-      return false;
   } else if (Tok == "PROVIDE" || Tok == "HIDDEN" || Tok == "PROVIDE_HIDDEN") {
     readProvideHidden(Tok);
     Ret = true;
-  } else
-    prev();
+  }
   if (Ret)
     expectButContinue(";");
   return Ret;
@@ -565,11 +542,11 @@ void ScriptParser::readSections() {
   expect("{");
   ThisScriptFile.enterSectionsCmd();
   while (peek() != "}" && !atEOF()) {
-    if (readInclude()) {
-    } else if (readAssignment()) {
+    llvm::StringRef Tok = next();
+    if (readInclude(Tok)) {
+    } else if (readAssignment(Tok)) {
     } else {
-      llvm::StringRef SectName = unquote(next(LexState::SectionName));
-      readOutputSectionDescription(SectName);
+      readOutputSectionDescription(Tok);
     }
   }
   expect("}");
@@ -639,23 +616,21 @@ void ScriptParser::readOutput() {
   expect(")");
 }
 
-void ScriptParser::readOutputSectionDescription(llvm::StringRef OutSectName) {
+void ScriptParser::readOutputSectionDescription(llvm::StringRef Tok) {
+  llvm::StringRef OutSectName = unquote(Tok);
   OutputSectDesc::Prolog Prologue = readOutputSectDescPrologue();
   ThisScriptFile.enterOutputSectDesc(OutSectName.str(), Prologue);
   expect("{");
   while (peek() != "}" && !atEOF()) {
-    StringRef Tok = peek();
+    StringRef Tok = next();
     if (Tok == ";") {
       // Empty commands are allowed. Do nothing.
-      skip();
     } else if (Tok == "FILL") {
-      skip();
       readFill();
-    } else if (readInclude()) {
-    } else if (readOutputSectionData()) {
-    } else if (readAssignment()) {
+    } else if (readInclude(Tok)) {
+    } else if (readOutputSectionData(Tok)) {
+    } else if (readAssignment(Tok)) {
     } else {
-      Tok = next();
       readInputSectionDescription(Tok);
     }
   }
@@ -935,8 +910,7 @@ void ScriptParser::readNoCrossRefs() {
   ThisScriptFile.addNoCrossRefs(*SL);
 }
 
-bool ScriptParser::readPluginDirective() {
-  llvm::StringRef Tok = peek();
+bool ScriptParser::readPluginDirective(llvm::StringRef Tok) {
   std::optional<plugin::Plugin::Type> OptPluginType =
       llvm::StringSwitch<std::optional<plugin::Plugin::Type>>(Tok)
           .Case("PLUGIN_SECTION_MATCHER", plugin::Plugin::Type::SectionMatcher)
@@ -947,7 +921,6 @@ bool ScriptParser::readPluginDirective() {
           .Default(std::nullopt);
   if (!OptPluginType.has_value())
     return false;
-  skip();
   expect("(");
   llvm::StringRef LibName = unquote(next());
   expect(",");
@@ -978,9 +951,9 @@ void ScriptParser::readOutputArch() {
 void ScriptParser::readMemory() {
   expect("{");
   while (peek() != "}" && !atEOF()) {
-    if (readInclude())
-      continue;
     llvm::StringRef Tok = next();
+    if (readInclude(Tok))
+      continue;
     llvm::StringRef Name = Tok;
     StrToken *MemoryAttrs = nullptr;
     if (consume("(")) {
@@ -1061,8 +1034,7 @@ void ScriptParser::readRegionAlias() {
   ThisScriptFile.addRegionAlias(AliasToken, RegionToken);
 }
 
-bool ScriptParser::readOutputSectionData() {
-  llvm::StringRef Tok = peek();
+bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
   std::optional<OutputSectData::OSDKind> OptDataKind =
       llvm::StringSwitch<std::optional<OutputSectData::OSDKind>>(Tok)
           .Case("BYTE", OutputSectData::OSDKind::Byte)
@@ -1073,7 +1045,6 @@ bool ScriptParser::readOutputSectionData() {
           .Default(std::nullopt);
   if (!OptDataKind.has_value())
     return false;
-  skip();
   expect("(");
   Expression *Exp = readExpr();
   expect(")");
@@ -1195,11 +1166,9 @@ ExcludeFiles *ScriptParser::readExcludeFile() {
   return CurrentExcludeFiles;
 }
 
-bool ScriptParser::readInclude() {
-  llvm::StringRef Tok = peek();
+bool ScriptParser::readInclude(llvm::StringRef Tok) {
   if (Tok != "INCLUDE" && Tok != "INCLUDE_OPTIONAL")
     return false;
-  skip();
   bool IsOptionalInclude = Tok == "INCLUDE_OPTIONAL";
   llvm::StringRef FileName = unquote(next());
   LayoutInfo *layoutInfo = ThisScriptFile.module().getLayoutInfo();
@@ -1299,9 +1268,9 @@ void ScriptParser::readVersionDeclaration(llvm::StringRef VerStr) {
 
 void ScriptParser::readVersionSymbols(VersionScriptNode &VSN) {
   while (!consume("}") && !atEOF()) {
-    if (readInclude())
-      continue;
     llvm::StringRef Tok = next();
+    if (readInclude(Tok))
+      continue;
     if (Tok == "extern") {
       readVersionExtern(VSN);
     } else {
@@ -1363,9 +1332,9 @@ void ScriptParser::readDynamicList() {
   while (!atEOF() && consume("{")) {
     ThisScriptFile.createDynamicList();
     while (!consume("}") && !atEOF()) {
-      if (readInclude())
-        continue;
       llvm::StringRef Tok = next();
+      if (readInclude(Tok))
+        continue;
       WildcardPattern *TokPat = ThisScriptFile.createWildCardPattern(Tok);
       ThisScriptFile.addSymbolToDynamicList(
           ThisScriptFile.createScriptSymbol(TokPat));
@@ -1381,9 +1350,9 @@ void ScriptParser::readExternList() {
   while (!atEOF() && consume("{")) {
     ThisScriptFile.createExternCmd();
     while (!consume("}") && !atEOF()) {
-      if (readInclude())
-        continue;
       llvm::StringRef Tok = next();
+      if (readInclude(Tok))
+        continue;
       ThisScriptFile.addSymbolToExternList(
           ThisScriptFile.createScriptSymbol(Tok));
       expect(";");

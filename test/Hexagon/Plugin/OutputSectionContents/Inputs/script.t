@@ -1,7 +1,7 @@
 PLUGIN_OUTPUT_SECTION_ITER("OutputSectionContents", "OutputSectionContents");
 
 SECTIONS {
-  .rodata: {
+  .rodata : {
     *(.nobits)
     *(.rodata*)
     FILL(97)

@@ -32,8 +32,7 @@ class ScriptLexer {
 public:
   enum class LexState {
     Default,
-    Expr,
-    SectionName,
+    Expr
   };
 
   explicit ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile);
@@ -98,12 +97,6 @@ public:
   /// Returns true if there are no reported errors that should
   /// end the link abruptly.
   bool diagnose() const;
-
-  /// Move the cursor to the previous token. This can be used to move the cursor
-  /// back by at most one token. Consecutive calls to prev, without any next()
-  /// calls in between, does not change the cursor position. If there
-  /// is no previous token, this function is no-op.
-  void prev();
 
   size_t computeLineNumber(llvm::StringRef tok);
 

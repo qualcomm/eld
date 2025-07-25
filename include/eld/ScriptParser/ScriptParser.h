@@ -54,7 +54,7 @@ private:
   /// - HIDDEN(symbol [op]= expression);
   /// - PROVIDE(symbol = expression);
   /// - PROVIDE_HIDDEN(symbol = expression);
-  bool readAssignment();
+  bool readAssignment(llvm::StringRef Tok);
 
   /// This is an operator-precedence parser to parse a linker
   /// script expression.
@@ -125,7 +125,7 @@ private:
 
   void readOutput();
 
-  void readOutputSectionDescription(llvm::StringRef OutSectName);
+  void readOutputSectionDescription(llvm::StringRef Tok);
 
   void readInputSectionDescription(llvm::StringRef Tok);
 
@@ -152,7 +152,7 @@ private:
 
   void readNoCrossRefs();
 
-  bool readPluginDirective();
+  bool readPluginDirective(llvm::StringRef Tok);
 
   void readSearchDir();
 
@@ -168,7 +168,7 @@ private:
 
   void readRegionAlias();
 
-  bool readOutputSectionData();
+  bool readOutputSectionData(llvm::StringRef Tok);
 
   std::optional<WildcardPattern::SortPolicy> readSortPolicy();
 
@@ -185,7 +185,7 @@ private:
 
   ExcludeFiles *readExcludeFile();
 
-  bool readInclude();
+  bool readInclude(llvm::StringRef Tok);
 
   llvm::StringRef readParenName();
 

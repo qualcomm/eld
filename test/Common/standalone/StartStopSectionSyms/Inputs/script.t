@@ -3,7 +3,7 @@ SECTIONS {
   .text :  { *(.text*) }
   . = 0x1000;
   foo : { *(*foo*) }
-  .=0x2000;
+  . = 0x2000;
   bar : { *(*bar*)
   . =  ABSOLUTE(0x3000);}
 
