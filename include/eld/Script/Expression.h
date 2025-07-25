@@ -71,6 +71,7 @@ public:
     BITWISE_LS,
     BITWISE_OR,
     BITWISE_AND,
+    BITWISE_XOR,
     MAX,
     MIN,
     FILL,
@@ -167,6 +168,8 @@ public:
   bool isBitWiseOR() const { return (ThisType == BITWISE_OR); }
 
   bool isBitWiseAND() const { return (ThisType == BITWISE_AND); }
+
+  bool isBitWiseXOR() const { return (ThisType == BITWISE_XOR); }
 
   bool isMax() const { return (ThisType == MAX); }
 
@@ -1202,6 +1205,34 @@ public:
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isBitWiseAND(); }
+
+private:
+  bool hasDot() const override;
+  void commit() override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
+  eld::Expected<uint64_t> evalImpl() override;
+  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return &LeftExpression; }
+  Expression *getRightExpression() const override { return &RightExpression; }
+
+  Expression &LeftExpression;  /// represents the left hand operand.
+  Expression &RightExpression; /// represents the right hand operand.
+};
+
+//===----------------------------------------------------------------------===//
+/** \class BitwiseXor
+ *  \brief This class extends an Expression to a Bitwise Xor operator.
+ */
+class BitwiseXor : public Expression {
+public:
+  BitwiseXor(Module &Module, GNULDBackend &Backend, Expression &Left,
+             Expression &Right)
+      : Expression("^", Expression::BITWISE_XOR, Module, Backend),
+        LeftExpression(Left), RightExpression(Right) {}
+
+  // Casting support
+  static bool classof(const Expression *Exp) { return Exp->isBitWiseXOR(); }
 
 private:
   bool hasDot() const override;

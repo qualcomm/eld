@@ -97,6 +97,11 @@ bool OutputTarWriter::createMappingFile() {
     std::string Category = MappingFile::getMappingCategoryForInputFile(F);
     (*INIFileWriter)[Category][Path] = Hash;
   }
+
+  for (const auto &P : m_StringMap) {
+    (*INIFileWriter)["StringMap"][P.first] = P.second;
+  }
+
   if (m_Verbose)
     m_Config.raise(Diag::created_mapping_file)
         << mappingFileName << getMappings();

@@ -59,6 +59,10 @@ public:
 
   void clearFragments();
 
+  void setRuleHash(uint64_t RHash) { RuleHash = RHash; }
+
+  std::optional<uint64_t> getRuleHash() const { return RuleHash; }
+
   void init(ELFSection *);
 
   sym_iterator symBegin() { return MSymbolAssignments.begin(); }
@@ -131,6 +135,7 @@ public:
   std::string getAsString() const;
 
 private:
+  std::optional<uint64_t> RuleHash;
   InputSectDesc::Policy MPolicy;
   InputSectDesc::Spec MSpec;
   ELFSection *MPSection;

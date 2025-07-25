@@ -653,6 +653,9 @@ struct DLL_A_EXPORT InputSectionSpec : public ScriptCommand {
   /// \returns the internal ScriptCommand object.
   eld::ScriptCommand *getCommand() const override;
 
+  std::string getAsString(bool useNewLine, bool withValues,
+                          bool addIndent) const;
+
   /// \returns the Linker script rule defined by the Input Section spec.
   plugin::LinkerScriptRule getLinkerScriptRule() const;
 
@@ -660,6 +663,10 @@ struct DLL_A_EXPORT InputSectionSpec : public ScriptCommand {
 
   /// \returns the number of sections that the Rule matched.
   uint32_t getNumRuleMatches() const;
+
+  /// \returns the hash of the linkerscript rule defined by the input section
+  /// spec
+  uint64_t getHash() const;
 
   /// \returns the total time taken by the Linker for matching.
   uint32_t getMatchTime() const;
@@ -941,6 +948,11 @@ struct DLL_A_EXPORT LinkerScript {
 
   /// \returns Linker script commands from the linker script.
   std::vector<plugin::Script::ScriptCommand *> &getCommands();
+
+  /// \returns true if the linkerscript has rules; returns false otherwise
+  /// \note The rules in a linkerscript define how the linker should arrange
+  /// sections of object files into the final executable or binary.
+  bool linkerScriptHasRules();
 
   /// Get the linker script object
   eld::LinkerScript *getLinkerScript() const { return m_LinkerScript; }

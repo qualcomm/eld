@@ -256,6 +256,7 @@ bool HexagonRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_HEX_IE_32:
   case llvm::ELF::R_HEX_IE_32_6_X:
   case llvm::ELF::R_HEX_IE_16_X:
+    return true;
   case llvm::ELF::R_HEX_TPREL_LO16:
   case llvm::ELF::R_HEX_TPREL_HI16:
   case llvm::ELF::R_HEX_TPREL_32:
@@ -263,7 +264,7 @@ bool HexagonRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_HEX_TPREL_16_X:
   case llvm::ELF::R_HEX_TPREL_11_X:
   case llvm::ELF::R_HEX_TPREL_16:
-    return true;
+    return !config().options().isPIE();
   default:
     return false;
   }

@@ -900,8 +900,7 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   // force output alignment from ldscript if any
   if (Output->prolog().hasAlign()) {
-    Output->prolog().align().eval();
-    Output->prolog().align().commit();
+    Output->prolog().align().evaluateAndRaiseError();
     OutAlign = Output->prolog().align().result();
     if (OutAlign && !isPowerOf2_64(OutAlign)) {
       ThisConfig.raise(Diag::error_non_power_of_2_value_to_align_output_section)
@@ -1695,6 +1694,7 @@ bool ObjectLinker::addScriptSymbols() {
                     Vis, true /*PostLTOPhase*/);
       LLVM_FALLTHROUGH;
     case Assignment::ASSERT:
+      AssignCmd->setUsed(true);
       break;
     }
     case Assignment::PROVIDE_HIDDEN:

@@ -29,6 +29,8 @@ DIAG(promoting_bss_to_progbits, DiagnosticEngine::Note,
      "Section %0(%1) is before %2(%3), Promoting %0 to PROGBITS")
 DIAG(undefined_symbol_in_linker_script, DiagnosticEngine::Fatal,
      "%0: Error: undefined symbol '%1' referenced in expression")
+DIAG(error_sect_invalid, DiagnosticEngine::Error,
+     "%0: Invalid section '%1'")
 DIAG(warn_section_no_segment, DiagnosticEngine::Warning,
      "Section %0 does not have segment assignment in linker script.")
 DIAG(fatal_segment_not_defined_ldscript, DiagnosticEngine::Fatal,

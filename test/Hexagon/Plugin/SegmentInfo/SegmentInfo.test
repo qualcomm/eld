@@ -30,7 +30,7 @@ CHECK-NEXT:        paddr 76
 CHECK-NEXT:        filesz 120
 CHECK-NEXT:        memsz 120
 CHECK-NEXT:        flag 6
-CHECK-NEXT:        align 4096
+CHECK-NEXT:        align 4
 CHECK-NEXT:        max section align 4
 CHECK-NEXT:        .dynamic
 CHECK-NEXT: A

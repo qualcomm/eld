@@ -123,6 +123,11 @@ public:
   // Add all undefined references from assignmnent expressions
   void processAssignment(Module &M, InputFile &I);
 
+  // set property to check if the assignment expression is used
+  void setUsed(bool Used) { IsUsed = Used; }
+
+  bool isUsed() const { return IsUsed; }
+
 private:
   bool checkLinkerScript(Module &CurModule);
 
@@ -133,6 +138,8 @@ private:
   std::string Name;
   Expression *ExpressionToEvaluate;
   LDSymbol *ThisSymbol;
+  /* Signifies if the assignment expression is evaluated */
+  bool IsUsed = false;
 };
 
 } // namespace eld

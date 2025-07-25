@@ -125,10 +125,14 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
   bool CloseParen = false;
   switch (type()) {
   case PROVIDE:
+    if (!IsUsed && !WithValues)
+      Ostream << "!";
     Ostream << "PROVIDE(";
     CloseParen = true;
     break;
   case PROVIDE_HIDDEN:
+    if (!IsUsed && !WithValues)
+      Ostream << "!";
     Ostream << "PROVIDE_HIDDEN(";
     CloseParen = true;
     break;

@@ -1,0 +1,14 @@
+#---XorOperatorLinkerScript.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks the result of xor operator supported by the linkerscript.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %link %linkopts -T %p/Inputs/script.t %t1.o -Map %t1.1.map.txt -o %t2.out
+RUN: %readelf -l %t2.out | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+
+#CHECK: LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}}1110 {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} R E {{[x0-9a-z]+}}
+#MAP: .({{[x0-9a-z]+}}1100) = {{[x0-9a-z]+}}1000 ^ {{[x0-9a-z]+}}100
+#MAP: .({{[x0-9a-z]+}}1110) ^= {{[x0-9a-z]+}}10
+#END_TEST

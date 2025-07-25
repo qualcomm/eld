@@ -309,10 +309,11 @@ bool RISCVRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_RISCV_HI20:
   case llvm::ELF::R_RISCV_LO12_I:
   case llvm::ELF::R_RISCV_LO12_S:
+    return true;
   case llvm::ELF::R_RISCV_TPREL_HI20:
   case llvm::ELF::R_RISCV_TPREL_LO12_I:
   case llvm::ELF::R_RISCV_TPREL_LO12_S:
-    return true;
+    return !config().options().isPIE();
   case llvm::ELF::R_RISCV_SET_ULEB128:
   case llvm::ELF::R_RISCV_SUB_ULEB128:
     return m_Target.isSymbolPreemptible(*pReloc.symInfo());

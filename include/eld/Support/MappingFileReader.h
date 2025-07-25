@@ -31,8 +31,12 @@ public:
     if (!r || (r && !r.value()))
       return false;
     for (const std::string &category : reader->getSections())
-      for (const auto &p : (*reader)[category].getItems())
-        pConfig.addMapping(p.first, p.second);
+      for (const auto &p : (*reader)[category].getItems()) {
+        if (category == "StringMap")
+          pConfig.addStringMapEntry(p.first, p.second);
+        else
+          pConfig.addMapping(p.first, p.second);
+      }
     return true;
   }
 

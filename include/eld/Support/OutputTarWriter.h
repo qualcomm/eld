@@ -14,6 +14,7 @@
 #include "eld/Support/INIWriter.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TarWriter.h"
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -93,6 +94,10 @@ public:
   /// Adds all the members of the thin archive AF in the reproducer.
   void addThinArchiveMembers(const ArchiveFile *AF);
 
+  void addStringMapping(const std::string &Key, const std::string &Val) {
+    m_StringMap[Key] = Val;
+  }
+
 private:
   std::string getHashAndExtension(const Input *ipt) const;
 
@@ -114,6 +119,7 @@ private:
   std::string tarFilePath;
   bool m_Compress = false;
   bool m_Verbose = false;
+  std::unordered_map<std::string, std::string> m_StringMap;
 };
 } // namespace eld
 

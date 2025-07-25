@@ -299,6 +299,11 @@ void ScriptLexer::expect(StringRef Expect) {
   }
 }
 
+void ScriptLexer::expect(enum LexState LState, llvm::StringRef ExpectedTok) {
+  llvm::SaveAndRestore SaveLexState(LexState, LState);
+  expect(ExpectedTok);
+}
+
 void ScriptLexer::expectButContinue(StringRef Expect) {
   if (!diagnose())
     return;

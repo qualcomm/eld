@@ -1,0 +1,13 @@
+#---AlignOfInvalidSection.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks whether the linker errors out when an invalid section
+# is passed to the ALIGNOF command supported by the linkerscript.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections
+RUN: %not %link %linkopts -T %p/Inputs/script.t %t1.o -o %t2.out 2>&1 | %filecheck %s -check-prefix=ERR
+
+#ERR: Error: {{[ -\(\)_A-Za-z0-9.\\/:]+}}script.t: Invalid section 'NON_EXISTENT_SECTION'
+#ERR: Fatal: Linking had errors.
+#END_TEST

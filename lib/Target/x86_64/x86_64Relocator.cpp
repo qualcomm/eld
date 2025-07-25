@@ -346,6 +346,21 @@ Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
   return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options);
 }
 
+Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
+                                  RelocationDescription &pRelocDesc) {
+
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  Relocator::Address S = pReloc.symValue(pParent.module());
+  Relocator::DWord A = pReloc.addend();
+  Relocator::DWord P = pReloc.place(pParent.module());
+  const GeneralOptions &options = pParent.config().options();
+
+  // Static Linking : PLT32 behaves as PC32
+  Relocator::Address Result = S + A - P;
+
+  return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options);
+}
+
 Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
                                  RelocationDescription &pRelocDesc) {
   return x86_64Relocator::Unsupport;

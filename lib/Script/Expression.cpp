@@ -112,7 +112,7 @@ void Symbol::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
   if (WithValues) {
     Outs << "(0x";
-    Outs.write_hex(*MResult) << ")";
+    Outs.write_hex(resultOrZero()) << ")";
   }
 }
 
@@ -426,7 +426,7 @@ void SizeOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "SIZEOF(" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
   Outs << ")";
 }
@@ -493,7 +493,7 @@ void SizeOfHeaders::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (WithValues) {
     Outs << "("
          << " = 0x";
-    Outs.write_hex(*MResult) << ")";
+    Outs.write_hex(resultOrZero()) << ")";
   }
 }
 
@@ -523,7 +523,7 @@ void Addr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "ADDR(\"" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
   Outs << "\")";
 }
@@ -561,7 +561,7 @@ void LoadAddr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "LOADADDR(" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
   Outs << ")";
 }
@@ -591,7 +591,7 @@ void OffsetOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "OFFSETOF(" << Name;
   if (WithValues) {
     Outs << " = 0x";
-    Outs.write_hex(*MResult);
+    Outs.write_hex(resultOrZero());
   }
 }
 eld::Expected<uint64_t> OffsetOf::evalImpl() {
@@ -636,12 +636,17 @@ eld::Expected<uint64_t> Ternary::evalImpl() {
     return Cond;
   return Cond.value() ? LeftExpression.eval() : RightExpression.eval();
 }
+
 void Ternary::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   ConditionExpression.getSymbols(Symbols);
-  if (ConditionExpression.result())
-    LeftExpression.getSymbols(Symbols);
-  else
-    RightExpression.getSymbols(Symbols);
+  // FIXME: Ideally, one of the LeftExpression / RightExpression should
+  // be selected depending upon the ConditionExpression evaluation. However,
+  // we need to add undefined symbols before the expressions are ready to be
+  // evaluated. It is safer to add an extra (redundant) symbol as compared to
+  // not adding a required symbol, as the latter can cause incorrect
+  // garbage-collection -- that is garbage-collecting a required symbol.
+  LeftExpression.getSymbols(Symbols);
+  RightExpression.getSymbols(Symbols);
 }
 
 void Ternary::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
@@ -726,7 +731,10 @@ eld::Expected<uint64_t> AlignOf::evalImpl() {
   // sections are known only after all the assignments are complete
   if (ThisSection == nullptr)
     ThisSection = ThisModule.getScript().sectionMap().find(Name);
-  assert(ThisSection != nullptr);
+  if (!ThisSection) {
+    return std::make_unique<plugin::DiagnosticEntry>(
+        Diag::error_sect_invalid, std::vector<std::string>{Name});
+  }
   // evaluate sub expressions
   return ThisSection->getAddrAlign();
 }
@@ -1339,6 +1347,49 @@ void BitwiseOr::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
 }
 
 bool BitwiseOr::hasDot() const {
+  return LeftExpression.hasDot() || RightExpression.hasDot();
+}
+
+//===----------------------------------------------------------------------===//
+/// BitwiseXor Operator
+void BitwiseXor::commit() {
+  LeftExpression.commit();
+  RightExpression.commit();
+  Expression::commit();
+}
+void BitwiseXor::dump(llvm::raw_ostream &Outs, bool WithValues) const {
+  if (ExpressionHasParenthesis)
+    Outs << "(";
+  if (!hasAssign()) {
+    // format output for operator
+    LeftExpression.dump(Outs, WithValues);
+    Outs << " " << Name << " ";
+  }
+  RightExpression.dump(Outs, WithValues);
+  if (ExpressionHasParenthesis)
+    Outs << ")";
+}
+eld::Expected<uint64_t> BitwiseXor::evalImpl() {
+  // evaluate sub expressions
+  auto Left = LeftExpression.eval();
+  if (!Left)
+    return Left;
+  auto Right = RightExpression.eval();
+  if (!Right)
+    return Right;
+  return Left.value() ^ Right.value();
+}
+void BitwiseXor::getSymbols(std::vector<ResolveInfo *> &Symbols) {
+  LeftExpression.getSymbols(Symbols);
+  RightExpression.getSymbols(Symbols);
+}
+
+void BitwiseXor::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
+  LeftExpression.getSymbolNames(SymbolTokens);
+  RightExpression.getSymbolNames(SymbolTokens);
+}
+
+bool BitwiseXor::hasDot() const {
   return LeftExpression.hasDot() || RightExpression.hasDot();
 }
 

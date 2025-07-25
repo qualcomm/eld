@@ -59,6 +59,7 @@ public:
   bool isDebugKind() const { return ELFSectionKind == LDFileFormat::Debug; }
   bool isNoteKind() const { return ELFSectionKind == LDFileFormat::Note; }
   bool isGroupKind() const { return ELFSectionKind == LDFileFormat::Group; }
+  bool isNamePool() const { return ELFSectionKind == LDFileFormat::NamePool; }
   bool isRelocationKind() const {
     return ELFSectionKind == LDFileFormat::Relocation;
   }

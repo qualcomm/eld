@@ -586,6 +586,22 @@ bool plugin::Script::InputSectionSpec::isInternal() const {
   return m_InputSectionSpec->isSpecial();
 }
 
+uint64_t plugin::Script::InputSectionSpec::getHash() const {
+  if (!*this)
+    return 0;
+  return m_InputSectionSpec->getRuleHash();
+}
+
+std::string
+plugin::Script::InputSectionSpec::getAsString(bool useNewLine, bool withValues,
+                                              bool addIndent) const {
+  std::string outs;
+  llvm::raw_string_ostream ostream(outs);
+  m_InputSectionSpec->dumpMap(ostream, /*useColor*/ false, useNewLine,
+                              withValues, addIndent);
+  return outs;
+}
+
 plugin::Script::InputSectionSpec::~InputSectionSpec() {}
 
 //
@@ -756,6 +772,12 @@ plugin::LinkerScript::getCommands() {
 
 bool plugin::LinkerScript::hasSectionsCommand() const {
   return m_LinkerScript && m_LinkerScript->linkerScriptHasSectionsCommand();
+}
+
+bool plugin::LinkerScript::linkerScriptHasRules() {
+  if (!m_LinkerScript)
+    return false;
+  return m_LinkerScript->linkerScriptHasRules();
 }
 
 std::string plugin::LinkerScript::getHash() const {

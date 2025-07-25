@@ -2149,7 +2149,6 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
     const std::string name = ((*phdr)->spec().name());
     _segments[name] = segment;
     segment->setName(name);
-    segment->setAlign(abiPageSize());
     elfSegmentTable().addSegment(segment);
     // If the linker script requests for a GNU stack segment to be
     // created, the linker should create one by using the properties
@@ -3158,6 +3157,9 @@ bool GNULDBackend::layout() {
   if (m_Module.getScript().phdrsSpecified() && !config().isLinkPartial())
     checkForLinkerScriptPhdrErrors();
 
+  // Check for segment information and emit warnings if any
+  verifySegments();
+
   if (!config().getDiagEngine()->diagnose()) {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
@@ -3555,45 +3557,23 @@ void GNULDBackend::maybeFillRegion(const OutputSectionEntry *O,
   fillRegion(R, Fill->getSecond());
 }
 
-void GNULDBackend::fillRegion(MemoryRegion &region,
+void GNULDBackend::fillRegion(MemoryRegion &Region,
                               const std::vector<PaddingT> &FillV) const {
-  unsigned char *sectionBegin = region.begin();
-  for (auto &fval : FillV) {
-    Expression *fill = fval.Exp;
-    if (!fill)
+  for (auto &FV : FillV) {
+    Expression *Fill = FV.Exp;
+    if (!Fill)
       continue;
-    uint64_t fillValue = fill->result();
-    int64_t startOffset = fval.startOffset;
-    int fillValueSize =
-        (fillValue > 0xFFFFFFFF
-             ? 8
-             : (fillValue > 0xFFFF ? 4 : (fillValue > 0xFF ? 2 : 1)));
-    int64_t endOffset = fval.endOffset;
-    int64_t fillSize = endOffset - startOffset;
-
-    if (fillSize < 0)
-      continue;
-    uint64_t numTiles = fillSize / fillValueSize;
-    for (size_t i = 0; i != numTiles; ++i) {
-      switch (fillValueSize) {
-      case 1:
-        llvm::support::endian::write<uint8_t, llvm::endianness::big>(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      case 2:
-        llvm::support::endian::write16be(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      case 4:
-        llvm::support::endian::write32be(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      case 8:
-        llvm::support::endian::write64be(
-            sectionBegin + startOffset + i * fillValueSize, fillValue);
-        break;
-      }
-    }
+    uint64_t FillValue = Fill->result();
+    uint64_t FillValueSize =
+        FillValue > 0xFFFFFFFF
+            ? 8
+            : (FillValue > 0xFFFF ? 4 : (FillValue > 0xFF ? 2 : 1));
+    std::array<uint8_t, sizeof(uint64_t)> Buf;
+    llvm::support::endian::write64be(Buf.data(), FillValue);
+    uint32_t StartIdx = 8 - FillValueSize;
+    for (uint32_t I = 0; I < FV.endOffset - FV.startOffset; ++I)
+      std::memcpy(Region.begin() + I + FV.startOffset,
+                  Buf.data() + I % FillValueSize + StartIdx, 1);
   }
 }
 
@@ -4036,8 +4016,6 @@ bool GNULDBackend::relax() {
     config().raiseDiagEntry(std::move(E.error()));
     return config().getDiagEngine()->diagnose();
   }
-
-  verifySegments();
 
   return config().getDiagEngine()->diagnose();
 }
@@ -4648,16 +4626,16 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
   bool isPSymDef = PSymDef != m_SymDefProvideMap.end();
   bool Patchable = false;
   if (P != ProvideMap.end()) {
-    if (P->getValue().provideCmd->isProvideHidden())
+    if (P->second->isProvideHidden())
       V = ResolveInfo::Hidden;
     resolverType = ResolveInfo::NoType;
-    file = P->second.provideCmd->getInputFileInContext();
+    file = P->second->getInputFileInContext();
     // FIXME: We ideally should not need this. It is added so that the link
     // does not fail if the provide command does not have input file context due
     // to any corner case.
     if (!file)
       file = m_Module.getInternalInput(Module::Script);
-    P->getValue().isUsed = true;
+    P->second->setUsed(true);
   } else if (isPSymDef) {
     resolverType = std::get<0>(PSymDef->second);
     symVal = std::get<1>(PSymDef->second);
@@ -4960,11 +4938,7 @@ bool GNULDBackend::assignMemoryRegions() {
 }
 
 bool GNULDBackend::isProvideSymBeingUsed(const Assignment *provideCmd) const {
-  llvm::StringRef symName = provideCmd->name();
-  auto it = ProvideMap.find(symName);
-  ASSERT(it != ProvideMap.end(), "Provide symbol not found!");
-  const ProvideMapValueType &val = it->getValue();
-  return val.provideCmd == provideCmd && val.isUsed;
+  return provideCmd->isUsed();
 }
 
 eld::Expected<void> GNULDBackend::printMemoryRegionsUsage() {
@@ -5037,6 +5011,7 @@ void GNULDBackend::createFileHeader() {
     m_ehdr->setFlags(llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR);
   m_ehdr->setSize(getOneEhdrSize());
   m_ehdr->setHasNoFragments();
+  m_ehdr->setAddrAlign(config().targets().is32Bits() ? 4 : 8);
 }
 
 void GNULDBackend::addFileHeaderToLayout() {
@@ -5182,4 +5157,36 @@ bool GNULDBackend::verifySegments() const {
       config().raise(Diag::warn_empty_segment) << S->name();
   }
   return true;
+}
+
+bool GNULDBackend::setupTLS() {
+  ELFSection *firstTLS = nullptr;
+  bool seenTLS = false;
+  bool lastSectTLS = false;
+  uint32_t MaxAlignment = 1;
+  SectionMap::iterator out, outBegin, outEnd;
+  outBegin = m_Module.getScript().sectionMap().begin();
+  outEnd = m_Module.getScript().sectionMap().end();
+  out = outBegin;
+  while (out != outEnd) {
+    auto sec = (*out)->getSection();
+    if (sec->isTLS() && (sec->size() > 0)) {
+      if (seenTLS && !lastSectTLS) {
+        config().raise(Diag::non_contiguous_TLS)
+            << firstTLS->name() << sec->name();
+      }
+      if (!firstTLS)
+        firstTLS = sec;
+      lastSectTLS = true;
+      seenTLS = true;
+    } else {
+      lastSectTLS = false;
+    }
+    if (lastSectTLS && MaxAlignment < sec->getAddrAlign())
+      MaxAlignment = sec->getAddrAlign();
+    out++;
+  }
+  if (firstTLS)
+    firstTLS->setAddrAlign(MaxAlignment);
+  return seenTLS;
 }
