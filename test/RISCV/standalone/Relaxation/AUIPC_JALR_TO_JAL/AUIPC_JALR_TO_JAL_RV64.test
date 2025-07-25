@@ -12,7 +12,7 @@ VERBOSE_RELAX_C: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0
 VERBOSE_RELAX_C: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x780 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x87c file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffef8 file {{.*}}.o
-VERBOSE_RELAX_C: RISCV_CALL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_CALL : Cannot relax 6 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
 VERBOSE_RELAX_C-NOT: Cannot relax
 
 RUN: %objdump -d %t.1.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX_C
@@ -26,25 +26,27 @@ DUMP_RELAX_C: f10080e7  jalr
 RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP_RELAX_C
 MAP_RELAX_C: # LinkStats Begin
 MAP_RELAX_C: # RelaxationBytesDeleted : 16
-MAP_RELAX_C: # RelaxationBytesMissed : 4
+MAP_RELAX_C: # RelaxationBytesMissed : 14
 MAP_RELAX_C: # LinkStats End
 
 MAP_RELAX_C: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
 MAP_RELAX_C: # RelaxationBytesDeleted : 16
-MAP_RELAX_C: # RelaxationBytesMissed : 4
+MAP_RELAX_C: # RelaxationBytesMissed : 14
 MAP_RELAX_C: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
 
 # Only non-compressed relaxations are enabled.
 RUN: %link %linkopts --no-relax-c %t.o -o %t.2.out -MapStyle txt -Map %t.2.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
-VERBOSE_RELAX: RISCV_CALL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
+VERBOSE_RELAX: RISCV_CALL : Cannot relax 6 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
 
 RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP_RELAX
 MAP_RELAX: # LinkStats Begin
-MAP_RELAX: # RelaxationBytesMissed : 4
+MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: # RelaxationBytesMissed : 14
 MAP_RELAX: # LinkStats End
 
 MAP_RELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
-MAP_RELAX: # RelaxationBytesMissed : 4
+MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: # RelaxationBytesMissed : 14
 MAP_RELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
 
 ### Relaxations are disabled.
@@ -52,9 +54,9 @@ RUN: %link %linkopts --no-relax %t.o -o %t.3.out -MapStyle txt -Map %t.3.map
 
 RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP_NORELAX
 MAP_NORELAX: # LinkStats Begin
-MAP_NORELAX: # RelaxationBytesMissed : 20
+MAP_NORELAX: # RelaxationBytesMissed : 30
 MAP_NORELAX: # LinkStats End
 
 MAP_NORELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
-MAP_NORELAX: # RelaxationBytesMissed : 20
+MAP_NORELAX: # RelaxationBytesMissed : 30
 MAP_NORELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2

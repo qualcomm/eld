@@ -12,10 +12,10 @@ VERBOSE_RELAX_C: RISCV_CALL_JAL : relaxing instruction 0x00000097,000080e7 to co
 VERBOSE_RELAX_C: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x4 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL_JAL : relaxing instruction 0x00000097,000080e7 to compressed instruction 0x2001 for symbol f in section .text+0x77A file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x77c file {{.*}}.o
-VERBOSE_RELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0x874 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x878 file {{.*}}.o
-VERBOSE_RELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0xffef0 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0x874 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffef4 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0xffef0 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_CALL : Cannot relax 6 bytes for symbol 'f' in section .text+0x1000ec file {{.*}}.o
 
 RUN: %objdump -d %t.1.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX_C
