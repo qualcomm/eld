@@ -124,6 +124,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
 
     bool hasVMARegion = false;
     bool hasLMARegion = false;
+    bool hasFixedLMA = false;
 
     if (isNoLoad)
       cur->setType(llvm::ELF::SHT_NOBITS);
@@ -192,7 +193,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     // Check if the user specified MEMORY
     if ((*out)->epilog().hasRegion() && !scriptvma) {
       ScriptMemoryRegion &R = (*out)->epilog().region();
-      vma = R.getAddr();
+      vma = R.getVirtualAddr(*out);
       if (isCurAllocSection)
         dotSymbol->setValue(vma);
       hasVMARegion = true;
@@ -263,7 +264,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     // Check if the segment has a LMA address that is set.
     if (isStartOfSegment) {
       if (curLoadSegment->hasFixedLMA()) {
-        useSetLMA = true;
+        hasFixedLMA = true;
         disconnect_lma_vma = true;
       }
     }
@@ -279,12 +280,13 @@ bool GNULDBackend::createScriptProgramHdrs() {
 
     // Check if the user specified MEMORY for LMA
     if ((*out)->epilog().hasLMARegion()) {
-      useSetLMA = true;
+      hasLMARegion = true;
       disconnect_lma_vma = true;
     }
 
     // Adjust the offset with VMA.
-    if (prev && !useSetLMA && disconnect_lma_vma) {
+    if (prev && (!useSetLMA || !hasLMARegion || !hasFixedLMA) &&
+        disconnect_lma_vma) {
       // if pma was previously defined but not for this section then increment
       // this pma by the prev->pAddr + size and include the vmaoffset if this
       // not the start of a new segment.
@@ -305,27 +307,29 @@ bool GNULDBackend::createScriptProgramHdrs() {
     cur->setAddr(vma);
 
     if (useSetLMA) {
-      if ((*out)->epilog().hasLMARegion()) {
-        ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
-        pma = R.getAddr();
-        hasLMARegion = true;
-      } else if ((*out)->prolog().hasLMA()) {
-        (*out)->prolog().lma().evaluateAndRaiseError();
-        pma = (*out)->prolog().lma().result();
-      } else if (curLoadSegment->hasFixedLMA()) {
-        // If the current segment has a fixed LMA address, then
-        curLoadSegment->fixedLMA()->evaluateAndRaiseError();
-        pma = curLoadSegment->fixedLMA()->result();
-      }
-    }
-    if (doAlign)
+      (*out)->prolog().lma().evaluateAndRaiseError();
+      pma = (*out)->prolog().lma().result();
+    } else if (hasVMARegion || hasLMARegion) {
+      ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
+      pma = R.getPhysicalAddr(*out);
+      if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
+        alignAddress(pma, cur->getAddrAlign());
+    } else if (hasFixedLMA) {
+      // If the current segment has a fixed LMA address, then
+      curLoadSegment->fixedLMA()->evaluateAndRaiseError();
+      pma = curLoadSegment->fixedLMA()->result();
+    } else {
       alignAddress(pma, cur->getAddrAlign());
+    }
+
     cur->setPaddr(pma);
     evaluateAssignments(*out, m_AtTableIndex);
 
     if (hasVMARegion)
       (*out)->epilog().region().addOutputSectionVMA(*out);
-    if (hasLMARegion)
+    // If LMA is set explicitly then there is no LMA region for this
+    // section.
+    if (!useSetLMA && (hasVMARegion || hasLMARegion))
       (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
     if (!config().getDiagEngine()->diagnose()) {
       return false;

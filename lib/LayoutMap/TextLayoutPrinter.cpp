@@ -209,8 +209,15 @@ void TextLayoutPrinter::printMemoryRegions(GNULDBackend const &Backend,
 
   std::string VMARegionName = OS->epilog().region().getName();
   std::optional<std::string> LMARegionName;
-  if (OS->epilog().hasLMARegion())
-    LMARegionName = OS->epilog().lmaRegion().getName();
+  // If LMA is set on the output section those sections are not
+  // added to the default LMA region which is nothing but the
+  // alias VMA region
+  if (!OS->prolog().hasLMA()) {
+    if (OS->epilog().hasLMARegion())
+      LMARegionName = OS->epilog().lmaRegion().getName();
+    else
+      LMARegionName = VMARegionName;
+  }
   outputStream() << ", Memory : [" << VMARegionName;
   if (LMARegionName)
     outputStream() << ", " << LMARegionName;

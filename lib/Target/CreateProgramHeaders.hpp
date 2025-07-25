@@ -181,7 +181,14 @@ bool GNULDBackend::createProgramHdrs() {
   while (out != outEnd) {
     bool createPT_LOAD = false;
     bool createNOTE_segment = false;
+    // Handle AT
     bool useSetLMA = false;
+    // Handle MEMORY with VMA region
+    bool hasVMARegion = false;
+    // Handle explicit LMA specified with
+    // LMA region
+    bool hasLMARegion = false;
+
     bool curIsDebugSection = false;
 
     ELFSection *cur = (*out)->getSection();
@@ -220,9 +227,6 @@ bool GNULDBackend::createProgramHdrs() {
 
     if (isNoLoad)
       cur->setType(llvm::ELF::SHT_NOBITS);
-
-    bool hasVMARegion = false;
-    bool hasLMARegion = false;
 
     // Skip ehdr and phdr if the linker configuration does not
     // need file header and program header to be loaded
@@ -277,7 +281,7 @@ bool GNULDBackend::createProgramHdrs() {
     if ((*out)->epilog().hasRegion() && !scriptvma) {
       hasVMARegion = true;
       ScriptMemoryRegion &R = (*out)->epilog().region();
-      vma = R.getAddr();
+      vma = R.getVirtualAddr(*out);
       if (isCurAlloc)
         dotSymbol->setValue(vma);
     }
@@ -344,7 +348,7 @@ bool GNULDBackend::createProgramHdrs() {
 
     // Check if the user specified MEMORY for LMA
     if ((*out)->epilog().hasLMARegion()) {
-      useSetLMA = true;
+      hasLMARegion = true;
       disconnect_lma_vma = true;
     }
 
@@ -410,7 +414,8 @@ bool GNULDBackend::createProgramHdrs() {
     }
     // create a PT_LOAD if the pma and vma are decoupled
     bool createNewSegmentDueToLMADifference = false;
-    if (useSetLMA && (pma != vma) && (isCurAlloc) && !createPT_LOAD) {
+    if ((useSetLMA || hasLMARegion) && (pma != vma) && (isCurAlloc) &&
+        !createPT_LOAD) {
       // This will allow us to enter the condition that a PT_LOAD would need to
       // be created, since pma is not equal vma.
       createPT_LOAD = true;
@@ -441,29 +446,37 @@ bool GNULDBackend::createProgramHdrs() {
         hasError = true;
       }
       cur->setAddr(vma);
-      // Evaluate the physical address after the virtual address is set.
-      // Linux calculates the physical address from the virtual address using
-      // the ADDR linker keyword.
-      if ((*out)->epilog().hasLMARegion()) {
-        ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
-        pma = R.getAddr();
-        hasLMARegion = true;
-      } else if (useSetLMA) {
+      // Handle setting LMA and alignment of LMA
+      // Explicitly align LMA to make the code easy to read
+      if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
         pma = (*out)->prolog().lma().result();
+      } else if (hasVMARegion || hasLMARegion) {
+        ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
+        pma = R.getPhysicalAddr(*out);
+        // If LMA region has been explicitly specified
+        // do not align LMA. A LMA region exists for the VMA
+        // region just for making it easy for us to handle assigning
+        // physical addresses
+        if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
+          alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
+        alignAddress(pma, cur->getAddrAlign());
       } else if ((last_section_needs_new_segment) && (!disconnect_lma_vma)) {
         // If the LMA and VMA are disconnected, the physical address should
         // always be taken as the difference of the current virtual address
         // minus the previous virtual address.
         pma = prev->pAddr() + prev->size();
+        alignAddress(pma, cur->getAddrAlign());
       } else {
         vmaoffset = vma - (prev->addr() + prev->size());
         pma = prev->pAddr() + prev->size() + vmaoffset;
-      }
-      if (doAlign)
         alignAddress(pma, cur->getAddrAlign());
+      }
+
+      // FIXME : remove this option alignSegmentsToPage
+      // Handle the case without any linker scripts,
       if (config().options().alignSegmentsToPage())
         alignAddress(pma, segAlign);
 
@@ -486,7 +499,7 @@ bool GNULDBackend::createProgramHdrs() {
       cur->setWanted(cur->wantedInOutput() || cur->size());
       if (hasVMARegion)
         (*out)->epilog().region().addOutputSectionVMA(*out);
-      if (hasLMARegion)
+      if (!useSetLMA && (hasVMARegion || hasLMARegion))
         (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
       if (!config().getDiagEngine()->diagnose()) {
         return false;
@@ -535,26 +548,28 @@ bool GNULDBackend::createProgramHdrs() {
       if (doAlign)
         alignAddress(vma, cur->getAddrAlign());
       cur->setAddr(vma);
-      if ((*out)->epilog().hasLMARegion()) {
-        ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
-        pma = R.getAddr();
-        hasLMARegion = true;
-      } else if (useSetLMA) {
+      // FIXME : de-duplicate this case.
+      if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
         pma = (*out)->prolog().lma().result();
+      } else if (hasVMARegion || hasLMARegion) {
+        ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
+        pma = R.getPhysicalAddr(*out);
+        if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
+          alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
+        alignAddress(pma, cur->getAddrAlign());
       } else {
         vmaoffset = vma - (prev->addr() + prev->size());
         pma = prev->pAddr() + prev->size() + vmaoffset;
-      }
-      if (doAlign)
         alignAddress(pma, cur->getAddrAlign());
+      }
       cur->setPaddr(pma);
       evaluateAssignments(*out, m_AtTableIndex);
       if (hasVMARegion)
         (*out)->epilog().region().addOutputSectionVMA(*out);
-      if (hasLMARegion)
+      if (!useSetLMA && (hasVMARegion || hasLMARegion))
         (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
       if (!config().getDiagEngine()->diagnose()) {
         return false;

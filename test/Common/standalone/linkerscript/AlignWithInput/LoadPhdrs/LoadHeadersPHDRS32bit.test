@@ -1,0 +1,15 @@
+#UNSUPPORTED: aarch64, riscv64
+#---LoadPHDRS32bit.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests that ALIGN_WITH_INPUT keyword in the output section description
+# aligns the physical address according to requirements of the output section
+# when it includes PHDRS and FILEHDRS to be loaded
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/test.c -o %t1.1.o
+RUN: %link %linkopts -z max-page-size=0x1000 %t1.1.o -T %p/Inputs/script.t -Map %t2.map -MapDetail show-header-details -o %t2.out 2>&1
+RUN: %filecheck %s < %t2.map
+
+#CHECK: __ehdr__	0x0	0x34 # Offset: 0x0, LMA: 0x2fc0
+#CHECK: __pHdr__	0x34	0x{{.*}} # Offset: 0x34, LMA: 0x2ff4
+#CHECK: .a	0x1000	{{.*}} # Offset: 0x1000, LMA: 0x3fc{{.*}}
+#CHECK: .b	0x1080	{{.*}} # Offset: 0x1080, LMA: 0x3f{{.*}}

@@ -182,7 +182,17 @@ public:
       return *ScriptVMAMemoryRegion;
     }
 
-    bool hasLMARegion() const { return OutputSectionLMARegion != nullptr; }
+    // Return if the VMA region is different from the LMA region
+    // We create a fake mapping for LMA region that is the same
+    // as the VMA region to assign virtual addresses and physical
+    // addresses. If there is a real LMA region, VMA alignment
+    // would not enforce LMA alignment as the user requested
+    // a specific LMA address
+    bool hasLMARegion() const {
+      return ((ScriptLMAMemoryRegion != nullptr) &&
+              (ScriptLMAMemoryRegion != ScriptVMAMemoryRegion));
+    }
+
     const eld::ScriptMemoryRegion &lmaRegion() const {
       assert(hasLMARegion());
       return *ScriptLMAMemoryRegion;
@@ -194,15 +204,18 @@ public:
     }
 
     eld::ScriptMemoryRegion &lmaRegion() {
-      assert(hasLMARegion());
       return *ScriptLMAMemoryRegion;
     }
 
     llvm::StringRef getVMARegionName() const {
+      if (!OutputSectionMemoryRegion)
+        return llvm::StringRef();
       return OutputSectionMemoryRegion->name();
     }
 
     llvm::StringRef getLMARegionName() const {
+      if (!OutputSectionLMARegion)
+        return llvm::StringRef();
       return OutputSectionLMARegion->name();
     }
 
@@ -218,6 +231,7 @@ public:
 
     Expression *fillExp() const { return FillExpression; }
 
+    // FIXME : remove this if not needed
     bool operator==(const Epilog &RHS) const {
       /* FIXME: currently I don't check the real content */
       if (this == &RHS)
@@ -243,21 +257,12 @@ public:
       OutputSectionLMARegion = R;
     }
 
-    void init() {
-      OutputSectionMemoryRegion = nullptr;
-      OutputSectionLMARegion = nullptr;
-      ScriptVMAMemoryRegion = nullptr;
-      ScriptLMAMemoryRegion = nullptr;
-      ScriptPhdrs = nullptr;
-      FillExpression = nullptr;
-    }
-
-    const StrToken *OutputSectionMemoryRegion;
-    const StrToken *OutputSectionLMARegion;
-    ScriptMemoryRegion *ScriptVMAMemoryRegion;
-    ScriptMemoryRegion *ScriptLMAMemoryRegion;
-    mutable StringList *ScriptPhdrs;
-    Expression *FillExpression;
+    const StrToken *OutputSectionMemoryRegion = nullptr;
+    const StrToken *OutputSectionLMARegion = nullptr;
+    ScriptMemoryRegion *ScriptVMAMemoryRegion = nullptr;
+    ScriptMemoryRegion *ScriptLMAMemoryRegion = nullptr;
+    mutable StringList *ScriptPhdrs = nullptr;
+    Expression *FillExpression = nullptr;
   };
 
   typedef std::vector<ScriptCommand *> OutputSectCmds;

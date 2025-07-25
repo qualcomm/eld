@@ -885,7 +885,6 @@ std::optional<uint32_t> ScriptParser::readPhdrType(llvm::StringRef Tok) const {
 OutputSectDesc::Epilog ScriptParser::readOutputSectDescEpilogue() {
   MInOutputSectEpilogue = true;
   OutputSectDesc::Epilog Epilogue;
-  Epilogue.init();
 
   if (consume(">")) {
     llvm::StringRef Region = unquote(next());

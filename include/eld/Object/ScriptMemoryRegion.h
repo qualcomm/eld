@@ -39,7 +39,23 @@ public:
 
   eld::Expected<uint64_t> getLength() const;
 
-  uint64_t getAddr();
+  // This is to support ALIGN_WITH_INPUT. For ALIGN_WITH_INPUT
+  // the physical address is computed based on the physical address
+  // of the previous section, and adding the virtual address offset
+  // of the current section
+  const OutputSectionEntry *getPrevOutputSection() const {
+    if (!MOutputSections.size())
+      return nullptr;
+    return MOutputSections.back();
+  }
+
+  // We used to have only one function called getAddr and there
+  // was no way to differentiate between a call to virtual address
+  // or physical address. Now we need this seperate to support
+  // ALIGN_WITH_INPUT
+  uint64_t getVirtualAddr(OutputSectionEntry *O);
+
+  uint64_t getPhysicalAddr(OutputSectionEntry *O);
 
   void dumpMap(llvm::raw_ostream &O);
 

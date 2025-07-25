@@ -255,12 +255,12 @@ eld::Expected<void> OutputSectDesc::setEpilog(const Epilog &PEpilog) {
   OutpuSectDescEpilog.OutputSectionMemoryRegion =
       PEpilog.OutputSectionMemoryRegion;
   OutpuSectDescEpilog.ScriptPhdrs = PEpilog.ScriptPhdrs;
-  if (OutpuSectDescProlog.hasLMA() && PEpilog.hasLMARegion())
+  if (OutpuSectDescProlog.hasLMA() && !PEpilog.getLMARegionName().empty())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::error_cannot_specify_lma_and_memory_region,
         {Name, getContext()}));
   OutpuSectDescEpilog.OutputSectionLMARegion = PEpilog.OutputSectionLMARegion;
-  if (!OutpuSectDescProlog.hasLMA() && !PEpilog.hasLMARegion())
+  if (!PEpilog.OutputSectionLMARegion)
     OutpuSectDescEpilog.OutputSectionLMARegion =
         PEpilog.OutputSectionMemoryRegion;
   OutpuSectDescEpilog.FillExpression = PEpilog.FillExpression;
