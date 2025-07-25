@@ -265,8 +265,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   bool canRelaxXqci = config().options().getRISCVRelax() &&
                       config().targets().is32Bits() &&
                       config().options().getRISCVRelaxXqci();
-  bool canRelaxQcEJ =
-      canRelaxXqci && (rd == 0 || rd == 1) && isInt<32>(X) && S != 0;
+  bool canRelaxQcEJ = canRelaxXqci && (rd == 0 || rd == 1);
 
   const char *msgC = (rd == 1) ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
   if (canRelaxCJ) {
