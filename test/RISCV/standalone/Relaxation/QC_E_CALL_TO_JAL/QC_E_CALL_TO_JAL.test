@@ -18,11 +18,15 @@ VERBOSE_RELAX_C: RISCV_QC_E_JAL_C : Deleting 4 bytes for symbol 'f' in section .
 VERBOSE_RELAX_C: RISCV_QC_E_J_C : relaxing instruction 0x00000000401f to compressed instruction 0xa001 for symbol f in section .text+0x77A file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_QC_E_J_C : Deleting 4 bytes for symbol 'f' in section .text+0x77c file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x874 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x870 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x878 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x874 file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0xffef0 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0xffeec file {{.*}}.o
 VERBOSE_RELAX_C: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0xffef4 file {{.*}}.o
-VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000e8 file {{.*}}.o
-VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000ee file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0xffef0 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000e8 file {{.*}}.o
+VERBOSE_RELAX_C: RISCV_QC_E_CALL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000ee file {{.*}}.o
 
 RUN: %objdump -d %t.1.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX_C
 RUN: %objdump -d %t.1.so 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX_C
@@ -41,27 +45,35 @@ RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP_RELAX_C
 RUN: %filecheck %s --input-file=%t.1.so.map --check-prefix=MAP_RELAX_C
 MAP_RELAX_C: # LinkStats Begin
 MAP_RELAX_C: # RelaxationBytesDeleted : 24
-MAP_RELAX_C: # RelaxationBytesMissed : 4
+MAP_RELAX_C: # RelaxationBytesMissed : 16
 MAP_RELAX_C: # LinkStats End
 
 MAP_RELAX_C: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
 MAP_RELAX_C: # RelaxationBytesDeleted : 24
-MAP_RELAX_C: # RelaxationBytesMissed : 4
+MAP_RELAX_C: # RelaxationBytesMissed : 16
 MAP_RELAX_C: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
 
 # Only non-compressed relaxations are enabled.
 RUN: %link %linkopts --relax-xqci --no-relax-c %t.o -o %t.2.out -MapStyle txt -Map %t.2.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
 RUN: %link %linkopts --relax-xqci --no-relax-c %t.o -o %t.2.so -shared -MapStyle txt -Map %t.2.so.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_RELAX
 VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x8 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x4 file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0xc file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x8 file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x780 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x77c file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x784 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x780 file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x87c file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x878 file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x880 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x87c file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0xffef8 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0xffef4 file {{.*}}.o
 VERBOSE_RELAX: RISCV_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0xffefc file {{.*}}.o
-VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
-VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0x1000f6 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 2 bytes for symbol 'f' in section .text+0xffef8 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000f0 file {{.*}}.o
+VERBOSE_RELAX: RISCV_QC_E_CALL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000f6 file {{.*}}.o
 
 RUN: %objdump -d %t.2.out 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
 RUN: %objdump -d %t.2.so 2>&1 | %filecheck %s --check-prefix=DUMP_RELAX
@@ -80,10 +92,12 @@ RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP_RELAX
 RUN: %filecheck %s --input-file=%t.2.so.map --check-prefix=MAP_RELAX
 MAP_RELAX: # LinkStats Begin
 MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: # RelaxationBytesMissed : 24
 MAP_RELAX: # LinkStats End
 
 MAP_RELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
 MAP_RELAX: # RelaxationBytesDeleted : 16
+MAP_RELAX: # RelaxationBytesMissed : 24
 MAP_RELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
 
 ### Relaxations are disabled.
@@ -108,9 +122,11 @@ DUMP_NORELAX: qc.e.j
 RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP_NORELAX
 RUN: %filecheck %s --input-file=%t.3.so.map --check-prefix=MAP_NORELAX
 MAP_NORELAX: # LinkStats Begin
+MAP_NORELAX: # RelaxationBytesMissed : 40
 MAP_NORELAX-NOT: # RelaxationBytesDeleted
 MAP_NORELAX: # LinkStats End
 
 MAP_NORELAX: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_NORELAX: # RelaxationBytesMissed : 40
 MAP_NORELAX-NOT: # RelaxationBytesDeleted
 MAP_NORELAX: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
