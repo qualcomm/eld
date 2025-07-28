@@ -384,3 +384,50 @@ In GNU linker scripts, the AT command is used to control the Load Memory Address
 ALIGN_WITH_INPUT attribute on an output section will make the difference between the VMA and LMA intact.
 
 We will expand this section with examples in future.
+
+GNU-compatibility
+--------------------
+
+The eld linker script syntax and semantics are GNU-compliant. This means that
+any linker script that works with the GNU linker should also work with eld,
+with the exception of a few GNU linker script features that are not yet
+supported by eld.
+
+Previously, eld supported two extensions to the GNU linker script syntax.
+**These extensions are no longer supported.** Any scripts using these
+extensions must be updated to maintain compatibility with eld.
+These extensions are:
+
+1) Assignment without space between the symbol and :code:`=`
+
+Previously supported::
+
+    symbol=<expr>
+
+GNU-compliant syntax (required now)::
+
+    symbol = <expr>
+
+GNU requires a space between the symbol and the assignment operator.
+eld now enforces this requirement. Scripts must be updated accordingly.
+
+2) Output section description without space between the output section name and :code:`:`
+
+Previously supported::
+
+    SECTIONS {
+      FOO: {
+        *(.text.foo)
+      }
+    }
+
+GNU-compliant syntax (required now)::
+
+    SECTIONS {
+      FOO : {
+        *(.text.foo)
+      }
+    }
+
+GNU requires a space between the output section name and the colon.
+eld now enforces this requirement for full GNU compatibility.
