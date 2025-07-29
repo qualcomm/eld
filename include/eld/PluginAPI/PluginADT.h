@@ -752,7 +752,9 @@ struct DLL_A_EXPORT Section {
 
   /// Sets the linker script rule for the input section.
   /// \param R the Linkerscript rule to be set.
-  void setLinkerScriptRule(plugin::LinkerScriptRule R);
+  eld::Expected<void> overrideLinkerScriptRule(LinkerWrapper &LW,
+                                               plugin::LinkerScriptRule R,
+                                               const std::string &Annotataion);
 
   /// Returns true if the section name matches the pattern Pattern.
   ///

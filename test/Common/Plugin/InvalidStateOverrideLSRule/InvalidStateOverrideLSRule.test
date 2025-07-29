@@ -1,0 +1,13 @@
+#---InvalidStateOverrideLSRule.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test check if the overrideLinkerScriptRule API is
+# called in an inavlid linker state.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
+
+#CHECK: Error: Link state 'BeforeLayout' is invalid for the API 'overrideLinkerScriptRule'. Valid link states: []
+#CHECK: Fatal: Linking had errors.
+

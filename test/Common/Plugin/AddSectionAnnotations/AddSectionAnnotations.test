@@ -1,0 +1,12 @@
+#---AddSectionAnnotations.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks if annotations are added correctly
+# in the map file for an input section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --plugin-config %p/Inputs/plugin.config -Map %t1.1.map
+RUN: %filecheck %s < %t1.1.map
+
+#CHECK: Annotations: test
+#END_TEST

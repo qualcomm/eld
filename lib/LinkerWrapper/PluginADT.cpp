@@ -672,14 +672,23 @@ std::vector<plugin::Symbol> plugin::Section::getSymbols() const {
   return SymbolsInSection;
 }
 
-void plugin::Section::setLinkerScriptRule(plugin::LinkerScriptRule R) {
+eld::Expected<void>
+plugin::Section::overrideLinkerScriptRule(LinkerWrapper &LW,
+                                          plugin::LinkerScriptRule R,
+                                          const std::string &Annotation) {
+  if (!(LW.getState() < LinkerWrapper::BeforeLayout)) {
+    return std::make_unique<plugin::DiagnosticEntry>(
+        Diag::error_invalid_link_state,
+        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
+                                 __FUNCTION__, ""});
+  }
   if (!m_Section)
-    return;
+    return {};
   ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);
   RuleContainer *RC = R.getRuleContainer();
-  S->setOutputSection(RC->getSection()->getOutputSection());
-  S->setMatchedLinkerScriptRule(RC);
-  RC->incMatchCount();
+  Module *M = LW.getModule();
+  M->getScript().updateRuleOp(&LW, M, RC, S, Annotation);
+  return {};
 }
 
 uint64_t plugin::Section::getSectionHash() const {

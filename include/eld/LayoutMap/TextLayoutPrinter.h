@@ -103,6 +103,8 @@ private:
 
   bool printUpdateChunksPluginOp(PluginOp *Pop) const;
 
+  bool printUpdateRulePluginOp(PluginOp *Pop) const;
+
   bool printRelocationDataPluginOp(eld::Module &M, PluginOp *Pop) const;
 
   void printOnlyLayoutFrag(eld::Module &CurModule, ELFSection *Section,

@@ -334,6 +334,20 @@ eld::Expected<void> LinkerScript::updateChunksOp(
   return {};
 }
 
+void LinkerScript::updateRuleOp(plugin::LinkerWrapper *W, eld::Module *M,
+                                RuleContainer *R, ELFSection *S,
+                                const std::string &Annotation) {
+  UpdateRulePluginOp *Op = eld::make<UpdateRulePluginOp>(W, R, S, Annotation);
+  S->addSectionAnnotation(Annotation);
+  S->setOutputSection(R->getSection()->getOutputSection());
+  S->setMatchedLinkerScriptRule(R);
+  R->incMatchCount();
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (!layoutInfo)
+    return;
+  layoutInfo->recordUpdateRule(W, Op);
+}
+
 llvm::Timer *LinkerScript::getTimer(llvm::StringRef Name,
                                     llvm::StringRef Description,
                                     llvm::StringRef GroupName,

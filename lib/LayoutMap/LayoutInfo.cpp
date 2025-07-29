@@ -461,6 +461,12 @@ void LayoutInfo::recordRelocationData(plugin::LinkerWrapper *W,
   ChunkOps[O->getFrag()].push_back(O);
 }
 
+void LayoutInfo::recordUpdateRule(plugin::LinkerWrapper *W,
+                                  UpdateRulePluginOp *O) {
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+}
+
 void LayoutInfo::buildMergedStringMap(Module &M) {
   if (!MergedStrings.empty())
     return;

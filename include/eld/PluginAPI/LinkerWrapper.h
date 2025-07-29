@@ -157,6 +157,9 @@ public:
   /// Returns eld version
   std::string getLinkerVersion() const;
 
+  /// Returns the linker module.
+  eld::Module *getModule() const { return &m_Module; }
+
   /// Returns a vector of Uses that are referred from the Section S.
   ///
   /// \param S Section
@@ -839,9 +842,6 @@ private:
 
   /// Base case for the recursive 'report' function.
   bool reportDiag(DiagnosticBuilder &diagBuilder) const { return true; }
-
-  /// Returns the linker module.
-  eld::Module *getModule() const { return &m_Module; }
 
 private:
   eld::Module &m_Module;
