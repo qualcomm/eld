@@ -21,7 +21,6 @@ namespace eld {
 
 class Module;
 class LinkerConfig;
-class GNULDBackend;
 class FragmentLinker;
 class Relocation;
 class ELFSection;
@@ -34,67 +33,53 @@ class Output;
  */
 class ELFObjectWriter {
 public:
-  ELFObjectWriter(GNULDBackend &CurBackend, LinkerConfig &CurConfig);
+  ELFObjectWriter(Module &M);
 
   ~ELFObjectWriter();
 
-  std::error_code writeObject(Module &CurModule,
-                              llvm::FileOutputBuffer &CurOutput);
+  std::error_code writeObject(llvm::FileOutputBuffer &CurOutput);
 
   // write timing stats into .note.qc.timing when -emit-timing-stats-in-output
   // enabled
-  void writeLinkTimeStats(Module &CurModule, uint64_t BeginningOfTime,
-                          uint64_t Duration);
+  void writeLinkTimeStats(uint64_t BeginningOfTime, uint64_t Duration);
 
   // Helper function, also used by compression.
-  eld::Expected<void> writeRegion(Module &CurModule, ELFSection *Section,
-                                  MemoryRegion &Region);
+  eld::Expected<void> writeRegion(ELFSection *Section, MemoryRegion &Region);
 
-  template <typename ELFT> size_t getOutputSize(const Module &CurModule) const;
+  template <typename ELFT> size_t getOutputSize() const;
 
-  eld::Expected<void> writeSection(Module &CurModule,
-                                   llvm::FileOutputBuffer &CurOutput,
+  eld::Expected<void> writeSection(llvm::FileOutputBuffer &CurOutput,
                                    ELFSection *Section);
 
 private:
-  GNULDBackend &target() { return Backend; }
-
-  const GNULDBackend &target() const { return Backend; }
-
   // writeELFHeader - emit ElfXX_Ehdr
   template <typename ELFT>
-  void writeELFHeader(LinkerConfig &CurConfig, const Module &CurModule,
-                      llvm::FileOutputBuffer &CurOutput) const;
+  void writeELFHeader(llvm::FileOutputBuffer &CurOutput) const;
 
-  uint64_t getEntryPoint(LinkerConfig &CurConfig,
-                         const Module &CurModule) const;
+  uint64_t getEntryPoint() const;
 
   // emitSectionHeader - emit ElfXX_Shdr
   template <typename ELFT>
-  void emitSectionHeader(const Module &CurModule, LinkerConfig &CurConfig,
-                         llvm::FileOutputBuffer &CurOutput) const;
+  void emitSectionHeader(llvm::FileOutputBuffer &CurOutput) const;
 
   // emitProgramHeader - emit ElfXX_Phdr
   template <typename ELFT>
   void emitProgramHeader(llvm::FileOutputBuffer &CurOutput) const;
 
   // emitShStrTab - emit .shstrtab
-  void emitShStrTab(ELFSection *ShStrTab, const Module &CurModule,
-                    llvm::FileOutputBuffer &CurOutput);
+  void emitShStrTab(ELFSection *ShStrTab, llvm::FileOutputBuffer &CurOutput);
 
   template <typename ELFT>
-  void emitRelocation(Module &Module, ELFSection *CurSection,
-                      MemoryRegion &CurRegion, bool IsDyn) const;
+  void emitRelocation(ELFSection *CurSection, MemoryRegion &CurRegion,
+                      bool IsDyn) const;
 
   // emitRel - emit ElfXX_Rel
   template <typename ELFT>
-  void emitRel(Module &Module, ELFSection *S, MemoryRegion &CurRegion,
-               bool IsDyn) const;
+  void emitRel(ELFSection *S, MemoryRegion &CurRegion, bool IsDyn) const;
 
   // emitRela - emit ElfXX_Rela
   template <typename ELFT>
-  void emitRela(Module &Module, ELFSection *S, MemoryRegion &CurRegion,
-                bool IsDyn) const;
+  void emitRela(ELFSection *S, MemoryRegion &CurRegion, bool IsDyn) const;
 
   // getSectEntrySize - compute ElfXX_Shdr::sh_entsize
   template <typename ELFT> uint64_t getSectEntrySize(ELFSection *S) const;
@@ -105,8 +90,7 @@ private:
   // getSectInfo - compute ElfXX_Shdr::sh_info
   uint64_t getSectInfo(ELFSection *S) const;
 
-  template <typename ELFT>
-  uint64_t getLastStartOffset(const Module &CurModule) const;
+  template <typename ELFT> uint64_t getLastStartOffset() const;
 
   eld::Expected<void> emitSection(ELFSection *CurSection,
                                   MemoryRegion &CurRegion) const;
@@ -126,9 +110,7 @@ private:
                       int32_t CurAddend) const;
 
 private:
-  GNULDBackend &Backend;
-
-  LinkerConfig &Config;
+  Module &ThisModule;
 };
 
 } // namespace eld

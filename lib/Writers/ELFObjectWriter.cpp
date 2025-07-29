@@ -48,14 +48,13 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // ELFObjectWriter
 //===----------------------------------------------------------------------===//
-ELFObjectWriter::ELFObjectWriter(GNULDBackend &CurBackend,
-                                 LinkerConfig &CurConfig)
-    : Backend(CurBackend), Config(CurConfig) {}
+ELFObjectWriter::ELFObjectWriter(Module &Mod) : ThisModule(Mod) {}
 
 ELFObjectWriter::~ELFObjectWriter() {}
 
-eld::Expected<void> ELFObjectWriter::writeSection(
-    Module &CurModule, llvm::FileOutputBuffer &CurOutput, ELFSection *Section) {
+eld::Expected<void>
+ELFObjectWriter::writeSection(llvm::FileOutputBuffer &CurOutput,
+                              ELFSection *Section) {
   MemoryRegion Region;
   // Request output region
   switch (Section->getKind()) {
@@ -79,7 +78,7 @@ eld::Expected<void> ELFObjectWriter::writeSection(
   case LDFileFormat::Timing: {
     if (Section->getOutputELFSection()->isNoBits())
       return {};
-    Region = Backend.getFileOutputRegion(
+    Region = ThisModule.getBackend().getFileOutputRegion(
         CurOutput, Section->getOutputELFSection()->offset(),
         Section->getOutputELFSection()->size());
     if (Region.size() == 0) {
@@ -97,17 +96,16 @@ eld::Expected<void> ELFObjectWriter::writeSection(
     // Ignore these sections
     return {};
   default:
-    Config.raise(Diag::unsupported_section_kind)
+    ThisModule.getConfig().raise(Diag::unsupported_section_kind)
         << Section->getKind() << Section->name();
     return {};
   }
-  eld::Expected<void> ExpWrite = writeRegion(CurModule, Section, Region);
+  eld::Expected<void> ExpWrite = writeRegion(Section, Region);
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpWrite);
   return {};
 }
 
-eld::Expected<void> ELFObjectWriter::writeRegion(Module &CurModule,
-                                                 ELFSection *Section,
+eld::Expected<void> ELFObjectWriter::writeRegion(ELFSection *Section,
                                                  MemoryRegion &Region) {
   if (Section->isNoBits())
     return {};
@@ -134,22 +132,22 @@ eld::Expected<void> ELFObjectWriter::writeRegion(Module &CurModule,
   }
   case LDFileFormat::DynamicRelocation: {
     // sort relocation for the benefit of the dynamic linker.
-    target().sortRelocation(*Section);
-    if (Config.targets().is32Bits())
-      emitRelocation<llvm::object::ELF32LE>(CurModule, Section, Region, true);
-    if (Config.targets().is64Bits())
-      emitRelocation<llvm::object::ELF64LE>(CurModule, Section, Region, true);
+    ThisModule.getBackend().sortRelocation(*Section);
+    if (ThisModule.getConfig().targets().is32Bits())
+      emitRelocation<llvm::object::ELF32LE>(Section, Region, true);
+    if (ThisModule.getConfig().targets().is64Bits())
+      emitRelocation<llvm::object::ELF64LE>(Section, Region, true);
     break;
   }
   case LDFileFormat::Relocation: {
-    if (Config.targets().is32Bits())
-      emitRelocation<llvm::object::ELF32LE>(CurModule, Section, Region, false);
-    if (Config.targets().is64Bits())
-      emitRelocation<llvm::object::ELF64LE>(CurModule, Section, Region, false);
+    if (ThisModule.getConfig().targets().is32Bits())
+      emitRelocation<llvm::object::ELF32LE>(Section, Region, false);
+    if (ThisModule.getConfig().targets().is64Bits())
+      emitRelocation<llvm::object::ELF64LE>(Section, Region, false);
     break;
   }
   case LDFileFormat::Target: {
-    auto ExpEmit = target().emitSection(Section, Region);
+    auto ExpEmit = ThisModule.getBackend().emitSection(Section, Region);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpEmit);
   } break;
   case LDFileFormat::Group:
@@ -161,43 +159,42 @@ eld::Expected<void> ELFObjectWriter::writeRegion(Module &CurModule,
   return {};
 }
 
-void ELFObjectWriter::writeLinkTimeStats(Module &CurModule,
-                                         uint64_t BeginningOfTime,
+void ELFObjectWriter::writeLinkTimeStats(uint64_t BeginningOfTime,
                                          uint64_t Duration) {
 
-  TimingFragment *F = CurModule.getBackend()->getTimingFragment();
+  TimingFragment *F = ThisModule.getBackend().getTimingFragment();
   F->setData(BeginningOfTime, Duration);
 }
 
 std::error_code
-ELFObjectWriter::writeObject(Module &CurModule,
-                             llvm::FileOutputBuffer &CurOutput) {
-  bool IsDynobj = Config.codeGenType() == LinkerConfig::DynObj;
-  bool IsExec = Config.codeGenType() == LinkerConfig::Exec;
-  bool IsBinary = Config.codeGenType() == LinkerConfig::Binary;
-  bool IsObject = Config.codeGenType() == LinkerConfig::Object;
+ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
+  bool IsDynobj = ThisModule.getConfig().codeGenType() == LinkerConfig::DynObj;
+  bool IsExec = ThisModule.getConfig().codeGenType() == LinkerConfig::Exec;
+  bool IsBinary = ThisModule.getConfig().codeGenType() == LinkerConfig::Binary;
+  bool IsObject = ThisModule.getConfig().codeGenType() == LinkerConfig::Object;
 
   assert(IsDynobj || IsExec || IsBinary || IsObject);
 
   if (IsDynobj || IsExec) {
     // Write out name pool sections: .dynsym, .dynstr, .hash
     eld::RegisterTimer T("Emit Dynamic Name Pool sections", "Emit Output File",
-                         Config.options().printTimingStats());
-    if (!target().emitDynNamePools(CurOutput))
+                         ThisModule.getConfig().options().printTimingStats());
+    if (!ThisModule.getBackend().emitDynNamePools(CurOutput))
       return make_error_code(std::errc::function_not_supported);
   }
 
   if (IsObject || IsDynobj || IsExec) {
     // Write out name pool sections: .symtab, .strtab
-    auto E = target().emitRegNamePools(CurOutput);
+    auto E = ThisModule.getBackend().emitRegNamePools(CurOutput);
     if (!E) {
-      Config.getDiagEngine()->raiseDiagEntry(std::move(E.error()));
+      ThisModule.getConfig().getDiagEngine()->raiseDiagEntry(
+          std::move(E.error()));
       return make_error_code(std::errc::no_such_file_or_directory);
     }
   }
 
   {
-    PluginManager &PM = CurModule.getPluginManager();
+    PluginManager &PM = ThisModule.getPluginManager();
     if (!PM.callActBeforeWritingOutputHook()) {
       // Return generic error-code. Actual error is already reported!
       return make_error_code(std::errc::not_supported);
@@ -206,16 +203,18 @@ ELFObjectWriter::writeObject(Module &CurModule,
 
   if (IsBinary) {
     // Iterate over the loadable segments and write the corresponding sections
-    ELFSegmentFactory::iterator Seg, SegEnd = target().elfSegmentTable().end();
+    ELFSegmentFactory::iterator Seg,
+        SegEnd = ThisModule.getBackend().elfSegmentTable().end();
 
-    for (Seg = target().elfSegmentTable().begin(); Seg != SegEnd; ++Seg) {
+    for (Seg = ThisModule.getBackend().elfSegmentTable().begin(); Seg != SegEnd;
+         ++Seg) {
       if (llvm::ELF::PT_LOAD == (*Seg)->type()) {
         ELFSegment::iterator Sect, SectEnd = (*Seg)->end();
         for (Sect = (*Seg)->begin(); Sect != SectEnd; ++Sect) {
           eld::Expected<void> ExpWrite =
-              writeSection(CurModule, CurOutput, (*Sect)->getSection());
+              writeSection(CurOutput, (*Sect)->getSection());
           if (!ExpWrite) {
-            Config.raiseDiagEntry(std::move(ExpWrite.error()));
+            ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
             // FIXME: Change return type of this function from std::error_code
             // to eld::Expected<void>.
             // Return generic error-code. The actual error is already reported.
@@ -226,16 +225,16 @@ ELFObjectWriter::writeObject(Module &CurModule,
     }
   } else {
     eld::RegisterTimer T("Emit Regular ELF Sections", "Emit Output File",
-                         Config.options().printTimingStats());
+                         ThisModule.getConfig().options().printTimingStats());
     // Write out regular ELF sections
-    Module::iterator Sect, SectEnd = CurModule.end();
-    for (Sect = CurModule.begin(); Sect != SectEnd; ++Sect) {
+    Module::iterator Sect, SectEnd = ThisModule.end();
+    for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
       OutputSectionEntry *E = (*Sect)->getOutputSection();
       for (auto &InputRule : *E) {
         eld::Expected<void> ExpWrite =
-            writeSection(CurModule, CurOutput, InputRule->getSection());
+            writeSection(CurOutput, InputRule->getSection());
         if (!ExpWrite) {
-          Config.raiseDiagEntry(std::move(ExpWrite.error()));
+          ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
           // FIXME: Change return type of this function from std::error_code
           // to eld::Expected<void>.
           // Return generic error-code. The actual error is already reported.
@@ -243,10 +242,10 @@ ELFObjectWriter::writeObject(Module &CurModule,
         }
       }
     }
-    for (Sect = CurModule.begin(); Sect != SectEnd; ++Sect) {
-      eld::Expected<void> ExpWrite = writeSection(CurModule, CurOutput, *Sect);
+    for (Sect = ThisModule.begin(); Sect != SectEnd; ++Sect) {
+      eld::Expected<void> ExpWrite = writeSection(CurOutput, *Sect);
       if (!ExpWrite) {
-        Config.raiseDiagEntry(std::move(ExpWrite.error()));
+        ThisModule.getConfig().raiseDiagEntry(std::move(ExpWrite.error()));
         // FIXME: Change return type of this function from std::error_code
         // to eld::Expected<void>.
         // Return generic error-code. The actual error is already reported.
@@ -254,25 +253,25 @@ ELFObjectWriter::writeObject(Module &CurModule,
       }
     }
 
-    emitShStrTab(target().getOutputFormat()->getShStrTab(), CurModule,
+    emitShStrTab(ThisModule.getBackend().getOutputFormat()->getShStrTab(),
                  CurOutput);
 
-    if (Config.targets().is32Bits()) {
+    if (ThisModule.getConfig().targets().is32Bits()) {
       // Write out ELF header
       // Write out section header table
-      writeELFHeader<llvm::object::ELF32LE>(Config, CurModule, CurOutput);
+      writeELFHeader<llvm::object::ELF32LE>(CurOutput);
       if (IsDynobj || IsExec)
         emitProgramHeader<llvm::object::ELF32LE>(CurOutput);
 
-      emitSectionHeader<llvm::object::ELF32LE>(CurModule, Config, CurOutput);
-    } else if (Config.targets().is64Bits()) {
+      emitSectionHeader<llvm::object::ELF32LE>(CurOutput);
+    } else if (ThisModule.getConfig().targets().is64Bits()) {
       // Write out ELF header
       // Write out section header table
-      writeELFHeader<llvm::object::ELF64LE>(Config, CurModule, CurOutput);
+      writeELFHeader<llvm::object::ELF64LE>(CurOutput);
       if (IsDynobj || IsExec)
         emitProgramHeader<llvm::object::ELF64LE>(CurOutput);
 
-      emitSectionHeader<llvm::object::ELF64LE>(CurModule, Config, CurOutput);
+      emitSectionHeader<llvm::object::ELF64LE>(CurOutput);
     }
   }
 
@@ -280,37 +279,36 @@ ELFObjectWriter::writeObject(Module &CurModule,
 }
 
 // getOutputSize - count the final output size
-template <typename ELFT>
-size_t ELFObjectWriter::getOutputSize(const Module &CurModule) const {
-  return getLastStartOffset<ELFT>(CurModule) +
-         sizeof(typename ELFT::Shdr) * CurModule.size();
+template <typename ELFT> size_t ELFObjectWriter::getOutputSize() const {
+  return getLastStartOffset<ELFT>() +
+         sizeof(typename ELFT::Shdr) * ThisModule.size();
 }
 
 // writeELFHeader - emit ElfXX_Ehdr
 template <typename ELFT>
-void ELFObjectWriter::writeELFHeader(LinkerConfig &CurConfig,
-                                     const Module &CurModule,
-                                     llvm::FileOutputBuffer &CurOutput) const {
+void ELFObjectWriter::writeELFHeader(llvm::FileOutputBuffer &CurOutput) const {
   typedef typename ELFT::Ehdr ElfXX_Ehdr;
   typedef typename ELFT::Phdr ElfXX_Phdr;
   typedef typename ELFT::Shdr ElfXX_Shdr;
 
   // ELF header must start from 0x0
-  MemoryRegion Region =
-      Backend.getFileOutputRegion(CurOutput, 0, sizeof(ElfXX_Ehdr));
+  MemoryRegion Region = ThisModule.getBackend().getFileOutputRegion(
+      CurOutput, 0, sizeof(ElfXX_Ehdr));
   ElfXX_Ehdr *Header = (ElfXX_Ehdr *)Region.begin();
 
   memcpy(Header->e_ident, ElfMagic, EI_MAG3 + 1);
 
   Header->e_ident[EI_CLASS] = (!ELFT::Is64Bits) ? ELFCLASS32 : ELFCLASS64;
-  Header->e_ident[EI_DATA] =
-      CurConfig.targets().isLittleEndian() ? ELFDATA2LSB : ELFDATA2MSB;
-  Header->e_ident[EI_VERSION] = target().getInfo().ELFVersion();
-  Header->e_ident[EI_OSABI] = target().getInfo().OSABI();
-  Header->e_ident[EI_ABIVERSION] = target().getInfo().ABIVersion();
+  Header->e_ident[EI_DATA] = ThisModule.getConfig().targets().isLittleEndian()
+                                 ? ELFDATA2LSB
+                                 : ELFDATA2MSB;
+  Header->e_ident[EI_VERSION] = ThisModule.getBackend().getInfo().ELFVersion();
+  Header->e_ident[EI_OSABI] = ThisModule.getBackend().getInfo().OSABI();
+  Header->e_ident[EI_ABIVERSION] =
+      ThisModule.getBackend().getInfo().ABIVersion();
 
   // FIXME: add processor-specific and core file types.
-  switch (CurConfig.codeGenType()) {
+  switch (ThisModule.getConfig().codeGenType()) {
   case LinkerConfig::Object:
     Header->e_type = ET_REL;
     break;
@@ -321,29 +319,30 @@ void ELFObjectWriter::writeELFHeader(LinkerConfig &CurConfig,
     Header->e_type = ET_EXEC;
     break;
   default:
-    Config.raise(Diag::unsupported_output_file_type) << CurConfig.codeGenType();
+    ThisModule.getConfig().raise(Diag::unsupported_output_file_type)
+        << ThisModule.getConfig().codeGenType();
     Header->e_type = ET_NONE;
   }
-  Header->e_machine = target().getInfo().machine();
+  Header->e_machine = ThisModule.getBackend().getInfo().machine();
   Header->e_version = Header->e_ident[EI_VERSION];
-  Header->e_entry = getEntryPoint(CurConfig, CurModule);
+  Header->e_entry = getEntryPoint();
 
-  if (LinkerConfig::Object != CurConfig.codeGenType())
+  if (LinkerConfig::Object != ThisModule.getConfig().codeGenType())
     Header->e_phoff = sizeof(ElfXX_Ehdr);
   else
     Header->e_phoff = 0x0;
 
-  Header->e_shoff = getLastStartOffset<ELFT>(CurModule);
-  Header->e_flags = target().getInfo().flags();
+  Header->e_shoff = getLastStartOffset<ELFT>();
+  Header->e_flags = ThisModule.getBackend().getInfo().flags();
   Header->e_ehsize = sizeof(ElfXX_Ehdr);
   Header->e_phentsize = sizeof(ElfXX_Phdr);
-  Header->e_phnum = target().elfSegmentTable().size();
+  Header->e_phnum = ThisModule.getBackend().elfSegmentTable().size();
   Header->e_shentsize = sizeof(ElfXX_Shdr);
-  if (CurModule.size() >= SHN_LORESERVE)
+  if (ThisModule.size() >= SHN_LORESERVE)
     Header->e_shnum = SHN_UNDEF;
   else
-    Header->e_shnum = CurModule.size();
-  size_t Shstrndx = CurModule.getSection(".shstrtab")->getIndex();
+    Header->e_shnum = ThisModule.size();
+  size_t Shstrndx = ThisModule.getSection(".shstrtab")->getIndex();
   if (Shstrndx >= SHN_LORESERVE)
     Header->e_shstrndx = SHN_XINDEX;
   else
@@ -351,21 +350,22 @@ void ELFObjectWriter::writeELFHeader(LinkerConfig &CurConfig,
 }
 
 /// getEntryPoint
-uint64_t ELFObjectWriter::getEntryPoint(LinkerConfig &CurConfig,
-                                        const Module &CurModule) const {
-  llvm::StringRef EntryName = target().getEntry();
+uint64_t ELFObjectWriter::getEntryPoint() const {
+  llvm::StringRef EntryName = ThisModule.getBackend().getEntry();
   uint64_t Result = 0x0;
 
-  bool IssueWarning = (CurConfig.options().hasEntry() &&
-                       LinkerConfig::Object != CurConfig.codeGenType() &&
-                       LinkerConfig::DynObj != CurConfig.codeGenType());
+  bool IssueWarning =
+      (ThisModule.getConfig().options().hasEntry() &&
+       LinkerConfig::Object != ThisModule.getConfig().codeGenType() &&
+       LinkerConfig::DynObj != ThisModule.getConfig().codeGenType());
 
   if (string::isValidCIdentifier(EntryName)) {
     const LDSymbol *EntrySymbol =
-        CurModule.getNamePool().findSymbol(EntryName.str());
+        ThisModule.getNamePool().findSymbol(EntryName.str());
     if (EntrySymbol &&
         (EntrySymbol->desc() != ResolveInfo::Define && IssueWarning)) {
-      Config.raise(Diag::warn_entry_symbol_not_found) << EntryName << 0;
+      ThisModule.getConfig().raise(Diag::warn_entry_symbol_not_found)
+          << EntryName << 0;
       return (Result = 0);
     }
     if (!EntrySymbol)
@@ -373,7 +373,8 @@ uint64_t ELFObjectWriter::getEntryPoint(LinkerConfig &CurConfig,
     Result = EntrySymbol->value();
   } else {
     if (EntryName.getAsInteger(0, Result)) {
-      Config.raise(Diag::warn_entry_symbol_bad_value) << EntryName << 0;
+      ThisModule.getConfig().raise(Diag::warn_entry_symbol_bad_value)
+          << EntryName << 0;
       return Result = 0;
     }
   }
@@ -383,35 +384,34 @@ uint64_t ELFObjectWriter::getEntryPoint(LinkerConfig &CurConfig,
 // emitSectionHeader - emit ElfXX_Shdr
 template <typename ELFT>
 void ELFObjectWriter::emitSectionHeader(
-    const Module &CurModule, LinkerConfig &CurConfig,
     llvm::FileOutputBuffer &CurOutput) const {
   typedef typename ELFT::Shdr ElfXX_Shdr;
 
   // emit section header
-  unsigned int SectNum = CurModule.size();
+  unsigned int SectNum = ThisModule.size();
   unsigned int HeaderSize = sizeof(ElfXX_Shdr) * SectNum;
-  MemoryRegion Region = Backend.getFileOutputRegion(
-      CurOutput, getLastStartOffset<ELFT>(CurModule), HeaderSize);
+  MemoryRegion Region = ThisModule.getBackend().getFileOutputRegion(
+      CurOutput, getLastStartOffset<ELFT>(), HeaderSize);
   ElfXX_Shdr *Shdr = (ElfXX_Shdr *)Region.begin();
 
   unsigned int SectIdx = 0;
   unsigned int Shstridx = 0; // nullptr section has empty name
   for (; SectIdx < SectNum; ++SectIdx) {
-    ELFSection *LdSect = CurModule.getSectionTable().at(SectIdx);
+    ELFSection *LdSect = ThisModule.getSectionTable().at(SectIdx);
     Shdr[SectIdx].sh_name = Shstridx;
     Shdr[SectIdx].sh_type = LdSect->getType();
     Shdr[SectIdx].sh_flags = LdSect->getFlags();
     Shdr[SectIdx].sh_addr = (LdSect->isAlloc()) ? LdSect->addr() : 0;
     Shdr[SectIdx].sh_offset = LdSect->offset();
-    if (SectIdx == 0 && CurModule.size() >= SHN_LORESERVE)
-      Shdr[SectIdx].sh_size = CurModule.size();
+    if (SectIdx == 0 && ThisModule.size() >= SHN_LORESERVE)
+      Shdr[SectIdx].sh_size = ThisModule.size();
     else
       Shdr[SectIdx].sh_size = LdSect->size();
     Shdr[SectIdx].sh_addralign = LdSect->getAddrAlign();
     Shdr[SectIdx].sh_entsize = getSectEntrySize<ELFT>(LdSect);
     if (SectIdx == 0 &&
-        CurModule.getSection(".shstrtab")->getIndex() >= SHN_LORESERVE)
-      Shdr[SectIdx].sh_link = CurModule.getSection(".shstrtab")->getIndex();
+        ThisModule.getSection(".shstrtab")->getIndex() >= SHN_LORESERVE)
+      Shdr[SectIdx].sh_link = ThisModule.getSection(".shstrtab")->getIndex();
     else
       Shdr[SectIdx].sh_link = getSectLink(LdSect);
     Shdr[SectIdx].sh_info = getSectInfo(LdSect);
@@ -433,15 +433,16 @@ void ELFObjectWriter::emitProgramHeader(
   StartOffset = sizeof(ElfXX_Ehdr);
   PhdrSize = sizeof(ElfXX_Phdr);
   // Program header must start directly after ELF header
-  MemoryRegion Region = Backend.getFileOutputRegion(
-      CurOutput, StartOffset, target().elfSegmentTable().size() * PhdrSize);
+  MemoryRegion Region = ThisModule.getBackend().getFileOutputRegion(
+      CurOutput, StartOffset,
+      ThisModule.getBackend().elfSegmentTable().size() * PhdrSize);
 
   ElfXX_Phdr *Phdr = (ElfXX_Phdr *)Region.begin();
 
   // Iterate the elf segment table in GNULDBackend
   size_t Index = 0;
-  auto Seg = target().elfSegmentTable().begin(),
-       SegEnd = target().elfSegmentTable().end();
+  auto Seg = ThisModule.getBackend().elfSegmentTable().begin(),
+       SegEnd = ThisModule.getBackend().elfSegmentTable().end();
   for (; Seg != SegEnd; ++Seg) {
     Phdr[Index].p_type = (*Seg)->type();
     Phdr[Index].p_flags = (*Seg)->flag();
@@ -457,15 +458,14 @@ void ELFObjectWriter::emitProgramHeader(
 
 /// emitShStrTab - emit section string table
 void ELFObjectWriter::emitShStrTab(ELFSection *PShStrTab,
-                                   const Module &CurModule,
                                    llvm::FileOutputBuffer &CurOutput) {
   // write out data
-  MemoryRegion Region = Backend.getFileOutputRegion(
+  MemoryRegion Region = ThisModule.getBackend().getFileOutputRegion(
       CurOutput, PShStrTab->offset(), PShStrTab->size());
   char *Data = (char *)Region.begin();
   size_t Shstrsize = 0;
-  Module::const_iterator Section, SectEnd = CurModule.end();
-  for (Section = CurModule.begin(); Section != SectEnd; ++Section) {
+  Module::const_iterator Section, SectEnd = ThisModule.end();
+  for (Section = ThisModule.begin(); Section != SectEnd; ++Section) {
     strcpy((char *)(Data + Shstrsize), (*Section)->name().data());
     Shstrsize += (*Section)->name().size() + 1;
   }
@@ -473,21 +473,21 @@ void ELFObjectWriter::emitShStrTab(ELFSection *PShStrTab,
 
 /// emitRelocation
 template <typename ELFT>
-void ELFObjectWriter::emitRelocation(Module &Module, ELFSection *CurSection,
+void ELFObjectWriter::emitRelocation(ELFSection *CurSection,
                                      MemoryRegion &CurRegion,
                                      bool isDyn) const {
   if (CurSection->getType() == SHT_REL) {
-    emitRel<ELFT>(Module, CurSection, CurRegion, isDyn);
+    emitRel<ELFT>(CurSection, CurRegion, isDyn);
   }
   if (CurSection->getType() == SHT_RELA) {
-    emitRela<ELFT>(Module, CurSection, CurRegion, isDyn);
+    emitRela<ELFT>(CurSection, CurRegion, isDyn);
   }
 }
 
 // emitRel - emit ElfXX_Rel
 template <typename ELFT>
-void ELFObjectWriter::emitRel(Module &Module, ELFSection *CurSection,
-                              MemoryRegion &CurRegion, bool isDyn) const {
+void ELFObjectWriter::emitRel(ELFSection *CurSection, MemoryRegion &CurRegion,
+                              bool isDyn) const {
   typedef typename ELFT::Rel ElfXX_Rel;
   typedef typename ELFT::Addr ElfXX_Addr;
   typedef typename ELFT::Word ElfXX_Word;
@@ -501,20 +501,20 @@ void ELFObjectWriter::emitRel(Module &Module, ELFSection *CurSection,
     ElfXX_Word RSym = (ElfXX_Word)0;
     FragRef = R->targetRef();
 
-    if ((isDyn || !Config.options().emitRelocs() ||
-         Config.options().emitGNUCompatRelocs()) &&
-        (LinkerConfig::DynObj == Config.codeGenType() ||
-         LinkerConfig::Exec == Config.codeGenType())) {
+    if ((isDyn || !ThisModule.getConfig().options().emitRelocs() ||
+         ThisModule.getConfig().options().emitGNUCompatRelocs()) &&
+        (LinkerConfig::DynObj == ThisModule.getConfig().codeGenType() ||
+         LinkerConfig::Exec == ThisModule.getConfig().codeGenType())) {
       ROffset = static_cast<ElfXX_Addr>(FragRef->getOutputELFSection()->addr() +
-                                        FragRef->getOutputOffset(Module));
+                                        FragRef->getOutputOffset(ThisModule));
     } else {
-      ROffset = static_cast<ElfXX_Addr>(FragRef->getOutputOffset(Module));
+      ROffset = static_cast<ElfXX_Addr>(FragRef->getOutputOffset(ThisModule));
     }
 
     if (!isDyn) {
       if (R->symInfo()) {
-        RSym = static_cast<ElfXX_Word>(
-            target().getSymbolIdx(R->symInfo()->outSymbol(), true));
+        RSym = static_cast<ElfXX_Word>(ThisModule.getBackend().getSymbolIdx(
+            R->symInfo()->outSymbol(), true));
         if (shouldEmitReloc(R)) {
           emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset);
           ++Rel;
@@ -523,7 +523,8 @@ void ELFObjectWriter::emitRel(Module &Module, ELFSection *CurSection,
       continue;
     }
 
-    GNULDBackend::DynRelocType DynRelocType = target().getDynRelocType(R);
+    GNULDBackend::DynRelocType DynRelocType =
+        ThisModule.getBackend().getDynRelocType(R);
 
     switch (DynRelocType) {
     case GNULDBackend::DynRelocType::DEFAULT:
@@ -532,7 +533,7 @@ void ELFObjectWriter::emitRel(Module &Module, ELFSection *CurSection,
     case GNULDBackend::DynRelocType::TPREL_GLOBAL:
     case GNULDBackend::DynRelocType::WORD_DEPOSIT: {
       RSym = static_cast<ElfXX_Word>(
-          target().getDynSymbolIdx(R->symInfo()->outSymbol()));
+          ThisModule.getBackend().getDynSymbolIdx(R->symInfo()->outSymbol()));
 
       emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset);
       break;
@@ -547,7 +548,7 @@ void ELFObjectWriter::emitRel(Module &Module, ELFSection *CurSection,
     case GNULDBackend::DynRelocType::DTPREL_GLOBAL: {
       if (R->symInfo())
         RSym = static_cast<ElfXX_Word>(
-            target().getDynSymbolIdx(R->symInfo()->outSymbol()));
+            ThisModule.getBackend().getDynSymbolIdx(R->symInfo()->outSymbol()));
 
       emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset);
       break;
@@ -567,8 +568,8 @@ void ELFObjectWriter::emitRel(Module &Module, ELFSection *CurSection,
 
 // emitRela - emit ElfXX_Rela
 template <typename ELFT>
-void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
-                               MemoryRegion &CurRegion, bool isDyn) const {
+void ELFObjectWriter::emitRela(ELFSection *S, MemoryRegion &CurRegion,
+                               bool isDyn) const {
   typedef typename ELFT::Rela ElfXX_Rela;
   typedef typename ELFT::Addr ElfXX_Addr;
   typedef typename ELFT::Word ElfXX_Word;
@@ -583,14 +584,14 @@ void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
 
     FragRef = R->targetRef();
 
-    if ((isDyn || !Config.options().emitRelocs() ||
-         Config.options().emitGNUCompatRelocs()) &&
-        (LinkerConfig::DynObj == Config.codeGenType() ||
-         LinkerConfig::Exec == Config.codeGenType())) {
+    if ((isDyn || !ThisModule.getConfig().options().emitRelocs() ||
+         ThisModule.getConfig().options().emitGNUCompatRelocs()) &&
+        (LinkerConfig::DynObj == ThisModule.getConfig().codeGenType() ||
+         LinkerConfig::Exec == ThisModule.getConfig().codeGenType())) {
       ROffset = static_cast<ElfXX_Addr>(FragRef->getOutputELFSection()->addr() +
-                                        FragRef->getOutputOffset(Module));
+                                        FragRef->getOutputOffset(ThisModule));
     } else {
-      ROffset = static_cast<ElfXX_Addr>(FragRef->getOutputOffset(Module));
+      ROffset = static_cast<ElfXX_Addr>(FragRef->getOutputOffset(ThisModule));
     }
 
     auto RAddend = R->addend();
@@ -600,8 +601,8 @@ void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
         // should be removed when tombstones are inserted or replaced with
         // REL_NONE. In that case getSymbolIdx should never be expected to
         // look for an invalid symbol.
-        RSym = static_cast<ElfXX_Word>(
-            target().getSymbolIdx(R->symInfo()->outSymbol(), true));
+        RSym = static_cast<ElfXX_Word>(ThisModule.getBackend().getSymbolIdx(
+            R->symInfo()->outSymbol(), true));
         if (shouldEmitReloc(R)) {
           emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset, RAddend);
           ++Rel;
@@ -610,7 +611,8 @@ void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
       continue;
     }
 
-    GNULDBackend::DynRelocType DynRelocType = target().getDynRelocType(R);
+    GNULDBackend::DynRelocType DynRelocType =
+        ThisModule.getBackend().getDynRelocType(R);
 
     switch (DynRelocType) {
     case GNULDBackend::DynRelocType::DEFAULT:
@@ -619,14 +621,15 @@ void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
     case GNULDBackend::DynRelocType::TPREL_GLOBAL:
     case GNULDBackend::DynRelocType::WORD_DEPOSIT: {
       RSym = static_cast<ElfXX_Word>(
-          target().getDynSymbolIdx(R->symInfo()->outSymbol()));
+          ThisModule.getBackend().getDynSymbolIdx(R->symInfo()->outSymbol()));
 
       emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset, RAddend);
       break;
     }
     case GNULDBackend::DynRelocType::RELATIVE: {
-      emitRelocation<ELFT>(*Rel, R->type(), 0, ROffset,
-                           target().getRelocator()->getSymValue(R) + RAddend);
+      emitRelocation<ELFT>(
+          *Rel, R->type(), 0, ROffset,
+          ThisModule.getBackend().getRelocator()->getSymValue(R) + RAddend);
       // llvm::errs() << "Writer Name : " << R->symInfo()->name() << " Addend :
       // " << r_addend << "\n";
     } break;
@@ -636,7 +639,7 @@ void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
     case GNULDBackend::DynRelocType::DTPREL_GLOBAL: {
       if (R->symInfo())
         RSym = static_cast<ElfXX_Word>(
-            target().getDynSymbolIdx(R->symInfo()->outSymbol()));
+            ThisModule.getBackend().getDynSymbolIdx(R->symInfo()->outSymbol()));
       emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset, RAddend);
       break;
     }
@@ -647,8 +650,9 @@ void ELFObjectWriter::emitRela(Module &Module, ELFSection *S,
       break;
 
     case GNULDBackend::DynRelocType::TPREL_LOCAL:
-      emitRelocation<ELFT>(*Rel, R->type(), 0, ROffset,
-                           target().getRelocator()->getSymValue(R) + RAddend);
+      emitRelocation<ELFT>(
+          *Rel, R->type(), 0, ROffset,
+          ThisModule.getBackend().getRelocator()->getSymValue(R) + RAddend);
       break;
     }
     ++Rel;
@@ -692,28 +696,29 @@ uint64_t ELFObjectWriter::getSectEntrySize(ELFSection *CurSection) const {
 uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
   ELFSection *Link = nullptr;
   if (S->isGroupKind())
-    Link = target().getOutputFormat()->getSymTab();
+    Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
   if (llvm::ELF::SHT_SYMTAB == S->getType())
-    Link = target().getOutputFormat()->getStrTab();
+    Link = ThisModule.getBackend().getOutputFormat()->getStrTab();
   if (llvm::ELF::SHT_SYMTAB_SHNDX == S->getType())
-    Link = target().getOutputFormat()->getSymTab();
+    Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
   if (llvm::ELF::SHT_DYNSYM == S->getType())
-    Link = target().getOutputFormat()->getDynStrTab();
+    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
   if (llvm::ELF::SHT_DYNAMIC == S->getType())
-    Link = target().getOutputFormat()->getDynStrTab();
+    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
   if (llvm::ELF::SHT_HASH == S->getType() ||
       llvm::ELF::SHT_GNU_HASH == S->getType())
-    Link = target().getOutputFormat()->getDynSymTab();
-  if (Config.isLinkPartial() && llvm::ELF::SHF_LINK_ORDER & S->getFlags())
+    Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
+  if (ThisModule.getConfig().isLinkPartial() &&
+      llvm::ELF::SHF_LINK_ORDER & S->getFlags())
     return S->getLink()->getOutputSection()->getSection()->getIndex();
   if (S->isRelocationSection()) {
     if (S->getKind() != LDFileFormat::DynamicRelocation)
-      Link = target().getOutputFormat()->getSymTab();
+      Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
     else
-      Link = target().getOutputFormat()->getDynSymTab();
+      Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
   }
   if (!Link)
-    return Backend.getSectLink(S);
+    return ThisModule.getBackend().getSectLink(S);
 
   if (Link->isIgnore() || Link->isDiscard())
     return 0;
@@ -723,7 +728,7 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
 /// getSectInfo - compute ElfXX_Shdr::sh_info
 uint64_t ELFObjectWriter::getSectInfo(ELFSection *CurSection) const {
   if (CurSection->isGroupKind())
-    return Backend.getSymbolIdx(CurSection->getSymbol());
+    return ThisModule.getBackend().getSymbolIdx(CurSection->getSymbol());
 
   if (llvm::ELF::SHT_SYMTAB == CurSection->getType() ||
       llvm::ELF::SHT_DYNSYM == CurSection->getType())
@@ -732,10 +737,11 @@ uint64_t ELFObjectWriter::getSectInfo(ELFSection *CurSection) const {
   if (CurSection->isRelocationSection()) {
     auto *InfoLink = llvm::dyn_cast_or_null<ELFSection>(CurSection->getLink());
     if (nullptr != InfoLink) {
-      uint32_t Idx = Backend.getSectionIdx(InfoLink);
+      uint32_t Idx = ThisModule.getBackend().getSectionIdx(InfoLink);
       if (Idx != UINT32_MAX)
         return Idx;
-      Idx = Backend.getSectionIdx(InfoLink->getOutputELFSection());
+      Idx = ThisModule.getBackend().getSectionIdx(
+          InfoLink->getOutputELFSection());
       ASSERT(Idx != UINT32_MAX, "Relocation section " +
                                     CurSection->name().str() + "is not linked");
       if (Idx != UINT32_MAX)
@@ -747,9 +753,8 @@ uint64_t ELFObjectWriter::getSectInfo(ELFSection *CurSection) const {
 }
 
 /// getLastStartOffset
-template <typename ELFT>
-uint64_t ELFObjectWriter::getLastStartOffset(const Module &CurModule) const {
-  const ELFSection *lastSect = CurModule.back();
+template <typename ELFT> uint64_t ELFObjectWriter::getLastStartOffset() const {
+  const ELFSection *lastSect = ThisModule.back();
   assert(lastSect != nullptr);
   if (ELFT::Is64Bits)
     return llvm::alignTo<64>(lastSect->offset() + lastSect->size());
@@ -785,7 +790,7 @@ void ELFObjectWriter::emitGroup(ELFSection *S, MemoryRegion &CurRegion) {
 eld::Expected<void>
 ELFObjectWriter::emitSection(ELFSection *S, MemoryRegion &CurRegion) const {
   for (auto &Frag : S->getFragmentList()) {
-    eld::Expected<void> ExpEmit = Frag->emit(CurRegion, Backend.getModule());
+    eld::Expected<void> ExpEmit = Frag->emit(CurRegion, ThisModule);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpEmit);
   }
   return {};
@@ -795,7 +800,8 @@ bool ELFObjectWriter::shouldEmitReloc(const Relocation *R) const {
   ResolveInfo *RI = R->symInfo();
   if (RI == ResolveInfo::null())
     return true;
-  return target().getSymbolIdx(RI->outSymbol(), /*IgnoreUnknown=*/true);
+  return ThisModule.getBackend().getSymbolIdx(RI->outSymbol(),
+                                              /*IgnoreUnknown=*/true);
 }
 
 /// emitRelocation - write data to the ELF32_Rel entry
@@ -817,46 +823,36 @@ void ELFObjectWriter::emitRelocation(typename ELFT::Rela &pRel,
   pRel.setSymbolAndType(pSymIdx, pType, false);
 }
 
-template size_t ELFObjectWriter::getOutputSize<llvm::object::ELF32LE>(
-    const Module &CurModule) const;
-template size_t ELFObjectWriter::getOutputSize<llvm::object::ELF64LE>(
-    const Module &CurModule) const;
+template size_t ELFObjectWriter::getOutputSize<llvm::object::ELF32LE>() const;
+template size_t ELFObjectWriter::getOutputSize<llvm::object::ELF64LE>() const;
 template void ELFObjectWriter::writeELFHeader<llvm::object::ELF32LE>(
-    LinkerConfig &CurConfig, const Module &CurModule,
     llvm::FileOutputBuffer &CurOutput) const;
 template void ELFObjectWriter::writeELFHeader<llvm::object::ELF64LE>(
-    LinkerConfig &CurConfig, const Module &CurModule,
     llvm::FileOutputBuffer &CurOutput) const;
 template void ELFObjectWriter::emitSectionHeader<llvm::object::ELF32LE>(
-    const Module &CurModule, LinkerConfig &CurConfig,
     llvm::FileOutputBuffer &CurOutput) const;
 template void ELFObjectWriter::emitSectionHeader<llvm::object::ELF64LE>(
-    const Module &CurModule, LinkerConfig &CurConfig,
     llvm::FileOutputBuffer &CurOutput) const;
 template void ELFObjectWriter::emitProgramHeader<llvm::object::ELF32LE>(
     llvm::FileOutputBuffer &CurOutput) const;
 template void ELFObjectWriter::emitProgramHeader<llvm::object::ELF64LE>(
     llvm::FileOutputBuffer &CurOutput) const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF32LE>(
-    Module &Module, ELFSection *CurSection, MemoryRegion &CurRegion,
-    bool isDyn) const;
+    ELFSection *CurSection, MemoryRegion &CurRegion, bool isDyn) const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF64LE>(
-    Module &Module, ELFSection *CurSection, MemoryRegion &CurRegion,
-    bool isDyn) const;
+    ELFSection *CurSection, MemoryRegion &CurRegion, bool isDyn) const;
 template void ELFObjectWriter::emitRel<llvm::object::ELF32LE>(
-    Module &Module, ELFSection *CurSection, MemoryRegion &CurRegion,
-    bool isDyn) const;
+    ELFSection *CurSection, MemoryRegion &CurRegion, bool isDyn) const;
 template void ELFObjectWriter::emitRela<llvm::object::ELF64LE>(
-    Module &Module, ELFSection *CurSection, MemoryRegion &CurRegion,
-    bool isDyn) const;
+    ELFSection *CurSection, MemoryRegion &CurRegion, bool isDyn) const;
 template uint64_t ELFObjectWriter::getSectEntrySize<llvm::object::ELF32LE>(
     ELFSection *CurSection) const;
 template uint64_t ELFObjectWriter::getSectEntrySize<llvm::object::ELF64LE>(
     ELFSection *CurSection) const;
-template uint64_t ELFObjectWriter::getLastStartOffset<llvm::object::ELF32LE>(
-    const Module &CurModule) const;
-template uint64_t ELFObjectWriter::getLastStartOffset<llvm::object::ELF64LE>(
-    const Module &CurModule) const;
+template uint64_t
+ELFObjectWriter::getLastStartOffset<llvm::object::ELF32LE>() const;
+template uint64_t
+ELFObjectWriter::getLastStartOffset<llvm::object::ELF64LE>() const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF32LE>(
     llvm::object::ELF32LE::Rel &pRel, Relocation::Type pType, uint32_t pSymIdx,
     uint32_t pOffset) const;

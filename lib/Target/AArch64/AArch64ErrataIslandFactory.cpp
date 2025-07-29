@@ -91,7 +91,7 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
 
     Relocation *reloc = Relocation::Create(
         (*it)->type(),
-        pBuilder.getModule().getBackend()->getRelocator()->getSize(
+        pBuilder.getModule().getBackend().getRelocator()->getSize(
             (*it)->type()),
         make<FragmentRef>(*clone, (*it)->offset()), 0);
     if ((*it)->type() == llvm::ELF::R_AARCH64_JUMP26) {

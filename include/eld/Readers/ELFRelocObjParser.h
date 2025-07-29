@@ -20,7 +20,7 @@ class Module;
 /// process.
 class ELFRelocObjParser {
 public:
-  ELFRelocObjParser(Module &module);
+  ELFRelocObjParser(Module &);
 
   // clang-format off
   /// This function does one of the two things depending on the context:

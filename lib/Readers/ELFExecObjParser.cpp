@@ -73,7 +73,7 @@ eld::Expected<bool> ELFExecObjParser::parsePatchBase(ELFFileBase &inputFile) {
 eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
   InputFile *inputFile = ELFReader.getInputFile();
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   eld::RegisterTimer T("Read Sections", "Link Summary",
                        config.options().printTimingStats());
 

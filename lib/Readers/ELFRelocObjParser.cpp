@@ -82,7 +82,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
   eld::RegisterTimer T("Read Sections", "Link Summary",
                        config.options().printTimingStats());
   InputFile *inputFile = ELFReader.getInputFile();
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
 
   if (m_Module.getPrinter()->traceFiles())
     config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
@@ -206,7 +206,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
 eld::Expected<bool>
 ELFRelocObjParser::readLinkOnceSection(ELFReaderBase &ELFReader,
                                        ELFSection *S) {
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   InputFile *inputFile = ELFReader.getInputFile();
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
@@ -338,7 +338,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
 
   // Group sections must only be added to output image for partial links.
   if (!alreadyExist && PartialLinking) {
-    GNULDBackend &backend = *m_Module.getBackend();
+    GNULDBackend &backend = m_Module.getBackend();
     if (!backend.readSection(*inputFile, S))
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
           Diag::err_cannot_read_section, {S->name().str()}));
@@ -378,7 +378,7 @@ ELFRelocObjParser::readMergeStrSection(ELFReaderBase &ELFReader,
 eld::Expected<bool>
 ELFRelocObjParser::readDebugSection(ELFReaderBase &ELFReader, ELFSection *S) {
   LinkerConfig &config = m_Module.getConfig();
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   InputFile *inputFile = ELFReader.getInputFile();
 
   if (config.options().stripDebug()) {
@@ -423,7 +423,7 @@ ELFRelocObjParser::readTimingSection(ELFReaderBase &ELFReader, ELFSection *S) {
           << inputFile->getInput()->decoratedPath();
     }
   }
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   if (!backend.readSection(*inputFile, S)) {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::err_cannot_read_target_section, {S->name().str()}));
@@ -434,7 +434,7 @@ ELFRelocObjParser::readTimingSection(ELFReaderBase &ELFReader, ELFSection *S) {
 eld::Expected<bool>
 ELFRelocObjParser::readDiscardSection(ELFReaderBase &ELFReader, ELFSection *S) {
   LinkerConfig &config = m_Module.getConfig();
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   InputFile *inputFile = ELFReader.getInputFile();
 
   // Discarded sections will be read, but it will be discarded in the final

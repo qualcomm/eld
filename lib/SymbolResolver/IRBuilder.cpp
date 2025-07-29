@@ -78,7 +78,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
       // Add patchable symbols as "sym-def".
       // Ignore patchable non-global or hidden symbols.
       if (Bind == ResolveInfo::Global || Bind == ResolveInfo::Absolute) {
-        ThisModule.getBackend()->addSymDefProvideSymbol(
+        ThisModule.getBackend().addSymDefProvideSymbol(
             SymbolName, Type, Value, &Input, /* isPatchable */ true);
         // Also add them as undefined because it's needed to process
         // relocations.
@@ -97,8 +97,8 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
     }
     // Non-patchable symbols are added as normal defined symbols.
   } else if (Input.getInput()->getAttribute().isJustSymbols()) {
-    ThisModule.getBackend()->addSymDefProvideSymbol(SymbolName, Type, Value,
-                                                    &Input);
+    ThisModule.getBackend().addSymDefProvideSymbol(SymbolName, Type, Value,
+                                                   &Input);
     return nullptr;
   }
   // rename symbols

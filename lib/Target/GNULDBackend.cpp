@@ -177,48 +177,6 @@ bool GNULDBackend::shouldskipAssert(const Assignment *Assign) const {
   return (!Assign->hasDot() && Assign->type() == Assignment::ASSERT);
 }
 
-ArchiveParser *GNULDBackend::createArchiveParser() {
-  m_ArchiveParser = make<ArchiveParser>(m_Module);
-  return m_ArchiveParser;
-}
-
-ELFExecObjParser *GNULDBackend::createELFExecObjParser() {
-  m_ELFExecObjParser = make<ELFExecObjParser>(getModule());
-  return m_ELFExecObjParser;
-}
-
-BitcodeReader *GNULDBackend::createBitcodeReader() {
-  m_pBitcodeReader =
-      make<BitcodeReader>(*this, *getModule().getIRBuilder(), config());
-  return m_pBitcodeReader;
-}
-
-SymDefReader *GNULDBackend::createSymDefReader() {
-  m_pSymDefReader =
-      make<SymDefReader>(*this, *getModule().getIRBuilder(), config());
-  return m_pSymDefReader;
-}
-
-ELFDynObjParser *GNULDBackend::createDynObjReader() {
-  m_NewDynObjReader = make<ELFDynObjParser>(getModule());
-  return m_NewDynObjReader;
-}
-
-ELFRelocObjParser *GNULDBackend::createRelocObjParser() {
-  m_NewRelocObjParser = make<ELFRelocObjParser>(getModule());
-  return m_NewRelocObjParser;
-}
-
-BinaryFileParser *GNULDBackend::createBinaryFileParser() {
-  m_BinaryFileParser = make<BinaryFileParser>(getModule());
-  return m_BinaryFileParser;
-}
-
-ELFObjectWriter *GNULDBackend::createWriter() {
-  m_pELFObjWriter = make<ELFObjectWriter>(*this, config());
-  return m_pELFObjWriter;
-}
-
 LinkerConfig &GNULDBackend::config() const { return m_Module.getConfig(); }
 
 void GNULDBackend::insertTimingFragmentStub() {
@@ -4358,6 +4316,8 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
     std::vector<ELFSection *> PluginSections;
     LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
     ObjectBuilder builder(config(), m_Module);
+    ELFObjectWriter *Writer =
+        m_Module.getLinker()->getObjectLinker()->getWriter();
 
     // Build the memory blocks.
     for (auto &O : OList) {
@@ -4389,7 +4349,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
                       MB.allocatedSize());
       for (auto &Cur : *O) {
         eld::Expected<void> expWrite =
-            m_pELFObjWriter->writeRegion(m_Module, Cur->getSection(), mr);
+            Writer->writeRegion(Cur->getSection(), mr);
         if (!expWrite) {
           config().raiseDiagEntry(std::move(expWrite.error()));
           return false;

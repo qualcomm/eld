@@ -210,7 +210,7 @@ bool Linker::link() {
       TimingSectionTimer->stopTimer();
       uint64_t DurationMicro =
           TimingSectionTimer->getTotalTime().getWallTime() * 1000000;
-      ObjLinker->getWriter()->writeLinkTimeStats(*ThisModule, BeginningOfTime,
+      ObjLinker->getWriter()->writeLinkTimeStats(BeginningOfTime,
                                                  DurationMicro);
       TimingSectionTimer->clear();
     }
@@ -727,12 +727,10 @@ bool Linker::emit() {
   size_t OutputFileSize = 0;
   if (ThisConfig->targets().is32Bits())
     OutputFileSize =
-        ObjLinker->getWriter()->getOutputSize<llvm::object::ELF32LE>(
-            *ThisModule);
+        ObjLinker->getWriter()->getOutputSize<llvm::object::ELF32LE>();
   else if (ThisConfig->targets().is64Bits())
     OutputFileSize =
-        ObjLinker->getWriter()->getOutputSize<llvm::object::ELF64LE>(
-            *ThisModule);
+        ObjLinker->getWriter()->getOutputSize<llvm::object::ELF64LE>();
   uint64_t MaxImageSize =
       (ThisConfig->targets().is32Bits() ? UINT32_MAX : INT64_MAX);
   if (OutputFileSize > MaxImageSize) {

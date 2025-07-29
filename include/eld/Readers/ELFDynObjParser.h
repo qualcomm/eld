@@ -20,7 +20,7 @@ class Module;
 /// process.
 class ELFDynObjParser {
 public:
-  ELFDynObjParser(Module &module);
+  ELFDynObjParser(Module &);
 
   ~ELFDynObjParser();
 

@@ -333,7 +333,7 @@ RelocELFReader<ELFT>::readRelocationSection(ELFSection *RS) {
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expRelRange);
   auto relRange = std::move(expRelRange.value());
 
-  GNULDBackend &backend = *(this->m_Module.getBackend());
+  GNULDBackend &backend = this->m_Module.getBackend();
   InputFile *inputFile = this->getInputFile();
   ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(inputFile);
 

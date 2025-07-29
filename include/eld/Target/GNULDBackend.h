@@ -144,16 +144,6 @@ public:
 
   virtual ~GNULDBackend();
 
-  // -----  readers/writers  ----- //
-  ArchiveParser *createArchiveParser();
-  ELFRelocObjParser *createRelocObjParser();
-  ELFExecObjParser *createELFExecObjParser();
-  BinaryFileParser *createBinaryFileParser();
-  BitcodeReader *createBitcodeReader();
-  SymDefReader *createSymDefReader();
-  ELFDynObjParser *createDynObjReader();
-  ELFObjectWriter *createWriter();
-
   // -----  output sections  ----- //
   /// initStdSections - initialize standard sections of the output file.
   virtual eld::Expected<void> initStdSections();
@@ -1004,15 +994,6 @@ private:
 
 protected:
   Module &m_Module;
-
-  BitcodeReader *m_pBitcodeReader = nullptr;
-  SymDefReader *m_pSymDefReader = nullptr;
-  ELFObjectWriter *m_pELFObjWriter = nullptr;
-  ELFDynObjParser *m_NewDynObjReader = nullptr;
-  ELFRelocObjParser *m_NewRelocObjParser = nullptr;
-  ArchiveParser *m_ArchiveParser = nullptr;
-  ELFExecObjParser *m_ELFExecObjParser = nullptr;
-  BinaryFileParser *m_BinaryFileParser = nullptr;
 
   ELFFileFormat *m_pFileFormat = nullptr;
 

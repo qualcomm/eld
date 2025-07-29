@@ -18,14 +18,14 @@ AArch64Info::AArch64Info(LinkerConfig &Config) : TargetInfo(Config) {}
 
 bool AArch64Info::needEhdr(Module &pModule, bool linkerScriptHasSectionsCmd,
                            bool isPhdr) {
-  return pModule.getBackend()->hasEhFrameHdr();
+  return pModule.getBackend().hasEhFrameHdr();
 }
 
 bool AArch64Info::InitializeDefaultMappings(Module &pModule) {
   // For android 64bit, the loader is unable to read the eh frame header
   // information and is reverting to not doing a binary search.
   if (isAndroid())
-    pModule.getBackend()->populateEhFrameHdrWithNoFDEInfo();
+    pModule.getBackend().populateEhFrameHdrWithNoFDEInfo();
 
   LinkerScript &pScript = pModule.getScript();
 

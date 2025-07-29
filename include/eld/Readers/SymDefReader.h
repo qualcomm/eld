@@ -8,24 +8,18 @@
 #define ELD_READERS_SYMDEFREADER_H
 
 #include "eld/Readers/ObjectReader.h"
-#include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
 #include <tuple>
 
 namespace eld {
 
-class IRBuilder;
-class GNULDBackend;
-class LinkerConfig;
 class InputFile;
+class Module;
 
 class SymDefReader : public ObjectReader {
 
 public:
-  SymDefReader(GNULDBackend &pBackend, eld::IRBuilder &pBuilder,
-               LinkerConfig &pConfig);
+  SymDefReader(Module &);
   ~SymDefReader();
 
   /* read symdef header*/
@@ -41,8 +35,7 @@ private:
   readSymDefs(InputFile &pFile);
 
 private:
-  eld::IRBuilder &m_Builder;
-  LinkerConfig &m_Config;
+  Module &m_Module;
 };
 
 } // namespace eld

@@ -470,7 +470,7 @@ bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
   if (!P.registerPlugin(Handle))
     return false;
   // Create the Bitvector.
-  P.createRelocationVector(M.getBackend()->getRelocator()->getNumRelocs());
+  P.createRelocationVector(M.getBackend().getRelocator()->getNumRelocs());
 
   plugin::LinkerWrapper *LW = eld::make<plugin::LinkerWrapper>(&P, M);
   P.getLinkerPlugin()->setLinkerWrapper(LW);

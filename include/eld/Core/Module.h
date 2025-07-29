@@ -460,7 +460,7 @@ public:
                                                const char *Buf, size_t Size);
 
   // Get backend
-  GNULDBackend *getBackend() const;
+  GNULDBackend &getBackend() const;
 
   void replaceFragment(FragmentRef *F, const uint8_t *Data, size_t Sz);
 

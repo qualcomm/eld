@@ -27,9 +27,7 @@ using namespace eld;
 using namespace llvm;
 
 /// constructor
-SymDefReader::SymDefReader(GNULDBackend &pBackend, eld::IRBuilder &pBuilder,
-                           LinkerConfig &pConfig)
-    : ObjectReader(), m_Builder(pBuilder), m_Config(pConfig) {}
+SymDefReader::SymDefReader(Module &Module) : ObjectReader(), m_Module(Module) {}
 
 SymDefReader::~SymDefReader() {}
 
@@ -42,14 +40,14 @@ bool SymDefReader::readSymbols(InputFile &pFile, bool isPostLTOPhase) {
     uint64_t symVal = std::get<0>(symDef);
     ResolveInfo::Type resolverType = std::get<1>(symDef);
     std::string symName = std::get<2>(symDef);
-    if (m_Builder.getModule().getPrinter()->traceSymDef())
-      m_Config.raise(Diag::note_read_from_symdef_file)
+    if (m_Module.getPrinter()->traceSymDef())
+      m_Module.getConfig().raise(Diag::note_read_from_symdef_file)
           << symName << pFile.getInput()->decoratedPath();
-    if (m_Config.isSymDefStyleProvide())
-      m_Builder.getModule().getBackend()->addSymDefProvideSymbol(
-          symName, resolverType, symVal, &pFile);
+    if (m_Module.getConfig().isSymDefStyleProvide())
+      m_Module.getBackend().addSymDefProvideSymbol(symName, resolverType,
+                                                   symVal, &pFile);
     else {
-      m_Builder.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
           &pFile, symName, resolverType, ResolveInfo::Define,
           ResolveInfo::Absolute,
           0x0,                 // size
@@ -58,8 +56,8 @@ bool SymDefReader::readSymbols(InputFile &pFile, bool isPostLTOPhase) {
           ResolveInfo::Default,
           false,  // isPostLTOPhase
           false); // isBitCode
-      if (m_Builder.getModule().getPrinter()->traceSymDef())
-        m_Config.raise(Diag::note_resolving_from_symdef_file)
+      if (m_Module.getPrinter()->traceSymDef())
+        m_Module.getConfig().raise(Diag::note_resolving_from_symdef_file)
             << symName << pFile.getInput()->decoratedPath();
     }
   }
@@ -68,15 +66,13 @@ bool SymDefReader::readSymbols(InputFile &pFile, bool isPostLTOPhase) {
 }
 
 bool SymDefReader::readHeader(InputFile &pFile, bool isPostLTOPhase) {
-  (void)(m_Config);
-  (void)(m_Builder);
   return true;
 }
 
 void SymDefReader::getSymDefStyle(llvm::StringRef line) {
   std::pair<StringRef, StringRef> lineAndRest = line.split('-');
   lineAndRest = lineAndRest.second.split('>');
-  m_Config.setSymDefStyle(lineAndRest.first);
+  m_Module.getConfig().setSymDefStyle(lineAndRest.first);
 }
 
 void SymDefReader::processComment(llvm::StringRef line) {

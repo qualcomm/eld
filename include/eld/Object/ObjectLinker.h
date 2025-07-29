@@ -453,6 +453,16 @@ private:
   /// using each input section it contained.
   void finalizeOutputSectionFlags(OutputSectionEntry *OSE) const;
 
+  // -----  readers/writers  ----- //
+  ArchiveParser *createArchiveParser();
+  ELFRelocObjParser *createRelocObjParser();
+  ELFExecObjParser *createELFExecObjParser();
+  BinaryFileParser *createBinaryFileParser();
+  BitcodeReader *createBitcodeReader();
+  SymDefReader *createSymDefReader();
+  ELFDynObjParser *createDynObjReader();
+  ELFObjectWriter *createWriter();
+
 private:
   LinkerConfig &ThisConfig;
   Module *ThisModule;

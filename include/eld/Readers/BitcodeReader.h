@@ -13,24 +13,19 @@ class LinkerPlugin;
 
 namespace eld {
 
-class IRBuilder;
-class GNULDBackend;
-class LinkerConfig;
+class Module;
 class InputFile;
 
 class BitcodeReader {
 
 public:
-  BitcodeReader(GNULDBackend &pBackend, eld::IRBuilder &pBuilder,
-                LinkerConfig &pConfig);
+  BitcodeReader(Module &);
   ~BitcodeReader();
 
   bool readInput(InputFile &pFile, plugin::LinkerPlugin *LTOPlugin);
 
 private:
-  GNULDBackend &m_Backend;
-  eld::IRBuilder &m_Builder;
-  LinkerConfig &m_Config;
+  Module &m_Module;
   bool m_TraceLTO;
 };
 

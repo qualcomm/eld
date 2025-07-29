@@ -193,7 +193,7 @@ LinkerWrapper::getOutputSectionContents(OutputSection &O) const {
     }
   }
   // The section could have a fill expression
-  m_Module.getBackend()->maybeFillRegion(O.getOutputSection(), Region);
+  m_Module.getBackend().maybeFillRegion(O.getOutputSection(), Region);
   return std::move(Data);
 }
 
@@ -217,7 +217,7 @@ eld::Expected<void> LinkerWrapper::finishAssignOutputSections() {
 eld::Expected<void> LinkerWrapper::reassignVirtualAddresses() {
   if (getState() != State::CreatingSegments)
     RETURN_INVALID_LINK_STATE_ERR("CreatingSegments");
-  m_Module.getBackend()->createScriptProgramHdrs();
+  m_Module.getBackend().createScriptProgramHdrs();
   return {};
 }
 
@@ -229,7 +229,7 @@ eld::Expected<std::vector<Segment>> LinkerWrapper::getSegmentTable() const {
                                  LLVM_PRETTY_FUNCTION,
                                  "'CreatingSegments, AfterLayout'"});
   std::vector<Segment> Segments;
-  for (auto *S : m_Module.getBackend()->elfSegmentTable())
+  for (auto *S : m_Module.getBackend().elfSegmentTable())
     Segments.push_back(Segment(S));
   return Segments;
 }
@@ -358,8 +358,8 @@ eld::Expected<void> LinkerWrapper::linkSections(OutputSection A,
   if (getState() != LinkerWrapper::CreatingSections &&
       getState() != LinkerWrapper::CreatingSegments)
     RETURN_INVALID_LINK_STATE_ERR("CreatingSections, CreatingSegments");
-  m_Module.getBackend()->pluginLinkSections(A.getOutputSection(),
-                                            B.getOutputSection());
+  m_Module.getBackend().pluginLinkSections(A.getOutputSection(),
+                                           B.getOutputSection());
   return {};
 }
 
@@ -605,7 +605,7 @@ eld::Expected<void> LinkerWrapper::registerReloc(uint32_t RelocType,
 }
 
 RelocationHandler LinkerWrapper::getRelocationHandler() const {
-  return RelocationHandler(m_Module.getBackend()->getRelocator());
+  return RelocationHandler(m_Module.getBackend().getRelocator());
 }
 
 size_t LinkerWrapper::getPluginThreadCount() const {
@@ -816,7 +816,7 @@ eld::Expected<Use> LinkerWrapper::createAndAddUse(Chunk C, off_t Offset,
                                                   int64_t Addend) {
   Use ChunkUse(nullptr);
   eld::Relocation *relocation = m_Module.getIRBuilder()->createRelocation(
-      m_Module.getBackend()->getRelocator(), *C.getFragment(), RelocationType,
+      m_Module.getBackend().getRelocator(), *C.getFragment(), RelocationType,
       *S.getSymbol()->outSymbol(), Offset, Addend);
   C.getFragment()->getOwningSection()->addRelocation(relocation);
   return Use(relocation);
@@ -903,7 +903,7 @@ LinkerWrapper::insertBeforeRule(plugin::OutputSection O,
 }
 
 void LinkerWrapper::removeSymbolTableEntry(plugin::Symbol S) {
-  m_Module.getBackend()->markSymbolForRemoval(S.getSymbol());
+  m_Module.getBackend().markSymbolForRemoval(S.getSymbol());
   m_Module.getScript().removeSymbolOp(this, &m_Module, S.getSymbol());
 }
 
@@ -1008,7 +1008,7 @@ LinkerWrapper::getSegmentsForOutputSection(const OutputSection &O) const {
                                  "'CreatingSections, AfterLayout'"});
   std::vector<Segment> Segments;
   for (auto *S :
-       m_Module.getBackend()->getSegmentsForSection(O.getOutputSection()))
+       m_Module.getBackend().getSegmentsForSection(O.getOutputSection()))
     Segments.push_back(Segment(S));
   return Segments;
 }
@@ -1158,7 +1158,7 @@ LinkerWrapper::getRuleMatchingSectionName(Section S) {
 }
 
 eld::Expected<uint64_t> LinkerWrapper::getOutputSymbolIndex(plugin::Symbol S) {
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   return backend.getSymbolIdx(S.getSymbol()->outSymbol());
 }
 

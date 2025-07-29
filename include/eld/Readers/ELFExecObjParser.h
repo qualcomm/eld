@@ -15,7 +15,7 @@ class ELFExecutableFileReader;
 
 class ELFExecObjParser {
 public:
-  ELFExecObjParser(Module &module);
+  ELFExecObjParser(Module &);
 
   eld::Expected<bool> parseFile(InputFile &inputFile,
                                 bool &ELFOverriddenWithBC);

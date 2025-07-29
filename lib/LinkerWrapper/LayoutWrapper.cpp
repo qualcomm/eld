@@ -19,13 +19,13 @@ const MapHeader LayoutWrapper::getMapHeader() const {
 }
 
 uint32_t LayoutWrapper::getABIPageSize() const {
-  return Linker.getModule()->getBackend()->abiPageSize();
+  return Linker.getModule()->getBackend().abiPageSize();
 }
 
 std::string LayoutWrapper::getTargetEmulation() const {
   std::string flagString = "";
-  flagString = Linker.getModule()->getBackend()->getInfo().flagString(
-      Linker.getModule()->getBackend()->getInfo().flags());
+  flagString = Linker.getModule()->getBackend().getInfo().flagString(
+      Linker.getModule()->getBackend().getInfo().flags());
   return flagString;
 }
 
@@ -46,7 +46,7 @@ LayoutWrapper::getPaddings(eld::plugin::OutputSection &Section) {
   eld::OutputSectionEntry *entry = Section.getOutputSection();
   // padding at section start
   for (const eld::GNULDBackend::PaddingT &p :
-       Linker.getModule()->getBackend()->getPaddingBetweenFragments(
+       Linker.getModule()->getBackend().getPaddingBetweenFragments(
            entry->getSection(), nullptr, entry->getFirstFrag())) {
     if (!(p.endOffset - p.startOffset))
       continue;
@@ -78,7 +78,7 @@ LayoutWrapper::getPaddings(eld::plugin::OutputSection &Section) {
         (*it)->getNextRuleWithContent();
     if ((*it)->hasContent()) {
       for (const eld::GNULDBackend::PaddingT &p :
-           Linker.getModule()->getBackend()->getPaddingBetweenFragments(
+           Linker.getModule()->getBackend().getPaddingBetweenFragments(
                entry->getSection(), (*it)->getLastFrag(),
                NextRuleWithContent ? NextRuleWithContent->getFirstFrag()
                                    : nullptr)) {

@@ -419,7 +419,7 @@ void LayoutInfo::recordRemoveSymbol(plugin::LinkerWrapper *W,
 
 LayoutInfo::ResolveInfoVectorT
 LayoutInfo::getAllocatedCommonSymbols(Module &Module) {
-  GNULDBackend &Backend = *Module.getBackend();
+  GNULDBackend &Backend = Module.getBackend();
   ObjectFile *CommonInputFile =
       llvm::cast<ObjectFile>(Module.getCommonInternalInput());
   ResolveInfoVectorT CommonSymbols;
@@ -439,7 +439,7 @@ LayoutInfo::getAllocatedCommonSymbols(Module &Module) {
 
 LayoutInfo::ResolveInfoVectorT
 LayoutInfo::getCommonsGarbageCollected(Module &Module) {
-  GNULDBackend &Backend = *Module.getBackend();
+  GNULDBackend &Backend = Module.getBackend();
   ObjectFile *CommonInputFile =
       llvm::cast<ObjectFile>(Module.getCommonInternalInput());
   ResolveInfoVectorT CommonSymbols;

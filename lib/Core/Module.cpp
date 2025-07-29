@@ -252,7 +252,7 @@ bool Module::createInternalInputs() {
     InternalFiles[IType] = IF;
   }
 
-  getBackend()->createInternalInputs();
+  getBackend().createInternalInputs();
 
   // Add implicit dot symbol
   Resolver::Result ResolvedResult;
@@ -630,9 +630,9 @@ Module::createPluginFragmentWithCustomName(std::string Name, size_t SectType,
   return F;
 }
 
-GNULDBackend *Module::getBackend() const {
+GNULDBackend &Module::getBackend() const {
   ASSERT(Linker->getBackend(), "The value must be non-null.");
-  return Linker->getBackend();
+  return *Linker->getBackend();
 }
 
 void Module::replaceFragment(FragmentRef *F, const uint8_t *Data, size_t Sz) {

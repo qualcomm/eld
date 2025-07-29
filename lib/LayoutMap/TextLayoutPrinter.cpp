@@ -140,7 +140,7 @@ void TextLayoutPrinter::printStat(llvm::StringRef S,
 void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
                                    const Module &Module) {
   const ObjectLinker &ObjLinker = *(Module.getLinker()->getObjectLinker());
-  const GNULDBackend &Backend = *Module.getBackend();
+  const GNULDBackend &Backend = Module.getBackend();
 
   if (!L.hasStats())
     return;
@@ -473,7 +473,7 @@ bool TextLayoutPrinter::printRelocationDataPluginOp(eld::Module &M,
     outputStream() << "\n";
   }
   outputStream() << "#\tType: "
-                 << M.getBackend()->getRelocator()->getName(R->type()) << "\n";
+                 << M.getBackend().getRelocator()->getName(R->type()) << "\n";
   outputStream() << "#\tOriginal: 0x";
   outputStream().write_hex(R->target());
   uint64_t RelocationData;
@@ -1030,7 +1030,7 @@ void TextLayoutPrinter::printVersionScripts(bool UseColor) {
 }
 
 void TextLayoutPrinter::printLinkerInsertedTimingStats(Module &CurModule) {
-  TimingFragment *F = CurModule.getBackend()->getTimingFragment();
+  TimingFragment *F = CurModule.getBackend().getTimingFragment();
   const TimingSlice *T = F->getTimingSlice();
   outputStream() << T->getModuleName() << " " << T->getDate() << " "
                  << T->getDurationSeconds() << "\n";
@@ -1148,7 +1148,7 @@ void TextLayoutPrinter::printScriptCommands(const LinkerScript &Script) {
 // color. Reset the colors to terminal defaults after writing.
 void TextLayoutPrinter::printMapFile(eld::Module &Module) {
   ThisLayoutInfo->buildMergedStringMap(Module);
-  GNULDBackend &Backend = *Module.getBackend();
+  GNULDBackend &Backend = Module.getBackend();
   bool UseColor = Backend.config().options().color() &&
                   Backend.config().options().colorMap();
   LinkerScript const &Script = Module.getScript();
@@ -1210,7 +1210,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
   // Get start and end points from section map to iterate over each section.
   SectionMap::const_iterator Out, OutBegin, OutEnd;
   LinkerScript const &Script = Module.getScript();
-  GNULDBackend &Backend = *Module.getBackend();
+  GNULDBackend &Backend = Module.getBackend();
   bool UseColor = Backend.config().options().color() &&
                   Backend.config().options().colorMap();
 

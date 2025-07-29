@@ -308,7 +308,7 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
           << Relocation::getFragmentPath(nullptr, TargetFrag, Config.options())
           << Relocation::getFragmentPath(nullptr, RelocFrag, Config.options())
           << std::string(
-                 PModule.getBackend()->getRelocator()->getName(PReloc.type()));
+                 PModule.getBackend().getRelocator()->getName(PReloc.type()));
       PBuilder.getModule().setFailure(true);
       return std::make_pair(nullptr, false);
     }

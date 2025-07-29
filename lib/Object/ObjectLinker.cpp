@@ -36,6 +36,7 @@
 #include "eld/Readers/BitcodeReader.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFDynObjParser.h"
+#include "eld/Readers/ELFExecObjParser.h"
 #include "eld/Readers/ELFRelocObjParser.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/EhFrameHdrSection.h"
@@ -130,18 +131,18 @@ bool ObjectLinker::initialize(eld::Module &PModule, eld::IRBuilder &PBuilder) {
   ThisModule = &PModule;
   CurBuilder = &PBuilder;
 
-  MPBitcodeReader = ThisBackend.createBitcodeReader();
+  MPBitcodeReader = createBitcodeReader();
   // initialize the readers and writers
-  RelocObjParser = ThisBackend.createRelocObjParser();
-  DynObjReader = ThisBackend.createDynObjReader();
-  ArchiveParser = ThisBackend.createArchiveParser();
-  ELFExecObjParser = ThisBackend.createELFExecObjParser();
-  BinaryFileParser = ThisBackend.createBinaryFileParser();
+  RelocObjParser = createRelocObjParser();
+  DynObjReader = createDynObjReader();
+  ArchiveParser = createArchiveParser();
+  ELFExecObjParser = createELFExecObjParser();
+  BinaryFileParser = createBinaryFileParser();
   // SymDef Reader.
-  SymDefReader = ThisBackend.createSymDefReader();
+  SymDefReader = createSymDefReader();
   GroupReader = make<eld::GroupReader>(*ThisModule, this);
   ScriptReader = make<eld::ScriptReader>();
-  ObjWriter = ThisBackend.createWriter();
+  ObjWriter = createWriter();
   // initialize Relocator
   ThisBackend.initRelocator();
 
@@ -2327,7 +2328,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
 
 /// emitOutput - emit the output file.
 bool ObjectLinker::emitOutput(llvm::FileOutputBuffer &POutput) {
-  return std::error_code() == getWriter()->writeObject(*ThisModule, POutput);
+  return std::error_code() == getWriter()->writeObject(POutput);
 }
 
 /// postProcessing - do modification after all processes
@@ -3914,4 +3915,36 @@ void ObjectLinker::collectEntrySections() const {
       SM.addEntrySection(ELFSect);
     }
   }
+}
+
+ArchiveParser *ObjectLinker::createArchiveParser() {
+  return make<eld::ArchiveParser>(*ThisModule);
+}
+
+ELFExecObjParser *ObjectLinker::createELFExecObjParser() {
+  return make<eld::ELFExecObjParser>(*ThisModule);
+}
+
+BitcodeReader *ObjectLinker::createBitcodeReader() {
+  return make<eld::BitcodeReader>(*ThisModule);
+}
+
+SymDefReader *ObjectLinker::createSymDefReader() {
+  return make<eld::SymDefReader>(*ThisModule);
+}
+
+ELFDynObjParser *ObjectLinker::createDynObjReader() {
+  return make<eld::ELFDynObjParser>(*ThisModule);
+}
+
+ELFRelocObjParser *ObjectLinker::createRelocObjParser() {
+  return make<eld::ELFRelocObjParser>(*ThisModule);
+}
+
+BinaryFileParser *ObjectLinker::createBinaryFileParser() {
+  return make<eld::BinaryFileParser>(*ThisModule);
+}
+
+ELFObjectWriter *ObjectLinker::createWriter() {
+  return make<eld::ELFObjectWriter>(*ThisModule);
 }

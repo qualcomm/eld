@@ -178,7 +178,7 @@ bool ELFReader<ELFT>::verifyFile(DiagnosticEngine *diagEngine) {
 
 template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::checkFlags() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   Elf_Ehdr elfHeader = m_LLVMELFFile->getHeader();
   return backend.getInfo().checkFlags(elfHeader.e_flags, &m_InputFile);
 }
@@ -222,7 +222,7 @@ template <class ELFT>
 eld::Expected<LDSymbol *>
 ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
                               std::size_t idx, bool isPatchable) {
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   IRBuilder &builder = *m_Module.getIRBuilder();
   ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
 
@@ -368,7 +368,7 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::readSymbols() {
 
 template <class ELFT> std::string ELFReader<ELFT>::getFlagString() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   Elf_Ehdr elfHeader = m_LLVMELFFile->getHeader();
   return backend.getInfo().flagString(elfHeader.e_flags);
 }
@@ -388,21 +388,21 @@ template <class ELFT> void ELFReader<ELFT>::recordInputActions() const {
 
 template <class ELFT> bool ELFReader<ELFT>::checkMachine() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   const Elf_Ehdr &elfHeader = m_LLVMELFFile->getHeader();
   return elfHeader.e_machine == backend.getInfo().machine();
 }
 
 template <class ELFT> bool ELFReader<ELFT>::checkClass() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   const Elf_Ehdr &elfHeader = m_LLVMELFFile->getHeader();
   return elfHeader.e_ident[llvm::ELF::EI_CLASS] == backend.getInfo().ELFClass();
 }
 
 template <class ELFT> void ELFReader<ELFT>::checkOSABI() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
-  GNULDBackend &backend = *m_Module.getBackend();
+  GNULDBackend &backend = m_Module.getBackend();
   const Elf_Ehdr &elfHeader = m_LLVMELFFile->getHeader();
   backend.getInfo().setOSABI(this->m_InputFile,
                              elfHeader.e_ident[llvm::ELF::EI_OSABI]);

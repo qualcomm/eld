@@ -17,7 +17,6 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/NamePool.h"
 #include "eld/SymbolResolver/SymbolResolutionInfo.h"
-#include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
@@ -83,26 +82,24 @@ static size_t getSymSize(const llvm::lto::InputFile::Symbol &Sym) {
 /// BitcodeReader
 
 /// constructor
-BitcodeReader::BitcodeReader(GNULDBackend &pBackend, eld::IRBuilder &pBuilder,
-                             LinkerConfig &pConfig)
-    : m_Backend(pBackend), m_Builder(pBuilder), m_Config(pConfig),
-      m_TraceLTO(false) {
-  m_TraceLTO = m_Config.options().traceLTO();
+BitcodeReader::BitcodeReader(Module &Mod) : m_Module(Mod) {
+  m_TraceLTO = m_Module.getConfig().options().traceLTO();
 }
 
 BitcodeReader::~BitcodeReader() {}
 
 bool BitcodeReader::readInput(InputFile &InputFile,
                               plugin::LinkerPlugin *LTOPlugin) {
-  LayoutInfo *layoutInfo = m_Builder.getModule().getLayoutInfo();
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   if (layoutInfo) {
     std::string action =
         "LOAD " + InputFile.getInput()->decoratedPath() + " [Bitcode]";
     layoutInfo->recordInputActions(LayoutInfo::Load, InputFile.getInput());
   }
 
-  if (m_Builder.getModule().getPrinter()->traceFiles())
-    m_Config.raise(Diag::trace_file) << InputFile.getInput()->decoratedPath();
+  if (m_Module.getPrinter()->traceFiles())
+    m_Module.getConfig().raise(Diag::trace_file)
+        << InputFile.getInput()->decoratedPath();
 
   BitcodeFile *BitcodeFile = llvm::dyn_cast<eld::BitcodeFile>(&InputFile);
   assert(BitcodeFile);
@@ -133,7 +130,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   if (LTOPlugin) {
     auto PluginLTOHashExp = LTOPlugin->OverrideLTOModuleHash(
         plugin::BitcodeFile(*BitcodeFile), PathWithArchiveOffset);
-    if (!m_Config.getDiagEngine()->diagnose())
+    if (!m_Module.getConfig().getDiagEngine()->diagnose())
       return false;
     if (PluginLTOHashExp)
       PluginLTOHash = *PluginLTOHashExp;
@@ -164,7 +161,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   // TODO: If the comdat table comes from normal LTO, does it only include
   // globals?
   const auto &signatureList = BitcodeFile->getInputFile().getComdatTable();
-  auto &signatureMap = m_Backend.getModule().signatureMap();
+  auto &signatureMap = m_Module.signatureMap();
   for (int i = 0; i < (int)signatureList.size(); i++) {
     auto signature = Saver.save(signatureList[i].first);
     auto info = signatureMap.find(signature);
@@ -186,7 +183,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
   // to the plugin.
   if (LTOPlugin) {
     LTOPlugin->ReadSymbols(*BitcodeFile->getPluginModule());
-    if (!m_Config.getDiagEngine()->diagnose())
+    if (!m_Module.getConfig().getDiagEngine()->diagnose())
       return false;
   } else {
     // Read global symbols from input file.
@@ -194,7 +191,7 @@ bool BitcodeReader::readInput(InputFile &InputFile,
     for (const auto &Sym : BitcodeFile->getInputFile().symbols()) {
       StringRef symbol = Sym.getName();
       bool keptComdat = BitcodeFile->findIfKeptComdat(Sym.getComdatIndex());
-      LDSymbol *sym = m_Backend.getModule().addSymbolFromBitCode(
+      LDSymbol *sym = m_Module.addSymbolFromBitCode(
           *BitcodeFile, symbol.str(), getSymType(Sym),
           keptComdat ? getSymDesc(Sym) : ResolveInfo::Undefined,
           getSymBinding(Sym), getSymSize(Sym), getSymVisibility(Sym), Idx++);
@@ -206,23 +203,22 @@ bool BitcodeReader::readInput(InputFile &InputFile,
 
   // TODO: Assume locals cannot be wrapped so the code that reads locals is
   // moved later.
-  for (auto &wrapper : m_Config.options().renameMap()) {
+  for (auto &wrapper : m_Module.getConfig().options().renameMap()) {
     llvm::StringRef name = wrapper.first();
-    if (!m_Builder.getModule().hasWrapReference(name) ||
-        name.starts_with("__real_"))
+    if (!m_Module.hasWrapReference(name) || name.starts_with("__real_"))
       continue;
-    LDSymbol *sym = m_Builder.getModule().getNamePool().findSymbol(name.str());
+    LDSymbol *sym = m_Module.getNamePool().findSymbol(name.str());
     if (sym && !sym->resolveInfo()->isBitCode())
       continue;
     std::string wrapName = std::string("__wrap_") + name.str();
-    if (m_Config.getPrinter()->traceWrapSymbols())
-      m_Config.raise(Diag::insert_wrapper) << wrapName;
+    if (m_Module.getConfig().getPrinter()->traceWrapSymbols())
+      m_Module.getConfig().raise(Diag::insert_wrapper) << wrapName;
     Resolver::Result result;
-    m_Builder.getModule().getNamePool().insertSymbol(
+    m_Module.getNamePool().insertSymbol(
         &InputFile, wrapName, false, eld::ResolveInfo::NoType,
         eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
         eld::ResolveInfo::Default, nullptr, result, false, false, 0,
-        false /* isPatchable */, m_Builder.getModule().getPrinter());
+        false /* isPatchable */, m_Module.getPrinter());
     sym = make<LDSymbol>(result.Info, false);
     if (result.Overriden || !result.Info->outSymbol())
       result.Info->setOutSymbol(sym);

@@ -281,7 +281,7 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
       if (iter == symbolInfoTable.end())
         continue;
 
-      GNULDBackend &backend = *m_Module.getBackend();
+      GNULDBackend &backend = m_Module.getBackend();
       ArchiveFile::Symbol::SymbolType &type = iter->second;
       type = ArchiveFile::Symbol::NoType;
       if (rawSym->getBinding() == llvm::ELF::STB_WEAK) {
