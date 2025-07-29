@@ -1247,6 +1247,9 @@ struct DLL_A_EXPORT InputFile {
   /// Get section at index i
   std::optional<plugin::Section> getSection(uint64_t i) const;
 
+  void setPluginSectionAnnotation(uint64_t sectionIndex,
+                                  std::string annotation);
+
   /// Returns true if the object has an input file.
   operator bool() const { return m_InputFile != nullptr; }
 

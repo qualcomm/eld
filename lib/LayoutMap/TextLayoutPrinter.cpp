@@ -636,10 +636,15 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
     outputStream() << Type << "," << Permissions << "," << Alignment;
     if (Info->section()->hasOldInputFile())
       outputStream() << "," << Info->getResolvedPath();
+    if (Info->section()->hasAnnotations()) {
+      outputStream() << ", Annotations: "
+                     << Info->section()->getSectionAnnotations();
+    }
     if (!Onlylayout) {
       printChangeOutputSectionInfo(Info->section());
       printChunkOps(M, Frag);
     }
+
   };
 
   uint64_t AddressOrOffset = -1;

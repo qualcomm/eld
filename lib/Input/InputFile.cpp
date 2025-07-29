@@ -17,6 +17,7 @@
 #include "eld/Support/Memory.h"
 #include "llvm/BinaryFormat/Magic.h"
 #include "llvm/Support/FileSystem.h"
+#include <stdint.h>
 
 using namespace eld;
 
@@ -73,6 +74,24 @@ InputFile *InputFile::createEmbedded(Input *I, llvm::StringRef S,
   }
   EmbeddedFile->setContents(S);
   return std::move(EmbeddedFile);
+}
+
+void InputFile::setPluginSectionAnnotation(uint64_t sectionIndex,
+                                           std::string annotation,
+                                           uint64_t numSections) {
+  if (PluginSectionAnnotations.size() == 0) {
+    PluginSectionAnnotations.resize(numSections);
+  }
+  PluginSectionAnnotations[sectionIndex].push_back(annotation);
+}
+
+std::vector<std::string>
+InputFile::getPluginSectionAnnotations(uint64_t sectionIndex) const {
+  std::vector<std::string> SectionAnnotations;
+  if (sectionIndex < PluginSectionAnnotations.size()) {
+    SectionAnnotations = PluginSectionAnnotations[sectionIndex];
+  }
+  return SectionAnnotations;
 }
 
 /// Create an Input File.

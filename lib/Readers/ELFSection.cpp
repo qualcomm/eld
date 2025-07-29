@@ -107,6 +107,36 @@ std::string ELFSection::getELFPermissionsStr(uint32_t permissions) {
   return elfPermStr;
 }
 
+std::string ELFSection::getSectionAnnotations() const {
+
+  std::vector<std::string> annotations;
+  const ObjectFile *ObjFile =
+      llvm::dyn_cast_or_null<const ObjectFile>(m_InputFile);
+  if (ObjFile) {
+    annotations = ObjFile->getPluginSectionAnnotations(Index);
+  }
+  std::ostringstream oss;
+  for (size_t i = 0; i < annotations.size(); ++i) {
+    oss << annotations[i];
+    if (i != annotations.size() - 1)
+      oss << '\t';
+  }
+  return oss.str();
+}
+
+bool ELFSection::hasAnnotations() const {
+
+  std::vector<std::string> annotations;
+  const ObjectFile *ObjFile =
+      llvm::dyn_cast_or_null<const ObjectFile>(m_InputFile);
+  if (ObjFile) {
+    annotations = ObjFile->getPluginSectionAnnotations(Index);
+  }
+  if (annotations.size() == 0)
+    return false;
+  return true;
+}
+
 // If an input section is in the form of "foo.N" where N is a number,
 // return N. Otherwise, returns 65536, which is one greater than the
 // lowest priority.
