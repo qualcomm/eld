@@ -672,14 +672,15 @@ std::vector<plugin::Symbol> plugin::Section::getSymbols() const {
   return SymbolsInSection;
 }
 
-void plugin::Section::setLinkerScriptRule(plugin::LinkerScriptRule R) {
+void plugin::Section::setLinkerScriptRule(LinkerWrapper &LW,
+                                          plugin::LinkerScriptRule R,
+                                          const std::string &Annotation) {
   if (!m_Section)
     return;
   ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);
   RuleContainer *RC = R.getRuleContainer();
-  S->setOutputSection(RC->getSection()->getOutputSection());
-  S->setMatchedLinkerScriptRule(RC);
-  RC->incMatchCount();
+  Module *M = LW.getModule();
+  M->getScript().updateRuleOp(&LW, M, RC, S, Annotation);
 }
 
 uint64_t plugin::Section::getSectionHash() const {

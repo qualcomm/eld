@@ -17,6 +17,7 @@
 #include "eld/Support/Memory.h"
 #include "llvm/BinaryFormat/Magic.h"
 #include "llvm/Support/FileSystem.h"
+#include <stdint.h>
 
 using namespace eld;
 

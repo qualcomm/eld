@@ -449,6 +449,13 @@ bool TextLayoutPrinter::printUpdateChunksPluginOp(PluginOp *Pop) const {
   return true;
 }
 
+bool TextLayoutPrinter::printUpdateRulePluginOp(PluginOp *Pop) const {
+  UpdateRulePluginOp *Op = llvm::dyn_cast<UpdateRulePluginOp>(Pop);
+  if (!Op)
+    return false;
+  return true;
+}
+
 bool TextLayoutPrinter::printResetOffsetPluginOp(PluginOp *Op) const {
   auto *R = llvm::dyn_cast<ResetOffsetPluginOp>(Op);
   if (!R)
@@ -636,10 +643,15 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
     outputStream() << Type << "," << Permissions << "," << Alignment;
     if (Info->section()->hasOldInputFile())
       outputStream() << "," << Info->getResolvedPath();
+    if (Info->section()->hasAnnotations()) {
+      outputStream() << ", Annotations: "
+                     << Info->section()->getSectionAnnotations();
+    }
     if (!Onlylayout) {
       printChangeOutputSectionInfo(Info->section());
       printChunkOps(M, Frag);
     }
+
   };
 
   uint64_t AddressOrOffset = -1;

@@ -149,6 +149,12 @@ public:
 
   static std::string getELFPermissionsStr(uint32_t Permissions);
 
+  std::string getSectionAnnotations() const;
+
+  bool hasAnnotations() const;
+
+  void addSectionAnnotation(const std::string &Annotation);
+
   bool hasOffset() const;
 
   /// FIXME: We change the offset for input sections so this will not return the
@@ -325,6 +331,8 @@ protected:
   /// FIXME: We only use this for dynamic relocation sections. We can just check
   /// the section properties instead of storing this?
   bool ShouldExcludeFromGC = false;
+
+  llvm::SmallVector<std::string> Annotations;
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;

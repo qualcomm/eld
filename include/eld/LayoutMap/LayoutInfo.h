@@ -317,6 +317,8 @@ public:
   void recordRelocationData(plugin::LinkerWrapper *W,
                             RelocationDataPluginOp *O);
 
+  void recordUpdateRule(plugin::LinkerWrapper *W, UpdateRulePluginOp *O);
+
   void closeLinkerScript() {
     if (LinkerScriptStack.size())
       LinkerScriptStack.pop();
