@@ -4,8 +4,9 @@ Linker Plugin API Usage and Reference
 Linker Wrapper
 ----------------
 
-.. figure:: ../images/LinkerWrapper.png
-   :figwidth: 80%
+.. graphviz:: ../images/LinkerWrapper.dot
+   :alt: LinkerWrapper flow.
+----------------------------------------------
 
    Plugins interacts with the linker using LinkerWrapper.
 
