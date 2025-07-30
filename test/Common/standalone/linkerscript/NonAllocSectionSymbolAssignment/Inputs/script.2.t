@@ -4,7 +4,7 @@ SECTIONS {
   my_start = .;
     .debug_info : {
     start = .;
-    (.debug_info)
+    .debug_info
     end = . ;
   }
   my_end = .;

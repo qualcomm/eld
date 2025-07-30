@@ -1,0 +1,53 @@
+#---InvalidLinkerScriptRule.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test verifies the linker error for invalid linker script rules.
+#END_COMMENT
+#BEGIN_TEST
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidFilePattern.1.t 2>&1 | %filecheck %s --check-prefix=FILE_PATTERN_ERR1 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidFilePattern.2.t 2>&1 | %filecheck %s --check-prefix=FILE_PATTERN_ERR2 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidFilePattern.3.t 2>&1 | %filecheck %s --check-prefix=FILE_PATTERN_ERR3 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidFilePattern.4.t 2>&1 | %filecheck %s --check-prefix=FILE_PATTERN_ERR4 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidSectionPattern.1.t 2>&1 | %filecheck %s --check-prefix=SECTION_PATTERN_ERR1 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidSectionPattern.2.t 2>&1 | %filecheck %s --check-prefix=SECTION_PATTERN_ERR2 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidSectionPattern.3.t 2>&1 | %filecheck %s --check-prefix=SECTION_PATTERN_ERR3 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidSectionPattern.4.t 2>&1 | %filecheck %s --check-prefix=SECTION_PATTERN_ERR4 --strict-whitespace --match-full-lines
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.InvalidSectionPattern.5.t 2>&1 | %filecheck %s --check-prefix=SECTION_PATTERN_ERR5 --strict-whitespace --match-full-lines
+#END_TEST
+
+FILE_PATTERN_ERR1:Error: {{.*}}script.InvalidFilePattern.1.t:3: Invalid file pattern: {
+FILE_PATTERN_ERR1:>>>     *1.o{
+FILE_PATTERN_ERR1:>>>         ^
+
+FILE_PATTERN_ERR2:Error: {{.*}}/script.InvalidFilePattern.2.t:5: unknown directive: }
+FILE_PATTERN_ERR2:>>> }
+FILE_PATTERN_ERR2:>>> ^
+
+FILE_PATTERN_ERR3:Error: {{.*}}script.InvalidFilePattern.3.t:3: Invalid file pattern: )
+FILE_PATTERN_ERR3:>>>     *1.o)
+FILE_PATTERN_ERR3:>>>         ^
+
+
+FILE_PATTERN_ERR4:Error: {{.*}}script.InvalidFilePattern.4.t:3: Invalid file pattern: (
+FILE_PATTERN_ERR4:>>>     (*1.o)
+FILE_PATTERN_ERR4:>>>     ^
+FILE_PATTERN_ERR4:Note: Rule ( in output section FOO does not have any sections specified
+
+SECTION_PATTERN_ERR1:Error: {{.*}}script.InvalidSectionPattern.1.t:4: Invalid section pattern: }
+SECTION_PATTERN_ERR1:>>>   }
+SECTION_PATTERN_ERR1:>>>   ^
+
+SECTION_PATTERN_ERR2:Error: {{.*}}script.InvalidSectionPattern.2.t:3: Invalid section pattern: (
+SECTION_PATTERN_ERR2:>>>     *1.o(()
+SECTION_PATTERN_ERR2:>>>          ^
+
+SECTION_PATTERN_ERR3:Error: {{.*}}script.InvalidSectionPattern.3.t:3: Invalid section pattern: {
+SECTION_PATTERN_ERR3:>>>     *1.o({)
+SECTION_PATTERN_ERR3:>>>          ^
+
+SECTION_PATTERN_ERR4:Error: {{.*}}script.InvalidSectionPattern.4.t:3: Invalid section pattern: }
+SECTION_PATTERN_ERR4:>>>     *1.o(})
+SECTION_PATTERN_ERR4:>>>          ^
+
+SECTION_PATTERN_ERR5:Error: {{.*}}script.InvalidSectionPattern.5.t:3: Invalid section pattern: {
+SECTION_PATTERN_ERR5:>>>     *1.o({}
+SECTION_PATTERN_ERR5:>>>          ^

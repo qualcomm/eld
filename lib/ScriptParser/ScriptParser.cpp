@@ -666,6 +666,8 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   }
   WildcardPattern *FilePat = nullptr, *ArchiveMem = nullptr;
   bool IsArchive = false;
+  if (!isValidFilePattern(Tok))
+    setError("Invalid file pattern: " + Tok);
   if (!Tok.contains(':'))
     FilePat = ThisScriptFile.createWildCardPattern(Tok);
   else {
@@ -689,6 +691,8 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
     ThisScriptFile.createStringList();
     while (peek() != ")" && !atEOF()) {
       WildcardPattern *SectPat = readWildcardPattern();
+      if (!isValidSectionPattern(SectPat->name()))
+        setError("Invalid section pattern: " + SectPat->name());
       ThisScriptFile.getCurrentStringList()->pushBack(SectPat);
     }
     expect(")");
@@ -1362,3 +1366,16 @@ void ScriptParser::readExternList() {
   if (!atEOF())
     setError("Unexpected token: " + peek());
 }
+
+bool ScriptParser::isValidFilePattern(llvm::StringRef Pat) {
+  if (Pat.size() == 1 && strchr("(){}", Pat[0]) != nullptr)
+    return false;
+  return true;
+}
+
+bool ScriptParser::isValidSectionPattern(llvm::StringRef Pat) {
+  if (Pat.size() == 1 && strchr("(){}", Pat[0]) != nullptr)
+    return false;
+  return true;
+}
+

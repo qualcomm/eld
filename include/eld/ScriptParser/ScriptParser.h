@@ -201,6 +201,22 @@ private:
   void readVersionSymbols(VersionScriptNode &VSN);
 
   void readVersionExtern(VersionScriptNode &VSN);
+
+  /// Returns true if the pattern is a valid file pattern.
+  ///
+  /// This API takes into account that Pat is parsed in LexState::Default.
+  /// Hence, it does not check if Pat contains any invalid character such as
+  /// '{' in between the pattern, as this case, would not be possible with
+  /// LexState::Default.
+  bool isValidFilePattern(llvm::StringRef Pat);
+
+  /// Returns true if the pattern is a valid file pattern.
+  ///
+  /// This API takes into account that Pat is parsed in LexState::Default.
+  /// Hence, it does not check if Pat contains any invalid character such as
+  /// '{' in between the pattern, as this case, would not be possible with
+  /// LexState::Default.
+  bool isValidSectionPattern(llvm::StringRef Pat);
 };
 } // namespace v2
 } // namespace eld
