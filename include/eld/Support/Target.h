@@ -12,19 +12,12 @@
 //===----------------------------------------------------------------------===//
 #ifndef ELD_SUPPORT_TARGET_H
 #define ELD_SUPPORT_TARGET_H
-#include <list>
+#include "llvm/TargetParser/Triple.h"
 #include <string>
-
-namespace llvm {
-class Target;
-class Triple;
-} // namespace llvm
 
 namespace eld {
 
-class ELDTargetMachine;
 class TargetRegistry;
-class MCLinker;
 class LinkerScript;
 class LinkerConfig;
 class Module;
@@ -34,12 +27,6 @@ class GNULDBackend;
  *  \brief Target collects target specific information
  */
 struct Target {
-  typedef unsigned int (*TripleMatchQualityFnTy)(const llvm::Triple &pTriple);
-
-  typedef ELDTargetMachine *(*TargetMachineCtorTy)(const llvm::Target &,
-                                                   const eld::Target &,
-                                                   const std::string &);
-
   typedef bool (*EmulationFnTy)(LinkerScript &, LinkerConfig &);
 
   typedef GNULDBackend *(*GNULDBackendCtorTy)(Module &);
@@ -47,13 +34,7 @@ struct Target {
   Target();
 
   /// getName - get the target name
-  const char *name() const { return Name; }
-
-  unsigned int getTripleQuality(const llvm::Triple &pTriple) const;
-
-  /// createTargetMachine - create target-specific TargetMachine
-  ELDTargetMachine *createTargetMachine(const std::string &pTriple,
-                                        const llvm::Target &pTarget) const;
+  llvm::StringRef name() const { return Name; }
 
   /// emulate - given MCLinker default values for the other aspects of the
   /// target system.
@@ -63,14 +44,16 @@ struct Target {
   GNULDBackend *createLDBackend(Module &pModule) const;
 
   /// Name - The target name
-  const char *Name;
+  llvm::StringRef Name;
 
-  bool IsImplemented = false;
+  // Machine
+  uint16_t Machine = 0;
 
-  TripleMatchQualityFnTy TripleMatchQualityFn;
-  TargetMachineCtorTy TargetMachineCtorFn;
-  EmulationFnTy EmulationFn;
-  GNULDBackendCtorTy GNULDBackendCtorFn;
+  // Is64bit
+  bool Is64bit = false;
+
+  EmulationFnTy EmulationFn = nullptr;
+  GNULDBackendCtorTy GNULDBackendCtorFn = nullptr;
 };
 
 } // end namespace eld

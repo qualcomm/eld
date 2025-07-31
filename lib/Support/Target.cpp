@@ -19,23 +19,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // Target
 //===----------------------------------------------------------------------===//
-Target::Target()
-    : Name(nullptr), TripleMatchQualityFn(nullptr),
-      TargetMachineCtorFn(nullptr), GNULDBackendCtorFn(nullptr) {}
-
-unsigned int Target::getTripleQuality(const llvm::Triple &Triple) const {
-  if (nullptr == TripleMatchQualityFn)
-    return 0;
-  return TripleMatchQualityFn(Triple);
-}
-
-ELDTargetMachine *
-Target::createTargetMachine(const std::string &Triple,
-                            const llvm::Target &Target) const {
-  if (nullptr == TargetMachineCtorFn)
-    return nullptr;
-  return TargetMachineCtorFn(Target, *this, Triple);
-}
+Target::Target() {}
 
 /// emulate - given MCLinker default values for the other aspects of the
 /// target system.

@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Support/Target.h"
 #include "eld/Support/TargetRegistry.h"
+#include "llvm/Object/ELF.h"
 
 namespace eld {
 
@@ -14,7 +15,7 @@ eld::Target TheHexagonTarget;
 
 extern "C" void ELDInitializeHexagonLDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget<llvm::Triple::hexagon> X(TheHexagonTarget, "hexagon");
+  eld::RegisterTarget X(TheHexagonTarget, "hexagon", llvm::ELF::EM_HEXAGON);
 }
 
 } // namespace eld

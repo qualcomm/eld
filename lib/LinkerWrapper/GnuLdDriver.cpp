@@ -1593,7 +1593,7 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     return false;
   }
   const eld::Target *ELDTarget =
-      eld::TargetRegistry::lookupTarget(Triple.str(), error);
+      eld::TargetRegistry::lookupTarget(Triple.getArchName(), Triple, error);
   if (nullptr == ELDTarget) {
     Config.raise(Diag::cannot_find_target) << error;
     return false;
@@ -1602,9 +1602,6 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
   // This is needed to make sure for -march aarch64,
   // default triple is not arm--linux-gnu else it will cause issues in LTO
   Config.targets().setTriple(Triple);
-  std::unique_ptr<eld::ELDTargetMachine> target_machine(
-      ELDTarget->createTargetMachine(Config.targets().triple().getTriple(),
-                                     *LLVMTarget));
   eld::LayoutInfo *layoutInfo = nullptr;
   if (!Config.options().layoutFile().empty() || Config.options().printMap())
     layoutInfo = eld::make<eld::LayoutInfo>(Config);

@@ -6,6 +6,7 @@
 
 #include "eld/Support/Target.h"
 #include "eld/Support/TargetRegistry.h"
+#include "llvm/Object/ELF.h"
 
 namespace eld {
 
@@ -14,8 +15,8 @@ eld::Target TheRISCV64Target;
 
 extern "C" void ELDInitializeRISCVLDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget<llvm::Triple::riscv32> X(TheRISCV32Target, "riscv32");
-  eld::RegisterTarget<llvm::Triple::riscv64> Y(TheRISCV64Target, "riscv64");
+  eld::RegisterTarget X(TheRISCV32Target, "riscv32", llvm::ELF::EM_RISCV);
+  eld::RegisterTarget Y(TheRISCV64Target, "riscv64", llvm::ELF::EM_RISCV);
 }
 
 } // namespace eld

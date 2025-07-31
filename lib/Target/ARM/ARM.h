@@ -24,7 +24,6 @@ struct Target;
 class GNULDBackend;
 
 extern eld::Target TheARMTarget;
-extern eld::Target TheThumbTarget;
 
 GNULDBackend *createARMLDBackend(const llvm::Target &, const std::string &);
 

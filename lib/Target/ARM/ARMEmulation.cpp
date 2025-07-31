@@ -41,6 +41,4 @@ bool emulateARMLD(LinkerScript &pScript, LinkerConfig &pConfig) {
 extern "C" void ELDInitializeARMEmulation() {
   // Register the emulation
   eld::TargetRegistry::RegisterEmulation(eld::TheARMTarget, eld::emulateARMLD);
-  eld::TargetRegistry::RegisterEmulation(eld::TheThumbTarget,
-                                         eld::emulateARMLD);
 }

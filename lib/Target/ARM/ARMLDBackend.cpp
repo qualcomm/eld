@@ -1269,5 +1269,4 @@ GNULDBackend *createARMLDBackend(Module &pModule) {
 extern "C" void ELDInitializeARMLDBackend() {
   // Register the linker backend
   eld::TargetRegistry::RegisterGNULDBackend(TheARMTarget, createARMLDBackend);
-  eld::TargetRegistry::RegisterGNULDBackend(TheThumbTarget, createARMLDBackend);
 }

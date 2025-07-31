@@ -6,6 +6,7 @@
 
 #include "eld/Support/Target.h"
 #include "eld/Support/TargetRegistry.h"
+#include "llvm/Object/ELF.h"
 
 namespace eld {
 
@@ -13,7 +14,7 @@ eld::Target TheAArch64Target;
 
 extern "C" void ELDInitializeAArch64LDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget<llvm::Triple::aarch64> X(TheAArch64Target, "aarch64");
+  eld::RegisterTarget X(TheAArch64Target, "aarch64", llvm::ELF::EM_AARCH64);
 }
 
 } // namespace eld

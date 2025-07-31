@@ -834,13 +834,10 @@ bool Linker::initBackend(const eld::Target *PTarget) {
   Backend = PTarget->createLDBackend(*ThisModule);
   LinkerProgress->incrementAndDisplayProgress();
   bool HasError = false;
-  if (nullptr == Backend || !PTarget->IsImplemented) {
+  if (nullptr == Backend) {
     std::string AvailableTargets;
-    for (auto Target = TargetRegistry::begin(); Target != TargetRegistry::end();
-         Target++) {
-      if ((*Target)->IsImplemented)
-        AvailableTargets += (*Target)->name() + std::string(" ");
-    }
+    for (auto Target : TargetRegistry::targets())
+      AvailableTargets += std::string(Target->name()) + std::string(" ");
     ThisConfig->raise(Diag::err_cannot_init_backend)
         << ThisConfig->targets().triple().str() << AvailableTargets;
     HasError = true;

@@ -17,88 +17,44 @@
 
 using namespace eld;
 
-TargetRegistry::TargetListTy eld::TargetRegistry::s_TargetList;
+std::vector<Target *> eld::TargetRegistry::TargetList;
 
-//===----------------------------------------------------------------------===//
-// TargetRegistry
-//===----------------------------------------------------------------------===//
-void TargetRegistry::RegisterTarget(Target &Target, const char *Name,
-                                    Target::TripleMatchQualityFnTy QualityFn) {
+void TargetRegistry::RegisterTarget(Target &Target, llvm::StringRef Name,
+                                    uint16_t Machine, bool is64bit) {
   Target.Name = Name;
-  Target.TripleMatchQualityFn = QualityFn;
-  Target.IsImplemented = true;
-
-  s_TargetList.push_back(&Target);
+  Target.Machine = Machine;
+  Target.Is64bit = is64bit;
+  TargetList.push_back(&Target);
 }
 
-const Target *TargetRegistry::lookupTarget(const std::string &CommandLineTriple,
-                                           std::string &Error) {
-  if (empty()) {
-    Error = "Unable to find target for this triple (no target are registered)";
-    return nullptr;
-  }
-
-  llvm::Triple Triple(CommandLineTriple);
-  Target *Best = nullptr, *Ambiguity = nullptr;
-  unsigned int Highest = 0;
-
-  for (auto Target = begin(), Ie = end(); Target != Ie; ++Target) {
-    unsigned int Quality = (*Target)->getTripleQuality(Triple);
-    if (Quality > 0) {
-      if (nullptr == Best || Highest < Quality) {
-        Highest = Quality;
-        Best = *Target;
-        Ambiguity = nullptr;
-      } else if (Highest == Quality) {
-        Ambiguity = *Target;
-      }
-    }
-  }
-
-  if (nullptr == Best) {
-    Error = "No available targets are compatible with this triple.";
-  }
-  if (nullptr != Ambiguity) {
-    Error = std::string("Ambiguous targets: \"") + Best->name() + "\" and \"" +
-            Ambiguity->name() + "\"";
-    return nullptr;
-  }
-
-  return Best;
-}
-
-const Target *TargetRegistry::lookupTarget(const std::string &ArchName,
+const Target *TargetRegistry::lookupTarget(llvm::StringRef ArchName,
                                            llvm::Triple &Triple,
                                            std::string &Error) {
   const Target *Result = nullptr;
-  if (!ArchName.empty()) {
-    for (auto It = eld::TargetRegistry::begin(),
-              Ie = eld::TargetRegistry::end();
-         It != Ie; ++It) {
-      if (ArchName == (*It)->name()) {
-        Result = *It;
-        break;
-      }
-    }
-
-    if (nullptr == Result) {
-      Error = std::string("invalid target '") + ArchName + "'.\n";
-      return nullptr;
-    }
-
-    // Adjust the triple to match (if known), otherwise stick with the
-    // module/host triple.
-    llvm::Triple::ArchType Type =
-        llvm::Triple::getArchTypeForLLVMName(ArchName);
-    if (llvm::Triple::UnknownArch != Type)
-      Triple.setArch(Type);
-  } else {
-    Result = lookupTarget(Triple.getTriple(), Error);
-    if (nullptr == Result) {
-      Error = std::string("unable to get target for `") + Triple.getTriple() +
-              "'\n" + "(Detail: " + Error + ")\n";
-      return nullptr;
+  for (auto &target : targets()) {
+    if (ArchName == target->name()) {
+      Result = target;
+      break;
     }
   }
+
+  if (!Result) {
+    Error = std::string("invalid target '") + ArchName.str() + "'.\n";
+    return nullptr;
+  }
+
+  // Adjust the triple to match (if known), otherwise stick with the
+  // module/host triple.
+  llvm::Triple::ArchType Type = llvm::Triple::getArchTypeForLLVMName(ArchName);
+  if (llvm::Triple::UnknownArch != Type)
+    Triple.setArch(Type);
   return Result;
+}
+
+Target *TargetRegistry::lookupMachine(uint16_t Machine, bool is64bit) const {
+  for (auto &target : targets()) {
+    if ((target->Machine == Machine) && (target->Is64bit == is64bit))
+      return target;
+  }
+  return nullptr;
 }

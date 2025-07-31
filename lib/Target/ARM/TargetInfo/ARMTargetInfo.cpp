@@ -15,16 +15,15 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Support/Target.h"
 #include "eld/Support/TargetRegistry.h"
+#include "llvm/Object/ELF.h"
 
 namespace eld {
 
 eld::Target TheARMTarget;
-eld::Target TheThumbTarget;
 
 extern "C" void ELDInitializeARMLDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget<llvm::Triple::arm> X(TheARMTarget, "arm");
-  eld::RegisterTarget<llvm::Triple::thumb> Y(TheThumbTarget, "thumb");
+  eld::RegisterTarget X(TheARMTarget, "arm", llvm::ELF::EM_ARM);
 }
 
 } // namespace eld

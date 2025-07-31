@@ -14,7 +14,7 @@ eld::Target TheTemplateTarget;
 
 extern "C" void ELDInitializeTemplateLDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget<llvm::Triple::iu> X(TheTemplateTarget, "template");
+  eld::RegisterTarget X(TheTemplateTarget, "template", 0);
 }
 
 } // namespace eld

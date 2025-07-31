@@ -73,16 +73,8 @@ void Driver::InitTarget() {
   eld::InitializeAllTargets();
   eld::InitializeAllEmulations();
 
-  for (auto it = eld::TargetRegistry::begin(); it != eld::TargetRegistry::end();
-       ++it) {
-    std::string TargetName = getStringFromTarget((*it)->Name);
-    if (TargetName.empty())
-      continue;
-    auto STIter = std::find(m_SupportedTargets.begin(),
-                            m_SupportedTargets.end(), TargetName);
-    if (STIter == m_SupportedTargets.end())
-      m_SupportedTargets.emplace_back(TargetName);
-  }
+  for (auto &target : eld::TargetRegistry::targets())
+    m_SupportedTargets.push_back(std::string(target->name()));
 }
 
 std::string Driver::getStringFromTarget(llvm::StringRef Target) const {
