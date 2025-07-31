@@ -10,7 +10,6 @@ llvm_add_library(
   ARMLDBackend.cpp
   ARMPLT.cpp
   ARMRelocator.cpp
-  ARMTargetMachine.cpp
   ARMToARMStub.cpp
   ARMToTHMStub.cpp
   THMToARMStub.cpp

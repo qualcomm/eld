@@ -12,7 +12,6 @@ llvm_add_library(
   HexagonLDBackend.cpp
   HexagonPLT.cpp
   HexagonRelocator.cpp
-  HexagonTargetMachine.cpp
   HexagonTLSStub.cpp
   HexagonInfo.cpp)
 

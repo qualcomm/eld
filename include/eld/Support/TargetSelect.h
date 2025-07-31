@@ -18,10 +18,6 @@ extern "C" {
 #define ELD_TARGET(TargetName) void ELDInitialize##TargetName##LDTargetInfo();
 #include "eld/Config/Targets.def"
 
-// Declare all of the target-dependent functions that are available.
-#define ELD_TARGET(TargetName) void ELDInitialize##TargetName##LDTarget();
-#include "eld/Config/Targets.def"
-
 // Declare all of the target-depedent linker information
 #define ELD_LINKER(TargetName) void ELDInitialize##TargetName##LDInfo();
 #include "eld/Config/Linkers.def"
@@ -64,16 +60,6 @@ inline void InitializeAllTargets() {
 /// all emulations available via the TargetRegistry.
 inline void InitializeAllEmulations() {
 #define ELD_TARGET(TargetName) ELDInitialize##TargetName##Emulation();
-#include "eld/Config/Targets.def"
-}
-
-/// InitializeAllLinkers - The main program should call this function if it
-/// wants all linkers that is configured to support, to make them
-/// available via the TargetRegistry.
-///
-/// It is legal for a client to make multiple calls to this function.
-inline void InitializeAllLinkers() {
-#define ELD_TARGET(TargetName) ELDInitialize##TargetName##LDTarget();
 #include "eld/Config/Targets.def"
 }
 

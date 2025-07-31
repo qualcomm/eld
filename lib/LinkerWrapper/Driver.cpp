@@ -71,7 +71,6 @@ void Driver::InitTarget() {
 
   // Register all eld targets, linkers, emulation, diagnostics.
   eld::InitializeAllTargets();
-  eld::InitializeAllLinkers();
   eld::InitializeAllEmulations();
 
   for (auto it = eld::TargetRegistry::begin(); it != eld::TargetRegistry::end();

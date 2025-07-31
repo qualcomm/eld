@@ -4,7 +4,6 @@ llvm_add_library(
   x86_64Emulation.cpp
   x86_64Info.cpp
   x86_64LDBackend.cpp
-  x86_64TargetMachine.cpp
   x86_64Relocator.cpp
   x86_64RelocationCompute.cpp
   x86_64PLT.cpp

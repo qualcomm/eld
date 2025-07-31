@@ -11,8 +11,7 @@ llvm_add_library(
   RISCVRelocationCompute.cpp
   RISCVRelocationInfo.cpp
   RISCVRelocator.cpp
-  RISCVRelaxationStats.cpp
-  RISCVTargetMachine.cpp)
+  RISCVRelaxationStats.cpp)
 
 add_subdirectory(TargetInfo)
 

@@ -51,15 +51,6 @@ public:
   static void RegisterTarget(Target &pTarget, const char *pName,
                              Target::TripleMatchQualityFnTy pQualityFn);
 
-  /// RegisterTargetMachine - Register a TargetMachine implementation for the
-  /// given target.
-  static void RegisterTargetMachine(eld::Target &T,
-                                    eld::Target::TargetMachineCtorTy Fn) {
-    // Ignore duplicate registration.
-    if (!T.TargetMachineCtorFn)
-      T.TargetMachineCtorFn = Fn;
-  }
-
   /// RegisterEmulation - Register a emulation function for the target.
   /// target.
   static void RegisterEmulation(eld::Target &T, eld::Target::EmulationFnTy Fn) {
@@ -108,28 +99,6 @@ public:
     return 0;
   }
 };
-
-/// RegisterTargetMachine - Helper template for registering a target machine
-/// implementation, for use in the target machine initialization
-/// function. Usage:
-///
-/// extern "C" void ELDInitializeFooTarget() {
-///   extern eld::Target TheFooTarget;
-///   RegisterTargetMachine<eld::FooTargetMachine> X(TheFooTarget);
-/// }
-template <class TargetMachineImpl> struct RegisterTargetMachine {
-  RegisterTargetMachine(eld::Target &T) {
-    TargetRegistry::RegisterTargetMachine(T, &Allocator);
-  }
-
-private:
-  static ELDTargetMachine *Allocator(const llvm::Target &pLLVMTarget,
-                                     const eld::Target &pELDTarget,
-                                     const std::string &pTriple) {
-    return new TargetMachineImpl(pLLVMTarget, pELDTarget, pTriple);
-  }
-};
-
 } // end namespace eld
 
 #endif

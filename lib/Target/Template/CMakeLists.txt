@@ -5,7 +5,6 @@ llvm_add_library(
   TemplateInfo.cpp
   TemplateLDBackend.cpp
   TemplateVRelocator.cpp
-  TemplateTargetMachine.cpp
   TemplateRelocationCompute.cpp)
 
 add_subdirectory(TargetInfo)
