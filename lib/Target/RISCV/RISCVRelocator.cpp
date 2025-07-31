@@ -55,7 +55,7 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyRelax)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGPRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLUI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyTprelAdd)
-DECL_RISCV_APPLY_RELOC_FUNC(relocGOT)
+DECL_RISCV_APPLY_RELOC_FUNC(applyGOT)
 DECL_RISCV_APPLY_RELOC_FUNC(applyVendor)
 
 #undef DECL_RISCV_APPLY_RELOC_FUNC
@@ -96,9 +96,9 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_JAL, applyJumpOrCall),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_CALL, applyJumpOrCall),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_CALL_PLT, unsupported),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_GOT_HI20, relocGOT),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GOT_HI20, relocGOT),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GD_HI20, relocGOT),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_GOT_HI20, applyGOT),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GOT_HI20, applyGOT),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GD_HI20, applyGOT),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_HI20, applyHI),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_I, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_S, applyLO),
@@ -924,7 +924,7 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
   return ApplyReloc(pReloc, Result_lo, pRelocDesc, Backend.config());
 }
 
-RISCVRelocator::Result relocGOT(Relocation &pReloc, RISCVLDBackend &Backend,
+RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
                                 RelocationDescription &pRelocDesc) {
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
     return Relocator::BadReloc;
