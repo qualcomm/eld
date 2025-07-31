@@ -51,7 +51,6 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyHI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyLO)
 DECL_RISCV_APPLY_RELOC_FUNC(applyJumpOrCall)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAlign)
-DECL_RISCV_APPLY_RELOC_FUNC(applyRelax)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGPRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLUI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyTprelAdd)
@@ -121,7 +120,7 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ALIGN, applyAlign),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RVC_BRANCH, applyJumpOrCall),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RVC_JUMP, applyJumpOrCall),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RELAX, applyRelax),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RELAX, applyNone),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB6, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET6, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET8, applyAbs),
@@ -938,14 +937,6 @@ RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
   Result -= pReloc.place(Backend.getModule());
 
   return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
-}
-
-// R_RISCV_RELAX
-RISCVRelocator::Result applyRelax(Relocation &pReloc, RISCVLDBackend &,
-                                  RelocationDescription &pRelocDesc) {
-  // TODO: Add support for relaxations
-
-  return RISCVRelocator::OK;
 }
 
 RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
