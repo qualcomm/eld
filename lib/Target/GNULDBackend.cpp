@@ -4517,7 +4517,7 @@ void GNULDBackend::resolveTargetDefinedSymbols() {
 void GNULDBackend::doPostLayout() {
   resolveTargetDefinedSymbols();
 
-  m_Module.setState(plugin::LinkerWrapper::CreatingSegments);
+  m_Module.setLinkState(Module::LinkState::CreatingSegments);
   if (!m_Module.getLinker()
            ->getObjectLinker()
            ->runOutputSectionIteratorPlugin()) {
