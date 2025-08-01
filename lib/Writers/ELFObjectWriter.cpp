@@ -654,12 +654,12 @@ void ELFObjectWriter::emitRela(ELFSection *S, MemoryRegion &CurRegion,
       emitRelocation<ELFT>(*Rel, R->type(), RSym, ROffset, RAddend);
       break;
     }
-    case GNULDBackend::DynRelocType::TLSDESC_LOCAL:
     case GNULDBackend::DynRelocType::DTPMOD_LOCAL:
     case GNULDBackend::DynRelocType::DTPREL_LOCAL:
       emitRelocation<ELFT>(*Rel, R->type(), 0, ROffset, 0);
       break;
 
+    case GNULDBackend::DynRelocType::TLSDESC_LOCAL:
     case GNULDBackend::DynRelocType::TPREL_LOCAL:
       emitRelocation<ELFT>(
           *Rel, R->type(), 0, ROffset,

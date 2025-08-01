@@ -4084,6 +4084,12 @@ bool GNULDBackend::relax() {
         if (hasError)
           m_Module.setFailure(true);
       }
+      if (LinkerConfig::Object != config().codeGenType()) {
+        if (!setupProgramHdrs()) {
+          m_Module.setFailure(true);
+          return false;
+        }
+      }
     }
 
     if (!config().getDiagEngine()->diagnose()) {

@@ -130,6 +130,10 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_32_PCREL, applyRel),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET_ULEB128, applyAdditive),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB_ULEB128, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLSDESC_HI20, applyGOT),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLSDESC_LOAD_LO12, applyGOT),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLSDESC_ADD_LO12, applyGOT),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLSDESC_CALL, applyNone),
 
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_VENDOR, applyVendor),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_CUSTOM192, unsupported),
@@ -447,6 +451,54 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
 
     if (!section->isAlloc())
       return;
+
+    ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
+
+    // Common relocation processing for both local and global symbols.
+    switch (pReloc.type()) {
+    case llvm::ELF::R_RISCV_TLSDESC_HI20:
+    case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+    case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+    case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (config().isBuildingExecutable()) {
+        // Non-preemptible symbols in executables will be optimized or relaxed,
+        // no GOT needed.
+        if (!m_Target.isSymbolPreemptible(*rsym))
+          return;
+
+        // RISC-V seems to dictate how each instruction in the sequence is
+        // transformed during IE/LE optimization. In particular, the instruction
+        // with R_RISCV_TLSDESC_ADD_LO12 is transformed to AUIPC, although it
+        // would be easier to keep the original AUIPC and remove the one with
+        // R_RISCV_TLSDESC_ADD_LO12. Therefore, the new load instruction will
+        // need a new relocation to indicate its base address. Reuse the
+        // existing R_RISCV_TLSDESC_ADD_LO12 as this is where the new auipc will
+        // be created.
+        if (pReloc.type() == llvm::ELF::R_RISCV_TLSDESC_ADD_LO12)
+          m_Target.setNewBaseForTLSDESCRelaxation(pReloc);
+
+        if (rsym->reserved() & ReserveGOT)
+          return;
+
+        RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+        G->setValueType(GOT::TLSStaticSymbolValue);
+        helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                           is32bit() ? llvm::ELF::R_RISCV_TLS_TPREL32
+                                     : llvm::ELF::R_RISCV_TLS_TPREL64,
+                           m_Target);
+      } else {
+        if (rsym->reserved() & ReserveGOT)
+          return;
+        RISCVGOT *G = m_Target.createGOT(GOT::TLS_DESC, Obj, rsym);
+        helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
+                           llvm::ELF::R_RISCV_TLSDESC, m_Target);
+      }
+
+      rsym->setReserved(rsym->reserved() | ReserveGOT);
+      return;
+    }
+    }
 
     if (rsym->isLocal()) // rsym is local
       scanLocalReloc(pInputFile, pReloc, pLinker, *section);
@@ -931,6 +983,10 @@ RISCVRelocator::Result applyRelLO(Relocation &pReloc, RISCVLDBackend &Backend,
   if (!HIReloc)
     return RISCVRelocator::BadReloc;
 
+  if (const Relocation *RelaxedBase =
+          Backend.getNewBaseForTLSDESCRelaxation(*HIReloc))
+    HIReloc = RelaxedBase;
+
   int64_t Value;
   if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
       HIReloc->type() == llvm::ELF::R_RISCV_TLS_GD_HI20 ||
@@ -967,12 +1023,20 @@ RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
     return Relocator::BadReloc;
   }
 
-  int64_t S = Backend.findEntryInGOT(pReloc.symInfo())
-                  ->getAddr(Backend.config().getDiagEngine());
-  int64_t A = pReloc.addend();
-  int64_t Result = S + A;
+  // Base relocation is used to find the symbol and addend.
+  const Relocation *BaseReloc =
+      pReloc.type() == llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12 ||
+              pReloc.type() == llvm::ELF::R_RISCV_TLSDESC_ADD_LO12
+          ? Backend.getBaseReloc(pReloc)
+          : &pReloc;
+  if (!BaseReloc)
+    return RISCVRelocator::BadReloc;
 
-  Result -= pReloc.place(Backend.getModule());
+  int64_t S = Backend.findEntryInGOT(BaseReloc->symInfo())
+                  ->getAddr(Backend.config().getDiagEngine());
+  int64_t A = BaseReloc->addend();
+  int64_t P = BaseReloc->place(Backend.getModule());
+  int64_t Result = S + A - P;
 
   return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config(), Parent);
 }

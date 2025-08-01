@@ -12,6 +12,7 @@
 #include "RISCVLLVMExtern.h"
 #include "RISCVPLT.h"
 #include "RISCVRelaxationStats.h"
+#include "RISCVRelocationHelper.h"
 #include "RISCVRelocationInternal.h"
 #include "RISCVRelocator.h"
 #include "RISCVStandaloneInfo.h"
@@ -645,6 +646,104 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
   return false;
 }
 
+bool RISCVLDBackend::doRelaxationTLSDESC(Relocation &R, bool Relax) {
+
+  Fragment *frag = R.targetRef()->frag();
+  RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
+  if (!region)
+    return false;
+
+  const StringRef RelaxType = "RISCV_TLSDESC";
+  const ResolveInfo &Sym = *R.symInfo();
+  size_t offset = R.targetRef()->offset();
+
+  // In executables, TLSDESC relocations are either removed, when the
+  // instruction is replaced with a NOP, or replaced with one of a
+  // different type. The conditions and the instruction substitution rules are
+  // the same whether or not relaxation is enabled.
+  auto attempt = [&]() -> bool {
+    bool Relaxed = Relax && config().options().getRISCVRelax();
+    if (Relaxed)
+      relaxDeleteBytes(RelaxType, *region, offset, 4, Sym.name());
+    else {
+      // Otherwise, the instruction is replaced with a NOP.
+      reportMissedRelaxation(RelaxType, *region, offset, 4, Sym.name());
+      region->replaceInstruction(offset, &R, NOP, 4);
+    }
+    R.setType(llvm::ELF::R_RISCV_NONE);
+    return Relaxed;
+  };
+
+  // The first two instructions are always deleted.
+  if (R.type() == llvm::ELF::R_RISCV_TLSDESC_HI20 ||
+      R.type() == llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12)
+    return attempt();
+
+  // We need the base relocation to get the symbol and the original addend.
+  const Relocation *BaseReloc = getBaseReloc(R);
+  if (!BaseReloc)
+    return false;
+
+  bool isLocalExec = !isSymbolPreemptible(*BaseReloc->symInfo());
+  if (isLocalExec) {
+    // We only need the symbol value to determine if it fits in 12 bits so we
+    // can use the short form. Hopefully, it will not increase later.
+    int64_t S = getRelocator()->getSymValue(BaseReloc);
+    int64_t A = BaseReloc->addend();
+    int64_t Value = S + A;
+    bool isShortForm = hi20(Value) == 0;
+    if (isShortForm) {
+      // LE short form is one ADDI instruction.
+      switch (R.type()) {
+      case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+        return attempt();
+      case llvm::ELF::R_RISCV_TLSDESC_CALL:
+        // addi a0, zero, %lo(S)
+        R.setTargetData(itype(ADDI, X_A0, X_ZERO, 0));
+        R.setType(llvm::ELF::R_RISCV_LO12_I);
+        break;
+      }
+    } else {
+      // LE long form is LUI + ADDI.
+      switch (R.type()) {
+      case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+        // lui a0, %hi(S)
+        R.setTargetData(utype(LUI, X_A0, 0));
+        R.setType(llvm::ELF::R_RISCV_HI20);
+        // Inherit the original addend from the instruction we have deleted.
+        R.setAddend(BaseReloc->addend());
+        break;
+      case llvm::ELF::R_RISCV_TLSDESC_CALL:
+        // addi a0, a0, %lo(S)
+        R.setTargetData(itype(ADDI, X_A0, X_A0, 0));
+        R.setType(llvm::ELF::R_RISCV_LO12_I);
+        break;
+      }
+    }
+  } else {
+    // Initial executable: AUIPC + GOT LW/LD:
+    switch (R.type()) {
+    case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+      // auipc a0, %got_pcrel_hi(S)
+      R.setTargetData(utype(AUIPC, X_A0, 0));
+      R.setType(llvm::ELF::R_RISCV_GOT_HI20);
+      // Inherit the original addend from the instruction we have deleted.
+      R.setAddend(BaseReloc->addend());
+      break;
+    case llvm::ELF::R_RISCV_TLSDESC_CALL:
+      // lw/ld a0, a0+%pcrel_lo(S)
+      // The correspondence between this relocation and the corresponding HI20
+      // stays the same even its type changes.
+      R.setTargetData(
+          itype(config().targets().is32Bits() ? LW : LD, X_A0, X_A0, 0));
+      R.setType(llvm::ELF::R_RISCV_PCREL_LO12_I);
+      break;
+    }
+  }
+
+  return true;
+}
+
 bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   FragmentRef *Ref = pReloc->targetRef();
   Fragment *frag = Ref->frag();
@@ -884,12 +983,18 @@ enum RelaxationPass {
   RELAXATION_CALL, // Must start at zero
   RELAXATION_PC,
   RELAXATION_LUI,
+  RELAXATION_TLSDESC,
   RELAXATION_ALIGN,
   RELAXATION_PASS_COUNT, // Number of passes
 };
 
 void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   pFinished = true;
+
+  // TLSDESC relaxations only apply to executables.
+  if (relaxation_pass == RELAXATION_TLSDESC && !config().isBuildingExecutable())
+    return;
+
   // RELAXATION_ALIGN pass, which is the last pass, will set pFinished to
   // false if it has made changes. It is needed to call createProgramHdrs()
   // again in the outer loop. Therefore, this function may be entered once more,
@@ -951,6 +1056,26 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             doRelaxationLui(relocation, GP);
           break;
         }
+        case llvm::ELF::R_RISCV_TLSDESC_HI20:
+        case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+        case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+        case llvm::ELF::R_RISCV_TLSDESC_CALL:
+          if (relaxation_pass == RELAXATION_TLSDESC) {
+            // In the TLSDESC relaxation sequence, only the instruction with
+            // R_RISCV_TLSDESC_HI20 can be marked with R_RISCV_RELAX to indicate
+            // that the whole sequence is relaxable. So the other three
+            // relocation types will inherit this knowledge from the
+            // R_RISCV_TLSDESC_HI20 relocation.
+            if (type != llvm::ELF::R_RISCV_TLSDESC_HI20)
+              if (const Relocation *HIReloc = getBaseReloc(*relocation))
+                nextRelax = rs->getLink()->findRelocation(
+                    HIReloc->targetRef()->offset(), llvm::ELF::R_RISCV_RELAX);
+            // Note that doRelaxationTLSDESC is used for both optimizations and
+            // relaxations, therefore this function should be called regardless
+            // of whether relaxations are enabled.
+            doRelaxationTLSDESC(*relocation, nextRelax);
+          }
+          break;
         case llvm::ELF::R_RISCV_ALIGN: {
           if (relaxation_pass == RELAXATION_ALIGN)
             if (doRelaxationAlign(relocation))
@@ -1115,12 +1240,20 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       m_GroupRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
     return true;
   }
-  // R_RISCV_PCREL_LO* relocations have the corresponding HI reloc as the
-  // syminfo, we need to find out the actual target by inspecting this reloc
-  // and set the appropriate relocation.
+  // R_RISCV_PCREL_LO* and TLSDESC relocations have the corresponding HI reloc
+  // as the syminfo, we need to find out the actual target by inspecting this
+  // reloc and set the appropriate relocation.
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
-  case llvm::ELF::R_RISCV_PCREL_LO12_S: {
-    Relocation *hi_reloc = findHIRelocation(pSection, pSym.value());
+  case llvm::ELF::R_RISCV_PCREL_LO12_S:
+  case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+  case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+  case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+    bool pcrel = pType == llvm::ELF::R_RISCV_PCREL_LO12_I ||
+                 pType == llvm::ELF::R_RISCV_PCREL_LO12_S;
+    Relocation *hi_reloc =
+        pcrel ? findHIRelocation(pSection, pSym.value())
+              : pSection->findRelocation(pSym.value(),
+                                         llvm::ELF::R_RISCV_TLSDESC_HI20);
     if (!hi_reloc && pLastVisit) {
       config().raise(Diag::rv_hi20_not_found)
           << pSym.name() << getRISCVRelocName(pType)
@@ -1150,7 +1283,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       reloc->setSymInfo(hi_reloc->symInfo());
       pSection->addRelocation(reloc);
     }
-    if (pLastVisit) {
+    if (pcrel && pLastVisit) {
       // Disable GP Relaxation for this pair to mimic GNU
       m_DisableGPRelocs.insert(reloc);
       m_DisableGPRelocs.insert(hi_reloc);
@@ -1451,6 +1584,10 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     break;
   case GOT::TLS_IE:
     G = RISCVGOT::CreateIE(Obj->getGOT(), R, config().targets().is32Bits());
+    break;
+  case GOT::TLS_DESC:
+    G = RISCVGOT::CreateTLSDESC(Obj->getGOTPLT(), R,
+                                config().targets().is32Bits());
     break;
   default:
     assert(0);
