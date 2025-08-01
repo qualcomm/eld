@@ -222,11 +222,23 @@ void RISCVLDBackend::reportMissedRelaxation(StringRef Name,
   recordRelaxationStats(Section, 0, NumBytes);
 }
 
-bool RISCVLDBackend::doRelaxationCall(Relocation *reloc, bool DoCompressed) {
+bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
+  /* Three similar relaxations can be applied here, in order of preference:
+   * -- auipc;jalr -> c.j/c.jal (saves 6 bytes)
+   * -- auipc;jalr -> jal (saves 4 bytes)
+   * -- auipc;jalr -> qc.e.j/qc.e.jal (saves 2 bytes) (Xqci only)
+   */
+
   Fragment *frag = reloc->targetRef()->frag();
   RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
   if (!region)
     return true;
+
+  Relocator::DWord S = getSymbolValuePLT(*reloc);
+  Relocator::DWord A = reloc->addend();
+  Relocator::DWord P = reloc->place(m_Module);
+  Relocator::DWord X = S + A - P;
+
   uint64_t offset = reloc->targetRef()->offset();
 
   // extract the next instruction
@@ -238,68 +250,87 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc, bool DoCompressed) {
     return false;
 
   unsigned rd = (jalr_instr >> 7) & 0x1fu;
-  bool canCompress = (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
-  // test if it can fall into 21bits
-  Relocator::DWord S = getSymbolValuePLT(*reloc);
-  Relocator::DWord A = reloc->addend();
-  Relocator::DWord P = reloc->place(m_Module);
-  Relocator::DWord X = S + A - P;
-  bool canRelax = config().options().getRISCVRelax() && llvm::isInt<21>(X);
+  // For `C.J`/`C.JAL`, we have to have C relaxations enabled,
+  // and be within 12 bits, and have a destination of `x0` or `ra`
+  bool canRelaxCJ = config().options().getRISCVRelax() &&
+                    config().options().getRISCVRelaxToC() && isInt<12>(X) &&
+                    (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
-  if (!canRelax) {
-    reportMissedRelaxation("RISCV_CALL", *region, offset, canCompress ? 6 : 4,
-                           reloc->symInfo()->name());
-    return false;
+  // For `JAL`, the offset needs to be 21 bits.
+  bool canRelaxJal = config().options().getRISCVRelax() && llvm::isInt<21>(X);
+
+  // For `QC.E.J` and `QC.E.JAL`, we have to have xqci relaxations enabled,
+  // and be on 32-bit, and the destination must be either `x0` or `ra`.
+  bool canRelaxXqci = config().options().getRISCVRelax() &&
+                      config().targets().is32Bits() &&
+                      config().options().getRISCVRelaxXqci();
+  bool canRelaxQcEJ = canRelaxXqci && (rd == 0 || rd == 1);
+
+  const char *msgC = (rd == 1) ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
+  if (canRelaxCJ) {
+    uint16_t c_j = (rd == 1) ? 0x2001u : 0xa001;
+
+    if (m_Module.getPrinter()->isVerbose())
+      config().raise(Diag::relax_to_compress)
+          << msgC
+          << llvm::utohexstr(reloc->target(), true, 8) + "," +
+                 llvm::utohexstr(jalr_instr, true, 8)
+          << llvm::utohexstr(c_j, true, 4) << reloc->symInfo()->name()
+          << region->getOwningSection()->name() << llvm::utohexstr(offset)
+          << region->getOwningSection()
+                 ->getInputFile()
+                 ->getInput()
+                 ->decoratedPath();
+
+    region->replaceInstruction(offset, reloc, c_j, 2);
+    reloc->setTargetData(c_j);
+    reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
+    relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
+                     reloc->symInfo()->name());
+
+    return true;
   }
 
-  // Test if we can use C.JAL or C.J.
-  if (canCompress) {
-    bool canRelaxToCompressed = config().options().getRISCVRelax() &&
-                                DoCompressed && llvm::isInt<12>(X);
-    if (canRelaxToCompressed) {
-      // C.J uses x0 as return register (writes are ignored)
-      // C.JAL uses x1 as return register (ABI link register)
-      uint32_t compressed = rd == 1 ? 0x2001 : 0xa001;
-      const char *msg = rd == 1 ? "RISCV_CALL_JAL" : "RISCV_CALL_J";
-      if (m_Module.getPrinter()->isVerbose())
-        config().raise(Diag::relax_to_compress)
-            << msg
-            << llvm::utohexstr(reloc->target(), true, 8) + "," +
-                   llvm::utohexstr(jalr_instr, true, 8)
-            << llvm::utohexstr(compressed, true, 4) << reloc->symInfo()->name()
-            << region->getOwningSection()->name() << llvm::utohexstr(offset)
-            << region->getOwningSection()
-                   ->getInputFile()
-                   ->getInput()
-                   ->decoratedPath();
+  if (canRelaxJal) {
+    // Replace the instruction to JAL
+    uint32_t jal = 0x6fu | rd << 7;
 
-      region->replaceInstruction(offset, reloc, compressed, 2);
-      // Replace the reloc to R_RISCV_RVC_JUMP
-      reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
-      reloc->setTargetData(compressed);
-      // Delete the next instruction
-      relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
-                       reloc->symInfo()->name());
-      return true;
-    }
+    region->replaceInstruction(offset, reloc, jal, 4 /* Replace bytes */);
+    reloc->setTargetData(jal);
+    reloc->setType(llvm::ELF::R_RISCV_JAL);
+    // Delete the next instruction
+    relaxDeleteBytes("RISCV_CALL", *region, offset + 4, 4,
+                     reloc->symInfo()->name());
+
+    // Report missed relaxation as we could still do a `C.J`/`C.JAL`
     reportMissedRelaxation("RISCV_CALL_C", *region, offset, 2,
                            reloc->symInfo()->name());
+
+    return true;
   }
 
-  // Replace the instruction to JAL
-  uint32_t instr = 0x6fu | rd << 7;
-  region->replaceInstruction(offset, reloc, instr, 4 /* Replace bytes */);
-  // Replace the reloc to R_RISCV_JAL
-  reloc->setType(llvm::ELF::R_RISCV_JAL);
-  reloc->setTargetData(instr);
-  // Delete the next instruction
-  relaxDeleteBytes("RISCV_CALL", *region, offset + 4, 4,
-                   reloc->symInfo()->name());
-  return true;
+  if (canRelaxQcEJ) {
+    uint64_t qc_e_j = (rd == 1) ? 0xc01ful : 0x401ful;
+    const char *msg =
+        (rd == 1) ? "R_RISCV_CALL_QC_E_JAL" : "R_RISCV_CALL_QC_E_J";
+
+    region->replaceInstruction(offset, reloc, qc_e_j, 6);
+    reloc->setTargetData(qc_e_j);
+    reloc->setType(ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT);
+    relaxDeleteBytes(msg, *region, offset + 6, 2, reloc->symInfo()->name());
+
+    reportMissedRelaxation(msg, *region, offset, 4, reloc->symInfo()->name());
+
+    return true;
+  }
+
+  reportMissedRelaxation("RISCV_CALL", *region, offset, 6,
+                         reloc->symInfo()->name());
+  return false;
 }
 
-bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc, bool DoCompressed) {
+bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   // This function performs the relaxation to replace: QC.E.JAL or QC.E.J with
   // one of JAL, C.J, or C.JAL.
 
@@ -318,6 +349,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc, bool DoCompressed) {
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
 
+  bool DoCompressed = config().options().getRISCVRelaxToC();
   bool canRelaxXqci =
       config().targets().is32Bits() && config().options().getRISCVRelaxXqci();
   bool canRelax =
@@ -900,9 +932,6 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
   if (m_pGlobalPointer)
     GP = m_pGlobalPointer->value();
 
-  // Compress
-  bool DoCompressed = config().options().getRISCVRelaxToC();
-
   // start relocation relaxation
   for (auto &input : m_Module.getObjectList()) {
     ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(input);
@@ -934,7 +963,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
         case llvm::ELF::R_RISCV_CALL:
         case llvm::ELF::R_RISCV_CALL_PLT: {
           if (nextRelax && relaxation_pass == RELAXATION_CALL)
-            doRelaxationCall(relocation, DoCompressed);
+            doRelaxationCall(relocation);
           break;
         }
         case llvm::ELF::R_RISCV_PCREL_HI20:
@@ -959,7 +988,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
         }
         case ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT: {
           if (nextRelax && relaxation_pass == RELAXATION_CALL)
-            doRelaxationQCCall(relocation, DoCompressed);
+            doRelaxationQCCall(relocation);
           break;
         }
         case ELF::riscv::internal::R_RISCV_QC_E_32:

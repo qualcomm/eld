@@ -1,0 +1,101 @@
+#----------AUIPC_JALR_TO_XQCI.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Do relaxation based from AUIPC/JALR to Xqci QC.E.JAL/QC.E.J (rv32 only)
+#END_COMMENT
+#--------------------------------------------------------------------
+# REQUIRES: riscv32
+RUN: %clang %clangopts -c %p/Inputs/x.s -o %t.o -march=rv32gc_xqcilb0p2 -menable-experimental-extensions
+
+# Xqci Relaxations are enabled
+RUN: %link %linkopts --relax-xqci %t.o -o %t.1.out -MapStyle txt -Map %t.1.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+VERBOSE: RISCV_CALL_JAL : relaxing instruction 0x00000097,000080e7 to compressed instruction 0x2001 for symbol f in section .text+0x2 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x4 file {{.*}}.o
+VERBOSE: RISCV_CALL_J : relaxing instruction 0x00000317,00030067 to compressed instruction 0xa001 for symbol f in section .text+0x4 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x6 file {{.*}}.o
+VERBOSE: RISCV_CALL_JAL : relaxing instruction 0x00000097,000080e7 to compressed instruction 0x2001 for symbol f in section .text+0x774 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x776 file {{.*}}.o
+VERBOSE: RISCV_CALL_J : relaxing instruction 0x00000317,00030067 to compressed instruction 0xa001 for symbol f in section .text+0x776 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x778 file {{.*}}.o
+VERBOSE: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x86c file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0x868 file {{.*}}.o
+VERBOSE: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x870 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0x86c file {{.*}}.o
+VERBOSE: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffee4 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0xffee0 file {{.*}}.o
+VERBOSE: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffee8 file {{.*}}.o
+VERBOSE: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0xffee4 file {{.*}}.o
+VERBOSE: R_RISCV_CALL_QC_E_JAL : Deleting 2 bytes for symbol 'f' in section .text+0x1000de file {{.*}}.o
+VERBOSE: R_RISCV_CALL_QC_E_JAL : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000d8 file {{.*}}.o
+VERBOSE: R_RISCV_CALL_QC_E_J : Deleting 2 bytes for symbol 'f' in section .text+0x1000e4 file {{.*}}.o
+VERBOSE: R_RISCV_CALL_QC_E_J : Cannot relax 4 bytes for symbol 'f' in section .text+0x1000de file {{.*}}.o
+
+RUN: %objdump -d %t.1.out -M no-aliases 2>&1 | %filecheck %s --check-prefix=DUMP
+DUMP: 3ffd c.jal 0x74 <f>
+DUMP: bff5 c.j 0x74 <f>
+DUMP: 3071 c.jal 0x74 <f>
+DUMP: b069 c.j 0x74 <f>
+DUMP: f98ff0ef jal ra, 0x74 <f>
+DUMP: f94ff06f jal zero, 0x74 <f>
+DUMP: 920000ef jal ra, 0x74 <f>
+DUMP: 91c0006f jal zero, 0x74 <f>
+DUMP: c49f f20e ffef qc.e.jal 0x74 <f>
+DUMP: 419f f20e ffef qc.e.j 0x74 <f>
+
+RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
+
+MAP: # LinkStats Begin
+MAP: # RelaxationBytesDeleted : 44
+MAP: # RelaxationBytesMissed : 16
+MAP: # LinkStats End
+
+MAP: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP: # RelaxationBytesDeleted : 44
+MAP: # RelaxationBytesMissed : 16
+MAP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
+
+# Xqci relaxations are disabled
+RUN: %link %linkopts --no-relax-xqci %t.o -o %t.2.out -MapStyle txt -Map %t.2.map --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE_NOXQCI
+VERBOSE_NOXQCI: RISCV_CALL_JAL : relaxing instruction 0x00000097,000080e7 to compressed instruction 0x2001 for symbol f in section .text+0x2 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x4 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_J : relaxing instruction 0x00000317,00030067 to compressed instruction 0xa001 for symbol f in section .text+0x4 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x6 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_JAL : relaxing instruction 0x00000097,000080e7 to compressed instruction 0x2001 for symbol f in section .text+0x774 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x776 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_J : relaxing instruction 0x00000317,00030067 to compressed instruction 0xa001 for symbol f in section .text+0x776 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Deleting 6 bytes for symbol 'f' in section .text+0x778 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x86c file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0x868 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0x870 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0x86c file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffee4 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0xffee0 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL : Deleting 4 bytes for symbol 'f' in section .text+0xffee8 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL_C : Cannot relax 2 bytes for symbol 'f' in section .text+0xffee4 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL : Cannot relax 6 bytes for symbol 'f' in section .text+0x1000d8 file {{.*}}.o
+VERBOSE_NOXQCI: RISCV_CALL : Cannot relax 6 bytes for symbol 'f' in section .text+0x1000e0 file {{.*}}.o
+
+RUN: %objdump -d %t.2.out -M no-aliases 2>&1 | %filecheck %s --check-prefix=DUMP_NOXQCI
+DUMP_NOXQCI: 3ffd c.jal 0x74 <f>
+DUMP_NOXQCI: bff5 c.j 0x74 <f>
+DUMP_NOXQCI: 3071 c.jal 0x74 <f>
+DUMP_NOXQCI: b069 c.j 0x74 <f>
+DUMP_NOXQCI: f98ff0ef jal ra, 0x74 <f>
+DUMP_NOXQCI: f94ff06f jal zero, 0x74 <f>
+DUMP_NOXQCI: 920000ef jal ra, 0x74 <f>
+DUMP_NOXQCI: 91c0006f jal zero, 0x74 <f>
+DUMP_NOXQCI: fff00097 auipc ra, 0xfff00
+DUMP_NOXQCI: f28080e7 jalr ra, -0xd8(ra)
+DUMP_NOXQCI: fff00317 auipc t1, 0xfff00
+DUMP_NOXQCI: f2030067 jalr zero, -0xe0(t1)
+
+RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP_NOXQCI
+
+MAP_NOXQCI: # LinkStats Begin
+MAP_NOXQCI: # RelaxationBytesDeleted : 40
+MAP_NOXQCI: # RelaxationBytesMissed : 20
+MAP_NOXQCI: # LinkStats End
+
+MAP_NOXQCI: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP_NOXQCI: # RelaxationBytesDeleted : 40
+MAP_NOXQCI: # RelaxationBytesMissed : 20
+MAP_NOXQCI: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2

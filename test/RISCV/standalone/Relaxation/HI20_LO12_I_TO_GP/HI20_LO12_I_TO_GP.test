@@ -16,10 +16,8 @@ CHECK: lw      a{{.*}}, 0(gp)
 RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
 MAP: # LinkStats Begin
 MAP: # RelaxationBytesDeleted : {{18|16}}
-MAP-NOT: # RelaxationBytesMissed
 MAP: # LinkStats End
 
 MAP: .text {{.+}}, Alignment: 0x2, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
 MAP: # RelaxationBytesDeleted : {{18|16}}
-MAP-NOT: # RelaxationBytesMissed
 MAP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,2
