@@ -34,7 +34,6 @@
 #include "eld/Script/StrToken.h"
 #include "eld/Script/WildcardPattern.h"
 #include "eld/ScriptParser/ScriptLexer.h"
-#include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -133,14 +132,13 @@ void ScriptParser::readEntry() {
 eld::Expression *ScriptParser::readExpr() {
   if (atEOF()) {
     Module &Module = ThisScriptFile.module();
-    GNULDBackend &Backend = ThisScriptFile.backend();
     // We do not return nullptr here because the returned expression is
     // dereferenced at many places. We can add a null-pointer check everywhere,
     // but that would impose issues if we want to extend the parser to continue
     // parsing despite errors (the way we do with --no-inhibit-exec for overall
     // linking). Adding checks everywhere would also violate the parser design
     // to be able to continue parsing even after errors have occurred.
-    return make<NullExpression>(Module, Backend);
+    return make<NullExpression>(Module);
   }
   // Our lexer is context-aware. Set the in-expression bit so that
   // they apply different tokenization rules.
@@ -197,49 +195,48 @@ int ScriptParser::precedence(StringRef Op) {
 eld::Expression &ScriptParser::combine(llvm::StringRef Op, eld::Expression &L,
                                        eld::Expression &R) {
   Module &Module = ThisScriptFile.module();
-  GNULDBackend &Backend = ThisScriptFile.backend();
   if (Op == "+")
-    return *(make<Add>(Module, Backend, L, R));
+    return *(make<Add>(Module, L, R));
   if (Op == "-")
-    return *(make<Subtract>(Module, Backend, L, R));
+    return *(make<Subtract>(Module, L, R));
   if (Op == "*")
-    return *(make<Multiply>(Module, Backend, L, R));
+    return *(make<Multiply>(Module, L, R));
   if (Op == "/") {
     // FIXME: It be useful to pass current location for reporting
     // division by zero error!
-    return *(make<Divide>(Module, Backend, L, R));
+    return *(make<Divide>(Module, L, R));
   }
   if (Op == "%") {
     // FIXME: It be useful to pass current location for reporting
     // modulo by zero error!
-    return *(make<Modulo>(Module, Backend, L, R));
+    return *(make<Modulo>(Module, L, R));
   }
   if (Op == "<<")
-    return *(make<LeftShift>(Module, Backend, L, R));
+    return *(make<LeftShift>(Module, L, R));
   if (Op == ">>")
-    return *(make<RightShift>(Module, Backend, L, R));
+    return *(make<RightShift>(Module, L, R));
   if (Op == "<")
-    return *(make<ConditionLT>(Module, Backend, L, R));
+    return *(make<ConditionLT>(Module, L, R));
   if (Op == ">")
-    return *(make<ConditionGT>(Module, Backend, L, R));
+    return *(make<ConditionGT>(Module, L, R));
   if (Op == ">=")
-    return *(make<ConditionGTE>(Module, Backend, L, R));
+    return *(make<ConditionGTE>(Module, L, R));
   if (Op == "<=")
-    return *(make<ConditionLTE>(Module, Backend, L, R));
+    return *(make<ConditionLTE>(Module, L, R));
   if (Op == "==")
-    return *(make<ConditionEQ>(Module, Backend, L, R));
+    return *(make<ConditionEQ>(Module, L, R));
   if (Op == "!=")
-    return *(make<ConditionNEQ>(Module, Backend, L, R));
+    return *(make<ConditionNEQ>(Module, L, R));
   if (Op == "||")
-    return *(make<LogicalOp>(Expression::LOGICAL_OR, Module, Backend, L, R));
+    return *(make<LogicalOp>(Expression::LOGICAL_OR, Module, L, R));
   if (Op == "&&")
-    return *(make<LogicalOp>(Expression::LOGICAL_AND, Module, Backend, L, R));
+    return *(make<LogicalOp>(Expression::LOGICAL_AND, Module, L, R));
   if (Op == "&")
-    return *(make<BitwiseAnd>(Module, Backend, L, R));
+    return *(make<BitwiseAnd>(Module, L, R));
   if (Op == "^")
-    return *(make<BitwiseXor>(Module, Backend, L, R));
+    return *(make<BitwiseXor>(Module, L, R));
   if (Op == "|")
-    return *(make<BitwiseOr>(Module, Backend, L, R));
+    return *(make<BitwiseOr>(Module, L, R));
   llvm_unreachable("invalid operator");
 }
 
@@ -248,22 +245,21 @@ eld::Expression *ScriptParser::readPrimary() {
     return readParenExpr(/*setParen=*/true);
 
   Module &Module = ThisScriptFile.module();
-  GNULDBackend &Backend = ThisScriptFile.backend();
   if (consume("~")) {
     Expression *E = readPrimary();
-    return make<Complement>(Module, Backend, *E);
+    return make<Complement>(Module, *E);
   }
   if (consume("!")) {
     Expression *E = readPrimary();
-    return make<UnaryNot>(Module, Backend, *E);
+    return make<UnaryNot>(Module, *E);
   }
   if (consume("-")) {
     Expression *E = readPrimary();
-    return make<UnaryMinus>(Module, Backend, *E);
+    return make<UnaryMinus>(Module, *E);
   }
   if (consume("+")) {
     Expression *E = readPrimary();
-    return make<UnaryPlus>(Module, Backend, *E);
+    return make<UnaryPlus>(Module, *E);
   }
 
   StringRef Tok = next();
@@ -273,12 +269,12 @@ eld::Expression *ScriptParser::readPrimary() {
   // https://sourceware.org/binutils/docs/ld/Builtin-Functions.html.
   if (Tok == "ABSOLUTE") {
     Expression *E = readParenExpr(/*setParen=*/true);
-    return make<Absolute>(Module, Backend, *E);
+    return make<Absolute>(Module, *E);
   }
   if (Tok == "ADDR") {
     StringRef Name = unquote(readParenLiteral());
     // FIXME: Location might be handly for 'undefined section' error.
-    return make<Addr>(Module, Backend, Name.str());
+    return make<Addr>(Module, Name.str());
   }
   if (Tok == "ALIGN") {
     expect("(");
@@ -286,20 +282,19 @@ eld::Expression *ScriptParser::readPrimary() {
     if (consume(")")) {
       // FIXME: Location given here may be overwritten for outermost ALIGN
       // expressions.
-      return make<AlignExpr>(Module, Backend, Location, *E,
-                             *make<Symbol>(Module, Backend, "."));
+      return make<AlignExpr>(Module, Location, *E, *make<Symbol>(Module, "."));
     }
     expect(",");
     Expression *E2 = readExpr();
     expect(")");
     // FIXME: Location given here may be overwritten for outermost ALIGN
     // expressions.
-    return make<AlignExpr>(Module, Backend, Location, *E2, *E);
+    return make<AlignExpr>(Module, Location, *E2, *E);
   }
   if (Tok == "ALIGNOF") {
     StringRef Name = unquote(readParenLiteral());
     // FIXME: Location might be useful for undefined section related errors.
-    return make<AlignOf>(Module, Backend, Name.str());
+    return make<AlignOf>(Module, Name.str());
   }
   if (Tok == "ASSERT")
     return readAssert();
@@ -311,13 +306,13 @@ eld::Expression *ScriptParser::readPrimary() {
     expect(",");
     Expression *E2 = readExpr();
     expect(")");
-    return make<DataSegmentAlign>(Module, Backend, *E1, *E2);
+    return make<DataSegmentAlign>(Module, *E1, *E2);
   }
   if (Tok == "DATA_SEGMENT_END") {
     expect("(");
     Expression *E = readExpr();
     expect(")");
-    return make<DataSegmentEnd>(Module, Backend, *E);
+    return make<DataSegmentEnd>(Module, *E);
   }
   if (Tok == "DATA_SEGMENT_RELRO_END") {
     expect("(");
@@ -325,25 +320,25 @@ eld::Expression *ScriptParser::readPrimary() {
     expect(",");
     Expression *E2 = readExpr();
     expect(")");
-    return make<DataSegmentRelRoEnd>(Module, Backend, *E1, *E2);
+    return make<DataSegmentRelRoEnd>(Module, *E1, *E2);
   }
   if (Tok == "DEFINED") {
     StringRef Name = unquote(readParenLiteral());
-    return make<Defined>(Module, Backend, Name.str());
+    return make<Defined>(Module, Name.str());
   }
   if (Tok == "LENGTH") {
     StringRef Name = readParenLiteral();
-    return make<QueryMemory>(Expression::LENGTH, Module, Backend, Name.str());
+    return make<QueryMemory>(Expression::LENGTH, Module, Name.str());
   }
   if (Tok == "LOADADDR") {
     StringRef Name = unquote(readParenLiteral());
-    return make<LoadAddr>(Module, Backend, Name.str());
+    return make<LoadAddr>(Module, Name.str());
   }
   if (Tok == "LOG2CEIL") {
     expect("(");
     Expression *E = readExpr();
     expect(")");
-    return make<Log2Ceil>(Module, Backend, *E);
+    return make<Log2Ceil>(Module, *E);
   }
   if (Tok == "MAX" || Tok == "MIN") {
     expect("(");
@@ -352,12 +347,12 @@ eld::Expression *ScriptParser::readPrimary() {
     Expression *E2 = readExpr();
     expect(")");
     if (Tok == "MIN")
-      return make<Min>(Module, Backend, *E1, *E2);
-    return make<Max>(Module, Backend, *E1, *E2);
+      return make<Min>(Module, *E1, *E2);
+    return make<Max>(Module, *E1, *E2);
   }
   if (Tok == "ORIGIN") {
     StringRef Name = readParenLiteral();
-    return make<QueryMemory>(Expression::ORIGIN, Module, Backend, Name.str());
+    return make<QueryMemory>(Expression::ORIGIN, Module, Name.str());
   }
   if (Tok == "SEGMENT_START") {
     expect("(");
@@ -365,25 +360,25 @@ eld::Expression *ScriptParser::readPrimary() {
     expect(",");
     Expression *E = readExpr();
     expect(")");
-    return make<SegmentStart>(Module, Backend, Name.str(), *E);
+    return make<SegmentStart>(Module, Name.str(), *E);
   }
   if (Tok == "SIZEOF") {
     StringRef Name = readParenName();
-    return make<SizeOf>(Module, Backend, Name.str());
+    return make<SizeOf>(Module, Name.str());
   }
   if (Tok == "SIZEOF_HEADERS")
-    return make<SizeOfHeaders>(Module, Backend, &ThisScriptFile);
+    return make<SizeOfHeaders>(Module, &ThisScriptFile);
 
   // Tok is a literal number.
   if (std::optional<uint64_t> Val = parseInt(Tok))
-    return make<Integer>(Module, Backend, Tok.str(), Val.value());
+    return make<Integer>(Module, Tok.str(), Val.value());
 
   // Tok is a symbol name.
   if (Tok.starts_with("\""))
     Tok = unquote(Tok);
   if (!isValidSymbolName(Tok))
     setError("malformed number: " + Tok);
-  return make<Symbol>(Module, Backend, Tok.str());
+  return make<Symbol>(Module, Tok.str());
 }
 
 Expression *ScriptParser::readParenExpr(bool SetParen) {
@@ -408,15 +403,12 @@ StringRef ScriptParser::readParenLiteral() {
 Expression *ScriptParser::readConstant() {
   StringRef S = readParenLiteral();
   Module &Module = ThisScriptFile.module();
-  GNULDBackend &Backend = ThisScriptFile.backend();
   if (S == "COMMONPAGESIZE")
-    return make<Constant>(Module, Backend, "COMMONPAGESIZE",
-                          Expression::COMMONPAGESIZE);
+    return make<Constant>(Module, "COMMONPAGESIZE", Expression::COMMONPAGESIZE);
   if (S == "MAXPAGESIZE")
-    return make<Constant>(Module, Backend, "MAXPAGESIZE",
-                          Expression::MAXPAGESIZE);
+    return make<Constant>(Module, "MAXPAGESIZE", Expression::MAXPAGESIZE);
   setError("unknown constant: " + S);
-  return make<Integer>(Module, Backend, "", 0);
+  return make<Integer>(Module, "", 0);
 }
 
 std::optional<uint64_t> ScriptParser::parseInt(StringRef Tok) const {
@@ -466,38 +458,37 @@ bool ScriptParser::readSymbolAssignment(StringRef Tok,
   // Note: GNU ld does not support %=.
   Expression *E = readExpr();
   Module &Module = ThisScriptFile.module();
-  GNULDBackend &Backend = ThisScriptFile.backend();
   if (Op != "=") {
-    Symbol *S = make<Symbol>(Module, Backend, Name.str());
+    Symbol *S = make<Symbol>(Module, Name.str());
     std::string Loc = getCurrentLocation();
     char SubOp = Op[0];
     switch (SubOp) {
     case '*':
-      E = make<Multiply>(Module, Backend, *S, *E);
+      E = make<Multiply>(Module, *S, *E);
       break;
     case '/':
-      E = make<Divide>(Module, Backend, *S, *E);
+      E = make<Divide>(Module, *S, *E);
       break;
     case '+':
-      E = make<Add>(Module, Backend, *S, *E);
+      E = make<Add>(Module, *S, *E);
       break;
     case '-':
-      E = make<Subtract>(Module, Backend, *S, *E);
+      E = make<Subtract>(Module, *S, *E);
       break;
     case '<':
-      E = make<LeftShift>(Module, Backend, *S, *E);
+      E = make<LeftShift>(Module, *S, *E);
       break;
     case '>':
-      E = make<RightShift>(Module, Backend, *S, *E);
+      E = make<RightShift>(Module, *S, *E);
       break;
     case '&':
-      E = make<BitwiseAnd>(Module, Backend, *S, *E);
+      E = make<BitwiseAnd>(Module, *S, *E);
       break;
     case '|':
-      E = make<BitwiseOr>(Module, Backend, *S, *E);
+      E = make<BitwiseOr>(Module, *S, *E);
       break;
     case '^':
-      E = make<BitwiseXor>(Module, Backend, *S, *E);
+      E = make<BitwiseXor>(Module, *S, *E);
       break;
     default:
       llvm_unreachable("");
@@ -512,8 +503,7 @@ Expression *ScriptParser::readTernary(Expression *Cond) {
   Expression *L = readExpr();
   expect(":");
   Expression *R = readExpr();
-  return make<Ternary>(ThisScriptFile.module(), ThisScriptFile.backend(), *Cond,
-                       *L, *R);
+  return make<Ternary>(ThisScriptFile.module(), *Cond, *L, *R);
 }
 
 void ScriptParser::readProvideHidden(StringRef Tok) {
@@ -559,8 +549,8 @@ Expression *ScriptParser::readAssert() {
   expect(",");
   StringRef Msg = unquote(next());
   expect(")");
-  Expression *AssertCmd = make<eld::AssertCmd>(
-      ThisScriptFile.module(), ThisScriptFile.backend(), Msg.str(), *E);
+  Expression *AssertCmd =
+      make<eld::AssertCmd>(ThisScriptFile.module(), Msg.str(), *E);
   ThisScriptFile.addAssignment("ASSERT", AssertCmd, Assignment::ASSERT);
   return AssertCmd;
 }
@@ -1150,8 +1140,7 @@ PluginCmd *ScriptParser::readOutputSectionPluginDirective() {
 void ScriptParser::readFill() {
   expect("(");
   Expression *E = readExpr();
-  Fill *Fill =
-      make<eld::Fill>(ThisScriptFile.module(), ThisScriptFile.backend(), *E);
+  Fill *Fill = make<eld::Fill>(ThisScriptFile.module(), *E);
   ThisScriptFile.addAssignment("FILL", Fill, Assignment::FILL);
   expect(")");
 }

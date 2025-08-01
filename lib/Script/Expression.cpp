@@ -21,9 +21,9 @@
 using namespace eld;
 
 Expression::Expression(std::string Name, Type Type, Module &Module,
-                       GNULDBackend &Backend, uint64_t Value)
-    : Name(Name), ThisType(Type), ThisModule(Module), ThisBackend(Backend),
-      MResult(std::nullopt), EvaluatedValue(Value) {}
+                       uint64_t Value)
+    : Name(Name), ThisType(Type), ThisModule(Module), MResult(std::nullopt),
+      EvaluatedValue(Value) {}
 
 void Expression::setContext(const std::string &Context) {
   ASSERT(!Context.empty(), "Empty context for expression");
@@ -101,11 +101,14 @@ void Expression::setContextRecursively(const std::string &Context) {
     R->setContextRecursively(Context);
 }
 
+GNULDBackend &Expression::getTargetBackend() const {
+  return ThisModule.getBackend();
+}
+
 //===----------------------------------------------------------------------===//
 /// Symbol Operand
-Symbol::Symbol(Module &CurModule, GNULDBackend &PBackend, std::string PName)
-    : Expression(PName, Expression::SYMBOL, CurModule, PBackend),
-      ThisSymbol(nullptr) {}
+Symbol::Symbol(Module &CurModule, std::string PName)
+    : Expression(PName, Expression::SYMBOL, CurModule), ThisSymbol(nullptr) {}
 
 void Symbol::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   // format output for operand
@@ -209,10 +212,11 @@ eld::Expected<uint64_t> Add::evalImpl() {
   if (!ThisModule.getScript().phdrsSpecified() &&
       RightExpression.isSizeOfHeaders()) {
     if (ThisModule.getDotSymbol() &&
-        ThisModule.getDotSymbol()->value() == ThisBackend.getImageStartVMA()) {
+        ThisModule.getDotSymbol()->value() ==
+            getTargetBackend().getImageStartVMA()) {
       // Load file headers and program header
-      ThisBackend.setNeedEhdr();
-      ThisBackend.setNeedPhdr();
+      getTargetBackend().setNeedEhdr();
+      getTargetBackend().setNeedPhdr();
     }
   }
   return Left.value() + Right.value();
@@ -419,9 +423,8 @@ bool Divide::hasDot() const {
 
 //===----------------------------------------------------------------------===//
 /// SizeOf
-SizeOf::SizeOf(Module &CurModule, GNULDBackend &PBackend, std::string PName)
-    : Expression(PName, Expression::SIZEOF, CurModule, PBackend),
-      ThisSection(nullptr) {}
+SizeOf::SizeOf(Module &CurModule, std::string PName)
+    : Expression(PName, Expression::SIZEOF, CurModule), ThisSection(nullptr) {}
 void SizeOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "SIZEOF(" << Name;
   if (WithValues) {
@@ -442,10 +445,10 @@ eld::Expected<uint64_t> SizeOf::evalImpl() {
     // If a segment is specified, lets check the segment table for a segment
     // that exists.
     std::string SegmentName = Name.substr(1);
-    if (ELFSegment *Seg = ThisBackend.findSegment(SegmentName)) {
-      ThisBackend.setupSegmentOffset(Seg);
-      ThisBackend.setupSegment(Seg);
-      ThisBackend.clearSegmentOffset(Seg);
+    if (ELFSegment *Seg = getTargetBackend().findSegment(SegmentName)) {
+      getTargetBackend().setupSegmentOffset(Seg);
+      getTargetBackend().setupSegment(Seg);
+      getTargetBackend().clearSegmentOffset(Seg);
       return Seg->filesz();
     }
 
@@ -476,10 +479,8 @@ void SizeOf::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {}
 
 //===----------------------------------------------------------------------===//
 /// SizeOfHeaders
-SizeOfHeaders::SizeOfHeaders(Module &CurModule, GNULDBackend &PBackend,
-                             ScriptFile *S)
-    : Expression("SIZEOF_HEADERS", Expression::SIZEOF_HEADERS, CurModule,
-                 PBackend) {
+SizeOfHeaders::SizeOfHeaders(Module &CurModule, ScriptFile *S)
+    : Expression("SIZEOF_HEADERS", Expression::SIZEOF_HEADERS, CurModule) {
   // SIZEOF_HEADERS is an insane command. If its at the beginning of the script,
   // the BFD linker sees that there is an empty hole created before the first
   // section begins and inserts program headers and loads them. ELD tries to be
@@ -500,10 +501,10 @@ void SizeOfHeaders::dump(llvm::raw_ostream &Outs, bool WithValues) const {
 eld::Expected<uint64_t> SizeOfHeaders::evalImpl() {
   uint64_t Offset = 0;
   std::vector<ELFSection *> Sections;
-  if (!ThisBackend.isEhdrNeeded())
-    Sections.push_back(ThisBackend.getEhdr());
-  if (!ThisBackend.isPhdrNeeded())
-    Sections.push_back(ThisBackend.getPhdr());
+  if (!getTargetBackend().isEhdrNeeded())
+    Sections.push_back(getTargetBackend().getEhdr());
+  if (!getTargetBackend().isPhdrNeeded())
+    Sections.push_back(getTargetBackend().getPhdr());
   for (auto &S : Sections) {
     if (!S)
       continue;
@@ -551,9 +552,8 @@ void Addr::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {}
 
 //===----------------------------------------------------------------------===//
 /// LoadAddr
-LoadAddr::LoadAddr(Module &Module, GNULDBackend &Backend, std::string Name)
-    : Expression(Name, Expression::LOADADDR, Module, Backend),
-      ThisSection(nullptr) {
+LoadAddr::LoadAddr(Module &Module, std::string Name)
+    : Expression(Name, Expression::LOADADDR, Module), ThisSection(nullptr) {
   ForwardReference = !Module.findInOutputSectionDescNameSet(Name);
 }
 
@@ -1130,9 +1130,9 @@ eld::Expected<uint64_t> Constant::evalImpl() {
   // evaluate sub expressions
   switch (type()) {
   case Expression::MAXPAGESIZE:
-    return ThisBackend.abiPageSize();
+    return getTargetBackend().abiPageSize();
   case Expression::COMMONPAGESIZE:
-    return ThisBackend.commonPageSize();
+    return getTargetBackend().commonPageSize();
   default:
     // this can't happen because all constants are part of the syntax
     ASSERT(0, "Unexpected constant");
@@ -1776,8 +1776,8 @@ bool LogicalOp::hasDot() const {
 //===----------------------------------------------------------------------===//
 /// QueryMemory support
 QueryMemory::QueryMemory(Expression::Type Type, Module &Module,
-                         GNULDBackend &Backend, const std::string &Name)
-    : Expression(Name, Type, Module, Backend) {}
+                         const std::string &Name)
+    : Expression(Name, Type, Module) {}
 
 void QueryMemory::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (isOrigin())
@@ -1804,9 +1804,8 @@ void QueryMemory::getSymbolNames(
 
 //===----------------------------------------------------------------------===//
 /// NullExpression support
-NullExpression::NullExpression(Module &Module,
-                         GNULDBackend &Backend)
-    : Expression("[NULL]", Expression::Type::NULLEXPR, Module, Backend) {}
+NullExpression::NullExpression(Module &Module)
+    : Expression("[NULL]", Expression::Type::NULLEXPR, Module) {}
 
 void NullExpression::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;

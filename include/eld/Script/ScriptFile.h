@@ -35,7 +35,6 @@ namespace eld {
 
 class ExcludeFiles;
 class Expression;
-class GNULDBackend;
 class InputBuilder;
 class LinkerConfig;
 class LinkerScriptFile;
@@ -79,7 +78,7 @@ public:
 
 public:
   ScriptFile(Kind PKind, Module &CurModule, LinkerScriptFile &PInput,
-             InputBuilder &PBuilder, GNULDBackend &PBackend);
+             InputBuilder &PBuilder);
 
   ~ScriptFile();
 
@@ -208,8 +207,6 @@ public:
 
   LinkerScriptFile &getLinkerScriptFile() { return ThisLinkerScriptFile; }
 
-  GNULDBackend &backend() { return ThisBackend; }
-
   /* Identify the first output section inside the first linker script */
   bool firstLinkerScriptWithOutputSection() const {
     return IsFirstLinkerScriptWithSectionCommand;
@@ -308,7 +305,6 @@ private:
   Kind ScriptFileKind;
   Module &ThisModule;
   LinkerScriptFile &ThisLinkerScriptFile;
-  GNULDBackend &ThisBackend;
   std::string Name;
   CommandQueue LinkerScriptCommandQueue;
   bool LinkerScriptHasSectionsCommand;

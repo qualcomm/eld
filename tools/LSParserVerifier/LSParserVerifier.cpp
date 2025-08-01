@@ -106,7 +106,7 @@ public:
     eld::LinkerScriptFile *IF = CreateLinkerScriptFile(filename);
     assert(IF && "IF must not be null!!");
     return eld::ScriptFile(eld::ScriptFile::LDScript, *m_Module, *IF,
-                           m_Builder->getInputBuilder(), *m_Backend);
+                           m_Builder->getInputBuilder());
   }
 
   eld::LinkerConfig *getConfig() { return m_Config; }

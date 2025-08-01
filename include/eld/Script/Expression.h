@@ -20,7 +20,6 @@
 namespace eld {
 class LinkerScript;
 class Module;
-class GNULDBackend;
 class ScriptFile;
 
 //===----------------------------------------------------------------------===//
@@ -83,8 +82,7 @@ public:
     NULLEXPR
   };
 
-  Expression(std::string Name, Type Type, Module &Module, GNULDBackend &Backend,
-             uint64_t Value = 0);
+  Expression(std::string Name, Type Type, Module &Module, uint64_t Value = 0);
   virtual ~Expression() {}
 
 public:
@@ -211,6 +209,11 @@ public:
   ///        parent expression nodes.
   eld::Expected<uint64_t> eval();
 
+  ///
+  /// getBackend
+  /// \brief Helper function to return the Target backend
+  GNULDBackend &getTargetBackend() const;
+
 private:
   /// eval
   /// \brief eval will be implemented by each derived class. The purpose of eval
@@ -248,9 +251,7 @@ public:
 
   uint64_t result() const;
 
-  bool hasResult() const {
-    return MResult.has_value();
-  }
+  bool hasResult() const { return MResult.has_value(); }
 
   uint64_t resultOrZero() const;
 
@@ -290,7 +291,6 @@ protected:
   std::string Name;   /// string representation of the expression
   Type ThisType;      /// type of expression which is being evaluated
   Module &ThisModule; /// pointer to Module to be used for evaluation purposes.
-  GNULDBackend &ThisBackend; /// pointer to Target Backend for target data
   bool ExpressionHasParenthesis = false;
   bool ExpressionIsAssignment =
       false; /// Is this expression an assignment like +=/-=/*= etc..
@@ -307,7 +307,7 @@ private:
  */
 class Symbol : public Expression {
 public:
-  Symbol(Module &Module, GNULDBackend &Backend, std::string Name);
+  Symbol(Module &Module, std::string Name);
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isSymbol(); }
@@ -331,9 +331,8 @@ private:
  */
 class Integer : public Expression {
 public:
-  Integer(Module &Module, GNULDBackend &Backend, std::string Name,
-          uint64_t Value)
-      : Expression(Name, Expression::INTEGER, Module, Backend, Value),
+  Integer(Module &Module, std::string Name, uint64_t Value)
+      : Expression(Name, Expression::INTEGER, Module, Value),
         ExpressionValue(Value) {}
 
   // Casting support
@@ -357,9 +356,8 @@ private:
  */
 class Add : public Expression {
 public:
-  Add(Module &Module, GNULDBackend &Backend, Expression &Left,
-      Expression &Right)
-      : Expression("+", Expression::ADD, Module, Backend), LeftExpression(Left),
+  Add(Module &Module, Expression &Left, Expression &Right)
+      : Expression("+", Expression::ADD, Module), LeftExpression(Left),
         RightExpression(Right) {}
 
   // Casting support
@@ -385,10 +383,9 @@ private:
  */
 class Subtract : public Expression {
 public:
-  Subtract(Module &Module, GNULDBackend &Backend, Expression &Left,
-           Expression &Right)
-      : Expression("-", Expression::SUBTRACT, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  Subtract(Module &Module, Expression &Left, Expression &Right)
+      : Expression("-", Expression::SUBTRACT, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isSubtract(); }
@@ -413,10 +410,9 @@ private:
  */
 class Modulo : public Expression {
 public:
-  Modulo(Module &Module, GNULDBackend &Backend, Expression &Left,
-         Expression &Right)
-      : Expression("%", Expression::MODULO, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  Modulo(Module &Module, Expression &Left, Expression &Right)
+      : Expression("%", Expression::MODULO, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isModulo(); }
@@ -441,10 +437,9 @@ private:
  */
 class Multiply : public Expression {
 public:
-  Multiply(Module &Module, GNULDBackend &Backend, Expression &Left,
-           Expression &Right)
-      : Expression("*", Expression::MULTIPLY, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  Multiply(Module &Module, Expression &Left, Expression &Right)
+      : Expression("*", Expression::MULTIPLY, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isMultiply(); }
@@ -469,10 +464,9 @@ private:
  */
 class Divide : public Expression {
 public:
-  Divide(Module &Module, GNULDBackend &Backend, Expression &Left,
-         Expression &Right)
-      : Expression("/", Expression::DIVIDE, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  Divide(Module &Module, Expression &Left, Expression &Right)
+      : Expression("/", Expression::DIVIDE, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isDivide(); }
@@ -497,7 +491,7 @@ private:
  */
 class SizeOf : public Expression {
 public:
-  SizeOf(Module &Module, GNULDBackend &Backend, std::string Name);
+  SizeOf(Module &Module, std::string Name);
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isSizeOf(); }
@@ -520,7 +514,7 @@ private:
  */
 class SizeOfHeaders : public Expression {
 public:
-  SizeOfHeaders(Module &Module, GNULDBackend &Backend, ScriptFile *S);
+  SizeOfHeaders(Module &Module, ScriptFile *S);
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isSizeOfHeaders(); }
@@ -540,11 +534,10 @@ private:
  */
 class OffsetOf : public Expression {
 public:
-  OffsetOf(Module &Module, GNULDBackend &Backend, std::string Name)
-      : Expression(Name, Expression::OFFSETOF, Module, Backend),
-        ThisSection(nullptr) {}
-  OffsetOf(Module &Module, GNULDBackend &Backend, ELFSection *Sect)
-      : Expression(Sect->name().str(), Expression::OFFSETOF, Module, Backend),
+  OffsetOf(Module &Module, std::string Name)
+      : Expression(Name, Expression::OFFSETOF, Module), ThisSection(nullptr) {}
+  OffsetOf(Module &Module, ELFSection *Sect)
+      : Expression(Sect->name().str(), Expression::OFFSETOF, Module),
         ThisSection(Sect) {}
 
   // Casting support
@@ -568,9 +561,8 @@ private:
  */
 class Addr : public Expression {
 public:
-  Addr(Module &Module, GNULDBackend &Backend, std::string Name)
-      : Expression(Name, Expression::ADDR, Module, Backend),
-        ThisSection(nullptr) {}
+  Addr(Module &Module, std::string Name)
+      : Expression(Name, Expression::ADDR, Module), ThisSection(nullptr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isAddr(); }
@@ -593,7 +585,7 @@ private:
  */
 class LoadAddr : public Expression {
 public:
-  LoadAddr(Module &Module, GNULDBackend &Backend, std::string Name);
+  LoadAddr(Module &Module, std::string Name);
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isLoadAddr(); }
@@ -616,9 +608,9 @@ private:
  */
 class AlignExpr : public Expression {
 public:
-  AlignExpr(Module &Module, GNULDBackend &Backend, const std::string &Context,
-            Expression &Align, Expression &Expr)
-      : Expression("ALIGN", Expression::ALIGN, Module, Backend),
+  AlignExpr(Module &Module, const std::string &Context, Expression &Align,
+            Expression &Expr)
+      : Expression("ALIGN", Expression::ALIGN, Module),
         AlignmentExpression(Align), ExpressionToEvaluate(Expr) {
     setContext(Context);
   }
@@ -651,11 +643,10 @@ private:
  */
 class AlignOf : public Expression {
 public:
-  AlignOf(Module &Module, GNULDBackend &Backend, std::string Name)
-      : Expression(Name, Expression::ALIGNOF, Module, Backend),
-        ThisSection(nullptr) {}
-  AlignOf(Module &Module, GNULDBackend &Backend, ELFSection *Sect)
-      : Expression(Sect->name().str(), Expression::ALIGNOF, Module, Backend),
+  AlignOf(Module &Module, std::string Name)
+      : Expression(Name, Expression::ALIGNOF, Module), ThisSection(nullptr) {}
+  AlignOf(Module &Module, ELFSection *Sect)
+      : Expression(Sect->name().str(), Expression::ALIGNOF, Module),
         ThisSection(Sect) {}
 
   // Casting support
@@ -679,8 +670,8 @@ private:
  */
 class Absolute : public Expression {
 public:
-  Absolute(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("ABSOLUTE", Expression::ABSOLUTE, Module, Backend),
+  Absolute(Module &Module, Expression &Expr)
+      : Expression("ABSOLUTE", Expression::ABSOLUTE, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -707,11 +698,9 @@ private:
  */
 class Ternary : public Expression {
 public:
-  Ternary(Module &Module, GNULDBackend &Backend, Expression &Cond,
-          Expression &Left, Expression &Right)
-      : Expression("?", Expression::TERNARY, Module, Backend),
-        ConditionExpression(Cond), LeftExpression(Left),
-        RightExpression(Right) {}
+  Ternary(Module &Module, Expression &Cond, Expression &Left, Expression &Right)
+      : Expression("?", Expression::TERNARY, Module), ConditionExpression(Cond),
+        LeftExpression(Left), RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isTernary(); }
@@ -740,9 +729,8 @@ private:
  */
 class ConditionGT : public Expression {
 public:
-  ConditionGT(Module &Module, GNULDBackend &Backend, Expression &Left,
-              Expression &Right)
-      : Expression(">", Expression::GT, Module, Backend), LeftExpression(Left),
+  ConditionGT(Module &Module, Expression &Left, Expression &Right)
+      : Expression(">", Expression::GT, Module), LeftExpression(Left),
         RightExpression(Right) {}
 
   // Casting support
@@ -768,9 +756,8 @@ private:
  */
 class ConditionLT : public Expression {
 public:
-  ConditionLT(Module &Module, GNULDBackend &Backend, Expression &Left,
-              Expression &Right)
-      : Expression("<", Expression::LT, Module, Backend), LeftExpression(Left),
+  ConditionLT(Module &Module, Expression &Left, Expression &Right)
+      : Expression("<", Expression::LT, Module), LeftExpression(Left),
         RightExpression(Right) {}
 
   // Casting support
@@ -796,9 +783,8 @@ private:
  */
 class ConditionEQ : public Expression {
 public:
-  ConditionEQ(Module &Module, GNULDBackend &Backend, Expression &Left,
-              Expression &Right)
-      : Expression("==", Expression::EQ, Module, Backend), LeftExpression(Left),
+  ConditionEQ(Module &Module, Expression &Left, Expression &Right)
+      : Expression("==", Expression::EQ, Module), LeftExpression(Left),
         RightExpression(Right) {}
 
   // Casting support
@@ -824,10 +810,9 @@ private:
  */
 class ConditionGTE : public Expression {
 public:
-  ConditionGTE(Module &Module, GNULDBackend &Backend, Expression &Left,
-               Expression &Right)
-      : Expression(">=", Expression::GTE, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  ConditionGTE(Module &Module, Expression &Left, Expression &Right)
+      : Expression(">=", Expression::GTE, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -854,10 +839,9 @@ private:
  */
 class ConditionLTE : public Expression {
 public:
-  ConditionLTE(Module &Module, GNULDBackend &Backend, Expression &Left,
-               Expression &Right)
-      : Expression("<=", Expression::LTE, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  ConditionLTE(Module &Module, Expression &Left, Expression &Right)
+      : Expression("<=", Expression::LTE, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -884,10 +868,9 @@ private:
  */
 class ConditionNEQ : public Expression {
 public:
-  ConditionNEQ(Module &Module, GNULDBackend &Backend, Expression &Left,
-               Expression &Right)
-      : Expression("!=", Expression::NEQ, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  ConditionNEQ(Module &Module, Expression &Left, Expression &Right)
+      : Expression("!=", Expression::NEQ, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isNotEqual(); }
@@ -912,9 +895,8 @@ private:
  */
 class Complement : public Expression {
 public:
-  Complement(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("~", Expression::COM, Module, Backend),
-        ExpressionToEvaluate(Expr) {}
+  Complement(Module &Module, Expression &Expr)
+      : Expression("~", Expression::COM, Module), ExpressionToEvaluate(Expr) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isComplement(); }
@@ -940,8 +922,8 @@ private:
  */
 class UnaryPlus : public Expression {
 public:
-  UnaryPlus(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("+", Expression::UNARYMINUS, Module, Backend),
+  UnaryPlus(Module &Module, Expression &Expr)
+      : Expression("+", Expression::UNARYMINUS, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -968,8 +950,8 @@ private:
  */
 class UnaryMinus : public Expression {
 public:
-  UnaryMinus(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("-", Expression::UNARYMINUS, Module, Backend),
+  UnaryMinus(Module &Module, Expression &Expr)
+      : Expression("-", Expression::UNARYMINUS, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -996,8 +978,8 @@ private:
  */
 class UnaryNot : public Expression {
 public:
-  UnaryNot(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("~", Expression::UNARYNOT, Module, Backend),
+  UnaryNot(Module &Module, Expression &Expr)
+      : Expression("~", Expression::UNARYNOT, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -1023,8 +1005,8 @@ private:
  */
 class Constant : public Expression {
 public:
-  Constant(Module &Module, GNULDBackend &Backend, std::string Name, Type Type)
-      : Expression(Name, Type, Module, Backend) {}
+  Constant(Module &Module, std::string Name, Type Type)
+      : Expression(Name, Type, Module) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1047,9 +1029,8 @@ private:
  */
 class SegmentStart : public Expression {
 public:
-  SegmentStart(Module &Module, GNULDBackend &Backend, std::string Segment,
-               Expression &Expr)
-      : Expression("SEGMENT_START", Expression::SEGMENT_START, Module, Backend),
+  SegmentStart(Module &Module, std::string Segment, Expression &Expr)
+      : Expression("SEGMENT_START", Expression::SEGMENT_START, Module),
         SegmentName(Segment), ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -1079,9 +1060,8 @@ private:
  */
 class AssertCmd : public Expression {
 public:
-  AssertCmd(Module &Module, GNULDBackend &Backend, std::string Msg,
-            Expression &Expr)
-      : Expression("ASSERT", Expression::ASSERT, Module, Backend),
+  AssertCmd(Module &Module, std::string Msg, Expression &Expr)
+      : Expression("ASSERT", Expression::ASSERT, Module),
         ExpressionToEvaluate(Expr), AssertionMessage(Msg) {}
 
   // Casting support
@@ -1110,10 +1090,9 @@ private:
  */
 class RightShift : public Expression {
 public:
-  RightShift(Module &Module, GNULDBackend &Backend, Expression &Left,
-             Expression &Right)
-      : Expression(">>", Expression::BITWISE_RS, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  RightShift(Module &Module, Expression &Left, Expression &Right)
+      : Expression(">>", Expression::BITWISE_RS, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1140,10 +1119,9 @@ private:
  */
 class LeftShift : public Expression {
 public:
-  LeftShift(Module &Module, GNULDBackend &Backend, Expression &Left,
-            Expression &Right)
-      : Expression("<<", Expression::BITWISE_LS, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  LeftShift(Module &Module, Expression &Left, Expression &Right)
+      : Expression("<<", Expression::BITWISE_LS, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1170,10 +1148,9 @@ private:
  */
 class BitwiseOr : public Expression {
 public:
-  BitwiseOr(Module &Module, GNULDBackend &Backend, Expression &Left,
-            Expression &Right)
-      : Expression("|", Expression::BITWISE_OR, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  BitwiseOr(Module &Module, Expression &Left, Expression &Right)
+      : Expression("|", Expression::BITWISE_OR, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isBitWiseOR(); }
@@ -1198,10 +1175,9 @@ private:
  */
 class BitwiseAnd : public Expression {
 public:
-  BitwiseAnd(Module &Module, GNULDBackend &Backend, Expression &Left,
-             Expression &Right)
-      : Expression("&", Expression::BITWISE_AND, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  BitwiseAnd(Module &Module, Expression &Left, Expression &Right)
+      : Expression("&", Expression::BITWISE_AND, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isBitWiseAND(); }
@@ -1226,10 +1202,9 @@ private:
  */
 class BitwiseXor : public Expression {
 public:
-  BitwiseXor(Module &Module, GNULDBackend &Backend, Expression &Left,
-             Expression &Right)
-      : Expression("^", Expression::BITWISE_XOR, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  BitwiseXor(Module &Module, Expression &Left, Expression &Right)
+      : Expression("^", Expression::BITWISE_XOR, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isBitWiseXOR(); }
@@ -1254,8 +1229,8 @@ private:
  */
 class Defined : public Expression {
 public:
-  Defined(Module &Module, GNULDBackend &Backend, std::string Name)
-      : Expression(Name, Expression::DEFINED, Module, Backend) {}
+  Defined(Module &Module, std::string Name)
+      : Expression(Name, Expression::DEFINED, Module) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isDefined(); }
@@ -1276,10 +1251,10 @@ private:
  */
 class DataSegmentAlign : public Expression {
 public:
-  DataSegmentAlign(Module &Module, GNULDBackend &Backend,
-                   Expression &MaxPageSize, Expression &CommonPageSize)
-      : Expression("DATA_SEGMENT_ALIGN", Expression::DATA_SEGMENT_ALIGN, Module,
-                   Backend),
+  DataSegmentAlign(Module &Module, Expression &MaxPageSize,
+                   Expression &CommonPageSize)
+      : Expression("DATA_SEGMENT_ALIGN", Expression::DATA_SEGMENT_ALIGN,
+                   Module),
         MaxPageSize(MaxPageSize), CommonPageSize(CommonPageSize) {}
 
   // Casting support
@@ -1308,12 +1283,11 @@ private:
  */
 class DataSegmentRelRoEnd : public Expression {
 public:
-  DataSegmentRelRoEnd(Module &Module, GNULDBackend &Backend, Expression &Expr1,
-                      Expression &Expr2)
+  DataSegmentRelRoEnd(Module &Module, Expression &Expr1, Expression &Expr2)
       : Expression("DATA_SEGMENT_RELRO_END", Expression::DATA_SEGMENT_RELRO_END,
-                   Module, Backend),
+                   Module),
         LeftExpression(Expr1), RightExpression(Expr2),
-        CommonPageSize(*make<Constant>(Module, Backend, "COMMONPAGESIZE",
+        CommonPageSize(*make<Constant>(Module, "COMMONPAGESIZE",
                                        Expression::COMMONPAGESIZE)) {}
 
   // Casting support
@@ -1343,9 +1317,8 @@ private:
  */
 class DataSegmentEnd : public Expression {
 public:
-  DataSegmentEnd(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("DATA_SEGMENT_END", Expression::DATA_SEGMENT_END, Module,
-                   Backend),
+  DataSegmentEnd(Module &Module, Expression &Expr)
+      : Expression("DATA_SEGMENT_END", Expression::DATA_SEGMENT_END, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -1373,10 +1346,9 @@ private:
  */
 class Max : public Expression {
 public:
-  Max(Module &Module, GNULDBackend &Backend, Expression &Left,
-      Expression &Right)
-      : Expression("MAX", Expression::MAX, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  Max(Module &Module, Expression &Left, Expression &Right)
+      : Expression("MAX", Expression::MAX, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isMax(); }
@@ -1401,10 +1373,9 @@ private:
  */
 class Min : public Expression {
 public:
-  Min(Module &Module, GNULDBackend &Backend, Expression &Left,
-      Expression &Right)
-      : Expression("MIN", Expression::MIN, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  Min(Module &Module, Expression &Left, Expression &Right)
+      : Expression("MIN", Expression::MIN, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isMin(); }
@@ -1428,8 +1399,8 @@ private:
  */
 class Fill : public Expression {
 public:
-  Fill(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("FILL", Expression::FILL, Module, Backend),
+  Fill(Module &Module, Expression &Expr)
+      : Expression("FILL", Expression::FILL, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -1456,8 +1427,8 @@ private:
  */
 class Log2Ceil : public Expression {
 public:
-  Log2Ceil(Module &Module, GNULDBackend &Backend, Expression &Expr)
-      : Expression("LOG2CEIL", Expression::LOG2CEIL, Module, Backend),
+  Log2Ceil(Module &Module, Expression &Expr)
+      : Expression("LOG2CEIL", Expression::LOG2CEIL, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
@@ -1484,10 +1455,10 @@ private:
  */
 class LogicalOp : public Expression {
 public:
-  LogicalOp(Expression::Type Type, Module &Module, GNULDBackend &Backend,
-            Expression &Left, Expression &Right)
-      : Expression("LogicalOperator", Type, Module, Backend),
-        LeftExpression(Left), RightExpression(Right) {}
+  LogicalOp(Expression::Type Type, Module &Module, Expression &Left,
+            Expression &Right)
+      : Expression("LogicalOperator", Type, Module), LeftExpression(Left),
+        RightExpression(Right) {}
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1515,8 +1486,7 @@ private:
  */
 class QueryMemory : public Expression {
 public:
-  QueryMemory(Expression::Type Type, Module &Module, GNULDBackend &Backend,
-              const std::string &Name);
+  QueryMemory(Expression::Type Type, Module &Module, const std::string &Name);
 
   // Casting support
   static bool classof(const Expression *Exp) {
@@ -1542,7 +1512,7 @@ inline void alignAddress(uint64_t &PAddr, uint64_t AlignConstraint) {
 /// expression when the linker script parser fails to parse an expression.
 class NullExpression : public Expression {
 public:
-  NullExpression(Module &Module, GNULDBackend &Backend);
+  NullExpression(Module &Module);
 
   // Casting support
   static bool classof(const Expression *Exp) { return Exp->isNullExpr(); }

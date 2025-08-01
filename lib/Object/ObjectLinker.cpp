@@ -194,9 +194,8 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
 
   ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
-  ScriptFile *S =
-      make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
-                       CurBuilder->getInputBuilder(), getTargetBackend());
+  ScriptFile *S = make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
+                                   CurBuilder->getInputBuilder());
 
   LSFile->setParsed();
   LSFile->setScriptFile(S);
@@ -338,7 +337,7 @@ bool ObjectLinker::parseVersionScript() {
     ScriptFile VersionScriptReader(
         ScriptFile::VersionScript, *ThisModule,
         *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-        CurBuilder->getInputBuilder(), getTargetBackend());
+        CurBuilder->getInputBuilder());
     bool SuccessFullInParse =
         getScriptReader()->readScript(ThisConfig, VersionScriptReader);
     if (!SuccessFullInParse)
@@ -1310,7 +1309,7 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   ScriptFile SymbolListReader(
       (ScriptFile::Kind)Type, *ThisModule,
       *(llvm::dyn_cast<eld::LinkerScriptFile>(SymbolListInputFile)),
-      CurBuilder->getInputBuilder(), getTargetBackend());
+      CurBuilder->getInputBuilder());
   bool ParseSuccess =
       getScriptReader()->readScript(ThisConfig, SymbolListReader);
   if (!ParseSuccess)

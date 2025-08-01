@@ -66,9 +66,9 @@ bool ScriptFile::IsFirstLinkerScriptWithSectionCommand = false;
 // ScriptFile
 //===----------------------------------------------------------------------===//
 ScriptFile::ScriptFile(Kind PKind, Module &CurModule, LinkerScriptFile &PInput,
-                       InputBuilder &PBuilder, GNULDBackend &PBackend)
+                       InputBuilder &PBuilder)
     : ScriptFileKind(PKind), ThisModule(CurModule),
-      ThisLinkerScriptFile(PInput), ThisBackend(PBackend),
+      ThisLinkerScriptFile(PInput),
       Name(PInput.getInput()->getResolvedPath().native()),
       LinkerScriptHasSectionsCommand(false),
       ScriptStateInSectionsCommmand(false),
