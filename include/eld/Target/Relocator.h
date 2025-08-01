@@ -143,7 +143,7 @@ public:
   bool doDeMangle() const;
 
   // Get the address for a relocation
-  Relocation::Address getSymValue(Relocation *R);
+  Relocation::Address getSymValue(const Relocation *R);
 
 private:
   enum ErrType { Undef, Invisible };

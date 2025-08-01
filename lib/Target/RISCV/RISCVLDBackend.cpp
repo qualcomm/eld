@@ -61,7 +61,7 @@ Relocator *RISCVLDBackend::getRelocator() const {
   return m_pRelocator;
 }
 
-Relocation::Address RISCVLDBackend::getSymbolValuePLT(Relocation &R) {
+Relocation::Address RISCVLDBackend::getSymbolValuePLT(const Relocation &R) {
   ResolveInfo *rsym = R.symInfo();
   if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
     if (const Fragment *S = findEntryInPLT(rsym))
@@ -618,8 +618,8 @@ bool RISCVLDBackend::addSymbolToOutput(ResolveInfo *Info) {
   }
   return true;
 }
-bool RISCVLDBackend::isGOTReloc(Relocation *reloc) const {
-  switch (reloc->type()) {
+bool RISCVLDBackend::isGOTReloc(const Relocation &reloc) const {
+  switch (reloc.type()) {
   case llvm::ELF::R_RISCV_GOT_HI20:
   case llvm::ELF::R_RISCV_TLS_GOT_HI20:
   case llvm::ELF::R_RISCV_TLS_GD_HI20:
@@ -664,10 +664,10 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
 
   if (new_type) {
     // Lookup reloc to get actual addend of HI.
-    Relocation *HIReloc = m_PairedRelocs[reloc];
+    const Relocation *HIReloc = getBaseReloc(*reloc);
     // If this is a GOT relocation, we cannot convert
     // this relative to GP.
-    if (isGOTReloc(HIReloc))
+    if (isGOTReloc(*HIReloc))
       return false;
     if (!HIReloc)
       ASSERT(0, "HIReloc not found! Internal Error!");
@@ -743,7 +743,7 @@ void RISCVLDBackend::translatePseudoRelocation(Relocation *reloc) {
       make<FragmentRef>(*(reloc->targetRef()->frag()), offset + 4);
   Relocation *reloc_jalr = Relocation::Create(llvm::ELF::R_RISCV_PCREL_LO12_I,
                                               32, fragRef, reloc->addend());
-  m_PairedRelocs[reloc_jalr] = reloc;
+  m_BaseRelocs[reloc_jalr] = reloc;
   reloc_jalr->setSymInfo(reloc->symInfo());
   m_InternalRelocs.push_back(reloc_jalr);
 }
@@ -977,9 +977,8 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
     auto offsetToReloc = relocMap.find(pOffset);
     if (offsetToReloc == relocMap.end())
       relocMap.insert(std::make_pair(pOffset, reloc));
-    else {
-      m_PairedRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
-    }
+    else
+      m_GroupRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
     return true;
   }
   // R_RISCV_PCREL_LO* relocations have the corresponding HI reloc as the
@@ -1012,7 +1011,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
     Relocation *reloc = IRBuilder::addRelocation(
         getRelocator(), pSection, pType, *hi_reloc->symInfo()->outSymbol(),
         pOffset, pAddend);
-    m_PairedRelocs[reloc] = hi_reloc;
+    m_BaseRelocs[reloc] = hi_reloc;
     if (reloc) {
       reloc->setSymInfo(hi_reloc->symInfo());
       pSection->addRelocation(reloc);
@@ -1518,8 +1517,8 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
   eld::Expected<void> expBasePostProcess =
       GNULDBackend::postProcessing(pOutput);
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expBasePostProcess);
-  for (auto &RelocPair : m_PairedRelocs) {
-    Relocation *pReloc = RelocPair.first;
+  for (auto &RelocPair : m_GroupRelocs) {
+    const Relocation *pReloc = RelocPair.first;
     if (pReloc->type() != llvm::ELF::R_RISCV_SUB_ULEB128)
       continue;
     FragmentRef::Offset Off = pReloc->targetRef()->getOutputOffset(m_Module);

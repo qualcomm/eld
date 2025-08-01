@@ -145,7 +145,7 @@ public:
 
   bool isMergeKind() const;
 
-  bool issueOverflow(Relocator &);
+  bool issueOverflow(Relocator &) const;
 
 private:
   /// m_pSymInfo - resolved symbol info of relocation target symbol

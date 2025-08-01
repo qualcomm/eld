@@ -168,15 +168,22 @@ public:
 
   void setDefaultConfigs() override;
 
-  Relocation *getPairedReloc(Relocation *R) const {
-    auto reloc = m_PairedRelocs.find(R);
-    if (reloc == m_PairedRelocs.end())
+  Relocation *getGroupReloc(const Relocation &R) const {
+    auto reloc = m_GroupRelocs.find(&R);
+    if (reloc == m_GroupRelocs.end())
+      return nullptr;
+    return reloc->second;
+  }
+
+  const Relocation *getBaseReloc(const Relocation &R) const {
+    auto reloc = m_BaseRelocs.find(&R);
+    if (reloc == m_BaseRelocs.end())
       return nullptr;
     return reloc->second;
   }
 
   // Get the value of the symbol, using the PLT slot if one exists.
-  Relocation::Address getSymbolValuePLT(Relocation &R);
+  Relocation::Address getSymbolValuePLT(const Relocation &R);
 
 private:
   Relocation *findHIRelocation(ELFSection *S, uint64_t Value);
@@ -195,7 +202,7 @@ private:
                               uint64_t Offset, unsigned NumBytes,
                               llvm::StringRef SymbolName);
 
-  bool isGOTReloc(Relocation *reloc) const;
+  bool isGOTReloc(const Relocation &reloc) const;
 
   bool doRelaxationCall(Relocation *R, bool DoCompressed);
   bool doRelaxationQCCall(Relocation *R, bool DoCompressed);
@@ -242,8 +249,17 @@ private:
 
   void defineGOTSymbol(Fragment &);
 
-public:
-  llvm::DenseMap<Relocation *, Relocation *> m_PairedRelocs;
+  /// A map to track the first relocation at one location. Multiple relocations
+  /// at one location should be applied consecutively, and not override each
+  /// other. Since we are caching the value in the relocation object, it is
+  /// important to update the cached value in the very first relocation in a
+  /// group.
+  llvm::DenseMap<const Relocation *, Relocation *> m_GroupRelocs;
+
+  /// A map to keep track of the relocation that defines the base address for
+  /// relative relocations. This is a concept in RISC-V and applies to
+  /// relocations consisting of a HI20 and LO12 pairs.
+  llvm::DenseMap<const Relocation *, const Relocation *> m_BaseRelocs;
 
 private:
   /// RISCV Attribute Section

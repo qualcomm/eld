@@ -764,9 +764,9 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   uint64_t A = pReloc.addend();
   uint64_t Result = 0;
 
-  Relocation *pairedReloc = Backend.getPairedReloc(&pReloc);
+  Relocation *groupReloc = Backend.getGroupReloc(pReloc);
   Relocation::DWord TargetData =
-      pairedReloc ? pairedReloc->target() : pReloc.target();
+      groupReloc ? groupReloc->target() : pReloc.target();
 
   if (pReloc.type() >= llvm::ELF::R_RISCV_ADD8 &&
       pReloc.type() <= llvm::ELF::R_RISCV_ADD64)
@@ -790,8 +790,8 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   RISCVRelocator::Result Res =
       ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
   // Update the target word for the paired reloc
-  if (pairedReloc) {
-    pairedReloc->target() = pReloc.target();
+  if (groupReloc) {
+    groupReloc->target() = pReloc.target();
   }
   return Res;
 }
@@ -854,10 +854,10 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
     return RISCVRelocator::Unsupport;
 
   int64_t S;
-  Relocation *HIReloc = nullptr;
+  const Relocation *HIReloc = nullptr;
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
       pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_S) {
-    HIReloc = Backend.m_PairedRelocs[&pReloc];
+    HIReloc = Backend.getBaseReloc(pReloc);
     if (!HIReloc)
       return RISCVRelocator::BadReloc;
     if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
@@ -985,7 +985,7 @@ RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVLDBackend &Backend,
   int64_t S = Backend.getSymbolValuePLT(pReloc);
 
   // Get the symbol value always from the HIRELOC.
-  Relocation *HIReloc = Backend.m_PairedRelocs[&pReloc];
+  const Relocation *HIReloc = Backend.getBaseReloc(pReloc);
   if (HIReloc)
     S = Backend.getSymbolValuePLT(*HIReloc);
 

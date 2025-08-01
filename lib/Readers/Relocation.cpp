@@ -202,7 +202,7 @@ std::string Relocation::getFragmentPath(ResolveInfo *symInfo, Fragment *frag,
   return "(Not Applicable)";
 }
 
-bool Relocation::issueOverflow(Relocator &pRelocator) {
+bool Relocation::issueOverflow(Relocator &pRelocator) const {
   DiagnosticEngine *DiagEngine = pRelocator.config().getDiagEngine();
   const GeneralOptions &options = pRelocator.config().options();
   DiagEngine->raise(Diag::result_overflow_moreinfo)

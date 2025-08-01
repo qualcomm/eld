@@ -289,7 +289,7 @@ bool Relocator::doDeMangle() const {
   return m_Config.options().shouldDemangle();
 }
 
-Relocation::Address Relocator::getSymValue(Relocation *R) {
+Relocation::Address Relocator::getSymValue(const Relocation *R) {
   if (R->symInfo() && R->symInfo()->isThreadLocal())
     return getTarget().finalizeTLSSymbol(R->symInfo()->outSymbol());
   return R->symValue(m_Module);
