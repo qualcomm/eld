@@ -61,15 +61,25 @@ Relocator *RISCVLDBackend::getRelocator() const {
   return m_pRelocator;
 }
 
-Relocation::Address RISCVLDBackend::getSymbolValuePLT(Relocation &R) {
+Relocation::Address RISCVLDBackend::getSymbolValuePLT(Relocation &R,
+                                                      bool &Uncertain) {
   ResolveInfo *rsym = R.symInfo();
   if (rsym && (rsym->reserved() & Relocator::ReservePLT)) {
-    if (const Fragment *S = findEntryInPLT(rsym))
+    if (const Fragment *S = findEntryInPLT(rsym)) {
+      Uncertain = false;
       return S->getAddr(config().getDiagEngine());
-    if (const ResolveInfo *S = findAbsolutePLT(rsym))
+    }
+    if (const ResolveInfo *S = findAbsolutePLT(rsym)) {
+      Uncertain = false;
       return S->value();
+    }
   }
-  return getRelocator()->getSymValue(&R);
+  return getRelocator()->getSymValue(&R, Uncertain);
+}
+
+Relocation::Address RISCVLDBackend::getSymbolValuePLT(Relocation &R) {
+  bool Ignored;
+  return getSymbolValuePLT(R, Ignored);
 }
 
 Relocation::Type RISCVLDBackend::getCopyRelType() const {
@@ -241,11 +251,13 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc, bool DoCompressed) {
   bool canCompress = (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
   // test if it can fall into 21bits
-  Relocator::DWord S = getSymbolValuePLT(*reloc);
+  bool Uncertain;
+  Relocator::DWord S = getSymbolValuePLT(*reloc, Uncertain);
   Relocator::DWord A = reloc->addend();
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
-  bool canRelax = config().options().getRISCVRelax() && llvm::isInt<21>(X);
+  bool canRelax =
+      config().options().getRISCVRelax() && llvm::isInt<21>(X) && !Uncertain;
 
   if (!canRelax) {
     reportMissedRelaxation("RISCV_CALL", *region, offset, canCompress ? 6 : 4,
@@ -313,15 +325,16 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc, bool DoCompressed) {
   uint64_t qc_e_jump = reloc->target() & 0xffffffffffff;
   bool isTailCall = (qc_e_jump & 0xf1f07f) == 0x00401f;
 
-  Relocator::DWord S = getSymbolValuePLT(*reloc);
+  bool Uncertain;
+  Relocator::DWord S = getSymbolValuePLT(*reloc, Uncertain);
   Relocator::DWord A = reloc->addend();
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
 
-  bool canRelaxXqci =
-      config().targets().is32Bits() && config().options().getRISCVRelaxXqci();
-  bool canRelax =
-      config().options().getRISCVRelax() && canRelaxXqci && llvm::isInt<21>(X);
+  bool canRelax = config().options().getRISCVRelax() &&
+                  config().options().getRISCVRelaxXqci() &&
+                  config().targets().is32Bits() && llvm::isInt<21>(X) &&
+                  !Uncertain;
   bool canCompress = DoCompressed && llvm::isInt<12>(X);
 
   if (!canRelax) {
@@ -382,20 +395,17 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
     return false;
 
   size_t SymbolSize = reloc->symInfo()->outSymbol()->size();
-  Relocator::DWord S = getSymbolValuePLT(*reloc);
+  bool Uncertain;
+  Relocator::DWord S = getSymbolValuePLT(*reloc, Uncertain);
   Relocator::DWord A = reloc->addend();
   Relocator::DWord Value = S + A;
   uint64_t offset = reloc->targetRef()->offset();
   Relocation::Type type = reloc->type();
 
-  // Do not relax complete zeroes because they can be mistaken for
-  // not-yet-assigned values. This applies to both zero-page relaxation and GP
-  // relaxation when GP is close to zero.
-
   // First, try zero-page relaxation. It's the cheapest and does not need GP.
   bool canRelaxZero = config().options().getRISCVRelax() &&
                       config().options().getRISCVZeroRelax() &&
-                      llvm::isInt<12>(Value) && S != 0;
+                      llvm::isInt<12>(Value) && !Uncertain;
 
   // HI will be deleted, LO will be converted to use GP as base.
   // GP must be available and relocation must fit in 12 bits relative to GP.
@@ -404,7 +414,7 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
       config().options().getRISCVRelax() &&
       config().options().getRISCVGPRelax() && !config().isCodeIndep() &&
       G != 0 && fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize) &&
-      S != 0;
+      !Uncertain;
 
   if (type == llvm::ELF::R_RISCV_HI20) {
 
@@ -773,12 +783,7 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
   if (!region)
     return false;
 
-  // Test if the symbol with size can fall in 12 bits.
-  size_t SymbolSize = reloc->symInfo()->outSymbol()->size();
-  Relocator::DWord S = getSymbolValuePLT(*reloc);
-  Relocator::DWord A = reloc->addend();
-
-  Relocation::Type new_type = 0x0;
+  std::optional<Relocation::Type> new_type;
   Relocation::Type type = reloc->type();
   switch (type) {
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
@@ -791,6 +796,7 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
     break;
   }
 
+  Relocation *SymbolReloc = reloc;
   if (new_type) {
     // Lookup reloc to get actual addend of HI.
     Relocation *HIReloc = m_PairedRelocs[reloc];
@@ -800,15 +806,21 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
       return false;
     if (!HIReloc)
       ASSERT(0, "HIReloc not found! Internal Error!");
-    S = getSymbolValuePLT(*HIReloc);
-    A = HIReloc->addend();
-    SymbolSize = HIReloc->symInfo()->outSymbol()->size();
+    SymbolReloc = HIReloc;
   }
 
+  // Test if the symbol with size can fall in 12 bits.
+  size_t SymbolSize = SymbolReloc->symInfo()->outSymbol()->size();
+  bool Uncertain;
+  Relocator::DWord S = getSymbolValuePLT(*SymbolReloc, Uncertain);
+  Relocator::DWord A = SymbolReloc->addend();
+
   uint64_t offset = reloc->targetRef()->offset();
-  bool canRelax = config().options().getRISCVRelax() &&
-                  config().options().getRISCVGPRelax() && G != 0 &&
-                  fitsInGP(G, S + A, frag, reloc->targetSection(), SymbolSize);
+  bool canRelax =
+      config().options().getRISCVRelax() &&
+      config().options().getRISCVGPRelax() && G != 0 &&
+      fitsInGP(G, S + A, frag, reloc->targetSection(), SymbolSize) &&
+      !Uncertain;
 
   // HI will be deleted, Low will be converted to use gp as base.
   if (type == llvm::ELF::R_RISCV_PCREL_HI20) {
@@ -830,7 +842,7 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
   uint64_t instr = reloc->target();
   uint64_t mask = 0x1F << 15;
   instr = (instr & ~mask) | (0x3 << 15);
-  reloc->setType(new_type);
+  reloc->setType(*new_type);
   reloc->setTargetData(instr);
   reloc->setAddend(A);
   return true;

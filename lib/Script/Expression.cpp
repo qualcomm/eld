@@ -68,10 +68,10 @@ eld::Expected<uint64_t> Expression::evaluateAndReturnError() {
   if (!Result)
     return addContextToDiagEntry(std::move(Result.error()), MContext);
   commit();
-  return Result;
+  return Result->value();
 }
 
-std::optional<uint64_t> Expression::evaluateAndRaiseError() {
+std::optional<UncertainValue> Expression::evaluateUncertainAndRaiseError() {
   ASSERT(!MContext.empty(), "Context not set for expression");
   auto Result = eval();
   if (!Result) {
@@ -86,10 +86,17 @@ std::optional<uint64_t> Expression::evaluateAndRaiseError() {
   return Result.value();
 }
 
-eld::Expected<uint64_t> Expression::eval() {
+std::optional<uint64_t> Expression::evaluateAndRaiseError() {
+  auto Result = evaluateUncertainAndRaiseError();
+  if (!Result)
+    return {};
+  return Result->value();
+}
+
+eld::Expected<UncertainValue> Expression::eval() {
   auto V = evalImpl();
   if (V)
-    EvaluatedValue = V.value();
+    EvaluatedValue = V->value();
   return V;
 }
 
@@ -122,7 +129,7 @@ bool Symbol::hasDot() const {
   return ThisSymbol == ThisModule.getDotSymbol();
 }
 
-eld::Expected<uint64_t> Symbol::evalImpl() {
+eld::Expected<UncertainValue> Symbol::evalImpl() {
 
   if (!ThisSymbol)
     ThisSymbol = ThisModule.getNamePool().findSymbol(Name);
@@ -174,7 +181,7 @@ void Integer::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Integer::evalImpl() { return ExpressionValue; }
+eld::Expected<UncertainValue> Integer::evalImpl() { return ExpressionValue; }
 void Integer::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
 void Integer::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {}
@@ -198,7 +205,7 @@ void Add::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Add::evalImpl() {
+eld::Expected<UncertainValue> Add::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -251,7 +258,7 @@ void Subtract::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Subtract::evalImpl() {
+eld::Expected<UncertainValue> Subtract::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -291,7 +298,7 @@ void Modulo::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Modulo::evalImpl() {
+eld::Expected<UncertainValue> Modulo::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -299,7 +306,7 @@ eld::Expected<uint64_t> Modulo::evalImpl() {
   auto Right = RightExpression.eval();
   if (!Right)
     return Right;
-  if (Right.value() == 0) {
+  if (Right->value() == 0) {
     std::string ErrorString;
     llvm::raw_string_ostream ErrorStringStream(ErrorString);
     dump(ErrorStringStream);
@@ -342,7 +349,7 @@ void Multiply::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Multiply::evalImpl() {
+eld::Expected<UncertainValue> Multiply::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -385,7 +392,7 @@ void Divide::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Divide::evalImpl() {
+eld::Expected<UncertainValue> Divide::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -393,7 +400,7 @@ eld::Expected<uint64_t> Divide::evalImpl() {
   auto Right = RightExpression.eval();
   if (!Right)
     return Right;
-  if (Right.value() == 0) {
+  if (Right->value() == 0) {
     std::string ErrorString;
     llvm::raw_string_ostream ErrorStringStream(ErrorString);
     dump(ErrorStringStream);
@@ -430,7 +437,7 @@ void SizeOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   }
   Outs << ")";
 }
-eld::Expected<uint64_t> SizeOf::evalImpl() {
+eld::Expected<UncertainValue> SizeOf::evalImpl() {
 
   if (Name.size() && Name[0] == ':') {
     // If the name is a segment and we don't have PHDR's. SIZEOF on segment will
@@ -497,7 +504,7 @@ void SizeOfHeaders::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   }
 }
 
-eld::Expected<uint64_t> SizeOfHeaders::evalImpl() {
+eld::Expected<UncertainValue> SizeOfHeaders::evalImpl() {
   uint64_t Offset = 0;
   std::vector<ELFSection *> Sections;
   if (!ThisBackend.isEhdrNeeded())
@@ -527,7 +534,7 @@ void Addr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   }
   Outs << "\")";
 }
-eld::Expected<uint64_t> Addr::evalImpl() {
+eld::Expected<UncertainValue> Addr::evalImpl() {
   // As the section table is populated only during PostLayout, we have to
   // go the other way around to access the section. This is because size of
   // empty
@@ -542,7 +549,7 @@ eld::Expected<uint64_t> Addr::evalImpl() {
     ThisModule.getConfig().raise(Diag::warn_forward_reference)
         << MContext << Name;
   // evaluate sub expression
-  return ThisSection->addr();
+  return UncertainValue(ThisSection->addr(), !ThisSection->hasVMA());
 }
 
 void Addr::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
@@ -565,7 +572,7 @@ void LoadAddr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   }
   Outs << ")";
 }
-eld::Expected<uint64_t> LoadAddr::evalImpl() {
+eld::Expected<UncertainValue> LoadAddr::evalImpl() {
   // As the section table is populated only during PostLayout, we have to
   // go the other way around to access the section. This is because size of
   // empty
@@ -594,7 +601,7 @@ void OffsetOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
     Outs.write_hex(resultOrZero());
   }
 }
-eld::Expected<uint64_t> OffsetOf::evalImpl() {
+eld::Expected<UncertainValue> OffsetOf::evalImpl() {
   // As the section table is populated only during PostLayout, we have to
   // go the other way around to access the section. This is because size of
   // empty
@@ -605,7 +612,7 @@ eld::Expected<uint64_t> OffsetOf::evalImpl() {
   // evaluate sub expression
   if (ThisSection->hasOffset())
     return ThisSection->offset();
-  return 0;
+  return UncertainValue(0, true);
 }
 void OffsetOf::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
@@ -630,11 +637,14 @@ void Ternary::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Ternary::evalImpl() {
+eld::Expected<UncertainValue> Ternary::evalImpl() {
   auto Cond = ConditionExpression.eval();
   if (!Cond)
     return Cond;
-  return Cond.value() ? LeftExpression.eval() : RightExpression.eval();
+  auto Left = LeftExpression.eval();
+  auto Right = RightExpression.eval();
+  return UncertainValue(Cond->value() ? Left->value() : Right->value(), *Cond,
+                        *Left, *Right);
 }
 
 void Ternary::getSymbols(std::vector<ResolveInfo *> &Symbols) {
@@ -681,7 +691,7 @@ void AlignExpr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   AlignmentExpression.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> AlignExpr::evalImpl() {
+eld::Expected<UncertainValue> AlignExpr::evalImpl() {
   // evaluate sub expressions
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
@@ -689,8 +699,8 @@ eld::Expected<uint64_t> AlignExpr::evalImpl() {
   auto Align = AlignmentExpression.eval();
   if (!Align)
     return Align;
-  uint64_t Value = Expr.value();
-  uint64_t AlignValue = Align.value();
+  uint64_t Value = Expr->value();
+  uint64_t AlignValue = Align->value();
   if (!AlignValue)
     return Value;
   if (ThisModule.getConfig().showLinkerScriptWarnings() &&
@@ -698,7 +708,7 @@ eld::Expected<uint64_t> AlignExpr::evalImpl() {
     ThisModule.getConfig().raise(
         Diag::warn_non_power_of_2_value_to_align_builtin)
         << getContext() << utility::toHex(AlignValue);
-  return llvm::alignTo(Value, AlignValue);
+  return UncertainValue(llvm::alignTo(Value, AlignValue), *Expr, *Align);
 }
 
 void AlignExpr::getSymbols(std::vector<ResolveInfo *> &Symbols) {
@@ -724,7 +734,7 @@ void AlignOf::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
 void AlignOf::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {}
 
-eld::Expected<uint64_t> AlignOf::evalImpl() {
+eld::Expected<UncertainValue> AlignOf::evalImpl() {
   // As the section table is populated only during PostLayout, we have to
   // go the other way around to access the section. This is because size of
   // empty
@@ -751,7 +761,7 @@ void Absolute::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   ExpressionToEvaluate.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> Absolute::evalImpl() {
+eld::Expected<UncertainValue> Absolute::evalImpl() {
   return ExpressionToEvaluate.eval();
 }
 void Absolute::getSymbols(std::vector<ResolveInfo *> &Symbols) {
@@ -781,7 +791,7 @@ void ConditionGT::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> ConditionGT::evalImpl() {
+eld::Expected<UncertainValue> ConditionGT::evalImpl() {
   auto Left = LeftExpression.eval();
   if (!Left)
     return Left;
@@ -822,7 +832,7 @@ void ConditionLT::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> ConditionLT::evalImpl() {
+eld::Expected<UncertainValue> ConditionLT::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -864,7 +874,7 @@ void ConditionEQ::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> ConditionEQ::evalImpl() {
+eld::Expected<UncertainValue> ConditionEQ::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -906,7 +916,7 @@ void ConditionGTE::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> ConditionGTE::evalImpl() {
+eld::Expected<UncertainValue> ConditionGTE::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -948,7 +958,7 @@ void ConditionLTE::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> ConditionLTE::evalImpl() {
+eld::Expected<UncertainValue> ConditionLTE::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -990,7 +1000,7 @@ void ConditionNEQ::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> ConditionNEQ::evalImpl() {
+eld::Expected<UncertainValue> ConditionNEQ::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1026,7 +1036,7 @@ void Complement::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
   ExpressionToEvaluate.dump(Outs, WithValues);
 }
-eld::Expected<uint64_t> Complement::evalImpl() {
+eld::Expected<UncertainValue> Complement::evalImpl() {
   // evaluate sub expressions
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
@@ -1054,7 +1064,7 @@ void UnaryPlus::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
   ExpressionToEvaluate.dump(Outs, WithValues);
 }
-eld::Expected<uint64_t> UnaryPlus::evalImpl() {
+eld::Expected<UncertainValue> UnaryPlus::evalImpl() {
   return ExpressionToEvaluate.eval();
 }
 void UnaryPlus::getSymbols(std::vector<ResolveInfo *> &Symbols) {
@@ -1077,7 +1087,7 @@ void UnaryMinus::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "-";
   ExpressionToEvaluate.dump(Outs, WithValues);
 }
-eld::Expected<uint64_t> UnaryMinus::evalImpl() {
+eld::Expected<UncertainValue> UnaryMinus::evalImpl() {
   // evaluate sub expressions
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
@@ -1104,7 +1114,7 @@ void UnaryNot::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
   ExpressionToEvaluate.dump(Outs, WithValues);
 }
-eld::Expected<uint64_t> UnaryNot::evalImpl() {
+eld::Expected<UncertainValue> UnaryNot::evalImpl() {
   // evaluate sub expressions
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
@@ -1126,7 +1136,7 @@ void Constant::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   // format output for operator
   Outs << "CONSTANT(" << Name << ")";
 }
-eld::Expected<uint64_t> Constant::evalImpl() {
+eld::Expected<UncertainValue> Constant::evalImpl() {
   // evaluate sub expressions
   switch (type()) {
   case Expression::MAXPAGESIZE:
@@ -1136,7 +1146,7 @@ eld::Expected<uint64_t> Constant::evalImpl() {
   default:
     // this can't happen because all constants are part of the syntax
     ASSERT(0, "Unexpected constant");
-    return {};
+    return 0;
   }
 }
 void Constant::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
@@ -1155,7 +1165,7 @@ void SegmentStart::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   ExpressionToEvaluate.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> SegmentStart::evalImpl() {
+eld::Expected<UncertainValue> SegmentStart::evalImpl() {
   GeneralOptions::AddressMapType &AddressMap =
       ThisModule.getConfig().options().addressMap();
   GeneralOptions::AddressMapType::const_iterator Addr;
@@ -1204,7 +1214,7 @@ void AssertCmd::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   ExpressionToEvaluate.dump(Outs, WithValues);
   Outs << ", \"" << AssertionMessage << "\")";
 }
-eld::Expected<uint64_t> AssertCmd::evalImpl() {
+eld::Expected<UncertainValue> AssertCmd::evalImpl() {
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
     return Expr;
@@ -1239,7 +1249,7 @@ void RightShift::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> RightShift::evalImpl() {
+eld::Expected<UncertainValue> RightShift::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1283,7 +1293,7 @@ void LeftShift::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> LeftShift::evalImpl() {
+eld::Expected<UncertainValue> LeftShift::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1326,7 +1336,7 @@ void BitwiseOr::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> BitwiseOr::evalImpl() {
+eld::Expected<UncertainValue> BitwiseOr::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1412,7 +1422,7 @@ void BitwiseAnd::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> BitwiseAnd::evalImpl() {
+eld::Expected<UncertainValue> BitwiseAnd::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1442,7 +1452,7 @@ void Defined::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   // format output for operator
   Outs << "DEFINED(" << Name << ")";
 }
-eld::Expected<uint64_t> Defined::evalImpl() {
+eld::Expected<UncertainValue> Defined::evalImpl() {
   const LDSymbol *Symbol = ThisModule.getNamePool().findSymbol(Name);
   if (Symbol == nullptr)
     return 0;
@@ -1479,7 +1489,7 @@ void DataSegmentAlign::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   CommonPageSize.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> DataSegmentAlign::evalImpl() {
+eld::Expected<UncertainValue> DataSegmentAlign::evalImpl() {
   auto MaxPageSize = this->MaxPageSize.eval();
   if (!MaxPageSize)
     return MaxPageSize;
@@ -1487,18 +1497,13 @@ eld::Expected<uint64_t> DataSegmentAlign::evalImpl() {
   if (!CommonPageSize)
     return CommonPageSize;
   uint64_t Dot = ThisModule.getDotSymbol()->value();
-  uint64_t Form1 = 0, Form2 = 0;
-
   uint64_t DotAligned = Dot;
+  alignAddress(DotAligned, MaxPageSize->value());
 
-  alignAddress(DotAligned, MaxPageSize.value());
-
-  Form1 = DotAligned + (Dot & (MaxPageSize.value() - 1));
-  Form2 = DotAligned + (Dot & (MaxPageSize.value() - CommonPageSize.value()));
-
-  if (Form1 <= Form2)
-    return Form1;
-  return Form2;
+  uint64_t Form1 = DotAligned + (Dot & (MaxPageSize->value() - 1));
+  uint64_t Form2 =
+      DotAligned + (Dot & (MaxPageSize->value() - CommonPageSize->value()));
+  return UncertainValue(std::min(Form1, Form2), *MaxPageSize, *CommonPageSize);
 }
 void DataSegmentAlign::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
@@ -1521,7 +1526,7 @@ void DataSegmentRelRoEnd::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   RightExpression.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> DataSegmentRelRoEnd::evalImpl() {
+eld::Expected<UncertainValue> DataSegmentRelRoEnd::evalImpl() {
   auto CommonPageSize = this->CommonPageSize.eval();
   if (!CommonPageSize)
     return CommonPageSize;
@@ -1531,8 +1536,8 @@ eld::Expected<uint64_t> DataSegmentRelRoEnd::evalImpl() {
   auto Expr2 = RightExpression.eval();
   if (!Expr2)
     return Expr2;
-  uint64_t Value = Expr1.value() + Expr2.value();
-  alignAddress(Value, CommonPageSize.value());
+  auto Value = Expr1.value() + Expr2.value();
+  alignAddress(Value.value(), CommonPageSize->value());
   return Value;
 }
 void DataSegmentRelRoEnd::getSymbols(std::vector<ResolveInfo *> &Symbols) {
@@ -1562,7 +1567,7 @@ void DataSegmentEnd::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   ExpressionToEvaluate.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> DataSegmentEnd::evalImpl() {
+eld::Expected<UncertainValue> DataSegmentEnd::evalImpl() {
   // evaluate sub expressions
   auto Expr = ExpressionToEvaluate.eval();
   if (!Expr)
@@ -1599,7 +1604,7 @@ void Max::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Max::evalImpl() {
+eld::Expected<UncertainValue> Max::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1608,7 +1613,9 @@ eld::Expected<uint64_t> Max::evalImpl() {
   if (!Right)
     return Right;
 
-  return Left.value() > Right.value() ? Left.value() : Right.value();
+  return UncertainValue(Left->value() > Right->value() ? Left->value()
+                                                       : Right->value(),
+                        *Left, *Right);
 }
 void Max::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   LeftExpression.getSymbols(Symbols);
@@ -1641,7 +1648,7 @@ void Min::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> Min::evalImpl() {
+eld::Expected<UncertainValue> Min::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1649,7 +1656,9 @@ eld::Expected<uint64_t> Min::evalImpl() {
   auto Right = RightExpression.eval();
   if (!Right)
     return Right;
-  return Left.value() < Right.value() ? Left.value() : Right.value();
+  return UncertainValue(Left->value() < Right->value() ? Left->value()
+                                                       : Right->value(),
+                        *Left, *Right);
 }
 void Min::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   LeftExpression.getSymbols(Symbols);
@@ -1676,7 +1685,9 @@ void Fill::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   ExpressionToEvaluate.dump(Outs, WithValues);
   Outs << ")";
 }
-eld::Expected<uint64_t> Fill::evalImpl() { return ExpressionToEvaluate.eval(); }
+eld::Expected<UncertainValue> Fill::evalImpl() {
+  return ExpressionToEvaluate.eval();
+}
 
 void Fill::getSymbols(std::vector<ResolveInfo *> &Symbols) {
   ExpressionToEvaluate.getSymbols(Symbols);
@@ -1702,11 +1713,12 @@ void Log2Ceil::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << ")";
 }
 
-eld::Expected<uint64_t> Log2Ceil::evalImpl() {
+eld::Expected<UncertainValue> Log2Ceil::evalImpl() {
   auto Val = ExpressionToEvaluate.eval();
   if (!Val)
     return Val;
-  return llvm::Log2_64_Ceil(std::max(Val.value(), UINT64_C(1)));
+  return UncertainValue(llvm::Log2_64_Ceil(std::max(Val->value(), UINT64_C(1))),
+                        *Val);
 }
 
 void Log2Ceil::getSymbols(std::vector<ResolveInfo *> &Symbols) {
@@ -1746,7 +1758,7 @@ void LogicalOp::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   if (ExpressionHasParenthesis)
     Outs << ")";
 }
-eld::Expected<uint64_t> LogicalOp::evalImpl() {
+eld::Expected<UncertainValue> LogicalOp::evalImpl() {
   // evaluate sub expressions
   auto Left = LeftExpression.eval();
   if (!Left)
@@ -1788,13 +1800,12 @@ void QueryMemory::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << ")";
 }
 
-eld::Expected<uint64_t> QueryMemory::evalImpl() {
+eld::Expected<UncertainValue> QueryMemory::evalImpl() {
   auto Region = ThisModule.getScript().getMemoryRegion(Name);
   if (!Region)
     return std::move(Region.error());
-  if (isOrigin())
-    return Region.value()->getOrigin();
-  return Region.value()->getLength();
+  return UncertainValue(isOrigin() ? *Region.value()->getOrigin()
+                                   : *Region.value()->getLength());
 }
 
 void QueryMemory::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
@@ -1812,7 +1823,7 @@ void NullExpression::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << Name;
 }
 
-eld::Expected<uint64_t> NullExpression::evalImpl() {
+eld::Expected<UncertainValue> NullExpression::evalImpl() {
   return std::make_unique<plugin::DiagnosticEntry>(
       Diag::internal_error_null_expression, std::vector<std::string>{});
 }

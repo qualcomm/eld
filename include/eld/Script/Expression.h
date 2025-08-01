@@ -23,6 +23,128 @@ class Module;
 class GNULDBackend;
 class ScriptFile;
 
+class UncertainValue {
+  uint64_t Value;
+  bool Uncertain;
+
+public:
+  uint64_t value() const { return Value; }
+  uint64_t &value() { return Value; }
+  bool isUncertain() const { return Uncertain; }
+
+  UncertainValue(uint64_t Value, bool Uncertain = false)
+      : Value(Value), Uncertain(Uncertain) {}
+
+  UncertainValue(uint64_t Value, const UncertainValue &Base)
+      : Value(Value), Uncertain(Base.isUncertain()) {}
+
+  UncertainValue(uint64_t Value, const UncertainValue &BaseL,
+                 const UncertainValue &BaseR)
+      : Value(Value), Uncertain(BaseL.isUncertain() || BaseR.isUncertain()) {}
+
+  UncertainValue(uint64_t Value, const UncertainValue &Base,
+                 const UncertainValue &BaseL, const UncertainValue &BaseR)
+      : Value(Value), Uncertain(Base.isUncertain() || BaseL.isUncertain() ||
+                                BaseR.isUncertain()) {}
+};
+
+inline UncertainValue operator+(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() + R.value(), L, R);
+}
+
+inline UncertainValue operator-(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() - R.value(), L, R);
+}
+
+inline UncertainValue operator*(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() * R.value(), L, R);
+}
+
+inline UncertainValue operator/(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() / R.value(), L, R);
+}
+
+inline UncertainValue operator%(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() % R.value(), L, R);
+}
+
+inline UncertainValue operator>>(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() >> R.value(), L, R);
+}
+
+inline UncertainValue operator<<(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() << R.value(), L, R);
+}
+
+inline UncertainValue operator|(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() | R.value(), L, R);
+}
+
+inline UncertainValue operator&(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() & R.value(), L, R);
+}
+
+inline UncertainValue operator>(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() > R.value(), L, R);
+}
+
+inline UncertainValue operator>=(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() >= R.value(), L, R);
+}
+
+inline UncertainValue operator<(const UncertainValue &L,
+                                const UncertainValue &R) {
+  return UncertainValue(L.value() < R.value(), L, R);
+}
+
+inline UncertainValue operator<=(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() <= R.value(), L, R);
+}
+
+inline UncertainValue operator==(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() == R.value(), L, R);
+}
+
+inline UncertainValue operator!=(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() != R.value(), L, R);
+}
+
+inline UncertainValue operator~(const UncertainValue &E) {
+  return UncertainValue(~E.value(), E);
+}
+
+inline UncertainValue operator-(const UncertainValue &E) {
+  return UncertainValue(-E.value(), E);
+}
+
+inline UncertainValue operator!(const UncertainValue &E) {
+  return UncertainValue(!E.value(), E);
+}
+
+inline UncertainValue operator&&(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() && R.value(), L, R);
+}
+
+inline UncertainValue operator||(const UncertainValue &L,
+                                 const UncertainValue &R) {
+  return UncertainValue(L.value() || R.value(), L, R);
+}
+
 //===----------------------------------------------------------------------===//
 /** \class Expression
  *  \brief This class defines the interfaces to an expression.
@@ -195,6 +317,10 @@ public:
   ///        This method is intended to be called by Expression users.
   eld::Expected<uint64_t> evaluateAndReturnError();
 
+  /// evaluateUncertainAndRaiseError
+  /// \brief Same as evaluateAndReturnError, but return an UncertainValue.
+  std::optional<UncertainValue> evaluateUncertainAndRaiseError();
+
   /// evaluateAndRaiseError
   /// \brief Evaluate the expression and return the value when
   ///        evaluation is successful. Raise an error if evaluation fails and
@@ -209,7 +335,7 @@ public:
   ///        evaluation is successful or an error when failed. Commit is
   ///        not called. This method is intended to be recursively called by
   ///        parent expression nodes.
-  eld::Expected<uint64_t> eval();
+  eld::Expected<UncertainValue> eval();
 
 private:
   /// eval
@@ -217,7 +343,7 @@ private:
   ///        should be to verify and evaluate the expression. eval() should
   ///        return the value if evaluation is successful or raise an error
   ///        and return an empty object otherwise.
-  virtual eld::Expected<uint64_t> evalImpl() = 0;
+  virtual eld::Expected<UncertainValue> evalImpl() = 0;
 
   static std::unique_ptr<plugin::DiagnosticEntry>
   addContextToDiagEntry(std::unique_ptr<plugin::DiagnosticEntry>,
@@ -315,7 +441,7 @@ public:
 private:
   bool hasDot() const override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   /// Returns a set of all the symbol names contained in the expression.
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
@@ -342,7 +468,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -369,7 +495,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -397,7 +523,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -425,7 +551,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -453,7 +579,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -481,7 +607,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -505,7 +631,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -528,7 +654,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -553,7 +679,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -578,7 +704,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -601,7 +727,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -630,7 +756,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override {
@@ -664,7 +790,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -690,7 +816,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -722,7 +848,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -752,7 +878,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -780,7 +906,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -808,7 +934,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -838,7 +964,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -868,7 +994,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -896,7 +1022,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -923,7 +1049,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -951,7 +1077,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -979,7 +1105,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1007,7 +1133,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1034,7 +1160,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1061,7 +1187,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1093,7 +1219,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1124,7 +1250,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1154,7 +1280,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1182,7 +1308,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1210,7 +1336,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1263,7 +1389,7 @@ public:
 private:
   bool hasDot() const override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1291,7 +1417,7 @@ private:
   bool hasDot() const override { return false; }
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &MaxPageSize; }
@@ -1325,7 +1451,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1355,7 +1481,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1385,7 +1511,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1413,7 +1539,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1439,7 +1565,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1467,7 +1593,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1498,7 +1624,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1526,7 +1652,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1550,7 +1676,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<UncertainValue> evalImpl() override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }

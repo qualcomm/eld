@@ -143,6 +143,7 @@ public:
   bool doDeMangle() const;
 
   // Get the address for a relocation
+  Relocation::Address getSymValue(Relocation *R, bool &Uncertain);
   Relocation::Address getSymValue(Relocation *R);
 
 private:
