@@ -1386,6 +1386,15 @@ bool plugin::InputFile::isArchive() const {
   return m_InputFile->getInput()->isArchiveMember();
 }
 
+void plugin::InputFile::setPluginSectionAnnotation(uint64_t sectionIndex,
+                                                   std::string annotation) {
+  eld::ELFObjectFile *ObjFile = llvm::dyn_cast<eld::ELFObjectFile>(m_InputFile);
+  if (ObjFile)
+    ObjFile->setPluginSectionAnnotation(sectionIndex, annotation,
+                                        ObjFile->getSections().size());
+  return;
+}
+
 bool plugin::InputFile::isBitcode() const {
   if (!m_InputFile)
     return false;

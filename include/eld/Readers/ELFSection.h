@@ -149,6 +149,10 @@ public:
 
   static std::string getELFPermissionsStr(uint32_t Permissions);
 
+  std::string getSectionAnnotations() const;
+
+  bool hasAnnotations() const;
+
   bool hasOffset() const;
 
   /// FIXME: We change the offset for input sections so this will not return the

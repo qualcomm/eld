@@ -9,7 +9,9 @@
 
 #include "eld/Support/MappingFile.h"
 #include "llvm/ADT/StringRef.h"
+#include <cstdint>
 #include <mutex>
+#include <vector>
 
 namespace eld {
 
@@ -98,6 +100,12 @@ public:
 
   void setMappingFileKind(MappingFile::Kind K) { MappingKind = K; }
 
+  void setPluginSectionAnnotation(uint64_t sectionIndex, std::string annotation,
+                                  uint64_t numSections);
+
+  std::vector<std::string>
+  getPluginSectionAnnotations(uint64_t sectionIndex) const;
+
   std::string getMappedPath() const { return MappedPath; }
 
   void setMappedPath(std::string MP) { MappedPath = MP; }
@@ -131,6 +139,7 @@ protected:
   InputFileKind Kind = UnknownKind;
   MappingFile::Kind MappingKind = MappingFile::Kind::Other;
   DiagnosticEngine *DiagEngine = nullptr;
+  std::vector<std::vector<std::string>> PluginSectionAnnotations;
   bool Needed = false;
   bool Used = false;
   bool Skip = false;
