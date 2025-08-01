@@ -156,6 +156,11 @@ public:
         return DynRelocType::TPREL_LOCAL;
       return DynRelocType::TPREL_GLOBAL;
     }
+    if (X->type() == llvm::ELF::R_RISCV_TLSDESC) {
+      if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
+        return DynRelocType::TLSDESC_LOCAL;
+      return DynRelocType::TLSDESC_GLOBAL;
+    }
     return DynRelocType::DEFAULT;
   }
 
@@ -185,6 +190,19 @@ public:
     return reloc->second;
   }
 
+  const Relocation *
+  getNewBaseForTLSDESCRelaxation(const Relocation &BaseReloc) const {
+    auto It = m_HiToIELoadBase.find(&BaseReloc);
+    if (It != m_HiToIELoadBase.end())
+      return It->second;
+    return nullptr;
+  }
+
+  void setNewBaseForTLSDESCRelaxation(const Relocation &R) {
+    const Relocation *HIReloc = getBaseReloc(R);
+    m_HiToIELoadBase[HIReloc] = &R;
+  }
+
   // Get the value of the symbol, using the PLT slot if one exists.
   Relocation::Address getSymbolValuePLT(const Relocation &R);
 
@@ -212,7 +230,7 @@ private:
 
   bool doRelaxationLui(Relocation *R, Relocation::DWord G);
   bool doRelaxationQCLi(Relocation *R, Relocation::DWord G);
-
+  bool doRelaxationTLSDESC(Relocation &reloc, bool Relax);
   bool doRelaxationAlign(Relocation *R);
 
   bool doRelaxationPC(Relocation *R, Relocation::DWord G);
@@ -290,6 +308,10 @@ private:
   RISCVRelaxationStats *m_ModuleStats = nullptr;
   std::unordered_map<ELFSection *, std::unordered_map<uint32_t, Relocation *>>
       SectionRelocMap;
+
+  // A map from HI relocations to the relocations that should be used as a base
+  // address for the load instruction during TLSDESC to IE optimization.
+  std::unordered_map<const Relocation *, const Relocation *> m_HiToIELoadBase;
 };
 } // namespace eld
 

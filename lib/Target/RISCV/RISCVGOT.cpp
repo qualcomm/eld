@@ -72,3 +72,9 @@ RISCVGOT *RISCVGOT::CreateIE(ELFSection *O, ResolveInfo *R, bool is32bit) {
     return make<RISCVIEGOT<uint32_t, 4, 4>>(O, R);
   return make<RISCVIEGOT<uint64_t, 8, 8>>(O, R);
 }
+
+RISCVGOT *RISCVGOT::CreateTLSDESC(ELFSection *O, ResolveInfo *R, bool is32bit) {
+  if (is32bit)
+    return make<RISCVTLSDESCGOT<uint32_t, 4, 4>>(O, R);
+  return make<RISCVTLSDESCGOT<uint64_t, 8, 8>>(O, R);
+}
