@@ -1306,6 +1306,24 @@ bool RISCVLDBackend::handleVendorRelocation(ELFSection *pSection,
   return false;
 }
 
+Relocation::Type RISCVLDBackend::getRemappedInternalRelocationType(
+    Relocation::Type pType) const {
+  using namespace eld::ELF::riscv;
+
+  // Valid public relocations are left alone.
+  if (pType <= internal::LastPublicRelocation)
+    return pType;
+
+  // Qualcomm vendor relocations are mapped back to R_RISCV_CUSTOM<N>.
+  if ((internal::FirstQUALCOMMVendorRelocation <= pType) &&
+      (pType <= internal::LastQUALCOMMVendorRelocation))
+    return pType - internal::QUALCOMMVendorRelocationOffset;
+
+  // All other internal relocations are mapped to R_RISCV_NONE as we have no
+  // better information.
+  return llvm::ELF::R_RISCV_NONE;
+}
+
 void RISCVLDBackend::doPreLayout() {
   m_psdata = m_Module.getScript().sectionMap().find(".sdata");
   if (getRelaPLT()) {

@@ -686,6 +686,14 @@ public:
 
   virtual bool shouldIgnoreRelocSync(Relocation *Reloc) const { return false; }
 
+  // Sometimes an internal value is stored in Relocation::Type (RISC-V
+  // Vendor/Internal relocations), This maps the internal relocation type back
+  // to the external relocation type it came from, for emit-relocs.
+  virtual Relocation::Type
+  getRemappedInternalRelocationType(Relocation::Type t) const {
+    return t;
+  }
+
   // ------------------- EhFrame Hdr -------------------------------
   EhFrameHdrSection *getEhFrameHdr() const { return m_pEhFrameHdrSection; }
 

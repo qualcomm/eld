@@ -1,0 +1,40 @@
+#---reloc_VENDOR_emit_relocs.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Check emit-relocs with vendor relocations
+#--------------------------------------------------------------------
+#END_COMMENT
+#
+REQUIRES: riscv32
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o -march=rv32gc_xqcili0p2_xqcilb0p2_xqcibi0p2 -menable-experimental-extensions
+RUN: %link %linkopts --emit-relocs --no-relax %t1.1.o -o %t.out --verbose 2>&1 | FileCheck %s --check-prefix=VERBOSE
+
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_E_CALL_PLT to R_RISCV_CUSTOM195 in section {{.*}}.o[.text]
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_E_BRANCH to R_RISCV_CUSTOM193 in section {{.*}}.o[.text]
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_E_32 to R_RISCV_CUSTOM194 in section {{.*}}.o[.text]
+VERBOSE: Remapped Internal Relocation R_RISCV_QC_ABS20_U to R_RISCV_CUSTOM192 in section {{.*}}.o[.text]
+
+RUN: %readelf -r %t.out | FileCheck %s --check-prefix=RELOCS
+
+RELOCS: 00000074  [[QSYM:([0-9a-f]{6})]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS: 00000074  [[CSYM:([0-9a-f]{6})]]c3 R_RISCV_CUSTOM195      0000008e   callee + 0
+RELOCS: 0000007a  [[QSYM]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS: 0000007a  [[CSYM]]c1 R_RISCV_CUSTOM193      0000008e   callee + 0
+RELOCS: 00000080  [[QSYM]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS: 00000080  [[CSYM]]c2 R_RISCV_CUSTOM194      0000008e   callee + 0
+RELOCS: 00000086  [[QSYM]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS: 00000086  [[CSYM]]c0 R_RISCV_CUSTOM192      0000008e   callee + 0
+
+RUN: %link %linkopts -r %t1.1.o -o %t.out.o --verbose 2>&1 | FileCheck %s --check-prefix=VERBOSE-PARTIAL
+
+VERBOSE-PARTIAL-NOT: Remapped Internal Relocation
+
+RUN: %readelf -r %t.out.o | FileCheck %s --check-prefix=RELOCS-PARTIAL
+
+RELOCS-PARTIAL: 00000000  [[QSYM:([0-9a-f]{6})]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS-PARTIAL: 00000000  [[CSYM:([0-9a-f]{6})]]c3 R_RISCV_CUSTOM195      00000000   callee + 0
+RELOCS-PARTIAL: 00000006  [[QSYM]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS-PARTIAL: 00000006  [[CSYM]]c1 R_RISCV_CUSTOM193      00000000   callee + 0
+RELOCS-PARTIAL: 0000000c  [[QSYM]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS-PARTIAL: 0000000c  [[CSYM]]c2 R_RISCV_CUSTOM194      00000000   callee + 0
+RELOCS-PARTIAL: 00000012  [[QSYM]]bf R_RISCV_VENDOR         00000000   QUALCOMM + 0
+RELOCS-PARTIAL: 00000012  [[CSYM]]c0 R_RISCV_CUSTOM192      00000000   callee + 0

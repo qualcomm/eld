@@ -502,17 +502,6 @@ RISCVRelocationMap RISCVRelocs = {
       /*.VerifyAlignment = */ false,
       /*.Signed = */ false,
       /*.Size = */ 32}},
-
-    {llvm::ELF::R_RISCV_VENDOR,
-     {/*.Name = */ "R_RISCV_VENDOR",
-      /*.Type = */ llvm::ELF::R_RISCV_VENDOR,
-      /*EncodingType = */ EncTy_None,
-      /*.Alignment = */ 0,
-      /*.shift = */ 0,
-      /*.VerifyRange = */ false,
-      /*.VerifyAlignment = */ false,
-      /*.Signed = */ false,
-      /*.Size = */ 0}},
     {llvm::ELF::R_RISCV_SET_ULEB128,
      {/*.Name = */ "R_RISCV_SET_ULEB128",
       /*.Type = */ llvm::ELF::R_RISCV_SET_ULEB128,
@@ -533,6 +522,90 @@ RISCVRelocationMap RISCVRelocs = {
       /*.VerifyAlignment = */ false,
       /*.Signed = */ false,
       /*.Size = */ 0}}, /* Dont cache */
+    {llvm::ELF::R_RISCV_VENDOR,
+     {/*.Name = */ "R_RISCV_VENDOR",
+      /*.Type = */ llvm::ELF::R_RISCV_VENDOR,
+      /*EncodingType = */ EncTy_None,
+      /*.Alignment = */ 0,
+      /*.shift = */ 0,
+      /*.VerifyRange = */ false,
+      /*.VerifyAlignment = */ false,
+      /*.Signed = */ false,
+      /*.Size = */ 0}},
+
+// Custom Relocations
+#define CUSTOM_RELOC_ENTRY(n)                                                  \
+  {llvm::ELF::R_RISCV_CUSTOM##n,                                               \
+   {/*.Name = */ "R_RISCV_CUSTOM" #n,                                          \
+    /*.Type = */ llvm::ELF::R_RISCV_CUSTOM##n, /*EncodingType = */ EncTy_None, \
+    /*.Alignment = */ 0, /*.shift = */ 0, /*.VerifyRange = */ false,           \
+    /*.VerifyAlignment = */ false, /*.Signed = */ false, /*.Size = */ 0}}
+    CUSTOM_RELOC_ENTRY(192),
+    CUSTOM_RELOC_ENTRY(193),
+    CUSTOM_RELOC_ENTRY(194),
+    CUSTOM_RELOC_ENTRY(195),
+    CUSTOM_RELOC_ENTRY(196),
+    CUSTOM_RELOC_ENTRY(197),
+    CUSTOM_RELOC_ENTRY(198),
+    CUSTOM_RELOC_ENTRY(199),
+    CUSTOM_RELOC_ENTRY(200),
+    CUSTOM_RELOC_ENTRY(201),
+    CUSTOM_RELOC_ENTRY(202),
+    CUSTOM_RELOC_ENTRY(203),
+    CUSTOM_RELOC_ENTRY(204),
+    CUSTOM_RELOC_ENTRY(205),
+    CUSTOM_RELOC_ENTRY(206),
+    CUSTOM_RELOC_ENTRY(207),
+    CUSTOM_RELOC_ENTRY(208),
+    CUSTOM_RELOC_ENTRY(209),
+    CUSTOM_RELOC_ENTRY(210),
+    CUSTOM_RELOC_ENTRY(211),
+    CUSTOM_RELOC_ENTRY(212),
+    CUSTOM_RELOC_ENTRY(213),
+    CUSTOM_RELOC_ENTRY(214),
+    CUSTOM_RELOC_ENTRY(215),
+    CUSTOM_RELOC_ENTRY(216),
+    CUSTOM_RELOC_ENTRY(217),
+    CUSTOM_RELOC_ENTRY(218),
+    CUSTOM_RELOC_ENTRY(219),
+    CUSTOM_RELOC_ENTRY(220),
+    CUSTOM_RELOC_ENTRY(221),
+    CUSTOM_RELOC_ENTRY(222),
+    CUSTOM_RELOC_ENTRY(223),
+    CUSTOM_RELOC_ENTRY(224),
+    CUSTOM_RELOC_ENTRY(225),
+    CUSTOM_RELOC_ENTRY(226),
+    CUSTOM_RELOC_ENTRY(227),
+    CUSTOM_RELOC_ENTRY(228),
+    CUSTOM_RELOC_ENTRY(229),
+    CUSTOM_RELOC_ENTRY(230),
+    CUSTOM_RELOC_ENTRY(231),
+    CUSTOM_RELOC_ENTRY(232),
+    CUSTOM_RELOC_ENTRY(233),
+    CUSTOM_RELOC_ENTRY(234),
+    CUSTOM_RELOC_ENTRY(235),
+    CUSTOM_RELOC_ENTRY(236),
+    CUSTOM_RELOC_ENTRY(237),
+    CUSTOM_RELOC_ENTRY(238),
+    CUSTOM_RELOC_ENTRY(239),
+    CUSTOM_RELOC_ENTRY(240),
+    CUSTOM_RELOC_ENTRY(241),
+    CUSTOM_RELOC_ENTRY(242),
+    CUSTOM_RELOC_ENTRY(243),
+    CUSTOM_RELOC_ENTRY(244),
+    CUSTOM_RELOC_ENTRY(245),
+    CUSTOM_RELOC_ENTRY(246),
+    CUSTOM_RELOC_ENTRY(247),
+    CUSTOM_RELOC_ENTRY(248),
+    CUSTOM_RELOC_ENTRY(249),
+    CUSTOM_RELOC_ENTRY(250),
+    CUSTOM_RELOC_ENTRY(251),
+    CUSTOM_RELOC_ENTRY(252),
+    CUSTOM_RELOC_ENTRY(253),
+    CUSTOM_RELOC_ENTRY(254),
+    CUSTOM_RELOC_ENTRY(255),
+#undef CUSTOM_RELOC_ENTRY
+
     /* Internal Relocations for Relaxations */
     {eld::ELF::riscv::internal::R_RISCV_RVC_LUI,
      {/*.Name = */ "R_RISCV_RVC_LUI",
@@ -641,11 +714,6 @@ std::string getRISCVRelocName(uint32_t pType) {
   const auto It = RISCVRelocs.find(pType);
   if (It != RISCVRelocs.end())
     return It->second.Name;
-
-  using namespace eld::ELF::riscv;
-  if (internal::FirstNonstandardRelocation <= pType &&
-      pType <= internal::LastNonstandardRelocation)
-    return "R_RISCV_CUSTOM" + std::to_string(pType);
 
   return "INVALID_RELOC_" + std::to_string(pType);
 }
