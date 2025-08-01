@@ -48,7 +48,6 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyNone)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAbs)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAdditive)
 DECL_RISCV_APPLY_RELOC_FUNC(applyRel)
-DECL_RISCV_APPLY_RELOC_FUNC(applyHI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyLO)
 DECL_RISCV_APPLY_RELOC_FUNC(applyJumpOrCall)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAlign)
@@ -99,13 +98,13 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_GOT_HI20, applyGOT),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GOT_HI20, applyGOT),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GD_HI20, applyGOT),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_HI20, applyHI),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_HI20, applyRel),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_I, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_S, applyLO),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_HI20, applyHI),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_HI20, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_LO12_I, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_LO12_S, applyLO),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_HI20, applyHI),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_HI20, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_I, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_S, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_ADD, applyTprelAdd),
@@ -814,7 +813,9 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   // Normally, relocations are resolved to the PLT if it exists for a symbol.
   // However, relocations in the patch table must be resolved to the real
   // symbol, otherwise, they will point to themselves.
-  bool IsPatchSection = pReloc.targetRef()
+  bool IsPatchSection = (pReloc.type() == llvm::ELF::R_RISCV_32 ||
+                         pReloc.type() == llvm::ELF::R_RISCV_64) &&
+                        pReloc.targetRef()
                             ->frag()
                             ->getOwningSection()
                             ->getInputFile()
@@ -879,47 +880,33 @@ RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVLDBackend &Backend,
   int64_t S = Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
   int64_t P = pReloc.place(Backend.getModule());
+  int64_t Value = S + A - P;
 
-  return ApplyReloc(pReloc, S + A - P, pRelocDesc, Backend.config());
-}
-
-RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
-                               RelocationDescription &pRelocDesc) {
-  if (RelocDescs.count(pReloc.type()) == 0)
-    return RISCVRelocator::Unsupport;
-
-  int64_t S = Backend.getSymbolValuePLT(pReloc);
-  int64_t A = pReloc.addend();
-  int64_t Result = S + A;
-
+  // TODO: This should be moved to the separate relaxation/transformation pass.
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_HI20) {
-    int64_t P = pReloc.place(Backend.getModule());
-    bool isStaticLink = Backend.config().isCodeStatic();
-
+    int64_t AbsoluteValue = S + A;
     // We would like to convert the PCREL relocation to LUI
     // a. For static linkins
     //             and
     // b. If the relocation overflows PCREL
     //             and
     // c. if the relocation would fit within LUI
-    if (isStaticLink && !llvm::isInt<32>(Result + 0x800 - P) &&
-        llvm::isInt<32>(Result + 0x800)) {
+    if (Backend.config().isCodeStatic() && !llvm::isInt<32>(Value + 0x800) &&
+        llvm::isInt<32>(AbsoluteValue + 0x800)) {
+      Value = AbsoluteValue;
       uint64_t instr = pReloc.target();
       // Convert instruction to LUI
       instr = (instr & ~0x7f) | 0x37;
       pReloc.setTargetData(instr);
       pReloc.setType(llvm::ELF::R_RISCV_HI20);
     } else {
-      Result -= P;
       int wordSize = Backend.config().targets().is32Bits() ? 32 : 64;
-      int64_t ResultSignExend = llvm::SignExtend64(Result + 0x800, wordSize);
-      // Overflow if result does not fit
+      int64_t ResultSignExend = llvm::SignExtend64(Value + 0x800, wordSize);
       if (!llvm::isInt<32>(ResultSignExend))
         return RISCVRelocator::Overflow;
     }
   }
-
-  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
 }
 
 RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
