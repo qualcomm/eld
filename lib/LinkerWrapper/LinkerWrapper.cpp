@@ -28,6 +28,7 @@
 #include "eld/Readers/Relocation.h"
 #include "eld/Script/Plugin.h"
 #include "eld/Support/DynamicLibrary.h"
+#include "eld/Support/MappingFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/ELFSegmentFactory.h"
@@ -645,6 +646,23 @@ std::string LinkerWrapper::getFileContents(std::string FileName) {
   return buf.getContents().str();
 }
 
+std::optional<eld::plugin::MemoryBuffer>
+LinkerWrapper::getBuffer(std::string FileName) const {
+  if (m_Module.getConfig().options().hasMappingFile())
+    FileName = m_Module.getConfig().getHashFromFile(FileName);
+  if (!llvm::sys::fs::exists(FileName)) {
+    m_DiagEngine->raise(Diag::error_plugin_file_does_not_exist) << FileName;
+    return std::nullopt;
+  }
+  auto buf = std::make_unique<eld::MemoryArea>(FileName);
+  bool success = buf->Init(m_DiagEngine);
+  if (!success) {
+    m_DiagEngine->raise(Diag::fatal_cannot_read_input) << FileName;
+    return std::nullopt;
+  }
+  return eld::plugin::MemoryBuffer(std::move(buf));
+}
+
 eld::Expected<std::string>
 LinkerWrapper::findConfigFile(const std::string &FileName) const {
   if (m_Module.getConfig().options().hasMappingFile()) {
@@ -1039,6 +1057,19 @@ LinkerWrapper::getUnbalancedChunkAdds() const {
         {Chunk(elem.first), LinkerScriptRule(elem.second)});
   }
   return unbalancedChunkAdds;
+}
+
+eld::Expected<void>
+LinkerWrapper::addFileToReproduceTar(std::string &FileName) {
+  if (!m_Module.getOutputTarWriter())
+    return std::make_unique<eld::plugin::DiagnosticEntry>(
+        Diag::error_reproduce_flag_not_used);
+  if (!llvm::sys::fs::exists(FileName))
+    return std::make_unique<eld::plugin::DiagnosticEntry>(
+        Diag::error_plugin_file_does_not_exist,
+        std::vector<std::string>{FileName});
+  m_Module.getOutputTarWriter()->addPluginGeneratedFile(FileName);
+  return {};
 }
 
 std::optional<std::string>

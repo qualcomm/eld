@@ -34,6 +34,8 @@ std::string MappingFile::getMappingCategoryForInputFile(const InputFile *F) {
     return "Shared Libraries";
   case Kind::SymDef:
     return "Symdef Files";
+  case Kind::Miscellaneous:
+    return "Miscellaneous Files";
   case Kind::Unknown:
     return "Unknown";
   default:
@@ -61,6 +63,8 @@ std::string MappingFile::getDirectoryNameForMappingKind(MappingFile::Kind K) {
     return "Object";
   case Kind::Plugin:
     return "Plugins";
+  case Kind::Miscellaneous:
+    return "Miscellaneous";
   case Kind::SharedLibrary:
     return "SharedLibrary";
   case Kind::SymDef:

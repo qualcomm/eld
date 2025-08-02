@@ -1,0 +1,14 @@
+#---AddPluginFileToReproduceInvalid.test--------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Tests that the linker errors out when a plugin tries to add a
+# non-existant file to reproduce tar.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.reproduce
+RUN: %cp %p/Inputs/plugin.txt %t1.plugin.txt
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %not %link %linkopts -L %p/Inputs %t1.1.o --plugin-config %p/Inputs/plugin.config -o %t.out \
+RUN:   --plugin-file=random.txt --reproduce %t1.a.tar  2>&1 | %filecheck %s -check-prefix=ERR
+#ERR: Error: The plugin generated file 'random.txt' does not exist
+#ERR: Fatal: Linking had errors.
+#END_TEST

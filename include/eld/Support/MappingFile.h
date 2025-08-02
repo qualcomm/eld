@@ -20,6 +20,7 @@ public:
     ObjectFile,
     LinkerScript,
     Plugin,
+    Miscellaneous,
     Config,
     SymDef,
     Other,

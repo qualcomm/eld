@@ -51,6 +51,10 @@ DIAG(error_symbol_not_found, DiagnosticEngine::Error,
      "Symbol '%0' not found")
 DIAG(error_invalid_link_state, DiagnosticEngine::Error,
      "Link state '%0' is invalid for the API '%1'. Valid link states: [%2]")
+DIAG(error_plugin_file_does_not_exist, DiagnosticEngine::Error,
+     "The plugin generated file '%0' does not exist")
+DIAG(error_reproduce_flag_not_used, DiagnosticEngine::Error,
+     "Missing reproduce flag")
 DIAG(error_nobits_unsupported, DiagnosticEngine::Error,
      "Cannot retrive content of NOBITS section %0")
 DIAG(error_plugin_opt_prefix, DiagnosticEngine::Error,

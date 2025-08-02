@@ -10,6 +10,7 @@
 #include "DiagnosticBuilder.h"
 #include "DiagnosticEntry.h"
 #include "Diagnostics.h"
+#include "Expected.h"
 #include "PluginADT.h"
 #include <functional>
 #include <memory>
@@ -175,6 +176,14 @@ public:
   /// \note This function's result is valid for the link states
   /// \em BeforeLayout and beyond.
   eld::Expected<Symbol> getSymbol(const std::string &Sym) const;
+
+  /// Adds a plugin generated file to the reproduce tar ball.
+  ///
+  /// \param FileName The file path of the file
+  ///
+  /// \note This utility works only when the --reproduce flag is
+  /// being used.
+  eld::Expected<void> addFileToReproduceTar(std::string &FileName);
 
   /// Create a symbol but do not provide symbol resolution information (chunk or
   /// value). Used to define bitcode symbols. Note that InputSection is
@@ -461,6 +470,9 @@ public:
   /// For correct functionality with the reproducer, the `FileName` must
   /// be the file path returned by the `LinkerWrapper::findConfigFile`.
   std::string getFileContents(std::string FileName);
+
+  std::optional<eld::plugin::MemoryBuffer>
+  getBuffer(std::string FileName) const;
 
   /// \return path to file if it is found. If not found, then an
   /// Error DiagnosticEntry is returned.
