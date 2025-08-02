@@ -28,6 +28,7 @@
 #include "eld/Readers/Relocation.h"
 #include "eld/Script/Plugin.h"
 #include "eld/Support/DynamicLibrary.h"
+#include "eld/Support/MappingFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/ELFSegmentFactory.h"
@@ -1039,6 +1040,13 @@ LinkerWrapper::getUnbalancedChunkAdds() const {
         {Chunk(elem.first), LinkerScriptRule(elem.second)});
   }
   return unbalancedChunkAdds;
+}
+
+void LinkerWrapper::createAndAddFileToReproduceTar(std::string FileName) {
+  if (!llvm::sys::fs::exists(FileName))
+    return;
+  m_Module.getOutputTarWriter()->createAndAddPluginGeneratedFile(FileName,
+                                                                 FileName);
 }
 
 std::optional<std::string>
