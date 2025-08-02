@@ -202,12 +202,59 @@ public:
   ///        users.
   std::optional<uint64_t> evaluateAndRaiseError();
 
+  /// It is like evaluateAndRaiseError, but instead of doing
+  /// expression evaluation by scratch, it only evaluates the
+  /// subexpressions which could not be evaluated before.
+  std::optional<uint64_t> evaluatePendingAndRaiseError();
+
   /// eval
   /// \brief Evaluate the expression, and return the value when
   ///        evaluation is successful or an error when failed. Commit is
   ///        not called. This method is intended to be recursively called by
   ///        parent expression nodes.
-  eld::Expected<uint64_t> eval();
+  ///
+  /// \param EvaluatePendingOnly If EvaluatePendingOnly is true, then only
+  /// those subexpressions are evaluated which could not be evaluated before.
+  eld::Expected<uint64_t> eval(bool EvaluatePendingOnly);
+
+  /// Returns true if the expression was evaluated before but some parts
+  /// of the expression could not be evaluated due to forward references.
+  bool hasPendingEvaluation() const { return HasPendingEvaluation; }
+
+  /// Returns true if no evaluation is needed and the previously computed
+  /// result can be reused as it is.
+  bool shouldReuseResult(bool EvaluatePendingOnly) {
+    return EvaluatePendingOnly && !HasPendingEvaluation && hasResult();
+  }
+
+  /// Calls Fn on each node in the expression.
+  virtual void visitExpression(std::function<void(Expression &)> Fn) {
+    Fn(*this);
+    if (auto *E = getLeftExpression())
+      Fn(*E);
+    if (auto *R = getRightExpression())
+      Fn(*R);
+  }
+
+  virtual void
+  visitExpressionRecursively(std::function<void(Expression &)> Fn) {
+    Fn(*this);
+    if (auto *E = getLeftExpression())
+      E->visitExpressionRecursively(Fn);
+    if (auto *R = getRightExpression())
+      R->visitExpressionRecursively(Fn);
+  }
+
+  /// Reset the expression node.
+  void reset() {
+    MResult = std::nullopt;
+    HasPendingEvaluation = false;
+  }
+
+  /// Reset all the nodes in this expression tree.
+  void resetRecursively() {
+    visitExpressionRecursively([](Expression &E) { E.reset(); });
+  }
 
   ///
   /// getBackend
@@ -220,7 +267,11 @@ private:
   ///        should be to verify and evaluate the expression. eval() should
   ///        return the value if evaluation is successful or raise an error
   ///        and return an empty object otherwise.
-  virtual eld::Expected<uint64_t> evalImpl() = 0;
+  ///
+  /// If EvaluatePendingOnly is true, then only those subexpressions are
+  /// evaluated which could not be evaluated before.
+  virtual eld::Expected<uint64_t>
+  evalImpl(bool EvaluatePendingOnly) = 0;
 
   static std::unique_ptr<plugin::DiagnosticEntry>
   addContextToDiagEntry(std::unique_ptr<plugin::DiagnosticEntry>,
@@ -298,6 +349,8 @@ protected:
   std::string MContext; // context is only set in the outermost expression
   std::optional<uint64_t> MResult; /// committed result from the evaluation
 
+  bool HasPendingEvaluation = false;
+
 private:
   uint64_t EvaluatedValue; /// temporary assignment to hold evaluation result
 };
@@ -315,7 +368,7 @@ public:
 private:
   bool hasDot() const override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   /// Returns a set of all the symbol names contained in the expression.
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
@@ -341,7 +394,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -367,7 +420,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -394,7 +447,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -421,7 +474,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -448,7 +501,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -475,7 +528,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -499,7 +552,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -522,7 +575,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -546,7 +599,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -570,7 +623,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -593,7 +646,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -622,7 +675,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override {
@@ -655,7 +708,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -681,7 +734,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -707,11 +760,26 @@ public:
 
   Expression *getConditionalExpression() const { return &ConditionExpression; }
 
+  void visitExpression(std::function<void(Expression &)> Fn) override {
+    Fn(*this);
+    Fn(ConditionExpression);
+    Fn(LeftExpression);
+    Fn(RightExpression);
+  }
+
+  void
+  visitExpressionRecursively(std::function<void(Expression &)> Fn) override {
+    Fn(*this);
+    ConditionExpression.visitExpressionRecursively(Fn);
+    LeftExpression.visitExpressionRecursively(Fn);
+    RightExpression.visitExpressionRecursively(Fn);
+  }
+
 private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -740,7 +808,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -767,7 +835,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -794,7 +862,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -823,7 +891,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -852,7 +920,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -879,7 +947,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -905,7 +973,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -933,7 +1001,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -961,7 +1029,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -989,7 +1057,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1016,7 +1084,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1042,7 +1110,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1073,7 +1141,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1103,7 +1171,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1132,7 +1200,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1159,7 +1227,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1186,7 +1254,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1213,7 +1281,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1238,7 +1306,7 @@ public:
 private:
   bool hasDot() const override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1266,7 +1334,7 @@ private:
   bool hasDot() const override { return false; }
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &MaxPageSize; }
@@ -1299,7 +1367,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1328,7 +1396,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1357,7 +1425,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1384,7 +1452,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1410,7 +1478,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1438,7 +1506,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1469,7 +1537,7 @@ private:
   bool hasDot() const override;
   void commit() override;
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return &LeftExpression; }
@@ -1496,7 +1564,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }
@@ -1520,7 +1588,7 @@ public:
 private:
   bool hasDot() const override { return false; }
   void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
-  eld::Expected<uint64_t> evalImpl() override;
+  eld::Expected<uint64_t> evalImpl(bool EvaluatePendingOnly) override;
   void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
   void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
   Expression *getLeftExpression() const override { return nullptr; }

@@ -81,9 +81,13 @@ bool GNULDBackend::createScriptProgramHdrs() {
     m_ImageStartVMA = vma;
     // Set initial dot symbol value.
     dotSymbol->setValue(vma);
+    resetTrackedAssignments();
+    restoreLSSymbolsUsingSnapshot();
+    restorePartiallyEvalAssignsAndSymbolsUsingSnapshot();
   };
 
   reset_state();
+  llvm::SaveAndRestore saved(TrackAssignments, true);
 
   while (out != outEnd) {
     bool useSetLMA = false;

@@ -83,7 +83,8 @@ public:
   eld::Expected<void> activate(Module &CurModule) override;
 
   /// assign - evaluate the rhs and assign the result to lhs.
-  bool assign(Module &CurModule, const ELFSection *Section);
+  bool assign(Module &CurModule, const ELFSection *Section,
+              bool EvaluatePendingOnly);
 
   LDSymbol *symbol() const { return ThisSymbol; }
 
@@ -127,6 +128,9 @@ public:
   void setUsed(bool Used) { IsUsed = Used; }
 
   bool isUsed() const { return IsUsed; }
+
+  /// Reset the assignment value and the expression node.
+  void reset();
 
 private:
   bool checkLinkerScript(Module &CurModule);
