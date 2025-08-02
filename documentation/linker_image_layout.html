@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6. Image Layout &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7. Linker Map Files" href="linker_map_files.html" />
+    <link rel="prev" title="5. Diagnostics" href="linker_diagnostics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">6. Image Layout</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#input-sections">6.1. Input Sections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-sections">6.2. Output sections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#segments">6.3. Segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#segment-alignment">6.4. Segment alignment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#empty-segments">6.4.1. Empty segments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#non-empty-segments">6.4.2. Non Empty segments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-default-behavior">6.5. Using default behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-custom-linker-scripts">6.6. Using custom linker scripts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#phdrs">6.6.1. PHDRS</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-and-why-phdrs-is-used">6.6.1.1. When and Why PHDRS is Used</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-control-via-linker-plugins-eld-linker">6.7. Advanced Control via Linker Plugins (ELD Linker)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-the-linker-does-image-layout">6.8. How the linker does image layout ?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">7. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">8. Linker Plugins User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">9. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">10. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command.html">11. Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">12. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">13. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">14. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">6. </span>Image Layout</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="image-layout">
+<h1><span class="section-number">6. </span>Image Layout<a class="headerlink" href="#image-layout" title="Permalink to this heading"></a></h1>
+<p>At its core, the linker is responsible for transforming compiled object files into a final executable image. This process includes resolving symbols, relocating sections, and most importantly, laying out the image in memory.</p>
+<p>Image layout refers to how the linker arranges code and data in memory when producing an executable or binary. There are two main approaches:</p>
+<ul class="simple">
+<li><p>Using default behavior</p></li>
+<li><p>Using custom linker scripts</p></li>
+</ul>
+<p>Before we start defining how the linker does image layout, it would be useful to
+understand the distinction between some of the terminology used in the linker.</p>
+<div class="section" id="input-sections">
+<h2><span class="section-number">6.1. </span>Input Sections<a class="headerlink" href="#input-sections" title="Permalink to this heading"></a></h2>
+<p>These come from object files (.o) and libraries (.a) compiled from source code.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>.text — code</p></li>
+<li><p>.data — initialized data</p></li>
+<li><p>.bss — uninitialized data</p></li>
+<li><p>.rodata — read-only data</p></li>
+</ul>
+</div>
+<div class="section" id="output-sections">
+<h2><span class="section-number">6.2. </span>Output sections<a class="headerlink" href="#output-sections" title="Permalink to this heading"></a></h2>
+<p>These are the merged and organized sections in the final binary, created by the linker.</p>
+<p>The linker collects input sections of the same type and merges them into output sections.</p>
+<p>You can rely on the default rules and built-in heuristics provided by the
+linker.</p>
+<p>You can also control this mapping by using a linker script.</p>
+</div>
+<div class="section" id="segments">
+<h2><span class="section-number">6.3. </span>Segments<a class="headerlink" href="#segments" title="Permalink to this heading"></a></h2>
+<p>Segments are defined in the ELF program header and describe how the binary should be loaded into memory at runtime.</p>
+<p>Key Points:</p>
+<ul class="simple">
+<li><p>Segments are containers for output sections</p></li>
+<li><p>They define memory permissions (read, write, execute)</p></li>
+<li><p>Used by the runtime loader</p></li>
+</ul>
+<p>There are two types of segments</p>
+<ul class="simple">
+<li><p>non-loadable segments</p></li>
+<li><p>loadable segments</p></li>
+</ul>
+</div>
+<div class="section" id="segment-alignment">
+<h2><span class="section-number">6.4. </span>Segment alignment<a class="headerlink" href="#segment-alignment" title="Permalink to this heading"></a></h2>
+<div class="section" id="empty-segments">
+<h3><span class="section-number">6.4.1. </span>Empty segments<a class="headerlink" href="#empty-segments" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Loadable segments all have segment align set to the page size set at link time</p></li>
+<li><p>Non loadable segments have the segment alignment set to the minimum word size of the output ELF file</p></li>
+</ul>
+</div>
+<div class="section" id="non-empty-segments">
+<h3><span class="section-number">6.4.2. </span>Non Empty segments<a class="headerlink" href="#non-empty-segments" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Loadable non empty segments have the segment alignment set to the page size</p></li>
+<li><p>Non loadable segments are set to the maximum section alignment of the containing sections in the segment</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>omagic (linker command line option –omagic/-N)</p>
+<p>With omagic, segment alignment is set to the maximum section alignment of the containing sections in the segment</p>
+</div>
+</div>
+</div>
+<div class="section" id="using-default-behavior">
+<h2><span class="section-number">6.5. </span>Using default behavior<a class="headerlink" href="#using-default-behavior" title="Permalink to this heading"></a></h2>
+<p>When a linker performs layout without an explicit linker script, it relies on default rules and built-in heuristics provided by the linker implementation.</p>
+<p>The linker has a default memory layout that defines:</p>
+<ul class="simple">
+<li><p>The order of sections (e.g., .text, .data, .bss)</p></li>
+<li><p>Default starting addresses (e.g., code starts at 0x08000000 for embedded systems or 0x400000 for ELF binaries on Linux)</p></li>
+<li><p>Alignment requirements for each section</p></li>
+<li><p>Default page alignment</p></li>
+<li><p>Whether program headers are loaded or not loaded</p></li>
+</ul>
+</div>
+<div class="section" id="using-custom-linker-scripts">
+<h2><span class="section-number">6.6. </span>Using custom linker scripts<a class="headerlink" href="#using-custom-linker-scripts" title="Permalink to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using eld with a custom linker script, all default assumptions and behaviors built into the linker are overridden. The script provides complete control over the memory layout and section placement, effectively replacing the linker’s internal defaults.</p>
+</div>
+<p>Linker scripts define how input sections (like .text, .data, .bss) are mapped to output sections and where they are placed in memory. These scripts control:</p>
+<ul class="simple">
+<li><p>Memory regions (e.g., RAM, ROM)</p></li>
+<li><p>Section alignment</p></li>
+<li><p>Ordering of code and data</p></li>
+<li><p>Load vs. execution addresses</p></li>
+</ul>
+<p>This is the standard method used by most linkers like GNU ld.</p>
+<div class="section" id="phdrs">
+<h3><span class="section-number">6.6.1. </span>PHDRS<a class="headerlink" href="#phdrs" title="Permalink to this heading"></a></h3>
+<p>The PHDRS (Program Headers) command in a linker script is used to define program headers in the output binary, particularly for ELF (Executable and Linkable Format) files. These headers are essential for the runtime loader to understand how to load and map the binary into memory.</p>
+<div class="section" id="when-and-why-phdrs-is-used">
+<h4><span class="section-number">6.6.1.1. </span>When and Why PHDRS is Used<a class="headerlink" href="#when-and-why-phdrs-is-used" title="Permalink to this heading"></a></h4>
+<div class="section" id="custom-memory-mapping">
+<h5><span class="section-number">6.6.1.1.1. </span>Custom Memory Mapping<a class="headerlink" href="#custom-memory-mapping" title="Permalink to this heading"></a></h5>
+<p>You use PHDRS when you want to explicitly control how sections are grouped into segments in the ELF file. This is especially important for:</p>
+<ul class="simple">
+<li><p>Embedded systems</p></li>
+<li><p>Custom bootloaders</p></li>
+<li><p>OS kernels</p></li>
+</ul>
+</div>
+<div class="section" id="fine-grained-segment-control">
+<h5><span class="section-number">6.6.1.1.2. </span>Fine-Grained Segment Control<a class="headerlink" href="#fine-grained-segment-control" title="Permalink to this heading"></a></h5>
+<ul class="simple">
+<li><p>Assign specific sections to specific segments</p></li>
+<li><p>Control segment flags (e.g., PT_LOAD, PT_NOTE, PT_TLS)</p></li>
+<li><p>Set permissions (r, w, x) for each segment</p></li>
+</ul>
+</div>
+<div class="section" id="avoiding-default-segment-layout">
+<h5><span class="section-number">6.6.1.1.3. </span>Avoiding Default Segment Layout<a class="headerlink" href="#avoiding-default-segment-layout" title="Permalink to this heading"></a></h5>
+<p>Without PHDRS, the linker automatically generates segments based on section types. If you need non-standard layout, PHDRS is required.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="advanced-control-via-linker-plugins-eld-linker">
+<h2><span class="section-number">6.7. </span>Advanced Control via Linker Plugins (ELD Linker)<a class="headerlink" href="#advanced-control-via-linker-plugins-eld-linker" title="Permalink to this heading"></a></h2>
+<p>Particularly with the ELD linker, image layout is further enhanced using linker plugins. These plugins provide finer-grained control than traditional scripts.</p>
+<ul class="simple">
+<li><p>Custom Layout Logic: Plugins can override default section placement logic to optimize for cache locality or hardware-specific constraints.</p></li>
+<li><p>Dynamic Behavior: Unlike static scripts, plugins can make layout decisions based on runtime metadata or build-time heuristics.</p></li>
+<li><p>Programmatic Layout: Developers can write plugins (e.g., LayoutOptimizer) that programmatically define how sections are arranged, enabling more flexible and performance-tuned binaries</p></li>
+</ul>
+<p>This approach is especially useful in embedded systems where:</p>
+<ul class="simple">
+<li><p>Memory is constrained and fragmented.</p></li>
+<li><p>Performance depends on precise placement of code/data.</p></li>
+<li><p>Debugging requires reproducible and traceable layouts.</p></li>
+</ul>
+</div>
+<div class="section" id="how-the-linker-does-image-layout">
+<h2><span class="section-number">6.8. </span>How the linker does image layout ?<a class="headerlink" href="#how-the-linker-does-image-layout" title="Permalink to this heading"></a></h2>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="linker_diagnostics.html" class="btn btn-neutral float-left" title="5. Diagnostics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_map_files.html" class="btn btn-neutral float-right" title="7. Linker Map Files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
