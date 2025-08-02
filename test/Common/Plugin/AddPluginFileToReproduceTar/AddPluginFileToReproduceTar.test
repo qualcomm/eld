@@ -1,0 +1,18 @@
+#---AddPluginFileToReproduceTar.test--------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Tests that a plugin generated/modified file can be added to the
+# reproduce tarball.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.reproduce
+RUN: %cp %p/Inputs/plugin.txt %t1.plugin.txt
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts -L %p/Inputs %t1.1.o -T %p/Inputs/script.t --plugin-config %p/Inputs/plugin.config -o %t.out \
+RUN:   --plugin-file=%t1.plugin.txt --reproduce %t1.a.tar \
+RUN:   --dump-response-file %t1.response.txt
+RUN: %mkdir %t1.reproduce
+RUN: %tar -xvf %t1.a.tar -C %t1.reproduce --strip-components=1
+RUN: ls %t1.reproduce/Miscellaneous | %filecheck %s --check-prefix MISCELLANEOUS
+#END_TEST
+
+MISCELLANEOUS: plugin.txt{{.*}}
