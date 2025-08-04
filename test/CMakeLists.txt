@@ -8,8 +8,8 @@ set(ELD_TESTSUITE)
 
 include(LITModules)
 
-set(OPTIONS "default")
-set(OPTIONNAMES "default")
+set(OPTIONS "default;--use-linker-script-extensions")
+set(OPTIONNAMES "default;linker_script_extensions")
 
 foreach(args ${ELD_TESTS_TO_RUN})
   string(REPLACE "," ";" ELD_TESTS_TO_RUN_OPTIONS_STR "${args}")

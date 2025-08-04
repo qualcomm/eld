@@ -74,7 +74,9 @@ std::string ScriptLexer::getCurrentLocation() const {
 }
 
 ScriptLexer::ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile)
-    : ThisConfig(Config), ThisScriptFile(ScriptFile) {
+    : ThisConfig(Config), ThisScriptFile(ScriptFile),
+      UseLinkerScriptExtensions(
+          Config.options().shouldUseLinkerScriptExtensions()) {
   ActiveFilenames.insert(ThisScriptFile.getPath());
   InputFile *IF = ThisScriptFile.getContext();
   llvm::MemoryBufferRef MemBufRef = IF->getInput()->getMemoryBufferRef();
@@ -197,7 +199,8 @@ void ScriptLexer::lex() {
       llvm::StringRef TokenChars =
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
           "0123456789_.$/\\~=+[]*?-!^:";
-
+      if (CurTokLexState == LexState::SectionName)
+        TokenChars = TokenChars.drop_back(1);
       Pos = S.find_first_not_of(TokenChars);
     }
 
@@ -258,6 +261,24 @@ llvm::StringRef ScriptLexer::next(enum LexState PLexState) {
   return next();
 }
 
+llvm::StringRef ScriptLexer::extensionNext() {
+  if (!UseLinkerScriptExtensions)
+    return next();
+  auto tok = peek();
+  if (tok.contains("="))
+    return next(LexState::Expr);
+  return next();
+}
+
+llvm::StringRef ScriptLexer::extensionNextSectName() {
+  if (!UseLinkerScriptExtensions)
+    return next();
+  auto tok = peek();
+  if (tok.contains("="))
+    return next(LexState::Expr);
+  return next(LexState::SectionName);
+}
+
 StringRef ScriptLexer::peek() {
   // curTok is invalid if curTokLexState and lexState mismatch.
   if (CurTok.size() && CurTokLexState != LexState) {
@@ -279,6 +300,11 @@ bool ScriptLexer::consume(StringRef Tok) {
     return false;
   next();
   return true;
+}
+
+bool ScriptLexer::consume(enum LexState LState, llvm::StringRef Tok) {
+  llvm::SaveAndRestore SaveLexState(LexState, LState);
+  return consume(Tok);
 }
 
 void ScriptLexer::skip() { (void)next(); }

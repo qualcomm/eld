@@ -32,7 +32,8 @@ class ScriptLexer {
 public:
   enum class LexState {
     Default,
-    Expr
+    Expr,
+    SectionName
   };
 
   explicit ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile);
@@ -59,6 +60,10 @@ public:
   // Go to next token and use 'pLexState' for lexing the token.
   llvm::StringRef next(LexState PLexState);
 
+  llvm::StringRef extensionNext();
+
+  llvm::StringRef extensionNextSectName();
+
   // Peek next token
   llvm::StringRef peek();
 
@@ -70,6 +75,8 @@ public:
 
   // Consume otken
   bool consume(llvm::StringRef Tok);
+
+  bool consume(LexState LState, llvm::StringRef Tok);
 
   // Expect next token to be expect
   void expect(llvm::StringRef Expect);
@@ -193,6 +200,7 @@ private:
   size_t LastLineNumberOffset = 0;
 
   size_t MNonFatalErrors = 0;
+  const bool UseLinkerScriptExtensions;
 };
 
 } // namespace v2

@@ -1,0 +1,24 @@
+#---LoadSectionsAfterDebugSections.test-------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks that the linker accepts '<symbol>=<expr>' linker script syntax when
+# --use-linker-script-extensions is used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %not %link %linkopts -o %t1.1.err.out %t1.1.o -T %p/Inputs/script.t --no-use-linker-script-extensions 2>&1 \
+RUN:   | %filecheck %s --check-prefix=ERR --strict-whitespace --match-full-lines
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t --use-linker-script-extensions
+RUN: %readelf -s %t1.1.out | %filecheck %s -check-prefix=READELF
+#END_TEST
+
+ERR:Error: {{.*}}Inputs/script.t:2: unknown directive: v1=
+ERR:>>> v1= u1;
+ERR:>>> ^
+
+READELF-DAG: {{0+}}1 {{.*}} u1
+READELF-DAG: {{0+}}1 {{.*}} w
+READELF-DAG: {{0+}}1 {{.*}} v1
+READELF-DAG: {{0+}}1 {{.*}} v2
+READELF-DAG: {{0+}}1 {{.*}} v3
+READELF-DAG: {{0+}}1 {{.*}} v4
+READELF-DAG: {{0+}}1 {{.*}} v5

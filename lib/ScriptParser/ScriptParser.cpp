@@ -52,7 +52,7 @@ ScriptParser::ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &File)
 
 void ScriptParser::readLinkerScript() {
   while (!atEOF()) {
-    StringRef Tok = next();
+    StringRef Tok = extensionNext();
     if (atEOF())
       break;
 
@@ -532,7 +532,7 @@ void ScriptParser::readSections() {
   expect("{");
   ThisScriptFile.enterSectionsCmd();
   while (peek() != "}" && !atEOF()) {
-    llvm::StringRef Tok = next();
+    llvm::StringRef Tok = extensionNextSectName();
     if (readInclude(Tok)) {
     } else if (readAssignment(Tok)) {
     } else {
@@ -612,7 +612,7 @@ void ScriptParser::readOutputSectionDescription(llvm::StringRef Tok) {
   ThisScriptFile.enterOutputSectDesc(OutSectName.str(), Prologue);
   expect("{");
   while (peek() != "}" && !atEOF()) {
-    StringRef Tok = next();
+    StringRef Tok = extensionNext();
     if (Tok == ";") {
       // Empty commands are allowed. Do nothing.
     } else if (Tok == "FILL") {
@@ -879,10 +879,8 @@ OutputSectDesc::Epilog ScriptParser::readOutputSectDescEpilogue() {
   Epilogue.ScriptPhdrs = ThisScriptFile.getCurrentStringList();
 
   if (peek() == "=" || peek().starts_with("=")) {
-    LexState = LexState::Expr;
-    consume("=");
+    consume(LexState::Expr, "=");
     Epilogue.FillExpression = readExpr();
-    LexState = LexState::Default;
   }
   // Consume optional comma following output section command.
   consume(",");

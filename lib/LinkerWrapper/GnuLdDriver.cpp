@@ -1168,6 +1168,12 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setOMagic(true);
   }
 
+  if (Args.hasArg(T::use_linker_script_extensions)) {
+    Config.options().setUseLinkerScriptExtensions(true);
+  }
+  if (Args.hasArg(T::no_use_linker_script_extensions))
+    Config.options().setUseLinkerScriptExtensions(false);
+
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }

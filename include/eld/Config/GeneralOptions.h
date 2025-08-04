@@ -1135,6 +1135,14 @@ public:
 
   void setNoDefaultPlugins() { UseDefaultPlugins = false; }
 
+  void setUseLinkerScriptExtensions(bool Enable) {
+    UseLinkerScriptExtensions = Enable;
+  }
+
+  bool shouldUseLinkerScriptExtensions() const {
+    return UseLinkerScriptExtensions;
+  }
+
 private:
   bool appendMapStyle(const std::string MapStyle);
   enum Status { YES, NO, Unknown };
@@ -1331,6 +1339,7 @@ private:
   std::string LinkLaunchDirectory;
   bool ShowRMSectNameInDiag = false;
   bool UseDefaultPlugins = true;
+  bool UseLinkerScriptExtensions = false;
 };
 
 } // namespace eld
