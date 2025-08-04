@@ -41,13 +41,15 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Script/ScriptFile.h"
-#include "eld/Support/MsgHandling.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include "llvm/Support/SaveAndRestore.h"
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 
 using namespace llvm;
 using namespace eld;
@@ -234,6 +236,7 @@ StringRef ScriptLexer::skipSpace(StringRef S) {
     StringRef Saved = S;
     S = noteAndSkipNonASCIIUnicodeChars(S);
     S = S.ltrim();
+    S = noteAndSkipInvalidASCIIChar(S);
     auto Len = Saved.size() - S.size();
     if (Len == 0)
       return S;
@@ -347,6 +350,22 @@ ScriptLexer::noteAndSkipNonASCIIUnicodeChars(llvm::StringRef s) const {
     s = s.drop_front();
   }
   return s;
+}
+
+llvm::StringRef
+ScriptLexer::noteAndSkipInvalidASCIIChar(llvm::StringRef s) const {
+  if (s.empty() || llvm::isPrint(s[0]) || isNonASCIIUnicode(s[0]))
+    return s;
+  setNote("Ignoring invalid ASCII character '" + convertToHex(s[0]) + "'", s);
+  s = s.drop_front();
+  return s;
+}
+
+std::string ScriptLexer::convertToHex(char c) const {
+  std::ostringstream stream;
+  stream << "\\0x" << std::hex << std::setw(2) << std::setfill('0')
+         << static_cast<unsigned int>(c);
+  return stream.str();
 }
 
 size_t ScriptLexer::computeColumnWidth(llvm::StringRef s,

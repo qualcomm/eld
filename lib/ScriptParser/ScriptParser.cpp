@@ -1367,4 +1367,3 @@ bool ScriptParser::isValidSectionPattern(llvm::StringRef Pat) {
     return false;
   return true;
 }
-

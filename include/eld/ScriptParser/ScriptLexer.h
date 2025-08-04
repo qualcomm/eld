@@ -118,11 +118,15 @@ private:
 
   llvm::StringRef noteAndSkipNonASCIIUnicodeChars(llvm::StringRef s) const;
 
+  llvm::StringRef noteAndSkipInvalidASCIIChar(llvm::StringRef s) const;
+
   bool isNonASCIIUnicode(char c) const { return c & 0x80; }
 
   bool isFirstByteOfMultiByteUnicode(char c) const {
     return (c & 0xc0) == 0xc0;
   }
+
+  std::string convertToHex(char c) const;
 
 protected:
   struct Buffer {
