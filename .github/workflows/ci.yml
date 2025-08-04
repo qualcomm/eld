@@ -32,8 +32,25 @@ jobs:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
         path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+        fetch-depth: 0
+
+    - name: Check for non-doc changes
+      id: file-check
+      working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+      run: |
+        CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+        echo "Changed files: $CHANGED_FILES"
+        for file in $CHANGED_FILES; do
+          if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        done
+        echo "Only doc files changed. Skipping build."
+        echo "skip_build=true" >> $GITHUB_OUTPUT
 
     - name: Run CMake
+      if: steps.file-check.outputs.skip_build == 'false'
       run: |
         export CCACHE_BASEDIR=$GITHUB_WORKSPACE
         export CCACHE_NOHASHDIR=true
@@ -56,21 +73,25 @@ jobs:
           ../llvm-project/llvm
 
     - name: Cache Usage before build
+      if: steps.file-check.outputs.skip_build == 'false'
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ccache -s --dir $CACHE_DIR
 
     - name: Build Project
+      if: steps.file-check.outputs.skip_build == 'false'
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja
 
     - name: Cache Usage after build
+      if: steps.file-check.outputs.skip_build == 'false'
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ccache -s --dir $CACHE_DIR
 
     - name: Run Tests
+      if: steps.file-check.outputs.skip_build == 'false'
       run: |
         cd pr-${{ env.PR_NUMBER }}/obj
         ninja check-eld
