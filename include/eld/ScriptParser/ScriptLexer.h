@@ -71,6 +71,8 @@ public:
   // Consume otken
   bool consume(llvm::StringRef Tok);
 
+  bool consume(LexState LState, llvm::StringRef Tok);
+
   // Expect next token to be expect
   void expect(llvm::StringRef Expect);
 

@@ -217,6 +217,8 @@ private:
   /// '{' in between the pattern, as this case, would not be possible with
   /// LexState::Default.
   bool isValidSectionPattern(llvm::StringRef Pat);
+
+  const bool UseLinkerScriptExtensions;
 };
 } // namespace v2
 } // namespace eld

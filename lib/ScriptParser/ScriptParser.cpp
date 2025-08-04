@@ -48,7 +48,9 @@ using namespace eld::v2;
 using namespace eld;
 
 ScriptParser::ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &File)
-    : ScriptLexer(Config, File) {}
+    : ScriptLexer(Config, File),
+      UseLinkerScriptExtensions(
+          Config.options().shouldUseLinkerScriptExtensions()) {}
 
 void ScriptParser::readLinkerScript() {
   while (!atEOF()) {
@@ -879,10 +881,8 @@ OutputSectDesc::Epilog ScriptParser::readOutputSectDescEpilogue() {
   Epilogue.ScriptPhdrs = ThisScriptFile.getCurrentStringList();
 
   if (peek() == "=" || peek().starts_with("=")) {
-    LexState = LexState::Expr;
-    consume("=");
+    consume(LexState::Expr, "=");
     Epilogue.FillExpression = readExpr();
-    LexState = LexState::Default;
   }
   // Consume optional comma following output section command.
   consume(",");
@@ -1306,6 +1306,8 @@ void ScriptParser::readVersionScript() {
 }
 
 void ScriptParser::parse() {
+  if (UseLinkerScriptExtensions)
+    LexState = LexState::Expr;
   switch (ThisScriptFile.getKind()) {
   case ScriptFile::Kind::VersionScript:
     return readVersionScript();

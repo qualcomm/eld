@@ -1012,6 +1012,15 @@ def thin_archive_rule_matching_compatibility
       HelpText<"Provides rule-matching compatibility when fat archives are\n"
                "\t\t\tconverted to thin archives">,
       Group<grp_compatorignoredopts>;
+def use_linker_script_extensions
+    : Flag<["-", "--"], "use-linker-script-extensions">,
+      HelpText<"Use extended linker script extensions.\n"
+               "This breaks GNU-compatibility of linker scripts.">,
+      Group<grp_compatorignoredopts>;
+def no_use_linker_script_extensions
+    : Flag<["-", "--"], "no-use-linker-script-extensions">,
+      HelpText<"Do not use extended linker script extensions.">,
+      Group<grp_compatorignoredopts>;
 
 //===----------------------------------------------------------------------===//
 /// LTO options

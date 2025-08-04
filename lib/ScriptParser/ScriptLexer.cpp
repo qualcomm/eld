@@ -281,6 +281,11 @@ bool ScriptLexer::consume(StringRef Tok) {
   return true;
 }
 
+bool ScriptLexer::consume(enum LexState LState, llvm::StringRef Tok) {
+  llvm::SaveAndRestore SaveLexState(LexState, LState);
+  return consume(Tok);
+}
+
 void ScriptLexer::skip() { (void)next(); }
 
 void ScriptLexer::expect(StringRef Expect) {
