@@ -5,7 +5,7 @@
 #END_COMMENT
 #START_TEST
 RUN: %touch %t1.1.o
-RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %link %emulation %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
 RUN: %readelf -s %t1.1.out | %filecheck %s
 #END_TEST
 

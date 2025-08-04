@@ -8,6 +8,6 @@
 RUN: %clang %clangopts -c %p/Inputs/lto.c -o %t1.lto.o -flto
 RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
 # Replace asm files.
-RUN: %not %link %linkopts  %t1.lto.o %t1.main.o -flto-options=lto-asm-file=%p/Inputs/lto.s -o %t2.out.asmoverride 2>&1 | %filecheck %s -check-prefix=UNDEF
+RUN: %not %link %emulation %linkopts  %t1.lto.o %t1.main.o -flto-options=lto-asm-file=%p/Inputs/lto.s -o %t2.out.asmoverride 2>&1 | %filecheck %s -check-prefix=UNDEF
 #UNDEF: function main: undefined reference to `bar'
 #END_TEST

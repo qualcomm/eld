@@ -5,80 +5,80 @@
 #START_TEST
 
 # RUN: %clang -x assembler %clangopts -c %s -o %t1.o
-# RUN: %link %linkopts --build-id %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id %t1.o -o %t2
 # RUN: llvm-readobj -S %t2 | FileCheck -check-prefix=ALIGN %s
 
-# RUN: %link %linkopts --build-id %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=DEFAULT %s
-# RUN: %link %linkopts --build-id=fast %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=fast %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=DEFAULT %s
-# RUN: %link %linkopts --build-id %t1.o -o %t2 --thread-count 1
+# RUN: %link %emulation %linkopts --build-id %t1.o -o %t2 --thread-count 1
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=DEFAULT %s
 
 #
 # Relocatable
 #
-# RUN: %link -r %linkopts --build-id=fast %t1.o -o %t2
+# RUN: %link -r %emulation %linkopts --build-id=fast %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=DEFAULT %s
-# RUN: %link -r %linkopts --build-id %t1.o -o %t2 --thread-count 1
+# RUN: %link -r %emulation %linkopts --build-id %t1.o -o %t2 --thread-count 1
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=DEFAULT %s
 
-# RUN: %link %linkopts --build-id=md5 %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=md5 %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=MD5 %s
-# RUN: %link %linkopts --build-id=md5 %t1.o -o %t2 --thread-count 1
+# RUN: %link %emulation %linkopts --build-id=md5 %t1.o -o %t2 --thread-count 1
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=MD5 %s
 
 #
 # Relocatable
 #
-# RUN: %link -r %linkopts --build-id=md5 %t1.o -o %t2
+# RUN: %link -r %emulation %linkopts --build-id=md5 %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=MD5 %s
-# RUN: %link -r %linkopts --build-id=md5 %t1.o -o %t2 --thread-count 1
+# RUN: %link -r %emulation %linkopts --build-id=md5 %t1.o -o %t2 --thread-count 1
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=MD5 %s
 
 
-# RUN: %link %linkopts --build-id=sha1 %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=sha1 %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
-# RUN: %link %linkopts --build-id=sha1 %t1.o -o %t2 --thread-count 1
+# RUN: %link %emulation %linkopts --build-id=sha1 %t1.o -o %t2 --thread-count 1
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
 
 #
 # Relocatable
 #
-# RUN: %link -r %linkopts --build-id=sha1 %t1.o -o %t2
+# RUN: %link -r %emulation %linkopts --build-id=sha1 %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
-# RUN: %link -r %linkopts --build-id=sha1 %t1.o -o %t2 --thread-count 1
-# RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
-
-# RUN: %link %linkopts --build-id=tree %t1.o -o %t2
-# RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
-# RUN: %link %linkopts --build-id=tree %t1.o -o %t2 --thread-count 1
+# RUN: %link -r %emulation %linkopts --build-id=sha1 %t1.o -o %t2 --thread-count 1
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
 
-# RUN: %link %linkopts --build-id=uuid %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=tree %t1.o -o %t2
+# RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
+# RUN: %link %emulation %linkopts --build-id=tree %t1.o -o %t2 --thread-count 1
+# RUN: %objdump -s %t2 | FileCheck --check-prefix=SHA1 %s
+
+# RUN: %link %emulation %linkopts --build-id=uuid %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=UUID %s
 
-# RUN: %link %linkopts --build-id=0x12345678 %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=0x12345678 %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=HEX %s
 
-# RUN: %link %linkopts %t1.o -o %t2
+# RUN: %link %emulation %linkopts %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=NONE %s
 
-# RUN: %link %linkopts --build-id=md5 --build-id=none %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=md5 --build-id=none %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=NONE %s
-# RUN: %link %linkopts --build-id --build-id=none %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id --build-id=none %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=NONE %s
-# RUN: %link %linkopts --build-id=none --build-id %t1.o -o %t2
+# RUN: %link %emulation %linkopts --build-id=none --build-id %t1.o -o %t2
 # RUN: %objdump -s %t2 | FileCheck --check-prefix=NONE %s
 
 # LinkerScript
-# RUN: %link %linkopts --build-id=none -T %p/Inputs/script.t -o %t1.out.ls
+# RUN: %link %emulation %linkopts --build-id=none -T %p/Inputs/script.t -o %t1.out.ls
 # RUN: %objdump -s %t1.out.ls | FileCheck --check-prefix=NONE %s
-# RUN: %link %linkopts --build-id -T %p/Inputs/script-discard.t -o %t1.out.discard.ls
+# RUN: %link %emulation %linkopts --build-id -T %p/Inputs/script-discard.t -o %t1.out.discard.ls
 # RUN: %objdump -s %t1.out.discard.ls | FileCheck --check-prefix=NONE %s
-# RUN: %link %linkopts --build-id -T %p/Inputs/script-rename.t -o %t1.out.rename.ls
+# RUN: %link %emulation %linkopts --build-id -T %p/Inputs/script-rename.t -o %t1.out.rename.ls
 # RUN: %objdump -s %t1.out.rename.ls | FileCheck --check-prefix=RENAME %s
-# RUN: %link %linkopts --build-id -T %p/Inputs/script-phdr-orphan.t -o %t1.out.orphanphdr.ls
+# RUN: %link %emulation %linkopts --build-id -T %p/Inputs/script-phdr-orphan.t -o %t1.out.orphanphdr.ls
 # RUN: %objdump -s %t1.out.orphanphdr.ls | FileCheck --check-prefix=DEFAULT %s
 # END_TEST
 

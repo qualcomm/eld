@@ -5,8 +5,8 @@
 #END_COMMENT
 #START_TEST
 RUN: %touch %t1.1.o
-RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
-RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wno-linker-script 2>&1 | %filecheck %s --allow-empty --check-prefix NOWARNLS
+RUN: %link %emulation %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+RUN: %link %emulation %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wno-linker-script 2>&1 | %filecheck %s --allow-empty --check-prefix NOWARNLS
 #END_TEST
 
 CHECK: Warning: {{.*}}script.t: Memory region 'A' has zero size

@@ -7,7 +7,7 @@
 RUN: %rm %t1.reproduce
 RUN: %touch %t1.1.o
 RUN: %cp %p/Inputs/some-file.txt %t1.some-file.txt
-RUN: %link %linkopts -L %p/Inputs %t1.1.o --plugin-config %p/Inputs/PluginConfig.yaml -o %t.out \
+RUN: %link %emulation %linkopts -L %p/Inputs %t1.1.o --plugin-config %p/Inputs/PluginConfig.yaml -o %t.out \
 RUN:   --my-config-file=%t1.some-file.txt --reproduce %t1.a.tar \
 RUN:   --dump-response-file %t1.response.txt 2>&1 | %filecheck %s
 RUN: %mkdir %t1.reproduce

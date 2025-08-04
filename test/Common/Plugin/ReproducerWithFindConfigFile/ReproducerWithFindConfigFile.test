@@ -5,7 +5,7 @@
 #END_COMMENT
 #START_TEST
 RUN: %rm %t1.reproduce
-RUN: %link %linkopts -L %p/Inputs -T %p/Inputs/script.t -o %t.out \
+RUN: %link %emulation %linkopts -L %p/Inputs -T %p/Inputs/script.t -o %t.out \
 RUN:   --reproduce %t1.a.tar --dump-response-file %t1.response.txt 2>&1 | %filecheck %s
 RUN: %mkdir %t1.reproduce
 RUN: %tar -xvf %t1.a.tar -C %t1.reproduce --strip-components=1

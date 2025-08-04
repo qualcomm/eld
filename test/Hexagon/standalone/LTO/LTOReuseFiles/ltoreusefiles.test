@@ -6,13 +6,13 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -flto
 RUN: %clang %clangopts -c %p/Inputs/lto1.s -o %t1.lto1.o
 RUN: %clang %clangopts -c %p/Inputs/lto2.s -o %t1.lto2.o
 # Replace asm files.
-RUN: %link %linkopts -flto-options=preserve-sym=foo %t1.o --trace=lto -flto-options=lto-asm-file=%p/Inputs/lto1.s,%p/Inputs/lto2.s -o %t2.out.asmoverride 2>&1 | %filecheck %s -check-prefix=ASMOVERRIDE
+RUN: %link %emulation %linkopts -flto-options=preserve-sym=foo %t1.o --trace=lto -flto-options=lto-asm-file=%p/Inputs/lto1.s,%p/Inputs/lto2.s -o %t2.out.asmoverride 2>&1 | %filecheck %s -check-prefix=ASMOVERRIDE
 RUN: %readelf -s -W %t2.out.asmoverride | %filecheck %s -check-prefix=ASMOVERRIDESYMS
 # Reuse output files only.
-RUN: %link %linkopts -flto-options=preserve-sym=foo %t1.o --trace=lto -flto-options=lto-output-file=%t1.lto1.o,%t1.lto2.o -o %t2.out.outputoverride 2>&1 | %filecheck %s -check-prefix=OUTPUTOVERRIDE
+RUN: %link %emulation %linkopts -flto-options=preserve-sym=foo %t1.o --trace=lto -flto-options=lto-output-file=%t1.lto1.o,%t1.lto2.o -o %t2.out.outputoverride 2>&1 | %filecheck %s -check-prefix=OUTPUTOVERRIDE
 RUN: %readelf -s -W %t2.out.outputoverride | %filecheck %s -check-prefix=OUTPUTOVERRIDESYMS
 # Reuse output files and asm files.
-RUN: %link %linkopts -flto-options=preserve-sym=foo %t1.o --trace=lto -flto-options=lto-asm-file=%p/Inputs/lto1.s,%p/Inputs/lto2.s -flto-options=lto-output-file=%t1.lto1.o,%t1.lto2.o -o %t2.out.asmoutputoverride 2>&1 | %filecheck %s -check-prefix=ASMOUTPUTOVERRIDE
+RUN: %link %emulation %linkopts -flto-options=preserve-sym=foo %t1.o --trace=lto -flto-options=lto-asm-file=%p/Inputs/lto1.s,%p/Inputs/lto2.s -flto-options=lto-output-file=%t1.lto1.o,%t1.lto2.o -o %t2.out.asmoutputoverride 2>&1 | %filecheck %s -check-prefix=ASMOUTPUTOVERRIDE
 RUN: %readelf -s -W %t2.out.asmoutputoverride | %filecheck %s -check-prefix=ASMOUTPUTOVERRIDESYMS
 
 #ASMOVERRIDE: Using LTO assembly file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto1.s

@@ -14,7 +14,7 @@ eld::Target Thex86_64Target;
 
 extern "C" void ELDInitializex86_64LDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget X(Thex86_64Target, "x86_64", llvm::ELF::EM_X86_64);
+  eld::RegisterTarget X(Thex86_64Target, "x86_64", llvm::ELF::EM_X86_64, true);
 }
 
 } // namespace eld

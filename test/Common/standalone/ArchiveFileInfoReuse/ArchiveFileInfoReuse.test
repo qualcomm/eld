@@ -10,7 +10,7 @@ RUN: %clang %clangopts -o %t1.bar.o %p/Inputs/bar.c -c
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
 RUN: %ar cr %aropts %t1.libbar.a %t1.bar.o
 RUN: %ar cr %aropts %t1.libfoo.a %t1.foo.o
-RUN: %link %linkopts -o %t1.a.out %t1.libfoo.a %t1.libbar.a \
+RUN: %link %linkopts %emulation -o %t1.a.out %t1.libfoo.a %t1.libbar.a \
 RUN: %t1.1.o %t1.libfoo.a %t1.libbar.a %t1.libfoo.a %t1.libbar.a --verbose 2>&1 | %filecheck %s
 #END_TEST
 CHECK: Verbose: Initializing Archive {{.*}}libfoo.a

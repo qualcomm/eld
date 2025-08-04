@@ -6,7 +6,7 @@ UNSUPPORTED: windows
 #END_COMMENT
 #START_TEST
 RUN: %touch %t1.1.o
-RUN: %link %linkopts %t1.1.o -o %t2.out 2>&1 | %filecheck %s
+RUN: %link %emulation %linkopts %t1.1.o -o %t2.out 2>&1 | %filecheck %s
 #CHECK: {{.*}}1.o has no contents
 RUN: %readelf -h %t2.out
 #END_TEST

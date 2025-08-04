@@ -3,7 +3,7 @@
 # tests that LinkerWrapper::findConfigFile() properly returns errors
 #END_COMMENT
 #START_TEST
-RUN: %not %link %linkopts -L %p/Inputs -T %p/Inputs/script.t -o %t.out 2>&1 | %filecheck %s
+RUN: %not %link %emulation %linkopts -L %p/Inputs -T %p/Inputs/script.t -o %t.out 2>&1 | %filecheck %s
 #END_TEST
 
 CHECK: found config file file-that-exists
