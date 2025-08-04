@@ -44,9 +44,6 @@ using namespace eld;
 eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   ArchiveFile *archiveFile = llvm::cast<ArchiveFile>(&inputFile);
   bool hasAFI = (archiveFile->getArchiveFileInfo() != nullptr);
-  if (!hasAFI) {
-    archiveFile->initArchiveFileInfo();
-  }
   llvm::MemoryBufferRef memRef = inputFile.getInput()->getMemoryBufferRef();
   llvm::Expected<std::unique_ptr<llvm::object::Archive>> expArchiveReader =
       llvm::object::Archive::create(memRef);
@@ -72,7 +69,10 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   }
 
   // Add members to the archive if they have not been added yet.
-  if (!archiveFile->hasMembers()) {
+  auto initArchiveFile = [&](ArchiveFile *archiveFile) -> eld::Expected<bool> {
+    if (hasAFI)
+      return true;
+    archiveFile->initArchiveFileInfo();
     if (m_Module.getPrinter()->isVerbose())
       config.raise(Diag::loading_all_members)
           << archiveFile->getInput()->decoratedPath();
@@ -80,23 +80,26 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
     if (!expAddMembers) {
       m_Module.setFailure(true);
     }
+    if (config.showArchiveFileWarnings())
+      warnRepeatedMembers(*archiveFile);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expAddMembers);
-  }
-
-  if (config.showArchiveFileWarnings())
-    warnRepeatedMembers(*archiveFile);
-
-  if (!hasAFI) {
-    eld::Expected<bool> expReadSymTab =
-        readSymbolTable(*archiveReader, archiveFile);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymTab);
-  }
+    return true;
+  };
 
   if (isWholeArchive) {
+    if (!hasAFI)
+      initArchiveFile(archiveFile);
     eld::Expected<uint32_t> expMemCount = includeAllMembers(archiveFile);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expMemCount);
     uint32_t numObjects = expMemCount.value();
     return numObjects;
+  }
+
+  if (!hasAFI) {
+    initArchiveFile(archiveFile);
+    eld::Expected<bool> expReadSymTab =
+        readSymbolTable(*archiveReader, archiveFile);
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymTab);
   }
 
   // include the needed members in the archive and build up the input tree
