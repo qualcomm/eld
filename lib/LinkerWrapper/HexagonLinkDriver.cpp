@@ -46,15 +46,25 @@ OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
 HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C,
-                                             DriverFlavor F,
+
                                              std::string InferredArch) {
-  return eld::make<HexagonLinkDriver>(C, F, InferredArch);
+  return eld::make<HexagonLinkDriver>(C, InferredArch);
 }
 
-HexagonLinkDriver::HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+HexagonLinkDriver::HexagonLinkDriver(eld::LinkerConfig &C,
                                      std::string InferredArch)
-    : GnuLdDriver(C, F) {
+    : GnuLdDriver(C, DriverFlavor::Hexagon) {
   Config.targets().setArch(InferredArch);
+}
+
+HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C,
+                                             bool is64bit) {
+  return eld::make<HexagonLinkDriver>(C, is64bit);
+}
+
+HexagonLinkDriver::HexagonLinkDriver(eld::LinkerConfig &C, bool is64bit)
+    : GnuLdDriver(C, DriverFlavor::Hexagon) {
+  Config.targets().setArch("hexagon");
 }
 
 opt::OptTable *
@@ -93,6 +103,28 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
     printRepositoryVersion();
     return nullptr;
   }
+
+  // --gpsize
+  Config.options().setGPSize(
+      getInteger(ArgList, OPT_HexagonLinkOptTable::gpsize, 8));
+
+  // --disable-guard-for-weak-undefs
+  if (ArgList.hasArg(OPT_HexagonLinkOptTable::disable_guard_for_weak_undef))
+    Config.options().setDisableGuardForWeakUndefs();
+
+  // --relax
+  if (ArgList.hasArg(OPT_HexagonLinkOptTable::relax))
+    Config.options().enableRelaxation();
+
+  // --relax=<regex>
+  for (auto *arg : ArgList.filtered(OPT_HexagonLinkOptTable::relax_value)) {
+    // Enable relaxation when a pattern is provided.
+    Config.options().enableRelaxation();
+    Config.options().addRelaxSection(arg->getValue());
+  }
+
+  Config.options().setUnknownOptions(
+      ArgList.getAllArgValues(OPT_HexagonLinkOptTable::UNKNOWN));
   return Table;
 }
 
@@ -166,24 +198,6 @@ bool HexagonLinkDriver::checkOptions(llvm::opt::InputArgList &Args) {
 
 template <class T>
 bool HexagonLinkDriver::processOptions(llvm::opt::InputArgList &Args) {
-  // --gpsize
-  Config.options().setGPSize(getInteger(Args, T::gpsize, 8));
-
-  // --disable-guard-for-weak-undefs
-  if (Args.hasArg(T::disable_guard_for_weak_undef))
-    Config.options().setDisableGuardForWeakUndefs();
-
-  // --relax
-  if (Args.hasArg(T::relax))
-    Config.options().enableRelaxation();
-
-  // --relax=<regex>
-  for (auto *arg : Args.filtered(T::relax_value)) {
-    // Enable relaxation when a pattern is provided.
-    Config.options().enableRelaxation();
-    Config.options().addRelaxSection(arg->getValue());
-  }
-
   return GnuLdDriver::processOptions<T>(Args);
 }
 

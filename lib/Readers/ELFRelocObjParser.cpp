@@ -22,6 +22,14 @@ using namespace eld;
 
 ELFRelocObjParser::ELFRelocObjParser(Module &module) : m_Module(module) {}
 
+eld::Expected<uint16_t> ELFRelocObjParser::getMachine(InputFile &inputFile) {
+  eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =
+      ELFReaderBase::Create(m_Module, inputFile);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReader);
+  std::unique_ptr<ELFReaderBase> ELFReader = std::move(expReader.value());
+  return ELFReader->getMachine();
+}
+
 eld::Expected<bool> ELFRelocObjParser::parseFile(InputFile &inputFile,
                                                  bool &ELFOverriddenWithBC) {
   eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =

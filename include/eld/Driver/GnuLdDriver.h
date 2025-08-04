@@ -56,6 +56,9 @@ public:
 
   GnuLdDriver(eld::LinkerConfig &C, DriverFlavor F = DriverFlavor::Invalid);
 
+  static GnuLdDriver *Create(eld::LinkerConfig &C, uint8_t Machine,
+                             bool is64bit);
+
   virtual ~GnuLdDriver();
 
   int link(llvm::ArrayRef<const char *> Args);
@@ -146,6 +149,14 @@ protected:
   std::string getDriverFlavorName() const;
 
   const std::string &getProgramName() const { return LinkerProgramName; }
+
+  bool isDriverFlavorValid() const {
+    return m_DriverFlavor != DriverFlavor::Invalid;
+  }
+
+  bool isDriverFlavorUnknown() const {
+    return m_DriverFlavor == DriverFlavor::Unknown;
+  }
 
   void setDriverFlavor(DriverFlavor F) { m_DriverFlavor = F; }
 

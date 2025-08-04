@@ -29,8 +29,7 @@ DIAG(file_has_error, DiagnosticEngine::Fatal,
      "Linker script %0 has errors, Please check")
 DIAG(section_does_not_have_proper_permissions, DiagnosticEngine::Warning,
      "Section names %0 in input file %1 doesnot have right permissions")
-DIAG(corrupt_input_file, DiagnosticEngine::Fatal,
-     "Corrupt input file %0, Please inspect the file that everything is proper")
+DIAG(corrupt_input_file, DiagnosticEngine::Fatal, "%0 : %1")
 DIAG(error_group_flags, DiagnosticEngine::Error,
      "Unsupported SHT_GROUP flags in `%0' (%1) in file %2: 0x%3")
 DIAG(discarding_section, DiagnosticEngine::Verbose,
@@ -100,3 +99,15 @@ DIAG(warning_abi_differences, DiagnosticEngine::Warning,
      "'%0' has OS/ABI set to %1, previously seen %2")
 DIAG(error_unknown_target_emulation, DiagnosticEngine::Error,
   "target emulation unknown: -m or at least one .o file required")
+DIAG(error_target_not_found, DiagnosticEngine::Error,
+     "Target not registered : %0")
+DIAG(error_emulation_failed_for_target, DiagnosticEngine::Error,
+     "Emulation failed for target : %0")
+DIAG(error_backend_init_failed, DiagnosticEngine::Error,
+     "Backend init failed for target : %0")
+DIAG(error_no_backend_found, DiagnosticEngine::Error,
+     "No Backend found for target : %0")
+DIAG(error_failed_to_find_driver, DiagnosticEngine::Error,
+     "No driver found for target : %0")
+DIAG(fatal_unsupported_bit_code_file, DiagnosticEngine::Fatal,
+     "Unsupported architecture %0 in LLVM Bitcode file : %1")

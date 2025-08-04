@@ -9,7 +9,6 @@
 #include "eld/Core/Module.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/PluginAPI/Expected.h"
-#include "eld/Readers/ELFReaderBase.h"
 
 using namespace eld;
 

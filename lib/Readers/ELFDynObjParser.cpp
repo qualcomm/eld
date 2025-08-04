@@ -16,6 +16,14 @@ ELFDynObjParser::ELFDynObjParser(Module &module) : m_Module(module) {}
 
 ELFDynObjParser::~ELFDynObjParser() {}
 
+eld::Expected<uint16_t> ELFDynObjParser::getMachine(InputFile &inputFile) {
+  eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =
+      ELFReaderBase::Create(m_Module, inputFile);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReader);
+  std::unique_ptr<ELFReaderBase> ELFReader = std::move(expReader.value());
+  return ELFReader->getMachine();
+}
+
 eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
   eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =
       ELFReaderBase::Create(m_Module, inputFile);

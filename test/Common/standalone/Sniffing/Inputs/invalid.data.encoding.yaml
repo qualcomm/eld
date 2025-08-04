@@ -1,0 +1,5 @@
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS64
+  Data:            ELFDATANONE
+  Type:            ET_REL

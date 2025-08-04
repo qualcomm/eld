@@ -14,7 +14,8 @@ eld::Target TheAArch64Target;
 
 extern "C" void ELDInitializeAArch64LDTargetInfo() {
   // register into eld::TargetRegistry
-  eld::RegisterTarget X(TheAArch64Target, "aarch64", llvm::ELF::EM_AARCH64);
+  eld::RegisterTarget X(TheAArch64Target, "aarch64", llvm::ELF::EM_AARCH64,
+                        true);
 }
 
 } // namespace eld

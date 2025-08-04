@@ -952,3 +952,51 @@ void Linker::reportUnknownOptions() const {
   for (const auto &Option : UnknownOptions)
     ThisConfig->raise(Diag::warn_unsupported_option) << Option;
 }
+
+bool Linker::initializeTarget(uint16_t machine, bool is64bit) {
+  eld::Target *Target = TargetRegistry::findTarget(machine, is64bit);
+  if (Target)
+    ThisConfig->raise(Diag::verbose_infer_target) << Target->name();
+  else {
+    ThisConfig->raise(Diag::error_target_not_found)
+        << llvm::ELF::convertEMachineToArchName(machine);
+    return false;
+  }
+  if (!initEmulator(ThisModule->getScript(), Target)) {
+    ThisConfig->raise(Diag::error_emulation_failed_for_target)
+        << Target->name();
+    return false;
+  }
+  if (!initBackend(Target)) {
+    ThisConfig->raise(Diag::error_backend_init_failed) << Target->name();
+    return false;
+  }
+  if (!Backend) {
+    ThisConfig->raise(Diag::error_no_backend_found) << Target->name();
+    return false;
+  }
+
+  // Parse target specific command line options
+  GnuLdDriver *Driver = GnuLdDriver::Create(*ThisConfig, machine, is64bit);
+  if (!Driver) {
+    ThisConfig->raise(Diag::error_failed_to_find_driver) << Target->name();
+    return false;
+  }
+
+  llvm::opt::InputArgList ArgList;
+
+  if (!Driver->parseOptions(ThisConfig->options().args(), ArgList))
+    return false;
+
+  Backend->setOptions();
+  Backend->initRelocator();
+
+  if (Backend)
+    reportUnknownOptions();
+
+  // Initialize all plugin configs
+  ThisModule->getScript().initializePluginConfig(*ThisModule);
+
+  Backend->createInternalInputs();
+  return true;
+}

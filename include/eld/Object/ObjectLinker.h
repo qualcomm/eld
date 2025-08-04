@@ -466,6 +466,9 @@ private:
   ELFDynObjParser *createDynObjReader();
   ELFObjectWriter *createWriter();
 
+  // Initialize the target machine when sniffing object files
+  bool initializeTarget(InputFile *I);
+
 private:
   LinkerConfig &ThisConfig;
   Module *ThisModule = nullptr;

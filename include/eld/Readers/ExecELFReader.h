@@ -8,7 +8,6 @@
 #ifndef ELD_READERS_EXECELFREADER_H
 #define ELD_READERS_EXECELFREADER_H
 #include "eld/Readers/ELFReader.h"
-#include "eld/Readers/ELFReaderBase.h"
 
 namespace eld {
 template <class ELFT> class ExecELFReader : public ELFReader<ELFT> {

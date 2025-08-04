@@ -36,11 +36,14 @@ public:
 
 class ARMLinkDriver : public GnuLdDriver {
 public:
-  static ARMLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
+  static ARMLinkDriver *Create(eld::LinkerConfig &C,
                                std::string InferredArchFromProgramName);
 
-  ARMLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
-                std::string InferredArchFromProgramName);
+  ARMLinkDriver(eld::LinkerConfig &C, std::string InferredArchFromProgramName);
+
+  static ARMLinkDriver *Create(eld::LinkerConfig &C, bool is64bit);
+
+  ARMLinkDriver(eld::LinkerConfig &C, bool is64bit);
 
   virtual ~ARMLinkDriver() {}
 
@@ -71,15 +74,20 @@ public:
   static std::optional<llvm::Triple>
   ParseEmulation(std::string pEmulation, eld::DiagnosticEngine *DiagEngine);
 
-  static bool isSupportedEmulation(llvm::StringRef Emulation) {
-    return Emulation.starts_with("arm") || Emulation.starts_with("aarch64");
-  }
   static std::string getInferredArch(llvm::StringRef Emulation) {
     if (Emulation.starts_with("arm"))
       return "arm";
     if (Emulation.starts_with("aarch64"))
       return "aarch64";
     return "unknown";
+  }
+
+  static bool isValidEmulation(llvm::StringRef Emulation) {
+    return Emulation.starts_with("arm") || Emulation.starts_with("aarch64");
+  }
+
+  static bool isMyArch(llvm::StringRef MArch) {
+    return MArch == "arm" || MArch == "aarch64";
   }
 };
 

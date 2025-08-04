@@ -165,3 +165,5 @@ DIAG(verbose_rule_matching_cache_func_hash, DiagnosticEngine::Verbose,
      "Rule-matching cache-functionailty hash: %0")
 DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
      "Initialized plugin config for %0")
+DIAG(verbose_infer_target, DiagnosticEngine::Verbose,
+     "Inferred target : %0")

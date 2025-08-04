@@ -17,6 +17,12 @@ class ELFExecObjParser {
 public:
   ELFExecObjParser(Module &);
 
+  /// This function returns the machine information encoded in the ELF
+  /// header. This is used then to create the appropriate backend for
+  /// rest of the link steps. In any link step this should be called only
+  /// once
+  eld::Expected<uint16_t> getMachine(InputFile &inputFile);
+
   eld::Expected<bool> parseFile(InputFile &inputFile,
                                 bool &ELFOverriddenWithBC);
 

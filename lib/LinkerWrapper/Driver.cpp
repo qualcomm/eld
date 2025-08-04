@@ -41,18 +41,15 @@ GnuLdDriver *Driver::getLinkerDriver() {
   case DriverFlavor::Hexagon:
   case DriverFlavor::ARM_AArch64:
   case DriverFlavor::RISCV32_RISCV64:
+  case DriverFlavor::Unknown:
   case DriverFlavor::x86_64: {
     LinkDriver = GnuLdDriver::Create(Config, m_DriverFlavor,
                                      InferredArchFromProgramName);
     break;
   }
-  default:
-    break;
+  case DriverFlavor::Invalid:
+    return nullptr;
   }
-  if (!LinkDriver)
-    LinkDriver = GnuLdDriver::Create(
-        Config, getDriverFlavorFromTarget(m_SupportedTargets.front()),
-        InferredArchFromProgramName);
   LinkDriver->setSupportedTargets(m_SupportedTargets);
   return LinkDriver;
 }
@@ -75,17 +72,6 @@ void Driver::InitTarget() {
 
   for (auto &target : eld::TargetRegistry::targets())
     m_SupportedTargets.push_back(std::string(target->name()));
-}
-
-std::string Driver::getStringFromTarget(llvm::StringRef Target) const {
-  return llvm::StringSwitch<std::string>(Target)
-      .CaseLower("hexagon", "hexagon")
-      .CaseLower("arm", "arm")
-      .CaseLower("aarch64", "aarch64")
-      .CaseLower("riscv32", "riscv")
-      .CaseLower("riscv64", "riscv")
-      .CaseLower("x86_64", "x86_64")
-      .Default("");
 }
 
 DriverFlavor Driver::getDriverFlavorFromTarget(llvm::StringRef Target) const {
@@ -137,7 +123,8 @@ eld::Expected<std::pair<DriverFlavor, std::string>>
 Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
   auto DriverFlavorAndInferredArch =
       Driver::parseDriverFlavorFromProgramName(Args[0]);
-  if (DriverFlavorAndInferredArch.first != DriverFlavor::Invalid)
+  if ((DriverFlavorAndInferredArch.first != DriverFlavor::Invalid) &&
+      (DriverFlavorAndInferredArch.first != DriverFlavor::Unknown))
     return DriverFlavorAndInferredArch;
 
   // We read the emulation options here to just select the driver.
@@ -152,7 +139,7 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
   unsigned MissingCount;
   llvm::opt::InputArgList ArgList =
       Table.ParseArgs(Args.slice(1), MissingIndex, MissingCount);
-  DriverFlavor F = DriverFlavor::Invalid;
+  DriverFlavor F = DriverFlavor::Unknown;
   std::string InferredArch;
   if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::emulation)) {
     std::string Emulation = Arg->getValue();
@@ -160,32 +147,58 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
     if (HexagonLinkDriver::isValidEmulation(Emulation)) {
       F = DriverFlavor::Hexagon;
       InferredArch = HexagonLinkDriver::getInferredArch(Emulation);
-    }
+    } else
+#endif
+#if defined(ELD_ENABLE_TARGET_RISCV)
+      // It is okay to consider RISCV64 emulation as RISCV32 flavor
+      // here because RISCVLinkDriver will properly set the emulation.
+      if (RISCVLinkDriver::isValidEmulation(Emulation)) {
+        F = DriverFlavor::RISCV32_RISCV64;
+        InferredArch = RISCVLinkDriver::getInferredArch(Emulation);
+      } else
+#endif
+#if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
+          if (ARMLinkDriver::isValidEmulation(Emulation)) {
+        F = DriverFlavor::ARM_AArch64;
+        InferredArch = ARMLinkDriver::getInferredArch(Emulation);
+      } else
+#endif
+#if defined(ELD_ENABLE_TARGET_X86_64)
+          if (x86_64LinkDriver::isValidEmulation(Emulation)) {
+        F = DriverFlavor::x86_64;
+        InferredArch = x86_64LinkDriver::getInferredArch(Emulation);
+      } else
+#endif
+        return std::make_unique<eld::DiagnosticEntry>(
+            eld::Diag::fatal_unsupported_emulation,
+            std::vector<std::string>{Emulation});
+    return std::pair<DriverFlavor, std::string>{F, InferredArch};
+  }
+  if (llvm::opt::Arg *Arg = ArgList.getLastArg(OPT_GnuLdOptTable::march)) {
+    std::string MachineArch = Arg->getValue();
+    InferredArch = MachineArch;
+#if defined(ELD_ENABLE_TARGET_HEXAGON)
+    if (HexagonLinkDriver::isMyArch(MachineArch))
+      F = DriverFlavor::Hexagon;
 #endif
 #if defined(ELD_ENABLE_TARGET_RISCV)
     // It is okay to consider RISCV64 emulation as RISCV32 flavor
     // here because RISCVLinkDriver will properly set the emulation.
-    if (RISCVLinkDriver::isSupportedEmulation(Emulation)) {
+    if (RISCVLinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::RISCV32_RISCV64;
-      InferredArch = RISCVLinkDriver::getInferredArch(Emulation);
-    }
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
-    if (ARMLinkDriver::isSupportedEmulation(Emulation)) {
+    if (ARMLinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::ARM_AArch64;
-      InferredArch = ARMLinkDriver::getInferredArch(Emulation);
-    }
 #endif
 #if defined(ELD_ENABLE_TARGET_X86_64)
-    if (x86_64LinkDriver::isValidEmulation(Emulation)) {
+    if (x86_64LinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::x86_64;
-      InferredArch = x86_64LinkDriver::getInferredArch(Emulation);
-    }
 #endif
     if (F == DriverFlavor::Invalid)
       return std::make_unique<eld::DiagnosticEntry>(
           eld::Diag::fatal_unsupported_emulation,
-          std::vector<std::string>{Emulation});
+          std::vector<std::string>{MachineArch});
   }
   return std::pair<DriverFlavor, std::string>{F, InferredArch};
 }

@@ -51,7 +51,7 @@ const Target *TargetRegistry::lookupTarget(llvm::StringRef ArchName,
   return Result;
 }
 
-Target *TargetRegistry::lookupMachine(uint16_t Machine, bool is64bit) const {
+Target *TargetRegistry::findTarget(uint16_t Machine, bool is64bit) {
   for (auto &target : targets()) {
     if ((target->Machine == Machine) && (target->Is64bit == is64bit))
       return target;

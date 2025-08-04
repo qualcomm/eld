@@ -16,7 +16,7 @@ eld::Target TheRISCV64Target;
 extern "C" void ELDInitializeRISCVLDTargetInfo() {
   // register into eld::TargetRegistry
   eld::RegisterTarget X(TheRISCV32Target, "riscv32", llvm::ELF::EM_RISCV);
-  eld::RegisterTarget Y(TheRISCV64Target, "riscv64", llvm::ELF::EM_RISCV);
+  eld::RegisterTarget Y(TheRISCV64Target, "riscv64", llvm::ELF::EM_RISCV, true);
 }
 
 } // namespace eld

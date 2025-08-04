@@ -36,6 +36,16 @@ class DiagnosticPrinter;
  */
 class ObjectFile : public InputFile {
 public:
+  /// Type of ELF file from the target triple encoded in the object file
+  /// or by inspecting the ELF header
+  enum ELFKind : uint8_t {
+    ELFNoneKind,
+    ELF32LEKind,
+    ELF32BEKind,
+    ELF64LEKind,
+    ELF64BEKind
+  };
+
   using RuleMatchingSectionNameMap = std::unordered_map<uint64_t, std::string>;
   using AuxiliarySymbolNameMap = std::unordered_map<uint64_t, std::string>;
 
@@ -150,6 +160,24 @@ public:
     return std::nullopt;
   }
 
+  // Object file inspection functions
+
+  uint8_t getOSABI() const { return OSABI; }
+
+  uint16_t getMachine() const { return Machine; }
+
+  ELFKind getELFKind() const { return Kind; }
+
+  void setELFKind(ELFKind K) { Kind = K; }
+
+  void setMachine(uint16_t M) { Machine = M; }
+
+  void setOSABI(uint8_t OsAbi) { OSABI = OsAbi; }
+
+  bool is64bit() const {
+    return ((Kind == ELF64LEKind) || (Kind == ELF64BEKind));
+  }
+
 protected:
   std::vector<Section *> MSectionTable;
   std::vector<LDSymbol *> SymTab;
@@ -161,6 +189,11 @@ protected:
   std::optional<RuleMatchingSectionNameMap> RMSectNameMap;
 
   std::optional<AuxiliarySymbolNameMap> AuxSymbolNameMap;
+
+  // Object specific information
+  uint16_t Machine = 0;
+  uint8_t OSABI = 0;
+  ELFKind Kind = ELFKind::ELFNoneKind;
 
 private:
   bool BUsed = false;

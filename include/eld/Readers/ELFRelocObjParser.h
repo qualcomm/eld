@@ -22,6 +22,12 @@ class ELFRelocObjParser {
 public:
   ELFRelocObjParser(Module &);
 
+  /// This function returns the machine information encoded in the ELF
+  /// header. This is used then to create the appropriate backend for
+  /// rest of the link steps. In any link step this should be called only
+  /// once
+  eld::Expected<uint16_t> getMachine(InputFile &inputFile);
+
   // clang-format off
   /// This function does one of the two things depending on the context:
   /// - Completely parses the input file if the given input should not need be

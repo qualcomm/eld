@@ -13,6 +13,7 @@
 #include "llvm/LTO/LTO.h"
 
 #include "eld/PluginAPI/Expected.h"
+#include "eld/Readers/ELFReaderBase.h"
 
 #include <memory>
 
@@ -80,6 +81,15 @@ public:
   void setInputSectionForSymbol(const ResolveInfo &, Section &);
 
   Section *getInputSectionForSymbol(const ResolveInfo &) const;
+
+private:
+  void inferObjectInfo();
+
+  uint8_t inferOSABI(const llvm::Triple &) const;
+
+  uint16_t inferMachine(const llvm::Triple &) const;
+
+  ObjectFile::ELFKind inferELFKind(const llvm::Triple &) const;
 
 private:
   DiagnosticEngine *DiagEngine = nullptr;

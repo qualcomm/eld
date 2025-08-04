@@ -1,0 +1,30 @@
+#---Sniff.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This option tests that linker is able to sniff object files to figure out
+# the target architecture when it can and error out if it cannot
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+# Sniff ELF
+RUN: %eld %t1.1.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
+# Sniff using LTO
+RUN: %clang %clangopts -flto -c %p/Inputs/1.c -o %t1.1.lto.o
+RUN: %eld %t1.1.lto.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
+# Remove old archives
+RUN: %rm -f %t.lib1.a %t.lib1.lto.a
+# Create archive (ELF)
+RUN: %ar cr %t.lib1.a %t1.1.o
+# whole-archive sniffing (ELF)
+RUN: %eld --whole-archive %t.lib1.a -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
+# only archive sniffing
+RUN: %not %eld %t.lib1.a -o %t2.out 2>&1 | %filecheck %s -check-prefix=CANNOTINFER
+# Create archive (LTO)
+RUN: %ar cr %t.lib1.lto.a %t1.1.lto.o
+# whole-archive sniffing (ELF)
+RUN: %eld --whole-archive %t.lib1.lto.a -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INFERRED
+# only archive sniffing
+RUN: %not %eld %t.lib1.lto.a -o %t2.out 2>&1 | %filecheck %s -check-prefix=CANNOTINFER
+#END_TEST
+
+#INFERRED: {{[hexagon|arm|aarch64|x86_64|riscv]}}
+#CANNOTINFER: target emulation unknown: -m or at least one .o file required

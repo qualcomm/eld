@@ -31,11 +31,15 @@ public:
 
 class RISCVLinkDriver : public GnuLdDriver {
 public:
-  static RISCVLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
+  static RISCVLinkDriver *Create(eld::LinkerConfig &C,
                                  std::string InferredArchFromProgramName);
 
-  RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+  RISCVLinkDriver(eld::LinkerConfig &C,
                   std::string InferredArchFromProgramName);
+
+  static RISCVLinkDriver *Create(eld::LinkerConfig &C, bool is64bit);
+
+  RISCVLinkDriver(eld::LinkerConfig &C, bool is64bit);
 
   virtual ~RISCVLinkDriver() {}
 
@@ -67,15 +71,20 @@ public:
   bool createInputActions(llvm::opt::InputArgList &Args,
                           std::vector<eld::InputAction *> &actions);
 
-  static bool isSupportedEmulation(llvm::StringRef Emulation) {
+  static bool isValidEmulation(llvm::StringRef Emulation) {
     return Emulation == "elf64lriscv" || Emulation == "elf32lriscv";
   }
+
   static std::string getInferredArch(llvm::StringRef Emulation) {
     if (Emulation == "elf32lriscv")
       return "riscv32";
     if (Emulation == "elf64lriscv")
       return "riscv64";
     return "unknown";
+  }
+
+  static bool isMyArch(llvm::StringRef MArch) {
+    return MArch == "riscv32" || MArch == "riscv64";
   }
 };
 

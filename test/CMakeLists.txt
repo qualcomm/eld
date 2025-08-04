@@ -42,6 +42,7 @@ set(TEST_DEPENDS
     llvm-readelf
     llvm-nm
     llvm-dwarfdump
+    llvm-as
     llvm-ar
     llvm-objcopy
     llvm-strip

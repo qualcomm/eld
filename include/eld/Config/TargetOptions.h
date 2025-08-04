@@ -45,7 +45,9 @@ public:
 
   const std::string &getArch() const { return ArchName; }
 
-  void setArch(const std::string &PArchName);
+  void setArch(const std::string PArchName);
+
+  bool hasArch() const { return !ArchName.empty(); }
 
   const std::string &getTargetCPU() const { return TargetCPU; }
 

@@ -1,0 +1,10 @@
+; ModuleID = '1.o'
+source_filename = "1.c"
+target datalayout = "E-m:e-p:32:32-Fn32-i64:64-n32"
+target triple = "powerpc"
+
+; Function Attrs: noinline nounwind optnone uwtable
+define dso_local i32 @foo() #0 {
+  ret i32 0
+}
+

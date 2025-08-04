@@ -20,6 +20,14 @@ using namespace eld;
 
 ELFExecObjParser::ELFExecObjParser(Module &module) : m_Module(module) {}
 
+eld::Expected<uint16_t> ELFExecObjParser::getMachine(InputFile &inputFile) {
+  eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =
+      ELFReaderBase::Create(m_Module, inputFile);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReader);
+  std::unique_ptr<ELFReaderBase> ELFReader = std::move(expReader.value());
+  return ELFReader->getMachine();
+}
+
 eld::Expected<bool> ELFExecObjParser::parseFile(InputFile &inputFile,
                                                 bool &ELFOverriddenWithBC) {
   eld::Expected<std::unique_ptr<ELFReaderBase>> expReader =

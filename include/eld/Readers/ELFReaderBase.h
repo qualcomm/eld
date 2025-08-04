@@ -40,6 +40,9 @@ public:
   /// headers in the input file.
   virtual eld::Expected<bool> readSectionHeaders() = 0;
 
+  // Return e_machine from ELF header
+  virtual uint16_t getMachine() const = 0;
+
   /// Creates refined symbols by reading raw symbols.
   ///
   /// This function also adds references to all the created refined symbols in
@@ -117,6 +120,8 @@ public:
   /// Returns the symbol binding information.
   static ResolveInfo::Binding getSymbolBinding(uint8_t binding, uint32_t shndx,
                                                ELFFileBase &EFileBase);
+
+  static eld::Expected<ObjectFile::ELFKind> inspectELFKind(const InputFile &I);
 
 protected:
   /// Checks that the machine value (e_machine) is valid as per the target

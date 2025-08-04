@@ -52,7 +52,7 @@ public:
   lookupTarget(llvm::StringRef Name, llvm::Triple &pTriple, std::string &Error);
 
   // Find a target for a machine
-  Target *lookupMachine(uint16_t Machine, bool is64bit) const;
+  static Target *findTarget(uint16_t Machine, bool is64bit);
 };
 
 struct RegisterTarget {

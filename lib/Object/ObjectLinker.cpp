@@ -3470,6 +3470,18 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     bool ELFOverriddenWithBC = false;
+    if (!isBackendInitialized()) {
+      // Infer machine for selecting backend
+      eld::Expected<uint16_t> Machine =
+          getELFExecObjParser()->getMachine(*CurInput);
+      if (!Machine) {
+        ThisConfig.raiseDiagEntry(std::move(Machine.error()));
+        return false;
+      }
+      llvm::cast<ObjectFile>(CurInput)->setMachine(*Machine);
+      if (!initializeTarget(CurInput))
+        return false;
+    }
     eld::Expected<bool> ExpParseFile =
         getELFExecObjParser()->parseFile(*CurInput, ELFOverriddenWithBC);
     if (!ExpParseFile)
@@ -3489,6 +3501,19 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     bool ELFOverridenWithBC = false;
+
+    if (!isBackendInitialized()) {
+      // Infer machine for selecting backend
+      eld::Expected<uint16_t> Machine =
+          getRelocObjParser()->getMachine(*CurInput);
+      if (!Machine) {
+        ThisConfig.raiseDiagEntry(std::move(Machine.error()));
+        return false;
+      }
+      llvm::cast<ObjectFile>(CurInput)->setMachine(*Machine);
+      if (!initializeTarget(CurInput))
+        return false;
+    }
 
     eld::Expected<bool> ExpParseFile =
         getRelocObjParser()->parseFile(*CurInput, ELFOverridenWithBC);
@@ -3523,6 +3548,11 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     ThisModule->setLTONeeded();
     if (!getBitcodeReader()->readInput(*CurInput, LTOPlugin))
       return false;
+    if (!isBackendInitialized()) {
+      if (!initializeTarget(CurInput))
+        return false;
+    }
+
     ThisModule->getObjectList().push_back(CurInput);
     addInputFileToTar(CurInput, MappingFile::Bitcode);
   } else if (CurInput->getKind() == InputFile::ELFSymDefFileKind) {
@@ -3563,6 +3593,18 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       ThisConfig.raise(Diag::err_mixed_shared_static_objects)
           << Input->decoratedPath();
       return false;
+    }
+    if (!isBackendInitialized()) {
+      // Infer machine for selecting backend
+      eld::Expected<uint16_t> Machine =
+          getNewDynObjReader()->getMachine(*CurInput);
+      if (!Machine) {
+        ThisConfig.raiseDiagEntry(std::move(Machine.error()));
+        return false;
+      }
+      llvm::cast<ObjectFile>(CurInput)->setMachine(*Machine);
+      if (!initializeTarget(CurInput))
+        return false;
     }
     auto ExpRead = getNewDynObjReader()->parseFile(*CurInput);
     // Currently, we have to consider two cases:
@@ -3973,4 +4015,15 @@ BinaryFileParser *ObjectLinker::createBinaryFileParser() {
 
 ELFObjectWriter *ObjectLinker::createWriter() {
   return make<eld::ELFObjectWriter>(*ThisModule);
+}
+
+bool ObjectLinker::initializeTarget(InputFile *I) {
+  ObjectFile *Obj = llvm::dyn_cast<ObjectFile>(I);
+  if (!Obj)
+    return {};
+  uint16_t machine = Obj->getMachine();
+  uint64_t is64bit = Obj->is64bit();
+  if (!ThisModule->getLinker()->initializeTarget(machine, is64bit))
+    return false;
+  return true;
 }

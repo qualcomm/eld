@@ -95,6 +95,9 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
     return numObjects;
   }
 
+  if (!m_Module.isBackendInitialized())
+    return 0;
+
   if (!hasAFI) {
     initArchiveFile(archiveFile);
     eld::Expected<bool> expReadSymTab =

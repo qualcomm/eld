@@ -55,15 +55,26 @@ static Triple ParseEmulation(std::string pEmulation, Triple &triple,
 OPT_RISCVLinkOptTable::OPT_RISCVLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
+RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C,
                                          std::string InferredArch) {
-  return eld::make<RISCVLinkDriver>(C, F, InferredArch);
+  return eld::make<RISCVLinkDriver>(C, InferredArch);
 }
 
-RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
-                                 std::string InferredArch)
-    : GnuLdDriver(C, F) {
+RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, std::string InferredArch)
+    : GnuLdDriver(C, DriverFlavor::RISCV32_RISCV64) {
   Config.targets().setArch(InferredArch);
+}
+
+RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C, bool is64bit) {
+  return eld::make<RISCVLinkDriver>(C, is64bit);
+}
+
+RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, bool is64bit)
+    : GnuLdDriver(C, DriverFlavor::RISCV32_RISCV64) {
+  if (!is64bit)
+    Config.targets().setArch("riscv32");
+  else
+    Config.targets().setArch("riscv64");
 }
 
 opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,

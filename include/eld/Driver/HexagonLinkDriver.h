@@ -32,11 +32,15 @@ public:
 
 class HexagonLinkDriver : public GnuLdDriver {
 public:
-  static HexagonLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
+  static HexagonLinkDriver *Create(eld::LinkerConfig &C,
                                    std::string InferredArchFromProgramName);
 
-  HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+  HexagonLinkDriver(eld::LinkerConfig &C,
                     std::string InferredArchFromProgramName);
+
+  static HexagonLinkDriver *Create(eld::LinkerConfig &C, bool is64bit);
+
+  HexagonLinkDriver(eld::LinkerConfig &C, bool is64bit);
 
   virtual ~HexagonLinkDriver() {}
 
@@ -73,6 +77,7 @@ public:
   static std::string getInferredArch(llvm::StringRef Emulation) {
     return "hexagon";
   }
+  static bool isMyArch(llvm::StringRef MArch) { return MArch == "hexagon"; }
 };
 
 #endif

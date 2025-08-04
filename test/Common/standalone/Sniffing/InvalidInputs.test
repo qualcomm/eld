@@ -1,0 +1,27 @@
+#---InvalidInputs.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This option tests that linker is able to sniff object files and errors
+# out when reading invalid elf files
+#END_COMMENT
+#START_TEST
+# Big-endian ELF
+RUN: %yaml2obj %p/Inputs/be.yaml -o %t1.be.o
+RUN: %not %eld %t1.be.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=BE
+# Target not registered
+RUN: %yaml2obj %p/Inputs/ppc.yaml -o %t1.ppc.o
+RUN: %not %eld %t1.ppc.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=PPC
+# Sniff using LTO (PPC)
+RUN: %llvm-as %p/Inputs/ppc.ir -o %t1.ppc.bc.o
+RUN: %not %eld %t1.ppc.bc.o -o %t2.out 2>&1 | %filecheck %s -check-prefix=BC
+# invalid ELF class
+RUN: %echo -e -n "\x7f\x45\x4c\x46\x00\x01\x01\x03\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00" > %t.invalid.o
+RUN: %not %eld %t.invalid.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=INVALIDFILECLASS
+# invalid data encoding (to test)
+# %yaml2obj %p/Inputs/invalid.data.encoding.yaml -o %t1.invalid.encoding.o
+# %not %eld %t1.invalid.encoding.o -o %t2.out --verbose 2>&1 | %filecheck %s -check-prefix=ENCODING
+#END_TEST
+
+#PPC: Target not registered : ppc
+#BE: big-endian targets are not supported: {{.*}}be.o
+#BC: Unsupported architecture powerpc in LLVM Bitcode file : {{.*}}bc.o
+#INVALIDFILECLASS: {{.*}}invalid.o : corrupted ELF file: invalid file class

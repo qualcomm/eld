@@ -8,6 +8,7 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Input/ObjectFile.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/Readers/DynamicELFReader.h"
 #include "eld/Readers/ELFReader.h"
@@ -26,24 +27,28 @@ ELFReaderBase::Create(Module &module, InputFile &inputFile) {
   plugin::DiagnosticEntry diagEntry;
   std::unique_ptr<ELFReaderBase> reader;
   LinkerConfig &config = module.getConfig();
-  if (config.targets().isBigEndian())
+
+  eld::Expected<ObjectFile::ELFKind> fileKind =
+      ELFReaderBase::inspectELFKind(inputFile);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(fileKind);
+
+  // Set the ELF kind in the object file
+  llvm::dyn_cast<ObjectFile>(&inputFile)->setELFKind(*fileKind);
+
+  if (config.targets().isBigEndian() ||
+      (*fileKind == ObjectFile::ELFKind::ELF32BEKind) ||
+      (*fileKind == ObjectFile::ELFKind::ELF64BEKind))
     return std::make_unique<plugin::DiagnosticEntry>(
         plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
                                 {inputFile.getInput()->decoratedPath()}));
 
-  if (config.targets().is32Bits())
+  if (config.targets().is32Bits() ||
+      (*fileKind == ObjectFile::ELFKind::ELF32LEKind))
     return createImpl<llvm::object::ELF32LE>(module, inputFile);
-  else if (config.targets().is64Bits())
+  else if (config.targets().is64Bits() ||
+           (*fileKind == ObjectFile::ELFKind::ELF64LEKind))
     return createImpl<llvm::object::ELF64LE>(module, inputFile);
-  else {
-    if (config.targets().hasTriple()) {
-      return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(Diag::fatal_unsupported_target,
-                                  {config.targets().triple().getTriple()}));
-    } else
-      return std::make_unique<plugin::DiagnosticEntry>(
-          plugin::DiagnosticEntry(Diag::fatal_missing_target_triple, {}));
-  }
+  return {};
 }
 
 template <class ELFT>
@@ -190,4 +195,39 @@ eld::Expected<bool> ELFReaderBase::readOneGroup(ELFSection *S) {
 eld::Expected<bool> ELFReaderBase::readRelocationSection(ELFSection *RS) {
   ASSERT(0, "readRelocationSection must only be called for relocatable "
             "object files.");
+}
+
+eld::Expected<ObjectFile::ELFKind>
+ELFReaderBase::inspectELFKind(const InputFile &I) {
+  unsigned char size;
+  unsigned char endian;
+
+  llvm::MemoryBufferRef MB(I.getInput()->getMemoryBufferRef());
+
+  std::tie(size, endian) = llvm::object::getElfArchType(MB.getBuffer());
+
+  auto reportDiag = [&](llvm::StringRef msg) {
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::corrupt_input_file,
+        {I.getInput()->decoratedPath(), std::string(msg)}));
+  };
+
+  if (endian != llvm::ELF::ELFDATA2LSB && endian != llvm::ELF::ELFDATA2MSB)
+    return reportDiag("corrupted ELF file: invalid data encoding");
+  if (size != llvm::ELF::ELFCLASS32 && size != llvm::ELF::ELFCLASS64)
+    return reportDiag("corrupted ELF file: invalid file class");
+
+  size_t bufSize = MB.getBuffer().size();
+  if ((size == llvm::ELF::ELFCLASS32 &&
+       bufSize < sizeof(llvm::ELF::Elf32_Ehdr)) ||
+      (size == llvm::ELF::ELFCLASS64 &&
+       bufSize < sizeof(llvm::ELF::Elf64_Ehdr)))
+    return reportDiag("corrupted ELF file: file is too short");
+
+  if (size == llvm::ELF::ELFCLASS32)
+    return (endian == llvm::ELF::ELFDATA2LSB)
+               ? ObjectFile::ELFKind::ELF32LEKind
+               : ObjectFile::ELFKind::ELF32BEKind;
+  return (endian == llvm::ELF::ELFDATA2LSB) ? ObjectFile::ELFKind::ELF64LEKind
+                                            : ObjectFile::ELFKind::ELF64BEKind;
 }

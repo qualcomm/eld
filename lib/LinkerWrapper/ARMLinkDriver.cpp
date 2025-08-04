@@ -62,15 +62,26 @@ ARMLinkDriver::ParseEmulation(std::string pEmulation,
 OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
+ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C,
                                      std::string InferredArch) {
-  return eld::make<ARMLinkDriver>(C, F, InferredArch);
+  return eld::make<ARMLinkDriver>(C, InferredArch);
 }
 
-ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
-                             std::string InferredArch)
-    : GnuLdDriver(C, F) {
+ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, std::string InferredArch)
+    : GnuLdDriver(C, DriverFlavor::ARM_AArch64) {
   Config.targets().setArch(InferredArch);
+}
+
+ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C, bool is64bit) {
+  return eld::make<ARMLinkDriver>(C, is64bit);
+}
+
+ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, bool is64bit)
+    : GnuLdDriver(C, DriverFlavor::ARM_AArch64) {
+  if (!is64bit)
+    Config.targets().setArch("arm");
+  else
+    Config.targets().setArch("aarch64");
 }
 
 opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
@@ -159,6 +170,9 @@ opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
     } else
       Config.raise(eld::Diag::error_invalid_target2) << Value;
   }
+
+  Config.options().setUnknownOptions(
+      ArgList.getAllArgValues(OPT_ARMLinkOptTable::UNKNOWN));
 
   return Table;
 }

@@ -37,15 +37,24 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 OPT_x86_64LinkOptTable::OPT_x86_64LinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
+x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C,
                                            std::string InferredArch) {
-  return eld::make<x86_64LinkDriver>(C, F, InferredArch);
+  return eld::make<x86_64LinkDriver>(C, InferredArch);
 }
 
-x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C,
                                    std::string InferredArch)
-    : GnuLdDriver(C, F) {
+    : GnuLdDriver(C, DriverFlavor::x86_64) {
   Config.targets().setArch(InferredArch);
+}
+
+x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C, bool is64bit) {
+  return eld::make<x86_64LinkDriver>(C, is64bit);
+}
+
+x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C, bool is64bit)
+    : GnuLdDriver(C, DriverFlavor::x86_64) {
+  Config.targets().setArch("x86_64");
 }
 
 opt::OptTable *
@@ -84,6 +93,9 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
     printRepositoryVersion();
     return nullptr;
   }
+
+  Config.options().setUnknownOptions(
+      ArgList.getAllArgValues(OPT_x86_64LinkOptTable::UNKNOWN));
 
   return Table;
 }

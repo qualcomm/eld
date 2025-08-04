@@ -11,6 +11,7 @@
 #include "eld/PluginAPI/LinkerPlugin.h"
 #include "eld/Support/MsgHandling.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/Object/ELF.h"
 #include "llvm/Support/xxhash.h"
 
 using namespace eld;
@@ -38,6 +39,9 @@ bool BitcodeFile::createLTOInputFile(const std::string &PModuleID) {
   }
 
   LTOInputFile = std::move(*IFOrErr);
+
+  inferObjectInfo();
+
   return true;
 }
 
@@ -90,4 +94,45 @@ void BitcodeFile::setInputSectionForSymbol(const ResolveInfo &R, Section &S) {
 Section *BitcodeFile::getInputSectionForSymbol(const ResolveInfo &R) const {
   auto It = InputSectionForSymbol.find(&R);
   return It != InputSectionForSymbol.end() ? It->second : nullptr;
+}
+
+uint16_t BitcodeFile::inferMachine(const llvm::Triple &t) const {
+  switch (t.getArch()) {
+  case llvm::Triple::aarch64:
+    return llvm::ELF::EM_AARCH64;
+  case llvm::Triple::arm:
+  case llvm::Triple::thumb:
+    return llvm::ELF::EM_ARM;
+  case llvm::Triple::hexagon:
+    return llvm::ELF::EM_HEXAGON;
+  case llvm::Triple::riscv32:
+  case llvm::Triple::riscv64:
+    return llvm::ELF::EM_RISCV;
+  case llvm::Triple::x86_64:
+    return llvm::ELF::EM_X86_64;
+  default:
+    DiagEngine->raise(Diag::fatal_unsupported_bit_code_file)
+        << t.getArchName() << getInput()->decoratedPath();
+    break;
+  }
+  return llvm::ELF::EM_NONE;
+}
+
+ObjectFile::ELFKind BitcodeFile::inferELFKind(const llvm::Triple &t) const {
+  if (t.isLittleEndian())
+    return t.isArch64Bit() ? ObjectFile::ELFKind::ELF64LEKind
+                           : ObjectFile::ELFKind::ELF32LEKind;
+  return t.isArch64Bit() ? ObjectFile::ELFKind::ELF64BEKind
+                         : ObjectFile::ELFKind::ELF32BEKind;
+}
+
+uint8_t BitcodeFile::inferOSABI(const llvm::Triple &t) const {
+  return llvm::ELF::ELFOSABI_NONE;
+}
+
+void BitcodeFile::inferObjectInfo() {
+  llvm::Triple LTOObjTriple(LTOInputFile->getTargetTriple());
+  setELFKind(inferELFKind(LTOObjTriple));
+  setMachine(inferMachine(LTOObjTriple));
+  setOSABI(inferOSABI(LTOObjTriple));
 }

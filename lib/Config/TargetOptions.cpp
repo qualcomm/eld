@@ -35,7 +35,7 @@ void TargetOptions::setTriple(const std::string &PTriple) {
   Triple = triple;
 }
 
-void TargetOptions::setArch(const std::string &PArchName) {
+void TargetOptions::setArch(const std::string PArchName) {
   ArchName = PArchName;
 }
 

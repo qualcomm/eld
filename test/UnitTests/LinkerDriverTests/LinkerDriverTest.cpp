@@ -23,8 +23,7 @@ protected:
 //
 TEST_F(DriverTest, InvalidTarget) {
   Driver *driver = new Driver(DriverFlavor::Invalid);
-  // Default to the first target.
-  ASSERT_NE(driver->getLinkerDriver(), nullptr);
+  ASSERT_EQ(driver->getLinkerDriver(), nullptr);
   delete driver;
 }
 

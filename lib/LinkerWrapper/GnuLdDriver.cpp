@@ -77,24 +77,50 @@ GnuLdDriver::GnuLdDriver(LinkerConfig &C, DriverFlavor F)
 
 GnuLdDriver::~GnuLdDriver() {}
 
+GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, uint8_t Machine,
+                                 bool is64bit) {
+  switch (Machine) {
+#ifdef ELD_ENABLE_TARGET_HEXAGON
+  case llvm::ELF::EM_HEXAGON:
+    return HexagonLinkDriver::Create(C, is64bit);
+#endif
+#if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
+  case llvm::ELF::EM_ARM:
+  case llvm::ELF::EM_AARCH64:
+    return ARMLinkDriver::Create(C, is64bit);
+#endif
+#ifdef ELD_ENABLE_TARGET_RISCV
+  case llvm::ELF::EM_RISCV:
+    return RISCVLinkDriver::Create(C, is64bit);
+#endif
+#ifdef ELD_ENABLE_TARGET_X86_64
+  case llvm::ELF::EM_X86_64:
+    return x86_64LinkDriver::Create(C, is64bit);
+#endif
+  default:
+    break;
+  }
+  return nullptr;
+}
+
 GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
                                  std::string InferredArch) {
   switch (F) {
 #ifdef ELD_ENABLE_TARGET_HEXAGON
   case DriverFlavor::Hexagon:
-    return HexagonLinkDriver::Create(C, F, InferredArch);
+    return HexagonLinkDriver::Create(C, InferredArch);
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
   case DriverFlavor::ARM_AArch64:
-    return ARMLinkDriver::Create(C, F, InferredArch);
+    return ARMLinkDriver::Create(C, InferredArch);
 #endif
 #ifdef ELD_ENABLE_TARGET_RISCV
   case DriverFlavor::RISCV32_RISCV64:
-    return RISCVLinkDriver::Create(C, F, InferredArch);
+    return RISCVLinkDriver::Create(C, InferredArch);
 #endif
 #ifdef ELD_ENABLE_TARGET_X86_64
   case DriverFlavor::x86_64:
-    return x86_64LinkDriver::Create(C, F, InferredArch);
+    return x86_64LinkDriver::Create(C, InferredArch);
 #endif
   default:
     return eld::make<GnuLdDriver>(C, F);
@@ -1558,25 +1584,26 @@ template <class T>
 bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
                          std::vector<eld::InputAction *> &actions) {
   const eld::Target *ELDTarget = nullptr;
-  // Get the target specific parser.
-  std::string error;
-  llvm::Triple Triple = Config.targets().triple();
-  const llvm::Target *LLVMTarget =
-      llvm::TargetRegistry::lookupTarget(Triple.str(), error);
-  if (nullptr == LLVMTarget) {
-    Config.raise(Diag::cannot_find_target) << error;
-    return false;
+  if (!isDriverFlavorUnknown()) {
+    // Get the target specific parser.
+    std::string error;
+    llvm::Triple Triple = Config.targets().triple();
+    const llvm::Target *LLVMTarget =
+        llvm::TargetRegistry::lookupTarget(Triple.str(), error);
+    if (!LLVMTarget) {
+      Config.raise(Diag::cannot_find_target) << error;
+      return false;
+    }
+    ELDTarget =
+        eld::TargetRegistry::lookupTarget(Triple.getArchName(), Triple, error);
+    if (!ELDTarget) {
+      Config.raise(Diag::cannot_find_target) << error;
+      return false;
+    }
+    // This is needed to make sure for -march aarch64,
+    // default triple is not arm--linux-gnu else it will cause issues in LTO
+    Config.targets().setTriple(Triple);
   }
-  ELDTarget =
-      eld::TargetRegistry::lookupTarget(Triple.getArchName(), Triple, error);
-  if (nullptr == ELDTarget) {
-    Config.raise(Diag::cannot_find_target) << error;
-    return false;
-  }
-
-  // This is needed to make sure for -march aarch64,
-  // default triple is not arm--linux-gnu else it will cause issues in LTO
-  Config.targets().setTriple(Triple);
   eld::LayoutInfo *layoutInfo = nullptr;
   if (!Config.options().layoutFile().empty() || Config.options().printMap())
     layoutInfo = eld::make<eld::LayoutInfo>(Config);
@@ -1675,6 +1702,8 @@ std::string GnuLdDriver::getDriverFlavorName() const {
     return "RISCV32/RISCV64";
   case DriverFlavor::x86_64:
     return "x86_64";
+  case DriverFlavor::Unknown:
+    return "Unknown";
   case DriverFlavor::Invalid:
     break;
   }

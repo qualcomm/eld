@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Support/Target.h"
+#include "eld/Config/LinkerConfig.h"
 #include "llvm/TargetParser/Triple.h"
 
 using namespace eld;
@@ -26,6 +27,8 @@ Target::Target() {}
 bool Target::emulate(LinkerScript &Script, LinkerConfig &Config) const {
   if (nullptr == EmulationFn)
     return false;
+  if (!Config.targets().hasArch())
+    Config.targets().setArch(std::string(Name));
   return EmulationFn(Script, Config);
 }
 

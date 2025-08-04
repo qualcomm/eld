@@ -69,6 +69,9 @@ public:
   ELFReader &operator=(const ELFReader &) = delete;
   ELFReader &operator=(ELFReader &&) = delete;
 
+  /// Return the e_machine field stored in the ELF header
+  uint16_t getMachine() const override;
+
   /// Creates refined symbols by reading raw symbols.
   ///
   /// This function also adds references to all the created refined symbols in

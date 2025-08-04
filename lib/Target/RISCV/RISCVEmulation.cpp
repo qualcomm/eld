@@ -20,7 +20,8 @@ static bool ELDEmulateRISCVELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   pConfig.targets().setEndian(TargetOptions::Little);
   if (pConfig.targets().getArch() == "riscv32")
     pConfig.targets().setBitClass(32);
-  else
+
+  if (pConfig.targets().getArch() == "riscv64")
     pConfig.targets().setBitClass(64);
 
   if (!ELDEmulateELF(pScript, pConfig))

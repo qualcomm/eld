@@ -52,6 +52,12 @@ ELFReader<ELFT>::createLLVMELFFile(LinkerConfig &config, const InputFile &input,
   return exp.get();
 }
 
+template <class ELFT> uint16_t ELFReader<ELFT>::getMachine() const {
+  ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
+  const Elf_Ehdr &elfHeader = m_LLVMELFFile->getHeader();
+  return elfHeader.e_machine;
+}
+
 template <class ELFT>
 eld::Expected<std::string>
 ELFReader<ELFT>::getSectionName(Elf_Shdr rawSectHdr) {

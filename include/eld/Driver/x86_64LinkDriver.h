@@ -33,15 +33,19 @@ public:
 
 class x86_64LinkDriver : public GnuLdDriver {
 public:
-  static x86_64LinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
+  static x86_64LinkDriver *Create(eld::LinkerConfig &C,
                                   std::string InferredArchFromProgramName);
 
-  x86_64LinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+  x86_64LinkDriver(eld::LinkerConfig &C,
                    std::string InferredArchFromProgramName);
+
+  x86_64LinkDriver(eld::LinkerConfig &C, bool is64bit);
+
+  static x86_64LinkDriver *Create(eld::LinkerConfig &C, bool is64bit);
 
   virtual ~x86_64LinkDriver() {}
 
-  static bool isValidEmulation(llvm::StringRef Emulation );
+  static bool isValidEmulation(llvm::StringRef Emulation);
 
   // Main entry point.
   int link(llvm::ArrayRef<const char *> Args,
@@ -74,6 +78,8 @@ public:
   static std::string getInferredArch(llvm::StringRef Emulation) {
     return "x86_64";
   }
+
+  static bool isMyArch(llvm::StringRef MArch) { return MArch == "x86_64"; }
 };
 
 #endif

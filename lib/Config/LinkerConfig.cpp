@@ -134,6 +134,9 @@ void LinkerConfig::printOptions(llvm::raw_ostream &Outs, Module const &M,
   if (UseColor)
     Outs.resetColor();
 
+  if (!M.isBackendInitialized())
+    return;
+
   Outs << "# ABI Page Size: ";
   if (UseColor)
     Outs.changeColor(llvm::raw_ostream::YELLOW);

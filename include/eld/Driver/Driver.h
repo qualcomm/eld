@@ -29,7 +29,7 @@ class GnuLdDriver;
 
 class DLL_A_EXPORT Driver {
 public:
-  Driver(DriverFlavor F);
+  Driver(DriverFlavor F = DriverFlavor::Invalid);
 
   bool setDriverFlavorAndInferredArchFromLinkCommand(
       llvm::ArrayRef<const char *> Args);
@@ -49,8 +49,6 @@ public:
   static std::vector<llvm::StringRef> getELDFlagsArgs();
 
 private:
-  std::string getStringFromTarget(llvm::StringRef Target) const;
-
   DriverFlavor getDriverFlavorFromTarget(llvm::StringRef Target) const;
 
   void InitTarget();
