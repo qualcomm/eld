@@ -954,9 +954,6 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
           S + HIReloc->addend() - HIReloc->place(Backend.getModule()) + 0x800;
       if (isStaticLink && !llvm::isInt<20>(Result_Hi_Check >> 12) &&
           llvm::isInt<20>(Result_Hi >> 12)) {
-        int64_t Displacement = pReloc.place(Backend.getModule()) -
-                               HIReloc->place(Backend.getModule());
-        Result_lo += Displacement;
         pReloc.setType(pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I
                            ? llvm::ELF::R_RISCV_LO12_I
                            : llvm::ELF::R_RISCV_LO12_S);

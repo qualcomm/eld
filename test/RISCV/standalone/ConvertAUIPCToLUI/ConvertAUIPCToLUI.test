@@ -10,9 +10,27 @@ UNSUPPORTED: riscv32
 RUN: %clang %clangopts -fPIC -c %p/Inputs/t.c -ffunction-sections \
 RUN: -fno-asynchronous-unwind-tables -o %t1.o -mno-relax
 RUN: %link %linkopts  %t1.o -T %p/Inputs/tls.t -o %t.out 2>&1
-RUN: %objdump -d %t.out 2>&1 | %filecheck %s
-#END_TEST
-
+RUN: %objdump -d %t.out | %filecheck %s
 
 #CHECK: lui     a0, 0x0
 #CHECK: addi    a0, a0, 0x4
+
+RUN: %clang %clangopts -fno-pic -mcmodel=medany -c %p/Inputs/reverse.s -o %t.reverse.o
+RUN: %link %linkopts %t.reverse.o -T %p/Inputs/tls.t -o %t.reverse.out
+RUN: %objdump -d %t.reverse.out | %filecheck %s --check-prefix=REVERSE
+
+### Both lw instructions should have the same offset (0x88).
+REVERSE: <.Lpcrel_hi0>:
+REVERSE-NEXT:      lui a0, 0x0
+REVERSE-NEXT:      lw a0, 0x88(a0)
+REVERSE-NEXT:      j {{.+}} <.Lpcrel_hi1>
+
+REVERSE: <.Lpcrel_lo1>:
+REVERSE-NEXT:      lw a0, 0x88(a0)
+REVERSE-NEXT:      ret
+
+REVERSE: <.Lpcrel_hi1>:
+REVERSE-NEXT:       lui a0, 0x0
+REVERSE-NEXT:       j {{.+}} <.Lpcrel_lo1>
+
+#END_TEST
