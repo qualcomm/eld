@@ -438,7 +438,9 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
       G != 0 && fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize) &&
       S != 0;
 
-  if (type == llvm::ELF::R_RISCV_HI20) {
+
+
+
 
     StringRef Msg;
     if (canRelaxZero)
