@@ -891,8 +891,8 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
     // b. If the relocation overflows PCREL
     //             and
     // c. if the relocation would fit within LUI
-    if (isStaticLink && !llvm::isInt<20>((Result - P) >> 12) &&
-        llvm::isInt<20>(Result >> 12)) {
+    if (isStaticLink && !llvm::isInt<32>(Result - P) &&
+        llvm::isInt<32>(Result)) {
       uint64_t instr = pReloc.target();
       // Convert instruction to LUI
       instr = (instr & ~0x7f) | 0x37;
@@ -903,7 +903,7 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
       int wordSize = Backend.config().targets().is32Bits() ? 32 : 64;
       int64_t ResultSignExend = llvm::SignExtend64(Result, wordSize);
       // Overflow if result does not fit
-      if (!llvm::isInt<20>(ResultSignExend >> 12))
+      if (!llvm::isInt<32>(ResultSignExend))
         return RISCVRelocator::Overflow;
     }
   }
@@ -917,7 +917,7 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t S;
+  int64_t Value;
   const Relocation *HIReloc = nullptr;
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
       pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_S) {
@@ -930,44 +930,27 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
       RISCVGOT *GOT = Backend.findEntryInGOT(pReloc.symInfo());
       if (!GOT)
         return RISCVRelocator::BadReloc;
-      S = GOT->getAddr(DiagEngine);
+      Value = GOT->getAddr(DiagEngine);
     } else
-      S = Backend.getSymbolValuePLT(*HIReloc);
+      Value = Backend.getSymbolValuePLT(*HIReloc);
+    Value += HIReloc->addend();
   } else
-    S = Backend.getSymbolValuePLT(pReloc);
-
-  int64_t A = pReloc.addend();
-  int64_t Result_lo = S + A;
-  int64_t Result_Hi = S + A + 0x800;
-  bool isStaticLink = Backend.config().isCodeStatic();
-  bool isRelocDirty = false;
+    Value = Backend.getSymbolValuePLT(pReloc) + pReloc.addend();
 
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
       pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_S) {
-    if (HIReloc->type() == llvm::ELF::R_RISCV_HI20) {
+    // Since pcrel-hi and pcrel_lo can be processed in any order, we may
+    // encounter the original or converted one here.
+    if ((HIReloc->type() == llvm::ELF::R_RISCV_HI20 ||
+         HIReloc->type() == llvm::ELF::R_RISCV_PCREL_HI20) &&
+        Backend.config().isCodeStatic() &&
+        !llvm::isInt<32>(Value + 0x800 - HIReloc->place(Backend.getModule())) &&
+        llvm::isInt<32>(Value + 0x800)) {
       pReloc.setType(pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I
                          ? llvm::ELF::R_RISCV_LO12_I
                          : llvm::ELF::R_RISCV_LO12_S);
-      isRelocDirty = true;
-    } else if (HIReloc->type() == llvm::ELF::R_RISCV_PCREL_HI20) {
-      int64_t Result_Hi_Check =
-          S + HIReloc->addend() - HIReloc->place(Backend.getModule()) + 0x800;
-      if (isStaticLink && !llvm::isInt<20>(Result_Hi_Check >> 12) &&
-          llvm::isInt<20>(Result_Hi >> 12)) {
-        pReloc.setType(pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I
-                           ? llvm::ELF::R_RISCV_LO12_I
-                           : llvm::ELF::R_RISCV_LO12_S);
-        isRelocDirty = true;
-      }
-    }
-    if (!isRelocDirty) {
-      int64_t Displacement = pReloc.place(Backend.getModule()) -
-                             HIReloc->place(Backend.getModule());
-      Result_lo = S + HIReloc->addend() + Displacement -
-                  pReloc.place(Backend.getModule());
-      Result_Hi =
-          S + HIReloc->addend() - HIReloc->place(Backend.getModule()) + 0x800;
-    }
+    } else
+      Value -= HIReloc->place(Backend.getModule());
   }
 
   switch (pReloc.type()) {
@@ -977,12 +960,12 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
   case llvm::ELF::R_RISCV_TPREL_LO12_S:
   case llvm::ELF::R_RISCV_LO12_I:
   case llvm::ELF::R_RISCV_LO12_S:
-    Result_lo = Result_lo - (Result_Hi & 0xFFFFF000);
-    LLVM_FALLTHROUGH;
+    Value = Value - ((Value + 0x800) & 0xFFFFF000);
+    break;
   default:
     break;
   }
-  return ApplyReloc(pReloc, Result_lo, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
 }
 
 RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
