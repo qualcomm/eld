@@ -46,6 +46,7 @@ struct RelocationDescription {
 DECL_RISCV_APPLY_RELOC_FUNC(unsupported)
 DECL_RISCV_APPLY_RELOC_FUNC(applyNone)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAbs)
+DECL_RISCV_APPLY_RELOC_FUNC(applyAdditive)
 DECL_RISCV_APPLY_RELOC_FUNC(applyRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyHI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyLO)
@@ -108,27 +109,27 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_I, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_S, applyLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_ADD, applyTprelAdd),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD8, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD16, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD32, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD64, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB8, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB16, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB32, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB64, applyAbs),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD8, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD16, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD32, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD64, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB8, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB16, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB32, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB64, applyAdditive),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_GOT32_PCREL, unsupported),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ALIGN, applyAlign),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RVC_BRANCH, applyJumpOrCall),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RVC_JUMP, applyJumpOrCall),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_RELAX, applyNone),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB6, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET6, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET8, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET16, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET32, applyAbs),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB6, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET6, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET8, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET16, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET32, applyAdditive),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_32_PCREL, applyRel),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET_ULEB128, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB_ULEB128, applyAbs),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SET_ULEB128, applyAdditive),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_SUB_ULEB128, applyAdditive),
 
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_VENDOR, applyVendor),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_CUSTOM192, unsupported),
@@ -805,9 +806,6 @@ RISCVRelocator::Result applyNone(Relocation &pReloc, RISCVLDBackend &,
   return RISCVRelocator::OK;
 }
 
-// R_RISCV_[32|64]
-// R_RISCV_ADD*
-// R_RISCV_SUB*
 RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
                                 RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
@@ -826,7 +824,29 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   uint64_t S = IsPatchSection ? pReloc.symValue(Backend.getModule())
                               : Backend.getSymbolValuePLT(pReloc);
   uint64_t A = pReloc.addend();
-  uint64_t Result = 0;
+  int64_t Result = S + A;
+
+  // Manual range checks, they should be replaced with the generic mechanism,
+  // once it's fixed.
+  switch (pReloc.type()) {
+  case ELF::riscv::internal::R_RISCV_QC_ABS20_U:
+    if (!llvm::isInt<20>(Result))
+      return RISCVRelocator::Overflow;
+    break;
+  }
+
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
+}
+
+RISCVRelocator::Result applyAdditive(Relocation &pReloc,
+                                     RISCVLDBackend &Backend,
+                                     RelocationDescription &pRelocDesc) {
+  if (RelocDescs.count(pReloc.type()) == 0)
+    return RISCVRelocator::Unsupport;
+
+  uint64_t S = Backend.getSymbolValuePLT(pReloc);
+  uint64_t A = pReloc.addend();
+  uint64_t Result;
 
   Relocation *groupReloc = Backend.getGroupReloc(pReloc);
   Relocation::DWord TargetData =
@@ -835,28 +855,19 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   if (pReloc.type() >= llvm::ELF::R_RISCV_ADD8 &&
       pReloc.type() <= llvm::ELF::R_RISCV_ADD64)
     Result = TargetData + S + A;
-  else if (pReloc.type() >= llvm::ELF::R_RISCV_SUB8 &&
-           pReloc.type() <= llvm::ELF::R_RISCV_SUB64)
-    Result = TargetData - (S + A);
-  else if ((pReloc.type() == llvm::ELF::R_RISCV_SUB6) ||
-           (pReloc.type() == llvm::ELF::R_RISCV_SUB_ULEB128))
+  else if ((pReloc.type() >= llvm::ELF::R_RISCV_SUB8 &&
+            pReloc.type() <= llvm::ELF::R_RISCV_SUB64) ||
+           (pReloc.type() == llvm::ELF::R_RISCV_SUB6 ||
+            pReloc.type() == llvm::ELF::R_RISCV_SUB_ULEB128))
     Result = TargetData - (S + A);
   else
     Result = S + A;
 
-  switch (pReloc.type()) {
-  case ELF::riscv::internal::R_RISCV_QC_ABS20_U:
-    if (!llvm::isInt<20>(Result))
-      return RISCVRelocator::Overflow;
-    break;
-  }
-
   RISCVRelocator::Result Res =
       ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
-  // Update the target word for the paired reloc
-  if (groupReloc) {
+  if (groupReloc)
     groupReloc->target() = pReloc.target();
-  }
+
   return Res;
 }
 
