@@ -890,7 +890,7 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
 
   int64_t S = Backend.getSymbolValuePLT(pReloc);
   int64_t A = pReloc.addend();
-  int64_t Result = S + A + 0x800;
+  int64_t Result = S + A;
 
   if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_HI20) {
     int64_t P = pReloc.place(Backend.getModule());
@@ -902,8 +902,8 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
     // b. If the relocation overflows PCREL
     //             and
     // c. if the relocation would fit within LUI
-    if (isStaticLink && !llvm::isInt<32>(Result - P) &&
-        llvm::isInt<32>(Result)) {
+    if (isStaticLink && !llvm::isInt<32>(Result + 0x800 - P) &&
+        llvm::isInt<32>(Result + 0x800)) {
       uint64_t instr = pReloc.target();
       // Convert instruction to LUI
       instr = (instr & ~0x7f) | 0x37;
@@ -912,7 +912,7 @@ RISCVRelocator::Result applyHI(Relocation &pReloc, RISCVLDBackend &Backend,
     } else {
       Result -= P;
       int wordSize = Backend.config().targets().is32Bits() ? 32 : 64;
-      int64_t ResultSignExend = llvm::SignExtend64(Result, wordSize);
+      int64_t ResultSignExend = llvm::SignExtend64(Result + 0x800, wordSize);
       // Overflow if result does not fit
       if (!llvm::isInt<32>(ResultSignExend))
         return RISCVRelocator::Overflow;
@@ -964,18 +964,6 @@ RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
       Value -= HIReloc->place(Backend.getModule());
   }
 
-  switch (pReloc.type()) {
-  case llvm::ELF::R_RISCV_PCREL_LO12_I:
-  case llvm::ELF::R_RISCV_PCREL_LO12_S:
-  case llvm::ELF::R_RISCV_TPREL_LO12_I:
-  case llvm::ELF::R_RISCV_TPREL_LO12_S:
-  case llvm::ELF::R_RISCV_LO12_I:
-  case llvm::ELF::R_RISCV_LO12_S:
-    Value = Value - ((Value + 0x800) & 0xFFFFF000);
-    break;
-  default:
-    break;
-  }
   return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
 }
 
@@ -988,7 +976,7 @@ RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
   int64_t S = Backend.findEntryInGOT(pReloc.symInfo())
                   ->getAddr(Backend.config().getDiagEngine());
   int64_t A = pReloc.addend();
-  int64_t Result = S + A + 0x800;
+  int64_t Result = S + A;
 
   Result -= pReloc.place(Backend.getModule());
 

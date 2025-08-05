@@ -210,13 +210,11 @@ template <typename T> T getPCRELLO(T Value, T PC) {
 /// The following instruction types are supported
 /// I, S, SB, U, UJ, RVC, RVC(LUI), RVC(B), RVC(J)
 ///------------------------------------------
-template <typename T> T encodeI(T Result) {
-  Result &= 0xFFF;
-  Result <<= 20;
-  return Result;
+inline int32_t encodeI(int32_t Result) {
+  return (Result & 0xfff) << 20;
 }
 
-template <typename T> T encodeS(T &Result) {
+inline int32_t encodeS(int32_t Result) {
   uint32_t Imm11_5 = extractBits(Result, 11, 5) << 25;
   uint32_t Imm4_0 = extractBits(Result, 4, 0) << 7;
   Result = Imm11_5 | Imm4_0;
@@ -241,9 +239,8 @@ template <typename T> T encodeUJ(T Result) {
   return Result;
 }
 
-template <typename T> T encodeU(T Result) {
-  Result &= 0xFFFFF000;
-  return Result;
+inline int32_t encodeU_HI20(int32_t Result) {
+  return (Result + 0x800) & 0xFFFFF000;
 }
 
 template <typename T> T encodeU_ABS20(T Result) {

@@ -157,7 +157,7 @@ uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
     Value = encodeUJ(Value);
     break;
   case EncTy_U_HI20:
-    Value = encodeU(Value);
+    Value = encodeU_HI20(Value);
     break;
   case EncTy_U_ABS20:
     Value = encodeU_ABS20(Value);
