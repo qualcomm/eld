@@ -48,7 +48,7 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyNone)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAbs)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAdditive)
 DECL_RISCV_APPLY_RELOC_FUNC(applyRel)
-DECL_RISCV_APPLY_RELOC_FUNC(applyLO)
+DECL_RISCV_APPLY_RELOC_FUNC(applyRelLO)
 DECL_RISCV_APPLY_RELOC_FUNC(applyJumpOrCall)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAlign)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGPRel)
@@ -99,14 +99,14 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GOT_HI20, applyGOT),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TLS_GD_HI20, applyGOT),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_HI20, applyRel),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_I, applyLO),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_S, applyLO),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_I, applyRelLO),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_PCREL_LO12_S, applyRelLO),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_HI20, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_LO12_I, applyLO),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_LO12_S, applyLO),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_LO12_I, applyAbs),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_LO12_S, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_HI20, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_I, applyLO),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_S, applyLO),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_I, applyAbs),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_S, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_ADD, applyTprelAdd),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD8, applyAdditive),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD16, applyAdditive),
@@ -909,47 +909,41 @@ RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVLDBackend &Backend,
   return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
 }
 
-RISCVRelocator::Result applyLO(Relocation &pReloc, RISCVLDBackend &Backend,
-                               RelocationDescription &pRelocDesc) {
+RISCVRelocator::Result applyRelLO(Relocation &pReloc, RISCVLDBackend &Backend,
+                                    RelocationDescription &pRelocDesc) {
   DiagnosticEngine *DiagEngine = Backend.config().getDiagEngine();
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
 
-  int64_t Value;
-  const Relocation *HIReloc = nullptr;
-  if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
-      pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_S) {
-    HIReloc = Backend.getBaseReloc(pReloc);
-    if (!HIReloc)
-      return RISCVRelocator::BadReloc;
-    if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
-        HIReloc->type() == llvm::ELF::R_RISCV_TLS_GD_HI20 ||
-        HIReloc->type() == llvm::ELF::R_RISCV_TLS_GOT_HI20) {
-      RISCVGOT *GOT = Backend.findEntryInGOT(pReloc.symInfo());
-      if (!GOT)
-        return RISCVRelocator::BadReloc;
-      Value = GOT->getAddr(DiagEngine);
-    } else
-      Value = Backend.getSymbolValuePLT(*HIReloc);
-    Value += HIReloc->addend();
-  } else
-    Value = Backend.getSymbolValuePLT(pReloc) + pReloc.addend();
+  const Relocation *HIReloc = Backend.getBaseReloc(pReloc);
+  if (!HIReloc)
+    return RISCVRelocator::BadReloc;
 
-  if (pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
-      pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_S) {
-    // Since pcrel-hi and pcrel_lo can be processed in any order, we may
-    // encounter the original or converted one here.
-    if ((HIReloc->type() == llvm::ELF::R_RISCV_HI20 ||
-         HIReloc->type() == llvm::ELF::R_RISCV_PCREL_HI20) &&
-        Backend.config().isCodeStatic() &&
-        !llvm::isInt<32>(Value + 0x800 - HIReloc->place(Backend.getModule())) &&
-        llvm::isInt<32>(Value + 0x800)) {
-      pReloc.setType(pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I
-                         ? llvm::ELF::R_RISCV_LO12_I
-                         : llvm::ELF::R_RISCV_LO12_S);
-    } else
-      Value -= HIReloc->place(Backend.getModule());
-  }
+  int64_t Value;
+  if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
+      HIReloc->type() == llvm::ELF::R_RISCV_TLS_GD_HI20 ||
+      HIReloc->type() == llvm::ELF::R_RISCV_TLS_GOT_HI20) {
+    RISCVGOT *GOT = Backend.findEntryInGOT(pReloc.symInfo());
+    if (!GOT)
+      return RISCVRelocator::BadReloc;
+    Value = GOT->getAddr(DiagEngine);
+  } else
+    Value = Backend.getSymbolValuePLT(*HIReloc);
+
+  Value += HIReloc->addend();
+
+  // Since pcrel_hi and pcrel_lo can be processed in any order, we may
+  // encounter the original or converted one here.
+  if ((HIReloc->type() == llvm::ELF::R_RISCV_HI20 ||
+       HIReloc->type() == llvm::ELF::R_RISCV_PCREL_HI20) &&
+      Backend.config().isCodeStatic() &&
+      !llvm::isInt<32>(Value + 0x800 - HIReloc->place(Backend.getModule())) &&
+      llvm::isInt<32>(Value + 0x800)) {
+    pReloc.setType(pReloc.type() == llvm::ELF::R_RISCV_PCREL_LO12_I
+                       ? llvm::ELF::R_RISCV_LO12_I
+                       : llvm::ELF::R_RISCV_LO12_S);
+  } else
+    Value -= HIReloc->place(Backend.getModule());
 
   return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
 }
