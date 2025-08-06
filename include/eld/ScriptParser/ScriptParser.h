@@ -217,6 +217,17 @@ private:
   /// '{' in between the pattern, as this case, would not be possible with
   /// LexState::Default.
   bool isValidSectionPattern(llvm::StringRef Pat);
+
+  WildcardPattern *createAndRegisterWildcardPattern(
+      StrToken *S, WildcardPattern::SortPolicy P = WildcardPattern::SORT_NONE,
+      ExcludeFiles *E = nullptr);
+
+  WildcardPattern *createAndRegisterWildcardPattern(
+      llvm::StringRef S,
+      WildcardPattern::SortPolicy P = WildcardPattern::SORT_NONE,
+      ExcludeFiles *E = nullptr);
+
+  ExcludePattern *createExcludePattern(StrToken *S);
 };
 } // namespace v2
 } // namespace eld
