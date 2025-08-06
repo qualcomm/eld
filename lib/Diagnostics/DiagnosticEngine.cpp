@@ -126,17 +126,7 @@ DiagnosticEngine::convertToDiagEntry(llvm::Error Err) const {
   DiagnosticEngine::DiagIDType DiagId = getCustomDiagID(
       DiagnosticEngine::Severity::Fatal, "LLVM: " + Sstream.str());
 
-  llvm::Error IgnoreErr = llvm::handleErrors(
-      std::move(Err),
-      [](std::unique_ptr<llvm::ErrorInfoBase> Payload) -> llvm::Error {
-        return llvm::Error::success();
-      });
-
-  // llvm::Error must always be checked.
-  if (IgnoreErr) {
-    ASSERT(!IgnoreErr, "ignoreErr must always be false");
-    return plugin::DiagnosticEntry{};
-  }
+  ignoreLLVMError(std::move(Err));
 
   return plugin::DiagnosticEntry(DiagId);
 }
@@ -225,6 +215,17 @@ plugin::DiagnosticEntry::Severity DiagnosticEngine::getDiagEntrySeverity(
     llvm_unreachable("Unexpected severity!");
 #undef ADD_CASE
   }
+}
+
+void DiagnosticEngine::ignoreLLVMError(llvm::Error E) {
+  llvm::Error IgnoreErr = llvm::handleErrors(
+      std::move(E),
+      [](std::unique_ptr<llvm::ErrorInfoBase> Payload) -> llvm::Error {
+        return llvm::Error::success();
+      });
+  // llvm::Error must always be checked.
+  if (IgnoreErr)
+    ASSERT(!IgnoreErr, "ignoreErr must always be false");
 }
 
 // Initializes the default diagnostic IDs.
