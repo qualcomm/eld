@@ -66,6 +66,12 @@ public:
 
   uint32_t getNumRelocs() const override;
 
+  void computeTLSOffsets() override;
+
+  std::optional<uint64_t> getStaticTLSBlockVarOffset() const {
+    return StaticTLSBlockVarOffset;
+  }
+
 private:
   bool isInvalidReloc(Relocation &pType) const;
   void scanLocalReloc(InputFile &pInput, Relocation::Type, Relocation &pReloc,
@@ -83,6 +89,12 @@ private:
 
 private:
   ARMGNULDBackend &m_Target;
+
+  /// The static TLS block contains an optional gap at the beginning,
+  /// that is followed by an optional alignment padding. The TLS variables
+  /// are stored after the alignment padding. This member stores the
+  /// offset in the static TLS block from where the variables start.
+  std::optional<uint64_t> StaticTLSBlockVarOffset;
 };
 
 } // namespace eld

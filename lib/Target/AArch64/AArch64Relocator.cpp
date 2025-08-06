@@ -1031,7 +1031,14 @@ Relocator::Result tls_gottprel_lo(Relocation &pReloc,
 // R_AARCH64_TLSLE_ADD_TPREL_LO12
 // R_AARCH64_TLSLE_ADD_TPREL_LO12_NC : TPREL(S+A)
 Relocator::Result tls_tprel(Relocation &pReloc, AArch64Relocator &pParent) {
-  Relocator::DWord X = pParent.getSymValue(&pReloc) + 0x10;
+  const auto &OptTLSBlockVarOffset = pParent.getStaticTLSBlockVarOffset();
+  if (!OptTLSBlockVarOffset.has_value()) {
+    pParent.config().raise(Diag::no_pt_tls_segment);
+    return Relocator::Result::BadReloc;
+  }
+
+  Relocator::DWord X =
+      pParent.getSymValue(&pReloc) + OptTLSBlockVarOffset.value();
 
   if (pReloc.type() == llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12) {
     if (X >= 0x1000000)
@@ -1142,4 +1149,17 @@ Relocator::Result copyInstruction(Relocation &pReloc,
   std::memcpy((void *)&insn, data, AArch64InsnHelpers::InsnSize);
   pReloc.target() = insn;
   return Relocator::OK;
+}
+
+void AArch64Relocator::computeTLSOffsets() {
+  const uint32_t WordSize = 0x8;
+  auto OptFirstTLSSegVirtualAddr = getFirstTLSSegmentVirtualAddr();
+  auto OptMaxTLSSegAlignment = getMaxTLSSegmentAlign();
+  if (!OptFirstTLSSegVirtualAddr || !OptMaxTLSSegAlignment)
+    return;
+  auto FirstTLSSegVirtualAddr = OptFirstTLSSegVirtualAddr.value();
+  auto MaxTLSSegAlignment = OptMaxTLSSegAlignment.value();
+  StaticTLSBlockVarOffset = 2 * WordSize;
+  *StaticTLSBlockVarOffset +=
+      ((FirstTLSSegVirtualAddr - 2 * WordSize) & (MaxTLSSegAlignment - 1));
 }

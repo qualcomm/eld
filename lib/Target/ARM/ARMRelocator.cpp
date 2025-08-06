@@ -1590,9 +1590,15 @@ Relocator::Result tls_ldo32(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
-// R_ARM_TLS_LE32: S + A - tp
+// R_ARM_TLS_LE32: S + A + 2 * WordSize +
 Relocator::Result tls_le32(Relocation &pReloc, ARMRelocator &pParent) {
-  pReloc.target() += pParent.getSymValue(&pReloc) + pReloc.addend() + 0x8;
+  const auto &OptTLSBlockVarOffset = pParent.getStaticTLSBlockVarOffset();
+  if (!OptTLSBlockVarOffset.has_value()) {
+    pParent.config().raise(Diag::no_pt_tls_segment);
+    return Relocator::Result::BadReloc;
+  }
+  pReloc.target() += pParent.getSymValue(&pReloc) + pReloc.addend() +
+                     OptTLSBlockVarOffset.value();
   return Relocator::OK;
 }
 
@@ -1628,4 +1634,17 @@ Relocator::Result relocLDR12(Relocation &pReloc, ARMRelocator &pParent) {
   Relocator::DWord X = (S + A) - pReloc.place(pParent.module());
   pReloc.target() = pReloc.target() | (X & 0xfff);
   return Relocator::OK;
+}
+
+void ARMRelocator::computeTLSOffsets() {
+  const uint32_t WordSize = 0x4;
+  auto OptFirstTLSSegVirtualAddr = getFirstTLSSegmentVirtualAddr();
+  auto OptMaxTLSSegAlignment = getMaxTLSSegmentAlign();
+  if (!OptFirstTLSSegVirtualAddr || !OptMaxTLSSegAlignment)
+    return;
+  auto FirstTLSSegVirtualAddr = OptFirstTLSSegVirtualAddr.value();
+  auto MaxTLSSegAlignment = OptMaxTLSSegAlignment.value();
+  StaticTLSBlockVarOffset = 2 * WordSize;
+  *StaticTLSBlockVarOffset +=
+      ((FirstTLSSegVirtualAddr - 2 * WordSize) & (MaxTLSSegAlignment - 1));
 }

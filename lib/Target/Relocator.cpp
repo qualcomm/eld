@@ -25,6 +25,7 @@
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/SymbolResolver/SymbolInfo.h"
 #include "eld/Target/ELFFileFormat.h"
+#include "eld/Target/ELFSegmentFactory.h"
 #include <sstream>
 
 using namespace eld;
@@ -293,4 +294,23 @@ Relocation::Address Relocator::getSymValue(const Relocation *R) {
   if (R->symInfo() && R->symInfo()->isThreadLocal())
     return getTarget().finalizeTLSSymbol(R->symInfo()->outSymbol());
   return R->symValue(m_Module);
+}
+
+std::optional<uint64_t> Relocator::getFirstTLSSegmentVirtualAddr() const {
+  const auto &ELFSegTable = getTarget().elfSegmentTable();
+  const auto &TLSSegments = ELFSegTable.getSegments(llvm::ELF::PT_TLS);
+  if (TLSSegments.empty())
+    return std::nullopt;
+  return TLSSegments[0]->vaddr();
+}
+
+std::optional<uint64_t> Relocator::getMaxTLSSegmentAlign() const {
+  const auto &ELFSegTable = getTarget().elfSegmentTable();
+  const auto &TLSSegments = ELFSegTable.getSegments(llvm::ELF::PT_TLS);
+  if (TLSSegments.empty())
+    return std::nullopt;
+  uint64_t TLSAlign = 0;
+  for (const auto &S : TLSSegments)
+    TLSAlign = std::max(TLSAlign, S->align());
+  return TLSAlign;
 }

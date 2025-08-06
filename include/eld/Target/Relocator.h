@@ -145,6 +145,14 @@ public:
   // Get the address for a relocation
   Relocation::Address getSymValue(const Relocation *R);
 
+  std::optional<uint64_t> getFirstTLSSegmentVirtualAddr() const;
+
+  std::optional<uint64_t> getMaxTLSSegmentAlign() const;
+
+  /// Compute and store any offsets that are required for computing
+  /// TLS relocations.
+  virtual void computeTLSOffsets() {}
+
 private:
   enum ErrType { Undef, Invisible };
   LinkerConfig &m_Config;

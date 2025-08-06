@@ -1,0 +1,24 @@
+#---TLSLocalExecMultipleSegments.test--------------------------- PartialLink -----------------#
+#BEGIN_COMMENT
+# This tests checks that eld correctly computes TLS local-exec
+# relocation computation when the TLS segment alignment is greater
+# than 16 and there are multiple TLS segments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -l %t1.1.out | %filecheck %s --check-prefix=READELF
+RUN: %objdump -d %t1.1.out | %filecheck %s --check-prefix=OBJDUMP
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script2.t
+RUN: %readelf -l %t1.2.out | %filecheck %s --check-prefix=READELF_2
+RUN: %objdump -d %t1.2.out | %filecheck %s --check-prefix=OBJDUMP_2
+#END_TEST
+
+READELF: TLS {{.*}} RW 0x100
+READELF: TLS {{.*}} RW 0x100
+OBJDUMP: add {{.*}} #0x100
+
+READELF_2: TLS {{.*}} RW 0x400
+READELF_2: TLS {{.*}} RW 0x200
+OBJDUMP_2: add {{.*}} #0x400
+

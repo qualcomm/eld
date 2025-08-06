@@ -2136,6 +2136,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
   // Mapping section to count and max_size.
   llvm::DenseMap<ELFSection *, unsigned> RelocCount, MaxSectSize;
 
+  ThisBackend.getRelocator()->computeTLSOffsets();
+
   auto EmitOneReloc = [&](Relocation *Relocation) -> bool {
     if (!EmitRelocs)
       return true;
