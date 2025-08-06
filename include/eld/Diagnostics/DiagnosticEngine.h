@@ -251,6 +251,8 @@ public:
   /// signal by out-of-memory killer.
   bool isUsable();
 
+  static void ignoreLLVMError(llvm::Error E);
+
 private:
   // -----  emission  ----- //
   // emit - process the message to printer

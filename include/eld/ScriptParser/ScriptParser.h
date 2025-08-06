@@ -219,6 +219,17 @@ private:
   bool isValidSectionPattern(llvm::StringRef Pat);
 
   StrToken *readName(llvm::StringRef Name);
+
+  WildcardPattern *createAndRegisterWildcardPattern(
+      StrToken *S, WildcardPattern::SortPolicy P = WildcardPattern::SORT_NONE,
+      ExcludeFiles *E = nullptr);
+
+  WildcardPattern *createAndRegisterWildcardPattern(
+      llvm::StringRef S,
+      WildcardPattern::SortPolicy P = WildcardPattern::SORT_NONE,
+      ExcludeFiles *E = nullptr);
+
+  ExcludePattern *createExcludePattern(StrToken *S);
 };
 } // namespace v2
 } // namespace eld
