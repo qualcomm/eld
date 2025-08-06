@@ -51,7 +51,7 @@ LayoutWrapper::getPaddings(eld::plugin::OutputSection &Section) {
     if (!(p.endOffset - p.startOffset))
       continue;
     recordPadding(paddings, p.startOffset, p.endOffset - p.startOffset,
-                  p.Exp ? p.Exp->result() : 0, /*isAlignment*/ false);
+                  p.Exp ? p.Exp->resultOrZero() : 0, /*isAlignment*/ false);
   }
   for (eld::OutputSectionEntry::iterator it = entry->begin(),
                                          itEnd = entry->end();
@@ -83,7 +83,7 @@ LayoutWrapper::getPaddings(eld::plugin::OutputSection &Section) {
                NextRuleWithContent ? NextRuleWithContent->getFirstFrag()
                                    : nullptr)) {
         recordPadding(paddings, p.startOffset, p.endOffset - p.startOffset,
-                      p.Exp ? p.Exp->result() : 0, /*isAlignment*/ false);
+                      p.Exp ? p.Exp->resultOrZero() : 0, /*isAlignment*/ false);
       }
     }
   }

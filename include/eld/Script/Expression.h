@@ -191,6 +191,7 @@ public:
   /// \brief Evaluate the expression, commit and return the value when
   ///        evaluation is successful. Returns an error if evaluation fails.
   ///        This method is intended to be called by Expression users.
+  /// The result is set to 0 if the evaluation fails.
   eld::Expected<uint64_t> evaluateAndReturnError();
 
   /// evaluateAndRaiseError
@@ -200,6 +201,7 @@ public:
   ///        any case.
   /// This method is intended to be called by Expression
   ///        users.
+  /// The result is set to 0 if the evaluation fails.
   std::optional<uint64_t> evaluateAndRaiseError();
 
   /// eval
