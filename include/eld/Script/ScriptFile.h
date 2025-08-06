@@ -182,11 +182,11 @@ public:
   ExcludePattern *createExcludePattern(StrToken *S);
 
   /* WildcardPattern */
-  WildcardPattern *createWildCardPattern(
+  WildcardPattern * createAndRegisterWildcardPattern(
       StrToken *S, WildcardPattern::SortPolicy P = WildcardPattern::SORT_NONE,
       ExcludeFiles *E = nullptr);
 
-  WildcardPattern *createWildCardPattern(
+  WildcardPattern * createAndRegisterWildcardPattern(
       llvm::StringRef S,
       WildcardPattern::SortPolicy P = WildcardPattern::SORT_NONE,
       ExcludeFiles *E = nullptr);
@@ -302,6 +302,13 @@ public:
 
   // ----------------- process assignments in link order --------
   void processAssignments();
+
+  WildcardPattern *findWildcardPattern(const std::string &P) {
+    auto it = ScriptWildcardPatternMap.find(P);
+    if (it != ScriptWildcardPatternMap.end())
+      return it->second;
+    return nullptr;
+  }
 
 private:
   Kind ScriptFileKind;
