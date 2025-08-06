@@ -1237,7 +1237,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
              Cur, nullptr, (*Out)->getFirstFrag())) {
 
       printPadding(Cur, P.startOffset, P.endOffset - P.startOffset,
-                   P.Exp ? P.Exp->result() : 0, false, UseColor);
+                   P.Exp ? P.Exp->resultOrZero() : 0, false, UseColor);
     }
     for (OutputSectionEntry::iterator in = (*Out)->begin(),
                                       InEnd = (*Out)->end();
@@ -1301,7 +1301,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
                                      : nullptr)) {
 
           printPadding(Cur, P.startOffset, P.endOffset - P.startOffset,
-                       P.Exp ? P.Exp->result() : 0, false, UseColor);
+                       P.Exp ? P.Exp->resultOrZero() : 0, false, UseColor);
         }
       }
     }
