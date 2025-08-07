@@ -30,6 +30,7 @@ class DiagnosticEntry;
 } // namespace ELD
 
 namespace eld {
+class Module;
 class DiagnosticEngine;
 class SearchDirs;
 class LinkerConfig {
@@ -139,8 +140,7 @@ public:
 
   static const char *version();
 
-  void printOptions(llvm::raw_ostream &, GNULDBackend const &,
-                    bool UseColor = false);
+  void printOptions(llvm::raw_ostream &, Module const &, bool UseColor = false);
 
   bool isAssignOutputSectionsMultiThreaded() const {
     return EnableThreads & LinkerConfig::AssignOutputSections;

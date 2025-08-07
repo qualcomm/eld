@@ -1087,8 +1087,7 @@ std::string TextLayoutPrinter::commandLineWithMappings() {
 }
 
 // Print Map file header information like Linker architecture, version, etc.
-void TextLayoutPrinter::printArchAndVersion(bool UseColor,
-                                            GNULDBackend const &Backend) {
+void TextLayoutPrinter::printArchAndVersion(bool UseColor, Module const &M) {
   if (!eld::getVendorName().empty())
     outputStream() << "# Linker from " << eld::getVendorName() << " Version "
                    << eld::getVendorVersion() << "\n";
@@ -1096,8 +1095,7 @@ void TextLayoutPrinter::printArchAndVersion(bool UseColor,
                  << "\n";
   outputStream() << "# Linker: " << getELDRevision() << "\n";
   outputStream() << "# LLVM: " << getLLVMRevision() << "\n";
-  this->ThisLayoutInfo->getConfig().printOptions(outputStream(), Backend,
-                                                    UseColor);
+  this->ThisLayoutInfo->getConfig().printOptions(outputStream(), M, UseColor);
 
   // Print the command line in the Map file.
   std::string CommandLine;
@@ -1153,7 +1151,7 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
                   Backend.config().options().colorMap();
   LinkerScript const &Script = Module.getScript();
 
-  printArchAndVersion(UseColor, Backend);
+  printArchAndVersion(UseColor, Module);
   printStats(ThisLayoutInfo->getLinkStats(), Module);
   printIsFileHeaderLoadedInfo(Backend.isFileHeaderLoaded(), UseColor);
   printIsPHDRSLoadedInfo(Backend.isPHDRSLoaded(), UseColor);

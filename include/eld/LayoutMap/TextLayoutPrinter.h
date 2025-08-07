@@ -53,7 +53,7 @@ public:
   void printSection(GNULDBackend const &Backend,
                     const OutputSectionEntry *Section, bool UseColor);
 
-  void printArchAndVersion(bool UseColor, GNULDBackend const &Backend);
+  void printArchAndVersion(bool UseColor, Module const &M);
 
   void printFragInfo(Fragment *F, LayoutFragmentInfo *Info, ELFSection *Section,
                      Module &M) const;

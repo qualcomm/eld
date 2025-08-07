@@ -62,8 +62,8 @@ void LinkerConfig::addCommandLine(llvm::StringRef Option,
 }
 
 // TODO: Use DIAG here.
-void LinkerConfig::printOptions(llvm::raw_ostream &Outs,
-                                GNULDBackend const &Backend, bool UseColor) {
+void LinkerConfig::printOptions(llvm::raw_ostream &Outs, Module const &M,
+                                bool UseColor) {
   Outs << "# Notable linker command/script options:\n";
   Outs << "# CPU Architecture Version: ";
   if (UseColor) {
@@ -105,7 +105,7 @@ void LinkerConfig::printOptions(llvm::raw_ostream &Outs,
     Outs << "Static\n";
   }
   // Print LTO flag status and parameters
-  if (Backend.getModule().needLTOToBeInvoked() || options().hasLTO()) {
+  if (M.needLTOToBeInvoked() || options().hasLTO()) {
     std::vector<llvm::StringRef> LtoOptions;
     if (UseColor)
       Outs.resetColor();
@@ -133,11 +133,12 @@ void LinkerConfig::printOptions(llvm::raw_ostream &Outs,
 
   if (UseColor)
     Outs.resetColor();
+
   Outs << "# ABI Page Size: ";
   if (UseColor)
     Outs.changeColor(llvm::raw_ostream::YELLOW);
   Outs << "0x";
-  Outs.write_hex(Backend.abiPageSize());
+  Outs.write_hex(M.getBackend().abiPageSize());
   Outs << "\n";
   if (UseColor)
     Outs.resetColor();
