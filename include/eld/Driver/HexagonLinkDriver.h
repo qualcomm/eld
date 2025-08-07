@@ -32,10 +32,10 @@ public:
 
 class HexagonLinkDriver : public GnuLdDriver {
 public:
-  static HexagonLinkDriver *Create(eld::LinkerConfig &C, Flavor F,
+  static HexagonLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
                                    std::string Triple);
 
-  HexagonLinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple);
+  HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F, std::string Triple);
 
   virtual ~HexagonLinkDriver() {}
 

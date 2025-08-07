@@ -62,14 +62,15 @@ ARMLinkDriver::ParseEmulation(std::string pEmulation,
 OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
                                      std::string Triple) {
   return eld::make<ARMLinkDriver>(C, F, Triple);
 }
 
-ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple)
+ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+                             std::string Triple)
     : GnuLdDriver(C, F) {
-  if (F == Flavor::ARM)
+  if (F == DriverFlavor::ARM_AArch64)
     Config.targets().setArch("arm");
   else
     Config.targets().setArch("aarch64");

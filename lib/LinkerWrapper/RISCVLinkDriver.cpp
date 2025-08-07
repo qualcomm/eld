@@ -55,15 +55,15 @@ static Triple ParseEmulation(std::string pEmulation, Triple &triple,
 OPT_RISCVLinkOptTable::OPT_RISCVLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
                                          std::string Triple) {
   return eld::make<RISCVLinkDriver>(C, F, Triple);
 }
 
-RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, Flavor F,
+RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
                                  std::string Triple)
     : GnuLdDriver(C, F) {
-  if (F == Flavor::RISCV32)
+  if (F == DriverFlavor::RISCV32_RISCV64)
     Config.targets().setArch("riscv32");
   else
     Config.targets().setArch("riscv64");

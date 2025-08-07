@@ -29,9 +29,10 @@ class GnuLdDriver;
 
 class DLL_A_EXPORT Driver {
 public:
-  Driver(Flavor F, std::string Triple);
+  Driver(DriverFlavor F, std::string Triple);
 
-  bool setFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
+  bool
+  setDriverFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
 
   static eld::Expected<Driver>
   createDriverForLinkCommand(llvm::ArrayRef<const char *> Args);
@@ -50,22 +51,22 @@ public:
 private:
   std::string getStringFromTarget(llvm::StringRef Target) const;
 
-  Flavor getFlavorFromTarget(llvm::StringRef Target) const;
+  DriverFlavor getDriverFlavorFromTarget(llvm::StringRef Target) const;
 
   void InitTarget();
 
-  eld::Expected<std::pair<Flavor, std::string>>
-  getFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
+  eld::Expected<std::pair<DriverFlavor, std::string>>
+  getDriverFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
 
-  std::pair<Flavor, std::string>
-  parseFlavorAndTripleFromProgramName(const char *argv0);
+  std::pair<DriverFlavor, std::string>
+  parseDriverFlavorAndTripleFromProgramName(const char *argv0);
 
 protected:
   eld::DiagnosticEngine *DiagEngine = nullptr;
   eld::LinkerConfig Config;
 
 private:
-  Flavor m_Flavor = Invalid;
+  DriverFlavor m_DriverFlavor = Invalid;
   std::string m_Triple;
   std::vector<std::string> m_SupportedTargets;
 };

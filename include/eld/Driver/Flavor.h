@@ -1,4 +1,5 @@
-//===- Flavor.h------------------------------------------------------------===//
+//===-
+//DriverFlavor.h------------------------------------------------------------===//
 // Part of the eld Project, under the BSD License
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
@@ -9,14 +10,12 @@
 
 #include "eld/Support/Defines.h"
 
-enum Flavor {
+enum DriverFlavor {
   Invalid,
-  Hexagon, // Hexagon
-  ARM,     // ARM
-  AArch64, // AArch64
-  RISCV32, // RISCV32
-  RISCV64, // RISCV64
-  x86_64   // x86_64
+  Hexagon,         // Hexagon
+  ARM_AArch64,     // ARM, AArch64
+  RISCV32_RISCV64, // RISCV32
+  x86_64           // x86_64
 };
 
 #endif

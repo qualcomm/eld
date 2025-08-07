@@ -70,31 +70,29 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 OPT_GnuLdOptTable::OPT_GnuLdOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-GnuLdDriver::GnuLdDriver(LinkerConfig &C, Flavor F)
+GnuLdDriver::GnuLdDriver(LinkerConfig &C, DriverFlavor F)
     : Config(C), DiagEngine(C.getDiagEngine()), m_Script(DiagEngine),
-      m_Flavor(F) {}
+      m_DriverFlavor(F) {}
 
 GnuLdDriver::~GnuLdDriver() {}
 
-GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, Flavor F,
+GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
                                  std::string Triple) {
   switch (F) {
 #ifdef ELD_ENABLE_TARGET_HEXAGON
-  case Flavor::Hexagon:
+  case DriverFlavor::Hexagon:
     return HexagonLinkDriver::Create(C, F, Triple);
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
-  case Flavor::ARM:
-  case Flavor::AArch64:
+  case DriverFlavor::ARM_AArch64:
     return ARMLinkDriver::Create(C, F, Triple);
 #endif
 #ifdef ELD_ENABLE_TARGET_RISCV
-  case Flavor::RISCV32:
-  case Flavor::RISCV64:
+  case DriverFlavor::RISCV32_RISCV64:
     return RISCVLinkDriver::Create(C, F, Triple);
 #endif
 #ifdef ELD_ENABLE_TARGET_X86_64
-  case Flavor::x86_64:
+  case DriverFlavor::x86_64:
     return x86_64LinkDriver::Create(C, F, Triple);
 #endif
   default:
@@ -1690,28 +1688,24 @@ bool GnuLdDriver::handleReproduce(llvm::opt::InputArgList &Args,
   return true;
 }
 
-std::string GnuLdDriver::getFlavorName() const {
-  switch (m_Flavor) {
-  case Flavor::AArch64:
-    return "AArch64";
-  case Flavor::ARM:
-    return "ARM";
-  case Flavor::Hexagon:
+std::string GnuLdDriver::getDriverFlavorName() const {
+  switch (m_DriverFlavor) {
+  case DriverFlavor::ARM_AArch64:
+    return "ARM/AArch64";
+  case DriverFlavor::Hexagon:
     return "Hexagon";
-  case Flavor::RISCV32:
-    return "RISCV32";
-  case Flavor::RISCV64:
-    return "RISCV64";
-  case Flavor::x86_64:
+  case DriverFlavor::RISCV32_RISCV64:
+    return "RISCV32/RISCV64";
+  case DriverFlavor::x86_64:
     return "x86_64";
-  case Flavor::Invalid:
+  case DriverFlavor::Invalid:
     break;
   }
-  ASSERT(false, "Invalid Flavor!");
+  ASSERT(false, "Invalid DriverFlavor!");
 }
 
 void GnuLdDriver::printRepositoryVersion() const {
-  std::string flavorName = getFlavorName();
+  std::string flavorName = getDriverFlavorName();
   if (!flavorName.empty())
     outs() << flavorName << " ";
   outs() << "Linker repository revision: " << eld::getELDRepositoryVersion()

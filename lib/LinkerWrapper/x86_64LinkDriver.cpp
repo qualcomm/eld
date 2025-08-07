@@ -37,12 +37,12 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 OPT_x86_64LinkOptTable::OPT_x86_64LinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+x86_64LinkDriver *x86_64LinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
                                            std::string Triple) {
   return eld::make<x86_64LinkDriver>(C, F, Triple);
 }
 
-x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C, Flavor F,
+x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C, DriverFlavor F,
                                    std::string Triple)
     : GnuLdDriver(C, F) {
   Config.targets().setArch("x86_64");

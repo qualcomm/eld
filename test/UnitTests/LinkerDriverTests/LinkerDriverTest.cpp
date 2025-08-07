@@ -22,14 +22,14 @@ protected:
 // Testcases
 //
 TEST_F(DriverTest, InvalidTarget) {
-  Driver *driver = new Driver(Flavor::Invalid, "random");
+  Driver *driver = new Driver(DriverFlavor::Invalid, "random");
   // Default to the first target.
   ASSERT_NE(driver->getLinkerDriver(), nullptr);
   delete driver;
 }
 
 TEST_F(DriverTest, ValidTarget) {
-  Driver *driver = new Driver(Flavor::Hexagon, "hexagon");
+  Driver *driver = new Driver(DriverFlavor::Hexagon, "hexagon");
   ASSERT_NE(driver->getLinkerDriver(), nullptr);
   delete driver;
 }

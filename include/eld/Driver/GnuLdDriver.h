@@ -51,10 +51,10 @@ public:
 
 class DLL_A_EXPORT GnuLdDriver {
 public:
-  static GnuLdDriver *Create(eld::LinkerConfig &C, Flavor F,
+  static GnuLdDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
                              std::string Triple);
 
-  GnuLdDriver(eld::LinkerConfig &C, Flavor F = Flavor::Invalid);
+  GnuLdDriver(eld::LinkerConfig &C, DriverFlavor F = DriverFlavor::Invalid);
 
   virtual ~GnuLdDriver();
 
@@ -143,7 +143,7 @@ protected:
   void printRepositoryVersion() const;
 
   // Returns the driver's flavor name.
-  std::string getFlavorName() const;
+  std::string getDriverFlavorName() const;
 
   const std::string &getProgramName() const { return LinkerProgramName; }
 
@@ -158,7 +158,7 @@ protected:
   static eld::Module *ThisModule;
   llvm::opt::OptTable *Table;
   std::once_flag once_flag;
-  const Flavor m_Flavor;
+  const DriverFlavor m_DriverFlavor;
   std::vector<std::string> m_SupportedTargets;
   std::string LinkerProgramName;
 };

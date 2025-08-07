@@ -31,10 +31,10 @@ public:
 
 class RISCVLinkDriver : public GnuLdDriver {
 public:
-  static RISCVLinkDriver *Create(eld::LinkerConfig &C, Flavor F,
+  static RISCVLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
                                  std::string Triple);
 
-  RISCVLinkDriver(eld::LinkerConfig &C, Flavor F, std::string Triple);
+  RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F, std::string Triple);
 
   virtual ~RISCVLinkDriver() {}
 

@@ -45,12 +45,13 @@ static constexpr llvm::opt::OptTable::Info infoTable[] = {
 OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
-HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C, Flavor F,
+HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C,
+                                             DriverFlavor F,
                                              std::string Triple) {
   return eld::make<HexagonLinkDriver>(C, F, Triple);
 }
 
-HexagonLinkDriver::HexagonLinkDriver(eld::LinkerConfig &C, Flavor F,
+HexagonLinkDriver::HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
                                      std::string Triple)
     : GnuLdDriver(C, F) {
   Config.targets().setArch("hexagon");
