@@ -701,9 +701,9 @@ public:
 
   bool setMapStyle(llvm::StringRef MapStyle);
 
-  void setArgs(llvm::ArrayRef<const char *> &Argv) { CommandLineArgs = Argv; }
+  void setArgs(std::vector<const char *> &Argv) { CommandLineArgs = Argv; }
 
-  const llvm::ArrayRef<const char *> &args() const { return CommandLineArgs; }
+  const std::vector<const char *> &args() const { return CommandLineArgs; }
 
   // --Threads
   void enableThreads() { EnableThreads = true; }
@@ -1298,7 +1298,7 @@ private:
   std::string Entry;
   SymbolRenameMap SymbolRenames;
   AddressMapType AddressMap;
-  llvm::ArrayRef<const char *> CommandLineArgs;
+  std::vector<const char *> CommandLineArgs;
   llvm::StringRef ReportUndefPolicy;
   OrphanMode MOrphanMode = OrphanMode::Place;
   std::string LTOCacheDirectory = "";

@@ -1628,7 +1628,10 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
 
   bool linkStatus = false;
   {
+    // Set up the linker and set the driver
     eld::Linker linker(*ThisModule, Config);
+    linker.setDriver(this);
+    // Install default Signal handler
     llvm::sys::AddSignalHandler(defaultSignalHandler, nullptr);
     Config.raise(Diag::default_signal_handler);
     linkStatus = linker.prepare(actions, ELDTarget);

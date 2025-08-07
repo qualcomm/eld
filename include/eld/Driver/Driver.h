@@ -36,7 +36,7 @@ public:
   static eld::Expected<Driver>
   createDriverForLinkCommand(llvm::ArrayRef<const char *> Args);
 
-  GnuLdDriver *getLinker();
+  GnuLdDriver *getLinkerDriver();
 
   virtual ~Driver();
 

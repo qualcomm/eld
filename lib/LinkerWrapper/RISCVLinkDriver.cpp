@@ -163,7 +163,7 @@ int RISCVLinkDriver::link(llvm::ArrayRef<const char *> Args,
         << llvm::join(ELDFlagsArgs, " ");
   llvm::opt::InputArgList ArgList(allArgs.data(),
                                   allArgs.data() + allArgs.size());
-  Config.options().setArgs(Args);
+  Config.options().setArgs(allArgs);
   std::vector<eld::InputAction *> Action;
 
   //===--------------------------------------------------------------------===//

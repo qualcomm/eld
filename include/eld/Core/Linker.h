@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+class GnuLdDriver;
+
 namespace eld {
 
 class Module;
@@ -85,6 +87,11 @@ public:
 
   void unloadPlugins();
 
+  // Set the GNU linker driver after sniffing
+  void setDriver(GnuLdDriver *D) { Driver = D; }
+
+  GnuLdDriver *getDriver() const { return Driver; }
+
 private:
   bool initBackend(const eld::Target *PTarget);
 
@@ -120,16 +127,17 @@ private:
   void reportUnknownOptions() const;
 
 private:
-  Module *ThisModule;
-  LinkerConfig *ThisConfig;
-  GNULDBackend *Backend;
-  ObjectLinker *ObjLinker;
-  eld::IRBuilder *IR;
-  ProgressBar *LinkerProgress;
-  llvm::Timer *LinkTime;
-  llvm::Timer *TimingSectionTimer;
-  uint32_t UnresolvedSymbolPolicy;
-  uint64_t BeginningOfTime;
+  Module *ThisModule = nullptr;
+  GnuLdDriver *Driver = nullptr;
+  LinkerConfig *ThisConfig = nullptr;
+  GNULDBackend *Backend = nullptr;
+  ObjectLinker *ObjLinker = nullptr;
+  eld::IRBuilder *IR = nullptr;
+  ProgressBar *LinkerProgress = nullptr;
+  llvm::Timer *LinkTime = nullptr;
+  llvm::Timer *TimingSectionTimer = nullptr;
+  uint32_t UnresolvedSymbolPolicy = NotSet;
+  uint64_t BeginningOfTime = 0;
 };
 
 } // namespace eld

@@ -33,7 +33,7 @@ Driver::Driver(Flavor F, std::string Triple)
 
 Driver::~Driver() { delete DiagEngine; }
 
-GnuLdDriver *Driver::getLinker() {
+GnuLdDriver *Driver::getLinkerDriver() {
   if (!m_SupportedTargets.size())
     InitTarget();
   GnuLdDriver *LinkDriver = nullptr;

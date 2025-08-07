@@ -71,7 +71,7 @@ int main(int Argc, const char **Argv) {
   if (!driver.setFlavorAndTripleFromLinkCommand(Args))
     return 1;
 
-  GnuLdDriver *Linker = driver.getLinker();
+  GnuLdDriver *Linker = driver.getLinkerDriver();
 
   bool Status = Linker->link(Args);
 

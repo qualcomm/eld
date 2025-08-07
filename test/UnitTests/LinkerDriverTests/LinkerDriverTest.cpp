@@ -24,12 +24,12 @@ protected:
 TEST_F(DriverTest, InvalidTarget) {
   Driver *driver = new Driver(Flavor::Invalid, "random");
   // Default to the first target.
-  ASSERT_NE(driver->getLinker(), nullptr);
+  ASSERT_NE(driver->getLinkerDriver(), nullptr);
   delete driver;
 }
 
 TEST_F(DriverTest, ValidTarget) {
   Driver *driver = new Driver(Flavor::Hexagon, "hexagon");
-  ASSERT_NE(driver->getLinker(), nullptr);
+  ASSERT_NE(driver->getLinkerDriver(), nullptr);
   delete driver;
 }
