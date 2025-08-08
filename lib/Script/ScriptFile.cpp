@@ -390,8 +390,8 @@ void ScriptFile::leaveOutputSectDesc(const OutputSectDesc::Epilog &PEpilog) {
   DefaultSpec.initialize();
   StringList *StringList = createStringList();
   DefaultSpec.WildcardFilePattern =
-      createWildCardPattern(createParserStr("*", 1));
-  StringList->pushBack(createWildCardPattern(
+      createAndRegisterWildcardPattern(createParserStr("*", 1));
+  StringList->pushBack(createAndRegisterWildcardPattern(
       eld::make<StrToken>(OutputSectionDescription->name())));
   DefaultSpec.WildcardSectionPattern = StringList;
   DefaultSpec.InputArchiveMember = nullptr;
@@ -454,7 +454,8 @@ void ScriptFile::addInputSectDesc(InputSectDesc::Policy PPolicy,
     StringList *StringList = createStringList();
     // Add a rule to grab all the sections from the input file
     // This way no rule matching logic needs to be modified
-    StringList->pushBack(createWildCardPattern(eld::make<StrToken>("*")));
+    StringList->pushBack(
+        createAndRegisterWildcardPattern(eld::make<StrToken>("*")));
     NoWildcardSectionsSpec.WildcardSectionPattern = StringList;
     Desc = make<InputSectDesc>(ThisModule.getScript().getIncrementedRuleCount(),
                                PPolicy, NoWildcardSectionsSpec,
@@ -476,30 +477,6 @@ ExcludeFiles *ScriptFile::createExcludeFiles() {
   return (MPExcludeFiles = make<ExcludeFiles>(ExcludeFiles()));
 }
 
-ExcludePattern *ScriptFile::createExcludePattern(StrToken *S) {
-  std::string Name = S->name();
-  size_t ColonPos = Name.find(":");
-  WildcardPattern *ArchivePattern = nullptr;
-  WildcardPattern *FilePattern = nullptr;
-  StrToken *ArchiveToken = nullptr;
-  StrToken *FileToken = nullptr;
-  // Handles: <file>
-  if (ColonPos == std::string::npos) {
-    FileToken = createStrToken(Name);
-    FilePattern = createWildCardPattern(FileToken);
-  } else {
-    // Handles: <archive>:
-    ArchiveToken = createStrToken(Name.substr(0, ColonPos));
-    ArchivePattern = createWildCardPattern(ArchiveToken);
-    // Handles: <archive>:<member>
-    if (ColonPos != Name.size() - 1) {
-      FileToken = createStrToken(Name.substr(ColonPos + 1));
-      FilePattern = createWildCardPattern(FileToken);
-    }
-  }
-  return make<ExcludePattern>(ArchivePattern, FilePattern);
-}
-
 void ScriptFile::setAsNeeded(bool PEnable) {
   LinkerScriptHasAsNeeded = PEnable;
 }
@@ -518,9 +495,8 @@ NameSpec *ScriptFile::createNameSpecToken(const std::string &PString,
   return make<NameSpec>(PString, AsNeeded);
 }
 
-WildcardPattern *
-ScriptFile::createWildCardPattern(StrToken *S, WildcardPattern::SortPolicy P,
-                                  ExcludeFiles *E) {
+WildcardPattern *ScriptFile::createAndRegisterWildcardPattern(
+    StrToken *S, WildcardPattern::SortPolicy P, ExcludeFiles *E) {
   auto F = ScriptWildcardPatternMap.find(S->name());
   if (F != ScriptWildcardPatternMap.end())
     return F->second;
@@ -529,10 +505,10 @@ ScriptFile::createWildCardPattern(StrToken *S, WildcardPattern::SortPolicy P,
   return Pat;
 }
 
-WildcardPattern *ScriptFile::createWildCardPattern(
+WildcardPattern *ScriptFile::createAndRegisterWildcardPattern(
     llvm::StringRef S, WildcardPattern::SortPolicy P, ExcludeFiles *E) {
   StrToken *Tok = createStrToken(S.str());
-  return createWildCardPattern(Tok, P, E);
+  return createAndRegisterWildcardPattern(Tok, P, E);
 }
 
 ScriptSymbol *ScriptFile::createScriptSymbol(const StrToken *S) const {

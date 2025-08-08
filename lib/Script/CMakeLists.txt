@@ -43,4 +43,4 @@ llvm_add_library(
   VersionScript.cpp
   WildcardPattern.cpp)
 
-target_link_libraries(ELDScript PRIVATE ELDCore ELDSupport ELDScriptParser)
+target_link_libraries(ELDScript PRIVATE ELDCore ELDSupport ELDScriptParser ELDDiagnostics)
