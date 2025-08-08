@@ -307,11 +307,11 @@ public:
 
   eld::Expected<void> setEpilog(const Epilog &PEpilog);
 
-  const Prolog &prolog() const { return OutpuSectDescProlog; }
+  const Prolog &prolog() const { return OutputSectDescProlog; }
 
   const Epilog &epilog() const { return OutpuSectDescEpilog; }
 
-  Prolog &prolog() { return OutpuSectDescProlog; }
+  Prolog &prolog() { return OutputSectDescProlog; }
 
   Epilog &epilog() { return OutpuSectDescEpilog; }
 
@@ -324,7 +324,7 @@ public:
 private:
   OutputSectCmds OutputSectionCommands;
   std::string Name;
-  Prolog OutpuSectDescProlog;
+  Prolog OutputSectDescProlog;
   Epilog OutpuSectDescEpilog;
 };
 
