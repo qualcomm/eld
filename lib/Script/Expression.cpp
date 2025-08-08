@@ -31,8 +31,7 @@ void Expression::setContext(const std::string &Context) {
 }
 
 uint64_t Expression::result() const {
-  ASSERT(MResult, "Expression result is not yet committed");
-  return *MResult;
+  return resultOrZero();
 }
 
 uint64_t Expression::resultOrZero() const {
