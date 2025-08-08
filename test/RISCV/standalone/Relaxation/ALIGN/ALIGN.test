@@ -13,8 +13,8 @@ RUN: %objdump -d %t2.out 2>&1 | %filecheck %s --check-prefix=DUMP
 RUN: %filecheck %s --input-file=%t2.map  --check-prefix=MAP-NORELAX
 #END_TEST
 
-CHECK: Verbose: RISCV_ALIGN : Need only 8 bytes in section .text+0x18 file {{.*}}align.o
-CHECK: Verbose: RISCV_ALIGN : Deleting 6 bytes for symbol '' in section .text+0x20 file {{.*}}align.o
+CHECK: Verbose: RISCV_ALIGN : Need only 8 bytes in section .text+0x8 file {{.*}}align.o
+CHECK: Verbose: RISCV_ALIGN : Deleting 6 bytes for symbol '' in section .text+0x10 file {{.*}}align.o
 
 DUMP: nop
 DUMP: nop
