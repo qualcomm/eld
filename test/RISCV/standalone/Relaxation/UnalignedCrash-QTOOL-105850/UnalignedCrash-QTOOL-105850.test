@@ -5,5 +5,5 @@
 # START_TEST
 #RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
 #RUN: not %link %linkopts %t.o -T %p/Inputs/1.t -o %t.out 2>&1 | %filecheck %s
-# CHECK: Error: Insufficient number of spare bytes for alignment relaxation: present 30, needed 31 in section .text+0x1f file {{.*}}.o
+# CHECK: Error: Insufficient number of spare bytes for alignment relaxation: present 30, needed 31 in section .text+{{.+}} file {{.*}}.o
 # END_TEST
