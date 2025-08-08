@@ -1174,3 +1174,18 @@ eld::Expected<bool> LinkerWrapper::doesRuleMatchWithSection(
   return SM.doesRuleMatchWithSection(*(R.getRuleContainer()), *(S.getSection()),
                                      doNotUseRSymbolName);
 }
+
+uint32_t LinkerWrapper::getLinkState() const {
+  PluginManager &PM = m_Module.getPluginManager();
+  return PM.getLinkState();
+}
+
+std::string_view LinkerWrapper::getLinkStateAsString() const {
+  PluginManager &PM = m_Module.getPluginManager();
+  return PM.getLinkStateAsString();
+}
+
+std::string_view LinkerWrapper::getLinkStateAsString(uint32_t State) const {
+  PluginManager &PM = m_Module.getPluginManager();
+  return PM.getLinkStateAsString(static_cast<PluginManager::LinkState>(State));
+}
