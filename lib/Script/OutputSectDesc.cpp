@@ -26,21 +26,21 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 OutputSectDesc::OutputSectDesc(const std::string &PName)
     : ScriptCommand(ScriptCommand::OUTPUT_SECT_DESC), Name(PName),
-      OutpuSectDescProlog() {
-  OutpuSectDescProlog.OutputSectionVMA = nullptr;
-  OutpuSectDescProlog.ThisType = OutputSectDesc::DEFAULT_TYPE;
-  OutpuSectDescProlog.SectionFlag = OutputSectDesc::DEFAULT_PERMISSIONS;
-  OutpuSectDescProlog.OutputSectionLMA = nullptr;
-  OutpuSectDescProlog.Alignment = nullptr;
-  OutpuSectDescProlog.OutputSectionSubaAlign = nullptr;
-  OutpuSectDescProlog.SectionConstraint = OutputSectDesc::NO_CONSTRAINT;
-  OutpuSectDescProlog.ThisPlugin = nullptr;
-  OutpuSectDescProlog.PluginCmd = nullptr;
+      OutputSectDescProlog() {
+  OutputSectDescProlog.OutputSectionVMA = nullptr;
+  OutputSectDescProlog.ThisType = OutputSectDesc::DEFAULT_TYPE;
+  OutputSectDescProlog.SectionFlag = OutputSectDesc::DEFAULT_PERMISSIONS;
+  OutputSectDescProlog.OutputSectionLMA = nullptr;
+  OutputSectDescProlog.Alignment = nullptr;
+  OutputSectDescProlog.OutputSectionSubaAlign = nullptr;
+  OutputSectDescProlog.SectionConstraint = OutputSectDesc::NO_CONSTRAINT;
+  OutputSectDescProlog.ThisPlugin = nullptr;
+  OutputSectDescProlog.PluginCmd = nullptr;
 
-  OutpuSectDescEpilog.OutputSectionMemoryRegion = nullptr;
-  OutpuSectDescEpilog.OutputSectionLMARegion = nullptr;
-  OutpuSectDescEpilog.ScriptPhdrs = nullptr;
-  OutpuSectDescEpilog.FillExpression = nullptr;
+  OutputSectDescEpilog.OutputSectionMemoryRegion = nullptr;
+  OutputSectDescEpilog.OutputSectionLMARegion = nullptr;
+  OutputSectDescEpilog.ScriptPhdrs = nullptr;
+  OutputSectDescEpilog.FillExpression = nullptr;
 }
 
 OutputSectDesc::~OutputSectDesc() {}
@@ -48,12 +48,12 @@ OutputSectDesc::~OutputSectDesc() {}
 void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
   Outs << Name << "\t";
 
-  if (OutpuSectDescProlog.hasVMA()) {
-    OutpuSectDescProlog.vma().dump(Outs);
+  if (OutputSectDescProlog.hasVMA()) {
+    OutputSectDescProlog.vma().dump(Outs);
     Outs << "\t";
   }
 
-  switch (OutpuSectDescProlog.type()) {
+  switch (OutputSectDescProlog.type()) {
   case NOLOAD:
     Outs << "(NOLOAD)";
     break;
@@ -74,30 +74,30 @@ void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
   }
   Outs << ":\n";
 
-  if (OutpuSectDescProlog.hasLMA()) {
+  if (OutputSectDescProlog.hasLMA()) {
     Outs << "\tAT(";
-    OutpuSectDescProlog.lma().dump(Outs);
+    OutputSectDescProlog.lma().dump(Outs);
     Outs << ")\n";
   }
 
-  if (OutpuSectDescProlog.hasAlign()) {
+  if (OutputSectDescProlog.hasAlign()) {
     Outs << "\tALIGN(";
-    OutpuSectDescProlog.align().dump(Outs);
+    OutputSectDescProlog.align().dump(Outs);
     Outs << ")\n";
   }
 
-  if (OutpuSectDescProlog.hasAlignWithInput()) {
+  if (OutputSectDescProlog.hasAlignWithInput()) {
     Outs << "\tALIGN_WITH_INPUT";
     Outs << ")\n";
   }
 
-  if (OutpuSectDescProlog.hasSubAlign()) {
+  if (OutputSectDescProlog.hasSubAlign()) {
     Outs << "\tSUBALIGN(";
-    OutpuSectDescProlog.subAlign().dump(Outs);
+    OutputSectDescProlog.subAlign().dump(Outs);
     Outs << ")\n";
   }
 
-  switch (OutpuSectDescProlog.constraint()) {
+  switch (OutputSectDescProlog.constraint()) {
   case ONLY_IF_RO:
     Outs << "\tONLY_IF_RO\n";
     break;
@@ -134,33 +134,33 @@ void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
 }
 
 void OutputSectDesc::dumpEpilogue(llvm::raw_ostream &Outs) const {
-  if (OutpuSectDescEpilog.hasRegion())
-    Outs << "\t>" << OutpuSectDescEpilog.getVMARegionName();
-  if (OutpuSectDescEpilog.hasLMARegion())
-    Outs << "\tAT>" << OutpuSectDescEpilog.getLMARegionName();
+  if (OutputSectDescEpilog.hasRegion())
+    Outs << "\t>" << OutputSectDescEpilog.getVMARegionName();
+  if (OutputSectDescEpilog.hasLMARegion())
+    Outs << "\tAT>" << OutputSectDescEpilog.getLMARegionName();
 
-  if (OutpuSectDescEpilog.hasPhdrs()) {
-    for (auto &Elem : *OutpuSectDescEpilog.phdrs()) {
+  if (OutputSectDescEpilog.hasPhdrs()) {
+    for (auto &Elem : *OutputSectDescEpilog.phdrs()) {
       assert((Elem)->kind() == StrToken::String);
       Outs << ":" << (Elem)->name() << " ";
     }
   }
 
-  if (OutpuSectDescEpilog.hasFillExp()) {
+  if (OutputSectDescEpilog.hasFillExp()) {
     Outs << "= ";
-    OutpuSectDescEpilog.fillExp()->dump(Outs);
+    OutputSectDescEpilog.fillExp()->dump(Outs);
   }
 }
 
 void OutputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
   doIndent(Outs);
   Outs << Name;
-  if (OutpuSectDescProlog.hasVMA()) {
+  if (OutputSectDescProlog.hasVMA()) {
     Outs << " ";
-    OutpuSectDescProlog.vma().dump(Outs, false);
+    OutputSectDescProlog.vma().dump(Outs, false);
     Outs << " ";
   }
-  switch (OutpuSectDescProlog.type()) {
+  switch (OutputSectDescProlog.type()) {
   case NOLOAD:
     Outs << "(NOLOAD)";
     break;
@@ -174,35 +174,35 @@ void OutputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
     break;
   }
 
-  if (OutpuSectDescProlog.PluginCmd) {
+  if (OutputSectDescProlog.PluginCmd) {
     Outs << " ";
-    OutpuSectDescProlog.PluginCmd->dumpPluginInfo(Outs);
+    OutputSectDescProlog.PluginCmd->dumpPluginInfo(Outs);
   }
 
   Outs << " :";
-  if (OutpuSectDescProlog.hasLMA()) {
+  if (OutputSectDescProlog.hasLMA()) {
     Outs << " AT(";
-    OutpuSectDescProlog.lma().dump(Outs);
+    OutputSectDescProlog.lma().dump(Outs);
     Outs << ")";
   }
 
-  if (OutpuSectDescProlog.hasAlign()) {
+  if (OutputSectDescProlog.hasAlign()) {
     Outs << " ALIGN(";
-    OutpuSectDescProlog.align().dump(Outs);
+    OutputSectDescProlog.align().dump(Outs);
     Outs << ")";
   }
 
-  if (OutpuSectDescProlog.hasAlignWithInput()) {
+  if (OutputSectDescProlog.hasAlignWithInput()) {
     Outs << " ALIGN_WITH_INPUT";
   }
 
-  if (OutpuSectDescProlog.hasSubAlign()) {
+  if (OutputSectDescProlog.hasSubAlign()) {
     Outs << " SUBALIGN(";
-    OutpuSectDescProlog.subAlign().dump(Outs);
+    OutputSectDescProlog.subAlign().dump(Outs);
     Outs << ")";
   }
 
-  switch (OutpuSectDescProlog.constraint()) {
+  switch (OutputSectDescProlog.constraint()) {
   case ONLY_IF_RO:
     Outs << " ONLY_IF_RO";
     break;
@@ -231,66 +231,65 @@ void OutputSectDesc::pushBack(ScriptCommand *PCommand) {
 }
 
 void OutputSectDesc::setProlog(const Prolog &PProlog) {
-  OutpuSectDescProlog.OutputSectionVMA = PProlog.OutputSectionVMA;
-  OutpuSectDescProlog.ThisType = PProlog.ThisType;
-  OutpuSectDescProlog.SectionFlag = PProlog.SectionFlag;
-  OutpuSectDescProlog.OutputSectionLMA = PProlog.OutputSectionLMA;
-  OutpuSectDescProlog.Alignment = PProlog.Alignment;
-  OutpuSectDescProlog.OutputSectionSubaAlign = PProlog.OutputSectionSubaAlign;
-  OutpuSectDescProlog.SectionConstraint = PProlog.SectionConstraint;
-  OutpuSectDescProlog.ThisPlugin = PProlog.ThisPlugin;
-  OutpuSectDescProlog.PluginCmd = PProlog.PluginCmd;
-  OutpuSectDescProlog.HasAlignWithInput = PProlog.HasAlignWithInput;
-  if (OutpuSectDescProlog.OutputSectionVMA)
-    OutpuSectDescProlog.OutputSectionVMA->setContextRecursively(getContext());
-  if (OutpuSectDescProlog.OutputSectionLMA)
-    OutpuSectDescProlog.OutputSectionLMA->setContext(getContext());
-  if (OutpuSectDescProlog.Alignment)
-    OutpuSectDescProlog.Alignment->setContext(getContext());
-  if (OutpuSectDescProlog.OutputSectionSubaAlign)
-    OutpuSectDescProlog.OutputSectionSubaAlign->setContext(getContext());
+  OutputSectDescProlog.OutputSectionVMA = PProlog.OutputSectionVMA;
+  OutputSectDescProlog.ThisType = PProlog.ThisType;
+  OutputSectDescProlog.SectionFlag = PProlog.SectionFlag;
+  OutputSectDescProlog.OutputSectionLMA = PProlog.OutputSectionLMA;
+  OutputSectDescProlog.Alignment = PProlog.Alignment;
+  OutputSectDescProlog.OutputSectionSubaAlign = PProlog.OutputSectionSubaAlign;
+  OutputSectDescProlog.SectionConstraint = PProlog.SectionConstraint;
+  OutputSectDescProlog.ThisPlugin = PProlog.ThisPlugin;
+  OutputSectDescProlog.PluginCmd = PProlog.PluginCmd;
+  OutputSectDescProlog.HasAlignWithInput = PProlog.HasAlignWithInput;
+  if (OutputSectDescProlog.OutputSectionVMA)
+    OutputSectDescProlog.OutputSectionVMA->setContextRecursively(getContext());
+  if (OutputSectDescProlog.OutputSectionLMA)
+    OutputSectDescProlog.OutputSectionLMA->setContext(getContext());
+  if (OutputSectDescProlog.Alignment)
+    OutputSectDescProlog.Alignment->setContext(getContext());
+  if (OutputSectDescProlog.OutputSectionSubaAlign)
+    OutputSectDescProlog.OutputSectionSubaAlign->setContext(getContext());
 }
 
 eld::Expected<void> OutputSectDesc::setEpilog(const Epilog &PEpilog) {
-  OutpuSectDescEpilog.OutputSectionMemoryRegion =
+  OutputSectDescEpilog.OutputSectionMemoryRegion =
       PEpilog.OutputSectionMemoryRegion;
-  OutpuSectDescEpilog.ScriptPhdrs = PEpilog.ScriptPhdrs;
-  if (OutpuSectDescProlog.hasLMA() && !PEpilog.getLMARegionName().empty())
+  OutputSectDescEpilog.ScriptPhdrs = PEpilog.ScriptPhdrs;
+  if (OutputSectDescProlog.hasLMA() && !PEpilog.getLMARegionName().empty())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::error_cannot_specify_lma_and_memory_region,
         {Name, getContext()}));
-  OutpuSectDescEpilog.OutputSectionLMARegion = PEpilog.OutputSectionLMARegion;
+  OutputSectDescEpilog.OutputSectionLMARegion = PEpilog.OutputSectionLMARegion;
   if (!PEpilog.OutputSectionLMARegion)
-    OutpuSectDescEpilog.OutputSectionLMARegion =
+    OutputSectDescEpilog.OutputSectionLMARegion =
         PEpilog.OutputSectionMemoryRegion;
-  OutpuSectDescEpilog.FillExpression = PEpilog.FillExpression;
-  if (OutpuSectDescEpilog.FillExpression)
-    OutpuSectDescEpilog.FillExpression->setContext(getContext());
+  OutputSectDescEpilog.FillExpression = PEpilog.FillExpression;
+  if (OutputSectDescEpilog.FillExpression)
+    OutputSectDescEpilog.FillExpression->setContext(getContext());
   return eld::Expected<void>();
 }
 
 eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
   // Assignment in an output section
   OutputSectCmds Assignments;
-
   const LinkerScript &Script = CurModule.getLinkerScript();
-  if (OutpuSectDescEpilog.OutputSectionMemoryRegion) {
+  if (OutputSectDescEpilog.OutputSectionMemoryRegion) {
     eld::Expected<eld::ScriptMemoryRegion *> MemRegion = Script.getMemoryRegion(
-        OutpuSectDescEpilog.OutputSectionMemoryRegion->name(), getContext());
+        OutputSectDescEpilog.OutputSectionMemoryRegion->name(), getContext());
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(MemRegion);
-    OutpuSectDescEpilog.ScriptVMAMemoryRegion = MemRegion.value();
+    OutputSectDescEpilog.ScriptVMAMemoryRegion = MemRegion.value();
     // By default assign LMA region = VMA Region when the output
     // section does not have a LMA region specified and there is no
     // LMA override
-    if (!OutpuSectDescProlog.hasLMA() && !OutpuSectDescEpilog.hasLMARegion())
-      OutpuSectDescEpilog.ScriptLMAMemoryRegion =
-          OutpuSectDescEpilog.ScriptVMAMemoryRegion;
+    if (!OutputSectDescProlog.hasLMA() && !OutputSectDescEpilog.hasLMARegion())
+      OutputSectDescEpilog.ScriptLMAMemoryRegion =
+          OutputSectDescEpilog.ScriptVMAMemoryRegion;
   }
-  if (OutpuSectDescEpilog.OutputSectionLMARegion) {
+  if (OutputSectDescEpilog.OutputSectionLMARegion) {
     eld::Expected<eld::ScriptMemoryRegion *> LmaRegion = Script.getMemoryRegion(
-        OutpuSectDescEpilog.OutputSectionLMARegion->name(), getContext());
+        OutputSectDescEpilog.OutputSectionLMARegion->name(), getContext());
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(LmaRegion);
-    OutpuSectDescEpilog.ScriptLMAMemoryRegion = LmaRegion.value();
+    OutputSectDescEpilog.ScriptLMAMemoryRegion = LmaRegion.value();
   }
 
   for (const_iterator It = begin(), Ie = end(); It != Ie; ++It) {
@@ -321,16 +320,16 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
 }
 
 void OutputSectDesc::initialize() {
-  OutpuSectDescProlog.OutputSectionVMA = nullptr;
-  OutpuSectDescProlog.OutputSectionLMA = nullptr;
-  OutpuSectDescProlog.Alignment = nullptr;
-  OutpuSectDescProlog.OutputSectionSubaAlign = nullptr;
-  OutpuSectDescProlog.ThisPlugin = nullptr;
-  OutpuSectDescProlog.PluginCmd = nullptr;
-  OutpuSectDescEpilog.OutputSectionMemoryRegion = nullptr;
-  OutpuSectDescEpilog.OutputSectionLMARegion = nullptr;
-  OutpuSectDescEpilog.ScriptPhdrs = nullptr;
-  OutpuSectDescEpilog.FillExpression = nullptr;
-  OutpuSectDescEpilog.ScriptVMAMemoryRegion = nullptr;
-  OutpuSectDescEpilog.ScriptLMAMemoryRegion = nullptr;
+  OutputSectDescProlog.OutputSectionVMA = nullptr;
+  OutputSectDescProlog.OutputSectionLMA = nullptr;
+  OutputSectDescProlog.Alignment = nullptr;
+  OutputSectDescProlog.OutputSectionSubaAlign = nullptr;
+  OutputSectDescProlog.ThisPlugin = nullptr;
+  OutputSectDescProlog.PluginCmd = nullptr;
+  OutputSectDescEpilog.OutputSectionMemoryRegion = nullptr;
+  OutputSectDescEpilog.OutputSectionLMARegion = nullptr;
+  OutputSectDescEpilog.ScriptPhdrs = nullptr;
+  OutputSectDescEpilog.FillExpression = nullptr;
+  OutputSectDescEpilog.ScriptVMAMemoryRegion = nullptr;
+  OutputSectDescEpilog.ScriptLMAMemoryRegion = nullptr;
 }
