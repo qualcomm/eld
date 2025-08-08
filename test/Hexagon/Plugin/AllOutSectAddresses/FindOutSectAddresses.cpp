@@ -16,7 +16,7 @@ public:
   void processOutputSection(OutputSection S) override { return; }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return Status::SUCCESS;
     eld::Expected<std::vector<eld::plugin::OutputSection>> expOutSects =
         getLinker()->getAllOutputSections();
@@ -55,7 +55,7 @@ public:
   void Init(std::string Options) override {}
 
   void processOutputSection(OutputSection S) override {
-    if (getLinker()->getState() != LinkerWrapper::BeforeLayout)
+    if (!getLinker()->isLinkStateBeforeLayout())
       return;
     if (S.getName() == "foo") {
       eld::Expected<uint64_t> expVirtualAddress =
@@ -67,7 +67,7 @@ public:
   }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::BeforeLayout)
+    if (!getLinker()->isLinkStateBeforeLayout())
       return Status::SUCCESS;
     eld::Expected<std::vector<eld::plugin::OutputSection>> expOutSects =
         getLinker()->getAllOutputSections();
