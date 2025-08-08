@@ -431,3 +431,44 @@ GNU-compliant syntax (required now)::
 
 GNU requires a space between the output section name and the colon.
 eld now enforces this requirement for full GNU compatibility.
+
+Why cannot eld support these extensions along with GNU-compatibility?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+eld cannot support these extensions along with GNU-compatibility because they
+directly conflict with the GNU linker script syntax. For example, GNU ld
+allows :code:`:` in section names and allows :code:`=` in symbol names. The
+core issue is that GNU ld uses the same lexing state to parse symbol and
+section names to keep the parser simple and efficient. Due to this, GNU ld
+also allows other non-trivial characters in symbol names such as :code:`+`,
+:code:`-`, :code:`:` and so on. For example, for the below linker script
+snippet, gnu ld creates a symbol of the name :code:`a+=`::
+
+  a+= = b # lhs symbol is a+=
+
+eld cannot easily add exception to the two cases that were supported by eld extensions
+while keeping everything else the same to keep the linker script parser efficient.
+To support these as an exception, the parser needs to lookahead two tokens to resolve
+ambiguities. Let's understand this with the help of an example::
+
+  SECTIONS {
+    FOO: {
+      *(.text.foo)
+    }
+    u=v;
+  }
+
+When parsing the :code:`SECTIONS` commands, the parser does not know in which
+LexState to parse the command. If the command is an output section description,
+:code:`FOO:`, then the parser should parse the token in :code:`LexState::default`,
+whereas if the command is an assignment, then the parser should parse the token in
+:code:`LexState::Expr`. :code:`LexState::default` allows some characters
+in tokens that are not appropriate when parsing an expression. These characters
+include :code:`+`, :code:`-`, :code:`=` and more.
+
+To correctly determine which :code:`LexState` to use, the parser needs to
+peek (lookahead) two tokens in :code:`LexState::Expr`. With the two tokens peek,
+the parser can determine whether the command is an assignment command or not.
+
+This simple change requires a lot of changes in the parser. The parser needs to
+change from LL(1) (Simple and efficient) to LL(2) (Complex and less efficient).
