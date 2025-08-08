@@ -218,6 +218,10 @@ void OutputTarWriter::createAndAddConfigFile(std::string Filename,
                    /*isLTO*/ false);
 }
 
+void OutputTarWriter::addPluginGeneratedFile(const std::string &Filename) {
+  createAndAddFile(Filename, Filename, MappingFile::Kind::Miscellaneous, false);
+}
+
 void OutputTarWriter::createAndAddScriptFile(std::string Filename,
                                              std::string ResolvedPath) {
   createAndAddFile(Filename, ResolvedPath, MappingFile::LinkerScript,

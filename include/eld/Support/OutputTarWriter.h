@@ -76,6 +76,8 @@ public:
 
   void createAndAddScriptFile(std::string filename, std::string resolvedPath);
 
+  void addPluginGeneratedFile(const std::string &filename);
+
   void createAndAddCacheFile(std::string filename);
 
   // writes a single file and increments the progress bar
