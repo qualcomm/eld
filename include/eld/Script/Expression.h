@@ -18,8 +18,10 @@
 #include <unordered_set>
 
 namespace eld {
+class InputFile;
 class LinkerScript;
 class Module;
+class NamePool;
 class ScriptFile;
 
 //===----------------------------------------------------------------------===//
@@ -288,6 +290,10 @@ public:
       return Name + "=";
     return "=";
   }
+
+  /// Add all symbols referenced by this expression as undefined symbols
+  /// to the NamePool.
+  void addRefSymbolsAsUndefSymbolToNP(InputFile *IF, NamePool &NP);
 
 protected:
   std::string Name;   /// string representation of the expression
