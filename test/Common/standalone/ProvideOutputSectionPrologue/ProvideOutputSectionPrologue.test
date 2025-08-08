@@ -1,0 +1,21 @@
+#---ProvideOutputSectionPrologue.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This test verifies the PROVIDE provides symbols referenced in output section
+# prologue.
+# FIXME: Align and Subalign do not have expected value in the final image
+# because currently we evaluate ALIGN and Subalign before evaluating
+# linker script symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -Sls %t1.1.out 2>&1 | %filecheck %s --check-prefix=READELF
+#END_TEST
+
+READELF: .foo {{.*}} {{0+}}1000
+READELF: Program Headers
+READELF: 0x{{0+}}1000 0x{{0+}}2000
+READELF: {{0+}}100 {{.*}} ABS A
+READELF: {{0+}}100 {{.*}} ABS S
+READELF: {{0+}}1000 {{.*}} ABS VMA
+READELF: {{0+}}2000 {{.*}} ABS LMA

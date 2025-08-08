@@ -316,6 +316,20 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
       break;
     }
   }
+  // Add undefined symbols to the NamePool that are referred in the output
+  // section description prologue.
+  NamePool &NP = CurModule.getNamePool();
+  ASSERT(getInputFileInContext(),
+         "OutputSectDesc must have input file in context!");
+  InputFile *IF = getInputFileInContext();
+  if (OutputSectDescProlog.hasVMA())
+    OutputSectDescProlog.vma().addRefSymbolsAsUndefSymbolToNP(IF, NP);
+  if (OutputSectDescProlog.hasLMA())
+    OutputSectDescProlog.lma().addRefSymbolsAsUndefSymbolToNP(IF, NP);
+  if (OutputSectDescProlog.hasAlign())
+    OutputSectDescProlog.align().addRefSymbolsAsUndefSymbolToNP(IF, NP);
+  if (OutputSectDescProlog.hasSubAlign())
+    OutputSectDescProlog.subAlign().addRefSymbolsAsUndefSymbolToNP(IF, NP);
   return eld::Expected<void>();
 }
 

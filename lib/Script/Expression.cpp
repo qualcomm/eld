@@ -104,6 +104,14 @@ GNULDBackend &Expression::getTargetBackend() const {
   return ThisModule.getBackend();
 }
 
+void Expression::addRefSymbolsAsUndefSymbolToNP(InputFile *IF, NamePool &NP) {
+  std::unordered_set<std::string> SymbolNames;
+  getSymbolNames(SymbolNames);
+  for (const auto &S : SymbolNames) {
+    NP.addUndefinedELFSymbol(IF, S);
+  }
+}
+
 //===----------------------------------------------------------------------===//
 /// Symbol Operand
 Symbol::Symbol(Module &CurModule, std::string PName)
