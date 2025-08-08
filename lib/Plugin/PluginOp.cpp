@@ -52,6 +52,11 @@ RelocationDataPluginOp::RelocationDataPluginOp(plugin::LinkerWrapper *W,
                                                const std::string &Annotation)
     : PluginOp(W, PluginOp::RelocationData, Annotation), Relocation(R) {}
 
+UpdateRulePluginOp::UpdateRulePluginOp(plugin::LinkerWrapper *W,
+                                       RuleContainer *Rule, ELFSection *S,
+                                       const std::string &Annotation)
+    : PluginOp(W, PluginOp::UpdateRule, Annotation), Rule(Rule), Section(S) {}
+
 const eld::Fragment *RelocationDataPluginOp::getFrag() const {
   return Relocation->targetRef()->frag();
 }

@@ -30,6 +30,7 @@ public:
     RemoveSymbol,
     ResetOffset,
     UpdateChunks,
+    UpdateRule,
     RelocationData,
   };
 
@@ -178,6 +179,24 @@ public:
 
 private:
   const eld::Relocation *Relocation;
+};
+
+class UpdateRulePluginOp : public PluginOp {
+public:
+  UpdateRulePluginOp(plugin::LinkerWrapper *W, RuleContainer *Rule,
+                     eld::ELFSection *S, const std::string &Annotation);
+
+  static bool classof(const PluginOp *P) {
+    return P->getPluginOpType() == PluginOpType::UpdateRule;
+  }
+  std::string getPluginOpStr() const override { return "UR"; }
+
+  RuleContainer *getRule() const { return Rule; }
+  ELFSection *getSection() const { return Section; }
+
+private:
+  RuleContainer *Rule = nullptr;
+  ELFSection *Section = nullptr;
 };
 
 class ResetOffsetPluginOp : public PluginOp {
