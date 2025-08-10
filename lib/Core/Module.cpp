@@ -252,7 +252,8 @@ bool Module::createInternalInputs() {
     InternalFiles[IType] = IF;
   }
 
-  getBackend().createInternalInputs();
+  if (Linker->getBackend())
+    getBackend().createInternalInputs();
 
   // Add implicit dot symbol
   Resolver::Result ResolvedResult;
@@ -901,4 +902,8 @@ Module::getFragmentPaddingValue(const Fragment *F) const {
   if (!FragmentPaddingValues.contains(F))
     return {};
   return FragmentPaddingValues.at(F);
+}
+
+bool Module::isBackendInitialized() const {
+  return Linker->getBackend() != nullptr;
 }

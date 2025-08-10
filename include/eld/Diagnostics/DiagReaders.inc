@@ -98,3 +98,5 @@ DIAG(error_patch_invalid_symbol, DiagnosticEngine::Error,
      "symbols can be patched")
 DIAG(warning_abi_differences, DiagnosticEngine::Warning,
      "'%0' has OS/ABI set to %1, previously seen %2")
+DIAG(error_unknown_target_emulation, DiagnosticEngine::Error,
+  "target emulation unknown: -m or at least one .o file required")

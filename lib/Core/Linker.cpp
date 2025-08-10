@@ -14,6 +14,7 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Driver/GnuLdDriver.h"
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputBuilder.h"
@@ -51,10 +52,7 @@ using namespace eld;
 using namespace llvm;
 
 Linker::Linker(eld::Module &PModule, LinkerConfig &Config)
-    : ThisModule(&PModule), ThisConfig(&Config), Backend(nullptr),
-      ObjLinker(nullptr), IR(nullptr), LinkerProgress(nullptr),
-      LinkTime(nullptr), TimingSectionTimer(nullptr), UnresolvedSymbolPolicy(0),
-      BeginningOfTime(0) {
+    : ThisModule(&PModule), ThisConfig(&Config), Backend(nullptr) {
   IR = make<IRBuilder>(PModule, Config);
   ThisModule->setLinker(this);
   // Whenever you add an extra linker step, make sure you adjust the total
@@ -80,14 +78,17 @@ bool Linker::prepare(std::vector<InputAction *> &Actions,
                      const eld::Target *Target) {
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::initializing_linker);
-  {
+  if (Target) {
     eld::RegisterTimer F("Initialize Linker", "Link Summary",
                          ThisConfig->options().printTimingStats());
     if (!initEmulator(ThisModule->getScript(), Target))
       return false;
     if (!initBackend(Target))
       return false;
-
+  }
+  {
+    eld::RegisterTimer F("Initialize Inputs", "Link Summary",
+                         ThisConfig->options().printTimingStats());
     if (!initializeInputTree(Actions))
       return false;
   }
@@ -129,10 +130,12 @@ bool Linker::prepare(std::vector<InputAction *> &Actions,
       return false;
   }
 
-  reportUnknownOptions();
+  if (Backend)
+    reportUnknownOptions();
 
   if (ThisModule->getPrinter()->isVerbose()) {
-    ThisConfig->raise(Diag::entry_symbol) << Backend->getEntry();
+    if (Backend)
+      ThisConfig->raise(Diag::entry_symbol) << Backend->getEntry();
     ThisConfig->raise(Diag::reading_input_files);
   }
 
@@ -267,6 +270,12 @@ bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
 
 bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
 
+  // Initialize Object Linker
+  if (ThisModule->getPrinter()->isVerbose())
+    ThisConfig->raise(Diag::initializing_object_linker);
+  ObjLinker = make<ObjectLinker>(*ThisConfig, *ThisModule);
+  ObjLinker->initialize();
+
   // Prefer static libraries over dynamic libraries with omagic
   if (ThisConfig->options().isOMagic())
     IR->getInputBuilder().makeBStatic();
@@ -275,7 +284,8 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
     LinkerProgress->incrementAndDisplayProgress();
     eld::RegisterTimer T("Input Activation", "Initialize",
                          ThisConfig->options().printTimingStats());
-    Backend->initializeAttributes();
+    if (Backend)
+      Backend->initializeAttributes();
   }
 
   {
@@ -295,7 +305,9 @@ bool Linker::initializeInputTree(std::vector<InputAction *> &Actions) {
   eld::RegisterTimer T("More Options", "Initialize",
                        ThisConfig->options().printTimingStats());
   LinkerProgress->incrementAndDisplayProgress();
-  Backend->setOptions();
+
+  if (Backend)
+    Backend->setOptions();
 
   if (!verifyLinkerScript())
     return false;
@@ -846,11 +858,6 @@ bool Linker::initBackend(const eld::Target *PTarget) {
        !Backend->validateArchOpts()) ||
       HasError)
     return false;
-
-  if (ThisModule->getPrinter()->isVerbose())
-    ThisConfig->raise(Diag::initializing_object_linker);
-  ObjLinker = make<ObjectLinker>(*ThisConfig, *Backend);
-  ObjLinker->initialize(*ThisModule, *IR);
 
   Backend->setDefaultConfigs();
   return true;

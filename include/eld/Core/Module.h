@@ -98,7 +98,7 @@ public:
     Trampoline,
     GlobalDataSymbols,
     GNUBuildID,
-    MAX
+    MAX,
   } InternalInputType;
 
   typedef std::vector<InputFile *> ObjectList;
@@ -620,6 +620,8 @@ public:
   Section *createBitcodeSection(const std::string &Section, BitcodeFile &File,
                                 bool Internal = false);
 
+  bool isBackendInitialized() const;
+
 private:
   /// Verifies invariants of 'CreatingSections' linker state.
   /// Invariants here means the conditions and rules that 'CreatingSections'
@@ -659,7 +661,6 @@ private:
   NoCrossRefSet NonRefSections;
   LDSymbol *DotSymbol = nullptr;
   Linker *Linker = nullptr;
-  GNULDBackend *Backend = nullptr;
   LayoutInfo *ThisLayoutInfo = nullptr;
   bool Failure = false;
   bool UsesLto = false;

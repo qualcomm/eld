@@ -66,9 +66,9 @@ class ScriptReader;
  */
 class ObjectLinker {
 public:
-  ObjectLinker(LinkerConfig &PConfig, GNULDBackend &PLdBackend);
+  ObjectLinker(LinkerConfig &PConfig, Module &PModule);
 
-  bool initialize(Module &PModule, eld::IRBuilder &PBuilder);
+  bool initialize();
 
   void close();
 
@@ -242,8 +242,11 @@ public:
                     const std::vector<std::string> &AsmFilesFromLto);
   void beginPostLTO();
 
-  const GNULDBackend &getTargetBackend() const { return ThisBackend; }
-  GNULDBackend &getTargetBackend() { return ThisBackend; }
+  bool isBackendInitialized() const {
+    return ThisModule->isBackendInitialized();
+  }
+
+  GNULDBackend &getTargetBackend() const { return ThisModule->getBackend(); }
 
   void assignOutputSections(std::vector<eld::InputFile *> &Inputs);
 
@@ -463,12 +466,12 @@ private:
   ELFDynObjParser *createDynObjReader();
   ELFObjectWriter *createWriter();
 
+  // Initialize the target machine when sniffing object files
+  eld::Expected<bool> initializeTarget(InputFile *I);
+
 private:
   LinkerConfig &ThisConfig;
-  Module *ThisModule;
-  eld::IRBuilder *CurBuilder;
-
-  GNULDBackend &ThisBackend;
+  Module *ThisModule = nullptr;
 
   // -----  readers and writers  ----- //
   ELFRelocObjParser *RelocObjParser = nullptr;
@@ -476,23 +479,23 @@ private:
   ArchiveParser *ArchiveParser = nullptr;
   ELFExecObjParser *ELFExecObjParser = nullptr;
   BinaryFileParser *BinaryFileParser = nullptr;
-  GroupReader *GroupReader;
-  ScriptReader *ScriptReader;
-  ELFObjectWriter *ObjWriter;
-  BitcodeReader *MPBitcodeReader;
-  ObjectReader *SymDefReader;
+  GroupReader *GroupReader = nullptr;
+  ScriptReader *ScriptReader = nullptr;
+  ELFObjectWriter *ObjWriter = nullptr;
+  BitcodeReader *MPBitcodeReader = nullptr;
+  ObjectReader *SymDefReader = nullptr;
   llvm::StringSet<> MDynlistExports;
 
   // Is this the second phase of normalize for LTO
-  bool MPostLtoPhase;
+  bool MPostLtoPhase = false;
 
   // Set to true once any GC pass has run. Used to know if shouldIgnore() on
   // a symbol is meaningful.
   bool MGcHasRun = false;
 
-  bool MSaveTemps;
+  bool MSaveTemps = false;
 
-  bool MTraceLTO;
+  bool MTraceLTO = false;
 
   std::string MLtoTempPrefix;
 

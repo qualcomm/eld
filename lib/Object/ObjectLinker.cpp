@@ -104,11 +104,8 @@ codegen::RegisterCodeGenFlags CGF;
 //===----------------------------------------------------------------------===//
 // ObjectLinker
 //===----------------------------------------------------------------------===//
-ObjectLinker::ObjectLinker(LinkerConfig &PConfig, GNULDBackend &PLdBackend)
-    : ThisConfig(PConfig), ThisModule(nullptr), CurBuilder(nullptr),
-      ThisBackend(PLdBackend), GroupReader(nullptr), ScriptReader(nullptr),
-      ObjWriter(nullptr), MPBitcodeReader(nullptr), SymDefReader(nullptr),
-      MPostLtoPhase(false), MSaveTemps(false), MTraceLTO(false) {
+ObjectLinker::ObjectLinker(LinkerConfig &PConfig, Module &M)
+    : ThisConfig(PConfig), ThisModule(&M) {
   MSaveTemps = ThisConfig.options().getSaveTemps();
   MTraceLTO = ThisConfig.options().traceLTO();
   MLtoTempPrefix = getLTOTempPrefix();
@@ -127,10 +124,7 @@ void ObjectLinker::close() {
   }
 }
 
-bool ObjectLinker::initialize(eld::Module &PModule, eld::IRBuilder &PBuilder) {
-  ThisModule = &PModule;
-  CurBuilder = &PBuilder;
-
+bool ObjectLinker::initialize() {
   MPBitcodeReader = createBitcodeReader();
   // initialize the readers and writers
   RelocObjParser = createRelocObjParser();
@@ -143,8 +137,10 @@ bool ObjectLinker::initialize(eld::Module &PModule, eld::IRBuilder &PBuilder) {
   GroupReader = make<eld::GroupReader>(*ThisModule, this);
   ScriptReader = make<eld::ScriptReader>();
   ObjWriter = createWriter();
+
   // initialize Relocator
-  ThisBackend.initRelocator();
+  if (isBackendInitialized())
+    getTargetBackend().initRelocator();
 
   return true;
 }
@@ -154,7 +150,7 @@ bool ObjectLinker::initStdSections() {
   ObjectBuilder Builder(ThisConfig, *ThisModule);
 
   // initialize standard sections
-  eld::Expected<void> E = ThisBackend.initStdSections();
+  eld::Expected<void> E = getTargetBackend().initStdSections();
   if (!E) {
     ThisConfig.raiseDiagEntry(std::move(E.error()));
     return false;
@@ -162,18 +158,18 @@ bool ObjectLinker::initStdSections() {
 
   // initialize dynamic sections
   if (LinkerConfig::Object != ThisConfig.codeGenType()) {
-    ThisBackend.initDynamicSections(
-        *ThisBackend.getDynamicSectionHeadersInputFile());
+    getTargetBackend().initDynamicSections(
+        *getTargetBackend().getDynamicSectionHeadersInputFile());
 
     // Note that patch section are only created in one internal input file
     // (DynamicSectionHeadersInputFile).
     if (ThisConfig.options().isPatchEnable())
-      ThisBackend.initPatchSections(
-          *ThisBackend.getDynamicSectionHeadersInputFile());
+      getTargetBackend().initPatchSections(
+          *getTargetBackend().getDynamicSectionHeadersInputFile());
   }
 
   // initialize target-dependent sections
-  ThisBackend.initTargetSections(Builder);
+  getTargetBackend().initTargetSections(Builder);
 
   return true;
 }
@@ -194,8 +190,9 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
 
   ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
-  ScriptFile *S = make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
-                                   CurBuilder->getInputBuilder());
+  ScriptFile *S =
+      make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
+                       ThisModule->getIRBuilder()->getInputBuilder());
 
   LSFile->setParsed();
   LSFile->setScriptFile(S);
@@ -225,12 +222,6 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
 
   Input->setUsed(true);
 
-  // Error if the linker script had semantic errors .
-  if (ThisBackend.checkForLinkerScriptErrors()) {
-    ThisConfig.raise(Diag::file_has_error)
-        << Input->getInput()->getResolvedPath();
-    return false;
-  }
   return true;
 }
 
@@ -244,7 +235,8 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       eld::RegisterTimer T("Read Start Group and End Group",
                            "Read all Input files",
                            ThisConfig.options().printTimingStats());
-      getGroupReader()->readGroup(Begin, CurBuilder->getInputBuilder(),
+      getGroupReader()->readGroup(Begin,
+                                  ThisModule->getIRBuilder()->getInputBuilder(),
                                   ThisConfig, MPostLtoPhase);
       continue;
     }
@@ -289,7 +281,8 @@ bool ObjectLinker::normalize() {
   }
 
   // Read all the inputs
-  auto ReadSuccess = readInputs(CurBuilder->getInputBuilder().getInputs());
+  auto ReadSuccess =
+      readInputs(ThisModule->getIRBuilder()->getInputBuilder().getInputs());
   if (!ReadSuccess) {
     return false;
   }
@@ -307,11 +300,16 @@ bool ObjectLinker::normalize() {
       return false;
   }
 
-  ThisBackend.addSymbols();
+  if (!isBackendInitialized()) {
+    ThisConfig.raise(Diag::error_unknown_target_emulation);
+    return false;
+  }
+
+  getTargetBackend().addSymbols();
 
   // Initialize Default section mappings.
   if (!ThisModule->getScript().linkerScriptHasSectionsCommand())
-    ThisBackend.getInfo().InitializeDefaultMappings(*ThisModule);
+    getTargetBackend().getInfo().InitializeDefaultMappings(*ThisModule);
   return true;
 }
 
@@ -337,7 +335,7 @@ bool ObjectLinker::parseVersionScript() {
     ScriptFile VersionScriptReader(
         ScriptFile::VersionScript, *ThisModule,
         *(llvm::dyn_cast<eld::LinkerScriptFile>(VersionScriptInputFile)),
-        CurBuilder->getInputBuilder());
+        ThisModule->getIRBuilder()->getInputBuilder());
     bool SuccessFullInParse =
         getScriptReader()->readScript(ThisConfig, VersionScriptReader);
     if (!SuccessFullInParse)
@@ -363,14 +361,14 @@ bool ObjectLinker::parseVersionScript() {
       ThisModule->addVersionScriptNode(VersionScriptNode);
     }
   }
-  auto &SymbolScopes = ThisBackend.symbolScopes();
+  auto &SymbolScopes = getTargetBackend().symbolScopes();
   for (auto &G : ThisModule->getNamePool().getGlobals()) {
     ResolveInfo *R = G.getValue();
     for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
       if (VersionScriptNode->getGlobalBlock()) {
         for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
           if (Sym->getSymbolPattern()->matched(*R)) {
-            ThisBackend.addSymbolScope(R, Sym);
+            getTargetBackend().addSymbolScope(R, Sym);
           } // end Symbol Match
         } // end Symbols
       } // end Global
@@ -379,7 +377,7 @@ bool ObjectLinker::parseVersionScript() {
       if (VersionScriptNode->getLocalBlock()) {
         for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
           if (Sym->getSymbolPattern()->matched(*R)) {
-            ThisBackend.addSymbolScope(R, Sym);
+            getTargetBackend().addSymbolScope(R, Sym);
           } // end Symbol Match
         } // end Symbols
       } // end Local
@@ -458,7 +456,7 @@ void ObjectLinker::runGarbageCollection(const std::string &Phase,
                                         bool CommonSectionsOnly) {
   eld::RegisterTimer T("Perform Garbage collection", "Garbage Collection",
                        ThisConfig.options().printTimingStats());
-  GarbageCollection GC(ThisConfig, ThisBackend, *ThisModule);
+  GarbageCollection GC(ThisConfig, getTargetBackend(), *ThisModule);
   GC.run(Phase, CommonSectionsOnly);
   MGcHasRun = true;
 }
@@ -601,7 +599,7 @@ void ObjectLinker::fixMergeStringRelocations() const {
         ThisConfig.raise(Diag::handling_merge_strings_for_section)
             << S->getDecoratedName(ThisConfig.options())
             << S->getInputFile()->getInput()->decoratedPath(true);
-      ThisBackend.getRelocator()->doMergeStrings(S);
+      getTargetBackend().getRelocator()->doMergeStrings(S);
     }
   }
 }
@@ -652,7 +650,7 @@ void ObjectLinker::markDiscardFileFormatSections() {
   SectionMap::iterator It = SectionMap.findIter("/DISCARD/");
   bool IsGnuCompatible =
       (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
-  for (auto &Sec : ThisBackend.getOutputFormat()->getSections()) {
+  for (auto &Sec : getTargetBackend().getOutputFormat()->getSections()) {
     SectionMap::mapping Pair =
         SectionMap.findIn(It, "internal", *Sec, false, "internal",
                           Sec->sectionNameHash(), 0, 0, IsGnuCompatible);
@@ -729,8 +727,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
       break;
     }
     case LDFileFormat::Target:
-      if (ThisBackend.DoesOverrideMerge(Sect)) {
-        ThisBackend.mergeSection(Sect);
+      if (getTargetBackend().DoesOverrideMerge(Sect)) {
+        getTargetBackend().mergeSection(Sect);
         break;
       }
       LLVM_FALLTHROUGH;
@@ -741,15 +739,16 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
         if (!llvm::dyn_cast<eld::EhFrameSection>(Sect)
                  ->createCIEAndFDEFragments())
           return false;
-        llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(*ThisModule);
-        if (ThisBackend.getEhFrameHdr() &&
+        llvm::dyn_cast<eld::EhFrameSection>(Sect)->finishAddingFragments(
+            *ThisModule);
+        if (getTargetBackend().getEhFrameHdr() &&
             Sect->getKind() == LDFileFormat::EhFrame) {
-          ThisBackend.getEhFrameHdr()->addCIE(
+          getTargetBackend().getEhFrameHdr()->addCIE(
               llvm::dyn_cast<eld::EhFrameSection>(Sect)->getCIEs());
           // Since we found an EhFrame section, lets go ahead and start creating
           // the fragments necessary to create the .eh_frame_hdr section and
           // the filler eh_frame section.
-          ThisBackend.createEhFrameFillerAndHdrSection();
+          getTargetBackend().createEhFrameFillerAndHdrSection();
         }
       }
     }
@@ -759,7 +758,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
         continue; // skip
 
       ELFSection *OutSect = nullptr;
-      if (nullptr != (OutSect = Builder.mergeSection(ThisBackend, Sect))) {
+      if (nullptr !=
+          (OutSect = Builder.mergeSection(getTargetBackend(), Sect))) {
         Builder.updateSectionFlags(OutSect, Sect);
       }
       break;
@@ -959,7 +959,7 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
   // Set the first fragment in the output section.
   Output->setFirstNonEmptyRule(FirstNonEmptyRule);
 
-  Output->setOrder(ThisBackend.getSectionOrder(*OutSect));
+  Output->setOrder(getTargetBackend().getSectionOrder(*OutSect));
 
   // Assign offsets.
   assignOffset(Output);
@@ -1309,7 +1309,7 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   ScriptFile SymbolListReader(
       (ScriptFile::Kind)Type, *ThisModule,
       *(llvm::dyn_cast<eld::LinkerScriptFile>(SymbolListInputFile)),
-      CurBuilder->getInputBuilder());
+      ThisModule->getIRBuilder()->getInputBuilder());
   bool ParseSuccess =
       getScriptReader()->readScript(ThisConfig, SymbolListReader);
   if (!ParseSuccess)
@@ -1478,7 +1478,7 @@ bool ObjectLinker::addSymbolToOutput(const ResolveInfo &PInfo) const {
     return false;
 
   // Let the backend choose to add the symbol to the output.
-  if (!ThisBackend.addSymbolToOutput(const_cast<ResolveInfo *>(&PInfo)))
+  if (!getTargetBackend().addSymbolToOutput(const_cast<ResolveInfo *>(&PInfo)))
     return false;
 
   return true;
@@ -1579,7 +1579,7 @@ bool ObjectLinker::addSymbolsToOutput() {
     }
     // If the undefined symbol needs to be reported because the linker
     // was passed an option for unresolved symbol policy, lets do that.
-    if (ThisBackend.canIssueUndef(R)) {
+    if (getTargetBackend().canIssueUndef(R)) {
       HasError = true;
       ThisConfig.raise(Diag::undefined_symbol)
           << R->name() << R->resolvedOrigin()->getInput()->decoratedPath();
@@ -1597,7 +1597,7 @@ bool ObjectLinker::addSymbolsToOutput() {
 ///   @return if there are some input symbols with the same name to the
 ///   standard symbols, return false
 bool ObjectLinker::addStandardSymbols() {
-  return ThisBackend.initStandardSymbols();
+  return getTargetBackend().initStandardSymbols();
 }
 
 /// addTargetSymbols - some targets, such as MIPS and ARM, need some
@@ -1605,14 +1605,14 @@ bool ObjectLinker::addStandardSymbols() {
 ///   @return if there are some input symbols with the same name to the
 ///   target symbols, return false
 bool ObjectLinker::addTargetSymbols() {
-  ThisBackend.initTargetSymbols();
+  getTargetBackend().initTargetSymbols();
   return true;
 }
 
 bool ObjectLinker::processInputFiles() {
   std::vector<InputFile *> Inputs;
   getInputs(Inputs);
-  return ThisBackend.processInputFiles(Inputs);
+  return getTargetBackend().processInputFiles(Inputs);
 }
 
 /// addScriptSymbols - define symbols from the command line option or linker
@@ -1639,13 +1639,13 @@ bool ObjectLinker::addScriptSymbols() {
     Symbol = nullptr;
 
     if (AssignCmd->isProvideOrProvideHidden()) {
-      if (ThisBackend.isSymInProvideMap(SymName)) {
+      if (getTargetBackend().isSymInProvideMap(SymName)) {
         if (ThisConfig.showLinkerScriptWarnings())
           ThisConfig.raise(Diag::warn_provide_sym_redecl)
               << AssignCmd->getContext() << SymName;
         continue;
       }
-      ThisBackend.addProvideSymbol(SymName, AssignCmd);
+      getTargetBackend().addProvideSymbol(SymName, AssignCmd);
       if (!ThisModule->getAssignmentForSymbol(SymName))
         ThisModule->addAssignment(SymName, AssignCmd);
       continue;
@@ -1687,7 +1687,7 @@ bool ObjectLinker::addScriptSymbols() {
       // Add an absolute symbol
       if (!AssignCmd->isDot())
         Symbol =
-            CurBuilder
+            ThisModule->getIRBuilder()
                 ->addSymbol<eld::IRBuilder::Force, eld::IRBuilder::Unresolve>(
                     ScriptInput, SymName.str(), Type, ResolveInfo::Define,
                     ResolveInfo::Absolute, Size, SymValue, FragmentRef::null(),
@@ -1761,8 +1761,9 @@ bool ObjectLinker::addDynListSymbols() {
 }
 
 size_t ObjectLinker::getRelocSectSize(uint32_t Type, uint32_t Count) {
-  return Count * (Type == llvm::ELF::SHT_RELA ? ThisBackend.getRelaEntrySize()
-                                              : ThisBackend.getRelEntrySize());
+  return Count * (Type == llvm::ELF::SHT_RELA
+                      ? getTargetBackend().getRelaEntrySize()
+                      : getTargetBackend().getRelEntrySize());
 }
 
 void ObjectLinker::createRelocationSections() {
@@ -1810,7 +1811,7 @@ void ObjectLinker::createRelocationSections() {
         continue;
 
       for (auto &Relocation : Rs->getLink()->getRelocations()) {
-        if (ThisBackend.maySkipRelocProcessing(Relocation))
+        if (getTargetBackend().maySkipRelocProcessing(Relocation))
           continue;
 
         auto CountRelocEntries = [&](class Relocation *Relocation) -> void {
@@ -1831,7 +1832,7 @@ void ObjectLinker::createRelocationSections() {
 
           // Count the num of entries that refers to that section.
           SectionKey SectKey(OutputSect->name(),
-                             ThisBackend.getRelocator()->relocType());
+                             getTargetBackend().getRelocator()->relocType());
           OutputRelocCount[SectKey] += 1;
           OutputRelocAlignment[SectKey] =
               std::max(Rs->getAddrAlign(), OutputRelocAlignment[SectKey]);
@@ -1843,12 +1844,13 @@ void ObjectLinker::createRelocationSections() {
   } // for all inputs
   for (const auto &Kv : OutputRelocCount) {
     ELFSection *OutputSect = ThisModule->createOutputSection(
-        ThisBackend.getOutputRelocSectName(Kv.first.Name.str(), Kv.first.Type),
+        getTargetBackend().getOutputRelocSectName(Kv.first.Name.str(),
+                                                  Kv.first.Type),
         LDFileFormat::Relocation, Kv.first.Type /* Reloc Kind */, 0x0,
         OutputRelocAlignment[Kv.first]);
     OutputSect->setEntSize(Kv.first.Type == llvm::ELF::SHT_RELA
-                               ? ThisBackend.getRelaEntrySize()
-                               : ThisBackend.getRelEntrySize());
+                               ? getTargetBackend().getRelaEntrySize()
+                               : getTargetBackend().getRelEntrySize());
     OutputRelocTargetSect[Kv.first]->setWantedInOutput(true);
     OutputSect->setLink(OutputRelocTargetSect[Kv.first]);
     OutputSect->setSize(getRelocSectSize(Kv.first.Type, Kv.second));
@@ -1884,15 +1886,15 @@ void ObjectLinker::createCopyRelocation(ResolveInfo &Sym,
   // original symbol, the linker needs to export the original symbol and
   // make the alias symbl point to the original symbol.
   if (AliasSym && !AliasSym->outSymbol()) {
-    LDSymbol &GlobalSymbol =
-        ThisBackend.defineSymbolforCopyReloc(*CurBuilder, AliasSym, &Sym);
+    LDSymbol &GlobalSymbol = getTargetBackend().defineSymbolforCopyReloc(
+        *ThisModule->getIRBuilder(), AliasSym, &Sym);
     GlobalSymbol.resolveInfo()->setResolvedOrigin(Sym.resolvedOrigin());
-    addCopyReloc(ThisBackend, *GlobalSymbol.resolveInfo(), Type);
+    addCopyReloc(getTargetBackend(), *GlobalSymbol.resolveInfo(), Type);
   }
-  LDSymbol &CopySym =
-      ThisBackend.defineSymbolforCopyReloc(*CurBuilder, &Sym, &Sym);
+  LDSymbol &CopySym = getTargetBackend().defineSymbolforCopyReloc(
+      *ThisModule->getIRBuilder(), &Sym, &Sym);
   if (!AliasSym)
-    addCopyReloc(ThisBackend, *CopySym.resolveInfo(), Type);
+    addCopyReloc(getTargetBackend(), *CopySym.resolveInfo(), Type);
 }
 
 void ObjectLinker::scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
@@ -1909,7 +1911,7 @@ void ObjectLinker::scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
       continue;
     for (auto &Relocation : Rs->getLink()->getRelocations()) {
       // Skip unneeded relocations
-      if (ThisBackend.maySkipRelocProcessing(Relocation))
+      if (getTargetBackend().maySkipRelocProcessing(Relocation))
         continue;
       if (NumPlugins) {
         for (auto &P : PVect)
@@ -1918,11 +1920,12 @@ void ObjectLinker::scanRelocationsHelper(InputFile *Input, bool IsPartialLink,
       ELFSection *RelocSection = Rs;
       // scan relocation
       if (!IsPartialLink)
-        ThisBackend.getRelocator()->scanRelocation(
-            *Relocation, *CurBuilder, *RelocSection, *Input, CopyRelocs);
+        getTargetBackend().getRelocator()->scanRelocation(
+            *Relocation, *ThisModule->getIRBuilder(), *RelocSection, *Input,
+            CopyRelocs);
       else
-        ThisBackend.getRelocator()->partialScanRelocation(*Relocation,
-                                                          *RelocSection);
+        getTargetBackend().getRelocator()->partialScanRelocation(*Relocation,
+                                                                 *RelocSection);
     } // for all relocations
   } // for all relocation section
 }
@@ -1941,7 +1944,7 @@ LinkerScript::PluginVectorT ObjectLinker::getLinkerPluginWithLinkerConfigs() {
 bool ObjectLinker::scanRelocations(bool IsPartialLink) {
   LinkerScript::PluginVectorT PluginVect = getLinkerPluginWithLinkerConfigs();
 
-  ThisBackend.provideSymbols();
+  getTargetBackend().provideSymbols();
 
   std::vector<std::unique_ptr<Relocator::CopyRelocs>> AllCopyRelocs;
   if (ThisConfig.options().numThreads() <= 1 ||
@@ -1969,14 +1972,15 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
     Pool->wait();
   }
   // assume there is only one copy relocation type per target
-  Relocation::Type CopyRelocType = ThisBackend.getCopyRelType();
+  Relocation::Type CopyRelocType = getTargetBackend().getCopyRelType();
   for (const auto &RelocVec : AllCopyRelocs)
     for (auto &Reloc : *RelocVec)
       createCopyRelocation(*Reloc, CopyRelocType);
 
   // Merge per-file relocations
   if (!IsPartialLink) {
-    ELFObjectFile *RelocInput = ThisBackend.getDynamicSectionHeadersInputFile();
+    ELFObjectFile *RelocInput =
+        getTargetBackend().getDynamicSectionHeadersInputFile();
     auto MergeRelocs = [](llvm::SmallVectorImpl<Relocation *> &To,
                           const llvm::SmallVectorImpl<Relocation *> &From) {
       To.insert(To.end(), From.begin(), From.end());
@@ -2004,7 +2008,7 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
 }
 
 bool ObjectLinker::finalizeScanRelocations() {
-  ThisBackend.finalizeScanRelocations();
+  getTargetBackend().finalizeScanRelocations();
   if (!ThisConfig.getDiagEngine()->diagnose()) {
     if (ThisModule->getPrinter()->isVerbose())
       ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
@@ -2016,13 +2020,13 @@ bool ObjectLinker::finalizeScanRelocations() {
 /// initStubs - initialize stub-related stuff.
 bool ObjectLinker::initStubs() {
   // initialize BranchIslandFactory
-  ThisBackend.initBRIslandFactory();
+  getTargetBackend().initBRIslandFactory();
 
   // initialize StubFactory
-  ThisBackend.initStubFactory();
+  getTargetBackend().initStubFactory();
 
   // initialize target stubs
-  ThisBackend.initTargetStubs();
+  getTargetBackend().initTargetStubs();
   return true;
 }
 
@@ -2040,24 +2044,24 @@ bool ObjectLinker::allocateCommonSymbols() {
     return true;
   if (!ThisModule->sortCommonSymbols())
     return false;
-  return ThisBackend.allocateCommonSymbols();
+  return getTargetBackend().allocateCommonSymbols();
 }
 
 bool ObjectLinker::addDynamicSymbols() {
-  ThisBackend.sizeDynNamePools();
+  getTargetBackend().sizeDynNamePools();
   return true;
 }
 
 /// prelayout - help backend to do some modification before layout
 bool ObjectLinker::prelayout() {
-  ThisBackend.preLayout();
+  getTargetBackend().preLayout();
 
   if (!ThisConfig.getDiagEngine()->diagnose())
     return false;
 
-  ThisBackend.sizeDynamic();
+  getTargetBackend().sizeDynamic();
 
-  ThisBackend.initSymTab();
+  getTargetBackend().initSymTab();
 
   createRelocationSections();
 
@@ -2069,15 +2073,15 @@ bool ObjectLinker::prelayout() {
 ///   Because we do not support instruction relaxing in this early version,
 ///   if there is a branch can not jump to its target, we return false
 ///   directly
-bool ObjectLinker::layout() { return ThisBackend.layout(); }
+bool ObjectLinker::layout() { return getTargetBackend().layout(); }
 
 /// prelayout - help backend to do some modification after layout
-bool ObjectLinker::postlayout() { return ThisBackend.postLayout(); }
+bool ObjectLinker::postlayout() { return getTargetBackend().postLayout(); }
 
-bool ObjectLinker::printlayout() { return ThisBackend.printLayout(); }
+bool ObjectLinker::printlayout() { return getTargetBackend().printLayout(); }
 
 bool ObjectLinker::finalizeBeforeWrite() {
-  ThisBackend.finalizeBeforeWrite();
+  getTargetBackend().finalizeBeforeWrite();
   return true;
 }
 
@@ -2097,7 +2101,8 @@ void ObjectLinker::finalizeSymbolValue(ResolveInfo *I) const {
     return;
 
   if (I->type() == ResolveInfo::ThreadLocal) {
-    I->outSymbol()->setValue(ThisBackend.finalizeTLSSymbol(I->outSymbol()));
+    I->outSymbol()->setValue(
+        getTargetBackend().finalizeTLSSymbol(I->outSymbol()));
     return;
   }
 
@@ -2136,16 +2141,16 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
   // Mapping section to count and max_size.
   llvm::DenseMap<ELFSection *, unsigned> RelocCount, MaxSectSize;
 
-  ThisBackend.getRelocator()->computeTLSOffsets();
+  getTargetBackend().getRelocator()->computeTLSOffsets();
 
   auto EmitOneReloc = [&](Relocation *Relocation) -> bool {
     if (!EmitRelocs)
       return true;
     ResolveInfo *Info = Relocation->symInfo();
     ELFSection *OutputSect =
-        ThisModule->getSection(ThisBackend.getOutputRelocSectName(
+        ThisModule->getSection(getTargetBackend().getOutputRelocSectName(
             Relocation->targetRef()->getOutputELFSection()->name().str(),
-            ThisBackend.getRelocator()->relocType()));
+            getTargetBackend().getRelocator()->relocType()));
 
     if (!OutputSect)
       return true;
@@ -2158,18 +2163,19 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     }
 
     Relocation::Type ExtType =
-        ThisBackend.getRemappedInternalRelocationType(Relocation->type());
+        getTargetBackend().getRemappedInternalRelocationType(
+            Relocation->type());
 
     if (ExtType != Relocation->type() &&
         ThisModule->getPrinter()->isVerbose()) {
       ThisConfig.raise(Diag::verbose_remapped_internal_reloc)
-          << ThisBackend.getRelocator()->getName(Relocation->type())
-          << ThisBackend.getRelocator()->getName(ExtType)
+          << getTargetBackend().getRelocator()->getName(Relocation->type())
+          << getTargetBackend().getRelocator()->getName(ExtType)
           << Relocation->getSourcePath(ThisConfig.options());
     }
 
     eld::Relocation *R = eld::Relocation::Create(
-        ExtType, ThisBackend.getRelocator()->getSize(Relocation->type()),
+        ExtType, getTargetBackend().getRelocator()->getSize(Relocation->type()),
         Relocation->targetRef(), Relocation->addend());
 
     ResolveInfo *SymInfo = Info;
@@ -2203,7 +2209,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       if (Section->isRelocationSection())
         continue;
       for (auto &Relocation : Section->getRelocations()) {
-        Relocation->apply(*ThisBackend.getRelocator());
+        Relocation->apply(*getTargetBackend().getRelocator());
       }
     }
 
@@ -2226,7 +2232,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
         ResolveInfo *Info = Relocation->symInfo();
 
         // Dont process relocations that are relaxed.
-        if (ThisBackend.isRelocationRelaxed(Relocation))
+        if (getTargetBackend().isRelocationRelaxed(Relocation))
           return false;
 
         if (!Info->outSymbol()->hasFragRef() &&
@@ -2259,7 +2265,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
                 << Relocation->getTargetPath(ThisConfig.options())
                 << Relocation->getSourcePath(ThisConfig.options());
           Relocation->target() =
-              ThisBackend.getValueForDiscardedRelocations(Relocation);
+              getTargetBackend().getValueForDiscardedRelocations(Relocation);
           return false;
         }
         return true;
@@ -2268,7 +2274,7 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
         if (ProcessReloc(Relocation)) {
           if (EmitRelocs)
             EmitOneReloc(Relocation);
-          Relocation->apply(*ThisBackend.getRelocator());
+          Relocation->apply(*getTargetBackend().getRelocator());
         }
       } // for all relocations
     } // for all relocation section
@@ -2322,14 +2328,14 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     for (; Bi != Be; ++Bi) {
       BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
       for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter) {
-        (*Iter)->apply(*ThisBackend.getRelocator());
+        (*Iter)->apply(*getTargetBackend().getRelocator());
       }
     }
   }
 
   // apply linker created relocations
-  for (auto *R : ThisBackend.getInternalRelocs()) {
-    R->apply(*ThisBackend.getRelocator());
+  for (auto *R : getTargetBackend().getInternalRelocs()) {
+    R->apply(*getTargetBackend().getRelocator());
   }
 
   // apply relocations
@@ -2356,7 +2362,8 @@ ObjectLinker::postProcessing(llvm::FileOutputBuffer &POutput) {
   {
     eld::RegisterTimer T("Post Process Output File", "Emit Output File",
                          ThisConfig.options().printTimingStats());
-    eld::Expected<void> ExpPostProcess = ThisBackend.postProcessing(POutput);
+    eld::Expected<void> ExpPostProcess =
+        getTargetBackend().postProcessing(POutput);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpPostProcess);
   }
   return {};
@@ -2386,7 +2393,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     for (auto &Out : ThisModule->getScript().sectionMap())
       SyncBranchIslandsForOutputSection(Out);
     // sync linker created internal relocations
-    for (auto *R : ThisBackend.getInternalRelocs()) {
+    for (auto *R : getTargetBackend().getInternalRelocs()) {
       writeRelocationResult(*R, Buffer);
     }
     for (auto &Input : ThisModule->getObjectList()) {
@@ -2409,7 +2416,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     }
     Pool->wait();
     // sync linker created internal relocations
-    for (auto &R : ThisBackend.getInternalRelocs()) {
+    for (auto &R : getTargetBackend().getInternalRelocs()) {
       Pool->async([this, &R, &Buffer] { writeRelocationResult(*R, Buffer); });
     }
     Pool->wait();
@@ -2491,7 +2498,7 @@ void ObjectLinker::writeRelocationResult(Relocation &PReloc, uint8_t *POutput) {
   // really apply. They are way to communicate linker to do certain
   // optimizations. Applying them may overrite the immediate bits based on
   // sequence in which they appear w.r.t. "real" relocation
-  if (ThisBackend.shouldIgnoreRelocSync(&PReloc))
+  if (getTargetBackend().shouldIgnoreRelocSync(&PReloc))
     return;
 
   writeRelocationData(PReloc, PReloc.target(), POutput);
@@ -2514,7 +2521,8 @@ void ObjectLinker::writeRelocationData(Relocation &PReloc, uint64_t Data,
 
   Off = PReloc.targetRef()->getOutputOffset(*ThisModule);
 
-  std::memcpy(TargetAddr, &Data, PReloc.size(*ThisBackend.getRelocator()) / 8);
+  std::memcpy(TargetAddr, &Data,
+              PReloc.size(*getTargetBackend().getRelocator()) / 8);
 }
 
 static void ltoDiagnosticHandler(const llvm::DiagnosticInfo &DI) {
@@ -2625,8 +2633,8 @@ bool ObjectLinker::runAssembler(
       return false;
     Files.push_back(std::string(OutputFileName));
 
-    if (!ThisBackend.ltoCallExternalAssembler(F, RelocModel,
-                                              std::string(OutputFileName)))
+    if (!getTargetBackend().ltoCallExternalAssembler(
+            F, RelocModel, std::string(OutputFileName)))
       return false;
 
     ++Count;
@@ -2659,7 +2667,7 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf) {
     if (ThisConfig.options().hasLTOOptRemarksDisplayHotness())
       Conf.RemarksWithHotness = true;
   }
-  std::string Cpu = ThisBackend.getInfo().getOutputMCPU().str();
+  std::string Cpu = getTargetBackend().getInfo().getOutputMCPU().str();
   if (!Cpu.empty()) {
     Conf.CPU = Cpu;
     if (MTraceLTO)
@@ -2668,7 +2676,7 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf) {
 
   Conf.DefaultTriple = ThisConfig.targets().triple().str();
 
-  if (ThisBackend.ltoNeedAssembler())
+  if (getTargetBackend().ltoNeedAssembler())
     Conf.CGFileType = llvm::CodeGenFileType::AssemblyFile;
 
   auto Model = ltoCodegenModel();
@@ -2731,7 +2739,7 @@ bool ObjectLinker::finalizeLtoSymbolResolution(
     // shared library.
     if (ThisConfig.options().hasShared()) {
       // Symbols with reduced scope in version script must be skipped
-      auto SymbolScopes = ThisBackend.symbolScopes();
+      auto SymbolScopes = getTargetBackend().symbolScopes();
       const auto &Found = SymbolScopes.find(Info);
       bool DoNotPreserve = Found != SymbolScopes.end() &&
                            Found->second->isLocal() && !Info->isUndef();
@@ -2972,7 +2980,7 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
       -> llvm::Expected<std::unique_ptr<llvm::CachedFileStream>> {
     SmallString<256> ObjFileName;
     auto OS = createLTOTempFile(
-        Task, ThisBackend.ltoNeedAssembler() ? "s" : "o", ObjFileName);
+        Task, getTargetBackend().ltoNeedAssembler() ? "s" : "o", ObjFileName);
 
     if (!OS) {
       ThisModule->setFailure(true);
@@ -3023,7 +3031,7 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
     ThinLTOCache = *LC;
   }
 
-  if (ThisBackend.ltoNeedAssembler()) {
+  if (getTargetBackend().ltoNeedAssembler()) {
     // If the output files haven't already been provided, run compilation now
     std::vector<std::string> LTOAsmOutput;
     if (!ThisConfig.options().hasLTOOutputFile() &&
@@ -3168,7 +3176,7 @@ bool ObjectLinker::createLTOObject(void) {
   if (const auto &O = ThisConfig.options().getDwoDir())
     Conf.DwoDir = *O;
 
-  ThisBackend.AddLTOOptions(Options);
+  getTargetBackend().AddLTOOptions(Options);
 
   if (LTOPlugin)
     LTOPlugin->ModifyLTOOptions(Conf, Options);
@@ -3217,7 +3225,7 @@ void ObjectLinker::beginPostLTO() {
     Printer->addLayoutMessage("Post-LTO Map records");
   }
   if (ThisConfig.options().cref())
-    ThisBackend.printCref(MPostLtoPhase);
+    getTargetBackend().printCref(MPostLtoPhase);
   MPostLtoPhase = true;
 }
 
@@ -3245,7 +3253,8 @@ bool ObjectLinker::insertPostLTOELF() {
 
   for (auto &Ltoobj : LtoObjects) {
     sys::fs::Path Path = Ltoobj;
-    Input *In = CurBuilder->getInputBuilder().createInput(Ltoobj);
+    Input *In =
+        ThisModule->getIRBuilder()->getInputBuilder().createInput(Ltoobj);
     if (!In->resolvePath(ThisConfig)) {
       ThisModule->setFailure(true);
       return false;
@@ -3412,6 +3421,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     ThisConfig.raise(Diag::input_file_has_zero_size) << Input->decoratedPath();
   LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   std::string Path = Input->getResolvedPath().native();
+
   InputFile *CurInput = Input->getInputFile();
   if (!CurInput) {
     InputFile *I = InputFile::create(Input, ThisConfig.getDiagEngine());
@@ -3430,7 +3440,6 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     }
     return true;
   }
-
   if (Input->getAttribute().isPatchBase() &&
       CurInput->getKind() != InputFile::ELFExecutableFileKind) {
     ThisConfig.raise(Diag::err_patch_base_not_executable)
@@ -3477,6 +3486,7 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
     if (layoutInfo)
       layoutInfo->recordInputKind(CurInput->getKind());
     bool ELFOverridenWithBC = false;
+
     eld::Expected<bool> ExpParseFile =
         getRelocObjParser()->parseFile(*CurInput, ELFOverridenWithBC);
     // Currently, we have to consider two cases:
@@ -3749,7 +3759,7 @@ bool ObjectLinker::provideGlobalSymbolAndContents(std::string Name, size_t Sz,
   LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(EObj, InputSect, F);
-  LDSymbol *ProvideSym = CurBuilder->addSymbol(
+  LDSymbol *ProvideSym = ThisModule->getIRBuilder()->addSymbol(
       *EObj, Name, (ResolveInfo::Type)Sym->resolveInfo()->type(),
       ResolveInfo::Define, ResolveInfo::Global, Sz, 0, InputSect,
       Sym->resolveInfo()->visibility(), true, EObj->getSections().size(),
