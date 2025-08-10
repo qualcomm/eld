@@ -88,9 +88,11 @@ public:
   void unloadPlugins();
 
   // Set the GNU linker driver after sniffing
-  void setDriver(GnuLdDriver *D) { Driver = D; }
+  void setLinkerDriver(GnuLdDriver *D) { Driver = D; }
 
-  GnuLdDriver *getDriver() const { return Driver; }
+  GnuLdDriver *getLinkerDriver() const { return Driver; }
+
+  bool initializeTarget(uint16_t machine, bool is64bit);
 
 private:
   bool initBackend(const eld::Target *PTarget);
