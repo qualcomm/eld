@@ -62,11 +62,11 @@ public:
 
   // Main entry point.
   virtual int link(llvm::ArrayRef<const char *> Args,
-                   llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) = 0;
+                   llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs);
 
   virtual llvm::opt::OptTable *
   parseOptions(llvm::ArrayRef<const char *> ArgsArr,
-               llvm::opt::InputArgList &ArgList) = 0;
+               llvm::opt::InputArgList &ArgList);
 
   // Check if the options are invalid.
   template <class T> bool checkOptions(llvm::opt::InputArgList &Args) const;
@@ -147,6 +147,8 @@ protected:
 
   const std::string &getProgramName() const { return LinkerProgramName; }
 
+  void setDriverFlavor(DriverFlavor F) { m_DriverFlavor = F; }
+
 private:
   // Raise diag entry for trace.
   bool checkAndRaiseTraceDiagEntry(eld::Expected<void> E) const;
@@ -158,7 +160,7 @@ protected:
   static eld::Module *ThisModule;
   llvm::opt::OptTable *Table;
   std::once_flag once_flag;
-  const DriverFlavor m_DriverFlavor;
+  DriverFlavor m_DriverFlavor;
   std::vector<std::string> m_SupportedTargets;
   std::string LinkerProgramName;
 };

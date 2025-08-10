@@ -151,6 +151,16 @@ opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
           ArgList.getLastArg(OPT_RISCVLinkOptTable::patch_base))
     Config.options().setPatchBase(arg->getValue());
 
+  if (Config.options().isPatchEnable()) {
+    if (Config.options().getStripSymbolMode() ==
+        GeneralOptions::StripAllSymbols)
+      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
+    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
+  }
+
+  Config.options().setUnknownOptions(
+      ArgList.getAllArgValues(OPT_RISCVLinkOptTable::UNKNOWN));
+
   return Table;
 }
 
@@ -222,7 +232,16 @@ bool RISCVLinkDriver::checkOptions(llvm::opt::InputArgList &Args) {
 
 template <class T>
 bool RISCVLinkDriver::processOptions(llvm::opt::InputArgList &Args) {
-  return GnuLdDriver::processOptions<T>(Args);
+  if (!GnuLdDriver::processOptions<T>(Args))
+    return false;
+  // FIXME : remove duplicate code
+  if (Config.options().isPatchEnable()) {
+    if (Config.options().getStripSymbolMode() ==
+        GeneralOptions::StripAllSymbols)
+      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
+    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
+  }
+  return true;
 }
 
 template <class T>

@@ -34,6 +34,7 @@
 #include "eld/Target/TargetMachine.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Object/ELF.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
@@ -96,7 +97,7 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
     return x86_64LinkDriver::Create(C, F, Triple);
 #endif
   default:
-    break;
+    return eld::make<GnuLdDriver>(C, F);
   }
   return nullptr;
 }
@@ -905,13 +906,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setStripSymbols(eld::GeneralOptions::KeepAllSymbols);
   }
 
-  if (Config.options().isPatchEnable()) {
-    if (Config.options().getStripSymbolMode() ==
-        GeneralOptions::StripAllSymbols)
-      Config.raise(Diag::warn_strip_symbols) << "--patch-enable";
-    Config.options().setStripSymbols(eld::GeneralOptions::StripLocals);
-  }
-
   //
   // Thread Options.
   //
@@ -1430,22 +1424,6 @@ void GnuLdDriver::writeReproduceTar(void *cookie) {
               outputTar->getMappings());
 }
 
-namespace {
-
-// Return true if the option takes a path that needs to overridden by reproduce.
-template <class T> bool RewritePathOnReproduce(unsigned Option) {
-  return false;
-}
-
-#ifdef ELD_ENABLE_TARGET_RISCV
-template <>
-bool RewritePathOnReproduce<OPT_RISCVLinkOptTable>(unsigned Option) {
-  return Option == OPT_RISCVLinkOptTable::patch_base;
-}
-#endif
-
-} // namespace
-
 template <class T>
 bool GnuLdDriver::processReproduceOption(
     llvm::opt::InputArgList &Args, eld::OutputTarWriter *outputTar,
@@ -1514,12 +1492,7 @@ bool GnuLdDriver::processReproduceOption(
       break;
     }
     default:
-      if (RewritePathOnReproduce<T>(arg->getOption().getID())) {
-        os << arg->getSpelling() << ' '
-           << outputTar->rewritePath(arg->getValue()) << ' ';
-      } else {
-        os << arg->getAsString(Args) << ' ';
-      }
+      os << arg->getAsString(Args) << ' ';
       break;
     }
   }
@@ -1581,6 +1554,7 @@ eld::Module *GnuLdDriver::ThisModule = nullptr;
 template <class T>
 bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
                          std::vector<eld::InputAction *> &actions) {
+  const eld::Target *ELDTarget = nullptr;
   // Get the target specific parser.
   std::string error;
   llvm::Triple Triple = Config.targets().triple();
@@ -1590,7 +1564,7 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     Config.raise(Diag::cannot_find_target) << error;
     return false;
   }
-  const eld::Target *ELDTarget =
+  ELDTarget =
       eld::TargetRegistry::lookupTarget(Triple.getArchName(), Triple, error);
   if (nullptr == ELDTarget) {
     Config.raise(Diag::cannot_find_target) << error;
@@ -1708,7 +1682,7 @@ void GnuLdDriver::printRepositoryVersion() const {
   std::string flavorName = getDriverFlavorName();
   if (!flavorName.empty())
     outs() << flavorName << " ";
-  outs() << "Linker repository revision: " << eld::getELDRepositoryVersion()
+  outs() << "eld repository revision: " << eld::getELDRepositoryVersion()
          << "\n";
   if (isLLVMRepositoryInfoAvailable())
     outs() << "LLVM repository revision: " << eld::getLLVMRepositoryVersion()
@@ -1729,6 +1703,106 @@ int GnuLdDriver::link(llvm::ArrayRef<const char *> Args) {
   LinkerProgramName =
       (Args[0][0] ? llvm::sys::path::filename(Args[0]) : "ld.eld");
   return link(Args, Driver::getELDFlagsArgs());
+}
+
+opt::OptTable *GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
+                                         llvm::opt::InputArgList &ArgList) {
+  OPT_GnuLdOptTable *Table = eld::make<OPT_GnuLdOptTable>();
+  unsigned missingIndex;
+  unsigned missingCount;
+  ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
+  if (missingCount) {
+    Config.raise(eld::Diag::error_missing_arg_value)
+        << ArgList.getArgString(missingIndex) << missingCount;
+    return nullptr;
+  }
+  if (ArgList.hasArg(OPT_GnuLdOptTable::help)) {
+    Table->printHelp(outs(), Args[0], "RISCV Linker", false,
+                     /*ShowAllAliases=*/true);
+    return nullptr;
+  }
+  if (ArgList.hasArg(OPT_GnuLdOptTable::help_hidden)) {
+    Table->printHelp(outs(), Args[0], "RISCV Linker", true,
+                     /*ShowAllAliases=*/true);
+    return nullptr;
+  }
+  if (ArgList.hasArg(OPT_GnuLdOptTable::version)) {
+    printVersionInfo();
+    return nullptr;
+  }
+  // --about
+  if (ArgList.hasArg(OPT_GnuLdOptTable::about)) {
+    printAboutInfo();
+    return nullptr;
+  }
+  // -repository-version
+  if (ArgList.hasArg(OPT_GnuLdOptTable::repository_version)) {
+    printRepositoryVersion();
+    return nullptr;
+  }
+
+  Config.options().setUnknownOptions(
+      ArgList.getAllArgValues(OPT_GnuLdOptTable::UNKNOWN));
+  return Table;
+}
+
+// Start the link step.
+int GnuLdDriver::link(llvm::ArrayRef<const char *> Args,
+                      llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
+  std::vector<const char *> allArgs = getAllArgs(Args, ELDFlagsArgs);
+  if (!ELDFlagsArgs.empty())
+    Config.raise(eld::Diag::note_eld_flags_without_output_name)
+        << llvm::join(ELDFlagsArgs, " ");
+  llvm::opt::InputArgList ArgList(allArgs.data(),
+                                  allArgs.data() + allArgs.size());
+  Config.options().setArgs(allArgs);
+  std::vector<eld::InputAction *> Action;
+
+  //===--------------------------------------------------------------------===//
+  // Special functions.
+  //===--------------------------------------------------------------------===//
+  static int StaticSymbol;
+  std::string lfile =
+      llvm::sys::fs::getMainExecutable(allArgs[0], &StaticSymbol);
+  SmallString<128> lpath(lfile);
+  llvm::sys::path::remove_filename(lpath);
+  Config.options().setLinkerPath(std::string(lpath));
+
+  //===--------------------------------------------------------------------===//
+  // Begin Link preprocessing
+  //===--------------------------------------------------------------------===//
+  {
+    Table = parseOptions(allArgs, ArgList);
+    if (ArgList.hasArg(OPT_GnuLdOptTable::help) ||
+        ArgList.hasArg(OPT_GnuLdOptTable::help_hidden) ||
+        ArgList.hasArg(OPT_GnuLdOptTable::version) ||
+        ArgList.hasArg(OPT_GnuLdOptTable::about) ||
+        ArgList.hasArg(OPT_GnuLdOptTable::repository_version)) {
+      return LINK_SUCCESS;
+    }
+    if (!Table)
+      return LINK_FAIL;
+    if (!processLLVMOptions<OPT_GnuLdOptTable>(ArgList))
+      return LINK_FAIL;
+    if (!processTargetOptions<OPT_GnuLdOptTable>(ArgList))
+      return LINK_FAIL;
+    if (!processOptions<OPT_GnuLdOptTable>(ArgList))
+      return LINK_FAIL;
+
+    if (!ELDFlagsArgs.empty())
+      Config.raise(eld::Diag::note_eld_flags)
+          << Config.options().outputFileName() << llvm::join(ELDFlagsArgs, " ");
+
+    if (!checkOptions<OPT_GnuLdOptTable>(ArgList))
+      return LINK_FAIL;
+    if (!overrideOptions<OPT_GnuLdOptTable>(ArgList))
+      return LINK_FAIL;
+    if (!createInputActions<OPT_GnuLdOptTable>(ArgList, Action))
+      return LINK_FAIL;
+  }
+  if (!doLink<OPT_GnuLdOptTable>(ArgList, Action))
+    return LINK_FAIL;
+  return LINK_SUCCESS;
 }
 
 #ifdef ELD_ENABLE_TARGET_HEXAGON

@@ -4,6 +4,6 @@
 #END_COMMENT
 #START_TEST
 RUN: %link --repository-version 2>&1 | %filecheck %s
-#CHECK: {{AArch64|ARM|Hexagon|RISCV32|RISCV64|x86_64}} Linker repository revision: ({{[a-z0-9]+}})
+#CHECK: {{ARM/AArch64|Hexagon|RISCV32/RISCV64|x86_64}} eld repository revision: ({{[a-z0-9]+}})
 #CHECK: {{(LLVM repository revision: \(.* [a-z0-9]+\))?}}
 #END_TEST
