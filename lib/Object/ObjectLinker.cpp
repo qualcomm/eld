@@ -3124,6 +3124,9 @@ void processCodegenOptions(
         Conf.CPU = O.first.str();
       } else if (O.first.consume_front("-mattr=")) {
         Conf.MAttrs.push_back(O.first.str());
+      } else if (O.first.consume_front("-sample-profile=")) {
+        // lld: lto-sample-profile
+        Conf.SampleProfile = O.first.str();
       } else
         UserArgs.push_back(O.first.str());
     }
