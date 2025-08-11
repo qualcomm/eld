@@ -636,6 +636,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (const Arg *arg = Args.getLastArg(T::dwodir))
     Config.options().setDwoDir(arg->getValue());
 
+  if (const Arg *arg = Args.getLastArg(T::lto_sample_profile))
+    Config.options().setLTOSampleProfile(arg->getValue());
+
   // --no-align-segments
   if (Args.hasArg(T::no_align_segments))
     Config.options().setAlignSegments(false);

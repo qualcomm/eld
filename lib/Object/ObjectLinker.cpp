@@ -3176,6 +3176,9 @@ bool ObjectLinker::createLTOObject(void) {
   if (const auto &O = ThisConfig.options().getDwoDir())
     Conf.DwoDir = *O;
 
+  if (const auto &O = ThisConfig.options().getLTOSampleProfile())
+    Conf.SampleProfile = *O;
+
   getTargetBackend().AddLTOOptions(Options);
 
   if (LTOPlugin)

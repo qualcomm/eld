@@ -103,6 +103,16 @@ multiclass smDashOnlyEq<string opt1, string realopt, string help> {
   def opt1_eq : Joined<["--"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
 }
 
+// Support -<option>=,--<option>= aliases
+multiclass smDashOnlyEqAlias<string opt1, string realopt, string help> {
+  def "" : Joined<["-"], opt1#"=">,
+           Alias<!cast<Option>(realopt)>,
+           HelpText<help>;
+  def opt1_eq : Joined<["--"], opt1#"=">,
+                Alias<!cast<Option>(realopt)>,
+                HelpText<help>;
+}
+
 //===----------------------------------------------------------------------===//
 /// General Options
 //===----------------------------------------------------------------------===//
@@ -1053,6 +1063,15 @@ defm include_lto_filelist
 defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
+      Group<grp_ltooptions>;
+defm lto_sample_profile
+    : smDashOnlyEq<"lto-sample-profile", "lto_sample_profile",
+                   "Sample PGO profile file to be loaded for LTO">,
+      Group<grp_ltooptions>;
+
+defm plugin_opt_sample_profile
+    : smDashOnlyEqAlias<"plugin-opt=sample-profile", "lto_sample_profile",
+                        "Alias for -lto-sample-profile=">,
       Group<grp_ltooptions>;
 
 //===----------------------------------------------------------------------===//

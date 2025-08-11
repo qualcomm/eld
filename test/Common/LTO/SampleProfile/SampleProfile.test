@@ -1,0 +1,11 @@
+RUN: %clang %clangopts -flto %p/Inputs/f.c -c -o %t.f.o
+
+RUN: rm -f %t.f.o.4.opt.bc
+RUN: %link %linkopts --lto-sample-profile=%p/Inputs/sample-profile.prof %t.f.o --save-temps -o %t.1.out
+RUN: opt -S %t.1.out.llvm-lto.0.4.opt.bc | FileCheck %s
+
+RUN: rm -f %t.f.o.4.opt.bc
+RUN: %link %linkopts -plugin-opt=sample-profile=%p/Inputs/sample-profile.prof %t.f.o --save-temps -o %t.2.out
+RUN: opt -S %t.1.out.llvm-lto.0.4.opt.bc | FileCheck %s
+
+CHECK: ![[#]] = !{i32 1, !"ProfileSummary", ![[#]]}
