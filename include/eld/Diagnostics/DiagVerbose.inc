@@ -163,3 +163,5 @@ DIAG(verbose_linker_script_output_file, DiagnosticEngine::Verbose,
      "Using output file name '%0' specified in the linker script '%1'")
 DIAG(verbose_rule_matching_cache_func_hash, DiagnosticEngine::Verbose,
      "Rule-matching cache-functionailty hash: %0")
+DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
+     "Initialized plugin config for %0")

@@ -328,6 +328,8 @@ public:
   /// - Initializes LinkerWrapper and LinkerPluginConfig for the plugin.
   bool loadPlugin(Plugin &P, Module &M);
 
+  void initializePluginConfig(Module &M);
+
 private:
   SectionMap *OutputSectionMap = nullptr;
   Assignments LinkerScriptAssignments;

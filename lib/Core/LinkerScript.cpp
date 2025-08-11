@@ -470,7 +470,8 @@ bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
   if (!P.registerPlugin(Handle))
     return false;
   // Create the Bitvector.
-  P.createRelocationVector(M.getBackend().getRelocator()->getNumRelocs());
+  if (M.isBackendInitialized())
+    P.createRelocationVector(M.getBackend().getRelocator()->getNumRelocs());
 
   plugin::LinkerWrapper *LW = eld::make<plugin::LinkerWrapper>(&P, M);
   P.getLinkerPlugin()->setLinkerWrapper(LW);
@@ -482,8 +483,20 @@ bool LinkerScript::loadPlugin(Plugin &P, Module &M) {
   // FIXME: Why are we calling Init hook if a plugin has LinkerPluginConfig?
   if (P.getLinkerPluginConfig())
     P.init(M.getOutputTarWriter());
-  P.initializeLinkerPluginConfig();
+  if (M.isBackendInitialized())
+    P.initializeLinkerPluginConfig();
   if (M.getPrinter()->isVerbose())
     Diag->raise(Diag::loaded_plugin) << P.getName();
   return true;
+}
+
+void LinkerScript::initializePluginConfig(Module &M) {
+  if (!M.isBackendInitialized())
+    return;
+  for (auto &P : MPlugins) {
+    P->createRelocationVector(M.getBackend().getRelocator()->getNumRelocs());
+    if (M.getPrinter()->isVerbose())
+      Diag->raise(Diag::verbose_loaded_plugin_config) << P->getName();
+    P->initializeLinkerPluginConfig();
+  }
 }
