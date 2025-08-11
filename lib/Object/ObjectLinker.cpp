@@ -892,7 +892,10 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   // force input alignment from ldscript if any
   if (Output->prolog().hasSubAlign()) {
-    Output->prolog().subAlign().eval();
+    // FIXME: eval() is an implementation function, it should not be
+    // used outside the component. Instead, evaluateAndReturnError and
+    // evaluateAndRaiseError should be used.
+    Output->prolog().subAlign().eval(/*EvaluatePendingOnly=*/false);
     Output->prolog().subAlign().commit();
     InAlign = Output->prolog().subAlign().result();
     HasSubAlign = true;
