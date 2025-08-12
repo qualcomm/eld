@@ -47,17 +47,14 @@ OPT_HexagonLinkOptTable::OPT_HexagonLinkOptTable()
 
 HexagonLinkDriver *HexagonLinkDriver::Create(eld::LinkerConfig &C,
                                              DriverFlavor F,
-                                             std::string Triple) {
-  return eld::make<HexagonLinkDriver>(C, F, Triple);
+                                             std::string InferredArch) {
+  return eld::make<HexagonLinkDriver>(C, F, InferredArch);
 }
 
 HexagonLinkDriver::HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
-                                     std::string Triple)
+                                     std::string InferredArch)
     : GnuLdDriver(C, F) {
-  Config.targets().setArch("hexagon");
-
-  if (!Triple.empty())
-    Config.targets().setTriple(Triple);
+  Config.targets().setArch(InferredArch);
 }
 
 opt::OptTable *

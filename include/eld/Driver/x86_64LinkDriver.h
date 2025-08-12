@@ -34,9 +34,10 @@ public:
 class x86_64LinkDriver : public GnuLdDriver {
 public:
   static x86_64LinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
-                                  std::string Triple);
+                                  std::string InferredArchFromProgramName);
 
-  x86_64LinkDriver(eld::LinkerConfig &C, DriverFlavor F, std::string Triple);
+  x86_64LinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+                   std::string InferredArchFromProgramName);
 
   virtual ~x86_64LinkDriver() {}
 
@@ -69,6 +70,10 @@ public:
   template <class T = OPT_x86_64LinkOptTable>
   bool createInputActions(llvm::opt::InputArgList &Args,
                           std::vector<eld::InputAction *> &actions);
+
+  static std::string getInferredArch(llvm::StringRef Emulation) {
+    return "x86_64";
+  }
 };
 
 #endif

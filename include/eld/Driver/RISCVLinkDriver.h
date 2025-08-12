@@ -32,9 +32,10 @@ public:
 class RISCVLinkDriver : public GnuLdDriver {
 public:
   static RISCVLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
-                                 std::string Triple);
+                                 std::string InferredArchFromProgramName);
 
-  RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F, std::string Triple);
+  RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+                  std::string InferredArchFromProgramName);
 
   virtual ~RISCVLinkDriver() {}
 
@@ -68,6 +69,13 @@ public:
 
   static bool isSupportedEmulation(llvm::StringRef Emulation) {
     return Emulation == "elf64lriscv" || Emulation == "elf32lriscv";
+  }
+  static std::string getInferredArch(llvm::StringRef Emulation) {
+    if (Emulation == "elf32lriscv")
+      return "riscv32";
+    if (Emulation == "elf64lriscv")
+      return "riscv64";
+    return "unknown";
   }
 };
 

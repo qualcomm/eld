@@ -52,7 +52,7 @@ public:
 class DLL_A_EXPORT GnuLdDriver {
 public:
   static GnuLdDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
-                             std::string Triple);
+                             std::string InferredArchFromProgramName);
 
   GnuLdDriver(eld::LinkerConfig &C, DriverFlavor F = DriverFlavor::Invalid);
 

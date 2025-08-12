@@ -33,9 +33,10 @@ public:
 class HexagonLinkDriver : public GnuLdDriver {
 public:
   static HexagonLinkDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
-                                   std::string Triple);
+                                   std::string InferredArchFromProgramName);
 
-  HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F, std::string Triple);
+  HexagonLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
+                    std::string InferredArchFromProgramName);
 
   virtual ~HexagonLinkDriver() {}
 
@@ -68,6 +69,10 @@ public:
                           std::vector<eld::InputAction *> &actions);
 
   static bool isValidEmulation(llvm::StringRef Emulation);
+
+  static std::string getInferredArch(llvm::StringRef Emulation) {
+    return "hexagon";
+  }
 };
 
 #endif

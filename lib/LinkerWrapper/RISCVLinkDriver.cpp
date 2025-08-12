@@ -56,17 +56,14 @@ OPT_RISCVLinkOptTable::OPT_RISCVLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
 RISCVLinkDriver *RISCVLinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
-                                         std::string Triple) {
-  return eld::make<RISCVLinkDriver>(C, F, Triple);
+                                         std::string InferredArch) {
+  return eld::make<RISCVLinkDriver>(C, F, InferredArch);
 }
 
 RISCVLinkDriver::RISCVLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
-                                 std::string Triple)
+                                 std::string InferredArch)
     : GnuLdDriver(C, F) {
-  if (F == DriverFlavor::RISCV32_RISCV64)
-    Config.targets().setArch("riscv32");
-  else
-    Config.targets().setArch("riscv64");
+  Config.targets().setArch(InferredArch);
 }
 
 opt::OptTable *RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,

@@ -78,23 +78,23 @@ GnuLdDriver::GnuLdDriver(LinkerConfig &C, DriverFlavor F)
 GnuLdDriver::~GnuLdDriver() {}
 
 GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
-                                 std::string Triple) {
+                                 std::string InferredArch) {
   switch (F) {
 #ifdef ELD_ENABLE_TARGET_HEXAGON
   case DriverFlavor::Hexagon:
-    return HexagonLinkDriver::Create(C, F, Triple);
+    return HexagonLinkDriver::Create(C, F, InferredArch);
 #endif
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
   case DriverFlavor::ARM_AArch64:
-    return ARMLinkDriver::Create(C, F, Triple);
+    return ARMLinkDriver::Create(C, F, InferredArch);
 #endif
 #ifdef ELD_ENABLE_TARGET_RISCV
   case DriverFlavor::RISCV32_RISCV64:
-    return RISCVLinkDriver::Create(C, F, Triple);
+    return RISCVLinkDriver::Create(C, F, InferredArch);
 #endif
 #ifdef ELD_ENABLE_TARGET_X86_64
   case DriverFlavor::x86_64:
-    return x86_64LinkDriver::Create(C, F, Triple);
+    return x86_64LinkDriver::Create(C, F, InferredArch);
 #endif
   default:
     return eld::make<GnuLdDriver>(C, F);
@@ -1699,9 +1699,7 @@ std::vector<const char *> GnuLdDriver::getAllArgs(
 }
 
 int GnuLdDriver::link(llvm::ArrayRef<const char *> Args) {
-  // If argv[0] is empty then use ld.eld.
-  LinkerProgramName =
-      (Args[0][0] ? llvm::sys::path::filename(Args[0]) : "ld.eld");
+  LinkerProgramName = llvm::sys::path::filename(Args[0]);
   return link(Args, Driver::getELDFlagsArgs());
 }
 
@@ -1763,7 +1761,7 @@ int GnuLdDriver::link(llvm::ArrayRef<const char *> Args,
   //===--------------------------------------------------------------------===//
   static int StaticSymbol;
   std::string lfile =
-      llvm::sys::fs::getMainExecutable(allArgs[0], &StaticSymbol);
+      llvm::sys::fs::getMainExecutable(LinkerProgramName.data(), &StaticSymbol);
   SmallString<128> lpath(lfile);
   llvm::sys::path::remove_filename(lpath);
   Config.options().setLinkerPath(std::string(lpath));

@@ -65,10 +65,10 @@ int main(int Argc, const char **Argv) {
   std::vector<const char *> Args(Argv, Argv + Argc);
 
   // Parse all the options.
-  Driver driver(DriverFlavor::Invalid, /*Triple=*/"");
+  Driver driver(DriverFlavor::Invalid);
 
   Args = maybeExpandResponseFiles(Args, Alloc);
-  if (!driver.setDriverFlavorAndTripleFromLinkCommand(Args))
+  if (!driver.setDriverFlavorAndInferredArchFromLinkCommand(Args))
     return 1;
 
   GnuLdDriver *Linker = driver.getLinkerDriver();

@@ -29,10 +29,10 @@ class GnuLdDriver;
 
 class DLL_A_EXPORT Driver {
 public:
-  Driver(DriverFlavor F, std::string Triple);
+  Driver(DriverFlavor F);
 
-  bool
-  setDriverFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
+  bool setDriverFlavorAndInferredArchFromLinkCommand(
+      llvm::ArrayRef<const char *> Args);
 
   static eld::Expected<Driver>
   createDriverForLinkCommand(llvm::ArrayRef<const char *> Args);
@@ -56,10 +56,10 @@ private:
   void InitTarget();
 
   eld::Expected<std::pair<DriverFlavor, std::string>>
-  getDriverFlavorAndTripleFromLinkCommand(llvm::ArrayRef<const char *> Args);
+  getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args);
 
   std::pair<DriverFlavor, std::string>
-  parseDriverFlavorAndTripleFromProgramName(const char *argv0);
+  parseDriverFlavorFromProgramName(const char *argv0);
 
 protected:
   eld::DiagnosticEngine *DiagEngine = nullptr;
@@ -67,7 +67,7 @@ protected:
 
 private:
   DriverFlavor m_DriverFlavor = Invalid;
-  std::string m_Triple;
+  std::string InferredArchFromProgramName;
   std::vector<std::string> m_SupportedTargets;
 };
 

@@ -63,17 +63,14 @@ OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
 ARMLinkDriver *ARMLinkDriver::Create(eld::LinkerConfig &C, DriverFlavor F,
-                                     std::string Triple) {
-  return eld::make<ARMLinkDriver>(C, F, Triple);
+                                     std::string InferredArch) {
+  return eld::make<ARMLinkDriver>(C, F, InferredArch);
 }
 
 ARMLinkDriver::ARMLinkDriver(eld::LinkerConfig &C, DriverFlavor F,
-                             std::string Triple)
+                             std::string InferredArch)
     : GnuLdDriver(C, F) {
-  if (F == DriverFlavor::ARM_AArch64)
-    Config.targets().setArch("arm");
-  else
-    Config.targets().setArch("aarch64");
+  Config.targets().setArch(InferredArch);
 }
 
 opt::OptTable *ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
