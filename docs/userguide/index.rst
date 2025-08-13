@@ -24,6 +24,7 @@ This document describes usage of ELD
    documentation/linker_diagnostics.rst
    documentation/linker_image_layout.rst
    documentation/linker_map_files.rst
+   documentation/layout.rst
    documentation/linker_plugins_updated.rst
    documentation/linker_optimizations.rst
    documentation/getting_image_details.rst

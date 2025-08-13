@@ -5,6 +5,17 @@ Linker Script
 
 Overview
 ------------
+
+Linker scripts define how input sections (like .text, .data, .bss) are mapped to output sections
+and where they are placed in memory. These scripts control:
+
+* Memory regions (e.g., RAM, ROM)
+* Section alignment
+* Ordering of code and data
+* Load vs. execution addresses
+
+This is the standard method used by most linkers like GNU ld.
+
 | Linker scripts provide detailed specifications of how files are to be linked. They offer greater control over linking than is available using just the linker command options.
 
 | NOTE Linker scripts are optional. In most cases, the default behavior of the linker is sufficient.
@@ -92,24 +103,42 @@ Script commands
 
      - PHDRS
 
-        Syntax :- { name type [FILEHDR][PHDRS][AT (address)][FLAGS (flags)] }
+       The PHDRS (Program Headers) command in a linker script is used to define program headers in the output binary, particularly for ELF (Executable and Linkable Format) files. These headers are essential for the runtime loader to understand how to load and map the binary into memory.
 
-        The PHDRS script command sets information in the program headers, also known as *segment header* of an ELF output file.
+       *When and Why PHDRS is Used?*
 
-            * name – Specifies the program header in the SECTIONS command
-            * type – Specifies the program header type
-            * PT_LOAD – Loadable segment
-            * PT_NULL – Linker does not include section in a segment. No loadable section should be set to PT_NULL.
-            * PT_DYNAMIC – Segment where dynamic linking information is stored
-            * PT_INTERP – Segment where the name of the dynamic linker is stored
-            * PT_NOTE – Segment where note information is stored
-            * PT_SHLIB – Reserved program header type
-            * PT_PHDR – Segment where program headers are stored
-            * FLAGS - Specifies the p_flags field in the program header
-               * The value of flags must be an integer. It is used to set the p_flags field of the program header: for instance, FLAGS(5) sets p_flags to PF_R | PF_X; and FLAGS(0x03000000) sets OS-specific flags.
+       - Custom Memory Mapping
 
-            .. note::
-               If the sections in an output file have different flag settings than what is specified in PHDRS, the linker combines the two different flags using bitwise or
+         You use PHDRS when you want to explicitly control how sections are grouped into segments in the ELF file. This is especially important for:
+
+         - Embedded systems
+         - Custom bootloaders
+         - OS kernels
+
+       - Fine-Grained Segment Control
+
+         - Assign specific sections to specific segments
+         - Control segment flags (e.g., PT_LOAD, PT_NOTE, PT_TLS)
+         - Set permissions (r, w, x) for each segment
+
+      Syntax :- { name type [FILEHDR][PHDRS][AT (address)][FLAGS (flags)] }
+
+      The PHDRS script command sets information in the program headers, also known as *segment header* of an ELF output file.
+
+        * name – Specifies the program header in the SECTIONS command
+        * type – Specifies the program header type
+        * PT_LOAD – Loadable segment
+        * PT_NULL – Linker does not include section in a segment. No loadable section should be set to PT_NULL.
+        * PT_DYNAMIC – Segment where dynamic linking information is stored
+        * PT_INTERP – Segment where the name of the dynamic linker is stored
+        * PT_NOTE – Segment where note information is stored
+        * PT_SHLIB – Reserved program header type
+        * PT_PHDR – Segment where program headers are stored
+        * FLAGS - Specifies the p_flags field in the program header
+        * The value of flags must be an integer. It is used to set the p_flags field of the program header: for instance, FLAGS(5) sets p_flags to PF_R | PF_X; and FLAGS(0x03000000) sets OS-specific flags.
+
+        .. note::
+           If the sections in an output file have different flag settings than what is specified in PHDRS, the linker combines the two different flags using bitwise or
 
      - SECTIONS
 
