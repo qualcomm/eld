@@ -1,0 +1,54 @@
+# REQUIRES: riscv32
+
+## R_RISCV_RELAX for the first call is not adjacent to its R_RISCV_CALL_PLT relocation.
+## Check that it still gets relaxed.
+
+# RUN: %yaml2obj %s -o %t.o
+# RUN: %link %linkopts -o %t.out %t.o
+# RUN: %objdump -d %t.out | %filecheck %s
+
+# CHECK:      <main>:
+# CHECK-NEXT:   3ff5 jal 0x{{[[:xdigit:]]+}} <f>
+
+--- !ELF
+FileHeader:
+  Class:           ELFCLASS32
+  Data:            ELFDATA2LSB
+  Type:            ET_REL
+  Machine:         EM_RISCV
+  Flags:           [ EF_RISCV_RVC ]
+  SectionHeaderStringTable: .strtab
+Sections:
+  - Name:            .text
+    Type:            SHT_PROGBITS
+    Flags:           [ SHF_ALLOC, SHF_EXECINSTR ]
+    AddressAlign:    0x4
+    Content:         6780000097000000E78000001300000097000000E7800000
+  - Name:            .rela.text
+    Type:            SHT_RELA
+    Flags:           [ SHF_INFO_LINK ]
+    Link:            .symtab
+    AddressAlign:    0x4
+    Info:            .text
+    Relocations:
+      - Offset:          0x4
+        Symbol:          f
+        Type:            R_RISCV_CALL_PLT
+      - Offset:          0x10
+        Symbol:          f
+        Type:            R_RISCV_CALL_PLT
+      - Offset:          0x4
+        Type:            R_RISCV_RELAX
+  - Type:            SectionHeaderTable
+    Sections:
+      - Name:            .strtab
+      - Name:            .text
+      - Name:            .rela.text
+      - Name:            .symtab
+Symbols:
+  - Name:            f
+    Section:         .text
+  - Name:            main
+    Section:         .text
+    Value:           0x4
+...

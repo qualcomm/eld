@@ -1398,9 +1398,6 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
     return false;
   }
 
-  if (m_PendingRelocations.empty())
-    return true;
-
   for (auto &r : m_PendingRelocations)
     if (!handleRelocation(std::get<0>(r), std::get<1>(r), *(std::get<2>(r)),
                           std::get<3>(r), std::get<4>(r), /*pLastVisit*/ true))
@@ -1408,6 +1405,11 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
 
   // Sort the relocation table, in offset order, since the pending relocations
   // that got added at end of the relocation table may not be in offset order.
+  // Another reason to sort relocations is to make sure R_RISCV_RELAX are
+  // adjacent to the relocation they affect. The psABI is not clear if
+  // R_RISCV_RELAX must be adjacent, but using `.reloc` in assembly may generate
+  // those that are not. Note that because of this, this function must not have
+  // earlier non-error exits.
   std::stable_sort(section->getRelocations().begin(),
                    section->getRelocations().end(),
                    [](Relocation *A, Relocation *B) {
