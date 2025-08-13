@@ -546,8 +546,6 @@ public:
 
   void assignOffsetsToSkippedSections();
 
-  virtual bool checkForLinkerScriptErrors() const;
-
   virtual bool checkForLinkerScriptPhdrErrors() const;
 
   virtual void initializeAttributes() {}

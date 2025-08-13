@@ -4806,8 +4806,6 @@ uint64_t GNULDBackend::getImageStartVMA() const {
   return m_ImageStartVMA.value();
 }
 
-bool GNULDBackend::checkForLinkerScriptErrors() const { return false; }
-
 bool GNULDBackend::checkForLinkerScriptPhdrErrors() const {
   LinkerScript &ldscript = m_Module.getScript();
   SectionMap::iterator out, outBegin = ldscript.sectionMap().begin(),
