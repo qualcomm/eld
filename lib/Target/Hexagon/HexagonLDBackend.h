@@ -304,6 +304,8 @@ private:
 
   void createAttributeSection();
 
+  void setOptions() override;
+
 private:
   Relocator *m_pRelocator;
 

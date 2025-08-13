@@ -107,6 +107,11 @@ bool HexagonLDBackend::initRelocator() {
   return true;
 }
 
+void HexagonLDBackend::setOptions() {
+  if (LinkerConfig::DynObj == config().codeGenType())
+    config().options().setGPSize(0);
+}
+
 Relocator *HexagonLDBackend::getRelocator() const {
   assert(nullptr != m_pRelocator);
   return m_pRelocator;

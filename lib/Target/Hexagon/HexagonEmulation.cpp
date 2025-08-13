@@ -56,9 +56,6 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
         (Emulation == "hexagonelf" && CurTargetCPU.empty()))
       pConfig.targets().setTargetCPU(flag.str());
   }
-  if (LinkerConfig::DynObj == pConfig.codeGenType())
-    pConfig.options().setGPSize(0);
-
   if (!ELDEmulateELF(pScript, pConfig))
     return false;
 
