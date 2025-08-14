@@ -843,11 +843,18 @@ private:
   /// Returns the linker module.
   eld::Module *getModule() const { return &m_Module; }
 
+  uint32_t getLinkState() const;
+
+  std::string_view getLinkStateAsString() const;
+
+  std::string_view getLinkStateAsString(uint32_t State) const;
+
 private:
   eld::Module &m_Module;
   eld::Plugin *m_Plugin;
   eld::DiagnosticEngine *m_DiagEngine;
   friend class LayoutWrapper;
+  friend struct OutputSection;
 };
 } // namespace plugin
 } // namespace eld
