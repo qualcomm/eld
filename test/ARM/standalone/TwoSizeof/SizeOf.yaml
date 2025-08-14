@@ -1,3 +1,8 @@
+# RUN: %yaml2obj %s -o %t.o
+# RUN: %not %link %linkopts -march=arm -static -T %p/t.t %t.o -o %t.out 2>&1 | %filecheck %s
+
+# CHECK: Invalid Size
+
 --- !ELF
 FileHeader:
   Class:           ELFCLASS32
