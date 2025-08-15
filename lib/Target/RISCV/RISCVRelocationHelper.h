@@ -10,16 +10,26 @@
 namespace {
 
 enum Op {
-  ADDI = 0x13,
+  // Full instructions.
+  NOP = 0x13,
+
+  // U-type opcodes.
   AUIPC = 0x17,
+  LUI = 0x37,
+
+  // I-type opcodes.
+  ADDI = 0x13,
   JALR = 0x67,
   LD = 0x3003,
   LW = 0x2003,
   SRLI = 0x5013,
+
+  // R-type opcodes.
   SUB = 0x40000033,
 };
 
 enum Reg {
+  X_ZERO = 0,
   X_RA = 1,
   X_SP = 2,
   X_GP = 3,
@@ -27,6 +37,7 @@ enum Reg {
   X_T0 = 5,
   X_T1 = 6,
   X_T2 = 7,
+  X_A0 = 10,
   X_T3 = 28
 };
 
