@@ -86,6 +86,9 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_PC8:
   case llvm::ELF::R_X86_64_PC64:
   case llvm::ELF::R_X86_64_PLT32:
+  case llvm::ELF::R_X86_64_GOTPCREL:
+  case llvm::ELF::R_X86_64_GOTPCRELX:
+  case llvm::ELF::R_X86_64_REX_GOTPCRELX:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -187,6 +190,17 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     }
     return;
   }
+  case llvm::ELF::R_X86_64_GOTPCREL:
+  case llvm::ELF::R_X86_64_GOTPCRELX:
+  case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
+    if (!(rsym->reserved() & ReserveGOT)) {
+      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      x86_64GOT *gotEntry =
+          m_Target.createGOT(GOT::GOTType::Regular, Obj, rsym);
+      gotEntry->setValueType(GOT::SymbolValue);
+      rsym->setReserved(rsym->reserved() | ReserveGOT);
+    }
+  } break;
   default:
     break;
 
@@ -364,4 +378,20 @@ Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
 Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
                                  RelocationDescription &pRelocDesc) {
   return x86_64Relocator::Unsupport;
+}
+
+Relocator::Result eld::relocGOTPCREL(Relocation &pReloc,
+                                     x86_64Relocator &pParent,
+                                     RelocationDescription &pRelocDesc) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  ResolveInfo *symInfo = pReloc.symInfo();
+  const GeneralOptions &options = pParent.config().options();
+
+  Relocator::DWord A = pReloc.addend();
+  Relocator::DWord P = pReloc.place(pParent.module());
+  // Calculate GOTPCREL: GOT[S] + A - P
+  x86_64GOT *gotEntry = pParent.getTarget().findEntryInGOT(symInfo);
+  uint64_t Result = gotEntry->getAddr(DiagEngine) + A - P;
+
+  return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options);
 }
