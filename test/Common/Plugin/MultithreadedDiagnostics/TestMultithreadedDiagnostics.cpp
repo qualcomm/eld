@@ -53,7 +53,7 @@ public:
   void processOutputSection(OutputSection S) override { return; }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::State::BeforeLayout)
+    if (!getLinker()->isLinkStateBeforeLayout())
       return Plugin::Status::SUCCESS;
 
     std::vector<std::size_t> concurrencies = {1, 2, 4, 8, 16, 32, 64, 128};
@@ -96,7 +96,7 @@ public:
   void processOutputSection(OutputSection S) override { return; }
 
   Status Run(bool Trace) override {
-    if (getLinker()->getState() != LinkerWrapper::State::BeforeLayout)
+    if (!getLinker()->isLinkStateBeforeLayout())
       return Plugin::Status::SUCCESS;
 
     std::vector<std::size_t> concurrencies = {1, 2, 4, 8, 16, 32, 64, 128};

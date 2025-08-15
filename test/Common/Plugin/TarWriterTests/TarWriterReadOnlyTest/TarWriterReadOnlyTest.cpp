@@ -13,7 +13,7 @@ public:
 
   // Perform any initialization here
   void Init(std::string Options) override {
-    if (getLinker()->getState() != LinkerWrapper::AfterLayout)
+    if (!getLinker()->isLinkStateAfterLayout())
       return;
 
     std::string FileName = "Inputs/testTar.tar";
