@@ -228,6 +228,8 @@ public:
   static constexpr uint32_t NumOfBaseDiagBits =
       std::numeric_limits<DiagIDType>::digits - NumOfSeverityBits;
 
+  static void ignoreLLVMError(llvm::Error E);
+
 private:
   // -----  emission  ----- //
   // emit - process the message to printer
