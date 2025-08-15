@@ -1,0 +1,52 @@
+ARM/AArch64 Linker Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -compact, --compact
+
+   Create a smaller output file. The Loader need to support such files
+
+.. option:: --disable-bss-conversion
+
+   Don't convert BSS to NonBSS when BSS/NonBSS Sections are mixed
+
+.. option:: --enable-bss-mixing
+
+   Enable mixing BSS/NonBSS sections
+
+.. option:: --use-mov-veneer
+
+   Use movt/movw to load address in veneers with absolute relocation
+
+
+
+ARM Linker Option ONLY
+^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -execute-only, --execute-only
+
+   Mark executable sections execute-only on AArch64
+
+.. option:: -fix-cortex-a53-843419, --fix-cortex-a53-843419
+
+   Fix the cortex a53 errata 843419
+
+.. option:: --fix-cortex-a8
+
+   Fix the Cortex A8 bug
+
+.. option:: -fropi, --fropi
+
+   Enable Read write data access relative to a static base registers. 
+
+.. option:: -frwpi, --frwpi
+
+   Enable Read write data access relative to a static base registers. 
+
+.. option:: --no-fix-cortex-a8
+
+   Dont Fix the Cortex A8 bug
+
+.. option:: -target2 <type>
+
+   Interpret R_ARM_TARGET2 as <type>, where <type> is one of abs, rel, or got-rel (default).
+
+
+
