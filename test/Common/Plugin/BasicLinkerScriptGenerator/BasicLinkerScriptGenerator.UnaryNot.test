@@ -1,0 +1,10 @@
+#---BasicLinkerScriptGenerator.UnaryNot.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests checks that the behavior of printing the unary not operator.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.UnaryNot.t 2>&1 | %filecheck %s
+#END_TEST
+CHECK: a = !0x100;
+CHECK: LINKER_PLUGIN("BasicLinkerScriptGenerator", "BasicLinkerScriptGenerator");

@@ -987,7 +987,7 @@ private:
 class UnaryNot : public Expression {
 public:
   UnaryNot(Module &Module, Expression &Expr)
-      : Expression("~", Expression::UNARYNOT, Module),
+      : Expression("!", Expression::UNARYNOT, Module),
         ExpressionToEvaluate(Expr) {}
 
   // Casting support
