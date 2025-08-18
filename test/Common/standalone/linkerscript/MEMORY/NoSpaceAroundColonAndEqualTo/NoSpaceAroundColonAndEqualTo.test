@@ -1,0 +1,23 @@
+#---NoSpaceAroundColonAndEqualTo.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that the linker correctly parses the ORIGIN/LENGTH
+# expressions when there is no space between ':' and 'ORIGIN' and
+# command.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.1.out %t1.1.o %p/Inputs/script1.t
+RUN: %readelf -S %t1.1.1.out | %filecheck %s
+RUN: %link %linkopts -o %t1.1.2.out %t1.1.o %p/Inputs/script2.t
+RUN: %readelf -S %t1.1.2.out | %filecheck %s
+RUN: %link %linkopts -o %t1.1.3.out %t1.1.o %p/Inputs/script3.t
+RUN: %readelf -S %t1.1.3.out | %filecheck %s
+RUN: %not %link %linkopts -o %t1.1.4.out %t1.1.o %p/Inputs/script4.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=ERR --strict-whitespace --match-full-lines
+#END_TEST
+
+#CHECK: .foo PROGBITS {{0+}}1000
+ERR:Error:{{.*}}script4.t:2: expected one of: ORIGIN, org, or o
+ERR:>>>   RAM : ORIGIN= 0x1000, LENGTH = 0x1000
+ERR:>>>         ^
+
