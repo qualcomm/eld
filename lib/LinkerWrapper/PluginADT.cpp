@@ -1407,6 +1407,11 @@ std::string plugin::InputFile::getMemberName() const {
   return m_InputFile->getInput()->getName();
 }
 
+bool plugin::InputFile::isObjectFile() {
+  eld::ObjectFile* object_file = llvm::dyn_cast<eld::ObjectFile>(m_InputFile);
+  return (object_file != nullptr);
+}
+
 std::vector<plugin::Symbol> plugin::InputFile::getSymbols() const {
   std::vector<plugin::Symbol> Symbols;
   if (!m_InputFile)
@@ -1473,6 +1478,14 @@ std::optional<plugin::Section> plugin::InputFile::getSection(uint64_t i) const {
   if (i >= ObjFile->getNumSections())
     return std::nullopt;
   return plugin::Section(ObjFile->getSection(i));
+}
+
+uint64_t plugin::InputFile::getResolvedPathHash() const {
+  return m_InputFile->getInput()->getResolvedPathHash();
+}
+
+uint64_t plugin::InputFile::getArchiveMemberNameHash() const {
+  return m_InputFile->getInput()->getArchiveMemberNameHash();
 }
 
 const char *plugin::InputFile::getMemoryBuffer() const {

@@ -1236,6 +1236,15 @@ struct DLL_A_EXPORT InputFile {
   /// Returns true if the input is LLVM bitcode; Otherwise returns false.
   bool isBitcode() const;
 
+  /// Returns true if the inputFile is an objectFile; Otherwise retruns false.
+  bool isObjectFile();
+
+  /// Returns the hash of the resolved path.
+  uint64_t getResolvedPathHash() const;
+
+  /// Returns the hash of the Archive member.
+  uint64_t getArchiveMemberNameHash() const;
+
   /// If the input file is an archive member, return the member name;
   /// Otherwise return an empty string.
   std::string getMemberName() const;
