@@ -1,0 +1,16 @@
+#--relocTPOFF32.test----------Executable--------#
+BEGIN_COMMENT
+# Test R_X86_64_TPOFF32 relocation calculation and application
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %link %linkopts %t.o -o %t.exe
+RUN: llvm-objdump -d %t.exe | FileCheck %s
+
+#Expected: tls_var1 offset = -8, tls_var2 offset = -4
+CHECK-LABEL: <main>:
+CHECK: lea{{.*}}-0x4
+CHECK: lea{{.*}}-0x8
+CHECK: lea{{.*}}-0x4
+#END_TEST

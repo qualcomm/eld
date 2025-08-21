@@ -57,6 +57,8 @@ public:
 
   uint32_t getNumRelocs() const override;
 
+  void computeTLSOffsets() override;
+
 protected:
   void defineSymbolforGuard(eld::IRBuilder &pLinker, ResolveInfo *pSym,
                             x86_64LDBackend &pTarget);
