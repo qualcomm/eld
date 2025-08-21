@@ -9,6 +9,7 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFFileFormat.h"
+#include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64PLT.h"
 #include "x86_64RelocationFunctions.h"
 #include "llvm/ADT/Twine.h"
@@ -67,7 +68,7 @@ const char *x86_64Relocator::getName(Relocation::Type pType) const {
 }
 
 Relocator::Size x86_64Relocator::getSize(Relocation::Type pType) const {
-  return 32;
+  return x86_64Relocs[pType].Size;
 }
 
 // Check if the relocation is invalid
@@ -89,6 +90,8 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_GOTPCREL:
   case llvm::ELF::R_X86_64_GOTPCRELX:
   case llvm::ELF::R_X86_64_REX_GOTPCRELX:
+  case llvm::ELF::R_X86_64_TPOFF32:
+  case llvm::ELF::R_X86_64_TPOFF64:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -263,6 +266,24 @@ Relocator::Result VerifyRelocAsNeededHelper(
   return R;
 }
 
+void x86_64Relocator::computeTLSOffsets() {
+  std::vector<ELFSegment *> tlsSegments =
+      getTarget().elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
+
+  if (tlsSegments.empty()) {
+    return;
+  }
+
+  assert(tlsSegments.size() == 1 &&
+         "Multiple TLS segments not supported in x86_64 backend");
+
+  ELFSegment *tlsSegment = tlsSegments[0];
+  uint64_t templateSize = tlsSegment->memsz();
+  uint64_t alignment = tlsSegment->align();
+  templateSize = llvm::alignTo(templateSize, alignment);
+  GNULDBackend::setTLSTemplateSize(templateSize);
+}
+
 template <typename T>
 Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
                              const RelocationDescription &pRelocDesc,
@@ -277,7 +298,7 @@ Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
   if (R != Relocator::OK)
     return R;
 
-  // Apply the relocation.
+  // Apply the relocation
   pReloc.target() = doRelocX86_64(RelocInfo, pReloc.target(), Result);
   return R;
 }
@@ -397,4 +418,23 @@ Relocator::Result eld::relocGOTPCREL(Relocation &pReloc,
   uint64_t Result = gotEntry->getAddr(DiagEngine) + A - P;
 
   return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options);
+}
+
+Relocator::Result eld::relocTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
+                                  RelocationDescription &pRelocDesc) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  const GeneralOptions &options = pParent.config().options();
+
+  uint64_t TLSTemplateSize = pParent.getTarget().getTLSTemplateSize();
+
+  if (TLSTemplateSize == 0) {
+    pParent.config().raise(Diag::no_pt_tls_segment);
+    return Relocator::BadReloc;
+  }
+
+  uint64_t S = pParent.getSymValue(&pReloc);
+  Relocator::DWord A = pReloc.addend();
+  uint64_t Result = S + A - TLSTemplateSize;
+
+  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options);
 }
