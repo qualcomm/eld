@@ -1,0 +1,156 @@
+REQUIRES: riscv32 || riscv64
+
+RUN: %llvm-mc -filetype=obj %p/Inputs/riscv-tlsdesc/a.s -o %t.a.o
+RUN: %llvm-mc -filetype=obj %p/Inputs/riscv-tlsdesc/c.s -o %t.c.o
+RUN: %link %linkopts -shared %t.c.o -o %t.c.so
+
+RUN: %link %linkopts -shared --no-align-segments --section-start .text=0x1800 --section-start .got=0x2880 -z now %t.a.o %t.c.o -o %t.a.so
+RUN: llvm-readobj -r -x .got %t.a.so | FileCheck -D#%x,XLEN=%xlen --check-prefix=GD-RELA --check-prefix=GD-RELA-GOT%xlen %s
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.so | FileCheck %s --check-prefix=GD --check-prefix=GD%xlen
+
+RUN: %link %linkopts --no-emit-relocs --keep-labels --no-align-segments --section-start .text=0x1800 -z now %t.a.o %t.c.o -o %t.a.le
+RUN: %readelf -r %t.a.le | FileCheck --check-prefix=NOREL %s
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.le | FileCheck %s --check-prefix=LE
+
+RUN: %link %linkopts --no-emit-relocs --keep-labels --no-align-segments --section-start .text=0x1800 --section-start .got=0x2880 -z now %t.a.o %t.c.so -o %t.a.ie
+RUN: llvm-readobj -r %t.a.ie | FileCheck --check-prefix=IE-RELA%xlen %s
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
+
+## Prior to https://github.com/llvm/llvm-project/pull/85817 the local TLSDESC
+## labels would be marked STT_TLS, resulting in an error "has an STT_TLS symbol but doesn't have an SHF_TLS section"
+
+RUN: %llvm-mc -filetype=obj %p/Inputs/riscv-tlsdesc/d.s -o %t.d.o
+RUN: %link %linkopts --no-emit-relocs -shared -o %t.d.so %t.d.o --fatal-warnings
+
+## The output has a TLS reference but no TLS section.
+RUN: %llvm-mc -filetype=obj %p/Inputs/riscv-tlsdesc/a1.s -o %t.a1.o
+RUN: %link %linkopts --no-emit-relocs --keep-labels --no-align-segments --section-start .text=0x1250 --section-start .got=0x233c -pie %t.a1.o %t.c.so -o %t.a1
+RUN: %objdump --no-show-raw-insn -M no-aliases -Rd %t.a1 | FileCheck -D#%x,XLEN=%xlen %s --check-prefix=IEA --check-prefix=IEA%xlen
+
+## .got has 3 additional header slots before the TLS slot.
+
+## The order of symbols and GOT slots is different than produced by lld.
+GD-RELA:      .rela.dyn
+GD-RELA-NEXT:   0x{{0*}}[[#%X,0x2880+mul(XLEN,5)]] R_RISCV_TLSDESC - 0x7FF{{$}}
+GD-RELA-NEXT:   0x{{0*}}[[#%X,0x2880+mul(XLEN,7)]] R_RISCV_TLSDESC c 0x0{{$}}
+GD-RELA-NEXT:   0x{{0*}}[[#%X,0x2880+mul(XLEN,3)]] R_RISCV_TLSDESC a 0x0{{$}}
+GD-RELA-NEXT: }
+GD-RELA-GOT4:      Hex dump of section '.got':
+GD-RELA-GOT4-NEXT: 0x{{0*}}[[#%x,0x2880]] 00000000 00000000 00000000 00000000
+GD-RELA-GOT4-NEXT: 0x{{0*}}[[#%x,0x2890]] 00000000 00000000
+GD-RELA-GOT8:      Hex dump of section '.got':
+GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x2880]] 00000000 00000000 00000000 00000000
+GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x2890]] 00000000 00000000 00000000 00000000
+GD-RELA-GOT8-NEXT: 0x{{0*}}[[#%x,0x28A0]] 00000000 00000000 00000000 00000000
+
+## .got does not have the intial entry, so its size and all offsets are 8 bytes less than produced by lld.
+
+GD4:      .got     {{0*}}24 {{0*}}2880 DATA
+GD8:      .got     {{0*}}48 {{0*}}2880 DATA
+
+## &.got[a]-. = 0x2880+3*4 - 0x1800 = 0x108c
+## &.got[a]-. = 0x2880+3*8 - 0x1800 = 0x1098
+GD:        1800: auipc   a0, 0x1
+GD4-NEXT:        lw      a1, 0x8c(a0)
+GD8-NEXT:        ld      a1, 0x98(a0)
+GD4-NEXT:        addi    a0, a0, 0x8c
+GD8-NEXT:        addi    a0, a0, 0x98
+GD-NEXT:         jalr    t0, 0x0(a1)
+GD-NEXT:         add     a0, a0, tp
+
+## riscv32: &.got[b]-. = 0x2880+5*4 - 0x1814 = 0x1080
+## riscv64: &.got[b]-. = 0x2880+5*8 - 0x1814 = 0x1094
+GD:        1814: auipc   a2, 0x1
+GD4-NEXT:        lw      a3, 0x80(a2)
+GD8-NEXT:        ld      a3, 0x94(a2)
+GD4-NEXT:        addi    a0, a2, 0x80
+GD8-NEXT:        addi    a0, a2, 0x94
+GD-NEXT:         jalr    t0, 0x0(a3)
+GD-NEXT:         add     a0, a0, tp
+
+## riscv32: &.got[c]-. = 0x2880+7*4 - 0x1828 = 0x1074
+## riscv64: &.got[c]-. = 0x2880+7*8 - 0x1828 = 0x1090
+GD:        1828: auipc   a4, 0x1
+GD4-NEXT:        lw      a5, 0x74(a4)
+GD8-NEXT:        ld      a5, 0x90(a4)
+GD4-NEXT:        addi    a0, a4, 0x74
+GD8-NEXT:        addi    a0, a4, 0x90
+GD-NEXT:         jalr    t0, 0x0(a5)
+GD-NEXT:         add     a0, a0, tp
+
+NOREL: no relocations
+
+LE-LABEL: <.Ltlsdesc_hi0>:
+## st_value(a) = 8
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    a0, zero, 0x8
+LE-NEXT:         add     a0, a0, tp
+## st_value(b) = 2047
+LE-LABEL: <.Ltlsdesc_hi1>:
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    a0, zero, 0x7ff
+LE-NEXT:         add     a0, a0, tp
+## st_value(c) = 2048
+LE-LABEL: <.Ltlsdesc_hi2>:
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT:         lui     a0, 0x1
+LE-NEXT:         addi    a0, a0, -0x800
+LE-NEXT:         add     a0, a0, tp
+
+IE-RELA4:      .rela.dyn {
+IE-RELA4-NEXT:   0x{{0*}}2884 R_RISCV_TLS_TPREL32 c 0x0{{$}}
+IE-RELA4-NEXT: }
+
+IE-RELA8:      .rela.dyn {
+IE-RELA8-NEXT:   0x{{0*}}2888 R_RISCV_TLS_TPREL64 c 0x0{{$}}
+IE-RELA8-NEXT: }
+
+IE4:       .got     {{0*}}10 {{0*}}2880 DATA
+IE8:       .got     {{0*}}20 {{0*}}2880 DATA
+
+## a and b are optimized to use LE. c is optimized to IE.
+
+## TODO: Test case for hi != 0
+
+IE-LABEL: <.Ltlsdesc_hi0>:
+## st_value(a) = 8
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    a0, zero, 0x8
+IE-NEXT:         add     a0, a0, tp
+## st_value(b) = 2047
+IE-LABEL: <.Ltlsdesc_hi1>:
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    a0, zero, 0x7ff
+IE-NEXT:         add     a0, a0, tp
+## riscv32: &.got[c]-. = 0x2880+4 - 0x1830 = 0x1054
+## riscv64: &.got[c]-. = 0x2880+8 - 0x1830 = 0x1054
+IE-LABEL: <.Ltlsdesc_hi2>:
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:   1830: auipc   a0, 0x1
+IE4-NEXT:        lw      a0, 0x54(a0)
+IE8-NEXT:        ld      a0, 0x58(a0)
+IE-NEXT:         add     a0, a0, tp
+
+IEA:       OFFSET           TYPE                     VALUE
+IEA4-NEXT: {{0*}}2340 R_RISCV_TLS_TPREL[[#%d,mul(XLEN,8)]]      c
+IEA8-NEXT: {{0*}}2348 R_RISCV_TLS_TPREL[[#%d,mul(XLEN,8)]]      c
+IEA-EMPTY:
+## riscv32: &.got[c]-. = 0x2340 - 0x1258 = 0x10e8
+## &.got[c]-. = 0x2348 - 0x1258 = 0x10f0
+IEA-LABEL: <.Ltlsdesc_hi2>:
+IEA-NEXT:         addi    zero, zero, 0x0
+IEA-NEXT:         addi    zero, zero, 0x0
+IEA-NEXT:   1258: auipc   a0, 0x1
+IEA4-NEXT:        lw      a0, 0xe8(a0)
+IEA8-NEXT:        ld      a0, 0xf0(a0)
+IEA-NEXT:         add     a0, a0, tp
