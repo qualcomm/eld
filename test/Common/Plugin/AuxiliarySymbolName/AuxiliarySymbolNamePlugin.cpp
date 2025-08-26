@@ -59,16 +59,16 @@ public:
 std::unordered_map<std::string, eld::plugin::PluginBase *> plugins;
 
 extern "C" {
-bool RegisterAll() {
+bool DLL_A_EXPORT RegisterAll() {
   plugins["AuxiliarySymbolNamePlugin"] = new AuxiliarySymbolNamePlugin();
   plugins["AuxiliarySymbolNamePluginAgain"] =
       new AuxiliarySymbolNamePluginAgain();
   return true;
 }
 
-eld::plugin::PluginBase *getPlugin(const char *T) { return plugins[T]; }
+eld::plugin::PluginBase DLL_A_EXPORT *getPlugin(const char *T) { return plugins[T]; }
 
-void Cleanup() {
+void DLL_A_EXPORT Cleanup() {
   for (auto &P : plugins) {
     delete P.second;
   }

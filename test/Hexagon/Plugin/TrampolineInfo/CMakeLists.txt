@@ -10,7 +10,7 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
   add_llvm_library(TrampolineInfoPlugin ${SHARED_LIB_SOURCES} LINK_LIBS LW)
 
   set_target_properties(
-    RuleMatchingSectNameMap PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+    TrampolineInfoPlugin PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                        "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/test")
 
   set(BUILD_SHARED_LIBS ${bsl})

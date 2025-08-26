@@ -21,21 +21,4 @@ public:
   }
 };
 
-std::unordered_map<std::string, eld::plugin::PluginBase *> plugins;
-
-extern "C" {
-bool RegisterAll() {
-  plugins["AuxiliarySymbolNameTracePlugin"] =
-      new AuxiliarySymbolNameTracePlugin();
-  return true;
-}
-
-eld::plugin::PluginBase *getPlugin(const char *T) { return plugins[T]; }
-
-void Cleanup() {
-  for (auto &P : plugins) {
-    delete P.second;
-  }
-  plugins.clear();
-}
-}
+ELD_REGISTER_PLUGIN(AuxiliarySymbolNameTracePlugin)

@@ -16,19 +16,6 @@ public:
     }
   }
 };
-eld::plugin::PluginBase *ThisPlugin = nullptr;
 
-extern "C" {
-bool RegisterAll() {
-  ThisPlugin = new OutSectionsBeforePerformingLayout();
-  return true;
-}
 
-eld::plugin::PluginBase *getPlugin(const char *T) { return ThisPlugin; }
-
-void Cleanup() {
-  if (ThisPlugin)
-    delete ThisPlugin;
-  ThisPlugin = nullptr;
-}
-}
+ELD_REGISTER_PLUGIN(OutSectionsBeforePerformingLayout)
