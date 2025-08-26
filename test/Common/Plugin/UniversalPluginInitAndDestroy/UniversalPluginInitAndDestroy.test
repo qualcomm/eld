@@ -12,7 +12,7 @@ CHECK: Hello World!
 CHECK: options: Hey
 CHECK: Bye World!
 
-TRACE: Note: Using the absolute path {{.*}}libUPInitAndDestroy.so{{.*}} for library UPInitAndDestroy
+TRACE: Note: Using the absolute path {{.*}}UPInitAndDestroy{{.*}} for library UPInitAndDestroy
 TRACE: Trace: Calling UPInitAndDestroy::Init plugin hook
 TRACE: Trace: Calling UPInitAndDestroy::Destroy plugin hook
-TRACE: Note: Unloaded Library {{.*}}libUPInitAndDestroy.so{{.*}}
+TRACE: Note: Unloaded Library {{.*}}UPInitAndDestroy{{.*}}

@@ -15,12 +15,12 @@ RUN: cd %t1.reproduce
 RUN: %link @%t1.response.txt 2>&1 | %filecheck %s --check-prefix=REPRODUCE
 #END_TEST
 
-CHECK: Found config file {{.*}}/Inputs/some-file.txt
+CHECK: Found config file {{.*}}Inputs{{.*}}some-file.txt
 CHECK: Contents of config file: Hello, World!
 
 MAPPING: [StringMap]
-MAPPING-DAG: some-file.txt={{.*}}/Inputs/some-file.txt
-MAPPING-DAG: other-file.txt={{.*}}/Inputs/other-file.txt
+MAPPING-DAG: some-file.txt={{.*}}Inputs{{.*}}some-file.txt
+MAPPING-DAG: other-file.txt={{.*}}Inputs{{.*}}other-file.txt
 
 CONFIG_DIR: some-file.txt{{.*}}
 CONFIG_DIR-NOT:other-file
