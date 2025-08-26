@@ -6,5 +6,6 @@ SECTIONS {
     FILL(0xbcbcbcbc)
     . = . + 4;
     *(.text*)
+    *(.ARM.exidx)
   } =0xdeadbeef
 }

@@ -1,0 +1,100 @@
+#---FragPaddingWithUnalignedOutSect.test------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests verifies that the fragment padding computation is correct
+# when the output section address is unaligned.
+#END_COMMENT
+#BEGIN_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.1.1.out %t1.1.o -T %p/Inputs/script1.t -Map %t1.1.1.map.txt
+RUN: %filecheck %s --check-prefix=CHECK1_1 < %t1.1.1.map.txt
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.2.1.out %t1.2.o -T %p/Inputs/script1.t -Map %t1.2.1.map.txt
+RUN: %filecheck %s --check-prefix=CHECK2_1 < %t1.2.1.map.txt
+
+RUN: %link -MapStyle txt %linkopts -o %t1.1.2.out %t1.1.o -T %p/Inputs/script2.t -Map %t1.1.2.map.txt
+RUN: %filecheck %s --check-prefix=CHECK1_2 < %t1.1.2.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.2.2.out %t1.2.o -T %p/Inputs/script2.t -Map %t1.2.2.map.txt
+RUN: %filecheck %s --check-prefix=CHECK2_2 < %t1.2.2.map.txt
+
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.3.thread1.out %t1.3.o -T %p/Inputs/script.thread1.t -Map %t1.3.thread1.map.txt
+RUN: %filecheck %s --check-prefix=CHECK3_THREAD1 < %t1.3.thread1.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.3.thread2.out %t1.3.o -T %p/Inputs/script.thread2.t -Map %t1.3.thread2.map.txt
+RUN: %filecheck %s --check-prefix=CHECK3_THREAD2 < %t1.3.thread2.map.txt
+
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/4.s -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t1.4.3.out %t1.4.o %t1.1.o -T %p/Inputs/script3.t -Map %t1.4.3.map.txt
+RUN: %filecheck %s --check-prefix=CHECK4_3 < %t1.4.3.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.4.4.out %t1.4.o %t1.1.o -T %p/Inputs/script4.t -Map %t1.4.4.map.txt
+RUN: %filecheck %s --check-prefix=CHECK4_4 < %t1.4.4.map.txt
+#END_TEST
+
+CHECK1_1: .text 0x14
+CHECK1_1: *(.text.foo) #Rule 1
+CHECK1_1: .text.foo 0x20
+CHECK1_1: 0x20 foo
+
+CHECK2_1: .text 0x14
+CHECK2_1: *(.text.foo) #Rule 1
+CHECK2_1: .text.foo 0x40
+CHECK2_1: 0x40 foo
+
+CHECK1_2: .text 0x14
+CHECK1_2: PADDING 0x14    0x2
+CHECK1_2: *(.text.foo) #Rule 1
+CHECK1_2: .text.foo 0x20
+CHECK1_2: 0x20 foo
+
+CHECK2_2: .text 0x14
+CHECK2_2: PADDING 0x14    0x2
+CHECK2_2: *(.text.foo) #Rule 1
+CHECK2_2: .text.foo 0x40
+CHECK2_2: 0x40 foo
+
+CHECK3_THREAD1: .text 0x1000
+CHECK3_THREAD1: *(.text*) #Rule 1
+CHECK3_THREAD1: .text.foo 0x1000 {{.*}}3.o
+CHECK3_THREAD1: 0x1000 foo
+CHECK3_THREAD1: .tbss 0x1014 0x8
+CHECK3_THREAD1: *(.tbss*) #Rule 4
+CHECK3_THREAD1: PADDING_ALIGNMENT 0x1014 0x4 0x0
+CHECK3_THREAD1: .tbss 0x1018 0x4 {{.*}}3.o
+CHECK3_THREAD1: 0x1018 u
+CHECK3_THREAD1: .tdata 0x2014 0x8
+CHECK3_THREAD1: *(.tdata*) #Rule 7
+CHECK3_THREAD1: PADDING_ALIGNMENT 0x2014 0x4 0x0
+CHECK3_THREAD1: .tdata 0x2018 0x4 {{.*}}3.o
+CHECK3_THREAD1: 0x2018 v
+
+CHECK3_THREAD2: .text 0x1000
+CHECK3_THREAD2: *(.text*) #Rule 1
+CHECK3_THREAD2: .text.foo 0x1000 {{.*}}3.o
+CHECK3_THREAD2: 0x1000 foo
+CHECK3_THREAD2: .tbss 0x1014 0x8
+CHECK3_THREAD2: PADDING 0x1014 0x2 0x0
+CHECK3_THREAD2: PADDING_ALIGNMENT 0x1016 0x2 0x0
+CHECK3_THREAD2: .tbss 0x1018 0x4 {{.*}}3.o
+CHECK3_THREAD2: 0x1018 u
+CHECK3_THREAD2: .tdata 0x2014 0x8
+CHECK3_THREAD2: PADDING 0x2014 0x2 0x0
+CHECK3_THREAD2: *(.tdata*) #Rule 7
+CHECK3_THREAD2: PADDING_ALIGNMENT 0x2016 0x2 0x0
+CHECK3_THREAD2: .tdata 0x2018 0x4 {{.*}}3.o
+CHECK3_THREAD2: 0x2018 v
+
+CHECK4_3: .text 0x14
+CHECK4_3: *(.nonalloc) #Rule 1
+CHECK4_3: PADDING_ALIGNMENT 0x14 0xc 0x0
+CHECK4_3: .nonalloc 0x20 0xc {{.*}}4.o #SHT_PROGBITS,NONE,16
+CHECK4_3: *(*text*) #Rule 2
+CHECK4_3: PADDING_ALIGNMENT 0x2c 0x4 0x0
+CHECK4_3: .text.foo 0x30 {{.*}}1.o
+
+CHECK4_4: .text 0x14
+CHECK4_4: PADDING 0x14 0x2 0x0
+CHECK4_4: *(.nonalloc) #Rule 1
+CHECK4_4: PADDING_ALIGNMENT 0x16 0xa 0x0
+CHECK4_4: .nonalloc 0x20 0xc {{.*}}4.o #SHT_PROGBITS,NONE,16
+CHECK4_4: *(*text*) #Rule 2
+CHECK4_4: PADDING_ALIGNMENT 0x2c 0x4 0x0
+CHECK4_4: .text.foo 0x30 {{.*}}1.o
