@@ -138,9 +138,3 @@ Target Specific Features
             * **--disable-bss-conversion**
                     Don't convert BSS to NonBSS when BSS/NonBSS Sections are mixed
 
-.. ifconfig:: 'IU' in targets
-
-        * IU
-            * Baremetal
-            * **-gpsize=<value>**
-                       Set the maximum size of objects to be optimized using GP
