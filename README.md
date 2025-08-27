@@ -42,11 +42,12 @@ cd ../
 cmake -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_INSTALL_PREFIX=../inst \
-  -DLLVM_ENABLE_ASSERTIONS:BOOL=OFF \
+  -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
   -DLLVM_ENABLE_PROJECTS='llvm;clang' \
   -DLLVM_EXTERNAL_PROJECTS=eld \
   -DLLVM_EXTERNAL_ELD_SOURCE_DIR=${PWD}/llvm-project/eld \
-  -DLLVM_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon' \
+  -DLLVM_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86' \
+  -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
   -DCMAKE_CXX_FLAGS='-stdlib=libc++' \
   -B ./obj \
   -S ./llvm-project/llvm
