@@ -63,6 +63,7 @@ jobs:
           -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
           -DLLVM_CCACHE_DIR=$CACHE_DIR \
           -DLLVM_CCACHE_BUILD:BOOL=ON \
+          -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
           -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
           -DCMAKE_C_COMPILER:STRING=`which clang` \
           -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
