@@ -1,3 +1,4 @@
+#UNSUPPORTED: asserts
 RUN: %clang %clangopts -target aarch64 -c %p/test.c -o %t1.o
 RUN: %clang %clangopts -target aarch64 -c %p/bar.c -o %t2.o
 
