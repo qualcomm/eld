@@ -1,0 +1,11 @@
+#---NumSegments.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This test checks the number of segments stat in the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -Map %t2.map -T %p/Inputs/script.t -o %t2.out
+RUN: cat %t2.map | %filecheck %s --check-prefix=MAP
+#MAP: Segments : [ A ]
+#MAP: Segments : [ B ]
+#END_TEST
