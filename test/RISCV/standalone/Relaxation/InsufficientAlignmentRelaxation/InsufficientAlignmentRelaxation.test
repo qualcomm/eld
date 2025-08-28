@@ -5,6 +5,7 @@
 # END_COMMENT
 # START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
+RUN: %objdump -dr %t.1.o
 RUN: %not %link %linkopts -o %t.1.out %t.1.o -T %p/Inputs/1.t 2>&1 | %filecheck %s
 # END_TEST
 
