@@ -23,7 +23,7 @@ CHECK: Found config file {{.*}}some-file.txt
 CHECK: Contents of config file: Hello, World!
 
 MAPPING: [StringMap]
-MAPPING-DAG: [[PREFIX:.*]]some-file.txt=[[PREFIX]]some-file.txt
+MAPPING-DAG: [[LEFT:[^=]*some-file\.txt]]=[[RIGHT:[^=]*some-file\.txt]]
 
 CONFIG_DIR: some-file.txt{{.*}}
 

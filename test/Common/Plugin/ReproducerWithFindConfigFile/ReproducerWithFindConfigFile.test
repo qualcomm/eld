@@ -25,5 +25,5 @@ MAPPING-DAG: other-file.txt={{.*}}Inputs{{.*}}other-file.txt
 CONFIG_DIR: some-file.txt{{.*}}
 CONFIG_DIR-NOT:other-file
 
-REPRODUCE: Found config file {{.*}}/Inputs/some-file.txt
+REPRODUCE: Found config file {{.*}}Inputs{{.*}}some-file.txt
 REPRODUCE: Contents of config file: Hello, World!
