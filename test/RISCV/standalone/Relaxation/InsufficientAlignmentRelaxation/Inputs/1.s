@@ -1,10 +1,9 @@
         .text
         .globl  foo
         .type   foo, @function
-        call norelax
-        call norelax
-        call norelax
-        call norelax
+        .option rvc
+        j 1f
+        .option norvc
         .balign 32
 foo:    nop
         // Add a relaxation relocation as RISC-V ABI demands that R_ALIGN
@@ -16,4 +15,5 @@ foo:    nop
         ret
         .size   foo, .-foo
 
-.equ norelax, 0x40000000
+1:
+ nop
