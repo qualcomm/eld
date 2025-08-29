@@ -1,0 +1,13 @@
+#--relocGOTPCRELStatic.test----------Executable--------#
+
+BEGIN_COMMENT
+# Test R_X86_64_GOTPCREL relocation type support.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/relocGOTPCREL_test.c -o %t.relocGOTPCREL_test.o
+RUN: %link %linkopts -o %t.relocGOTPCREL_test.out %t.relocGOTPCREL_test.o
+RUN: %t.relocGOTPCREL_test.out; echo $? > %t.code
+RUN: %filecheck --input-file=%t.code %s --check-prefix=EXITCODE
+EXITCODE: 42
+#END_TEST
