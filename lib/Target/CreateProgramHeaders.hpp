@@ -251,6 +251,10 @@ bool GNULDBackend::createProgramHdrs() {
     // If the output section specified a VMA value.
     if ((*out)->prolog().hasVMA()) {
       (*out)->prolog().vma().evaluateAndRaiseError();
+      if ((*out)->prolog().vma().isUnaryMinus()) {
+        config().raise(Diag::error_negative_vma);
+        return true;
+      }
       // If the output section descriptor has an alignment specified
       // honor the alignment specified, the alignment would have been
       // reflected in the section alignment.
@@ -450,6 +454,10 @@ bool GNULDBackend::createProgramHdrs() {
       // Explicitly align LMA to make the code easy to read
       if (useSetLMA) {
         (*out)->prolog().lma().evaluateAndRaiseError();
+        if ((*out)->prolog().lma().isUnaryMinus()) {
+          config().raise(Diag::error_negative_lma);
+          return true;
+        }
         pma = (*out)->prolog().lma().result();
       } else if (hasVMARegion || hasLMARegion) {
         ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
