@@ -1,0 +1,178 @@
+REQUIRES: riscv32 || riscv64
+
+RUN: %llvm-mc -filetype=obj --defsym PAD=0 -mattr=+c,+relax %p/Inputs/riscv-tlsdesc-relax/a.s -o %t.a.o
+RUN: %llvm-mc -filetype=obj --defsym PAD=5000 -mattr=+c,+relax %p/Inputs/riscv-tlsdesc-relax/a.s -o %t.aa.o
+RUN: %llvm-mc -filetype=obj -mattr=+c,+relax %p/Inputs/riscv-tlsdesc-relax/c.s -o %t.c.o
+RUN: %link %linkopts -shared %t.c.o -o %t.c.so
+
+RUN: %link %linkopts -shared -z now --keep-labels --no-align-segments --section-start .text=0x1000 --section-start .got=0x20c0 %t.a.o %t.c.o -o %t.a.so
+RUN: %readelf --dyn-relocations %t.a.so | FileCheck %s --check-prefix=GD-REL%xlen
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.so | FileCheck %s --check-prefix=GD --check-prefix=GD%xlen
+
+## Test the TLSDESC to LE optimization. Also check --emit-relocs.
+RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 %t.a.o %t.c.o -o %t.a.le --emit-relocs
+RUN: %readelf --dyn-relocations %t.a.le | FileCheck %s --match-full-lines --allow-empty --check-prefix=LE-REL
+RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.le | FileCheck %s --check-prefix=LE
+
+RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 %t.aa.o %t.c.o -o %t.aa.le
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.le | FileCheck %s --check-prefix=LEA
+
+## Test the TLSDESC to IE optimization.
+RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 --section-start .got=0x120e0 %t.a.o %t.c.so -o %t.a.ie
+RUN: %readelf --dyn-relocations %t.a.ie | FileCheck %s --match-full-lines --check-prefix=IE-REL%xlen
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
+
+## .got has 3 additional header slots before the TLS slot.
+
+GD4:      .got     {{0*}}14 {{0*}}20c0 DATA
+GD8:      .got     {{0*}}28 {{0*}}20c0 DATA
+
+GD-REL4:      {{0*}}20cc {{0*}}030c       R_RISCV_TLSDESC {{0*}}7ff b + 0
+GD-REL8:      {{0*}}20d8 {{0*}}030000000c R_RISCV_TLSDESC {{0*}}7ff b + 0
+
+## Notes re. comparing the output to lld:
+## - .got does not have the initial entry, so its size and all offsets are 8
+##   bytes less when compared to lld.
+## - lld keeps original relocation names after relaxation, which affects
+##   --emit-relocs output. Due to relaxations, these relocations may point
+##   to unrelated instructions.
+
+GD-LABEL: <foo>:
+## &.got[c]-. = 0x20cc - 0x1004 = 0x10c8
+## &.got[c]-. = 0x20d8 - 0x1004 = 0x10d4
+GD:        1004: auipc   a2, 0x1
+GD-NEXT:         c.add   a7, a7
+GD4-NEXT:        lw      a3, 0xc8(a2)
+GD8-NEXT:        ld      a3, 0xd4(a2)
+GD-NEXT:         c.add   a7, a7
+GD4-NEXT:        addi    a0, a2, 0xc8
+GD8-NEXT:        addi    a0, a2, 0xd4
+GD-NEXT:         c.add   a7, a7
+GD-NEXT:         jalr    t0, 0x0(a3)
+GD-NEXT:         c.add   a0, tp
+
+GD-LABEL: <.Ltlsdesc_hi1>:
+## &.got[c]-. = 0x20cc - 0x1020 = 0x10ac
+## &.got[c]-. = 0x20d8 - 0x1020 = 0x10b8
+GD-NEXT:   1020: auipc   a4, 0x1
+GD4-NEXT:        lw      a5, 0xac(a4)
+GD8-NEXT:        ld      a5, 0xb8(a4)
+GD4-NEXT:        addi    a0, a4, 0xac
+GD8-NEXT:        addi    a0, a4, 0xb8
+GD-NEXT:         jalr    t0, 0x0(a5)
+GD-NEXT:         c.add   a0, tp
+
+GD-LABEL: <.Ltlsdesc_hi2>:
+## &.got[c]-. = 0x20cc - 0x1032 = 0x109a
+## &.got[c]-. = 0x20d8 - 0x1032 = 0x10a6
+GD-NEXT:   1032: auipc   a6, 0x1
+GD4-NEXT:        lw      a7, 0x9a(a6)
+GD8-NEXT:        ld      a7, 0xa6(a6)
+GD4-NEXT:        addi    a0, a6, 0x9a
+GD8-NEXT:        addi    a0, a6, 0xa6
+GD-NEXT:         jalr    t0, 0x0(a7)
+GD-NEXT:         c.add   a0, tp
+
+## No GOT slots and dynamic relocations in LE
+LE-REL-NOT:       R_RISCV
+
+LE-LABEL: <foo>:
+LE-NEXT:         c.add   a7, a7
+LE-NEXT-LLD:             R_RISCV_TLSDESC_HI20 b
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT:         c.add   a7, a7
+LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi0
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT:  11008: c.add   a7, a7
+LE-NEXT-LLD:             R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi0
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT:         addi    a0, zero, 0x7ff
+LE-NEXT-LLD:             R_RISCV_TLSDESC_CALL .Ltlsdesc_hi0
+LE-NEXT:                 R_RISCV_LO12_I b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT:         c.add   a0, tp
+
+LE-LABEL: <.Ltlsdesc_hi1>:
+LE-NEXT:         addi    a0, zero, 0x7ff
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi1
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi1
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_CALL .Ltlsdesc_hi1
+LE-NEXT:                 R_RISCV_LO12_I b
+LE-NEXT:         c.add   a0, tp
+LE-LABEL: <.Ltlsdesc_hi2>:
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi2
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT:         addi    zero, zero, 0x0
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi2
+LE-NEXT:                 R_RISCV_NONE b
+LE-NEXT:                 R_RISCV_RELAX *ABS*
+LE-NEXT:         addi    a0, zero, 0x7ff
+LE-NEXT-LLD:                 R_RISCV_TLSDESC_CALL .Ltlsdesc_hi2
+LE-NEXT:                 R_RISCV_LO12_I b
+LE-NEXT:         c.add   a0, tp
+
+LEA-LABEL: <foo>:
+LEA-NEXT:         c.add   a7, a7
+LEA-NEXT:         c.add   a7, a7
+LEA-NEXT:  11008: lui     a0, 0x2
+LEA-NEXT:         c.add   a7, a7
+LEA-NEXT:         addi    a0, a0, -0x479
+LEA-NEXT:         c.add   a0, tp
+
+LEA-LABEL: <.Ltlsdesc_hi1>:
+LEA-NEXT:         lui     a0, 0x2
+LEA-NEXT:         addi    a0, a0, -0x479
+LEA-NEXT:         c.add   a0, tp
+LEA-LABEL: <.Ltlsdesc_hi2>:
+LEA-NEXT:         addi    zero, zero, 0x0
+LEA-NEXT:         addi    zero, zero, 0x0
+LEA-NEXT:         lui     a0, 0x2
+LEA-NEXT:         addi    a0, a0, -0x479
+LEA-NEXT:         c.add   a0, tp
+
+IE4:      .got     {{0*}}10 {{0*}}120e0 DATA
+IE8:      .got     {{0*}}20 {{0*}}120e0 DATA
+
+IE-REL4:   {{0*}}120e4 {{0*}}010a       R_RISCV_TLS_TPREL32 {{0+}} b + 0
+IE-REL8:   {{0*}}120e8 {{0*}}010000000b R_RISCV_TLS_TPREL64 {{0+}} b + 0
+
+IE-LABEL: <foo>:
+IE-NEXT:         c.add   a7, a7
+IE-NEXT:         c.add   a7, a7
+## &.got[c]-. = 0x120e4 - 0x11008 = 0x10dc
+## &.got[c]-. = 0x120e8 - 0x11008 = 0x10e0
+IE-NEXT:  11008: auipc   a0, 0x1
+IE-NEXT:         c.add   a7, a7
+IE4-NEXT:        lw      a0, 0xdc(a0)
+IE8-NEXT:        ld      a0, 0xe0(a0)
+IE-NEXT:         c.add   a0, tp
+
+IE-LABEL: <.Ltlsdesc_hi1>:
+## &.got[c]-. = 0x120e4 - 0x11018 = 0x10cc
+## &.got[c]-. = 0x120e8 - 0x11018 = 0x10d0
+IE-NEXT:  11018: auipc   a0, 0x1
+IE4-NEXT:        lw      a0, 0xcc(a0)
+IE8-NEXT:        ld      a0, 0xd0(a0)
+IE-NEXT:         c.add   a0, tp
+## &.got[c]-. = 0x120e4 - 0x1102a = 0x10ba
+## &.got[c]-. = 0x120e8 - 0x1102a = 0x10be
+IE-LABEL: <.Ltlsdesc_hi2>:
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:         addi    zero, zero, 0x0
+IE-NEXT:  1102a: auipc   a0, 0x1
+IE4-NEXT:        lw      a0, 0xba(a0)
+IE8-NEXT:        ld      a0, 0xbe(a0)
+IE-NEXT:         c.add   a0, tp
