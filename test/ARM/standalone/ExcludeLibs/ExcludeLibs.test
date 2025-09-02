@@ -13,6 +13,8 @@ RUN: %link %linkopts -shared -o %t3.so %t3.o
 RUN: %link %linkopts -dy -E  %t1.o %tlib.a --exclude-libs %tlib.a %t3.so -o %t1.out
 RUN: %readelf --dyn-symbols %t1.out |%filecheck --check-prefix="ONE" %s
 
+RUN: %rm -rf %t.tmpdir
+
 ONE-NOT: foo
 
 RUN: %link %linkopts -dy -dynamic-list %p/Inputs/list %t1.o %tlib.a --exclude-libs %tlib.a %t3.so -o %t2.out
@@ -25,19 +27,23 @@ RUN: %readelf --dyn-symbols %t3.out |%filecheck --check-prefix="THREE" %s
 THREE-NOT: foo
 THREE-NOT: bar
 
-RUN: mkdir -p %T
-RUN: %ar cr %aropts %T/mylib.a %t2.o
-RUN: %link %linkopts -dy -E %t1.o -L%T -l:mylib.a %t3.so  --exclude-libs -l:mylib.a -o %tnamespec1.out
+RUN: mkdir -p %t.tmpdir
+RUN: %ar cr %aropts %t.tmpdir/mylib.a %t2.o
+RUN: %link %linkopts -dy -E %t1.o -L%t.tmpdir -l:mylib.a %t3.so  --exclude-libs -l:mylib.a -o %tnamespec1.out
 RUN: %readelf --dyn-symbols %tnamespec1.out | %filecheck --check-prefix="NS" %s
 NS-NOT: foo
 
-RUN: mkdir -p %T
-RUN: %ar cr %aropts %T/mylib.a %t2.o
-RUN: %ar cr %aropts %T/mylib1.a %t3.o
-RUN: %link %linkopts --force-dynamic -E %t1.o -L%T -l:mylib.a -l:mylib1.a  --exclude-libs -l:mylib.a,-l:mylib1.a -o %tnamespec2.out
+RUN: %rm -rf %t.tmpdir
+
+RUN: mkdir -p %t.tmpdir
+RUN: %ar cr %aropts %t.tmpdir/mylib.a %t2.o
+RUN: %ar cr %aropts %t.tmpdir/mylib1.a %t3.o
+RUN: %link %linkopts --force-dynamic -E %t1.o -L%t.tmpdir -l:mylib.a -l:mylib1.a  --exclude-libs -l:mylib.a,-l:mylib1.a -o %tnamespec2.out
 RUN: %readelf --dyn-symbols %tnamespec2.out | %filecheck --check-prefix="NS1" %s
 NS1-NOT: foo
 NS1-NOT: bar
+
+RUN: %rm -rf %t.tmpdir
 
 #Check shared objects with exclude libs
 RUN: %clang %clangopts -c %p/Inputs/1.c -fpic -o %tpic1.o
