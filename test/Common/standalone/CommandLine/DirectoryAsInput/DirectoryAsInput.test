@@ -1,4 +1,4 @@
-UNSUPPORTED: windows
+#UNSUPPORTED: windows
 #---DirectoryAsInput.test------------------------- Executable ----------------#
 
 #BEGIN_COMMENT

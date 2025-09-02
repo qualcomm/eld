@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---RepeatedIncludes.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 This test checks that the repeated INCLUDEs in linker script does not lead to

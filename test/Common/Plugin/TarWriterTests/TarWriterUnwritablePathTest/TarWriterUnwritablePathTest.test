@@ -1,4 +1,4 @@
-UNSUPPORTED: windows
+#UNSUPPORTED: windows
 #---TarWriterUnwritablePathTest.test----------------------- Executable,LS --------------------#
 
 #BEGIN_COMMENT

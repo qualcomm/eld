@@ -1,4 +1,4 @@
-UNSUPPORTED: windows
+#UNSUPPORTED: windows
 #---LinkerWrapperCommentSectionTest.test--------------------------- Executable -----------------#
 
 #BEGIN_COMMENT

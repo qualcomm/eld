@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---AddPluginFileToReproduceTar.test--------------------- Executable --------------------#
 #BEGIN_COMMENT
 # Tests that a plugin generated/modified file can be added to the

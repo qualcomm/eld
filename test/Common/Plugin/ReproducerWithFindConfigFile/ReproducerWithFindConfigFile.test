@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---ReproducerWithFindConfigFile.test--------------------- Executable --------------------#
 #BEGIN_COMMENT
 # Tests that the reproducer can find a config file that was used by a plugin

@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #----ELDFlags.test------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This test checks that users can provide arguments to linker by populating

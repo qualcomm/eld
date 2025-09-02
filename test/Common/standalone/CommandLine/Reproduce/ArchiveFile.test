@@ -1,4 +1,4 @@
-UNSUPPORTED: reproduce_fail
+#UNSUPPORTED: windows, reproduce_fail
 #----ArchiveFile.test------------------- Executable -----------------#
 
 

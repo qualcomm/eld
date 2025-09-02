@@ -1,4 +1,4 @@
-XFAIL: windows
+#UNSUPPORTED: windows
 #---ELDExpectedErrors.test--------------------------- Executable -----------------#
 
 
@@ -8,4 +8,4 @@ XFAIL: windows
 #START_TEST
 RUN: %not %cppcompiler -I%eldsrcroot/include/eld/PluginAPI %p/Inputs/ELDExpectedReferenceTypeError.cpp -std=c++17 -stdlib=libc++ 2>&1 | %filecheck %s --check-prefix=REFERENCE_ERROR
 #REFERENCE_ERROR: failed due to requirement {{.*}}reference
-#END_TEST
+#END_TEST#

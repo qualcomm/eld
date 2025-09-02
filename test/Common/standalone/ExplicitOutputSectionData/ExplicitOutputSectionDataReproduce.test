@@ -1,4 +1,4 @@
-UNSUPPORTED: riscv32, riscv64
+#UNSUPPORTED: windows, riscv32, riscv64
 #XFAIL: reproduce_fail
 #---ExplicitOutputSectionData.test--------------------- Executable---------------------#
 

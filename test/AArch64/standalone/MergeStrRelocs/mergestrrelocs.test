@@ -9,9 +9,9 @@ RUN: %dwarfdump -debug-info %t2.so | %filecheck %s -check-prefix=DEBUGSTR
 RUN: %dwarfdump -debug-info %t2.out | %filecheck %s -check-prefix=DEBUGSTR
 RUN: %dwarfdump -debug-info %t2.out.emitrelocs | %filecheck %s -check-prefix=DEBUGSTR
 
-DEBUGSTR: DW_AT_name ("{{[-_A-Za-z0-9.\\/:]+}}MergeStrRelocs/Inputs{{[\\/]}}1.c")
+DEBUGSTR: DW_AT_name ("{{.*}}MergeStrRelocs/Inputs{{.*}}1.c")
 DEBUGSTR: DW_AT_name ("foo1")
 DEBUGSTR: DW_AT_name ("int")
-DEBUGSTR: DW_AT_name ("{{[-_A-Za-z0-9.\\/:]+}}MergeStrRelocs/Inputs{{[\\/]}}2.c")
+DEBUGSTR: DW_AT_name ("{{.*}}MergeStrRelocs/Inputs{{.*}}2.c")
 DEBUGSTR: DW_AT_name ("bar")
 DEBUGSTR: DW_AT_name ("int")

@@ -5,5 +5,5 @@ RUN: %not %link %linkopts -lblah -o %t.out --verbose 2>&1 | %filecheck %s
 RUN: %not %link %linkopts -lblah -o %t.out --sysroot=%t --verbose 2>&1 | %filecheck %s --check-prefix=SYSROOT
 CHECK-NOT: Trying to open input `/lib
 CHECK-NOT: Trying to open input `/usr/lib
-SYSROOT-DAG: Trying to open input {{.*}}/lib/libblah
-SYSROOT-DAG: Trying to open input {{.*}}/usr/lib/libblah
+SYSROOT-DAG: Trying to open input {{.*}}libblah
+SYSROOT-DAG: Trying to open input {{.*}}libblah

@@ -8,9 +8,9 @@ RUN: %clang %clangg0opts -fno-pie -c %p/Inputs/1.c -o %t1.o
 # Test for alignment of 1
 RUN: %clang %clangg0opts -c %p/Inputs/0.c -o %t0.o -fPIC
 RUN: %link %linkg0opts -shared %t0.o -o %t0.so
-RUN: %link %linkg0opts -Bdynamic %t1.o %t0.so -o %t0.out -Map %t0.map 0>&1
+RUN: %link %linkg0opts -Bdynamic %t1.o %t0.so -o %t0.out -Map %t0.map 2>&1
 RUN: %filecheck %s -check-prefix=ALIGN1 < %t0.map
-RUN: %readelf -r %t0.out 0>&1 | %filecheck %s -check-prefix=COPYRELOC
+RUN: %readelf -r %t0.out 2>&1 | %filecheck %s -check-prefix=COPYRELOC
 # Test for alignment of 4
 RUN: %clang %clangg0opts -c %p/Inputs/2.c -o %t2.o -fPIC
 RUN: %link %linkg0opts -shared %t2.o -o %t2.so
