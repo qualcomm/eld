@@ -13,15 +13,15 @@ RUN: %mkdir -p ./NewINIFolder
 RUN: %mkdir -p "%llvmobjroot/etc/ELD/Plugins/ConfigFile/config"
 RUN: cp %p/../Inputs/test.ini "%llvmobjroot/etc/ELD/Plugins/ConfigFile/default.ini"
 RUN: %clang %clangopts -c %p/../Inputs/1.c -o %t1.1.o -ffunction-sections
-RUN: %link %linkopts %t1.1.o -o %t2.out -L %p/../Inputs -L %T/../NewINIFolder --plugin-config=default_ini.config --verbose  2>&1  | %filecheck %s -check-prefix=VERBOSE
+RUN: %link %linkopts %t1.1.o -o %t2.out -L %p/../Inputs -L ./NewINIFolder --plugin-config=default_ini.config --verbose  2>&1  | %filecheck %s -check-prefix=VERBOSE
 RUN: %filecheck <out.ini %s --check-prefix=WRITE
 RUN: %filecheck <test.ini %s --check-prefix=WRITESAME
 RUN: %filecheck <new.ini %s --check-prefix=WRITENEW
-RUN: %filecheck <%T/../NewINIFolder/new_plugin.ini %s --check-prefix=WRITENEW
+RUN: %filecheck <./NewINIFolder/new_plugin.ini %s --check-prefix=WRITENEW
 RUN: rm -f "%llvmobjroot/etc/ELD/Plugins/ConfigFile/default.ini"
 RUN: rm -rf ./NewINIFolder
 RUN: %mkdir -p ./NewINIFolder
-RUN: %link %linkopts %t1.1.o -o %t21.out -L %p/../Inputs -L %T/../NewINIFolder --plugin-config=default_ini.config --verbose  2>&1  | %filecheck %s -check-prefix=ININOTFOUND
+RUN: %link %linkopts %t1.1.o -o %t21.out -L %p/../Inputs -L ./NewINIFolder --plugin-config=default_ini.config --verbose  2>&1  | %filecheck %s -check-prefix=ININOTFOUND
 #WRITE: [C]
 #WRITE: a=1
 #WRITESAME: [C]
