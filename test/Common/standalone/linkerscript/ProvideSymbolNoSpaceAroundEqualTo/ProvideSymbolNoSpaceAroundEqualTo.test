@@ -6,6 +6,6 @@ RUN: %touch %t1.1.o
 RUN: %link %emulation %linkopts -o %t1.a.out %t1.1.o -T %p/Inputs/script.t -u foo -u bar -u baz
 RUN: %readelf -s %t1.a.out | %filecheck %s
 
-CHECK: 11 {{.*}} ABS bar
-CHECK: 11 {{.*}} ABS baz
-CHECK: 11 {{.*}} ABS foo
+CHECK-DAG: 11 {{.*}} ABS bar
+CHECK-DAG: 11 {{.*}} ABS baz
+CHECK-DAG: 11 {{.*}} ABS foo

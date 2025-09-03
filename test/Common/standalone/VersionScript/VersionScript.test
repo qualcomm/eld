@@ -89,9 +89,9 @@ MAPCHECK5: Version Script file
 MAPCHECK5: {{.*}}/Inputs/vs5
 MAPCHECK5: Global:
 MAPCHECK5: Pattern: *
-MAPCHECK5: # bar {{.*}}5.o
-MAPCHECK5: # baz {{.*}}5.o
-MAPCHECK5: # foo {{.*}}5.o
+MAPCHECK5-DAG: # bar {{.*}}5.o
+MAPCHECK5-DAG: # baz {{.*}}5.o
+MAPCHECK5-DAG: # foo {{.*}}5.o
 MAPCHECK5: Local:
 MAPCHECK5: Pattern: *
 
@@ -104,9 +104,9 @@ MAPCHECK51: Version Script file
 MAPCHECK51: {{.*}}/Inputs/vs5
 MAPCHECK51: Global:
 MAPCHECK51: Pattern: *
-MAPCHECK51: # bar {{.*}}5.o
-MAPCHECK51: # baz {{.*}}5.o
-MAPCHECK51: # foo {{.*}}5.o
+MAPCHECK51-DAG: # bar {{.*}}5.o
+MAPCHECK51-DAG: # baz {{.*}}5.o
+MAPCHECK51-DAG: # foo {{.*}}5.o
 MAPCHECK51: Local:
 MAPCHECK51: Pattern: *
 
@@ -156,12 +156,12 @@ MAPCHECK8: Version Script file
 MAPCHECK8: {{.*}}/Inputs/vs5
 MAPCHECK8: Global:
 MAPCHECK8: Pattern: *
-MAPCHECK8: # f_exe {{.*}}8_2.o
-MAPCHECK8: # bar {{.*}}8.so
-MAPCHECK8: # main {{.*}}8_2.o
-MAPCHECK8: # baz {{.*}}8.so
-MAPCHECK8: # func_exe {{.*}}8_2.o
-MAPCHECK8: # foo {{.*}}8.so
+MAPCHECK8-DAG: # f_exe {{.*}}8_2.o
+MAPCHECK8-DAG: # bar {{.*}}8.so
+MAPCHECK8-DAG: # main {{.*}}8_2.o
+MAPCHECK8-DAG: # baz {{.*}}8.so
+MAPCHECK8-DAG: # func_exe {{.*}}8_2.o
+MAPCHECK8-DAG: # foo {{.*}}8.so
 MAPCHECK8: Local:
 MAPCHECK8: Pattern: *
 

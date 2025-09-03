@@ -71,7 +71,7 @@ public:
   /// \returns layout of this ini file in the form of an std::ostream
   friend std::ostream &operator<<(std::ostream &os, INIWriter const &m) {
     for (auto &section : m.ini) {
-      os << "[" << section.first().str() << "]\n";
+      os << "[" << section.first << "]\n";
       os << *section.second;
       os << "\n";
     }
@@ -105,7 +105,7 @@ public:
   }
 
 private:
-  llvm::StringMap<INISection *> ini;
+  std::map<std::string, INISection *> ini;
   std::unique_ptr<llvm::raw_fd_ostream> file = nullptr;
 };
 } // namespace eld

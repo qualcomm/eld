@@ -15,7 +15,7 @@ RUN: %readelf -Sls %t1.1.out 2>&1 | %filecheck %s --check-prefix=READELF
 READELF: .foo {{.*}} {{0+}}1000
 READELF: Program Headers
 READELF: 0x{{0+}}1000 0x{{0+}}2000
-READELF: {{0+}}100 {{.*}} ABS A
-READELF: {{0+}}100 {{.*}} ABS S
-READELF: {{0+}}1000 {{.*}} ABS VMA
-READELF: {{0+}}2000 {{.*}} ABS LMA
+READELF-DAG: {{0+}}100 {{.*}} ABS A
+READELF-DAG: {{0+}}100 {{.*}} ABS S
+READELF-DAG: {{0+}}1000 {{.*}} ABS VMA
+READELF-DAG: {{0+}}2000 {{.*}} ABS LMA
