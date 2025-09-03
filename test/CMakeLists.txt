@@ -3,7 +3,7 @@ set(LLVM_BINARY_DIR "${LLVM_BINARY_DIR}")
 set(LLVM_BUILD_MODE "%(build_mode)s")
 set(LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}/%(build_config)s")
 set(LLVM_LIBS_DIR "${LLVM_BINARY_DIR}/lib/%(build_config)s")
-set(TEST_TARGETS "${LLVM_TARGETS_TO_BUILD}")
+set(TEST_TARGETS "${ELD_TARGETS_TO_BUILD}")
 set(ELD_TESTSUITE)
 
 include(LITModules)
