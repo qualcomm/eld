@@ -16,7 +16,7 @@
 using namespace eld;
 
 MsgHandler::MsgHandler(DiagnosticEngine &PEngine,
-                       std::unique_lock<std::mutex> PLock)
+                       std::unique_lock<std::timed_mutex> PLock)
     : DiagEngine(PEngine), NumArgs(0), Lock(std::move(PLock)) {}
 
 MsgHandler::~MsgHandler() { emit(); }

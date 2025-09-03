@@ -22,6 +22,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <thread>
 
 /// If eld::Expected contains an error, then returns the associated diagnostic
 /// entry; Otherwise does nothing.
@@ -163,6 +164,7 @@ public:
       Severity = None;
       File = nullptr;
       Plugin = nullptr;
+      ThreadID = std::thread::id();
     }
 
   public:
@@ -174,6 +176,7 @@ public:
     Severity Severity = Severity::None;
     Input *File = nullptr;
     const eld::Plugin *Plugin = nullptr;
+    std::thread::id ThreadID;
   };
 
   DiagnosticInfos &infoMap();
@@ -228,10 +231,30 @@ public:
   static constexpr uint32_t NumOfBaseDiagBits =
       std::numeric_limits<DiagIDType>::digits - NumOfSeverityBits;
 
+  std::thread::id getThreadID() const {
+    return State.ThreadID;
+  }
+
+  /// Should be used very carefully!!
+  /// This function aborts the diagnostic in-flight.
+  /// The only safe case of using this function is when a signal, whose default
+  /// disposition is to terminate/stop the program, is delivered to the thread
+  /// that is currently emitting a diagnostic.
+  void abortDiagInFlight() {
+    Mutex.unlock();
+    State.reset();
+  }
+
+  /// Checks that if the diagnostic engine is usable. It is useful
+  /// when we are not sure of the program state and thus cannot be
+  /// certain that diagnostic engine is usable. For example, a kill
+  /// signal by out-of-memory killer.
+  bool isUsable();
+
 private:
   // -----  emission  ----- //
   // emit - process the message to printer
-  bool emit(std::unique_lock<std::mutex> Lock);
+  bool emit(std::unique_lock<std::timed_mutex> Lock);
 
   State &state() { return State; }
 
@@ -241,7 +264,7 @@ private:
   DiagnosticPrinter *Printer = nullptr;
   std::unique_ptr<DiagnosticInfos> InfoMap;
   State State;
-  mutable std::mutex Mutex;
+  mutable std::timed_mutex Mutex;
 
   /// In severity mask, the severity associated bits are 1 valued and
   /// the other bits are 0 valued.

@@ -1,0 +1,12 @@
+#---PluginDiagCrash.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that the linker does not go into the deadlock when the link crashes
+# while emitting a diagnostic.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.elf %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml >%t1.1.log 2>&1 || true
+RUN: %filecheck %s < %t1.1.log
+#END_TEST
+CHECK: Assertion{{.*}}NumArgs < DiagnosticEngine::MaxArguments && "Too many arguments to diagnostic!"
+CHECK: Fatal: !!!UNEXPECTED LINKER BEHAVIOR!!!
