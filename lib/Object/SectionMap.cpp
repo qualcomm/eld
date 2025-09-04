@@ -631,7 +631,7 @@ bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,
     IF = S.getOldInputFile();
   const std::string &InputFileName = IF->getInput()->getResolvedPath().native();
   std::string SectName = S.name().str();
-  uint64_t SectHash = 0;
+  uint64_t SectHash = S.sectionNameHash();
   if (!DoNotUseRmName) {
     ObjectFile *OF = llvm::dyn_cast<ObjectFile>(IF);
     const ELFSection *ESect = llvm::dyn_cast<const ELFSection>(&S);
