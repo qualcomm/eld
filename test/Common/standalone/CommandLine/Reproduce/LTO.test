@@ -13,8 +13,10 @@ RUN: %clang %clangopts -c %p/Inputs/lto2.s -o %t1.lto2.o
 RUN: %link %linkg0opts %emulation -flto-options=preserve-sym=foo %t1.o --save-temps -flto-options=lto-asm-file=%p/Inputs/lto1.s,%p/Inputs/lto2.s \
 RUN:  -o %t.out --reproduce %t.tar --dump-response-file %t.response
 RUN: %filecheck %s < %t.response
-RUN: %tar %gnutaropts -xf %t.tar -C %T
-RUN: cd %T/reproduce.LTO.test.tmp.out
+RUN: %rm -rf %t.tmpdir
+RUN: %mkdir %t.tmpdir
+RUN: %tar %gnutaropts -xf %t.tar -C %t.tmpdir
+RUN: cd %t.tmpdir/reproduce.LTO.test.tmp.out
 RUN: %link @response.txt
 CHECK: flto-options=lto-output-file=
 CHECK-COUNT-1: ,
