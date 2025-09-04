@@ -1,0 +1,12 @@
+#---FillExpAndFillCommandCombined.test--------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This tests check that the padding contains content as per the
+# fill expression / command when both of them are used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -x text %t1.1.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: 0x00000016 deadbeef abababab bcbcbcbc
