@@ -1541,6 +1541,36 @@ bool GnuLdDriver::processReproduceOption(
 
 void GnuLdDriver::defaultSignalHandler(void *cookie) {
   DiagnosticEngine *DiagEngine = ThisModule->getConfig().getDiagEngine();
+  bool DiagEngineUsable = true;
+  /// If the signal is delivered to the thread that was already
+  /// emitting the diagnostic, abort the diagnostic-in-flight.
+  /// This is the common case, as we expect the signal to be delivered
+  /// due to a crash / assert-failure in the linker. In such cases,
+  /// a thread-directed signal is delivered, that is, the signal is
+  /// deliverd to the thread that caused the error. The same is true
+  /// for both Unix and Windows.
+  if (std::this_thread::get_id() == DiagEngine->getThreadID())
+    DiagEngine->abortDiagInFlight();
+  /// In the cases of process-directed signals, usually
+  /// external signals such as ctrl+c or kill command, we do not
+  /// know which thread this signal is delivered to. We also
+  /// do not know whether any diagnostic is in-flight, or
+  /// if the thread that is emitting a diagnostic is in good shape
+  /// to reach completion. Without going into OS-level API, we cannot
+  /// kill the thread that is emitting diagnostic, if any, because we do
+  /// not know which thread might be emitting the diagnostic.
+  ///
+  /// In this case, we check if the diagnostic engine is still usable,
+  /// if it is not usable, then we manually use the error stream to
+  /// report further errors. Please note that it would be incredibly
+  /// rare for diagnostic engine to not be usable. In the general case,
+  /// if thread T1 is emitting diagnostic, and the signal is delivered
+  /// to thread T2, then T1 will continue as usual while T2 is running signal
+  /// handler, and as such, T1 will free the diagnostic engine lock after
+  /// emitting the diagnostic.
+  else if (!DiagEngine->isUsable()) {
+    DiagEngineUsable = false;
+  }
   std::string commandLine = "";
   for (auto arg : ThisModule->getConfig().options().args()) {
     if (arg) {
@@ -1561,21 +1591,36 @@ void GnuLdDriver::defaultSignalHandler(void *cookie) {
   for (eld::Plugin *P : ThisModule->getScript().getPlugins()) {
     if (P->isRunning()) {
       pluginCrash = true;
-      DiagEngine->raise(Diag::plugin_crash) << P->getName();
+      if (DiagEngineUsable)
+        DiagEngine->raise(Diag::plugin_crash) << P->getName();
+      else
+        llvm::errs() << "Fatal: !!!PLUGIN CRASHED!!!\nUser specified plugin "
+                     << P->getName() << "caused segmentation fault\n";
     }
   }
 
   if (!pluginCrash) {
-    DiagEngine->raise(Diag::unexpected_linker_behavior);
+    if (DiagEngineUsable)
+      DiagEngine->raise(Diag::unexpected_linker_behavior);
+    else
+      llvm::errs() << "Fatal: !!!UNEXPECTED LINKER BEHAVIOR!!!\n";
   }
 
   // FIXME: EC should be checked before using outputPath variable.
   if (EC || error) {
-    DiagEngine->raise(Diag::linker_crash_use_reproduce) << "--reproduce";
+    if (DiagEngineUsable)
+      DiagEngine->raise(Diag::linker_crash_use_reproduce) << "--reproduce";
+    else
+      llvm::errs() << "Fatal: Please rerun link with --reproduce and contact "
+                      "support\n";
     return;
   }
   *file << commandLine;
-  DiagEngine->raise(Diag::linker_crash_use_reproduce) << outputPath.str();
+  if (DiagEngineUsable)
+    DiagEngine->raise(Diag::linker_crash_use_reproduce) << outputPath.str();
+  else
+    llvm::errs() << "Fatal: Please rerun link with " << outputPath.str()
+                 << " contact support\n";
 }
 
 eld::Module *GnuLdDriver::ThisModule = nullptr;

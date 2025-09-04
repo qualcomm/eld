@@ -37,7 +37,7 @@ void DiagnosticEngine::setInfoMap(std::unique_ptr<DiagnosticInfos> PInfo) {
 }
 
 // emit - process current diagnostic.
-bool DiagnosticEngine::emit(std::unique_lock<std::mutex> Lock) {
+bool DiagnosticEngine::emit(std::unique_lock<std::timed_mutex> Lock) {
   if (!InfoMap)
     return true;
 
@@ -52,18 +52,20 @@ bool DiagnosticEngine::emit(std::unique_lock<std::mutex> Lock) {
 }
 
 MsgHandler DiagnosticEngine::raise(DiagIDType PId) {
-  std::unique_lock<std::mutex> Lock(Mutex);
+  std::unique_lock<std::timed_mutex> Lock(Mutex);
   State.ID = PId;
+  State.ThreadID = std::this_thread::get_id();
   return MsgHandler(*this, std::move(Lock));
 }
 
 MsgHandler *DiagnosticEngine::raisePluginDiag(DiagIDType ID,
                                               const Plugin *Plugin) {
-  std::unique_lock<std::mutex> Lock(Mutex);
+  std::unique_lock<std::timed_mutex> Lock(Mutex);
   // FIXME: Verify that diagnostic ID is valid. ID should be less than
   // Diag::NUM_OF_BUILDIN_DIAGNOSTIC_INFO + CustomDiags.size()
   State.ID = ID;
   State.Plugin = Plugin;
+  State.ThreadID = std::this_thread::get_id();
   return new MsgHandler(*this, std::move(Lock));
 }
 
@@ -84,7 +86,7 @@ void DiagnosticEngine::finalize() {
 DiagnosticEngine::DiagIDType
 DiagnosticEngine::getCustomDiagID(DiagnosticEngine::Severity Severity,
                                   llvm::StringRef FormatStr) const {
-  std::lock_guard<std::mutex> Lock(Mutex);
+  std::lock_guard<std::timed_mutex> Lock(Mutex);
   ASSERT(InfoMap, "Diagnostics info map is not initialized!");
   DiagnosticEngine::DiagIDType Res =
       InfoMap->getOrCreateCustomDiagID(Severity, FormatStr);
@@ -178,6 +180,14 @@ DiagnosticEngine::updateSeverity(DiagIDType Id, Severity Severity) {
 DiagnosticEngine::DiagIDType DiagnosticEngine::getBaseDiagID(DiagIDType Id) {
   resetSeverity(Id);
   return Id;
+}
+
+bool DiagnosticEngine::isUsable() {
+  std::unique_lock<std::timed_mutex> Lock(Mutex, std::defer_lock_t{});
+  std::chrono::seconds WaitThreshold(2);
+  if (Lock.try_lock_for(WaitThreshold))
+    return true;
+  return false;
 }
 
 DiagnosticEngine::Severity DiagnosticEngine::getDiagEngineSeverity(
