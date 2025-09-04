@@ -19,6 +19,7 @@
 #include "eld/Script/StrToken.h"
 #include "eld/Script/StringList.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
+#include "eld/PluginAPI/Expected.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/GlobPattern.h"
 
@@ -52,6 +53,10 @@ public:
                            ExcludeFiles *PExcludeFileList = nullptr);
 
   ~WildcardPattern();
+
+  static WildcardPattern *
+  create(StrToken *S, SortPolicy PPolicy = SORT_NONE,
+         ExcludeFiles *PExcludeFileList = nullptr);
 
   SortPolicy sortPolicy() const { return MSortPolicy; }
 
