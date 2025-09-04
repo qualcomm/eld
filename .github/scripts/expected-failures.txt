@@ -1,0 +1,18 @@
+CHECK: FAIL src/api/main.exe
+CHECK: FAIL src/functional/dlopen.exe
+CHECK: FAIL src/functional/strptime-static.exe
+CHECK: FAIL src/functional/strptime.exe
+CHECK: FAIL src/functional/tgmath-static.exe
+CHECK: FAIL src/functional/tgmath.exe
+CHECK: FAIL src/functional/tls_align-static.exe
+CHECK: FAIL src/functional/tls_align.exe
+CHECK: FAIL src/functional/tls_align_dlopen.exe
+CHECK: FAIL src/functional/tls_init-static.exe
+CHECK: FAIL src/functional/tls_init.exe
+CHECK: FAIL src/functional/tls_init_dlopen.exe
+CHECK: FAIL src/functional/tls_local_exec-static.exe
+CHECK: FAIL src/functional/tls_local_exec.exe
+CHECK: FAIL src/math/fmal.exe
+CHECK: FAIL src/math/powf.exe
+CHECK: FAIL src/regression/tls_get_new-dtv.exe
+CHECK-NOT: FAIL
