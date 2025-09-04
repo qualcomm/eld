@@ -13,6 +13,7 @@
 #include "eld/Fragment/Fragment.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Object/OutputSectionEntry.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/MsgHandling.h"
@@ -107,7 +108,14 @@ Fragment *Fragment::getNextNode() {
 size_t Fragment::paddingSize() const {
   if (!hasOffset())
     return 0;
-  return llvm::offsetToAlignment(UnalignedOffset, llvm::Align(Alignment));
+  // FIXME: Will a fragment ever not have an owning section / output section?
+  // We should have linker invariants such as 'All fragments must always have a
+  // fragment' so that we can write codes in a uniform way without having too
+  // many if-checks.
+  ELFSection *OutSect = (OwningSection ? getOutputELFSection() : nullptr);
+  size_t OutSectAddr = (OutSect ? OutSect->addr() : 0);
+  return llvm::offsetToAlignment(UnalignedOffset + OutSectAddr,
+                                 llvm::Align(Alignment));
 }
 
 void Fragment::setOffset(uint32_t POffset) {
