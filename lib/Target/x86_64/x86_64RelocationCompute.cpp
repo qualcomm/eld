@@ -55,24 +55,25 @@ unsigned getNumberOfBits(EncodingType Type) {
   return 64;
 }
 
-uint32_t clearImmediateBits(uint32_t Instr, EncodingType Type) {
+uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
   switch (Type) {
   case EncTy_8:
-    return Instr & 0xFFFFFF00;
+    return Instr & 0xFFFFFFFFFFFFFF00ULL;
   case EncTy_16:
-    return Instr & 0xFFFF0000;
+    return Instr & 0xFFFFFFFFFFFF0000ULL;
   case EncTy_32:
-    return Instr & 0xFF000000;
+    return Instr & 0xFFFFFFFF00000000ULL;
+  case EncTy_64:
+    return 0ULL;
   default:
-    break;
+    return Instr;
   }
-  return Instr;
 }
 
 // The Relocation helper function that computes the Instruction bits with the
 // relocation applied.
 template <typename T>
-uint32_t doRelocHelper(const RelocationInfo &RelocInfo, uint32_t Instruction,
+uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
                        T Value) {
   Instruction = clearImmediateBits(Instruction, RelocInfo.EncType);
   switch (RelocInfo.EncType) {
@@ -97,12 +98,14 @@ uint32_t doRelocHelper(const RelocationInfo &RelocInfo, uint32_t Instruction,
 
 extern "C" {
 // This function finds the Mask for the Instruction and applies the Mask.
-uint32_t doRelocX86_64(const RelocationInfo &RelocInfo, uint64_t Instruction,
+
+uint64_t doRelocX86_64(const RelocationInfo &RelocInfo, uint64_t Instruction,
                        uint64_t Value) {
-  if (x86_64Relocs[RelocInfo.Type].IsSigned)
-    return doRelocHelper<int32_t>(RelocInfo, Instruction, Value);
-  else
-    return doRelocHelper<uint32_t>(RelocInfo, Instruction, Value);
+  if (x86_64Relocs[RelocInfo.Type].IsSigned) {
+    return doRelocHelper<int64_t>(RelocInfo, Instruction, Value);
+  } else {
+    return doRelocHelper<uint64_t>(RelocInfo, Instruction, Value);
+  }
 }
 
 /* Verify the Range specified by the ABI */
