@@ -111,3 +111,5 @@ DIAG(error_failed_to_find_driver, DiagnosticEngine::Error,
      "No driver found for target : %0")
 DIAG(fatal_unsupported_bit_code_file, DiagnosticEngine::Fatal,
      "Unsupported architecture %0 in LLVM Bitcode file : %1")
+DIAG(note_empty_archive, DiagnosticEngine::Note,
+     "Empty archive file: '%0'")
