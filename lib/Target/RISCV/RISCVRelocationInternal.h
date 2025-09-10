@@ -74,13 +74,9 @@ enum : uint32_t {
   QUALCOMMVendorRelocationOffset =
       FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
 
-  /* We don't support ANDES vendor relocations */
-  ANDESVendorRelocationOffset = 0,
-
-#define ELF_RISCV_NONSTANDARD_RELOC(vendor_symbol, name, value)                \
-  name = value + vendor_symbol##VendorRelocationOffset,
+#define ELF_RISCV_NONSTANDARD_RELOC_QUALCOMM(name, value)                \
+  name = value + QUALCOMMVendorRelocationOffset,
 #include "llvm/BinaryFormat/ELFRelocs/RISCV_nonstandard.def"
-#undef ELF_RISCV_NONSTANDARD_RELOC
 };
 } // namespace internal
 } // namespace riscv
