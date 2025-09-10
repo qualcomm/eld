@@ -80,3 +80,10 @@ jobs:
         run: |
           cd obj
           ninja -j8 check-eld
+
+      - name: Build Report
+        run: |
+          cd llvm-project/llvm/tools/eld
+          echo "{"time":"$(date +%Y-%m-%d-%H:%M)","build":"pass","tests":"pass"}" >> reports/reports.json
+          git add reports/reports.json
+          git commit -m "Update Build Reports"
