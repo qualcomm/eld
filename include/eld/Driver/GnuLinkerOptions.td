@@ -611,6 +611,10 @@ def s : Flag<["-"], "s">,
 def no_demangle : Flag<["--"], "no-demangle">,
                   HelpText<"Dont demangle C++ symbols">,
                   Group<grp_symbolopts>;
+defm require_defined : mDashEq<"require-defined", "require_defined",
+                             "Require symbol to be defined in the final output">,
+                     MetaVarName<"<symbol>">,
+                     Group<grp_symbolopts>;
 def strip_debug : Flag<["--"], "strip-debug">,
                   HelpText<"Omit all debug information from output">,
                   Group<grp_symbolopts>;
