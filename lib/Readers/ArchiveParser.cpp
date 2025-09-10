@@ -50,15 +50,20 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(expArchiveReader);
   std::unique_ptr<llvm::object::Archive> archiveReader =
       std::move(*expArchiveReader);
-  if (archiveReader->isEmpty())
-    return {};
+  LinkerConfig &config = m_Module.getConfig();
+  if (archiveReader->isEmpty()) {
+    config.raise(Diag::note_empty_archive)
+        << archiveFile->getInput()->decoratedPath();
+    if (!hasAFI)
+      archiveFile->initArchiveFileInfo();
+    return 0;
+  }
   if (archiveReader->isThin())
     archiveFile->setThinArchive();
 
   bool isWholeArchive =
       archiveFile->getInput()->getAttribute().isWholeArchive();
 
-  LinkerConfig &config = m_Module.getConfig();
   if (isWholeArchive) {
     if (config.showWholeArchiveWarnings())
       config.raise(Diag::warn_whole_archive_enabled)
