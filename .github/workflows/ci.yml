@@ -24,6 +24,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: llvm/llvm-project
+        ref: ${{ env.BASE_BRANCH_NAME }}
         path: pr-${{ env.PR_NUMBER }}/llvm-project
 
     - name: Checkout qualcomm/eld PR branch
