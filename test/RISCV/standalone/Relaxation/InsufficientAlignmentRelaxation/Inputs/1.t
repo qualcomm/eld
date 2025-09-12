@@ -1,5 +1,5 @@
 SECTIONS {
-  text (0xFE1) : {
+  text (0x0) : {
     *(.text)
   }
 }
