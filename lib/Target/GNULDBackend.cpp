@@ -1887,6 +1887,8 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
   PaddingT padding;
 
   Expression *fillExpression = out->epilog().fillExp();
+  if (fillExpression)
+    fillExpression->evaluateAndRaiseError();
 
   padding.Exp = fillExpression;
 
