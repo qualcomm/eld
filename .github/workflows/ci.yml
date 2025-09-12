@@ -12,91 +12,92 @@ jobs:
       contents: write
       statuses: write
 
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+      BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
+      CCACHE_DIR: /local/mnt/workspace/ccache/${{ github.event.pull_request.base.ref }}
+      CCACHE_BASEDIR: ${{ github.workspace }}/pr-${{ github.event.number }}
+
     steps:
-    - name: Set PR number and branch names
-      run: |
-        echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
-        echo "BRANCH_NAME=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
-        echo "BASE_BRANCH_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-        echo "CACHE_DIR=/local/mnt/workspace/ccache/${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: pr-${{ env.PR_NUMBER }}/llvm-project
 
-    - name: Checkout llvm-project
-      uses: actions/checkout@v4
-      with:
-        repository: llvm/llvm-project
-        path: pr-${{ env.PR_NUMBER }}/llvm-project
+      - name: Checkout qualcomm/eld PR branch
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+          fetch-depth: 0
 
-    - name: Checkout qualcomm/eld PR branch
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ github.event.pull_request.head.repo.full_name }}
-        ref: ${{ github.event.pull_request.head.ref }}
-        path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
-        fetch-depth: 0
+      - name: Check for non-doc changes
+        id: file-check
+        working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
+        run: |
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          echo "Changed files: $CHANGED_FILES"
+          for file in $CHANGED_FILES; do
+            if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
+              echo "skip_build=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "Only doc files changed. Skipping build."
+          echo "skip_build=true" >> "$GITHUB_OUTPUT"
 
-    - name: Check for non-doc changes
-      id: file-check
-      working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
-      run: |
-        CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
-        echo "Changed files: $CHANGED_FILES"
-        for file in $CHANGED_FILES; do
-          if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
-            echo "skip_build=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-        done
-        echo "Only doc files changed. Skipping build."
-        echo "skip_build=true" >> $GITHUB_OUTPUT
+      - name: Run CMake
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}
+        run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --zero-stats
+          ccache --set-config "max_size=50GB" "compression=true"
+          ccache --show-config
 
-    - name: Run CMake
-      if: steps.file-check.outputs.skip_build == 'false'
-      run: |
-        export CCACHE_BASEDIR=$GITHUB_WORKSPACE
-        export CCACHE_NOHASHDIR=true
-        ccache --set-config max_size=32GB --dir $CACHE_DIR
-        rm -rf pr-${{ env.PR_NUMBER }}/obj
-        mkdir -p pr-${{ env.PR_NUMBER }}/obj
-        cd pr-${{ env.PR_NUMBER }}/obj
-        cmake -G Ninja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
-          -DLLVM_CCACHE_DIR=$CACHE_DIR \
-          -DLLVM_CCACHE_BUILD:BOOL=ON \
-          -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
-          -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
-          -DCMAKE_C_COMPILER:STRING=`which clang` \
-          -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-          -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
-          -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
-          -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-          ../llvm-project/llvm
+          rm -rf obj
+          mkdir -p obj
+          cd obj
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
+            -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
+            -DCMAKE_C_COMPILER="$(which clang)" \
+            -DCMAKE_CXX_COMPILER="$(which clang++)" \
+            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;x86_64" \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            ../llvm-project/llvm
 
-    - name: Cache Usage before build
-      if: steps.file-check.outputs.skip_build == 'false'
-      run: |
-        cd pr-${{ env.PR_NUMBER }}/obj
-        ccache -s --dir $CACHE_DIR
+      - name: Cache Usage before build
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ccache --show-stats --dir=$CCACHE_DIR
 
-    - name: Build Project
-      if: steps.file-check.outputs.skip_build == 'false'
-      run: |
-        cd pr-${{ env.PR_NUMBER }}/obj
-        ninja
+      - name: Build
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ninja
 
-    - name: Cache Usage after build
-      if: steps.file-check.outputs.skip_build == 'false'
-      run: |
-        cd pr-${{ env.PR_NUMBER }}/obj
-        ccache -s --dir $CACHE_DIR
+      - name: Cache usage after build
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ccache --show-stats --dir=$CCACHE_DIR
 
-    - name: Run Tests
-      if: steps.file-check.outputs.skip_build == 'false'
-      run: |
-        cd pr-${{ env.PR_NUMBER }}/obj
-        ninja check-eld
+      - name: Run tests
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ninja check-eld
 
-    - name: Clean up
-      run: |
-        rm -rf pr-${{ github.event.number }}
+      - name: Clean up
+        if: always()
+        run: |
+          rm -rf "pr-${{ env.PR_NUMBER }}"
