@@ -48,7 +48,7 @@ namespace eld {
  */
 class MsgHandler {
 public:
-  MsgHandler(DiagnosticEngine &PEngine, std::unique_lock<std::mutex> Lock);
+  MsgHandler(DiagnosticEngine &PEngine, std::unique_lock<std::timed_mutex> Lock);
   ~MsgHandler();
 
   bool emit();
@@ -66,7 +66,7 @@ private:
 private:
   DiagnosticEngine &DiagEngine;
   mutable unsigned int NumArgs;
-  std::unique_lock<std::mutex> Lock;
+  std::unique_lock<std::timed_mutex> Lock;
 };
 
 inline const MsgHandler &operator<<(const MsgHandler &PHandler,
