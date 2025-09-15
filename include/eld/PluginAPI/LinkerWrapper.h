@@ -162,6 +162,8 @@ public:
   /// being used.
   eld::Expected<void> addFileToReproduceTar(std::string &FileName);
 
+  void addLinkStat(const std::string &StatName, const std::string &Value);
+
   /// Create a symbol but do not provide symbol resolution information (chunk or
   /// value). Used to define bitcode symbols. Note that InputSection is
   /// optional.

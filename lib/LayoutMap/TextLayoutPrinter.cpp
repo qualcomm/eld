@@ -137,11 +137,20 @@ void TextLayoutPrinter::printStat(llvm::StringRef S,
   outputStream() << "# " << S << " : " << Stat << "\n";
 }
 
+void TextLayoutPrinter::printPluginStats(
+    const std::vector<std::pair<std::string, std::string>> &Stats,
+    Plugin *P) const {
+  for (auto &it : Stats) {
+    outputStream() << "# " << it.first << ": " << it.second << " "
+                   << P->getPluginName();
+    outputStream() << "\n";
+  }
+}
+
 void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
                                    const Module &Module) {
   const ObjectLinker &ObjLinker = *(Module.getLinker()->getObjectLinker());
   const GNULDBackend &Backend = Module.getBackend();
-
   if (!L.hasStats())
     return;
   outputStream() << "# "
@@ -179,6 +188,10 @@ void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
               std::to_string(L.OutputFileSize.value()) + " bytes");
 
   printStat("LinkTime", L.LinkTime);
+  for (auto &W : ThisLayoutInfo->getPlugins()) {
+    Plugin *P = W->getPlugin();
+    printPluginStats(P->getPluginLinkStats(), P);
+  }
   ThisLayoutInfo->printStats((void *)(&Module), outputStream());
   outputStream() << "# "
                  << "LinkStats End"
