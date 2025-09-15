@@ -467,6 +467,12 @@ void LayoutInfo::recordUpdateRule(plugin::LinkerWrapper *W,
   Plugins.insert(W);
 }
 
+void LayoutInfo::recordUpdateLinkStats(plugin::LinkerWrapper *W,
+                                       UpdateLinkStatsPluginOp *O) {
+  PluginOps[W].push_back(O);
+  Plugins.insert(W);
+}
+
 void LayoutInfo::buildMergedStringMap(Module &M) {
   if (!MergedStrings.empty())
     return;

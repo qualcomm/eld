@@ -57,6 +57,11 @@ UpdateRulePluginOp::UpdateRulePluginOp(plugin::LinkerWrapper *W,
                                        const std::string &Annotation)
     : PluginOp(W, PluginOp::UpdateRule, Annotation), Rule(Rule), Section(S) {}
 
+UpdateLinkStatsPluginOp::UpdateLinkStatsPluginOp(plugin::LinkerWrapper *W,
+                                                 const std::string &StatName,
+                                                 const std::string &Annotation)
+    : PluginOp(W, PluginOp::UpdateLinkStat, Annotation), StatName(StatName) {}
+
 const eld::Fragment *RelocationDataPluginOp::getFrag() const {
   return Relocation->targetRef()->frag();
 }
