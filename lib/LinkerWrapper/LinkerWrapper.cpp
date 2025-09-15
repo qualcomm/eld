@@ -86,6 +86,12 @@ eld::Expected<void> LinkerWrapper::setPreserveSymbol(Symbol Symbol) {
   return {};
 }
 
+void LinkerWrapper::addLinkStat(const std::string &LinkStat,
+                                const std::string &Value) {
+  Module *M = getModule();
+  M->getScript().updateLinkStatsOp(this, M, LinkStat, Value);
+}
+
 eld::Expected<std::vector<Use>> LinkerWrapper::getUses(Section &S) {
   std::vector<Use> Uses;
   eld::ELFSection *E = llvm::dyn_cast<eld::ELFSection>(S.getSection());

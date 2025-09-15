@@ -30,6 +30,7 @@ public:
     RemoveSymbol,
     ResetOffset,
     UpdateChunks,
+    UpdateLinkStat,
     UpdateRule,
     RelocationData,
   };
@@ -179,6 +180,19 @@ public:
 
 private:
   const eld::Relocation *Relocation;
+};
+
+class UpdateLinkStatsPluginOp : public PluginOp {
+public:
+  UpdateLinkStatsPluginOp(plugin::LinkerWrapper *W, const std::string &StatName,
+                          const std::string &Annotation);
+
+  static bool classof(const PluginOp *P) {
+    return P->getPluginOpType() == PluginOpType::UpdateLinkStat;
+  }
+
+private:
+  std::string StatName;
 };
 
 class UpdateRulePluginOp : public PluginOp {

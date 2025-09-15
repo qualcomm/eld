@@ -112,6 +112,22 @@ bool Plugin::registerPlugin(void *Handle) {
   return true;
 }
 
+void Plugin::addLinkStat(const std::string &StatName,
+                         const std::string &Value) {
+  for (uint64_t i = 0; i < PluginStats.size(); ++i) {
+    if (PluginStats[i].first == StatName) {
+      PluginStats[i].second = Value;
+      return;
+    }
+  }
+  PluginStats.push_back({StatName, Value});
+}
+
+const std::vector<std::pair<std::string, std::string>> &
+Plugin::getPluginLinkStats() const {
+  return PluginStats;
+}
+
 std::string Plugin::getLibraryName() const { return PluginLibraryName; }
 
 bool Plugin::setFunctions() {
