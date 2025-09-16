@@ -108,7 +108,9 @@ endforeach()
 # Install LinkerWrapper shared library in the bin folder on windows, since the
 # library is one of the dependent libraries of the linker.
 if(ELD_ON_MSVC)
-  install(TARGETS LW RUNTIME DESTINATION bin)
+  install(TARGETS LW
+    RUNTIME DESTINATION bin
+    ARCHIVE DESTINATION lib)
 else()
   install(TARGETS LW LIBRARY DESTINATION lib)
 endif()
