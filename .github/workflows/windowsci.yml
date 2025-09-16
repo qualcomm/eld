@@ -1,0 +1,95 @@
+name: CI Windows
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      statuses: write
+
+    env:
+      PR_NUMBER: ${{ github.event.number }}
+      BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
+
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: pr-${{ env.PR_NUMBER }}\llvm-project
+
+      - name: Checkout qualcomm/eld PR branch
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          path: pr-${{ env.PR_NUMBER }}\llvm-project\llvm\tools\eld
+          fetch-depth: 0
+
+      - name: Check for non-doc changes
+        id: file-check
+        shell: pwsh
+        working-directory: pr-${{ env.PR_NUMBER }}\llvm-project\llvm\tools\eld
+        run: |
+          $changedFiles = git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+          Write-Output "Changed files: $changedFiles"
+          foreach ($file in $changedFiles) {
+            if ($file -notmatch '^docs/' -and $file -notmatch '\.md$') {
+              "skip_build=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              exit 0
+            }
+          }
+          Write-Output "Only doc files changed. Skipping build."
+          "skip_build=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Configure with CMake (Generate .sln)
+        if: steps.file-check.outputs.skip_build == 'false'
+        shell: cmd
+        working-directory: pr-${{ env.PR_NUMBER }}
+        run: |
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          if exist obj rmdir /s /q obj
+          mkdir obj
+          cd obj
+          cmake -G "Visual Studio 17 2022" ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" ^
+            -DLLVM_ENABLE_ASSERTIONS=ON ^
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" ^
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;x86_64" ^
+            ..\llvm-project\llvm
+
+      - name: Upload .sln file
+        if: steps.file-check.outputs.skip_build == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLVM-Solution
+          path: pr-${{ env.PR_NUMBER }}\obj\LLVM.sln
+
+      - name: Build with MSBuild
+        if: steps.file-check.outputs.skip_build == 'false'
+        shell: cmd
+        working-directory: pr-${{ env.PR_NUMBER }}\obj
+        run: |
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          msbuild LLVM.sln /p:Configuration=Release /m
+
+      - name: Run tests
+        if: steps.file-check.outputs.skip_build == 'false'
+        shell: cmd
+        working-directory: pr-${{ env.PR_NUMBER }}\obj
+        run: |
+          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          msbuild LLVM.sln /t:check-eld /p:Configuration=Release
+
+      - name: Clean up
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Recurse -Force "pr-${{ env.PR_NUMBER }}"
