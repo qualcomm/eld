@@ -1,0 +1,132 @@
+name: precheckin-picolibc
+
+on:
+    pull_request:  # triggers on PRs to any branch
+    workflow_dispatch: # manual trigger from github UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
+      CCACHE_BASEDIR: $GITHUB_WORKSPACE/
+
+    steps:
+      - name: Set up Clang 20
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: "20"
+          platform: x64
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev
+
+      - name: Checkout LLVM Project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          path: llvm-project
+          ref: main
+
+      - name: Checkout ELD
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - name: Configure ELD Build
+        run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --zero-stats
+          ccache --set-config "max_size=50GB" "compression=true"
+          ccache --show-config
+
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=hexagon-unknown-none-elf \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang" \
+            -DCMAKE_C_COMPILER=`which clang` \
+            -DCMAKE_CXX_COMPILER=`which clang++` \
+            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+            -DLLVM_TARGETS_TO_BUILD="Hexagon" \
+            -DLLVM_CCACHE_BUILD=ON \
+            -DLLVM_CCACHE_DIR=$PWD/ccache/ \
+            -DELD_TARGETS_TO_BUILD=Hexagon \
+            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-hexagon-toolchain \
+            -S $GITHUB_WORKSPACE/llvm-project/llvm \
+            -B $GITHUB_WORKSPACE/obj/ \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+
+      - name: Build ELD
+        run: |
+          cmake --build $GITHUB_WORKSPACE/obj/ -- install
+
+      - name: Setup ELD Environment
+        run: |
+          echo "TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-hexagon-toolchain/" >> $GITHUB_ENV
+
+      - name: Export toolchain to path
+        run: |
+          echo "PATH=$TOOLCHAIN_INSTALL/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Build Hexagon builtins
+        run: |
+          cmake -G Ninja \
+            -DCMAKE_C_COMPILER:STRING=`which clang` \
+            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
+            -DCMAKE_INSTALL_PREFIX:PATH=$($TOOLCHAIN_INSTALL/bin/clang -print-resource-dir) \
+            -C $GITHUB_WORKSPACE/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
+            -B $GITHUB_WORKSPACE/build-hexagon-builtins/ \
+            -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+          cmake --build $GITHUB_WORKSPACE/build-hexagon-builtins/ -- install-builtins
+
+      - name: Clone QEMU for Hexagon
+        run: |
+          git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git $GITHUB_WORKSPACE/qemu-system-hexagon
+
+      - name: Build QEMU for Hexagon
+        run: |
+          QEMU_INSTALL=$GITHUB_WORKSPACE/install-qemu-system-hexagon/
+          cd $GITHUB_WORKSPACE/qemu-system-hexagon
+          ./configure --target-list=hexagon-softmmu --prefix=$QEMU_INSTALL
+          cd build
+          ninja install
+          echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
+
+      - name: Check QEMU version
+        run: |
+          qemu-system-hexagon --version
+
+      - name: Install Meson
+        run: |
+          git clone https://github.com/mesonbuild/meson.git meson
+          cd meson
+          ./packaging/create_zipapp.py --outfile meson.pyz --interpreter '/usr/bin/env python3' .
+          mkdir -p bin
+          ln -s $(realpath meson.pyz) bin/meson
+          echo "PATH=$PWD/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Checkout Picolibc
+        uses: actions/checkout@v4
+        with:
+          repository: picolibc/picolibc
+          path: picolibc
+          ref: main
+
+      - name: Build Picolibc
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc
+          mkdir -p build-clang-hexagon-picolibc
+          cd build-clang-hexagon-picolibc
+          ../scripts/do-clang-hexagon-configure -Dc_link_args="-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
+          ninja
+
+      - name: Run tests
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-hexagon-picolibc
+          ninja test
