@@ -1,0 +1,10 @@
+#---InvalidGlobPattern.test--------------------- Executable,LS ------------------#
+#BEGIN_COMMENT
+# This test the linker emits an error for invalid glob pattern in linker script.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix=ERR --strict-whitespace --match-full-lines
+
+ERR:Error: {{.*}}/script.t:4: Invalid glob pattern: [
+ERR:>>>     *([
+ERR:>>>       ^
