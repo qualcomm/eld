@@ -1,2 +1,2 @@
 char *foo = "Hello";
-char *bar = &foo;
+char **bar = &foo;
