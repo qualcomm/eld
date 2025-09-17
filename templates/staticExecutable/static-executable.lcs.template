@@ -38,7 +38,11 @@ SECTIONS
     *(.rodata.hot .rodata.hot.* .gnu.linkonce.r.hot.*)
     *(.rodata .rodata.* .gnu.linkonce.r.*)
   }
-  .eh_frame_hdr   :  { *(.eh_frame_hdr) }
+  .eh_frame_hdr   :  {
+    __eh_frame_hdr_start = .;
+    KEEP (*(.eh_frame_hdr))
+    __eh_frame_hdr_start = .;
+  }
   .eh_frame       :   { KEEP (*(.eh_frame)) }
 
   /* Thread Local Storage sections  */
