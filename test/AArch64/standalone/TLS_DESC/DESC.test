@@ -3,8 +3,8 @@ RUN: %link %linkopts  -march aarch64 -static %t.o -z max-page-size=0x1000 -o %t.
 RUN: llvm-objdump -d %t.out | %filecheck %s
 
 #CHECK: {{.*}} <_test_tls_desc>:
-#CHECK: {{.*}} adrp    x0, 0x1000
-#CHECK: {{.*}} ldr     x0, [x0]
+#CHECK: {{.*}} adrp    x0, 0x0
+#CHECK: {{.*}} ldr     x0, [x0, #0x20]
 #CHECK: {{.*}} <_test_tls_desc_local>:
-#CHECK: {{.*}} adrp    x0, 0x1000
-#CHECK: {{.*}} ldr     x0, [x0, #0x8]
+#CHECK: {{.*}} adrp    x0, 0x0
+#CHECK: {{.*}} ldr     x0, [x0, #0x28]
