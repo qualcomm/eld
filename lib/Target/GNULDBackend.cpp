@@ -5130,7 +5130,11 @@ bool GNULDBackend::setupTLS() {
   out = outBegin;
   while (out != outEnd) {
     auto sec = (*out)->getSection();
-    if (sec->isTLS() && (sec->size() > 0)) {
+    if (!sec->size()) {
+      out++;
+      continue;
+    }
+    if (sec->isTLS()) {
       if (seenTLS && !lastSectTLS) {
         config().raise(Diag::non_contiguous_TLS)
             << firstTLS->name() << sec->name();
