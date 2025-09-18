@@ -108,8 +108,6 @@ bool HexagonInfo::initialize() {
     return false;
   }
 
-  m_OutputFlag = m_CmdLineFlag;
-
   return true;
 }
 
@@ -258,6 +256,9 @@ bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
   if (!pFlag)
     return true;
 
+  if (m_CmdLineFlag)
+    m_OutputFlag = m_CmdLineFlag;
+
   HexagonInfo::ArchSupport archSupport = getArchSupport(pFlag);
 
   if (archSupport == ArchSupport::NotSupported) {
@@ -310,6 +311,8 @@ bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
 
 /// flags - the value of ElfXX_Ehdr::e_flags
 uint64_t HexagonInfo::flags() const {
+  if (m_OutputFlag == LINK_UNKNOWN)
+    return 0;
   int32_t OutputFlag = m_OutputFlag;
   if (m_CmdLineFlag != LINK_UNKNOWN) {
     if (OutputFlag == LINK_UNKNOWN)

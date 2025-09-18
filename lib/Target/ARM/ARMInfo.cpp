@@ -66,3 +66,8 @@ bool ARMInfo::InitializeDefaultMappings(Module &pModule) {
 }
 
 std::string ARMInfo::flagString(uint64_t flag) const { return "arm"; }
+
+bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) const {
+  OutputFlags = llvm::ELF::EF_ARM_EABI_VER5;
+  return true;
+}

@@ -22,7 +22,7 @@ public:
   std::string getMachineStr() const override { return "RISC-V"; }
 
   /// flags - the value of ElfXX_Ehdr::e_flags
-  uint64_t flags() const override;
+  uint64_t flags() const override { return m_OutputFlag; }
 
   uint8_t OSABI() const override;
 
