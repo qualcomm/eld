@@ -26,7 +26,8 @@ public:
 
   uint8_t OSABI() const override;
 
-  bool checkFlags(uint64_t flag, const InputFile *pInputFile) const override;
+  bool checkFlags(uint64_t flag, const InputFile *pInputFile,
+                  bool hasExecutableSections) const override;
 
   std::string flagString(uint64_t pFlag) const override;
 

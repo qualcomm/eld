@@ -253,8 +253,8 @@ HexagonInfo::ArchSupport HexagonInfo::getArchSupport(uint64_t pFlag) const {
   return HexagonInfo::ArchSupport::NotSupported;
 }
 
-bool HexagonInfo::checkFlags(uint64_t pFlag,
-                             const InputFile *pInputFile) const {
+bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
+                             bool) const {
   if (!pFlag)
     return true;
 

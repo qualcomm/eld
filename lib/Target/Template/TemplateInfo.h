@@ -26,7 +26,7 @@ public:
 
   uint8_t OSABI() const override;
 
-  bool checkFlags(uint64_t flag, const std::string &name) override;
+  bool checkFlags(uint64_t flag, const std::string &name, bool) override;
 
   const char *flagString(uint64_t pFlag) const override;
 
