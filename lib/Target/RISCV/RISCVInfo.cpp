@@ -104,9 +104,6 @@ bool RISCVInfo::checkFlags(uint64_t flag, const InputFile *pInputFile,
   return true;
 }
 
-/// flags - the value of ElfXX_Ehdr::e_flags
-uint64_t RISCVInfo::flags() const { return m_OutputFlag; }
-
 uint8_t RISCVInfo::OSABI() const { return llvm::ELF::ELFOSABI_NONE; }
 
 bool RISCVInfo::InitializeDefaultMappings(Module &pModule) {
