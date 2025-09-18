@@ -14,8 +14,6 @@
 
 using namespace eld;
 
-#define UNKNOWN -1
-
 std::string RISCVInfo::flagString(uint64_t flag) const {
 #define INTOEFLAGSTR(ns, enum, str)                                            \
   if ((flag & ns::enum) == ns::enum) {                                         \
@@ -39,10 +37,7 @@ llvm::StringRef RISCVInfo::getOutputMCPU() const {
 //===----------------------------------------------------------------------===//
 // RISCVInfo
 //===----------------------------------------------------------------------===//
-RISCVInfo::RISCVInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {
-  m_CmdLineFlag = UNKNOWN;
-  m_OutputFlag = m_CmdLineFlag;
-}
+RISCVInfo::RISCVInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {}
 
 uint64_t RISCVInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
 
@@ -54,56 +49,51 @@ bool RISCVInfo::isABIFlagSet(uint64_t inputFlag, uint32_t ABIFlag) const {
 
 bool RISCVInfo::isCompatible(uint64_t pFlag, const std::string &pFile) const {
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SOFT) ^
-      isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SOFT)) {
+      isABIFlagSet(OutputFlags, llvm::ELF::EF_RISCV_FLOAT_ABI_SOFT)) {
     m_Config.raise(Diag::incompatible_architecture_versions)
-        << flagString(pFlag) << pFile << flagString(m_OutputFlag);
+        << flagString(pFlag) << pFile << flagString(OutputFlags);
     return false;
   }
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE) ^
-      isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE)) {
+      isABIFlagSet(OutputFlags, llvm::ELF::EF_RISCV_FLOAT_ABI_SINGLE)) {
     m_Config.raise(Diag::incompatible_architecture_versions)
-        << flagString(pFlag) << pFile << flagString(m_OutputFlag);
+        << flagString(pFlag) << pFile << flagString(OutputFlags);
     return false;
   }
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_DOUBLE) ^
-      isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_DOUBLE)) {
+      isABIFlagSet(OutputFlags, llvm::ELF::EF_RISCV_FLOAT_ABI_DOUBLE)) {
     m_Config.raise(Diag::incompatible_architecture_versions)
-        << flagString(pFlag) << pFile << flagString(m_OutputFlag);
+        << flagString(pFlag) << pFile << flagString(OutputFlags);
     return false;
   }
   if (isABIFlagSet(pFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_QUAD) ^
-      isABIFlagSet(m_OutputFlag, llvm::ELF::EF_RISCV_FLOAT_ABI_QUAD)) {
+      isABIFlagSet(OutputFlags, llvm::ELF::EF_RISCV_FLOAT_ABI_QUAD)) {
     m_Config.raise(Diag::incompatible_architecture_versions)
-        << flagString(pFlag) << pFile << flagString(m_OutputFlag);
+        << flagString(pFlag) << pFile << flagString(OutputFlags);
     return false;
   }
   if ((pFlag & llvm::ELF::EF_RISCV_RVE) ^
-      (m_OutputFlag & llvm::ELF::EF_RISCV_RVE)) {
+      (OutputFlags & llvm::ELF::EF_RISCV_RVE)) {
     m_Config.raise(Diag::incompatible_architecture_versions)
-        << flagString(pFlag) << pFile << flagString(m_OutputFlag);
+        << flagString(pFlag) << pFile << flagString(OutputFlags);
     return false;
   }
   return true;
 }
 
 bool RISCVInfo::checkFlags(uint64_t flag, const InputFile *pInputFile) const {
-  // Choose the default architecture from the input files, only if mcpu option
-  // is not specified on the command line.
-  if ((m_CmdLineFlag == UNKNOWN) && (m_OutputFlag == UNKNOWN))
-    m_OutputFlag = flag;
+  if (!OutputFlags)
+    OutputFlags = flag;
 
   if (!isCompatible(flag, pInputFile->getInput()->decoratedPath()))
     return false;
 
-  m_OutputFlag |= flag;
+  OutputFlags |= flag;
 
   InputFlags[pInputFile] = flag;
 
   return true;
 }
-
-/// flags - the value of ElfXX_Ehdr::e_flags
-uint64_t RISCVInfo::flags() const { return m_OutputFlag; }
 
 uint8_t RISCVInfo::OSABI() const { return llvm::ELF::ELFOSABI_NONE; }
 
