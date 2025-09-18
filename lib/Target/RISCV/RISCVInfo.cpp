@@ -86,7 +86,13 @@ bool RISCVInfo::isCompatible(uint64_t pFlag, const std::string &pFile) const {
   return true;
 }
 
-bool RISCVInfo::checkFlags(uint64_t flag, const InputFile *pInputFile) const {
+bool RISCVInfo::checkFlags(uint64_t flag, const InputFile *pInputFile,
+                           bool hasExecutableSections) const {
+  // If flag is empty and no executable sections found in the ELF file
+  // skip checking for compatibility
+  if (!flag && !hasExecutableSections)
+    return true;
+
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
   if ((m_CmdLineFlag == UNKNOWN) && (m_OutputFlag == UNKNOWN))

@@ -29,7 +29,7 @@ TemplateInfo::TemplateInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {
 
 uint64_t TemplateInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
 
-bool TemplateInfo::checkFlags(uint64_t pFlag, const std::string &name) {
+bool TemplateInfo::checkFlags(uint64_t pFlag, const std::string &name, bool) {
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
   if ((m_CmdLineFlag == UNKNOWN) && (m_OutputFlag == UNKNOWN)) {

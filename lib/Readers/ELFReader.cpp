@@ -52,6 +52,17 @@ ELFReader<ELFT>::createLLVMELFFile(LinkerConfig &config, const InputFile &input,
   return exp.get();
 }
 
+template <class ELFT> bool ELFReader<ELFT>::hasExecutableSections() const {
+  auto SectionsOrErr = m_LLVMELFFile->sections();
+  ASSERT(SectionsOrErr, std::string("Invalid ELF file ") +
+                            this->m_InputFile.getInput()->decoratedPath());
+  for (const auto &Sec : *SectionsOrErr) {
+    if (Sec.sh_flags & llvm::ELF::SHF_EXECINSTR)
+      return true;
+  }
+  return false;
+}
+
 template <class ELFT> uint16_t ELFReader<ELFT>::getMachine() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
   const Elf_Ehdr &elfHeader = m_LLVMELFFile->getHeader();
@@ -186,7 +197,8 @@ template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::checkFlags() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
   GNULDBackend &backend = m_Module.getBackend();
   Elf_Ehdr elfHeader = m_LLVMELFFile->getHeader();
-  return backend.getInfo().checkFlags(elfHeader.e_flags, &m_InputFile);
+  return backend.getInfo().checkFlags(elfHeader.e_flags, &m_InputFile,
+                                      hasExecutableSections());
 }
 
 template <class ELFT>
