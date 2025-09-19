@@ -1300,6 +1300,8 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
     case T::input_format: {
       actions.push_back(eld::make<eld::InputFormatAction>(arg->getValue(),
                                                           Config.getPrinter()));
+      if (llvm::StringRef(arg->getValue()) == "binary")
+        Config.options().setBinaryInput();
       Config.addCommandLine(Table->getOptionName(T::input_format), true);
     } break;
 
