@@ -1,0 +1,69 @@
+name: CI Windows Nightly
+
+on:
+  schedule:
+    # 9:00 PM Central
+    - cron: '0 2 * * *'
+  workflow_dispatch: # optional manual trigger
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      MODE: nightly
+      # No PR context here, so use fixed values
+      PR_NUMBER: nightly
+      BASE_BRANCH_NAME: main
+      
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: nightly/llvm-project
+
+      - name: Checkout ELD main branch
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: main
+          path: nightly/llvm-project/llvm/tools/eld
+          fetch-depth: 0
+
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
+      - name: Configure CMake
+        working-directory: nightly
+        shell: bash
+        run: |
+          mkdir -p obj
+          cd obj
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;x86_64" \
+            ../llvm-project/llvm
+
+      - name: Build
+        working-directory: nightly/obj
+        shell: bash
+        run: ninja
+
+      - name: Run tests
+        working-directory: nightly/obj
+        shell: bash
+        run: ninja check-eld
+
+      - name: Clean up
+        if: always()
+        shell: bash
+        run: rm -rf nightly

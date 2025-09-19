@@ -1,6 +1,6 @@
 name: CI
 
-on: [pull_request]
+on: [no-pull_request]
 
 jobs:
   build:
