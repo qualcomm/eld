@@ -1,0 +1,17 @@
+#<SYMDEFS>#
+#DO NOT EDIT#
+0x0	FUNC	foo
+
+#---eflags.test--------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# Check that eflags are emitted for empty.o files and symdef files
+#END_COMMENT
+#START_TEST
+#RUN: %rm -f %t.o
+#RUN: %touch %t.o
+#RUN: %link -mv75 %t.o -o %t.empty
+#RUN: %link -mv75 %s -o %t.symdef
+#RUN: %readelf -h %t.empty | %filecheck %s
+#RUN: %readelf -h %t.symdef | %filecheck %s
+#END_TEST
+#CHECK: Flags: 0x75
