@@ -45,7 +45,6 @@ public:
 
 private:
   uint64_t translateFlag(uint64_t pFlag) const;
-  int32_t m_CmdLineFlag;
   int32_t m_OutputFlag;
 };
 
