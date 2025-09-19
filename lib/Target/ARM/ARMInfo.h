@@ -37,7 +37,7 @@ public:
                : 0x4;
   }
 
-  uint64_t flags() const override { return OutputFlags; }
+  uint64_t flags() const override;
 
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,
                      bool loadPhdr) const override {
