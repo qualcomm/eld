@@ -6,5 +6,6 @@ SECTIONS {
 .allcommons : { *(COMMON) }
 .allnote : { *(.note*) }
 .comment : { *(.comment) }
+.hexagon.attributes : { *(.hexagon.attributes) }
 .unrecognized : { *(*) }
 }
