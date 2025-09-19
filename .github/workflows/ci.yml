@@ -1,6 +1,13 @@
 name: CI
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - '.github/workflows/sanitize.yml'
+      - '.github/workflows/reviter.yml'
+      - '.github/workflows/qualcomm-organization-repolinter.yml'
+      - '.github/workflows/docs.yaml'
+      - '.github/workflows/ci-win.yml'
 
 jobs:
   build:
@@ -47,7 +54,7 @@ jobs:
               exit 0
             fi
           done
-          echo "Only doc files changed. Skipping build."
+          echo "Only docs changed. Skipping build."
           echo "skip_build=true" >> "$GITHUB_OUTPUT"
 
       - name: Run CMake

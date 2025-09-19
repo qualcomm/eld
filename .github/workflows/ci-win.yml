@@ -1,0 +1,67 @@
+name: Windows Nightly
+
+on:
+  # pull_request: {} # Uncomment only to test this WF file update.
+  schedule:
+    # 9:00 PM Central
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      
+    steps:
+      - name: Map Git usr/bin to a space-free drive and prepend to PATH
+        shell: pwsh
+        run: |
+          subst P: "C:\Program Files\Git\usr\bin"
+          'P:\' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: nightly/llvm-project
+
+      - name: Checkout ELD main branch
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ env.BASE_BRANCH_NAME }}
+          path: nightly/llvm-project/llvm/tools/eld
+          fetch-depth: 0
+
+      - name: Configure CMake
+        working-directory: nightly
+        shell: bash
+        run: |
+          mkdir -p obj
+          cd obj
+          cmake -G "Visual Studio 17 2022" -A x64 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;x86_64" \
+            ../llvm-project/llvm
+
+      - name: Build
+        working-directory: nightly/obj
+        shell: bash
+        run: cmake --build . --config Release
+
+      - name: Run tests
+        working-directory: nightly/obj
+        shell: bash
+        run: cmake --build . --config Release --target check-eld
+
+      - name: Clean up
+        if: always()
+        shell: bash
+        run: rm -rf nightly
