@@ -53,7 +53,6 @@ private:
 
 private:
   uint64_t translateFlag(uint64_t pFlag) const;
-  int32_t m_CmdLineFlag;
   mutable int64_t m_OutputFlag;
   mutable llvm::DenseMap<const InputFile *, uint64_t> InputFlags;
 };

@@ -49,7 +49,6 @@ public:
 private:
   bool isABIFlagSet(uint64_t inputFlag, uint32_t ABIFlag) const;
   uint64_t translateFlag(uint64_t pFlag) const;
-  int32_t m_CmdLineFlag;
   mutable int32_t m_OutputFlag;
   mutable llvm::DenseMap<const InputFile *, uint64_t> InputFlags;
 };

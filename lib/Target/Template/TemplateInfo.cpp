@@ -14,8 +14,6 @@
 
 using namespace eld;
 
-#define UNKNOWN -1
-
 const char *TemplateInfo::flagString(uint64_t flag) const { return ""; }
 
 llvm::StringRef TemplateInfo::getOutputMCPU() const { return "Template"; }
@@ -24,7 +22,7 @@ llvm::StringRef TemplateInfo::getOutputMCPU() const { return "Template"; }
 // TemplateInfo
 //===----------------------------------------------------------------------===//
 TemplateInfo::TemplateInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {
-  m_OutputFlag = m_CmdLineFlag;
+  m_OutputFlag = 0;
 }
 
 uint64_t TemplateInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
@@ -32,15 +30,10 @@ uint64_t TemplateInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
 bool TemplateInfo::checkFlags(uint64_t pFlag, const std::string &name, bool) {
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
-  if ((m_CmdLineFlag == UNKNOWN) && (m_OutputFlag == UNKNOWN)) {
-    if (m_OutputFlag < (int64_t)pFlag)
-      m_OutputFlag = pFlag;
-  }
-
-  // FIXME: Check for compatibility about other versions.
-  if (m_OutputFlag < (int64_t)pFlag)
+  if (!m_OutputFlag)
     m_OutputFlag = pFlag;
 
+  // FIXME: Check for compatibility about other versions.
   return true;
 }
 
