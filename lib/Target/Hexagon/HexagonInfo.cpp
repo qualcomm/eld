@@ -253,10 +253,13 @@ HexagonInfo::ArchSupport HexagonInfo::getArchSupport(uint64_t pFlag) const {
 
 bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
                              bool) const {
-  if (!pFlag)
+  if (!pFlag) {
+    if (pInputFile->isBinaryFile())
+      ZeroFlagsOK = true;
     return true;
+  }
 
-  if (m_CmdLineFlag)
+  if (m_CmdLineFlag != LINK_UNKNOWN)
     m_OutputFlag = m_CmdLineFlag;
 
   HexagonInfo::ArchSupport archSupport = getArchSupport(pFlag);
@@ -311,7 +314,7 @@ bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
 
 /// flags - the value of ElfXX_Ehdr::e_flags
 uint64_t HexagonInfo::flags() const {
-  if (m_OutputFlag == LINK_UNKNOWN)
+  if (m_OutputFlag == LINK_UNKNOWN && ZeroFlagsOK)
     return 0;
   int32_t OutputFlag = m_OutputFlag;
   if (m_CmdLineFlag != LINK_UNKNOWN) {

@@ -22,7 +22,7 @@ public:
   std::string getMachineStr() const override { return "RISC-V"; }
 
   /// flags - the value of ElfXX_Ehdr::e_flags
-  uint64_t flags() const override { return m_OutputFlag; }
+  uint64_t flags() const override { return m_OutputFlag ? *m_OutputFlag : 0; }
 
   uint8_t OSABI() const override;
 
@@ -53,7 +53,7 @@ private:
 
 private:
   uint64_t translateFlag(uint64_t pFlag) const;
-  mutable int64_t m_OutputFlag;
+  mutable std::optional<uint64_t> m_OutputFlag;
   mutable llvm::DenseMap<const InputFile *, uint64_t> InputFlags;
 };
 
