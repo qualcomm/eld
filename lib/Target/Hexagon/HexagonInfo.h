@@ -88,6 +88,7 @@ private:
 private:
   int32_t m_CmdLineFlag;
   mutable int32_t m_OutputFlag;
+  mutable bool ZeroFlagsOK = false;
 };
 
 } // namespace eld

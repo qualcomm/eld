@@ -67,7 +67,20 @@ bool ARMInfo::InitializeDefaultMappings(Module &pModule) {
 
 std::string ARMInfo::flagString(uint64_t flag) const { return "arm"; }
 
+uint64_t ARMInfo::flags() const {
+  // checkFlags() was never called. This means the linker was given a lone empty
+  // .o file or a lone symdef file, etc. In either case, we want the result to
+  // have flags.
+  if (!OutputFlags)
+    return llvm::ELF::EF_ARM_EABI_VER5;
+  assert(*OutputFlags == 0 || *OutputFlags == llvm::ELF::EF_ARM_EABI_VER5);
+  return *OutputFlags;
+}
+
 bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) const {
-  OutputFlags = llvm::ELF::EF_ARM_EABI_VER5;
+  if (!OutputFlags && Flags == 0 && I->isBinaryFile())
+    OutputFlags = Flags;
+  else
+    OutputFlags = llvm::ELF::EF_ARM_EABI_VER5;
   return true;
 }

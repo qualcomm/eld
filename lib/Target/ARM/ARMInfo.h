@@ -37,7 +37,7 @@ public:
                : 0x4;
   }
 
-  uint64_t flags() const override { return OutputFlags; }
+  uint64_t flags() const override;
 
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,
                      bool loadPhdr) const override {
@@ -85,8 +85,7 @@ public:
   bool checkFlags(uint64_t Flag, const InputFile *I, bool) const override;
 
 private:
-  /// FIXME: set this by calling checkFlags?
-  mutable uint64_t OutputFlags = 0;
+  mutable std::optional<uint64_t> OutputFlags;
 };
 
 } // namespace eld
