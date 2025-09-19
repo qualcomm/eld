@@ -1,0 +1,60 @@
+name: CI Windows
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 21 * * *'  # Every night at 9 PM UTC
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      statuses: write
+
+    env:
+      BUILD_DIR: ${{ github.workspace }}\\build
+
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          path: llvm-project
+
+      - name: Checkout qualcomm/eld main branch
+        uses: actions/checkout@v4
+        with:
+          repository: qualcomm/eld
+          ref: main
+          path: llvm-project\\llvm\\tools\\eld
+          fetch-depth: 0
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          mkdir $env:BUILD_DIR
+          cd $env:BUILD_DIR
+          cmake -G "Ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" `
+            -DLLVM_ENABLE_ASSERTIONS=ON `
+            -DCMAKE_INSTALL_RPATH="$ORIGIN/../lib" `
+            -DCMAKE_C_COMPILER="clang" `
+            -DCMAKE_CXX_COMPILER="clang++" `
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" `
+            -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;x86_64" `
+            ../llvm-project/llvm
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cd $env:BUILD_DIR
+          ninja
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          cd $env:BUILD_DIR
+          ninja check-eld
+
