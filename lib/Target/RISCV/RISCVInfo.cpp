@@ -5,11 +5,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "RISCVInfo.h"
-#include "eld/Config/Config.h"
 #include "eld/Support/MsgHandling.h"
-#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
 
 using namespace eld;
@@ -40,8 +37,7 @@ llvm::StringRef RISCVInfo::getOutputMCPU() const {
 // RISCVInfo
 //===----------------------------------------------------------------------===//
 RISCVInfo::RISCVInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {
-  m_CmdLineFlag = UNKNOWN;
-  m_OutputFlag = m_CmdLineFlag;
+  m_OutputFlag = UNKNOWN;
 }
 
 uint64_t RISCVInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
@@ -95,7 +91,7 @@ bool RISCVInfo::checkFlags(uint64_t flag, const InputFile *pInputFile,
 
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
-  if ((m_CmdLineFlag == UNKNOWN) && (m_OutputFlag == UNKNOWN))
+  if (m_OutputFlag == UNKNOWN)
     m_OutputFlag = flag;
 
   if (!isCompatible(flag, pInputFile->getInput()->decoratedPath()))

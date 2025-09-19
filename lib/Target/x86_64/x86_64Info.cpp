@@ -12,8 +12,6 @@
 
 using namespace eld;
 
-#define UNKNOWN -1
-
 std::string x86_64Info::flagString(uint64_t flag) const { return "x86_64"; }
 
 llvm::StringRef x86_64Info::getOutputMCPU() const {
@@ -24,8 +22,7 @@ llvm::StringRef x86_64Info::getOutputMCPU() const {
 // x86_64Info
 //===----------------------------------------------------------------------===//
 x86_64Info::x86_64Info(LinkerConfig &pConfig) : TargetInfo(pConfig) {
-  m_CmdLineFlag = UNKNOWN;
-  m_OutputFlag = m_CmdLineFlag;
+  m_OutputFlag = 0;
 }
 
 uint64_t x86_64Info::translateFlag(uint64_t pFlag) const { return pFlag; }
@@ -38,9 +35,8 @@ bool x86_64Info::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
                             bool) const {
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
-  if ((m_CmdLineFlag == UNKNOWN) && (m_OutputFlag == UNKNOWN)) {
-    if (m_OutputFlag < (int64_t)pFlag)
-      m_OutputFlag = pFlag;
+  if (!m_OutputFlag) {
+    m_OutputFlag = pFlag;
   }
 
   // FIXME: Check for compatibility about other versions.
