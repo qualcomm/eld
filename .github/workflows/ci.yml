@@ -42,12 +42,12 @@ jobs:
           CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
           echo "Changed files: $CHANGED_FILES"
           for file in $CHANGED_FILES; do
-            if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
+            if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ &&  ! "$file" =~ ^\.github/workflows/ci-win\.yml$ ]]; then
               echo "skip_build=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           done
-          echo "Only doc files changed. Skipping build."
+          echo "Only doc files or ci-win.yml changed. Skipping build."
           echo "skip_build=true" >> "$GITHUB_OUTPUT"
 
       - name: Run CMake
