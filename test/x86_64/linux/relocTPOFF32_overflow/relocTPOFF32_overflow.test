@@ -1,0 +1,14 @@
+#--relocTPOFF32_overflow.test----------Executable--------#
+BEGIN_COMMENT
+# Test R_X86_64_TPOFF32 relocation overflow with large TLS template size.
+# Creates a 3.25GB TLS template which should cause TPOFF32 overflow since
+# TPOFF32 is signed 32-bit with range ±2GB.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -fdata-sections -ffunction-sections -c %p/Inputs/1.c -o %t.o
+RUN: not %link %linkopts -T %p/Inputs/script_overflow.t %t.o -o %t.exe 2>&1 | FileCheck %s
+
+# Should fail with overflow error
+CHECK: {{.*}}overflow{{.*}}
+#END_TEST
