@@ -112,6 +112,19 @@ bool Plugin::registerPlugin(void *Handle) {
   return true;
 }
 
+void Plugin::addLinkStat(std::string StatName, std::string Value) {
+  PluginStats[StatName] = Value;
+}
+
+std::string Plugin::getPluginLinkStats() const {
+  std::ostringstream oss;
+  for (auto &it : PluginStats) {
+    oss << "# " << it.first << ": " << it.second << " " << getPluginName();
+    oss << "\n";
+  }
+  return oss.str();
+}
+
 std::string Plugin::getLibraryName() const { return PluginLibraryName; }
 
 bool Plugin::setFunctions() {

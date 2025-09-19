@@ -141,7 +141,6 @@ void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
                                    const Module &Module) {
   const ObjectLinker &ObjLinker = *(Module.getLinker()->getObjectLinker());
   const GNULDBackend &Backend = Module.getBackend();
-
   if (!L.hasStats())
     return;
   outputStream() << "# "
@@ -179,6 +178,10 @@ void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
               std::to_string(L.OutputFileSize.value()) + " bytes");
 
   printStat("LinkTime", L.LinkTime);
+  for (auto &W : ThisLayoutInfo->getPlugins()) {
+    Plugin *P = W->getPlugin();
+    outputStream() << P->getPluginLinkStats() << "\n";
+  }
   ThisLayoutInfo->printStats((void *)(&Module), outputStream());
   outputStream() << "# "
                  << "LinkStats End"
@@ -438,6 +441,13 @@ bool TextLayoutPrinter::printRemoveChunkPluginOp(PluginOp *Pop) const {
   RuleContainer *Orig = Op->getRule();
   if (Orig->desc())
     Orig->desc()->dumpMap(outputStream());
+  return true;
+}
+
+bool TextLayoutPrinter::printUpdateLinkStatsPluginOp(PluginOp *Pop) const {
+  UpdateLinkStatsPluginOp *Op = llvm::dyn_cast<UpdateLinkStatsPluginOp>(Pop);
+  if (!Op)
+    return false;
   return true;
 }
 

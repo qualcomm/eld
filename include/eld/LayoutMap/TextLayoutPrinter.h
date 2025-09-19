@@ -105,6 +105,8 @@ private:
 
   bool printUpdateRulePluginOp(PluginOp *Pop) const;
 
+  bool printUpdateLinkStatsPluginOp(PluginOp *Pop) const;
+
   bool printRelocationDataPluginOp(eld::Module &M, PluginOp *Pop) const;
 
   void printOnlyLayoutFrag(eld::Module &CurModule, ELFSection *Section,
