@@ -59,10 +59,6 @@ public:
 
   std::string flagString(uint64_t pFlag) const override;
 
-  int32_t cmdLineFlag() const override { return m_CmdLineFlag; }
-
-  int32_t outputFlag() const override { return m_OutputFlag; }
-
   uint64_t abiPageSize(bool linkerScriptHasSectionsCommand) const override;
 
   bool needEhdr(Module &pModule, bool linkerScriptHasSectionsCommand,

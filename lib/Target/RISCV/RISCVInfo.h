@@ -31,10 +31,6 @@ public:
 
   std::string flagString(uint64_t pFlag) const override;
 
-  int32_t cmdLineFlag() const override { return m_CmdLineFlag; }
-
-  int32_t outputFlag() const override { return m_OutputFlag; }
-
   bool needEhdr(Module &pModule, bool linkerScriptHasSectionsCmd,
                 bool isPhdr) override {
     if (pModule.getScript().linkerScriptHasSectionsCommand())
