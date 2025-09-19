@@ -96,10 +96,6 @@ public:
     return !m_Config.options().noGnuStack();
   }
 
-  virtual int32_t cmdLineFlag() const { return 0; }
-
-  virtual int32_t outputFlag() const { return 0; }
-
   virtual llvm::StringRef getOutputMCPU() const;
 
   virtual bool initialize() { return true; }
