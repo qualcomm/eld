@@ -1,0 +1,19 @@
+#---MagicSectionSymbols.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks that start and end symbols for magic sections .eh_frame and .eh_frame_hdr are defined by the linker
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.o -c %p/Inputs/1.c
+RUN: %link %linkopts -o %t1.out %t.o
+RUN: %link %linkopts -o %t2.out %t.o -T %p/Inputs/script.ld
+RUN: %readelf -s %t1.out | %filecheck %s --check-prefix=NOSCRIPT
+RUN: %readelf -s %t2.out | %filecheck %s --check-prefix=SCRIPT
+#END_TEST
+NOSCRIPT-DAG: __eh_frame_end
+NOSCRIPT-DAG: __eh_frame_start
+NOSCRIPT-DAG: __eh_frame_hdr_start
+NOSCRIPT-DAG: __eh_frame_hdr_end
+SCRIPT-DAG: __eh_frame_end
+SCRIPT-DAG: __eh_frame_start
+SCRIPT-DAG: __eh_frame_hdr_start
+SCRIPT-DAG: __eh_frame_hdr_end

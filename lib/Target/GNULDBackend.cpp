@@ -321,6 +321,10 @@ bool GNULDBackend::initStandardSymbols() {
     }
   };
 
+  InitStandardSym("__eh_frame_start", "__eh_frame_end",
+                  m_Module.getSection(".eh_frame"));
+  InitStandardSym("__eh_frame_hdr_start", "__eh_frame_hdr_end",
+                  m_Module.getSection(".eh_frame_hdr"));
   InitStandardSym("__preinit_array_start", "__preinit_array_end",
                   m_Module.getSection(".preinit_array"));
   InitStandardSym("__init_array_start", "__init_array_end",
@@ -417,6 +421,10 @@ bool GNULDBackend::finalizeStandardSymbols() {
     }
   };
 
+  DefineStandardSym("__eh_frame_start", "__eh_frame_end",
+                    m_Module.getSection(".eh_frame"));
+  DefineStandardSym("__eh_frame_hdr_start", "__eh_frame_hdr_end",
+                    m_Module.getSection(".eh_frame_hdr"));
   DefineStandardSym("__preinit_array_start", "__preinit_array_end",
                     m_Module.getSection(".preinit_array"));
   DefineStandardSym("__init_array_start", "__init_array_end",
