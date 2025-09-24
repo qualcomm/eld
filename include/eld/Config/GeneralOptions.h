@@ -323,10 +323,6 @@ public:
 
   bool warnSharedTextrel() const { return BWarnSharedTextrel; }
 
-  void setBinaryInput(bool PBinaryInput = true) { BBinaryInput = PBinaryInput; }
-
-  bool isBinaryInput() const { return BBinaryInput; }
-
   void setDefineCommon(bool PEnable = true) { BDefineCommon = PEnable; }
 
   bool isDefineCommon() const { return BDefineCommon; }
@@ -1174,7 +1170,6 @@ private:
   bool BExportDynamic = false;     //-E, --export-dynamic
   bool BWarnSharedTextrel = false; // --warn-shared-textrel
   bool BWarnCommon = false;        // --warn-common
-  bool BBinaryInput = false;       // -b [input-format], --format=[input-format]
   bool BDefineCommon = false;      // -d, -dc, -dp
   bool BFatalWarnings = false;     // --fatal-warnings
   bool BWarningsAsErrors = false;  // -Werror
