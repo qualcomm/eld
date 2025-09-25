@@ -252,7 +252,7 @@ HexagonInfo::ArchSupport HexagonInfo::getArchSupport(uint64_t pFlag) const {
 }
 
 bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
-                             bool) const {
+                             bool) {
   if (!pFlag) {
     if (pInputFile->isBinaryFile())
       ZeroFlagsOK = true;

@@ -77,7 +77,7 @@ uint64_t ARMInfo::flags() const {
   return *OutputFlags;
 }
 
-bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) const {
+bool ARMInfo::checkFlags(uint64_t Flags, const InputFile *I, bool) {
   if (!OutputFlags && Flags == 0 && I->isBinaryFile())
     OutputFlags = Flags;
   else

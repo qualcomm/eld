@@ -80,7 +80,7 @@ bool RISCVInfo::isCompatible(uint64_t pFlag, const std::string &pFile) const {
 }
 
 bool RISCVInfo::checkFlags(uint64_t flag, const InputFile *pInputFile,
-                           bool hasExecutableSections) const {
+                           bool hasExecutableSections) {
   // If flag is empty and no executable sections found in the ELF file
   // skip checking for compatibility.
   if (!flag && !hasExecutableSections)

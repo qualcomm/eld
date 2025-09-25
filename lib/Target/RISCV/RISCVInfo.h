@@ -27,7 +27,7 @@ public:
   uint8_t OSABI() const override;
 
   bool checkFlags(uint64_t flag, const InputFile *pInputFile,
-                  bool hasExecutableSections) const override;
+                  bool hasExecutableSections) override;
 
   std::string flagString(uint64_t pFlag) const override;
 
@@ -53,8 +53,8 @@ private:
 
 private:
   uint64_t translateFlag(uint64_t pFlag) const;
-  mutable std::optional<uint64_t> m_OutputFlag;
-  mutable llvm::DenseMap<const InputFile *, uint64_t> InputFlags;
+  std::optional<uint64_t> m_OutputFlag;
+  llvm::DenseMap<const InputFile *, uint64_t> InputFlags;
 };
 
 } // namespace eld

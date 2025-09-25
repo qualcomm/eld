@@ -55,7 +55,7 @@ public:
   uint8_t OSABI() const override;
 
   bool checkFlags(uint64_t flag, const InputFile *pInputFile,
-                  bool) const override;
+                  bool) override;
 
   std::string flagString(uint64_t pFlag) const override;
 
@@ -87,8 +87,8 @@ private:
 
 private:
   int32_t m_CmdLineFlag;
-  mutable int32_t m_OutputFlag;
-  mutable bool ZeroFlagsOK = false;
+  int32_t m_OutputFlag;
+  bool ZeroFlagsOK = false;
 };
 
 } // namespace eld

@@ -82,10 +82,10 @@ public:
     }
   }
 
-  bool checkFlags(uint64_t Flag, const InputFile *I, bool) const override;
+  bool checkFlags(uint64_t Flag, const InputFile *I, bool) override;
 
 private:
-  mutable std::optional<uint64_t> OutputFlags;
+  std::optional<uint64_t> OutputFlags;
 };
 
 } // namespace eld
