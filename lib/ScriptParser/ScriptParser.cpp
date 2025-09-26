@@ -953,7 +953,7 @@ void ScriptParser::readMemory() {
       MemoryAttrs = readMemoryAttributes();
       expect(")");
     }
-    expect(":");
+    expect(LexState::Expr, ":");
     Expression *Origin = readMemoryAssignment({"ORIGIN", "org", "o"});
     expect(",");
     Expression *Length = readMemoryAssignment({"LENGTH", "len", "l"});
@@ -988,7 +988,7 @@ ScriptParser::readMemoryAssignment(std::vector<llvm::StringRef> Names) {
     setError("expected one of: " + NamesJoined);
     return nullptr;
   }
-  expect("=");
+  expect(LexState::Expr, "=");
   return readExpr();
 }
 
