@@ -37,7 +37,7 @@ public:
                : 0x4;
   }
 
-  uint64_t flags() const override { return llvm::ELF::EF_ARM_EABI_VER5; }
+  uint64_t flags() const override;
 
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,
                      bool loadPhdr) const override {
@@ -81,6 +81,11 @@ public:
       m_Config.options().setWarnMismatch(false);
     }
   }
+
+  bool checkFlags(uint64_t Flag, const InputFile *I, bool) override;
+
+private:
+  std::optional<uint64_t> OutputFlags;
 };
 
 } // namespace eld

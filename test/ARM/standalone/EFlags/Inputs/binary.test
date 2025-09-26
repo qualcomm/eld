@@ -1,0 +1,11 @@
+#---binary.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# Checks output flags are set when there is a binary input
+# combined with an object input.
+#END_COMMENT
+#START_TEST
+RUN: %link %emulation %linkopts --format=binary %s -o %t.out
+RUN: %readelf -h %t.out | %filecheck %s
+#END_TEST
+
+CHECK: Flags: 0x0

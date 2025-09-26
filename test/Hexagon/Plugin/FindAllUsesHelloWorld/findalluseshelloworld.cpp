@@ -36,7 +36,7 @@ public:
     std::set<Chunk> SectionUses;
     std::set<eld::Fragment *> Visited;
     while (!Uses.empty()) {
-      Use &U = Uses.front();
+      Use U = Uses.front();
       Uses.pop();
       Chunk ChunkForUse = U.getTargetChunk();
       if (!ChunkForUse.getFragment())

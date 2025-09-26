@@ -34,13 +34,14 @@ Summary of the linker features
 
 What the linker can accept as input
 ----------------------------------------
-Following type of files can be used as input to  ld.eld.
+The following types of files can be used as input to ld.eld:
 
 * Object files
 * Static Libraries
 * Shared Libraries
 * Symbol definition file
 * Extern list
+* Binary files
 
 
 What the linker outputs

@@ -23,6 +23,7 @@ This document describes usage of ELD
    documentation/linker_script.rst
    documentation/linker_diagnostics.rst
    documentation/linker_image_layout.rst
+   documentation/image_structure_and_generation.rst
    documentation/linker_map_files.rst
    documentation/layout.rst
    documentation/linker_plugins_updated.rst

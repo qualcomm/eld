@@ -59,7 +59,7 @@ public:
   virtual uint64_t startAddr(bool linkerScriptHasSectionsCommand,
                              bool isDynExec, bool loadPhdr) const = 0;
 
-  virtual bool checkFlags(uint64_t flags, const InputFile *pInput, bool) const;
+  virtual bool checkFlags(uint64_t flags, const InputFile *pInput, bool);
 
   /// flags - the value of ElfXX_Ehdr::e_flags
   virtual uint64_t flags() const = 0;
