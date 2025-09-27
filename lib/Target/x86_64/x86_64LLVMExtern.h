@@ -20,7 +20,7 @@ typedef struct {
 } RelocationInfo;
 
 extern "C" {
-uint32_t doRelocX86_64(const RelocationInfo &RelocInfo, uint64_t Instruction,
+uint64_t doRelocX86_64(const RelocationInfo &RelocInfo, uint64_t Instruction,
                        uint64_t Value);
 
 bool verifyRangeX86_64(const RelocationInfo &RelocInfo, uint64_t Value);
