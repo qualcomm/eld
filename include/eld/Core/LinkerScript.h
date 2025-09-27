@@ -240,6 +240,9 @@ public:
 
   void updateRuleOp(plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
                     ELFSection *S, const std::string &Annotation = "");
+  void updateLinkStatsOp(plugin::LinkerWrapper *W, eld::Module *M,
+                         const std::string &StatName,
+                         const std::string &StatValue);
 
   // ---------------- Plugin profiling Support */
   llvm::Timer *getTimer(llvm::StringRef Name, llvm::StringRef Description,

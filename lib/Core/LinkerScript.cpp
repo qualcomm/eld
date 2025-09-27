@@ -348,6 +348,18 @@ void LinkerScript::updateRuleOp(plugin::LinkerWrapper *W, eld::Module *M,
   layoutInfo->recordUpdateRule(W, Op);
 }
 
+void LinkerScript::updateLinkStatsOp(plugin::LinkerWrapper *W, eld::Module *M,
+                                     const std::string &StatName,
+                                     const std::string &StatValue) {
+  UpdateLinkStatsPluginOp *Op =
+      eld::make<UpdateLinkStatsPluginOp>(W, StatName, StatValue);
+  W->getPlugin()->addLinkStat(StatName, StatValue);
+  LayoutInfo *layoutInfo = M->getLayoutInfo();
+  if (!layoutInfo)
+    return;
+  layoutInfo->recordUpdateLinkStats(W, Op);
+}
+
 llvm::Timer *LinkerScript::getTimer(llvm::StringRef Name,
                                     llvm::StringRef Description,
                                     llvm::StringRef GroupName,
