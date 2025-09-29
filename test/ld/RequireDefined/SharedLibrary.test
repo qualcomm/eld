@@ -1,0 +1,10 @@
+#---SharedLibrary.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Check that --require-defined does not ignore shared library symbols
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -fpic -o %t1.1.o %p/Inputs/1.c
+RUN: %link %linkopts -shared -o %t1.1.so %t1.1.o
+RUN: %link %linkopts --require-defined foo -o %t1.1.out -Bdynamic %t1.1.so
+#END_TEST

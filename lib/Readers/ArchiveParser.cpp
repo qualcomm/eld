@@ -128,6 +128,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
       ArchiveFile::Symbol &symbol = *(archiveFile->getSymbolTable()[idx]);
       ArchiveFile::Symbol::SymbolStatus status =
           shouldIncludeSymbol(symbol, &referredSite);
+      m_Module.getNamePool().addArchivedLibSymbol(&symbol);
       if (ArchiveFile::Symbol::Include == status) {
         // include the object member from the given offset
         Input *I =

@@ -1,0 +1,10 @@
+#---ArchivedSymbol.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Check that --require-defined does not ignore archived symbols
+#--------------------------------------------------------------------
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %ar rcs %t1.1.a %t1.1.o
+RUN: %link %linkopts --require-defined foo -o %t1.1.out %t1.1.a
+#END_TEST

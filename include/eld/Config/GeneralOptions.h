@@ -976,6 +976,13 @@ public:
 
   bool isReproduceOnFail() const { return RecordInputFilesOnFail; }
 
+  // --require-defined support
+  void addRequireDefinedSymbol(const std::string &S) { RequireDefinedSymbols.push_back(S); }
+
+  const std::vector<std::string> &getRequireDefinedSymbols() const {
+    return RequireDefinedSymbols;
+  }
+
   // -- enable relaxation on hexagon ----
   void enableRelaxation() { BRelaxation = true; }
 
@@ -1246,6 +1253,7 @@ private:
   bool ProgressBar = false;                  // Show progressbar.
   bool RecordInputFiles = false;             // --reproduce
   bool RecordInputFilesOnFail = false;       // --reproduce-on-fail
+  std::vector<std::string> RequireDefinedSymbols; // --require-defined
   // FIXME: Change the name to CompressReproduceTar
   bool CompressTar = false;         // --reproduce-compressed
   bool DisplaySummary = false;      // display linker run summary
