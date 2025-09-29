@@ -319,6 +319,9 @@ public:
 
   void recordUpdateRule(plugin::LinkerWrapper *W, UpdateRulePluginOp *O);
 
+  void recordUpdateLinkStats(plugin::LinkerWrapper *W,
+                             UpdateLinkStatsPluginOp *O);
+
   void closeLinkerScript() {
     if (LinkerScriptStack.size())
       LinkerScriptStack.pop();

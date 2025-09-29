@@ -1,3 +1,4 @@
+#REQUIRES: asserts
 #---PluginDiagCrash.test----------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This test checks that the linker does not go into the deadlock when the link crashes

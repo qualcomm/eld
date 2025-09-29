@@ -172,6 +172,11 @@ public:
   /// Record fragment remove operation for fragment movement verification.
   void recordFragmentRemove(RuleContainer *R, Fragment *F);
 
+  void addLinkStat(const std::string &StatName, const std::string &Value);
+
+  const std::vector<std::pair<std::string, std::string>> &
+  getPluginLinkStats() const;
+
   eld::Expected<void> verifyFragmentMovements() const;
 
   const UnbalancedFragmentMoves &getUnbalancedFragmentMoves() const {
@@ -230,6 +235,7 @@ private:
   std::string PluginLibraryName;
   std::string PluginType;
   std::string PluginOptions;
+  std::vector<std::pair<std::string, std::string>> PluginStats;
   void *PluginLibraryHandle = nullptr;
   plugin::RegisterAllFuncT *PluginRegisterFunction = nullptr;
   plugin::PluginFuncT *GetPluginFunction = nullptr;

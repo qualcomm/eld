@@ -1,0 +1,12 @@
+#---AddPluginLinkStats.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks if plugin stats are added to the map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t2.out -L%libsdir/test --plugin-config %p/Inputs/plugin.config -Map %t1.1.map
+RUN: %filecheck %s < %t1.1.map
+
+#CHECK: SomeStat: 15 AddPluginStats
+#CHECK: OtherStat: 18 AddPluginStats
+#END_TEST

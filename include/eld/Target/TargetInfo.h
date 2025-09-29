@@ -59,7 +59,7 @@ public:
   virtual uint64_t startAddr(bool linkerScriptHasSectionsCommand,
                              bool isDynExec, bool loadPhdr) const = 0;
 
-  virtual bool checkFlags(uint64_t flags, const InputFile *pInput, bool) const;
+  virtual bool checkFlags(uint64_t flags, const InputFile *pInput, bool);
 
   /// flags - the value of ElfXX_Ehdr::e_flags
   virtual uint64_t flags() const = 0;
@@ -95,10 +95,6 @@ public:
   virtual bool processNoteGNUSTACK() {
     return !m_Config.options().noGnuStack();
   }
-
-  virtual int32_t cmdLineFlag() const { return 0; }
-
-  virtual int32_t outputFlag() const { return 0; }
 
   virtual llvm::StringRef getOutputMCPU() const;
 

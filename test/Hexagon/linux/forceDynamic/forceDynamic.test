@@ -1,5 +1,5 @@
-RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o
-RUN: %link %linkopts --rosegment %t1.o -o %t2 -mtriple hexagon-unknown-linux --force-dynamic -z max-page-size=4096
+RUN: %clang %clangg0opts -c  %p/Inputs/1.c -o %t1.o
+RUN: %link %linkg0opts --rosegment %t1.o -o %t2 -mtriple hexagon-unknown-linux --force-dynamic -z max-page-size=4096
 RUN: %readelf -l -W %t2 | %filecheck %s
 
 #CHECK:  PHDR           0x000034 0x00400034 0x00400034 0x000e0 0x000e0 R E

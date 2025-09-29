@@ -121,6 +121,10 @@ private:
 
   void printStat(llvm::StringRef S, uint64_t Stats);
 
+  void printPluginStats(
+      const std::vector<std::pair<std::string, std::string>> &Stats,
+      Plugin *P) const;
+
   void printStat(llvm::StringRef S, const std::string &Stat) const;
 
   std::string showDecoratedSymbolName(eld::Module &CurModule,
