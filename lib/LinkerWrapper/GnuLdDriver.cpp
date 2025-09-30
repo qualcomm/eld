@@ -1571,6 +1571,15 @@ void GnuLdDriver::defaultSignalHandler(void *cookie) {
   else if (!DiagEngine->isUsable()) {
     DiagEngineUsable = false;
   }
+
+  TextLayoutPrinter *printer = ThisModule->getTextMapPrinter();
+  if (printer) {
+    printer->printMapFile(*ThisModule);
+    // We have to explicitly flush because in the case of crash, objects
+    // are not freed, and we write the map-file to disk during destruction.
+    printer->flush();
+  }
+
   std::string commandLine = "";
   for (auto arg : ThisModule->getConfig().options().args()) {
     if (arg) {

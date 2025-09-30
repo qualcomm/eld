@@ -1,0 +1,18 @@
+#---EmitMapFileEvenInCrash.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test verifies that the linker emits map-file even when the link crashes
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config \
+RUN:   %p/Inputs/PluginConfig.yaml -Map %t1.1.map || true
+RUN: %filecheck %s < %t1.1.map
+#END_TEST
+
+CHECK: Linker based on
+CHECK: Linker Plugin Information
+CHECK: Linker Plugins
+CHECK: CrashPlugin
+CHECK: Output Section and Layout
+CHECK: .text.foo
+CHECK: .text.bar

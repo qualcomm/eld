@@ -1346,9 +1346,16 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
   }
 }
 
-TextLayoutPrinter::~TextLayoutPrinter() {
-  if (Buffer)
+void TextLayoutPrinter::flush() {
+  if (Buffer) {
     (*LayoutFile) << Buffer->str();
+    Buffer->str().clear();
+    (*LayoutFile).flush();
+  }
+}
+
+TextLayoutPrinter::~TextLayoutPrinter() {
+  flush();
 }
 
 void TextLayoutPrinter::clearInputRecords() {

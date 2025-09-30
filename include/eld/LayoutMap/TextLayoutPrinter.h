@@ -84,6 +84,8 @@ public:
   /// called before section-merging.
   void printRuleMatchingInfo(Module &Module);
 
+  void flush();
+
 private:
   void printChangeOutputSectionInfo(const ELFSection *S) const;
 

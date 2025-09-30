@@ -1,11 +1,3 @@
-add_custom_target(CommonPluginUnitTests)
-set_target_properties(CommonPluginUnitTests PROPERTIES FOLDER
-                                                       "plugin unit tests")
-
-function(add_common_plugin pluginname)
-  add_dependencies(CommonPluginUnitTests ${pluginname})
-endfunction()
-
 # Add HelloWorldPlugin as a test dependency!
 add_common_plugin(HelloWorldPlugin)
 
