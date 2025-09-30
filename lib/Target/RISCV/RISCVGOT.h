@@ -67,6 +67,7 @@ public:
   static RISCVGOT *CreateGD(ELFSection *O, ResolveInfo *R, bool is32bit);
   static RISCVGOT *CreateLD(ELFSection *O, ResolveInfo *R, bool is32bit);
   static RISCVGOT *CreateIE(ELFSection *O, ResolveInfo *R, bool is32bit);
+  static RISCVGOT *CreateTLSDESC(ELFSection *O, ResolveInfo *R, bool is32bit);
 };
 
 template <typename T, uint32_t Align, uint32_t Size>
@@ -148,6 +149,25 @@ public:
 
 private:
   RISCVGOT *Other = nullptr;
+};
+
+template <typename T, uint32_t Align, uint32_t Size>
+class RISCVTLSDESCGOT : public RISCVTGOT<T, Align, Size> {
+public:
+  RISCVTLSDESCGOT(ELFSection *O, ResolveInfo *R)
+      : RISCVTGOT<T, Align, Size>(GOT::TLS_DESC, O, R),
+        Other(make<RISCVTGOT<T, Align, Size>>(GOT::TLS_DESC, O, R)) {}
+
+  RISCVGOT *getFirst() override { return this; }
+
+  RISCVGOT *getNext() override { return Other; }
+
+  static RISCVGOT *Create(ELFSection *O, ResolveInfo *R) {
+    return (make<RISCVTLSDESCGOT>(O, R));
+  }
+
+private:
+  RISCVGOT *Other;
 };
 
 template <typename T, uint32_t Align, uint32_t Size>
