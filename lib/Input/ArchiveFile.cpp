@@ -82,17 +82,6 @@ Input *ArchiveFile::createMemberInput(llvm::StringRef MemberName,
   return Inp;
 }
 
-void ArchiveFile::releaseMemory(bool IsVerbose) {
-  if (isELFArchive())
-    return;
-  if (I)
-    I->releaseMemory(IsVerbose);
-}
-
-bool ArchiveFile::isAlreadyReleased() const {
-  return I && I->isAlreadyReleased();
-}
-
 // Returns all members of the archive file.
 const std::vector<Input *> &ArchiveFile::getAllMembers() const {
   ASSERT(AFI, "AFI must not be null!");

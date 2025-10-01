@@ -144,11 +144,6 @@ public:
 
   void setName(std::string N) { Name = N; }
 
-  /// -----------------------Release Memory-------------------------
-  void releaseMemory(bool IsVerbose = false);
-
-  bool isAlreadyReleased() const { return IsReleased; }
-
   /// --------------------- WildcardPattern ------------------------
   void addFileMatchedPattern(const WildcardPattern *W, bool R) {
     FilePatternMap[W] = R;
@@ -201,7 +196,6 @@ protected:
   uint64_t ResolvedPathHash = 0;
   uint64_t MemberNameHash = 0;
   InputType Type = Default; // The type of input file.
-  bool IsReleased = false;
   bool TraceMe = false;
   llvm::DenseMap<const WildcardPattern *, bool> FilePatternMap;
   llvm::DenseMap<const WildcardPattern *, bool> MemberPatternMap;

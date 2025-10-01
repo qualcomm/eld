@@ -12,14 +12,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Config/LinkerConfig.h"
-#include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/InputTree.h"
 #include "eld/Script/WildcardPattern.h"
-#include "eld/Support/INIReader.h"
 #include "eld/Support/MsgHandling.h"
 #include "llvm/ADT/Hashing.h"
-#include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Support/FileSystem.h"
 #include <filesystem>
 
@@ -165,18 +162,7 @@ llvm::StringRef Input::getFileContents() const {
   return MemArea->getContents();
 }
 
-void Input::releaseMemory(bool IsVerbose) {
-  if (IsVerbose)
-    DiagEngine->raise(Diag::release_file) << decoratedPath();
-  IsReleased = true;
-}
-
-Input::~Input() {
-  if (isArchiveMember())
-    return;
-  releaseMemory(false);
-  IF = nullptr;
-}
+Input::~Input() { IF = nullptr; }
 
 void Input::addMemberMatchedPattern(const WildcardPattern *W, bool R) {
   MemberPatternMap[W] = R;

@@ -111,12 +111,7 @@ public:
 
   void setNoExport(bool NoExport = true) { BNoExport = NoExport; }
 
-  /// ------------------------Release Memory ---------------------------
-  void releaseMemory(bool IsVerbose = false);
-
   virtual ~ArchiveFile() = default;
-
-  bool isAlreadyReleased() const;
 
   size_t getLoadedMemberCount() const;
 

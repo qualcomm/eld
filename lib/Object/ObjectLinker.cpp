@@ -252,8 +252,6 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       ThisModule->setFailure(true);
       return false;
     }
-    if (Input->isAlreadyReleased())
-      continue;
     if (!readAndProcessInput(Input, MPostLtoPhase))
       return false;
     if (Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
@@ -3244,10 +3242,6 @@ bool ObjectLinker::insertPostLTOELF() {
         BitcodeObject = (*Obj);
         BitcodeObj = Obj;
       }
-      // Release memory with Any Bitcode files.
-      BitcodeFile *BCFile = llvm::dyn_cast<eld::BitcodeFile>(*Obj);
-      if (BCFile && BCFile->canReleaseMemory())
-        BCFile->releaseMemory(ThisModule->getPrinter()->isVerbose());
     }
   }
 
@@ -3416,8 +3410,6 @@ void ObjectLinker::addInputFileToTar(InputFile *Ipt, MappingFile::Kind K) {
 
 bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
   if (Input->isInternal())
-    return true;
-  if (Input->isAlreadyReleased())
     return true;
   if (!Input->getSize())
     ThisConfig.raise(Diag::input_file_has_zero_size) << Input->decoratedPath();

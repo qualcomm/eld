@@ -53,11 +53,6 @@ public:
 
   std::unique_ptr<llvm::lto::InputFile> takeLTOInputFile();
 
-  /// Release Memory
-  bool canReleaseMemory() const;
-
-  void releaseMemory(bool IsVerbose = false);
-
   // --------- Comdat Table -------------------------
   bool findIfKeptComdat(int Index) const {
     if (Index == -1) /* Not a part of group */
