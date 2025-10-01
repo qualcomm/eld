@@ -369,15 +369,16 @@ bool GNULDBackend::createProgramHdrs() {
     if (config().options().isOMagic())
       cur_flag = (cur_flag & ~llvm::ELF::PF_W);
 
-    // getSegmentFlag returns 0 if the section is not allocatable.
-    if ((cur_flag != prev_flag) && (isCurAlloc))
-      createPT_LOAD = true;
+    if (!cur->isTBSS()) {
+      if ((cur_flag != prev_flag) && (isCurAlloc))
+        createPT_LOAD = true;
 
-    if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
-      createPT_LOAD = true;
+      if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
+        createPT_LOAD = true;
 
-    if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
-      createPT_LOAD = true;
+      if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
+        createPT_LOAD = true;
+    }
 
     // If the current section is alloc section and if the previous section is
     // NOBITS and current is PROGBITS, we need to create a new segment.
@@ -408,7 +409,7 @@ bool GNULDBackend::createProgramHdrs() {
 
         // If Program headers are not specified and the vma difference is big
         // lets create a PT_LOAD to adjust the offset.
-        if (std::abs(vmaoffset) > (int64_t)segAlign)
+        if ((std::abs(vmaoffset) > (int64_t)segAlign) && (!cur->isTBSS()))
           createPT_LOAD = true;
       }
     }
