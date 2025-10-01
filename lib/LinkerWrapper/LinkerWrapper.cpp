@@ -1175,6 +1175,10 @@ bool LinkerWrapper::isLinkStateBeforeLayout() const {
   return m_Module.getState() == Module::LinkState::BeforeLayout;
 }
 
+bool LinkerWrapper::isLinkStateActBeforeSectionMerging() const {
+  return m_Module.getState() == Module::LinkState::ActBeforeSectionMerging;
+}
+
 bool LinkerWrapper::isLinkStateCreatingSections() const {
   return m_Module.getState() == Module::LinkState::CreatingSections;
 }

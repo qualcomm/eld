@@ -27,12 +27,15 @@ isValidLinkState(const eld::plugin::LinkerWrapper &LW,
                  std::initializer_list<std::string_view> ValidLinkStates) {
   for (const auto &S : ValidLinkStates) {
     bool b = S == "Initializing" || S == "BeforeLayout" ||
-             S == "CreatingSections" || S == "CreatingSegments" ||
-             S == "AfterLayout";
+             S == "ActBeforeSectionMerging" || S == "CreatingSections" ||
+             S == "CreatingSegments" || S == "AfterLayout";
     ASSERT(b, "Invalid link state: " + std::string(S));
     if (S == "Initializing" && LW.isLinkStateInitializing())
       return true;
     if (S == "BeforeLayout" && LW.isLinkStateBeforeLayout())
+      return true;
+    if (S == "ActBeforeSectionMerging" &&
+        LW.isLinkStateActBeforeSectionMerging())
       return true;
     if (S == "CreatingSections" && LW.isLinkStateCreatingSections())
       return true;
