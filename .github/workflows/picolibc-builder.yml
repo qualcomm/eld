@@ -1,8 +1,11 @@
-name: precheckin-picolibc
+name: nightly picolibc builder (hexagon,arm32,aarch64,riscv)
 
 on:
-    pull_request:  # triggers on PRs to any branch
-    workflow_dispatch: # manual trigger from github UI
+  # pull_request: {} # Uncomment only to test this WF file update.
+  schedule:
+    # 10:00 PM Central
+    - cron: '0 4 * * *'
+  workflow_dispatch:     # Allows manual triggering
 
 jobs:
   build:

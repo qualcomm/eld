@@ -8,6 +8,7 @@ on:
       - '.github/workflows/qualcomm-organization-repolinter.yml'
       - '.github/workflows/docs.yaml'
       - '.github/workflows/ci-win.yml'
+      - '.github/workflows/picolibc-builder.yml'
 
 jobs:
   build:
