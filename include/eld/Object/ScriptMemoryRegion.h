@@ -83,6 +83,10 @@ public:
   // Retrieve the name of the memory region
   std::string getName() const;
 
+  // Retrieve the name of the memory region along with quotes if they were
+  // present in the linker scripts.
+  std::string getDecoratedName() const;
+
   // Check if the output section contains a VMA address specified by the
   // user for any override. If the VMA is within the memory region it will
   // be included, if not it will not be part of the image layout but not

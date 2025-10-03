@@ -27,6 +27,12 @@ struct MemorySpec {
 
   const std::string getMemoryDescriptor() const { return Name->name(); }
 
+  /// Returns the memory descriptor along with quotes if they were
+  /// present in the input.
+  std::string getDecoratedMemoryDescriptor() const {
+    return Name->getDecoratedName();
+  }
+
   const std::string getMemoryAttributes() const {
     if (MemoryAttributesString)
       return MemoryAttributesString->name();
