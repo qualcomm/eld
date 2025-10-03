@@ -24,6 +24,10 @@ public:
 
   llvm::StringRef getWildcardPatternAsString() const;
 
+  /// Returns wildcard pattern along with quotes if they were present in the
+  /// input.
+  std::string getDecoratedWildcardPattern() const;
+
   bool isEmpty() { return MMatchedSymbols.empty(); }
 
   void dump(llvm::raw_ostream &Ostream,

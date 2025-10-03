@@ -541,7 +541,7 @@ ScriptFile::createWildCardPattern(StrToken *S, WildcardPattern::SortPolicy P,
 
 WildcardPattern *ScriptFile::createWildCardPattern(
     llvm::StringRef S, WildcardPattern::SortPolicy P, ExcludeFiles *E) {
-  StrToken *Tok = createStrToken(S.str());
+  StrToken *Tok = createParserStr(S);
   return createWildCardPattern(Tok, P, E);
 }
 

@@ -28,3 +28,7 @@ void SymbolContainer::dump(
 llvm::StringRef SymbolContainer::getWildcardPatternAsString() const {
   return MStrToken.name();
 }
+
+std::string SymbolContainer::getDecoratedWildcardPattern() const {
+  return MStrToken.getDecoratedName();
+}

@@ -894,9 +894,9 @@ void ScriptParser::readNoCrossRefs() {
   expect("(");
   ThisScriptFile.createStringList();
   while (peek() != ")" && !atEOF()) {
-    llvm::StringRef SectionName = unquote(next());
+    StrToken *SectionNameTok = readName((next()));
     ThisScriptFile.getCurrentStringList()->pushBack(
-        ThisScriptFile.createScriptSymbol(SectionName));
+        ThisScriptFile.createScriptSymbol(SectionNameTok));
   }
   expect(")");
   StringList *SL = ThisScriptFile.getCurrentStringList();
@@ -958,8 +958,7 @@ void ScriptParser::readMemory() {
     expect(",");
     Expression *Length = readMemoryAssignment({"LENGTH", "len", "l"});
     if (Origin && Length) {
-      StrToken *NameToken =
-          ThisScriptFile.createParserStr(Name.data(), Name.size());
+      StrToken *NameToken = readName(Name);
       ThisScriptFile.addMemoryRegion(NameToken, MemoryAttrs, Origin, Length);
     }
   }
@@ -1006,8 +1005,8 @@ void ScriptParser::readExtern() {
   expect("(");
   ThisScriptFile.createStringList();
   while (peek() != ")" && !atEOF()) {
-    llvm::StringRef Sym = unquote(next());
-    ScriptSymbol *ScriptSym = ThisScriptFile.createScriptSymbol(Sym);
+    StrToken *SymTok = readName(next());
+    ScriptSymbol *ScriptSym = ThisScriptFile.createScriptSymbol(SymTok);
     ThisScriptFile.getCurrentStringList()->pushBack(ScriptSym);
   }
   expect(")");
@@ -1017,13 +1016,11 @@ void ScriptParser::readExtern() {
 
 void ScriptParser::readRegionAlias() {
   expect("(");
-  llvm::StringRef Alias = unquote(next());
+  StrToken *AliasToken = readName(next());
   expect(",");
-  llvm::StringRef Region = unquote(next());
+  StrToken *RegionToken = readName(next());
   expect(")");
 
-  StrToken *AliasToken = ThisScriptFile.createStrToken(Alias.str());
-  StrToken *RegionToken = ThisScriptFile.createStrToken(Region.str());
   ThisScriptFile.addRegionAlias(AliasToken, RegionToken);
 }
 
@@ -1150,8 +1147,7 @@ ExcludeFiles *ScriptParser::readExcludeFile() {
   ThisScriptFile.createExcludeFiles();
   ExcludeFiles *CurrentExcludeFiles = ThisScriptFile.getCurrentExcludeFiles();
   while (diagnose() && !consume(")")) {
-    llvm::StringRef ExcludePat = next();
-    StrToken *ExcludePatTok = ThisScriptFile.createStrToken(ExcludePat.str());
+    StrToken *ExcludePatTok = readName(next());
     ExcludePattern *P = ThisScriptFile.createExcludePattern(ExcludePatTok);
     CurrentExcludeFiles->pushBack(P);
   }
@@ -1274,7 +1270,7 @@ void ScriptParser::readVersionSymbols(VersionScriptNode &VSN) {
         VSN.switchToGlobal();
         continue;
       }
-      VSN.addSymbol(ThisScriptFile.createScriptSymbol(Tok.str()));
+      VSN.addSymbol(ThisScriptFile.createScriptSymbol(readName(Tok)));
     }
     expect(";");
   }
@@ -1346,7 +1342,7 @@ void ScriptParser::readExternList() {
       if (readInclude(Tok))
         continue;
       ThisScriptFile.addSymbolToExternList(
-          ThisScriptFile.createScriptSymbol(Tok));
+          ThisScriptFile.createScriptSymbol(readName(Tok)));
       expect(";");
     }
     // Optionally consume semi-colon
@@ -1366,4 +1362,8 @@ bool ScriptParser::isValidSectionPattern(llvm::StringRef Pat) {
   if (Pat.size() == 1 && strchr("(){}", Pat[0]) != nullptr)
     return false;
   return true;
+}
+
+StrToken *ScriptParser::readName(llvm::StringRef Name) {
+  return ThisScriptFile.createParserStr(Name);
 }

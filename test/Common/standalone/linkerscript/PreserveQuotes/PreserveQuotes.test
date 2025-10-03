@@ -1,0 +1,21 @@
+#---PreserveQuotes.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that the linker preserves quotes in the linker script for
+# some selected commands.
+# Quotes are only preserved for some of the linker script commands. These commands
+# includes:
+#   - NOCROSSREFS
+#   - MEMORY
+#   - REGION_ALIAS
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+
+CHECK: # Output Section and Layout
+CHECK: # MEMORY
+CHECK: #{
+CHECK: #       "RAM REGION"  ORIGIN = 0x1000 ,  LENGTH = 0x3000
+CHECK: #}
+CHECK: .foo {{.*}}
+CHECK: Memory : ["RAM REGION", "RAM REGION"]

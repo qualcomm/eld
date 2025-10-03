@@ -226,6 +226,12 @@ std::string ScriptMemoryRegion::getName() const {
   return getMemoryDesc()->getMemorySpec()->getMemoryDescriptor();
 }
 
+std::string ScriptMemoryRegion::getDecoratedName() const {
+  return getMemoryDesc()
+      ->getMemorySpec()
+      ->getDecoratedMemoryDescriptor();
+}
+
 bool ScriptMemoryRegion::containsVMA(uint64_t Addr) const {
   uint64_t Origin = getOrigin().value();
   uint64_t Length = getLength().value();
