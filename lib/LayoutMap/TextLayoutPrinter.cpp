@@ -220,14 +220,14 @@ void TextLayoutPrinter::printMemoryRegions(GNULDBackend const &Backend,
   if (!OS->epilog().hasRegion())
     return;
 
-  std::string VMARegionName = OS->epilog().region().getName();
+  std::string VMARegionName = OS->epilog().region().getDecoratedName();
   std::optional<std::string> LMARegionName;
   // If LMA is set on the output section those sections are not
   // added to the default LMA region which is nothing but the
   // alias VMA region
   if (!OS->prolog().hasLMA()) {
     if (OS->epilog().hasLMARegion())
-      LMARegionName = OS->epilog().lmaRegion().getName();
+      LMARegionName = OS->epilog().lmaRegion().getDecoratedName();
     else
       LMARegionName = VMARegionName;
   }
@@ -961,7 +961,7 @@ void TextLayoutPrinter::printExternList(Module &CurModule, bool UseColor) {
     for (const SymbolContainer *SymContainer :
          llvm::cast<ExternCmd>(Cmd)->getSymbolContainers()) {
       outputStream() << "Pattern: "
-                     << SymContainer->getWildcardPatternAsString() << "\n";
+                     << SymContainer->getDecoratedWildcardPattern() << "\n";
 
       SymContainer->dump(outputStream(), GetDecoratedPath);
     }
