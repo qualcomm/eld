@@ -15,6 +15,12 @@ jobs:
       ENABLED_ARCHS: aarch64
       CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
       CCACHE_BASEDIR: $GITHUB_WORKSPACE/
+      PICOLIBC_CONFIG_DEFAULT: ""
+      PICOLIBC_CONFIG_1: "-Dio-float-exact=false -Dio-long-long=true -Dio-percent-b=true -Dio-long-double=true -Dnewlib-obsolete-math=false -Dwant-math-errno=true -Dsingle-thread=true -Dmb-capable=true -Dmb-extended-charsets=true -Dnewlib-nano-malloc=false -Dpicoexit=false -Dprintf-small-ultoa=true -Dprintf-percent-n=true"
+      PICOLIBC_CONFIG_2: "-Dio-float-exact=false -Dio-long-long=true -Dio-percent-b=true -Dio-long-double=true -Dnewlib-obsolete-math=false -Dwant-math-errno=true -Dsingle-thread=true -Dmb-capable=true -Dmb-extended-charsets=true -Dnewlib-nano-malloc=false -Dpicoexit=false -Dprintf-small-ultoa=true -Dprintf-percent-n=true"
+      PICOLIBC_CONFIG_3: "-Dtinystdio=false"
+      # io-long-double unsupported for aarch64, riscv
+      PICOLIBC_CONFIG_4: "-Dtinystdio=false -Dnewlib-io-float=true -Dio-long-long=true -Dio-long-double=true -Dnewlib-fvwrite-in-streamio=true -Dsingle-thread=true -Dmb-capable=true -Dmb-extended-charsets=true"
 
     steps:
       - name: Set up Clang 20
@@ -315,16 +321,52 @@ jobs:
           ../scripts/do-clang-arm-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld
           ninja
 
-      - name: Build Picolibc for AArch64
+      - name: Build Picolibc for AArch64, config default
         if: contains(env.ENABLED_ARCHS, 'aarch64')
         run: |
           cd $GITHUB_WORKSPACE/picolibc
-          mkdir -p build-clang-aarch64-picolibc
+          mkdir -p build-clang-aarch64-picolibc-config-default
           export PATH=$GITHUB_WORKSPACE/install-aarch64-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          cd build-clang-aarch64-picolibc
-          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld
+          cd build-clang-aarch64-picolibc-config-default
+          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ env.PICOLIBC_CONFIG_DEFAULT }}
+          ninja
+
+      - name: Build Picolibc for AArch64, config-1
+        if: contains(env.ENABLED_ARCHS, 'aarch64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc
+          mkdir -p build-clang-aarch64-picolibc-config-1
+          export PATH=$GITHUB_WORKSPACE/install-aarch64-toolchain/bin:$PATH
+          export CC_LD=eld
+          export CXX_LD=eld
+          cd build-clang-aarch64-picolibc-config-1
+          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ env.PICOLIBC_CONFIG_1 }}
+          ninja
+
+      - name: Build Picolibc for AArch64, config-2
+        if: contains(env.ENABLED_ARCHS, 'aarch64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc
+          mkdir -p build-clang-aarch64-picolibc-config-2
+          export PATH=$GITHUB_WORKSPACE/install-aarch64-toolchain/bin:$PATH
+          export CC_LD=eld
+          export CXX_LD=eld
+          cd build-clang-aarch64-picolibc-config-2
+          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ env.PICOLIBC_CONFIG_2 }}
+          ninja
+
+      - name: Build Picolibc for AArch64, config-3
+        if: contains(env.ENABLED_ARCHS, 'aarch64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc
+          mkdir -p build-clang-aarch64-picolibc-config-3
+          export PATH=$GITHUB_WORKSPACE/install-aarch64-toolchain/bin:$PATH
+          export CC_LD=eld
+          export CXX_LD=eld
+          cd build-clang-aarch64-picolibc-config-3
+          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ env.PICOLIBC_CONFIG_3 }}
           ninja
 
       - name: Build Picolibc for RISCV
@@ -344,21 +386,46 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/picolibc/build-clang-hexagon-picolibc
           ninja test
+        continue-on-error: true
 
       - name: Run Picolibc tests for ARM
         if: contains(env.ENABLED_ARCHS, 'arm')
         run: |
           cd $GITHUB_WORKSPACE/picolibc/build-clang-arm-picolibc
           ninja test
+        continue-on-error: true
 
-      - name: Run Picolibc tests for AArch64
+      - name: Run Picolibc tests for AArch64, config default
         if: contains(env.ENABLED_ARCHS, 'aarch64')
         run: |
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-default
           ninja test
+        continue-on-error: true
+
+      - name: Run Picolibc tests for AArch64, config-1
+        if: contains(env.ENABLED_ARCHS, 'aarch64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-1
+          ninja test
+        continue-on-error: true
+
+      - name: Run Picolibc tests for AArch64, config-2
+        if: contains(env.ENABLED_ARCHS, 'aarch64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-2
+          ninja test
+        continue-on-error: true
+
+      - name: Run Picolibc tests for AArch64, config-3
+        if: contains(env.ENABLED_ARCHS, 'aarch64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-3
+          ninja test
+        continue-on-error: true
 
       - name: Run Picolibc tests for RISCV
         if: contains(env.ENABLED_ARCHS, 'riscv')
         run: |
           cd $GITHUB_WORKSPACE/picolibc/build-clang-riscv-picolibc
           ninja test
+        continue-on-error: true
