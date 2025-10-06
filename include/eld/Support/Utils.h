@@ -6,6 +6,7 @@
 #ifndef ELD_SUPPORT_UTILS_H
 #define ELD_SUPPORT_UTILS_H
 
+#include <cstdint>
 #include <string>
 
 namespace eld {

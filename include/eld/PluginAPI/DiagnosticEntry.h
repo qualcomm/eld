@@ -7,6 +7,7 @@
 #ifndef ELD_PLUGINAPI_DIAGNOSTIC_ENTRY_H
 #define ELD_PLUGINAPI_DIAGNOSTIC_ENTRY_H
 #include "Defines.h"
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <vector>

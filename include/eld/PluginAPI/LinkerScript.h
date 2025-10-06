@@ -8,6 +8,7 @@
 #define ELD_PLUGINAPI_LINKERSCRIPT_H
 
 #include "Defines.h"
+#include <cstdint>
 #include <ostream>
 #include <string>
 #include <vector>

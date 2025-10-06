@@ -9,6 +9,7 @@
 #define ELD_PLUGINAPI_DWARF_H
 
 #include "Defines.h"
+#include <cstdint>
 #include <string>
 #include <vector>
 

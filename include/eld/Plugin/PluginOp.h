@@ -7,6 +7,7 @@
 #ifndef ELD_PLUGIN_PLUGINOP_H
 #define ELD_PLUGIN_PLUGINOP_H
 
+#include <cstdint>
 #include <string>
 
 namespace eld::plugin {
