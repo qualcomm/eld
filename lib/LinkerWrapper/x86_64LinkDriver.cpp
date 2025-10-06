@@ -25,11 +25,11 @@ using namespace llvm::opt;
 static constexpr llvm::opt::OptTable::Info infoTable[] = {
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
                ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES)                          \
+               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
   LLVM_CONSTRUCT_OPT_INFO(                                                     \
       PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, x86_64LinkOptTable::ID, KIND,     \
       x86_64LinkOptTable::GROUP, x86_64LinkOptTable::ALIAS, ALIASARGS, FLAGS,  \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES),
+      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
 #include "eld/Driver/x86_64LinkerOptions.inc"
 #undef OPTION
 };

@@ -25,7 +25,7 @@ public:
     INVALID = 0,
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
                ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES)                          \
+               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
   ID,
 #include "eld/Driver/ARMLinkerOptions.inc"
 #undef OPTION
