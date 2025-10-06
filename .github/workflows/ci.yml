@@ -9,6 +9,7 @@ on:
       - '.github/workflows/docs.yaml'
       - '.github/workflows/ci-win.yml'
       - '.github/workflows/picolibc-builder.yml'
+      - '.github/workflows/nightly-test.yml'
 
 jobs:
   build:
