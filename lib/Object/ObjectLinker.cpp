@@ -3766,7 +3766,8 @@ bool ObjectLinker::parseIncludeOrExcludeLTOfiles() {
       StringRef Line = LineAndRest.first.trim();
       // Comment lines starts with #
       if (!Line.empty() || !Line.starts_with("#"))
-        LTOPatternList.emplace_back(make<WildcardPattern>(Line.str()));
+        LTOPatternList.emplace_back(
+            make<WildcardPattern>(ThisModule->saveString(Line)));
       Buffer = LineAndRest.second;
     }
   }
