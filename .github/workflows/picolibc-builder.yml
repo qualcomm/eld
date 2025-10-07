@@ -1,7 +1,7 @@
 name: nightly picolibc builder (hexagon,arm32,aarch64,riscv)
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ENABLED_ARCHS: aarch64
+      ENABLED_ARCHS: arm
       CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
       CCACHE_BASEDIR: $GITHUB_WORKSPACE/
       PICOLIBC_CONFIG_DEFAULT: ""
@@ -79,7 +79,7 @@ jobs:
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=arm-none-eabi \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=armv6m-none-eabi \
             -DCMAKE_C_COMPILER=`which clang` \
             -DCMAKE_CXX_COMPILER=`which clang++` \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
