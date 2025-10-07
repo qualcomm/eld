@@ -21,7 +21,7 @@ using namespace eld;
 ExternCmd::ExternCmd(StringList &PExtern)
     : ScriptCommand(ScriptCommand::EXTERN), ExternSymbolList(PExtern) {}
 
-ExternCmd::~ExternCmd() {}
+
 
 void ExternCmd::dump(llvm::raw_ostream &Outs) const {
   for (auto &E : ExternSymbolList)

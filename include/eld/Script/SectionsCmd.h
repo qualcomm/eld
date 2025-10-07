@@ -35,7 +35,7 @@ public:
 
 public:
   SectionsCmd();
-  ~SectionsCmd();
+
 
   const_iterator begin() const { return ThisSectionCommands.begin(); }
   iterator begin() { return ThisSectionCommands.begin(); }

@@ -30,7 +30,7 @@ class Module;
 class SearchDirCmd : public ScriptCommand {
 public:
   SearchDirCmd(const std::string &PPath);
-  ~SearchDirCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

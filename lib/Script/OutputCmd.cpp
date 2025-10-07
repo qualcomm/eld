@@ -18,7 +18,7 @@ using namespace eld;
 OutputCmd::OutputCmd(const std::string &POutputFile)
     : ScriptCommand(ScriptCommand::OUTPUT), OutputFileName(POutputFile) {}
 
-OutputCmd::~OutputCmd() {}
+
 
 void OutputCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "OUTPUT(" << OutputFileName << ")\n";

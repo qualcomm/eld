@@ -28,7 +28,7 @@ class Module;
 class EntryCmd : public ScriptCommand {
 public:
   EntryCmd(const std::string &PEntry);
-  ~EntryCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

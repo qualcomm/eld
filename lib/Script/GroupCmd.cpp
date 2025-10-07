@@ -27,7 +27,7 @@ GroupCmd::GroupCmd(const LinkerConfig &Config, StringList &PStringList,
     : ScriptCommand(ScriptCommand::GROUP), ThisStringList(PStringList),
       ThisBuilder(Config, Attribute), ThisScriptFile(ScriptFile) {}
 
-GroupCmd::~GroupCmd() {}
+
 
 void GroupCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "GROUP(";

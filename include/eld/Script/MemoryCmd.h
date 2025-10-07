@@ -25,7 +25,7 @@ struct MemorySpec;
 class MemoryCmd : public ScriptCommand {
 public:
   MemoryCmd();
-  ~MemoryCmd();
+
 
   size_t size() const { return MemoryDescriptors.size(); }
 

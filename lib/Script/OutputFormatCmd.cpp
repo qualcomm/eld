@@ -33,7 +33,7 @@ OutputFormatCmd::OutputFormatCmd(const std::string &PDefault,
   OutputFormatList.push_back(PLittle);
 }
 
-OutputFormatCmd::~OutputFormatCmd() {}
+
 
 void OutputFormatCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "OUTPUT_FORMAT(";

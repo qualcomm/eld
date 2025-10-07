@@ -21,7 +21,7 @@ class Module;
 class OutputArchCmd : public ScriptCommand {
 public:
   OutputArchCmd(const std::string &PArch);
-  ~OutputArchCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

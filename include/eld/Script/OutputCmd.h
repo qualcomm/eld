@@ -22,7 +22,7 @@ class OutputCmd : public ScriptCommand {
 public:
   OutputCmd(const std::string &POutputFile);
 
-  ~OutputCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

@@ -19,7 +19,7 @@ using namespace eld;
 PhdrDesc::PhdrDesc(const PhdrSpec &PSpec)
     : ScriptCommand(ScriptCommand::PHDR_DESC), InputSpec(PSpec) {}
 
-PhdrDesc::~PhdrDesc() {}
+
 
 void PhdrDesc::dump(llvm::raw_ostream &Outs) const {
   Outs << InputSpec.name();

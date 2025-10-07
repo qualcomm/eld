@@ -22,7 +22,7 @@ class Module;
 class NoCrossRefsCmd : public ScriptCommand {
 public:
   NoCrossRefsCmd(StringList &PExtern, size_t PId);
-  ~NoCrossRefsCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

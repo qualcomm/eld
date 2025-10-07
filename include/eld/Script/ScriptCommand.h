@@ -58,7 +58,7 @@ public:
   ScriptCommand(Kind PKind)
       : ScriptFileKind(PKind), ParentScriptCommand(nullptr) {}
 
-  virtual ~ScriptCommand() = 0;
+  virtual ~ScriptCommand() {};
 
   virtual void dump(llvm::raw_ostream &Outs) const = 0;
 

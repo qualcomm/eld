@@ -19,7 +19,7 @@ using namespace eld;
 MemoryDesc::MemoryDesc(const MemorySpec &PSpec)
     : ScriptCommand(ScriptCommand::MEMORY_DESC), InputSpec(PSpec) {}
 
-MemoryDesc::~MemoryDesc() {}
+
 
 void MemoryDesc::dump(llvm::raw_ostream &Outs) const {
   Outs << InputSpec.getMemoryDescriptor();
