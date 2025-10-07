@@ -26,7 +26,7 @@ class GroupCmd : public ScriptCommand {
 public:
   GroupCmd(const LinkerConfig &Config, StringList &PStringList,
            const Attribute &Attr, ScriptFile &PScriptFile);
-  ~GroupCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

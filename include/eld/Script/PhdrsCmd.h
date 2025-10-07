@@ -24,7 +24,7 @@ class PhdrDesc;
 class PhdrsCmd : public ScriptCommand {
 public:
   PhdrsCmd();
-  ~PhdrsCmd();
+
 
   size_t size() const { return MPhdrs.size(); }
 

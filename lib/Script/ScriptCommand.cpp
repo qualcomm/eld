@@ -23,7 +23,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // ScriptCommand
 //===----------------------------------------------------------------------===//
-ScriptCommand::~ScriptCommand() {}
+
 void ScriptCommand::dumpMap(llvm::raw_ostream &Ostream, bool Color,
                             bool UseNewLine, bool WithValues,
                             bool AddIndent) const {

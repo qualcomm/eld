@@ -26,7 +26,7 @@ class InputCmd : public ScriptCommand {
 public:
   InputCmd(const LinkerConfig &Config, StringList &PStringList,
            const Attribute &Attr, ScriptFile &PScriptFile);
-  ~InputCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

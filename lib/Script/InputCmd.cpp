@@ -27,7 +27,7 @@ InputCmd::InputCmd(const LinkerConfig &Config, StringList &PStringList,
     : ScriptCommand(ScriptCommand::INPUT), ThisStringList(PStringList),
       ThisBuilder(Config, Attribute), ThisScriptFile(ScriptFile) {}
 
-InputCmd::~InputCmd() {}
+
 
 void InputCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "INPUT(";

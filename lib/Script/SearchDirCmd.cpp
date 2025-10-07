@@ -23,7 +23,7 @@ using namespace eld;
 SearchDirCmd::SearchDirCmd(const std::string &PPath)
     : ScriptCommand(ScriptCommand::SEARCH_DIR), MPath(PPath) {}
 
-SearchDirCmd::~SearchDirCmd() {}
+
 
 void SearchDirCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "SEARCH_DIR(\"" << MPath << "\");\n";

@@ -135,7 +135,7 @@ public:
   InputSectDesc(ScriptCommand::Kind Kind, uint32_t ID, Policy Policy,
                 const Spec &Spec, OutputSectDesc &OutputDesc);
 
-  ~InputSectDesc();
+
 
   Policy policy() const { return InputSpecPolicy; }
 

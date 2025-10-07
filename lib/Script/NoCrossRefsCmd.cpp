@@ -19,7 +19,7 @@ NoCrossRefsCmd::NoCrossRefsCmd(StringList &PSections, size_t ID)
     : ScriptCommand(ScriptCommand::NOCROSSREFS), ThisSectionions(PSections),
       CurID(ID) {}
 
-NoCrossRefsCmd::~NoCrossRefsCmd() {}
+
 
 void NoCrossRefsCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "NOCROSSREFS(";

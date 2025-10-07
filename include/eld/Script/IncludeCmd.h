@@ -18,7 +18,7 @@ class IncludeCmd : public ScriptCommand {
 public:
   IncludeCmd(const std::string FileName, bool IsOptional);
 
-  ~IncludeCmd() {};
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

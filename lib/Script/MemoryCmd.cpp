@@ -15,7 +15,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 MemoryCmd::MemoryCmd() : ScriptCommand(ScriptCommand::MEMORY) {}
 
-MemoryCmd::~MemoryCmd() {}
+
 
 void MemoryCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "MEMORY\n{\n";

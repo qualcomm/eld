@@ -23,7 +23,7 @@ using namespace eld;
 EntryCmd::EntryCmd(const std::string &PEntry)
     : ScriptCommand(ScriptCommand::ENTRY), EntrySymbol(PEntry) {}
 
-EntryCmd::~EntryCmd() {}
+
 
 void EntryCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "ENTRY(" << EntrySymbol << ")";

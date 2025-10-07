@@ -47,7 +47,7 @@ public:
   Assignment(Level AssignmentLevel, Type AssignmentType, std::string Symbol,
              Expression *ScriptExpression);
 
-  ~Assignment();
+
 
   Level level() const { return AssignmentLevel; }
 

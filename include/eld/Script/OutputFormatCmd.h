@@ -35,7 +35,7 @@ public:
   OutputFormatCmd(const std::string &PFormat);
   OutputFormatCmd(const std::string &PDefault, const std::string &PBig,
                   const std::string &PLittle);
-  ~OutputFormatCmd();
+
 
   const_iterator begin() const { return OutputFormatList.begin(); }
   iterator begin() { return OutputFormatList.begin(); }

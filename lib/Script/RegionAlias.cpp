@@ -17,7 +17,7 @@ RegionAlias::RegionAlias(const StrToken *Alias, const StrToken *Region)
     : ScriptCommand(ScriptCommand::REGION_ALIAS), MemoryAliasName(Alias),
       MemoryRegionName(Region) {}
 
-RegionAlias::~RegionAlias() {}
+
 
 void RegionAlias::dump(llvm::raw_ostream &Outs) const {
   Outs << "REGION_ALIAS";

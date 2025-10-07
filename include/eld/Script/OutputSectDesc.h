@@ -273,7 +273,7 @@ public:
 
 public:
   OutputSectDesc(const std::string &PName);
-  ~OutputSectDesc();
+
 
   const_iterator begin() const { return OutputSectionCommands.begin(); }
   iterator begin() { return OutputSectionCommands.begin(); }

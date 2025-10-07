@@ -22,7 +22,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 SectionsCmd::SectionsCmd() : ScriptCommand(ScriptCommand::SECTIONS) {}
 
-SectionsCmd::~SectionsCmd() {}
+
 
 void SectionsCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "SECTIONS\n{\n";

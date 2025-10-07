@@ -55,7 +55,7 @@ class MemoryDesc : public ScriptCommand {
 public:
   MemoryDesc(const MemorySpec &PSpec);
 
-  ~MemoryDesc();
+
 
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->isMemoryDesc();

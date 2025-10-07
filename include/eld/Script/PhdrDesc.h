@@ -59,7 +59,7 @@ class PhdrDesc : public ScriptCommand {
 public:
   PhdrDesc(const PhdrSpec &PSpec);
 
-  ~PhdrDesc();
+
 
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::PHDR_DESC;

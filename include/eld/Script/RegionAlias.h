@@ -32,7 +32,7 @@ class RegionAlias : public ScriptCommand {
 public:
   explicit RegionAlias(const StrToken *Alias, const StrToken *Region);
 
-  ~RegionAlias();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

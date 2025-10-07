@@ -43,7 +43,7 @@ OutputSectDesc::OutputSectDesc(const std::string &PName)
   OutputSectDescEpilog.FillExpression = nullptr;
 }
 
-OutputSectDesc::~OutputSectDesc() {}
+
 
 void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
   Outs << Name << "\t";

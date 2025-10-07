@@ -15,7 +15,7 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 PhdrsCmd::PhdrsCmd() : ScriptCommand(ScriptCommand::PHDRS) {}
 
-PhdrsCmd::~PhdrsCmd() {}
+
 
 void PhdrsCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "PHDRS\n{\n";

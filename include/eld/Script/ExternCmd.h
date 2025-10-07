@@ -26,7 +26,7 @@ class Module;
 class ExternCmd : public ScriptCommand {
 public:
   ExternCmd(StringList &PExtern);
-  ~ExternCmd();
+
 
   void dump(llvm::raw_ostream &Outs) const override;
 

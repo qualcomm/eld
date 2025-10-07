@@ -15,7 +15,7 @@ using namespace eld;
 OutputArchCmd::OutputArchCmd(const std::string &PArch)
     : ScriptCommand(ScriptCommand::OUTPUT_ARCH), OutputArch(PArch) {}
 
-OutputArchCmd::~OutputArchCmd() {}
+
 
 void OutputArchCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "OUTPUT_ARCH(" << OutputArch << ")\n";

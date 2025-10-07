@@ -28,7 +28,7 @@ class NameSpec : public InputToken {
 public:
   explicit NameSpec(const std::string &PName, bool PAsNeeded);
 
-  ~NameSpec() {}
+
 
   static bool classof(const InputToken *ThisInputToken) {
     return ThisInputToken->type() == InputToken::NameSpec;

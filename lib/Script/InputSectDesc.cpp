@@ -43,7 +43,7 @@ InputSectDesc::InputSectDesc(ScriptCommand::Kind Kind, uint32_t ID,
   InputSpec.initialize(Spec);
 }
 
-InputSectDesc::~InputSectDesc() {}
+
 
 void InputSectDesc::dump(llvm::raw_ostream &Outs) const { dumpMap(Outs); }
 
