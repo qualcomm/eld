@@ -1,0 +1,14 @@
+#--relocDTPOFF32_overflow.test----------Executable--------#
+BEGIN_COMMENT
+# Test R_X86_64_DTPOFF32 relocation overflow with a large TLS template size.
+# DTPOFF32 is a signed 32-bit DTP-relative offset; if the per-module TLS
+# template grows beyond the signed 32-bit range, the linker must report overflow.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+RUN: %not %link %linkopts -T %p/Inputs/script_overflow.t %t.o -o %t.exe 2>&1 | FileCheck %s
+
+# Should fail with overflow error
+CHECK: {{.*}}overflow{{.*}}
+#END_TEST

@@ -1,0 +1,13 @@
+#--relocDTPOFF64.test----------Executable--------#
+BEGIN_COMMENT
+# Test R_X86_64_DTPOFF64 relocation calculation and application
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
+RUN: %link %linkopts %t.o -o %t.exe 
+RUN: llvm-objdump -s -j .data %t.exe | FileCheck %s
+
+CHECK: Contents of section .data:
+CHECK-NEXT: {{[0-9a-f]+}}  00000000 00000000 04000000 00000000
+#END_TEST
