@@ -25,13 +25,10 @@ public:
 
   uint8_t OSABI() const override;
 
-  bool checkFlags(uint64_t flag, const InputFile *pInputFile) const override;
+  bool checkFlags(uint64_t flag, const InputFile *pInputFile,
+                  bool) const override;
 
   std::string flagString(uint64_t pFlag) const override;
-
-  int32_t cmdLineFlag() const override { return m_CmdLineFlag; }
-
-  int32_t outputFlag() const override { return m_OutputFlag; }
 
   bool needEhdr(Module &pModule, bool linkerScriptHasSectionsCmd,
                 bool isPhdr) override {
@@ -52,7 +49,6 @@ public:
 private:
   bool isABIFlagSet(uint64_t inputFlag, uint32_t ABIFlag) const;
   uint64_t translateFlag(uint64_t pFlag) const;
-  int32_t m_CmdLineFlag;
   mutable int32_t m_OutputFlag;
   mutable llvm::DenseMap<const InputFile *, uint64_t> InputFlags;
 };

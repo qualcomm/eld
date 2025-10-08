@@ -99,6 +99,10 @@ protected:
   explicit ELFReader(Module &module, InputFile &inputFile,
                      plugin::DiagnosticEntry &diagEntry);
 
+  // Check if the file contains executable sections for
+  // compatibility checks on some ABI platforms
+  bool hasExecutableSections() const;
+
   /// Creates and returns an instance of llvm::object::ELFFile<ELFT> for the
   /// inputFile.
   static std::optional<llvm::object::ELFFile<ELFT>>

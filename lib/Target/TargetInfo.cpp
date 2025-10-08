@@ -87,7 +87,8 @@ const NameMap map[] = {
 //===----------------------------------------------------------------------===//
 TargetInfo::TargetInfo(LinkerConfig &pConfig) : m_Config(pConfig) {}
 
-bool TargetInfo::checkFlags(uint64_t flag, const InputFile *pInputFile) const {
+bool TargetInfo::checkFlags(uint64_t flag, const InputFile *pInputFile,
+                            bool) const {
   return true;
 }
 

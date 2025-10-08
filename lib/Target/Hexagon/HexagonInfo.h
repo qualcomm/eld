@@ -54,13 +54,10 @@ public:
 
   uint8_t OSABI() const override;
 
-  bool checkFlags(uint64_t flag, const InputFile *pInputFile) const override;
+  bool checkFlags(uint64_t flag, const InputFile *pInputFile,
+                  bool) const override;
 
   std::string flagString(uint64_t pFlag) const override;
-
-  int32_t cmdLineFlag() const override { return m_CmdLineFlag; }
-
-  int32_t outputFlag() const override { return m_OutputFlag; }
 
   uint64_t abiPageSize(bool linkerScriptHasSectionsCommand) const override;
 
@@ -91,6 +88,7 @@ private:
 private:
   int32_t m_CmdLineFlag;
   mutable int32_t m_OutputFlag;
+  mutable bool ZeroFlagsOK = false;
 };
 
 } // namespace eld

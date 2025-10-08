@@ -3,6 +3,7 @@ __thread int b = 2;
 __thread int c = 3;
 __thread int e;
 __thread int d;
+int buf[100] = { 1 };
 
 int main () {
 e  =1;

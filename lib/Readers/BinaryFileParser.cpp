@@ -25,6 +25,9 @@ eld::Expected<void> BinaryFileParser::parseFile(InputFile &inputFile) {
   ObjectFile *objFile = llvm::cast<ObjectFile>(&inputFile);
   objFile->addSection(S);
   addDescriptionSymbols(inputFile, S);
+  // Binary files carry no architecture flags. Explicitly set flags to 0.
+  if (m_Module.getLinker()->getBackend())
+    m_Module.getBackend().getInfo().checkFlags(0, &inputFile, false);
   return {};
 }
 

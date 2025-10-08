@@ -1,0 +1,17 @@
+UNSUPPORTED: riscv64
+#----------EFlags.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This checks that the linker will error out appropriately when mixing
+# object files with incompatible flags
+#END_COMMENT
+#START_TEST
+RUN: %yaml2obj %p/Inputs/emptyelf.yaml -o %t.emptyelf.o
+RUN: %clang %clangopts -mabi=ilp32f -c %p/Inputs/1.c -o %t.1.o
+RUN: %eld %t.emptyelf.o %t.1.o -o %t1.out
+RUN: %readelf -h %t1.out | %filecheck %s -check-prefix=EFLAGS
+RUN: %yaml2obj %p/Inputs/flagszero_with_exec_sections.yaml -o %t.f.o
+RUN: %not %eld %t.f.o %t.1.o -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+
+EFLAGS: Flags: 0x3
+CHECK: Error: Incompatible object files when reading {{.*}}1.o
