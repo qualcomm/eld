@@ -546,11 +546,12 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
 }
 
 bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
-  /* Three similar relaxations can be applied here, in order of preference:
+  /* Several similar relaxations can be applied here, in order of preference:
    * -- qc.e.li -> c.lui (saves 4 bytes)
    * -- qc.li   -> c.lui (saves 2 bytes)
    * -- qc.e.li -> qc.li (saves 2 bytes)
    * -- qc.e.li -> addi (GP-relative) (saves 2 bytes, not available for PIC)
+   * -- qc.e.li -> lui (saves 2 bytes)
    */
 
   Fragment *frag = reloc->targetRef()->frag();
@@ -615,6 +616,9 @@ bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
       !config().isCodeIndep() && G != 0 && S != 0 &&
       fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize);
 
+  bool canRelaxLUI =
+      canRelaxXqci && isQC_E_LI && llvm::isShiftedInt<20, 12>(Value);
+
   const char *msg = isQC_E_LI ? "RISCV_QC_E_LI_C_LUI" : "RISCV_QC_LI_C_LUI";
   if (canRelaxCLui) {
     uint16_t c_lui = 0x6001u | rd << 7;
@@ -660,6 +664,21 @@ bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
     region->replaceInstruction(offset, reloc, addi, 4);
     reloc->setTargetData(addi);
     reloc->setType(ELF::riscv::internal::R_RISCV_GPREL_I);
+    relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
+
+    // Report missed relaxation as C.LUI would have been smaller
+    reportMissedRelaxation("RISCV_QC_E_LI_C_LUI", *region, offset, 2,
+                           reloc->symInfo()->name());
+    return true;
+  }
+
+  if (canRelaxLUI) {
+    const char *msg = "RISCV_QC_E_LI_LUI";
+    uint32_t lui = 0x00000037u | (rd << 7);
+
+    region->replaceInstruction(offset, reloc, lui, 4);
+    reloc->setTargetData(lui);
+    reloc->setType(llvm::ELF::R_RISCV_HI20);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
 
     // Report missed relaxation as C.LUI would have been smaller
