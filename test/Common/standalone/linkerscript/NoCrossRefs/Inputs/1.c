@@ -1,4 +1,3 @@
-
 int common;
 extern int another_common;
 extern int z;

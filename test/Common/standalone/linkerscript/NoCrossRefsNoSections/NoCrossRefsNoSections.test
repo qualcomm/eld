@@ -1,0 +1,6 @@
+#---NoCrossRefsNoSections.test------------------ Executable,LS ---------------#
+# Validate that NOCROSSREFS reports cross-references even without SECTIONS.
+RUN: %clang %clangg0opts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections -fdata-sections
+RUN: %not %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix=CHECK
+
+CHECK: Error: {{.*}}1.o{{.*}} prohibited cross reference from .text to `foo'

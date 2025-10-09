@@ -1,0 +1,1 @@
+NOCROSSREFS(.text .data)

@@ -1,0 +1,8 @@
+#---NoCrossRefsDiscard.test-------------------- Executable,LS -----------------#
+# Validate NOCROSSREFS feature when the section violating cross-reference
+# is discarded by /DISCARD/.
+
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/script.discard.t 2>&1 | %filecheck %s --check-prefix=DISCARD --allow-empty
+
+DISCARD-NOT: prohibited cross reference

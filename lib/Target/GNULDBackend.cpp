@@ -2641,8 +2641,6 @@ void GNULDBackend::checkCrossReferencesHelper(InputFile *input) {
 }
 
 bool GNULDBackend::checkCrossReferences() {
-  if (!m_Module.getScript().linkerScriptHasSectionsCommand())
-    return true;
   eld::RegisterTimer T("Evaluate NOCROSSREFS", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (config().options().numThreads() <= 1 ||
