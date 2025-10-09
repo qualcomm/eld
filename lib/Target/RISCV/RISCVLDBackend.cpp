@@ -545,10 +545,8 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
   return true;
 }
 
-bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
+bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
   /* Three similar relaxations can be applied here, in order of preference:
-   * -- qc.e.li -> c.lui (saves 4 bytes)
-   * -- qc.li   -> c.lui (saves 2 bytes)
    * -- qc.e.li -> qc.li (saves 2 bytes)
    * -- qc.e.li -> addi (GP-relative) (saves 2 bytes, not available for PIC)
    */
@@ -562,33 +560,16 @@ bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
   Relocator::DWord A = reloc->addend();
   Relocator::DWord Value = S + A;
 
-  Relocation::Type type = reloc->type();
   uint64_t offset = reloc->targetRef()->offset();
   size_t SymbolSize = reloc->symInfo()->outSymbol()->size();
 
   uint64_t instr = reloc->target();
-  bool isQC_E_LI = false;
-  unsigned rd = 0;
-  if ((instr & 0x0000007fu) == 0x1bu) {
-    // instr = `QC.LI` if `rd != 0`
-    rd = (instr >> 7) & 0x1fu;
-    if (rd == 0)
-      return false;
+  if ((instr & 0x00000000f07fu) != 0x1fu) {
+    return false;
+  }
 
-    ASSERT(type == ELF::riscv::internal::R_RISCV_QC_ABS20_U,
-           "Unexpected relocation on QC.LI");
-  } else if ((instr & 0x00000000f07fu) == 0x1fu) {
-    // instr = `QC.E.LI` if `rd != 0`
-    rd = (instr >> 7) & 0x1fu;
-    // Not actually QC.E.LI
-    if (rd == 0)
-      return false;
-
-    ASSERT(type == ELF::riscv::internal::R_RISCV_QC_E_32,
-           "Unexpected relocation on QC.E.LI");
-    isQC_E_LI = true;
-  } else {
-    // Unidentified instruction, give up.
+  unsigned rd = (instr >> 7) & 0x1fu;
+  if (rd == 0) {
     return false;
   }
 
@@ -597,58 +578,24 @@ bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
                       config().targets().is32Bits() &&
                       config().options().getRISCVRelaxXqci();
 
-  // For c.lui, we need to be able to relax to C, and we need to have a
-  // compatible value and destination register.
-  bool canRelaxCLui = canRelaxXqci && config().options().getRISCVRelaxToC() &&
-                      (Value >> 12) != 0 && llvm::isShiftedInt<6, 12>(Value) &&
-                      rd != 0 && rd != 2;
+  // For qc.li, we need to have a compatible value
+  bool canRelaxQcLi = canRelaxXqci && llvm::isInt<20>(Value);
 
-  // For qc.li, we need to start with QC.E.LI, and have a compatible value and
-  // destination register.
-  bool canRelaxQcLi =
-      canRelaxXqci && isQC_E_LI && llvm::isInt<20>(Value) && rd != 0;
-
-  // For addi (gp-relative), we need to start with QC.E.LI, enable GP
-  // relaxations, not be PIC-code, and be in range of __global_pointer$.
+  // For addi (gp-relative), we need to enable GP relaxations, not be PIC-code,
+  // and be in range of __global_pointer$.
   bool canRelaxGP =
-      canRelaxXqci && isQC_E_LI && config().options().getRISCVGPRelax() &&
+      canRelaxXqci && config().options().getRISCVGPRelax() &&
       !config().isCodeIndep() && G != 0 && S != 0 &&
       fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize);
 
-  const char *msg = isQC_E_LI ? "RISCV_QC_E_LI_C_LUI" : "RISCV_QC_LI_C_LUI";
-  if (canRelaxCLui) {
-    uint16_t c_lui = 0x6001u | rd << 7;
-
-    region->replaceInstruction(offset, reloc, c_lui, 2);
-    reloc->setTargetData(c_lui);
-    reloc->setType(ELF::riscv::internal::R_RISCV_RVC_LUI);
-    relaxDeleteBytes(msg, *region, offset + 2, isQC_E_LI ? 4 : 2,
-                     reloc->symInfo()->name());
-    if (m_Module.getPrinter()->isVerbose())
-      config().raise(Diag::relax_to_compress)
-          << msg << llvm::utohexstr(instr, true, isQC_E_LI ? 12 : 8)
-          << llvm::utohexstr(c_lui, true, 4) << reloc->symInfo()->name()
-          << region->getOwningSection()->name() << llvm::utohexstr(offset, true)
-          << region->getOwningSection()
-                 ->getInputFile()
-                 ->getInput()
-                 ->decoratedPath();
-
-    return true;
-  }
-
+  const char *msg = "RISCV_QC_E_LI_QC_LI";
   if (canRelaxQcLi) {
-    const char *msg = "RISCV_QC_E_LI_QC_LI";
     uint32_t qc_li = 0x0000001bu | rd << 7;
 
     region->replaceInstruction(offset, reloc, qc_li, 4);
     reloc->setTargetData(qc_li);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_ABS20_U);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
-
-    // Report missed relaxation as a C.LUI would have been smaller
-    reportMissedRelaxation("RISCV_QC_E_LI_C_LUI", *region, offset, 2,
-                           reloc->symInfo()->name());
     return true;
   }
 
@@ -661,16 +608,11 @@ bool RISCVLDBackend::doRelaxationQCLi(Relocation *reloc, Relocator::DWord G) {
     reloc->setTargetData(addi);
     reloc->setType(ELF::riscv::internal::R_RISCV_GPREL_I);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
-
-    // Report missed relaxation as C.LUI would have been smaller
-    reportMissedRelaxation("RISCV_QC_E_LI_C_LUI", *region, offset, 2,
-                           reloc->symInfo()->name());
     return true;
   }
 
   if (canRelaxXqci)
-    reportMissedRelaxation(msg, *region, offset, isQC_E_LI ? 4 : 2,
-                           reloc->symInfo()->name());
+    reportMissedRelaxation(msg, *region, offset, 2, reloc->symInfo()->name());
   return false;
 }
 
@@ -991,10 +933,9 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             doRelaxationQCCall(relocation);
           break;
         }
-        case ELF::riscv::internal::R_RISCV_QC_E_32:
-        case ELF::riscv::internal::R_RISCV_QC_ABS20_U: {
+        case ELF::riscv::internal::R_RISCV_QC_E_32: {
           if (nextRelax && relaxation_pass == RELAXATION_LUI)
-            doRelaxationQCLi(relocation, GP);
+            doRelaxationQCELi(relocation, GP);
           break;
         }
         }

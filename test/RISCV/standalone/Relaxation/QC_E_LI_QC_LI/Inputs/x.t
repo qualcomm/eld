@@ -1,9 +1,6 @@
 
-/* Make GP somewhere unreachable by QC.LI or C.LUI */
+/* Make GP somewhere unreachable by QC.LI */
 __global_pointer$ = 0x01000000;
-
-can_c_lui    = 0x0001f000;
-cannot_c_lui = 0x00000800;
 
 can_qc_li    = 0x00040000;
 cannot_qc_li = 0x00080000;
