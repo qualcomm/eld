@@ -77,9 +77,6 @@ void Assignment::trace(llvm::raw_ostream &Outs) const {
   case OUTSIDE_SECTIONS:
     Outs << "OUTSIDE_SECTIONS   >>  ";
     break;
-  case OUTPUT_SECTION:
-    Outs << "  OUTPUT_SECTION(PROLOGUE)   >>  ";
-    break;
   case INPUT_SECTION:
     Outs << "    INSIDE_OUTPUT_SECTION    >>  ";
     break;
@@ -103,11 +100,7 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
       Ostream.changeColor(llvm::raw_ostream::GREEN);
     break;
   }
-  case OUTPUT_SECTION: {
-    if (Color)
-      Ostream.changeColor(llvm::raw_ostream::CYAN);
-    break;
-  }
+
   case INPUT_SECTION: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::YELLOW);
@@ -179,12 +172,6 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
   switch (AssignmentLevel) {
   case OUTSIDE_SECTIONS:
     break;
-
-  case OUTPUT_SECTION: {
-    SectionMap::reference Out = Script.sectionMap().back();
-    Out->symAssignments().push_back(this);
-    break;
-  }
 
   case INPUT_SECTION: {
     OutputSectionEntry::reference In = Script.sectionMap().back()->back();
