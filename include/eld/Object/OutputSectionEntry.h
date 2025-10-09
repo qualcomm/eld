@@ -97,12 +97,6 @@ public:
 
   void append(RuleContainer *PInput) { MInputList.push_back(PInput); }
 
-  sym_iterator symBegin() { return MSymbolAssignments.begin(); }
-  sym_iterator symEnd() { return MSymbolAssignments.end(); }
-
-  const SymbolAssignments &symAssignments() const { return MSymbolAssignments; }
-  SymbolAssignments &symAssignments() { return MSymbolAssignments; }
-
   const SymbolAssignments &sectionsEndAssignments() const {
     return MSectionEndAssignments;
   }
@@ -115,8 +109,6 @@ public:
     MSectionEndAssignments = Out->sectionEndAssignments();
     Out->sectionEndAssignments().clear();
   }
-
-  bool hasAssignments() const { return (MSymbolAssignments.size() > 0); }
 
   // A section may be part of multiple segments, this only returns the
   // segment where the section would get loaded.
@@ -217,7 +209,6 @@ private:
   size_t MOrder;
   bool MBIsDiscard;
   InputList MInputList;
-  SymbolAssignments MSymbolAssignments;
   SymbolAssignments MSectionEndAssignments;
   RuleContainer *FirstNonEmptyRule;
   RuleContainer *MLastRule;

@@ -86,11 +86,8 @@ eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
       break;
     case ScriptCommand::OUTPUT_SECT_DESC: {
       if (!Assignments.empty()) {
-        iterator Assign, AssignEnd = Assignments.end();
-        for (Assign = Assignments.begin(); Assign != AssignEnd; ++Assign) {
-          llvm::cast<Assignment>(*Assign)->setLevel(Assignment::SECTIONS_END);
-          (*Assign)->activate(CurModule);
-        }
+        for (auto *Assign : Assignments)
+          Assign->activate(CurModule);
         Assignments.clear();
       }
       eld::Expected<void> E = (*It)->activate(CurModule);

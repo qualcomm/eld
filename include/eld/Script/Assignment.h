@@ -36,7 +36,6 @@ class Assignment : public ScriptCommand {
 public:
   enum Level {
     OUTSIDE_SECTIONS, // outside SECTIONS command
-    OUTPUT_SECTION,   // related to an output section
     INPUT_SECTION,    // related to an input section
     SECTIONS_END
   };
@@ -93,10 +92,6 @@ public:
   bool isOutsideSections() const {
     return AssignmentLevel == OUTSIDE_SECTIONS ||
            AssignmentLevel == SECTIONS_END;
-  }
-
-  bool isOutsideOutputSection() const {
-    return AssignmentLevel == OUTPUT_SECTION;
   }
 
   bool isInsideOutputSection() const {
