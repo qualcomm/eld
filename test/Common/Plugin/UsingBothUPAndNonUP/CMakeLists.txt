@@ -20,5 +20,5 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
   set(BUILD_SHARED_LIBS ${bsl})
 endif()
 
-add_common_plugin(UP)
-add_common_plugin(NonUP)
+add_plugin(UP)
+add_plugin(NonUP)

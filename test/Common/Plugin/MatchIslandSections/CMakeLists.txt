@@ -13,4 +13,4 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
 endif()
 
-add_common_plugin(matchislandsections)
+add_plugin(matchislandsections)
