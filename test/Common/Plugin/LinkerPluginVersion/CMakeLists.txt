@@ -12,7 +12,7 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
 endif()
 
-add_common_plugin(LinkerPluginVersion)
+add_plugin(LinkerPluginVersion)
 
 if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
@@ -27,4 +27,4 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
 endif()
 
-add_common_plugin(LinkerPluginNoVersion)
+add_plugin(LinkerPluginNoVersion)
