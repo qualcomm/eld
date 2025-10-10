@@ -30,7 +30,9 @@ x86_64Relocator::Result relocGOTPCREL(Relocation &pEntry,
                                       RelocationDescription &RelocDesc);
 x86_64Relocator::Result relocTPOFF(Relocation &pEntry, x86_64Relocator &pParent,
                                    RelocationDescription &RelocDesc);
-
+x86_64Relocator::Result relocDTPOFF(Relocation &pEntry,
+                                    x86_64Relocator &pParent,
+                                    RelocationDescription &RelocDesc);
 struct RelocationDescription;
 
 typedef Relocator::Result (*ApplyFunctionType)(
@@ -102,7 +104,7 @@ struct RelocationDescription x86RelocDesc[] = {
     {/*.func = */ none,
      /*.type = */ llvm::ELF::R_X86_64_DTPMOD64,
      /*.forceVerify = */ false},
-    {/*.func = */ none,
+    {/*.func = */ &relocDTPOFF,
      /*.type = */ llvm::ELF::R_X86_64_DTPOFF64,
      /*.forceVerify = */ false},
     {/*.func = */ &relocTPOFF,
@@ -114,7 +116,7 @@ struct RelocationDescription x86RelocDesc[] = {
     {/*.func = */ none,
      /*.type = */ llvm::ELF::R_X86_64_TLSLD,
      /*.forceVerify = */ false},
-    {/*.func = */ none,
+    {/*.func = */ &relocDTPOFF,
      /*.type = */ llvm::ELF::R_X86_64_DTPOFF32,
      /*.forceVerify = */ false},
     {/*.func = */ none,

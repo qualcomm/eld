@@ -92,6 +92,8 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_REX_GOTPCRELX:
   case llvm::ELF::R_X86_64_TPOFF32:
   case llvm::ELF::R_X86_64_TPOFF64:
+  case llvm::ELF::R_X86_64_DTPOFF32:
+  case llvm::ELF::R_X86_64_DTPOFF64:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -436,5 +438,15 @@ Relocator::Result eld::relocTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
   Relocator::DWord A = pReloc.addend();
   uint64_t Result = S + A - TLSTemplateSize;
 
+  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options);
+}
+
+Relocator::Result eld::relocDTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
+                                   RelocationDescription &pRelocDesc) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  const GeneralOptions &options = pParent.config().options();
+  uint64_t S = pParent.getSymValue(&pReloc);
+  Relocator::DWord A = pReloc.addend();
+  int64_t Result = S + A;
   return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options);
 }
