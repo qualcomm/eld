@@ -1,10 +1,3 @@
-add_custom_target(PluginUnitTests)
-set_target_properties(PluginUnitTests PROPERTIES FOLDER "plugin unit tests")
-
-function(add_plugin pluginname)
-  add_dependencies(PluginUnitTests ${pluginname})
-endfunction()
-
 add_subdirectory(AllOutSectAddresses)
 add_subdirectory(ChangeSymbol)
 add_subdirectory(ConfigFile)

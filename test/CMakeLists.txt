@@ -24,6 +24,14 @@ if(test_riscv GREATER -1)
   set(TEST_TARGETS "${TEST_TARGETS};RISCV64")
 endif()
 
+add_custom_target(PluginUnitTests)
+set_target_properties(PluginUnitTests PROPERTIES FOLDER
+  "plugin unit tests")
+
+function(add_plugin pluginname)
+  add_dependencies(PluginUnitTests ${pluginname})
+endfunction()
+
 # Set the depends list as a variable so that it can grow conditionally. NOTE:
 # Sync the substitutions in test/lit.cfg when adding to this list.
 set(TEST_DEPENDS
@@ -52,7 +60,7 @@ set(TEST_DEPENDS
     ${ELD_DEPENDS}
     ELDExpectedUsage
     LSParserVerifier
-    CommonPluginUnitTests)
+    PluginUnitTests)
 
 set(TARGET_NAME check-eld)
 add_custom_target(${TARGET_NAME})

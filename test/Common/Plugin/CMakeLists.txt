@@ -1,5 +1,5 @@
 # Add HelloWorldPlugin as a test dependency!
-add_common_plugin(HelloWorldPlugin)
+add_plugin(HelloWorldPlugin)
 
 add_subdirectory(ActBeforeRuleMatching)
 add_subdirectory(ActBeforeSectionMerging)
@@ -82,4 +82,4 @@ add_subdirectory(VerifyChunkMoves)
 add_subdirectory(VirtualAddress)
 add_subdirectory(UPVisitSections)
 add_subdirectory(VisitSymbolHook)
-add_common_plugin(PluginSymbols)
+add_plugin(PluginSymbols)
