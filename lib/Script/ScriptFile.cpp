@@ -298,7 +298,7 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
       OutputSectionDescription->pushBack(NewAssignment);
     } else {
       NewAssignment =
-          make<Assignment>(Assignment::OUTPUT_SECTION, AssignmentType,
+          make<Assignment>(Assignment::Level::SECTIONS_END, AssignmentType,
                            SymbolName, ScriptExpression);
       NewAssignment->setInputFileInContext(getContext());
       NewAssignment->setParent(getParent());
