@@ -443,6 +443,76 @@ This option cannot be used with linker scripts. When used,
 the addresses of segments (both virtual and physical addresses)
 are aligned to the page boundaries.
 
+:option:`--enable-bss-mixing` and :option:`--disable-bss-conversion`
+---------------------------------------------------------------------
+
+These options control how the linker treats BSS sections relative to non-BSS
+sections within the same segment.
+
+:option:`--disable-bss-conversion` controls whether the linker converts BSS
+to non-BSS when BSS/non-BSS sections are mixed. When this option is passed,
+BSS remains NOBITS when BSS and Non-BSS are mixed in a segment. This option must
+be combined with :option:`--enable-bss-mixing` if the BSS section will be placed before a non-BSS
+section because otherwise BSS before non-BSS is an error.
+
+This combination of options is useful for reducing file size of a program.
+For example, if a program has a layout requirement that a BSS section
+(let's say :code:`.bss`) must be placed before a non-BSS section (let's say :code:`.data`)
+in the same segment, and the addresses of :code:`.bss` and :code:`.data` are :code:`0x1000`
+and :code:`0x2000` respectively, then with the default behavior :code:`.bss` will be
+converted to PROGBITS and 0s would need to be filled explicitly in the file for this section.
+This can significantly increase the file size. On the contrary, when
+:code:`--disable-bss-conversion --enable-bss-mixing`, :code:`.bss` will remain as NOBITS
+and thus no file size will be consumed by this section.
+
+Please note that with such a layout you may need a custom loader because most standard
+loaders would not accept a layout where a BSS section is followed by a non-BSS section
+in the same segment.
+
+.. note::
+
+   These options are currently supported only for ARM, AArch64, and RISCV targets.
+
+Let's understand these options in more detail with the help of an example:
+
+Below is a minimal example showing how these options affect layout when placing
+both :code:`.bss` and :code:`.data` in the same segment.
+
+bssmix.c::
+
+  int bssvar;            // goes to .bss (NOBITS)
+  int data = 1;          // goes to .data (PROGBITS)
+  int main() { return data + bssvar; }
+
+Linker script (script.t)::
+
+  PHDRS {
+    A PT_LOAD;
+    B PT_LOAD;
+  }
+
+  SECTIONS {
+    .text (0x1000) : { *(.text*) } :A
+    .data (0x3000) : { *(.data*) } :B
+    .bss  (0x2000) : { *(.bss*)  } :B
+  }
+
+Build and link::
+
+  $ clang -o bssmix.o --target=aarch64-unknown-elf -c bssmix.c -ffunction-sections -fdata-sections
+
+  # .bss section is promoted to PROGBITS because .bss is placed before .data in the segment B.
+  $ ld.eld -o bssmix.out bssmix.o -T script.t
+
+  # Error: Mixing BSS and non-BSS sections in segment. non-BSS '.data' is after
+  # BSS '.bss' in linker script
+  $ ld.eld -o bssmix.disable_conversion.out bssmix.o -T script.t --disable-bss-conversion
+
+  # .bss section is placed before .data in the segment B and BSSness of .bss is preserved,
+  # that is, it is not promoted to PROGBITS.
+  $ ld.eld -o bssmix.disable_conversion.out bssmix.o -T script.t --disable-bss-conversion \
+      --enable-bss-mixing
+
 Advanced image layout control using linker plugins
 ====================================================
 
