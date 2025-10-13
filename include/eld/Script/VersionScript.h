@@ -134,6 +134,10 @@ public:
 
   void setName(eld::StrToken *Name) { this->Name = Name; }
 
+  llvm::StringRef getName() const {
+    return Name->name();
+  }
+
   void setDependency(eld::StrToken *Dependency) { MDependency = Dependency; }
 
   VersionScriptBlock *getLocalBlock() const { return MLocal; }

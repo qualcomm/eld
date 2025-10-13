@@ -184,7 +184,8 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
     std::string Reloc = TraceType.substr(Pos + 1).str();
     RelocTrace.emplace_back(llvm::Regex(Reloc));
     RelocsToTrace.emplace_back(Reloc);
-  } else if (TraceType.starts_with("symbol")) {
+  } else if (TraceType.starts_with("symbol") &&
+             TraceType != "symbol-versioning") {
     setSymbolTracingRequested();
     TraceMe = DiagEngine->getPrinter()->TraceSym;
     size_t Pos = TraceType.find_last_of('=');
@@ -230,6 +231,8 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
                   DiagEngine->getPrinter()->TraceDynamicLinking)
             .Case("linker-script", DiagEngine->getPrinter()->TraceLinkerScript)
             .Case("symdef", DiagEngine->getPrinter()->TraceSymDef)
+            .Case("symbol-versioning",
+                  DiagEngine->getPrinter()->TraceSymbolVersioning)
             .Default(std::nullopt);
   }
   // Warn if trace category is unknown.

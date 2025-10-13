@@ -17,7 +17,9 @@
 #include "eld/Input/ELFFileBase.h"
 #include "eld/Input/Input.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"
+#include <cstdint>
 #include <string>
 
 namespace eld {
@@ -232,7 +234,17 @@ public:
 
   const char *name() const { return SymbolName.data(); }
 
+  std::string getNonVersionedName() const {
+    std::string SymName(SymbolName.data());
+    std::string::size_type pos = SymName.find('@');
+    if (pos == std::string::npos)
+      return SymName;
+    return SymName.substr(0, pos);
+  }
+
   llvm::StringRef getName() const { return SymbolName; }
+
+  void setName(llvm::StringRef SymName) { SymbolName = SymName; }
 
   unsigned int nameSize() const { return SymbolName.size(); }
 
@@ -251,6 +263,14 @@ public:
   std::string getResolvedPath() const;
 
   bool canBePreemptible() const;
+
+  void setSymbolVersionID(uint16_t VerID) {
+    SymbolVersionID = VerID;
+  }
+
+  uint16_t getSymbolVersionID() const {
+    return SymbolVersionID;
+  }
 
 private:
   static const uint32_t GlobalOffset = 0;
@@ -329,6 +349,7 @@ private:
   llvm::StringRef SymbolName;
   ResolveInfo *SymbolAlias;
   InputFile *SymbolResolvedOrigin;
+  uint16_t SymbolVersionID = llvm::ELF::VER_NDX_LOCAL;
 };
 
 } // namespace eld
