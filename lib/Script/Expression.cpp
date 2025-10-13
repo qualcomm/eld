@@ -9,6 +9,7 @@
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Readers/ELFSection.h"
+#include "eld/Script/Assignment.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/Utils.h"
@@ -133,9 +134,16 @@ bool Symbol::hasDot() const {
 }
 
 eld::Expected<uint64_t> Symbol::evalImpl() {
-
   if (!ThisSymbol)
     ThisSymbol = ThisModule.getNamePool().findSymbol(Name);
+
+  if (!SourceAssignment && ThisSymbol->resolveInfo()->isAbsolute()) {
+    auto &Backend = ThisModule.getBackend();
+    const auto *A = Backend.getLatestAssignment(Name);
+    if (!A)
+      A = ThisModule.getAssignmentForSymbol(Name);
+    SourceAssignment = A;
+  }
 
   if (!ThisSymbol || ThisSymbol->resolveInfo()->isUndef() ||
       ThisSymbol->resolveInfo()->isBitCode())
@@ -152,6 +160,10 @@ eld::Expected<uint64_t> Symbol::evalImpl() {
            "using a symbol that points to a non allocatable section!");
     return Section->addr() + FragRef->getOutputOffset(ThisModule);
   }
+  if (hasDot())
+    return ThisSymbol->value();
+  if (SourceAssignment)
+    return SourceAssignment->value();
   return ThisSymbol->value();
 }
 

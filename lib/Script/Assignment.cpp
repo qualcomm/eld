@@ -230,6 +230,9 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
     ThisSymbol->setScriptValueDefined();
   }
 
+  auto &Backend = CurModule.getBackend();
+  Backend.updateLatestAssignment(Name, this);
+
   if (CurModule.getPrinter()->traceAssignments())
     trace(llvm::outs());
   return true;
