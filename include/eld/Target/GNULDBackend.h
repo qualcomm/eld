@@ -20,6 +20,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/SymDefReader.h"
 #include "eld/Script/Assignment.h"
+#include "eld/Script/Expression.h"
 #include "eld/Script/VersionScript.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/ELFSegment.h"
@@ -824,6 +825,17 @@ public:
 
   const ResolveInfo *findAbsolutePLT(ResolveInfo *I) const;
 
+  const Assignment *getLatestAssignment(llvm::StringRef SymName) {
+    auto it = SymbolNameToLatestAssignment.find(SymName);
+    if (it != SymbolNameToLatestAssignment.end())
+      return it->getValue();
+    return nullptr;
+  }
+
+  void updateLatestAssignment(llvm::StringRef SymName, const Assignment *A) {
+    SymbolNameToLatestAssignment[SymName] = A;
+  }
+
 protected:
   virtual int numReservedSegments() const { return m_NumReservedSegments; }
 
@@ -1132,6 +1144,8 @@ protected:
   bool m_NeedEhdr = false;
 
   bool m_NeedPhdr = false;
+
+  llvm::StringMap<const Assignment *> SymbolNameToLatestAssignment;
 };
 
 } // namespace eld
