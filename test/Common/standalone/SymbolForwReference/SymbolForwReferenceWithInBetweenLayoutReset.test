@@ -1,0 +1,35 @@
+#---SymbolForwReferenceWithInBetweenLayoutReset.test-------- LinkerScript ----------#
+#BEGIN_COMMENT
+# Verify symbol assignments with forward references are correctly evaluated
+# when layout resets and restarts during layout computation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.4.t
+RUN: %readelf -s %t1.1.out | %filecheck %s
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.5.t \
+RUN:   --trace=assignments 2>&1 | %filecheck %s --check-prefix=TRACE_ASSIGNMENTS
+RUN: %readelf -s %t1.2.out | %filecheck %s
+RUN: %not %link %linkopts -o %t1.3.out %t1.1.o -T %p/Inputs/script.6.t 2>&1 | \
+RUN:   %filecheck %s --check-prefix=UNDEFINED_SYMBOL_IN_PROVIDE
+RUN: %link %linkopts -o %t1.4.out %t1.1.o -T %p/Inputs/script.7.t
+RUN: %readelf -s %t1.4.out | %filecheck %s --check-prefix CHECK4
+#END_TEST
+
+CHECK-DAG: {{0*300}}     0 NOTYPE  GLOBAL DEFAULT   ABS a
+CHECK-DAG: {{0*300}}     0 NOTYPE  GLOBAL DEFAULT   ABS b
+
+TRACE_ASSIGNMENTS: OUTPUT_SECTION(EPILOGUE) >> a({{.*}}) = b(0x0);
+TRACE_ASSIGNMENTS: OUTPUT_SECTION(EPILOGUE) >> b({{.*}}) = 0x300;
+TRACE_ASSIGNMENTS: OUTPUT_SECTION(EPILOGUE) >> a({{.*}}) = b(0x300);
+TRACE_ASSIGNMENTS-NOT: OUTPUT_SECTION(EPILOGUE) >> a({{.*}}) = b(0x0);
+
+UNDEFINED_SYMBOL_IN_PROVIDE: Error: undefined symbol 'non_existing_symbol' referenced in expression
+
+CHECK4-DAG: {{0+}}13 {{.*}}ABS a
+CHECK4-DAG: {{0+}}13 {{.*}}ABS b
+CHECK4-DAG: {{0+}}13 {{.*}}ABS d
+CHECK4-DAG: {{0+}}13 {{.*}}ABS e
+CHECK4-DAG: {{0+}}1a {{.*}}ABS f
+CHECK4-DAG: {{0+}}15 {{.*}}ABS g
+CHECK4-NOT: ABS c
