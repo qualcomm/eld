@@ -23,6 +23,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/SymDefReader.h"
 #include "eld/Script/Assignment.h"
+#include "eld/Script/Expression.h"
 #include "eld/Script/VersionScript.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/ELFSegment.h"
@@ -902,6 +903,17 @@ public:
   }
 #endif
 
+  const Assignment *getLatestAssignment(llvm::StringRef SymName) {
+    auto it = SymbolNameToLatestAssignment.find(SymName);
+    if (it != SymbolNameToLatestAssignment.end())
+      return it->getValue();
+    return nullptr;
+  }
+
+  void updateLatestAssignment(llvm::StringRef SymName, const Assignment *A) {
+    SymbolNameToLatestAssignment[SymName] = A;
+  }
+
 protected:
   virtual int numReservedSegments() const { return m_NumReservedSegments; }
 
@@ -1230,6 +1242,8 @@ protected:
   GNUVerNeedFragment *GNUVerNeedFrag = nullptr;
   std::unordered_map<const ResolveInfo *, uint16_t> OutputVersionIDs;
 #endif
+
+  llvm::StringMap<const Assignment *> SymbolNameToLatestAssignment;
 };
 
 } // namespace eld
