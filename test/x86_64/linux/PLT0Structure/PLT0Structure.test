@@ -1,0 +1,23 @@
+#--PLT0Stub.test----------Executable (PIE)--------#
+#BEGIN_COMMENT
+# Verifies PLT0 references GOTPLT+8 and GOTPLT+16
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %link %linkopts -o %t.out %t.1.o %t.lib2.so
+RUN: (%readelf -S %t.out; %objdump -d %t.out) | %filecheck %s
+
+# Capture the .got.plt address
+CHECK: .got.plt PROGBITS [[#%x,GOTPLT_ADDR:]]
+CHECK: <.plt>:
+
+# pushq referencing GOTPLT+8
+CHECK-NEXT: {{[0-9a-f]+}}: ff 35 {{.*}} pushq{{.*}}# 0x[[#GOTPLT_ADDR+0x8]]
+
+# jmpq referencing GOTPLT+16
+CHECK-NEXT: {{[0-9a-f]+}}: ff 25 {{[0-9a-f ]+}} jmpq{{.*}}# 0x[[#GOTPLT_ADDR+0x10]]
+
+# nopl instruction
+CHECK-NEXT: {{[0-9a-f]+}}: 0f 1f 40 00
