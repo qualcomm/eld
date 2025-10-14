@@ -3998,7 +3998,9 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
 
 void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
   for (auto &assign : m_Module.getScript().assignments()) {
-    if (assign->level() != Assignment::OUTSIDE_SECTIONS)
+    // Evaluate assignments outside SECTIONS both before and after layout.
+    if (!(assign->level() == Assignment::BEFORE_SECTIONS ||
+          assign->level() == Assignment::AFTER_SECTIONS))
       continue;
     if (shouldskipAssert(assign)) {
       if (m_Module.getPrinter()->isVerbose()) {

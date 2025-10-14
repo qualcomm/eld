@@ -305,9 +305,16 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
       Sections->pushBack(NewAssignment);
     }
   } else {
-    NewAssignment =
-        make<Assignment>(Assignment::OUTSIDE_SECTIONS, AssignmentType,
-                         SymbolName, ScriptExpression);
+    // Assignments encountered when not inside SECTIONS are either BEFORE or
+    // AFTER SECTIONS. Mark as AFTER if we've already seen a SECTIONS block
+    // in this script file or any previously processed script.
+    // Global state is sufficient: it is set during parsing when any
+    // SECTIONS block is entered.
+    Assignment::Level Lvl = ThisModule.getScript().linkerScriptHasSectionsCommand()
+                                ? Assignment::AFTER_SECTIONS
+                                : Assignment::BEFORE_SECTIONS;
+    NewAssignment = make<Assignment>(Lvl, AssignmentType, SymbolName,
+                                     ScriptExpression);
     NewAssignment->setInputFileInContext(getContext());
     NewAssignment->setParent(getParent());
     LinkerScriptCommandQueue.push_back(NewAssignment);
@@ -321,6 +328,9 @@ bool ScriptFile::linkerScriptHasSectionsCommand() const {
 
 void ScriptFile::enterSectionsCmd() {
   LinkerScriptHasSectionsCommand = true;
+  // Also mark global script state so other scripts parsed later
+  // can correctly mark AFTER_SECTIONS assignments.
+  ThisModule.getScript().setHasSectionsCmd();
   ScriptStateInSectionsCommmand = true;
   auto *Cmd = make<SectionsCmd>();
   Cmd->setInputFileInContext(getContext());

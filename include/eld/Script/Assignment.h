@@ -35,7 +35,8 @@ class ELFSection;
 class Assignment : public ScriptCommand {
 public:
   enum Level {
-    OUTSIDE_SECTIONS, // outside SECTIONS command
+    BEFORE_SECTIONS,  // Assignments before SECTIONS command
+    AFTER_SECTIONS,   // Assignments after SECTIONS command
     INPUT_SECTION,    // related to an input section
     SECTIONS_END
   };
@@ -90,8 +91,8 @@ public:
 
   /// Query functions on Assignment Kinds.
   bool isOutsideSections() const {
-    return AssignmentLevel == OUTSIDE_SECTIONS ||
-           AssignmentLevel == SECTIONS_END;
+    return AssignmentLevel == BEFORE_SECTIONS ||
+           AssignmentLevel == AFTER_SECTIONS;
   }
 
   bool isInsideOutputSection() const {

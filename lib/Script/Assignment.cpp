@@ -74,8 +74,11 @@ void Assignment::dump(llvm::raw_ostream &Outs) const {
 
 void Assignment::trace(llvm::raw_ostream &Outs) const {
   switch (AssignmentLevel) {
-  case OUTSIDE_SECTIONS:
-    Outs << "OUTSIDE_SECTIONS   >>  ";
+  case BEFORE_SECTIONS:
+    Outs << "BEFORE_SECTIONS   >>  ";
+    break;
+  case AFTER_SECTIONS:
+    Outs << "AFTER_SECTIONS    >>  ";
     break;
   case INPUT_SECTION:
     Outs << "    INSIDE_OUTPUT_SECTION    >>  ";
@@ -95,7 +98,8 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
                          bool UseNewLine, bool WithValues,
                          bool AddIndent) const {
   switch (AssignmentLevel) {
-  case OUTSIDE_SECTIONS: {
+  case BEFORE_SECTIONS:
+  case AFTER_SECTIONS: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::GREEN);
     break;
@@ -170,7 +174,8 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
   ExpressionToEvaluate->setContext(getContext());
 
   switch (AssignmentLevel) {
-  case OUTSIDE_SECTIONS:
+  case BEFORE_SECTIONS:
+  case AFTER_SECTIONS:
     break;
 
   case INPUT_SECTION: {
