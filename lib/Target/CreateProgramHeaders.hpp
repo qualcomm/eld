@@ -168,6 +168,12 @@ bool GNULDBackend::createProgramHdrs() {
     noLoadSections.clear();
     resetNewSectionsAddedToLayout();
     enable_RELRO = true;
+
+    {
+      eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
+                           m_Module.getConfig().options().printTimingStats());
+      evaluateScriptAssignments(/*evaluateAsserts=*/false);
+    }
   };
 
   reset_state();
