@@ -12,6 +12,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
+#include "x86_64ELFDynamic.h"
 #include "x86_64PLT.h"
 
 namespace eld {
@@ -55,7 +56,7 @@ public:
 
   uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
 
-  ELFDynamic *dynamic() override { return nullptr; }
+  x86_64ELFDynamic *dynamic() override;
 
   void doCreateProgramHdrs() override { return; }
 
@@ -88,6 +89,8 @@ public:
 
   void setDefaultConfigs() override;
 
+  void doPreLayout() override;
+
 private:
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
@@ -100,6 +103,7 @@ private:
 private:
   Relocator *m_pRelocator;
 
+  x86_64ELFDynamic *m_pDynamic;
   LDSymbol *m_pEndOfImage;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;

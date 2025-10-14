@@ -25,7 +25,9 @@ public:
     return 0;
   }
   void initializeAttributes(InputBuilder &pBuilder) override {
-    pBuilder.makeBStatic();
+    if (m_Config.codeGenType() == LinkerConfig::Object ||
+        m_Config.isCodeStatic())
+      pBuilder.makeBStatic();
   }
 };
 

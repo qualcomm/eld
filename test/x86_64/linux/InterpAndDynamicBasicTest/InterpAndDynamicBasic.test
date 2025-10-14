@@ -1,0 +1,17 @@
+#--InterpAndDynamicBasic.test----------Executable (PIE)--------#
+#BEGIN_COMMENT
+# Verify dynamic foundation emits interpreter and dynamic section.
+# - Builds a minimal PIE
+# - Checks PT_INTERP and PT_DYNAMIC exist
+# - Checks .interp and .dynamic sections present
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIE -pie -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts --force-dynamic -o %t.out %t.1.o
+# Basic presence of dynamic structures
+RUN: %readelf -l %t.out | %filecheck %s --check-prefix=PHDRS
+PHDRS: INTERP
+PHDRS: DYNAMIC
+RUN: %readelf -S %t.out | %filecheck %s --check-prefix=SECTS
+SECTS: .interp
+SECTS: .dynamic
