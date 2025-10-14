@@ -1,7 +1,7 @@
 name: nightly picolibc builder (hexagon,arm32,aarch64,riscv)
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ENABLED_ARCHS: aarch64,hexagon
+      ENABLED_ARCHS: riscv
       CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
       CCACHE_BASEDIR: $GITHUB_WORKSPACE/
       PICOLIBC_CONFIG_DEFAULT: ""
