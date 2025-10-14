@@ -138,10 +138,8 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
   if (!getGOTPLT()->getFragmentList().size()) {
-    // TODO: This should be GOT0, not GOTPLT0.
-    LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
-    x86_64GOTPLT0::Create(getGOTPLT(),
-                          Dynamic ? Dynamic->resolveInfo() : nullptr);
+    // GOTPLT0 will populate its first 8 bytes with .dynamic address.
+    x86_64GOTPLT0::Create(getGOTPLT(), &m_Module);
   }
 
   x86_64GOT *G = nullptr;

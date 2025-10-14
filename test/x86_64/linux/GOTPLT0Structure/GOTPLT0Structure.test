@@ -1,0 +1,18 @@
+#--GOTPLT0Structure.test----------Executable (PIE)--------#
+#BEGIN_COMMENT
+# Verifies that GOTPLT[0] contains the address of the .dynamic section
+# Verifies that GOTPLT[1] and GOTPLT[2] are initialized with zero
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %link %linkopts -o %t.out %t.1.o %t.lib2.so
+RUN: %readelf -x .got.plt %t.out | %filecheck %s
+
+# Verify GOTPLT[0] contains .dynamic address
+CHECK: {{0x[0-9a-f]+}} 00104000 00000000
+
+# Verify GOTPLT[1] and GOTPLT[2] are zero
+CHECK-SAME: 00000000 00000000
+CHECK: {{0x[0-9a-f]+}} 00000000 00000000
