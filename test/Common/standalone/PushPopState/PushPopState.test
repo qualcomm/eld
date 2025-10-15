@@ -1,0 +1,25 @@
+#---PushPopState.test--------------------- Executable ----------------------#
+#BEGIN_COMMENT
+# Validate --push-state / --pop-state stack saves and restores as-needed.
+# We link with two shared libraries where both are not needed.
+# With --as-needed, the unreferenced shared library should
+# not be added.
+# We use push/pop to temporarily enable --as-needed and then restore.
+#END_COMMENT
+#START_TEST
+# Build two simple objects and shared libraries.
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c
+RUN: %clang %clangopts -o %t1.2.o -c %p/Inputs/2.c
+RUN: %link %linkopts -o %t1.lib1.so -shared %t1.1.o
+RUN: %link %linkopts -o %t1.lib2.so -shared %t1.2.o
+RUN: %clang %clangopts -o %t1.main.o -c %p/Inputs/main.c -ffunction-sections
+# Link with push/pop and as-needed: the unreferenced lib1 should be skipped, lib2 needed after pop.
+RUN: %link %linkopts -o %t1.main.out %t1.main.o --push-state --as-needed %t1.lib1.so --pop-state %t1.lib2.so
+RUN: %readelf --dynamic %t1.main.out | %filecheck --check-prefix=DYN %s
+#END_TEST
+
+# Ensure lib1 is not present anywhere before the positive match
+DYN-NOT: lib1
+DYN: NEEDED{{.*}}lib2
+# And also not present after it
+DYN-NOT: lib1

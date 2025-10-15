@@ -539,6 +539,12 @@ def no_as_needed : Flag<["--"], "no-as-needed">,
                    HelpText<"This option restores the default behavior"
                             " of adding DT_NEEDED entries">,
                    Group<grp_resolveropt>;
+def push_state : Flag<["--"], "push-state">,
+                 HelpText<"Save current input handling flags (as-needed, whole-archive, etc)">,
+                 Group<grp_resolveropt>;
+def pop_state : Flag<["--"], "pop-state">,
+                HelpText<"Restore previously saved input handling flags">,
+                Group<grp_resolveropt>;
 def allow_shlib_undefs : Flag<["-", "--"], "allow-shlib-undefined">,
                          HelpText<"Allow undefined symbols from dynamic"
                                   " library when creating executables">,

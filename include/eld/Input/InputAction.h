@@ -33,6 +33,8 @@ public:
   enum InputActionKind {
     AddNeeded,
     AsNeeded,
+    PushState,
+    PopState,
     BDynamic,
     BStatic,
     DefSym,
@@ -188,6 +190,34 @@ public:
   static bool classof(const InputAction *I) { return true; }
 
   static bool classof(const AsNeededAction *A) { return true; }
+};
+
+/// PushStateAction
+class PushStateAction : public InputAction {
+public:
+  explicit PushStateAction(DiagnosticPrinter *Printer);
+
+  bool activate(InputBuilder &) override;
+
+  virtual ~PushStateAction() {}
+
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::PushState;
+  }
+};
+
+/// PopStateAction
+class PopStateAction : public InputAction {
+public:
+  explicit PopStateAction(DiagnosticPrinter *Printer);
+
+  bool activate(InputBuilder &) override;
+
+  virtual ~PopStateAction() {}
+
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::PopState;
+  }
 };
 
 /// NoAsNeededAction

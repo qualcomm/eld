@@ -72,10 +72,16 @@ public:
 
   const LinkerConfig &getLinkerConfig() const { return Config; }
 
+  // Push/pop current attribute state
+  void pushState();
+
+  void popState();
+
 private:
   std::vector<Node *> Tree;
   Attribute Attr;
   const LinkerConfig &Config;
+  std::vector<Attribute> AttrStack;
 };
 
 } // end of namespace eld

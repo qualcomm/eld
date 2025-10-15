@@ -134,6 +134,28 @@ bool NoAsNeededAction::activate(InputBuilder &PBuilder) {
 }
 
 //===----------------------------------------------------------------------===//
+// PushStateAction
+//===----------------------------------------------------------------------===//
+PushStateAction::PushStateAction(DiagnosticPrinter *Printer)
+    : InputAction(InputAction::PushState, Printer) {}
+
+bool PushStateAction::activate(InputBuilder &PBuilder) {
+  PBuilder.pushState();
+  return true;
+}
+
+//===----------------------------------------------------------------------===//
+// PopStateAction
+//===----------------------------------------------------------------------===//
+PopStateAction::PopStateAction(DiagnosticPrinter *Printer)
+    : InputAction(InputAction::PopState, Printer) {}
+
+bool PopStateAction::activate(InputBuilder &PBuilder) {
+  PBuilder.popState();
+  return true;
+}
+
+//===----------------------------------------------------------------------===//
 // AddNeededAction
 //===----------------------------------------------------------------------===//
 AddNeededAction::AddNeededAction(DiagnosticPrinter *Printer)

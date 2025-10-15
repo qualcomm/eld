@@ -1263,6 +1263,16 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
       actions.push_back(eld::make<eld::NoAsNeededAction>(Config.getPrinter()));
       break;
 
+    // --push-state
+    case T::push_state:
+      actions.push_back(eld::make<eld::PushStateAction>(Config.getPrinter()));
+      break;
+
+    // --pop-state
+    case T::pop_state:
+      actions.push_back(eld::make<eld::PopStateAction>(Config.getPrinter()));
+      break;
+
     // FIXME: Shouldn't we also add -call_shared here?
     // -Bdynamic
     case T::Bdynamic:

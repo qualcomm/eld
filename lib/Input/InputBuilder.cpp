@@ -60,3 +60,12 @@ void InputBuilder::makeBStatic() { getAttributes().setStatic(); }
 DiagnosticEngine *InputBuilder::getDiagEngine() const {
   return Config.getDiagEngine();
 }
+
+void InputBuilder::pushState() { AttrStack.push_back(Attr); }
+
+void InputBuilder::popState() {
+  if (!AttrStack.empty()) {
+    Attr = AttrStack.back();
+    AttrStack.pop_back();
+  }
+}
