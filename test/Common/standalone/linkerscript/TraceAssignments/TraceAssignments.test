@@ -1,0 +1,23 @@
+#---TraceAssignments.test------------------ Executable,LS ---------------------#
+#BEGIN_COMMENT
+# Validate tracing of symbol assignments with --trace=assignments.
+# Covers BEFORE_SECTIONS, INSIDE_OUTPUT_SECTION, OUTPUT_SECTION(EPILOGUE),
+# and AFTER_SECTIONS assignment trace lines to guard against regressions.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c -ffunction-sections %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts -o %t1.out %t1.o -T %p/Inputs/script.t --trace=assignments 2>&1 | %filecheck %s
+#END_TEST
+
+# Trace of BEFORE_SECTIONS assignment with decimal value and hex expression
+CHECK: BEFORE_SECTIONS >> ABS1(4660) = 0x1234;
+
+# Trace of assignments inside output section around .text contents
+CHECK: INSIDE_OUTPUT_SECTION >> ABS2({{[0-9]+}}) = .
+CHECK: INSIDE_OUTPUT_SECTION >> ABS3({{[0-9]+}}) = .
+
+# Trace of OUTPUT_SECTION(EPILOGUE) assignment at end of .text
+CHECK: OUTPUT_SECTION(EPILOGUE) >> ABS4({{[0-9]+}}) = .
+
+# Trace of AFTER_SECTIONS assignment with decimal value and hex expression
+CHECK: AFTER_SECTIONS >> ABS5(22136) = 0x5678;
