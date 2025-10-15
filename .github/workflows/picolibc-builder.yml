@@ -1,7 +1,7 @@
 name: nightly picolibc builder (hexagon,arm32,aarch64,riscv)
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ENABLED_ARCHS: aarch64,hexagon
+      ENABLED_ARCHS: arm
       CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
       CCACHE_BASEDIR: $GITHUB_WORKSPACE/
       PICOLIBC_FAIL_LOGS: $GITHUB_WORKSPACE/picolibc_fail_logs.txt
@@ -76,7 +76,7 @@ jobs:
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=arm-none-eabi \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=armv7-none-eabi \
             -DCMAKE_C_COMPILER=`which clang` \
             -DCMAKE_CXX_COMPILER=`which clang++` \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
@@ -194,8 +194,8 @@ jobs:
             -DCOMPILER_RT_BUILD_PROFILE=OFF \
             -DCMAKE_C_COMPILER_TARGET=arm-none-eabi \
             -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-            -DCMAKE_C_FLAGS="--target=arm-none-eabi -march=armv4t -ffreestanding" \
-            -DCMAKE_CXX_FLAGS="--target=arm-none-eabi -march=armv4t -ffreestanding" \
+            -DCMAKE_C_FLAGS="--target=arm-none-eabi -march=armv7-a -ffreestanding" \
+            -DCMAKE_CXX_FLAGS="--target=arm-none-eabi -march=armv7-a -ffreestanding" \
             -DCMAKE_C_COMPILER_FORCED=ON \
             -DCMAKE_CXX_COMPILER_FORCED=ON \
             -DCMAKE_CROSSCOMPILING=ON \
