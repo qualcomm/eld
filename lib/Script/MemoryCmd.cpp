@@ -39,6 +39,3 @@ eld::Expected<void> MemoryCmd::activate(Module &CurModule) {
   return eld::Expected<void>();
 }
 
-void MemoryCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
-  Outs << "MEMORY";
-}

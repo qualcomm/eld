@@ -37,7 +37,6 @@ public:
     return LinkerScriptCommand->getKind() == ScriptCommand::MEMORY;
   }
 
-  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
 
   eld::Expected<void> activate(Module &CurModule) override;
 
