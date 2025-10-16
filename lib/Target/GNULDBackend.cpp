@@ -3060,11 +3060,11 @@ bool GNULDBackend::layout() {
   // Clear the section table so that real sections can be inserted properly.
   m_Module.clearOutputSections();
 
-  // Evaluate defsym assignments.
+  // Evaluate assignments that are before the SECTIONS command.
   {
     eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
                          m_Module.getConfig().options().printTimingStats());
-    evaluateScriptAssignments(false);
+    evaluateScriptAssignments(/*afterLayout=*/false);
   }
 
   // If partial link, we only set offsets, no addresses.
@@ -3084,9 +3084,11 @@ bool GNULDBackend::layout() {
     return false;
   }
 
-  // Evaluate all assignments.
+  // Evaluate assignments that are after the SECTIONS command. Or in case,
+  // there is no SECTIONS command, then evaluate BEFORE_SECTIONS assignments
+  // again.
   {
-    eld::RegisterTimer T("Evaluate Script Assignments and Asserts",
+    eld::RegisterTimer T("Evaluate Script Assignments",
                          "Establish Layout",
                          m_Module.getConfig().options().printTimingStats());
     evaluateScriptAssignments();
@@ -3996,12 +3998,17 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
   return MemoryRegion(pBuffer.getBufferStart() + pOffset, pLength);
 }
 
-void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
+void GNULDBackend::evaluateScriptAssignments(bool afterLayout) {
+  auto &LS = m_Module.getScript();
   for (auto &assign : m_Module.getScript().assignments()) {
-    // Evaluate assignments outside SECTIONS both before and after layout.
-    if (!(assign->level() == Assignment::BEFORE_SECTIONS ||
-          assign->level() == Assignment::AFTER_SECTIONS))
-      continue;
+    if (LS.linkerScriptHasSectionsCommand()) {
+      Assignment::Level AllowedLevel =
+          (afterLayout ? Assignment::Level::AFTER_SECTIONS
+                       : Assignment::Level::BEFORE_SECTIONS);
+      if (assign->level() != AllowedLevel)
+        continue;
+    }
+
     if (shouldskipAssert(assign)) {
       if (m_Module.getPrinter()->isVerbose()) {
         std::string expressionStr;
@@ -4012,6 +4019,7 @@ void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
       }
       continue;
     }
+
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))
       continue;
     assign->assign(m_Module, nullptr);
