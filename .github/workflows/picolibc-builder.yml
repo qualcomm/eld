@@ -1,7 +1,7 @@
 name: nightly picolibc builder (hexagon,arm32,aarch64,riscv)
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ENABLED_ARCHS: aarch64,hexagon
+      ENABLED_ARCHS: x86_64
       CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
       CCACHE_BASEDIR: $GITHUB_WORKSPACE/
       PICOLIBC_FAIL_LOGS: $GITHUB_WORKSPACE/picolibc_fail_logs.txt
@@ -140,6 +140,31 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
 
+      - name: Configure LLVM toolchain for x86_64
+        if: contains(env.ENABLED_ARCHS, 'x86_64')
+        run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --zero-stats
+          ccache --set-config "max_size=50GB" "compression=true"
+          ccache --show-config
+
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang" \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-none-elf \
+            -DCMAKE_C_COMPILER=`which clang` \
+            -DCMAKE_CXX_COMPILER=`which clang++` \
+            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+            -DLLVM_TARGETS_TO_BUILD=X86 \
+            -DLLVM_CCACHE_BUILD=ON \
+            -DLLVM_CCACHE_DIR=$PWD/ccache/ \
+            -DELD_TARGETS_TO_BUILD=x86_64 \
+            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-x86_64-toolchain \
+            -S $GITHUB_WORKSPACE/llvm-project/llvm \
+            -B $GITHUB_WORKSPACE/build-x86_64-toolchain/ \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+
       - name: Build LLVM toolchain for hexagon
         if: contains(env.ENABLED_ARCHS, 'hexagon')
         run: |
@@ -159,6 +184,11 @@ jobs:
         if: contains(env.ENABLED_ARCHS, 'riscv')
         run: |
           cmake --build $GITHUB_WORKSPACE/build-riscv-toolchain/ -- install
+
+      - name: Build LLVM toolchain for x86_64
+        if: contains(env.ENABLED_ARCHS, 'x86_64')
+        run: |
+          cmake --build $GITHUB_WORKSPACE/build-x86_64-toolchain/ -- install
 
       - name: Build Hexagon builtins
         if: contains(env.ENABLED_ARCHS, 'hexagon')
@@ -260,6 +290,34 @@ jobs:
             -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
           cmake --build $GITHUB_WORKSPACE/build-aarch64-builtins/ -- install-builtins
 
+      - name: Build x86_64 builtins
+        if: contains(env.ENABLED_ARCHS, 'x86_64')
+        run: |
+          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-x86_64-toolchain/
+          export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
+          cmake -G Ninja \
+            -DCMAKE_C_COMPILER:STRING=clang \
+            -DCMAKE_CXX_COMPILER:STRING=clang++ \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+            -DCOMPILER_RT_BAREMETAL_BUILD=ON \
+            -DCOMPILER_RT_BUILD_BUILTINS=ON \
+            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+            -DCOMPILER_RT_BUILD_XRAY=OFF \
+            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+            -DCOMPILER_RT_BUILD_PROFILE=OFF \
+            -DCMAKE_C_COMPILER_TARGET=x86_64-none-elf \
+            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
+            -DCMAKE_C_FLAGS="--target=x86_64-none-elf -ffreestanding" \
+            -DCMAKE_CXX_FLAGS="--target=x86_64-none-elf -ffreestanding" \
+            -DCMAKE_C_COMPILER_FORCED=ON \
+            -DCMAKE_CXX_COMPILER_FORCED=ON \
+            -DCMAKE_CROSSCOMPILING=ON \
+            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+            -B build-x86_64-builtins/ \
+            -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+          cmake --build $GITHUB_WORKSPACE/build-x86_64-builtins/ -- install-builtins
+
       - name: Clone QEMU for Hexagon
         if: contains(env.ENABLED_ARCHS, 'hexagon')
         run: |
@@ -355,6 +413,18 @@ jobs:
           ../scripts/do-clang-riscv-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld
           ninja
 
+      - name: Build Picolibc for x86_64
+        if: contains(env.ENABLED_ARCHS, 'x86_64')
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc
+          mkdir -p build-clang-x86_64-picolibc
+          cd build-clang-x86_64-picolibc
+          export PATH=$GITHUB_WORKSPACE/install-x86_64-toolchain/bin:$PATH
+          export CC_LD=eld
+          export CXX_LD=eld
+          ../scripts/do-clang-x86_64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld
+          ninja
+
       - name: Run Picolibc tests for Hexagon
         if: contains(env.ENABLED_ARCHS, 'hexagon')
         run: |
@@ -407,6 +477,18 @@ jobs:
         run: |
           set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-riscv-picolibc
+          ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
+        continue-on-error: true
+
+      - name: Run Picolibc tests for x86_64
+        if: contains(env.ENABLED_ARCHS, 'x86_64')
+        run: |
+          set +e
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-x86_64-picolibc
           ninja test
           rc=$?
           if [ "$rc" -ne 0 ]; then
