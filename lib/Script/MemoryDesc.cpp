@@ -22,12 +22,10 @@ MemoryDesc::MemoryDesc(const MemorySpec &PSpec)
 MemoryDesc::~MemoryDesc() {}
 
 void MemoryDesc::dump(llvm::raw_ostream &Outs) const {
-  Outs << InputSpec.getMemoryDescriptor();
-  Outs << " " << InputSpec.getMemoryAttributes();
-  Outs << " ORIGIN = ";
+  Outs << InputSpec.getMemoryDescriptor() << " "
+       << InputSpec.getMemoryAttributes() << " :" << " ORIGIN = ";
   InputSpec.getOrigin()->dump(Outs);
-  Outs << " , ";
-  Outs << " LENGTH = ";
+  Outs << " , " << " LENGTH = ";
   InputSpec.getLength()->dump(Outs);
   Outs << "\n";
 }

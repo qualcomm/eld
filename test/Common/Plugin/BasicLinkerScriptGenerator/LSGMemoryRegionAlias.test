@@ -1,0 +1,24 @@
+#---BasicLinkerScriptGenerator.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This tests checks that the behavior of printing output section data commands
+# along with many other linker script commands.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.MemoryRegionAlias.t 1>%t1.script.lsg.t
+RUN: %filecheck %s < %t1.script.lsg.t
+1RUN: %link %linkopts -o %t1.1.lsg.out %t1.1.o -L%libsdir/test -T %t1.script.lsg.t
+#END_TEST
+
+CHECK: MEMORY
+CHECK-NEXT: {
+CHECK-NEXT:         SDRAM (rwx) : ORIGIN = 0x1000 ,  LENGTH = 0x1000
+CHECK-NEXT: }
+CHECK-NEXT: REGION_ALIAS("alias_sdram","SDRAM")
+CHECK-NEXT: SECTIONS {
+CHECK-NEXT:   .text2 : {
+CHECK-NEXT:     *(.text*)
+CHECK-NEXT:   }     >alias_sdram
+CHECK-NEXT: }
+CHECK-NEXT: LINKER_PLUGIN("BasicLinkerScriptGenerator", "BasicLinkerScriptGenerator");
+
