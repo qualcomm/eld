@@ -21,6 +21,7 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/StringRefUtils.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/SymbolResolver/StaticResolver.h"
 #include "eld/SymbolResolver/SymbolInfo.h"
 

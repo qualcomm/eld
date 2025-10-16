@@ -83,7 +83,8 @@ DIAG(mismatched_group, DiagnosticEngine::Fatal,
 DIAG(unsupported_version_node, DiagnosticEngine::Warning,
      "Only anonymous version nodes are suppored. Ignoring version script `%0'")
 DIAG(unsupported_dependent_node, DiagnosticEngine::Warning,
-     "Dependent nodes are not suppored. Ignoring version script `%0'")
+     "Dependent nodes are not suppored. Ignoring dependency for node '%0' "
+     "in version script '%1'")
 DIAG(unable_to_write_output_file, DiagnosticEngine::Error,
      "Unable to write output file %0 because of error %1")
 DIAG(unable_to_write_temporary_file, DiagnosticEngine::Fatal,

@@ -420,6 +420,10 @@ public:
 
   std::string getSymDefString() const;
 
+  /// Returns true if the link should build a dynamic object file
+  /// or a dynamic executable file.
+  bool shouldBuildDynamicArtifact() const;
+
 protected:
   CommandLineVectorT CommandLineVector;
 
