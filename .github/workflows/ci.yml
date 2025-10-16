@@ -44,6 +44,9 @@ jobs:
           path: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
           fetch-depth: 0
 
+      - name: Setup musl environment
+        run: echo "/opt/musl/bin" >> $GITHUB_PATH
+
       - name: Check for non-doc changes
         id: file-check
         working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
