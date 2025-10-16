@@ -1,0 +1,12 @@
+#---IncorrectAssignmentInLayoutReiteration.test------ LinkerScript ----------------#
+#BEGIN_COMMENT
+# Verify OUTSIDE_SECTIONS assignments are re-evaluated whenever layout resets.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.txt
+RUN: %readelf -s %t1.1.out | %filecheck %s
+#END_TEST
+
+CHECK-DAG: {{0*100}}     0 NOTYPE  GLOBAL DEFAULT   ABS v
+CHECK-DAG: {{0*100}}     0 NOTYPE  GLOBAL DEFAULT   ABS u
