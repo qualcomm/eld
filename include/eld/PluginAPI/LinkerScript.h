@@ -39,6 +39,8 @@ class Script;
 class ScriptCommand;
 class SearchDirCmd;
 class SectionsCmd;
+class MemoryCmd;
+class RegionAlias;
 } // namespace eld
 
 namespace eld::plugin {
@@ -67,6 +69,8 @@ struct DLL_A_EXPORT OutputFormat;
 struct DLL_A_EXPORT OutputSectionData;
 struct DLL_A_EXPORT OutputSectionSpec;
 struct DLL_A_EXPORT Plugin;
+struct DLL_A_EXPORT Memory;
+struct DLL_A_EXPORT RegionAlias;
 struct DLL_A_EXPORT SearchDir;
 struct DLL_A_EXPORT Sections;
 
@@ -91,8 +95,10 @@ struct DLL_A_EXPORT ScriptCommand {
     OutputFormat,
     OutputSectionData,
     OutputSectionSpec,
-    Plugin,
+    Memory,
     PHDRS,
+    Plugin,
+    RegionAlias,
     PHDRDesc,
     SearchDir,
     Sections,
@@ -127,6 +133,10 @@ struct DLL_A_EXPORT ScriptCommand {
   bool isOutputFormat() const { return m_Kind == OutputFormat; }
 
   bool isPlugin() const { return m_Kind == Plugin; }
+
+  bool isMemory() const { return m_Kind == Memory; }
+
+  bool isRegionAlias() const { return m_Kind == RegionAlias; }
 
   bool isPHDRS() const { return m_Kind == PHDRS; }
 
@@ -193,6 +203,12 @@ struct DLL_A_EXPORT ScriptCommand {
   /// \returns the linker script command PHDR_DESC
   static plugin::Script::PHDRDescriptor *getPHDRDESC(eld::ScriptCommand *SC);
 
+  /// \returns the linker script command MEMORY.
+  static plugin::Script::Memory *getMemory(eld::ScriptCommand *SC);
+
+  /// \returns the linker script command REGION_ALIAS.
+  static plugin::Script::RegionAlias *getRegionAlias(eld::ScriptCommand *SC);
+
   /// \returns the linker script command Assignment.
   static plugin::Script::Assignment *getAssignment(eld::ScriptCommand *SC);
 
@@ -256,6 +272,12 @@ struct DLL_A_EXPORT ScriptCommand {
 
   /// \returns the linker script command PHDR_DESC
   plugin::Script::PHDRDescriptor getPHDRDESC() const;
+
+  /// \returns the linker script command MEMORY.
+  plugin::Script::Memory getMemory() const;
+
+  /// \returns the linker script command REGION_ALIAS.
+  plugin::Script::RegionAlias getRegionAlias() const;
 
   /// \returns the linker script command Assignment.
   plugin::Script::Assignment getAssignment() const;
@@ -927,6 +949,32 @@ struct DLL_A_EXPORT OutputSectionData : public ScriptCommand {
 
 private:
   eld::OutputSectData *m_OutputSectData = nullptr;
+};
+
+/// MEMORY command wrapper
+struct DLL_A_EXPORT Memory : public ScriptCommand {
+  explicit Memory(eld::MemoryCmd *MemoryCmd);
+
+  operator bool() const { return m_MemoryCmd != nullptr; }
+
+  eld::ScriptCommand *getCommand() const override;
+
+  size_t size() const;
+
+private:
+  eld::MemoryCmd *m_MemoryCmd = nullptr;
+};
+
+/// REGION_ALIAS command wrapper
+struct DLL_A_EXPORT RegionAlias : public ScriptCommand {
+  explicit RegionAlias(eld::RegionAlias *RegionAliasCmd);
+
+  operator bool() const { return m_RegionAlias != nullptr; }
+
+  eld::ScriptCommand *getCommand() const override;
+
+private:
+  eld::RegionAlias *m_RegionAlias = nullptr;
 };
 } // namespace Script
 

@@ -22,6 +22,8 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/PhdrDesc.h"
 #include "eld/Script/PhdrsCmd.h"
+#include "eld/Script/MemoryCmd.h"
+#include "eld/Script/RegionAlias.h"
 #include "eld/Script/PluginCmd.h"
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Script/SearchDirCmd.h"
@@ -76,6 +78,10 @@ plugin::Script::ScriptCommand::getCommandKind(eld::ScriptCommand *SC) {
     return plugin::Script::ScriptCommand::OutputSectionSpec;
   case eld::ScriptCommand::PLUGIN:
     return plugin::Script::ScriptCommand::Plugin;
+  case eld::ScriptCommand::MEMORY:
+    return plugin::Script::ScriptCommand::Memory;
+  case eld::ScriptCommand::REGION_ALIAS:
+    return plugin::Script::ScriptCommand::RegionAlias;
   case eld::ScriptCommand::SEARCH_DIR:
     return plugin::Script::ScriptCommand::SearchDir;
   case eld::ScriptCommand::SECTIONS:
@@ -125,6 +131,10 @@ plugin::Script::ScriptCommand::getScriptCommand(eld::ScriptCommand *SC) {
     return getOutputSectionSpec(SC);
   case eld::ScriptCommand::PLUGIN:
     return getPlugin(SC);
+  case eld::ScriptCommand::MEMORY:
+    return getMemory(SC);
+  case eld::ScriptCommand::REGION_ALIAS:
+    return getRegionAlias(SC);
   case eld::ScriptCommand::SEARCH_DIR:
     return getSearchDir(SC);
   case eld::ScriptCommand::SECTIONS:
@@ -149,6 +159,16 @@ plugin::Script::ScriptCommand::getPHDRS(eld::ScriptCommand *SC) {
 plugin::Script::PHDRDescriptor *
 plugin::Script::ScriptCommand::getPHDRDESC(eld::ScriptCommand *SC) {
   return new plugin::Script::PHDRDescriptor(llvm::dyn_cast<eld::PhdrDesc>(SC));
+}
+
+plugin::Script::Memory *
+plugin::Script::ScriptCommand::getMemory(eld::ScriptCommand *SC) {
+  return new plugin::Script::Memory(llvm::dyn_cast<eld::MemoryCmd>(SC));
+}
+
+plugin::Script::RegionAlias *
+plugin::Script::ScriptCommand::getRegionAlias(eld::ScriptCommand *SC) {
+  return new plugin::Script::RegionAlias(llvm::dyn_cast<eld::RegionAlias>(SC));
 }
 
 plugin::Script::Assignment *
@@ -339,6 +359,16 @@ plugin::Script::SearchDir plugin::Script::ScriptCommand::getSearchDir() const {
 plugin::Script::Sections plugin::Script::ScriptCommand::getSections() const {
   return plugin::Script::Sections(
       llvm::dyn_cast<eld::SectionsCmd>(getCommand()));
+}
+
+plugin::Script::Memory plugin::Script::ScriptCommand::getMemory() const {
+  return plugin::Script::Memory(llvm::dyn_cast<eld::MemoryCmd>(getCommand()));
+}
+
+plugin::Script::RegionAlias
+plugin::Script::ScriptCommand::getRegionAlias() const {
+  return plugin::Script::RegionAlias(
+      llvm::dyn_cast<eld::RegionAlias>(getCommand()));
 }
 
 std::string plugin::Script::ScriptCommand::toString() const {
@@ -795,4 +825,27 @@ plugin::Script::OutputSectionData::OutputSectionData(
 
 eld::ScriptCommand *plugin::Script::OutputSectionData::getCommand() const {
   return m_OutputSectData;
+}
+// MEMORY
+plugin::Script::Memory::Memory(eld::MemoryCmd *MemoryCmd)
+    : ScriptCommand(plugin::Script::ScriptCommand::Memory),
+      m_MemoryCmd(MemoryCmd) {}
+
+eld::ScriptCommand *plugin::Script::Memory::getCommand() const {
+  return m_MemoryCmd;
+}
+
+size_t plugin::Script::Memory::size() const {
+  if (!m_MemoryCmd)
+    return 0;
+  return m_MemoryCmd->size();
+}
+
+// REGION_ALIAS
+plugin::Script::RegionAlias::RegionAlias(eld::RegionAlias *RegionAliasCmd)
+    : ScriptCommand(plugin::Script::ScriptCommand::RegionAlias),
+      m_RegionAlias(RegionAliasCmd) {}
+
+eld::ScriptCommand *plugin::Script::RegionAlias::getCommand() const {
+  return m_RegionAlias;
 }

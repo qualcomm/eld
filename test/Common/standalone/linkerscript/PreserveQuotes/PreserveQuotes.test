@@ -15,7 +15,7 @@ RUN: %filecheck %s < %t1.1.map.txt
 CHECK: # Output Section and Layout
 CHECK: # MEMORY
 CHECK: #{
-CHECK: #       "RAM REGION"  ORIGIN = 0x1000 ,  LENGTH = 0x3000
+CHECK: #       "RAM REGION" : ORIGIN = 0x1000 ,  LENGTH = 0x3000
 CHECK: #}
 CHECK: .foo {{.*}}
 CHECK: Memory : ["RAM REGION", "RAM REGION"]

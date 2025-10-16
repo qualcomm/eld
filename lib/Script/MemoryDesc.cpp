@@ -19,15 +19,11 @@ using namespace eld;
 MemoryDesc::MemoryDesc(const MemorySpec &PSpec)
     : ScriptCommand(ScriptCommand::MEMORY_DESC), InputSpec(PSpec) {}
 
-
-
 void MemoryDesc::dump(llvm::raw_ostream &Outs) const {
-  Outs << InputSpec.getDecoratedMemoryDescriptor();
-  Outs << " " << InputSpec.getMemoryAttributes();
-  Outs << " ORIGIN = ";
+  Outs << InputSpec.getDecoratedMemoryDescriptor() << " "
+       << InputSpec.getMemoryAttributes() << " :" << " ORIGIN = ";
   InputSpec.getOrigin()->dump(Outs);
-  Outs << " , ";
-  Outs << " LENGTH = ";
+  Outs << " , " << " LENGTH = ";
   InputSpec.getLength()->dump(Outs);
   Outs << "\n";
 }
