@@ -1,0 +1,10 @@
+REQUIRES: musl
+#--LinkWithMuslSupport.test----------Executable--------#
+BEGIN_COMMENT
+# Test linking of x86_64 with musl libc.
+#END_COMMENT
+#START_TEST
+RUN: %musl-clang %clangopts -static %p/Inputs/1.c -o %t.1.out
+RUN: %t.1.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+EXITCODE: 42
+#END_TEST
