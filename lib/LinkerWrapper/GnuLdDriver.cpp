@@ -1653,7 +1653,7 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     std::string error;
     llvm::Triple Triple = Config.targets().triple();
     const llvm::Target *LLVMTarget =
-        llvm::TargetRegistry::lookupTarget(Triple.str(), error);
+        llvm::TargetRegistry::lookupTarget(Triple, error);
     if (!LLVMTarget) {
       Config.raise(Diag::cannot_find_target) << error;
       return false;
