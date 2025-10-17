@@ -22,29 +22,15 @@ enum CompatibilityAction {
   ER = 4  // mixing erroneous ISA
 };
 
-// Compatibility array for flags in hexagon.
-// Rows indicate the command line ISA provided and column
-// indicate the object file ISA
-
-// clang-format off
-static const enum CompatibilityAction
-    flag_action[eld::HexagonInfo::LAST_ISA][eld::HexagonInfo::LAST_ISA] =
-{ //          V68 V69 V71 V71t V73 V75 V77 v79 v81 v83 v85
- /* V68   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V69   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V71   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V71t  */ {WA, WA, WA, OK,   WA, WA, WA, WA, WA, WA, WA},
- /* V73   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V75   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V77   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V79   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V81   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V83   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V85   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V87   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
- /* V89   */ {OK, OK, OK, WA,   OK, OK, OK, OK, OK, OK, OK},
-};
-// clang-format on
+// We treat mixing V71t objects with non-v71t inputs as a warning; all other
+// combinations are considered fully compatible.
+static CompatibilityAction getCompatibilityAction(uint32_t A, uint32_t B) {
+  if (A == B)
+    return OK;
+  if (A == eld::HexagonInfo::LINK_V71T || B == eld::HexagonInfo::LINK_V71T)
+    return WA;
+  return OK;
+}
 
 static const char *ISAs[eld::HexagonInfo::LAST_ISA] = {
     "v68", "v69", "v71", "v71t", "v73", "v75",
@@ -289,7 +275,7 @@ bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
   }
 
   CompatibilityAction action =
-      flag_action[translateFlag(m_OutputFlag)][translateFlag(pFlag)];
+      getCompatibilityAction(translateFlag(m_OutputFlag), translateFlag(pFlag));
   switch (action) {
   case NS:
   case ER:
@@ -320,8 +306,8 @@ uint64_t HexagonInfo::flags() const {
   if (m_CmdLineFlag != LINK_UNKNOWN) {
     if (OutputFlag == LINK_UNKNOWN)
       OutputFlag = m_CmdLineFlag;
-    CompatibilityAction action =
-        flag_action[translateFlag(m_CmdLineFlag)][translateFlag(OutputFlag)];
+    CompatibilityAction action = getCompatibilityAction(
+        translateFlag(m_CmdLineFlag), translateFlag(OutputFlag));
     switch (action) {
     case NS:
     case ER:
