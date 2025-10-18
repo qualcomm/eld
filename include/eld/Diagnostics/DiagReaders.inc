@@ -113,3 +113,13 @@ DIAG(fatal_unsupported_bit_code_file, DiagnosticEngine::Fatal,
      "Unsupported architecture %0 in LLVM Bitcode file : %1")
 DIAG(note_empty_archive, DiagnosticEngine::Note,
      "Empty archive file: '%0'")
+DIAG(sframe_invalid_magic, DiagnosticEngine::Error,
+     "Error: Invalid SFrame magic number")
+DIAG(sframe_unsupported_version, DiagnosticEngine::Error,
+     "Error: Unsupported SFrame version")
+DIAG(sframe_section_too_small, DiagnosticEngine::Error,
+     "Error: SFrame section too small")
+DIAG(verbose_sframe_reading, DiagnosticEngine::Verbose,
+     "Reading SFrame section")
+DIAG(verbose_sframe_version, DiagnosticEngine::Verbose, "SFrame version %0")
+DIAG(verbose_sframe_fres, DiagnosticEngine::Verbose, "SFrame FREs: %0")

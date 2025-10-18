@@ -4,6 +4,14 @@ Target Specific Features
 .. contents::
    :local:
 
+Cross-Platform Features
+-----------------------
+
+* **SFrame Support**
+    The SFrame (Simple Frame) debugging format is supported and tested on x86_64, AArch64, RISCV (both RV32 and RV64), and Hexagon architectures.
+    See :doc:`sframe_support` for detailed information about SFrame functionality,
+    usage examples, and integration with debugging tools.
+
 
 .. ifconfig:: targets in ('Hexagon')
 
