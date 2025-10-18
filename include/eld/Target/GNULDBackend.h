@@ -807,6 +807,13 @@ public:
 
   virtual void setDefaultConfigs();
 
+  // ----------------------- SFrame Support --------------------
+  /// getSFrameCFAFixedFPOffset - get architecture-specific CFA fixed FP offset
+  virtual int8_t getSFrameCFAFixedFPOffset() const { return 0; }
+
+  /// getSFrameCFAFixedRAOffset - get architecture-specific CFA fixed RA offset
+  virtual int8_t getSFrameCFAFixedRAOffset() const { return 0; }
+
   // ----------------------- BuildID Support --------------------
   eld::Expected<void> finalizeAndEmitBuildID(llvm::FileOutputBuffer &pOutput);
 

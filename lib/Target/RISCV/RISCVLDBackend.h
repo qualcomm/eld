@@ -171,6 +171,14 @@ public:
 
   void setDefaultConfigs() override;
 
+  // SFrame Support
+  int8_t getSFrameCFAFixedFPOffset() const override {
+    return config().targets().is32Bits() ? -8 : -16;
+  }
+  int8_t getSFrameCFAFixedRAOffset() const override {
+    return config().targets().is32Bits() ? -4 : -8;
+  }
+
   Relocation *getGroupReloc(const Relocation &R) const {
     auto reloc = m_GroupRelocs.find(&R);
     if (reloc == m_GroupRelocs.end())

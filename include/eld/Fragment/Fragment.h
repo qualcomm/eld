@@ -48,7 +48,8 @@ public:
     Timing,
     Null,
     MergeString,
-    BuildID
+    BuildID,
+    SFrame,
   };
 
 public:

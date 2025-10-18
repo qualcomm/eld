@@ -47,6 +47,7 @@ public:
     OutputSectData,
     Regular,
     Relocation,
+    SFrame,
     StackNote,
     Target,
     Timing,

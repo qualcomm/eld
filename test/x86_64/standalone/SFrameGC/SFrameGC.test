@@ -1,0 +1,20 @@
+#---SFrameGC.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks that SFrame sections are handled correctly during
+# garbage collection (--gc-sections).
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_gc_test.s -o %t.sframe.o
+
+# Test with garbage collection enabled
+RUN: %link %linkopts --gc-sections --sframe-hdr %t.sframe.o -o %t1.out
+RUN: %readelf -S %t1.out | %filecheck %s -check-prefix=GC_ENABLED
+
+# Test without garbage collection
+RUN: %link %linkopts --sframe-hdr %t.sframe.o -o %t2.out
+RUN: %readelf -S %t2.out | %filecheck %s -check-prefix=GC_DISABLED
+
+# SFrame sections should be preserved in both cases
+GC_ENABLED: .sframe{{.*}}SFRAME
+GC_DISABLED: .sframe{{.*}}SFRAME

@@ -122,6 +122,11 @@ public:
                                    uint32_t Flag, uint32_t EntSize = 0,
                                    uint64_t Size = 0);
 
+  ELFSection *createSFrameSection(std::string Section, uint32_t Type,
+                                  uint32_t Flag, uint32_t EntSize = 0,
+                                  uint64_t Size = 0,
+                                  const class GNULDBackend *Backend = nullptr);
+
   std::vector<ELFSection *> &getEntrySections() { return MEntrySections; }
 
   void addEntrySection(ELFSection *Sec) { MEntrySections.push_back(Sec); }
