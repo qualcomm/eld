@@ -1,5 +1,6 @@
 add_subdirectory(AllOutSectAddresses)
 add_subdirectory(ChangeSymbol)
+add_subdirectory(UpdateSymbol)
 add_subdirectory(ConfigFile)
 add_subdirectory(CreateChunk)
 add_subdirectory(DiscardSections)
