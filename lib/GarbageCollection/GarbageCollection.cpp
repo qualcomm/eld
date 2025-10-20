@@ -574,8 +574,12 @@ bool GarbageCollection::getEntrySections(SectionSetTy &EntrySections) {
           continue;
       }
 
-      if (!treatSymbolAsEntry(Info))
+      if (!treatSymbolAsEntry(Info)) {
         continue;
+      }
+
+      if (Info->getOwningSection() && Info->getOwningSection()->isRetain())
+        Info->outSymbol()->setShouldIgnore(false);
 
       // only the target symbols defined in the concerned sections can be
       // entries
@@ -810,6 +814,10 @@ void GarbageCollection::stripSections(SectionSetTy &S,
 bool GarbageCollection::treatSymbolAsEntry(ResolveInfo *R) const {
   // Symbol resolved from shared object.
   if (R->isDyn())
+    return true;
+
+  // All retain sections are entry
+  if (R->getOwningSection() && R->getOwningSection()->isRetain())
     return true;
 
   if (!R->isDefine() || R->isLocal())
