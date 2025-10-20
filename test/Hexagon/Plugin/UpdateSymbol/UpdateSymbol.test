@@ -1,0 +1,11 @@
+#---UpdateSymbol.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+#This tests that the plugin can replace the call to symbol bar with baz
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o  -ffunction-sections -fdata-sections
+RUN: %clang %clangg0opts -c %p/Inputs/2.c -o %t1.2.o  -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.1.o %t1.2.o -T %p/Inputs/script.t --gc-sections --trace=plugin -o %t2.out -L %p/Inputs 2>&1
+RUN: %objdump -d %t2.out 2>&1 | %filecheck %s
+#END_TEST
+#CHECK: baz
