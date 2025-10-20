@@ -33,14 +33,13 @@ static CompatibilityAction getCompatibilityAction(uint32_t A, uint32_t B) {
 }
 
 static const char *ISAs[eld::HexagonInfo::LAST_ISA] = {
-    "v68", "v69", "v71", "v71t", "v73", "v75",
-    "v77", "v79", "v81", "v83",  "v85", "v87", "v89"};
+    "v68", "v69", "v71", "v71t", "v73", "v75", "v77",
+    "v79", "v81", "v83", "v85",  "v87", "v89", "v91"};
 
 static const char *MCPUs[eld::HexagonInfo::LAST_ISA] = {
-    "hexagonv68", "hexagonv69", "hexagonv71", "hexagonv71t",
-    "hexagonv73", "hexagonv75", "hexagonv77", "hexagonv79",
-    "hexagonv81", "hexagonv83", "hexagonv85", "hexagonv87",
-    "hexagonv89",
+    "hexagonv68", "hexagonv69", "hexagonv71", "hexagonv71t", "hexagonv73",
+    "hexagonv75", "hexagonv77", "hexagonv79", "hexagonv81",  "hexagonv83",
+    "hexagonv85", "hexagonv87", "hexagonv89", "hexagonv91",
 };
 
 static const uint32_t ISAsToEFlag[eld::HexagonInfo::LAST_ISA] = {
@@ -50,7 +49,7 @@ static const uint32_t ISAsToEFlag[eld::HexagonInfo::LAST_ISA] = {
     llvm::ELF::EF_HEXAGON_MACH_V77, llvm::ELF::EF_HEXAGON_MACH_V79,
     llvm::ELF::EF_HEXAGON_MACH_V81, llvm::ELF::EF_HEXAGON_MACH_V83,
     llvm::ELF::EF_HEXAGON_MACH_V85, llvm::ELF::EF_HEXAGON_MACH_V87,
-    llvm::ELF::EF_HEXAGON_MACH_V89,
+    llvm::ELF::EF_HEXAGON_MACH_V89, llvm::ELF::EF_HEXAGON_MACH_V91,
 };
 
 std::string HexagonInfo::flagString(uint64_t flag) const {
@@ -87,6 +86,7 @@ bool HexagonInfo::initialize() {
                       .Case("hexagonv85", llvm::ELF::EF_HEXAGON_MACH_V85)
                       .Case("hexagonv87", llvm::ELF::EF_HEXAGON_MACH_V87)
                       .Case("hexagonv89", llvm::ELF::EF_HEXAGON_MACH_V89)
+                      .Case("hexagonv91", llvm::ELF::EF_HEXAGON_MACH_V91)
                       .Default(LINK_UNKNOWN);
   if (m_CmdLineFlag == -1) {
     m_Config.raise(Diag::fatal_unsupported_emulation)
@@ -102,6 +102,8 @@ uint64_t HexagonInfo::translateFlag(uint64_t pFlag) const {
   pFlag &= 0xFFFF;
   std::string pflagStr = getArchStr(pFlag);
   switch (pFlag) {
+  /// FIXME: why do we check both, until v77 where we start only checking for
+  /// the machine?
   case LINK_V68:
   case llvm::ELF::EF_HEXAGON_MACH_V68:
     return LINK_V68;
@@ -134,6 +136,8 @@ uint64_t HexagonInfo::translateFlag(uint64_t pFlag) const {
     return LINK_V87;
   case llvm::ELF::EF_HEXAGON_MACH_V89:
     return LINK_V89;
+  case llvm::ELF::EF_HEXAGON_MACH_V91:
+    return LINK_V91;
   default:
     ASSERT(0, llvm::Twine("Unknown flag " + pflagStr).str().c_str());
   }
@@ -192,6 +196,8 @@ std::string HexagonInfo::getArchStr(uint64_t pFlag) const {
     return "hexagonv87";
   case llvm::ELF::EF_HEXAGON_MACH_V89:
     return "hexagonv89";
+  case llvm::ELF::EF_HEXAGON_MACH_V91:
+    return "hexagonv91";
   default:
     break;
   }
@@ -230,6 +236,7 @@ HexagonInfo::ArchSupport HexagonInfo::getArchSupport(uint64_t pFlag) const {
   case llvm::ELF::EF_HEXAGON_MACH_V85:
   case llvm::ELF::EF_HEXAGON_MACH_V87:
   case llvm::ELF::EF_HEXAGON_MACH_V89:
+  case llvm::ELF::EF_HEXAGON_MACH_V91:
     return HexagonInfo::ArchSupport::Supported;
   default:
     break;

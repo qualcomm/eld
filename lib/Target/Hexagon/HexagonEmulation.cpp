@@ -37,6 +37,7 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
                                .Case("v85", "hexagonv85")
                                .Case("v87", "hexagonv87")
                                .Case("v89", "hexagonv89")
+                               .Case("v91", "hexagonv91")
                                .Default("invalid");
     if (flag == "deprecated") {
       pConfig.raise(Diag::deprecated_emulation)
