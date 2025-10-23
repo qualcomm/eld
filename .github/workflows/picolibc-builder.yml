@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -25,11 +25,11 @@ jobs:
             llvm-target: AArch64
             picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
             picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
-#          - name: arm
-#            triple: arm-none-eabi
-#            llvm-target: ARM
-#            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
-#            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
+          - name: arm
+            triple: armv7-none-eabi
+            llvm-target: ARM
+            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
+            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
 #          - name: riscv
 #            triple: riscv64-none-elf
 #            llvm-target: RISCV
@@ -88,6 +88,28 @@ jobs:
               -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
               -DCMAKE_INSTALL_PREFIX:PATH=$($TOOLCHAIN_INSTALL/bin/clang -print-resource-dir) \
               -C $GITHUB_WORKSPACE/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
+              -B build-${{ matrix.arch.triple }}-builtins/ \
+              -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+          elif [ ${{ matrix.arch.name }} = "arm" ]; then
+            cmake -G Ninja \
+              -DCMAKE_C_COMPILER:STRING=`which clang` \
+              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+              -DCOMPILER_RT_BAREMETAL_BUILD=ON \
+              -DCOMPILER_RT_BUILD_BUILTINS=ON \
+              -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+              -DCOMPILER_RT_BUILD_XRAY=OFF \
+              -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+              -DCOMPILER_RT_BUILD_PROFILE=OFF \
+              -DCMAKE_C_COMPILER_TARGET=arm-none-eabi \
+              -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
+              -DCMAKE_C_FLAGS="--target=arm-none-eabi -march=armv7-a -ffreestanding" \
+              -DCMAKE_CXX_FLAGS="--target=arm-none-eabi -march=armv7-a -ffreestanding" \
+              -DCMAKE_C_COMPILER_FORCED=ON \
+              -DCMAKE_CXX_COMPILER_FORCED=ON \
+              -DCMAKE_CROSSCOMPILING=ON \
+              -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
               -B build-${{ matrix.arch.triple }}-builtins/ \
               -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
           else
