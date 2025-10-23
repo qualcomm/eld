@@ -38,11 +38,23 @@ void ScriptSymbol::addResolveInfoToContainer(const ResolveInfo *Info) const {
 }
 
 bool ScriptSymbol::matched(const ResolveInfo &Sym) const {
+  // Try matching against the raw symbol name first.
   llvm::StringRef Name = Sym.name();
   uint64_t Hash = llvm::hash_combine(Name);
   if ((hasHash() && hashValue() == Hash) || WildcardPattern::matched(Name)) {
     addResolveInfoToContainer(&Sym);
     return true;
+  }
+  // For versioned symbols (e.g., foo@VER or foo@@VER), also try the
+  // non-versioned base name to align with version-script semantics.
+  std::string NonVer = Sym.getNonVersionedName();
+  if (!NonVer.empty() && NonVer != Name) {
+    uint64_t HashNV = llvm::hash_combine(NonVer);
+    if ((hasHash() && hashValue() == HashNV) ||
+        WildcardPattern::matched(NonVer)) {
+      addResolveInfoToContainer(&Sym);
+      return true;
+    }
   }
   return false;
 }
