@@ -1,0 +1,82 @@
+<html>
+<head>
+<style>
+* {
+  font-family: sans-serif;
+}
+
+th {
+    cursor: pointer;
+}
+
+.textarea-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.builds-summary-table {
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 99vw;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.builds-summary-table thead tr {
+    background-color: #009879;
+    color: #ffffff;
+    text-align: left;
+}
+
+.builds-summary-table th,
+.builds-summary-table td {
+    padding: 12px 15px;
+}
+
+.builds-summary-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+
+.builds-summary-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+.builds-summary-table tbody tr:last-of-type {
+    border-bottom: 2px solid #009879;
+}
+
+.builds-summary-table tbody tr.active-row {
+    font-weight: bold;
+    color: #009879;
+}
+</style>
+</head>
+<body>
+<table class="builds-summary-table" id="pico-builds-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Build ID</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script type="text/javascript" src="picolibc_status_data.py"></script>
+<script type="text/javascript">
+    picolibc_build_states.forEach(function(rowData) {
+       let newRow = "<tr>";
+       newRow += "<td>" + rowData.date + " - " + rowData.time + "</td>";
+       newRow += "<td>" + "<a href='https://github.qualcomm.com/cgit/dashboard/actions/runs/" + rowData.id + "' target='_blank' rel='build details'>" + rowData.id + "</a>" + "</td>";
+       newRow += "<td>" + rowData.state + "</td>";
+       newRow += "</tr>";
+       $("#pico-builds-table").append(newRow);
+   });
+</script>
+</body>
+</html>

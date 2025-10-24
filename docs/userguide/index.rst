@@ -49,3 +49,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+* `Build Dashboard`_
+.. _Build Dashboard: dash/dash.html

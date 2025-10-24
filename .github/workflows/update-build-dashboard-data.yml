@@ -1,0 +1,33 @@
+name: Hourly Build Status Dashboard Updater
+
+on:
+  schedule:
+    - cron: '* 1 * * *'  # Runs hourly
+  workflow_dispatch:     # Allows manual triggering
+
+jobs:
+  update-dashboard-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Emit JS Data
+        run: |
+            git config --global user.name 'github-actions'
+            git config --global user.email 'github-actions@github.com'
+            git checkout dashboard
+            DOCS_DIR="$(mktemp -d)"
+            cp -r dash ${DOCS_DIR}/
+            cp .github/workflows/scripts/record_builds.py ${DOCS_DIR}/
+            git checkout documentation
+            cp -r ${DOCS_DIR}/dash docs/
+            cp ${DOCS_DIR}/record_builds.py docs/dash/
+            cd docs/dash
+            python record_builds.py --target picolibc --emit
+            python record_builds.py --target musl --emit
+            rm -f record_builds.py
+            rm -rf ${DOCS_DIR}
+            cd ../..
+            git add .
+            git commit -m "Update build status data for dashboard"
+            git push -f origin HEAD:refs/heads/documentation
+

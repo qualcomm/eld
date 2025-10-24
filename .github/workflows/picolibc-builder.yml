@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -55,6 +55,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: llvm-project/llvm/tools/eld
+
+      - name: Record pre-build entry
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          ls -l
+          cd llvm-project/llvm/tools/eld
+          git fetch --all
+          git checkout dashboard
+          ls -l
+          cp .github/workflows/scripts/record_builds.py dash/
+          cd dash
+          python record_builds.py --target picolibc --record --fail --id ${{github.run_id}}
+          rm -f record_builds.py
+          ls -l
+          cd ..
+          git add .
+          git commit -m "Add build status data in DB"
+          git push -f origin HEAD:refs/heads/dashboard
 
       - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
         run: |
@@ -187,3 +206,21 @@ jobs:
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls/meson-logs/testlog.txt
           if-no-files-found: ignore
           retention-days: 60
+
+      - name: Update build entry
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          cd llvm-project/llvm/tools/eld
+          git fetch --all
+          git checkout dashboard
+          ls -l
+          cp .github/workflows/scripts/record_builds.py dash/
+          cd dash
+          python record_builds.py --target picolibc --update --pass --id ${{github.run_id}}
+          rm -f record_builds.py
+          ls -l
+          cd ..
+          git add .
+          git commit -m "Add build status data in DB"
+          git push -f origin HEAD:refs/heads/dashboard

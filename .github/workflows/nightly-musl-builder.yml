@@ -40,6 +40,24 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
+      - name: Record pre-build entry
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          cd llvm-project/llvm/tools/eld
+          git fetch --all
+          git checkout dashboard
+          ls -l
+          cp .github/workflows/scripts/record_builds.py dash/
+          cd dash
+          python record_builds.py --target musl --record --fail --id ${{github.run_id}}
+          rm -f record_builds.py
+          ls -l
+          cd ..
+          git add .
+          git commit -m "Add build status data in DB"
+          git push -f origin HEAD:refs/heads/dashboard
+
       - name: Configure ELD Build
         run: |
           mkdir -p obj
@@ -96,15 +114,33 @@ jobs:
           sed -i '1s/$/ -Wno-parentheses/' config.mak
 
       - name: Build and test libc-test with ELD + musl
-        run: | 
+        run: |
           cd libc-test
           make -j$(nproc) 2>&1 | tee build.log
 
       - name: Validate test results with FileCheck
-        run: |  
+        run: |
           cd libc-test       
           FILECHECK="$PWD/../obj/bin/FileCheck"
           $FILECHECK --check-prefixes=CHECK ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
           $FILECHECK --check-prefixes=COUNT ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
 
           echo "Test results validated"
+
+      - name: Update build entry
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          cd llvm-project/llvm/tools/eld
+          git fetch --all
+          git checkout dashboard
+          ls -l
+          cp .github/workflows/scripts/record_builds.py dash/
+          cd dash
+          python record_builds.py --target musl --update --pass --id ${{github.run_id}}
+          rm -f record_builds.py
+          ls -l
+          cd ..
+          git add .
+          git commit -m "Add build status data in DB"
+          git push -f origin HEAD:refs/heads/dashboard
