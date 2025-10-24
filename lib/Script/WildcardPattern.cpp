@@ -14,10 +14,13 @@
 //===- WildcardPattern.cpp ------------------------------------------------===//
 //===----------------------------------------------------------------------===//
 #include "eld/Script/WildcardPattern.h"
+#include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Script/ExcludeFiles.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/PluginAPI/DiagnosticEntry.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/raw_ostream.h"
+#include <optional>
 #include <string>
 
 using namespace eld;
@@ -85,4 +88,18 @@ void WildcardPattern::createGlobPattern(llvm::StringRef Pattern) {
   MPattern = std::move(*E);
   if (!hasGlob())
     setHash(llvm::hash_combine(Pattern));
+}
+
+WildcardPattern *WildcardPattern::create(StrToken *S, SortPolicy PPolicy,
+                                         ExcludeFiles *PExcludeFileList) {
+  // A single backslash is an invalid glob pattern. It is supported for
+  // GNU-compatibility.
+  if (S->name() != "\\") {
+    auto E = llvm::GlobPattern::create(llvm::StringRef(S->name()));
+    if (!E) {
+      DiagnosticEngine::ignoreLLVMError(E.takeError());
+      return nullptr;
+    }
+  }
+  return make<WildcardPattern>(S, PPolicy, PExcludeFileList);
 }
