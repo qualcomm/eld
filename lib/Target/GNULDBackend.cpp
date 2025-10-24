@@ -3977,11 +3977,7 @@ bool GNULDBackend::relax() {
   printMemoryRegionsUsage();
 
   // Verify memory regions
-  eld::Expected<void> E = verifyMemoryRegions();
-  if (!E) {
-    config().raiseDiagEntry(std::move(E.error()));
-    return config().getDiagEngine()->diagnose();
-  }
+  verifyMemoryRegions();
 
   return config().getDiagEngine()->diagnose();
 }
@@ -4870,12 +4866,9 @@ void GNULDBackend::clearMemoryRegions() {
     M->clearMemoryRegion();
 }
 
-eld::Expected<void> GNULDBackend::verifyMemoryRegions() {
-  for (auto &M : m_Module.getLinkerScript().getMemoryRegions()) {
-    eld::Expected<void> E = M->verifyMemoryUsage(config());
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
-  }
-  return eld::Expected<void>();
+void GNULDBackend::verifyMemoryRegions() {
+  for (auto &M : m_Module.getLinkerScript().getMemoryRegions())
+    M->verifyMemoryUsage(config());
 }
 
 bool GNULDBackend::assignMemoryRegions() {

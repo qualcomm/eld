@@ -76,7 +76,7 @@ DIAG(fatal_modulo_by_zero, DiagnosticEngine::Fatal,
 DIAG(error_experimental_not_supported, DiagnosticEngine::Error,
      "Linker has only experimental support for handling %0")
 DIAG(error_memory_region_exceeded_limit, DiagnosticEngine::Error,
-     "Memory region %0 exceeded limit while adding section %1")
+     "Memory region %0 exceeded limit while adding section %1 : overflowed by 0x%2 bytes")
 DIAG(error_memory_region_empty, DiagnosticEngine::Error,
      "Missing name for memory region, name cannot be empty")
 DIAG(error_duplicate_memory_region, DiagnosticEngine::Error,

@@ -33,7 +33,7 @@ public:
 
   void addOutputSectionLMA(const OutputSectionEntry *O);
 
-  eld::Expected<void> verifyMemoryUsage(LinkerConfig &Config);
+  void verifyMemoryUsage(LinkerConfig &Config);
 
   eld::Expected<uint64_t> getOrigin() const;
 
@@ -66,6 +66,7 @@ public:
   void clearMemoryRegion() {
     MOutputSections.clear();
     CurrentCursor.reset();
+    DiagOverflows.clear();
     FirstOutputSectionExceededLimit = nullptr;
   }
 
@@ -109,6 +110,7 @@ private:
   uint32_t AttrInvertedNegFlags = 0;
   std::optional<uint64_t> CurrentCursor;
   const OutputSectionEntry *FirstOutputSectionExceededLimit = nullptr;
+  std::vector<std::unique_ptr<plugin::DiagnosticEntry>> DiagOverflows;
 };
 
 } // end namespace eld

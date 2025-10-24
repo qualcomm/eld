@@ -9,6 +9,7 @@
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Object/OutputSectionEntry.h"
 #include "eld/Script/Expression.h"
+#include "eld/Support/Utils.h"
 #include "llvm/Support/Format.h"
 
 using namespace eld;
@@ -30,12 +31,19 @@ void ScriptMemoryRegion::addOutputSection(const OutputSectionEntry *O) {
   if (!S->isTBSS())
     CurrentCursor = CurrentCursor.value() + S->size();
   MOutputSections.push_back(O);
-  if (getSize() > getLength().value())
+  // Do not add duplicates when called for VMA and PMA when the memory region
+  // is the same
+  if (getSize() > getLength().value() && FirstOutputSectionExceededLimit != O) {
+    DiagOverflows.push_back(
+        std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+            Diag::error_memory_region_exceeded_limit,
+            {std::string(getName()), std::string(O->name()),
+             utility::toHex(getSize() - getLength().value())})));
     FirstOutputSectionExceededLimit = O;
+  }
 }
 
-eld::Expected<void>
-ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
+void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
   auto ExpLen = getLength();
   if (ExpLen && !ExpLen.value() && Config.showLinkerScriptWarnings()) {
     MemorySpec *Spec = MMemoryDesc->getMemorySpec();
@@ -43,14 +51,14 @@ ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
     Config.raise(Diag::warn_memory_region_has_zero_size)
         << Length->getContext() << getName();
   }
-  if (FirstOutputSectionExceededLimit)
-    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-        Diag::error_memory_region_exceeded_limit,
-        {getName(), std::string(FirstOutputSectionExceededLimit->name())}));
+  if (FirstOutputSectionExceededLimit) {
+    for (auto &Overflow : DiagOverflows)
+      Config.raiseDiagEntry(std::move(Overflow));
+    return;
+  }
   if (!getSize() && Config.showLinkerScriptMemoryWarnings())
     Config.raise(Diag::warn_memory_region_zero_sized) << getName();
   Config.raise(Diag::verbose_verified_add_memory_region) << getName();
-  return eld::Expected<void>();
 }
 
 eld::Expected<uint64_t> ScriptMemoryRegion::getOrigin() const {
@@ -227,9 +235,7 @@ std::string ScriptMemoryRegion::getName() const {
 }
 
 std::string ScriptMemoryRegion::getDecoratedName() const {
-  return getMemoryDesc()
-      ->getMemorySpec()
-      ->getDecoratedMemoryDescriptor();
+  return getMemoryDesc()->getMemorySpec()->getDecoratedMemoryDescriptor();
 }
 
 bool ScriptMemoryRegion::containsVMA(uint64_t Addr) const {

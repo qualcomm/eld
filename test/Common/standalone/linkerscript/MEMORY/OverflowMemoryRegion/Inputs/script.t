@@ -1,5 +1,5 @@
 MEMORY {
-  b1 (rx) : ORIGIN = 100, LENGTH = 30
+  b1 (rx) : ORIGIN = 100, LENGTH = 4
 }
 SECTIONS {
   . = 0x2000;

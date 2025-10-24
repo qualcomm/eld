@@ -910,7 +910,7 @@ private:
   // ----------------------- MEMORY Support --------------------
   void clearMemoryRegions();
 
-  eld::Expected<void> verifyMemoryRegions();
+  void verifyMemoryRegions();
 
   eld::Expected<void> printMemoryRegionsUsage();
 
