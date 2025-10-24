@@ -81,6 +81,12 @@ bool GNULDBackend::createScriptProgramHdrs() {
     m_ImageStartVMA = vma;
     // Set initial dot symbol value.
     dotSymbol->setValue(vma);
+
+    {
+      eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
+                           m_Module.getConfig().options().printTimingStats());
+      evaluateScriptAssignments(/*evaluateAsserts=*/false);
+    }
   };
 
   reset_state();

@@ -3060,13 +3060,6 @@ bool GNULDBackend::layout() {
   // Clear the section table so that real sections can be inserted properly.
   m_Module.clearOutputSections();
 
-  // Evaluate defsym assignments.
-  {
-    eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
-                         m_Module.getConfig().options().printTimingStats());
-    evaluateScriptAssignments(false);
-  }
-
   // If partial link, we only set offsets, no addresses.
   if (isPartialLink) {
     if (!setOutputSectionOffset()) {
