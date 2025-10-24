@@ -18,6 +18,7 @@
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64.h"
+#include "x86_64ELFDynamic.h"
 #include "x86_64Relocator.h"
 #include "x86_64StandaloneInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -31,7 +32,7 @@ using namespace llvm;
 // x86_64LDBackend
 //===----------------------------------------------------------------------===//
 x86_64LDBackend::x86_64LDBackend(Module &pModule, x86_64Info *pInfo)
-    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr),
+    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
       m_pEndOfImage(nullptr) {}
 
 x86_64LDBackend::~x86_64LDBackend() {}
@@ -118,6 +119,14 @@ bool x86_64LDBackend::finalizeTargetSymbols() {
 
   return true;
 }
+
+void x86_64LDBackend::doPreLayout() {
+  // Create a dynamic section handler for non-static or forced-dynamic outputs.
+  if (!config().isCodeStatic() || config().options().forceDynamic())
+    m_pDynamic = make<x86_64ELFDynamic>(*this, config());
+}
+
+x86_64ELFDynamic *x86_64LDBackend::dynamic() { return m_pDynamic; }
 
 // Create GOT entry.
 x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
