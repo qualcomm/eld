@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -18,11 +18,19 @@ jobs:
           - name: hexagon
             triple: hexagon-unknown-none-elf
             llvm-target: Hexagon
+            eld-target: Hexagon
             picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
             picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
           - name: aarch64
             triple: aarch64-none-elf
             llvm-target: AArch64
+            eld-target: AArch64
+            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
+            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
+          - name: x86_64
+            triple: x86_64-none-eabi
+            llvm-target: X86
+            eld-target: x86_64
             picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
             picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
 #          - name: arm
@@ -50,6 +58,15 @@ jobs:
       - name: Checkout LLVM Project
         run: |
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project $GITHUB_WORKSPACE/llvm-project
+          # test temporary fix
+          if [ ${{ matrix.arch.name }} = "x86_64" ]; then
+            cd ${{ github.workspace }}/llvm-project
+            git config user.name "CI Bot"
+            git config user.email "ci@example.com"
+            git remote add quic-k https://github.com/quic-k/llvm-project.git
+            git fetch quic-k x86_assert
+            git cherry-pick 7913620ab6564aef98473bb0cf49959af35d98d9
+          fi
 
       - name: Checkout ELD
         uses: actions/checkout@v4
@@ -67,7 +84,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=`which clang++` \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
-            -DELD_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
+            -DELD_TARGETS_TO_BUILD=${{ matrix.arch.eld-target }} \
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain \
             -S $GITHUB_WORKSPACE/llvm-project/llvm \
             -B $GITHUB_WORKSPACE/build-${{ matrix.arch.name }}-toolchain/ \
@@ -104,8 +121,8 @@ jobs:
               -DCOMPILER_RT_BUILD_PROFILE=OFF \
               -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
               -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding" \
-              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding" \
+              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -std=c17 -ffreestanding -nostdlibinc" \
+              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding -nostdlibinc" \
               -DCMAKE_C_COMPILER_FORCED=ON \
               -DCMAKE_CXX_COMPILER_FORCED=ON \
               -DCMAKE_CROSSCOMPILING=ON \
