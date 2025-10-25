@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -30,11 +30,11 @@ jobs:
 #            llvm-target: ARM
 #            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
 #            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
-#          - name: riscv
-#            triple: riscv64-none-elf
-#            llvm-target: RISCV
-#            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
-#            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
+          - name: riscv
+            triple: riscv64-none-elf
+            llvm-target: RISCV
+            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/riscv64-unknown-none-elf"
+            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false -Dc_link_args=-L$(clang -print-resource-dir)/lib/riscv64-unknown-none-elf"
 
     steps:
       - name: Set up Clang 20
@@ -125,11 +125,17 @@ jobs:
           echo "PATH=$PWD/bin:$PATH" >> $GITHUB_ENV
 
       - name: Checkout Picolibc
-        uses: actions/checkout@v4
-        with:
-          repository: picolibc/picolibc
-          path: picolibc
-          ref: main
+        run: |
+          git clone https://github.com/picolibc/picolibc.git $GITHUB_WORKSPACE/picolibc
+          if [ ${{ matrix.arch.name }} = "riscv" ]; then
+            cd ${{ github.workspace }}/picolibc
+            git config user.name "CI Bot"
+            git config user.email "ci@example.com"
+            git remote add quic-k https://github.com/quic-k/picolibc.git
+            git fetch quic-k arm_riscv_ci
+            # use a temporary patch for riscv
+            git cherry-pick d34a801d64188c4ec5346081005b2593695d0406
+          fi
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, default-config
         run: |
