@@ -203,21 +203,32 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_plt_entry) << R->name();
-  // If there is no entries GOTPLT and PLT, we dont have a PLT0.
+
+  // Create PLT0 if this is the first PLT entry. PLT0 is the common
+  // trampoline that all PLTN entries jump to for symbol resolution.
   if (!hasNow && !getPLT()->getFragmentList().size()) {
     x86_64PLT0::Create(*m_Module.getIRBuilder(),
                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                        nullptr, hasNow);
   }
-  x86_64PLT *P = x86_64PLTN::Create(*m_Module.getIRBuilder(),
-                                    createGOT(GOT::GOTPLTN, Obj, R),
-                                    Obj->getPLT(), R, hasNow);
-  // init the corresponding rel entry in .rela.plt
+  x86_64PLT *P =
+      x86_64PLTN::Create(*m_Module.getIRBuilder(),
+                         createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R, hasNow);
+
+  // The relocation index is set before getContent() is called during
+  // layout, as it is embedded directly in the PLT entry's instruction bytes.
+  if (x86_64PLTN *pltn = llvm::dyn_cast<x86_64PLTN>(P)) {
+    pltn->setRelocIndex(m_RelaPLTIndex);
+  }
+
   Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_X86_64_JUMP_SLOT);
   Fragment *F = P->getGOT();
   rela_entry.setTargetRef(make<FragmentRef>(*F, 0));
   rela_entry.setSymInfo(R);
+
+  m_RelaPLTIndex++;
+
   if (R)
     recordPLT(R, P);
   return P;

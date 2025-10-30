@@ -177,8 +177,6 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
 void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
                                       eld::IRBuilder &pBuilder,
                                       ELFSection &pSection, CopyRelocs &) {
-  assert(config().codeGenType() == LinkerConfig::Exec &&
-         "scanGlobalReloc currently only supports static executables");
 
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
@@ -186,6 +184,9 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
 
   switch (pReloc.type()) {
   case llvm::ELF::R_X86_64_PLT32: {
+    if (config().isCodeStatic()) {
+      return;
+    }
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry

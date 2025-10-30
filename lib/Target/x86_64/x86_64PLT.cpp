@@ -12,6 +12,7 @@ using namespace eld;
 
 // PLT0
 // Creates PLT0 stub with relocations to reference GOTPLT[1] and GOTPLT[2].
+// Note that these relocations get resolved at link time.
 // PLT0 is called by all PLT entries to invoke the dynamic linker.
 x86_64PLT0 *x86_64PLT0::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
                                ResolveInfo *R, bool BindNow) {
@@ -37,42 +38,30 @@ x86_64PLT0 *x86_64PLT0::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
 }
 
 // PLTN
+//  Creates PLTN stub with relocations to reference GOTPLTN and PLT0
+//  Note that these relocations get resolved at link time.
 x86_64PLTN *x86_64PLTN::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
                                ResolveInfo *R, bool BindNow) {
   x86_64PLTN *P = make<x86_64PLTN>(G, I, O, R, 16, 16);
   O->addFragmentAndUpdateSize(P);
 
-  // Create a relocation and point to the GOT.
-  Relocation *r1 = nullptr;
-  Relocation *r2 = nullptr;
-  std::string name = "__gotpltn_for_" + std::string(R->name());
-  // create LDSymbol for the stub
-  LDSymbol *symbol = I.addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-      O->getInputFile(), name, ResolveInfo::NoType, ResolveInfo::Define,
-      ResolveInfo::Local,
-      8, // size
-      0, // value
-      make<FragmentRef>(*G, 0), ResolveInfo::Internal,
-      true /* isPostLTOPhase */);
-  symbol->setShouldIgnore(false);
-  r1 = Relocation::Create(llvm::ELF::R_X86_64_JUMP_SLOT, 64,
-                          make<FragmentRef>(*P, 0), 0);
-  r1->setSymInfo(symbol->resolveInfo());
-  r2 = Relocation::Create(llvm::ELF::R_X86_64_JUMP_SLOT, 64,
-                          make<FragmentRef>(*P, 8), 8);
-  r2->setSymInfo(symbol->resolveInfo());
+  // First instruction: jmpq *GOTPLTN(%rip)
+  // Patches offset at PLTN+2 to reference GOTPLTN entry
+  Relocation *r1 = Relocation::Create(llvm::ELF::R_X86_64_PC32, 32,
+                                      make<FragmentRef>(*P, 2), -4);
+  r1->modifyRelocationFragmentRef(make<FragmentRef>(*G, 0));
   O->addRelocation(r1);
-  O->addRelocation(r2);
 
-  // No PLT0 for immediate binding.
-  if (BindNow)
-    return P;
+  if (!BindNow) {
+    Fragment *PLT0 = *(O->getFragmentList().begin());
 
-  Fragment *F = *(O->getFragmentList().begin());
-  FragmentRef *PLT0FragRef = make<FragmentRef>(*F, 0);
-  Relocation *r3 = Relocation::Create(llvm::ELF::R_X86_64_JUMP_SLOT, 64,
-                                      make<FragmentRef>(*G, 0), 0);
-  O->addRelocation(r3);
-  r3->modifyRelocationFragmentRef(PLT0FragRef);
+    // Third instruction: jmpq PLT0
+    // Patches offset at PLTN+12 to reference PLT0 entry
+    Relocation *r2 = Relocation::Create(llvm::ELF::R_X86_64_PC32, 32,
+                                        make<FragmentRef>(*P, 12), -4);
+    r2->modifyRelocationFragmentRef(make<FragmentRef>(*PLT0, 0));
+    O->addRelocation(r2);
+  }
+
   return P;
 }

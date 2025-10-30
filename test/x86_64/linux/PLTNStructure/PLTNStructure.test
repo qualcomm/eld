@@ -1,0 +1,34 @@
+#--PLTNStructure.test----------Executable (PIE)--------#
+#BEGIN_COMMENT
+# Verifies PLTN structure:
+# - First instruction references GOTPLTN
+# - Second instruction embeds relocation index (0, 1, ...)
+# - Third instruction references PLT0
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %link %linkopts -o %t.out %t.1.o %t.lib2.so
+RUN: (%readelf -S %t.out; %objdump -d %t.out) | %filecheck %s
+
+# Capture section addresses
+CHECK: .plt PROGBITS [[#%x,PLT0_ADDR:]]
+CHECK: .got.plt PROGBITS [[#%x,GOTPLT_ADDR:]]
+CHECK: <.plt>:
+
+# First PLTN entry (index 0)
+# jmpq *GOTPLTN(%rip) - GOTPLTN at GOTPLT+0x18 (after 24-byte GOTPLT0)
+CHECK: [[#PLT0_ADDR+0x10]]: ff 25 {{[0-9a-f ]+}} jmpq{{.*}}# 0x[[#GOTPLT_ADDR+0x18]]
+# pushq $0x0 - relocation index 0
+CHECK-NEXT: {{[0-9a-f]+}}: 68 00 00 00 00
+# jmpq PLT0 - jump to PLT0 for symbol resolution
+CHECK-NEXT: {{[0-9a-f]+}}: e9 {{[0-9a-f ]+}} jmp{{.*}} 0x[[#PLT0_ADDR]]
+
+# Second PLTN entry (index 1)
+# jmpq *GOTPLTN(%rip) - GOTPLTN at GOTPLT+0x20 (GOTPLT0 + first GOTPLTN)
+CHECK: [[#PLT0_ADDR+0x20]]: ff 25 {{[0-9a-f ]+}} jmpq{{.*}}# 0x[[#GOTPLT_ADDR+0x20]]
+# pushq $0x1 - relocation index 1
+CHECK-NEXT: {{[0-9a-f]+}}: 68 01 00 00 00
+# jmpq PLT0 - jump to PLT0 for symbol resolution
+CHECK-NEXT: {{[0-9a-f]+}}: e9 {{[0-9a-f ]+}} jmp{{.*}} 0x[[#PLT0_ADDR]]

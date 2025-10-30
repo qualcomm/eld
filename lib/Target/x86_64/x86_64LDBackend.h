@@ -105,6 +105,10 @@ private:
 
   x86_64ELFDynamic *m_pDynamic;
   LDSymbol *m_pEndOfImage;
+  // Tracks .rela.plt entry index
+  // m_RelaPLTIndex starts at 0 for the first function PLT entry
+  uint32_t m_RelaPLTIndex = 0;
+
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
