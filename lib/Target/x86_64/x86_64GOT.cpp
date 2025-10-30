@@ -15,3 +15,8 @@ x86_64GOTPLT0 *x86_64GOTPLT0::Create(ELFSection *O, Module *M) {
   x86_64GOTPLT0 *G = make<x86_64GOTPLT0>(O, M);
   return G;
 }
+
+x86_64GOTPLTN *x86_64GOTPLTN::Create(ELFSection *O, ResolveInfo *R) {
+  x86_64GOTPLTN *G = make<x86_64GOTPLTN>(O, R);
+  return G;
+}

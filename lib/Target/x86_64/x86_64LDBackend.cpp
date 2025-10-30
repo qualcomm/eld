@@ -217,9 +217,8 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
 
   // The relocation index is set before getContent() is called during
   // layout, as it is embedded directly in the PLT entry's instruction bytes.
-  if (x86_64PLTN *pltn = llvm::dyn_cast<x86_64PLTN>(P)) {
-    pltn->setRelocIndex(m_RelaPLTIndex);
-  }
+  x86_64PLTN *pltn = llvm::cast<x86_64PLTN>(P);
+  pltn->setRelocIndex(m_RelaPLTIndex);
 
   Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_X86_64_JUMP_SLOT);

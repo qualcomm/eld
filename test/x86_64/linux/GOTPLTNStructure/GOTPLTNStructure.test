@@ -1,0 +1,22 @@
+#--GOTPLTNStructure.test----------Executable (PIE)--------#
+#BEGIN_COMMENT
+# Verifies GOTPLTN entries point to PLT+6 (pushq instruction)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+#The script fixes the address of .plt section
+RUN: %link %linkopts -T %p/Inputs/script_fixPLTaddress.t -o %t.out %t.1.o %t.lib2.so
+RUN: %readelf -x .got.plt %t.out | %filecheck %s
+
+# GOTPLT0 (24 bytes): .dynamic address + zeros
+CHECK: {{0x[0-9a-f]+}} 10034000 00000000
+CHECK-SAME: 00000000 00000000
+CHECK: {{0x[0-9a-f]+}} 00000000 00000000
+
+# First GOTPLTN: points to first PLT entry + 6
+CHECK-SAME: 96024000 00000000
+
+# Second GOTPLTN: points to second PLT entry + 6
+CHECK: {{0x[0-9a-f]+}} a6024000 00000000

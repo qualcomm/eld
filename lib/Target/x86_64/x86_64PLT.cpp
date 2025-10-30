@@ -45,6 +45,10 @@ x86_64PLTN *x86_64PLTN::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
   x86_64PLTN *P = make<x86_64PLTN>(G, I, O, R, 16, 16);
   O->addFragmentAndUpdateSize(P);
 
+  // Link GOTPLTN to this PLT entry so it can compute its initial value
+  x86_64GOTPLTN *gotplt = llvm::cast<x86_64GOTPLTN>(G);
+  gotplt->setPLTEntry(P);
+
   // First instruction: jmpq *GOTPLTN(%rip)
   // Patches offset at PLTN+2 to reference GOTPLTN entry
   Relocation *r1 = Relocation::Create(llvm::ELF::R_X86_64_PC32, 32,

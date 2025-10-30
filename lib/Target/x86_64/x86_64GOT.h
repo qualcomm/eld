@@ -50,8 +50,7 @@ public:
       Value =
           symInfo()->outSymbol()->value() - GNULDBackend::getTLSTemplateSize();
 
-    return llvm::ArrayRef(reinterpret_cast<const uint8_t *>(&Value),
-                          sizeof(Value));
+    return llvm::ArrayRef(reinterpret_cast<uint8_t *>(&Value), sizeof(Value));
   }
 
   static x86_64GOT *Create(ELFSection *O, ResolveInfo *R) {
@@ -98,18 +97,43 @@ private:
   mutable uint8_t Value[24];
 };
 
+/** \class x86_64GOTPLTN
+ *  \brief GOT entry for PLT function.
+ *
+ *  Each function with a PLT entry has a corresponding GOTPLTN entry.
+ *  Initially points to PLT entry + 6 (the pushq instruction).
+ *  Updated by dynamic linker on first call to point to actual function for the
+ * case of lazy binding.
+ */
 class x86_64GOTPLTN : public x86_64GOT {
 public:
   x86_64GOTPLTN(ELFSection *O, ResolveInfo *R)
-      : x86_64GOT(GOT::GOTPLTN, O, R, /*Align=*/8, /*Size=*/8) {}
+      : x86_64GOT(GOT::GOTPLTN, O, R, /*Align=*/8, /*Size=*/8),
+        m_PLTEntry(nullptr) {}
 
   x86_64GOT *getFirst() override { return this; }
 
   x86_64GOT *getNext() override { return nullptr; }
 
-  static x86_64GOTPLTN *Create(ELFSection *O, ResolveInfo *R) {
-    return make<x86_64GOTPLTN>(O, R);
+  // Link to corresponding PLT entry for address calculation
+  void setPLTEntry(Fragment *plt) { m_PLTEntry = plt; }
+
+  virtual llvm::ArrayRef<uint8_t> getContent() const override {
+    Value = 0;
+    ELFSection *pltSection =
+        m_PLTEntry->getOwningSection()->getOutputELFSection();
+
+    // Point to PLT entry + 6 (pushq instruction)
+    Value = pltSection->addr() + m_PLTEntry->getOffset() + 6;
+
+    return llvm::ArrayRef(reinterpret_cast<uint8_t *>(&Value), sizeof(Value));
   }
+
+  static x86_64GOTPLTN *Create(ELFSection *O, ResolveInfo *R);
+
+private:
+  Fragment *m_PLTEntry;
+  mutable uint64_t Value;
 };
 
 class x86_64GDGOT : public x86_64GOT {
