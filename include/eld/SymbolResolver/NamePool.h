@@ -111,6 +111,15 @@ public:
 
   bool getSymbolTracingRequested() const;
 
+  // --------------------- Linker Script Symbols ----------------
+  // Record a symbol that originates from a linker script / defsym.
+  void addScriptSymbol(ResolveInfo *RI) { ScriptSymbols.push_back(RI); }
+
+  // Return all symbols that originates from linker script / defsym.
+  const std::vector<ResolveInfo *> &getScriptSymbols() const {
+    return ScriptSymbols;
+  }
+
   /// --------------------- Symbol References and checks ----------------
   bool canSymbolsBeResolved(const ResolveInfo *, const ResolveInfo *) const;
   bool checkTLSTypes(const ResolveInfo *, const ResolveInfo *) const;
@@ -143,6 +152,9 @@ private:
   SymbolResolutionInfo SymbolResInfo;
   std::map<const ResolveInfo *, LDSymbol *> SharedLibsSymbols;
   PluginManager &PM;
+
+  // Symbols defined via linker scripts / defsym.
+  std::vector<ResolveInfo *> ScriptSymbols;
 };
 
 } // namespace eld

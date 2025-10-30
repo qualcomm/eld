@@ -1,0 +1,59 @@
+#---RecursivePendingEvaluation.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks that the linker performs correct expression evaluation
+# when there is a chain of forward reference expression such that
+# the pending assignments evaluation rounds needs several iterations
+# to resolve all the pending assignments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts  -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.2.out %t1.2.o \
+RUN:   -T %p/Inputs/script.RecursivePendingEvaluation.t \
+RUN:  --trace=pending-assignments --verbose 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.2.out 2>&1 | %filecheck %s --check-prefix READELF
+RUN: %link %linkopts -o %t1.2.phdr.out %t1.2.o \
+RUN:   -T %p/Inputs/script.RecursivePendingEvaluation.phdr.t \
+RUN:  --trace=pending-assignments --verbose 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.2.phdr.out 2>&1 | %filecheck %s --check-prefix READELF
+#END_TEST
+
+CHECK-DAG: Verbose: Performing layout iteration 0
+CHECK: INSIDE_OUTPUT_SECTION    >>  fn(0) = u(0x0);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  u(0) = v1(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v1(0) = v2(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v2(0) = v3(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v3(0) = v4(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v4(0) = v5(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v5(4096) = v6(0x1000);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  fn(0) = u(0x0);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  u(0) = v1(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v1(0) = v2(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v2(0) = v3(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v3(0) = v4(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v4(4096) = v5(0x1000);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  fn(0) = u(0x0);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  u(0) = v1(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v1(0) = v2(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v2(0) = v3(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v3(4096) = v4(0x1000);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  fn(0) = u(0x0);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  u(0) = v1(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v1(0) = v2(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v2(4096) = v3(0x1000);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  fn(0) = u(0x0);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  u(0) = v1(0x0);
+CHECK:  OUTPUT_SECTION(EPILOGUE)   >>  v1(4096) = v2(0x1000);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  fn(0) = u(0x0);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  u(4096) = v1(0x1000);
+CHECK:    INSIDE_OUTPUT_SECTION    >>  fn(4096) = u(0x1000);
+
+READELF-DAG: {{0+}}1000 {{.*}} u
+READELF-DAG: {{0+}}1000 {{.*}} foo
+READELF-DAG: {{0+}}1000 {{.*}} fn
+READELF-DAG: {{0+}}1000 {{.*}} v1
+READELF-DAG: {{0+}}1000 {{.*}} v2
+READELF-DAG: {{0+}}1000 {{.*}} v3
+READELF-DAG: {{0+}}1000 {{.*}} v4
+READELF-DAG: {{0+}}1000 {{.*}} v5
+READELF-DAG: {{0+}}1000 {{.*}} v6
+

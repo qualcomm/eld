@@ -547,6 +547,9 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
                                     Desc, /*isBitcode=*/false});
   }
 
+  if (Input && Input->isLinkerScript())
+    ThisModule.getNamePool().addScriptSymbol(OutputSym->resolveInfo());
+
   return OutputSym;
 }
 
@@ -626,6 +629,10 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
     OutputSym->setFragmentRef(CurFragmentRef);
     OutputSym->setValue(Value, false);
   }
+
+  // If symbol originates from a linker script, record it in NamePool.
+  if (Input && Input->isLinkerScript())
+    ThisModule.getNamePool().addScriptSymbol(Result.Info);
 
   return OutputSym;
 }
