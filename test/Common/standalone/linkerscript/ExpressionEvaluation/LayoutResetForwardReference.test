@@ -1,0 +1,25 @@
+#---LayoutResetForwardReference.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks that the linker performs correct expression evaluation
+# when the expression contains a forward-reference, and the layout reset
+# during the layout may cause incorrect expression evaluation by incorrectly
+# providing intermediate values to pending assignments.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts  -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.2.out %t1.2.o -T %p/Inputs/script.LayoutReset.t \
+RUN:   --trace=pending-assignments --verbose 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.2.out 2>&1 | %filecheck %s --check-prefix READELF
+RUN: %link %linkopts -o %t1.2.phdr.out %t1.2.o -T %p/Inputs/script.LayoutReset.phdr.t \
+RUN:   --trace=pending-assignments --verbose 2>&1 | %filecheck %s
+RUN: %readelf -s %t1.2.phdr.out 2>&1 | %filecheck %s --check-prefix READELF
+#END_TEST
+
+CHECK-DAG: Verbose: Performing layout iteration 0
+CHECK-DAG: Verbose: Evaluating pending assignments
+CHECK-DAG:     INSIDE_OUTPUT_SECTION    >>  fn(4096) = u(0x1000);
+
+READELF-DAG: {{0+}}1000 {{.*}} u
+READELF-DAG: {{0+}}1000 {{.*}} foo
+READELF-DAG: {{0+}}1000 {{.*}} fn
+
