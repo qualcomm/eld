@@ -124,6 +124,12 @@ void x86_64LDBackend::doPreLayout() {
   // Create a dynamic section handler for non-static or forced-dynamic outputs.
   if (!config().isCodeStatic() || config().options().forceDynamic())
     m_pDynamic = make<x86_64ELFDynamic>(*this, config());
+
+  if (LinkerConfig::Object != config().codeGenType()) {
+    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+                          getRelaEntrySize());
+    m_Module.addOutputSection(getRelaPLT());
+  }
 }
 
 x86_64ELFDynamic *x86_64LDBackend::dynamic() { return m_pDynamic; }
@@ -220,6 +226,8 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   x86_64PLTN *pltn = llvm::cast<x86_64PLTN>(P);
   pltn->setRelocIndex(m_RelaPLTIndex);
 
+  // Create JUMP_SLOT relocation entry in .rela.plt section for dynamic linker
+  // The dynamic linker uses this to resolve the function address on first call
   Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
   rela_entry.setType(llvm::ELF::R_X86_64_JUMP_SLOT);
   Fragment *F = P->getGOT();

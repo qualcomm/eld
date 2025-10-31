@@ -91,12 +91,18 @@ public:
 
   void doPreLayout() override;
 
+  DynRelocType getDynRelocType(const Relocation *X) const override {
+    if (X->type() == llvm::ELF::R_X86_64_JUMP_SLOT)
+      return DynRelocType::JMP_SLOT;
+    return DynRelocType::DEFAULT;
+  }
+
 private:
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
 
   /// getRelaEntrySize - the size in BYTE of rela type relocation
-  size_t getRelaEntrySize() override { return 12; }
+  size_t getRelaEntrySize() override { return 24; }
 
   uint64_t maxBranchOffset() override { return 0; }
 
