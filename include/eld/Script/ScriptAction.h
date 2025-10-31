@@ -38,9 +38,9 @@ public:
     return llvm::dyn_cast<eld::LinkerScriptFile>(I->getInputFile());
   }
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const ScriptAction *S) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::Script;
+  }
 
 private:
   std::string FileNamePatternName;

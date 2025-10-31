@@ -89,9 +89,14 @@ public:
 
   virtual ~InputFileAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const InputFileAction *I) { return true; }
+  // Matches actions that are represented by InputFileAction
+  // (plain file, script file, or just-symbols file).
+  static bool classof(const InputAction *I) {
+    auto K = I->getInputActionKind();
+    return K == InputAction::InputActionKind::InputFile ||
+           K == InputAction::InputActionKind::Script ||
+           K == InputAction::InputActionKind::JustSymbols;
+  }
 
   void setFileName(std::string FileName) { Name = FileName; }
 
@@ -111,9 +116,9 @@ public:
 
   virtual ~NamespecAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const NamespecAction *N) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::Namespec;
+  }
 
   Input *getInput() const override { return I; }
 
@@ -131,9 +136,9 @@ public:
 
   virtual ~StartGroupAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const StartGroupAction *S) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::StartGroup;
+  }
 };
 
 /// EndGroupAction
@@ -145,9 +150,9 @@ public:
 
   virtual ~EndGroupAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const EndGroupAction *E) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::EndGroup;
+  }
 };
 
 /// WholeArchiveAction
@@ -159,9 +164,9 @@ public:
 
   virtual ~WholeArchiveAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const WholeArchiveAction *W) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::WholeArchive;
+  }
 };
 
 /// NoWholeArchiveAction
@@ -173,9 +178,9 @@ public:
 
   virtual ~NoWholeArchiveAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const NoWholeArchiveAction *N) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::NoWholeArchive;
+  }
 };
 
 /// AsNeededAction
@@ -187,9 +192,9 @@ public:
 
   virtual ~AsNeededAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const AsNeededAction *A) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::AsNeeded;
+  }
 };
 
 /// PushStateAction
@@ -229,9 +234,9 @@ public:
 
   virtual ~NoAsNeededAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const NoAsNeededAction *N) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::NoAsNeeded;
+  }
 };
 
 /// AddNeededAction
@@ -243,9 +248,9 @@ public:
 
   virtual ~AddNeededAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const AddNeededAction *A) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::AddNeeded;
+  }
 };
 
 /// NoAddNeededAction
@@ -257,9 +262,9 @@ public:
 
   virtual ~NoAddNeededAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const NoAddNeededAction *N) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::NoAddNeeded;
+  }
 };
 
 /// BDynamicAction
@@ -271,9 +276,9 @@ public:
 
   virtual ~BDynamicAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const BDynamicAction *N) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::BDynamic;
+  }
 };
 
 /// BStaticAction
@@ -285,9 +290,9 @@ public:
 
   virtual ~BStaticAction() {}
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const BStaticAction *B) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::BStatic;
+  }
 };
 
 /// DefSymAction
@@ -301,11 +306,9 @@ public:
 
   virtual ~DefSymAction() {}
 
-  // FIXME: LLVM casting will work incorrectly for DefSymAction because all
-  // Input actions can use this overload.
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const DefSymAction *D) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::DefSym;
+  }
 
 private:
   std::string MAssignment;

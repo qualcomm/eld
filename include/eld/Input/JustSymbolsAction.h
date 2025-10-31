@@ -21,9 +21,9 @@ public:
 
   bool activate(InputBuilder &) override;
 
-  static bool classof(const InputAction *I) { return true; }
-
-  static bool classof(const JustSymbolsAction *S) { return true; }
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::JustSymbols;
+  }
 
 private:
   const LinkerConfig &Config;
