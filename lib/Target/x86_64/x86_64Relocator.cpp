@@ -184,21 +184,16 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
 
   switch (pReloc.type()) {
   case llvm::ELF::R_X86_64_PLT32: {
-    if (config().isCodeStatic()) {
-      return;
-    }
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    // Absolute relocation type, symbol may needs PLT entry or
-    // dynamic relocation entry
-    if (rsym->type() == ResolveInfo::Function) {
-      // create PLT for this symbol if it does not have.
-      if (!(rsym->reserved() & ReservePLT)) {
-        m_Target.createPLT(Obj, rsym);
-        rsym->setReserved(rsym->reserved() | ReservePLT);
-      }
+    if (!m_Target.isSymbolPreemptible(*rsym))
+      return;
+    if (!(rsym->reserved() & ReservePLT)) {
+      m_Target.createPLT(Obj, rsym);
+      rsym->setReserved(rsym->reserved() | ReservePLT);
     }
     return;
   }
+
   case llvm::ELF::R_X86_64_GOTPCREL:
   case llvm::ELF::R_X86_64_GOTPCRELX:
   case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
@@ -387,19 +382,27 @@ Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
   return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options);
 }
 
+// R_X86_64_PLT32 - PC-relative 32-bit relocation for function calls
+// Formula: S + A - P (or PLT_entry + A - P if symbol has PLT)
 Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
                                   RelocationDescription &pRelocDesc) {
-
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
-  Relocator::Address S = pReloc.symValue(pParent.module());
+  ResolveInfo *symInfo = pReloc.symInfo();
+  Relocator::Address S;
+  if (symInfo->reserved() & Relocator::ReservePLT) {
+    // Symbol has PLT entry - redirect through PLT
+    x86_64PLT *pltEntry = pParent.getTarget().findEntryInPLT(symInfo);
+    S = pltEntry->getAddr(DiagEngine);
+  } else {
+    // No PLT entry - use direct symbol address
+    S = pReloc.symValue(pParent.module());
+  }
+  // Calculate PC-relative offset: S + A - P
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord P = pReloc.place(pParent.module());
-  const GeneralOptions &options = pParent.config().options();
-
-  // Static Linking : PLT32 behaves as PC32
-  Relocator::Address Result = S + A - P;
-
-  return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options);
+  Relocator::DWord Result = S + A - P;
+  return applyRel(pReloc, Result, pRelocDesc, DiagEngine,
+                  pParent.config().options());
 }
 
 Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
