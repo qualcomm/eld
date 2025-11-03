@@ -1,0 +1,11 @@
+#---InvalidOutputSectionOverride.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test check if the invalid output section override does not cause the link
+# to crash when emitting map-file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L %libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map %t1.1.map.txt 2>&1 | %filecheck %s
+
+#CHECK: Note: Output section override set for section .text.foo from input file {{.*}}1.o, but .bar not present, using default match
+

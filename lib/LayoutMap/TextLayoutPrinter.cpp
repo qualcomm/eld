@@ -397,6 +397,11 @@ bool TextLayoutPrinter::printChangeOutputSectionPluginOpDetailed(
       llvm::dyn_cast<ChangeOutputSectionPluginOp>(Pop);
   if (!Op)
     return false;
+  // If the Op does not have a modified rule then that implies the output
+  // section was not changed due to some reason. For example, if an invalid
+  // output section was provided to the change output section API.
+  if (!Op->getModifiedRule())
+    return true;
   ELFSection *S = Op->getELFSection();
   outputStream() << "#\tSection :" << S->name() << "\t";
   if (S->hasOldInputFile()) {
