@@ -219,8 +219,9 @@ bool HexagonLinkDriver::processLLVMOptions(llvm::opt::InputArgList &Args) {
 
 bool HexagonLinkDriver::isValidEmulation(llvm::StringRef Emulation) {
   return llvm::StringSwitch<bool>(Emulation)
-      .Cases("hexagonelf", "v68", "v69", "v71", "v71t", true)
+      .Cases({"hexagonelf", "v68", "v69", "v71", "v71t"}, true)
       .Cases({"v73", "v75", "v77", "v79", "v81", "v83", "v85", "v87", "v89",
-             "v91"}, true)
+              "v91"},
+             true)
       .Default(false);
 }
