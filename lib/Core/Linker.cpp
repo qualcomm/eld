@@ -971,10 +971,6 @@ bool Linker::initializeTarget(uint16_t machine, bool is64bit) {
     ThisConfig->raise(Diag::error_backend_init_failed) << Target->name();
     return false;
   }
-  if (!Backend) {
-    ThisConfig->raise(Diag::error_no_backend_found) << Target->name();
-    return false;
-  }
 
   // Parse target specific command line options
   GnuLdDriver *Driver = GnuLdDriver::Create(*ThisConfig, machine, is64bit);
