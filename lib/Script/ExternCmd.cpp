@@ -7,6 +7,7 @@
 #include "eld/Script/ExternCmd.h"
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
+#include "eld/Fragment/FragmentRef.h"
 #include "eld/Script/ScriptSymbol.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -21,8 +22,6 @@ using namespace eld;
 ExternCmd::ExternCmd(StringList &PExtern)
     : ScriptCommand(ScriptCommand::EXTERN), ExternSymbolList(PExtern) {}
 
-
-
 void ExternCmd::dump(llvm::raw_ostream &Outs) const {
   for (auto &E : ExternSymbolList)
     Outs << "EXTERN(" << E->name() << ")"
@@ -32,28 +31,25 @@ void ExternCmd::dump(llvm::raw_ostream &Outs) const {
 eld::Expected<void> ExternCmd::activate(Module &CurModule) {
   InputFile *I =
       CurModule.getInternalInput(Module::InternalInputType::ExternList);
+  auto *IRBuilder = CurModule.getIRBuilder();
   for (auto &E : ExternSymbolList) {
     std::string Name = E->name();
-    Resolver::Result Result;
-    CurModule.getNamePool().insertSymbol(
-        I, Name, false, eld::ResolveInfo::NoType, eld::ResolveInfo::Undefined,
-        eld::ResolveInfo::Global, 0, 0, eld::ResolveInfo::Default, nullptr,
-        Result, false /* postLTOPhase*/, false, 0, false /* isPatchable */,
-        CurModule.getPrinter());
+    LDSymbol *LDSym =
+        IRBuilder->addSymbol<IRBuilder::SymbolDefinePolicy::Force,
+                             IRBuilder::SymbolResolvePolicy::Resolve>(
+            I, Name, ResolveInfo::Type::NoType, ResolveInfo::Desc::Undefined,
+            ResolveInfo::Binding::Global, /*Size=*/0, /*Value=*/0,
+            /*CurFragmentRef=*/FragmentRef::null(),
+            ResolveInfo::Visibility::Default,
+            /*postLTOPhase=*/false, /*IsBitcode=*/false, /*IsPatchable=*/false);
     CurModule.getConfig().options().getUndefSymList().emplace_back(
         eld::make<StrToken>(Name));
-    // create a output LDSymbol
-    LDSymbol *OutputSym = make<LDSymbol>(
-        Result.Info, CurModule.getConfig().options().gcSections());
-    Result.Info->setOutSymbol(OutputSym);
-    // Initialize origin.
-    Result.Info->setResolvedOrigin(I);
     ScriptSymbol *ScriptSym = llvm::dyn_cast_or_null<ScriptSymbol>(E);
     if (ScriptSym) {
       eld::Expected<void> E = ScriptSym->activate();
       if (!E)
         return E;
-      ScriptSym->addResolveInfoToContainer(Result.Info);
+      ScriptSym->addResolveInfoToContainer(LDSym->resolveInfo());
       ThisSymbolContainers.push_back(ScriptSym->getSymbolContainer());
     }
   }

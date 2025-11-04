@@ -1,0 +1,15 @@
+#---ExternCommandSymbolIndex.test------------------ LinkerScript ----------------#
+#BEGIN_COMMENT
+# Verify that extern symbol references are properly resolved in
+# the linker script.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o %p/Inputs/script.t
+RUN: %readelf -s %t1.1.out | %filecheck %s
+RUN: %link %linkopts -o %t1.1.T.out %t1.1.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.1.out | %filecheck %s
+#END_TEST
+
+#CHECK: GLOBAL DEFAULT {{[0-9]}} foo
+
