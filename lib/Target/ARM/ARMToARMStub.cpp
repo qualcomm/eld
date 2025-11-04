@@ -85,7 +85,7 @@ bool ARMToARMStub::isRelocInRange(const Relocation *pReloc,
     // TODO: find addend stored in opcode
     // 8 is the bias addend for branch target
     int addend = pReloc->addend() + 8;
-    int64_t Offset = pTargetValue + addend - pReloc->place(Module);
+    int64_t Offset = llvm::SignExtend64<32>(pTargetValue + addend - pReloc->place(Module));
     if ((Offset > ARMGNULDBackend::ARM_MAX_FWD_BRANCH_OFFSET) ||
         (Offset < ARMGNULDBackend::ARM_MAX_BWD_BRANCH_OFFSET)) {
       return false;
