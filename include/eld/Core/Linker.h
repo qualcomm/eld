@@ -87,11 +87,6 @@ public:
 
   void unloadPlugins();
 
-  // Set the GNU linker driver after sniffing
-  void setLinkerDriver(GnuLdDriver *D) { Driver = D; }
-
-  GnuLdDriver *getLinkerDriver() const { return Driver; }
-
   bool initializeTarget(uint16_t machine, bool is64bit);
 
 private:
