@@ -1,0 +1,46 @@
+name: Build eld
+description: Install dependencies and build eld
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y libc++-dev libc++abi-dev ccache \
+          libclang-rt-20-dev cmake ninja-build make qemu-user
+
+    - name: Set up Clang 20
+      uses: egor-tensin/setup-clang@v1
+      with:
+        version: "20"
+        platform: x64
+
+    - name: Verify clang installation
+      shell: bash
+      run: |
+        clang --version
+        clang++ --version
+
+    - name: Configure eld
+      shell: bash
+      run: |
+        mkdir -p obj
+        cd obj
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PWD/../inst \
+          -DLLVM_ENABLE_PROJECTS="llvm;clang;compiler-rt" \
+          -DCMAKE_C_COMPILER=`which clang` \
+          -DCMAKE_CXX_COMPILER=`which clang++` \
+          -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
+          -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+          -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
+          ../llvm-project/llvm
+
+    - name: Build eld
+      shell: bash
+      run: |
+        cd obj
+        ninja ld.eld FileCheck
+        echo "PATH=$(pwd)/bin:$PATH" >> $GITHUB_ENV

@@ -1,0 +1,20 @@
+CHECK-DAG: FAIL src/api/main.exe [status 1]
+CHECK-DAG: FAIL src/functional/dlopen.exe [status 139]
+CHECK-DAG: FAIL src/functional/mntent-static.exe [status 1]
+CHECK-DAG: FAIL src/functional/mntent.exe [status 1]
+CHECK-DAG: FAIL src/functional/pthread_robust-static.exe [timed out]
+CHECK-DAG: FAIL src/functional/pthread_robust.exe [timed out]
+CHECK-DAG: FAIL src/functional/strptime-static.exe [status 1]
+CHECK-DAG: FAIL src/functional/strptime.exe [status 1]
+CHECK-DAG: FAIL src/functional/tls_align.exe [status 127]
+CHECK-DAG: FAIL src/functional/tls_align_dlopen.exe [status 1]
+CHECK-DAG: FAIL src/functional/tls_init_dlopen.exe [status 139]
+CHECK-DAG: FAIL src/math/powf.exe [status 1]
+CHECK-DAG: FAIL src/musl/pleval-static.exe [status 1]
+CHECK-DAG: FAIL src/regression/malloc-brk-fail-static.exe [status 1]
+CHECK-DAG: FAIL src/regression/pthread-robust-detach-static.exe [status 1]
+CHECK-DAG: FAIL src/regression/pthread-robust-detach.exe [status 1]
+CHECK-DAG: FAIL src/regression/tls_get_new-dtv.exe [status 139]
+
+COUNT-COUNT-17: {{^FAIL }}
+COUNT-NOT: {{^FAIL }}

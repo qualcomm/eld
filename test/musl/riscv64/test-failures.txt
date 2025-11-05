@@ -1,0 +1,15 @@
+CHECK-DAG: FAIL src/api/main.exe [status 1]
+CHECK-DAG: FAIL src/functional/mntent-static.exe [status 1]
+CHECK-DAG: FAIL src/functional/mntent.exe [status 1]
+CHECK-DAG: FAIL src/functional/pthread_robust-static.exe [timed out]
+CHECK-DAG: FAIL src/functional/pthread_robust.exe [timed out]
+CHECK-DAG: FAIL src/functional/strptime-static.exe [status 1]
+CHECK-DAG: FAIL src/functional/strptime.exe [status 1]
+CHECK-DAG: FAIL src/math/powf.exe [status 1]
+CHECK-DAG: FAIL src/musl/pleval-static.exe [status 1]
+CHECK-DAG: FAIL src/regression/flockfile-list.exe [status 135]
+CHECK-DAG: FAIL src/regression/pthread-robust-detach-static.exe [status 1]
+CHECK-DAG: FAIL src/regression/pthread-robust-detach.exe [status 1]
+
+COUNT-COUNT-12: {{^FAIL }}
+COUNT-NOT: {{^FAIL }}

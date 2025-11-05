@@ -1,34 +1,23 @@
 name: Nightly builder for testing eld against musl-test-suite for x86_64
 
-on: 
+on:
   schedule:
       - cron: '0 2 * * *' # 2:00 AM
   workflow_dispatch:     # Allows manual triggering
   pull_request:
     paths:
-      - '.github/workflows/nightly-musl-builder.yml'
+      - ".github/workflows/nightly-musl-builder.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test-eld-musl-x86_64:
+  test-musl-x86_64:
     runs-on: ubuntu-latest
-    
+    env:
+      ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
     steps:
-      - name: Set up Clang 20
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: "20"
-          platform: x64
-
-      - name: Install system dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make
-          
-      - name: Verify clang installation
-        run: |
-          clang --version
-          clang++ --version
-
       - name: Checkout LLVM Project
         uses: actions/checkout@v4
         with:
@@ -36,56 +25,37 @@ jobs:
           path: llvm-project
           ref: main
 
-      - name: Checkout ELD
+      - name: Checkout eld
         uses: actions/checkout@v4
         with:
           path: llvm-project/llvm/tools/eld
 
-      - name: Record pre-build entry
-        run: |
-          cd llvm-project/llvm/tools/eld
-          git branch
-          DASH_DIR="$(mktemp -d)"
-          cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git fetch --all
-          git checkout dashboard
-          cp ${DASH_DIR}/record_builds.py .
-          python record_builds.py --workflow musl --record --fail --run-id ${{github.run_id}}
-          rm -f record_builds.py
-          git add .
-          git commit -m "Add musl build status data in DB"
-          git push -f origin HEAD:refs/heads/dashboard
-          rm -rf ${DASH_DIR}
-          git checkout -
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
 
-      - name: Configure ELD Build
-        run: |
-          mkdir -p obj
-          cd obj
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$PWD/../install \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang;compiler-rt" \
-            -DCMAKE_C_COMPILER=`which clang` \
-            -DCMAKE_CXX_COMPILER=`which clang++` \
-            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_TARGETS_TO_BUILD="X86" \
-            -DELD_TARGETS_TO_BUILD='x86_64' \
-            ../llvm-project/llvm
-
-      - name: Build ELD
-        run: |
-          cd obj 
-          ninja -j$(nproc) ld.eld FileCheck
-          ninja install
+      # - name: Record pre-build entry
+      #   shell: bash
+      #   run: |
+      #     cd llvm-project/llvm/tools/eld
+      #     git branch
+      #     DASH_DIR="$(mktemp -d)"
+      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+      #     git config --global user.name 'github-actions'
+      #     git config --global user.email 'github-actions@github.com'
+      #     git fetch --all
+      #     git checkout dashboard
+      #     cp ${DASH_DIR}/record_builds.py .
+      #     python record_builds.py --workflow musl --record --fail --run-id ${{github.run_id}} --arch x86-64
+      #     rm -f record_builds.py
+      #     git add .
+      #     git commit -m "Add musl build status data in DB"
+      #     git push -f origin HEAD:refs/heads/dashboard
+      #     rm -rf ${DASH_DIR}
+      #     git checkout -
 
       - name: Setup ELD Environment
         run: |
           echo "PATH=$PWD/install/bin:$PATH" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$PWD/obj/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-
 
       - name: Download and Build musl
         run: |
@@ -95,10 +65,6 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Fix musl-clang Wrapper for ELD
-        run: |
-          sed -i 's/exec \$(\$cc -print-prog-name=ld)/exec ld.$LD/' musl-install/bin/ld.musl-clang
-          
       - name: Configure build environment and toolchain
         run: |
           # Set environment variables for subsequent steps
@@ -122,29 +88,149 @@ jobs:
 
       - name: Validate test results with FileCheck
         run: |
-          cd libc-test       
+          cd libc-test
           FILECHECK="$PWD/../obj/bin/FileCheck"
           $FILECHECK --check-prefixes=CHECK ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
           $FILECHECK --check-prefixes=COUNT ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
 
           echo "Test results validated"
 
-      - name: Update build entry
+      # - name: Update build entry
+      #   run: |
+      #     cd llvm-project/llvm/tools/eld
+      #     git branch
+      #     DASH_DIR="$(mktemp -d)"
+      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+      #     git config --global user.name 'github-actions'
+      #     git config --global user.email 'github-actions@github.com'
+      #     git fetch --all
+      #     git checkout dashboard
+      #     git pull
+      #     cp ${DASH_DIR}/record_builds.py .
+      #     python record_builds.py --workflow musl --update --pass --run-id ${{github.run_id}} --arch x86-64
+      #     rm -f record_builds.py
+      #     git add .
+      #     git commit -m "Add musl build status data in DB"
+      #     git push -f origin HEAD:refs/heads/dashboard
+      #     rm -rf ${DASH_DIR}
+      #     git checkout -
+
+  test-musl:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [riscv32, riscv64]
+    runs-on: ubuntu-latest
+    env:
+      ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
+    steps:
+      - name: Checkout LLVM Project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          path: llvm-project
+          ref: main
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
+
+      # - name: Record pre-build entry
+      #   shell: bash
+      #   run: |
+      #     cd llvm-project/llvm/tools/eld
+      #     git branch
+      #     DASH_DIR="$(mktemp -d)"
+      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+      #     git config --global user.name 'github-actions'
+      #     git config --global user.email 'github-actions@github.com'
+      #     git fetch --all
+      #     git checkout dashboard
+      #     cp ${DASH_DIR}/record_builds.py .
+      #     python record_builds.py --workflow musl --record --fail --run-id ${{github.run_id}} --arch ${{ matrix.arch }}
+      #     rm -f record_builds.py
+      #     git add .
+      #     git commit -m "Add musl build status data in DB"
+      #     git push -f origin HEAD:refs/heads/dashboard
+      #     rm -rf ${DASH_DIR}
+      #     git checkout -
+
+      - name: Install dependencies
+        shell: bash
         run: |
-          cd llvm-project/llvm/tools/eld
-          git branch
-          DASH_DIR="$(mktemp -d)"
-          cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git fetch --all
-          git checkout dashboard
-          git pull
-          cp ${DASH_DIR}/record_builds.py .
-          python record_builds.py --workflow musl --update --pass --run-id ${{github.run_id}}
-          rm -f record_builds.py
-          git add .
-          git commit -m "Add musl build status data in DB"
-          git push -f origin HEAD:refs/heads/dashboard
-          rm -rf ${DASH_DIR}
-          git checkout -
+          sudo apt update
+          sudo apt install -y libc++-dev libc++abi-dev ccache \
+            libclang-rt-20-dev cmake ninja-build make qemu-user
+
+      - name: Setup toolchain
+        run: |
+          wget https://github.com/cross-tools/clang-cross/releases/download/20251023/${{ matrix.arch }}-unknown-linux-musl.tar.xz
+          mkdir toolchain
+          tar -xvf ${{ matrix.arch }}-unknown-linux-musl.tar.xz -C toolchain --strip-components=1
+          echo "PATH=$PWD/toolchain/bin:$PATH" >> $GITHUB_ENV
+          echo "TOOLCHAIN_ROOT=$(pwd)/toolchain" >> $GITHUB_ENV
+
+      - name: Download musl libc-test
+        run: |
+          git clone --depth 1 https://repo.or.cz/libc-test.git
+
+      - name: Setup musl libc-test environment
+        shell: bash
+        run: |
+          cd libc-test
+          which grep
+          which which
+          which ld.eld
+          cp config.mak.def config.mak
+          cat >>config.mak <<EOF
+            CFLAGS += -Wno-error -Wno-strict-prototypes -Wno-switch-bool -Wno-c23-extensions
+            LDFLAGS += --ld-path=$(which ld.eld) -Wl,--image-base=0x1000
+          EOF
+          cat >qemu-${{ matrix.arch }}-wrapper.sh <<EOF
+          #!/usr/bin/bash
+          qemu-${{ matrix.arch }} -L ${TOOLCHAIN_ROOT}/${{ matrix.arch }}-unknown-linux-musl/sysroot "\$@"
+          EOF
+          chmod +x ./qemu-${{ matrix.arch }}-wrapper.sh
+          cat config.mak
+          cat qemu-${{ matrix.arch }}-wrapper.sh
+
+      - name: Run musl libc-test suite
+        run: |
+          cd libc-test
+          CC=${{ matrix.arch }}-unknown-linux-musl-clang make RUN_WRAP="$(pwd)/qemu-${{ matrix.arch }}-wrapper.sh"
+
+      - name: Upload libc-test
+        uses: actions/upload-artifact@v4
+        with:
+          name: libc-test-${{ matrix.arch }}.zip
+          path: libc-test
+
+      - name: Validate test results with FileCheck
+        run: |
+          cd libc-test
+          FileCheck --check-prefixes=CHECK ${ELD_SOURCE_DIR}/test/musl/${{ matrix.arch }}/test-failures.txt < src/REPORT
+          FileCheck --check-prefixes=COUNT ${ELD_SOURCE_DIR}/test/musl/${{ matrix.arch }}/test-failures.txt < src/REPORT
+          echo "Test results validated"
+
+      # - name: Update build entry
+      #   run: |
+      #     cd llvm-project/llvm/tools/eld
+      #     git branch
+      #     DASH_DIR="$(mktemp -d)"
+      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+      #     git config --global user.name 'github-actions'
+      #     git config --global user.email 'github-actions@github.com'
+      #     git fetch --all
+      #     git checkout dashboard
+      #     git pull
+      #     cp ${DASH_DIR}/record_builds.py .
+      #     python record_builds.py --workflow musl --update --pass --run-id ${{github.run_id}} --arch ${{ matrix.arch }}
+      #     rm -f record_builds.py
+      #     git add .
+      #     git commit -m "Add musl build status data in DB"
+      #     git push -f origin HEAD:refs/heads/dashboard
+      #     rm -rf ${DASH_DIR}
+      #     git checkout -
