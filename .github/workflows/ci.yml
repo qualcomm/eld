@@ -10,6 +10,7 @@ on:
       - '.github/workflows/ci-win.yml'
       - '.github/workflows/picolibc-builder.yml'
       - '.github/workflows/nightly-test.yml'
+      - '.github/workflows/scripts/record_builds.py'
 
 jobs:
   build:

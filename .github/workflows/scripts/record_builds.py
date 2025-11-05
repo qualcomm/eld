@@ -160,14 +160,14 @@ def writeJSData(workflow, data):
             json.dump(data, file)
     except Exception as e:
         sys.exit("Unable to write build data: " + str(e))
-    print("\nBuild data emitted to " + workflow_file_name + "\n")
+    print("\nBuild data written to " + workflow_file_name + "\n")
 
 
 def emitJSData(args):
     workflow = args.workflow_build.lower()
     conn = get_connection()
     cursor = conn.cursor()
-    all_data = None
+    all_data = []
     all_states_data = []
     try:
         if args.workflow_build.lower() == "picolibc":
@@ -182,7 +182,7 @@ def emitJSData(args):
             )
         all_data = cursor.fetchall()
     except Exception as e:
-        sys.exit(
+        print(
             "Error fetching build status data from table " + workflow + ": " + str(e)
         )
 
