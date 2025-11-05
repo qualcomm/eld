@@ -91,10 +91,26 @@ public:
 
   void doPreLayout() override;
 
+  void recordRelativeReloc(Relocation *DynRel, const Relocation *OrigRel) {
+    m_RelativeRelocMap[DynRel] = OrigRel;
+  }
+
   DynRelocType getDynRelocType(const Relocation *X) const override {
+    if (X->type() == llvm::ELF::R_X86_64_GLOB_DAT)
+      return DynRelocType::GLOB_DAT;
     if (X->type() == llvm::ELF::R_X86_64_JUMP_SLOT)
       return DynRelocType::JMP_SLOT;
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE)
+      return DynRelocType::RELATIVE;
     return DynRelocType::DEFAULT;
+  }
+
+  bool hasSymInfo(const Relocation *X) const override {
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE)
+      return false; // RELATIVE relocations do not encode a symbol
+    if (X->symInfo()->binding() == ResolveInfo::Local)
+      return false; // locals are not in .dynsym
+    return true;
   }
 
 private:
@@ -118,6 +134,7 @@ private:
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
+  llvm::DenseMap<Relocation *, const Relocation *> m_RelativeRelocMap;
 };
 } // namespace eld
 

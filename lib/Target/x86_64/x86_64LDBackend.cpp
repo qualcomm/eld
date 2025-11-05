@@ -128,7 +128,10 @@ void x86_64LDBackend::doPreLayout() {
   if (LinkerConfig::Object != config().codeGenType()) {
     getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
                           getRelaEntrySize());
+    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+                          getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
+    m_Module.addOutputSection(getRelaDyn());
   }
 }
 

@@ -14,6 +14,18 @@ using namespace eld;
 x86_64ELFDynamic::x86_64ELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig)
     : ELFDynamic(pParent, pConfig) {}
 
-void x86_64ELFDynamic::reserveTargetEntries() {}
+void x86_64ELFDynamic::reserveTargetEntries() {
+  // Reserve DT_RELACOUNT to advertise the number of RELATIVE relocations
+  // in .rela.dyn for loader optimizations.
+  reserveOne(llvm::ELF::DT_RELACOUNT);
+}
 
-void x86_64ELFDynamic::applyTargetEntries() {}
+void x86_64ELFDynamic::applyTargetEntries() {
+  // Count RELATIVE relocations for DT_RELACOUNT emission.
+  uint32_t relaCount = 0;
+  for (auto &R : m_Backend.getRelaDyn()->getRelocations()) {
+    if (R->type() == llvm::ELF::R_X86_64_RELATIVE)
+      relaCount++;
+  }
+  applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
+}

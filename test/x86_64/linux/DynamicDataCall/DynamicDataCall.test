@@ -1,0 +1,27 @@
+#UNSUPPORTED: windows
+#--DynamicDataCall.test-------Executable--#
+#BEGIN_COMMENT
+#Verifies data accesses are handled correctly for dynamic linking scenarios.
+#For GOTPCREL-type relocations, the linker must create a GOT entry and emit a dynamic relocation
+#to fill the GOT entry if it cannot be resolved at link time.
+#This test verifies that:
+# - GLOB_DAT relocations are emitted for GOT entries of global preemptible symbols (from shared libraries)
+# - RELATIVE relocations are emitted for GOT entries of global non-preemptible symbols defined in the same executable
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %link %linkopts  -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o %t.out %t.1.o %t.lib2.so
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -Sdr %t.out | %filecheck %s
+CHECK: .data PROGBITS [[#%x,DATA_SEC_ADDR:]]
+CHECK: .got PROGBITS [[#%x,GOT_ADDR:]]
+CHECK: Dynamic section
+CHECK: RELACOUNT
+CHECK-SAME: 1
+CHECK: .rela.dyn
+CHECK-DAG: [[#GOT_ADDR]]{{.*}}000000000008{{.*}}R_X86_64_RELATIVE{{.*}}[[#DATA_SEC_ADDR]]
+CHECK-DAG: [[#GOT_ADDR+0x8]]{{.*}}00000006{{.*}}R_X86_64_GLOB_DAT{{.*}}extern_var + 0
+CHECK-DAG: [[#GOT_ADDR+0x10]]{{.*}}00000006{{.*}}R_X86_64_GLOB_DAT{{.*}}extern_var2 + 0
+EXITCODE: 8

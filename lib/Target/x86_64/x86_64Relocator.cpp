@@ -156,6 +156,58 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
     scanGlobalReloc(pInputFile, pReloc, pLinker, *section, CopyRelocs);
 }
 
+namespace {
+
+Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
+                               ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
+                               Relocator::Type pType, x86_64LDBackend &B) {
+  Relocation *rela_entry = Obj->getRelaDyn()->createOneReloc();
+
+  rela_entry->setType(pType);
+  rela_entry->setTargetRef(make<FragmentRef>(*F, pOffset));
+  rela_entry->setSymInfo(pSym);
+
+  if (pType == llvm::ELF::R_X86_64_GLOB_DAT) {
+    // Preemptible symbol: dynamic loader resolves the value; addend must be 0.
+    rela_entry->setAddend(0);
+  } else if (pType == llvm::ELF::R_X86_64_RELATIVE) {
+    // RELATIVE reloc: writer emits r_addend = abs(symbol) + RAddend.
+    // Set RAddend to 0 so the final addend equals the absolute symbol value.
+    rela_entry->setAddend(0);
+  } else if (R) {
+    rela_entry->setAddend(R->addend());
+  } else {
+    rela_entry->setAddend(0);
+  }
+
+  if (R && (pType == llvm::ELF::R_X86_64_RELATIVE)) {
+    B.recordRelativeReloc(rela_entry, R);
+  }
+  return rela_entry;
+}
+
+// Create a GOT entry and attach appropriate dynamic relocation when needed.
+// - Non-dynamic case (!pHasRel): set link-time content to the symbol value.
+// - PIC/PIE: use RELATIVE for non-preemptible, GLOB_DAT for preemptible.
+x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
+                     x86_64LDBackend &B) {
+  ResolveInfo *rsym = pReloc.symInfo();
+  x86_64GOT *G = B.createGOT(GOT::Regular, Obj, rsym);
+  if (!pHasRel) {
+    // Write link-time content into GOT for static/non-dynamic case.
+    G->setValueType(GOT::SymbolValue);
+    return *G;
+  }
+  bool useRelative = !B.isSymbolPreemptible(*rsym);
+  helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                     useRelative ? llvm::ELF::R_X86_64_RELATIVE
+                                 : llvm::ELF::R_X86_64_GLOB_DAT,
+                     B);
+  return *G;
+}
+
+} // namespace
+
 void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                                      eld::IRBuilder &pBuilder,
                                      ELFSection &pSection) {
@@ -197,13 +249,12 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   case llvm::ELF::R_X86_64_GOTPCREL:
   case llvm::ELF::R_X86_64_GOTPCRELX:
   case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
-    if (!(rsym->reserved() & ReserveGOT)) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      x86_64GOT *gotEntry =
-          m_Target.createGOT(GOT::GOTType::Regular, Obj, rsym);
-      gotEntry->setValueType(GOT::SymbolValue);
-      rsym->setReserved(rsym->reserved() | ReserveGOT);
-    }
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
   } break;
   default:
     break;
