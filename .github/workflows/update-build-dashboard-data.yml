@@ -19,13 +19,14 @@ jobs:
         run: |
             cd llvm-project/llvm/tools/eld
             DASH_DIR="$(mktemp -d)"
-            cp -r dash ${DASH_DIR}/
-            cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/dash/
+            cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
             git config --global user.name 'github-actions'
             git config --global user.email 'github-actions@github.com'
             git fetch --all
             git checkout dashboard
+            cp -r dash ${DASH_DIR}/
             cp build-status.db ${DASH_DIR}/dash/
+            cp ${DASH_DIR}/record_builds.py ${DASH_DIR}/dash/
             git checkout documentation
             cp -r ${DASH_DIR}/dash .
             cd dash
