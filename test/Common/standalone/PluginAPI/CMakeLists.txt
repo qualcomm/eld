@@ -4,3 +4,4 @@ target_include_directories(ELDExpectedUsage
 target_link_libraries(ELDExpectedUsage PRIVATE LW)
 set_target_properties(ELDExpectedUsage PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                   ${CMAKE_BINARY_DIR}/bin/tests)
+set_target_properties(ELDExpectedUsage PROPERTIES INSTALL_RPATH "\$ORIGIN/../../lib")
