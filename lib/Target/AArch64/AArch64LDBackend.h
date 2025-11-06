@@ -158,6 +158,10 @@ public:
 
   std::size_t GOTEntriesCount() const override { return m_GOTMap.size(); }
 
+  // SFrame Support
+  int8_t getSFrameCFAFixedFPOffset() const override { return -16; }
+  int8_t getSFrameCFAFixedRAOffset() const override { return -8; }
+
 private:
   ELFSection *createGOTSection(InputFile &InputFile);
   ELFSection *createGOTPLTSection(InputFile &InputFile);

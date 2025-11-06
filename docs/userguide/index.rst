@@ -27,6 +27,7 @@ This document describes usage of ELD
    documentation/layout.rst
    documentation/linker_plugins_updated.rst
    documentation/linker_optimizations.rst
+   documentation/sframe_support.rst
    documentation/getting_image_details.rst
    documentation/command.rst
 

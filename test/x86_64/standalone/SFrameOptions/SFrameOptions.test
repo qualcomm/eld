@@ -1,0 +1,23 @@
+#---SFrameOptions.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks that the --sframe-hdr command line option works correctly
+# and that SFrame sections are handled appropriately.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/simple.c -o %t.simple.o
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_test.s -o %t.sframe.o
+
+# Test without --sframe-hdr (should still process .sframe sections)
+RUN: %link %linkopts %t.sframe.o -o %t1.out
+RUN: %readelf -S %t1.out | %filecheck %s -check-prefix=NO_HDR
+
+# Test with --sframe-hdr
+RUN: %link %linkopts --sframe-hdr %t.sframe.o -o %t2.out
+RUN: %readelf -S %t2.out | %filecheck %s -check-prefix=WITH_HDR
+
+# Test linking objects without .sframe with --sframe-hdr (should not error)
+RUN: %link %linkopts --sframe-hdr %t.simple.o -o %t3.out
+
+NO_HDR: .sframe{{.*}}SFRAME
+WITH_HDR: .sframe{{.*}}SFRAME

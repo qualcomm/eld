@@ -317,7 +317,8 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
 
   // if the flag of target section is not ALLOC, we eprform only static
   // relocation.
-  if (!pReloc.targetRef()->getOutputELFSection()->isAlloc()) {
+  ELFSection *targetSection = pReloc.targetRef()->getOutputELFSection();
+  if (!targetSection || !targetSection->isAlloc()) {
     return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options);
   }
 

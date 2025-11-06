@@ -43,6 +43,7 @@
 #include "eld/Readers/EhFrameSection.h"
 #include "eld/Readers/ObjectReader.h"
 #include "eld/Readers/Relocation.h"
+#include "eld/Readers/SFrameSection.h"
 #include "eld/Script/Assignment.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectData.h"
@@ -750,6 +751,21 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
           // the filler eh_frame section.
           getTargetBackend().createEhFrameFillerAndHdrSection();
         }
+      }
+    }
+      LLVM_FALLTHROUGH;
+    case LDFileFormat::SFrame: {
+      if (Sect->getKind() == LDFileFormat::SFrame) {
+        // Validate SFrame format for error reporting and verbose logging
+        eld::SFrameSection *sframeSection =
+            llvm::dyn_cast<eld::SFrameSection>(Sect);
+        if (!sframeSection->validateSFrameFormat())
+          return false;
+        if (!sframeSection->parseSFrameHeader())
+          return false;
+        if (!sframeSection->createSFrameFragment())
+          return false;
+        sframeSection->finishAddingFragments(*ThisModule);
       }
     }
       LLVM_FALLTHROUGH;

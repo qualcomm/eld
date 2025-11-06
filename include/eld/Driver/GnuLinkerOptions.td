@@ -831,6 +831,10 @@ def eh_frame_hdr
     : Flag<["--"], "eh-frame-hdr">,
       HelpText<"Create EH Frame Header section for faster exception handling">,
       Group<grp_optimizationopts>;
+def sframe_hdr
+    : Flag<["--"], "sframe-hdr">,
+      HelpText<"Create SFrame section for stack unwinding information">,
+      Group<grp_optimizationopts>;
 def no_merge_strings : Flag<["--"], "no-merge-strings">,
                        HelpText<"Disable String Merging">,
                        Group<grp_optimizationopts>;
