@@ -139,6 +139,7 @@ jobs:
           git config --global user.email 'github-actions@github.com'
           git fetch --all
           git checkout dashboard
+          git pull
           cp ${DASH_DIR}/record_builds.py .
           python record_builds.py --workflow musl --update --pass --run-id ${{github.run_id}}
           rm -f record_builds.py

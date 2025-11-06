@@ -2,7 +2,7 @@ name: Hourly Build Status Dashboard Updater
 
 on:
   schedule:
-    - cron: '* 1 * * *'  # Runs hourly
+    - cron: '0 * * * *'  # Runs hourly
   workflow_dispatch:     # Allows manual triggering
 
 jobs:
