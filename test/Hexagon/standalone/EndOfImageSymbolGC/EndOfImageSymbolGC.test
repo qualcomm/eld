@@ -8,7 +8,7 @@
 RUN: %clang %clangopts -c %p/Inputs/fb.s -o %t1.o
 RUN: %link %linkopts %t1.o -e main --gc-sections -o %t2.out
 RUN: %dwarfdump -debug-frame %t2.out | %filecheck %s -check-prefix=EOI
-RUN: %link %linkopts %t1.o -e main --gc-sections -defsym __end=0 -o %t2.out.noeoi
+RUN: %link %linkopts %t1.o -e main --gc-sections -defsym ___end=0 -o %t2.out.noeoi
 RUN: %dwarfdump -debug-frame %t2.out.noeoi | %filecheck %s -check-prefix=NOEOI
 
 #EOI: 00000014 0000000c 00000000 FDE cie=00000000 pc=00000000...00000004

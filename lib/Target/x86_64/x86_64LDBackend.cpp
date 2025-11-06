@@ -85,7 +85,7 @@ void x86_64LDBackend::initTargetSymbols() {
 
   m_pEndOfImage =
       m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-          m_Module.getInternalInput(Module::Script), "__end",
+          m_Module.getInternalInput(Module::Script), "___end",
           ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Absolute,
           0x0, // size
           0x0, // value

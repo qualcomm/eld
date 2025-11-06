@@ -6,6 +6,6 @@ SECTIONS {
   .empty1 0 : { *(.empty1) }
   __start = .;
   .empty : { . = . + 1; }
-  ___end = .;
+  __end = .;
    /DISCARD/ : { *(.ARM.*) *(.*.attributes) }
 }

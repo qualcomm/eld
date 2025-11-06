@@ -11,5 +11,5 @@ RUN: %link %linkopts %t1.o -o %t2.out.gc --gc-sections
 RUN: %readelf -s -W %t2.out.gc | %filecheck %s
 RUN: %link %linkopts %t1.o -o %t2.out.ls -T %p/Inputs/script.t --gc-sections
 RUN: %readelf -s -W %t2.out.ls | %filecheck %s
-#CHECK: {{[0-9a-f]+[1-9a-f]+}}    0 NOTYPE  GLOBAL DEFAULT  ABS __end
+#CHECK: {{[0-9a-f]+[1-9a-f]+}}    0 NOTYPE  GLOBAL DEFAULT  ABS ___end
 #END_TEST

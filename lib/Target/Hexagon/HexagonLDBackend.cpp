@@ -331,7 +331,7 @@ void HexagonLDBackend::initTargetSymbols() {
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
     config().raise(Diag::target_specific_symbol) << SymbolName;
-  SymbolName = "__end";
+  SymbolName = "___end";
   m_pEndOfImage = m_Module.getNamePool().findSymbol(SymbolName);
   if (!m_pEndOfImage)
     m_pEndOfImage =
