@@ -181,7 +181,7 @@ int ScriptParser::precedence(StringRef Op) {
       .Cases("*", "/", "%", 11)
       .Cases("+", "-", 10)
       .Cases("<<", ">>", 9)
-      .Cases("<", "<=", ">", ">=", 8)
+      .Cases({"<", "<=", ">", ">="}, 8)
       .Cases("==", "!=", 7)
       .Case("&", 6)
       .Case("^", 5)
