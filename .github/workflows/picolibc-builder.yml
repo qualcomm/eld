@@ -65,13 +65,14 @@ jobs:
       - name: Record pre-build entry
         run: |
           cd llvm-project/llvm/tools/eld
-          git branch
           DASH_DIR="$(mktemp -d)"
           cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git fetch --all
           git checkout dashboard
+          git fetch origin
+          git reset --hard origin/dashboard
           cp ${DASH_DIR}/record_builds.py .
           python record_builds.py --workflow picolibc --record --fail --run-id ${{github.run_id}} --arch ${{ matrix.arch.name }}
           rm -f record_builds.py
@@ -80,6 +81,8 @@ jobs:
           git push -f origin HEAD:refs/heads/dashboard
           rm -rf ${DASH_DIR}
           git checkout -
+          git branch
+        continue-on-error: true
 
       - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
         run: |
@@ -233,14 +236,14 @@ jobs:
       - name: Update build entry
         run: |
           cd llvm-project/llvm/tools/eld
-          git branch
           DASH_DIR="$(mktemp -d)"
           cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git fetch --all
           git checkout dashboard
-          git pull
+          git fetch origin
+          git reset --hard origin/dashboard
           cp ${DASH_DIR}/record_builds.py .
           python record_builds.py --workflow picolibc --update --pass --run-id ${{github.run_id}} --arch ${{ matrix.arch.name }}
           rm -f record_builds.py
@@ -249,3 +252,4 @@ jobs:
           git push -f origin HEAD:refs/heads/dashboard
           rm -rf ${DASH_DIR}
           git checkout -
+        continue-on-error: true
