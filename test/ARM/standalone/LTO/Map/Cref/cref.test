@@ -7,15 +7,15 @@ RUN: %link %linkopts -march arm --cref -flto-options=codegen="-Os -relocation-mo
 
 #CHECK: Cross Reference Table - Pre LTO phase
 #CHECK: Symbol                                                File
-#CHECK: bar                                                   {{[ -\(\)_A-Za-z0-9.\\/:]+}}bar.o
-#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
-#CHECK: common_array                                          {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
-#CHECK: foo                                                   {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
-#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
-#CHECK: main                                                  {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: bar                                                   {{[ -\(\)_A-Za-z0-9.~\\/:]+}}bar.o
+#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.~\\/:]+}}foo.o
+#CHECK: common_array                                          {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
+#CHECK: foo                                                   {{[ -\(\)_A-Za-z0-9.~\\/:]+}}foo.o
+#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
+#CHECK: main                                                  {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
 #CHECK: Cross Reference Table
 #CHECK: Symbol                                                File
-#CHECK: common_array                                          {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
-#CHECK: foo                                                   {{[ #-\(\)_A-Za-z0-9.\\/:]+}}lto
-#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
-#CHECK: main                                                  {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: common_array                                          {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
+#CHECK: foo                                                   {{[ #-\(\)_A-Za-z0-9.~\\/:]+}}lto
+#CHECK:                                                       {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
+#CHECK: main                                                  {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o

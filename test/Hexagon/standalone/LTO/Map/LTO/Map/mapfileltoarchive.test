@@ -11,29 +11,29 @@ RUN: %link %linkopts -flto-options=codegen="-Os -relocation-model=static -functi
 #CHECK: Pre-LTO Map records
 #CHECK: =======================================
 #CHECK: Archive member included because of file (symbol)
-#CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o) (Bitcode type)
+#CHECK: {{[ -\(\)_A-Za-z0-9.~\\/:]+}}foo.o) (Bitcode type)
 #CHECK:                 main.o (foo)
-#CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}bar.o) (Bitcode type)
+#CHECK: {{[ -\(\)_A-Za-z0-9.~\\/:]+}}bar.o) (Bitcode type)
 #CHECK:                 {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o) (bar) (Bitcode type)
 #CHECK: Linker Script and memory map
-#CHECK: LOAD {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
-#CHECK: LOAD {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
-#CHECK: LOAD {{[ -\(\)_A-Za-z0-9.\\/:]+}}bar.o
+#CHECK: LOAD {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
+#CHECK: LOAD {{[ -\(\)_A-Za-z0-9.~\\/:]+}}foo.o
+#CHECK: LOAD {{[ -\(\)_A-Za-z0-9.~\\/:]+}}bar.o
 #CHECK: =======================================
 #CHECK: Post-LTO Map records
 #CHECK: =======================================
 #CHECK: Allocating common symbols
 #CHECK: Common symbol	size	file
-#CHECK: common_array	0x50	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: common_array	0x50	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
 #CHECK: Linker Script and memory map
 #CHECK: LOAD {{.*}}
-#CHECK: SKIPPED {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o (ELF)
+#CHECK: SKIPPED {{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o (ELF)
 #CHECK: .text	0x0	{{[0-9a-fx]+}}
-#CHECK: .text	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: .text	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
 #CHECK: 	{{[0-9a-fx]+}}  	main
-#CHECK: .text.foo	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}lto
+#CHECK: .text.foo	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}lto
 #CHECK: .bss	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}
-#CHECK: COMMON.common_array	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
+#CHECK: COMMON.common_array	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
 #CHECK: 	{{[0-9a-fx]+}}		common_array
 
 # YAML: - Name:            .text
