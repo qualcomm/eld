@@ -170,7 +170,7 @@ RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/I
 RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK9SYM" %s
 RUN: %filecheck %s --check-prefix="MAPCHECK9" < %t.map9
 
-CHECK9: Warning: Only anonymous version nodes are suppored. Ignoring version script
+CHECK9: Warning: Only anonymous version nodes are supported. Ignoring version script
 CHECK9SYM-DAG: bar
 CHECK9SYM-DAG: baz
 CHECK9SYM-DAG: foo
@@ -188,7 +188,7 @@ RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/I
 RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK10SYM" %s
 RUN: %filecheck %s --check-prefix="MAPCHECK10" < %t.map10
 
-CHECK10:Warning: {{Dependent nodes are not suppored. Ignoring version script|Only anonymous version nodes are suppored}}
+CHECK10:Warning: {{Dependent nodes are not supported. Ignoring version script|Only anonymous version nodes are supported}}
 CHECK10SYM-DAG: bar
 CHECK10SYM-DAG: baz
 CHECK10SYM-DAG: foo

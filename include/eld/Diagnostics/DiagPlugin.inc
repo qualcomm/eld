@@ -47,14 +47,9 @@ DIAG(plugin_returned_blocks, DiagnosticEngine::Note,
 DIAG(plugin_returned_blocks_more_than_input_size, DiagnosticEngine::Fatal,
      "Plugin %0 returned size of memory block %1 more than input memory block "
      "size %2")
-DIAG(plugin_request_memory, DiagnosticEngine::Note,
-     "Plugin %0 requests memory %1 bytes and returned %2 bytes")
 DIAG(plugin_destroy, DiagnosticEngine::Note, "Plugin %0 Destroyed")
 DIAG(cannot_find_output_section_for_input, DiagnosticEngine::Error,
      "Cannot find output section for input section %0")
-DIAG(output_section_contains_assignments, DiagnosticEngine::Note,
-     "Output section %0 contains assignments, Disabling running the Order "
-     "Plugin")
 DIAG(plugin_mismatch, DiagnosticEngine::Error,
      "Plugin Type Mismatch in library %0 for plugin type %1")
 DIAG(plugin_has_error, DiagnosticEngine::Error,
@@ -70,7 +65,7 @@ DIAG(using_plugin, DiagnosticEngine::Note,
 DIAG(output_section_override_not_present, DiagnosticEngine::Note,
      "Output section override set for section %0 from input file %1, but %2 "
      "not present, using default match")
-DIAG(initializing_plugin, DiagnosticEngine::Note,
+DIAG(note_initializing_plugin, DiagnosticEngine::Note,
      "Initializing Plugin %1, requested by Plugin %0 having Name %2")
 DIAG(running_plugin, DiagnosticEngine::Note,
      "Running Plugin %1, requested by Plugin %0 having Name %2")
@@ -82,8 +77,6 @@ DIAG(error_plugin_no_api_version, DiagnosticEngine::Error,
 DIAG(wrong_version, DiagnosticEngine::Error,
      "Plugin version mismatch in library %0 for plugin type %1 : Found version "
      "%2.%3, expected major version %4, minor version %5 or below")
-DIAG(wrong_rule_selected, DiagnosticEngine::Warning,
-     "Plugin %0 moved section %1 from input file %2 that violates rule %3")
 DIAG(found_config_function, DiagnosticEngine::Note,
   "Plugin Config function %0 found in library %1")
 DIAG(fatal_pending_section_override, DiagnosticEngine::Fatal,

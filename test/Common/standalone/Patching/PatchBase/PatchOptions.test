@@ -5,7 +5,7 @@
 #START_TEST
 RUN: %clang %clangopts %p/Inputs/1.c -o %t.o -c
 RUN: %link %linkopts --no-emit-relocs --strip-all --patch-enable %t.o -o %t.out 2>&1 | %filecheck %s
-CHECK: Warning: Strip symbols is disabled, as its incompatible with --patch-enable
+CHECK: Warning: Strip symbols is disabled, as it is incompatible with --patch-enable
 # linker should not error here
 ### --discard-all actually means "strip locals".
 RUN: %link %linkopts --fatal-warnings --no-emit-relocs -x --patch-enable %t.o -o %t.out 2>&1 | %filecheck %s --check-prefix=NOWARNING

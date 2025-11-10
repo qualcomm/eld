@@ -212,7 +212,7 @@ bool Plugin::init(eld::OutputTarWriter *OutputTar) {
   eld::RegisterTimer T(
       "Init", ThisModule.saveString(UserPluginHandle->GetName()), Stats);
   if (ThisModule.getPrinter()->tracePlugins())
-    ThisConfig.raise(Diag::initializing_plugin)
+    ThisConfig.raise(Diag::note_initializing_plugin)
         << getPluginType() << DynamicLibrary::getLibraryName(Name)
         << UserPluginHandle->GetName();
   if (ThisModule.getConfig().options().hasMappingFile())

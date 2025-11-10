@@ -81,15 +81,15 @@ DIAG(nested_group_not_allowed, DiagnosticEngine::Fatal,
 DIAG(mismatched_group, DiagnosticEngine::Fatal,
      "Mismatched --start-group/--end-group")
 DIAG(unsupported_version_node, DiagnosticEngine::Warning,
-     "Only anonymous version nodes are suppored. Ignoring version script `%0'")
+     "Only anonymous version nodes are supported. Ignoring version script `%0'")
 DIAG(unsupported_dependent_node, DiagnosticEngine::Warning,
-     "Dependent nodes are not suppored. Ignoring version script `%0'")
+     "Dependent nodes are not supported. Ignoring version script `%0'")
 DIAG(unable_to_write_output_file, DiagnosticEngine::Error,
      "Unable to write output file %0 because of error %1")
 DIAG(unable_to_write_temporary_file, DiagnosticEngine::Fatal,
      "Unable to write output file %0 because of error %1")
 DIAG(warn_strip_symbols, DiagnosticEngine::Warning,
-     "Strip symbols is disabled, as its incompatible with %0")
+     "Strip symbols is disabled, as it is incompatible with %0")
 DIAG(unable_to_add_ini_hash_entry, DiagnosticEngine::Fatal,
      "Unable to add hash entry to mapping.ini")
 DIAG(unable_to_write_reproduce_tarball, DiagnosticEngine::Fatal,

@@ -80,7 +80,6 @@ DIAG(incompatible_input_architecture, DiagnosticEngine::Warning,
 DIAG(gnu_property_read_error, DiagnosticEngine::Fatal,
      "Reading .note.gnu.property from %0 has error %1")
 DIAG(no_feature_found_in_file, DiagnosticEngine::Warning, "No %0 in %1")
-DIAG(arm_enum_prohibited, DiagnosticEngine::Error, "Enum prohibited in %0")
 DIAG(record_arm_attribute, DiagnosticEngine::Verbose,
      "Recording %0 feature when reading file %1")
 DIAG(branch_to_arm_code_not_allowed, DiagnosticEngine::Fatal,
@@ -96,8 +95,6 @@ DIAG(pcrel_reloc_overflow, DiagnosticEngine::Note,
      "Symbol Address = 0x%0, Addend = 0x%1, Place = 0x%2, Relocation Value = 0x%3")
 DIAG(expected_group_section, DiagnosticEngine::InternalError,
      "Expected %0 to be a 'group' section.")
-DIAG(trace_arch_options, DiagnosticEngine::Trace, "Arch option %0 : %1")
-DIAG(trace_arch_options_map, DiagnosticEngine::Trace, "Arch option map %0 : %1")
 DIAG(warn_ignore_pcrel_lo_addend, DiagnosticEngine::Warning,
      "%2: ignoring addend for relocation `%1' referring symbol %0")
 DIAG(error_build_id_not_hex, DiagnosticEngine::Error,

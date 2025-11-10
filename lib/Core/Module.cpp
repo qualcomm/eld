@@ -461,7 +461,7 @@ bool Module::readOnePluginConfig(llvm::StringRef CfgFile,
                           ThisConfig.options().printTimingStats("Plugin"),
                           IsDefaultConfig, *this);
     if (getPrinter()->isVerbose())
-      ThisConfig.raise(Diag::intializing_plugin) << G.PluginName;
+      ThisConfig.raise(Diag::verbose_initializing_plugin) << G.PluginName;
   }
 
   for (auto &O : Config.OutputSectionPlugins) {

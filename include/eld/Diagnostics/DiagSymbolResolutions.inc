@@ -11,10 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(note_has_no_symtab, DiagnosticEngine::Note,
-     "input file `%0' has no symbol table `%2'\n  path of input file: %1")
-DIAG(fatal_cannot_read_strtab, DiagnosticEngine::Fatal,
-     "cannot read strtab for %2 in file `%0': %1")
 DIAG(fail_sym_resolution, DiagnosticEngine::Unreachable,
      "Fails to resolve symbols [%0:%1]")
 DIAG(mark_dynamic_defined, DiagnosticEngine::Ignore,
@@ -46,10 +42,6 @@ DIAG(insert_wrapper, DiagnosticEngine::Note,
      "Inserting wrapper `%0' for bitcode symbol")
 DIAG(real_sym_reference, DiagnosticEngine::Note,
      "Found real symbol `%0' for wrapped symbol `%1'")
-DIAG(cannot_find_real_symbol, DiagnosticEngine::Fatal,
-     "Cannot find real symbol for symbol %0 referenced from %1")
-DIAG(cannot_find_wrap_symbol, DiagnosticEngine::Fatal,
-     "Cannot find wrap symbol for symbol %0 referenced from %1")
 DIAG(comm_override_by_definition, DiagnosticEngine::Warning,
      "common symbol %0 in file %1 is overridden by definition from %2")
 DIAG(common_symbol_doesnot_override_definition, DiagnosticEngine::Warning,

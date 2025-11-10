@@ -81,8 +81,8 @@ DIAG(using_cache_output_file, DiagnosticEngine::Verbose,
 // --- Linker.cpp
 DIAG(initializing_linker, DiagnosticEngine::Verbose, "Initializing Linker")
 DIAG(initializing_diagnostic_printer, DiagnosticEngine::Verbose,
-     "Intializing Diagnostic Printer")
-DIAG(reading_input_files, DiagnosticEngine::Verbose, "Readiing input files")
+     "initializing Diagnostic Printer")
+DIAG(reading_input_files, DiagnosticEngine::Verbose, "Reading input files")
 DIAG(verbose_loading_non_universal_plugins, DiagnosticEngine::Verbose,
      "Loading non universal plugins")
 DIAG(verbose_loading_universal_plugins, DiagnosticEngine::Verbose,
@@ -90,7 +90,7 @@ DIAG(verbose_loading_universal_plugins, DiagnosticEngine::Verbose,
 DIAG(parsed_version_script, DiagnosticEngine::Verbose, "Parsing version script")
 DIAG(parsing_dynlist, DiagnosticEngine::Verbose, "Parsing dyn list")
 DIAG(adding_script_symbols, DiagnosticEngine::Verbose,
-     "Adding symbol assigments from linker script")
+     "Adding symbol assignments from linker script")
 DIAG(beginning_post_LTO_phase, DiagnosticEngine::Verbose,
      "Beginning post-LTO phase")
 DIAG(beginning_link, DiagnosticEngine::Verbose, "Beginning link")
@@ -116,9 +116,9 @@ DIAG(added_section_override, DiagnosticEngine::Verbose,
      "Plugin '%0' added output section override ('%1') for section '%2' "
      "with annotation '%3'")
 DIAG(added_chunk_op, DiagnosticEngine::Verbose,
-     "Added chuck op for section %0 with annotation %1")
+     "Added chunk op for section %0 with annotation %1")
 DIAG(removed_chunk_op, DiagnosticEngine::Verbose,
-     "Removed chuck op for section %0 with annotation %1")
+     "Removed chunk op for section %0 with annotation %1")
 // --- Module.cpp
 DIAG(creating_output_section, DiagnosticEngine::Verbose,
      "Creating output section %0 with type %1 flag %2 alignment %3")
@@ -127,7 +127,7 @@ DIAG(created_internal_section, DiagnosticEngine::Verbose,
      "entry size %4")
 DIAG(created_eh_frame_hdr, DiagnosticEngine::Verbose,
      "Created eh frame header section %0 with type %1 flag %2 alignment %3")
-DIAG(intializing_plugin, DiagnosticEngine::Verbose, "Initalized plugin %0")
+DIAG(verbose_initializing_plugin, DiagnosticEngine::Verbose, "Initalized plugin %0")
 DIAG(adding_output_section_for_plugin, DiagnosticEngine::Verbose,
      "Adding outputsection %0 for Plugin %1")
 DIAG(adding_symbol_to_fragment, DiagnosticEngine::Verbose,
@@ -162,7 +162,7 @@ DIAG(verbose_inserting_section_at_fixed_addr, DiagnosticEngine::Trace,
 DIAG(verbose_linker_script_output_file, DiagnosticEngine::Verbose,
      "Using output file name '%0' specified in the linker script '%1'")
 DIAG(verbose_rule_matching_cache_func_hash, DiagnosticEngine::Verbose,
-     "Rule-matching cache-functionailty hash: %0")
+     "Rule-matching cache-functionality hash: %0")
 DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
      "Initialized plugin config for %0")
 DIAG(verbose_infer_target, DiagnosticEngine::Verbose,

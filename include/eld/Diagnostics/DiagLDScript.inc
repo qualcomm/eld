@@ -13,7 +13,6 @@
 
 DIAG(err_unterminated_comment, DiagnosticEngine::Error,
      "%0:%1:%2: error: unterminated comment\n")
-DIAG(err_syntax_error, DiagnosticEngine::Error, "%0:%1:%2: error: %3\n")
 DIAG(size_of_used_without_phdrs, DiagnosticEngine::Fatal,
      "%0: Using SIZEOF without PHDR's is not supported for segments")
 DIAG(err_cant_figure_which_phdr, DiagnosticEngine::Error,

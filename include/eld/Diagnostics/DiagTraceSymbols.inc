@@ -16,8 +16,6 @@ DIAG(apply_relocation, DiagnosticEngine::Trace,
 DIAG(process_file, DiagnosticEngine::Trace, "Processing file: %0")
 DIAG(obj_symbol_created, DiagnosticEngine::Trace,
      "Object symbol created [%0]: (SHNDX %1) %2 ")
-DIAG(dyn_obj_symbol_created, DiagnosticEngine::Trace,
-     "DynObj symbol created [%0]: %1")
 DIAG(adding_new_sym, DiagnosticEngine::Trace, "Adding new symbol (%0): %1")
 DIAG(overriding_old_sym, DiagnosticEngine::Trace,
      "Overriding old symbol %0 (%1) with newly added symbol %2")
