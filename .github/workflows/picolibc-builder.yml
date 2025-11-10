@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -21,26 +21,39 @@ jobs:
             llvm-target: Hexagon
             picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
             picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
+            eld-target: Hexagon
           - name: aarch64
             picolibc-name: aarch64
             triple: aarch64-none-elf
             llvm-target: AArch64
+            eld-target: AArch64
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
           - name: riscv64
             picolibc-name: riscv
             triple: riscv64-unknown-unknown-elf
             llvm-target: RISCV
+            eld-target: RISCV
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
           - name: riscv32
             picolibc-name: rv32imafdc
             triple: riscv32-unknown-unknown-elf
             llvm-target: RISCV
+            eld-target: RISCV
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
             extra-c-flags: "-march=rv32imafdc -mabi=ilp32d"
             extra-cxx-flags: "-march=rv32imafdc -mabi=ilp32d"
+          - name: x86_64
+            picolibc-name: x86_64
+            triple: x86_64-none-elf
+            llvm-target: X86
+            eld-target: x86_64
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+            extra-c-flags: ""
+            extra-cxx-flags: ""
 
     steps:
       - name: Set up Clang 20
@@ -63,6 +76,7 @@ jobs:
           path: llvm-project/llvm/tools/eld
 
       - name: Record pre-build entry
+        if: github.event_name == 'schedule'
         run: |
           cd llvm-project/llvm/tools/eld
           git branch
@@ -92,7 +106,7 @@ jobs:
             -DCMAKE_CXX_COMPILER=`which clang++` \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
-            -DELD_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
+            -DELD_TARGETS_TO_BUILD=${{ matrix.arch.eld-target }} \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain \
             -S ${{ github.workspace }}/llvm-project/llvm \
             -B ${{ github.workspace }}/build-${{ matrix.arch.name }}-toolchain/ \
@@ -129,8 +143,8 @@ jobs:
               -DCOMPILER_RT_BUILD_PROFILE=OFF \
               -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
               -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
-              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-cxx-flags }}" \
+              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-c-flags }} -nostdlibinc -ffreestanding" \
+              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }} -nostdlibinc -ffreestanding" \
               -DCMAKE_C_COMPILER_FORCED=ON \
               -DCMAKE_CXX_COMPILER_FORCED=ON \
               -DCMAKE_CROSSCOMPILING=ON \
@@ -231,6 +245,7 @@ jobs:
           retention-days: 60
 
       - name: Update build entry
+        if: github.event_name == 'schedule'
         run: |
           cd llvm-project/llvm/tools/eld
           git branch
