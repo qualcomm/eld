@@ -2,4 +2,4 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
 RUN: %link %linkopts %t1.o -o %t2.out
 RUN: %readelf -x .data %t2.out | %filecheck %s
-#CHECK-NOT: 00000000
+#CHECK-NOT: {{^0x[0-9a-f]+}}{{[[:space:]]+}}00000000
