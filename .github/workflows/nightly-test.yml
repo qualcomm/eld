@@ -65,15 +65,27 @@ jobs:
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-nightly-toolchain \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
             -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
             -DLLVM_ENABLE_SPHINX=OFF \
             ../llvm-project/llvm
 
-      - name: Build Project
+      - name: Build and install toolchain
         run: |
           cd obj
-          ninja -j8
+          ninja -j8 install
+
+      - name: Pack toolchain tarball
+        run: |
+          tar -C ${{ github.workspace }}/ \
+              -Jcvf install-nightly-toolchain.tar.xz install-nightly-toolchain
+
+      - name: Upload toolchain tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-nightly-toolchain.tar.xz
+          path: install-nightly-toolchain.tar.xz
 
       - name: Run tests
         run: |
