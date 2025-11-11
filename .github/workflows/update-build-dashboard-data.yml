@@ -38,3 +38,4 @@ jobs:
             git add .
             git commit -m "Update build status data for dashboard"
             git push -f origin HEAD:refs/heads/documentation
+        continue-on-error: true
