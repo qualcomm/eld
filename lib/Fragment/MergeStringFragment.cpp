@@ -40,8 +40,7 @@ bool MergeStringFragment::readStrings(LinkerConfig &Config) {
     size_t End = Contents.find('\0');
     if (End == llvm::StringRef::npos) {
       Config.raise(Diag::string_not_null_terminated)
-          << S->getInputFile()->getInput()->decoratedPath()
-          << S->getDecoratedName(Config.options()) << llvm::utohexstr(Offset);
+          << S->getLocation(Offset, Config.options());
       return false;
     }
     // account for the null character
@@ -52,9 +51,7 @@ bool MergeStringFragment::readStrings(LinkerConfig &Config) {
     Contents = Contents.drop_front(Size);
     if (Config.getPrinter()->isVerbose()) {
       Config.raise(Diag::splitting_merge_string_section)
-          << S->getInputFile()->getInput()->decoratedPath()
-          << S->getDecoratedName(Config.options()) << llvm::utohexstr(Offset)
-          << String.data() << 1;
+          << S->getLocation(Offset, Config.options()) << String.data() << 1;
     }
     Offset += Size;
   }

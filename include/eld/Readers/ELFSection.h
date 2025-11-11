@@ -296,6 +296,10 @@ public:
 
   std::string getDecoratedName(const GeneralOptions &options) const override;
 
+  /// Return a descriptive location string in the format:
+  /// <input-file>:(<section>+<offset>) similar to lld.
+  std::string getLocation(uint64_t Offset, GeneralOptions &Options) const;
+
   virtual bool verify(DiagnosticEngine *DiagEngine) const { return true; }
 
   uint64_t getSectionHash() const override {

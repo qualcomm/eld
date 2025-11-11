@@ -203,3 +203,20 @@ std::optional<std::string> ELFSection::getRMSectName() const {
   }
   return RMSectName;
 }
+
+std::string ELFSection::getLocation(uint64_t Offset,
+                                    GeneralOptions &Options) const {
+  std::string SectionName = getDecoratedName(Options);
+  std::string SectionAndOffset = SectionName;
+  if (Offset) {
+    SectionAndOffset += "+0x";
+    SectionAndOffset += llvm::Twine::utohexstr(Offset).str();
+  }
+  SectionAndOffset.push_back(')');
+
+  if (InputFile *F = originalInput()) {
+    if (auto *I = F->getInput())
+      return I->decoratedPath() + ":(" + SectionAndOffset;
+  }
+  return std::string(name()) + ":(" + SectionAndOffset;
+}

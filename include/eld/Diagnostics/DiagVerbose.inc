@@ -151,8 +151,8 @@ DIAG(modifying_mergestr_reloc, DiagnosticEngine::Trace,
      "Old fragment: offset %4 in section %5 "
      "from file %6\n\t New fragment: offset %7 in section %8 from file %9")
 DIAG(splitting_merge_string_section, DiagnosticEngine::Verbose,
-     "%0:(%1+0x%2) created mergeable string fragment with contents %3 and align "
-     "%4")
+     "%0: created mergeable string fragment with contents %1 and align "
+     "%2")
 DIAG(mapstyles_used, DiagnosticEngine::Verbose,
      "Using MapStyles %0")
 DIAG(verbose_using_just_symbols, DiagnosticEngine::Verbose,
