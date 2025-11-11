@@ -205,7 +205,7 @@ std::optional<std::string> ELFSection::getRMSectName() const {
 }
 
 std::string ELFSection::getLocation(uint64_t Offset,
-                                    GeneralOptions &Options) const {
+                                    const GeneralOptions &Options) const {
   std::string SectionName = getDecoratedName(Options);
   std::string SectionAndOffset = SectionName;
   if (Offset) {

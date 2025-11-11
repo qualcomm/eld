@@ -298,7 +298,7 @@ public:
 
   /// Return a descriptive location string in the format:
   /// <input-file>:(<section>+<offset>) similar to lld.
-  std::string getLocation(uint64_t Offset, GeneralOptions &Options) const;
+  std::string getLocation(uint64_t Offset, const GeneralOptions &Options) const;
 
   virtual bool verify(DiagnosticEngine *DiagEngine) const { return true; }
 
