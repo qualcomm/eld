@@ -66,6 +66,7 @@ static const DiagStaticInfo DiagCommonInfo[] = {
 #include "eld/Diagnostics/DiagTraceGC.inc"
 #include "eld/Diagnostics/DiagTraceSymbols.inc"
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
+#include "eld/Diagnostics/DiagTraceSymbolVersioning.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG
@@ -100,6 +101,7 @@ static const DiagStaticInfo DiagLoCInfo[] = {
 #include "eld/Diagnostics/DiagTraceGC.inc"
 #include "eld/Diagnostics/DiagTraceSymbols.inc"
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
+#include "eld/Diagnostics/DiagTraceSymbolVersioning.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG

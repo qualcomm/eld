@@ -47,6 +47,7 @@ public:
     TraceMergeStrings = 0x8000,
     TraceLinkerScript = 0x10000,
     TraceSymDef = 0x100000,
+    TraceSymbolVersioning = 0x200000
   };
 
   enum Verbose : uint16_t { None = 0x0, Default = 0x1 };
@@ -98,6 +99,8 @@ public:
 
   bool traceSymDef() { return (Trace & TraceSymDef); }
 
+  bool traceSymbolVersioning() const { return (Trace & TraceSymbolVersioning); }
+  
   uint32_t trace() { return Trace; }
 
   uint32_t isVerbose() const { return VerboseLevel & Verbose::Default; }

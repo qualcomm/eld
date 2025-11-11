@@ -45,6 +45,11 @@ public:
     return ThisResolveInfo->name();
   }
 
+  std::string getNonVersionedName() const {
+    assert(ThisResolveInfo != nullptr);
+    return ThisResolveInfo->getNonVersionedName();
+  }
+
   bool hasName() const {
     assert(nullptr != ThisResolveInfo);
     return !str().empty();
