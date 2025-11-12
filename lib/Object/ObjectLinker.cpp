@@ -60,6 +60,7 @@
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/Relocator.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/CodeGen/CommandFlags.h"
@@ -1062,51 +1063,57 @@ bool ObjectLinker::finishAssignOutputSections(const plugin::LinkerWrapper *LW) {
 }
 
 bool ObjectLinker::runOutputSectionIteratorPlugin() {
-  LinkerScript::PluginVectorT PluginList =
-      ThisModule->getScript().getPluginForType(
-          plugin::Plugin::OutputSectionIterator);
-  if (!PluginList.size())
-    return true;
+  {
+    LinkerScript::PluginVectorT PluginList =
+        ThisModule->getScript().getPluginForType(
+            plugin::Plugin::OutputSectionIterator);
+    if (!PluginList.size())
+      return true;
 
-  for (auto &P : PluginList) {
-    if (!P->init(ThisModule->getOutputTarWriter()))
-      return false;
-  }
+    auto cleanup = llvm::make_scope_exit([this, PluginList]() {
+      // Fragment movement verification is only done for CreatingSections link
+      // state because fragments cannot be moved in any other link state.
+      if (ThisModule->isLinkStateCreatingSections()) {
+        for (auto *P : PluginList) {
+          auto ExpVerifyFragmentMoves = P->verifyFragmentMovements();
+          if (!ExpVerifyFragmentMoves) {
+            ThisConfig.raiseDiagEntry(
+                std::move(ExpVerifyFragmentMoves.error()));
+            ThisModule->setFailure(true);
+          }
+        }
+      }
+    });
 
-  for (auto &P : PluginList) {
-    plugin::PluginBase *L = P->getLinkerPlugin();
-    for (auto &Out : ThisModule->getScript().sectionMap())
-      (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(L))
-          ->processOutputSection(plugin::OutputSection(Out));
-  }
-
-  for (auto &P : PluginList) {
-    if (!P->run(ThisModule->getScript().getPluginRunList())) {
-      ThisModule->setFailure(true);
-      return false;
-    }
-  }
-
-  if (PluginList.size()) {
     for (auto &P : PluginList) {
-      if (!P->destroy()) {
+      if (!P->init(ThisModule->getOutputTarWriter()))
+        return false;
+    }
+
+    for (auto &P : PluginList) {
+      plugin::PluginBase *L = P->getLinkerPlugin();
+      for (auto &Out : ThisModule->getScript().sectionMap())
+        (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(L))
+            ->processOutputSection(plugin::OutputSection(Out));
+    }
+
+    for (auto &P : PluginList) {
+      if (!P->run(ThisModule->getScript().getPluginRunList())) {
         ThisModule->setFailure(true);
         return false;
       }
     }
-  }
-  // Fragment movement verification is only done for CreatingSections link state
-  // because fragments cannot be moved in any other link state.
-  if (ThisModule->isLinkStateCreatingSections()) {
-    for (auto *P : PluginList) {
-      auto ExpVerifyFragmentMoves = P->verifyFragmentMovements();
-      if (!ExpVerifyFragmentMoves) {
-        ThisConfig.raiseDiagEntry(std::move(ExpVerifyFragmentMoves.error()));
-        ThisModule->setFailure(true);
-        return false;
+
+    if (PluginList.size()) {
+      for (auto &P : PluginList) {
+        if (!P->destroy()) {
+          ThisModule->setFailure(true);
+          return false;
+        }
       }
     }
   }
+
   return !ThisModule->linkFail();
 }
 
