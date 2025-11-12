@@ -165,10 +165,10 @@ void Relocator::issueInvisibleRef(Relocation &pReloc, InputFile &pInput) {
   ResolveInfo *rsym = pReloc.symInfo();
   if (m_Config.options().warnOnce()) {
     uint64_t hash = llvm::hash_combine(std::string(rsym->name()), Invisible);
-    auto sym = m_UndefHits.find(hash);
-    if (sym != m_UndefHits.end() && sym->second == Invisible)
+    auto sym = UndefHits.find(hash);
+    if (sym != UndefHits.end() && sym->second == Invisible)
       return;
-    m_UndefHits.insert(std::make_pair(hash, true));
+    UndefHits.insert(std::make_pair(hash, true));
   }
 
   llvm::StringRef link_type = m_Config.codeGenType() == LinkerConfig::DynObj
@@ -229,10 +229,10 @@ void Relocator::issueUndefRef(const Relocation &pReloc, InputFile &pInput,
 
   if (m_Config.options().warnOnce()) {
     uint64_t hash = llvm::hash_combine(reloc_sym, Undef);
-    auto sym = m_UndefHits.find(hash);
-    if (sym != m_UndefHits.end() && sym->second == true)
+    auto sym = UndefHits.find(hash);
+    if (sym != UndefHits.end() && sym->second == true)
       return;
-    m_UndefHits.insert(std::make_pair(hash, true));
+    UndefHits.insert(std::make_pair(hash, true));
   }
 
   if (!config().getDiagEngine()->diagnose())

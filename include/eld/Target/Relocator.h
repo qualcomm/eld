@@ -15,7 +15,7 @@
 
 #include "eld/Core/Module.h"
 #include "eld/Readers/Relocation.h"
-#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include <mutex>
@@ -156,9 +156,7 @@ public:
 private:
   enum ErrType { Undef, Invisible };
   LinkerConfig &m_Config;
-  // DenseSet is behaving crazily failing in looking up a bucket, fails once in
-  // 100000 runs, lets use std::unordered_map.
-  std::unordered_map<uint64_t, bool> m_UndefHits;
+  llvm::DenseMap<uint64_t, bool> UndefHits;
 
 protected:
   Module &m_Module;
