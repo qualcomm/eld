@@ -7,6 +7,8 @@
 #ifndef ELD_PLUGIN_PLUGINOP_H
 #define ELD_PLUGIN_PLUGINOP_H
 
+#include "eld/Core/LinkState.h"
+#include "llvm/ADT/StringRef.h"
 #include <cstdint>
 #include <string>
 
@@ -34,16 +36,39 @@ public:
     UpdateLinkStat,
     UpdateRule,
     RelocationData,
+    UpdateLinkState
   };
 
   explicit PluginOp(plugin::LinkerWrapper *, PluginOpType T,
                     std::string Annotation);
 
+  explicit PluginOp(PluginOpType T) : OpType(T) {}
+
   PluginOpType getPluginOpType() const { return OpType; }
 
   std::string getAnnotation() const { return Annotation; }
 
-  std::string getPluginName() const;
+  virtual std::string getPluginName() const;
+
+  llvm::StringRef getPluginOpTypeStrRef() const {
+#define ADD_CASE(C)                                                            \
+  case C:                                                                      \
+    return #C;
+    switch (OpType) {
+      ADD_CASE(ChangeOutputSection)
+      ADD_CASE(AddChunk)
+      ADD_CASE(RemoveChunk)
+      ADD_CASE(RemoveSymbol)
+      ADD_CASE(ResetOffset)
+      ADD_CASE(UpdateChunks)
+      ADD_CASE(UpdateLinkStat)
+      ADD_CASE(UpdateRule)
+      ADD_CASE(RelocationData)
+      ADD_CASE(UpdateLinkState)
+    }
+#undef ADD_CASE
+    return "Unknown";
+  }
 
   virtual std::string getPluginOpStr() const { return ""; }
 
@@ -143,6 +168,8 @@ public:
 
   RuleContainer *getRule() const { return Rule; }
 
+  Type getType() const { return T; }
+
 private:
   RuleContainer *Rule = nullptr;
   Type T = Start;
@@ -192,6 +219,10 @@ public:
     return P->getPluginOpType() == PluginOpType::UpdateLinkStat;
   }
 
+  llvm::StringRef getStatName() const {
+    return StatName;
+  }
+
 private:
   std::string StatName;
 };
@@ -232,6 +263,24 @@ public:
 private:
   const OutputSectionEntry *O;
   uint32_t OldOffset;
+};
+
+// Pseudo plugin operation because it is not actually
+// performed by a plugin, but is instead performed
+// by the linker.
+class UpdateLinkStateOp : public PluginOp {
+public:
+  UpdateLinkStateOp(LinkState pNewState)
+      : PluginOp(PluginOpType::UpdateLinkState), NewState(pNewState) {}
+
+  LinkState getNewState() const { return NewState; }
+
+  std::string getPluginName() const override  {
+    return "Linker";
+  }
+
+private:
+  LinkState NewState = LinkState::Unknown;
 };
 
 } // namespace eld

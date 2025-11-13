@@ -1,0 +1,7 @@
+GlobalPlugins:
+  - Type: OutputSectionIterator
+    Name: OutSectIterPluginActLog
+    Library: PluginActivityLogPlugin
+  - Type: LinkerPlugin
+    Name: LPPluginActLog
+    Library: PluginActivityLogPlugin
