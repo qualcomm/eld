@@ -809,21 +809,14 @@ Relocator::Result condbr(Relocation &pReloc, AArch64Relocator &pParent) {
             ->getAddr(DiagEngine);
 
   Relocator::DWord X = S + A - P;
-  Relocator::SWord SX = X;
 
   if (pReloc.type() == llvm::ELF::R_AARCH64_CONDBR19) {
-    // check -2^20 <= X < 2^20
-    if (SX >= 0x100000)
-      return Relocator::Overflow;
-    if ((0 - SX) >= 0x100000)
+    if (!llvm::isInt<21>(static_cast<int64_t>(X)))
       return Relocator::Overflow;
     pReloc.target() =
         helper_reencode_cond_branch_ofs_19(pReloc.target(), X >> 2);
   } else if (pReloc.type() == llvm::ELF::R_AARCH64_TSTBR14) {
-    // check -2^15 <= X < 2^15
-    if (SX >= 0x8000)
-      return Relocator::Overflow;
-    if ((0 - SX) >= 0x8000)
+    if (!llvm::isInt<16>(static_cast<int64_t>(X)))
       return Relocator::Overflow;
     pReloc.target() = helper_reencode_tbz_imm_14(pReloc.target(), X >> 2);
   }
@@ -914,20 +907,17 @@ Relocator::Result movw_abs_g(Relocation &pReloc, AArch64Relocator &pParent) {
   Relocator::Address S = pParent.getSymValue(&pReloc);
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord X = S + A;
-  Relocator::SWord SX = X;
 
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_MOVW_UABS_G0:
-    // Check 0 <= X < 2^16
-    if (X >= 0x10000)
+    if (!llvm::isUInt<16>(X))
       return Relocator::Overflow;
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G0_NC:
     pReloc.target() = helper_reencode_movzk_imm(pReloc.target(), (X & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G1:
-    // Check 0 <= X < 2^32
-    if (X >= 0x100000000)
+    if (!llvm::isUInt<32>(X))
       return Relocator::Overflow;
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G1_NC:
@@ -935,8 +925,7 @@ Relocator::Result movw_abs_g(Relocation &pReloc, AArch64Relocator &pParent) {
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 16) & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G2:
-    // Check 0 <= X < 2^48
-    if (X >= 0x1000000000000)
+    if (!llvm::isUInt<48>(X))
       return Relocator::Overflow;
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G2_NC:
@@ -948,27 +937,18 @@ Relocator::Result movw_abs_g(Relocation &pReloc, AArch64Relocator &pParent) {
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 48) & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_SABS_G0:
-    // Check -2^16 <= X < 2^16
-    if (SX >= 0x10000)
-      return Relocator::Overflow;
-    if ((0 - SX) >= 0x10000)
+    if (!llvm::isInt<17>(static_cast<int64_t>(X)))
       return Relocator::Overflow;
     pReloc.target() = helper_reencode_movzk_imm(pReloc.target(), (X & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_SABS_G1:
-    // Check -2^32 <= X < 2^32
-    if (SX >= 0x100000000)
-      return Relocator::Overflow;
-    if ((0 - SX) >= 0x100000000)
+    if (!llvm::isInt<33>(static_cast<int64_t>(X)))
       return Relocator::Overflow;
     pReloc.target() =
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 16) & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_SABS_G2:
-    // Check -2^48 <= X < 2^48
-    if (SX >= 0x1000000000000)
-      return Relocator::Overflow;
-    if ((0 - SX) >= 0x1000000000000)
+    if (!llvm::isInt<49>(static_cast<int64_t>(X)))
       return Relocator::Overflow;
     pReloc.target() =
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 32) & 0xFFFF));
@@ -1041,17 +1021,14 @@ Relocator::Result tls_tprel(Relocation &pReloc, AArch64Relocator &pParent) {
       pParent.getSymValue(&pReloc) + OptTLSBlockVarOffset.value();
 
   if (pReloc.type() == llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12) {
-    if (X >= 0x1000000)
+    if (!llvm::isUInt<24>(X))
       return Relocator::Overflow;
-  } else {
-    if (X >= 0x1000)
-      return Relocator::Overflow;
-  }
-
-  if (pReloc.type() == llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12)
     pReloc.target() = helper_reencode_add_imm(pReloc.target(), X >> 12);
-  else
+  } else {
+    if (!llvm::isUInt<12>(X))
+      return Relocator::Overflow;
     pReloc.target() = helper_reencode_add_imm(pReloc.target(), X);
+  }
   return Relocator::OK;
 }
 
