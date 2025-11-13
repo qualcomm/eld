@@ -207,19 +207,6 @@ helper_thumb32_cond_branch_lower(Relocator::DWord pLower16,
   return (pLower16 & 0xd000U) | (j1 << 13) | (j2 << 11) | lo;
 }
 
-// Return true if overflow
-static bool helper_check_signed_overflow(Relocator::DWord pValue,
-                                         unsigned bits) {
-  int32_t signed_val = static_cast<int32_t>(pValue);
-  int32_t max = (1 << (bits - 1)) - 1;
-  int32_t min = -(1 << (bits - 1));
-  if (signed_val > max || signed_val < min) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 ARMGOT *ARMRelocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
   static ARMGOT *G = nullptr;
   if (G != nullptr) {
@@ -1061,7 +1048,7 @@ Relocator::Result thm_jump8(Relocation &pReloc, ARMRelocator &pParent) {
             ->getAddr(DiagEngine);
 
   Relocator::DWord X = S + A - P;
-  if (helper_check_signed_overflow(X, 9))
+  if (!llvm::isInt<9>(static_cast<int32_t>(X)))
     return Relocator::Overflow;
   //                    Make sure the Imm is 0.          Result Mask.
   pReloc.target() = (pReloc.target() & 0xFFFFFF00u) | ((X & 0x01FEu) >> 1);
@@ -1082,7 +1069,7 @@ Relocator::Result thm_jump11(Relocation &pReloc, ARMRelocator &pParent) {
             ->getAddr(DiagEngine);
 
   Relocator::DWord X = S + A - P;
-  if (helper_check_signed_overflow(X, 12))
+  if (!llvm::isInt<12>(static_cast<int32_t>(X)))
     return Relocator::Overflow;
   //                    Make sure the Imm is 0.          Result Mask.
   pReloc.target() = (pReloc.target() & 0xFFFFF800u) | ((X & 0x0FFEu) >> 1);
@@ -1120,7 +1107,7 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   }
 
   Relocator::DWord X = ((S + A) | T) - P;
-  if (helper_check_signed_overflow(X, 21))
+  if (!llvm::isInt<21>(static_cast<int32_t>(X)))
     return Relocator::Overflow;
 
   upper_inst = helper_thumb32_cond_branch_upper(upper_inst, X);
@@ -1229,7 +1216,7 @@ Relocator::Result call(Relocation &pReloc, ARMRelocator &pParent) {
 
   Relocator::DWord X = ((S + A) | T) - P;
   // Check X is 24bit sign int. If not, we should use stub or PLT before apply.
-  if (helper_check_signed_overflow(X, 26))
+  if (!llvm::isInt<26>(static_cast<int32_t>(X)))
     return Relocator::Overflow;
   //                    Make sure the Imm is 0.          Result Mask.
   pReloc.target() = (pReloc.target() & 0xFF000000u) | ((X & 0x03FFFFFEu) >> 2);
@@ -1296,7 +1283,7 @@ Relocator::Result thm_call(Relocation &pReloc, ARMRelocator &pParent) {
   Relocator::DWord X = (S | T) - P;
 
   // FIXME: Check bit size is 24(thumb2) or 22?
-  if (helper_check_signed_overflow(X, 25)) {
+  if (!llvm::isInt<25>(static_cast<int32_t>(X))) {
     return Relocator::Overflow;
   }
 
@@ -1564,7 +1551,7 @@ Relocator::Result prel31(Relocation &pReloc, ARMRelocator &pParent) {
 
   Relocator::DWord X = ((S + A) | T) - P;
   pReloc.target() = helper_bit_select(target, X, 0x7fffffffU);
-  if (helper_check_signed_overflow(X, 31))
+  if (!llvm::isInt<31>(static_cast<int32_t>(X)))
     return Relocator::Overflow;
   return Relocator::OK;
 }
