@@ -1276,6 +1276,12 @@ def noDefaultPlugins
       HelpText<"Allow no plugins to be implicitly loaded">,
       Group<grp_pluginopts>;
 
+defm PluginActivityFile
+    : smDashWithOpt<"plugin-activity-file", "PluginActivityFile",
+                    "Emit plugin activity JSON files">,
+      MetaVarName<"<filename>">,
+      Group<grp_pluginopts>;
+
 //===----------------------------------------------------------------------===//
 /// Other Features
 //===----------------------------------------------------------------------===//

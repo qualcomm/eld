@@ -59,6 +59,8 @@ Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
   Printer = ThisConfig.getPrinter();
   if (ThisConfig.shouldCreateReproduceTar())
     createOutputTarWriter();
+  if (Config.options().getPluginActivityLogFile())
+    createPluginActivityLog();
 }
 
 Module::~Module() {
@@ -498,20 +500,7 @@ bool Module::updateOutputSectionsWithPlugins() {
 }
 
 llvm::StringRef Module::getStateStr() const {
-  switch (getState()) {
-  case LinkState::Unknown:
-    return "Unknown";
-  case LinkState::Initializing:
-    return "Initializing";
-  case LinkState::BeforeLayout:
-    return "BeforeLayout";
-  case LinkState::CreatingSections:
-    return "CreatingSections";
-  case LinkState::AfterLayout:
-    return "AfterLayout";
-  case LinkState::CreatingSegments:
-    return "CreatingSegments";
-  }
+  return getLinkStateStrRef(getState());
 }
 
 void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
@@ -865,6 +854,11 @@ bool Module::setLinkState(LinkState S) {
   if (S == LinkState::CreatingSections)
     Verification = verifyInvariantsForCreatingSectionsState();
   State = S;
+  auto &PluginActLog = getPluginActivityLog();
+  if (PluginActLog) {
+    auto LinkStateOp = eld::make<UpdateLinkStateOp>(S);
+    PluginActLog->addPluginOperation(*LinkStateOp);
+  }
   return Verification;
 }
 

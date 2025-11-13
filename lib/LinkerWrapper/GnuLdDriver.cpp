@@ -1215,6 +1215,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setOMagic(true);
   }
 
+  // --plugin-activity-file=<file>
+  if (llvm::opt::Arg *A = Args.getLastArg(T::PluginActivityFile)) {
+    Config.options().setPluginActivityLogFile(A->getValue());
+  }
+
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }
@@ -1864,6 +1869,9 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);
+    if (auto &PluginActLog = ThisModule->getPluginActivityLog()) {
+      PluginActLog->print(Config.options().getPluginActivityLogFile().value());
+    }
     linkStatus &= ThisModule->getPluginManager().callDestroyHook();
     // llvm::errs() << "destroy hook: linkStatus: " << linkStatus << "\n";
     linker.unloadPlugins();
