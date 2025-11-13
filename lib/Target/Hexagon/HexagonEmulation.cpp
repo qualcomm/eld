@@ -24,7 +24,7 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   llvm::StringRef Emulation = pConfig.options().getEmulation();
   if (!Emulation.empty()) {
     llvm::StringRef flag = llvm::StringSwitch<StringRef>(Emulation)
-                               .Cases("v68", "hexagonelf", "hexagonv68")
+                               .Cases({"v68", "hexagonelf"}, "hexagonv68")
                                .Case("v69", "hexagonv69")
                                .Case("v71", "hexagonv71")
                                .Case("v71t", "hexagonv71t")
