@@ -960,7 +960,7 @@ bool LinkerWrapper::isChunkMovableFromOutputSection(const Chunk &C) const {
 std::string_view LinkerWrapper::getCurrentLinkStateAsStr() const {
   switch (getLinkState()) {
 #define ADD_CASE(linkerState)                                                  \
-  case Module::LinkState::linkerState:                                         \
+  case LinkState::linkerState:                                         \
     return #linkerState;
     ADD_CASE(Unknown);
     ADD_CASE(Initializing);
@@ -1168,21 +1168,21 @@ eld::Expected<bool> LinkerWrapper::doesRuleMatchWithSection(
 uint8_t LinkerWrapper::getLinkState() const { return m_Module.getState(); }
 
 bool LinkerWrapper::isLinkStateInitializing() const {
-  return m_Module.getState() == Module::LinkState::Initializing;
+  return m_Module.getState() == LinkState::Initializing;
 }
 
 bool LinkerWrapper::isLinkStateBeforeLayout() const {
-  return m_Module.getState() == Module::LinkState::BeforeLayout;
+  return m_Module.getState() == LinkState::BeforeLayout;
 }
 
 bool LinkerWrapper::isLinkStateCreatingSections() const {
-  return m_Module.getState() == Module::LinkState::CreatingSections;
+  return m_Module.getState() == LinkState::CreatingSections;
 }
 
 bool LinkerWrapper::isLinkStateAfterLayout() const {
-  return m_Module.getState() == Module::LinkState::AfterLayout;
+  return m_Module.getState() == LinkState::AfterLayout;
 }
 
 bool LinkerWrapper::isLinkStateCreatingSegments() const {
-  return m_Module.getState() == Module::LinkState::CreatingSegments;
+  return m_Module.getState() == LinkState::CreatingSegments;
 }
