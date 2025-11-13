@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---DefaultImageBase.test-----Executable--------#
 BEGIN_COMMENT
 # Test x86_64 default image address

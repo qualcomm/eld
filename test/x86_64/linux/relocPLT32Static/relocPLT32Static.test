@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #--PLT32Static.test----------Executable--------#
 
 BEGIN_COMMENT

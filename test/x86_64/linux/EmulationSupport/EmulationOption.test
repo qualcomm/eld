@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---x86_64_Emulation.test----------------- Executable --------------------#
 
 BEGIN_COMMENT

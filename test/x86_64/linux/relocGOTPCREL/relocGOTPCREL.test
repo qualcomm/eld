@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #--relocGOTPCRELStatic.test----------Executable--------#
 BEGIN_COMMENT
 # Test R_X86_64_GOTPCREL relocation type support.
