@@ -162,6 +162,11 @@ eld::Expected<void> Diagnostic::format(const char *PBegin, const char *PEnd,
       llvm::raw_string_ostream(POutStr) << Val;
       break;
     }
+    case DiagnosticEngine::ak_slonglong: {
+      long long Val = getArgSLongLong(ArgNo);
+      llvm::raw_string_ostream(POutStr) << Val;
+      break;
+    }
     case DiagnosticEngine::ak_uint: {
       unsigned int Val = getArgUInt(ArgNo);
       llvm::raw_string_ostream(POutStr) << Val;

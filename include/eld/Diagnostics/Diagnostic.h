@@ -62,6 +62,12 @@ public:
     return (int)DiagEngine.state().ArgumentVals[PIdx];
   }
 
+  long long getArgSLongLong(unsigned Idx) const {
+    assert(getArgKind(Idx) == DiagnosticEngine::ak_slonglong &&
+           "Invalid argument accessor!");
+    return (long long)DiagEngine.state().ArgumentVals[Idx];
+  }
+
   unsigned int getArgUInt(unsigned int PIdx) const {
     assert(getArgKind(PIdx) == DiagnosticEngine::ak_uint &&
            "Invalid argument accessor!");

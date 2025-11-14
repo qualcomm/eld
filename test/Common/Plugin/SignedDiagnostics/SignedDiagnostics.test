@@ -1,0 +1,12 @@
+## Checks that the linker can emit diagnostics for int64_t types.
+RUN: split-file %s %t
+RUN: %clang %clangopts -c %t/1.s -o %t.o
+RUN: %link %linkopts %t.o -L%libsdir/test --T %t/script.t 2>&1 | %filecheck %s
+CHECK: positive 64-bit value: 9223372036854775807
+CHECK: negative 64-bit value: -9223372036854775808
+
+#--- script.t
+PLUGIN_ITER_SECTIONS("SignedDiagnostics", "SignedDiagnostics")
+
+#--- 1.s
+nop

@@ -106,7 +106,16 @@ inline const MsgHandler &operator<<(const MsgHandler &Handler,
 }
 
 inline const MsgHandler &operator<<(const MsgHandler &Handler, long Value) {
-  Handler.addTaggedVal(Value, DiagnosticEngine::ak_sint);
+  constexpr DiagnosticEngine::ArgumentKind Kind =
+      sizeof(long) == sizeof(int) ? DiagnosticEngine::ak_sint
+                                  : DiagnosticEngine::ak_slonglong;
+  Handler.addTaggedVal(Value, Kind);
+  return Handler;
+}
+
+inline const MsgHandler &operator<<(const MsgHandler &Handler,
+                                    long long Value) {
+  Handler.addTaggedVal(Value, DiagnosticEngine::ak_slonglong);
   return Handler;
 }
 

@@ -60,6 +60,8 @@ public:
   const DiagnosticBuilder &operator<<(unsigned int pValue) const;
   /// Add long int argument to the diagnostic.
   const DiagnosticBuilder &operator<<(long pValue) const;
+  /// Add long long argument to the diagnostic.
+  const DiagnosticBuilder &operator<<(long long pValue) const;
   /// Add unsigned long argument to the diagnostic.
   const DiagnosticBuilder &operator<<(unsigned long pValue) const;
   /// Add unsigned long long argument to the diagnostic.

@@ -35,6 +35,10 @@ const DiagnosticBuilder &DiagnosticBuilder::operator<<(long pValue) const {
   *m_MsgHandler << pValue;
   return *this;
 }
+const DiagnosticBuilder &DiagnosticBuilder::operator<<(long long Value) const {
+  *m_MsgHandler << Value;
+  return *this;
+}
 const DiagnosticBuilder &
 DiagnosticBuilder::operator<<(unsigned long pValue) const {
   *m_MsgHandler << pValue;
