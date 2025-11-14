@@ -54,6 +54,8 @@ DIAG(not_aligned, DiagnosticEngine::Warning,
 DIAG(reloc_truncated, DiagnosticEngine::Warning,
      "Relocation `%0' for symbol `%1' referred from `%2' and defined in `%3' "
      "is truncated to fit relocation field")
+DIAG(error_unencodable_imm, DiagnosticEngine::Error,
+     "%0: unencodable immediate %1 for relocation '%2' referencing '%3'")
 DIAG(undef_sym_visibility, DiagnosticEngine::Error,
      "%0: relocation %1 against undefined %3 symbol `%2' cannot be used when "
      "making %4")

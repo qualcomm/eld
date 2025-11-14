@@ -1141,11 +1141,13 @@ Relocator::Result alu_pc(Relocation &pReloc, ARMRelocator &pParent) {
 
   // Choose instruction type (ADD or SUB) and compute the absolute value.
   uint32_t X = ((S + A) | T) - P;
+  uint32_t Imm = X;
   if ((int32_t)X >= 0)
     I |= 0x00800000; // ADD
   else {
     I |= 0x00400000; // SUB
     X = -X;
+    Imm = -Imm;
   }
 
   if (X) {
@@ -1158,8 +1160,10 @@ Relocator::Result alu_pc(Relocation &pReloc, ARMRelocator &pParent) {
     X &= llvm::maskTrailingOnes<uint32_t>(K * 2);
     // For higher groups, the above is repeated.
     // If there is still residual, the value cannot be represented.
-    if (X)
-      return Relocator::Overflow;
+    if (X) {
+      pReloc.issueUnencodableImmediate(pParent, Imm);
+      return Relocator::BadImm;
+    }
   }
 
   pReloc.target() = I;

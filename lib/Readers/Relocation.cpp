@@ -217,6 +217,19 @@ bool Relocation::issueOverflow(Relocator &pRelocator) const {
   return false;
 }
 
+bool Relocation::issueUnencodableImmediate(Relocator &R, int64_t Imm) const {
+  std::string Location = "";
+  if (FragmentRef *Ref = targetRef())
+    if (Fragment *F = Ref->frag())
+      if (ELFSection *S = F->getOwningSection())
+        Location = S->getLocation(Ref->offset(), R.config().options());
+  R.config().raise(Diag::error_unencodable_imm)
+      << Location << Imm << R.getName(type())
+      << getSymbolName(symInfo(), R.doDeMangle());
+  ASSERT(!Location.empty(), "expected a section location.");
+  return false;
+}
+
 bool Relocation::apply(Relocator &pRelocator) {
   // Issue undefined references for section magic symbols here
   pRelocator.issueUndefRefForMagicSymbol(*this);
@@ -241,6 +254,9 @@ bool Relocation::apply(Relocator &pRelocator) {
 
   case Relocator::Overflow:
     return issueOverflow(pRelocator);
+
+  case Relocator::BadImm:
+    return false;
 
   case Relocator::BadReloc: {
     DiagEngine->raise(Diag::result_badreloc_moreinfo)

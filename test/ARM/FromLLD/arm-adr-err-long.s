@@ -27,7 +27,7 @@ _start:
  .inst 0xe24f0008 // sub r0, pc, #8
  .inst 0xe2400004 // sub r0, r0, #4
  .reloc 0, R_ARM_ALU_PC_G0, dat1
-// CHECK: Error: Relocation overflow when applying relocation `R_ARM_ALU_PC_G0' for symbol `dat1' referred from {{.*}}.s.tmp.o[.text.1] symbol defined in {{.*}}.s.tmp.o[.text.0]
+// CHECK: Error: {{.*}}.o:(.text.1): unencodable immediate 7340040 for relocation 'R_ARM_ALU_PC_G0' referencing 'dat1
 // FIXME .reloc 4, R_ARM_ALU_PC_G1, dat1
 
  .inst 0xe24f1008 // sub r1, pc, #8
@@ -42,7 +42,7 @@ _start:
  .inst 0xe2400004 // sub r0, r0, #4
  .inst 0xe2400000 // sub r0, r0, #0
  .reloc 20, R_ARM_ALU_PC_G0, dat1
-// CHECK: Error: Relocation overflow when applying relocation `R_ARM_ALU_PC_G0' for symbol `dat1' referred from {{.*}}.s.tmp.o[.text.1] symbol defined in {{.*}}.s.tmp.o[.text.0]
+// CHECK: Error: {{.*}}.o:(.text.1+0x14): unencodable immediate 7340060 for relocation 'R_ARM_ALU_PC_G0'
 // FIXME .reloc 24, R_ARM_ALU_PC_G1, dat1
 // FIXME .reloc 28, R_ARM_ALU_PC_G2, dat1
 

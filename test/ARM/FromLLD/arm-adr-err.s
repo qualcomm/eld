@@ -14,11 +14,11 @@ low:
  .global _start
  .type _start, %function
 _start:
-// CHECK: Relocation overflow when applying relocation `R_ARM_ALU_PC_G0' for symbol `low' referred from {{.*}}.s.tmp.o[.os1] symbol defined in {{.*}}.s.tmp.o[.os0]
+// CHECK: Error: {{.*}}.o:(.os1): unencodable immediate 1031 for relocation 'R_ARM_ALU_PC_G0' referencing 'low'
 /// adr r0, low
  .inst 0xe24f0008
  .reloc 0, R_ARM_ALU_PC_G0, low
-// CHECK: Relocation overflow when applying relocation `R_ARM_ALU_PC_G0' for symbol `unaligned' referred from {{.*}}.s.tmp.o[.os1] symbol defined in {{.*}}.s.tmp.o[.os2]
+// Error: {{.*}}o:(.os1+0x4): unencodable immediate 1013 for relocation 'R_ARM_ALU_PC_G0' referencing 'unaligned'
 /// adr r1, unaligned
  .inst 0xe24f1008
  .reloc 4, R_ARM_ALU_PC_G0, unaligned

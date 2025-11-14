@@ -147,6 +147,8 @@ public:
 
   bool issueOverflow(Relocator &) const;
 
+  bool issueUnencodableImmediate(Relocator &R, int64_t Imm) const;
+
 private:
   /// m_pSymInfo - resolved symbol info of relocation target symbol
   ResolveInfo *m_pSymInfo;

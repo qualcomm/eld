@@ -40,7 +40,7 @@ public:
   typedef Relocation::Size Size;
 
 public:
-  enum Result { OK, BadReloc, Overflow, Unsupport, Unknown };
+  enum Result { OK, BadReloc, Overflow, BadImm, Unsupport, Unknown };
 
   /** \enum ReservedEntryType
    *  \brief The reserved entry type of reserved space in ResolveInfo.
