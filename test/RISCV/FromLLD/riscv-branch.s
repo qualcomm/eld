@@ -13,8 +13,8 @@
 # LIMITS-32-NEXT: 7e001de3     bnez    zero, 0x1052
 
 # RUN: not %link %linkopts %t.rv32.o --defsym foo=_start+0x1000 --defsym bar=_start+4-0x1002 -o /dev/null 2>&1 | FileCheck --check-prefix=ERROR-RANGE %s
-# ERROR-RANGE: Relocation overflow when applying relocation `R_RISCV_BRANCH' for symbol `foo'
-# ERROR-RANGE: Relocation overflow when applying relocation `R_RISCV_BRANCH' for symbol `bar'
+# ERROR-RANGE: Error:     {{.*}}rv32.o:(.text): relocation 'R_RISCV_BRANCH' for 'foo' is out of range: 4096 is not in [-4096, 4095]
+# ERROR-RANGE: Error: {{.*}}rv32.o:(.text+0x4): relocation 'R_RISCV_BRANCH' for 'bar' is out of range: -4098 is not in [-4096, 4095]
 
 # RUN: %link %linkopts %t.rv32.o --defsym foo=_start+1 --defsym bar=_start-1 -o %t.out 2>&1 | FileCheck --check-prefix=WARN-ALIGN %s
 # WARN-ALIGN: Relocation `R_RISCV_BRANCH' for symbol `foo' referred from `(Not Applicable)' and defined in `{{.*}}' has alignment 2 but is not aligned

@@ -1048,8 +1048,9 @@ Relocator::Result thm_jump8(Relocation &pReloc, ARMRelocator &pParent) {
             ->getAddr(DiagEngine);
 
   Relocator::DWord X = S + A - P;
-  if (!llvm::isInt<9>(static_cast<int32_t>(X)))
-    return Relocator::Overflow;
+  int32_t SignedValue = static_cast<int32_t>(X);
+  if (!llvm::isInt<9>(SignedValue))
+    return checkSignedRange(pReloc, pParent, SignedValue, 9);
   //                    Make sure the Imm is 0.          Result Mask.
   pReloc.target() = (pReloc.target() & 0xFFFFFF00u) | ((X & 0x01FEu) >> 1);
   return Relocator::OK;
@@ -1069,8 +1070,9 @@ Relocator::Result thm_jump11(Relocation &pReloc, ARMRelocator &pParent) {
             ->getAddr(DiagEngine);
 
   Relocator::DWord X = S + A - P;
-  if (!llvm::isInt<12>(static_cast<int32_t>(X)))
-    return Relocator::Overflow;
+  int32_t SignedValue = static_cast<int32_t>(X);
+  if (!llvm::isInt<12>(SignedValue))
+    return checkSignedRange(pReloc, pParent, SignedValue, 12);
   //                    Make sure the Imm is 0.          Result Mask.
   pReloc.target() = (pReloc.target() & 0xFFFFF800u) | ((X & 0x0FFEu) >> 1);
   return Relocator::OK;
@@ -1107,8 +1109,9 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   }
 
   Relocator::DWord X = ((S + A) | T) - P;
-  if (!llvm::isInt<21>(static_cast<int32_t>(X)))
-    return Relocator::Overflow;
+  int32_t SignedValue = static_cast<int32_t>(X);
+  if (!llvm::isInt<21>(SignedValue))
+    return checkSignedRange(pReloc, pParent, SignedValue, 21);
 
   upper_inst = helper_thumb32_cond_branch_upper(upper_inst, X);
   lower_inst = helper_thumb32_cond_branch_lower(lower_inst, X);
@@ -1220,8 +1223,9 @@ Relocator::Result call(Relocation &pReloc, ARMRelocator &pParent) {
 
   Relocator::DWord X = ((S + A) | T) - P;
   // Check X is 24bit sign int. If not, we should use stub or PLT before apply.
-  if (!llvm::isInt<26>(static_cast<int32_t>(X)))
-    return Relocator::Overflow;
+  int32_t SignedValue = static_cast<int32_t>(X);
+  if (!llvm::isInt<26>(SignedValue))
+    return checkSignedRange(pReloc, pParent, SignedValue, 26);
   //                    Make sure the Imm is 0.          Result Mask.
   pReloc.target() = (pReloc.target() & 0xFF000000u) | ((X & 0x03FFFFFEu) >> 2);
 
@@ -1287,9 +1291,9 @@ Relocator::Result thm_call(Relocation &pReloc, ARMRelocator &pParent) {
   Relocator::DWord X = (S | T) - P;
 
   // FIXME: Check bit size is 24(thumb2) or 22?
-  if (!llvm::isInt<25>(static_cast<int32_t>(X))) {
-    return Relocator::Overflow;
-  }
+  int32_t SignedValue = static_cast<int32_t>(X);
+  if (!llvm::isInt<25>(SignedValue))
+    return checkSignedRange(pReloc, pParent, SignedValue, 25);
 
   upper_inst = helper_thumb32_branch_upper(upper_inst, X);
   lower_inst = helper_thumb32_branch_lower(lower_inst, X);
@@ -1555,8 +1559,9 @@ Relocator::Result prel31(Relocation &pReloc, ARMRelocator &pParent) {
 
   Relocator::DWord X = ((S + A) | T) - P;
   pReloc.target() = helper_bit_select(target, X, 0x7fffffffU);
-  if (!llvm::isInt<31>(static_cast<int32_t>(X)))
-    return Relocator::Overflow;
+  int32_t SignedValue = static_cast<int32_t>(X);
+  if (!llvm::isInt<31>(SignedValue))
+    return checkSignedRange(pReloc, pParent, SignedValue, 31);
   return Relocator::OK;
 }
 

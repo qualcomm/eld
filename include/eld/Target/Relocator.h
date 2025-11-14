@@ -164,6 +164,11 @@ protected:
   std::unordered_map<std::string, uint32_t> RelocNameMap;
 };
 
-} // namespace eld
+Relocator::Result checkSignedRange(Relocation &Rel, Relocator &R, int64_t Value,
+                                   unsigned Bits);
 
+Relocator::Result checkUnsignedRange(Relocation &Rel, Relocator &R,
+                                     uint64_t Value, unsigned Bits);
+
+} // namespace eld
 #endif

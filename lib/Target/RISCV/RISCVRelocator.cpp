@@ -23,7 +23,7 @@ namespace {
 struct RelocationDescription;
 
 typedef Relocator::Result (*ApplyFunctionType)(
-    eld::Relocation &pReloc, eld::RISCVLDBackend &,
+    eld::Relocation &pReloc, eld::RISCVLDBackend &, RISCVRelocator &Parent,
     RelocationDescription &pRelocDesc);
 
 struct RelocationDescription {
@@ -41,6 +41,7 @@ struct RelocationDescription {
 
 #define DECL_RISCV_APPLY_RELOC_FUNC(Name)                                      \
   RISCVRelocator::Result Name(Relocation &pEntry, RISCVLDBackend &,            \
+                              RISCVRelocator &Parent,                          \
                               RelocationDescription &pRelocDesc);
 
 DECL_RISCV_APPLY_RELOC_FUNC(unsupported)
@@ -335,8 +336,9 @@ Relocator::Result RISCVRelocator::applyRelocation(Relocation &pRelocation) {
   if (Desc == RelocDescs.end())
     return RISCVRelocator::Unsupport;
 
-  return Desc->second.func(
-      pRelocation, static_cast<RISCVLDBackend &>(getTarget()), Desc->second);
+  return Desc->second.func(pRelocation,
+                           static_cast<RISCVLDBackend &>(getTarget()), *this,
+                           Desc->second);
 }
 
 const char *RISCVRelocator::getName(Relocation::Type pType) const {
@@ -754,7 +756,7 @@ template <typename T>
 Relocator::Result
 VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
                           const RelocationDescription &pRelocDesc,
-                          LinkerConfig &config) {
+                          LinkerConfig &config, RISCVRelocator &Parent) {
   uint32_t RelocType = pReloc.type();
   auto RelocInfo = getRISCVReloc(RelocType);
   Relocator::Result R = Relocator::OK;
@@ -767,8 +769,13 @@ VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
         << pReloc.getSourcePath(config.options()) << RelocInfo.Alignment;
 
   bool is32Bits = config.targets().is32Bits();
-  if (RelocInfo.VerifyRange && !verifyRISCVRange(RelocInfo, Result, is32Bits))
-    R = Relocator::Overflow;
+  if (RelocInfo.VerifyRange && !verifyRISCVRange(RelocInfo, Result, is32Bits)) {
+    unsigned EffectiveBits =
+        getEncodingBitWidth(RelocInfo.EncType) + RelocInfo.Shift;
+    if (RelocInfo.IsSigned)
+      return checkSignedRange(pReloc, Parent, Result, EffectiveBits);
+    return checkUnsignedRange(pReloc, Parent, Result, EffectiveBits);
+  }
 
   if ((pRelocDesc.forceVerify) && (isTruncatedRISCV(RelocInfo, Result))) {
     config.raise(Diag::reloc_truncated)
@@ -782,12 +789,12 @@ VerifyRelocAsNeededHelper(Relocation &pReloc, T Result,
 template <typename T>
 Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
                              const RelocationDescription &pRelocDesc,
-                             LinkerConfig &config) {
+                             LinkerConfig &config, RISCVRelocator &Parent) {
   auto RelocInfo = getRISCVReloc(pReloc.type());
 
   // Verify the Relocation.
   Relocator::Result R = Relocator::OK;
-  R = VerifyRelocAsNeededHelper(pReloc, Result, pRelocDesc, config);
+  R = VerifyRelocAsNeededHelper(pReloc, Result, pRelocDesc, config, Parent);
   if (R != Relocator::OK)
     return R;
 
@@ -801,11 +808,13 @@ Relocator::Result ApplyReloc(Relocation &pReloc, T Result,
 //=========================================//
 
 RISCVRelocator::Result applyNone(Relocation &pReloc, RISCVLDBackend &,
+                                 RISCVRelocator &,
                                  RelocationDescription &pRelocDesc) {
   return RISCVRelocator::OK;
 }
 
 RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
+                                RISCVRelocator &Parent,
                                 RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -832,15 +841,16 @@ RISCVRelocator::Result applyAbs(Relocation &pReloc, RISCVLDBackend &Backend,
   switch (pReloc.type()) {
   case ELF::riscv::internal::R_RISCV_QC_ABS20_U:
     if (!llvm::isInt<20>(Result))
-      return RISCVRelocator::Overflow;
+      return checkSignedRange(pReloc, Parent, Result, 20);
     break;
   }
 
-  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config(), Parent);
 }
 
 RISCVRelocator::Result applyAdditive(Relocation &pReloc,
                                      RISCVLDBackend &Backend,
+                                     RISCVRelocator &Parent,
                                      RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -865,7 +875,7 @@ RISCVRelocator::Result applyAdditive(Relocation &pReloc,
     Result = S + A;
 
   RISCVRelocator::Result Res =
-      ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
+      ApplyReloc(pReloc, Result, pRelocDesc, Backend.config(), Parent);
   if (groupReloc)
     groupReloc->target() = pReloc.target();
 
@@ -873,6 +883,7 @@ RISCVRelocator::Result applyAdditive(Relocation &pReloc,
 }
 
 RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVLDBackend &Backend,
+                                RISCVRelocator &Parent,
                                 RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -903,14 +914,15 @@ RISCVRelocator::Result applyRel(Relocation &pReloc, RISCVLDBackend &Backend,
       int wordSize = Backend.config().targets().is32Bits() ? 32 : 64;
       int64_t ResultSignExend = llvm::SignExtend64(Value + 0x800, wordSize);
       if (!llvm::isInt<32>(ResultSignExend))
-        return RISCVRelocator::Overflow;
+        return checkSignedRange(pReloc, Parent, Value, 32);
     }
   }
-  return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config(), Parent);
 }
 
 RISCVRelocator::Result applyRelLO(Relocation &pReloc, RISCVLDBackend &Backend,
-                                    RelocationDescription &pRelocDesc) {
+                                  RISCVRelocator &Parent,
+                                  RelocationDescription &pRelocDesc) {
   DiagnosticEngine *DiagEngine = Backend.config().getDiagEngine();
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -945,10 +957,11 @@ RISCVRelocator::Result applyRelLO(Relocation &pReloc, RISCVLDBackend &Backend,
   } else
     Value -= HIReloc->place(Backend.getModule());
 
-  return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Value, pRelocDesc, Backend.config(), Parent);
 }
 
 RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
+                                RISCVRelocator &Parent,
                                 RelocationDescription &pRelocDesc) {
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
     return Relocator::BadReloc;
@@ -961,11 +974,12 @@ RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
 
   Result -= pReloc.place(Backend.getModule());
 
-  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config(), Parent);
 }
 
 RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
                                        RISCVLDBackend &Backend,
+                                       RISCVRelocator &Parent,
                                        RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -984,16 +998,18 @@ RISCVRelocator::Result applyJumpOrCall(Relocation &pReloc,
   int64_t A = pReloc.addend();
   int64_t P = pReloc.place(Backend.getModule());
 
-  return ApplyReloc(pReloc, S + A - P, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, S + A - P, pRelocDesc, Backend.config(), Parent);
 }
 
 // R_RISCV_ALIGN
 RISCVRelocator::Result applyAlign(Relocation &pReloc, RISCVLDBackend &Backend,
+                                  RISCVRelocator &,
                                   RelocationDescription &pRelocDesc) {
   return RISCVRelocator::OK;
 }
 
 RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVLDBackend &Backend,
+                                  RISCVRelocator &Parent,
                                   RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
@@ -1012,29 +1028,34 @@ RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVLDBackend &Backend,
   if (gpSymbol)
     G = gpSymbol->value();
 
-  if (!llvm::isInt<12>(S + A - G))
-    return RISCVRelocator::Overflow;
+  int64_t Value = S + A - G;
+  if (!llvm::isInt<12>(Value))
+    return checkSignedRange(pReloc, Parent, Value, 12);
 
-  return ApplyReloc(pReloc, S + A - G, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, S + A - G, pRelocDesc, Backend.config(), Parent);
 }
 
 RISCVRelocator::Result applyCompressedLUI(Relocation &pReloc,
                                           RISCVLDBackend &Backend,
+                                          RISCVRelocator &Parent,
                                           RelocationDescription &pRelocDesc) {
   // TODO: TEst what lld/bfd does.
   // LUI has bottom 12 bits or 4K addressible target bits 0.
   uint64_t Result = Backend.getSymbolValuePLT(pReloc) + pReloc.addend();
   // The bottom 12 bits are signed.
   uint64_t LoImm = llvm::SignExtend64<12>(Result);
-  return ApplyReloc(pReloc, Result - LoImm, pRelocDesc, Backend.config());
+  return ApplyReloc(pReloc, Result - LoImm, pRelocDesc, Backend.config(),
+                    Parent);
 }
 
 Relocator::Result unsupported(Relocation &pReloc, RISCVLDBackend &,
+                              RISCVRelocator &,
                               RelocationDescription &pRelocDesc) {
   return RISCVRelocator::Unsupport;
 }
 
 RISCVRelocator::Result applyTprelAdd(Relocation &pReloc, RISCVLDBackend &,
+                                     RISCVRelocator &,
                                      RelocationDescription &pRelocDesc) {
   // TODO: Add support for R_RISCV_TPREL_ADD type relaxation
   return RISCVRelocator::OK;
@@ -1042,6 +1063,7 @@ RISCVRelocator::Result applyTprelAdd(Relocation &pReloc, RISCVLDBackend &,
 
 // R_RISCV_VENDOR
 RISCVRelocator::Result applyVendor(Relocation &pReloc, RISCVLDBackend &,
+                                   RISCVRelocator &,
                                    RelocationDescription &pRelocDesc) {
   return RISCVRelocator::OK;
 }

@@ -697,7 +697,8 @@ namespace {
 template <typename T>
 Relocator::Result VerifyRelocAsNeededHelper(
     Relocation &pReloc, T Result, const RelocationDescription &pRelocDesc,
-    DiagnosticEngine *DiagEngine, const GeneralOptions &options) {
+    DiagnosticEngine *DiagEngine, const GeneralOptions &options,
+    HexagonRelocator &Parent) {
   uint32_t RelocType = pReloc.type();
   auto RelocInfo = llvm::Hexagon::Relocs[RelocType];
   Relocator::Result R = Relocator::OK;
@@ -709,11 +710,14 @@ Relocator::Result VerifyRelocAsNeededHelper(
         << pReloc.getTargetPath(options) << pReloc.getSourcePath(options)
         << RelocInfo.Alignment;
 
+  auto PreShift = Result;
   Result >>= llvm::Hexagon::Relocs[RelocType].Shift;
 
-  if (RelocInfo.VerifyRange) {
-    if (!llvm::Hexagon::verifyRange(RelocType, Result))
-      R = Relocator::Overflow;
+  if (RelocInfo.VerifyRange && !llvm::Hexagon::verifyRange(RelocType, Result)) {
+    unsigned EffectiveBits = RelocInfo.EffectiveBits + RelocInfo.Shift;
+    if (RelocInfo.IsSigned)
+      return checkSignedRange(pReloc, Parent, PreShift, EffectiveBits);
+    return checkUnsignedRange(pReloc, Parent, PreShift, EffectiveBits);
   }
 
   if ((pRelocDesc.forceVerify) &&
@@ -728,17 +732,18 @@ Relocator::Result VerifyRelocAsNeededHelper(
 Relocator::Result ApplyReloc(Relocation &pReloc, uint32_t Result,
                              const RelocationDescription &pRelocDesc,
                              DiagnosticEngine *DiagEngine,
-                             const GeneralOptions &options) {
+                             const GeneralOptions &options,
+                             HexagonRelocator &Parent) {
   auto RelocInfo = llvm::Hexagon::Relocs[pReloc.type()];
 
   // Verify the Relocation.
   Relocator::Result R = Relocator::OK;
   if (RelocInfo.IsSigned)
     R = VerifyRelocAsNeededHelper<int32_t>(pReloc, Result, pRelocDesc,
-                                           DiagEngine, options);
+                                           DiagEngine, options, Parent);
   else
     R = VerifyRelocAsNeededHelper<uint32_t>(pReloc, Result, pRelocDesc,
-                                            DiagEngine, options);
+                                            DiagEngine, options, Parent);
   if (R != Relocator::OK)
     return R;
 
@@ -764,7 +769,8 @@ Relocator::Result none(Relocation &pReloc, HexagonRelocator &pParent,
 Relocator::Result applyRel(Relocation &pReloc, uint32_t Result,
                            const RelocationDescription &pRelocDesc,
                            DiagnosticEngine *DiagEngine,
-                           const GeneralOptions &options) {
+                           const GeneralOptions &options,
+                           HexagonRelocator &Parent) {
   switch (pReloc.type()) {
   case llvm::ELF::R_HEX_B22_PCREL_X:
   case llvm::ELF::R_HEX_B15_PCREL_X:
@@ -778,7 +784,7 @@ Relocator::Result applyRel(Relocation &pReloc, uint32_t Result,
   default:
     break;
   }
-  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options);
+  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, Parent);
 }
 
 Relocator::Result relocAbs(Relocation &pReloc, HexagonRelocator &pParent,
@@ -796,19 +802,19 @@ Relocator::Result relocAbs(Relocation &pReloc, HexagonRelocator &pParent,
   if (rsym && rsym->isWeakUndef() &&
       (pParent.config().codeGenType() == LinkerConfig::Exec)) {
     S = 0;
-    return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options);
+    return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options, pParent);
   }
 
   // if the flag of target section is not ALLOC, we perform only static
   // relocation.
   if (!pReloc.targetRef()->getOutputELFSection()->isAlloc()) {
-    return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options);
+    return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options, pParent);
   }
 
   if (rsym && rsym->reserved() & Relocator::ReservePLT)
     S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(DiagEngine);
 
-  return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options);
+  return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options, pParent);
 }
 
 Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
@@ -830,7 +836,7 @@ Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
   // for relocs inside non ALLOC, just apply
   if (!target_sect->isAlloc()) {
     Relocator::Result R = applyRel(pReloc, Result, pRelocDesc, DiagEngine,
-                                   pParent.config().options());
+                                   pParent.config().options(), pParent);
     if (R == Relocator::Overflow)
       DiagEngine->raise(Diag::pcrel_reloc_overflow)
           << llvm::utohexstr(S) << llvm::utohexstr(A) << llvm::utohexstr(P)
@@ -844,7 +850,7 @@ Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
           pParent.config().getDiagEngine());
       Result = S + A - P;
       Relocator::Result R = applyRel(pReloc, Result, pRelocDesc, DiagEngine,
-                                     pParent.config().options());
+                                     pParent.config().options(), pParent);
       if (R == Relocator::Overflow)
         DiagEngine->raise(Diag::pcrel_reloc_overflow)
             << llvm::utohexstr(S) << llvm::utohexstr(A) << llvm::utohexstr(P)
@@ -854,7 +860,7 @@ Relocator::Result relocPCREL(Relocation &pReloc, HexagonRelocator &pParent,
   }
 
   Relocator::Result R = applyRel(pReloc, Result, pRelocDesc, DiagEngine,
-                                 pParent.config().options());
+                                 pParent.config().options(), pParent);
   if (R == Relocator::Overflow)
     DiagEngine->raise(Diag::pcrel_reloc_overflow)
         << llvm::utohexstr(S) << llvm::utohexstr(A) << llvm::utohexstr(P)
@@ -871,7 +877,7 @@ Relocator::Result relocGPREL(Relocation &pReloc, HexagonRelocator &pParent,
   uint32_t Result = (uint32_t)(S + A - GP);
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_PLT_B22_PCREL: PLT(S) + A - P
@@ -890,7 +896,7 @@ Relocator::Result relocPLTB22PCREL(Relocation &pReloc,
   Relocator::Address P = pReloc.place(pParent.module());
   uint32_t Result = (PLT_S + pReloc.addend() - P);
   return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine,
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_GOT_LO16 and its class : (G) Signed Truncate
@@ -908,7 +914,7 @@ Relocator::Result relocGOT(Relocation &pReloc, HexagonRelocator &pParent,
   Relocator::Address GOT = pParent.getTarget().getGOTSymbolAddr();
   uint32_t Result = (int32_t)(GOT_S - GOT);
   return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine,
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_GOTREL_LO16: and its class of relocs
@@ -922,7 +928,7 @@ Relocator::Result relocGOTREL(Relocation &pReloc, HexagonRelocator &pParent,
   uint32_t Result = (int32_t)(S + A - GOT);
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_TPREL* : Signed truncate
@@ -943,7 +949,7 @@ Relocator::Result relocTPREL(Relocation &pReloc, HexagonRelocator &pParent,
 
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_IE_GOT* : Signed Truncate
@@ -962,7 +968,7 @@ Relocator::Result relocIEGOT(Relocation &pReloc, HexagonRelocator &pParent,
   Relocator::Address GOT = pParent.getTarget().getGOTSymbolAddr();
   uint32_t Result = (int32_t)(GOT_S - GOT);
   return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine,
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_IE* : Signed Truncate
@@ -982,7 +988,7 @@ Relocator::Result relocIE(Relocation &pReloc, HexagonRelocator &pParent,
   uint32_t Result = G;
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_GD_GOT* : Signed Truncate
@@ -999,7 +1005,7 @@ Relocator::Result relocGDLDGOT(Relocation &pReloc, HexagonRelocator &pParent,
   uint32_t Result = (GOT_S - GOT);
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 // R_HEX_GD_PLT_B22_PCREL
@@ -1025,7 +1031,7 @@ Relocator::Result relocGDLDPLT(Relocation &pReloc, HexagonRelocator &pParent,
   }
 
   return applyRel(pReloc, Result, pRelocDesc, DiagEngine,
-                  pParent.config().options());
+                  pParent.config().options(), pParent);
 }
 
 Relocator::Result unsupport(Relocation &pReloc, HexagonRelocator &pParent,
@@ -1053,7 +1059,7 @@ Relocator::Result relocDTPREL(Relocation &pReloc, HexagonRelocator &pParent,
   uint32_t Result = (int32_t)(S + A);
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 Relocator::Result relocMsg(Relocation &pReloc, HexagonRelocator &pParent,
@@ -1065,7 +1071,7 @@ Relocator::Result relocMsg(Relocation &pReloc, HexagonRelocator &pParent,
   uint32_t Result = (uint32_t)(S + A - MB);
   return ApplyReloc(pReloc, Result, pRelocDesc,
                     pParent.config().getDiagEngine(),
-                    pParent.config().options());
+                    pParent.config().options(), pParent);
 }
 
 } // anonymous namespace

@@ -6,9 +6,9 @@
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.foo.o
 RUN: %clang %clangopts -c %p/Inputs/trampoline.s -o %t1.trampoline.o
-RUN: %not %link %linkopts %t1.foo.o -M %t1.trampoline.o -o %t2.out --no-trampolines --verbose 2>&1 | %filecheck %s
+RUN: %not %link %linkopts %t1.foo.o %t1.trampoline.o -o %t2.out --no-trampolines 2>&1 | %filecheck %s
 
-#CHECK: Error: Relocation overflow when applying relocation `R_HEX_B22_PCREL' for symbol `foo' referred from {{[ -\(\)_A-Za-z0-9.\\/:]+}}trampoline.o[.text.callfoo] symbol defined in {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o[.text]
-#CHECK: Error: Relocation overflow when applying relocation `R_HEX_B22_PCREL' for symbol `bar' referred from {{[ -\(\)_A-Za-z0-9.\\/:]+}}trampoline.o[.text.callfoo] symbol defined in {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o[.text]
+#CHECK: Error: {{.*}}.o:(.text.callfoo+0x1000000): relocation 'R_HEX_B22_PCREL' for 'foo' is out of range: {{.*}} is not in [-8388608, 8388607]
+#CHECK: Error: {{.*}}.o:(.text.callfoo+0x1000004): relocation 'R_HEX_B22_PCREL' for 'bar' is out of range: {{.*}} is not in [-8388608, 8388607]
 
 #END_TEST

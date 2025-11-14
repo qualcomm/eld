@@ -62,39 +62,6 @@ bool checkRange(uint64_t Value, bool IsSigned, EncodingType Type) {
   }
 }
 
-unsigned getNumberOfBits(EncodingType Type) {
-  switch (Type) {
-  case EncTy_I:
-  case EncTy_SB:
-  case EncTy_S:
-  case EncTy_QC_EB:
-    return 12;
-  case EncTy_UJ:
-  case EncTy_U_HI20:
-  case EncTy_U_ABS20:
-    return 20;
-  case EncTy_CJ:
-    return 11;
-  case EncTy_CI:
-  case EncTy_6:
-    return 6;
-  case EncTy_CB:
-  case EncTy_8:
-    return 8;
-  case EncTy_16:
-    return 16;
-  case EncTy_64:
-    return 64;
-  case EncTy_QC_EAI:
-  case EncTy_QC_EJ:
-  case EncTy_32:
-    return 32;
-  case EncTy_LEB128:
-  case EncTy_None:
-    return 0;
-  }
-}
-
 uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
   // This only has to clear bits in the bytes that are covered by
   // the relocation's Size.
@@ -245,7 +212,7 @@ bool verifyRISCVAlignment(const RelocationInfo &RelocInfo, uint64_t Value) {
 bool isTruncatedRISCV(const RelocationInfo &RelocInfo, uint64_t Value) {
   if (RelocInfo.IsSigned || RelocInfo.EncType == EncTy_None)
     return false;
-  unsigned N = getNumberOfBits(RelocInfo.EncType);
+  unsigned N = getEncodingBitWidth(RelocInfo.EncType);
   return Value & (~0U >> (32 - N));
 }
 

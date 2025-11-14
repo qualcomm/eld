@@ -14,7 +14,7 @@
 // RELOC-NEXT: 00000008  0000042d R_ARM_MOVW_PREL_NC     00000008   label2
 // RELOC-NEXT: 0000000c  0000052d R_ARM_MOVW_PREL_NC     0000fffc   label3
 // RELOC-NEXT: 00000010  0000052d R_ARM_MOVW_PREL_NC     0000fffc   label3
-// CHECK-NOT: Relocation overflow when applying relocation `R_ARM_MOVW_PREL_NC
+// CHECK-NOT: out of range
  .syntax unified
  .globl _start
  .align 12

@@ -10,4 +10,4 @@ CHECK:  0x00000000 2ac000b0
 RUN: %readelf -x .text %t2.out | %filecheck %s  --check-prefix="CHECK2"
 CHECK2: 0x00000000 2cc000b0
 RUN: %not %link %linkopts %t3.o -o %t3.out -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix="ERR"
-ERR:  Relocation overflow when applying relocation `R_HEX_27_REG'
+ERR:  Error: {{.*}}3.o:(.text): relocation 'R_HEX_27_REG' for '.rodata.str1.8' is out of range: 536871012 is not in [0, 134217727]

@@ -1651,7 +1651,8 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
         pReloc->targetRef()->getOutputELFSection()->offset() + Off;
     uint8_t *target_addr = pOutput.getBufferStart() + out_offset;
     if (!overwriteLEB128(target_addr, pReloc->target())) {
-      pReloc->issueOverflow(*getRelocator());
+      pReloc->issueOverflow(*getRelocator(), pReloc->target(), 0,
+                            std::numeric_limits<int64_t>::max());
     }
   }
   return {};

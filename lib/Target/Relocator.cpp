@@ -314,3 +314,23 @@ std::optional<uint64_t> Relocator::getMaxTLSSegmentAlign() const {
     TLSAlign = std::max(TLSAlign, S->align());
   return TLSAlign;
 }
+
+Relocator::Result eld::checkSignedRange(Relocation &Rel, Relocator &R,
+                                        int64_t Value, unsigned int Bits) {
+
+  if (Value == llvm::SignExtend64(Value, Bits))
+    return Relocator::OK;
+
+  Rel.issueOverflow(R, Value, llvm::minIntN(Bits), llvm::maxIntN(Bits));
+  return Relocator::Overflow;
+}
+
+Relocator::Result eld::checkUnsignedRange(Relocation &Rel, Relocator &R,
+                                          uint64_t Value, unsigned int Bits) {
+
+  if (Bits == 64 || Value >> Bits == 0)
+    return Relocator::OK;
+
+  Rel.issueOverflow(R, Value, 0, llvm::maxUIntN(Bits));
+  return Relocator::Overflow;
+}

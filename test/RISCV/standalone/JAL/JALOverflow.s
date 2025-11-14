@@ -25,10 +25,8 @@
 # MAX: jal 0x8ffffe <_start+0xffffe>
 # MIN: jal 0x700000 <foo>
 
-## lld error: `ld.lld: error: 1.o:(.text+0x0): relocation R_RISCV_JAL out of range: 1048576 is not in [-1048576, 1048575]; references 'foo'`
-## lld error: `ld.lld: error: 1.o:(.text+0x0): relocation R_RISCV_JAL out of range: -1048578 is not in [-1048576, 1048575]; references 'foo'`
-# FAILPOS: Error: Relocation overflow when applying relocation `R_RISCV_JAL' for symbol `foo'
-# FAILNEG: Error: Relocation overflow when applying relocation `R_RISCV_JAL' for symbol `foo'
+# FAILPOS: Error: {{.*}}.o:(.text): relocation 'R_RISCV_JAL' for 'foo' is out of range: 1048576 is not in [-1048576, 1048575]
+# FAILNEG: Error: {{.*}}.o:(.text): relocation 'R_RISCV_JAL' for 'foo' is out of range: -1048578 is not in [-1048576, 1048575]
 
   .option exact
   .text

@@ -37,8 +37,7 @@ DIAG(reloc_trace, DiagnosticEngine::Note,
 DIAG(tls_non_tls_mix, DiagnosticEngine::Error,
      "Relocation %0 is TLS type but symbol %1 is non-TLS type")
 DIAG(result_overflow_moreinfo, DiagnosticEngine::Error,
-     "Relocation overflow when applying relocation `%0' for symbol `%1' "
-     "referred from %2 symbol defined in %3")
+     "%0: relocation '%1' for '%2' is out of range: %3 is not in [%4, %5]")
 DIAG(result_badreloc_moreinfo, DiagnosticEngine::Error,
      "Relocation error when applying relocation `%0' for symbol `%1' referred "
      "from %2 symbol defined in %3")

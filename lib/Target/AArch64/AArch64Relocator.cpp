@@ -25,6 +25,16 @@ using namespace eld;
 
 namespace {
 
+static Relocator::Result emitSignedOrUnsignedRangeOverflow(Relocation &Rel,
+                                                           AArch64Relocator &R,
+                                                           int64_t Value,
+                                                           unsigned Bits) {
+  int64_t Min = llvm::minIntN(Bits);
+  int64_t Max = llvm::maxUIntN(Bits);
+  Rel.issueOverflow(R, Value, Min, Max);
+  return Relocator::Overflow;
+}
+
 /// helper_DynRel - Get an relocation entry in .rela.dyn
 Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
@@ -618,11 +628,11 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_ABS32:
     if (!llvm::isUInt<32>(S + A) && !llvm::isInt<32>(S + A))
-      return Relocator::Overflow;
+      return emitSignedOrUnsignedRangeOverflow(pReloc, pParent, S + A, 32);
     break;
   case llvm::ELF::R_AARCH64_ABS16:
     if (!llvm::isUInt<16>(S + A) && !llvm::isInt<16>(S + A))
-      return Relocator::Overflow;
+      return emitSignedOrUnsignedRangeOverflow(pReloc, pParent, S + A, 16);
     break;
   default:
     break;
@@ -668,7 +678,7 @@ Relocator::Result rel(Relocation &pReloc, AArch64Relocator &pParent) {
 
   if (llvm::ELF::R_AARCH64_PREL64 != pReloc.type() &&
       helper_check_signed_overflow(X, pParent.getSize(pReloc.type())))
-    return Relocator::Overflow;
+    return checkSignedRange(pReloc, pParent, X, pParent.getSize(pReloc.type()));
   return Relocator::OK;
 }
 
@@ -811,13 +821,13 @@ Relocator::Result condbr(Relocation &pReloc, AArch64Relocator &pParent) {
   Relocator::DWord X = S + A - P;
 
   if (pReloc.type() == llvm::ELF::R_AARCH64_CONDBR19) {
-    if (!llvm::isInt<21>(static_cast<int64_t>(X)))
-      return Relocator::Overflow;
+    if (!llvm::isInt<21>(X))
+      return checkSignedRange(pReloc, pParent, X, 21);
     pReloc.target() =
         helper_reencode_cond_branch_ofs_19(pReloc.target(), X >> 2);
   } else if (pReloc.type() == llvm::ELF::R_AARCH64_TSTBR14) {
-    if (!llvm::isInt<16>(static_cast<int64_t>(X)))
-      return Relocator::Overflow;
+    if (!llvm::isInt<16>(X))
+      return checkSignedRange(pReloc, pParent, X, 16);
     pReloc.target() = helper_reencode_tbz_imm_14(pReloc.target(), X >> 2);
   }
 
@@ -911,14 +921,14 @@ Relocator::Result movw_abs_g(Relocation &pReloc, AArch64Relocator &pParent) {
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_MOVW_UABS_G0:
     if (!llvm::isUInt<16>(X))
-      return Relocator::Overflow;
+      return checkUnsignedRange(pReloc, pParent, X, 16);
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G0_NC:
     pReloc.target() = helper_reencode_movzk_imm(pReloc.target(), (X & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G1:
     if (!llvm::isUInt<32>(X))
-      return Relocator::Overflow;
+      return checkUnsignedRange(pReloc, pParent, X, 32);
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G1_NC:
     pReloc.target() =
@@ -926,7 +936,7 @@ Relocator::Result movw_abs_g(Relocation &pReloc, AArch64Relocator &pParent) {
     break;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G2:
     if (!llvm::isUInt<48>(X))
-      return Relocator::Overflow;
+      return checkUnsignedRange(pReloc, pParent, X, 48);
     LLVM_FALLTHROUGH;
   case llvm::ELF::R_AARCH64_MOVW_UABS_G2_NC:
     pReloc.target() =
@@ -937,19 +947,19 @@ Relocator::Result movw_abs_g(Relocation &pReloc, AArch64Relocator &pParent) {
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 48) & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_SABS_G0:
-    if (!llvm::isInt<17>(static_cast<int64_t>(X)))
-      return Relocator::Overflow;
+    if (!llvm::isInt<17>((X)))
+      return checkSignedRange(pReloc, pParent, X, 17);
     pReloc.target() = helper_reencode_movzk_imm(pReloc.target(), (X & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_SABS_G1:
-    if (!llvm::isInt<33>(static_cast<int64_t>(X)))
-      return Relocator::Overflow;
+    if (!llvm::isInt<33>((X)))
+      return checkSignedRange(pReloc, pParent, X, 33);
     pReloc.target() =
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 16) & 0xFFFF));
     break;
   case llvm::ELF::R_AARCH64_MOVW_SABS_G2:
-    if (!llvm::isInt<49>(static_cast<int64_t>(X)))
-      return Relocator::Overflow;
+    if (!llvm::isInt<49>((X)))
+      return checkSignedRange(pReloc, pParent, X, 49);
     pReloc.target() =
         helper_reencode_movzk_imm(pReloc.target(), ((X >> 32) & 0xFFFF));
     break;
@@ -1022,11 +1032,11 @@ Relocator::Result tls_tprel(Relocation &pReloc, AArch64Relocator &pParent) {
 
   if (pReloc.type() == llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12) {
     if (!llvm::isUInt<24>(X))
-      return Relocator::Overflow;
+      return checkUnsignedRange(pReloc, pParent, X, 24);
     pReloc.target() = helper_reencode_add_imm(pReloc.target(), X >> 12);
   } else {
     if (!llvm::isUInt<12>(X))
-      return Relocator::Overflow;
+      return checkUnsignedRange(pReloc, pParent, X, 12);
     pReloc.target() = helper_reencode_add_imm(pReloc.target(), X);
   }
   return Relocator::OK;

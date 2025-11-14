@@ -66,6 +66,39 @@ std::string getRISCVRelocName(uint32_t pType);
 
 bool overwriteLEB128(uint8_t *buf, uint64_t val);
 
+inline unsigned getEncodingBitWidth(EncodingType Type) {
+  switch (Type) {
+  case EncTy_I:
+  case EncTy_SB:
+  case EncTy_S:
+  case EncTy_QC_EB:
+    return 12;
+  case EncTy_UJ:
+  case EncTy_U_HI20:
+  case EncTy_U_ABS20:
+    return 20;
+  case EncTy_CJ:
+    return 11;
+  case EncTy_CI:
+  case EncTy_6:
+    return 6;
+  case EncTy_CB:
+  case EncTy_8:
+    return 8;
+  case EncTy_16:
+    return 16;
+  case EncTy_64:
+    return 64;
+  case EncTy_QC_EAI:
+  case EncTy_QC_EJ:
+  case EncTy_32:
+    return 32;
+  case EncTy_LEB128:
+  case EncTy_None:
+    return 0;
+  }
+}
+
 } // namespace eld
 
 #endif
