@@ -642,6 +642,10 @@ public:
     return getState() == Module::LinkState::CreatingSections;
   }
 
+  bool isLinkStateCreatingSegments() const {
+    return getState() == Module::LinkState::CreatingSegments;
+  }
+
   bool isLinkStateAfterLayout() const {
     return getState() == Module::LinkState::AfterLayout;
   }

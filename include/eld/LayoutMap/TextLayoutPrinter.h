@@ -164,6 +164,8 @@ private:
 
   void printSymbolResolution(Module &Module);
 
+  void printOffsetHelper(bool HasOffset, std::function<void()> F) const;
+
 private:
   std::string Storage;
   std::unique_ptr<llvm::raw_string_ostream> Buffer = nullptr;

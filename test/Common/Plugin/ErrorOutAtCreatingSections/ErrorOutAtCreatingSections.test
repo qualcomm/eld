@@ -1,0 +1,20 @@
+#---ErrorOutAtCreatingSections.test----------------------- Executable, LS ------------#
+#BEGIN_COMMENT
+# This tests checks that linker does not report 'Referenced Chunk ... has been deleted' errors
+# during printing text map-file when the link / plugin has failed in CreatingSections state.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o %t1.2.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml -Map %t1.1.map.txt 2>&1 | %filecheck %s
+RUN: %filecheck --check-prefix=MAP %s < %t1.1.map.txt
+#END_TEST
+
+CHECK: Error: Plugin ErrorOutAtCreatingSections defined in library libErrorOutAtCreatingSections.so returned error Error! in state CreatingSections
+CHECK-NOT: Referenced Chunk {{.*}}
+
+MAP: # Output Section and Layout
+MAP: .text NA
+MAP: .text.foo NA
+MAP: .text.bar NA

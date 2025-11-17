@@ -1,0 +1,1 @@
+const char *bar() { return "Hello, foo!"; }

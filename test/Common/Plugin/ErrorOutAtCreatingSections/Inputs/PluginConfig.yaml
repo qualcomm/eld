@@ -1,0 +1,4 @@
+GlobalPlugins:
+  - Type: OutputSectionIterator
+    Name: ErrorOutAtCreatingSections
+    Library: ErrorOutAtCreatingSections

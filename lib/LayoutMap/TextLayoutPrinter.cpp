@@ -642,42 +642,47 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
   bool GC = Frag->getOwningSection()->isIgnore();
   uint32_t Alignment = Frag->alignment();
   const GeneralOptions &Options = ThisLayoutInfo->getConfig().options();
-  auto PrintOneFragOrString = [&](uint32_t Size, uint64_t AddressOrOffset) {
-    if (GC && !Onlylayout)
-      outputStream() << "# ";
-    outputStream() << Info->getDecoratedName(Options);
-    if (!GC && !Onlylayout) {
-      outputStream() << "\t0x";
-      outputStream().write_hex(AddressOrOffset);
-    }
-    if (GC && !Onlylayout)
-      outputStream() << "\t<GC>";
-    outputStream() << "\t0x";
-    outputStream().write_hex(Size);
-    outputStream() << "\t" << Path;
-    outputStream() << "\t";
-    outputStream() << "#";
-    outputStream() << Type << "," << Permissions << "," << Alignment;
-    if (Info->section()->hasOldInputFile())
-      outputStream() << "," << Info->getResolvedPath();
-    if (Info->section()->hasAnnotations()) {
-      outputStream() << ", Annotations: "
-                     << Info->section()->getSectionAnnotations();
-    }
-    if (!Onlylayout) {
-      printChangeOutputSectionInfo(Info->section());
-      printChunkOps(M, Frag);
-    }
+  auto PrintOneFragOrString =
+      [&, this](uint32_t Size, std::optional<uint64_t> AddressOrOffset) {
+        if (GC && !Onlylayout)
+          outputStream() << "# ";
+        outputStream() << Info->getDecoratedName(Options);
+        if (!GC && !Onlylayout) {
+          outputStream() << "\t";
+          printOffsetHelper(AddressOrOffset.has_value(), [&, this]() {
+            outputStream() << "0x";
+            outputStream().write_hex(AddressOrOffset.value());
+          });
+        }
+        if (GC && !Onlylayout)
+          outputStream() << "\t<GC>";
+        outputStream() << "\t0x";
+        outputStream().write_hex(Size);
+        outputStream() << "\t" << Path;
+        outputStream() << "\t";
+        outputStream() << "#";
+        outputStream() << Type << "," << Permissions << "," << Alignment;
+        if (Info->section()->hasOldInputFile())
+          outputStream() << "," << Info->getResolvedPath();
+        if (Info->section()->hasAnnotations()) {
+          outputStream() << ", Annotations: "
+                         << Info->section()->getSectionAnnotations();
+        }
+        if (!Onlylayout) {
+          printChangeOutputSectionInfo(Info->section());
+          printChunkOps(M, Frag);
+        }
+      };
 
-  };
-
-  uint64_t AddressOrOffset = -1;
+  std::optional<uint64_t> AddressOrOffset;
+  bool HasFragInfo =
+      (M.isLinkStateCreatingSegments() || M.isLinkStateAfterLayout());
   if (llvm::isa<MergeStringFragment>(Frag) && !M.isLinkStateBeforeLayout()) {
     auto *Strings = llvm::cast<MergeStringFragment>(Frag);
     for (MergeableString *S : Strings->getStrings()) {
       if (S->Exclude)
         continue;
-      if (!GC)
+      if (!GC && HasFragInfo)
         AddressOrOffset =
             S->OutputOffset +
             (Section->isAlloc() ? Section->addr() : Section->offset());
@@ -688,7 +693,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
       printMergeString(S, M);
     }
   } else {
-    if (!GC)
+    if (!GC && HasFragInfo)
       AddressOrOffset =
           Frag->getOffset() +
           (Section->isAlloc() ? Section->addr() : Section->offset());
@@ -828,6 +833,9 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   const LayoutInfo::RemoveSymbolOpsMapT RemovedSymbols =
       ThisLayoutInfo->getRemovedSymbols();
 
+  bool HasFragOffsets = (CurModule.isLinkStateCreatingSegments() ||
+                         CurModule.isLinkStateAfterLayout());
+
   for (Syms = FragmentInfo->Symbols.begin(); Syms != EndSymbols; ++Syms) {
     // Handle weak symbols.
     std::string ResolvedPath =
@@ -852,10 +860,13 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
     auto Removed = RemovedSymbols.find((*Syms)->resolveInfo());
 
     if (!IsGc) {
-      outputStream() << "\t0x";
-      outputStream().write_hex(
-          ThisLayoutInfo->calculateSymbolValue(*Syms, CurModule));
       outputStream() << "\t";
+      printOffsetHelper(HasFragOffsets, [&, this]() {
+        outputStream() << "0x";
+        outputStream().write_hex(
+            ThisLayoutInfo->calculateSymbolValue(*Syms, CurModule));
+        outputStream() << "\t";
+      });
     } else {
       outputStream() << "#";
     }
@@ -1488,4 +1499,13 @@ void TextLayoutPrinter::printSymbolResolution(Module &Module) {
       outputStream() << "\n";
     }
   }
+}
+
+void TextLayoutPrinter::printOffsetHelper(bool HasOffset,
+                                          std::function<void()> F) const {
+  if (!HasOffset) {
+    outputStream() << "NA";
+    return;
+  }
+  F();
 }
