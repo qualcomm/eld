@@ -22,6 +22,9 @@
 namespace eld {
 
 class TargetRegistry {
+public:
+  static std::string getTypeName() { return "TargetRegistry"; }
+
 private:
   static std::vector<eld::Target *> TargetList;
 
@@ -56,6 +59,9 @@ public:
 };
 
 struct RegisterTarget {
+public:
+  static std::string getTypeName() { return "RegisterTarget"; }
+
 public:
   RegisterTarget(eld::Target &pTarget, llvm::StringRef Name, uint16_t Machine,
                  bool is64bit = false) {

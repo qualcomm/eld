@@ -25,8 +25,13 @@ struct ArchiveFileInfo;
 class DiagnosticPrinter;
 class ArchiveFile : public InputFile {
 public:
+  static std::string getTypeName() { return "ArchiveFile"; }
+
+public:
   // -----------Declare Types ----------------
   struct Symbol {
+  public:
+    static std::string getTypeName() { return "Symbol"; }
     enum SymbolStatus { Include, Exclude, Unknown };
 
     enum SymbolType { NoType, DefineData, DefineFunction, Common, Weak };

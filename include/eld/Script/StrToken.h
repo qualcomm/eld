@@ -24,6 +24,9 @@ namespace eld {
 
 class StrToken {
 public:
+  static std::string getTypeName() { return "StrToken"; }
+
+public:
   enum Kind { Unknown, String, Input, Wildcard };
 
   explicit StrToken(const std::string &PString, Kind K = StrToken::String);

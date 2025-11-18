@@ -32,6 +32,8 @@
 using namespace eld;
 
 struct Running {
+public:
+  static std::string getTypeName() { return "Running"; }
   explicit Running(Plugin *P) : P(P) { P->setRunning(true); }
   ~Running() { P->setRunning(false); }
 

@@ -15,6 +15,9 @@ class ELFExecutableFileReader;
 
 class ELFExecObjParser {
 public:
+  static std::string getTypeName() { return "ELFExecObjParser"; }
+
+public:
   ELFExecObjParser(Module &);
 
   /// This function returns the machine information encoded in the ELF

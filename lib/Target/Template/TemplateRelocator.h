@@ -23,6 +23,9 @@ class LinkerConfig;
  */
 class TemplateRelocator : public Relocator {
 public:
+  static std::string getTypeName() { return "TemplateRelocator"; }
+
+public:
   TemplateRelocator(TemplateLDBackend &pParent, LinkerConfig &pConfig,
                     Module &pModule);
   ~TemplateRelocator();

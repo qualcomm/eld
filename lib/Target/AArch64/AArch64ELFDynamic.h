@@ -19,6 +19,9 @@ namespace eld {
 
 class AArch64ELFDynamic : public ELFDynamic {
 public:
+  static std::string getTypeName() { return "AArch64ELFDynamic"; }
+
+public:
   AArch64ELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig);
   ~AArch64ELFDynamic();
 

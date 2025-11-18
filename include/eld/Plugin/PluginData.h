@@ -13,6 +13,9 @@ namespace eld {
 
 class PluginData {
 public:
+  static std::string getTypeName() { return "PluginData"; }
+
+public:
   explicit PluginData(uint32_t Key, void *Data, std::string Annotation);
 
   uint32_t getKey() const { return Key; }

@@ -17,6 +17,9 @@ namespace eld {
  */
 class ELFExecutableFile : public ELFFileBase {
 public:
+  static std::string getTypeName() { return "ELFExecutableFile"; }
+
+public:
   ELFExecutableFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.

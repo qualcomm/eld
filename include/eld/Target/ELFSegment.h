@@ -32,6 +32,9 @@ struct PhdrSpec;
  */
 class ELFSegment {
 public:
+  static std::string getTypeName() { return "ELFSegment"; }
+
+public:
   typedef std::vector<OutputSectionEntry *> SectionList;
   typedef SectionList::iterator iterator;
   typedef SectionList::const_iterator const_iterator;

@@ -15,6 +15,9 @@ namespace eld {
 
 class x86_64StandaloneInfo : public x86_64Info {
 public:
+  static std::string getTypeName() { return "x86_64StandaloneInfo"; }
+
+public:
   x86_64StandaloneInfo(LinkerConfig &pConfig) : x86_64Info(pConfig) {}
 
   uint64_t startAddr(bool linkerScriptHasSectionsCmd, bool isDynExec,

@@ -13,6 +13,9 @@ namespace eld {
 
 class x86_64ELFDynamic : public ELFDynamic {
 public:
+  static std::string getTypeName() { return "x86_64ELFDynamic"; }
+
+public:
   x86_64ELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig);
 
 private:

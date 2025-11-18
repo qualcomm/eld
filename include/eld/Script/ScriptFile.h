@@ -56,6 +56,9 @@ class ScriptSymbol;
 
 class ScriptFile {
 public:
+  static std::string getTypeName() { return "ScriptFile"; }
+
+public:
   enum Kind {
     LDScript,              // -T
     ScriptExpression,      // --defsym

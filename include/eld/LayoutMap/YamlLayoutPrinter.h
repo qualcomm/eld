@@ -18,12 +18,16 @@
 namespace eld {
 class LinkerConfig;
 struct CommandLineDefault {
+public:
+  static std::string getTypeName() { return "CommandLineDefault"; }
   std::string Name;
   std::string Value;
   llvm::StringRef Desc;
 };
 
 class YamlLayoutPrinter {
+public:
+  static std::string getTypeName() { return "YamlLayoutPrinter"; }
 
 public:
   YamlLayoutPrinter(LayoutInfo *layoutInfo);

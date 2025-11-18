@@ -47,6 +47,9 @@ class IRBuilder;
 
 class AArch64PLT : public PLT {
 public:
+  static std::string getTypeName() { return "AArch64PLT"; }
+
+public:
   AArch64PLT(PLT::PLTType T, eld::IRBuilder &I, AArch64GOT *G, ELFSection *P,
              ResolveInfo *R, uint32_t Align, uint32_t Size)
       : PLT(T, G, P, R, Align, Size) {
@@ -60,6 +63,9 @@ public:
 };
 
 class AArch64PLT0 : public AArch64PLT {
+public:
+  static std::string getTypeName() { return "AArch64PLT0"; }
+
 public:
   AArch64PLT0(AArch64GOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
               uint32_t Align, uint32_t Size)
@@ -76,6 +82,9 @@ public:
 };
 
 class AArch64PLTN : public AArch64PLT {
+public:
+  static std::string getTypeName() { return "AArch64PLTN"; }
+
 public:
   AArch64PLTN(AArch64GOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
               uint32_t Align, uint32_t Size)

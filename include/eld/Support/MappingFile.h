@@ -16,6 +16,9 @@ class InputFile;
 
 class MappingFile {
 public:
+  static std::string getTypeName() { return "MappingFile"; }
+
+public:
   enum Kind {
     ObjectFile,
     LinkerScript,

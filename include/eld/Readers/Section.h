@@ -21,6 +21,9 @@ class DiagnosticEngine;
 
 class Section {
 public:
+  static std::string getTypeName() { return "Section"; }
+
+public:
   enum Kind : uint8_t {
     Bitcode,
     CommonELF,

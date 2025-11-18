@@ -31,6 +31,10 @@ class ResolveInfo;
  */
 class Fragment {
 public:
+public:
+  static std::string getTypeName() { return "Fragment"; }
+
+public:
   /* Null means this fragment is removed */
   enum Type : uint8_t {
     Fillment,

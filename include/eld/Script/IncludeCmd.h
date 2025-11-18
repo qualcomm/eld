@@ -16,6 +16,9 @@ namespace eld {
 
 class IncludeCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "IncludeCmd"; }
+
+public:
   IncludeCmd(const std::string FileName, bool IsOptional);
 
 

@@ -28,6 +28,9 @@ class InputFile;
  */
 class ScriptCommand {
 public:
+  static std::string getTypeName() { return "ScriptCommand"; }
+
+public:
   enum Kind {
     ASSERT,
     ASSIGNMENT,

@@ -72,6 +72,9 @@ class ScriptSymbol;
  */
 class Module {
 public:
+  static std::string getTypeName() { return "Module"; }
+
+public:
   typedef enum {
     Attributes,
     BitcodeSections,

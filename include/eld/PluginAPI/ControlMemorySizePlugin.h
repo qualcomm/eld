@@ -13,6 +13,9 @@ namespace eld::plugin {
 
 class DLL_A_EXPORT ControlMemorySizePlugin : public Plugin {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   /* Constructor */
   ControlMemorySizePlugin(std::string Name)
       : Plugin(Plugin::ControlMemorySize, Name) {}

@@ -31,6 +31,9 @@ class SectionMap;
 
 class RuleContainer {
 public:
+  static std::string getTypeName() { return "RuleContainer"; }
+
+public:
   typedef std::vector<Assignment *> SymbolAssignments;
   typedef SymbolAssignments::iterator sym_iterator;
 

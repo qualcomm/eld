@@ -29,6 +29,9 @@ scripts :-
 
 class VersionSymbol {
 public:
+  static std::string getTypeName() { return "VersionSymbol"; }
+
+public:
   typedef enum : uint8_t { Simple, Extern } VersionSymbolKind;
 
 public:
@@ -60,6 +63,9 @@ protected:
 };
 
 class VersionScriptBlock {
+public:
+  static std::string getTypeName() { return "VersionScriptBlock"; }
+
 public:
   typedef enum : uint8_t {
     Local,
@@ -98,6 +104,9 @@ protected:
 
 class LocalVersionScriptBlock : public VersionScriptBlock {
 public:
+  static std::string getTypeName() { return "LocalVersionScriptBlock"; }
+
+public:
   LocalVersionScriptBlock(class VersionScriptNode *N)
       : VersionScriptBlock(VersionScriptBlock::BlockKind::Local, N) {}
   void dump(llvm::raw_ostream &Ostream,
@@ -107,6 +116,9 @@ public:
 
 class GlobalVersionScriptBlock : public VersionScriptBlock {
 public:
+  static std::string getTypeName() { return "GlobalVersionScriptBlock"; }
+
+public:
   GlobalVersionScriptBlock(class VersionScriptNode *N)
       : VersionScriptBlock(VersionScriptBlock::BlockKind::Global, N) {}
   void dump(llvm::raw_ostream &Ostream,
@@ -115,6 +127,9 @@ public:
 };
 
 class VersionScriptNode {
+public:
+  static std::string getTypeName() { return "VersionScriptNode"; }
+
 public:
   VersionScriptNode();
 
@@ -160,6 +175,9 @@ private:
 };
 
 class VersionScript {
+public:
+  static std::string getTypeName() { return "VersionScript"; }
+
 public:
   VersionScript(InputFile *Inp);
 

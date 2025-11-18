@@ -13,6 +13,9 @@ namespace eld::plugin {
 
 class DLL_A_EXPORT OutputSectionIteratorPlugin : public Plugin {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   /* Constructor */
   OutputSectionIteratorPlugin(std::string Name)
       : Plugin(Plugin::Type::OutputSectionIterator, Name) {}

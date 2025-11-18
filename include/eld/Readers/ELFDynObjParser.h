@@ -20,6 +20,9 @@ class Module;
 /// process.
 class ELFDynObjParser {
 public:
+  static std::string getTypeName() { return "ELFDynObjParser"; }
+
+public:
   ELFDynObjParser(Module &);
 
   ~ELFDynObjParser();

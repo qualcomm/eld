@@ -25,6 +25,10 @@ class GNULDBackend;
 
 class TargetFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "TargetFragment"; }
+
+public:
   enum Kind : uint8_t {
     Attributes,
     GNUHash,

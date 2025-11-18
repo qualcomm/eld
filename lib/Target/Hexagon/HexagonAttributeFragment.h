@@ -15,6 +15,9 @@ namespace eld {
 class ObjectFile;
 class HexagonAttributeFragment : public TargetFragment {
 public:
+  static std::string getTypeName() { return "HexagonAttributeFragment"; }
+
+public:
   HexagonAttributeFragment(ELFSection *O);
 
   ~HexagonAttributeFragment();

@@ -34,6 +34,9 @@ class DiagnosticEngine;
  *  InputBuilder build input tree and inputs.
  */
 class InputBuilder {
+public:
+  static std::string getTypeName() { return "InputBuilder"; }
+
 private:
   InputBuilder() = delete;
 

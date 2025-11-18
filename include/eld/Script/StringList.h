@@ -26,6 +26,9 @@ class StrToken;
 
 class StringList {
 public:
+  static std::string getTypeName() { return "StringList"; }
+
+public:
   typedef std::vector<StrToken *> Tokens;
   typedef Tokens::const_iterator const_iterator;
   typedef Tokens::iterator iterator;

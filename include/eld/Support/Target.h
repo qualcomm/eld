@@ -27,6 +27,8 @@ class GNULDBackend;
  *  \brief Target collects target specific information
  */
 struct Target {
+public:
+  static std::string getTypeName() { return "Target"; }
   typedef bool (*EmulationFnTy)(LinkerScript &, LinkerConfig &);
 
   typedef GNULDBackend *(*GNULDBackendCtorTy)(Module &);

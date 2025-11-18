@@ -32,6 +32,9 @@ class IRBuilder;
  */
 class StubFactory {
 public:
+  static std::string getTypeName() { return "StubFactory"; }
+
+public:
   typedef std::vector<Stub *> StubVector;
   StubFactory(Stub *TargetStub);
   StubFactory();

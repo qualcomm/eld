@@ -34,6 +34,9 @@ class Relocation;
  */
 class BranchIsland {
 public:
+  static std::string getTypeName() { return "BranchIsland"; }
+
+public:
   typedef std::vector<Relocation *> RelocationListType;
   typedef RelocationListType::iterator reloc_iterator;
 

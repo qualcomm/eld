@@ -28,9 +28,14 @@ class LinkerConfig;
 
 class RISCVAttributeFragment : public TargetFragment {
 public:
+  static std::string getTypeName() { return "RISCVAttributeFragment"; }
+
+public:
   enum class AttributeType { Hidden, Numeric, Text, NumericAndText };
 
   struct AttributeItem {
+  public:
+    static std::string getTypeName() { return "AttributeItem"; }
     AttributeType Type;
     unsigned Tag;
     unsigned IntValue;

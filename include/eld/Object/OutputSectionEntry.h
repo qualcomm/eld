@@ -31,6 +31,9 @@ class SectionMap;
 
 class OutputSectionEntry {
 public:
+  static std::string getTypeName() { return "OutputSectionEntry"; }
+
+public:
   typedef std::vector<RuleContainer *> InputList;
   typedef std::vector<BranchIsland *>::iterator BranchIslandsIter;
   typedef InputList::iterator iterator;

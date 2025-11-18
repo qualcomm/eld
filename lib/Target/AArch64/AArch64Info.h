@@ -24,6 +24,9 @@ class GNULDBackend;
 
 class AArch64Info : public TargetInfo {
 public:
+  static std::string getTypeName() { return "AArch64Info"; }
+
+public:
   AArch64Info(LinkerConfig &pConfig);
 
   uint32_t machine() const override { return llvm::ELF::EM_AARCH64; }

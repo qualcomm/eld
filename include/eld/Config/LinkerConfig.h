@@ -35,6 +35,9 @@ class DiagnosticEngine;
 class SearchDirs;
 class LinkerConfig {
 public:
+  static std::string getTypeName() { return "LinkerConfig"; }
+
+public:
   enum CodeGenType { Unknown, Object, DynObj, Exec, External, Binary };
 
   /** \enum CodePosition
@@ -75,6 +78,8 @@ public:
   enum SymDefStyle { Default, Provide, UnknownSymDefStyle };
 
   struct WarnOptions {
+  public:
+    static std::string getTypeName() { return "WarnOptions"; }
     std::optional<bool> EnableAllWarnings;
     std::optional<bool> EnableLinkerScriptWarnings;
     std::optional<bool> EnableZeroSizedSectionsWarnings;
@@ -88,6 +93,8 @@ public:
   };
 
   struct MappingFileInfo {
+  public:
+    static std::string getTypeName() { return "MappingFileInfo"; }
     std::unordered_map<std::string, std::string> StringMapKeyToValue;
 
     void addStringMapEntry(llvm::StringRef Key, llvm::StringRef Value) {

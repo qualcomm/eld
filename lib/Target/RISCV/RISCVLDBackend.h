@@ -31,6 +31,9 @@ class RISCVRelaxationStats;
 ///
 class RISCVLDBackend : public GNULDBackend {
 public:
+  static std::string getTypeName() { return "RISCVLDBackend"; }
+
+public:
   RISCVLDBackend(Module &pModule, RISCVInfo *pInfo);
 
   ~RISCVLDBackend();

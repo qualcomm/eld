@@ -29,6 +29,8 @@ class ELFSection;
 class ELFSegment;
 
 class Relocation {
+public:
+  static std::string getTypeName() { return "Relocation"; }
   static llvm::DenseMap<const Relocation *, FragmentRef *> m_RelocFragMap;
 
 public:

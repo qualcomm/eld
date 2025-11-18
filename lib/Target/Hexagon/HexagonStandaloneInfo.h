@@ -16,6 +16,9 @@ namespace eld {
 
 class HexagonStandaloneInfo : public HexagonInfo {
 public:
+  static std::string getTypeName() { return "HexagonStandaloneInfo"; }
+
+public:
   HexagonStandaloneInfo(LinkerConfig &pConfig) : HexagonInfo(pConfig) {}
 
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,

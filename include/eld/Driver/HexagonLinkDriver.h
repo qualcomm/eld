@@ -16,6 +16,9 @@
 // Create OptTable class for parsing actual command line arguments
 class OPT_HexagonLinkOptTable : public llvm::opt::GenericOptTable {
 public:
+  static std::string getTypeName() { return "OPT_HexagonLinkOptTable"; }
+
+public:
   // Create enum with OPT_xxx values for each option in DarwinLdOptions.td
   enum {
     INVALID = 0,
@@ -31,6 +34,9 @@ public:
 };
 
 class HexagonLinkDriver : public GnuLdDriver {
+public:
+  static std::string getTypeName() { return "HexagonLinkDriver"; }
+
 public:
   static HexagonLinkDriver *Create(eld::LinkerConfig &C,
                                    std::string InferredArchFromProgramName);

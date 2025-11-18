@@ -33,6 +33,9 @@ class GNULDBackend;
  */
 class GarbageCollection {
 public:
+  static std::string getTypeName() { return "GarbageCollection"; }
+
+public:
   typedef llvm::DenseSet<Section *> SectionListTy;
   typedef llvm::DenseSet<LDSymbol *> SymbolListTy;
   typedef llvm::DenseSet<Section *> SectionSetTy;
@@ -41,6 +44,9 @@ public:
    *  \brief Map the section to the list of sections which it can reach directly
    */
   class SectionReachedListMap {
+  public:
+    static std::string getTypeName() { return "SectionReachedListMap"; }
+
   public:
     SectionReachedListMap() {}
 

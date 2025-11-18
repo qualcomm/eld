@@ -18,6 +18,9 @@
 // Create OptTable class for parsing actual command line arguments
 class OPT_x86_64LinkOptTable : public llvm::opt::GenericOptTable {
 public:
+  static std::string getTypeName() { return "OPT_x86_64LinkOptTable"; }
+
+public:
   enum {
     INVALID = 0,
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
@@ -32,6 +35,9 @@ public:
 };
 
 class x86_64LinkDriver : public GnuLdDriver {
+public:
+  static std::string getTypeName() { return "x86_64LinkDriver"; }
+
 public:
   static x86_64LinkDriver *Create(eld::LinkerConfig &C,
                                   std::string InferredArchFromProgramName);

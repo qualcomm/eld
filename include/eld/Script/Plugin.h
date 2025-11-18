@@ -25,6 +25,9 @@ class Module;
 
 class Plugin {
 public:
+  static std::string getTypeName() { return "Plugin"; }
+
+public:
   explicit Plugin(plugin::Plugin::Type T, std::string Name, std::string R,
                   std::string O, bool Stats, bool DefaultPlugin,
                   Module &Module);
@@ -32,6 +35,8 @@ public:
   ~Plugin();
 
   struct CommandLineOptionSpec {
+  public:
+    static std::string getTypeName() { return "CommandLineOptionSpec"; }
     using OptionHandlerType =
         plugin::LinkerWrapper::CommandLineOptionHandlerType;
 
@@ -155,6 +160,9 @@ public:
   /// - A chunk that is removed must be put back into the image.
   /// - A chunk must not be added multiple times.
   class UnbalancedFragmentMoves {
+  public:
+    static std::string getTypeName() { return "UnbalancedFragmentMoves"; }
+
   public:
     using TrackingDataType = std::unordered_map<Fragment *, RuleContainer *>;
 

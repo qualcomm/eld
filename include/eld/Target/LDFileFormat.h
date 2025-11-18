@@ -24,6 +24,9 @@ class LinkerConfig;
  */
 class LDFileFormat {
 public:
+  static std::string getTypeName() { return "LDFileFormat"; }
+
+public:
   enum Kind : uint8_t {
     Common,
     Debug,

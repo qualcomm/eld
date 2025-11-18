@@ -30,6 +30,9 @@ class Module;
 //===----------------------------------------------------------------------===//
 class HexagonTLSStub : public TargetFragment {
 public:
+  static std::string getTypeName() { return "HexagonTLSStub"; }
+
+public:
   enum StubType { GD, GDtoIE, LDtoLE };
 
   HexagonTLSStub(StubType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
@@ -59,6 +62,9 @@ private:
 
 class HexagonGDStub : public HexagonTLSStub {
 public:
+  static std::string getTypeName() { return "HexagonGDStub"; }
+
+public:
   HexagonGDStub(ELFSection *O, ResolveInfo *R)
       : HexagonTLSStub(HexagonTLSStub::GD, O, R, 4, 0) {};
 
@@ -72,6 +78,9 @@ public:
 };
 
 class HexagonGDIEStub : public HexagonTLSStub {
+public:
+  static std::string getTypeName() { return "HexagonGDIEStub"; }
+
 public:
   HexagonGDIEStub(ELFSection *O, ResolveInfo *R)
       : HexagonTLSStub(HexagonTLSStub::GDtoIE, O, R, 4,
@@ -91,6 +100,9 @@ public:
 };
 
 class HexagonLDLEStub : public HexagonTLSStub {
+public:
+  static std::string getTypeName() { return "HexagonLDLEStub"; }
+
 public:
   HexagonLDLEStub(ELFSection *O, ResolveInfo *R)
       : HexagonTLSStub(HexagonTLSStub::LDtoLE, O, R, 4,

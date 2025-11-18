@@ -12,6 +12,9 @@ namespace eld {
 
 struct CommandLine {
 public:
+  static std::string getTypeName() { return "CommandLine"; }
+
+public:
   typedef enum { Flag, Option, MultiValueOption } CmdType;
 
   CommandLine(CmdType Type) : T(Type) {}
@@ -23,6 +26,8 @@ private:
 };
 
 struct Flags : public CommandLine {
+public:
+  static std::string getTypeName() { return "Flags"; }
   Flags(const std::string &Opt, bool Flag)
       : CommandLine(CmdType::Flag), Option(Opt), Flag(Flag) {}
 
@@ -39,6 +44,8 @@ private:
 };
 
 struct Options : public CommandLine {
+public:
+  static std::string getTypeName() { return "Options"; }
   Options(const std::string &Opt, const std::string &Arg)
       : CommandLine(CmdType::Option), Option(Opt), Argument(Arg) {}
 
@@ -55,6 +62,8 @@ private:
 };
 
 struct MultiValueOption : public CommandLine {
+public:
+  static std::string getTypeName() { return "MultiValueOption"; }
   MultiValueOption(const std::string &Opt, const std::vector<std::string> &Arg)
       : CommandLine(CmdType::MultiValueOption), Option(Opt), ArgumentList(Arg) {
   }

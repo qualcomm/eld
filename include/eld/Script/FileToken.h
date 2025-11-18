@@ -26,6 +26,9 @@ namespace eld {
 
 class FileToken : public InputToken {
 public:
+  static std::string getTypeName() { return "FileToken"; }
+
+public:
   explicit FileToken(const std::string &PName, bool PAsNeeded);
 
   static bool classof(const InputToken *ThisInputToken) {

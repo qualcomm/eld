@@ -16,6 +16,9 @@ namespace eld {
  */
 class ELFDynObjectFile : public ELFFileBase {
 public:
+  static std::string getTypeName() { return "ELFDynObjectFile"; }
+
+public:
   ELFDynObjectFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.

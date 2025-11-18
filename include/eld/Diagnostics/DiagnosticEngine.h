@@ -90,6 +90,9 @@ using DiagnosticEntry = plugin::DiagnosticEntry;
  */
 class DiagnosticEngine {
 public:
+  static std::string getTypeName() { return "DiagnosticEngine"; }
+
+public:
   enum Severity {
     // None must be 0 because currently 0 severity value represent
     // no severity at all.
@@ -161,6 +164,9 @@ public:
   };
 
   struct State {
+  public:
+    static std::string getTypeName() { return "State"; }
+
   public:
     State() = default;
     ~State() {}
@@ -282,6 +288,8 @@ private:
 };
 
 class Diag {
+public:
+  static std::string getTypeName() { return "Diag"; }
   static DiagnosticEngine::DiagIDType Counter;
 
 public:

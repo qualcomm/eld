@@ -21,12 +21,18 @@ class InputFile;
  *  formats.
  */
 class ObjectReader {
+public:
+  static std::string getTypeName() { return "ObjectReader"; }
+
 protected:
   ObjectReader() {}
 
 public:
   // Group Signature Info.
   class GroupSignatureInfo {
+  public:
+    static std::string getTypeName() { return "GroupSignatureInfo"; }
+
   public:
     GroupSignatureInfo(ResolveInfo *R, ELFSection *S)
         : m_Info(R), m_Section(S) {}

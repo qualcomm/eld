@@ -14,20 +14,28 @@
 namespace eld {
 namespace LDYAML {
 struct Header {
+public:
+  static std::string getTypeName() { return "Header"; }
   std::string Architecture;
   std::string Emulation;
   std::string AddressSize;
   llvm::yaml::Hex64 ABIPageSize;
 };
 struct Version {
+public:
+  static std::string getTypeName() { return "Version"; }
   std::string VendorVersion;
   std::string ELDVersion;
 };
 struct ArchiveRecord {
+public:
+  static std::string getTypeName() { return "ArchiveRecord"; }
   std::string Origin;
   std::string Referred;
 };
 struct Common {
+public:
+  static std::string getTypeName() { return "Common"; }
   std::string Name;
   llvm::yaml::Hex32 Size;
   std::string InputPath;
@@ -35,6 +43,8 @@ struct Common {
 };
 
 struct LinkStats {
+public:
+  static std::string getTypeName() { return "LinkStats"; }
   std::string Name;
   uint64_t Count;
 };
@@ -42,6 +52,8 @@ struct LinkStats {
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SymbolType)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SymbolScope)
 struct Symbol {
+public:
+  static std::string getTypeName() { return "Symbol"; }
   std::string Name;
   SymbolType Type;
   SymbolScope Scope;
@@ -50,16 +62,22 @@ struct Symbol {
 };
 // Display Input file if it is used or not.
 struct InputFile {
+public:
+  static std::string getTypeName() { return "InputFile"; }
   virtual ~InputFile() {};
   virtual void mapping(llvm::yaml::IO &IO) = 0;
 };
 LLVM_YAML_STRONG_TYPEDEF(bool, InputUsed)
 struct RegularInput : public InputFile {
+public:
+  static std::string getTypeName() { return "RegularInput"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   std::string Name;
   InputUsed Used;
 };
 struct Archive : public InputFile {
+public:
+  static std::string getTypeName() { return "Archive"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   std::string Name;
   InputUsed Used;
@@ -68,6 +86,8 @@ struct Archive : public InputFile {
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, Permissions)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SectionType)
 struct Content {
+public:
+  static std::string getTypeName() { return "Content"; }
   enum Kind {
     Assignment,
     LinkerScriptRule,
@@ -80,6 +100,8 @@ struct Content {
   Kind ContentKind;
 };
 struct Assignment : public Content {
+public:
+  static std::string getTypeName() { return "Assignment"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   static bool classof(const Content *C) {
     return C->ContentKind == Kind::Assignment;
@@ -90,6 +112,8 @@ struct Assignment : public Content {
 };
 
 struct LinkerScriptRule : public Content {
+public:
+  static std::string getTypeName() { return "LinkerScriptRule"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   static bool classof(const Content *C) {
     return C->ContentKind == Kind::LinkerScriptRule;
@@ -98,6 +122,8 @@ struct LinkerScriptRule : public Content {
 };
 
 struct Padding : public Content {
+public:
+  static std::string getTypeName() { return "Padding"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   static bool classof(const Content *C) {
     return C->ContentKind == Kind::Padding;
@@ -107,6 +133,8 @@ struct Padding : public Content {
   llvm::yaml::Hex64 PaddingValue;
 };
 struct InputSection : public Content {
+public:
+  static std::string getTypeName() { return "InputSection"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   static bool classof(const Content *C) {
     return C->ContentKind == Kind::InputSection;
@@ -123,10 +151,14 @@ struct InputSection : public Content {
 };
 
 struct InputBitcodeSection : public InputSection {
+public:
+  static std::string getTypeName() { return "InputBitcodeSection"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   std::string BitcodeOrigin;
 };
 struct OutputSection : public Content {
+public:
+  static std::string getTypeName() { return "OutputSection"; }
   virtual void mapping(llvm::yaml::IO &IO) override;
   static bool classof(const Content *C) {
     return C->ContentKind == Kind::OutputSection;
@@ -141,12 +173,16 @@ struct OutputSection : public Content {
 };
 
 struct SimpleSymbol {
+public:
+  static std::string getTypeName() { return "SimpleSymbol"; }
   std::string Name;
   SymbolType Type;
   llvm::yaml::Hex64 Size;
 };
 
 struct Reuse {
+public:
+  static std::string getTypeName() { return "Reuse"; }
   std::string From;
   std::vector<SimpleSymbol> Symbols;
   std::string FromFile;
@@ -154,6 +190,8 @@ struct Reuse {
 };
 
 struct Trampoline {
+public:
+  static std::string getTypeName() { return "Trampoline"; }
   std::string Name;
   std::string From;
   std::vector<SimpleSymbol> FromSymbols;
@@ -167,6 +205,8 @@ struct Trampoline {
 };
 
 struct TrampolineInfo {
+public:
+  static std::string getTypeName() { return "TrampolineInfo"; }
   virtual void mapping(llvm::yaml::IO &IO);
   std::string OutputSectionName;
   std::vector<Trampoline> Trampolines;
@@ -174,12 +214,16 @@ struct TrampolineInfo {
 };
 
 struct CommandLineDefault {
+public:
+  static std::string getTypeName() { return "CommandLineDefault"; }
   std::string Name;
   std::string Value;
   std::string Description;
 };
 LLVM_YAML_STRONG_TYPEDEF(uint8_t, CodeGenType)
 struct DiscardedSection {
+public:
+  static std::string getTypeName() { return "DiscardedSection"; }
   virtual void mapping(llvm::yaml::IO &IO);
   std::string Name;
   SectionType Type;
@@ -195,6 +239,8 @@ struct DiscardedSection {
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SegmentType)
 LLVM_YAML_STRONG_TYPEDEF(uint32_t, SegmentPermissions)
 struct LoadRegion {
+public:
+  static std::string getTypeName() { return "LoadRegion"; }
   virtual void mapping(llvm::yaml::IO &IO);
   SegmentType Type;
   llvm::yaml::Hex64 VirtualAddress;
@@ -211,6 +257,8 @@ struct LoadRegion {
 
 // Cross Reference Table.
 struct CRef {
+public:
+  static std::string getTypeName() { return "CRef"; }
   virtual void mapping(llvm::yaml::IO &IO);
   std::string SymbolName;
   std::vector<std::string> FileRefs;
@@ -218,6 +266,8 @@ struct CRef {
 };
 
 struct Module {
+public:
+  static std::string getTypeName() { return "Module"; }
   Header ModuleHeader;
   Version ModuleVersion;
   std::vector<eld::LDYAML::ArchiveRecord> ArchiveRecords;
@@ -364,6 +414,8 @@ template <> struct MappingTraits<eld::LDYAML::TrampolineInfo> {
 };
 template <>
 struct MappingTraits<std::shared_ptr<eld::LDYAML::DiscardedSection>> {
+public:
+  static std::string getTypeName() { return "MappingTraits"; }
   static void
   mapping(IO &IO,
           std::shared_ptr<eld::LDYAML::DiscardedSection> &DiscardedSection);

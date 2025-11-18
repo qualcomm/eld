@@ -17,6 +17,9 @@ namespace eld {
 ///
 class CommonELFSection : public ELFSection {
 public:
+  static std::string getTypeName() { return "CommonELFSection"; }
+
+public:
   CommonELFSection(const std::string &Name, InputFile *I, uint32_t Align)
       : ELFSection(Section::Kind::CommonELF, LDFileFormat::Common, Name,
                    DefaultFlags, /*EntSize=*/0, Align, DefaultType, /*Info=*/0,

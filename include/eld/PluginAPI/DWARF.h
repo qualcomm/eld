@@ -35,6 +35,8 @@ struct DLL_A_EXPORT InputFile;
 
 // A class that can parse information from debug sections in DWARF format
 struct DLL_A_EXPORT DWARFInfo {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   explicit DWARFInfo(llvm::DWARFContext *DC);
 
@@ -62,6 +64,8 @@ private:
 
 // A class that can parse DWARF Compile Unit
 struct DLL_A_EXPORT DWARFUnit {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit DWARFUnit(llvm::DWARFUnit *Unit);
 
   ///
@@ -84,6 +88,8 @@ private:
 
 // A class that can parse DWARF Compile Unit
 struct DLL_A_EXPORT DWARFDie {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   explicit DWARFDie(llvm::DWARFUnit *U, llvm::DWARFDebugInfoEntry *Entry);
 
@@ -276,6 +282,8 @@ private:
 
 /// Represents DWARF Attributes
 struct DLL_A_EXPORT DWARFAttribute {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   /// Create a DWARFAttribute from llvm::DWARFAttribute
   explicit DWARFAttribute(const llvm::DWARFAttribute *Attribute);
@@ -300,6 +308,8 @@ private:
 
 /// The associated value for an attribute
 struct DLL_A_EXPORT DWARFValue {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit DWARFValue(const llvm::DWARFFormValue *V);
 
   /// If the value for this DWARF attribute is a string, return it. Otherwise

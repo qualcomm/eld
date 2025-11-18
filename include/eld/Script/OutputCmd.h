@@ -20,6 +20,9 @@ class Module;
 
 class OutputCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "OutputCmd"; }
+
+public:
   OutputCmd(const std::string &POutputFile);
 
 

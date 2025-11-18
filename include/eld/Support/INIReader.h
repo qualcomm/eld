@@ -23,6 +23,9 @@ namespace eld {
 /// \brief Represents a particular section within an ini file
 class INIReaderSection {
 public:
+  static std::string getTypeName() { return "INIReaderSection"; }
+
+public:
   INIReaderSection(std::string SectionName) : sectionName(SectionName) {}
   ~INIReaderSection() = default;
 
@@ -55,6 +58,9 @@ private:
 /// \class INIReader`
 /// \brief An ini file reader
 class INIReader {
+public:
+  static std::string getTypeName() { return "INIReader"; }
+
 public:
   enum Kind {
     Comment,

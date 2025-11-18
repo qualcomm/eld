@@ -16,11 +16,15 @@ class DiagnosticEngine;
 class RegionFragment;
 
 struct EXIDXEntry {
+public:
+  static std::string getTypeName() { return "EXIDXEntry"; }
   uint32_t InputOffset = -1;
   Fragment *Fragment = nullptr;
 };
 
 class ARMEXIDXSection : public ELFSection {
+public:
+  static std::string getTypeName() { return "ARMEXIDXSection"; }
   llvm::SmallVector<EXIDXEntry, 0> Entries;
 
 public:

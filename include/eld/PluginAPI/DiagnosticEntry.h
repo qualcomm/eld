@@ -23,6 +23,9 @@ namespace eld::plugin {
 /// with a diagnostic ID is used.
 class DLL_A_EXPORT DiagnosticEntry {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   // The order of values in Severity enum should be from
   // least severe to most severe.
   enum class Severity { None, Verbose, Note, Warning, Error, Fatal };
@@ -82,6 +85,9 @@ private:
 /// entry.
 class DLL_A_EXPORT ErrorDiagnosticEntry : public DiagnosticEntry {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   ErrorDiagnosticEntry() = default;
   explicit ErrorDiagnosticEntry(DiagIDType id,
                                 const std::vector<std::string> &args)
@@ -93,6 +99,9 @@ public:
 /// WarningDiagnosticEntry subclass allows to easily create warning diagnostic
 /// entry.
 class DLL_A_EXPORT WarningDiagnosticEntry : public DiagnosticEntry {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
 public:
   WarningDiagnosticEntry() = default;
   explicit WarningDiagnosticEntry(DiagIDType id,
@@ -107,6 +116,9 @@ public:
 /// entry.
 class DLL_A_EXPORT FatalDiagnosticEntry : public DiagnosticEntry {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   FatalDiagnosticEntry() = default;
   explicit FatalDiagnosticEntry(DiagIDType id,
                                 const std::vector<std::string> &args)
@@ -118,6 +130,9 @@ public:
 /// VerboseDiagnosticEntry subclass allows to easily create verbose diagnostic
 /// entry.
 class DLL_A_EXPORT VerboseDiagnosticEntry : public DiagnosticEntry {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
 public:
   VerboseDiagnosticEntry() = default;
   explicit VerboseDiagnosticEntry(DiagIDType id,
@@ -131,6 +146,9 @@ public:
 /// NoteDiagnosticEntry subclass allows to easily create note diagnostic
 /// entry.
 class DLL_A_EXPORT NoteDiagnosticEntry : public DiagnosticEntry {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
 public:
   NoteDiagnosticEntry() = default;
   explicit NoteDiagnosticEntry(DiagIDType id,

@@ -23,6 +23,9 @@ class PhdrDesc;
 
 class PhdrsCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "PhdrsCmd"; }
+
+public:
   PhdrsCmd();
 
 

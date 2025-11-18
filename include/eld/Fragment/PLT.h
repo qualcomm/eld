@@ -22,6 +22,10 @@ class GOT;
 
 class PLT : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "PLT"; }
+
+public:
   // PLT Types.
   enum PLTType {
     PLT0, /* Lazy Binding PLT */
