@@ -178,11 +178,11 @@ eld::Expression *ScriptParser::readExpr1(eld::Expression *Lhs, int MinPrec) {
 
 int ScriptParser::precedence(StringRef Op) {
   return StringSwitch<int>(Op)
-      .Cases("*", "/", "%", 11)
-      .Cases("+", "-", 10)
-      .Cases("<<", ">>", 9)
+      .Cases({"*", "/", "%"}, 11)
+      .Cases({"+", "-"}, 10)
+      .Cases({"<<", ">>"}, 9)
       .Cases({"<", "<=", ">", ">="}, 8)
-      .Cases("==", "!=", 7)
+      .Cases({"==", "!="}, 7)
       .Case("&", 6)
       .Case("^", 5)
       .Case("|", 4)
@@ -1047,7 +1047,7 @@ std::optional<WildcardPattern::SortPolicy> ScriptParser::readSortPolicy() {
   std::optional<WildcardPattern::SortPolicy> OptSortPolicy =
       llvm::StringSwitch<std::optional<WildcardPattern::SortPolicy>>(Tok)
           .Case("SORT_NONE", WildcardPattern::SortPolicy::SORT_NONE)
-          .Cases("SORT", "SORT_BY_NAME",
+          .Cases({"SORT", "SORT_BY_NAME"},
                  WildcardPattern::SortPolicy::SORT_BY_NAME)
           .Case("SORT_BY_ALIGNMENT",
                 WildcardPattern::SortPolicy::SORT_BY_ALIGNMENT)
