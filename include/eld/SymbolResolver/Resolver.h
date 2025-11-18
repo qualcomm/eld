@@ -33,6 +33,9 @@ class LinkerConfig;
  */
 class Resolver {
 public:
+  static std::string getTypeName() { return "Resolver"; }
+
+public:
   enum Action { Success, Warning, Abort, LastAction };
 
   /** \class Resolver::Result
@@ -42,6 +45,8 @@ public:
    *   - overriden, if true, the info is being overriden.
    */
   struct Result {
+  public:
+    static std::string getTypeName() { return "Result"; }
     ResolveInfo *Info;
     bool Existent;
     bool Overriden;

@@ -25,6 +25,9 @@ namespace eld {
 
 class AArch64GOT : public GOT {
 public:
+  static std::string getTypeName() { return "AArch64GOT"; }
+
+public:
   // Going to be used by GOTPLT0
   AArch64GOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
              uint32_t Size)
@@ -74,6 +77,9 @@ private:
 
 class AArch64GOTPLT0 : public AArch64GOT {
 public:
+  static std::string getTypeName() { return "AArch64GOTPLT0"; }
+
+public:
   AArch64GOTPLT0(ELFSection *O, ResolveInfo *R)
       : AArch64GOT(GOT::GOTPLT0, O, R, 8, 24), Value() {
     std::memset(Value, 0, sizeof(Value));
@@ -95,6 +101,9 @@ private:
 };
 
 class AArch64GOTPLTN : public AArch64GOT {
+public:
+  static std::string getTypeName() { return "AArch64GOTPLTN"; }
+
 public:
   AArch64GOTPLTN(ELFSection *O, ResolveInfo *R)
       : AArch64GOT(GOT::GOTPLTN, O, R, 8, 8) {}
@@ -120,6 +129,9 @@ private:
 
 class AArch64TLSDESCGOT : public AArch64GOT {
 public:
+  static std::string getTypeName() { return "AArch64TLSDESCGOT"; }
+
+public:
   AArch64TLSDESCGOT(ELFSection *O, ResolveInfo *R)
       : AArch64GOT(GOT::TLS_DESC, O, R),
         Other(make<AArch64GOT>(GOT::TLS_DESC, O, R)) {}
@@ -137,6 +149,9 @@ private:
 };
 
 class AArch64IEGOT : public AArch64GOT {
+public:
+  static std::string getTypeName() { return "AArch64IEGOT"; }
+
 public:
   AArch64IEGOT(ELFSection *O, ResolveInfo *R) : AArch64GOT(GOT::TLS_LE, O, R) {}
 

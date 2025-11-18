@@ -13,6 +13,10 @@
 namespace eld {
 class OutputSectDataFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "OutputSectDataFragment"; }
+
+public:
   OutputSectDataFragment(OutputSectData &OutSectData);
 
   ~OutputSectDataFragment() = default;

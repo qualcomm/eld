@@ -23,6 +23,9 @@ class Plugin;
 /// Stores information required for reporting symbol resolution.
 class SymbolResolutionInfo {
 public:
+  static std::string getTypeName() { return "SymbolResolutionInfo"; }
+
+public:
   SymbolResolutionInfo() {}
   using CandidatesType = std::vector<const LDSymbol *>;
   using CandidatesTableType = llvm::StringMap<CandidatesType>;

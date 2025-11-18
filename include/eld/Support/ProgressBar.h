@@ -13,6 +13,9 @@
 
 namespace eld {
 class ProgressBar {
+public:
+  static std::string getTypeName() { return "ProgressBar"; }
+
 private:
   uint32_t ticks = 0;
   uint32_t total_ticks;

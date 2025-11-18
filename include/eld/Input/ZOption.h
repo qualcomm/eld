@@ -23,6 +23,9 @@ namespace eld {
  */
 class ZOption {
 public:
+  static std::string getTypeName() { return "ZOption"; }
+
+public:
   enum ZOptionKind {
     CombReloc,
     CommPageSize,

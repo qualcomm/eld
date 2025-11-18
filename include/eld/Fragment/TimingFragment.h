@@ -14,6 +14,10 @@ class LinkerConfig;
 
 class TimingFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "TimingFragment"; }
+
+public:
   TimingFragment(uint64_t BeginningOfTime, uint64_t Duration,
                  llvm::StringRef ModuleName, ELFSection *O);
 

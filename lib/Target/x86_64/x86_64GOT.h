@@ -19,6 +19,9 @@ namespace eld {
 
 class x86_64GOT : public GOT {
 public:
+  static std::string getTypeName() { return "x86_64GOT"; }
+
+public:
   // Going to be used by GOTPLT0
   x86_64GOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
             uint32_t Size)
@@ -71,6 +74,9 @@ private:
  */
 class x86_64GOTPLT0 : public x86_64GOT {
 public:
+  static std::string getTypeName() { return "x86_64GOTPLT0"; }
+
+public:
   x86_64GOTPLT0(ELFSection *O, Module *M)
       : x86_64GOT(GOT::GOTPLT0, O, nullptr, /*Align=*/8, /*Size=*/24), M(M) {}
 
@@ -107,6 +113,9 @@ private:
  */
 class x86_64GOTPLTN : public x86_64GOT {
 public:
+  static std::string getTypeName() { return "x86_64GOTPLTN"; }
+
+public:
   x86_64GOTPLTN(ELFSection *O, ResolveInfo *R)
       : x86_64GOT(GOT::GOTPLTN, O, R, /*Align=*/8, /*Size=*/8),
         m_PLTEntry(nullptr) {}
@@ -138,6 +147,9 @@ private:
 
 class x86_64GDGOT : public x86_64GOT {
 public:
+  static std::string getTypeName() { return "x86_64GDGOT"; }
+
+public:
   x86_64GDGOT(ELFSection *O, ResolveInfo *R)
       : x86_64GOT(GOT::TLS_GD, O, R),
         Other(make<x86_64GOT>(GOT::TLS_GD, O, R)) {}
@@ -155,6 +167,9 @@ private:
 };
 
 class x86_64LDGOT : public x86_64GOT {
+public:
+  static std::string getTypeName() { return "x86_64LDGOT"; }
+
 public:
   x86_64LDGOT(ELFSection *O, ResolveInfo *R)
       : x86_64GOT(GOT::TLS_LD, O, R),
@@ -174,7 +189,10 @@ private:
 
 class x86_64IEGOT : public x86_64GOT {
 public:
-  x86_64IEGOT(ELFSection *O, ResolveInfo *R) : x86_64GOT(GOT::TLS_IE, O, R) {}
+  static std::string getTypeName() { return "x86_64IEGOT"; }
+
+public:
+  x86_64IEGOT(ELFSection *O, ResolveInfo *R) : x86_64GOT(GOT::TLS_LE, O, R) {}
 
   x86_64GOT *getFirst() override { return this; }
 

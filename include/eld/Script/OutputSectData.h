@@ -41,6 +41,9 @@ class OutputSectDesc;
 /// special input section description is processed.
 class OutputSectData : public InputSectDesc {
 public:
+  static std::string getTypeName() { return "OutputSectData"; }
+
+public:
   enum OSDKind { None, Byte, Short, Long, Quad, Squad };
 
   /// Creates an OutputSectData object.

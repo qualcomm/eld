@@ -71,6 +71,9 @@ namespace eld {
 template <class T, class U = std::unique_ptr<plugin::DiagnosticEntry>>
 class Expected {
 public:
+  static std::string getTypeName() { return "Expected"; }
+
+public:
   Expected() = default;
   Expected(const Expected &) = default;
   Expected(Expected &&) noexcept = default;

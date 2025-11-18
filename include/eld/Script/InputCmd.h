@@ -24,6 +24,9 @@ class LinkerConfig;
 
 class InputCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "InputCmd"; }
+
+public:
   InputCmd(const LinkerConfig &Config, StringList &PStringList,
            const Attribute &Attr, ScriptFile &PScriptFile);
 

@@ -28,6 +28,9 @@ namespace eld {
  */
 class DiagnosticPrinter {
 public:
+  static std::string getTypeName() { return "DiagnosticPrinter"; }
+
+public:
   enum TraceType {
     TraceFiles = 0x1,
     TraceTrampolines = 0x2,

@@ -19,6 +19,9 @@ namespace eld {
 
 class ELFFileFormat : public LDFileFormat {
 public:
+  static std::string getTypeName() { return "ELFFileFormat"; }
+
+public:
   ELFFileFormat();
 
   void initStdSections(Module &pModule, unsigned int pBitClass);
@@ -79,6 +82,8 @@ public:
 
 private:
   struct StringTableContents {
+  public:
+    static std::string getTypeName() { return "StringTableContents"; }
     std::string Strings = std::string(1, '\0');
     std::unordered_map<std::string, std::size_t> StringOffsets;
 

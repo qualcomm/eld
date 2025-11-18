@@ -12,6 +12,9 @@ namespace eld {
 
 class SymDefFile : public InputFile {
 public:
+  static std::string getTypeName() { return "SymDefFile"; }
+
+public:
   SymDefFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.

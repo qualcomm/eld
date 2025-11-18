@@ -21,6 +21,9 @@ class Module;
 
 class NoCrossRefsCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "NoCrossRefsCmd"; }
+
+public:
   NoCrossRefsCmd(StringList &PExtern, size_t PId);
 
 

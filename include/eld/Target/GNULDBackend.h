@@ -71,6 +71,9 @@ class TimingFragment;
  */
 class GNULDBackend {
 public:
+  static std::string getTypeName() { return "GNULDBackend"; }
+
+public:
   // Support for Fill Patterns.
   typedef struct PaddingT {
     Expression *Exp = nullptr;
@@ -79,6 +82,8 @@ public:
   } PaddingT;
 
   struct SectionOffset {
+  public:
+    static std::string getTypeName() { return "SectionOffset"; }
     ELFSection *sec = nullptr;
     uint64_t offset = 0;
   };

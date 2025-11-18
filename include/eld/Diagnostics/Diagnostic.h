@@ -26,6 +26,9 @@ namespace eld {
  */
 class Diagnostic {
 public:
+  static std::string getTypeName() { return "Diagnostic"; }
+
+public:
   Diagnostic(DiagnosticEngine &PEngine);
 
   ~Diagnostic();

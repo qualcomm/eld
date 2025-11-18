@@ -23,6 +23,9 @@ class ResolveInfo;
 
 class ArchiveParser final {
 public:
+  static std::string getTypeName() { return "ArchiveParser"; }
+
+public:
   explicit ArchiveParser(Module &module) : m_Module(module) {};
 
   // clang-format off
@@ -42,6 +45,8 @@ public:
   eld::Expected<uint32_t> parseFile(InputFile &inputFile) const;
 
   struct ArchiveSymbol {
+  public:
+    static std::string getTypeName() { return "ArchiveSymbol"; }
     uint64_t ChildOffset = 0;
     llvm::StringRef SymbolName;
 

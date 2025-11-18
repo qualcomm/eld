@@ -18,6 +18,10 @@ class LinkerConfig;
  */
 class StringFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "StringFragment"; }
+
+public:
   StringFragment(std::string Str, ELFSection *O = nullptr);
 
   ~StringFragment();

@@ -21,6 +21,9 @@ class DiagnosticPrinter;
  */
 class ELFFileBase : public ObjectFile {
 public:
+  static std::string getTypeName() { return "ELFFileBase"; }
+
+public:
   ELFFileBase(Input *I, DiagnosticEngine *DiagEngine,
               InputFile::InputFileKind K)
       : ObjectFile(I, K, DiagEngine) {}

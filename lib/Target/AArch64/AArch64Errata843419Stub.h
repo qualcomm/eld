@@ -21,6 +21,9 @@ class IRBuilder;
 
 class AArch64Errata843419Stub : public Stub {
 public:
+  static std::string getTypeName() { return "AArch64Errata843419Stub"; }
+
+public:
   AArch64Errata843419Stub();
 
   AArch64Errata843419Stub(const uint32_t *pData, size_t pSize,

@@ -20,6 +20,9 @@ namespace eld {
 
 class AArch64LinuxInfo : public AArch64Info {
 public:
+  static std::string getTypeName() { return "AArch64LinuxInfo"; }
+
+public:
   AArch64LinuxInfo(LinkerConfig &config) : AArch64Info(config) {}
 
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,

@@ -63,6 +63,9 @@ namespace {
 static DiagnosticEngine *sDiagEngine = nullptr;
 class PrepareStaticDiagEngine {
 public:
+  static std::string getTypeName() { return "PrepareStaticDiagEngine"; }
+
+public:
   PrepareStaticDiagEngine(DiagnosticEngine *diagEngine) {
     m_Mutex.lock();
     sDiagEngine = diagEngine;

@@ -25,6 +25,9 @@ class IRBuilder;
  */
 class AArch64ErrataFactory {
 public:
+  static std::string getTypeName() { return "AArch64ErrataFactory"; }
+
+public:
   AArch64ErrataFactory(Stub *targetStub);
 
   ~AArch64ErrataFactory();

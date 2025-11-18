@@ -27,6 +27,9 @@ class ResolveInfo;
 
 class ScriptSymbol : public WildcardPattern {
 public:
+  static std::string getTypeName() { return "ScriptSymbol"; }
+
+public:
   explicit ScriptSymbol(const std::string &PString);
 
   eld::Expected<void> activate();

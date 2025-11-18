@@ -13,6 +13,9 @@ namespace eld {
 
 class RISCVELFDynamic : public ELFDynamic {
 public:
+  static std::string getTypeName() { return "RISCVELFDynamic"; }
+
+public:
   RISCVELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig);
   ~RISCVELFDynamic();
 

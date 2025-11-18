@@ -29,7 +29,12 @@ class Relocation;
  */
 class TargetInfo {
 public:
+  static std::string getTypeName() { return "TargetInfo"; }
+
+public:
   struct TargetRelocationType {
+  public:
+    static std::string getTypeName() { return "TargetRelocationType"; }
     Relocation::Type CopyRelocType;
   };
 

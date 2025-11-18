@@ -15,6 +15,8 @@ namespace eld {
 // when an archive file is read multiple times. For instance, if an archive file
 // is repeated in the link command, then it is read multiple times.
 struct ArchiveFileInfo {
+public:
+  static std::string getTypeName() { return "ArchiveFileInfo"; }
   ArchiveFileInfo() = default;
   ~ArchiveFileInfo() = default;
   llvm::DenseMap<off_t, Input *> LazyLoadMemberMap;

@@ -129,6 +129,8 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
 }
 
 bool GnuLdDriver::emitStats(eld::Module &M) const {
+  if (!Config.options().printTimingStats())
+    return true;
   std::string File = Config.options().timingStatsFile();
   std::error_code error;
   llvm::raw_fd_ostream *StatsFile = nullptr;
@@ -146,6 +148,26 @@ bool GnuLdDriver::emitStats(eld::Module &M) const {
   llvm::TimerGroup::clearAll();
   M.getLinkerScript().printPluginTimers(*OutStream);
   delete StatsFile;
+  return true;
+}
+
+bool GnuLdDriver::emitMemoryReport() const {
+  if (!Config.options().showMemoryReport())
+    return true;
+  std::string File = Config.options().getMemoryReportFile();
+  std::error_code error;
+  llvm::raw_fd_ostream *MemoryReportFile = &llvm::outs();
+  if (!File.empty()) {
+    MemoryReportFile =
+        new llvm::raw_fd_ostream(File, error, llvm::sys::fs::OF_None);
+    if (error) {
+      Config.raise(Diag::fatal_unwritable_output) << File << error.message();
+      return false;
+    }
+  }
+  eld::dumpArenaReport(*MemoryReportFile);
+  if (!File.empty())
+    delete MemoryReportFile;
   return true;
 }
 
@@ -1189,6 +1211,16 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setOMagic(true);
   }
 
+  // --emit-memory-report
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::emit_memory_report)) {
+    Config.options().setPrintMemoryReport();
+    Config.options().setMemoryReportFile(arg->getValue());
+  }
+
+  // --print-memory-report
+  if (Args.hasArg(T::print_memory_report))
+    Config.options().setPrintMemoryReport();
+
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }
@@ -1714,12 +1746,16 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     // llvm::errs() << "destroy hook: linkStatus: " << linkStatus << "\n";
     linker.unloadPlugins();
     linkStatus &= emitStats(*ThisModule);
+    linkStatus &= emitMemoryReport();
   }
   if (Config.options().displaySummary())
     Config.getDiagEngine()->finalize();
+
   if (!linkStatus)
     Config.raise(Diag::linking_had_errors);
+
   eld::freeArena();
+
   return linkStatus;
 }
 

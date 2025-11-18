@@ -22,6 +22,10 @@ class Relocation;
 
 class EhFramePiece {
 public:
+public:
+  static std::string getTypeName() { return "EhFramePiece"; }
+
+public:
   EhFramePiece(size_t Off, size_t Sz, Relocation *R, EhFrameSection *O)
       : MOffset(Off), ThisSize(Sz), MRelocation(R), MSection(O) {}
 
@@ -66,6 +70,10 @@ private:
 
 class FDEFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "FDEFragment"; }
+
+public:
   FDEFragment(EhFramePiece &P, EhFrameSection *O);
 
   virtual ~FDEFragment();
@@ -96,6 +104,10 @@ private:
 };
 
 class CIEFragment : public Fragment {
+public:
+public:
+  static std::string getTypeName() { return "CIEFragment"; }
+
 public:
   CIEFragment(EhFramePiece &P, EhFrameSection *O);
 

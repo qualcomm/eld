@@ -28,6 +28,9 @@ class LTOModule;
 
 class DLL_A_EXPORT LinkerPlugin : public PluginBase {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   LinkerPlugin(const std::string &name)
       : PluginBase(PluginBase::Type::LinkerPlugin, name) {}
 

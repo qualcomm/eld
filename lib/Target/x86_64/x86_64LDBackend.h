@@ -25,6 +25,9 @@ class x86_64Info;
 ///
 class x86_64LDBackend : public GNULDBackend {
 public:
+  static std::string getTypeName() { return "x86_64LDBackend"; }
+
+public:
   x86_64LDBackend(Module &pModule, x86_64Info *pInfo);
 
   ~x86_64LDBackend();

@@ -16,6 +16,9 @@ class LinkerConfig;
 /// JustSymbolsAction
 class JustSymbolsAction : public InputFileAction {
 public:
+  static std::string getTypeName() { return "JustSymbolsAction"; }
+
+public:
   JustSymbolsAction(const std::string &FileName, const LinkerConfig &Config,
                     DiagnosticPrinter *DiagPrinter);
 

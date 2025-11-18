@@ -12,6 +12,9 @@ namespace eld {
 
 class InternalInputFile : public ObjectFile {
 public:
+  static std::string getTypeName() { return "InternalInputFile"; }
+
+public:
   InternalInputFile(Input *I, DiagnosticEngine *diagEngine)
       : ObjectFile(I, InputFile::InternalInputKind, diagEngine) {
     setUsed(true);

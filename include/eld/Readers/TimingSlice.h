@@ -19,6 +19,9 @@ class DiagnosticEngine;
 // Represents the data of a single module in timing section
 class TimingSlice {
 public:
+  static std::string getTypeName() { return "TimingSlice"; }
+
+public:
   explicit TimingSlice(llvm::StringRef Slice, llvm::StringRef InputFileName,
                        DiagnosticEngine *DiagEngine);
 

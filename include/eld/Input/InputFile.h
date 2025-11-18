@@ -23,6 +23,9 @@ class Input;
  */
 class InputFile {
 public:
+  static std::string getTypeName() { return "InputFile"; }
+
+public:
   enum InputFileKind {
     ELFObjFileKind,
     ELFDynObjFileKind,

@@ -56,6 +56,9 @@ class SymbolContainer;
 
 class Phdrs {
 public:
+  static std::string getTypeName() { return "Phdrs"; }
+
+public:
   Phdrs(const PhdrSpec &PPhdrDesc) {
     ScriptSpec.Name = PPhdrDesc.Name;
     ScriptSpec.ThisType = PPhdrDesc.ThisType;
@@ -77,6 +80,9 @@ private:
  *
  */
 class LinkerScript {
+public:
+  static std::string getTypeName() { return "LinkerScript"; }
+
 public:
   typedef std::vector<Assignment *> Assignments;
   typedef std::vector<ChangeOutputSectionPluginOp *> OverrideSectionMatchT;

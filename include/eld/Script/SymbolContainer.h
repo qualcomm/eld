@@ -18,6 +18,9 @@ class Input;
 
 class SymbolContainer {
 public:
+  static std::string getTypeName() { return "SymbolContainer"; }
+
+public:
   explicit SymbolContainer(StrToken &Token);
 
   void addResolveInfo(const ResolveInfo *Info);

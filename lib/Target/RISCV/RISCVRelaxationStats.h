@@ -12,6 +12,9 @@
 namespace eld {
 class RISCVRelaxationStats : public LinkStats {
 public:
+  static std::string getTypeName() { return "RISCVRelaxationStats"; }
+
+public:
   RISCVRelaxationStats()
       : LinkStats("RelaxationStats", LinkStats::Kind::Relaxation) {}
 

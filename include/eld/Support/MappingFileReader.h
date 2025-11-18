@@ -18,6 +18,9 @@ namespace eld {
 /// \brief Reads a mapping.ini file and ensures it is only read once
 class MappingFileReader {
 public:
+  static std::string getTypeName() { return "MappingFileReader"; }
+
+public:
   MappingFileReader(std::string filename) {
     reader = std::make_unique<eld::INIReader>(filename);
   }

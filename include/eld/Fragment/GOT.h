@@ -20,6 +20,10 @@ class ResolveInfo;
 
 class GOT : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "GOT"; }
+
+public:
   // GOT Types.
   enum GOTType {
     Regular,  /* Regular GOT Slots */

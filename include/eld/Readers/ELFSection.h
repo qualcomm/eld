@@ -29,6 +29,9 @@ class Section;
 
 class ELFSectionBase : public Section {
 public:
+  static std::string getTypeName() { return "ELFSectionBase"; }
+
+public:
   virtual ~ELFSectionBase() {}
 
   uint32_t getType() const { return Type; }
@@ -120,6 +123,9 @@ protected:
  *  abstraction of a section header entry for various file formats.
  */
 class ELFSection : public ELFSectionBase {
+public:
+  static std::string getTypeName() { return "ELFSection"; }
+
 public:
   explicit ELFSection(LDFileFormat::Kind ELFSectionKind,
                       const std::string &Name, uint32_t Flags, uint32_t EntSize,

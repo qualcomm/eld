@@ -14,6 +14,9 @@ namespace eld {
 
 class TemplateInfo : public TargetInfo {
 public:
+  static std::string getTypeName() { return "TemplateInfo"; }
+
+public:
   TemplateInfo(LinkerConfig &m_Config);
 
   uint32_t machine() const override {

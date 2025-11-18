@@ -26,6 +26,9 @@ class ResolveInfo;
  */
 class HexagonAbsoluteStub : public Stub {
 public:
+  static std::string getTypeName() { return "HexagonAbsoluteStub"; }
+
+public:
   HexagonAbsoluteStub(bool pIsOutputPIC);
 
   ~HexagonAbsoluteStub();

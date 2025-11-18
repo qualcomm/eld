@@ -13,6 +13,9 @@ namespace eld::plugin {
 
 class DLL_A_EXPORT ControlFileSizePlugin : public Plugin {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   /* Constructor */
   ControlFileSizePlugin(std::string Name)
       : Plugin(Plugin::ControlFileSize, Name) {}

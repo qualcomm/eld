@@ -25,6 +25,9 @@ class LinkerConfig;
 
 class TextLayoutPrinter {
 public:
+  static std::string getTypeName() { return "TextLayoutPrinter"; }
+
+public:
   TextLayoutPrinter(LayoutInfo *ThisLayoutInfo);
 
   eld::Expected<void> init();

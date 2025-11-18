@@ -29,6 +29,9 @@ class ScriptLexer;
 
 class ScriptParser final : ScriptLexer {
 public:
+  static std::string getTypeName() { return "ScriptParser"; }
+
+public:
   ScriptParser(eld::LinkerConfig &Config, eld::ScriptFile &ScriptFile);
 
   void readLinkerScript();

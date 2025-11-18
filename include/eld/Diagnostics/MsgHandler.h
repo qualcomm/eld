@@ -48,6 +48,9 @@ namespace eld {
  */
 class MsgHandler {
 public:
+  static std::string getTypeName() { return "MsgHandler"; }
+
+public:
   MsgHandler(DiagnosticEngine &PEngine, std::unique_lock<std::timed_mutex> Lock);
   ~MsgHandler();
 

@@ -26,6 +26,9 @@ namespace eld {
 
 class NameSpec : public InputToken {
 public:
+  static std::string getTypeName() { return "NameSpec"; }
+
+public:
   explicit NameSpec(const std::string &PName, bool PAsNeeded);
 
 

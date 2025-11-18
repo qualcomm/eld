@@ -21,6 +21,9 @@ class Plugin;
 /// routines for calling a plugin hook for all plugins.
 class PluginManager {
 public:
+  static std::string getTypeName() { return "PluginManager"; }
+
+public:
   explicit PluginManager(const LinkerScript &LinkerScript,
                          DiagnosticEngine &DiagEngine, bool PrintTimingStats)
       : LS(LinkerScript), DE(DiagEngine),

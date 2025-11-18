@@ -17,6 +17,9 @@ class RISCVLDBackend;
 
 class RISCVPLT : public PLT {
 public:
+  static std::string getTypeName() { return "RISCVPLT"; }
+
+public:
   RISCVPLT(PLT::PLTType T, RISCVGOT *G, ELFSection *P, ResolveInfo *R,
            uint32_t Align, uint32_t Size)
       : PLT(T, G, P, R, Align, Size) {}
@@ -38,6 +41,9 @@ public:
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVTPLT : public RISCVPLT {
 public:
+  static std::string getTypeName() { return "RISCVTPLT"; }
+
+public:
   // Going to be used by GOTPLT0
   RISCVTPLT(PLT::PLTType pltType, RISCVGOT *G, ELFSection *O, ResolveInfo *R)
       : RISCVPLT(pltType, G, O, R, Align, Size) {}
@@ -47,6 +53,9 @@ public:
 
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVPLT0 : public RISCVTPLT<T, Align, Size> {
+public:
+  static std::string getTypeName() { return "RISCVPLT0"; }
+
 public:
   RISCVPLT0(RISCVGOT *G, RISCVLDBackend &Backend, ELFSection *P)
       : RISCVTPLT<T, Align, Size>(PLT::PLT0, G, P, nullptr),
@@ -62,6 +71,9 @@ private:
 
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVPLTN : public RISCVTPLT<T, Align, Size> {
+public:
+  static std::string getTypeName() { return "RISCVPLTN"; }
+
 public:
   RISCVPLTN(RISCVGOT *G, ELFSection *P, ResolveInfo *R)
       : RISCVTPLT<T, Align, Size>(PLT::PLTN, G, P, R) {}

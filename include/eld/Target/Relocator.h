@@ -33,6 +33,9 @@ class InputFile;
  */
 class Relocator {
 public:
+  static std::string getTypeName() { return "Relocator"; }
+
+public:
   typedef Relocation::Type Type;
   typedef Relocation::Address Address;
   typedef Relocation::DWord DWord;

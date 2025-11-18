@@ -24,6 +24,9 @@ struct MemorySpec;
 
 class MemoryCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "MemoryCmd"; }
+
+public:
   MemoryCmd();
 
 

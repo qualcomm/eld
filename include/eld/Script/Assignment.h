@@ -34,6 +34,9 @@ class ELFSection;
 
 class Assignment : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "Assignment"; }
+
+public:
   enum Level {
     BEFORE_SECTIONS,  // Assignments before SECTIONS command
     AFTER_SECTIONS,   // Assignments after SECTIONS command

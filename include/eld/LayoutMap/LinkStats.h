@@ -15,6 +15,9 @@ namespace eld {
 
 class LinkStats {
 public:
+  static std::string getTypeName() { return "LinkStats"; }
+
+public:
   enum Kind : uint8_t { None, Relaxation };
 
   LinkStats(llvm::StringRef Name, Kind K) : StatsName(Name), StatsKind(K) {}

@@ -20,6 +20,9 @@ class Module;
 
 class OutputArchCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "OutputArchCmd"; }
+
+public:
   OutputArchCmd(const std::string &PArch);
 
 

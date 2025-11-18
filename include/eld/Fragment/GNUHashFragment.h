@@ -63,6 +63,9 @@ private:
 
 private:
   struct SymbolData {
+  public:
+  public:
+    static std::string getTypeName() { return "SymbolData"; }
     ResolveInfo *R;
     uint32_t DynSymIndex;
     uint32_t Hash;

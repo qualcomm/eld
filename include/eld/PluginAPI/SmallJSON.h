@@ -25,6 +25,9 @@ struct DLL_A_EXPORT SmallJSONValue;
 /// Arrays, boolean, floating point, integral, string, and null types
 struct DLL_A_EXPORT SmallJSONValue {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   /// Create a SmallJSONValue from a SmallJSONObject
   SmallJSONValue(SmallJSONObject &&Obj);
   /// Create a SmallJSONValue from SmallJSONArray
@@ -66,6 +69,8 @@ private:
 /// This class is append only. Items will appear in the order in which they were
 /// inserted
 struct DLL_A_EXPORT SmallJSONObject {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
 public:
   /// Move constructor
@@ -96,6 +101,8 @@ private:
 /// An append-only class represeting a heterogenous array of JSON values. Items
 /// are stored in insertion order.
 struct DLL_A_EXPORT SmallJSONArray {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
 public:
   /// Move constructor

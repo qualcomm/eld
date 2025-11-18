@@ -32,6 +32,9 @@ class FragmentRef;
  */
 class BranchIslandFactory {
 public:
+  static std::string getTypeName() { return "BranchIslandFactory"; }
+
+public:
   BranchIslandFactory(bool UseAddends, LinkerConfig &Config);
 
   ~BranchIslandFactory();

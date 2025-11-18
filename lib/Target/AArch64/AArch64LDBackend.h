@@ -34,6 +34,9 @@ class TargetInfo;
 ///
 class AArch64GNUInfoLDBackend : public GNULDBackend {
 public:
+  static std::string getTypeName() { return "AArch64GNUInfoLDBackend"; }
+
+public:
   AArch64GNUInfoLDBackend(Module &pModule, TargetInfo *pInfo);
   ~AArch64GNUInfoLDBackend();
 

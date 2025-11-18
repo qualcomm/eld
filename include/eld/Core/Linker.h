@@ -41,6 +41,9 @@ class ObjectLinker;
  */
 class Linker {
 public:
+  static std::string getTypeName() { return "Linker"; }
+
+public:
   enum UnresolvedPolicy {
     NotSet = 0x0,
     IgnoreAll = 0x1,

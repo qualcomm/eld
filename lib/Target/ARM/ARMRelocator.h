@@ -25,6 +25,9 @@ namespace eld {
  */
 class ARMRelocator : public Relocator {
 public:
+  static std::string getTypeName() { return "ARMRelocator"; }
+
+public:
   ARMRelocator(ARMGNULDBackend &pParent, LinkerConfig &pConfig,
                Module &pModule);
   ~ARMRelocator();

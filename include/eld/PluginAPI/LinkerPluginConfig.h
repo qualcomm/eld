@@ -23,6 +23,9 @@ struct DLL_A_EXPORT Use;
 /// LinkerWrapper::RegisterReloc.
 class DLL_A_EXPORT LinkerPluginConfig {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   explicit LinkerPluginConfig(plugin::Plugin *);
 
   /// The Init callback hook is called before any relocation callback hook

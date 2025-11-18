@@ -42,6 +42,9 @@ class SectionMap;
  */
 class ObjectBuilder {
 public:
+  static std::string getTypeName() { return "ObjectBuilder"; }
+
+public:
   ObjectBuilder(LinkerConfig &PConfig, Module &PTheModule);
 
   ELFSection *createSection(const std::string &PInputName,

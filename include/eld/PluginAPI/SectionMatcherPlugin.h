@@ -13,6 +13,9 @@ namespace eld::plugin {
 
 class DLL_A_EXPORT SectionMatcherPlugin : public Plugin {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   /* Constructor */
   SectionMatcherPlugin(std::string Name)
       : Plugin(Plugin::Type::SectionMatcher, Name) {}

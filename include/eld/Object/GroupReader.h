@@ -31,6 +31,9 @@ class Node;
  */
 class GroupReader {
 public:
+  static std::string getTypeName() { return "GroupReader"; }
+
+public:
   GroupReader(Module &PModule, ObjectLinker *ObjLinker);
 
   ~GroupReader();

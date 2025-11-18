@@ -27,6 +27,9 @@ namespace {
 
 struct DiagStaticInfo {
 public:
+  static std::string getTypeName() { return "DiagStaticInfo"; }
+
+public:
   DiagnosticEngine::DiagIDType BaseDiagID;
   llvm::StringRef DescriptionStr;
 

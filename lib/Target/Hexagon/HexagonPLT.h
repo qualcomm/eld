@@ -41,6 +41,9 @@ class IRBuilder;
 
 class HexagonPLT : public PLT {
 public:
+  static std::string getTypeName() { return "HexagonPLT"; }
+
+public:
   HexagonPLT(PLT::PLTType T, eld::IRBuilder &I, HexagonGOT *G, ELFSection *P,
              ResolveInfo *R, uint32_t Align, uint32_t Size)
       : PLT(T, G, P, R, Align, Size) {}
@@ -51,6 +54,9 @@ public:
 };
 
 class HexagonPLT0 : public HexagonPLT {
+public:
+  static std::string getTypeName() { return "HexagonPLT0"; }
+
 public:
   HexagonPLT0(HexagonGOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
               uint32_t Align, uint32_t Size)
@@ -67,6 +73,9 @@ public:
 };
 
 class HexagonPLTN : public HexagonPLT {
+public:
+  static std::string getTypeName() { return "HexagonPLTN"; }
+
 public:
   HexagonPLTN(HexagonGOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
               uint32_t Align, uint32_t Size)

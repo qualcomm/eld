@@ -15,6 +15,9 @@ namespace eld {
 
 class RISCVStandaloneInfo : public RISCVInfo {
 public:
+  static std::string getTypeName() { return "RISCVStandaloneInfo"; }
+
+public:
   RISCVStandaloneInfo(LinkerConfig &pConfig) : RISCVInfo(pConfig) {}
 
   uint64_t startAddr(bool linkerScriptHasSectionsCmd, bool isDynExec,

@@ -33,6 +33,9 @@ class ExcludeFiles;
 
 class WildcardPattern : public StrToken {
 public:
+  static std::string getTypeName() { return "WildcardPattern"; }
+
+public:
   enum SortPolicy {
     SORT_NONE,
     SORT_BY_NAME,

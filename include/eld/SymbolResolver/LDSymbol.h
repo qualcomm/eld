@@ -24,6 +24,9 @@ class ELFSection;
 
 class LDSymbol {
 public:
+  static std::string getTypeName() { return "LDSymbol"; }
+
+public:
   // FIXME: use SizeTrait<32> or SizeTrait<64> instead of big type
   typedef ResolveInfo::SizeType SizeType;
   typedef uint64_t ValueType;

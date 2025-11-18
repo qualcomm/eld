@@ -35,6 +35,8 @@ class ELDDirectory;
  *  @see ELDDirectory.
  */
 class SearchDirs {
+public:
+  static std::string getTypeName() { return "SearchDirs"; }
   static const std::string MainExecutablePath;
 
 public:

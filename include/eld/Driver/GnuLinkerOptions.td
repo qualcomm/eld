@@ -6,11 +6,11 @@
 
 include "llvm/Option/OptParser.td"
 
-//===----------------------------------------------------------------------===//
-/// Utility Functions
-//===----------------------------------------------------------------------===//
-// Single and multiple dash options combined
-multiclass smDash<string opt1, string opt2, string help> {
+    //===----------------------------------------------------------------------===//
+    /// Utility Functions
+    //===----------------------------------------------------------------------===//
+    // Single and multiple dash options combined
+    multiclass smDash<string opt1, string opt2, string help> {
   // Option
   def "" : Separate<["-"], opt1>, HelpText<help>;
   def opt1_eq : Joined<["-"], opt1 #"=">, Alias<!cast<Option>(opt1)>;
@@ -73,9 +73,10 @@ multiclass mDashEq<string opt1, string realopt, string help> {
 
 // --<option>,--<option>=
 multiclass EEq<string name, string help> {
-  def NAME: Separate<["--"], name>;
-  def NAME # _eq: Joined<["--"], name # "=">, Alias<!cast<Separate>(NAME)>,
-    HelpText<help>;
+  def NAME : Separate<["--"], name>;
+  def NAME #_eq : Joined<["--"], name #"=">,
+                  Alias<!cast<Separate>(NAME)>,
+                  HelpText<help>;
 }
 
 // Support -<option>,-<option>=
@@ -98,17 +99,18 @@ multiclass
 }
 
 // Support -<option>=,--<option>=
-multiclass smDashOnlyEq<string opt1, string realopt, string help> {
-  def "" : Joined<["-"], opt1 #"=">, HelpText<help>;
-  def opt1_eq : Joined<["--"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
+multiclass smDashOnlyEq<string opt1, string realopt, string help>{
+  def "" : Joined<["-"], opt1 #"=">,
+  HelpText<help>;
+def opt1_eq : Joined<["--"], opt1 #"=">, Alias<!cast<Option>(realopt)>;
 }
 
 // Support -<option>=,--<option>= aliases
 multiclass smDashOnlyEqAlias<string opt1, string realopt, string help> {
-  def "" : Joined<["-"], opt1#"=">,
+  def "" : Joined<["-"], opt1 #"=">,
            Alias<!cast<Option>(realopt)>,
            HelpText<help>;
-  def opt1_eq : Joined<["--"], opt1#"=">,
+  def opt1_eq : Joined<["--"], opt1 #"=">,
                 Alias<!cast<Option>(realopt)>,
                 HelpText<help>;
 }
@@ -122,7 +124,7 @@ defm output_file : smDashTwoWithOpt<"o", "output", "output_file",
                    MetaVarName<"<outputfile>">,
                    Group<grp_general>;
 defm sysroot : smDash<"sysroot", "sysroot", "Set the system root">,
-              MetaVarName<"<sysroot-path>">,
+               MetaVarName<"<sysroot-path>">,
                Group<grp_general>;
 def version : Flag<["--"], "version">,
               HelpText<"Print the Linker version">,
@@ -138,7 +140,7 @@ defm build_id_val
     : smDashOnlyEq<
           "build-id", "build_id_val",
           "Request creation of \".note.gnu.build-id\" ELF note section">,
-           MetaVarName<"fast/md5/sha1/tree/uuid/0x<hexstring>/none">,
+      MetaVarName<"fast/md5/sha1/tree/uuid/0x<hexstring>/none">,
       Group<grp_general>;
 
 //===----------------------------------------------------------------------===//
@@ -253,7 +255,7 @@ defm exclude_libs : mDashEq<"exclude-libs", "exclude_libs",
                     MetaVarName<"<libs>">,
                     Group<grp_scriptopts>;
 def unique_output_sections
-    : Flag<["-", "--"], "unique-output-sections">,
+    : Flag<[ "-", "--" ], "unique-output-sections">,
       HelpText<"Place each input section in a unique output section">,
       Group<grp_scriptopts>;
 def global_merge_non_alloc_strings
@@ -270,7 +272,8 @@ def enable_overlap_checks
       Group<grp_scriptopts>;
 def print_memory_usage
     : Flag<["--"], "print-memory-usage">,
-      HelpText<"Print memory usage when MEMORY linker script directive is used">,
+      HelpText<
+          "Print memory usage when MEMORY linker script directive is used">,
       Group<grp_scriptopts>;
 
 //===----------------------------------------------------------------------===//
@@ -281,8 +284,8 @@ def relocatable : Flag<["-"], "r">,
                   HelpText<"Create relocatable object file">,
                   Group<grp_kind>;
 def static_link : Flag<["-"], "static">,
-             HelpText<"Create static executable">,
-             Group<grp_kind>;
+                  HelpText<"Create static executable">,
+                  Group<grp_kind>;
 def dynamic : Flag<["-"], "dynamic">,
               HelpText<"Create dynamic executable (default)">,
               Group<grp_kind>;
@@ -293,8 +296,8 @@ def pie : Flag<["-"], "pie">,
           HelpText<"Create PIE executable">,
           Group<grp_kind>;
 def no_pie : Flag<["-"], "no-pie">,
-          HelpText<"Do not create a PIE executable">,
-          Group<grp_kind>;
+             HelpText<"Do not create a PIE executable">,
+             Group<grp_kind>;
 def picexec : Flag<["--"], "pic-executable">,
               Group<grp_kind>,
               HelpText<"Create PIE executable">,
@@ -343,11 +346,10 @@ def namespec : Joined<["--"], "library=">,
                MetaVarName<"<namespec>">,
                HelpText<"library to use">,
                Group<grp_main>;
-defm library_path
-    : mDashEq<"library-path", "library_path",
-              "Path to search for libraries or linker scripts">,
-      MetaVarName<"<path>">,
-      Group<grp_main>;
+defm library_path : mDashEq<"library-path", "library_path",
+                            "Path to search for libraries or linker scripts">,
+                    MetaVarName<"<path>">,
+                    Group<grp_main>;
 defm Y : smDash<"Y", "Y", "Add path to the default library search path">,
          MetaVarName<"<path>">,
          Group<grp_main>;
@@ -370,17 +372,17 @@ defm init : smDash<"init", "init", "Specify an initializer function">,
 defm fini : smDash<"fini", "fini", "Specify a finalizer function">,
             MetaVarName<"<symbol>">,
             Group<grp_main>;
-def whole_archive : Flag<["-", "--"], "whole-archive">,
+def whole_archive : Flag<[ "-", "--" ], "whole-archive">,
                     HelpText<"Force load of all members in a static library">,
                     Group<grp_main>;
 def no_whole_archive
-    : Flag<["-", "--"], "no-whole-archive">,
+    : Flag<[ "-", "--" ], "no-whole-archive">,
       HelpText<"Restores the default behavior of loading archive members">,
       Group<grp_main>;
 def nostdlib : Flag<["-"], "nostdlib">,
                HelpText<"Disable default search path for libraries">,
                Group<grp_main>;
-def emit_relocs : Flag<["-", "--"], "emit-relocs">,
+def emit_relocs : Flag<[ "-", "--" ], "emit-relocs">,
                   HelpText<"Make Emit relocs behave just like GNU.">,
                   Group<grp_main>;
 def omagic
@@ -411,20 +413,19 @@ defm dynamic_linker : smDashWithOpt<"dynamic-linker", "dynamic_linker",
                                     "Set the path to the dynamic linker">,
                       MetaVarName<"<path>">,
                       Group<grp_dynlibexec>;
-defm rpath : smDash<"rpath", "rpath",
-                    "Add a path to the runtime library search path">,
-             MetaVarName<"<path>">,
-             Group<grp_dynlibexec>;
-defm rpath_link
-    : dashEqWithOpt<"rpath-link", "rpath-link", "rpath_link",
-                    "Specifies the path to search">,
+defm rpath
+    : smDash<"rpath", "rpath", "Add a path to the runtime library search path">,
       MetaVarName<"<path>">,
       Group<grp_dynlibexec>;
-def export_dynamic : Flag<["-", "--"], "export-dynamic">,
+defm rpath_link : dashEqWithOpt<"rpath-link", "rpath-link", "rpath_link",
+                                "Specifies the path to search">,
+                  MetaVarName<"<path>">,
+                  Group<grp_dynlibexec>;
+def export_dynamic : Flag<[ "-", "--" ], "export-dynamic">,
                      HelpText<"Add all symbols to the dynamic symbol table"
                               " when creating executables">,
                      Group<grp_dynlibexec>;
-def force_dynamic : Flag<["-", "--"], "force-dynamic">,
+def force_dynamic : Flag<[ "-", "--" ], "force-dynamic">,
                     HelpText<"Build executable as a force dynamic executable">,
                     Group<grp_dynlibexec>;
 def alias_export_dynamic : Flag<["-"], "E">,
@@ -439,21 +440,21 @@ defm export_dynamic_symbol
                     "Export specified symbol to dynamic symbol table">,
       MetaVarName<"<symbol>">,
       Group<grp_dynlibexec>;
-def no_dynamic_linker : Flag<["-", "--"], "no-dynamic-linker">,
-                     HelpText<"The program does not need a dynamic linker"
-                              " when creating static PIE executables">,
-                     Group<grp_dynlibexec>;
+def no_dynamic_linker : Flag<[ "-", "--" ], "no-dynamic-linker">,
+                        HelpText<"The program does not need a dynamic linker"
+                                 " when creating static PIE executables">,
+                        Group<grp_dynlibexec>;
 
 //===----------------------------------------------------------------------===//
 /// Dynamic Library Options
 //===----------------------------------------------------------------------===//
 def grp_dynlib : OptionGroup<"opts">, HelpText<"DYNAMIC LIBRARY OPTIONS">;
-def soname : Joined<["-", "--"], "soname=">,
+def soname : Joined<[ "-", "--" ], "soname=">,
              HelpText<"Set the internal DT_SONAME field to the specified name">,
              MetaVarName<"<name>">,
              Group<grp_dynlib>;
 def soname_separate
-    : Separate<["-", "--"], "soname">,
+    : Separate<[ "-", "--" ], "soname">,
       HelpText<"Set the internal DT_SONAME field to the specified name">,
       Alias<soname>,
       MetaVarName<"<name>">,
@@ -517,14 +518,14 @@ def u_alias : Joined<["--"], "undefined=">,
               MetaVarName<"<symbol>">,
               Group<grp_resolveropt>,
               Alias<u>;
-def start_group : Flag<["-", "--"], "start-group">,
+def start_group : Flag<[ "-", "--" ], "start-group">,
                   HelpText<"Start a group">,
                   Group<grp_resolveropt>;
 def alias_start_group : Flag<["-"], "(">,
                         HelpText<"Start a group">,
                         Group<grp_resolveropt>,
                         Alias<start_group>;
-def end_group : Flag<["-", "--"], "end-group">,
+def end_group : Flag<[ "-", "--" ], "end-group">,
                 HelpText<"End a group">,
                 Group<grp_resolveropt>;
 def alias_end_group : Flag<["-"], ")">,
@@ -539,13 +540,15 @@ def no_as_needed : Flag<["--"], "no-as-needed">,
                    HelpText<"This option restores the default behavior"
                             " of adding DT_NEEDED entries">,
                    Group<grp_resolveropt>;
-def push_state : Flag<["--"], "push-state">,
-                 HelpText<"Save current input handling flags (as-needed, whole-archive, etc)">,
-                 Group<grp_resolveropt>;
+def push_state
+    : Flag<["--"], "push-state">,
+      HelpText<
+          "Save current input handling flags (as-needed, whole-archive, etc)">,
+      Group<grp_resolveropt>;
 def pop_state : Flag<["--"], "pop-state">,
                 HelpText<"Restore previously saved input handling flags">,
                 Group<grp_resolveropt>;
-def allow_shlib_undefs : Flag<["-", "--"], "allow-shlib-undefined">,
+def allow_shlib_undefs : Flag<[ "-", "--" ], "allow-shlib-undefined">,
                          HelpText<"Allow undefined symbols from dynamic"
                                   " library when creating executables">,
                          Group<grp_resolveropt>;
@@ -562,7 +565,7 @@ defm defsym : smDash<"defsym", "defsym",
               MetaVarName<"symbol=<expression>">,
               Group<grp_resolveropt>;
 def no_undefined
-    : Flag<["-", "--"], "no-undefined">,
+    : Flag<[ "-", "--" ], "no-undefined">,
       HelpText<"Report unresolved symbol references from regular object files">,
       Group<grp_resolveropt>;
 def warn_once : Flag<["--"], "warn-once">,
@@ -576,10 +579,11 @@ defm unresolved_symbols
           "report-all(Default), ignore-in-object-files, ignore-in-shared-libs">,
       MetaVarName<"<option>">,
       Group<grp_scriptopts>;
-defm sort_section : EEq<"sort-section",
-                       "Sort sections. Options available are name , alignment">,
-                       MetaVarName<"<sort_section>">,
-                        Group<grp_scriptopts>;
+defm sort_section
+    : EEq<"sort-section",
+          "Sort sections. Options available are name , alignment">,
+      MetaVarName<"<sort_section>">,
+      Group<grp_scriptopts>;
 
 //===----------------------------------------------------------------------===//
 /// Symbol options
@@ -641,12 +645,14 @@ def dp : Flag<["-"], "dp">,
          HelpText<"Assign space to common symbols">,
          Alias<d>;
 def sort_common : Flag<["--"], "sort-common">,
-         HelpText<"sort common symbols by alignment">,
-         Group<grp_symbolopts>;
-defm sort_common_val : smDashOnlyEq<"sort-common", "sort_common_val",
-                       "Sort common symbols by ascdending/descending order of alignment">,
-                       MetaVarName<"<option>">,
-                        Group<grp_symbolopts>;
+                  HelpText<"sort common symbols by alignment">,
+                  Group<grp_symbolopts>;
+defm sort_common_val
+    : smDashOnlyEq<
+          "sort-common", "sort_common_val",
+          "Sort common symbols by ascdending/descending order of alignment">,
+      MetaVarName<"<option>">,
+      Group<grp_symbolopts>;
 
 //===----------------------------------------------------------------------===//
 /// Diagnostic options
@@ -678,15 +684,15 @@ defm trace
       MetaVarName<"<trace-type>">,
       Group<grp_diagopts>;
 defm trace_symbol : smDashTwoWithOpt<"y", "trace-symbol", "trace_symbol",
-                                  "Trace a particular symbol">,
+                                     "Trace a particular symbol">,
                     MetaVarName<"<symbol>">,
                     Group<grp_diagopts>;
 def trace_lto : Flag<["--"], "trace-lto">,
                 HelpText<"Trace stages of lto">,
                 Group<grp_diagopts>;
 def trace_linker_script : Flag<["--"], "trace-linker-script">,
-                HelpText<"Trace stages of linker script processing">,
-                Group<grp_diagopts>;
+                          HelpText<"Trace stages of linker script processing">,
+                          Group<grp_diagopts>;
 defm trace_section : smDashWithOpt<"trace-section", "trace_section",
                                    "Show metadata about a particular section">,
                      MetaVarName<"<section_name>">,
@@ -696,7 +702,8 @@ defm trace_reloc : smDashWithOpt<"trace-reloc", "trace_reloc",
                    MetaVarName<"<relocation>">,
                    Group<grp_diagopts>;
 defm trace_merge_strings
-    : smDashWithOpt<"trace-merge-strings", "trace_merge_strings",
+    : smDashWithOpt<
+          "trace-merge-strings", "trace_merge_strings",
           "Emit diagnostics describing how strings were merged. Options: "
           "all(default), allocatable_sections, <output section (regex)>">,
       MetaVarName<"<option>">,
@@ -709,7 +716,7 @@ defm verify_options : smDashWithOpt<"verify-options", "verify_options",
 def dash_t : Flag<["-"], "t">,
              HelpText<"Print all files processed by the linker">,
              Group<grp_diagopts>;
-def cref : Flag<["-", "--"], "cref">,
+def cref : Flag<[ "-", "--" ], "cref">,
            HelpText<"Print the references for a symbol or section">,
            Group<grp_diagopts>;
 defm emit_timing_stats : mDashEq<"emit-timing-stats", "emit_timing_stats",
@@ -719,23 +726,24 @@ defm emit_timing_stats : mDashEq<"emit-timing-stats", "emit_timing_stats",
                          Group<grp_diagopts>;
 
 def emit_timing_stats_in_output
-    : Flag<["-", "--"], "emit-timing-stats-in-output">,
+    : Flag<[ "-", "--" ], "emit-timing-stats-in-output">,
       HelpText<"Insert link-time stats in section .note.qc.timing">,
       Group<grp_diagopts>;
 
-defm time_region : mDashEq<"time-region", "time_region",
-                   "Emit time statistics for specified region of linker operation ">,
-                            MetaVarName<"<region>">,
-                             Group<grp_diagopts>;
+defm time_region
+    : mDashEq<"time-region", "time_region",
+              "Emit time statistics for specified region of linker operation ">,
+      MetaVarName<"<region>">,
+      Group<grp_diagopts>;
 
 def print_timing_stats
-    : Flag<["-", "--"], "print-timing-stats">,
+    : Flag<[ "-", "--" ], "print-timing-stats">,
       HelpText<"Print time statistics of various linker operatons to console">,
       Group<grp_diagopts>;
 defm gc_cref : mDashEq<"gc-cref", "gc_cref",
                        "Print the references for a symbol or section when "
                        "garbage collection is enabled">,
-              MetaVarName<"<symbol/section>">,
+               MetaVarName<"<symbol/section>">,
                Group<grp_diagopts>;
 def verbose : Flag<["--"], "verbose">,
               HelpText<"Enable verbose output">,
@@ -768,7 +776,7 @@ defm error_style
 defm color : smDash<"color", "color", "Enable color output for diagnostics">,
              MetaVarName<"<on/off>">,
              Group<grp_diagopts>;
-def opt_record_file : Flag<["-", "--"], "opt-record-file">,
+def opt_record_file : Flag<[ "-", "--" ], "opt-record-file">,
                       HelpText<"Create diagnostic yaml file">,
                       Group<grp_diagopts>;
 defm display_hotness
@@ -782,55 +790,63 @@ def summary : Flag<["--"], "summary">,
               HelpText<"Display linker run summary at the end">,
               Group<grp_diagopts>;
 def fatal_internal_errors : Flag<["--"], "fatal-internal-errors">,
-                     HelpText<"Enable fatal internal errors">,
-                     Group<grp_diagopts>;
+                            HelpText<"Enable fatal internal errors">,
+                            Group<grp_diagopts>;
 def no_fatal_internal_errors : Flag<["--"], "no-fatal-internal-errors">,
-                     HelpText<"Disable fatal internal errors">,
-                     Group<grp_diagopts>;
+                               HelpText<"Disable fatal internal errors">,
+                               Group<grp_diagopts>;
 defm error_limit
-    : mDashEq<"error-limit", "error_limit",
-              "Maximum number of errors to emit before stopping (0 = no limit)">,
+    : mDashEq<
+          "error-limit", "error_limit",
+          "Maximum number of errors to emit before stopping (0 = no limit)">,
       MetaVarName<"<max-error-number>">,
       Group<grp_diagopts>;
-defm warn_limit
-    : mDashEq<"warn-limit", "warn_limit",
-              "Maximum number of warnings to emit (0 = no limit)">,
-      MetaVarName<"<maxwarnings>">,
+defm warn_limit : mDashEq<"warn-limit", "warn_limit",
+                          "Maximum number of warnings to emit (0 = no limit)">,
+                  MetaVarName<"<maxwarnings>">,
+                  Group<grp_diagopts>;
+def W
+    : Joined<["-"], "W">,
+      MetaVarName<"<warn-type>">,
+      HelpText<"Print warnings which are OFF by default\n"
+               "\t\t\t -Wall : print all warnings\n"
+               "\t\t\t -W[no]linker-script : display warnings detected"
+               " while parsing linker scripts\n"
+               "\t\t\t -W[no]attribute-mix : display a warning if object files"
+               " of RISC-V with different attributes are being linked\n"
+               "\t\t\t -W[no-]archive-file : display warnings detected while "
+               "reading archive files\n"
+               "\t\t\t -W[no-]linker-script-memory : display warnings detected "
+               "while "
+               "processing linker script memory command\n"
+               "\t\t\t -W[no-]bad-dot-assignments : display warnings for bad "
+               "dot assignments\n"
+               "\t\t\t -W[no-]error : treat warnings as errors\n"
+               "\t\t\t -Wwhole-archive : display a warning when whole-archive "
+               "is enabled for any archive file\n"
+               "\t\t\t -W[no-]osabi : display a warning when linking objects "
+               "with different values for OS/ABI\n">,
       Group<grp_diagopts>;
-def W : Joined<["-"], "W">,
-        MetaVarName<"<warn-type>">,
-        HelpText<"Print warnings which are OFF by default\n"
-             "\t\t\t -Wall : print all warnings\n"
-             "\t\t\t -W[no]linker-script : display warnings detected"
-             " while parsing linker scripts\n"
-             "\t\t\t -W[no]attribute-mix : display a warning if object files"
-             " of RISC-V with different attributes are being linked\n"
-             "\t\t\t -W[no-]archive-file : display warnings detected while "
-             "reading archive files\n"
-             "\t\t\t -W[no-]linker-script-memory : display warnings detected while "
-             "processing linker script memory command\n"
-             "\t\t\t -W[no-]bad-dot-assignments : display warnings for bad "
-             "dot assignments\n"
-             "\t\t\t -W[no-]error : treat warnings as errors\n"
-             "\t\t\t -Wwhole-archive : display a warning when whole-archive "
-             "is enabled for any archive file\n"
-             "\t\t\t -W[no-]osabi : display a warning when linking objects "
-             "with different values for OS/ABI\n"
-            >,
-        Group<grp_diagopts>;
+def print_memory_report : Flag<["--"], "print-memory-report">,
+                          HelpText<"Print linker memory allocation report ">,
+                          Group<grp_diagopts>;
+defm emit_memory_report : mDashEq<"emit-memory-report", "emit_memory_report",
+                                  "Emit linker memory allocation report">,
+                          MetaVarName<"<filename>">,
+                          Group<grp_diagopts>;
 
 //===----------------------------------------------------------------------===//
 /// Optimization options
 //===----------------------------------------------------------------------===//
 def grp_optimizationopts : OptionGroup<"opts">,
                            HelpText<"OPTIMIZATION OPTIONS">;
-def gc_sections : Flag<["-", "--"], "gc-sections">,
+def gc_sections : Flag<[ "-", "--" ], "gc-sections">,
                   HelpText<"Enable garbage collection">,
                   Group<grp_optimizationopts>;
-def no_gc_sections : Flag<["-", "--"], "no-gc-sections">,
+def no_gc_sections : Flag<[ "-", "--" ], "no-gc-sections">,
                      HelpText<"Disable garbage collection">,
                      Group<grp_optimizationopts>;
-def print_gc_sections : Flag<["-", "--"], "print-gc-sections">,
+def print_gc_sections : Flag<[ "-", "--" ], "print-gc-sections">,
                         HelpText<"Print sections that are garbage collected">,
                         Group<grp_optimizationopts>;
 def eh_frame_hdr
@@ -849,13 +865,14 @@ def no_trampolines : Flag<["--"], "no-trampolines">,
 //===----------------------------------------------------------------------===//
 def grp_extendedopts : OptionGroup<"opts">, HelpText<"Extended Options">;
 defm dash_z
-    : dashEqWithJoinedOpt<
-          "z", "z", "dash_z",
-          "Extended Options or Non standard options.\n\t\t\t Available options are:\n"
-          "\t\t\t-z=combreloc : Combines multiple reloc sections and sorts them to make dynamic"
-          "symbol lookup caching\n"
-          "\t\t\t-z=now : Enables immediate binding\n"
-          "\t\t\t-z=nocopyreloc : Disables Copy Relocation">,
+    : dashEqWithJoinedOpt<"z", "z", "dash_z",
+                          "Extended Options or Non standard options.\n\t\t\t "
+                          "Available options are:\n"
+                          "\t\t\t-z=combreloc : Combines multiple reloc "
+                          "sections and sorts them to make dynamic"
+                          "symbol lookup caching\n"
+                          "\t\t\t-z=now : Enables immediate binding\n"
+                          "\t\t\t-z=nocopyreloc : Disables Copy Relocation">,
       MetaVarName<"<extended-opts>">,
       Group<grp_extendedopts>;
 def no_align_segments : Flag<["--"], "no-align-segments">,
@@ -883,7 +900,7 @@ def rosegment
 defm copy_farcalls_from_file
     : smDashWithOpt<"copy-farcalls-from-file", "copy_farcalls_from_file",
                     "Copy far calls instead of using trampolines">,
-                    MetaVarName<"<filename>">,
+      MetaVarName<"<filename>">,
       Group<grp_extendedopts>;
 defm no_reuse_trampolines_file
     : smDashWithOpt<"no-reuse-trampolines-file", "no_reuse_trampolines_file",
@@ -891,7 +908,7 @@ defm no_reuse_trampolines_file
       MetaVarName<"<filename>">,
       Group<grp_extendedopts>;
 def use_old_style_trampoline_name
-    : Flag<["--"],"use-old-style-trampoline-name">,
+    : Flag<["--"], "use-old-style-trampoline-name">,
       HelpText<"Use old style of naming trampolines">,
       Group<grp_extendedopts>;
 def no_emit_relocs : Flag<[ "-", "--" ], "no-emit-relocs">,
@@ -910,20 +927,22 @@ def allow_bss_conversion
 defm reproduce : smDash<"reproduce", "reproduce",
                         "Write a tar file containing input files and command "
                         "line options to inspect and re-link">,
-                  MetaVarName<"<tarfilename>">,
+                 MetaVarName<"<tarfilename>">,
                  Group<grp_extendedopts>;
-defm reproduce_compressed : smDashWithOpt<"reproduce-compressed", "reproduce_compressed",
-                                   "Write compressed tar file in zlib format "
-                                   "containing input files and command line "
-                                   "options to inspect and re-link.">,
-                            MetaVarName<"<tarfilename>">,
-                            Group<grp_extendedopts>;
-defm reproduce_on_fail : smDashWithOpt<"reproduce-on-fail", "reproduce_on_fail",
-                                   "Write reproduce tar file when link fails"
-                                   "containing input files and command line "
-                                   "options to inspect and re-link.">,
-                            MetaVarName<"<tarfilename>">,
-                            Group<grp_extendedopts>;
+defm reproduce_compressed
+    : smDashWithOpt<"reproduce-compressed", "reproduce_compressed",
+                    "Write compressed tar file in zlib format "
+                    "containing input files and command line "
+                    "options to inspect and re-link.">,
+      MetaVarName<"<tarfilename>">,
+      Group<grp_extendedopts>;
+defm reproduce_on_fail
+    : smDashWithOpt<"reproduce-on-fail", "reproduce_on_fail",
+                    "Write reproduce tar file when link fails"
+                    "containing input files and command line "
+                    "options to inspect and re-link.">,
+      MetaVarName<"<tarfilename>">,
+      Group<grp_extendedopts>;
 defm mapping_file : smDashWithOpt<"mapping-file", "mapping_file",
                                   "Reproduce link using a mapping file">,
                     MetaVarName<"<INI-file>">,
@@ -935,13 +954,11 @@ defm dump_mapping_file : smDashWithOpt<"dump-mapping-file", "dump_mapping_file",
 defm dump_response_file
     : smDashWithOpt<"dump-response-file", "dump_response_file",
                     "Dump response file to output file">,
-                    MetaVarName<"<outputfilename>">,
+      MetaVarName<"<outputfilename>">,
       Group<grp_extendedopts>;
-def about :
-     Flag<["--"], "about">,
-      HelpText<"Emit detailed information about the linker">,
-      Group<grp_extendedopts>;
-
+def about : Flag<["--"], "about">,
+            HelpText<"Emit detailed information about the linker">,
+            Group<grp_extendedopts>;
 
 //===----------------------------------------------------------------------===//
 /// Map file
@@ -1017,14 +1034,14 @@ def no_allow_shlib_undefs
       Group<grp_compatorignoredopts>;
 defm plugin_gnu
     : smDashWithOpt<"plugin", "plugin_gnu", "Specify a plugin file">,
-    MetaVarName<"<pluginfile>">,
+      MetaVarName<"<pluginfile>">,
       Group<grp_compatorignoredopts>;
 defm plugin_opt
     : smDashWithOpt<"plugin-opt", "plugin_opt", "Specify plugin options">,
       MetaVarName<"<plugin-opt>">,
       Group<grp_compatorignoredopts>;
 def thin_archive_rule_matching_compatibility
-    : Flag<["-", "--"], "thin-archive-rule-matching-compatibility">,
+    : Flag<[ "-", "--" ], "thin-archive-rule-matching-compatibility">,
       HelpText<"Provides rule-matching compatibility when fat archives are\n"
                "\t\t\tconverted to thin archives">,
       Group<grp_compatorignoredopts>;
@@ -1033,7 +1050,7 @@ def thin_archive_rule_matching_compatibility
 /// LTO options
 //===----------------------------------------------------------------------===//
 def grp_ltooptions : OptionGroup<"opts">, HelpText<"LTO Options">;
-def flto : Flag<["-", "--"], "flto">,
+def flto : Flag<[ "-", "--" ], "flto">,
            HelpText<"Enable LTO if a Bitcode file is present.">,
            Group<grp_ltooptions>;
 defm flto_options
@@ -1041,17 +1058,17 @@ defm flto_options
                     "Specify various options with LTO">,
       MetaVarName<"<option>">,
       Group<grp_ltooptions>;
-def flto_use_as : Flag<["-", "--"], "flto-use-as">,
+def flto_use_as : Flag<[ "-", "--" ], "flto-use-as">,
                   HelpText<"Use the standalone assembler instead of the "
                            "integrated assembler for LTO">,
                   Group<grp_ltooptions>;
-def save_temps : Flag<["-", "--"], "save-temps">,
+def save_temps : Flag<[ "-", "--" ], "save-temps">,
                  HelpText<"Save the temporary files produced by LTO">,
                  Group<grp_ltooptions>;
 defm save_temps_EQ : smDashOnlyEq<"save-temps", "save_temps_EQ",
-                 "Save the temporary files produced by LTO">,
-                 MetaVarName<"<filename>">,
-                 Group<grp_ltooptions>;
+                                  "Save the temporary files produced by LTO">,
+                     MetaVarName<"<filename>">,
+                     Group<grp_ltooptions>;
 defm exclude_lto_filelist
     : smDashWithOpt<"exclude-lto-filelist", "exclude_lto_filelist",
                     "Specify a list of files that are to be disregarded while "
@@ -1084,7 +1101,7 @@ defm plugin_opt_sample_profile
 /// Linker speedup and control
 //===----------------------------------------------------------------------===//
 def grp_linktime : OptionGroup<"opts">, HelpText<"Link Time Speedup">;
-def threads : Flag<["-", "--"], "threads">,
+def threads : Flag<[ "-", "--" ], "threads">,
               HelpText<"Enable Threads at Link time">,
               Group<grp_linktime>;
 defm enable_threads
@@ -1092,7 +1109,7 @@ defm enable_threads
                    "make linker fully threaded, available options: all">,
       MetaVarName<"<option>">,
       Group<grp_linktime>;
-def no_threads : Flag<["-", "--"], "no-threads">,
+def no_threads : Flag<[ "-", "--" ], "no-threads">,
                  HelpText<"Disable Threads at Link time">,
                  Group<grp_linktime>;
 defm thread_count
@@ -1106,19 +1123,18 @@ defm thread_count
 //===----------------------------------------------------------------------===//
 def grp_otherlinker : OptionGroup<"opts">,
                       HelpText<"Features From other Linkers">;
-def symdef : Flag<["-", "--"], "symdef">,
+def symdef : Flag<[ "-", "--" ], "symdef">,
              HelpText<"Output SymDef file to console">,
              Group<grp_otherlinker>;
 defm symdef_file : mDashEq<"symdef-file", "symdef_file", "Emit SymDef file">,
                    MetaVarName<"<filename>">,
                    Group<grp_otherlinker>;
-defm symdef_style
-    : mDashEq<
-          "symdef-style", "symdef_style",
-          "Determine how to handle symbol resolution for symbols from symdef file, Options available are "
-          "provide">,
-      MetaVarName<"<style>">,
-      Group<grp_otherlinker>;
+defm symdef_style : mDashEq<"symdef-style", "symdef_style",
+                            "Determine how to handle symbol resolution for "
+                            "symbols from symdef file, Options available are "
+                            "provide">,
+                    MetaVarName<"<style>">,
+                    Group<grp_otherlinker>;
 defm R : smDash<"R", "just-symbols",
                 "Read symbol names and addresses from filename">,
          MetaVarName<"<filename>">,
@@ -1132,17 +1148,16 @@ defm plugin_config : mDashEq<"plugin-config", "plugin_config",
                              "Specify a plugin configuration">,
                      MetaVarName<"<config-file>">,
                      Group<grp_pluginopts>;
-def noDefaultPlugins
-    : Flag<["--"], "no-default-plugins">,
-      HelpText<"Allow no plugins to be implicitly loaded">,
-      Group<grp_pluginopts>;
+def noDefaultPlugins : Flag<["--"], "no-default-plugins">,
+                       HelpText<"Allow no plugins to be implicitly loaded">,
+                       Group<grp_pluginopts>;
 
 //===----------------------------------------------------------------------===//
 /// Other Features
 //===----------------------------------------------------------------------===//
 def grp_miscfeatures : OptionGroup<"otherfeatures">, HelpText<"Misc Features">;
 def allow_incompatible_section_mix
-    : Flag<["-", "--"], "allow-incompatible-section-mix">,
+    : Flag<[ "-", "--" ], "allow-incompatible-section-mix">,
       HelpText<"Allow incompatible section mix">,
       Group<grp_miscfeatures>;
 
@@ -1150,10 +1165,10 @@ def allow_incompatible_section_mix
 /// Help!
 //===----------------------------------------------------------------------===//
 def grp_help : OptionGroup<"opts">, HelpText<"Help!">;
-def help : Flag<["--", "-"], "help">,
+def help : Flag<[ "--", "-" ], "help">,
            HelpText<"Print option help">,
            Group<grp_help>;
-def help_hidden : Flag<["--", "-"], "help-hidden">,
+def help_hidden : Flag<[ "--", "-" ], "help-hidden">,
                   HelpText<"Print hidden option help">,
                   Group<grp_help>;
 
@@ -1161,8 +1176,10 @@ def help_hidden : Flag<["--", "-"], "help-hidden">,
 /// Input formats!
 //===----------------------------------------------------------------------===//
 def grp_input_formats : OptionGroup<"opts">, HelpText<"Input Format">;
-defm input_format : smDashTwoWithOpt<"b", "format", "input_format",
-                      "Specify input format for inputs following this option.\n"
-                      "Supported values: binary,default">,
-                    MetaVarName<"<input-format>">,
-                    Group<grp_input_formats>;
+defm input_format
+    : smDashTwoWithOpt<
+          "b", "format", "input_format",
+          "Specify input format for inputs following this option.\n"
+          "Supported values: binary,default">,
+      MetaVarName<"<input-format>">,
+      Group<grp_input_formats>;
