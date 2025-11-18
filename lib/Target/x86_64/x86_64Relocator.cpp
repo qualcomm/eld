@@ -171,9 +171,17 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
     // Preemptible symbol: dynamic loader resolves the value; addend must be 0.
     rela_entry->setAddend(0);
   } else if (pType == llvm::ELF::R_X86_64_RELATIVE) {
-    // RELATIVE reloc: writer emits r_addend = abs(symbol) + RAddend.
-    // Set RAddend to 0 so the final addend equals the absolute symbol value.
-    rela_entry->setAddend(0);
+    if (R->type() == llvm::ELF::R_X86_64_64) {
+      // Non-preemptible R_X86_64_64 → preserve original addend
+      // Writer will compute final: S + A (see emitRela RELATIVE case)
+      rela_entry->setAddend(R->addend());
+    } else if (R->type() == llvm::ELF::R_X86_64_GOTPCREL ||
+               R->type() == llvm::ELF::R_X86_64_GOTPCRELX ||
+               R->type() == llvm::ELF::R_X86_64_REX_GOTPCRELX) {
+      // Non-preemptible GOT → addend = 0
+      // Writer will compute final: S (see emitRela RELATIVE case)
+      rela_entry->setAddend(0);
+    }
   } else if (R) {
     rela_entry->setAddend(R->addend());
   } else {
@@ -211,19 +219,23 @@ x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
 void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                                      eld::IRBuilder &pBuilder,
                                      ELFSection &pSection) {
+  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
-
-  // Special case when the linker makes a symbol local for example linker
-  // defined symbols such as _DYNAMIC
   switch (pReloc.type()) {
-
+  case llvm::ELF::R_X86_64_64:
+    if (config().isCodeIndep()) {
+      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      rsym->setReserved(rsym->reserved() | ReserveRel);
+      getTarget().checkAndSetHasTextRel(pSection);
+      helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
+                         pReloc.targetRef()->offset(),
+                         llvm::ELF::R_X86_64_RELATIVE, m_Target);
+    }
+    return;
   default:
     break;
   }
-
-  if (rsym && (ResolveInfo::Hidden == rsym->visibility()))
-    return;
 }
 
 void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
@@ -235,6 +247,21 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   ResolveInfo *rsym = pReloc.symInfo();
 
   switch (pReloc.type()) {
+  case llvm::ELF::R_X86_64_64: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
+    if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
+                                      true)) {
+      rsym->setReserved(rsym->reserved() | ReserveRel);
+      getTarget().checkAndSetHasTextRel(pSection);
+      helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
+                         pReloc.targetRef()->offset(),
+                         isSymbolPreemptible ? llvm::ELF::R_X86_64_64
+                                             : llvm::ELF::R_X86_64_RELATIVE,
+                         m_Target);
+    }
+    return;
+  }
   case llvm::ELF::R_X86_64_PLT32: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (!m_Target.isSymbolPreemptible(*rsym))
@@ -391,6 +418,9 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
     return ApplyReloc(pReloc, S + A, pRelocDesc, DiagEngine, options);
   }
 
+  if (rsym && (rsym->reserved() & Relocator::ReserveRel)) {
+    return Relocator::OK; // Skip writing
+  }
   // FIXME PLT STUFF
   //  if (rsym && rsym->reserved() & Relocator::ReservePLT)
   //    S =

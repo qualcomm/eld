@@ -1,0 +1,28 @@
+#UNSUPPORTED: windows
+#--DynamicRelocsForAbs64.test-------Executable--#
+#BEGIN_COMMENT
+# Test: Verifies correct dynamic relocations for R_X86_64_64 in shared libraries
+# 2.c contains:
+#   int u = 11;              // Global symbol (preemptible in shared lib)
+#   static int *v = &u;      // Pointer to preemptible symbol → R_X86_64_64
+#   static int **p = &v;     // Pointer to local symbol → R_X86_64_RELATIVE
+#
+# Expected dynamic relocations in lib2.so:
+#   - R_X86_64_64 for 'v' (points to preemptible 'u')
+#   - R_X86_64_RELATIVE for 'p' (points to local 'v')
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %link %linkopts  -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o %t.out %t.1.o %t.lib2.so
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -Sr %t.lib2.so | %filecheck %s
+CHECK: .data PROGBITS [[#%x,DATA_SEC_ADDR:]]
+
+# Verify R_X86_64_RELATIVE at offset 0x10 (for 'p' pointing to 'v')
+CHECK-DAG: [[#DATA_SEC_ADDR+0x10]]{{.*}}000000000008{{.*}}R_X86_64_RELATIVE{{.*}}[[#DATA_SEC_ADDR+0x8]]
+
+# Verify R_X86_64_64 at offset 0x8 (for 'v' pointing to 'u')
+CHECK-DAG: [[#DATA_SEC_ADDR+0x8]]{{.*}}R_X86_64_64{{.*}}u + 0
+EXITCODE: 39
