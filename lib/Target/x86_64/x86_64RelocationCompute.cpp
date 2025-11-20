@@ -39,22 +39,6 @@ bool checkRange(uint64_t Value, bool IsSigned, EncodingType Type) {
   return Reachable;
 }
 
-unsigned getNumberOfBits(EncodingType Type) {
-  switch (Type) {
-  case EncTy_8:
-    return 8;
-  case EncTy_16:
-    return 16;
-  case EncTy_32:
-    return 32;
-  case EncTy_64:
-    return 64;
-  default:
-    break;
-  }
-  return 64;
-}
-
 uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
   switch (Type) {
   case EncTy_8:
@@ -116,6 +100,22 @@ bool verifyRangeX86_64(const RelocationInfo &RelocInfo, uint64_t Value) {
   else
     return checkRange(static_cast<uint64_t>(Value) >> RelocInfo.Shift,
                       RelocInfo.IsSigned, RelocInfo.EncType);
+}
+
+unsigned getNumberOfBits(EncodingType Type) {
+  switch (Type) {
+  case EncTy_8:
+    return 8;
+  case EncTy_16:
+    return 16;
+  case EncTy_32:
+    return 32;
+  case EncTy_64:
+    return 64;
+  default:
+    break;
+  }
+  return 64;
 }
 
 /* Check if the result will be Truncated */

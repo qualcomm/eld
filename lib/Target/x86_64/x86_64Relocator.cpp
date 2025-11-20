@@ -316,22 +316,6 @@ void x86_64Relocator::partialScanRelocation(Relocation &pReloc,
 
 uint32_t x86_64Relocator::getNumRelocs() const { return x86_64_MAXRELOCS; }
 
-static unsigned getEncodingBitWidth(EncodingType T) {
-  switch (T) {
-  case EncTy_8:
-    return 8;
-  case EncTy_16:
-    return 16;
-  case EncTy_32:
-    return 32;
-  case EncTy_64:
-    return 64;
-  case EncTy_None:
-    ASSERT(0, "unknown encoding!");
-    return 0;
-  }
-}
-
 //=========================================//
 // Relocation Verifier
 //=========================================//
@@ -349,7 +333,7 @@ Relocator::Result VerifyRelocAsNeededHelper(
 
   if (RelocInfo.VerifyRange && !verifyRangeX86_64(RelocInfo, Result)) {
     unsigned EffectiveBits =
-        getEncodingBitWidth(RelocInfo.EncType) + RelocInfo.Shift;
+        getNumberOfBits(RelocInfo.EncType) + RelocInfo.Shift;
     if (RelocInfo.IsSigned)
       return checkSignedRange(pReloc, Parent, PreShift, EffectiveBits);
     return checkUnsignedRange(pReloc, Parent, PreShift, EffectiveBits);

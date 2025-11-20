@@ -25,6 +25,8 @@ uint64_t doRelocX86_64(const RelocationInfo &RelocInfo, uint64_t Instruction,
 
 bool verifyRangeX86_64(const RelocationInfo &RelocInfo, uint64_t Value);
 
+unsigned getNumberOfBits(EncodingType Type);
+
 bool isTruncatedX86_64(const RelocationInfo &RelocInfo, uint64_t Value);
 
 extern const RelocationInfo x86_64Relocs[];
