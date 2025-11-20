@@ -212,8 +212,8 @@ bool Relocation::issueOverflow(Relocator &R, int64_t Value, int64_t Min,
     }
   }
   R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
-      << Location << R.getName(type())
-      << getSymbolName(symInfo(), R.doDeMangle()) << Value << Min << Max;
+      << Location << R.getName(type()) << Value << Min << Max
+      << getSymbolName(symInfo(), R.doDeMangle());
   ASSERT(!Location.empty(), "expected a section location.");
   return false;
 }

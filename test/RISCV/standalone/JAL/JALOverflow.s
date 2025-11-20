@@ -25,8 +25,8 @@
 # MAX: jal 0x8ffffe <_start+0xffffe>
 # MIN: jal 0x700000 <foo>
 
-# FAILPOS: Error: {{.*}}.o:(.text): relocation 'R_RISCV_JAL' for 'foo' is out of range: 1048576 is not in [-1048576, 1048575]
-# FAILNEG: Error: {{.*}}.o:(.text): relocation 'R_RISCV_JAL' for 'foo' is out of range: -1048578 is not in [-1048576, 1048575]
+# FAILPOS: Error: {{.*}}.o:(.text): relocation R_RISCV_JAL out of range: 1048576 is not in [-1048576, 1048575]; references 'foo'
+# FAILNEG: Error: {{.*}}.o:(.text): relocation R_RISCV_JAL out of range: -1048578 is not in [-1048576, 1048575]; references 'foo'
 
   .option exact
   .text

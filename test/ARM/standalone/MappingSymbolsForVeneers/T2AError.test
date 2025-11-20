@@ -6,6 +6,6 @@
 RUN: %clang %clangopts -ffunction-sections -c --target=armv7m-none-eabi %p/Inputs/1.c -o %t1.t2aerr.1.o
 RUN: %not %link %linkopts %t1.t2aerr.1.o  -o %t2.t2a.err.out --defsym bar=0x80000000 2>&1 | %filecheck %s
 
-#CHECK: Error: {{.*}}1.o:(.text.foo+0x2): relocation 'R_ARM_THM_CALL' for 'bar' is out of range: {{.*}} is not in [-16777216, 16777215]
+#CHECK: Error: {{.*}}1.o:(.text.foo+0x2): relocation R_ARM_THM_CALL out of range: {{.*}} is not in [-16777216, 16777215]; references 'bar'
 
 #END_TEST

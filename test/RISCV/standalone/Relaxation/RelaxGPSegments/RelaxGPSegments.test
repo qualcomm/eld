@@ -10,6 +10,6 @@
 #RELAXBYTESERR: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0xc file {{.*}}tmp.o
 #RELAXBYTESERR: Verbose: RISCV_PC_GP : Deleting 4 bytes for symbol 'a' in section .text+0x10 file {{.*}}tmp.o
 #RELAXBYTESERR: Verbose: RISCV_LUI_GP : Deleting 4 bytes for symbol 'b' in section .text+0x14 file {{.*}}tmp.o
-#RELAXBYTESERR: Error: {{.*}}.o:(.text+0x8): relocation 'R_RISCV_GPREL_I' for 'a' is out of range: 4352 is not in [-2048, 2047]
-#RELAXBYTESERR: Error: {{.*}}.o:(.text+0xc): relocation 'R_RISCV_GPREL_I' for 'a' is out of range: 4352 is not in [-2048, 2047]
-#RELAXBYTESERR: Error: {{.*}}.o:(.text+0x10): relocation 'R_RISCV_GPREL_I' for 'a' is out of range: 4352 is not in [-2048, 2047]
+#RELAXBYTESERR: Error: {{.*}}.o:(.text+0x8):  relocation R_RISCV_GPREL_I out of range: 4352 is not in [-2048, 2047]; references 'a'
+#RELAXBYTESERR: Error: {{.*}}.o:(.text+0xc):  relocation R_RISCV_GPREL_I out of range: 4352 is not in [-2048, 2047]; references 'a'
+#RELAXBYTESERR: Error: {{.*}}.o:(.text+0x10): relocation R_RISCV_GPREL_I out of range: 4352 is not in [-2048, 2047]; references 'a'
