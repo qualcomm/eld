@@ -25,9 +25,9 @@ x86_64Relocator::Result unsupport(Relocation &pEntry, x86_64Relocator &pParent,
                                   RelocationDescription &RelocDesc);
 x86_64Relocator::Result relocPLT32(Relocation &pEntry, x86_64Relocator &pParent,
                                    RelocationDescription &RelocDesc);
-x86_64Relocator::Result relocGOTPCREL(Relocation &pEntry,
-                                      x86_64Relocator &pParent,
-                                      RelocationDescription &RelocDesc);
+x86_64Relocator::Result relocGOTRelative(Relocation &pEntry,
+                                         x86_64Relocator &pParent,
+                                         RelocationDescription &RelocDesc);
 x86_64Relocator::Result relocTPOFF(Relocation &pEntry, x86_64Relocator &pParent,
                                    RelocationDescription &RelocDesc);
 x86_64Relocator::Result relocDTPOFF(Relocation &pEntry,
@@ -80,7 +80,7 @@ struct RelocationDescription x86RelocDesc[] = {
     {/*.func = */ none,
      /*.type = */ llvm::ELF::R_X86_64_RELATIVE,
      /*.forceVerify = */ false},
-    {/*.func = */ &relocGOTPCREL,
+    {/*.func = */ &relocGOTRelative,
      /*.type = */ llvm::ELF::R_X86_64_GOTPCREL,
      /*.forceVerify = */ false},
     {/*.func = */ &relocAbs,
@@ -119,7 +119,7 @@ struct RelocationDescription x86RelocDesc[] = {
     {/*.func = */ &relocDTPOFF,
      /*.type = */ llvm::ELF::R_X86_64_DTPOFF32,
      /*.forceVerify = */ false},
-    {/*.func = */ none,
+    {/*.func = */ &relocGOTRelative,
      /*.type = */ llvm::ELF::R_X86_64_GOTTPOFF,
      /*.forceVerify = */ false},
     {/*.func = */ &relocTPOFF,
@@ -144,10 +144,10 @@ struct RelocationDescription x86RelocDesc[] = {
     {/*.func = */ none, /*.type = */ 38, /*.forceVerify = */ false},
     {/*.func = */ none, /*.type = */ 39, /*.forceVerify = */ false},
     {/*.func = */ none, /*.type = */ 40, /*.forceVerify = */ false},
-    {/*.func = */ &relocGOTPCREL,
+    {/*.func = */ &relocGOTRelative,
      /*.type = */ llvm::ELF::R_X86_64_GOTPCRELX,
      /*.forceVerify = */ false},
-    {/*.func = */ &relocGOTPCREL,
+    {/*.func = */ &relocGOTRelative,
      /*.type = */ llvm::ELF::R_X86_64_REX_GOTPCRELX,
      /*.forceVerify = */ false},
 };
