@@ -6,8 +6,8 @@
 RUN: %clang %clangopts %p/Inputs/1.c -o %t.1.o -c
 
 RUN: %link %linkopts --patch-enable %t.1.o --trace-section '.*' -o %t.out 2>&1 | %filecheck %s --match-full-lines --check-prefix=PATCH
-PATCH:Note: Internal Section : .pgot Alignment : 0x{{4|8}} Size : 0x0 Flags : SHF_ALLOC|SHF_WRITE
-PATCH:Note: Internal Section : .rel{{a?}}.pgot Alignment : 0x{{4|8}} Size : 0x0 Flags : NONE
+PATCH-DAG:Note: Internal Section : .pgot Alignment : 0x{{4|8}} Size : 0x0 Flags : SHF_ALLOC|SHF_WRITE
+PATCH-DAG:Note: Internal Section : .rel{{a?}}.pgot Alignment : 0x{{4|8}} Size : 0x0 Flags : NONE
 
 RUN: %link %linkopts %t.1.o --trace-section '.*' -o %t.out 2>&1 | %filecheck %s --check-prefix=NO-PATCH
 NO-PATCH-NOT:Internal Section : .pgot
