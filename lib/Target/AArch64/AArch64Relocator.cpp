@@ -31,7 +31,7 @@ static Relocator::Result emitSignedOrUnsignedRangeOverflow(Relocation &Rel,
                                                            unsigned Bits) {
   int64_t Min = llvm::minIntN(Bits);
   int64_t Max = llvm::maxUIntN(Bits);
-  Rel.issueOverflow(R, Value, Min, Max);
+  Rel.issueSignedOverflow(R, Value, Min, Max);
   return Relocator::Overflow;
 }
 

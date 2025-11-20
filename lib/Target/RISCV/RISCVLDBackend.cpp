@@ -1651,8 +1651,10 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
         pReloc->targetRef()->getOutputELFSection()->offset() + Off;
     uint8_t *target_addr = pOutput.getBufferStart() + out_offset;
     if (!overwriteLEB128(target_addr, pReloc->target())) {
-      pReloc->issueOverflow(*getRelocator(), pReloc->target(), 0,
-                            std::numeric_limits<int64_t>::max());
+      /// FIXME: this is not the right error message:
+      /// lld: error: overflow.o:(.alloc+0x8): ULEB128 value 128 exceeds
+      /// available space; references 'w2'
+      pReloc->issueSignedOverflow(*getRelocator(), pReloc->target(), -1, -1);
     }
   }
   return {};

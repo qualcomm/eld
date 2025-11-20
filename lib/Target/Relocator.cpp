@@ -321,7 +321,7 @@ Relocator::Result eld::checkSignedRange(Relocation &Rel, Relocator &R,
   if (Value == llvm::SignExtend64(Value, Bits))
     return Relocator::OK;
 
-  Rel.issueOverflow(R, Value, llvm::minIntN(Bits), llvm::maxIntN(Bits));
+  Rel.issueSignedOverflow(R, Value, llvm::minIntN(Bits), llvm::maxIntN(Bits));
   return Relocator::Overflow;
 }
 
@@ -331,6 +331,6 @@ Relocator::Result eld::checkUnsignedRange(Relocation &Rel, Relocator &R,
   if (Bits == 64 || Value >> Bits == 0)
     return Relocator::OK;
 
-  Rel.issueOverflow(R, Value, 0, llvm::maxUIntN(Bits));
+  Rel.issueUnsignedOverflow(R, Value, 0, llvm::maxUIntN(Bits));
   return Relocator::Overflow;
 }

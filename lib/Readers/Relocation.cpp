@@ -202,15 +202,28 @@ std::string Relocation::getFragmentPath(ResolveInfo *symInfo, Fragment *frag,
   return "(Not Applicable)";
 }
 
-bool Relocation::issueOverflow(Relocator &R, int64_t Value, int64_t Min,
-                               int64_t Max) const {
-  std::string Location = "";
-  if (FragmentRef *Ref = targetRef()) {
-    if (Fragment *F = Ref->frag()) {
-      if (ELFSection *S = F->getOwningSection())
-        Location = S->getLocation(Ref->offset(), R.config().options());
-    }
-  }
+static std::string getLocation(FragmentRef *Ref, Relocator &R) {
+  if (!Ref)
+    return "";
+  if (Fragment *F = Ref->frag())
+    if (ELFSection *S = F->getOwningSection())
+      return S->getLocation(Ref->offset(), R.config().options());
+  return "";
+}
+
+bool Relocation::issueSignedOverflow(Relocator &R, int64_t Value, int64_t Min,
+                                     int64_t Max) const {
+  std::string Location = getLocation(targetRef(), R);
+  R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
+      << Location << R.getName(type()) << Value << Min << Max
+      << getSymbolName(symInfo(), R.doDeMangle());
+  ASSERT(!Location.empty(), "expected a section location.");
+  return false;
+}
+
+bool Relocation::issueUnsignedOverflow(Relocator &R, uint64_t Value,
+                                       uint64_t Min, uint64_t Max) const {
+  std::string Location = getLocation(targetRef(), R);
   R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
       << Location << R.getName(type()) << Value << Min << Max
       << getSymbolName(symInfo(), R.doDeMangle());
@@ -219,11 +232,7 @@ bool Relocation::issueOverflow(Relocator &R, int64_t Value, int64_t Min,
 }
 
 bool Relocation::issueUnencodableImmediate(Relocator &R, int64_t Imm) const {
-  std::string Location = "";
-  if (FragmentRef *Ref = targetRef())
-    if (Fragment *F = Ref->frag())
-      if (ELFSection *S = F->getOwningSection())
-        Location = S->getLocation(Ref->offset(), R.config().options());
+  std::string Location = getLocation(targetRef(), R);
   R.config().raise(Diag::error_unencodable_imm)
       << Location << Imm << R.getName(type())
       << getSymbolName(symInfo(), R.doDeMangle());
