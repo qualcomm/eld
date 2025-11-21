@@ -30,6 +30,12 @@
   if (!eldExp)                                                                 \
     return std::move(eldExp.error());
 
+#define DG_ELDEXP_REPORT_AND_RETURN_FALSE_IF_ERROR(DG, ELDExp)                 \
+  if (!ELDExp) {                                                               \
+    (DG).raiseDiagEntry(std::move(ELDExp.error()));                              \
+    return false;                                                              \
+  }
+
 /// If llvm::Error contains an error, then returns diagnostic entry
 /// created from llvm::Error; Otherwise does nothing.
 #define LLVMEXP_RETURN_DIAGENTRY_IF_ERROR(llvmExp)                             \

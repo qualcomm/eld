@@ -1,0 +1,15 @@
+#---MissingMemberThinArchive.test--------------------- Executable ---------------------#
+#BEGIN_COMMENT
+# This test verifies that eld reports an error when the linker cannot locate a
+# thin archive member.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c -ffunction-sections
+RUN: %ar cr %aropts --thin %t1.lib1.a %t1.1.o
+RUN: %rm %t1.1.o
+RUN: %not %link %linkopts -o %t1.main.out %t1.main.o %t1.lib1.a 2>&1 | %filecheck %s --check-prefix=ERROR
+#END_TEST
+
+ERROR: Fatal: LLVM: '{{.*}}1.o': No such file or directory
+

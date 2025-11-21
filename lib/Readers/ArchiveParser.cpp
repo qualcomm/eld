@@ -84,16 +84,19 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
     eld::Expected<bool> expAddMembers = addMembers(*archiveReader, archiveFile);
     if (!expAddMembers) {
       m_Module.setFailure(true);
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expAddMembers);
     }
     if (config.showArchiveFileWarnings())
       warnRepeatedMembers(*archiveFile);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expAddMembers);
     return true;
   };
 
   if (isWholeArchive) {
-    if (!hasAFI)
-      initArchiveFile(archiveFile);
+    if (!hasAFI) {
+      auto expInitAF = initArchiveFile(archiveFile);
+      DG_ELDEXP_REPORT_AND_RETURN_FALSE_IF_ERROR(*config.getDiagEngine(),
+                                                 expInitAF);
+    }
     eld::Expected<uint32_t> expMemCount = includeAllMembers(archiveFile);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expMemCount);
     uint32_t numObjects = expMemCount.value();
@@ -104,7 +107,9 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
     return 0;
 
   if (!hasAFI) {
-    initArchiveFile(archiveFile);
+    auto expInitAF = initArchiveFile(archiveFile);
+    DG_ELDEXP_REPORT_AND_RETURN_FALSE_IF_ERROR(*config.getDiagEngine(),
+                                               expInitAF);
     eld::Expected<bool> expReadSymTab =
         readSymbolTable(*archiveReader, archiveFile);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSymTab);
