@@ -1,5 +1,4 @@
-name: Nightly builder for testing eld against musl-test-suite for x86_64
-
+name: Nightly builder for testing eld against musl-test-suite
 on:
   schedule:
       - cron: '0 2 * * *' # 2:00 AM
@@ -18,19 +17,13 @@ jobs:
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
     steps:
-      - name: Checkout LLVM Project
-        uses: actions/checkout@v4
-        with:
-          repository: llvm/llvm-project
-          path: llvm-project
-          ref: main
-
       - name: Checkout eld
         uses: actions/checkout@v4
         with:
           path: llvm-project/llvm/tools/eld
 
       - name: Record pre-build entry
+        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -42,7 +35,26 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "x86-64"
 
-      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y libc++-dev libc++abi-dev \
+            libclang-rt-20-dev make
+
+      - name: Set up Clang 20
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: "20"
+          platform: x64
+
+      - name: Verify clang installation
+        shell: bash
+        run: |
+          clang --version
+          clang++ --version
+
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Setup ELD Environment
         run: |
@@ -81,13 +93,13 @@ jobs:
       - name: Validate test results with FileCheck
         run: |
           cd libc-test
-          FILECHECK="$PWD/../obj/bin/FileCheck"
-          $FILECHECK --check-prefixes=CHECK ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
-          $FILECHECK --check-prefixes=COUNT ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
+          FileCheck --check-prefixes=CHECK ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
+          FileCheck --check-prefixes=COUNT ../llvm-project/llvm/tools/eld/test/musl/x86_64/static/test-failures.txt < src/REPORT
 
           echo "Test results validated"
 
       - name: Update build entry
+        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -103,24 +115,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [riscv32, riscv64]
+        arch: [arm, aarch64, riscv32, riscv64]
     runs-on: ubuntu-latest
     env:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
     steps:
-      - name: Checkout LLVM Project
-        uses: actions/checkout@v4
-        with:
-          repository: llvm/llvm-project
-          path: llvm-project
-          ref: main
-
       - name: Checkout eld
         uses: actions/checkout@v4
         with:
           path: llvm-project/llvm/tools/eld
 
       - name: Record pre-build entry
+        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -132,7 +138,7 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch }}
 
-      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Install dependencies
         shell: bash
@@ -143,9 +149,14 @@ jobs:
 
       - name: Setup toolchain
         run: |
-          wget https://github.com/cross-tools/clang-cross/releases/download/20251023/${{ matrix.arch }}-unknown-linux-musl.tar.xz
+          arm_toolchain_name_suffix=""
+          if [[ ${{ matrix.arch }} == "arm" ]]; then
+            arm_toolchain_name_suffix="eabi"
+          fi
+          echo "arm_toolchain_name_suffix=${arm_toolchain_name_suffix}" >> $GITHUB_ENV
+          wget https://github.com/cross-tools/clang-cross/releases/download/20251023/${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz
           mkdir toolchain
-          tar -xvf ${{ matrix.arch }}-unknown-linux-musl.tar.xz -C toolchain --strip-components=1
+          tar -xvf ${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}.tar.xz -C toolchain --strip-components=1
           echo "PATH=$PWD/toolchain/bin:$PATH" >> $GITHUB_ENV
           echo "TOOLCHAIN_ROOT=$(pwd)/toolchain" >> $GITHUB_ENV
 
@@ -159,7 +170,6 @@ jobs:
           cd libc-test
           which grep
           which which
-          which ld.eld
           cp config.mak.def config.mak
           cat >>config.mak <<EOF
             CFLAGS += -Wno-error -Wno-strict-prototypes -Wno-switch-bool -Wno-c23-extensions
@@ -167,7 +177,7 @@ jobs:
           EOF
           cat >qemu-${{ matrix.arch }}-wrapper.sh <<EOF
           #!/usr/bin/bash
-          qemu-${{ matrix.arch }} -L ${TOOLCHAIN_ROOT}/${{ matrix.arch }}-unknown-linux-musl/sysroot "\$@"
+          qemu-${{ matrix.arch }} -L ${TOOLCHAIN_ROOT}/${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}/sysroot "\$@"
           EOF
           chmod +x ./qemu-${{ matrix.arch }}-wrapper.sh
           cat config.mak
@@ -176,7 +186,7 @@ jobs:
       - name: Run musl libc-test suite
         run: |
           cd libc-test
-          CC=${{ matrix.arch }}-unknown-linux-musl-clang make RUN_WRAP="$(pwd)/qemu-${{ matrix.arch }}-wrapper.sh"
+          CC=${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}-clang make RUN_WRAP="$(pwd)/qemu-${{ matrix.arch }}-wrapper.sh"
 
       - name: Upload libc-test
         uses: actions/upload-artifact@v4
@@ -192,6 +202,7 @@ jobs:
           echo "Test results validated"
 
       - name: Update build entry
+        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
