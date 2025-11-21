@@ -190,6 +190,8 @@ void LinkerScript::addSectionOverride(plugin::LinkerWrapper *W, eld::Module *M,
   if (!layoutInfo)
     return;
   layoutInfo->recordSectionOverride(W, Op);
+  if (auto &PluginActLog = M->getPluginActivityLog())
+    PluginActLog->addPluginOperation(*Op);
 }
 
 void LinkerScript::removeSymbolOp(plugin::LinkerWrapper *W, eld::Module *M,
@@ -252,10 +254,14 @@ eld::Expected<void> LinkerScript::addChunkOp(plugin::LinkerWrapper *W,
 
   W->getPlugin()->recordFragmentAdd(R, F);
 
+  if (auto &PluginActLog = M->getPluginActivityLog())
+    PluginActLog->addPluginOperation(*Op);
+
   LayoutInfo *layoutInfo = M->getLayoutInfo();
   if (!layoutInfo)
     return {};
   layoutInfo->recordAddChunk(W, Op);
+  // FIXME: This verbose diagnostic is not printed if layoutInfo is null!
   if (M->getPrinter()->isVerbose())
     Diag->raise(Diag::added_chunk_op)
         << R->getSection()->getOutputSection()->name() << Annotation;
@@ -284,10 +290,13 @@ eld::Expected<void> LinkerScript::removeChunkOp(plugin::LinkerWrapper *W,
             R->getAsString(),
             F->getOutputELFSection()->getDecoratedName(Config.options())});
 
+  if (auto &PluginActLog = M->getPluginActivityLog())
+    PluginActLog->addPluginOperation(*Op);
   LayoutInfo *layoutInfo = M->getLayoutInfo();
   if (!layoutInfo)
     return {};
   layoutInfo->recordRemoveChunk(W, Op);
+  // FIXME: This verbose diagnostic is not printed if layoutInfo is null!
   if (M->getPrinter()->isVerbose())
     Diag->raise(Diag::removed_chunk_op)
         << R->getSection()->name() << Annotation;
@@ -298,10 +307,13 @@ eld::Expected<void> LinkerScript::updateChunksOp(
     plugin::LinkerWrapper *W, eld::Module *M, RuleContainer *R,
     std::vector<eld::Fragment *> &Frags, std::string Annotation) {
   LayoutInfo *layoutInfo = M->getLayoutInfo();
+  auto &PluginActLog = M->getPluginActivityLog();
   if (layoutInfo) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::Start, Annotation);
     layoutInfo->recordUpdateChunks(W, Op);
+    if (PluginActLog)
+      PluginActLog->addPluginOperation(*Op);
   }
 
   llvm::SmallVectorImpl<Fragment *> &FragmentsInRule =
@@ -326,10 +338,13 @@ eld::Expected<void> LinkerScript::updateChunksOp(
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpAddChunk);
   }
 
-  if (layoutInfo) {
+  if (layoutInfo || PluginActLog) {
     UpdateChunksPluginOp *Op = eld::make<UpdateChunksPluginOp>(
         W, R, UpdateChunksPluginOp::Type::End, Annotation);
-    layoutInfo->recordUpdateChunks(W, Op);
+    if (layoutInfo)
+      layoutInfo->recordUpdateChunks(W, Op);
+    if (PluginActLog)
+      PluginActLog->addPluginOperation(*Op);
   }
   return {};
 }

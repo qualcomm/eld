@@ -675,7 +675,7 @@ bool Linker::layout() {
     eld::RegisterTimer T("AfterLayout OutputSection Iterator", "Perform Layout",
                          ThisConfig->options().printTimingStats("plugin"));
     // Run the output section iterator plugin after all the layout is done.
-    ThisModule->setLinkState(Module::LinkState::AfterLayout);
+    ThisModule->setLinkState(LinkState::AfterLayout);
     Backend->finalizeLayout();
 
     {
