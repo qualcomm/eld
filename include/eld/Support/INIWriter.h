@@ -21,6 +21,9 @@ namespace eld {
 /// \brief Represents a particular section within an ini file
 class INISection {
 public:
+  static std::string getTypeName() { return "INISection"; }
+
+public:
   INISection() = default;
 
   ~INISection() = default;
@@ -48,6 +51,9 @@ private:
 /// \class INIWriter
 /// \brief ini file writer
 class INIWriter {
+public:
+  static std::string getTypeName() { return "INIWriter"; }
+
 public:
   INIWriter() = default;
 

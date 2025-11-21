@@ -21,6 +21,9 @@ class InputFile;
 
 class TimingSection : public ELFSection {
 public:
+  static std::string getTypeName() { return "TimingSection"; }
+
+public:
   explicit TimingSection(DiagnosticEngine *diagEngine,
                          llvm::StringRef SectionData, uint32_t sh_size,
                          uint32_t sh_flag, InputFile *iptFile);

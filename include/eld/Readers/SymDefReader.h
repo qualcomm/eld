@@ -17,6 +17,8 @@ class InputFile;
 class Module;
 
 class SymDefReader : public ObjectReader {
+public:
+  static std::string getTypeName() { return "SymDefReader"; }
 
 public:
   SymDefReader(Module &);

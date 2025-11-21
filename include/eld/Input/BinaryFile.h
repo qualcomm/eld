@@ -18,6 +18,9 @@ namespace eld {
 /// output file.
 class BinaryFile : public ObjectFile {
 public:
+  static std::string getTypeName() { return "BinaryFile"; }
+
+public:
   BinaryFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.

@@ -25,6 +25,9 @@ class Module;
 
 class ExternCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "ExternCmd"; }
+
+public:
   ExternCmd(StringList &PExtern);
 
 

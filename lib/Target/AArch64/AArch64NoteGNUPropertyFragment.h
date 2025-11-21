@@ -21,6 +21,9 @@ class GNULDBackend;
 
 class AArch64NoteGNUPropertyFragment : public TargetFragment {
 public:
+  static std::string getTypeName() { return "AArch64NoteGNUPropertyFragment"; }
+
+public:
   AArch64NoteGNUPropertyFragment(ELFSection *O);
 
   virtual ~AArch64NoteGNUPropertyFragment();

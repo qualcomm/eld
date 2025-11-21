@@ -21,6 +21,8 @@ class LinkerWrapper;
 
 /// A utility class for creating tar archives
 class DLL_A_EXPORT TarWriter {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit TarWriter(std::unique_ptr<llvm::TarWriter> TW);
 
 public:

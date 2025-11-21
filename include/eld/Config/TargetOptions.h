@@ -27,6 +27,9 @@ class LinkerScript;
  */
 class TargetOptions {
 public:
+  static std::string getTypeName() { return "TargetOptions"; }
+
+public:
   enum Endian { Little, Big, Unknown };
 
 public:

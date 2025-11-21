@@ -24,6 +24,9 @@ class ResolveInfo;
  */
 class AArch64FarcallStub : public Stub {
 public:
+  static std::string getTypeName() { return "AArch64FarcallStub"; }
+
+public:
   AArch64FarcallStub(bool pIsOutputPIC);
 
   ~AArch64FarcallStub();

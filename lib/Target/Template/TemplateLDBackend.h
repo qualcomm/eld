@@ -24,6 +24,9 @@ class TemplateInfo;
 ///
 class TemplateLDBackend : public GNULDBackend {
 public:
+  static std::string getTypeName() { return "TemplateLDBackend"; }
+
+public:
   TemplateLDBackend(Module &pModule, TemplateInfo *pInfo);
 
   ~TemplateLDBackend();

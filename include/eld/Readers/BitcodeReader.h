@@ -7,6 +7,8 @@
 #ifndef ELD_READERS_BITCODEREADER_H
 #define ELD_READERS_BITCODEREADER_H
 
+#include <string>
+
 namespace eld::plugin {
 class LinkerPlugin;
 }
@@ -17,6 +19,8 @@ class Module;
 class InputFile;
 
 class BitcodeReader {
+public:
+  static std::string getTypeName() { return "BitcodeReader"; }
 
 public:
   BitcodeReader(Module &);

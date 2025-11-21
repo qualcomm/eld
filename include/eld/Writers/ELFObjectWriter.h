@@ -33,6 +33,9 @@ class Output;
  */
 class ELFObjectWriter {
 public:
+  static std::string getTypeName() { return "ELFObjectWriter"; }
+
+public:
   ELFObjectWriter(Module &M);
 
   ~ELFObjectWriter();

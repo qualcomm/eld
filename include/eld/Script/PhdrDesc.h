@@ -19,6 +19,8 @@ namespace eld {
  */
 
 struct PhdrSpec {
+public:
+  static std::string getTypeName() { return "PhdrSpec"; }
 
   const std::string name() const { return Name->name(); }
 
@@ -56,6 +58,9 @@ struct PhdrSpec {
  */
 
 class PhdrDesc : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "PhdrDesc"; }
+
 public:
   PhdrDesc(const PhdrSpec &PSpec);
 

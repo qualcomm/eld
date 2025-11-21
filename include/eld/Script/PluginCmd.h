@@ -23,6 +23,9 @@ class Plugin;
 
 class PluginCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "PluginCmd"; }
+
+public:
   explicit PluginCmd(plugin::Plugin::Type T, const std::string &Name,
                      const std::string &R, const std::string &O);
 

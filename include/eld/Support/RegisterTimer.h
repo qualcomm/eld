@@ -14,6 +14,8 @@ namespace eld {
 class Input;
 
 class RegisterTimer : public llvm::NamedRegionTimer {
+public:
+  static std::string getTypeName() { return "RegisterTimer"; }
 
 public:
   // Params: Name -> Stats Description, Group -> Name of Sub-section in Linker
@@ -26,6 +28,9 @@ public:
 };
 
 class Timer {
+public:
+  static std::string getTypeName() { return "Timer"; }
+
 public:
   // Generic timer.
   Timer(std::string Name, std::string Description = "", bool Enable = true);

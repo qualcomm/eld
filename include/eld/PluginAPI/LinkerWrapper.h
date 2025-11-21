@@ -82,6 +82,9 @@ using AuxiliarySymbolNameMap = std::unordered_map<uint64_t, std::string>;
 /// certain plugin interface types and link stages.
 class DLL_A_EXPORT LinkerWrapper {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
 
   /// Link modes.
   enum LinkMode : uint8_t {
@@ -102,6 +105,8 @@ public:
   /// chunk: The added chunk
   /// rule: Rule to which it was added.
   struct DLL_A_EXPORT UnbalancedChunkMove {
+  public:
+    static std::string getTypeName() { return "DLL_A_EXPORT"; }
     Chunk chunk;
     LinkerScriptRule rule;
   };

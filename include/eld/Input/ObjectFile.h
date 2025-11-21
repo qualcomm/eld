@@ -18,6 +18,8 @@ namespace eld {
 // A hash function used to hash a pair.
 // Used to hash elfsection and addend to indentify local symbols uniquely
 struct HashPair {
+public:
+  static std::string getTypeName() { return "HashPair"; }
   template <class T1, class T2>
   size_t operator()(const std::pair<T1, T2> &P) const {
     return llvm::hash_combine(P.first, P.second);
@@ -35,6 +37,9 @@ class DiagnosticPrinter;
  *  that the rest of the linker can work with.
  */
 class ObjectFile : public InputFile {
+public:
+  static std::string getTypeName() { return "ObjectFile"; }
+
 public:
   /// Type of ELF file from the target triple encoded in the object file
   /// or by inspecting the ELF header

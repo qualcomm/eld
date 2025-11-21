@@ -22,6 +22,9 @@ class RelocMap;
  */
 class ELFObjectFile : public ELFFileBase {
 public:
+  static std::string getTypeName() { return "ELFObjectFile"; }
+
+public:
   ELFObjectFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.

@@ -27,6 +27,9 @@ class Module;
 
 class OutputFormatCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "OutputFormatCmd"; }
+
+public:
   typedef std::vector<std::string> FormatList;
   typedef FormatList::const_iterator const_iterator;
   typedef FormatList::iterator iterator;

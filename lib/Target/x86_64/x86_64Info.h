@@ -15,6 +15,9 @@ namespace eld {
 
 class x86_64Info : public TargetInfo {
 public:
+  static std::string getTypeName() { return "x86_64Info"; }
+
+public:
   x86_64Info(LinkerConfig &m_Config);
 
   uint32_t machine() const override { return llvm::ELF::EM_X86_64; }

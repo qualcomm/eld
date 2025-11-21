@@ -26,6 +26,9 @@ class ResolveInfo;
  */
 class THMToARMStub : public Stub {
 public:
+  static std::string getTypeName() { return "THMToARMStub"; }
+
+public:
   THMToARMStub(uint32_t type, ARMGNULDBackend *Target);
 
   ~THMToARMStub();

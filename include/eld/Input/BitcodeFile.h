@@ -38,6 +38,9 @@ class DiagnosticEngine;
  */
 class BitcodeFile : public ObjectFile {
 public:
+  static std::string getTypeName() { return "BitcodeFile"; }
+
+public:
   BitcodeFile(Input *I, DiagnosticEngine *DiagEngine);
 
   ~BitcodeFile();

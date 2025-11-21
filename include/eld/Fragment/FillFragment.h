@@ -22,6 +22,10 @@ class LinkerConfig;
 
 class FillFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "FillFragment"; }
+
+public:
   FillFragment(Module &M, uint64_t PValue, size_t PSize,
                ELFSection *O = nullptr, size_t PAlignment = 1);
 

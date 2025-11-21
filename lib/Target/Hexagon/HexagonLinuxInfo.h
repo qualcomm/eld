@@ -14,6 +14,9 @@ namespace eld {
 
 class HexagonLinuxInfo : public HexagonInfo {
 public:
+  static std::string getTypeName() { return "HexagonLinuxInfo"; }
+
+public:
   HexagonLinuxInfo(LinkerConfig &config) : HexagonInfo(config) {}
 
   uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,

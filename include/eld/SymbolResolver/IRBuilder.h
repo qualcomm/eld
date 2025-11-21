@@ -37,6 +37,9 @@ class LayoutInfo;
 
 class IRBuilder {
 public:
+  static std::string getTypeName() { return "IRBuilder"; }
+
+public:
   enum ObjectFormat { ELF, MachO, COFF };
 
   enum SymbolDefinePolicy { Force, AsReferred };

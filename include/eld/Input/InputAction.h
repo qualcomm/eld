@@ -30,6 +30,9 @@ class Input;
  */
 class InputAction {
 public:
+  static std::string getTypeName() { return "InputAction"; }
+
+public:
   enum InputActionKind {
     AddNeeded,
     AsNeeded,
@@ -78,6 +81,9 @@ private:
 /// InputFileAction
 class InputFileAction : public InputAction {
 public:
+  static std::string getTypeName() { return "InputFileAction"; }
+
+public:
   explicit InputFileAction(std::string Name, DiagnosticPrinter *Printer);
 
   explicit InputFileAction(std::string Name, InputAction::InputActionKind K,
@@ -108,6 +114,9 @@ protected:
 /// NamespecAction
 class NamespecAction : public InputAction {
 public:
+  static std::string getTypeName() { return "NamespecAction"; }
+
+public:
   NamespecAction(const std::string &PNamespec, DiagnosticPrinter *Printer);
 
   const std::string &namespec() const { return MNamespec; }
@@ -130,6 +139,9 @@ private:
 /// StartGroupAction
 class StartGroupAction : public InputAction {
 public:
+  static std::string getTypeName() { return "StartGroupAction"; }
+
+public:
   explicit StartGroupAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -143,6 +155,9 @@ public:
 
 /// EndGroupAction
 class EndGroupAction : public InputAction {
+public:
+  static std::string getTypeName() { return "EndGroupAction"; }
+
 public:
   explicit EndGroupAction(DiagnosticPrinter *Printer);
 
@@ -158,6 +173,9 @@ public:
 /// WholeArchiveAction
 class WholeArchiveAction : public InputAction {
 public:
+  static std::string getTypeName() { return "WholeArchiveAction"; }
+
+public:
   explicit WholeArchiveAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -171,6 +189,9 @@ public:
 
 /// NoWholeArchiveAction
 class NoWholeArchiveAction : public InputAction {
+public:
+  static std::string getTypeName() { return "NoWholeArchiveAction"; }
+
 public:
   explicit NoWholeArchiveAction(DiagnosticPrinter *Printer);
 
@@ -186,6 +207,9 @@ public:
 /// AsNeededAction
 class AsNeededAction : public InputAction {
 public:
+  static std::string getTypeName() { return "AsNeededAction"; }
+
+public:
   explicit AsNeededAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -199,6 +223,9 @@ public:
 
 /// PushStateAction
 class PushStateAction : public InputAction {
+public:
+  static std::string getTypeName() { return "PushStateAction"; }
+
 public:
   explicit PushStateAction(DiagnosticPrinter *Printer);
 
@@ -214,6 +241,9 @@ public:
 /// PopStateAction
 class PopStateAction : public InputAction {
 public:
+  static std::string getTypeName() { return "PopStateAction"; }
+
+public:
   explicit PopStateAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -227,6 +257,9 @@ public:
 
 /// NoAsNeededAction
 class NoAsNeededAction : public InputAction {
+public:
+  static std::string getTypeName() { return "NoAsNeededAction"; }
+
 public:
   explicit NoAsNeededAction(DiagnosticPrinter *Printer);
 
@@ -242,6 +275,9 @@ public:
 /// AddNeededAction
 class AddNeededAction : public InputAction {
 public:
+  static std::string getTypeName() { return "AddNeededAction"; }
+
+public:
   explicit AddNeededAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -255,6 +291,9 @@ public:
 
 /// NoAddNeededAction
 class NoAddNeededAction : public InputAction {
+public:
+  static std::string getTypeName() { return "NoAddNeededAction"; }
+
 public:
   explicit NoAddNeededAction(DiagnosticPrinter *Printer);
 
@@ -270,6 +309,9 @@ public:
 /// BDynamicAction
 class BDynamicAction : public InputAction {
 public:
+  static std::string getTypeName() { return "BDynamicAction"; }
+
+public:
   explicit BDynamicAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -284,6 +326,9 @@ public:
 /// BStaticAction
 class BStaticAction : public InputAction {
 public:
+  static std::string getTypeName() { return "BStaticAction"; }
+
+public:
   explicit BStaticAction(DiagnosticPrinter *Printer);
 
   bool activate(InputBuilder &) override;
@@ -297,6 +342,9 @@ public:
 
 /// DefSymAction
 class DefSymAction : public InputAction {
+public:
+  static std::string getTypeName() { return "DefSymAction"; }
+
 public:
   explicit DefSymAction(std::string PAssignment, DiagnosticPrinter *Printer);
 
@@ -317,6 +365,9 @@ private:
 /// InputFormatAction handles the processing of '--format|-b <input_format>'
 /// command-line options.
 class InputFormatAction : public InputAction {
+public:
+  static std::string getTypeName() { return "InputFormatAction"; }
+
 public:
   explicit InputFormatAction(const std::string &InputFormat,
                              DiagnosticPrinter *Printer);

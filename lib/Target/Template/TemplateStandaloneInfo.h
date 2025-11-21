@@ -16,6 +16,9 @@ namespace eld {
 
 class TemplateStandaloneInfo : public TemplateInfo {
 public:
+  static std::string getTypeName() { return "TemplateStandaloneInfo"; }
+
+public:
   TemplateStandaloneInfo(LinkerConfig &pConfig) : TemplateInfo(pConfig) {}
 
   virtual uint64_t startAddr(bool linkerScriptHasSectionsCmd, bool isDynExec,

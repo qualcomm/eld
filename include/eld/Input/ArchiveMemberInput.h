@@ -20,6 +20,9 @@ class DiagnosticPrinter;
 
 class ArchiveMemberInput : public Input {
 public:
+  static std::string getTypeName() { return "ArchiveMemberInput"; }
+
+public:
   explicit ArchiveMemberInput(DiagnosticEngine *DiagEngine,
                               ArchiveFile *ArchiveFile, llvm::StringRef Name,
                               MemoryArea *Data, off_t ChildOffset);

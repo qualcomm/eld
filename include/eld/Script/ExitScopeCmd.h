@@ -21,6 +21,9 @@ class Module;
 
 class ExitScopeCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "ExitScopeCmd"; }
+
+public:
   ExitScopeCmd();
 
   eld::Expected<void> activate(Module &CurModule) override;

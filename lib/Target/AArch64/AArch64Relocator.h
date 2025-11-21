@@ -45,6 +45,9 @@ enum {
  */
 class AArch64Relocator : public Relocator {
 public:
+  static std::string getTypeName() { return "AArch64Relocator"; }
+
+public:
   AArch64Relocator(AArch64GNUInfoLDBackend &pParent, LinkerConfig &pConfig,
                    Module &pModule);
   ~AArch64Relocator();

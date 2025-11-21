@@ -25,6 +25,9 @@ namespace eld {
  */
 class ELDDirectory {
 public:
+  static std::string getTypeName() { return "ELDDirectory"; }
+
+public:
   explicit ELDDirectory(llvm::StringRef PName, std::string SysRoot);
   virtual ~ELDDirectory();
 

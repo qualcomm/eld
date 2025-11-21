@@ -20,6 +20,9 @@ class MemoryDesc;
 
 class ScriptMemoryRegion {
 public:
+  static std::string getTypeName() { return "ScriptMemoryRegion"; }
+
+public:
   enum MemoryAttributes {
     NoAttributes = 0,
     Write = 0x1,

@@ -23,6 +23,9 @@ class Module;
 ///   '_binary_${FileName}_size'.
 class BinaryFileParser {
 public:
+  static std::string getTypeName() { return "BinaryFileParser"; }
+
+public:
   BinaryFileParser(Module &module) : m_Module(module) {}
 
   eld::Expected<void> parseFile(InputFile &inputFile);

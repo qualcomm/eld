@@ -26,6 +26,9 @@ class OutputSectionEntry;
 /// this string and the input offset of the next string. Fragment Pointer could
 /// also be removed.
 struct MergeableString {
+public:
+public:
+  static std::string getTypeName() { return "MergeableString"; }
   MergeStringFragment *Fragment;
   llvm::StringRef String;
   uint32_t InputOffset;
@@ -45,6 +48,9 @@ struct MergeableString {
 /// MergeStringFrgament is a Fragment that manages MergeableStrings of a
 /// LDFileFormat::MergeStr input section.
 class MergeStringFragment : public Fragment {
+public:
+public:
+  static std::string getTypeName() { return "MergeStringFragment"; }
   std::vector<MergeableString *> Strings;
 
 public:

@@ -32,8 +32,14 @@ class DiagnosticEngine;
  */
 class DiagnosticInfos {
 public:
+  static std::string getTypeName() { return "DiagnosticInfos"; }
+
+public:
   /// Stores custom diagnostic info
   class CustomDiagInfo {
+  public:
+    static std::string getTypeName() { return "CustomDiagInfo"; }
+
   public:
     CustomDiagInfo(const std::string &PFormatStr) : FormatStr(PFormatStr) {}
     llvm::StringRef getDescription() const { return FormatStr; }

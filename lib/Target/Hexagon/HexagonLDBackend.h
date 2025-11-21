@@ -29,6 +29,9 @@ class RegionFragmentEx;
 ///
 class HexagonLDBackend : public GNULDBackend {
 public:
+  static std::string getTypeName() { return "HexagonLDBackend"; }
+
+public:
   HexagonLDBackend(Module &pModule, HexagonInfo *pInfo);
 
   uint32_t machine() const;

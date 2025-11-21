@@ -13,11 +13,16 @@
 #ifndef ELD_INPUT_INPUTTREE_H
 #define ELD_INPUT_INPUTTREE_H
 
+#include <string>
+
 namespace eld {
 
 class Input;
 
 class Node {
+public:
+  static std::string getTypeName() { return "Node"; }
+
 public:
   enum Kind { File, GroupStart, GroupEnd };
 
@@ -30,6 +35,9 @@ private:
 };
 
 class Attribute {
+public:
+  static std::string getTypeName() { return "Attribute"; }
+
 public:
   // -----  modifiers  ----- //
   void setWholeArchive() { WholeArchive = true; }
@@ -106,6 +114,9 @@ inline bool operator!=(const Attribute &PLhs, const Attribute &PRhs) {
 
 class FileNode : public Node {
 public:
+  static std::string getTypeName() { return "FileNode"; }
+
+public:
   FileNode(Input *I) : Node(Node::File), In(I) {}
 
   static bool classof(const Node *N) { return (N->kind() == Node::File); }
@@ -118,12 +129,18 @@ private:
 
 class GroupStart : public Node {
 public:
+  static std::string getTypeName() { return "GroupStart"; }
+
+public:
   GroupStart() : Node(Node::GroupStart) {}
 
   static bool classof(const Node *N) { return (N->kind() == Node::GroupStart); }
 };
 
 class GroupEnd : public Node {
+public:
+  static std::string getTypeName() { return "GroupEnd"; }
+
 public:
   GroupEnd() : Node(Node::GroupEnd) {}
 

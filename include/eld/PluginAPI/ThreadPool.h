@@ -23,6 +23,9 @@ namespace eld::plugin {
 /// variable for some work to become available.
 class DLL_A_EXPORT ThreadPool {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   using TaskTy = std::function<void()>;
 
   explicit ThreadPool(uint32_t NumThreads);

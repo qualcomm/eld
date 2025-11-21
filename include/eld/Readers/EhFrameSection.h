@@ -25,6 +25,9 @@ class EhFramePiece;
 
 class EhFrameSection : public ELFSection {
 public:
+  static std::string getTypeName() { return "EhFrameSection"; }
+
+public:
   EhFrameSection(std::string Name, DiagnosticEngine *diagEngine, uint32_t pType,
                  uint32_t pFlag, uint32_t entSize, uint64_t pSize);
 

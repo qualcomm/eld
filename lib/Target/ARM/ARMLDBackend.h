@@ -36,6 +36,9 @@ class ARMAttributeFragment;
 ///
 class ARMGNULDBackend : public GNULDBackend {
 public:
+  static std::string getTypeName() { return "ARMGNULDBackend"; }
+
+public:
   // max branch offsets for ARM, THUMB, and THUMB2
   // @ref gold/arm.cc:99
   static const int32_t ARM_MAX_FWD_BRANCH_OFFSET = ((((1 << 23) - 1) << 2) + 8);

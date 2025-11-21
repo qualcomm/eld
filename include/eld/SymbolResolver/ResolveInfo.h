@@ -43,6 +43,9 @@ class LinkerConfig;
  */
 class ResolveInfo {
 public:
+  static std::string getTypeName() { return "ResolveInfo"; }
+
+public:
   typedef uint32_t SizeType;
 
   /** \enum Type

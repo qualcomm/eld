@@ -12,6 +12,9 @@
 
 class DLL_A_EXPORT HelloWorldPlugin : public eld::plugin::LinkerPlugin {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   HelloWorldPlugin() : eld::plugin::LinkerPlugin("HelloWorldPlugin") {}
 
   void Init(const std::string &options) override {}

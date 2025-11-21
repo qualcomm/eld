@@ -23,6 +23,9 @@ class LinkerConfig;
  */
 class RISCVRelocator : public Relocator {
 public:
+  static std::string getTypeName() { return "RISCVRelocator"; }
+
+public:
   RISCVRelocator(RISCVLDBackend &pParent, LinkerConfig &pConfig,
                  Module &pModule);
   ~RISCVRelocator();

@@ -21,6 +21,9 @@ namespace eld {
 
 class ARMInfo : public TargetInfo {
 public:
+  static std::string getTypeName() { return "ARMInfo"; }
+
+public:
   ARMInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {}
 
   uint32_t machine() const override { return llvm::ELF::EM_ARM; }

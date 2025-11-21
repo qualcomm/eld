@@ -30,6 +30,9 @@ class ScriptFile;
  */
 class Expression {
 public:
+  static std::string getTypeName() { return "Expression"; }
+
+public:
   enum Type {
     /* Operands */
     STRING,
@@ -315,6 +318,9 @@ private:
  */
 class Symbol : public Expression {
 public:
+  static std::string getTypeName() { return "Symbol"; }
+
+public:
   Symbol(Module &Module, std::string Name);
 
   // Casting support
@@ -338,6 +344,9 @@ private:
  *  \brief This class extends an Expression to an Integer operand.
  */
 class Integer : public Expression {
+public:
+  static std::string getTypeName() { return "Integer"; }
+
 public:
   Integer(Module &Module, std::string Name, uint64_t Value)
       : Expression(Name, Expression::INTEGER, Module, Value),
@@ -363,6 +372,9 @@ private:
  *  \brief This class extends an Expression to an Add operator.
  */
 class Add : public Expression {
+public:
+  static std::string getTypeName() { return "Add"; }
+
 public:
   Add(Module &Module, Expression &Left, Expression &Right)
       : Expression("+", Expression::ADD, Module), LeftExpression(Left),
@@ -391,6 +403,9 @@ private:
  */
 class Subtract : public Expression {
 public:
+  static std::string getTypeName() { return "Subtract"; }
+
+public:
   Subtract(Module &Module, Expression &Left, Expression &Right)
       : Expression("-", Expression::SUBTRACT, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -417,6 +432,9 @@ private:
  *  \brief This class extends an Expression to a Modulus operator.
  */
 class Modulo : public Expression {
+public:
+  static std::string getTypeName() { return "Modulo"; }
+
 public:
   Modulo(Module &Module, Expression &Left, Expression &Right)
       : Expression("%", Expression::MODULO, Module), LeftExpression(Left),
@@ -445,6 +463,9 @@ private:
  */
 class Multiply : public Expression {
 public:
+  static std::string getTypeName() { return "Multiply"; }
+
+public:
   Multiply(Module &Module, Expression &Left, Expression &Right)
       : Expression("*", Expression::MULTIPLY, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -471,6 +492,9 @@ private:
  *  \brief This class extends an Expression to a Divide operator.
  */
 class Divide : public Expression {
+public:
+  static std::string getTypeName() { return "Divide"; }
+
 public:
   Divide(Module &Module, Expression &Left, Expression &Right)
       : Expression("/", Expression::DIVIDE, Module), LeftExpression(Left),
@@ -499,6 +523,9 @@ private:
  */
 class SizeOf : public Expression {
 public:
+  static std::string getTypeName() { return "SizeOf"; }
+
+public:
   SizeOf(Module &Module, std::string Name);
 
   // Casting support
@@ -522,6 +549,9 @@ private:
  */
 class SizeOfHeaders : public Expression {
 public:
+  static std::string getTypeName() { return "SizeOfHeaders"; }
+
+public:
   SizeOfHeaders(Module &Module, ScriptFile *S);
 
   // Casting support
@@ -541,6 +571,9 @@ private:
  *  \brief This class extends an Expression to an OffsetOf operator.
  */
 class OffsetOf : public Expression {
+public:
+  static std::string getTypeName() { return "OffsetOf"; }
+
 public:
   OffsetOf(Module &Module, std::string Name)
       : Expression(Name, Expression::OFFSETOF, Module), ThisSection(nullptr) {}
@@ -569,6 +602,9 @@ private:
  */
 class Addr : public Expression {
 public:
+  static std::string getTypeName() { return "Addr"; }
+
+public:
   Addr(Module &Module, std::string Name)
       : Expression(Name, Expression::ADDR, Module), ThisSection(nullptr) {}
 
@@ -593,6 +629,9 @@ private:
  */
 class LoadAddr : public Expression {
 public:
+  static std::string getTypeName() { return "LoadAddr"; }
+
+public:
   LoadAddr(Module &Module, std::string Name);
 
   // Casting support
@@ -615,6 +654,9 @@ private:
  *  \brief This class extends an Expression to an AlignmentOf operator.
  */
 class AlignExpr : public Expression {
+public:
+  static std::string getTypeName() { return "AlignExpr"; }
+
 public:
   AlignExpr(Module &Module, const std::string &Context, Expression &Align,
             Expression &Expr)
@@ -651,6 +693,9 @@ private:
  */
 class AlignOf : public Expression {
 public:
+  static std::string getTypeName() { return "AlignOf"; }
+
+public:
   AlignOf(Module &Module, std::string Name)
       : Expression(Name, Expression::ALIGNOF, Module), ThisSection(nullptr) {}
   AlignOf(Module &Module, ELFSection *Sect)
@@ -677,6 +722,9 @@ private:
  *  \brief This class extends an Expression to an Absolute operator.
  */
 class Absolute : public Expression {
+public:
+  static std::string getTypeName() { return "Absolute"; }
+
 public:
   Absolute(Module &Module, Expression &Expr)
       : Expression("ABSOLUTE", Expression::ABSOLUTE, Module),
@@ -705,6 +753,9 @@ private:
  *  \brief This class extends an Expression to a Ternary operator.
  */
 class Ternary : public Expression {
+public:
+  static std::string getTypeName() { return "Ternary"; }
+
 public:
   Ternary(Module &Module, Expression &Cond, Expression &Left, Expression &Right)
       : Expression("?", Expression::TERNARY, Module), ConditionExpression(Cond),
@@ -737,6 +788,9 @@ private:
  */
 class ConditionGT : public Expression {
 public:
+  static std::string getTypeName() { return "ConditionGT"; }
+
+public:
   ConditionGT(Module &Module, Expression &Left, Expression &Right)
       : Expression(">", Expression::GT, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -763,6 +817,9 @@ private:
  *  \brief This class extends an Expression to a LessThan operator.
  */
 class ConditionLT : public Expression {
+public:
+  static std::string getTypeName() { return "ConditionLT"; }
+
 public:
   ConditionLT(Module &Module, Expression &Left, Expression &Right)
       : Expression("<", Expression::LT, Module), LeftExpression(Left),
@@ -791,6 +848,9 @@ private:
  */
 class ConditionEQ : public Expression {
 public:
+  static std::string getTypeName() { return "ConditionEQ"; }
+
+public:
   ConditionEQ(Module &Module, Expression &Left, Expression &Right)
       : Expression("==", Expression::EQ, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -817,6 +877,9 @@ private:
  *  \brief This class extends an Expression to a GreaterThanEqual operator.
  */
 class ConditionGTE : public Expression {
+public:
+  static std::string getTypeName() { return "ConditionGTE"; }
+
 public:
   ConditionGTE(Module &Module, Expression &Left, Expression &Right)
       : Expression(">=", Expression::GTE, Module), LeftExpression(Left),
@@ -847,6 +910,9 @@ private:
  */
 class ConditionLTE : public Expression {
 public:
+  static std::string getTypeName() { return "ConditionLTE"; }
+
+public:
   ConditionLTE(Module &Module, Expression &Left, Expression &Right)
       : Expression("<=", Expression::LTE, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -876,6 +942,9 @@ private:
  */
 class ConditionNEQ : public Expression {
 public:
+  static std::string getTypeName() { return "ConditionNEQ"; }
+
+public:
   ConditionNEQ(Module &Module, Expression &Left, Expression &Right)
       : Expression("!=", Expression::NEQ, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -903,6 +972,9 @@ private:
  */
 class Complement : public Expression {
 public:
+  static std::string getTypeName() { return "Complement"; }
+
+public:
   Complement(Module &Module, Expression &Expr)
       : Expression("~", Expression::COM, Module), ExpressionToEvaluate(Expr) {}
 
@@ -929,6 +1001,9 @@ private:
  *  \brief This class extends an Expression to a UnaryPlus operator.
  */
 class UnaryPlus : public Expression {
+public:
+  static std::string getTypeName() { return "UnaryPlus"; }
+
 public:
   UnaryPlus(Module &Module, Expression &Expr)
       : Expression("+", Expression::UNARYMINUS, Module),
@@ -958,6 +1033,9 @@ private:
  */
 class UnaryMinus : public Expression {
 public:
+  static std::string getTypeName() { return "UnaryMinus"; }
+
+public:
   UnaryMinus(Module &Module, Expression &Expr)
       : Expression("-", Expression::UNARYMINUS, Module),
         ExpressionToEvaluate(Expr) {}
@@ -986,6 +1064,9 @@ private:
  */
 class UnaryNot : public Expression {
 public:
+  static std::string getTypeName() { return "UnaryNot"; }
+
+public:
   UnaryNot(Module &Module, Expression &Expr)
       : Expression("!", Expression::UNARYNOT, Module),
         ExpressionToEvaluate(Expr) {}
@@ -1013,6 +1094,9 @@ private:
  */
 class Constant : public Expression {
 public:
+  static std::string getTypeName() { return "Constant"; }
+
+public:
   Constant(Module &Module, std::string Name, Type Type)
       : Expression(Name, Type, Module) {}
 
@@ -1036,6 +1120,9 @@ private:
  *  \brief This class extends an Expression to a SegmentStart operator.
  */
 class SegmentStart : public Expression {
+public:
+  static std::string getTypeName() { return "SegmentStart"; }
+
 public:
   SegmentStart(Module &Module, std::string Segment, Expression &Expr)
       : Expression("SEGMENT_START", Expression::SEGMENT_START, Module),
@@ -1068,6 +1155,9 @@ private:
  */
 class AssertCmd : public Expression {
 public:
+  static std::string getTypeName() { return "AssertCmd"; }
+
+public:
   AssertCmd(Module &Module, std::string Msg, Expression &Expr)
       : Expression("ASSERT", Expression::ASSERT, Module),
         ExpressionToEvaluate(Expr), AssertionMessage(Msg) {}
@@ -1098,6 +1188,9 @@ private:
  */
 class RightShift : public Expression {
 public:
+  static std::string getTypeName() { return "RightShift"; }
+
+public:
   RightShift(Module &Module, Expression &Left, Expression &Right)
       : Expression(">>", Expression::BITWISE_RS, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -1126,6 +1219,9 @@ private:
  *  \brief This class extends an Expression to a Left Shift operator.
  */
 class LeftShift : public Expression {
+public:
+  static std::string getTypeName() { return "LeftShift"; }
+
 public:
   LeftShift(Module &Module, Expression &Left, Expression &Right)
       : Expression("<<", Expression::BITWISE_LS, Module), LeftExpression(Left),
@@ -1156,6 +1252,9 @@ private:
  */
 class BitwiseOr : public Expression {
 public:
+  static std::string getTypeName() { return "BitwiseOr"; }
+
+public:
   BitwiseOr(Module &Module, Expression &Left, Expression &Right)
       : Expression("|", Expression::BITWISE_OR, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -1182,6 +1281,9 @@ private:
  *  \brief This class extends an Expression to a Bitwise And operator.
  */
 class BitwiseAnd : public Expression {
+public:
+  static std::string getTypeName() { return "BitwiseAnd"; }
+
 public:
   BitwiseAnd(Module &Module, Expression &Left, Expression &Right)
       : Expression("&", Expression::BITWISE_AND, Module), LeftExpression(Left),
@@ -1210,6 +1312,9 @@ private:
  */
 class BitwiseXor : public Expression {
 public:
+  static std::string getTypeName() { return "BitwiseXor"; }
+
+public:
   BitwiseXor(Module &Module, Expression &Left, Expression &Right)
       : Expression("^", Expression::BITWISE_XOR, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -1237,6 +1342,9 @@ private:
  */
 class Defined : public Expression {
 public:
+  static std::string getTypeName() { return "Defined"; }
+
+public:
   Defined(Module &Module, std::string Name)
       : Expression(Name, Expression::DEFINED, Module) {}
 
@@ -1258,6 +1366,9 @@ private:
  *  \brief This class extends an Expression to a Data Segment Align operator.
  */
 class DataSegmentAlign : public Expression {
+public:
+  static std::string getTypeName() { return "DataSegmentAlign"; }
+
 public:
   DataSegmentAlign(Module &Module, Expression &MaxPageSize,
                    Expression &CommonPageSize)
@@ -1290,6 +1401,9 @@ private:
  * operator.
  */
 class DataSegmentRelRoEnd : public Expression {
+public:
+  static std::string getTypeName() { return "DataSegmentRelRoEnd"; }
+
 public:
   DataSegmentRelRoEnd(Module &Module, Expression &Expr1, Expression &Expr2)
       : Expression("DATA_SEGMENT_RELRO_END", Expression::DATA_SEGMENT_RELRO_END,
@@ -1325,6 +1439,9 @@ private:
  */
 class DataSegmentEnd : public Expression {
 public:
+  static std::string getTypeName() { return "DataSegmentEnd"; }
+
+public:
   DataSegmentEnd(Module &Module, Expression &Expr)
       : Expression("DATA_SEGMENT_END", Expression::DATA_SEGMENT_END, Module),
         ExpressionToEvaluate(Expr) {}
@@ -1354,6 +1471,9 @@ private:
  */
 class Max : public Expression {
 public:
+  static std::string getTypeName() { return "Max"; }
+
+public:
   Max(Module &Module, Expression &Left, Expression &Right)
       : Expression("MAX", Expression::MAX, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -1381,6 +1501,9 @@ private:
  */
 class Min : public Expression {
 public:
+  static std::string getTypeName() { return "Min"; }
+
+public:
   Min(Module &Module, Expression &Left, Expression &Right)
       : Expression("MIN", Expression::MIN, Module), LeftExpression(Left),
         RightExpression(Right) {}
@@ -1406,6 +1529,9 @@ private:
  *  \brief This class extends an Expression to a Fill operator.
  */
 class Fill : public Expression {
+public:
+  static std::string getTypeName() { return "Fill"; }
+
 public:
   Fill(Module &Module, Expression &Expr)
       : Expression("FILL", Expression::FILL, Module),
@@ -1435,6 +1561,9 @@ private:
  */
 class Log2Ceil : public Expression {
 public:
+  static std::string getTypeName() { return "Log2Ceil"; }
+
+public:
   Log2Ceil(Module &Module, Expression &Expr)
       : Expression("LOG2CEIL", Expression::LOG2CEIL, Module),
         ExpressionToEvaluate(Expr) {}
@@ -1462,6 +1591,9 @@ private:
  *  \brief This class extends an Expression to a logical operator.
  */
 class LogicalOp : public Expression {
+public:
+  static std::string getTypeName() { return "LogicalOp"; }
+
 public:
   LogicalOp(Expression::Type Type, Module &Module, Expression &Left,
             Expression &Right)
@@ -1494,6 +1626,9 @@ private:
  */
 class QueryMemory : public Expression {
 public:
+  static std::string getTypeName() { return "QueryMemory"; }
+
+public:
   QueryMemory(Expression::Type Type, Module &Module, const std::string &Name);
 
   // Casting support
@@ -1519,6 +1654,9 @@ inline void alignAddress(uint64_t &PAddr, uint64_t AlignConstraint) {
 /// NullExpression represents an invalid expression. It is used as a sentinel
 /// expression when the linker script parser fails to parse an expression.
 class NullExpression : public Expression {
+public:
+  static std::string getTypeName() { return "NullExpression"; }
+
 public:
   NullExpression(Module &Module);
 

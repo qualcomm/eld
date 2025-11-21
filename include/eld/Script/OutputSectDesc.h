@@ -33,6 +33,9 @@ class ScriptMemoryRegion;
 
 class OutputSectDesc : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "OutputSectDesc"; }
+
+public:
   enum Type {
     LOAD, // ALLOC
     NOLOAD,
@@ -58,6 +61,8 @@ public:
   enum Constraint { NO_CONSTRAINT, ONLY_IF_RO, ONLY_IF_RW };
 
   struct Prolog {
+  public:
+    static std::string getTypeName() { return "Prolog"; }
     bool hasVMA() const { return OutputSectionVMA != nullptr; }
     const Expression &vma() const {
       assert(hasVMA());
@@ -176,6 +181,8 @@ public:
   };
 
   struct Epilog {
+  public:
+    static std::string getTypeName() { return "Epilog"; }
     bool hasRegion() const { return OutputSectionMemoryRegion != nullptr; }
     const eld::ScriptMemoryRegion &region() const {
       assert(hasRegion());

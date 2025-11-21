@@ -27,6 +27,9 @@ class Module;
 
 class EntryCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "EntryCmd"; }
+
+public:
   EntryCmd(const std::string &PEntry);
 
 

@@ -27,6 +27,9 @@ class GNULDBackend;
 
 class ScriptReader {
 public:
+  static std::string getTypeName() { return "ScriptReader"; }
+
+public:
   ScriptReader();
 
   ~ScriptReader();

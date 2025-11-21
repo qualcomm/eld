@@ -30,6 +30,9 @@ class StrToken;
 
 class RegionAlias : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "RegionAlias"; }
+
+public:
   explicit RegionAlias(const StrToken *Alias, const StrToken *Region);
 
 

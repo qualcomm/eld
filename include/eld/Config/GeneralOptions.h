@@ -44,6 +44,9 @@ class ZOption;
  */
 class GeneralOptions {
 public:
+  static std::string getTypeName() { return "GeneralOptions"; }
+
+public:
   typedef llvm::StringMap<std::string> SymbolRenameMap;
 
   typedef llvm::StringMap<uint64_t> AddressMapType;
@@ -834,6 +837,16 @@ public:
   void setTimingStatsFile(std::string StatsFile) {
     TimingStatsFile = StatsFile;
   }
+  //--------------------Memory Report--------------------------------
+  // --print-memory-report
+  bool showMemoryReport() const { return PrintMemoryReport; }
+
+  void setPrintMemoryReport() { PrintMemoryReport = true; }
+
+  // --emit-memory-report <file>
+  std::string getMemoryReportFile() const { return MemoryReportFile; }
+
+  void setMemoryReportFile(std::string F) { MemoryReportFile = F; }
   //--------------------Plugin Config--------------------------------
   void addPluginConfig(const std::string &Config) {
     PluginConfig.push_back(Config);
@@ -1233,6 +1246,7 @@ private:
   bool BExecuteOnly = false;              // --execute-only
   bool BPrintTimeStats = false;           // --print-stats
   bool BPrintAllUserPluginTimeStats = false;
+  bool PrintMemoryReport = false;         // --print-memory-report
   bool BDemangle = true;                  // --demangle-style
   bool ValidateArchOpts = false;          // check -mabi with backend
   bool DisableGuardForWeakUndefs = false; // hexagon specific option to
@@ -1265,7 +1279,8 @@ private:
   std::string Filter;
   std::string MapFile; // Mapfile
   std::string TarFile; // --reproduce output tarfile name
-  std::string TimingStatsFile;
+  std::string TimingStatsFile;           // --emit-timing-stats
+  std::string MemoryReportFile;          // --emit-memory-report
   std::string MappingFileName;           // --Mapping-file
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file

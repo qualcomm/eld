@@ -24,6 +24,9 @@ class ScriptFile;
 
 class LinkerScriptFile : public InputFile {
 public:
+  static std::string getTypeName() { return "LinkerScriptFile"; }
+
+public:
   LinkerScriptFile(Input *I, DiagnosticEngine *DiagEngine);
 
   /// Casting support.

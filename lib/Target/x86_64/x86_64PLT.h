@@ -33,6 +33,9 @@ class IRBuilder;
 
 class x86_64PLT : public PLT {
 public:
+  static std::string getTypeName() { return "x86_64PLT"; }
+
+public:
   x86_64PLT(PLT::PLTType T, eld::IRBuilder &I, x86_64GOT *G, ELFSection *P,
             ResolveInfo *R, uint32_t Align, uint32_t Size)
       : PLT(T, G, P, R, Align, Size) {}
@@ -43,6 +46,9 @@ public:
 };
 
 class x86_64PLT0 : public x86_64PLT {
+public:
+  static std::string getTypeName() { return "x86_64PLT0"; }
+
 public:
   x86_64PLT0(x86_64GOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
              uint32_t Align, uint32_t Size)
@@ -69,6 +75,9 @@ public:
  *  linker which .rela.plt entry corresponds to this function.
  */
 class x86_64PLTN : public x86_64PLT {
+public:
+  static std::string getTypeName() { return "x86_64PLTN"; }
+
 public:
   x86_64PLTN(x86_64GOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
              uint32_t Align, uint32_t Size)

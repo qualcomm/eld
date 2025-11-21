@@ -28,6 +28,9 @@ class DiagnosticEngine;
  */
 class MemoryArea {
 public:
+  static std::string getTypeName() { return "MemoryArea"; }
+
+public:
   // Read a Input File.
   explicit MemoryArea(llvm::StringRef pFilename);
 
