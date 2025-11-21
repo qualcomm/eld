@@ -1,0 +1,45 @@
+name: Release builder
+on:
+  workflow_dispatch:     # Allows manual triggering
+  # pull_request hook must be removed once the PR looks good.
+  pull_request:
+    paths:
+      - ".github/workflows/release-artifact-builder.yaml"
+  push:
+    branches:
+      - main
+
+
+jobs:
+  release-toolchain:
+    runs-on: ubuntu-latest
+    env:
+      ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
+    steps:
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
+
+      - name: Create tarball
+        run: |
+          BIN_DIR=$(dirname $(which ld.eld))
+          INSTALL_DIR=$(realpath ${BIN_DIR}/..)
+          VER="nightly"
+          branch=${{ github.base_ref || github.ref_name }}
+          if [[ ${branch} != release/* ]]; then
+            VER="${branch/\//-}"
+          fi
+          echo "VER=${VER}" >> $GITHUB_ENV
+          FILTERED_INSTALL_DIR=inst-filtered
+          llvm-project/llvm/tools/eld/.github/workflows/scripts/FilterELDInstall.sh ${INSTALL_DIR} ${FILTERED_INSTALL_DIR}
+          tar -cvf eld-${VER}-linux-x86_64.tar ${FILTERED_INSTALL_DIR}
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: eld-*-linux-x86_64.tar
+          allowUpdates: true
+          tag: ${{ github.base_ref || github.ref_name }}
+          name: eld ${{ github.base_ref == 'main' && 'Nightly' || github.base_ref || github.ref_name }} Release
