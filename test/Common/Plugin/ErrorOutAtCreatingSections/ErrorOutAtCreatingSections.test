@@ -11,7 +11,7 @@ RUN:   --plugin-config %p/Inputs/PluginConfig.yaml -Map %t1.1.map.txt 2>&1 | %fi
 RUN: %filecheck --check-prefix=MAP %s < %t1.1.map.txt
 #END_TEST
 
-CHECK: Error: Plugin ErrorOutAtCreatingSections defined in library libErrorOutAtCreatingSections.so returned error Error! in state CreatingSections
+CHECK: Error: Plugin ErrorOutAtCreatingSections defined in library {{(lib)?ErrorOutAtCreatingSections\.(so|dll)}} returned error Error! in state CreatingSections
 CHECK-NOT: Referenced Chunk {{.*}}
 
 MAP: # Output Section and Layout
