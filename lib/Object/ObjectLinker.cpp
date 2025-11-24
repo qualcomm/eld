@@ -3178,7 +3178,8 @@ bool ObjectLinker::createLTOObject(void) {
   std::vector<std::string> Options;
   processCodegenOptions(ThisConfig.options().codeGenOpts(), Conf, Options);
 
-  if (!ThisModule->getLinker()->getLinkerDriver()->processLTOOptions(Conf))
+  if (!ThisModule->getLinker()->getLinkerDriver()->processLTOOptions(Conf,
+                                                                     Options))
     return false;
 
   getTargetBackend().AddLTOOptions(Options);

@@ -173,8 +173,10 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   return {};
 }
 
-bool RISCVLinkDriver::processLTOOptions(llvm::lto::Config &Conf) {
-  return GnuLdDriver::processLTOOptions<OPT_RISCVLinkOptTable>(Conf);
+bool RISCVLinkDriver::processLTOOptions(llvm::lto::Config &Conf,
+                                        std::vector<std::string> &LLVMOptions) {
+  return GnuLdDriver::processLTOOptions<OPT_RISCVLinkOptTable>(Conf,
+                                                               LLVMOptions);
 }
 
 // Start the link step.

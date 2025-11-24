@@ -1047,6 +1047,10 @@ def thin_archive_rule_matching_compatibility
 /// LTO options
 //===----------------------------------------------------------------------===//
 def grp_ltooptions : OptionGroup<"opts">, HelpText<"LTO Options">;
+def plugin_opt_eq_minus
+    : J<"plugin-opt=-">,
+      HelpText<"Specify an LLVM option for compatibility with LLVMgold.so">,
+      Group<grp_ltooptions>;
 def flto : Flag<["-", "--"], "flto">,
            HelpText<"Enable LTO if a Bitcode file is present.">,
            Group<grp_ltooptions>;

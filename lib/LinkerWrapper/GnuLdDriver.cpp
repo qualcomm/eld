@@ -1545,8 +1545,13 @@ bool GnuLdDriver::processReproduceOption(
 }
 
 template <typename OptTable>
-bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf) {
+bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
+                                    std::vector<std::string> &LLVMOptions) {
   llvm::opt::InputArgList &Args = Config.options().parsedArgs();
+
+  // LLVM options will be applied by the caller.
+  for (opt::Arg *Arg : Args.filtered(OptTable::plugin_opt_eq_minus))
+    LLVMOptions.push_back(std::string("-") + Arg->getValue());
 
   if (const auto *Arg = Args.getLastArg(OptTable::dwodir))
     Conf.DwoDir = Arg->getValue();
@@ -1859,8 +1864,9 @@ std::optional<int> GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
   return {};
 }
 
-bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf) {
-  return GnuLdDriver::processLTOOptions<OPT_GnuLdOptTable>(Conf);
+bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
+                                    std::vector<std::string> &LLVMOptions) {
+  return GnuLdDriver::processLTOOptions<OPT_GnuLdOptTable>(Conf, LLVMOptions);
 }
 
 // Start the link step.
@@ -1935,8 +1941,8 @@ template bool GnuLdDriver::doLink<OPT_HexagonLinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_HexagonLinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
-template bool
-GnuLdDriver::processLTOOptions<OPT_HexagonLinkOptTable>(llvm::lto::Config &);
+template bool GnuLdDriver::processLTOOptions<OPT_HexagonLinkOptTable>(
+    llvm::lto::Config &, std::vector<std::string> &);
 #endif
 
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
@@ -1959,7 +1965,8 @@ template bool GnuLdDriver::handleReproduce<OPT_ARMLinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
 template bool
-GnuLdDriver::processLTOOptions<OPT_ARMLinkOptTable>(llvm::lto::Config &);
+GnuLdDriver::processLTOOptions<OPT_ARMLinkOptTable>(llvm::lto::Config &,
+                                                    std::vector<std::string> &);
 #endif
 
 #if ELD_ENABLE_TARGET_RISCV
@@ -1981,8 +1988,8 @@ template bool GnuLdDriver::doLink<OPT_RISCVLinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_RISCVLinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
-template bool
-GnuLdDriver::processLTOOptions<OPT_RISCVLinkOptTable>(llvm::lto::Config &);
+template bool GnuLdDriver::processLTOOptions<OPT_RISCVLinkOptTable>(
+    llvm::lto::Config &, std::vector<std::string> &);
 #endif
 
 #ifdef ELD_ENABLE_TARGET_X86_64
@@ -2004,6 +2011,6 @@ template bool GnuLdDriver::doLink<OPT_x86_64LinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_x86_64LinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
-template bool
-GnuLdDriver::processLTOOptions<OPT_x86_64LinkOptTable>(llvm::lto::Config &);
+template bool GnuLdDriver::processLTOOptions<OPT_x86_64LinkOptTable>(
+    llvm::lto::Config &, std::vector<std::string> &);
 #endif

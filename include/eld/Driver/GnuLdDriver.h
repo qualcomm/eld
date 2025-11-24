@@ -78,7 +78,8 @@ public:
 
   // Driver-specific function to call the template processLTOOptions with the
   // correct options table.
-  virtual bool processLTOOptions(llvm::lto::Config &Conf);
+  virtual bool processLTOOptions(llvm::lto::Config &Conf,
+                                 std::vector<std::string> &LLVMOptions);
 
 protected:
   // Check if the options are invalid.
@@ -104,7 +105,9 @@ protected:
                               std::vector<eld::InputAction *> &actions);
 
   // Parse LTO options and update the LTO config object.
-  template <typename OptTable> bool processLTOOptions(llvm::lto::Config &Conf);
+  template <typename OptTable>
+  bool processLTOOptions(llvm::lto::Config &Conf,
+                         std::vector<std::string> &LLVMOptions);
 
 public:
   // Writes reproduce tarball to disk

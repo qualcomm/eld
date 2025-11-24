@@ -128,8 +128,10 @@ HexagonLinkDriver::parseOptions(ArrayRef<const char *> Args,
   return {};
 }
 
-bool HexagonLinkDriver::processLTOOptions(llvm::lto::Config &Conf) {
-  return GnuLdDriver::processLTOOptions<OPT_HexagonLinkOptTable>(Conf);
+bool HexagonLinkDriver::processLTOOptions(
+    llvm::lto::Config &Conf, std::vector<std::string> &LLVMOptions) {
+  return GnuLdDriver::processLTOOptions<OPT_HexagonLinkOptTable>(Conf,
+                                                                 LLVMOptions);
 }
 
 // Start the link step.
