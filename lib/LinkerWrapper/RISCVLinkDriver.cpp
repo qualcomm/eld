@@ -195,9 +195,13 @@ int RISCVLinkDriver::link(llvm::ArrayRef<const char *> Args,
   //===--------------------------------------------------------------------===//
   // Begin Link preprocessing
   //===--------------------------------------------------------------------===//
-  llvm::opt::InputArgList ArgList;
-  if (auto Ret = parseOptions(allArgs, ArgList))
+  llvm::opt::InputArgList ArgListLocal;
+  if (auto Ret = parseOptions(allArgs, ArgListLocal))
     return *Ret;
+
+  // Save parsed options so they can be accessed later as needed. Right now it's
+  // only used for LTO options, but can be expanded to track unused aguments.
+  auto &ArgList = Config.options().setParsedArgs(std::move(ArgListLocal));
   if (!processLLVMOptions<OPT_RISCVLinkOptTable>(ArgList))
     return LINK_FAIL;
   if (!processTargetOptions<OPT_RISCVLinkOptTable>(ArgList))

@@ -27,6 +27,7 @@
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/iterator_range.h"
+#include "llvm/Option/ArgList.h"
 #include "llvm/Support/Regex.h"
 #include <set>
 #include <string>
@@ -707,6 +708,15 @@ public:
 
   const std::vector<const char *> &args() const { return CommandLineArgs; }
 
+  // Take the ownership of the provided argument list and return a non-owning
+  // reference.
+  llvm::opt::InputArgList &setParsedArgs(llvm::opt::InputArgList ArgList) {
+    ParsedArgs = std::move(ArgList);
+    return ParsedArgs;
+  }
+
+  llvm::opt::InputArgList &parsedArgs() { return ParsedArgs; }
+
   // --Threads
   void enableThreads() { EnableThreads = true; }
 
@@ -1301,6 +1311,14 @@ private:
   SymbolRenameMap SymbolRenames;
   AddressMapType AddressMap;
   std::vector<const char *> CommandLineArgs;
+  // A saved copy of parsed options. These options are saved here *the first
+  // time* the driver is created, to be used later. Depending on various
+  // factors, the driver may be generic (GnuLdDriver) or target-specific. Since
+  // option ID depent on the option table used when parsing, the same option
+  // table must be used when accessing these options. In practice, only generic
+  // options may be used this way because the initial driver can be the generic
+  // one.
+  llvm::opt::InputArgList ParsedArgs;
   llvm::StringRef ReportUndefPolicy;
   OrphanMode MOrphanMode = OrphanMode::Place;
   std::string LTOCacheDirectory = "";

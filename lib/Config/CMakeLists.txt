@@ -8,5 +8,5 @@ llvm_add_library(
   DEPENDS
   llvm_vcsrevision_h)
 
-target_link_libraries(ELDConfig PRIVATE ELDDiagnostics ELDSupport ELDScript)
+target_link_libraries(ELDConfig PRIVATE ELDDiagnostics ELDSupport ELDScript LLVMOption)
 add_dependencies(ELDConfig update-eld-verinfo)
