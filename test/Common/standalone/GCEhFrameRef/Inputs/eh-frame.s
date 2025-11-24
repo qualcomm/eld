@@ -1,4 +1,3 @@
-// REQUIRES: x86
 // RUN: llvm-mc -filetype=obj -triple=i686-pc-linux %s -o %t.o
 // RUN: ld.lld --gc-sections %t.o -o %t
 // RUN: llvm-readobj -s %t | %filecheck %s
