@@ -660,12 +660,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   }
   Config.addCommandLine(Table->getOptionName(T::flto_options), ltoOptions);
 
-  if (const Arg *arg = Args.getLastArg(T::dwodir))
-    Config.options().setDwoDir(arg->getValue());
-
-  if (const Arg *arg = Args.getLastArg(T::lto_sample_profile))
-    Config.options().setLTOSampleProfile(arg->getValue());
-
   // --no-align-segments
   if (Args.hasArg(T::no_align_segments))
     Config.options().setAlignSegments(false);
@@ -1552,6 +1546,14 @@ bool GnuLdDriver::processReproduceOption(
 
 template <typename OptTable>
 bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf) {
+  llvm::opt::InputArgList &Args = Config.options().parsedArgs();
+
+  if (const auto *Arg = Args.getLastArg(OptTable::dwodir))
+    Conf.DwoDir = Arg->getValue();
+
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
+    Conf.SampleProfile = Arg->getValue();
+
   return true;
 }
 

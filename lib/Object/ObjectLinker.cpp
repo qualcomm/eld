@@ -3178,12 +3178,6 @@ bool ObjectLinker::createLTOObject(void) {
   std::vector<std::string> Options;
   processCodegenOptions(ThisConfig.options().codeGenOpts(), Conf, Options);
 
-  if (const auto &O = ThisConfig.options().getDwoDir())
-    Conf.DwoDir = *O;
-
-  if (const auto &O = ThisConfig.options().getLTOSampleProfile())
-    Conf.SampleProfile = *O;
-
   if (!ThisModule->getLinker()->getLinkerDriver()->processLTOOptions(Conf))
     return false;
 

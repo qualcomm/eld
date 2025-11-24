@@ -396,16 +396,6 @@ public:
     return SaveTempsDir;
   }
 
-  void setDwoDir(const std::string &S) { DwoDir = S; }
-
-  const std::optional<std::string> &getDwoDir() const { return DwoDir; }
-
-  void setLTOSampleProfile(const std::string &S) { LTOSampleProfile = S; }
-
-  const std::optional<std::string> &getLTOSampleProfile() const {
-    return LTOSampleProfile;
-  }
-
   bool preserveAllLTO() const;
 
   bool preserveSymbolsLTO() const;
@@ -1220,8 +1210,6 @@ private:
   unsigned int HashStyle = SystemV; // HashStyle
   bool Savetemps = false;           // -save-temps
   std::optional<std::string> SaveTempsDir; // -save-temps=
-  std::optional<std::string> DwoDir;       // -dwodir=
-  std::optional<std::string> LTOSampleProfile; // -lto-sample-profile=
   bool Rosegment = false; // merge read only with readonly/execute segments.
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
