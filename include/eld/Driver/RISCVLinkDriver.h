@@ -51,6 +51,8 @@ public:
   std::optional<int> parseOptions(llvm::ArrayRef<const char *> ArgsArr,
                                   llvm::opt::InputArgList &ArgList) override;
 
+  bool processLTOOptions(llvm::lto::Config &Conf) override;
+
   // Check if the options are invalid.
   template <class T = OPT_RISCVLinkOptTable>
   bool checkOptions(llvm::opt::InputArgList &Args);

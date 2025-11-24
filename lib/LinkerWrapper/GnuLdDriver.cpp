@@ -33,6 +33,7 @@
 #include "eld/Support/TargetSelect.h"
 #include "eld/Target/TargetMachine.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/LTO/LTO.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Object/ELF.h"
 #include "llvm/Support/FileSystem.h"
@@ -1549,6 +1550,11 @@ bool GnuLdDriver::processReproduceOption(
   return true;
 }
 
+template <typename OptTable>
+bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf) {
+  return true;
+}
+
 void GnuLdDriver::defaultSignalHandler(void *cookie) {
   DiagnosticEngine *DiagEngine = ThisModule->getConfig().getDiagEngine();
   bool DiagEngineUsable = true;
@@ -1840,6 +1846,10 @@ std::optional<int> GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
   return {};
 }
 
+bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf) {
+  return GnuLdDriver::processLTOOptions<OPT_GnuLdOptTable>(Conf);
+}
+
 // Start the link step.
 int GnuLdDriver::link(llvm::ArrayRef<const char *> Args,
                       llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
@@ -1912,6 +1922,8 @@ template bool GnuLdDriver::doLink<OPT_HexagonLinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_HexagonLinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
+template bool
+GnuLdDriver::processLTOOptions<OPT_HexagonLinkOptTable>(llvm::lto::Config &);
 #endif
 
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
@@ -1933,6 +1945,8 @@ template bool GnuLdDriver::doLink<OPT_ARMLinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_ARMLinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
+template bool
+GnuLdDriver::processLTOOptions<OPT_ARMLinkOptTable>(llvm::lto::Config &);
 #endif
 
 #if ELD_ENABLE_TARGET_RISCV
@@ -1954,6 +1968,8 @@ template bool GnuLdDriver::doLink<OPT_RISCVLinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_RISCVLinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
+template bool
+GnuLdDriver::processLTOOptions<OPT_RISCVLinkOptTable>(llvm::lto::Config &);
 #endif
 
 #ifdef ELD_ENABLE_TARGET_X86_64
@@ -1975,4 +1991,6 @@ template bool GnuLdDriver::doLink<OPT_x86_64LinkOptTable>(
 template bool GnuLdDriver::handleReproduce<OPT_x86_64LinkOptTable>(
     llvm::opt::InputArgList &Args, std::vector<eld::InputAction *> &actions,
     bool);
+template bool
+GnuLdDriver::processLTOOptions<OPT_x86_64LinkOptTable>(llvm::lto::Config &);
 #endif

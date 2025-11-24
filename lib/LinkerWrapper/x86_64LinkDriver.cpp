@@ -100,6 +100,10 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
   return {};
 }
 
+bool x86_64LinkDriver::processLTOOptions(llvm::lto::Config &Conf) {
+  return GnuLdDriver::processLTOOptions<OPT_x86_64LinkOptTable>(Conf);
+}
+
 // Start the link step.
 int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
                            llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {

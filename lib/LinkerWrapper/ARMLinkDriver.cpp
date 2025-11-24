@@ -178,6 +178,10 @@ ARMLinkDriver::parseOptions(ArrayRef<const char *> Args,
   return {};
 }
 
+bool ARMLinkDriver::processLTOOptions(llvm::lto::Config &Conf) {
+  return GnuLdDriver::processLTOOptions<OPT_ARMLinkOptTable>(Conf);
+}
+
 // Start the link step.
 int ARMLinkDriver::link(llvm::ArrayRef<const char *> Args,
                         llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) {
