@@ -1,0 +1,17 @@
+#---PartialLinkWithOutputSectionEndAssignments.test----- Executable,LS -----#
+#BEGIN_COMMENT
+# This test verifies that the linker properly evaluates the output section end
+# symbol assignments when partial linking.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -r
+RUN: %readelf -s %t1.1.out | %filecheck %s
+#END_TEST
+
+CHECK: 100 {{.*}} u1
+CHECK: 300 {{.*}} u2
+CHECK: 500 {{.*}} u3
+CHECK: 700 {{.*}} u4
+CHECK: 1100 {{.*}} u5
+CHECK: 1300 {{.*}} u6
