@@ -52,8 +52,8 @@ public:
            llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs) override;
 
   // Parse Options.
-  llvm::opt::OptTable *parseOptions(llvm::ArrayRef<const char *> ArgsArr,
-                                    llvm::opt::InputArgList &ArgList) override;
+  std::optional<int> parseOptions(llvm::ArrayRef<const char *> ArgsArr,
+                                  llvm::opt::InputArgList &ArgList) override;
 
   // Check if the options are invalid.
   template <class T = OPT_x86_64LinkOptTable>

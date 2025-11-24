@@ -57,47 +57,47 @@ x86_64LinkDriver::x86_64LinkDriver(eld::LinkerConfig &C, bool is64bit)
   Config.targets().setArch("x86_64");
 }
 
-opt::OptTable *
+std::optional<int>
 x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
                                llvm::opt::InputArgList &ArgList) {
-  OPT_x86_64LinkOptTable *Table = eld::make<OPT_x86_64LinkOptTable>();
+  Table = eld::make<OPT_x86_64LinkOptTable>();
   unsigned missingIndex;
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
     Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
-    return nullptr;
+    return LINK_FAIL;
   }
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::help)) {
     Table->printHelp(outs(), Args[0], "X86_64 Linker", false,
                      /*ShowAllAliases=*/true);
-    return nullptr;
+    return LINK_SUCCESS;
   }
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::help_hidden)) {
     Table->printHelp(outs(), Args[0], "X86_64 Linker", true,
                      /*ShowAllAliases=*/true);
-    return nullptr;
+    return LINK_SUCCESS;
   }
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::version)) {
     printVersionInfo();
-    return nullptr;
+    return LINK_SUCCESS;
   }
   // --about
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::about)) {
     printAboutInfo();
-    return nullptr;
+    return LINK_SUCCESS;
   }
   // -repository-version
   if (ArgList.hasArg(OPT_x86_64LinkOptTable::repository_version)) {
     printRepositoryVersion();
-    return nullptr;
+    return LINK_SUCCESS;
   }
 
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_x86_64LinkOptTable::UNKNOWN));
 
-  return Table;
+  return {};
 }
 
 // Start the link step.
@@ -107,10 +107,7 @@ int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
   if (!ELDFlagsArgs.empty())
     Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
-  llvm::opt::InputArgList ArgList(allArgs.data(),
-                                  allArgs.data() + allArgs.size());
   Config.options().setArgs(allArgs);
-  std::vector<eld::InputAction *> Action;
 
   //===--------------------------------------------------------------------===//
   // Special functions.
@@ -125,30 +122,22 @@ int x86_64LinkDriver::link(llvm::ArrayRef<const char *> Args,
   //===--------------------------------------------------------------------===//
   // Begin Link preprocessing
   //===--------------------------------------------------------------------===//
-  {
-    Table = parseOptions(allArgs, ArgList);
-    if (ArgList.hasArg(OPT_x86_64LinkOptTable::help) ||
-        ArgList.hasArg(OPT_x86_64LinkOptTable::help_hidden) ||
-        ArgList.hasArg(OPT_x86_64LinkOptTable::version) ||
-        ArgList.hasArg(OPT_x86_64LinkOptTable::about) ||
-        ArgList.hasArg(OPT_x86_64LinkOptTable::repository_version)) {
-      return LINK_SUCCESS;
-    }
-    if (!Table)
-      return LINK_FAIL;
-    if (!processLLVMOptions<OPT_x86_64LinkOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!processTargetOptions<OPT_x86_64LinkOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!processOptions<OPT_x86_64LinkOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!checkOptions<OPT_x86_64LinkOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!overrideOptions<OPT_x86_64LinkOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!createInputActions<OPT_x86_64LinkOptTable>(ArgList, Action))
-      return LINK_FAIL;
-  }
+  llvm::opt::InputArgList ArgList;
+  if (auto Ret = parseOptions(allArgs, ArgList))
+    return *Ret;
+  if (!processLLVMOptions<OPT_x86_64LinkOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!processTargetOptions<OPT_x86_64LinkOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!processOptions<OPT_x86_64LinkOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!checkOptions<OPT_x86_64LinkOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!overrideOptions<OPT_x86_64LinkOptTable>(ArgList))
+    return LINK_FAIL;
+  std::vector<eld::InputAction *> Action;
+  if (!createInputActions<OPT_x86_64LinkOptTable>(ArgList, Action))
+    return LINK_FAIL;
   if (!doLink<OPT_x86_64LinkOptTable>(ArgList, Action))
     return LINK_FAIL;
   return LINK_SUCCESS;

@@ -1799,45 +1799,45 @@ int GnuLdDriver::link(llvm::ArrayRef<const char *> Args) {
   return link(Args, Driver::getELDFlagsArgs());
 }
 
-opt::OptTable *GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
-                                         llvm::opt::InputArgList &ArgList) {
-  OPT_GnuLdOptTable *Table = eld::make<OPT_GnuLdOptTable>();
+std::optional<int> GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
+                                             llvm::opt::InputArgList &ArgList) {
+  Table = eld::make<OPT_GnuLdOptTable>();
   unsigned missingIndex;
   unsigned missingCount;
   ArgList = Table->ParseArgs(Args.slice(1), missingIndex, missingCount);
   if (missingCount) {
     Config.raise(eld::Diag::error_missing_arg_value)
         << ArgList.getArgString(missingIndex) << missingCount;
-    return nullptr;
+    return LINK_FAIL;
   }
   if (ArgList.hasArg(OPT_GnuLdOptTable::help)) {
     Table->printHelp(outs(), Args[0], "RISCV Linker", false,
                      /*ShowAllAliases=*/true);
-    return nullptr;
+    return LINK_SUCCESS;
   }
   if (ArgList.hasArg(OPT_GnuLdOptTable::help_hidden)) {
     Table->printHelp(outs(), Args[0], "RISCV Linker", true,
                      /*ShowAllAliases=*/true);
-    return nullptr;
+    return LINK_SUCCESS;
   }
   if (ArgList.hasArg(OPT_GnuLdOptTable::version)) {
     printVersionInfo();
-    return nullptr;
+    return LINK_SUCCESS;
   }
   // --about
   if (ArgList.hasArg(OPT_GnuLdOptTable::about)) {
     printAboutInfo();
-    return nullptr;
+    return LINK_SUCCESS;
   }
   // -repository-version
   if (ArgList.hasArg(OPT_GnuLdOptTable::repository_version)) {
     printRepositoryVersion();
-    return nullptr;
+    return LINK_SUCCESS;
   }
 
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_GnuLdOptTable::UNKNOWN));
-  return Table;
+  return {};
 }
 
 // Start the link step.
@@ -1847,10 +1847,7 @@ int GnuLdDriver::link(llvm::ArrayRef<const char *> Args,
   if (!ELDFlagsArgs.empty())
     Config.raise(eld::Diag::note_eld_flags_without_output_name)
         << llvm::join(ELDFlagsArgs, " ");
-  llvm::opt::InputArgList ArgList(allArgs.data(),
-                                  allArgs.data() + allArgs.size());
   Config.options().setArgs(allArgs);
-  std::vector<eld::InputAction *> Action;
 
   //===--------------------------------------------------------------------===//
   // Special functions.
@@ -1865,35 +1862,28 @@ int GnuLdDriver::link(llvm::ArrayRef<const char *> Args,
   //===--------------------------------------------------------------------===//
   // Begin Link preprocessing
   //===--------------------------------------------------------------------===//
-  {
-    Table = parseOptions(allArgs, ArgList);
-    if (ArgList.hasArg(OPT_GnuLdOptTable::help) ||
-        ArgList.hasArg(OPT_GnuLdOptTable::help_hidden) ||
-        ArgList.hasArg(OPT_GnuLdOptTable::version) ||
-        ArgList.hasArg(OPT_GnuLdOptTable::about) ||
-        ArgList.hasArg(OPT_GnuLdOptTable::repository_version)) {
-      return LINK_SUCCESS;
-    }
-    if (!Table)
-      return LINK_FAIL;
-    if (!processLLVMOptions<OPT_GnuLdOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!processTargetOptions<OPT_GnuLdOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!processOptions<OPT_GnuLdOptTable>(ArgList))
-      return LINK_FAIL;
+  llvm::opt::InputArgList ArgList;
+  if (auto Ret = parseOptions(allArgs, ArgList))
+    return *Ret;
 
-    if (!ELDFlagsArgs.empty())
-      Config.raise(eld::Diag::note_eld_flags)
-          << Config.options().outputFileName() << llvm::join(ELDFlagsArgs, " ");
+  if (!processLLVMOptions<OPT_GnuLdOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!processTargetOptions<OPT_GnuLdOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!processOptions<OPT_GnuLdOptTable>(ArgList))
+    return LINK_FAIL;
 
-    if (!checkOptions<OPT_GnuLdOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!overrideOptions<OPT_GnuLdOptTable>(ArgList))
-      return LINK_FAIL;
-    if (!createInputActions<OPT_GnuLdOptTable>(ArgList, Action))
-      return LINK_FAIL;
-  }
+  if (!ELDFlagsArgs.empty())
+    Config.raise(eld::Diag::note_eld_flags)
+        << Config.options().outputFileName() << llvm::join(ELDFlagsArgs, " ");
+
+  if (!checkOptions<OPT_GnuLdOptTable>(ArgList))
+    return LINK_FAIL;
+  if (!overrideOptions<OPT_GnuLdOptTable>(ArgList))
+    return LINK_FAIL;
+  std::vector<eld::InputAction *> Action;
+  if (!createInputActions<OPT_GnuLdOptTable>(ArgList, Action))
+    return LINK_FAIL;
   if (!doLink<OPT_GnuLdOptTable>(ArgList, Action))
     return LINK_FAIL;
   return LINK_SUCCESS;

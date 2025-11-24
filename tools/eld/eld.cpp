@@ -73,7 +73,7 @@ int main(int Argc, const char **Argv) {
 
   GnuLdDriver *LinkerDriver = driver.getLinkerDriver();
 
-  bool Status = LinkerDriver->link(Args);
+  int Status = LinkerDriver->link(Args);
 
   return Status;
 }

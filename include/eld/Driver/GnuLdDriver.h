@@ -67,9 +67,8 @@ public:
   virtual int link(llvm::ArrayRef<const char *> Args,
                    llvm::ArrayRef<llvm::StringRef> ELDFlagsArgs);
 
-  virtual llvm::opt::OptTable *
-  parseOptions(llvm::ArrayRef<const char *> ArgsArr,
-               llvm::opt::InputArgList &ArgList);
+  virtual std::optional<int> parseOptions(llvm::ArrayRef<const char *> ArgsArr,
+                                          llvm::opt::InputArgList &ArgList);
 
   // Check if the options are invalid.
   template <class T> bool checkOptions(llvm::opt::InputArgList &Args) const;

@@ -981,7 +981,13 @@ bool Linker::initializeTarget(uint16_t machine, bool is64bit) {
 
   llvm::opt::InputArgList ArgList;
 
-  if (!Driver->parseOptions(ThisConfig->options().args(), ArgList))
+  // parseOptions may return optional return code such as LINK_SUCCESS or
+  // LINK_FAIL, however there is no way to return a success error code from
+  // here. Since exit with success error code should have been handled when the
+  // driver is first created, treat any exit code as an error here. All
+  // driver-specific options must be parsed here without saving to the Options
+  // object.
+  if (Driver->parseOptions(ThisConfig->options().args(), ArgList))
     return false;
 
   Backend->setOptions();
