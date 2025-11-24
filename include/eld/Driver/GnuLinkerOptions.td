@@ -113,6 +113,20 @@ multiclass smDashOnlyEqAlias<string opt1, string realopt, string help> {
                 HelpText<help>;
 }
 
+// The definitions below are copied from lld.
+
+// For options whose names are multiple letters, either one dash or
+// two can precede the option name except those that start with 'o'.
+class F<string name> : Flag<["--", "-"], name>;
+class J<string name> : Joined<["--", "-"], name>;
+
+// Convenience classes for long options which only accept two dashes. For lld
+// specific or newer long options, we prefer two dashes to avoid collision with
+// short options. For many others, we have to accept both forms to be compatible
+// with GNU ld.
+class FF<string name> : Flag<["--"], name>;
+class JJ<string name> : Joined<["--"], name>;
+
 //===----------------------------------------------------------------------===//
 /// General Options
 //===----------------------------------------------------------------------===//
@@ -1070,6 +1084,12 @@ defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
       Group<grp_ltooptions>;
+
+def lto_O : JJ<"lto-O">,
+            MetaVarName<"<opt-level>">,
+            HelpText<"Optimization level for LTO">;
+def: J<"plugin-opt=O">, Alias<lto_O>, HelpText<"Alias for --lto-O">;
+
 defm lto_sample_profile
     : smDashOnlyEq<"lto-sample-profile", "lto_sample_profile",
                    "Sample PGO profile file to be loaded for LTO">,

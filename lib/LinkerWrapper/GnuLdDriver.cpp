@@ -1554,6 +1554,17 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf) {
   if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
     Conf.SampleProfile = Arg->getValue();
 
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_O)) {
+    llvm::StringRef S = Arg->getValue();
+    uint64_t Value;
+    if (S.getAsInteger(0, Value) || Value > 4) {
+      Config.raise(Diag::invalid_value_for_option)
+          << Arg->getOption().getPrefixedName() << S;
+      return false;
+    }
+    Conf.OptLevel = Value;
+  }
+
   return true;
 }
 
