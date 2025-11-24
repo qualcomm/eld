@@ -174,7 +174,7 @@ private:
 
 class x86_64IEGOT : public x86_64GOT {
 public:
-  x86_64IEGOT(ELFSection *O, ResolveInfo *R) : x86_64GOT(GOT::TLS_LE, O, R) {}
+  x86_64IEGOT(ELFSection *O, ResolveInfo *R) : x86_64GOT(GOT::TLS_IE, O, R) {}
 
   x86_64GOT *getFirst() override { return this; }
 

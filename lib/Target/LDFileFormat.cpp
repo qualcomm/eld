@@ -97,6 +97,7 @@ LDFileFormat::Kind LDFileFormat::getELFSectionKind(
     return LDFileFormat::NamePool;
   case llvm::ELF::SHT_RELA:
   case llvm::ELF::SHT_REL:
+  case llvm::ELF::SHT_RELR:
     return LDFileFormat::Relocation;
   case llvm::ELF::SHT_NOTE:
     return LDFileFormat::Note;

@@ -94,6 +94,7 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_TPOFF64:
   case llvm::ELF::R_X86_64_DTPOFF32:
   case llvm::ELF::R_X86_64_DTPOFF64:
+  case llvm::ELF::R_X86_64_GOTTPOFF:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -182,6 +183,8 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
       // Writer will compute final: S (see emitRela RELATIVE case)
       rela_entry->setAddend(0);
     }
+  } else if (pType == llvm::ELF::R_X86_64_TPOFF64) {
+    rela_entry->setAddend(0);
   } else if (R) {
     rela_entry->setAddend(R->addend());
   } else {
@@ -282,7 +285,23 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
-  } break;
+  }
+  case llvm::ELF::R_X86_64_GOTTPOFF: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    const bool isExec = (config().codeGenType() == LinkerConfig::Exec);
+    const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
+    if (isExec && !preemptible) {
+      G->setValueType(GOT::TLSStaticSymbolValue);
+    } else {
+      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                         llvm::ELF::R_X86_64_TPOFF64, m_Target);
+    }
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
   default:
     break;
 
@@ -498,16 +517,20 @@ Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
   return x86_64Relocator::Unsupport;
 }
 
-Relocator::Result eld::relocGOTPCREL(Relocation &pReloc,
-                                     x86_64Relocator &pParent,
-                                     RelocationDescription &pRelocDesc) {
+/// Apply GOT-relative relocations: GOT[S] + A - P
+///
+/// Unified handler for GOTPCREL, GOTPCRELX, REX_GOTPCRELX, and GOTTPOFF.
+/// These relocations share the same application formula but differ in GOT
+/// entry type (regular vs TLS) determined during relocation scanning.
+Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
+                                        x86_64Relocator &pParent,
+                                        RelocationDescription &pRelocDesc) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
   const GeneralOptions &options = pParent.config().options();
 
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord P = pReloc.place(pParent.module());
-  // Calculate GOTPCREL: GOT[S] + A - P
   x86_64GOT *gotEntry = pParent.getTarget().findEntryInGOT(symInfo);
   uint64_t Result = gotEntry->getAddr(DiagEngine) + A - P;
 

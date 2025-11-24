@@ -1,0 +1,16 @@
+#------TlsIEModel.test-------Executable------#
+#BEGIN_COMMENT
+# Verifies TLS Initial Exec (IE) model when a TLS variable is referenced in the
+# main executable and defined in a shared library. The linker should emit an
+# R_X86_64_TPOFF64 dynamic relocation to populate the GOT entry with the TLS
+# offset at load time.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.lib2.so
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -r %t.out | %filecheck %s
+CHECK: {{.*}}R_X86_64_TPOFF64{{.*}} tls_var + 0
+EXITCODE: 42
