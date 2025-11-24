@@ -87,7 +87,7 @@ runs:
         cp build-status.db ${DASH_DIR}/
         rm -f record_builds.py
         echo "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
-        git rm -f data.lock
+        rm -f data.lock
         git add .
         git commit -m "Add ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data in DB"
         # Keep trying until lock/conflicts are resolved and build data is pushed successfully.
@@ -97,7 +97,7 @@ runs:
           git fetch --all
           git reset --hard origin/dashboard
           cp -f ${DASH_DIR}/build-status.db .
-          git rm -f data.lock
+          rm -f data.lock
           git add .
           git commit -m "Add ${{ inputs.workflow-name }} ${{ matrix.arch.name }} build status data in DB"
         done
