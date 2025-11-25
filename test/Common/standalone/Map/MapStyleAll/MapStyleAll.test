@@ -2,6 +2,7 @@
 #BEGIN_COMMENT
 # Teach linker to emit multiple map files
 #END_COMMENT
+REQUIRES: yaml
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link -MapStyle all %linkopts %t1.1.o -Map %t1.map -o %t2.out 2>&1
