@@ -2,6 +2,7 @@
 #BEGIN_COMMENT
 # This test check the error message when a search path can not be loaded.
 #END_COMMENT
+UNSUPPORTED: windows
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
 RUN: %link %linkopts %t.o -L /a/b -o %t.test.out 2>&1 | %filecheck %s --check-prefix=MSG
