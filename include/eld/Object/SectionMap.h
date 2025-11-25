@@ -37,6 +37,9 @@ class Section;
  */
 class SectionMap {
 public:
+  static std::string getTypeName() { return "SectionMap"; }
+
+public:
   typedef std::pair<OutputSectionEntry *, RuleContainer *> mapping;
   typedef std::vector<OutputSectionEntry *> OutputSectionEntryDescList;
   typedef OutputSectionEntryDescList::const_iterator const_iterator;

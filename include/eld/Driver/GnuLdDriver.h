@@ -36,6 +36,9 @@ class LinkerScript;
 // Create OptTable class for parsing actual command line arguments
 class OPT_GnuLdOptTable : public llvm::opt::GenericOptTable {
 public:
+  static std::string getTypeName() { return "OPT_GnuLdOptTable"; }
+
+public:
   enum {
     INVALID = 0,
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
@@ -50,6 +53,9 @@ public:
 };
 
 class DLL_A_EXPORT GnuLdDriver {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
 public:
   static GnuLdDriver *Create(eld::LinkerConfig &C, DriverFlavor F,
                              std::string InferredArchFromProgramName);
@@ -159,6 +165,8 @@ protected:
   }
 
   void setDriverFlavor(DriverFlavor F) { m_DriverFlavor = F; }
+
+  bool emitMemoryReport() const;
 
 private:
   // Raise diag entry for trace.

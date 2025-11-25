@@ -85,6 +85,9 @@ namespace {
 static DiagnosticEngine *SDiagEngineForLto = nullptr;
 class PrepareDiagEngineForLTO {
 public:
+  static std::string getTypeName() { return "PrepareDiagEngineForLTO"; }
+
+public:
   PrepareDiagEngineForLTO(DiagnosticEngine *DiagEngine) {
     MMutex.lock();
     SDiagEngineForLto = DiagEngine;
@@ -1777,6 +1780,8 @@ void ObjectLinker::createRelocationSections() {
 
   // SectionName, contentPermissions, filepath
   struct SectionKey {
+  public:
+    static std::string getTypeName() { return "SectionKey"; }
     SectionKey() : Name(""), Type(-1) {}
 
     SectionKey(llvm::StringRef Name, int32_t Type) : Name(Name), Type(Type) {}
@@ -1787,6 +1792,8 @@ void ObjectLinker::createRelocationSections() {
   };
 
   struct SectionKeyInfo {
+  public:
+    static std::string getTypeName() { return "SectionKeyInfo"; }
     static SectionKey getEmptyKey() { return SectionKey(); }
     static SectionKey getTombstoneKey() { return SectionKey(); }
     static unsigned getHashValue(const SectionKey &K) {

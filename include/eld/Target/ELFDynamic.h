@@ -38,6 +38,9 @@ namespace elf_dynamic {
  *  section
  */
 class EntryIF {
+public:
+  static std::string getTypeName() { return "EntryIF"; }
+
 protected:
   EntryIF();
 
@@ -124,6 +127,9 @@ private:
  *  files.
  */
 class ELFDynamic {
+public:
+  static std::string getTypeName() { return "ELFDynamic"; }
+
 public:
   typedef std::vector<elf_dynamic::EntryIF *> EntryListType;
   typedef EntryListType::iterator iterator;

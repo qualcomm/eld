@@ -78,6 +78,8 @@ struct DLL_A_EXPORT LinkerConfig;
 /// chunk.
 
 struct DLL_A_EXPORT Chunk {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   explicit Chunk(eld::Fragment *F) : m_Fragment(F) {}
 
@@ -113,6 +115,8 @@ struct DLL_A_EXPORT Chunk {
   /// Returns true if the chunks A and B originates
   /// from different input sections; Otherwise returns false.
   struct DEPRECATED DLL_A_EXPORT Compare final {
+  public:
+    static std::string getTypeName() { return "DEPRECATED"; }
     bool operator()(const Chunk &A, const Chunk &B) const;
   };
 
@@ -181,6 +185,8 @@ protected:
 /// strings. For a Chunk to be a MergeStringChunk, isMergeableString() must be
 /// true for that Chunk.
 struct DLL_A_EXPORT MergeStringChunk : public Chunk {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   MergeStringChunk(eld::Fragment *F) : Chunk(F) {}
 
   /// Return the strings contained in this Chunk in a vector
@@ -191,6 +197,8 @@ struct DLL_A_EXPORT MergeStringChunk : public Chunk {
 /// section that has the flags SHF_STRINGS & SHF_MERGE, and alignment and entry
 /// size of 1.
 struct DLL_A_EXPORT MergeableString {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit MergeableString(const eld::MergeableString *S);
   /// return the null-terminated string that this MergeableString represents.
   const char *getString() const;
@@ -238,6 +246,8 @@ private:
 /// If two LinkerScriptRule objects have the same underlying RuleContainer
 /// object, then both the objects represent the same rule.
 struct DLL_A_EXPORT LinkerScriptRule final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   enum State : uint8_t { Empty, NoChunk, DuplicateChunk, NotEmpty, Ok };
 
@@ -410,6 +420,8 @@ private:
 /// Segment is a handler for an ELF Segment. A Segment object can be used
 /// to inspect Segment properties and their associated OutputSections.
 struct DLL_A_EXPORT Segment final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   explicit Segment(eld::ELFSegment *S) : S(S) {}
 
@@ -481,6 +493,9 @@ private:
 /// cannot be represented in the default function call instruction.
 class DLL_A_EXPORT Stub {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   explicit Stub(const eld::BranchIsland *pBI) : BI(pBI) {}
 
   /// Returns the target symbol for the stub.
@@ -509,6 +524,8 @@ private:
 /// OutputSectionEntry object, then they both represent the same
 /// output section.
 struct DLL_A_EXPORT OutputSection final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit OutputSection(eld::OutputSectionEntry *O) : m_OutputSection(O) {}
 
   /// Returns the name of the output section.
@@ -650,6 +667,8 @@ private:
 /// have the same underlying Section object, then they both represents the
 /// same section.
 struct DLL_A_EXPORT Section {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   // TODO: What do each of these types means? Where is SectionType used?
   enum SectionType : uint8_t { Default, Padding };
 
@@ -852,6 +871,8 @@ protected:
 /// Block represents output sections and their content.
 // TODO:
 struct DLL_A_EXPORT Block final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   Block() : Data(nullptr), Size(0), Address(0), Alignment(1) {}
   const uint8_t *Data; ///< Data passed to the plugin
   uint32_t Size;       ///< Size of the data in bytes.
@@ -870,6 +891,8 @@ struct DLL_A_EXPORT Block final {
 /// If two Use objects have the same underlying relocation objects,
 /// then the two Use objects represents the same Use.
 struct DLL_A_EXPORT Use final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   /// Symbol status.
   enum Status : uint8_t { Ok, SymbolDoesNotExist, Error };
   explicit Use(eld::Relocation *R) : m_Relocation(R) {}
@@ -966,6 +989,8 @@ private:
 /// Symbol objects have the same underlying ResolveInfo object, then
 /// they both represent the same symbol.
 struct DLL_A_EXPORT Symbol final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   enum Binding { Global = 0, Weak = 1, Local = 2 };
   enum Kind { Undefined = 0, Define = 1, Common = 2 };
@@ -1084,6 +1109,8 @@ private:
 /// INIFile represents an ini configuration file. It provides APIs
 /// to easily inspect and modify the INI configuration.
 struct DLL_A_EXPORT INIFile final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   enum ErrorCode { Success, FileDoesNotExist, ReadError, WriteError };
 
@@ -1174,6 +1201,9 @@ private:
 /// E.g. Adding data to a tar file using the plugin::TarWriter's
 /// addBufferToTar(eld::Expected<plugin::MemoryBuffer> buffer) function.
 class DLL_A_EXPORT MemoryBuffer final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
 private:
   std::unique_ptr<eld::MemoryArea> getBuffer();
 
@@ -1221,6 +1251,8 @@ private:
 /// with. An InputFile object can be used to inspect input file properties,
 /// and contents.
 struct DLL_A_EXPORT InputFile {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit InputFile(eld::InputFile *I) : m_InputFile(I) {}
 
   /// Returns the file name of the input file if the object has an
@@ -1326,6 +1358,8 @@ private:
 
 /// An interface to represent a bitcode file to retrieve the LTO Input file.
 struct DLL_A_EXPORT BitcodeFile final : public InputFile {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   explicit BitcodeFile(eld::BitcodeFile &F);
 
@@ -1336,6 +1370,8 @@ struct DLL_A_EXPORT BitcodeFile final : public InputFile {
 };
 
 struct DLL_A_EXPORT DynamicLibrary final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   void *Handle;
   std::string Path;
 };
@@ -1343,6 +1379,8 @@ struct DLL_A_EXPORT DynamicLibrary final {
 /// PluginData provide a way for storing data and communicating between plugins.
 // TODO: Add a demo that shows the usage of PluginData.
 struct DLL_A_EXPORT PluginData final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit PluginData(eld::PluginData *D) : m_Data(D) {}
 
   void *getData() const;
@@ -1373,6 +1411,8 @@ private:
 
 /// Plugin Profiling support
 struct DLL_A_EXPORT AutoTimer final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit AutoTimer(llvm::Timer *T);
 
   /// Start Timer
@@ -1404,6 +1444,8 @@ private:
 };
 
 struct DLL_A_EXPORT Timer final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   Timer(llvm::Timer *T);
 
   /// Start Timer
@@ -1439,6 +1481,8 @@ private:
 // FIXME: This class do not provide much functionality to handle
 // relocations.
 struct DLL_A_EXPORT RelocationHandler final {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   RelocationHandler(eld::Relocator *R);
 
@@ -1479,6 +1523,9 @@ private:
 
 class DLL_A_EXPORT InputSymbol final {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   InputSymbol();
 
   InputSymbol(eld::LDSymbol *sym, std::string_view symName,
@@ -1515,6 +1562,8 @@ private:
 /// LinkerConfig houses functions for plugins to access linker configurations
 /// and options.
 struct DLL_A_EXPORT LinkerConfig {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit LinkerConfig(const eld::LinkerConfig &Config);
   std::string getTargetCPU() const;
   std::string getArchName() const;

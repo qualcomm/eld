@@ -20,6 +20,9 @@ class EhFrameHdrFragment;
 
 class EhFrameHdrSection : public ELFSection {
 public:
+  static std::string getTypeName() { return "EhFrameHdrSection"; }
+
+public:
   EhFrameHdrSection(std::string Name, uint32_t pType, uint32_t pFlag,
                     uint32_t entSize, uint64_t pSize);
 

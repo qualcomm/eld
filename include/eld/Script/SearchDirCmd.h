@@ -29,6 +29,9 @@ class Module;
 
 class SearchDirCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "SearchDirCmd"; }
+
+public:
   SearchDirCmd(const std::string &PPath);
 
 

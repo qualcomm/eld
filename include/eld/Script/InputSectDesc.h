@@ -31,11 +31,16 @@ class WildcardPattern;
 
 class InputSectDesc : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "InputSectDesc"; }
+
+public:
   /* Special rule markers that dictate whether a list of input sections should
    * be kept that are handled by the rule */
   enum Policy { Keep, NoKeep, SpecialNoKeep, SpecialKeep, Fixed, KeepFixed };
 
   struct Spec {
+  public:
+    static std::string getTypeName() { return "Spec"; }
     void initialize() {
       WildcardFilePattern = nullptr;
       InputArchiveMember = nullptr;

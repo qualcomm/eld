@@ -19,6 +19,8 @@ namespace eld {
  */
 
 struct MemorySpec {
+public:
+  static std::string getTypeName() { return "MemorySpec"; }
 
   MemorySpec(const StrToken *Name, const StrToken *Attributes,
              Expression *Origin, Expression *Length)
@@ -58,6 +60,9 @@ private:
  */
 
 class MemoryDesc : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "MemoryDesc"; }
+
 public:
   MemoryDesc(const MemorySpec &PSpec);
 

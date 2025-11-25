@@ -30,6 +30,9 @@
 
 class CommonTargetInfo : public eld::TargetInfo {
 public:
+  static std::string getTypeName() { return "CommonTargetInfo"; }
+
+public:
   CommonTargetInfo(eld::LinkerConfig &config) : eld::TargetInfo(config) {}
 
   uint64_t flags() const override { return 0; }
@@ -45,6 +48,9 @@ public:
 };
 
 class CommonLDBackend : public eld::GNULDBackend {
+public:
+  static std::string getTypeName() { return "CommonLDBackend"; }
+
 public:
   CommonLDBackend(eld::Module &module, eld::TargetInfo *info)
       : GNULDBackend(module, info) {}
@@ -66,6 +72,8 @@ public:
 };
 
 class LinkerModel {
+public:
+  static std::string getTypeName() { return "LinkerModel"; }
   eld::DiagnosticEngine m_DiagEngine;
   eld::LinkerConfig *m_Config = nullptr;
   eld::LinkerScript *m_LinkerScript = nullptr;

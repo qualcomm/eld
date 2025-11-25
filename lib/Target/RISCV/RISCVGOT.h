@@ -19,6 +19,9 @@ namespace eld {
 
 class RISCVGOT : public GOT {
 public:
+  static std::string getTypeName() { return "RISCVGOT"; }
+
+public:
   // Going to be used by GOTPLT0
   RISCVGOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
            uint32_t Size)
@@ -72,6 +75,9 @@ public:
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVTGOT : public RISCVGOT {
 public:
+  static std::string getTypeName() { return "RISCVTGOT"; }
+
+public:
   // Going to be used by GOTPLT0
   RISCVTGOT(GOTType gotType, ELFSection *O, ResolveInfo *R)
       : RISCVGOT(gotType, O, R, Align, Size),
@@ -101,6 +107,9 @@ private:
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVGOTPLTN : public RISCVTGOT<T, Align, Size> {
 public:
+  static std::string getTypeName() { return "RISCVGOTPLTN"; }
+
+public:
   RISCVGOTPLTN(ELFSection *O, ResolveInfo *R)
       : RISCVTGOT<T, Align, Size>(GOT::GOTPLTN, O, R) {}
 
@@ -112,6 +121,9 @@ public:
 template <typename T>
 class RISCVGOTPLT0 : public RISCVTGOT<T, sizeof(T), sizeof(T) * 2> {
 public:
+  static std::string getTypeName() { return "RISCVGOTPLT0"; }
+
+public:
   RISCVGOTPLT0(ELFSection *O, ResolveInfo *R)
       : RISCVTGOT<T, sizeof(T), sizeof(T) * 2>(GOT::GOTPLT0, O, R) {}
 
@@ -122,6 +134,9 @@ public:
 
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVGDGOT : public RISCVTGOT<T, Align, Size> {
+public:
+  static std::string getTypeName() { return "RISCVGDGOT"; }
+
 public:
   RISCVGDGOT(ELFSection *O, ResolveInfo *R)
       : RISCVTGOT<T, Align, Size>(GOT::TLS_GD, O, R),
@@ -138,6 +153,9 @@ private:
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVLDGOT : public RISCVTGOT<T, Align, Size> {
 public:
+  static std::string getTypeName() { return "RISCVLDGOT"; }
+
+public:
   RISCVLDGOT(ELFSection *O, ResolveInfo *R)
       : RISCVTGOT<T, Align, Size>(GOT::TLS_LD, O, R),
         Other(make<RISCVTGOT<T, Align, Size>>(GOT::TLS_LD, O, R)) {}
@@ -152,6 +170,9 @@ private:
 
 template <typename T, uint32_t Align, uint32_t Size>
 class RISCVIEGOT : public RISCVTGOT<T, Align, Size> {
+public:
+  static std::string getTypeName() { return "RISCVIEGOT"; }
+
 public:
   RISCVIEGOT(ELFSection *O, ResolveInfo *R)
       : RISCVTGOT<T, Align, Size>(GOT::TLS_IE, O, R) {}

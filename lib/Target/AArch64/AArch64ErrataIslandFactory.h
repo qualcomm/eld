@@ -23,6 +23,9 @@ class Module;
  */
 class AArch64ErrataIslandFactory {
 public:
+  static std::string getTypeName() { return "AArch64ErrataIslandFactory"; }
+
+public:
   AArch64ErrataIslandFactory();
 
   ~AArch64ErrataIslandFactory();

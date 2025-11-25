@@ -9,6 +9,7 @@
 
 #include "eld/Config/Config.h"
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace eld {
@@ -21,7 +22,12 @@ class WildcardPattern;
 
 class ExcludePattern {
 public:
+  static std::string getTypeName() { return "ExcludePattern"; }
+
+public:
   struct Spec {
+  public:
+    static std::string getTypeName() { return "Spec"; }
     Spec(WildcardPattern *A, WildcardPattern *F)
         : ArchiveLibraryNamePattern(A), FileNamePattern(F) {}
     WildcardPattern *ArchiveLibraryNamePattern;
@@ -43,6 +49,9 @@ public:
 };
 
 class ExcludeFiles {
+public:
+  static std::string getTypeName() { return "ExcludeFiles"; }
+
 public:
   typedef std::vector<ExcludePattern *> ExcludeFileList;
   typedef ExcludeFileList::iterator iterator;

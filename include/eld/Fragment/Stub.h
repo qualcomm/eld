@@ -31,10 +31,18 @@ class ResolveInfo;
 
 class Stub : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "Stub"; }
+
+public:
   typedef Relocation::DWord DWord;
   typedef Relocation::SWord SWord;
   typedef Relocation::Type Type;
   class Fixup {
+  public:
+  public:
+    static std::string getTypeName() { return "Fixup"; }
+
   public:
     Fixup(DWord POffset, SWord PAddend, Type PType)
         : MOffset(POffset), MAddend(PAddend), MType(PType) {}

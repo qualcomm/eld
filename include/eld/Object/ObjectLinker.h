@@ -66,6 +66,9 @@ class ScriptReader;
  */
 class ObjectLinker {
 public:
+  static std::string getTypeName() { return "ObjectLinker"; }
+
+public:
   ObjectLinker(LinkerConfig &PConfig, Module &PModule);
 
   bool initialize();
@@ -335,6 +338,8 @@ public:
   bool isPostLTOPhase() const { return MPostLtoPhase; }
 
   struct SymbolStats {
+  public:
+    static std::string getTypeName() { return "SymbolStats"; }
     uint64_t Global = 0;
     uint64_t Local = 0;
     uint64_t Weak = 0;

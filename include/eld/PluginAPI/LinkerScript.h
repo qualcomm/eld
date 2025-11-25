@@ -77,6 +77,8 @@ struct DLL_A_EXPORT Sections;
 /// \class ScriptCommand
 /// \brief Base class for all linker script commands.
 struct DLL_A_EXPORT ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   /// \enum CommmandKind - represents the kind of commands supported
   enum CommandKind : uint8_t {
     Assignment,
@@ -343,6 +345,8 @@ private:
 /// \class PHDRDescriptor
 /// \brief This class represents each segment and the corresponding members
 struct DLL_A_EXPORT PHDRDescriptor : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   /// Constructor
   explicit PHDRDescriptor(eld::PhdrDesc *PhdrDesc);
 
@@ -382,6 +386,8 @@ public:
 ///             [ FLAGS ( flags ) ] ;
 ///  }
 struct DLL_A_EXPORT PHDRS : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   /// Constructor
   explicit PHDRS(eld::PhdrsCmd *PhdrsCmd);
 
@@ -421,6 +427,8 @@ private:
 /// symbol *= expression ;
 /// symbol /= expression ;
 struct DLL_A_EXPORT Assignment : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Assignment(eld::Assignment *Assignment);
 
   /// \returns true when used in a boolean expression.
@@ -462,6 +470,8 @@ public:
 ///
 /// \brief Specification :- represented by {
 struct DLL_A_EXPORT EnterScope : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit EnterScope(eld::EnterScopeCmd *EnterScope);
 
   /// \returns true when used in a boolean expression.
@@ -482,6 +492,8 @@ public:
 ///
 /// \brief Specification :- represented by }
 struct DLL_A_EXPORT ExitScope : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit ExitScope(eld::ExitScopeCmd *ExitScope);
 
   /// \returns true when used in a boolean expression.
@@ -522,6 +534,8 @@ public:
 /// * The address 0.
 
 struct DLL_A_EXPORT Entry : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Entry(eld::EntryCmd *Entry);
 
   /// \returns true when used in a boolean expression.
@@ -548,6 +562,8 @@ public:
 /// may use EXTERN multiple times. This command has the same effect as the `-u'
 /// command-line option.
 struct DLL_A_EXPORT Extern : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Extern(eld::ExternCmd *Extern);
 
   /// \returns true when used in a boolean expression.
@@ -574,6 +590,8 @@ public:
 /// are created.
 
 struct DLL_A_EXPORT Group : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Group(eld::GroupCmd *Group);
 
   /// \returns true when used in a boolean expression.
@@ -600,6 +618,8 @@ public:
 /// deep You can place INCLUDE directives at the top level, in MEMORY or
 /// SECTIONS commands, or in output section descriptions
 struct DLL_A_EXPORT Include : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Include(eld::IncludeCmd *Include);
 
   /// \returns true when used in a boolean expression.
@@ -646,6 +666,8 @@ public:
 /// If you use `INPUT (-lfile)', ld will transform the name to libfile.a, as
 /// with the command line argument `-l'.
 struct DLL_A_EXPORT Input : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Input(eld::InputCmd *Input);
 
   /// \returns true when used in a boolean expression.
@@ -668,6 +690,8 @@ public:
 /// memory. You use input section descriptions to tell the linker how to map the
 /// input files into your memory layout.
 struct DLL_A_EXPORT InputSectionSpec : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit InputSectionSpec(eld::InputSectDesc *ISD);
 
   /// \returns true when used in a boolean expression.
@@ -717,6 +741,8 @@ public:
 /// names, not input section names.
 
 struct DLL_A_EXPORT NoCrossRefs : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit NoCrossRefs(eld::NoCrossRefsCmd *NoCrossRefs);
 
   /// \returns true when used in a boolean expression.
@@ -742,6 +768,8 @@ public:
 /// precedence. You can use the OUTPUT command to define a default name for the
 /// output file other than the usual default of a.out.
 struct DLL_A_EXPORT Output : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Output(eld::OutputCmd *Output);
 
   /// \returns true when used in a boolean expression.
@@ -763,6 +791,8 @@ public:
 /// Specify a particular output machine architecture.
 
 struct DLL_A_EXPORT OutputArch : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit OutputArch(eld::OutputArchCmd *OutputArch);
 
   /// \returns true when used in a boolean expression.
@@ -783,6 +813,8 @@ public:
 /// OUTPUT_FORMAT ( name )
 /// Specify output format.
 struct DLL_A_EXPORT OutputFormat : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit OutputFormat(eld::OutputFormatCmd *OutputFormat);
 
   /// \returns true when used in a boolean expression.
@@ -813,6 +845,8 @@ public:
 ///        } [>region] [AT>lma_region] [:phdr :phdr ...] [=fillexp]
 
 struct DLL_A_EXPORT OutputSectionSpec : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit OutputSectionSpec(eld::OutputSectDesc *OSD);
 
   /// \returns true when used in a boolean expression.
@@ -848,6 +882,8 @@ public:
 /// PLUGIN_SECTION_MATCHER
 /// Handle all Linker plugins.
 struct DLL_A_EXPORT Plugin : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Plugin(eld::PluginCmd *P);
 
   /// \returns true when used in a boolean expression.
@@ -874,6 +910,8 @@ public:
 /// command-line option are searched first.
 
 struct DLL_A_EXPORT SearchDir : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit SearchDir(eld::SearchDirCmd *SearchDir);
 
   /// \returns true when used in a boolean expression.
@@ -910,6 +948,8 @@ public:
 /// an output section description
 
 struct DLL_A_EXPORT Sections : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Sections(eld::SectionsCmd *SectionsCmd);
 
   /// \returns true when used in a boolean expression.
@@ -939,6 +979,8 @@ public:
 /// bytes of data in an output section. These commands include BYTE, SHORT,
 /// LONG, QUAD and SQUAD.
 struct DLL_A_EXPORT OutputSectionData : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit OutputSectionData(eld::OutputSectData *OSD);
 
   /// \returns true if objects contains a command.
@@ -953,6 +995,8 @@ private:
 
 /// MEMORY command wrapper
 struct DLL_A_EXPORT Memory : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit Memory(eld::MemoryCmd *MemoryCmd);
 
   operator bool() const { return m_MemoryCmd != nullptr; }
@@ -967,6 +1011,8 @@ private:
 
 /// REGION_ALIAS command wrapper
 struct DLL_A_EXPORT RegionAlias : public ScriptCommand {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit RegionAlias(eld::RegionAlias *RegionAliasCmd);
 
   operator bool() const { return m_RegionAlias != nullptr; }
@@ -982,6 +1028,8 @@ private:
 /// \brief Handle Linker Script and provide lookup of PHDRS, OutputSections and
 /// Rules
 struct DLL_A_EXPORT LinkerScript {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
 
   /// Constructor
   explicit LinkerScript(eld::LinkerScript *LinkerScript);

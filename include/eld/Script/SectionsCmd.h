@@ -27,6 +27,9 @@ class Module;
 
 class SectionsCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "SectionsCmd"; }
+
+public:
   typedef std::vector<ScriptCommand *> SectionCommands;
   typedef SectionCommands::const_iterator const_iterator;
   typedef SectionCommands::iterator iterator;

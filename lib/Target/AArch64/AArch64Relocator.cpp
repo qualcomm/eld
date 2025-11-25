@@ -105,6 +105,9 @@ typedef Relocator::Result (*ApplyFunctionType)(Relocation &pReloc,
 // the table entry of applying functions
 class ApplyFunctionEntry {
 public:
+  static std::string getTypeName() { return "ApplyFunctionEntry"; }
+
+public:
   ApplyFunctionEntry() {}
   ApplyFunctionEntry(ApplyFunctionType pFunc, const char *pName,
                      size_t pSize = 0)

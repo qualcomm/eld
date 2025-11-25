@@ -15,6 +15,8 @@ namespace eld {
 namespace LinkerPlugin {
 
 struct GlobalPlugin {
+public:
+  static std::string getTypeName() { return "GlobalPlugin"; }
   plugin::PluginBase::Type PluginType;
   std::string PluginName;
   std::string LibraryName;
@@ -22,6 +24,8 @@ struct GlobalPlugin {
 };
 
 struct OutputSectionPlugin {
+public:
+  static std::string getTypeName() { return "OutputSectionPlugin"; }
   plugin::PluginBase::Type PluginType;
   std::string OutputSection;
   std::string PluginName;
@@ -30,6 +34,8 @@ struct OutputSectionPlugin {
 };
 
 struct Config {
+public:
+  static std::string getTypeName() { return "Config"; }
   std::vector<eld::LinkerPlugin::GlobalPlugin> GlobalPlugins;
   std::vector<eld::LinkerPlugin::OutputSectionPlugin> OutputSectionPlugins;
 };

@@ -22,6 +22,9 @@ namespace eld {
 
 class ARMELFDynamic : public ELFDynamic {
 public:
+  static std::string getTypeName() { return "ARMELFDynamic"; }
+
+public:
   ARMELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig);
   ~ARMELFDynamic();
 

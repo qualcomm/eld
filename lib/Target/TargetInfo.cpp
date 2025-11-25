@@ -22,6 +22,8 @@ using namespace eld;
 namespace {
 
 struct NameMap {
+public:
+  static std::string getTypeName() { return "NameMap"; }
   const char *from; ///< the prefix of the input string. (match FROM*)
   const char *to;   ///< the output string.
   InputSectDesc::Policy policy; /// mark whether the input is kept in GC

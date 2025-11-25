@@ -27,6 +27,9 @@ class LinkerConfig;
  */
 class HexagonRelocator : public Relocator {
 public:
+  static std::string getTypeName() { return "HexagonRelocator"; }
+
+public:
   HexagonRelocator(HexagonLDBackend &pParent, LinkerConfig &pConfig,
                    Module &pModule);
   ~HexagonRelocator();

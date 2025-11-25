@@ -25,7 +25,14 @@ class Relocation;
 
 class EhFrameHdrFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "EhFrameHdrFragment"; }
+
+public:
   struct FdeData {
+  public:
+  public:
+    static std::string getTypeName() { return "FdeData"; }
     uint32_t PcRel;
     uint32_t FdeVARel;
   };

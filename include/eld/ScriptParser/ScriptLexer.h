@@ -30,6 +30,9 @@ namespace v2 {
 
 class ScriptLexer {
 public:
+  static std::string getTypeName() { return "ScriptLexer"; }
+
+public:
   enum class LexState {
     Default,
     Expr
@@ -130,6 +133,8 @@ private:
 
 protected:
   struct Buffer {
+  public:
+    static std::string getTypeName() { return "Buffer"; }
     // The remaining content to parse and the filename.
     llvm::StringRef S, Filename;
     const char *Begin = nullptr;

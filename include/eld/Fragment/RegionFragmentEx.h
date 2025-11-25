@@ -20,6 +20,10 @@ class LinkerConfig;
  */
 class RegionFragmentEx : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "RegionFragmentEx"; }
+
+public:
   RegionFragmentEx(const char *Data, size_t Sz, ELFSection *O = nullptr,
                    uint32_t Align = 1);
 

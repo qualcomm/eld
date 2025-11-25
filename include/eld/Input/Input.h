@@ -41,6 +41,9 @@ class DiagnosticPrinter;
  */
 class Input {
 public:
+  static std::string getTypeName() { return "Input"; }
+
+public:
   enum InputType {
     Archive,       // This is used mainly by -Bstatic
     DynObj,        // This is used mainly by -Bdynamic

@@ -19,6 +19,9 @@ namespace eld {
 
 class HexagonGOT : public GOT {
 public:
+  static std::string getTypeName() { return "HexagonGOT"; }
+
+public:
   // Going to be used by GOTPLT0
   HexagonGOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
              uint32_t Size)
@@ -68,6 +71,9 @@ private:
 
 class HexagonGOTPLT0 : public HexagonGOT {
 public:
+  static std::string getTypeName() { return "HexagonGOTPLT0"; }
+
+public:
   HexagonGOTPLT0(ELFSection *O, ResolveInfo *R)
       : HexagonGOT(GOT::GOTPLT0, O, R, 4, 16) {}
 
@@ -87,6 +93,9 @@ private:
 
 class HexagonGOTPLTN : public HexagonGOT {
 public:
+  static std::string getTypeName() { return "HexagonGOTPLTN"; }
+
+public:
   HexagonGOTPLTN(ELFSection *O, ResolveInfo *R)
       : HexagonGOT(GOT::GOTPLTN, O, R, 4, 4) {}
 
@@ -98,6 +107,9 @@ public:
 };
 
 class HexagonGDGOT : public HexagonGOT {
+public:
+  static std::string getTypeName() { return "HexagonGDGOT"; }
+
 public:
   HexagonGDGOT(ELFSection *O, ResolveInfo *R)
       : HexagonGOT(GOT::TLS_GD, O, R),
@@ -117,6 +129,9 @@ private:
 
 class HexagonLDGOT : public HexagonGOT {
 public:
+  static std::string getTypeName() { return "HexagonLDGOT"; }
+
+public:
   HexagonLDGOT(ELFSection *O, ResolveInfo *R)
       : HexagonGOT(GOT::TLS_LD, O, R),
         Other(make<HexagonGOT>(GOT::TLS_LD, O, R)) {}
@@ -134,6 +149,9 @@ private:
 };
 
 class HexagonIEGOT : public HexagonGOT {
+public:
+  static std::string getTypeName() { return "HexagonIEGOT"; }
+
 public:
   HexagonIEGOT(ELFSection *O, ResolveInfo *R) : HexagonGOT(GOT::TLS_LE, O, R) {}
 

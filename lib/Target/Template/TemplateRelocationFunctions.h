@@ -50,6 +50,8 @@ typedef Relocator::Result (*ApplyFunctionType)(
     RelocationDescription &pRelocDesc);
 
 struct RelocationDescription {
+public:
+  static std::string getTypeName() { return "RelocationDescription"; }
   // The application function for the relocation.
   const ApplyFunctionType func;
   // The Relocation type, this is just kept for convenience when writing new
@@ -63,10 +65,12 @@ struct RelocationDescription {
 };
 
 struct RelocationDescription RelocDesc[] = {
-    /* {  func =         &applyNone
-            ,  type =        llvm::ELF::
-            ,  forceVerify =  false
-    } */
+  public : static std::string getTypeName(){return "RelocationDescription";
+} // namespace eld
+/* {  func =         &applyNone
+        ,  type =        llvm::ELF::
+        ,  forceVerify =  false
+} */
 };
 
 } // namespace eld

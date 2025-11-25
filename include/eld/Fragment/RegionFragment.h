@@ -26,6 +26,11 @@ class LinkerConfig;
 // Region fragment expression
 class RegionFragment : public Fragment {
 public:
+public:
+public:
+  static std::string getTypeName() { return "RegionFragment"; }
+
+public:
   RegionFragment(llvm::StringRef PRegion, ELFSection *O, Fragment::Type T,
                  uint32_t Align = 1);
 

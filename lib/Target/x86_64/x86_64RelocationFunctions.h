@@ -8,6 +8,7 @@
 
 #include "x86_64LLVMExtern.h"
 #include "x86_64Relocator.h"
+#include <string>
 
 namespace eld {
 
@@ -40,6 +41,8 @@ typedef Relocator::Result (*ApplyFunctionType)(
     RelocationDescription &pRelocDesc);
 
 struct RelocationDescription {
+public:
+  static std::string getTypeName() { return "RelocationDescription"; }
   // The application function for the relocation.
   const ApplyFunctionType func;
   // The Relocation type, this is just kept for convenience when writing new

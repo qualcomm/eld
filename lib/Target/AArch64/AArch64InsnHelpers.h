@@ -19,6 +19,9 @@ namespace eld {
 
 class AArch64InsnHelpers {
 public:
+  static std::string getTypeName() { return "AArch64InsnHelpers"; }
+
+public:
   typedef uint32_t InsnType;
 
   static constexpr int InsnSize = 4;

@@ -20,6 +20,9 @@ class Module;
 /// process.
 class ELFRelocObjParser {
 public:
+  static std::string getTypeName() { return "ELFRelocObjParser"; }
+
+public:
   ELFRelocObjParser(Module &);
 
   /// This function returns the machine information encoded in the ELF

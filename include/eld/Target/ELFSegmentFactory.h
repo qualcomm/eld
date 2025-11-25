@@ -27,6 +27,9 @@ class ELFSection;
  */
 class ELFSegmentFactory {
 public:
+  static std::string getTypeName() { return "ELFSegmentFactory"; }
+
+public:
   typedef std::vector<ELFSegment *> Segments;
   typedef Segments::const_iterator const_iterator;
   typedef Segments::iterator iterator;

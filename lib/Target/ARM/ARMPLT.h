@@ -49,6 +49,9 @@ class IRBuilder;
 
 class ARMPLT : public PLT {
 public:
+  static std::string getTypeName() { return "ARMPLT"; }
+
+public:
   ARMPLT(PLT::PLTType T, eld::IRBuilder &I, ARMGOT *G, ELFSection *P,
          ResolveInfo *R, uint32_t Align, uint32_t Size)
       : PLT(T, G, P, R, Align, Size) {
@@ -62,6 +65,9 @@ public:
 };
 
 class ARMPLT0 : public ARMPLT {
+public:
+  static std::string getTypeName() { return "ARMPLT0"; }
+
 public:
   ARMPLT0(ARMGOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
           uint32_t Align, uint32_t Size)
@@ -78,6 +84,9 @@ public:
 };
 
 class ARMPLTN : public ARMPLT {
+public:
+  static std::string getTypeName() { return "ARMPLTN"; }
+
 public:
   ARMPLTN(ARMGOT *G, eld::IRBuilder &I, ELFSection *P, ResolveInfo *R,
           uint32_t Align, uint32_t Size)

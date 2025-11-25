@@ -25,6 +25,9 @@ class LinkerConfig;
 /// ScriptAction
 class ScriptAction : public InputFileAction {
 public:
+  static std::string getTypeName() { return "ScriptAction"; }
+
+public:
   ScriptAction(const std::string &PFileName, ScriptFile::Kind PKind,
                const LinkerConfig &PConfig, DiagnosticPrinter *Printer);
 

@@ -40,6 +40,8 @@ class Module;
 class Stats;
 
 struct LayoutFragmentInfo {
+public:
+  static std::string getTypeName() { return "LayoutFragmentInfo"; }
   LayoutFragmentInfo(InputFile *F, const ELFSection *Section)
       : ThisInputFile(F), ThisSection(Section) {}
 
@@ -70,6 +72,8 @@ struct LayoutFragmentInfo {
 };
 
 class LayoutInfo {
+public:
+  static std::string getTypeName() { return "LayoutInfo"; }
   static uint32_t LayoutDetail;
 
 public:
@@ -95,6 +99,8 @@ public:
   };
 
   struct Stats {
+  public:
+    static std::string getTypeName() { return "Stats"; }
     uint64_t NumElfObjectFiles = 0;
     uint64_t NumElfExecutableFiles = 0;
     uint64_t NumLinkerScripts = 0;
@@ -132,6 +138,8 @@ public:
   };
 
   struct InputSequenceT {
+  public:
+    static std::string getTypeName() { return "InputSequenceT"; }
     InputKindPrefix Prefix;
     Input *Input;
     std::string ArchFlag;
@@ -173,6 +181,8 @@ public:
 
   // Linker Script support
   struct ScriptInputT {
+  public:
+    static std::string getTypeName() { return "ScriptInputT"; }
     std::string Include;
     std::string Parent;
     bool Found = false;

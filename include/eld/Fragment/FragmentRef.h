@@ -16,6 +16,7 @@
 
 #include "eld/Config/Config.h"
 #include "llvm/Support/DataTypes.h"
+#include <string>
 
 namespace eld {
 
@@ -31,6 +32,10 @@ class OutputSectionEntry;
  *
  */
 class FragmentRef {
+public:
+public:
+  static std::string getTypeName() { return "FragmentRef"; }
+
 public:
   typedef uint64_t Offset; // FIXME: use SizeTraits<T>::Offset
 

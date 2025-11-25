@@ -22,6 +22,9 @@ namespace eld {
 /// - Input file
 class SymbolInfo {
 public:
+  static std::string getTypeName() { return "SymbolInfo"; }
+
+public:
   SymbolInfo() = default;
   SymbolInfo(const InputFile *InputFile, size_t Size,
              ResolveInfo::Binding Binding, ResolveInfo::Type SymType,
@@ -71,6 +74,8 @@ public:
 
 private:
   struct SymbolInfoBitField {
+  public:
+    static std::string getTypeName() { return "SymbolInfoBitField"; }
     SymbolInfoBitField()
         : SymBinding(0), SymType(0), SymVisibility(0), SymSectIndexKind(0),
           IsBitcode(0) {}

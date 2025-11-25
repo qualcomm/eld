@@ -30,6 +30,9 @@ class ProgressBar;
 /// output
 class OutputTarWriter {
 public:
+  static std::string getTypeName() { return "OutputTarWriter"; }
+
+public:
   /// Create an OutputTarWriter
   /// \param OutputPath where the tarball should be written
   /// \param doCompress Compressed Tar files

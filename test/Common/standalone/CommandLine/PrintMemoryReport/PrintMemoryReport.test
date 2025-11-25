@@ -1,0 +1,11 @@
+#---PrintmemoryReport.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks if the linker supports --print-memory-report/--emit-memory-report option.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t2.out --print-memory-report 2>&1 | %filecheck %s --allow-empty
+RUN: %link %linkopts %t1.1.o -o %t2.out.1 --emit-memory-report=%t1.out.mem 2>&1
+RUN: %filecheck %s < %t1.out.mem
+#CHECK: Arena allocation report by type
+#END_TEST

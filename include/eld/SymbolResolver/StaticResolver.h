@@ -27,6 +27,9 @@ class LinkerConfig;
  */
 class StaticResolver : public Resolver {
 public:
+  static std::string getTypeName() { return "StaticResolver"; }
+
+public:
   enum LinkAction {
     FAIL,   /* abort.  */
     NOACT,  /* no action.  */

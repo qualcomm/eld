@@ -35,6 +35,8 @@ class Module;
 enum class ARMVFPArgKind { Default, Base, VFP, ToolChain };
 
 struct OutputARMAttributes {
+public:
+  static std::string getTypeName() { return "OutputARMAttributes"; }
   bool armHasBlx = false;
   bool armJ1J2BranchEncoding = false;
   bool armHasMovtMovw = false;
@@ -47,6 +49,9 @@ struct OutputARMAttributes {
 };
 
 class ARMAttributeFragment : public TargetFragment {
+public:
+  static std::string getTypeName() { return "ARMAttributeFragment"; }
+
 public:
   ARMAttributeFragment(ELFSection *O);
 

@@ -15,6 +15,9 @@ namespace eld {
 
 class RISCVInfo : public TargetInfo {
 public:
+  static std::string getTypeName() { return "RISCVInfo"; }
+
+public:
   RISCVInfo(LinkerConfig &m_Config);
 
   uint32_t machine() const override { return llvm::ELF::EM_RISCV; }

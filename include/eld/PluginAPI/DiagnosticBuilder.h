@@ -42,6 +42,9 @@ namespace eld::plugin {
 /// \endcode
 class DLL_A_EXPORT DiagnosticBuilder {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   DiagnosticBuilder(eld::MsgHandler *msgHandler);
   /// DiagnosticBuilder should not be copied.
   /// If it is copied, then multiple DiagnosticBuilder object

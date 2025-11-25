@@ -29,6 +29,9 @@ class GnuLdDriver;
 
 class DLL_A_EXPORT Driver {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   Driver(DriverFlavor F = DriverFlavor::Invalid);
 
   bool setDriverFlavorAndInferredArchFromLinkCommand(

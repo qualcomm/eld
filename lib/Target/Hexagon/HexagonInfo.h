@@ -16,6 +16,9 @@ namespace eld {
 
 class HexagonInfo : public TargetInfo {
 public:
+  static std::string getTypeName() { return "HexagonInfo"; }
+
+public:
   // This enumeration creates a mapping in the static array for every input
   // flag.
   enum TranslationCPU {

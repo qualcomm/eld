@@ -24,6 +24,9 @@ class LinkerConfig;
 
 class SymDefWriter {
 public:
+  static std::string getTypeName() { return "SymDefWriter"; }
+
+public:
   SymDefWriter(LinkerConfig &Config);
 
   eld::Expected<void> init();

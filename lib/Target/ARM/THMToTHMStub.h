@@ -27,6 +27,9 @@ class Module;
  */
 class THMToTHMStub : public Stub {
 public:
+  static std::string getTypeName() { return "THMToTHMStub"; }
+
+public:
   THMToTHMStub(uint32_t type, ARMGNULDBackend *Target);
 
   ~THMToTHMStub();

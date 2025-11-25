@@ -18,6 +18,8 @@ struct DLL_A_EXPORT LinkerConfig;
 struct DLL_A_EXPORT MapHeader;
 
 struct DLL_A_EXPORT MapHeader {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   explicit MapHeader(const plugin::LinkerConfig &Config);
   std::string getVendorName() const;
   std::string getVendorVersion() const;
@@ -32,6 +34,8 @@ private:
 /// Padding details at section start, fragment and
 /// between rules.
 struct DLL_A_EXPORT Padding {
+public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
   uint64_t startOffset = 0;
   uint64_t size = 0;
   uint64_t fillValue = 0;

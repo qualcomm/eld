@@ -24,6 +24,9 @@ class OutputSectionEntry;
 
 class PluginOp {
 public:
+  static std::string getTypeName() { return "PluginOp"; }
+
+public:
   enum PluginOpType : uint8_t {
     ChangeOutputSection,
     AddChunk,
@@ -57,6 +60,9 @@ protected:
 
 class ChangeOutputSectionPluginOp : public PluginOp {
 public:
+  static std::string getTypeName() { return "ChangeOutputSectionPluginOp"; }
+
+public:
   ChangeOutputSectionPluginOp(plugin::LinkerWrapper *W, eld::ELFSection *S,
                               std::string OutputSection,
                               std::string Annotation);
@@ -86,6 +92,9 @@ private:
 
 class AddChunkPluginOp : public PluginOp {
 public:
+  static std::string getTypeName() { return "AddChunkPluginOp"; }
+
+public:
   AddChunkPluginOp(plugin::LinkerWrapper *W, RuleContainer *Rule,
                    eld::Fragment *F, std::string Annotation);
 
@@ -106,6 +115,9 @@ private:
 
 class RemoveChunkPluginOp : public PluginOp {
 public:
+  static std::string getTypeName() { return "RemoveChunkPluginOp"; }
+
+public:
   RemoveChunkPluginOp(plugin::LinkerWrapper *W, RuleContainer *Rule,
                       eld::Fragment *F, std::string Annotation);
 
@@ -125,6 +137,9 @@ private:
 };
 
 class UpdateChunksPluginOp : public PluginOp {
+public:
+  static std::string getTypeName() { return "UpdateChunksPluginOp"; }
+
 public:
   enum Type : uint8_t { Start, End };
 
@@ -150,6 +165,9 @@ private:
 
 class RemoveSymbolPluginOp : public PluginOp {
 public:
+  static std::string getTypeName() { return "RemoveSymbolPluginOp"; }
+
+public:
   RemoveSymbolPluginOp(plugin::LinkerWrapper *W, std::string Annotation,
                        const eld::ResolveInfo *S);
 
@@ -166,6 +184,9 @@ private:
 };
 
 class RelocationDataPluginOp : public PluginOp {
+public:
+  static std::string getTypeName() { return "RelocationDataPluginOp"; }
+
 public:
   RelocationDataPluginOp(plugin::LinkerWrapper *W, const eld::Relocation *R,
                          const std::string &Annotation = {});
@@ -185,6 +206,9 @@ private:
 
 class UpdateLinkStatsPluginOp : public PluginOp {
 public:
+  static std::string getTypeName() { return "UpdateLinkStatsPluginOp"; }
+
+public:
   UpdateLinkStatsPluginOp(plugin::LinkerWrapper *W, const std::string &StatName,
                           const std::string &Annotation);
 
@@ -197,6 +221,9 @@ private:
 };
 
 class UpdateRulePluginOp : public PluginOp {
+public:
+  static std::string getTypeName() { return "UpdateRulePluginOp"; }
+
 public:
   UpdateRulePluginOp(plugin::LinkerWrapper *W, RuleContainer *Rule,
                      eld::ELFSection *S, const std::string &Annotation);
@@ -215,6 +242,9 @@ private:
 };
 
 class ResetOffsetPluginOp : public PluginOp {
+public:
+  static std::string getTypeName() { return "ResetOffsetPluginOp"; }
+
 public:
   ResetOffsetPluginOp(plugin::LinkerWrapper *W, const OutputSectionEntry *O,
                       uint32_t OldOffset, const std::string &Annotation = {});

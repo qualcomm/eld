@@ -21,6 +21,9 @@ class DiagnosticEngine;
 // Create OptTable class for parsing actual command line arguments
 class OPT_ARMLinkOptTable : public llvm::opt::GenericOptTable {
 public:
+  static std::string getTypeName() { return "OPT_ARMLinkOptTable"; }
+
+public:
   enum {
     INVALID = 0,
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
@@ -35,6 +38,9 @@ public:
 };
 
 class ARMLinkDriver : public GnuLdDriver {
+public:
+  static std::string getTypeName() { return "ARMLinkDriver"; }
+
 public:
   static ARMLinkDriver *Create(eld::LinkerConfig &C,
                                std::string InferredArchFromProgramName);

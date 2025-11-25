@@ -25,6 +25,9 @@ struct OutputSection;
 /// layout data in a map file.
 class DLL_A_EXPORT LayoutWrapper {
 public:
+  static std::string getTypeName() { return "DLL_A_EXPORT"; }
+
+public:
   explicit LayoutWrapper(const LinkerWrapper &Linker);
 
   /// Get the map header.

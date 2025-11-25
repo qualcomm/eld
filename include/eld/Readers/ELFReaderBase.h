@@ -27,6 +27,9 @@ class Module;
 /// eld::Expected.
 class ELFReaderBase {
 public:
+  static std::string getTypeName() { return "ELFReaderBase"; }
+
+public:
   explicit ELFReaderBase(Module &module, InputFile &inputFile);
 
   // defaulted copy-constructor.

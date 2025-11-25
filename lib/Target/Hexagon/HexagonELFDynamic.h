@@ -19,6 +19,9 @@ enum {
 
 class HexagonELFDynamic : public ELFDynamic {
 public:
+  static std::string getTypeName() { return "HexagonELFDynamic"; }
+
+public:
   HexagonELFDynamic(GNULDBackend &pParent, LinkerConfig &pConfig);
   ~HexagonELFDynamic();
 

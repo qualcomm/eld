@@ -19,6 +19,10 @@ class LinkerConfig;
  */
 class BuildIDFragment : public Fragment {
 public:
+public:
+  static std::string getTypeName() { return "BuildIDFragment"; }
+
+public:
   enum BuildIDKind : uint8_t { NONE, FAST, MD5, UUID, SHA1, HEXSTRING };
 
   BuildIDFragment(ELFSection *O = nullptr);

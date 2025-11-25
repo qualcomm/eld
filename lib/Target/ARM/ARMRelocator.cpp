@@ -236,6 +236,8 @@ typedef Relocator::Result (*ApplyFunctionType)(Relocation &pReloc,
 
 // the table entry of applying functions
 struct ApplyFunctionTriple {
+public:
+  static std::string getTypeName() { return "ApplyFunctionTriple"; }
   ApplyFunctionType func;
   unsigned int type;
   const char *name;

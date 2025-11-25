@@ -41,6 +41,9 @@ const char dot = '.';
  */
 class Path {
 public:
+  static std::string getTypeName() { return "Path"; }
+
+public:
   Path();
   Path(const std::string &s);
   Path(const Path &pCopy);

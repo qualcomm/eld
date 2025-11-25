@@ -25,6 +25,9 @@ namespace eld {
 
 class ARMGOT : public GOT {
 public:
+  static std::string getTypeName() { return "ARMGOT"; }
+
+public:
   // Going to be used by GOTPLT0
   ARMGOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
          uint32_t Size)
@@ -86,6 +89,9 @@ private:
 
 class ARMGOTPLT0 : public ARMGOT {
 public:
+  static std::string getTypeName() { return "ARMGOTPLT0"; }
+
+public:
   ARMGOTPLT0(ELFSection *O, ResolveInfo *R)
       : ARMGOT(GOT::GOTPLT0, O, R, 4, 12), Value() {
     std::memset(Value, 0, sizeof(Value));
@@ -107,6 +113,9 @@ private:
 };
 
 class ARMGOTPLTN : public ARMGOT {
+public:
+  static std::string getTypeName() { return "ARMGOTPLTN"; }
+
 public:
   ARMGOTPLTN(ELFSection *O, ResolveInfo *R)
       : ARMGOT(GOT::GOTPLTN, O, R, 4, 4) {}
@@ -132,6 +141,9 @@ private:
 
 class ARMGDGOT : public ARMGOT {
 public:
+  static std::string getTypeName() { return "ARMGDGOT"; }
+
+public:
   ARMGDGOT(ELFSection *O, ResolveInfo *R)
       : ARMGOT(GOT::TLS_GD, O, R), Other(make<ARMGOT>(GOT::TLS_GD, O, R)) {}
 
@@ -149,6 +161,9 @@ private:
 
 class ARMLDGOT : public ARMGOT {
 public:
+  static std::string getTypeName() { return "ARMLDGOT"; }
+
+public:
   ARMLDGOT(ELFSection *O, ResolveInfo *R)
       : ARMGOT(GOT::TLS_LD, O, R), Other(make<ARMGOT>(GOT::TLS_LD, O, R)) {}
 
@@ -165,6 +180,9 @@ private:
 };
 
 class ARMIEGOT : public ARMGOT {
+public:
+  static std::string getTypeName() { return "ARMIEGOT"; }
+
 public:
   ARMIEGOT(ELFSection *O, ResolveInfo *R) : ARMGOT(GOT::TLS_LE, O, R) {}
 

@@ -24,6 +24,9 @@ class LinkerConfig;
 
 class GroupCmd : public ScriptCommand {
 public:
+  static std::string getTypeName() { return "GroupCmd"; }
+
+public:
   GroupCmd(const LinkerConfig &Config, StringList &PStringList,
            const Attribute &Attr, ScriptFile &PScriptFile);
 

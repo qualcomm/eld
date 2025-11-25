@@ -42,6 +42,9 @@ class Input;
  */
 class NamePool {
 public:
+  static std::string getTypeName() { return "NamePool"; }
+
+public:
   explicit NamePool(eld::LinkerConfig &Config, PluginManager &Pm);
 
   ~NamePool();

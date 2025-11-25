@@ -23,6 +23,9 @@ namespace eld {
 
 class InputToken : public StrToken {
 public:
+  static std::string getTypeName() { return "InputToken"; }
+
+public:
   enum Type { Unknown, File, NameSpec };
 
 protected:
