@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Readers/ELFSection.h"
+#include "eld/Object/OutputSectionEntry.h"
 #include "llvm/ADT/StringRef.h"
 
 using namespace eld;
@@ -160,13 +161,25 @@ Fragment *ELFSection::getFirstFragmentInRule() const {
   return nullptr;
 }
 
+uint64_t ELFSection::pAddr() const {
+  OutputSectionEntry *OE = getOutputSection();
+  if (!OE)
+    return 0;
+  return OE->pAddr();
+}
+
+void ELFSection::setPaddr(size_t A) {
+  OutputSectionEntry *OE = getOutputSection();
+  ASSERT(OE, "expected putput section");
+  OE->setPaddr(A);
+}
+
 void ELFSection::setOffsetAndAddr(uint64_t Off) {
   Offset = Off;
   OutputSectionEntry *OE = getOutputSection();
   if (!OE)
     return;
   Addr = Offset + OE->getSection()->addr();
-  PAddr = Offset + OE->getSection()->pAddr();
 }
 
 std::string ELFSection::getDecoratedName(const GeneralOptions &options) const {
