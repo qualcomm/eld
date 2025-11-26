@@ -51,70 +51,70 @@ public:
   llvm::StringRef name() const { return Name; }
 
   const OutputSectDesc::Prolog &prolog() const {
-    return MOutputSectDesc->prolog();
+    return OutputSectionDesc->prolog();
   }
-  OutputSectDesc::Prolog &prolog() { return MOutputSectDesc->prolog(); }
+  OutputSectDesc::Prolog &prolog() { return OutputSectionDesc->prolog(); }
 
   const OutputSectDesc::Epilog &epilog() const {
-    return MOutputSectDesc->epilog();
+    return OutputSectionDesc->epilog();
   }
-  OutputSectDesc::Epilog &epilog() { return MOutputSectDesc->epilog(); }
+  OutputSectDesc::Epilog &epilog() { return OutputSectionDesc->epilog(); }
 
-  size_t order() const { return MOrder; }
+  size_t order() const { return Order; }
 
-  bool hasOrder() const { return (MOrder != UINT_MAX); }
+  bool hasOrder() const { return (Order != UINT_MAX); }
 
-  void setOrder(size_t POrder) { MOrder = POrder; }
+  void setOrder(size_t POrder) { Order = POrder; }
 
   bool hasContent() const;
 
-  const ELFSection *getSection() const { return MPSection; }
-  ELFSection *getSection() { return MPSection; }
+  const ELFSection *getSection() const { return OutputELFSection; }
+  ELFSection *getSection() { return OutputELFSection; }
 
   void setSection(ELFSection *PSection) {
-    MPSection = PSection;
+    OutputELFSection = PSection;
     computeHash();
   }
   void computeHash();
-  iterator begin() { return MInputList.begin(); }
-  iterator end() { return MInputList.end(); }
+  iterator begin() { return Inputs.begin(); }
+  iterator end() { return Inputs.end(); }
 
-  const_iterator begin() const { return MInputList.begin(); }
-  const_iterator end() const { return MInputList.end(); }
+  const_iterator begin() const { return Inputs.begin(); }
+  const_iterator end() const { return Inputs.end(); }
 
-  const InputList &getRuleContainer() const { return MInputList; }
+  const InputList &getRuleContainer() const { return Inputs; }
 
-  const_reference front() const { return MInputList.front(); }
-  reference front() { return MInputList.front(); }
-  const_reference back() const { return MInputList.back(); }
-  reference back() { return MInputList.back(); }
+  const_reference front() const { return Inputs.front(); }
+  reference front() { return Inputs.front(); }
+  const_reference back() const { return Inputs.back(); }
+  reference back() { return Inputs.back(); }
 
-  size_t size() const { return MInputList.size(); }
+  size_t size() const { return Inputs.size(); }
 
-  bool empty() const { return MInputList.empty(); }
+  bool empty() const { return Inputs.empty(); }
 
-  bool isDiscard() const { return MBIsDiscard; }
+  bool isDiscard() const { return IsDiscard; }
 
-  void append(RuleContainer *PInput) { MInputList.push_back(PInput); }
+  void append(RuleContainer *PInput) { Inputs.push_back(PInput); }
 
   const SymbolAssignments &sectionsEndAssignments() const {
-    return MSectionEndAssignments;
+    return SectionEndAssignments;
   }
-  SymbolAssignments &sectionEndAssignments() { return MSectionEndAssignments; }
+  SymbolAssignments &sectionEndAssignments() { return SectionEndAssignments; }
 
-  sym_iterator sectionendsymBegin() { return MSectionEndAssignments.begin(); }
-  sym_iterator sectionendsymEnd() { return MSectionEndAssignments.end(); }
+  sym_iterator sectionendsymBegin() { return SectionEndAssignments.begin(); }
+  sym_iterator sectionendsymEnd() { return SectionEndAssignments.end(); }
 
   void moveSectionAssignments(OutputSectionEntry *Out) {
-    MSectionEndAssignments = Out->sectionEndAssignments();
+    SectionEndAssignments = Out->sectionEndAssignments();
     Out->sectionEndAssignments().clear();
   }
 
   // A section may be part of multiple segments, this only returns the
   // segment where the section would get loaded.
-  void setLoadSegment(ELFSegment *E) { MPLoadSegment = E; }
+  void setLoadSegment(ELFSegment *E) { LoadSegment = E; }
 
-  ELFSegment *getLoadSegment() const { return MPLoadSegment; }
+  ELFSegment *getLoadSegment() const { return LoadSegment; }
 
   // Set the first fragment in the output section.
   void setFirstNonEmptyRule(RuleContainer *R) { FirstNonEmptyRule = R; }
@@ -123,33 +123,33 @@ public:
 
   Fragment *getFirstFrag() const;
 
-  RuleContainer *getLastRule() const { return MLastRule; }
+  RuleContainer *getLastRule() const { return LastRule; }
 
-  void setLastRule(RuleContainer *R) { MLastRule = R; }
+  void setLastRule(RuleContainer *R) { LastRule = R; }
 
   RuleContainer *createDefaultRule(Module &M);
 
   // ------------------Branch island support ------------------------
-  BranchIslandsIter islandsBegin() { return MBranchIslands.begin(); }
+  BranchIslandsIter islandsBegin() { return BranchIslands.begin(); }
 
-  BranchIslandsIter islandsEnd() { return MBranchIslands.end(); }
+  BranchIslandsIter islandsEnd() { return BranchIslands.end(); }
 
-  void addBranchIsland(BranchIsland *B) { MBranchIslands.push_back(B); }
+  void addBranchIsland(BranchIsland *B) { BranchIslands.push_back(B); }
 
   void addBranchIsland(ResolveInfo *PSym, BranchIsland *B) {
     BranchIslandForSymbol[PSym];
     BranchIslandForSymbol[PSym].push_back(B);
-    MBranchIslands.push_back(B);
+    BranchIslands.push_back(B);
   }
 
-  uint32_t getNumBranchIslands() const { return MBranchIslands.size(); }
+  uint32_t getNumBranchIslands() const { return BranchIslands.size(); }
 
   void dump(llvm::raw_ostream &Outs) const;
 
   uint64_t getHash() {
-    if (!MHash)
+    if (!Hash)
       computeHash();
-    return MHash;
+    return Hash;
   }
 
   std::string getSectionTypeStr() const;
@@ -203,22 +203,22 @@ public:
 
 private:
   std::string Name;
-  OutputSectDesc *MOutputSectDesc = nullptr;
-  ELFSection *MPSection;
-  ELFSegment *MPLoadSegment;
-  size_t MOrder;
-  bool MBIsDiscard;
-  InputList MInputList;
-  SymbolAssignments MSectionEndAssignments;
+  OutputSectDesc *OutputSectionDesc = nullptr;
+  ELFSection *OutputELFSection;
+  ELFSegment *LoadSegment;
+  size_t Order;
+  bool IsDiscard;
+  InputList Inputs;
+  SymbolAssignments SectionEndAssignments;
   RuleContainer *FirstNonEmptyRule;
-  RuleContainer *MLastRule;
-  std::vector<BranchIsland *> MBranchIslands;
+  RuleContainer *LastRule;
+  std::vector<BranchIsland *> BranchIslands;
   std::unordered_map<ResolveInfo *, std::vector<BranchIsland *>>
       BranchIslandForSymbol;
   llvm::StringMap<MergeableString *> UniqueStrings;
   llvm::SmallVector<MergeableString *, 0> AllStrings;
-  uint64_t MHash = 0;
-  llvm::StringMap<uint64_t> MTrampolineNameToCountMap;
+  uint64_t Hash = 0;
+  llvm::StringMap<uint64_t> TrampolineNameToCountMap;
 };
 
 } // namespace eld
