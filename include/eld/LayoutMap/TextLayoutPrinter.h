@@ -129,6 +129,9 @@ private:
 
   void printStat(llvm::StringRef S, const std::string &Stat) const;
 
+  std::optional<std::string>
+  getPluginSectionAnnotations(const ELFSection *S) const;
+
   std::string showDecoratedSymbolName(eld::Module &CurModule,
                                       const ResolveInfo *R) const;
 
