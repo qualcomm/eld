@@ -95,6 +95,7 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_DTPOFF32:
   case llvm::ELF::R_X86_64_DTPOFF64:
   case llvm::ELF::R_X86_64_GOTTPOFF:
+  case llvm::ELF::R_X86_64_TLSGD:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -183,7 +184,9 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
       // Writer will compute final: S (see emitRela RELATIVE case)
       rela_entry->setAddend(0);
     }
-  } else if (pType == llvm::ELF::R_X86_64_TPOFF64) {
+  } else if (pType == llvm::ELF::R_X86_64_TPOFF64 ||
+             pType == llvm::ELF::R_X86_64_DTPMOD64 ||
+             pType == llvm::ELF::R_X86_64_DTPOFF64) {
     rela_entry->setAddend(0);
   } else if (R) {
     rela_entry->setAddend(R->addend());
@@ -299,6 +302,31 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
       helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                          llvm::ELF::R_X86_64_TPOFF64, m_Target);
     }
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_TLSGD: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+
+    // Create GD GOT pair (x86_64GDGOT creates both entries)
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+
+    // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
+    helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
+                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+
+    // Check if symbol is preemptible to decide on second entry
+    if (m_Target.isSymbolPreemptible(*rsym)) {
+      // Preemptible: emit DTPOFF64 (dynamic loader fills it)
+      helper_DynRel_init(Obj, &pReloc, rsym, G->getNext(), 0x0,
+                         llvm::ELF::R_X86_64_DTPOFF64, m_Target);
+    } else {
+      // Non-preemptible: fill second entry at link time
+      G->getNext()->setValueType(GOT::TLSStaticSymbolValue);
+    }
+
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
@@ -519,7 +547,8 @@ Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
 
 /// Apply GOT-relative relocations: GOT[S] + A - P
 ///
-/// Unified handler for GOTPCREL, GOTPCRELX, REX_GOTPCRELX, and GOTTPOFF.
+/// Unified handler for GOTPCREL, GOTPCRELX, REX_GOTPCRELX,
+// and TLS related relocations GOTTPOFF and TLSGD.
 /// These relocations share the same application formula but differ in GOT
 /// entry type (regular vs TLS) determined during relocation scanning.
 Relocator::Result eld::relocGOTRelative(Relocation &pReloc,

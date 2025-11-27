@@ -102,6 +102,21 @@ public:
       return DynRelocType::JMP_SLOT;
     if (X->type() == llvm::ELF::R_X86_64_RELATIVE)
       return DynRelocType::RELATIVE;
+    if (X->type() == llvm::ELF::R_X86_64_DTPMOD64) {
+      if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
+        return DynRelocType::DTPMOD_LOCAL;
+      return DynRelocType::DTPMOD_GLOBAL;
+    }
+    if (X->type() == llvm::ELF::R_X86_64_DTPOFF64) {
+      if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
+        return DynRelocType::DTPREL_LOCAL;
+      return DynRelocType::DTPREL_GLOBAL;
+    }
+    if (X->type() == llvm::ELF::R_X86_64_TPOFF64) {
+      if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
+        return DynRelocType::TPREL_LOCAL;
+      return DynRelocType::TPREL_GLOBAL;
+    }
     return DynRelocType::DEFAULT;
   }
 

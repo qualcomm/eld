@@ -1,0 +1,19 @@
+#------TlsGDpreemptible.test-------Executable------#
+#BEGIN_COMMENT
+# Verifies TLS General Dynamic (GD) model when a TLS variable is defined in one
+# shared library (lib3.so) and accessed from another shared library (lib2.so).
+# The linker should emit R_X86_64_DTPMOD64 and R_X86_64_DTPOFF64 dynamic
+# relocations in lib2.so because the TLS variable is preemptible (external).
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -fPIC -o %t.3.o
+RUN: %link %linkopts -shared -o %t.lib3.so %t.3.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o %t.lib3.so
+RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.lib2.so %t.lib3.so
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -r %t.lib2.so | %filecheck %s --check-prefix=CHECK-TLSGD
+CHECK-TLSGD: {{.*}}R_X86_64_DTPMOD64{{.*}} tls_var{{.*}}
+CHECK-TLSGD: {{.*}}R_X86_64_DTPOFF64{{.*}} tls_var{{.*}}
+EXITCODE: 42
