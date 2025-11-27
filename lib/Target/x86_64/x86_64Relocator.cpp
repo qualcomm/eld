@@ -96,6 +96,7 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_DTPOFF64:
   case llvm::ELF::R_X86_64_GOTTPOFF:
   case llvm::ELF::R_X86_64_TLSGD:
+  case llvm::ELF::R_X86_64_TLSLD:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -222,6 +223,26 @@ x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
 
 } // namespace
 
+x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
+  static x86_64GOT *G = nullptr;
+  if (G != nullptr) {
+    m_Target.recordGOT(R, G);
+    return G;
+  }
+
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+
+  ASSERT(!isStatic,
+         "We always need to relax if -static because libc.a doesn't "
+         "contain__tls_get_addr(). Relaxations are currently unsupported");
+
+  if (!isStatic)
+    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
+                       nullptr, G, 0x0, llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+
+  m_Target.recordGOT(R, G);
+  return G;
+}
 void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                                      eld::IRBuilder &pBuilder,
                                      ELFSection &pSection) {
@@ -229,7 +250,7 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
   switch (pReloc.type()) {
-  case llvm::ELF::R_X86_64_64:
+  case llvm::ELF::R_X86_64_64: {
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       rsym->setReserved(rsym->reserved() | ReserveRel);
@@ -239,6 +260,12 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                          llvm::ELF::R_X86_64_RELATIVE, m_Target);
     }
     return;
+  }
+  case llvm::ELF::R_X86_64_TLSLD: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
+    return;
+  }
   default:
     break;
   }
@@ -328,6 +355,11 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     }
 
     rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_TLSLD: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
     return;
   }
   default:

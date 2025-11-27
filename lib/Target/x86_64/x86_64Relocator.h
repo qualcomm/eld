@@ -73,6 +73,8 @@ private:
 
   bool isInvalidReloc(Relocation &pReloc) const;
 
+  x86_64GOT *getTLSModuleID(ResolveInfo *R, bool isStatic = false);
+
   x86_64LDBackend &m_Target;
 };
 
