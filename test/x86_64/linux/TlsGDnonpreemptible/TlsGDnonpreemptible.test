@@ -1,0 +1,21 @@
+#------TlsGDnonpreemptible.test-------Executable------#
+#BEGIN_COMMENT
+# Verifies TLS General Dynamic (GD) model with non-preemptible symbols.
+# When TLS variables are defined and used in the same shared library
+# and we could prove non-preemptibility at link time.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+RUN: %link %linkopts -shared -Bsymbolic -o %t.lib2.so %t.2.o
+RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.lib2.so
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -r %t.lib2.so | %filecheck %s --check-prefix=CHECK-DTPMOD
+RUN: %readelf -r %t.lib2.so | %filecheck %s --check-prefix=CHECK-NO-DTPOFF --allow-empty
+
+# Should have DTPMOD64 (module ID needed at runtime)
+CHECK-DTPMOD: {{.*}}R_X86_64_DTPMOD64{{.*}}
+
+# Should NOT have DTPOFF64 (offset known at link time for non-preemptible)
+CHECK-NO-DTPOFF-NOT: R_X86_64_DTPOFF64
+EXITCODE: 92
