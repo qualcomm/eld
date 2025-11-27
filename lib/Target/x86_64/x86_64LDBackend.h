@@ -14,6 +14,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "x86_64ELFDynamic.h"
 #include "x86_64PLT.h"
+#include "llvm/BinaryFormat/ELF.h"
 
 namespace eld {
 
@@ -77,7 +78,11 @@ public:
   x86_64GOT *findEntryInGOT(ResolveInfo *) const;
 
   // ---  PLT Support ------
-  x86_64PLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym);
+  // Create a PLT entry for a symbol. If isIRelative is true, emit an
+  // IRELATIVE relocation targeting the GOTPLT slot and build a PLT entry
+  // suitable for eager binding (no PLT0 back-edge).
+  x86_64PLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
+                       bool isIRelative = false);
 
   void recordPLT(ResolveInfo *, x86_64PLT *);
 
@@ -95,6 +100,8 @@ public:
     m_RelativeRelocMap[DynRel] = OrigRel;
   }
 
+  void defineIRelativeRange(ResolveInfo &pSym);
+
   void sortRelocation(ELFSection &pSection) override;
 
   DynRelocType getDynRelocType(const Relocation *X) const override {
@@ -102,7 +109,7 @@ public:
       return DynRelocType::GLOB_DAT;
     if (X->type() == llvm::ELF::R_X86_64_JUMP_SLOT)
       return DynRelocType::JMP_SLOT;
-    if (X->type() == llvm::ELF::R_X86_64_RELATIVE)
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE || X->type()==llvm::ELF::R_X86_64_IRELATIVE)
       return DynRelocType::RELATIVE;
     if (X->type() == llvm::ELF::R_X86_64_DTPMOD64) {
       if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
@@ -126,8 +133,9 @@ public:
     if (!X->symInfo()) {
       return false;
     }
-    if (X->type() == llvm::ELF::R_X86_64_RELATIVE)
-      return false; // RELATIVE relocations do not encode a symbol
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE ||
+        X->type() == llvm::ELF::R_X86_64_IRELATIVE)
+      return false; // RELATIVE and IRELATIVE relocations do not encode a symbol
     if (X->symInfo()->binding() == ResolveInfo::Local)
       return false; // locals are not in .dynsym
     return true;
@@ -155,6 +163,10 @@ private:
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
   llvm::DenseMap<Relocation *, const Relocation *> m_RelativeRelocMap;
+
+  // IRELATIVE range symbols for static executables
+  LDSymbol *m_pIRelativeStart = nullptr;
+  LDSymbol *m_pIRelativeEnd = nullptr;
 };
 } // namespace eld
 

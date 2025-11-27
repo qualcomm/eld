@@ -1,0 +1,20 @@
+#UNSUPPORTED: windows
+#------IRelativeStatic.test-------IRELATIVE Relocations in Static Executables------#
+#BEGIN_COMMENT
+# Verifies IRELATIVE relocations (R_X86_64_IRELATIVE) are generated when
+# statically linking with glibc. Static glibc contains ifunc implementations
+# for performance-critical functions like memcpy, memset, strcpy, etc.
+# The linker should generate  IRELATIVE relocations and define
+# the special symbols __rela_iplt_start and __rela_iplt_end for static ifunc resolution.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -fuse-ld=%link -static -o %t.out %t.1.o
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=COUNT-IRELATIVE
+RUN: %readelf -s %t.out | %filecheck %s --check-prefix=CHECK-IPLT-SYMBOLS
+COUNT-IRELATIVE-COUNT-22: R_X86_64_IRELATIV
+COUNT-IRELATIVE-NOT: R_X86_64_IRELATIV
+CHECK-IPLT-SYMBOLS-DAG: __rela_iplt_start
+CHECK-IPLT-SYMBOLS-DAG: __rela_iplt_end
+EXITCODE: 11
