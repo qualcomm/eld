@@ -1,0 +1,26 @@
+#UNSUPPORTED: windows
+#------CopyReloc.test-------Copy Relocations------#
+#BEGIN_COMMENT
+# Verifies copy relocations for data symbols in non-PIC executables.
+# When a non-PIC executable references a data symbol from a shared library,
+# the linker should create a copy relocation (R_X86_64_COPY) to avoid
+# runtime relocations in read-only sections.
+# The copied symbol should be placed in .bss section of the executable.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o -ffunction-sections -fno-pic
+RUN: %readelf -r %t.1.o | %filecheck %s --check-prefix=CHECK-ABS-TYPE
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o -ffunction-sections -fPIC
+RUN: %link %linkopts -shared -o %t.libu.so %t.2.o
+RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.libu.so -no-pie
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=CHECK-COPY-RELOC
+RUN: %readelf -s %t.out | %filecheck %s --check-prefix=CHECK-BSS-SYMBOLS
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+
+CHECK-ABS-TYPE-DAG: {{.*}}R_X86_64_64{{.*}}v{{.*}}
+CHECK-ABS-TYPE-DAG: {{.*}}R_X86_64_32S{{.*}}u{{.*}}
+CHECK-COPY-RELOC-DAG: {{.*}}R_X86_64_COPY{{.*}}u{{.*}}
+CHECK-COPY-RELOC-DAG: {{.*}}R_X86_64_COPY{{.*}}v{{.*}}
+CHECK-BSS-SYMBOLS-DAG: {{.*}}OBJECT{{.*}}u{{.*}}
+CHECK-BSS-SYMBOLS-DAG: {{.*}}OBJECT{{.*}}v{{.*}}
+EXITCODE: 16
