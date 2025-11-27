@@ -1,0 +1,21 @@
+#UNSUPPORTED: windows
+#------TlsLDModel.test-------Shared Object------#
+#BEGIN_COMMENT
+# Verifies TLS Local Dynamic (LD) model for static thread-local variables.
+# The LD model is used when multiple static TLS variables are accessed in the
+# same function, allowing the __tls_get_addr call to be shared across accesses.
+# Only one DTPMOD64 relocation should be emitted per module, regardless of the
+# number of static TLS variables accessed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
+RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
+RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.lib2.so
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -r %t.lib2.so | %filecheck %s --check-prefix=CHECK-ONE-DTPMOD
+
+# Should have exactly one DTPMOD64 relocation (shared across all static TLS accesses)
+CHECK-ONE-DTPMOD: {{.*}}R_X86_64_DTPMOD64{{.*}}
+CHECK-ONE-DTPMOD-NOT: R_X86_64_DTPMOD64
+EXITCODE: 11

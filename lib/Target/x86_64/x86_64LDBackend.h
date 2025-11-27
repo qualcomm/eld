@@ -95,6 +95,8 @@ public:
     m_RelativeRelocMap[DynRel] = OrigRel;
   }
 
+  void sortRelocation(ELFSection &pSection) override;
+
   DynRelocType getDynRelocType(const Relocation *X) const override {
     if (X->type() == llvm::ELF::R_X86_64_GLOB_DAT)
       return DynRelocType::GLOB_DAT;
@@ -121,6 +123,9 @@ public:
   }
 
   bool hasSymInfo(const Relocation *X) const override {
+    if (!X->symInfo()) {
+      return false;
+    }
     if (X->type() == llvm::ELF::R_X86_64_RELATIVE)
       return false; // RELATIVE relocations do not encode a symbol
     if (X->symInfo()->binding() == ResolveInfo::Local)
