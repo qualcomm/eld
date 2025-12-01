@@ -1,0 +1,18 @@
+#UNSUPPORTED: windows
+#------CopyReloc.test-------Copy Relocations------#
+#BEGIN_COMMENT
+# Verifies copy relocations for data symbols in non-PIC executables.
+# When a non-PIC executable references a data symbol from a shared library,
+# the linker should create a copy relocation (R_X86_64_COPY) to avoid
+# runtime relocations in read-only sections.
+# The copied symbol should be placed in .bss section of the executable.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o -ffunction-sections -fno-pic
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o -ffunction-sections -fPIC
+RUN: %link %linkopts -shared -o %t.libu.so %t.2.o
+RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.libu.so -no-pie
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=CHECK-COPY-RELOC
+CHECK-COPY-RELOC: {{.*}}R_X86_64_COPY{{.*}}u{{.*}}
+EXITCODE: 11

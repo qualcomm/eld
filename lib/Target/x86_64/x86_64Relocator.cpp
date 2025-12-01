@@ -95,6 +95,8 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_DTPOFF32:
   case llvm::ELF::R_X86_64_DTPOFF64:
   case llvm::ELF::R_X86_64_GOTTPOFF:
+  case llvm::ELF::R_X86_64_TLSGD:
+  case llvm::ELF::R_X86_64_TLSLD:
     return false;
   default:
     return true; // Other Relocations are not supported as of now
@@ -183,7 +185,9 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
       // Writer will compute final: S (see emitRela RELATIVE case)
       rela_entry->setAddend(0);
     }
-  } else if (pType == llvm::ELF::R_X86_64_TPOFF64) {
+  } else if (pType == llvm::ELF::R_X86_64_TPOFF64 ||
+             pType == llvm::ELF::R_X86_64_DTPMOD64 ||
+             pType == llvm::ELF::R_X86_64_DTPOFF64) {
     rela_entry->setAddend(0);
   } else if (R) {
     rela_entry->setAddend(R->addend());
@@ -191,7 +195,8 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
     rela_entry->setAddend(0);
   }
 
-  if (R && (pType == llvm::ELF::R_X86_64_RELATIVE)) {
+  if (R && (pType == llvm::ELF::R_X86_64_RELATIVE ||
+            pType == llvm::ELF::R_X86_64_IRELATIVE)) {
     B.recordRelativeReloc(rela_entry, R);
   }
   return rela_entry;
@@ -219,6 +224,26 @@ x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
 
 } // namespace
 
+x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
+  static x86_64GOT *G = nullptr;
+  if (G != nullptr) {
+    m_Target.recordGOT(R, G);
+    return G;
+  }
+
+  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+
+  ASSERT(!isStatic,
+         "We always need to relax if -static because libc.a doesn't "
+         "contain__tls_get_addr(). Relaxations are currently unsupported");
+
+  if (!isStatic)
+    helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
+                       nullptr, G, 0x0, llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+
+  m_Target.recordGOT(R, G);
+  return G;
+}
 void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                                      eld::IRBuilder &pBuilder,
                                      ELFSection &pSection) {
@@ -226,7 +251,7 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
   switch (pReloc.type()) {
-  case llvm::ELF::R_X86_64_64:
+  case llvm::ELF::R_X86_64_64: {
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       rsym->setReserved(rsym->reserved() | ReserveRel);
@@ -236,6 +261,22 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                          llvm::ELF::R_X86_64_RELATIVE, m_Target);
     }
     return;
+  }
+  case llvm::ELF::R_X86_64_GOTTPOFF: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+    // Create a TLS IE GOT entry.
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    G->setValueType(GOT::TLSStaticSymbolValue);
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_TLSLD: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
+    return;
+  }
   default:
     break;
   }
@@ -243,7 +284,8 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
 
 void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
                                       eld::IRBuilder &pBuilder,
-                                      ELFSection &pSection, CopyRelocs &) {
+                                      ELFSection &pSection,
+                                      CopyRelocs &copyRelocs) {
 
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
@@ -255,6 +297,22 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
                                       true)) {
+      // COPY relocations for data symbols referenced from non-PIC
+      // executables
+      if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
+        if (config().options().hasNoCopyReloc()) {
+          // Honor -z nocopyreloc
+          config().raise(Diag::copyrelocs_is_error)
+              << rsym->name() << pInputFile.getInput()->decoratedPath()
+              << rsym->resolvedOrigin()->getInput()->decoratedPath();
+          return;
+        }
+        copyRelocs.insert(rsym);
+        // Do not emit a dynamic relocation here; copy reloc will be created
+        // later
+        return;
+      }
+      // No copy reloc needed: emit a dynamic relocation as before
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
@@ -265,14 +323,63 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     }
     return;
   }
-  case llvm::ELF::R_X86_64_PLT32: {
+
+  // Handle smaller absolute relocations similarly: if a dynamic relocation
+  // would be required, can use COPY reloc; otherwise need to error out as
+  // non-pointer-sized dynamic relocations should not be emitted
+  case llvm::ELF::R_X86_64_32:
+  case llvm::ELF::R_X86_64_32S:
+  case llvm::ELF::R_X86_64_16:
+  case llvm::ELF::R_X86_64_8: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (!m_Target.isSymbolPreemptible(*rsym))
+    const bool isAbsReloc = true;
+    if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
+                                      isAbsReloc)) {
+      // For truncated absolute relocations, we cannot emit a suitable dynamic
+      // reloc; require a COPY relocation for data symbols.
+      if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
+        if (config().options().hasNoCopyReloc()) {
+          config().raise(Diag::copyrelocs_is_error)
+              << rsym->name() << pInputFile.getInput()->decoratedPath()
+              << rsym->resolvedOrigin()->getInput()->decoratedPath();
+          return;
+        }
+        copyRelocs.insert(rsym);
+        return;
+      }
+      config().raise(Diag::non_pic_relocation)
+          << (int)pReloc.type() << pReloc.symInfo()->name()
+          << pReloc.getSourcePath(config().options());
+      m_Target.getModule().setFailure(true);
       return;
-    if (!(rsym->reserved() & ReservePLT)) {
-      m_Target.createPLT(Obj, rsym);
-      rsym->setReserved(rsym->reserved() | ReservePLT);
     }
+    // No dynamic relocation needed; keep as static relocation.
+    return;
+  }
+  case llvm::ELF::R_X86_64_PLT32: {
+    // return if we already create plt for this symbol
+    if (rsym->reserved() & ReservePLT)
+      return;
+
+    // create IRELATIVE for IFUNC symbol
+    if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
+      m_Target.createPLT(Obj, rsym, true);
+      rsym->setReserved(rsym->reserved() | ReservePLT);
+      x86_64LDBackend &backend = getTarget();
+      backend.defineIRelativeRange(*rsym);
+      return;
+    }
+    // if symbol is defined in the output file and it's not
+    // preemptible, no need plt
+    if (!getTarget().isSymbolPreemptible(*rsym)) {
+      return;
+    }
+
+    // Symbol needs PLT entry, we need to reserve a PLT entry
+    // and the corresponding GOT and dynamic relocation entry
+    // in .got and .rel.plt.
+    m_Target.createPLT(Obj, rsym);
+    rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
 
@@ -300,6 +407,36 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
                          llvm::ELF::R_X86_64_TPOFF64, m_Target);
     }
     rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_TLSGD: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (rsym->reserved() & ReserveGOT)
+      return;
+
+    // Create GD GOT pair (x86_64GDGOT creates both entries)
+    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+
+    // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
+    helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
+                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+
+    // Check if symbol is preemptible to decide on second entry
+    if (m_Target.isSymbolPreemptible(*rsym)) {
+      // Preemptible: emit DTPOFF64 (dynamic loader fills it)
+      helper_DynRel_init(Obj, &pReloc, rsym, G->getNext(), 0x0,
+                         llvm::ELF::R_X86_64_DTPOFF64, m_Target);
+    } else {
+      // Non-preemptible: fill second entry at link time
+      G->getNext()->setValueType(GOT::TLSStaticSymbolValue);
+    }
+
+    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    return;
+  }
+  case llvm::ELF::R_X86_64_TLSLD: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
     return;
   }
   default:
@@ -432,6 +569,7 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
   // the symbol is a weak undefined symbol, it should still use the undefined
   // symbol value which is 0. For non absolute relocations, the call is set to a
   // symbol defined by the linker which returns back to the caller.
+
   if (rsym && rsym->isWeakUndef() &&
       (pParent.config().codeGenType() == LinkerConfig::Exec)) {
     S = 0;
@@ -519,7 +657,8 @@ Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
 
 /// Apply GOT-relative relocations: GOT[S] + A - P
 ///
-/// Unified handler for GOTPCREL, GOTPCRELX, REX_GOTPCRELX, and GOTTPOFF.
+/// Unified handler for GOTPCREL, GOTPCRELX, REX_GOTPCRELX,
+// and TLS related relocations GOTTPOFF and TLSGD.
 /// These relocations share the same application formula but differ in GOT
 /// entry type (regular vs TLS) determined during relocation scanning.
 Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
@@ -533,7 +672,6 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   Relocator::DWord P = pReloc.place(pParent.module());
   x86_64GOT *gotEntry = pParent.getTarget().findEntryInGOT(symInfo);
   uint64_t Result = gotEntry->getAddr(DiagEngine) + A - P;
-
   return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
 }
 

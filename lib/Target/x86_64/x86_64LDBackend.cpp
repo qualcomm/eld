@@ -33,7 +33,8 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 x86_64LDBackend::x86_64LDBackend(Module &pModule, x86_64Info *pInfo)
     : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
-      m_pEndOfImage(nullptr) {}
+      m_pEndOfImage(nullptr), m_pIRelativeStart(nullptr),
+      m_pIRelativeEnd(nullptr) {}
 
 x86_64LDBackend::~x86_64LDBackend() {}
 
@@ -117,6 +118,24 @@ bool x86_64LDBackend::finalizeTargetSymbols() {
     m_pEndOfImage->setValue(imageEnd + 1);
   }
 
+  // Finalize __rela_iplt range symbols for static executables when
+  // output sections are available.
+  if (config().isCodeStatic() && m_pIRelativeStart && m_pIRelativeEnd &&
+      getRelaPLT()->getOutputSection()) {
+    ELFSection *relaPltSec = getRelaPLT()->getOutputSection()->getSection();
+
+    m_pIRelativeStart->setValue(relaPltSec->addr());
+    m_pIRelativeEnd->setValue(relaPltSec->addr() + relaPltSec->size());
+
+    // Associate symbols with the .rela.plt section
+    if (!relaPltSec->getFragmentList().empty()) {
+      Fragment *firstFrag = *relaPltSec->getFragmentList().begin();
+      m_pIRelativeStart->setFragmentRef(make<FragmentRef>(*firstFrag, 0));
+      m_pIRelativeEnd->setFragmentRef(
+          make<FragmentRef>(*firstFrag, relaPltSec->size()));
+    }
+  }
+
   return true;
 }
 
@@ -132,6 +151,35 @@ void x86_64LDBackend::doPreLayout() {
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
     m_Module.addOutputSection(getRelaDyn());
+  }
+}
+
+// Define synthetic range symbols for IRELATIVE processing in static
+// executables. Values are finalized to bound the .rela.plt output section.
+void x86_64LDBackend::defineIRelativeRange(ResolveInfo &pSym) {
+  if (m_Module.getScript().linkerScriptHasSectionsCommand())
+    return;
+  auto SymbolName = "__rela_iplt_start";
+  if (!m_pIRelativeStart && !m_pIRelativeEnd) {
+    m_pIRelativeStart =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::Script), SymbolName,
+                ResolveInfo::Object, ResolveInfo::Define,
+                ResolveInfo::Local, //
+                0,                  // size
+                0x0,                // value
+                FragmentRef::null(), ResolveInfo::Hidden);
+
+    m_pIRelativeEnd =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::Script), "__rela_iplt_end",
+                ResolveInfo::Object, ResolveInfo::Define,
+                ResolveInfo::Local, //
+                0,                  // size
+                0x0,                // value
+                FragmentRef::null(), ResolveInfo::Hidden);
   }
 }
 
@@ -169,7 +217,7 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     G = x86_64GDGOT::Create(Obj->getGOT(), R);
     break;
   case GOT::TLS_LD:
-    assert(0);
+    G = x86_64LDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_IE:
     G = x86_64IEGOT::Create(Obj->getGOT(), R);
@@ -206,7 +254,8 @@ x86_64GOT *x86_64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
+x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
+                                      bool isIRelative) {
   bool hasNow = config().options().hasNow();
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
@@ -215,26 +264,29 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
 
   // Create PLT0 if this is the first PLT entry. PLT0 is the common
   // trampoline that all PLTN entries jump to for symbol resolution.
-  if (!hasNow && !getPLT()->getFragmentList().size()) {
+  if (!hasNow && !isIRelative && !getPLT()->getFragmentList().size()) {
     x86_64PLT0::Create(*m_Module.getIRBuilder(),
                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                        nullptr, hasNow);
   }
-  x86_64PLT *P =
-      x86_64PLTN::Create(*m_Module.getIRBuilder(),
-                         createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R, hasNow);
+  x86_64PLT *P = x86_64PLTN::Create(
+      *m_Module.getIRBuilder(), createGOT(GOT::GOTPLTN, Obj, R), getPLT(), R,
+      /*BindNow*/ (hasNow || isIRelative));
 
   // The relocation index is set before getContent() is called during
   // layout, as it is embedded directly in the PLT entry's instruction bytes.
   x86_64PLTN *pltn = llvm::cast<x86_64PLTN>(P);
   pltn->setRelocIndex(m_RelaPLTIndex);
 
-  // Create JUMP_SLOT relocation entry in .rela.plt section for dynamic linker
-  // The dynamic linker uses this to resolve the function address on first call
   Relocation &rela_entry = *Obj->getRelaPLT()->createOneReloc();
-  rela_entry.setType(llvm::ELF::R_X86_64_JUMP_SLOT);
-  Fragment *F = P->getGOT();
-  rela_entry.setTargetRef(make<FragmentRef>(*F, 0));
+  rela_entry.setType(isIRelative ? llvm::ELF::R_X86_64_IRELATIVE
+                                 : llvm::ELF::R_X86_64_JUMP_SLOT);
+  rela_entry.setTargetRef(make<FragmentRef>(*P->getGOT(), 0));
+  if (isIRelative) {
+    P->getGOT()->setValueType(GOT::SymbolValue);
+    if (auto *gpltn = llvm::dyn_cast<x86_64GOTPLTN>(P->getGOT()))
+      gpltn->setNoInit(true);
+  }
   rela_entry.setSymInfo(R);
 
   m_RelaPLTIndex++;
@@ -273,6 +325,78 @@ void x86_64LDBackend::setDefaultConfigs() {
       !config().isGlobalThreadingEnabled()) {
     config().disableThreadOptions(LinkerConfig::EnableThreadsOpt::AllThreads);
   }
+}
+
+/// sortRelocation - Override to handle TLS Local Dynamic (TLSLD) relocations.
+///
+/// The base implementation in GNULDBackend assumes that relocations without
+/// symbol info (!hasSymInfo) are RELATIVE relocations. However, TLSLD emits
+/// R_X86_64_DTPMOD64 relocations without symbol info (they reference the
+/// module, not a specific symbol). This causes DTPMOD64 to be incorrectly
+/// sorted among RELATIVE relocations.
+///
+/// The dynamic loader expects the first N relocations to be RELATIVE, but
+/// mixing DTPMOD64 among them causes loader errors. This override ensures
+/// proper sorting by explicitly checking relocation types rather than relying
+/// solely on hasSymInfo().
+void x86_64LDBackend::sortRelocation(ELFSection &pSection) {
+  if (!config().options().hasCombReloc())
+    return;
+
+  if (pSection.getKind() != LDFileFormat::DynamicRelocation)
+    return;
+
+  if ((pSection.name() != ".rel.dyn") && (pSection.name() != ".rela.dyn"))
+    return;
+
+  std::sort(pSection.getRelocations().begin(), pSection.getRelocations().end(),
+            [this](Relocation *X, Relocation *Y) {
+              // 1. RELATIVE relocations always come first
+              bool xIsRelative = (X->type() == llvm::ELF::R_X86_64_RELATIVE);
+              bool yIsRelative = (Y->type() == llvm::ELF::R_X86_64_RELATIVE);
+
+              if (xIsRelative && !yIsRelative)
+                return true;
+              if (!xIsRelative && yIsRelative)
+                return false;
+
+              // 2. Among non-RELATIVE relocations, compare if relocation has
+              // symbol info
+              if (!hasSymInfo(X)) {
+                if (hasSymInfo(Y))
+                  return true;
+              } else if (!hasSymInfo(Y)) {
+                return false;
+              } else {
+                // 2. compare the symbol index
+                size_t symIdxX = getDynSymbolIdx(X->symInfo()->outSymbol());
+                size_t symIdxY = getDynSymbolIdx(Y->symInfo()->outSymbol());
+                if (symIdxX < symIdxY)
+                  return true;
+                if (symIdxX > symIdxY)
+                  return false;
+              }
+
+              // 3. compare the relocation address
+              if (X->place(m_Module) < Y->place(m_Module))
+                return true;
+              if (X->place(m_Module) > Y->place(m_Module))
+                return false;
+
+              // 4. compare the relocation type
+              if (X->type() < Y->type())
+                return true;
+              if (X->type() > Y->type())
+                return false;
+
+              // 5. compare the addend
+              if (X->addend() < Y->addend())
+                return true;
+              if (X->addend() > Y->addend())
+                return false;
+
+              return false;
+            });
 }
 
 namespace eld {

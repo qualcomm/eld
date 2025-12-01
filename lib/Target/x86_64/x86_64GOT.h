@@ -42,13 +42,20 @@ public:
 
   virtual llvm::ArrayRef<uint8_t> getContent() const override {
     Value = 0;
-    // If the GOT contents needs to reflect a symbol value, then we use the
-    // symbol value.
-    if (getValueType() == GOT::SymbolValue)
+
+    if (getValueType() == GOT::SymbolValue) {
       Value = symInfo()->outSymbol()->value();
-    if (getValueType() == GOT::TLSStaticSymbolValue)
-      Value =
-          symInfo()->outSymbol()->value() - GNULDBackend::getTLSTemplateSize();
+    } else if (getValueType() == GOT::TLSStaticSymbolValue) {
+      if (GotType == GOT::TLS_IE) {
+        // IE model: TP offset
+        Value = symInfo()->outSymbol()->value() -
+                GNULDBackend::getTLSTemplateSize();
+      } else if (GotType == GOT::TLS_GD) {
+        // GD model, non-preemptible: DTV offset (second entry of pair)
+        // First entry gets DTPMOD64 relocation, second entry filled here
+        Value = symInfo()->outSymbol()->value();
+      }
+    }
 
     return llvm::ArrayRef(reinterpret_cast<uint8_t *>(&Value), sizeof(Value));
   }
@@ -105,11 +112,12 @@ private:
  *  Updated by dynamic linker on first call to point to actual function for the
  * case of lazy binding.
  */
+
 class x86_64GOTPLTN : public x86_64GOT {
 public:
   x86_64GOTPLTN(ELFSection *O, ResolveInfo *R)
       : x86_64GOT(GOT::GOTPLTN, O, R, /*Align=*/8, /*Size=*/8),
-        m_PLTEntry(nullptr) {}
+        m_PLTEntry(nullptr), m_NoInit(false) {}
 
   x86_64GOT *getFirst() override { return this; }
 
@@ -118,12 +126,18 @@ public:
   // Link to corresponding PLT entry for address calculation
   void setPLTEntry(Fragment *plt) { m_PLTEntry = plt; }
 
+  // For IFUNC/IRELATIVE, do not pre-fill the GOTPLT entry; startup will set it.
+  void setNoInit(bool v) { m_NoInit = v; }
+
   virtual llvm::ArrayRef<uint8_t> getContent() const override {
     Value = 0;
+    if (m_NoInit)
+      return llvm::ArrayRef(reinterpret_cast<uint8_t *>(&Value), sizeof(Value));
     ELFSection *pltSection =
         m_PLTEntry->getOwningSection()->getOutputELFSection();
 
     // Point to PLT entry + 6 (pushq instruction)
+
     Value = pltSection->addr() + m_PLTEntry->getOffset() + 6;
 
     return llvm::ArrayRef(reinterpret_cast<uint8_t *>(&Value), sizeof(Value));
@@ -134,6 +148,7 @@ public:
 private:
   Fragment *m_PLTEntry;
   mutable uint64_t Value;
+  bool m_NoInit;
 };
 
 class x86_64GDGOT : public x86_64GOT {
