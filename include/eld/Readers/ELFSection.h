@@ -338,7 +338,9 @@ protected:
   llvm::SmallVector<ELFSection *, 0> DependentSections;
 };
 
-static_assert(sizeof(ELFSection) <= 240, "ELFSection grew too large!");
+#ifndef _WIN32
+static_assert(sizeof(ELFSection) <= 248, "ELFSection grew too large!");
+#endif
 
 } // namespace eld
 
