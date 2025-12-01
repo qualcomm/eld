@@ -173,9 +173,9 @@ public:
 
   /// addr - An integer specifying the virtual address of this section in the
   /// virtual image.
-  uint64_t addr() const { return Addr ? *Addr : 0; }
+  uint64_t addr() const { return hasVMA() ? Addr : 0; }
 
-  bool hasVMA() const { return Addr.has_value(); }
+  bool hasVMA() const { return Addr != InvalidAddr; }
 
   uint64_t pAddr() const { return PAddr; }
 
@@ -295,9 +295,11 @@ public:
   std::optional<std::string> getRMSectName() const;
 
 protected:
+  static constexpr uint64_t InvalidAddr = ~uint64_t(0);
+
   /// FIXME: This has different meanings for Input/Output sections.
   uint64_t Offset = ~uint64_t(0);
-  std::optional<uint64_t> Addr;
+  uint64_t Addr = InvalidAddr;
   /// FIXME: only relevant for output sections.
   uint64_t PAddr;
   LDSymbol *Symbol = nullptr;
@@ -325,7 +327,7 @@ protected:
 };
 
 #ifndef _WIN32
-static_assert(sizeof(ELFSection) <= 232, "ELFSection grew too large!");
+static_assert(sizeof(ELFSection) <= 224, "ELFSection grew too large!");
 #endif
 
 } // namespace eld
