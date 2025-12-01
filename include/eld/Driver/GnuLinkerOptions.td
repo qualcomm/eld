@@ -688,7 +688,8 @@ defm trace
           "\t\t\t --trace=trampolines : trace trampolines\n"
           "\t\t\t --trace=wrap-symbols : trace symbol wrap options\n"
           "\t\t\t --trace=symdef : trace symbol resolution from symdef files\n"
-          "\t\t\t --trace=dynamic-linking : trace dynamic linking">,
+          "\t\t\t --trace=dynamic-linking : trace dynamic linking"
+          "\t\t\t --trace=symbol-versioning : trace symbol versioning">,
       MetaVarName<"<trace-type>">,
       Group<grp_diagopts>;
 defm trace_symbol : smDashTwoWithOpt<"y", "trace-symbol", "trace_symbol",
