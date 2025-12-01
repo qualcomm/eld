@@ -169,7 +169,7 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     G = x86_64GDGOT::Create(Obj->getGOT(), R);
     break;
   case GOT::TLS_LD:
-    assert(0);
+    G = x86_64LDGOT::Create(getGOT(), R);
     break;
   case GOT::TLS_IE:
     G = x86_64IEGOT::Create(Obj->getGOT(), R);
@@ -273,6 +273,78 @@ void x86_64LDBackend::setDefaultConfigs() {
       !config().isGlobalThreadingEnabled()) {
     config().disableThreadOptions(LinkerConfig::EnableThreadsOpt::AllThreads);
   }
+}
+
+/// sortRelocation - Override to handle TLS Local Dynamic (TLSLD) relocations.
+///
+/// The base implementation in GNULDBackend assumes that relocations without
+/// symbol info (!hasSymInfo) are RELATIVE relocations. However, TLSLD emits
+/// R_X86_64_DTPMOD64 relocations without symbol info (they reference the
+/// module, not a specific symbol). This causes DTPMOD64 to be incorrectly
+/// sorted among RELATIVE relocations.
+///
+/// The dynamic loader expects the first N relocations to be RELATIVE, but
+/// mixing DTPMOD64 among them causes loader errors. This override ensures
+/// proper sorting by explicitly checking relocation types rather than relying
+/// solely on hasSymInfo().
+void x86_64LDBackend::sortRelocation(ELFSection &pSection) {
+  if (!config().options().hasCombReloc())
+    return;
+
+  if (pSection.getKind() != LDFileFormat::DynamicRelocation)
+    return;
+
+  if ((pSection.name() != ".rel.dyn") && (pSection.name() != ".rela.dyn"))
+    return;
+
+  std::sort(pSection.getRelocations().begin(), pSection.getRelocations().end(),
+            [this](Relocation *X, Relocation *Y) {
+              // 1. RELATIVE relocations always come first
+              bool xIsRelative = (X->type() == llvm::ELF::R_X86_64_RELATIVE);
+              bool yIsRelative = (Y->type() == llvm::ELF::R_X86_64_RELATIVE);
+
+              if (xIsRelative && !yIsRelative)
+                return true;
+              if (!xIsRelative && yIsRelative)
+                return false;
+
+              // 2. Among non-RELATIVE relocations, compare if relocation has
+              // symbol info
+              if (!hasSymInfo(X)) {
+                if (hasSymInfo(Y))
+                  return true;
+              } else if (!hasSymInfo(Y)) {
+                return false;
+              } else {
+                // 2. compare the symbol index
+                size_t symIdxX = getDynSymbolIdx(X->symInfo()->outSymbol());
+                size_t symIdxY = getDynSymbolIdx(Y->symInfo()->outSymbol());
+                if (symIdxX < symIdxY)
+                  return true;
+                if (symIdxX > symIdxY)
+                  return false;
+              }
+
+              // 3. compare the relocation address
+              if (X->place(m_Module) < Y->place(m_Module))
+                return true;
+              if (X->place(m_Module) > Y->place(m_Module))
+                return false;
+
+              // 4. compare the relocation type
+              if (X->type() < Y->type())
+                return true;
+              if (X->type() > Y->type())
+                return false;
+
+              // 5. compare the addend
+              if (X->addend() < Y->addend())
+                return true;
+              if (X->addend() > Y->addend())
+                return false;
+
+              return false;
+            });
 }
 
 namespace eld {

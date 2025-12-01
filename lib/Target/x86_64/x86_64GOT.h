@@ -42,13 +42,20 @@ public:
 
   virtual llvm::ArrayRef<uint8_t> getContent() const override {
     Value = 0;
-    // If the GOT contents needs to reflect a symbol value, then we use the
-    // symbol value.
-    if (getValueType() == GOT::SymbolValue)
+
+    if (getValueType() == GOT::SymbolValue) {
       Value = symInfo()->outSymbol()->value();
-    if (getValueType() == GOT::TLSStaticSymbolValue)
-      Value =
-          symInfo()->outSymbol()->value() - GNULDBackend::getTLSTemplateSize();
+    } else if (getValueType() == GOT::TLSStaticSymbolValue) {
+      if (GotType == GOT::TLS_IE) {
+        // IE model: TP offset
+        Value = symInfo()->outSymbol()->value() -
+                GNULDBackend::getTLSTemplateSize();
+      } else if (GotType == GOT::TLS_GD) {
+        // GD model, non-preemptible: DTV offset (second entry of pair)
+        // First entry gets DTPMOD64 relocation, second entry filled here
+        Value = symInfo()->outSymbol()->value();
+      }
+    }
 
     return llvm::ArrayRef(reinterpret_cast<uint8_t *>(&Value), sizeof(Value));
   }
