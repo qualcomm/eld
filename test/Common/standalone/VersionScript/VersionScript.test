@@ -1,4 +1,4 @@
-UNSUPPORTED: ndk-build
+UNSUPPORTED: ndk-build, symbol_versioning
 #---VersionScript.test--------------------- Exe------------------#
 
 

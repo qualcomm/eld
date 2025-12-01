@@ -42,9 +42,9 @@ public:
    *   - overriden, if true, the info is being overriden.
    */
   struct Result {
-    ResolveInfo *Info;
-    bool Existent;
-    bool Overriden;
+    ResolveInfo *Info = nullptr;
+    bool Existent = false;
+    bool Overriden = false;
   };
 
 public:

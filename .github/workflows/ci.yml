@@ -89,6 +89,7 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             -DELD_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;x86_64" \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             ../llvm-project/llvm
 
       - name: Cache Usage before build

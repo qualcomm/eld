@@ -17,7 +17,9 @@
 #include "eld/Input/ELFFileBase.h"
 #include "eld/Input/Input.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"
+#include <cstdint>
 #include <string>
 
 namespace eld {
@@ -231,6 +233,24 @@ public:
   uint64_t value() const { return SymbolValue; }
 
   const char *name() const { return SymbolName.data(); }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  llvm::StringRef getNonVersionedName() const {
+    InputFile *origin = resolvedOrigin();
+    if (origin && origin->isInternal()) {
+      return SymbolName;
+    }
+    llvm::StringRef::size_type pos = SymbolName.find('@');
+    return SymbolName.substr(0, pos);
+  }
+
+  llvm::StringRef getVersionName() const {
+    auto pos = SymbolName.find_last_of('@');
+    if (pos == std::string::npos)
+      return "";
+    return llvm::StringRef(SymbolName).substr(pos + 1);
+  }
+#endif
 
   llvm::StringRef getName() const { return SymbolName; }
 

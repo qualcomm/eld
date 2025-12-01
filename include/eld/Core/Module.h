@@ -98,7 +98,10 @@ public:
     Trampoline,
     GlobalDataSymbols,
     GNUBuildID,
-    MAX,
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    SymbolVersioning,
+#endif
+    MAX
   } InternalInputType;
 
   typedef std::vector<InputFile *> ObjectList;

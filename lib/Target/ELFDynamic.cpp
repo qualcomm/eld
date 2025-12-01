@@ -19,6 +19,7 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
 
 using namespace eld;
@@ -233,6 +234,19 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
   if (m_Backend.hasTextRel())
     reserveOne(llvm::ELF::DT_TEXTREL); // DT_TEXTREL
 
+  // Reserve versioning dynamic tags only when symbol versioning is enabled.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (m_Backend.getGNUVerSymSection())
+    reserveOne(llvm::ELF::DT_VERSYM);
+
+  if (auto verDef = m_Backend.getGNUVerDefSection()) {
+    if (verDef->size()) {
+      reserveOne(llvm::ELF::DT_VERDEF);
+      reserveOne(llvm::ELF::DT_VERDEFNUM);
+    }
+  }
+#endif
+
   reserveOne(llvm::ELF::DT_DEBUG); // for Debugging
   reserveOne(llvm::ELF::DT_NULL);  // for DT_NULL
 }
@@ -396,6 +410,21 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
   if (dt_flags_1 != 0x0)
     applyOne(llvm::ELF::DT_FLAGS_1, dt_flags_1);
 
+  // Apply versioning dynamic tags only when symbol versioning is enabled.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (ELFSection *S = m_Backend.getGNUVerSymSection()) {
+    applyOne(llvm::ELF::DT_VERSYM, S->addr());
+  }
+
+  if (ELFSection *S = m_Backend.getGNUVerDefSection()) {
+    if (S->size()) {
+      applyOne(llvm::ELF::DT_VERDEF, S->addr());
+      // Def count equals section sh_info
+      applyOne(llvm::ELF::DT_VERDEFNUM, S->getInfo());
+    }
+  }
+#endif
+
   if (!m_Config.options().isCompactDyn())
     applyOne(llvm::ELF::DT_DEBUG, 0x0); // for DT_DEBUG
 
@@ -431,4 +460,3 @@ void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
 void ELFDynamic::applySoname(uint64_t pStrTabIdx) {
   applyOne(llvm::ELF::DT_SONAME, pStrTabIdx); // DT_SONAME
 }
-

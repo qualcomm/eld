@@ -38,7 +38,11 @@ void ScriptSymbol::addResolveInfoToContainer(const ResolveInfo *Info) const {
 }
 
 bool ScriptSymbol::matched(const ResolveInfo &Sym) const {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  llvm::StringRef Name = Sym.getNonVersionedName();
+#else
   llvm::StringRef Name = Sym.name();
+#endif
   uint64_t Hash = llvm::hash_combine(Name);
   if ((hasHash() && hashValue() == Hash) || WildcardPattern::matched(Name)) {
     addResolveInfoToContainer(&Sym);

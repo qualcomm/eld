@@ -45,6 +45,14 @@ public:
     return ThisResolveInfo->name();
   }
 
+  // Added in latest commit, guard for old builds.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  llvm::StringRef getNonVersionedName() const {
+    assert(ThisResolveInfo != nullptr);
+    return ThisResolveInfo->getNonVersionedName();
+  }
+#endif
+
   bool hasName() const {
     assert(nullptr != ThisResolveInfo);
     return !str().empty();

@@ -8,6 +8,9 @@
 #include "eld/Script/ScriptSymbol.h"
 #include "eld/Script/SymbolContainer.h"
 #include "eld/Support/Memory.h"
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/SymbolResolver/NamePool.h"
+#endif
 
 using namespace eld;
 
@@ -145,3 +148,29 @@ void VersionSymbol::dump(
           << ">\n";
   ThisSymbol->getSymbolContainer()->dump(Ostream, GetDecoratedPath);
 }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+bool VersionSymbol::matched(const ResolveInfo &R, const NamePool &NP) const {
+  auto *VB = getBlock();
+  VersionScriptNode *VN = VB->getNode();
+  if (!VN->isAnonymous()) {
+    llvm::StringRef NodeVerName = VN->getName();
+    llvm::StringRef SymVerName = R.getVersionName();
+    bool shouldAllowUnverSymbol = true;
+    if (SymVerName.empty()) {
+      if (NP.findInfo(R.getName().str() + "@" + NodeVerName.str()) ||
+          NP.findInfo(R.getName().str() + "@@" + NodeVerName.str()))
+        shouldAllowUnverSymbol = false;
+    }
+    if (SymVerName.empty()) {
+      if (!shouldAllowUnverSymbol)
+        return false;
+    } else {
+      if (NodeVerName != SymVerName)
+        return false;
+    }
+  }
+  ScriptSymbol *symbolPattern = getSymbolPattern();
+  return symbolPattern->matched(R);
+}
+#endif

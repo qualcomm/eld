@@ -20,6 +20,11 @@ llvm_add_library(
   Stub.cpp
   SysVHashFragment.cpp
   TargetFragment.cpp
-  TimingFragment.cpp)
+  TimingFragment.cpp
+  PARTIAL_SOURCES_INTENDED)
+
+if (ELD_ENABLE_SYMBOL_VERSIONING)
+  target_sources(ELDFragment PRIVATE GNUVerDefFragment.cpp GNUVerSymFragment.cpp)
+endif()
 
 target_link_libraries(ELDFragment PRIVATE ELDSymbolResolver)
