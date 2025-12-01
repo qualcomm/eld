@@ -47,6 +47,9 @@ public:
     TraceMergeStrings = 0x8000,
     TraceLinkerScript = 0x10000,
     TraceSymDef = 0x100000,
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    TraceSymbolVersioning = 0x200000
+#endif
   };
 
   enum Verbose : uint16_t { None = 0x0, Default = 0x1 };
@@ -97,6 +100,12 @@ public:
   bool traceLinkerScript() { return (Trace & TraceLinkerScript); }
 
   bool traceSymDef() { return (Trace & TraceSymDef); }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  bool traceSymbolVersioning() const { return (Trace & TraceSymbolVersioning); }
+#else
+  bool traceSymbolVersioning() const { return false; }
+#endif
 
   uint32_t trace() { return Trace; }
 

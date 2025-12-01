@@ -242,7 +242,11 @@ bool Module::createInternalInputs() {
     case Module::InternalInputType::GNUBuildID:
       I = make<Input>("Build ID", ThisConfig.getDiagEngine());
       break;
-
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    case Module::InternalInputType::SymbolVersioning:
+      I = make<Input>("Symbol Versioning", ThisConfig.getDiagEngine());
+      break;
+#endif
     default:
       break;
     }
