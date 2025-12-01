@@ -184,15 +184,6 @@ void ELFReader<ELFT>::processAndReportSymbolAliases(
   }
 }
 
-template <class ELFT>
-bool ELFReader<ELFT>::verifyFile(DiagnosticEngine *diagEngine) {
-  ELFFileBase *EFileBase = llvm::cast<ELFFileBase>(&m_InputFile);
-  bool verify = true;
-  for (const Section *S : EFileBase->getSections())
-    verify = llvm::cast<ELFSection>(S)->verify(diagEngine) && verify;
-  return verify;
-}
-
 template <class ELFT> eld::Expected<bool> ELFReader<ELFT>::checkFlags() const {
   ASSERT(m_LLVMELFFile, "m_LLVMELFFile must be initialized!");
   GNULDBackend &backend = m_Module.getBackend();

@@ -34,9 +34,6 @@ eld::Expected<bool> ExecELFReader<ELFT>::readSectionHeaders() {
   }
 
   this->setLinkInfoAttributes();
-  // FIXME: This doesn't return the result of verifyFile to maintain
-  // compatibility with the old readers.
-  this->verifyFile(this->m_Module.getConfig().getDiagEngine());
 
   auto &PM = this->m_Module.getPluginManager();
   if (!PM.callVisitSectionsHook(this->m_InputFile))

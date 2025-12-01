@@ -139,7 +139,6 @@ eld::Expected<bool> DynamicELFReader<ELFT>::readSectionHeaders() {
   }
 
   this->setLinkInfoAttributes();
-  this->verifyFile(this->m_Module.getConfig().getDiagEngine());
 
   auto expReadDyn = readDynamic();
 

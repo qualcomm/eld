@@ -152,11 +152,6 @@ protected:
   /// Set link and info attributes to the sections.
   bool setLinkInfoAttributes();
 
-  /// Verify all the input sections created and added to the input file.
-  ///
-  /// More concretely, it calls 'verify' member function for each section.
-  bool verifyFile(DiagnosticEngine *diagEngine);
-
   /// Finds and returns a symbol's index from the extended symbol table.
   eld::Expected<uint32_t> getExtendedSymTabIdx(Elf_Sym rawSym, uint32_t symIdx);
 
