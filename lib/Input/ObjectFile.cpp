@@ -75,3 +75,15 @@ const ResolveInfo *ObjectFile::getMatchingLocalSymbol(uint64_t SectionIndex,
     return nullptr;
   return Sym->resolveInfo();
 }
+
+void ObjectFile::addDependentSection(const ELFSection *A, ELFSection *B) {
+  DependentSectionsMap[A].push_back(B);
+}
+
+const llvm::SmallVectorImpl<ELFSection *> &
+ObjectFile::getDependentSections(const ELFSection *S) const {
+  if (DependentSectionsMap.contains(S))
+    return DependentSectionsMap.at(S);
+  static auto Empty = llvm::SmallVector<ELFSection *, 0>();
+  return Empty;
+}

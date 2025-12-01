@@ -589,7 +589,10 @@ std::vector<plugin::Section> plugin::Section::getDependentSections() const {
   ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);
   if (!S)
     return DependentSections;
-  const llvm::SmallVectorImpl<ELFSection *> &D = S->getDependentSections();
+  auto *Obj = llvm::dyn_cast<ObjectFile>(S->getInputFile());
+  if (!Obj)
+    return DependentSections;
+  const llvm::SmallVectorImpl<ELFSection *> &D = Obj->getDependentSections(S);
   if (!D.size())
     return DependentSections;
   for (auto &Sec : D)

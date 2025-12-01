@@ -151,7 +151,8 @@ template <class ELFT> bool ELFReader<ELFT>::setLinkInfoAttributes() {
       else
         S->setLink(EFileBase->getELFSection(rawSectHdr.sh_link));
       if (S->isLinkOrder())
-        EFileBase->getELFSection(rawSectHdr.sh_link)->addDependentSection(S);
+        EFileBase->addDependentSection(
+            EFileBase->getELFSection(rawSectHdr.sh_link), S);
     }
   }
   return true;

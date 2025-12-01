@@ -276,12 +276,6 @@ public:
   // Linker Script support for sorting sections.
   int getPriority() const;
 
-  void addDependentSection(ELFSection *S) { DependentSections.push_back(S); }
-
-  const llvm::SmallVectorImpl<ELFSection *> &getDependentSections() const {
-    return DependentSections;
-  }
-
   Fragment *getFirstFragmentInRule() const;
 
   std::string getDecoratedName(const GeneralOptions &options) const override;
@@ -328,11 +322,10 @@ protected:
 
   /// FIXME: These vectors can be moved out of this class?
   llvm::SmallVector<const ELFSection *, 0> GroupSections;
-  llvm::SmallVector<ELFSection *, 0> DependentSections;
 };
 
 #ifndef _WIN32
-static_assert(sizeof(ELFSection) <= 248, "ELFSection grew too large!");
+static_assert(sizeof(ELFSection) <= 232, "ELFSection grew too large!");
 #endif
 
 } // namespace eld

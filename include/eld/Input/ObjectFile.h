@@ -8,7 +8,9 @@
 #define ELD_INPUT_OBJECTFILE_H
 
 #include "eld/Input/InputFile.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/SmallVector.h"
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -178,6 +180,10 @@ public:
     return ((Kind == ELF64LEKind) || (Kind == ELF64BEKind));
   }
 
+  void addDependentSection(const ELFSection *A, ELFSection *B);
+  const llvm::SmallVectorImpl<ELFSection *> &
+  getDependentSections(const ELFSection *S) const;
+
 protected:
   std::vector<Section *> MSectionTable;
   std::vector<LDSymbol *> SymTab;
@@ -202,6 +208,8 @@ private:
   std::vector<std::string> Features;
   std::unordered_map<std::pair<uint64_t, uint64_t>, LDSymbol *, HashPair>
       LocalSymbolInfoMap;
+  llvm::DenseMap<const ELFSection *, llvm::SmallVector<ELFSection *, 2>>
+      DependentSectionsMap;
 };
 
 } // namespace eld
