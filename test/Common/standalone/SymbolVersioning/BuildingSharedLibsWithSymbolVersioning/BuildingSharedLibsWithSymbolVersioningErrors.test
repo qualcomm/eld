@@ -1,0 +1,12 @@
+#---BuildingSharedLibsWithSymbolVersioningErrors.test---------------------------------#
+#BEGIN_COMMENT
+# This test verifies that linker properly creates shared libraries with
+# symbol versioning information.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
+RUN: %not %link %linkopts -o %t1.lib1.so %t1.2.o -shared 2>&1 | %filecheck %s --check-prefix=ERRORS1
+#END_TEST
+
+ERRORS1: Error: {{.*}}2.o: symbol foo@V1 has undefined version V1
+ERRORS1: Error: {{.*}}2.o: symbol bar@V1 has undefined version V1

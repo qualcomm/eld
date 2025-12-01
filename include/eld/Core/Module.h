@@ -98,7 +98,8 @@ public:
     Trampoline,
     GlobalDataSymbols,
     GNUBuildID,
-    MAX,
+    SymbolVersioning,
+    MAX
   } InternalInputType;
 
   typedef std::vector<InputFile *> ObjectList;

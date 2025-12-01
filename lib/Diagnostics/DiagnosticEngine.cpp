@@ -74,6 +74,8 @@ bool DiagnosticEngine::diagnose() {
     if (!Printer->isNoInhibitExec())
       return false;
   }
+
+  // FIXME: Remove redundant '&& true'
   return !Printer->getNumFatalErrors() && true;
 }
 
@@ -263,6 +265,7 @@ DiagnosticEngine::DiagIDType Diag::Counter = 0;
 #include "eld/Diagnostics/DiagTraceGC.inc"
 #include "eld/Diagnostics/DiagTraceSymbols.inc"
 #include "eld/Diagnostics/DiagTraceTrampolines.inc"
+#include "eld/Diagnostics/DiagSymbolVersioning.inc"
 #include "eld/Diagnostics/DiagVerbose.inc"
 #include "eld/Diagnostics/DiagWriters.inc"
 #undef DIAG

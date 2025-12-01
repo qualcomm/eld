@@ -48,7 +48,9 @@ public:
     Timing,
     Null,
     MergeString,
-    BuildID
+    BuildID,
+    GNUVerDef,
+    GNUVerSym,
   };
 
 public:

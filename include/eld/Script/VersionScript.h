@@ -14,6 +14,7 @@ class StrToken;
 class InputFile;
 class VersionScriptBlock;
 class VersionScriptNode;
+class NamePool;
 
 /*
 There are fundamentally the following classes used to model version
@@ -51,6 +52,19 @@ public:
 
   void dump(llvm::raw_ostream &Ostream,
             std::function<std::string(const Input *)> GetDecoratedPath) const;
+
+  /// Returns true if the symbol R matches the version symbol.
+  ///
+  /// A symbol R matches the version symbol when both the conditions are satisfied:
+  /// - The symbol version name is the same as the version node.
+  /// - The symbol non-versioned name matches the version symbol pattern.
+  ///
+  /// There is an exception to this rule. When a symbol does not have any
+  /// versioned names, for example, there is foo, but no foo@V1 or foo@@V1
+  /// is present in the link. In this case, the symbol version name
+  /// does not need to match the version node. It is sufficient that
+  /// the symbol non-versioned name matches the version symbol pattern.
+  bool matched(const ResolveInfo &R, const NamePool &NP) const;
 
 protected:
   VersionSymbolKind ScriptFileKind;
@@ -133,6 +147,10 @@ public:
   void addSymbol(eld::ScriptSymbol *S);
 
   void setName(eld::StrToken *Name) { this->Name = Name; }
+
+  llvm::StringRef getName() const {
+    return Name->name();
+  }
 
   void setDependency(eld::StrToken *Dependency) { MDependency = Dependency; }
 

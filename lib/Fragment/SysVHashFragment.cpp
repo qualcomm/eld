@@ -52,7 +52,7 @@ eld::Expected<void> SysVHashFragment<ELFT>::emit(MemoryRegion &mr, Module &M) {
 
   auto It = std::begin(DynamicSymbols);
   for (auto &R : DynamicSymbols) {
-    llvm::StringRef Name = R->name();
+    llvm::StringRef Name = R->getNonVersionedName();
     // For the null entry.
     unsigned I = It - DynamicSymbols.begin();
     uint32_t Hash = llvm::object::hashSysV(Name) % NumSymbols;
