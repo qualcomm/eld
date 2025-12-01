@@ -165,10 +165,6 @@ public:
 
   bool hasNoFragments() const { return HasNoFragments; }
 
-  void setFancyOffset() { IsFancyOffset = true; }
-
-  bool isFancyOffset() const { return IsFancyOffset; }
-
   /// offset - An integer specifying the offset of this section in the file.
   ///   Before layouting, output's ELFSection::offset() should return zero.
   uint64_t offset() const { return Offset; }
@@ -321,7 +317,6 @@ protected:
   bool Wanted = false;
   bool WantedInOutput = false;
   bool IsFixedAddr = false;
-  bool IsFancyOffset = false;
 
   /// FIXME: We can just query the fragment list instead of storing this?
   bool HasNoFragments = false;
