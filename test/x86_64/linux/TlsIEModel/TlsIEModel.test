@@ -1,4 +1,5 @@
 #------TlsIEModel.test-------Executable------#
+#UNSUPPORTED: windows
 #BEGIN_COMMENT
 # Verifies TLS Initial Exec (IE) model when a TLS variable is referenced in the
 # main executable and defined in a shared library. The linker should emit an
