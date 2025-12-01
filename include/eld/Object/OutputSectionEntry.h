@@ -154,6 +154,9 @@ public:
 
   std::string getSectionTypeStr() const;
 
+  uint64_t pAddr() const { return PAddr; }
+  void setPaddr(uint64_t A) { PAddr = A; }
+
   // ----------------------Reuse trampolines optimization---------------
   std::vector<BranchIsland *>
   getBranchIslandsForSymbol(ResolveInfo *PSym) const {
@@ -219,6 +222,7 @@ private:
   llvm::SmallVector<MergeableString *, 0> AllStrings;
   uint64_t Hash = 0;
   llvm::StringMap<uint64_t> TrampolineNameToCountMap;
+  uint64_t PAddr = 0;
 };
 
 } // namespace eld

@@ -127,8 +127,7 @@ public:
                       ELFSectionBase *Link, uint32_t SectionSize,
                       uint64_t PAddr)
       : ELFSectionBase(Section::ELF, ELFSectionKind, Name, Flags, EntSize,
-                       AddrAlign, Type, Info, Link, SectionSize),
-        PAddr(PAddr) {}
+                       AddrAlign, Type, Info, Link, SectionSize) {}
 
   explicit ELFSection(Section::Kind SectionKind,
                       LDFileFormat::Kind ELFSectionKind,
@@ -137,8 +136,7 @@ public:
                       ELFSectionBase *Link, uint32_t SectionSize,
                       uint64_t PAddr)
       : ELFSectionBase(SectionKind, ELFSectionKind, Name, Flags, EntSize,
-                       AddrAlign, Type, Info, Link, SectionSize),
-        PAddr(PAddr) {}
+                       AddrAlign, Type, Info, Link, SectionSize) {}
 
   static bool classof(const Section *S) { return S->isELF(); }
 
@@ -177,7 +175,7 @@ public:
 
   bool hasVMA() const { return Addr.has_value(); }
 
-  uint64_t pAddr() const { return PAddr; }
+  uint64_t pAddr() const;
 
   void setOffsetAndAddr(uint64_t Off);
 
@@ -195,7 +193,7 @@ public:
     return !isDiscard() && !isIgnore() && WantedInOutput;
   }
 
-  void setPaddr(size_t A) { PAddr = A; }
+  void setPaddr(size_t A);
 
   void setSymbol(LDSymbol *S) { Symbol = S; }
 
@@ -304,8 +302,6 @@ protected:
   /// FIXME: This has different meanings for Input/Output sections.
   uint64_t Offset = ~uint64_t(0);
   std::optional<uint64_t> Addr;
-  /// FIXME: only relevant for output sections.
-  uint64_t PAddr;
   LDSymbol *Symbol = nullptr;
 
   /// FIXME: Only relevant for LTO. This should be moved out.
@@ -332,7 +328,7 @@ protected:
 };
 
 #ifndef _WIN32
-static_assert(sizeof(ELFSection) <= 248, "ELFSection grew too large!");
+static_assert(sizeof(ELFSection) <= 240, "ELFSection grew too large!");
 #endif
 
 } // namespace eld
