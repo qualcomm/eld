@@ -130,9 +130,9 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
         continue;
 
       // check if we should include this defined symbol
-      ArchiveFile::Symbol &symbol = *(archiveFile->getSymbolTable()[idx]);
+      ArchiveFile::Symbol &symbol = archiveFile->getSymbolTable()[idx];
       ArchiveFile::Symbol::SymbolStatus status =
-          shouldIncludeSymbol(symbol, &referredSite);
+          shouldIncludeSymbol(*archiveFile, symbol, &referredSite);
       if (ArchiveFile::Symbol::Include == status) {
         // include the object member from the given offset
         Input *I =
@@ -141,11 +141,13 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
           continue;
         archiveFile->setSymbolStatus(idx, status);
         willSymResolved = true;
-        if (layoutInfo && referredSite)
+        if (layoutInfo && referredSite) {
+          llvm::StringRef SymName = archiveFile->getSymbolName(symbol);
           layoutInfo->recordArchiveMember(
               I, referredSite, &symbol,
               llvm::cast<eld::ObjectFile>(I->getInputFile())
-                  ->getSymbol(symbol.Name));
+                  ->getSymbol(SymName.str()));
+        }
       } // end of if
     } // end of for
   } while (willSymResolved);
@@ -174,8 +176,7 @@ ArchiveParser::readSymbolTable(const llvm::object::Archive &archiveReader,
     auto symIt = symbolInfoTable.find({member.getChildOffset(), sym.getName()});
     ASSERT(symIt != symbolInfoTable.end(),
            "Missing required symbol information!");
-    archive->addSymbol(sym.getName().data(), member.getChildOffset(),
-                       symIt->second);
+    archive->addSymbol(sym.getName(), member.getChildOffset(), symIt->second);
   }
   return true;
 }
@@ -431,22 +432,24 @@ eld::Expected<bool> ArchiveParser::includeMember(Input *member) const {
 }
 
 ArchiveFile::Symbol::SymbolStatus
-ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
-                                   InputFile **pSite) const {
+ArchiveParser::shouldIncludeSymbol(const ArchiveFile &archive,
+                                   const ArchiveFile::Symbol &S,
+                                   InputFile **F) const {
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   // TODO: handle symbol version issue and user defined symbols
-  const ResolveInfo *info = m_Module.getNamePool().findInfo(sym.Name);
+  llvm::StringRef SymName = archive.getSymbolName(S);
+  const ResolveInfo *info = m_Module.getNamePool().findInfo(SymName.str());
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
 
   if (!info)
     return ArchiveFile::Symbol::Unknown;
 
   if (!info->isUndef()) {
-    if (info->isCommon() && definedSameType(info, sym.Type)) {
+    if (info->isCommon() && definedSameType(info, S.Type)) {
       if (layoutInfo) {
         InputFile *oldInput = info->resolvedOrigin();
         if (oldInput) {
-          *pSite = oldInput;
+          *F = oldInput;
         }
       }
       return ArchiveFile::Symbol::Include;
@@ -459,32 +462,32 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile::Symbol &sym,
   if (layoutInfo) {
     InputFile *oldInput = info->resolvedOrigin();
     if (oldInput) {
-      *pSite = oldInput;
+      *F = oldInput;
     }
   }
 
   // Dont use a vector to lookup, as the lookup may prove costly.
   // The number of symbols in the extern list is very less, so adding a map
   // doesnot hurt performance.
-  if (m_Module.hasSymbolInNeededSet(sym.Name))
+  if (m_Module.hasSymbolInNeededSet(SymName))
     return ArchiveFile::Symbol::Include;
 
   // If a Bitcode file has a reference to the wrap symbol, then lets use the
   // behavior below, since postLTOPhase may start pulling the symbol from
   // Archive libraries.
-  if (isPostLTOPhase && !m_Module.hasWrapReference(sym.Name))
+  if (isPostLTOPhase && !m_Module.hasWrapReference(SymName))
     return ArchiveFile::Symbol::Include;
 
   // If there is no wrap option specified we default to the behavior (or
   // If there is no wrap option set for this symbol, lets use the default
   // behavior
   if (m_Module.getConfig().options().renameMap().empty() ||
-      !m_Module.getConfig().options().renameMap().count(sym.Name))
+      !m_Module.getConfig().options().renameMap().count(SymName))
     return ArchiveFile::Symbol::Include;
 
   // If there is a wrap option specified for that symbol, we only pull from
   // an archive, if the real symbol is still undefined.
-  std::string realSymbol = "__real_" + sym.Name;
+  std::string realSymbol = ("__real_" + SymName).str();
   ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
   if (RealSymbol && RealSymbol->isUndef())
     return ArchiveFile::Symbol::Include;

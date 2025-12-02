@@ -45,34 +45,40 @@ size_t ArchiveFile::numOfSymbols() const {
 }
 
 /// addSymbol - add a symtab entry to symtab
-/// @param pName - symbol name
-/// @param pFileOffset - file offset in symtab represents a object file
-void ArchiveFile::addSymbol(const char *PName, uint32_t PFileOffset,
-                            enum ArchiveFile::Symbol::SymbolType PType,
-                            enum ArchiveFile::Symbol::SymbolStatus PStatus) {
+/// @param Name - symbol name
+/// @param FileOffset - file offset in symtab represents a object file
+void ArchiveFile::addSymbol(llvm::StringRef Name, uint32_t FileOffset,
+                            uint8_t Type, uint8_t Status) {
   ASSERT(AFI, "AFI must not be null!");
-  Symbol *Entry = make<Symbol>(PName, PFileOffset, PType, PStatus);
-  AFI->SymTab.push_back(Entry);
+  const char *Base = getContents().data();
+  ASSERT(Name.data() >= Base &&
+             (Name.data() + Name.size()) <= (Base + getContents().size()),
+         "archive symbol name must reference archive contents");
+  uint32_t NameOffset = (Name.data() - getContents().data());
+  uint32_t NameSize = Name.size();
+  AFI->SymTab.emplace_back(Symbol{NameOffset, NameSize, FileOffset,
+                                  static_cast<Symbol::SymbolStatus>(Status),
+                                  static_cast<Symbol::SymbolType>(Type)});
 }
 
 /// getObjFileOffset - get the file offset that represent a object file
-uint32_t ArchiveFile::getObjFileOffset(size_t PSymIdx) const {
+uint32_t ArchiveFile::getObjFileOffset(size_t SymIdx) const {
   ASSERT(AFI, "AFI must not be null!");
-  return AFI->SymTab[PSymIdx]->FileOffset;
+  return AFI->SymTab[SymIdx].FileOffset;
 }
 
 /// getSymbolStatus - get the status of a symbol
 ArchiveFile::Symbol::SymbolStatus
 ArchiveFile::getSymbolStatus(size_t PSymIdx) const {
   ASSERT(AFI, "AFI must not be null!");
-  return AFI->SymTab[PSymIdx]->Status;
+  return AFI->SymTab[PSymIdx].Status;
 }
 
 /// setSymbolStatus - set the status of a symbol
 void ArchiveFile::setSymbolStatus(
-    size_t PSymIdx, enum ArchiveFile::Symbol::SymbolStatus PStatus) {
+    size_t SymIdx, enum ArchiveFile::Symbol::SymbolStatus Status) {
   ASSERT(AFI, "AFI must not be null!");
-  AFI->SymTab[PSymIdx]->Status = PStatus;
+  AFI->SymTab[SymIdx].Status = Status;
 }
 
 Input *ArchiveFile::createMemberInput(llvm::StringRef MemberName,

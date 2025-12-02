@@ -25,26 +25,25 @@ struct ArchiveFileInfo;
 class DiagnosticPrinter;
 class ArchiveFile : public InputFile {
 public:
-  // -----------Declare Types ----------------
   struct Symbol {
-    enum SymbolStatus { Include, Exclude, Unknown };
+    enum SymbolStatus : uint8_t { Include, Exclude, Unknown };
 
-    enum SymbolType { NoType, DefineData, DefineFunction, Common, Weak };
+    enum SymbolType : uint8_t {
+      NoType,
+      DefineData,
+      DefineFunction,
+      Common,
+      Weak
+    };
 
-    Symbol(const char *PName, uint32_t POffset, SymbolType PType,
-           enum SymbolStatus PStatus)
-        : Name(PName), FileOffset(POffset), Status(PStatus), Type(PType) {}
-
-    ~Symbol() {}
-
-  public:
-    std::string Name;
+    uint32_t NameOffset;
+    uint32_t NameSize;
     uint32_t FileOffset;
-    enum SymbolStatus Status;
+    SymbolStatus Status;
     SymbolType Type;
   };
 
-  typedef std::vector<Symbol *> SymTabType;
+  typedef std::vector<Symbol> SymTabType;
 
 public:
   ArchiveFile(Input *I, DiagnosticEngine *DiagEngine);
@@ -89,10 +88,13 @@ public:
   /// getSymbolTable - get the symtab
   SymTabType &getSymbolTable();
 
-  void
-  addSymbol(const char *PName, uint32_t PFileOffset,
-            enum Symbol::SymbolType PType = ArchiveFile::Symbol::NoType,
-            enum Symbol::SymbolStatus PStatus = ArchiveFile::Symbol::Unknown);
+  void addSymbol(llvm::StringRef Name, uint32_t FileOffset,
+                 uint8_t Type = ArchiveFile::Symbol::NoType,
+                 uint8_t Status = ArchiveFile::Symbol::Unknown);
+
+  llvm::StringRef getSymbolName(const Symbol &S) const {
+    return llvm::StringRef(getContents().data() + S.NameOffset, S.NameSize);
+  }
 
   /// getObjFileOffset - get the file offset that represent a object file
   uint32_t getObjFileOffset(size_t PSymIdx) const;
