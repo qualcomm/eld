@@ -892,7 +892,10 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
 
   // force input alignment from ldscript if any
   if (Output->prolog().hasSubAlign()) {
-    Output->prolog().subAlign().eval();
+    // FIXME: eval() is an implementation function, it should not be
+    // used outside the component. Instead, evaluateAndReturnError and
+    // evaluateAndRaiseError should be used.
+    Output->prolog().subAlign().eval(/*EvaluatePendingOnly=*/false);
     Output->prolog().subAlign().commit();
     InAlign = Output->prolog().subAlign().result();
     HasSubAlign = true;
@@ -1631,11 +1634,8 @@ bool ObjectLinker::addScriptSymbols() {
   bool Ret = true;
   // go through the entire symbol assignments
   for (auto &AssignCmd : Script.assignments()) {
-    InputFile *ScriptInput = ThisModule->getInternalInput(eld::Module::Script);
-    // FIXME: Ideally, assignCmd should always have a context. We should perhaps
-    // add an internal error if the context is missing.
-    if (AssignCmd->hasInputFileInContext())
-      ScriptInput = AssignCmd->getInputFileInContext();
+    InputFile *ScriptInput = AssignCmd->getInputFileInContext();
+    ASSERT(ScriptInput, "Must always be non-null!");
     llvm::StringRef SymName = AssignCmd->name();
     ResolveInfo::Type Type = ResolveInfo::NoType;
     ResolveInfo::Visibility Vis = ResolveInfo::Default;

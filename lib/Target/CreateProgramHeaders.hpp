@@ -150,6 +150,8 @@ bool GNULDBackend::createProgramHdrs() {
     outBegin = script.sectionMap().begin();
     outEnd = script.sectionMap().end();
     out = outBegin;
+    resetScriptSymbols();
+    resetPartiallyEvalAssignmentsAndSymbols();
     prev_flag = 0;
     prev = nullptr;
     prevOut = nullptr;
@@ -693,6 +695,8 @@ bool GNULDBackend::createProgramHdrs() {
     }
     ++out;
   }
+
+  evaluatePendingAssignments();
 
   if (dynamic && dynamic->size()) {
     ELFSegment *dyn_seg = make<ELFSegment>(llvm::ELF::PT_DYNAMIC,
