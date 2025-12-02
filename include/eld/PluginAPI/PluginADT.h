@@ -637,6 +637,8 @@ struct DLL_A_EXPORT OutputSection final {
   /// `CreatingSegments` state.
   Expected<void> setPluginOverride(Plugin *P, const LinkerWrapper &LW);
 
+  Expected<void> recomputeSize(LinkerWrapper &LW);
+
 private:
   // Internal Data structure.
   eld::OutputSectionEntry *m_OutputSection = nullptr;
