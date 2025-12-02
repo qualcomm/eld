@@ -986,6 +986,12 @@ defm TrampolineMap
       MetaVarName<"<filename>">,
       Group<grp_mapopts>;
 
+defm PluginActivityFile
+    : smDashWithOpt<"plugin-activity-file", "PluginActivityFile",
+                    "Emit plugin activity JSON files">,
+      MetaVarName<"<filename>">,
+      Group<grp_mapopts>;
+
 //===----------------------------------------------------------------------===//
 /// Compatibility or ignored options
 //===----------------------------------------------------------------------===//

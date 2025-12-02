@@ -1177,7 +1177,7 @@ bool ObjectLinker::mergeSections() {
   OutBegin = ThisModule->getScript().sectionMap().begin();
   OutEnd = ThisModule->getScript().sectionMap().end();
 
-  ThisModule->setLinkState(Module::LinkState::CreatingSections);
+  ThisModule->setLinkState(LinkState::CreatingSections);
   if (!ThisConfig.getDiagEngine()->diagnose())
     return false;
 
