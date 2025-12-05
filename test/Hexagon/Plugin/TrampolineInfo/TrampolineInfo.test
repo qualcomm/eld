@@ -7,6 +7,6 @@ RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
 RUN: %link %emulation %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
 #END_TEST
 
-CHECK: Output section 'BAZ' has trampoline 'trampoline_for_bar_from_.text.baz_26' for target symbol 'bar'
+CHECK: Output section 'BAZ' has trampoline 'trampoline_for_bar_from_.text.baz_27' for target symbol 'bar'
 
 

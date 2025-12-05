@@ -166,12 +166,10 @@ MAPCHECK8: Local:
 MAPCHECK8: Pattern: *
 
 #Test that scripts with version nodes are warned as unsupported and ignored
-RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs6 -Map %t.map9 2>&1 |  %filecheck --check-prefix="CHECK9" %s
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs6 -Map %t.map9 2>&1
 RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK9SYM" %s
 RUN: %filecheck %s --check-prefix="MAPCHECK9" < %t.map9
 
-CHECK9: Warning: Only anonymous version nodes are supported. Ignoring version script
-CHECK9SYM-DAG: bar
 CHECK9SYM-DAG: baz
 CHECK9SYM-DAG: foo
 CHECK9SYM-DAG: func_dso
@@ -184,12 +182,10 @@ MAPCHECK9: Local:
 MAPCHECK9: Pattern: bar
 
 #Test that scripts with dependent nodes are warned as unsupported and ignored
-RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs7 -Map %t.map10 2>&1 |  %filecheck --check-prefix="CHECK10" %s
+RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs7 -Map %t.map10 2>&1
 RUN: %readelf --dyn-syms --hash-symbols %t1.so |  %filecheck --check-prefix="CHECK10SYM" %s
 RUN: %filecheck %s --check-prefix="MAPCHECK10" < %t.map10
 
-CHECK10:Warning: {{Dependent nodes are not supported. Ignoring version script|Only anonymous version nodes are supported}}
-CHECK10SYM-DAG: bar
 CHECK10SYM-DAG: baz
 CHECK10SYM-DAG: foo
 CHECK10SYM-DAG: func_dso

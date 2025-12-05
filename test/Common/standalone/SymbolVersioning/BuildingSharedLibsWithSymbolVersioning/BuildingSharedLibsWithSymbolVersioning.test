@@ -1,0 +1,76 @@
+#---BuildingSharedLibsWithSymbolVersioning.test---------------------------------------#
+#BEGIN_COMMENT
+# This test verifies that linker properly creates shared libraries with
+# symbol versioning information.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/vs.1.t
+RUN: %readelf --dyn-syms --version-info %t1.lib1.so | %filecheck %s --check-prefix=CHECK1
+RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --version-script %p/Inputs/vs.2.t
+RUN: %readelf --dyn-syms --version-info %t1.lib2.so | %filecheck %s --check-prefix=CHECK2
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib3.so %t1.2.o -shared --version-script %p/Inputs/vs.2.t
+RUN: %readelf --dyn-syms --version-info %t1.lib3.so | %filecheck %s --check-prefix=CHECK3
+RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib4.so %t1.3.o -shared --version-script %p/Inputs/vs.2.t
+RUN: %readelf --dyn-syms --version-info %t1.lib4.so | %filecheck %s --check-prefix=CHECK4
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/4.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib5.so %t1.4.o -shared --version-script %p/Inputs/vs.2.t
+RUN: %readelf --dyn-syms --version-info %t1.lib5.so | %filecheck %s --check-prefix=CHECK5
+RUN: %clang %clangopts -o %t1.5.o %p/Inputs/5.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib6.so %t1.5.o -shared --version-script %p/Inputs/vs.3.t
+RUN: %readelf --dyn-syms --version-info %t1.lib6.so | %filecheck %s --check-prefix=CHECK6
+#END_TEST
+
+CHECK1-DAG: bar@@V1
+CHECK1-DAG: foo@@V1
+CHECK1: '.gnu.version_d' contains 2 entries:
+CHECK1: Name: {{.*}}lib1.so
+CHECK1: Name: V1
+
+CHECK2-DAG: bar@@V1
+CHECK2-DAG: foo@@V1
+CHECK2-DAG: baz@@V2
+CHECK2: '.gnu.version_d' contains 3 entries:
+CHECK2: Name: {{.*}}lib2.so
+CHECK2: Name: V1
+CHECK2: Name: V2
+
+CHECK3-DAG: baz@@V2
+CHECK3-DAG: foo@V1
+CHECK3-DAG: bar@V1
+CHECK3: '.gnu.version_d' contains 3 entries:
+CHECK3: Name: {{.*}}lib3.so
+CHECK3: Name: V1
+CHECK3: Name: V2
+
+CHECK4-DAG: baz@@V2
+CHECK4-DAG: foo@V1
+CHECK4-DAG: bar@@V1
+CHECK4: '.gnu.version_d' contains 3 entries:
+CHECK4: Name: {{.*}}lib4.so
+CHECK4: Name: V1
+CHECK4: Name: V2
+
+CHECK5-DAG: : {{0+}}[[#%x,VALUE:]] [[#SIZE:]] FUNC {{.*}} bar@@V1
+CHECK5-DAG: foo@V1
+CHECK5-DAG: : {{0+}}[[#VALUE]] [[#SIZE]] FUNC {{.*}} baz@@V2
+CHECK5: '.gnu.version_d' contains 3 entries:
+CHECK5: Name: {{.*}}lib5.so
+CHECK5: Name: V1
+CHECK5: Name: V2
+
+CHECK6-DAG: foo2
+CHECK6-DAG: baz@@V2
+CHECK6-DAG: foo@V1
+CHECK6-DAG: foo@@V2
+CHECK6-DAG: foo1
+CHECK6-DAG: bar1
+CHECK6-DAG: bar2
+CHECK6-DAG: bar@V2
+CHECK6-DAG: bar@@V1
+CHECK6: '.gnu.version_d' contains 3 entries:
+CHECK6: Name: {{.*}}lib6.so
+CHECK6: Name: V1
+CHECK6: Name: V2

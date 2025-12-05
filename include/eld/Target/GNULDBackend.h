@@ -14,6 +14,7 @@
 #define ELD_TARGET_GNULDBACKEND_H
 #include "eld/GarbageCollection/GarbageCollection.h"
 #include "eld/LayoutMap/LayoutInfo.h"
+#include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFExecObjParser.h"
@@ -49,6 +50,7 @@ class ELFFileFormat;
 class ELFObjectFile;
 class ELFObjectFileFormat;
 class ELFSegmentFactory;
+class GNUVerDefFragment;
 class TargetInfo;
 class Layout;
 class LinkerConfig;
@@ -581,6 +583,13 @@ public:
 
   void addSymbolScope(ResolveInfo *R, VersionSymbol *V) { SymbolScopes[R] = V; }
 
+  VersionSymbol *getSymbolScope(ResolveInfo *R) const {
+    auto it = SymbolScopes.find(R);
+    if (it != SymbolScopes.end())
+      return it->second;
+    return nullptr;
+  }
+
   std::vector<Relocation *> &getInternalRelocs() { return m_InternalRelocs; }
 
   // If the backend needs to take care of clearing any data structures or
@@ -824,6 +833,22 @@ public:
 
   const ResolveInfo *findAbsolutePLT(ResolveInfo *I) const;
 
+  void initSymbolVersioningSections();
+
+  ELFSection *getGNUVerSymSection() const { return GNUVerSymSection; }
+
+  ELFSection *getGNUVerDefSection() const { return GNUVerDefSection; }
+
+  GNUVerDefFragment *getGNUVerDefFragment() const { return GNUVerDefFrag; }
+
+  void setShouldEmitVersioningSections(bool Should) {
+    ShouldEmitVersioningSections = Should;
+  }
+
+  bool shouldEmitVersioningSections() const {
+    return ShouldEmitVersioningSections;
+  }
+
 protected:
   virtual int numReservedSegments() const { return m_NumReservedSegments; }
 
@@ -1002,6 +1027,9 @@ private:
   // Setup TLS alignment and check for any layout issues
   bool setupTLS();
 
+  /// Assigns the version IDs to the dynamic symbols.
+  void assignOutputVersionIDs() const;
+
 protected:
   Module &m_Module;
 
@@ -1132,6 +1160,11 @@ protected:
   bool m_NeedEhdr = false;
 
   bool m_NeedPhdr = false;
+
+  bool ShouldEmitVersioningSections = false;
+  ELFSection *GNUVerSymSection = nullptr;
+  ELFSection *GNUVerDefSection = nullptr;
+  GNUVerDefFragment *GNUVerDefFrag = nullptr;
 };
 
 } // namespace eld

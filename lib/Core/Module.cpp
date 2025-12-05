@@ -243,6 +243,10 @@ bool Module::createInternalInputs() {
       I = make<Input>("Build ID", ThisConfig.getDiagEngine());
       break;
 
+    case Module::InternalInputType::SymbolVersioning:
+      I = make<Input>("Symbol Versioning", ThisConfig.getDiagEngine());
+      break;
+
     default:
       break;
     }

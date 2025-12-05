@@ -45,6 +45,11 @@ public:
     return ThisResolveInfo->name();
   }
 
+  llvm::StringRef getNonVersionedName() const {
+    assert(ThisResolveInfo != nullptr);
+    return ThisResolveInfo->getNonVersionedName();
+  }
+
   bool hasName() const {
     assert(nullptr != ThisResolveInfo);
     return !str().empty();
