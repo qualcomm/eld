@@ -1,4 +1,5 @@
 #------TlsGDnonpreemptible.test-------Executable------#
+#UNSUPPORTED: windows
 #BEGIN_COMMENT
 # Verifies TLS General Dynamic (GD) model with non-preemptible symbols.
 # When TLS variables are defined and used in the same shared library
