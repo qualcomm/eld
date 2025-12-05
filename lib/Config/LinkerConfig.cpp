@@ -281,3 +281,4 @@ bool LinkerConfig::isSymDefStyleValid() const {
 std::string LinkerConfig::getSymDefString() const {
   return GenOptions.symDefFileStyle().upper();
 }
+
