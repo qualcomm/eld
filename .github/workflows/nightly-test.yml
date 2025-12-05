@@ -54,7 +54,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: llvm-project/llvm/tools/eld
-          ref: main
 
       - name: Run CMake
         run: |
