@@ -1,3 +1,4 @@
+REQUIRES: yaml
 #---Strings.test------------------------------------ Executable --------------------#
 #BEGIN_COMMENT
 # Check that the rodata is split properly in the Map file
