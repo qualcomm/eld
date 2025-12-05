@@ -17,3 +17,14 @@ add_public_tablegen_target(RISCVDriverOptions)
 set(LLVM_TARGET_DEFINITIONS x86_64LinkerOptions.td)
 tablegen(LLVM x86_64LinkerOptions.inc -gen-opt-parser-defs)
 add_public_tablegen_target(x86_64DriverOptions)
+
+# Collect the driver TableGen targets in a global property so other
+# directories (e.g., the top-level CMakeLists) can make use of them.
+set(ELD_DRIVER_TABLEGEN_TARGETS
+    GnuDriverOptions
+    HexagonDriverOptions
+    ARMDriverOptions
+    RISCVDriverOptions
+    x86_64DriverOptions)
+set_property(GLOBAL PROPERTY ELD_DRIVER_TABLEGEN_TARGETS
+             "${ELD_DRIVER_TABLEGEN_TARGETS}")
