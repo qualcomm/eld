@@ -471,6 +471,7 @@ bool Linker::resolve() {
     }
 
     PluginManager &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(LinkState::ActBeforeRuleMatching);
     PM.callActBeforeRuleMatchingHook();
 
     // Assign output sections.
