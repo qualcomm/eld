@@ -30,7 +30,6 @@
 #include "llvm/Support/Timer.h"
 #include <memory>
 #include <optional>
-
 using namespace eld;
 using namespace eld::plugin;
 
@@ -679,12 +678,7 @@ eld::Expected<void>
 plugin::Section::overrideLinkerScriptRule(LinkerWrapper &LW,
                                           plugin::LinkerScriptRule R,
                                           const std::string &Annotation) {
-  if (!LW.isLinkStateInitializing()) {
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__, ""});
-  }
+  CHECK_LINK_STATE(LW, "Initializing", "ActBeforeRuleMatching");
   if (!m_Section)
     return {};
   ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);

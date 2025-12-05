@@ -159,10 +159,14 @@ public:
   enum LinkState : uint8_t {
     Unknown,
     Initializing,
+    ActBeforeRuleMatching,
     BeforeLayout,
+    ActBeforeSectionMerging,
     CreatingSections,
+    ActBeforePerformingLayout,
     CreatingSegments,
     AfterLayout,
+    ActBeforeWritingOutput
   };
 
 public:

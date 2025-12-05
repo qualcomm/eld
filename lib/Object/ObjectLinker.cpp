@@ -1141,6 +1141,7 @@ bool ObjectLinker::mergeSections() {
     eld::RegisterTimer T("Universal Plugin", "Merge Sections",
                          ThisConfig.options().printTimingStats());
     auto &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(Module::LinkState::ActBeforeSectionMerging);
     if (!PM.callActBeforeSectionMergingHook())
       return false;
   }
@@ -1150,8 +1151,11 @@ bool ObjectLinker::mergeSections() {
     eld::RegisterTimer T("Plugin: Output Section Iterator Before Layout",
                          "Merge Sections",
                          ThisConfig.options().printTimingStats());
+    // For backward compatibility
+    ThisModule->setLinkState(Module::LinkState::BeforeLayout);
     if (!runOutputSectionIteratorPlugin())
       return false;
+    ThisModule->setLinkState(Module::LinkState::ActBeforeSectionMerging);
   }
 
   // Merge all the input sections.
