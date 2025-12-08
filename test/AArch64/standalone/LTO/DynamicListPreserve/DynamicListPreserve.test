@@ -9,4 +9,4 @@ RUN: %link %linkopts --gc-sections -print-gc-sections --dynamic-list %p/Inputs/l
 
 CHECK: Marking symbol foo to be preserved (found in dynamic list)
 CHECK-DAG: Preserving symbol foo
-CHECK-DAG: GC : {{[ -\(\)_A-Za-z0-9.\\/:]+}}[.text.foo]
+CHECK-DAG: GC : {{[ -\(\)_A-Za-z0-9.~\\/:]+}}[.text.foo]
