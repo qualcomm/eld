@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compatibility Or Ignored Options &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_image_details.html">13. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../command.html">14. Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Compatibility Or Ignored Options</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="compatibility-or-ignored-options">
+<h1>Compatibility Or Ignored Options<a class="headerlink" href="#compatibility-or-ignored-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-EL">
+<span id="cmdoption-el"></span><span class="sig-name descname"><span class="pre">-EL</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-EL" title="Permalink to this definition"></a></dt>
+<dd><p>Link little endian objects.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Qy">
+<span id="cmdoption-qy"></span><span class="sig-name descname"><span class="pre">-Qy</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-Qy" title="Permalink to this definition"></a></dt>
+<dd><p>This option is ignored for SVR4 compatibility</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-add-needed">
+<span class="sig-name descname"><span class="pre">--add-needed</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-add-needed" title="Permalink to this definition"></a></dt>
+<dd><p>Deprecated</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-copy-dt-needed-entries">
+<span class="sig-name descname"><span class="pre">--copy-dt-needed-entries</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-copy-dt-needed-entries" title="Permalink to this definition"></a></dt>
+<dd><p>Add the dynamic libraries mentioned to DT_NEEDED</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-ignore-unknown-opts">
+<span class="sig-name descname"><span class="pre">--ignore-unknown-opts</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-ignore-unknown-opts" title="Permalink to this definition"></a></dt>
+<dd><p>Disable warnings of unimplemented options</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-nmagic">
+<span class="sig-name descname"><span class="pre">--nmagic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-nmagic" title="Permalink to this definition"></a></dt>
+<dd><p>Turn off page alignment of sections, and disable linking against shared libraries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-add-needed">
+<span class="sig-name descname"><span class="pre">--no-add-needed</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-add-needed" title="Permalink to this definition"></a></dt>
+<dd><p>Deprecated</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-allow-shlib-undefined">
+<span class="sig-name descname"><span class="pre">--no-allow-shlib-undefined</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-allow-shlib-undefined" title="Permalink to this definition"></a></dt>
+<dd><p>Do not allow undefined symbols from dynamic library when creating executables</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-copy-dt-needed-entries">
+<span class="sig-name descname"><span class="pre">--no-copy-dt-needed-entries</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-copy-dt-needed-entries" title="Permalink to this definition"></a></dt>
+<dd><p>Turn off the effect of the –copy-dt-needed-entries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-plugin">
+<span class="sig-name descname"><span class="pre">-plugin</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;pluginfile&gt;</span></span><a class="headerlink" href="#cmdoption-plugin" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a plugin file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-plugin-opt">
+<span class="sig-name descname"><span class="pre">-plugin-opt</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;plugin-opt&gt;</span></span><a class="headerlink" href="#cmdoption-plugin-opt" title="Permalink to this definition"></a></dt>
+<dd><p>Specify plugin options</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-thin-archive-rule-matching-compatibility">
+<span id="cmdoption-thin-archive-rule-matching-compatibility"></span><span class="sig-name descname"><span class="pre">-thin-archive-rule-matching-compatibility</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--thin-archive-rule-matching-compatibility</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-thin-archive-rule-matching-compatibility" title="Permalink to this definition"></a></dt>
+<dd><p>Provides rule-matching compatibility when fat archives are
+converted to thin archives</p>
+</dd></dl>
+
+</div>
+<div class="section" id="diagnositc-options">
+<h1>DIAGNOSITC OPTIONS<a class="headerlink" href="#diagnositc-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-W-warn-type">
+<span id="cmdoption-w-warn-type"></span><span class="sig-name descname"><span class="pre">-W&lt;warn-type&gt;</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-W-warn-type" title="Permalink to this definition"></a></dt>
+<dd><p>Print warnings which are OFF by default</p>
+<ul class="simple">
+<li><p>-Wall : print all warnings</p></li>
+<li><p>-W[no]linker-script : display warnings detected while parsing linker scripts</p></li>
+<li><p>-W[no]attribute-mix : display a warning if object files of RISC-V with different attributes are being linked</p></li>
+<li><p>-W[no-]archive-file : display warnings detected while reading archive files</p></li>
+<li><p>-W[no-]linker-script-memory : display warnings detected while processing linker script memory command</p></li>
+<li><p>-W[no-]bad-dot-assignments : display warnings for bad dot assignments</p></li>
+<li><p>-W[no-]error : treat warnings as errors</p></li>
+<li><p>-Wwhole-archive : display a warning when whole-archive is enabled for any archive file</p></li>
+<li><p>-W[no-]osabi : display a warning when linking objects with different values for OS/ABI</p></li>
+</ul>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-color">
+<span class="sig-name descname"><span class="pre">-color</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;on/off&gt;</span></span><a class="headerlink" href="#cmdoption-color" title="Permalink to this definition"></a></dt>
+<dd><p>Enable color output for diagnostics</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-cref">
+<span id="cmdoption-cref"></span><span class="sig-name descname"><span class="pre">-cref</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--cref</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-cref" title="Permalink to this definition"></a></dt>
+<dd><p>Print the references for a symbol or section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-t">
+<span class="sig-name descname"><span class="pre">-t</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-t" title="Permalink to this definition"></a></dt>
+<dd><p>Print all files processed by the linker</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-display_hotness">
+<span id="cmdoption-display-hotness"></span><span class="sig-name descname"><span class="pre">-display_hotness</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;value&gt;</span></span><a class="headerlink" href="#cmdoption-display_hotness" title="Permalink to this definition"></a></dt>
+<dd><p>Display hotness information for optimization remarks</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-emit-timing-stats">
+<span class="sig-name descname"><span class="pre">--emit-timing-stats</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-emit-timing-stats" title="Permalink to this definition"></a></dt>
+<dd><p>Emit time statistics of various linker operatons to the specified file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-emit-timing-stats-in-output">
+<span id="cmdoption-emit-timing-stats-in-output"></span><span class="sig-name descname"><span class="pre">-emit-timing-stats-in-output</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--emit-timing-stats-in-output</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-emit-timing-stats-in-output" title="Permalink to this definition"></a></dt>
+<dd><p>Insert link-time stats in section .note.qc.timing</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-error-limit">
+<span class="sig-name descname"><span class="pre">--error-limit</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;max-error-number&gt;</span></span><a class="headerlink" href="#cmdoption-error-limit" title="Permalink to this definition"></a></dt>
+<dd><p>Maximum number of errors to emit before stopping (0 = no limit)</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-error-style">
+<span class="sig-name descname"><span class="pre">--error-style</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;style&gt;</span></span><a class="headerlink" href="#cmdoption-error-style" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an error style, LLVM/GNU</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-fatal-internal-errors">
+<span class="sig-name descname"><span class="pre">--fatal-internal-errors</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-fatal-internal-errors" title="Permalink to this definition"></a></dt>
+<dd><p>Enable fatal internal errors</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-fatal-warnings">
+<span class="sig-name descname"><span class="pre">--fatal-warnings</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-fatal-warnings" title="Permalink to this definition"></a></dt>
+<dd><p>Enable fatal warnings</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-gc-cref">
+<span class="sig-name descname"><span class="pre">--gc-cref</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol/section&gt;</span></span><a class="headerlink" href="#cmdoption-gc-cref" title="Permalink to this definition"></a></dt>
+<dd><p>Print the references for a symbol or section when garbage collection is enabled</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-fatal-internal-errors">
+<span class="sig-name descname"><span class="pre">--no-fatal-internal-errors</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-fatal-internal-errors" title="Permalink to this definition"></a></dt>
+<dd><p>Disable fatal internal errors</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-fatal-warnings">
+<span class="sig-name descname"><span class="pre">--no-fatal-warnings</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-fatal-warnings" title="Permalink to this definition"></a></dt>
+<dd><p>Disable fatal warnings</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-warn-mismatch">
+<span class="sig-name descname"><span class="pre">--no-warn-mismatch</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-warn-mismatch" title="Permalink to this definition"></a></dt>
+<dd><p>Do not Warn on incompatible files passed to the linker.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-opt-record-file">
+<span id="cmdoption-opt-record-file"></span><span class="sig-name descname"><span class="pre">-opt-record-file</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--opt-record-file</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-opt-record-file" title="Permalink to this definition"></a></dt>
+<dd><p>Create diagnostic yaml file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-print-timing-stats">
+<span id="cmdoption-print-timing-stats"></span><span class="sig-name descname"><span class="pre">-print-timing-stats</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--print-timing-stats</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-print-timing-stats" title="Permalink to this definition"></a></dt>
+<dd><p>Print time statistics of various linker operatons to console</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-progress-bar">
+<span class="sig-name descname"><span class="pre">--progress-bar</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-progress-bar" title="Permalink to this definition"></a></dt>
+<dd><p>Show Progress Bar</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-summary">
+<span class="sig-name descname"><span class="pre">--summary</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-summary" title="Permalink to this definition"></a></dt>
+<dd><p>Display linker run summary at the end</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-time-region">
+<span class="sig-name descname"><span class="pre">--time-region</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;region&gt;</span></span><a class="headerlink" href="#cmdoption-time-region" title="Permalink to this definition"></a></dt>
+<dd><p>Emit time statistics for specified region of linker operation</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trace">
+<span class="sig-name descname"><span class="pre">-trace</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;trace-type&gt;</span></span><a class="headerlink" href="#cmdoption-trace" title="Permalink to this definition"></a></dt>
+<dd><p>Allow tracing of</p>
+<ul class="simple">
+<li><p>–trace=linker-script : trace linker script</p></li>
+<li><p>–trace=files : trace input files</p></li>
+<li><p>–trace=reloc=&lt;pattern&gt; : trace relocations</p></li>
+<li><p>–trace=symbol=&lt;symbol-name&gt; : trace symbol</p></li>
+<li><p>–trace=all-symbols : trace all symbols</p></li>
+<li><p>–trace=LTO : trace LTO</p></li>
+<li><p>–trace=garbage-collection : trace linker garbage collection</p></li>
+<li><p>–trace=plugin : trace plugin</p></li>
+<li><p>–trace=threads : trace threads</p></li>
+<li><p>–trace=assignments : trace symbol assignments</p></li>
+<li><p>–trace=command-line : trace header info</p></li>
+<li><p>–trace=live-edges : trace reachable sections when garbage collection is enabled</p></li>
+<li><p>–trace=merge-strings : trace linker string optimization</p></li>
+<li><p>–trace=trampolines : trace trampolines</p></li>
+<li><p>–trace=wrap-symbols : trace symbol wrap options</p></li>
+<li><p>–trace=symdef : trace symbol resolution from symdef files</p></li>
+<li><p>–trace=dynamic-linking : trace dynamic linking</p></li>
+</ul>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trace-linker-script">
+<span class="sig-name descname"><span class="pre">--trace-linker-script</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-trace-linker-script" title="Permalink to this definition"></a></dt>
+<dd><p>Trace stages of linker script processing</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trace-lto">
+<span class="sig-name descname"><span class="pre">--trace-lto</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-trace-lto" title="Permalink to this definition"></a></dt>
+<dd><p>Trace stages of lto</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trace-merge-strings">
+<span class="sig-name descname"><span class="pre">-trace-merge-strings</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-trace-merge-strings" title="Permalink to this definition"></a></dt>
+<dd><p>Emit diagnostics describing how strings were merged. Options: all(default), allocatable_sections, &lt;output section (regex)&gt;</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trace-reloc">
+<span class="sig-name descname"><span class="pre">-trace-reloc</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;relocation&gt;</span></span><a class="headerlink" href="#cmdoption-trace-reloc" title="Permalink to this definition"></a></dt>
+<dd><p>trace a particular relocation</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trace-section">
+<span class="sig-name descname"><span class="pre">-trace-section</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;section_name&gt;</span></span><a class="headerlink" href="#cmdoption-trace-section" title="Permalink to this definition"></a></dt>
+<dd><p>Show metadata about a particular section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-y">
+<span class="sig-name descname"><span class="pre">-y</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol&gt;</span></span><a class="headerlink" href="#cmdoption-y" title="Permalink to this definition"></a></dt>
+<dd><p>Trace a particular symbol</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-verbose">
+<span class="sig-name descname"><span class="pre">--verbose</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-verbose" title="Permalink to this definition"></a></dt>
+<dd><p>Enable verbose output</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-0">
+<span class="sig-name descname"><span class="pre">-verbose</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;verbose-level&gt;</span></span><a class="headerlink" href="#cmdoption-0" title="Permalink to this definition"></a></dt>
+<dd><p>Enable verbose output</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-verify-options">
+<span class="sig-name descname"><span class="pre">-verify-options</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-verify-options" title="Permalink to this definition"></a></dt>
+<dd><p>Verify certain internal linker computations - currently supports reloc</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-warn-common">
+<span class="sig-name descname"><span class="pre">--warn-common</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-warn-common" title="Permalink to this definition"></a></dt>
+<dd><p>Warn on common symbols</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-warn-limit">
+<span class="sig-name descname"><span class="pre">--warn-limit</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;maxwarnings&gt;</span></span><a class="headerlink" href="#cmdoption-warn-limit" title="Permalink to this definition"></a></dt>
+<dd><p>Maximum number of warnings to emit (0 = no limit)</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-warn-mismatch">
+<span class="sig-name descname"><span class="pre">--warn-mismatch</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-warn-mismatch" title="Permalink to this definition"></a></dt>
+<dd><p>Warn on incompatible files passed to the linker.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="dynamic-library-options">
+<h1>DYNAMIC LIBRARY OPTIONS<a class="headerlink" href="#dynamic-library-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Bgroup">
+<span id="cmdoption-bgroup"></span><span class="sig-name descname"><span class="pre">-Bgroup</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-Bgroup" title="Permalink to this definition"></a></dt>
+<dd><p>Enable runtime linker to handle lookups in this object and its dependencies to be performed only inside this group</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Bsymbolic">
+<span id="cmdoption-bsymbolic"></span><span class="sig-name descname"><span class="pre">-Bsymbolic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-Bsymbolic" title="Permalink to this definition"></a></dt>
+<dd><p>Bind references to global symbols to the definition within the shared library</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Bsymbolic-functions">
+<span id="cmdoption-bsymbolic-functions"></span><span class="sig-name descname"><span class="pre">-Bsymbolic-functions</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-Bsymbolic-functions" title="Permalink to this definition"></a></dt>
+<dd><p>Bind references to global functions to the definition within the shared library</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-g">
+<span class="sig-name descname"><span class="pre">-g</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-g" title="Permalink to this definition"></a></dt>
+<dd><p>Enable debug output when building shared libraries or executables</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-fPIC">
+<span id="cmdoption-fpic"></span><span class="sig-name descname"><span class="pre">-fPIC</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-fPIC" title="Permalink to this definition"></a></dt>
+<dd><p>Enable PIC mode</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-hash-size">
+<span class="sig-name descname"><span class="pre">--hash-size</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;size&gt;</span></span><a class="headerlink" href="#cmdoption-hash-size" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a hash size when creating the hash sections for the dynamic loader</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-hash-style">
+<span class="sig-name descname"><span class="pre">-hash-style</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;hashstyle&gt;</span></span><a class="headerlink" href="#cmdoption-hash-style" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a hash style when creating the hash sections for the dynamic loader</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-warn-shared-textrel">
+<span class="sig-name descname"><span class="pre">--no-warn-shared-textrel</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-warn-shared-textrel" title="Permalink to this definition"></a></dt>
+<dd><p>Don’t Warn if the linker adds a DT_TEXTREL</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-soname">
+<span id="cmdoption-soname"></span><span class="sig-name descname"><span class="pre">-soname</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;name&gt;</span></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--soname</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;name&gt;</span></span><a class="headerlink" href="#cmdoption-soname" title="Permalink to this definition"></a></dt>
+<dd><p>Set the internal DT_SONAME field to the specified name</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-warn-shared-textrel">
+<span class="sig-name descname"><span class="pre">--warn-shared-textrel</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-warn-shared-textrel" title="Permalink to this definition"></a></dt>
+<dd><p>Warn if the linker adds a DT_TEXTREL</p>
+</dd></dl>
+
+</div>
+<div class="section" id="dynamic-library-executable-options">
+<h1>DYNAMIC LIBRARY/EXECUTABLE OPTIONS<a class="headerlink" href="#dynamic-library-executable-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-dynamic-linker">
+<span class="sig-name descname"><span class="pre">-dynamic-linker</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;path&gt;</span></span><a class="headerlink" href="#cmdoption-dynamic-linker" title="Permalink to this definition"></a></dt>
+<dd><p>Set the path to the dynamic linker</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-export-dynamic">
+<span id="cmdoption-export-dynamic"></span><span class="sig-name descname"><span class="pre">-export-dynamic</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--export-dynamic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-export-dynamic" title="Permalink to this definition"></a></dt>
+<dd><p>Add all symbols to the dynamic symbol table when creating executables</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-export-dynamic-symbol">
+<span class="sig-name descname"><span class="pre">-export-dynamic-symbol</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol&gt;</span></span><a class="headerlink" href="#cmdoption-export-dynamic-symbol" title="Permalink to this definition"></a></dt>
+<dd><p>Export specified symbol to dynamic symbol table</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-force-dynamic">
+<span id="cmdoption-force-dynamic"></span><span class="sig-name descname"><span class="pre">-force-dynamic</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--force-dynamic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-force-dynamic" title="Permalink to this definition"></a></dt>
+<dd><p>Build executable as a force dynamic executable</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-dynamic-linker">
+<span id="cmdoption-no-dynamic-linker"></span><span class="sig-name descname"><span class="pre">-no-dynamic-linker</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-dynamic-linker</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-dynamic-linker" title="Permalink to this definition"></a></dt>
+<dd><p>The program does not need a dynamic linker when creating static PIE executables</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-export-dynamic">
+<span class="sig-name descname"><span class="pre">--no-export-dynamic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-export-dynamic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-rpath">
+<span class="sig-name descname"><span class="pre">-rpath</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;path&gt;</span></span><a class="headerlink" href="#cmdoption-rpath" title="Permalink to this definition"></a></dt>
+<dd><p>Add a path to the runtime library search path</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-rpath-link">
+<span class="sig-name descname"><span class="pre">-rpath-link</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;path&gt;</span></span><a class="headerlink" href="#cmdoption-rpath-link" title="Permalink to this definition"></a></dt>
+<dd><p>Specifies the path to search</p>
+</dd></dl>
+
+</div>
+<div class="section" id="extended-options">
+<h1>Extended Options<a class="headerlink" href="#extended-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-about">
+<span class="sig-name descname"><span class="pre">--about</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-about" title="Permalink to this definition"></a></dt>
+<dd><p>Emit detailed information about the linker</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-align-segments">
+<span class="sig-name descname"><span class="pre">--align-segments</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-align-segments" title="Permalink to this definition"></a></dt>
+<dd><p>Align segments to page boundaries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-allow-bss-conversion">
+<span class="sig-name descname"><span class="pre">--allow-bss-conversion</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-allow-bss-conversion" title="Permalink to this definition"></a></dt>
+<dd><p>Dont produce an error when mixing NOBITS, and PROGBITS sections in the same segment</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-copy-farcalls-from-file">
+<span class="sig-name descname"><span class="pre">-copy-farcalls-from-file</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-copy-farcalls-from-file" title="Permalink to this definition"></a></dt>
+<dd><p>Copy far calls instead of using trampolines</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-z">
+<span class="sig-name descname"><span class="pre">-z</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;extended-opts&gt;</span></span><a class="headerlink" href="#cmdoption-z" title="Permalink to this definition"></a></dt>
+<dd><p>Extended Options or Non standard options.</p>
+<blockquote>
+<div><p>Available options are:</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>-z=combreloc : Combines multiple reloc sections and sorts them to make dynamicsymbol lookup caching</p></li>
+<li><p>-z=now : Enables immediate binding</p></li>
+<li><p>-z=nocopyreloc : Disables Copy Relocation</p></li>
+</ul>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-disable-new-dtags">
+<span class="sig-name descname"><span class="pre">--disable-new-dtags</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-disable-new-dtags" title="Permalink to this definition"></a></dt>
+<dd><p>Disable new dynamic tags</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-dump-mapping-file">
+<span class="sig-name descname"><span class="pre">-dump-mapping-file</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;outputfilename&gt;</span></span><a class="headerlink" href="#cmdoption-dump-mapping-file" title="Permalink to this definition"></a></dt>
+<dd><p>Dump mapping file to output file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-dump-response-file">
+<span class="sig-name descname"><span class="pre">-dump-response-file</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;outputfilename&gt;</span></span><a class="headerlink" href="#cmdoption-dump-response-file" title="Permalink to this definition"></a></dt>
+<dd><p>Dump response file to output file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-emit-relocs-llvm">
+<span id="cmdoption-emit-relocs-llvm"></span><span class="sig-name descname"><span class="pre">-emit-relocs-llvm</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--emit-relocs-llvm</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-emit-relocs-llvm" title="Permalink to this definition"></a></dt>
+<dd><p>Emit relocations sections</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-enable-new-dtags">
+<span class="sig-name descname"><span class="pre">--enable-new-dtags</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-enable-new-dtags" title="Permalink to this definition"></a></dt>
+<dd><p>Enable new dynamic tags</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-mapping-file">
+<span class="sig-name descname"><span class="pre">-mapping-file</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;INI-file&gt;</span></span><a class="headerlink" href="#cmdoption-mapping-file" title="Permalink to this definition"></a></dt>
+<dd><p>Reproduce link using a mapping file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-align-segments">
+<span class="sig-name descname"><span class="pre">--no-align-segments</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-align-segments" title="Permalink to this definition"></a></dt>
+<dd><p>Dont align segments to page boundaries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-emit-relocs">
+<span id="cmdoption-no-emit-relocs"></span><span class="sig-name descname"><span class="pre">-no-emit-relocs</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-emit-relocs</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-emit-relocs" title="Permalink to this definition"></a></dt>
+<dd><p>Dont emit relocations in the output file, applicable to –emit-relocs-llvm option too</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-reuse-trampolines-file">
+<span class="sig-name descname"><span class="pre">-no-reuse-trampolines-file</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-no-reuse-trampolines-file" title="Permalink to this definition"></a></dt>
+<dd><p>Dont reuse trampolines for symbols specified in file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-verify">
+<span class="sig-name descname"><span class="pre">--no-verify</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-verify" title="Permalink to this definition"></a></dt>
+<dd><p>Dont verify link output</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-reproduce">
+<span class="sig-name descname"><span class="pre">-reproduce</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;tarfilename&gt;</span></span><a class="headerlink" href="#cmdoption-reproduce" title="Permalink to this definition"></a></dt>
+<dd><p>Write a tar file containing input files and command line options to inspect and re-link</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-reproduce-compressed">
+<span class="sig-name descname"><span class="pre">-reproduce-compressed</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;tarfilename&gt;</span></span><a class="headerlink" href="#cmdoption-reproduce-compressed" title="Permalink to this definition"></a></dt>
+<dd><p>Write compressed tar file in zlib format containing input files and command line options to inspect and re-link.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-reproduce-on-fail">
+<span class="sig-name descname"><span class="pre">-reproduce-on-fail</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;tarfilename&gt;</span></span><a class="headerlink" href="#cmdoption-reproduce-on-fail" title="Permalink to this definition"></a></dt>
+<dd><p>Write reproduce tar file when link failscontaining input files and command line options to inspect and re-link.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-rosegment">
+<span id="cmdoption-rosegment"></span><span class="sig-name descname"><span class="pre">-rosegment</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--rosegment</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-rosegment" title="Permalink to this definition"></a></dt>
+<dd><p>Put read-only non-executable sections in their own segment</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-script-options">
+<span class="sig-name descname"><span class="pre">--script-options</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;matchtype&gt;</span></span><a class="headerlink" href="#cmdoption-script-options" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a match type, match-gnu/match-llvm</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-use-old-style-trampoline-name">
+<span class="sig-name descname"><span class="pre">--use-old-style-trampoline-name</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-use-old-style-trampoline-name" title="Permalink to this definition"></a></dt>
+<dd><p>Use old style of naming trampolines</p>
+</dd></dl>
+
+</div>
+<div class="section" id="general-options">
+<h1>GENERAL OPTIONS<a class="headerlink" href="#general-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-build-id">
+<span class="sig-name descname"><span class="pre">--build-id</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-build-id" title="Permalink to this definition"></a></dt>
+<dd><p>Request creation of “.note.gnu.build-id” ELF note section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-1">
+<span class="sig-name descname"><span class="pre">-build-id</span></span><span class="sig-prename descclassname"><span class="pre">=fast/md5/sha1/tree/uuid/0x&lt;hexstring&gt;/none</span></span><a class="headerlink" href="#cmdoption-1" title="Permalink to this definition"></a></dt>
+<dd><p>Request creation of “.note.gnu.build-id” ELF note section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-o">
+<span class="sig-name descname"><span class="pre">-o</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;outputfile&gt;</span></span><a class="headerlink" href="#cmdoption-o" title="Permalink to this definition"></a></dt>
+<dd><p>Path to file to write output</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-repository-version">
+<span class="sig-name descname"><span class="pre">--repository-version</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-repository-version" title="Permalink to this definition"></a></dt>
+<dd><p>Print the Linker Repository version</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-sysroot">
+<span class="sig-name descname"><span class="pre">-sysroot</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;sysroot-path&gt;</span></span><a class="headerlink" href="#cmdoption-sysroot" title="Permalink to this definition"></a></dt>
+<dd><p>Set the system root</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-version">
+<span class="sig-name descname"><span class="pre">--version</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-version" title="Permalink to this definition"></a></dt>
+<dd><p>Print the Linker version</p>
+</dd></dl>
+
+</div>
+<div class="section" id="help">
+<h1>Help!<a class="headerlink" href="#help" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-help">
+<span id="cmdoption-help"></span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">-help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-help" title="Permalink to this definition"></a></dt>
+<dd><p>Print option help</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-help-hidden">
+<span id="cmdoption-help-hidden"></span><span class="sig-name descname"><span class="pre">--help-hidden</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">-help-hidden</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-help-hidden" title="Permalink to this definition"></a></dt>
+<dd><p>Print hidden option help</p>
+</dd></dl>
+
+</div>
+<div class="section" id="input-format">
+<h1>Input Format<a class="headerlink" href="#input-format" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-b">
+<span class="sig-name descname"><span class="pre">-b</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;input-format&gt;</span></span><a class="headerlink" href="#cmdoption-b" title="Permalink to this definition"></a></dt>
+<dd><p>Specify input format for inputs following this option.
+Supported values: binary,default</p>
+</dd></dl>
+
+</div>
+<div class="section" id="output-kind">
+<h1>OUTPUT KIND<a class="headerlink" href="#output-kind" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Bdynamic">
+<span id="cmdoption-bdynamic"></span><span class="sig-name descname"><span class="pre">-Bdynamic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-Bdynamic" title="Permalink to this definition"></a></dt>
+<dd><p>Link against dynamic library</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-dynamic">
+<span class="sig-name descname"><span class="pre">-dynamic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-dynamic" title="Permalink to this definition"></a></dt>
+<dd><p>Create dynamic executable (default)</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-pie">
+<span class="sig-name descname"><span class="pre">-no-pie</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-pie" title="Permalink to this definition"></a></dt>
+<dd><p>Do not create a PIE executable</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-pie">
+<span class="sig-name descname"><span class="pre">-pie</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-pie" title="Permalink to this definition"></a></dt>
+<dd><p>Create PIE executable</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-r">
+<span class="sig-name descname"><span class="pre">-r</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-r" title="Permalink to this definition"></a></dt>
+<dd><p>Create relocatable object file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-shared">
+<span class="sig-name descname"><span class="pre">-shared</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-shared" title="Permalink to this definition"></a></dt>
+<dd><p>Create dynamic library</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-static">
+<span class="sig-name descname"><span class="pre">-static</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-static" title="Permalink to this definition"></a></dt>
+<dd><p>Create static executable</p>
+</dd></dl>
+
+</div>
+<div class="section" id="link-time-speedup">
+<h1>Link Time Speedup<a class="headerlink" href="#link-time-speedup" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-enable-threads">
+<span class="sig-name descname"><span class="pre">-enable-threads</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-enable-threads" title="Permalink to this definition"></a></dt>
+<dd><p>make linker fully threaded, available options: all</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-threads">
+<span id="cmdoption-no-threads"></span><span class="sig-name descname"><span class="pre">-no-threads</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-threads</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-threads" title="Permalink to this definition"></a></dt>
+<dd><p>Disable Threads at Link time</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-thread-count">
+<span class="sig-name descname"><span class="pre">--thread-count</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;threadcount&gt;</span></span><a class="headerlink" href="#cmdoption-thread-count" title="Permalink to this definition"></a></dt>
+<dd><p>Specify the number of threads for all linker operations</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-threads">
+<span id="cmdoption-threads"></span><span class="sig-name descname"><span class="pre">-threads</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--threads</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-threads" title="Permalink to this definition"></a></dt>
+<dd><p>Enable Threads at Link time</p>
+</dd></dl>
+
+</div>
+<div class="section" id="llvm-and-target-options">
+<h1>LLVM and Target Options<a class="headerlink" href="#llvm-and-target-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-m">
+<span class="sig-name descname"><span class="pre">-m</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-m" title="Permalink to this definition"></a></dt>
+<dd><p>Select target emulation</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-mabi">
+<span class="sig-name descname"><span class="pre">-mabi</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;mabi&gt;</span></span><a class="headerlink" href="#cmdoption-mabi" title="Permalink to this definition"></a></dt>
+<dd><p>Target ABI</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-march">
+<span class="sig-name descname"><span class="pre">-march</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;march&gt;</span></span><a class="headerlink" href="#cmdoption-march" title="Permalink to this definition"></a></dt>
+<dd><p>Target architecture</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-mcpu">
+<span class="sig-name descname"><span class="pre">-mcpu</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;mcpu&gt;</span></span><a class="headerlink" href="#cmdoption-mcpu" title="Permalink to this definition"></a></dt>
+<dd><p>Target CPU</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-mllvm">
+<span class="sig-name descname"><span class="pre">-mllvm</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-mllvm" title="Permalink to this definition"></a></dt>
+<dd><p>Options to pass to LLVM</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-mtriple">
+<span class="sig-name descname"><span class="pre">-mtriple</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;triple&gt;</span></span><a class="headerlink" href="#cmdoption-mtriple" title="Permalink to this definition"></a></dt>
+<dd><p>Target triple to link for</p>
+</dd></dl>
+
+</div>
+<div class="section" id="lto-options">
+<h1>LTO Options<a class="headerlink" href="#lto-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-dwodir">
+<span class="sig-name descname"><span class="pre">-dwodir</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;value&gt;</span></span><a class="headerlink" href="#cmdoption-dwodir" title="Permalink to this definition"></a></dt>
+<dd><p>Directory to save .dwo files when split DWARF is used in LTO</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-exclude-lto-filelist">
+<span class="sig-name descname"><span class="pre">-exclude-lto-filelist</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;list_of_files&gt;</span></span><a class="headerlink" href="#cmdoption-exclude-lto-filelist" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a list of files that are to be disregarded while using embedded bitcode section for LTO. This has no effect if -flto switch is not used.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-flto">
+<span id="cmdoption-flto"></span><span class="sig-name descname"><span class="pre">-flto</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--flto</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-flto" title="Permalink to this definition"></a></dt>
+<dd><p>Enable LTO if a Bitcode file is present.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-flto-options">
+<span class="sig-name descname"><span class="pre">-flto-options</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-flto-options" title="Permalink to this definition"></a></dt>
+<dd><p>Specify various options with LTO</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-flto-use-as">
+<span id="cmdoption-flto-use-as"></span><span class="sig-name descname"><span class="pre">-flto-use-as</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--flto-use-as</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-flto-use-as" title="Permalink to this definition"></a></dt>
+<dd><p>Use the standalone assembler instead of the integrated assembler for LTO</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-include-lto-filelist">
+<span class="sig-name descname"><span class="pre">-include-lto-filelist</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;list_of_files&gt;</span></span><a class="headerlink" href="#cmdoption-include-lto-filelist" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a list of files with embedded bitcode sections that are to be used for LTO. This has no effect if -flto switch is used</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-lto-debug-pass-manager">
+<span class="sig-name descname"><span class="pre">--lto-debug-pass-manager</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-lto-debug-pass-manager" title="Permalink to this definition"></a></dt>
+<dd><p>Debug new pass manager</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-lto-sample-profile">
+<span class="sig-name descname"><span class="pre">-lto-sample-profile</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;value&gt;</span></span><a class="headerlink" href="#cmdoption-lto-sample-profile" title="Permalink to this definition"></a></dt>
+<dd><p>Sample PGO profile file to be loaded for LTO</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-2">
+<span id="cmdoption-3"></span><span class="sig-name descname"><span class="pre">--plugin-opt</span></span><span class="sig-prename descclassname"><span class="pre">=-&lt;value&gt;</span></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">-plugin-opt</span></span><span class="sig-prename descclassname"><span class="pre">=-&lt;value&gt;</span></span><a class="headerlink" href="#cmdoption-2" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an LLVM option for compatibility with LLVMgold.so</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-save-temps">
+<span id="cmdoption-save-temps"></span><span class="sig-name descname"><span class="pre">-save-temps</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--save-temps</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-save-temps" title="Permalink to this definition"></a></dt>
+<dd><p>Save the temporary files produced by LTO</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-4">
+<span class="sig-name descname"><span class="pre">-save-temps</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-4" title="Permalink to this definition"></a></dt>
+<dd><p>Save the temporary files produced by LTO</p>
+</dd></dl>
+
+</div>
+<div class="section" id="executable-options">
+<h1>EXECUTABLE OPTIONS<a class="headerlink" href="#executable-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-L">
+<span id="cmdoption-l"></span><span class="sig-name descname"><span class="pre">-L</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-L" title="Permalink to this definition"></a></dt>
+<dd><p>Path to search for libraries or linker scripts</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Y">
+<span class="sig-name descname"><span class="pre">-Y</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;path&gt;</span></span><a class="headerlink" href="#cmdoption-Y" title="Permalink to this definition"></a></dt>
+<dd><p>Add path to the default library search path</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-emit-relocs">
+<span id="cmdoption-emit-relocs"></span><span class="sig-name descname"><span class="pre">-emit-relocs</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--emit-relocs</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-emit-relocs" title="Permalink to this definition"></a></dt>
+<dd><p>Make Emit relocs behave just like GNU.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-e">
+<span class="sig-name descname"><span class="pre">-e</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbolname&gt;</span></span><a class="headerlink" href="#cmdoption-e" title="Permalink to this definition"></a></dt>
+<dd><p>Name of entry point symbol</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-fini">
+<span class="sig-name descname"><span class="pre">-fini</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol&gt;</span></span><a class="headerlink" href="#cmdoption-fini" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a finalizer function</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-image-base">
+<span class="sig-name descname"><span class="pre">--image-base</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;address&gt;</span></span><a class="headerlink" href="#cmdoption-image-base" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-init">
+<span class="sig-name descname"><span class="pre">-init</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol&gt;</span></span><a class="headerlink" href="#cmdoption-init" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an initializer function</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-5">
+<span class="sig-name descname"><span class="pre">-l</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-5" title="Permalink to this definition"></a></dt>
+<dd><p>Root name of library to use</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-library-path">
+<span class="sig-name descname"><span class="pre">--library-path</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;path&gt;</span></span><a class="headerlink" href="#cmdoption-library-path" title="Permalink to this definition"></a></dt>
+<dd><p>Path to search for libraries or linker scripts</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-library">
+<span class="sig-name descname"><span class="pre">--library</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;namespec&gt;</span></span><a class="headerlink" href="#cmdoption-library" title="Permalink to this definition"></a></dt>
+<dd><p>library to use</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-omagic">
+<span class="sig-name descname"><span class="pre">--no-omagic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-omagic" title="Permalink to this definition"></a></dt>
+<dd><p>This option negates most of the effects of the -N option.Disable linking with shared libraries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-whole-archive">
+<span id="cmdoption-no-whole-archive"></span><span class="sig-name descname"><span class="pre">-no-whole-archive</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-whole-archive</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-whole-archive" title="Permalink to this definition"></a></dt>
+<dd><p>Restores the default behavior of loading archive members</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-noinhibit-exec">
+<span class="sig-name descname"><span class="pre">--noinhibit-exec</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-noinhibit-exec" title="Permalink to this definition"></a></dt>
+<dd><p>Retain the executable output file whenever it is still usable</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-nostdlib">
+<span class="sig-name descname"><span class="pre">-nostdlib</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-nostdlib" title="Permalink to this definition"></a></dt>
+<dd><p>Disable default search path for libraries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-omagic">
+<span class="sig-name descname"><span class="pre">--omagic</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-omagic" title="Permalink to this definition"></a></dt>
+<dd><p>Set the text and data sections to be readable and writable. Also, do not page-align the data segment, and disable linking against shared libraries.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-whole-archive">
+<span id="cmdoption-whole-archive"></span><span class="sig-name descname"><span class="pre">-whole-archive</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--whole-archive</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-whole-archive" title="Permalink to this definition"></a></dt>
+<dd><p>Force load of all members in a static library</p>
+</dd></dl>
+
+</div>
+<div class="section" id="map-options">
+<h1>Map Options<a class="headerlink" href="#map-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Map">
+<span id="cmdoption-map"></span><span class="sig-name descname"><span class="pre">-Map</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-Map" title="Permalink to this definition"></a></dt>
+<dd><p>Dump the output layout to the map file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-MapDetail">
+<span id="cmdoption-mapdetail"></span><span class="sig-name descname"><span class="pre">-MapDetail</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-MapDetail" title="Permalink to this definition"></a></dt>
+<dd><p>Detail information in the map file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-MapStyle">
+<span id="cmdoption-mapstyle"></span><span class="sig-name descname"><span class="pre">-MapStyle</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;fileformat&gt;</span></span><a class="headerlink" href="#cmdoption-MapStyle" title="Permalink to this definition"></a></dt>
+<dd><p>Dump the output layout to the map file in YAML/Text/Binary Form</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-M">
+<span class="sig-name descname"><span class="pre">-M</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-M" title="Permalink to this definition"></a></dt>
+<dd><p>Emit the map file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-trampoline-map">
+<span class="sig-name descname"><span class="pre">-trampoline-map</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-trampoline-map" title="Permalink to this definition"></a></dt>
+<dd><p>Dump Trampoline Information in YAML format</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-color-map">
+<span class="sig-name descname"><span class="pre">--color-map</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-color-map" title="Permalink to this definition"></a></dt>
+<dd><p>Color the map file</p>
+</dd></dl>
+
+</div>
+<div class="section" id="misc-features">
+<h1>Misc Features<a class="headerlink" href="#misc-features" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-allow-incompatible-section-mix">
+<span id="cmdoption-allow-incompatible-section-mix"></span><span class="sig-name descname"><span class="pre">-allow-incompatible-section-mix</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--allow-incompatible-section-mix</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-allow-incompatible-section-mix" title="Permalink to this definition"></a></dt>
+<dd><p>Allow incompatible section mix</p>
+</dd></dl>
+
+</div>
+<div class="section" id="optimization-options">
+<h1>OPTIMIZATION OPTIONS<a class="headerlink" href="#optimization-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-eh-frame-hdr">
+<span class="sig-name descname"><span class="pre">--eh-frame-hdr</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-eh-frame-hdr" title="Permalink to this definition"></a></dt>
+<dd><p>Create EH Frame Header section for faster exception handling</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-gc-sections">
+<span id="cmdoption-gc-sections"></span><span class="sig-name descname"><span class="pre">-gc-sections</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--gc-sections</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-gc-sections" title="Permalink to this definition"></a></dt>
+<dd><p>Enable garbage collection</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-gc-sections">
+<span id="cmdoption-no-gc-sections"></span><span class="sig-name descname"><span class="pre">-no-gc-sections</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-gc-sections</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-gc-sections" title="Permalink to this definition"></a></dt>
+<dd><p>Disable garbage collection</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-merge-strings">
+<span class="sig-name descname"><span class="pre">--no-merge-strings</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-merge-strings" title="Permalink to this definition"></a></dt>
+<dd><p>Disable String Merging</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-trampolines">
+<span class="sig-name descname"><span class="pre">--no-trampolines</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-trampolines" title="Permalink to this definition"></a></dt>
+<dd><p>Disable Trampolines</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-print-gc-sections">
+<span id="cmdoption-print-gc-sections"></span><span class="sig-name descname"><span class="pre">-print-gc-sections</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--print-gc-sections</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-print-gc-sections" title="Permalink to this definition"></a></dt>
+<dd><p>Print sections that are garbage collected</p>
+</dd></dl>
+
+</div>
+<div class="section" id="features-from-other-linkers">
+<h1>Features From other Linkers<a class="headerlink" href="#features-from-other-linkers" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-R">
+<span class="sig-name descname"><span class="pre">-R</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-R" title="Permalink to this definition"></a></dt>
+<dd><p>Read symbol names and addresses from filename</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-symdef">
+<span id="cmdoption-symdef"></span><span class="sig-name descname"><span class="pre">-symdef</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--symdef</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-symdef" title="Permalink to this definition"></a></dt>
+<dd><p>Output SymDef file to console</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-symdef-file">
+<span class="sig-name descname"><span class="pre">--symdef-file</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;filename&gt;</span></span><a class="headerlink" href="#cmdoption-symdef-file" title="Permalink to this definition"></a></dt>
+<dd><p>Emit SymDef file</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-symdef-style">
+<span class="sig-name descname"><span class="pre">--symdef-style</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;style&gt;</span></span><a class="headerlink" href="#cmdoption-symdef-style" title="Permalink to this definition"></a></dt>
+<dd><p>Determine how to handle symbol resolution for symbols from symdef file, Options available are provide</p>
+</dd></dl>
+
+</div>
+<div class="section" id="plugin-options">
+<h1>Plugin Options<a class="headerlink" href="#plugin-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-default-plugins">
+<span class="sig-name descname"><span class="pre">--no-default-plugins</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-default-plugins" title="Permalink to this definition"></a></dt>
+<dd><p>Allow no plugins to be implicitly loaded</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-plugin-config">
+<span class="sig-name descname"><span class="pre">--plugin-config</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;config-file&gt;</span></span><a class="headerlink" href="#cmdoption-plugin-config" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a plugin configuration</p>
+</dd></dl>
+
+</div>
+<div class="section" id="symbol-resolution-options">
+<h1>SYMBOL RESOLUTION OPTIONS<a class="headerlink" href="#symbol-resolution-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-allow-multiple-definition">
+<span class="sig-name descname"><span class="pre">--allow-multiple-definition</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-allow-multiple-definition" title="Permalink to this definition"></a></dt>
+<dd><p>Allow multiple definitions</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-allow-shlib-undefined">
+<span id="cmdoption-allow-shlib-undefined"></span><span class="sig-name descname"><span class="pre">-allow-shlib-undefined</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--allow-shlib-undefined</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-allow-shlib-undefined" title="Permalink to this definition"></a></dt>
+<dd><p>Allow undefined symbols from dynamic library when creating executables</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-as-needed">
+<span class="sig-name descname"><span class="pre">--as-needed</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-as-needed" title="Permalink to this definition"></a></dt>
+<dd><p>This option affects ELF DT_NEEDED tags for dynamic libraries mentioned on the command line</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-defsym">
+<span class="sig-name descname"><span class="pre">-defsym</span></span><span class="sig-prename descclassname"> <span class="pre">symbol=&lt;expression&gt;</span></span><a class="headerlink" href="#cmdoption-defsym" title="Permalink to this definition"></a></dt>
+<dd><p>Create a global symbol in the output file containing the absolute address given by expression</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-end-group">
+<span id="cmdoption-end-group"></span><span class="sig-name descname"><span class="pre">-end-group</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--end-group</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-end-group" title="Permalink to this definition"></a></dt>
+<dd><p>End a group</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-as-needed">
+<span class="sig-name descname"><span class="pre">--no-as-needed</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-as-needed" title="Permalink to this definition"></a></dt>
+<dd><p>This option restores the default behavior of adding DT_NEEDED entries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-undefined">
+<span id="cmdoption-no-undefined"></span><span class="sig-name descname"><span class="pre">-no-undefined</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-undefined</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-undefined" title="Permalink to this definition"></a></dt>
+<dd><p>Report unresolved symbol references from regular object files</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-pop-state">
+<span class="sig-name descname"><span class="pre">--pop-state</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-pop-state" title="Permalink to this definition"></a></dt>
+<dd><p>Restore previously saved input handling flags</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-push-state">
+<span class="sig-name descname"><span class="pre">--push-state</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-push-state" title="Permalink to this definition"></a></dt>
+<dd><p>Save current input handling flags (as-needed, whole-archive, etc)</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-start-group">
+<span id="cmdoption-start-group"></span><span class="sig-name descname"><span class="pre">-start-group</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--start-group</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-start-group" title="Permalink to this definition"></a></dt>
+<dd><p>Start a group</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-u">
+<span class="sig-name descname"><span class="pre">-u</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-u" title="Permalink to this definition"></a></dt>
+<dd><p>Force symbol to be entered in the output file as an undefined symbol</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-use-shlib-undefines">
+<span class="sig-name descname"><span class="pre">--use-shlib-undefines</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-use-shlib-undefines" title="Permalink to this definition"></a></dt>
+<dd><p>Resolve undefined symbols from dynamic libraries</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-warn-once">
+<span class="sig-name descname"><span class="pre">--warn-once</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-warn-once" title="Permalink to this definition"></a></dt>
+<dd><p>Warn only once for every undefined reference</p>
+</dd></dl>
+
+</div>
+<div class="section" id="script-options">
+<h1>SCRIPT OPTIONS<a class="headerlink" href="#script-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-T">
+<span class="sig-name descname"><span class="pre">-T</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;linkerscriptfile&gt;</span></span><a class="headerlink" href="#cmdoption-T" title="Permalink to this definition"></a></dt>
+<dd><p>Use the given linker script in place of the default script.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Tbss">
+<span id="cmdoption-tbss"></span><span class="sig-name descname"><span class="pre">-Tbss</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;address&gt;</span></span><a class="headerlink" href="#cmdoption-Tbss" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an address for the .bss section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Tdata">
+<span id="cmdoption-tdata"></span><span class="sig-name descname"><span class="pre">-Tdata</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;address&gt;</span></span><a class="headerlink" href="#cmdoption-Tdata" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an address for the .data section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Ttext">
+<span id="cmdoption-ttext"></span><span class="sig-name descname"><span class="pre">-Ttext</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;address&gt;</span></span><a class="headerlink" href="#cmdoption-Ttext" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an address for the .text section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-Ttext-segment">
+<span id="cmdoption-ttext-segment"></span><span class="sig-name descname"><span class="pre">-Ttext-segment</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;address&gt;</span></span><a class="headerlink" href="#cmdoption-Ttext-segment" title="Permalink to this definition"></a></dt>
+<dd><p>Specify an address for the .text-segment segment</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-default-script">
+<span class="sig-name descname"><span class="pre">-default-script</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;pluginfile&gt;</span></span><a class="headerlink" href="#cmdoption-default-script" title="Permalink to this definition"></a></dt>
+<dd><p>Use the linker script as the default linker script.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-check-sections">
+<span class="sig-name descname"><span class="pre">--no-check-sections</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-check-sections" title="Permalink to this definition"></a></dt>
+<dd><p>Do not check section addresses for overlaps</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-dynamic-list">
+<span class="sig-name descname"><span class="pre">-dynamic-list</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;list-of-symbols&gt;</span></span><a class="headerlink" href="#cmdoption-dynamic-list" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a list of symbols if present will be exported</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-check-sections">
+<span class="sig-name descname"><span class="pre">--check-sections</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-check-sections" title="Permalink to this definition"></a></dt>
+<dd><p>Check section addresses for overlaps(default)</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-exclude-libs">
+<span class="sig-name descname"><span class="pre">--exclude-libs</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;libs&gt;</span></span><a class="headerlink" href="#cmdoption-exclude-libs" title="Permalink to this definition"></a></dt>
+<dd><p>Specifies a list of archive libraries from which symbols should not be automatically exported</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-extern-list">
+<span class="sig-name descname"><span class="pre">-extern-list</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;list-of-symbols&gt;</span></span><a class="headerlink" href="#cmdoption-extern-list" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a list of symbols that exists as external dependencies</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-global-merge-non-alloc-strings">
+<span class="sig-name descname"><span class="pre">--global-merge-non-alloc-strings</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-global-merge-non-alloc-strings" title="Permalink to this definition"></a></dt>
+<dd><p>merge non-alloc strings across output sections</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-map-section">
+<span class="sig-name descname"><span class="pre">--map-section</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;section&gt;</span></span><a class="headerlink" href="#cmdoption-map-section" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a input section that maps to a output section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-orphan-handling">
+<span class="sig-name descname"><span class="pre">-orphan-handling</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;mode&gt;</span></span><a class="headerlink" href="#cmdoption-orphan-handling" title="Permalink to this definition"></a></dt>
+<dd><p>Specify how to handle orphan sections. Options available are place,error, warn</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-print-memory-usage">
+<span class="sig-name descname"><span class="pre">--print-memory-usage</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-print-memory-usage" title="Permalink to this definition"></a></dt>
+<dd><p>Print memory usage when MEMORY linker script directive is used</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-section-start">
+<span class="sig-name descname"><span class="pre">-section-start</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;address&gt;</span></span><a class="headerlink" href="#cmdoption-section-start" title="Permalink to this definition"></a></dt>
+<dd><p>Specify a virtual output section address for a specified section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-sort-section">
+<span class="sig-name descname"><span class="pre">--sort-section</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;sort_section&gt;</span></span><a class="headerlink" href="#cmdoption-sort-section" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-unique-output-sections">
+<span id="cmdoption-unique-output-sections"></span><span class="sig-name descname"><span class="pre">-unique-output-sections</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--unique-output-sections</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-unique-output-sections" title="Permalink to this definition"></a></dt>
+<dd><p>Place each input section in a unique output section</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-unresolved-symbols">
+<span class="sig-name descname"><span class="pre">--unresolved-symbols</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-unresolved-symbols" title="Permalink to this definition"></a></dt>
+<dd><p>Determine how to handle unresolved symbols, Options available are ignore-all,report-all(Default), ignore-in-object-files, ignore-in-shared-libs</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-version-script">
+<span class="sig-name descname"><span class="pre">-version-script</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;linkersciptfile&gt;</span></span><a class="headerlink" href="#cmdoption-version-script" title="Permalink to this definition"></a></dt>
+<dd><p>Use the linker script as a version script.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="symbol-options">
+<h1>SYMBOL OPTIONS<a class="headerlink" href="#symbol-options" title="Permalink to this heading"></a></h1>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-d">
+<span class="sig-name descname"><span class="pre">-d</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-d" title="Permalink to this definition"></a></dt>
+<dd><p>Assign space to common symbols</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-demangle">
+<span class="sig-name descname"><span class="pre">--demangle</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-demangle" title="Permalink to this definition"></a></dt>
+<dd><p>Demangle C++ symbols</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-demangle-style">
+<span class="sig-name descname"><span class="pre">--demangle-style</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;value&gt;</span></span><a class="headerlink" href="#cmdoption-demangle-style" title="Permalink to this definition"></a></dt>
+<dd><p>Specify whether the linker should demangle symbols when emitting errors or emitting Map files</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-discard-all">
+<span class="sig-name descname"><span class="pre">--discard-all</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-discard-all" title="Permalink to this definition"></a></dt>
+<dd><p>Discard all symbols</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-discard-locals">
+<span class="sig-name descname"><span class="pre">--discard-locals</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-discard-locals" title="Permalink to this definition"></a></dt>
+<dd><p>Discard all local symbols</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-no-demangle">
+<span class="sig-name descname"><span class="pre">--no-demangle</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-no-demangle" title="Permalink to this definition"></a></dt>
+<dd><p>Dont demangle C++ symbols</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-portable">
+<span class="sig-name descname"><span class="pre">-portable</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol&gt;</span></span><a class="headerlink" href="#cmdoption-portable" title="Permalink to this definition"></a></dt>
+<dd><p>Specify symbol to be portable wrapped to</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-sort-common">
+<span class="sig-name descname"><span class="pre">--sort-common</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-sort-common" title="Permalink to this definition"></a></dt>
+<dd><p>sort common symbols by alignment</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-6">
+<span class="sig-name descname"><span class="pre">-sort-common</span></span><span class="sig-prename descclassname"><span class="pre">=&lt;option&gt;</span></span><a class="headerlink" href="#cmdoption-6" title="Permalink to this definition"></a></dt>
+<dd><p>Sort common symbols by ascdending/descending order of alignment</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-strip-all">
+<span class="sig-name descname"><span class="pre">--strip-all</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-strip-all" title="Permalink to this definition"></a></dt>
+<dd><p>Omit all symbol informations from output</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-strip-debug">
+<span class="sig-name descname"><span class="pre">--strip-debug</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-strip-debug" title="Permalink to this definition"></a></dt>
+<dd><p>Omit all debug information from output</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-wrap">
+<span class="sig-name descname"><span class="pre">-wrap</span></span><span class="sig-prename descclassname"> <span class="pre">&lt;symbol&gt;</span></span><a class="headerlink" href="#cmdoption-wrap" title="Permalink to this definition"></a></dt>
+<dd><p>Specify symbol to be wrapped to</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

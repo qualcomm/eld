@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4. Linker Script &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5. Diagnostics" href="linker_diagnostics.html" />
+    <link rel="prev" title="3. Supported Targets" href="supported_targets.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Linker Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">4.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-script-syntax">4.2. Basic script syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#script-commands">4.3. Script commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#expressions">4.4. Expressions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#symbol-assignments">4.5. Symbol assignments</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symbol-assignment-types">4.5.1. Symbol assignment types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#section-of-linker-script-symbols">4.5.2. Section of linker script symbols</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#location-counter">4.5.3. Location counter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#assignment-evaluation-order">4.5.4. Assignment evaluation order</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#basic-case-no-forward-reference">4.5.4.1. Basic case: No forward reference</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#forward-reference">4.5.4.2. Forward reference</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#circular-dependency">4.5.4.3. Circular dependency</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#forward-references-in-dot-assignments">4.5.4.4. Forward references in dot-assignments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#defsym">4.5.5. <code class="xref std std-option docutils literal notranslate"><span class="pre">--defsym</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#nocrossrefs">4.6. NOCROSSREFS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-section-description">4.7. Output Section Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#syntax">4.8. Syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#controlling-physical-addresses">4.9. Controlling Physical addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gnu-compatibility">4.10. GNU-compatibility</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-cannot-eld-support-these-extensions-along-with-gnu-compatibility">4.10.1. Why cannot eld support these extensions along with GNU-compatibility?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">13. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command.html">14. Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4. </span>Linker Script</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-script">
+<h1><span class="section-number">4. </span>Linker Script<a class="headerlink" href="#linker-script" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#overview" id="id3">Overview</a></p></li>
+<li><p><a class="reference internal" href="#basic-script-syntax" id="id4">Basic script syntax</a></p></li>
+<li><p><a class="reference internal" href="#script-commands" id="id5">Script commands</a></p></li>
+<li><p><a class="reference internal" href="#expressions" id="id6">Expressions</a></p></li>
+<li><p><a class="reference internal" href="#symbol-assignments" id="id7">Symbol assignments</a></p>
+<ul>
+<li><p><a class="reference internal" href="#symbol-assignment-types" id="id8">Symbol assignment types</a></p></li>
+<li><p><a class="reference internal" href="#section-of-linker-script-symbols" id="id9">Section of linker script symbols</a></p></li>
+<li><p><a class="reference internal" href="#location-counter" id="id10">Location counter</a></p></li>
+<li><p><a class="reference internal" href="#assignment-evaluation-order" id="id11">Assignment evaluation order</a></p>
+<ul>
+<li><p><a class="reference internal" href="#basic-case-no-forward-reference" id="id12">Basic case: No forward reference</a></p></li>
+<li><p><a class="reference internal" href="#forward-reference" id="id13">Forward reference</a></p></li>
+<li><p><a class="reference internal" href="#circular-dependency" id="id14">Circular dependency</a></p></li>
+<li><p><a class="reference internal" href="#forward-references-in-dot-assignments" id="id15">Forward references in dot-assignments</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#defsym" id="id16"><code class="xref std std-option docutils literal notranslate"><span class="pre">--defsym</span></code></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#nocrossrefs" id="id17">NOCROSSREFS</a></p></li>
+<li><p><a class="reference internal" href="#output-section-description" id="id18">Output Section Description</a></p></li>
+<li><p><a class="reference internal" href="#syntax" id="id19">Syntax</a></p></li>
+<li><p><a class="reference internal" href="#controlling-physical-addresses" id="id20">Controlling Physical addresses</a></p></li>
+<li><p><a class="reference internal" href="#gnu-compatibility" id="id21">GNU-compatibility</a></p>
+<ul>
+<li><p><a class="reference internal" href="#why-cannot-eld-support-these-extensions-along-with-gnu-compatibility" id="id22">Why cannot eld support these extensions along with GNU-compatibility?</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2><a class="toc-backref" href="#id3"><span class="section-number">4.1. </span>Overview</a><a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p>Linker scripts define how input sections (like .text, .data, .bss) are mapped to output sections
+and where they are placed in memory. These scripts control:</p>
+<ul class="simple">
+<li><p>Memory regions (e.g., RAM, ROM)</p></li>
+<li><p>Section alignment</p></li>
+<li><p>Ordering of code and data</p></li>
+<li><p>Load vs. execution addresses</p></li>
+</ul>
+<p>This is the standard method used by most linkers like GNU ld.</p>
+<div class="line-block">
+<div class="line">Linker scripts provide detailed specifications of how files are to be linked. They offer greater control over linking than is available using just the linker command options.</div>
+</div>
+<div class="line-block">
+<div class="line">NOTE Linker scripts are optional. In most cases, the default behavior of the linker is sufficient.</div>
+</div>
+<div class="line-block">
+<div class="line">Linker scripts control the following properties:</div>
+</div>
+<blockquote>
+<div><ul class="simple">
+<li><p>ELF program header</p></li>
+<li><p>Program entry point</p></li>
+<li><p>Input and output files and searching paths</p></li>
+<li><p>Section memory placement and runtime</p></li>
+<li><p>Section removal</p></li>
+<li><p>Symbol definition</p></li>
+</ul>
+</div></blockquote>
+<div class="line-block">
+<div class="line">A linker script consists of a sequence of commands stored in a text file.</div>
+</div>
+<div class="line-block">
+<div class="line">The script file can be specified on the command line either with -T, or by specifying the file as an input files.</div>
+</div>
+<div class="line-block">
+<div class="line">The linker distinguishes between script files and object files and handles each accordingly.</div>
+</div>
+<div class="line-block">
+<div class="line">To generate a map file that shows how a linker script controlled linking, use the M option.</div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PHDRS</p></td>
+<td><p>Program Headers</p></td>
+</tr>
+<tr class="row-odd"><td><p>SECTIONS</p></td>
+<td><p>Section mapping and memory placementELF program header definition</p></td>
+</tr>
+<tr class="row-even"><td><p>ENTRY</p></td>
+<td><p>ELF program headerProgram execution entry point</p></td>
+</tr>
+<tr class="row-odd"><td><p>OUTPUT_FORMAT</p></td>
+<td><p>Parsed, but no effect on linking</p></td>
+</tr>
+<tr class="row-even"><td><p>OUTPUT_ARCH</p></td>
+<td><p>Parsed, but no effect on linking</p></td>
+</tr>
+<tr class="row-odd"><td><p>SEARCH_DIR</p></td>
+<td><p>Add additional searching directory for libraries</p></td>
+</tr>
+<tr class="row-even"><td><p>INCLUDE</p></td>
+<td><p>Include linker script file</p></td>
+</tr>
+<tr class="row-odd"><td><p>OUTPUT</p></td>
+<td><p>Define output filename</p></td>
+</tr>
+<tr class="row-even"><td><p>GROUP</p></td>
+<td><p>Define files that will be searched repeatedly</p></td>
+</tr>
+<tr class="row-odd"><td><p>ASSERT</p></td>
+<td><p>Linker script assertion</p></td>
+</tr>
+<tr class="row-even"><td><p>NOCROSSREFS</p></td>
+<td><p>Check cross references among a group of sections</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="basic-script-syntax">
+<h2><a class="toc-backref" href="#id4"><span class="section-number">4.2. </span>Basic script syntax</a><a class="headerlink" href="#basic-script-syntax" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul>
+<li><p>Symbols</p>
+<p>Symbol names must begin with a letter, underscore, or period. They can include letters, numbers, underscores, hyphens, or periods.</p>
+</li>
+<li><p>Comments</p>
+<p>Comments can appear in linker scripts</p>
+</li>
+<li><p>Strings</p>
+<p>Character strings can be specified as parameters with or without delimiter characters.</p>
+</li>
+<li><p>Expressions</p>
+<p>Expressions are similar to C, and support all C arithmetic operators. They are evaluated as type long or unsigned long</p>
+</li>
+<li><p>Location Counter</p>
+<div class="line-block">
+<div class="line">A period is used as a symbol to indicate the current location counter. It is used in the SECTIONS command only, where it designates locations in the output section:</div>
+<div class="line">. = ALIGN(0x1000); . = . + 0x1000;</div>
+<div class="line">Assigning a value to the location counter symbol changes the location counter to the specified value.</div>
+<div class="line">The location counter can be moved forward by arbitrary amounts to create gaps in an output section.</div>
+<div class="line">It cannot, however, be moved backwards.</div>
+</div>
+</li>
+<li><p>Symbol assignment</p>
+<div class="line-block">
+<div class="line">Symbols, including the location counter, can be assigned constants or expressions:</div>
+<div class="line">__text_start = . + 0x1000;</div>
+<div class="line">Assignment statements are similar to C, and support all C assignment operators. Terminate assignment statements with a semicolon</div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="script-commands">
+<h2><a class="toc-backref" href="#id5"><span class="section-number">4.3. </span>Script commands</a><a class="headerlink" href="#script-commands" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>The SECTIONS command must be specified in a linker script. All the other script commands are optional.</p>
+<blockquote>
+<div><ul>
+<li><p>PHDRS</p>
+<p>The PHDRS (Program Headers) command in a linker script is used to define program headers in the output binary, particularly for ELF (Executable and Linkable Format) files. These headers are essential for the runtime loader to understand how to load and map the binary into memory.</p>
+<p><em>When and Why PHDRS is Used?</em></p>
+<ul>
+<li><p>Custom Memory Mapping</p>
+<p>You use PHDRS when you want to explicitly control how sections are grouped into segments in the ELF file. This is especially important for:</p>
+<ul class="simple">
+<li><p>Embedded systems</p></li>
+<li><p>Custom bootloaders</p></li>
+<li><p>OS kernels</p></li>
+</ul>
+</li>
+<li><p>Fine-Grained Segment Control</p>
+<ul class="simple">
+<li><p>Assign specific sections to specific segments</p></li>
+<li><p>Control segment flags (e.g., PT_LOAD, PT_NOTE, PT_TLS)</p></li>
+<li><p>Set permissions (r, w, x) for each segment</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<div><p>Syntax :- { name type [FILEHDR][PHDRS][AT (address)][FLAGS (flags)] }</p>
+<p>The PHDRS script command sets information in the program headers, also known as <em>segment header</em> of an ELF output file.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>name – Specifies the program header in the SECTIONS command</p></li>
+<li><p>type – Specifies the program header type</p></li>
+<li><p>PT_LOAD – Loadable segment</p></li>
+<li><p>PT_NULL – Linker does not include section in a segment. No loadable section should be set to PT_NULL.</p></li>
+<li><p>PT_DYNAMIC – Segment where dynamic linking information is stored</p></li>
+<li><p>PT_INTERP – Segment where the name of the dynamic linker is stored</p></li>
+<li><p>PT_NOTE – Segment where note information is stored</p></li>
+<li><p>PT_SHLIB – Reserved program header type</p></li>
+<li><p>PT_PHDR – Segment where program headers are stored</p></li>
+<li><p>FLAGS - Specifies the p_flags field in the program header</p></li>
+<li><p>The value of flags must be an integer. It is used to set the p_flags field of the program header: for instance, FLAGS(5) sets p_flags to PF_R | PF_X; and FLAGS(0x03000000) sets OS-specific flags.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the sections in an output file have different flag settings than what is specified in PHDRS, the linker combines the two different flags using bitwise or</p>
+</div>
+</div></blockquote>
+</div></blockquote>
+<ul>
+<li><p>SECTIONS</p>
+<blockquote>
+<div><p>Syntax :- SECTIONS { section_statement section_statement … }</p>
+<p>The SECTIONS script command specifies how input sections are mapped to output sections, and where output sections are located in memory. The SECTIONS command must be specified once, and only once, in a linker script.</p>
+<ul>
+<li><p>Section statements</p>
+<blockquote>
+<div><p>A SECTIONS command contains one or more section statements, each of which can be one of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>An ENTRY command</p></li>
+<li><p>A symbol assignment statement to set the location counter. The location counter specifies the default address in subsequent section-mapping statements that do not explicitly specify an address.</p></li>
+<li><p>An output section description to specify one or more input sections in one or more library files, and maps those sections to an output section. The virtual memory address of the output section can be specified using attribute keywords.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>ENTRY</p>
+<blockquote>
+<div><p>Syntax :- ENTRY (symbol)</p>
+<ul class="simple">
+<li><p>The ENTRY script command specifies the program execution entry point.</p></li>
+<li><p>The entry point is the first instruction that is executed after a program is loaded.</p></li>
+<li><p>This command is equivalent to the linker command-line option,-e.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>OUTPUT_FORMAT</p>
+<blockquote>
+<div><p>Syntax :- OUTPUT_FORMAT (string)</p>
+<ul class="simple">
+<li><p>The OUTPUT_FORMAT script command specifies the output file properties.</p></li>
+<li><p>For compatibility with the GNU linker, this command is parsed but has no effect on linking.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>OUTPUT_ARCH</p>
+<blockquote>
+<div><p>Syntax :- OUTPUT_ARCH (“aarch64”)</p>
+<ul class="simple">
+<li><p>The OUTPUT_ARCH script command specifies the target processor architecture.</p></li>
+<li><p>For compatibility with the GNU linker, this command is parsed but has no effect on linking.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>SEARCH_DIR</p>
+<blockquote>
+<div><p>Syntax :- SEARCH_DIR (path)</p>
+<ul class="simple">
+<li><p>The SEARCH_DIR script command specifies which adds the specified path to the list of paths that the linker uses to search for libraries.</p></li>
+<li><p>This command is equivalent to the linker command-line option,-L.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>INCLUDE</p>
+<blockquote>
+<div><p>Syntax :- INCLUDE (file)</p>
+<ul class="simple">
+<li><p>The INCLUDE script command specifies the contents of the text file at the current location in the linker script.</p></li>
+<li><p>The specified file is searched for in the current directory and any directory that the linker uses to search for libraries.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Include files can be nested.</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>OUTPUT</p>
+<blockquote>
+<div><p>Syntax :- OUTPUT (file)</p>
+<ul class="simple">
+<li><p>The OUTPUT script command defines the location and file where the linker will write output data.</p></li>
+<li><p>Only one output is allowed per linking.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>GROUP</p>
+<blockquote>
+<div><p>Syntax :- GROUP (file, file, …)</p>
+<ul class="simple">
+<li><p>The GROUP script command includes a list of achieved file names.</p></li>
+<li><p>The achieved names defined in the list are searched repeatedly until all defined references are resolved.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>ASSERT</p>
+<blockquote>
+<div><p>Syntax :- ASSERT(expression, string)</p>
+<ul class="simple">
+<li><p>The ASSERT script command adds an assertion to the linker script.</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="expressions">
+<h2><a class="toc-backref" href="#id6"><span class="section-number">4.4. </span>Expressions</a><a class="headerlink" href="#expressions" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>Expressions in linker scripts are identical to C expressions</p>
+<blockquote>
+<div><table class="docutils align-default">
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>.</p></td>
+<td><p>Return the location counter value representing the current virtual address.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ABSOLUTE (expression)</p></td>
+<td><p>Return the absolute value of the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p>ADDR (string)</p></td>
+<td><p>Return the virtual address of the symbol or section. Dot (.) is supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ALIGN (expression)</p></td>
+<td><p>Return value when the current location counter is aligned to the next expression
+boundary. The value of the current location counter is not changed.</p></td>
+</tr>
+<tr class="row-even"><td><p>ALIGN (expression1, expression2)</p></td>
+<td><p>Return value when the value of expression1 is aligned to the next expression2 boundary.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ALIGNOF (string)</p></td>
+<td><p>Return the align information of the symbol or section.</p></td>
+</tr>
+<tr class="row-even"><td><p>ASSERT (expression, string)</p></td>
+<td><p>Throw an assertion if the expression result is zero.</p></td>
+</tr>
+<tr class="row-odd"><td><p>BLOCK (expression)</p></td>
+<td><p>Synonym for ALIGN (expression).</p></td>
+</tr>
+<tr class="row-even"><td><dl class="simple">
+<dt>DATA_SEGMENT_ALIGN(maxpagesize</dt><dd><p>, commonpagesize)</p>
+</dd>
+</dl>
+</td>
+<td><p>Equivalent to:
+(ALIGN(maxpagesize)+(.&amp;(maxpagesize ‑ 1))) or
+(ALIGN(maxpagesize)+(.&amp;(maxpagesize -commonpagesize)))
+The linker computes both of these values and returns the larger one.</p></td>
+</tr>
+<tr class="row-odd"><td><p>DATA_SEGMENT_END (expression)</p></td>
+<td><p>Not used; return the value of the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p>DATA_SEGMENT_RELRO_END
+(expression )</p></td>
+<td><p>Not used; return the value of the expression.</p></td>
+</tr>
+<tr class="row-odd"><td><p>DEFINED (symbol)</p></td>
+<td><p>Return 1 if the symbol is defined in the global symbol table of the linker.</p></td>
+</tr>
+<tr class="row-even"><td><p>LOADADDR (string)</p></td>
+<td><p>Synonym for ADDR (string).</p></td>
+</tr>
+<tr class="row-odd"><td><p>MAX (expression, expression)</p></td>
+<td><p>Return the maximum value of two expressions.</p></td>
+</tr>
+<tr class="row-even"><td><p>MIN (expression1, expression2)</p></td>
+<td><p>Return the minimum value of two expressions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SEGMENT_START (string, expression)</p></td>
+<td><dl class="simple">
+<dt>If a string matches a known segment, return the start address of</dt><dd><p>that segment. If nothing is found, return the value of the expression.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="row-even"><td><p>SIZEOF (string)</p></td>
+<td><p>Return the size of the symbol, section, or segment.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SIZEOF_HEADERS</p></td>
+<td><p>Return the section start file offset.</p></td>
+</tr>
+<tr class="row-even"><td><p>CONSTANT (MAXPAGESIZE)</p></td>
+<td><p>Return the defined default page size required by ABI.</p></td>
+</tr>
+<tr class="row-odd"><td><p>CONSTANT (COMMONPAGESIZE)</p></td>
+<td><p>Return the defined common page size.</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="symbol-assignments">
+<h2><a class="toc-backref" href="#id7"><span class="section-number">4.5. </span>Symbol assignments</a><a class="headerlink" href="#symbol-assignments" title="Permalink to this heading"></a></h2>
+<p>Linker scripts can define symbols that are used by the link to create the
+output image. Linker script symbols can be referenced by the program
+source code. One typical use of linker script symbols is to define the size
+and start / stop address of an output section.</p>
+<p>Linker script symbol assignments support most C operators and follow
+C-like rules. For example, all the assignments must end with a semi-colon, and
+the C arithmetic operators are supported. The below mathematical operators are supported in linker script
+assignments:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Additionally, linker script also supports compound assignment operators:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">/=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">&lt;&lt;=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+<span class="n">u</span><span class="w"> </span><span class="o">&gt;&gt;=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The left-hand side symbol must already be defined when using compound assignment operator.</p>
+<div class="section" id="symbol-assignment-types">
+<h3><a class="toc-backref" href="#id8"><span class="section-number">4.5.1. </span>Symbol assignment types</a><a class="headerlink" href="#symbol-assignment-types" title="Permalink to this heading"></a></h3>
+<p>Linker script symbol assignments are of 4 key types:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="code docutils literal notranslate"><span class="pre">symbol</span> <span class="pre">=</span> <span class="pre">expression;</span></code></p>
+<p>Defines a <code class="code docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol.</p>
+</li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">HIDDEN(symbol</span> <span class="pre">=</span> <span class="pre">expression);</span></code></p>
+<p>Defines a <code class="docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol with <code class="docutils literal notranslate"><span class="pre">HIDDEN</span></code> visibility.</p>
+</li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">PROVIDE(symbol</span> <span class="pre">=</span> <span class="pre">expression);</span></code></p>
+<p>Defines the <code class="code docutils literal notranslate"><span class="pre">symbol</span></code> only if it is required. If defined,
+the symbol will have <code class="code docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol binding.</p>
+</li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">PROVIDE_HIDDEN(symbol</span> <span class="pre">=</span> <span class="pre">expression);</span></code></p>
+<p>Defines the <code class="code docutils literal notranslate"><span class="pre">symbol</span></code> only if it is required. If defined,
+the symbol will be a <code class="docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol with <code class="code docutils literal notranslate"><span class="pre">HIDDEN</span></code> visibility.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="section-of-linker-script-symbols">
+<h3><a class="toc-backref" href="#id9"><span class="section-number">4.5.2. </span>Section of linker script symbols</a><a class="headerlink" href="#section-of-linker-script-symbols" title="Permalink to this heading"></a></h3>
+<p>Linker script symbols defined outside an output section directive are
+called <em>absolute</em> symbols. That is, they do not belong to any output section.
+The section index of such symbols is a sentinel value <code class="code docutils literal notranslate"><span class="pre">SHN_ABS</span></code>.</p>
+<p>Linker script symbols that are defined within an output section directive
+have the output section index as their section index.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// script.t</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x100</span><span class="p">;</span><span class="w">  </span><span class="c1">// ABS symbol</span>
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x300</span><span class="p">;</span><span class="w"> </span><span class="c1">// ABS symbol</span>
+<span class="w">  </span><span class="nl">foo</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span>
+<span class="w">    </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x500</span><span class="p">;</span><span class="w">  </span><span class="c1">// Section of the symbol is foo</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+<span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x700</span><span class="p">;</span><span class="w"> </span><span class="c1">// ABS symbol</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="location-counter">
+<h3><a class="toc-backref" href="#id10"><span class="section-number">4.5.3. </span>Location counter</a><a class="headerlink" href="#location-counter" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">.</span></code> symbol is a special linker symbol that always contains the current output
+location address. Assigning to it changes the current output
+location address and can be used to create holes in the output image. This special
+dot symbol is called the location counter. It may also be referred to as the
+dot counter and dot symbol.</p>
+</div>
+<div class="section" id="assignment-evaluation-order">
+<h3><a class="toc-backref" href="#id11"><span class="section-number">4.5.4. </span>Assignment evaluation order</a><a class="headerlink" href="#assignment-evaluation-order" title="Permalink to this heading"></a></h3>
+<p>Understanding symbol assignment evaluation order is the key to understanding
+linker scripts and a necessary skill to debug linker script related issues.
+For the most part, the linker script assignments behave how you expect, but
+things become interesting when forward references are involved.</p>
+<div class="section" id="basic-case-no-forward-reference">
+<h4><a class="toc-backref" href="#id12"><span class="section-number">4.5.4.1. </span>Basic case: No forward reference</a><a class="headerlink" href="#basic-case-no-forward-reference" title="Permalink to this heading"></a></h4>
+<p>Let’s start with a basic case that does not have any forward references.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">u1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x100</span><span class="p">;</span><span class="w">  </span><span class="c1">// A1</span>
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">u2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x300</span><span class="p">;</span><span class="w"> </span><span class="c1">// A2</span>
+<span class="w">  </span><span class="nl">foo</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span>
+<span class="w">    </span><span class="n">u3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x500</span><span class="p">;</span><span class="w">  </span><span class="c1">// A3</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">u4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x700</span><span class="p">;</span><span class="w">  </span><span class="c1">// A4</span>
+<span class="w">  </span><span class="nl">bar</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">u5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x900</span><span class="p">;</span><span class="w">  </span><span class="c1">// A5</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">bar</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">u5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x1100</span><span class="p">;</span><span class="w"> </span><span class="c1">// A6</span>
+<span class="p">}</span>
+<span class="n">u6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x1300</span><span class="p">;</span><span class="w">  </span><span class="c1">// A7</span>
+</pre></div>
+</div>
+<p>The linker evaluates the assignment during the layout phase. The assignments
+, when they do not contain any forward reference, are evaluated in the
+script order. Thus, in this case, the linker script assignment evaluation
+order is: <code class="code docutils literal notranslate"><span class="pre">[A1,</span> <span class="pre">A2,</span> <span class="pre">A3,</span> <span class="pre">A4,</span> <span class="pre">A5,</span> <span class="pre">A6,</span> <span class="pre">A7]</span></code>.</p>
+</div>
+<div class="section" id="forward-reference">
+<h4><a class="toc-backref" href="#id13"><span class="section-number">4.5.4.2. </span>Forward reference</a><a class="headerlink" href="#forward-reference" title="Permalink to this heading"></a></h4>
+<p>We will now see a more complex example that has forward references. But before we
+dive into the example, let’s understand how linker evaluates an individual assignment
+that has forward reference.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>For the above assignment, let’s say that <code class="code docutils literal notranslate"><span class="pre">v</span></code> is defined before this assignment as per the linker script
+and <code class="code docutils literal notranslate"><span class="pre">w</span></code> gets defined later. In such case, the <em>final</em> value of the symbol (:code:<a href="#id1"><span class="problematic" id="id2">`</span></a>w`in this case) is
+used to evaluate the assignment. Let’s understand this with a more concrete example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x100</span><span class="p">;</span><span class="w"> </span><span class="c1">// A1</span>
+<span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w</span><span class="p">;</span><span class="w"> </span><span class="c1">// A2</span>
+<span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x200</span><span class="p">;</span><span class="w"> </span><span class="c1">// A3</span>
+<span class="n">foo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">w</span><span class="p">;</span><span class="w">   </span><span class="c1">// A4</span>
+<span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x400</span><span class="p">;</span><span class="w"> </span><span class="c1">// A5</span>
+<span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x600</span><span class="p">;</span><span class="w"> </span><span class="c1">// A6</span>
+</pre></div>
+</div>
+<p>When A2 (<code class="code docutils literal notranslate"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">v</span> <span class="pre">+</span> <span class="pre">w</span></code>) is evaluated, <code class="code docutils literal notranslate"><span class="pre">v</span></code> is already defined and is thus evaluated
+to its current value <code class="code docutils literal notranslate"><span class="pre">0x100</span></code>. On the other hand, <code class="code docutils literal notranslate"><span class="pre">w</span></code> is not defined when A2 is
+executed and thus the final value of <code class="code docutils literal notranslate"><span class="pre">w</span></code> (i.e., 0x400) is used to evaluate A2.
+Thus, after all assignments are processed, the final values are:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">v</span> <span class="pre">=</span> <span class="pre">0x600</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">0x500</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">foo</span> <span class="pre">=</span> <span class="pre">0x200</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">w</span> <span class="pre">=</span> <span class="pre">0x400</span></code></p></li>
+</ul>
+<p>Now let’s look at a more complex example containing forward references.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span><span class="w"> </span><span class="c1">// A1</span>
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v1</span><span class="p">;</span><span class="w"> </span><span class="c1">// A2</span>
+<span class="w"> </span><span class="nl">foo</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span>
+<span class="w">   </span><span class="n">v1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v2</span><span class="p">;</span><span class="w"> </span><span class="c1">// A3</span>
+<span class="w"> </span><span class="p">}</span>
+<span class="w"> </span><span class="n">v2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v3</span><span class="p">;</span><span class="w"> </span><span class="c1">// A4</span>
+<span class="p">}</span>
+<span class="n">v3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SIZEOF</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span><span class="w"> </span><span class="c1">// A5</span>
+</pre></div>
+</div>
+<p>The linker again tries to evaluate the assignment in order, however, the assignments
+A1, A2, A3 and A4 cannot be completely evaluated because the variables on their
+right hand side are not evaluated yet. The linker marks the assignments that cannot
+be completely evaluated as pending assignments. It also records which nodes were unevaluated
+in the assignment. After the layout is complete, but before the relaxations begin, the linker
+recursivly evaluates the pending assignments until all assignments are resolved or a
+circular dependency is encountered. During re-evaluation of an assignment, only the previously
+unevaluated nodes are reevaluated.</p>
+<p>The assignment evaluation sequence for this example is:</p>
+<ol class="arabic simple">
+<li><p>Evaluate [A1, A2, A3, A4, A5]: PendingAssignments = [A1, A2, A3, A4], CompletedAssignments = [A5]</p></li>
+<li><p>Re-evaluate [A1, A2, A3, A4]: PendingAssignments = [A1, A2, A3], CompletedAssignments = [A5, A4]</p></li>
+<li><p>Re-evalaute [A1, A2, A3]: PendingAssignments = [A1, A2], CompletedAssignments = [A5, A4, A3]</p></li>
+<li><p>Re-evaluate [A1, A2]: PendingAssignments = [A1], CompletedAssignments = [A5, A4, A3, A2]</p></li>
+<li><p>Re-evaluate [A1]: PendingAssignments = [], CompletedAssignments = [A5, A4, A3, A2, A1]</p></li>
+</ol>
+</div>
+<div class="section" id="circular-dependency">
+<h4><a class="toc-backref" href="#id14"><span class="section-number">4.5.4.3. </span>Circular dependency</a><a class="headerlink" href="#circular-dependency" title="Permalink to this heading"></a></h4>
+<p>What happens if the linker script contains circular dependency among variables?</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x1</span><span class="p">;</span><span class="w"> </span><span class="c1">// A1</span>
+<span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x1</span><span class="p">;</span><span class="w"> </span><span class="c1">// A2</span>
+<span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">u</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mh">0x1</span><span class="p">;</span><span class="w"> </span><span class="c1">// A3</span>
+</pre></div>
+</div>
+<p>What would be the values of <code class="code docutils literal notranslate"><span class="pre">u</span></code>, <code class="code docutils literal notranslate"><span class="pre">v</span></code>, and <code class="code docutils literal notranslate"><span class="pre">w</span></code> here?</p>
+<p>In such a case, the linker would report a warning and stop evaluating symbol assignments
+once a circular dependency is detected. The final values of the symbols here will be:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">0x2</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">v</span> <span class="pre">=</span> <span class="pre">0x2</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">w</span> <span class="pre">=</span> <span class="pre">0x2</span></code></p></li>
+</ul>
+<p>Before analyzing this behavior, it’s important to note that a circular dependency
+represents an erroneous condition and should be considered undefined behavior.
+Once a layout enters an undefined state, all guarantees regarding its structure
+and consistency no longer apply.</p>
+<p>With this warning in-place, let’s reason how linker arrives at these final values.
+The assignment evaluation sequence for this example is:</p>
+<ol class="arabic simple">
+<li><p>Evaluate [A1, A2, A3]: PendingAssignments = [A1, A2, A3], CompletedAssignments = []</p></li>
+<li><p>Re-evaluate [A1, A2, A3]: PendingAssignments = [A1, A2, A3], CompletedAssignments = [],
+Circular dependency detected, stop evaluation.</p></li>
+</ol>
+<p>The linker stops evaluating assignments when it detects a circular dependency.
+The linker assigns the value <code class="code docutils literal notranslate"><span class="pre">0x1`</span></code> to the symbols in the first assignment evaluation iteration,
+then in the second evaluation iteration it assigns the value <code class="code docutils literal notranslate"><span class="pre">0x2</span></code> to the symbols. The linker
+then detects circular dependency and does not evaluate assignments further, as the layout may never
+converge due to circular dependencies.</p>
+</div>
+<div class="section" id="forward-references-in-dot-assignments">
+<h4><a class="toc-backref" href="#id15"><span class="section-number">4.5.4.4. </span>Forward references in dot-assignments</a><a class="headerlink" href="#forward-references-in-dot-assignments" title="Permalink to this heading"></a></h4>
+<p>Forward references in dot-assignments are more complex than those in non-dot
+assignments because dot-assignments directly influence the layout.
+If a dot-assignment cannot be evaluated correctly, the layout itself cannot be computed.</p>
+<p>The fundamental rule remains unchanged: whenever a forward reference is encountered,
+the final value of the symbol is used in the expression.</p>
+<p>In eld, when a forward reference appears in a dot-assignment,
+the layout is computed in two passes:</p>
+<ul class="simple">
+<li><p>First pass: The forward reference symbol is temporarily treated as 0
+during layout computation.</p></li>
+<li><p>Second pass: After the initial layout is complete, eld recomputes the
+layout using the actual final values of all forward reference symbols.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="defsym">
+<h3><a class="toc-backref" href="#id16"><span class="section-number">4.5.5. </span><code class="xref std std-option docutils literal notranslate"><span class="pre">--defsym</span></code></a><a class="headerlink" href="#defsym" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">--defsym</span> <span class="pre">sym=expr</span></code> is treated akin to a linker script just with
+one symbol assignment. For example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">ld</span><span class="p">.</span><span class="n">eld</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="mf">1.</span><span class="n">out</span><span class="w"> </span><span class="mf">1.</span><span class="n">o</span><span class="w"> </span><span class="o">--</span><span class="n">defsym</span><span class="w"> </span><span class="n">u</span><span class="o">=</span><span class="mh">0x10</span><span class="w"> </span><span class="o">--</span><span class="n">defsym</span><span class="w"> </span><span class="n">v</span><span class="o">=</span><span class="mh">0x30</span><span class="w"> </span><span class="o">--</span><span class="n">defsym</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="mh">0x50</span>
+</pre></div>
+</div>
+<p>The above link command is equivalent to:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp"># The scripts consist of the following content:</span>
+<span class="cp"># script1.t: &quot;u=0x10&quot;</span>
+<span class="cp"># script2.t: &quot;v=0x30&quot;</span>
+<span class="cp"># script3.t: &quot;w=0x50&quot;</span>
+<span class="n">ld</span><span class="p">.</span><span class="n">eld</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="mf">1.</span><span class="n">out</span><span class="w"> </span><span class="mf">1.</span><span class="n">o</span><span class="w"> </span><span class="n">script1</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="n">script2</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="n">script3</span><span class="p">.</span><span class="n">t</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>HIDDEN (symbol = expression)</p></td>
+<td><p>Hide the defined symbol so it is not exported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>FILL (expression)</p></td>
+<td><dl class="simple">
+<dt>Specify the fill value for the current section. The fill length can be</dt><dd><p>1, 2, 4, or 8. The linker determines the length by selecting the
+minimum fit length. In the following example, the fill length is 8:</p>
+</dd>
+</dl>
+<p>FILL( 0xdeadc0de )
+A FILL statement covers memory locations from the point at
+which it occurs to the end of the current section.
+Multiple FILL statements can be used in an output section
+definition to fill different parts of the section with different patterns.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>ASSERT (expression, string)</p></td>
+<td><p>When the specified expression is zero, the linker throws an
+assertion with the specified message string.</p></td>
+</tr>
+<tr class="row-odd"><td><p>PROVIDE (symbol = expression)</p></td>
+<td><p>Similar to symbol assignment, but does not perform checking for  an unresolved reference</p></td>
+</tr>
+<tr class="row-even"><td><p>PROVIDE_HIDDEN (symbol = expression)</p></td>
+<td><p>Similar to PROVIDE, but hides the defined symbol so it will not be exported.</p></td>
+</tr>
+<tr class="row-odd"><td><p>PRINT (symbol = expression)</p></td>
+<td><p>Instruct the linker to print symbol name and expression value to
+standard output during parsing</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="nocrossrefs">
+<h2><a class="toc-backref" href="#id17"><span class="section-number">4.6. </span>NOCROSSREFS</a><a class="headerlink" href="#nocrossrefs" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>The NOCROSSREFS command takes a list of space-separated output section names as its arguments.</p></li>
+<li><p>Any cross references among these output sections will result in link editor failure.</p></li>
+<li><p>The list can also contain an orphan section that is not specified in the linker script.</p></li>
+<li><p>A linker script can contain multiple NOCROSSREFS commands.</p></li>
+<li><p>Each command is treated as an independent set of output sections that are checked for cross references.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="output-section-description">
+<h2><a class="toc-backref" href="#id18"><span class="section-number">4.7. </span>Output Section Description</a><a class="headerlink" href="#output-section-description" title="Permalink to this heading"></a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command can contain one or more output section descriptions.</p>
+<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>&lt;section-name&gt; [&lt;virtual_addr&gt;][(&lt;type&gt;)] :
+[AT(&lt;load_addr&gt;)] [ALIGN(&lt;section_align&gt;) | ALIGN_WITH_INPUT]
+[SUBALIGN(&lt;subsection_align&gt;)] [&lt;constraint&gt;]
+{
+   ...
+   &lt;output-section-command&gt; &lt;output-section-command&gt;
+}[&gt;&lt;region&gt;][AT&gt;&lt;lma_region&gt;][:&lt;phdr&gt;...][
+=&lt;fillexp&gt;]
+</pre></div>
+</div>
+</div>
+<div class="section" id="syntax">
+<h2><a class="toc-backref" href="#id19"><span class="section-number">4.8. </span>Syntax</a><a class="headerlink" href="#syntax" title="Permalink to this heading"></a></h2>
+<dl class="simple">
+<dt>&lt;section-name&gt;</dt><dd><p>Specifies the name of the output section.</p>
+</dd>
+<dt>&lt;virtual_addr&gt;</dt><dd><p>Specifies the virtual address of the output section (optional). The address value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;type&gt;</dt><dd><p>Specifies the section load property (optional).</p>
+<ul class="simple">
+<li><p>NOLOAD: Marks a section as not loadable.</p></li>
+<li><p>INFO: Parsed only; has no effect on linking.</p></li>
+</ul>
+</dd>
+<dt>&lt;load_addr&gt;</dt><dd><p>Specifies the load address of the output section (optional). The address value can be specified as an expression (see Expressions).</p>
+</dd>
+<dt>&lt;section_align&gt;</dt><dd><p>Specifies the section alignment of the output section (optional). The alignment value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;subsection_align&gt;</dt><dd><p>Specifies the subsection alignment of the output section (optional). The alignment value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;constraint&gt;</dt><dd><p>Specifies the access type of the input sections (optional).</p>
+<ul class="simple">
+<li><p>NOLOAD: All input sections are read-only.</p></li>
+</ul>
+</dd>
+<dt>&lt;output-section-command&gt;</dt><dd><p>Specifies an output section command (see Output section commands). An output section description contains one or more output section commands.</p>
+</dd>
+<dt>&lt;region&gt;</dt><dd><p>Specifies the region of the output section (optional). The region is expressed as a string. This option is parsed but has no effect on linking.</p>
+</dd>
+<dt>&lt;lma-region&gt;</dt><dd><p>Specifies the load memory address (LMA) region of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.</p>
+</dd>
+<dt>&lt;fillexp&gt;</dt><dd><p>Specifies the fill value of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.</p>
+</dd>
+<dt>&lt;phdr&gt;</dt><dd><p>Specifies a program segment for the output section (optional). To assign multiple program segments to an output section, this option can appear more than once in an output section description.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="controlling-physical-addresses">
+<h2><a class="toc-backref" href="#id20"><span class="section-number">4.9. </span>Controlling Physical addresses</a><a class="headerlink" href="#controlling-physical-addresses" title="Permalink to this heading"></a></h2>
+<p>In GNU linker scripts, the AT command is used to control the Load Memory Address (LMA) of a section, while the section’s placement in memory during execution is defined by its Virtual Memory Address (VMA).</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When an AT command is specified as part of the output section, the linker
+will not automatically align the load memory address of the section.</p>
+</div>
+<p>ALIGN_WITH_INPUT attribute on an output section will make the difference between the VMA and LMA intact.</p>
+<p>We will expand this section with examples in future.</p>
+</div>
+<div class="section" id="gnu-compatibility">
+<h2><a class="toc-backref" href="#id21"><span class="section-number">4.10. </span>GNU-compatibility</a><a class="headerlink" href="#gnu-compatibility" title="Permalink to this heading"></a></h2>
+<p>The eld linker script syntax and semantics are GNU-compliant. This means that
+any linker script that works with the GNU linker should also work with eld,
+with the exception of a few GNU linker script features that are not yet
+supported by eld.</p>
+<p>Previously, eld supported two extensions to the GNU linker script syntax.
+<strong>These extensions are no longer supported.</strong> Any scripts using these
+extensions must be updated to maintain compatibility with eld.
+These extensions are:</p>
+<ol class="arabic simple">
+<li><p>Assignment without space between the symbol and <code class="code docutils literal notranslate"><span class="pre">=</span></code></p></li>
+</ol>
+<p>Previously supported:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">symbol</span><span class="o">=&lt;</span><span class="n">expr</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>GNU-compliant syntax (required now):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">symbol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>GNU requires a space between the symbol and the assignment operator.
+eld now enforces this requirement. Scripts must be updated accordingly.</p>
+<ol class="arabic simple" start="2">
+<li><p>Output section description without space between the output section name and <code class="code docutils literal notranslate"><span class="pre">:</span></code></p></li>
+</ol>
+<p>Previously supported:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nl">FOO</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>GNU-compliant syntax (required now):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nl">FOO</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>GNU requires a space between the output section name and the colon.
+eld now enforces this requirement for full GNU compatibility.</p>
+<div class="section" id="why-cannot-eld-support-these-extensions-along-with-gnu-compatibility">
+<h3><a class="toc-backref" href="#id22"><span class="section-number">4.10.1. </span>Why cannot eld support these extensions along with GNU-compatibility?</a><a class="headerlink" href="#why-cannot-eld-support-these-extensions-along-with-gnu-compatibility" title="Permalink to this heading"></a></h3>
+<p>eld cannot support these extensions along with GNU-compatibility because they
+directly conflict with the GNU linker script syntax. For example, GNU ld
+allows <code class="code docutils literal notranslate"><span class="pre">:</span></code> in section names and allows <code class="code docutils literal notranslate"><span class="pre">=</span></code> in symbol names. The
+core issue is that GNU ld uses the same lexing state to parse symbol and
+section names to keep the parser simple and efficient. Due to this, GNU ld
+also allows other non-trivial characters in symbol names such as <code class="code docutils literal notranslate"><span class="pre">+</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">-</span></code>, <code class="code docutils literal notranslate"><span class="pre">:</span></code> and so on. For example, for the below linker script
+snippet, gnu ld creates a symbol of the name <code class="code docutils literal notranslate"><span class="pre">a+=</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>a+= = b # lhs symbol is a+=
+</pre></div>
+</div>
+<p>eld cannot easily add exception to the two cases that were supported by eld extensions
+while keeping everything else the same to keep the linker script parser efficient.
+To support these as an exception, the parser needs to lookahead two tokens to resolve
+ambiguities. Let’s understand this with the help of an example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nl">FOO</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">u</span><span class="o">=</span><span class="n">v</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>When parsing the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> commands, the parser does not know in which
+LexState to parse the command. If the command is an output section description,
+<code class="code docutils literal notranslate"><span class="pre">FOO:</span></code>, then the parser should parse the token in <code class="code docutils literal notranslate"><span class="pre">LexState::default</span></code>,
+whereas if the command is an assignment, then the parser should parse the token in
+<code class="code docutils literal notranslate"><span class="pre">LexState::Expr</span></code>. <code class="code docutils literal notranslate"><span class="pre">LexState::default</span></code> allows some characters
+in tokens that are not appropriate when parsing an expression. These characters
+include <code class="code docutils literal notranslate"><span class="pre">+</span></code>, <code class="code docutils literal notranslate"><span class="pre">-</span></code>, <code class="code docutils literal notranslate"><span class="pre">=</span></code> and more.</p>
+<p>To correctly determine which <code class="code docutils literal notranslate"><span class="pre">LexState</span></code> to use, the parser needs to
+peek (lookahead) two tokens in <code class="code docutils literal notranslate"><span class="pre">LexState::Expr</span></code>. With the two tokens peek,
+the parser can determine whether the command is an assignment command or not.</p>
+<p>This simple change requires a lot of changes in the parser. The parser needs to
+change from LL(1) (Simple and efficient) to LL(2) (Complex and less efficient).</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="supported_targets.html" class="btn btn-neutral float-left" title="3. Supported Targets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_diagnostics.html" class="btn btn-neutral float-right" title="5. Diagnostics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

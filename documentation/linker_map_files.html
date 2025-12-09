@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9. Linker Map Files &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="10. Image layout" href="layout.html" />
+    <link rel="prev" title="8. Image Structure and Generation" href="image_structure_and_generation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">9. Linker Map Files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#map-file-styles">9.1. Map File Styles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#navigating-text-map-file">9.2. Navigating Text Map File</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#map-file-contents">9.2.1. Map file contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tools-version-and-system-and-link-features">9.2.2. Tools Version, and System and Link Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#link-stats">9.2.3. Link Stats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#archive-member-information">9.2.4. Archive Member Information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#allocating-common-symbols">9.2.5. Allocating Common Symbols</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-script-and-memory-map-section">9.2.6. Linker Script and Memory Map Section</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-scripts-used">9.2.7. Linker Scripts Used</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-section-and-layout">9.2.8. Output Section and Layout</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#simplified-output-section-and-layout-structure">9.2.8.1. Simplified ‘Output Section and Layout’ Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#other-outputsectionandlayout-substructures">9.2.8.2. Other &lt;OutputSectionAndLayout&gt; substructures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#link-map-in-yaml-format">9.2.8.3. Link map in YAML format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#link-map-in-binary-format">9.2.8.4. Link map in Binary format</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">13. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command.html">14. Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9. </span>Linker Map Files</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-map-files">
+<h1><span class="section-number">9. </span>Linker Map Files<a class="headerlink" href="#linker-map-files" title="Permalink to this heading"></a></h1>
+<p>A map file provides detailed information about the link and helps analyze
+output images, debug build issues, and better understand linker decisions.
+It contains detailed information for input files, linker scripts, memory
+regions, image memory layout, and so much more. Effectively using map files
+can significantly reduce the time spent analyzing and debugging builds.</p>
+<p>Use <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-Map"><code class="xref std std-option docutils literal notranslate"><span class="pre">-Map</span></code></a> to generate map files for your builds.</p>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#map-file-styles" id="id5">Map File Styles</a></p></li>
+<li><p><a class="reference internal" href="#navigating-text-map-file" id="id6">Navigating Text Map File</a></p>
+<ul>
+<li><p><a class="reference internal" href="#map-file-contents" id="id7">Map file contents</a></p></li>
+<li><p><a class="reference internal" href="#tools-version-and-system-and-link-features" id="id8">Tools Version, and System and Link Features</a></p></li>
+<li><p><a class="reference internal" href="#link-stats" id="id9">Link Stats</a></p></li>
+<li><p><a class="reference internal" href="#archive-member-information" id="id10">Archive Member Information</a></p></li>
+<li><p><a class="reference internal" href="#allocating-common-symbols" id="id11">Allocating Common Symbols</a></p></li>
+<li><p><a class="reference internal" href="#linker-script-and-memory-map-section" id="id12">Linker Script and Memory Map Section</a></p></li>
+<li><p><a class="reference internal" href="#linker-scripts-used" id="id13">Linker Scripts Used</a></p></li>
+<li><p><a class="reference internal" href="#output-section-and-layout" id="id14">Output Section and Layout</a></p>
+<ul>
+<li><p><a class="reference internal" href="#simplified-output-section-and-layout-structure" id="id15">Simplified ‘Output Section and Layout’ Structure</a></p>
+<ul>
+<li><p><a class="reference internal" href="#outputsectionandlayout" id="id16">&lt;OutputSectionAndLayout&gt;</a></p></li>
+<li><p><a class="reference internal" href="#outputsection" id="id17">&lt;OutputSection&gt;</a></p></li>
+<li><p><a class="reference internal" href="#rule" id="id18">&lt;Rule&gt;</a></p></li>
+<li><p><a class="reference internal" href="#inputsection" id="id19">&lt;InputSection&gt;</a></p></li>
+<li><p><a class="reference internal" href="#symbol" id="id20">&lt;Symbol&gt;</a></p></li>
+<li><p><a class="reference internal" href="#example" id="id21">Example</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#other-outputsectionandlayout-substructures" id="id22">Other &lt;OutputSectionAndLayout&gt; substructures</a></p>
+<ul>
+<li><p><a class="reference internal" href="#linkerscriptexpression" id="id23">&lt;LinkerScriptExpression&gt;</a></p></li>
+<li><p><a class="reference internal" href="#padding" id="id24">&lt;Padding&gt;</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#link-map-in-yaml-format" id="id25">Link map in YAML format</a></p></li>
+<li><p><a class="reference internal" href="#link-map-in-binary-format" id="id26">Link map in Binary format</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="map-file-styles">
+<h2><a class="toc-backref" href="#id5"><span class="section-number">9.1. </span>Map File Styles</a><a class="headerlink" href="#map-file-styles" title="Permalink to this heading"></a></h2>
+<p>Map files are available in three distinct styles:</p>
+<ol class="arabic simple">
+<li><p>Text</p></li>
+<li><p>YAML</p></li>
+<li><p>Binary</p></li>
+</ol>
+<p>Use option <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-MapStyle"><code class="xref std std-option docutils literal notranslate"><span class="pre">-MapStyle</span></code></a> to specify the map file style. Text map file
+is the default map style.</p>
+</div>
+<div class="section" id="navigating-text-map-file">
+<h2><a class="toc-backref" href="#id6"><span class="section-number">9.2. </span>Navigating Text Map File</a><a class="headerlink" href="#navigating-text-map-file" title="Permalink to this heading"></a></h2>
+<div class="section" id="map-file-contents">
+<h3><a class="toc-backref" href="#id7"><span class="section-number">9.2.1. </span>Map file contents</a><a class="headerlink" href="#map-file-contents" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Section</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Tools Version, and System and Link features</p></td>
+<td><p>Information about tools version, and system and link features.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Link Stats</p></td>
+<td><p>Quick overview of key link information</p></td>
+</tr>
+<tr class="row-even"><td><p>Archive Member Information</p></td>
+<td><p>Specifies which archive members were included and why.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Allocating Common Symbols</p></td>
+<td><p>Lists the common symbols which got allocated</p></td>
+</tr>
+<tr class="row-even"><td><p>Linker Script and Memory Map</p></td>
+<td><p>Specifies input object files</p></td>
+</tr>
+<tr class="row-odd"><td><p>Build statistics</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Linker scripts used</p></td>
+<td><p>Specifies the linker scripts used by the link.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Linker plugin information</p></td>
+<td><p>Details plugin information.</p></td>
+</tr>
+<tr class="row-even"><td><p>Output Section and Layout</p></td>
+<td><p>Delineates output image layout</p></td>
+</tr>
+</tbody>
+</table>
+<p>Let’s explore each of these sections in detail!</p>
+</div>
+<div class="section" id="tools-version-and-system-and-link-features">
+<h3><a class="toc-backref" href="#id8"><span class="section-number">9.2.2. </span>Tools Version, and System and Link Features</a><a class="headerlink" href="#tools-version-and-system-and-link-features" title="Permalink to this heading"></a></h3>
+<p>As the title suggests, this consists information about tools version, and
+system and link features. An example of this section is shown below:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp"># Linker from QuIC LLVM Hexagon Clang version Version 19.0-alpha2 Engineering Release: hexagon-clang-190-229</span>
+<span class="cp"># Linker based on LLVM version: 19.0</span>
+<span class="cp"># Linker: d8a255719548f774e7e73cd97959ca04fd780b54</span>
+<span class="cp"># LLVM: 9ab18b8e7547380db4fb83b2ada1d7704876b334</span>
+<span class="cp"># Notable linker command/script options:</span>
+<span class="cp"># CPU Architecture Version:</span>
+<span class="cp"># Target triple environment for the link: unknown</span>
+<span class="cp"># Maximum GP size: 8</span>
+<span class="cp"># Link type: Static</span>
+<span class="cp"># ABI Page Size: 0x1000</span>
+<span class="cp"># CommandLine : hexagon-link -o main.elf main.o libs/libfoo.a libs/libbar.a -Map main.map.txt</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="link-stats">
+<h3><a class="toc-backref" href="#id9"><span class="section-number">9.2.3. </span>Link Stats</a><a class="headerlink" href="#link-stats" title="Permalink to this heading"></a></h3>
+<p>‘Link Stats’ provides a quick overview of key link information.
+<strong>Link stats are not displayed if their value is 0.</strong></p>
+<p>An example of ‘Link Stats’ is shown below:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp"># LinkStats Begin</span>
+<span class="cp"># ObjectFiles : 2</span>
+<span class="cp"># LinkerScripts : 2</span>
+<span class="cp"># ThreadCount : 64</span>
+<span class="cp"># NumInputSections : 37</span>
+<span class="cp"># ZeroSizedSections : 28</span>
+<span class="cp"># Total Symbols: 6 { Global: 3, Local: 2, Weak: 0, Absolute: 3, Hidden: 1, Protected: 0 }</span>
+<span class="cp"># Discarded Symbols: 1 { Global: 1, Local: 0, Weak: 0, Absolute: 0, Hidden: 1, Protected: 0 }</span>
+<span class="cp"># NumLinkerScriptRules : 2</span>
+<span class="cp"># NumOutputSections : 7</span>
+<span class="cp"># NumOrphans : 5</span>
+<span class="cp"># NoRuleMatches : 3</span>
+<span class="cp"># NumSegments : 1</span>
+<span class="cp"># OutputFileSize : 4920 bytes</span>
+<span class="cp"># LinkStats End</span>
+</pre></div>
+</div>
+<p>There might be more or less link stats than what is shown here depending on
+your tools version. Remember that only non-zero stats are displayed.</p>
+</div>
+<div class="section" id="archive-member-information">
+<h3><a class="toc-backref" href="#id10"><span class="section-number">9.2.4. </span>Archive Member Information</a><a class="headerlink" href="#archive-member-information" title="Permalink to this heading"></a></h3>
+<p>‘Archive Member Information’ tells which archive members were included in the
+link and due to which symbol. Archive members are only included in the link
+if they satisfy an undefined symbol reference. The format of each entry of
+‘Archive Member Information’ is:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">ArchiveFile</span><span class="o">&gt;</span><span class="w"> </span><span class="p">(</span><span class="o">&lt;</span><span class="n">ArchiveMember</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="w">     </span><span class="o">&lt;</span><span class="n">CompilationUnitReferringArchiveMember</span><span class="o">&gt;</span><span class="w"> </span><span class="p">(</span><span class="o">&lt;</span><span class="n">ReferencedSymbol</span><span class="o">&gt;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The below example shows that archive members ‘libs/libfoo.a(Foo.o)’ and
+‘libs/libbar.a(Bar.o)’ are included in the link because ‘main.o’ referenced
+symbols ‘foo’ and ‘bar’ from the archive members.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Archive<span class="w"> </span>member<span class="w"> </span>included<span class="w"> </span>because<span class="w"> </span>of<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>symbol<span class="o">)</span>
+libs/libfoo.a<span class="o">(</span>Foo.o<span class="o">)</span>
+<span class="w">                </span>main.o<span class="w"> </span><span class="o">(</span>foo<span class="o">)</span>
+libs/libbar.a<span class="o">(</span>Bar.o<span class="o">)</span>
+<span class="w">                </span>main.o<span class="w"> </span><span class="o">(</span>bar<span class="o">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="allocating-common-symbols">
+<h3><a class="toc-backref" href="#id11"><span class="section-number">9.2.5. </span>Allocating Common Symbols</a><a class="headerlink" href="#allocating-common-symbols" title="Permalink to this heading"></a></h3>
+<ul>
+<li><p>‘Allocating Common Symbols’ list the common symbols that were allocated by the linker. Each entry in the common symbols section contains the following items:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>The name of the symbol</p></li>
+<li><p>The size of the memory area allocated for the symbol</p></li>
+<li><p>The full pathname of the archive file accessed by the linker</p></li>
+<li><p>The name of the archived object file that defines the symbol (in parentheses)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p>In the following example, the __eh_nodes symbol has size of <strong>0x4</strong> and is defined in the the object file: <strong>xregister.o</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>Common<span class="w"> </span>symbol<span class="w">       </span>size<span class="w">    </span>file
+<span class="linenos">2</span>
+<span class="linenos">3</span>__eh_nodes<span class="w">  </span>0x4<span class="w">     </span><span class="nv">$PATH</span>/../target/hexagon/lib/v65/G0/libc.a<span class="o">(</span>xregister.o<span class="o">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="linker-script-and-memory-map-section">
+<h3><a class="toc-backref" href="#id12"><span class="section-number">9.2.6. </span>Linker Script and Memory Map Section</a><a class="headerlink" href="#linker-script-and-memory-map-section" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>The linker script section of a link map lists the complete linker script that is specified for the link.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Linker scripts are optional. If a script is not specified on the linker command line, the link map does not include a linker script.</p>
+</div>
+<ul class="simple">
+<li><p>The following example shows the initial lines of a linker script section:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>Linker<span class="w"> </span>Script<span class="w"> </span>and<span class="w"> </span>memory<span class="w"> </span>map
+<span class="linenos">2</span>LOAD<span class="w"> </span><span class="nv">$PATH</span>/../target/hexagon/lib/v65/G0/crt0_standalone.o<span class="o">[</span>hexagonv65<span class="o">]</span>
+<span class="linenos">3</span>LOAD<span class="w"> </span>target/main.o<span class="o">[</span>hexagonv65<span class="o">]</span>
+<span class="linenos">4</span>START<span class="w"> </span>GROUP
+<span class="linenos">5</span>LOAD<span class="w"> </span><span class="nv">$PATH</span>/../target/hexagon/lib/v65/G0/libstandalone.a<span class="o">(</span>_exit.o<span class="o">)[</span>hexagonv65<span class="o">]</span>
+<span class="linenos">6</span>...
+<span class="linenos">7</span>LOAD<span class="w"> </span><span class="nv">$PATH</span>/../target/hexagon/lib/v65/G0/libgcc.a<span class="o">(</span>vmemcpy_h.o<span class="o">)[</span>hexagonv65<span class="o">]</span>
+<span class="linenos">8</span>END<span class="w"> </span>GROUP
+<span class="linenos">9</span>LOAD<span class="w"> </span><span class="nv">$PATH</span>/../target/hexagon/lib/v65/G0/fini.o<span class="o">[</span>hexagonv65<span class="o">]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="linker-scripts-used">
+<h3><a class="toc-backref" href="#id13"><span class="section-number">9.2.7. </span>Linker Scripts Used</a><a class="headerlink" href="#linker-scripts-used" title="Permalink to this heading"></a></h3>
+<p>‘Linker Scripts Used’ specifies the linker scripts used by the link.</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>Linker<span class="w"> </span>scripts<span class="w"> </span>used<span class="w"> </span><span class="o">(</span>including<span class="w"> </span>INCLUDE<span class="w"> </span><span class="nb">command</span><span class="o">)</span>
+<span class="linenos">2</span>target/linker.script
+</pre></div>
+</div>
+</div></blockquote>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Add ‘Linker Plugin Information’ section docs!</p>
+</div>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
+<p>Add ‘Build statistics’ section docs!</p>
+</div>
+</div>
+<div class="section" id="output-section-and-layout">
+<h3><a class="toc-backref" href="#id14"><span class="section-number">9.2.8. </span>Output Section and Layout</a><a class="headerlink" href="#output-section-and-layout" title="Permalink to this heading"></a></h3>
+<p>‘Output Section and Layout’ describes the image layout.
+It tells where output sections are placed and what they consist of. It presents
+information in an elaborate format loosely based on the linker script
+<code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command. This format allows users to easily visualize and
+understand how <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> subcommands, linker script expressions and
+assignment to the location counter affect the output layout.</p>
+<p>‘Output Section and Layout’ contains detailed information
+about output sections, input section descriptions (commonly called rules),
+input sections, symbols, padding and linker script expressions. It is the most
+complex part of the map file. Let’s explore its structure to better understand
+its content.</p>
+<div class="section" id="simplified-output-section-and-layout-structure">
+<h4><a class="toc-backref" href="#id15"><span class="section-number">9.2.8.1. </span>Simplified ‘Output Section and Layout’ Structure</a><a class="headerlink" href="#simplified-output-section-and-layout-structure" title="Permalink to this heading"></a></h4>
+<p>We will first see its simplified structure. Padding and linker
+script expressions are missing from this simplified structure. As we move
+forward in the documentation, these missing components will be gradually
+covered to make the structure complete.</p>
+<div class="section" id="outputsectionandlayout">
+<h5><a class="toc-backref" href="#id16"><span class="section-number">9.2.8.1.1. </span>&lt;OutputSectionAndLayout&gt;</a><a class="headerlink" href="#outputsectionandlayout" title="Permalink to this heading"></a></h5>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Output Section and Layout</span>
+&lt;OutputSection_1&gt;
+&lt;OutputSection_2&gt;
+...
+&lt;OutputSection_N&gt;
+</pre></div>
+</div>
+<p>Each &lt;OutputSection&gt; describes one output section. Let’s see what it
+consists of.</p>
+</div>
+<div class="section" id="outputsection">
+<h5><a class="toc-backref" href="#id17"><span class="section-number">9.2.8.1.2. </span>&lt;OutputSection&gt;</a><a class="headerlink" href="#outputsection" title="Permalink to this heading"></a></h5>
+<p>&lt;OutputSection&gt; is represented as:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;OutputSectionName&gt;<span class="w"> </span>&lt;size&gt;<span class="w"> </span>&lt;VMA&gt;<span class="w"> </span><span class="c1"># Offset: &lt;offset&gt;, LMA: &lt;LMA&gt;, Alignment: &lt;alignment&gt;, Flags: &lt;SectionFlags&gt;, Type: &lt;SectionType&gt;, Segments: &lt;segments&gt;</span>
+&lt;Rule_1&gt;
+&lt;Rule_2&gt;
+...
+&lt;Rule_N&gt;
+</pre></div>
+</div>
+<p>&lt;OutputSection&gt; tells output section properties and contains a list
+of :code:<a href="#id3"><span class="problematic" id="id4">`</span></a>Rule`s. Placement of rules conveys the placement of the rule contents
+in the output image layout. The contents of <em>Rule_1</em> are placed before the
+contents of <em>Rule_2</em> and so on. The contents of a rule is the merged content of
+all the sections that were matched to the rule. Now, let’s see what does
+&lt;Rule&gt; consist of.</p>
+</div>
+<div class="section" id="rule">
+<h5><a class="toc-backref" href="#id18"><span class="section-number">9.2.8.1.3. </span>&lt;Rule&gt;</a><a class="headerlink" href="#rule" title="Permalink to this heading"></a></h5>
+<p>&lt;Rule&gt; (input section description) is represented as:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;InputSectionDesc&gt;<span class="w"> </span><span class="c1">#Rule &lt;RuleNumber&gt;, &lt;InputFile&gt;</span>
+&lt;InputSection_1&gt;
+&lt;InputSection_2&gt;
+...
+&lt;InputSection_N&gt;
+</pre></div>
+</div>
+<p><code class="code docutils literal notranslate"><span class="pre">RuleNumber</span></code> makes it easier to refer to a particular input
+section description. &lt;Rule&gt; contains a list of &lt;InputSection&gt;
+that got matched to this rule.</p>
+</div>
+<div class="section" id="inputsection">
+<h5><a class="toc-backref" href="#id19"><span class="section-number">9.2.8.1.4. </span>&lt;InputSection&gt;</a><a class="headerlink" href="#inputsection" title="Permalink to this heading"></a></h5>
+<p>&lt;InputSection&gt; is typically represented as:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&lt;InputSectionName&gt;<span class="w"> </span>&lt;VMA&gt;<span class="w"> </span>&lt;size&gt;<span class="w"> </span>&lt;InputFile&gt;<span class="w"> </span><span class="c1">#&lt;SectionType&gt;,&lt;SectionFlags&gt;,&lt;SectionAlignment&gt;</span>
+&lt;Symbol_1&gt;
+&lt;Symbol_2&gt;
+...
+&lt;Symbol_N&gt;
+</pre></div>
+</div>
+<p>However, garbage-collected input sections are prefixed with ‘#’, are
+annotated with <code class="code docutils literal notranslate"><span class="pre">&lt;GC&gt;</span></code> and do not have <code class="code docutils literal notranslate"><span class="pre">&lt;VMA&gt;</span></code> component.
+The &lt;InputSection&gt; for garbage-collected input sections
+is represented as:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># &lt;InputSectionName&gt; &lt;GC&gt; &lt;VMA&gt; &lt;InputFile&gt; #&lt;SectionType&gt;,&lt;SectionFlags&gt;,&lt;SectionAlignment&gt;</span>
+&lt;Symbol_1&gt;
+&lt;Symbol_2&gt;
+...
+&lt;Symbol_N&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="symbol">
+<h5><a class="toc-backref" href="#id20"><span class="section-number">9.2.8.1.5. </span>&lt;Symbol&gt;</a><a class="headerlink" href="#symbol" title="Permalink to this heading"></a></h5>
+<p>&lt;Symbol&gt; is typically represented as:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">VMA</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&lt;</span><span class="n">SymbolName</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>However, garbage-collected symbols are prefixed with ‘#’, and do not have
+<code class="code docutils literal notranslate"><span class="pre">VMA</span></code> component. The &lt;Symbol&gt; for garbage-collected symbol is represented
+as:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp"># &lt;SymbolName&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="example">
+<h5><a class="toc-backref" href="#id21"><span class="section-number">9.2.8.1.6. </span>Example</a><a class="headerlink" href="#example" title="Permalink to this heading"></a></h5>
+<p>We have covered the simplified &lt;OutputSectionAndLayout&gt;
+structure. Now, let’s see a practical example.</p>
+<p><strong>Foo.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Bar.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>script.t</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SECTIONS<span class="w"> </span><span class="o">{</span>
+<span class="w">  </span>FOO<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>*foo*<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="w">  </span>BAR<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>*bar*<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>Generate the map-file:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">hexagon</span><span class="o">-</span><span class="n">clang</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">Foo</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="n">Foo</span><span class="p">.</span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="n">ffunction</span><span class="o">-</span><span class="n">sections</span>
+<span class="n">hexagon</span><span class="o">-</span><span class="n">clang</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">Bar</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="n">Bar</span><span class="p">.</span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="n">ffunction</span><span class="o">-</span><span class="n">sections</span>
+<span class="n">hexagon</span><span class="o">-</span><span class="n">link</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">FooBar</span><span class="p">.</span><span class="n">elf</span><span class="w"> </span><span class="n">Foo</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="n">Bar</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="o">-</span><span class="n">T</span><span class="w"> </span><span class="n">script</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="o">-</span><span class="n">Map</span><span class="w"> </span><span class="n">FooBar</span><span class="p">.</span><span class="n">map</span><span class="p">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p><strong>Output Section and Layout excerpt from the map-file</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Output Section and Layout</span>
+FOO<span class="w">     </span>0x0<span class="w">     </span>0xc<span class="w"> </span><span class="c1"># Offset: 0x1000, LMA: 0x0, Alignment: 0x10, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS</span>
+*<span class="o">(</span>*foo*<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 1, script.t [1:0]</span>
+.text.foo<span class="w">       </span>0x0<span class="w">     </span>0xc<span class="w">     </span>Foo.o<span class="w">   </span><span class="c1">#SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,16</span>
+<span class="w">        </span>0x0<span class="w">             </span>foo
+*<span class="o">(</span>FOO<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 2, Internal-LinkerScript (Implicit rule inserted by Linker) [0:0]</span>
+
+BAR<span class="w">     </span>0x10<span class="w">    </span>0xc<span class="w"> </span><span class="c1"># Offset: 0x1010, LMA: 0x10, Alignment: 0x10, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS</span>
+*<span class="o">(</span>*bar*<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 3, script.t [1:0]</span>
+.text.bar<span class="w">       </span>0x10<span class="w">    </span>0xc<span class="w">     </span>Bar.o<span class="w">   </span><span class="c1">#SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,16</span>
+<span class="w">        </span>0x10<span class="w">            </span>bar
+*<span class="o">(</span>BAR<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 4, Internal-LinkerScript (Implicit rule inserted by Linker) [0:0]</span>
+</pre></div>
+</div>
+<p>We can see precisely how output sections are laid in the final layout and
+what they are composed of. For instance, the <code class="code docutils literal notranslate"><span class="pre">FOO</span></code> output section
+contains the <code class="code docutils literal notranslate"><span class="pre">.text.foo</span></code> input section because the <code class="code docutils literal notranslate"><span class="pre">.text.foo</span></code>
+matches the rule <code class="code docutils literal notranslate"><span class="pre">*(*foo*)</span></code>. Under the input section information,
+we can also see where each symbol of the section is placed in the output layout.</p>
+</div>
+</div>
+<div class="section" id="other-outputsectionandlayout-substructures">
+<h4><a class="toc-backref" href="#id22"><span class="section-number">9.2.8.2. </span>Other &lt;OutputSectionAndLayout&gt; substructures</a><a class="headerlink" href="#other-outputsectionandlayout-substructures" title="Permalink to this heading"></a></h4>
+<div class="section" id="linkerscriptexpression">
+<h5><a class="toc-backref" href="#id23"><span class="section-number">9.2.8.2.1. </span>&lt;LinkerScriptExpression&gt;</a><a class="headerlink" href="#linkerscriptexpression" title="Permalink to this heading"></a></h5>
+<p>&lt;LinkerScriptExpression&gt; entries are interspersed in &lt;OutputSectionAndLayout&gt;,
+&lt;OutputSection&gt; and &lt;Rule&gt; and indicates their placement in the linker script.
+&lt;LinkerScriptExpression&gt; contains the linker script expression
+annotated with the values.</p>
+<p>For example, if the linker script contains:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SECTIONS<span class="w"> </span><span class="o">{</span>
+<span class="w">  </span>FOO<span class="w"> </span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="nv">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>.<span class="w"> </span>+<span class="w"> </span>0x5<span class="p">;</span>
+<span class="w">    </span>*<span class="o">(</span>*foo*<span class="o">)</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>Then the map-file will contain:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>FOO<span class="w">     </span>0x0<span class="w">     </span>0x100c<span class="w"> </span><span class="c1"># Offset: 0x1000, LMA: 0x0, Alignment: 0x10, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ FOO ]</span>
+<span class="w">        </span>v<span class="o">(</span>0x5<span class="o">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>.<span class="o">(</span>0x0<span class="o">)</span><span class="w"> </span>+<span class="w"> </span>0x5<span class="p">;</span><span class="w"> </span><span class="c1"># v = . + 0x5; script.t</span>
+*<span class="o">(</span>*foo*<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 1, script.t [1:0]</span>
+.text.foo<span class="w">       </span>0x0<span class="w">     </span>0xc<span class="w">     </span><span class="m">1</span>.eld.o<span class="w">        </span><span class="c1">#SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,16</span>
+<span class="w">        </span>0x0<span class="w">             </span>foo
+</pre></div>
+</div>
+<p>Note the <code class="code docutils literal notranslate"><span class="pre">v(0x5)</span> <span class="pre">=</span> <span class="pre">.(0x0)</span> <span class="pre">+</span> <span class="pre">0x5;</span></code> line under <code class="code docutils literal notranslate"><span class="pre">FOO</span></code> output section.</p>
+</div>
+<div class="section" id="padding">
+<h5><a class="toc-backref" href="#id24"><span class="section-number">9.2.8.2.2. </span>&lt;Padding&gt;</a><a class="headerlink" href="#padding" title="Permalink to this heading"></a></h5>
+<p>&lt;Padding&gt; describes a padding in the output image layout. Paddings are either
+requested explicitly by the user or are added automatically by the linker to
+satisfy alignment constraints. Like &lt;LinkerScriptExpression&gt;, &lt;padding&gt; is
+also interspersed in &lt;OutputSectionAndLayout&gt;, &lt;OutputSection&gt; and &lt;Rule&gt;.
+The position of &lt;padding&gt; entry in the map-file conveys the position of padding
+in the memory layout.</p>
+<p>Let’s see an example of explicitly requested padding.</p>
+<p>If the linker script contains:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SECTIONS<span class="w"> </span><span class="o">{</span>
+<span class="w"> </span>FOO<span class="w"> </span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">   </span>.<span class="w"> </span><span class="o">=</span><span class="w"> </span>.<span class="w"> </span>+<span class="w"> </span>0x10<span class="p">;</span>
+<span class="w">   </span>*<span class="o">(</span>*foo*<span class="o">)</span>
+<span class="w"> </span><span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>Then the map-file will contain:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Output Section and Layout</span>
+
+FOO<span class="w">     </span>0x0<span class="w">     </span>0x1c<span class="w"> </span><span class="c1"># Offset: 0x1000, LMA: 0x0, Alignment: 0x10, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS</span>
+PADDING<span class="w"> </span>0x0<span class="w">     </span>0x10<span class="w">    </span>0x0
+<span class="w">        </span>.<span class="o">(</span>0x10<span class="o">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>.<span class="o">(</span>0x0<span class="o">)</span><span class="w"> </span>+<span class="w"> </span>0x10<span class="p">;</span><span class="w"> </span><span class="c1"># . = . + 0x10; script.t</span>
+*<span class="o">(</span>*foo*<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 1, script.t [1:0]</span>
+.text.foo<span class="w">       </span>0x10<span class="w">    </span>0xc<span class="w">     </span>Foo.o<span class="w">   </span><span class="c1">#SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,16</span>
+<span class="w">        </span>0x10<span class="w">            </span>foo
+*<span class="o">(</span>FOO<span class="o">)</span><span class="w"> </span><span class="c1">#Rule 2, Internal-LinkerScript (Implicit rule inserted by Linker) [0:0]</span>
+</pre></div>
+</div>
+<p>Please note the <code class="code docutils literal notranslate"><span class="pre">PADDING</span></code> details under the <code class="code docutils literal notranslate"><span class="pre">FOO</span></code> output section.</p>
+</div>
+</div>
+<div class="section" id="link-map-in-yaml-format">
+<h4><a class="toc-backref" href="#id25"><span class="section-number">9.2.8.3. </span>Link map in YAML format</a><a class="headerlink" href="#link-map-in-yaml-format" title="Permalink to this heading"></a></h4>
+<blockquote>
+<div><ul>
+<li><p>If you use the MapStyle option to specify YAML-style output for the map file, the linker generates a YAML file instead of the text file that shows the memory map for the program.</p></li>
+<li><p>To derive statistics from the YAML map file produced by the linker, use the <strong>YAMLMapParser.py</strong> tool and include any of the following options:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>–info=architecture</strong> – List the architecture</p></li>
+<li><p><strong>sizes</strong> – List the code and data sizes for the objects in the image</p></li>
+<li><p><strong>summarysizes</strong> – List the code and data sizes of the image</p></li>
+<li><p><strong>totals</strong> – List the total size of all objects in the image</p></li>
+<li><p><strong>unused</strong> – List the sections eliminated from the image</p></li>
+<li><p><strong>unusedsymbols</strong> – List the symbols eliminated from the image</p></li>
+<li><p><strong>–map</strong> – Display the memory map of the images</p></li>
+<li><p><strong>–xref</strong> – List the cross references between input sections</p></li>
+<li><p><strong>list</strong> – Redirect the output to a file</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<blockquote>
+<div><p>The following table describes the sections of a YAML file</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 31%" />
+<col style="width: 69%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Section</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Header</p></td>
+<td><p>Top level information of the program that was built</p></td>
+</tr>
+<tr class="row-odd"><td><p>Version</p></td>
+<td><p>Information Tools version information</p></td>
+</tr>
+<tr class="row-even"><td><p>Archive Records</p></td>
+<td><p>Archive files pulled in by the linker</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inputs</p></td>
+<td><p>Inputs that were used</p></td>
+</tr>
+<tr class="row-even"><td><p>InputInfo</p></td>
+<td><p>Inputs that were used and not used</p></td>
+</tr>
+<tr class="row-odd"><td><p>Linker script used</p></td>
+<td><p>Linker script file that was used</p></td>
+</tr>
+<tr class="row-even"><td><p>BuildType</p></td>
+<td><p>Type of build</p></td>
+</tr>
+<tr class="row-odd"><td><p>OutputFile</p></td>
+<td><p>Name of the output file</p></td>
+</tr>
+<tr class="row-even"><td><p>EntryAddress</p></td>
+<td><p>Entry address for the image built</p></td>
+</tr>
+<tr class="row-odd"><td><p>CommandLine</p></td>
+<td><p>information on how the linker was called</p></td>
+</tr>
+<tr class="row-even"><td><p>CommandLineDefaults</p></td>
+<td><p>Various defaults applied in the linker</p></td>
+</tr>
+<tr class="row-odd"><td><p>OutputSections</p></td>
+<td><p>All output sections</p></td>
+</tr>
+<tr class="row-even"><td><p>DiscardedComdats</p></td>
+<td><p>COMDAT C++ section groups that discarded</p></td>
+</tr>
+<tr class="row-odd"><td><p>DiscardedSections</p></td>
+<td><p>Sections discarded by garbage collection</p></td>
+</tr>
+<tr class="row-even"><td><p>DiscardedCommonSymbols</p></td>
+<td><p>Common symbols that were discarded</p></td>
+</tr>
+<tr class="row-odd"><td><p>LoadRegions</p></td>
+<td><p>Segments that the program loader will load</p></td>
+</tr>
+<tr class="row-even"><td><p>CrossReferences</p></td>
+<td><p>Cross-reference table for the program</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="link-map-in-binary-format">
+<h4><a class="toc-backref" href="#id26"><span class="section-number">9.2.8.4. </span>Link map in Binary format</a><a class="headerlink" href="#link-map-in-binary-format" title="Permalink to this heading"></a></h4>
+<blockquote>
+<div><ul class="simple">
+<li><p>If you use the <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-MapStyle"><code class="xref std std-option docutils literal notranslate"><span class="pre">-MapStyle</span></code></a> option to specify “binary” output for the map file, the</p></li>
+</ul>
+<p>linker generates a binary file instead of the text file that contains the memory map.</p>
+<ul class="simple">
+<li><p>“-MapStyle binary” can be used along with other map styles as well.</p></li>
+<li><p>E.g. “-MapStyle txt -MapStyle binary -Map outputfile.map” will produce a text format map</p></li>
+</ul>
+<p>file “outputfile.map” and a binary format “xmap.bin” file.</p>
+</div></blockquote>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="image_structure_and_generation.html" class="btn btn-neutral float-left" title="8. Image Structure and Generation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="layout.html" class="btn btn-neutral float-right" title="10. Image layout" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

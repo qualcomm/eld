@@ -1,0 +1,918 @@
+Compatibility Or Ignored Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -EL
+
+   Link little endian objects.
+
+.. option:: -Qy
+
+   This option is ignored for SVR4 compatibility
+
+.. option:: --add-needed
+
+   Deprecated
+
+.. option:: --copy-dt-needed-entries
+
+   Add the dynamic libraries mentioned to DT_NEEDED
+
+.. option:: --ignore-unknown-opts
+
+   Disable warnings of unimplemented options
+
+.. option:: --nmagic
+
+   Turn off page alignment of sections, and disable linking against shared libraries
+
+.. option:: --no-add-needed
+
+   Deprecated
+
+.. option:: --no-allow-shlib-undefined
+
+   Do not allow undefined symbols from dynamic library when creating executables
+
+.. option:: --no-copy-dt-needed-entries
+
+   Turn off the effect of the --copy-dt-needed-entries
+
+.. option:: -plugin <pluginfile>
+
+   Specify a plugin file
+
+.. option:: -plugin-opt <plugin-opt>
+
+   Specify plugin options
+
+.. option:: -thin-archive-rule-matching-compatibility, --thin-archive-rule-matching-compatibility
+
+   Provides rule-matching compatibility when fat archives are
+   converted to thin archives
+
+
+
+DIAGNOSITC OPTIONS
+^^^^^^^^^^^^^^^^^^^
+.. option:: -W<warn-type>
+
+   Print warnings which are OFF by default
+   
+   *  -Wall : print all warnings
+   *  -W[no]linker-script : display warnings detected while parsing linker scripts
+   *  -W[no]attribute-mix : display a warning if object files of RISC-V with different attributes are being linked
+   *  -W[no-]archive-file : display warnings detected while reading archive files
+   *  -W[no-]linker-script-memory : display warnings detected while processing linker script memory command
+   *  -W[no-]bad-dot-assignments : display warnings for bad dot assignments
+   *  -W[no-]error : treat warnings as errors
+   *  -Wwhole-archive : display a warning when whole-archive is enabled for any archive file
+   *  -W[no-]osabi : display a warning when linking objects with different values for OS/ABI
+   
+
+.. option:: -color <on/off>
+
+   Enable color output for diagnostics
+
+.. option:: -cref, --cref
+
+   Print the references for a symbol or section
+
+.. option:: -t
+
+   Print all files processed by the linker
+
+.. option:: -display_hotness <value>
+
+   Display hotness information for optimization remarks
+
+.. option:: --emit-timing-stats <filename>
+
+   Emit time statistics of various linker operatons to the specified file
+
+.. option:: -emit-timing-stats-in-output, --emit-timing-stats-in-output
+
+   Insert link-time stats in section .note.qc.timing
+
+.. option:: --error-limit <max-error-number>
+
+   Maximum number of errors to emit before stopping (0 = no limit)
+
+.. option:: --error-style <style>
+
+   Specify an error style, LLVM/GNU
+
+.. option:: --fatal-internal-errors
+
+   Enable fatal internal errors
+
+.. option:: --fatal-warnings
+
+   Enable fatal warnings
+
+.. option:: --gc-cref <symbol/section>
+
+   Print the references for a symbol or section when garbage collection is enabled
+
+.. option:: --no-fatal-internal-errors
+
+   Disable fatal internal errors
+
+.. option:: --no-fatal-warnings
+
+   Disable fatal warnings
+
+.. option:: --no-warn-mismatch
+
+   Do not Warn on incompatible files passed to the linker.
+
+.. option:: -opt-record-file, --opt-record-file
+
+   Create diagnostic yaml file
+
+.. option:: -print-timing-stats, --print-timing-stats
+
+   Print time statistics of various linker operatons to console
+
+.. option:: --progress-bar
+
+   Show Progress Bar
+
+.. option:: --summary
+
+   Display linker run summary at the end
+
+.. option:: --time-region <region>
+
+   Emit time statistics for specified region of linker operation 
+
+.. option:: -trace <trace-type>
+
+   Allow tracing of
+   
+   *  --trace=linker-script : trace linker script
+   *  --trace=files : trace input files
+   *  --trace=reloc=<pattern> : trace relocations
+   *  --trace=symbol=<symbol-name> : trace symbol
+   *  --trace=all-symbols : trace all symbols
+   *  --trace=LTO : trace LTO
+   *  --trace=garbage-collection : trace linker garbage collection
+   *  --trace=plugin : trace plugin
+   *  --trace=threads : trace threads
+   *  --trace=assignments : trace symbol assignments
+   *  --trace=command-line : trace header info
+   *  --trace=live-edges : trace reachable sections when garbage collection is enabled
+   *  --trace=merge-strings : trace linker string optimization
+   *  --trace=trampolines : trace trampolines
+   *  --trace=wrap-symbols : trace symbol wrap options
+   *  --trace=symdef : trace symbol resolution from symdef files
+   *  --trace=dynamic-linking : trace dynamic linking
+
+.. option:: --trace-linker-script
+
+   Trace stages of linker script processing
+
+.. option:: --trace-lto
+
+   Trace stages of lto
+
+.. option:: -trace-merge-strings <option>
+
+   Emit diagnostics describing how strings were merged. Options: all(default), allocatable_sections, <output section (regex)>
+
+.. option:: -trace-reloc <relocation>
+
+   trace a particular relocation
+
+.. option:: -trace-section <section_name>
+
+   Show metadata about a particular section
+
+.. option:: -y <symbol>
+
+   Trace a particular symbol
+
+.. option:: --verbose
+
+   Enable verbose output
+
+.. option:: -verbose=<verbose-level>
+
+   Enable verbose output
+
+.. option:: -verify-options <option>
+
+   Verify certain internal linker computations - currently supports reloc
+
+.. option:: --warn-common
+
+   Warn on common symbols
+
+.. option:: --warn-limit <maxwarnings>
+
+   Maximum number of warnings to emit (0 = no limit)
+
+.. option:: --warn-mismatch
+
+   Warn on incompatible files passed to the linker.
+
+
+
+DYNAMIC LIBRARY OPTIONS
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -Bgroup
+
+   Enable runtime linker to handle lookups in this object and its dependencies to be performed only inside this group
+
+.. option:: -Bsymbolic
+
+   Bind references to global symbols to the definition within the shared library
+
+.. option:: -Bsymbolic-functions
+
+   Bind references to global functions to the definition within the shared library
+
+.. option:: -g
+
+   Enable debug output when building shared libraries or executables
+
+.. option:: -fPIC
+
+   Enable PIC mode
+
+.. option:: --hash-size <size>
+
+   Specify a hash size when creating the hash sections for the dynamic loader
+
+.. option:: -hash-style <hashstyle>
+
+   Specify a hash style when creating the hash sections for the dynamic loader
+
+.. option:: --no-warn-shared-textrel
+
+   Don't Warn if the linker adds a DT_TEXTREL
+
+.. option:: -soname=<name>, --soname=<name>
+
+   Set the internal DT_SONAME field to the specified name
+
+.. option:: --warn-shared-textrel
+
+   Warn if the linker adds a DT_TEXTREL
+
+
+
+DYNAMIC LIBRARY/EXECUTABLE OPTIONS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -dynamic-linker <path>
+
+   Set the path to the dynamic linker
+
+.. option:: -export-dynamic, --export-dynamic
+
+   Add all symbols to the dynamic symbol table when creating executables
+
+.. option:: -export-dynamic-symbol <symbol>
+
+   Export specified symbol to dynamic symbol table
+
+.. option:: -force-dynamic, --force-dynamic
+
+   Build executable as a force dynamic executable
+
+.. option:: -no-dynamic-linker, --no-dynamic-linker
+
+   The program does not need a dynamic linker when creating static PIE executables
+
+.. option:: --no-export-dynamic
+
+.. option:: -rpath <path>
+
+   Add a path to the runtime library search path
+
+.. option:: -rpath-link <path>
+
+   Specifies the path to search
+
+
+
+Extended Options
+^^^^^^^^^^^^^^^^^
+.. option:: --about
+
+   Emit detailed information about the linker
+
+.. option:: --align-segments
+
+   Align segments to page boundaries
+
+.. option:: --allow-bss-conversion
+
+   Dont produce an error when mixing NOBITS, and PROGBITS sections in the same segment
+
+.. option:: -copy-farcalls-from-file <filename>
+
+   Copy far calls instead of using trampolines
+
+.. option:: -z <extended-opts>
+
+   Extended Options or Non standard options.
+   
+    Available options are:
+   * -z=combreloc : Combines multiple reloc sections and sorts them to make dynamicsymbol lookup caching
+   * -z=now : Enables immediate binding
+   * -z=nocopyreloc : Disables Copy Relocation
+
+.. option:: --disable-new-dtags
+
+   Disable new dynamic tags
+
+.. option:: -dump-mapping-file <outputfilename>
+
+   Dump mapping file to output file
+
+.. option:: -dump-response-file <outputfilename>
+
+   Dump response file to output file
+
+.. option:: -emit-relocs-llvm, --emit-relocs-llvm
+
+   Emit relocations sections
+
+.. option:: --enable-new-dtags
+
+   Enable new dynamic tags
+
+.. option:: -mapping-file <INI-file>
+
+   Reproduce link using a mapping file
+
+.. option:: --no-align-segments
+
+   Dont align segments to page boundaries
+
+.. option:: -no-emit-relocs, --no-emit-relocs
+
+   Dont emit relocations in the output file, applicable to --emit-relocs-llvm option too 
+
+.. option:: -no-reuse-trampolines-file <filename>
+
+   Dont reuse trampolines for symbols specified in file
+
+.. option:: --no-verify
+
+   Dont verify link output
+
+.. option:: -reproduce <tarfilename>
+
+   Write a tar file containing input files and command line options to inspect and re-link
+
+.. option:: -reproduce-compressed <tarfilename>
+
+   Write compressed tar file in zlib format containing input files and command line options to inspect and re-link.
+
+.. option:: -reproduce-on-fail <tarfilename>
+
+   Write reproduce tar file when link failscontaining input files and command line options to inspect and re-link.
+
+.. option:: -rosegment, --rosegment
+
+   Put read-only non-executable sections in their own segment
+
+.. option:: --script-options <matchtype>
+
+   Specify a match type, match-gnu/match-llvm 
+
+.. option:: --use-old-style-trampoline-name
+
+   Use old style of naming trampolines
+
+
+
+GENERAL OPTIONS
+^^^^^^^^^^^^^^^^
+.. option:: --build-id
+
+   Request creation of ".note.gnu.build-id" ELF note section
+
+.. option:: -build-id=fast/md5/sha1/tree/uuid/0x<hexstring>/none
+
+   Request creation of ".note.gnu.build-id" ELF note section
+
+.. option:: -o <outputfile>
+
+   Path to file to write output
+
+.. option:: --repository-version
+
+   Print the Linker Repository version
+
+.. option:: -sysroot <sysroot-path>
+
+   Set the system root
+
+.. option:: --version
+
+   Print the Linker version
+
+
+
+Help!
+^^^^^^
+.. option:: --help, -help
+
+   Print option help
+
+.. option:: --help-hidden, -help-hidden
+
+   Print hidden option help
+
+
+
+Input Format
+^^^^^^^^^^^^^
+.. option:: -b <input-format>
+
+   Specify input format for inputs following this option.
+   Supported values: binary,default
+
+
+
+OUTPUT KIND
+^^^^^^^^^^^^
+.. option:: -Bdynamic
+
+   Link against dynamic library
+
+.. option:: -dynamic
+
+   Create dynamic executable (default)
+
+.. option:: -no-pie
+
+   Do not create a PIE executable
+
+.. option:: -pie
+
+   Create PIE executable
+
+.. option:: -r
+
+   Create relocatable object file
+
+.. option:: -shared
+
+   Create dynamic library
+
+.. option:: -static
+
+   Create static executable
+
+
+
+Link Time Speedup
+^^^^^^^^^^^^^^^^^^
+.. option:: -enable-threads=<option>
+
+   make linker fully threaded, available options: all
+
+.. option:: -no-threads, --no-threads
+
+   Disable Threads at Link time
+
+.. option:: --thread-count <threadcount>
+
+   Specify the number of threads for all linker operations
+
+.. option:: -threads, --threads
+
+   Enable Threads at Link time
+
+
+
+LLVM and Target Options
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -m
+
+   Select target emulation
+
+.. option:: -mabi <mabi>
+
+   Target ABI
+
+.. option:: -march <march>
+
+   Target architecture
+
+.. option:: -mcpu <mcpu>
+
+   Target CPU
+
+.. option:: -mllvm <option>
+
+   Options to pass to LLVM
+
+.. option:: -mtriple <triple>
+
+   Target triple to link for
+
+
+
+LTO Options
+^^^^^^^^^^^^
+.. option:: -dwodir <value>
+
+   Directory to save .dwo files when split DWARF is used in LTO
+
+.. option:: -exclude-lto-filelist <list_of_files>
+
+   Specify a list of files that are to be disregarded while using embedded bitcode section for LTO. This has no effect if -flto switch is not used.
+
+.. option:: -flto, --flto
+
+   Enable LTO if a Bitcode file is present.
+
+.. option:: -flto-options <option>
+
+   Specify various options with LTO
+
+.. option:: -flto-use-as, --flto-use-as
+
+   Use the standalone assembler instead of the integrated assembler for LTO
+
+.. option:: -include-lto-filelist <list_of_files>
+
+   Specify a list of files with embedded bitcode sections that are to be used for LTO. This has no effect if -flto switch is used
+
+.. option:: --lto-debug-pass-manager
+
+   Debug new pass manager
+
+.. option:: -lto-sample-profile=<value>
+
+   Sample PGO profile file to be loaded for LTO
+
+.. option:: --plugin-opt=-<value>, -plugin-opt=-<value>
+
+   Specify an LLVM option for compatibility with LLVMgold.so
+
+.. option:: -save-temps, --save-temps
+
+   Save the temporary files produced by LTO
+
+.. option:: -save-temps=<filename>
+
+   Save the temporary files produced by LTO
+
+
+
+EXECUTABLE OPTIONS
+^^^^^^^^^^^^^^^^^^^
+.. option:: -L
+
+   Path to search for libraries or linker scripts
+
+.. option:: -Y <path>
+
+   Add path to the default library search path
+
+.. option:: -emit-relocs, --emit-relocs
+
+   Make Emit relocs behave just like GNU.
+
+.. option:: -e <symbolname>
+
+   Name of entry point symbol
+
+.. option:: -fini <symbol>
+
+   Specify a finalizer function
+
+.. option:: --image-base <address>
+
+.. option:: -init <symbol>
+
+   Specify an initializer function
+
+.. option:: -l
+
+   Root name of library to use
+
+.. option:: --library-path <path>
+
+   Path to search for libraries or linker scripts
+
+.. option:: --library=<namespec>
+
+   library to use
+
+.. option:: --no-omagic
+
+   This option negates most of the effects of the -N option.Disable linking with shared libraries
+
+.. option:: -no-whole-archive, --no-whole-archive
+
+   Restores the default behavior of loading archive members
+
+.. option:: --noinhibit-exec
+
+   Retain the executable output file whenever it is still usable
+
+.. option:: -nostdlib
+
+   Disable default search path for libraries
+
+.. option:: --omagic
+
+   Set the text and data sections to be readable and writable. Also, do not page-align the data segment, and disable linking against shared libraries.
+
+.. option:: -whole-archive, --whole-archive
+
+   Force load of all members in a static library
+
+
+
+Map Options
+^^^^^^^^^^^^
+.. option:: -Map <filename>
+
+   Dump the output layout to the map file
+
+.. option:: -MapDetail <option>
+
+   Detail information in the map file
+
+.. option:: -MapStyle <fileformat>
+
+   Dump the output layout to the map file in YAML/Text/Binary Form
+
+.. option:: -M
+
+   Emit the map file
+
+.. option:: -trampoline-map <filename>
+
+   Dump Trampoline Information in YAML format
+
+.. option:: --color-map
+
+   Color the map file
+
+
+
+Misc Features
+^^^^^^^^^^^^^^
+.. option:: -allow-incompatible-section-mix, --allow-incompatible-section-mix
+
+   Allow incompatible section mix
+
+
+
+OPTIMIZATION OPTIONS
+^^^^^^^^^^^^^^^^^^^^^
+.. option:: --eh-frame-hdr
+
+   Create EH Frame Header section for faster exception handling
+
+.. option:: -gc-sections, --gc-sections
+
+   Enable garbage collection
+
+.. option:: -no-gc-sections, --no-gc-sections
+
+   Disable garbage collection
+
+.. option:: --no-merge-strings
+
+   Disable String Merging
+
+.. option:: --no-trampolines
+
+   Disable Trampolines
+
+.. option:: -print-gc-sections, --print-gc-sections
+
+   Print sections that are garbage collected
+
+
+
+Features From other Linkers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: -R <filename>
+
+   Read symbol names and addresses from filename
+
+.. option:: -symdef, --symdef
+
+   Output SymDef file to console
+
+.. option:: --symdef-file <filename>
+
+   Emit SymDef file
+
+.. option:: --symdef-style <style>
+
+   Determine how to handle symbol resolution for symbols from symdef file, Options available are provide
+
+
+
+Plugin Options
+^^^^^^^^^^^^^^^
+.. option:: --no-default-plugins
+
+   Allow no plugins to be implicitly loaded
+
+.. option:: --plugin-config <config-file>
+
+   Specify a plugin configuration
+
+
+
+SYMBOL RESOLUTION OPTIONS
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: --allow-multiple-definition
+
+   Allow multiple definitions
+
+.. option:: -allow-shlib-undefined, --allow-shlib-undefined
+
+   Allow undefined symbols from dynamic library when creating executables
+
+.. option:: --as-needed
+
+   This option affects ELF DT_NEEDED tags for dynamic libraries mentioned on the command line
+
+.. option:: -defsym symbol=<expression>
+
+   Create a global symbol in the output file containing the absolute address given by expression
+
+.. option:: -end-group, --end-group
+
+   End a group
+
+.. option:: --no-as-needed
+
+   This option restores the default behavior of adding DT_NEEDED entries
+
+.. option:: -no-undefined, --no-undefined
+
+   Report unresolved symbol references from regular object files
+
+.. option:: --pop-state
+
+   Restore previously saved input handling flags
+
+.. option:: --push-state
+
+   Save current input handling flags (as-needed, whole-archive, etc)
+
+.. option:: -start-group, --start-group
+
+   Start a group
+
+.. option:: -u
+
+   Force symbol to be entered in the output file as an undefined symbol
+
+.. option:: --use-shlib-undefines
+
+   Resolve undefined symbols from dynamic libraries
+
+.. option:: --warn-once
+
+   Warn only once for every undefined reference
+
+
+
+SCRIPT OPTIONS
+^^^^^^^^^^^^^^^
+.. option:: -T <linkerscriptfile>
+
+   Use the given linker script in place of the default script.
+
+.. option:: -Tbss <address>
+
+   Specify an address for the .bss section
+
+.. option:: -Tdata <address>
+
+   Specify an address for the .data section
+
+.. option:: -Ttext <address>
+
+   Specify an address for the .text section
+
+.. option:: -Ttext-segment <address>
+
+   Specify an address for the .text-segment segment
+
+.. option:: -default-script <pluginfile>
+
+   Use the linker script as the default linker script.
+
+.. option:: --no-check-sections
+
+   Do not check section addresses for overlaps
+
+.. option:: -dynamic-list <list-of-symbols>
+
+   Specify a list of symbols if present will be exported
+
+.. option:: --check-sections
+
+   Check section addresses for overlaps(default)
+
+.. option:: --exclude-libs <libs>
+
+   Specifies a list of archive libraries from which symbols should not be automatically exported
+
+.. option:: -extern-list <list-of-symbols>
+
+   Specify a list of symbols that exists as external dependencies
+
+.. option:: --global-merge-non-alloc-strings
+
+   merge non-alloc strings across output sections
+
+.. option:: --map-section <section>
+
+   Specify a input section that maps to a output section
+
+.. option:: -orphan-handling <mode>
+
+   Specify how to handle orphan sections. Options available are place,error, warn
+
+.. option:: --print-memory-usage
+
+   Print memory usage when MEMORY linker script directive is used
+
+.. option:: -section-start <address>
+
+   Specify a virtual output section address for a specified section
+
+.. option:: --sort-section <sort_section>
+
+.. option:: -unique-output-sections, --unique-output-sections
+
+   Place each input section in a unique output section
+
+.. option:: --unresolved-symbols <option>
+
+   Determine how to handle unresolved symbols, Options available are ignore-all,report-all(Default), ignore-in-object-files, ignore-in-shared-libs
+
+.. option:: -version-script <linkersciptfile>
+
+   Use the linker script as a version script.
+
+
+
+SYMBOL OPTIONS
+^^^^^^^^^^^^^^^
+.. option:: -d
+
+   Assign space to common symbols
+
+.. option:: --demangle
+
+   Demangle C++ symbols
+
+.. option:: --demangle-style <value>
+
+   Specify whether the linker should demangle symbols when emitting errors or emitting Map files
+
+.. option:: --discard-all
+
+   Discard all symbols
+
+.. option:: --discard-locals
+
+   Discard all local symbols
+
+.. option:: --no-demangle
+
+   Dont demangle C++ symbols
+
+.. option:: -portable <symbol>
+
+   Specify symbol to be portable wrapped to
+
+.. option:: --sort-common
+
+   sort common symbols by alignment
+
+.. option:: -sort-common=<option>
+
+   Sort common symbols by ascdending/descending order of alignment
+
+.. option:: --strip-all
+
+   Omit all symbol informations from output
+
+.. option:: --strip-debug
+
+   Omit all debug information from output
+
+.. option:: -wrap <symbol>
+
+   Specify symbol to be wrapped to
+
+
+

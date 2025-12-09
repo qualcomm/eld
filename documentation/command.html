@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14. Command &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="15. Command-line options" href="options/options.html" />
+    <link rel="prev" title="13. Getting Image Details" href="getting_image_details.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">13. Getting Image Details</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">14. Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">14. </span>Command</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <span class="target" id="command-rst"></span><div class="section" id="command">
+<span id="index-0"></span><h1><span class="section-number">14. </span>Command<a class="headerlink" href="#command" title="Permalink to this heading"></a></h1>
+<p>To start the linker from the command line:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">hexagon</span><span class="o">-</span><span class="n">link</span><span class="w"> </span><span class="p">[</span><span class="n">option</span><span class="p">...]</span><span class="w"> </span><span class="p">[</span><span class="n">input_fil</span><span class="p">...]</span>
+</pre></div>
+</div>
+<p>Where [<em>option…</em>] is one or more of the following:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>@file
+--align-segments | --no-align-segments
+--allow-bss-conversion
+--allow-incompatible-section-mix
+--allow-multiple-definition
+--allow-shlib-undefined | --no-allow-shlib-undefined
+--as-needed | --no-as-needed
+-Bgroup
+-Bdynamic       |       -dy
+-Bshareable     |       -shared
+-Bstatic        |       -dn     |       -non_shared     |       -static
+-Bsymbolic
+-Bsymbolic-functions
+-build-id=style
+-color
+--color-map
+--copy-farcalls-from-file=value
+--copy-dt-needed-entries
+-cref
+-d
+-dc
+-default-script=file
+--defsym symbol=expression
+--demangle | --no-demangle
+--demangle-style=value
+--disable-guard-for-weak-undef
+--disable-new-dtags
+-discard-all
+-discard-locals
+-display-hotness
+-dp
+-dynamic
+--dynamic-linker=file
+--dynamic-list=file
+-eh-frame-hdr
+-EL
+--emit-relocs | --no-emit-relocs
+--emit-relocs-llvm
+--emit-timing-stats
+--enable-new-dtags
+--enable-threads=(all)
+--entry=entry   |       -e entry
+--error-style
+--exclude-libs=file
+--exclude-lto-filelist=list_of_files
+--export-dynamic        |       -E
+--export-dynamic-symbol=symbol_name
+-extern-list=file
+-fatal-warnings |       --no-fatal-warnings
+-filetype=(obj|dso|exe)
+-fini=name
+-flto
+--flto-options=lto_options
+--force-dynamic
+-fPIC
+-g
+--gc-cref
+--gc-sections | --no-gc-sections
+-gpsize size    |       -G size
+-hash-size=size
+-hash-style=(sysv|gnu|both
+--help
+--help-hidden
+--ignore-unknown-opts
+--include-lto-filelist=list_of_files
+--image-base=image_base
+-init=name
+-larchive
+--library=namespec      |       -lnamespec
+--library-path=searchdir        |       -Lsearchdir
+-m=emulation
+-mabi=target_abi
+-M
+-Map=mapfile
+-MapDetail &lt;value&gt;
+-MapStyle &lt;value&gt;
+-march=version  |       -mcpu=version
+-merge-strings | --no-merge-strings
+-mllvm=options
+-mtriple=(hexagon-unknown-elf|hexagon-unknown-linux)
+-mv5    |       -mv55
+-mv60   |       -mv61   |       -mv62   |       -mv65   |       -mv66
+-mv67   |       -mv67t  |       -mv68
+--nmagic
+--no-reuse-trampolines-file=filename
+--no-trampolines
+--no-verify
+--no-warn-mismatch
+--no-warn-shared-textrel
+--noinhibit-exec
+-no-undefined
+-nostdlib
+--omagic | --no-omagic
+--opt-record-file
+--output=output |       -o output
+-p
+-pie
+--plugin_opt
+--plugin
+--plugin-config=value
+--portable=symbol
+--print-gc-sections
+--print-map     |       -M
+--print-timing-stats
+--progress-bar
+-Qy
+--relocatable   |       -r
+-relocation-model=(default|static|pic|dynamic-no-pic)
+--repository-version
+--rosegment
+-rpath=pathname
+-rpath-link=pathname
+--save-temps
+--script=file   |       -T file
+--script-options=(match-gnu|match-llvm)
+--section-start section=org
+-soname=name    |       -h name
+--start-group=archive ... --end-group   |       -( archive ... -)
+--strip-all
+--strip-debug   |       -S
+-symdef &lt;file&gt;
+-sysroot=pathname
+-T=filename
+-Tbss=address
+-Tdata=address
+-threads | --no-threads
+--thread-count=no_of_threads
+-trace=symbol=&lt;symbolname&gt;
+--trace=type    |       -t=type
+-trampoline-map=value
+-Ttext=address
+-Ttext-segment=address
+--undefined=symbol      |       -u symbol
+--unresolved-symbols=method
+-use-memory
+-use-shlib-undefines
+--verbose | -verbose=type
+--verify-options=value
+-version
+--version-script=file
+--warn-common
+--warn-once
+--whole-archive |       --no-whole-archive
+--wrap=symbol
+--just-symbols=file | -R file
+-Y=path
+-z keyword
+</pre></div>
+</div>
+<p>Except for the command name, the linker is invoked like the GNU linker, and it supports the most commonly-used options in the GNU linker.
+Arguments specified on the command line with no option switch are assumed to be object files. If the linker does not recognize these files as object files, it treats them as linker script files (Section 4).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The &#64;file option allows linker options and input files to be specified in a text file rather than directly on the command line.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_image_details.html" class="btn btn-neutral float-left" title="13. Getting Image Details" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="options/options.html" class="btn btn-neutral float-right" title="15. Command-line options" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
