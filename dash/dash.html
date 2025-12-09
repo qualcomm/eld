@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Build Status</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="Footer" content="DeepDash by Deepmap">
+<link rel="stylesheet" type="text/css" href="builds-summary-style.css">
+<link href="https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/jquery-ui-daterangepicker@1.0.3-yrd/jquery.comiseo.daterangepicker.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.3/jquery-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-ui-daterangepicker@1.0.3-yrd/jquery.comiseo.daterangepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  $(function() { $("#datePicker").daterangepicker();});
+</script>
+<script type="text/javascript" src="picolibc_status_data.py"></script>
+<script type="text/javascript" src="musl_status_data.py"></script>
+</head>
+
+<body>
+  <h1 id='page-title'>Build Status</h1>
+  <br>
+  <input id="datePicker" name="datePicker">
+  &nbsp;&nbsp;
+  <button onclick="window.location.reload()" style="height:38px; border-style:hidden; border-radius: 18%;">Reset</button>
+  <br><br>
+  <div class="all-builds flex-parent">
+    <div class="Build1 flex-child" style="max-width:400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+      <canvas id="picoPie"></canvas><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;Picolibc Status <sub><span id="pico_green" class="status status-pass"></span><span id="pico_red" class="status status-fail"></span></sub>
+    </div>
+    <div class="Build2 flex-child" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+      <canvas id="muslPie"></canvas>
+      <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;MUSL Status <sub><span id="musl_green" class="status status-pass"></span><span id="musl_red" class="status status-fail"></span></sub>
+    </div>
+  </div>
+
+  <script>
+  $('#page-title').click(function() { window.location.reload(); });
+  const pico = document.getElementById("picoPie");
+  const lastPicoBuild = picolibc_build_states[picolibc_build_states.length - 1];
+  if (lastPicoBuild) {
+      if(lastPicoBuild.state == 'pass') {
+        $("#pico_green").show();
+        $("#pico_red").hide();
+      }
+      else if(lastPicoBuild.state == 'fail') {
+        $("#pico_green").hide();
+        $("#pico_red").show();
+      }
+  } else {
+    $("#pico_green").hide();
+    $("#pico_red").hide();
+  }
+  let pico_passes = 0;
+  let pico_fails = 0;
+  picolibc_build_states.forEach(function(value, key) {
+    if(value.state == 'pass')
+      pico_passes += 1;
+    else if (value.state == 'fail')
+      pico_fails += 1;
+  });
+  const pico_pie = new Chart(pico, {
+    type: 'pie',
+    data: {
+      labels: ['Pass', 'Fail'],
+      datasets: [{
+        label: '#Builds',
+        data: [pico_passes, pico_fails],
+        borderWidth: 2,
+        backgroundColor: [
+        'lightgreen',
+        'red'
+      ],
+    hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      title: {
+        display: true,
+        text: 'Picolibc Builds'
+      },
+        onClick: (e) => {
+            window.open("picoBuilds.html", "_blank");
+        }
+    }
+  });
+  </script>
+
+  <script>
+  const musl = document.getElementById("muslPie");
+  const lastMUSLBuild = musl_build_states[musl_build_states.length - 1];
+  if (lastMUSLBuild) {
+      if(lastMUSLBuild.state == 'pass') {
+        $("#musl_green").show();
+        $("#musl_red").hide();
+      }
+      else if(lastMUSLBuild.state == 'fail') {
+        $("#musl_green").hide();
+        $("#musl_red").show();
+      }
+  } else {
+    $("#musl_green").hide();
+    $("#musl_red").hide();
+  }
+  let musl_passes = 0;
+  let musl_fails = 0;
+  musl_build_states.forEach(function(value, key) {
+    if(value.state == 'pass')
+      musl_passes += 1;
+    else if (value.state == 'fail')
+      musl_fails += 1;
+  });
+  const musl_pie = new Chart(musl, {
+    type: 'pie',
+    data: {
+      labels: ['Pass', 'Fail'],
+      datasets: [{
+        label: '#Builds',
+        data: [musl_passes, musl_fails],
+        borderWidth: 2,
+        backgroundColor: [
+        'lightgreen',
+        'red'
+      ],
+      hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      title: {
+        display: true,
+        text: 'MUSL Builds'
+      },
+        onClick: (e) => {
+            window.open("muslBuilds.html", "_blank");
+        }
+    }
+  });
+  </script>
+
+  <script type="text/javascript">
+    // Date filter
+    function getUpdatedData(currentData, start_date, end_date) {
+      let updated_passes = 0;
+      let updated_fails = 0;
+      currentData.forEach(function(value, key) {
+        const range_start = new Date(start_date);
+        const range_end = new Date(end_date);
+        const build_date = new Date(value.date)
+        if (build_date >= range_start && build_date <= range_end) {
+          if(value.state == 'pass')
+            updated_passes += 1;
+          else if (value.state == 'fail')
+            updated_fails += 1;
+        }
+      });
+      return [updated_passes, updated_fails];
+    }
+
+    function filterPies(start_date, end_date) {
+      // Picolibc
+      let newPicoData = getUpdatedData(picolibc_build_states, start_date, end_date)
+      console.log("Updating Picolibc Pie Chart for Selected Date Range.");
+      pico_pie.data.datasets[0].data = [newPicoData[0], newPicoData[1]];
+      pico_pie.update();
+      // MUSL
+      let newMUSLData = getUpdatedData(musl_build_states, start_date, end_date)
+      console.log("Updating MUSL Pie Chart for Selected Date Range.");
+      musl_pie.data.datasets[0].data = [newMUSLData[0], newMUSLData[1]];
+      musl_pie.update();
+    }
+
+  $("#datePicker").on('change', function(event) {
+    var range = $("#datePicker").val();
+    if (range.length) {
+      const date_range = JSON.parse(range);
+      let start_date = date_range.start;
+      let end_date = date_range.end;
+      filterPies(start_date, end_date);
+    }
+  });
+  </script>
+
+  <footer class="footer">
+    DeepDash - Builds <sub>~DeepMap</sub>
+  </footer>
+
+</body>
+</html>
