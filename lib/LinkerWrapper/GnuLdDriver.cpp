@@ -1559,6 +1559,9 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
   if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
     Conf.SampleProfile = Arg->getValue();
 
+  if (Args.hasArg(OptTable::lto_debug_pass_manager))
+    Conf.DebugPassManager = true;
+
   if (const auto *Arg = Args.getLastArg(OptTable::lto_O)) {
     llvm::StringRef S = Arg->getValue();
     uint64_t Value;
