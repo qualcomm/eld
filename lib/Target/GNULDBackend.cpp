@@ -2597,6 +2597,7 @@ bool GNULDBackend::setOutputSectionOffset() {
     if (isCurAlloc && cur->size())
       changeSymbolsFromAbsoluteToGlobal(*out);
     prev = cur;
+    evaluateAssignmentsAtEndOfOutputSection(*out);
     ++out;
   }
   return true;
