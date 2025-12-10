@@ -659,12 +659,12 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   if (!isValidFilePattern(Tok))
     setError("Invalid file pattern: " + Tok);
   if (!Tok.contains(':'))
-    FilePat = ThisScriptFile.createWildCardPattern(Tok);
+    FilePat = createAndRegisterWildcardPattern(Tok);
   else {
     std::pair<llvm::StringRef, llvm::StringRef> Split = Tok.split(':');
-    FilePat = ThisScriptFile.createWildCardPattern(Split.first);
+    FilePat = createAndRegisterWildcardPattern(Split.first);
     if (!Split.second.empty()) {
-      ArchiveMem = ThisScriptFile.createWildCardPattern(Split.second);
+      ArchiveMem = createAndRegisterWildcardPattern(Split.second);
     }
     llvm::StringRef peekTok = peek();
     if (!atEOF() && peekTok != "(" &&
@@ -672,7 +672,7 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
       next();
       if (ThisConfig.showLinkerScriptWarnings())
         setWarn("Space between archive:member file pattern is deprecated");
-      ArchiveMem = ThisScriptFile.createWildCardPattern(peekTok);
+      ArchiveMem = createAndRegisterWildcardPattern(peekTok);
     }
     IsArchive = true;
   }
@@ -1081,7 +1081,7 @@ WildcardPattern *ScriptParser::readWildcardPattern() {
   if (peek() == "EXCLUDE_FILE") {
     skip();
     ExcludeFiles *EF = readExcludeFile();
-    SectPat = ThisScriptFile.createWildCardPattern(
+    SectPat = createAndRegisterWildcardPattern(
         ThisScriptFile.createParserStr(next()),
         WildcardPattern::SortPolicy::EXCLUDE, EF);
     return SectPat;
@@ -1095,18 +1095,18 @@ WildcardPattern *ScriptParser::readWildcardPattern() {
       WildcardPattern::SortPolicy SortPolicy =
           computeSortPolicy(OuterSortPolicy.value(), InnerSortPolicy);
       expect("(");
-      SectPat = ThisScriptFile.createWildCardPattern(
+      SectPat = createAndRegisterWildcardPattern(
           ThisScriptFile.createParserStr(next()), SortPolicy);
       expect(")");
     } else {
       WildcardPattern::SortPolicy SortPolicy =
           computeSortPolicy(OuterSortPolicy.value());
-      SectPat = ThisScriptFile.createWildCardPattern(
+      SectPat = createAndRegisterWildcardPattern(
           ThisScriptFile.createParserStr(next()), SortPolicy);
     }
     expect(")");
   } else {
-    SectPat = ThisScriptFile.createWildCardPattern(
+    SectPat = createAndRegisterWildcardPattern(
         ThisScriptFile.createParserStr(next()));
   }
   return SectPat;
@@ -1148,7 +1148,7 @@ ExcludeFiles *ScriptParser::readExcludeFile() {
   ExcludeFiles *CurrentExcludeFiles = ThisScriptFile.getCurrentExcludeFiles();
   while (diagnose() && !consume(")")) {
     StrToken *ExcludePatTok = readName(next());
-    ExcludePattern *P = ThisScriptFile.createExcludePattern(ExcludePatTok);
+    ExcludePattern *P = createExcludePattern(ExcludePatTok);
     CurrentExcludeFiles->pushBack(P);
   }
   return CurrentExcludeFiles;
@@ -1285,7 +1285,7 @@ void ScriptParser::readVersionExtern(VersionScriptNode &VSN) {
   expect("{");
   while (!consume("}") && !atEOF()) {
     Tok = next();
-    WildcardPattern *TokPat = ThisScriptFile.createWildCardPattern(Tok);
+    WildcardPattern *TokPat = createAndRegisterWildcardPattern(Tok);
     VSN.addSymbol(ThisScriptFile.createScriptSymbol(TokPat));
     if (consume("}"))
       break;
@@ -1323,7 +1323,7 @@ void ScriptParser::readDynamicList() {
       llvm::StringRef Tok = next();
       if (readInclude(Tok))
         continue;
-      WildcardPattern *TokPat = ThisScriptFile.createWildCardPattern(Tok);
+      WildcardPattern *TokPat = createAndRegisterWildcardPattern(Tok);
       ThisScriptFile.addSymbolToDynamicList(
           ThisScriptFile.createScriptSymbol(TokPat));
       expect(";");
@@ -1366,4 +1366,51 @@ bool ScriptParser::isValidSectionPattern(llvm::StringRef Pat) {
 
 StrToken *ScriptParser::readName(llvm::StringRef Name) {
   return ThisScriptFile.createParserStr(Name);
+}
+
+WildcardPattern *ScriptParser::createAndRegisterWildcardPattern(
+    StrToken *S, WildcardPattern::SortPolicy P, ExcludeFiles *E) {
+  WildcardPattern *WP = ThisScriptFile.findWildcardPattern(S->name());
+  if (!WP)
+    WP = WildcardPattern::create(S, P, E);
+  if (!WP) {
+    setError("Invalid glob pattern: " + S->name());
+    // The error has been emitted. Returning a non-null pattern helps
+    // the link to continue (parsing, no-inhibit-exec, ...) without
+    // adding extensive if-checks.
+    WP = make<WildcardPattern>("<<InvalidWildcardPattern>>", P, E);
+  }
+  Module &Module = ThisScriptFile.module();
+  Module.getScript().registerWildCardPattern(WP);
+  return WP;
+}
+
+WildcardPattern *ScriptParser::createAndRegisterWildcardPattern(
+    llvm::StringRef S, WildcardPattern::SortPolicy P, ExcludeFiles *E) {
+  StrToken *Tok = ThisScriptFile.createParserStr(S);
+  return createAndRegisterWildcardPattern(Tok, P, E);
+}
+
+ExcludePattern *ScriptParser::createExcludePattern(StrToken *S) {
+  std::string Name = S->name();
+  size_t ColonPos = Name.find(":");
+  WildcardPattern *ArchivePattern = nullptr;
+  WildcardPattern *FilePattern = nullptr;
+  StrToken *ArchiveToken = nullptr;
+  StrToken *FileToken = nullptr;
+  // Handles: <file>
+  if (ColonPos == std::string::npos) {
+    FileToken = ThisScriptFile.createStrToken(Name);
+    FilePattern = createAndRegisterWildcardPattern(FileToken);
+  } else {
+    // Handles: <archive>:
+    ArchiveToken = ThisScriptFile.createStrToken(Name.substr(0, ColonPos));
+    ArchivePattern = createAndRegisterWildcardPattern(ArchiveToken);
+    // Handles: <archive>:<member>
+    if (ColonPos != Name.size() - 1) {
+      FileToken = ThisScriptFile.createStrToken(Name.substr(ColonPos + 1));
+      FilePattern = createAndRegisterWildcardPattern(FileToken);
+    }
+  }
+  return make<ExcludePattern>(ArchivePattern, FilePattern);
 }
