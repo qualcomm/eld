@@ -1,4 +1,5 @@
 #------TlsGDpreemptible.test-------Executable------#
+#UNSUPPORTED: windows
 #BEGIN_COMMENT
 # Verifies TLS General Dynamic (GD) model when a TLS variable is defined in one
 # shared library (lib3.so) and accessed from another shared library (lib2.so).
