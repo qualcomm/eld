@@ -22,6 +22,7 @@ namespace eld {
 
 class DiagnosticEngine;
 class ELFSection;
+class GeneralOptions;
 class LinkerConfig;
 class Module;
 class ResolveInfo;
@@ -122,6 +123,11 @@ public:
   bool isNull() const { return Kind == Null; }
 
   bool originatesFromPlugin(const Module &Module) const;
+
+  /// Returns a string containing basic fragment information, such as, section
+  /// and input file name. It is intended to be used for printing to log files,
+  /// diagnostics, or for quick debugging.
+  std::string str(const GeneralOptions &Options) const;
 
 private:
   Fragment(const Fragment &);            // DO NOT IMPLEMENT
