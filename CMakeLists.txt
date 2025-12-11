@@ -185,6 +185,14 @@ set(ENABLE_ELD_PLUGIN_SUPPORT
     CACHE BOOL ON FORCE)
 
 add_subdirectory(include)
+
+# After the driver option TableGen targets are created in include/eld/Driver,
+# append them to LLVM_COMMON_DEPENDS so all subsequent compilation targets
+# added via add_llvm_library/llvm_add_library/add_llvm_executable depend on
+# these TableGen outputs.
+get_property(_eld_driver_tg GLOBAL PROPERTY ELD_DRIVER_TABLEGEN_TARGETS)
+set(LLVM_COMMON_DEPENDS ${LLVM_COMMON_DEPENDS} ${_eld_driver_tg})
+
 add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(docs)
