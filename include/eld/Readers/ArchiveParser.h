@@ -137,7 +137,8 @@ private:
 
   /// Determines if a symbol should be included or not.
   ArchiveFile::Symbol::SymbolStatus
-  shouldIncludeSymbol(const ArchiveFile::Symbol &pSym, InputFile **pSite) const;
+  shouldIncludeSymbol(const ArchiveFile &A, const ArchiveFile::Symbol &S,
+                      InputFile **F) const;
 
   /// Returns true if both info and type represents the same type of
   /// information.
