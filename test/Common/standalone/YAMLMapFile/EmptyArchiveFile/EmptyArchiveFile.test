@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---EmptyArchiveFile.test--------- Executable --------------------#
 #BEGIN_COMMENT
 # This test checks that the YAML map-file is correctly emitted when the link
