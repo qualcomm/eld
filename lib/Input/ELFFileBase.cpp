@@ -22,3 +22,11 @@ void ELFFileBase::addSection(ELFSection *S) {
   S->setIndex(MSectionTable.size());
   ObjectFile::addSection(S);
 }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+llvm::StringRef ELFFileBase::getStringTableData() const {
+  if (StringTable)
+    return StringTable->getContents();
+  return llvm::StringRef();
+}
+#endif

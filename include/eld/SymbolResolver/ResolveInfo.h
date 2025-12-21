@@ -254,6 +254,10 @@ public:
 
   llvm::StringRef getName() const { return SymbolName; }
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  void setName(llvm::StringRef SymName) { SymbolName = SymName; }
+#endif
+
   unsigned int nameSize() const { return SymbolName.size(); }
 
   uint32_t info() const { return (ThisBitField & InfoMask); }

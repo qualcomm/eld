@@ -147,7 +147,7 @@ protected:
   /// - SHT_SYMTAB
   /// - SHT_SYMTAB_SHNDX
   /// - SHT_STRTAB
-  void setSectionInInputFile(ELFSection *S, Elf_Shdr rawSectHdr);
+  virtual void setSectionInInputFile(ELFSection *S, Elf_Shdr rawSectHdr);
 
   /// Set link and info attributes to the sections.
   bool setLinkInfoAttributes();
