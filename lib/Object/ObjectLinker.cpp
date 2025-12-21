@@ -1601,6 +1601,10 @@ bool ObjectLinker::addSymbolToOutput(const ResolveInfo &PInfo) const {
       ThisModule->hasWrapReference(PInfo.name()) && ResolvedOrigin->isBitcode())
     return false;
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (PInfo.isDyn() && PInfo.outSymbol() && PInfo.outSymbol()->shouldIgnore())
+    return false;
+#endif
   // Let the backend choose to add the symbol to the output.
   if (!getTargetBackend().addSymbolToOutput(const_cast<ResolveInfo *>(&PInfo)))
     return false;
@@ -3391,6 +3395,7 @@ bool ObjectLinker::insertPostLTOELF() {
       if (!BitcodeObject) {
         BitcodeObject = (*Obj);
         BitcodeObj = Obj;
+        // FIXME: break can be added here!
       }
     }
   }
@@ -3757,6 +3762,11 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
         ThisConfig.raiseDiagEntry(std::move(ExpRead.error()));
       return false;
     }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    ELFDynObjectFile *DynObjFile = llvm::cast<ELFDynObjectFile>(CurInput);
+    if (DynObjFile->hasSymbolVersioningInfo())
+      getTargetBackend().setShouldEmitVersioningSections(true);
+#endif
     ThisModule->getDynLibraryList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
     eld::RegisterTimer T("Read Archive Files", "Read all Input files",
