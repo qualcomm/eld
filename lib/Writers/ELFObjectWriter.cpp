@@ -18,6 +18,7 @@
 #include "eld/Fragment/FillFragment.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
+#include "eld/Fragment/GNUVerNeedFragment.h"
 #endif
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/StringFragment.h"
@@ -703,6 +704,8 @@ uint64_t ELFObjectWriter::getSectEntrySize(ELFSection *CurSection) const {
     return CurSection->getEntSize();
   if (CurSection->getType() == llvm::ELF::SHT_GNU_verdef)
     return CurSection->getEntSize();
+  if (CurSection->getType() == llvm::ELF::SHT_GNU_verneed)
+    return CurSection->getEntSize();
 #endif
   return 0x0;
 }
@@ -727,6 +730,8 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
   if (llvm::ELF::SHT_GNU_versym == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
   if (llvm::ELF::SHT_GNU_verdef == S->getType())
+    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
+  if (llvm::ELF::SHT_GNU_verneed == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
 #endif
   if (ThisModule.getConfig().isLinkPartial() &&
@@ -759,6 +764,8 @@ uint64_t ELFObjectWriter::getSectInfo(ELFSection *CurSection) const {
   if (llvm::ELF::SHT_GNU_verdef == CurSection->getType()) {
     return ThisModule.getBackend().getGNUVerDefFragment()->defCount();
   }
+  if (llvm::ELF::SHT_GNU_verneed == CurSection->getType())
+    return ThisModule.getBackend().getGNUVerNeedFragment()->needCount();
 #endif
 
   if (CurSection->isRelocationSection()) {
