@@ -425,6 +425,9 @@ bool Linker::normalize() {
     if (!ObjLinker->normalize())
       return false;
   }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  IR->normalizeSymbols();
+#endif
   return true;
 }
 

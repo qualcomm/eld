@@ -100,7 +100,6 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     ResolvedPath = eld::sys::fs::Path(FileName);
     return true;
   }
-
   if (Type == Input::Script) {
     if (shouldPrependSysrootToScriptInput(PConfig)) {
       ResolvedPath = PSearchDirs.sysroot();
