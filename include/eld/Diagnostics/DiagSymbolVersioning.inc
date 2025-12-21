@@ -22,3 +22,5 @@ DIAG(error_missing_version_node, DiagnosticEngine::Error,
      "%0: symbol %1 has undefined version %2")
 DIAG(trace_assign_output_version_ids, DiagnosticEngine::Trace,
      "Assigning version IDs to output symbols")
+DIAG(trace_adding_verneed_entry, DiagnosticEngine::Trace,
+     "Adding verneed entry: '%0' -> '%1'")
