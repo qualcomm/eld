@@ -96,6 +96,10 @@ public:
                                Relocation::Type Type, LDSymbol &PSym,
                                uint32_t POffset, Relocation::Address CurAddend);
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  void normalizeSymbols();
+#endif
+
 private:
   LDSymbol *
   addSymbolFromObject(InputFile &Input, const std::string &SymbolName,
@@ -111,7 +115,8 @@ private:
                                 ResolveInfo::SizeType Size,
                                 LDSymbol::ValueType Value,
                                 ResolveInfo::Visibility Visibility,
-                                uint32_t Shndx, bool IsPostLtoPhase);
+                                uint32_t Shndx, bool IsPostLtoPhase,
+                                uint32_t SymIdx);
 
 public:
   void addToCref(InputFile &Input, Resolver::Result PResult);
@@ -126,6 +131,12 @@ private:
   LinkerConfig &ThisConfig;
   bool IsGarbageCollected;
   InputBuilder ThisInputBuilder;
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  // 0th element -> Canonical version symbol, 1st element -> Non-canonical
+  // version symbol.
+  std::vector<std::pair<LDSymbol *, LDSymbol *>> VersionedSymbols;
+#endif
 };
 
 template <>
