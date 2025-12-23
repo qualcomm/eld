@@ -1,0 +1,23 @@
+#---SFrameParsing.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks that the linker correctly parses SFrame sections
+# with different format variations.
+#END_COMMENT
+#START_TEST
+
+# Test SFrame parsing with verbose output
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_format1.s -o %t1.sframe.o
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_format2.s -o %t2.sframe.o
+
+# Link with verbose SFrame processing
+RUN: %link %linkopts --verbose --sframe-hdr %t1.sframe.o -o %t1.out 2>&1 | %filecheck %s -check-prefix=FORMAT1
+RUN: %link %linkopts --verbose --sframe-hdr %t2.sframe.o -o %t2.out 2>&1 | %filecheck %s -check-prefix=FORMAT2
+
+# Check SFrame processing messages
+FORMAT1: Reading SFrame section
+FORMAT1: SFrame version 2
+FORMAT1: SFrame FREs: 1
+
+FORMAT2: Reading SFrame section
+FORMAT2: SFrame version 2
+FORMAT2: SFrame FREs: 2

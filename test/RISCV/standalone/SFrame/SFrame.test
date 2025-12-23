@@ -1,0 +1,25 @@
+#---SFrame.test--------------------------- RISCV-specific -----------------#
+#BEGIN_COMMENT
+# This checks that SFrame sections work correctly on RISCV target for both RV32 and RV64.
+#END_COMMENT
+#START_TEST
+
+# Test RISCV64 SFrame support
+RUN: %clang %clangopts -target riscv64 -c %p/Inputs/riscv_sframe.s -o %t64.o
+RUN: %link %linkopts -march riscv64 --sframe-hdr %t64.o -o %t64.out
+RUN: %readelf -S %t64.out | %filecheck %s -check-prefix=SECTIONS64
+RUN: %readelf -x .sframe %t64.out | %filecheck %s -check-prefix=CONTENT64
+
+SECTIONS64: .sframe{{.*}}PROGBITS
+# Check for RISCV64 architecture in SFrame header (0x06)
+CONTENT64: dee2020{{6|06}}
+
+# Test RISCV32 SFrame support
+RUN: %clang %clangopts -target riscv32 -c %p/Inputs/riscv32_sframe.s -o %t32.o
+RUN: %link %linkopts -march riscv32 --sframe-hdr %t32.o -o %t32.out
+RUN: %readelf -S %t32.out | %filecheck %s -check-prefix=SECTIONS32
+RUN: %readelf -x .sframe %t32.out | %filecheck %s -check-prefix=CONTENT32
+
+SECTIONS32: .sframe{{.*}}PROGBITS
+# Check for RISCV32 architecture in SFrame header (0x07)
+CONTENT32: dee2020{{7|07}}

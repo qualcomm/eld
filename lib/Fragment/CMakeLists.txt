@@ -4,6 +4,7 @@ llvm_add_library(
   BuildIDFragment.cpp
   EhFrameFragment.cpp
   EhFrameHdrFragment.cpp
+  SFrameFragment.cpp
   FillFragment.cpp
   Fragment.cpp
   FragmentRef.cpp

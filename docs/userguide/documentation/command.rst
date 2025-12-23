@@ -132,6 +132,7 @@ Where [*option...*] is one or more of the following:
 	--script=file	|	-T file
 	--script-options=(match-gnu|match-llvm)
 	--section-start section=org
+	--sframe-hdr
 	-soname=name	|	-h name
 	--start-group=archive ... --end-group	|	-( archive ... -)
 	--strip-all
