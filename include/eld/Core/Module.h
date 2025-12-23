@@ -19,8 +19,10 @@
 
 #include "eld/Config/GeneralOptions.h"
 #include "eld/Core/Linker.h"
+#include "eld/Core/LinkState.h"
 #include "eld/Input/InputFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
+#include "eld/Plugin/PluginActivityLog.h"
 #include "eld/Plugin/PluginManager.h"
 #include "eld/PluginAPI/LinkerWrapper.h"
 #include "eld/Script/StrToken.h"
@@ -137,33 +139,6 @@ public:
   typedef std::vector<ScriptSymbol *> ScriptSymbolList;
 
   typedef std::pair<uint64_t, uint64_t> DynamicListStartEndIndexPair;
-
-  /// Stages of the link process.
-  /// What actions a plugin can perform depends on the
-  /// link state. For example:
-  /// - Plugins can change the output section of an input
-  ///   section only in BeforeLayout link state.
-  /// - Plugins can move chunks from one output section to
-  ///   another only in CreatingSections link state.
-  /// - Plugins can only compute the output image layout checkum using
-  ///   `LinkerWrapper::getImageLayoutChecksum` only in AfterLayout linker
-  ///   state.
-  /// - Plugins can reassign virtual addresses using
-  ///   `LinkerWrapper::reassignVirtualAddresses()` only in CreatingSegments
-  ///   link state.
-  ///
-  /// Plugin authors should ensure that the action being performed by the
-  /// plugin is meaningful in the link state in which it is executed.
-  /// Executing invalid actions for a link state can result in undefined
-  /// behavior.
-  enum LinkState : uint8_t {
-    Unknown,
-    Initializing,
-    BeforeLayout,
-    CreatingSections,
-    CreatingSegments,
-    AfterLayout,
-  };
 
 public:
   explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
@@ -635,19 +610,19 @@ public:
   }
 
   bool isLinkStateBeforeLayout() const {
-    return getState() == Module::LinkState::BeforeLayout;
+    return getState() == LinkState::BeforeLayout;
   }
 
   bool isLinkStateCreatingSections() const {
-    return getState() == Module::LinkState::CreatingSections;
+    return getState() == LinkState::CreatingSections;
   }
 
   bool isLinkStateCreatingSegments() const {
-    return getState() == Module::LinkState::CreatingSegments;
+    return getState() == LinkState::CreatingSegments;
   }
 
   bool isLinkStateAfterLayout() const {
-    return getState() == Module::LinkState::AfterLayout;
+    return getState() == LinkState::AfterLayout;
   }
 
   void setFragmentPaddingValue(Fragment *F, uint64_t V);
@@ -660,6 +635,14 @@ public:
                                 bool Internal = false);
 
   bool isBackendInitialized() const;
+
+  void createPluginActivityLog() {
+    PluginActLog.emplace(ThisConfig.options(), UserLinkerScript.getPlugins());
+  }
+
+  std::optional<PluginActivityLog> &getPluginActivityLog() {
+    return PluginActLog;
+  }
 
 private:
   /// Verifies invariants of 'CreatingSections' linker state.
@@ -741,6 +724,8 @@ private:
   llvm::DenseMap<Fragment *, uint64_t> FragmentPaddingValues;
   PluginManager PM;
   NamePool SymbolNamePool;
+
+  std::optional<PluginActivityLog> PluginActLog;
 };
 
 } // namespace eld
