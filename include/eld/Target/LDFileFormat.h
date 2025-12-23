@@ -48,6 +48,9 @@ public:
     Regular,
     Relocation,
     StackNote,
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    SymbolVersion,
+#endif
     Target,
     Timing,
     Version,

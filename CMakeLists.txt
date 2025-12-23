@@ -175,6 +175,11 @@ if(LLVM_USE_SANITIZER OR ELD_SANITIZE)
   endif()
 endif()
 
+option(ELD_ENABLE_SYMBOL_VERSIONING "Enable Eld symbol versioning support" OFF)
+if(ELD_ENABLE_SYMBOL_VERSIONING)
+  add_compile_definitions(ELD_ENABLE_SYMBOL_VERSIONING)
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/include)
