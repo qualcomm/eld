@@ -303,6 +303,7 @@ public:
 #include "eld/Diagnostics/DiagRelocations.inc"
 #include "eld/Diagnostics/DiagStats.inc"
 #include "eld/Diagnostics/DiagSymbolResolutions.inc"
+#include "eld/Diagnostics/DiagSymbolVersioning.inc"
 #include "eld/Diagnostics/DiagTraceAssignments.inc"
 #include "eld/Diagnostics/DiagTraceFiles.inc"
 #include "eld/Diagnostics/DiagTraceGC.inc"

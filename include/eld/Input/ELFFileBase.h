@@ -46,6 +46,8 @@ public:
 
   ELFSection *getStringTable() const { return StringTable; }
 
+  llvm::StringRef getStringTableData() const;
+
   /// ------------ Extended Symbol Table ---------------------------------------
   void setExtendedSymbolTable(ELFSection *SymTab) {
     ExtendedSymbolTable = SymTab;

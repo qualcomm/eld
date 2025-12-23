@@ -231,3 +231,8 @@ ELFReaderBase::inspectELFKind(const InputFile &I) {
   return (endian == llvm::ELF::ELFDATA2LSB) ? ObjectFile::ELFKind::ELF64LEKind
                                             : ObjectFile::ELFKind::ELF64BEKind;
 }
+
+// FIXME: Move ELFRelocObjParser::readSections to RelocELFReader::readSections
+eld::Expected<void> ELFReaderBase::readSections() {
+  ASSERT(0, "readSections must only be called for shared object files.");
+}
