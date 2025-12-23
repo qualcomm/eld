@@ -11,8 +11,7 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %clang %clangopts -fuse-ld=%link -static -o %t.out %t.1.o
 RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
-RUN: %readelf -r %t.out | %filecheck %s --check-prefix=COUNT-IRELATIVE
-RUN: %readelf -s %t.out | %filecheck %s --check-prefix=CHECK-IPLT-SYMBOLS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=CHECK-IPLT-SYMBOLS
 COUNT-IRELATIVE-COUNT-22: R_X86_64_IRELATIV
 COUNT-IRELATIVE-NOT: R_X86_64_IRELATIV
 CHECK-IPLT-SYMBOLS-DAG: __rela_iplt_start
