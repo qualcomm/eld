@@ -195,8 +195,7 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
     rela_entry->setAddend(0);
   }
 
-  if (R && (pType == llvm::ELF::R_X86_64_RELATIVE ||
-            pType == llvm::ELF::R_X86_64_IRELATIVE)) {
+  if (R && (pType == llvm::ELF::R_X86_64_RELATIVE)) {
     B.recordRelativeReloc(rela_entry, R);
   }
   return rela_entry;
@@ -260,16 +259,6 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
                          pReloc.targetRef()->offset(),
                          llvm::ELF::R_X86_64_RELATIVE, m_Target);
     }
-    return;
-  }
-  case llvm::ELF::R_X86_64_GOTTPOFF: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (rsym->reserved() & ReserveGOT)
-      return;
-    // Create a TLS IE GOT entry.
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    G->setValueType(GOT::TLSStaticSymbolValue);
-    rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
   case llvm::ELF::R_X86_64_TLSLD: {
@@ -357,29 +346,13 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
   case llvm::ELF::R_X86_64_PLT32: {
-    // return if we already create plt for this symbol
-    if (rsym->reserved() & ReservePLT)
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (!m_Target.isSymbolPreemptible(*rsym))
       return;
-
-    // create IRELATIVE for IFUNC symbol
-    if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
-      m_Target.createPLT(Obj, rsym, true);
+    if (!(rsym->reserved() & ReservePLT)) {
+      m_Target.createPLT(Obj, rsym);
       rsym->setReserved(rsym->reserved() | ReservePLT);
-      x86_64LDBackend &backend = getTarget();
-      backend.defineIRelativeRange(*rsym);
-      return;
     }
-    // if symbol is defined in the output file and it's not
-    // preemptible, no need plt
-    if (!getTarget().isSymbolPreemptible(*rsym)) {
-      return;
-    }
-
-    // Symbol needs PLT entry, we need to reserve a PLT entry
-    // and the corresponding GOT and dynamic relocation entry
-    // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
-    rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
 
@@ -672,6 +645,7 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   Relocator::DWord P = pReloc.place(pParent.module());
   x86_64GOT *gotEntry = pParent.getTarget().findEntryInGOT(symInfo);
   uint64_t Result = gotEntry->getAddr(DiagEngine) + A - P;
+
   return applyRel(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
 }
 
