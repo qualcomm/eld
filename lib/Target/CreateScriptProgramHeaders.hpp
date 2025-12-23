@@ -64,6 +64,8 @@ bool GNULDBackend::createScriptProgramHdrs() {
     outBegin = script.sectionMap().begin();
     outEnd = script.sectionMap().end();
     out = outBegin;
+    resetScriptSymbols();
+    resetPartiallyEvalAssignmentsAndSymbols();
     disconnect_lma_vma = false;
     last_seen_alloc_section = nullptr;
     is_previous_start_of_segment = false;
@@ -386,6 +388,8 @@ bool GNULDBackend::createScriptProgramHdrs() {
 
     ++out;
   }
+
+  evaluatePendingAssignments();
 
   for (auto &seg : elfSegmentTable()) {
     // Handle empty segments
