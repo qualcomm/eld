@@ -3,7 +3,7 @@
 RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.o
 RUN: %clang %clangg0opts -c %p/Inputs/2.c -o %t2.o
 RUN: %link %linkg0opts %t1.o %t2.o -o %t.out 2>&1
-RUN: %readelf -s %t.out | %grep -E 'common|bss' | %filecheck %s
+RUN: %readelf -s %t.out | %filecheck %s
 
 #CHECK: {{[0-9]+}}: {{[x0-9a-z]+}}     4 OBJECT  GLOBAL DEFAULT    1 bss
 #CHECK: {{[0-9]+}}: {{[x0-9a-z]+}}  4000 OBJECT  GLOBAL DEFAULT    1 common1
