@@ -26,19 +26,32 @@ static inline bool
 isValidLinkState(const eld::plugin::LinkerWrapper &LW,
                  std::initializer_list<std::string_view> ValidLinkStates) {
   for (const auto &S : ValidLinkStates) {
-    bool b = S == "Initializing" || S == "BeforeLayout" ||
-             S == "CreatingSections" || S == "CreatingSegments" ||
-             S == "AfterLayout";
+    bool b = S == "Initializing" || S == "ActBeforeRuleMatching" ||
+             S == "BeforeLayout" || S == "ActBeforeSectionMerging" ||
+             S == "CreatingSections" || S == "ActBeforePerformingLayout" ||
+             S == "CreatingSegments" || S == "AfterLayout" ||
+             S == "ActBeforeWritingOutput";
     ASSERT(b, "Invalid link state: " + std::string(S));
     if (S == "Initializing" && LW.isLinkStateInitializing())
       return true;
+    if (S == "ActBeforeRuleMatching" && LW.isLinkStateActBeforeRuleMatching())
+      return true;
     if (S == "BeforeLayout" && LW.isLinkStateBeforeLayout())
+      return true;
+    if (S == "ActBeforeSectionMerging" &&
+        LW.isLinkStateActBeforeSectionMerging())
       return true;
     if (S == "CreatingSections" && LW.isLinkStateCreatingSections())
       return true;
+    if (S == "PerformingLayout" && LW.isLinkStateBeforeLayout())
+      return true;
     if (S == "CreatingSegments" && LW.isLinkStateCreatingSegments())
       return true;
+    if (S == "ActBeforePerformingLayout" && LW.isLinkStateActBeforePerformingLayout())
+      return true;
     if (S == "AfterLayout" && LW.isLinkStateAfterLayout())
+      return true;
+    if (S == "ActBeforeWritingOutput" && LW.isLinkStateActBeforeWritingOutput())
       return true;
   }
   return false;
