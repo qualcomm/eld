@@ -74,8 +74,9 @@ enum : uint32_t {
   QUALCOMMVendorRelocationOffset =
       FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
 
-  /* We don't support ANDES vendor relocations */
+  /* We don't support ANDES and CHERIOT1 vendor relocations */
   ANDESVendorRelocationOffset = 0,
+  CHERIOT1VendorRelocationOffset = 0,
 
 #define ELF_RISCV_NONSTANDARD_RELOC(vendor_symbol, name, value)                \
   name = value + vendor_symbol##VendorRelocationOffset,
