@@ -537,14 +537,23 @@ StrToken *ScriptFile::createParserStr(const char *PText, size_t PLength) {
 }
 
 StrToken *ScriptFile::createParserStr(llvm::StringRef S) {
-  bool IsQuoted = false;
+  bool isLeftQuoted = false;
+  bool isRightQuoted = false;
   if (S.starts_with("\"")) {
-    S = S.substr(1, S.size() - 2);
-    IsQuoted = true;
+    S = S.substr(1);
+    isLeftQuoted = true;
+  }
+  if (S.ends_with("\"")) {
+    S = S.drop_back(1);
+    isRightQuoted = true;
   }
   StrToken *Tok = make<eld::StrToken>(S.str());
-  if (IsQuoted)
+  if (isLeftQuoted && isRightQuoted)
     Tok->setQuoted();
+  if (isLeftQuoted)
+    Tok->setLeftQuoted();
+  if (isRightQuoted)
+    Tok->setRightQuoted();
   return Tok;
 }
 

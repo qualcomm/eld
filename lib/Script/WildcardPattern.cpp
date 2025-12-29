@@ -35,6 +35,10 @@ WildcardPattern::WildcardPattern(StrToken *PPattern, SortPolicy PPolicy,
       MBPatternIsPrefix(false), MBPatternIsSuffix(false), CurID(0) {
   if (PPattern->isQuoted())
     setQuoted();
+  if (PPattern->isLeftQuoted())
+    setLeftQuoted();
+  if (PPattern->isRightQuoted())
+    setRightQuoted();
   createGlobPattern(llvm::StringRef(PPattern->name()));
 }
 

@@ -44,10 +44,18 @@ public:
 
   std::string getDecoratedName() const;
 
+  void setLeftQuoted() { LeftQuoted = true; }
+  bool isLeftQuoted() const { return LeftQuoted; }
+
+  void setRightQuoted() { RightQuoted = true; }
+  bool isRightQuoted() const { return RightQuoted; }
+
 protected:
   std::string Name;
   bool Quoted = false;
   Kind ScriptFileKind;
+  bool LeftQuoted = false;
+  bool RightQuoted = false;
 };
 
 } // namespace eld

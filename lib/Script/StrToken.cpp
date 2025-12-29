@@ -22,10 +22,10 @@ StrToken::StrToken(const std::string &PString, StrToken::Kind K)
 
 std::string StrToken::getDecoratedName() const {
   std::string R = "";
-  if (isQuoted())
+  if (isQuoted() || LeftQuoted)
     R = "\"";
   R += Name;
-  if (isQuoted())
+  if (isQuoted() || RightQuoted)
     R += "\"";
   return R;
 }
