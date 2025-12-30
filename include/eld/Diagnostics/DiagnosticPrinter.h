@@ -47,6 +47,7 @@ public:
     TraceMergeStrings = 0x8000,
     TraceLinkerScript = 0x10000,
     TraceSymDef = 0x100000,
+    TracePendingAssignments = 0x200000
   };
 
   enum Verbose : uint16_t { None = 0x0, Default = 0x1 };
@@ -67,6 +68,8 @@ public:
   bool traceTrampolines() { return Trace & TraceTrampolines; }
 
   bool traceAssignments() { return Trace & TraceAssignments; }
+
+  bool tracePendingAssignments() { return Trace & TracePendingAssignments; }
 
   bool traceFiles() { return Trace & TraceFiles; }
 

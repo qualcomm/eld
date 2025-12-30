@@ -73,20 +73,26 @@ public:
 
   bool isDot() const;
 
-  // Does the assignment have any dot usage ?
+  // Does the assignment has any dot usage ?
   bool hasDot() const;
 
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::ASSIGNMENT;
   }
 
+  /// Sets the expression context (location in the linker script)
+  /// and the assignment level.
   eld::Expected<void> activate(Module &CurModule) override;
 
   /// assign - evaluate the rhs and assign the result to lhs.
-  bool assign(Module &CurModule, const ELFSection *Section);
+  bool assign(Module &CurModule, const ELFSection *Section,
+              bool EvaluatePendingOnly);
 
   LDSymbol *symbol() const { return ThisSymbol; }
 
+  /// Returns all the symbols that might be referenced by the rhs of this
+  /// assignment. No expression evaluation is performed. Hence, this may return
+  /// more symbols than what is actually referenced at runtime.
   void getSymbols(std::vector<ResolveInfo *> &Symbols) const;
 
   /// Query functions on Assignment Kinds.
@@ -113,7 +119,9 @@ public:
 
   bool isAssert() const { return ThisType == ASSERT; }
 
-  // Retrieve the symbol names referred by the assignment expression
+  /// Returns the symbol names that might be referenced by the rhs of this
+  /// assignment. No expression evaluation is performed. Hence, this may return
+  /// names of more symbols than what is actually referenced at runtime.
   std::unordered_set<std::string> getSymbolNames() const;
 
   // Add all undefined references from assignmnent expressions
