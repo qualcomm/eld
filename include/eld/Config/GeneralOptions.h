@@ -483,6 +483,15 @@ public:
 
   bool printGCSections() const { return BPrintGCSections; }
 
+  // --plugin-activity-file
+  void setPluginActivityLogFile(llvm::StringRef File) {
+    PluginActivityLogFile = File.str();
+  }
+
+  const std::optional<std::string> &getPluginActivityLogFile() const {
+    return PluginActivityLogFile;
+  }
+
   // --ld-generated-unwind-info
   void setGenUnwindInfo(bool PEnable = true) { BGenUnwindInfo = PEnable; }
 
@@ -1264,6 +1273,7 @@ private:
   std::string MapFile; // Mapfile
   std::string TarFile; // --reproduce output tarfile name
   std::string TimingStatsFile;
+  std::optional<std::string> PluginActivityLogFile; // --plugin-activity-file output path
   std::string MappingFileName;           // --Mapping-file
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file
