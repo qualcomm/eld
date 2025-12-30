@@ -23,6 +23,10 @@
 #include "eld/Fragment/BuildIDFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/Fragment/GNUVerDefFragment.h"
+#include "eld/Fragment/GNUVerSymFragment.h"
+#endif
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Fragment/StringFragment.h"
 #include "eld/Fragment/SysVHashFragment.h"
@@ -54,6 +58,9 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/StrToken.h"
 #include "eld/Script/StringList.h"
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/Script/VersionScript.h"
+#endif
 #include "eld/Support/DynamicLibrary.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -75,6 +82,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Object/ELFTypes.h"
 #include "llvm/Support/BinaryStreamWriter.h"
 #include "llvm/Support/FileOutputBuffer.h"
 #include "llvm/Support/Memory.h"
@@ -186,7 +194,7 @@ void GNULDBackend::insertTimingFragmentStub() {
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
-                      F->getOwningSection(), F);
+                               F->getOwningSection(), F);
   m_pTimingFragment = F;
 }
 
@@ -276,7 +284,7 @@ eld::Expected<void> GNULDBackend::initStdSections() {
 
   if (layoutInfo)
     layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
-                      F->getOwningSection(), F);
+                               F->getOwningSection(), F);
 
   return eld::Expected<void>();
 }
@@ -683,8 +691,14 @@ bool GNULDBackend::applyVersionScriptScopes() {
     ResolveInfo *R = I.getValue();
     const auto &found = SymbolScopes.find(R);
     if (found != SymbolScopes.end() && !(found->second->isGlobal()) &&
-        !R->isUndef() && !R->isDyn())
+        !R->isUndef() && !R->isDyn()) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      if (config().getPrinter()->traceSymbolVersioning())
+        config().raise(Diag::trace_clear_export_due_to_local_scope)
+            << R->name();
+#endif
       R->clearExportToDyn();
+    }
   }
   return true;
 }
@@ -743,6 +757,20 @@ bool GNULDBackend::SetSymbolsToBeExported() {
       continue;
     R->setExportToDyn();
   }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  for (auto &R : m_Module.getSymbols()) {
+    if (R->exportToDyn() && R->getName().contains("@")) {
+      ResolveInfo *nonVerSym =
+          m_Module.getNamePool().findInfo(R->getNonVersionedName().str());
+      if (nonVerSym) {
+        auto nonVerSymScope = SymbolScopes.find(nonVerSym);
+        if (nonVerSymScope == SymbolScopes.end())
+          nonVerSym->clearExportToDyn();
+      }
+    }
+  }
+#endif
   return true;
 }
 
@@ -767,6 +795,7 @@ void GNULDBackend::sizeDynNamePools() {
     DynamicSymbols.push_back(LDSymbol::null()->resolveInfo());
 
     // Move all the DynamicSymbols.
+    // FIXME: Is it really moving?
     std::move(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
   }
 
@@ -801,6 +830,42 @@ void GNULDBackend::sizeDynNamePools() {
       m_pGNUHash->addFragmentAndUpdateSize(F);
     }
   }
+
+  // Versioning assignment and fragment creation only when enabled.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  assignOutputVersionIDs();
+  if (!config().getDiagEngine()->diagnose())
+    return;
+
+  const DiagnosticPrinter *DP = m_Module.getPrinter();
+
+  if (GNUVerSymSection) {
+    if (DP->traceSymbolVersioning())
+      config().raise(Diag::trace_creating_symbol_versioning_fragment)
+          << GNUVerSymSection->name();
+    Fragment *F = make<GNUVerSymFragment>(GNUVerSymSection, DynamicSymbols);
+    GNUVerSymSection->addFragmentAndUpdateSize(F);
+  }
+
+  DiagnosticEngine *DE = config().getDiagEngine();
+
+  if (GNUVerDefSection) {
+    if (DP->traceSymbolVersioning())
+      config().raise(Diag::trace_creating_symbol_versioning_fragment)
+          << GNUVerDefSection->name();
+    GNUVerDefFragment *F = make<GNUVerDefFragment>(GNUVerDefSection);
+    bool is32Bits = config().targets().is32Bits();
+    if (is32Bits)
+      F->computeVersionDefs<llvm::object::ELF32LE>(m_Module, getOutputFormat(),
+                                                   *DE);
+    else
+      F->computeVersionDefs<llvm::object::ELF64LE>(m_Module, getOutputFormat(),
+                                                   *DE);
+    GNUVerDefSection->addFragmentAndUpdateSize(F);
+    GNUVerDefFrag = F;
+    GNUVerDefSection->setInfo(F->defCount());
+  }
+#endif
 }
 
 void GNULDBackend::createEhFrameFillerAndHdrSection() {
@@ -842,7 +907,12 @@ void GNULDBackend::sizeDynamic() {
   size_t symIdx = 0;
   for (auto &DynSym : DynamicSymbols) {
     m_pDynSymIndexMap[DynSym->outSymbol()] = symIdx;
-    FileFormat->addStringToDynStrTab(std::string(DynSym->name()));
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    std::string symName = DynSym->getNonVersionedName().str();
+#else
+    std::string symName = std::string(DynSym->name());
+#endif
+    FileFormat->addStringToDynStrTab(symName);
     ++symIdx;
   }
   if (config().codeGenType() == LinkerConfig::DynObj) {
@@ -856,10 +926,10 @@ void GNULDBackend::sizeDynamic() {
     if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
       const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
       if (addedLibs.count(dynObjFile->getInput()->getMemArea()))
-          continue;
+        continue;
       addedLibs.insert(dynObjFile->getInput()->getMemArea());
-      std::size_t SONameOffset = FileFormat->addStringToDynStrTab(
-          dynObjFile->getSOName());
+      std::size_t SONameOffset =
+          FileFormat->addStringToDynStrTab(dynObjFile->getSOName());
       auto DTEntry = dynamic()->reserveNeedEntry();
       DTEntry->setValue(llvm::ELF::DT_NEEDED, SONameOffset);
     }
@@ -929,7 +999,8 @@ void GNULDBackend::sizeSymTab() {
         m_SymbolsToRemove.count(Sym)) {
       continue;
     }
-    strtab += (std::string(Sym->name()).size() + 1);
+    std::string symName = Sym->name();
+    strtab += symName.size() + 1;
     ++NumSymbols;
   }
   getOutputFormat()->getStrTab()->setSize(strtab);
@@ -988,8 +1059,12 @@ void GNULDBackend::emitSymbol32(llvm::ELF::Elf32_Sym &pSym, LDSymbol *pSymbol,
     pSym.st_name = 0;
   else {
     if (IsDynSymTab) {
-      auto optSymNameOffset =
-          getOutputFormat()->getOffsetInDynStrTab(std::string(pSymbol->name()));
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      std::string name = pSymbol->getNonVersionedName().str();
+#else
+      std::string name = std::string(pSymbol->name());
+#endif
+      auto optSymNameOffset = getOutputFormat()->getOffsetInDynStrTab(name);
       ASSERT(optSymNameOffset.has_value(),
              "Symbol name must be present in .dynstr!");
       pSym.st_name = optSymNameOffset.value();
@@ -1016,11 +1091,14 @@ void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
     pSym.st_name = 0;
   else {
     if (IsDynSymTab) {
-      auto optSymNameOffset =
-          getOutputFormat()->getOffsetInDynStrTab(std::string(pSymbol->name()));
-      ASSERT(optSymNameOffset.has_value(), "Symbol name (" +
-                                               std::string(pSymbol->name()) +
-                                               ") must be present in .dynstr!");
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      std::string name = pSymbol->getNonVersionedName().str();
+#else
+      std::string name = std::string(pSymbol->name());
+#endif
+      auto optSymNameOffset = getOutputFormat()->getOffsetInDynStrTab(name);
+      ASSERT(optSymNameOffset.has_value(),
+             "Symbol name (" + name + ") must be present in .dynstr!");
       pSym.st_name = optSymNameOffset.value();
     } else {
       pSym.st_name = pStrtabsize;
@@ -1095,9 +1173,11 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
 
   // emit the first ELF symbol
   if (config().targets().is32Bits())
-    emitSymbol32(symtab32[0], LDSymbol::null(), strtab, 0, 0, /*IsDynSymTab=*/false);
+    emitSymbol32(symtab32[0], LDSymbol::null(), strtab, 0, 0,
+                 /*IsDynSymTab=*/false);
   else
-    emitSymbol64(symtab64[0], LDSymbol::null(), strtab, 0, 0, /*IsDynSymTab=*/false);
+    emitSymbol64(symtab64[0], LDSymbol::null(), strtab, 0, 0,
+                 /*IsDynSymTab=*/false);
 
   m_pSymIndexMap[LDSymbol::null()] = 0;
 
@@ -1114,14 +1194,15 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
       continue;
     }
     if (config().targets().is32Bits())
-      emitSymbol32(symtab32[symIdx], S->outSymbol(), strtab, strtabsize,
-                   symIdx, /*IsDynSymTab=*/false);
+      emitSymbol32(symtab32[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
+                   /*IsDynSymTab=*/false);
     else
-      emitSymbol64(symtab64[symIdx], S->outSymbol(), strtab, strtabsize,
-                   symIdx, /*IsDynSymTab=*/false);
+      emitSymbol64(symtab64[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
+                   /*IsDynSymTab=*/false);
     if ((S->isGlobal() || S->isWeak()) && !firstNonLocal)
       firstNonLocal = symIdx;
-    strtabsize += std::string(S->name()).size() + 1;
+    std::string symName = std::string(S->name());
+    strtabsize += symName.length() + 1;
     ++symIdx;
   }
   if (firstNonLocal)
@@ -2721,6 +2802,9 @@ bool GNULDBackend::placeOutputSections() {
       case LDFileFormat::EhFrameHdr:
       case LDFileFormat::MergeStr:
       case LDFileFormat::NamePool:
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      case LDFileFormat::SymbolVersion:
+#endif
         // Place the section in the proper place as per the section permissions.
         if ((elem->size() || string::isValidCIdentifier(elem->name())) ||
             ((elem->hasSectionData() || elem->isWanted()) &&
@@ -4127,7 +4211,7 @@ LDSymbol &GNULDBackend::defineSymbolforCopyReloc(eld::IRBuilder &pBuilder,
   copyRelocSect->addFragmentAndUpdateSize(frag);
   if (layoutInfo)
     layoutInfo->recordFragment(copyRelocSect->getInputFile(), copyRelocSect,
-                                  frag);
+                               frag);
 
   // change symbol binding to Global if it's a weak symbol
   ResolveInfo::Binding binding = (ResolveInfo::Binding)pSym->binding();
@@ -4652,7 +4736,7 @@ void GNULDBackend::makeVersionString() {
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(F->getOwningSection()->getInputFile(),
-                      F->getOwningSection(), F);
+                               F->getOwningSection(), F);
   // Add LLVM revision information as well if available.
   // This check is required because eld do not necessarily have access
   // to LLVM revision information.
@@ -4664,8 +4748,9 @@ void GNULDBackend::makeVersionString() {
         make<StringFragment>(LLVMRevisionInfo, m_pComment);
     m_pComment->addFragmentAndUpdateSize(LLVMRevisionF);
     if (layoutInfo)
-      layoutInfo->recordFragment(LLVMRevisionF->getOwningSection()->getInputFile(),
-                        LLVMRevisionF->getOwningSection(), LLVMRevisionF);
+      layoutInfo->recordFragment(
+          LLVMRevisionF->getOwningSection()->getInputFile(),
+          LLVMRevisionF->getOwningSection(), LLVMRevisionF);
   }
   if ((LinkerConfig::Object != config().codeGenType()) &&
       (LinkerConfig::DynObj != config().codeGenType()) &&
@@ -4684,8 +4769,9 @@ void GNULDBackend::makeVersionString() {
   Fragment *CmdLineFragment = make<StringFragment>(CommandLine, m_pComment);
   m_pComment->addFragmentAndUpdateSize(CmdLineFragment);
   if (layoutInfo)
-    layoutInfo->recordFragment(CmdLineFragment->getOwningSection()->getInputFile(),
-                      CmdLineFragment->getOwningSection(), CmdLineFragment);
+    layoutInfo->recordFragment(
+        CmdLineFragment->getOwningSection()->getInputFile(),
+        CmdLineFragment->getOwningSection(), CmdLineFragment);
 }
 
 bool GNULDBackend::addPhdrsIfNeeded(void) {
@@ -5163,3 +5249,99 @@ bool GNULDBackend::setupTLS() {
     firstTLS->setAddrAlign(MaxAlignment);
   return seenTLS;
 }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+void GNULDBackend::initSymbolVersioningSections() {
+  const DiagnosticPrinter *DP = config().getPrinter();
+  if (DP->traceSymbolVersioning())
+    config().raise(Diag::trace_creating_symbol_versioning_section)
+        << ".gnu.version";
+  GNUVerSymSection = m_Module.createInternalSection(
+      Module::InternalInputType::SymbolVersioning,
+      LDFileFormat::Kind::SymbolVersion, ".gnu.version",
+      llvm::ELF::SHT_GNU_versym, llvm::ELF::SHF_ALLOC,
+      /*Align=*/2,
+      /*EntrySize=*/2);
+
+  // Add .gnu.version_d section creation
+  if (DP->traceSymbolVersioning())
+    config().raise(Diag::trace_creating_symbol_versioning_section)
+        << ".gnu.version_d";
+  GNUVerDefSection = m_Module.createInternalSection(
+      Module::InternalInputType::SymbolVersioning,
+      LDFileFormat::Kind::SymbolVersion, ".gnu.version_d",
+      llvm::ELF::SHT_GNU_verdef, llvm::ELF::SHF_ALLOC,
+      /*Align=*/sizeof(uint32_t));
+  GNUVerDefSection->setLink(getOutputFormat()->getDynStrTab());
+}
+#endif
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+void GNULDBackend::assignOutputVersionIDs() {
+  bool shouldTraceSymbolVersioning =
+      m_Module.getPrinter()->traceSymbolVersioning();
+  if (shouldTraceSymbolVersioning)
+    config().raise(Diag::trace_assign_output_version_ids);
+  if (DynamicSymbols.empty())
+    return;
+  // 0 and 1 are reserved!
+  uint32_t NextVerID = 2;
+
+  // Map version node names to reserved output version IDs deterministically.
+  const auto &VSNodes = m_Module.getVersionScriptNodes();
+  std::unordered_map<std::string, uint16_t> VerNameToID;
+  VerNameToID[""] = llvm::ELF::VER_NDX_GLOBAL;
+  for (const auto &VSNode : VSNodes) {
+    ASSERT(VSNode, "VSNode must not be null!");
+    if (VSNode->isAnonymous())
+      continue;
+    VerNameToID[VSNode->getName().str()] = NextVerID++;
+  }
+  uint16_t defaultVersionID = llvm::ELF::VER_NDX_GLOBAL;
+
+  setSymbolVersionID(DynamicSymbols[0], llvm::ELF::VER_NDX_LOCAL);
+  // First, assign default version to any symbol without an explicit one.
+  for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
+    ResolveInfo *R = DynamicSymbols[i];
+    if (!getSymbolVersionID(R))
+      setSymbolVersionID(R, defaultVersionID);
+  }
+
+  // For output-defined symbols with explicit version suffix foo@VER or
+  // foo@@VER, assign the version index based on version node names.
+  for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
+    ResolveInfo *R = DynamicSymbols[i];
+    if (llvm::isa<ELFDynObjectFile>(R->resolvedOrigin()))
+      continue;
+    std::string FullName = R->getName().str();
+    bool isDefaultVersionSymbol = false;
+    uint16_t VernID = 0;
+    VersionSymbol *VernSymbol = getSymbolScope(R);
+    auto Pos = FullName.find('@');
+    if (!VernSymbol) {
+      llvm::StringRef VerName = R->getVersionName();
+      auto it = VerNameToID.find(VerName.str());
+      if (it == VerNameToID.end() && !VerName.empty()) {
+        InputFile *origin = R->resolvedOrigin();
+        config().raise(Diag::error_missing_version_node)
+            << origin->getInput()->decoratedPath() << R->name() << VerName;
+        continue;
+      }
+      VernID = it->second;
+    } else {
+      VersionScriptNode *VSN = VernSymbol->getBlock()->getNode();
+      llvm::StringRef VerName = (VSN->isAnonymous() ? "" : VSN->getName());
+      auto it = VerNameToID.find(VerName.str());
+      ASSERT(it != VerNameToID.end(), "Map must contain the entry!");
+      VernID = it->second;
+    }
+
+    isDefaultVersionSymbol = (Pos == std::string::npos ||
+                              (FullName.find("@@") != std::string::npos));
+
+    if (!isDefaultVersionSymbol)
+      VernID |= llvm::ELF::VERSYM_HIDDEN;
+    setSymbolVersionID(R, VernID);
+  }
+}
+#endif

@@ -20,6 +20,7 @@
 #include "eld/GarbageCollection/GarbageCollection.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/BitcodeFile.h"
+#include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputTree.h"
 #include "eld/Input/InternalInputFile.h"
@@ -170,6 +171,14 @@ bool ObjectLinker::initStdSections() {
           *getTargetBackend().getDynamicSectionHeadersInputFile());
   }
 
+  // Initialize symbol versioning sections only for dynamic artifacts when
+  // enabled.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (ThisConfig.shouldBuildDynamicArtifact() &&
+      getTargetBackend().shouldEmitVersioningSections())
+    getTargetBackend().initSymbolVersioningSections();
+#endif
+
   // initialize target-dependent sections
   getTargetBackend().initTargetSections(Builder);
 
@@ -313,6 +322,8 @@ bool ObjectLinker::normalize() {
   return true;
 }
 
+// FIXME: We should maybe parse version script after reading LTO-generated
+// object files.
 bool ObjectLinker::parseVersionScript() {
   if (!ThisConfig.options().hasVersionScript())
     return true;
@@ -344,15 +355,24 @@ bool ObjectLinker::parseVersionScript() {
     for (auto &VersionScriptNode :
          VersionScriptReader.getVersionScript()->getNodes()) {
       if (!VersionScriptNode->isAnonymous()) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+        getTargetBackend().setShouldEmitVersioningSections(true);
+#else
         ThisConfig.raise(Diag::unsupported_version_node)
             << VersionScriptInput->decoratedPath();
         continue;
+#endif
       }
       if (VersionScriptNode->hasDependency()) {
         ThisConfig.raise(Diag::unsupported_dependent_node)
+            << VersionScriptNode->getName()
             << VersionScriptInput->decoratedPath();
+#ifndef ELD_ENABLE_SYMBOL_VERSIONING
         continue;
+#endif
       }
+      // FIXME: Why did we reach here at all if the version script parsing
+      // failed? Shouldn't we have exited before reaching here?
       if (VersionScriptNode->hasError()) {
         ThisConfig.raise(Diag::error_parsing_version_script)
             << VersionScriptInput->decoratedPath();
@@ -362,25 +382,58 @@ bool ObjectLinker::parseVersionScript() {
     }
   }
   auto &SymbolScopes = getTargetBackend().symbolScopes();
-  for (auto &G : ThisModule->getNamePool().getGlobals()) {
+  auto &NP = ThisModule->getNamePool();
+  for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
     for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
       if (VersionScriptNode->getGlobalBlock()) {
         for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
-          if (Sym->getSymbolPattern()->matched(*R)) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+          bool isMatched = Sym->matched(*R, NP);
+#else
+          bool isMatched = Sym->getSymbolPattern()->matched(*R);
+#endif
+          if (isMatched) {
             getTargetBackend().addSymbolScope(R, Sym);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+            if (ThisConfig.getPrinter()->traceSymbolVersioning())
+              ThisConfig.raise(Diag::trace_version_script_matched_scope)
+                  << "global" << R->name();
+            break;
+#endif
           } // end Symbol Match
         } // end Symbols
       } // end Global
-      if (SymbolScopes.find(R) != SymbolScopes.end())
+      if (SymbolScopes.find(R) != SymbolScopes.end()) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+        break;
+#else
         continue;
+#endif
+      }
       if (VersionScriptNode->getLocalBlock()) {
         for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
-          if (Sym->getSymbolPattern()->matched(*R)) {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+          bool isMatched = Sym->matched(*R, NP);
+#else
+          bool isMatched = Sym->getSymbolPattern()->matched(*R);
+#endif
+          if (isMatched) {
             getTargetBackend().addSymbolScope(R, Sym);
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+            if (ThisConfig.getPrinter()->traceSymbolVersioning())
+              ThisConfig.raise(Diag::trace_version_script_matched_scope)
+                  << "local" << R->name();
+            break;
+#endif
           } // end Symbol Match
         } // end Symbols
       } // end Local
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      if (SymbolScopes.find(R) != SymbolScopes.end()) {
+        break;
+      }
+#endif
     } // end all Nodes
   } // end Globals
   return true;
@@ -718,6 +771,7 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
     case LDFileFormat::Null:
     case LDFileFormat::NamePool:
     case LDFileFormat::Discard:
+    case LDFileFormat::Version:
       // skip
       continue;
     case LDFileFormat::Relocation:
@@ -2054,7 +2108,11 @@ bool ObjectLinker::allocateCommonSymbols() {
 
 bool ObjectLinker::addDynamicSymbols() {
   getTargetBackend().sizeDynNamePools();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  return ThisConfig.getDiagEngine()->diagnose();
+#else
   return true;
+#endif
 }
 
 /// prelayout - help backend to do some modification before layout
