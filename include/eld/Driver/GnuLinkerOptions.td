@@ -1101,6 +1101,11 @@ def : J<"plugin-opt=cs-profile-path=">,
       Alias<lto_cs_profile_file>,
       HelpText<"Alias for --lto-cs-profile-file">;
 
+def disable_verify : F<"disable-verify">;
+def : F<"plugin-opt=disable-verify">,
+      Alias<disable_verify>,
+      HelpText<"Alias for --disable-verify">;
+
 defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
