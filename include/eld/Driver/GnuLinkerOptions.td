@@ -1104,6 +1104,15 @@ def : J<"plugin-opt=cs-profile-path=">,
       Alias<lto_cs_profile_file>,
       HelpText<"Alias for --lto-cs-profile-file">;
 
+def disable_verify
+    : F<"disable-verify">,
+      HelpText<"Do not run the verifier during the optimization pipeline">,
+      Group<grp_ltooptions>;
+def : F<"plugin-opt=disable-verify">,
+      Alias<disable_verify>,
+      HelpText<"Alias for --disable-verify">,
+      Group<grp_ltooptions>;
+
 defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
