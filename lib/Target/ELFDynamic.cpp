@@ -19,7 +19,11 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/Fragment/GNUVerNeedFragment.h"
+#endif
 
 using namespace eld;
 using namespace elf_dynamic;
@@ -233,6 +237,26 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
   if (m_Backend.hasTextRel())
     reserveOne(llvm::ELF::DT_TEXTREL); // DT_TEXTREL
 
+  // Reserve versioning dynamic tags only when symbol versioning is enabled.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (m_Backend.getGNUVerSymSection())
+    reserveOne(llvm::ELF::DT_VERSYM);
+
+  if (auto verDef = m_Backend.getGNUVerDefSection()) {
+    if (verDef->size()) {
+      reserveOne(llvm::ELF::DT_VERDEF);
+      reserveOne(llvm::ELF::DT_VERDEFNUM);
+    }
+  }
+
+  if (auto verNeed = m_Backend.getGNUVerNeedSection()) {
+    if (verNeed->size()) {
+      reserveOne(llvm::ELF::DT_VERNEED);
+      reserveOne(llvm::ELF::DT_VERNEEDNUM);
+    }
+  }
+#endif
+
   reserveOne(llvm::ELF::DT_DEBUG); // for Debugging
   reserveOne(llvm::ELF::DT_NULL);  // for DT_NULL
 }
@@ -396,6 +420,30 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
   if (dt_flags_1 != 0x0)
     applyOne(llvm::ELF::DT_FLAGS_1, dt_flags_1);
 
+  // Apply versioning dynamic tags only when symbol versioning is enabled.
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (ELFSection *S = m_Backend.getGNUVerSymSection()) {
+    applyOne(llvm::ELF::DT_VERSYM, S->addr());
+  }
+
+  if (ELFSection *S = m_Backend.getGNUVerDefSection()) {
+    if (S->size()) {
+      applyOne(llvm::ELF::DT_VERDEF, S->addr());
+      // Def count equals section sh_info
+      applyOne(llvm::ELF::DT_VERDEFNUM, S->getInfo());
+    }
+  }
+
+  if (ELFSection *S = m_Backend.getGNUVerNeedSection()) {
+    if (S->size()) {
+      applyOne(llvm::ELF::DT_VERNEED, S->addr());
+      GNUVerNeedFragment *F = m_Backend.getGNUVerNeedFragment();
+      ASSERT(F, "Must not be null!");
+      applyOne(llvm::ELF::DT_VERNEEDNUM, F->needCount());
+    }
+  }
+#endif
+
   if (!m_Config.options().isCompactDyn())
     applyOne(llvm::ELF::DT_DEBUG, 0x0); // for DT_DEBUG
 
@@ -431,4 +479,3 @@ void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
 void ELFDynamic::applySoname(uint64_t pStrTabIdx) {
   applyOne(llvm::ELF::DT_SONAME, pStrTabIdx); // DT_SONAME
 }
-

@@ -48,7 +48,12 @@ public:
     Timing,
     Null,
     MergeString,
-    BuildID
+    BuildID,
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    GNUVerDef,
+    GNUVerSym,
+    GNUVerNeed
+#endif
   };
 
 public:

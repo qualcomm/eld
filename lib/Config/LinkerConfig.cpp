@@ -281,3 +281,9 @@ bool LinkerConfig::isSymDefStyleValid() const {
 std::string LinkerConfig::getSymDefString() const {
   return GenOptions.symDefFileStyle().upper();
 }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+bool LinkerConfig::shouldBuildDynamicArtifact() const {
+  return isCodeDynamic() || options().forceDynamic();
+}
+#endif

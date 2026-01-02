@@ -59,6 +59,10 @@ function(generate_ext_lit ARCH OPTIONNAME LIT_CFG_PATH)
     "${CMAKE_CURRENT_BINARY_DIR}/llvm-lit-${ARCH_LOWER}-${OPTIONNAME}")
 endfunction()
 
+if(ELD_ENABLE_SYMBOL_VERSIONING)
+  set(ELD_ENABLE_SYMBOL_VERSIONING_TESTS "true")
+endif()
+
 function(add_eld_lit_cfg ARCH OPTION OPTIONNAME)
   set(ELD_CURRENT_TARGET "${ARCH}_${OPTIONNAME}")
   set(ELD_OPTION ${OPTION})
