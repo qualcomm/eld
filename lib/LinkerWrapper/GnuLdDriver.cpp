@@ -1559,6 +1559,12 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
   for (opt::Arg *Arg : Args.filtered(OptTable::plugin_opt_eq_minus))
     LLVMOptions.push_back(std::string("-") + Arg->getValue());
 
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_cs_profile_file))
+    Conf.CSIRProfile = Arg->getValue();
+
+  if (Args.hasArg(OptTable::lto_cs_profile_generate))
+    Conf.RunCSIRInstr = true;
+
   if (const auto *Arg = Args.getLastArg(OptTable::dwodir))
     Conf.DwoDir = Arg->getValue();
 

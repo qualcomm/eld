@@ -1089,6 +1089,21 @@ defm include_lto_filelist
           "be used for LTO. This has no effect if -flto switch is used">,
       MetaVarName<"<list_of_files>">,
       Group<grp_ltooptions>;
+
+def lto_cs_profile_generate
+    : FF<"lto-cs-profile-generate">,
+      HelpText<"Perform context sensitive PGO instrumentation">,
+      Group<grp_ltooptions>;
+def lto_cs_profile_file : JJ<"lto-cs-profile-file=">,
+                          HelpText<"Context sensitive profile file path">;
+
+def : F<"plugin-opt=cs-profile-generate">,
+      Alias<lto_cs_profile_generate>,
+      HelpText<"Alias for --lto-cs-profile-generate">;
+def : J<"plugin-opt=cs-profile-path=">,
+      Alias<lto_cs_profile_file>,
+      HelpText<"Alias for --lto-cs-profile-file">;
+
 defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
