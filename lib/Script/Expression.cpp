@@ -1450,6 +1450,8 @@ void Defined::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << "DEFINED(" << Name << ")";
 }
 eld::Expected<uint64_t> Defined::evalImpl() {
+  if (MResult)
+    return MResult.value();
   const LDSymbol *Symbol = ThisModule.getNamePool().findSymbol(Name);
   if (Symbol == nullptr)
     return 0;
