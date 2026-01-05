@@ -5348,3 +5348,24 @@ void GNULDBackend::assignOutputVersionIDs() {
   }
 }
 #endif
+
+void GNULDBackend::setVMA(ELFSection &S, uint64_t vma,
+                          bool ignoreChangedSection) {
+  if (S.hasVMA() && !ignoreChangedSection && !changedOutputSection) {
+    uint64_t prevVMA = S.addr();
+    if (prevVMA != vma) {
+      changedOutputSection = S.getOutputSection();
+    }
+  }
+  S.setAddr(vma);
+}
+
+void GNULDBackend::setLMA(ELFSection &S, uint64_t lma) {
+  if (S.hasLMA() && !changedOutputSection) {
+    uint64_t prevLMA = S.pAddr();
+    if (prevLMA != lma) {
+      changedOutputSection = S.getOutputSection();
+    }
+  }
+  S.setPaddr(lma);
+}

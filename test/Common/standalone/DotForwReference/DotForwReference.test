@@ -1,0 +1,32 @@
+#---DotForwReference.test--------------------- Executable,LS ------------------#
+#BEGIN_COMMENT
+# Validates that a forward reference to a symbol in dot assignments within
+# SECTIONS is handled correctly.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.1.t
+RUN: %readelf -S %t1.1.out | %filecheck %s
+RUN: %link %linkopts -o %t1.1.phdr.out %t1.1.o -T %p/Inputs/script.1.phdr.t
+RUN: %readelf -S %t1.1.phdr.out | %filecheck %s
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.2.t 2>&1 \
+RUN:   --trace=assignments | %filecheck %s --allow-empty --check-prefix TRACE
+RUN: %readelf -S %t1.2.out | %filecheck %s --check-prefix CHECK2
+RUN: %link %linkopts -o %t1.2.phdr.out %t1.1.o -T %p/Inputs/script.2.phdr.t 2>&1 \
+RUN:   --trace=assignments | %filecheck %s --allow-empty --check-prefix TRACE
+RUN: %readelf -S %t1.2.phdr.out | %filecheck %s --check-prefix CHECK2
+RUN: %link %linkopts -o %t1.1.3.out %t1.1.o -T %p/Inputs/script.3.t 2>&1 | %filecheck %s --check-prefix=NON_CONVERGENCE_NOTE
+#END_TEST
+
+CHECK: .text PROGBITS {{0+}}3000
+
+TRACE: Trace: OUTPUT_SECTION(EVALUATE) >> .text VMA : 0x0 LMA : 0x0
+TRACE: Trace: OUTPUT_SECTION(EVALUATE) >> .text VMA : 0x4000 LMA : 0x4000
+TRACE: Trace: OUTPUT_SECTION(EVALUATE) >> .text VMA : 0x5000 LMA : 0x5000
+TRACE: Trace: OUTPUT_SECTION(EVALUATE) >> .text VMA : 0x5000 LMA : 0x5000
+TRACE-NOT: address did not converge
+
+CHECK2: .text PROGBITS {{0+}}5000
+
+NON_CONVERGENCE_NOTE: Note: Section '.text' address did not converge after 4 layout passes
+
