@@ -145,6 +145,8 @@ public:
   getAllArgs(const std::vector<const char *> &allArgs,
              const std::vector<llvm::StringRef> &ELDFlagsArgs) const;
 
+  bool isRunLTOOnly() const { return m_RunLTOOnly; }
+
 protected:
   int getInteger(llvm::opt::InputArgList &Args, unsigned Key,
                  int Default) const;
@@ -191,6 +193,10 @@ protected:
   DriverFlavor m_DriverFlavor;
   std::vector<std::string> m_SupportedTargets;
   std::string LinkerProgramName;
+
+  // In LTO, only invoke compiler to generate the output file, but do not link
+  // it. This option is used by --lto-emit-llvm and --lto-emit-asm options.
+  bool m_RunLTOOnly = false;
 };
 
 #endif
