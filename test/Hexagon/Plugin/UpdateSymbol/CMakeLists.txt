@@ -13,4 +13,4 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
 
 endif()
 
-add_plugin(changesymbol)
+add_plugin(updatesymbol)
