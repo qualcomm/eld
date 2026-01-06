@@ -1123,6 +1123,14 @@ defm plugin_opt_sample_profile
                         "Alias for -lto-sample-profile=">,
       Group<grp_ltooptions>;
 
+def lto_partitions : JJ<"lto-partitions=">,
+                     HelpText<"Number of LTO codegen partitions">,
+                     MetaVarName<"<number>">,
+                     Group<grp_ltooptions>;
+def : J<"plugin-opt=lto-partitions=">,
+      Alias<lto_partitions>,
+      HelpText<"Alias for --lto-partitions">;
+
 def lto_debug_pass_manager : FF<"lto-debug-pass-manager">,
                              HelpText<"Debug new pass manager">,
                              Group<grp_ltooptions>;

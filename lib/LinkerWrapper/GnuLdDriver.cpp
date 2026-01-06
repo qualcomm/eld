@@ -1570,6 +1570,17 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
     m_RunLTOOnly = true;
   }
 
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_partitions)) {
+    llvm::StringRef S = Arg->getValue();
+    unsigned Value;
+    if (S.getAsInteger(0, Value) || Value == 0) {
+      Config.raise(Diag::invalid_value_for_option)
+          << Arg->getOption().getPrefixedName() << S;
+      return false;
+    }
+    Config.options().setLTOPartitions(Value);
+  }
+
   if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
     Conf.SampleProfile = Arg->getValue();
 

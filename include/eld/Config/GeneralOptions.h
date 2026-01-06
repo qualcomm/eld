@@ -412,6 +412,9 @@ public:
     return UnparsedLTOOptions;
   }
 
+  void setLTOPartitions(unsigned V) { LTOPartitions = V; }
+  unsigned getLTOPartitions() const { return LTOPartitions; }
+
   void getSymbolsFromFile(llvm::StringRef Filename, std::vector<std::string> &);
 
   void setCopyFarCallsFromFile(std::string File) {
@@ -1227,6 +1230,7 @@ private:
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
   uint32_t LTOOptions = 0;         // -flto-options
+  unsigned LTOPartitions = 1;      // --lto-partitions=
   bool Verify = true;              // Linker verifies output file.
   bool Colormap = false;           // Map file with color.
   bool EnableThreads = true;       // threads enabled ?

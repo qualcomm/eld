@@ -2772,7 +2772,9 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf,
   // Initialize the LTO backend
   llvm::lto::ThinBackend Backend = llvm::lto::createInProcessThinBackend(
       llvm::heavyweight_hardware_concurrency(NumThreads));
-  return std::make_unique<llvm::lto::LTO>(std::move(Conf), std::move(Backend));
+  return std::make_unique<llvm::lto::LTO>(
+      std::move(Conf), std::move(Backend),
+      ThisConfig.options().getLTOPartitions());
 }
 
 bool ObjectLinker::finalizeLtoSymbolResolution(
