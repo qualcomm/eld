@@ -1075,6 +1075,9 @@ defm save_temps_EQ : smDashOnlyEq<"save-temps", "save_temps_EQ",
                  "Save the temporary files produced by LTO">,
                  MetaVarName<"<filename>">,
                  Group<grp_ltooptions>;
+def : F<"plugin-opt=save-temps">,
+      Alias<save_temps>,
+      HelpText<"Alias for --save-temps">;
 defm exclude_lto_filelist
     : smDashWithOpt<"exclude-lto-filelist", "exclude_lto_filelist",
                     "Specify a list of files that are to be disregarded while "
