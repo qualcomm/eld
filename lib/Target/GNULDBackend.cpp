@@ -1718,7 +1718,8 @@ bool GNULDBackend::InsertAtSectionToEnd(ELFSection *OutSection,
     Assignment *assign = (*it);
     if (shouldskipAssert(assign))
       continue;
-    (*it)->assign(m_Module, OutSection);
+    ASSERT(assign != nullptr, "assign must not be null!");
+    evaluateAssignmentAndTrackPartiallyEvalAssignments(*assign, OutSection);
     if (OutSection->isAlloc())
       NewOffset = dotSymbol->value() - OutSection->addr();
   }
@@ -1927,7 +1928,8 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
       if (padding.startOffset == -1)
         padding.startOffset = offset;
       uint64_t previousDotValue = dotSymbol->value();
-      (*it)->assign(m_Module, OutSection);
+      ASSERT(assign != nullptr, "assign must not be null!");
+      evaluateAssignmentAndTrackPartiallyEvalAssignments(*assign, OutSection);
       offset = dotSymbol->value() - OutSection->addr();
       // Check for backward movement of dot symbol in the current output section
       if ((dotSymbol->value() < previousDotValue) &&
@@ -2076,6 +2078,7 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
                                         ie = out->sectionendsymEnd();
        it != ie; ++it) {
     Assignment *assign = (*it);
+    ASSERT(assign != nullptr, "assign must not be null!");
     // We do not need to evaluate PROVIDE expressions for PROVIDE
     // symbols that are not being used in the link.
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))
@@ -2090,7 +2093,7 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
       }
       continue;
     }
-    (*it)->assign(m_Module, nullptr);
+    evaluateAssignmentAndTrackPartiallyEvalAssignments(*assign, /*S=*/nullptr);
   }
 }
 
@@ -3937,6 +3940,7 @@ bool GNULDBackend::relax() {
 
   while (!finished) {
     auto start = std::chrono::steady_clock::now();
+    config().raise(Diag::verbose_performing_layout_iteration) << iteration;
     {
       eld::RegisterTimer T("Assign Address", "Establish Layout",
                            m_Module.getConfig().options().printTimingStats());
@@ -3997,6 +4001,7 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
 void GNULDBackend::evaluateScriptAssignments(bool afterLayout) {
   auto &LS = m_Module.getScript();
   for (auto &assign : m_Module.getScript().assignments()) {
+    ASSERT(assign != nullptr, "assign must not be null!");
     if (LS.linkerScriptHasSectionsCommand()) {
       Assignment::Level AllowedLevel =
           (afterLayout ? Assignment::Level::AFTER_SECTIONS
@@ -4018,12 +4023,13 @@ void GNULDBackend::evaluateScriptAssignments(bool afterLayout) {
 
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))
       continue;
-    assign->assign(m_Module, nullptr);
+    evaluateAssignmentAndTrackPartiallyEvalAssignments(*assign, /*S=*/nullptr);
   }
 }
 
 void GNULDBackend::evaluateAsserts() {
   for (auto &a : m_Module.getScript().assignments()) {
+    ASSERT(a != nullptr, "a must not be null!");
     if (a->type() != Assignment::ASSERT)
       continue;
     if (a->hasDot()) {
@@ -4041,7 +4047,7 @@ void GNULDBackend::evaluateAsserts() {
       a->dumpMap(SS, false, false);
       config().raise(Diag::executing_assert_after_layout) << SS.str();
     }
-    a->assign(m_Module, nullptr);
+    evaluateAssignmentAndTrackPartiallyEvalAssignments(*a, /*S=*/nullptr);
   }
 }
 
@@ -4604,11 +4610,7 @@ LDSymbol *GNULDBackend::canProvideSymbol(llvm::StringRef symName) {
       V = ResolveInfo::Hidden;
     resolverType = ResolveInfo::NoType;
     file = P->second->getInputFileInContext();
-    // FIXME: We ideally should not need this. It is added so that the link
-    // does not fail if the provide command does not have input file context due
-    // to any corner case.
-    if (!file)
-      file = m_Module.getInternalInput(Module::Script);
+    ASSERT(file, "Must always be non-null!");
     P->second->setUsed(true);
   } else if (isPSymDef) {
     resolverType = std::get<0>(PSymDef->second);
@@ -5162,4 +5164,41 @@ bool GNULDBackend::setupTLS() {
   if (firstTLS)
     firstTLS->setAddrAlign(MaxAlignment);
   return seenTLS;
+}
+
+void GNULDBackend::evaluateAssignmentAndTrackPartiallyEvalAssignments(
+    Assignment &A, const ELFSection *S) {
+  A.assign(m_Module, S, /*EvaluatePendingOnly=*/false);
+  if (A.getExpression()->hasPendingEvaluation())
+    PartiallyEvaluatedAssignments.push_back({&A, S});
+}
+
+void GNULDBackend::evaluatePendingAssignments() {
+  config().raise(Diag::verbose_eval_pending_assignments);
+  const std::size_t MaxIterations = 10;
+  for (std::size_t i = 0; i < MaxIterations; ++i) {
+    std::vector<std::pair<Assignment *, const ELFSection *>>
+        NewPartiallyEvalAssigns;
+    for (auto &P : PartiallyEvaluatedAssignments) {
+      auto *A = P.first;
+      auto *S = P.second;
+      A->assign(m_Module, S, /*EvaluatePendingOnly=*/true);
+      if (A->getExpression()->hasPendingEvaluation())
+        NewPartiallyEvalAssigns.push_back({A, S});
+    }
+    if (!(NewPartiallyEvalAssigns.size() <
+          PartiallyEvaluatedAssignments.size()))
+      break;
+    PartiallyEvaluatedAssignments = NewPartiallyEvalAssigns;
+  }
+  resetPartiallyEvalAssignmentsAndSymbols();
+}
+
+void GNULDBackend::resetScriptSymbols() {
+  const NamePool &NP = m_Module.getNamePool();
+  const auto &ScriptSymbols = NP.getScriptSymbols();
+  for (auto *RI : ScriptSymbols) {
+    RI->setValue(0, /*IsFinal=*/false);
+    RI->outSymbol()->setScriptValueDefined(false);
+  }
 }
