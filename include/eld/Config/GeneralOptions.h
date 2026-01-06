@@ -410,6 +410,9 @@ public:
     return UnparsedLTOOptions;
   }
 
+  void setThinLTOJobs(llvm::StringRef V) { ThinLTOJobs = V; }
+  llvm::StringRef getThinLTOJobs() const { return ThinLTOJobs; }
+
   void setLTOPartitions(unsigned V) { LTOPartitions = V; }
   unsigned getLTOPartitions() const { return LTOPartitions; }
 
@@ -1220,6 +1223,7 @@ private:
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
   uint32_t LTOOptions = 0;         // -flto-options
+  llvm::StringRef ThinLTOJobs;     // --thinlto-jobs=
   unsigned LTOPartitions = 1;      // --lto-partitions=
   bool Verify = true;              // Linker verifies output file.
   bool Colormap = false;           // Map file with color.
