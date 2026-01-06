@@ -511,7 +511,7 @@ ArchiveParser::createMemberReader(
     const ArchiveFile &archiveFile, const llvm::object::Archive &archiveReader,
     const llvm::object::Archive::Child &member) const {
   LinkerConfig &config = m_Module.getConfig();
-  llvm::LLVMContext &context = *llvm::unwrap(LLVMGetGlobalContext());
+  llvm::LLVMContext &context = *llvm::unwrap(llvm::getGlobalContextForCAPI());
   Input *archiveMemInput =
       archiveFile.getLazyLoadMember(member.getChildOffset());
   ASSERT(archiveMemInput,
