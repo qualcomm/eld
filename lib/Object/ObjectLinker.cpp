@@ -1716,6 +1716,7 @@ bool ObjectLinker::addScriptSymbols() {
     // If there is a relocation to this symbol, the symbols contained in the
     // assignment also need to be considered as part of the list of symbols
     // that will be live.
+    // FIXME: Duplicate redundant addAssignment!
     if (Symbol)
       ThisModule->addAssignment(Symbol->resolveInfo()->name(), AssignCmd);
   }

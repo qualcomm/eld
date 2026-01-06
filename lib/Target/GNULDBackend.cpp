@@ -3100,6 +3100,7 @@ bool GNULDBackend::layout() {
     return false;
   }
 
+  // FIXME: Adding more symbols this late can cause layout issues.
   {
     eld::RegisterTimer T("Define Magic Symbols", "Establish Layout",
                          m_Module.getConfig().options().printTimingStats());
