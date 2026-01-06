@@ -1,0 +1,67 @@
+# On ARM, LTO output files are numbered starting from 0, not from 1 like everywhere else.
+# UNSUPPORTED: arm, aarch64
+
+## Basic ThinLTO tests.
+RUN: %clang %clangopts -c -flto=thin %p/Inputs/a.c -o %t.a.o
+RUN: %clang %clangopts -c -flto=thin %p/Inputs/b.c -o %t.b.o
+
+## First force single-threaded mode
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --thinlto-jobs=1 -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-ONE
+CHECK-ONE: Note: Using 1 threads for LTO code generation
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+## Next force multi-threaded mode
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --thinlto-jobs=2 -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-TWO
+CHECK-TWO: Note: Using 2 threads for LTO code generation
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+## --plugin-opt=jobs= is an alias.
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --plugin-opt=jobs=2 -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-TWO
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+## --thinlto-jobs= defaults to --threads=.
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --thread-count=2 -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-TWO
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+## --thinlto-jobs= overrides --threads=.
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --thread-count=1 --plugin-opt=jobs=2 -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-TWO
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+# Test with all threads, on all cores, on all CPU sockets
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --thinlto-jobs=all -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-ALL
+CHECK-ALL: Note: Using all threads for LTO code generation
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+## Test with many more threads than the system has
+RUN: %rm -f %t.out*
+RUN: %link %linkopts -save-temps --thinlto-jobs=100 -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=CHECK-HUNDRED
+CHECK-HUNDRED: Note: Using 100 threads for LTO code generation
+RUN: %nm %t.out.llvm-lto.1.o | %filecheck %s --check-prefix=NM1
+RUN: %nm %t.out.llvm-lto.2.o | %filecheck %s --check-prefix=NM2
+
+## Test with a bad value
+RUN: %rm -f %t.out*
+RUN: %not %link %linkopts -save-temps --thinlto-jobs=foo -shared %t.a.o %t.b.o -o %t.out 2>&1 | %filecheck %s --check-prefix=BAD-JOBS
+BAD-JOBS: Error: Invalid value for --thinlto-jobs=: foo
+
+## Check that -save-temps is usable with thin archives
+RUN: mkdir -p %t.dir
+RUN: cp %t.b.o %t.dir/t.o
+RUN: %ar rcsT %t.a %t.dir/t.o
+RUN: %link %linkopts -save-temps %t.a.o %t.a -o %t.thin.out 2>&1 | %filecheck %s --check-prefix=CHECK-THIN
+CHECK-THIN: Note: LTO generated native object: {{.+}}.thin.out.llvm-lto.{{.*}}.o
+
+NM1: T f
+NM2: T g
