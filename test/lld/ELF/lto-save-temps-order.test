@@ -1,0 +1,13 @@
+## TODO: Once --lto-use-asm is enabled for all platforms, remove REQUIRES and --save-temps.
+
+## REQUIRES: arm || aarch64 || hexagon
+
+## Test that numbering in asm and object file name are consistent.
+
+RUN: %clang %clangopts -c -flto=thin %p/Inputs/a.c -o %t.a.o
+RUN: %clang %clangopts -c -flto=thin %p/Inputs/b.c -o %t.b.o
+
+RUN: rm -f %t.out.llvm-lto.*
+RUN: %link %linkopts -shared %t.a.o %t.b.o -o %t.out --save-temps --flto-use-as
+RUN: ls %t.out.llvm-lto.1.o %t.out.llvm-lto.1.s %t.out.llvm-lto.2.o %t.out.llvm-lto.2.s | count 4
+RUN: not ls %t.out.llvm-lto.0.o
