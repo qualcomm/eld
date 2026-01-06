@@ -2759,19 +2759,29 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf,
   }
 
   // Set the number of backend threads to use in ThinLTO
-  unsigned NumThreads = 1;
-  if (ThisConfig.options().threadsEnabled()) {
-    NumThreads = ThisConfig.options().numThreads();
-    if (!NumThreads)
-      NumThreads = std::thread::hardware_concurrency();
-    if (!NumThreads)
-      NumThreads = 4; // if hardware_concurrency returns 0
-    ThisConfig.raise(Diag::note_lto_threads) << NumThreads;
+  ThreadPoolStrategy ThinLTOParallelism;
+  if (!ThisConfig.options().getThinLTOJobs().empty()) {
+    // --thinlto-jobs= overrides --threads=.
+    ThinLTOParallelism =
+        llvm::hardware_concurrency(ThisConfig.options().getThinLTOJobs());
+    ThisConfig.raise(Diag::note_lto_threads)
+        << ThisConfig.options().getThinLTOJobs();
+  } else {
+    unsigned NumThreads = 1;
+    if (ThisConfig.options().threadsEnabled()) {
+      NumThreads = ThisConfig.options().numThreads();
+      if (!NumThreads)
+        NumThreads = std::thread::hardware_concurrency();
+      if (!NumThreads)
+        NumThreads = 4; // if hardware_concurrency returns 0
+      ThisConfig.raise(Diag::note_lto_threads) << NumThreads;
+    }
+    ThinLTOParallelism = llvm::heavyweight_hardware_concurrency(NumThreads);
   }
 
   // Initialize the LTO backend
-  llvm::lto::ThinBackend Backend = llvm::lto::createInProcessThinBackend(
-      llvm::heavyweight_hardware_concurrency(NumThreads));
+  llvm::lto::ThinBackend Backend =
+      llvm::lto::createInProcessThinBackend(ThinLTOParallelism);
   return std::make_unique<llvm::lto::LTO>(
       std::move(Conf), std::move(Backend),
       ThisConfig.options().getLTOPartitions());

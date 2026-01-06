@@ -1576,6 +1576,16 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
     m_RunLTOOnly = true;
   }
 
+  if (const auto *Arg = Args.getLastArg(OptTable::thinlto_jobs_eq)) {
+    llvm::StringRef S = Arg->getValue();
+    if (!get_threadpool_strategy(S)) {
+      Config.raise(Diag::invalid_value_for_option)
+          << Arg->getOption().getPrefixedName() << S;
+      return false;
+    }
+    Config.options().setThinLTOJobs(S);
+  }
+
   if (const auto *Arg = Args.getLastArg(OptTable::lto_partitions)) {
     llvm::StringRef S = Arg->getValue();
     unsigned Value;

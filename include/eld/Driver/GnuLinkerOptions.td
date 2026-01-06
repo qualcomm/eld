@@ -1132,6 +1132,14 @@ def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
                            Alias<lto_emit_llvm>,
                            HelpText<"Alias for --lto-emit-llvm">;
 
+def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
+                      HelpText<"Number of ThinLTO jobs. Default to --threads=">,
+                      MetaVarName<"<number>">,
+                      Group<grp_ltooptions>;
+def : J<"plugin-opt=jobs=">,
+      Alias<thinlto_jobs_eq>,
+      HelpText<"Alias for --thinlto-jobs=">;
+
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
             HelpText<"Optimization level for LTO">;
