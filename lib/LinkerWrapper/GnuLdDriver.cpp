@@ -1562,6 +1562,14 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
   if (const auto *Arg = Args.getLastArg(OptTable::dwodir))
     Conf.DwoDir = Arg->getValue();
 
+  if (Args.hasArg(OptTable::lto_emit_llvm))
+    m_RunLTOOnly = true;
+
+  if (Args.hasArg(OptTable::lto_emit_asm)) {
+    Conf.CGFileType = CodeGenFileType::AssemblyFile;
+    m_RunLTOOnly = true;
+  }
+
   if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
     Conf.SampleProfile = Arg->getValue();
 
@@ -1737,12 +1745,14 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     // llvm::errs() << "prepare: linkStatus: " << linkStatus << "\n";
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, false);
-    if (linkStatus)
-      linkStatus = linker.link();
-    // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
+    if (!isRunLTOOnly()) {
+      if (linkStatus)
+        linkStatus = linker.link();
+      // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
+      linker.printLayout();
+    }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);
-    linker.printLayout();
     linkStatus &= ThisModule->getPluginManager().callDestroyHook();
     // llvm::errs() << "destroy hook: linkStatus: " << linkStatus << "\n";
     linker.unloadPlugins();

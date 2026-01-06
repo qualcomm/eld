@@ -416,6 +416,8 @@ private:
 
   std::string getLTOTempPrefix() const;
 
+  std::unique_ptr<llvm::raw_fd_ostream> createLTOOutputFile() const;
+
   llvm::Expected<std::unique_ptr<llvm::raw_fd_ostream>>
   createLTOTempFile(size_t Task, bool Keep, const std::string &Suffix,
                     llvm::SmallString<256> &FileName) const;

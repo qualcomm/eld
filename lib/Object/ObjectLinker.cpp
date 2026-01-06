@@ -65,6 +65,7 @@
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/CodeGen/MachineOptimizationRemarkEmitter.h"
 #include "llvm/IR/DiagnosticPrinter.h"
@@ -473,6 +474,19 @@ ObjectLinker::createLTOTempFile(size_t Task, bool Keep,
     ErrMsg += ": " + EC.message();
     ThisConfig.raise(Diag::fatal_no_codegen_compile) << ErrMsg;
     return make_error<StringError>(EC);
+  }
+
+  return std::make_unique<llvm::raw_fd_ostream>(FD, true);
+}
+
+std::unique_ptr<llvm::raw_fd_ostream>
+ObjectLinker::createLTOOutputFile() const {
+  int FD;
+  std::string FileName = ThisConfig.options().outputFileName();
+  if (std::error_code EC = llvm::sys::fs::openFileForWrite(FileName, FD)) {
+    ThisConfig.raise(Diag::fatal_no_codegen_compile)
+        << FileName << ": " << EC.message();
+    return {};
   }
 
   return std::make_unique<llvm::raw_fd_ostream>(FD, true);
@@ -3019,7 +3033,8 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
                        ThisConfig.options().printTimingStats());
   // Run LTO
   std::vector<std::string> Files;
-  bool KeepLTOOutput = MSaveTemps;
+  bool KeepLTOOutput =
+      MSaveTemps || ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly();
 
   auto AddStream = [&](size_t Task, const Twine &ModuleName)
       -> llvm::Expected<std::unique_ptr<llvm::CachedFileStream>> {
@@ -3109,7 +3124,8 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
         LTOAsmInput.push_back(F);
       }
     }
-    if (!LTOAsmInput.empty()) {
+    if (!ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
+        !LTOAsmInput.empty()) {
       if (!runAssembler(Files, ltoCodegenModel().second, LTOAsmInput)) {
         ThisConfig.raise(Diag::lto_codegen_error) << "Assembler error occurred";
         ThisModule->setFailure(true);
@@ -3240,6 +3256,10 @@ bool ObjectLinker::createLTOObject(void) {
   Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(
       ThisConfig.targets().triple());
 
+  if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
+      Conf.CGFileType == CodeGenFileType::AssemblyFile)
+    Conf.Options.MCOptions.AsmVerbose = true;
+
   if (LTOPlugin) {
 
     // TODO: Why do we read all relocations here? Get rid of?
@@ -3251,7 +3271,17 @@ bool ObjectLinker::createLTOObject(void) {
 
   PrepareDiagEngineForLTO PrepareDiagnosticsForLto(ThisConfig.getDiagEngine());
 
-  bool CompileToAssembly = getTargetBackend().ltoNeedAssembler();
+  // CGFileType may have been set to AssemblyFile by `--lto-emit-asm`.
+  bool CompileToAssembly = Conf.CGFileType == CodeGenFileType::AssemblyFile ||
+                           getTargetBackend().ltoNeedAssembler();
+  if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
+      !CompileToAssembly) {
+    Conf.PreCodeGenModuleHook = [this](size_t task, const llvm::Module &m) {
+      if (auto os = createLTOOutputFile())
+        WriteBitcodeToFile(m, *os, false);
+      return false;
+    };
+  }
   std::unique_ptr<llvm::lto::LTO> LTO =
       ltoInit(std::move(Conf), CompileToAssembly);
   if (!LTO)

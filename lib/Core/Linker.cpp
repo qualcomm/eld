@@ -410,6 +410,9 @@ bool Linker::normalize() {
     if (!ObjLinker->createLTOObject())
       return false;
 
+    if (Driver->isRunLTOOnly())
+      return true;
+
     if (ThisModule->getPrinter()->isVerbose())
       ThisConfig->raise(Diag::beginning_post_LTO_phase);
     LinkerProgress->incrementAndDisplayProgress();

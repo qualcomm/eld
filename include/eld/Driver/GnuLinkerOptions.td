@@ -1094,6 +1094,20 @@ defm dwodir
              "Directory to save .dwo files when split DWARF is used in LTO">,
       Group<grp_ltooptions>;
 
+def lto_emit_asm : FF<"lto-emit-asm">,
+                   HelpText<"Emit assembly code">,
+                   Group<grp_ltooptions>;
+def plugin_opt_emit_asm : F<"plugin-opt=emit-asm">,
+                          Alias<lto_emit_asm>,
+                          HelpText<"Alias for --lto-emit-asm">;
+
+def lto_emit_llvm : FF<"lto-emit-llvm">,
+                    HelpText<"Emit LLVM-IR bitcode">,
+                    Group<grp_ltooptions>;
+def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
+                           Alias<lto_emit_llvm>,
+                           HelpText<"Alias for --lto-emit-llvm">;
+
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
             HelpText<"Optimization level for LTO">;
