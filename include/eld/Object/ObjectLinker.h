@@ -365,13 +365,14 @@ public:
   }
 
 private:
-  std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf);
+  std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf,
+                                          bool CompileToAssembly);
 
   bool
   finalizeLtoSymbolResolution(llvm::lto::LTO &LTO,
                               const std::vector<BitcodeFile *> &BitCodeFiles);
 
-  bool doLto(llvm::lto::LTO &LTO);
+  bool doLto(llvm::lto::LTO &LTO, bool CompileToAssembly);
 
   /// writeRelocationResult - helper function of syncRelocationResult, write
   /// relocation target data to output
@@ -416,7 +417,7 @@ private:
   std::string getLTOTempPrefix() const;
 
   llvm::Expected<std::unique_ptr<llvm::raw_fd_ostream>>
-  createLTOTempFile(size_t Task, const std::string &Suffix,
+  createLTOTempFile(size_t Task, bool Keep, const std::string &Suffix,
                     llvm::SmallString<256> &FileName) const;
 
   /// Adds input files to outputTar if --reproduce option is used
