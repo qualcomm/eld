@@ -5,6 +5,10 @@
 ; RUN: FileCheck %s < %t.out.llvm-lto.0.s
 ; RUN: %not ls %t.out.*.o
 
+; RUN: %link %linkopts %emulation --plugin-opt=emit-asm --plugin-opt=lto-partitions=2 -shared %t.bc -o %t.out
+; RUN: cat %t.out.llvm-lto.0.s %t.out.llvm-lto.1.s | FileCheck %s
+; RUN: not ls %t.out.*.o
+
 ; RUN: %link %linkopts --lto-emit-asm --save-temps -shared %t.bc -o %t.out
 ; RUN: FileCheck --input-file %t.out.llvm-lto.0.s %s
 ; RUN: %not ls %t.out.*.o
