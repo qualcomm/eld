@@ -21,4 +21,12 @@ if(ENABLE_ELD_PLUGIN_SUPPORT)
       DESTINATION include/ELD/PluginAPI/
       COMPONENT PluginAPIHeaders)
   endif()
+
+  if (NOT LLVM_ENABLE_IDE)
+    # LLVM_DISTRIBUTION_COMPONENTS requires that each component have both a
+    # component and an install-component target, so add appropriate dummy targets.
+    add_custom_target(PluginAPIHeaders)
+    add_llvm_install_targets(install-PluginAPIHeaders
+                             COMPONENT PluginAPIHeaders)
+  endif()
 endif()

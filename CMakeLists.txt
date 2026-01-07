@@ -212,6 +212,13 @@ install(
   PATTERN "*.template"
   PATTERN ".git" EXCLUDE
   PATTERN ".svn" EXCLUDE)
+if (NOT LLVM_ENABLE_IDE)
+  # LLVM_DISTRIBUTION_COMPONENTS requires that each component have both a
+  # component and an install-component target, so add appropriate dummy targets.
+  add_custom_target(linker-script)
+  add_llvm_install_targets(install-linker-script
+                           COMPONENT linker-script)
+endif()
 
 set(ELD_INSTALL_YAML_MAP_PARSER
     ON
@@ -224,5 +231,13 @@ if(ELD_INSTALL_YAML_MAP_PARSER)
     set(ELD_YAML_MAP_PARSER_DEST_DIR "bin")
   endif()
   install(PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
-          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR})
+          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR}
+          COMPONENT YAMLMapParser)
+  if (NOT LLVM_ENABLE_IDE)
+    # LLVM_DISTRIBUTION_COMPONENTS requires that each component have both a
+    # component and an install-component target, so add appropriate dummy targets.
+    add_custom_target(YAMLMapParser)
+    add_llvm_install_targets(install-YAMLMapParser
+                             COMPONENT YAMLMapParser)
+  endif()
 endif()
