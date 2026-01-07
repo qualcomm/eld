@@ -2601,10 +2601,14 @@ bool GNULDBackend::setupProgramHdrs() {
   {
     eld::RegisterTimer X("Setup TLS parameters", "Establish Layout",
                          m_Module.getConfig().options().printTimingStats());
-    ELFSegment *T =
-        elfSegmentTable().find(llvm::ELF::PT_TLS, llvm::ELF::PF_R, 0);
-    if (T)
-      setTLSTemplateSize(T->memsz());
+    std::vector<ELFSegment *> tls_segs =
+        elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
+    if (!tls_segs.size())
+      return true;
+    uint64_t memsz = 0;
+    for (auto &seg : tls_segs)
+      memsz += seg->memsz();
+    setTLSTemplateSize(memsz);
   }
   return true;
 }
@@ -3172,8 +3176,7 @@ bool GNULDBackend::layout() {
   // there is no SECTIONS command, then evaluate BEFORE_SECTIONS assignments
   // again.
   {
-    eld::RegisterTimer T("Evaluate Script Assignments",
-                         "Establish Layout",
+    eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
                          m_Module.getConfig().options().printTimingStats());
     evaluateScriptAssignments(/*afterLayout=*/true);
   }
