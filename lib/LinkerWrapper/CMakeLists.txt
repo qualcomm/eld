@@ -110,9 +110,12 @@ endforeach()
 if(ELD_ON_MSVC)
   install(TARGETS LW
     RUNTIME DESTINATION "${ELD_TOOLS_INSTALL_DIR}"
-    ARCHIVE DESTINATION lib)
+    ARCHIVE DESTINATION lib
+    COMPONENT ld.eld)
 else()
-  install(TARGETS LW LIBRARY DESTINATION lib)
+  install(TARGETS LW
+    LIBRARY DESTINATION lib
+    COMPONENT ld.eld)
 endif()
 
 set(BUILD_SHARED_LIBS ${bsl})

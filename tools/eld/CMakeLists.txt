@@ -16,7 +16,14 @@ add_dependencies(ld.eld update-eld-verinfo)
 set(LINKER_WRAPPER_LIB "LW")
 target_link_libraries(ld.eld PRIVATE ${LINKER_WRAPPER_LIB})
 
-install(TARGETS ld.eld RUNTIME DESTINATION "${ELD_TOOLS_INSTALL_DIR}")
+install(TARGETS ld.eld
+        RUNTIME DESTINATION "${ELD_TOOLS_INSTALL_DIR}"
+        COMPONENT ld.eld)
+if (NOT LLVM_ENABLE_IDE)
+  add_llvm_install_targets(install-ld.eld
+                           DEPENDS ld.eld
+                           COMPONENT ld.eld)
+endif()
 
 # FIXME: We need to switch to ELD_TARGETS_TO_BUILD after the buildbot upgrade
 if("${LLVM_TARGETS_TO_BUILD}" MATCHES "Hexagon" AND "${TARGET_TRIPLE}" MATCHES

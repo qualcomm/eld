@@ -205,7 +205,7 @@ if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
   install(
     DIRECTORY templates/
     DESTINATION templates
-    COMPONENT linker-script
+    COMPONENT ld.eld
     FILES_MATCHING
     PATTERN "*.template"
     PATTERN ".git" EXCLUDE
@@ -223,5 +223,6 @@ if(ELD_INSTALL_YAML_MAP_PARSER)
     set(ELD_YAML_MAP_PARSER_DEST_DIR "bin")
   endif()
   install(PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
-          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR})
+          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR}
+          COMPONENT ld.eld)
 endif()
