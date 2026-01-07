@@ -266,6 +266,8 @@ public:
 
   bool hasNow() const { return BNow; }
 
+  bool textRelocsAllowed() const { return TextRelocsAllowed; }
+
   void disableNow() { BNow = false; }
 
   bool hasGlobal() const { return BGlobal; }
@@ -1158,6 +1160,7 @@ private:
   bool BRelro = false;                  // relro, norelro
   bool BNow = false;                    // lazy, now
   bool Bsymbolic = false;               // --Bsymbolic
+  bool TextRelocsAllowed = false;       // --z notext
   bool BsymbolicFunctions = false;      // --Bsymbolic-functions
   bool Bgroup = false;
   bool BPIE = false;

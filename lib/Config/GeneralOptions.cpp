@@ -81,6 +81,10 @@ bool GeneralOptions::addZOption(const ZOption &POption) {
     BNoDelete = true;
     break;
   case ZOption::Text:
+    TextRelocsAllowed = false;
+    break;
+  case ZOption::NoText:
+    TextRelocsAllowed = true;
     break;
   case ZOption::ExecStack:
     ExecStack = YES;

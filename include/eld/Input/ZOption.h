@@ -46,6 +46,7 @@ public:
     Origin,
     Relro,
     Text,
+    NoText,
     CompactDyn,
     ForceBTI,
     ForcePACPLT,

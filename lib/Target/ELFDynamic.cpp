@@ -208,13 +208,16 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
   if (m_Config.options().hasNow() && !m_Config.options().hasNewDTags())
     reserveOne(llvm::ELF::DT_BIND_NOW);
 
+  const bool ShouldEmitTextRel =
+      m_Backend.hasTextRel() || m_Config.options().textRelocsAllowed();
+
   // All values for new flags go here.
   uint64_t dt_flags = 0x0;
   if (m_Config.options().hasNow())
     dt_flags |= llvm::ELF::DF_BIND_NOW;
   if (m_Config.options().bsymbolic())
     dt_flags |= llvm::ELF::DF_SYMBOLIC;
-  if (m_Backend.hasTextRel())
+  if (ShouldEmitTextRel)
     dt_flags |= llvm::ELF::DF_TEXTREL;
   if (m_Backend.hasStaticTLS() &&
       (LinkerConfig::DynObj == m_Config.codeGenType()))
@@ -224,14 +227,14 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
       (dt_flags & llvm::ELF::DF_STATIC_TLS) != 0x0)
     reserveOne(llvm::ELF::DT_FLAGS);
 
-  if (m_Backend.hasTextRel())
+  if (ShouldEmitTextRel)
     reserveOne(llvm::ELF::DT_TEXTREL);
 
   if (m_Config.options().hasNow() || m_Config.options().hasNoDelete() ||
       m_Config.options().hasGlobal() || m_Config.options().isPIE())
     reserveOne(llvm::ELF::DT_FLAGS_1);
 
-  if (m_Backend.hasTextRel())
+  if (ShouldEmitTextRel)
     reserveOne(llvm::ELF::DT_TEXTREL); // DT_TEXTREL
 
   // Reserve versioning dynamic tags only when symbol versioning is enabled.
@@ -369,7 +372,10 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
     applyOne(llvm::ELF::DT_RELAENT, m_pEntryFactory->relaSize()); // DT_RELAENT
   }
 
-  if (m_Backend.hasTextRel()) {
+  const bool ShouldEmitTextRel =
+      m_Backend.hasTextRel() || m_Config.options().textRelocsAllowed();
+
+  if (ShouldEmitTextRel) {
     applyOne(llvm::ELF::DT_TEXTREL, 0x0); // DT_TEXTREL
 
     if (m_Config.options().warnSharedTextrel() &&
@@ -386,7 +392,7 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
     dt_flags |= llvm::ELF::DF_SYMBOLIC;
   if (m_Config.options().hasNow())
     dt_flags |= llvm::ELF::DF_BIND_NOW;
-  if (m_Backend.hasTextRel())
+  if (ShouldEmitTextRel)
     dt_flags |= llvm::ELF::DF_TEXTREL;
   if (m_Backend.hasStaticTLS() &&
       (LinkerConfig::DynObj == m_Config.codeGenType()))

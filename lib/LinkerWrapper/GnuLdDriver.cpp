@@ -690,61 +690,63 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.addCommandLine(Table->getOptionName(T::wrap), wrapString);
 
   // -z option
-  for (auto *arg : Args.filtered(T::dash_z)) {
-    StringRef zOpt = arg->getValue();
-    uint64_t zVal = 0;
-    eld::ZOption::ZOptionKind zkind = eld::ZOption::Unknown;
-    if (0 == zOpt.compare("combreloc"))
-      zkind = eld::ZOption::CombReloc;
-    else if (0 == zOpt.compare("nocombreloc"))
-      zkind = eld::ZOption::NoCombReloc;
-    else if (0 == zOpt.compare("global"))
-      zkind = eld::ZOption::Global;
-    else if (0 == zOpt.compare("defs"))
-      zkind = eld::ZOption::Defs;
-    else if (0 == zOpt.compare("initfirst"))
-      zkind = eld::ZOption::InitFirst;
-    else if (0 == zOpt.compare("muldefs"))
-      zkind = eld::ZOption::MulDefs;
-    else if (0 == zOpt.compare("nocopyreloc"))
-      zkind = eld::ZOption::NoCopyReloc;
-    else if (0 == zOpt.compare("nodefaultlib"))
-      zkind = eld::ZOption::NoDefaultLib;
-    else if (0 == zOpt.compare("relro"))
-      zkind = eld::ZOption::Relro;
-    else if (0 == zOpt.compare("norelro"))
-      zkind = eld::ZOption::NoRelro;
-    else if (0 == zOpt.compare("lazy"))
-      zkind = eld::ZOption::Lazy;
-    else if (0 == zOpt.compare("now"))
-      zkind = eld::ZOption::Now;
-    else if (0 == zOpt.compare("origin"))
-      zkind = eld::ZOption::Origin;
-    else if (0 == zOpt.compare("text"))
-      zkind = eld::ZOption::Text;
-    else if (0 == zOpt.compare("noexecstack"))
-      zkind = eld::ZOption::NoExecStack;
-    else if (0 == zOpt.compare("nognustack"))
-      zkind = eld::ZOption::NoGnuStack;
-    else if (0 == zOpt.compare("execstack"))
-      zkind = eld::ZOption::ExecStack;
-    else if (zOpt.starts_with("common-page-size=")) {
-      zkind = eld::ZOption::CommPageSize;
-      zOpt.drop_front(17).getAsInteger(0, zVal);
-    } else if (zOpt.starts_with("max-page-size=")) {
-      zkind = eld::ZOption::MaxPageSize;
-      zOpt.drop_front(14).getAsInteger(0, zVal);
-    } else if (0 == zOpt.compare("nodelete")) {
-      zkind = eld::ZOption::NoDelete;
-    } else if (0 == zOpt.compare("compactdyn")) {
-      zkind = eld::ZOption::CompactDyn;
-    } else if (0 == zOpt.compare("force-bti")) {
-      zkind = eld::ZOption::ForceBTI;
-    } else if (0 == zOpt.compare("pac-plt")) {
-      zkind = eld::ZOption::ForcePACPLT;
+  for (auto *Arg : Args.filtered(T::dash_z)) {
+    StringRef ZOpt = Arg->getValue();
+    uint64_t Zval = 0;
+    eld::ZOption::ZOptionKind ZKind = eld::ZOption::Unknown;
+    if (ZOpt == "combreloc")
+      ZKind = eld::ZOption::CombReloc;
+    else if (ZOpt == "nocombreloc")
+      ZKind = eld::ZOption::NoCombReloc;
+    else if (ZOpt == "global")
+      ZKind = eld::ZOption::Global;
+    else if (ZOpt == "defs")
+      ZKind = eld::ZOption::Defs;
+    else if (ZOpt == "initfirst")
+      ZKind = eld::ZOption::InitFirst;
+    else if (ZOpt == "muldefs")
+      ZKind = eld::ZOption::MulDefs;
+    else if (ZOpt == "nocopyreloc")
+      ZKind = eld::ZOption::NoCopyReloc;
+    else if (ZOpt == "nodefaultlib")
+      ZKind = eld::ZOption::NoDefaultLib;
+    else if (ZOpt == "relro")
+      ZKind = eld::ZOption::Relro;
+    else if (ZOpt == "norelro")
+      ZKind = eld::ZOption::NoRelro;
+    else if (ZOpt == "lazy")
+      ZKind = eld::ZOption::Lazy;
+    else if (ZOpt == "now")
+      ZKind = eld::ZOption::Now;
+    else if (ZOpt == "origin")
+      ZKind = eld::ZOption::Origin;
+    else if (ZOpt == "text")
+      ZKind = eld::ZOption::Text;
+    else if (ZOpt == "notext")
+      ZKind = eld::ZOption::NoText;
+    else if (ZOpt == "noexecstack")
+      ZKind = eld::ZOption::NoExecStack;
+    else if (ZOpt == "nognustack")
+      ZKind = eld::ZOption::NoGnuStack;
+    else if (ZOpt == "execstack")
+      ZKind = eld::ZOption::ExecStack;
+    else if (ZOpt == "nodelete") {
+      ZKind = eld::ZOption::NoDelete;
+    } else if (ZOpt == "compactdyn") {
+      ZKind = eld::ZOption::CompactDyn;
+    } else if (ZOpt == "force-bti") {
+      ZKind = eld::ZOption::ForceBTI;
+    } else if (ZOpt == "pac-plt") {
+      ZKind = eld::ZOption::ForcePACPLT;
+    } else if (ZOpt.starts_with("common-page-size=")) {
+      ZKind = eld::ZOption::CommPageSize;
+      ZOpt.drop_front(17).getAsInteger(0, Zval);
+    } else if (ZOpt.starts_with("max-page-size=")) {
+      ZKind = eld::ZOption::MaxPageSize;
+      ZOpt.drop_front(14).getAsInteger(0, Zval);
     }
-    if (!Config.options().addZOption(eld::ZOption(zkind, zVal))) {
-      errs() << "Invalid -z option specified " << zOpt << "\n";
+    if (!Config.options().addZOption(eld::ZOption(ZKind, Zval))) {
+      errs() << "Invalid -z option specified " << ZOpt << "\n";
       return false;
     }
   }

@@ -870,7 +870,9 @@ defm dash_z
           "\t\t\t-z=combreloc : Combines multiple reloc sections and sorts them to make dynamic"
           "symbol lookup caching\n"
           "\t\t\t-z=now : Enables immediate binding\n"
-          "\t\t\t-z=nocopyreloc : Disables Copy Relocation">,
+          "\t\t\t-z=nocopyreloc : Disables Copy Relocation"
+          "\t\t\t-z=text : Do not permit relocations in read-only segments (default)\n"
+          "\t\t\t-z=notext : Allow relocations in read-only segments\n">,
       MetaVarName<"<extended-opts>">,
       Group<grp_extendedopts>;
 def no_align_segments : Flag<["--"], "no-align-segments">,
