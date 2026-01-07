@@ -28,7 +28,15 @@ configure_file(eld_install.cmake.in
 # from top level llvm build directory
 configure_file(eld_install.cmake.in ${CMAKE_BINARY_DIR}/eld_install.cmake)
 
-install(TARGETS ld.eld RUNTIME DESTINATION bin)
+install(TARGETS ld.eld RUNTIME DESTINATION bin COMPONENT ld.eld)
+if (NOT LLVM_ENABLE_IDE)
+  add_llvm_install_targets(install-ld.eld
+                           DEPENDS ld.eld
+                           COMPONENT ld.eld)
+  add_dependencies(install-ld.eld install-${LINKER_WRAPPER_LIB})
+  add_dependencies(install-ld.eld-stripped
+                   install-${LINKER_WRAPPER_LIB}-stripped)
+endif()
 
 # FIXME: We need to switch to ELD_TARGETS_TO_BUILD after the buildbot upgrade
 if("${LLVM_TARGETS_TO_BUILD}" MATCHES "Hexagon" AND "${TARGET_TRIPLE}" MATCHES
@@ -79,4 +87,5 @@ if(DEFINED USE_LINKER_ALT_NAME)
 endif()
 
 # Create the symlink at installation time.
-install(SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/ld_eld_symlink.cmake)
+install(SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/ld_eld_symlink.cmake
+        COMPONENT ld.eld)
