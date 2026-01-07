@@ -1,5 +1,5 @@
-; REQUIRES: x86
-; RUN: %llvm-as -o %t.o %s
+; RUN: %opt --mtriple=%triple --data-layout=%datalayout -o %t.o %s
+
 ; RUN: %link %linkopts -o %t0 -e main --lto-O0 %t.o
 ; RUN: llvm-nm %t0 | FileCheck --check-prefix=CHECK-O0 %s
 ; RUN: %link %linkopts -o %t0 -e main --plugin-opt=O0 %t.o
@@ -28,16 +28,15 @@
 ; RUN:   FileCheck --check-prefix=INVALIDNEGATIVE2 %s
 ; INVALIDNEGATIVE2: Error: Invalid value for --lto-O: -1
 
-target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-unknown-linux-gnu"
-
 ; CHECK-O0: foo
 ; CHECK-O2-NOT: foo
-define internal void @foo() {
+define internal void @foo() #0 {
   ret void
 }
 
-define void @main() {
+define void @main() #0 {
   call void @foo()
   ret void
 }
+
+attributes #0 = { nounwind }
