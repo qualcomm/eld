@@ -1,0 +1,14 @@
+#---SFrame.test--------------------------- AArch64-specific -----------------#
+#BEGIN_COMMENT
+# This checks that SFrame sections work correctly on AArch64 target.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/aarch64_sframe.s -o %t.o
+RUN: %link %linkopts -march aarch64 --sframe-hdr %t.o -o %t.out
+RUN: %readelf -S %t.out | %filecheck %s -check-prefix=SECTIONS
+RUN: %readelf -x .sframe %t.out | %filecheck %s -check-prefix=CONTENT
+
+SECTIONS: .sframe{{.*}}PROGBITS
+# Check for AArch64 architecture in SFrame header (0x08)
+CONTENT: dee2020{{8|08}}

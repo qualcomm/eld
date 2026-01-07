@@ -88,6 +88,10 @@ public:
 
   void setDefaultConfigs() override;
 
+  // SFrame Support
+  int8_t getSFrameCFAFixedFPOffset() const override { return -16; }
+  int8_t getSFrameCFAFixedRAOffset() const override { return -8; }
+
 private:
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }

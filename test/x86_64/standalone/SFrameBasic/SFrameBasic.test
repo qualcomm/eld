@@ -1,0 +1,23 @@
+#---SFrameBasic.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks that the linker correctly processes .sframe sections
+# and creates SFrame sections in the output.
+#END_COMMENT
+#START_TEST
+
+# Compile a simple C program with SFrame information
+RUN: %clang %clangopts -c %p/Inputs/sframe_simple.s -o %t.sframe.o
+
+# Link with SFrame header creation
+RUN: %link %linkopts --sframe-hdr %t.sframe.o -o %t.out
+
+# Check that .sframe section exists in output
+RUN: %readelf -S %t.out | %filecheck %s -check-prefix=SECTIONS
+
+# Check SFrame section content
+RUN: %readelf -x .sframe %t.out | %filecheck %s -check-prefix=CONTENT
+
+SECTIONS: .sframe{{.*}}SFRAME
+
+# Check for SFrame magic number (0xdee2 in little-endian)
+CONTENT: e2de

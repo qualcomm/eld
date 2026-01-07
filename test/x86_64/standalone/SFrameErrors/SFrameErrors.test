@@ -1,0 +1,22 @@
+#---SFrameErrors.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks that the linker properly handles malformed SFrame sections
+# and reports appropriate error messages.
+#END_COMMENT
+#START_TEST
+
+# Test with invalid magic number
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_bad_magic.s -o %t1.o
+RUN: %not %link %linkopts --sframe-hdr %t1.o -o %t1.out 2>&1 | %filecheck %s -check-prefix=BAD_MAGIC
+
+# Test with unsupported version
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_bad_version.s -o %t2.o
+RUN: %not %link %linkopts --sframe-hdr %t2.o -o %t2.out 2>&1 | %filecheck %s -check-prefix=BAD_VERSION
+
+# Test with truncated section
+RUN: %clang %clangopts -target x86_64 -c %p/Inputs/sframe_truncated.s -o %t3.o
+RUN: %not %link %linkopts --sframe-hdr %t3.o -o %t3.out 2>&1 | %filecheck %s -check-prefix=TRUNCATED
+
+BAD_MAGIC: Error: Invalid SFrame magic number
+BAD_VERSION: Error: Unsupported SFrame version
+TRUNCATED: Error: SFrame section too small

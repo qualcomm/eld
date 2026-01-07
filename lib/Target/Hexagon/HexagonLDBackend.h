@@ -121,6 +121,10 @@ public:
 
   Relocation::Type getCopyRelType() const override;
 
+  // SFrame Support
+  int8_t getSFrameCFAFixedFPOffset() const override { return -8; }
+  int8_t getSFrameCFAFixedRAOffset() const override { return -4; }
+
 private:
   ELFSection *createGOTSection(InputFile &InputFile);
   ELFSection *createGOTPLTSection(InputFile &InputFile);

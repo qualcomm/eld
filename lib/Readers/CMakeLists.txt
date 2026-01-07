@@ -9,6 +9,7 @@ llvm_add_library(
   DynamicELFReader.cpp
   EhFrameSection.cpp
   EhFrameHdrSection.cpp
+  SFrameSection.cpp
   ELFSection.cpp
   ELFDynObjParser.cpp
   ELFExecObjParser.cpp

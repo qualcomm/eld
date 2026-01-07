@@ -22,6 +22,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/EhFrameHdrSection.h"
 #include "eld/Readers/EhFrameSection.h"
+#include "eld/Readers/SFrameSection.h"
 #include "eld/Script/ExcludeFiles.h"
 #include "eld/Script/OutputSectData.h"
 #include "eld/Script/StringList.h"
@@ -596,6 +597,23 @@ ELFSection *SectionMap::createEhFrameSection(std::string Section, uint32_t Type,
                                              uint64_t Size) {
   return make<EhFrameSection>(Section, ThisConfig.getDiagEngine(), Type, Flag,
                               EntSize, Size);
+}
+
+ELFSection *SectionMap::createSFrameSection(std::string Section, uint32_t Type,
+                                            uint32_t Flag, uint32_t EntSize,
+                                            uint64_t Size,
+                                            const GNULDBackend *Backend) {
+  // Get architecture-specific defaults from backend if available
+  int8_t cfaFixedFPOffset = 0;
+  int8_t cfaFixedRAOffset = 0;
+  if (Backend) {
+    cfaFixedFPOffset = Backend->getSFrameCFAFixedFPOffset();
+    cfaFixedRAOffset = Backend->getSFrameCFAFixedRAOffset();
+  }
+
+  // Create SFrameSection with architecture-specific defaults
+  return make<SFrameSection>(Section, ThisConfig.getDiagEngine(), Type, Flag,
+                             EntSize, Size, cfaFixedFPOffset, cfaFixedRAOffset);
 }
 
 EhFrameHdrSection *SectionMap::createEhFrameHdrSection(std::string Section,
