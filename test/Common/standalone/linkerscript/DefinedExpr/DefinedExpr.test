@@ -4,8 +4,8 @@
 # original result is simply reused on re-evaluations.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -o %t1.o %p/Inputs/1.c -c -ffunction-sections -fno-common
-RUN: %link %linkopts -o %t1.out %t1.o -T %p/Inputs/script.t -Map %t1.map.txt
+RUN: %clang %clangg0opts -o %t1.o %p/Inputs/1.c -c -ffunction-sections -fno-common
+RUN: %link %linkg0opts -o %t1.out %t1.o -T %p/Inputs/script.t -Map %t1.map.txt
 RUN: %filecheck %s --check-prefix=MAP < %t1.map.txt
 RUN: %readelf -S %t1.out | %filecheck %s
 #END_TEST
