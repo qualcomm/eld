@@ -24,6 +24,9 @@ target_link_libraries(
           ELDWriters)
 
 foreach(t ${ELD_TARGETS_TO_BUILD})
+  if (t STREQUAL "X86")
+    set(t "x86_64")
+  endif()
   trace("Targeting Linker for ${t}")
   add_subdirectory(${t})
 endforeach()
