@@ -163,7 +163,7 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
         InferredArch = ARMLinkDriver::getInferredArch(Emulation);
       } else
 #endif
-#if defined(ELD_ENABLE_TARGET_X86_64)
+#if defined(ELD_ENABLE_TARGET_X86)
           if (x86_64LinkDriver::isValidEmulation(Emulation)) {
         F = DriverFlavor::x86_64;
         InferredArch = x86_64LinkDriver::getInferredArch(Emulation);
@@ -191,7 +191,7 @@ Driver::getDriverFlavorFromLinkCommand(llvm::ArrayRef<const char *> Args) {
     if (ARMLinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::ARM_AArch64;
 #endif
-#if defined(ELD_ENABLE_TARGET_X86_64)
+#if defined(ELD_ENABLE_TARGET_X86)
     if (x86_64LinkDriver::isMyArch(MachineArch))
       F = DriverFlavor::x86_64;
 #endif

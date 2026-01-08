@@ -414,7 +414,7 @@ GNULDBackend *createx86_64LDBackend(Module &pModule) {
 //===----------------------------------------------------------------------===//
 // Force static initialization.
 //===----------------------------------------------------------------------===//
-extern "C" void ELDInitializex86_64LDBackend() {
+extern "C" void ELDInitializeX86LDBackend() {
   // Register the linker backend
   eld::TargetRegistry::RegisterGNULDBackend(Thex86_64Target,
                                             createx86_64LDBackend);

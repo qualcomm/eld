@@ -1125,7 +1125,7 @@ bool ObjectLinker::runOutputSectionIteratorPlugin() {
     if (!PluginList.size())
       return true;
 
-    auto cleanup = llvm::make_scope_exit([this, PluginList]() {
+    auto cleanup = llvm::scope_exit([this, PluginList]() {
       // Fragment movement verification is only done for CreatingSections link
       // state because fragments cannot be moved in any other link state.
       if (ThisModule->isLinkStateCreatingSections()) {

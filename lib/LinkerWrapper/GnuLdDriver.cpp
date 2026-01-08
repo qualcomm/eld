@@ -17,7 +17,7 @@
 #ifdef ELD_ENABLE_TARGET_RISCV
 #include "eld/Driver/RISCVLinkDriver.h"
 #endif
-#ifdef ELD_ENABLE_TARGET_X86_64
+#ifdef ELD_ENABLE_TARGET_X86
 #include "eld/Driver/x86_64LinkDriver.h"
 #endif
 #include "eld/Config/LinkerConfig.h"
@@ -94,7 +94,7 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, uint8_t Machine,
   case llvm::ELF::EM_RISCV:
     return RISCVLinkDriver::Create(C, is64bit);
 #endif
-#ifdef ELD_ENABLE_TARGET_X86_64
+#ifdef ELD_ENABLE_TARGET_X86
   case llvm::ELF::EM_X86_64:
     return x86_64LinkDriver::Create(C, is64bit);
 #endif
@@ -119,7 +119,7 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
   case DriverFlavor::RISCV32_RISCV64:
     return RISCVLinkDriver::Create(C, InferredArch);
 #endif
-#ifdef ELD_ENABLE_TARGET_X86_64
+#ifdef ELD_ENABLE_TARGET_X86
   case DriverFlavor::x86_64:
     return x86_64LinkDriver::Create(C, InferredArch);
 #endif
@@ -1997,7 +1997,7 @@ template bool GnuLdDriver::processLTOOptions<OPT_RISCVLinkOptTable>(
     llvm::lto::Config &, std::vector<std::string> &);
 #endif
 
-#ifdef ELD_ENABLE_TARGET_X86_64
+#ifdef ELD_ENABLE_TARGET_X86
 // x86_64 -- force instantiate
 template bool GnuLdDriver::checkOptions<OPT_x86_64LinkOptTable>(
     llvm::opt::InputArgList &args) const;

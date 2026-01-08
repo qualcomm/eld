@@ -39,7 +39,7 @@ bool emulatex86_64LD(LinkerScript &pScript, LinkerConfig &pConfig) {
 //===----------------------------------------------------------------------===//
 // x86_64Emulation
 //===----------------------------------------------------------------------===//
-extern "C" void ELDInitializex86_64Emulation() {
+extern "C" void ELDInitializeX86Emulation() {
   // Register the emulation
   eld::TargetRegistry::RegisterEmulation(eld::Thex86_64Target,
                                          eld::emulatex86_64LD);
