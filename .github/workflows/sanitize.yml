@@ -1,6 +1,7 @@
 name: Nightly sanitizer check
 
 on:
+  # pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
@@ -67,7 +68,6 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
-            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
             -DLLVM_ENABLE_SPHINX=OFF \
             ../llvm-project/llvm
 

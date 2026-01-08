@@ -47,7 +47,6 @@ cmake -G Ninja \
   -DLLVM_EXTERNAL_PROJECTS=eld \
   -DLLVM_EXTERNAL_ELD_SOURCE_DIR=${PWD}/llvm-project/eld \
   -DLLVM_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86' \
-  -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;x86_64' \
   -DCMAKE_CXX_FLAGS='-stdlib=libc++' \
   -B ./obj \
   -S ./llvm-project/llvm
