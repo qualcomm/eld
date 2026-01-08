@@ -170,7 +170,7 @@ uint64_t ELFSection::pAddr() const {
 
 void ELFSection::setPaddr(size_t A) {
   OutputSectionEntry *OE = getOutputSection();
-  ASSERT(OE, "expected putput section");
+  ASSERT(OE, "expected output section");
   OE->setPaddr(A);
 }
 
