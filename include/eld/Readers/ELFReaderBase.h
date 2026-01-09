@@ -109,6 +109,8 @@ public:
 
   virtual eld::Expected<bool> readRelocationSection(ELFSection *RS);
 
+  virtual eld::Expected<void> readSections();
+
   /// Returns the symbol type.
   static ResolveInfo::Type getSymbolType(uint8_t info, uint32_t shndx);
 

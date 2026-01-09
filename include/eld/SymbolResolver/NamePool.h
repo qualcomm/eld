@@ -122,6 +122,12 @@ public:
     SharedLibsSymbols[Sym->resolveInfo()] = Sym;
   }
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  void addSharedLibSymbol(LDSymbol *Sym, ResolveInfo *RI) {
+    SharedLibsSymbols[RI] = Sym;
+  }
+#endif
+
   LDSymbol *getSharedLibSymbol(const ResolveInfo *RI) {
     auto Iter = SharedLibsSymbols.find(RI);
     if (Iter != SharedLibsSymbols.end())
