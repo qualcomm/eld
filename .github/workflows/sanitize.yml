@@ -68,6 +68,7 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
+            -DLLVM_OPTIMIZED_TABLEGEN:BOOL=ON \
             -DLLVM_ENABLE_SPHINX=OFF \
             ../llvm-project/llvm
 
