@@ -49,6 +49,8 @@ public:
 
   typedef llvm::StringMap<uint64_t> AddressMapType;
 
+  enum class SeparateSegmentKind { None, Code };
+
   enum StripSymbolMode {
     KeepAllSymbols,
     StripTemporaries,
@@ -654,6 +656,12 @@ public:
 
   void setROSegment(bool R = false) { Rosegment = R; }
 
+  SeparateSegmentKind getSeparateSegmentKind() const {
+    return SeparateSegments;
+  }
+
+  void setSeparateSegmentKind(SeparateSegmentKind K) { SeparateSegments = K; }
+
   bool verifyLink() const { return Verify; }
 
   void setVerifyLink(bool V = true) { Verify = V; }
@@ -1214,6 +1222,8 @@ private:
   bool Savetemps = false;           // -save-temps
   std::optional<std::string> SaveTempsDir; // -save-temps=
   bool Rosegment = false; // merge read only with readonly/execute segments.
+  SeparateSegmentKind SeparateSegments =
+      SeparateSegmentKind::None; // -z separate-code
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
   uint32_t LTOOptions = 0;         // -flto-options

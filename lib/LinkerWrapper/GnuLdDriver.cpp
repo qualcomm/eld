@@ -728,6 +728,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       ZKind = eld::ZOption::NoExecStack;
     else if (ZOpt == "nognustack")
       ZKind = eld::ZOption::NoGnuStack;
+    else if (ZOpt == "separate-code")
+      ZKind = eld::ZOption::SeparateCode;
+    else if (ZOpt == "noseparate-code")
+      ZKind = eld::ZOption::NoSeparateCode;
     else if (ZOpt == "execstack")
       ZKind = eld::ZOption::ExecStack;
     else if (ZOpt == "nodelete") {

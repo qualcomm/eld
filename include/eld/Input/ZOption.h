@@ -41,6 +41,8 @@ public:
     NoDelete,
     NoExecStack,
     NoGnuStack,
+    SeparateCode,
+    NoSeparateCode,
     NoRelro,
     Now,
     Origin,

@@ -872,7 +872,9 @@ defm dash_z
           "\t\t\t-z=now : Enables immediate binding\n"
           "\t\t\t-z=nocopyreloc : Disables Copy Relocation"
           "\t\t\t-z=text : Do not permit relocations in read-only segments (default)\n"
-          "\t\t\t-z=notext : Allow relocations in read-only segments\n">,
+          "\t\t\t-z=notext : Allow relocations in read-only segments\n"
+          "\t\t\t-z=separate-code : Create separate code segment\n"
+          "\t\t\t-z=no-separate-code : Do not create separate code segment\n">,
       MetaVarName<"<extended-opts>">,
       Group<grp_extendedopts>;
 def no_align_segments : Flag<["--"], "no-align-segments">,

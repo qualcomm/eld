@@ -178,6 +178,25 @@ bool GNULDBackend::createProgramHdrs() {
 
   reset_state();
 
+  auto SeparateKind = config().options().getSeparateSegmentKind();
+  bool ShouldSeparate =
+      !linkerScriptHasSectionsCommand &&
+      (SeparateKind != GeneralOptions::SeparateSegmentKind::None);
+
+  auto ShouldPageAlignSegment = [&](bool IsExec) {
+    if (config().options().alignSegmentsToPage())
+      return true;
+    if (!ShouldSeparate)
+      return false;
+    if (!prevOut)
+      return false;
+    auto PrevSegIt = _segmentsForSection.find(prevOut);
+    if (PrevSegIt == _segmentsForSection.end() || PrevSegIt->second.empty())
+      return false;
+    bool PrevExec = (PrevSegIt->second.front()->flag() & llvm::ELF::PF_X);
+    return PrevExec != IsExec;
+  };
+
   if (load_ehdr)
     setNeedEhdr();
 
@@ -359,6 +378,7 @@ bool GNULDBackend::createProgramHdrs() {
     }
 
     cur_flag = getSegmentFlag(cur->getFlags());
+    bool CurIsExec = cur_flag & llvm::ELF::PF_X;
 
     if (linkerScriptHasMemoryCommand && (*out)->epilog().hasRegion())
       cur_mem_region = (*out)
@@ -445,7 +465,8 @@ bool GNULDBackend::createProgramHdrs() {
     }
 
     if (isCurAlloc && (createPT_LOAD || last_section_needs_new_segment)) {
-      if (config().options().alignSegmentsToPage())
+      bool ShouldPageAlign = ShouldPageAlignSegment(CurIsExec);
+      if (ShouldPageAlign)
         alignAddress(vma, segAlign);
       if (cur->isFixedAddr() && (vma != cur->addr())) {
         config().raise(Diag::cannot_set_at_address) << cur->name();
@@ -483,7 +504,7 @@ bool GNULDBackend::createProgramHdrs() {
 
       // FIXME : remove this option alignSegmentsToPage
       // Handle the case without any linker scripts,
-      if (config().options().alignSegmentsToPage())
+      if (ShouldPageAlign)
         alignAddress(pma, segAlign);
 
       cur->setPaddr(pma);

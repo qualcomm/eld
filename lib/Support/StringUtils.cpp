@@ -20,7 +20,7 @@ std::string ReplaceString(std::string &Subject, const std::string &Search,
   return Subject;
 }
 
-/// \brief Split a string with multiple names seperated by comma.
+/// \brief Split a string with multiple names separated by comma.
 /// \returns a vector of strings.
 std::vector<std::string> split(const std::string &S, char Seperator) {
   std::vector<std::string> Output;
