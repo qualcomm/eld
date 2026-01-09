@@ -4017,6 +4017,8 @@ bool GNULDBackend::maySkipRelocProcessing(Relocation *pReloc) const {
 bool GNULDBackend::relax() {
   bool finished = false;
   int iteration = 0;
+  // Limit the number of layout passes to avoid non-converging layouts.
+  const int maxPreRelaxationPasses = 4;
 
   // Create file header and program header
   createFileHeader();
@@ -5348,3 +5350,24 @@ void GNULDBackend::assignOutputVersionIDs() {
   }
 }
 #endif
+
+void GNULDBackend::setVMA(ELFSection &S, uint64_t vma,
+                          bool ignoreChangedSection) {
+  if (S.hasVMA() && !ignoreChangedSection && !changedOutputSection) {
+    uint64_t prevVMA = S.addr();
+    if (prevVMA != vma) {
+      changedOutputSection = S.getOutputSection();
+    }
+  }
+  S.setAddr(vma);
+}
+
+void GNULDBackend::setLMA(ELFSection &S, uint64_t lma) {
+  if (S.hasLMA() && !changedOutputSection) {
+    uint64_t prevLMA = S.pAddr();
+    if (prevLMA != lma) {
+      changedOutputSection = S.getOutputSection();
+    }
+  }
+  S.setPaddr(lma);
+}
