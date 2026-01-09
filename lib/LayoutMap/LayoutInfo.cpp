@@ -133,7 +133,7 @@ bool LayoutInfo::isSectionDetailedInfoAvailable(ELFSection *Section) {
   if (Section->isIgnore())
     return false;
 
-  // These sections are handled seperately and they dont follow
+  // These sections are handled separately and they dont follow
   // the same path of merging
   switch (Section->getKind()) {
   case LDFileFormat::Discard:

@@ -1,10 +1,17 @@
 # This test checks that the segment permissions are properly emitted when
 # building a shared object
-RUN: %clang %clangopts -c -fPIC %p/Inputs/blah.c -o %t1.1.o
-RUN: %link %linkopts -shared %t1.1.o -o %t2.so
-RUN: %link %linkopts -rosegment -shared %t1.1.o -o %t2.rosegment.so
-RUN: %readelf -l -W %t2.so | %filecheck %s -check-prefix='NOROSEGMENT'
-RUN: %readelf -l -W %t2.rosegment.so | %filecheck %s -check-prefix='ROSEGMENT'
+RUN: %clang %clangopts -c -fPIC %p/Inputs/blah.c -o %t.o
+RUN: %link %linkopts -shared %t.o -o %t.so
+RUN: %link %linkopts -shared %t.o -o %t.separate.so -z separate-code
+RUN: %link %linkopts -shared %t.o -o %t.noseparate.so -z noseparate-code
+RUN: %link %linkopts -rosegment -shared %t.o -o %t.rosegment.so
+
+RUN: %readelf -l %t.so            | %filecheck %s -check-prefix=NOROSEGMENT
+RUN: %readelf -l %t.noseparate.so | %filecheck %s -check-prefix=NOROSEGMENT
+
+RUN: %readelf -l %t.rosegment.so  | %filecheck %s -check-prefix=ROSEGMENT
+RUN: %readelf -l %t.separate.so   | %filecheck %s -check-prefix=ROSEGMENT
+
 
 #NOROSEGMENT:  LOAD           {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} R E 0x1000
 #NOROSEGMENT:  LOAD           {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} RW  0x1000
