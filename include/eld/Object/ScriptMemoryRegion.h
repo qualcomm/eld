@@ -51,7 +51,7 @@ public:
 
   // We used to have only one function called getAddr and there
   // was no way to differentiate between a call to virtual address
-  // or physical address. Now we need this seperate to support
+  // or physical address. Now we need this separate to support
   // ALIGN_WITH_INPUT
   uint64_t getVirtualAddr(OutputSectionEntry *O);
 
