@@ -661,6 +661,10 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
   if (!Tok.contains(':'))
     FilePat = createAndRegisterWildcardPattern(Tok);
   else {
+    // We cannot store the original quote information because we represent
+    // the single token "archive:mem" in the linker script as two separate
+    // patterns in the linker codebase.
+    Tok = unquote(Tok);
     std::pair<llvm::StringRef, llvm::StringRef> Split = Tok.split(':');
     FilePat = createAndRegisterWildcardPattern(Split.first);
     if (!Split.second.empty()) {

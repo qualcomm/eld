@@ -1,0 +1,19 @@
+#---QuotedArchiveMemberPattern.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Validates that a quoted archive:member file pattern in an input section
+# description is interpreted correctly.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c -ffunction-sections
+RUN: %ar cr %t1.lib1.a %t1.1.o
+RUN: %link %linkopts -o %t1.main.out %t1.main.o %t1.lib1.a -MapStyle txt -T %p/Inputs/script.t -Map %t1.main.map.txt
+RUN: %filecheck %s --check-prefix MAP < %t1.main.map.txt
+RUN: %readelf -S %t1.main.out | %filecheck %s --check-prefix SECT
+
+MAP: .foo {{.*}} # Offset
+MAP: *lib1.a:*1.o
+MAP: .text.foo
+MAP: foo
+MAP: .text {{.*}} # Offset
+
+SECT: .foo PROGBITS
