@@ -1,0 +1,153 @@
+#---PluginActivityLogFile.test---------------- Executable,LS ----------------#
+#BEGIN_COMMENT
+# Exercises PluginActivityLog by running a simple LinkerPlugin that triggers
+# plugin operations. Verifies the JSON log file is emitted when
+# --plugin-activity-file is passed.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L %libsdir/test \
+RUN:   --plugin-config=%p/Inputs/PluginConfig.yaml \
+RUN:   -T %p/Inputs/script.t \
+RUN:   --plugin-activity-file=%t1.1.plugin.map.json 2>&1 | %filecheck %s
+RUN: %filecheck %s --check-prefix PLUGIN_ACT < %t1.1.plugin.map.json
+RUN: %filecheck %s --check-prefix PLUGINS_INFO < %t1.1.plugin.map.json
+#END_TEST
+
+CHECK: Note: Stripping symbol baz
+
+PLUGIN_ACT:   "LinkerRevision": "{{.+}}",
+PLUGIN_ACT:   "PluginActivities": [
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "NewState": "BeforeLayout",
+PLUGIN_ACT-DAG:       "Plugin": "Linker",
+PLUGIN_ACT-DAG:       "Type": "UpdateLinkState"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "NewState": "CreatingSections",
+PLUGIN_ACT-DAG:       "Plugin": "Linker",
+PLUGIN_ACT-DAG:       "Type": "UpdateLinkState"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Info": "Start",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Type": "UpdateChunks"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo1)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.foo*) #Rule 1, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo2)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.foo*) #Rule 1, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Info": "End",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Type": "UpdateChunks"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Info": "Start",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Type": "UpdateChunks"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar1)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar2)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "RemoveChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar1)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "AddChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.bar2)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "AddChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo1)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "AddChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Fragment": "{{.*}}1.o(.text.foo2)",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Rule": "*(.text.bar*) #Rule 3, {{.*}}script.t",
+PLUGIN_ACT-DAG:       "Type": "AddChunk"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Info": "End",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Type": "UpdateChunks"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "Plugin": "OutSectIterPluginActLog",
+PLUGIN_ACT-DAG:       "Symbol": "baz",
+PLUGIN_ACT-DAG:       "Type": "RemoveSymbol"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "NewState": "CreatingSegments",
+PLUGIN_ACT-DAG:       "Plugin": "Linker",
+PLUGIN_ACT-DAG:       "Type": "UpdateLinkState"
+PLUGIN_ACT:     },
+PLUGIN_ACT:     {
+PLUGIN_ACT-DAG:       "Annotation": "",
+PLUGIN_ACT-DAG:       "NewState": "AfterLayout",
+PLUGIN_ACT-DAG:       "Plugin": "Linker",
+PLUGIN_ACT-DAG:       "Type": "UpdateLinkState"
+PLUGIN_ACT:     }
+PLUGIN_ACT:   ]
+
+PLUGINS_INFO: "Plugins": [
+PLUGINS_INFO:     {
+PLUGINS_INFO-DAG:       "Autloaded": false,
+PLUGINS_INFO-DAG:       "Library": "{{.*}}libPluginActivityLogPlugin{{.*}}",
+PLUGINS_INFO-DAG:       "Name": "OutSectIterPluginActLog",
+PLUGINS_INFO-DAG:       "RegisteredCommandLineOptions": []
+PLUGINS_INFO:     }
+PLUGINS_INFO:     {
+PLUGINS_INFO-DAG:       "Autloaded": false,
+PLUGINS_INFO-DAG:       "Library": "{{.*}}libPluginActivityLogPlugin{{.*}}",
+PLUGINS_INFO-DAG:       "Name": "LPPluginActLog",
+PLUGINS_INFO-DAG:       "RegisteredCommandLineOptions": [
+PLUGINS_INFO-DAG:         {
+PLUGINS_INFO-DAG:           "HasValue": true,
+PLUGINS_INFO-DAG:           "Option": "--custom-plugin-option"
+PLUGINS_INFO-DAG:         }
+PLUGINS_INFO-DAG:       ]
+PLUGINS_INFO:     }
+
+PLUGINS_INFO:   ]
