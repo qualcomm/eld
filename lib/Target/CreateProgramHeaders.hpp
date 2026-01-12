@@ -666,7 +666,8 @@ bool GNULDBackend::createProgramHdrs() {
             pt_gnu_relro->setAlign(pt_gnu_relro->getMaxSectionAlign());
           }
         }
-        prev = cur;
+        if (!cur->isTBSS())
+          prev = cur;
         if (isNoLoad)
           noLoadSections.push_back(cur);
         prevOut = (*out);

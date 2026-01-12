@@ -1,0 +1,11 @@
+#---DontMixTBSS.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This tests that TBSS sections dont get mixed up with other sections
+# when the linker needs to create new segments
+#END_COMMENT
+RUN: %clang %clangg0opts -c %p/Inputs/tls.c  -o %t1.1.o -ffunction-sections -fdata-sections -fno-common
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out.1 -Map %t2.map.out.1
+RUN: %readelf -l -W %t2.out.1 | %filecheck %s -check-prefix=SEGMENTS
+
+#SEGMENTS: LOAD 0x{{[0]+}}{{[12]}}000 0x{{[0]+}}2000 0x{{[0]+}}2000 0x{{[0]+}} 0x{{[0]+}}1000 RW
+#SEGMENTS: LOAD 0x{{[0]+}}{{[12]}}000 0x{{[0]+}}3000 0x{{[0]+}}3000 0x{{[0]+}}4 0x{{[0]+}}8 RW
