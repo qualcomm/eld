@@ -82,6 +82,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch.name }}
+          branch-name: ${{ github.event.pull_request.head.ref }}
 
       - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
         run: |
@@ -245,3 +246,4 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch.name }}
+          branch-name: ${{ github.event.pull_request.head.ref }}

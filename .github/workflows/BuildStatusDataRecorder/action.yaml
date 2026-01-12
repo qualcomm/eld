@@ -26,6 +26,9 @@ inputs:
   arch-name:
     description: "Workflow matrix build arch name"
     required: true
+  branch-name:
+    description: "Build branch name"
+    required: true
 
 runs:
   using: "composite"
@@ -83,7 +86,7 @@ runs:
         # Record build status data for current workflow.
         echo "Proceeding with data recording..."
         cp ${DASH_DIR}/record_builds.py .
-        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }}
+        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
         cp build-status.db ${DASH_DIR}/
         rm -f record_builds.py
         echo "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
