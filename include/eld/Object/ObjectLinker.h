@@ -419,7 +419,7 @@ private:
   std::unique_ptr<llvm::raw_fd_ostream> createLTOOutputFile() const;
 
   llvm::Expected<std::unique_ptr<llvm::raw_fd_ostream>>
-  createLTOTempFile(size_t Task, bool Keep, const std::string &Suffix,
+  createLTOTempFile(size_t Number, bool Asm,
                     llvm::SmallString<256> &FileName) const;
 
   /// Adds input files to outputTar if --reproduce option is used
@@ -500,7 +500,7 @@ private:
 
   bool MTraceLTO = false;
 
-  std::string MLtoTempPrefix;
+  std::optional<std::string> MLtoTempPrefix;
 
   // Paths of all generated LTO objects
   std::vector<std::string> LtoObjects;
