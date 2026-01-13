@@ -1114,6 +1114,16 @@ defm dwodir
              "Directory to save .dwo files when split DWARF is used in LTO">,
       Group<grp_ltooptions>;
 
+def lto_obj_path_eq
+    : JJ<"lto-obj-path=">,
+      HelpText<
+          "Specify file path used as a prefix for output LTO object files. "
+          "Files created with this prefix will not be deleted after LTO "
+          "finishes.">;
+def : J<"plugin-opt=obj-path=">,
+      Alias<lto_obj_path_eq>,
+      HelpText<"Alias for --lto-obj-path=">;
+
 def lto_emit_asm : FF<"lto-emit-asm">, HelpText<"Emit assembly code">;
 def plugin_opt_emit_asm : F<"plugin-opt=emit-asm">,
                           Alias<lto_emit_asm>,
