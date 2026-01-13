@@ -112,7 +112,6 @@ ObjectLinker::ObjectLinker(LinkerConfig &PConfig, Module &M)
     : ThisConfig(PConfig), ThisModule(&M) {
   MSaveTemps = ThisConfig.options().getSaveTemps();
   MTraceLTO = ThisConfig.options().traceLTO();
-  MLtoTempPrefix = getLTOTempPrefix();
 }
 
 void ObjectLinker::close() {
@@ -453,17 +452,41 @@ std::string ObjectLinker::getLTOTempPrefix() const {
 }
 
 llvm::Expected<std::unique_ptr<llvm::raw_fd_ostream>>
-ObjectLinker::createLTOTempFile(size_t Task, bool Keep,
-                                const std::string &Suffix,
+ObjectLinker::createLTOTempFile(size_t Number, bool Asm,
                                 SmallString<256> &FileName) const {
+
+  std::optional<std::string> Prefix;
+  std::string Suffix;
+  if (Asm) {
+    Suffix = "s";
+    // Also use non-temporary location for output asm file with -emit-asm,
+    // independently from -save-temps.
+    Prefix = ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly()
+                 ? getLTOTempPrefix()
+                 : MLtoTempPrefix;
+  } else {
+    if (auto P = ThisConfig.options().getLTOObjPath()) {
+      // Do not add suffix to file names created from --lto-obj-path.
+      // It may be worth to not add ".0" even without --lto-obj-path,
+      // but for now, keep existing convention.
+      if (Number == 0)
+        Number = -1;
+      Prefix = P;
+    } else {
+      Suffix = "o";
+      Prefix = MLtoTempPrefix;
+    }
+  }
 
   int FD;
   std::error_code EC;
   std::string ErrMsg;
-  if (Keep) {
-    FileName =
-        (Twine(MLtoTempPrefix) + Twine(Task) + Twine(".") + Twine(Suffix))
-            .str();
+  if (Prefix) {
+    FileName = *Prefix;
+    if (Number != size_t(-1))
+      FileName += Twine(Number).str();
+    if (!Suffix.empty())
+      FileName += "." + Suffix;
     EC = llvm::sys::fs::openFileForWrite(FileName, FD);
     ErrMsg = std::string(FileName);
   } else {
@@ -2690,7 +2713,7 @@ bool ObjectLinker::runAssembler(std::vector<std::string> &Files,
     if (F.empty())
       continue;
     SmallString<256> OutputFileName;
-    auto OS = createLTOTempFile(Count, MSaveTemps, "o", OutputFileName);
+    auto OS = createLTOTempFile(Count, false, OutputFileName);
     if (!OS)
       return false;
     Files.push_back(std::string(OutputFileName));
@@ -2749,13 +2772,15 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf,
   // want to curtail this to just two as before (for RegularLTO) and perhaps
   // more for ThinLTO.
   if (MTraceLTO || MSaveTemps) {
-    if (llvm::Error E = Conf.addSaveTemps(MLtoTempPrefix)) {
+    std::string TempPrefix = getLTOTempPrefix();
+    if (llvm::Error E = Conf.addSaveTemps(TempPrefix)) {
       ThisConfig.raise(Diag::lto_cannot_save_temps)
           << llvm::toString(std::move(E));
       return {};
     }
     // FIXME: Output actual file names (this will go with the above TODO).
-    ThisConfig.raise(Diag::note_temp_lto_bitcode) << MLtoTempPrefix + "*";
+    ThisConfig.raise(Diag::note_temp_lto_bitcode) << TempPrefix + "*";
+    MLtoTempPrefix = TempPrefix;
   }
 
   // Set the number of backend threads to use in ThinLTO
@@ -3051,9 +3076,7 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
   auto AddStream = [&](size_t Task, const Twine &ModuleName)
       -> llvm::Expected<std::unique_ptr<llvm::CachedFileStream>> {
     SmallString<256> ObjFileName;
-    auto OS = createLTOTempFile(Task, KeepLTOOutput,
-                                CompileToAssembly ? "s" : "o", ObjFileName);
-
+    auto OS = createLTOTempFile(Task, CompileToAssembly, ObjFileName);
     if (!OS) {
       ThisModule->setFailure(true);
       return OS.takeError();
@@ -3148,7 +3171,7 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
           if (!F.empty())
             FilesToRemove.push_back(F);
     }
-    if (!KeepLTOOutput)
+    if (!KeepLTOOutput && !ThisConfig.options().getLTOObjPath())
       FilesToRemove.insert(FilesToRemove.end(), Files.begin(), Files.end());
   }
   if (!ThisConfig.getDiagEngine()->diagnose()) {
@@ -3156,6 +3179,12 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
       ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
   }
+
+  //  if (!ctx.arg.ltoObjPath.empty()) {
+  //    saveBuffer(buf[0].second, ctx.arg.ltoObjPath);
+  //    for (unsigned i = 1; i != maxTasks; ++i)
+  //      saveBuffer(buf[i].second, ctx.arg.ltoObjPath + Twine(i));
+  //  }
 
   // Add the generated object files into the InputBuilder structure
   for (auto &F : Files) {

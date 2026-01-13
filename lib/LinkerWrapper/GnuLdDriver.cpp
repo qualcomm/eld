@@ -1586,6 +1586,11 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
     Config.options().setThinLTOJobs(S);
   }
 
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_obj_path_eq)) {
+    Conf.AlwaysEmitRegularLTOObj = true;
+    Config.options().setLTOObjPath(Arg->getValue());
+  }
+
   if (const auto *Arg = Args.getLastArg(OptTable::lto_partitions)) {
     llvm::StringRef S = Arg->getValue();
     unsigned Value;

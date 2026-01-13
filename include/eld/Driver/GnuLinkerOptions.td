@@ -1135,6 +1135,18 @@ def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
                            Alias<lto_emit_llvm>,
                            HelpText<"Alias for --lto-emit-llvm">;
 
+def lto_obj_path_eq
+    : JJ<"lto-obj-path=">,
+      HelpText<
+          "Specify file path used as a prefix for output LTO object files. "
+          "Files created with this prefix will not be deleted after LTO "
+          "finishes.">,
+      MetaVarName<"<prefix>">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=obj-path=">,
+      Alias<lto_obj_path_eq>,
+      HelpText<"Alias for --lto-obj-path=">;
+
 def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
                       HelpText<"Number of ThinLTO jobs. Default to --threads=">,
                       MetaVarName<"<number>">,

@@ -1,0 +1,69 @@
+## Test --lto-obj-path= for regular LTO.
+
+RUN: %clang %clangopts -c -flto %p/Inputs/a.c -o %t.a.o
+RUN: %clang %clangopts -c -flto %p/Inputs/b.c -o %t.b.o
+
+RUN: %rm -f %t.3* %t.objpath.o*
+RUN: %link %linkopts --lto-obj-path=%t.objpath.o -shared %t.a.o %t.b.o -o %t.3
+RUN: %nm %t.3 | FileCheck %s --check-prefix=NM
+RUN: %objdump -d %t.objpath.o | FileCheck %s
+RUN: ls %t.3* %t.objpath.o* | count 2
+
+RUxN: %rm -f %t.3* %t.objpath.o
+RUxN: %link %linkopts --thinlto-index-only=3.txt --lto-obj-path=objpath.o -shared %t.a.o %t.b.o -o %t.3
+RUxN: %objdump -d %t.objpath.o | FileCheck %s
+RUxN: %not ls %t.3
+
+NM: T f
+NM: T g
+
+CHECK: file format {{.+}}
+CHECK: <f>:
+CHECK: <g>:
+
+## Test --lto-obj-path= for ThinLTO.
+RUN: %clang %clangopts -ffunction-sections -c -flto=thin %p/Inputs/a.c -o %t.a.o
+RUN: %clang %clangopts -ffunction-sections -c -flto=thin %p/Inputs/b.c -o %t.b.o
+
+RUN: %link %linkopts --plugin-opt=-function-sections --plugin-opt=obj-path=%t.objpath.o -shared %t.a.o %t.b.o -o %t.3
+RUN: %nm %t.3 | FileCheck %s --check-prefix=NM3
+RUN: %objdump -d %t.objpath.o1 | FileCheck %s --check-prefix=CHECK1
+RUN: %objdump -d %t.objpath.o2 | FileCheck %s --check-prefix=CHECK2
+
+NM3:      T f
+NM3-NEXT: T g
+
+# TODO: function sections do not work? Should be .text.f and .text.g
+
+CHECK1:       file format {{.+}}
+CHECK1-EMPTY:
+CHECK1-NEXT:  Disassembly of section .text.f:
+CHECK1-EMPTY:
+CHECK1-NEXT:  <f>:
+
+CHECK2:       file format {{.+}}
+CHECK2-EMPTY:
+CHECK2-NEXT:  Disassembly of section .text.g:
+CHECK2-EMPTY:
+CHECK2-NEXT:  <g>:
+
+## There is a difference between lld and eld when both --save-temps and
+## --lto-obj-path are specified. lld creates two copies of output object files:
+## one in the normal "save-temps" location and another where --lto-obj-path
+## says. eld will create only one copy, in the --lto-obj-path location so there
+## will fewer "save-temps" files.
+
+## Ensure linker emits empty combined module if specific obj-path.
+RUN: %rm -f %t.objpath.o*
+RUN: %rm -rf %t.obj && mkdir %t.obj
+RUN: %link %linkopts --plugin-opt=obj-path=%t.objpath.o -shared %t.a.o %t.b.o -o %t.obj/out --save-temps
+RUN: ls %t.objpath.o %t.objpath.o1 %t.objpath.o2
+
+## Ensure linker does not emit empty combined module by default.
+RUN: %rm -fr %t.obj && mkdir %t.obj
+RUN: %link %linkopts -shared %t.a.o %t.b.o -o %t.obj/out --save-temps
+RUN: %not test -e %t.obj/out.llvm-lto.o
+RUN: %not test -e %t.obj/out.llvm-lto.0.o
+
+EMPTY:     file format  {{.+}}
+EMPTY-NOT: {{.}}

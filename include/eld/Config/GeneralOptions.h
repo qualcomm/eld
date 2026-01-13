@@ -412,6 +412,9 @@ public:
     return UnparsedLTOOptions;
   }
 
+  const std::optional<std::string> &getLTOObjPath() const { return LTOObjPath; }
+  void setLTOObjPath(const std::string &V) { LTOObjPath = V; }
+
   void setThinLTOJobs(llvm::StringRef V) { ThinLTOJobs = V; }
   llvm::StringRef getThinLTOJobs() const { return ThinLTOJobs; }
 
@@ -1230,6 +1233,7 @@ private:
   bool Rosegment = false; // merge read only with readonly/execute segments.
   SeparateSegmentKind SeparateSegments =
       SeparateSegmentKind::None; // -z separate-code
+  std::optional<std::string> LTOObjPath; // --lto-obj-path=
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
   uint32_t LTOOptions = 0;         // -flto-options
