@@ -1,4 +1,4 @@
-#!/pkg/qct/software/python/3.4.0/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
