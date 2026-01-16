@@ -55,7 +55,7 @@ def createBuildDataTables(workflow):
     create_table = (
         " CREATE TABLE IF NOT EXISTS "
         + workflow
-        + " (build_count INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, state TEXT, build_date TEXT, build_time TEXT, arch TEXT, UNIQUE(run_id, arch));"
+        + " (build_count INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, state TEXT, build_date TEXT, build_time TEXT, arch TEXT, branch TEXT, build_end_time TEXT, UNIQUE(run_id, arch));"
     )
     try:
         cursor.execute(create_table)
@@ -74,13 +74,14 @@ def addNewBuildData(args):
         cursor.execute(
             "INSERT INTO "
             + workflow_table
-            + " (run_id, state, build_date, build_time, arch) VALUES (?, ?, ?, ?, ?)",
+            + " (run_id, state, build_date, build_time, arch, branch) VALUES (?, ?, ?, ?, ?, ?)",
             (
                 args.run_id,
                 "pass" if args.build_status else "fail",
                 str(date.today()),
                 datetime.now().strftime("%H:%M"),
                 args.workflow_arch,
+                args.build_branch,
             ),
         )
     except Exception as e:
@@ -170,16 +171,9 @@ def emitJSData(args):
     all_data = []
     all_states_data = []
     try:
-        if args.workflow_build.lower() == "picolibc":
-            cursor.execute(
-                "SELECT run_id, state, build_date, build_time, arch FROM "
-                + workflow
-                + ";"
-            )
-        else:
-            cursor.execute(
-                "SELECT run_id, state, build_date, build_time FROM " + workflow + ";"
-            )
+        cursor.execute(
+            "SELECT run_id, state, build_date, build_time, arch, branch FROM " + workflow + ";"
+        )
         all_data = cursor.fetchall()
     except Exception as e:
         print(
@@ -194,6 +188,7 @@ def emitJSData(args):
                 "date": data[2],
                 "time": data[3],
                 "arch": data[4],
+                "branch": data[5],
             }
         else:
             new_state = {
@@ -201,6 +196,8 @@ def emitJSData(args):
                 "state": data[1],
                 "date": data[2],
                 "time": data[3],
+                "arch": data[4],
+                "branch": data[5],
             }
         all_states_data.append(new_state)
 
@@ -238,6 +235,13 @@ def handleArguments():
         dest="workflow_arch",
         required=False,
         help="The workflow build architecture name.",
+    )
+    parser.add_argument(
+        "--branch",
+        "-b",
+        dest="build_branch",
+        required=False,
+        help="The build branch name.",
     )
     parser.add_argument(
         "--run-id", dest="run_id", required=False, help="The github workflow run ID."
