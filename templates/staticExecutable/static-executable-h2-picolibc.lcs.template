@@ -1,0 +1,201 @@
+OUTPUT_FORMAT("elf32-littlehexagon", "elf32-bighexagon",
+	      "elf32-littlehexagon")
+OUTPUT_ARCH(hexagon)
+ENTRY(_start)
+SECTIONS
+{
+  /* Code starts. */
+  
+  .start          :
+  {
+    /* Place _start in .start */
+    KEEP (*(.text.init.enter))
+    KEEP (*(.start))
+  } =0x00c0007f
+  . = ALIGN(4K);
+  .init           :
+  {
+    KEEP (*(.init))
+  } =0x00c0007f
+  
+  .text           :
+  {
+    *(.text.unlikely .text.*_unlikely)
+    *(.text.hot .text.hot.* .gnu.linkonce.t.hot.*)
+    *(.text .stub .text.* .gnu.linkonce.t.*)
+    . = ALIGN(16);
+    __start___lcxx_override = .;
+    *(__lcxx_override)
+    __stop___lcxx_override = .;
+
+
+    /* Need to pre-align so that the symbols come after padding */
+    . = ALIGN(8);
+    /* lists of constructors and destructors */
+    PROVIDE_HIDDEN ( __preinit_array_start = . );
+    PROVIDE_HIDDEN ( __bothinit_array_start = . );
+    KEEP (*(.preinit_array))
+    PROVIDE_HIDDEN ( __preinit_array_end = . );
+
+    PROVIDE_HIDDEN ( __init_array_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+    KEEP (*(.init_array .ctors))
+    PROVIDE_HIDDEN ( __init_array_end = . );
+    PROVIDE_HIDDEN ( __bothinit_array_end = . );
+
+    PROVIDE_HIDDEN ( __fini_array_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+    KEEP (*(.fini_array .dtors))
+    KEEP (*(.fini_array*))
+    PROVIDE_HIDDEN ( __fini_array_end = . );
+  } =0x00c0007f
+
+  .fini           :
+  {
+    KEEP (*(.fini))
+  } =0x00c0007f
+  PROVIDE (__etext = .);
+  PROVIDE (_etext = .);
+  PROVIDE (etext = .);
+  . = ALIGN(4K);
+  /* Constants start. */
+  .rodata         :
+  {
+    *(.rodata.hot .rodata.hot.* .gnu.linkonce.r.hot.*)
+    *(.rodata .rodata.* .gnu.linkonce.r.*)
+  }
+  .eh_frame_hdr   :  {
+    __eh_frame_hdr_start = .;
+    KEEP (*(.eh_frame_hdr))
+    __eh_frame_hdr_start = .;
+  }
+  .eh_frame       :   { KEEP (*(.eh_frame)) }
+
+  /* Thread Local Storage sections  */
+
+   /* TLS Initialized Data */
+  .tdata	  :  {
+   _TLS_START_ = .;
+   __tdata_source = .;
+   __tdata_start = __tdata_source;
+   *(.tdata .tdata.* *.gnu.linkonce.td.*) }
+   _TLS_DATA_END_ = .;
+   __tdata_end = _TLS_DATA_END_;
+   __tdata_size = __tdata_end - __tdata_source;
+
+   /* TLS Uninitialized BSS */
+  .tbss		  :  { 
+   __tbss_start = .;
+   *(.tbss .tbss.* .gnu.linkonce.tb.*)  }
+  _TLS_END_  = . + SIZEOF(.tbss);
+  __tbss_end = _TLS_END_;
+  __tbss_size = __tbss_end - __tbss_start;
+  __tbss_offset = __tbss_end - __tdata_start;
+
+  . = ALIGN(4K);
+
+  /* Allocate some space for main thread */
+  .tls_space : {
+  __tls_base = .;
+  __tls_space_size = __tbss_end - __tdata_start;
+  . += __tls_space_size;
+  }
+
+  .data           :
+  {
+    *(.data.hot .data.hot.* .gnu.linkonce.d.hot.*)
+    *(.data .data.* .gnu.linkonce.d.*)
+    SORT(CONSTRUCTORS)
+  }
+  _edata = .; PROVIDE (edata = .);
+  . = ALIGN (64);
+  /* Small data start. */
+  . = ALIGN(4K);
+  .sdata          :
+  {
+    PROVIDE (_SDA_BASE_ = .);
+    *(.sdata.1 .sdata.1.* .gnu.linkonce.s.1.*)
+    *(.sbss.1 .sbss.1.* .gnu.linkonce.sb.1.*)
+    *(.scommon.1 .scommon.1.*)
+    *(.sdata.2 .sdata.2.* .gnu.linkonce.s.2.*)
+    *(.sbss.2 .sbss.2.* .gnu.linkonce.sb.2.*)
+    *(.scommon.2 .scommon.2.*)
+    *(.sdata.4 .sdata.4.* .gnu.linkonce.s.4.*)
+    *(.sbss.4 .sbss.4.* .gnu.linkonce.sb.4.*)
+    *(.scommon.4 .scommon.4.*)
+    *(.lit[a4] .lit[a4].* .gnu.linkonce.l[a4].*)
+    *(.sdata.8 .sdata.8.* .gnu.linkonce.s.8.*)
+    *(.sbss.8 .sbss.8.* .gnu.linkonce.sb.8.*)
+    *(.scommon.8 .scommon.8.*)
+    *(.lit8 .lit8.* .gnu.linkonce.l8.*)
+    *(.sdata.hot .sdata.hot.* .gnu.linkonce.s.hot.*)
+    *(.sdata .sdata.* .gnu.linkonce.s.*)
+  }
+  .sbss           :
+  {
+    PROVIDE (__sbss_start = .);
+    PROVIDE (___sbss_start = .);
+    *(.dynsbss)
+    *(.sbss.hot .sbss.hot.* .gnu.linkonce.sb.hot.*)
+    *(.sbss .sbss.* .gnu.linkonce.sb.*)
+    *(.scommon .scommon.*)
+    . = ALIGN (. != 0 ? 64 : 1);
+    PROVIDE (__sbss_end = .);
+    PROVIDE (___sbss_end = .);
+  }
+  . = ALIGN (64);
+  .bss            :
+  {
+   __bss_start = .;
+   *(.dynbss)
+   *(.bss.hot .bss.hot.* .gnu.linkonce.b.hot.*)
+   *(.bss .bss.* .gnu.linkonce.b.*)
+   *(COMMON)
+   __bss_end = .;
+  }
+  __bss_size = __bss_end - __bss_start;
+
+  . = ALIGN (64);
+  _end = .;
+  PROVIDE (end = .);
+
+  /* Allow a minimum heap size to be specified */
+        __heap_start = .;
+  .heap (NOLOAD) : {
+  	. += (DEFINED(__heap_size_min) ? __heap_size_min : 0x10000);
+  }
+
+  __heap_end = .;
+  HEAP_SIZE = __heap_end - __heap_start;
+
+  __stack_size = 0x1000;
+  STACK_SIZE = __stack_size;
+  /* Define a stack region to make sure it fits in memory */
+  .stack (NOLOAD) : {
+  	. += (DEFINED(__stack_size) ? __stack_size : 0x00001000);
+  }
+  __stack = .;
+
+
+  .hexagon.attributes 0 : { *(.hexagon.attributes) }
+  .comment       0 :  { *(.comment) }
+  /* DWARF debug sections.
+     Symbols in the DWARF debugging sections are relative to the beginning
+     of the section so we begin them at 0.  */
+  /* DWARF 1 */
+  .debug          0 :  { *(.debug) }
+  .line           0 :  { *(.line) }
+  .debug_aranges  0 :  { *(.debug_aranges) }
+  .debug_pubnames 0 :  { *(.debug_pubnames) }
+  /* DWARF 2 */
+  .debug_info     0 :  { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 :  { *(.debug_abbrev) }
+  .debug_line     0 :  { *(.debug_line) }
+  .debug_frame    0 :  { *(.debug_frame) }
+  .debug_str      0 :  { *(.debug_str) }
+  .debug_loc      0 :  { *(.debug_loc) }
+  /* DWARF 3 */
+  .debug_pubtypes 0 :  { *(.debug_pubtypes) }
+  .debug_ranges   0 :  { *(.debug_ranges) }
+  /DISCARD/       :  { *(.note.GNU-stack) *(.gnu_debuglink) }
+}
