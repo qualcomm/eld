@@ -1092,6 +1092,16 @@ defm dwodir
              "Directory to save .dwo files when split DWARF is used in LTO">,
       Group<grp_ltooptions>;
 
+def lto_emit_asm : FF<"lto-emit-asm">, HelpText<"Emit assembly code">;
+def plugin_opt_emit_asm : F<"plugin-opt=emit-asm">,
+                          Alias<lto_emit_asm>,
+                          HelpText<"Alias for --lto-emit-asm">;
+
+def lto_emit_llvm : FF<"lto-emit-llvm">, HelpText<"Emit LLVM-IR bitcode">;
+def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
+                           Alias<lto_emit_llvm>,
+                           HelpText<"Alias for --lto-emit-llvm">;
+
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
             HelpText<"Optimization level for LTO">;
@@ -1106,6 +1116,12 @@ defm plugin_opt_sample_profile
     : smDashOnlyEqAlias<"plugin-opt=sample-profile", "lto_sample_profile",
                         "Alias for -lto-sample-profile=">,
       Group<grp_ltooptions>;
+
+def lto_partitions : JJ<"lto-partitions=">,
+                     HelpText<"Number of LTO codegen partitions">;
+def : J<"plugin-opt=lto-partitions=">,
+      Alias<lto_partitions>,
+      HelpText<"Alias for --lto-partitions">;
 
 def lto_debug_pass_manager : FF<"lto-debug-pass-manager">,
                              HelpText<"Debug new pass manager">,
