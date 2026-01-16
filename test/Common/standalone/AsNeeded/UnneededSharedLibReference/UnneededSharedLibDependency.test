@@ -1,0 +1,16 @@
+#---UnneededSharedLibReference.test-------------------- Executable, LS -------#
+#BEGIN_COMMENT
+# Validates that with --as-needed we do not add DT_NEEDED entries for libraries
+# that are referenced only by an unneeded shared library.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
+RUN: %clang %clangopts -o %t1.main.o %p/Inputs/main.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.lib1.so -shared %t1.1.o
+RUN: %link %linkopts -o %t1.lib2.so -shared %t1.2.o
+RUN: %link %linkopts -o %t1.out %t1.main.o --as-needed %t1.lib2.so %t1.lib1.so
+RUN: %readelf --dynamic %t1.out 2>&1 | %filecheck %s --check-prefix=DYN
+#END_TEST
+DYN-NOT: lib2.so
+DYN-NOT: lib1.so
