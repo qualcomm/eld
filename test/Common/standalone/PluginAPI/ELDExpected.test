@@ -3,7 +3,7 @@
 # This test checks the functioning of eld::Expected.
 #END_COMMENT
 #START_TEST
-RUN: %llvmobjroot/bin/tests/ELDExpectedUsage%var | %filecheck %s
+RUN: %llvmobjroot/bin/tests%config/ELDExpectedUsage%var | %filecheck %s
 #END_TEST
 #CHECK: e1.has_value(): 1
 #CHECK: e1.value(): 11
