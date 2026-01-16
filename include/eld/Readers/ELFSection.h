@@ -179,6 +179,8 @@ public:
 
   uint64_t pAddr() const { return PAddr; }
 
+  bool hasLMA() const { return PAddr != InvalidAddr; }
+
   void setOffsetAndAddr(uint64_t Off);
 
   void setOffset(uint64_t Off) { Offset = Off; }
@@ -301,7 +303,7 @@ protected:
   uint64_t Offset = ~uint64_t(0);
   uint64_t Addr = InvalidAddr;
   /// FIXME: only relevant for output sections.
-  uint64_t PAddr;
+  uint64_t PAddr = InvalidAddr;
   LDSymbol *Symbol = nullptr;
 
   /// FIXME: Only relevant for LTO. This should be moved out.

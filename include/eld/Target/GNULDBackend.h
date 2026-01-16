@@ -18,6 +18,7 @@
 #include "eld/Input/ELFDynObjectFile.h"
 #endif
 #include "eld/Object/ObjectBuilder.h"
+#include "eld/Object/OutputSectionEntry.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFExecObjParser.h"
 #include "eld/Readers/ELFSection.h"
@@ -1046,6 +1047,10 @@ private:
   }
 #endif
 
+  void setVMA(ELFSection &S, uint64_t vma, bool ignoreChangedSection);
+
+  void setLMA(ELFSection &S, uint64_t lma);
+
 protected:
   Module &m_Module;
 
@@ -1184,6 +1189,8 @@ protected:
   GNUVerDefFragment *GNUVerDefFrag = nullptr;
   std::unordered_map<const ResolveInfo *, uint16_t> OutputVersionIDs;
 #endif
+  OutputSectionEntry * changedOutputSection = nullptr;
+  const int maxPreRelaxationPasses = 4;
 };
 
 } // namespace eld
