@@ -1,6 +1,6 @@
 #---PartialEXIDX.test--------------------------- PartialLink -----------------#
 #BEGIN_COMMENT
-#Linker should not create seperate exidx sections even if link order is set.
+#Linker should not create separate exidx sections even if link order is set.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
