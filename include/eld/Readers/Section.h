@@ -83,13 +83,13 @@ public:
     m_OutputSection = output;
   }
 
-  virtual void setMatchedLinkerScriptRule(RuleContainer *input) {
-    m_InputSection = input;
+  virtual void setMatchedLinkerScriptRule(RuleContainer *rule) {
+    RC = rule;
   }
 
   OutputSectionEntry *getOutputSection() const { return m_OutputSection; }
 
-  RuleContainer *getMatchedLinkerScriptRule() const { return m_InputSection; }
+  RuleContainer *getMatchedLinkerScriptRule() const { return RC; }
 
   uint64_t sectionNameHash() const { return m_sectionNameHash; }
 
@@ -113,7 +113,7 @@ protected:
   InputFile *m_InputFile;
   uint64_t m_sectionNameHash = 0;
   OutputSectionEntry *m_OutputSection = nullptr;
-  RuleContainer *m_InputSection = nullptr;
+  RuleContainer *RC = nullptr;
 };
 } // namespace eld
 
