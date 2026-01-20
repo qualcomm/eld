@@ -872,18 +872,17 @@ void GNULDBackend::createEhFrameFillerAndHdrSection() {
   eld::RegisterTimer T("Create EhFrame Hdr Output Section", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
 
-  static Fragment *m_pEhFrameFillerFragment = nullptr;
   // The LSB standard does not allow a .eh_frame section with zero
   // Call Frame Information records. glibc unwind-dw2-fde.c
   // classify_object_over_fdes expects there is a CIE record length 0 as a
   // terminator. Thus we add one unconditionally.
-  if (!m_pEhFrameFillerFragment && m_pEhFrameFillerSection) {
+  if (!m_pEhFrameFillerSection->hasFragments()) {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::verbose_ehframe_log) << "Creating EhFrame Filler";
 
-    m_pEhFrameFillerFragment =
+    Fragment *ehFrameFillerFragment =
         make<FillFragment>(getModule(), 0, 4, m_pEhFrameFillerSection);
-    m_pEhFrameFillerSection->addFragmentAndUpdateSize(m_pEhFrameFillerFragment);
+    m_pEhFrameFillerSection->addFragmentAndUpdateSize(ehFrameFillerFragment);
   }
 
   if (!m_pEhFrameHdrFragment && m_pEhFrameHdrSection) {

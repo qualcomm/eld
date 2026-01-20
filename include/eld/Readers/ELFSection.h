@@ -165,6 +165,8 @@ public:
 
   bool hasNoFragments() const { return HasNoFragments; }
 
+  bool hasFragments() const { return !Fragments.empty(); }
+
   /// offset - An integer specifying the offset of this section in the file.
   ///   Before layouting, output's ELFSection::offset() should return zero.
   uint64_t offset() const { return Offset; }
