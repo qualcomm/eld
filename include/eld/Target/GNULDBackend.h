@@ -711,7 +711,7 @@ public:
   // ------------------- EhFrame Hdr -------------------------------
   EhFrameHdrSection *getEhFrameHdr() const { return m_pEhFrameHdrSection; }
 
-  void createEhFrameFillerAndHdrSection();
+  void createEhFrameFillerAndHdrFragment();
 
   // ------------------------- EhFrame Hdr support ----------------
   bool hasEhFrameHdr() const { return m_pEhFrameHdrFragment != nullptr; }

@@ -868,7 +868,7 @@ void GNULDBackend::sizeDynNamePools() {
 #endif
 }
 
-void GNULDBackend::createEhFrameFillerAndHdrSection() {
+void GNULDBackend::createEhFrameFillerAndHdrFragment() {
   eld::RegisterTimer T("Create EhFrame Hdr Output Section", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
 

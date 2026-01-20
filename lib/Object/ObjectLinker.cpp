@@ -802,7 +802,7 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
           // Since we found an EhFrame section, lets go ahead and start creating
           // the fragments necessary to create the .eh_frame_hdr section and
           // the filler eh_frame section.
-          getTargetBackend().createEhFrameFillerAndHdrSection();
+          getTargetBackend().createEhFrameFillerAndHdrFragment();
         }
       }
     }
