@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 ; RUN: %opt --mtriple=%triple --data-layout=%datalayout %s -o %t.o
 
 ; Test debug-pass-manager option
