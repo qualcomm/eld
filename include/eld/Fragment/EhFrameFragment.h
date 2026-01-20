@@ -78,10 +78,8 @@ public:
   llvm::ArrayRef<uint8_t> getContent() const;
 
   static bool classof(const Fragment *F) {
-    return F->getKind() == Fragment::CIE;
+    return F->getKind() == Fragment::Type::FDE;
   }
-
-  static bool classof(const FDEFragment *) { return true; }
 
   virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 
