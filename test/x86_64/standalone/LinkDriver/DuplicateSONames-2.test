@@ -1,0 +1,11 @@
+#---DuplicateSOName-2.test---------------------- SharedLibrary -----------------#
+#BIGIN_COMMENT
+# Test that linker issues a warning for duplicate shared objects.
+#END_COMMENT
+#START_TEST
+RUN: %clang -c %p/Inputs/1.c -ffunction-sections -shared -o %t1.o
+RUN: %link -shared -soname=foo -o %libt1.so %t1.o
+RUN: %link -o %t.out %libt1.so %libt1.so 2>&1 | %filecheck %s
+
+#CHECK:Warning: multiple shared objects with same shared object name 'foo': libt1.so, libt1.so
+#END_TEST
