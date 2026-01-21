@@ -1,0 +1,14 @@
+UNSUPPORTED: ndk-build
+#---OnlyTBSS.test--------------------------- Executable  -----------------#
+#BEGIN_COMMENT
+# This tests that using TBSS only does not create an empty segment
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls.c -o %t1.1.o -fdata-sections -ftls-model=local-exec -fPIE
+RUN: %link %linkopts  %t1.1.o -T %p/Inputs/script.t  -o %t.out --defsym __aeabi_read_tp=0
+RUN: %readelf -l -W %t.out | %filecheck %s -check-prefix=EMPTYLOAD
+RUN: %link %linkopts  %t1.1.o -T %p/Inputs/scripttbssnewregion.t  -o %t.out --defsym __aeabi_read_tp=0
+RUN: %readelf -l -W %t.out | %filecheck %s -check-prefix=EMPTYLOAD
+#END_TEST
+
+#EMPTYLOAD-NOT: LOAD {{.*}} {{.*}} {{.*}} 0x{{[0]+}} 0x{{[0]+}} {{.*}}
