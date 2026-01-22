@@ -1,0 +1,14 @@
+# --TrampolinesUndefWrapLTO.test--------------------- Shared Library-----------------------#
+# BEGIN_COMMENT
+# Linker needs to create PLT entries for calls to undefined symbols.
+# END_COMMENT
+# -----------------------------------------------------------------------------------------#
+# START_TEST
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.s -o %t1.1.o
+RUN: %clang %clangopts -c -fPIC %p/Inputs/3.s -o %t1.3.o
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -flto -o %t1.2.o
+RUN: %link %linkopts -shared %t1.3.o %t1.2.o %t1.1.o  \
+RUN: -o %t2.so --wrap bar --trace=trampolines 2>&1 | %filecheck %s
+
+#CHECK: trampoline_for___wrap_bar{{.*}}
+#END_TEST

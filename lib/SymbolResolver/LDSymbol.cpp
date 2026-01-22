@@ -30,9 +30,9 @@ static LDSymbol GNullSymbol;
 // LDSymbol
 //===----------------------------------------------------------------------===//
 LDSymbol::LDSymbol(ResolveInfo *R, bool IsGc)
-    : ThisResolveInfo(R), ThisFragRef(nullptr), ThisShndx(0), ThisSymIdx(0),
-      ThisSymbolsIsScriptDefined(false), ThisSymbolHasScriptValue(false),
-      ThisSymbolGarbageCollected(IsGc) {}
+    : ThisResolveInfo(R), ThisFragRef(FragmentRef::null()), ThisShndx(0),
+      ThisSymIdx(0), ThisSymbolsIsScriptDefined(false),
+      ThisSymbolHasScriptValue(false), ThisSymbolGarbageCollected(IsGc) {}
 
 LDSymbol::~LDSymbol() {}
 
