@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---DefaultINIConfigFilePathTest.test----------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 # Tests that plugins are able to load .config from search dirs and .ini files from default path
