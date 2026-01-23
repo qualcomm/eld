@@ -1,3 +1,5 @@
+; UNSUPPORTED: windows
+
 ; RUN: %rm %t.*
 ; RUN: %opt --mtriple=%triple --data-layout=%datalayout -module-hash -module-summary %s -o %t.o
 ; RUN: %link %linkopts %emulation --plugin-opt=emit-llvm -o %t.out.o %t.o
@@ -5,7 +7,7 @@
 ; RUN: %not ls %t.out.*.o
 
 ;; Regression test for D112297: bitcode writer used to crash when
-;; --plugin-opt=emit-llvmis enabled and the output is /dev/null.
+;; --plugin-opt=emit-llvm is enabled and the output is /dev/null.
 ; RUN: %link %linkopts %emulation --plugin-opt=emit-llvm -mllvm -bitcode-flush-threshold=0 -o /dev/null %t.o
 ; RUN: %link %linkopts %emulation --lto-emit-llvm -mllvm -bitcode-flush-threshold=0 -o /dev/null %t.o
 
