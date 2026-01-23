@@ -19,8 +19,7 @@ RUN: %readelf -s -W %t2.out.asmoutputoverride | %filecheck %s -check-prefix=ASMO
 #ASMOVERRIDE: Using LTO assembly file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto2.s
 #OUTPUTOVERRIDE: Using LTO output file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto1.o
 #OUTPUTOVERRIDE: Using LTO output file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto2.o
-#ASMOUTPUTOVERRIDE: Using LTO assembly file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto1.s
-#ASMOUTPUTOVERRIDE: Using LTO assembly file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto2.s
+#ASMOUTPUTOVERRIDE-NOT: Using LTO assembly file
 #ASMOUTPUTOVERRIDE: Using LTO output file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto1.o
 #ASMOUTPUTOVERRIDE: Using LTO output file : {{[ -\(\)_A-Za-z0-9.\\/:]+}}lto2.o
 #ASMOVERRIDESYMS: bar

@@ -410,6 +410,15 @@ public:
     return UnparsedLTOOptions;
   }
 
+  const std::optional<std::string> &getLTOObjPath() const { return LTOObjPath; }
+  void setLTOObjPath(const std::string &V) { LTOObjPath = V; }
+
+  void setThinLTOJobs(llvm::StringRef V) { ThinLTOJobs = V; }
+  llvm::StringRef getThinLTOJobs() const { return ThinLTOJobs; }
+
+  void setLTOPartitions(unsigned V) { LTOPartitions = V; }
+  unsigned getLTOPartitions() const { return LTOPartitions; }
+
   void getSymbolsFromFile(llvm::StringRef Filename, std::vector<std::string> &);
 
   void setCopyFarCallsFromFile(std::string File) {
@@ -1214,9 +1223,12 @@ private:
   bool Savetemps = false;           // -save-temps
   std::optional<std::string> SaveTempsDir; // -save-temps=
   bool Rosegment = false; // merge read only with readonly/execute segments.
+  std::optional<std::string> LTOObjPath; // --lto-obj-path=
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
   uint32_t LTOOptions = 0;         // -flto-options
+  llvm::StringRef ThinLTOJobs;     // --thinlto-jobs=
+  unsigned LTOPartitions = 1;      // --lto-partitions=
   bool Verify = true;              // Linker verifies output file.
   bool Colormap = false;           // Map file with color.
   bool EnableThreads = true;       // threads enabled ?

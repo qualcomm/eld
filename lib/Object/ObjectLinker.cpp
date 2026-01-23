@@ -65,6 +65,7 @@
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/CodeGen/MachineOptimizationRemarkEmitter.h"
 #include "llvm/IR/DiagnosticPrinter.h"
@@ -111,7 +112,6 @@ ObjectLinker::ObjectLinker(LinkerConfig &PConfig, Module &M)
     : ThisConfig(PConfig), ThisModule(&M) {
   MSaveTemps = ThisConfig.options().getSaveTemps();
   MTraceLTO = ThisConfig.options().traceLTO();
-  MLtoTempPrefix = getLTOTempPrefix();
 }
 
 void ObjectLinker::close() {
@@ -452,16 +452,41 @@ std::string ObjectLinker::getLTOTempPrefix() const {
 }
 
 llvm::Expected<std::unique_ptr<llvm::raw_fd_ostream>>
-ObjectLinker::createLTOTempFile(size_t Task, const std::string &Suffix,
+ObjectLinker::createLTOTempFile(size_t Number, bool Asm,
                                 SmallString<256> &FileName) const {
+
+  std::optional<std::string> Prefix;
+  std::string Suffix;
+  if (Asm) {
+    Suffix = "s";
+    // Also use non-temporary location for output asm file with -emit-asm,
+    // independently from -save-temps.
+    Prefix = ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly()
+                 ? getLTOTempPrefix()
+                 : MLtoTempPrefix;
+  } else {
+    if (auto P = ThisConfig.options().getLTOObjPath()) {
+      // Do not add suffix to file names created from --lto-obj-path.
+      // It may be worth to not add ".0" even without --lto-obj-path,
+      // but for now, keep existing convention.
+      if (Number == 0)
+        Number = -1;
+      Prefix = P;
+    } else {
+      Suffix = "o";
+      Prefix = MLtoTempPrefix;
+    }
+  }
 
   int FD;
   std::error_code EC;
   std::string ErrMsg;
-  if (MSaveTemps) {
-    FileName =
-        (Twine(MLtoTempPrefix) + Twine(Task) + Twine(".") + Twine(Suffix))
-            .str();
+  if (Prefix) {
+    FileName = *Prefix;
+    if (Number != size_t(-1))
+      FileName += Twine(Number).str();
+    if (!Suffix.empty())
+      FileName += "." + Suffix;
     EC = llvm::sys::fs::openFileForWrite(FileName, FD);
     ErrMsg = std::string(FileName);
   } else {
@@ -472,6 +497,19 @@ ObjectLinker::createLTOTempFile(size_t Task, const std::string &Suffix,
     ErrMsg += ": " + EC.message();
     ThisConfig.raise(Diag::fatal_no_codegen_compile) << ErrMsg;
     return make_error<StringError>(EC);
+  }
+
+  return std::make_unique<llvm::raw_fd_ostream>(FD, true);
+}
+
+std::unique_ptr<llvm::raw_fd_ostream>
+ObjectLinker::createLTOOutputFile() const {
+  int FD;
+  std::string FileName = ThisConfig.options().outputFileName();
+  if (std::error_code EC = llvm::sys::fs::openFileForWrite(FileName, FD)) {
+    ThisConfig.raise(Diag::fatal_no_codegen_compile)
+        << FileName << ": " << EC.message();
+    return {};
   }
 
   return std::make_unique<llvm::raw_fd_ostream>(FD, true);
@@ -2663,35 +2701,18 @@ static void ltoDiagnosticHandler(const llvm::DiagnosticInfo &DI) {
   }
 }
 
-bool ObjectLinker::runAssembler(
-    std::vector<std::string> &Files, std::string RelocModel,
-    const std::vector<std::string> &AsmFilesFromLto) {
-  std::vector<std::string> FileList;
-
-  if (ThisConfig.options().hasLTOAsmFile()) {
-    for (auto &F : ThisConfig.options().ltoAsmFile()) {
-      ThisConfig.raise(Diag::using_lto_asm_file) << F;
-      FileList.push_back(F);
-    }
-  } else {
-    for (auto &F : AsmFilesFromLto) {
-      if (!F.empty())
-        FileList.push_back(F);
-    }
-  }
-
-  if (ThisConfig.options().hasLTOOutputFile()) {
-    for (auto &F : ThisConfig.options().ltoOutputFile()) {
-      ThisConfig.raise(Diag::using_lto_output_file) << F;
-      Files.push_back(F);
-    }
-    return true;
-  }
-
-  uint32_t Count = 0;
-  for (auto F : FileList) {
+bool ObjectLinker::runAssembler(std::vector<std::string> &Files,
+                                std::string RelocModel,
+                                const std::vector<std::string> &FileList) {
+  for (unsigned Count = 0; Count != FileList.size(); ++Count) {
+    const auto &F = FileList[Count];
+    // Some array elements may be empty if LTO did not produce anything for
+    // this slot. In that case, do not run assembler but keep incrementing the
+    // index.
+    if (F.empty())
+      continue;
     SmallString<256> OutputFileName;
-    auto OS = createLTOTempFile(Count, "o", OutputFileName);
+    auto OS = createLTOTempFile(Count, false, OutputFileName);
     if (!OS)
       return false;
     Files.push_back(std::string(OutputFileName));
@@ -2699,13 +2720,12 @@ bool ObjectLinker::runAssembler(
     if (!getTargetBackend().ltoCallExternalAssembler(
             F, RelocModel, std::string(OutputFileName)))
       return false;
-
-    ++Count;
   }
   return true;
 }
 
-std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf) {
+std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf,
+                                                      bool CompileToAssembly) {
   // Parse codegen options and pre-initialize the config
   eld::RegisterTimer T("Initialize LTO", "LTO",
                        ThisConfig.options().printTimingStats());
@@ -2739,7 +2759,7 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf) {
 
   Conf.DefaultTriple = ThisConfig.targets().triple().str();
 
-  if (getTargetBackend().ltoNeedAssembler())
+  if (CompileToAssembly)
     Conf.CGFileType = llvm::CodeGenFileType::AssemblyFile;
 
   auto Model = ltoCodegenModel();
@@ -2751,30 +2771,44 @@ std::unique_ptr<llvm::lto::LTO> ObjectLinker::ltoInit(llvm::lto::Config Conf) {
   // want to curtail this to just two as before (for RegularLTO) and perhaps
   // more for ThinLTO.
   if (MTraceLTO || MSaveTemps) {
-    if (llvm::Error E = Conf.addSaveTemps(MLtoTempPrefix)) {
+    std::string TempPrefix = getLTOTempPrefix();
+    if (llvm::Error E = Conf.addSaveTemps(TempPrefix)) {
       ThisConfig.raise(Diag::lto_cannot_save_temps)
           << llvm::toString(std::move(E));
       return {};
     }
     // FIXME: Output actual file names (this will go with the above TODO).
-    ThisConfig.raise(Diag::note_temp_lto_bitcode) << MLtoTempPrefix + "*";
+    ThisConfig.raise(Diag::note_temp_lto_bitcode) << TempPrefix + "*";
+    MLtoTempPrefix = TempPrefix;
   }
 
   // Set the number of backend threads to use in ThinLTO
-  unsigned NumThreads = 1;
-  if (ThisConfig.options().threadsEnabled()) {
-    NumThreads = ThisConfig.options().numThreads();
-    if (!NumThreads)
-      NumThreads = std::thread::hardware_concurrency();
-    if (!NumThreads)
-      NumThreads = 4; // if hardware_concurrency returns 0
-    ThisConfig.raise(Diag::note_lto_threads) << NumThreads;
+  ThreadPoolStrategy ThinLTOParallelism;
+  if (!ThisConfig.options().getThinLTOJobs().empty()) {
+    // --thinlto-jobs= overrides --threads=.
+    ThinLTOParallelism =
+        llvm::hardware_concurrency(ThisConfig.options().getThinLTOJobs());
+    ThisConfig.raise(Diag::note_lto_threads)
+        << ThisConfig.options().getThinLTOJobs();
+  } else {
+    unsigned NumThreads = 1;
+    if (ThisConfig.options().threadsEnabled()) {
+      NumThreads = ThisConfig.options().numThreads();
+      if (!NumThreads)
+        NumThreads = std::thread::hardware_concurrency();
+      if (!NumThreads)
+        NumThreads = 4; // if hardware_concurrency returns 0
+      ThisConfig.raise(Diag::note_lto_threads) << NumThreads;
+    }
+    ThinLTOParallelism = llvm::heavyweight_hardware_concurrency(NumThreads);
   }
 
   // Initialize the LTO backend
-  llvm::lto::ThinBackend Backend = llvm::lto::createInProcessThinBackend(
-      llvm::heavyweight_hardware_concurrency(NumThreads));
-  return std::make_unique<llvm::lto::LTO>(std::move(Conf), std::move(Backend));
+  llvm::lto::ThinBackend Backend =
+      llvm::lto::createInProcessThinBackend(ThinLTOParallelism);
+  return std::make_unique<llvm::lto::LTO>(
+      std::move(Conf), std::move(Backend),
+      ThisConfig.options().getLTOPartitions());
 }
 
 bool ObjectLinker::finalizeLtoSymbolResolution(
@@ -3030,21 +3064,18 @@ void ObjectLinker::addLTOOutputToTar() {
   }
 }
 
-bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
+bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
   eld::RegisterTimer T("Invoke LTO", "LTO",
                        ThisConfig.options().printTimingStats());
   // Run LTO
   std::vector<std::string> Files;
-  if (!ThisConfig.options().hasLTOOutputFile())
-    Files.resize(LTO.getMaxTasks());
-  FilesToRemove.resize(LTO.getMaxTasks());
+  bool KeepLTOOutput =
+      MSaveTemps || ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly();
 
   auto AddStream = [&](size_t Task, const Twine &ModuleName)
       -> llvm::Expected<std::unique_ptr<llvm::CachedFileStream>> {
     SmallString<256> ObjFileName;
-    auto OS = createLTOTempFile(
-        Task, getTargetBackend().ltoNeedAssembler() ? "s" : "o", ObjFileName);
-
+    auto OS = createLTOTempFile(Task, CompileToAssembly, ObjFileName);
     if (!OS) {
       ThisModule->setFailure(true);
       return OS.takeError();
@@ -3052,8 +3083,6 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
 
     assert(Files[Task].empty() && "LTO task already produced an output!");
     Files[Task] = std::string(ObjFileName);
-    if (!MSaveTemps)
-      FilesToRemove[Task] = std::string(ObjFileName);
     return std::make_unique<llvm::CachedFileStream>(std::move(*OS));
   };
 
@@ -3094,46 +3123,55 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
     ThinLTOCache = *LC;
   }
 
-  if (getTargetBackend().ltoNeedAssembler()) {
-    // If the output files haven't already been provided, run compilation now
-    std::vector<std::string> LTOAsmOutput;
-    if (!ThisConfig.options().hasLTOOutputFile() &&
-        !ThisConfig.options().hasLTOAsmFile()) {
-      if (llvm::Error E = LTO.run(AddStream, ThinLTOCache)) {
-        ThisConfig.raise(Diag::fatal_no_codegen_compile)
-            << llvm::toString(std::move(E));
-        ThisModule->setFailure(true);
-        return false;
-      }
-      // AddStream adds the LTO output files to 'files', but in this case
-      // they're just the input files to the assembler so we need to move them
-      // to their own array. ltoRunAssembler will add the assembled objects to
-      // files.
-      LTOAsmOutput = std::move(Files);
+  if (ThisConfig.options().hasLTOOutputFile()) {
+    for (auto &F : ThisConfig.options().ltoOutputFile()) {
+      ThisConfig.raise(Diag::using_lto_output_file) << F;
+      Files.push_back(F);
     }
-    if (!runAssembler(Files, ltoCodegenModel().second, LTOAsmOutput)) {
-      ThisConfig.raise(Diag::lto_codegen_error) << "Assembler error occurred";
-      ThisModule->setFailure(true);
-      return false;
-    }
-
-    if (!MSaveTemps && !ThisConfig.options().hasLTOOutputFile())
-      FilesToRemove.insert(FilesToRemove.end(), Files.begin(), Files.end());
   } else {
-    // If the output files haven't already been provided, run compilation now
-    if (!ThisConfig.options().hasLTOOutputFile()) {
+    std::vector<std::string> LTOAsmInput;
+    if (!ThisConfig.options().hasLTOAsmFile()) {
+      // Create a separate file for each task, which they will access by its
+      // index.
+      Files.resize(LTO.getMaxTasks());
       if (llvm::Error E = LTO.run(AddStream, ThinLTOCache)) {
         ThisConfig.raise(Diag::fatal_no_codegen_compile)
             << llvm::toString(std::move(E));
         ThisModule->setFailure(true);
         return false;
       }
+      if (CompileToAssembly) {
+        // AddStream adds the LTO output files to 'Files', but in this case
+        // they're just the input files to the assembler so we need to move them
+        // to their own array. ltoRunAssembler will add the assembled objects to
+        // files.
+        // "Files" may contain holes when LTO does not run for some tasks. For
+        // example, in thin LTO the merged object may not be written. Keep the
+        // holes so file names in assembler are in sync with "Files".
+        LTOAsmInput = std::move(Files);
+      }
+      // Remove unused file slots.
+      llvm::erase_if(Files, [](const std::string &x) { return x.empty(); });
     } else {
-      for (auto &F : ThisConfig.options().ltoOutputFile()) {
-        ThisConfig.raise(Diag::using_lto_output_file) << F;
-        Files.push_back(F);
+      for (const auto &F : ThisConfig.options().ltoAsmFile()) {
+        ThisConfig.raise(Diag::using_lto_asm_file) << F;
+        LTOAsmInput.push_back(F);
       }
     }
+    if (!ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
+        !LTOAsmInput.empty()) {
+      if (!runAssembler(Files, ltoCodegenModel().second, LTOAsmInput)) {
+        ThisConfig.raise(Diag::lto_codegen_error) << "Assembler error occurred";
+        ThisModule->setFailure(true);
+        return false;
+      }
+      if (!KeepLTOOutput)
+        for (const auto &F : LTOAsmInput)
+          if (!F.empty())
+            FilesToRemove.push_back(F);
+    }
+    if (!KeepLTOOutput && !ThisConfig.options().getLTOObjPath())
+      FilesToRemove.insert(FilesToRemove.end(), Files.begin(), Files.end());
   }
   if (!ThisConfig.getDiagEngine()->diagnose()) {
     if (ThisModule->getPrinter()->isVerbose())
@@ -3141,10 +3179,14 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO) {
     return false;
   }
 
+  //  if (!ctx.arg.ltoObjPath.empty()) {
+  //    saveBuffer(buf[0].second, ctx.arg.ltoObjPath);
+  //    for (unsigned i = 1; i != maxTasks; ++i)
+  //      saveBuffer(buf[i].second, ctx.arg.ltoObjPath + Twine(i));
+  //  }
+
   // Add the generated object files into the InputBuilder structure
   for (auto &F : Files) {
-    if (F.empty())
-      continue;
     LtoObjects.push_back(F);
     if (MSaveTemps)
       ThisConfig.raise(Diag::note_temp_lto_object) << F;
@@ -3254,6 +3296,10 @@ bool ObjectLinker::createLTOObject(void) {
   Conf.Options = llvm::codegen::InitTargetOptionsFromCodeGenFlags(
       ThisConfig.targets().triple());
 
+  if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
+      Conf.CGFileType == CodeGenFileType::AssemblyFile)
+    Conf.Options.MCOptions.AsmVerbose = true;
+
   if (LTOPlugin) {
 
     // TODO: Why do we read all relocations here? Get rid of?
@@ -3265,14 +3311,26 @@ bool ObjectLinker::createLTOObject(void) {
 
   PrepareDiagEngineForLTO PrepareDiagnosticsForLto(ThisConfig.getDiagEngine());
 
-  std::unique_ptr<llvm::lto::LTO> LTO = ltoInit(std::move(Conf));
+  // CGFileType may have been set to AssemblyFile by `--lto-emit-asm`.
+  bool CompileToAssembly = Conf.CGFileType == CodeGenFileType::AssemblyFile ||
+                           getTargetBackend().ltoNeedAssembler();
+  if (ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly() &&
+      !CompileToAssembly) {
+    Conf.PreCodeGenModuleHook = [this](size_t task, const llvm::Module &m) {
+      if (auto os = createLTOOutputFile())
+        WriteBitcodeToFile(m, *os, false);
+      return false;
+    };
+  }
+  std::unique_ptr<llvm::lto::LTO> LTO =
+      ltoInit(std::move(Conf), CompileToAssembly);
   if (!LTO)
     return false;
 
   if (!finalizeLtoSymbolResolution(*LTO, BitCodeInputs))
     return false;
 
-  if (!doLto(*LTO)) {
+  if (!doLto(*LTO, CompileToAssembly)) {
     ThisModule->setFailure(true);
     return false;
   }

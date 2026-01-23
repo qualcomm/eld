@@ -1555,14 +1555,57 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
   for (opt::Arg *Arg : Args.filtered(OptTable::plugin_opt_eq_minus))
     LLVMOptions.push_back(std::string("-") + Arg->getValue());
 
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_cs_profile_file))
+    Conf.CSIRProfile = Arg->getValue();
+
+  if (Args.hasArg(OptTable::lto_cs_profile_generate))
+    Conf.RunCSIRInstr = true;
+
   if (const auto *Arg = Args.getLastArg(OptTable::dwodir))
     Conf.DwoDir = Arg->getValue();
+
+  if (Args.hasArg(OptTable::lto_emit_llvm))
+    m_RunLTOOnly = true;
+
+  if (Args.hasArg(OptTable::lto_emit_asm)) {
+    Conf.CGFileType = CodeGenFileType::AssemblyFile;
+    m_RunLTOOnly = true;
+  }
+
+  if (const auto *Arg = Args.getLastArg(OptTable::thinlto_jobs_eq)) {
+    llvm::StringRef S = Arg->getValue();
+    if (!get_threadpool_strategy(S)) {
+      Config.raise(Diag::invalid_value_for_option)
+          << Arg->getOption().getPrefixedName() << S;
+      return false;
+    }
+    Config.options().setThinLTOJobs(S);
+  }
+
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_obj_path_eq)) {
+    Conf.AlwaysEmitRegularLTOObj = true;
+    Config.options().setLTOObjPath(Arg->getValue());
+  }
+
+  if (const auto *Arg = Args.getLastArg(OptTable::lto_partitions)) {
+    llvm::StringRef S = Arg->getValue();
+    unsigned Value;
+    if (S.getAsInteger(0, Value) || Value == 0) {
+      Config.raise(Diag::invalid_value_for_option)
+          << Arg->getOption().getPrefixedName() << S;
+      return false;
+    }
+    Config.options().setLTOPartitions(Value);
+  }
 
   if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
     Conf.SampleProfile = Arg->getValue();
 
   if (Args.hasArg(OptTable::lto_debug_pass_manager))
     Conf.DebugPassManager = true;
+
+  if (Args.hasArg(OptTable::disable_verify))
+    Conf.DisableVerify = true;
 
   if (const auto *Arg = Args.getLastArg(OptTable::lto_O)) {
     llvm::StringRef S = Arg->getValue();
@@ -1733,12 +1776,14 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     // llvm::errs() << "prepare: linkStatus: " << linkStatus << "\n";
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, false);
-    if (linkStatus)
-      linkStatus = linker.link();
-    // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
+    if (!isRunLTOOnly()) {
+      if (linkStatus)
+        linkStatus = linker.link();
+      // llvm::errs() << "link: linkStatus: " << linkStatus << "\n";
+      linker.printLayout();
+    }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);
-    linker.printLayout();
     linkStatus &= ThisModule->getPluginManager().callDestroyHook();
     // llvm::errs() << "destroy hook: linkStatus: " << linkStatus << "\n";
     linker.unloadPlugins();

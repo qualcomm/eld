@@ -1073,6 +1073,9 @@ defm save_temps_EQ : smDashOnlyEq<"save-temps", "save_temps_EQ",
                  "Save the temporary files produced by LTO">,
                  MetaVarName<"<filename>">,
                  Group<grp_ltooptions>;
+def : F<"plugin-opt=save-temps">,
+      Alias<save_temps>,
+      HelpText<"Alias for --save-temps">;
 defm exclude_lto_filelist
     : smDashWithOpt<"exclude-lto-filelist", "exclude_lto_filelist",
                     "Specify a list of files that are to be disregarded while "
@@ -1087,10 +1090,55 @@ defm include_lto_filelist
           "be used for LTO. This has no effect if -flto switch is used">,
       MetaVarName<"<list_of_files>">,
       Group<grp_ltooptions>;
+
+def lto_cs_profile_generate
+    : FF<"lto-cs-profile-generate">,
+      HelpText<"Perform context sensitive PGO instrumentation">;
+def lto_cs_profile_file : JJ<"lto-cs-profile-file=">,
+                          HelpText<"Context sensitive profile file path">;
+
+def : F<"plugin-opt=cs-profile-generate">,
+      Alias<lto_cs_profile_generate>,
+      HelpText<"Alias for --lto-cs-profile-generate">;
+def : J<"plugin-opt=cs-profile-path=">,
+      Alias<lto_cs_profile_file>,
+      HelpText<"Alias for --lto-cs-profile-file">;
+
+def disable_verify : F<"disable-verify">;
+def : F<"plugin-opt=disable-verify">,
+      Alias<disable_verify>,
+      HelpText<"Alias for --disable-verify">;
+
 defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
       Group<grp_ltooptions>;
+
+def lto_obj_path_eq
+    : JJ<"lto-obj-path=">,
+      HelpText<
+          "Specify file path used as a prefix for output LTO object files. "
+          "Files created with this prefix will not be deleted after LTO "
+          "finishes.">;
+def : J<"plugin-opt=obj-path=">,
+      Alias<lto_obj_path_eq>,
+      HelpText<"Alias for --lto-obj-path=">;
+
+def lto_emit_asm : FF<"lto-emit-asm">, HelpText<"Emit assembly code">;
+def plugin_opt_emit_asm : F<"plugin-opt=emit-asm">,
+                          Alias<lto_emit_asm>,
+                          HelpText<"Alias for --lto-emit-asm">;
+
+def lto_emit_llvm : FF<"lto-emit-llvm">, HelpText<"Emit LLVM-IR bitcode">;
+def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
+                           Alias<lto_emit_llvm>,
+                           HelpText<"Alias for --lto-emit-llvm">;
+
+def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
+                      HelpText<"Number of ThinLTO jobs. Default to --threads=">;
+def : J<"plugin-opt=jobs=">,
+      Alias<thinlto_jobs_eq>,
+      HelpText<"Alias for --thinlto-jobs=">;
 
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
@@ -1106,6 +1154,12 @@ defm plugin_opt_sample_profile
     : smDashOnlyEqAlias<"plugin-opt=sample-profile", "lto_sample_profile",
                         "Alias for -lto-sample-profile=">,
       Group<grp_ltooptions>;
+
+def lto_partitions : JJ<"lto-partitions=">,
+                     HelpText<"Number of LTO codegen partitions">;
+def : J<"plugin-opt=lto-partitions=">,
+      Alias<lto_partitions>,
+      HelpText<"Alias for --lto-partitions">;
 
 def lto_debug_pass_manager : FF<"lto-debug-pass-manager">,
                              HelpText<"Debug new pass manager">,
