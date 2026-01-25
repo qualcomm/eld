@@ -3,5 +3,5 @@ target_include_directories(ELDExpectedUsage
                            PRIVATE ${CMAKE_SOURCE_DIR}/include/eld/PluginAPI)
 target_link_libraries(ELDExpectedUsage PRIVATE LW)
 set_target_properties(ELDExpectedUsage PROPERTIES RUNTIME_OUTPUT_DIRECTORY
-                                                  ${CMAKE_BINARY_DIR}/bin/tests)
+                                                  ${LLVM_BINARY_DIR}/bin/tests)
 set_target_properties(ELDExpectedUsage PROPERTIES INSTALL_RPATH "\$ORIGIN/../../lib")
