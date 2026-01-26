@@ -54,6 +54,19 @@ jobs:
           path: llvm-project/llvm/tools/eld
           ref: main
 
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "sanitizer"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "all"
+
       - name: Run CMake
         run: |
           mkdir obj
@@ -81,3 +94,16 @@ jobs:
         run: |
           cd obj
           ninja -j8 check-eld
+
+      - name: Update build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "sanitizer"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "all"

@@ -28,6 +28,14 @@ except Exception as e:
 # Global
 _build_status_db = "build-status.db"
 _build_status_db_connection = None
+SUPPORTED_WORKFLOWS = ["picolibc",
+        "musl",
+        "sanitizer",
+        "reverse_iterator",
+        "nightly",
+        "release",
+        "documentation",
+        ]
 
 
 def close_connection():
@@ -176,9 +184,7 @@ def emitJSData(args):
         )
         all_data = cursor.fetchall()
     except Exception as e:
-        print(
-            "Error fetching build status data from table " + workflow + ": " + str(e)
-        )
+        print("Error fetching build status data from table " + workflow + ": " + str(e))
 
     for data in all_data:
         new_state = {
@@ -197,7 +203,7 @@ def emitJSData(args):
 
 def validateArgs(args):
     # Validate workflow
-    if args.workflow_build.lower() not in ["picolibc", "musl"]:
+    if args.workflow_build.lower() not in SUPPORTED_WORKFLOWS:
         sys.exit("Unsupported Workflow!")
 
     # Record/update mode must have a run_id.
@@ -217,7 +223,7 @@ def handleArguments():
         "-w",
         dest="workflow_build",
         required=True,
-        help="The workflow build name. Supported workflows: picolibc and musl",
+        help="The workflow build name. Supported workflows: " + str(SUPPORTED_WORKFLOWS),
     )
     parser.add_argument(
         "--arch",
