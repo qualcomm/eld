@@ -9,6 +9,11 @@ set(ELD_BINARY_DIR
     ${CMAKE_CURRENT_BINARY_DIR}
     CACHE STRING "")
 
+# Most users probably don't want/need to change this, but it is referenced
+# by `llvm_install_symlink` (and other llvm cmake utilities).
+set(ELD_TOOLS_INSTALL_DIR "bin" CACHE PATH "Path for binary subdirectory (defaults to 'bin')")
+mark_as_advanced(ELD_TOOLS_INSTALL_DIR)
+
 list(APPEND CMAKE_MODULE_PATH "${ELD_SOURCE_DIR}/cmake/modules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
@@ -60,11 +65,6 @@ include(ELDVersionMonitor)
 set(ELD_DEFAULT_TARGET_TRIPLE
     "${LLVM_DEFAULT_TARGET_TRIPLE}"
     CACHE STRING "Default target for which LLVM will generate code.")
-
-# ##############################################################################
-# ELD_RUNTIME_OUTPUT_DIR is needed since CMAKE_RUNTIME_OUTPUT_DIRECTORY appends
-# config type by default.
-set(ELD_RUNTIME_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/bin)
 
 # These two variables are for runnable lit tests and should be set to the
 # 32/64-bit emulators used to run the tests.
