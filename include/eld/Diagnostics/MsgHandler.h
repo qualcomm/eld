@@ -31,14 +31,7 @@
     }                                                                          \
   } while (false)
 #else
-#define ASSERT(condition, message)                                             \
-  do {                                                                         \
-    if (!(condition)) {                                                        \
-      std::stringstream ss;                                                    \
-      ss << "Assertion `" #condition "` failed with " << ": " << message;      \
-      llvm::report_fatal_error(llvm::Twine(ss.str()));                         \
-    }                                                                          \
-  } while (false)
+#define ASSERT(condition, message) ((void)0)
 #endif
 
 namespace eld {
