@@ -200,14 +200,17 @@ add_subdirectory(docs)
 add_subdirectory(test)
 add_subdirectory(Plugins)
 
-install(
-  DIRECTORY templates/
-  DESTINATION templates
-  COMPONENT linker-script
-  FILES_MATCHING
-  PATTERN "*.template"
-  PATTERN ".git" EXCLUDE
-  PATTERN ".svn" EXCLUDE)
+option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES "Include linker script templates in the install" ON)
+if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
+  install(
+    DIRECTORY templates/
+    DESTINATION templates
+    COMPONENT linker-script
+    FILES_MATCHING
+    PATTERN "*.template"
+    PATTERN ".git" EXCLUDE
+    PATTERN ".svn" EXCLUDE)
+endif()
 
 set(ELD_INSTALL_YAML_MAP_PARSER
     ON
