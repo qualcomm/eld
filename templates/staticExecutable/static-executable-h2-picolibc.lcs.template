@@ -1,12 +1,19 @@
 OUTPUT_FORMAT("elf32-littlehexagon", "elf32-bighexagon",
 	      "elf32-littlehexagon")
 OUTPUT_ARCH(hexagon)
-ENTRY(start)
+ENTRY(_start)
 SECTIONS
 {
   /* Code starts. */
+  
   .start          :
   {
+    /*
+      H2 expects the entry point to be 0x2000000
+      so it places the .start section at 0x2000000,
+      so place _start which is in .text.init.enter in .start
+    */
+    KEEP (*(.text.init.enter))
     KEEP (*(.start))
   } =0x00c0007f
   . = ALIGN(4K);
@@ -14,6 +21,7 @@ SECTIONS
   {
     KEEP (*(.init))
   } =0x00c0007f
+  
   .text           :
   {
     *(.text.unlikely .text.*_unlikely)
@@ -24,6 +32,34 @@ SECTIONS
     *(__lcxx_override)
     __stop___lcxx_override = .;
   } =0x00c0007f
+
+
+    /* Need to pre-align so that the symbols come after padding */
+    . = ALIGN(8);
+  .init_array     :
+  {
+    /* lists of constructors and destructors */
+    PROVIDE_HIDDEN ( __preinit_array_start = . );
+    PROVIDE_HIDDEN ( __bothinit_array_start = . );
+    KEEP (*(.preinit_array))
+    PROVIDE_HIDDEN ( __preinit_array_end = . );
+
+    PROVIDE_HIDDEN ( __init_array_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+    KEEP (*(.init_array .ctors))
+    PROVIDE_HIDDEN ( __init_array_end = . );
+    PROVIDE_HIDDEN ( __bothinit_array_end = . );
+  }
+
+  .fini_array     :
+  {
+    PROVIDE_HIDDEN ( __fini_array_start = . );
+    KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+    KEEP (*(.fini_array .dtors))
+    KEEP (*(.fini_array*))
+    PROVIDE_HIDDEN ( __fini_array_end = . );
+  }
+
   .fini           :
   {
     KEEP (*(.fini))
@@ -48,28 +84,36 @@ SECTIONS
   /* Thread Local Storage sections  */
 
    /* TLS Initialized Data */
-  .tdata	  :  { _TLS_START_ = .; *(.tdata .tdata.* *.gnu.linkonce.td.*) }
+  .tdata	  :  {
+   _TLS_START_ = .;
+   TLS_START = _TLS_START_;
+   /* Picolibc uses __tdata_* symbols to locate TLS template */
+   __tdata_source = .;
+   __tdata_start = __tdata_source;
+   *(.tdata .tdata.* *.gnu.linkonce.td.*) }
    _TLS_DATA_END_ = .;
+   __tdata_end = _TLS_DATA_END_;
+   __tdata_size = __tdata_end - __tdata_source;
 
    /* TLS Uninitialized BSS */
-  .tbss		  :  { *(.tbss .tbss.* .gnu.linkonce.tb.*)  }
+  .tbss		  :  { 
+   __tbss_start = .;
+   *(.tbss .tbss.* .gnu.linkonce.tb.*)  }
   _TLS_END_  = . + SIZEOF(.tbss);
+  TLS_END = _TLS_END_;
+  __tbss_end = _TLS_END_;
+  __tbss_size = __tbss_end - __tbss_start;
+  __tbss_offset = __tbss_end - __tdata_start;
 
   . = ALIGN(4K);
-  .ctors          :
-  {
-    KEEP (*init.o(.ctors))
-    KEEP (*(EXCLUDE_FILE (*fini.o) .ctors))
-    KEEP (*(SORT_BY_INIT_PRIORITY(.ctors.*)))
-    KEEP (*(.ctors))
+
+  /* Picolibc expects TLS space for main thread to be allocated by linker script */
+  .tls_space : {
+  __tls_base = .;
+  __tls_space_size = __tbss_end - __tdata_start;
+  . += __tls_space_size;
   }
-  .dtors          :
-  {
-    KEEP (*init.o(.dtors))
-    KEEP (*(EXCLUDE_FILE (*fini.o) .dtors))
-    KEEP (*(SORT_BY_INIT_PRIORITY(.fini.*)))
-    KEEP (*(.dtors))
-  }
+
   .data           :
   {
     *(.data.hot .data.hot.* .gnu.linkonce.d.hot.*)
@@ -120,10 +164,35 @@ SECTIONS
    *(.bss.hot .bss.hot.* .gnu.linkonce.b.hot.*)
    *(.bss .bss.* .gnu.linkonce.b.*)
    *(COMMON)
+   __bss_end = .;
   }
+  __bss_size = __bss_end - __bss_start;
+
   . = ALIGN (64);
   _end = .;
   PROVIDE (end = .);
+
+
+  /* Picolibc looks for __heap* and __stack* symbols */
+
+  /* Allow a minimum heap size to be specified */
+        __heap_start = .;
+  .heap (NOLOAD) : {
+  	. += (DEFINED(__heap_size_min) ? __heap_size_min : 0x10000);
+  }
+
+  __heap_end = .;
+  HEAP_SIZE = __heap_end - __heap_start;
+
+  __stack_size = 0x1000;
+  STACK_SIZE = __stack_size;
+  /* Define a stack region to make sure it fits in memory */
+  .stack (NOLOAD) : {
+  	. += (DEFINED(__stack_size) ? __stack_size : 0x00001000);
+  }
+  __stack = .;
+
+
   .hexagon.attributes 0 : { *(.hexagon.attributes) }
   .comment       0 :  { *(.comment) }
   /* DWARF debug sections.
