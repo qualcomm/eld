@@ -182,9 +182,7 @@ def emitJSData(args):
             )
         all_data = cursor.fetchall()
     except Exception as e:
-        print(
-            "Error fetching build status data from table " + workflow + ": " + str(e)
-        )
+        print("Error fetching build status data from table " + workflow + ": " + str(e))
 
     for data in all_data:
         if args.workflow_build.lower() == "picolibc":
@@ -210,7 +208,15 @@ def emitJSData(args):
 
 def validateArgs(args):
     # Validate workflow
-    if args.workflow_build.lower() not in ["picolibc", "musl"]:
+    if args.workflow_build.lower() not in [
+        "picolibc",
+        "musl",
+        "sanitizer",
+        "reverse_iterator",
+        "nightly",
+        "release",
+        "documentation",
+    ]:
         sys.exit("Unsupported Workflow!")
 
     # Record/update mode must have a run_id.
@@ -230,7 +236,7 @@ def handleArguments():
         "-w",
         dest="workflow_build",
         required=True,
-        help="The workflow build name. Supported workflows: picolibc and musl",
+        help="The workflow build name. Supported workflows: picolibc, musl, sanitizer, reverse_iterator, nightly, release, documentation",
     )
     parser.add_argument(
         "--arch",

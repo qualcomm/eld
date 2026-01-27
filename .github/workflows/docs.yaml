@@ -26,6 +26,19 @@ jobs:
           path: llvm-project/llvm/tools/eld
           ref: main
 
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "documentation"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "all"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -66,3 +79,16 @@ jobs:
           git add .
           git commit -m "Update documentation"
           git push -f origin HEAD:refs/heads/documentation
+
+      - name: Update build entry
+        if: github.event_name == 'schedule'
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "documentation"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "all"
