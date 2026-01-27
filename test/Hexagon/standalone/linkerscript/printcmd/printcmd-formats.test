@@ -1,0 +1,63 @@
+# This tests the PRINT linker script command format specifiers,
+# including both successful usage and error diagnostics.
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+
+# %d / %i
+RUN: %link %linkopts %t1.o -o %t-di.out -T %p/Inputs/print_di_success.t 2>&1 | %filecheck %s --check-prefix=D-SUCCESS
+RUN: %not %link %linkopts %t1.o -o %t-di-err.out -T %p/Inputs/print_di_missing_arg.t 2>&1 | %filecheck %s --check-prefix=D-ERROR
+
+# %u
+RUN: %link %linkopts %t1.o -o %t-u.out -T %p/Inputs/print_u_success.t 2>&1 | %filecheck %s --check-prefix=U-SUCCESS
+RUN: %not %link %linkopts %t1.o -o %t-u-err.out -T %p/Inputs/print_u_missing_arg.t 2>&1 | %filecheck %s --check-prefix=U-ERROR
+
+# %o
+RUN: %link %linkopts %t1.o -o %t-o.out -T %p/Inputs/print_o_success.t 2>&1 | %filecheck %s --check-prefix=O-SUCCESS
+RUN: %not %link %linkopts %t1.o -o %t-o-err.out -T %p/Inputs/print_o_missing_arg.t 2>&1 | %filecheck %s --check-prefix=O-ERROR
+
+# %x and %X
+RUN: %link %linkopts %t1.o -o %t-x.out -T %p/Inputs/print_x_success.t 2>&1 | %filecheck %s --check-prefix=X-SUCCESS
+RUN: %not %link %linkopts %t1.o -o %t-x-err.out -T %p/Inputs/print_x_missing_arg.t 2>&1 | %filecheck %s --check-prefix=X-ERROR
+
+# %c
+RUN: %link %linkopts %t1.o -o %t-c.out -T %p/Inputs/print_c_success.t 2>&1 | %filecheck %s --check-prefix=C-SUCCESS
+RUN: %not %link %linkopts %t1.o -o %t-c-err.out -T %p/Inputs/print_c_missing_arg.t 2>&1 | %filecheck %s --check-prefix=C-ERROR
+
+# %s
+RUN: %link %linkopts %t1.o -o %t-s.out -T %p/Inputs/print_s_success.t 2>&1 | %filecheck %s --check-prefix=S-SUCCESS
+RUN: %not %link %linkopts %t1.o -o %t-s-err.out -T %p/Inputs/print_s_bad_expr.t 2>&1 | %filecheck %s --check-prefix=S-ERROR
+
+# Literal %%
+RUN: %link %linkopts %t1.o -o %t-pct.out -T %p/Inputs/print_percent_success.t 2>&1 | %filecheck %s --check-prefix=PCT-SUCCESS
+
+# Generic format errors: unsupported conversion, bad width/precision, unterminated %
+RUN: %not %link %linkopts %t1.o -o %t-unsupported.out -T %p/Inputs/print_unsupported_conv.t 2>&1 | %filecheck %s --check-prefix=UNSUPP
+RUN: %not %link %linkopts %t1.o -o %t-width-star.out -T %p/Inputs/print_width_star.t 2>&1 | %filecheck %s --check-prefix=WIDTH-STAR
+RUN: %not %link %linkopts %t1.o -o %t-prec-star.out -T %p/Inputs/print_precision_star.t 2>&1 | %filecheck %s --check-prefix=PREC-STAR
+RUN: %not %link %linkopts %t1.o -o %t-unterminated.out -T %p/Inputs/print_unterminated.t 2>&1 | %filecheck %s --check-prefix=UNTERMINATED
+
+#D-SUCCESS: DI: d=42 i=-1
+#D-ERROR: PRINT: not enough arguments for format string
+
+#U-SUCCESS: U: 42
+#U-ERROR: PRINT: not enough arguments for format string
+
+#O-SUCCESS: O: 52
+#O-ERROR: PRINT: not enough arguments for format string
+
+#X-SUCCESS: X: 2a 2A
+#X-ERROR: PRINT: not enough arguments for format string
+
+#C-SUCCESS: C: A
+#C-ERROR: PRINT: not enough arguments for format string
+
+#S-SUCCESS: S: foo
+#S-ERROR: PRINT: %s argument must be a symbol expression
+
+#PCT-SUCCESS: PCT: 100%
+
+#UNSUPP: PRINT: unsupported format conversion '%f'
+#WIDTH-STAR: PRINT: width '*' is not supported in format specifier
+#PREC-STAR: PRINT: precision '*' is not supported in format specifier
+#UNTERMINATED: PRINT: unsupported format conversion '%
+

@@ -66,159 +66,220 @@ This is the standard method used by most linkers like GNU ld.
 Basic script syntax
 --------------------
 
- - Symbols
+Symbols
+^^^^^^^
 
-   Symbol names must begin with a letter, underscore, or period. They can include letters, numbers, underscores, hyphens, or periods.
+Symbol names must begin with a letter, underscore, or period. They can
+include letters, numbers, underscores, hyphens, or periods.
 
- - Comments
+Comments
+^^^^^^^^
 
-   Comments can appear in linker scripts
+Comments can appear in linker scripts.
 
- - Strings
+Strings
+^^^^^^^
 
-   Character strings can be specified as parameters with or without delimiter characters.
+Character strings can be specified as parameters with or without
+delimiter characters.
 
- - Expressions
+Expression basics
+^^^^^^^^^^^^^^^^^
 
-   Expressions are similar to C, and support all C arithmetic operators. They are evaluated as type long or unsigned long
+Expressions are similar to C, and support all C arithmetic operators.
+They are evaluated as type ``long`` or ``unsigned long``.
 
- - Location Counter
+Location counter basics
+^^^^^^^^^^^^^^^^^^^^^^^
 
-   | A period is used as a symbol to indicate the current location counter. It is used in the SECTIONS command only, where it designates locations in the output section:
-   | . = ALIGN(0x1000); . = . + 0x1000;
-   | Assigning a value to the location counter symbol changes the location counter to the specified value.
-   | The location counter can be moved forward by arbitrary amounts to create gaps in an output section.
-   | It cannot, however, be moved backwards.
+A period is used as a symbol to indicate the current location counter.
+It is used in the ``SECTIONS`` command only, where it designates
+locations in the output section::
 
- - Symbol assignment
+  . = ALIGN(0x1000);
+  . = . + 0x1000;
 
-   | Symbols, including the location counter, can be assigned constants or expressions:
-   | __text_start = . + 0x1000;
-   | Assignment statements are similar to C, and support all C assignment operators. Terminate assignment statements with a semicolon
+Assigning a value to the location counter symbol changes the location
+counter to the specified value. The location counter can be moved
+forward by arbitrary amounts to create gaps in an output section. It
+cannot, however, be moved backwards.
+
+Symbol assignment basics
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Symbols, including the location counter, can be assigned constants or
+expressions::
+
+  __text_start = . + 0x1000;
+
+Assignment statements are similar to C, and support all C assignment
+operators. Terminate assignment statements with a semicolon.
 
 Script commands
 ----------------
 
-    The SECTIONS command must be specified in a linker script. All the other script commands are optional.
+The ``SECTIONS`` command must be specified in a linker script. All the
+other script commands are optional.
 
-     - PHDRS
+PHDRS
+^^^^^
 
-       The PHDRS (Program Headers) command in a linker script is used to define program headers in the output binary, particularly for ELF (Executable and Linkable Format) files. These headers are essential for the runtime loader to understand how to load and map the binary into memory.
+The ``PHDRS`` (Program Headers) command in a linker script is used to
+define program headers in the output binary, particularly for ELF
+Executable and Linkable Format (ELF) files. These headers are essential
+for the runtime loader to understand how to load and map the binary into
+memory.
 
-       *When and Why PHDRS is Used?*
+*When and why PHDRS is used?*
 
-       - Custom Memory Mapping
+- Custom memory mapping
 
-         You use PHDRS when you want to explicitly control how sections are grouped into segments in the ELF file. This is especially important for:
+  You use ``PHDRS`` when you want to explicitly control how sections are
+  grouped into segments in the ELF file. This is especially important
+  for:
 
-         - Embedded systems
-         - Custom bootloaders
-         - OS kernels
+  - Embedded systems
+  - Custom bootloaders
+  - OS kernels
 
-       - Fine-Grained Segment Control
+- Fine-grained segment control
 
-         - Assign specific sections to specific segments
-         - Control segment flags (e.g., PT_LOAD, PT_NOTE, PT_TLS)
-         - Set permissions (r, w, x) for each segment
+  - Assign specific sections to specific segments.
+  - Control segment flags (for example, ``PT_LOAD``, ``PT_NOTE``,
+    ``PT_TLS``).
+  - Set permissions (``r``, ``w``, ``x``) for each segment.
 
-      Syntax :- { name type [FILEHDR][PHDRS][AT (address)][FLAGS (flags)] }
+Syntax :- ``{ name type [FILEHDR][PHDRS][AT (address)][FLAGS (flags)] }``
 
-      The PHDRS script command sets information in the program headers, also known as *segment header* of an ELF output file.
+The ``PHDRS`` script command sets information in the program headers,
+also known as the *segment header* of an ELF output file.
 
-        * name – Specifies the program header in the SECTIONS command
-        * type – Specifies the program header type
-        * PT_LOAD – Loadable segment
-        * PT_NULL – Linker does not include section in a segment. No loadable section should be set to PT_NULL.
-        * PT_DYNAMIC – Segment where dynamic linking information is stored
-        * PT_INTERP – Segment where the name of the dynamic linker is stored
-        * PT_NOTE – Segment where note information is stored
-        * PT_SHLIB – Reserved program header type
-        * PT_PHDR – Segment where program headers are stored
-        * FLAGS - Specifies the p_flags field in the program header
-        * The value of flags must be an integer. It is used to set the p_flags field of the program header: for instance, FLAGS(5) sets p_flags to PF_R | PF_X; and FLAGS(0x03000000) sets OS-specific flags.
+- ``name`` – Specifies the program header in the ``SECTIONS`` command.
+- ``type`` – Specifies the program header type.
+- ``PT_LOAD`` – Loadable segment.
+- ``PT_NULL`` – Linker does not include section in a segment. No
+  loadable section should be set to ``PT_NULL``.
+- ``PT_DYNAMIC`` – Segment where dynamic linking information is stored.
+- ``PT_INTERP`` – Segment where the name of the dynamic linker is
+  stored.
+- ``PT_NOTE`` – Segment where note information is stored.
+- ``PT_SHLIB`` – Reserved program header type.
+- ``PT_PHDR`` – Segment where program headers are stored.
+- ``FLAGS`` – Specifies the ``p_flags`` field in the program header.
+  The value of flags must be an integer. It is used to set the
+  ``p_flags`` field of the program header; for instance,
+  ``FLAGS(5)`` sets ``p_flags`` to ``PF_R | PF_X`` and
+  ``FLAGS(0x03000000)`` sets OS-specific flags.
 
-        .. note::
-           If the sections in an output file have different flag settings than what is specified in PHDRS, the linker combines the two different flags using bitwise or
+.. note::
+   If the sections in an output file have different flag settings than
+   what is specified in ``PHDRS``, the linker combines the two different
+   flags using bitwise OR.
 
-     - SECTIONS
+SECTIONS
+^^^^^^^^
 
-        Syntax :- SECTIONS { section_statement section_statement ... }
+Syntax :- ``SECTIONS { section_statement section_statement ... }``
 
-        The SECTIONS script command specifies how input sections are mapped to output sections, and where output sections are located in memory. The SECTIONS command must be specified once, and only once, in a linker script.
+The ``SECTIONS`` script command specifies how input sections are mapped
+to output sections, and where output sections are located in memory. The
+``SECTIONS`` command must be specified once, and only once, in a linker
+script.
 
-        - Section statements
+Section statements
+""""""""""""""""""
 
-            A SECTIONS command contains one or more section statements, each of which can be one of the following:
+A ``SECTIONS`` command contains one or more section statements, each of
+which can be one of the following:
 
-               * An ENTRY command
-               * A symbol assignment statement to set the location counter. The location counter specifies the default address in subsequent section-mapping statements that do not explicitly specify an address.
-               * An output section description to specify one or more input sections in one or more library files, and maps those sections to an output section. The virtual memory address of the output section can be specified using attribute keywords.
+- An ``ENTRY`` command.
+- A symbol assignment statement to set the location counter. The
+  location counter specifies the default address in subsequent
+  section-mapping statements that do not explicitly specify an address.
+- An output section description to specify one or more input sections in
+  one or more library files, and map those sections to an output
+  section. The virtual memory address of the output section can be
+  specified using attribute keywords.
 
-     - ENTRY
+ENTRY
+^^^^^
 
-        Syntax :- ENTRY (symbol)
+Syntax :- ``ENTRY(symbol)``
 
-        * The ENTRY script command specifies the program execution entry point.
+- The ``ENTRY`` script command specifies the program execution entry
+  point.
+- The entry point is the first instruction that is executed after a
+  program is loaded.
+- This command is equivalent to the linker command-line option
+  :option:`-e`.
 
-        * The entry point is the first instruction that is executed after a program is loaded.
+OUTPUT_FORMAT
+^^^^^^^^^^^^^
 
-        * This command is equivalent to the linker command-line option,-e.
+Syntax :- ``OUTPUT_FORMAT(string)``
 
-     - OUTPUT_FORMAT
+- The ``OUTPUT_FORMAT`` script command specifies the output file
+  properties.
+- For compatibility with the GNU linker, this command is parsed but has
+  no effect on linking.
 
-        Syntax :- OUTPUT_FORMAT (string)
+OUTPUT_ARCH
+^^^^^^^^^^^
 
-        * The OUTPUT_FORMAT script command specifies the output file properties.
+Syntax :- ``OUTPUT_ARCH("aarch64")``
 
-        * For compatibility with the GNU linker, this command is parsed but has no effect on linking.
+- The ``OUTPUT_ARCH`` script command specifies the target processor
+  architecture.
+- For compatibility with the GNU linker, this command is parsed but has
+  no effect on linking.
 
-     - OUTPUT_ARCH
+SEARCH_DIR
+^^^^^^^^^^
 
-        Syntax :- OUTPUT_ARCH ("aarch64")
+Syntax :- ``SEARCH_DIR(path)``
 
-        * The OUTPUT_ARCH script command specifies the target processor architecture.
+- The ``SEARCH_DIR`` script command adds the specified path to the list
+  of paths that the linker uses to search for libraries.
+- This command is equivalent to the linker command-line option
+  :option:`-L`.
 
-        * For compatibility with the GNU linker, this command is parsed but has no effect on linking.
+INCLUDE
+^^^^^^^
 
-     - SEARCH_DIR
+Syntax :- ``INCLUDE(file)``
 
-        Syntax :- SEARCH_DIR (path)
+- The ``INCLUDE`` script command specifies the contents of the text file
+  at the current location in the linker script.
+- The specified file is searched for in the current directory and any
+  directory that the linker uses to search for libraries.
 
-        * The SEARCH_DIR script command specifies which adds the specified path to the list of paths that the linker uses to search for libraries.
+.. note::
+   Include files can be nested.
 
-        * This command is equivalent to the linker command-line option,-L.
+OUTPUT
+^^^^^^
 
-     - INCLUDE
+Syntax :- ``OUTPUT(file)``
 
-        Syntax :- INCLUDE (file)
+- The ``OUTPUT`` script command defines the location and file where the
+  linker will write output data.
+- Only one output is allowed per linking.
 
-        * The INCLUDE script command specifies the contents of the text file at the current location in the linker script.
+GROUP
+^^^^^
 
-        * The specified file is searched for in the current directory and any directory that the linker uses to search for libraries.
+Syntax :- ``GROUP(file, file, …)``
 
-        .. note:: Include files can be nested.
+- The ``GROUP`` script command includes a list of archive file names.
+- The archive names defined in the list are searched repeatedly until
+  all defined references are resolved.
 
-     - OUTPUT
+ASSERT
+^^^^^^
 
-        Syntax :- OUTPUT (file)
+Syntax :- ``ASSERT(expression, string)``
 
-        * The OUTPUT script command defines the location and file where the linker will write output data.
-
-        * Only one output is allowed per linking.
-
-     - GROUP
-
-        Syntax :- GROUP (file, file, …)
-
-        * The GROUP script command includes a list of achieved file names.
-
-        * The achieved names defined in the list are searched repeatedly until all defined references are resolved.
-
-     - ASSERT
-
-        Syntax :- ASSERT(expression, string)
-
-        * The ASSERT script command adds an assertion to the linker script.
+- The ``ASSERT`` script command adds an assertion to the linker script.
 
 
 Expressions
@@ -563,8 +624,9 @@ The above link command is equivalent to::
 +--------------------------------------+------------------------------------------------------------------------------------------+
 | PROVIDE_HIDDEN (symbol = expression) | Similar to PROVIDE, but hides the defined symbol so it will not be exported.             |
 +--------------------------------------+------------------------------------------------------------------------------------------+
-| PRINT (symbol = expression)          | Instruct the linker to print symbol name and expression value to                         |
-|                                      | standard output during parsing                                                           |
+| PRINT ("format-string", expr, ...)   | Print a formatted message to the linker's standard output while                         |
+|                                      | parsing the script. See :ref:`linker-script-print` for format string                    |
+|                                      | syntax and supported conversions.                                                       |
 +--------------------------------------+------------------------------------------------------------------------------------------+
 
 NOCROSSREFS
@@ -743,3 +805,205 @@ the parser can determine whether the command is an assignment command or not.
 
 This simple change requires a lot of changes in the parser. The parser needs to
 change from LL(1) (Simple and efficient) to LL(2) (Complex and less efficient).
+
+
+PRINT Command
+--------------
+
+.. _linker-script-print:
+
+.. contents::
+   :local:
+
+Overview
+^^^^^^^^^
+
+The ``PRINT`` command lets a linker script emit formatted messages on the
+linker's standard output stream while the script is being parsed and
+evaluated. This is useful for debugging script expressions, inspecting
+symbol values, or annotating map files during development.
+
+Syntax
+^^^^^^^
+
+The ``PRINT`` command has the following syntax::
+
+  PRINT("format-string", expression, ...)
+
+Where:
+
+- ``format-string`` is a C ``printf``-style format string.
+- Each ``expression`` is a regular linker script expression whose value is
+  substituted into the format string.
+
+The command does not define any symbols and does not affect the layout or
+contents of the linked image; it only produces textual output.
+
+Format String Semantics
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Basics
+^^^^^^^^
+
+The format string closely follows C ``printf`` semantics with a limited set
+of conversion specifiers:
+
+- ``%%``  – prints a literal ``%`` character; consumes no argument.
+- ``%d``  – signed decimal integer.
+- ``%i``  – signed decimal integer (alias for ``%d``).
+- ``%u``  – unsigned decimal integer.
+- ``%o``  – unsigned octal integer.
+- ``%x``  – unsigned hexadecimal integer (lowercase digits).
+- ``%X``  – unsigned hexadecimal integer (uppercase digits).
+- ``%c``  – single character; the low 8 bits of the numeric expression.
+- ``%s``  – symbol name corresponding to a *symbol expression*.
+
+All numeric expressions are evaluated as 64-bit integers. Length modifiers
+are accepted for compatibility but ignored; the value is always normalized
+to 64 bits before formatting.
+
+Flags, Width, and Precision
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following flag characters are recognized:
+
+- ``-`` – left-justify within the field width.
+- ``+`` – always include a sign for signed conversions.
+- `` `` (space) – prefix a space for positive signed conversions.
+- ``#`` – alternate form (for example, add ``0x`` for hex).
+- ``0`` – pad numeric fields with leading zeros.
+
+Field width and precision have the usual ``printf`` syntax::
+
+  %[flags][width][.precision][length]conversion
+
+with the following constraints:
+
+- ``width`` and ``precision`` must be decimal integer constants.
+- ``*`` is **not** supported for either width or precision; using it
+  produces a diagnostics error.
+- Supported length modifiers (``hh``, ``h``, ``l``, ``ll``, ``j``, ``z``,
+  ``t``, ``L``) are parsed but ignored – values are always treated as
+  64-bit.
+
+Escape Sequences
+^^^^^^^^^^^^^^^^^
+
+The format string supports a small set of C-style escape sequences, which
+are unescaped before formatting:
+
+- ``\\n`` – newline
+- ``\\t`` – horizontal tab
+- ``\\r`` – carriage return
+- ``\\\\`` – backslash
+- ``\\\"`` – double quote
+
+Any other escape sequence is left unchanged (the leading backslash is kept
+as-is).
+
+Argument Matching and Errors
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The linker validates the correspondence between conversion specifiers in
+the format string and the expressions supplied to ``PRINT``. The following
+conditions are diagnosed as ``PRINT`` errors:
+
+- Not enough arguments:
+
+  - The format string requires more values than the number of expressions
+    supplied (for example, ``PRINT("%d %u", 1);``).
+
+- Too many arguments:
+
+  - More expressions are supplied than conversion specifiers in the format
+    string (for example, ``PRINT("%d", 1, 2);``).
+
+- Unterminated or malformed format specifier:
+
+  - A ``%`` at the end of the string (for example, ``"value %"``).
+  - A partially specified format that never reaches a conversion character.
+
+- Unsupported conversion:
+
+  - Any conversion character other than ``d``, ``i``, ``u``, ``o``, ``x``,
+    ``X``, ``c``, ``s``, or ``%`` (for example, ``%f``) is rejected.
+
+- Unsupported width or precision:
+
+  - Using ``*`` for width (for example, ``"%*d"``).
+  - Using ``*`` for precision (for example, ``"%. *d"``).
+
+- Invalid ``%s`` argument:
+
+  - The expression corresponding to a ``%s`` conversion must be a *symbol
+    expression* (such as ``foo``). Passing an arbitrary numeric expression
+    (for example, ``1 + 2``) is rejected.
+
+On any of these conditions the linker emits an ``error_printcmd`` diagnostic
+and treats the ``PRINT`` invocation as a fatal error for that link.
+
+Examples
+^^^^^^^^^^
+
+Printing Numeric Expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: plaintext
+
+  /* Signed and unsigned forms */
+  PRINT("value=%d (0x%x)\\n", 42, 42);
+
+  SECTIONS {
+    .text : { *(.text*) }
+  }
+
+This prints a line similar to::
+
+  value=42 (0x2a)
+
+Using ``%c`` and ``%s``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: plaintext
+
+  /* Assume 'foo' is a symbol defined by an input object. */
+  PRINT("symbol %s at '%c' section start\\n", foo, 'T');
+
+The ``%s`` conversion prints the symbol name (``foo``) while ``%c`` prints
+the low 8 bits of the numeric expression.
+
+Using Width, Precision, and Flags
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: plaintext
+
+  PRINT("val=%+08d hex=%#06x\n", 42, 42);
+
+  SECTIONS {
+    .text : { *(.text*) }
+  }
+
+This uses:
+
+- ``+`` to always show the sign for the decimal value.
+- ``0`` and a width of ``8`` to zero-pad the decimal field (for example,
+  ``+0000042``).
+- ``#`` and a width of ``6`` for hexadecimal, causing a leading ``0x`` and
+  zero-padding in the remaining field (for example, ``0x002a``).
+
+Error Examples
+^^^^^^^^^^^^^^^
+
+.. code-block:: plaintext
+
+  /* Not enough arguments */
+  PRINT("x=%d y=%d\\n", 1);
+
+  /* Unsupported conversion */
+  PRINT("value=%f\\n", 1);
+
+  /* Invalid %s argument */
+  PRINT("value=%s\\n", 1 + 2);
+
+Each of these invocations produces a ``PRINT``-related diagnostic and
+prevents the link from succeeding.

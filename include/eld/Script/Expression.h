@@ -12,10 +12,13 @@
 #include "eld/PluginAPI/Expected.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
 #include <optional>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace eld {
 class InputFile;
@@ -67,6 +70,7 @@ public:
     COMMONPAGESIZE,
     SEGMENT_START,
     ASSERT,
+    PRINT,
     DEFINED,
     BITWISE_RS,
     BITWISE_LS,
@@ -158,6 +162,8 @@ public:
   bool isSegmentStart() const { return (ThisType == SEGMENT_START); }
 
   bool isAssert() const { return (ThisType == ASSERT); }
+
+  bool isPrint() const { return (ThisType == PRINT); }
 
   bool isDefined() const { return (ThisType == DEFINED); }
 
@@ -1091,6 +1097,40 @@ private:
 
   Expression &ExpressionToEvaluate; /// represents the expression to evaluate
   std::string AssertionMessage; /// represents the message to print if we assert
+};
+
+//===----------------------------------------------------------------------===//
+/** \class PrintCmd
+ *  \brief This class extends an Expression to a PRINT command.
+ */
+class PrintCmd : public Expression {
+public:
+  PrintCmd(Module &Module, std::string FormatString,
+           std::vector<Expression *> Args)
+      : Expression("PRINT", Expression::PRINT, Module),
+        RawFormatString(std::move(FormatString)), Arguments(std::move(Args)) {}
+
+  // Casting support
+  static bool classof(const Expression *Exp) { return Exp->isPrint(); }
+
+private:
+  bool hasDot() const override;
+  void commit() override;
+  void dump(llvm::raw_ostream &Outs, bool WithValues = true) const override;
+  eld::Expected<uint64_t> evalImpl() override;
+  void getSymbols(std::vector<ResolveInfo *> &Symbols) override;
+  void getSymbolNames(std::unordered_set<std::string> &SymbolTokens) override;
+  Expression *getLeftExpression() const override { return nullptr; }
+  Expression *getRightExpression() const override { return nullptr; }
+
+  static std::string unescape(llvm::StringRef S);
+
+  eld::Expected<std::string>
+  formatString(llvm::StringRef Fmt, llvm::ArrayRef<Expression *> Args) const;
+
+  std::string RawFormatString;
+  std::vector<Expression *> Arguments;
+  std::vector<uint64_t> ArgValues;
 };
 
 /** \class RightShift

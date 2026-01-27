@@ -35,6 +35,7 @@ DIAG(warn_section_no_segment, DiagnosticEngine::Warning,
 DIAG(fatal_segment_not_defined_ldscript, DiagnosticEngine::Fatal,
      "%0: Segment %1 is not defined in linker script.")
 DIAG(assert_failed, DiagnosticEngine::Error, "Assertion failed %0")
+DIAG(error_printcmd, DiagnosticEngine::Error, "%0: PRINT: %1")
 DIAG(linker_script_uses_phdrs_no_sections, DiagnosticEngine::Error,
      "Linker Script is using PHDR's but not using SECTIONS command")
 DIAG(cannot_set_at_address, DiagnosticEngine::Error,

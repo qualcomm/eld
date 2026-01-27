@@ -1,0 +1,7 @@
+# This tests the PRINT linker script command.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -o %t.out -T %p/Inputs/script.t 2>&1 | %filecheck %s
+
+CHECK: PRINTCMD pre a=9 b=0x2a
+CHECK: PRINTCMD post sum=9 dot = 0x{{[0-9a-f]+}}
+CHECK: PRINTCMD post sum=9

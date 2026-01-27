@@ -1753,6 +1753,7 @@ bool ObjectLinker::addScriptSymbols() {
                     Vis, true /*PostLTOPhase*/);
       LLVM_FALLTHROUGH;
     case Assignment::ASSERT:
+    case Assignment::PRINT:
       AssignCmd->setUsed(true);
       break;
     }

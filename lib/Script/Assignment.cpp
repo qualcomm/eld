@@ -63,6 +63,7 @@ void Assignment::dump(llvm::raw_ostream &Outs) const {
   }
   case FILL:
   case ASSERT:
+  case PRINT:
     break;
   }
   ExpressionToEvaluate->dump(Outs, false);
@@ -152,6 +153,7 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
   }
   case FILL:
   case ASSERT:
+  case PRINT:
     break;
   }
   ExpressionToEvaluate->dump(Ostream, WithValues);

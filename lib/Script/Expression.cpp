@@ -15,6 +15,8 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/MathExtras.h"
 #include <optional>
 
@@ -1231,6 +1233,240 @@ void AssertCmd::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
 }
 
 bool AssertCmd::hasDot() const { return ExpressionToEvaluate.hasDot(); }
+
+//===----------------------------------------------------------------------===//
+/// PrintCmd Operator
+std::string PrintCmd::unescape(llvm::StringRef S) {
+  std::string Out;
+  Out.reserve(S.size());
+  for (size_t I = 0; I < S.size(); ++I) {
+    char C = S[I];
+    if (C != '\\' || I + 1 >= S.size()) {
+      Out.push_back(C);
+      continue;
+    }
+    char N = S[I + 1];
+    switch (N) {
+    case 'n':
+      Out.push_back('\n');
+      ++I;
+      continue;
+    case 't':
+      Out.push_back('\t');
+      ++I;
+      continue;
+    case 'r':
+      Out.push_back('\r');
+      ++I;
+      continue;
+    case '\\':
+      Out.push_back('\\');
+      ++I;
+      continue;
+    case '"':
+      Out.push_back('"');
+      ++I;
+      continue;
+    default:
+      // Unknown escape sequence: keep as-is.
+      Out.push_back(C);
+      continue;
+    }
+  }
+  return Out;
+}
+
+eld::Expected<std::string>
+PrintCmd::formatString(llvm::StringRef Fmt,
+                       llvm::ArrayRef<Expression *> Args) const {
+  auto isFlag = [](char C) {
+    return C == '-' || C == '+' || C == ' ' || C == '#' || C == '0';
+  };
+
+  std::string Out;
+  llvm::raw_string_ostream OS(Out);
+
+  size_t ArgIndex = 0;
+  for (size_t I = 0; I < Fmt.size();) {
+    if (Fmt[I] != '%') {
+      OS << Fmt[I++];
+      continue;
+    }
+
+    if (I + 1 < Fmt.size() && Fmt[I + 1] == '%') {
+      OS << '%';
+      I += 2;
+      continue;
+    }
+
+    size_t Start = I;
+    ++I; // skip '%'
+
+    std::string Flags, Width, Precision;
+
+    while (I < Fmt.size() && isFlag(Fmt[I]))
+      Flags.push_back(Fmt[I++]);
+
+    if (I < Fmt.size() && Fmt[I] == '*')
+      return std::make_unique<plugin::DiagnosticEntry>(
+          Diag::error_printcmd,
+          std::vector<std::string>{
+              "width '*' is not supported in format specifier"});
+    while (I < Fmt.size() && llvm::isDigit(Fmt[I]))
+      Width.push_back(Fmt[I++]);
+
+    if (I < Fmt.size() && Fmt[I] == '.') {
+      Precision.push_back(Fmt[I++]);
+      if (I < Fmt.size() && Fmt[I] == '*')
+        return std::make_unique<plugin::DiagnosticEntry>(
+            Diag::error_printcmd,
+            std::vector<std::string>{
+                "precision '*' is not supported in format specifier"});
+      while (I < Fmt.size() && llvm::isDigit(Fmt[I]))
+        Precision.push_back(Fmt[I++]);
+    }
+
+    // Length modifiers (ignored; we normalize to 64-bit).
+    if (I + 1 < Fmt.size() && Fmt.substr(I, 2) == "hh")
+      I += 2;
+    else if (I + 1 < Fmt.size() && Fmt.substr(I, 2) == "ll")
+      I += 2;
+    else if (I < Fmt.size() &&
+             (Fmt[I] == 'h' || Fmt[I] == 'l' || Fmt[I] == 'j' ||
+              Fmt[I] == 'z' || Fmt[I] == 't' || Fmt[I] == 'L'))
+      ++I;
+
+    if (I >= Fmt.size())
+      return std::make_unique<plugin::DiagnosticEntry>(
+          Diag::error_printcmd,
+          std::vector<std::string>{"unterminated format specifier"});
+
+    char Conv = Fmt[I++];
+
+    if (ArgIndex >= Args.size())
+      return std::make_unique<plugin::DiagnosticEntry>(
+          Diag::error_printcmd,
+          std::vector<std::string>{"not enough arguments for format string"});
+
+    auto makeSpec = [&](char Conversion) {
+      std::string Spec;
+      Spec.reserve(8 + Flags.size() + Width.size() + Precision.size());
+      Spec.push_back('%');
+      Spec += Flags;
+      Spec += Width;
+      Spec += Precision;
+      Spec += "ll";
+      Spec.push_back(Conversion);
+      return Spec;
+    };
+
+    uint64_t Val = ArgValues[ArgIndex];
+    Expression *ArgExpr = Args[ArgIndex];
+    ++ArgIndex;
+
+    switch (Conv) {
+    case 'd':
+    case 'i': {
+      std::string Spec = makeSpec(Conv);
+      OS << llvm::format(Spec.c_str(), static_cast<long long>(Val));
+      break;
+    }
+    case 'u':
+    case 'o':
+    case 'x':
+    case 'X': {
+      std::string Spec = makeSpec(Conv);
+      OS << llvm::format(Spec.c_str(), static_cast<unsigned long long>(Val));
+      break;
+    }
+    case 'c': {
+      std::string Spec;
+      Spec.push_back('%');
+      Spec += Flags;
+      Spec += Width;
+      Spec += Precision;
+      Spec.push_back('c');
+      OS << llvm::format(Spec.c_str(), static_cast<int>(Val & 0xff));
+      break;
+    }
+    case 's': {
+      if (!ArgExpr->isSymbol())
+        return std::make_unique<plugin::DiagnosticEntry>(
+            Diag::error_printcmd,
+            std::vector<std::string>{
+                "%s argument must be a symbol expression"});
+      OS << ArgExpr->name();
+      break;
+    }
+    default:
+      return std::make_unique<plugin::DiagnosticEntry>(
+          Diag::error_printcmd,
+          std::vector<std::string>{
+              (llvm::Twine("unsupported format conversion '%").str() + Conv +
+               "' in " + Fmt.substr(Start, I - Start))
+                  .str()});
+    }
+  }
+
+  if (ArgIndex != Args.size())
+    return std::make_unique<plugin::DiagnosticEntry>(
+        Diag::error_printcmd,
+        std::vector<std::string>{"too many arguments for format string"});
+
+  return OS.str();
+}
+
+void PrintCmd::commit() {
+  for (Expression *E : Arguments)
+    E->commit();
+  Expression::commit();
+}
+
+void PrintCmd::dump(llvm::raw_ostream &Outs, bool WithValues) const {
+  Outs << Name << "(\"" << RawFormatString << "\"";
+  for (Expression *E : Arguments) {
+    Outs << ", ";
+    E->dump(Outs, WithValues);
+  }
+  Outs << ")";
+}
+
+eld::Expected<uint64_t> PrintCmd::evalImpl() {
+  ArgValues.clear();
+  ArgValues.reserve(Arguments.size());
+
+  for (Expression *E : Arguments) {
+    auto V = E->eval();
+    if (!V)
+      return V;
+    ArgValues.push_back(V.value());
+  }
+
+  auto Formatted = formatString(unescape(RawFormatString), Arguments);
+  if (!Formatted)
+    return std::move(Formatted.error());
+
+  llvm::outs() << Formatted.value();
+  return {};
+}
+
+void PrintCmd::getSymbols(std::vector<ResolveInfo *> &Symbols) {
+  for (Expression *E : Arguments)
+    E->getSymbols(Symbols);
+}
+
+void PrintCmd::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {
+  for (Expression *E : Arguments)
+    E->getSymbolNames(SymbolTokens);
+}
+
+bool PrintCmd::hasDot() const {
+  for (Expression *E : Arguments) {
+    if (E->hasDot())
+      return true;
+  }
+  return false;
+}
 
 //===----------------------------------------------------------------------===//
 /// RightShift Operator

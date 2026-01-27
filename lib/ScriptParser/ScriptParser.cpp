@@ -103,6 +103,12 @@ bool ScriptParser::readAssignment(llvm::StringRef Tok) {
     consume(";");
     return true;
   }
+  if (Tok == "PRINT") {
+    readPrint();
+    // Read optional semi-colon at the end of PRINT.
+    consume(";");
+    return true;
+  }
   bool Ret = false;
   StringRef Op = peek(LexState::Expr);
   if (Op.starts_with("=") ||
@@ -553,6 +559,27 @@ Expression *ScriptParser::readAssert() {
       make<eld::AssertCmd>(ThisScriptFile.module(), Msg.str(), *E);
   ThisScriptFile.addAssignment("ASSERT", AssertCmd, Assignment::ASSERT);
   return AssertCmd;
+}
+
+Expression *ScriptParser::readPrint() {
+  expect("(");
+  StringRef FormatTok = next();
+  std::string Format = unquote(FormatTok).str();
+
+  std::vector<Expression *> Args;
+  if (consume(",")) {
+    while (peek() != ")" && !atEOF()) {
+      Args.push_back(readExpr());
+      if (!consume(","))
+        break;
+    }
+  }
+
+  expect(")");
+  Expression *PrintCmd = make<eld::PrintCmd>(
+      ThisScriptFile.module(), std::move(Format), std::move(Args));
+  ThisScriptFile.addAssignment("PRINT", PrintCmd, Assignment::PRINT);
+  return PrintCmd;
 }
 
 void ScriptParser::readInputOrGroup(bool IsInputCmd) {

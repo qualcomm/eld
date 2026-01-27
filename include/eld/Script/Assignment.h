@@ -41,7 +41,7 @@ public:
     SECTIONS_END
   };
 
-  enum Type { DEFAULT, HIDDEN, PROVIDE, PROVIDE_HIDDEN, FILL, ASSERT };
+  enum Type { DEFAULT, HIDDEN, PROVIDE, PROVIDE_HIDDEN, FILL, ASSERT, PRINT };
 
 public:
   Assignment(Level AssignmentLevel, Type AssignmentType, std::string Symbol,
@@ -112,6 +112,8 @@ public:
   bool isFill() const { return ThisType == FILL; }
 
   bool isAssert() const { return ThisType == ASSERT; }
+
+  bool isPrint() const { return ThisType == PRINT; }
 
   // Retrieve the symbol names referred by the assignment expression
   std::unordered_set<std::string> getSymbolNames() const;

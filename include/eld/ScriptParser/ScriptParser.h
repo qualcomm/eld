@@ -47,6 +47,8 @@ private:
 
   Expression *readAssert();
 
+  Expression *readPrint();
+
   /// Parses an assignment command.
   ///
   /// Assignment commands consists of:
