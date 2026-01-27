@@ -56,6 +56,19 @@ Notes:
   (e.g. with ``ar cr libname.a ...``) and match against ``*libname.a:*member.o``
   patterns in the script.
 
+``--unique`` linker option behavior
+-----------------------------------
+
+``--unique``
+  Create a separate output section for every orphan input section (inputs not
+  assigned by a linker script).
+
+``--unique=<section-pattern>``
+  Create a separate output section for every input section whose name matches
+  the glob pattern, but only when the output section name is the same as the
+  input section name. This mirrors GNU ld.bfd behavior (so a linker script that
+  renames the output section will not be affected).
+
 ARM and AArch64 specific options
 ---------------------------------
 

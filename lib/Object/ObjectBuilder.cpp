@@ -596,6 +596,15 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
   if (!target || ThisConfig.options().shouldEmitUniqueOutputSections())
     return true;
 
+  const OutputSectionEntry *Out = I->getOutputSection();
+  const bool IsOrphan = (Out == nullptr);
+  if (IsOrphan && ThisConfig.options().shouldEmitUniqueOrphanSections())
+    return true;
+
+  llvm::StringRef OutputName = IsOrphan ? I->name() : Out->name();
+  if (ThisConfig.options().shouldEmitUniqueSection(I->name(), OutputName))
+    return true;
+
   if (I->name().find("@") != llvm::StringRef::npos)
     return true;
 
