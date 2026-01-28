@@ -34,6 +34,10 @@ struct MergeableString {
   MergeableString(MergeStringFragment *F, llvm::StringRef S, uint32_t I,
                   uint32_t O, bool E)
       : Fragment(F), String(S), InputOffset(I), OutputOffset(O), Exclude(E) {}
+  MergeableString(const MergeableString &) = delete;
+  MergeableString &operator=(const MergeableString &) = delete;
+  MergeableString(MergeableString &&) = default;
+  MergeableString &operator=(MergeableString &&) = default;
   void exclude() { Exclude = true; }
   uint64_t size() const { return String.size(); }
   bool hasOutputOffset() const {
@@ -45,7 +49,7 @@ struct MergeableString {
 /// MergeStringFrgament is a Fragment that manages MergeableStrings of a
 /// LDFileFormat::MergeStr input section.
 class MergeStringFragment : public Fragment {
-  std::vector<MergeableString *> Strings;
+  llvm::SmallVector<MergeableString> Strings;
 
 public:
   MergeStringFragment(ELFSection *O);
@@ -53,9 +57,9 @@ public:
   ~MergeStringFragment() {}
 
   /// merge String S into output section O, or globally in M if it is
-  /// a non-alloc string. Return the string that S was merged with or nullptr if
-  /// S is unique.
-  static MergeableString *mergeStrings(MergeableString *S,
+  /// a non-alloc string. Returns the string S was merged with; if S is unique
+  /// it returns S.
+  static MergeableString &mergeStrings(MergeableString *S,
                                        OutputSectionEntry *O, Module &M);
 
   bool readStrings(LinkerConfig &Config);
@@ -70,11 +74,13 @@ public:
 
   eld::Expected<void> emit(MemoryRegion &Region, Module &M) override;
 
-  std::vector<MergeableString *> &getStrings() { return Strings; }
+  llvm::SmallVectorImpl<MergeableString> &getStrings() { return Strings; }
 
-  const std::vector<MergeableString *> &getStrings() const { return Strings; }
+  const llvm::SmallVectorImpl<MergeableString> &getStrings() const {
+    return Strings;
+  }
 
-  MergeableString *findString(uint64_t Offset) const;
+  const MergeableString *findString(uint64_t Offset) const;
 
   void copyData(void *Dest, uint64_t Bytes, uint64_t Offset) const;
 
