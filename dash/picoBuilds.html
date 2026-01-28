@@ -1,0 +1,44 @@
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="builds-table-style.css">
+</head>
+<body>
+<table class="dark-table" id="pico-builds-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Build ID</th>
+            <th>Architecture</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script type="text/javascript" src="picolibc_status_data.py"></script>
+<script type="text/javascript">
+    picolibc_build_states.reverse().forEach(function(rowData) {
+        let newRow = "<tr>";
+        newRow += "<td>" + rowData.date + " - " + rowData.time + "</td>";
+        newRow += "<td>" + rowData.run_id + "</td>";
+        let arch = rowData.arch;
+        if (arch == null)
+            newRow += "<td></td>";
+        else
+            newRow += "<td>" + arch + "</td>";
+        let build_state = rowData.state.toUpperCase();
+        if (build_state == "PASS")
+            newRow += "<td style='display: inline-block; background-color: lightgreen; border-radius: 15px'>" + rowData.state.toUpperCase() + "</td>";
+        else
+            newRow += "<td style='display: inline-block; background-color: red; border-radius: 15px'>" + rowData.state.toUpperCase() + "</td>";
+        newRow += "</tr>";
+        $("#pico-builds-table").append(newRow);
+    });
+
+    $('#pico-builds-table tr').click(function() {
+      var url = 'https://github.com/qualcomm/eld/actions/runs/' + $(this).find('td:eq(1)').text().trim();
+      window.open(url, '_blank');
+    });
+</script>
+</body>
+</html>

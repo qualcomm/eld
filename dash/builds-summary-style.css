@@ -1,0 +1,44 @@
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0D1117;
+    color: white;
+  }
+}
+
+#page-title {
+  cursor: pointer;
+}
+
+.status {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%; /* circular */
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.status-pass {
+  background-color: green;
+}
+
+.status-fail {
+  background-color: red;
+}
+
+.status-building {
+  background-color: orange;
+}
+
+.flex-parent {
+  display: flex;
+}
+
+.flex-child {
+  flex: 1;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
