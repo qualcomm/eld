@@ -35,7 +35,10 @@ eld::Expected<void> StringFragment::emit(MemoryRegion &Mr, Module &M) {
     return {};
   Out = Mr.begin() + getOffset(M.getConfig().getDiagEngine()) -
         this->paddingSize();
-  uint64_t PaddingValue = *M.getFragmentPaddingValue(this);
+  std::optional<uint64_t> optPaddingValue = M.getFragmentPaddingValue(this);
+  if (!optPaddingValue)
+    return {};
+  uint64_t PaddingValue = *optPaddingValue;
   uint32_t ValueSize = Fragment::getPaddingValueSize(PaddingValue);
   if (PaddingValue == 0)
     return {};
