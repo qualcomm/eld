@@ -124,6 +124,8 @@ DIAG(error_insert_output_section, DiagnosticEngine::Error,
      "Cannot INSERT output section %0 %1 %2 in script %3")
 DIAG(warn_non_power_of_2_value_to_align_builtin, DiagnosticEngine::Warning,
      "%0: non-power-of-2 value 0x%1 passed to ALIGN builtin function")
+DIAG(warn_subalign_less_than_section_alignment, DiagnosticEngine::Warning,
+     "SUBALIGN(0x%0) is less than the section alignment (0x%1) for section '%2'")
 DIAG(error_non_power_of_2_value_to_align_output_section, DiagnosticEngine::Error,
      "%0: non-power-of-2 value 0x%1 passed to ALIGN in '%2' output section description, value must "
      "be 0 or a power of 2")
