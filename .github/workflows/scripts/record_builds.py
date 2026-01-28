@@ -170,16 +170,11 @@ def emitJSData(args):
     all_data = []
     all_states_data = []
     try:
-        if args.workflow_build.lower() == "picolibc":
-            cursor.execute(
-                "SELECT run_id, state, build_date, build_time, arch FROM "
-                + workflow
-                + ";"
-            )
-        else:
-            cursor.execute(
-                "SELECT run_id, state, build_date, build_time FROM " + workflow + ";"
-            )
+        cursor.execute(
+            "SELECT run_id, state, build_date, build_time, arch FROM "
+            + workflow
+            + ";"
+        )
         all_data = cursor.fetchall()
     except Exception as e:
         print(
@@ -187,21 +182,13 @@ def emitJSData(args):
         )
 
     for data in all_data:
-        if args.workflow_build.lower() == "picolibc":
-            new_state = {
-                "run_id": str(data[0]),
-                "state": data[1],
-                "date": data[2],
-                "time": data[3],
-                "arch": data[4],
-            }
-        else:
-            new_state = {
-                "run_id": str(data[0]),
-                "state": data[1],
-                "date": data[2],
-                "time": data[3],
-            }
+        new_state = {
+            "run_id": str(data[0]),
+            "state": data[1],
+            "date": data[2],
+            "time": data[3],
+            "arch": data[4],
+        }
         all_states_data.append(new_state)
 
     # Emit JS file.
