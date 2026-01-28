@@ -46,6 +46,7 @@
 #include "eld/Readers/ObjectReader.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/Script/Assignment.h"
+#include "eld/Script/Expression.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectData.h"
 #include "eld/Script/OutputSectDesc.h"
@@ -992,11 +993,9 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       }
       InSect->setAddrAlign(Alignment);
     }
-    if (HasSubAlign && (InSect->getAddrAlign() < InAlign)) {
-      if (InSect->getFragmentList().size()) {
-        InSect->getFragmentList().front()->setAlignment(InAlign);
-        InSect->setAddrAlign(InAlign);
-      }
+    if (HasSubAlign && (InSect->getAddrAlign() < InAlign) &&
+        InSect->hasFragments()) {
+      InSect->setAddrAlign(InAlign);
     }
     if (InSect->getFragmentList().size() && !FirstNonEmptyRule)
       FirstNonEmptyRule = *In;
@@ -1292,13 +1291,36 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
 }
 
 void ObjectLinker::assignOffset(OutputSectionEntry *Out) {
+  /// This is used to determine the first fragment of an input section.
+  /// It is used for correctly assinging the SUBALIGN alignment to
+  /// fragments.
+  static std::unordered_set<ELFSection *> inputSectSeen;
+
   int64_t O = 0;
   const ELFSection *OutSection = Out->getSection();
   bool HasRules = ThisModule->getScript().linkerScriptHasRules();
+  std::optional<uint64_t> optSubAlign;
+  if (Out->prolog().hasSubAlign()) {
+    const Expression &subAlignExpr = Out->prolog().subAlign();
+    assert(subAlignExpr.hasResult());
+    optSubAlign = subAlignExpr.result();
+  }
   for (auto &C : *Out) {
     C->getSection()->setOffset(O);
     for (auto &F : C->getSection()->getFragmentList()) {
       if (!F->isNull()) {
+        {
+          std::lock_guard<std::mutex> lockGuard(Mutex);
+          ELFSection *owningSect = F->getOwningSection();
+          if (optSubAlign.has_value() && owningSect &&
+              !inputSectSeen.count(owningSect)) {
+            F->setAlignment(optSubAlign.value());
+            C->getSection()->setAddrAlign(
+                std::max(static_cast<uint64_t>(C->getSection()->getAddrAlign()),
+                         optSubAlign.value()));
+          }
+          inputSectSeen.insert(owningSect);
+        }
         F->setOffset(O);
         O = (F->getOffset(ThisConfig.getDiagEngine()) + F->size());
       }

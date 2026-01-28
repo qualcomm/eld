@@ -4,11 +4,28 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
-RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.o -Map %t2.map
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.out -Map %t2.map
 RUN: %filecheck %s < %t2.map
 #CHECK: .a {{.*}} Alignment: 0x40
 #CHECK: .text.foo	0x40
 #CHECK: .text.bar	0x80
 #CHECK: .text.car	0xc0
 #CHECK: .b {{.*}} Alignment: 0x1
+#END_TEST
+
+#START_TEST
+RUN: %clang %clangopts -o %t2.1.o %p/Inputs/1.c -c -ffunction-sections --target=riscv64-unknown-elf -falign-functions=4
+RUN: %link %linkopts -T %p/Inputs/script.t -o %t2.eld.out %t2.1.o -Map %t2.eld.map.txt
+RUN: %filecheck --check-prefix=MAPELD %s < %t2.eld.map.txt
+RUN: %linkalt lld %linkopts -T %p/Inputs/script.t -o %t2.lld.out %t2.1.o -Map %t2.lld.map.txt
+RUN: %filecheck --check-prefix=MAPLLD %s < %t2.lld.map.txt
+# On GNU ld, this would be built with riscv64-unknown-linux-gnu-ld, but keep portable.
+#MAPELD: .a {{.*}} Alignment: 0x40
+#MAPELD: .text.foo	0x40
+#MAPELD: .text.bar	0x80
+#MAPELD: .text.car	0xc0
+#MAPLLD: .a {{.*}} Alignment: 0x40
+#MAPLLD: .text.foo	0x40
+#MAPLLD: .text.bar	0x80
+#MAPLLD: .text.car	0xc0
 #END_TEST
