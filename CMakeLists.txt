@@ -9,6 +9,11 @@ set(ELD_BINARY_DIR
     ${CMAKE_CURRENT_BINARY_DIR}
     CACHE STRING "")
 
+# Most users probably don't want/need to change this, but it is referenced
+# by `llvm_install_symlink` (and other llvm cmake utilities).
+set(ELD_TOOLS_INSTALL_DIR "bin" CACHE PATH "Path for binary subdirectory (defaults to 'bin')")
+mark_as_advanced(ELD_TOOLS_INSTALL_DIR)
+
 list(APPEND CMAKE_MODULE_PATH "${ELD_SOURCE_DIR}/cmake/modules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
@@ -60,11 +65,6 @@ include(ELDVersionMonitor)
 set(ELD_DEFAULT_TARGET_TRIPLE
     "${LLVM_DEFAULT_TARGET_TRIPLE}"
     CACHE STRING "Default target for which LLVM will generate code.")
-
-# ##############################################################################
-# ELD_RUNTIME_OUTPUT_DIR is needed since CMAKE_RUNTIME_OUTPUT_DIRECTORY appends
-# config type by default.
-set(ELD_RUNTIME_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/bin)
 
 # These two variables are for runnable lit tests and should be set to the
 # 32/64-bit emulators used to run the tests.
@@ -185,10 +185,6 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 link_directories("${PATH_TO_LLVM_BUILD}/lib")
 
-set(ENABLE_ELD_PLUGIN_SUPPORT
-    ON
-    CACHE BOOL ON FORCE)
-
 add_subdirectory(include)
 
 # After the driver option TableGen targets are created in include/eld/Driver,
@@ -204,14 +200,17 @@ add_subdirectory(docs)
 add_subdirectory(test)
 add_subdirectory(Plugins)
 
-install(
-  DIRECTORY templates/
-  DESTINATION templates
-  COMPONENT linker-script
-  FILES_MATCHING
-  PATTERN "*.template"
-  PATTERN ".git" EXCLUDE
-  PATTERN ".svn" EXCLUDE)
+option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES "Include linker script templates in the install" ON)
+if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
+  install(
+    DIRECTORY templates/
+    DESTINATION templates
+    COMPONENT ld.eld
+    FILES_MATCHING
+    PATTERN "*.template"
+    PATTERN ".git" EXCLUDE
+    PATTERN ".svn" EXCLUDE)
+endif()
 
 set(ELD_INSTALL_YAML_MAP_PARSER
     ON
@@ -224,5 +223,6 @@ if(ELD_INSTALL_YAML_MAP_PARSER)
     set(ELD_YAML_MAP_PARSER_DEST_DIR "bin")
   endif()
   install(PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
-          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR})
+          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR}
+          COMPONENT ld.eld)
 endif()
