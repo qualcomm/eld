@@ -29,12 +29,12 @@
   <div class="all-builds flex-parent">
     <div class="Build1 flex-child" style="max-width:400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
       <canvas id="picoPie"></canvas><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;Picolibc Status <sub><span id="pico_green" class="status status-pass"></span><span id="pico_red" class="status status-fail"></span></sub>
+      &nbsp;&nbsp;&nbsp;&nbsp;Picolibc Status <sub><span id="pico_green" class="status status-pass"></span><span id="pico_red" class="status status-fail"></span></sub><label for="select_picolibc" style="position: relative; left: 180px;">Filter: </label><input type="checkbox" id="select_picolibc" name="select_picolibc" checked style="position: relative; left: 180px;">
     </div>
     <div class="Build2 flex-child" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
       <canvas id="muslPie"></canvas>
       <br>
-      &nbsp;&nbsp;&nbsp;&nbsp;MUSL Status <sub><span id="musl_green" class="status status-pass"></span><span id="musl_red" class="status status-fail"></span></sub>
+      &nbsp;&nbsp;&nbsp;&nbsp;MUSL Status <sub><span id="musl_green" class="status status-pass"></span><span id="musl_red" class="status status-fail"></span></sub><label for="select_musl" style="position: relative; left: 180px;">Filter: </label><input type="checkbox" id="select_musl" name="select_musl" checked style="position: relative; left: 180px;">
     </div>
   </div>
 
@@ -164,15 +164,19 @@
 
     function filterPies(start_date, end_date) {
       // Picolibc
-      let newPicoData = getUpdatedData(picolibc_build_states, start_date, end_date)
-      console.log("Updating Picolibc Pie Chart for Selected Date Range.");
-      pico_pie.data.datasets[0].data = [newPicoData[0], newPicoData[1]];
-      pico_pie.update();
+      if ($('#select_picolibc').prop('checked')) {
+        let newPicoData = getUpdatedData(picolibc_build_states, start_date, end_date)
+        console.log("Updating Picolibc Pie Chart for Selected Date Range.");
+        pico_pie.data.datasets[0].data = [newPicoData[0], newPicoData[1]];
+        pico_pie.update();
+      }
       // MUSL
-      let newMUSLData = getUpdatedData(musl_build_states, start_date, end_date)
-      console.log("Updating MUSL Pie Chart for Selected Date Range.");
-      musl_pie.data.datasets[0].data = [newMUSLData[0], newMUSLData[1]];
-      musl_pie.update();
+      if ($('#select_musl').prop('checked')) {
+        let newMUSLData = getUpdatedData(musl_build_states, start_date, end_date)
+        console.log("Updating MUSL Pie Chart for Selected Date Range.");
+        musl_pie.data.datasets[0].data = [newMUSLData[0], newMUSLData[1]];
+        musl_pie.update();
+      }
     }
 
   $("#datePicker").on('change', function(event) {
