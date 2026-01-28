@@ -63,3 +63,5 @@ DIAG(error_offset_not_assigned_for_output_section, DiagnosticEngine::Error,
      "Requested offset for output section %0 has not yet been assigned")
 DIAG(warn_empty_segment, DiagnosticEngine::Warning,
      "Empty segment: '%0'")
+DIAG(note_section_address_not_converging, DiagnosticEngine::Note,
+     "Section '%0' address did not converge after %1 layout passes")
