@@ -186,14 +186,14 @@ void ObjectBuilder::traceMergeStrings(const MergeableString *From,
 
 void ObjectBuilder::mergeStrings(MergeStringFragment *F,
                                  OutputSectionEntry *O) {
-  for (MergeableString *S : F->getStrings()) {
-    MergeableString *MergedString =
-        MergeStringFragment::mergeStrings(S, O, module());
-    if (!MergedString)
+  for (MergeableString &S : F->getStrings()) {
+    MergeableString &MergedString =
+        MergeStringFragment::mergeStrings(&S, O, module());
+    if (&MergedString == &S)
       continue;
     if (config().getPrinter()->traceMergeStrings() ||
         config().getPrinter()->isVerbose())
-      traceMergeStrings(S, MergedString);
+      traceMergeStrings(&S, &MergedString);
   }
 }
 

@@ -140,14 +140,14 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
   if (ThisFragment->isMergeStr()) {
     auto *MSF = llvm::cast<MergeStringFragment>(ThisFragment);
     OutputSectionEntry *O = getOutputSection();
-    MergeableString *S = MSF->findString(ThisOffset);
+    const MergeableString *S = MSF->findString(ThisOffset);
     assert(S);
     /// The target string could be a suffix
     uint32_t OffsetInString = ThisOffset - S->InputOffset;
     bool GlobalMerge = M.getConfig().options().shouldGlobalStringMerge();
-    if (const MergeableString *Merged = (!S->isAlloc() && GlobalMerge)
-                                            ? M.getMergedNonAllocString(S)
-                                            : O->getMergedString(S)) {
+    if (const MergeableString *Merged =
+            (!S->isAlloc() && GlobalMerge) ? M.getMergedNonAllocString(S)
+                                           : O->getMergedString(S)) {
       assert(S->Exclude);
       assert(!Merged->Exclude);
       assert(Merged->hasOutputOffset());

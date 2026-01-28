@@ -680,18 +680,18 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
       (M.isLinkStateCreatingSegments() || M.isLinkStateAfterLayout());
   if (llvm::isa<MergeStringFragment>(Frag) && !M.isLinkStateBeforeLayout()) {
     auto *Strings = llvm::cast<MergeStringFragment>(Frag);
-    for (MergeableString *S : Strings->getStrings()) {
-      if (S->Exclude)
+    for (MergeableString &S : Strings->getStrings()) {
+      if (S.Exclude)
         continue;
       if (!GC && HasFragInfo)
         AddressOrOffset =
-            S->OutputOffset +
+            S.OutputOffset +
             (Section->isAlloc() ? Section->addr() : Section->offset());
-      PrintOneFragOrString(S->size(), AddressOrOffset);
+      PrintOneFragOrString(S.size(), AddressOrOffset);
       /// if showStrings there is still extra content to be printed on this line
       if (!ThisLayoutInfo->showStrings())
         outputStream() << "\n";
-      printMergeString(S, M);
+      printMergeString(&S, M);
     }
   } else {
     if (!GC && HasFragInfo)

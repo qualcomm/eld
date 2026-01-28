@@ -55,9 +55,9 @@ void LayoutInfo::recordFragment(InputFile *Input,
 
   if (auto *Strings = llvm::dyn_cast<MergeStringFragment>(Frag)) {
     llvm::StringRef CommandLinePrefix = "Command:";
-    for (const MergeableString *String : Strings->getStrings())
-      if (String->String.starts_with(CommandLinePrefix))
-        recordCommentFragment(String->String.data());
+    for (const MergeableString &String : Strings->getStrings())
+      if (String.String.starts_with(CommandLinePrefix))
+        recordCommentFragment(String.String.data());
   }
 
   LayoutFragmentInfo *FragmentInfo;
