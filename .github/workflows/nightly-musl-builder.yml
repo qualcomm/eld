@@ -20,6 +20,11 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
+      - name: Branch name
+        run: |
+          echo "Branch: ${{ github.event.pull_request.head.ref }}"
+          echo "Base Branch: ${{ github.event.pull_request.base.ref }}"
+
       - name: Record pre-build entry
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
