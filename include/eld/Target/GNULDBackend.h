@@ -55,6 +55,7 @@ class ELFObjectFileFormat;
 class ELFSegmentFactory;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 class GNUVerDefFragment;
+class GNUVerNeedFragment;
 #endif
 class TargetInfo;
 class Layout;
@@ -846,6 +847,8 @@ public:
   ELFSection *getGNUVerSymSection() const { return GNUVerSymSection; }
   ELFSection *getGNUVerDefSection() const { return GNUVerDefSection; }
   GNUVerDefFragment *getGNUVerDefFragment() const { return GNUVerDefFrag; }
+  ELFSection *getGNUVerNeedSection() const { return GNUVerNeedSection; }
+  GNUVerNeedFragment *getGNUVerNeedFragment() const { return GNUVerNeedFrag; }
   void setShouldEmitVersioningSections(bool Should) {
     ShouldEmitVersioningSections = Should;
   }
@@ -1182,6 +1185,8 @@ protected:
   ELFSection *GNUVerSymSection = nullptr;
   ELFSection *GNUVerDefSection = nullptr;
   GNUVerDefFragment *GNUVerDefFrag = nullptr;
+  ELFSection *GNUVerNeedSection = nullptr;
+  GNUVerNeedFragment *GNUVerNeedFrag = nullptr;
   std::unordered_map<const ResolveInfo *, uint16_t> OutputVersionIDs;
 #endif
 };
