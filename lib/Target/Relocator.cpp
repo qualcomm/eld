@@ -96,15 +96,15 @@ Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
                                    const Relocation *R,
                                    MergeStringFragment *F) const {
   uint32_t Addend = getAddend(R);
-  MergeableString *String = F->findString(Addend);
-  uint32_t OffsetInString = Addend - String->InputOffset;
-
+  const MergeableString *String = F->findString(Addend);
   if (!String)
     return {nullptr, 0};
 
+  uint32_t OffsetInString = Addend - String->InputOffset;
+
   OutputSectionEntry *OutputSection = F->getOwningSection()->getOutputSection();
   bool GlobalMerge = m_Config.options().shouldGlobalStringMerge();
-  if (MergeableString *DeDuped =
+  if (const MergeableString *DeDuped =
           (!F->getOwningSection()->isAlloc() && GlobalMerge)
               ? m_Module.getMergedNonAllocString(String)
               : OutputSection->getMergedString(String)) {
