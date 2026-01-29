@@ -69,7 +69,10 @@ std::size_t OutputSectData::getDataSize() const {
   case Squad:
     return 8;
   default:
-    ASSERT(0, "Invalid output section data: " + getOSDKindAsStr().str());
+    llvm_unreachable(
+        (llvm::Twine("Invalid output section data: ") + getOSDKindAsStr())
+            .str()
+            .c_str());
   }
 }
 

@@ -195,6 +195,7 @@ eld::Expected<bool> ELFReaderBase::readOneGroup(ELFSection *S) {
 eld::Expected<bool> ELFReaderBase::readRelocationSection(ELFSection *RS) {
   ASSERT(0, "readRelocationSection must only be called for relocatable "
             "object files.");
+  return false;
 }
 
 eld::Expected<ObjectFile::ELFKind>

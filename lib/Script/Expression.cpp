@@ -146,7 +146,7 @@ eld::Expected<uint64_t> Symbol::evalImpl() {
   if (ThisSymbol->hasFragRef() && !ThisSymbol->shouldIgnore()) {
     FragmentRef *FragRef = ThisSymbol->fragRef();
     ELFSection *Section = FragRef->getOutputELFSection();
-    bool IsAllocSection = Section ? Section->isAlloc() : false;
+    [[maybe_unused]] bool IsAllocSection = Section ? Section->isAlloc() : false;
 
     ASSERT(IsAllocSection,
            "using a symbol that points to a non allocatable section!");

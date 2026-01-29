@@ -50,7 +50,7 @@ size_t ArchiveFile::numOfSymbols() const {
 void ArchiveFile::addSymbol(llvm::StringRef Name, uint32_t FileOffset,
                             uint8_t Type, uint8_t Status) {
   ASSERT(AFI, "AFI must not be null!");
-  const char *Base = getContents().data();
+  [[maybe_unused]] const char *Base = getContents().data();
   ASSERT(Name.data() >= Base &&
              (Name.data() + Name.size()) <= (Base + getContents().size()),
          "archive symbol name must reference archive contents");

@@ -111,7 +111,7 @@ void FragmentRef::memcpy(void *PDest, size_t PNBytes, Offset POffset) const {
     return;
   }
   case Fragment::OutputSectDataFragType:
-    ASSERT(false, "OutputSectDataFragment cannot be copied!");
+    llvm_unreachable("OutputSectDataFragment cannot be copied!");
   case Fragment::Fillment:
   default:
     return;

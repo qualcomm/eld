@@ -270,9 +270,13 @@ bool getSize(llvm::DWARFDie &Die, uint64_t &Size, uint32_t PointerSize) {
     Size = ArrayCount * BaseTypeSize;
     return true;
   }
-  default:
-    ASSERT(false, "found unknown type " + TagString(Die.getTag()).str() +
-                      " @Offset 0x" + llvm::utohexstr(Die.getOffset(), true));
+  default: {
+    std::string Msg =
+        (llvm::Twine("found unknown type ") + TagString(Die.getTag()) +
+         " @Offset 0x" + llvm::utohexstr(Die.getOffset(), true))
+            .str();
+    llvm_unreachable(Msg.c_str());
+  }
   }
 }
 

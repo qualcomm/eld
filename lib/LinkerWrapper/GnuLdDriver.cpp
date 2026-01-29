@@ -1800,7 +1800,7 @@ std::string GnuLdDriver::getDriverFlavorName() const {
   case DriverFlavor::Invalid:
     break;
   }
-  ASSERT(false, "Invalid DriverFlavor!");
+  llvm_unreachable("Invalid DriverFlavor!");
 }
 
 void GnuLdDriver::printRepositoryVersion() const {

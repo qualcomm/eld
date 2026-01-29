@@ -139,7 +139,7 @@ uint64_t HexagonInfo::translateFlag(uint64_t pFlag) const {
   case llvm::ELF::EF_HEXAGON_MACH_V91:
     return LINK_V91;
   default:
-    ASSERT(0, llvm::Twine("Unknown flag " + pflagStr).str().c_str());
+    llvm_unreachable(llvm::Twine("Unknown flag " + pflagStr).str().c_str());
   }
 }
 
