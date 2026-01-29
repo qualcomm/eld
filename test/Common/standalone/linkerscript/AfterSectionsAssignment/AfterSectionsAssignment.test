@@ -1,13 +1,15 @@
-#---AfterSectionsAssignment.test----------------------- LinkerScript ----------------#
+#---AfterSectionsAssignment.test--------------------- Executable,LS ----------------------#
 #BEGIN_COMMENT
-# This test verifies that assignments after SECTIONS command are evaluated
-# after assignments before and within the SECTIONS command.
+# This test verifies that the assignments within the SECTIONS command,
+# that depends upon the AfterSections assignments, are evaluated correctly.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.c
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
 RUN: %readelf -s %t1.1.out | %filecheck %s
 #END_TEST
 
-CHECK-DAG: {{0+}}100 {{.*}} ABS v
-CHECK-DAG: {{0+}}300 {{.*}} ABS u
+CHECK-DAG: {{0+}}1 {{.*}} u
+CHECK-DAG: {{0+}}3 {{.*}} v
+CHECK-DAG: {{0+}}3 {{.*}} w
+

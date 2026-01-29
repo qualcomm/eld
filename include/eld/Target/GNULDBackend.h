@@ -904,13 +904,9 @@ private:
 
   void changeSymbolsFromAbsoluteToGlobal(OutputSectionEntry *out);
 
-  /// When there is a SECTIONS command, then:
-  ///   - When afterLayout is false, only evaluate Assignment::BEFORE_SECTIONS.
-  ///   - When afterLayout is true, only evaluate Assignment::AFTER_SECTIONS.
-  /// When there is no SECTIONS command, then:
-  ///   - Evaluate ASSIGNMENT::BEFORE_SECTIONS regardless of afterLayout value.
-  ///     This behavior should be improved.
-  void evaluateScriptAssignments(bool afterLayout);
+  // Evaluate defsym assignments and script assignments that appear outside
+  // sections.
+  void evaluateScriptAssignments(bool evaluateAsserts = true);
 
   bool isRelROSection(const ELFSection *sect) const;
 

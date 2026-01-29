@@ -1,9 +1,8 @@
-u = 0x100;
+u = 0x1;
 
-SECTIONS
-{
-  v = u;
+SECTIONS {
+  v = w;
 }
 
-u = 0x300;
+w = 0x3;
 
