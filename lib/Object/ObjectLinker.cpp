@@ -80,6 +80,7 @@
 #include <chrono>
 #include <mutex>
 #include <sstream>
+#include <unordered_set>
 
 using namespace llvm;
 using namespace eld;
@@ -1248,6 +1249,9 @@ bool ObjectLinker::mergeSections() {
   {
     eld::RegisterTimer T("Create Output Section", "Merge Sections",
                          ThisConfig.options().printTimingStats());
+    // Prepass: apply SUBALIGN to first fragments per input section per output
+    // section serially to avoid races in parallel output creation.
+    applySubAlign();
     std::vector<OutputSectionEntry *> OutSections;
     for (Out = OutBegin; Out != OutEnd; ++Out) {
       OutSections.push_back(*Out);
@@ -1289,6 +1293,33 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
       sortSections(In, false);
   }
   return runOutputSectionIteratorPlugin();
+}
+
+void ObjectLinker::applySubAlign() {
+  std::unordered_set<ELFSection *> seen;
+
+  for (auto *O : ThisModule->getScript().sectionMap()) {
+    auto &Prolog = O->prolog();
+    std::optional<uint64_t> optSubAlign;
+    if (Prolog.hasSubAlign()) {
+      Prolog.subAlign().eval();
+      Prolog.subAlign().commit();
+      optSubAlign = Prolog.subAlign().result();
+    }
+
+    for (RuleContainer *R : *O) {
+      ELFSection *InSect = R->getSection();
+      for (Fragment *F : InSect->getFragmentList()) {
+        ELFSection *owningSect = F->getOwningSection();
+        if (owningSect && seen.insert(owningSect).second && optSubAlign) {
+          F->setAlignment(optSubAlign.value());
+          InSect->setAddrAlign(
+              std::max(static_cast<uint64_t>(InSect->getAddrAlign()),
+                       optSubAlign.value()));
+        }
+      }
+    }
+  }
 }
 
 void ObjectLinker::assignOffset(OutputSectionEntry *Out) {
