@@ -69,7 +69,7 @@ PATCH-DAG: Symbol `__llvm_patchable_xxx_g' from Input file `{{.+}}.base' with in
 PATCH-DAG: Trace: Symbol xxx_f, application site: 0x[[#%x,PGOT]]
 PATCH-DAG: Trace: Symbol xxx_g, application site: 0x[[#%x,PGOT+XLEN]]
 
-RUN: (%readelf -s %t.base; %readelf -s %t.patch) | %filecheck %s --check-prefix=SYM --match-full-lines -D#%x,FP=0x8000
+RUN: ( %readelf -s %t.base; %readelf -s %t.patch) | %filecheck %s --check-prefix=SYM --match-full-lines -D#%x,FP=0x8000
 
 ## Read value values from base image.
 SYM: Symbol table '.symtab' contains [[#]] entries:
@@ -90,7 +90,7 @@ SYM-DAG:   [[#]]: {{0*}}[[#H]]         [[#]] FUNC    GLOBAL DEFAULT       ABS xx
 SYM-DAG:   [[#]]: {{0*}}[[#K]]         [[#]] FUNC    GLOBAL DEFAULT       ABS xxx_k
 
 ## The new .pgot will have the first pointer replaced, and the other one kept as is.
-RUN: (%readelf -s %t.base; %elfcopy -O binary -j .pgot %t.patch - | od -v -Ax -t x%xlen -w%xlen) | %filecheck %s --check-prefix=PGOT --match-full-lines -D#%x,FP=0x8000 -D#XLEN=%xlen
+RUN: ( %readelf -s %t.base; %elfcopy -O binary -j .pgot %t.patch - | od -v -Ax -t x%xlen -w%xlen) | %filecheck %s --check-prefix=PGOT --match-full-lines -D#%x,FP=0x8000 -D#XLEN=%xlen
 PGOT:      [[#]]: [[#%x,G:]]           [[#]] FUNC    GLOBAL DEFAULT     [[#]] xxx_g
 PGOT:      {{0*}}0                   {{0*}}[[#FP]]
 PGOT-NEXT: {{0*}}[[#%x,mul(XLEN,1)]] {{0*}}[[#%x,G]]

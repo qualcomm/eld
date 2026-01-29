@@ -12,7 +12,7 @@ RUN: %link %linkopts --no-emit-relocs --patch-enable --section-start=.plt=0x1000
 RUN: %clang %clangopts -mno-relax -O3 -fno-pic %p/Inputs/f.c -o %t.f.o -c
 RUN: %clang %clangopts -mno-relax -O3 -fno-pic %p/Inputs/2.riscv.s -o %t.2.o -c
 RUN: %link %linkopts --patch-base=%t.base --section-start=.text=0x8000 --section-start=.pgot=0x9000 %t.f.o %t.2.o -o %t.2
-RUN: (%readelf -s %t.2; %objdump -d -s %t.2) | %filecheck %s --match-full-lines
+RUN: ( %readelf -s %t.2; %objdump -d -s %t.2) | %filecheck %s --match-full-lines
 
 ## Check that symbol values are expected.
 CHECK-DAG: [[#]]: {{0*}}1000     [[#]] NOTYPE  GLOBAL DEFAULT   ABS __llvm_patchable_xxx_f
