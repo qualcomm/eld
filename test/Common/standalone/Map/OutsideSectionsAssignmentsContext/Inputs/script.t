@@ -1,0 +1,5 @@
+var_u = 0x1;
+SECTIONS {
+  var_v = 0x3;
+}
+var_w = 0x5;

@@ -22,6 +22,7 @@
 namespace eld {
 
 class LinkerConfig;
+class Assignment;
 
 class TextLayoutPrinter {
 public:
@@ -86,7 +87,9 @@ public:
 
   void flush();
 
-private:
+ private:
+  void printAssignment(const Assignment &A, Module &M, bool UseColor);
+
   void printChangeOutputSectionInfo(const ELFSection *S) const;
 
   void printChunkOps(eld::Module &M, Fragment *F) const;

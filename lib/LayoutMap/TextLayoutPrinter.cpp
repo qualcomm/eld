@@ -28,6 +28,7 @@
 #include "eld/Readers/TimingSection.h"
 #include "eld/Readers/TimingSlice.h"
 #include "eld/Script/ExternCmd.h"
+#include "eld/Script/Assignment.h"
 #include "eld/Script/MemoryCmd.h"
 #include "eld/Script/OutputSectData.h"
 #include "eld/Script/ScriptFile.h"
@@ -1197,6 +1198,19 @@ void TextLayoutPrinter::printScriptCommands(const LinkerScript &Script) {
     printMemoryCommand(Script.getMemoryCommand());
 }
 
+void TextLayoutPrinter::printAssignment(const Assignment &A, Module &M,
+                                        bool useColor) {
+  if (!ThisLayoutInfo->showOnlyLayout()) {
+    bool withValues = !M.isLinkStateBeforeLayout();
+    A.dumpMap(outputStream(), useColor, /*EndWithNewLine=*/false, withValues);
+    // Show the actual expression as present in the linker script
+    outputStream() << " # ";
+  }
+  A.dumpMap(outputStream(), useColor, /*EndWithNewLine=*/true,
+            /*WithValues=*/false,
+            /*AddIndent=*/ThisLayoutInfo->showOnlyLayout());
+}
+
 // Start adding mapping information to map file
 // starting with Map file Header information, e.g. Architechture, Version,
 // etc. If use of color for text is enabled, print text with a foreground
@@ -1246,10 +1260,9 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
 
   printScriptCommands(Script);
 
-  for (const auto &X : (Script.getScriptCommands())) {
-    if (X->getKind() == ScriptCommand::ASSIGNMENT)
-      X->dumpMap(outputStream(), UseColor, true,
-                 !ThisLayoutInfo->showOnlyLayout());
+  for (const auto *X : (Script.getScriptCommands())) {
+    if (const Assignment *A = llvm::dyn_cast<Assignment>(X))
+      printAssignment(*A, Module, UseColor);
   }
 
   printLayout(Module);
@@ -1302,16 +1315,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       for (RuleContainer::sym_iterator It = (*in)->symBegin(),
                                        Ie = (*in)->symEnd();
            It != Ie; ++It) {
-        if (!ThisLayoutInfo->showOnlyLayout()) {
-          (*It)->dumpMap(outputStream(), UseColor, false,
-                         /*withValues=*/!Module.isLinkStateBeforeLayout());
-          // Show the actual expression as present in the linker script
-          outputStream() << " # ";
-        }
-        // Show expression in the linker script.
-        (*It)->dumpMap(outputStream(), UseColor, true /* NewLine */,
-                       false /* No Values */,
-                       ThisLayoutInfo->showOnlyLayout() /* Indent */);
+        printAssignment(**It, Module, UseColor);
       }
       if ((*in)->desc()) {
         (*in)->desc()->dumpMap(outputStream(), UseColor, false);
@@ -1365,16 +1369,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
     for (OutputSectionEntry::sym_iterator It = (*Out)->sectionendsymBegin(),
                                           Ie = (*Out)->sectionendsymEnd();
          It != Ie; ++It) {
-      if (!ThisLayoutInfo->showOnlyLayout()) {
-        (*It)->dumpMap(outputStream(), UseColor, false,
-                       /*withValues=*/!Module.isLinkStateBeforeLayout());
-        // Show the actual expression as present in the linker script
-        outputStream() << " # ";
-      }
-      // Show expression in the linker script.
-      (*It)->dumpMap(outputStream(), UseColor, true /* NewLine */,
-                     false /* No Values */,
-                     ThisLayoutInfo->showOnlyLayout() /* Indent */);
+      printAssignment(**It, Module, UseColor);
     }
   }
 }
