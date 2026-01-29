@@ -27,15 +27,13 @@ public:
     if (m_Config.codeGenType() == LinkerConfig::DynObj)
       return 0;
 
-    if (m_Config.targets().triple().isOSLinux()) {
-      // 64-bit dynamic executables also needs starting address
-      // as non zero
-      if (m_Config.targets().is64Bits())
-        return 0x400000;
-      // 32-bit
-      if (!isDynExec)
-        return 0x8048000;
-    }
+    // 64-bit dynamic executables also needs starting address
+    // as non zero
+    if (m_Config.targets().is64Bits())
+      return 0x400000;
+    // 32-bit
+    if (!isDynExec)
+      return 0x8048000;
 
     return 0x0;
   }
