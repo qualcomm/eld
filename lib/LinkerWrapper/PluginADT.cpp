@@ -233,9 +233,9 @@ std::vector<plugin::Section> Chunk::getDependentSections() const {
 std::vector<plugin::MergeableString>
 plugin::MergeStringChunk::getStrings() const {
   std::vector<plugin::MergeableString> Strings;
-  for (eld::MergeableString *S :
+  for (const eld::MergeableString &S :
        llvm::cast<MergeStringFragment>(getFragment())->getStrings())
-    Strings.push_back(plugin::MergeableString(S));
+    Strings.emplace_back(&S);
   return Strings;
 }
 
