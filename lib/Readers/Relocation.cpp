@@ -39,8 +39,9 @@ Relocation *Relocation::Create() { return make<Relocation>(0, nullptr, 0, 0); }
 Relocation *Relocation::Create(Type pType, Size pSize, FragmentRef *pFragRef,
                                Address pAddend) {
   DWord targetData = 0;
-  if (pSize != 0)
-    pFragRef->memcpy(&targetData, pSize / 8);
+  pSize /= 8;
+  if (pSize != 0 && pSize <= sizeof(targetData))
+    pFragRef->memcpy(&targetData, pSize);
   return make<Relocation>(pType, pFragRef, pAddend, targetData);
 }
 
@@ -65,7 +66,7 @@ Relocation::Relocation(const Relocator *pRelocator, Relocation::Type pType,
     : m_pSymInfo(nullptr), m_TargetAddress(pTargetRef), m_Addend(pAddend),
       m_TargetData(0), m_Type(pType) {
   Size relocSize = pRelocator->getSize(pType);
-  if (relocSize != 0)
+  if (relocSize != 0 && relocSize <= sizeof(m_TargetData))
     pTargetRef->memcpy(&m_TargetData, relocSize);
 }
 

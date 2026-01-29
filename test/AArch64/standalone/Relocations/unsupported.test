@@ -1,0 +1,39 @@
+#REQUIRES: asserts
+#---unsupported.test--------------------- SharedLibrary------------------#
+#BEGIN_COMMENT
+# Test that linker rejects unsupported relocation types.
+#END_COMMENT
+#START_TEST
+# RUN: yaml2obj %s -o %t.o
+# RUN: not %link %linkopts -march=aarch64 -static %t.o -o %t.out >%t.log 2>&1 || true
+# RUN: %filecheck %s < %t.log
+# CHECK: Assertion `ApplyFunctions.find(pType) != ApplyFunctions.end()' failed
+# CHECK: Fatal: !!!UNEXPECTED LINKER BEHAVIOR!!!
+#END_TEST
+
+--- !ELF
+FileHeader:
+  Class:   ELFCLASS64
+  Data:    ELFDATA2LSB
+  Type:    ET_REL
+  Machine: EM_AARCH64
+Sections:
+  - Name:  .text
+    Type:  SHT_PROGBITS
+    Flags: [ SHF_ALLOC, SHF_EXECINSTR ]
+    Content: "00000000"
+  - Name:  .rela.text
+    Type:  SHT_RELA
+    Link:  .symtab
+    Info:  .text
+    Relocations:
+      - Offset: 0x0
+        Symbol: foo
+        Type:   0xFFFF  # Invalid/unsupported relocation type
+        Addend: 0
+Symbols:
+  - Name:    foo
+    Type:    STT_FUNC
+    Section: .text
+    Value:   0x0
+    Size:    4
