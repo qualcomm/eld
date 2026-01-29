@@ -726,6 +726,11 @@ bool AlignExpr::hasDot() const {
 void AlignOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   // format output for operator
   Outs << "ALIGNOF(" << Name << ")";
+  if (WithValues) {
+    Outs << "(0x";
+    Outs.write_hex(resultOrZero());
+    Outs << ")";
+  }
 }
 void AlignOf::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 
@@ -1448,6 +1453,11 @@ bool BitwiseAnd::hasDot() const {
 void Defined::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   // format output for operator
   Outs << "DEFINED(" << Name << ")";
+  if (WithValues) {
+    Outs << "(0x";
+    Outs.write_hex(resultOrZero());
+    Outs << ")";
+  }
 }
 eld::Expected<uint64_t> Defined::evalImpl() {
   if (MResult)
