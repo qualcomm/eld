@@ -95,6 +95,12 @@ bool GeneralOptions::addZOption(const ZOption &POption) {
   case ZOption::NoGnuStack:
     NoGnuStack = true;
     break;
+  case eld::ZOption::SeparateCode:
+    setSeparateSegmentKind(SeparateSegmentKind::Code);
+    break;
+  case eld::ZOption::NoSeparateCode:
+    setSeparateSegmentKind(SeparateSegmentKind::None);
+    break;
   case ZOption::Global:
     BGlobal = true;
     break;
