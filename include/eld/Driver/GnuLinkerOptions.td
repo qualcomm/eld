@@ -1071,10 +1071,11 @@ def flto_use_as : Flag<["-", "--"], "flto-use-as">,
 def save_temps : Flag<["-", "--"], "save-temps">,
                  HelpText<"Save the temporary files produced by LTO">,
                  Group<grp_ltooptions>;
-defm save_temps_EQ : smDashOnlyEq<"save-temps", "save_temps_EQ",
-                 "Save the temporary files produced by LTO">,
-                 MetaVarName<"<filename>">,
-                 Group<grp_ltooptions>;
+defm save_temps_EQ
+    : smDashOnlyEq<"save-temps", "save_temps_EQ",
+                   "Save the temporary files produced by LTO in the directory">,
+      MetaVarName<"<dir>">,
+      Group<grp_ltooptions>;
 def : F<"plugin-opt=save-temps">,
       Alias<save_temps>,
       HelpText<"Alias for --save-temps">;
@@ -1119,6 +1120,7 @@ def : F<"plugin-opt=disable-verify">,
 defm dwodir
     : smDash<"dwodir", "dwodir",
              "Directory to save .dwo files when split DWARF is used in LTO">,
+      MetaVarName<"<dir>">,
       Group<grp_ltooptions>;
 
 def lto_emit_asm : FF<"lto-emit-asm">,
@@ -1157,12 +1159,14 @@ def : J<"plugin-opt=jobs=">,
 
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
-            HelpText<"Optimization level for LTO">;
-def: J<"plugin-opt=O">, Alias<lto_O>, HelpText<"Alias for --lto-O">;
+            HelpText<"Optimization level for LTO">,
+            Group<grp_ltooptions>;
+def : J<"plugin-opt=O">, Alias<lto_O>, HelpText<"Alias for --lto-O">;
 
 defm lto_sample_profile
     : smDashOnlyEq<"lto-sample-profile", "lto_sample_profile",
                    "Sample PGO profile file to be loaded for LTO">,
+      MetaVarName<"<file>">,
       Group<grp_ltooptions>;
 
 defm plugin_opt_sample_profile

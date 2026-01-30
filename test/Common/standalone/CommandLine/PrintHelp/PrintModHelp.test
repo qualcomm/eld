@@ -55,7 +55,7 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   --exclude-lto-filelist=<list_of_files>
 #CHECK:   -flto-options=<option>
 #CHECK:   --include-lto-filelist=<list_of_files>
-#CHECK:   --save-temps=<filename>
+#CHECK:   --save-temps=<dir>
 #CHECK:   --enable-threads=<option>
 #CHECK:   --thread-count=<threadcount>
 #CHECK:   -Map=<filename>
