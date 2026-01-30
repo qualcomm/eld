@@ -186,6 +186,7 @@ const char *AArch64Relocator::getName(Relocator::Type pType) const {
 uint32_t AArch64Relocator::getNumRelocs() const { return AARCH64_MAXRELOCS; }
 
 Relocator::Size AArch64Relocator::getSize(Relocation::Type pType) const {
+  assert(ApplyFunctions.find(pType) != ApplyFunctions.end());
   return ApplyFunctions[pType].size;
 }
 
