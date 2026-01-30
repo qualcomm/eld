@@ -9,21 +9,21 @@ REQUIRES: symbol_versioning
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
 RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/vs.1.t
 RUN: %clang %clangopts -o %t1.main.1.o %p/Inputs/main.1.c -c
-RUN: %clang %clangopts -o %t1.main.1.out %t1.main.1.o %t1.lib1.so -Wl,-rpath=$(dirname %t1.lib1.so)
+RUN: %clang %clangopts -fuse-ld=%link -o %t1.main.1.out %t1.main.1.o %t1.lib1.so -Wl,-rpath=$(dirname %t1.lib1.so)
 RUN: %t1.main.1.out | %filecheck %s --check-prefix=CHECK1
 RUN: %clang %clangopts -o %t1.main.2.o %p/Inputs/main.2.c -c
-RUN: %clang %clangopts -o %t1.main.2.out %t1.main.2.o %t1.lib1.so -Wl,-rpath=$(dirname %t1.lib1.so)
+RUN: %clang %clangopts -fuse-ld=%link -o %t1.main.2.out %t1.main.2.o %t1.lib1.so -Wl,-rpath=$(dirname %t1.lib1.so)
 RUN: %t1.main.2.out | %filecheck %s --check-prefix=CHECK2
 RUN: %clang %clangopts -o %t1.main.3.o %p/Inputs/main.3.c -c
-RUN: %clang %clangopts -o %t1.main.3.out %t1.main.3.o %t1.lib1.so -Wl,-rpath=$(dirname %t1.lib1.so)
+RUN: %clang %clangopts -fuse-ld=%link -o %t1.main.3.out %t1.main.3.o %t1.lib1.so -Wl,-rpath=$(dirname %t1.lib1.so)
 RUN: %t1.main.3.out | %filecheck %s --check-prefix=CHECK3
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
 RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --version-script %p/Inputs/vs.1.t
-RUN: %clang %clangopts -o %t1.main.1.2.out %t1.main.1.o %t1.lib2.so -Wl,-rpath=$(dirname %t1.lib2.so)
+RUN: %clang %clangopts -fuse-ld=%link -o %t1.main.1.2.out %t1.main.1.o %t1.lib2.so -Wl,-rpath=$(dirname %t1.lib2.so)
 RUN: %t1.main.1.2.out | %filecheck %s --check-prefix=CHECK1
-RUN: %clang %clangopts -o %t1.main.2.2.out %t1.main.2.o %t1.lib2.so -Wl,-rpath=$(dirname %t1.lib2.so)
+RUN: %clang %clangopts -fuse-ld=%link -o %t1.main.2.2.out %t1.main.2.o %t1.lib2.so -Wl,-rpath=$(dirname %t1.lib2.so)
 RUN: %t1.main.2.2.out | %filecheck %s --check-prefix=CHECK2
-RUN: %clang %clangopts -o %t1.main.3.2.out %t1.main.3.o %t1.lib2.so -Wl,-rpath=$(dirname %t1.lib2.so)
+RUN: %clang %clangopts -fuse-ld=%link -o %t1.main.3.2.out %t1.main.3.o %t1.lib2.so -Wl,-rpath=$(dirname %t1.lib2.so)
 RUN: %t1.main.3.2.out | %filecheck %s --check-prefix=CHECK3
 #END_TEST
 
