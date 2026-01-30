@@ -694,7 +694,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
 
   std::optional<uint64_t> AddressOrOffset;
   bool HasFragInfo =
-      (M.isLinkStateCreatingSegments() || M.isLinkStateAfterLayout());
+      (M.getState() >= Module::LinkState::ActBeforePerformingLayout);
   if (llvm::isa<MergeStringFragment>(Frag) && !M.isLinkStateBeforeLayout()) {
     auto *Strings = llvm::cast<MergeStringFragment>(Frag);
     for (MergeableString *S : Strings->getStrings()) {
@@ -851,8 +851,8 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   const LayoutInfo::RemoveSymbolOpsMapT RemovedSymbols =
       ThisLayoutInfo->getRemovedSymbols();
 
-  bool HasFragOffsets = (CurModule.isLinkStateCreatingSegments() ||
-                         CurModule.isLinkStateAfterLayout());
+  bool HasFragOffsets =
+      (CurModule.getState() >= Module::LinkState::ActBeforePerformingLayout);
 
   for (Syms = FragmentInfo->Symbols.begin(); Syms != EndSymbols; ++Syms) {
     // Handle weak symbols.
