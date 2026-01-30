@@ -202,7 +202,8 @@ jobs:
       - name: Get QEMU
         run: |
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
-            git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
+            # git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
+            git clone --depth 1 --branch hexagon-sysemu-11-nov-2025 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
             QEMU_INSTALL=${{ github.workspace }}/install-qemu-system-hexagon/
             cd ${{ github.workspace }}/qemu-system-hexagon
             ./configure --target-list=hexagon-softmmu --prefix=$QEMU_INSTALL
