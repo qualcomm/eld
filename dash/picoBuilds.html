@@ -9,6 +9,7 @@
             <th>Date</th>
             <th>Build ID</th>
             <th>Architecture</th>
+            <th>Branch</th>
             <th>Status</th>
         </tr>
     </thead>
@@ -26,6 +27,11 @@
             newRow += "<td></td>";
         else
             newRow += "<td>" + arch + "</td>";
+        let branch = rowData.branch;
+        if (branch == null)
+            newRow += "<td></td>";
+        else
+            newRow += "<td>" + branch + "</td>";
         let build_state = rowData.state.toUpperCase();
         if (build_state == "PASS")
             newRow += "<td style='display: inline-block; background-color: lightgreen; border-radius: 15px'>" + rowData.state.toUpperCase() + "</td>";
