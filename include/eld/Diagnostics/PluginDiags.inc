@@ -75,3 +75,4 @@ DIAG(error_empty_rule, DiagnosticEngine::Error,
      "Empty eld::plugin::LinkerScriptRule object")
 DIAG(error_empty_section, DiagnosticEngine::Error,
      "Empty eld::plugin::Section object")
+DIAG(error_empty_object, DiagnosticEngine::Error, "Empty object")
