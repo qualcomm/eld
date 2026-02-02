@@ -808,6 +808,13 @@ void AArch64GNUInfoLDBackend::recordPLT(ResolveInfo *I, AArch64PLT *P) {
   m_PLTMap[I] = P;
 }
 
+Relocation *AArch64GNUInfoLDBackend::findRelativeReloc(const Relocation *pReloc) const {
+  auto Entry = m_RelativeRelocMap.find(pReloc);
+  if (Entry == m_RelativeRelocMap.end())
+    return nullptr;
+  return Entry->second;
+}
+
 Stub *AArch64GNUInfoLDBackend::getBranchIslandStub(Relocation *pReloc,
                                                    int64_t targetValue) const {
   (void)pReloc;

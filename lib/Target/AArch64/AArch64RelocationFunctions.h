@@ -171,6 +171,7 @@
       ValueType(0x234, MappedType(&tls_tlsdesc_add,                            \
                                   "R_AARCH64_TLSDESC_ADD_LO12", 32)),          \
       ValueType(0x239, MappedType(&tls_call, "R_AARCH64_TLSDESC_CALL", 32)),   \
+      ValueType(0x244, MappedType(&abs, "R_AARCH64_AUTH_ABS64", 64)),          \
       ValueType(1024, MappedType(&unsupport, "R_AARCH64_COPY")),               \
       ValueType(1025, MappedType(&unsupport, "R_AARCH64_GLOB_DAT")),           \
       ValueType(1026, MappedType(&unsupport, "R_AARCH64_JUMP_SLOT")),          \
@@ -180,6 +181,7 @@
       ValueType(1030, MappedType(&unsupport, "R_AARCH64_TLS_TPREL64")),        \
       ValueType(1031, MappedType(&unsupport, "R_AARCH64_TLSDESC")),            \
       ValueType(1032, MappedType(&unsupport, "R_AARCH64_IRELATIVE")),          \
-      ValueType(1033, MappedType(&copyInstruction, "R_AARCH64_COPY_INSN", 32))
+      ValueType(1033, MappedType(&copyInstruction, "R_AARCH64_COPY_INSN", 32)),\
+      ValueType(0x411, MappedType(&unsupport, "R_AARCH64_AUTH_RELATIVE"))
 
 #define AARCH64_MAXRELOCS (R_AARCH64_COPY_INSN + 1)

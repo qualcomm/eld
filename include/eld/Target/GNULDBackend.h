@@ -660,7 +660,7 @@ public:
   virtual LDSymbol *getGOTSymbol() const { return m_pGOTSymbol; }
 
   void recordRelativeReloc(Relocation *R, const Relocation *N) {
-    m_RelativeRelocMap[R] = N;
+    m_RelativeRelocMap[N] = R;
   }
 
   // Patching sections.
@@ -1159,7 +1159,7 @@ protected:
   // Dynamic linking
   ELFObjectFile *m_DynamicSectionHeadersInputFile = nullptr;
   LDSymbol *m_pGOTSymbol = nullptr;
-  llvm::DenseMap<Relocation *, const Relocation *> m_RelativeRelocMap;
+  llvm::DenseMap<const Relocation *, Relocation *> m_RelativeRelocMap;
 
   // Patching.
   llvm::DenseMap<ResolveInfo *, const ResolveInfo *> m_AbsolutePLTMap;
