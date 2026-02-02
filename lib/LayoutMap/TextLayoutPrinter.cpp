@@ -238,24 +238,6 @@ void TextLayoutPrinter::printMemoryRegions(GNULDBackend const &Backend,
   outputStream() << "]";
 }
 
-std::optional<std::string>
-TextLayoutPrinter::getPluginSectionAnnotations(const ELFSection *S) const {
-  if (!S || !ThisLayoutInfo)
-    return {};
-  llvm::SmallVector<std::string, 4> Annotations;
-  for (auto &[_, Ops] : ThisLayoutInfo->getPluginOps()) {
-    for (auto *Op : Ops) {
-      auto *UR = llvm::dyn_cast_or_null<UpdateRulePluginOp>(Op);
-      if (!UR || UR->getSection() != S)
-        continue;
-      Annotations.push_back(Op->getAnnotation());
-    }
-  }
-  if (Annotations.empty())
-    return {};
-  return llvm::join(Annotations, ", ");
-}
-
 // Print section information like name, address, offset, size, alignment,
 // etc. based on the section type.
 void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
@@ -661,7 +643,6 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
   bool GC = Frag->getOwningSection()->isIgnore();
   uint32_t Alignment = Frag->alignment();
   const GeneralOptions &Options = ThisLayoutInfo->getConfig().options();
-  const auto SectionAnnotations = getPluginSectionAnnotations(Info->section());
   auto PrintOneFragOrString =
       [&, this](uint32_t Size, std::optional<uint64_t> AddressOrOffset) {
         if (GC && !Onlylayout)
@@ -684,8 +665,10 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
         outputStream() << Type << "," << Permissions << "," << Alignment;
         if (Info->section()->hasOldInputFile())
           outputStream() << "," << Info->getResolvedPath();
-        if (SectionAnnotations && !SectionAnnotations->empty())
-          outputStream() << ", Annotations: " << *SectionAnnotations;
+        if (Info->section()->hasAnnotations()) {
+          outputStream() << ", Annotations: "
+                         << Info->section()->getSectionAnnotations();
+        }
         if (!Onlylayout) {
           printChangeOutputSectionInfo(Info->section());
           printChunkOps(M, Frag);

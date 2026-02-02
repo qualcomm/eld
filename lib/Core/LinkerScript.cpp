@@ -338,6 +338,7 @@ void LinkerScript::updateRuleOp(plugin::LinkerWrapper *W, eld::Module *M,
                                 RuleContainer *R, ELFSection *S,
                                 const std::string &Annotation) {
   UpdateRulePluginOp *Op = eld::make<UpdateRulePluginOp>(W, R, S, Annotation);
+  S->addSectionAnnotation(Annotation);
   S->setOutputSection(R->getSection()->getOutputSection());
   S->setMatchedLinkerScriptRule(R);
   R->incMatchCount();
