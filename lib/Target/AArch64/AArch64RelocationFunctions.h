@@ -128,7 +128,7 @@
                 MappedType(&ld64_got_lo12, "R_AARCH64_LD64_GOT_LO12_NC", 32)), \
       ValueType(0x139,                                                         \
                 MappedType(&ld64_gotpage_lo15,                                 \
-			   "R_AARCH64_LD64_GOTPAGE_LO15", 32)),                \
+                           "R_AARCH64_LD64_GOTPAGE_LO15", 32)),                \
       ValueType(0x13a,                                                         \
                 MappedType(&unsupport, "R_AARCH64_PLT32", 32)),                \
       ValueType(0x13b,                                                         \
@@ -272,6 +272,59 @@
       ValueType(1030, MappedType(&unsupport, "R_AARCH64_TLS_TPREL64")),        \
       ValueType(1031, MappedType(&unsupport, "R_AARCH64_TLSDESC")),            \
       ValueType(1032, MappedType(&unsupport, "R_AARCH64_IRELATIVE")),          \
+      ValueType(0x244, MappedType(&abs, "R_AARCH64_AUTH_ABS64", 64)),          \
+      ValueType(0x245,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_MOVW_GOTOFF_G0", 32)),  \
+      ValueType(0x246,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_MOVW_GOTOFF_G0_NC", 32)),           \
+      ValueType(0x247,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_MOVW_GOTOFF_G1", 32)),  \
+      ValueType(0x248,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_MOVW_GOTOFF_G1_NC", 32)),           \
+      ValueType(0x249,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_MOVW_GOTOFF_G2", 32)),  \
+      ValueType(0x24a,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_MOVW_GOTOFF_G2_NC", 32)),           \
+      ValueType(0x24b,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_MOVW_GOTOFF_G3", 32)),  \
+      ValueType(0x24c,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_GOT_LD_PREL19", 32)),   \
+      ValueType(0x24d,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_LD64_GOTOFF_LO15", 32)),            \
+      ValueType(0x24e,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_ADR_GOT_PAGE", 32)),    \
+      ValueType(0x24f,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_LD64_GOT_LO12_NC", 32)),            \
+      ValueType(0x250,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_LD64_GOTPAGE_LO15", 32)),           \
+      ValueType(0x251,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_GOT_ADD_LO12_NC", 32)), \
+      ValueType(0x252,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_GOT_ADR_PREL_LO21", 32)),           \
+      ValueType(0x253,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_TLSDESC_ADR_PAGE21", 32)),          \
+      ValueType(0x254,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_TLSDESC_LD64_LO12", 32)),           \
+      ValueType(0x255,                                                         \
+                MappedType(&unsupport,                                         \
+                           "R_AARCH64_AUTH_TLSDESC_ADD_LO12", 32)),            \
+      ValueType(0x411,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_RELATIVE")),            \
+      ValueType(0x412,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_GLOB_DAT")),            \
+      ValueType(0x413,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_TLSDESC")),             \
+      ValueType(0x414,                                                         \
+                MappedType(&unsupport, "R_AARCH64_AUTH_IRELATIVE")),           \
       ValueType(1033, MappedType(&copyInstruction, "R_AARCH64_COPY_INSN", 32))
 
 #define AARCH64_MAXRELOCS (R_AARCH64_COPY_INSN + 1)

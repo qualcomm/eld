@@ -31,7 +31,8 @@ void AArch64ELFDynamic::reserveTargetEntries() {
 void AArch64ELFDynamic::applyTargetEntries() {
   uint32_t relaCount = 0;
   for (auto &R : m_Backend.getRelaDyn()->getRelocations()) {
-    if (R->type() == llvm::ELF::R_AARCH64_RELATIVE)
+    if (R->type() == llvm::ELF::R_AARCH64_RELATIVE ||
+        R->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)
       relaCount++;
   }
   applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
