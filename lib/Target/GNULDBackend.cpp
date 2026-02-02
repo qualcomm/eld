@@ -4674,8 +4674,8 @@ void GNULDBackend::doPostLayout() {
     eld::RegisterTimer T("Update Relative Relocations", "Do Post Layout",
                          m_Module.getConfig().options().printTimingStats());
     for (auto &r : m_RelativeRelocMap) {
-      Relocation *R = r.first;
-      const Relocation *N = r.second;
+      const Relocation *N = r.first;
+      Relocation *R = r.second;
       R->modifyRelocationFragmentRef(N->targetFragRef());
       R->setAddend(N->addend());
     }

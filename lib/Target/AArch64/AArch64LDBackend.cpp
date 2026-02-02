@@ -773,8 +773,12 @@ void AArch64LDBackend::recordPLT(ResolveInfo *I, AArch64PLT *P) {
   m_PLTMap[I] = P;
 }
 
+Relocation *AArch64LDBackend::findRelativeReloc(const Relocation *pReloc) const {
+  return m_RelativeRelocMap.lookup(pReloc);
+}
+
 Stub *AArch64LDBackend::getBranchIslandStub(Relocation *pReloc,
-                                                   int64_t targetValue) const {
+                                            int64_t targetValue) const {
   (void)pReloc;
   (void)targetValue;
   return *getStubFactory()->getAllStubs().cbegin();

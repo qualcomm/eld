@@ -110,6 +110,8 @@ public:
       return false;
     if (X->type() == llvm::ELF::R_AARCH64_RELATIVE)
       return false;
+    if (X->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)
+      return false;
     if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
       return false;
     return true;
@@ -123,6 +125,8 @@ public:
     if (X->type() == llvm::ELF::R_AARCH64_ABS64)
       return DynRelocType::WORD_DEPOSIT;
     if (X->type() == llvm::ELF::R_AARCH64_RELATIVE)
+      return DynRelocType::RELATIVE;
+    if (X->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)
       return DynRelocType::RELATIVE;
     if (X->type() == llvm::ELF::R_AARCH64_IRELATIVE)
       return DynRelocType::RELATIVE;
@@ -138,6 +142,8 @@ public:
     }
     return DynRelocType::DEFAULT;
   }
+
+  Relocation *findRelativeReloc(const Relocation *pReloc) const;
 
   Stub *getBranchIslandStub(Relocation *pReloc,
                             int64_t targetValue) const override;
