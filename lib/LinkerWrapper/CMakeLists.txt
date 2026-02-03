@@ -109,7 +109,7 @@ endforeach()
 # library is one of the dependent libraries of the linker.
 if(ELD_ON_MSVC)
   install(TARGETS LW
-    RUNTIME DESTINATION "${ELD_TOOLS_INSTALL_DIR}"
+    RUNTIME DESTINATION bin
     ARCHIVE DESTINATION lib)
 else()
   install(TARGETS LW LIBRARY DESTINATION lib)
