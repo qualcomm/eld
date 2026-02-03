@@ -7,7 +7,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PluginAPI/PluginBase.h.inc
 install(
   DIRECTORY PluginAPI/
   DESTINATION include/ELD/PluginAPI/
-  COMPONENT PluginAPIHeaders
+  COMPONENT ld.eld
   FILES_MATCHING
   PATTERN "*.h"
   PATTERN "PluginConfig.h" EXCLUDE
@@ -17,4 +17,4 @@ install(
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/PluginAPI/PluginBase.h
   DESTINATION include/ELD/PluginAPI/
-  COMPONENT PluginAPIHeaders)
+  COMPONENT ld.eld)
