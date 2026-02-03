@@ -470,7 +470,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
   bool HasSectionsCommand =
       ThisModule.getScript().linkerScriptHasSectionsCommand();
 
-  ThisModule.setLinkState(Module::LinkState::BeforeLayout);
+  ThisModule.setLinkState(LinkState::BeforeLayout);
 
   std::sort(Inputs.begin(), Inputs.end(), [](InputFile *A, InputFile *B) {
     return A->getNumSections() > B->getNumSections();

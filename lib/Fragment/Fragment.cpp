@@ -150,3 +150,12 @@ bool Fragment::originatesFromPlugin(const Module &Module) const {
   return getOwningSection()->getInputFile() ==
          Module.getInternalInput(Module::InternalInputType::Plugin);
 }
+
+std::string Fragment::str(const GeneralOptions &Options) const {
+  ELFSection *S = getOwningSection();
+  if (!S)
+    return "";
+  InputFile *IF = S->originalInput();
+  ASSERT(IF, "Input section must have an InputFile!");
+  return IF->getInput()->decoratedPath() + "(" + S->getDecoratedName(Options) + ")";
+}
