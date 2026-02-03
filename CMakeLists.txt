@@ -185,10 +185,6 @@ include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 link_directories("${PATH_TO_LLVM_BUILD}/lib")
 
-set(ENABLE_ELD_PLUGIN_SUPPORT
-    ON
-    CACHE BOOL ON FORCE)
-
 add_subdirectory(include)
 
 # After the driver option TableGen targets are created in include/eld/Driver,
