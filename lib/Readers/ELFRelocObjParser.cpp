@@ -95,6 +95,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
   if (m_Module.getPrinter()->traceFiles())
     config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
   ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(inputFile);
+  llvm::SmallVector<MergeStringFragment *, 0> mergeStrFragments;
 
   // FIXME: We create section headers (ELFSection) for each section header.
   // We do not need to create section header for group sections that are to
@@ -158,9 +159,12 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
       }
     } break;
     case LDFileFormat::MergeStr: {
-      eld::Expected<bool> expReadMergeStrSect =
-          readMergeStrSection(ELFReader, S);
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadMergeStrSect);
+      if (S->isCompressed())
+        if (!ELFReader.readCompressedSection(S))
+          return std::make_unique<plugin::DiagnosticEntry>(
+              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
+                                      {S->name().str()}));
+      addMergeStringSection(S, mergeStrFragments);
     } break;
     case LDFileFormat::Debug: {
       eld::Expected<bool> expReadDebugSect = readDebugSection(ELFReader, S);
@@ -209,6 +213,10 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
           << ELFSection::getELFPermissionsStr(S->getFlags());
   }
   EObj->populateDebugSections();
+
+  auto expReadMergeStrings =
+      readMergeStringSections(config, m_Module, *inputFile, mergeStrFragments);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadMergeStrings);
   return true;
 }
 
@@ -310,6 +318,7 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
 
   bool isPostLTOPhase = m_Module.isPostLTOPhase();
   ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(inputFile);
+
   if (isPostLTOPhase && alreadyExist && EObj->isLTOObject()) {
     InputFile &oldInput = *(signatureInfo->getInfo()->resolvedOrigin());
     // FIXME: Shouldn't oldInput.isBitcode() be an assert instead?
@@ -354,33 +363,6 @@ ELFRelocObjParser::readGroupSection(ELFReaderBase &ELFReader, ELFSection *S) {
     EObj->addSectionGroup(S);
   }
 
-  return true;
-}
-
-eld::Expected<bool>
-ELFRelocObjParser::readMergeStrSection(ELFReaderBase &ELFReader,
-                                       ELFSection *S) {
-  if (S->isCompressed()) {
-    eld::Expected<bool> expReadCompressedSection =
-        ELFReader.readCompressedSection(S);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
-    if (!expReadCompressedSection.value())
-      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          Diag::err_cannot_read_section, {S->name().str()}));
-  }
-
-  LinkerConfig &config = m_Module.getConfig();
-  if (config.options().stripDebug() && (S->name().find(".debug") == 0)) {
-    S->setKind(LDFileFormat::Ignore);
-  } else {
-    eld::Expected<bool> expReadMergeStringSection =
-        ELFReader.readMergeStringSection(S);
-    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadMergeStringSection);
-    if (!expReadMergeStringSection.value()) {
-      return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
-          Diag::err_cannot_read_section, {S->name().str()}));
-    }
-  }
   return true;
 }
 

@@ -36,6 +36,12 @@ LDFileFormat::Kind LDFileFormat::getELFSectionKind(
   bool IsSectionMergeStrings =
       ((Flags & (llvm::ELF::SHF_MERGE)) && (Flags & (llvm::ELF::SHF_STRINGS)));
 
+  if (Config.options().stripDebug()) {
+    if (Name.starts_with(".debug") || Name.starts_with(".zdebug") ||
+        Name.starts_with(".line") || Name.starts_with(".stab"))
+      return LDFileFormat::Ignore;
+  }
+
   if (IsSectionMergeStrings && AddrAlign == 1 && EntSize == 1 && !IsPartialLink)
     return LDFileFormat::MergeStr;
 
@@ -44,6 +50,10 @@ LDFileFormat::Kind LDFileFormat::getELFSectionKind(
       return LDFileFormat::MergeStr;
   }
 
+  if (Name.starts_with(".debug") || Name.starts_with(".zdebug") ||
+      Name.starts_with(".line") || Name.starts_with(".stab"))
+    return LDFileFormat::Debug;
+
   if (Name == ".note.gnu.property")
     return LDFileFormat::GNUProperty;
   if (Name == ".hexagon.attributes")
@@ -51,9 +61,6 @@ LDFileFormat::Kind LDFileFormat::getELFSectionKind(
 
   if (Name.starts_with(".note.qc.timing"))
     return LDFileFormat::Timing;
-  if (Name.starts_with(".debug") || Name.starts_with(".zdebug") ||
-      Name.starts_with(".line") || Name.starts_with(".stab"))
-    return LDFileFormat::Debug;
   if (Name.starts_with(".comment"))
     return LDFileFormat::MetaData;
   if (Name.starts_with(".interp") || Name.starts_with(".dynamic"))

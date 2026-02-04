@@ -1,0 +1,12 @@
+# REQUIRES: zlib
+## Checks that compressed merge string sections can be read.
+
+RUN: split-file %s %t
+RUN: %clang %clangopts -c -g -gz %t/compressed.c -o %t.o
+RUN: %link %linkopts %t.o -o %t.out --verbose 2>&1 | %filecheck %s
+
+CHECK: Reading compressed section .debug_str
+CHECK: created mergeable string
+
+#--- compressed.c
+int foo() { return 0; }

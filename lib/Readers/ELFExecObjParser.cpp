@@ -89,6 +89,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     config.raise(Diag::trace_file) << inputFile->getInput()->decoratedPath();
 
   ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(inputFile);
+  llvm::SmallVector<MergeStringFragment *, 0> mergeStrFragments;
   // handle sections
   for (Section *sect : ObjFile->getSections()) {
     if (!sect)
@@ -147,24 +148,12 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
     }
     case LDFileFormat::MergeStr: {
       if (S->isCompressed()) {
-        eld::Expected<bool> expReadCompressedSection =
-            ELFReader.readCompressedSection(S);
-        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadCompressedSection);
-        if (!expReadCompressedSection.value())
+        if (!ELFReader.readCompressedSection(S))
           return std::make_unique<plugin::DiagnosticEntry>(
               plugin::DiagnosticEntry(Diag::err_cannot_read_section,
                                       {S->name().str()}));
       }
-      if (config.options().stripDebug() && (S->name().find(".debug") == 0))
-        S->setKind(LDFileFormat::Ignore);
-      else {
-        eld::Expected<bool> expReadMergeStringSect =
-            ELFReader.readMergeStringSection(S);
-        if (!expReadMergeStringSect.value())
-          return std::make_unique<plugin::DiagnosticEntry>(
-              plugin::DiagnosticEntry(Diag::err_cannot_read_section,
-                                      {S->name().str()}));
-      }
+      addMergeStringSection(S, mergeStrFragments);
       break;
     }
 
@@ -235,6 +224,9 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
           << utility::toHex(S->getAddrAlign()) << utility::toHex(S->size())
           << ELFSection::getELFPermissionsStr(S->getFlags());
   } // end of for all sections
+  auto expReadMergeStrings =
+      readMergeStringSections(config, m_Module, *inputFile, mergeStrFragments);
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadMergeStrings);
   return {};
 }
 
