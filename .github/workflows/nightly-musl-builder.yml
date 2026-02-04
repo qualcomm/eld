@@ -22,6 +22,9 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
+      - name: Configure workflow environment variables
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
@@ -34,7 +37,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: "x86-64"
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{env.BUILD_BRANCH}}"
 
       - name: Install dependencies
         shell: bash
@@ -111,7 +114,7 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: "x86-64"
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{env.BUILD_BRANCH}}"
 
   test-musl:
     strategy:
@@ -127,6 +130,9 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
+      - name: Configure workflow environment variables
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
@@ -139,7 +145,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch }}
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{env.BUILD_BRANCH}}"
 
       - uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
@@ -216,4 +222,4 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch }}
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{env.BUILD_BRANCH}}"

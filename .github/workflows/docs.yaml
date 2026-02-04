@@ -26,6 +26,9 @@ jobs:
           path: llvm-project/llvm/tools/eld
           ref: main
 
+      - name: Configure workflow environment variables
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
@@ -38,7 +41,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: "all"
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{env.BUILD_BRANCH}}"
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -93,4 +96,4 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: "all"
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{env.BUILD_BRANCH}}"

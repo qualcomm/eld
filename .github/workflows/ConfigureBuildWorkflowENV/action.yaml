@@ -1,0 +1,12 @@
+name: 'Configure GITHUB_ENV For Build Workflows'
+description: 'Configures custom variables in GITHUB_ENV to be used across workflows'
+
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        # Append Custom Variables to GITHUB_ENV
+        # Access using env scope.
+        echo "Configuring GITHUB_ENV with custom variables"
+        echo "BUILD_BRANCH=main" >> $GITHUB_ENV
+      shell: bash
