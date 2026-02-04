@@ -10,6 +10,8 @@
 #include "eld/Core/Module.h"
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Readers/ELFSection.h"
+#include "llvm/ADT/Sequence.h"
+#include "llvm/Support/Parallel.h"
 
 using namespace eld;
 
@@ -119,4 +121,49 @@ void MergeStringFragment::assignOutputOffsets() {
 
 bool MergeableString::isAlloc() const {
   return Fragment->getOwningSection()->isAlloc();
+}
+
+void eld::addMergeStringSection(
+    ELFSection *sec, llvm::SmallVectorImpl<MergeStringFragment *> &fragments) {
+  if (sec->getContents().empty())
+    return;
+  fragments.push_back(make<MergeStringFragment>(sec));
+}
+
+Expected<void> eld::readMergeStringSections(
+    LinkerConfig &cfg, Module &m, InputFile &file,
+    llvm::SmallVectorImpl<MergeStringFragment *> &fragments) {
+  if (fragments.empty())
+    return {};
+
+  llvm::SmallVector<uint8_t, 0> readStatus(fragments.size(), 1);
+  auto readOne = [&](size_t i) {
+    readStatus[i] = fragments[i]->readStrings(cfg);
+  };
+
+  const bool useThreads = cfg.useThreads();
+  if (useThreads && fragments.size() > 1) {
+    llvm::parallelFor(0, fragments.size(), readOne);
+  } else {
+    for (auto i : llvm::seq<size_t>(0, fragments.size()))
+      readOne(i);
+  }
+
+  for (auto [i, frag] : llvm::enumerate(fragments)) {
+    if (readStatus[i])
+      continue;
+    auto *s = frag->getOwningSection();
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::err_cannot_read_section, {s->name().str()}));
+  }
+
+  auto *layoutInfo = m.getLayoutInfo();
+  for (auto *frag : fragments) {
+    auto *s = frag->getOwningSection();
+    s->addFragment(frag);
+    if (layoutInfo)
+      layoutInfo->recordFragment(&file, s, frag);
+  }
+
+  return {};
 }
