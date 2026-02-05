@@ -590,12 +590,7 @@ size_t LinkerWrapper::getPluginThreadCount() const {
 
 bool LinkerWrapper::isMultiThreaded() const {
   const eld::LinkerConfig &Config = m_Module.getConfig();
-  if (Config.options().threadsEnabled()) {
-    uint32_t NumThreads = Config.options().numThreads();
-    if (NumThreads > 1)
-      return true;
-  }
-  return false;
+  return Config.useThreads();
 }
 
 plugin::LinkerScript LinkerWrapper::getLinkerScript() {

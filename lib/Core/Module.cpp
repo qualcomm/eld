@@ -35,6 +35,7 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Parallel.h"
 #include "llvm/Support/StringSaver.h"
 #include "llvm/Support/ThreadPool.h"
 
@@ -51,6 +52,7 @@ Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
                                         Config.options().printTimingStats()),
       SymbolNamePool(Config, PM) {
   State = LinkState::Initializing;
+  initThreading();
   if (Config.options().isLTOCacheEnabled())
     UserLinkerScript.setHashingEnabled();
   UserLinkerScript.createSectionMap(CurScript, Config, LayoutInfo);
@@ -831,9 +833,15 @@ void Module::addReferencedSymbol(Section &RefencingSection,
 llvm::ThreadPoolInterface *Module::getThreadPool() {
   if (LinkerThreadPool)
     return LinkerThreadPool;
-  LinkerThreadPool = eld::make<llvm::StdThreadPool>(
-      llvm::hardware_concurrency(ThisConfig.options().numThreads()));
+  LinkerThreadPool = eld::make<llvm::StdThreadPool>(ThreadingStrategy);
   return LinkerThreadPool;
+}
+
+void Module::initThreading() {
+  unsigned NumThreads =
+      ThisConfig.useThreads() ? ThisConfig.options().numThreads() : 1;
+  ThreadingStrategy = llvm::hardware_concurrency(NumThreads);
+  llvm::parallel::strategy = ThreadingStrategy;
 }
 
 bool Module::verifyInvariantsForCreatingSectionsState() const {
