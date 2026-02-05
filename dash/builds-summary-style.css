@@ -9,6 +9,11 @@
   cursor: pointer;
 }
 
+#content-div {
+  overflow-y: auto;
+  height: 80vh;
+}
+
 .status {
   width: 25px;
   height: 25px;
@@ -31,10 +36,11 @@
 
 .flex-parent {
   display: flex;
+  flex-wrap: wrap;
 }
 
 .flex-child {
-  flex: 1;
+  flex: auto;
 }
 
 .footer {
