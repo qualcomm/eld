@@ -92,7 +92,9 @@ SECTIONS
    /* Picolibc uses __tdata_* symbols to locate TLS template */
    __tdata_source = .;
    __tdata_start = __tdata_source;
-   *(.tdata .tdata.* *.gnu.linkonce.td.*) }
+   *(.tdata .tdata.* *.gnu.linkonce.td.*)
+   . = ALIGN(8);
+   }
    _TLS_DATA_END_ = .;
    __tdata_end = _TLS_DATA_END_;
    __tdata_size = __tdata_end - __tdata_source;
@@ -100,10 +102,12 @@ SECTIONS
    /* TLS Uninitialized BSS */
   .tbss		  :  { 
    __tbss_start = .;
-   *(.tbss .tbss.* .gnu.linkonce.tb.*)  }
-  _TLS_END_  = . + SIZEOF(.tbss);
+   *(.tbss .tbss.* .gnu.linkonce.tb.*)
+   . = ALIGN(8);
+  __tbss_end = .;
+   }
+  _TLS_END_  = __tbss_end;
   TLS_END = _TLS_END_;
-  __tbss_end = _TLS_END_;
   __tbss_size = __tbss_end - __tbss_start;
   __tbss_offset = __tbss_start - __tdata_start;
 
@@ -116,6 +120,7 @@ SECTIONS
   . += __tls_space_size;
   }
 
+  . = ALIGN(4K);
   .data           :
   {
     *(.data.hot .data.hot.* .gnu.linkonce.d.hot.*)
