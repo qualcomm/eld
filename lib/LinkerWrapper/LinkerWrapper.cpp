@@ -979,7 +979,8 @@ bool LinkerWrapper::isVerbose() const {
 
 eld::Expected<std::vector<plugin::OutputSection>>
 LinkerWrapper::getAllOutputSections() const {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "Initializing", "CreatingSections",
+                   "CreatingSegments", "AfterLayout");
 
   SectionMap sectMap = m_Module.getScript().sectionMap();
   std::vector<plugin::OutputSection> outputSects;
