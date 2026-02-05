@@ -271,14 +271,93 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
   SectionMap &SectionMap = ThisModule.getScript().sectionMap();
   ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
   std::vector<Section *> Sections = getInputSectionsForRuleMatching(ObjFile);
+
+  struct SectionMatchData {
+    Section *Section = nullptr;
+    ELFSection *ELFSect = nullptr;
+    InputFile *Input = nullptr;
+    bool IsCommonSection = false;
+    bool IsArchive = false;
+    bool IsMergeStr = false;
+    bool IsWritable = false;
+    std::string SectName;
+    uint64_t InputSectionHash = 0;
+    uint64_t InputFileHash = 0;
+    uint64_t NameHash = 0;
+    std::string PInputFile;
+    std::string Name;
+  };
+
+  std::vector<SectionMatchData> MatchData;
+  MatchData.reserve(Sections.size());
+
+  auto ensurePatternMapInitialized = [&](InputFile *Input) {
+    auto *InputImpl = Input->getInput();
+    if (InputImpl->isPatternMapInitialized())
+      return;
+    std::lock_guard<std::mutex> Guard(Mutex);
+    if (!InputImpl->isPatternMapInitialized())
+      InputImpl->resize(ThisModule.getScript().getNumWildCardPatterns());
+  };
+
+  for (Section *Section : Sections) {
+    SectionMatchData Data;
+    Data.Section = Section;
+    Data.ELFSect = llvm::dyn_cast<eld::ELFSection>(Section);
+
+    if (IsPartialLink && Data.ELFSect && Data.ELFSect->isMergeStr() &&
+        !LinkerScriptHasSectionsCommand)
+      continue;
+
+    InputFile *Input = Obj;
+    bool IsCommonSection = false;
+    if (CommonELFSection *CommonSection =
+            llvm::dyn_cast<CommonELFSection>(Section)) {
+      Input = CommonSection->getOrigin();
+      IsCommonSection = true;
+    }
+    if (Section->getOldInputFile())
+      Input = Section->getOldInputFile();
+
+    ensurePatternMapInitialized(Input);
+
+    Data.Input = Input;
+    Data.IsCommonSection = IsCommonSection;
+
+    auto *InputImpl = Input->getInput();
+    Data.PInputFile = InputImpl->getResolvedPath().native();
+    Data.Name = InputImpl->getName();
+    Data.InputFileHash = InputImpl->getResolvedPathHash();
+    Data.NameHash = InputImpl->getArchiveMemberNameHash();
+    Data.IsArchive = Input->isArchive() ||
+                     llvm::dyn_cast<eld::ArchiveMemberInput>(InputImpl);
+
+    Data.SectName = Section->name().str();
+    Data.InputSectionHash = Section->sectionNameHash();
+    if (Data.ELFSect) {
+      if (auto OptRThisSectionName =
+              ObjFile->getRuleMatchingSectName(Data.ELFSect->getIndex())) {
+        Data.SectName = OptRThisSectionName.value();
+        Data.InputSectionHash = llvm::hash_combine(Data.SectName);
+      }
+    }
+
+    Data.IsMergeStr = Data.ELFSect && Data.ELFSect->isMergeStr();
+    Data.IsWritable = Data.ELFSect && Data.ELFSect->isWritable();
+
+    MatchData.emplace_back(std::move(Data));
+  }
+
   // For all output sections.
   for (auto *Out : SectionMap) {
     // For each input rule.
     for (auto *In : *Out) {
+      bool RuleRequiresArchive = In->spec().isArchive();
       auto Start = std::chrono::system_clock::now();
       // For each input section.
-      for (Section *Section : Sections) {
-        ELFSection *ELFSect = llvm::dyn_cast<eld::ELFSection>(Section);
+      for (SectionMatchData &Data : MatchData) {
+        Section *Section = Data.Section;
+        ELFSection *ELFSect = Data.ELFSect;
 
         bool IsRetrySect = false;
 
@@ -300,55 +379,27 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
           case OutputSectDesc::NO_CONSTRAINT:
             break;
           case OutputSectDesc::ONLY_IF_RO:
-            if (ELFSect->isWritable())
+            if (Data.IsWritable)
               continue;
             break;
           case OutputSectDesc::ONLY_IF_RW:
-            if (!ELFSect->isWritable())
+            if (!Data.IsWritable)
               continue;
             break;
           }
         }
-        // Skip sections with merge strings and if there is no linker scripts
-        // provided.
-        if (IsPartialLink && (ELFSect && ELFSect->isMergeStr()) &&
-            !LinkerScriptHasSectionsCommand)
+
+        // Fast-path: if the rule is restricted to archive inputs but the
+        // current section comes from a non-archive file, skip without
+        // invoking the full matcher.
+        if (RuleRequiresArchive && !Data.IsArchive) {
           continue;
-        InputFile *Input = Obj;
-        bool IsCommonSection = false;
-        if (CommonELFSection *CommonSection =
-                llvm::dyn_cast<CommonELFSection>(Section)) {
-          Input = CommonSection->getOrigin();
-          IsCommonSection = true;
         }
-        if (Section->getOldInputFile())
-          Input = Section->getOldInputFile();
-        std::string const &PInputFile =
-            Input->getInput()->getResolvedPath().native();
-        std::string const &Name = Input->getInput()->getName();
-        bool IsArchive =
-            Input->isArchive() ||
-            llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
-        if (!Input->getInput()->isPatternMapInitialized()) {
-          std::lock_guard<std::mutex> Guard(Mutex);
-          Input->getInput()->resize(
-              ThisModule.getScript().getNumWildCardPatterns());
-        }
-        // Hash of all the required things for Match.
-        uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
-        uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
-        std::string SectName = Section->name().str();
-        uint64_t InputSectionHash = Section->sectionNameHash();
-        if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(Section)) {
-          if (auto OptRThisSectionName =
-                  ObjFile->getRuleMatchingSectName(ELFSect->getIndex())) {
-            SectName = OptRThisSectionName.value();
-            InputSectionHash = llvm::hash_combine(SectName);
-          }
-        }
-        if (SectionMap.matched(*In, Input, PInputFile, SectName, IsArchive,
-                               Name, InputSectionHash, InputFileHash, NameHash,
-                               IsGnuCompatible, IsCommonSection)) {
+
+        if (SectionMap.matched(*In, Data.Input, Data.PInputFile, Data.SectName,
+                               Data.IsArchive, Data.Name, Data.InputSectionHash,
+                               Data.InputFileHash, Data.NameHash,
+                               IsGnuCompatible, Data.IsCommonSection)) {
           In->incMatchCount();
           Section->setOutputSection(Out);
           Section->setMatchedLinkerScriptRule(In);
@@ -435,27 +486,25 @@ void ObjectBuilder::storePatternsForInputFile(InputFile *Obj,
          "Common internal input file contains common symbols from various "
          "different input files. StorePatternsForInputFile should be "
          "called on the actual input files.");
+  std::string const &InputName = Obj->getInput()->getName();
+  uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
+  std::string const &InputFile = Obj->getInput()->getResolvedPath().native();
+  uint64_t InputFileHash = Obj->getInput()->getResolvedPathHash();
+
   for (auto *Out : SectionMap) {
     for (auto &In : *Out) {
       if (In->spec().hasArchiveMember() && Obj->isArchive()) {
-        std::string const &InputName = Obj->getInput()->getName();
-        uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
         bool Result =
             SectionMap.matched(In->spec().archiveMember(), InputName, NameHash);
         Obj->getInput()->addMemberMatchedPattern(In->spec().getArchiveMember(),
                                                  Result);
       }
       if (In->spec().hasFile() && Obj->isArchive()) {
-        std::string const &InputName = Obj->getInput()->getName();
-        uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
         bool Result =
             SectionMap.matched(In->spec().file(), InputName, NameHash);
         Obj->getInput()->addMemberMatchedPattern(In->spec().getFile(), Result);
       }
       if (In->spec().hasFile()) {
-        std::string const &InputFile =
-            Obj->getInput()->getResolvedPath().native();
-        uint64_t InputFileHash = Obj->getInput()->getResolvedPathHash();
         bool Result =
             SectionMap.matched(In->spec().file(), InputFile, InputFileHash);
         Obj->getInput()->addFileMatchedPattern(In->spec().getFile(), Result);
@@ -466,9 +515,10 @@ void ObjectBuilder::storePatternsForInputFile(InputFile *Obj,
 
 void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
                                          bool IsPostLtoPhase) {
-  auto &SectionMap = ThisModule.getScript().sectionMap();
-  bool HasSectionsCommand =
-      ThisModule.getScript().linkerScriptHasSectionsCommand();
+  auto &Script = ThisModule.getScript();
+  auto &SectionMap = Script.sectionMap();
+  bool HasSectionsCommand = Script.linkerScriptHasSectionsCommand();
+  unsigned NumWildCardPatterns = Script.getNumWildCardPatterns();
 
   ThisModule.setLinkState(Module::LinkState::BeforeLayout);
 
@@ -494,7 +544,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Obj->getInput()->resize(ThisModule.getScript().getNumWildCardPatterns());
+      Obj->getInput()->resize(NumWildCardPatterns);
       storePatternsForInputFile(Obj, SectionMap);
       assignInputFromOutput(Obj);
       Obj->getInput()->clear();
@@ -514,9 +564,8 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        Obj->getInput()->resize(
-            ThisModule.getScript().getNumWildCardPatterns());
+      Pool->async([this, Obj, &SectionMap, NumWildCardPatterns] {
+        Obj->getInput()->resize(NumWildCardPatterns);
         storePatternsForInputFile(Obj, SectionMap);
         assignInputFromOutput(Obj);
         Obj->getInput()->clear();
@@ -666,16 +715,16 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
             << target->name();
         return false;
       }
-        std::string Str;
-        if (target->getLink())
-          Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
-        else
-          Str = "No Available Sections";
-        ThisConfig.raise(Diag::incompatible_sections)
-            << I->name() << I->getInputFile()->getInput()->decoratedPath()
-            << target->name();
-        ThisModule.setFailure(true);
-        return false;
+      std::string Str;
+      if (target->getLink())
+        Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
+      else
+        Str = "No Available Sections";
+      ThisConfig.raise(Diag::incompatible_sections)
+          << I->name() << I->getInputFile()->getInput()->decoratedPath()
+          << target->name();
+      ThisModule.setFailure(true);
+      return false;
     }
 
     uint64_t TargetHasGroup = target->getFlags() & llvm::ELF::SHF_GROUP;
