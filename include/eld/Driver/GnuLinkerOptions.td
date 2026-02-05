@@ -833,6 +833,11 @@ def W : Joined<["-"], "W">,
              "with different values for OS/ABI\n"
             >,
         Group<grp_diagopts>;
+defm emit_memory_stats : mDashEq<"emit-memory-stats", "emit_memory_stats",
+                                 "Emit memory statistics of various linker "
+                                 "operations to the specified file">,
+                         MetaVarName<"<filename>">,
+                         Group<grp_diagopts>;
 
 //===----------------------------------------------------------------------===//
 /// Optimization options

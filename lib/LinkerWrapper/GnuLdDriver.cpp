@@ -8,6 +8,7 @@
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Input/InputAction.h"
+#include "eld/Support/RegisterTimer.h"
 #if defined(ELD_ENABLE_TARGET_ARM) || defined(ELD_ENABLE_TARGET_AARCH64)
 #include "eld/Driver/ARMLinkDriver.h"
 #endif
@@ -130,7 +131,8 @@ GnuLdDriver *GnuLdDriver::Create(LinkerConfig &C, DriverFlavor F,
 }
 
 bool GnuLdDriver::emitStats(eld::Module &M) const {
-  std::string File = Config.options().timingStatsFile();
+  const GeneralOptions &genOptions = Config.options();
+  std::string File = genOptions.timingStatsFile();
   std::error_code error;
   llvm::raw_fd_ostream *StatsFile = nullptr;
   if (!File.empty()) {
@@ -147,6 +149,16 @@ bool GnuLdDriver::emitStats(eld::Module &M) const {
   llvm::TimerGroup::clearAll();
   M.getLinkerScript().printPluginTimers(*OutStream);
   delete StatsFile;
+  if (genOptions.hasMemoryStatsFile()) {
+    std::string memStatsFile = genOptions.getMemoryStatsFile();
+    llvm::raw_fd_ostream memStatsFileStream(memStatsFile, error,
+                                            llvm::sys::fs::OF_None);
+    if (error) {
+      Config.raise(Diag::fatal_unwritable_output) << File << error.message();
+      return false;
+    }
+    RegisterTimer::emitMemoryStats(memStatsFileStream);
+  }
   return true;
 }
 
@@ -390,6 +402,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::emit_timing_stats)) {
     Config.options().setPrintTimingStats();
     Config.options().setTimingStatsFile(arg->getValue());
+  }
+
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::emit_memory_stats)) {
+    Config.options().setMemoryStatsFile(arg->getValue());
   }
 
   // --time-region

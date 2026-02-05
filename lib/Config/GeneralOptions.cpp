@@ -676,3 +676,8 @@ bool GeneralOptions::traceSymbol(const ResolveInfo &RI) const {
   }
   return false;
 }
+
+void GeneralOptions::setMemoryStatsFile(std::string statsFile) {
+  m_MemoryStatsFile = statsFile;
+  RegisterTimer::setShouldRecordMemoryStats(true);
+}

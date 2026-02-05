@@ -18,6 +18,7 @@
 #include "eld/Support/FileSystem.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/RegisterTimer.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
@@ -853,6 +854,19 @@ public:
   void setTimingStatsFile(std::string StatsFile) {
     TimingStatsFile = StatsFile;
   }
+
+  // --emit-memory-stats <file>
+  void setMemoryStatsFile(std::string statsFile);
+
+  bool hasMemoryStatsFile() const {
+    return m_MemoryStatsFile.has_value();
+  }
+
+  std::string getMemoryStatsFile() const {
+    ASSERT(m_MemoryStatsFile.has_value(), "memory stats file not available!");
+    return m_MemoryStatsFile.value();
+  }
+
   //--------------------Plugin Config--------------------------------
   void addPluginConfig(const std::string &Config) {
     PluginConfig.push_back(Config);
@@ -1364,6 +1378,7 @@ private:
   std::string LinkLaunchDirectory;
   bool ShowRMSectNameInDiag = false;
   bool UseDefaultPlugins = true;
+  std::optional<std::string> m_MemoryStatsFile;
 };
 
 } // namespace eld
