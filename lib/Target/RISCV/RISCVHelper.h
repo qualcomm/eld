@@ -240,7 +240,9 @@ template <typename T> T encodeUJ(T Result) {
 }
 
 inline int32_t encodeU_HI20(int32_t Result) {
-  return (Result + 0x800) & 0xFFFFF000;
+  uint32_t U = static_cast<uint32_t>(Result);
+  return static_cast<int32_t>((U + 0x800u) & 0xFFFFF000u);
+  //return (Result + 0x800) & 0xFFFFF000;
 }
 
 template <typename T> T encodeU_ABS20(T Result) {
