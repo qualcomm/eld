@@ -99,7 +99,6 @@ runs:
            git commit -m "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
            until git push -f origin HEAD:refs/heads/dashboard; do
             sleep 5
-            check_lock
             git fetch --all
             git reset --hard origin/dashboard
             rm -f data.lock

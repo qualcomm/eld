@@ -12,6 +12,7 @@ on:
       - '.github/workflows/nightly-test.yml'
       - '.github/workflows/update-build-dashboard-data.yml'
       - '.github/workflows/scripts/record_builds.py'
+      - '.github/workflows/BuildStatusDataRecorder/action.yaml'
 
 jobs:
   build:

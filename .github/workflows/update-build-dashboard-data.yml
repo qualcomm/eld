@@ -32,6 +32,10 @@ jobs:
             cd dash
             python record_builds.py --workflow picolibc --emit
             python record_builds.py --workflow musl --emit
+            python record_builds.py --workflow sanitizer --emit
+            python record_builds.py --workflow nightly --emit
+            python record_builds.py --workflow reverse_iterator --emit
+            python record_builds.py --workflow release --emit
             rm -f record_builds.py build-status.db
             rm -rf ${DASH_DIR}
             cd ..
