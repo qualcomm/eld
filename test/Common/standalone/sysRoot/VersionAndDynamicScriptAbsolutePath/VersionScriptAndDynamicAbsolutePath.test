@@ -1,0 +1,22 @@
+#---VersionScriptAbsolutePath.test---- sysRoot ----------------#
+
+#BEGIN_COMMENT
+# Test that absolute paths to version scripts and dynamic lists are not
+# prepended with --sysroot.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %rm -rf %t1.sysroot
+RUN: %mkdir %t.sysroot
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --sysroot=%t.sysroot \
+RUN:   --version-script=%p/Inputs/version.script --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix VersionScript
+RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --sysroot=%t.sysroot \
+RUN:   --dynamic-list=%p/Inputs/dynamic.list --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix DynScript
+#END_TEST
+
+VersionScript: Verbose: Parsing version script
+
+DynScript: Verbose: Dynamic List[{{.*}}] : exported_func_v1
+DynScript: Verbose: Dynamic List[{{.*}}] : exported_func_v2
