@@ -164,35 +164,6 @@ llvm::StringRef Input::getFileContents() const {
 
 Input::~Input() { IF = nullptr; }
 
-void Input::addMemberMatchedPattern(const WildcardPattern *W, bool R) {
-  MemberPatternMap[W] = R;
-}
-
-bool Input::findMemberMatchedPattern(const WildcardPattern *W, bool &Result) {
-  auto F = MemberPatternMap.find(W);
-  if (F == MemberPatternMap.end())
-    return false;
-  Result = F->second;
-  return true;
-}
-
-uint64_t Input::getWildcardPatternSize() {
-  return (sizeof(FilePatternMap) * FilePatternMap.size()) +
-         (sizeof(MemberPatternMap) * MemberPatternMap.size());
-}
-
-void Input::resize(uint32_t N) {
-  FilePatternMap.reserve(N);
-  MemberPatternMap.reserve(N);
-  PatternMapInitialized = true;
-}
-
-void Input::clear() {
-  PatternMapInitialized = false;
-  FilePatternMap.clear();
-  MemberPatternMap.clear();
-}
-
 std::string Input::getDecoratedRelativePath(const std::string &Basepath) const {
   if (isInternal())
     return decoratedPath(/*showAbsolute=*/false);

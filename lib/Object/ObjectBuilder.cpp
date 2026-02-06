@@ -331,11 +331,6 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
         bool IsArchive =
             Input->isArchive() ||
             llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
-        if (!Input->getInput()->isPatternMapInitialized()) {
-          std::lock_guard<std::mutex> Guard(Mutex);
-          Input->getInput()->resize(
-              ThisModule.getScript().getNumWildCardPatterns());
-        }
         // Hash of all the required things for Match.
         uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
         uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
@@ -427,48 +422,8 @@ bool ObjectBuilder::initializePluginsAndProcess(
   return true;
 }
 
-// FIXME: Pass sectionMap as const. This function is used in multithreaded-code,
-// and sectionMap must not be modified in this function as modifying sectionMap
-// would be data-race undefined behavior. Passing sectionMap as const
-// will serve as a reminder that it must not be modified.
-void ObjectBuilder::storePatternsForInputFile(InputFile *Obj,
-                                              eld::SectionMap &SectionMap) {
-  assert(Obj != ThisModule.getCommonInternalInput() &&
-         "Common internal input file contains common symbols from various "
-         "different input files. StorePatternsForInputFile should be "
-         "called on the actual input files.");
-  for (auto *Out : SectionMap) {
-    for (auto &In : *Out) {
-      if (In->spec().hasArchiveMember() && Obj->isArchive()) {
-        std::string const &InputName = Obj->getInput()->getName();
-        uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
-        bool Result =
-            SectionMap.matched(In->spec().archiveMember(), InputName, NameHash);
-        Obj->getInput()->addMemberMatchedPattern(In->spec().getArchiveMember(),
-                                                 Result);
-      }
-      if (In->spec().hasFile() && Obj->isArchive()) {
-        std::string const &InputName = Obj->getInput()->getName();
-        uint64_t NameHash = Obj->getInput()->getArchiveMemberNameHash();
-        bool Result =
-            SectionMap.matched(In->spec().file(), InputName, NameHash);
-        Obj->getInput()->addMemberMatchedPattern(In->spec().getFile(), Result);
-      }
-      if (In->spec().hasFile()) {
-        std::string const &InputFile =
-            Obj->getInput()->getResolvedPath().native();
-        uint64_t InputFileHash = Obj->getInput()->getResolvedPathHash();
-        bool Result =
-            SectionMap.matched(In->spec().file(), InputFile, InputFileHash);
-        Obj->getInput()->addFileMatchedPattern(In->spec().getFile(), Result);
-      }
-    }
-  }
-}
-
 void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
                                          bool IsPostLtoPhase) {
-  auto &SectionMap = ThisModule.getScript().sectionMap();
   bool HasSectionsCommand =
       ThisModule.getScript().linkerScriptHasSectionsCommand();
 
@@ -496,10 +451,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Obj->getInput()->resize(ThisModule.getScript().getNumWildCardPatterns());
-      storePatternsForInputFile(Obj, SectionMap);
       assignInputFromOutput(Obj);
-      Obj->getInput()->clear();
     }
   } else {
     if (ThisModule.getPrinter()->traceThreads())
@@ -517,11 +469,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
       Pool->async([&] {
-        Obj->getInput()->resize(
-            ThisModule.getScript().getNumWildCardPatterns());
-        storePatternsForInputFile(Obj, SectionMap);
         assignInputFromOutput(Obj);
-        Obj->getInput()->clear();
       });
     }
     Pool->wait();
@@ -798,7 +746,6 @@ void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
 }
 
 bool ObjectBuilder::assignOutputSectionsToCommonSymbols() {
-  SectionMap &SectionMap = ThisModule.getScript().sectionMap();
   ObjectFile *CommonSymbolsInput =
       llvm::dyn_cast<ObjectFile>(ThisModule.getCommonInternalInput());
   llvm::SmallSet<InputFile *, 16> CommonOriginInputs;
@@ -817,13 +764,7 @@ bool ObjectBuilder::assignOutputSectionsToCommonSymbols() {
   // files at the same time. But we need to do this because internal input
   // file, 'commonSymbolsInput', contain common symbols from different
   // source inputs.
-  for (const auto &I : CommonOriginInputs) {
-    I->getInput()->resize(ThisModule.getScript().getNumWildCardPatterns());
-    storePatternsForInputFile(I, SectionMap);
-  }
   assignInputFromOutput(CommonSymbolsInput);
-  for (const auto &I : CommonOriginInputs)
-    I->getInput()->clear();
   return true;
 }
 

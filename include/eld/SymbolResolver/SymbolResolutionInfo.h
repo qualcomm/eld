@@ -8,6 +8,7 @@
 #define ELD_SYMBOLRESOLVER_SYMBOLRESOLUTIONINFO_H
 #include "eld/SymbolResolver/SymbolInfo.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include <optional>
 

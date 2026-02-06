@@ -338,8 +338,7 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
                          std::string const &CurInputSection, bool IsArchive,
                          std::string const &Name, uint64_t InputSectionHash,
                          uint64_t FileNameHash, uint64_t NameHash,
-                         bool GNUCompatible, bool IsCommonSection,
-                         bool StorePatterns) const {
+                         bool GNUCompatible, bool IsCommonSection) const {
 
   bool MatchedArchiveMember = false;
 
@@ -349,56 +348,28 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
     if (PInput.spec().hasArchiveMember()) {
       const WildcardPattern &ArchiveMemPattern = PInput.spec().archiveMember();
       bool Res = false;
-      if (StorePatterns && I &&
-          I->getInput()->findMemberMatchedPattern(
-              PInput.spec().getArchiveMember(), Res)) {
-        if (!Res)
-          return false;
-      } else {
-        const ArchiveMemberInput *AMI =
-            llvm::dyn_cast<ArchiveMemberInput>(I->getInput());
-        if (!Res && AMI && AMI->getArchiveFile()->isThin() &&
-            ThisConfig.options()
-                .isThinArchiveRuleMatchingCompatibilityEnabled()) {
-          std::string Filename =
-              std::filesystem::path(Name).filename().string();
-          llvm::hash_code FilenameHash = Input::computeFilePathHash(Filename);
-          Res = matched(ArchiveMemPattern, Filename, FilenameHash);
-        } else
-          Res = matched(ArchiveMemPattern, Name, NameHash);
-        if (I && StorePatterns)
-          I->getInput()->addMemberMatchedPattern(
-              PInput.spec().getArchiveMember(), Res);
-        if (!Res)
-          return false;
-      }
+      const ArchiveMemberInput *AMI =
+          llvm::dyn_cast<ArchiveMemberInput>(I->getInput());
+      if (!Res && AMI && AMI->getArchiveFile()->isThin() &&
+          ThisConfig.options()
+              .isThinArchiveRuleMatchingCompatibilityEnabled()) {
+        std::string Filename =
+            std::filesystem::path(Name).filename().string();
+        llvm::hash_code FilenameHash = Input::computeFilePathHash(Filename);
+        Res = matched(ArchiveMemPattern, Filename, FilenameHash);
+      } else
+        Res = matched(ArchiveMemPattern, Name, NameHash);
+      if (!Res)
+        return false;
     }
   }
 
   if (IsArchive && PInput.spec().hasFile()) {
-    bool Res = false;
-    if (StorePatterns && I &&
-        I->getInput()->findMemberMatchedPattern(PInput.spec().getFile(), Res))
-      MatchedArchiveMember = Res;
-    else {
-      Res = matched(PInput.spec().file(), Name, NameHash);
-      if (I && StorePatterns)
-        I->getInput()->addMemberMatchedPattern(PInput.spec().getFile(), Res);
-    }
-    MatchedArchiveMember = Res;
+    MatchedArchiveMember = matched(PInput.spec().file(), Name, NameHash);
   }
 
   if (!MatchedArchiveMember && PInput.spec().hasFile()) {
-    bool Res = false;
-    if (I &&
-        I->getInput()->findFileMatchedPattern(PInput.spec().getFile(), Res)) {
-      if (!Res)
-        return false;
-    } else {
-      Res = matched(PInput.spec().file(), PInputFile, FileNameHash);
-      if (I && StorePatterns)
-        I->getInput()->addFileMatchedPattern(PInput.spec().getFile(), Res);
-    }
+    bool Res = matched(PInput.spec().file(), PInputFile, FileNameHash);
     if (!Res)
       return false;
   }
@@ -430,10 +401,9 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
           !PInput.spec().isArchive())
         return false;
 
-      if (matchedSections(I, PInput.spec().file(), Pattern, Name, PInputFile,
+      if (matchedSections(Pattern, Name, PInputFile,
                           CurInputSection, IsArchive, InputSectionHash,
-                          FileNameHash, NameHash, IsCommonSection, EF,
-                          StorePatterns)) {
+                          FileNameHash, NameHash, IsCommonSection, EF)) {
         return true;
       }
     }
@@ -472,12 +442,10 @@ WildcardPattern SectionMap::getWithSyntacticSugarForCommonPattern(
 // pInputSection - the section we are trying to merge/find
 // isArchive - used to denote if the file we are matching against is archive.
 bool SectionMap::matchedSections(
-    InputFile *I, const WildcardPattern &InputFilePattern,
     const WildcardPattern &PPattern, std::string const &PName,
     std::string const &PFilename, std::string const &CurInputSection,
     bool IsArchive, uint64_t InputSectionHash, uint64_t FileNameHash,
-    uint64_t NameHash, bool IsCommonSection, const ExcludeFiles &EF,
-    bool StorePatterns) const {
+    uint64_t NameHash, bool IsCommonSection, const ExcludeFiles &EF) const {
   WildcardPattern Pattern = PPattern;
   if (IsCommonSection)
     Pattern = getWithSyntacticSugarForCommonPattern(Pattern);
@@ -488,41 +456,16 @@ bool SectionMap::matchedSections(
         const WildcardPattern *ArchivePattern = Elem->archive();
         bool ArchiveMatchWithFileName = false;
         if (ArchivePattern) {
-          bool Res = false;
-          if (I && I->getInput()->findFileMatchedPattern(ArchivePattern, Res))
-            ArchiveMatchWithFileName = Res;
-          else {
-            ArchiveMatchWithFileName =
-                matched(*ArchivePattern, PFilename, FileNameHash);
-            if (I && StorePatterns)
-              I->getInput()->addFileMatchedPattern(ArchivePattern,
-                                                   ArchiveMatchWithFileName);
-          }
+          ArchiveMatchWithFileName =
+              matched(*ArchivePattern, PFilename, FileNameHash);
         }
 
         bool FileMatchWithMemberName = false;
         bool FileMatchWithFileName = false;
         const WildcardPattern *FilePattern = Elem->file();
         if (FilePattern) {
-          bool Res = false;
-          if (StorePatterns && I &&
-              I->getInput()->findMemberMatchedPattern(FilePattern, Res))
-            FileMatchWithMemberName = Res;
-          else {
-            FileMatchWithMemberName = matched(*FilePattern, PName, NameHash);
-            if (I && StorePatterns)
-              I->getInput()->addMemberMatchedPattern(FilePattern,
-                                                     FileMatchWithMemberName);
-          }
-          if (I && I->getInput()->findFileMatchedPattern(FilePattern, Res))
-            FileMatchWithFileName = Res;
-          else {
-            FileMatchWithFileName =
-                matched(*FilePattern, PFilename, FileNameHash);
-            if (I && StorePatterns)
-              I->getInput()->addFileMatchedPattern(FilePattern,
-                                                   FileMatchWithFileName);
-          }
+          FileMatchWithMemberName = matched(*FilePattern, PName, NameHash);
+          FileMatchWithFileName = matched(*FilePattern, PFilename, FileNameHash);
         }
         // It matches patterns such as: '<ArchivePattern>:<MemberPattern>'
         if (IsArchive && (Elem)->isFileInArchive() &&
@@ -658,5 +601,5 @@ bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,
       R, IF, InputFileName, SectName, IsArchive, IF->getInput()->getName(),
       SectHash, InputFileHash, ArchiveMemNameHash,
       (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU),
-      IsCommonSection, /*storePatterns=*/false);
+      IsCommonSection);
 }

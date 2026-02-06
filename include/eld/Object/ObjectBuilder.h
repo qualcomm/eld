@@ -83,8 +83,6 @@ public:
 
   void mayChangeSectionTypeOrKind(ELFSection *, ELFSection *) const;
 
-  void storePatternsForInputFile(InputFile *, eld::SectionMap &);
-
   void mergeStrings(MergeStringFragment *F, OutputSectionEntry *O);
 
 private:

@@ -135,7 +135,7 @@ public:
                std::string const &CurInputSection, bool IsArchive,
                std::string const &Name, uint64_t CurInputSectionHash,
                uint64_t FileNameHash, uint64_t NameHash, bool GNUCompatible,
-               bool IsCommonSection, bool StorePatterns = true) const;
+               bool IsCommonSection) const;
 
   bool matched(const WildcardPattern &PPattern, llvm::StringRef PName,
                uint64_t Hash) const;
@@ -155,13 +155,12 @@ public:
                                 bool DoNotUseRmName) const;
 
 private:
-  bool matchedSections(InputFile *I, const WildcardPattern &InputFilePattern,
-                       const WildcardPattern &PPattern,
+  bool matchedSections(const WildcardPattern &PPattern,
                        std::string const &PName, std::string const &Filename,
                        std::string const &CurInputSection, bool IsArchive,
                        uint64_t CurInputSectionHash, uint64_t FileNameHash,
                        uint64_t NameHash, bool IsCommonSection,
-                       const ExcludeFiles &EF, bool StorePatterns = true) const;
+                       const ExcludeFiles &EF) const;
 
   /// If 'pattern' is COMMON or one of the .scommon.x, then return the pattern
   /// COMMON.* or .scommon.x.* repectively. Otherwise, return 'pattern' as

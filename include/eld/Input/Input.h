@@ -18,9 +18,7 @@
 #include "eld/Script/WildcardPattern.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/Path.h"
-#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include <unordered_map>
@@ -144,31 +142,6 @@ public:
 
   void setName(std::string N) { Name = N; }
 
-  /// --------------------- WildcardPattern ------------------------
-  void addFileMatchedPattern(const WildcardPattern *W, bool R) {
-    FilePatternMap[W] = R;
-  }
-
-  bool findFileMatchedPattern(const WildcardPattern *W, bool &Result) {
-    auto F = FilePatternMap.find(W);
-    if (F == FilePatternMap.end())
-      return false;
-    Result = F->second;
-    return true;
-  }
-
-  void addMemberMatchedPattern(const WildcardPattern *W, bool R);
-
-  bool findMemberMatchedPattern(const WildcardPattern *W, bool &Result);
-
-  uint64_t getWildcardPatternSize();
-
-  void resize(uint32_t N);
-
-  void clear();
-
-  bool isPatternMapInitialized() const { return PatternMapInitialized; }
-
   static llvm::hash_code computeFilePathHash(llvm::StringRef FilePath);
 
   /// If MemoryArea is previously allocated for filepath, then return it;
@@ -197,9 +170,6 @@ protected:
   uint64_t MemberNameHash = 0;
   InputType Type = Default; // The type of input file.
   bool TraceMe = false;
-  llvm::DenseMap<const WildcardPattern *, bool> FilePatternMap;
-  llvm::DenseMap<const WildcardPattern *, bool> MemberPatternMap;
-  bool PatternMapInitialized = false;
   DiagnosticEngine *DiagEngine = nullptr;
 
   /// Keeps track of already created MemoryAreas.
