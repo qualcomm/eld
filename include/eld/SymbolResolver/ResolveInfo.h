@@ -254,6 +254,8 @@ public:
 
   llvm::StringRef getName() const { return SymbolName; }
 
+  void setName(llvm::StringRef SymName) { SymbolName = SymName; }
+
   unsigned int nameSize() const { return SymbolName.size(); }
 
   uint32_t info() const { return (ThisBitField & InfoMask); }
