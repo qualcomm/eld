@@ -364,7 +364,7 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
     Input.setNeeded();
     NP.addSharedLibSymbol(InputSym);
   }
-  if (ResolvedResult.Overriden && ResolvedResult.Existent) {
+  if (ResolvedResult.Overriden && ResolvedResult.Info->outSymbol()) {
     ResolvedResult.Info->setOutSymbol(InputSym);
   }
   // If the symbol is from dynamic library and we are not making a dynamic
