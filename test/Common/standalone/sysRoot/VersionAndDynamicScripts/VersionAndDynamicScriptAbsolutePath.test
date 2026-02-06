@@ -1,0 +1,44 @@
+#---VersionAndDynamicScripts.test---- sysRoot ----------------#
+
+#BEGIN_COMMENT
+# Test that the version scripts and dynamic lists paths are properly handled
+# when sysroot is used.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %rm -rf %t1.sysroot %t1.dir
+RUN: %mkdir %t.sysroot
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --sysroot=%t.sysroot -L=/ \
+RUN:   --version-script=%p/Inputs/version.script --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix VersionScriptAbs
+RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --sysroot=%t.sysroot -L=/ \
+RUN:   --dynamic-list=%p/Inputs/dynamic.list --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix DynScriptAbs
+RUN: %mkdir %t1.dir
+RUN: cd %t1.dir
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --sysroot=%p/Inputs -L=/ \
+RUN:   --version-script=version.script --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix VersionScriptSysRoot
+RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --sysroot=%p/Inputs -L=/ \
+RUN:   --dynamic-list=dynamic.list --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix DynScriptSysRoot
+RUN: cp %p/Inputs/version.script version.script
+RUN: cp %p/Inputs/dynamic.list dynamic.list
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --sysroot=%p/Inputs -L=/ \
+RUN:   --version-script=version.script --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix VersionScriptRel
+RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --sysroot=%p/Inputs -L=/ \
+RUN:   --dynamic-list=dynamic.list --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix DynScriptSysRel
+#END_TEST
+
+VersionScriptAbs: Verbose: Parsing version script
+
+DynScriptAbs: Verbose: Dynamic List[{{.*}}] : exported_func_v1
+DynScriptAbs: Verbose: Dynamic List[{{.*}}] : exported_func_v2
+
+VersionScriptSysRoot: Verbose: Trying to open input `{{.*}}/Inputs//version.script' of type `linker script' for namespec `version.script': found
+DynScriptSysRoot: Verbose: Trying to open input `{{.*}}/Inputs//dynamic.list' of type `linker script' for namespec `dynamic.list': found
+
+VersionScriptRel: Verbose: Mapping input file 'version.script' into memory
+DynScriptSysRel: Verbose: Mapping input file 'dynamic.list' into memory
