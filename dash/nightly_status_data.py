@@ -1,0 +1,1 @@
+nightly_build_states = [{"run_id": "21702570891", "state": "pass", "date": "2026-02-05", "time": "07:23", "arch": "all", "branch": "main"}, {"run_id": "21742224686", "state": "pass", "date": "2026-02-06", "time": "07:20", "arch": "all", "branch": "main"}]
