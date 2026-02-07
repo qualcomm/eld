@@ -1,0 +1,40 @@
+## Checks ALIGN_WITH_INPUT with MEMORY regions where a section with
+## AT>ROM is followed by NOLOAD sections with AT>RAM.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c %t/1.c -o %t.o
+# RUN: %link %linkopts %t.o -T %t/script.t -Map %t.map -o %t.out
+# RUN: %filecheck %s --check-prefix=CHECK-MAP < %t.map
+
+CHECK-MAP: datas 0x70400000 {{.*}} LMA: 0x700000{{[0-9a-f]+}}{{.*}} Memory : [RAM, ROM]
+CHECK-MAP: bss 0x70400000 {{.*}} LMA: 0x70400000{{.*}} Memory : [RAM, RAM]
+CHECK-MAP: noinit 0x70400700 {{.*}} LMA: 0x70400700{{.*}} Memory : [RAM, RAM]
+CHECK-MAP: .last_ram_section 0x70400710 {{.*}} LMA: 0x70400710{{.*}} Memory : [RAM, RAM]
+
+#--- 1.c
+[[gnu::section(".noinit.foo")]] char a[16];
+char b[0x700];
+int main() { return a[0] + b[0]; }
+
+#--- script.t
+MEMORY
+{
+  ROM (rx) : ORIGIN = 0x70000000, LENGTH = 0x400000
+  RAM (rwx) : ORIGIN = 0x70400000, LENGTH = 0x400000
+}
+
+SECTIONS
+{
+  . = ORIGIN(ROM);
+  .text : { *(.text*) } > ROM
+  . = ORIGIN(RAM);
+
+  datas : ALIGN_WITH_INPUT
+  {
+    *(.data*)
+  } > RAM AT > ROM
+
+  bss (NOLOAD) : ALIGN_WITH_INPUT { *(.bss*) *(COMMON) } > RAM AT > RAM
+  noinit (NOLOAD) : { *(.noinit*) } > RAM AT > RAM
+  .last_ram_section (NOLOAD) : { _image_ram_end = .; } > RAM AT > RAM
+}
