@@ -30,14 +30,6 @@ This document describes usage of ELD
    documentation/linker_plugins_updated.rst
    documentation/linker_optimizations.rst
    documentation/getting_image_details.rst
-   documentation/command.rst
-
-   .. todo::
-
-      Remove documentation/options.rst when
-      documentation/options/options.rst is complete!
-
-   documentation/options.rst
    documentation/options/options.rst
    documentation/target_specific_features.rst
    documentation/linker_faq.rst
