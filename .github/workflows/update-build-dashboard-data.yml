@@ -30,12 +30,12 @@ jobs:
             git checkout documentation
             cp -r ${DASH_DIR}/dash .
             cd dash
-            python record_builds.py --workflow picolibc --emit
-            python record_builds.py --workflow musl --emit
-            python record_builds.py --workflow sanitizer --emit
-            python record_builds.py --workflow nightly --emit
-            python record_builds.py --workflow reverse_iterator --emit
-            python record_builds.py --workflow release --emit
+            python3 record_builds.py --workflow picolibc --emit
+            python3 record_builds.py --workflow musl --emit
+            python3 record_builds.py --workflow sanitizer --emit
+            python3 record_builds.py --workflow nightly --emit
+            python3 record_builds.py --workflow reverse_iterator --emit
+            python3 record_builds.py --workflow release --emit
             rm -f record_builds.py build-status.db
             rm -rf ${DASH_DIR}
             cd ..

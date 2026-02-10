@@ -88,7 +88,7 @@ runs:
         cp ${DASH_DIR}/record_builds.py .
         # Set +e to not immediately exit "run" step on failure.
         set +e
-        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
+        python3 record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
         EXITCODE=$?
         if [ "$EXITCODE" -ne 0 ]; then
            echo "Build Data Recording Failed!"
