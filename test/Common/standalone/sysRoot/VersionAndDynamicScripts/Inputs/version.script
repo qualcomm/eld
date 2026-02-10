@@ -1,6 +1,0 @@
-{
-  global:
-    exported_func_v1;
-  local:
-    *;
-};

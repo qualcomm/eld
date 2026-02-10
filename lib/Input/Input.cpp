@@ -102,6 +102,11 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   }
 
   if (Type == Input::Script) {
+    if (PSearchDirs.hasSysRoot() &&
+        (FileName.size() > 0 && FileName[0] == '/')) {
+      ResolvedPath = PSearchDirs.sysroot();
+      ResolvedPath->append(FileName);
+    }
     if (!llvm::sys::fs::exists(ResolvedPath->native())) {
       const sys::fs::Path *P = PSearchDirs.find(FileName, Input::Script);
       if (P != nullptr)
