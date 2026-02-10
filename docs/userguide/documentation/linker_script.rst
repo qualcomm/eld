@@ -714,9 +714,27 @@ In GNU linker scripts, the AT command is used to control the Load Memory Address
    When an AT command is specified as part of the output section, the linker
    will not automatically align the load memory address of the section.
 
-ALIGN_WITH_INPUT attribute on an output section will make the difference between the VMA and LMA intact.
+ALIGN_WITH_INPUT attribute on an output section preserves the VMA-to-LMA offset
+from the previous output section when both sections use the same VMA region and
+the same LMA region. If either region changes, the linker does not reuse the
+prior offset and instead computes the LMA from the current output section's
+placement rules. This matches GNU behavior when combining explicit LMA control
+with region-based placement.
 
-We will expand this section with examples in future.
+Behavior summary:
+
+- VMA placement is governed by the output section's virtual address rules and
+  the selected VMA region.
+- LMA placement is governed by the AT/AT> directives and the selected LMA
+  region, and it is tracked independently from the VMA placement.
+- ALIGN_WITH_INPUT preserves the prior VMA-to-LMA delta, but only while both
+  regions remain the same.
+
+See also:
+
+- :file:`test/Common/standalone/linkerscript/AlignWithInput/NoPhdrs/AlignWithInput.test`
+- :file:`test/Common/standalone/linkerscript/AlignWithInput/TLS/TLS.test`
+- :file:`test/Common/standalone/linkerscript/AlignWithInput/NoLoadATRAM/NoLoadATRAM.test`
 
 GNU-compatibility
 --------------------
