@@ -27,24 +27,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: llvm/llvm-project
-          path: llvm-project
+          path: _work_san/llvm-project/
           ref: main
 
       - name: Checkout eld
         uses: actions/checkout@v4
         with:
-          path: llvm-project/llvm/tools/eld
+          path: _work_san/llvm-project/llvm/tools/eld
           ref: main
 
       - name: Configure workflow environment variables
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+        uses: ./_work_san/llvm-project//llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./_work_san/llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "llvm-project/llvm/tools/eld"
+          project: "_work_san/llvm-project//llvm/tools/eld"
           stage: "pre-"
           workflow-name: "sanitizer"
           record-mode: "record"
@@ -55,7 +55,7 @@ jobs:
 
       - name: Run CMake
         run: |
-          mkdir obj
+          mkdir -p obj
           cd obj
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -83,10 +83,10 @@ jobs:
 
       - name: Update build entry
         if: github.event_name == 'schedule'
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./_work_san/llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "llvm-project/llvm/tools/eld"
+          project: "_work_san/llvm-project//llvm/tools/eld"
           stage: "post-"
           workflow-name: "sanitizer"
           record-mode: "update"
