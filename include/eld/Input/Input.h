@@ -74,6 +74,12 @@ public:
 
   void setResolvedPath(std::string Path) { ResolvedPath = Path; }
 
+  /// Set the parent script file for inputs from INPUT/GROUP commands.
+  void setParentScriptFile(InputFile *File) { ParentScriptFile = File; }
+
+  /// Get the parent script file.
+  InputFile *getParentScriptFile() const { return ParentScriptFile; }
+
   uint32_t getInputOrdinal() { return InputOrdinal; }
 
   Attribute &getAttribute() { return Attr; }
@@ -179,9 +185,15 @@ public:
   static MemoryArea *createMemoryArea(const std::string &Filepath,
                                       DiagnosticEngine *DiagEngine);
 
-private:
+ private:
   // Check if a path is valid and emit any errors
   bool isPathValid(const std::string &Path) const;
+
+  // Return true if sysroot should be prepended for a Script-typed input whose
+  // filename starts with '/'. This is used for INPUT/GROUP entries coming from
+  // a linker script: sysroot is applied only when the parent script is within
+  // the sysroot directory.
+  bool shouldPrependSysrootToScriptInput(const LinkerConfig &Config) const;
 
 protected:
   InputFile *IF = nullptr;
@@ -201,6 +213,7 @@ protected:
   llvm::DenseMap<const WildcardPattern *, bool> MemberPatternMap;
   bool PatternMapInitialized = false;
   DiagnosticEngine *DiagEngine = nullptr;
+  InputFile *ParentScriptFile = nullptr; // Parent script for INPUT/GROUP inputs.
 
   /// Keeps track of already created MemoryAreas.
   ///
