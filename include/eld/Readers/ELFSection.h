@@ -208,11 +208,19 @@ public:
 
   LDSymbol *getSymbol() const { return Symbol; }
 
-  llvm::SmallVectorImpl<const ELFSection *> &getGroupSections() {
-    return GroupSections;
+  llvm::ArrayRef<const ELFSection *> getGroupSections() const {
+    auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+    if (!ObjFile)
+      return {};
+    return ObjFile->getGroupMembers(*this);
   }
 
-  void addSectionsToGroup(const ELFSection *S) { GroupSections.push_back(S); }
+  void addSectionsToGroup(const ELFSection *S) {
+    assert(S);
+    auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+    assert(ObjFile && "Group members must be stored on an ELFObjectFile");
+    ObjFile->addGroupMember(*this, *S);
+  }
 
   ELFSection *getOutputELFSection() const {
     return m_OutputSection ? m_OutputSection->getSection() : nullptr;
@@ -328,9 +336,6 @@ protected:
 
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;
-
-  /// FIXME: These vectors can be moved out of this class?
-  llvm::SmallVector<const ELFSection *, 0> GroupSections;
 };
 
 } // namespace eld

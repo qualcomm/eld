@@ -136,6 +136,8 @@ ELFSection *ObjectBuilder::mergeSection(GNULDBackend &PGnuldBackend,
 
   if (CurInputSection->isGroupKind()) {
     if (moveSection(CurInputSection, Target)) {
+      if (!Target->getInputFile())
+        Target->setInputFile(CurInputSection->getInputFile());
       // Add all the input sections that were part of the group
       for (auto *GroupSection : CurInputSection->getGroupSections())
         Target->addSectionsToGroup(GroupSection);

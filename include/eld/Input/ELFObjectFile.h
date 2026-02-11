@@ -80,6 +80,20 @@ public:
     return GroupSections;
   }
 
+  using GroupMemberList = llvm::SmallVector<const ELFSection *, 1>;
+
+  llvm::ArrayRef<const ELFSection *>
+  getGroupMembers(const ELFSection &Group) const {
+    auto It = GroupMembersByGroupSection.find(&Group);
+    if (It == GroupMembersByGroupSection.end())
+      return {};
+    return It->second;
+  }
+
+  void addGroupMember(const ELFSection &Group, const ELFSection &Member) {
+    GroupMembersByGroupSection[&Group].push_back(&Member);
+  }
+
   bool hasOldInputFile(const ELFSection &S) const {
     return OldInputFileBySection.find(&S) != OldInputFileBySection.end();
   }
@@ -112,6 +126,8 @@ private:
   std::unique_ptr<llvm::DWARFContext> DWARFContext;
   std::vector<std::unique_ptr<llvm::MemoryBuffer>> DebugSections;
   std::vector<ELFSection *> GroupSections;
+  std::unordered_map<const ELFSection *, GroupMemberList>
+      GroupMembersByGroupSection;
   ELFSection *GOT = nullptr;
   ELFSection *GOTPLT = nullptr;
   ELFSection *PLT = nullptr;
