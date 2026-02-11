@@ -136,7 +136,7 @@ defm output_file : smDashTwoWithOpt<"o", "output", "output_file",
                    MetaVarName<"<outputfile>">,
                    Group<grp_general>;
 defm sysroot : smDash<"sysroot", "sysroot", "Set the system root">,
-              MetaVarName<"<sysroot-path>">,
+               MetaVarName<"<sysroot-path>">,
                Group<grp_general>;
 def version : Flag<["--"], "version">,
               HelpText<"Print the Linker version">,

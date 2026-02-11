@@ -102,8 +102,7 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   }
 
   if (Type == Input::Script) {
-    if (PSearchDirs.hasSysRoot() &&
-        (FileName.size() > 0 && FileName[0] == '/')) {
+    if (shouldPrependSysrootToScriptInput(PConfig)) {
       ResolvedPath = PSearchDirs.sysroot();
       ResolvedPath->append(FileName);
     }
@@ -149,6 +148,30 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   // driver.
   Name = FileName;
   return true;
+}
+
+bool Input::shouldPrependSysrootToScriptInput(
+    const LinkerConfig &Config) const {
+  auto &searchDirs = Config.directories();
+  if (!searchDirs.hasSysRoot())
+    return false;
+  if (Type != Input::Script)
+    return false;
+  if (FileName.empty() || FileName[0] != '/')
+    return false;
+
+  // Only apply sysroot for INPUT/GROUP entries when we know which script they
+  // came from and that script is inside sysroot.
+  if (!ParentScriptFile)
+    return false;
+
+  Input *scriptInput = ParentScriptFile->getInput();
+
+  std::string scriptPath = scriptInput->getResolvedPath().getFullPath();
+  std::string sysrootPath = searchDirs.sysroot().getFullPath();
+
+  return scriptPath.size() >= sysrootPath.size() &&
+         scriptPath.compare(0, sysrootPath.size(), sysrootPath) == 0;
 }
 
 void Input::setInputFile(InputFile *Inp) { IF = Inp; }
