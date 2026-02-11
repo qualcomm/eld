@@ -16,6 +16,7 @@
 namespace eld {
 
 class ELFSection;
+class LDSymbol;
 class TimingSection;
 class RelocMap;
 
@@ -119,6 +120,20 @@ public:
   llvm::ArrayRef<std::string>
   getSectionAnnotations(const ELFSection &S) const;
 
+  void setSectionSignatureSymbol(const ELFSection &S, LDSymbol *Sym) {
+    if (Sym)
+      SignatureSymbolForGroupSections[&S] = Sym;
+    else
+      SignatureSymbolForGroupSections.erase(&S);
+  }
+
+  LDSymbol *getSectionSignatureSymbol(const ELFSection &S) const {
+    auto It = SignatureSymbolForGroupSections.find(&S);
+    if (It == SignatureSymbolForGroupSections.end())
+      return nullptr;
+    return It->second;
+  }
+
 private:
   eld::ELFSection *LLVMBCSection = nullptr;
   eld::TimingSection *TimingSection = nullptr;
@@ -138,6 +153,8 @@ private:
   std::unordered_map<const ELFSection *, InputFile *> OldInputFileBySection;
   std::unordered_map<const ELFSection *, llvm::SmallVector<std::string, 1>>
       SectionAnnotationsBySection;
+  std::unordered_map<const ELFSection *, LDSymbol *>
+      SignatureSymbolForGroupSections;
 };
 
 } // namespace eld

@@ -141,7 +141,7 @@ ELFSection *ObjectBuilder::mergeSection(GNULDBackend &PGnuldBackend,
       // Add all the input sections that were part of the group
       for (auto *GroupSection : CurInputSection->getGroupSections())
         Target->addSectionsToGroup(GroupSection);
-      Target->setSymbol(CurInputSection->getSymbol());
+      Target->setSignatureSymbol(CurInputSection->getSignatureSymbol());
       if (!CurInputSection->getOutputSection())
         CurInputSection->setOutputSection(Target->getOutputSection());
       return Target;

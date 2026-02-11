@@ -204,9 +204,16 @@ public:
 
   void setPaddr(size_t A);
 
-  void setSymbol(LDSymbol *S) { Symbol = S; }
+  void setSignatureSymbol(LDSymbol *S) {
+    auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+    assert(ObjFile && "Section symbol must be stored on an ELFObjectFile");
+    ObjFile->setSectionSignatureSymbol(*this, S);
+  }
 
-  LDSymbol *getSymbol() const { return Symbol; }
+  LDSymbol *getSignatureSymbol() const {
+    auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+    return ObjFile ? ObjFile->getSectionSignatureSymbol(*this) : nullptr;
+  }
 
   llvm::ArrayRef<const ELFSection *> getGroupSections() const {
     auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
@@ -319,8 +326,6 @@ protected:
   /// FIXME: This has different meanings for Input/Output sections.
   uint64_t Offset = ~uint64_t(0);
   uint64_t Addr = InvalidAddr;
-
-  LDSymbol *Symbol = nullptr;
 
   /// FIXME: These can probably be moved out
   bool Wanted = false;

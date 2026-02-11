@@ -751,7 +751,8 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
 /// getSectInfo - compute ElfXX_Shdr::sh_info
 uint64_t ELFObjectWriter::getSectInfo(ELFSection *CurSection) const {
   if (CurSection->isGroupKind())
-    return ThisModule.getBackend().getSymbolIdx(CurSection->getSymbol());
+    return ThisModule.getBackend().getSymbolIdx(
+        CurSection->getSignatureSymbol());
 
   if (llvm::ELF::SHT_SYMTAB == CurSection->getType() ||
       llvm::ELF::SHT_DYNSYM == CurSection->getType())

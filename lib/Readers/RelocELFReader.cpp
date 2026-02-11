@@ -294,7 +294,7 @@ eld::Expected<bool> RelocELFReader<ELFT>::readOneGroup(ELFSection *S) {
   // FIXME: Return an error instead!
   if (!signatureSymbol)
     return false;
-  S->setSymbol(signatureSymbol->resolveInfo()->outSymbol());
+  S->setSignatureSymbol(signatureSymbol->resolveInfo()->outSymbol());
   return true;
 }
 
