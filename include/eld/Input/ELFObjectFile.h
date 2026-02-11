@@ -8,6 +8,8 @@
 #define ELD_INPUT_ELFOBJECTFILE_H
 
 #include "eld/Input/ELFFileBase.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
 #include <unordered_map>
 
@@ -96,6 +98,13 @@ public:
       OldInputFileBySection.erase(&S);
   }
 
+  void addSectionAnnotation(const ELFSection &S, const std::string &Annotation);
+
+  bool hasSectionAnnotations(const ELFSection &S) const;
+
+  llvm::ArrayRef<std::string>
+  getSectionAnnotations(const ELFSection &S) const;
+
 private:
   eld::ELFSection *LLVMBCSection = nullptr;
   eld::TimingSection *TimingSection = nullptr;
@@ -111,6 +120,8 @@ private:
   ELFSection *GOTPatch = nullptr;
   ELFSection *RelaPatch = nullptr;
   std::unordered_map<const ELFSection *, InputFile *> OldInputFileBySection;
+  std::unordered_map<const ELFSection *, llvm::SmallVector<std::string, 1>>
+      SectionAnnotationsBySection;
 };
 
 } // namespace eld

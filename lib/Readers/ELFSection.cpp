@@ -14,6 +14,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Object/OutputSectionEntry.h"
 #include "llvm/ADT/StringRef.h"
+#include <sstream>
 
 using namespace eld;
 
@@ -109,6 +110,10 @@ std::string ELFSection::getELFPermissionsStr(uint32_t permissions) {
 }
 
 std::string ELFSection::getSectionAnnotations() const {
+  auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+  if (!ObjFile)
+    return "";
+  llvm::ArrayRef<std::string> Annotations = ObjFile->getSectionAnnotations(*this);
   std::ostringstream oss;
   for (size_t i = 0; i < Annotations.size(); ++i) {
     oss << Annotations[i];
@@ -118,10 +123,18 @@ std::string ELFSection::getSectionAnnotations() const {
   return oss.str();
 }
 
-bool ELFSection::hasAnnotations() const { return !Annotations.empty(); }
+bool ELFSection::hasAnnotations() const {
+  auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+  return ObjFile && ObjFile->hasSectionAnnotations(*this);
+}
 
 void ELFSection::addSectionAnnotation(const std::string &Annotation) {
-  Annotations.push_back(Annotation);
+  if (Annotation.empty())
+    return;
+  auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+  if (!ObjFile)
+    return;
+  ObjFile->addSectionAnnotation(*this, Annotation);
 }
 // If an input section is in the form of "foo.N" where N is a number,
 // return N. Otherwise, returns 65536, which is one greater than the

@@ -88,3 +88,21 @@ void ELFObjectFile::populateDebugSections() {
         /*RequiresNullTerminator*/ false));
   }
 }
+
+void ELFObjectFile::addSectionAnnotation(const ELFSection &S,
+                                        const std::string &Annotation) {
+  SectionAnnotationsBySection[&S].push_back(Annotation);
+}
+
+bool ELFObjectFile::hasSectionAnnotations(const ELFSection &S) const {
+  auto It = SectionAnnotationsBySection.find(&S);
+  return It != SectionAnnotationsBySection.end() && !It->second.empty();
+}
+
+llvm::ArrayRef<std::string>
+ELFObjectFile::getSectionAnnotations(const ELFSection &S) const {
+  auto It = SectionAnnotationsBySection.find(&S);
+  if (It == SectionAnnotationsBySection.end())
+    return {};
+  return It->second;
+}

@@ -326,8 +326,6 @@ protected:
   /// the section properties instead of storing this?
   bool ShouldExcludeFromGC = false;
 
-  llvm::SmallVector<std::string> Annotations;
-
   llvm::SmallVector<Fragment *, 0> Fragments;
   llvm::SmallVector<Relocation *, 0> Relocations;
 
