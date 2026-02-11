@@ -172,9 +172,6 @@ public:
   explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
                   LayoutInfo *LayoutInfo);
 
-  Module(const std::string &Name, LinkerScript &CurScript, LinkerConfig &Config,
-         LayoutInfo *LayoutInfo);
-
   ~Module();
 
   LinkerScript &getScript() const { return UserLinkerScript; }

@@ -59,19 +59,6 @@ Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
     createOutputTarWriter();
 }
 
-Module::Module(const std::string &Name, LinkerScript &CurScript,
-               LinkerConfig &Config, LayoutInfo *LayoutInfo)
-    : UserLinkerScript(CurScript), ThisConfig(Config), DotSymbol(nullptr),
-      Linker(nullptr), ThisLayoutInfo(LayoutInfo), Failure(false),
-      UsesLto(false), Saver(BAlloc), PM(CurScript, *Config.getDiagEngine(),
-                                        Config.options().printTimingStats()),
-      SymbolNamePool(Config, PM) {
-  if (Config.options().isLTOCacheEnabled())
-    UserLinkerScript.setHashingEnabled();
-  UserLinkerScript.createSectionMap(CurScript, Config, LayoutInfo);
-  Printer = ThisConfig.getPrinter();
-}
-
 Module::~Module() {
   InputObjectList.clear();
   ArchiveLibraryList.clear();
