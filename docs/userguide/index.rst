@@ -29,6 +29,7 @@ This document describes usage of ELD
    documentation/layout.rst
    documentation/linker_plugins_updated.rst
    documentation/linker_optimizations.rst
+   documentation/lto_support.rst
    documentation/getting_image_details.rst
    documentation/options/options.rst
    documentation/target_specific_features.rst
