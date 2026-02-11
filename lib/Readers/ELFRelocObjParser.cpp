@@ -140,6 +140,7 @@ eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
     /** Fall through **/
     case LDFileFormat::Regular:
     case LDFileFormat::EhFrame:
+    case LDFileFormat::SFrame:
     case LDFileFormat::Note:
     case LDFileFormat::MetaData: {
       if (S->isCompressed()) {

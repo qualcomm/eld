@@ -78,6 +78,7 @@ ELFObjectWriter::writeSection(llvm::FileOutputBuffer &CurOutput,
   case LDFileFormat::MergeStr:
   case LDFileFormat::GCCExceptTable:
   case LDFileFormat::EhFrame:
+  case LDFileFormat::SFrame:
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   case LDFileFormat::SymbolVersion:
 #endif
@@ -131,6 +132,7 @@ eld::Expected<void> ELFObjectWriter::writeRegion(ELFSection *Section,
   case LDFileFormat::Note:
   case LDFileFormat::MergeStr:
   case LDFileFormat::EhFrame:
+  case LDFileFormat::SFrame:
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   case LDFileFormat::SymbolVersion:
 #endif

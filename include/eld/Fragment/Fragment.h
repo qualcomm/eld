@@ -49,6 +49,7 @@ public:
     Null,
     MergeString,
     BuildID,
+    SFrame,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     GNUVerDef,
     GNUVerSym,

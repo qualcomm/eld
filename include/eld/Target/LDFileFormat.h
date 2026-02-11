@@ -47,6 +47,7 @@ public:
     OutputSectData,
     Regular,
     Relocation,
+    SFrame,
     StackNote,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     SymbolVersion,

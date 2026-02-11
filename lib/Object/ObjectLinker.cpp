@@ -43,6 +43,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/EhFrameHdrSection.h"
 #include "eld/Readers/EhFrameSection.h"
+#include "eld/Readers/SFrameSection.h"
 #include "eld/Readers/ObjectReader.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/Script/Assignment.h"
@@ -841,6 +842,20 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
           // the fragments necessary to create the .eh_frame_hdr section and
           // the filler eh_frame section.
           getTargetBackend().createEhFrameFillerAndHdrFragment();
+        }
+      }
+    }
+      LLVM_FALLTHROUGH;
+    case LDFileFormat::SFrame: {
+      if (Sect->getKind() == LDFileFormat::SFrame) {
+        auto *SFS = llvm::dyn_cast<eld::SFrameSection>(Sect);
+        if (SFS) {
+          if (!SFS->parseSFrameSection())
+            return false;
+          // If --sframe-hdr is enabled, create the SFrame fragment in the
+          // backend.
+          if (getTargetBackend().getSFrameSection())
+            getTargetBackend().createSFrameFragment();
         }
       }
     }

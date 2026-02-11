@@ -58,6 +58,7 @@ const NameMap map[] = {
     {".dtors*", ".dtors", InputSectDesc::Keep},
     {".eh_frame", ".eh_frame", InputSectDesc::Keep},
     {".eh_frame_hdr", ".eh_frame_hdr", InputSectDesc::Keep},
+    {".sframe", ".sframe", InputSectDesc::Keep},
     {".jcr", ".jcr", InputSectDesc::Keep},
     // FIXME: in GNU ld, if we are creating a shared object .sdata2 and .sbss2
     // sections would be handled differently.

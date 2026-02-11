@@ -77,6 +77,7 @@ bool GarbageCollection::mayProcessGC(ELFSection &CurSection) {
     break;
   // Make these flags go along with whatever is part of the root set.
   case LDFileFormat::EhFrame:
+  case LDFileFormat::SFrame:
     Ret = false;
     break;
   case LDFileFormat::Regular:

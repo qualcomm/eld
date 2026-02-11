@@ -1,0 +1,45 @@
+#---SFrame.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This tests the --sframe-hdr option which processes .sframe input sections,
+# validates their headers, and creates an output .sframe section with a
+# PT_GNU_SFRAME program header segment.
+#END_COMMENT
+#START_TEST
+
+# Test 1: Basic SFrame linking with --sframe-hdr
+RUN: %clang %clangopts -c %p/Inputs/sframe1.s -o %t1.sframe1.o
+RUN: %link %linkopts --sframe-hdr --verbose %t1.sframe1.o -o %t1.out 2>&1 | %filecheck %s -check-prefix=BASIC
+#BASIC: Keeping section .sframe from file
+
+# Test 2: Verify .sframe section is present in the output
+RUN: %readelf -S %t1.out 2>&1 | %filecheck %s -check-prefix=SECTION
+#SECTION: .sframe
+
+# Test 3: Verify PT_GNU_SFRAME segment is present
+RUN: %readelf -l %t1.out 2>&1 | %filecheck %s -check-prefix=SEGMENT
+#SEGMENT: GNU_SFRAME
+
+# Test 4: Multiple SFrame inputs are merged
+RUN: %clang %clangopts -c %p/Inputs/sframe2.s -o %t1.sframe2.o
+RUN: %link %linkopts --sframe-hdr %t1.sframe1.o %t1.sframe2.o -o %t2.out 2>&1
+
+# Test 5: Verify merged output has .sframe section
+RUN: %readelf -S %t2.out 2>&1 | %filecheck %s -check-prefix=MERGE-SECTION
+#MERGE-SECTION: .sframe
+
+# Test 6: Invalid SFrame magic number
+RUN: %clang %clangopts -c %p/Inputs/sframe_bad_magic.s -o %t1.bad_magic.o
+RUN: %not %link %linkopts --sframe-hdr %t1.bad_magic.o -o %t3.out 2>&1 | %filecheck %s -check-prefix=BADMAGIC
+#BADMAGIC: Error: SFrame Read Error : invalid SFrame magic number
+
+# Test 7: Unsupported SFrame version
+RUN: %clang %clangopts -c %p/Inputs/sframe_bad_version.s -o %t1.bad_version.o
+RUN: %not %link %linkopts --sframe-hdr %t1.bad_version.o -o %t4.out 2>&1 | %filecheck %s -check-prefix=BADVERSION
+#BADVERSION: Error: SFrame Read Error : unsupported SFrame version
+
+# Test 8: Without --sframe-hdr, .sframe sections are still read but no PT_GNU_SFRAME segment
+RUN: %link %linkopts %t1.sframe1.o -o %t5.out 2>&1
+RUN: %readelf -l %t5.out 2>&1 | %filecheck %s -check-prefix=NOSEG
+#NOSEG-NOT: GNU_SFRAME
+
+#END_TEST

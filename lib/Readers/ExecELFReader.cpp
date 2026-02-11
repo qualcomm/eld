@@ -79,6 +79,10 @@ eld::Expected<ELFSection *> ExecELFReader<ELFT>::createSection(
       return module.getScript().sectionMap().createEhFrameSection(
           sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
           rawSectHdr.sh_entsize);
+    if (kind == LDFileFormat::SFrame)
+      return module.getScript().sectionMap().createSFrameSection(
+          sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
+          rawSectHdr.sh_entsize);
   }
 
   return module.getScript().sectionMap().createELFSection(

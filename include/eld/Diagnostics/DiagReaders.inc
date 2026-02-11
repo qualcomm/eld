@@ -112,3 +112,5 @@ DIAG(fatal_unsupported_bit_code_file, DiagnosticEngine::Fatal,
      "Unsupported architecture %0 in LLVM Bitcode file : %1")
 DIAG(note_empty_archive, DiagnosticEngine::Note,
      "Empty archive file: '%0'")
+DIAG(sframe_read_error, DiagnosticEngine::Error,
+     "SFrame Read Error : %0 from file %1")

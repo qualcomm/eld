@@ -143,6 +143,7 @@ bool LayoutInfo::isSectionDetailedInfoAvailable(ELFSection *Section) {
   case LDFileFormat::Group:
   case LDFileFormat::StackNote:
   case LDFileFormat::EhFrame:
+  case LDFileFormat::SFrame:
     return false;
   default:
     break;

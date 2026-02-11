@@ -98,6 +98,7 @@ public:
     Trampoline,
     GlobalDataSymbols,
     GNUBuildID,
+    SFrameHdr,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     SymbolVersioning,
 #endif

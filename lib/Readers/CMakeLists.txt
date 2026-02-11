@@ -19,6 +19,7 @@ llvm_add_library(
   RelocELFReader.cpp
   Relocation.cpp
   Section.cpp
+  SFrameSection.cpp
   SymDefReader.cpp
   TimingSection.cpp
   TimingSlice.cpp

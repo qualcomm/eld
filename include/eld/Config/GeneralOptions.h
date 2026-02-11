@@ -299,6 +299,10 @@ public:
   bool hasEhFrameHdr() const { return BCreateEhFrameHdr; }
   bool isEhFrameHdrSet() const { return BCreateEhFrameHdrSet; }
 
+  void setSFrameHdr(bool PEnable = true) { BCreateSFrameHdr = PEnable; }
+
+  bool hasSFrameHdr() const { return BCreateSFrameHdr; }
+
   // -n, --nmagic
   void setNMagic(bool PMagic = true) { BNMagic = PMagic; }
 
@@ -1184,6 +1188,7 @@ private:
   bool BColor = true;             // --color[=true,false,auto]
   bool BCreateEhFrameHdr = false; // --eh-frame-hdr
   bool BCreateEhFrameHdrSet = false;
+  bool BCreateSFrameHdr = false;  // --sframe-hdr
   bool BOMagic = false;            // -N, --omagic
   bool BNMagic = false;            // -n, --nmagic
   bool BStripDebug = false;        // -S, --strip-debug

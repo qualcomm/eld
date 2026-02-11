@@ -64,6 +64,8 @@ LDFileFormat::Kind LDFileFormat::getELFSectionKind(
     return LDFileFormat::GCCExceptTable;
   if (Name.starts_with(".eh_frame"))
     return LDFileFormat::EhFrame;
+  if (Name == ".sframe" || Type == llvm::ELF::SHT_GNU_SFRAME)
+    return LDFileFormat::SFrame;
   if (Name.starts_with(".note.GNU-stack"))
     return LDFileFormat::StackNote;
   if (Name.starts_with(".gnu.linkonce"))

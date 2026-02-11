@@ -27,6 +27,7 @@ public:
     EhFrame,
     EhFrameHdr,
     ELF,
+    SFrame,
   };
 
   Section(Kind k, const std::string &name, uint64_t size)
@@ -52,7 +53,8 @@ public:
   bool isELF() const {
     bool iself =
         m_SectionKind == Kind::CommonELF || m_SectionKind == Kind::EhFrame ||
-        m_SectionKind == Kind::EhFrameHdr || m_SectionKind == Kind::ELF;
+        m_SectionKind == Kind::EhFrameHdr || m_SectionKind == Kind::ELF ||
+        m_SectionKind == Kind::SFrame;
     return iself;
   }
   bool isBitcode() const { return m_SectionKind == Kind::Bitcode; }

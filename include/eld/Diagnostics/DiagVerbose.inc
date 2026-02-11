@@ -167,3 +167,4 @@ DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
      "Initialized plugin config for %0")
 DIAG(verbose_infer_target, DiagnosticEngine::Verbose,
      "Inferred target : %0")
+DIAG(verbose_sframe_log, DiagnosticEngine::Verbose, "SFrame Handling : %0")

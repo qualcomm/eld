@@ -16,6 +16,7 @@ llvm_add_library(
   RegionFragment.cpp
   RegionFragmentEx.cpp
   RegionTableFragment.cpp
+  SFrameFragment.cpp
   StringFragment.cpp
   Stub.cpp
   SysVHashFragment.cpp

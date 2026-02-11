@@ -85,13 +85,17 @@ bool GNULDBackend::createProgramHdrs() {
 
   ELFSection *dynamic = script.sectionMap().find(".dynamic");
   ELFSection *eh_frame_hdr = script.sectionMap().find(".eh_frame_hdr");
+  ELFSection *sframe = script.sectionMap().find(".sframe");
 
   ELFSegment *pt_gnu_relro = nullptr;
   wantPhdr = seenTLS;
-  // If there is PT_DYNAMIC, or PT_TLS or PT_GNU_EH_FRAME load the program
-  // header, as the loader goes through the segments to do the corresponding
-  // work.
-  if ((dynamic && dynamic->size()) || (eh_frame_hdr && eh_frame_hdr->size()))
+  bool hasSFrameHdr = config().options().hasSFrameHdr();
+
+  // If there is PT_DYNAMIC, or PT_TLS or PT_GNU_EH_FRAME or PT_GNU_SFRAME
+  // load the program header, as the loader goes through the segments to do
+  // the corresponding work.
+  if ((dynamic && dynamic->size()) || (eh_frame_hdr && eh_frame_hdr->size()) ||
+      (hasSFrameHdr && sframe && sframe->size()))
     wantPhdr = true;
 
   // check if we need save a space for elf header + phdr
@@ -110,6 +114,10 @@ bool GNULDBackend::createProgramHdrs() {
 
   // make PT_GNU_EH_FRAME
   if (eh_frame_hdr && eh_frame_hdr->size())
+    ++m_NumReservedSegments;
+
+  // make PT_GNU_SFRAME
+  if (hasSFrameHdr && sframe && sframe->size())
     ++m_NumReservedSegments;
 
   if (seenTLS)
@@ -738,6 +746,13 @@ bool GNULDBackend::createProgramHdrs() {
     ELFSegment *eh_seg = make<ELFSegment>(llvm::ELF::PT_GNU_EH_FRAME);
     elfSegmentTable().addSegment(eh_seg);
     eh_seg->append(eh_frame_hdr->getOutputSection());
+  }
+
+  // make PT_GNU_SFRAME
+  if (hasSFrameHdr && sframe && sframe->size()) {
+    ELFSegment *sframe_seg = make<ELFSegment>(llvm::ELF::PT_GNU_SFRAME);
+    elfSegmentTable().addSegment(sframe_seg);
+    sframe_seg->append(sframe->getOutputSection());
   }
 
   // make PT_GNU_STACK

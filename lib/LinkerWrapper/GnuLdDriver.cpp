@@ -443,6 +443,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Args.hasArg(T::eh_frame_hdr))
     Config.options().setEhFrameHdr(true);
 
+  // --sframe-hdr
+  if (Args.hasArg(T::sframe_hdr))
+    Config.options().setSFrameHdr(true);
+
   // -s, --strip-debug
   bool hasStripDebug = Args.hasArg(T::strip_debug) || Args.hasArg(T::strip_all);
   Config.options().setStripDebug(hasStripDebug);

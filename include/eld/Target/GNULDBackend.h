@@ -46,6 +46,7 @@ class BitcodeReader;
 class BranchIslandFactory;
 class EhFrameHdr;
 class EhFrameHdrSection;
+class SFrameSection;
 class ELFDynamic;
 class ELFDynObjFileFormat;
 class ELFExecFileFormat;
@@ -713,6 +714,11 @@ public:
 
   void createEhFrameFillerAndHdrFragment();
 
+  // ------------------- SFrame support -------------------------------
+  ELFSection *getSFrameSection() const { return m_pSFrameSection; }
+
+  void createSFrameFragment();
+
   // ------------------------- EhFrame Hdr support ----------------
   bool hasEhFrameHdr() const { return m_pEhFrameHdrFragment != nullptr; }
 
@@ -1076,6 +1082,12 @@ protected:
 
   // eh_frame filler section
   ELFSection *m_pEhFrameFillerSection = nullptr;
+
+  // section .sframe
+  ELFSection *m_pSFrameSection = nullptr;
+
+  // SFrame fragment
+  Fragment *m_pSFrameFragment = nullptr;
 
   // ----- dynamic flags ----- //
   // DF_TEXTREL of DT_FLAGS

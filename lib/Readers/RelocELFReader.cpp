@@ -74,6 +74,11 @@ eld::Expected<ELFSection *> RelocELFReader<ELFT>::createSection(
         sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
         rawSectHdr.sh_entsize);
 
+  if (!section && kind == LDFileFormat::SFrame)
+    section = module.getScript().sectionMap().createSFrameSection(
+        sectName, rawSectHdr.sh_type, rawSectHdr.sh_flags,
+        rawSectHdr.sh_entsize);
+
   if (!section) {
     section = module.getScript().sectionMap().createELFSection(
         sectName, (LLVMBCSectionIsIgnore ? LDFileFormat::Discard : kind),

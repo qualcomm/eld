@@ -29,6 +29,7 @@
 #endif
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Fragment/StringFragment.h"
+#include "eld/Fragment/SFrameFragment.h"
 #include "eld/Fragment/SysVHashFragment.h"
 #include "eld/Fragment/TimingFragment.h"
 #include "eld/Input/ELFDynObjectFile.h"
@@ -254,6 +255,14 @@ eld::Expected<void> GNULDBackend::initStdSections() {
         ".eh_frame", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC, 4);
   }
 
+  // Create .sframe output section if --sframe-hdr is set.
+  if (config().options().hasSFrameHdr()) {
+    m_pSFrameSection = m_Module.createInternalSection(
+        Module::InternalInputType::SFrameHdr, LDFileFormat::SFrame, ".sframe",
+        llvm::ELF::SHT_GNU_SFRAME, llvm::ELF::SHF_ALLOC,
+        config().targets().is32Bits() ? 4 : 8);
+  }
+
   m_pComment = m_Module.createInternalSection(
       Module::InternalInputType::LinkerVersion, LDFileFormat::Regular,
       ".comment", llvm::ELF::SHT_PROGBITS,
@@ -333,6 +342,8 @@ bool GNULDBackend::initStandardSymbols() {
                   m_Module.getSection(".eh_frame"));
   InitStandardSym("__eh_frame_hdr_start", "__eh_frame_hdr_end",
                   m_Module.getSection(".eh_frame_hdr"));
+  InitStandardSym("__sframe_start", "__sframe_end",
+                  m_Module.getSection(".sframe"));
   InitStandardSym("__preinit_array_start", "__preinit_array_end",
                   m_Module.getSection(".preinit_array"));
   InitStandardSym("__init_array_start", "__init_array_end",
@@ -433,6 +444,8 @@ bool GNULDBackend::finalizeStandardSymbols() {
                     m_Module.getSection(".eh_frame"));
   DefineStandardSym("__eh_frame_hdr_start", "__eh_frame_hdr_end",
                     m_Module.getSection(".eh_frame_hdr"));
+  DefineStandardSym("__sframe_start", "__sframe_end",
+                    m_Module.getSection(".sframe"));
   DefineStandardSym("__preinit_array_start", "__preinit_array_end",
                     m_Module.getSection(".preinit_array"));
   DefineStandardSym("__init_array_start", "__init_array_end",
@@ -893,6 +906,19 @@ void GNULDBackend::createEhFrameFillerAndHdrFragment() {
         config().targets().is64Bits());
     m_pEhFrameHdrSection->addFragmentAndUpdateSize(m_pEhFrameHdrFragment);
   }
+}
+
+void GNULDBackend::createSFrameFragment() {
+  if (!m_pSFrameSection)
+    return;
+  if (m_pSFrameFragment)
+    return;
+  // If the output .sframe section has no content from input sections,
+  // there is nothing to do.
+  if (!m_pSFrameSection->hasFragments())
+    return;
+  if (m_Module.getPrinter()->isVerbose())
+    config().raise(Diag::verbose_sframe_log) << "SFrame section created";
 }
 
 void GNULDBackend::sizeDynamic() {
@@ -1447,6 +1473,7 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     LLVM_FALLTHROUGH;
   case LDFileFormat::EhFrameHdr:
   case LDFileFormat::GCCExceptTable:
+  case LDFileFormat::SFrame:
     return SHO_EXCEPTION;
 
   case LDFileFormat::MetaData:
@@ -3652,6 +3679,16 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
         getFileOutputRegion(pOutput, 0, pOutput.getBufferSize());
     eld::Expected<void> expEmit =
         m_pEhFrameHdrFragment->emit(region, getModule());
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expEmit);
+  }
+
+  if (m_pSFrameFragment) {
+    eld::RegisterTimer T("SFrame Emit", "Post Processing",
+                         m_Module.getConfig().options().printTimingStats());
+    MemoryRegion region =
+        getFileOutputRegion(pOutput, 0, pOutput.getBufferSize());
+    eld::Expected<void> expEmit =
+        m_pSFrameFragment->emit(region, getModule());
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expEmit);
   }
   {
