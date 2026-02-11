@@ -3470,7 +3470,7 @@ bool ObjectLinker::insertPostLTOELF() {
       auto OldInput = MSectionWithOldInputMap.find(Section->name());
       if (OldInput == MSectionWithOldInputMap.end())
         continue;
-      Section->setOldInputFile(OldInput->second);
+      ObjFile->setOldInputFile(*Section, OldInput->second);
     }
   }
   return true;

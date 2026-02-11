@@ -384,8 +384,11 @@ void LinkerWrapper::setSectionName(plugin::Section S, const std::string &Name) {
 void LinkerWrapper::setRuleMatchingInput(plugin::Section S,
                                          plugin::InputFile I) {
   if (eld::ELFSection *ELFSection =
-          llvm::dyn_cast<eld::ELFSection>(S.getSection()))
-    ELFSection->setOldInputFile(I.getInputFile());
+          llvm::dyn_cast<eld::ELFSection>(S.getSection())) {
+    if (auto *ObjFile = llvm::dyn_cast_or_null<eld::ELFObjectFile>(
+            ELFSection->getInputFile()))
+      ObjFile->setOldInputFile(*ELFSection, I.getInputFile());
+  }
 }
 
 eld::Expected<void>

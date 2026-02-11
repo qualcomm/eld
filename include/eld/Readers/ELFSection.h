@@ -14,6 +14,7 @@
 #ifndef ELD_READERS_ELFSECTION_H
 #define ELD_READERS_ELFSECTION_H
 #include "eld/BranchIsland/BranchIsland.h"
+#include "eld/Input/ELFObjectFile.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Readers/Section.h"
 #include "eld/SymbolResolver/LDSymbol.h"
@@ -218,11 +219,15 @@ public:
   }
 
   //  LTO Tracking support
-  bool hasOldInputFile() const override { return OldInput != nullptr; }
+  bool hasOldInputFile() const override {
+    auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+    return ObjFile && ObjFile->hasOldInputFile(*this);
+  }
 
-  InputFile *getOldInputFile() const override { return OldInput; }
-
-  void setOldInputFile(InputFile *I) { OldInput = I; }
+  InputFile *getOldInputFile() const override {
+    auto *ObjFile = llvm::dyn_cast_or_null<ELFObjectFile>(getInputFile());
+    return ObjFile ? ObjFile->getOldInputFile(*this) : nullptr;
+  }
 
   ///  __attribute__((at(address))) support
   void setFixedAddr() { IsFixedAddr = true; }
@@ -308,9 +313,6 @@ protected:
   uint64_t Addr = InvalidAddr;
 
   LDSymbol *Symbol = nullptr;
-
-  /// FIXME: Only relevant for LTO. This should be moved out.
-  InputFile *OldInput = nullptr;
 
   /// FIXME: These can probably be moved out
   bool Wanted = false;

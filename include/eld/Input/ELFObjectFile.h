@@ -9,6 +9,7 @@
 
 #include "eld/Input/ELFFileBase.h"
 #include "llvm/DebugInfo/DWARF/DWARFContext.h"
+#include <unordered_map>
 
 namespace eld {
 
@@ -77,6 +78,24 @@ public:
     return GroupSections;
   }
 
+  bool hasOldInputFile(const ELFSection &S) const {
+    return OldInputFileBySection.find(&S) != OldInputFileBySection.end();
+  }
+
+  InputFile *getOldInputFile(const ELFSection &S) const {
+    auto It = OldInputFileBySection.find(&S);
+    if (It == OldInputFileBySection.end())
+      return nullptr;
+    return It->second;
+  }
+
+  void setOldInputFile(const ELFSection &S, InputFile *I) {
+    if (I)
+      OldInputFileBySection[&S] = I;
+    else
+      OldInputFileBySection.erase(&S);
+  }
+
 private:
   eld::ELFSection *LLVMBCSection = nullptr;
   eld::TimingSection *TimingSection = nullptr;
@@ -91,6 +110,7 @@ private:
   ELFSection *RelaPLT = nullptr;
   ELFSection *GOTPatch = nullptr;
   ELFSection *RelaPatch = nullptr;
+  std::unordered_map<const ELFSection *, InputFile *> OldInputFileBySection;
 };
 
 } // namespace eld
