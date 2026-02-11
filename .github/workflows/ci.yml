@@ -54,7 +54,9 @@ jobs:
         id: file-check
         working-directory: pr-${{ env.PR_NUMBER }}/llvm-project/llvm/tools/eld
         run: |
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          git fetch origin ${{ env.BASE_BRANCH_NAME }}
+          MERGE_BASE=$(git merge-base origin/${{ env.BASE_BRANCH_NAME }} HEAD)
+          CHANGED_FILES=$(git diff --name-only "$MERGE_BASE" HEAD)
           echo "Changed files: $CHANGED_FILES"
           for file in $CHANGED_FILES; do
             if [[ ! "$file" =~ ^docs/ && ! "$file" =~ \.md$ ]]; then
