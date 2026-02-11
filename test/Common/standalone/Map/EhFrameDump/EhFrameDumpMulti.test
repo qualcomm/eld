@@ -1,0 +1,12 @@
+#UNSUPPORTED: arm
+#---EhFrameDumpMulti.test---------------------- Executable -----------------#
+# This test verifies map dumps for multiple .eh_frame records.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-map-multi.s -o %t.o
+RUN: %link %linkopts --eh-frame-hdr %t.o -o %t.out -MapStyle txt -Map %t.map
+RUN: %filecheck %s --input-file=%t.map
+
+#CHECK: # CIE out=0x
+#CHECK-DAG: # FDE out=0x
+#CHECK-DAG: # FDE out=0x
+#CHECK: # Hdr out=0x

@@ -24,7 +24,7 @@ using namespace eld;
 
 namespace {
 // CIE records are uniquified by their contents and personality functions
-llvm::DenseMap<std::pair<llvm::ArrayRef<uint8_t>, ResolveInfo *>, CIEFragment *>
+llvm::DenseMap<std::pair<llvm::ArrayRef<uint8_t>, ResolveInfo *>, EhFrameCIE *>
     CieMap;
 } // namespace
 
@@ -37,7 +37,8 @@ EhFrameSection::EhFrameSection(std::string Name, DiagnosticEngine *E,
       m_DiagEngine(E) {}
 
 size_t EhFrameSection::readEhRecordSize(size_t Off) {
-  llvm::ArrayRef<uint8_t> D = Data.slice(Off);
+  llvm::ArrayRef<uint8_t> SectionData = getData();
+  llvm::ArrayRef<uint8_t> D = SectionData.slice(Off);
 
   if (D.size() < 4) {
     m_DiagEngine->raise(Diag::eh_frame_read_error)
@@ -69,23 +70,25 @@ bool EhFrameSection::splitEhFrameSection() {
     return true;
 
   if (m_EhFrame == nullptr) {
-    m_EhFrame = llvm::dyn_cast<eld::RegionFragment>(Fragments.front());
-    Data = llvm::ArrayRef((const uint8_t *)m_EhFrame->getRegion().data(),
-                          m_EhFrame->size());
+    if (Fragments.empty())
+      return false;
+    assert(Fragments.front()->getKind() == Fragment::Type::Region &&
+           "EhFrameSection must start with a Region-like fragment");
+    m_EhFrame = static_cast<eld::EhFrameFragment *>(Fragments.front());
     Fragments.clear();
   }
 
   if (!m_EhFrame)
     return false;
 
-  llvm::StringRef Data = m_EhFrame->getRegion();
-  for (size_t Off = 0, End = Data.size(); Off != End;) {
+  llvm::StringRef Region = m_EhFrame->getRegion();
+  for (size_t Off = 0, End = Region.size(); Off != End;) {
     size_t Size = readEhRecordSize(Off);
     if (Size == (size_t)-1)
       return false;
 
     Relocation *Reloc = getReloc(Off, Size);
-    m_EhFramePieces.emplace_back(Off, Size, Reloc, this);
+    m_EhFrame->addPiece(Off, Size, Reloc);
     if (Reloc && getDiagPrinter()->isVerbose())
       m_DiagEngine->raise(Diag::verbose_ehframe)
           << Reloc->symInfo()->name() << Off << Size;
@@ -108,19 +111,23 @@ Relocation *EhFrameSection::getReloc(size_t Off, size_t Size) {
 }
 
 bool EhFrameSection::createCIEAndFDEFragments() {
-  for (auto &Piece : m_EhFramePieces) {
+  llvm::DenseMap<size_t, EhFrameCIE *> OffsetToCie;
+  if (!m_EhFrame)
+    return true;
+  llvm::StringRef Region = m_EhFrame->getRegion();
+  for (auto &Piece : m_EhFrame->getPieces()) {
     if (Piece.getSize() == 4)
       return true;
     size_t Offset = Piece.getOffset();
-    uint32_t ID = llvm::support::endian::read32le(Piece.getData().data() + 4);
+    uint32_t ID =
+        llvm::support::endian::read32le(Piece.getData(Region).data() + 4);
     if (ID == 0) {
-      m_OffsetToCie[Offset] = addCie(Piece);
-      ++NumCie;
+      OffsetToCie[Offset] = addCie(Piece);
       continue;
     }
 
     uint32_t CieOffset = Offset + 4 - ID;
-    CIEFragment *Cie = m_OffsetToCie[CieOffset];
+    EhFrameCIE *Cie = OffsetToCie[CieOffset];
     if (!Cie) {
       m_DiagEngine->raise(Diag::eh_frame_read_error)
           << "Invalid CIE Reference"
@@ -139,23 +146,22 @@ bool EhFrameSection::createCIEAndFDEFragments() {
     if (getDiagPrinter()->isVerbose())
       m_DiagEngine->raise(Diag::verbose_ehframe_read_fde)
           << "Reading FDE of size " + std::to_string(Piece.getSize());
-    Cie->appendFragment(make<eld::FDEFragment>(Piece, this));
-    ++NumFDE;
+    Cie->appendFDE(make<eld::FDEPiece>(Piece));
   }
   return true;
 }
 
-CIEFragment *EhFrameSection::addCie(EhFramePiece &P) {
+EhFrameCIE *EhFrameSection::addCie(EhFramePiece &P) {
   ResolveInfo *R = nullptr;
   if (P.getRelocation())
     R = P.getRelocation()->symInfo();
-  CIEFragment *E = CieMap[{P.getData(), R}];
+  EhFrameCIE *E = CieMap[{P.getData(m_EhFrame->getRegion()), R}];
   if (!E) {
     if (getDiagPrinter()->isVerbose())
       m_DiagEngine->raise(Diag::verbose_ehframe_read_cie)
           << "Reading CIE of size " + std::to_string(P.getSize());
-    E = make<eld::CIEFragment>(P, this);
-    m_CIEFragments.push_back(E);
+    E = make<eld::EhFrameCIE>(P);
+    m_EhFrame->getCIEs().push_back(E);
   }
   return E;
 }
@@ -166,18 +172,16 @@ void EhFrameSection::finishAddingFragments(Module &ThisModule) {
     setKind(LDFileFormat::Regular);
     return;
   }
-  if (!m_CIEFragments.size()) {
+  if (m_EhFrame->getCIEs().empty()) {
     setKind(LDFileFormat::Regular);
     Fragments.push_back(m_EhFrame);
     if (ThisModule.getLayoutInfo())
       ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, m_EhFrame);
     return;
   }
-  for (auto &F : m_CIEFragments) {
-    if (ThisModule.getLayoutInfo())
-      ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, F);
-    Fragments.push_back(F);
-  }
+  if (ThisModule.getLayoutInfo())
+    ThisModule.getLayoutInfo()->recordFragment(getInputFile(), this, m_EhFrame);
+  Fragments.push_back(m_EhFrame);
 }
 
 bool EhFrameSection::isFdeLive(EhFramePiece &P) {
@@ -199,6 +203,13 @@ bool EhFrameSection::isFdeLive(EhFramePiece &P) {
       symInfo->getOwningSection()->isIgnore())
     return false;
   return true;
+}
+
+llvm::ArrayRef<uint8_t> EhFrameSection::getData() const {
+  assert(m_EhFrame && "EhFrame fragment must be initialized");
+  llvm::StringRef Region = m_EhFrame->getRegion();
+  return llvm::ArrayRef<uint8_t>(
+      reinterpret_cast<const uint8_t *>(Region.data()), Region.size());
 }
 
 DiagnosticPrinter *EhFrameSection::getDiagPrinter() {

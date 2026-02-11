@@ -1,0 +1,10 @@
+#UNSUPPORTED: arm, aarch64, riscv32, riscv64
+#---EhFrameDumpGcFDE.test---------------------- Executable -----------------#
+# This test checks that GC'd functions do not contribute FDEs to the image.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-gc.s -o %t.o
+RUN: %link %linkopts --gc-sections --eh-frame-hdr %t.o -o %t.out -MapStyle txt -Map %t.map
+RUN: %filecheck %s --input-file=%t.map
+
+#CHECK: sym={{.*}}foo
+#CHECK-NOT: sym=bar

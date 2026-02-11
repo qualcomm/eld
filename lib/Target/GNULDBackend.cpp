@@ -21,15 +21,17 @@
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/DiagnosticInfos.h"
 #include "eld/Fragment/BuildIDFragment.h"
+#include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
 #include "eld/Fragment/GNUVerSymFragment.h"
 #endif
+#include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/RegionFragmentEx.h"
-#include "eld/Fragment/StringFragment.h"
 #include "eld/Fragment/SFrameFragment.h"
+#include "eld/Fragment/StringFragment.h"
 #include "eld/Fragment/SysVHashFragment.h"
 #include "eld/Fragment/TimingFragment.h"
 #include "eld/Input/ELFDynObjectFile.h"
@@ -885,6 +887,7 @@ void GNULDBackend::createEhFrameFillerAndHdrFragment() {
   eld::RegisterTimer T("Create EhFrame Hdr Output Section", "Perform Layout",
                        m_Module.getConfig().options().printTimingStats());
 
+  LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   // The LSB standard does not allow a .eh_frame section with zero
   // Call Frame Information records. glibc unwind-dw2-fde.c
   // classify_object_over_fdes expects there is a CIE record length 0 as a
@@ -904,6 +907,9 @@ void GNULDBackend::createEhFrameFillerAndHdrFragment() {
     m_pEhFrameHdrFragment = make<EhFrameHdrFragment>(
         m_pEhFrameHdrSection, m_EhFrameHdrContainsTable,
         config().targets().is64Bits());
+    if (layoutInfo)
+      layoutInfo->recordFragment(m_pEhFrameHdrSection->getInputFile(),
+                                 m_pEhFrameHdrSection, m_pEhFrameHdrFragment);
     m_pEhFrameHdrSection->addFragmentAndUpdateSize(m_pEhFrameHdrFragment);
   }
 }
@@ -1050,7 +1056,10 @@ bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
     F = make<FillFragment>(getModule(), 0x0, S->size(), S, S->getAddrAlign());
   else {
     llvm::StringRef R = pInput.getSlice(S->offset(), S->size());
-    F = make<RegionFragment>(R, S, Fragment::Type::Region, S->getAddrAlign());
+    if (S->getKind() == LDFileFormat::EhFrame)
+      F = make<EhFrameFragment>(R, S);
+    else
+      F = make<RegionFragment>(R, S, Fragment::Type::Region, S->getAddrAlign());
   }
   S->addFragment(F);
   if (layoutInfo)

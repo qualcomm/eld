@@ -1,0 +1,12 @@
+#UNSUPPORTED: arm
+#---EhFrameDumpMergeCIE.test------------------- Executable -----------------#
+# This test verifies that identical CIEs from multiple inputs are merged.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-merge-1.s -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-merge-2.s -o %t2.o
+RUN: %link %linkopts --eh-frame-hdr %t1.o %t2.o -o %t.out -MapStyle txt -Map %t.map
+RUN: %filecheck %s --input-file=%t.map
+
+#CHECK-COUNT-1: # CIE out=0x{{[0-9A-Fa-f]+}}
+#CHECK-COUNT-2: # FDE out=0x{{[0-9A-Fa-f]+}}
+#CHECK: # Hdr out=0x{{[0-9A-Fa-f]+}}

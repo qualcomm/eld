@@ -17,10 +17,10 @@
 namespace eld {
 
 class DiagnosticEngine;
+class EhFrameFragment;
 class EhFrameHdrSection;
 class LinkerConfig;
-class CIEFragment;
-class FDEFragment;
+class FDEPiece;
 class Relocation;
 
 class EhFrameHdrFragment : public Fragment {
@@ -56,7 +56,7 @@ private:
 
   uint64_t readFdeAddr(uint8_t *Buf, int Size, DiagnosticEngine *DiagEngine);
 
-  uint64_t getFdePc(uint8_t *, FDEFragment *, uint8_t Enc,
+  uint64_t getFdePc(uint8_t *, const EhFrameFragment &, FDEPiece *, uint8_t Enc,
                     DiagnosticEngine *DiagEngine);
 
   bool Is64Bit = false;

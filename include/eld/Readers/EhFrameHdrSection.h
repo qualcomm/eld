@@ -15,7 +15,7 @@ namespace eld {
 
 class DiagnosticEngine;
 class ELFSection;
-class CIEFragment;
+class EhFrameFragment;
 class EhFrameHdrFragment;
 
 class EhFrameHdrSection : public ELFSection {
@@ -27,7 +27,7 @@ public:
     return S->getSectionKind() == Section::Kind::EhFrameHdr;
   }
 
-  void addCIE(std::vector<CIEFragment *> &C);
+  void addEhFrame(EhFrameFragment &F);
 
   size_t getNumCIE() const { return NumCIE; }
 
@@ -35,10 +35,10 @@ public:
 
   size_t sizeOfHeader() const { return 12; }
 
-  std::vector<CIEFragment *> &getCIEs() { return m_CIEs; }
+  const std::vector<EhFrameFragment *> &getEhFrames() const { return EhFrames; }
 
 private:
-  std::vector<CIEFragment *> m_CIEs;
+  std::vector<EhFrameFragment *> EhFrames;
   size_t NumCIE = 0;
   size_t NumFDE = 0;
 };

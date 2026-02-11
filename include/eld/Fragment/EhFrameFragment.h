@@ -7,8 +7,7 @@
 #ifndef ELD_FRAGMENT_EHFRAMEFRAGMENT_H
 #define ELD_FRAGMENT_EHFRAMEFRAGMENT_H
 
-#include "eld/Fragment/Fragment.h"
-#include "eld/Readers/EhFrameSection.h"
+#include "eld/Fragment/RegionFragment.h"
 #include "llvm/ADT/ArrayRef.h"
 #include <string>
 #include <vector>
@@ -16,14 +15,16 @@
 namespace eld {
 
 class DiagnosticEngine;
-class EhFrameSection;
+class EhFrameFragment;
+class ELFSection;
+class FDEPiece;
 class LinkerConfig;
 class Relocation;
 
 class EhFramePiece {
 public:
-  EhFramePiece(size_t Off, size_t Sz, Relocation *R, EhFrameSection *O)
-      : MOffset(Off), ThisSize(Sz), MRelocation(R), MSection(O) {}
+  EhFramePiece(size_t Off, size_t Sz, Relocation *R)
+      : MOffset(Off), ThisSize(Sz), MRelocation(R) {}
 
   size_t getSize() const { return ThisSize; }
 
@@ -37,23 +38,24 @@ public:
 
   Relocation *getRelocation() const { return MRelocation; }
 
-  EhFrameSection *getOwningSection() const { return MSection; }
+  llvm::ArrayRef<uint8_t> getData(llvm::StringRef Region) const;
 
-  llvm::ArrayRef<uint8_t> getData();
+  uint8_t readByte(DiagnosticEngine *DiagEngine, const ELFSection &S);
 
-  uint8_t readByte(DiagnosticEngine *DiagEngine);
+  void skipBytes(size_t Count, DiagnosticEngine *DiagEngine,
+                 const ELFSection &S);
 
-  void skipBytes(size_t Count, DiagnosticEngine *DiagEngine);
+  llvm::StringRef readString(DiagnosticEngine *DiagEngine, const ELFSection &S);
 
-  llvm::StringRef readString(DiagnosticEngine *DiagEngine);
-
-  void skipLeb128(DiagnosticEngine *DiagEngine);
+  void skipLeb128(DiagnosticEngine *DiagEngine, const ELFSection &S);
 
   size_t getAugPSize(unsigned Enc, bool Is64Bit, DiagnosticEngine *DiagEngine);
 
-  void skipAugP(bool Is64Bit, DiagnosticEngine *DiagEngine);
+  void skipAugP(bool Is64Bit, DiagnosticEngine *DiagEngine,
+                const ELFSection &S);
 
-  uint8_t getFdeEncoding(bool Is64Bit, DiagnosticEngine *DiagEngine);
+  uint8_t getFdeEncoding(llvm::StringRef Region, bool Is64Bit,
+                         DiagnosticEngine *DiagEngine, const ELFSection &S);
 
 private:
   llvm::ArrayRef<uint8_t> D;
@@ -61,74 +63,87 @@ private:
   size_t MOutputOffset = -1;
   size_t ThisSize = 0;
   Relocation *MRelocation = nullptr;
-  EhFrameSection *MSection = nullptr;
 };
 
-class FDEFragment : public Fragment {
+class EhFrameCIE {
 public:
-  FDEFragment(EhFramePiece &P, EhFrameSection *O);
+  explicit EhFrameCIE(EhFramePiece &P) : CIE(P) {}
 
-  virtual ~FDEFragment();
+  const std::string name() const { return "CIE"; }
 
-  /// name - name of this stub
-  const std::string name() const;
+  size_t size() const;
 
-  virtual size_t size() const override;
+  EhFramePiece &getCIE() { return CIE; }
 
-  llvm::ArrayRef<uint8_t> getContent() const;
+  const EhFramePiece &getCIE() const { return CIE; }
 
-  static bool classof(const Fragment *F) {
-    return F->getKind() == Fragment::Type::FDE;
-  }
+  llvm::ArrayRef<uint8_t> getContent(const EhFrameFragment &F) const;
 
-  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
+  eld::Expected<void> emit(MemoryRegion &Mr, Module &M, uint32_t CieOff,
+                           const EhFrameFragment &F);
 
-  virtual void dump(llvm::raw_ostream &OS) override;
+  void dump(llvm::raw_ostream &OS) {}
 
-  EhFramePiece &getFDE() { return FDE; }
+  void appendFDE(FDEPiece *F) { FDEs.push_back(F); }
 
-  size_t getSize() const;
+  const std::vector<FDEPiece *> &getFDEs() const { return FDEs; }
 
-private:
-  EhFramePiece &FDE;
-};
-
-class CIEFragment : public Fragment {
-public:
-  CIEFragment(EhFramePiece &P, EhFrameSection *O);
-
-  virtual ~CIEFragment();
-
-  /// name - name of this stub
-  const std::string name() const;
-
-  virtual size_t size() const override;
-
-  llvm::ArrayRef<uint8_t> getContent() const;
-
-  static bool classof(const Fragment *F) {
-    return F->getKind() == Fragment::CIE;
-  }
-
-  static bool classof(const CIEFragment *) { return true; }
-
-  virtual eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
-
-  virtual void dump(llvm::raw_ostream &OS) override;
-
-  void appendFragment(FDEFragment *F) { FDEs.push_back(F); }
-
-  const std::vector<FDEFragment *> &getFDEs() const { return FDEs; }
-
-  void setOffset(uint32_t Offset) override;
+  void setOffset(uint32_t CieOff);
 
   size_t getNumFDE() const { return FDEs.size(); }
 
-  uint8_t getFdeEncoding(bool Is64Bit, DiagnosticEngine *DiagEngine);
+  uint8_t getFdeEncoding(const EhFrameFragment &F, bool Is64Bit,
+                         DiagnosticEngine *DiagEngine);
 
-protected:
+private:
   EhFramePiece &CIE;
-  std::vector<FDEFragment *> FDEs;
+  std::vector<FDEPiece *> FDEs;
+};
+
+class EhFrameFragment : public RegionFragment {
+public:
+  EhFrameFragment(llvm::StringRef Region, ELFSection *O, uint32_t Align = 1)
+      : RegionFragment(Region, O, Fragment::Type::Region, Align) {}
+
+  EhFramePiece &addPiece(size_t Off, size_t Sz, Relocation *R);
+
+  std::vector<EhFramePiece> &getPieces() { return Pieces; }
+  const std::vector<EhFramePiece> &getPieces() const { return Pieces; }
+
+  std::vector<EhFrameCIE *> &getCIEs() { return CIEs; }
+  const std::vector<EhFrameCIE *> &getCIEs() const { return CIEs; }
+
+  size_t size() const override;
+
+  void setOffset(uint32_t O) override;
+
+  eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
+
+  void dump(llvm::raw_ostream &OS) override;
+
+private:
+  std::vector<EhFramePiece> Pieces;
+  std::vector<EhFrameCIE *> CIEs;
+};
+
+class FDEPiece {
+public:
+  explicit FDEPiece(EhFramePiece &P) : FDE(P) {}
+
+  size_t size() const { return FDE.getSize(); }
+
+  llvm::ArrayRef<uint8_t> getContent(const EhFrameFragment &F) const {
+    return FDE.getData(F.getRegion());
+  }
+
+  eld::Expected<void> emit(MemoryRegion &Mr, Module &M,
+                           const EhFrameFragment &F);
+
+  EhFramePiece &getFDE() { return FDE; }
+  const EhFramePiece &getFDE() const { return FDE; }
+
+private:
+  EhFramePiece &FDE;
 };
 
 } // namespace eld
