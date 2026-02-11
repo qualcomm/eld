@@ -1,0 +1,14 @@
+#UNSUPPORTED: arm
+#---EhFrameDump.test--------------------------- Executable -----------------#
+# This test verifies that .eh_frame and .eh_frame_hdr fragments dump into the
+# text map output.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/eh-frame-map.s -o %t.o
+RUN: %link %linkopts --eh-frame-hdr %t.o -o %t.out -MapStyle txt -Map %t.map
+RUN: %filecheck %s < %t.map
+
+#CHECK: # EhFrameLayout .eh_frame
+#CHECK: # CIE out=0x
+#CHECK: # FDE out=0x
+#CHECK: # EhFrameHdrLayout .eh_frame_hdr
+#CHECK: # Hdr out=0x
