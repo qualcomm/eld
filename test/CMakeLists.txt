@@ -78,6 +78,16 @@ add_custom_target(${TARGET_NAME})
 process_options_and_generate_lit_test_suite("${TARGET_NAME}" "${TEST_TARGETS}"
                                             "${OPTIONS}" "${OPTIONNAMES}")
 
+# Extended test target: builds and runs everything check-eld does, plus a
+# per-arch lit suite with --use-old-rule-matching appended to %linkopts.
+set(EXTENDED_TARGET_NAME check-eld-extended)
+add_custom_target(${EXTENDED_TARGET_NAME})
+add_dependencies(${EXTENDED_TARGET_NAME} ${TARGET_NAME})
+
+process_options_and_generate_lit_test_suite(
+  "${EXTENDED_TARGET_NAME}" "${TEST_TARGETS}"
+  "--use-old-rule-matching" "old_rule_matching")
+
 add_subdirectory(UnitTests)
 add_subdirectory(Common)
 add_subdirectory(Hexagon)
@@ -85,6 +95,7 @@ add_subdirectory(Hexagon)
 # Setup a legacy alias for 'check-eld'. This will likely change to be an alias
 # for 'check-all' at some point in the future.
 set_target_properties(check-eld PROPERTIES FOLDER "Linker Tests")
+set_target_properties(check-eld-extended PROPERTIES FOLDER "Linker Tests")
 if(USE_LINKER_ALT_NAME)
   string(TOLOWER ${USE_LINKER_ALT_NAME} linker_alt_name_lower)
   if(linker_alt_name_lower MATCHES "ld.([a-z]+)*")

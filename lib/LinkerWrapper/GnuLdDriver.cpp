@@ -1236,6 +1236,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Args.hasArg(T::use_old_style_trampoline_name))
     Config.setUseOldStyleTrampolineName(true);
 
+  if (Args.hasArg(T::use_old_rule_matching))
+    Config.options().setUseOldRuleMatching(true);
+
   // --check-sections
   if (Args.hasArg(T::enable_overlap_checks))
     Config.options().setEnableCheckSectionOverlaps();
