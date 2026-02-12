@@ -172,9 +172,6 @@ public:
   explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
                   LayoutInfo *LayoutInfo);
 
-  Module(const std::string &Name, LinkerScript &CurScript, LinkerConfig &Config,
-         LayoutInfo *LayoutInfo);
-
   ~Module();
 
   LinkerScript &getScript() const { return UserLinkerScript; }
@@ -665,6 +662,8 @@ public:
   bool isBackendInitialized() const;
 
 private:
+  void initThreading();
+
   /// Verifies invariants of 'CreatingSections' linker state.
   /// Invariants here means the conditions and rules that 'CreatingSections'
   /// state expects to be true.
@@ -734,6 +733,7 @@ private:
   std::mutex Mutex;
   // ----------------- Central thread pool for Linker ---------------
   llvm::ThreadPoolInterface *LinkerThreadPool = nullptr;
+  llvm::ThreadPoolStrategy ThreadingStrategy;
 
   llvm::StringMap<MergeableString *> UniqueNonAllocStrings;
   llvm::SmallVector<MergeableString *> AllNonAllocStrings;

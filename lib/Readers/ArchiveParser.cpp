@@ -600,7 +600,7 @@ void ArchiveParser::warnRepeatedMembers(const ArchiveFile &archiveFile) const {
   std::unordered_map<uint64_t, size_t> memDataHashToMemIdxMap;
   const std::vector<Input *> &archiveMembers = archiveFile.getAllMembers();
   std::vector<uint64_t> archiveMemberHashes(archiveMembers.size(), 0);
-  size_t useThreads = config.options().numThreads() > 1;
+  size_t useThreads = config.useThreads();
   llvm::ThreadPoolInterface *Pool = m_Module.getThreadPool();
   auto computeAndSetHash = [&](size_t i) {
     archiveMemberHashes[i] =

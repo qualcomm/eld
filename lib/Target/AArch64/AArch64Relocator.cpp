@@ -134,6 +134,17 @@ AArch64Relocator::AArch64Relocator(AArch64GNUInfoLDBackend &pParent,
 
 AArch64Relocator::~AArch64Relocator() {}
 
+bool AArch64Relocator::isRelocSupported(Relocation &pReloc) const {
+  Relocation::Type type = pReloc.type();
+  // valid types are 0x0, 0x100-0x239
+  if ((type < 0x100 || type > 0x239) && (type != 0x0) &&
+      (type != R_AARCH64_COPY_INSN))
+    return false;
+
+  assert(ApplyFunctions.find(type) != ApplyFunctions.end());
+  return true;
+}
+
 bool AArch64Relocator::isInvalidReloc(Relocation &pReloc) const {
   if (!config().isCodeIndep())
     return false;
@@ -151,14 +162,8 @@ bool AArch64Relocator::isInvalidReloc(Relocation &pReloc) const {
 }
 
 Relocator::Result AArch64Relocator::applyRelocation(Relocation &pRelocation) {
-  Relocation::Type type = pRelocation.type();
-
-  // valid types are 0x0, 0x100-0x239
-  if ((type < 0x100 || type > 0x239) && (type != 0x0) &&
-      (type != R_AARCH64_COPY_INSN))
+  if (!isRelocSupported(pRelocation))
     return Relocator::Unknown;
-
-  assert(ApplyFunctions.find(type) != ApplyFunctions.end());
 
   ResolveInfo *symInfo = pRelocation.symInfo();
 
@@ -175,6 +180,7 @@ Relocator::Result AArch64Relocator::applyRelocation(Relocation &pRelocation) {
     }
   }
 
+  Relocation::Type type = pRelocation.type();
   return ApplyFunctions[type].func(pRelocation, *this);
 }
 
@@ -186,6 +192,8 @@ const char *AArch64Relocator::getName(Relocator::Type pType) const {
 uint32_t AArch64Relocator::getNumRelocs() const { return AARCH64_MAXRELOCS; }
 
 Relocator::Size AArch64Relocator::getSize(Relocation::Type pType) const {
+  if (ApplyFunctions.find(pType) == ApplyFunctions.end())
+    return 0;
   return ApplyFunctions[pType].size;
 }
 
@@ -533,6 +541,14 @@ void AArch64Relocator::scanRelocation(Relocation &pReloc,
                                       CopyRelocs &CopyRelocs) {
   if (LinkerConfig::Object == config().codeGenType())
     return;
+
+  if (!isRelocSupported(pReloc)) {
+    config().raise(Diag::unsupported_reloc)
+        << pReloc.type() << pSection.getDecoratedName(config().options())
+        << pInputFile.getInput()->decoratedPath();
+    m_Target.getModule().setFailure(true);
+    return;
+  }
 
   if (isInvalidReloc(pReloc)) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);

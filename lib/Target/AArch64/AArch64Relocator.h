@@ -82,7 +82,9 @@ public:
   }
 
 private:
-  bool isInvalidReloc(Relocation &pType) const;
+  bool isInvalidReloc(Relocation &pReloc) const;
+  bool isRelocSupported(Relocation &pReloc) const;
+
   void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                       const ELFSection &pSection);
 

@@ -39,8 +39,10 @@ Relocation *Relocation::Create() { return make<Relocation>(0, nullptr, 0, 0); }
 Relocation *Relocation::Create(Type pType, Size pSize, FragmentRef *pFragRef,
                                Address pAddend) {
   DWord targetData = 0;
+  pSize /= 8;
+  ASSERT(pSize <= sizeof(targetData), "unexpected relocation size.");
   if (pSize != 0)
-    pFragRef->memcpy(&targetData, pSize / 8);
+    pFragRef->memcpy(&targetData, pSize);
   return make<Relocation>(pType, pFragRef, pAddend, targetData);
 }
 
@@ -64,7 +66,9 @@ Relocation::Relocation(const Relocator *pRelocator, Relocation::Type pType,
                        FragmentRef *pTargetRef, Relocation::Address pAddend)
     : m_pSymInfo(nullptr), m_TargetAddress(pTargetRef), m_Addend(pAddend),
       m_TargetData(0), m_Type(pType) {
-  Size relocSize = pRelocator->getSize(pType);
+  // Size is returned in bits
+  Size relocSize = pRelocator->getSize(pType) / 8;
+  ASSERT(relocSize <= sizeof(m_TargetData), "unexpected relocation size.");
   if (relocSize != 0)
     pTargetRef->memcpy(&m_TargetData, relocSize);
 }

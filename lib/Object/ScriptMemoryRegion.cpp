@@ -100,7 +100,11 @@ uint64_t ScriptMemoryRegion::getPhysicalAddr(OutputSectionEntry *O) {
   // If the physical address requested for the output section lives in the same
   // memory region
   if (O->prolog().hasAlignWithInput() && Prev) {
-    if (Prev->epilog().getVMARegionName() == O->epilog().getVMARegionName())
+    bool sameVMARegion =
+        Prev->epilog().getVMARegionName() == O->epilog().getVMARegionName();
+    bool sameLMARegion =
+        Prev->epilog().getLMARegionName() == O->epilog().getLMARegionName();
+    if (sameVMARegion && sameLMARegion)
       CurrentCursor = Prev->getSection()->pAddr() +
                       (O->getSection()->addr() - Prev->getSection()->addr());
   }

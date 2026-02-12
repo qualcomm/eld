@@ -1,0 +1,94 @@
+#---UnsupportedReloc.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test that linker handles unsupported relocation types.
+#END_COMMENT
+#START_TEST
+# Test dynamic executable with unsupported relocation
+# RUN: %yaml2obj --docnum=1 %s -o %t.o
+# RUN: %not %link %linkopts %t.o -o %t_dynamic.out 2>&1 | %filecheck %s -check-prefix=DYNAMIC
+# DYNAMIC: Found unsupported reloc type 65535 in section .rela.text
+
+# Test static executable with unsupported relocation
+# RUN: %not %link %linkopts -static %t.o -o %t.out 2>&1 | %filecheck %s -check-prefix=STATIC
+# STATIC: Found unsupported reloc type 65535 in section .rela.text
+
+# Test shared library with unsupported relocation
+# RUN: %not %link %linkopts -shared %t.o -o %t.so 2>&1 | %filecheck %s -check-prefix=SHARED
+# SHARED: Found unsupported reloc type 65535 in section .rela.text
+
+# Test partial linking with unsupported relocation (should not error, just copy through)
+# RUN: %link %linkopts -r %t.o -o %t_partial.o
+
+# Test unsupported relocation in discarded section (should not error)
+# RUN: %yaml2obj --docnum=2 %s -o %t_gc.o
+# RUN: %link %linkopts --gc-sections %t_gc.o -o %t_gc.out
+#END_TEST
+
+# Document 1: Unsupported relocation type in live section
+--- !ELF
+FileHeader:
+  Class:   ELFCLASS64
+  Data:    ELFDATA2LSB
+  Type:    ET_REL
+  Machine: EM_AARCH64
+Sections:
+  - Name:  .text
+    Type:  SHT_PROGBITS
+    Flags: [ SHF_ALLOC, SHF_EXECINSTR ]
+    Content: "00000000"
+  - Name:  .rela.text
+    Type:  SHT_RELA
+    Link:  .symtab
+    Info:  .text
+    Relocations:
+      - Offset: 0x0
+        Symbol: foo
+        Type:   0xFFFF  # Invalid/unsupported relocation type
+        Addend: 0
+Symbols:
+  - Name:    foo
+    Type:    STT_FUNC
+    Section: .text
+    Value:   0x0
+    Size:    4
+
+# Document 2: Unsupported relocation in section that will be discarded
+--- !ELF
+FileHeader:
+  Class:   ELFCLASS64
+  Data:    ELFDATA2LSB
+  Type:    ET_REL
+  Machine: EM_AARCH64
+Sections:
+  - Name:  .text
+    Type:  SHT_PROGBITS
+    Flags: [ SHF_ALLOC, SHF_EXECINSTR ]
+    Content: "c0035fd6"  # ret
+  - Name:  .text.unused
+    Type:  SHT_PROGBITS
+    Flags: [ SHF_ALLOC, SHF_EXECINSTR ]
+    Content: "00000094"  # bl instruction
+  - Name:  .rela.text.unused
+    Type:  SHT_RELA
+    Link:  .symtab
+    Info:  .text.unused
+    Relocations:
+      - Offset: 0x0
+        Symbol: some_func
+        Type:   0xFFFF  # Unsupported relocation in unused section
+        Addend: 0
+Symbols:
+  - Name:    _start
+    Type:    STT_FUNC
+    Section: .text
+    Binding: STB_GLOBAL
+    Value:   0x0
+    Size:    4
+  - Name:    unused_func
+    Type:    STT_FUNC
+    Section: .text.unused
+    Value:   0x0
+    Size:    4
+  - Name:    some_func
+    Type:    STT_FUNC
+    Binding: STB_GLOBAL

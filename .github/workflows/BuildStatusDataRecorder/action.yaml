@@ -40,8 +40,8 @@ runs:
         cd ${{ inputs.project }}
         DASH_DIR="$(mktemp -d)"
         cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-        git config --global user.name 'github-actions'
-        git config --global user.email 'github-actions@github.com'
+        git config user.name 'github-actions'
+        git config user.email 'github-actions@github.com'
         # Switch to dashboard branch to access build-status.db
         git fetch --all
         git checkout dashboard
@@ -88,7 +88,7 @@ runs:
         cp ${DASH_DIR}/record_builds.py .
         # Set +e to not immediately exit "run" step on failure.
         set +e
-        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
+        python3 record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
         EXITCODE=$?
         if [ "$EXITCODE" -ne 0 ]; then
            echo "Build Data Recording Failed!"
@@ -99,7 +99,6 @@ runs:
            git commit -m "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
            until git push -f origin HEAD:refs/heads/dashboard; do
             sleep 5
-            check_lock
             git fetch --all
             git reset --hard origin/dashboard
             rm -f data.lock

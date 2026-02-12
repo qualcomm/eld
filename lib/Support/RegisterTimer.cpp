@@ -5,64 +5,63 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Support/RegisterTimer.h"
-#include "eld/Input/Input.h"
-#include "eld/Support/MsgHandling.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/ADT/StringMap.h"
+#include <memory>
+#include <mutex>
 
-using namespace eld;
+namespace {
 
-eld::Timer::Timer(std::string Name, std::string Description, bool IsEnabled)
-    : Name(Name), Description(Description), m_CompilationStartTime(0),
-      m_CompilationDuration(0) {
-  threadCount = 1;
+class RegisterTimerRegistry {
+public:
+  static RegisterTimerRegistry &instance() {
+    static RegisterTimerRegistry Registry;
+    return Registry;
+  }
+
+  llvm::Timer &getOrCreateTimer(llvm::StringRef Name,
+                                llvm::StringRef Description,
+                                llvm::StringRef GroupName,
+                                llvm::StringRef GroupDescription) {
+    std::lock_guard<std::mutex> Lock(Mu);
+
+    GroupTimers &GroupEntry = Groups[GroupName];
+    if (!GroupEntry.Group)
+      GroupEntry.Group = std::make_unique<llvm::TimerGroup>(
+          GroupName, GroupDescription, /*PrintOnExit=*/true);
+
+    llvm::Timer &T = GroupEntry.Timers[Name];
+    if (!T.isInitialized())
+      T.init(Name, Description, *GroupEntry.Group);
+
+    return T;
+  }
+
+private:
+  struct GroupTimers {
+    std::unique_ptr<llvm::TimerGroup> Group;
+    llvm::StringMap<llvm::Timer> Timers;
+  };
+
+  std::mutex Mu;
+  llvm::StringMap<GroupTimers> Groups;
+};
+
+} // namespace
+
+namespace eld {
+
+RegisterTimer::RegisterTimer(llvm::StringRef Name, llvm::StringRef Group,
+                             bool Enable)
+    : RegisterTimer(Name, Name, Group, Group, Enable) {}
+
+RegisterTimer::RegisterTimer(llvm::StringRef Name, llvm::StringRef Description,
+                             llvm::StringRef Group,
+                             llvm::StringRef GroupDescription, bool Enable) {
+  if (!Enable)
+    return;
+
+  T = &RegisterTimerRegistry::instance().getOrCreateTimer(
+      Name, Description, Group, GroupDescription);
+  Region.emplace(*T);
 }
-
-eld::Timer::Timer(const Input *In, std::string Description, bool IsEnabled)
-    : Name(In->decoratedPath()), Description(Description), m_Input(In),
-      m_CompilationStartTime(0), m_CompilationDuration(0) {
-  threadCount = 1;
-}
-
-eld::Timer::Timer(std::string Name, uint64_t StartTime, int64_t Duration,
-                  std::string Description, bool IsEnabled)
-    : Name(Name), Description(Description), m_CompilationStartTime(StartTime),
-      m_CompilationDuration(Duration) {
-  threadCount = 1;
-}
-
-bool eld::Timer::start() {
-  if (isRunning())
-    return true;
-  StartTime = llvm::TimeRecord::getCurrentTime(false);
-  isStarted = true;
-  return true;
-}
-
-bool eld::Timer::stop() {
-  if (!isRunning())
-    return true;
-  llvm::TimeRecord TR = llvm::TimeRecord::getCurrentTime(false);
-  TR -= StartTime;
-  Total += TR;
-  isStarted = false;
-  return true;
-}
-
-eld::Timer::~Timer() { stop(); }
-
-void Timer::print(llvm::raw_ostream &Os) {
-  ASSERT(!isRunning(), "Timer " + Name + " is already running");
-  printVal(Total.getUserTime(), Os);
-  printVal(Total.getSystemTime(), Os);
-  printVal(Total.getProcessTime(), Os);
-  printVal(Total.getWallTime(), Os);
-  Os << Name;
-  if (!Description.empty())
-    Os << " ( " << Description << " ) ";
-  Os << "\n";
-}
-
-void Timer::printVal(double Val, llvm::raw_ostream &Os) {
-  Os << llvm::format("  %7.4f ", Val);
-}
+} // namespace eld

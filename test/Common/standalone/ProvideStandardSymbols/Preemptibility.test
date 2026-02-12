@@ -1,0 +1,48 @@
+#--Preemptibility.test------------- Executable --------#
+#BEGIN_COMMENT
+# Test that standard symbols (e.g., __ehdr_start, __dso_handle) are correctly
+# handled as non-preemptible during relocation scanning, even when they are
+# undefined at that point.
+#
+# Background: The linker defines standard symbols during layout, but relocation
+# scanning happens before layout. This test ensures that the linker correctly
+# treats these symbols as non-preemptible during relocation scanning.
+#
+# This tests various scenarios:
+# 1. Direct reference to standard symbol in executable
+# 2. Reference in shared library
+# 3. User-provided standard symbol definition
+#END_COMMENT
+
+#START_TEST
+
+# Test 1: Reference in executable (PIE)
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t.pie.ref.o
+RUN: %link %linkopts -pie %t.pie.ref.o -o %t.pie.out 2>&1
+RUN: %readelf -s %t.pie.out 2>&1 | %filecheck %s --check-prefix=PIE-SYM
+RUN: %readelf --dyn-syms %t.pie.out 2>&1 | %filecheck %s --check-prefix=PIE-DYNSYM
+
+# __ehdr_start should be defined as an absolute symbol
+PIE-SYM: {{[0-9a-f]+}} {{[0-9]+}} NOTYPE {{.*}} DEFAULT ABS __ehdr_start
+
+# but should not be in dynamic symbol table
+PIE-DYNSYM-NOT: __ehdr_start
+
+# Test 2: Reference in shared library
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t.so.ref.o
+RUN: %link %linkopts -shared %t.so.ref.o -o %t.so.out 2>&1
+RUN: %readelf -s %t.so.out 2>&1 | %filecheck %s --check-prefix=SO-DYNSYM
+
+# In shared library, __ehdr_start be defined as an absolute symbol
+SO-DYNSYM: {{[0-9a-f]+}} {{[0-9]+}} NOTYPE {{.*}} DEFAULT ABS __ehdr_start
+
+# Test 3: User-provided __ehdr_start definition
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.user.ref.o
+RUN: %clang %clangopts -c %p/Inputs/user.c -o %t.user.def.o
+RUN: %link %linkopts %t.user.ref.o %t.user.def.o -o %t.user.out 2>&1
+RUN: %readelf -s %t.user.out 2>&1 | %filecheck %s --check-prefix=USER-SYM
+
+# User-defined __ehdr_start should be used (in a regular section, not ABS)
+USER-SYM: {{[0-9a-f]+}} {{[0-9]+}} OBJECT {{.*}} DEFAULT {{[0-9]+}} __ehdr_start
+
+#END_TEST

@@ -3703,6 +3703,15 @@ bool GNULDBackend::isSymbolPreemptible(const ResolveInfo &pSym) const {
   if (pSym.visibility() != ResolveInfo::Default && pSym.isUndef())
     return false;
 
+  // Standard symbols like __ehdr_start will be defined by the linker
+  // during layout if not already defined by the user. However, relocation
+  // scanning happens before layout, so these symbols appear undefined at
+  // this point.
+  if (pSym.isUndef() && isStandardSymbol(pSym.name())) {
+    // The linker will define it locally during layout, so it's not preemptible
+    return false;
+  }
+
   // For ELD, Weak undefined symbols are treated a bit differently from GNU
   // linker.
   //
