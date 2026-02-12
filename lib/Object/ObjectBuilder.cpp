@@ -264,7 +264,6 @@ void ObjectBuilder::doPluginIterateSections(eld::InputFile *Obj,
 }
 
 void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
-  std::unordered_map<Section *, bool> RetrySections;
   bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
   bool IsGnuCompatible =
       (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
@@ -273,82 +272,78 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
   SectionMap &SectionMap = ThisModule.getScript().sectionMap();
   ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
   std::vector<Section *> Sections = getInputSectionsForRuleMatching(ObjFile);
-  // For all output sections.
-  for (auto *Out : SectionMap) {
-    // For each input rule.
-    for (auto *In : *Out) {
-      auto Start = std::chrono::system_clock::now();
-      // For each input section.
-      for (Section *Section : Sections) {
-        ELFSection *ELFSect = llvm::dyn_cast<eld::ELFSection>(Section);
+  // For each input section.
+  for (Section *Sect : Sections) {
+    ELFSection *ELFSect = llvm::dyn_cast<eld::ELFSection>(Sect);
 
-        bool IsRetrySect = false;
+    bool IsRetrySect = false;
 
+    // Skip sections with merge strings and if there is no linker scripts
+    // provided.
+    if (IsPartialLink && (ELFSect && ELFSect->isMergeStr()) &&
+        !LinkerScriptHasSectionsCommand)
+      continue;
+    InputFile *Input = Obj;
+    bool IsCommonSection = false;
+    if (CommonELFSection *CommonSection =
+            llvm::dyn_cast<CommonELFSection>(Sect)) {
+      Input = CommonSection->getOrigin();
+      IsCommonSection = true;
+    }
+    if (Sect->getOldInputFile())
+      Input = Sect->getOldInputFile();
+    std::string const &PInputFile =
+        Input->getInput()->getResolvedPath().native();
+    std::string const &Name = Input->getInput()->getName();
+    bool IsArchive = Input->isArchive() ||
+                     llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
+    // Hash of all the required things for Match.
+    uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
+    uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
+    std::string SectName = Sect->name().str();
+    uint64_t InputSectionHash = Sect->sectionNameHash();
+    if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(Sect)) {
+      if (auto OptRThisSectionName =
+              ObjFile->getRuleMatchingSectName(ELFSect->getIndex())) {
+        SectName = OptRThisSectionName.value();
+        InputSectionHash = llvm::hash_combine(SectName);
+      }
+    }
+    // For all output sections.
+    for (auto *Out : SectionMap) {
+      if (ELFSect) {
+        // If the rule needs to match on permissions, skip if the rule doesnot
+        // satisfy.
+        switch (Out->prolog().constraint()) {
+        case OutputSectDesc::NO_CONSTRAINT:
+          break;
+        case OutputSectDesc::ONLY_IF_RO:
+          if (ELFSect->isWritable())
+            continue;
+          break;
+        case OutputSectDesc::ONLY_IF_RW:
+          if (!ELFSect->isWritable())
+            continue;
+          break;
+        }
+      }
+      bool shouldSkipMatch = false;
+      // For each input rule.
+      for (auto *In : *Out) {
         // If the section has an already assigned output section, skip.
         // If the section needs to be retried, we may need to revisit the
         // section to match the best rule.
-        if (Section->getOutputSection()) {
-          if (!RetrySections.size() ||
-              (RetrySections.find(Section) == RetrySections.end())) {
-            continue;
-          }
-          IsRetrySect = true;
+        if (Sect->getOutputSection() && !IsRetrySect) {
+          shouldSkipMatch = true;
+          break;
         }
-
-        if (ELFSect) {
-          // If the rule needs to match on permissions, skip if the rule doesnot
-          // satisfy.
-          switch (Out->prolog().constraint()) {
-          case OutputSectDesc::NO_CONSTRAINT:
-            break;
-          case OutputSectDesc::ONLY_IF_RO:
-            if (ELFSect->isWritable())
-              continue;
-            break;
-          case OutputSectDesc::ONLY_IF_RW:
-            if (!ELFSect->isWritable())
-              continue;
-            break;
-          }
-        }
-        // Skip sections with merge strings and if there is no linker scripts
-        // provided.
-        if (IsPartialLink && (ELFSect && ELFSect->isMergeStr()) &&
-            !LinkerScriptHasSectionsCommand)
-          continue;
-        InputFile *Input = Obj;
-        bool IsCommonSection = false;
-        if (CommonELFSection *CommonSection =
-                llvm::dyn_cast<CommonELFSection>(Section)) {
-          Input = CommonSection->getOrigin();
-          IsCommonSection = true;
-        }
-        if (Section->getOldInputFile())
-          Input = Section->getOldInputFile();
-        std::string const &PInputFile =
-            Input->getInput()->getResolvedPath().native();
-        std::string const &Name = Input->getInput()->getName();
-        bool IsArchive =
-            Input->isArchive() ||
-            llvm::dyn_cast<eld::ArchiveMemberInput>(Input->getInput());
-        // Hash of all the required things for Match.
-        uint64_t InputFileHash = Input->getInput()->getResolvedPathHash();
-        uint64_t NameHash = Input->getInput()->getArchiveMemberNameHash();
-        std::string SectName = Section->name().str();
-        uint64_t InputSectionHash = Section->sectionNameHash();
-        if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(Section)) {
-          if (auto OptRThisSectionName =
-                  ObjFile->getRuleMatchingSectName(ELFSect->getIndex())) {
-            SectName = OptRThisSectionName.value();
-            InputSectionHash = llvm::hash_combine(SectName);
-          }
-        }
+        // auto Start = std::chrono::system_clock::now();
         if (SectionMap.matched(*In, Input, PInputFile, SectName, IsArchive,
                                Name, InputSectionHash, InputFileHash, NameHash,
                                IsGnuCompatible, IsCommonSection)) {
           In->incMatchCount();
-          Section->setOutputSection(Out);
-          Section->setMatchedLinkerScriptRule(In);
+          Sect->setOutputSection(Out);
+          Sect->setMatchedLinkerScriptRule(In);
           // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
           if (ELFSect && Out->isDiscard()) {
             ELFSect->setKind(LDFileFormat::Ignore);
@@ -359,15 +354,17 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
                   << ObjFile->getInput()->decoratedPath();
           }
           if (IsRetrySect && !In->isSpecial())
-            RetrySections.erase(Section);
+            IsRetrySect = false;
           // Retry the match until the closest match is found.
           if (In->isSpecial())
-            RetrySections.insert(std::make_pair(Section, true));
+            IsRetrySect = true;
         } // end match
-      } // end each input section
-      In->addMatchTime(std::chrono::system_clock::now() - Start);
-    } // end each rule
-  } // end each output section
+        // RuleMatchTimes[In] += std::chrono::system_clock::now() - Start;
+      } // end each rule
+      if (shouldSkipMatch)
+        break;
+    } // end each output section
+  } // end each input section
 }
 
 bool ObjectBuilder::initializePluginsAndProcess(
