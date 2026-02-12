@@ -1324,6 +1324,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setArchiveMemberReportFile(A->getValue());
   }
 
+  if (Args.hasArg(T::use_old_rule_matching))
+    Config.options().setUseOldRuleMatching(true);
+
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }

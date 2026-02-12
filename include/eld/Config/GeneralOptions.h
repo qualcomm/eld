@@ -732,6 +732,10 @@ public:
 
   bool setScriptOption(std::string ScriptOptions);
 
+  bool useOldRuleMatching() const { return BUseOldRuleMatching; }
+
+  void setUseOldRuleMatching(bool B) { BUseOldRuleMatching = B; }
+
   const SymbolRenameMap &renameMap() const { return SymbolRenames; }
   SymbolRenameMap &renameMap() { return SymbolRenames; }
 
@@ -1256,6 +1260,7 @@ private:
   bool BNoStdlib = false;                    // -nostdlib
   bool BPrintMap = false;                    // --print-map
   bool WarnMismatch = true;                  // --[no-]warn-mismatch
+  bool BUseOldRuleMatching = false;          // --use-old-rule-matching
   bool BGCSections = false;          // --gc-sections
   bool BPrintGCSections = false;     // --print-gc-sections
   bool BGenUnwindInfo = true;        // --ld-generated-unwind-info

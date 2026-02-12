@@ -1116,6 +1116,11 @@ defm no_emit_relocs
                        "relocations in the output file, applicable to "
                        "--emit-relocs-llvm option too">,
       Group<grp_extendedopts>;
+def use_old_rule_matching
+    : FF<"use-old-rule-matching">,
+      HelpText<"Use the original (pre-optimization) linker script "
+               "rule-matching algorithm">,
+      Group<grp_extendedopts>;
 defm script_options : mDashEq<"script-options", "script_options",
                               "Specify a match type, match-gnu/match-llvm">,
                       MetaVarName<"<matchtype>">,
