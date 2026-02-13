@@ -20,6 +20,7 @@
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/ELFDynObjectFile.h"
+#include "eld/Input/ELFFileBase.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Support/Memory.h"
@@ -33,6 +34,7 @@
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Support/Casting.h"
 #include <unordered_map>
 
 using namespace eld;
@@ -335,6 +337,13 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   // insert symbol and resolve it immediately
   Resolver::Result ResolvedResult = {nullptr, false, false};
   NamePool &NP = ThisModule.getNamePool();
+
+  // Get the old symbol before resolution to check if it's from an object file
+  // or needed shared library. We need to save the origin before resolution
+  // because the resolver will override it.
+  ResolveInfo *oldInfo = NP.findInfo(SymbolName);
+  InputFile *oldOrigin = (oldInfo ? oldInfo->resolvedOrigin() : nullptr);
+
   ResolveInfo InputSymbolResolveInfo = NP.createInputSymbolRI(
       SymbolName, Input, /*isDyn=*/true, Type, Desc, Binding, Size, Visibility,
       Value, /*isPatchable=*/false);
@@ -362,9 +371,18 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
   if (ResolvedResult.Overriden || !ResolvedResult.Existent) {
     ResolvedResult.Info->setValue(Value, false);
     Input.setNeeded();
+    // Mark this library as needed if the symbol resolver selected the current
+    // symbol and the old symbol is not from a shared library or from a needed
+    // shared library
+    if (ResolvedResult.Overriden && oldOrigin) {
+      ELFFileBase *oldOriginELFBase = llvm::dyn_cast<ELFFileBase>(oldOrigin);
+      if (!oldOrigin->isDynamicLibrary() ||
+          (oldOriginELFBase && oldOriginELFBase->isELFNeeded()))
+        Input.setUsed(true);
+    }
     NP.addSharedLibSymbol(InputSym);
   }
-  if (ResolvedResult.Overriden && ResolvedResult.Existent) {
+  if (ResolvedResult.Overriden && ResolvedResult.Info->outSymbol()) {
     ResolvedResult.Info->setOutSymbol(InputSym);
   }
   // If the symbol is from dynamic library and we are not making a dynamic
