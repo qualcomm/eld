@@ -108,6 +108,10 @@ void TextLayoutPrinter::printOnlyLayoutSection(GNULDBackend const &Backend,
   outputStream().write_hex(Section->size());
   outputStream() << "\t# Alignment: 0x";
   outputStream().write_hex(Section->getAddrAlign());
+  if (OS->prolog().hasSubAlign()) {
+    outputStream() << ", SubAlign: 0x";
+    outputStream().write_hex(OS->prolog().subAlign().resultOrZero());
+  }
   if (Section->isAlloc())
     printSegments(Backend, OS);
   outputStream() << "\n";
@@ -276,6 +280,12 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
   // Print alignment
   outputStream() << ", Alignment: 0x";
   outputStream().write_hex(Section->getAddrAlign());
+
+  // Print SubAlign if present
+  if (OS->prolog().hasSubAlign()) {
+    outputStream() << ", SubAlign: 0x";
+    outputStream().write_hex(OS->prolog().subAlign().resultOrZero());
+  }
 
   // Print flags
   outputStream() << ", Flags: "

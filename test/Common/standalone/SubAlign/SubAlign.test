@@ -3,12 +3,100 @@
 # Test for linker script SUBALIGN directive.
 #END_COMMENT
 #START_TEST
+
+# Basic SUBALIGN test
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
-RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.o -Map %t2.map
-RUN: %filecheck %s < %t2.map
-#CHECK: .a {{.*}} Alignment: 0x40
-#CHECK: .text.foo	0x40
-#CHECK: .text.bar	0x80
-#CHECK: .text.car	0xc0
-#CHECK: .b {{.*}} Alignment: 0x1
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.out -Map %t1.1.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.2.t -o %t1.2.out -Map %t1.2.map.txt
+RUN: %filecheck %s < %t1.1.map.txt
+RUN: %filecheck %s < %t1.2.map.txt
+CHECK: .a {{.*}} Alignment: 0x40
+CHECK: .text.foo	0x40
+CHECK: .text.bar	0x80
+CHECK: .text.car	0xc0
+CHECK: .b {{.*}} Alignment: 0x1
+
+# Test SubAlign display in map file
+RUN: %filecheck %s --check-prefix=SUBALIGN-DISPLAY < %t1.1.map.txt
+SUBALIGN-DISPLAY: .a {{.*}} Alignment: 0x40, SubAlign: 0x40
+SUBALIGN-DISPLAY: .b {{.*}} Alignment: 0x1, SubAlign: 0x40
+
+# Test SUBALIGN with DISCARD sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.discard.t -o %t.discard.out -Map %t.discard.map.txt
+RUN: %filecheck %s --check-prefix=DISCARD < %t.discard.map.txt
+DISCARD: .keep {{.*}} Alignment: 0x40, SubAlign: 0x40
+DISCARD: .text.foo	0x0
+DISCARD: .text.bar	0x40
+DISCARD: /DISCARD/ {{.*}} Alignment: 0x1, SubAlign: 0x20
+DISCARD: # .text.car
+
+# Test SUBALIGN with emit-relocs
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.relocs.t -o %t.relocs.out -Map %t.relocs.map.txt --emit-relocs
+RUN: %filecheck %s --check-prefix=RELOCS < %t.relocs.map.txt
+RUN: %readelf -r %t.relocs.out | %filecheck %s --check-prefix=RELOCS-READELF
+RELOCS: .reloc_text {{.*}} Alignment: 0x40, SubAlign: 0x40
+RELOCS: .text.foo	0x0
+RELOCS: .text.bar	0x40
+RELOCS: .text.car	0x80
+#RELOCS-READELF: Relocation section '.rel{{a?}}.reloc_text' {{.*}}
+
+# Test SUBALIGN with empty sections
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.empty.t -o %t.empty.out -Map %t.empty.map.txt
+RUN: %filecheck %s --check-prefix=EMPTY < %t.empty.map.txt
+EMPTY: .nonempty {{.*}} Alignment: 0x40, SubAlign: 0x40
+EMPTY: .text.foo	0x0
+EMPTY: .empty1 {{.*}} 0x0 {{.*}} Alignment: 0x1, SubAlign: 0x20
+EMPTY: .empty2 {{.*}} 0x0 {{.*}} Alignment: 0x1, SubAlign: 0x80
+
+# Test SUBALIGN with explicit data (BYTE/QUAD/...)
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.data.t -o %t.data.out -Map %t.data.map.txt
+RUN: %filecheck %s --check-prefix=DATA < %t.data.map.txt
+DATA: .explicit_data {{.*}} Alignment: 0x40, SubAlign: 0x40
+DATA: BYTE (0x11) 0x0 0x1
+DATA: SHORT (0x2222) 0x1 0x3
+DATA: LONG (0x44444444) 0x3 0x7
+DATA: QUAD (0x8888888888888888) 0x7 0xf
+DATA: .text.foo 0x40
+DATA: .text.bar 0x80
+
+# Test SUBALIGN with partial linking
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.partial.t -o %t.partial.tmp.o -r -Map %t.partial.map.txt
+RUN: %filecheck %s --check-prefix=PARTIAL < %t.partial.map.txt
+PARTIAL: .partial {{.*}} Alignment: 0x40, SubAlign: 0x40
+PARTIAL: .text.foo	0x0
+PARTIAL: .text.bar	0x40
+PARTIAL: .text.car	0x80
+
+# Test SUBALIGN with shared libraries
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.shared.o -ffunction-sections -fPIC
+RUN: %link -MapStyle txt %linkopts %t.shared.o -T %p/Inputs/script.shared.t -o %t.shared.so -Map %t.shared.map.txt -shared
+RUN: %filecheck %s --check-prefix=SHARED < %t.shared.map.txt
+#END_TEST
+SHARED: .shared_text {{.*}} Alignment: 0x40, SubAlign: 0x40
+SHARED: .text.foo	0x1000
+SHARED: .text.bar	0x1040
+SHARED: .text.car	0x1080
+
+# Test SUBALIGN with non-allocatable sections
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.nonalloc.o -ffunction-sections -g
+RUN: %link -MapStyle txt %linkopts %t.nonalloc.o -T %p/Inputs/script.nonalloc.t -o %t.nonalloc.out -Map %t.nonalloc.map.txt
+RUN: %filecheck %s --check-prefix=NONALLOC < %t.nonalloc.map.txt
+NONALLOC: .text {{.*}} Alignment: 0x40, SubAlign: 0x40
+NONALLOC: .text.foo	0x0
+NONALLOC: .text.bar	0x40
+NONALLOC: .text.car	0x80
+NONALLOC: .debug_info {{.*}} Alignment: 0x20, SubAlign: 0x20
+NONALLOC: .comment {{.*}} Alignment: 0x10, SubAlign: 0x10
+
+# Test SUBALIGN reducing section alignment (should warn)
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.reduce.o -ffunction-sections
+RUN: %link -MapStyle txt %linkopts %t1.reduce.o -T %p/Inputs/script.reduce.t -o %t1.1.out -Map %t.reduce.map.txt -Wlinker-script 2>&1 | %filecheck %s --check-prefix=REDUCE-WARN
+RUN: %link -MapStyle txt %linkopts %t1.reduce.o -T %p/Inputs/script.reduce.t -o %t1.1.out -Map %t.reduce.map.txt -Wno-linker-script 2>&1 | %filecheck %s --allow-empty --check-prefix=REDUCE-NOWARN
+RUN: %filecheck %s --check-prefix=REDUCE < %t.reduce.map.txt
+REDUCE-WARN: Warning: SUBALIGN(0x2) is less than the section alignment (0x{{.*}}) for section '{{.*reduce.o}}:(.text.foo)'
+REDUCE-WARN: Warning: SUBALIGN(0x2) is less than the section alignment (0x{{.*}}) for section '{{.*reduce.o}}:(.text.bar)'
+REDUCE-WARN: Warning: SUBALIGN(0x2) is less than the section alignment (0x{{.*}}) for section '{{.*reduce.o}}:(.text.car)'
+REDUCE-NOWARN-NOT: Warning
+REDUCE: .reduce {{.*}} Alignment: {{.*}}, SubAlign: 0x2
 #END_TEST

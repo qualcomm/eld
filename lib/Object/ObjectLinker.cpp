@@ -62,6 +62,7 @@
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
+#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -82,6 +83,7 @@
 #include <chrono>
 #include <mutex>
 #include <sstream>
+#include <unordered_set>
 
 using namespace llvm;
 using namespace eld;
@@ -985,7 +987,7 @@ bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
 bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
                                        OutputSectionEntry *Output,
                                        bool PostLayout) {
-  uint64_t OutAlign = 0x0, InAlign = 0x0;
+  uint64_t OutAlign = 0x0;
   bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
 
   ELFSection *OutSect = Output->getSection();
@@ -995,15 +997,6 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
   OutputSectionEntry::iterator In, InBegin, InEnd;
   InBegin = Output->begin();
   InEnd = Output->end();
-  bool HasSubAlign = false;
-
-  // force input alignment from ldscript if any
-  if (Output->prolog().hasSubAlign()) {
-    Output->prolog().subAlign().eval();
-    Output->prolog().subAlign().commit();
-    InAlign = Output->prolog().subAlign().result();
-    HasSubAlign = true;
-  }
 
   // force output alignment from ldscript if any
   if (Output->prolog().hasAlign()) {
@@ -1044,12 +1037,6 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
         Builder.updateSectionFlags(InSect, F->getOwningSection());
       }
       InSect->setAddrAlign(Alignment);
-    }
-    if (HasSubAlign && (InSect->getAddrAlign() < InAlign)) {
-      if (InSect->getFragmentList().size()) {
-        InSect->getFragmentList().front()->setAlignment(InAlign);
-        InSect->setAddrAlign(InAlign);
-      }
     }
     if (InSect->getFragmentList().size() && !FirstNonEmptyRule)
       FirstNonEmptyRule = *In;
@@ -1301,6 +1288,9 @@ bool ObjectLinker::mergeSections() {
   {
     eld::RegisterTimer T("Create Output Section", "Merge Sections",
                          ThisConfig.options().printTimingStats());
+    // Prepass: apply SUBALIGN to first fragments per input section per output
+    // section serially to avoid races in parallel output creation.
+    applySubAlign();
     std::vector<OutputSectionEntry *> OutSections;
     for (Out = OutBegin; Out != OutEnd; ++Out) {
       OutSections.push_back(*Out);
@@ -1342,6 +1332,41 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
       sortSections(In, false);
   }
   return runOutputSectionIteratorPlugin();
+}
+
+void ObjectLinker::applySubAlign() {
+  std::unordered_set<ELFSection *> seen;
+
+  for (auto *O : ThisModule->getScript().sectionMap()) {
+    auto &prolog = O->prolog();
+    if (!prolog.hasSubAlign())
+      continue;
+    uint64_t subAlign;
+    prolog.subAlign().eval();
+    prolog.subAlign().commit();
+    subAlign = prolog.subAlign().result();
+
+    for (RuleContainer *R : *O) {
+      ELFSection *inSect = R->getSection();
+      for (Fragment *F : inSect->getFragmentList()) {
+        ELFSection *owningSect = F->getOwningSection();
+        if (owningSect->getKind() == LDFileFormat::Kind::OutputSectData) {
+          continue;
+        }
+        if (owningSect && seen.insert(owningSect).second) {
+          // Warn if SUBALIGN is reducing the section alignment
+          if (ThisConfig.showLinkerScriptWarnings() && F->alignment() > subAlign) {
+            ThisConfig.raise(Diag::warn_subalign_less_than_section_alignment)
+                << utility::toHex(subAlign) << utility::toHex(F->alignment())
+                << owningSect->getLocation(0, ThisConfig.options());
+          }
+          F->setAlignment(subAlign);
+          inSect->setAddrAlign(std::max(
+              static_cast<uint64_t>(inSect->getAddrAlign()), subAlign));
+        }
+      }
+    }
+  }
 }
 
 void ObjectLinker::assignOffset(OutputSectionEntry *Out) {
