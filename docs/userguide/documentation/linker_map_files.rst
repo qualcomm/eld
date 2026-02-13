@@ -230,10 +230,15 @@ consists of.
 .. code-block:: bash
 
    <OutputSectionName> <size> <VMA> # Offset: <offset>, LMA: <LMA>, Alignment: <alignment>, Flags: <SectionFlags>, Type: <SectionType>, Segments: <segments>
+   # INSERT AFTER|BEFORE <anchor-section> # <script:line>
    <Rule_1>
    <Rule_2>
    ...
    <Rule_N>
+
+The INSERT line is present only when the output section was positioned using
+``INSERT AFTER`` or ``INSERT BEFORE`` in a linker script. The trailing script
+context shows the originating linker script location.
 
 <OutputSection> tells output section properties and contains a list
 of :code:`Rule`s. Placement of rules conveys the placement of the rule contents
@@ -483,13 +488,3 @@ Link map in YAML format
      +------------------------+-----------------------------------------------------+
      | CrossReferences        | Cross-reference table for the program               |
      +------------------------+-----------------------------------------------------+
-
-Link map in Binary format
-----------------------------
-    * If you use the :option:`-MapStyle` option to specify "binary" output for the map file, the
-    linker generates a binary file instead of the text file that contains the memory map.
-
-    * "-MapStyle binary" can be used along with other map styles as well.
-
-    * E.g. "-MapStyle txt -MapStyle binary -Map outputfile.map" will produce a text format map
-    file "outputfile.map" and a binary format "xmap.bin" file.

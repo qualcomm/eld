@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Core/Module.h"
+#include "eld/Object/SectionMap.h"
 #include "eld/Script/Expression.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/StrToken.h"
@@ -150,6 +151,15 @@ void OutputSectDesc::dumpEpilogue(llvm::raw_ostream &Outs) const {
     Outs << "= ";
     OutputSectDescEpilog.fillExp()->dump(Outs);
   }
+
+  if (OutputSectDescEpilog.hasInsert()) {
+    Outs << " INSERT ";
+    Outs << (OutputSectDescEpilog.insertPlacement() ==
+                     OutputSectDesc::Epilog::InsertPlacement::After
+                 ? "AFTER "
+                 : "BEFORE ");
+    Outs << OutputSectDescEpilog.insertTarget()->name();
+  }
 }
 
 void OutputSectDesc::dumpOnlyThis(llvm::raw_ostream &Outs) const {
@@ -266,6 +276,8 @@ eld::Expected<void> OutputSectDesc::setEpilog(const Epilog &PEpilog) {
   OutputSectDescEpilog.FillExpression = PEpilog.FillExpression;
   if (OutputSectDescEpilog.FillExpression)
     OutputSectDescEpilog.FillExpression->setContext(getContext());
+  OutputSectDescEpilog.InsertPosition = PEpilog.InsertPosition;
+  OutputSectDescEpilog.InsertTarget = PEpilog.InsertTarget;
   return eld::Expected<void>();
 }
 
@@ -330,6 +342,17 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
     OutputSectDescProlog.align().addRefSymbolsAsUndefSymbolToNP(IF, NP);
   if (OutputSectDescProlog.hasSubAlign())
     OutputSectDescProlog.subAlign().addRefSymbolsAsUndefSymbolToNP(IF, NP);
+
+  if (OutputSectDescEpilog.hasInsert()) {
+    SectionMap &SM = CurModule.getScript().sectionMap();
+    llvm::StringRef Anchor = OutputSectDescEpilog.insertTarget()->name();
+    bool InsertAfter = OutputSectDescEpilog.insertPlacement() ==
+                       OutputSectDesc::Epilog::InsertPlacement::After;
+    CurModule.getScript().addPendingOutputSectionInsertion(Name, Anchor.str(),
+                                                           InsertAfter, IF);
+    CurModule.getScript().applyPendingOutputSectionInsertionsForAnchor(SM,
+                                                                       Anchor);
+  }
   return eld::Expected<void>();
 }
 
@@ -346,4 +369,6 @@ void OutputSectDesc::initialize() {
   OutputSectDescEpilog.FillExpression = nullptr;
   OutputSectDescEpilog.ScriptVMAMemoryRegion = nullptr;
   OutputSectDescEpilog.ScriptLMAMemoryRegion = nullptr;
+  OutputSectDescEpilog.InsertPosition = Epilog::InsertPlacement::None;
+  OutputSectDescEpilog.InsertTarget = nullptr;
 }

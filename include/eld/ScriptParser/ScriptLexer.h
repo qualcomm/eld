@@ -163,6 +163,7 @@ protected:
   // the expression parsing behavior to not split '/DISCARD/' into multiple
   // tokens when expression parsing is happening in output section epilogue.
   bool MInOutputSectEpilogue = false;
+  bool MInOverlayMemberEpilogue = false;
 
   // The current buffer and parent buffers due to INCLUDE.
   Buffer CurBuf;

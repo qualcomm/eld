@@ -1,0 +1,15 @@
+# Extra coverage for INSERT AFTER/BEFORE ordering.
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -o %t2.out -T %p/Inputs/script_multi_after.t
+RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=MULTI_AFTER
+RUN: %link %linkopts %t1.o -o %t3.out -T %p/Inputs/script_multi_before.t
+RUN: %readelf -S -W %t3.out | %filecheck %s --check-prefix=MULTI_BEFORE
+
+# MULTI_AFTER: .text.anchor
+# MULTI_AFTER: .text.afterA
+# MULTI_AFTER: .text.afterB
+# MULTI_AFTER: .text.afterC
+
+# MULTI_BEFORE: .text.beforeA
+# MULTI_BEFORE: .text.beforeB
+# MULTI_BEFORE: .text.anchor

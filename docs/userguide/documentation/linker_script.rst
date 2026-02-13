@@ -747,7 +747,7 @@ A ``SECTIONS`` command can contain one or more output section descriptions.
        ...
        <output-section-command> <output-section-command>
     }[><region>][AT><lma_region>][:<phdr>...][
-    =<fillexp>]
+    =<fillexp>][INSERT AFTER <section-name> | INSERT BEFORE <section-name>]
 
 Syntax
 ------
@@ -792,6 +792,12 @@ Syntax
 
 <phdr>
     Specifies a program segment for the output section (optional). To assign multiple program segments to an output section, this option can appear more than once in an output section description.
+
+INSERT AFTER <section-name> | INSERT BEFORE <section-name>
+    Requests placing this output section after/before the named output section.
+    The anchor section must exist, or the linker emits an error. Overlay member
+    sections do not support output section epilogues, so INSERT is not allowed
+    inside OVERLAY member blocks.
 
 .. note::
 

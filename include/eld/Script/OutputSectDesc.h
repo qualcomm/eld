@@ -176,6 +176,8 @@ public:
   };
 
   struct Epilog {
+    enum class InsertPlacement { None, Before, After };
+
     bool hasRegion() const { return OutputSectionMemoryRegion != nullptr; }
     const eld::ScriptMemoryRegion &region() const {
       assert(hasRegion());
@@ -231,6 +233,19 @@ public:
 
     Expression *fillExp() const { return FillExpression; }
 
+    bool hasInsert() const {
+      return InsertPosition != InsertPlacement::None && InsertTarget != nullptr;
+    }
+
+    InsertPlacement insertPlacement() const { return InsertPosition; }
+
+    const StrToken *insertTarget() const { return InsertTarget; }
+
+    void setInsert(InsertPlacement Placement, const StrToken *Target) {
+      InsertPosition = Placement;
+      InsertTarget = Target;
+    }
+
     // FIXME : remove this if not needed
     bool operator==(const Epilog &RHS) const {
       /* FIXME: currently I don't check the real content */
@@ -243,6 +258,10 @@ public:
       if (ScriptPhdrs != RHS.ScriptPhdrs)
         return false;
       if (FillExpression != RHS.FillExpression)
+        return false;
+      if (InsertPosition != RHS.InsertPosition)
+        return false;
+      if (InsertTarget != RHS.InsertTarget)
         return false;
       return true;
     }
@@ -263,6 +282,8 @@ public:
     ScriptMemoryRegion *ScriptLMAMemoryRegion = nullptr;
     mutable StringList *ScriptPhdrs = nullptr;
     Expression *FillExpression = nullptr;
+    InsertPlacement InsertPosition = InsertPlacement::None;
+    const StrToken *InsertTarget = nullptr;
   };
 
   typedef std::vector<ScriptCommand *> OutputSectCmds;

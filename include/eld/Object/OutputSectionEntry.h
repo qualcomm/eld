@@ -164,6 +164,8 @@ public:
 
   void setOverlayDesc(OverlayDesc *O) { ThisOverlayDesc = O; }
 
+  const OutputSectDesc *getOutputSectDesc() const { return OutputSectionDesc; }
+
   // ----------------------Reuse trampolines optimization---------------
   std::vector<BranchIsland *>
   getBranchIslandsForSymbol(ResolveInfo *PSym) const {

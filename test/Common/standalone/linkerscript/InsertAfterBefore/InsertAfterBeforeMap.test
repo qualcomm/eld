@@ -1,0 +1,11 @@
+# Verify INSERT AFTER/BEFORE annotations in the text map file.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link -MapStyle txt %linkopts %t1.o -o %t2.out -T %p/Inputs/script.t -Map %t2.map
+RUN: %filecheck %s < %t2.map
+
+# CHECK: .text.before
+# CHECK: # INSERT BEFORE .text.anchor # {{.*}}script.t
+# CHECK: .text.after1
+# CHECK: # INSERT AFTER .text.anchor # {{.*}}script.t
+# CHECK: .text.after2
+# CHECK: # INSERT AFTER .text.anchor # {{.*}}script.t

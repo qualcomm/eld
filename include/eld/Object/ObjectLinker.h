@@ -455,6 +455,7 @@ private:
   void fixMergeStringRelocations() const;
 
   void reportPendingPluginRuleInsertions() const;
+  void reportPendingScriptSectionInsertions() const;
 
   /// Finalizes the output section flags.
   ///

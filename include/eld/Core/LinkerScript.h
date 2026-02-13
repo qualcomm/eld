@@ -55,6 +55,7 @@ class SectionMap;
 class MemoryCmd;
 class SymbolContainer;
 class OverlayDesc;
+class InputFile;
 
 class Phdrs {
 public:
@@ -88,6 +89,13 @@ public:
 
   typedef std::vector<Phdrs *> PhdrSpecList;
   typedef std::vector<MemorySpec *> MemorySpecList;
+
+  struct PendingOutputSectionInsertion {
+    std::string SectionName;
+    std::string AnchorName;
+    bool InsertAfter = false;
+    InputFile *Context = nullptr;
+  };
 
 public:
   LinkerScript(DiagnosticEngine *);
@@ -335,6 +343,18 @@ public:
     return MPendingRuleInsertions;
   }
 
+  void addPendingOutputSectionInsertion(std::string SectionName,
+                                        std::string AnchorName,
+                                        bool InsertAfter, InputFile *Context);
+
+  bool applyPendingOutputSectionInsertionsForAnchor(SectionMap &Map,
+                                                    llvm::StringRef AnchorName);
+
+  const std::vector<PendingOutputSectionInsertion> &
+  getPendingOutputSectionInsertions() const {
+    return PendingOutputSectionInsertions;
+  }
+
   eld::Expected<bool> insertRegionAlias(llvm::StringRef Alias,
                                         const std::string Context);
 
@@ -401,6 +421,8 @@ private:
   std::unordered_map<const plugin::LinkerWrapper *,
                      std::unordered_set<const RuleContainer *>>
       MPendingRuleInsertions;
+  std::vector<PendingOutputSectionInsertion> PendingOutputSectionInsertions;
+  std::unordered_map<std::string, std::string> OutputSectionInsertAfterTail;
   std::unordered_map<std::string, Plugin *> MPluginInfo;
   ELFSection *CurrentOutputSectionForScriptEval = nullptr;
 };

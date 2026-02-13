@@ -29,6 +29,7 @@
 #include "llvm/Support/xxhash.h"
 #include <algorithm>
 #include <string>
+#include <utility>
 
 using namespace eld;
 
@@ -253,6 +254,50 @@ LinkerScript::getSectionOverrides(const plugin::LinkerWrapper *LW) {
   if (OverrideSectionMatch.count(LW))
     return OverrideSectionMatch[LW];
   return OverrideSectionMatchT{};
+}
+
+void LinkerScript::addPendingOutputSectionInsertion(std::string SectionName,
+                                                    std::string AnchorName,
+                                                    bool InsertAfter,
+                                                    InputFile *Context) {
+  PendingOutputSectionInsertions.push_back(
+      {std::move(SectionName), std::move(AnchorName), InsertAfter, Context});
+}
+
+bool LinkerScript::applyPendingOutputSectionInsertionsForAnchor(
+    SectionMap &Map, llvm::StringRef AnchorName) {
+  if (PendingOutputSectionInsertions.empty())
+    return false;
+  bool Applied = false;
+  std::string AnchorKey = AnchorName.str();
+  std::string AfterAnchor = AnchorKey;
+  auto TailIt = OutputSectionInsertAfterTail.find(AnchorKey);
+  if (TailIt != OutputSectionInsertAfterTail.end())
+    AfterAnchor = TailIt->second;
+  std::vector<PendingOutputSectionInsertion> Remaining;
+  Remaining.reserve(PendingOutputSectionInsertions.size());
+  for (auto &Insertion : PendingOutputSectionInsertions) {
+    if (AnchorName != llvm::StringRef(Insertion.AnchorName)) {
+      Remaining.push_back(std::move(Insertion));
+      continue;
+    }
+    OutputSectionEntry *Section =
+        Map.findOutputSectionEntry(Insertion.SectionName);
+    llvm::StringRef TargetAnchor =
+        Insertion.InsertAfter ? llvm::StringRef(AfterAnchor) : AnchorName;
+    if (!Section ||
+        !Map.moveOutputSection(Section, TargetAnchor, Insertion.InsertAfter)) {
+      Remaining.push_back(std::move(Insertion));
+      continue;
+    }
+    if (Insertion.InsertAfter) {
+      AfterAnchor = Insertion.SectionName;
+      OutputSectionInsertAfterTail[AnchorKey] = AfterAnchor;
+    }
+    Applied = true;
+  }
+  PendingOutputSectionInsertions.swap(Remaining);
+  return Applied;
 }
 
 eld::Expected<void> LinkerScript::addChunkOp(plugin::LinkerWrapper *W,

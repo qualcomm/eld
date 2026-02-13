@@ -152,6 +152,9 @@ public:
   /// if any; Otherwise returns nullptr.
   OutputSectionEntry *findOutputSectionEntry(const std::string &Name);
 
+  bool moveOutputSection(OutputSectionEntry *Section,
+                         llvm::StringRef AnchorName, bool InsertAfter);
+
   bool doesRuleMatchWithSection(const RuleContainer &R, const Section &S,
                                 bool DoNotUseRmName) const;
 

@@ -116,6 +116,8 @@ void TextLayoutPrinter::printOnlyLayoutSection(GNULDBackend const &Backend,
   if (UseColor)
     outputStream().resetColor();
 
+  printInsertPlacement(OS);
+
   auto Info = ThisLayoutInfo->getPluginInfo().find(Section);
   if (Info == ThisLayoutInfo->getPluginInfo().end())
     return;
@@ -239,6 +241,23 @@ void TextLayoutPrinter::printMemoryRegions(GNULDBackend const &Backend,
   outputStream() << "]";
 }
 
+void TextLayoutPrinter::printInsertPlacement(
+    const OutputSectionEntry *OS) const {
+  const auto &Epilog = OS->epilog();
+  if (!Epilog.hasInsert())
+    return;
+  outputStream() << "# INSERT "
+                 << (Epilog.insertPlacement() ==
+                             OutputSectDesc::Epilog::InsertPlacement::After
+                         ? "AFTER "
+                         : "BEFORE ")
+                 << Epilog.insertTarget()->name();
+  const auto *Desc = OS->getOutputSectDesc();
+  if (Desc && Desc->hasInputFileInContext())
+    outputStream() << " # " << Desc->getContext();
+  outputStream() << "\n";
+}
+
 // Print section information like name, address, offset, size, alignment,
 // etc. based on the section type.
 void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
@@ -293,6 +312,8 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
 
   if (UseColor)
     outputStream().resetColor();
+
+  printInsertPlacement(OS);
 
   if (OS->getTotalTrampolineCount()) {
     outputStream() << "# NumTrampolines: " << OS->getTotalTrampolineCount();

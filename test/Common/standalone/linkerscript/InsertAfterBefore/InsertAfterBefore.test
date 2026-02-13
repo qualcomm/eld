@@ -1,0 +1,14 @@
+# Verify INSERT AFTER/BEFORE output section ordering.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -o %t2.out -T %p/Inputs/script.t
+RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=ORDER
+
+# ORDER: .text.before
+# ORDER: .text.anchor
+# ORDER: .text.after1
+# ORDER: .text.after2
+# ORDER: .data
+
+# Verify INSERT fails for a missing anchor.
+RUN: %not %link %linkopts %t1.o -o %t2.bad.out -T %p/Inputs/script_missing.t 2>&1 | %filecheck %s --check-prefix=BAD
+# BAD: Cannot INSERT output section .text.after1 AFTER .missing

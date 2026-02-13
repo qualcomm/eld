@@ -201,6 +201,8 @@ SectionMap::insert(std::string pInputSection, std::string pOutputSection,
 
   auto *Output = make<OutputSectionEntry>(this, pOutputSection);
   MOutputSectionEntryDescList.push_back(Output);
+  MLinkerScript.applyPendingOutputSectionInsertionsForAnchor(*this,
+                                                             Output->name());
   auto *Input = make<RuleContainer>(this, pInputSection, pPolicy, SortPolicy);
   Input->getSection()->setOutputSection(Output);
   if (IsSectionTracingRequested &&
@@ -281,6 +283,8 @@ SectionMap::insert(const InputSectDesc &pInputDesc,
 
   auto *Output = make<OutputSectionEntry>(this, POutputDesc);
   MOutputSectionEntryDescList.push_back(Output);
+  MLinkerScript.applyPendingOutputSectionInsertionsForAnchor(*this,
+                                                             Output->name());
   auto *Input = make<RuleContainer>(this, pInputDesc);
 
   Input->getSection()->setOutputSection(Output);
@@ -324,12 +328,18 @@ SectionMap::iterator SectionMap::insert(iterator PPosition,
   Output->setLastRule(Input);
 
   Output->setSection(PSection);
-  return MOutputSectionEntryDescList.insert(PPosition, Output);
+  auto It = MOutputSectionEntryDescList.insert(PPosition, Output);
+  MLinkerScript.applyPendingOutputSectionInsertionsForAnchor(*this,
+                                                             Output->name());
+  return It;
 }
 
 SectionMap::iterator SectionMap::insert(iterator PPosition,
                                         OutputSectionEntry *PSection) {
-  return MOutputSectionEntryDescList.insert(PPosition, PSection);
+  auto It = MOutputSectionEntryDescList.insert(PPosition, PSection);
+  MLinkerScript.applyPendingOutputSectionInsertionsForAnchor(*this,
+                                                             PSection->name());
+  return It;
 }
 
 // pInputFile is the full path used in archive match and
@@ -566,6 +576,40 @@ SectionMap::findOutputSectionEntry(const std::string &Name) {
   if (It == MOutputSectionEntryDescList.end())
     return nullptr;
   return *It;
+}
+
+bool SectionMap::moveOutputSection(OutputSectionEntry *Section,
+                                   llvm::StringRef AnchorName,
+                                   bool InsertAfter) {
+  if (!Section)
+    return false;
+  auto SectionIt = std::find(MOutputSectionEntryDescList.begin(),
+                             MOutputSectionEntryDescList.end(), Section);
+  if (SectionIt == MOutputSectionEntryDescList.end())
+    return false;
+  auto AnchorIt = std::find_if(MOutputSectionEntryDescList.begin(),
+                               MOutputSectionEntryDescList.end(),
+                               [AnchorName](const OutputSectionEntry *O) {
+                                 return O->name() == AnchorName;
+                               });
+  if (AnchorIt == MOutputSectionEntryDescList.end())
+    return false;
+  if (SectionIt == AnchorIt)
+    return true;
+
+  OutputSectionEntry *SectionPtr = *SectionIt;
+  MOutputSectionEntryDescList.erase(SectionIt);
+  AnchorIt = std::find_if(MOutputSectionEntryDescList.begin(),
+                          MOutputSectionEntryDescList.end(),
+                          [AnchorName](const OutputSectionEntry *O) {
+                            return O->name() == AnchorName;
+                          });
+  if (AnchorIt == MOutputSectionEntryDescList.end())
+    return false;
+  if (InsertAfter)
+    ++AnchorIt;
+  MOutputSectionEntryDescList.insert(AnchorIt, SectionPtr);
+  return true;
 }
 
 bool SectionMap::doesRuleMatchWithSection(const RuleContainer &R,

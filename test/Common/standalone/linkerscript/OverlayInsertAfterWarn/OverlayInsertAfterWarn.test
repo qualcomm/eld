@@ -1,0 +1,10 @@
+#---OverlayInsertAfterWarn.test----------------- Executable,LS----------------#
+#BEGIN_COMMENT
+# Verify that INSERT AFTER inside OVERLAY members emits a warning.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -Wlinker-script -o %t1.out %t1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+
+CHECK: Warning: {{.*}}Inputs/script.t:{{[0-9]+}}: INSERT is not supported inside OVERLAY member blocks
+#END_TEST

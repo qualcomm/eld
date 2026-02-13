@@ -1,0 +1,9 @@
+# INSERT ordering when output sections come from included scripts.
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.o %clangg0opts
+RUN: %link %linkopts %t1.o -L %p/Inputs/ -o %t2.out -T %p/Inputs/script_include_main.t
+RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=INCLUDE
+
+# INCLUDE: .text.before
+# INCLUDE: .text.anchor
+# INCLUDE: .text.after1
+# INCLUDE: .text.after2

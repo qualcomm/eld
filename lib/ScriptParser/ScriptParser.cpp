@@ -656,10 +656,15 @@ void ScriptParser::readOverlayMemberOutputSectionDescription(
   // Disallow output-section epilogue tokens after the member body and consume
   // them for recovery so parsing can continue.
   if (peek() == ">" || peek() == "AT" || peek().starts_with(":") ||
-      peek() == "=" || peek().starts_with("=")) {
-    setError("overlay member output sections do not support output section "
-             "epilogue");
+      peek() == "=" || peek().starts_with("=") || peek() == "INSERT") {
+    if (peek() != "INSERT") {
+      setError("overlay member output sections do not support output section "
+               "epilogue");
+    }
+    bool WasInOverlayMemberEpilogue = MInOverlayMemberEpilogue;
+    MInOverlayMemberEpilogue = true;
     (void)readOutputSectDescEpilogue();
+    MInOverlayMemberEpilogue = WasInOverlayMemberEpilogue;
   }
 
   OutputSectDesc::Epilog Epilogue;
@@ -1028,6 +1033,25 @@ OutputSectDesc::Epilog ScriptParser::readOutputSectDescEpilogue() {
     consume("=");
     Epilogue.FillExpression = readExpr();
     LexState = LexState::Default;
+  }
+
+  if (consume("INSERT")) {
+    OutputSectDesc::Epilog::InsertPlacement Placement =
+        OutputSectDesc::Epilog::InsertPlacement::None;
+    if (consume("AFTER")) {
+      Placement = OutputSectDesc::Epilog::InsertPlacement::After;
+    } else if (consume("BEFORE")) {
+      Placement = OutputSectDesc::Epilog::InsertPlacement::Before;
+    } else {
+      setError("Expected BEFORE or AFTER after INSERT");
+    }
+    llvm::StringRef Anchor = unquote(next());
+    if (Placement != OutputSectDesc::Epilog::InsertPlacement::None) {
+      if (MInOverlayMemberEpilogue) {
+        setWarn("INSERT is not supported inside OVERLAY member blocks");
+      }
+      Epilogue.setInsert(Placement, ThisScriptFile.createParserStr(Anchor));
+    }
   }
   // Consume optional comma following output section command.
   consume(",");

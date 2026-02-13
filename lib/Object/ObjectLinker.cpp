@@ -1308,6 +1308,7 @@ bool ObjectLinker::mergeSections() {
   }
 
   reportPendingPluginRuleInsertions();
+  reportPendingScriptSectionInsertions();
 
   {
     eld::RegisterTimer T("Create Output Section", "Merge Sections",
@@ -4066,6 +4067,25 @@ void ObjectLinker::reportPendingPluginRuleInsertions() const {
       ThisConfig.raise(Diag::warn_pending_rule_insertion)
           << Ss.str() << LW->getPlugin()->getPluginName()
           << R->desc()->getOutputDesc().name();
+    }
+  }
+}
+
+void ObjectLinker::reportPendingScriptSectionInsertions() const {
+  const LinkerScript &Script = ThisModule->getLinkerScript();
+  const auto &PendingInsertions = Script.getPendingOutputSectionInsertions();
+  for (const auto &Insertion : PendingInsertions) {
+    if (Insertion.Context) {
+      ThisConfig.raise(Diag::error_insert_output_section)
+          << Insertion.SectionName
+          << (Insertion.InsertAfter ? "AFTER" : "BEFORE")
+          << Insertion.AnchorName << Insertion.Context;
+    } else {
+      std::string ContextString = "<unknown>";
+      ThisConfig.raise(Diag::error_insert_output_section)
+          << Insertion.SectionName
+          << (Insertion.InsertAfter ? "AFTER" : "BEFORE")
+          << Insertion.AnchorName << ContextString;
     }
   }
 }

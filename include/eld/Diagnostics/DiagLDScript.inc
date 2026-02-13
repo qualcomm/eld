@@ -120,6 +120,8 @@ DIAG(error_dot_lhs_in_non_alloc, DiagnosticEngine::Error,
      "dot expression evaluation in %0 with permissions %1 is not supported")
 DIAG(error_cannot_specify_lma_and_memory_region, DiagnosticEngine::Error,
      "cannot specify AT and LMA memory region for output section : %0 defined in script %1")
+DIAG(error_insert_output_section, DiagnosticEngine::Error,
+     "Cannot INSERT output section %0 %1 %2 in script %3")
 DIAG(warn_non_power_of_2_value_to_align_builtin, DiagnosticEngine::Warning,
      "%0: non-power-of-2 value 0x%1 passed to ALIGN builtin function")
 DIAG(error_non_power_of_2_value_to_align_output_section, DiagnosticEngine::Error,
