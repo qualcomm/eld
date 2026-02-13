@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.1. Linker Plugins &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.2. Linker Plugin Examples" href="examples.html" />
+    <link rel="prev" title="11. Linker Plugins" href="../linker_plugins_updated.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../layout.html">10. Image layout</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../linker_plugins_updated.html">11. Linker Plugins</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.1. Linker Plugins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-and-why-of-linker-plugins">11.1.1. What and why of linker plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elements-of-the-link-process">11.1.2. Elements of the link process</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#symbols">11.1.2.1. Symbols</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#input-section">11.1.2.2. Input Section</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output-section">11.1.2.3. Output Section</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chunk">11.1.2.4. Chunk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#relocation">11.1.2.5. Relocation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#section-mapping">11.1.2.6. Section Mapping</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#plugin-types">11.1.3. Plugin Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-wrapper">11.1.4. Linker Wrapper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-a-linker-plugin">11.1.5. Running a linker plugin</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#adding-a-plugin-invocation-command-in-a-linker-script">11.1.5.1. Adding a plugin invocation command in a linker script.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#specifying-plugin-configuration-file-using-plugin-config-option">11.1.5.2. Specifying plugin configuration file using <code class="code docutils literal notranslate"><span class="pre">--plugin-config</span></code> option</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#user-plugin-workflow">11.1.6. User Plugin Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-the-linker-runs-plugin">11.1.7. How the linker runs plugin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tracing-plugins">11.1.8. Tracing plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#link-states">11.1.9. Link States</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#initializing">11.1.9.1. Initializing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#beforelayout">11.1.9.2. BeforeLayout</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#creatingsections">11.1.9.3. CreatingSections</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#afterlayout">11.1.9.4. AfterLayout</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#deep-dive-into-the-plugin-types">11.1.10. Deep Dive into the Plugin Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pluginbase-class">11.1.10.1. PluginBase class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#linkerplugin-type">11.1.10.2. LinkerPlugin Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#section-matcher-interface">11.1.10.3. Section Matcher Interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#section-iterator-interface">11.1.10.4. Section Iterator Interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output-section-iterator-interface">11.1.10.5. Output Section Iterator Interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#controlmemorysizeplugin">11.1.10.6. ControlMemorySizePlugin</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">11.2. Linker Plugin Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_docs.html">11.3. Linker Plugin API Usage and Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../linker_plugins_updated.html"><span class="section-number">11. </span>Linker Plugins</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.1. </span>Linker Plugins</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-plugins">
+<h1><span class="section-number">11.1. </span>Linker Plugins<a class="headerlink" href="#linker-plugins" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#what-and-why-of-linker-plugins" id="id1">What and why of linker plugins</a></p></li>
+<li><p><a class="reference internal" href="#elements-of-the-link-process" id="id2">Elements of the link process</a></p>
+<ul>
+<li><p><a class="reference internal" href="#symbols" id="id3">Symbols</a></p>
+<ul>
+<li><p><a class="reference internal" href="#symbol-resolution" id="id4">Symbol resolution</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#input-section" id="id5">Input Section</a></p></li>
+<li><p><a class="reference internal" href="#output-section" id="id6">Output Section</a></p></li>
+<li><p><a class="reference internal" href="#chunk" id="id7">Chunk</a></p></li>
+<li><p><a class="reference internal" href="#relocation" id="id8">Relocation</a></p></li>
+<li><p><a class="reference internal" href="#section-mapping" id="id9">Section Mapping</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#plugin-types" id="id10">Plugin Types</a></p></li>
+<li><p><a class="reference internal" href="#linker-wrapper" id="id11">Linker Wrapper</a></p></li>
+<li><p><a class="reference internal" href="#running-a-linker-plugin" id="id12">Running a linker plugin</a></p>
+<ul>
+<li><p><a class="reference internal" href="#adding-a-plugin-invocation-command-in-a-linker-script" id="id13">Adding a plugin invocation command in a linker script.</a></p></li>
+<li><p><a class="reference internal" href="#specifying-plugin-configuration-file-using-plugin-config-option" id="id14">Specifying plugin configuration file using <code class="code docutils literal notranslate"><span class="pre">--plugin-config</span></code> option</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#user-plugin-workflow" id="id15">User Plugin Workflow</a></p></li>
+<li><p><a class="reference internal" href="#how-the-linker-runs-plugin" id="id16">How the linker runs plugin</a></p></li>
+<li><p><a class="reference internal" href="#tracing-plugins" id="id17">Tracing plugins</a></p></li>
+<li><p><a class="reference internal" href="#link-states" id="id18">Link States</a></p>
+<ul>
+<li><p><a class="reference internal" href="#initializing" id="id19">Initializing</a></p></li>
+<li><p><a class="reference internal" href="#beforelayout" id="id20">BeforeLayout</a></p></li>
+<li><p><a class="reference internal" href="#creatingsections" id="id21">CreatingSections</a></p></li>
+<li><p><a class="reference internal" href="#afterlayout" id="id22">AfterLayout</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#deep-dive-into-the-plugin-types" id="id23">Deep Dive into the Plugin Types</a></p>
+<ul>
+<li><p><a class="reference internal" href="#pluginbase-class" id="id24">PluginBase class</a></p></li>
+<li><p><a class="reference internal" href="#linkerplugin-type" id="id25">LinkerPlugin Type</a></p></li>
+<li><p><a class="reference internal" href="#section-matcher-interface" id="id26">Section Matcher Interface</a></p></li>
+<li><p><a class="reference internal" href="#section-iterator-interface" id="id27">Section Iterator Interface</a></p></li>
+<li><p><a class="reference internal" href="#output-section-iterator-interface" id="id28">Output Section Iterator Interface</a></p>
+<ul>
+<li><p><a class="reference internal" href="#beforelayout-phase-1" id="id29">BeforeLayout – Phase 1</a></p></li>
+<li><p><a class="reference internal" href="#creatingsections-phase-2" id="id30">CreatingSections – Phase 2</a></p></li>
+<li><p><a class="reference internal" href="#afterlayout-phase-3" id="id31">AfterLayout – Phase 3</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#controlmemorysizeplugin" id="id32">ControlMemorySizePlugin</a></p>
+<ul>
+<li><p><a class="reference internal" href="#init" id="id33"><code class="code docutils literal notranslate"><span class="pre">init</span></code></a></p></li>
+<li><p><a class="reference internal" href="#addblocks" id="id34"><code class="code docutils literal notranslate"><span class="pre">AddBlocks</span></code></a></p></li>
+<li><p><a class="reference internal" href="#run" id="id35"><code class="code docutils literal notranslate"><span class="pre">Run</span></code></a></p></li>
+<li><p><a class="reference internal" href="#getblocks" id="id36"><code class="code docutils literal notranslate"><span class="pre">GetBlocks</span></code></a></p></li>
+<li><p><a class="reference internal" href="#destroy" id="id37"><code class="code docutils literal notranslate"><span class="pre">Destroy</span></code></a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="what-and-why-of-linker-plugins">
+<h2><a class="toc-backref" href="#id1"><span class="section-number">11.1.1. </span>What and why of linker plugins</a><a class="headerlink" href="#what-and-why-of-linker-plugins" title="Permalink to this heading"></a></h2>
+<p>Linker plugins make it possible to run user-defined code during the link
+process. Implemented as a C++ class, they are a programmatical way to add
+new functionalities and modify default linker behavior.</p>
+<p>But why modify default linker behavior? We will now discuss the long answer
+we promised at the beginning of the linker plugins documentation.</p>
+<p>Plugins provide more control and flexibility over the output image layout as
+compared to the linker scripts.
+For complicated rules, linker scripts are often very cumbersome to write,
+sometimes desired rule matching behavior might even be impossible from just
+linker script. For example, a plugin can move around chunks from one output
+section to another. Linker plugins also allow the user to alter program layout
+dynamically which is not possible using linker script.</p>
+<p>Plugins add custom behavior to the linker by defining behavior for the hooks
+that the linker runs in various stages of the link process. These hooks allows
+plugins to modify the default linker behavior, provide a fine-grained control
+over the output image layout, add new functionalities to the linker.</p>
+<p>This guide will describe all that you need to know about linker plugins,
+and how to effectively write one yourself. This guide assumes that the reader
+has a basic understanding of linkers, linker relocations and linker scripts.</p>
+</div>
+<div class="section" id="elements-of-the-link-process">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">11.1.2. </span>Elements of the link process</a><a class="headerlink" href="#elements-of-the-link-process" title="Permalink to this heading"></a></h2>
+<p>Before we move further, let’s first quickly go over some important elements of
+the link process. A solid understanding of these elements will help to better
+understand the link process, and linker’s capabilities and limitations. This
+in turn will help to effectively design and write plugins.</p>
+<div class="section" id="symbols">
+<h3><a class="toc-backref" href="#id3"><span class="section-number">11.1.2.1. </span>Symbols</a><a class="headerlink" href="#symbols" title="Permalink to this heading"></a></h3>
+<p>Formally, a symbol is a name associated with a value. This value can be
+an offset within a section, a virtual memory address, or simply an absolute value.
+Symbols are an integral component of an object file. Among other things, they are
+used to refer to global variables and functions in a program.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Global variables were specifically mentioned because local variables are created and managed
+on the stack at run-time and linker is blissfully unaware of them. Beware: local symbols
+are not the same as local variables!</p>
+</div>
+<p><code class="code docutils literal notranslate"><span class="pre">eld::plugin::Symbol</span></code> represents a linker symbol.</p>
+<div class="section" id="symbol-resolution">
+<h4><a class="toc-backref" href="#id4"><span class="section-number">11.1.2.1.1. </span>Symbol resolution</a><a class="headerlink" href="#symbol-resolution" title="Permalink to this heading"></a></h4>
+<p>For each group of non-local symbols with the same name, symbol resolution
+selects one of these symbols using well-defined rules. The selected symbol
+is part of the output image symbol table and is used to resolve symbol
+references to that name.</p>
+</div>
+</div>
+<div class="section" id="input-section">
+<h3><a class="toc-backref" href="#id5"><span class="section-number">11.1.2.2. </span>Input Section</a><a class="headerlink" href="#input-section" title="Permalink to this heading"></a></h3>
+<p>Each relocatable object module, <em>M</em>, has input sections. Input sections
+contains most of the object file information for the linking view:
+instructions, data, symbol table, relocation information and so on.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">eld::plugin::Section</span></code> represents an input section.</p>
+</div>
+<div class="section" id="output-section">
+<h3><a class="toc-backref" href="#id6"><span class="section-number">11.1.2.3. </span>Output Section</a><a class="headerlink" href="#output-section" title="Permalink to this heading"></a></h3>
+<p>Output section contains one or more input sections. The output sections are
+in turn mapped to a segment. A segment contains one or more output sections,
+and is used for finally loading the program. Typically, output sections with
+same <em>Alloc</em>, <em>Exec</em>, and <em>Write</em> permissions are mapped to the same segment.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">eld::plugin::OutputSection</span></code> represents an output section.</p>
+</div>
+<div class="section" id="chunk">
+<h3><a class="toc-backref" href="#id7"><span class="section-number">11.1.2.4. </span>Chunk</a><a class="headerlink" href="#chunk" title="Permalink to this heading"></a></h3>
+<p>In ELD’s terminology, a section is made up of many sub-parts called as
+chunk or fragment. Plugins can move chunks from one output section to another.
+Linker scripts do not have this level of control over the output image layout.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">eld::plugin::Chunk</span></code> is a handler for a chunk. It can be used to inspect the
+properties, symbols and content of a chunk.</p>
+</div>
+<div class="section" id="relocation">
+<h3><a class="toc-backref" href="#id8"><span class="section-number">11.1.2.5. </span>Relocation</a><a class="headerlink" href="#relocation" title="Permalink to this heading"></a></h3>
+<p>Relocation is the process of connecting symbolic references with symbolic
+definitions. All symbolic references of the same symbol should be connected
+to the same definition. Object files contain relocation entries that
+describes how the relocations should be processed.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">eld::plugin::Use</span></code> represent relocations.</p>
+</div>
+<div class="section" id="section-mapping">
+<h3><a class="toc-backref" href="#id9"><span class="section-number">11.1.2.6. </span>Section Mapping</a><a class="headerlink" href="#section-mapping" title="Permalink to this heading"></a></h3>
+<p>Each input section is either discarded or is mapped to some output section.
+Linker has some default mapping rules that defines which input section is to
+be mapped to which output section. Traditionally, linkers allowed users to
+add their own custom mapping rules using linker script <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code>
+command.</p>
+<p>Now, we have covered the basic elements of the link process. Let’s dive
+into the linker plugin functionality.</p>
+</div>
+</div>
+<div class="section" id="plugin-types">
+<h2><a class="toc-backref" href="#id10"><span class="section-number">11.1.3. </span>Plugin Types</a><a class="headerlink" href="#plugin-types" title="Permalink to this heading"></a></h2>
+<p>ELD has different plugin types. Plugin types differ in which hooks they provide.
+Hooks are pre-defined spots in the link pipeline where a plugin can tap into the
+linker to customize the link. Plugin taps into the linker by defining the callback
+function for the hooks. The linker calls these callback functions at the hook sites.
+For brevity, we will refer callback function for the hook as hook callback function.</p>
+<p>There two distinct kinds of plugins: LinkerPlugin plugin and layout plugins.
+LinkerPlugin plugin is more general and provides hook that covers the entire
+link process. On the other hand, the layout plugins have specialized hooks for
+iterating over certain link components (input sections, output sections, …)
+instead of having general hooks. Different layout plugin types iterate over
+different link components. For example, <code class="code docutils literal notranslate"><span class="pre">SectionMatcher</span></code> plugin type provide
+hooks to process input sections and <code class="code docutils literal notranslate"><span class="pre">OutputSectionIterator</span></code> plugin type
+provides hooks to process output sections.</p>
+<p>There are a total of 6 plugin types. One LinkerPlugin plugin type and 5 layout plugin types.
+For each plugin type, there is a corresponding plugin class. Plugin authors create a new
+plugin by inheriting from the corresponding plugin class and implementing the hook
+callback functions.</p>
+<p>The 6 plugin interfaces along with their corresponding C++ class
+and header file are listed below.</p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 34%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Plugin interface</p></th>
+<th class="head"><p>Plugin interface class</p></th>
+<th class="head"><p>Header file</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>LinkerPlugin</p></td>
+<td><p>LinkerPlugin</p></td>
+<td><p>ELD/PluginAPI/LinkerPlugin.h</p></td>
+</tr>
+<tr class="row-odd"><td><p>SectionMatcher</p></td>
+<td><p>SectionMatcherPlugin</p></td>
+<td><p>ELD/PluginAPI/SectionMatcherPlugin.h</p></td>
+</tr>
+<tr class="row-even"><td><p>SectionIterator</p></td>
+<td><p>SectionIteratorPlugin</p></td>
+<td><p>ELD/PluginAPI/SectionIteratorPlugin.h</p></td>
+</tr>
+<tr class="row-odd"><td><p>ControlFileSize</p></td>
+<td><p>ControlFileSizePlugin</p></td>
+<td><p>ELD/PluginAPI/ControlFileSizePlugin.h</p></td>
+</tr>
+<tr class="row-even"><td><p>ControlMemorySize</p></td>
+<td><p>ControlMemorySizePlugin</p></td>
+<td><p>ELD/PluginAPI/ControlMemorySizePlugin.h</p></td>
+</tr>
+<tr class="row-odd"><td><p>OutputSectionIterator</p></td>
+<td><p>OutputSectionIteratorPlugin.h</p></td>
+<td><p>ELD/PluginAPI/OutputSectionIteratorPlugin.h</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="linker-wrapper">
+<h2><a class="toc-backref" href="#id11"><span class="section-number">11.1.4. </span>Linker Wrapper</a><a class="headerlink" href="#linker-wrapper" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="running-a-linker-plugin">
+<h2><a class="toc-backref" href="#id12"><span class="section-number">11.1.5. </span>Running a linker plugin</a><a class="headerlink" href="#running-a-linker-plugin" title="Permalink to this heading"></a></h2>
+<p>There are two methods to run linker plugins:</p>
+<ul class="simple">
+<li><p>Adding a plugin invocation command in a linker script. <em>(Not supported for :code:`LinkerPlugin` plugins)</em></p></li>
+<li><p>Specifying plugin configuration file using <cite>–plugin-config</cite> option. <em>(Recommended way)</em></p></li>
+</ul>
+<p>We call these methods as <em>plugin load specification</em> because they specify
+how the linker should load a plugin.</p>
+<div class="section" id="adding-a-plugin-invocation-command-in-a-linker-script">
+<h3><a class="toc-backref" href="#id13"><span class="section-number">11.1.5.1. </span>Adding a plugin invocation command in a linker script.</a><a class="headerlink" href="#adding-a-plugin-invocation-command-in-a-linker-script" title="Permalink to this heading"></a></h3>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">PluginTypeKeyword</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOption&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>For output section plugin types, <code class="code docutils literal notranslate"><span class="pre">ControlMemorySizePlugin</span></code> and
+<code class="code docutils literal notranslate"><span class="pre">ControlFileSizePlugin</span></code>, users should add the plugin invocation command to the
+output section description of the output section on which these plugins
+should run.
+For example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">output_section</span><span class="w"> </span><span class="o">&lt;</span><span class="n">PluginTypeKeyword</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOption&quot;</span><span class="p">])</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only one output section plugin can be attached to an output section.</p>
+</div>
+<ul>
+<li><p><strong>PluginTypeKeyword</strong></p>
+<blockquote>
+<div><p>Each plugin type has a corresponding linker script plugin
+keyword.</p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Plugin interface type</p></th>
+<th class="head"><p>Linker script keyword</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SectionMatcher</p></td>
+<td><p>PLUGIN_SECTION_MATCHER</p></td>
+</tr>
+<tr class="row-odd"><td><p>SectionIterator</p></td>
+<td><p>PLUGIN_ITER_SECTIONS</p></td>
+</tr>
+<tr class="row-even"><td><p>ControlFileSize</p></td>
+<td><p>PLUGIN_CONTROL_FILESZ</p></td>
+</tr>
+<tr class="row-odd"><td><p>ControlMemorySize</p></td>
+<td><p>PLUGIN_CONTROL_MEMSZ</p></td>
+</tr>
+<tr class="row-even"><td><p>OutputSectionIterator</p></td>
+<td><p>PLUGIN_OUTPUT_SECTION_ITER</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</li>
+<li><p><strong>LibraryName</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Name of the dynamic library that contains the plugin for the linker to
+load.</p></li>
+<li><p>Finds the library in the same search paths as if the library was passed
+as an input to the linker.</p></li>
+<li><p>Uses the name of the library without the lib prefix on Linux and without
+the .so/.dll suffix on Linux/Windows, respectively</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>PluginName</strong></p>
+<blockquote>
+<div><p>Name of the plugin. The linker queries the dynamic library to provide an
+implementation of the plugin with the name <em>PluginName</em> for the specified
+interface type.</p>
+</div></blockquote>
+</li>
+<li><p><strong>PluginOption</strong></p>
+<blockquote>
+<div><p>It can be used to pass an option to the plugin.</p>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="specifying-plugin-configuration-file-using-plugin-config-option">
+<h3><a class="toc-backref" href="#id14"><span class="section-number">11.1.5.2. </span>Specifying plugin configuration file using <code class="code docutils literal notranslate"><span class="pre">--plugin-config</span></code> option</a><a class="headerlink" href="#specifying-plugin-configuration-file-using-plugin-config-option" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">--plugin-config</span></code> option takes a plugin configuration yaml file.
+Plugin configuration file should contain a <code class="code docutils literal notranslate"><span class="pre">GlobalPlugins</span></code> list.
+Elements of the <code class="code docutils literal notranslate"><span class="pre">GlobalPlugins</span></code> list defines which plugins should be
+loaded. Each value of the list is an object containing all the information
+required to load and initialize a specific plugin.</p>
+<p>Plugin configuration file format should be as follows::</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">---</span>
+<span class="nl">GlobalPlugins</span><span class="p">:</span>
+<span class="w">  </span><span class="o">-</span><span class="w"> </span><span class="n">Type</span><span class="o">:</span><span class="w"> </span><span class="n">PluginInterfaceType</span>
+<span class="w">    </span><span class="nl">Name</span><span class="p">:</span><span class="w"> </span><span class="n">PluginName</span>
+<span class="w">    </span><span class="nl">Library</span><span class="p">:</span><span class="w"> </span><span class="n">LibraryName</span>
+<span class="w">    </span><span class="nl">Options</span><span class="p">:</span><span class="w"> </span><span class="n">PluginOption</span>
+
+<span class="nl">OutputSectionPlugins</span><span class="p">:</span>
+<span class="w">  </span><span class="o">-</span><span class="w"> </span><span class="n">OutputSection</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">OutputSectionName</span>
+<span class="w">    </span><span class="nl">Type</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">PluginInterfaceType</span>
+<span class="w">    </span><span class="nl">Name</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">PluginName</span>
+<span class="w">    </span><span class="nl">Library</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">LibraryName</span>
+<span class="w">    </span><span class="nl">Options</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">PluginOption</span>
+</pre></div>
+</div>
+<p><code class="code docutils literal notranslate"><span class="pre">GlobalPlugins</span></code> list can specify any number of elements.
+<code class="code docutils literal notranslate"><span class="pre">Options</span></code> member is optional.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">Library</span></code> name should be specified without the lib prefix on Linux
+and without the .so/.dll suffix on Linux/Windows</p>
+<p><code class="code docutils literal notranslate"><span class="pre">ControlMemorySizePlugin</span></code> and <code class="code docutils literal notranslate"><span class="pre">ControlFileSizePlugin</span></code> are output
+section plugins. Therefore, in the plugin configuration file, they need to be
+added to <code class="code docutils literal notranslate"><span class="pre">OutputSectionPlugins</span></code> list.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only one output section plugin can be attached to an output section.</p>
+</div>
+</div>
+</div>
+<div class="section" id="user-plugin-workflow">
+<h2><a class="toc-backref" href="#id15"><span class="section-number">11.1.6. </span>User Plugin Workflow</a><a class="headerlink" href="#user-plugin-workflow" title="Permalink to this heading"></a></h2>
+<p>The following steps describe how to develop a plugin:</p>
+<ol class="arabic simple">
+<li><p>Determine the appropriate plugin interfaces for your plugin.</p></li>
+</ol>
+<blockquote>
+<div><p>A plugin type can be one of <code class="code docutils literal notranslate"><span class="pre">LinkerPlugin</span></code>, <code class="code docutils literal notranslate"><span class="pre">SectionIterator</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">SectionMatcher</span></code>, <code class="code docutils literal notranslate"><span class="pre">OutputSectionIterator</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">ControlMemorySize</span></code>, and <code class="code docutils literal notranslate"><span class="pre">ControlFileSize</span></code>.</p>
+<p>A plugin should ideally follow the unix-philosophy of doing one thing well.
+You should generally try to avoid inheriting from multiple plugin interfaces
+if possible. It generally leads to more complicated code, and a plugin that
+does more than one thing. But that being said, if you do think
+functionalities of multiple plugin interfaces will improve your plugin’s
+design and readability, then you should go ahead with inheriting
+from multiple plugins.</p>
+<p>You can also create and chain multiple plugins for your task, similar in
+ideology to how unix utilities operate, where action of one plugin depends
+on the action and result of the previous one.</p>
+</div></blockquote>
+<ol class="arabic simple">
+<li><p>Create a C++ source file that will contain your plugin(s).</p></li>
+</ol>
+<blockquote>
+<div><p>Plugins source file needs to include the headers of the plugin interface(s)
+that the plugin(s) inherits from. Plugin interfaces header files are
+contained in, <code class="code docutils literal notranslate"><span class="pre">${HEXAGON_TOOLCHAIN}/Tools/include/ELD/PluginAPI</span></code>.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Create a C++ class that inherits from the appropriate plugin interface(s) for each plugin.</p></li>
+<li><p>Override virtual functions.</p></li>
+</ol>
+<blockquote>
+<div><p>Virtual functions are the means the linker works with the plugins.
+Each plugin interface provides hooks at various place in the linker
+codebase, the hooks functionalities are implemented by overriding
+virtual functions. There are also other virtual functions that
+do not implement functionalities for the hooks, but are required to
+work with the plugin infrastructure. Example of these virtual functions are:
+<code class="code docutils literal notranslate"><span class="pre">Plugin::GetName</span></code>, <code class="code docutils literal notranslate"><span class="pre">Plugin::GetLastError</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">Plugin::GetLastErrorAsString</span></code> etc.</p>
+</div></blockquote>
+<ol class="arabic simple" start="5">
+<li><p>Associate the plugins with unique names.</p></li>
+<li><p>Build a shared library for the source file.</p></li>
+</ol>
+<blockquote>
+<div><p>In a unix environment, shared library for the plugins can be created as:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp"># Compile the plugins source file</span>
+<span class="n">clang</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON_TOOLCHAIN_ROOT</span><span class="p">}</span><span class="o">/</span><span class="n">Tools</span><span class="o">/</span><span class="n">include</span><span class="w"> </span><span class="n">$</span><span class="p">{</span><span class="n">SOURCE_BASENAME</span><span class="p">}.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span>
+
+<span class="cp"># Link the plugin library with linker wrapper library, LW.</span>
+<span class="n">clang</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span><span class="p">.</span><span class="o">/</span><span class="n">$</span><span class="p">{</span><span class="n">SOURCE_BASENAME</span><span class="p">}.</span><span class="n">o</span><span class="w"> </span><span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON_TOOLCHAIN_ROOT</span><span class="p">}</span><span class="o">/</span><span class="n">Tools</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">lib$</span><span class="p">{</span><span class="n">SOURCE_BASENAME</span><span class="p">}.</span><span class="n">so</span>
+</pre></div>
+</div>
+</div></blockquote>
+<ol class="arabic simple" start="7">
+<li><p>Define <code class="code docutils literal notranslate"><span class="pre">RegisterAll</span></code> function in C linkage.</p></li>
+</ol>
+<blockquote>
+<div><p><code class="code docutils literal notranslate"><span class="pre">RegisterAll</span></code> function goal is to register the plugins contained
+in the file. Registering a plugin here simply means to initialize
+a plugin object.</p>
+<p>Linker calls this function for each plugin library. This function should
+creates a plugin object for each plugin that the library contains.</p>
+</div></blockquote>
+<ol class="arabic simple" start="8">
+<li><p>Define a <code class="code docutils literal notranslate"><span class="pre">getPlugin(const</span> <span class="pre">char</span> <span class="pre">*pluginName)</span></code> function in C linkage.</p></li>
+</ol>
+<blockquote>
+<div><p><code class="code docutils literal notranslate"><span class="pre">getPlugin(const</span> <span class="pre">char*</span> <span class="pre">plugin)</span></code> function goal is to return the
+requested plugin. Each plugin in the plugin source file should be uniquely
+identifiable by a name.</p>
+<p>Linker calls this function at the time of loading plugins to get a plugin
+object of plugin named <code class="code docutils literal notranslate"><span class="pre">pluginName</span></code>.</p>
+</div></blockquote>
+<ol class="arabic simple" start="9">
+<li><p>Make the plugin report its API version</p></li>
+</ol>
+<blockquote>
+<div><p>Linker verifies linker plugin compatibility. Linker will report an error
+and refuse to load a plugin if it determines that it is not compatible.</p>
+<p>Linker plugin compatibility is determined using Linker API version.
+Plugin API version consists of major and minor version numbers.
+A plugin is compatible with the linker if plugin’s major API version is
+equal to the linker major API version and plugin’s minor API version is
+equal or lower to the linker’s minor API version. The major API version
+is incremented when a existing functionality in the API is changed in an
+incompatible way. Such changes are expected to be rare. The minor API version
+is incremented when new functionality is added to the Plugin API. Note that
+Plugin API versions are distinct from linker release version numbers. The
+current linker Plugin API version is reported by the <code class="code docutils literal notranslate"><span class="pre">--version</span></code>
+command line option.</p>
+<p>For the versioning mechanism to work, each plugin must report its API version
+by exporting the <code class="code docutils literal notranslate"><span class="pre">getPluginAPIVersion(unsigned</span> <span class="pre">int</span> <span class="pre">*Major,</span> <span class="pre">unsigned</span> <span class="pre">int</span> <span class="pre">*Minor)</span></code>
+function (with C linkage). For convenience, this function is defined in the
+header file <code class="code docutils literal notranslate"><span class="pre">PluginVersion.h</span></code> and including this file in one of the
+plugin’s C++ source files will automatically make the plugin report its correct
+API version.</p>
+<p>Starting with version 19.0, each plugin must report its API version. Linker
+will refuse to load a plugin that does not report its version.</p>
+</div></blockquote>
+<ol class="arabic simple" start="10">
+<li><p>(Optionally) Define a <code class="code docutils literal notranslate"><span class="pre">getPluginConfig(const</span> <span class="pre">char</span> <span class="pre">*pluginName)</span></code> in C linkage to return the configuration object of the requested plugin.</p></li>
+<li><p>(Optionally) Define a <code class="code docutils literal notranslate"><span class="pre">Cleanup</span></code> function in C linkage.</p></li>
+</ol>
+<blockquote>
+<div><p>This function is called at the time unloading plugins. This function
+generally deletes any allocated memory that was required for the lifetime
+of the plugin library.</p>
+</div></blockquote>
+</div>
+<div class="section" id="how-the-linker-runs-plugin">
+<h2><a class="toc-backref" href="#id16"><span class="section-number">11.1.7. </span>How the linker runs plugin</a><a class="headerlink" href="#how-the-linker-runs-plugin" title="Permalink to this heading"></a></h2>
+<p>Linker performs the following operations to load, run and unload plugins.</p>
+<ol class="arabic">
+<li><p>Finds all the plugins, from linker script and plugins configuration file, that needs to be attached to the link process.</p></li>
+<li><p>Loads all the specified plugin libraries.</p>
+<ol class="arabic simple">
+<li><p>To find plugin libraries, <code class="code docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment variable is used on unix environment.</p></li>
+<li><p>Standard method for searching dynamic libraries is used in Windows.</p></li>
+</ol>
+</li>
+<li><p>Calls <code class="code docutils literal notranslate"><span class="pre">RegisterAll</span></code> function from each plugin library. This function
+should ideally create the plugin objects for each plugin defined in the
+library.</p></li>
+<li><p>Calls <code class="code docutils literal notranslate"><span class="pre">getPlugin(const</span> <span class="pre">char</span> <span class="pre">*pluginName)</span></code> function for each plugin.</p>
+<p>This function returns an appropriate plugin object for <em>pluginName</em> plugin.
+This object is used to run the plugin.</p>
+</li>
+<li><p>Calls <code class="code docutils literal notranslate"><span class="pre">getPluginConfig(const</span> <span class="pre">char</span> <span class="pre">*pluginName)</span></code> function, if available, for each plugin.
+This function returns an appropriate plugin configuration object for <em>pluginName</em> plugin.</p></li>
+<li><p>Inspects the plugin to verify that the plugin load specification and plugin type have same plugin interface type.</p></li>
+<li><p>Initializes each plugin at their <em>Init</em> hook point by calling
+<code class="code docutils literal notranslate"><span class="pre">Plugin::Init(std::string</span> <span class="pre">Option)</span></code> virtual function. <em>Option</em>
+argument is optionally specified by the plugin user at the plugin load specification.</p></li>
+<li><p>Calls <code class="code docutils literal notranslate"><span class="pre">Cleanup</span></code> function, if available, for each plugin library.
+This function should ideally delete any allocated memory that was required
+for the lifetime of the plugin library.</p></li>
+<li><p>Unload the plugins and the plugin libraries.</p></li>
+</ol>
+</div>
+<div class="section" id="tracing-plugins">
+<h2><a class="toc-backref" href="#id17"><span class="section-number">11.1.8. </span>Tracing plugins</a><a class="headerlink" href="#tracing-plugins" title="Permalink to this heading"></a></h2>
+<p>Plugin workflow can be traced using the option <code class="code docutils literal notranslate"><span class="pre">--trace=plugin</span></code>.</p>
+<p>This option informs the linker to emit detailed diagnostics for
+all the plugins.</p>
+<p>A sample trace output is shown below:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">...</span>
+<span class="p">...</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Registration</span><span class="w"> </span><span class="n">function</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="n">RegisterAll</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">Library</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="n">handler</span><span class="w"> </span><span class="n">getPlugin</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">Library</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Cleanup</span><span class="w"> </span><span class="n">function</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="n">Cleanup</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">Library</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="n">Config</span><span class="w"> </span><span class="n">function</span><span class="w"> </span><span class="n">getPluginConfig</span><span class="w"> </span><span class="n">found</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">library</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Registering</span><span class="w"> </span><span class="n">all</span><span class="w"> </span><span class="n">plugin</span><span class="w"> </span><span class="n">handlers</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">plugin</span><span class="w"> </span><span class="n">types</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Found</span><span class="w"> </span><span class="n">plugin</span><span class="w"> </span><span class="n">handler</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">plugin</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="n">DIAGRELOCATION</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">Library</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Initializing</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span><span class="p">,</span><span class="w"> </span><span class="n">requested</span><span class="w"> </span><span class="n">by</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="n">DIAGRELOCATION</span><span class="w"> </span><span class="n">having</span><span class="w"> </span><span class="n">Name</span><span class="w"> </span><span class="n">DIAGOPT</span>
+<span class="p">...</span>
+<span class="p">...</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="n">DIAGRELOCATION</span><span class="w"> </span><span class="n">Destroyed</span>
+
+<span class="o">&lt;-------------------------&gt;</span><span class="w"> </span><span class="n">DiagOpt</span><span class="o">::</span><span class="n">Destroy</span><span class="p">()</span><span class="w"> </span><span class="n">AfterLayout</span><span class="o">&lt;-------------------------&gt;</span>
+<span class="nl">Note</span><span class="p">:</span><span class="w"> </span><span class="n">Unloaded</span><span class="w"> </span><span class="n">Library</span><span class="w"> </span><span class="n">libDiagOpt</span><span class="p">.</span><span class="n">so</span><span class="mf">.16</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="link-states">
+<h2><a class="toc-backref" href="#id18"><span class="section-number">11.1.9. </span>Link States</a><a class="headerlink" href="#link-states" title="Permalink to this heading"></a></h2>
+<div class="graphviz"><img src="../../_images/graphviz-fdfa930a3d7d3371f702a8a5073f151a00139854.png" alt="Link states sequence" class="graphviz" /></div>
+<hr class="docutils" />
+<p>The link process has different run states, also known as link states. The
+actions that a plugin can perform at any given time depend on the current link
+state. Many actions are only meaningful for specific link states. Understanding
+what happens in each link state will help determine which actions can be
+performed in each state. Therefore, a thorough understanding of linker and
+link states is crucial for writing a linker plugin. Different link states
+are described below:</p>
+<div class="section" id="initializing">
+<h3><a class="toc-backref" href="#id19"><span class="section-number">11.1.9.1. </span>Initializing</a><a class="headerlink" href="#initializing" title="Permalink to this heading"></a></h3>
+<p>The linker begins with the <em>Initializing</em> link state. In this state, the
+linker reads input files, initializes standard sections and configurations,
+and read relocations. Not much of interest happens during this state.</p>
+<p>Let’s move on to the more happening states.</p>
+</div>
+<div class="section" id="beforelayout">
+<h3><a class="toc-backref" href="#id20"><span class="section-number">11.1.9.2. </span>BeforeLayout</a><a class="headerlink" href="#beforelayout" title="Permalink to this heading"></a></h3>
+<p>After the <em>Initializing</em> state, the linker enters the <em>BeforeLayout</em>
+link state. Here, it performs section rule matching, garbage collection,
+updates input sections with attributes (such as KEEP) present in the
+linker script, and updates the linker cache-file, among other things.</p>
+</div>
+<div class="section" id="creatingsections">
+<h3><a class="toc-backref" href="#id21"><span class="section-number">11.1.9.3. </span>CreatingSections</a><a class="headerlink" href="#creatingsections" title="Permalink to this heading"></a></h3>
+<p>After the <em>BeforeLayout</em> state, the linker enters the <em>CreatingSections</em>
+link state. Here, it transfers the contents (chunks) of input sections
+into output sections and finalizes the layout and symbols.</p>
+<p>Note that the section rule-matching is already complete before the
+<em>CreatingSections</em> state, therefore, plugins cannot alter the section
+rule-matching in <em>CreatingSections</em> state or any subsequent state.</p>
+</div>
+<div class="section" id="afterlayout">
+<h3><a class="toc-backref" href="#id22"><span class="section-number">11.1.9.4. </span>AfterLayout</a><a class="headerlink" href="#afterlayout" title="Permalink to this heading"></a></h3>
+<p>After the <em>BeforeLayout</em> state, the linker enters <em>Afterlayout</em> link state.
+Here, it finalizes the relocations and writes the output object file.</p>
+<p>In this link state, a plugin can compute output image layout checksum using
+<code class="code docutils literal notranslate"><span class="pre">eld::plugin::LinkerWrapper::getImageLayoutChecksum</span></code>. A plugin cannot perform
+any action that tries to modify the image layout now.</p>
+</div>
+</div>
+<div class="section" id="deep-dive-into-the-plugin-types">
+<h2><a class="toc-backref" href="#id23"><span class="section-number">11.1.10. </span>Deep Dive into the Plugin Types</a><a class="headerlink" href="#deep-dive-into-the-plugin-types" title="Permalink to this heading"></a></h2>
+<p>There are two distinct kinds of linker plugins: LinkerPlugin and layout plugins.
+LayoutPlugins focus on simplifying the modification of specific layout components,
+such as input and output sections. In contrast LinkerPlugins are more general, uniform and
+offer more functionalitier than the layout plugins.</p>
+<div class="section" id="pluginbase-class">
+<h3><a class="toc-backref" href="#id24"><span class="section-number">11.1.10.1. </span>PluginBase class</a><a class="headerlink" href="#pluginbase-class" title="Permalink to this heading"></a></h3>
+<p>This is the base plugin class for all the plugin interface classes. It
+provides common functionalities to all the plugin interfaces. It is a pure virtual
+class and thus cannot be instantiated / directly used.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>doxygenclass: Cannot find class “eld::plugin::PluginBase” in doxygen xml output for project “ELD” from directory: /home/runner/work/eld/eld/obj/tools/eld/docs/userguide/api_docs/xml</p>
+</div>
+<p>Please note, that even though the virtual functions – <code class="code docutils literal notranslate"><span class="pre">Plugin::Init</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">Plugin::Run</span></code> and <code class="code docutils literal notranslate"><span class="pre">Plugin::Destroy</span></code> are available in
+all the plugin interfaces, they map to different hooks in the linker for
+different plugin interfaces. For example, <code class="code docutils literal notranslate"><span class="pre">Run</span></code> hook of
+<code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin`</span></code> is not equivalent to the <code class="code docutils literal notranslate"><span class="pre">Run</span></code> hook of
+<code class="code docutils literal notranslate"><span class="pre">OutputSectionIteratorPlugin</span></code> even though in both cases, the hooks
+functionality is defined by overriding the <code class="code docutils literal notranslate"><span class="pre">Run</span></code> virtual function.
+For the base <code class="code docutils literal notranslate"><span class="pre">Plugin</span></code>, these functions are not mapped to any hook in
+the linker.</p>
+</div>
+<div class="section" id="linkerplugin-type">
+<h3><a class="toc-backref" href="#id25"><span class="section-number">11.1.10.2. </span>LinkerPlugin Type</a><a class="headerlink" href="#linkerplugin-type" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">LinkerPlugin</span></code> is the most versatile and the recommended plugin type for
+creating new plugins. It has hooks that covers the entire linker flow and offers
+more functionality than the layout plugins. <code class="code docutils literal notranslate"><span class="pre">LinkerPlugin</span></code> has hooks of the two forms:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">ActBefore&lt;LinkState&gt;</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">Visit&lt;LinkComponent&gt;</span></code></p></li>
+</ul>
+<p>The <code class="code docutils literal notranslate"><span class="pre">ActBefore&lt;LinkState&gt;</span></code> hooks are called <em>just</em> before the linker enters
+the link state <code class="code docutils literal notranslate"><span class="pre">LinkState</span></code>. The <code class="code docutils literal notranslate"><span class="pre">Visit&lt;LinkComponent&gt;</span></code> hooks are called
+<em>immediately</em> after the linker creates a link component (input section, symbol, …).
+For example, <code class="code docutils literal notranslate"><span class="pre">VisitSymbol(eld::plugin::Symbol</span> <span class="pre">S)</span></code> is called immediately
+after the symbol is created.</p>
+<div class="graphviz"><img src="../../_images/graphviz-538584f53bd0077cedf73fb297b34f45f49a3cf2.png" alt="LinkerPlugin flow" class="graphviz" /></div>
+</div>
+<hr class="docutils" />
+<div class="section" id="section-matcher-interface">
+<h3><a class="toc-backref" href="#id26"><span class="section-number">11.1.10.3. </span>Section Matcher Interface</a><a class="headerlink" href="#section-matcher-interface" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">SectionMatcherPlugin</span></code> interface iterates input sections. It provides
+four hooks: <code class="code docutils literal notranslate"><span class="pre">Init</span></code>, <code class="code docutils literal notranslate"><span class="pre">ProcessSection</span></code>, <code class="code docutils literal notranslate"><span class="pre">Run</span></code> and
+<code class="code docutils literal notranslate"><span class="pre">Destroy</span></code>. To define the behavior of these hooks, the functions
+<code class="code docutils literal notranslate"><span class="pre">Plugin::Init</span></code>, <code class="code docutils literal notranslate"><span class="pre">SectionMatcher::ProcessSection</span></code>
+and <code class="code docutils literal notranslate"><span class="pre">Plugin::Destroy</span></code> must be overridden.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">ProcessSection(Section</span> <span class="pre">S)</span></code> callback hook function is called for each
+input section.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">SectionMatcherPlugin</span></code> is called into action after the linker reads input
+files and performs section rule-matching, but before
+garbage collection. As a consequence, garbage-collection information
+cannot be accessed during
+<code class="code docutils literal notranslate"><span class="pre">SectionMatcherPlugin</span></code> run. Link state throughout the plugin run is
+<code class="code docutils literal notranslate"><span class="pre">eld::plugin::LinkerWrapper::BeforeLayout</span></code>.</p>
+<div class="graphviz"><img src="../../_images/graphviz-9ba3b2afb467f73cbef94ef7fe6355035c6c25c6.png" alt="SectionMatcherPlugin flow." class="graphviz" /></div>
+<hr class="docutils" />
+<p><code class="code docutils literal notranslate"><span class="pre">UserPlugin::Init</span></code> is called before <code class="code docutils literal notranslate"><span class="pre">UserPlugin::ProcessSection</span></code>,
+and <code class="code docutils literal notranslate"><span class="pre">UserPlugin::Run</span></code> and <code class="code docutils literal notranslate"><span class="pre">UserPlugin::Destroy</span></code> are called
+subsequently after processing input sections, as described in the figure above.</p>
+<p>Linker script keyword for <code class="code docutils literal notranslate"><span class="pre">SectionMatcherPlugin</span></code> interface is
+<code class="code docutils literal notranslate"><span class="pre">PLUGIN_SECTION_MATCHER</span></code>. Therefore, to run a
+<code class="code docutils literal notranslate"><span class="pre">SectionMatcherPlugin</span></code> plugin using a linker script, add the following
+line to the linker script:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">PLUGIN_SECTION_MATCHER</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOption&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="section-iterator-interface">
+<h3><a class="toc-backref" href="#id27"><span class="section-number">11.1.10.4. </span>Section Iterator Interface</a><a class="headerlink" href="#section-iterator-interface" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin</span></code> interface iterates over input sections.
+It provides four hooks: <code class="code docutils literal notranslate"><span class="pre">Init</span></code>, <code class="code docutils literal notranslate"><span class="pre">ProcessSection</span></code>, <code class="code docutils literal notranslate"><span class="pre">Run</span></code>
+and <code class="code docutils literal notranslate"><span class="pre">Destroy</span></code>. To define the behavior of these hooks, the functions
+<code class="code docutils literal notranslate"><span class="pre">Plugin::Init</span></code>, <code class="code docutils literal notranslate"><span class="pre">Plugin::ProcessSection</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">SectionIterator::ProcessSection</span></code> and <code class="code docutils literal notranslate"><span class="pre">Plugin::Destroy</span></code>
+must be overridden.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">ProcessSection(Section</span> <span class="pre">S)</span></code> callback hook function is not called for
+garbage collected input sections. However, it is called for discarded
+input sections.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin</span></code> is called into action after the linker performs
+section rule-matching and garbage collection. As a consequence, section rule
+matching and garbage collection information is accessible during
+<code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin</span></code> run. Link state throughout the plugin run is
+<code class="code docutils literal notranslate"><span class="pre">eld::plugin::LinkerWrapper::BeforeLayout</span></code>.</p>
+<div class="graphviz"><img src="../../_images/graphviz-d9d923cc112ec5906b617220f1b51b7d028c23bf.png" alt="SectionIteratorPlugin flow" class="graphviz" /></div>
+<hr class="docutils" />
+<p><code class="code docutils literal notranslate"><span class="pre">UserPlugin::Init</span></code> is called before <code class="code docutils literal notranslate"><span class="pre">ProcessSection</span></code>,
+and <code class="code docutils literal notranslate"><span class="pre">UserPlugin::Run</span></code> and <code class="code docutils literal notranslate"><span class="pre">UserPlugin::Destroy</span></code> are called
+after <code class="code docutils literal notranslate"><span class="pre">ProcessSection</span></code>, as described in the figure above.</p>
+<p>Linker script keyword for <code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin</span></code> interface is
+<code class="code docutils literal notranslate"><span class="pre">PLUGIN_ITER_SECTIONS</span></code>. Therefore, to run a
+<code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin</span></code> plugin using a linker script, add the following
+line to the linker script:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">PLUGIN_ITER_SECTIONS</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOption&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="output-section-iterator-interface">
+<h3><a class="toc-backref" href="#id28"><span class="section-number">11.1.10.5. </span>Output Section Iterator Interface</a><a class="headerlink" href="#output-section-iterator-interface" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">outputSectionIteratorPlugin</span></code> interface iterates over all the
+output sections. It provides four hooks: <code class="code docutils literal notranslate"><span class="pre">Init</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">ProcessOutputSection</span></code>, <code class="code docutils literal notranslate"><span class="pre">Run</span></code> and <code class="code docutils literal notranslate"><span class="pre">Destroy</span></code>.
+To define the behavior of these hooks, the functions <code class="code docutils literal notranslate"><span class="pre">Plugin::Init</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">Plugin::ProcessSection</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">OutputSectionIteratorPlugin::ProcessOutputSection</span></code> and
+<code class="code docutils literal notranslate"><span class="pre">Plugin::Destroy</span></code> must be overridden. <code class="code docutils literal notranslate"><span class="pre">OutputSectionIteratorPlugin</span></code>
+is called at different link states:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>BeforeLayout</p></li>
+<li><p>CreatingSections</p></li>
+<li><p>AfterLayout</p></li>
+</ul>
+</div></blockquote>
+<p>All the plugin hooks are called for each of the link states. That means,
+each of <code class="code docutils literal notranslate"><span class="pre">Init</span></code>, <code class="code docutils literal notranslate"><span class="pre">Run</span></code> and <code class="code docutils literal notranslate"><span class="pre">Destory</span></code>
+are called 3 times over the complete plugin run. And
+<code class="code docutils literal notranslate"><span class="pre">ProcessOutputSection</span></code> is called three times for each
+output section over the complete plugin run.</p>
+<p>The link state can be queried via <code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::getState</span></code> member function.</p>
+<p>Linker script keyword for <code class="code docutils literal notranslate"><span class="pre">OutputSectionIteratorPlugin</span></code> interface is
+<code class="code docutils literal notranslate"><span class="pre">PLUGIN_OUTPUT_SECTION_ITER</span></code>. Therefore, to run a
+<code class="code docutils literal notranslate"><span class="pre">SectionIteratorPlugin</span></code> using a linker script, add the following line
+to the linker script:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">PLUGIN_OUTPUT_SECTION_ITER</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOption&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Different phases of <code class="code docutils literal notranslate"><span class="pre">OutputSectionIteratorPlugin</span></code> are described below:</p>
+<div class="section" id="beforelayout-phase-1">
+<h4><a class="toc-backref" href="#id29"><span class="section-number">11.1.10.5.1. </span>BeforeLayout – Phase 1</a><a class="headerlink" href="#beforelayout-phase-1" title="Permalink to this heading"></a></h4>
+<div class="graphviz"><img src="../../_images/graphviz-d543476d783883d0ec853cc14d78d41190f1e180.png" alt="OutputSectionIteratorPlugin flow in BeforeLayout link state" class="graphviz" /></div>
+<hr class="docutils" />
+<p>This phase is called into action after the linker has performed section
+rule-matching and before the linker has performed section merging.</p>
+</div>
+<div class="section" id="creatingsections-phase-2">
+<h4><a class="toc-backref" href="#id30"><span class="section-number">11.1.10.5.2. </span>CreatingSections – Phase 2</a><a class="headerlink" href="#creatingsections-phase-2" title="Permalink to this heading"></a></h4>
+<div class="graphviz"><img src="../../_images/graphviz-70ee521ef619c2612a2202b262ef940e493e1ebc.png" alt="OutputSectionIteratorPlugin flow in CreatingSections link state" class="graphviz" /></div>
+<hr class="docutils" />
+<p>This phase is called into action after the linker has performed section
+merging.</p>
+</div>
+<div class="section" id="afterlayout-phase-3">
+<h4><a class="toc-backref" href="#id31"><span class="section-number">11.1.10.5.3. </span>AfterLayout – Phase 3</a><a class="headerlink" href="#afterlayout-phase-3" title="Permalink to this heading"></a></h4>
+<div class="graphviz"><img src="../../_images/graphviz-39a144b574ef5b0d5e0c2287b2bd5b93d8ee32d3.png" alt="OutputSectionIteratorPlugin flow in AfterLayout link state." class="graphviz" /></div>
+<hr class="docutils" />
+<p>This phase is called into action after the linker has finalized the image
+layout and before the linker has written the output object file.</p>
+</div>
+</div>
+<div class="section" id="controlmemorysizeplugin">
+<h3><a class="toc-backref" href="#id32"><span class="section-number">11.1.10.6. </span>ControlMemorySizePlugin</a><a class="headerlink" href="#controlmemorysizeplugin" title="Permalink to this heading"></a></h3>
+<p>This interface allows the plugin to add input sections to the output image.
+These newly added input sections are generally, but not necessary, based on
+some already existing output section.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">ControlMemorySizePlugin</span></code> is an output section plugin. Plugins of this
+type has to explicitly mark each output section that it needs to run on. Since
+this is an output section plugin, <code class="code docutils literal notranslate"><span class="pre">init</span></code> and <code class="code docutils literal notranslate"><span class="pre">destroy</span></code> functions are also
+called for each output section the plugin runs on. This plugin is called in the
+<cite>LinkerWrapper::CreatingSections</cite> step of the linker.</p>
+<div class="graphviz"><img src="../../_images/graphviz-723f60e24acadeaf72c61f743c2fdb435966f231.png" alt="ControlMemorySizePlugin Flow" class="graphviz" /></div>
+<hr class="docutils" />
+<p><code class="code docutils literal notranslate"><span class="pre">init</span></code>, <code class="code docutils literal notranslate"><span class="pre">AddBlocks</span></code>, <code class="code docutils literal notranslate"><span class="pre">Run</span></code>, <code class="code docutils literal notranslate"><span class="pre">GetBlocks</span></code> and <code class="code docutils literal notranslate"><span class="pre">Destroy</span></code>
+functions are called for each output section.</p>
+<p>Brief description of <code class="code docutils literal notranslate"><span class="pre">ControlMemorySizePlugin</span></code> hooks:</p>
+<div class="section" id="init">
+<h4><a class="toc-backref" href="#id33"><span class="section-number">11.1.10.6.1. </span><code class="code docutils literal notranslate"><span class="pre">init</span></code></a><a class="headerlink" href="#init" title="Permalink to this heading"></a></h4>
+<p>This hook initializes the plugin for the output section.</p>
+</div>
+<div class="section" id="addblocks">
+<h4><a class="toc-backref" href="#id34"><span class="section-number">11.1.10.6.2. </span><code class="code docutils literal notranslate"><span class="pre">AddBlocks</span></code></a><a class="headerlink" href="#addblocks" title="Permalink to this heading"></a></h4>
+<p>This hook gives access to the current output section to the plugin.
+<code class="code docutils literal notranslate"><span class="pre">Block</span></code> parameter of the hook function contains the current
+output section. It is generally used in the creation of the new block
+which linker can use as an additional input section.</p>
+</div>
+<div class="section" id="run">
+<h4><a class="toc-backref" href="#id35"><span class="section-number">11.1.10.6.3. </span><code class="code docutils literal notranslate"><span class="pre">Run</span></code></a><a class="headerlink" href="#run" title="Permalink to this heading"></a></h4>
+<p>This hook is generally used to process the current output section, and create
+any new sections that linker should use as additional input sections.</p>
+</div>
+<div class="section" id="getblocks">
+<h4><a class="toc-backref" href="#id36"><span class="section-number">11.1.10.6.4. </span><code class="code docutils literal notranslate"><span class="pre">GetBlocks</span></code></a><a class="headerlink" href="#getblocks" title="Permalink to this heading"></a></h4>
+<p>This hook returns a vector of <code class="code docutils literal notranslate"><span class="pre">Block</span></code>. These blocks are used by the
+linker as additional input sections.</p>
+</div>
+<div class="section" id="destroy">
+<h4><a class="toc-backref" href="#id37"><span class="section-number">11.1.10.6.5. </span><code class="code docutils literal notranslate"><span class="pre">Destroy</span></code></a><a class="headerlink" href="#destroy" title="Permalink to this heading"></a></h4>
+<p>This hook is used to perform any required clean-up.</p>
+<p>Linker script keyword for ControlMemorySize interface is
+<code class="code docutils literal notranslate"><span class="pre">PLUGIN_CONTROL_MEMSZ</span></code>. Therefore, to run a SectionIterator plugin
+on an output section, <code class="code docutils literal notranslate"><span class="pre">.out</span></code> using a linker script, add the following
+line to the output section description of <code class="code docutils literal notranslate"><span class="pre">.out</span></code> in the linker script:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">   </span><span class="p">.</span><span class="n">out</span><span class="w"> </span><span class="n">PLUGIN_CONTROL_MEMSZ</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOption&quot;</span><span class="p">])</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../linker_plugins_updated.html" class="btn btn-neutral float-left" title="11. Linker Plugins" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="11.2. Linker Plugin Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
