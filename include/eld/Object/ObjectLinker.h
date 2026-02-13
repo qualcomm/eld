@@ -49,6 +49,7 @@ class ELFExecutableFileReader;
 class ExecWriter;
 class GNULDBackend;
 class GroupReader;
+class LibReader;
 class Input;
 class InputTree;
 class IRBuilder;
@@ -226,6 +227,8 @@ public:
   ArchiveParser *getArchiveParser() const { return ArchiveParser; }
 
   GroupReader *getGroupReader() const { return GroupReader; }
+
+  LibReader *getLibReader() const { return LibReader; }
 
   ScriptReader *getScriptReader() const { return ScriptReader; }
 
@@ -483,6 +486,7 @@ private:
   ELFExecObjParser *ELFExecObjParser = nullptr;
   BinaryFileParser *BinaryFileParser = nullptr;
   GroupReader *GroupReader = nullptr;
+  LibReader *LibReader = nullptr;
   ScriptReader *ScriptReader = nullptr;
   ELFObjectWriter *ObjWriter = nullptr;
   BitcodeReader *MPBitcodeReader = nullptr;

@@ -39,6 +39,7 @@ public:
     BStatic,
     DefSym,
     EndGroup,
+    EndLib,
     InputFormat,
     InputFile,
     Namespec,
@@ -47,6 +48,7 @@ public:
     NoWholeArchive,
     Script,
     StartGroup,
+    StartLib,
     WholeArchive,
     JustSymbols,
   };
@@ -141,6 +143,25 @@ public:
   }
 };
 
+/// StartLibAction
+class StartLibAction : public InputAction {
+public:
+  explicit StartLibAction(DiagnosticPrinter *Printer, bool IsThin = false);
+
+  bool activate(InputBuilder &) override;
+
+  virtual ~StartLibAction() {}
+
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::StartLib;
+  }
+
+  bool isThin() const { return IsThin; }
+
+private:
+  bool IsThin = false;
+};
+
 /// EndGroupAction
 class EndGroupAction : public InputAction {
 public:
@@ -152,6 +173,20 @@ public:
 
   static bool classof(const InputAction *I) {
     return I->getInputActionKind() == InputAction::InputActionKind::EndGroup;
+  }
+};
+
+/// EndLibAction
+class EndLibAction : public InputAction {
+public:
+  explicit EndLibAction(DiagnosticPrinter *Printer);
+
+  bool activate(InputBuilder &) override;
+
+  virtual ~EndLibAction() {}
+
+  static bool classof(const InputAction *I) {
+    return I->getInputActionKind() == InputAction::InputActionKind::EndLib;
   }
 };
 

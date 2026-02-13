@@ -19,6 +19,7 @@
 #include "eld/Script/WildcardPattern.h"
 #include "eld/Support/MemoryArea.h"
 #include "llvm/ADT/StringSet.h"
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -60,6 +61,10 @@ public:
 
   void exitGroup();
 
+  void enterLib(bool IsThin = false);
+
+  void exitLib();
+
   void makeBStatic();
 
   Attribute &getAttributes() { return Attr; }
@@ -82,6 +87,7 @@ private:
   Attribute Attr;
   const LinkerConfig &Config;
   std::vector<Attribute> AttrStack;
+  uint64_t NextLibId = 0;
 };
 
 } // end of namespace eld

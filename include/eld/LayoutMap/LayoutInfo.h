@@ -92,6 +92,8 @@ public:
     SkippedRescan,
     StartGroup,
     EndGroup,
+    StartLib,
+    EndLib,
   };
 
   struct Stats {

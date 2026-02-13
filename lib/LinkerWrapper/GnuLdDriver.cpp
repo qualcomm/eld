@@ -1225,6 +1225,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
   // # of regular objects, script, and namespec.
   size_t input_num = 0;
   int GroupMatchCount = 0;
+  int LibMatchCount = 0;
 
   for (llvm::opt::Arg *arg : Args) {
     switch (arg->getOption().getID()) {
@@ -1333,6 +1334,50 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
       Config.addCommandLine(Table->getOptionName(T::end_group), true);
     } break;
 
+    // --start-lib
+    case T::start_lib: {
+      if (arg->getNumValues() == 0 && Config.showCommandLineWarnings())
+        Config.raise(Diag::warn_lib_is_empty);
+      if (LibMatchCount) {
+        Config.raise(Diag::nested_lib_not_allowed);
+        Config.raise(Diag::linking_had_errors);
+        return false;
+      }
+      ++LibMatchCount;
+      actions.push_back(eld::make<eld::StartLibAction>(Config.getPrinter(),
+                                                       /*IsThin=*/false));
+      Config.addCommandLine(Table->getOptionName(T::start_lib), true);
+    } break;
+
+    // --start-lib-thin
+    case T::start_lib_thin: {
+      if (arg->getNumValues() == 0 && Config.showCommandLineWarnings())
+        Config.raise(Diag::warn_lib_is_empty);
+      if (LibMatchCount) {
+        Config.raise(Diag::nested_lib_not_allowed);
+        Config.raise(Diag::linking_had_errors);
+        return false;
+      }
+      ++LibMatchCount;
+      actions.push_back(
+          eld::make<eld::StartLibAction>(Config.getPrinter(), /*IsThin=*/true));
+      Config.addCommandLine(Table->getOptionName(T::start_lib_thin), true);
+    } break;
+
+    // --end-lib
+    case T::end_lib: {
+      --LibMatchCount;
+      actions.push_back(eld::make<eld::EndLibAction>(Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::end_lib), true);
+    } break;
+
+    // --end-lib-thin
+    case T::end_lib_thin: {
+      --LibMatchCount;
+      actions.push_back(eld::make<eld::EndLibAction>(Config.getPrinter()));
+      Config.addCommandLine(Table->getOptionName(T::end_lib_thin), true);
+    } break;
+
     case T::input_format: {
       actions.push_back(eld::make<eld::InputFormatAction>(arg->getValue(),
                                                           Config.getPrinter()));
@@ -1352,6 +1397,12 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
 
   if (GroupMatchCount != 0) {
     Config.raise(Diag::mismatched_group);
+    Config.raise(Diag::linking_had_errors);
+    return false;
+  }
+
+  if (LibMatchCount != 0) {
+    Config.raise(Diag::mismatched_lib);
     Config.raise(Diag::linking_had_errors);
     return false;
   }

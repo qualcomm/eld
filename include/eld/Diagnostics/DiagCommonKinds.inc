@@ -80,6 +80,12 @@ DIAG(nested_group_not_allowed, DiagnosticEngine::Fatal,
      "Nested --start-group/--end-group not allowed")
 DIAG(mismatched_group, DiagnosticEngine::Fatal,
      "Mismatched --start-group/--end-group")
+DIAG(warn_lib_is_empty, DiagnosticEngine::Warning,
+     "Empty --start-lib --end-lib.")
+DIAG(nested_lib_not_allowed, DiagnosticEngine::Fatal,
+     "Nested --start-lib/--end-lib not allowed")
+DIAG(mismatched_lib, DiagnosticEngine::Fatal,
+     "Mismatched --start-lib/--end-lib")
 DIAG(unsupported_version_node, DiagnosticEngine::Warning,
      "Only anonymous version nodes are supported. Ignoring version script `%0'")
 DIAG(unsupported_dependent_node, DiagnosticEngine::Warning,

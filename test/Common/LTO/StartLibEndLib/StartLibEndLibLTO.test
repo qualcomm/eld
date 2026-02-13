@@ -1,0 +1,17 @@
+#---StartLibEndLibLTO.test------------------------- Executable -------------------#
+#BEGIN_COMMENT
+# Checks --start-lib/--end-lib with LTO. The "Build --start-lib archive" timer
+# must appear only once, even though LTO triggers a post-LTO rescan phase.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -flto -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -flto -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %clang %clangopts -flto -c %p/Inputs/baz.c -o %t.baz.o
+RUN: %clang %clangopts -flto -c %p/Inputs/main.c -o %t.main.o
+
+RUN: %link %linkopts %t.main.o --start-lib %t.foo.o %t.bar.o %t.baz.o --end-lib -o %t.out -print-timing-stats 2>&1 | %filecheck %s -check-prefix=TIMING
+
+#TIMING: Build --start-lib archive
+#TIMING-NOT: Build --start-lib archive
+#END_TEST
+

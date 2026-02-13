@@ -261,6 +261,10 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     return "START GROUP";
   case EndGroup:
     return "END GROUP";
+  case StartLib:
+    return "START LIB";
+  case EndLib:
+    return "END LIB";
   }
 
   Input *Input = Ist.Input;

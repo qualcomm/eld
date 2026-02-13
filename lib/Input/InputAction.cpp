@@ -79,6 +79,17 @@ bool StartGroupAction::activate(InputBuilder &PBuilder) {
 }
 
 //===----------------------------------------------------------------------===//
+// StartLibAction
+//===----------------------------------------------------------------------===//
+StartLibAction::StartLibAction(DiagnosticPrinter *Printer, bool IsThin)
+    : InputAction(InputAction::StartLib, Printer), IsThin(IsThin) {}
+
+bool StartLibAction::activate(InputBuilder &PBuilder) {
+  PBuilder.enterLib(IsThin);
+  return true;
+}
+
+//===----------------------------------------------------------------------===//
 // EndGroupAction
 //===----------------------------------------------------------------------===//
 EndGroupAction::EndGroupAction(DiagnosticPrinter *Printer)
@@ -86,6 +97,17 @@ EndGroupAction::EndGroupAction(DiagnosticPrinter *Printer)
 
 bool EndGroupAction::activate(InputBuilder &PBuilder) {
   PBuilder.exitGroup();
+  return true;
+}
+
+//===----------------------------------------------------------------------===//
+// EndLibAction
+//===----------------------------------------------------------------------===//
+EndLibAction::EndLibAction(DiagnosticPrinter *Printer)
+    : InputAction(InputAction::EndLib, Printer) {}
+
+bool EndLibAction::activate(InputBuilder &PBuilder) {
+  PBuilder.exitLib();
   return true;
 }
 

@@ -13,13 +13,15 @@
 #ifndef ELD_INPUT_INPUTTREE_H
 #define ELD_INPUT_INPUTTREE_H
 
+#include <cstdint>
+
 namespace eld {
 
 class Input;
 
 class Node {
 public:
-  enum Kind { File, GroupStart, GroupEnd };
+  enum Kind { File, GroupStart, GroupEnd, LibStart, LibEnd };
 
   Node(Kind K) : NodeKind(K) {}
 
@@ -128,6 +130,32 @@ public:
   GroupEnd() : Node(Node::GroupEnd) {}
 
   static bool classof(const Node *N) { return (N->kind() == Node::GroupEnd); }
+};
+
+class LibStart : public Node {
+public:
+  explicit LibStart(const Attribute &Attr, bool IsThin, uint64_t Id)
+      : Node(Node::LibStart), Attr(Attr), IsThin(IsThin), Id(Id) {}
+
+  const Attribute &getAttribute() const { return Attr; }
+
+  bool isThin() const { return IsThin; }
+
+  uint64_t getId() const { return Id; }
+
+  static bool classof(const Node *N) { return (N->kind() == Node::LibStart); }
+
+private:
+  Attribute Attr;
+  bool IsThin = false;
+  uint64_t Id = 0;
+};
+
+class LibEnd : public Node {
+public:
+  LibEnd() : Node(Node::LibEnd) {}
+
+  static bool classof(const Node *N) { return (N->kind() == Node::LibEnd); }
 };
 } // namespace eld
 

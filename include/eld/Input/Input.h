@@ -72,6 +72,10 @@ public:
 
   void setResolvedPath(std::string Path) { ResolvedPath = Path; }
 
+  void setResolvedPathHash(uint64_t Hash) { ResolvedPathHash = Hash; }
+
+  void setMemberNameHash(uint64_t Hash) { MemberNameHash = Hash; }
+
   uint32_t getInputOrdinal() { return InputOrdinal; }
 
   Attribute &getAttribute() { return Attr; }
@@ -151,6 +155,9 @@ public:
 
   static MemoryArea *createMemoryArea(const std::string &Filepath,
                                       DiagnosticEngine *DiagEngine);
+
+  static void cacheMemoryAreaForPath(const std::string &Filepath,
+                                     MemoryArea *Area);
 
 private:
   // Check if a path is valid and emit any errors

@@ -1,0 +1,54 @@
+#---StartLibEndLib.test--------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This checks --start-lib/--end-lib parsing and basic functionality.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %clang %clangopts -c %p/Inputs/baz.c -o %t.baz.o
+RUN: %clang %clangopts -c %p/Inputs/main_multi.c -o %t.main_multi.o
+RUN: %clang %clangopts -c %p/Inputs/main_foo_only.c -o %t.main_foo_only.o
+RUN: %clang %clangopts -c %p/Inputs/foo_calls_bar.c -o %t.fcb.o
+RUN: %clang %clangopts -c %p/Inputs/bar_calls_baz.c -o %t.bcb.o
+RUN: %clang %clangopts -c %p/Inputs/baz_impl.c -o %t.baz_impl.o
+RUN: %clang %clangopts -c %p/Inputs/main_group.c -o %t.main_group.o
+RUN: %ar cr %aropts %t.libbar.a %t.bcb.o
+RUN: %clang %clangopts -c %p/Inputs/foo_sel.c -o %t.foo_sel.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/bar_sel.c -o %t.bar_sel.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/main_script.c -o %t.main_script.o -ffunction-sections
+
+RUN: %not %link -o %t.mismatch.out %linkopts --start-lib %t.foo.o 2>&1 | %filecheck %s -check-prefix=MISMATCH
+RUN: %not %link -o %t.nested.out %linkopts --start-lib --start-lib %t.foo.o --end-lib --end-lib %t.main.o 2>&1 | %filecheck %s -check-prefix=NEST
+
+RUN: %link -o %t.ok.out %linkopts %t.main.o --start-lib %t.foo.o --end-lib
+RUN: %nm %t.ok.out | %filecheck %s -check-prefix=SYM
+
+RUN: %link -o %t.multi.out %linkopts %t.main_multi.o --start-lib %t.foo.o %t.bar.o %t.baz.o --end-lib
+RUN: %nm %t.multi.out | %filecheck %s -check-prefix=MULTI-SYM -implicit-check-not=baz
+
+RUN: %link -o %t.whole.out %linkopts %t.main_foo_only.o --whole-archive --start-lib %t.foo.o %t.bar.o %t.baz.o --end-lib --no-whole-archive
+RUN: %nm %t.whole.out | %filecheck %s -check-prefix=WHOLE-SYM
+
+RUN: %link -o %t.script.out %linkopts %t.main_script.o --start-lib %t.foo_sel.o %t.bar_sel.o --end-lib -T %p/Inputs/startlib_archive_pattern.t -MapStyle txt -Map %t.script.map.txt
+RUN: %filecheck %s -check-prefix=SCRIPT-MAP < %t.script.map.txt
+
+RUN: %link -o %t.group.out %linkopts %t.main_group.o --start-group --start-lib %t.fcb.o %t.baz_impl.o --end-lib %t.libbar.a --end-group
+RUN: %nm %t.group.out | %filecheck %s -check-prefix=GROUPSYM
+
+#MISMATCH: Mismatched --start-lib/--end-lib
+#NEST: Nested --start-lib/--end-lib not allowed
+#SYM: foo
+#MULTI-SYM-DAG: foo
+#MULTI-SYM-DAG: bar
+#WHOLE-SYM-DAG: foo
+#WHOLE-SYM-DAG: bar
+#WHOLE-SYM-DAG: baz
+#SCRIPT-MAP: .foo_out
+#SCRIPT-MAP: "*<start-lib:1>:*foo_sel.o"
+#SCRIPT-MAP: .bar_out
+#SCRIPT-MAP: "*<start-lib:1>:*bar_sel.o"
+#GROUPSYM-DAG: foo_calls_bar
+#GROUPSYM-DAG: bar_calls_baz
+#GROUPSYM-DAG: baz_impl
+#END_TEST

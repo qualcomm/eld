@@ -48,6 +48,12 @@ void InputBuilder::enterGroup() { Tree.push_back(make<GroupStart>()); }
 
 void InputBuilder::exitGroup() { Tree.push_back(make<GroupEnd>()); }
 
+void InputBuilder::enterLib(bool IsThin) {
+  Tree.push_back(make<LibStart>(Attr, IsThin, ++NextLibId));
+}
+
+void InputBuilder::exitLib() { Tree.push_back(make<LibEnd>()); }
+
 bool InputBuilder::setMemory(Input &PInput, void *PMemBuffer, size_t PSize) {
   MemoryArea *MemBufCopy = MemoryArea::CreateCopy(
       llvm::StringRef(static_cast<const char *>(PMemBuffer), PSize));

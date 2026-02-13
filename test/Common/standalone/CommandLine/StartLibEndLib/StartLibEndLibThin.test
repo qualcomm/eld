@@ -1,0 +1,34 @@
+#---StartLibEndLibThin.test----------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This checks --start-lib-thin/--end-lib-thin functionality.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %clang %clangopts -c %p/Inputs/baz.c -o %t.baz.o
+RUN: %clang %clangopts -c %p/Inputs/main_multi.c -o %t.main_multi.o
+
+RUN: %link -o %t.multi.out %linkopts %t.main_multi.o --start-lib-thin %t.foo.o %t.bar.o %t.baz.o --end-lib-thin
+RUN: %nm %t.multi.out | %filecheck %s -check-prefix=MULTI-SYM-THIN -implicit-check-not=baz
+
+RUN: %clang %clangopts -c %p/Inputs/main_foo_only.c -o %t.main_foo_only.o
+RUN: %link -o %t.whole.out %linkopts %t.main_foo_only.o --whole-archive --start-lib-thin %t.foo.o %t.bar.o %t.baz.o --end-lib-thin --no-whole-archive
+RUN: %nm %t.whole.out | %filecheck %s -check-prefix=WHOLE-SYM-THIN
+
+RUN: %clang %clangopts -c %p/Inputs/foo_sel.c -o %t.foo_sel.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/bar_sel.c -o %t.bar_sel.o -ffunction-sections
+RUN: %clang %clangopts -c %p/Inputs/main_script.c -o %t.main_script.o -ffunction-sections
+RUN: %link -o %t.script.out %linkopts %t.main_script.o --start-lib-thin %t.foo_sel.o %t.bar_sel.o --end-lib-thin -T %p/Inputs/startlib_thin_archive_pattern.t -MapStyle txt -Map %t.script.map.txt
+RUN: %filecheck %s -check-prefix=SCRIPT-MAP-THIN < %t.script.map.txt
+
+#MULTI-SYM-THIN-DAG: foo
+#MULTI-SYM-THIN-DAG: bar
+#WHOLE-SYM-THIN-DAG: foo
+#WHOLE-SYM-THIN-DAG: bar
+#WHOLE-SYM-THIN-DAG: baz
+#SCRIPT-MAP-THIN: .foo_out
+#SCRIPT-MAP-THIN: "*<start-lib-thin:1>:*foo_sel.o"
+#SCRIPT-MAP-THIN: .bar_out
+#SCRIPT-MAP-THIN: "*<start-lib-thin:1>:*bar_sel.o"
+#END_TEST
+

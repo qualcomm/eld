@@ -203,3 +203,8 @@ MemoryArea *Input::createMemoryArea(const std::string &Filepath,
   ResolvedPathToMemoryAreaMap[Filepath] = InputMem;
   return InputMem;
 }
+
+void Input::cacheMemoryAreaForPath(const std::string &Filepath,
+                                   MemoryArea *Area) {
+  ResolvedPathToMemoryAreaMap[Filepath] = Area;
+}

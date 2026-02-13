@@ -534,6 +534,12 @@ def u_alias : Joined<["--"], "undefined=">,
 def start_group : Flag<["-", "--"], "start-group">,
                   HelpText<"Start a group">,
                   Group<grp_resolveropt>;
+def start_lib : Flag<["--"], "start-lib">,
+                HelpText<"Start a library">,
+                Group<grp_resolveropt>;
+def start_lib_thin : Flag<["--"], "start-lib-thin">,
+                     HelpText<"Start a thin library">,
+                     Group<grp_resolveropt>;
 def alias_start_group : Flag<["-"], "(">,
                         HelpText<"Start a group">,
                         Group<grp_resolveropt>,
@@ -541,6 +547,12 @@ def alias_start_group : Flag<["-"], "(">,
 def end_group : Flag<["-", "--"], "end-group">,
                 HelpText<"End a group">,
                 Group<grp_resolveropt>;
+def end_lib : Flag<["--"], "end-lib">,
+              HelpText<"End a library">,
+              Group<grp_resolveropt>;
+def end_lib_thin : Flag<["--"], "end-lib-thin">,
+                   HelpText<"End a thin library">,
+                   Group<grp_resolveropt>;
 def alias_end_group : Flag<["-"], ")">,
                       HelpText<"End a group">,
                       Group<grp_resolveropt>,

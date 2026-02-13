@@ -8,6 +8,54 @@ Common options for all the backends
 
 .. include:: GnuLinkerOptions.rst
 
+Using ``--start-lib`` / ``--end-lib``
+-------------------------------------
+
+``--start-lib`` and ``--end-lib`` let you pass one or more object files and
+have ELD treat them as if they were members of an archive for symbol resolution
+purposes.
+
+Conceptually, ELD packages the object files between ``--start-lib`` and
+``--end-lib`` into an in-memory archive and then processes that archive like a
+normal ``.a`` input.
+
+Thin variant
+^^^^^^^^^^^^
+
+ELD also supports ``--start-lib-thin`` / ``--end-lib-thin``, which packages the
+enclosed object files into an in-memory *thin* archive (member paths are stored
+instead of embedding member bytes).
+
+Linker scripts with archive member patterns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+ELD supports using archive member patterns in linker scripts to match inputs
+from a ``--start-lib`` region.
+
+Internally, ELD assigns a synthetic archive name to each ``--start-lib`` region:
+``<start-lib:1>``, ``<start-lib:2>``, etc., in command-line order.
+Thin regions use ``<start-lib-thin:N>``.
+You can reference these synthetic archive names using the standard
+``archive:member`` pattern syntax in an input section description.
+
+Example::
+
+  $ ld.eld main.o --start-lib foo.o bar.o --end-lib -T script.t -MapStyle txt -Map out.map
+
+  /* script.t */
+  SECTIONS {
+    .foo_out : { "*<start-lib:1>:*foo.o"(.text*) }
+    .bar_out : { "*<start-lib:1>:*bar.o"(.text*) }
+  }
+
+Notes:
+
+* The ``<start-lib:N>`` names are ELD-specific (they do not correspond to a
+  real on-disk archive).
+* If you need a stable archive name for portability, create a real archive
+  (e.g. with ``ar cr libname.a ...``) and match against ``*libname.a:*member.o``
+  patterns in the script.
+
 ARM and AArch64 specific options
 ---------------------------------
 

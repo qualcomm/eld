@@ -29,6 +29,7 @@
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/Object/GroupReader.h"
+#include "eld/Object/LibReader.h"
 #include "eld/Object/ObjectBuilder.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/PluginAPI/LinkerPlugin.h"
@@ -43,9 +44,9 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/EhFrameHdrSection.h"
 #include "eld/Readers/EhFrameSection.h"
-#include "eld/Readers/SFrameSection.h"
 #include "eld/Readers/ObjectReader.h"
 #include "eld/Readers/Relocation.h"
+#include "eld/Readers/SFrameSection.h"
 #include "eld/Script/Assignment.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectData.h"
@@ -139,6 +140,7 @@ bool ObjectLinker::initialize() {
   // SymDef Reader.
   SymDefReader = createSymDefReader();
   GroupReader = make<eld::GroupReader>(*ThisModule, this);
+  LibReader = make<eld::LibReader>(*ThisModule, this);
   ScriptReader = make<eld::ScriptReader>();
   ObjWriter = createWriter();
 
@@ -250,6 +252,15 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       getGroupReader()->readGroup(Begin,
                                   ThisModule->getIRBuilder()->getInputBuilder(),
                                   ThisConfig, MPostLtoPhase);
+      continue;
+    }
+
+    if ((*Begin)->kind() == Node::LibStart) {
+      eld::RegisterTimer T("Read Start Lib and End Lib", "Read all Input files",
+                           ThisConfig.options().printTimingStats());
+      getLibReader()->readLib(Begin,
+                              ThisModule->getIRBuilder()->getInputBuilder(),
+                              ThisConfig, MPostLtoPhase);
       continue;
     }
 
