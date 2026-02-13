@@ -23,9 +23,9 @@ EhFrameHdrSection::EhFrameHdrSection(std::string Name, uint32_t pType,
                  pFlag, entSize, /*AddrAlign=*/0, pType, /*Info=*/0,
                  /*Link=*/nullptr, pSize, /*PAddr=*/0) {}
 
-void EhFrameHdrSection::addCIE(std::vector<CIEFragment *> &C) {
-  for (auto &CIE : C) {
-    m_CIEs.push_back(CIE);
+void EhFrameHdrSection::addEhFrame(EhFrameFragment &F) {
+  EhFrames.push_back(&F);
+  for (auto *CIE : F.getCIEs()) {
     ++NumCIE;
     NumFDE += CIE->getNumFDE();
   }

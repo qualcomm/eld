@@ -18,10 +18,10 @@ class DiagnosticPrinter;
 class ELFSection;
 class Module;
 class Relocation;
-class RegionFragment;
 class EhFrameSection;
-class CIEFragment;
+class EhFrameCIE;
 class EhFramePiece;
+class EhFrameFragment;
 
 class EhFrameSection : public ELFSection {
 public:
@@ -36,19 +36,15 @@ public:
 
   Relocation *getReloc(size_t Off, size_t Size);
 
-  RegionFragment *getEhFrameFragment() const { return m_EhFrame; }
+  EhFrameFragment *getEhFrameFragment() const { return m_EhFrame; }
 
-  llvm::ArrayRef<uint8_t> getData() const { return Data; }
+  llvm::ArrayRef<uint8_t> getData() const;
 
   bool createCIEAndFDEFragments();
 
-  CIEFragment *addCie(EhFramePiece &P);
+  EhFrameCIE *addCie(EhFramePiece &P);
 
   bool isFdeLive(EhFramePiece &P);
-
-  std::vector<EhFramePiece> &getPieces() { return m_EhFramePieces; }
-
-  std::vector<CIEFragment *> &getCIEs() { return m_CIEFragments; }
 
   void finishAddingFragments(Module &M);
 
@@ -57,13 +53,7 @@ private:
   DiagnosticPrinter *getDiagPrinter();
 
 private:
-  RegionFragment *m_EhFrame = nullptr;
-  llvm::ArrayRef<uint8_t> Data;
-  std::vector<EhFramePiece> m_EhFramePieces;
-  llvm::DenseMap<size_t, CIEFragment *> m_OffsetToCie;
-  std::vector<CIEFragment *> m_CIEFragments;
-  size_t NumCie = 0;
-  size_t NumFDE = 0;
+  EhFrameFragment *m_EhFrame = nullptr;
   DiagnosticEngine *m_DiagEngine = nullptr;
 };
 } // namespace eld

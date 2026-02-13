@@ -836,8 +836,8 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
             *ThisModule);
         if (getTargetBackend().getEhFrameHdr() &&
             Sect->getKind() == LDFileFormat::EhFrame) {
-          getTargetBackend().getEhFrameHdr()->addCIE(
-              llvm::dyn_cast<eld::EhFrameSection>(Sect)->getCIEs());
+          getTargetBackend().getEhFrameHdr()->addEhFrame(
+              *llvm::dyn_cast<eld::EhFrameSection>(Sect)->getEhFrameFragment());
           // Since we found an EhFrame section, lets go ahead and start creating
           // the fragments necessary to create the .eh_frame_hdr section and
           // the filler eh_frame section.

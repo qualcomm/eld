@@ -123,7 +123,7 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
     // Find the proper piece
     EhFrameSection *S =
         llvm::dyn_cast<eld::EhFrameSection>(ThisFragment->getOwningSection());
-    std::vector<EhFramePiece> &Pieces = S->getPieces();
+    std::vector<EhFramePiece> &Pieces = S->getEhFrameFragment()->getPieces();
     size_t I = 0;
     while (I != Pieces.size() &&
            Pieces[I].getOffset() + Pieces[I].getSize() <= ThisOffset)
