@@ -1,0 +1,104 @@
+# Maintainer: Your Name <your.email@example.com>
+pkgname=eld
+pkgver=22.1.0rc3
+pkgrel=1
+pkgdesc='ELF linker for embedded software with plugin support and GNU LD compatibility'
+arch=('x86_64')
+url='https://github.com/qualcomm/eld'
+license=('BSD-3-Clause')
+depends=('gcc-libs' 'zlib' 'libxml2')
+makedepends=('cmake' 'ninja' 'clang' 'python' 'git')
+optdepends=('python: YAMLMapParser.py map file parsing utility')
+
+# The eld git tag for this release (pkgver cannot contain hyphens).
+_eldtag=v22.1.0-rc3
+
+# ELD's version is derived from LLVM's PACKAGE_VERSION, so the versions are
+# synchronized. The eld release/N.x branch builds against llvm release/N.x.
+# LLVM 22.x has no stable release yet; use the release/22.x branch.
+_llvmbranch=release/22.x
+
+source=(
+  "${pkgname}-${pkgver}.tar.gz::https://github.com/qualcomm/eld/archive/refs/tags/${_eldtag}.tar.gz"
+  "llvm-project::git+https://github.com/llvm/llvm-project.git#branch=${_llvmbranch}"
+)
+sha256sums=('SKIP' 'SKIP')
+
+# LTO is disabled because the build compiles LLVM components and applying
+# LTO across the full LLVM+eld build is impractical for packaging.
+options=('!lto')
+
+prepare() {
+  # Place eld source inside the LLVM tree as a tool so it is discovered
+  # by LLVM's build system automatically.
+  ln -sfn "${srcdir}/eld-${_eldtag#v}" \
+    "${srcdir}/llvm-project/llvm/tools/eld"
+}
+
+build() {
+  local cmake_args=(
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=None
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_C_COMPILER=clang
+    -DCMAKE_CXX_COMPILER=clang++
+    -DLLVM_ENABLE_PROJECTS='llvm;clang'
+    -DLLVM_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86'
+    -DLLVM_ENABLE_ASSERTIONS=OFF
+    -DELD_ENABLE_SYMBOL_VERSIONING=ON
+    -Wno-dev
+  )
+
+  cmake -B build -S llvm-project/llvm "${cmake_args[@]}"
+
+  # Build only eld targets to avoid building the entire LLVM toolchain
+  cmake --build build --target ld.eld
+  cmake --build build --target LW
+  cmake --build build --target LSParserVerifier
+}
+
+check() {
+  cmake --build build --target check-eld
+}
+
+package() {
+  local _eldsrc="eld-${_eldtag#v}"
+
+  # Install the eld binary
+  install -Dm755 build/bin/ld.eld "${pkgdir}/usr/bin/ld.eld"
+
+  # Install LSParserVerifier
+  install -Dm755 build/bin/LSParserVerifier "${pkgdir}/usr/bin/LSParserVerifier"
+
+  # Install the linker wrapper shared library
+  install -Dm755 build/lib/libLW.so.4 "${pkgdir}/usr/lib/libLW.so.4"
+  ln -s libLW.so.4 "${pkgdir}/usr/lib/libLW.so"
+
+  # Install target-specific symlinks (names match the build output)
+  local _symlinks=('arm-link' 'aarch64-link' 'hexagon-link' 'riscv-link' 'x86_64-link')
+  for _link in "${_symlinks[@]}"; do
+    ln -s ld.eld "${pkgdir}/usr/bin/${_link}"
+  done
+
+  # Install plugin API headers
+  install -d "${pkgdir}/usr/include/ELD/PluginAPI"
+  for _hdr in "${_eldsrc}"/include/eld/PluginAPI/*.h; do
+    [[ "$(basename "$_hdr")" == "PluginConfig.h" ]] && continue
+    install -Dm644 "$_hdr" "${pkgdir}/usr/include/ELD/PluginAPI/$(basename "$_hdr")"
+  done
+  # Install the generated PluginBase.h (from .h.inc template)
+  install -Dm644 build/tools/eld/include/eld/PluginAPI/PluginBase.h \
+    "${pkgdir}/usr/include/ELD/PluginAPI/PluginBase.h"
+
+  # Install linker script templates
+  install -d "${pkgdir}/usr/share/eld/templates"
+  cp -a "${_eldsrc}"/templates/. "${pkgdir}/usr/share/eld/templates/"
+
+  # Install YAMLMapParser utility
+  install -Dm755 "${_eldsrc}/utils/YAMLMapParser/YAMLMapParser.py" \
+    "${pkgdir}/usr/bin/YAMLMapParser.py"
+
+  # Install license
+  install -Dm644 "${_eldsrc}/LICENSE" \
+    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
