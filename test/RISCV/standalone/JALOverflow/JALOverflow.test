@@ -1,0 +1,9 @@
+#---JALOverflow.test------------------------- Executable -------------------#
+#BEGIN_COMMENT
+# Repro for JAL overflow behavior with a linker script that moves the dot.
+#END_COMMENT
+#START_TEST
+RUN: %clang -target riscv64 -c %p/Inputs/a.s -o %t1.a.o
+RUN: %clang -target riscv64 -c %p/Inputs/b.s -o %t1.b.o
+RUN: %link %linkopts -T %p/Inputs/jal1.t %t1.a.o %t1.b.o -Map %t1.map
+#END_TEST

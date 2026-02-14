@@ -239,6 +239,33 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
 
+  // Be conservative when relaxing CALL into JAL/C.J/C.JAL: later relaxations
+  // (notably R_RISCV_ALIGN) can increase the final PC-relative distance due
+  // to changes in required alignment padding. Add a max alignment "slack" to
+  // the offset for the range check so we only relax when the shortened form is
+  // guaranteed to remain in-range.
+  int64_t XForRangeCheck = static_cast<int64_t>(X);
+  if (llvm::isInt<21>(XForRangeCheck)) {
+    uint64_t MaxAlignment = 0;
+    ELFSection *CallOutputSection = reloc->targetRef()->getOutputELFSection();
+    FragmentRef *SymRef = reloc->symInfo()->outSymbol()->fragRef();
+    ELFSection *SymOutputSection =
+        SymRef ? SymRef->getOutputELFSection() : nullptr;
+
+    if (CallOutputSection && SymOutputSection) {
+      if (CallOutputSection == SymOutputSection)
+        MaxAlignment = CallOutputSection->getAddrAlign();
+      else
+        MaxAlignment = std::max<uint64_t>(CallOutputSection->getAddrAlign(),
+                                          SymOutputSection->getAddrAlign());
+    }
+
+    if (MaxAlignment)
+      XForRangeCheck += (XForRangeCheck < 0)
+                            ? -static_cast<int64_t>(MaxAlignment)
+                            : static_cast<int64_t>(MaxAlignment);
+  }
+
   uint64_t offset = reloc->targetRef()->offset();
 
   // extract the next instruction
@@ -254,11 +281,13 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   // For `C.J`/`C.JAL`, we have to have C relaxations enabled,
   // and be within 12 bits, and have a destination of `x0` or `ra`
   bool canRelaxCJ = config().options().getRISCVRelax() &&
-                    config().options().getRISCVRelaxToC() && isInt<12>(X) &&
+                    config().options().getRISCVRelaxToC() &&
+                    isInt<12>(XForRangeCheck) &&
                     (rd == 0 || (rd == 1 && config().targets().is32Bits()));
 
   // For `JAL`, the offset needs to be 21 bits.
-  bool canRelaxJal = config().options().getRISCVRelax() && llvm::isInt<21>(X);
+  bool canRelaxJal =
+      config().options().getRISCVRelax() && llvm::isInt<21>(XForRangeCheck);
 
   // For `QC.E.J` and `QC.E.JAL`, we have to have xqci relaxations enabled,
   // and be on 32-bit, and the destination must be either `x0` or `ra`.
