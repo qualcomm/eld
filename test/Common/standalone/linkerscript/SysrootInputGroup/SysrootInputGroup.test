@@ -1,0 +1,32 @@
+#---SysrootInputGroup.test---------------- Linker Script ----------------#
+#BEGIN_COMMENT
+# Validate sysroot handling for INPUT/GROUP script commands (issue #808).
+# Sysroot is prepended for "/..." only when the linker script itself is within
+# the sysroot directory.
+#END_COMMENT
+#START_TEST
+
+RUN: rm -rf %t.dir && mkdir -p %t.dir/lib64 %t.dir/scripts
+RUN: %clang %clangopts -o %t.1.o %p/Inputs/1.c -c -fPIC
+RUN: %clang %clangopts -o %t.2.o %p/Inputs/2.c -c -fPIC
+RUN: %clang %clangopts -o %t.main.o %p/Inputs/main.c -c
+RUN: %link %linkopts -o %t.dir/lib64/lib1.so -shared %t.1.o
+RUN: %link %linkopts -o %t.dir/lib64/lib2.so -shared %t.2.o
+
+# Script outside sysroot: do not prepend sysroot for "/...".
+RUN: %not %link %linkopts -o %t.out1 --sysroot=%t.dir -T %p/Inputs/script1.t %t.main.o 2>&1 | %filecheck %s --check-prefix=ERR1
+RUN: %not %link %linkopts -o %t.out2 --sysroot=%t.dir -T %p/Inputs/script2.t %t.main.o 2>&1 | %filecheck %s --check-prefix=ERR2
+
+# Script in sysroot: prepend sysroot for "/...".
+RUN: %cp %p/Inputs/script1.t %t.dir/scripts/script1.t
+RUN: %cp %p/Inputs/script2.t %t.dir/scripts/script2.t
+RUN: %link %linkopts -o %t.out3 --sysroot=%t.dir -T %t.dir/scripts/script1.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=SYSROOT1
+RUN: %link %linkopts -o %t.out4 --sysroot=%t.dir -T %t.dir/scripts/script2.t %t.main.o --verbose 2>&1 | %filecheck %s --check-prefix=SYSROOT2
+#END_TEST
+
+ERR1: Fatal: cannot read file /lib64/lib1.so
+ERR2: Fatal: cannot read file /lib64/lib2.so
+
+SYSROOT1: Verbose: Mapping input file '{{.*}}dir/lib64/lib1.so' into memory
+SYSROOT2: Verbose: Mapping input file '{{.*}}dir/lib64/lib2.so' into memory
+

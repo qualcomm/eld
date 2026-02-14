@@ -56,6 +56,9 @@ void InputCmd::dump(llvm::raw_ostream &Outs) const {
 }
 
 eld::Expected<void> InputCmd::activate(Module &CurModule) {
+  // Prefer ScriptCommand context (handles included scripts).
+  InputFile *parentScriptFile = &ThisScriptFile.getLinkerScriptFile();
+
   for (auto &S : ThisStringList) {
     InputToken *Token = llvm::cast<InputToken>(S);
     Token = ThisScriptFile.findResolvedFilename(Token);
@@ -64,9 +67,11 @@ eld::Expected<void> InputCmd::activate(Module &CurModule) {
     else
       ThisBuilder.getAttributes().unsetAsNeeded();
     switch (Token->type()) {
-    case InputToken::File:
-      ThisBuilder.createDeferredInput(Token->name(), Input::Script);
+    case InputToken::File: {
+      Input *I = ThisBuilder.createDeferredInput(Token->name(), Input::Script);
+      I->setParentScriptFile(parentScriptFile);
       break;
+    }
     case InputToken::NameSpec: {
       ThisBuilder.createDeferredInput(Token->name(), Input::Namespec);
       break;
