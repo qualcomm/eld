@@ -1,0 +1,4 @@
+usr/bin/ld.eld
+usr/lib/*/libLW.so*
+usr/share/eld/templates/
+usr/bin/YAMLMapParser.py
