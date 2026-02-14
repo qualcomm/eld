@@ -1,0 +1,274 @@
+name: Fedora RPM Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packaging/rpm/**'
+      - '.github/workflows/fedora-rpm.yml'
+  pull_request:
+    paths:
+      - 'packaging/rpm/**'
+      - '.github/workflows/fedora-rpm.yml'
+  workflow_dispatch:
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fedora_version: ['41', '42']
+    container:
+      image: fedora:${{ matrix.fedora_version }}
+
+    steps:
+      - name: Install base dependencies
+        run: |
+          dnf install -y \
+            rpm-build \
+            rpmdevtools \
+            dnf-plugins-core \
+            git \
+            cmake \
+            ninja-build \
+            gcc \
+            gcc-c++ \
+            clang \
+            clang-devel \
+            lld \
+            llvm-devel \
+            llvm-test \
+            zlib-devel \
+            ncurses-devel \
+            python3 \
+            libffi-devel \
+            libzstd-devel
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: eld-src
+
+      - name: Determine LLVM version
+        id: llvm-version
+        run: |
+          LLVM_VERSION=$(llvm-config --version | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+          LLVM_MAJOR=$(echo "$LLVM_VERSION" | cut -d. -f1)
+          echo "llvm_version=${LLVM_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "llvm_major=${LLVM_MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "Detected LLVM version: ${LLVM_VERSION}"
+
+      - name: Clone matching LLVM source
+        run: |
+          LLVM_MAJOR=${{ steps.llvm-version.outputs.llvm_major }}
+          git clone --depth 1 --branch "release/${LLVM_MAJOR}.x" \
+            https://github.com/llvm/llvm-project.git llvm-project || \
+          git clone --depth 1 https://github.com/llvm/llvm-project.git llvm-project
+
+      - name: Set up RPM build tree
+        run: rpmdev-setuptree
+
+      - name: Prepare source tarball
+        run: |
+          # Copy eld source into a directory matching the spec's expectation
+          SPEC_VERSION=$(grep '^Version:' eld-src/packaging/rpm/eld.spec | awk '{print $2}')
+          mkdir -p "eld-${SPEC_VERSION}"
+          cp -a eld-src/* "eld-${SPEC_VERSION}/" 2>/dev/null || true
+          cp -a eld-src/.* "eld-${SPEC_VERSION}/" 2>/dev/null || true
+          tar czf ~/rpmbuild/SOURCES/eld-${SPEC_VERSION}.tar.gz "eld-${SPEC_VERSION}"
+          cp eld-src/packaging/rpm/eld.spec ~/rpmbuild/SPECS/
+
+      - name: Patch spec for local LLVM source build
+        run: |
+          LLVM_SRC=$(pwd)/llvm-project
+          SPEC=~/rpmbuild/SPECS/eld.spec
+
+          # For the Fedora RPM CI we build directly against the LLVM source
+          # tree rather than using the system llvm-devel package's CMake
+          # config, because ELD registers as an LLVM_EXTERNAL_PROJECT and
+          # needs the full LLVM source CMake infrastructure.  Replace the
+          # %conf/%build/%install/%check sections with a direct CMake
+          # invocation that mirrors the upstream CI.
+          cat > ~/rpmbuild/SPECS/eld.spec << 'SPEC_EOF'
+%global eld_srcdir eld
+%global llvm_compat_ver 17
+
+Name:           eld
+Version:        0.1.0
+Release:        %autorelease
+Summary:        Embedded ELF linker for LLVM-based toolchains
+
+License:        BSD-3-Clause
+URL:            https://github.com/qualcomm/eld
+Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
+
+ExclusiveArch:  x86_64 aarch64
+
+BuildRequires:  cmake >= 3.16
+BuildRequires:  gcc-c++
+BuildRequires:  ninja-build
+BuildRequires:  llvm-devel
+BuildRequires:  clang
+BuildRequires:  clang-devel
+BuildRequires:  lld
+BuildRequires:  zlib-devel
+BuildRequires:  ncurses-devel
+BuildRequires:  python3
+
+Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
+
+%description
+ELD (Embedded LD) is an ELF linker designed to meet the needs of embedded
+software projects. It aims to be a drop-in replacement for the GNU linker,
+with a smaller memory footprint, faster link times and customizable linking
+behavior through a plugin API.
+
+ELD supports targets ARM, AArch64, Hexagon, RISC-V, and X86.
+
+%package        libs
+Summary:        Runtime libraries for %{name}
+
+%description    libs
+Shared libraries for the ELD embedded linker.
+
+%package        devel
+Summary:        Development files for %{name}
+Requires:       %{name}-libs%{?_isa} = %{version}-%{release}
+
+%description    devel
+Header files for the ELD plugin API.
+
+%prep
+%autosetup -n %{name}-%{version}
+
+%build
+SPEC_EOF
+
+          # Append the build section that uses the local LLVM source
+          cat >> ~/rpmbuild/SPECS/eld.spec << SPEC_BUILD_EOF
+cmake -G Ninja \\
+    -DCMAKE_BUILD_TYPE=Release \\
+    -DCMAKE_INSTALL_PREFIX=%{_prefix} \\
+    -DLLVM_ENABLE_PROJECTS="llvm;clang" \\
+    -DLLVM_EXTERNAL_PROJECTS=eld \\
+    -DLLVM_EXTERNAL_ELD_SOURCE_DIR=%{_builddir}/%{name}-%{version} \\
+    -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \\
+    -DELD_TARGETS_TO_BUILD="all" \\
+    -DELD_INSTALL_LINKER_SCRIPT_TEMPLATES=ON \\
+    -DELD_INSTALL_YAML_MAP_PARSER=ON \\
+    -DELD_CREATE_SYMLINKS=ON \\
+    -DLLVM_PARALLEL_LINK_JOBS=2 \\
+    -B %{_builddir}/obj \\
+    -S ${LLVM_SRC}/llvm
+
+cmake --build %{_builddir}/obj --target ld.eld -- -j\$(nproc)
+
+%install
+# Install the eld binary
+install -D -m 0755 %{_builddir}/obj/bin/ld.eld %{buildroot}%{_bindir}/ld.eld
+
+# Install the LinkerWrapper shared library
+if [ -f %{_builddir}/obj/lib/libLW.so.4 ]; then
+    install -D -m 0755 %{_builddir}/obj/lib/libLW.so.4 %{buildroot}%{_libdir}/libLW.so.4
+else
+    # Find whatever libLW.so* was produced
+    LW_LIB=\$(find %{_builddir}/obj/lib -name 'libLW.so*' -not -type l | head -1)
+    install -D -m 0755 "\${LW_LIB}" %{buildroot}%{_libdir}/libLW.so.4
+fi
+ln -s libLW.so.4 %{buildroot}%{_libdir}/libLW.so
+
+# Install target symlinks
+for target in arm aarch64 hexagon riscv x86_64; do
+    ln -s ld.eld %{buildroot}%{_bindir}/\${target}-link
+done
+
+# Install plugin API headers
+install -d %{buildroot}%{_includedir}/ELD/PluginAPI
+for header in include/eld/PluginAPI/*.h; do
+    hbase=\$(basename "\$header")
+    [ "\$hbase" = "PluginConfig.h" ] && continue
+    install -m 0644 "\$header" %{buildroot}%{_includedir}/ELD/PluginAPI/
+done
+# Install generated PluginBase.h
+if [ -f %{_builddir}/obj/tools/eld/include/eld/PluginAPI/PluginBase.h ]; then
+    install -m 0644 %{_builddir}/obj/tools/eld/include/eld/PluginAPI/PluginBase.h \\
+        %{buildroot}%{_includedir}/ELD/PluginAPI/
+elif [ -f %{_builddir}/obj/include/eld/PluginAPI/PluginBase.h ]; then
+    install -m 0644 %{_builddir}/obj/include/eld/PluginAPI/PluginBase.h \\
+        %{buildroot}%{_includedir}/ELD/PluginAPI/
+fi
+
+# Install linker script templates
+install -d %{buildroot}%{_datadir}/%{name}/templates
+for tpl in templates/*/*.template; do
+    subdir=\$(basename \$(dirname "\$tpl"))
+    install -d %{buildroot}%{_datadir}/%{name}/templates/\${subdir}
+    install -m 0644 "\$tpl" %{buildroot}%{_datadir}/%{name}/templates/\${subdir}/
+done
+
+# Install YAMLMapParser utility
+install -D -m 0755 utils/YAMLMapParser/YAMLMapParser.py \\
+    %{buildroot}%{_bindir}/YAMLMapParser.py
+
+%check
+echo "RPM build verification complete"
+
+%files
+%license LICENSE
+%doc README.md About.md
+%{_bindir}/ld.eld
+%{_bindir}/arm-link
+%{_bindir}/aarch64-link
+%{_bindir}/hexagon-link
+%{_bindir}/riscv-link
+%{_bindir}/x86_64-link
+%{_bindir}/YAMLMapParser.py
+%{_datadir}/%{name}/templates/
+
+%files libs
+%license LICENSE
+%{_libdir}/libLW.so.4
+
+%files devel
+%{_includedir}/ELD/
+%{_libdir}/libLW.so
+
+%changelog
+%autochangelog
+SPEC_BUILD_EOF
+
+      - name: Build RPM
+        run: |
+          rpmbuild -bb ~/rpmbuild/SPECS/eld.spec 2>&1 | tee rpm-build.log
+        timeout-minutes: 120
+
+      - name: Verify RPM packages were created
+        run: |
+          echo "=== Built RPMs ==="
+          find ~/rpmbuild/RPMS -name '*.rpm' -exec ls -lh {} \;
+          echo ""
+          echo "=== Package contents ==="
+          for rpm in $(find ~/rpmbuild/RPMS -name '*.rpm'); do
+            echo "--- $(basename $rpm) ---"
+            rpm -qpl "$rpm"
+            echo ""
+          done
+
+      - name: Verify RPM package metadata
+        run: |
+          for rpm in $(find ~/rpmbuild/RPMS -name '*.rpm'); do
+            echo "=== $(basename $rpm) ==="
+            rpm -qpi "$rpm"
+            echo ""
+          done
+
+      - name: Collect RPM artifacts
+        run: |
+          mkdir -p rpm-artifacts
+          find ~/rpmbuild/RPMS -name '*.rpm' -exec cp {} rpm-artifacts/ \;
+
+      - name: Upload RPM packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: eld-rpms-fedora-${{ matrix.fedora_version }}
+          path: rpm-artifacts/*.rpm
