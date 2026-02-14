@@ -236,7 +236,8 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     return;
 
   case llvm::ELF::R_AARCH64_ADR_GOT_PAGE:
-  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC: {
+  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
+  case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
@@ -451,7 +452,8 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   }
 
   case llvm::ELF::R_AARCH64_ADR_GOT_PAGE:
-  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC: {
+  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
+  case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
@@ -870,7 +872,7 @@ Relocator::Result adr_got_page(Relocation &pReloc, AArch64Relocator &pParent) {
   return Relocator::OK;
 }
 
-// R_AARCH64_LD64_GOT_LO12_NC: G(GDAT(S+A))
+// R_AARCH64_LD64_GOT_LO12_NC: G(GDAT(S))
 Relocator::Result ld64_got_lo12(Relocation &pReloc, AArch64Relocator &pParent) {
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
     return Relocator::BadReloc;
@@ -881,6 +883,27 @@ Relocator::Result ld64_got_lo12(Relocation &pReloc, AArch64Relocator &pParent) {
                                  ->getAddr(pParent.config().getDiagEngine());
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord X = helper_get_page_offset(GOT_S + A);
+
+  pReloc.target() = helper_reencode_ldst_pos_imm(pReloc.target(), (X >> 3));
+
+  return Relocator::OK;
+}
+
+// R_AARCH64_LD64_GOTPAGE_LO15: G(GDAT(S)) - Page(GOT)
+Relocator::Result ld64_gotpage_lo15(Relocation &pReloc, AArch64Relocator &pParent) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+    return Relocator::BadReloc;
+  }
+
+  Relocator::Address GOT_S = pParent.getTarget()
+                                 .findEntryInGOT(pReloc.symInfo())
+                                 ->getAddr(pParent.config().getDiagEngine());
+  Relocator::Address GOT_ORG = pParent.getTarget().getGOT()->pAddr();
+  Relocator::DWord X = GOT_S - helper_get_page_address(GOT_ORG);
+
+  if ((X & 7) != 0 || X >= (1ULL << 15)) {
+    return Relocator::BadReloc;
+  }
 
   pReloc.target() = helper_reencode_ldst_pos_imm(pReloc.target(), (X >> 3));
 
