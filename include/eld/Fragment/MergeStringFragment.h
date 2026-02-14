@@ -16,6 +16,7 @@ class DiagnosticEngine;
 class MergeStringFragment;
 class Module;
 class OutputSectionEntry;
+class InputFile;
 
 /// A MergeableString is a null terminated string that is part of an input merge
 /// string section that may be merged with identical strings destined for the
@@ -91,6 +92,13 @@ private:
   /// called and set the output offset of every string owned by this fragment
   void assignOutputOffsets();
 };
+
+void addMergeStringSection(
+    ELFSection *sec, llvm::SmallVectorImpl<MergeStringFragment *> &fragments);
+
+Expected<void> readMergeStringSections(
+    LinkerConfig &cfg, Module &m, InputFile &file,
+    llvm::SmallVectorImpl<MergeStringFragment *> &fragments);
 
 } // namespace eld
 

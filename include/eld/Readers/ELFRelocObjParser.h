@@ -65,9 +65,6 @@ private:
   eld::Expected<bool> readLinkOnceSection(ELFReaderBase &ELFReader,
                                           ELFSection *S);
 
-  eld::Expected<bool> readMergeStrSection(ELFReaderBase &ELFReader,
-                                          ELFSection *S);
-
   eld::Expected<bool> readDebugSection(ELFReaderBase &ELFReader, ELFSection *S);
 
   eld::Expected<bool> readTimingSection(ELFReaderBase &ELFReader,
