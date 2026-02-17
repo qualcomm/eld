@@ -898,7 +898,8 @@ Relocator::Result ld64_gotpage_lo15(Relocation &pReloc, AArch64Relocator &pParen
   Relocator::Address GOT_S = pParent.getTarget()
                                  .findEntryInGOT(pReloc.symInfo())
                                  ->getAddr(pParent.config().getDiagEngine());
-  Relocator::Address GOT_ORG = pParent.getTarget().getGOT()->pAddr();
+  Relocator::Address GOT_ORG =
+      pParent.getTarget().getGOT()->getOutputSection()->getSection()->addr();
   Relocator::DWord X = GOT_S - helper_get_page_address(GOT_ORG);
 
   if ((X & 7) != 0 || X >= (1ULL << 15)) {

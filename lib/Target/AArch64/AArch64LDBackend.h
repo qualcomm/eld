@@ -139,8 +139,6 @@ public:
     return DynRelocType::DEFAULT;
   }
 
-  bool finalizeScanRelocations() override;
-
   Stub *getBranchIslandStub(Relocation *pReloc,
                             int64_t targetValue) const override;
 
@@ -162,8 +160,6 @@ private:
   ELFSection *createGOTSection(InputFile &InputFile);
   ELFSection *createGOTPLTSection(InputFile &InputFile);
   ELFSection *createPLTSection(InputFile &InputFile);
-
-  void defineGOTSymbol(Fragment &F);
 
   /// maxBranchOffset
   /// FIXME:

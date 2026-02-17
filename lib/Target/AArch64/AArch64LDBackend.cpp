@@ -202,44 +202,6 @@ Relocation::Type AArch64GNUInfoLDBackend::getCopyRelType() const {
   return llvm::ELF::R_AARCH64_COPY;
 }
 
-void AArch64GNUInfoLDBackend::defineGOTSymbol(Fragment &pFrag) {
-  // define symbol _GLOBAL_OFFSET_TABLE_
-  auto SymbolName = "_GLOBAL_OFFSET_TABLE_";
-  if (m_pGOTSymbol != nullptr) {
-    m_pGOTSymbol =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
-                pFrag.getOwningSection()->getInputFile(), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
-                0x0, // size
-                0x0, // value
-                make<FragmentRef>(pFrag, 0x0), ResolveInfo::Hidden);
-  } else {
-    m_pGOTSymbol =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
-                0x0, // size
-                0x0, // value
-                make<FragmentRef>(pFrag, 0x0), ResolveInfo::Hidden);
-  }
-  if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-      m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(Diag::target_specific_symbol) << SymbolName;
-  m_pGOTSymbol->setShouldIgnore(false);
-}
-
-bool AArch64GNUInfoLDBackend::finalizeScanRelocations() {
-  Fragment *frag = nullptr;
-  if (auto *GOTPLT = getGOTPLT())
-    if (GOTPLT->hasSectionData())
-      frag = *GOTPLT->getFragmentList().begin();
-  if (frag)
-    defineGOTSymbol(*frag);
-  return true;
-}
-
 void AArch64GNUInfoLDBackend::doPreLayout() {
   // initialize .dynamic data
   if ((!config().isCodeStatic() || config().options().forceDynamic()) &&
@@ -605,6 +567,9 @@ bool AArch64GNUInfoLDBackend::finalizeTargetSymbols() {
     m_pIRelativeEnd->setValue(
         getRelaPLT()->getOutputSection()->getSection()->addr() +
         getRelaPLT()->getOutputSection()->getSection()->size());
+  }
+  if (m_pGOTSymbol) {
+    m_pGOTSymbol->setValue(getGOT()->getOutputSection()->getSection()->addr());
   }
   return true;
 }
