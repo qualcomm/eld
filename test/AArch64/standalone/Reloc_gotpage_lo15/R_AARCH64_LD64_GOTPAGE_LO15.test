@@ -10,6 +10,6 @@ RUN: %objdump -d --dynamic-reloc %t1.so | %filecheck %s
 #CHECK-DAG: 00000000000010f8 R_AARCH64_GLOB_DAT       second
 
 #CHECK: 1b8: b0000000      adrp    x0, 0x1000 <second+0x1000>
-#CHECK: 1bc: 91040000      add     x0, x0, #0x100
+#CHECK: 1bc: 9103c000      add     x0, x0, #0xf0
 #CHECK: 1c0: f9407801      ldr     x1, [x0, #0xf0]
 #CHECK: 1c4: f9407c02      ldr     x2, [x0, #0xf8]
