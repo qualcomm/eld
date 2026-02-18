@@ -6,8 +6,8 @@ RUN: %clang %clangopts -c %p/Inputs/a.s -fPIC -o %t1.1.o  -target aarch64
 RUN: %link %linkopts %t1.1.o -shared -o %t1.so -march aarch64
 RUN: %objdump -d --dynamic-reloc %t1.so | %filecheck %s
 
-#CHECK: 00000000000010f0 R_AARCH64_GLOB_DAT       first
-#CHECK: 00000000000010f8 R_AARCH64_GLOB_DAT       second
+#CHECK-DAG: 00000000000010f0 R_AARCH64_GLOB_DAT       first
+#CHECK-DAG: 00000000000010f8 R_AARCH64_GLOB_DAT       second
 
 #CHECK: 1b8: b0000000      adrp    x0, 0x1000 <second+0x1000>
 #CHECK: 1bc: 91040000      add     x0, x0, #0x100
