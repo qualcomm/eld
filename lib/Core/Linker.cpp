@@ -17,6 +17,7 @@
 #include "eld/Driver/GnuLdDriver.h"
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Input/ELFObjectFile.h"
+#include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Input/InputBuilder.h"
 #include "eld/Input/InternalInputFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
@@ -348,6 +349,30 @@ bool Linker::normalize() {
     // Load plugins.
     if (!loadNonUniversalPlugins())
       return false;
+  }
+
+  // Check for multiple shared objects with same SO name and issue warning
+  {
+    std::map<std::string, std::vector<std::string>> sonameToFiles;
+    for (const auto &InputFile : ThisModule->getObjectList()) {
+	  auto T = InputFile->getInput()->getInputType();
+	  if (T == Input::DynObj) {
+        // Get the SO name from the shared object
+        std::string soname = InputFile->getInput()->getName(); // Default to filename
+        if (ELFDynObjectFile *dynObj = llvm::dyn_cast<ELFDynObjectFile>(InputFile)) {
+          soname = dynObj->getSOName();
+        }
+        sonameToFiles[soname].push_back(InputFile->getInput()->getName());
+      }
+    }
+
+    // Warn about duplicate SO names
+    for (const auto &entry : sonameToFiles) {
+      if (entry.second.size() > 1) {
+        std::string fileList = llvm::join(entry.second, ", ");
+        ThisConfig->raise(Diag::warn_duplicate_soname) << entry.first << fileList;
+      }
+    }
   }
 
   // 2. - set up code position
