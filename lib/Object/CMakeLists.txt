@@ -19,5 +19,6 @@ target_link_libraries(
           ELDScript
           ELDSupport
           ELDTarget
+          LLVMBitWriter
           LLVMSupport
           LLVMLTO)
