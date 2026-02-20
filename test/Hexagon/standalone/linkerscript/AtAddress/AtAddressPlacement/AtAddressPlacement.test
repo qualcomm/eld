@@ -9,7 +9,7 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
 RUN: %link %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t -M 2>&1 | %filecheck %s
 
-#CHECK: baz@0x14{{.*}}0x14
+#CHECK: baz@0x14
 
 #END_TEST
 
