@@ -13,7 +13,8 @@
 using namespace eld;
 
 RuleContainer::RuleContainer(SectionMap *Parent, std::string PName,
-                             InputSectDesc::Policy PPolicy)
+                             InputSectDesc::Policy PPolicy,
+                             WildcardPattern::SortPolicy SortPolicy)
     : MPolicy(PPolicy), MDirty(false), MFrag(nullptr), MDesc(nullptr),
       MMatchCount(0), MMatchTime(0), MNextRule(nullptr) {
   WildcardPattern *P1 = make<WildcardPattern>("*");
@@ -23,8 +24,8 @@ RuleContainer::RuleContainer(SectionMap *Parent, std::string PName,
   MSpec.InputIsArchive = false;
   MSpec.ExcludeFilesRule = nullptr;
   StringList *Sections = make<StringList>();
-  WildcardPattern *P2 =
-      make<WildcardPattern>(Parent->getLinkerScript().saveString(PName));
+  WildcardPattern *P2 = make<WildcardPattern>(
+      Parent->getLinkerScript().saveString(PName), SortPolicy);
   Parent->getLinkerScript().registerWildCardPattern(P2);
   Sections->pushBack(P2);
 

@@ -1,0 +1,28 @@
+#---InitArrayFiniArraySort.test--------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks init_array/fini_array sorting by init priority in default
+# section mappings.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/init_high.c -o %t.init_high.o
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/init_low.c -o %t.init_low.o
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/init_default.c -o %t.init_default.o
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/fini_high.c -o %t.fini_high.o
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/fini_low.c -o %t.fini_low.o
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/fini_default.c -o %t.fini_default.o
+RUN: %clang %clangopts -fuse-init-array -c %p/Inputs/main.c -o %t.main.o
+RUN: %link -MapStyle txt %linkopts -o %t.out \
+RUN:   %t.init_high.o %t.init_low.o %t.init_default.o \
+RUN:   %t.fini_high.o %t.fini_low.o %t.fini_default.o %t.main.o \
+RUN:   -Map %t.map
+RUN: %filecheck %s < %t.map
+#END_TEST
+
+#CHECK: .init_array {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} # Offset: {{0x[0-9A-Fa-f]+}}, LMA: {{0x[0-9A-Fa-f]+}}, Alignment: {{0x[0-9A-Fa-f]+}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_INIT_ARRAY
+#CHECK: .init_array.1000 {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} {{.*}}init_low.o {{.*}}
+#CHECK: .init_array.10000 {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} {{.*}}init_high.o {{.*}}
+#CHECK: .init_array {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} {{.*}}init_default.o {{.*}}
+#CHECK: .fini_array {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} # Offset: {{0x[0-9A-Fa-f]+}}, LMA: {{0x[0-9A-Fa-f]+}}, Alignment: {{0x[0-9A-Fa-f]+}}, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_FINI_ARRAY
+#CHECK: .fini_array.1000 {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} {{.*}}fini_low.o {{.*}}
+#CHECK: .fini_array.10000 {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} {{.*}}fini_high.o {{.*}}
+#CHECK: .fini_array {{0x[0-9A-Fa-f]+}} {{0x[0-9A-Fa-f]+}} {{.*}}fini_default.o {{.*}}
