@@ -6,6 +6,9 @@
 
 #include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Support/Memory.h"
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/Readers/ELFSection.h"
+#endif
 
 using namespace eld;
 
@@ -30,3 +33,11 @@ std::string ELFDynObjectFile::getFallbackSOName() const {
     return filename.substr(1);
   return I->getResolvedPath().filename().native();
 }
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+llvm::StringRef ELFDynObjectFile::getDynStringTable() const {
+  if (DynStrTabSection)
+    return DynStrTabSection->getContents();
+  return llvm::StringRef();
+}
+#endif

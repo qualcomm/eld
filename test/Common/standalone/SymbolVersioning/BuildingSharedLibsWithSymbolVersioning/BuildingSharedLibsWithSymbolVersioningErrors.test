@@ -6,7 +6,7 @@ REQUIRES: symbol_versioning
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
-RUN: %not %link %linkopts -o %t1.lib1.so %t1.2.o -shared 2>&1 | %filecheck %s --check-prefix=ERRORS1
+RUN: %not %link %linkopts -o %t1.lib1.so %t1.2.o -shared --version-script %p/Inputs/vs.5.t 2>&1 | %filecheck %s --check-prefix=ERRORS1
 #END_TEST
 
 ERRORS1: Error: {{.*}}2.o: symbol foo@V1 has undefined version V1

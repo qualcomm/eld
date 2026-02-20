@@ -50,6 +50,12 @@ eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
   eld::Expected<bool> expReadHeaders = readSectionHeaders(*ELFReader);
   if (!expReadHeaders.has_value() || !expReadHeaders.value())
     return expReadHeaders;
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  eld::Expected<void> expReadSections = ELFReader->readSections();
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expReadSections);
+#endif
+
   eld::Expected<bool> expReadSymbols = readSymbols(*ELFReader);
   if (!expReadSymbols || !expReadSymbols.value())
     return expReadSymbols;

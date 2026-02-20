@@ -21,6 +21,9 @@
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/Fragment/GNUVerNeedFragment.h"
+#endif
 
 using namespace eld;
 using namespace elf_dynamic;
@@ -248,6 +251,13 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
       reserveOne(llvm::ELF::DT_VERDEFNUM);
     }
   }
+
+  if (auto verNeed = m_Backend.getGNUVerNeedSection()) {
+    if (verNeed->size()) {
+      reserveOne(llvm::ELF::DT_VERNEED);
+      reserveOne(llvm::ELF::DT_VERNEEDNUM);
+    }
+  }
 #endif
 
   reserveOne(llvm::ELF::DT_DEBUG); // for Debugging
@@ -427,6 +437,15 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
       applyOne(llvm::ELF::DT_VERDEF, S->addr());
       // Def count equals section sh_info
       applyOne(llvm::ELF::DT_VERDEFNUM, S->getInfo());
+    }
+  }
+
+  if (ELFSection *S = m_Backend.getGNUVerNeedSection()) {
+    if (S->size()) {
+      applyOne(llvm::ELF::DT_VERNEED, S->addr());
+      GNUVerNeedFragment *F = m_Backend.getGNUVerNeedFragment();
+      ASSERT(F, "Must not be null!");
+      applyOne(llvm::ELF::DT_VERNEEDNUM, F->needCount());
     }
   }
 #endif

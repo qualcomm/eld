@@ -46,6 +46,10 @@ public:
 
   ELFSection *getStringTable() const { return StringTable; }
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  llvm::StringRef getStringTableData() const;
+#endif
+
   /// ------------ Extended Symbol Table ---------------------------------------
   void setExtendedSymbolTable(ELFSection *SymTab) {
     ExtendedSymbolTable = SymTab;
