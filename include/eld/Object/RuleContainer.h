@@ -34,7 +34,9 @@ public:
   typedef std::vector<Assignment *> SymbolAssignments;
   typedef SymbolAssignments::iterator sym_iterator;
 
-  RuleContainer(SectionMap *, std::string PName, InputSectDesc::Policy PPolicy);
+  RuleContainer(
+      SectionMap *, std::string PName, InputSectDesc::Policy PPolicy,
+      WildcardPattern::SortPolicy SortPolicy = WildcardPattern::SORT_NONE);
 
   RuleContainer(SectionMap *, const InputSectDesc &PInputDesc);
 

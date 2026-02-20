@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Target/TargetInfo.h"
 #include "eld/Core/Module.h"
+#include "eld/Script/WildcardPattern.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <string>
@@ -25,6 +26,7 @@ struct NameMap {
   const char *from; ///< the prefix of the input string. (match FROM*)
   const char *to;   ///< the output string.
   InputSectDesc::Policy policy; /// mark whether the input is kept in GC
+  WildcardPattern::SortPolicy sortPolicy = WildcardPattern::SORT_NONE;
 };
 
 const NameMap map[] = {
@@ -50,9 +52,12 @@ const NameMap map[] = {
     {".tbss*", ".tbss", InputSectDesc::NoKeep},
     {".init", ".init", InputSectDesc::Keep},
     {".fini", ".fini", InputSectDesc::Keep},
-    {".preinit_array*", ".preinit_array", InputSectDesc::Keep},
-    {".init_array*", ".init_array", InputSectDesc::Keep},
-    {".fini_array*", ".fini_array", InputSectDesc::Keep},
+    {".preinit_array*", ".preinit_array", InputSectDesc::Keep,
+     WildcardPattern::SORT_BY_INIT_PRIORITY},
+    {".init_array*", ".init_array", InputSectDesc::Keep,
+     WildcardPattern::SORT_BY_INIT_PRIORITY},
+    {".fini_array*", ".fini_array", InputSectDesc::Keep,
+     WildcardPattern::SORT_BY_INIT_PRIORITY},
     // TODO: Support DT_INIT_ARRAY for all constructors?
     {".ctors*", ".ctors", InputSectDesc::Keep},
     {".dtors*", ".dtors", InputSectDesc::Keep},
@@ -107,8 +112,8 @@ bool TargetInfo::InitializeDefaultMappings(Module &pModule) {
   if (!pScript.linkerScriptHasSectionsCommand() &&
       m_Config.codeGenType() != LinkerConfig::Object) {
     for (auto &elem : map) {
-      std::pair<SectionMap::mapping, bool> res =
-          pScript.sectionMap().insert(elem.from, elem.to, elem.policy);
+      std::pair<SectionMap::mapping, bool> res = pScript.sectionMap().insert(
+          elem.from, elem.to, elem.policy, elem.sortPolicy);
       if (!res.second)
         return false;
     }
