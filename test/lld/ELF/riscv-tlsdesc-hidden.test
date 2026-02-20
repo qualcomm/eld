@@ -1,0 +1,9 @@
+REQUIRES: riscv32 || riscv64
+
+## Verify that hidden symbols are treated as non-preeemptible and the TLSDESC relocation does not refer to a symbol.
+RUN: %clang %clangopts -fPIC -mtls-dialect=desc -fvisibility=hidden %p/Inputs/riscv-tlsdesc-hidden/1.c -c -o %t.1.o
+RUN: %clang %clangopts -fPIC -mtls-dialect=desc -fvisibility=hidden %p/Inputs/riscv-tlsdesc-hidden/2.c -c -o %t.2.o
+RUN: %link %linkopts -shared -o %t.so %t.1.o %t.2.o
+RUN: %readelf --dyn-relocations %t.so | FileCheck %s
+CHECK: R_RISCV_TLSDESC 0{{$}}
+CHECK-NOT: R_RISCV_TLSDESC
