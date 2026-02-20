@@ -35,6 +35,19 @@ static Relocator::Result emitSignedOrUnsignedRangeOverflow(Relocation &Rel,
   return Relocator::Overflow;
 }
 
+static bool isAuthReloc(const Relocation &pReloc) {
+  Relocation::Type type = pReloc.type();
+  return type == llvm::ELF::R_AARCH64_AUTH_ABS64 ||
+         type == llvm::ELF::R_AARCH64_AUTH_RELATIVE;
+}
+
+static uint64_t getSigningSchema(const Relocation &pReloc) {
+  if (!isAuthReloc(pReloc))
+    return 0ULL;
+  // PAuth signing schema is encoded in the top 32-bits
+  return pReloc.target() & 0xFFFFFFFF00000000ULL;
+}
+
 /// helper_DynRel - Get an relocation entry in .rela.dyn
 Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
@@ -59,7 +72,8 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
   // fact that we created a relative relocation for a relocation that may be
   // pointing to a merge string.
   if (R && (pType == llvm::ELF::R_AARCH64_RELATIVE ||
-            pType == llvm::ELF::R_AARCH64_IRELATIVE)) {
+            pType == llvm::ELF::R_AARCH64_IRELATIVE ||
+            pType == llvm::ELF::R_AARCH64_AUTH_RELATIVE)) {
     B.recordRelativeReloc(rela_entry, R);
   }
 
@@ -136,8 +150,8 @@ AArch64Relocator::~AArch64Relocator() {}
 
 bool AArch64Relocator::isRelocSupported(Relocation &pReloc) const {
   Relocation::Type type = pReloc.type();
-  // valid types are 0x0, 0x100-0x239
-  if ((type < 0x100 || type > 0x239) && (type != 0x0) &&
+  // valid types are 0x0, 0x100-0x244
+  if ((type < 0x100 || type > 0x244) && (type != 0x0) &&
       (type != R_AARCH64_COPY_INSN))
     return false;
 
@@ -159,6 +173,24 @@ bool AArch64Relocator::isInvalidReloc(Relocation &pReloc) const {
     break;
   }
   return false;
+}
+
+bool AArch64Relocator::relocNeedsDynRel(Relocation &pReloc) const {
+  ResolveInfo *rsym = pReloc.symInfo();
+  // Need dynamic relocations to sign pointers at runtime
+  if (isAuthReloc(pReloc)) {
+    // PAuth spec 8.1.1:
+    // "if the target symbol is an undefined weak reference, the result of
+    // the relocation is 0 (nullptr) regardless of the signing schema"
+    if (rsym && rsym->isWeak() && rsym->isUndef())
+      return false;
+    return true;
+  }
+  // Only ABS64 relocations can be dynamic in AArch64
+  bool isAbsReloc = pReloc.type() == llvm::ELF::R_AARCH64_ABS64;
+  return getTarget().symbolNeedsDynRel(
+                   *rsym, (rsym->reserved() & ReservePLT),
+                   isAbsReloc);
 }
 
 Relocator::Result AArch64Relocator::applyRelocation(Relocation &pRelocation) {
@@ -203,20 +235,27 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
   switch (pReloc.type()) {
-  case llvm::ELF::R_AARCH64_ABS64:
-    // If building PIC object (shared library or PIC executable),
+  case llvm::ELF::R_AARCH64_AUTH_ABS64:
+  case llvm::ELF::R_AARCH64_ABS64: {
+    bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
+    // If building PIC object (shared library or PIC executable)
+    // or dealing with a signed relocation,
     // a dynamic relocations with RELATIVE type to this location is needed.
     // Reserve an entry in .rel.dyn
-    if (config().isCodeIndep()) {
+    if (config().isCodeIndep() || isAuthAbs) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       // set Rel bit
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
       // set up the dyn rel directly
+      Relocation::Type relType =
+        isAuthAbs ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
+                  : llvm::ELF::R_AARCH64_RELATIVE;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-                         pReloc.targetRef()->offset(), R_AARCH64_RELATIVE,
+                         pReloc.targetRef()->offset(), relType,
                          m_Target);
     }
+  }
     return;
 
   case llvm::ELF::R_AARCH64_ABS32:
@@ -307,10 +346,12 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   ResolveInfo *rsym = pReloc.symInfo();
 
   switch (pReloc.type()) {
+  case llvm::ELF::R_AARCH64_AUTH_ABS64:
   case llvm::ELF::R_AARCH64_ABS16:
   case llvm::ELF::R_AARCH64_ABS32:
   case llvm::ELF::R_AARCH64_ABS64: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
     bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
@@ -326,11 +367,19 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       }
     }
 
-    if (getTarget().symbolNeedsDynRel(
-            *rsym, (rsym->reserved() & ReservePLT),
-            (pReloc.type() == llvm::ELF::R_AARCH64_ABS64))) {
+    if (relocNeedsDynRel(pReloc)) {
       // symbol needs dynamic relocation entry, set up the dynrel entry
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
+        // PAuth spec 5.3:
+        // "PAUTHELF64 does not support the R_AARCH64_COPY relocation
+        // for signed pointers"
+        if (isAuthAbs) {
+          config().raise(Diag::non_pic_relocation)
+            << getName(pReloc.type()) << pReloc.symInfo()->name()
+            << pReloc.getSourcePath(config().options());
+          m_Target.getModule().setFailure(true);
+          return;
+        }
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
           config().raise(Diag::copyrelocs_is_error)
@@ -340,13 +389,21 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         }
         CopyRelocs.insert(rsym);
       } else {
-        // set Rel bit and the dyn rel
+        // set Rel bit
         rsym->setReserved(rsym->reserved() | ReserveRel);
         getTarget().checkAndSetHasTextRel(pSection);
+        // set up the dyn rel directly
+        Relocation::Type relType;
+        if (isSymbolPreemptible) {
+          relType = pReloc.type();
+        } else {
+          relType = isAuthAbs ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
+                              : llvm::ELF::R_AARCH64_RELATIVE;
+        }
         helper_DynRel_init(
             Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
             pReloc.targetRef()->offset(),
-            isSymbolPreemptible ? pReloc.type() : R_AARCH64_RELATIVE, m_Target);
+            relType, m_Target);
       }
     }
   }
@@ -372,8 +429,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       }
     }
 
-    if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
-                                      false) &&
+    if (relocNeedsDynRel(pReloc) &&
         getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
       // check if the option -z nocopyreloc is given
       if (config().options().hasNoCopyReloc()) {
@@ -421,8 +477,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_AARCH64_ADR_PREL_PG_HI21:
   case R_AARCH64_ADR_PREL_PG_HI21_NC: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
-                                      false)) {
+    if (relocNeedsDynRel(pReloc)) {
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
         if (config().options().hasNoCopyReloc()) {
@@ -593,8 +648,17 @@ void AArch64Relocator::scanRelocation(Relocation &pReloc,
                             ? pSection.getLink()
                             : pReloc.targetRef()->frag()->getOwningSection();
 
-  if (!section->isAlloc())
+  if (!section->isAlloc()) {
+    // Cannot have authenticated relocations in non-alloc sections (like .debug)
+    if (isAuthReloc(pReloc)) {
+      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      config().raise(Diag::reloc_nonalloc_section)
+          << getName(pReloc.type()) << pReloc.symInfo()->name()
+          << pSection.getDecoratedName(config().options());
+      m_Target.getModule().setFailure(true);
+    }
     return;
+  }
 
   if (rsym->isLocal()) // rsym is local
     scanLocalReloc(pInputFile, pReloc, *section);
@@ -618,17 +682,48 @@ Relocator::Result unsupport(Relocation &pReloc, AArch64Relocator &pParent) {
 // R_AARCH64_ABS64: S + A
 // R_AARCH64_ABS32: S + A
 // R_AARCH64_ABS16: S + A
+// R_AARCH64_AUTH_ABS64: PAUTH(S + A)
 Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
   ResolveInfo *rsym = pReloc.symInfo();
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord S = pParent.getSymValue(&pReloc);
+  Relocator::Address targetVal = S + A;
 
+  bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
   ELFSection *target_sect = pReloc.targetRef()->getOutputELFSection();
   // If the flag of target section is not ALLOC, we will not scan this
   // relocation but perform static relocation. (e.g., applying .debug section)
   if (!target_sect->isAlloc()) {
+    // Making sure it's already handled during relocations scan
+    assert(!isAuthAbs);
     pReloc.target() = S + A;
     return Relocator::OK;
+  }
+
+  if (isAuthAbs) {
+    // Handle authenticated pointer relocations:
+    // - Undefined weak reference: the relocation is 0 regardless of the schema
+    // - AUTH_RELATIVE: write only schema (dynamic linker adds address)
+    // - AUTH_ABS64 (preemptible): skip writing (dynamic linker handles)
+    // - AUTH_ABS64 (non-preemptible): write address + schema
+
+    // PAuth spec 8.1.1:
+    // "if the target symbol is an undefined weak reference, the result of
+    // the relocation is 0 (nullptr) regardless of the signing schema"
+    if (rsym && rsym->isWeak() && rsym->isUndef()) {
+      pReloc.target() = 0;
+      return Relocator::OK;
+    }
+    Relocator::DWord signingSchema = getSigningSchema(pReloc);
+    if (rsym && (rsym->reserved() & Relocator::ReserveRel)) {
+      Relocation *dynrel = pParent.getTarget().findRelativeReloc(&pReloc);
+      // Only store the signing schema in the place for authenticated RELA
+      if (dynrel && (dynrel->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)) {
+        pReloc.target() = signingSchema;
+        return Relocator::OK;
+      }
+    }
+    targetVal = static_cast<uint32_t>(targetVal) | signingSchema;
   }
 
   if (rsym && (rsym->reserved() & Relocator::ReserveRel) &&
@@ -658,7 +753,7 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
 
   // A local symbol may need RELATIVE Type dynamic relocation
   // perform static relocation
-  pReloc.target() = S + A;
+  pReloc.target() = targetVal;
   return Relocator::OK;
 }
 
