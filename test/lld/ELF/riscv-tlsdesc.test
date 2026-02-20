@@ -16,6 +16,15 @@ RUN: %link %linkopts --no-emit-relocs --keep-labels --no-align-segments --sectio
 RUN: llvm-readobj -r %t.a.ie | FileCheck --check-prefix=IE-RELA%xlen %s
 RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
 
+## The same tests for executables are repeated with -pie.
+RUN: %link %linkopts --no-emit-relocs -pie --keep-labels --no-align-segments --section-start .text=0x1800 -z now %t.a.o %t.c.o -o %t.a.pie.le
+RUN: %readelf -r %t.a.pie.le | FileCheck --check-prefix=NOREL %s
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.le | FileCheck %s --check-prefix=LE
+
+RUN: %link %linkopts --no-emit-relocs -pie --keep-labels --no-align-segments --section-start .text=0x1800 --section-start .got=0x2880 -z now %t.a.o %t.c.so -o %t.a.pie.ie
+RUN: llvm-readobj -r %t.a.pie.ie | FileCheck --check-prefix=IE-RELA%xlen %s
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
+
 ## Prior to https://github.com/llvm/llvm-project/pull/85817 the local TLSDESC
 ## labels would be marked STT_TLS, resulting in an error "has an STT_TLS symbol but doesn't have an SHF_TLS section"
 

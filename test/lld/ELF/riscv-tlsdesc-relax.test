@@ -12,7 +12,7 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.so | FileCheck %s --ch
 ## Test the TLSDESC to LE optimization. Also check --emit-relocs.
 RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 %t.a.o %t.c.o -o %t.a.le --emit-relocs
 RUN: %readelf --dyn-relocations %t.a.le | FileCheck %s --match-full-lines --allow-empty --check-prefix=LE-REL
-RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.le | FileCheck %s --check-prefix=LE
+RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.le | FileCheck %s --check-prefix=LE --check-prefix=LER
 
 RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 %t.aa.o %t.c.o -o %t.aa.le
 RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.le | FileCheck %s --check-prefix=LEA
@@ -21,6 +21,21 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.le | FileCheck %s --c
 RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 --section-start .got=0x120e0 %t.a.o %t.c.so -o %t.a.ie
 RUN: %readelf --dyn-relocations %t.a.ie | FileCheck %s --match-full-lines --check-prefix=IE-REL%xlen
 RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
+
+## The same tests for executables are repeated with -pie, except for output static relocation checks as --emit-relocs does not work with -pie.
+
+## Test the TLSDESC to LE optimization. Also check --emit-relocs.
+RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-start .text=0x11000 %t.a.o %t.c.o -o %t.a.pie.le --emit-relocs
+RUN: %readelf --dyn-relocations %t.a.pie.le | FileCheck %s --match-full-lines --allow-empty --check-prefix=LE-REL
+RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.pie.le | FileCheck %s --check-prefix=LE
+
+RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-start .text=0x11000 %t.aa.o %t.c.o -o %t.aa.pie.le
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.pie.le | FileCheck %s --check-prefix=LEA
+
+## Test the TLSDESC to IE optimization.
+RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-start .text=0x11000 --section-start .got=0x120e0 %t.a.o %t.c.so -o %t.a.pie.ie
+RUN: %readelf --dyn-relocations %t.a.pie.ie | FileCheck %s --match-full-lines --check-prefix=IE-REL%xlen
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
 
 ## .got has 3 additional header slots before the TLS slot.
 
@@ -79,49 +94,49 @@ LE-REL-NOT:       R_RISCV
 LE-LABEL: <foo>:
 LE-NEXT:         c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_HI20 b
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi0
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:  11008: c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi0
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         addi    a0, zero, 0x7ff
 LE-NEXT-LLD:             R_RISCV_TLSDESC_CALL .Ltlsdesc_hi0
-LE-NEXT:                 R_RISCV_LO12_I b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_LO12_I b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a0, tp
 
 LE-LABEL: <.Ltlsdesc_hi1>:
 LE-NEXT:         addi    a0, zero, 0x7ff
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi1
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi1
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_NONE b
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_NONE b
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_CALL .Ltlsdesc_hi1
-LE-NEXT:                 R_RISCV_LO12_I b
+LER-NEXT:                R_RISCV_LO12_I b
 LE-NEXT:         c.add   a0, tp
 LE-LABEL: <.Ltlsdesc_hi2>:
 LE-NEXT:         addi    zero, zero, 0x0
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
-LE-NEXT:                 R_RISCV_NONE b
+LER-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
+LER-NEXT:                R_RISCV_NONE b
 LE-NEXT:         addi    zero, zero, 0x0
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi2
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         addi    zero, zero, 0x0
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi2
-LE-NEXT:                 R_RISCV_NONE b
-LE-NEXT:                 R_RISCV_RELAX *ABS*
+LER-NEXT:                R_RISCV_NONE b
+LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         addi    a0, zero, 0x7ff
 LE-NEXT-LLD:                 R_RISCV_TLSDESC_CALL .Ltlsdesc_hi2
-LE-NEXT:                 R_RISCV_LO12_I b
+LER-NEXT:                R_RISCV_LO12_I b
 LE-NEXT:         c.add   a0, tp
 
 LEA-LABEL: <foo>:
