@@ -83,7 +83,8 @@ public:
 
   std::pair<mapping, bool>
   insert(std::string CurInputSection, std::string EntrySection,
-         InputSectDesc::Policy PPolicy = InputSectDesc::NoKeep);
+         InputSectDesc::Policy PPolicy = InputSectDesc::NoKeep,
+         WildcardPattern::SortPolicy SortPolicy = WildcardPattern::SORT_NONE);
   std::pair<mapping, bool> insert(const InputSectDesc &PInputDesc,
                                   OutputSectDesc &POutputSectionEntryDesc);
 

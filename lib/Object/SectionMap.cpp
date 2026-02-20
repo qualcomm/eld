@@ -152,7 +152,8 @@ SectionMap::findOnlyIn(SectionMap::iterator Out, std::string PInputFile,
 
 std::pair<SectionMap::mapping, bool>
 SectionMap::insert(std::string pInputSection, std::string pOutputSection,
-                   InputSectDesc::Policy pPolicy) {
+                   InputSectDesc::Policy pPolicy,
+                   WildcardPattern::SortPolicy SortPolicy) {
   iterator out, OutBegin = begin(), OutEnd = end();
   for (out = OutBegin; out != OutEnd; ++out) {
     if ((*out)->name().compare(pOutputSection) == 0)
@@ -176,7 +177,7 @@ SectionMap::insert(std::string pInputSection, std::string pOutputSection,
 
       return std::make_pair(std::make_pair(*out, *In), false);
     }
-    auto input = make<RuleContainer>(this, pInputSection, pPolicy);
+    auto input = make<RuleContainer>(this, pInputSection, pPolicy, SortPolicy);
     input->getSection()->setOutputSection(*out);
     if (IsSectionTracingRequested &&
         ThisConfig.options().traceSection(input->getSection())) {
@@ -199,7 +200,7 @@ SectionMap::insert(std::string pInputSection, std::string pOutputSection,
 
   auto *Output = make<OutputSectionEntry>(this, pOutputSection);
   MOutputSectionEntryDescList.push_back(Output);
-  auto *Input = make<RuleContainer>(this, pInputSection, pPolicy);
+  auto *Input = make<RuleContainer>(this, pInputSection, pPolicy, SortPolicy);
   Input->getSection()->setOutputSection(Output);
   if (IsSectionTracingRequested &&
       ThisConfig.options().traceSection(Input->getSection())) {
