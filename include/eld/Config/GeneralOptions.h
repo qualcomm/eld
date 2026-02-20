@@ -928,6 +928,10 @@ public:
 
   bool getRISCVRelaxXqci() const { return BRiscvRelaxXqci; }
 
+  void setRISCVRelaxTLSDESC(bool Value) { BRiscvRelaxTLSDESC = Value; }
+
+  bool getRISCVRelaxTLSDESC() const { return BRiscvRelaxTLSDESC; }
+
   bool warnCommon() const { return BWarnCommon; }
 
   void setWarnCommon() { BWarnCommon = true; }
@@ -1291,6 +1295,7 @@ private:
   bool RiscvGPRelax = true;               // GP relaxation
   bool BRiscvRelaxToC = true; // enable riscv relax to compressed code
   bool BRiscvRelaxXqci = false; // enable riscv relaxations for xqci
+  bool BRiscvRelaxTLSDESC = true; // enable riscv relaxations for TLSDESC
   bool AllowIncompatibleSectionsMix = false; // Allow incompatibleSections;
   bool ProgressBar = false;                  // Show progressbar.
   bool RecordInputFiles = false;             // --reproduce

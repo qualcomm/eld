@@ -662,7 +662,8 @@ bool RISCVLDBackend::doRelaxationTLSDESC(Relocation &R, bool Relax) {
   // different type. The conditions and the instruction substitution rules are
   // the same whether or not relaxation is enabled.
   auto attempt = [&]() -> bool {
-    bool Relaxed = Relax && config().options().getRISCVRelax();
+    bool Relaxed = Relax && config().options().getRISCVRelax() &&
+                   config().options().getRISCVRelaxTLSDESC();
     if (Relaxed)
       relaxDeleteBytes(RelaxType, *region, offset, 4, Sym.name());
     else {

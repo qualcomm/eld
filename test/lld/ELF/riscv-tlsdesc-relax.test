@@ -12,7 +12,7 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.so | FileCheck %s --ch
 ## Test the TLSDESC to LE optimization. Also check --emit-relocs.
 RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 %t.a.o %t.c.o -o %t.a.le --emit-relocs
 RUN: %readelf --dyn-relocations %t.a.le | FileCheck %s --match-full-lines --allow-empty --check-prefix=LE-REL
-RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.le | FileCheck %s --check-prefix=LE --check-prefix=LER
+RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.le | FileCheck %s --check-prefix=LE --check-prefix=LER --check-prefix=LE-RELAX --check-prefix=LER-RELAX
 
 RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 %t.aa.o %t.c.o -o %t.aa.le
 RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.le | FileCheck %s --check-prefix=LEA
@@ -20,14 +20,21 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.le | FileCheck %s --c
 ## Test the TLSDESC to IE optimization.
 RUN: %link %linkopts -z now --no-align-segments --section-start .text=0x11000 --section-start .got=0x120e0 %t.a.o %t.c.so -o %t.a.ie
 RUN: %readelf --dyn-relocations %t.a.ie | FileCheck %s --match-full-lines --check-prefix=IE-REL%xlen
-RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen --check-prefix=IE-RELAX --check-prefix=IE%xlen-RELAX
+
+## Same as above but with --no-relax-tlsdesc, only check assembly output.
+RUN: %link %linkopts -z now --no-relax-tlsdesc --no-align-segments --section-start .text=0x11000 %t.a.o %t.c.o -o %t.a.norelax.le --emit-relocs
+RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.norelax.le | FileCheck %s --check-prefix=LE --check-prefix=LER --check-prefix=LE-NORELAX --check-prefix=LER-NORELAX
+
+RUN: %link %linkopts -z now --no-relax-tlsdesc --no-align-segments --section-start .text=0x11000 --section-start .got=0x120e0 %t.a.o %t.c.so -o %t.a.norelax.ie
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.norelax.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen --check-prefix=IE-NORELAX --check-prefix=IE%xlen-NORELAX
 
 ## The same tests for executables are repeated with -pie, except for output static relocation checks as --emit-relocs does not work with -pie.
 
 ## Test the TLSDESC to LE optimization. Also check --emit-relocs.
 RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-start .text=0x11000 %t.a.o %t.c.o -o %t.a.pie.le --emit-relocs
 RUN: %readelf --dyn-relocations %t.a.pie.le | FileCheck %s --match-full-lines --allow-empty --check-prefix=LE-REL
-RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.pie.le | FileCheck %s --check-prefix=LE
+RUN: %objdump --no-show-raw-insn -M no-aliases -hdr %t.a.pie.le | FileCheck %s --check-prefix=LE --check-prefix=LE-RELAX
 
 RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-start .text=0x11000 %t.aa.o %t.c.o -o %t.aa.pie.le
 RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.pie.le | FileCheck %s --check-prefix=LEA
@@ -35,7 +42,7 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.aa.pie.le | FileCheck %s
 ## Test the TLSDESC to IE optimization.
 RUN: %link %linkopts -pie -z now --keep-labels --no-align-segments --section-start .text=0x11000 --section-start .got=0x120e0 %t.a.o %t.c.so -o %t.a.pie.ie
 RUN: %readelf --dyn-relocations %t.a.pie.ie | FileCheck %s --match-full-lines --check-prefix=IE-REL%xlen
-RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen
+RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.ie | FileCheck %s --check-prefix=IE --check-prefix=IE%xlen --check-prefix=IE-RELAX --check-prefix=IE%xlen-RELAX
 
 ## .got has 3 additional header slots before the TLS slot.
 
@@ -92,18 +99,25 @@ GD-NEXT:         c.add   a0, tp
 LE-REL-NOT:       R_RISCV
 
 LE-LABEL: <foo>:
+LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LER-NORELAX-NEXT:        R_RISCV_NONE b
+LER-NORELAX-NEXT:        R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_HI20 b
+LE-NORELAX-NEXT: addi    zero, zero, 0x0 
 LER-NEXT:                R_RISCV_NONE b
 LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi0
+LE-NORELAX-NEXT: addi    zero, zero, 0x0 
 LER-NEXT:                R_RISCV_NONE b
 LER-NEXT:                R_RISCV_RELAX *ABS*
-LE-NEXT:  11008: c.add   a7, a7
-LE-NEXT-LLD:             R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi0
-LER-NEXT:                R_RISCV_NONE b
-LER-NEXT:                R_RISCV_RELAX *ABS*
+LE-NORELAX-NEXT: 11014: c.add   a7, a7
+LE-RELAX-NEXT:   11008: c.add   a7, a7
+LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi0
+LER-RELAX-NEXT:          R_RISCV_NONE b
+LER-RELAX-NEXT:          R_RISCV_RELAX *ABS*
+
 LE-NEXT:         addi    a0, zero, 0x7ff
 LE-NEXT-LLD:             R_RISCV_TLSDESC_CALL .Ltlsdesc_hi0
 LER-NEXT:                R_RISCV_LO12_I b
@@ -111,31 +125,38 @@ LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a0, tp
 
 LE-LABEL: <.Ltlsdesc_hi1>:
+LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LER-NORELAX-NEXT:        R_RISCV_NONE b
+LER-NORELAX-NEXT:        R_RISCV_RELAX *ABS*
+LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LER-NORELAX-NEXT:        R_RISCV_NONE b
+LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LER-NORELAX-NEXT:        R_RISCV_NONE b
 LE-NEXT:         addi    a0, zero, 0x7ff
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
-LER-NEXT:                R_RISCV_NONE b
-LER-NEXT:                R_RISCV_RELAX *ABS*
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi1
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi1
-LER-NEXT:                R_RISCV_NONE b
-LER-NEXT:                R_RISCV_NONE b
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_CALL .Ltlsdesc_hi1
+LE-NEXT-LLD:             R_RISCV_TLSDESC_HI20 b
+LER-RELAX-NEXT:          R_RISCV_NONE b
+LER-RELAX-NEXT:          R_RISCV_RELAX *ABS*
+LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi1
+LE-NEXT-LLD:             R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi1
+LER-RELAX-NEXT:          R_RISCV_NONE b
+LER-RELAX-NEXT:          R_RISCV_NONE b
+LE-NEXT-LLD:             R_RISCV_TLSDESC_CALL .Ltlsdesc_hi1
 LER-NEXT:                R_RISCV_LO12_I b
 LE-NEXT:         c.add   a0, tp
 LE-LABEL: <.Ltlsdesc_hi2>:
 LE-NEXT:         addi    zero, zero, 0x0
-LER-NEXT-LLD:                 R_RISCV_TLSDESC_HI20 b
+LER-NEXT-LLD:            R_RISCV_TLSDESC_HI20 b
 LER-NEXT:                R_RISCV_NONE b
 LE-NEXT:         addi    zero, zero, 0x0
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi2
+LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi2
 LER-NEXT:                R_RISCV_NONE b
 LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         addi    zero, zero, 0x0
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi2
+LE-NEXT-LLD:             R_RISCV_TLSDESC_ADD_LO12 .Ltlsdesc_hi2
 LER-NEXT:                R_RISCV_NONE b
 LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         addi    a0, zero, 0x7ff
-LE-NEXT-LLD:                 R_RISCV_TLSDESC_CALL .Ltlsdesc_hi2
+LE-NEXT-LLD:             R_RISCV_TLSDESC_CALL .Ltlsdesc_hi2
 LER-NEXT:                R_RISCV_LO12_I b
 LE-NEXT:         c.add   a0, tp
 
@@ -165,29 +186,42 @@ IE-REL4:   {{0*}}120e4 {{0*}}010a       R_RISCV_TLS_TPREL32 {{0+}} b + 0
 IE-REL8:   {{0*}}120e8 {{0*}}010000000b R_RISCV_TLS_TPREL64 {{0+}} b + 0
 
 IE-LABEL: <foo>:
+IE-NORELAX-NEXT: addi    zero, zero, 0x0 
 IE-NEXT:         c.add   a7, a7
+IE-NORELAX-NEXT: addi    zero, zero, 0x0 
 IE-NEXT:         c.add   a7, a7
-## &.got[c]-. = 0x120e4 - 0x11008 = 0x10dc
-## &.got[c]-. = 0x120e8 - 0x11008 = 0x10e0
-IE-NEXT:  11008: auipc   a0, 0x1
+## &.got[c]-. = 0x120e4 - 0x11008 = 0x10dc (8 bytes less if previous nops are not relaxed)
+## &.got[c]-. = 0x120e8 - 0x11008 = 0x10e0 (8 bytes less if previous nops are not relaxed)
+IE-NORELAX-NEXT: 11010: auipc   a0, 0x1
+IE-RELAX-NEXT:   11008: auipc   a0, 0x1
 IE-NEXT:         c.add   a7, a7
-IE4-NEXT:        lw      a0, 0xdc(a0)
-IE8-NEXT:        ld      a0, 0xe0(a0)
+IE4-NORELAX-NEXT:       lw      a0, 0xd4(a0)
+IE4-RELAX-NEXT:         lw      a0, 0xdc(a0)
+IE8-NORELAX-NEXT:       ld      a0, 0xd8(a0)
+IE8-RELAX-NEXT:         ld      a0, 0xe0(a0)
 IE-NEXT:         c.add   a0, tp
 
 IE-LABEL: <.Ltlsdesc_hi1>:
-## &.got[c]-. = 0x120e4 - 0x11018 = 0x10cc
-## &.got[c]-. = 0x120e8 - 0x11018 = 0x10d0
-IE-NEXT:  11018: auipc   a0, 0x1
-IE4-NEXT:        lw      a0, 0xcc(a0)
-IE8-NEXT:        ld      a0, 0xd0(a0)
+## &.got[c]-. = 0x120e4 - 0x11018 = 0x10cc (16 bytes less if previous nops are not relaxed)
+## &.got[c]-. = 0x120e8 - 0x11018 = 0x10d0 (16 bytes less if previous nops are not relaxed)
+IE-NORELAX-NEXT: addi    zero, zero, 0x0 
+IE-NORELAX-NEXT: addi    zero, zero, 0x0 
+IE-NORELAX-NEXT:  11028: auipc   a0, 0x1
+IE-RELAX-NEXT:    11018: auipc   a0, 0x1
+IE4-NORELAX-NEXT:        lw      a0, 0xbc(a0)
+IE4-RELAX-NEXT:          lw      a0, 0xcc(a0)
+IE8-NORELAX-NEXT:        ld      a0, 0xc0(a0)
+IE8-RELAX-NEXT:          ld      a0, 0xd0(a0)
 IE-NEXT:         c.add   a0, tp
-## &.got[c]-. = 0x120e4 - 0x1102a = 0x10ba
-## &.got[c]-. = 0x120e8 - 0x1102a = 0x10be
+## &.got[c]-. = 0x120e4 - 0x1102a = 0x10ba (16 bytes less if previous nops are not relaxed)
+## &.got[c]-. = 0x120e8 - 0x1102a = 0x10be (16 bytes less if previous nops are not relaxed)
 IE-LABEL: <.Ltlsdesc_hi2>:
 IE-NEXT:         addi    zero, zero, 0x0
 IE-NEXT:         addi    zero, zero, 0x0
-IE-NEXT:  1102a: auipc   a0, 0x1
-IE4-NEXT:        lw      a0, 0xba(a0)
-IE8-NEXT:        ld      a0, 0xbe(a0)
+IE-NORELAX-NEXT:  1103a: auipc   a0, 0x1
+IE-RELAX-NEXT:    1102a: auipc   a0, 0x1
+IE4-NORELAX-NEXT:        lw      a0, 0xaa(a0)
+IE4-RELAX-NEXT:          lw      a0, 0xba(a0)
+IE8-NORELAX-NEXT:        ld      a0, 0xae(a0)
+IE8-RELAX-NEXT:          ld      a0, 0xbe(a0)
 IE-NEXT:         c.add   a0, tp
