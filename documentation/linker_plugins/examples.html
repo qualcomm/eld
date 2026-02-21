@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2. Linker Plugin Examples &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.3. Linker Plugin API Usage and Reference" href="api_docs.html" />
+    <link rel="prev" title="11.1. Linker Plugins" href="linker_plugins.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../layout.html">10. Image layout</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../linker_plugins_updated.html">11. Linker Plugins</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins.html">11.1. Linker Plugins</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.2. Linker Plugin Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#exclude-symbols-from-the-output-image-symbol-table">11.2.1. Exclude symbols from the output image symbol table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#add-linker-script-rules">11.2.2. Add Linker Script Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-ini-files-functionality">11.2.3. Reading INI Files Functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modify-relocations">11.2.4. Modify Relocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#section-rule-matching">11.2.5. Section Rule-Matching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#change-symbol-value-to-another-symbol">11.2.6. Change Symbol Value to Another Symbol</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_docs.html">11.3. Linker Plugin API Usage and Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../linker_plugins_updated.html"><span class="section-number">11. </span>Linker Plugins</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2. </span>Linker Plugin Examples</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-plugin-examples">
+<h1><span class="section-number">11.2. </span>Linker Plugin Examples<a class="headerlink" href="#linker-plugin-examples" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#exclude-symbols-from-the-output-image-symbol-table" id="id1">Exclude symbols from the output image symbol table</a></p></li>
+<li><p><a class="reference internal" href="#add-linker-script-rules" id="id2">Add Linker Script Rules</a></p></li>
+<li><p><a class="reference internal" href="#reading-ini-files-functionality" id="id3">Reading INI Files Functionality</a></p></li>
+<li><p><a class="reference internal" href="#modify-relocations" id="id4">Modify Relocations</a></p></li>
+<li><p><a class="reference internal" href="#section-rule-matching" id="id5">Section Rule-Matching</a></p></li>
+<li><p><a class="reference internal" href="#change-symbol-value-to-another-symbol" id="id6">Change Symbol Value to Another Symbol</a></p></li>
+</ul>
+</div>
+<p>This section introduces and explains plugin framework APIs in a hands-on
+manner. The goal of these examples is to demonstrate how to use plugin
+framework APIs, rather than to present practical plugin use cases. Each
+plugin example introduces some new plugin framework APIs while keeping
+the example short and simple.</p>
+<p>Each example will include the plugin, instructions on how to build and run it, and
+an analysis of the plugin’s run. To build and run the plugin, you will need access
+to the Hexagon toolchain. In the snippets below, the substitution <cite>${HEXAGON}</cite> refers
+to the Hexagon toolchain installation path. Let’s get started.</p>
+<div class="section" id="exclude-symbols-from-the-output-image-symbol-table">
+<h2><a class="toc-backref" href="#id1"><span class="section-number">11.2.1. </span>Exclude symbols from the output image symbol table</a><a class="headerlink" href="#exclude-symbols-from-the-output-image-symbol-table" title="Permalink to this heading"></a></h2>
+<p>This example plugin describes how to exclude symbols from the output image symbol table.
+Note that the plugin does not completely remove symbols from the link process, it only
+excludes symbols from the output image symbol table.</p>
+<p><em>ExcludeSymbols</em> plugin with self-contained documentation.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/PluginVersion.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/SectionIteratorPlugin.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ExcludeSymbols</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">SectionIteratorPlugin</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">ExcludeSymbols</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">SectionIteratorPlugin</span><span class="p">(</span><span class="s">&quot;ExcludeSymbols&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Init&#39; callback hook can be used for initialization and preparations.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">Options</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">m_SymbolsToRemove</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="s">&quot;foo&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;fooagain&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bar&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;baragain&quot;</span><span class="p">};</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;processSection&#39; callback hook is called for each input section that is not</span>
+<span class="w">  </span><span class="c1">// garbage-collected.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">processSection</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Section</span><span class="w"> </span><span class="n">O</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Run&#39; callback hook is called after &#39;processSection&#39; callback hook calls.</span>
+<span class="w">  </span><span class="c1">// It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="w"> </span><span class="n">Run</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">trace</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">symName</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">m_SymbolsToRemove</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="w"> </span><span class="n">S</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getSymbol</span><span class="p">(</span><span class="n">symName</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<span class="w">        </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">removeSymbolTableEntry</span><span class="p">(</span><span class="n">S</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Destroy&#39; callback hook can be used for finalization and clean-up tasks.</span>
+<span class="w">  </span><span class="c1">// It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Destroy</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetLastErrorAsString</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Success&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetName</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;ExcludeSymbols&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="n">m_SymbolsToRemove</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterAll</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ExcludeSymbols</span><span class="p">{};</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="nf">getPlugin</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">pluginName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">Cleanup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ThisPlugin</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="k">delete</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><em>ExcludeSymbols</em> plugin removes the symbols ‘foo’, ‘fooagain’, ‘bar’, and ‘baragain’,
+if they exist, from the output image symbol table.</p>
+<p>To build the plugin, run the following command:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">++</span><span class="mi">-14</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">libExcludeSymbols</span><span class="p">.</span><span class="n">so</span><span class="w"> </span><span class="n">ExcludeSymbols</span><span class="p">.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">std</span><span class="o">=</span><span class="n">c</span><span class="o">++</span><span class="mi">17</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">include</span><span class="w"> </span><span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span>
+</pre></div>
+</div>
+<p>Now, let’s see the effect of this plugin on a sample program.</p>
+<p><strong>1.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">fooagain</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">abc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">baragain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">def</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>1.linker.script</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>PLUGIN_ITER_SECTIONS<span class="o">(</span><span class="s2">&quot;ExcludeSymbols&quot;</span>,<span class="w"> </span><span class="s2">&quot;ExcludeSymbols&quot;</span><span class="o">)</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Now, let’s build <strong>1.c</strong> with the <em>ExcludeSymbols</em> plugin enabled.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HEXAGON</span><span class="si">}</span><span class="s2">/lib:</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+hexagon-clang<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-ffunction-sections<span class="w"> </span>-fdata-sections
+hexagon-link<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.elf<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>-T<span class="w"> </span><span class="m">1</span>.linker.script
+</pre></div>
+</div>
+<p>We can list the symbols present in an object file using hexagon-readelf.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hexagon-readelf<span class="w"> </span>-s<span class="w"> </span><span class="m">1</span>.elf
+</pre></div>
+</div>
+<p>You can observe in the symbol table output that ‘foo’, ‘fooagain’, ‘bar’, and ‘baragain’
+symbols has been removed from the symbol table as directed by the plugin.</p>
+</div>
+<div class="section" id="add-linker-script-rules">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">11.2.2. </span>Add Linker Script Rules</a><a class="headerlink" href="#add-linker-script-rules" title="Permalink to this heading"></a></h2>
+<p>This example plugin describes how to add and modify linker script rules.
+By doing so, you can perform section rule-matching at a more granular level
+than what is possible through linker scripts.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">LinkerScriptRule</span></code> is similar to an input section description in that
+it has a corresponding output section. However, unlike an input section
+description, it does not match input sections by pattern matching.
+Instead, a plugin must manually match chunks to a <code class="code docutils literal notranslate"><span class="pre">LinkerScriptRule</span></code>
+object. This generally involves moving chunks from one
+<code class="code docutils literal notranslate"><span class="pre">LinkerScriptRule</span></code> object to another. It is important to remove a chunk
+from the old <code class="code docutils literal notranslate"><span class="pre">LinkerScriptRule</span></code> object once it has been added to a
+new one. It is an undefined behavior for a chunk to be part of multiple
+<code class="code docutils literal notranslate"><span class="pre">LinkerScriptRule</span></code> objects.</p>
+<p>Also, you must only move chunks from one <code class="code docutils literal notranslate"><span class="pre">LinkerScriptRule</span></code> object to
+another in the <em>CreatingSections</em> link state. It is an undefined behavior to
+move chunks in other link states.</p>
+<p>The <em>AddRule</em> plugin moves chunks from <code class="code docutils literal notranslate"><span class="pre">foo</span></code> and <code class="code docutils literal notranslate"><span class="pre">bar</span></code> output
+sections to the <code class="code docutils literal notranslate"><span class="pre">var</span></code> output section. Let’s see how to create this
+plugin.</p>
+<p><em>AddRule</em> plugin with self-contained documentation.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/OutputSectionIteratorPlugin.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/PluginVersion.h&quot;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AddRule</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSectionIteratorPlugin</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">AddRule</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSectionIteratorPlugin</span><span class="p">(</span><span class="s">&quot;AddRule&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Init&#39; callback hook can be used for initialization and preparations.</span>
+<span class="w">  </span><span class="c1">// This plugin does not need any initialization or preparation.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">cfg</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;processOutputSection&#39; callback hook is called once for each output</span>
+<span class="w">  </span><span class="c1">// section. In this function, the plugin stores &#39;var, &#39;foo&#39; and &#39;bar&#39; output</span>
+<span class="w">  </span><span class="c1">// sections in member variables.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">processOutputSection</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">O</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// OutputSectionIterator plugin essentially runs three times.</span>
+<span class="w">    </span><span class="c1">// It is run once for each of the following three link states: BeforeLayout,</span>
+<span class="w">    </span><span class="c1">// CreatingSections and AfterLayout.</span>
+<span class="w">    </span><span class="c1">// We are only interested in one link state, CreatingSections, as chunks can</span>
+<span class="w">    </span><span class="c1">// only be moved from one LinkerScriptRule to another in the</span>
+<span class="w">    </span><span class="c1">// CreatingSections link state. Thus, we simply return for the other link</span>
+<span class="w">    </span><span class="c1">// states. We will do this for each callback hook function.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getState</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerWrapper</span><span class="o">::</span><span class="n">State</span><span class="o">::</span><span class="n">CreatingSections</span><span class="p">)</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">O</span><span class="p">.</span><span class="n">getName</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;var&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">m_Var</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">O</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">O</span><span class="p">.</span><span class="n">getName</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;foo&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">m_Foo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">O</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">O</span><span class="p">.</span><span class="n">getName</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;bar&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">m_Bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">O</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Run&#39; callback hook is called after all the &#39;processSection&#39; callback hook</span>
+<span class="w">  </span><span class="c1">// calls.</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="w"> </span><span class="n">Run</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">trace</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getState</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerWrapper</span><span class="o">::</span><span class="n">State</span><span class="o">::</span><span class="n">CreatingSections</span><span class="p">)</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">lastRule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m_Var</span><span class="p">.</span><span class="n">getLinkerScriptRules</span><span class="p">().</span><span class="n">back</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// Create a new rule for m_Var output section.</span>
+<span class="w">    </span><span class="c1">// Annotation is used to name the linker sript rule, and is useful</span>
+<span class="w">    </span><span class="c1">// for diagnostic purposes.</span>
+<span class="w">    </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerScriptRule</span><span class="w"> </span><span class="n">newRule</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">createLinkerScriptRule</span><span class="p">(</span>
+<span class="w">        </span><span class="n">m_Var</span><span class="p">,</span><span class="w"> </span><span class="cm">/*Annotation=*/</span><span class="s">&quot;Move foo and bar chunks to var&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Insert the newly created linker script rule in the m_Var output section.</span>
+<span class="w">    </span><span class="c1">// We can also insert the newly created rule before some already existing</span>
+<span class="w">    </span><span class="c1">// rule using LinkerWrapper::insertBeforeRule API.</span>
+<span class="w">    </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">insertAfterRule</span><span class="p">(</span><span class="n">m_Var</span><span class="p">,</span><span class="w"> </span><span class="n">lastRule</span><span class="p">,</span><span class="w"> </span><span class="n">newRule</span><span class="p">);</span>
+<span class="w">    </span><span class="n">moveChunks</span><span class="p">(</span><span class="n">m_Foo</span><span class="p">,</span><span class="w"> </span><span class="n">newRule</span><span class="p">);</span>
+<span class="w">    </span><span class="n">moveChunks</span><span class="p">(</span><span class="n">m_Bar</span><span class="p">,</span><span class="w"> </span><span class="n">newRule</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Destroy&#39; callback hook can be used for finalization and clean-up tasks.</span>
+<span class="w">  </span><span class="c1">// It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Destroy</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetLastErrorAsString</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Success&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetName</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;AddRule&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">moveChunks</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerScriptRule</span><span class="w"> </span><span class="n">oldRule</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerScriptRule</span><span class="w"> </span><span class="n">newRule</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Chunk</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">oldRule</span><span class="p">.</span><span class="n">getChunks</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// It is crucial to maintain that no two LinkerScriptRule objects contain</span>
+<span class="w">      </span><span class="c1">// the same chunk. It is an undefined behavior for a chunk to be contained</span>
+<span class="w">      </span><span class="c1">// by multiple linker script rules.</span>
+<span class="w">      </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">addChunk</span><span class="p">(</span><span class="n">newRule</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">);</span>
+<span class="w">      </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">removeChunk</span><span class="p">(</span><span class="n">oldRule</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">moveChunks</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">oldSection</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerScriptRule</span><span class="w"> </span><span class="n">newRule</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerScriptRule</span><span class="w"> </span><span class="n">rule</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">oldSection</span><span class="p">.</span><span class="n">getLinkerScriptRules</span><span class="p">())</span>
+<span class="w">      </span><span class="n">moveChunks</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span><span class="w"> </span><span class="n">newRule</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">m_Var</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">m_Foo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">m_Bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="p">(</span><span class="k">nullptr</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// RegisterAll should initialize all the plugins that a plugin library aims</span>
+<span class="c1">// to provide. Linker calls this function before running any plugins provided</span>
+<span class="c1">// by the library.</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterAll</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">AddRule</span><span class="p">{};</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Linker calls this function to request an instance of the plugin</span>
+<span class="c1">// with the plugin name pluginName. pluginName is provided in the plugin</span>
+<span class="c1">// invocation command.</span>
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="nf">getPlugin</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">pluginName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// Cleanup should free all the resources owned by a plugin library.</span>
+<span class="c1">// Linker calls this function after all runs of the plugins provided</span>
+<span class="c1">// by the library have completed.</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Cleanup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ThisPlugin</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="k">delete</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To build the plugin, run the following command:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">++</span><span class="mi">-14</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">libAddRule</span><span class="p">.</span><span class="n">so</span><span class="w"> </span><span class="n">AddRule</span><span class="p">.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">std</span><span class="o">=</span><span class="n">c</span><span class="o">++</span><span class="mi">17</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">include</span><span class="w"> </span><span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span>
+</pre></div>
+</div>
+<p>Now, let’s see the effect of this plugin on a sample program.</p>
+<p><strong>1.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">baz</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">int_var</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="kt">long</span><span class="w"> </span><span class="n">long_var</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">double_var</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>1.linker.script</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SECTIONS<span class="w"> </span><span class="o">{</span>
+<span class="w">  </span>foo<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>.text.foo<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="w">  </span>bar<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>.text.bar<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="w">  </span>baz<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>.text.baz<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="w">  </span>var<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>*var<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="o">}</span>
+
+PLUGIN_OUTPUT_SECTION_ITER<span class="o">(</span><span class="s2">&quot;AddRule&quot;</span>,<span class="w"> </span><span class="s2">&quot;AddRule&quot;</span><span class="o">)</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Now, let’s build 1.c with the <em>AddRule</em> plugin enabled.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HEXAGON</span><span class="si">}</span><span class="s2">/lib:</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+hexagon-clang<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-ffunction-sections<span class="w"> </span>-fdata-sections
+hexagon-link<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.elf<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>-T<span class="w"> </span><span class="m">1</span>.linker.script<span class="w"> </span>-Map<span class="w"> </span><span class="m">1</span>.map.txt
+</pre></div>
+</div>
+<p>We can see the symbol to section mapping using hexagon-readelf.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hexagon-readelf<span class="w"> </span>-Ss<span class="w"> </span><span class="m">1</span>.elf
+</pre></div>
+</div>
+<p>readelf output:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>There<span class="w"> </span>are<span class="w"> </span><span class="m">8</span><span class="w"> </span>section<span class="w"> </span>headers,<span class="w"> </span>starting<span class="w"> </span>at<span class="w"> </span>offset<span class="w"> </span>0x12a0:
+
+Section<span class="w"> </span>Headers:
+<span class="w">  </span><span class="o">[</span>Nr<span class="o">]</span><span class="w"> </span>Name<span class="w">              </span>Type<span class="w">            </span>Address<span class="w">  </span>Off<span class="w">    </span>Size<span class="w">   </span>ES<span class="w"> </span>Flg<span class="w"> </span>Lk<span class="w"> </span>Inf<span class="w"> </span>Al
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">0</span><span class="o">]</span><span class="w">                   </span>NULL<span class="w">            </span><span class="m">00000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">0</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">1</span><span class="o">]</span><span class="w"> </span>baz<span class="w">               </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">001000</span><span class="w"> </span>00000c<span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">2</span><span class="o">]</span><span class="w"> </span>.text.main<span class="w">        </span>PROGBITS<span class="w">        </span><span class="m">00000010</span><span class="w"> </span><span class="m">001010</span><span class="w"> </span><span class="m">000014</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">3</span><span class="o">]</span><span class="w"> </span>var<span class="w">               </span>PROGBITS<span class="w">        </span><span class="m">00000030</span><span class="w"> </span><span class="m">001030</span><span class="w"> </span>00002c<span class="w"> </span><span class="m">00</span><span class="w"> </span>WAXp<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w"> </span>.comment<span class="w">          </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span>00105c<span class="w"> </span>0000d2<span class="w"> </span><span class="m">01</span><span class="w">  </span>MS<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">5</span><span class="o">]</span><span class="w"> </span>.shstrtab<span class="w">         </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span>00112e<span class="w"> </span><span class="m">000037</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">6</span><span class="o">]</span><span class="w"> </span>.symtab<span class="w">           </span>SYMTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">001168</span><span class="w"> </span>0000e0<span class="w"> </span><span class="m">10</span><span class="w">      </span><span class="m">7</span><span class="w">   </span><span class="m">6</span><span class="w">  </span><span class="m">4</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">7</span><span class="o">]</span><span class="w"> </span>.strtab<span class="w">           </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">001248</span><span class="w"> </span><span class="m">000054</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+Key<span class="w"> </span>to<span class="w"> </span>Flags:
+<span class="w">  </span>W<span class="w"> </span><span class="o">(</span>write<span class="o">)</span>,<span class="w"> </span>A<span class="w"> </span><span class="o">(</span>alloc<span class="o">)</span>,<span class="w"> </span>X<span class="w"> </span><span class="o">(</span>execute<span class="o">)</span>,<span class="w"> </span>M<span class="w"> </span><span class="o">(</span>merge<span class="o">)</span>,<span class="w"> </span>S<span class="w"> </span><span class="o">(</span>strings<span class="o">)</span>,<span class="w"> </span>I<span class="w"> </span><span class="o">(</span>info<span class="o">)</span>,
+<span class="w">  </span>L<span class="w"> </span><span class="o">(</span>link<span class="w"> </span>order<span class="o">)</span>,<span class="w"> </span>O<span class="w"> </span><span class="o">(</span>extra<span class="w"> </span>OS<span class="w"> </span>processing<span class="w"> </span>required<span class="o">)</span>,<span class="w"> </span>G<span class="w"> </span><span class="o">(</span>group<span class="o">)</span>,<span class="w"> </span>T<span class="w"> </span><span class="o">(</span>TLS<span class="o">)</span>,
+<span class="w">  </span>C<span class="w"> </span><span class="o">(</span>compressed<span class="o">)</span>,<span class="w"> </span>x<span class="w"> </span><span class="o">(</span>unknown<span class="o">)</span>,<span class="w"> </span>o<span class="w"> </span><span class="o">(</span>OS<span class="w"> </span>specific<span class="o">)</span>,<span class="w"> </span>E<span class="w"> </span><span class="o">(</span>exclude<span class="o">)</span>,
+<span class="w">  </span>R<span class="w"> </span><span class="o">(</span>retain<span class="o">)</span>,<span class="w"> </span>p<span class="w"> </span><span class="o">(</span>processor<span class="w"> </span>specific<span class="o">)</span>
+
+Symbol<span class="w"> </span>table<span class="w"> </span><span class="s1">&#39;.symtab&#39;</span><span class="w"> </span>contains<span class="w"> </span><span class="m">14</span><span class="w"> </span>entries:
+<span class="w">   </span>Num:<span class="w">    </span>Value<span class="w">  </span>Size<span class="w"> </span>Type<span class="w">    </span>Bind<span class="w">   </span>Vis<span class="w">       </span>Ndx<span class="w"> </span>Name
+<span class="w">     </span><span class="m">0</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">   </span>UND
+<span class="w">     </span><span class="m">1</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">1</span><span class="w"> </span>baz
+<span class="w">     </span><span class="m">2</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">4</span><span class="w"> </span>.comment
+<span class="w">     </span><span class="m">3</span>:<span class="w"> </span><span class="m">00000010</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">2</span><span class="w"> </span>.text.main
+<span class="w">     </span><span class="m">4</span>:<span class="w"> </span><span class="m">00000030</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>var
+<span class="w">     </span><span class="m">5</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>FILE<span class="w">    </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">   </span>ABS<span class="w"> </span><span class="m">1</span>.c
+<span class="w">     </span><span class="m">6</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">    </span><span class="m">12</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">1</span><span class="w"> </span>baz
+<span class="w">     </span><span class="m">7</span>:<span class="w"> </span><span class="m">00000010</span><span class="w">    </span><span class="m">20</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">2</span><span class="w"> </span>main
+<span class="w">     </span><span class="m">8</span>:<span class="w"> </span><span class="m">00000030</span><span class="w">     </span><span class="m">4</span><span class="w"> </span>OBJECT<span class="w">  </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>int_var
+<span class="w">     </span><span class="m">9</span>:<span class="w"> </span><span class="m">00000034</span><span class="w">     </span><span class="m">4</span><span class="w"> </span>OBJECT<span class="w">  </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>long_var
+<span class="w">    </span><span class="m">10</span>:<span class="w"> </span><span class="m">00000038</span><span class="w">     </span><span class="m">8</span><span class="w"> </span>OBJECT<span class="w">  </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>double_var
+<span class="w">    </span><span class="m">11</span>:<span class="w"> </span><span class="m">00000040</span><span class="w">    </span><span class="m">12</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>foo
+<span class="w">    </span><span class="m">12</span>:<span class="w"> </span><span class="m">00000050</span><span class="w">    </span><span class="m">12</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>bar
+<span class="w">    </span><span class="m">13</span>:<span class="w"> </span><span class="m">00000061</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">   </span>ABS<span class="w"> </span>__end
+</pre></div>
+</div>
+<p>You can observe in the readelf output that the section <code class="code docutils literal notranslate"><span class="pre">var</span></code> contains
+the <code class="code docutils literal notranslate"><span class="pre">foo</span></code> and the <code class="code docutils literal notranslate"><span class="pre">bar</span></code> symbols, which is exactly what we expected
+from the plugin.</p>
+</div>
+<div class="section" id="reading-ini-files-functionality">
+<h2><a class="toc-backref" href="#id3"><span class="section-number">11.2.3. </span>Reading INI Files Functionality</a><a class="headerlink" href="#reading-ini-files-functionality" title="Permalink to this heading"></a></h2>
+<p>The plugin framework provides built-in support for the input/output operations
+of INI files. Linker plugins, like any other tool, may require external options
+and configurations. Traditionally, linker plugins use INI files for this
+purpose. This plugin demo demonstrates how to use INI files to provide options
+and configurations to a plugin. You can also use JSON, YAML, plain text, or any
+other format you prefer. However, for consistency with other linker plugins,
+I suggest using INI files for the plugin options and configurations.</p>
+<p>The demo will feature the <em>PrintSectionsInfo</em> plugin. This plugin will print
+section information for all input sections that match any of the section name
+patterns specified in the plugin configuration file. The plugin will expect
+the configuration file to in INI format.</p>
+<p><em>PrintSectionsInfo</em> plugin with self-contained documentation.</p>
+<p>To build the plugin, run:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">++</span><span class="mi">-14</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">libPrintSectionsInfo</span><span class="p">.</span><span class="n">so</span><span class="w"> </span><span class="n">PrintSectionsInfo</span><span class="p">.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">std</span><span class="o">=</span><span class="n">c</span><span class="o">++</span><span class="mi">17</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">include</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span>
+</pre></div>
+</div>
+<p>Now, let’s see the effect of this plugin on a sample program.</p>
+<p><strong>1.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">};</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">arr</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>1.linker.script</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># PluginConf.ini is the plugin configuration file name.</span>
+PLUGIN_SECTION_MATCHER<span class="o">(</span><span class="s2">&quot;PrintSectionsInfo&quot;</span>,<span class="w"> </span><span class="s2">&quot;PrintSectionsInfo&quot;</span>,<span class="w"> </span><span class="s2">&quot;PluginConf.ini&quot;</span><span class="o">)</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><strong>PluginConf.ini</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>sections<span class="o">]</span>
+*i<span class="o">=</span><span class="m">1</span>
+*arr<span class="o">=</span><span class="m">1</span>
+*foo<span class="o">=</span><span class="m">0</span>
+*bar<span class="o">=</span><span class="m">1</span>
+</pre></div>
+</div>
+<p>Now, let’s build 1.c with <em>PrintSectionsInfo</em> plugin enabled.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HEXAGON</span><span class="si">}</span><span class="s2">/lib:</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+hexagon-clang<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-ffunction-sections<span class="w"> </span>-fdata-sections
+hexagon-link<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.elf<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>-T<span class="w"> </span><span class="m">1</span>.linker.script
+</pre></div>
+</div>
+<p>The plugin gives the below output:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">.</span><span class="n">text</span><span class="p">.</span><span class="n">bar</span>
+<span class="n">Input</span><span class="w"> </span><span class="n">file</span><span class="o">:</span><span class="w"> </span><span class="mf">1.</span><span class="n">o</span>
+<span class="n">Section</span><span class="w"> </span><span class="n">index</span><span class="o">:</span><span class="w"> </span><span class="mi">4</span>
+<span class="n">Section</span><span class="w"> </span><span class="n">alignment</span><span class="o">:</span><span class="w"> </span><span class="mi">16</span>
+
+<span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">i</span>
+<span class="n">Input</span><span class="w"> </span><span class="n">file</span><span class="o">:</span><span class="w"> </span><span class="mf">1.</span><span class="n">o</span>
+<span class="n">Section</span><span class="w"> </span><span class="n">index</span><span class="o">:</span><span class="w"> </span><span class="mi">6</span>
+<span class="n">Section</span><span class="w"> </span><span class="n">alignment</span><span class="o">:</span><span class="w"> </span><span class="mi">8</span>
+
+<span class="n">COMMON</span><span class="p">.</span><span class="n">arr</span>
+<span class="n">Input</span><span class="w"> </span><span class="n">file</span><span class="o">:</span><span class="w"> </span><span class="n">CommonSymbols</span>
+<span class="n">Section</span><span class="w"> </span><span class="n">index</span><span class="o">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="n">Section</span><span class="w"> </span><span class="n">alignment</span><span class="o">:</span><span class="w"> </span><span class="mi">8</span>
+</pre></div>
+</div>
+<p>As expected, the plugin prints the section information of the sections whose
+names match a pattern specified in the plugin configuration file,
+<em>PluginConf.ini</em>.</p>
+</div>
+<div class="section" id="modify-relocations">
+<h2><a class="toc-backref" href="#id4"><span class="section-number">11.2.4. </span>Modify Relocations</a><a class="headerlink" href="#modify-relocations" title="Permalink to this heading"></a></h2>
+<p>The <em>ModifyRelocations</em> example plugin demonstrates how to inspect and modify
+relocations. This plugin modifies the relocation symbol from
+<code class="code docutils literal notranslate"><span class="pre">HelloWorld</span></code> to <code class="code docutils literal notranslate"><span class="pre">HelloQualcomm</span></code>. Additionally, it prints the
+relocation source section and symbol for each relocation it iterates over.</p>
+<p>To inspect and modify relocations, <em>ModifyRelocations</em> uses
+<code class="code docutils literal notranslate"><span class="pre">LinkerPluginConfig</span></code>. <code class="code docutils literal notranslate"><span class="pre">LinkerPluginConfig</span></code> provides a callback
+hook for relocations. This callback hook function is called for each
+relocation that is of a registered relocation type. Relocation types can be
+registered using <code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::registerReloc</span></code>.</p>
+<p><em>ModifyRelocations</em> plugin with self-contained documentation.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/PluginVersion.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/SectionIteratorPlugin.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ModifyRelocations</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">SectionIteratorPlugin</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">ModifyRelocations</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">SectionIteratorPlugin</span><span class="p">(</span><span class="s">&quot;ModifyRelocations&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Init&#39; callback hook can be used for initialization and preparations.</span>
+<span class="w">  </span><span class="c1">// This plugin does not need any initialization or preparation.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">cfg</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;processSection&#39; callback hook of SectionIteratorPlugin is called for</span>
+<span class="w">  </span><span class="c1">// each non-garbage collected section.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">processSection</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Section</span><span class="w"> </span><span class="n">S</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Run&#39; callback hook is called after all the &#39;processSection&#39; callback hook</span>
+<span class="w">  </span><span class="c1">// calls. It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="c1">// This plugin does not need to run anything.</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="w"> </span><span class="n">Run</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">trace</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Destroy&#39; callback hook can be used for finalization and clean-up tasks.</span>
+<span class="w">  </span><span class="c1">// It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="c1">// This plugin does not need any finalization and clean-up.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Destroy</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetLastErrorAsString</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Success&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetName</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;ModifyRelocations&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerWrapper</span><span class="w"> </span><span class="o">*</span><span class="n">getLinker</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Linker</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// LinkerPluginConfig allows to inspect and modify relocations.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ModifyRelocationsPluginConfig</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerPluginConfig</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">ModifyRelocationsPluginConfig</span><span class="p">(</span><span class="n">ModifyRelocations</span><span class="w"> </span><span class="o">*</span><span class="n">P</span><span class="p">)</span>
+<span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="n">LinkerPluginConfig</span><span class="p">(</span><span class="n">P</span><span class="p">),</span><span class="w"> </span><span class="n">P</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Register R_HEX_B22_PCREL relocation type.</span>
+<span class="w">    </span><span class="c1">// Linker will call RelocCallBack callback hook function on each relocation</span>
+<span class="w">    </span><span class="c1">// that is of a registered relocation type.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">b22pcrel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;R_HEX_B22_PCREL&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">relocationType</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">P</span><span class="o">-&gt;</span><span class="n">getLinker</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">getRelocationHandler</span><span class="p">().</span><span class="n">getRelocationType</span><span class="p">(</span><span class="n">b22pcrel</span><span class="p">);</span>
+<span class="w">    </span><span class="n">P</span><span class="o">-&gt;</span><span class="n">getLinker</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">registerReloc</span><span class="p">(</span><span class="n">relocationType</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Relocation callback hook function.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">RelocCallBack</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Use</span><span class="w"> </span><span class="n">U</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Print relocation source section name and symbol names.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">sourceSectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">U</span><span class="p">.</span><span class="n">getSourceChunk</span><span class="p">().</span><span class="n">getName</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Relocation callback. Source section: &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">sourceSectionName</span>
+<span class="w">              </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;, symbol: &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">U</span><span class="p">.</span><span class="n">getName</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Change relocation symbol from HelloWorld to HelloQualcomm.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">U</span><span class="p">.</span><span class="n">getSymbol</span><span class="p">().</span><span class="n">getName</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;HelloWorld&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">eld</span><span class="o">::</span><span class="n">Expected</span><span class="o">&lt;</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="o">&gt;</span><span class="w"> </span><span class="n">expHelloQualcommSymbol</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="n">P</span><span class="o">-&gt;</span><span class="n">getLinker</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">getSymbol</span><span class="p">(</span><span class="s">&quot;HelloQualcomm&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">ELDEXP_REPORT_AND_RETURN_VOID_IF_ERROR</span><span class="p">(</span>
+<span class="w">          </span><span class="n">P</span><span class="o">-&gt;</span><span class="n">getLinker</span><span class="p">(),</span><span class="w"> </span><span class="n">expHelloQualcommSymbol</span><span class="p">);</span>
+<span class="w">      </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="w"> </span><span class="n">helloQualcommSymbol</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">expHelloQualcommSymbol</span><span class="p">.</span><span class="n">value</span><span class="p">());</span>
+<span class="w">      </span><span class="n">U</span><span class="p">.</span><span class="n">resetSymbol</span><span class="p">(</span><span class="n">helloQualcommSymbol</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="n">ModifyRelocations</span><span class="w"> </span><span class="o">*</span><span class="n">P</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerPluginConfig</span><span class="w"> </span><span class="o">*</span><span class="n">ThisPluginConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// RegisterAll should initialize all the plugins and plugin configs that a</span>
+<span class="c1">// plugin library aims to provide. Linker calls this function before running</span>
+<span class="c1">// any plugins provided by the library.</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">DLL_A_EXPORT</span><span class="w"> </span><span class="nf">RegisterAll</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ModifyRelocations</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ThisPluginConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ModifyRelocationsPluginConfig</span><span class="p">(</span>
+<span class="w">      </span><span class="k">dynamic_cast</span><span class="o">&lt;</span><span class="n">ModifyRelocations</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="n">ThisPlugin</span><span class="p">));</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Linker calls this function to request an instance of the plugin</span>
+<span class="c1">// with the plugin name pluginName. pluginName is provided in the plugin</span>
+<span class="c1">// invocation command.</span>
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="nf">getPlugin</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">pluginName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// Linker calls this function to request an instance of the plugin</span>
+<span class="c1">// configuration for the plugin with the plugin name pluginName.</span>
+<span class="c1">// pluginName is provided in the plugin invocation command.</span>
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerPluginConfig</span><span class="w"> </span><span class="n">DLL_A_EXPORT</span><span class="w"> </span><span class="o">*</span><span class="n">getPluginConfig</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">pluginName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">ThisPluginConfig</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Cleanup should free all the resources owned by a plugin library.</span>
+<span class="c1">// Linker calls this function after all runs of the plugins provided</span>
+<span class="c1">// by the library have completed.</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">DLL_A_EXPORT</span><span class="w"> </span><span class="n">Cleanup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ThisPlugin</span><span class="p">)</span>
+<span class="w">    </span><span class="k">delete</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ThisPluginConfig</span><span class="p">)</span>
+<span class="w">    </span><span class="k">delete</span><span class="w"> </span><span class="n">ThisPluginConfig</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To build the plugin, run:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">++</span><span class="mi">-14</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">libModifyRelocations</span><span class="p">.</span><span class="n">so</span><span class="w"> </span><span class="n">ModifyRelocations</span><span class="p">.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">std</span><span class="o">=</span><span class="n">c</span><span class="o">++</span><span class="mi">17</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">include</span><span class="w"> </span><span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span>
+</pre></div>
+</div>
+<p>Now, let’s see the effect of this plugin on a sample program.</p>
+<p><strong>1.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="nf">HelloWorld</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Hello World!&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="nf">HelloQualcomm</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Hello Qualcomm!&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">HelloWorld</span><span class="p">());</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>1.linker.script</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">PLUGIN_ITER_SECTIONS</span><span class="p">(</span><span class="s">&quot;ModifyRelocations&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;ModifyRelocations&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Now, let’s build 1.c with <em>ModifyRelocations</em> plugin enabled.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;/local/mnt/workspace/partaror/llvm-project-formal/obj/bin:</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+hexagon-clang<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.elf<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-ffunction-sections<span class="w"> </span>-fdata-sections<span class="w"> </span>-Wl,-T,1.linker.script
+</pre></div>
+</div>
+<p>Running the above commands gives the below output:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">Relocation</span><span class="w"> </span><span class="n">callback</span><span class="p">.</span><span class="w"> </span><span class="n">Source</span><span class="w"> </span><span class="n">section</span><span class="o">:</span><span class="w"> </span><span class="p">.</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">symbol</span><span class="o">:</span><span class="w"> </span><span class="p">.</span><span class="n">start</span>
+<span class="p">...</span>
+<span class="p">...</span>
+<span class="n">Relocation</span><span class="w"> </span><span class="n">callback</span><span class="p">.</span><span class="w"> </span><span class="n">Source</span><span class="w"> </span><span class="n">section</span><span class="o">:</span><span class="w"> </span><span class="p">.</span><span class="n">text</span><span class="p">.</span><span class="n">main</span><span class="p">,</span><span class="w"> </span><span class="n">symbol</span><span class="o">:</span><span class="w"> </span><span class="n">HelloWorld</span>
+<span class="n">Relocation</span><span class="w"> </span><span class="n">callback</span><span class="p">.</span><span class="w"> </span><span class="n">Source</span><span class="w"> </span><span class="n">section</span><span class="o">:</span><span class="w"> </span><span class="p">.</span><span class="n">text</span><span class="p">.</span><span class="n">main</span><span class="p">,</span><span class="w"> </span><span class="n">symbol</span><span class="o">:</span><span class="w"> </span><span class="n">printf</span>
+<span class="p">...</span>
+</pre></div>
+</div>
+<p>This output is emitted by the plugin when it’s iterating over relocations
+of registered types.</p>
+<p>Now, let’s try running the generated binary image, <em>1.elf</em>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">$</span><span class="w"> </span><span class="n">hexagon</span><span class="o">-</span><span class="n">sim</span><span class="w"> </span><span class="p">.</span><span class="o">/</span><span class="mf">1.</span><span class="n">elf</span>
+
+<span class="n">hexagon</span><span class="o">-</span><span class="n">sim</span><span class="w"> </span><span class="n">INFO</span><span class="o">:</span><span class="w"> </span><span class="n">The</span><span class="w"> </span><span class="n">rev_id</span><span class="w"> </span><span class="n">used</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">simulation</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="mh">0x00008d68</span><span class="w"> </span><span class="p">(</span><span class="n">v68n_1024</span><span class="p">)</span>
+<span class="n">Hello</span><span class="w"> </span><span class="n">Qualcomm</span><span class="o">!</span>
+
+<span class="n">Done</span><span class="o">!</span>
+<span class="w">        </span><span class="nl">T0</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">5479</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">2946</span>
+<span class="w">        </span><span class="nl">T1</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T2</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T3</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T4</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T5</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">Total</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">5479</span><span class="w"> </span><span class="n">Pcycles</span><span class="o">=</span><span class="mi">8841</span>
+</pre></div>
+</div>
+<p><em>Hello World!</em> has been replaced by <em>Hello Qualcomm!</em>. It’s the result of
+plugin changing the relocation symbol from <code class="code docutils literal notranslate"><span class="pre">HelloWorld</span></code> to
+<code class="code docutils literal notranslate"><span class="pre">HelloQualcomm</span></code> for all <code class="code docutils literal notranslate"><span class="pre">R_HEX_B22_PCREL</span></code> relocations.</p>
+</div>
+<div class="section" id="section-rule-matching">
+<h2><a class="toc-backref" href="#id5"><span class="section-number">11.2.5. </span>Section Rule-Matching</a><a class="headerlink" href="#section-rule-matching" title="Permalink to this heading"></a></h2>
+<p>This example plugin describes how to modify section rule-matching using a
+plugin. A plugin can create section overrides using the
+<code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::setOutputSection</span></code> API. Section overrides created by a
+plugin override linker script section rule-matching. Plugins must call
+<code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::finishAssignOutputSections</span></code> after all section
+overrides have been created. <code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::finishAssignOutputSections</span></code>
+brings the section override change into effect.</p>
+<p>Section overrides must only be used in the <em>BeforeLayout</em> link state. After
+the <em>BeforeLayout</em> state, chunks from input sections get merged into
+output sections, making section overrides meaningless.</p>
+<p>The <em>ChangeOutputSection</em> plugin sets the output section of <code class="code docutils literal notranslate"><span class="pre">.text.foo</span></code>
+to <code class="code docutils literal notranslate"><span class="pre">bar</span></code>. That’s it. Let’s see how to create this plugin.</p>
+<p><em>ChangeOutputSection</em> plugin with self-contained documentation.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/PluginVersion.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/SectionIteratorPlugin.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ChangeOutputSection</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">SectionIteratorPlugin</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">ChangeOutputSection</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">SectionIteratorPlugin</span><span class="p">(</span><span class="s">&quot;ChangeOutputSection&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Init&#39; callback hook can be used for initialization and preparations.</span>
+<span class="w">  </span><span class="c1">// This plugin does not need any initialization or preparation.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">cfg</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;processSection&#39; callback hook of SectionIteratorPlugin is called for</span>
+<span class="w">  </span><span class="c1">// each non-garbage collected section.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">processSection</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Section</span><span class="w"> </span><span class="n">S</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">S</span><span class="p">.</span><span class="n">matchPattern</span><span class="p">(</span><span class="s">&quot;*foo&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Changes the output section of the section S to</span>
+<span class="w">      </span><span class="c1">// bar. LinkerWrapper::setOutputSection must only be</span>
+<span class="w">      </span><span class="c1">// called in BeforeLayout link state. Section overrides created</span>
+<span class="w">      </span><span class="c1">// after BeforeLayout link state do not work and can result in</span>
+<span class="w">      </span><span class="c1">// undefined behavior.</span>
+<span class="w">      </span><span class="c1">//</span>
+<span class="w">      </span><span class="c1">// Annotation is useful for diagnostic purposes. Later, we will see where</span>
+<span class="w">      </span><span class="c1">// to find these annotations.</span>
+<span class="w">      </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">setOutputSection</span><span class="p">(</span>
+<span class="w">          </span><span class="n">S</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bar&quot;</span><span class="p">,</span>
+<span class="w">          </span><span class="cm">/*Annotation=*/</span><span class="s">&quot;Setting output section of &#39;.text.foo&#39; to &#39;bar&#39;&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Run&#39; callback hook is called after all the &#39;processSection&#39; callback hook</span>
+<span class="w">  </span><span class="c1">// calls. It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="w"> </span><span class="n">Run</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">trace</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Destroy&#39; callback hook can be used for finalization and clean-up tasks.</span>
+<span class="w">  </span><span class="c1">// It is called once for each section iterator plugin run.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Destroy</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// LinkerWrapper::finishAssignOutputSections must be called</span>
+<span class="w">    </span><span class="c1">// after all section overrides have been created by the plugin.</span>
+<span class="w">    </span><span class="c1">// It brings the created section overrides into effect.</span>
+<span class="w">    </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">finishAssignOutputSections</span><span class="p">();</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetLastErrorAsString</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Success&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetName</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;ChangeOutputSection&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// RegisterAll should initialize all the plugins that a plugin library aims</span>
+<span class="c1">// to provide. Linker calls this function before running any plugins provided</span>
+<span class="c1">// by the library.</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterAll</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ChangeOutputSection</span><span class="p">{};</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Linker calls this function to request an instance of the plugin</span>
+<span class="c1">// with the plugin name pluginName. pluginName is provided in the plugin</span>
+<span class="c1">// invocation command.</span>
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="nf">getPlugin</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">pluginName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// Cleanup should free all the resources owned by a plugin library.</span>
+<span class="c1">// Linker calls this function after all runs of the plugins provided</span>
+<span class="c1">// by the library have completed.</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Cleanup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ThisPlugin</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="k">delete</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To build the plugin, run the following command:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">++</span><span class="mi">-14</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">libChangeOutputSection</span><span class="p">.</span><span class="n">so</span><span class="w"> </span><span class="n">ChangeOutputSection</span><span class="p">.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">std</span><span class="o">=</span><span class="n">c</span><span class="o">++</span><span class="mi">17</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">include</span><span class="w"> </span><span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span>
+</pre></div>
+</div>
+<p><strong>1.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>1.linker.script</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>PLUGIN_ITER_SECTIONS<span class="o">(</span><span class="s2">&quot;ChangeOutputSection&quot;</span>,<span class="w"> </span><span class="s2">&quot;ChangeOutputSection&quot;</span><span class="o">)</span><span class="p">;</span>
+
+SECTIONS<span class="w"> </span><span class="o">{</span>
+<span class="w">  </span>foo<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>.text.foo<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="w">  </span>bar<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>.text.bar<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="w">  </span>text<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span>*<span class="o">(</span>.text*<span class="o">)</span><span class="w"> </span><span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>Now, let’s build 1.c with the <em>ChangeOutputSection</em> plugin enabled.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HEXAGON</span><span class="si">}</span><span class="s2">/lib:</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+hexagon-clang<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c<span class="w"> </span>-ffunction-sections<span class="w"> </span>-fdata-sections
+hexagon-link<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.elf<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>-T<span class="w"> </span><span class="m">1</span>.linker.script<span class="w"> </span>-Map<span class="w"> </span><span class="m">1</span>.map.txt
+</pre></div>
+</div>
+<p>Now, let’s see the output section of <code class="code docutils literal notranslate"><span class="pre">foo</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hexagon-readelf<span class="w"> </span>-Ss<span class="w"> </span><span class="m">1</span>.elf
+</pre></div>
+</div>
+<p>hexagon-readelf output:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>There<span class="w"> </span>are<span class="w"> </span><span class="m">7</span><span class="w"> </span>section<span class="w"> </span>headers,<span class="w"> </span>starting<span class="w"> </span>at<span class="w"> </span>offset<span class="w"> </span>0x1200:
+
+Section<span class="w"> </span>Headers:
+<span class="w">  </span><span class="o">[</span>Nr<span class="o">]</span><span class="w"> </span>Name<span class="w">              </span>Type<span class="w">            </span>Address<span class="w">  </span>Off<span class="w">    </span>Size<span class="w">   </span>ES<span class="w"> </span>Flg<span class="w"> </span>Lk<span class="w"> </span>Inf<span class="w"> </span>Al
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">0</span><span class="o">]</span><span class="w">                   </span>NULL<span class="w">            </span><span class="m">00000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">0</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">1</span><span class="o">]</span><span class="w"> </span>bar<span class="w">               </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">001000</span><span class="w"> </span>00001c<span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">2</span><span class="o">]</span><span class="w"> </span>text<span class="w">              </span>PROGBITS<span class="w">        </span><span class="m">00000020</span><span class="w"> </span><span class="m">001020</span><span class="w"> </span><span class="m">000014</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">3</span><span class="o">]</span><span class="w"> </span>.comment<span class="w">          </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">001034</span><span class="w"> </span>0000d2<span class="w"> </span><span class="m">01</span><span class="w">  </span>MS<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w"> </span>.shstrtab<span class="w">         </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">001106</span><span class="w"> </span>00002d<span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">5</span><span class="o">]</span><span class="w"> </span>.symtab<span class="w">           </span>SYMTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">001134</span><span class="w"> </span><span class="m">000090</span><span class="w"> </span><span class="m">10</span><span class="w">      </span><span class="m">6</span><span class="w">   </span><span class="m">5</span><span class="w">  </span><span class="m">4</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">6</span><span class="o">]</span><span class="w"> </span>.strtab<span class="w">           </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span>0011c4<span class="w"> </span>00002a<span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+Key<span class="w"> </span>to<span class="w"> </span>Flags:
+<span class="w">  </span>W<span class="w"> </span><span class="o">(</span>write<span class="o">)</span>,<span class="w"> </span>A<span class="w"> </span><span class="o">(</span>alloc<span class="o">)</span>,<span class="w"> </span>X<span class="w"> </span><span class="o">(</span>execute<span class="o">)</span>,<span class="w"> </span>M<span class="w"> </span><span class="o">(</span>merge<span class="o">)</span>,<span class="w"> </span>S<span class="w"> </span><span class="o">(</span>strings<span class="o">)</span>,<span class="w"> </span>I<span class="w"> </span><span class="o">(</span>info<span class="o">)</span>,
+<span class="w">  </span>L<span class="w"> </span><span class="o">(</span>link<span class="w"> </span>order<span class="o">)</span>,<span class="w"> </span>O<span class="w"> </span><span class="o">(</span>extra<span class="w"> </span>OS<span class="w"> </span>processing<span class="w"> </span>required<span class="o">)</span>,<span class="w"> </span>G<span class="w"> </span><span class="o">(</span>group<span class="o">)</span>,<span class="w"> </span>T<span class="w"> </span><span class="o">(</span>TLS<span class="o">)</span>,
+<span class="w">  </span>C<span class="w"> </span><span class="o">(</span>compressed<span class="o">)</span>,<span class="w"> </span>x<span class="w"> </span><span class="o">(</span>unknown<span class="o">)</span>,<span class="w"> </span>o<span class="w"> </span><span class="o">(</span>OS<span class="w"> </span>specific<span class="o">)</span>,<span class="w"> </span>E<span class="w"> </span><span class="o">(</span>exclude<span class="o">)</span>,
+<span class="w">  </span>R<span class="w"> </span><span class="o">(</span>retain<span class="o">)</span>,<span class="w"> </span>p<span class="w"> </span><span class="o">(</span>processor<span class="w"> </span>specific<span class="o">)</span>
+
+Symbol<span class="w"> </span>table<span class="w"> </span><span class="s1">&#39;.symtab&#39;</span><span class="w"> </span>contains<span class="w"> </span><span class="m">9</span><span class="w"> </span>entries:
+<span class="w">   </span>Num:<span class="w">    </span>Value<span class="w">  </span>Size<span class="w"> </span>Type<span class="w">    </span>Bind<span class="w">   </span>Vis<span class="w">       </span>Ndx<span class="w"> </span>Name
+<span class="w">     </span><span class="m">0</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">   </span>UND
+<span class="w">     </span><span class="m">1</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">1</span><span class="w"> </span>bar
+<span class="w">     </span><span class="m">2</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">3</span><span class="w"> </span>.comment
+<span class="w">     </span><span class="m">3</span>:<span class="w"> </span><span class="m">00000020</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>SECTION<span class="w"> </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">     </span><span class="m">2</span><span class="w"> </span>text
+<span class="w">     </span><span class="m">4</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>FILE<span class="w">    </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">   </span>ABS<span class="w"> </span><span class="m">1</span>.c
+<span class="w">     </span><span class="m">5</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">    </span><span class="m">12</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">1</span><span class="w"> </span>bar
+<span class="w">     </span><span class="m">6</span>:<span class="w"> </span><span class="m">00000010</span><span class="w">    </span><span class="m">12</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">1</span><span class="w"> </span>foo
+<span class="w">     </span><span class="m">7</span>:<span class="w"> </span><span class="m">00000020</span><span class="w">    </span><span class="m">20</span><span class="w"> </span>FUNC<span class="w">    </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">     </span><span class="m">2</span><span class="w"> </span>main
+<span class="w">     </span><span class="m">8</span>:<span class="w"> </span><span class="m">00000039</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>GLOBAL<span class="w"> </span>DEFAULT<span class="w">   </span>ABS<span class="w"> </span>__end
+</pre></div>
+</div>
+<p>You can observe from the readelf output that the <code class="code docutils literal notranslate"><span class="pre">bar</span></code> section contains
+the <code class="code docutils literal notranslate"><span class="pre">foo</span></code> symbol. This means the output section of <code class="code docutils literal notranslate"><span class="pre">.text.foo</span></code> was
+indeed changed to <code class="code docutils literal notranslate"><span class="pre">bar</span></code>.</p>
+<p>That’s all well and good, but how do we see the nice annotation we added when
+calling <code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::setOutputSection</span></code>? All plugin actions, along
+with their annotations, are recorded in the map file. The text map file can be
+used to quickly view plugin actions and the annotations.</p>
+<p>To see all the plugin action information, you can either view the text map
+file and find the “Detailed Plugin information” component, or run the command
+below to directly view the information from the text map file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>less<span class="w"> </span>+/<span class="s2">&quot;Detailed Plugin information&quot;</span><span class="w"> </span><span class="m">1</span>.map.txt
+</pre></div>
+</div>
+<p>Output</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Detailed Plugin information</span>
+<span class="c1"># Plugin #0     ChangeOutputSection</span>
+<span class="c1">#       Modification #1 {C, Comment : Setting output section of &#39;.text.foo&#39; to &#39;bar&#39;}</span>
+<span class="c1">#       Section :.text.foo      1.o</span>
+<span class="c1">#       Original Rule : *(.text.foo) #Rule 1, 1.linker.script</span>
+<span class="c1">#       Modified Rule : *(bar) #Rule 4, Internal-LinkerScript (Implicit rule inserted by Linker)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="change-symbol-value-to-another-symbol">
+<h2><a class="toc-backref" href="#id6"><span class="section-number">11.2.6. </span>Change Symbol Value to Another Symbol</a><a class="headerlink" href="#change-symbol-value-to-another-symbol" title="Permalink to this heading"></a></h2>
+<p>The <em>ChangeSymbolValue</em> plugin demonstrates how to change the value of a
+symbol to another symbol. Specifically, it changes the value of the
+<code class="code docutils literal notranslate"><span class="pre">HelloWorld</span></code> symbol to the value of the <code class="code docutils literal notranslate"><span class="pre">HelloQualcomm</span></code> symbol.
+It also attempts (unsuccessfully) to change the value of the
+<code class="code docutils literal notranslate"><span class="pre">HelloWorldAgain</span></code> symbol to the value of the <code class="code docutils literal notranslate"><span class="pre">HelloQualcommAgain</span></code>
+symbol. We will see why this happens.</p>
+<p>Now, let’s see how to create the <em>ChangeSymbolValue</em> plugin.</p>
+<p>The <em>ChangeSymbolValue</em> plugin with self-contained documentation.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/OutputSectionIteratorPlugin.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ELD/PluginAPI/PluginVersion.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ChangeSymbolValue</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSectionIteratorPlugin</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">ChangeSymbolValue</span><span class="p">()</span>
+<span class="w">      </span><span class="o">:</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSectionIteratorPlugin</span><span class="p">(</span><span class="s">&quot;ChangeSymbolValue&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Init&#39; callback hook can be used for initialization and preparations.</span>
+<span class="w">  </span><span class="c1">// This plugin does not need any initialization or preparation.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">cfg</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;processOutputSection&#39; callback hook is called once for each output</span>
+<span class="w">  </span><span class="c1">// section.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">processOutputSection</span><span class="p">(</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">O</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="c1">// &#39;Run&#39; callback hook is called after all the &#39;processSection&#39; callback hook</span>
+<span class="w">  </span><span class="c1">// calls.</span>
+<span class="w">  </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="w"> </span><span class="n">Run</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">trace</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getState</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">LinkerWrapper</span><span class="o">::</span><span class="n">State</span><span class="o">::</span><span class="n">AfterLayout</span><span class="p">)</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Try to reset the &#39;HelloWorld&#39; symbol value to the value of</span>
+<span class="w">    </span><span class="c1">// &#39;HelloQualcomm&#39; symbol.</span>
+<span class="w">    </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="w"> </span><span class="n">helloWorldSymbol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getSymbol</span><span class="p">(</span><span class="s">&quot;HelloWorld&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="w"> </span><span class="n">helloQualcommSymbol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getSymbol</span><span class="p">(</span><span class="s">&quot;HelloQualcomm&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">resetSym</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">resetSymbol</span><span class="p">(</span><span class="n">helloWorldSymbol</span><span class="p">,</span><span class="w"> </span><span class="n">helloQualcommSymbol</span><span class="p">.</span><span class="n">getChunk</span><span class="p">());</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">resetSym</span><span class="p">)</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span>
+<span class="w">          </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;&#39;HelloWorld&#39; symbol value has been successfully reset to the &quot;</span>
+<span class="w">          </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;value of &#39;HelloQualcomm&#39; symbol.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Symbol value resetting failed for &#39;HelloWorld&#39;.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Try to reset the &#39;HelloWorldAgain&#39; symbol value to the value of</span>
+<span class="w">    </span><span class="c1">// &#39;HelloQualcommAgain&#39; symbol.</span>
+<span class="w">    </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="w"> </span><span class="n">helloWorldAgainSymbol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getSymbol</span><span class="p">(</span><span class="s">&quot;HelloWorldAgain&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Symbol</span><span class="w"> </span><span class="n">helloQualcommAgainSymbol</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getSymbol</span><span class="p">(</span><span class="s">&quot;HelloQualcommAgain&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">resetSym</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">resetSymbol</span><span class="p">(</span><span class="n">helloWorldAgainSymbol</span><span class="p">,</span>
+<span class="w">                                   </span><span class="n">helloQualcommAgainSymbol</span><span class="p">.</span><span class="n">getChunk</span><span class="p">());</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">resetSym</span><span class="p">)</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;&#39;HelloWorldAgain&#39; symbol value has been successfully reset &quot;</span>
+<span class="w">                </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;to the &quot;</span>
+<span class="w">                </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;value of &#39;HelloQualcommAgain&#39; symbol.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Symbol value resetting failed for &#39;HelloWorldAgain&#39;.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="o">::</span><span class="n">Status</span><span class="o">::</span><span class="n">SUCCESS</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">Destroy</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetLastErrorAsString</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;Success&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetName</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;ChangeSymbol&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// RegisterAll should initialize all the plugins that a plugin library aims</span>
+<span class="c1">// to provide. Linker calls this function before running any plugins provided</span>
+<span class="c1">// by the library.</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterAll</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ChangeSymbolValue</span><span class="p">{};</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Linker calls this function to request an instance of the plugin</span>
+<span class="c1">// with the plugin name pluginName. pluginName is provided in the plugin</span>
+<span class="c1">// invocation command.</span>
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Plugin</span><span class="w"> </span><span class="o">*</span><span class="nf">getPlugin</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">pluginName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="c1">// Cleanup should free all the resources owned by a plugin library.</span>
+<span class="c1">// Linker calls this function after all runs of the plugins provided</span>
+<span class="c1">// by the library have completed.</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Cleanup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ThisPlugin</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="k">delete</span><span class="w"> </span><span class="n">ThisPlugin</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ThisPlugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To build the plugin, run:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">++</span><span class="mi">-14</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">libChangeSymbolValue</span><span class="p">.</span><span class="n">so</span><span class="w"> </span><span class="n">ChangeSymbolValue</span><span class="p">.</span><span class="n">cpp</span><span class="w"> </span><span class="o">-</span><span class="n">std</span><span class="o">=</span><span class="n">c</span><span class="o">++</span><span class="mi">17</span><span class="w"> </span><span class="o">-</span><span class="n">stdlib</span><span class="o">=</span><span class="n">libc</span><span class="o">++</span><span class="w"> </span><span class="o">-</span><span class="n">fPIC</span><span class="w"> </span><span class="o">-</span><span class="n">shared</span><span class="w"> </span>\
+<span class="o">-</span><span class="n">I$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">include</span><span class="w"> </span><span class="o">-</span><span class="n">L$</span><span class="p">{</span><span class="n">HEXAGON</span><span class="p">}</span><span class="o">/</span><span class="n">lib</span><span class="w"> </span><span class="o">-</span><span class="n">lLW</span>
+</pre></div>
+</div>
+<p>Now, let’s see the effect of this plugin on a sample program.</p>
+<p><strong>1.c</strong></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">HelloWorld</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">HelloQualcomm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Hello Qualcomm!&quot;</span><span class="p">;</span>
+
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">HelloWorldAgain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Hello again World!&quot;</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">HelloQualcommAgain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Hello again Qualcomm!&quot;</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">HelloWorld</span><span class="p">);</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">HelloWorldAgain</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>1.linker.script</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>PLUGIN_OUTPUT_SECTION_ITER<span class="o">(</span><span class="s2">&quot;ChangeSymbolValue&quot;</span>,<span class="w"> </span><span class="s2">&quot;ChangeSymbolValue&quot;</span><span class="o">)</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Now, let’s build 1.c with <em>ChangeSymbolValue</em> plugin enabled.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HEXAGON</span><span class="si">}</span><span class="s2">/lib:</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+hexagon-clang<span class="w"> </span>-o<span class="w"> </span><span class="m">1</span>.elf<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-ffunction-sections<span class="w"> </span>-fdata-sections<span class="w"> </span>-Wl,-T,1.linker.script
+</pre></div>
+</div>
+<p>Running the above commands produces the following output:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>&#39;HelloWorld&#39; symbol value has been successfully reset to the value of &#39;HelloQualcomm&#39; symbol.
+Symbol value resetting failed for &#39;HelloWorldAgain&#39;.
+</pre></div>
+</div>
+<p>The above output is printed by the plugin. It indicates whether the resetting
+of symbol values was successful or not. So, why was the resetting of
+‘HelloWorldAgain’ not successful? <code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::resetSymbol</span></code> can only
+resets the value of the symbols that do not already have a value.
+<code class="code docutils literal notranslate"><span class="pre">LinkerWrapper::resetSymbol</span></code> silently fails and returns false if the
+symbol requested to be reset already has a value.</p>
+<p>Now, let’s run the generated <strong>1.elf</strong> binary:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">$</span><span class="w"> </span><span class="n">hexagon</span><span class="o">-</span><span class="n">sim</span><span class="w"> </span><span class="p">.</span><span class="o">/</span><span class="mf">1.</span><span class="n">elf</span>
+
+<span class="n">hexagon</span><span class="o">-</span><span class="n">sim</span><span class="w"> </span><span class="n">INFO</span><span class="o">:</span><span class="w"> </span><span class="n">The</span><span class="w"> </span><span class="n">rev_id</span><span class="w"> </span><span class="n">used</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">simulation</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="mh">0x00008d68</span><span class="w"> </span><span class="p">(</span><span class="n">v68n_1024</span><span class="p">)</span>
+<span class="n">Hello</span><span class="w"> </span><span class="n">Qualcomm</span><span class="o">!</span>
+<span class="n">Hello</span><span class="w"> </span><span class="n">again</span><span class="w"> </span><span class="n">World</span><span class="o">!</span>
+
+<span class="n">Done</span><span class="o">!</span>
+<span class="w">        </span><span class="nl">T0</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">6810</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">3558</span>
+<span class="w">        </span><span class="nl">T1</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T2</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T3</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T4</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">T5</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">0</span><span class="w"> </span><span class="n">Packets</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">        </span><span class="nl">Total</span><span class="p">:</span><span class="w"> </span><span class="n">Insns</span><span class="o">=</span><span class="mi">6810</span><span class="w"> </span><span class="n">Pcycles</span><span class="o">=</span><span class="mi">10677</span>
+</pre></div>
+</div>
+<p>As expected, the output first prints, ‘Hello Qualcomm!’, as the value of the
+<code class="code docutils literal notranslate"><span class="pre">HelloWorld`</span></code> symbol successfully got reset to the value of
+<code class="code docutils literal notranslate"><span class="pre">HelloQualcomm</span></code>. The output then prints, ‘Hello again World!’, as the
+resetting of <code class="code docutils literal notranslate"><span class="pre">HelloWorldAgain`</span></code> to <code class="code docutils literal notranslate"><span class="pre">HelloQualcommAgain`</span></code> was
+unsuccessful.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="linker_plugins.html" class="btn btn-neutral float-left" title="11.1. Linker Plugins" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api_docs.html" class="btn btn-neutral float-right" title="11.3. Linker Plugin API Usage and Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

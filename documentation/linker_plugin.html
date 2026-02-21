@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linker Plugins &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Linker Plugins</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-plugins">
+<h1>Linker Plugins<a class="headerlink" href="#linker-plugins" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#overview" id="id1">Overview</a></p></li>
+<li><p><a class="reference internal" href="#plugin-usage" id="id2">Plugin Usage</a></p></li>
+<li><p><a class="reference internal" href="#linker-wrapper" id="id3">Linker wrapper</a></p></li>
+<li><p><a class="reference internal" href="#user-plugin-types" id="id4">User Plugin Types</a></p></li>
+<li><p><a class="reference internal" href="#linkerscript-changes" id="id5">LinkerScript changes</a></p></li>
+<li><p><a class="reference internal" href="#user-plugin-work-flow" id="id6">User Plugin Work Flow</a></p></li>
+<li><p><a class="reference internal" href="#linker-work-flow" id="id7">Linker Work Flow</a></p></li>
+<li><p><a class="reference internal" href="#linker-operation" id="id8">Linker Operation</a></p></li>
+<li><p><a class="reference internal" href="#plugin-data-structures" id="id9">Plugin data structures</a></p></li>
+<li><p><a class="reference internal" href="#linkerwrapper-commands" id="id10">LinkerWrapper commands</a></p></li>
+<li><p><a class="reference internal" href="#linker-plugin-interface" id="id11">Linker plugin interface</a></p></li>
+<li><p><a class="reference internal" href="#plugin-interfaces" id="id12">Plugin interfaces</a></p>
+<ul>
+<li><p><a class="reference internal" href="#sectioniterator-interface" id="id13">SectionIterator interface</a></p></li>
+<li><p><a class="reference internal" href="#sectionmatcher-interface" id="id14">SectionMatcher interface</a></p></li>
+<li><p><a class="reference internal" href="#chunkiterator-interface" id="id15">ChunkIterator interface</a></p></li>
+<li><p><a class="reference internal" href="#controlfilesize-interface" id="id16">ControlFileSize interface</a></p></li>
+<li><p><a class="reference internal" href="#controlmemorysize-interface" id="id17">ControlMemorySize interface</a></p></li>
+<li><p><a class="reference internal" href="#outputsectioniterator-interface" id="id18">OutputSectionIterator interface</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2><a class="toc-backref" href="#id1">Overview</a><a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>The ELD allows one or more linker plugins to be loaded and called during link time.</p></li>
+<li><p>Develop the linker plug-ins to query the linker about objects being linked during link time, and to evaluate their properties.</p></li>
+<li><p>You can also change the order and contents of output sections using this approach.</p></li>
+<li><p>Use C++ to develop the linker plugins.</p></li>
+<li><p>They are built as shared libraries that allow the linker to dynamically load at link time.</p></li>
+<li><p>The plugins use a fixed API that allows you to communicate with the linker.</p></li>
+<li><p>Plugins are currently supported on all architectures where the functionality is available.</p></li>
+<li><p>The Map file records any changes made by the plugin for the layout. This is a good place to determine how the layout was affected due to the plug-in algorithm.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="plugin-usage">
+<h2><a class="toc-backref" href="#id2">Plugin Usage</a><a class="headerlink" href="#plugin-usage" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Most developers use linker scripts, and the linker plugin functionality can therefore be exercised using linker scripts.</p></li>
+<li><p>This is to promote ease of use and have less maintenance overhead.</p></li>
+<li><p>It is also easier to integrate with existing builds.</p></li>
+<li><p>The linker can also provide better diagnostics.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="linker-wrapper">
+<h2><a class="toc-backref" href="#id3">Linker wrapper</a><a class="headerlink" href="#linker-wrapper" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Build a plugin as a dynamic library and interact with the linker using an opaque LinkerWrapper handle.</p></li>
+<li><p>The linker wrapper exists as a shared library that you link with the user plugin.</p></li>
+<li><p>The linkerwrapper is named <strong>libLW.so</strong> on Linux platforms and <strong>LW.dll</strong> on Windows platforms.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="user-plugin-types">
+<h2><a class="toc-backref" href="#id4">User Plugin Types</a><a class="headerlink" href="#user-plugin-types" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>The intent of each user-developed plugin is associated with an appropriate interface.</p></li>
+<li><p>You can implement the plugin algorithm by deriving it from one such interface.</p></li>
+<li><p>You can use more than one interface in a single plugin.</p></li>
+<li><p>Plugin chaining can be used interchangeably to denote when you are mixing more than one interface in a single plug-in.</p></li>
+<li><p>The rest of this section might use PluginType interchangeably to denote this.</p></li>
+<li><p>Currently, four interface types are available. More interface types will be added based on new use cases in the future.</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 56%" />
+<col style="width: 44%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Interface type</p></th>
+<th class="head"><p>Header file</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Section iterator plugin type</p></td>
+<td><p>SectionIteratorPlugin.h</p></td>
+</tr>
+<tr class="row-odd"><td><p>Chunk iterator plugin type</p></td>
+<td><p>ChunkIteratorPlugin.h</p></td>
+</tr>
+<tr class="row-even"><td><p>Control memory size plugin type</p></td>
+<td><p>ControlMemorySizePlugin.h</p></td>
+</tr>
+<tr class="row-odd"><td><p>Control file size plugin type</p></td>
+<td><p>ControlFileSizePlugin.h</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</div>
+<div class="section" id="linkerscript-changes">
+<h2><a class="toc-backref" href="#id5">LinkerScript changes</a><a class="headerlink" href="#linkerscript-changes" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>Linker plugins can be enabled using linker scripts. The linker script keyword uses a fixed syntax:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">PluginType</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;LibraryName&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;PluginName&quot;</span><span class="w"> </span><span class="p">[,</span><span class="w"> </span><span class="s">&quot;PluginOptions&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><dl class="simple">
+<dt>PluginType</dt><dd><p>Corresponds to one of the available interface types.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>LibraryName</dt><dd><ul>
+<li><p>Corresponds to the dynamic library that contains the plugin for the linker to load.</p></li>
+<li><p>Uses the same linker semantics for linking to the linker in a library, allowing ease of use.</p></li>
+<li><p>Uses the name of the library without the lib prefix on Linux and without the .so/.dll suffix on Linux/Windows, respectively</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PluginName</dt><dd><p>Specifies the name of the plugin. The linker queries the dynamic library to provide an implementation for the specified interface type.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PluginOptions</dt><dd><p>Used to pass an option to the plug-in.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="user-plugin-work-flow">
+<h2><a class="toc-backref" href="#id6">User Plugin Work Flow</a><a class="headerlink" href="#user-plugin-work-flow" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><p>Use the following steps to create a linker plugin.</p>
+<ol class="arabic simple">
+<li><p>Determine the appropriate interface(s).</p></li>
+<li><p>Include the appropriate header file.</p></li>
+<li><p>Create a C++ class derived from one of the interface types.</p></li>
+<li><p>Associate the implementation of the interface to have a unique name.</p></li>
+<li><p>Build a shared library.</p></li>
+<li><p>Make the shared library report Plugin API version.</p></li>
+<li><p>Write a RegisterAll function to register the plugin(s).</p></li>
+<li><p>Write a getPlugin function to return the appropriate plugin when the linker queries with PluginName.</p></li>
+</ol>
+</div></blockquote>
+</div>
+<div class="section" id="linker-work-flow">
+<h2><a class="toc-backref" href="#id7">Linker Work Flow</a><a class="headerlink" href="#linker-work-flow" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>All user plugins that are loaded by the linker must be initialized properly before the plugin can communicate with the linker and perform the steps.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="linker-operation">
+<h2><a class="toc-backref" href="#id8">Linker Operation</a><a class="headerlink" href="#linker-operation" title="Permalink to this heading"></a></h2>
+<p>The linker performs the following sequence of operations with respect to plugins:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Parses the linker script and finds all plug-ins.</p></li>
+<li><dl class="simple">
+<dt>Loads the library specified by LibraryName.</dt><dd><ol class="loweralpha simple">
+<li><p>Uses LD_LIBRARY_PATH on Linux.</p></li>
+<li><p>Uses a standard method for searching dynamic libraries in Windows.</p></li>
+</ol>
+</dd>
+</dl>
+</li>
+<li><p>Calls the RegisterAll() API in the library, which registers all the plug-ins that are contained in the library.</p></li>
+<li><dl class="simple">
+<dt>Queries the library using the getPlugin() API with PluginName.</dt><dd><p>The library returns the appropriate object for the linker to use to run the plugin algorithm.</p>
+</dd>
+</dl>
+</li>
+<li><p>Inspects the plug-in to verify that the linker script keyword and the object have the same interface type.</p></li>
+<li><p>Initializes the plug-in with any additional options provided.</p></li>
+<li><p>Passes the appropriate content to the plug-in expressed as data structures for that PluginType.</p></li>
+<li><dl class="simple">
+<dt>Runs the plug-in algorithm.</dt><dd><p>Because more than one plug-in can be used and because plug-ins can be chained, the linker unloads the library only after all user plug-ins have been called.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Before the plug-in is unloaded, the linker calls a function to Destroy the plug-in.</dt><dd><p>This is the last step before the library is unloaded.</p>
+</dd>
+</dl>
+</li>
+<li><p>The linker then unloads the plug-in.</p></li>
+</ol>
+</div></blockquote>
+<ul>
+<li><dl>
+<dt>Plugin tracing</dt><dd><p>Trace the linker work flow with the following option:</p>
+<blockquote>
+<div><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">trace</span><span class="o">=</span><span class="n">plugin</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="plugin-data-structures">
+<h2><a class="toc-backref" href="#id9">Plugin data structures</a><a class="headerlink" href="#plugin-data-structures" title="Permalink to this heading"></a></h2>
+<ul>
+<li><p>Appropriate data structures are exchanged depending on the specified plug-in interface type.</p></li>
+<li><p>These data structures are also used to communicate with the linker and get appropriate information from the linker.</p>
+<blockquote>
+<div><dl class="simple">
+<dt><strong>Section</strong></dt><dd><p>Corresponds to an input section from an ELF file.</p>
+</dd>
+<dt><strong>OutputSection</strong></dt><dd><p>Corresponds to an OutputSection section in the LinkerScript or output ELF file.</p>
+</dd>
+<dt><strong>Chunk</strong></dt><dd><p>Corresponds to a piece of an input section. Examples:
+* Individual strings of a section that contains merged strings
+* Contents of an output section</p>
+</dd>
+<dt><strong>Block</strong></dt><dd><p>Corresponds to the content of the output section with corrected relocations.</p>
+</dd>
+<dt><strong>Symbol</strong></dt><dd><p>Corresponds to an ELF symbol.</p>
+</dd>
+<dt><strong>Use</strong></dt><dd><p>Corresponds to a relocation from a chunk or section.</p>
+</dd>
+<dt><strong>LinkerScriptRule</strong></dt><dd><p>Corresponds to a LinkerScriptRule in an OutputSection</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
+</ul>
+</div>
+<div class="section" id="linkerwrapper-commands">
+<h2><a class="toc-backref" href="#id10">LinkerWrapper commands</a><a class="headerlink" href="#linkerwrapper-commands" title="Permalink to this heading"></a></h2>
+<p>The plug-in uses the LinkerWrapper to communicate and exchange information with the linker. Following are the LinkerWrapper commands.</p>
+<blockquote>
+<div><dl class="simple">
+<dt><strong>getVersion</strong></dt><dd><p>Returns the version of the LinkerWrapper as a string. This command is useful for diagnostics.</p>
+</dd>
+<dt><strong>AllocateMemory</strong></dt><dd><ul class="simple">
+<li><p>Allocates memory that must live for the duration of the link.</p></li>
+<li><p>The ControlMemorySize and ControlFileSize interface types are the most common users of this functionality.</p></li>
+</ul>
+</dd>
+<dt><strong>getUses(Chunk)</strong></dt><dd><p>Queries the linker to find out what a Chunk refers to. The API returns a vector of uses.</p>
+</dd>
+<dt><strong>getUses(Section)</strong></dt><dd><p>Queries the linker to find out what a Section refers to. The API returns a vector of uses.</p>
+</dd>
+<dt><strong>getSymbol(SymbolName)</strong></dt><dd><p>Gets more information from the linker for a symbol (specified by SymbolName).</p>
+</dd>
+<dt><strong>getOutputSection(Section)</strong></dt><dd><ul class="simple">
+<li><p>Determines which OutputSection was chosen by the linker.</p></li>
+<li><p>The OutputSection is usually chosen by the linker by matching rules in the linker script.</p></li>
+</ul>
+</dd>
+<dt><strong>setOutputSection(Section, OutputSectionName)</strong></dt><dd><ul class="simple">
+<li><p>Places the Section into the specified OutputSection in the linker script.</p></li>
+<li><p>This command allows linker script decisions to be overridden for that particular Section.</p></li>
+</ul>
+</dd>
+<dt><strong>MatchPattern(Pattern, Name)</strong></dt><dd><ul class="simple">
+<li><p>Utility function that allows the plug-in to match a Glob Pattern with a string.</p></li>
+</ul>
+</dd>
+<dt><strong>setLinkerFatalError</strong></dt><dd><p>Used by the plug-in when it discovers that there is an unhandled case when trying to link input files to produce an output image.</p>
+</dd>
+<dt><strong>resetError</strong></dt><dd><p>Resets any error status</p>
+</dd>
+</dl>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Use the PluginADT.h file to learn about the APIs documented in the header file.</p>
+</div>
+</div>
+<div class="section" id="linker-plugin-interface">
+<h2><a class="toc-backref" href="#id11">Linker plugin interface</a><a class="headerlink" href="#linker-plugin-interface" title="Permalink to this heading"></a></h2>
+<p>Following is the plugin interface that the linker will use and provide implementation for the functions:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span>
+<span class="n">public</span><span class="o">:</span>
+<span class="cm">/* Initialize the plugin with options specified */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">Init</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">Options</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* The actual algorithm that will be implemented */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="n">Status</span><span class="w"> </span><span class="n">Run</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">Verbose</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Linker will call Destroy, and the client can free up any data</span>
+<span class="cm">structures that are not relevant */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">Destroy</span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Returns the last error; a value of 0 means there was no error */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">GetLastError</span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Returns the error as a string */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetLastErrorAsString</span><span class="w"> </span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Returns the name of the plugin */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">GetName</span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Destructor */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="o">-</span><span class="n">Plugin</span><span class="p">(){}</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="plugin-interfaces">
+<h2><a class="toc-backref" href="#id12">Plugin interfaces</a><a class="headerlink" href="#plugin-interfaces" title="Permalink to this heading"></a></h2>
+<p>The following interfaces are available currently.</p>
+<div class="section" id="sectioniterator-interface">
+<h3><a class="toc-backref" href="#id13">SectionIterator interface</a><a class="headerlink" href="#sectioniterator-interface" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the linker script keyword, <strong>PLUGIN_ITER_SECTIONS</strong>.</p></li>
+<li><p>This interface allows you to process every input section from every object file by implementing processSection().</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">SectionIteratorPlugin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span>
+<span class="n">public</span><span class="o">:</span>
+<span class="cm">/* Section that the linker will call the client with */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">processSection</span><span class="p">(</span><span class="n">Section</span><span class="w"> </span><span class="n">S</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="sectionmatcher-interface">
+<h3><a class="toc-backref" href="#id14">SectionMatcher interface</a><a class="headerlink" href="#sectionmatcher-interface" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the linker script keyword, <strong>PLUGIN_SECTION_MATCHER</strong>.</p></li>
+<li><p>This interface allows you to process every input section, and it allows the plugin to read any section.</p></li>
+<li><p>You can use the interface to read metadata sections or read sections that were garbage collected by the linker.</p></li>
+<li><p>SectionMatcherPlugin differs from SectionIteratorPlugin in that it allows any section content to be read before assigning output sections.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">SectionMatcherPlugin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span>
+<span class="n">public</span><span class="o">:</span>
+<span class="cm">/* Sections that the linker will call the client with */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">processSection</span><span class="p">(</span><span class="n">Section</span><span class="w"> </span><span class="n">S</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="chunkiterator-interface">
+<h3><a class="toc-backref" href="#id15">ChunkIterator interface</a><a class="headerlink" href="#chunkiterator-interface" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the linker script keyword, <strong>PLUGIN_ITER_CHUNKS</strong>.</p></li>
+<li><p>This interface allows you to process every input chunk in an output section using <strong>PocessChunk()</strong>.</p></li>
+<li><p>The processed chunks are returned when the linker calls <strong>getChunks()</strong>.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">ChunkIteratorPlugin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span>
+<span class="n">public</span><span class="o">:</span>
+<span class="cm">/* Chunks that the linker will call the client with */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">processChunk</span><span class="p">(</span><span class="n">Chunk</span><span class="w"> </span><span class="n">C</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Chunk</span><span class="o">&gt;</span><span class="w"> </span><span class="n">getChunks</span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="controlfilesize-interface">
+<h3><a class="toc-backref" href="#id16">ControlFileSize interface</a><a class="headerlink" href="#controlfilesize-interface" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the linker script keyword, <strong>PLUGIN_CONTROL FILESZ</strong>.</p></li>
+<li><p>This interface allows you to process the output memory block contained in an output section using <strong>AddBlocks()</strong>.</p></li>
+<li><p>The processed block is returned when the linker calls <strong>GetBlocks()</strong>.</p></li>
+<li><p>An example of such a plugin is to take the memory block, compress it, and then return it to the linker.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">ControlFileSizePlugin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span>
+<span class="n">public</span><span class="o">:</span>
+<span class="cm">/* Memory blocks that the linker will call the client with */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">AddBlocks</span><span class="p">(</span><span class="n">Block</span><span class="w"> </span><span class="n">memBlock</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Return memory blocks to the client */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetBlocks</span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="controlmemorysize-interface">
+<h3><a class="toc-backref" href="#id17">ControlMemorySize interface</a><a class="headerlink" href="#controlmemorysize-interface" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the linker script keyword, <strong>PLUGIN_CONTROL MEMSZ</strong>.</p></li>
+<li><p>This interface allows you to process the output memory block contained in an output section using <strong>AddBlocks()</strong>.</p></li>
+<li><p>The processed block is returned when the linker calls <strong>GetBlocks()</strong>.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">ControlMemorySizePlugin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span>
+<span class="n">public</span><span class="o">:</span>
+<span class="cm">/* Memory blocks that the linker will call the client with */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">AddBlocks</span><span class="p">(</span><span class="n">Block</span><span class="w"> </span><span class="n">memBlock</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="cm">/* Return memory blocks to the client */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Block</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetBlocks</span><span class="p">()</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+<div class="section" id="outputsectioniterator-interface">
+<h3><a class="toc-backref" href="#id18">OutputSectionIterator interface</a><a class="headerlink" href="#outputsectioniterator-interface" title="Permalink to this heading"></a></h3>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the linker script keyword, <strong>PLUGIN_OUTPUT_SECTION_ITER</strong>.</p></li>
+<li><p>The interface is defined as below.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">class</span><span class="w"> </span><span class="n">OutputSectionIteratorPlugin</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">public</span><span class="w"> </span><span class="n">Plugin</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">public</span><span class="o">:</span>
+<span class="cm">/* OutputSection that the linker will call the client with */</span>
+<span class="n">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">processOutputSection</span><span class="p">(</span><span class="n">OutputSection</span><span class="w"> </span><span class="n">O</span><span class="p">)</span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The interface allows the plugin to iterate over all output sections and their contents.</p></li>
+<li><p>Contents of output sections are described by Rules.</p></li>
+<li><dl class="simple">
+<dt>The OutputSectionIterator is called at various times during the linking stages:</dt><dd><ul>
+<li><p>BeforeLayout</p></li>
+<li><p>CreatingSections</p></li>
+<li><p>AfterLayout</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>The state of the linker can be queried by calling a function <strong>getState</strong> in the LinkerWrapper.</p></li>
+<li><p>Depending on the state of the linker, the plug-in can query OutputSections and its contents appropriately.</p></li>
+<li><p>The OutputSectionIterator interface allows the plug-in to iterate over rules specified in the OutputSection and what sections are essentially contained in a LinkerScriptRule.</p></li>
+<li><p>Depending on the state of the Linker, the contents of the LinkerScriptRule can be modified.</p></li>
+<li><p>Modifications of LinkerScriptRule contents include changing the OutputSection for a Section, changing the OutputSection for a Chunk</p></li>
+</ul>
+<dl class="simple">
+<dt><strong>BeforeLayout</strong></dt><dd><ul class="simple">
+<li><p>When the state of the linker is set to BeforeLayout, the plug-in can query each rule for its contents.</p></li>
+<li><p>The contents of the Rule can only be Sections.</p></li>
+<li><p>Call the setOutputSection function in the LinkerWrapper to set the Section point to a different OutputSection.</p></li>
+<li><p>Finish with all the assignments to different output sections by calling</p></li>
+<li><p>finishAssignOutputSections in the LinkerWrapper.</p></li>
+</ul>
+</dd>
+<dt><strong>CreatingSections</strong></dt><dd><ul class="simple">
+<li><p>When the state of the linker is set to CreatingSections, the plug-in can query each rule for its contents. The contents of the Rule can only be Chunks.</p></li>
+<li><dl class="simple">
+<dt>Call APIs specified in the LinkerScriptRule to do either of the following:</dt><dd><ul>
+<li><p>addChunk – Add a Chunk to a LinkerScriptRule</p></li>
+<li><p>removeChunk – Remove a Chunk from a LinkerScriptRule.</p></li>
+<li><p>updateChunk – Replace Chunks in a LinkerScriptRule.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt><strong>AfterLayout</strong></dt><dd><p>When the state of the linker is set to AfterLayout, the plugin can query for the size of the OutputSection.</p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

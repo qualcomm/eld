@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2. Supported Linking Modes &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="3. Supported Targets" href="supported_targets.html" />
+    <link rel="prev" title="1. Getting started" href="linker_overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. Supported Linking Modes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#static-linking">2.1. Static Linking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dynamic-linking">2.2. Dynamic Linking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#partial-linking">2.3. Partial Linking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pie">2.4. PIE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#shared-libraries">2.5. Shared Libraries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2. </span>Supported Linking Modes</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="supported-linking-modes">
+<h1><span class="section-number">2. </span>Supported Linking Modes<a class="headerlink" href="#supported-linking-modes" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#static-linking" id="id1">Static Linking</a></p></li>
+<li><p><a class="reference internal" href="#dynamic-linking" id="id2">Dynamic Linking</a></p></li>
+<li><p><a class="reference internal" href="#partial-linking" id="id3">Partial Linking</a></p></li>
+<li><p><a class="reference internal" href="#pie" id="id4">PIE</a></p></li>
+<li><p><a class="reference internal" href="#shared-libraries" id="id5">Shared Libraries</a></p></li>
+</ul>
+</div>
+<p>A linking model is a group of command-line options and memory maps that control the behavior of the
+linker.
+The linking models supported by eld are:</p>
+<div class="section" id="static-linking">
+<h2><a class="toc-backref" href="#id1"><span class="section-number">2.1. </span>Static Linking</a><a class="headerlink" href="#static-linking" title="Permalink to this heading"></a></h2>
+<p>In this mode, all the symbol definitions/functions are copied in the final executable.</p>
+</div>
+<div class="section" id="dynamic-linking">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">2.2. </span>Dynamic Linking</a><a class="headerlink" href="#dynamic-linking" title="Permalink to this heading"></a></h2>
+<p>In Dynamic linking is accomplished by placing the name of a sharable library in the executable image. Actual linking with the library routines does not occur until the image is run, when both the executable and the library are placed in memory. An advantage of dynamic linking is that multiple programs can share a single copy of the library.</p>
+</div>
+<div class="section" id="partial-linking">
+<h2><a class="toc-backref" href="#id3"><span class="section-number">2.3. </span>Partial Linking</a><a class="headerlink" href="#partial-linking" title="Permalink to this heading"></a></h2>
+<p>This model produces a relocatable ELF object suitable for input to the linker in a subsequent
+link step. The partial object can be used as input to another link step. The linker performs
+limited processing of input objects to produce a single output object</p>
+</div>
+<div class="section" id="pie">
+<h2><a class="toc-backref" href="#id4"><span class="section-number">2.4. </span>PIE</a><a class="headerlink" href="#pie" title="Permalink to this heading"></a></h2>
+<p>This model produces a Position Independent Executable (PIE). This is an executable
+that does not need to be executed at a specific address but can be executed at any suitably
+aligned address. All objects and libraries linked into the image must be compiled to be position
+independent</p>
+</div>
+<div class="section" id="shared-libraries">
+<h2><a class="toc-backref" href="#id5"><span class="section-number">2.5. </span>Shared Libraries</a><a class="headerlink" href="#shared-libraries" title="Permalink to this heading"></a></h2>
+<p>A shared library is an object module that, at run time, can be loaded at an arbitrary memory address and linked with a program in memory. The process is known as dynamic linking and is performed by a program called a dynamic linker. Shared libraries are also referred to as shared objects (.so).</p>
+<p>Shared libraries are “shared” in two different ways:</p>
+<p>there is exactly one .so file for a particular library. The code and data in this .so file are shared by all of the exe obj files that reference the library.
+a single copy of the .text section of a shared library in memory can be shared by different running processes.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="linker_overview.html" class="btn btn-neutral float-left" title="1. Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="supported_targets.html" class="btn btn-neutral float-right" title="3. Supported Targets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

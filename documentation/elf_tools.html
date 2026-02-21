@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELF TOOLS &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ELF TOOLS</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="elf-tools">
+<h1>ELF TOOLS<a class="headerlink" href="#elf-tools" title="Permalink to this heading"></a></h1>
+<p>This sections documents llvm ELF command-line tools along with detailed examples of their usage</p>
+<p><strong>llvm-readelf</strong> &lt;options&gt; &lt;file&gt;</p>
+<blockquote>
+<div><p>Inspect ELF files</p>
+<ul>
+<li><p><strong>-h</strong></p>
+<p>Display ELF header information:</p>
+</li>
+<li><p><strong>-S</strong></p>
+<p>List ELF Sections</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>llvm-readelf<span class="w"> </span>-S<span class="w"> </span>a.out
+There<span class="w"> </span>are<span class="w"> </span><span class="m">17</span><span class="w"> </span>section<span class="w"> </span>headers,<span class="w"> </span>starting<span class="w"> </span>at<span class="w"> </span>offset<span class="w"> </span>0x37da0:
+
+Section<span class="w"> </span>Headers:
+<span class="w">  </span><span class="o">[</span>Nr<span class="o">]</span><span class="w"> </span>Name<span class="w">              </span>Type<span class="w">            </span>Addr<span class="w">     </span>Off<span class="w">    </span>Size<span class="w">   </span>ES<span class="w"> </span>Flg<span class="w"> </span>Lk<span class="w"> </span>Inf<span class="w"> </span>Al
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">0</span><span class="o">]</span><span class="w">                   </span>NULL<span class="w">            </span><span class="m">00000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">0</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">1</span><span class="o">]</span><span class="w"> </span>.start<span class="w">            </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">001000</span><span class="w"> </span>0046c8<span class="w"> </span><span class="m">00</span><span class="w"> </span>WAX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">64</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">2</span><span class="o">]</span><span class="w"> </span>.init<span class="w">             </span>PROGBITS<span class="w">        </span><span class="m">00005000</span><span class="w"> </span><span class="m">006000</span><span class="w"> </span><span class="m">000064</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">32</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">3</span><span class="o">]</span><span class="w"> </span>.text<span class="w">             </span>PROGBITS<span class="w">        </span><span class="m">00006000</span><span class="w"> </span><span class="m">007000</span><span class="w"> </span>018bcc<span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">4096</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w"> </span>.fini<span class="w">             </span>PROGBITS<span class="w">        </span>0001ebe0<span class="w"> </span>01fbe0<span class="w"> </span><span class="m">000030</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">32</span>
+<span class="w">  </span>...
+<span class="w">  </span><span class="o">[</span><span class="m">11</span><span class="o">]</span><span class="w"> </span>.sdata<span class="w">            </span>PROGBITS<span class="w">        </span><span class="m">00027000</span><span class="w"> </span><span class="m">028000</span><span class="w"> </span><span class="m">000170</span><span class="w"> </span><span class="m">00</span><span class="w"> </span>WAp<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">4096</span>
+<span class="w">  </span><span class="o">[</span><span class="m">12</span><span class="o">]</span><span class="w"> </span>.bss<span class="w">              </span>NOBITS<span class="w">          </span><span class="m">00027170</span><span class="w"> </span><span class="m">028170</span><span class="w"> </span>0017d8<span class="w"> </span><span class="m">00</span><span class="w">  </span>WA<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">8</span>
+<span class="w">  </span><span class="o">[</span><span class="m">13</span><span class="o">]</span><span class="w"> </span>.comment<span class="w">          </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">028170</span><span class="w"> </span><span class="m">000083</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>MS<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="m">14</span><span class="o">]</span><span class="w"> </span>.shstrtab<span class="w">         </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span>0281f3<span class="w"> </span><span class="m">000081</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="m">15</span><span class="o">]</span><span class="w"> </span>.symtab<span class="w">           </span>SYMTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">028274</span><span class="w"> </span>006d50<span class="w"> </span><span class="m">10</span><span class="w">     </span><span class="m">16</span><span class="w"> </span><span class="m">530</span><span class="w">  </span><span class="m">4</span>
+<span class="w">  </span><span class="o">[</span><span class="m">16</span><span class="o">]</span><span class="w"> </span>.strtab<span class="w">           </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span>02efc4<span class="w"> </span>008dbd<span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>-l</strong></p>
+<p>List ELF segments:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>llvm-readelf<span class="w"> </span>-l<span class="w"> </span>a.out
+
+Elf<span class="w"> </span>file<span class="w"> </span><span class="nb">type</span><span class="w"> </span>is<span class="w"> </span>EXEC<span class="w"> </span><span class="o">(</span>Executable<span class="w"> </span>file<span class="o">)</span>
+Entry<span class="w"> </span>point<span class="w"> </span>0x0
+There<span class="w"> </span>are<span class="w"> </span><span class="m">4</span><span class="w"> </span>program<span class="w"> </span>headers,<span class="w"> </span>starting<span class="w"> </span>at<span class="w"> </span>offset<span class="w"> </span><span class="m">52</span>
+
+Program<span class="w"> </span>Headers:
+<span class="w">  </span>Type<span class="w">           </span>Offset<span class="w">   </span>VirtAddr<span class="w">   </span>PhysAddr<span class="w">   </span>FileSiz<span class="w"> </span>MemSiz<span class="w">  </span>Flg<span class="w"> </span>Align
+<span class="w">  </span>LOAD<span class="w">           </span>0x001000<span class="w"> </span>0x00000000<span class="w"> </span>0x00000000<span class="w"> </span>0x046c8<span class="w"> </span>0x046c8<span class="w"> </span>RWE<span class="w"> </span>0x1000
+<span class="w">  </span>LOAD<span class="w">           </span>0x006000<span class="w"> </span>0x00005000<span class="w"> </span>0x00005000<span class="w"> </span>0x1f658<span class="w"> </span>0x1f658<span class="w"> </span>R<span class="w"> </span>E<span class="w"> </span>0x1000
+<span class="w">  </span>LOAD<span class="w">           </span>0x026000<span class="w"> </span>0x00025000<span class="w"> </span>0x00025000<span class="w"> </span>0x02170<span class="w"> </span>0x03948<span class="w"> </span>RW<span class="w">  </span>0x1000
+<span class="w">  </span>GNU_RELRO<span class="w">      </span>0x026000<span class="w"> </span>0x00025000<span class="w"> </span>0x00025000<span class="w"> </span>0x00044<span class="w"> </span>0x00044<span class="w"> </span>RW<span class="w">  </span>0x4
+
+Section<span class="w"> </span>to<span class="w"> </span>Segment<span class="w"> </span>mapping:
+<span class="w">  </span>Segment<span class="w"> </span>Sections...
+<span class="w">  </span><span class="m">00</span><span class="w">     </span>.start
+<span class="w">  </span><span class="m">01</span><span class="w">     </span>.init<span class="w"> </span>.text<span class="w"> </span>.fini<span class="w"> </span>.rodata<span class="w"> </span>.eh_frame<span class="w"> </span>.gcc_except_table
+<span class="w">  </span><span class="m">02</span><span class="w">     </span>.ctors<span class="w"> </span>.dtors<span class="w"> </span>.data<span class="w"> </span>.sdata<span class="w"> </span>.bss
+<span class="w">  </span><span class="m">03</span><span class="w">     </span>.ctors<span class="w"> </span>.dtors
+</pre></div>
+</div>
+</li>
+<li><p><strong>-s</strong></p>
+<p>Display the symbol table</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>llvm-readelf<span class="w"> </span>-s<span class="w"> </span>hello.o
+
+<span class="w">  </span>Symbol<span class="w"> </span>table<span class="w"> </span><span class="s1">&#39;.symtab&#39;</span><span class="w"> </span>contains<span class="w"> </span><span class="m">324</span><span class="w"> </span>entries:
+<span class="w">    </span>Num:<span class="w">    </span>Value<span class="w">  </span>Size<span class="w"> </span>Type<span class="w">    </span>Bind<span class="w">   </span>Vis<span class="w">      </span>Ndx<span class="w"> </span>Name
+<span class="w">      </span><span class="m">0</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">  </span>UND
+<span class="w">      </span><span class="m">1</span>:<span class="w"> </span><span class="m">00000000</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>FILE<span class="w">    </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">  </span>ABS<span class="w"> </span>hello.cc
+<span class="w">      </span><span class="m">2</span>:<span class="w"> </span><span class="m">00000090</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">    </span><span class="m">7</span><span class="w"> </span>GCC_except_table10
+<span class="w">      </span><span class="m">3</span>:<span class="w"> </span><span class="m">00000230</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">    </span><span class="m">7</span><span class="w"> </span>GCC_except_table100
+<span class="w">      </span><span class="m">4</span>:<span class="w"> </span><span class="m">00000240</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">    </span><span class="m">7</span><span class="w"> </span>GCC_except_table121
+<span class="w">      </span><span class="m">5</span>:<span class="w"> </span><span class="m">00000268</span><span class="w">     </span><span class="m">0</span><span class="w"> </span>NOTYPE<span class="w">  </span>LOCAL<span class="w">  </span>DEFAULT<span class="w">    </span><span class="m">7</span><span class="w"> </span>GCC_except_table128
+<span class="w">      </span>...
+</pre></div>
+</div>
+</li>
+<li><p><strong>-r</strong> = <strong>–relocations</strong></p>
+<p>Display relocation entries</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ cat 1.c
+int foo() {
+  printf(&quot;hello world\n&quot;);
+  return 0;
+}
+$ clang -c 1.c
+$ llvm-readelf -r 1.o
+Relocation section &#39;.rela.text&#39; at offset 0x110 contains 3 entries:
+Offset     Info    Type                Sym. Value  Symbol&#39;s Name + Addend
+00000004  00000211 R_HEX_32_6_X           00000000   .rodata.str1.1 + 0
+00000008  00000217 R_HEX_16_X             00000000   .rodata.str1.1 + 0
+0000000c  00000401 R_HEX_B22_PCREL        00000000   printf
+</pre></div>
+</div>
+</li>
+<li><p><strong>–string-dump</strong> &lt;section&gt;</p>
+<p>Treat the contents of a section as a string and print it</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$cat</span><span class="w"> </span><span class="m">1</span>.c
+int<span class="w"> </span>foo<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span>printf<span class="o">(</span><span class="s2">&quot;hello world\n&quot;</span><span class="o">)</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="m">0</span><span class="p">;</span>
+<span class="o">}</span>
+<span class="nv">$clang</span><span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c
+<span class="nv">$llvm</span>-readelf<span class="w"> </span>-S<span class="w"> </span><span class="m">1</span>.o
+There<span class="w"> </span>are<span class="w"> </span><span class="m">9</span><span class="w"> </span>section<span class="w"> </span>headers,<span class="w"> </span>starting<span class="w"> </span>at<span class="w"> </span>offset<span class="w"> </span>0x194:
+
+Section<span class="w"> </span>Headers:
+<span class="w">  </span><span class="o">[</span>Nr<span class="o">]</span><span class="w"> </span>Name<span class="w">              </span>Type<span class="w">            </span>Address<span class="w">  </span>Off<span class="w">    </span>Size<span class="w">   </span>ES<span class="w"> </span>Flg<span class="w"> </span>Lk<span class="w"> </span>Inf<span class="w"> </span>Al
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">0</span><span class="o">]</span><span class="w">                   </span>NULL<span class="w">            </span><span class="m">00000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">0</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">1</span><span class="o">]</span><span class="w"> </span>.strtab<span class="w">           </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">000131</span><span class="w"> </span><span class="m">000061</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">2</span><span class="o">]</span><span class="w"> </span>.text<span class="w">             </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">000040</span><span class="w"> </span><span class="m">000018</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">3</span><span class="o">]</span><span class="w"> </span>.rela.text<span class="w">        </span>RELA<span class="w">            </span><span class="m">00000000</span><span class="w"> </span>00010c<span class="w"> </span><span class="m">000024</span><span class="w"> </span>0c<span class="w">      </span><span class="m">8</span><span class="w">   </span><span class="m">2</span><span class="w">  </span><span class="m">4</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w"> </span>.rodata.str1.1<span class="w">    </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">000058</span><span class="w"> </span>00000d<span class="w"> </span><span class="m">01</span><span class="w"> </span>AMS<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+...
+<span class="nv">$llvm</span>-readelf<span class="w"> </span>--string-dump<span class="w"> </span>.rodata.str1.1<span class="w"> </span><span class="m">1</span>.o
+String<span class="w"> </span>dump<span class="w"> </span>of<span class="w"> </span>section<span class="w"> </span><span class="s1">&#39;.rodata.str1.1&#39;</span>:
+<span class="o">[</span><span class="w">     </span><span class="m">0</span><span class="o">]</span><span class="w"> </span>hello<span class="w"> </span>world.
+</pre></div>
+</div>
+</li>
+<li><p><strong>–hex-dump</strong> &lt;section&gt;</p>
+<p>Print the contents of a section as hex</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$cat</span><span class="w"> </span><span class="m">1</span>.c
+void<span class="w"> </span>foo<span class="o">()</span><span class="w"> </span><span class="o">{</span>printf<span class="o">(</span><span class="s2">&quot;hello world\n&quot;</span><span class="o">)}</span>
+<span class="nv">$clang</span><span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c
+<span class="nv">$llvm</span>-readelf<span class="w"> </span>-S<span class="w"> </span><span class="m">1</span>.o
+There<span class="w"> </span>are<span class="w"> </span><span class="m">9</span><span class="w"> </span>section<span class="w"> </span>headers,<span class="w"> </span>starting<span class="w"> </span>at<span class="w"> </span>offset<span class="w"> </span>0x194:
+
+Section<span class="w"> </span>Headers:
+<span class="w">  </span><span class="o">[</span>Nr<span class="o">]</span><span class="w"> </span>Name<span class="w">              </span>Type<span class="w">            </span>Address<span class="w">  </span>Off<span class="w">    </span>Size<span class="w">   </span>ES<span class="w"> </span>Flg<span class="w"> </span>Lk<span class="w"> </span>Inf<span class="w"> </span>Al
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">0</span><span class="o">]</span><span class="w">                   </span>NULL<span class="w">            </span><span class="m">00000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">000000</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">0</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">1</span><span class="o">]</span><span class="w"> </span>.strtab<span class="w">           </span>STRTAB<span class="w">          </span><span class="m">00000000</span><span class="w"> </span><span class="m">000131</span><span class="w"> </span><span class="m">000061</span><span class="w"> </span><span class="m">00</span><span class="w">      </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">2</span><span class="o">]</span><span class="w"> </span>.text<span class="w">             </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">000040</span><span class="w"> </span><span class="m">000018</span><span class="w"> </span><span class="m">00</span><span class="w">  </span>AX<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">3</span><span class="o">]</span><span class="w"> </span>.rela.text<span class="w">        </span>RELA<span class="w">            </span><span class="m">00000000</span><span class="w"> </span>00010c<span class="w"> </span><span class="m">000024</span><span class="w"> </span>0c<span class="w">      </span><span class="m">8</span><span class="w">   </span><span class="m">2</span><span class="w">  </span><span class="m">4</span>
+<span class="w">  </span><span class="o">[</span><span class="w"> </span><span class="m">4</span><span class="o">]</span><span class="w"> </span>.rodata.str1.1<span class="w">    </span>PROGBITS<span class="w">        </span><span class="m">00000000</span><span class="w"> </span><span class="m">000058</span><span class="w"> </span>00000d<span class="w"> </span><span class="m">01</span><span class="w"> </span>AMS<span class="w">  </span><span class="m">0</span><span class="w">   </span><span class="m">0</span><span class="w">  </span><span class="m">1</span>
+...
+<span class="nv">$llvm</span>-readelf<span class="w"> </span>--hex-dump<span class="w"> </span>.rodata.str1.1<span class="w"> </span><span class="m">1</span>.o
+Hex<span class="w"> </span>dump<span class="w"> </span>of<span class="w"> </span>section<span class="w"> </span><span class="s1">&#39;.rodata.str1.1&#39;</span>:
+0x00000000<span class="w"> </span>68656c6c<span class="w"> </span>6f20776f<span class="w"> </span>726c640a<span class="w"> </span><span class="m">00</span><span class="w"> </span>hello<span class="w"> </span>world..
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>llvm-objdump</strong> &lt;options&gt; &lt;file&gt;</p>
+<blockquote>
+<div><p>Disassembler</p>
+<ul class="simple">
+<li><p><strong>-d</strong></p></li>
+</ul>
+<p>Show assembler contents of executable sections:</p>
+<ul class="simple">
+<li><p><strong>-r</strong></p></li>
+</ul>
+<p>Display relocation entries involved during linking:</p>
+</div></blockquote>
+<p><strong>llvm-nm</strong> &lt;options&gt; &lt;file&gt;</p>
+<blockquote>
+<div><p>Lists symbols in a file</p>
+<ul>
+<li><p><strong>no args</strong></p>
+<p>list regular symbols</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$cat</span><span class="w"> </span><span class="m">1</span>.c
+int<span class="w"> </span>bar<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">10</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+int<span class="w"> </span>foo<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>+<span class="w"> </span>bar<span class="o">()</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<span class="nv">$clang</span><span class="w"> </span>-c<span class="w"> </span><span class="m">1</span>.c
+<span class="nv">$llvm</span>-nm<span class="w"> </span><span class="m">1</span>.o
+<span class="m">00000000</span><span class="w"> </span>T<span class="w"> </span>bar
+0000000c<span class="w"> </span>T<span class="w"> </span>foo
+</pre></div>
+</div>
+</li>
+<li><p><strong>-D</strong> = <strong>-dynamic</strong></p>
+<p>List dynamic symbols</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$cat</span><span class="w"> </span><span class="m">1</span>.c
+int<span class="w"> </span>bar<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">10</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+int<span class="w"> </span>foo<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>+<span class="w"> </span>bar<span class="o">()</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<span class="nv">$clang</span><span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-o<span class="w"> </span>lib.so<span class="w"> </span>-fPIC<span class="w"> </span>-shared
+<span class="nv">$llvm</span>-nm<span class="w"> </span>-D<span class="w"> </span>lib.so
+000003a0<span class="w"> </span>T<span class="w"> </span>_fini
+<span class="m">00000240</span><span class="w"> </span>T<span class="w"> </span>_init
+<span class="m">00000370</span><span class="w"> </span>T<span class="w"> </span>bar
+0000037c<span class="w"> </span>T<span class="w"> </span>foo
+</pre></div>
+</div>
+</li>
+<li><p><strong>-C</strong></p>
+<p>List symbols with demangling</p>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>llvm-objcopy</strong> &lt;options&gt; &lt;input file&gt; &lt;output file&gt;</p>
+<blockquote>
+<div><p>Copy and translate binary files</p>
+<ul>
+<li><p><strong>no args</strong> &lt;input file&gt; &lt;output file&gt;</p>
+<p>Create identical copy of one file to another, perform no translation</p>
+<p>if no output file is specified, input file will be modified in place</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$llvm</span>-objcopy<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.o.copy
+</pre></div>
+</div>
+</li>
+<li><p><strong>–input-target</strong> &lt;bfdname&gt;, <strong>–output-target</strong> &lt;bfdname&gt;</p>
+<p>translate from input target to output target</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$file</span><span class="w"> </span><span class="m">1</span>.o
+<span class="m">1</span>.o:<span class="w"> </span>ELF<span class="w"> </span><span class="m">32</span>-bit<span class="w"> </span>LSB<span class="w"> </span>relocatable,<span class="w"> </span>Intel<span class="w"> </span><span class="m">80386</span>,<span class="w"> </span>version<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">(</span>SYSV<span class="o">)</span>,<span class="w"> </span>not<span class="w"> </span>stripped
+<span class="nv">$llvm</span>-objcopy<span class="w"> </span>--input-target<span class="w"> </span>elf32-i386<span class="w"> </span>--output-target<span class="w"> </span>elf32-x86-64<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.o.copy
+<span class="nv">$file</span><span class="w"> </span><span class="m">1</span>.o.copy
+<span class="m">1</span>.o.copy:<span class="w"> </span>ELF<span class="w"> </span><span class="m">32</span>-bit<span class="w"> </span>LSB<span class="w"> </span>relocatable,<span class="w"> </span>x86-64,<span class="w"> </span>version<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">(</span>SYSV<span class="o">)</span>,<span class="w"> </span>not<span class="w"> </span>stripped
+</pre></div>
+</div>
+</li>
+<li><p><strong>–add-section</strong> &lt;section=file&gt;</p>
+<p>insert a section into the output file with name <em>section</em> and contents of <em>file</em>
+for ELF files, inserted section will be of type <em>SHT_NOTE</em> if section name
+begins with “.note” otherwise will have type <em>SHT_PROGBITS</em></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$cat</span><span class="w"> </span>insert
+hello<span class="w"> </span>world
+<span class="nv">$llvm</span>-objcopy<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">1</span>.o.copy<span class="w"> </span>--add-section<span class="w"> </span><span class="nv">newSection</span><span class="o">=</span>insert
+<span class="nv">$llvm</span>-readelf<span class="w"> </span>--string-dump<span class="w"> </span>newSection
+String<span class="w"> </span>dump<span class="w"> </span>of<span class="w"> </span>section<span class="w"> </span><span class="s1">&#39;newSection&#39;</span>:
+<span class="o">[</span><span class="w">     </span><span class="m">0</span><span class="o">]</span><span class="w"> </span>hello<span class="w"> </span>world
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>llvm-ar</strong> &lt;options&gt;</p>
+<blockquote>
+<div><p>Combine several input files into an archive library that can be linked with a program</p>
+<ul>
+<li><p><strong>-cr</strong> &lt;output file&gt; &lt;input files&gt;</p>
+<p>Create an archive file containing given input files</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>llvm-ar<span class="w"> </span>-cr<span class="w"> </span>lib.a<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span><span class="m">3</span>.o
+$<span class="w"> </span>file<span class="w"> </span>lib.a
+lib.a:<span class="w"> </span>current<span class="w"> </span>ar<span class="w"> </span>archive
+</pre></div>
+</div>
+</li>
+<li><p><strong>-t</strong> &lt;archive&gt;</p>
+<p>list archive objects in an archive file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>llvm-ar<span class="w"> </span>-cr<span class="w"> </span>lib.a<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span><span class="m">3</span>.o
+$<span class="w"> </span>llvm-ar<span class="w"> </span>-t<span class="w"> </span>lib.a
+<span class="m">1</span>.o
+<span class="m">2</span>.o
+<span class="m">3</span>.o
+</pre></div>
+</div>
+</li>
+<li><p><strong>-x</strong> &lt;archive&gt; &lt;files&gt;</p>
+<p>extract files from archive</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>ls
+lib.a
+$<span class="w"> </span>llvm-ar<span class="w"> </span>-t<span class="w"> </span>lib.a
+<span class="m">1</span>.o
+<span class="m">2</span>.o
+<span class="m">3</span>.o
+$<span class="w"> </span>llvm-ar<span class="w"> </span>-x<span class="w"> </span>lib.a<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span><span class="m">2</span>.o
+$<span class="w"> </span>ls
+<span class="m">1</span>.o<span class="w"> </span><span class="m">2</span>.o<span class="w"> </span>lib.a
+</pre></div>
+</div>
+</li>
+</ul>
+</div></blockquote>
+<p><strong>llvm-strings</strong> &lt;options&gt; &lt;files&gt;</p>
+<blockquote>
+<div><p>Dump printable strings from binary files to stdout</p>
+<p><strong>no-args</strong> &lt;files&gt;</p>
+<blockquote>
+<div><p>Dump printable strings from input file(s) to stdout.
+If no file is specified, stdin is used</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>cat<span class="w"> </span><span class="m">1</span>.c
+$<span class="w"> </span>void<span class="w"> </span>foo<span class="o">()</span><span class="w"> </span><span class="o">{</span>printf<span class="o">(</span><span class="s2">&quot;hello world\n&quot;</span><span class="o">)</span><span class="p">;</span><span class="o">}</span>
+$<span class="w"> </span>clang<span class="w"> </span><span class="m">1</span>.c<span class="w"> </span>-c
+hello<span class="w"> </span>world
+clang<span class="w"> </span>version<span class="w"> </span><span class="m">8</span>.0.0<span class="w"> </span><span class="o">(</span>tags/RELEASE_800/final<span class="o">)</span>
+.rela.text
+.comment
+.note.GNU-stack
+.llvm_addrsig
+<span class="nb">printf</span>
+.rela.eh_frame
+.strtab
+.symtab
+.rodata.str1.1
+</pre></div>
+</div>
+</div></blockquote>
+<p><strong>–print-file-name</strong> &lt;files&gt;</p>
+<blockquote>
+<div><p>Display the file containing the string before each string</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$llvm</span>-strings<span class="w"> </span><span class="m">1</span>.o<span class="w"> </span>a.out
+<span class="m">1</span>.o:<span class="w"> </span>hello<span class="w"> </span>world
+...
+<span class="m">1</span>.o:<span class="w"> </span>.strtab
+<span class="m">1</span>.o:<span class="w"> </span>.symtab
+<span class="m">1</span>.o:<span class="w"> </span>.rodata.str1.1
+a.out:<span class="w"> </span>/lib64/ld-linux-x86-64.so.2
+a.out:<span class="w"> </span>libc.so.6
+a.out:<span class="w"> </span><span class="nb">printf</span>
+a.out:<span class="w"> </span>__libc_start_main
+...
+a.out:<span class="w"> </span>__frame_dummy_init_array_entry
+</pre></div>
+</div>
+</div></blockquote>
+</div></blockquote>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

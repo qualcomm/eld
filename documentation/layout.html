@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10. Image layout &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11. Linker Plugins" href="linker_plugins_updated.html" />
+    <link rel="prev" title="9. Linker Map Files" href="linker_map_files.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">10. Image layout</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#linker-terminology">10.1. Linker terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#input-sections">10.1.1. Input Sections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-sections">10.1.2. Output sections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#segments">10.1.3. Segments</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#segment-alignment">10.1.3.1. Segment alignment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">10.2. Image layout</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-default-behavior">10.2.1. Using default behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-scripts">10.2.2. linker scripts</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#output-section-contents">10.2.2.1. Output section contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#image-base-address-starting-address">10.2.2.2. Image base address (starting address)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output-section-virtual-memory-address-vma">10.2.2.3. Output section virtual memory address (VMA)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#segment-creation-when-phdrs-is-not-specified">10.2.2.4. Segment creation when <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is not specified</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#segment-creation-when-phdrs-is-specified">10.2.2.5. Segment creation when <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is specified</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#linker-script-assignment-evaluation">10.2.2.6. Linker script assignment evaluation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-options-that-affect-layout">10.2.3. Linker options that affect layout</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#rosegment">10.2.3.1. <code class="xref std std-option docutils literal notranslate"><span class="pre">--rosegment</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#omagic">10.2.3.2. <code class="xref std std-option docutils literal notranslate"><span class="pre">--omagic</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#align-segments">10.2.3.3. <code class="xref std std-option docutils literal notranslate"><span class="pre">--align-segments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#enable-bss-mixing-and-disable-bss-conversion">10.2.3.4. <code class="xref std std-option docutils literal notranslate"><span class="pre">--enable-bss-mixing</span></code> and <code class="xref std std-option docutils literal notranslate"><span class="pre">--disable-bss-conversion</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#advanced-image-layout-control-using-linker-plugins">10.2.4. Advanced image layout control using linker plugins</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10. </span>Image layout</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="image-layout">
+<h1><span class="section-number">10. </span>Image layout<a class="headerlink" href="#image-layout" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#linker-terminology" id="id2">Linker terminology</a></p>
+<ul>
+<li><p><a class="reference internal" href="#input-sections" id="id3">Input Sections</a></p></li>
+<li><p><a class="reference internal" href="#output-sections" id="id4">Output sections</a></p></li>
+<li><p><a class="reference internal" href="#segments" id="id5">Segments</a></p>
+<ul>
+<li><p><a class="reference internal" href="#segment-alignment" id="id6">Segment alignment</a></p>
+<ul>
+<li><p><a class="reference internal" href="#empty-segments" id="id7">Empty segments</a></p></li>
+<li><p><a class="reference internal" href="#non-empty-segments" id="id8">Non Empty segments</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id1" id="id9">Image layout</a></p>
+<ul>
+<li><p><a class="reference internal" href="#using-default-behavior" id="id10">Using default behavior</a></p></li>
+<li><p><a class="reference internal" href="#linker-scripts" id="id11">linker scripts</a></p>
+<ul>
+<li><p><a class="reference internal" href="#output-section-contents" id="id12">Output section contents</a></p></li>
+<li><p><a class="reference internal" href="#image-base-address-starting-address" id="id13">Image base address (starting address)</a></p></li>
+<li><p><a class="reference internal" href="#output-section-virtual-memory-address-vma" id="id14">Output section virtual memory address (VMA)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#brief-review-of-the-methods" id="id15">Brief review of the methods</a></p>
+<ul>
+<li><p><a class="reference internal" href="#no-address-memory-region-specified" id="id16">1) No address/memory-region specified</a></p></li>
+<li><p><a class="reference internal" href="#explicit-linker-script-vma-address" id="id17">2) Explicit linker script VMA address</a></p></li>
+<li><p><a class="reference internal" href="#command-line-options-for-setting-section-addresses" id="id18">3) Command-line options for setting section addresses</a></p></li>
+<li><p><a class="reference internal" href="#memory-region" id="id19">4) Memory region</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#precedence-of-virtual-address-assignment-methods" id="id20">Precedence of virtual address assignment methods</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#segment-creation-when-phdrs-is-not-specified" id="id21">Segment creation when <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is not specified</a></p></li>
+<li><p><a class="reference internal" href="#segment-creation-when-phdrs-is-specified" id="id22">Segment creation when <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is specified</a></p></li>
+<li><p><a class="reference internal" href="#linker-script-assignment-evaluation" id="id23">Linker script assignment evaluation</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#linker-options-that-affect-layout" id="id24">Linker options that affect layout</a></p>
+<ul>
+<li><p><a class="reference internal" href="#rosegment" id="id25"><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-rosegment"><code class="xref std std-option docutils literal notranslate"><span class="pre">--rosegment</span></code></a></a></p></li>
+<li><p><a class="reference internal" href="#omagic" id="id26"><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-omagic"><code class="xref std std-option docutils literal notranslate"><span class="pre">--omagic</span></code></a></a></p></li>
+<li><p><a class="reference internal" href="#align-segments" id="id27"><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-align-segments"><code class="xref std std-option docutils literal notranslate"><span class="pre">--align-segments</span></code></a></a></p></li>
+<li><p><a class="reference internal" href="#enable-bss-mixing-and-disable-bss-conversion" id="id28"><a class="reference internal" href="options/ARMLinkerOptions.html#cmdoption-enable-bss-mixing"><code class="xref std std-option docutils literal notranslate"><span class="pre">--enable-bss-mixing</span></code></a> and <a class="reference internal" href="options/ARMLinkerOptions.html#cmdoption-disable-bss-conversion"><code class="xref std std-option docutils literal notranslate"><span class="pre">--disable-bss-conversion</span></code></a></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#advanced-image-layout-control-using-linker-plugins" id="id29">Advanced image layout control using linker plugins</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>At its core, the linker is responsible for transforming compiled object files into a
+final image that is ready to run on the device. This process includes
+resolving symbols, relocating sections, and most importantly, laying out the image in memory.</p>
+<p>Image layout refers to the linker’s assignment of addresses to code, data and metadata
+determining their arrangement in memory when the program runs, and
+to the placement of contents within the final output image.</p>
+<p>In this document, we will take a deep dive into the linker’s image layout process,
+examining the factors that influence the layout and the reasoning behind the specific
+choices the linker makes. Understanding why the image layout looks the way it does is challenging,
+but it’s invaluable for diagnosing and fixing subtle, hard-to-decode layout issues.</p>
+<p><em>But why is the image layout important?</em></p>
+<p>The image layout is critical for correctness, performance and security.
+Among other things, it ensures alignment compliance, enables cache-friendly
+placement of code and data, and enhances security by enforcing memory protection
+policies such as preventing any executable page from having write permissions.
+In embedded systems, image layout is especially critical due to tight memory constraints,
+real-time performance needs, and hardware-specific placement requirements.</p>
+<p>Before we dive deep into defining and understanding how the linker does image layout,
+it would be useful to understand the distinction between some of the terminology used
+in the linker.</p>
+<div class="section" id="linker-terminology">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">10.1. </span>Linker terminology</a><a class="headerlink" href="#linker-terminology" title="Permalink to this heading"></a></h2>
+<div class="section" id="input-sections">
+<h3><a class="toc-backref" href="#id3"><span class="section-number">10.1.1. </span>Input Sections</a><a class="headerlink" href="#input-sections" title="Permalink to this heading"></a></h3>
+<p>A section holds content that can be code, data and metadata (Example: <code class="code docutils literal notranslate"><span class="pre">.text</span></code>
+, <code class="code docutils literal notranslate"><span class="pre">.data</span></code>, <code class="code docutils literal notranslate"><span class="pre">.bss</span></code>, <code class="code docutils literal notranslate"><span class="pre">.comment</span></code>). The linker may reorder, merge
+or discard whole sections but it treats each section as an indivisible unit.
+The section header table describes each section’s name, type, virtual address, file offset,
+alignment and more. <strong>The section header table and the sections are used by the linker during
+linking.</strong> These come from object files (.o) and libraries (.a) compiled from source code.</p>
+<p>Examples:</p>
+<ul class="simple">
+<li><p>.text — code</p></li>
+<li><p>.data — initialized data</p></li>
+<li><p>.bss — uninitialized data</p></li>
+<li><p>.rodata — read-only data</p></li>
+</ul>
+</div>
+<div class="section" id="output-sections">
+<h3><a class="toc-backref" href="#id4"><span class="section-number">10.1.2. </span>Output sections</a><a class="headerlink" href="#output-sections" title="Permalink to this heading"></a></h3>
+<p>These are the merged and organized sections in the final binary, created by the linker.</p>
+<p>The linker collects input sections of the same type and merges them into output sections.</p>
+<p>You can rely on the default rules and built-in heuristics provided by the
+linker.</p>
+<p>You can also control this mapping by using a linker script.</p>
+</div>
+<div class="section" id="segments">
+<h3><a class="toc-backref" href="#id5"><span class="section-number">10.1.3. </span>Segments</a><a class="headerlink" href="#segments" title="Permalink to this heading"></a></h3>
+<p>A segment is composed of one or more output sections and describes
+how the program should be loaded into memory at runtime. In ELF, The program header table
+describes each segment’s type, virtual and physical address, file size, memory size, permissions,
+and alignment requirements. <strong>A loader only looks at the program header table to load an executable
+into memory.</strong> It does not care about the section header table.</p>
+<p>Key Points:</p>
+<ul class="simple">
+<li><p>Segments are containers for output sections</p></li>
+<li><p>They define memory permissions (read, write, execute)</p></li>
+<li><p>Used by the runtime loader</p></li>
+</ul>
+<div class="section" id="segment-alignment">
+<h4><a class="toc-backref" href="#id6"><span class="section-number">10.1.3.1. </span>Segment alignment</a><a class="headerlink" href="#segment-alignment" title="Permalink to this heading"></a></h4>
+<div class="section" id="empty-segments">
+<h5><a class="toc-backref" href="#id7"><span class="section-number">10.1.3.1.1. </span>Empty segments</a><a class="headerlink" href="#empty-segments" title="Permalink to this heading"></a></h5>
+<ul class="simple">
+<li><p>Loadable segments all have segment align set to the page size set at link time</p></li>
+<li><p>Non loadable segments have the segment alignment set to the minimum word size of
+the output ELF file</p></li>
+</ul>
+</div>
+<div class="section" id="non-empty-segments">
+<h5><a class="toc-backref" href="#id8"><span class="section-number">10.1.3.1.2. </span>Non Empty segments</a><a class="headerlink" href="#non-empty-segments" title="Permalink to this heading"></a></h5>
+<ul class="simple">
+<li><p>Loadable non empty segments have the segment alignment set to the page size</p></li>
+<li><p>Non loadable segments are set to the maximum section alignment of the containing
+sections in the segment</p></li>
+</ul>
+<p>Now let’s get started with understanding the image layout created by eld.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="id1">
+<h2><a class="toc-backref" href="#id9"><span class="section-number">10.2. </span>Image layout</a><a class="headerlink" href="#id1" title="Permalink to this heading"></a></h2>
+<p>There are two main approaches of defining the image layout:</p>
+<ul class="simple">
+<li><p>Using default behavior</p></li>
+<li><p>Using custom linker scripts</p></li>
+</ul>
+<div class="section" id="using-default-behavior">
+<h3><a class="toc-backref" href="#id10"><span class="section-number">10.2.1. </span>Using default behavior</a><a class="headerlink" href="#using-default-behavior" title="Permalink to this heading"></a></h3>
+<p>When a linker performs layout without an explicit linker script, it relies on default rules and built-in heuristics provided by the linker implementation.</p>
+<p>The linker has a default memory layout that defines:</p>
+<ul class="simple">
+<li><p>The order of sections (e.g., .text, .data, .bss)</p></li>
+<li><p>Default starting addresses (e.g., code starts at 0x08000000 for embedded systems or 0x400000 for ELF binaries on Linux)</p></li>
+<li><p>Alignment requirements for each section</p></li>
+<li><p>Default page alignment</p></li>
+<li><p>Whether program headers are loaded or not loaded</p></li>
+</ul>
+</div>
+<div class="section" id="linker-scripts">
+<h3><a class="toc-backref" href="#id11"><span class="section-number">10.2.2. </span>linker scripts</a><a class="headerlink" href="#linker-scripts" title="Permalink to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using eld with a custom linker script, all default assumptions and behaviors built into the linker are overridden. The script provides complete control over the memory layout and section placement, effectively replacing the linker’s internal defaults.</p>
+</div>
+<p>The linker script primary job is to define the image layout requirements. It achieves
+this with the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code>, <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code>, and the <code class="code docutils literal notranslate"><span class="pre">MEMORY</span></code> commands.</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command specifies the output section properties and the mapping
+of input sections to the output sections.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> specifies which program headers (also known as segments) should be created
+by the linker. If <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is not specified, then the linker creates sensible PHDRs
+based on some default rules.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">MEMORY</span></code> command specifies the available memory regions. The output sections
+can then be assigned to particular memory regions. It provides a convenient way of
+arranging the output sections into memory.</p></li>
+</ul>
+<p><a class="reference internal" href="linker_script.html"><span class="doc">Linker Script</span></a> describes these commands in more detail.</p>
+<p>Here we will only highlight, or in some cases reiterate, some of the important and/or subtle
+layout-related features and behavior.</p>
+<div class="section" id="output-section-contents">
+<h4><a class="toc-backref" href="#id12"><span class="section-number">10.2.2.1. </span>Output section contents</a><a class="headerlink" href="#output-section-contents" title="Permalink to this heading"></a></h4>
+<p>An output section is composed of input sections. If no <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command
+is provided, the linker applies sensible default rules to match the input
+sections to the output sections.</p>
+<p>When a <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command is present, the linker script input section description,
+commonly referred to as linker script rule or just rule, control the input-output section mapping.
+Input sections that match no rule are called orphans sections. Each orphan section is placed
+into an output section with the same name; if no such output section exists, then the linker
+creates a new one.</p>
+</div>
+<div class="section" id="image-base-address-starting-address">
+<h4><a class="toc-backref" href="#id13"><span class="section-number">10.2.2.2. </span>Image base address (starting address)</a><a class="headerlink" href="#image-base-address-starting-address" title="Permalink to this heading"></a></h4>
+<p>The default image base address depend upon the target, the linking type (whether the link
+is creating an executable or a shared library), and whether the link contains a linker
+script. The address 0 is used as the starting address if a linker script is present or
+if the link is creating a shared library.</p>
+<p>The default image base value can be overridden by using <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-image-base"><code class="xref std std-option docutils literal notranslate"><span class="pre">--image-base</span></code></a> command-line
+option.</p>
+</div>
+<div class="section" id="output-section-virtual-memory-address-vma">
+<h4><a class="toc-backref" href="#id14"><span class="section-number">10.2.2.3. </span>Output section virtual memory address (VMA)</a><a class="headerlink" href="#output-section-virtual-memory-address-vma" title="Permalink to this heading"></a></h4>
+<p>Multiple mechanisms can assign or influence the addresses of output sections.
+A linker script can specify addresses explicitly; command-line options can set
+section start addresses; and script directives such as <code class="code docutils literal notranslate"><span class="pre">MEMORY</span></code> allows
+to conveniently arrange sections without hard-coding absolute addresses. Let’s
+examine all these methods, detail their behavior, and clarify their precedence.</p>
+<div class="section" id="brief-review-of-the-methods">
+<h5><a class="toc-backref" href="#id15"><span class="section-number">10.2.2.3.1. </span>Brief review of the methods</a><a class="headerlink" href="#brief-review-of-the-methods" title="Permalink to this heading"></a></h5>
+<div class="section" id="no-address-memory-region-specified">
+<h6><a class="toc-backref" href="#id16"><span class="section-number">10.2.2.3.1.1. </span>1) No address/memory-region specified</a><a class="headerlink" href="#no-address-memory-region-specified" title="Permalink to this heading"></a></h6>
+<p>If no explicit address or MEMORY region is specified for an output section,
+it is placed at the current value of the location counter (<code class="code docutils literal notranslate"><span class="pre">.`</span></code>). The location counter
+is initialized to the image base, and is automatically incremented whenever a content is added.
+For example, if the value of the location counter is 0x1000 before assigning address to
+<code class="code docutils literal notranslate"><span class="pre">.foo</span></code> output section (size 0x200), then <code class="code docutils literal notranslate"><span class="pre">foo</span></code> is placed at <code class="code docutils literal notranslate"><span class="pre">0x1000</span></code> and
+the location counter advances to 0x1200.</p>
+<p>The location counter can be explicitly incremented with a linker script assignment:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="p">.</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ALIGN</span><span class="p">(</span><span class="mh">0x8</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>If an output section has an explicit address (or a memory region), then the location
+counter is set to the address (or the valid address in the memory region) before placing
+the output section.</p>
+<p>There is an exception to this, orphan sections whose name ends with <code class="code docutils literal notranslate"><span class="pre">&#64;&lt;address&gt;</span></code> are placed
+exactly at the specified address.</p>
+</div>
+<div class="section" id="explicit-linker-script-vma-address">
+<h6><a class="toc-backref" href="#id17"><span class="section-number">10.2.2.3.1.2. </span>2) Explicit linker script VMA address</a><a class="headerlink" href="#explicit-linker-script-vma-address" title="Permalink to this heading"></a></h6>
+<p>Linker script can specify an explicit address for an output section:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">section</span><span class="w"> </span><span class="p">[</span><span class="n">address</span><span class="p">]</span><span class="w"> </span><span class="o">:</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">output</span><span class="o">-</span><span class="n">section</span><span class="o">-</span><span class="n">command</span>
+<span class="w">  </span><span class="p">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Let’s see this in action with the help of an example:</p>
+<div class="twocol docutils container">
+<div class="leftside docutils container">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// 1.c</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="rightside docutils container">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// script.t</span>
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">.</span><span class="n">foo</span><span class="w"> </span><span class="p">(</span><span class="mh">0x1000</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">.</span><span class="n">bar</span><span class="w"> </span><span class="p">(</span><span class="mh">0x2000</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">bar</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The linker assigns the exact addresses as specified in the linker script. <code class="code docutils literal notranslate"><span class="pre">.foo</span></code>
+is assigned the VMA <code class="code docutils literal notranslate"><span class="pre">0x1000</span></code> and <code class="code docutils literal notranslate"><span class="pre">bar</span></code> is assigned the VMA <code class="code docutils literal notranslate"><span class="pre">0x2000</span></code>.</p>
+<p>The linker assigns the exact addresses even if the addresses are not <em>exactly</em> aligned.
+For the below example, <code class="code docutils literal notranslate"><span class="pre">.foo</span></code> will get VMA assigned to <code class="code docutils literal notranslate"><span class="pre">0x1001</span></code> and <code class="code docutils literal notranslate"><span class="pre">.bar</span></code>
+will get VMA assigned to <code class="code docutils literal notranslate"><span class="pre">0x2002</span></code> even though they do not satisfy the alignment
+requirements. In this case, the output section contains alignment padding at the beginning
+such that the alignment requirements for the actual content (input sections) is satisfied.</p>
+<div class="twocol docutils container">
+<div class="leftside docutils container">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// 1.c</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="rightside docutils container">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// script.t</span>
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">.</span><span class="n">foo</span><span class="w"> </span><span class="p">(</span><span class="mh">0x1001</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">.</span><span class="n">bar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">AT</span><span class="p">(</span><span class="mh">0x2002</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">bar</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>However, if <code class="code docutils literal notranslate"><span class="pre">ALIGN</span></code> is also specified, then the explicit VMA is aligned to the
+alignment specified in <code class="code docutils literal notranslate"><span class="pre">ALIGN</span></code>.</p>
+</div>
+<div class="section" id="command-line-options-for-setting-section-addresses">
+<h6><a class="toc-backref" href="#id18"><span class="section-number">10.2.2.3.1.3. </span>3) Command-line options for setting section addresses</a><a class="headerlink" href="#command-line-options-for-setting-section-addresses" title="Permalink to this heading"></a></h6>
+<p>There are various linker command-line options for setting output section
+VMA: <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-Tbss"><code class="xref std std-option docutils literal notranslate"><span class="pre">-Tbss</span></code></a>, <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-Tdata"><code class="xref std std-option docutils literal notranslate"><span class="pre">-Tdata</span></code></a>, <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-Ttext"><code class="xref std std-option docutils literal notranslate"><span class="pre">-Ttext</span></code></a> and
+<code class="xref std std-option docutils literal notranslate"><span class="pre">--section-start</span></code>.</p>
+<p>When both the linker script and the command line specify an output-section address,
+the command-line option takes precedence and overrides the script’s explicit address.</p>
+</div>
+<div class="section" id="memory-region">
+<h6><a class="toc-backref" href="#id19"><span class="section-number">10.2.2.3.1.4. </span>4) Memory region</a><a class="headerlink" href="#memory-region" title="Permalink to this heading"></a></h6>
+<p>Assigning an output section to a MEMORY region places it at the region’s next available address,
+subject to alignment and size constraints.</p>
+<p>Let’s understand this with the help of an example:</p>
+<div class="twocol docutils container">
+<blockquote>
+<div><div class="leftside docutils container">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// 1.c</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">u</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">11</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">13</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div></blockquote>
+<div class="rightside docutils container">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// script.t</span>
+<span class="n">MEMORY</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nl">RAM</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ORIGIN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x1000</span><span class="p">,</span><span class="w"> </span><span class="n">LENGTH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x1000</span>
+<span class="p">}</span>
+
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">.</span><span class="n">data</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">data</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">&gt;</span><span class="n">RAM</span>
+<span class="w">  </span><span class="p">.</span><span class="n">foo</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">foo</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">&gt;</span><span class="n">RAM</span>
+<span class="w">  </span><span class="p">.</span><span class="n">bss</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="o">*</span><span class="p">(.</span><span class="n">bss</span><span class="o">*</span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="o">&gt;</span><span class="n">RAM</span>
+<span class="w">  </span><span class="p">.</span><span class="n">bar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="p">.</span><span class="n">bar</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">&gt;</span><span class="n">RAM</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>For the example above, the virtual addresses of the output section are shown below,
+along with the assumed size and alignment.</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">.data</span></code> (size: 0x8; alignment: 0x8): 0x1000</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">.foo</span></code> (size: 0x8; alignment: 0x8): 0x1008</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">.bss</span></code> (size: 0x4; alignment: 0x4): 0x1010</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">.bar</span></code> (size: 0x8; alignment: 0x8): 0x1014</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="precedence-of-virtual-address-assignment-methods">
+<h5><a class="toc-backref" href="#id20"><span class="section-number">10.2.2.3.2. </span>Precedence of virtual address assignment methods</a><a class="headerlink" href="#precedence-of-virtual-address-assignment-methods" title="Permalink to this heading"></a></h5>
+<p>The precedence is:</p>
+<ol class="arabic simple">
+<li><p>Command-line options for setting section addresses</p></li>
+<li><p>Explicit linker script VMA address</p></li>
+<li><p>Memory region</p></li>
+<li><p>No address/memory-region specified</p></li>
+</ol>
+</div>
+</div>
+<div class="section" id="segment-creation-when-phdrs-is-not-specified">
+<h4><a class="toc-backref" href="#id21"><span class="section-number">10.2.2.4. </span>Segment creation when <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is not specified</a><a class="headerlink" href="#segment-creation-when-phdrs-is-not-specified" title="Permalink to this heading"></a></h4>
+<p>eld uses a set of heuristics to decide when to start a new segment. Before detailing those heuristics,
+we need to note how eld walks the layout:</p>
+<p>eld processes output sections in the order specified by the linker script;
+if no script is provided, then it uses the order in which the linker has
+created default output sections.</p>
+<p>We use the below terms to describe when eld creates a segment:</p>
+<ul class="simple">
+<li><p>Previous output section to refer to the output section that immediately precedes the current one
+in the traversal order.</p></li>
+<li><p>Previous allocatable output section to refer to the nearest preceding allocatable output section.</p></li>
+<li><p>Previous LOAD segment to refer to the segment of the nearest preceding allocatable output section.</p></li>
+</ul>
+<p>With this traversal model and the terms in mind, we can now describe the segment-creation heuristics.</p>
+<p>A new load segment is created when:</p>
+<ul>
+<li><p>There is no previous LOAD segment.</p></li>
+<li><p>Explicit output section address has been set using linker command-line options such as:
+<a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-Ttext"><code class="xref std std-option docutils literal notranslate"><span class="pre">-Ttext</span></code></a>, <code class="xref std std-option docutils literal notranslate"><span class="pre">--section-start</span></code>, …</p></li>
+<li><p>The segment flags required for the current output section is incompatible with the
+previous LOAD segment. By default, the segment flags <code class="code docutils literal notranslate"><span class="pre">R</span></code> and <code class="code docutils literal notranslate"><span class="pre">RE</span></code> are
+compatible, whereas <code class="code docutils literal notranslate"><span class="pre">RW</span></code> is incompatible with <code class="code docutils literal notranslate"><span class="pre">R</span></code> and <code class="code docutils literal notranslate"><span class="pre">RW</span></code>.</p>
+<p><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-rosegment"><code class="xref std std-option docutils literal notranslate"><span class="pre">--rosegment</span></code></a> and <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-omagic"><code class="xref std std-option docutils literal notranslate"><span class="pre">--omagic</span></code></a> influence which sections can be
+part of the same segment.</p>
+</li>
+<li><p>The memory region of the current output section is different
+than the memory region of the previous allocatable output section.</p></li>
+<li><p>The previous output section type is NOBITS and the current output section
+type is PROGBITS.</p></li>
+<li><p>The previous output section virtual memory address is greater than
+the current output section virtual memory address.</p></li>
+<li><p>The VMA difference between the previous allocatable output section is greater
+than the segment alignment.</p></li>
+</ul>
+<p>Other segment types:</p>
+<ul class="simple">
+<li><p>A <code class="code docutils literal notranslate"><span class="pre">PT_TLS</span></code> segment is created when an input file contains <code class="code docutils literal notranslate"><span class="pre">.tdata</span></code>/<code class="code docutils literal notranslate"><span class="pre">.tbss</span></code>.</p></li>
+<li><p>A <code class="code docutils literal notranslate"><span class="pre">PT_DYNAMIC</span></code> segment is created when a shared library or a dynamic executable is getting built.</p></li>
+<li><p>A <code class="code docutils literal notranslate"><span class="pre">PT_GNU_EH_FRAME</span></code> segment is created when the output contains <code class="code docutils literal notranslate"><span class="pre">eh_frame_hdr</span></code> section.</p></li>
+</ul>
+</div>
+<div class="section" id="segment-creation-when-phdrs-is-specified">
+<h4><a class="toc-backref" href="#id22"><span class="section-number">10.2.2.5. </span>Segment creation when <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is specified</a><a class="headerlink" href="#segment-creation-when-phdrs-is-specified" title="Permalink to this heading"></a></h4>
+<p>When the <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> is specified in the linker script, then the linker only
+creates the section specified in the <code class="code docutils literal notranslate"><span class="pre">PHDRS</span></code> command. No additional segments
+are created.</p>
+</div>
+<div class="section" id="linker-script-assignment-evaluation">
+<h4><a class="toc-backref" href="#id23"><span class="section-number">10.2.2.6. </span>Linker script assignment evaluation</a><a class="headerlink" href="#linker-script-assignment-evaluation" title="Permalink to this heading"></a></h4>
+<p>Linker script assignment evaluation can influence the image layout as the location
+counter value can be modified using a linker script assignment and the location counter
+controls where the next content would be placed.</p>
+<p>eld does not support lazy expression evaluation and forward references in expressions.</p>
+<p>In eld, the linker script assignments outside the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command are evaluated
+before the linker script assignments inside the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command. The linker script
+assignments order is:</p>
+<ul class="simple">
+<li><p>First, all the linker script assignments outside the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command are evaluated
+in the specified order.</p></li>
+<li><p>Then all the linker script assignments inside the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> command are evaluated
+in the specified order.</p></li>
+</ul>
+<p>The linker script assignments specified using <code class="xref std std-option docutils literal notranslate"><span class="pre">--defsym</span></code> are considered as
+outside-<code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> linker script assignments.</p>
+</div>
+</div>
+<div class="section" id="linker-options-that-affect-layout">
+<h3><a class="toc-backref" href="#id24"><span class="section-number">10.2.3. </span>Linker options that affect layout</a><a class="headerlink" href="#linker-options-that-affect-layout" title="Permalink to this heading"></a></h3>
+<div class="section" id="rosegment">
+<h4><a class="toc-backref" href="#id25"><span class="section-number">10.2.3.1. </span><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-rosegment"><code class="xref std std-option docutils literal notranslate"><span class="pre">--rosegment</span></code></a></a><a class="headerlink" href="#rosegment" title="Permalink to this heading"></a></h4>
+<p>By default, readonly non-executable (<code class="code docutils literal notranslate"><span class="pre">R</span></code>) sections such as <code class="code docutils literal notranslate"><span class="pre">.rodata</span></code> sections and
+executable sections (<code class="code docutils literal notranslate"><span class="pre">RX</span></code>) such as <code class="code docutils literal notranslate"><span class="pre">.text</span></code> can be part of the same segment. When
+<a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-rosegment"><code class="xref std std-option docutils literal notranslate"><span class="pre">--rosegment</span></code></a> is specified, a different segment is created for readonly non-executable
+segments.</p>
+</div>
+<div class="section" id="omagic">
+<h4><a class="toc-backref" href="#id26"><span class="section-number">10.2.3.2. </span><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-omagic"><code class="xref std std-option docutils literal notranslate"><span class="pre">--omagic</span></code></a></a><a class="headerlink" href="#omagic" title="Permalink to this heading"></a></h4>
+<p>If <a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-omagic"><code class="xref std std-option docutils literal notranslate"><span class="pre">--omagic</span></code></a> is specified, then readonly non-executable (<code class="code docutils literal notranslate"><span class="pre">R</span></code>),
+executable (<code class="code docutils literal notranslate"><span class="pre">RX</span></code>), and read-write (<code class="code docutils literal notranslate"><span class="pre">RW</span></code>) sections can be part of the same segment.
+Moreover, the segment alignment is set to the maximum section alignment instead of the page
+alignment.</p>
+</div>
+<div class="section" id="align-segments">
+<h4><a class="toc-backref" href="#id27"><span class="section-number">10.2.3.3. </span><a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-align-segments"><code class="xref std std-option docutils literal notranslate"><span class="pre">--align-segments</span></code></a></a><a class="headerlink" href="#align-segments" title="Permalink to this heading"></a></h4>
+<p>This option cannot be used with linker scripts. When used,
+the addresses of segments (both virtual and physical addresses)
+are aligned to the page boundaries.</p>
+</div>
+<div class="section" id="enable-bss-mixing-and-disable-bss-conversion">
+<h4><a class="toc-backref" href="#id28"><span class="section-number">10.2.3.4. </span><a class="reference internal" href="options/ARMLinkerOptions.html#cmdoption-enable-bss-mixing"><code class="xref std std-option docutils literal notranslate"><span class="pre">--enable-bss-mixing</span></code></a> and <a class="reference internal" href="options/ARMLinkerOptions.html#cmdoption-disable-bss-conversion"><code class="xref std std-option docutils literal notranslate"><span class="pre">--disable-bss-conversion</span></code></a></a><a class="headerlink" href="#enable-bss-mixing-and-disable-bss-conversion" title="Permalink to this heading"></a></h4>
+<p>These options control how the linker treats BSS sections relative to non-BSS
+sections within the same segment.</p>
+<p><a class="reference internal" href="options/ARMLinkerOptions.html#cmdoption-disable-bss-conversion"><code class="xref std std-option docutils literal notranslate"><span class="pre">--disable-bss-conversion</span></code></a> controls whether the linker converts BSS
+to non-BSS when BSS/non-BSS sections are mixed. When this option is passed,
+BSS remains NOBITS when BSS and Non-BSS are mixed in a segment. This option must
+be combined with <a class="reference internal" href="options/ARMLinkerOptions.html#cmdoption-enable-bss-mixing"><code class="xref std std-option docutils literal notranslate"><span class="pre">--enable-bss-mixing</span></code></a> if the BSS section will be placed before a non-BSS
+section because otherwise BSS before non-BSS is an error.</p>
+<p>This combination of options is useful for reducing file size of a program.
+For example, if a program has a layout requirement that a BSS section
+(let’s say <code class="code docutils literal notranslate"><span class="pre">.bss</span></code>) must be placed before a non-BSS section (let’s say <code class="code docutils literal notranslate"><span class="pre">.data</span></code>)
+in the same segment, and the addresses of <code class="code docutils literal notranslate"><span class="pre">.bss</span></code> and <code class="code docutils literal notranslate"><span class="pre">.data</span></code> are <code class="code docutils literal notranslate"><span class="pre">0x1000</span></code>
+and <code class="code docutils literal notranslate"><span class="pre">0x2000</span></code> respectively, then with the default behavior <code class="code docutils literal notranslate"><span class="pre">.bss</span></code> will be
+converted to PROGBITS and 0s would need to be filled explicitly in the file for this section.
+This can significantly increase the file size. On the contrary, when
+<code class="code docutils literal notranslate"><span class="pre">--disable-bss-conversion</span> <span class="pre">--enable-bss-mixing</span></code>, <code class="code docutils literal notranslate"><span class="pre">.bss</span></code> will remain as NOBITS
+and thus no file size will be consumed by this section.</p>
+<p>Please note that with such a layout you may need a custom loader because most standard
+loaders would not accept a layout where a BSS section is followed by a non-BSS section
+in the same segment.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These options are currently supported only for ARM, AArch64, and RISCV targets.</p>
+</div>
+<p>Let’s understand these options in more detail with the help of an example:</p>
+<p>Below is a minimal example showing how these options affect layout when placing
+both <code class="code docutils literal notranslate"><span class="pre">.bss</span></code> and <code class="code docutils literal notranslate"><span class="pre">.data</span></code> in the same segment.</p>
+<p>bssmix.c:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">bssvar</span><span class="p">;</span><span class="w">            </span><span class="c1">// goes to .bss (NOBITS)</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">          </span><span class="c1">// goes to .data (PROGBITS)</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">data</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bssvar</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Linker script (script.t):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">PHDRS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">A</span><span class="w"> </span><span class="n">PT_LOAD</span><span class="p">;</span>
+<span class="w">  </span><span class="n">B</span><span class="w"> </span><span class="n">PT_LOAD</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="n">SECTIONS</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">.</span><span class="n">text</span><span class="w"> </span><span class="p">(</span><span class="mh">0x1000</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">text</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">:</span><span class="n">A</span>
+<span class="w">  </span><span class="p">.</span><span class="n">data</span><span class="w"> </span><span class="p">(</span><span class="mh">0x3000</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">data</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">:</span><span class="n">B</span>
+<span class="w">  </span><span class="p">.</span><span class="n">bss</span><span class="w">  </span><span class="p">(</span><span class="mh">0x2000</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="p">(.</span><span class="n">bss</span><span class="o">*</span><span class="p">)</span><span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="o">:</span><span class="n">B</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Build and link:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">$</span><span class="w"> </span><span class="n">clang</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="o">--</span><span class="n">target</span><span class="o">=</span><span class="n">aarch64</span><span class="o">-</span><span class="n">unknown</span><span class="o">-</span><span class="n">elf</span><span class="w"> </span><span class="o">-</span><span class="n">c</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="n">ffunction</span><span class="o">-</span><span class="n">sections</span><span class="w"> </span><span class="o">-</span><span class="n">fdata</span><span class="o">-</span><span class="n">sections</span>
+
+<span class="cp"># .bss section is promoted to PROGBITS because .bss is placed before .data in the segment B.</span>
+<span class="n">$</span><span class="w"> </span><span class="n">ld</span><span class="p">.</span><span class="n">eld</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">out</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="o">-</span><span class="n">T</span><span class="w"> </span><span class="n">script</span><span class="p">.</span><span class="n">t</span>
+
+<span class="cp"># Error: Mixing BSS and non-BSS sections in segment. non-BSS &#39;.data&#39; is after</span>
+<span class="cp"># BSS &#39;.bss&#39; in linker script</span>
+<span class="n">$</span><span class="w"> </span><span class="n">ld</span><span class="p">.</span><span class="n">eld</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">disable_conversion</span><span class="p">.</span><span class="n">out</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="o">-</span><span class="n">T</span><span class="w"> </span><span class="n">script</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="o">--</span><span class="n">disable</span><span class="o">-</span><span class="n">bss</span><span class="o">-</span><span class="n">conversion</span>
+
+<span class="cp"># .bss section is placed before .data in the segment B and BSSness of .bss is preserved,</span>
+<span class="cp"># that is, it is not promoted to PROGBITS.</span>
+<span class="n">$</span><span class="w"> </span><span class="n">ld</span><span class="p">.</span><span class="n">eld</span><span class="w"> </span><span class="o">-</span><span class="n">o</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">disable_conversion</span><span class="p">.</span><span class="n">out</span><span class="w"> </span><span class="n">bssmix</span><span class="p">.</span><span class="n">o</span><span class="w"> </span><span class="o">-</span><span class="n">T</span><span class="w"> </span><span class="n">script</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="o">--</span><span class="n">disable</span><span class="o">-</span><span class="n">bss</span><span class="o">-</span><span class="n">conversion</span><span class="w"> </span>\
+<span class="w">    </span><span class="o">--</span><span class="n">enable</span><span class="o">-</span><span class="n">bss</span><span class="o">-</span><span class="n">mixing</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="advanced-image-layout-control-using-linker-plugins">
+<h3><a class="toc-backref" href="#id29"><span class="section-number">10.2.4. </span>Advanced image layout control using linker plugins</a><a class="headerlink" href="#advanced-image-layout-control-using-linker-plugins" title="Permalink to this heading"></a></h3>
+<p>More finer-grained control over the image layout can be achieved using linker plugins.</p>
+<ul class="simple">
+<li><p>Custom Layout Logic: Plugins can override default section placement logic to optimize
+for cache locality or hardware-specific constraints.</p></li>
+<li><p>Dynamic Behavior: Unlike static scripts, plugins can make layout decisions based on
+runtime metadata or build-time heuristics.</p></li>
+<li><p>Programmatic Layout: Developers can write plugins (e.g., LayoutOptimizer) that programmatically
+define how sections are arranged, enabling more flexible and performance-tuned binaries</p></li>
+</ul>
+<p>This approach is especially useful in embedded systems where:</p>
+<ul class="simple">
+<li><p>Memory is constrained and fragmented.</p></li>
+<li><p>Performance depends on precise placement of code/data.</p></li>
+<li><p>Debugging requires reproducible and traceable layouts.</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="linker_map_files.html" class="btn btn-neutral float-left" title="9. Linker Map Files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_plugins_updated.html" class="btn btn-neutral float-right" title="11. Linker Plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

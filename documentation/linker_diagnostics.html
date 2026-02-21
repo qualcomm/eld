@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5. Diagnostics &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6. Shared Library Versioning" href="linker_support_backward_compatibility.html" />
+    <link rel="prev" title="4. Linker Script" href="linker_script.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. Diagnostics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-wall-and-werror-mean-for-eld">5.1. What <cite>-Wall</cite> and <cite>-Werror</cite> Mean for ELD</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#wall-enable-all-warnings">5.1.1. <code class="docutils literal notranslate"><span class="pre">-Wall</span></code>: Enable All Warnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#werror-treat-warnings-as-errors">5.1.2. <code class="docutils literal notranslate"><span class="pre">-Werror</span></code>: Treat Warnings as Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#why-it-matters-in-eld">5.1.3. Why It Matters in ELD</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">5.1.4. Example Usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#eld-linker-warning-flags">5.2. ELD Linker Warning Flags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#general-warning-flags">5.2.1. General Warning Flags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#suppression-flags">5.2.2. Suppression Flags</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">11. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5. </span>Diagnostics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="diagnostics">
+<h1><span class="section-number">5. </span>Diagnostics<a class="headerlink" href="#diagnostics" title="Permalink to this heading"></a></h1>
+<p><strong>Linker diagnostics</strong> refer to the messages and reports generated by a linker to help developers identify and resolve issues during the linking phase of compilation. These diagnostics can include:</p>
+<ul class="simple">
+<li><p>Warnings and errors about malformed or unsupported linker scripts</p></li>
+<li><p>Misplaced or overlapping sections</p></li>
+<li><p>Unresolved symbols</p></li>
+<li><p>Alignment issues</p></li>
+<li><p>Plugin-related inconsistencies</p></li>
+</ul>
+<div class="section" id="what-wall-and-werror-mean-for-eld">
+<h2><span class="section-number">5.1. </span>What <cite>-Wall</cite> and <cite>-Werror</cite> Mean for ELD<a class="headerlink" href="#what-wall-and-werror-mean-for-eld" title="Permalink to this heading"></a></h2>
+<div class="section" id="wall-enable-all-warnings">
+<h3><span class="section-number">5.1.1. </span><code class="docutils literal notranslate"><span class="pre">-Wall</span></code>: Enable All Warnings<a class="headerlink" href="#wall-enable-all-warnings" title="Permalink to this heading"></a></h3>
+<p>In the eld linker, <code class="docutils literal notranslate"><span class="pre">-Wall</span></code> enables a broad set of diagnostic warnings during the linking process. These warnings help developers catch:</p>
+<ul class="simple">
+<li><p>Misuse of linker script commands</p></li>
+<li><p>Compatibility issues during linking</p></li>
+<li><p>Linker script forward references</p></li>
+<li><p>Suspicious section overlaps or misalignments</p></li>
+<li><p>Deprecated or unsupported syntax</p></li>
+<li><p>Potentially undefined behavior in symbol resolution</p></li>
+<li><p>Command line usage</p></li>
+</ul>
+<p>This flag is particularly useful in embedded development, where layout precision and deterministic behavior are critical.</p>
+</div>
+<div class="section" id="werror-treat-warnings-as-errors">
+<h3><span class="section-number">5.1.2. </span><code class="docutils literal notranslate"><span class="pre">-Werror</span></code>: Treat Warnings as Errors<a class="headerlink" href="#werror-treat-warnings-as-errors" title="Permalink to this heading"></a></h3>
+<p>When <code class="docutils literal notranslate"><span class="pre">-Werror</span></code> is used, any warning promoted by <code class="docutils literal notranslate"><span class="pre">-Wall</span></code> (or other <code class="docutils literal notranslate"><span class="pre">-W</span></code> flags) is treated as a <strong>fatal error</strong>, halting the linking process. This ensures:</p>
+<ul class="simple">
+<li><p>No warnings are ignored during CI/CD builds</p></li>
+<li><p>Developers are forced to resolve all issues before producing a final binary</p></li>
+<li><p>Consistency across builds, especially when linker behavior may vary across toolchain versions</p></li>
+</ul>
+<p>This is especially important in embedded workflows, where eld is used to build critical components like firmware and device drivers.</p>
+</div>
+<div class="section" id="why-it-matters-in-eld">
+<h3><span class="section-number">5.1.3. </span>Why It Matters in ELD<a class="headerlink" href="#why-it-matters-in-eld" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Embedded Safety</strong>: In embedded systems, even minor layout issues can lead to runtime faults. <code class="docutils literal notranslate"><span class="pre">-Wall</span> <span class="pre">-Werror</span></code> ensures these are caught early.</p></li>
+<li><p><strong>Plugin Infrastructure</strong>: ELD supports linker plugins. These can emit custom diagnostics, and <code class="docutils literal notranslate"><span class="pre">-Wall</span></code> ensures they’re surfaced; <code class="docutils literal notranslate"><span class="pre">-Werror</span></code> enforces them.</p></li>
+<li><p><strong>Script Compatibility</strong>: ELD aims for GNU linker script compatibility. These flags help validate script correctness during migration from GNU ld.</p></li>
+</ul>
+</div>
+<div class="section" id="example-usage">
+<h3><span class="section-number">5.1.4. </span>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>eld<span class="w"> </span>-T<span class="w"> </span>script.ld<span class="w"> </span>-o<span class="w"> </span>firmware.elf<span class="w"> </span>main.o<span class="w"> </span>-Wall<span class="w"> </span>-Werror
+</pre></div>
+</div>
+<p>This command will:</p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">script.ld</span></code> for layout</p></li>
+<li><p>Link <code class="docutils literal notranslate"><span class="pre">main.o</span></code> into <code class="docutils literal notranslate"><span class="pre">firmware.elf</span></code></p></li>
+<li><p>Emit all warnings (<code class="docutils literal notranslate"><span class="pre">-Wall</span></code>)</p></li>
+<li><p>Fail the build if any warning is encountered (<code class="docutils literal notranslate"><span class="pre">-Werror</span></code>)</p></li>
+</ul>
+<p>What are the various categories that are grouped in</p>
+</div>
+</div>
+<div class="section" id="eld-linker-warning-flags">
+<h2><span class="section-number">5.2. </span>ELD Linker Warning Flags<a class="headerlink" href="#eld-linker-warning-flags" title="Permalink to this heading"></a></h2>
+<p>This document provides a categorized list of warning flags supported by the ELD linker.</p>
+<div class="section" id="general-warning-flags">
+<h3><span class="section-number">5.2.1. </span>General Warning Flags<a class="headerlink" href="#general-warning-flags" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wall</span></code></p></td>
+<td><p>Enables all standard warnings supported by ELD. Useful for catching script and layout issues early.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Warchive-file</span></code></p></td>
+<td><p>Warns about issues related to archive (.a) when they contain duplicate members.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wattribute-mix</span></code></p></td>
+<td><p>Flags inconsistent or conflicting section attributes across input files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Wbad-dot-assignments</span></code></p></td>
+<td><p>Warns when the <code class="docutils literal notranslate"><span class="pre">.</span></code> (location counter) is used in a way that may cause layout issues or undefined behavior.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wcommand-line</span></code></p></td>
+<td><p>Enables warnings for malformed or conflicting command-line options.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Werror</span></code></p></td>
+<td><p>Treats all warnings as errors, halting the link process.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wlinker-script</span></code></p></td>
+<td><p>Enables warnings specific to linker script issues, such as malformed directives, deprecated syntax, or unsupported constructs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Wlinker-script-memory</span></code></p></td>
+<td><p>Focuses on memory region definitions in linker scripts, such as overlaps or undefined regions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wwhole-archive</span></code></p></td>
+<td><p>Warns when <code class="docutils literal notranslate"><span class="pre">--whole-archive</span></code> is used inappropriately or causes symbol bloat.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Wzero-sized-sections</span></code></p></td>
+<td><p>Flags sections that are defined but have zero size, which may indicate a script or input error.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wosabi</span></code></p></td>
+<td><p>Generates a warning when an input file’s OS/ABI value differs from those encountered in previously processed files.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="suppression-flags">
+<h3><span class="section-number">5.2.2. </span>Suppression Flags<a class="headerlink" href="#suppression-flags" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wno-archive-file</span></code></p></td>
+<td><p>Suppresses archive file-related warnings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Wno-attribute-mix</span></code></p></td>
+<td><p>Suppresses attribute mismatch warnings.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wno-error</span></code></p></td>
+<td><p>Allows warnings to be emitted without halting the link process.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-Wno-linker-script</span></code></p></td>
+<td><p>Disables linker script-related warnings.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-Wno-osabi</span></code></p></td>
+<td><p>Disables OS/ABI warnings.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="linker_script.html" class="btn btn-neutral float-left" title="4. Linker Script" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_support_backward_compatibility.html" class="btn btn-neutral float-right" title="6. Shared Library Versioning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11. Linker Plugins &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/index.css" type="text/css" />
+      <link rel="stylesheet" href="/home/runner/work/eld/eld/obj/tools/eld/docs/userguide/source/_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11.1. Linker Plugins" href="linker_plugins/linker_plugins.html" />
+    <link rel="prev" title="10. Image layout" href="layout.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">6. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">7. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">8. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">9. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">10. Image layout</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">11. Linker Plugins</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html">11.1. Linker Plugins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html">11.2. Linker Plugin Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/api_docs.html">11.3. Linker Plugin API Usage and Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">12. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">13. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">14. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">15. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">16. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">17. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11. </span>Linker Plugins</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-plugins">
+<h1><span class="section-number">11. </span>Linker Plugins<a class="headerlink" href="#linker-plugins" title="Permalink to this heading"></a></h1>
+<p>Linker plugin framework is a user-friendly solution to add custom link behavior.
+This allows non-linker developers to tweak and hack linker for the specialized use-cases.
+It is similar to how clang plugins let you tweak frontend compliation and LLVM passes
+let you transform the LLVM IR. [[The core idea is to make the tool extendable and hackable
+by providing the framework]].</p>
+<p>But why would you ever need to customize link?
+Short answer: Embedded development can get really fun at times. Long and more useful answer
+will be discussed as we move on.</p>
+<p>This guide contains all that you need to know about linker plugins, and how to effectively write one yourself.</p>
+<p><strong>Overview</strong></p>
+<ul class="simple">
+<li><p>Implemented as a C++ class.</p></li>
+<li><p>Facilitates user-defined behavior to crucial parts of the link process.</p></li>
+<li><p>Provides finer control over the output image layout than a linker script.</p></li>
+<li><p>Allows inspecting symbols, chunks, relocation, section mapping, input and output sections.</p></li>
+<li><p>Allows adding and modifying section mapping rules, relocations, chunk attributes, and symbols.</p></li>
+<li><p>Plugins can communicate with the linker as well as with each other.</p></li>
+<li><p>Easy traceability of plugins using <code class="code docutils literal notranslate"><span class="pre">--trace=plugin</span></code> option.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">PluginADT</span></code> provides wrappers for many common linker data types.</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins/linker_plugins.html">11.1. Linker Plugins</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#what-and-why-of-linker-plugins">11.1.1. What and why of linker plugins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#elements-of-the-link-process">11.1.2. Elements of the link process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#plugin-types">11.1.3. Plugin Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#linker-wrapper">11.1.4. Linker Wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#running-a-linker-plugin">11.1.5. Running a linker plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#user-plugin-workflow">11.1.6. User Plugin Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#how-the-linker-runs-plugin">11.1.7. How the linker runs plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#tracing-plugins">11.1.8. Tracing plugins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#link-states">11.1.9. Link States</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/linker_plugins.html#deep-dive-into-the-plugin-types">11.1.10. Deep Dive into the Plugin Types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins/examples.html">11.2. Linker Plugin Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html#exclude-symbols-from-the-output-image-symbol-table">11.2.1. Exclude symbols from the output image symbol table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html#add-linker-script-rules">11.2.2. Add Linker Script Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html#reading-ini-files-functionality">11.2.3. Reading INI Files Functionality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html#modify-relocations">11.2.4. Modify Relocations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html#section-rule-matching">11.2.5. Section Rule-Matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/examples.html#change-symbol-value-to-another-symbol">11.2.6. Change Symbol Value to Another Symbol</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins/api_docs.html">11.3. Linker Plugin API Usage and Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/api_docs.html#linker-wrapper">11.3.1. Linker Wrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/api_docs.html#plugin-abstract-data-types">11.3.2. Plugin Abstract Data Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/api_docs.html#linkerpluginconfig">11.3.3. LinkerPluginConfig</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/api_docs.html#utility-data-structures">11.3.4. Utility Data Structures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins/api_docs.html#plugin-diagnostic-framework">11.3.5. Plugin Diagnostic Framework</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="layout.html" class="btn btn-neutral float-left" title="10. Image layout" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_plugins/linker_plugins.html" class="btn btn-neutral float-right" title="11.1. Linker Plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Qualcomm Technologies, Inc. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
