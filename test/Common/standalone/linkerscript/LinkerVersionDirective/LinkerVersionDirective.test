@@ -1,0 +1,21 @@
+#---LinkerVersionDirective.test---------------------------#
+#BEGIN_COMMENT
+# Verify LINKER_VERSION directive honouring enable/disable options.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.o
+
+# Directive is parsed but emits nothing by default.
+RUN: %link %linkopts %t.o -T %p/Inputs/linkerversion.script -o %t.disabled
+RUN: %readelf -S -W %t.disabled | %filecheck %s --check-prefix=DISABLED
+
+# Enabling the feature injects the eld version string into the section.
+RUN: %link %linkopts --enable-linker-version %t.o -T %p/Inputs/linkerversion.script -o %t.enabled
+RUN: %readelf -S -W %t.enabled | %filecheck %s --check-prefix=ENABLED
+RUN: %readelf -p .myver %t.enabled | %filecheck %s --check-prefix=STRING
+
+#DISABLED-NOT: .myver
+
+#ENABLED: .myver {{.*}} {{[0-9a-f]+}} {{.*}}
+
+#STRING: String dump of section '.myver':
+#STRING-NEXT: {{eld}} {{.*}}(GNU Compatible linker)

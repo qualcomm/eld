@@ -899,6 +899,12 @@ def disable_newdtags : Flag<["--"], "disable-new-dtags">,
 def enable_newdtags : Flag<["--"], "enable-new-dtags">,
                       HelpText<"Enable new dynamic tags">,
                       Group<grp_extendedopts>;
+def disable_linker_version : Flag<["--"], "disable-linker-version">,
+                             HelpText<"Disable the LINKER_VERSION linker script directive (default)">,
+                             Group<grp_extendedopts>;
+def enable_linker_version : Flag<["--"], "enable-linker-version">,
+                            HelpText<"Enable the LINKER_VERSION linker script directive">,
+                            Group<grp_extendedopts>;
 def rosegment
     : Flag<[ "-", "--" ], "rosegment">,
       HelpText<"Put read-only non-executable sections in their own segment">,

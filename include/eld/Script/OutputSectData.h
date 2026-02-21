@@ -93,5 +93,20 @@ private:
   Expression &ExpressionToEvaluate;
   ELFSection *ThisSectionion = nullptr;
 };
+
+class LinkerVersionOutputData : public InputSectDesc {
+public:
+  static LinkerVersionOutputData *create(uint32_t ID,
+                                         OutputSectDesc &OutSectDesc);
+
+  LinkerVersionOutputData(uint32_t ID, InputSectDesc::Policy Policy,
+                          const InputSectDesc::Spec Spec,
+                          OutputSectDesc &OutSectDesc);
+
+  eld::Expected<void> activate(Module &) override;
+
+private:
+  ELFSection *createSection(Module &Module);
+};
 } // namespace eld
 #endif

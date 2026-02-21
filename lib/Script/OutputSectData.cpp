@@ -5,11 +5,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Script/OutputSectData.h"
+#include "eld/Config/Version.h"
 #include "eld/Core/Module.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Fragment/OutputSectDataFragment.h"
+#include "eld/Fragment/StringFragment.h"
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/RuleContainer.h"
@@ -23,6 +25,17 @@
 #include <cstdint>
 
 using namespace eld;
+
+namespace {
+
+std::string buildLinkerVersionString() {
+  std::string Version = "eld ";
+  Version += eld::getELDVersion();
+  Version += " (GNU Compatible linker)";
+  return Version;
+}
+
+} // namespace
 
 OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
                                        OSDKind Kind, Expression &Expr) {
@@ -148,4 +161,55 @@ void OutputSectData::dumpOnlyThis(llvm::raw_ostream &Outs) const {
   ExpressionToEvaluate.dump(Outs);
   Outs << ")";
   Outs << "\n";
+}
+
+LinkerVersionOutputData *LinkerVersionOutputData::create(uint32_t ID,
+                                                         OutputSectDesc &Out) {
+  InputSectDesc::Spec Spec;
+  Spec.initialize();
+  return eld::make<LinkerVersionOutputData>(ID, InputSectDesc::Policy::Keep,
+                                            Spec, Out);
+}
+
+LinkerVersionOutputData::LinkerVersionOutputData(uint32_t ID,
+                                                 InputSectDesc::Policy Policy,
+                                                 const InputSectDesc::Spec Spec,
+                                                 OutputSectDesc &OutSectDesc)
+    : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, Policy, Spec,
+                    OutSectDesc) {}
+
+eld::Expected<void> LinkerVersionOutputData::activate(Module &Module) {
+  std::pair<SectionMap::mapping, bool> Mapping =
+      Module.getScript().sectionMap().insert(*this, OutputSectionDescription);
+  ASSERT(Mapping.second,
+         "New rule must be created for each LINKER_VERSION directive!");
+  ThisRuleContainer = Mapping.first.second;
+
+  ELFSection *S = createSection(Module);
+  RuleContainer *R = ThisRuleContainer;
+  S->setOutputSection(R->getSection()->getOutputSection());
+  R->incMatchCount();
+  S->setMatchedLinkerScriptRule(R);
+  return eld::Expected<void>();
+}
+
+ELFSection *LinkerVersionOutputData::createSection(Module &Module) {
+  ASSERT(ThisRuleContainer, "Rule container must be set before emitting data!");
+  RuleContainer *R = ThisRuleContainer;
+
+  llvm::StringRef OutputSectName = R->getSection()->getOutputSection()->name();
+  std::string Name = "__LinkerVersionData." + OutputSectName.str();
+  ELFSection *S = Module.createInternalSection(
+      Module::InternalInputType::OutputSectData, LDFileFormat::OutputSectData,
+      Name, OutputSectData::DefaultSectionType,
+      OutputSectData::DefaultSectionFlags,
+      /*alignment=*/1);
+  Fragment *F = make<StringFragment>(buildLinkerVersionString(), S);
+  LayoutInfo *layoutInfo = Module.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordFragment(
+        Module.getInternalInput(Module::InternalInputType::OutputSectData), S,
+        F);
+  S->addFragmentAndUpdateSize(F);
+  return S;
 }

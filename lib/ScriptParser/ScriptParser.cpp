@@ -1052,6 +1052,11 @@ void ScriptParser::readRegionAlias() {
 }
 
 bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
+  if (Tok == "LINKER_VERSION") {
+    ThisScriptFile.addLinkerVersionData();
+    return true;
+  }
+
   std::optional<OutputSectData::OSDKind> OptDataKind =
       llvm::StringSwitch<std::optional<OutputSectData::OSDKind>>(Tok)
           .Case("BYTE", OutputSectData::OSDKind::Byte)

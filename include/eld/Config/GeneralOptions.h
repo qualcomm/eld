@@ -610,6 +610,14 @@ public:
 
   bool mergeStrings() const { return BMergeStrings; }
 
+  void setLinkerVersionDirectiveEnabled(bool Enable = true) {
+    EnableLinkerVersionDirective = Enable;
+  }
+
+  bool isLinkerVersionDirectiveEnabled() const {
+    return EnableLinkerVersionDirective;
+  }
+
   void setEmitRelocs(bool EmitRelocs) {
     BEmitRelocs = EmitRelocs;
     ;
@@ -1280,8 +1288,9 @@ private:
   bool HasMappingFile = false;      // --Mapping-file
   bool DumpMappings = false;        // --Dump-Mapping-file
   bool DumpResponse = false;        // --Dump-Response-file
-  bool InsertTimingStats = false;   // -emit-timing-stats-in-output
-  bool FatalInternalErrors = false; // --fatal-internal-errors
+  bool InsertTimingStats = false;        // -emit-timing-stats-in-output
+  bool FatalInternalErrors = false;      // --fatal-internal-errors
+  bool EnableLinkerVersionDirective = false; // --enable/disable-linker-version
 
   RpathListType RpathList;
   ScriptListType ScriptList;

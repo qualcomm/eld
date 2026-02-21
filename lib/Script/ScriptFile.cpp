@@ -675,6 +675,24 @@ void ScriptFile::addOutputSectData(OutputSectData::OSDKind DataKind,
   OutputSectionDescription->pushBack(OSD);
 }
 
+void ScriptFile::addLinkerVersionData() {
+  assert(ScriptStateInSectionsCommmand);
+
+  if (!ThisModule.getConfig().options().isLinkerVersionDirectiveEnabled())
+    return;
+
+  LayoutInfo *layoutInfo = ThisModule.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordLinkerScriptRule();
+
+  auto *OSD = LinkerVersionOutputData::create(
+      ThisModule.getScript().getIncrementedRuleCount(),
+      *OutputSectionDescription);
+  OSD->setInputFileInContext(getContext());
+  OSD->setParent(getParent());
+  OutputSectionDescription->pushBack(OSD);
+}
+
 void ScriptFile::addRegionAlias(const StrToken *Alias, const StrToken *Region) {
   RegionAlias *R = eld::make<RegionAlias>(Alias, Region);
   R->setInputFileInContext(getContext());

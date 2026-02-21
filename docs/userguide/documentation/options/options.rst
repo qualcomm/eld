@@ -115,3 +115,19 @@ The following ``-z`` keywords are supported by ELD:
 
 ``-z max-page-size=<value>``
   Set the maximum supported page size used for segment alignment.
+
+Linker version directive
+------------------------
+
+``--enable-linker-version``
+  Enable the GNU linker-script ``LINKER_VERSION`` directive. When this option
+  is active, every ``LINKER_VERSION`` statement encountered in a linker script
+  emits a NUL-terminated string containing the eld version at that position in
+  the output section. This matches the GNU ld directive and is useful for
+  embedding the linker version directly into a binary. The option applies to
+  the entire link once specified.
+
+``--disable-linker-version``
+  Disable the ``LINKER_VERSION`` directive. This is the default behaviour, so
+  the directive is parsed but emits no data unless the feature has been
+  explicitly enabled.

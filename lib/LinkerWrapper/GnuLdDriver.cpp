@@ -596,6 +596,23 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Args.hasArg(T::disable_newdtags))
     Config.options().setNewDTags(false);
 
+  // --enable-linker-version / --disable-linker-version
+  if (Args.hasArg(T::enable_linker_version) &&
+      Args.hasArg(T::disable_linker_version)) {
+    errs() << "Cannot specify enable and disable LINKER_VERSION at same time!\n";
+    return false;
+  }
+
+  if (Args.hasArg(T::enable_linker_version)) {
+    Config.options().setLinkerVersionDirectiveEnabled(true);
+    Config.addCommandLine(Table->getOptionName(T::enable_linker_version), true);
+  }
+
+  if (Args.hasArg(T::disable_linker_version)) {
+    Config.options().setLinkerVersionDirectiveEnabled(false);
+    Config.addCommandLine(Table->getOptionName(T::disable_linker_version), true);
+  }
+
   // --emit-relocs
   if (Args.hasArg(T::emit_relocs)) {
     Config.options().setEmitGNUCompatRelocs(true);

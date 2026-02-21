@@ -293,6 +293,7 @@ public:
   /// BYTE, SHORT, LONG, QUAD, and SQUAD.
   ///
   void addOutputSectData(OutputSectData::OSDKind DataKind, Expression *Expr);
+  void addLinkerVersionData();
 
   // ------------------------ REGION_ALIAS ------------------------------------
   void addRegionAlias(const StrToken *Alias, const StrToken *Region);
