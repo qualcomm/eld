@@ -69,6 +69,7 @@ jobs:
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
             -DLLVM_OPTIMIZED_TABLEGEN:BOOL=ON \
             -DLLVM_ENABLE_SPHINX=OFF \
+            -DLLVM_USE_LINKER=lld \
             ../llvm-project/llvm
 
       - name: Build Project

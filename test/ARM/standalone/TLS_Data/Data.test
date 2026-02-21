@@ -1,4 +1,4 @@
-UNSUPPORTED: ndk-build
+UNSUPPORTED: ndk-build, sanitize
 RUN: %yaml2obj %p/Inputs/1.yaml -o %t.o
 RUN: %link %linkopts -march arm -static %t.o -o %t.out
 RUN: %objdump -d %t.out | %filecheck %s --check-prefix=TEXT

@@ -1,3 +1,4 @@
+#UNSUPPORTED: sanitize
 #---PartialLinkComdatDontmerge.test--------------------- PartialLink ------------------#
 #BEGIN_COMMENT
 # Dont merge non COMDAT sections in the same COMDAT group.

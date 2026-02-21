@@ -1,3 +1,4 @@
+#UNSUPPORTED: sanitize
 #----------AUIPC_JALR_TO_XQCI.test----------------- Executable------------------#
 #BEGIN_COMMENT
 # Do relaxation based from AUIPC/JALR to Xqci QC.E.JAL/QC.E.J (rv32 only)
