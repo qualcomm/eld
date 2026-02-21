@@ -52,18 +52,18 @@ using namespace eld;
 using namespace llvm;
 
 //===----------------------------------------------------------------------===//
-// AArch64GNUInfoLDBackend
+// AArch64LDBackend
 //===----------------------------------------------------------------------===//
-AArch64GNUInfoLDBackend::AArch64GNUInfoLDBackend(eld::Module &pModule,
+AArch64LDBackend::AArch64LDBackend(eld::Module &pModule,
                                                  TargetInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pErrata843419Factory(nullptr),
       m_pAArch64ErrataIslandFactory(nullptr), m_pRelocator(nullptr),
       m_pDynamic(nullptr), m_pIRelativeStart(nullptr), m_pIRelativeEnd(nullptr),
       m_ptdata(nullptr), m_ptbss(nullptr) {}
 
-AArch64GNUInfoLDBackend::~AArch64GNUInfoLDBackend() {}
+AArch64LDBackend::~AArch64LDBackend() {}
 
-bool AArch64GNUInfoLDBackend::initBRIslandFactory() {
+bool AArch64LDBackend::initBRIslandFactory() {
   if (nullptr == m_pBRIslandFactory) {
     m_pBRIslandFactory = make<BranchIslandFactory>(false, config());
   }
@@ -73,7 +73,7 @@ bool AArch64GNUInfoLDBackend::initBRIslandFactory() {
   return true;
 }
 
-bool AArch64GNUInfoLDBackend::initStubFactory() {
+bool AArch64LDBackend::initStubFactory() {
   if (nullptr == m_pStubFactory)
     m_pStubFactory =
         make<StubFactory>(make<AArch64FarcallStub>(config().options().isPIE()));
@@ -83,7 +83,7 @@ bool AArch64GNUInfoLDBackend::initStubFactory() {
   return true;
 }
 
-void AArch64GNUInfoLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
+void AArch64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
   InputFile.setDynamicSections(
       *m_Module.createInternalSection(
           InputFile, LDFileFormat::Internal, ".got", llvm::ELF::SHT_PROGBITS,
@@ -103,12 +103,12 @@ void AArch64GNUInfoLDBackend::initDynamicSections(ELFObjectFile &InputFile) {
           llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8));
 }
 
-void AArch64GNUInfoLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
+void AArch64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 
   createGNUPropertySection(false);
 }
 
-void AArch64GNUInfoLDBackend::initTargetSymbols() {
+void AArch64LDBackend::initTargetSymbols() {
   // Define the symbol _GLOBAL_OFFSET_TABLE_ if there is a symbol with the
   // same name in input
   auto SymbolName = "_GLOBAL_OFFSET_TABLE_";
@@ -129,14 +129,14 @@ void AArch64GNUInfoLDBackend::initTargetSymbols() {
   }
 }
 
-bool AArch64GNUInfoLDBackend::initRelocator() {
+bool AArch64LDBackend::initRelocator() {
   if (nullptr == m_pRelocator) {
     m_pRelocator = make<AArch64Relocator>(*this, config(), m_Module);
   }
   return true;
 }
 
-bool AArch64GNUInfoLDBackend::processInputFiles(
+bool AArch64LDBackend::processInputFiles(
     std::vector<InputFile *> &Inputs) {
   if (!m_pGPF)
     return config().getDiagEngine()->diagnose();
@@ -151,7 +151,7 @@ bool AArch64GNUInfoLDBackend::processInputFiles(
   return config().getDiagEngine()->diagnose();
 }
 
-bool AArch64GNUInfoLDBackend::processInputFile(InputFile *In) {
+bool AArch64LDBackend::processInputFile(InputFile *In) {
   // Create features
   uint32_t features = 0;
   bool hasWarning = false;
@@ -193,16 +193,16 @@ bool AArch64GNUInfoLDBackend::processInputFile(InputFile *In) {
   return !hasWarning;
 }
 
-Relocator *AArch64GNUInfoLDBackend::getRelocator() const {
+Relocator *AArch64LDBackend::getRelocator() const {
   assert(nullptr != m_pRelocator);
   return m_pRelocator;
 }
 
-Relocation::Type AArch64GNUInfoLDBackend::getCopyRelType() const {
+Relocation::Type AArch64LDBackend::getCopyRelType() const {
   return llvm::ELF::R_AARCH64_COPY;
 }
 
-void AArch64GNUInfoLDBackend::doPreLayout() {
+void AArch64LDBackend::doPreLayout() {
   // initialize .dynamic data
   if ((!config().isCodeStatic() || config().options().forceDynamic()) &&
       nullptr == m_pDynamic)
@@ -220,7 +220,7 @@ void AArch64GNUInfoLDBackend::doPreLayout() {
   m_ptbss = m_Module.getScript().sectionMap().find(".tbss");
 }
 
-void AArch64GNUInfoLDBackend::initSegmentFromLinkerScript(
+void AArch64LDBackend::initSegmentFromLinkerScript(
     ELFSegment *pSegment) {
   auto sect = pSegment->begin(), sectEnd = pSegment->end();
   bool isPrevBSS = false;
@@ -258,9 +258,9 @@ void AArch64GNUInfoLDBackend::initSegmentFromLinkerScript(
   }
 }
 
-AArch64ELFDynamic *AArch64GNUInfoLDBackend::dynamic() { return m_pDynamic; }
+AArch64ELFDynamic *AArch64LDBackend::dynamic() { return m_pDynamic; }
 
-unsigned int AArch64GNUInfoLDBackend::getTargetSectionOrder(
+unsigned int AArch64LDBackend::getTargetSectionOrder(
     const ELFSection &pSectHdr) const {
   if (pSectHdr.name() == ".got") {
     if (config().options().hasNow())
@@ -280,7 +280,7 @@ unsigned int AArch64GNUInfoLDBackend::getTargetSectionOrder(
   return SHO_UNDEFINED;
 }
 
-void AArch64GNUInfoLDBackend::mayBeRelax(int pass, bool &pFinished) {
+void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
   if (config().options().noTrampolines()) {
     pFinished = true;
     return;
@@ -349,7 +349,7 @@ void AArch64GNUInfoLDBackend::mayBeRelax(int pass, bool &pFinished) {
 }
 
 // Return whether this is a 3-insn erratum sequence.
-bool AArch64GNUInfoLDBackend::isErratum843419Sequence(uint32_t insn1,
+bool AArch64LDBackend::isErratum843419Sequence(uint32_t insn1,
                                                       uint32_t insn2,
                                                       uint32_t insn3) {
   unsigned rt1, rt2;
@@ -369,7 +369,7 @@ bool AArch64GNUInfoLDBackend::isErratum843419Sequence(uint32_t insn1,
   return false;
 }
 
-bool AArch64GNUInfoLDBackend::scanErrata843419() {
+bool AArch64LDBackend::scanErrata843419() {
   LinkerScript &script = m_Module.getScript();
   SectionMap::iterator out, outBegin = script.sectionMap().begin(),
                             outEnd = script.sectionMap().end();
@@ -461,7 +461,7 @@ bool AArch64GNUInfoLDBackend::scanErrata843419() {
   return updated;
 }
 
-void AArch64GNUInfoLDBackend::createErratum843419Stub(Fragment *frag,
+void AArch64LDBackend::createErratum843419Stub(Fragment *frag,
                                                       uint32_t offset) {
   BranchIsland *branchIsland = m_pErrata843419Factory->create(
       frag, offset, *m_Module.getIRBuilder(), *m_pAArch64ErrataIslandFactory);
@@ -520,7 +520,7 @@ void AArch64GNUInfoLDBackend::createErratum843419Stub(Fragment *frag,
   } // for all relocation section
 }
 
-void AArch64GNUInfoLDBackend::defineIRelativeRange(ResolveInfo &pSym) {
+void AArch64LDBackend::defineIRelativeRange(ResolveInfo &pSym) {
   // It is up to linker script to define those symbols.
   if (m_Module.getScript().linkerScriptHasSectionsCommand())
     return;
@@ -560,7 +560,7 @@ void AArch64GNUInfoLDBackend::defineIRelativeRange(ResolveInfo &pSym) {
   }
 }
 
-bool AArch64GNUInfoLDBackend::finalizeTargetSymbols() {
+bool AArch64LDBackend::finalizeTargetSymbols() {
   if (m_pIRelativeStart && m_pIRelativeEnd) {
     m_pIRelativeStart->setValue(
         getRelaPLT()->getOutputSection()->getSection()->addr());
@@ -574,7 +574,7 @@ bool AArch64GNUInfoLDBackend::finalizeTargetSymbols() {
   return true;
 }
 
-void AArch64GNUInfoLDBackend::setOptions() {
+void AArch64LDBackend::setOptions() {
   bool linkerScriptHasSectionsCommand =
       m_Module.getScript().linkerScriptHasSectionsCommand();
   // If we are not using linker scripts, lets start by setting that
@@ -590,13 +590,13 @@ void AArch64GNUInfoLDBackend::setOptions() {
   return;
 }
 
-bool AArch64GNUInfoLDBackend::ltoNeedAssembler() {
+bool AArch64LDBackend::ltoNeedAssembler() {
   if (!config().options().getSaveTemps())
     return false;
   return true;
 }
 
-bool AArch64GNUInfoLDBackend::ltoCallExternalAssembler(
+bool AArch64LDBackend::ltoCallExternalAssembler(
     const std::string &Input, std::string RelocModel,
     const std::string &Output) {
   bool traceLTO = config().options().traceLTO();
@@ -663,7 +663,7 @@ bool AArch64GNUInfoLDBackend::ltoCallExternalAssembler(
 }
 
 // Create GOT entry.
-AArch64GOT *AArch64GNUInfoLDBackend::createGOT(GOT::GOTType T,
+AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
                                                ELFObjectFile *Obj,
                                                ResolveInfo *R,
                                                bool SkipPLTRef) {
@@ -721,17 +721,17 @@ AArch64GOT *AArch64GNUInfoLDBackend::createGOT(GOT::GOTType T,
 }
 
 // Record GOT entry.
-void AArch64GNUInfoLDBackend::recordGOT(ResolveInfo *I, AArch64GOT *G) {
+void AArch64LDBackend::recordGOT(ResolveInfo *I, AArch64GOT *G) {
   m_GOTMap[I] = G;
 }
 
 // Record GOTPLT entry.
-void AArch64GNUInfoLDBackend::recordGOTPLT(ResolveInfo *I, AArch64GOT *G) {
+void AArch64LDBackend::recordGOTPLT(ResolveInfo *I, AArch64GOT *G) {
   m_GOTPLTMap[I] = G;
 }
 
 // Find an entry in the GOT.
-AArch64GOT *AArch64GNUInfoLDBackend::findEntryInGOT(ResolveInfo *I) const {
+AArch64GOT *AArch64LDBackend::findEntryInGOT(ResolveInfo *I) const {
   auto Entry = m_GOTMap.find(I);
   if (Entry == m_GOTMap.end())
     return nullptr;
@@ -739,7 +739,7 @@ AArch64GOT *AArch64GNUInfoLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-AArch64PLT *AArch64GNUInfoLDBackend::createPLT(ELFObjectFile *Obj,
+AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj,
                                                ResolveInfo *R,
                                                bool isIRelative) {
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
@@ -769,11 +769,11 @@ AArch64PLT *AArch64GNUInfoLDBackend::createPLT(ELFObjectFile *Obj,
 }
 
 // Record GOT entry.
-void AArch64GNUInfoLDBackend::recordPLT(ResolveInfo *I, AArch64PLT *P) {
+void AArch64LDBackend::recordPLT(ResolveInfo *I, AArch64PLT *P) {
   m_PLTMap[I] = P;
 }
 
-Stub *AArch64GNUInfoLDBackend::getBranchIslandStub(Relocation *pReloc,
+Stub *AArch64LDBackend::getBranchIslandStub(Relocation *pReloc,
                                                    int64_t targetValue) const {
   (void)pReloc;
   (void)targetValue;
@@ -781,14 +781,14 @@ Stub *AArch64GNUInfoLDBackend::getBranchIslandStub(Relocation *pReloc,
 }
 
 // Find an entry in the GOT.
-AArch64PLT *AArch64GNUInfoLDBackend::findEntryInPLT(ResolveInfo *I) const {
+AArch64PLT *AArch64LDBackend::findEntryInPLT(ResolveInfo *I) const {
   auto Entry = m_PLTMap.find(I);
   if (Entry == m_PLTMap.end())
     return nullptr;
   return Entry->second;
 }
 
-void AArch64GNUInfoLDBackend::createGNUPropertySection(bool force) {
+void AArch64LDBackend::createGNUPropertySection(bool force) {
   if (!config().options().hasForceBTI() &&
       !config().options().hasForcePACPLT() && !force)
     return;
@@ -802,7 +802,7 @@ void AArch64GNUInfoLDBackend::createGNUPropertySection(bool force) {
   m_pNoteGNUProperty->setWanted(true);
 }
 
-bool AArch64GNUInfoLDBackend::readSection(InputFile &pInput, ELFSection *S) {
+bool AArch64LDBackend::readSection(InputFile &pInput, ELFSection *S) {
   // We need break them down to individual entry
   if (S->getKind() == LDFileFormat::GNUProperty) {
     // Force create GNU property section
@@ -819,7 +819,7 @@ bool AArch64GNUInfoLDBackend::readSection(InputFile &pInput, ELFSection *S) {
   return GNULDBackend::readSection(pInput, S);
 }
 
-bool AArch64GNUInfoLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
+bool AArch64LDBackend::DoesOverrideMerge(ELFSection *pSection) const {
   if (pSection->getKind() == LDFileFormat::Internal)
     return false;
   if (pSection->name() == ".note.gnu.property")
@@ -827,7 +827,7 @@ bool AArch64GNUInfoLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
   return false;
 }
 
-ELFSection *AArch64GNUInfoLDBackend::mergeSection(ELFSection *S) {
+ELFSection *AArch64LDBackend::mergeSection(ELFSection *S) {
   if (S->name() == ".note.gnu.property")
     return m_pNoteGNUProperty;
   return nullptr;
@@ -835,7 +835,7 @@ ELFSection *AArch64GNUInfoLDBackend::mergeSection(ELFSection *S) {
 
 // Read .note.gnu.property and extract features for pointer authentication.
 template <class ELFT>
-bool AArch64GNUInfoLDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
+bool AArch64LDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
                                               uint32_t &featureSet) {
   using Elf_Nhdr = typename ELFT::Nhdr;
   using Elf_Note = typename ELFT::Note;
@@ -903,7 +903,7 @@ bool AArch64GNUInfoLDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
   return true;
 }
 
-void AArch64GNUInfoLDBackend::initializeAttributes() {
+void AArch64LDBackend::initializeAttributes() {
   getInfo().initializeAttributes(m_Module.getIRBuilder()->getInputBuilder());
 }
 
@@ -915,9 +915,9 @@ namespace eld {
 //===----------------------------------------------------------------------===//
 GNULDBackend *createAArch64LDBackend(Module &pModule) {
   if (pModule.getConfig().targets().triple().isOSLinux())
-    return make<AArch64GNUInfoLDBackend>(
+    return make<AArch64LDBackend>(
         pModule, make<AArch64LinuxInfo>(pModule.getConfig()));
-  return make<AArch64GNUInfoLDBackend>(pModule,
+  return make<AArch64LDBackend>(pModule,
                                        make<AArch64Info>(pModule.getConfig()));
 }
 
@@ -933,6 +933,6 @@ extern "C" void ELDInitializeAArch64LDBackend() {
 }
 
 namespace eld {
-template bool AArch64GNUInfoLDBackend::readGNUProperty<llvm::object::ELF64LE>(
+template bool AArch64LDBackend::readGNUProperty<llvm::object::ELF64LE>(
     InputFile &pInput, ELFSection *S, uint32_t &featureSet);
 }

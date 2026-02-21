@@ -45,15 +45,15 @@ enum {
  */
 class AArch64Relocator : public Relocator {
 public:
-  AArch64Relocator(AArch64GNUInfoLDBackend &pParent, LinkerConfig &pConfig,
+  AArch64Relocator(AArch64LDBackend &pParent, LinkerConfig &pConfig,
                    Module &pModule);
   ~AArch64Relocator();
 
   Result applyRelocation(Relocation &pRelocation) override;
 
-  AArch64GNUInfoLDBackend &getTarget() override { return m_Target; }
+  AArch64LDBackend &getTarget() override { return m_Target; }
 
-  const AArch64GNUInfoLDBackend &getTarget() const override { return m_Target; }
+  const AArch64LDBackend &getTarget() const override { return m_Target; }
 
   const char *getName(Relocation::Type pType) const override;
 
@@ -93,7 +93,7 @@ private:
                        CopyRelocs &);
 
 private:
-  AArch64GNUInfoLDBackend &m_Target;
+  AArch64LDBackend &m_Target;
   /// The static TLS block contains an optional gap at the beginning,
   /// that is followed by an optional alignment padding. The TLS variables
   /// are stored after the alignment padding. This member stores the

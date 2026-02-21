@@ -30,12 +30,12 @@ class LinkerConfig;
 class TargetInfo;
 
 //===----------------------------------------------------------------------===//
-/// AArch64GNUInfoLDBackend - linker backend of AArch64 target of GNU ELF format
+/// AArch64LDBackend - linker backend of AArch64 target of GNU ELF format
 ///
-class AArch64GNUInfoLDBackend : public GNULDBackend {
+class AArch64LDBackend : public GNULDBackend {
 public:
-  AArch64GNUInfoLDBackend(Module &pModule, TargetInfo *pInfo);
-  ~AArch64GNUInfoLDBackend();
+  AArch64LDBackend(Module &pModule, TargetInfo *pInfo);
+  ~AArch64LDBackend();
 
 public:
   /// initTargetSections - initialize target dependent sections in output.

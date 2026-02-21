@@ -39,7 +39,7 @@ static Relocator::Result emitSignedOrUnsignedRangeOverflow(Relocation &Rel,
 Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
                                Relocator::Type pType,
-                               AArch64GNUInfoLDBackend &B) {
+                               AArch64LDBackend &B) {
   Relocation *rela_entry = nullptr;
 
   if (pType == R_AARCH64_TLSDESC)
@@ -67,7 +67,7 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
 }
 
 AArch64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
-                      AArch64GNUInfoLDBackend &B, bool isExec) {
+                      AArch64LDBackend &B, bool isExec) {
   ResolveInfo *rsym = pReloc.symInfo();
   AArch64GOT *G = B.createGOT(GOT::Regular, Obj, rsym);
 
@@ -128,7 +128,7 @@ static ApplyFunctionMap ApplyFunctions(ApplyFunctionList,
 //===----------------------------------------------------------------------===//
 // AArch64Relocator
 //===----------------------------------------------------------------------===//
-AArch64Relocator::AArch64Relocator(AArch64GNUInfoLDBackend &pParent,
+AArch64Relocator::AArch64Relocator(AArch64LDBackend &pParent,
                                    LinkerConfig &pConfig, Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
@@ -399,7 +399,7 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
       m_Target.createPLT(Obj, rsym, true);
       rsym->setReserved(rsym->reserved() | ReservePLT);
-      AArch64GNUInfoLDBackend &backend = getTarget();
+      AArch64LDBackend &backend = getTarget();
       backend.defineIRelativeRange(*rsym);
       return;
     }
