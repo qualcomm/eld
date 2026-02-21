@@ -1,0 +1,23 @@
+pkgbase = eld
+	pkgdesc = ELF linker for embedded software with plugin support and GNU LD compatibility
+	pkgver = 22.1.0rc3
+	pkgrel = 1
+	url = https://github.com/qualcomm/eld
+	arch = x86_64
+	license = BSD-3-Clause
+	makedepends = cmake
+	makedepends = ninja
+	makedepends = clang
+	makedepends = python
+	makedepends = git
+	depends = gcc-libs
+	depends = zlib
+	depends = libxml2
+	optdepends = python: YAMLMapParser.py map file parsing utility
+	options = !lto
+	source = eld-22.1.0rc3.tar.gz::https://github.com/qualcomm/eld/archive/refs/tags/v22.1.0-rc3.tar.gz
+	source = llvm-project::git+https://github.com/llvm/llvm-project.git#branch=release/22.x
+	sha256sums = SKIP
+	sha256sums = SKIP
+
+pkgname = eld
