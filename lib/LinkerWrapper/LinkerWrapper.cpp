@@ -590,12 +590,7 @@ size_t LinkerWrapper::getPluginThreadCount() const {
 
 bool LinkerWrapper::isMultiThreaded() const {
   const eld::LinkerConfig &Config = m_Module.getConfig();
-  if (Config.options().threadsEnabled()) {
-    uint32_t NumThreads = Config.options().numThreads();
-    if (NumThreads > 1)
-      return true;
-  }
-  return false;
+  return Config.useThreads();
 }
 
 plugin::LinkerScript LinkerWrapper::getLinkerScript() {
@@ -979,7 +974,8 @@ bool LinkerWrapper::isVerbose() const {
 
 eld::Expected<std::vector<plugin::OutputSection>>
 LinkerWrapper::getAllOutputSections() const {
-  CHECK_LINK_STATE(*this, "CreatingSections", "CreatingSegments", "AfterLayout");
+  CHECK_LINK_STATE(*this, "Initializing", "CreatingSections",
+                   "CreatingSegments", "AfterLayout");
 
   SectionMap sectMap = m_Module.getScript().sectionMap();
   std::vector<plugin::OutputSection> outputSects;

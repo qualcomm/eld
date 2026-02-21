@@ -20,8 +20,8 @@ jobs:
             cd llvm-project/llvm/tools/eld
             DASH_DIR="$(mktemp -d)"
             cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-            git config --global user.name 'github-actions'
-            git config --global user.email 'github-actions@github.com'
+            git config user.name 'github-actions'
+            git config user.email 'github-actions@github.com'
             git fetch --all
             git checkout dashboard
             cp -r dash ${DASH_DIR}/
@@ -30,8 +30,12 @@ jobs:
             git checkout documentation
             cp -r ${DASH_DIR}/dash .
             cd dash
-            python record_builds.py --workflow picolibc --emit
-            python record_builds.py --workflow musl --emit
+            python3 record_builds.py --workflow picolibc --emit
+            python3 record_builds.py --workflow musl --emit
+            python3 record_builds.py --workflow sanitizer --emit
+            python3 record_builds.py --workflow nightly --emit
+            python3 record_builds.py --workflow reverse_iterator --emit
+            python3 record_builds.py --workflow release --emit
             rm -f record_builds.py build-status.db
             rm -rf ${DASH_DIR}
             cd ..

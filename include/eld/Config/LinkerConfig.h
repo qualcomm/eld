@@ -199,6 +199,10 @@ public:
     GlobalThreadingEnabled = true;
   }
 
+  bool useThreads() const {
+    return GenOptions.threadsEnabled() && GenOptions.numThreads() > 1;
+  }
+
   void addCommandLine(llvm::StringRef Option, bool Flag);
 
   void addCommandLine(llvm::StringRef Option, const char *);

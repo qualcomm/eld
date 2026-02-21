@@ -623,7 +623,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
   /// between them wrt string merging. When global string merging is enabled,
   /// strings would need to be placed in one Module, so threads should
   /// not be used.
-  bool UseThreads = ThisConfig.options().numThreads() > 1;
+  bool UseThreads = ThisConfig.useThreads();
   bool GlobalMerge = ThisConfig.options().shouldGlobalStringMerge();
   llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
   auto MergeStrings = [&](OutputSectionEntry *O) {
