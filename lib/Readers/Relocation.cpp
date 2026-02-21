@@ -215,24 +215,22 @@ static std::string getLocation(FragmentRef *Ref, Relocator &R) {
   return "";
 }
 
-bool Relocation::issueSignedOverflow(Relocator &R, int64_t Value, int64_t Min,
+void Relocation::issueSignedOverflow(Relocator &R, int64_t Value, int64_t Min,
                                      int64_t Max) const {
   std::string Location = getLocation(targetRef(), R);
   R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
       << Location << R.getName(type()) << Value << Min << Max
       << getSymbolName(symInfo(), R.doDeMangle());
   ASSERT(!Location.empty(), "expected a section location.");
-  return false;
 }
 
-bool Relocation::issueUnsignedOverflow(Relocator &R, uint64_t Value,
+void Relocation::issueUnsignedOverflow(Relocator &R, uint64_t Value,
                                        uint64_t Min, uint64_t Max) const {
   std::string Location = getLocation(targetRef(), R);
   R.config().getDiagEngine()->raise(Diag::result_overflow_moreinfo)
       << Location << R.getName(type()) << Value << Min << Max
       << getSymbolName(symInfo(), R.doDeMangle());
   ASSERT(!Location.empty(), "expected a section location.");
-  return false;
 }
 
 bool Relocation::issueUnencodableImmediate(Relocator &R, int64_t Imm) const {
