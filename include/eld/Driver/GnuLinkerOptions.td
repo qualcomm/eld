@@ -905,6 +905,12 @@ def disable_linker_version : Flag<["--"], "disable-linker-version">,
 def enable_linker_version : Flag<["--"], "enable-linker-version">,
                             HelpText<"Enable the LINKER_VERSION linker script directive">,
                             Group<grp_extendedopts>;
+def record_command_line : Flag<["--"], "record-command-line">,
+                           HelpText<"Record the linker command line in the comment section">,
+                           Group<grp_extendedopts>;
+def no_record_command_line : Flag<["--"], "no-record-command-line">,
+                              HelpText<"Do not record the linker command line in the comment section">,
+                              Group<grp_extendedopts>;
 def rosegment
     : Flag<[ "-", "--" ], "rosegment">,
       HelpText<"Put read-only non-executable sections in their own segment">,

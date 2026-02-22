@@ -4796,9 +4796,7 @@ void GNULDBackend::makeVersionString() {
           LLVMRevisionF->getOwningSection()->getInputFile(),
           LLVMRevisionF->getOwningSection(), LLVMRevisionF);
   }
-  if ((LinkerConfig::Object != config().codeGenType()) &&
-      (LinkerConfig::DynObj != config().codeGenType()) &&
-      !config().options().isPIE())
+  if (!config().options().recordCommandLine())
     return;
   // Add the command line information to the link
   std::string CommandLine = "Command:";

@@ -613,6 +613,10 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.addCommandLine(Table->getOptionName(T::disable_linker_version), true);
   }
 
+  bool recordCommandLine = Args.hasFlag(
+      T::record_command_line, T::no_record_command_line, /*default=*/false);
+  Config.options().setRecordCommandLine(recordCommandLine);
+
   // --emit-relocs
   if (Args.hasArg(T::emit_relocs)) {
     Config.options().setEmitGNUCompatRelocs(true);

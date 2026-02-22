@@ -131,3 +131,13 @@ Linker version directive
   Disable the ``LINKER_VERSION`` directive. This is the default behaviour, so
   the directive is parsed but emits no data unless the feature has been
   explicitly enabled.
+
+Record command line
+-------------------
+
+``--record-command-line``
+  Record the linker command line in the ``.comment`` section. This is disabled
+  by default.
+
+``--no-record-command-line``
+  Do not record the linker command line in the ``.comment`` section.

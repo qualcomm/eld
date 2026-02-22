@@ -618,6 +618,10 @@ public:
     return EnableLinkerVersionDirective;
   }
 
+  void setRecordCommandLine(bool Enable = true) { RecordCommandLine = Enable; }
+
+  bool recordCommandLine() const { return RecordCommandLine; }
+
   void setEmitRelocs(bool EmitRelocs) {
     BEmitRelocs = EmitRelocs;
     ;
@@ -1291,6 +1295,7 @@ private:
   bool InsertTimingStats = false;        // -emit-timing-stats-in-output
   bool FatalInternalErrors = false;      // --fatal-internal-errors
   bool EnableLinkerVersionDirective = false; // --enable/disable-linker-version
+  bool RecordCommandLine = false;            // --{no-,}record-command-line
 
   RpathListType RpathList;
   ScriptListType ScriptList;

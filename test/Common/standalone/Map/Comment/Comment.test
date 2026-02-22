@@ -11,4 +11,4 @@ RUN: %filecheck %s < %t2.map
 #END_TEST
 
 #CHECK: .comment{{.*}}1.o
-#CMDLINE: Command:
+#CMDLINE-NOT: Command:
