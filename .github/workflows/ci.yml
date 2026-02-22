@@ -29,7 +29,9 @@ jobs:
       BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
       BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
       CCACHE_DIR: /local/mnt/workspace/ccache/${{ github.event.pull_request.base.ref }}
-      CCACHE_BASEDIR: ${{ github.workspace }}/pr-${{ github.event.number }}
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_COMPILERCHECK: content
+      CCACHE_NOHASHDIR: true
 
     steps:
       - name: Checkout llvm-project
@@ -73,7 +75,7 @@ jobs:
         run: |
           mkdir -p "$CCACHE_DIR"
           ccache --zero-stats
-          ccache --set-config "max_size=50GB" "compression=true"
+          ccache --set-config "max_size=0"
           ccache --show-config
 
           rm -rf obj
@@ -82,8 +84,6 @@ jobs:
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
             -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \
             -DCMAKE_C_COMPILER="$(which clang)" \
@@ -91,6 +91,8 @@ jobs:
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+            -DLLVM_CCACHE_BUILD:BOOL=ON \
+            -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
             -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             ../llvm-project/llvm
 
