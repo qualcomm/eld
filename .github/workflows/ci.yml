@@ -83,6 +83,7 @@ jobs:
           cd obj
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DLLVM_ENABLE_ASSERTIONS:BOOL=ON \
             -DCMAKE_INSTALL_RPATH:STRING="$ORIGIN/../lib" \

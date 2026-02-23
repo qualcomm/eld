@@ -60,7 +60,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev 
+          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev
       - name: Checkout LLVM Project
         run: |
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project
@@ -92,6 +92,7 @@ jobs:
 
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang" \
             -DLLVM_DEFAULT_TARGET_TRIPLE=${{ matrix.arch.triple }} \
             -DCMAKE_C_COMPILER=`which clang` \
@@ -114,6 +115,7 @@ jobs:
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
             cmake -G Ninja \
               -DCMAKE_C_COMPILER:STRING=`which clang` \
+              -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
               -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
               -DCMAKE_BUILD_TYPE=Release \
               -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
@@ -126,6 +128,7 @@ jobs:
               -DCMAKE_C_COMPILER:STRING=`which clang` \
               -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
               -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
               -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
               -DCOMPILER_RT_BAREMETAL_BUILD=ON \
               -DCOMPILER_RT_BUILD_BUILTINS=ON \

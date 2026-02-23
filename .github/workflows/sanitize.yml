@@ -59,6 +59,7 @@ jobs:
           cd obj
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_USE_SANITIZER="Address;Undefined" \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
