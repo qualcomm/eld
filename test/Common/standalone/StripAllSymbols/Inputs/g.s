@@ -1,9 +1,9 @@
 .global foo
 foo:
-.word local
+.word 100
 .global bar
 bar:
-.word local
+.word 200
 .local local
 local:
 .word 100
