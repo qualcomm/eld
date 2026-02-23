@@ -72,7 +72,7 @@ public:
   }
 
 private:
-  bool isInvalidReloc(Relocation &pType) const;
+  bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   void scanLocalReloc(InputFile &pInput, Relocation::Type, Relocation &pReloc,
                       const ELFSection &pSection);
 
@@ -80,7 +80,7 @@ private:
                        eld::IRBuilder &pBuilder, ELFSection &pSection,
                        CopyRelocs &);
 
-  bool checkValidReloc(Relocation &pReloc) const;
+  bool isDynamicRelocSupported(const Relocation &reloc) const override;
 
   uint32_t relocType() const override { return llvm::ELF::SHT_REL; }
 

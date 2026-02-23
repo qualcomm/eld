@@ -734,6 +734,10 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   auto Start = std::chrono::steady_clock::now();
   Builder.assignOutputSections(Inputs, MPostLtoPhase);
+  // Refresh matched inputs for each rule before relocation scan. We need this
+  // to infer output properties from script merged inputs before layout is
+  // finalized.
+  RuleContainer::updateMatchedSections(*ThisModule);
   // FIXME: Perhaps transfer entry section ownership to GarbageCollection as
   // Entry sections are only relevant with garbage collection.
   // Currently, entry section are computed even if garbage-collection is not
@@ -742,13 +746,8 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   LayoutInfo *LayoutInfo = ThisModule->getLayoutInfo();
   if (LayoutInfo && LayoutInfo->LayoutInfo::showInitialLayout()) {
     TextLayoutPrinter *TextMapPrinter = ThisModule->getTextMapPrinter();
-    if (TextMapPrinter) {
-      // FIXME: ideally, we should not need 'updateMatchedSections' call here.
-      // However, we need it because currently we do not maintain the list of
-      // matched input sections for rule containers consistently.
-      RuleContainer::updateMatchedSections(*ThisModule);
+    if (TextMapPrinter)
       TextMapPrinter->printLayout(*ThisModule);
-    }
   }
   // FIXME: SectionMatcher plugins should not consume time under
   // 'LinkerScriptRuleMatch' timing category!

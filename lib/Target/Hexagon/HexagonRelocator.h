@@ -74,6 +74,7 @@ protected:
                             HexagonLDBackend &pTarget);
 
 private:
+  bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                               eld::IRBuilder &pBuilder, ELFSection &pSection);
 
@@ -90,8 +91,6 @@ private:
                     HexagonTLSStub::StubType DynStub);
 
   bool isRelocSupported(Relocation &pReloc) const;
-
-  bool isInvalidReloc(Relocation &pReloc) const;
 
   HexagonLDBackend &m_Target;
   LDSymbol *m_Guard;

@@ -161,20 +161,18 @@ bool AArch64Relocator::isRelocSupported(Relocation &pReloc) const {
   return iter->second.func != unsupport;
 }
 
-bool AArch64Relocator::isInvalidReloc(Relocation &pReloc) const {
-  if (!config().isCodeIndep())
-    return false;
-  switch (pReloc.type()) {
+bool AArch64Relocator::isPICRelocTypeSupported(const Relocation &reloc) const {
+  switch (reloc.type()) {
   case llvm::ELF::R_AARCH64_ABS16:
-    return true;
+    return false;
   case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_LO12_NC:
   case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_LO12:
   case llvm::ELF::R_AARCH64_TLSLE_ADD_TPREL_HI12:
-    return !config().options().isPIE();
+    return config().options().isPIE();
   default:
     break;
   }
-  return false;
+  return true;
 }
 
 bool AArch64Relocator::relocNeedsDynRel(Relocation &pReloc) const {
@@ -188,8 +186,10 @@ bool AArch64Relocator::relocNeedsDynRel(Relocation &pReloc) const {
       return false;
     return true;
   }
-  // Only ABS64 relocations can be dynamic in AArch64
-  bool isAbsReloc = pReloc.type() == llvm::ELF::R_AARCH64_ABS64;
+  bool isAbsReloc = pReloc.type() == llvm::ELF::R_AARCH64_ABS64 ||
+                    pReloc.type() == llvm::ELF::R_AARCH64_ABS32 ||
+                    pReloc.type() == llvm::ELF::R_AARCH64_ABS16 ||
+                    pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
   return getTarget().symbolNeedsDynRel(
                    *rsym, (rsym->reserved() & ReservePLT),
                    isAbsReloc);
@@ -246,6 +246,8 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep() || isAuthAbs) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       // set Rel bit
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
@@ -267,6 +269,8 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       // set up the dyn rel directly
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                          pReloc.targetRef()->offset(), pReloc.type(), m_Target);
@@ -392,6 +396,8 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         }
         CopyRelocs.insert(rsym);
       } else {
+        if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+          return;
         // set Rel bit
         rsym->setReserved(rsym->reserved() | ReserveRel);
         getTarget().checkAndSetHasTextRel(pSection);
@@ -603,14 +609,8 @@ void AArch64Relocator::scanRelocation(Relocation &pReloc,
     return;
   }
 
-  if (isInvalidReloc(pReloc)) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(Diag::non_pic_relocation)
-        << getName(pReloc.type()) << pReloc.symInfo()->name()
-        << pReloc.getSourcePath(config().options());
-    m_Target.getModule().setFailure(true);
+  if (!checkPICRelocSupported(pReloc))
     return;
-  }
 
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();

@@ -381,6 +381,8 @@ public:
   /// Target can override this function if needed.
   virtual uint64_t maxBranchOffset() { return (uint64_t)-1; }
 
+  bool isTargetReadOnly(const ELFSection &input) const;
+
   /// checkAndSetHasTextRel - check pSection flag to set HasTextRel
   void checkAndSetHasTextRel(const ELFSection &pSection);
 

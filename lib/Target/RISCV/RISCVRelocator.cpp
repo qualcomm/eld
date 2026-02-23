@@ -366,28 +366,23 @@ bool RISCVRelocator::isRelocSupported(Relocation &pReloc) const {
   return RelocDescs.count(pReloc.type()) != 0;
 }
 
-// Check if the relocation is invalid while generating
-// dynamic libraries
-bool RISCVRelocator::isInvalidReloc(Relocation &pReloc) const {
-  if (!config().isCodeIndep())
-    return false;
-
-  switch (pReloc.type()) {
+// Check if relocation type is legal in code-independent links.
+bool RISCVRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
+  switch (reloc.type()) {
   case llvm::ELF::R_RISCV_HI20:
   case llvm::ELF::R_RISCV_LO12_I:
   case llvm::ELF::R_RISCV_LO12_S:
-    return true;
+    return false;
   case llvm::ELF::R_RISCV_TPREL_HI20:
   case llvm::ELF::R_RISCV_TPREL_LO12_I:
   case llvm::ELF::R_RISCV_TPREL_LO12_S:
-    return !config().options().isPIE();
+    return config().options().isPIE();
   case llvm::ELF::R_RISCV_SET_ULEB128:
   case llvm::ELF::R_RISCV_SUB_ULEB128:
-    return m_Target.isSymbolPreemptible(*pReloc.symInfo());
+    return !m_Target.isSymbolPreemptible(*reloc.symInfo());
   default:
-    break;
+    return true;
   }
-  return false;
 }
 
 void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
@@ -404,15 +399,8 @@ void RISCVRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pLinker,
     return;
   }
 
-  // If we are generating a shared library check for invalid relocations
-  if (isInvalidReloc(pReloc)) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(Diag::non_pic_relocation)
-        << getName(pReloc.type()) << pReloc.symInfo()->name()
-        << pReloc.getSourcePath(config().options());
-    m_Target.getModule().setFailure(true);
+  if (!checkPICRelocSupported(pReloc))
     return;
-  }
 
   auto ProcessOneReloc = [&](Relocation &pReloc) -> void {
     // rsym - The relocation target symbol
@@ -533,6 +521,8 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                          pReloc.targetRef()->offset(),
                          llvm::ELF::R_RISCV_RELATIVE, m_Target);
@@ -651,6 +641,8 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
         }
         CopyRelocs.insert(rsym);
       } else {
+        if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+          return;
         helper_DynRel_init(
             Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
             pReloc.targetRef()->offset(),
