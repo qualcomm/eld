@@ -71,8 +71,7 @@ Relocator::Size x86_64Relocator::getSize(Relocation::Type pType) const {
   return x86_64Relocs[pType].Size;
 }
 
-// Check if the relocation is invalid
-bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
+bool x86_64Relocator::isRelocSupported(const Relocation &pReloc) const {
 
   switch (pReloc.type()) {
   case llvm::ELF::R_X86_64_NONE:
@@ -97,9 +96,9 @@ bool x86_64Relocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_GOTTPOFF:
   case llvm::ELF::R_X86_64_TLSGD:
   case llvm::ELF::R_X86_64_TLSLD:
-    return false;
+    return true;
   default:
-    return true; // Other Relocations are not supported as of now
+    return false;
   }
 }
 
@@ -111,13 +110,15 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
   if (LinkerConfig::Object == config().codeGenType())
     return;
 
-  // If we are generating a shared library check for invalid relocations
-  if (isInvalidReloc(pReloc)) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    ::llvm::outs() << getName(pReloc.type()) << " not supported currently\n";
-    m_Target.getModule().setFailure(true);
+  if (!isRelocSupported(pReloc)) {
+    config().raise(Diag::unsupported_reloc)
+        << pReloc.type() << pSection.getDecoratedName(config().options())
+        << pInputFile.getInput()->decoratedPath();
     return;
   }
+
+  if (!checkPICRelocSupported(pReloc))
+    return;
 
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
@@ -254,6 +255,8 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
   case llvm::ELF::R_X86_64_64: {
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
@@ -262,6 +265,13 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     }
     return;
   }
+  case llvm::ELF::R_X86_64_32:
+  case llvm::ELF::R_X86_64_32S:
+  case llvm::ELF::R_X86_64_16:
+  case llvm::ELF::R_X86_64_8:
+    if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+      return;
+    return;
   case llvm::ELF::R_X86_64_GOTTPOFF: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
@@ -313,6 +323,8 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
         return;
       }
       // No copy reloc needed: emit a dynamic relocation as before
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
