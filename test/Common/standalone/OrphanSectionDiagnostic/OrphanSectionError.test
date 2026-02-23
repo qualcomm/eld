@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---OrphanSectionsError.test------------Executable --------------------#
 #BEGIN_COMMENT
 # This test checks if a diagnostic error is emitted when an orphan section

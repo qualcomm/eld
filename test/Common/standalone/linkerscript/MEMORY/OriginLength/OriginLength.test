@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---OriginLength.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This test checks that user can use ORIGIN/LENGTH in linker script

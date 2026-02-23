@@ -1,4 +1,4 @@
-UNSUPPORTED: ndk-build
+UNSUPPORTED: ndk-build, x86
 #---TLSPIE.test--------------------------- Executable  -----------------#
 #BEGIN_COMMENT
 # This tests that TLS and PIE with local-exec

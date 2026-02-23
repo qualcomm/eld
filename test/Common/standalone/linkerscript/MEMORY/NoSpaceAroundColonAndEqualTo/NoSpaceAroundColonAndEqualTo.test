@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---NoSpaceAroundColonAndEqualTo.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This test checks that the linker correctly parses the ORIGIN/LENGTH

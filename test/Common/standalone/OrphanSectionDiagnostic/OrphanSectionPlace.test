@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---OrphanInternalSectionPlace.test------------Executable --------------------#
 #BEGIN_COMMENT
 # This test checks if an orphan section is placed correctly

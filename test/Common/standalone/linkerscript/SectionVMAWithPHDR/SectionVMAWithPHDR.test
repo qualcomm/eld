@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---SectionVMAWithPHDR.test--------------------- Executable ------------------#
 #BEGIN_COMMENT
 #This tests that the linker is able to set a VMA on an empty PHDR segment.

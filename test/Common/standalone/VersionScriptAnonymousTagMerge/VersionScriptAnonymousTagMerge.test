@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---VersionScriptAnonymousTagMerge.test--------------------- Executable,VS------------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to merge anonymous tags properly.

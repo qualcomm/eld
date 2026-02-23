@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---DebugLineInformationGC.test----------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 #This tests that the relocations that point from debug sections are set an

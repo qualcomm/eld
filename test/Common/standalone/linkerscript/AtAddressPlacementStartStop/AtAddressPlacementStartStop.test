@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---AtAddressPlacementStartStop.test--------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 # This tests that a section specified with a @ attribute along with an address

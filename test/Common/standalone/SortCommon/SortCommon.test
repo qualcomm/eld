@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---SortCommon.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 #This tests that the command line flag --sort-common

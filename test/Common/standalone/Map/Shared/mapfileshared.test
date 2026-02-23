@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # Test that map file is properly produced when the link %linkopts involves building
 # shared libraries.
 

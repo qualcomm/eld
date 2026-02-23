@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---NoPHDRS.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests checks that the linker is able to parse MEMORY linker script

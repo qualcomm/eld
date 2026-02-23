@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---PartialLinkSharedLibrary.test--------------------------- PartialLink -----------------#
 #BEGIN_COMMENT
 # Linker should prefer static libraries over dynamic libraries with partial

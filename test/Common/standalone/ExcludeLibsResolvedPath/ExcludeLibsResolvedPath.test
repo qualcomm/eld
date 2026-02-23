@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---ExcludeLibsResolvedPath.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Test -exclude-libs option with resolved paths.

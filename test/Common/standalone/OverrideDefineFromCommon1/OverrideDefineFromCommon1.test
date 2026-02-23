@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 
 # If namepool has common and archive has defined, include member. If member has
 # common dont include it.

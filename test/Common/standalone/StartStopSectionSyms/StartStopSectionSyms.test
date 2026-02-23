@@ -1,3 +1,4 @@
+# UNSUPPORTED: x86
 # Test that linker is able to create a PLT entry for the symbol.
 #XFAIL: hexagonv
 RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t1.o

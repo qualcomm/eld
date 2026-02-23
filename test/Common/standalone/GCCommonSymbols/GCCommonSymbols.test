@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---GCCommonSymbols.test----------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This tests the GC marks the common symbol as IGNORE and we can use trace

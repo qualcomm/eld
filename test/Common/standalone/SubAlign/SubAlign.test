@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---SubAlign.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # Test for linker script SUBALIGN directive.

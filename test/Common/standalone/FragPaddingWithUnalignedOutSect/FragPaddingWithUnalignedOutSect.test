@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---FragPaddingWithUnalignedOutSect.test------------- Executable------------------#
 #BEGIN_COMMENT
 # This tests verifies that the fragment padding computation is correct

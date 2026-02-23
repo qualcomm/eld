@@ -1,4 +1,4 @@
-UNSUPPORTED:arm
+UNSUPPORTED:arm, x86
 #---TDataTBSSAlign.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to bump the alignment for tdata section

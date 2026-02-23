@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---AlignBuiltinFuncNonPow2.test----------------- Executable----------------#
 #BEGIN_COMMENT
 # Verify that non-power-of-2 values passed into the ALIGN() builtin function

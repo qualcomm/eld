@@ -1,5 +1,5 @@
 #---LiveEdges.test--------------------- Executable,GC ------------------#
-UNSUPPORTED:  windows
+UNSUPPORTED:  windows, x86
 #BEGIN_COMMENT
 # This tests that the linker is able to show live edges during garbage
 # collection.

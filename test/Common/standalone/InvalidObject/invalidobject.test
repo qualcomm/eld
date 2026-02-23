@@ -1,4 +1,4 @@
-UNSUPPORTED: riscv32, riscv64
+UNSUPPORTED: riscv32, riscv64, x86
 # This tests that the linker does not error when there is an executable
 # given as input.
 RUN: %clang %clangopts -c %p/Inputs/a.c -o %t1.o

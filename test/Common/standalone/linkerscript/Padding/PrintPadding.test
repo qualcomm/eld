@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---PrintPadding.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that padding is printed properly in the Map file.

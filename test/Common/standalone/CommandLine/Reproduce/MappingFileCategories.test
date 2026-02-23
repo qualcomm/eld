@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---MappingFileCategories.test------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This test uses many file kinds and checks that

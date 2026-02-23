@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, x86
 #---ReproduceGrpCmd.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This test checks if linking works with reproduce option on running

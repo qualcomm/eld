@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---SpaceForProgramHeaders.test--------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to position the file header and program

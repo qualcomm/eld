@@ -2,7 +2,7 @@
 #BEGIN_COMMENT
 # Reproduce option should work and extract files properly and able to execute
 #END_COMMENT
-#UNSUPPORTED: windows
+#UNSUPPORTED: windows, x86
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o

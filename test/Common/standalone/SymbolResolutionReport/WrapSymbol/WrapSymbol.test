@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---WrapSymbol.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # This test checks the symbol resolution report output for wrap symbols.

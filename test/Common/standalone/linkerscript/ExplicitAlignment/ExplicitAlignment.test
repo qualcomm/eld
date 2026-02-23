@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---ExplicitAlignment.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that explicit alignment requested by linker script is smaller than

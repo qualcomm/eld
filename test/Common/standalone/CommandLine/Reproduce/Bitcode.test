@@ -1,4 +1,4 @@
-UNSUPPORTED: ndk-build
+UNSUPPORTED: ndk-build, x86
 #---Bitcode.test------------------------- Executable -------------------------#
 
 

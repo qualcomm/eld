@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---OverlappingSectionsError.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to detect that the overlapping sections

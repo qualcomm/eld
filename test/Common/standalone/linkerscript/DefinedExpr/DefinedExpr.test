@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---DefinedExpr.test------------------------- LinkerScript -----------------------#
 #BEGIN_COMMENT
 # This test verifies that the DEFINED expression is evaluated only once. The

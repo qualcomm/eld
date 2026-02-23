@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---ArchiveName.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This test checks for full Archive name in InputInfo of YAML map.

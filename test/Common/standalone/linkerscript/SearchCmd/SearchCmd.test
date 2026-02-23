@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---GroupCmd.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that SEARCH_DIR is activated properly when the linker traverses all

@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---NotEnoughSpaceForProgramHeadersErrorWithOnlyFileHdr.test--------------------------- Executable,LS,PHDRS -----------------#
 #BEGIN_COMMENT
 # This a test to check if the linker does error out where SIZEOF_HEADERS is not

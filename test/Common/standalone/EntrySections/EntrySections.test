@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #------------------------EntrySections.test-----------------------------#
 #BEGIN_COMMENT
 This test verifies that a section which contain address information using '@' must

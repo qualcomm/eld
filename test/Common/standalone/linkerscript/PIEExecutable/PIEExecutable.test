@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---PIEExecutable.test--------------------- Executable,LS --------------------#
 #BEGIN_COMMENT
 # When relocation sections are processed and those that contain assignments, it

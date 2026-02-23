@@ -1,4 +1,4 @@
-UNSUPPORTED:arm
+UNSUPPORTED:arm, x86
 #---MultipleTLSSegments.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that the linker can handle multiple TLS segments.

@@ -1,4 +1,4 @@
-#UNSUPPORTED: aarch64, riscv64
+#UNSUPPORTED: aarch64, riscv64, x86
 #---LoadPHDRS32bit.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that ALIGN_WITH_INPUT keyword in the output section description

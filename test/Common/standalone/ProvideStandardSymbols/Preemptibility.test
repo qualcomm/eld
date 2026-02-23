@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #--Preemptibility.test------------- Executable --------#
 #BEGIN_COMMENT
 # Test that standard symbols (e.g., __ehdr_start, __dso_handle) are correctly

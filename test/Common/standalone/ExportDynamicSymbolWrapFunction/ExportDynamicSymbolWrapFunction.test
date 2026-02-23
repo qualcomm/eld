@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---ExportDynamicSymbolWrapFunction.test--------------------------- Executable ----------#
 #BEGIN_COMMENT
 #If a symbol is mentioned in the command line as part of

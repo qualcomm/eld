@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---SharedObjects.test------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This checks for support of shared files

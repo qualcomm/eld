@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---TrampolineStats.test--------------------- Executable---------------------#
 #BEGIN_COMMENT
 # This test checks the output section trampoline stats in the text map file.

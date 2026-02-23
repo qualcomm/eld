@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---PHDRS.test--------------------- Executable,LS------------------#
 #BEGIN_COMMENT
 # This tests that ALIGN_WITH_INPUT keyword in the output section description

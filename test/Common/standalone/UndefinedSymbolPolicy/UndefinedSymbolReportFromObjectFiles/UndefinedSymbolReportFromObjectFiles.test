@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---UndefinedSymbolReportFromObjectFiles.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 #This checks that undefined symbols are not reported by the linker when using

@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---ReadSymDefProvide.test--------------------------- Executable --------------------#
 #BEGIN_COMMENT
 # This checks that the linker is able to read the symdef file properly with provide symdef style.

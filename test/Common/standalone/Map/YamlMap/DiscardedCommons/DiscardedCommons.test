@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---DiscardedCommons.test--------------------- Executable,GC ------------------#
 #BEGIN_COMMENT
 # This tests that the linker is able to print the common symbols that are garbage

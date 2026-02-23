@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---Incompatible.test--------------------------- Relocatable,Shared --------------------#
 #BEGIN_COMMENT
 # This checks that the linker is able to warn symdef usage with incompaible
