@@ -139,6 +139,23 @@ public:
 
   bool linkerScriptHasRules() const { return RuleCount > 0; };
 
+  // ------------------- Linker script evaluation context -------------------
+  //
+  // Some builtins (e.g. ALIGNOF(NEXT_SECTION)) need to know which output
+  // section is currently being evaluated.
+  void setCurrentOutputSectionForScriptEval(ELFSection *S) {
+    CurrentOutputSectionForScriptEval = S;
+  }
+
+  ELFSection *getCurrentOutputSectionForScriptEval() const {
+    return CurrentOutputSectionForScriptEval;
+  }
+
+  // Returns the next allocated (SHF_ALLOC) output section after the current
+  // output section being evaluated, or nullptr if there is no such section (or
+  // if no current output section is set).
+  ELFSection *getNextAllocatedOutputSectionForScriptEval() const;
+
   void setHasSectionsCmd() { HasSectionsCmd = true; }
 
   void setHasExternCmd() { HasExternCmd = true; }
@@ -377,6 +394,7 @@ private:
                      std::unordered_set<const RuleContainer *>>
       MPendingRuleInsertions;
   std::unordered_map<std::string, Plugin *> MPluginInfo;
+  ELFSection *CurrentOutputSectionForScriptEval = nullptr;
 };
 
 } // namespace eld

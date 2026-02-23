@@ -279,6 +279,11 @@ eld::Expression *ScriptParser::readPrimary() {
   }
   if (Tok == "ADDR") {
     StringRef Name = unquote(readParenLiteral());
+    if (Name == "NEXT_SECTION") {
+      setError(
+          "NEXT_SECTION is only supported as an argument to ALIGNOF or SIZEOF");
+      return make<Integer>(Module, "", 0);
+    }
     // FIXME: Location might be handly for 'undefined section' error.
     return make<Addr>(Module, Name.str());
   }
@@ -338,6 +343,11 @@ eld::Expression *ScriptParser::readPrimary() {
   }
   if (Tok == "LOADADDR") {
     StringRef Name = unquote(readParenLiteral());
+    if (Name == "NEXT_SECTION") {
+      setError(
+          "NEXT_SECTION is only supported as an argument to ALIGNOF or SIZEOF");
+      return make<Integer>(Module, "", 0);
+    }
     return make<LoadAddr>(Module, Name.str());
   }
   if (Tok == "LOG2CEIL") {
@@ -382,6 +392,11 @@ eld::Expression *ScriptParser::readPrimary() {
   // Tok is a symbol name.
   if (Tok.starts_with("\""))
     Tok = unquote(Tok);
+  if (Tok == "NEXT_SECTION") {
+    setError(
+        "NEXT_SECTION is only supported as an argument to ALIGNOF or SIZEOF");
+    return make<Integer>(Module, "", 0);
+  }
   if (!isValidSymbolName(Tok))
     setError("malformed number: " + Tok);
   return make<Symbol>(Module, Tok.str());

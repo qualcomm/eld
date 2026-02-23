@@ -302,6 +302,9 @@ Expressions
      | ALIGN (expression1, expression2)     | Return value when the value of expression1 is aligned to the next expression2 boundary.  |
      +--------------------------------------+------------------------------------------------------------------------------------------+
      | ALIGNOF (string)                     | Return the align information of the symbol or section.                                   |
+     |                                      | If string is NEXT_SECTION, return the alignment of the next allocated output section     |
+     |                                      | specified in the linker script, or zero if there is no such section.                     |
+     |                                      | NEXT_SECTION is only supported with ALIGNOF/SIZEOF; other uses are rejected.             |
      +--------------------------------------+------------------------------------------------------------------------------------------+
      | ASSERT (expression, string)          |  Throw an assertion if the expression result is zero.                                    |
      +--------------------------------------+------------------------------------------------------------------------------------------+
@@ -329,6 +332,9 @@ Expressions
      |                                      |   that segment. If nothing is found, return the value of the expression.                 |
      +--------------------------------------+------------------------------------------------------------------------------------------+
      | SIZEOF (string)                      |   Return the size of the symbol, section, or segment.                                    |
+     |                                      | If string is NEXT_SECTION, return the size of the next allocated output section          |
+     |                                      | specified in the linker script, or zero if there is no such section.                     |
+     |                                      | NEXT_SECTION is only supported with ALIGNOF/SIZEOF; other uses are rejected.             |
      +--------------------------------------+------------------------------------------------------------------------------------------+
      | SIZEOF_HEADERS                       | Return the section start file offset.                                                    |
      +--------------------------------------+------------------------------------------------------------------------------------------+

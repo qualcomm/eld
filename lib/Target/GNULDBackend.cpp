@@ -64,6 +64,7 @@
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Script/VersionScript.h"
 #endif
+#include "eld/Script/ScopedScriptEvalContext.h"
 #include "eld/Support/DynamicLibrary.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -1989,6 +1990,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
                        m_Module.getConfig().options().printTimingStats());
 
   ELFSection *OutSection = out->getSection();
+  ScopedScriptEvalOutputSection Scope(m_Module.getScript(), OutSection);
 
   LDSymbol *dotSymbol = m_Module.getDotSymbol();
 

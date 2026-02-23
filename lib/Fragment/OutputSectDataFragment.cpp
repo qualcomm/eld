@@ -24,6 +24,7 @@ size_t OutputSectDataFragment::size() const {
 eld::Expected<void> OutputSectDataFragment::emit(MemoryRegion &Mr, Module &M) {
   ASSERT(paddingSize() == 0,
          "OutputSectDataFragment must not have any padding!");
+
   auto ExpVal = OutSectData.getExpr().evaluateAndReturnError();
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(ExpVal);
   uint64_t Value = ExpVal.value();

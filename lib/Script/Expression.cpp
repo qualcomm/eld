@@ -443,6 +443,12 @@ void SizeOf::dump(llvm::raw_ostream &Outs, bool WithValues) const {
   Outs << ")";
 }
 eld::Expected<uint64_t> SizeOf::evalImpl() {
+  if (Name == "NEXT_SECTION") {
+    if (ELFSection *Next =
+            ThisModule.getScript().getNextAllocatedOutputSectionForScriptEval())
+      return Next->getAddrAlign();
+    return 0;
+  }
 
   if (Name.size() && Name[0] == ':') {
     // If the name is a segment and we don't have PHDR's. SIZEOF on segment will
@@ -739,6 +745,12 @@ void AlignOf::getSymbols(std::vector<ResolveInfo *> &Symbols) {}
 void AlignOf::getSymbolNames(std::unordered_set<std::string> &SymbolTokens) {}
 
 eld::Expected<uint64_t> AlignOf::evalImpl() {
+  if (Name == "NEXT_SECTION") {
+    if (ELFSection *Next =
+            ThisModule.getScript().getNextAllocatedOutputSectionForScriptEval())
+      return Next->getAddrAlign();
+    return 0;
+  }
   // As the section table is populated only during PostLayout, we have to
   // go the other way around to access the section. This is because size of
   // empty

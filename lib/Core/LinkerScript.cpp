@@ -27,6 +27,7 @@
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/xxhash.h"
+#include <algorithm>
 #include <string>
 
 using namespace eld;
@@ -41,6 +42,33 @@ LinkerScript::LinkerScript(DiagnosticEngine *DiagEngine)
       HashingEnabled(false), RuleCount(0), Diag(DiagEngine) {}
 
 LinkerScript::~LinkerScript() {}
+
+ELFSection *LinkerScript::getNextAllocatedOutputSectionForScriptEval() const {
+  if (!CurrentOutputSectionForScriptEval || !OutputSectionMap)
+    return nullptr;
+
+  auto &Map = sectionMap();
+  auto It = std::find_if(Map.begin(), Map.end(), [&](OutputSectionEntry *Out) {
+    return Out && Out->getSection() == CurrentOutputSectionForScriptEval;
+  });
+  if (It == Map.end())
+    return nullptr;
+
+  for (++It; It != Map.end(); ++It) {
+    OutputSectionEntry *Out = *It;
+    if (!Out)
+      continue;
+    ELFSection *S = Out->getSection();
+    if (!S)
+      continue;
+    if (!S->isAlloc())
+      continue;
+    if (S->isIgnore() || S->isDiscard())
+      continue;
+    return S;
+  }
+  return nullptr;
+}
 
 void LinkerScript::unloadPlugins(Module *Module) {
   // Unload the plugins.
