@@ -1,0 +1,94 @@
+name: GetLatestClangCrossToolchain
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: "Runner label to use"
+        required: false
+        type: string
+        default: "ubuntu-latest"
+      workspace:
+        description: "Base directory where toolchains are extracted"
+        required: false
+        type: string
+        default: "/local/mnt/workspace"
+      assets:
+        description: "Comma-separated list of asset names to download"
+        required: true
+        type: string
+
+jobs:
+  download:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Download and extract release assets
+        shell: bash
+        env:
+          WORKSPACE: ${{ inputs.workspace }}
+          ASSETS: ${{ inputs.assets }}
+        run: |
+          api_url="https://api.github.com/repos/cross-tools/clang-cross/releases/latest"
+          release_json="$(curl -fsSL "${api_url}")"
+          tag="$(printf '%s' "${release_json}" | jq -r '.tag_name')"
+
+          root_dir="${WORKSPACE}/clang-cross"
+          base_dir="${root_dir}/${tag}"
+
+          IFS=',' read -r -a asset_list <<< "${ASSETS}"
+          all_extracted=true
+          if [[ -d "${base_dir}" ]]; then
+            for asset in "${asset_list[@]}"; do
+              asset="$(printf '%s' "${asset}" | xargs)"
+              if [[ -z "${asset}" ]]; then
+                continue
+              fi
+              if [[ ! -f "${base_dir}/.extracted-${asset}" ]]; then
+                all_extracted=false
+                break
+              fi
+            done
+          else
+            all_extracted=false
+          fi
+
+          if [[ "${all_extracted}" == "true" ]]; then
+            echo "Latest release ${tag} already fully extracted."
+            exit 0
+          fi
+
+          if [[ -d "${root_dir}" ]]; then
+            find "${root_dir}" -mindepth 1 -maxdepth 1 -type d ! -name "${tag}" -exec rm -rf {} +
+          fi
+          rm -rf "${base_dir}"
+          mkdir -p "${base_dir}"
+
+          for asset in "${asset_list[@]}"; do
+            asset="$(printf '%s' "${asset}" | xargs)"
+            if [[ -z "${asset}" ]]; then
+              continue
+            fi
+
+            marker="${base_dir}/.extracted-${asset}"
+            url="$(printf '%s' "${release_json}" | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url')"
+            if [[ -z "${url}" || "${url}" == "null" ]]; then
+              echo "Asset not found in release ${tag}: ${asset}" >&2
+              exit 1
+            fi
+
+            tmp_tar="${base_dir}/${asset}"
+            echo "Downloading ${asset}..."
+            curl -fsSL -o "${tmp_tar}" "${url}"
+
+            echo "Extracting ${asset}..."
+            tar -xJf "${tmp_tar}" -C "${base_dir}"
+            rm -f "${tmp_tar}"
+            asset_base="${asset%.tar.xz}"
+            asset_base="${asset_base%.tar.gz}"
+            asset_base="${asset_base%.tar}"
+            ln -sfn "${base_dir}/${asset_base}" "${WORKSPACE}/${asset_base}"
+            touch "${marker}"
+          done
+
+          echo "Symlinks in ${WORKSPACE}:"
+          find "${WORKSPACE}" -maxdepth 1 -type l -lname "${root_dir}/*" -printf "%p -> %l\n"

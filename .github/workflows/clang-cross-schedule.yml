@@ -1,0 +1,28 @@
+name: Fetch clang-cross toolchains (self-hosted)
+
+on:
+  schedule:
+    - cron: "0 16 * * 0"
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: self-hosted
+    outputs:
+      run_fetch: ${{ steps.gate.outputs.run_fetch }}
+    steps:
+      - name: optional gate to control when to run
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "run_fetch=true" >> "${GITHUB_OUTPUT}"
+
+  fetch:
+    needs: gate
+    if: needs.gate.outputs.run_fetch == 'true'
+    uses: ./.github/workflows/clang-cross-download.yml
+    with:
+      runner: self-hosted
+      workspace: "/local/mnt/workspace"
+      assets: "aarch64-unknown-linux-musl.tar.xz,arm-unknown-linux-musleabi.tar.xz,riscv32-unknown-linux-musl.tar.xz,riscv64-unknown-linux-musl.tar.xz,x86_64-unknown-linux-musl.tar.xz"
