@@ -36,6 +36,7 @@
 #include "llvm/LTO/LTO.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Object/ELF.h"
+#include "llvm/Remarks/HotnessThresholdParser.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
@@ -1671,6 +1672,29 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
     Conf.AlwaysEmitRegularLTOObj = true;
     Config.options().setLTOObjPath(Arg->getValue());
   }
+
+  if (const auto *Arg = Args.getLastArg(OptTable::opt_remarks_filename))
+    Conf.RemarksFilename = Arg->getValue();
+
+  // Parse remarks hotness threshold. Valid value is either integer or 'auto'.
+  if (const auto *Arg =
+          Args.getLastArg(OptTable::opt_remarks_hotness_threshold)) {
+    llvm::StringRef S = Arg->getValue();
+    if (auto resultOrErr = remarks::parseHotnessThresholdOption(S))
+      Conf.RemarksHotnessThreshold = *resultOrErr;
+    else
+      Config.raise(Diag::invalid_value_for_option)
+          << Arg->getOption().getPrefixedName() << S;
+  }
+
+  if (const auto *Arg = Args.getLastArg(OptTable::opt_remarks_passes))
+    Conf.RemarksPasses = Arg->getValue();
+
+  if (const auto *Arg = Args.getLastArg(OptTable::opt_remarks_with_hotness))
+    Conf.RemarksWithHotness = true;
+
+  if (const auto *Arg = Args.getLastArg(OptTable::opt_remarks_format))
+    Conf.RemarksFormat = Arg->getValue();
 
   if (const auto *Arg = Args.getLastArg(OptTable::lto_partitions)) {
     llvm::StringRef S = Arg->getValue();

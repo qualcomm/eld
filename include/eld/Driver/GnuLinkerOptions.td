@@ -1096,6 +1096,50 @@ def flto_use_as : Flag<["-", "--"], "flto-use-as">,
                   HelpText<"Use the standalone assembler instead of the "
                            "integrated assembler for LTO">,
                   Group<grp_ltooptions>;
+def opt_remarks_filename
+    : Separate<["--"], "opt-remarks-filename">,
+      HelpText<"YAML output file for optimization remarks">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-filename=">,
+      Alias<opt_remarks_filename>,
+      HelpText<"Alias for --opt-remarks-filename">,
+      Group<grp_ltooptions>;
+def opt_remarks_format
+    : Separate<["--"], "opt-remarks-format">,
+      HelpText<"The format used for serializing remarks (default: YAML)">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-format=">,
+      Alias<opt_remarks_format>,
+      HelpText<"Alias for --opt-remarks-format">,
+      Group<grp_ltooptions>;
+defm opt_remarks_hotness_threshold
+    : EEq<"opt-remarks-hotness-threshold",
+          "Minimum profile count required for an optimization remark to be "
+          "output."
+          " Use 'auto' to apply the threshold from profile summary.">,
+      MetaVarName<"<value>">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-hotness-threshold=">,
+      Alias<opt_remarks_hotness_threshold>,
+      HelpText<"Alias for --opt-remarks-hotness-threshold">,
+      Group<grp_ltooptions>;
+def opt_remarks_passes
+    : Separate<["--"], "opt-remarks-passes">,
+      HelpText<
+          "Regex for the passes that need to be serialized to the output file">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-passes=">,
+      Alias<opt_remarks_passes>,
+      HelpText<"Alias for --opt-remarks-passes">,
+      Group<grp_ltooptions>;
+def opt_remarks_with_hotness
+    : FF<"opt-remarks-with-hotness">,
+      HelpText<"Include hotness information in the optimization remarks file">,
+      Group<grp_ltooptions>;
+def : F<"plugin-opt=opt-remarks-with-hotness">,
+      Alias<opt_remarks_with_hotness>,
+      HelpText<"Alias for --opt-remarks-with-hotness">,
+      Group<grp_ltooptions>;
 def save_temps : Flag<["-", "--"], "save-temps">,
                  HelpText<"Save the temporary files produced by LTO">,
                  Group<grp_ltooptions>;
