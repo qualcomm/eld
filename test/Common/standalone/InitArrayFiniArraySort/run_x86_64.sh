@@ -1,4 +1,4 @@
-#REQUIRES: x86, musl
+#REQUIRES: linux, x86, musl
 #!/usr/bin/env bash
 set -euo pipefail
 SRC_DIR="%p/Runtime"
