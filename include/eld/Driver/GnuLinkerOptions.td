@@ -1150,7 +1150,8 @@ defm save_temps_EQ
       Group<grp_ltooptions>;
 def : F<"plugin-opt=save-temps">,
       Alias<save_temps>,
-      HelpText<"Alias for --save-temps">;
+      HelpText<"Alias for --save-temps">,
+      Group<grp_ltooptions>;
 
 def plugin_opt_stats_file : J<"plugin-opt=stats-file=">,
                             HelpText<"Filename to write LTO statistics to">,
@@ -1176,14 +1177,17 @@ def lto_cs_profile_generate
       HelpText<"Perform context sensitive PGO instrumentation">,
       Group<grp_ltooptions>;
 def lto_cs_profile_file : JJ<"lto-cs-profile-file=">,
-                          HelpText<"Context sensitive profile file path">;
+                          HelpText<"Context sensitive profile file path">,
+                          Group<grp_ltooptions>;
 
 def : F<"plugin-opt=cs-profile-generate">,
       Alias<lto_cs_profile_generate>,
-      HelpText<"Alias for --lto-cs-profile-generate">;
+      HelpText<"Alias for --lto-cs-profile-generate">,
+      Group<grp_ltooptions>;
 def : J<"plugin-opt=cs-profile-path=">,
       Alias<lto_cs_profile_file>,
-      HelpText<"Alias for --lto-cs-profile-file">;
+      HelpText<"Alias for --lto-cs-profile-file">,
+      Group<grp_ltooptions>;
 
 def disable_verify
     : F<"disable-verify">,
@@ -1205,14 +1209,16 @@ def lto_emit_asm : FF<"lto-emit-asm">,
                    Group<grp_ltooptions>;
 def plugin_opt_emit_asm : F<"plugin-opt=emit-asm">,
                           Alias<lto_emit_asm>,
-                          HelpText<"Alias for --lto-emit-asm">;
+                          HelpText<"Alias for --lto-emit-asm">,
+                          Group<grp_ltooptions>;
 
 def lto_emit_llvm : FF<"lto-emit-llvm">,
                     HelpText<"Emit LLVM-IR bitcode">,
                     Group<grp_ltooptions>;
 def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
                            Alias<lto_emit_llvm>,
-                           HelpText<"Alias for --lto-emit-llvm">;
+                           HelpText<"Alias for --lto-emit-llvm">,
+                           Group<grp_ltooptions>;
 
 def lto_obj_path_eq
     : JJ<"lto-obj-path=">,
@@ -1224,7 +1230,8 @@ def lto_obj_path_eq
       Group<grp_ltooptions>;
 def : J<"plugin-opt=obj-path=">,
       Alias<lto_obj_path_eq>,
-      HelpText<"Alias for --lto-obj-path=">;
+      HelpText<"Alias for --lto-obj-path=">,
+      Group<grp_ltooptions>;
 
 def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
                       HelpText<"Number of ThinLTO jobs. Default to --threads=">,
@@ -1232,13 +1239,17 @@ def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
                       Group<grp_ltooptions>;
 def : J<"plugin-opt=jobs=">,
       Alias<thinlto_jobs_eq>,
-      HelpText<"Alias for --thinlto-jobs=">;
+      HelpText<"Alias for --thinlto-jobs=">,
+      Group<grp_ltooptions>;
 
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
             HelpText<"Optimization level for LTO">,
             Group<grp_ltooptions>;
-def : J<"plugin-opt=O">, Alias<lto_O>, HelpText<"Alias for --lto-O">;
+def : J<"plugin-opt=O">,
+      Alias<lto_O>,
+      HelpText<"Alias for --lto-O">,
+      Group<grp_ltooptions>;
 
 defm lto_sample_profile
     : smDashOnlyEq<"lto-sample-profile", "lto_sample_profile",
@@ -1257,7 +1268,8 @@ def lto_partitions : JJ<"lto-partitions=">,
                      Group<grp_ltooptions>;
 def : J<"plugin-opt=lto-partitions=">,
       Alias<lto_partitions>,
-      HelpText<"Alias for --lto-partitions">;
+      HelpText<"Alias for --lto-partitions">,
+      Group<grp_ltooptions>;
 
 def lto_debug_pass_manager : FF<"lto-debug-pass-manager">,
                              HelpText<"Debug new pass manager">,
