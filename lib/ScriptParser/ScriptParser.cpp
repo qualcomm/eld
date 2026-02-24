@@ -29,6 +29,7 @@
 #include "eld/Script/Expression.h"
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/OutputSectDesc.h"
+#include "eld/Script/OverlayDesc.h"
 #include "eld/Script/PhdrDesc.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/StrToken.h"
@@ -556,12 +557,114 @@ void ScriptParser::readSections() {
     llvm::StringRef Tok = next();
     if (readInclude(Tok)) {
     } else if (readAssignment(Tok)) {
+    } else if (Tok == "OVERLAY") {
+      readOverlay();
     } else {
       readOutputSectionDescription(Tok);
     }
   }
   expect("}");
   ThisScriptFile.leaveSectionsCmd();
+}
+
+void ScriptParser::readOverlay() {
+  const uint32_t OverlayID = ++OverlayCounter;
+
+  // OVERLAY [start] :
+  Expression *Start = nullptr;
+  bool HasStart = false;
+  if (peek(LexState::Expr) != ":") {
+    Start = readExpr();
+    HasStart = true;
+  }
+
+  expect(LexState::Expr, ":");
+
+  // GNU ld supports optional header tokens like NOCROSSREFS and AT(...).
+  bool NoCrossRefs = false;
+  Expression *LMA = nullptr;
+  while (true) {
+    if (consume("NOCROSSREFS")) {
+      NoCrossRefs = true;
+      continue;
+    }
+    if (consume("AT")) {
+      LMA = readParenExpr(/*setParen=*/false);
+      continue;
+    }
+    break;
+  }
+
+  llvm::SmallVector<const StrToken *, 4> Members;
+
+  expect("{");
+  while (peek() != "}" && !atEOF()) {
+    llvm::StringRef Tok = next();
+    if (Tok == ";") {
+      continue;
+    }
+    if (readInclude(Tok)) {
+    } else if (readAssignment(Tok)) {
+    } else {
+      Members.push_back(ThisScriptFile.createParserStr(unquote(Tok)));
+      readOverlayMemberOutputSectionDescription(Tok);
+    }
+  }
+  expect("}");
+
+  OutputSectDesc::Epilog Epilog = readOutputSectDescEpilogue();
+  OverlayDesc *O = ThisScriptFile.createOverlayDesc(OverlayID, Start, HasStart,
+                                                    NoCrossRefs, LMA, Epilog);
+  for (const StrToken *M : Members)
+    O->addPendingMemberName(M);
+}
+
+void ScriptParser::readOverlayMemberOutputSectionDescription(
+    llvm::StringRef Tok) {
+  llvm::StringRef OutSectName = unquote(Tok);
+
+  OutputSectDesc::Prolog Prologue;
+  Prologue.init();
+
+  // Overlay members are just `OutputSectionName { InputSectDesc... }`.
+  // They do not support the regular output-section prologue/epilogue syntax.
+  if (peek() != "{") {
+    setError("overlay member output sections do not support output section "
+             "prologue");
+    // Recovery: Skip tokens until we reach the section body.
+    while (!atEOF() && peek() != "{" && peek() != "}")
+      next();
+  }
+
+  ThisScriptFile.enterOutputSectDesc(OutSectName.str(), Prologue);
+  expect("{");
+  while (peek() != "}" && !atEOF()) {
+    StringRef Tok = next();
+    if (Tok == ";") {
+      // Empty commands are allowed. Do nothing.
+    } else if (Tok == "FILL") {
+      readFill();
+    } else if (readInclude(Tok)) {
+    } else if (readOutputSectionData(Tok)) {
+    } else if (readAssignment(Tok)) {
+    } else {
+      readInputSectionDescription(Tok);
+    }
+  }
+  expect("}");
+
+  // Disallow output-section epilogue tokens after the member body and consume
+  // them for recovery so parsing can continue.
+  if (peek() == ">" || peek() == "AT" || peek().starts_with(":") ||
+      peek() == "=" || peek().starts_with("=")) {
+    setError("overlay member output sections do not support output section "
+             "epilogue");
+    (void)readOutputSectDescEpilogue();
+  }
+
+  OutputSectDesc::Epilog Epilogue;
+  ThisScriptFile.leavingOutputSectDesc();
+  ThisScriptFile.leaveOutputSectDesc(Epilogue);
 }
 
 Expression *ScriptParser::readAssert() {

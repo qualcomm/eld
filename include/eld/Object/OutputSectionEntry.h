@@ -25,6 +25,7 @@ namespace eld {
 class BranchIsland;
 class ELFSection;
 class ELFSegment;
+class OverlayDesc;
 class OutputSectionEntry;
 class RuleContainer;
 class SectionMap;
@@ -157,6 +158,12 @@ public:
   uint64_t pAddr() const { return PAddr; }
   void setPaddr(uint64_t A) { PAddr = A; }
 
+  bool hasOverlayDesc() const { return ThisOverlayDesc != nullptr; }
+
+  OverlayDesc *getOverlayDesc() const { return ThisOverlayDesc; }
+
+  void setOverlayDesc(OverlayDesc *O) { ThisOverlayDesc = O; }
+
   // ----------------------Reuse trampolines optimization---------------
   std::vector<BranchIsland *>
   getBranchIslandsForSymbol(ResolveInfo *PSym) const {
@@ -223,6 +230,7 @@ private:
   uint64_t Hash = 0;
   llvm::StringMap<uint64_t> TrampolineNameToCountMap;
   uint64_t PAddr = 0;
+  OverlayDesc *ThisOverlayDesc = nullptr;
 };
 
 } // namespace eld

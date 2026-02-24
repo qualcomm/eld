@@ -27,10 +27,11 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/TimingSection.h"
 #include "eld/Readers/TimingSlice.h"
-#include "eld/Script/ExternCmd.h"
 #include "eld/Script/Assignment.h"
+#include "eld/Script/ExternCmd.h"
 #include "eld/Script/MemoryCmd.h"
 #include "eld/Script/OutputSectData.h"
+#include "eld/Script/OverlayDesc.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptSymbol.h"
 #include "eld/Script/StrToken.h"
@@ -1179,6 +1180,19 @@ void TextLayoutPrinter::printMemoryCommand(const MemoryCmd *M) {
 void TextLayoutPrinter::printScriptCommands(const LinkerScript &Script) {
   if (Script.getMemoryCommand())
     printMemoryCommand(Script.getMemoryCommand());
+
+  for (const OverlayDesc *O : Script.getOverlayDescs()) {
+    std::string Str;
+    llvm::raw_string_ostream OS(Str);
+    O->dump(OS);
+    OS.flush();
+
+    llvm::SmallVector<llvm::StringRef, 16> Lines;
+    llvm::StringRef(Str).split(Lines, '\n', /*MaxSplit=*/-1,
+                               /*KeepEmpty=*/false);
+    for (llvm::StringRef L : Lines)
+      outputStream() << "# " << L << "\n";
+  }
 }
 
 void TextLayoutPrinter::printAssignment(const Assignment &A, Module &M,

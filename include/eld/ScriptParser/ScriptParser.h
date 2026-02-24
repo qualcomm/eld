@@ -112,10 +112,10 @@ private:
   /// - symbol assignment
   /// - Output section description
   ///
-  /// \note We do not support overlay description yet.
-  // TODO: Currently only symbol assigment is supported in SECTIONS
-  // command.
   void readSections();
+
+  /// Parses OVERLAY command within SECTIONS.
+  void readOverlay();
 
   /// Reads INPUT(...) and GROUP(...) command.
   void readInputOrGroup(bool IsInputCmd);
@@ -128,6 +128,9 @@ private:
   void readOutput();
 
   void readOutputSectionDescription(llvm::StringRef Tok);
+
+  /// Reads an OVERLAY member output section description.
+  void readOverlayMemberOutputSectionDescription(llvm::StringRef Tok);
 
   void readInputSectionDescription(llvm::StringRef Tok);
 
@@ -232,6 +235,8 @@ private:
       ExcludeFiles *E = nullptr);
 
   ExcludePattern *createExcludePattern(StrToken *S);
+
+  uint32_t OverlayCounter = 0;
 };
 } // namespace v2
 } // namespace eld

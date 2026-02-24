@@ -23,6 +23,7 @@
 #include "eld/Script/Assignment.h"
 #include "eld/Script/MemoryDesc.h"
 #include "eld/Script/PhdrDesc.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
@@ -53,6 +54,7 @@ class ScriptCommand;
 class SectionMap;
 class MemoryCmd;
 class SymbolContainer;
+class OverlayDesc;
 
 class Phdrs {
 public:
@@ -287,6 +289,11 @@ public:
     return UserLinkerScriptCommands;
   }
 
+  // ------------------ OVERLAY Support --------------------------
+  void addOverlayDesc(OverlayDesc *O) { OverlayDescs.push_back(O); }
+
+  llvm::ArrayRef<OverlayDesc *> getOverlayDescs() const { return OverlayDescs; }
+
   // ------------------ MEMORY Support --------------------------
   MemoryCmd *getMemoryCommand() const { return MemoryCmd; }
 
@@ -386,6 +393,7 @@ private:
   llvm::SHA1 Hasher;
   uint32_t RuleCount;
   std::vector<ScriptCommand *> UserLinkerScriptCommands;
+  llvm::SmallVector<OverlayDesc *, 4> OverlayDescs;
   std::vector<SymbolContainer *> ThisSymbolContainers;
   DiagnosticEngine *Diag = nullptr;
   // Support MEMORY commmand

@@ -62,6 +62,8 @@ This is the standard method used by most linkers like GNU ld.
 +---------------+---------------------------------------------------------------------------------+
 | NOCROSSREFS   | Check cross references among a group of sections                                |
 +---------------+---------------------------------------------------------------------------------+
+| OVERLAY       | GNU ld compatible OVERLAY block (parsing support)                               |
++---------------+---------------------------------------------------------------------------------+
 
 Basic script syntax
 --------------------
@@ -646,6 +648,90 @@ NOCROSSREFS
      * A linker script can contain multiple NOCROSSREFS commands.
 
      * Each command is treated as an independent set of output sections that are checked for cross references.
+
+OVERLAY
+---------------
+
+In GNU ld linker scripts, the ``OVERLAY`` command is used to define multiple
+sections that all execute (run) at the same virtual memory address (VMA), but
+are stored (loaded) at different load memory addresses (LMA). At runtime, only
+one of those sections is present in memory at a time, and software is
+responsible for copying the desired section into the overlay region before
+executing it.
+
+What ``OVERLAY`` does in GNU ld
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. Same execution address (VMA)
+   All sections inside an ``OVERLAY`` block are linked to start at the same
+   address. From the CPU's point of view, they occupy the same memory region.
+
+2. Different load addresses (LMA)
+   Each overlaid section has a distinct load address in the output image (often
+   in flash or ROM). These LMAs are laid out back-to-back starting at the
+   overlay's ``AT(...)`` address.
+
+3. Runtime-managed swapping
+   The linker does not generate code to manage overlays. Your runtime code
+   (overlay manager) must copy the desired section from its LMA into the overlay
+   execution region before calling into it.
+
+Auto-generated symbols in GNU ld
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For each section inside an overlay, GNU ld defines:
+
+* ``__load_start_<section>``
+* ``__load_stop_<section>``
+
+These symbols let your code know where to copy from.
+
+``NOCROSSREFS``
+^^^^^^^^^^^^^^^
+
+GNU ld accepts an optional ``NOCROSSREFS`` keyword in the overlay header, e.g.::
+
+  OVERLAY 0x1000 : NOCROSSREFS AT(0x4000) { ... }
+
+This causes GNU ld to error out if one overlaid section references another.
+
+Effect on the location counter (``.``) in GNU ld
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After an ``OVERLAY`` block, ``.`` is advanced by the size of the largest overlay
+member. This ensures the overlay region reserves enough execution memory for the
+largest case.
+
+Syntax
+^^^^^^^
+
+.. code-block:: plaintext
+
+  OVERLAY [<start>] :
+      [NOCROSSREFS] [AT(<lma_start>)]
+  {
+      <overlay-member>...
+  } [><region>] [AT><lma_region>] [:<phdr>...] [=<fillexp>]
+
+  <overlay-member> :=
+      <output-section-name> { <input-section-description>... }
+
+.. important::
+
+   Overlay member sections are parsed as *name + body only*. Individual overlay
+   members must not use the normal output section description prologue/epilogue
+   syntax (for example, no ``:`` prologue, no member-level ``AT(...)``, no
+   member-level ``>REGION``/``AT>REGION``, no ``:PHDR`` list, and no
+   ``=<fill>``). eld errors out if these constructs are used on overlay members.
+
+eld support status
+^^^^^^^^^^^^^^^^^^
+
+eld currently supports parsing ``OVERLAY`` blocks and printing them into the
+text map file (``-MapStyle txt``) as comments. The GNU ld overlay *semantics*
+described above (LMA/VMA overlay placement, generated symbols, overlay-member
+swapping behavior, overlay-specific ``NOCROSSREFS`` enforcement, and location
+counter advancement rules) are not implemented yet.
 
 Output Section Description
 ---------------------------

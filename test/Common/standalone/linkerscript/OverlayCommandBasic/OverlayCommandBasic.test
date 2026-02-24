@@ -1,0 +1,8 @@
+#---OverlayCommandBasic.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that the linker-script parser accepts the OVERLAY command
+# syntax within SECTIONS.
+#END_COMMENT
+#START_TEST
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t
+#END_TEST

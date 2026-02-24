@@ -49,6 +49,7 @@ class InputFile;
 class VersionScript;
 class MemoryCmd;
 class ScriptSymbol;
+class OverlayDesc;
 
 /** \class ScriptFile
  *  \brief This class defines the interfaces to a linker script file.
@@ -304,6 +305,15 @@ public:
   // ----------------- process assignments in link order --------
   void processAssignments();
 
+  // ------------------------ OVERLAY ------------------------------------
+  OverlayDesc *createOverlayDesc(uint32_t ID, Expression *Start, bool HasStart,
+                                 bool NoCrossRefs, Expression *LMA,
+                                 const OutputSectDesc::Epilog &Epilog);
+
+  const std::vector<OverlayDesc *> &getOverlayDescs() const {
+    return OverlayDescs;
+  }
+
   WildcardPattern *findWildcardPattern(const std::string &P) {
     auto it = ScriptWildcardPatternMap.find(P);
     if (it != ScriptWildcardPatternMap.end())
@@ -338,6 +348,7 @@ private:
   eld::VersionScript *LinkerVersionScript = nullptr;
   eld::MemoryCmd *MemoryCmd = nullptr;
   std::vector<Assignment *> Assignments;
+  std::vector<OverlayDesc *> OverlayDescs;
 };
 
 } // namespace eld

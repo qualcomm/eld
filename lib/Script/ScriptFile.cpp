@@ -36,6 +36,7 @@
 #include "eld/Script/OutputCmd.h"
 #include "eld/Script/OutputFormatCmd.h"
 #include "eld/Script/OutputSectDesc.h"
+#include "eld/Script/OverlayDesc.h"
 #include "eld/Script/PhdrsCmd.h"
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Script/ScriptSymbol.h"
@@ -94,6 +95,27 @@ eld::Expected<void> ScriptFile::activate(Module &CurModule) {
     // each one of them.
     CurModule.getScript().addScriptCommand(SC);
   }
+  for (auto *O : OverlayDescs)
+    CurModule.getScript().addOverlayDesc(O);
+
+  // Resolve OVERLAY member names to OutputSectionEntry pointers so that layout
+  // can discover overlay membership from the output-section entries.
+  for (auto *O : OverlayDescs) {
+    for (const StrToken *NameTok : O->pendingMemberNames()) {
+      if (!NameTok)
+        continue;
+      OutputSectionEntry *OSE =
+          CurModule.getScript().sectionMap().findOutputSectionEntry(
+              NameTok->name());
+      if (!OSE)
+        continue;
+      if (OSE->hasOverlayDesc() && OSE->getOverlayDesc() != O)
+        continue;
+      OSE->setOverlayDesc(O);
+      O->addMember(OSE);
+    }
+  }
+
   if (ScriptFileKind == Kind::DynamicList && DynamicListSymbols) {
     for (ScriptSymbol *Sym : *DynamicListSymbols)
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Sym->activate());
@@ -704,4 +726,13 @@ void ScriptFile::processAssignments() {
   for (auto &Assign : getAssignments()) {
     Assign->processAssignment(ThisModule, ThisLinkerScriptFile);
   }
+}
+
+OverlayDesc *ScriptFile::createOverlayDesc(uint32_t ID, Expression *Start,
+                                           bool HasStart, bool NoCrossRefs,
+                                           Expression *LMA,
+                                           const OutputSectDesc::Epilog &E) {
+  auto *O = make<OverlayDesc>(ID, Start, HasStart, NoCrossRefs, LMA, E);
+  OverlayDescs.push_back(O);
+  return O;
 }

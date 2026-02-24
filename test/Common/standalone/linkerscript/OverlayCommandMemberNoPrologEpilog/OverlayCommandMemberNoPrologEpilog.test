@@ -1,0 +1,14 @@
+#---OverlayCommandMemberNoPrologEpilog.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that overlay member sections do not accept output section
+# descriptor prologue/epilogue syntax.
+#END_COMMENT
+#START_TEST
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/prologue.t 2>&1 | %filecheck %s --check-prefix=PROLOG
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/epilogue.t 2>&1 | %filecheck %s --check-prefix=EPILOG
+#END_TEST
+
+PROLOG: Error: {{.*}}prologue.t:{{[0-9]+}}: overlay member output sections do not support output section prologue
+
+EPILOG: Error: {{.*}}epilogue.t:{{[0-9]+}}: overlay member output sections do not support output section epilogue
+
