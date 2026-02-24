@@ -1151,6 +1151,11 @@ defm save_temps_EQ
 def : F<"plugin-opt=save-temps">,
       Alias<save_temps>,
       HelpText<"Alias for --save-temps">;
+
+def plugin_opt_stats_file : J<"plugin-opt=stats-file=">,
+                            HelpText<"Filename to write LTO statistics to">,
+                            Group<grp_ltooptions>;
+
 defm exclude_lto_filelist
     : smDashWithOpt<"exclude-lto-filelist", "exclude_lto_filelist",
                     "Specify a list of files that are to be disregarded while "

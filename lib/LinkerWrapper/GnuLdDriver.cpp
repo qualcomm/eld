@@ -1710,6 +1710,9 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
   if (const auto *Arg = Args.getLastArg(OptTable::lto_sample_profile))
     Conf.SampleProfile = Arg->getValue();
 
+  if (const auto *Arg = Args.getLastArg(OptTable::plugin_opt_stats_file))
+    Conf.StatsFile = Arg->getValue();
+
   if (Args.hasArg(OptTable::lto_debug_pass_manager))
     Conf.DebugPassManager = true;
 
