@@ -3,9 +3,7 @@ on:
   schedule:
       - cron: '0 2 * * *' # 2:00 AM
   workflow_dispatch:     # Allows manual triggering
-  pull_request:
-    paths:
-      - ".github/workflows/nightly-musl-builder.yml"
+  # pull_request: {} # Uncomment only to test this WF file update.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -67,7 +65,7 @@ jobs:
 
       - name: Download and Build musl
         run: |
-          git clone --depth 1 https://github.com/bminor/musl.git
+          git clone --depth 1 https://git.musl-libc.org/git/musl
           cd musl
           CC=clang CXX=clang++ ./configure --prefix=$PWD/../musl-install
           make -j$(nproc)
