@@ -76,12 +76,12 @@ jobs:
       - name: Build Project
         run: |
           cd obj
-          ninja -j8
+          ninja ld.eld opt llvm-dis
 
       - name: Run tests
         run: |
           cd obj
-          ninja -j8 check-eld
+          ninja check-eld
 
       - name: Update build entry
         if: github.event_name == 'schedule'
