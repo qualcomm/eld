@@ -465,6 +465,30 @@ which can be one of the following:
   section. The virtual memory address of the output section can be
   specified using attribute keywords.
 
+SHF_LINK_ORDER sections
+"""""""""""""""""""""""
+
+``SHF_LINK_ORDER`` sections carry an ordering dependency via ``sh_link`` to
+another section.
+
+In ELD:
+
+- During garbage collection (``--gc-sections``), the dependency is honored:
+  if the linked section is kept, the dependent ``SHF_LINK_ORDER`` section is
+  kept; if the linked section is collected, the dependent section is also
+  collected unless another live reference keeps it.
+
+- During partial linking (``-r``), non-``.ARM.exidx`` ``SHF_LINK_ORDER``
+  input sections are kept separate by default.
+
+Linker script interaction
+"""""""""""""""""""""""""
+
+When a linker script explicitly maps many ``SHF_LINK_ORDER`` input sections
+into one output section rule, the script controls final placement. To preserve
+separation in a partial link, prefer script patterns that do not force
+coalescing of multiple dependent input sections into a single output section.
+
 ENTRY
 ^^^^^
 

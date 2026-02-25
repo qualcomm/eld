@@ -468,9 +468,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Pool->async([&] { assignInputFromOutput(Obj); });
     }
     Pool->wait();
   }
@@ -599,34 +597,12 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
   if (I->name().find("@") != llvm::StringRef::npos)
     return true;
 
-  bool hasLinkerScriptSectionsCommand =
-      ThisModule.getScript().linkerScriptHasSectionsCommand();
   if (ThisConfig.codeGenType() == LinkerConfig::Object) {
     // The linker only creates groups with partial link.
     if (target->isGroupKind())
       return true;
-    if (I->isLinkOrder() && !I->isEXIDX()) {
-      if (I->getLink() == target->getLink() || target->isUninit())
-        return false;
-      if (!hasLinkerScriptSectionsCommand)
-        return true;
-      if (ThisConfig.options().allowIncompatibleSectionsMix()) {
-        ThisConfig.raise(Diag::note_incompatible_sections)
-            << I->name() << I->getInputFile()->getInput()->decoratedPath()
-            << target->name();
-        return false;
-      }
-        std::string Str;
-        if (target->getLink())
-          Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
-        else
-          Str = "No Available Sections";
-        ThisConfig.raise(Diag::incompatible_sections)
-            << I->name() << I->getInputFile()->getInput()->decoratedPath()
-            << target->name();
-        ThisModule.setFailure(true);
-        return false;
-    }
+    if (I->isLinkOrder() && !I->isEXIDX())
+      return true;
 
     uint64_t TargetHasGroup = target->getFlags() & llvm::ELF::SHF_GROUP;
     uint64_t InputHasGroup = I->getFlags() & llvm::ELF::SHF_GROUP;

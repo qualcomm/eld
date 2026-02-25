@@ -1,0 +1,19 @@
+#---LinkOrderOutput.test--------------------- Executable,Map -------------------#
+#BEGIN_COMMENT
+# Verify SHF_LINK_ORDER input section order is preserved in output and reflected
+# in the text map file.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/2.s -o %t2.o
+RUN: %link -MapStyle txt %linkopts %t1.o %t2.o -T %p/Inputs/script.t -Map %t.map.txt -e foo -o %t.out
+RUN: %filecheck %s --check-prefix=MAP < %t.map.txt
+RUN: %objdump -s -j .linkorder %t.out | %filecheck %s --check-prefix=OD
+
+# MAP: .linkorder
+# MAP: .linkorder{{.*}}tmp1.o
+# MAP: .linkorder{{.*}}tmp2.o
+
+# OD: Contents of section .linkorder:
+# OD: {{[0-9a-f]+}} {{[1]+}}{{[0]+}}{{[[:space:]]*}}{{[2]+}}{{[0]+}}
+#END_TEST

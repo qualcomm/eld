@@ -1,0 +1,20 @@
+#---PartialLinkLinkOrderNoMerge.test--------------------- PartialLink --------#
+#BEGIN_COMMENT
+# SHF_LINK_ORDER input sections should not be merged with other sections
+# during partial linking.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/2.s -o %t2.o
+RUN: %link %linkopts -r %t1.o %t2.o -o %t3.r.o
+RUN: %readelf -S -W %t3.r.o | %filecheck %s
+RUN: %link %linkopts -r %t1.o %t2.o -T %p/Inputs/script.t -o %t4.r.o
+RUN: %readelf -S -W %t4.r.o | %filecheck %s --check-prefix=SCRIPT
+
+# CHECK: .linkorder     PROGBITS
+# CHECK: .linkorder     PROGBITS
+
+# SCRIPT: .linkorder     PROGBITS
+# SCRIPT: .linkorder     PROGBITS
+
+#END_TEST

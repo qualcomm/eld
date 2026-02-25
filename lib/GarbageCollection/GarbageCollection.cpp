@@ -436,6 +436,25 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
       }
     }
   }
+
+  // SHF_LINK_ORDER: If section B is marked SHF_LINK_ORDER and has sh_link = A,
+  // then B's placement depends on A. During GC, treat B as reachable from A so
+  // that keeping A also keeps all of its dependent sections.
+  for (Input = ThisModule.objBegin(); Input != InEnd; ++Input) {
+    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*Input);
+    if (!ObjFile)
+      continue;
+    for (Section *Sect : ObjFile->getSections()) {
+      auto *Dependent = llvm::dyn_cast<ELFSection>(Sect);
+      if (!Dependent || !Dependent->isLinkOrder())
+        continue;
+      ELFSection *Linked = Dependent->getLink();
+      if (!Linked)
+        continue;
+      MSectionReachedListMap.addReference(*Linked, *Dependent);
+    }
+  }
+
   MSectionReachedListMap.findReachedBitCodeSectionsAndSymbols(ThisModule);
   if (!ThisConfig.options().gcCref().empty()) {
     for (auto &I : crefMap) {
