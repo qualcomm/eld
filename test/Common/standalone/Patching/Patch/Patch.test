@@ -1,3 +1,4 @@
+REQUIRES: shell
 #---PatchPLT.test-------------- Executable------------------------#
 #BEGIN_COMMENT
 #Test creation of PLT/GOT slots for patchable symbols.
