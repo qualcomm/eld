@@ -25,13 +25,12 @@ if (NOT LLVM_ENABLE_IDE)
                            COMPONENT ld.eld)
 endif()
 
-# FIXME: We need to switch to ELD_TARGETS_TO_BUILD after the buildbot upgrade
-if("${LLVM_TARGETS_TO_BUILD}" MATCHES "Hexagon" AND "${TARGET_TRIPLE}" MATCHES
-                                                    "hexagon-unknown-linux")
+if("${ELD_TARGETS_TO_BUILD}" MATCHES "Hexagon" AND "${TARGET_TRIPLE}" MATCHES
+                                                   "hexagon-unknown-linux")
   set(is_hexagon_linux 1)
 endif()
 if(ELD_CREATE_SYMLINKS)
-  foreach(target_name ${LLVM_TARGETS_TO_BUILD})
+  foreach(target_name ${ELD_TARGETS_TO_BUILD})
     string(TOLOWER ${target_name} ld_eld_name)
     if(${is_hexagon_linux})
       set(ld_eld_name "${ld_eld_name}-linux-link")
