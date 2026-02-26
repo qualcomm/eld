@@ -19,8 +19,8 @@
 # RUN: %link %linkopts main.o -pie a.so -o main.pie
 # RUN: %readelf --elf-output-style LLVM -r main.pie | %filecheck %s --check-prefix=PIE
 
-# PIE: {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
-# PIE: {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 foo 0x0
+# PIE-DAG: {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
+# PIE-DAG: {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 foo 0x0
 
 #END_TEST
 

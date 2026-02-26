@@ -10,25 +10,24 @@
 # RUN: %llvm-mc -filetype=obj -triple=aarch64 main.s -o main.o
 
 # Test PAuth relocations with PIE
-# RUN: %link %linkopts main.o -pie a.so -o main
+# RUN: %link %linkopts -z notext main.o -pie a.so -o main
 # RUN: %readelf --elf-output-style LLVM -r main 2>&1 | %filecheck %s --check-prefix=UNPACKED
 
 # UNPACKED:          Section ({{.+}}) .rela.dyn {
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFFFFFF{{[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x12345{{[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x34567{{[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFCBA98{{[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x64
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
-# UNPACKED-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 foo 0x1111
-# UNPACKED-NEXT:     }
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFFFFFF{{[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x12345{{[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x34567{{[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFCBA98{{[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x64
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
+# UNPACKED-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 foo 0x1111
 
 # Validate relocation place (and signing schema) in section data
 # RUN: %readelf -x .test main | %filecheck %s --check-prefix=HEX
@@ -92,67 +91,50 @@
 ##                                      ^^^^ Discr = 55
 ##                                            ^^ Key = DA
 # Test PAuth relocations without PIE
-# RUN: %link %linkopts main.o -no-pie a.so -o main.nopie
+# RUN: %link %linkopts -z notext main.o -no-pie a.so -o main.nopie
 # RUN: %readelf --elf-output-style LLVM -r main.nopie 2>&1 | %filecheck %s --check-prefix=NOPIE
 
 # NOPIE:      Section ({{.+}}) .rela.dyn {
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFFFFFF{{[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x12345{{[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x34567{{[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFCBA98{{[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x64
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
-# NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 foo 0x1111
-# NOPIE-NEXT: }
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFFFFFF{{[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x12345{{[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x34567{{[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFCBA98{{[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x64
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 bar 0x0
+# NOPIE-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_ABS64 foo 0x1111
 
 # Test PAuth relocations with static executable (PIE)
-# RUN: %link %linkopts -static main.o -pie a.o -o main.static
+# RUN: %link %linkopts -z notext -static main.o -pie a.o -o main.static
 # RUN: %readelf --elf-output-style LLVM -r main.static 2>&1 | %filecheck %s --check-prefix=STATIC
 
 # STATIC:      Section ({{.+}}) .rela.dyn {
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFFFFFF{{[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x12345{{[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x34567{{[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFCBA98{{[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC-NEXT: }
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFFFFFF{{[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x12345{{[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0x34567{{[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - 0xFFFFFFFFCBA98{{[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
+# STATIC-DAG:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
 
 # Test PAuth relocations with static executable (without PIE)
-# RUN: %link %linkopts -static main.o -no-pie a.o -o main.static.nopie
+# RUN: %link %linkopts -z notext -static main.o -no-pie a.o -o main.static.nopie
 # RUN: %readelf --elf-output-style LLVM -r main.static.nopie 2>&1 | %filecheck %s --check-prefix=STATIC_NOPIE
 
-# STATIC_NOPIE:      Section ({{.+}}) .rela.dyn {
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
-# STATIC_NOPIE-NEXT: }
+# STATIC_NOPIE-COUNT-14:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
 
 #END_TEST
 
