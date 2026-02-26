@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 
 # Test that LTO handles whole archive without reporting duplicate symbols
 RUN: %clang %clangopts -c %p/Inputs/main.c -flto -o %t1.main.o

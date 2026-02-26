@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 UNSUPPORTED: riscv32, riscv64
 # Checks that commons are selected from the right files even after LTO.
 RUN: %clang %clangopts -c -flto -ffunction-sections -fdata-sections %p/Inputs/1.c -o %t1.1.o

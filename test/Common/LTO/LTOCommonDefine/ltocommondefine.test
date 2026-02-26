@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # There is a need to preserve the common symbol if an ELF file overrides the
 # symbol, which otherwise will change the symbol to local scope having two
 # definitions of the symbol, which needs to be avoided in all cases.

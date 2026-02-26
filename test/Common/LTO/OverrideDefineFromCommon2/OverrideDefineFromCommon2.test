@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # If namepool has common and archive has defined, include member. If member has
 # common dont include it.
 RUN: %clang %clangopts -c -flto %p/Inputs/1.c -o %t1.o

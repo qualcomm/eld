@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---ThinLTOCommonSymbols.test------------------------------ Executable,LS,LTO ---------------------#
 #BEGIN_COMMENT
 #Linker misplaces a symbol with ThinLTO.

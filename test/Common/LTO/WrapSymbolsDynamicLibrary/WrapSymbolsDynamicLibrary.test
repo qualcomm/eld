@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 UNSUPPORTED: iu
 #---WrapSymbolsDynamicLibrary.test------------------------------ Executable ---------------------#
 

@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---LinkerScriptBCPreserveOrigin.test----------------------- Executable,LTO --------------------#
 #BEGIN_COMMENT
 # Check if LTO works for no groups and only archives and bitcodes

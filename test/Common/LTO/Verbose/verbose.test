@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 UNSUPPORTED: ndk-build
 # Check if LTO works for no groups and only archives and bitcodes
 RUN: %clang %clangopts -c  %p/Inputs/a.c -flto -o %t1

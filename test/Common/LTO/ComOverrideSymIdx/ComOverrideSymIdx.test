@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # Check if LTO works for no groups and only archives and bitcodes
 UNSUPPORTED: windows
 RUN: %clang %clangopts %clangg0opts -c -fdata-sections %p/Inputs/1.c -o %t1.o

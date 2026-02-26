@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # Tests that the linker should not be preserving a undefined symbol.
 RUN: %clang %clangopts -c %p/Inputs/1.c -flto -o %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o

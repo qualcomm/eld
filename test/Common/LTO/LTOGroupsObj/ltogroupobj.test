@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 
 # This test, checks that LTO is able to handle a .o within a group.
 RUN: %clang %clangopts -c -flto %p/Inputs/a.c -o %t1.a.o

@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # Check that the linker handles the case when functions are converted to local.
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -flto
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o  -flto

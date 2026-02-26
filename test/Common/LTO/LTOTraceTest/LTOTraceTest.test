@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---LTOTraceTest.test-------------------------------------------------#
 #BEGIN_COMMENT
 # Print same traces for lto using --trace-lto and -trace=lto

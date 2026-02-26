@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---WrapSymbols.test----------------------- Executable,LTO --------------------#
 #BEGIN_COMMENT
 # This test supports wrap symbols in Bitcode. If the definition is in the

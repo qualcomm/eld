@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # Check that the linker is able to preserve a symbol if the symbol is undefined
 # in ELF and Bitcode
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -flto

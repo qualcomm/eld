@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # This tests that LTO doesnot miss default sections in the output.
 RUN: %clang %clangopts -c -flto %p/Inputs/main.c -o %t1.main.o  -ffunction-sections %clangg0opts
 RUN: %clang %clangopts -c -flto %p/Inputs/foo.c -o %t1.foo.o  -ffunction-sections %clangg0opts

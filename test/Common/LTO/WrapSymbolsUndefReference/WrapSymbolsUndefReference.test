@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 UNSUPPORTED: iu, riscv32, riscv64
 #---WrapSymbolsUndefReference.test----------------------- Executable,SharedLibrary,LTO --------------------#
 

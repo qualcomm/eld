@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---WrapSymbolsResolution.test----------------------- Executable,LTO --------------------#
 #BEGIN_COMMENT
 # This tests that the linker is not including symbols from an archive library

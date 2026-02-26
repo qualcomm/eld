@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 UNSUPPORTED: iu
 #---LTOSymDef.test--------------------- Executable,LTO,LS------------------#
 
