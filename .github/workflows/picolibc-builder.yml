@@ -22,24 +22,28 @@ jobs:
             llvm-target: Hexagon
             picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
             picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
+            picolibc-tls-ie: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dtls-model=initial-exec"
           - name: aarch64
             picolibc-name: aarch64
             triple: aarch64-none-elf
             llvm-target: AArch64
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: riscv64
             picolibc-name: riscv
             triple: riscv64-unknown-unknown-elf
             llvm-target: RISCV
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
           - name: riscv32
             picolibc-name: rv32imafdc
             triple: riscv32-unknown-unknown-elf
             llvm-target: RISCV
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=rv32imafdc -mabi=ilp32d"
             extra-cxx-flags: "-march=rv32imafdc -mabi=ilp32d"
           - name: arm
@@ -48,6 +52,7 @@ jobs:
             llvm-target: ARM
             picolibc-default-config: ""
             picolibc-no-tls: "-Dthread-local-storage=false"
+            picolibc-tls-ie: "-Dtls-model=initial-exec"
             extra-c-flags: "-march=armv7-a"
             extra-cxx-flags: "-march=armv7-a"
 
@@ -206,6 +211,17 @@ jobs:
           ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
+      - name: Build Picolibc for ${{ matrix.arch.name }}, tls-ie
+        run: |
+          cd ${{ github.workspace }}/picolibc
+          mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
+          cd build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
+          export CC_LD=eld
+          export CXX_LD=eld
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-tls-ie }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
+          ninja
+
       - name: Get QEMU
         run: |
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
@@ -229,6 +245,11 @@ jobs:
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, no-tls
         run: |
           cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls
+          ninja test
+
+      - name: Run Picolibc tests for ${{ matrix.arch.name }}, tls-ie
+        run: |
+          cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-tls-ie
           ninja test
 
       - name: Upload test logs
