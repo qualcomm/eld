@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 # Check that LTO doesnot preserve undefined symbols from bitcode.
 RUN: %clang %clangopts -c  %p/Inputs/main.c -o %t1.main.o
 RUN: %clang %clangopts -c -flto %p/Inputs/foo.c -o %t1.foo.o

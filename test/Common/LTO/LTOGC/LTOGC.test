@@ -1,3 +1,4 @@
+UNSUPPORTED: x86
 #---LTOGC.test--------------------- Executable --------------------#
 #BEGIN_COMMENT
 #This test checks LTO with garbage-collection.
