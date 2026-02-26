@@ -62,8 +62,6 @@ llvm::json::Object PluginActivityLog::toJSON(const PluginOp &Op) const {
   case PluginOp::UpdateLinkState:
     return PluginActivityLog::toJSON(
         static_cast<const UpdateLinkStateOp &>(Op));
-  default:
-    return llvm::json::Object{{"type", "Unknown"}};
   }
 }
 
