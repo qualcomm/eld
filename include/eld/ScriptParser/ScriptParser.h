@@ -136,6 +136,9 @@ private:
 
   InputSectDesc::Spec readInputSectionDescSpec(llvm::StringRef Tok);
 
+  // Read SORT(CONSTRUCTORS)
+  bool readSortConstructors(llvm::StringRef Tok);
+
   /// Reads output section description prologue. It currently supports reading
   /// output section VMA, type and permissions.
   OutputSectDesc::Prolog readOutputSectDescPrologue();

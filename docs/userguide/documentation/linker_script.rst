@@ -801,6 +801,17 @@ INSERT AFTER <section-name> | INSERT BEFORE <section-name>
 
 .. note::
 
+Sorting input sections
+----------------------
+
+Linker scripts can control input-section ordering within an output section using
+sorting directives in input section descriptions. These directives include
+``SORT``, ``SORT_BY_NAME``, ``SORT_BY_ALIGNMENT``, and
+``SORT_BY_INIT_PRIORITY``.
+
+ELD also supports the GNU linker shorthand ``SORT(CONSTRUCTORS)`` for
+compatibility with other linkers.
+
 Controlling Physical addresses
 -------------------------------
 

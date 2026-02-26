@@ -647,6 +647,7 @@ void ScriptParser::readOverlayMemberOutputSectionDescription(
     } else if (readInclude(Tok)) {
     } else if (readOutputSectionData(Tok)) {
     } else if (readAssignment(Tok)) {
+    } else if (readSortConstructors(Tok)) {
     } else {
       readInputSectionDescription(Tok);
     }
@@ -796,6 +797,21 @@ void ScriptParser::readInputSectionDescription(StringRef Tok) {
   if (Policy != InputSectDesc::Policy::NoKeep)
     expect(")");
   ThisScriptFile.addInputSectDesc(Policy, ISDSpec);
+}
+
+bool ScriptParser::readSortConstructors(llvm::StringRef Tok) {
+  if (Tok != "SORT" || peek() != "(")
+    return false;
+  skip();
+  if (peek() != "CONSTRUCTORS") {
+    setError("Invalid SORT directive: expected CONSTRUCTORS");
+    while (!consume(")") && !atEOF())
+      skip();
+    return true;
+  }
+  skip();
+  expect(")");
+  return true;
 }
 
 InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {

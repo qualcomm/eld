@@ -1,0 +1,13 @@
+#---SortConstructors.test---------------------- Executable --------------------#
+#BEGIN_COMMENT
+#This tests that the linker script directive SORT(CONSTRUCTORS)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -M 2>&1 | %filecheck %s
+
+#CHECK: .ctors.200
+#CHECK: .ctors.050
+#CHECK: .dtors.300
+#CHECK: .dtors.010
+#END_TEST
