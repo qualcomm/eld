@@ -1,4 +1,4 @@
-name: Windows Nightly
+name: Windows Arm64/x86_64 Nightly
 
 on:
   # pull_request: {} # Uncomment only to test this WF file update.
@@ -9,11 +9,22 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
     permissions:
       contents: read
     env:
       BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            name: Windows-x86_64
+
+          - runner: windows-11-arm
+            name: Windows-Arm64
 
     steps:
       - name: Map Git usr/bin to a space-free drive and prepend to PATH
