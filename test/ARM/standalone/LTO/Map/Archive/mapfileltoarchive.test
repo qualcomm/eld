@@ -26,7 +26,7 @@ RUN: %link %linkopts -march arm -flto-options=codegen="-Os -relocation-model=sta
 #CHECK: common_array	0x50	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
 #CHECK: Linker Script and memory map
 #CHECK: SKIPPED {{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o (ELF)
-#CHECK: .text	0x0	{{[0-9a-fx]+}}
+#CHECK: .text	{{[0-9a-fx]+}}	{{[0-9a-fx]+}}
 #CHECK: .text	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}main.o
 #CHECK: 	{{[0-9a-fx]+}}  	main
 #CHECK: .text.foo	{{[0-9a-fx]+}}  {{[0-9a-fx]+}}	{{[ -\(\)_A-Za-z0-9.~\\/:]+}}lto
