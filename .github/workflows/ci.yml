@@ -98,6 +98,7 @@ jobs:
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
             -DELD_ENABLE_SYMBOL_VERSIONING=ON \
+            -DLLVM_ENABLE_WERROR:BOOL=ON \
             ../llvm-project/llvm
 
       - name: Cache Usage before build
