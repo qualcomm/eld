@@ -28,14 +28,16 @@ public:
   // Going to be used by GOTPLT0
   AArch64GOT(GOTType T, ELFSection *O, ResolveInfo *R, uint32_t Align,
              uint32_t Size)
-      : GOT(T, O, R, Align, Size) {
+      : GOT(T, O, R, Align, Size), m_ReservedValue(0),
+        m_HasReservedValue(false) {
     if (O)
       O->addFragmentAndUpdateSize(this);
   }
 
   // Helper constructor for GOT.
   AArch64GOT(GOTType T, ELFSection *O, ResolveInfo *R)
-      : GOT(T, O, R, 8, 8), Value{0, 0, 0, 0, 0, 0, 0, 0} {
+      : GOT(T, O, R, 8, 8), m_ReservedValue(0), m_HasReservedValue(false),
+        Value{0, 0, 0, 0, 0, 0, 0, 0} {
     if (O)
       O->addFragmentAndUpdateSize(this);
   }
@@ -58,10 +60,19 @@ public:
     // symbol value.
     if (getValueType() == GOT::SymbolValue)
       Content.a = symInfo()->outSymbol()->value();
-    if (getValueType() == GOT::TLSStaticSymbolValue)
-      Content.a = 0x10 + symInfo()->outSymbol()->value();
+    if (getValueType() == GOT::TLSStaticSymbolValue) {
+      if (m_HasReservedValue)
+        Content.a = m_ReservedValue;
+      else
+        Content.a = 0x10 + symInfo()->outSymbol()->value();
+    }
     std::memcpy((void *)Value, (void *)&Content.a, sizeof(Value));
     return llvm::ArrayRef(Value);
+  }
+
+  void setReservedValue(uint64_t val) {
+    m_ReservedValue = val;
+    m_HasReservedValue = true;
   }
 
   static AArch64GOT *Create(ELFSection *O, ResolveInfo *R) {
@@ -69,6 +80,8 @@ public:
   }
 
 private:
+  uint64_t m_ReservedValue;
+  bool m_HasReservedValue;
   uint8_t Value[8];
 };
 
@@ -138,7 +151,7 @@ private:
 
 class AArch64IEGOT : public AArch64GOT {
 public:
-  AArch64IEGOT(ELFSection *O, ResolveInfo *R) : AArch64GOT(GOT::TLS_LE, O, R) {}
+  AArch64IEGOT(ELFSection *O, ResolveInfo *R) : AArch64GOT(GOT::TLS_IE, O, R) {}
 
   AArch64GOT *getFirst() override { return this; }
 
