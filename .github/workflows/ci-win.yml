@@ -1,4 +1,4 @@
-name: Windows Nightly
+name: Windows Arm64/x86_64 Nightly
 
 on:
   # pull_request: {} # Uncomment only to test this WF file update.
@@ -10,11 +10,24 @@ on:
 jobs:
   build-windows:
     if: github.repository == 'qualcomm/eld'
-    runs-on: windows-latest
     permissions:
       contents: read
     env:
       BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            arch: x64
+            name: Windows-x86_64
+
+          - runner: windows-11-arm
+            arch: ARM64
+            name: Windows-Arm64
 
     steps:
       - name: Map Git usr/bin to a space-free drive and prepend to PATH
@@ -44,7 +57,7 @@ jobs:
         run: |
           mkdir -p obj
           cd obj
-          cmake -G "Visual Studio 17 2022" -A x64 \
+          cmake -G "Visual Studio 17 2022" -A ${{ matrix.arch }} \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
