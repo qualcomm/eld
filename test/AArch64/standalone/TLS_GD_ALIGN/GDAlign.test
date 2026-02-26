@@ -1,0 +1,8 @@
+#---GDAlign.test----------------------------------------------------------#
+# Check that TLS GD GOT entries account for TLS block alignment padding.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/gd-align.c -o %t.o -fPIC -ftls-model=global-dynamic
+RUN: %link %linkopts -march aarch64 %t.o -o %t.out --no-threads
+RUN: %readelf -x .got %t.out | %filecheck %s
+
+CHECK: .got
+CHECK: 80000000 00000000

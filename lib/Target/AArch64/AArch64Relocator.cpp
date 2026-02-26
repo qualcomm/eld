@@ -1109,9 +1109,15 @@ Relocator::Result tls_gottprel_page(Relocation &pReloc,
                                     AArch64Relocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   Relocator::DWord A = pReloc.addend();
-  Relocator::DWord X = pParent.getSymValue(&pReloc) + 0x10;
 
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+    const auto &OptTLSBlockVarOffset = pParent.getStaticTLSBlockVarOffset();
+    if (!OptTLSBlockVarOffset.has_value()) {
+      pParent.config().raise(Diag::no_pt_tls_segment);
+      return Relocator::Result::BadReloc;
+    }
+    Relocator::DWord X =
+        pParent.getSymValue(&pReloc) + OptTLSBlockVarOffset.value();
     // Convert to movz
     uint32_t movz = 0xD2A00000 | (pReloc.target() & 0x0000001F);
     pReloc.target() = helper_reencode_movzk_imm(movz, X >> 16);
@@ -1133,9 +1139,15 @@ Relocator::Result tls_gottprel_page(Relocation &pReloc,
 Relocator::Result tls_gottprel_lo(Relocation &pReloc,
                                   AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
-  Relocator::DWord X = pParent.getSymValue(&pReloc) + 0x10;
 
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+    const auto &OptTLSBlockVarOffset = pParent.getStaticTLSBlockVarOffset();
+    if (!OptTLSBlockVarOffset.has_value()) {
+      pParent.config().raise(Diag::no_pt_tls_segment);
+      return Relocator::Result::BadReloc;
+    }
+    Relocator::DWord X =
+        pParent.getSymValue(&pReloc) + OptTLSBlockVarOffset.value();
     // Convert to movk
     uint32_t movk = 0xF2800000 | (pReloc.target() & 0x0000001F);
     pReloc.target() = helper_reencode_movzk_imm(movk, X);
@@ -1181,9 +1193,15 @@ Relocator::Result tls_tprel(Relocation &pReloc, AArch64Relocator &pParent) {
 Relocator::Result tls_tlsdesc_page(Relocation &pReloc,
                                    AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
-  Relocator::DWord X = pParent.getSymValue(&pReloc) + 0x10;
 
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+    const auto &OptTLSBlockVarOffset = pParent.getStaticTLSBlockVarOffset();
+    if (!OptTLSBlockVarOffset.has_value()) {
+      pParent.config().raise(Diag::no_pt_tls_segment);
+      return Relocator::Result::BadReloc;
+    }
+    Relocator::DWord X =
+        pParent.getSymValue(&pReloc) + OptTLSBlockVarOffset.value();
     // Convert to movz
     uint32_t movz = 0xD2A00000 | (pReloc.target() & 0x0000001F);
     pReloc.target() = helper_reencode_movzk_imm(movz, X >> 16);
@@ -1206,9 +1224,15 @@ Relocator::Result tls_tlsdesc_page(Relocation &pReloc,
 Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
                                  AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
-  Relocator::DWord X = pParent.getSymValue(&pReloc) + 0x10;
 
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+    const auto &OptTLSBlockVarOffset = pParent.getStaticTLSBlockVarOffset();
+    if (!OptTLSBlockVarOffset.has_value()) {
+      pParent.config().raise(Diag::no_pt_tls_segment);
+      return Relocator::Result::BadReloc;
+    }
+    Relocator::DWord X =
+        pParent.getSymValue(&pReloc) + OptTLSBlockVarOffset.value();
     // Convert to movk, save to x0
     uint32_t movk = 0xF2800000;
     pReloc.target() = helper_reencode_movzk_imm(movk, X);
@@ -1284,4 +1308,5 @@ void AArch64Relocator::computeTLSOffsets() {
   StaticTLSBlockVarOffset = 2 * WordSize;
   *StaticTLSBlockVarOffset +=
       ((FirstTLSSegVirtualAddr - 2 * WordSize) & (MaxTLSSegAlignment - 1));
+  m_Target.updateTLSIEGOTOffsets(StaticTLSBlockVarOffset.value());
 }
