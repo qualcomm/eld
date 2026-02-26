@@ -738,6 +738,17 @@ AArch64GOT *AArch64LDBackend::findEntryInGOT(ResolveInfo *I) const {
   return Entry->second;
 }
 
+void AArch64LDBackend::updateTLSIEGOTOffsets(uint64_t StaticTLSBlockVarOffset) {
+  for (auto &Entry : m_GOTMap) {
+    AArch64GOT *G = Entry.second;
+    if (!G || G->getType() != GOT::TLS_IE ||
+        G->getValueType() != GOT::TLSStaticSymbolValue || !G->symInfo())
+      continue;
+    G->setReservedValue(StaticTLSBlockVarOffset +
+                        G->symInfo()->outSymbol()->value());
+  }
+}
+
 // Create PLT entry.
 AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj,
                                                ResolveInfo *R,
