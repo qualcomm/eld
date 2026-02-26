@@ -13,13 +13,16 @@ if(NOT CYGWIN AND LLVM_ENABLE_PIC)
     if(CMAKE_C_COMPILER MATCHES "clang-cl" AND CMAKE_CXX_COMPILER MATCHES
                                                "clang-cl")
       set_target_properties(
-        ExcludeSymbol PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+        PluginActivityLogPlugin PROPERTIES COMPILE_FLAGS
+                                           -Wno-deprecated-declarations)
     else()
-      set_target_properties(ExcludeSymbol PROPERTIES COMPILE_FLAGS /wd4996)
+      set_target_properties(PluginActivityLogPlugin PROPERTIES COMPILE_FLAGS
+                                                               /wd4996)
     endif()
   else()
-    set_target_properties(ExcludeSymbol PROPERTIES COMPILE_FLAGS
-                                                   -Wno-deprecated-declarations)
+    set_target_properties(
+      PluginActivityLogPlugin PROPERTIES COMPILE_FLAGS
+                                         -Wno-deprecated-declarations)
   endif()
 
   set_target_properties(
