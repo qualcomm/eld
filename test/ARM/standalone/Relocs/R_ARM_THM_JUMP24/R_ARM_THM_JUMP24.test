@@ -5,7 +5,7 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang -c %p/Inputs/x.s -o %t1.1.o
-RUN: %link %linkopts -march arm %t1.1.o --defsym arm_callee1=1 -o %t2.out
+RUN: %link %linkopts -march arm %t1.1.o --defsym arm_callee1=1 -o %t2.out --image-base 0x0
 RUN: %objdump -d %t2.out | %filecheck %s
 
 #CHECK:  0: f7ff bffe
