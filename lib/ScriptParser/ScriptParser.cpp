@@ -771,6 +771,7 @@ void ScriptParser::readOutputSectionDescription(llvm::StringRef Tok) {
     } else if (readInclude(Tok)) {
     } else if (readOutputSectionData(Tok)) {
     } else if (readAssignment(Tok)) {
+    } else if (readSortConstructors(Tok)) {
     } else {
       readInputSectionDescription(Tok);
     }
