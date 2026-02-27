@@ -56,6 +56,17 @@ Notes:
   (e.g. with ``ar cr libname.a ...``) and match against ``*libname.a:*member.o``
   patterns in the script.
 
+MEMORY-related options
+----------------------
+
+When using linker scripts with ``MEMORY`` regions, these options are commonly
+useful for debugging and enforcing correctness:
+
+- ``--print-memory-usage`` prints per-region usage when a ``MEMORY`` directive
+  is present in the linker script.
+- ``-Wlinker-script-memory`` enables warnings for suspicious ``MEMORY`` setups
+  (for example, zero-sized regions or regions that end up unused).
+
 ARM and AArch64 specific options
 ---------------------------------
 

@@ -2667,6 +2667,62 @@ loaded.
 If you see the above, the first load segment starts from offset 34, which means
 the program header gets loaded when the executable runs.
 
+MEMORY command: common issues and fixes
+========================================
+
+Why did an orphan section end up in a different region than GNU ld/LLD?
+-----------------------------------------------------------------------
+
+If your script uses ``MEMORY`` and a section is not explicitly matched by any
+rule in ``SECTIONS``, it becomes an *orphan output section*. In ELD, allocatable
+orphans (and other allocatable output sections without an explicit ``>REGION``)
+are auto-assigned based on region attributes (for example, ``(rx)`` vs
+``(!rwx)``), scanning regions in ``MEMORY`` order.
+
+Some other linkers may keep an orphan section in the "current" region/cursor
+instead of re-running attribute matching, which can produce different results.
+
+Fix:
+
+- Add an explicit output section rule and a ``>REGION`` assignment for the
+  section (for example, ``.rodata`` or ``.eh_frame``), or discard it explicitly
+  if you do not want it in the image.
+
+See also: https://github.com/qualcomm/eld/issues/127
+
+Why do I get ``Error: No memory region assigned to section <name>``?
+---------------------------------------------------------------------
+
+This occurs when ``MEMORY`` is present and an allocatable output section is not
+explicitly assigned to a region and does not match any region's attribute
+constraints.
+
+Fix checklist:
+
+- Assign the section explicitly (``.data : { *(.data*) } >RAM``).
+- Ensure you have a region whose attributes match the section type (for
+  example, a writable region for ``.data``/``.bss``).
+- If you are using ``PHDRS``, remember that segment assignment (``:phdr``) does
+  not imply a memory region assignment (``>REGION`` / ``AT>REGION``).
+
+Why does a MEMORY region overflow even though LENGTH looks sufficient?
+-----------------------------------------------------------------------
+
+Region usage is based on placed output section sizes and their addresses, which
+can include padding due to:
+
+- section alignment,
+- page/segment alignment (especially with separate-code / permissions changes),
+- header space when ``FILEHDR PHDRS`` is used,
+- gaps introduced by explicit addresses in the script.
+
+Fix:
+
+- Inspect the map file (``-MapStyle txt -Map out.map``) to see per-section
+  addresses and which regions they were charged against.
+- Use ``--print-memory-usage`` to see per-region usage totals.
+- Increase the region ``LENGTH`` or reduce alignment/padding requirements.
+
 String Merging
 ================
 

@@ -44,6 +44,8 @@ This is the standard method used by most linkers like GNU ld.
 +---------------+---------------------------------------------------------------------------------+
 | SECTIONS      | Section mapping and memory placementELF program header definition               |
 +---------------+---------------------------------------------------------------------------------+
+| MEMORY        | Define memory regions used by ``>REGION`` and ``AT>REGION`` placement           |
++---------------+---------------------------------------------------------------------------------+
 | ENTRY         | ELF program headerProgram execution entry point                                 |
 +---------------+---------------------------------------------------------------------------------+
 | OUTPUT_FORMAT | Parsed, but no effect on linking                                                |
@@ -177,6 +179,264 @@ also known as the *segment header* of an ELF output file.
    If the sections in an output file have different flag settings than
    what is specified in ``PHDRS``, the linker combines the two different
    flags using bitwise OR.
+
+.. _linker-script-memory:
+
+MEMORY
+^^^^^^^
+
+The ``MEMORY`` command defines named memory regions (for example ``FLASH`` and
+``RAM``) that can be used to place output sections without hard-coding absolute
+addresses.
+
+In ELD, memory regions can be used in three related ways:
+
+1. **VMA placement**: ``>REGION`` assigns the output section's VMA to the next
+   available address in ``REGION`` (starting from ``ORIGIN`` and advancing by
+   the output section size).
+2. **LMA placement**: ``AT>REGION`` assigns the output section's LMA to the next
+   available address in ``REGION`` (tracked independently from VMA placement).
+3. **Automatic region selection**: if an allocatable output section does not
+   specify ``>REGION``, ELD can select a region by matching the section's flags
+   against region attributes (for example, place writable sections in a ``(w)``
+   region and code in an ``(x)`` region).
+
+Syntax
+""""""
+
+.. code-block:: plaintext
+
+  MEMORY {
+    <name> [(<attrs>)] : ORIGIN = <expr> , LENGTH = <expr>
+    <name> [(<attrs>)] : org = <expr> , len = <expr>
+    ...
+  }
+
+Notes:
+
+- ``ORIGIN`` can also be spelled as ``org`` or ``o``.
+- ``LENGTH`` can also be spelled as ``len`` or ``l``.
+- ``ORIGIN`` and ``LENGTH`` must be separate tokens (for example,
+  ``ORIGIN = 0x1000`` is accepted, but ``ORIGIN= 0x1000`` is rejected).
+- The expressions are normal linker-script expressions; you can use constants
+  and arithmetic, and size suffixes like ``K``, ``M``, and ``G`` (for example,
+  ``LENGTH = 4K``).
+- The ``MEMORY`` block can contain ``INCLUDE``/``INCLUDE_OPTIONAL`` directives.
+
+Memory region names
+"""""""""""""""""""
+
+Region names are identifiers (and may also appear quoted in scripts). Region
+names are referenced in output section descriptions via ``>REGION`` and
+``AT>REGION``.
+
+If a section references an unknown region name, ELD errors out (for example,
+``Cannot find memory region <name>``).
+
+Memory region attributes
+"""""""""""""""""""""""""
+
+``(<attrs>)`` is optional and is primarily used for **automatic region
+selection** (when an allocatable output section does not specify an explicit
+``>REGION``).
+
+ELD supports the following attribute letters:
+
+- ``w``: writable (matches ``SHF_WRITE`` sections).
+- ``x``: executable (matches ``SHF_EXECINSTR`` sections).
+- ``a``: allocatable (matches ``SHF_ALLOC`` sections).
+- ``r``: read-only (matches *non-writable* allocatable sections; ELF sections do
+  not explicitly carry a read flag).
+- ``i`` / ``l``: initialized (matches ``SHT_PROGBITS`` sections; used to avoid
+  matching ``SHT_NOBITS`` when desired).
+- ``!``: negation operator, used to say that attributes must **not** be present.
+  For example, ``(r!x)`` matches non-writable, non-executable sections.
+
+The attribute matching rules apply only to allocatable output sections that do
+not already have an explicit ``>REGION``.
+
+.. important::
+
+   If you explicitly assign a section to a region using ``>REGION``, ELD does
+   not reject the assignment even if the section's flags do not match the
+   region's attributes. Attributes are for auto-selection, not enforcement.
+
+Automatic region selection (orphans and missing ``>REGION``)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+When a linker script uses ``MEMORY`` and an allocatable output section is not
+explicitly assigned to a region, ELD attempts to assign it to the first memory
+region (in ``MEMORY`` order) whose attributes match the section's flags.
+
+This includes *orphan output sections* (output sections created implicitly
+because some input sections were not matched by any rule in ``SECTIONS``).
+
+If no memory region matches an allocatable output section, ELD errors out (for
+example, ``Error: No memory region assigned to section .data``).
+
+.. note::
+
+   This behavior can differ from GNU ld and LLD for orphans. For example, some
+   linkers may keep orphan sections in the "current" region/cursor even when
+   region attributes suggest a different region. ELD follows the region
+   attribute matching rules for orphans and other unassigned allocatable output
+   sections. See https://github.com/qualcomm/eld/issues/127 for a concrete
+   example and background.
+
+Common recommendation: if the placement of a section matters (for example,
+``.rodata``, ``.eh_frame``, ``.tbss``), add an explicit output section rule and
+assign it to the intended region rather than relying on orphan heuristics.
+
+Interaction with explicit addresses (VMA overrides)
+"""""""""""""""""""""""""""""""""""""""""""""""""""
+
+If an output section has an explicit VMA (for example ``.text 0x2000 : { ... }``
+or via ``--section-start``), the explicit VMA is honored.
+
+If that output section also has ``>REGION``:
+
+- If the explicit VMA lies **within** the region's ``[ORIGIN, ORIGIN+LENGTH]``
+  range, the section is still accounted against the region for memory usage
+  checks/reporting.
+- If the explicit VMA lies **outside** the region range, the section is not
+  charged against that region (the explicit address is treated as an override).
+
+This is intended to support scripts that use regions as a default placement
+mechanism while still allowing some sections to be placed at fixed addresses.
+
+TLS and ``.tbss``
+""""""""""""""""""
+
+ELD treats TLS ``SHT_NOBITS`` sections (for example ``.tbss``) specially for
+``MEMORY`` region cursors: ``.tbss`` does not advance the region cursor, so a
+subsequent non-TLS output section may end up with the same VMA. If your script
+requires non-overlapping VMAs for TLS and non-TLS sections, place TLS output
+sections explicitly (for example, in a dedicated region or at a dedicated
+address range) rather than relying on region cursors.
+
+LMA regions and ``AT>REGION``
+"""""""""""""""""""""""""""""
+
+Use ``AT>REGION`` on an output section description to place the section's **load
+memory address (LMA)** in a region, independent of its VMA placement:
+
+.. code-block:: plaintext
+
+  .text : { *(.text*) } >RAM AT>FLASH
+
+Rules:
+
+- ``AT(<address>)`` and ``AT>REGION`` are mutually exclusive; specifying both is
+  an error.
+- If a section has a VMA region (``>REGION``) but no explicit LMA control, ELD
+  defaults the LMA region to the same region as the VMA region.
+- If a section has explicit LMA control (``AT(<address>)``), ELD does not
+  automatically align the LMA. (See :ref:`controlling-physical-addresses`.)
+
+Builtins: ``ORIGIN()`` and ``LENGTH()``
+"""""""""""""""""""""""""""""""""""""""
+
+ELD supports GNU-compatible ``ORIGIN(<region>)`` and ``LENGTH(<region>)``
+builtins in linker script expressions.
+
+These functions accept a memory region name or a region alias and evaluate to
+the region's origin and length, respectively. If the region name cannot be
+resolved, ELD errors out.
+
+REGION_ALIAS
+""""""""""""
+
+``REGION_ALIAS("alias", "region")`` defines an alias name for an existing memory
+region. Aliases can be used anywhere a region name is expected (for example,
+``>alias`` or ``ORIGIN(alias)``).
+
+ELD restrictions and diagnostics:
+
+- Creating two aliases with the same alias name is an error.
+- An alias name must not collide with a real memory region name.
+
+Memory usage checking and reporting
+"""""""""""""""""""""""""""""""""""
+
+When ``MEMORY`` is used, ELD tracks memory usage per region during layout:
+
+- If the total size placed in a region exceeds ``LENGTH``, ELD errors out and
+  reports the overflow amount per output section.
+- With ``-Wlinker-script-memory``, ELD can warn on zero-length regions and on
+  regions that end up with zero used size after layout.
+
+Additionally:
+
+- The text map format (``-MapStyle txt``) includes a ``# MEMORY`` block that
+  prints the parsed ``MEMORY`` regions and annotates each output section line
+  with ``Memory : [<VMARegion>, <LMARegion>]`` when available.
+- ``--print-memory-usage`` prints a summary table of used size and percentage
+  per memory region when a ``MEMORY`` directive is present.
+
+PHDRS interaction and program header loading
+""""""""""""""""""""""""""""""""""""""""""""
+
+``MEMORY`` controls **where sections go** (VMA via ``>REGION`` and LMA via
+``AT>REGION``). ``PHDRS`` controls **which segments exist** and which output
+sections are assigned to those segments (via ``:phdr`` on output section
+descriptions).
+
+Key points:
+
+- If you do not specify ``PHDRS``, ELD creates segments using its default
+  heuristics. A change in memory region (for example, ``>FLASH`` to ``>RAM``)
+  can force ELD to start a new ``PT_LOAD`` segment.
+- If you specify ``PHDRS``, ELD only creates the program headers declared in
+  the script. In this mode, region changes do *not* create extra segments; you
+  must assign each output section to the intended segment(s) using ``:phdr``.
+- Runtime loaders use the ELF program headers (and sometimes the file header)
+  to decide what to map or copy. If your loader needs the file header and/or
+  program headers to be part of the first loadable segment, use ``FILEHDR`` and
+  ``PHDRS`` keywords on the corresponding ``PT_LOAD`` in the ``PHDRS`` command.
+
+Example (first segment includes file+program headers)::
+
+  PHDRS {
+    text PT_LOAD FILEHDR PHDRS;
+    data PT_LOAD;
+  }
+
+If you include headers in a loadable segment, you typically must also reserve
+space for them in the image layout (see :ref:`memory-sizeof-headers`).
+
+.. _memory-sizeof-headers:
+
+Using SIZEOF_HEADERS with MEMORY
+"""""""""""""""""""""""""""""""""
+
+``SIZEOF_HEADERS`` evaluates to the total size (in bytes) of the ELF file header
+and program header table that ELD emits for the output.
+
+Nuance: in ELD, using ``SIZEOF_HEADERS`` *before the first output section is
+seen* also acts as a signal that the script is intentionally accounting for
+headers; this impacts whether ELD considers the headers as occupying space at
+the start of the image when a linker script is present.
+
+Common MEMORY pitfalls and errors
+"""""""""""""""""""""""""""""""""
+
+- **Tokenization**: ``ORIGIN``/``LENGTH`` must be separate tokens (``ORIGIN =
+  ...``); scripts like ``ORIGIN= 0x1000`` are rejected.
+- **Unknown region name**: ``>REGION`` or ``AT>REGION`` refers to a region not
+  defined in ``MEMORY`` (error: ``Cannot find memory region ...``).
+- **No region assigned**: if ``MEMORY`` is present and an allocatable output
+  section does not have an explicit region and does not match any region
+  attributes (error: ``No memory region assigned to section ...``).
+- **Overflow**: placed size exceeds ``LENGTH`` (error: ``Memory region <name>
+  exceeded limit ... overflowed by ...``). Remember to account for alignment,
+  page alignment, and headers if ``FILEHDR PHDRS`` are used.
+- **Mixing ``AT(address)`` with ``AT>REGION``**: these are mutually exclusive.
+  If you need a fixed LMA base but still want region-based placement for the
+  rest of the image, prefer shifting the region origin using expressions (see
+  :ref:`memory-sizeof-headers`) or keep all LMAs explicit.
+- **Orphan placement surprises**: orphan output sections and other unassigned
+  allocatable sections are auto-assigned using region attributes; if a specific
+  section must be in a particular region, add an explicit output section rule.
 
 SECTIONS
 ^^^^^^^^
@@ -338,7 +598,7 @@ Expressions
      |                                      | specified in the linker script, or zero if there is no such section.                     |
      |                                      | NEXT_SECTION is only supported with ALIGNOF/SIZEOF; other uses are rejected.             |
      +--------------------------------------+------------------------------------------------------------------------------------------+
-     | SIZEOF_HEADERS                       | Return the section start file offset.                                                    |
+     | SIZEOF_HEADERS                       | Return the total size of the ELF file header + program headers (in bytes).               |
      +--------------------------------------+------------------------------------------------------------------------------------------+
      | CONSTANT (MAXPAGESIZE)               | Return the defined default page size required by ABI.                                    |
      +--------------------------------------+------------------------------------------------------------------------------------------+
@@ -483,7 +743,7 @@ that has forward reference.
    u = v + w;
 
 For the above assignment, let's say that :code:`v` is defined before this assignment as per the linker script
-and :code:`w` gets defined later. In such case, the *final* value of the symbol (:code:`w`in this case) is
+and :code:`w` gets defined later. In such case, the *final* value of the symbol (:code:`w` in this case) is
 used to evaluate the assignment. Let's understand this with a more concrete example::
 
   v = 0x100; // A1
@@ -609,33 +869,32 @@ The above link command is equivalent to::
   ld.eld -o 1.out 1.o script1.t script2.t script3.t
 
 
+.. list-table::
+   :header-rows: 1
+   :widths: 34 66
 
-+--------------------------------------+------------------------------------------------------------------------------------------+
-| Function                             |  Description                                                                             |
-+======================================+==========================================================================================+
-| HIDDEN (symbol = expression)         | Hide the defined symbol so it is not exported.                                           |
-+--------------------------------------+------------------------------------------------------------------------------------------+
-| FILL (expression)                    | Specify the fill value for the current section. The fill length can be                   |
-|                                      |  1, 2, 4, or 8. The linker determines the length by selecting the                        |
-|                                      |  minimum fit length. In the following example, the fill length is 8:                     |
-|                                      |                                                                                          |
-|                                      | FILL( 0xdeadc0de )                                                                       |
-|                                      | A FILL statement covers memory locations from the point at                               |
-|                                      | which it occurs to the end of the current section.                                       |
-|                                      | Multiple FILL statements can be used in an output section                                |
-|                                      | definition to fill different parts of the section with different patterns.               |
-+--------------------------------------+------------------------------------------------------------------------------------------+
-| ASSERT (expression, string)          | When the specified expression is zero, the linker throws an                              |
-|                                      | assertion with the specified message string.                                             |
-+--------------------------------------+------------------------------------------------------------------------------------------+
-| PROVIDE (symbol = expression)        | Similar to symbol assignment, but does not perform checking for  an unresolved reference |
-+--------------------------------------+------------------------------------------------------------------------------------------+
-| PROVIDE_HIDDEN (symbol = expression) | Similar to PROVIDE, but hides the defined symbol so it will not be exported.             |
-+--------------------------------------+------------------------------------------------------------------------------------------+
-| PRINT ("format-string", expr, ...)   | Print a formatted message to the linker's standard output while                         |
-|                                      | parsing the script. See :ref:`linker-script-print` for format string                    |
-|                                      | syntax and supported conversions.                                                       |
-+--------------------------------------+------------------------------------------------------------------------------------------+
+   * - Function
+     - Description
+   * - ``HIDDEN(symbol = expression)``
+     - Hide the defined symbol so it is not exported.
+   * - ``FILL(expression)``
+     - Specify a fill pattern for the current output section. The fill element
+       size can be 1, 2, 4, or 8 bytes (chosen by the linker). A ``FILL`` covers
+       memory locations from the point at which it occurs to the end of the
+       current output section; multiple ``FILL`` statements can be used within
+       one output section.
+   * - ``ASSERT(expression, string)``
+     - If the specified expression is zero, the linker errors out with the
+       specified message.
+   * - ``PROVIDE(symbol = expression)``
+     - Similar to a symbol assignment, but does not error if the symbol is
+       already defined elsewhere.
+   * - ``PROVIDE_HIDDEN(symbol = expression)``
+     - Like ``PROVIDE``, but the defined symbol is hidden (not exported).
+   * - ``PRINT("format-string", expr, ...)``
+     - Print a formatted message while parsing the script. See
+       :ref:`linker-script-print` for format string syntax and supported
+       conversions.
 
 NOCROSSREFS
 ---------------
@@ -782,10 +1041,22 @@ Syntax
     Specifies an output section command (see Output section commands). An output section description contains one or more output section commands.
 
 <region>
-    Specifies the region of the output section (optional). The region is expressed as a string. This option is parsed but has no effect on linking.
+    Specifies the VMA placement memory region (optional) using ``>REGION``.
+
+    If the output section does not have an explicit VMA, ELD uses the next
+    available address in the region (starting from ``ORIGIN`` and respecting
+    alignment) as the section's VMA.
+
+    If the output section has an explicit VMA, the explicit address is honored.
+    The region is used for memory usage accounting only when the explicit VMA is
+    within the region bounds.
 
 <lma-region>
-    Specifies the load memory address (LMA) region of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.
+    Specifies the LMA placement memory region (optional) using ``AT>REGION``.
+
+    ELD places the section's LMA at the next available address in the selected
+    region, tracked independently from the VMA region cursor. ``AT(<address>)``
+    and ``AT>REGION`` are mutually exclusive.
 
 <fillexp>
     Specifies the fill value of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.
@@ -799,8 +1070,6 @@ INSERT AFTER <section-name> | INSERT BEFORE <section-name>
     sections do not support output section epilogues, so INSERT is not allowed
     inside OVERLAY member blocks.
 
-.. note::
-
 Sorting input sections
 ----------------------
 
@@ -811,6 +1080,8 @@ sorting directives in input section descriptions. These directives include
 
 ELD also supports the GNU linker shorthand ``SORT(CONSTRUCTORS)`` for
 compatibility with other linkers.
+
+.. _controlling-physical-addresses:
 
 Controlling Physical addresses
 -------------------------------

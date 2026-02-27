@@ -137,7 +137,8 @@ this with the :code:`SECTIONS`, :code:`PHDRS`, and the :code:`MEMORY` commands.
 
 - :code:`MEMORY` command specifies the available memory regions. The output sections
   can then be assigned to particular memory regions. It provides a convenient way of
-  arranging the output sections into memory.
+  arranging the output sections into memory. See :ref:`linker-script-memory` for
+  syntax, region attribute matching rules, and LMA/VMA placement details.
 
 :doc:`linker_script` describes these commands in more detail.
 
