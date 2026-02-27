@@ -241,7 +241,7 @@ The INSERT line is present only when the output section was positioned using
 context shows the originating linker script location.
 
 <OutputSection> tells output section properties and contains a list
-of :code:`Rule`s. Placement of rules conveys the placement of the rule contents
+of ``Rule`` entries. Placement of rules conveys the placement of the rule contents
 in the output image layout. The contents of *Rule_1* are placed before the
 contents of *Rule_2* and so on. The contents of a rule is the merged content of
 all the sections that were matched to the rule. Now, let's see what does
@@ -312,13 +312,13 @@ structure. Now, let's see a practical example.
 
 **Foo.c**
 
-.. code-block:: cpp
+.. code-block:: c++
 
    int foo() { return 1; }
 
 **Bar.c**
 
-.. code-block:: cpp
+.. code-block:: c++
 
    int bar() { return 3; }
 

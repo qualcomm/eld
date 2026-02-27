@@ -201,6 +201,7 @@ add_subdirectory(test)
 add_subdirectory(Plugins)
 
 option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES "Include linker script templates in the install" ON)
+option(ELD_ENABLE_PDF_DOCS "Enable PDF documentation generation (requires rst2pdf)" OFF)
 if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
   install(
     DIRECTORY templates/

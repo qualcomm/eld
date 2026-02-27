@@ -61,17 +61,33 @@ if(LLVM_ENABLE_SPHINX)
     endif()
   endforeach()
 
+  # HTML user guide
   build_sphinx_target(
     html
     eld-userguide
-    target_name
+    html_target_name
     DOXYGEN_XML_DIR
     ${DOXYGEN_OUTPUT_DIR}/xml
     DEPENDS
     eld-copy-userguide-source
     eld-linkeroptions-docs)
 
-  add_custom_target(eld-docs DEPENDS ${target_name})
+  add_custom_target(eld-docs DEPENDS ${html_target_name})
+
+  # PDF user guide (optional)
+  if(ELD_ENABLE_PDF_DOCS)
+    build_sphinx_target(
+      pdf
+      eld-userguide
+      pdf_target_name
+      DOXYGEN_XML_DIR
+      ${DOXYGEN_OUTPUT_DIR}/xml
+      DEPENDS
+      eld-copy-userguide-source
+      eld-linkeroptions-docs)
+
+    add_dependencies(eld-docs ${pdf_target_name})
+  endif()
 endif()
 
 if(ELD_ENABLE_ASCIIDOC)

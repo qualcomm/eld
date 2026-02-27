@@ -26,9 +26,7 @@ This guide contains all that you need to know about linker plugins, and how to e
 
 .. toctree::
    :maxdepth: 2
-   :numbered:
 
    linker_plugins/linker_plugins.rst
    linker_plugins/examples.rst
    linker_plugins/api_docs.rst
-   linker_plugins/inbuilt_plugins.rst

@@ -71,7 +71,7 @@ The user can trace a symbol with --trace-symbol <symbolname> or --trace=symbol=<
 
 Example:
 
-.. code-block:: cpp
+.. code-block::
 
     $ cat 1.c
     int foo() {return 0;}
@@ -224,7 +224,7 @@ resolve a weak reference.**
 By inspecting the disassembly of "a.out", user can observe that call to bar()
 in main() is replaced with a NOP.
 
-.. code-block:: cpp
+.. code-block::
 
     cat > 1.c << \!
     __attribute__((weak))  int bar();
@@ -430,7 +430,8 @@ How to remove a section from a OBJ file
 
 llvm-objcopy tool can be used to remove a section from an ELF file.
 
-.. Example::
+Example::
+
   llvm-objcopy --remove-section=<section_name>
 
 How to extract OBJ files from an archive
@@ -438,7 +439,8 @@ How to extract OBJ files from an archive
 
 llvm-ar is the utility to extract obj files from the archive
 
-.. Example::
+Example::
+
   llvm-ar -x <archive_file>
 
 How to obtain a deterministic output from linker
@@ -495,6 +497,7 @@ Create a simple assembly file to include this binary file
 This snippet of assembly creates a section named table and includes
 
 .. code-block:: bash
+
   .section "table","a",@progbits
   .incbin "table.bin"
 
@@ -503,14 +506,15 @@ Include this assembly file to build a static executable
 
 The program snippet below prints the contents of the binary file to stdout.
 
-.. code-block:: cpp
+.. code-block:: c++
+
   extern char __start_table;
   extern char __stop_table;
   int main() {
     char *s = &__start_table;
     char *e = &__stop_table;
     while (s < e) {
-      printf("%d\n", *s);
+      printf("%d\\n", *s);
       s++;
     }
     return 0;
@@ -576,18 +580,19 @@ process as it was not reachable from the entry point (baz).
 How are zero-sized sections handled?
 -------------------------------------
 
-How are zero-sized sections handled?
-
 * A relocation refers to the zero sized section
 * A symbol is present in the zero sized section
 
-.. Note::
+.. note::
 
-  Releases
+  **Releases**
 
-  This change is observed on the below toolchain / patch releases on Hexagon :-
-    * Hexagon 8.7.04
-  Releases that will be published after summer of 2023, will also have this support.
+  This change is observed on the below toolchain / patch releases on Hexagon:
+
+  * Hexagon 8.7.04
+
+  Releases that will be published after summer of 2023 will also have this
+  support.
 
 Relocation referring to a zero sized section
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -787,7 +792,7 @@ Example:
 
 Compile and Link Step:
 
-.. code-blck:: bash
+.. code-block:: bash
 
   $clang -c x.s  main.c
   $ld.eld main.o x.o -T script.t -Map x.map
@@ -835,9 +840,10 @@ Debugging zero-sized sections related issues
 
 ELD has 2 ways that help in debugging issues wrt to zero-sized sections
 
-* Linker Diagnostics as warnings tied to option -Wall & -Wzero-sized-sections
-  * Please look for traces containing "Warning: Zero sized fragment" for
-    zero-sized section-related warnings
+* Linker diagnostics as warnings tied to options ``-Wall`` and
+  ``-Wzero-sized-sections``. Look for traces containing
+  ``Warning: Zero sized fragment``.
+
   .. code-block:: bash
 
     cat > x.s << \EOF
@@ -995,7 +1001,7 @@ Symbols from readelf:
        7: 08000000    12 FUNC    GLOBAL DEFAULT     2 baz
        8: 08000011     0 NOTYPE  GLOBAL DEFAULT   ABS __end
 
-**Trampoline Symbol:** trampoline_for_baz_from_.text.main_25 → call baz from main
+**Trampoline Symbol:** ``trampoline_for_baz_from_.text.main_25`` → call baz from main
 
 This is the most vanilla case where the target symbol name, source input section
 and input file are used to coin the trampoline name.
@@ -1071,13 +1077,14 @@ Example:
        9: 08000000    12 FUNC    GLOBAL DEFAULT     2 far
       10: 08000011     0 NOTYPE  GLOBAL DEFAULT   ABS __end
 
-**Trampoline Symbol:**trampoline_for_far_from_.text.callfar1_25_1 → call far from callfar1
+**Trampoline Symbol:** ``trampoline_for_far_from_.text.callfar1_25_1`` → call far from callfar1
 
 The additional trampoline count is added as a suffix in cases where the reuse of
 the existing trampoline is not possible.
 
-.. Note::
-  The reuse was not possible because of -no-reuse-trampolines-file=noreuse
+.. note::
+
+  The reuse was not possible because of ``-no-reuse-trampolines-file=noreuse``.
 
 Case3:
 ^^^^^^^
@@ -1137,8 +1144,8 @@ Case3:
        7: 00000000    20 FUNC    GLOBAL DEFAULT     1 main
        8: 08000011     0 NOTYPE  GLOBAL DEFAULT   ABS __end
 
-**Trampoline Symbol:** trampoline_for_.text.bar_from_.text.main_25#(0) →
-call to bar from main here #(0) → represents the relocation addend
+**Trampoline Symbol:** ``trampoline_for_.text.bar_from_.text.main_25#(0)`` →
+call to bar from main here (``#(0)`` represents the relocation addend)
 
 The relocation addend 0 is added to the trampoline symbol name in case the
 trampoline jumps to the section symbol for the symbol
@@ -1211,7 +1218,7 @@ Example:
        8: 00000000    40 FUNC    GLOBAL DEFAULT     1 main
        9: 08000011     0 NOTYPE  GLOBAL DEFAULT   ABS __end
 
-**Trampoline Symbol:** trampoline_for_.text.bar_from_.text.main_25#(0)_1 → 2nd call for bar from main
+**Trampoline Symbol:** ``trampoline_for_.text.bar_from_.text.main_25#(0)_1`` → 2nd call for bar from main
 
 The duplicate trampoline count was added as a prefix since the symbol name
 .text.bar was added to the noreuse list.
@@ -1380,18 +1387,17 @@ specification to do the following:
 * Specify multiple paths, archives, or files where sections will be searched for
 * Specify multiple sections as input sections
 
-.. list-table:: Title
-
-   :widths: 25 25 50
+.. list-table:: Input section patterns
+   :widths: 35 65
    :header-rows: 1
-
+   
    * - Specification
      - Description
    * - dir/subdir/init.lib:init.o(.text.*)
      - Specify one or more .text. sections from a specific object file
        (init.o) in a specific archive (init.lib)
    * - dir/subdir/init.lib:(.text.*)
-     - 	Specify one or more .text. sections from any object file in the
+     - Specify one or more .text. sections from any object file in the
         specified archive (init.lib)
    * - dir/subdir/*:(.text.*)
      - Specify one or more .text. sections from any archive in the
@@ -1431,12 +1437,11 @@ of sections are present.
 
 * If it shows that a input file with a particular section is being listed and
   not present in any of the patterns, you will likely need to go and add a rule
-  such as
-    * \*(.bss) so that you are sure of where you want to place it.
+  such as ``*(.bss)`` so that you are sure of where you want to place it.
 * If all the input file and sections are selected, you should go and look at if
   the section corresponds to a common symbol
-    * You will most probably be missing a rule as below
-        * \*(COMMON)
+  (common symbol). You will most probably be missing a rule such as
+  ``*(COMMON)``.
 * Try to do the link step again with any of the above changes and your error
   should have gone.
 
@@ -1740,10 +1745,10 @@ section names, not input section names.
   clang -c 1.c 2.c -ffunction-sections
   ld.eld 1.o 2.o -T script.t
 
-The above linker script usage of **NOCROSSREFS** produces an error because content
-in output section foo is calling into bar.
+The above linker script usage of **NOCROSSREFS** produces an error because
+content in output section foo is calling into bar.
 
-.. role:: red
+Example error::
 
   Error: 1.o:(.text.foo:0x8): prohibited cross reference from .foo to `bar'(2.o) in .bar
 
@@ -2229,8 +2234,8 @@ assignments. Hence, the order of evaluations is:
 **So remember that the golden rule is outside-sections assignments are evaluated
 before in-sections assignments.**
 
-Using a defsym symbol in linker script assignment expression
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using a ``--defsym`` symbol in linker script assignment expression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
@@ -2254,7 +2259,7 @@ Using a defsym symbol in linker script assignment expression
   #     5: 00000005     0 NOTYPE  GLOBAL DEFAULT   ABS bar
   #     6: 00000005     0 NOTYPE  GLOBAL DEFAULT   ABS baz
 
-*defsym*  symbols are treated as outside-sections symbols, and hence they are
+``--defsym`` symbols are treated as outside-sections symbols, and hence they are
 always evaluated before in-sections symbols. This explains the readelf output
 that we see.
 
@@ -2799,7 +2804,7 @@ Gettingfileheaderandprogramheadertobeloaded
   Use hexagon-llvm-readelf to overcome this error.
 
 Why *COMMON* input section description does not affect all the common symbols?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For the hexagon target, by default, the linker maps small common symbols to
 internal sections, .scommon.x, where x can be 1, 2, 4 and 8. The x represents
@@ -2942,18 +2947,25 @@ Usage
 
 **Response Files**
 
-* Run ld.eld @<response-file> -o <elf>
-  * Response-file contains the command line arguments. Any valid linker argument
-    can be passed to the linker through the response-file and they are expanded
-    and placed at "@<response-file>" position.
-  * For e.g. ld.eld --help, the "--help" can go in a file x.cmd and passed to the linker using the '@' symbol.
-    * **ld.eld @x.cmd -o <elf>**
-  * @<response-file> removes the constraint of max command line length, so, a long
-    list of arguments can be passed to the linker this way.
-  * A "@response-file" can appear inside another response-file as well, allowing recursive processing of arguments.
-  * Unrecognized arguments in the file will be ignored with a warning message, e.g. Warning: Unrecognized option '--bad'.
-  * Invalid argument or missing response-file will cause linker to error out.
-* Reference: https://llvm.org/docs/CommandLine.html#response-files
+Response files let you pass linker arguments via a file referenced with ``@``.
+
+Example::
+
+  ld.eld @x.cmd -o <elf>
+
+Notes:
+
+* The response file contains command-line arguments. Any valid linker argument
+  can be passed via the file and is expanded in place of ``@x.cmd``.
+* Response files help avoid host command-line length limits for very long
+  argument lists.
+* A ``@response-file`` can appear inside another response file (recursive
+  expansion).
+* Unrecognized arguments in the file are ignored with a warning (for example
+  ``Warning: Unrecognized option '--bad'``).
+* Missing response files or invalid arguments cause the link to fail.
+
+Reference: https://llvm.org/docs/CommandLine.html#response-files
 
 Linker Plugin Framework
 =========================
@@ -3179,11 +3191,13 @@ Example and how to fix :-
   clang -c -frwpi 1.c -target arm -fdata-sections -g3
   ld.eld -march arm 1.o -T script.t -Map x
 
-Error: R_ARM_SBREL32 Relocation Mismatch for symbol bar defined in 1.o[.text] has a different load segment
-Error: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from 1.o[.text] symbol defined in 1.o[.data.bar]
-Error: R_ARM_SBREL32 Relocation Mismatch for symbol bar defined in 1.o[.debug_info] has a different load segment
-Error: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from 1.o[.debug_info] symbol defined in 1.o[.data.bar]
-Fatal: Linking had errors.
+Example error output::
+
+  Error: R_ARM_SBREL32 Relocation Mismatch for symbol bar defined in 1.o[.text] has a different load segment
+  Error: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from 1.o[.text] symbol defined in 1.o[.data.bar]
+  Error: R_ARM_SBREL32 Relocation Mismatch for symbol bar defined in 1.o[.debug_info] has a different load segment
+  Error: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from 1.o[.debug_info] symbol defined in 1.o[.data.bar]
+  Fatal: Linking had errors.
 
 **Fixed linker script for this example**
 
@@ -3205,10 +3219,10 @@ Fatal: Linking had errors.
 How to resolve the warning 'Compact Option needs physical address aligned with File offsets'
 ----------------------------------------------------------------------------------------------
 
-Before we see how to resolve this warning, let's first discuss what is :option:`--compact` option and
+Before we see how to resolve this warning, let's first discuss what the ``--compact`` option is and
 the reason for this warning.
 
-:option:`--compact` option, as the name suggests, allows to generate more compact (smaller) images.
+The ``--compact`` option, as the name suggests, allows generating more compact (smaller) images.
 However, this benefit comes with the added restriction that for each ``LOAD`` segment,
 physical addresses must be aligned with the file offsets. This means the
 the difference between physical address and file offset should should be the same
@@ -3269,7 +3283,7 @@ satisfy ``BAR`` 8-byte alignment requirement. No bump is required for the LMA as
 already 8-byte aligned. This bump to VMA causes misalignment between VMA and LMA, as
 seen from VMA - LMA = 0x1000, whereas previously the difference was 0xffc. Hence we
 also have misalignment between file offsets and LMA
-(VMA and file offsets are *always* aligned) and the :option:`--compact` option
+(VMA and file offsets are *always* aligned) and the ``--compact`` option
 alignment restriction is violated!
 
 Note that the linker cannot simply bump the LMA by 0x4 as well to align with the VMA bump because
@@ -3298,17 +3312,17 @@ Things to look at when there is a crash :-
 
 * Look at the point of crash, and the memory from where the instruction is
   loading from or storing to
-* If the load or store is happening with a variable stored in the stack
-  * Bounce the problem to the compiler
-* If not, these are the next steps
-  * Look at variable, where its located from the Linker map file.
-  * Check for alignment restrictions
-  * Check for TLB permissions
-  * Check Linker script, if linker script is overriding any default alignment for
-    the section that the variable is housed in.
-  * Check for page alignment
-    * Sometimes the underlying operating system may require a higher page alignment
-    * User can change the default page size using **-z max-page-size** option.
+* If the load or store is happening with a variable stored in the stack, bounce
+  the problem to the compiler.
+* Otherwise, check:
+
+  * Where the variable is located (from the linker map file).
+  * Alignment restrictions.
+  * TLB permissions.
+  * Whether the linker script overrides default alignment for the output section
+    that contains the variable.
+  * Page alignment. Some operating systems may require a higher page alignment;
+    you can change the default page size using ``-z max-page-size``.
 
 Improving your image/build
 ============================
@@ -3560,7 +3574,7 @@ Reporting API version by plugins
 Each plugin must report its API version by exporting the following function from
 the plugin shared library:
 
-.. code-block:: cpp
+.. code-block:: c++
 
   extern "C" void getPluginAPIVersion(unsigned int *Major, unsigned int *Minor);
 
@@ -3568,7 +3582,7 @@ Plugin API library provides a helper implementation of this function, which as
 defined in the PluginVersion.h  file. To report the plugin API, a plugin developer
 can include this header file into one of the C++ source files:
 
-.. code-block:: cpp
+.. code-block:: c++
 
   #include <PluginVersion.h>
 
@@ -3604,7 +3618,7 @@ Example:
 
 An example of using the API and verbose option to debug search paths is shown below for linux and for windows:
 
-.. code-block:: cpp
+.. code-block:: c++
 
   eld::Expected<std::string> expConfigPath =
     getLinker()->findConfigFile("foo.ini");
@@ -3945,7 +3959,7 @@ NOLOAD sections start of the segment and PT_NULL segment
 
 Code:
 
-.. code-block:: cpp
+.. code-block:: c++
 
   int foo() {
     return 0;
@@ -4029,7 +4043,7 @@ NOLOAD sections start of the segment
 
 Code:
 
-.. code-block:: cpp
+.. code-block:: c++
 
   int foo() {
     return 0;
@@ -4117,7 +4131,7 @@ NOLOAD sections start of the segment with first load section starting at a virtu
 
 Code:
 
-.. code-block:: cpp
+.. code-block:: c++
 
     int foo() {
     return 0;

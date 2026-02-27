@@ -269,14 +269,13 @@ such that the alignment requirements for the actual content (input sections) is 
 However, if :code:`ALIGN` is also specified, then the explicit VMA is aligned to the
 alignment specified in :code:`ALIGN`.
 
-.. fixme:: Add example here!
+.. todo:: Add an example showing explicit VMA + ``ALIGN(...)`` interaction.
 
 3) Command-line options for setting section addresses
 """""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 There are various linker command-line options for setting output section
-VMA: :option:`-Tbss`, :option:`-Tdata`, :option:`-Ttext` and
-:option:`--section-start`.
+VMA: ``-Tbss``, ``-Tdata``, ``-Ttext`` and ``--section-start``.
 
 When both the linker script and the command line specify an output-section address,
 the command-line option takes precedence and overrides the script's explicit address.
@@ -362,7 +361,7 @@ A new load segment is created when:
 - There is no previous LOAD segment.
 
 - Explicit output section address has been set using linker command-line options such as:
-  :option:`-Ttext`, :option:`--section-start`, ...
+  ``-Ttext`` or ``--section-start``.
 
 - The segment flags required for the current output section is incompatible with the
   previous LOAD segment. By default, the segment flags :code:`R` and :code:`RE` are
@@ -415,7 +414,7 @@ assignments order is:
 - Then all the linker script assignments inside the :code:`SECTIONS` command are evaluated
   in the specified order.
 
-The linker script assignments specified using :option:`--defsym` are considered as
+The linker script assignments specified using ``--defsym`` are considered as
 outside-:code:`SECTIONS` linker script assignments.
 
 Linker options that affect layout

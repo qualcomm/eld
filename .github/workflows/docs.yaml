@@ -49,12 +49,15 @@ jobs:
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
             -DLLVM_ENABLE_SPHINX=On \
+            -DELD_ENABLE_PDF_DOC:BOOL=ON \
             ../llvm-project/llvm
 
       - name: Generate documentation
         run: |
           cd obj
           ninja eld-docs
+          mv tools/eld/eld/docs/userguide/pdf/ELD_UserGuide.pdf \
+             tools/eld/docs/userguide/html/ELD_UserGuide.pdf
 
       - name: Deploy to docs branch
         run: |

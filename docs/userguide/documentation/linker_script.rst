@@ -204,7 +204,7 @@ In ELD, memory regions can be used in three related ways:
 Syntax
 """"""
 
-.. code-block:: plaintext
+.. code-block::
 
   MEMORY {
     <name> [(<attrs>)] : ORIGIN = <expr> , LENGTH = <expr>
@@ -320,7 +320,7 @@ LMA regions and ``AT>REGION``
 Use ``AT>REGION`` on an output section description to place the section's **load
 memory address (LMA)** in a region, independent of its VMA placement:
 
-.. code-block:: plaintext
+.. code-block::
 
   .text : { *(.text*) } >RAM AT>FLASH
 
@@ -547,63 +547,54 @@ Syntax :- ``ASSERT(expression, string)``
 Expressions
 ------------
 
-    Expressions in linker scripts are identical to C expressions
+Expressions in linker scripts are identical to C expressions
 
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | Function                             |  Description                                                                             |
-     +======================================+==========================================================================================+
-     |  .                                   | Return the location counter value representing the current virtual address.              |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | ABSOLUTE (expression)                | Return the absolute value of the expression.                                             |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | ADDR (string)                        | Return the virtual address of the symbol or section. Dot (.) is supported.               |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | ALIGN (expression)                   | Return value when the current location counter is aligned to the next expression         |
-     |                                      | boundary. The value of the current location counter is not changed.                      |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | ALIGN (expression1, expression2)     | Return value when the value of expression1 is aligned to the next expression2 boundary.  |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | ALIGNOF (string)                     | Return the align information of the symbol or section.                                   |
-     |                                      | If string is NEXT_SECTION, return the alignment of the next allocated output section     |
-     |                                      | specified in the linker script, or zero if there is no such section.                     |
-     |                                      | NEXT_SECTION is only supported with ALIGNOF/SIZEOF; other uses are rejected.             |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | ASSERT (expression, string)          |  Throw an assertion if the expression result is zero.                                    |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | BLOCK (expression)                   | Synonym for ALIGN (expression).                                                          |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | DATA_SEGMENT_ALIGN(maxpagesize       |   Equivalent to:                                                                         |
-     |   , commonpagesize)                  |   (ALIGN(maxpagesize)+(.&(maxpagesize ‑ 1))) or                                          |
-     |                                      |   (ALIGN(maxpagesize)+(.&(maxpagesize -commonpagesize)))                                 |
-     |                                      |   The linker computes both of these values and returns the larger one.                   |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | DATA_SEGMENT_END (expression)        | Not used; return the value of the expression.                                            |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | DATA_SEGMENT_RELRO_END               | Not used; return the value of the expression.                                            |
-     | (expression )                        |                                                                                          |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | DEFINED (symbol)                     | Return 1 if the symbol is defined in the global symbol table of the linker.              |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | LOADADDR (string)                    | Synonym for ADDR (string).                                                               |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | MAX (expression, expression)         | Return the maximum value of two expressions.                                             |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | MIN (expression1, expression2)       | Return the minimum value of two expressions.                                             |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | SEGMENT_START (string, expression)   | If a string matches a known segment, return the start address of                         |
-     |                                      |   that segment. If nothing is found, return the value of the expression.                 |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | SIZEOF (string)                      |   Return the size of the symbol, section, or segment.                                    |
-     |                                      | If string is NEXT_SECTION, return the size of the next allocated output section          |
-     |                                      | specified in the linker script, or zero if there is no such section.                     |
-     |                                      | NEXT_SECTION is only supported with ALIGNOF/SIZEOF; other uses are rejected.             |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | SIZEOF_HEADERS                       | Return the total size of the ELF file header + program headers (in bytes).               |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | CONSTANT (MAXPAGESIZE)               | Return the defined default page size required by ABI.                                    |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
-     | CONSTANT (COMMONPAGESIZE)            | Return the defined common page size.                                                     |
-     +--------------------------------------+------------------------------------------------------------------------------------------+
+.. list-table:: Expression helper functions
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Function
+     - Description
+   * - ``.``
+     - Return the location counter value representing the current virtual address.
+   * - ``ABSOLUTE(expression)``
+     - Return the absolute value of the expression.
+   * - ``ADDR(string)``
+     - Return the virtual address of the symbol or section. ``.`` is supported.
+   * - ``ALIGN(expression)``
+     - Return the value of the location counter when aligned to the next expression boundary.
+   * - ``ALIGN(expression1, expression2)``
+     - Return ``expression1`` rounded up to the next ``expression2`` boundary.
+   * - ``ALIGNOF(string)``
+     - Return the alignment of the symbol or section. ``NEXT_SECTION`` returns the next allocated output section alignment (only supported with ``ALIGNOF``/``SIZEOF``).
+   * - ``ASSERT(expression, string)``
+     - Throw an assertion if the expression evaluates to zero.
+   * - ``BLOCK(expression)``
+     - Synonym for ``ALIGN(expression)``.
+   * - ``DATA_SEGMENT_ALIGN(maxpagesize, commonpagesize)``
+     - Equivalent to ``ALIGN(maxpagesize) + (. & (maxpagesize - 1))`` or ``ALIGN(maxpagesize) + (. & (maxpagesize - commonpagesize))`` (the larger of the two).
+   * - ``DATA_SEGMENT_END(expression)``
+     - Return the value of the expression.
+   * - ``DATA_SEGMENT_RELRO_END(expression)``
+     - Return the value of the expression.
+   * - ``DEFINED(symbol)``
+     - Return 1 if the symbol is defined in the global symbol table.
+   * - ``LOADADDR(string)``
+     - Synonym for ``ADDR``.
+   * - ``MAX(expression1, expression2)``
+     - Return the maximum of two expressions.
+   * - ``MIN(expression1, expression2)``
+     - Return the minimum of two expressions.
+   * - ``SEGMENT_START(string, expression)``
+     - If the string matches a known segment, return its start address; otherwise return the expression.
+   * - ``SIZEOF(string)``
+     - Return the size of the symbol, section, or segment. ``NEXT_SECTION`` returns the size of the next allocated output section (only with ``ALIGNOF``/``SIZEOF``).
+   * - ``SIZEOF_HEADERS``
+     - Return the total size (bytes) of the ELF file header plus program headers.
+   * - ``CONSTANT(MAXPAGESIZE)``
+     - Return the ABI-defined maximum page size.
+   * - ``CONSTANT(COMMONPAGESIZE)``
+     - Return the ABI-defined common page size.
 
 Symbol assignments
 ---------------------
@@ -852,10 +843,10 @@ the layout is computed in two passes:
 - Second pass: After the initial layout is complete, eld recomputes the
   layout using the actual final values of all forward reference symbols.
 
-:option:`--defsym`
-^^^^^^^^^^^^^^^^^^^
+--defsym
+^^^^^^^^
 
-:code:`--defsym sym=expr` is treated akin to a linker script just with
+``--defsym sym=expr`` is treated akin to a linker script just with
 one symbol assignment. For example::
 
   ld.eld -o 1.out 1.o --defsym u=0x10 --defsym v=0x30 --defsym w=0x50
@@ -892,9 +883,9 @@ The above link command is equivalent to::
    * - ``PROVIDE_HIDDEN(symbol = expression)``
      - Like ``PROVIDE``, but the defined symbol is hidden (not exported).
    * - ``PRINT("format-string", expr, ...)``
-     - Print a formatted message while parsing the script. See
-       :ref:`linker-script-print` for format string syntax and supported
-       conversions.
+     - Print a formatted message while parsing the script. See the
+       :ref:`PRINT Command <linker-script-print>` section for format string
+       syntax and supported conversions.
 
 NOCROSSREFS
 ---------------
@@ -964,7 +955,7 @@ largest case.
 Syntax
 ^^^^^^^
 
-.. code-block:: plaintext
+.. code-block::
 
   OVERLAY [<start>] :
       [NOCROSSREFS] [AT(<lma_start>)]
@@ -997,7 +988,7 @@ Output Section Description
 
 A ``SECTIONS`` command can contain one or more output section descriptions.
 
-.. code-block:: plaintext
+.. code-block::
 
     <section-name> [<virtual_addr>][(<type>)] :
     [AT(<load_addr>)] [ALIGN(<section_align>) | ALIGN_WITH_INPUT]
@@ -1346,7 +1337,7 @@ Examples
 Printing Numeric Expressions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: plaintext
+.. code-block::
 
   /* Signed and unsigned forms */
   PRINT("value=%d (0x%x)\\n", 42, 42);
@@ -1362,7 +1353,7 @@ This prints a line similar to::
 Using ``%c`` and ``%s``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: plaintext
+.. code-block::
 
   /* Assume 'foo' is a symbol defined by an input object. */
   PRINT("symbol %s at '%c' section start\\n", foo, 'T');
@@ -1373,7 +1364,7 @@ the low 8 bits of the numeric expression.
 Using Width, Precision, and Flags
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: plaintext
+.. code-block::
 
   PRINT("val=%+08d hex=%#06x\n", 42, 42);
 
@@ -1392,7 +1383,7 @@ This uses:
 Error Examples
 ^^^^^^^^^^^^^^^
 
-.. code-block:: plaintext
+.. code-block::
 
   /* Not enough arguments */
   PRINT("x=%d y=%d\\n", 1);

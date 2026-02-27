@@ -13,9 +13,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
     Display ELF header information:
 
-    .. ifconfig:: 'Hexagon' in targets
-
-      .. code-block:: bash
+    .. code-block:: none
 
         $ llvm-readelf -h a.out
         ELF Header:
@@ -43,7 +41,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
     List ELF Sections
 
-    .. code-block:: bash
+    .. code-block:: none
 
       $ llvm-readelf -S a.out
       There are 17 section headers, starting at offset 0x37da0:
@@ -67,7 +65,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
     List ELF segments:
 
-    .. code-block:: bash
+    .. code-block::
 
       $ llvm-readelf -l a.out
 
@@ -93,7 +91,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
     Display the symbol table
 
-    .. code-block:: bash
+    .. code-block::
 
       $ llvm-readelf -s hello.o
 
@@ -111,7 +109,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
     Display relocation entries
 
-    .. code-block:: bash
+    .. code-block::
 
         $ cat 1.c
         int foo() {
@@ -130,7 +128,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
     Treat the contents of a section as a string and print it
 
-    .. code-block:: bash
+    .. code-block::
 
       $cat 1.c
       int foo() {
@@ -186,9 +184,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
   Show assembler contents of executable sections:
 
-  .. ifconfig:: 'Hexagon' in targets
-
-    .. code-block:: bash
+  .. code-block:: bash
 
       $ llvm-objdump -d a.out
       a.out:  file format ELF32-hexagon
@@ -204,9 +200,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
 
   Display relocation entries involved during linking:
 
-  .. ifconfig:: 'Hexagon' in targets
-
-    .. code-block:: bash
+  .. code-block:: bash
 
       $ llvm-objdump -d -r hello.o
       hello.o:        file format ELF32-hexagon
@@ -398,7 +392,3 @@ This sections documents llvm ELF command-line tools along with detailed examples
       a.out: __libc_start_main
       ...
       a.out: __frame_dummy_init_array_entry
-
-
-
-

@@ -13,6 +13,11 @@ ELD User Guide
 
 This document describes usage of ELD
 
+Download
+--------
+
+- `ELD User Guide (PDF) <ELD_UserGuide.pdf>`_
+
 .. toctree::
    :maxdepth: 2
    :numbered:
@@ -22,19 +27,20 @@ This document describes usage of ELD
    documentation/supported_targets.rst
    documentation/linker_script.rst
    documentation/linker_diagnostics.rst
-   documentation/linker_image_layout.rst
    documentation/linker_support_backward_compatibility.rst
    documentation/image_structure_and_generation.rst
    documentation/linker_map_files.rst
    documentation/layout.rst
    documentation/linker_plugins_updated.rst
+   documentation/linker_plugin.rst
    documentation/linker_optimizations.rst
+   documentation/elf_tools.rst
    documentation/lto_support.rst
    documentation/getting_image_details.rst
    documentation/options/options.rst
    documentation/target_specific_features.rst
+   documentation/sframe_support.rst
    documentation/linker_faq.rst
-   api/api_root.rst
 
 *******************
 Indices and tables
@@ -44,4 +50,5 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 * `Build Dashboard`_
+
 .. _Build Dashboard: dash/dash.html

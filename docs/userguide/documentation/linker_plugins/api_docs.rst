@@ -6,9 +6,8 @@ Linker Wrapper
 
 .. graphviz:: ../images/LinkerWrapper.dot
    :alt: LinkerWrapper flow.
-----------------------------------------------
 
-   Plugins interacts with the linker using LinkerWrapper.
+Plugins interacts with the linker using LinkerWrapper.
 
 .. doxygenclass:: eld::plugin::LinkerWrapper
    :members:
@@ -159,7 +158,7 @@ Diagnostic template unique IDs are necessary for creating and reporting
 diagnostics. The code below demonstrates how to obtain a diagnostic ID
 for a diagnostic template.
 
-.. code-block:: cpp
+.. code-block:: c++
 
    // There are similar functions for other diagnostic severities.
    // Linker is a LinkerWrapper object.
@@ -172,7 +171,7 @@ diagnostic.
 
 The below code demonstrates how to report a diagnostic using a diagnostic ID.
 
-.. code-block:: cpp
+.. code-block:: c++
 
    // arguments can be of any type. 'LinkerWrapper::reportDiag' is a
    // variadic template function.
@@ -187,7 +186,7 @@ be used to pass diagnostics from one location to another. Many plugin
 framework APIs use :code:`DiagnosticEntry` to return errors to the caller,
 where they can be properly handled.
 
-.. code-block:: cpp
+.. code-block:: c++
 
    // diag represents a complete diagnostic.
    // diagID encodes diagnostic severity and diagnostic format string.
@@ -203,7 +202,7 @@ expected value of type :code:`ReturnType` or an unexpected value of type
 caller allows plugin authors to decide how to best handle a particular error
 for their use case. A typical usage pattern for this is.
 
-.. code-block:: cpp
+.. code-block:: c++
 
    eld::Expected<eld::plugin::INIFile> readFile = Linker->readINIFile(configPath);
    if (!readFile) {

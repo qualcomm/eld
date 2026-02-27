@@ -1,0 +1,57 @@
+{
+  "styles": [
+    ["literal", {
+      "parent": "bodytext",
+      "fontName": "stdMono",
+      "fontSize": 8,
+      "leftIndent": 0,
+      "rightIndent": 0,
+      "allowWidows": 0,
+      "allowOrphans": 0
+    }],
+    ["code", {
+      "parent": "literal",
+      "fontSize": 8,
+      "leftIndent": 0,
+      "allowWidows": 0,
+      "allowOrphans": 0
+    }],
+    ["std", {
+      "parent": "code"
+    }],
+    ["file", {
+      "parent": "code"
+    }],
+    ["doc", {
+      "parent": "code"
+    }]
+  ],
+  "fontsAlias": {
+    "stdFont": "Helvetica",
+    "stdBold": "Helvetica-Bold",
+    "stdItalic": "Helvetica-Oblique",
+    "stdBoldItalic": "Helvetica-BoldOblique",
+    "stdMono": "Courier",
+    "stdMonoBold": "Courier-Bold",
+    "stdMonoItalic": "Courier-Oblique",
+    "stdMonoBoldItalic": "Courier-BoldOblique",
+    "stdSans": "Helvetica",
+    "stdSansBold": "Helvetica-Bold",
+    "stdSansItalic": "Helvetica-Oblique",
+    "stdSansBoldItalic": "Helvetica-BoldOblique",
+    "stdSerif": "Times-Roman"
+  },
+  "pageSetup": {
+    "size": "Letter",
+    "width": null,
+    "height": null,
+    "margin-top": "2cm",
+    "margin-bottom": "2cm",
+    "margin-left": "2cm",
+    "margin-right": "2cm",
+    "margin-gutter": "0cm",
+    "spacing-header": "5mm",
+    "spacing-footer": "5mm",
+    "firstTemplate": "coverPage"
+  }
+}

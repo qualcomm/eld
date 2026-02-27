@@ -152,7 +152,7 @@ the configuration file to in INI format.
 
 *PrintSectionsInfo* plugin with self-contained documentation.
 
-.. literalinclude:: demos/PrintSectionsInfo/PrintSectionsInfo.cpp
+.. literalinclude:: examples/PrintSectionsInfo/PrintSectionsInfo.cpp
    :language: cpp
 
 

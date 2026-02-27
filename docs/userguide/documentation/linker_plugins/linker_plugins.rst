@@ -464,7 +464,6 @@ Link States
 
 .. graphviz:: ../images/LinkStates.dot
    :alt: Link states sequence
--------------------------------------
 
 The link process has different run states, also known as link states. The
 actions that a plugin can perform at any given time depend on the current link
@@ -560,7 +559,6 @@ after the symbol is created.
 
 .. graphviz:: ../images/LinkerPluginFlow.dot
    :alt: LinkerPlugin flow
---------------------------------------------
 
 Section Matcher Interface
 ---------------------------
@@ -583,7 +581,6 @@ cannot be accessed during
 
 .. graphviz:: ../images/SectionMatcherFlow.dot
    :alt: SectionMatcherPlugin flow.
-----------------------------------------------
 
 :code:`UserPlugin::Init` is called before :code:`UserPlugin::ProcessSection`,
 and :code:`UserPlugin::Run` and :code:`UserPlugin::Destroy` are called
@@ -617,7 +614,6 @@ matching and garbage collection information is accessible during
 
 .. graphviz:: ../images/SectionIteratorFlow.dot
    :alt: SectionIteratorPlugin flow
------------------------------------------------
 
 :code:`UserPlugin::Init` is called before :code:`ProcessSection`,
 and :code:`UserPlugin::Run` and :code:`UserPlugin::Destroy` are called
@@ -668,7 +664,6 @@ BeforeLayout -- Phase 1
 
 .. graphviz:: ../images/OutputSectionBeforeLayoutFlow.dot
    :alt: OutputSectionIteratorPlugin flow in BeforeLayout link state
---------------------------------------------------------------------
 
 This phase is called into action after the linker has performed section
 rule-matching and before the linker has performed section merging.
@@ -678,7 +673,6 @@ CreatingSections -- Phase 2
 
 .. graphviz:: ../images/OutputSectionCreatingSectionsFlow.dot
    :alt: OutputSectionIteratorPlugin flow in CreatingSections link state
-------------------------------------------------------------------------
 
 This phase is called into action after the linker has performed section
 merging.
@@ -688,7 +682,6 @@ AfterLayout -- Phase 3
 
 .. graphviz:: ../images/OutputSectionAfterLayoutFlow.dot
    :alt: OutputSectionIteratorPlugin flow in AfterLayout link state.
-----------------------------------------------------------------------------
 
 This phase is called into action after the linker has finalized the image
 layout and before the linker has written the output object file.
@@ -708,7 +701,6 @@ called for each output section the plugin runs on. This plugin is called in the
 
 .. graphviz:: ../images/ControlMemorySizePluginFlow.dot
    :alt: ControlMemorySizePlugin Flow
--------------------------------------------------------
 
 :code:`init`, :code:`AddBlocks`, :code:`Run`, :code:`GetBlocks` and :code:`Destroy`
 functions are called for each output section.

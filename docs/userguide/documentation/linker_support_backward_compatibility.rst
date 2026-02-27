@@ -129,7 +129,7 @@ backward compatibility across library releases.
 
 
 A. Minimal Working Example (C + GNU ld)
-=======================================
+---------------------------------------
 
 Goal
 ----
@@ -139,23 +139,17 @@ for old applications while making a new implementation the default for
 new applications.
 
 
-Files
------
+Example files
+-------------
 
-``demo_v1.c`` — first release of the library
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: c
+``demo_v1.c`` — first release of the library::
 
    // v1 of the library: exports foo()
    #include <stdio.h>
 
    void foo(void) { puts("foo v1"); }
 
-``demo_v1.map`` — version script for first release
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: none
+``demo_v1.map`` — version script for first release::
 
    DEMO_1 {
      global: foo;
@@ -164,10 +158,7 @@ Files
 
 This assigns ``foo`` to version node ``DEMO_1`` and hides everything else.
 
-``demo_v2.c`` — second release (keep old ``foo`` and add a new default ``foo``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: c
+``demo_v2.c`` — second release (keep old ``foo`` and add a new default ``foo``)::
 
    #include <stdio.h>
 
@@ -182,10 +173,7 @@ This assigns ``foo`` to version node ``DEMO_1`` and hides everything else.
    void bar(void) { puts("bar v2"); }
 
 
-``demo_v2.map`` — version script for second release
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: none
+demo_v2.map — version script for second release::
 
    DEMO_1 {
      global: foo;
@@ -196,27 +184,18 @@ This assigns ``foo`` to version node ``DEMO_1`` and hides everything else.
      global: foo; bar;
    } DEMO_1;  /* DEMO_2 inherits from DEMO_1 */
 
-``main_old.c`` — an “old” app built against v1
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: c
+``main_old.c`` — an “old” app built against v1::
 
    void foo(void);
    int main(void) { foo(); }
 
-``main_new.c`` — a “new” app built against v2
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: c
+``main_new.c`` — a “new” app built against v2::
 
    void foo(void);
    void bar(void);
    int main(void) { foo(); bar(); }
 
-``Makefile``
-~~~~~~~~~~~
-
-.. code-block:: make
+``Makefile``::
 
    CC?=clang
    CFLAGS=-fPIC -O2 -Wall -Wextra
