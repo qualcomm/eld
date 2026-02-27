@@ -41,9 +41,13 @@ SECTIONS
   .eh_frame_hdr   :  {
     __eh_frame_hdr_start = .;
     KEEP (*(.eh_frame_hdr))
-    __eh_frame_hdr_start = .;
+    __eh_frame_hdr_end = .;
   }
-  .eh_frame       :   { KEEP (*(.eh_frame)) }
+  .eh_frame       :   {
+    __eh_frame_start = .;
+    KEEP (*(.eh_frame))
+    __eh_frame_end = .;
+  }
 
   /* Thread Local Storage sections  */
 
