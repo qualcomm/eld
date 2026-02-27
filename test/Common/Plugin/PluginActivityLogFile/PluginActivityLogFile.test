@@ -134,13 +134,13 @@ PLUGIN_ACT:   ]
 PLUGINS_INFO: "Plugins": [
 PLUGINS_INFO:     {
 PLUGINS_INFO-DAG:       "Autloaded": false,
-PLUGINS_INFO-DAG:       "Library": "{{.*}}libPluginActivityLogPlugin{{.*}}",
+PLUGINS_INFO-DAG:       "Library": "{{.*}}PluginActivityLogPlugin{{.*}}",
 PLUGINS_INFO-DAG:       "Name": "OutSectIterPluginActLog",
 PLUGINS_INFO-DAG:       "RegisteredCommandLineOptions": []
 PLUGINS_INFO:     }
 PLUGINS_INFO:     {
 PLUGINS_INFO-DAG:       "Autloaded": false,
-PLUGINS_INFO-DAG:       "Library": "{{.*}}libPluginActivityLogPlugin{{.*}}",
+PLUGINS_INFO-DAG:       "Library": "{{.*}}PluginActivityLogPlugin{{.*}}",
 PLUGINS_INFO-DAG:       "Name": "LPPluginActLog",
 PLUGINS_INFO-DAG:       "RegisteredCommandLineOptions": [
 PLUGINS_INFO-DAG:         {
