@@ -7,6 +7,7 @@ on:
     paths:
       - 'docs/**'
       - 'include/**'
+  workflow_dispatch:     # Allows manual triggering
 
 jobs:
   generate-docs:
@@ -49,7 +50,7 @@ jobs:
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon" \
             -DLLVM_ENABLE_SPHINX=On \
-            -DELD_ENABLE_PDF_DOC:BOOL=ON \
+            -DELD_ENABLE_PDF_DOCS:BOOL=ON \
             ../llvm-project/llvm
 
       - name: Generate documentation
