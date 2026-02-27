@@ -1143,6 +1143,17 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       Config.raise(Diag::unique_output_sections_unsupported);
   }
 
+  // --unique / --unique=SECTION (GNU ld.bfd compatible)
+  if (Args.hasArg(T::unique))
+    Config.options().setEmitUniqueOrphanSections(true);
+
+  for (auto *Arg : Args.filtered(T::unique_val)) {
+    if (!Config.options().addUniqueSectionPattern(Arg->getValue())) {
+      Config.raise(Diag::invalid_option) << Arg->getValue() << "unique";
+      return false;
+    }
+  }
+
   // --global-merge-non-alloc-strings
   if (Args.hasArg(T::global_merge_non_alloc_strings))
     Config.options().enableGlobalStringMerge();

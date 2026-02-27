@@ -1,0 +1,4 @@
+SECTIONS {
+  .foo : { *(.foo) }
+}
+

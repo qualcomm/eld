@@ -676,3 +676,36 @@ bool GeneralOptions::traceSymbol(const ResolveInfo &RI) const {
   }
   return false;
 }
+
+void GeneralOptions::setEmitUniqueOrphanSections(bool Emit) {
+  EmitUniqueOrphanSections = Emit;
+}
+
+bool GeneralOptions::shouldEmitUniqueOrphanSections() const {
+  return EmitUniqueOrphanSections;
+}
+
+bool GeneralOptions::addUniqueSectionPattern(llvm::StringRef Pattern) {
+  // GNU-compatibility: "\" is an invalid glob pattern and should not match
+  // anything.
+  if (Pattern == "\\")
+    return true;
+  auto E = llvm::GlobPattern::create(Pattern);
+  if (!E) {
+    llvm::consumeError(E.takeError());
+    return false;
+  }
+  UniqueSectionPatterns.push_back(std::move(*E));
+  return true;
+}
+
+bool GeneralOptions::shouldEmitUniqueSection(
+    llvm::StringRef InputSectionName, llvm::StringRef OutputSectionName) const {
+  if (InputSectionName.empty())
+    return false;
+  if (InputSectionName != OutputSectionName)
+    return false;
+  return llvm::any_of(UniqueSectionPatterns, [&](const llvm::GlobPattern &Pat) {
+    return Pat.match(InputSectionName);
+  });
+}

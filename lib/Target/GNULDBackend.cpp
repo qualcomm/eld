@@ -2900,7 +2900,26 @@ bool GNULDBackend::placeOutputSections() {
         outBegin = sectionMap.begin();
         outEnd = sectionMap.end();
         outMatched = sectionMap.end();
-        if (!m_Module.getConfig().options().shouldEmitUniqueOutputSections()) {
+        OutputSectionEntry *CurOutSection = elem->getOutputSection();
+        bool CurOutSectionInMap = false;
+        if (CurOutSection) {
+          for (out = outBegin; out != outEnd; ++out) {
+            if (*out == CurOutSection) {
+              CurOutSectionInMap = true;
+              break;
+            }
+          }
+        }
+
+        // If the section already has an output section entry that isn't in the
+        // script's section map, treat it as an orphan so we don't overwrite an
+        // existing entry with the same name (used by
+        // --unique/--unique=SECTION).
+        const bool TreatAsOrphanToPreserveUniqueness =
+            CurOutSection && !CurOutSectionInMap;
+
+        if (!m_Module.getConfig().options().shouldEmitUniqueOutputSections() &&
+            !TreatAsOrphanToPreserveUniqueness) {
           for (out = outBegin; out != outEnd; ++out) {
             bool matched = false;
             if ((elem)->name().compare((*out)->name()) == 0) {
@@ -2953,7 +2972,8 @@ bool GNULDBackend::placeOutputSections() {
           if (pair.first && pair.first->isDiscard())
             (elem)->setKind(LDFileFormat::Null);
           else {
-            if (!isNonDymSymbolStringTableSection(elem))
+            if (!TreatAsOrphanToPreserveUniqueness &&
+                !isNonDymSymbolStringTableSection(elem))
               isError |= handleOrphanSection(elem);
             orphans.push_back(elem);
           }

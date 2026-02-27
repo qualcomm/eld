@@ -270,6 +270,15 @@ def unique_output_sections
     : Flag<["-", "--"], "unique-output-sections">,
       HelpText<"Place each input section in a unique output section">,
       Group<grp_scriptopts>;
+def unique
+    : Flag<["--"], "unique">,
+      HelpText<"Creates a separate output section for every orphan input section">,
+      Group<grp_scriptopts>;
+defm unique_val
+    : smDashOnlyEq<"unique", "unique_val",
+                   "Creates a separate output section for every input section matching SECTION">,
+      MetaVarName<"<section-pattern>">,
+      Group<grp_scriptopts>;
 def global_merge_non_alloc_strings
     : Flag<["--"], "global-merge-non-alloc-strings">,
       HelpText<"merge non-alloc strings across output sections">,

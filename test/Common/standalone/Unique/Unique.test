@@ -1,0 +1,32 @@
+#---Unique.test--------------------------- Executable -----------------------#
+#BEGIN_COMMENT
+# Checks GNU ld.bfd compatible --unique/--unique=SECTION behavior.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/a.s -o %t.a.o
+RUN: %clang %clangopts -c %p/Inputs/b.s -o %t.b.o
+
+# Orphan sections: --unique splits, default merges.
+RUN: %link %linkopts -r %t.a.o %t.b.o -o %t.orphan.default.o
+RUN: %readelf -SW %t.orphan.default.o | %filecheck %s --check-prefix=ORPHAN_MERGED
+RUN: %link %linkopts -r --unique %t.a.o %t.b.o -o %t.orphan.unique.o
+RUN: %readelf -SW %t.orphan.unique.o | %filecheck %s --check-prefix=ORPHAN_UNIQUE
+
+# Explicit output section with same name: --unique has no effect, --unique=.foo splits.
+RUN: %link %linkopts -r -T %p/Inputs/script_foo.t --unique %t.a.o %t.b.o -o %t.script.foo.uniqueflag.o
+RUN: %readelf -SW %t.script.foo.uniqueflag.o | %filecheck %s --check-prefix=SCRIPT_FLAG_NOEFFECT
+RUN: %link %linkopts -r -T %p/Inputs/script_foo.t --unique=.foo %t.a.o %t.b.o -o %t.script.foo.uniqueval.o
+RUN: %readelf -SW %t.script.foo.uniqueval.o | %filecheck %s --check-prefix=SCRIPT_VAL_EFFECT
+
+# Output section name differs from input section name: --unique=.foo has no effect.
+RUN: %link %linkopts -r -T %p/Inputs/script_allfuncs.t --unique=.foo %t.a.o %t.b.o -o %t.script.allfuncs.uniqueval.o
+RUN: %readelf -SW %t.script.allfuncs.uniqueval.o | %filecheck %s --check-prefix=SCRIPT_DIFFERENT_OUTPUT
+
+ORPHAN_MERGED: {{.*}}.foo {{.*}} 000008 {{.*}}
+ORPHAN_UNIQUE: {{.*}}.foo {{.*}} 000004 {{.*}}
+ORPHAN_UNIQUE: {{.*}}.foo {{.*}} 000004 {{.*}}
+SCRIPT_FLAG_NOEFFECT: {{.*}}.foo {{.*}} 000008 {{.*}}
+SCRIPT_VAL_EFFECT: {{.*}}.foo {{.*}} 000004 {{.*}}
+SCRIPT_VAL_EFFECT: {{.*}}.foo {{.*}} 000004 {{.*}}
+SCRIPT_DIFFERENT_OUTPUT: {{.*}}allfuncs {{.*}} 000008 {{.*}}
+#END_TEST

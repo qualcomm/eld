@@ -28,6 +28,7 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Option/ArgList.h"
+#include "llvm/Support/GlobPattern.h"
 #include "llvm/Support/Regex.h"
 #include <set>
 #include <string>
@@ -1015,6 +1016,19 @@ public:
     EmitUniqueOutputSections = Emit;
   }
 
+  // --unique / --unique=SECTION
+  void setEmitUniqueOrphanSections(bool Emit);
+
+  bool shouldEmitUniqueOrphanSections() const;
+
+  // Returns false on invalid glob patterns.
+  bool addUniqueSectionPattern(llvm::StringRef Pattern);
+
+  // Returns true iff --unique=SECTION matches InputSectionName and the output
+  // section name is the same as the input section name (GNU ld.bfd semantics).
+  bool shouldEmitUniqueSection(llvm::StringRef InputSectionName,
+                               llvm::StringRef OutputSectionName) const;
+
   // --reproduce-on-fail support
   void setReproduceOnFail(bool V) { RecordInputFilesOnFail = V; }
 
@@ -1374,6 +1388,8 @@ private:
   bool BDynamicLinker = true;
   std::string DefaultMapStyle = "txt";
   bool EmitUniqueOutputSections = false; // --unique-output-sections
+  bool EmitUniqueOrphanSections = false; // --unique
+  std::vector<llvm::GlobPattern> UniqueSectionPatterns; // --unique=SECTION
   bool BRelaxation = false;              // --relaxation
   llvm::SmallVector<std::string, 8> MapStyles;
   bool GlobalMergeNonAllocStrings = false; // --global-merge-non-alloc-strings
