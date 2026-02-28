@@ -57,7 +57,7 @@ jobs:
         run: |
           cd obj
           ninja eld-docs
-          mv tools/eld/eld/docs/userguide/pdf/ELD_UserGuide.pdf \
+          mv tools/eld/docs/userguide/pdf/ELD_UserGuide.pdf \
              tools/eld/docs/userguide/html/ELD_UserGuide.pdf
 
       - name: Deploy to docs branch
