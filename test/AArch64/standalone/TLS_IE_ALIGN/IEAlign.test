@@ -1,0 +1,8 @@
+#---IEAlign.test----------------------------------------------------------#
+# Check that TLS IE GOT entries account for TLS block alignment padding.
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/ie-align.c -o %t.o -fPIC -ftls-model=initial-exec
+RUN: %link %linkopts -march aarch64 %t.o -o %t.out --no-threads
+RUN: %readelf -x .got %t.out | %filecheck %s
+
+CHECK: .got
+CHECK: 80000000 00000000

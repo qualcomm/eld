@@ -1,0 +1,22 @@
+#---TLS_IE_GOT_Offsets.test------------------------------------------------#
+# Check that TLS IE GOT entries have the correct offsets (0x10 and 0x14)
+# for two thread-local variables using the initial-exec model.
+#
+# The test verifies that:
+# - Variable 'b' (first TLS variable) gets GOT entry with offset 0x10
+# - Variable 'c' (second TLS variable) gets GOT entry with offset 0x14
+#
+# These offsets account for the TLS block alignment padding. The TLS segment
+# has alignment 0x4, and with the AArch64 TLS layout, the offsets include
+# the necessary padding to align the TLS block properly (0x10 = 16 bytes of
+# padding, then 'b' at offset 0x10, 'c' at offset 0x14).
+
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/hw1.c -o %t.o \
+RUN: -fPIC -ftls-model=initial-exec -fdata-sections
+RUN: %link %linkopts -march aarch64 %t.o -o %t.out --no-threads
+RUN: %readelf -x .got %t.out | %filecheck %s
+
+# The .got section should contain two TLS IE entries with offsets 0x10 and 0x14
+# in little-endian format (10000000 00000000 = 0x10, 14000000 00000000 = 0x14)
+CHECK: .got
+CHECK: 10000000 00000000 14000000 00000000

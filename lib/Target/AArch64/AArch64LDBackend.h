@@ -28,6 +28,8 @@ namespace eld {
 
 class LinkerConfig;
 class TargetInfo;
+class AArch64GOT;
+class AArch64PLT;
 
 //===----------------------------------------------------------------------===//
 /// AArch64LDBackend - linker backend of AArch64 target of GNU ELF format
@@ -156,6 +158,12 @@ public:
 
   std::size_t GOTEntriesCount() const override { return m_GOTMap.size(); }
 
+  // Get the size of static TCB to account for alignment
+  static uint64_t getStaticTCBSize() { return StaticTCBSize; }
+
+  /// postLayout - Backend can do any needed modification after layout
+  void doPostLayout() override;
+
 private:
   ELFSection *createGOTSection(InputFile &InputFile);
   ELFSection *createGOTPLTSection(InputFile &InputFile);
@@ -192,6 +200,9 @@ private:
   // Create GNU property section.
   void createGNUPropertySection(bool);
 
+  // Update TCB size to support TLS alignment
+  void setupStaticTCBForTLSSupport();
+
 private:
   AArch64ErrataFactory *m_pErrata843419Factory;
 
@@ -212,6 +223,11 @@ private:
   llvm::DenseMap<ResolveInfo *, AArch64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, AArch64PLT *> m_PLTMap;
   std::unordered_map<InputFile *, uint32_t> NoteGNUPropertyMap;
+  /// The static TLS block contains an optional gap at the beginning,
+  /// that is followed by an optional alignment padding. The TLS variables
+  /// are stored after the alignment padding. This member stores the
+  /// offset in the static TLS block from where the variables start.
+  static uint64_t StaticTCBSize;
 };
 } // namespace eld
 

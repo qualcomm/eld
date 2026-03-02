@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include "AArch64GOT.h"
+#include "AArch64LDBackend.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/Support/Memory.h"
@@ -44,4 +44,23 @@ AArch64GOTPLTN *AArch64GOTPLTN::Create(ELFSection *O, ResolveInfo *R,
     r->modifyRelocationFragmentRef(PLTFragRef);
   }
   return G;
+}
+
+llvm::ArrayRef<uint8_t> AArch64GOT::getContent() const {
+  // Convert uint32_t to ArrayRef.
+  typedef union {
+    uint64_t a;
+    uint8_t b[8];
+  } C;
+  C Content;
+  Content.a = 0;
+  // If the GOT contents needs to reflect a symbol value, then we use the
+  // symbol value.
+  if (getValueType() == GOT::SymbolValue)
+    Content.a = symInfo()->outSymbol()->value();
+  if (getValueType() == GOT::TLSStaticSymbolValue)
+    Content.a =
+        AArch64LDBackend::getStaticTCBSize() + symInfo()->outSymbol()->value();
+  std::memcpy((void *)Value, (void *)&Content.a, sizeof(Value));
+  return llvm::ArrayRef(Value);
 }

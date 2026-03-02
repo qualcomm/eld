@@ -14,8 +14,8 @@
 #define ELD_TARGET_AARCH64_GOT_H
 
 #include "eld/Fragment/GOT.h"
+#include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
-#include "eld/Target/GNULDBackend.h"
 
 namespace eld {
 
@@ -46,23 +46,7 @@ public:
 
   virtual AArch64GOT *getNext() { return nullptr; }
 
-  llvm::ArrayRef<uint8_t> getContent() const override {
-    // Convert uint32_t to ArrayRef.
-    typedef union {
-      uint64_t a;
-      uint8_t b[8];
-    } C;
-    C Content;
-    Content.a = 0;
-    // If the GOT contents needs to reflect a symbol value, then we use the
-    // symbol value.
-    if (getValueType() == GOT::SymbolValue)
-      Content.a = symInfo()->outSymbol()->value();
-    if (getValueType() == GOT::TLSStaticSymbolValue)
-      Content.a = 0x10 + symInfo()->outSymbol()->value();
-    std::memcpy((void *)Value, (void *)&Content.a, sizeof(Value));
-    return llvm::ArrayRef(Value);
-  }
+  llvm::ArrayRef<uint8_t> getContent() const override;
 
   static AArch64GOT *Create(ELFSection *O, ResolveInfo *R) {
     return (make<AArch64GOT>(GOT::Regular, O, R));
@@ -148,6 +132,7 @@ public:
     return (make<AArch64IEGOT>(O, R));
   }
 };
+
 } // namespace eld
 
 #endif
