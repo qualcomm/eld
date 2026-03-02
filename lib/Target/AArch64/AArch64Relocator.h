@@ -75,12 +75,6 @@ public:
   void partialScanRelocation(Relocation &pReloc,
                              const ELFSection &pSection) override;
 
-  void computeTLSOffsets() override;
-
-  std::optional<uint64_t> getStaticTLSBlockVarOffset() const {
-    return StaticTLSBlockVarOffset;
-  }
-
 private:
   bool isInvalidReloc(Relocation &pReloc) const;
   bool isRelocSupported(Relocation &pReloc) const;
@@ -95,11 +89,6 @@ private:
 
 private:
   AArch64LDBackend &m_Target;
-  /// The static TLS block contains an optional gap at the beginning,
-  /// that is followed by an optional alignment padding. The TLS variables
-  /// are stored after the alignment padding. This member stores the
-  /// offset in the static TLS block from where the variables start.
-  std::optional<uint64_t> StaticTLSBlockVarOffset;
 };
 
 } // namespace eld

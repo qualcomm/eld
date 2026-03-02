@@ -574,6 +574,28 @@ bool AArch64LDBackend::finalizeTargetSymbols() {
   return true;
 }
 
+void AArch64LDBackend::setupStaticTCBForTLSSupport() {
+  if (!config().isCodeStatic())
+    return;
+  const uint32_t WordSize = 0x8;
+  auto OptFirstTLSSegVirtualAddr =
+      getRelocator()->getFirstTLSSegmentVirtualAddr();
+  auto OptMaxTLSSegAlignment = getRelocator()->getMaxTLSSegmentAlign();
+  if (!OptFirstTLSSegVirtualAddr || !OptMaxTLSSegAlignment)
+    return;
+  auto FirstTLSSegVirtualAddr = OptFirstTLSSegVirtualAddr.value();
+  auto MaxTLSSegAlignment = OptMaxTLSSegAlignment.value();
+  StaticTCBSize +=
+      ((FirstTLSSegVirtualAddr - 2 * WordSize) & (MaxTLSSegAlignment - 1));
+}
+
+void AArch64LDBackend::doPostLayout() {
+  // Setup TCB for static TLS support
+  setupStaticTCBForTLSSupport();
+
+  GNULDBackend::doPostLayout();
+}
+
 void AArch64LDBackend::setOptions() {
   bool linkerScriptHasSectionsCommand =
       m_Module.getScript().linkerScriptHasSectionsCommand();
@@ -924,6 +946,8 @@ GNULDBackend *createAArch64LDBackend(Module &pModule) {
   return make<AArch64LDBackend>(pModule,
                                        make<AArch64Info>(pModule.getConfig()));
 }
+
+uint64_t AArch64LDBackend::StaticTCBSize = 0x10;
 
 } // namespace eld
 
