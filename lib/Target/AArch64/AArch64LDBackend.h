@@ -97,8 +97,6 @@ public:
 
   AArch64GOT *findEntryInGOT(ResolveInfo *) const;
 
-  void updateTLSIEGOTOffsets(uint64_t StaticTLSBlockVarOffset);
-
   // ---  PLT Support ------
   AArch64PLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
                         bool isIRelative = false);
