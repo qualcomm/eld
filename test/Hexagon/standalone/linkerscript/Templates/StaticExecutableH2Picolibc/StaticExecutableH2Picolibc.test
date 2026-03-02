@@ -1,0 +1,112 @@
+#---StaticExecutableH2Picolibc.test--------------------- Executable,LS -----------------#
+#BEGIN_COMMENT
+# Regression test for the static-executable-h2-picolibc.lcs.template linker
+# script template.  Links a minimal Hexagon object file using the template and
+# verifies that every symbol defined by the template is present in the output
+# binary.
+#
+# The input C file explicitly references all PROVIDE_HIDDEN and PROVIDE symbols
+# so that the linker is forced to emit them (PROVIDE_HIDDEN symbols are only
+# emitted when referenced).  Plain-assignment symbols are always emitted.
+#
+# Symbols checked:
+#   Plain assignments (always emitted):
+#     _TLS_START_, TLS_START, _TLS_DATA_END_, _TLS_END_, TLS_END
+#     __tdata_source, __tdata_start, __tdata_end, __tdata_size
+#     __tbss_start, __tbss_end, __tbss_size, __tbss_offset
+#     __tls_base, __tls_space_size
+#     __bss_start, __bss_end, __bss_size
+#     __heap_start, __heap_end, HEAP_SIZE
+#     __stack_size, STACK_SIZE, __stack
+#     __start___lcxx_override, __stop___lcxx_override
+#     __eh_frame_hdr_start, __eh_frame_hdr_end
+#     __eh_frame_start, __eh_frame_end
+#     _edata, _end
+#   PROVIDE (emitted when undefined, forced by C references):
+#     __etext, _etext, etext, edata, end
+#     _SDA_BASE_
+#     __sbss_start, ___sbss_start, __sbss_end, ___sbss_end
+#   PROVIDE_HIDDEN (only emitted when referenced, forced by C references):
+#     __preinit_array_start, __preinit_array_end
+#     __bothinit_array_start, __bothinit_array_end
+#     __init_array_start, __init_array_end
+#     __fini_array_start, __fini_array_end
+#END_COMMENT
+REQUIRES: hexagon-standalone-env
+RUN: %clang %clangopts %clangg0opts -c %p/Inputs/main.c -o %t.o
+RUN: %link %linkopts -T %test_templates_dir/staticExecutable/static-executable-h2-picolibc.lcs.template -o %t.out %t.o
+RUN: %nm --defined-only %t.out | %filecheck %s
+
+# --- Plain-assignment TLS boundary symbols ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _TLS_START_
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} TLS_START
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _TLS_DATA_END_
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _TLS_END_
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} TLS_END
+
+# --- Picolibc __tdata_* symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tdata_source
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tdata_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tdata_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tdata_size
+
+# --- Picolibc __tbss_* symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tbss_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tbss_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tbss_size
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tbss_offset
+
+# --- TLS space for main thread (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tls_base
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __tls_space_size
+
+# --- BSS symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bss_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bss_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bss_size
+
+# --- Heap symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __heap_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __heap_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} HEAP_SIZE
+
+# --- Stack symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __stack_size
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} STACK_SIZE
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __stack
+
+# --- .text internal symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __start___lcxx_override
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __stop___lcxx_override
+
+# --- .eh_frame* symbols (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __eh_frame_hdr_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __eh_frame_hdr_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __eh_frame_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __eh_frame_end
+
+# --- End-of-section markers (plain assignments) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _edata
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _end
+
+# --- PROVIDE symbols (referenced in main.c to force emission) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __etext
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _etext
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} etext
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} edata
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} _SDA_BASE_
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __sbss_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} ___sbss_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __sbss_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} ___sbss_end
+
+# --- PROVIDE_HIDDEN symbols (referenced in main.c to force emission) ---
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __preinit_array_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __preinit_array_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bothinit_array_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bothinit_array_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __init_array_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __init_array_end
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __fini_array_start
+CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __fini_array_end

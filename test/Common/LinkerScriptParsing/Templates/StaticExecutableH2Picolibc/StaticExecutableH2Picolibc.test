@@ -1,0 +1,7 @@
+#---StaticExecutableH2Picolibc.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Verifies that the static-executable-h2-picolibc.lcs.template linker script
+# template parses without errors. This is a regression guard to catch any
+# syntax breakage introduced to the template.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %test_templates_dir/staticExecutable/static-executable-h2-picolibc.lcs.template
