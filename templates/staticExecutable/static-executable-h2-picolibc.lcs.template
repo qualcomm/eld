@@ -5,7 +5,7 @@ ENTRY(_start)
 SECTIONS
 {
   /* Code starts. */
-  
+
   .start          :
   {
     /*
@@ -21,7 +21,7 @@ SECTIONS
   {
     KEEP (*(.init))
   } =0x00c0007f
-  
+
   .text           :
   {
     *(.text.unlikely .text.*_unlikely)
@@ -33,9 +33,8 @@ SECTIONS
     __stop___lcxx_override = .;
   } =0x00c0007f
 
-
-    /* Need to pre-align so that the symbols come after padding */
-    . = ALIGN(8);
+  /* Need to pre-align so that the symbols come after padding */
+  . = ALIGN(8);
   .init_array     :
   {
     /* lists of constructors and destructors */
@@ -76,36 +75,42 @@ SECTIONS
     *(.rodata.hot .rodata.hot.* .gnu.linkonce.r.hot.*)
     *(.rodata .rodata.* .gnu.linkonce.r.*)
   }
-  .eh_frame_hdr   :  {
+  .eh_frame_hdr   :
+  {
     __eh_frame_hdr_start = .;
     KEEP (*(.eh_frame_hdr))
     __eh_frame_hdr_start = .;
   }
-  .eh_frame       :   { KEEP (*(.eh_frame)) }
+  .eh_frame       :
+  {
+    KEEP (*(.eh_frame))
+  }
 
   /* Thread Local Storage sections  */
 
-   /* TLS Initialized Data */
-  .tdata	  :  {
-   _TLS_START_ = .;
-   TLS_START = _TLS_START_;
-   /* Picolibc uses __tdata_* symbols to locate TLS template */
-   __tdata_source = .;
-   __tdata_start = __tdata_source;
-   *(.tdata .tdata.* *.gnu.linkonce.td.*)
-   . = ALIGN(8);
-   }
-   _TLS_DATA_END_ = .;
-   __tdata_end = _TLS_DATA_END_;
-   __tdata_size = __tdata_end - __tdata_source;
+  /* TLS Initialized Data */
+  .tdata          :
+  {
+    _TLS_START_ = .;
+    TLS_START = _TLS_START_;
+    /* Picolibc uses __tdata_* symbols to locate TLS template */
+    __tdata_source = .;
+    __tdata_start = __tdata_source;
+    *(.tdata .tdata.* *.gnu.linkonce.td.*)
+    . = ALIGN(8);
+  }
+  _TLS_DATA_END_ = .;
+  __tdata_end = _TLS_DATA_END_;
+  __tdata_size = __tdata_end - __tdata_source;
 
-   /* TLS Uninitialized BSS */
-  .tbss		  :  { 
-   __tbss_start = .;
-   *(.tbss .tbss.* .gnu.linkonce.tb.*)
-   . = ALIGN(8);
-  __tbss_end = .;
-   }
+  /* TLS Uninitialized BSS */
+  .tbss           :
+  {
+    __tbss_start = .;
+    *(.tbss .tbss.* .gnu.linkonce.tb.*)
+    . = ALIGN(8);
+    __tbss_end = .;
+  }
   _TLS_END_  = __tbss_end;
   TLS_END = _TLS_END_;
   __tbss_size = __tbss_end - __tbss_start;
@@ -114,10 +119,11 @@ SECTIONS
   . = ALIGN(4K);
 
   /* Picolibc expects TLS space for main thread to be allocated by linker script */
-  .tls_space : {
-  __tls_base = .;
-  __tls_space_size = __tbss_end - __tdata_start;
-  . += __tls_space_size;
+  .tls_space :
+  {
+    __tls_base = .;
+    __tls_space_size = __tbss_end - __tdata_start;
+    . += __tls_space_size;
   }
 
   . = ALIGN(4K);
@@ -166,12 +172,12 @@ SECTIONS
   . = ALIGN (64);
   .bss            :
   {
-   __bss_start = .;
-   *(.dynbss)
-   *(.bss.hot .bss.hot.* .gnu.linkonce.b.hot.*)
-   *(.bss .bss.* .gnu.linkonce.b.*)
-   *(COMMON)
-   __bss_end = .;
+    __bss_start = .;
+    *(.dynbss)
+    *(.bss.hot .bss.hot.* .gnu.linkonce.b.hot.*)
+    *(.bss .bss.* .gnu.linkonce.b.*)
+    *(COMMON)
+    __bss_end = .;
   }
   __bss_size = __bss_end - __bss_start;
 
@@ -179,13 +185,13 @@ SECTIONS
   _end = .;
   PROVIDE (end = .);
 
-
   /* Picolibc looks for __heap* and __stack* symbols */
 
   /* Allow a minimum heap size to be specified */
-        __heap_start = .;
-  .heap (NOLOAD) : {
-  	. += (DEFINED(__heap_size_min) ? __heap_size_min : 0x10000);
+  __heap_start = .;
+  .heap (NOLOAD) :
+  {
+    . += (DEFINED(__heap_size_min) ? __heap_size_min : 0x10000);
   }
 
   __heap_end = .;
@@ -194,11 +200,11 @@ SECTIONS
   __stack_size = 0x1000;
   STACK_SIZE = __stack_size;
   /* Define a stack region to make sure it fits in memory */
-  .stack (NOLOAD) : {
-  	. += (DEFINED(__stack_size) ? __stack_size : 0x00001000);
+  .stack (NOLOAD) :
+  {
+    . += (DEFINED(__stack_size) ? __stack_size : 0x00001000);
   }
   __stack = .;
-
 
   .hexagon.attributes 0 : { *(.hexagon.attributes) }
   .comment       0 :  { *(.comment) }
