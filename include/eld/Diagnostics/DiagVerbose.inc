@@ -168,3 +168,5 @@ DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
 DIAG(verbose_infer_target, DiagnosticEngine::Verbose,
      "Inferred target : %0")
 DIAG(verbose_sframe_log, DiagnosticEngine::Verbose, "SFrame Handling : %0")
+DIAG(verbose_remap_input, DiagnosticEngine::Verbose,
+     "Remapping input file %0 to %1")

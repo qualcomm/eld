@@ -12,6 +12,8 @@
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Fragment/RegionFragment.h"
+#include "eld/Input/ArchiveFile.h"
+#include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/Input.h"
 #include "eld/Input/ObjectFile.h"
 #include "eld/Plugin/PluginOp.h"
@@ -269,12 +271,28 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
 
   Input *Input = Ist.Input;
   std::string Files = "";
+  std::string RemapComment = "";
+  auto appendRemapComment = [&](llvm::StringRef Comment) {
+    if (RemapComment.empty())
+      RemapComment = " # ";
+    else
+      RemapComment += ", ";
+    RemapComment += Comment.str();
+  };
   InputFile::InputFileKind K;
 
   if (Input != nullptr) {
     Files = Input->decoratedPath();
     if (ThisConfig.options().hasMappingFile())
       Files += "(" + Input->getName() + ")";
+    if (Input->wasRemapped())
+      appendRemapComment("remapped from " + Input->getOriginalFileName());
+    if (const auto *AMI = llvm::dyn_cast<ArchiveMemberInput>(Input)) {
+      const eld::Input *ArchInput = AMI->getArchiveFile()->getInput();
+      if (ArchInput && ArchInput->wasRemapped())
+        appendRemapComment("archive remapped from " +
+                           ArchInput->getOriginalFileName());
+    }
     K = Input->getInputFile()->getKind();
   }
 
@@ -309,7 +327,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     default:
       ASSERT(0, "Unhandled Input File Kind");
     }
-    return Pref + Files + FileType;
+    return Pref + Files + FileType + RemapComment;
   }
 
   std::string InputFileStr = Pref + Files + ArchFlag;
@@ -319,7 +337,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     if (!FeatureStr.empty())
       InputFileStr += "[" + FeatureStr + "]";
   }
-  return InputFileStr;
+  return InputFileStr + RemapComment;
 }
 
 void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
@@ -341,11 +359,12 @@ void LayoutInfo::recordGC(const ELFSection *Section) {
     LinkStats.NumZeroSizedSectionsGarbageCollected++;
 }
 
-void LayoutInfo::recordLinkerScript(std::string LinkerScriptFile,
-                                       bool Found) {
+void LayoutInfo::recordLinkerScript(std::string LinkerScriptFile, bool Found,
+                                    llvm::StringRef RemappedFrom) {
   ScriptInputT Script;
   LinkStats.NumLinkerScripts++;
   Script.Include = LinkerScriptFile;
+  Script.RemappedFrom = RemappedFrom.str();
   Script.Depth = LinkerScriptStack.size();
   if (LinkerScriptStack.size() > 0)
     Script.Parent = LinkerScriptStack.top();

@@ -1078,6 +1078,8 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
                          LinkerScriptName + ")";
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
+    if (!Script.RemappedFrom.empty())
+      LinkerScriptName += " # remapped from " + Script.RemappedFrom;
     outputStream() << Indent << LinkerScriptName;
     outputStream() << "\n";
   }

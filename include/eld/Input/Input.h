@@ -66,6 +66,13 @@ public:
   const std::string getFileName() const { return FileName; }
 
   /// getName for the Input class returns the FileName
+  /// getOriginalFileName returns the name before any --remap-inputs was
+  /// applied.
+  const std::string &getOriginalFileName() const { return OriginalFileName; }
+
+  bool wasRemapped() const { return !OriginalFileName.empty(); }
+
+  /// getName for the Input class returns the FileName
   const std::string getName() const { return Name; }
 
   const sys::fs::Path &getResolvedPath() const { return *ResolvedPath; }
@@ -181,6 +188,7 @@ protected:
   std::string FileName;                      // Filename as what is passed to
                                              //   the linker
   std::string Name;                          // Resolved Name or
+  std::string OriginalFileName;              // FileName before --remap-inputs
                                              // Member Name or the SONAME.
   std::optional<sys::fs::Path> ResolvedPath; // Resolved path.
   Attribute Attr;                            // Attribute

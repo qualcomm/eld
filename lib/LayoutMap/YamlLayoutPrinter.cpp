@@ -205,6 +205,8 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
                          LinkerScriptName + ")";
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
+    if (!Script.RemappedFrom.empty())
+      LinkerScriptName += " # remapped from " + Script.RemappedFrom;
     Result.LinkerScriptsUsed.push_back(Indent + LinkerScriptName);
   }
   Result.BuildType = Module.getConfig().codeGenType();

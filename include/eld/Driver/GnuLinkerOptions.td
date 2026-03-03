@@ -1380,3 +1380,12 @@ defm input_format : smDashTwoWithOpt<"b", "format", "input_format",
                       "Supported values: binary,default">,
                     MetaVarName<"<input-format>">,
                     Group<grp_input_formats>;
+
+defm remap_inputs : EEq<"remap-inputs",
+                        "Remap input file names (pattern=filename)">,
+                    MetaVarName<"<pattern=filename>">,
+                    Group<grp_input_formats>;
+defm remap_inputs_file : EEq<"remap-inputs-file",
+                             "Read input file name remappings from file">,
+                         MetaVarName<"<file>">,
+                         Group<grp_input_formats>;

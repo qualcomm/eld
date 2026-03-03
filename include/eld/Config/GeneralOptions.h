@@ -105,6 +105,13 @@ public:
   typedef DynListType::const_iterator const_dyn_list_iterator;
 
   typedef ExcludeLIBSType ExtList;
+
+  struct RemapEntry {
+    std::string Pattern;
+    std::string Replacement;
+  };
+  typedef std::vector<RemapEntry> RemapInputsType;
+
   typedef ExtList::iterator ext_list_iterator;
   typedef ExtList::const_iterator const_ext_list_iterator;
 
@@ -597,6 +604,10 @@ public:
 
   const DynListType &getVersionScripts() const { return VersionScripts; }
   DynListType &getVersionScripts() { return VersionScripts; }
+
+  // ---- remap input file names ---- //
+  const RemapInputsType &getRemapInputs() const { return RemapInputs; }
+  RemapInputsType &getRemapInputs() { return RemapInputs; }
 
   // ---- add extern symbols from list file ---- //
   const ExtList &getExternList() const { return ExternList; }
@@ -1327,6 +1338,7 @@ private:
   DynListType DynList;               // --dynamic-list files
   DynListType VersionScripts;        // --version-script files
   DynListType ExternList;            // --extern-list files
+  RemapInputsType RemapInputs;       // --remap-inputs entries
   std::string Filter;
   std::string MapFile; // Mapfile
   std::string TarFile; // --reproduce output tarfile name

@@ -1,0 +1,102 @@
+#---RemapInputs.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# Tests for --remap-inputs and --remap-inputs-file.
+# Covers: exact rename, wildcard rename, file-based remapping (= and
+# whitespace separators, comments, blank lines), multiple remaps (first
+# match wins), archive remapping, linker-script INPUT() remapping, verbose
+# output, and error cases.
+#END_COMMENT
+
+# Build the two object files used throughout.
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c  -o %t1.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c  -o %t1.bar.o
+
+#--- Test 1: basic exact-name remap via --remap-inputs ----------------------
+# Remap foo.o -> bar.o so the link uses bar.o (which defines foo() = 99).
+RUN: %link %linkopts -o %t1.exact.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.exact.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 2: wildcard remap via --remap-inputs ------------------------------
+# Pattern matches any path ending in foo.o.
+RUN: %link %linkopts -o %t1.wildcard.out \
+RUN:   "--remap-inputs=*foo.o=%t1.bar.o" \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.wildcard.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 3: --remap-inputs-file with = separator ---------------------------
+RUN: echo "%t1.foo.o=%t1.bar.o" > %t1.remap_eq.txt
+RUN: %link %linkopts -o %t1.remapfile_eq.out \
+RUN:   --remap-inputs-file=%t1.remap_eq.txt \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.remapfile_eq.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 4: --remap-inputs-file with whitespace separator ------------------
+RUN: echo "%t1.foo.o %t1.bar.o" > %t1.remap_ws.txt
+RUN: %link %linkopts -o %t1.remapfile_ws.out \
+RUN:   --remap-inputs-file=%t1.remap_ws.txt \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.remapfile_ws.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 5: --remap-inputs-file with comments and blank lines --------------
+RUN: printf "# this is a comment\n\n%t1.foo.o=%t1.bar.o\n# another comment\n" > %t1.remap_comments.txt
+RUN: %link %linkopts -o %t1.remapfile_comments.out \
+RUN:   --remap-inputs-file=%t1.remap_comments.txt \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.remapfile_comments.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 6: multiple remaps - first match wins -----------------------------
+# First rule maps foo.o -> bar.o; second rule (never reached) maps foo.o -> main.o.
+RUN: %link %linkopts -o %t1.firstmatch.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   --remap-inputs=%t1.foo.o=%t1.main.o \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.firstmatch.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 7: remap of archive member ----------------------------------------
+RUN: %ar cr %aropts %t1.libfoo.a %t1.foo.o
+RUN: %ar cr %aropts %t1.libbar.a %t1.bar.o
+RUN: %link %linkopts -o %t1.archive.out \
+RUN:   --remap-inputs=%t1.libfoo.a=%t1.libbar.a \
+RUN:   %t1.main.o %t1.libfoo.a -T %p/Inputs/script.t
+RUN: %readelf -s %t1.archive.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 8: remap applied to INPUT() in linker script ----------------------
+RUN: echo "INPUT(%t1.foo.o)" > %t1.input_script.t
+RUN: %link %linkopts -o %t1.lscinput.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o -T %t1.input_script.t -T %p/Inputs/script.t
+RUN: %readelf -s %t1.lscinput.out | %filecheck %s --check-prefix=LINKED
+
+#--- Test 9: verbose output reports the remapping ---------------------------
+RUN: %link %linkopts -o %t1.verbose.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t --verbose 2>&1 \
+RUN:   | %filecheck %s --check-prefix=VERBOSE
+
+#--- Test 10: no remap - original file is used (sanity check) ---------------
+RUN: %link %linkopts -o %t1.noremap.out \
+RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.noremap.out | %filecheck %s --check-prefix=NOREMAP
+
+#--- Test 11: error - bad format (no = in --remap-inputs value) -------------
+RUN: %not %link %linkopts -o %t1.err.out \
+RUN:   --remap-inputs=justpattern \
+RUN:   %t1.main.o %t1.foo.o 2>&1 | %filecheck %s --check-prefix=ERR_FMT
+
+#--- Test 12: error - --remap-inputs-file with nonexistent file -------------
+RUN: %not %link %linkopts -o %t1.err2.out \
+RUN:   --remap-inputs-file=%t1.nonexistent_remap.txt \
+RUN:   %t1.main.o %t1.foo.o 2>&1 | %filecheck %s --check-prefix=ERR_FILE
+
+LINKED: foo
+
+NOREMAP: foo
+
+VERBOSE: Verbose: Remapping input file {{.*}}foo.o to {{.*}}bar.o
+
+ERR_FMT: Error: invalid --remap-inputs value justpattern: expected pattern=filename
+
+ERR_FILE: Error: cannot open --remap-inputs-file {{.*}}nonexistent_remap.txt

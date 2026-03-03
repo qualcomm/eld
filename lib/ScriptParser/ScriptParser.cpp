@@ -1371,12 +1371,27 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
     return false;
   bool IsOptionalInclude = Tok == "INCLUDE_OPTIONAL";
   llvm::StringRef FileName = unquote(next());
+  // Apply --remap-inputs to the INCLUDE filename before searching.
+  std::string RemappedFileName = FileName.str();
+  for (const auto &Entry : ThisConfig.options().getRemapInputs()) {
+    WildcardPattern Pat(Entry.Pattern);
+    if (Pat.matched(RemappedFileName)) {
+      if (ThisConfig.getPrinter()->isVerbose())
+        ThisConfig.raise(Diag::verbose_remap_input)
+            << RemappedFileName << Entry.Replacement;
+      RemappedFileName = Entry.Replacement;
+      break;
+    }
+  }
   LayoutInfo *layoutInfo = ThisScriptFile.module().getLayoutInfo();
   bool Result = true;
+  llvm::StringRef RemappedFrom;
   std::string ResolvedFileName = ThisScriptFile.findIncludeFile(
-      FileName.str(), Result, /*state=*/!IsOptionalInclude);
+      RemappedFileName, Result, /*state=*/!IsOptionalInclude);
+  if (RemappedFileName != FileName)
+    RemappedFrom = FileName;
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(ResolvedFileName, Result);
+    layoutInfo->recordLinkerScript(ResolvedFileName, Result, RemappedFrom);
   if (!Result && IsOptionalInclude)
     return true;
   ThisScriptFile.module().getScript().addToHash(ResolvedFileName);

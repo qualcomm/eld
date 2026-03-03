@@ -26,6 +26,7 @@
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/LayoutMap/YamlLayoutPrinter.h"
 #include "eld/Object/ArchiveMemberReport.h"
+#include "eld/Support/FileSystem.h"
 #include "eld/Support/MappingFileReader.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/OutputTarWriter.h"
@@ -44,7 +45,6 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
-#include <fstream>
 #include <thread>
 
 using namespace llvm;
@@ -874,6 +874,65 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   for (auto *Arg : Args.filtered(T::extern_list))
     Config.options().getExternList().emplace(Arg->getValue());
 
+  // Helper lambda to parse and add a single "pattern=filename" remap entry.
+  auto addRemapEntry = [&](llvm::StringRef Value) -> bool {
+    auto EqPos = Value.find('=');
+    if (EqPos == llvm::StringRef::npos) {
+      Config.raise(Diag::err_remap_inputs_bad_format) << Value.str();
+      return false;
+    }
+    GeneralOptions::RemapEntry Entry;
+    Entry.Pattern = Value.substr(0, EqPos).str();
+    Entry.Replacement = Value.substr(EqPos + 1).str();
+    Config.options().getRemapInputs().push_back(std::move(Entry));
+    return true;
+  };
+
+  // --remap-inputs=pattern=filename
+  for (auto *Arg : Args.filtered(T::remap_inputs))
+    if (!addRemapEntry(Arg->getValue()))
+      return false;
+
+  // --remap-inputs-file=file
+  for (auto *Arg : Args.filtered(T::remap_inputs_file)) {
+    std::string FilePath = Arg->getValue();
+    std::vector<std::string> Lines;
+    if (std::error_code EC = eld::sys::fs::loadFileContents(FilePath, Lines)) {
+      Config.raise(Diag::err_remap_inputs_file_not_found)
+          << FilePath << EC.message();
+      return false;
+    }
+    for (const std::string &Line : Lines) {
+      llvm::StringRef LineRef(Line);
+      // Strip comments (# to end of line).
+      auto HashPos = LineRef.find('#');
+      if (HashPos != llvm::StringRef::npos)
+        LineRef = LineRef.substr(0, HashPos);
+      LineRef = LineRef.trim();
+      if (LineRef.empty())
+        continue;
+      // Allow whitespace or = as separator between pattern and filename.
+      llvm::StringRef Pattern, Replacement;
+      auto EqPos = LineRef.find('=');
+      auto SpPos = LineRef.find_first_of(" \t");
+      if (EqPos != llvm::StringRef::npos &&
+          (SpPos == llvm::StringRef::npos || EqPos < SpPos)) {
+        Pattern = LineRef.substr(0, EqPos).trim();
+        Replacement = LineRef.substr(EqPos + 1).trim();
+      } else if (SpPos != llvm::StringRef::npos) {
+        Pattern = LineRef.substr(0, SpPos).trim();
+        Replacement = LineRef.substr(SpPos).trim();
+      } else {
+        Config.raise(Diag::err_remap_inputs_bad_format) << Line;
+        return false;
+      }
+      GeneralOptions::RemapEntry Entry;
+      Entry.Pattern = Pattern.str();
+      Entry.Replacement = Replacement.str();
+      Config.options().getRemapInputs().push_back(std::move(Entry));
+    }
+  }
+
   // --exclude-lto-filelist
   std::vector<std::string> ltoExcludes;
   std::vector<std::string> ltoincludes;
@@ -1619,6 +1678,13 @@ bool GnuLdDriver::processReproduceOption(
     case T::dynamic_list:
     case T::extern_list:
     case T::version_script:
+      os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
+         << ' ';
+      break;
+    case T::remap_inputs:
+      os << arg->getSpelling() << ' ' << arg->getValue() << ' ';
+      break;
+    case T::remap_inputs_file:
       os << arg->getSpelling() << ' ' << outputTar->rewritePath(arg->getValue())
          << ' ';
       break;

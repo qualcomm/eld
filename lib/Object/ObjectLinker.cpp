@@ -208,7 +208,11 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
   // Record the linker script in the Map file.
   LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(Input->getInput()->getFileName());
+    layoutInfo->recordLinkerScript(
+        Input->getInput()->getFileName(), /*Found=*/true,
+        Input->getInput()->wasRemapped()
+            ? llvm::StringRef(Input->getInput()->getOriginalFileName())
+            : llvm::StringRef());
 
   ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
@@ -1463,7 +1467,11 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   SymbolListInput->setInputFile(SymbolListInputFile);
   // Record the dynamic list script in the Map file.
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(SymbolListInput->decoratedPath());
+    layoutInfo->recordLinkerScript(
+        SymbolListInput->decoratedPath(), /*Found=*/true,
+        SymbolListInput->wasRemapped()
+            ? llvm::StringRef(SymbolListInput->getOriginalFileName())
+            : llvm::StringRef());
   // Read the dynamic List file
   ScriptFile SymbolListReader(
       (ScriptFile::Kind)Type, *ThisModule,

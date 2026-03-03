@@ -1,0 +1,16 @@
+Rules are evaluated in command-line order; the first matching rule wins.
+The pattern supports wildcard matching.
+
+Example:
+
+| ``--remap-inputs=foo.o=bar.o``
+| ``--remap-inputs=*foo.o=build/alt/bar.o``
+
+Remapping is applied before path search/open, including linker-script
+``INPUT(...)``, ``GROUP(...)``, and ``INCLUDE`` processing.
+
+How to tell remapping is active:
+
+| ``--verbose`` prints: ``Remapping input file <old> to <new>``.
+| Text map output (``-MapStyle txt``) annotates remapped entries with
+| ``# remapped from <original-name>``.
