@@ -12,6 +12,7 @@ on:
 
 jobs:
   release-toolchain:
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
