@@ -272,6 +272,8 @@ public:
 
   bool canBePreemptible() const;
 
+  bool isIFunc() const { return type() == ResolveInfo::IndirectFunc; }
+
 private:
   static const uint32_t GlobalOffset = 0;
   static const uint32_t GlobalMask = 1;
