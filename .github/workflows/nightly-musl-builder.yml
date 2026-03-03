@@ -11,6 +11,7 @@ concurrency:
 
 jobs:
   test-musl-x86_64:
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
@@ -115,6 +116,7 @@ jobs:
           branch-name: "${{env.BUILD_BRANCH}}"
 
   test-musl:
+    if: github.repository == 'qualcomm/eld'
     strategy:
       fail-fast: false
       matrix:

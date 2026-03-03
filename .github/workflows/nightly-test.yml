@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-and-runtest-nightly:
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
 
     steps:

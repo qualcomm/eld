@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-runtest-with-asan-ubsan:
     runs-on: self-hosted
+    if: github.repository == 'qualcomm/eld'
 
     steps:
       - name: Build and Test with Clang and show versions

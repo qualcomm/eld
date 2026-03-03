@@ -8,6 +8,7 @@ on:
 jobs:
   gate:
     runs-on: self-hosted
+    if: github.repository == 'qualcomm/eld'
     outputs:
       run_fetch: ${{ steps.gate.outputs.run_fetch }}
     steps:
@@ -20,7 +21,7 @@ jobs:
 
   fetch:
     needs: gate
-    if: needs.gate.outputs.run_fetch == 'true'
+    if: github.repository == 'qualcomm/eld' && needs.gate.outputs.run_fetch == 'true'
     uses: ./.github/workflows/clang-cross-download.yml
     with:
       runner: self-hosted

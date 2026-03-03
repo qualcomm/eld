@@ -9,6 +9,7 @@ on:
 
 jobs:
   build-windows:
+    if: github.repository == 'qualcomm/eld'
     runs-on: windows-latest
     permissions:
       contents: read

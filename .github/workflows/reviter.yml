@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-runtest-with-reverse-iterators:
     runs-on: ubuntu-latest
+    if: github.repository == 'qualcomm/eld'
 
     steps:
       - name: Set up Clang 20

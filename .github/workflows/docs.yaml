@@ -11,6 +11,7 @@ on:
 
 jobs:
   generate-docs:
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
 
     steps:
