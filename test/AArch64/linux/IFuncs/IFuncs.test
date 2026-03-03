@@ -1,0 +1,51 @@
+#---IFuncs.test--------------------- Exe------------------#
+#BEGIN_COMMENT
+# This test verifies the IFUNC support when building AArch64 static executables.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.1.o %p/Inputs/main.1.c -c
+RUN: %link %linkopts -march aarch64 -o %t1.a.1.out %t1.main.1.o %t1.1.o --image-base 0x1000
+RUN: (%readelf -S %t1.a.1.out; %objdump -d %t1.a.1.out) | %filecheck %s --check-prefix CHECK1
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.2.o %p/Inputs/main.2.c -c
+RUN: %link %linkopts -march aarch64 -o %t1.a.2.out %t1.main.2.o %t1.1.o --image-base 0x1000
+RUN: (%readelf -S %t1.a.2.out; %objdump -d %t1.a.2.out) | %filecheck %s --check-prefix CHECK2
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.1.no_pic.o %p/Inputs/1.c -c -fno-pic
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.2.no_pic.o %p/Inputs/main.2.c -c -fno-pic
+RUN: %link %linkopts -march aarch64 -o %t1.a.2.no_pic.out %t1.main.2.no_pic.o %t1.1.no_pic.o --image-base 0x1000
+RUN: (%readelf -S %t1.a.2.no_pic.out; %objdump -d %t1.a.2.no_pic.out) | %filecheck %s --check-prefix CHECK2_NOPIC
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.3.o %p/Inputs/main.3.c -c
+RUN: %link %linkopts -march aarch64 -o %t1.a.3.out %t1.main.3.o %t1.1.o --image-base 0x1000
+RUN: (%readelf -S %t1.a.3.out; %objdump -D %t1.a.3.out) | %filecheck %s --check-prefix CHECK3
+RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.4.o %p/Inputs/main.4.c -c
+RUN: %link %linkopts -march aarch64 -o %t1.a.4.out %t1.main.4.o %t1.1.o --image-base 0x1000
+RUN: (%readelf -S %t1.a.4.out; %objdump -D %t1.a.4.out) | %filecheck %s --check-prefix CHECK4
+#END_TEST
+
+CHECK1: .plt PROGBITS [[#%x,PLT_START:]]
+CHECK1: <main>:
+CHECK1: bl 0x[[#PLT_START+0x20]]
+
+CHECK2: .got.plt PROGBITS {{0+}}[[#%x,GOT_PLT_START:]]
+CHECK2: <main>:
+CHECK2: adrp x8, 0x[[#GOT_PLT_START]]
+CHECK2: ldr	x8, [x8, #0x18]
+
+CHECK2_NOPIC: .plt PROGBITS {{0+}}1020
+CHECK2_NOPIC: <main>:
+CHECK2_NOPIC: adrp x8, 0x1000
+CHECK2_NOPIC: add x8, x8, #0x40
+
+CHECK3: .plt PROGBITS [[#%x,PLT_START:]]
+CHECK3: Disassembly of section .data:
+CHECK3: {{0+}}2000 <foogp>:
+CHECK3: 2000: {{.*}} .word 0x{{0+}}[[#%x,PLT_START+0x20]]
+
+CHECK4: .plt PROGBITS [[#%x,PLT_START:]]
+CHECK4: .got.plt PROGBITS {{0+}}2008
+CHECK4: <main>:
+CHECK4: adrp x8, 0x2000
+CHECK4: ldr	x8, [x8, #0x20]
+CHECK4: Disassembly of section .data:
+CHECK4: {{0+}}2000 <foogp>:
+CHECK4: 2000: {{.*}} .word 0x{{0+}}[[#%x,PLT_START+0x20]]
