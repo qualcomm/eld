@@ -87,6 +87,9 @@ private:
                        eld::IRBuilder &pBuilder, ELFSection &pSection,
                        CopyRelocs &);
 
+  bool handleScanForNonPreemptibleIFunc(ResolveInfo *symInfo,
+                                        ELFObjectFile *Obj);
+
 private:
   AArch64LDBackend &m_Target;
 };
