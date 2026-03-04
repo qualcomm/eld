@@ -1,4 +1,4 @@
-.. QClinker documentation master file, created by
+.. eld documentation master file, created by
    sphinx-quickstart on Sat Sep 14 15:42:13 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -16,8 +16,6 @@ This document describes usage of ELD
 Download
 --------
 
-- `ELD User Guide (PDF) <ELD_UserGuide.pdf>`_
-
 .. toctree::
    :maxdepth: 2
    :numbered:
@@ -27,6 +25,7 @@ Download
    documentation/supported_targets.rst
    documentation/linker_script.rst
    documentation/linker_diagnostics.rst
+   documentation/eld_debugging_guide.rst
    documentation/linker_support_backward_compatibility.rst
    documentation/image_structure_and_generation.rst
    documentation/linker_map_files.rst
@@ -41,6 +40,12 @@ Download
    documentation/target_specific_features.rst
    documentation/sframe_support.rst
    documentation/linker_faq.rst
+
+*******************
+User guide
+*******************
+
+- `ELD User Guide (PDF) <ELD_UserGuide.pdf>`_
 
 *******************
 Indices and tables
