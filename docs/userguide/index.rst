@@ -13,9 +13,6 @@ ELD User Guide
 
 This document describes usage of ELD
 
-Download
---------
-
 .. toctree::
    :maxdepth: 2
    :numbered:
