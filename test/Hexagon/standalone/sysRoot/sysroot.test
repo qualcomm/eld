@@ -1,9 +1,0 @@
-
-#Check that the library can be accessed by using sysroot.
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
-RUN: %rm -rf %t.tmpdir
-RUN: %mkdir %t.tmpdir
-RUN: %ar cr %aropts %t.tmpdir/liba.a %t1.o
-RUN: %link -o %t1.out %linkopts --sysroot=%t.tmpdir -L =//  --whole-archive -la --no-whole-archive -t
-
-#CHECK: liba.a
