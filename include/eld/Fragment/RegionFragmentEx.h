@@ -36,7 +36,7 @@ public:
 
   static bool classof(const RegionFragmentEx *) { return true; }
 
-  bool replaceInstruction(uint32_t Offset, Relocation *Reloc, uint32_t Instr,
+  bool replaceInstruction(uint32_t Offset, Relocation *Reloc, uint8_t *Instr,
                           uint8_t Size);
   void deleteInstruction(uint32_t Offset, uint32_t Size);
   void addRequiredNops(uint32_t Offset, uint32_t NumNopsToAdd);
