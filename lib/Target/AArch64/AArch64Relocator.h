@@ -76,6 +76,7 @@ public:
                              const ELFSection &pSection) override;
 
 private:
+  bool isPICRelocTypeSupported(const Relocation &reloc) const override;
   bool isInvalidReloc(Relocation &pReloc) const;
   bool isRelocSupported(Relocation &pReloc) const;
   bool relocNeedsDynRel(Relocation &pReloc) const;
