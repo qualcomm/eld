@@ -100,7 +100,6 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     ResolvedPath = eld::sys::fs::Path(FileName);
     return true;
   }
-
   if (Type == Input::Script) {
     if (PSearchDirs.hasSysRoot() &&
         (FileName.size() > 0 && FileName[0] == '/')) {
