@@ -810,7 +810,8 @@ void ELFObjectWriter::emitGroup(ELFSection *S, MemoryRegion &CurRegion) {
       if (Si == Se)
         break;
       uint32_t SectionIdx = (*Si)->getOutputELFSection()->getIndex();
-      ((uint32_t *)GroupData)[Index] = SectionIdx;
+      std::memcpy((uint8_t *) GroupData + (Index * sizeof(uint32_t)),
+          &SectionIdx, sizeof(uint32_t));
       ++Si;
     }
     CurOffset += Frag->size();
