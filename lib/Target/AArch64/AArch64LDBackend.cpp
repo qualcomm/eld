@@ -761,9 +761,8 @@ AArch64GOT *AArch64LDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj,
-                                               ResolveInfo *R,
-                                               bool isIRelative) {
+AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
+                                        bool isIRelative) {
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
