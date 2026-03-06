@@ -72,6 +72,7 @@ class ScriptMemoryRegion;
 class StubFactory;
 class SymDefReader;
 class TimingFragment;
+class OutputSectionEntry;
 
 /** \class GNULDBackend
  *  \brief GNULDBackend provides a common interface for all GNU Unix-OS
@@ -762,6 +763,24 @@ public:
 
   // -------------------- Finalize Layout callback ----------------
   virtual bool finalizeLayout() { return true; }
+
+  // -------------------- Layout convergence snapshot -------------------
+  struct SectionAddrs {
+    uint64_t vma = 0;
+    uint64_t lma = 0;
+  };
+
+  struct LayoutSnapshot {
+    llvm::DenseMap<const OutputSectionEntry *, SectionAddrs> outSections;
+  };
+
+  // Capture current layout snapshot keyed by OutputSectionEntry*.
+  LayoutSnapshot captureLayoutSnapshot() const;
+
+  // Compare two snapshots for exact address convergence.
+  // Returns nullptr if converged; otherwise returns a changed OutputSectionEntry.
+  const OutputSectionEntry *isConverged(const LayoutSnapshot &Prev,
+                                        const LayoutSnapshot &cur) const;
 
   // --- Exclude symbol support
   void markSymbolForRemoval(const ResolveInfo *S);
