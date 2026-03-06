@@ -22,8 +22,8 @@ RegionFragmentEx::RegionFragmentEx(const char *Buf, size_t Sz, ELFSection *O,
 RegionFragmentEx::~RegionFragmentEx() {}
 
 bool RegionFragmentEx::replaceInstruction(uint32_t Offset, Relocation *Reloc,
-                                          uint32_t Instr, uint8_t Size) {
-  std::memcpy((void *)(Data + Offset), &Instr, Size);
+                                          uint8_t *Instr, uint8_t Size) {
+  std::memcpy((void *)(Data + Offset), Instr, Size);
   return true;
 }
 
