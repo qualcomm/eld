@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4. Linker Script &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5. Diagnostics" href="linker_diagnostics.html" />
+    <link rel="prev" title="3. Supported Targets" href="supported_targets.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Linker Script</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">4.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basic-script-syntax">4.2. Basic script syntax</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symbols">4.2.1. Symbols</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comments">4.2.2. Comments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#strings">4.2.3. Strings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#expression-basics">4.2.4. Expression basics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#location-counter-basics">4.2.5. Location counter basics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symbol-assignment-basics">4.2.6. Symbol assignment basics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#script-commands">4.3. Script commands</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#phdrs">4.3.1. PHDRS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#memory">4.3.2. MEMORY</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#syntax">4.3.2.1. Syntax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#memory-region-names">4.3.2.2. Memory region names</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#memory-region-attributes">4.3.2.3. Memory region attributes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#automatic-region-selection-orphans-and-missing-region">4.3.2.4. Automatic region selection (orphans and missing <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interaction-with-explicit-addresses-vma-overrides">4.3.2.5. Interaction with explicit addresses (VMA overrides)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tls-and-tbss">4.3.2.6. TLS and <code class="docutils literal notranslate"><span class="pre">.tbss</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lma-regions-and-at-region">4.3.2.7. LMA regions and <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#builtins-origin-and-length">4.3.2.8. Builtins: <code class="docutils literal notranslate"><span class="pre">ORIGIN()</span></code> and <code class="docutils literal notranslate"><span class="pre">LENGTH()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#region-alias">4.3.2.9. REGION_ALIAS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#memory-usage-checking-and-reporting">4.3.2.10. Memory usage checking and reporting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#phdrs-interaction-and-program-header-loading">4.3.2.11. PHDRS interaction and program header loading</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-sizeof-headers-with-memory">4.3.2.12. Using SIZEOF_HEADERS with MEMORY</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#common-memory-pitfalls-and-errors">4.3.2.13. Common MEMORY pitfalls and errors</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#sections">4.3.3. SECTIONS</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#section-statements">4.3.3.1. Section statements</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#entry">4.3.4. ENTRY</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-format">4.3.5. OUTPUT_FORMAT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-arch">4.3.6. OUTPUT_ARCH</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#search-dir">4.3.7. SEARCH_DIR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#include">4.3.8. INCLUDE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output">4.3.9. OUTPUT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#group">4.3.10. GROUP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#assert">4.3.11. ASSERT</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#expressions">4.4. Expressions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#symbol-assignments">4.5. Symbol assignments</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#symbol-assignment-types">4.5.1. Symbol assignment types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#section-of-linker-script-symbols">4.5.2. Section of linker script symbols</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#location-counter">4.5.3. Location counter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#assignment-evaluation-order">4.5.4. Assignment evaluation order</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#basic-case-no-forward-reference">4.5.4.1. Basic case: No forward reference</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#forward-reference">4.5.4.2. Forward reference</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#circular-dependency">4.5.4.3. Circular dependency</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#forward-references-in-dot-assignments">4.5.4.4. Forward references in dot-assignments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#defsym">4.5.5. –defsym</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#nocrossrefs">4.6. NOCROSSREFS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overlay">4.7. OVERLAY</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-overlay-does-in-gnu-ld">4.7.1. What <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> does in GNU ld</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#auto-generated-symbols-in-gnu-ld">4.7.2. Auto-generated symbols in GNU ld</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">4.7.3. <code class="docutils literal notranslate"><span class="pre">NOCROSSREFS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#effect-on-the-location-counter-in-gnu-ld">4.7.4. Effect on the location counter (<code class="docutils literal notranslate"><span class="pre">.</span></code>) in GNU ld</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">4.7.5. Syntax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#eld-support-status">4.7.6. eld support status</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output-section-description">4.8. Output Section Description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">4.9. Syntax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sorting-input-sections">4.10. Sorting input sections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#controlling-physical-addresses">4.11. Controlling Physical addresses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gnu-compatibility">4.12. GNU-compatibility</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-cannot-eld-support-these-extensions-along-with-gnu-compatibility">4.12.1. Why cannot eld support these extensions along with GNU-compatibility?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#print-command">4.13. PRINT Command</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id6">4.13.1. Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">4.13.2. Syntax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#format-string-semantics">4.13.3. Format String Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basics">4.13.4. Basics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#flags-width-and-precision">4.13.5. Flags, Width, and Precision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#escape-sequences">4.13.6. Escape Sequences</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#argument-matching-and-errors">4.13.7. Argument Matching and Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#examples">4.13.8. Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#printing-numeric-expressions">4.13.9. Printing Numeric Expressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-c-and-s">4.13.10. Using <code class="docutils literal notranslate"><span class="pre">%c</span></code> and <code class="docutils literal notranslate"><span class="pre">%s</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-width-precision-and-flags">4.13.11. Using Width, Precision, and Flags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#error-examples">4.13.12. Error Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">10. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">11. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">12. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugin.html">13. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">14. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elf_tools.html">15. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">16. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">17. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">18. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">19. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sframe_support.html">20. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">21. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4. </span>Linker Script</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/documentation/linker_script.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-script">
+<h1><span class="section-number">4. </span>Linker Script<a class="headerlink" href="#linker-script" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#overview" id="id9">Overview</a></p></li>
+<li><p><a class="reference internal" href="#basic-script-syntax" id="id10">Basic script syntax</a></p>
+<ul>
+<li><p><a class="reference internal" href="#symbols" id="id11">Symbols</a></p></li>
+<li><p><a class="reference internal" href="#comments" id="id12">Comments</a></p></li>
+<li><p><a class="reference internal" href="#strings" id="id13">Strings</a></p></li>
+<li><p><a class="reference internal" href="#expression-basics" id="id14">Expression basics</a></p></li>
+<li><p><a class="reference internal" href="#location-counter-basics" id="id15">Location counter basics</a></p></li>
+<li><p><a class="reference internal" href="#symbol-assignment-basics" id="id16">Symbol assignment basics</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#script-commands" id="id17">Script commands</a></p>
+<ul>
+<li><p><a class="reference internal" href="#phdrs" id="id18">PHDRS</a></p></li>
+<li><p><a class="reference internal" href="#memory" id="id19">MEMORY</a></p>
+<ul>
+<li><p><a class="reference internal" href="#syntax" id="id20">Syntax</a></p></li>
+<li><p><a class="reference internal" href="#memory-region-names" id="id21">Memory region names</a></p></li>
+<li><p><a class="reference internal" href="#memory-region-attributes" id="id22">Memory region attributes</a></p></li>
+<li><p><a class="reference internal" href="#automatic-region-selection-orphans-and-missing-region" id="id23">Automatic region selection (orphans and missing <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>)</a></p></li>
+<li><p><a class="reference internal" href="#interaction-with-explicit-addresses-vma-overrides" id="id24">Interaction with explicit addresses (VMA overrides)</a></p></li>
+<li><p><a class="reference internal" href="#tls-and-tbss" id="id25">TLS and <code class="docutils literal notranslate"><span class="pre">.tbss</span></code></a></p></li>
+<li><p><a class="reference internal" href="#lma-regions-and-at-region" id="id26">LMA regions and <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code></a></p></li>
+<li><p><a class="reference internal" href="#builtins-origin-and-length" id="id27">Builtins: <code class="docutils literal notranslate"><span class="pre">ORIGIN()</span></code> and <code class="docutils literal notranslate"><span class="pre">LENGTH()</span></code></a></p></li>
+<li><p><a class="reference internal" href="#region-alias" id="id28">REGION_ALIAS</a></p></li>
+<li><p><a class="reference internal" href="#memory-usage-checking-and-reporting" id="id29">Memory usage checking and reporting</a></p></li>
+<li><p><a class="reference internal" href="#phdrs-interaction-and-program-header-loading" id="id30">PHDRS interaction and program header loading</a></p></li>
+<li><p><a class="reference internal" href="#using-sizeof-headers-with-memory" id="id31">Using SIZEOF_HEADERS with MEMORY</a></p></li>
+<li><p><a class="reference internal" href="#common-memory-pitfalls-and-errors" id="id32">Common MEMORY pitfalls and errors</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#sections" id="id33">SECTIONS</a></p>
+<ul>
+<li><p><a class="reference internal" href="#section-statements" id="id34">Section statements</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#entry" id="id35">ENTRY</a></p></li>
+<li><p><a class="reference internal" href="#output-format" id="id36">OUTPUT_FORMAT</a></p></li>
+<li><p><a class="reference internal" href="#output-arch" id="id37">OUTPUT_ARCH</a></p></li>
+<li><p><a class="reference internal" href="#search-dir" id="id38">SEARCH_DIR</a></p></li>
+<li><p><a class="reference internal" href="#include" id="id39">INCLUDE</a></p></li>
+<li><p><a class="reference internal" href="#output" id="id40">OUTPUT</a></p></li>
+<li><p><a class="reference internal" href="#group" id="id41">GROUP</a></p></li>
+<li><p><a class="reference internal" href="#assert" id="id42">ASSERT</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#expressions" id="id43">Expressions</a></p></li>
+<li><p><a class="reference internal" href="#symbol-assignments" id="id44">Symbol assignments</a></p>
+<ul>
+<li><p><a class="reference internal" href="#symbol-assignment-types" id="id45">Symbol assignment types</a></p></li>
+<li><p><a class="reference internal" href="#section-of-linker-script-symbols" id="id46">Section of linker script symbols</a></p></li>
+<li><p><a class="reference internal" href="#location-counter" id="id47">Location counter</a></p></li>
+<li><p><a class="reference internal" href="#assignment-evaluation-order" id="id48">Assignment evaluation order</a></p>
+<ul>
+<li><p><a class="reference internal" href="#basic-case-no-forward-reference" id="id49">Basic case: No forward reference</a></p></li>
+<li><p><a class="reference internal" href="#forward-reference" id="id50">Forward reference</a></p></li>
+<li><p><a class="reference internal" href="#circular-dependency" id="id51">Circular dependency</a></p></li>
+<li><p><a class="reference internal" href="#forward-references-in-dot-assignments" id="id52">Forward references in dot-assignments</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#defsym" id="id53">–defsym</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#nocrossrefs" id="id54">NOCROSSREFS</a></p></li>
+<li><p><a class="reference internal" href="#overlay" id="id55">OVERLAY</a></p>
+<ul>
+<li><p><a class="reference internal" href="#what-overlay-does-in-gnu-ld" id="id56">What <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> does in GNU ld</a></p></li>
+<li><p><a class="reference internal" href="#auto-generated-symbols-in-gnu-ld" id="id57">Auto-generated symbols in GNU ld</a></p></li>
+<li><p><a class="reference internal" href="#id1" id="id58"><code class="docutils literal notranslate"><span class="pre">NOCROSSREFS</span></code></a></p></li>
+<li><p><a class="reference internal" href="#effect-on-the-location-counter-in-gnu-ld" id="id59">Effect on the location counter (<code class="docutils literal notranslate"><span class="pre">.</span></code>) in GNU ld</a></p></li>
+<li><p><a class="reference internal" href="#id2" id="id60">Syntax</a></p></li>
+<li><p><a class="reference internal" href="#eld-support-status" id="id61">eld support status</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#output-section-description" id="id62">Output Section Description</a></p></li>
+<li><p><a class="reference internal" href="#id3" id="id63">Syntax</a></p></li>
+<li><p><a class="reference internal" href="#sorting-input-sections" id="id64">Sorting input sections</a></p></li>
+<li><p><a class="reference internal" href="#controlling-physical-addresses" id="id65">Controlling Physical addresses</a></p></li>
+<li><p><a class="reference internal" href="#gnu-compatibility" id="id66">GNU-compatibility</a></p>
+<ul>
+<li><p><a class="reference internal" href="#why-cannot-eld-support-these-extensions-along-with-gnu-compatibility" id="id67">Why cannot eld support these extensions along with GNU-compatibility?</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#print-command" id="id68">PRINT Command</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id6" id="id69">Overview</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id70">Syntax</a></p></li>
+<li><p><a class="reference internal" href="#format-string-semantics" id="id71">Format String Semantics</a></p></li>
+<li><p><a class="reference internal" href="#basics" id="id72">Basics</a></p></li>
+<li><p><a class="reference internal" href="#flags-width-and-precision" id="id73">Flags, Width, and Precision</a></p></li>
+<li><p><a class="reference internal" href="#escape-sequences" id="id74">Escape Sequences</a></p></li>
+<li><p><a class="reference internal" href="#argument-matching-and-errors" id="id75">Argument Matching and Errors</a></p></li>
+<li><p><a class="reference internal" href="#examples" id="id76">Examples</a></p></li>
+<li><p><a class="reference internal" href="#printing-numeric-expressions" id="id77">Printing Numeric Expressions</a></p></li>
+<li><p><a class="reference internal" href="#using-c-and-s" id="id78">Using <code class="docutils literal notranslate"><span class="pre">%c</span></code> and <code class="docutils literal notranslate"><span class="pre">%s</span></code></a></p></li>
+<li><p><a class="reference internal" href="#using-width-precision-and-flags" id="id79">Using Width, Precision, and Flags</a></p></li>
+<li><p><a class="reference internal" href="#error-examples" id="id80">Error Examples</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2><a class="toc-backref" href="#id9"><span class="section-number">4.1. </span>Overview</a><a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p>Linker scripts define how input sections (like .text, .data, .bss) are mapped to output sections
+and where they are placed in memory. These scripts control:</p>
+<ul class="simple">
+<li><p>Memory regions (e.g., RAM, ROM)</p></li>
+<li><p>Section alignment</p></li>
+<li><p>Ordering of code and data</p></li>
+<li><p>Load vs. execution addresses</p></li>
+</ul>
+<p>This is the standard method used by most linkers like GNU ld.</p>
+<div class="line-block">
+<div class="line">Linker scripts provide detailed specifications of how files are to be linked. They offer greater control over linking than is available using just the linker command options.</div>
+</div>
+<div class="line-block">
+<div class="line">NOTE Linker scripts are optional. In most cases, the default behavior of the linker is sufficient.</div>
+</div>
+<div class="line-block">
+<div class="line">Linker scripts control the following properties:</div>
+</div>
+<blockquote>
+<div><ul class="simple">
+<li><p>ELF program header</p></li>
+<li><p>Program entry point</p></li>
+<li><p>Input and output files and searching paths</p></li>
+<li><p>Section memory placement and runtime</p></li>
+<li><p>Section removal</p></li>
+<li><p>Symbol definition</p></li>
+</ul>
+</div></blockquote>
+<div class="line-block">
+<div class="line">A linker script consists of a sequence of commands stored in a text file.</div>
+</div>
+<div class="line-block">
+<div class="line">The script file can be specified on the command line either with -T, or by specifying the file as an input files.</div>
+</div>
+<div class="line-block">
+<div class="line">The linker distinguishes between script files and object files and handles each accordingly.</div>
+</div>
+<div class="line-block">
+<div class="line">To generate a map file that shows how a linker script controlled linking, use the M option.</div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PHDRS</p></td>
+<td><p>Program Headers</p></td>
+</tr>
+<tr class="row-odd"><td><p>SECTIONS</p></td>
+<td><p>Section mapping and memory placementELF program header definition</p></td>
+</tr>
+<tr class="row-even"><td><p>MEMORY</p></td>
+<td><p>Define memory regions used by <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code> and <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code> placement</p></td>
+</tr>
+<tr class="row-odd"><td><p>ENTRY</p></td>
+<td><p>ELF program headerProgram execution entry point</p></td>
+</tr>
+<tr class="row-even"><td><p>OUTPUT_FORMAT</p></td>
+<td><p>Parsed, but no effect on linking</p></td>
+</tr>
+<tr class="row-odd"><td><p>OUTPUT_ARCH</p></td>
+<td><p>Parsed, but no effect on linking</p></td>
+</tr>
+<tr class="row-even"><td><p>SEARCH_DIR</p></td>
+<td><p>Add additional searching directory for libraries</p></td>
+</tr>
+<tr class="row-odd"><td><p>INCLUDE</p></td>
+<td><p>Include linker script file</p></td>
+</tr>
+<tr class="row-even"><td><p>OUTPUT</p></td>
+<td><p>Define output filename</p></td>
+</tr>
+<tr class="row-odd"><td><p>GROUP</p></td>
+<td><p>Define files that will be searched repeatedly</p></td>
+</tr>
+<tr class="row-even"><td><p>ASSERT</p></td>
+<td><p>Linker script assertion</p></td>
+</tr>
+<tr class="row-odd"><td><p>NOCROSSREFS</p></td>
+<td><p>Check cross references among a group of sections</p></td>
+</tr>
+<tr class="row-even"><td><p>OVERLAY</p></td>
+<td><p>GNU ld compatible OVERLAY block (parsing support)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="basic-script-syntax">
+<h2><a class="toc-backref" href="#id10"><span class="section-number">4.2. </span>Basic script syntax</a><a class="headerlink" href="#basic-script-syntax" title="Permalink to this heading"></a></h2>
+<div class="section" id="symbols">
+<h3><a class="toc-backref" href="#id11"><span class="section-number">4.2.1. </span>Symbols</a><a class="headerlink" href="#symbols" title="Permalink to this heading"></a></h3>
+<p>Symbol names must begin with a letter, underscore, or period. They can
+include letters, numbers, underscores, hyphens, or periods.</p>
+</div>
+<div class="section" id="comments">
+<h3><a class="toc-backref" href="#id12"><span class="section-number">4.2.2. </span>Comments</a><a class="headerlink" href="#comments" title="Permalink to this heading"></a></h3>
+<p>Comments can appear in linker scripts.</p>
+</div>
+<div class="section" id="strings">
+<h3><a class="toc-backref" href="#id13"><span class="section-number">4.2.3. </span>Strings</a><a class="headerlink" href="#strings" title="Permalink to this heading"></a></h3>
+<p>Character strings can be specified as parameters with or without
+delimiter characters.</p>
+</div>
+<div class="section" id="expression-basics">
+<h3><a class="toc-backref" href="#id14"><span class="section-number">4.2.4. </span>Expression basics</a><a class="headerlink" href="#expression-basics" title="Permalink to this heading"></a></h3>
+<p>Expressions are similar to C, and support all C arithmetic operators.
+They are evaluated as type <code class="docutils literal notranslate"><span class="pre">long</span></code> or <code class="docutils literal notranslate"><span class="pre">unsigned</span> <span class="pre">long</span></code>.</p>
+</div>
+<div class="section" id="location-counter-basics">
+<h3><a class="toc-backref" href="#id15"><span class="section-number">4.2.5. </span>Location counter basics</a><a class="headerlink" href="#location-counter-basics" title="Permalink to this heading"></a></h3>
+<p>A period is used as a symbol to indicate the current location counter.
+It is used in the <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command only, where it designates
+locations in the output section:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">.</span> <span class="o">=</span> <span class="n">ALIGN</span><span class="p">(</span><span class="mh">0x1000</span><span class="p">);</span>
+<span class="o">.</span> <span class="o">=</span> <span class="o">.</span> <span class="o">+</span> <span class="mh">0x1000</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Assigning a value to the location counter symbol changes the location
+counter to the specified value. The location counter can be moved
+forward by arbitrary amounts to create gaps in an output section. It
+cannot, however, be moved backwards.</p>
+</div>
+<div class="section" id="symbol-assignment-basics">
+<h3><a class="toc-backref" href="#id16"><span class="section-number">4.2.6. </span>Symbol assignment basics</a><a class="headerlink" href="#symbol-assignment-basics" title="Permalink to this heading"></a></h3>
+<p>Symbols, including the location counter, can be assigned constants or
+expressions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">__text_start</span> <span class="o">=</span> <span class="o">.</span> <span class="o">+</span> <span class="mh">0x1000</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Assignment statements are similar to C, and support all C assignment
+operators. Terminate assignment statements with a semicolon.</p>
+</div>
+</div>
+<div class="section" id="script-commands">
+<h2><a class="toc-backref" href="#id17"><span class="section-number">4.3. </span>Script commands</a><a class="headerlink" href="#script-commands" title="Permalink to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command must be specified in a linker script. All the
+other script commands are optional.</p>
+<div class="section" id="phdrs">
+<h3><a class="toc-backref" href="#id18"><span class="section-number">4.3.1. </span>PHDRS</a><a class="headerlink" href="#phdrs" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code> (Program Headers) command in a linker script is used to
+define program headers in the output binary, particularly for ELF
+Executable and Linkable Format (ELF) files. These headers are essential
+for the runtime loader to understand how to load and map the binary into
+memory.</p>
+<p><em>When and why PHDRS is used?</em></p>
+<ul>
+<li><p>Custom memory mapping</p>
+<p>You use <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code> when you want to explicitly control how sections are
+grouped into segments in the ELF file. This is especially important
+for:</p>
+<ul class="simple">
+<li><p>Embedded systems</p></li>
+<li><p>Custom bootloaders</p></li>
+<li><p>OS kernels</p></li>
+</ul>
+</li>
+<li><p>Fine-grained segment control</p>
+<ul class="simple">
+<li><p>Assign specific sections to specific segments.</p></li>
+<li><p>Control segment flags (for example, <code class="docutils literal notranslate"><span class="pre">PT_LOAD</span></code>, <code class="docutils literal notranslate"><span class="pre">PT_NOTE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">PT_TLS</span></code>).</p></li>
+<li><p>Set permissions (<code class="docutils literal notranslate"><span class="pre">r</span></code>, <code class="docutils literal notranslate"><span class="pre">w</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>) for each segment.</p></li>
+</ul>
+</li>
+</ul>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">name</span> <span class="pre">type</span> <span class="pre">[FILEHDR][PHDRS][AT</span> <span class="pre">(address)][FLAGS</span> <span class="pre">(flags)]</span> <span class="pre">}</span></code></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code> script command sets information in the program headers,
+also known as the <em>segment header</em> of an ELF output file.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> – Specifies the program header in the <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">type</span></code> – Specifies the program header type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_LOAD</span></code> – Loadable segment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_NULL</span></code> – Linker does not include section in a segment. No
+loadable section should be set to <code class="docutils literal notranslate"><span class="pre">PT_NULL</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_DYNAMIC</span></code> – Segment where dynamic linking information is stored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_INTERP</span></code> – Segment where the name of the dynamic linker is
+stored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_NOTE</span></code> – Segment where note information is stored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_SHLIB</span></code> – Reserved program header type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PT_PHDR</span></code> – Segment where program headers are stored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FLAGS</span></code> – Specifies the <code class="docutils literal notranslate"><span class="pre">p_flags</span></code> field in the program header.
+The value of flags must be an integer. It is used to set the
+<code class="docutils literal notranslate"><span class="pre">p_flags</span></code> field of the program header; for instance,
+<code class="docutils literal notranslate"><span class="pre">FLAGS(5)</span></code> sets <code class="docutils literal notranslate"><span class="pre">p_flags</span></code> to <code class="docutils literal notranslate"><span class="pre">PF_R</span> <span class="pre">|</span> <span class="pre">PF_X</span></code> and
+<code class="docutils literal notranslate"><span class="pre">FLAGS(0x03000000)</span></code> sets OS-specific flags.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the sections in an output file have different flag settings than
+what is specified in <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code>, the linker combines the two different
+flags using bitwise OR.</p>
+</div>
+</div>
+<div class="section" id="memory">
+<span id="linker-script-memory"></span><h3><a class="toc-backref" href="#id19"><span class="section-number">4.3.2. </span>MEMORY</a><a class="headerlink" href="#memory" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> command defines named memory regions (for example <code class="docutils literal notranslate"><span class="pre">FLASH</span></code> and
+<code class="docutils literal notranslate"><span class="pre">RAM</span></code>) that can be used to place output sections without hard-coding absolute
+addresses.</p>
+<p>In ELD, memory regions can be used in three related ways:</p>
+<ol class="arabic simple">
+<li><p><strong>VMA placement</strong>: <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code> assigns the output section’s VMA to the next
+available address in <code class="docutils literal notranslate"><span class="pre">REGION</span></code> (starting from <code class="docutils literal notranslate"><span class="pre">ORIGIN</span></code> and advancing by
+the output section size).</p></li>
+<li><p><strong>LMA placement</strong>: <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code> assigns the output section’s LMA to the next
+available address in <code class="docutils literal notranslate"><span class="pre">REGION</span></code> (tracked independently from VMA placement).</p></li>
+<li><p><strong>Automatic region selection</strong>: if an allocatable output section does not
+specify <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>, ELD can select a region by matching the section’s flags
+against region attributes (for example, place writable sections in a <code class="docutils literal notranslate"><span class="pre">(w)</span></code>
+region and code in an <code class="docutils literal notranslate"><span class="pre">(x)</span></code> region).</p></li>
+</ol>
+<div class="section" id="syntax">
+<h4><a class="toc-backref" href="#id20"><span class="section-number">4.3.2.1. </span>Syntax</a><a class="headerlink" href="#syntax" title="Permalink to this heading"></a></h4>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MEMORY</span> <span class="p">{</span>
+  <span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;</span> <span class="p">[(</span><span class="o">&lt;</span><span class="n">attrs</span><span class="o">&gt;</span><span class="p">)]</span> <span class="p">:</span> <span class="n">ORIGIN</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span> <span class="p">,</span> <span class="n">LENGTH</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;</span> <span class="p">[(</span><span class="o">&lt;</span><span class="n">attrs</span><span class="o">&gt;</span><span class="p">)]</span> <span class="p">:</span> <span class="n">org</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span> <span class="p">,</span> <span class="nb">len</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span>
+  <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Notes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ORIGIN</span></code> can also be spelled as <code class="docutils literal notranslate"><span class="pre">org</span></code> or <code class="docutils literal notranslate"><span class="pre">o</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LENGTH</span></code> can also be spelled as <code class="docutils literal notranslate"><span class="pre">len</span></code> or <code class="docutils literal notranslate"><span class="pre">l</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ORIGIN</span></code> and <code class="docutils literal notranslate"><span class="pre">LENGTH</span></code> must be separate tokens (for example,
+<code class="docutils literal notranslate"><span class="pre">ORIGIN</span> <span class="pre">=</span> <span class="pre">0x1000</span></code> is accepted, but <code class="docutils literal notranslate"><span class="pre">ORIGIN=</span> <span class="pre">0x1000</span></code> is rejected).</p></li>
+<li><p>The expressions are normal linker-script expressions; you can use constants
+and arithmetic, and size suffixes like <code class="docutils literal notranslate"><span class="pre">K</span></code>, <code class="docutils literal notranslate"><span class="pre">M</span></code>, and <code class="docutils literal notranslate"><span class="pre">G</span></code> (for example,
+<code class="docutils literal notranslate"><span class="pre">LENGTH</span> <span class="pre">=</span> <span class="pre">4K</span></code>).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> block can contain <code class="docutils literal notranslate"><span class="pre">INCLUDE</span></code>/<code class="docutils literal notranslate"><span class="pre">INCLUDE_OPTIONAL</span></code> directives.</p></li>
+</ul>
+</div>
+<div class="section" id="memory-region-names">
+<h4><a class="toc-backref" href="#id21"><span class="section-number">4.3.2.2. </span>Memory region names</a><a class="headerlink" href="#memory-region-names" title="Permalink to this heading"></a></h4>
+<p>Region names are identifiers (and may also appear quoted in scripts). Region
+names are referenced in output section descriptions via <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code> and
+<code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code>.</p>
+<p>If a section references an unknown region name, ELD errors out (for example,
+<code class="docutils literal notranslate"><span class="pre">Cannot</span> <span class="pre">find</span> <span class="pre">memory</span> <span class="pre">region</span> <span class="pre">&lt;name&gt;</span></code>).</p>
+</div>
+<div class="section" id="memory-region-attributes">
+<h4><a class="toc-backref" href="#id22"><span class="section-number">4.3.2.3. </span>Memory region attributes</a><a class="headerlink" href="#memory-region-attributes" title="Permalink to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">(&lt;attrs&gt;)</span></code> is optional and is primarily used for <strong>automatic region
+selection</strong> (when an allocatable output section does not specify an explicit
+<code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>).</p>
+<p>ELD supports the following attribute letters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">w</span></code>: writable (matches <code class="docutils literal notranslate"><span class="pre">SHF_WRITE</span></code> sections).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">x</span></code>: executable (matches <code class="docutils literal notranslate"><span class="pre">SHF_EXECINSTR</span></code> sections).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">a</span></code>: allocatable (matches <code class="docutils literal notranslate"><span class="pre">SHF_ALLOC</span></code> sections).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">r</span></code>: read-only (matches <em>non-writable</em> allocatable sections; ELF sections do
+not explicitly carry a read flag).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">i</span></code> / <code class="docutils literal notranslate"><span class="pre">l</span></code>: initialized (matches <code class="docutils literal notranslate"><span class="pre">SHT_PROGBITS</span></code> sections; used to avoid
+matching <code class="docutils literal notranslate"><span class="pre">SHT_NOBITS</span></code> when desired).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">!</span></code>: negation operator, used to say that attributes must <strong>not</strong> be present.
+For example, <code class="docutils literal notranslate"><span class="pre">(r!x)</span></code> matches non-writable, non-executable sections.</p></li>
+</ul>
+<p>The attribute matching rules apply only to allocatable output sections that do
+not already have an explicit <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If you explicitly assign a section to a region using <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>, ELD does
+not reject the assignment even if the section’s flags do not match the
+region’s attributes. Attributes are for auto-selection, not enforcement.</p>
+</div>
+</div>
+<div class="section" id="automatic-region-selection-orphans-and-missing-region">
+<h4><a class="toc-backref" href="#id23"><span class="section-number">4.3.2.4. </span>Automatic region selection (orphans and missing <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>)</a><a class="headerlink" href="#automatic-region-selection-orphans-and-missing-region" title="Permalink to this heading"></a></h4>
+<p>When a linker script uses <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> and an allocatable output section is not
+explicitly assigned to a region, ELD attempts to assign it to the first memory
+region (in <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> order) whose attributes match the section’s flags.</p>
+<p>This includes <em>orphan output sections</em> (output sections created implicitly
+because some input sections were not matched by any rule in <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code>).</p>
+<p>If no memory region matches an allocatable output section, ELD errors out (for
+example, <code class="docutils literal notranslate"><span class="pre">Error:</span> <span class="pre">No</span> <span class="pre">memory</span> <span class="pre">region</span> <span class="pre">assigned</span> <span class="pre">to</span> <span class="pre">section</span> <span class="pre">.data</span></code>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This behavior can differ from GNU ld and LLD for orphans. For example, some
+linkers may keep orphan sections in the “current” region/cursor even when
+region attributes suggest a different region. ELD follows the region
+attribute matching rules for orphans and other unassigned allocatable output
+sections. See <a class="reference external" href="https://github.com/qualcomm/eld/issues/127">https://github.com/qualcomm/eld/issues/127</a> for a concrete
+example and background.</p>
+</div>
+<p>Common recommendation: if the placement of a section matters (for example,
+<code class="docutils literal notranslate"><span class="pre">.rodata</span></code>, <code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code>, <code class="docutils literal notranslate"><span class="pre">.tbss</span></code>), add an explicit output section rule and
+assign it to the intended region rather than relying on orphan heuristics.</p>
+</div>
+<div class="section" id="interaction-with-explicit-addresses-vma-overrides">
+<h4><a class="toc-backref" href="#id24"><span class="section-number">4.3.2.5. </span>Interaction with explicit addresses (VMA overrides)</a><a class="headerlink" href="#interaction-with-explicit-addresses-vma-overrides" title="Permalink to this heading"></a></h4>
+<p>If an output section has an explicit VMA (for example <code class="docutils literal notranslate"><span class="pre">.text</span> <span class="pre">0x2000</span> <span class="pre">:</span> <span class="pre">{</span> <span class="pre">...</span> <span class="pre">}</span></code>
+or via <code class="docutils literal notranslate"><span class="pre">--section-start</span></code>), the explicit VMA is honored.</p>
+<p>If that output section also has <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>:</p>
+<ul class="simple">
+<li><p>If the explicit VMA lies <strong>within</strong> the region’s <code class="docutils literal notranslate"><span class="pre">[ORIGIN,</span> <span class="pre">ORIGIN+LENGTH]</span></code>
+range, the section is still accounted against the region for memory usage
+checks/reporting.</p></li>
+<li><p>If the explicit VMA lies <strong>outside</strong> the region range, the section is not
+charged against that region (the explicit address is treated as an override).</p></li>
+</ul>
+<p>This is intended to support scripts that use regions as a default placement
+mechanism while still allowing some sections to be placed at fixed addresses.</p>
+</div>
+<div class="section" id="tls-and-tbss">
+<h4><a class="toc-backref" href="#id25"><span class="section-number">4.3.2.6. </span>TLS and <code class="docutils literal notranslate"><span class="pre">.tbss</span></code></a><a class="headerlink" href="#tls-and-tbss" title="Permalink to this heading"></a></h4>
+<p>ELD treats TLS <code class="docutils literal notranslate"><span class="pre">SHT_NOBITS</span></code> sections (for example <code class="docutils literal notranslate"><span class="pre">.tbss</span></code>) specially for
+<code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> region cursors: <code class="docutils literal notranslate"><span class="pre">.tbss</span></code> does not advance the region cursor, so a
+subsequent non-TLS output section may end up with the same VMA. If your script
+requires non-overlapping VMAs for TLS and non-TLS sections, place TLS output
+sections explicitly (for example, in a dedicated region or at a dedicated
+address range) rather than relying on region cursors.</p>
+</div>
+<div class="section" id="lma-regions-and-at-region">
+<h4><a class="toc-backref" href="#id26"><span class="section-number">4.3.2.7. </span>LMA regions and <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code></a><a class="headerlink" href="#lma-regions-and-at-region" title="Permalink to this heading"></a></h4>
+<p>Use <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code> on an output section description to place the section’s <strong>load
+memory address (LMA)</strong> in a region, independent of its VMA placement:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">.</span><span class="n">text</span> <span class="p">:</span> <span class="p">{</span> <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">*</span><span class="p">)</span> <span class="p">}</span> <span class="o">&gt;</span><span class="n">RAM</span> <span class="n">AT</span><span class="o">&gt;</span><span class="n">FLASH</span>
+</pre></div>
+</div>
+<p>Rules:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AT(&lt;address&gt;)</span></code> and <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code> are mutually exclusive; specifying both is
+an error.</p></li>
+<li><p>If a section has a VMA region (<code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>) but no explicit LMA control, ELD
+defaults the LMA region to the same region as the VMA region.</p></li>
+<li><p>If a section has explicit LMA control (<code class="docutils literal notranslate"><span class="pre">AT(&lt;address&gt;)</span></code>), ELD does not
+automatically align the LMA. (See <a class="reference internal" href="#controlling-physical-addresses"><span class="std std-ref">Controlling Physical addresses</span></a>.)</p></li>
+</ul>
+</div>
+<div class="section" id="builtins-origin-and-length">
+<h4><a class="toc-backref" href="#id27"><span class="section-number">4.3.2.8. </span>Builtins: <code class="docutils literal notranslate"><span class="pre">ORIGIN()</span></code> and <code class="docutils literal notranslate"><span class="pre">LENGTH()</span></code></a><a class="headerlink" href="#builtins-origin-and-length" title="Permalink to this heading"></a></h4>
+<p>ELD supports GNU-compatible <code class="docutils literal notranslate"><span class="pre">ORIGIN(&lt;region&gt;)</span></code> and <code class="docutils literal notranslate"><span class="pre">LENGTH(&lt;region&gt;)</span></code>
+builtins in linker script expressions.</p>
+<p>These functions accept a memory region name or a region alias and evaluate to
+the region’s origin and length, respectively. If the region name cannot be
+resolved, ELD errors out.</p>
+</div>
+<div class="section" id="region-alias">
+<h4><a class="toc-backref" href="#id28"><span class="section-number">4.3.2.9. </span>REGION_ALIAS</a><a class="headerlink" href="#region-alias" title="Permalink to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">REGION_ALIAS(&quot;alias&quot;,</span> <span class="pre">&quot;region&quot;)</span></code> defines an alias name for an existing memory
+region. Aliases can be used anywhere a region name is expected (for example,
+<code class="docutils literal notranslate"><span class="pre">&gt;alias</span></code> or <code class="docutils literal notranslate"><span class="pre">ORIGIN(alias)</span></code>).</p>
+<p>ELD restrictions and diagnostics:</p>
+<ul class="simple">
+<li><p>Creating two aliases with the same alias name is an error.</p></li>
+<li><p>An alias name must not collide with a real memory region name.</p></li>
+</ul>
+</div>
+<div class="section" id="memory-usage-checking-and-reporting">
+<h4><a class="toc-backref" href="#id29"><span class="section-number">4.3.2.10. </span>Memory usage checking and reporting</a><a class="headerlink" href="#memory-usage-checking-and-reporting" title="Permalink to this heading"></a></h4>
+<p>When <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> is used, ELD tracks memory usage per region during layout:</p>
+<ul class="simple">
+<li><p>If the total size placed in a region exceeds <code class="docutils literal notranslate"><span class="pre">LENGTH</span></code>, ELD errors out and
+reports the overflow amount per output section.</p></li>
+<li><p>With <code class="docutils literal notranslate"><span class="pre">-Wlinker-script-memory</span></code>, ELD can warn on zero-length regions and on
+regions that end up with zero used size after layout.</p></li>
+</ul>
+<p>Additionally:</p>
+<ul class="simple">
+<li><p>The text map format (<code class="docutils literal notranslate"><span class="pre">-MapStyle</span> <span class="pre">txt</span></code>) includes a <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">MEMORY</span></code> block that
+prints the parsed <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> regions and annotates each output section line
+with <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">:</span> <span class="pre">[&lt;VMARegion&gt;,</span> <span class="pre">&lt;LMARegion&gt;]</span></code> when available.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--print-memory-usage</span></code> prints a summary table of used size and percentage
+per memory region when a <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> directive is present.</p></li>
+</ul>
+</div>
+<div class="section" id="phdrs-interaction-and-program-header-loading">
+<h4><a class="toc-backref" href="#id30"><span class="section-number">4.3.2.11. </span>PHDRS interaction and program header loading</a><a class="headerlink" href="#phdrs-interaction-and-program-header-loading" title="Permalink to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> controls <strong>where sections go</strong> (VMA via <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code> and LMA via
+<code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code>). <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code> controls <strong>which segments exist</strong> and which output
+sections are assigned to those segments (via <code class="docutils literal notranslate"><span class="pre">:phdr</span></code> on output section
+descriptions).</p>
+<p>Key points:</p>
+<ul class="simple">
+<li><p>If you do not specify <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code>, ELD creates segments using its default
+heuristics. A change in memory region (for example, <code class="docutils literal notranslate"><span class="pre">&gt;FLASH</span></code> to <code class="docutils literal notranslate"><span class="pre">&gt;RAM</span></code>)
+can force ELD to start a new <code class="docutils literal notranslate"><span class="pre">PT_LOAD</span></code> segment.</p></li>
+<li><p>If you specify <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code>, ELD only creates the program headers declared in
+the script. In this mode, region changes do <em>not</em> create extra segments; you
+must assign each output section to the intended segment(s) using <code class="docutils literal notranslate"><span class="pre">:phdr</span></code>.</p></li>
+<li><p>Runtime loaders use the ELF program headers (and sometimes the file header)
+to decide what to map or copy. If your loader needs the file header and/or
+program headers to be part of the first loadable segment, use <code class="docutils literal notranslate"><span class="pre">FILEHDR</span></code> and
+<code class="docutils literal notranslate"><span class="pre">PHDRS</span></code> keywords on the corresponding <code class="docutils literal notranslate"><span class="pre">PT_LOAD</span></code> in the <code class="docutils literal notranslate"><span class="pre">PHDRS</span></code> command.</p></li>
+</ul>
+<p>Example (first segment includes file+program headers):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PHDRS</span> <span class="p">{</span>
+  <span class="n">text</span> <span class="n">PT_LOAD</span> <span class="n">FILEHDR</span> <span class="n">PHDRS</span><span class="p">;</span>
+  <span class="n">data</span> <span class="n">PT_LOAD</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If you include headers in a loadable segment, you typically must also reserve
+space for them in the image layout (see <a class="reference internal" href="#memory-sizeof-headers"><span class="std std-ref">Using SIZEOF_HEADERS with MEMORY</span></a>).</p>
+</div>
+<div class="section" id="using-sizeof-headers-with-memory">
+<span id="memory-sizeof-headers"></span><h4><a class="toc-backref" href="#id31"><span class="section-number">4.3.2.12. </span>Using SIZEOF_HEADERS with MEMORY</a><a class="headerlink" href="#using-sizeof-headers-with-memory" title="Permalink to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">SIZEOF_HEADERS</span></code> evaluates to the total size (in bytes) of the ELF file header
+and program header table that ELD emits for the output.</p>
+<p>Nuance: in ELD, using <code class="docutils literal notranslate"><span class="pre">SIZEOF_HEADERS</span></code> <em>before the first output section is
+seen</em> also acts as a signal that the script is intentionally accounting for
+headers; this impacts whether ELD considers the headers as occupying space at
+the start of the image when a linker script is present.</p>
+</div>
+<div class="section" id="common-memory-pitfalls-and-errors">
+<h4><a class="toc-backref" href="#id32"><span class="section-number">4.3.2.13. </span>Common MEMORY pitfalls and errors</a><a class="headerlink" href="#common-memory-pitfalls-and-errors" title="Permalink to this heading"></a></h4>
+<ul class="simple">
+<li><p><strong>Tokenization</strong>: <code class="docutils literal notranslate"><span class="pre">ORIGIN</span></code>/<code class="docutils literal notranslate"><span class="pre">LENGTH</span></code> must be separate tokens (<code class="docutils literal notranslate"><span class="pre">ORIGIN</span> <span class="pre">=</span>
+<span class="pre">...</span></code>); scripts like <code class="docutils literal notranslate"><span class="pre">ORIGIN=</span> <span class="pre">0x1000</span></code> are rejected.</p></li>
+<li><p><strong>Unknown region name</strong>: <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code> or <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code> refers to a region not
+defined in <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> (error: <code class="docutils literal notranslate"><span class="pre">Cannot</span> <span class="pre">find</span> <span class="pre">memory</span> <span class="pre">region</span> <span class="pre">...</span></code>).</p></li>
+<li><p><strong>No region assigned</strong>: if <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> is present and an allocatable output
+section does not have an explicit region and does not match any region
+attributes (error: <code class="docutils literal notranslate"><span class="pre">No</span> <span class="pre">memory</span> <span class="pre">region</span> <span class="pre">assigned</span> <span class="pre">to</span> <span class="pre">section</span> <span class="pre">...</span></code>).</p></li>
+<li><p><strong>Overflow</strong>: placed size exceeds <code class="docutils literal notranslate"><span class="pre">LENGTH</span></code> (error: <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">region</span> <span class="pre">&lt;name&gt;</span>
+<span class="pre">exceeded</span> <span class="pre">limit</span> <span class="pre">...</span> <span class="pre">overflowed</span> <span class="pre">by</span> <span class="pre">...</span></code>). Remember to account for alignment,
+page alignment, and headers if <code class="docutils literal notranslate"><span class="pre">FILEHDR</span> <span class="pre">PHDRS</span></code> are used.</p></li>
+<li><p><strong>Mixing ``AT(address)`` with ``AT&gt;REGION``</strong>: these are mutually exclusive.
+If you need a fixed LMA base but still want region-based placement for the
+rest of the image, prefer shifting the region origin using expressions (see
+<a class="reference internal" href="#memory-sizeof-headers"><span class="std std-ref">Using SIZEOF_HEADERS with MEMORY</span></a>) or keep all LMAs explicit.</p></li>
+<li><p><strong>Orphan placement surprises</strong>: orphan output sections and other unassigned
+allocatable sections are auto-assigned using region attributes; if a specific
+section must be in a particular region, add an explicit output section rule.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="sections">
+<h3><a class="toc-backref" href="#id33"><span class="section-number">4.3.3. </span>SECTIONS</a><a class="headerlink" href="#sections" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">SECTIONS</span> <span class="pre">{</span> <span class="pre">section_statement</span> <span class="pre">section_statement</span> <span class="pre">...</span> <span class="pre">}</span></code></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> script command specifies how input sections are mapped
+to output sections, and where output sections are located in memory. The
+<code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command must be specified once, and only once, in a linker
+script.</p>
+<div class="section" id="section-statements">
+<h4><a class="toc-backref" href="#id34"><span class="section-number">4.3.3.1. </span>Section statements</a><a class="headerlink" href="#section-statements" title="Permalink to this heading"></a></h4>
+<p>A <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command contains one or more section statements, each of
+which can be one of the following:</p>
+<ul class="simple">
+<li><p>An <code class="docutils literal notranslate"><span class="pre">ENTRY</span></code> command.</p></li>
+<li><p>A symbol assignment statement to set the location counter. The
+location counter specifies the default address in subsequent
+section-mapping statements that do not explicitly specify an address.</p></li>
+<li><p>An output section description to specify one or more input sections in
+one or more library files, and map those sections to an output
+section. The virtual memory address of the output section can be
+specified using attribute keywords.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="entry">
+<h3><a class="toc-backref" href="#id35"><span class="section-number">4.3.4. </span>ENTRY</a><a class="headerlink" href="#entry" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">ENTRY(symbol)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">ENTRY</span></code> script command specifies the program execution entry
+point.</p></li>
+<li><p>The entry point is the first instruction that is executed after a
+program is loaded.</p></li>
+<li><p>This command is equivalent to the linker command-line option
+<a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-e"><code class="xref std std-option docutils literal notranslate"><span class="pre">-e</span></code></a>.</p></li>
+</ul>
+</div>
+<div class="section" id="output-format">
+<h3><a class="toc-backref" href="#id36"><span class="section-number">4.3.5. </span>OUTPUT_FORMAT</a><a class="headerlink" href="#output-format" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">OUTPUT_FORMAT(string)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">OUTPUT_FORMAT</span></code> script command specifies the output file
+properties.</p></li>
+<li><p>For compatibility with the GNU linker, this command is parsed but has
+no effect on linking.</p></li>
+</ul>
+</div>
+<div class="section" id="output-arch">
+<h3><a class="toc-backref" href="#id37"><span class="section-number">4.3.6. </span>OUTPUT_ARCH</a><a class="headerlink" href="#output-arch" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">OUTPUT_ARCH(&quot;aarch64&quot;)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">OUTPUT_ARCH</span></code> script command specifies the target processor
+architecture.</p></li>
+<li><p>For compatibility with the GNU linker, this command is parsed but has
+no effect on linking.</p></li>
+</ul>
+</div>
+<div class="section" id="search-dir">
+<h3><a class="toc-backref" href="#id38"><span class="section-number">4.3.7. </span>SEARCH_DIR</a><a class="headerlink" href="#search-dir" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">SEARCH_DIR(path)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">SEARCH_DIR</span></code> script command adds the specified path to the list
+of paths that the linker uses to search for libraries.</p></li>
+<li><p>This command is equivalent to the linker command-line option
+<a class="reference internal" href="options/GnuLinkerOptions.html#cmdoption-L"><code class="xref std std-option docutils literal notranslate"><span class="pre">-L</span></code></a>.</p></li>
+</ul>
+</div>
+<div class="section" id="include">
+<h3><a class="toc-backref" href="#id39"><span class="section-number">4.3.8. </span>INCLUDE</a><a class="headerlink" href="#include" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">INCLUDE(file)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">INCLUDE</span></code> script command specifies the contents of the text file
+at the current location in the linker script.</p></li>
+<li><p>The specified file is searched for in the current directory and any
+directory that the linker uses to search for libraries.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Include files can be nested.</p>
+</div>
+</div>
+<div class="section" id="output">
+<h3><a class="toc-backref" href="#id40"><span class="section-number">4.3.9. </span>OUTPUT</a><a class="headerlink" href="#output" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">OUTPUT(file)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">OUTPUT</span></code> script command defines the location and file where the
+linker will write output data.</p></li>
+<li><p>Only one output is allowed per linking.</p></li>
+</ul>
+</div>
+<div class="section" id="group">
+<h3><a class="toc-backref" href="#id41"><span class="section-number">4.3.10. </span>GROUP</a><a class="headerlink" href="#group" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">GROUP(file,</span> <span class="pre">file,</span> <span class="pre">…)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">GROUP</span></code> script command includes a list of archive file names.</p></li>
+<li><p>The archive names defined in the list are searched repeatedly until
+all defined references are resolved.</p></li>
+</ul>
+</div>
+<div class="section" id="assert">
+<h3><a class="toc-backref" href="#id42"><span class="section-number">4.3.11. </span>ASSERT</a><a class="headerlink" href="#assert" title="Permalink to this heading"></a></h3>
+<p>Syntax :- <code class="docutils literal notranslate"><span class="pre">ASSERT(expression,</span> <span class="pre">string)</span></code></p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">ASSERT</span></code> script command adds an assertion to the linker script.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="expressions">
+<h2><a class="toc-backref" href="#id43"><span class="section-number">4.4. </span>Expressions</a><a class="headerlink" href="#expressions" title="Permalink to this heading"></a></h2>
+<p>Expressions in linker scripts are identical to C expressions</p>
+<table class="colwidths-given docutils align-default" id="id8">
+<caption><span class="caption-text">Expression helper functions</span><a class="headerlink" href="#id8" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 70%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.</span></code></p></td>
+<td><p>Return the location counter value representing the current virtual address.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ABSOLUTE(expression)</span></code></p></td>
+<td><p>Return the absolute value of the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ADDR(string)</span></code></p></td>
+<td><p>Return the virtual address of the symbol or section. <code class="docutils literal notranslate"><span class="pre">.</span></code> is supported.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ALIGN(expression)</span></code></p></td>
+<td><p>Return the value of the location counter when aligned to the next expression boundary.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ALIGN(expression1,</span> <span class="pre">expression2)</span></code></p></td>
+<td><p>Return <code class="docutils literal notranslate"><span class="pre">expression1</span></code> rounded up to the next <code class="docutils literal notranslate"><span class="pre">expression2</span></code> boundary.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ALIGNOF(string)</span></code></p></td>
+<td><p>Return the alignment of the symbol or section. <code class="docutils literal notranslate"><span class="pre">NEXT_SECTION</span></code> returns the next allocated output section alignment (only supported with <code class="docutils literal notranslate"><span class="pre">ALIGNOF</span></code>/<code class="docutils literal notranslate"><span class="pre">SIZEOF</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ASSERT(expression,</span> <span class="pre">string)</span></code></p></td>
+<td><p>Throw an assertion if the expression evaluates to zero.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BLOCK(expression)</span></code></p></td>
+<td><p>Synonym for <code class="docutils literal notranslate"><span class="pre">ALIGN(expression)</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DATA_SEGMENT_ALIGN(maxpagesize,</span> <span class="pre">commonpagesize)</span></code></p></td>
+<td><p>Equivalent to <code class="docutils literal notranslate"><span class="pre">ALIGN(maxpagesize)</span> <span class="pre">+</span> <span class="pre">(.</span> <span class="pre">&amp;</span> <span class="pre">(maxpagesize</span> <span class="pre">-</span> <span class="pre">1))</span></code> or <code class="docutils literal notranslate"><span class="pre">ALIGN(maxpagesize)</span> <span class="pre">+</span> <span class="pre">(.</span> <span class="pre">&amp;</span> <span class="pre">(maxpagesize</span> <span class="pre">-</span> <span class="pre">commonpagesize))</span></code> (the larger of the two).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DATA_SEGMENT_END(expression)</span></code></p></td>
+<td><p>Return the value of the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DATA_SEGMENT_RELRO_END(expression)</span></code></p></td>
+<td><p>Return the value of the expression.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DEFINED(symbol)</span></code></p></td>
+<td><p>Return 1 if the symbol is defined in the global symbol table.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LOADADDR(string)</span></code></p></td>
+<td><p>Synonym for <code class="docutils literal notranslate"><span class="pre">ADDR</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MAX(expression1,</span> <span class="pre">expression2)</span></code></p></td>
+<td><p>Return the maximum of two expressions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MIN(expression1,</span> <span class="pre">expression2)</span></code></p></td>
+<td><p>Return the minimum of two expressions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SEGMENT_START(string,</span> <span class="pre">expression)</span></code></p></td>
+<td><p>If the string matches a known segment, return its start address; otherwise return the expression.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SIZEOF(string)</span></code></p></td>
+<td><p>Return the size of the symbol, section, or segment. <code class="docutils literal notranslate"><span class="pre">NEXT_SECTION</span></code> returns the size of the next allocated output section (only with <code class="docutils literal notranslate"><span class="pre">ALIGNOF</span></code>/<code class="docutils literal notranslate"><span class="pre">SIZEOF</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SIZEOF_HEADERS</span></code></p></td>
+<td><p>Return the total size (bytes) of the ELF file header plus program headers.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CONSTANT(MAXPAGESIZE)</span></code></p></td>
+<td><p>Return the ABI-defined maximum page size.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CONSTANT(COMMONPAGESIZE)</span></code></p></td>
+<td><p>Return the ABI-defined common page size.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="symbol-assignments">
+<h2><a class="toc-backref" href="#id44"><span class="section-number">4.5. </span>Symbol assignments</a><a class="headerlink" href="#symbol-assignments" title="Permalink to this heading"></a></h2>
+<p>Linker scripts can define symbols that are used by the link to create the
+output image. Linker script symbols can be referenced by the program
+source code. One typical use of linker script symbols is to define the size
+and start / stop address of an output section.</p>
+<p>Linker script symbol assignments support most C operators and follow
+C-like rules. For example, all the assignments must end with a semi-colon, and
+the C arithmetic operators are supported. The below mathematical operators are supported in linker script
+assignments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">-</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">/</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">&amp;</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">|</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">&lt;&lt;</span> <span class="n">w</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">&gt;&gt;</span> <span class="n">w</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Additionally, linker script also supports compound assignment operators:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span> <span class="o">+=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">-=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">*=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">/=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">&amp;=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">|=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">&lt;&lt;=</span> <span class="n">v</span><span class="p">;</span>
+<span class="n">u</span> <span class="o">&gt;&gt;=</span> <span class="n">v</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The left-hand side symbol must already be defined when using compound assignment operator.</p>
+<div class="section" id="symbol-assignment-types">
+<h3><a class="toc-backref" href="#id45"><span class="section-number">4.5.1. </span>Symbol assignment types</a><a class="headerlink" href="#symbol-assignment-types" title="Permalink to this heading"></a></h3>
+<p>Linker script symbol assignments are of 4 key types:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="code docutils literal notranslate"><span class="pre">symbol</span> <span class="pre">=</span> <span class="pre">expression;</span></code></p>
+<p>Defines a <code class="code docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol.</p>
+</li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">HIDDEN(symbol</span> <span class="pre">=</span> <span class="pre">expression);</span></code></p>
+<p>Defines a <code class="docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol with <code class="docutils literal notranslate"><span class="pre">HIDDEN</span></code> visibility.</p>
+</li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">PROVIDE(symbol</span> <span class="pre">=</span> <span class="pre">expression);</span></code></p>
+<p>Defines the <code class="code docutils literal notranslate"><span class="pre">symbol</span></code> only if it is required. If defined,
+the symbol will have <code class="code docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol binding.</p>
+</li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">PROVIDE_HIDDEN(symbol</span> <span class="pre">=</span> <span class="pre">expression);</span></code></p>
+<p>Defines the <code class="code docutils literal notranslate"><span class="pre">symbol</span></code> only if it is required. If defined,
+the symbol will be a <code class="docutils literal notranslate"><span class="pre">GLOBAL</span></code> symbol with <code class="code docutils literal notranslate"><span class="pre">HIDDEN</span></code> visibility.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="section-of-linker-script-symbols">
+<h3><a class="toc-backref" href="#id46"><span class="section-number">4.5.2. </span>Section of linker script symbols</a><a class="headerlink" href="#section-of-linker-script-symbols" title="Permalink to this heading"></a></h3>
+<p>Linker script symbols defined outside an output section directive are
+called <em>absolute</em> symbols. That is, they do not belong to any output section.
+The section index of such symbols is a sentinel value <code class="code docutils literal notranslate"><span class="pre">SHN_ABS</span></code>.</p>
+<p>Linker script symbols that are defined within an output section directive
+have the output section index as their section index.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">script</span><span class="o">.</span><span class="n">t</span>
+<span class="n">u</span> <span class="o">=</span> <span class="mh">0x100</span><span class="p">;</span>  <span class="o">//</span> <span class="n">ABS</span> <span class="n">symbol</span>
+<span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="n">v</span> <span class="o">=</span> <span class="mh">0x300</span><span class="p">;</span> <span class="o">//</span> <span class="n">ABS</span> <span class="n">symbol</span>
+  <span class="n">foo</span> <span class="p">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="mh">0x500</span><span class="p">;</span>  <span class="o">//</span> <span class="n">Section</span> <span class="n">of</span> <span class="n">the</span> <span class="n">symbol</span> <span class="ow">is</span> <span class="n">foo</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="n">e</span> <span class="o">=</span> <span class="mh">0x700</span><span class="p">;</span> <span class="o">//</span> <span class="n">ABS</span> <span class="n">symbol</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="location-counter">
+<h3><a class="toc-backref" href="#id47"><span class="section-number">4.5.3. </span>Location counter</a><a class="headerlink" href="#location-counter" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">.</span></code> symbol is a special linker symbol that always contains the current output
+location address. Assigning to it changes the current output
+location address and can be used to create holes in the output image. This special
+dot symbol is called the location counter. It may also be referred to as the
+dot counter and dot symbol.</p>
+</div>
+<div class="section" id="assignment-evaluation-order">
+<h3><a class="toc-backref" href="#id48"><span class="section-number">4.5.4. </span>Assignment evaluation order</a><a class="headerlink" href="#assignment-evaluation-order" title="Permalink to this heading"></a></h3>
+<p>Understanding symbol assignment evaluation order is the key to understanding
+linker scripts and a necessary skill to debug linker script related issues.
+For the most part, the linker script assignments behave how you expect, but
+things become interesting when forward references are involved.</p>
+<div class="section" id="basic-case-no-forward-reference">
+<h4><a class="toc-backref" href="#id49"><span class="section-number">4.5.4.1. </span>Basic case: No forward reference</a><a class="headerlink" href="#basic-case-no-forward-reference" title="Permalink to this heading"></a></h4>
+<p>Let’s start with a basic case that does not have any forward references.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u1</span> <span class="o">=</span> <span class="mh">0x100</span><span class="p">;</span>  <span class="o">//</span> <span class="n">A1</span>
+<span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="n">u2</span> <span class="o">=</span> <span class="mh">0x300</span><span class="p">;</span> <span class="o">//</span> <span class="n">A2</span>
+  <span class="n">foo</span> <span class="p">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+    <span class="n">u3</span> <span class="o">=</span> <span class="mh">0x500</span><span class="p">;</span>  <span class="o">//</span> <span class="n">A3</span>
+  <span class="p">}</span>
+  <span class="n">u4</span> <span class="o">=</span> <span class="mh">0x700</span><span class="p">;</span>  <span class="o">//</span> <span class="n">A4</span>
+  <span class="n">bar</span> <span class="p">:</span> <span class="p">{</span>
+    <span class="n">u5</span> <span class="o">=</span> <span class="mh">0x900</span><span class="p">;</span>  <span class="o">//</span> <span class="n">A5</span>
+    <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">bar</span><span class="p">)</span>
+  <span class="p">}</span>
+  <span class="n">u5</span> <span class="o">=</span> <span class="mh">0x1100</span><span class="p">;</span> <span class="o">//</span> <span class="n">A6</span>
+<span class="p">}</span>
+<span class="n">u6</span> <span class="o">=</span> <span class="mh">0x1300</span><span class="p">;</span>  <span class="o">//</span> <span class="n">A7</span>
+</pre></div>
+</div>
+<p>The linker evaluates the assignment during the layout phase. The assignments
+, when they do not contain any forward reference, are evaluated in the
+script order. Thus, in this case, the linker script assignment evaluation
+order is: <code class="code docutils literal notranslate"><span class="pre">[A1,</span> <span class="pre">A2,</span> <span class="pre">A3,</span> <span class="pre">A4,</span> <span class="pre">A5,</span> <span class="pre">A6,</span> <span class="pre">A7]</span></code>.</p>
+</div>
+<div class="section" id="forward-reference">
+<h4><a class="toc-backref" href="#id50"><span class="section-number">4.5.4.2. </span>Forward reference</a><a class="headerlink" href="#forward-reference" title="Permalink to this heading"></a></h4>
+<p>We will now see a more complex example that has forward references. But before we
+dive into the example, let’s understand how linker evaluates an individual assignment
+that has forward reference.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="n">w</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>For the above assignment, let’s say that <code class="code docutils literal notranslate"><span class="pre">v</span></code> is defined before this assignment as per the linker script
+and <code class="code docutils literal notranslate"><span class="pre">w</span></code> gets defined later. In such case, the <em>final</em> value of the symbol (<code class="code docutils literal notranslate"><span class="pre">w</span></code> in this case) is
+used to evaluate the assignment. Let’s understand this with a more concrete example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">v</span> <span class="o">=</span> <span class="mh">0x100</span><span class="p">;</span> <span class="o">//</span> <span class="n">A1</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="n">w</span><span class="p">;</span> <span class="o">//</span> <span class="n">A2</span>
+<span class="n">w</span> <span class="o">=</span> <span class="mh">0x200</span><span class="p">;</span> <span class="o">//</span> <span class="n">A3</span>
+<span class="n">foo</span> <span class="o">=</span> <span class="n">w</span><span class="p">;</span>   <span class="o">//</span> <span class="n">A4</span>
+<span class="n">w</span> <span class="o">=</span> <span class="mh">0x400</span><span class="p">;</span> <span class="o">//</span> <span class="n">A5</span>
+<span class="n">v</span> <span class="o">=</span> <span class="mh">0x600</span><span class="p">;</span> <span class="o">//</span> <span class="n">A6</span>
+</pre></div>
+</div>
+<p>When A2 (<code class="code docutils literal notranslate"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">v</span> <span class="pre">+</span> <span class="pre">w</span></code>) is evaluated, <code class="code docutils literal notranslate"><span class="pre">v</span></code> is already defined and is thus evaluated
+to its current value <code class="code docutils literal notranslate"><span class="pre">0x100</span></code>. On the other hand, <code class="code docutils literal notranslate"><span class="pre">w</span></code> is not defined when A2 is
+executed and thus the final value of <code class="code docutils literal notranslate"><span class="pre">w</span></code> (i.e., 0x400) is used to evaluate A2.
+Thus, after all assignments are processed, the final values are:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">v</span> <span class="pre">=</span> <span class="pre">0x600</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">0x500</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">foo</span> <span class="pre">=</span> <span class="pre">0x200</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">w</span> <span class="pre">=</span> <span class="pre">0x400</span></code></p></li>
+</ul>
+<p>Now let’s look at a more complex example containing forward references.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span> <span class="o">=</span> <span class="n">v</span><span class="p">;</span> <span class="o">//</span> <span class="n">A1</span>
+<span class="n">SECTIONS</span> <span class="p">{</span>
+ <span class="n">v</span> <span class="o">=</span> <span class="n">v1</span><span class="p">;</span> <span class="o">//</span> <span class="n">A2</span>
+ <span class="n">foo</span> <span class="p">:</span> <span class="p">{</span>
+   <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+   <span class="n">v1</span> <span class="o">=</span> <span class="n">v2</span><span class="p">;</span> <span class="o">//</span> <span class="n">A3</span>
+ <span class="p">}</span>
+ <span class="n">v2</span> <span class="o">=</span> <span class="n">v3</span><span class="p">;</span> <span class="o">//</span> <span class="n">A4</span>
+<span class="p">}</span>
+<span class="n">v3</span> <span class="o">=</span> <span class="n">SIZEOF</span><span class="p">(</span><span class="n">foo</span><span class="p">);</span> <span class="o">//</span> <span class="n">A5</span>
+</pre></div>
+</div>
+<p>The linker again tries to evaluate the assignment in order, however, the assignments
+A1, A2, A3 and A4 cannot be completely evaluated because the variables on their
+right hand side are not evaluated yet. The linker marks the assignments that cannot
+be completely evaluated as pending assignments. It also records which nodes were unevaluated
+in the assignment. After the layout is complete, but before the relaxations begin, the linker
+recursivly evaluates the pending assignments until all assignments are resolved or a
+circular dependency is encountered. During re-evaluation of an assignment, only the previously
+unevaluated nodes are reevaluated.</p>
+<p>The assignment evaluation sequence for this example is:</p>
+<ol class="arabic simple">
+<li><p>Evaluate [A1, A2, A3, A4, A5]: PendingAssignments = [A1, A2, A3, A4], CompletedAssignments = [A5]</p></li>
+<li><p>Re-evaluate [A1, A2, A3, A4]: PendingAssignments = [A1, A2, A3], CompletedAssignments = [A5, A4]</p></li>
+<li><p>Re-evalaute [A1, A2, A3]: PendingAssignments = [A1, A2], CompletedAssignments = [A5, A4, A3]</p></li>
+<li><p>Re-evaluate [A1, A2]: PendingAssignments = [A1], CompletedAssignments = [A5, A4, A3, A2]</p></li>
+<li><p>Re-evaluate [A1]: PendingAssignments = [], CompletedAssignments = [A5, A4, A3, A2, A1]</p></li>
+</ol>
+</div>
+<div class="section" id="circular-dependency">
+<h4><a class="toc-backref" href="#id51"><span class="section-number">4.5.4.3. </span>Circular dependency</a><a class="headerlink" href="#circular-dependency" title="Permalink to this heading"></a></h4>
+<p>What happens if the linker script contains circular dependency among variables?</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span> <span class="o">=</span> <span class="n">v</span> <span class="o">+</span> <span class="mh">0x1</span><span class="p">;</span> <span class="o">//</span> <span class="n">A1</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">w</span> <span class="o">+</span> <span class="mh">0x1</span><span class="p">;</span> <span class="o">//</span> <span class="n">A2</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="mh">0x1</span><span class="p">;</span> <span class="o">//</span> <span class="n">A3</span>
+</pre></div>
+</div>
+<p>What would be the values of <code class="code docutils literal notranslate"><span class="pre">u</span></code>, <code class="code docutils literal notranslate"><span class="pre">v</span></code>, and <code class="code docutils literal notranslate"><span class="pre">w</span></code> here?</p>
+<p>In such a case, the linker would report a warning and stop evaluating symbol assignments
+once a circular dependency is detected. The final values of the symbols here will be:</p>
+<ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">u</span> <span class="pre">=</span> <span class="pre">0x2</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">v</span> <span class="pre">=</span> <span class="pre">0x2</span></code></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">w</span> <span class="pre">=</span> <span class="pre">0x2</span></code></p></li>
+</ul>
+<p>Before analyzing this behavior, it’s important to note that a circular dependency
+represents an erroneous condition and should be considered undefined behavior.
+Once a layout enters an undefined state, all guarantees regarding its structure
+and consistency no longer apply.</p>
+<p>With this warning in-place, let’s reason how linker arrives at these final values.
+The assignment evaluation sequence for this example is:</p>
+<ol class="arabic simple">
+<li><p>Evaluate [A1, A2, A3]: PendingAssignments = [A1, A2, A3], CompletedAssignments = []</p></li>
+<li><p>Re-evaluate [A1, A2, A3]: PendingAssignments = [A1, A2, A3], CompletedAssignments = [],
+Circular dependency detected, stop evaluation.</p></li>
+</ol>
+<p>The linker stops evaluating assignments when it detects a circular dependency.
+The linker assigns the value <code class="code docutils literal notranslate"><span class="pre">0x1`</span></code> to the symbols in the first assignment evaluation iteration,
+then in the second evaluation iteration it assigns the value <code class="code docutils literal notranslate"><span class="pre">0x2</span></code> to the symbols. The linker
+then detects circular dependency and does not evaluate assignments further, as the layout may never
+converge due to circular dependencies.</p>
+</div>
+<div class="section" id="forward-references-in-dot-assignments">
+<h4><a class="toc-backref" href="#id52"><span class="section-number">4.5.4.4. </span>Forward references in dot-assignments</a><a class="headerlink" href="#forward-references-in-dot-assignments" title="Permalink to this heading"></a></h4>
+<p>Forward references in dot-assignments are more complex than those in non-dot
+assignments because dot-assignments directly influence the layout.
+If a dot-assignment cannot be evaluated correctly, the layout itself cannot be computed.</p>
+<p>The fundamental rule remains unchanged: whenever a forward reference is encountered,
+the final value of the symbol is used in the expression.</p>
+<p>In eld, when a forward reference appears in a dot-assignment,
+the layout is computed in two passes:</p>
+<ul class="simple">
+<li><p>First pass: The forward reference symbol is temporarily treated as 0
+during layout computation.</p></li>
+<li><p>Second pass: After the initial layout is complete, eld recomputes the
+layout using the actual final values of all forward reference symbols.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="defsym">
+<h3><a class="toc-backref" href="#id53"><span class="section-number">4.5.5. </span>–defsym</a><a class="headerlink" href="#defsym" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">--defsym</span> <span class="pre">sym=expr</span></code> is treated akin to a linker script just with
+one symbol assignment. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ld</span><span class="o">.</span><span class="n">eld</span> <span class="o">-</span><span class="n">o</span> <span class="mf">1.</span><span class="n">out</span> <span class="mf">1.</span><span class="n">o</span> <span class="o">--</span><span class="n">defsym</span> <span class="n">u</span><span class="o">=</span><span class="mh">0x10</span> <span class="o">--</span><span class="n">defsym</span> <span class="n">v</span><span class="o">=</span><span class="mh">0x30</span> <span class="o">--</span><span class="n">defsym</span> <span class="n">w</span><span class="o">=</span><span class="mh">0x50</span>
+</pre></div>
+</div>
+<p>The above link command is equivalent to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># The scripts consist of the following content:</span>
+<span class="c1"># script1.t: &quot;u=0x10&quot;</span>
+<span class="c1"># script2.t: &quot;v=0x30&quot;</span>
+<span class="c1"># script3.t: &quot;w=0x50&quot;</span>
+<span class="n">ld</span><span class="o">.</span><span class="n">eld</span> <span class="o">-</span><span class="n">o</span> <span class="mf">1.</span><span class="n">out</span> <span class="mf">1.</span><span class="n">o</span> <span class="n">script1</span><span class="o">.</span><span class="n">t</span> <span class="n">script2</span><span class="o">.</span><span class="n">t</span> <span class="n">script3</span><span class="o">.</span><span class="n">t</span>
+</pre></div>
+</div>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 66%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HIDDEN(symbol</span> <span class="pre">=</span> <span class="pre">expression)</span></code></p></td>
+<td><p>Hide the defined symbol so it is not exported.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FILL(expression)</span></code></p></td>
+<td><p>Specify a fill pattern for the current output section. The fill element
+size can be 1, 2, 4, or 8 bytes (chosen by the linker). A <code class="docutils literal notranslate"><span class="pre">FILL</span></code> covers
+memory locations from the point at which it occurs to the end of the
+current output section; multiple <code class="docutils literal notranslate"><span class="pre">FILL</span></code> statements can be used within
+one output section.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ASSERT(expression,</span> <span class="pre">string)</span></code></p></td>
+<td><p>If the specified expression is zero, the linker errors out with the
+specified message.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PROVIDE(symbol</span> <span class="pre">=</span> <span class="pre">expression)</span></code></p></td>
+<td><p>Similar to a symbol assignment, but does not error if the symbol is
+already defined elsewhere.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PROVIDE_HIDDEN(symbol</span> <span class="pre">=</span> <span class="pre">expression)</span></code></p></td>
+<td><p>Like <code class="docutils literal notranslate"><span class="pre">PROVIDE</span></code>, but the defined symbol is hidden (not exported).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PRINT(&quot;format-string&quot;,</span> <span class="pre">expr,</span> <span class="pre">...)</span></code></p></td>
+<td><p>Print a formatted message while parsing the script. See the
+<a class="reference internal" href="#linker-script-print"><span class="std std-ref">PRINT Command</span></a> section for format string
+syntax and supported conversions.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="nocrossrefs">
+<h2><a class="toc-backref" href="#id54"><span class="section-number">4.6. </span>NOCROSSREFS</a><a class="headerlink" href="#nocrossrefs" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>The NOCROSSREFS command takes a list of space-separated output section names as its arguments.</p></li>
+<li><p>Any cross references among these output sections will result in link editor failure.</p></li>
+<li><p>The list can also contain an orphan section that is not specified in the linker script.</p></li>
+<li><p>A linker script can contain multiple NOCROSSREFS commands.</p></li>
+<li><p>Each command is treated as an independent set of output sections that are checked for cross references.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="overlay">
+<h2><a class="toc-backref" href="#id55"><span class="section-number">4.7. </span>OVERLAY</a><a class="headerlink" href="#overlay" title="Permalink to this heading"></a></h2>
+<p>In GNU ld linker scripts, the <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> command is used to define multiple
+sections that all execute (run) at the same virtual memory address (VMA), but
+are stored (loaded) at different load memory addresses (LMA). At runtime, only
+one of those sections is present in memory at a time, and software is
+responsible for copying the desired section into the overlay region before
+executing it.</p>
+<div class="section" id="what-overlay-does-in-gnu-ld">
+<h3><a class="toc-backref" href="#id56"><span class="section-number">4.7.1. </span>What <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> does in GNU ld</a><a class="headerlink" href="#what-overlay-does-in-gnu-ld" title="Permalink to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Same execution address (VMA)
+All sections inside an <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> block are linked to start at the same
+address. From the CPU’s point of view, they occupy the same memory region.</p></li>
+<li><p>Different load addresses (LMA)
+Each overlaid section has a distinct load address in the output image (often
+in flash or ROM). These LMAs are laid out back-to-back starting at the
+overlay’s <code class="docutils literal notranslate"><span class="pre">AT(...)</span></code> address.</p></li>
+<li><p>Runtime-managed swapping
+The linker does not generate code to manage overlays. Your runtime code
+(overlay manager) must copy the desired section from its LMA into the overlay
+execution region before calling into it.</p></li>
+</ol>
+</div>
+<div class="section" id="auto-generated-symbols-in-gnu-ld">
+<h3><a class="toc-backref" href="#id57"><span class="section-number">4.7.2. </span>Auto-generated symbols in GNU ld</a><a class="headerlink" href="#auto-generated-symbols-in-gnu-ld" title="Permalink to this heading"></a></h3>
+<p>For each section inside an overlay, GNU ld defines:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">__load_start_&lt;section&gt;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">__load_stop_&lt;section&gt;</span></code></p></li>
+</ul>
+<p>These symbols let your code know where to copy from.</p>
+</div>
+<div class="section" id="id1">
+<h3><a class="toc-backref" href="#id58"><span class="section-number">4.7.3. </span><code class="docutils literal notranslate"><span class="pre">NOCROSSREFS</span></code></a><a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<p>GNU ld accepts an optional <code class="docutils literal notranslate"><span class="pre">NOCROSSREFS</span></code> keyword in the overlay header, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OVERLAY</span> <span class="mh">0x1000</span> <span class="p">:</span> <span class="n">NOCROSSREFS</span> <span class="n">AT</span><span class="p">(</span><span class="mh">0x4000</span><span class="p">)</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>This causes GNU ld to error out if one overlaid section references another.</p>
+</div>
+<div class="section" id="effect-on-the-location-counter-in-gnu-ld">
+<h3><a class="toc-backref" href="#id59"><span class="section-number">4.7.4. </span>Effect on the location counter (<code class="docutils literal notranslate"><span class="pre">.</span></code>) in GNU ld</a><a class="headerlink" href="#effect-on-the-location-counter-in-gnu-ld" title="Permalink to this heading"></a></h3>
+<p>After an <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> block, <code class="docutils literal notranslate"><span class="pre">.</span></code> is advanced by the size of the largest overlay
+member. This ensures the overlay region reserves enough execution memory for the
+largest case.</p>
+</div>
+<div class="section" id="id2">
+<h3><a class="toc-backref" href="#id60"><span class="section-number">4.7.5. </span>Syntax</a><a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OVERLAY</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">start</span><span class="o">&gt;</span><span class="p">]</span> <span class="p">:</span>
+    <span class="p">[</span><span class="n">NOCROSSREFS</span><span class="p">]</span> <span class="p">[</span><span class="n">AT</span><span class="p">(</span><span class="o">&lt;</span><span class="n">lma_start</span><span class="o">&gt;</span><span class="p">)]</span>
+<span class="p">{</span>
+    <span class="o">&lt;</span><span class="n">overlay</span><span class="o">-</span><span class="n">member</span><span class="o">&gt;...</span>
+<span class="p">}</span> <span class="p">[</span><span class="o">&gt;&lt;</span><span class="n">region</span><span class="o">&gt;</span><span class="p">]</span> <span class="p">[</span><span class="n">AT</span><span class="o">&gt;&lt;</span><span class="n">lma_region</span><span class="o">&gt;</span><span class="p">]</span> <span class="p">[:</span><span class="o">&lt;</span><span class="n">phdr</span><span class="o">&gt;...</span><span class="p">]</span> <span class="p">[</span><span class="o">=&lt;</span><span class="n">fillexp</span><span class="o">&gt;</span><span class="p">]</span>
+
+<span class="o">&lt;</span><span class="n">overlay</span><span class="o">-</span><span class="n">member</span><span class="o">&gt;</span> <span class="o">:=</span>
+    <span class="o">&lt;</span><span class="n">output</span><span class="o">-</span><span class="n">section</span><span class="o">-</span><span class="n">name</span><span class="o">&gt;</span> <span class="p">{</span> <span class="o">&lt;</span><span class="nb">input</span><span class="o">-</span><span class="n">section</span><span class="o">-</span><span class="n">description</span><span class="o">&gt;...</span> <span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Overlay member sections are parsed as <em>name + body only</em>. Individual overlay
+members must not use the normal output section description prologue/epilogue
+syntax (for example, no <code class="docutils literal notranslate"><span class="pre">:</span></code> prologue, no member-level <code class="docutils literal notranslate"><span class="pre">AT(...)</span></code>, no
+member-level <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>/<code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code>, no <code class="docutils literal notranslate"><span class="pre">:PHDR</span></code> list, and no
+<code class="docutils literal notranslate"><span class="pre">=&lt;fill&gt;</span></code>). eld errors out if these constructs are used on overlay members.</p>
+</div>
+</div>
+<div class="section" id="eld-support-status">
+<h3><a class="toc-backref" href="#id61"><span class="section-number">4.7.6. </span>eld support status</a><a class="headerlink" href="#eld-support-status" title="Permalink to this heading"></a></h3>
+<p>eld currently supports parsing <code class="docutils literal notranslate"><span class="pre">OVERLAY</span></code> blocks and printing them into the
+text map file (<code class="docutils literal notranslate"><span class="pre">-MapStyle</span> <span class="pre">txt</span></code>) as comments. The GNU ld overlay <em>semantics</em>
+described above (LMA/VMA overlay placement, generated symbols, overlay-member
+swapping behavior, overlay-specific <code class="docutils literal notranslate"><span class="pre">NOCROSSREFS</span></code> enforcement, and location
+counter advancement rules) are not implemented yet.</p>
+</div>
+</div>
+<div class="section" id="output-section-description">
+<h2><a class="toc-backref" href="#id62"><span class="section-number">4.8. </span>Output Section Description</a><a class="headerlink" href="#output-section-description" title="Permalink to this heading"></a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> command can contain one or more output section descriptions.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">section</span><span class="o">-</span><span class="n">name</span><span class="o">&gt;</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">virtual_addr</span><span class="o">&gt;</span><span class="p">][(</span><span class="o">&lt;</span><span class="nb">type</span><span class="o">&gt;</span><span class="p">)]</span> <span class="p">:</span>
+<span class="p">[</span><span class="n">AT</span><span class="p">(</span><span class="o">&lt;</span><span class="n">load_addr</span><span class="o">&gt;</span><span class="p">)]</span> <span class="p">[</span><span class="n">ALIGN</span><span class="p">(</span><span class="o">&lt;</span><span class="n">section_align</span><span class="o">&gt;</span><span class="p">)</span> <span class="o">|</span> <span class="n">ALIGN_WITH_INPUT</span><span class="p">]</span>
+<span class="p">[</span><span class="n">SUBALIGN</span><span class="p">(</span><span class="o">&lt;</span><span class="n">subsection_align</span><span class="o">&gt;</span><span class="p">)]</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">constraint</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="p">{</span>
+   <span class="o">...</span>
+   <span class="o">&lt;</span><span class="n">output</span><span class="o">-</span><span class="n">section</span><span class="o">-</span><span class="n">command</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">output</span><span class="o">-</span><span class="n">section</span><span class="o">-</span><span class="n">command</span><span class="o">&gt;</span>
+<span class="p">}[</span><span class="o">&gt;&lt;</span><span class="n">region</span><span class="o">&gt;</span><span class="p">][</span><span class="n">AT</span><span class="o">&gt;&lt;</span><span class="n">lma_region</span><span class="o">&gt;</span><span class="p">][:</span><span class="o">&lt;</span><span class="n">phdr</span><span class="o">&gt;...</span><span class="p">][</span>
+<span class="o">=&lt;</span><span class="n">fillexp</span><span class="o">&gt;</span><span class="p">][</span><span class="n">INSERT</span> <span class="n">AFTER</span> <span class="o">&lt;</span><span class="n">section</span><span class="o">-</span><span class="n">name</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">INSERT</span> <span class="n">BEFORE</span> <span class="o">&lt;</span><span class="n">section</span><span class="o">-</span><span class="n">name</span><span class="o">&gt;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id3">
+<h2><a class="toc-backref" href="#id63"><span class="section-number">4.9. </span>Syntax</a><a class="headerlink" href="#id3" title="Permalink to this heading"></a></h2>
+<dl>
+<dt>&lt;section-name&gt;</dt><dd><p>Specifies the name of the output section.</p>
+</dd>
+<dt>&lt;virtual_addr&gt;</dt><dd><p>Specifies the virtual address of the output section (optional). The address value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;type&gt;</dt><dd><p>Specifies the section load property (optional).</p>
+<ul class="simple">
+<li><p>NOLOAD: Marks a section as not loadable.</p></li>
+<li><p>INFO: Parsed only; has no effect on linking.</p></li>
+</ul>
+</dd>
+<dt>&lt;load_addr&gt;</dt><dd><p>Specifies the load address of the output section (optional). The address value can be specified as an expression (see Expressions).</p>
+</dd>
+<dt>&lt;section_align&gt;</dt><dd><p>Specifies the section alignment of the output section (optional). The alignment value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;subsection_align&gt;</dt><dd><p>Specifies the subsection alignment of the output section (optional). The alignment value can be an expression (see Expressions).</p>
+</dd>
+<dt>&lt;constraint&gt;</dt><dd><p>Specifies the access type of the input sections (optional).</p>
+<ul class="simple">
+<li><p>NOLOAD: All input sections are read-only.</p></li>
+</ul>
+</dd>
+<dt>&lt;output-section-command&gt;</dt><dd><p>Specifies an output section command (see Output section commands). An output section description contains one or more output section commands.</p>
+</dd>
+<dt>&lt;region&gt;</dt><dd><p>Specifies the VMA placement memory region (optional) using <code class="docutils literal notranslate"><span class="pre">&gt;REGION</span></code>.</p>
+<p>If the output section does not have an explicit VMA, ELD uses the next
+available address in the region (starting from <code class="docutils literal notranslate"><span class="pre">ORIGIN</span></code> and respecting
+alignment) as the section’s VMA.</p>
+<p>If the output section has an explicit VMA, the explicit address is honored.
+The region is used for memory usage accounting only when the explicit VMA is
+within the region bounds.</p>
+</dd>
+<dt>&lt;lma-region&gt;</dt><dd><p>Specifies the LMA placement memory region (optional) using <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code>.</p>
+<p>ELD places the section’s LMA at the next available address in the selected
+region, tracked independently from the VMA region cursor. <code class="docutils literal notranslate"><span class="pre">AT(&lt;address&gt;)</span></code>
+and <code class="docutils literal notranslate"><span class="pre">AT&gt;REGION</span></code> are mutually exclusive.</p>
+</dd>
+<dt>&lt;fillexp&gt;</dt><dd><p>Specifies the fill value of the output section (optional). The value can be an expression. This option is parsed, but it has no effect on linking.</p>
+</dd>
+<dt>&lt;phdr&gt;</dt><dd><p>Specifies a program segment for the output section (optional). To assign multiple program segments to an output section, this option can appear more than once in an output section description.</p>
+</dd>
+<dt>INSERT AFTER &lt;section-name&gt; | INSERT BEFORE &lt;section-name&gt;</dt><dd><p>Requests placing this output section after/before the named output section.
+The anchor section must exist, or the linker emits an error. Overlay member
+sections do not support output section epilogues, so INSERT is not allowed
+inside OVERLAY member blocks.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="sorting-input-sections">
+<h2><a class="toc-backref" href="#id64"><span class="section-number">4.10. </span>Sorting input sections</a><a class="headerlink" href="#sorting-input-sections" title="Permalink to this heading"></a></h2>
+<p>Linker scripts can control input-section ordering within an output section using
+sorting directives in input section descriptions. These directives include
+<code class="docutils literal notranslate"><span class="pre">SORT</span></code>, <code class="docutils literal notranslate"><span class="pre">SORT_BY_NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">SORT_BY_ALIGNMENT</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">SORT_BY_INIT_PRIORITY</span></code>.</p>
+<p>ELD also supports the GNU linker shorthand <code class="docutils literal notranslate"><span class="pre">SORT(CONSTRUCTORS)</span></code> for
+compatibility with other linkers.</p>
+</div>
+<div class="section" id="controlling-physical-addresses">
+<span id="id4"></span><h2><a class="toc-backref" href="#id65"><span class="section-number">4.11. </span>Controlling Physical addresses</a><a class="headerlink" href="#controlling-physical-addresses" title="Permalink to this heading"></a></h2>
+<p>In GNU linker scripts, the AT command is used to control the Load Memory Address (LMA) of a section, while the section’s placement in memory during execution is defined by its Virtual Memory Address (VMA).</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When an AT command is specified as part of the output section, the linker
+will not automatically align the load memory address of the section.</p>
+</div>
+<p>ALIGN_WITH_INPUT attribute on an output section preserves the VMA-to-LMA offset
+from the previous output section when both sections use the same VMA region and
+the same LMA region. If either region changes, the linker does not reuse the
+prior offset and instead computes the LMA from the current output section’s
+placement rules. This matches GNU behavior when combining explicit LMA control
+with region-based placement.</p>
+<p>Behavior summary:</p>
+<ul class="simple">
+<li><p>VMA placement is governed by the output section’s virtual address rules and
+the selected VMA region.</p></li>
+<li><p>LMA placement is governed by the AT/AT&gt; directives and the selected LMA
+region, and it is tracked independently from the VMA placement.</p></li>
+<li><p>ALIGN_WITH_INPUT preserves the prior VMA-to-LMA delta, but only while both
+regions remain the same.</p></li>
+</ul>
+<p>See also:</p>
+<ul class="simple">
+<li><p><code class="file docutils literal notranslate"><span class="pre">test/Common/standalone/linkerscript/AlignWithInput/NoPhdrs/AlignWithInput.test</span></code></p></li>
+<li><p><code class="file docutils literal notranslate"><span class="pre">test/Common/standalone/linkerscript/AlignWithInput/TLS/TLS.test</span></code></p></li>
+<li><p><code class="file docutils literal notranslate"><span class="pre">test/Common/standalone/linkerscript/AlignWithInput/NoLoadATRAM/NoLoadATRAM.test</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="gnu-compatibility">
+<h2><a class="toc-backref" href="#id66"><span class="section-number">4.12. </span>GNU-compatibility</a><a class="headerlink" href="#gnu-compatibility" title="Permalink to this heading"></a></h2>
+<p>The eld linker script syntax and semantics are GNU-compliant. This means that
+any linker script that works with the GNU linker should also work with eld,
+with the exception of a few GNU linker script features that are not yet
+supported by eld.</p>
+<p>Previously, eld supported two extensions to the GNU linker script syntax.
+<strong>These extensions are no longer supported.</strong> Any scripts using these
+extensions must be updated to maintain compatibility with eld.
+These extensions are:</p>
+<ol class="arabic simple">
+<li><p>Assignment without space between the symbol and <code class="code docutils literal notranslate"><span class="pre">=</span></code></p></li>
+</ol>
+<p>Previously supported:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">symbol</span><span class="o">=&lt;</span><span class="n">expr</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>GNU-compliant syntax (required now):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">symbol</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">expr</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>GNU requires a space between the symbol and the assignment operator.
+eld now enforces this requirement. Scripts must be updated accordingly.</p>
+<ol class="arabic simple" start="2">
+<li><p>Output section description without space between the output section name and <code class="code docutils literal notranslate"><span class="pre">:</span></code></p></li>
+</ol>
+<p>Previously supported:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="n">FOO</span><span class="p">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>GNU-compliant syntax (required now):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="n">FOO</span> <span class="p">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>GNU requires a space between the output section name and the colon.
+eld now enforces this requirement for full GNU compatibility.</p>
+<div class="section" id="why-cannot-eld-support-these-extensions-along-with-gnu-compatibility">
+<h3><a class="toc-backref" href="#id67"><span class="section-number">4.12.1. </span>Why cannot eld support these extensions along with GNU-compatibility?</a><a class="headerlink" href="#why-cannot-eld-support-these-extensions-along-with-gnu-compatibility" title="Permalink to this heading"></a></h3>
+<p>eld cannot support these extensions along with GNU-compatibility because they
+directly conflict with the GNU linker script syntax. For example, GNU ld
+allows <code class="code docutils literal notranslate"><span class="pre">:</span></code> in section names and allows <code class="code docutils literal notranslate"><span class="pre">=</span></code> in symbol names. The
+core issue is that GNU ld uses the same lexing state to parse symbol and
+section names to keep the parser simple and efficient. Due to this, GNU ld
+also allows other non-trivial characters in symbol names such as <code class="code docutils literal notranslate"><span class="pre">+</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">-</span></code>, <code class="code docutils literal notranslate"><span class="pre">:</span></code> and so on. For example, for the below linker script
+snippet, gnu ld creates a symbol of the name <code class="code docutils literal notranslate"><span class="pre">a+=</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a</span><span class="o">+=</span> <span class="o">=</span> <span class="n">b</span> <span class="c1"># lhs symbol is a+=</span>
+</pre></div>
+</div>
+<p>eld cannot easily add exception to the two cases that were supported by eld extensions
+while keeping everything else the same to keep the linker script parser efficient.
+To support these as an exception, the parser needs to lookahead two tokens to resolve
+ambiguities. Let’s understand this with the help of an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="n">FOO</span><span class="p">:</span> <span class="p">{</span>
+    <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+  <span class="p">}</span>
+  <span class="n">u</span><span class="o">=</span><span class="n">v</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>When parsing the <code class="code docutils literal notranslate"><span class="pre">SECTIONS</span></code> commands, the parser does not know in which
+LexState to parse the command. If the command is an output section description,
+<code class="code docutils literal notranslate"><span class="pre">FOO:</span></code>, then the parser should parse the token in <code class="code docutils literal notranslate"><span class="pre">LexState::default</span></code>,
+whereas if the command is an assignment, then the parser should parse the token in
+<code class="code docutils literal notranslate"><span class="pre">LexState::Expr</span></code>. <code class="code docutils literal notranslate"><span class="pre">LexState::default</span></code> allows some characters
+in tokens that are not appropriate when parsing an expression. These characters
+include <code class="code docutils literal notranslate"><span class="pre">+</span></code>, <code class="code docutils literal notranslate"><span class="pre">-</span></code>, <code class="code docutils literal notranslate"><span class="pre">=</span></code> and more.</p>
+<p>To correctly determine which <code class="code docutils literal notranslate"><span class="pre">LexState</span></code> to use, the parser needs to
+peek (lookahead) two tokens in <code class="code docutils literal notranslate"><span class="pre">LexState::Expr</span></code>. With the two tokens peek,
+the parser can determine whether the command is an assignment command or not.</p>
+<p>This simple change requires a lot of changes in the parser. The parser needs to
+change from LL(1) (Simple and efficient) to LL(2) (Complex and less efficient).</p>
+</div>
+</div>
+<div class="section" id="print-command">
+<h2><a class="toc-backref" href="#id68"><span class="section-number">4.13. </span>PRINT Command</a><a class="headerlink" href="#print-command" title="Permalink to this heading"></a></h2>
+<div class="contents local topic" id="id5">
+<span id="linker-script-print"></span><ul class="simple">
+<li><p><a class="reference internal" href="#id6" id="id81">Overview</a></p></li>
+<li><p><a class="reference internal" href="#id7" id="id82">Syntax</a></p></li>
+<li><p><a class="reference internal" href="#format-string-semantics" id="id83">Format String Semantics</a></p></li>
+<li><p><a class="reference internal" href="#basics" id="id84">Basics</a></p></li>
+<li><p><a class="reference internal" href="#flags-width-and-precision" id="id85">Flags, Width, and Precision</a></p></li>
+<li><p><a class="reference internal" href="#escape-sequences" id="id86">Escape Sequences</a></p></li>
+<li><p><a class="reference internal" href="#argument-matching-and-errors" id="id87">Argument Matching and Errors</a></p></li>
+<li><p><a class="reference internal" href="#examples" id="id88">Examples</a></p></li>
+<li><p><a class="reference internal" href="#printing-numeric-expressions" id="id89">Printing Numeric Expressions</a></p></li>
+<li><p><a class="reference internal" href="#using-c-and-s" id="id90">Using <code class="docutils literal notranslate"><span class="pre">%c</span></code> and <code class="docutils literal notranslate"><span class="pre">%s</span></code></a></p></li>
+<li><p><a class="reference internal" href="#using-width-precision-and-flags" id="id91">Using Width, Precision, and Flags</a></p></li>
+<li><p><a class="reference internal" href="#error-examples" id="id92">Error Examples</a></p></li>
+</ul>
+</div>
+<div class="section" id="id6">
+<h3><a class="toc-backref" href="#id81"><span class="section-number">4.13.1. </span>Overview</a><a class="headerlink" href="#id6" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PRINT</span></code> command lets a linker script emit formatted messages on the
+linker’s standard output stream while the script is being parsed and
+evaluated. This is useful for debugging script expressions, inspecting
+symbol values, or annotating map files during development.</p>
+</div>
+<div class="section" id="id7">
+<h3><a class="toc-backref" href="#id82"><span class="section-number">4.13.2. </span>Syntax</a><a class="headerlink" href="#id7" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PRINT</span></code> command has the following syntax:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;format-string&quot;</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">format-string</span></code> is a C <code class="docutils literal notranslate"><span class="pre">printf</span></code>-style format string.</p></li>
+<li><p>Each <code class="docutils literal notranslate"><span class="pre">expression</span></code> is a regular linker script expression whose value is
+substituted into the format string.</p></li>
+</ul>
+<p>The command does not define any symbols and does not affect the layout or
+contents of the linked image; it only produces textual output.</p>
+</div>
+<div class="section" id="format-string-semantics">
+<h3><a class="toc-backref" href="#id83"><span class="section-number">4.13.3. </span>Format String Semantics</a><a class="headerlink" href="#format-string-semantics" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="basics">
+<h3><a class="toc-backref" href="#id84"><span class="section-number">4.13.4. </span>Basics</a><a class="headerlink" href="#basics" title="Permalink to this heading"></a></h3>
+<p>The format string closely follows C <code class="docutils literal notranslate"><span class="pre">printf</span></code> semantics with a limited set
+of conversion specifiers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">%%</span></code>  – prints a literal <code class="docutils literal notranslate"><span class="pre">%</span></code> character; consumes no argument.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%d</span></code>  – signed decimal integer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%i</span></code>  – signed decimal integer (alias for <code class="docutils literal notranslate"><span class="pre">%d</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%u</span></code>  – unsigned decimal integer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%o</span></code>  – unsigned octal integer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%x</span></code>  – unsigned hexadecimal integer (lowercase digits).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%X</span></code>  – unsigned hexadecimal integer (uppercase digits).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%c</span></code>  – single character; the low 8 bits of the numeric expression.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">%s</span></code>  – symbol name corresponding to a <em>symbol expression</em>.</p></li>
+</ul>
+<p>All numeric expressions are evaluated as 64-bit integers. Length modifiers
+are accepted for compatibility but ignored; the value is always normalized
+to 64 bits before formatting.</p>
+</div>
+<div class="section" id="flags-width-and-precision">
+<h3><a class="toc-backref" href="#id85"><span class="section-number">4.13.5. </span>Flags, Width, and Precision</a><a class="headerlink" href="#flags-width-and-precision" title="Permalink to this heading"></a></h3>
+<p>The following flag characters are recognized:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-</span></code> – left-justify within the field width.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">+</span></code> – always include a sign for signed conversions.</p></li>
+<li><p>`` `` (space) – prefix a space for positive signed conversions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">#</span></code> – alternate form (for example, add <code class="docutils literal notranslate"><span class="pre">0x</span></code> for hex).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> – pad numeric fields with leading zeros.</p></li>
+</ul>
+<p>Field width and precision have the usual <code class="docutils literal notranslate"><span class="pre">printf</span></code> syntax:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="p">[</span><span class="n">flags</span><span class="p">][</span><span class="n">width</span><span class="p">][</span><span class="o">.</span><span class="n">precision</span><span class="p">][</span><span class="n">length</span><span class="p">]</span><span class="n">conversion</span>
+</pre></div>
+</div>
+<p>with the following constraints:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">width</span></code> and <code class="docutils literal notranslate"><span class="pre">precision</span></code> must be decimal integer constants.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*</span></code> is <strong>not</strong> supported for either width or precision; using it
+produces a diagnostics error.</p></li>
+<li><p>Supported length modifiers (<code class="docutils literal notranslate"><span class="pre">hh</span></code>, <code class="docutils literal notranslate"><span class="pre">h</span></code>, <code class="docutils literal notranslate"><span class="pre">l</span></code>, <code class="docutils literal notranslate"><span class="pre">ll</span></code>, <code class="docutils literal notranslate"><span class="pre">j</span></code>, <code class="docutils literal notranslate"><span class="pre">z</span></code>,
+<code class="docutils literal notranslate"><span class="pre">t</span></code>, <code class="docutils literal notranslate"><span class="pre">L</span></code>) are parsed but ignored – values are always treated as
+64-bit.</p></li>
+</ul>
+</div>
+<div class="section" id="escape-sequences">
+<h3><a class="toc-backref" href="#id86"><span class="section-number">4.13.6. </span>Escape Sequences</a><a class="headerlink" href="#escape-sequences" title="Permalink to this heading"></a></h3>
+<p>The format string supports a small set of C-style escape sequences, which
+are unescaped before formatting:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">\\n</span></code> – newline</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">\\t</span></code> – horizontal tab</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">\\r</span></code> – carriage return</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">\\\\</span></code> – backslash</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">\\\&quot;</span></code> – double quote</p></li>
+</ul>
+<p>Any other escape sequence is left unchanged (the leading backslash is kept
+as-is).</p>
+</div>
+<div class="section" id="argument-matching-and-errors">
+<h3><a class="toc-backref" href="#id87"><span class="section-number">4.13.7. </span>Argument Matching and Errors</a><a class="headerlink" href="#argument-matching-and-errors" title="Permalink to this heading"></a></h3>
+<p>The linker validates the correspondence between conversion specifiers in
+the format string and the expressions supplied to <code class="docutils literal notranslate"><span class="pre">PRINT</span></code>. The following
+conditions are diagnosed as <code class="docutils literal notranslate"><span class="pre">PRINT</span></code> errors:</p>
+<ul class="simple">
+<li><p>Not enough arguments:</p>
+<ul>
+<li><p>The format string requires more values than the number of expressions
+supplied (for example, <code class="docutils literal notranslate"><span class="pre">PRINT(&quot;%d</span> <span class="pre">%u&quot;,</span> <span class="pre">1);</span></code>).</p></li>
+</ul>
+</li>
+<li><p>Too many arguments:</p>
+<ul>
+<li><p>More expressions are supplied than conversion specifiers in the format
+string (for example, <code class="docutils literal notranslate"><span class="pre">PRINT(&quot;%d&quot;,</span> <span class="pre">1,</span> <span class="pre">2);</span></code>).</p></li>
+</ul>
+</li>
+<li><p>Unterminated or malformed format specifier:</p>
+<ul>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">%</span></code> at the end of the string (for example, <code class="docutils literal notranslate"><span class="pre">&quot;value</span> <span class="pre">%&quot;</span></code>).</p></li>
+<li><p>A partially specified format that never reaches a conversion character.</p></li>
+</ul>
+</li>
+<li><p>Unsupported conversion:</p>
+<ul>
+<li><p>Any conversion character other than <code class="docutils literal notranslate"><span class="pre">d</span></code>, <code class="docutils literal notranslate"><span class="pre">i</span></code>, <code class="docutils literal notranslate"><span class="pre">u</span></code>, <code class="docutils literal notranslate"><span class="pre">o</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">X</span></code>, <code class="docutils literal notranslate"><span class="pre">c</span></code>, <code class="docutils literal notranslate"><span class="pre">s</span></code>, or <code class="docutils literal notranslate"><span class="pre">%</span></code> (for example, <code class="docutils literal notranslate"><span class="pre">%f</span></code>) is rejected.</p></li>
+</ul>
+</li>
+<li><p>Unsupported width or precision:</p>
+<ul>
+<li><p>Using <code class="docutils literal notranslate"><span class="pre">*</span></code> for width (for example, <code class="docutils literal notranslate"><span class="pre">&quot;%*d&quot;</span></code>).</p></li>
+<li><p>Using <code class="docutils literal notranslate"><span class="pre">*</span></code> for precision (for example, <code class="docutils literal notranslate"><span class="pre">&quot;%.</span> <span class="pre">*d&quot;</span></code>).</p></li>
+</ul>
+</li>
+<li><p>Invalid <code class="docutils literal notranslate"><span class="pre">%s</span></code> argument:</p>
+<ul>
+<li><p>The expression corresponding to a <code class="docutils literal notranslate"><span class="pre">%s</span></code> conversion must be a <em>symbol
+expression</em> (such as <code class="docutils literal notranslate"><span class="pre">foo</span></code>). Passing an arbitrary numeric expression
+(for example, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">2</span></code>) is rejected.</p></li>
+</ul>
+</li>
+</ul>
+<p>On any of these conditions the linker emits an <code class="docutils literal notranslate"><span class="pre">error_printcmd</span></code> diagnostic
+and treats the <code class="docutils literal notranslate"><span class="pre">PRINT</span></code> invocation as a fatal error for that link.</p>
+</div>
+<div class="section" id="examples">
+<h3><a class="toc-backref" href="#id88"><span class="section-number">4.13.8. </span>Examples</a><a class="headerlink" href="#examples" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="printing-numeric-expressions">
+<h3><a class="toc-backref" href="#id89"><span class="section-number">4.13.9. </span>Printing Numeric Expressions</a><a class="headerlink" href="#printing-numeric-expressions" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/*</span> <span class="n">Signed</span> <span class="ow">and</span> <span class="n">unsigned</span> <span class="n">forms</span> <span class="o">*/</span>
+<span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;value=</span><span class="si">%d</span><span class="s2"> (0x</span><span class="si">%x</span><span class="s2">)</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>
+
+<span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="o">.</span><span class="n">text</span> <span class="p">:</span> <span class="p">{</span> <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">*</span><span class="p">)</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This prints a line similar to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">value</span><span class="o">=</span><span class="mi">42</span> <span class="p">(</span><span class="mh">0x2a</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-c-and-s">
+<h3><a class="toc-backref" href="#id90"><span class="section-number">4.13.10. </span>Using <code class="docutils literal notranslate"><span class="pre">%c</span></code> and <code class="docutils literal notranslate"><span class="pre">%s</span></code></a><a class="headerlink" href="#using-c-and-s" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/*</span> <span class="n">Assume</span> <span class="s1">&#39;foo&#39;</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">symbol</span> <span class="n">defined</span> <span class="n">by</span> <span class="n">an</span> <span class="nb">input</span> <span class="nb">object</span><span class="o">.</span> <span class="o">*/</span>
+<span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;symbol </span><span class="si">%s</span><span class="s2"> at &#39;</span><span class="si">%c</span><span class="s2">&#39; section start</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="n">foo</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">%s</span></code> conversion prints the symbol name (<code class="docutils literal notranslate"><span class="pre">foo</span></code>) while <code class="docutils literal notranslate"><span class="pre">%c</span></code> prints
+the low 8 bits of the numeric expression.</p>
+</div>
+<div class="section" id="using-width-precision-and-flags">
+<h3><a class="toc-backref" href="#id91"><span class="section-number">4.13.11. </span>Using Width, Precision, and Flags</a><a class="headerlink" href="#using-width-precision-and-flags" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;val=</span><span class="si">%+08d</span><span class="s2"> hex=</span><span class="si">%#06x</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>
+
+<span class="n">SECTIONS</span> <span class="p">{</span>
+  <span class="o">.</span><span class="n">text</span> <span class="p">:</span> <span class="p">{</span> <span class="o">*</span><span class="p">(</span><span class="o">.</span><span class="n">text</span><span class="o">*</span><span class="p">)</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This uses:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">+</span></code> to always show the sign for the decimal value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> and a width of <code class="docutils literal notranslate"><span class="pre">8</span></code> to zero-pad the decimal field (for example,
+<code class="docutils literal notranslate"><span class="pre">+0000042</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">#</span></code> and a width of <code class="docutils literal notranslate"><span class="pre">6</span></code> for hexadecimal, causing a leading <code class="docutils literal notranslate"><span class="pre">0x</span></code> and
+zero-padding in the remaining field (for example, <code class="docutils literal notranslate"><span class="pre">0x002a</span></code>).</p></li>
+</ul>
+</div>
+<div class="section" id="error-examples">
+<h3><a class="toc-backref" href="#id92"><span class="section-number">4.13.12. </span>Error Examples</a><a class="headerlink" href="#error-examples" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/*</span> <span class="n">Not</span> <span class="n">enough</span> <span class="n">arguments</span> <span class="o">*/</span>
+<span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;x=</span><span class="si">%d</span><span class="s2"> y=</span><span class="si">%d</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+<span class="o">/*</span> <span class="n">Unsupported</span> <span class="n">conversion</span> <span class="o">*/</span>
+<span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;value=</span><span class="si">%f</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+
+<span class="o">/*</span> <span class="n">Invalid</span> <span class="o">%</span><span class="n">s</span> <span class="n">argument</span> <span class="o">*/</span>
+<span class="n">PRINT</span><span class="p">(</span><span class="s2">&quot;value=</span><span class="si">%s</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Each of these invocations produces a <code class="docutils literal notranslate"><span class="pre">PRINT</span></code>-related diagnostic and
+prevents the link from succeeding.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="supported_targets.html" class="btn btn-neutral float-left" title="3. Supported Targets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_diagnostics.html" class="btn btn-neutral float-right" title="5. Diagnostics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6. ELD (debugging guide) &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7. Shared Library Versioning" href="linker_support_backward_compatibility.html" />
+    <link rel="prev" title="5. Diagnostics" href="linker_diagnostics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">6. ELD  (debugging guide)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#big-picture">6.1. Big picture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#entry-point-and-driver-selection">6.2. Entry point and driver selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#argument-parsing-and-preprocessing">6.3. Argument parsing and preprocessing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-actions-what-gets-fed-to-the-linker">6.4. Input actions (what gets fed to the linker)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#link-pipeline-overview-dolink-linker">6.5. Link pipeline overview (doLink -&gt; Linker)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prepare-phase-linker-prepare">6.6. Prepare phase (Linker::prepare)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#normalize-phase-linker-normalize">6.7. Normalize phase (Linker::normalize)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#resolve-layout-emit-linker-link">6.8. Resolve + layout + emit (Linker::link)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#internal-inputs-and-internal-sections">6.9. Internal inputs and “internal sections”</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#section-merging-input-sections-output-sections">6.10. Section merging (input sections -&gt; output sections)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#special-case-section-handling-during-merging">6.10.1. Special-case section handling during merging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-section-construction-and-offsets">6.10.2. Output section construction and offsets</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#string-merging-mergestring-fragments">6.11. String merging (MergeString fragments)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#relocations-read-scan-apply-optional-emit-reloc-sections">6.12. Relocations: read -&gt; scan -&gt; apply -&gt; (optional) emit reloc sections</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#read-relocations">6.12.1. Read relocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scan-relocations-reservation-planning">6.12.2. Scan relocations (reservation / planning)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create-output-relocation-sections-emit-relocs">6.12.3. Create output relocation sections (<code class="docutils literal notranslate"><span class="pre">--emit-relocs</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#apply-relocations-writes-relocation-results">6.12.4. Apply relocations (writes relocation results)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dynamic-relocations-what-creates-rel-a-dyn-rel-a-plt">6.13. Dynamic relocations (what creates <code class="docutils literal notranslate"><span class="pre">.rel[a].dyn</span></code> / <code class="docutils literal notranslate"><span class="pre">.rel[a].plt</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#garbage-collection-gc-sections">6.14. Garbage collection (<code class="docutils literal notranslate"><span class="pre">--gc-sections</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#where-it-runs">6.14.1. Where it runs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-the-graph-is-built">6.14.2. How the graph is built</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-entry-sections-are-chosen">6.14.3. How entry sections are chosen</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mark-and-sweep">6.14.4. Mark-and-sweep</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#fragment-model-fragment-fragmentref">6.15. Fragment model (Fragment / FragmentRef)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fragments">6.15.1. Fragments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#offsets-padding-and-why-is-this-input-marked-used">6.15.2. Offsets, padding, and “why is this input marked used?”</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fragmentref-symbol-relocation-addressing">6.15.3. FragmentRef (symbol/relocation addressing)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#map-files-layout-printers">6.16. Map files (layout printers)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reproducing-failures-tarball-mapping-file">6.17. Reproducing failures (tarball + mapping file)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#crash-signal-behavior-what-gets-written-on-a-crash">6.18. Crash/signal behavior (what gets written on a crash)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-failures-typically-come-from-symptoms-pipeline-stage">6.19. Where failures typically come from (symptoms -&gt; pipeline stage)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#driver-target-selection-failures">6.19.1. Driver/target selection failures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#input-specification-archive-group-issues">6.19.2. Input specification / archive/group issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-script-rule-matching-errors">6.19.3. Linker script rule-matching errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linker-script-parsing-and-evaluation-errors">6.19.4. Linker script parsing and evaluation errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#undefined-references-and-symbol-resolution-surprises">6.19.5. Undefined references and symbol resolution surprises</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#garbage-collection-removed-something-needed">6.19.6. Garbage collection removed something needed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#relocation-overflows-unencodable-immediates-target-specific-relocation-bugs">6.19.7. Relocation overflows / unencodable immediates / target-specific relocation bugs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#trampolines-stubs-relaxation-issues">6.19.8. Trampolines / stubs / relaxation issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lto-failures">6.19.9. LTO failures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#plugin-caused-failures">6.19.10. Plugin-caused failures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-emission-failures">6.19.11. Output emission failures</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#practical-debugging-checklist">6.20. Practical debugging checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#debugging-runtime-crashes-in-eld-built-images">6.21. Debugging runtime crashes in ELD-built images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#preserve-the-right-artifacts">6.21.1. Preserve the right artifacts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-linker-map-files-for-layout-correlation">6.21.2. Use linker map files for layout correlation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symbolize-a-crash-address-pc-quickly">6.21.3. Symbolize a crash address (PC) quickly</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#debug-with-lldb-core-dumps-and-live-debugging">6.21.4. Debug with lldb (core dumps and live debugging)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-musl-builds-under-qemu-quick-cross-runtime-triage">6.21.5. Run musl builds under qemu (quick cross-runtime triage)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#user-mode-qemu-recommended-for-simple-tests">6.21.5.1. User-mode qemu (recommended for simple tests)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#system-mode-qemu-when-you-need-a-full-os-image">6.21.5.2. System-mode qemu (when you need a full OS image)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#inspect-exception-handling-and-unwinding">6.21.6. Inspect exception handling and unwinding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inspect-loader-and-shared-library-problems">6.21.7. Inspect loader and shared-library problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#target-abi-relocations-got-plt-debugging-notes">6.21.8. Target ABI / relocations / GOT-PLT debugging notes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#external-abi-elf-references-authoritative-relocation-tables">6.21.8.1. External ABI / ELF references (authoritative relocation tables)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#arm-specific-verifying-veneers-thunks">6.21.8.2. ARM-specific: verifying veneers/thunks</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#minimize-runtime-failures-with-a-b-experiments">6.21.9. Minimize runtime failures with A/B experiments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#identify-which-shared-library-caused-a-crash-swap-and-isolate">6.21.10. Identify which shared library caused a crash (swap-and-isolate)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switching-toolchains-compilers-to-bisect-regressions">6.21.11. Switching toolchains/compilers to bisect regressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#write-small-regression-tests-symbols-relocs-dynamic-flags">6.21.12. Write small regression tests (symbols/relocs/dynamic flags)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-useful-inspection-tools">6.21.13. Other useful inspection tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">10. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">11. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">12. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugin.html">13. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">14. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elf_tools.html">15. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">16. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">17. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">18. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="target_specific_features.html">19. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sframe_support.html">20. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">21. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">6. </span>ELD  (debugging guide)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/documentation/eld_debugging_guide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="eld-debugging-guide">
+<h1><span class="section-number">6. </span>ELD  (debugging guide)<a class="headerlink" href="#eld-debugging-guide" title="Permalink to this heading"></a></h1>
+<p>This document describes the high-level flow of how ELD executes a link, with
+call-site pointers and practical tips for debugging failures.</p>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#big-picture" id="id1">Big picture</a></p></li>
+<li><p><a class="reference internal" href="#entry-point-and-driver-selection" id="id2">Entry point and driver selection</a></p></li>
+<li><p><a class="reference internal" href="#argument-parsing-and-preprocessing" id="id3">Argument parsing and preprocessing</a></p></li>
+<li><p><a class="reference internal" href="#input-actions-what-gets-fed-to-the-linker" id="id4">Input actions (what gets fed to the linker)</a></p></li>
+<li><p><a class="reference internal" href="#link-pipeline-overview-dolink-linker" id="id5">Link pipeline overview (doLink -&gt; Linker)</a></p></li>
+<li><p><a class="reference internal" href="#prepare-phase-linker-prepare" id="id6">Prepare phase (Linker::prepare)</a></p></li>
+<li><p><a class="reference internal" href="#normalize-phase-linker-normalize" id="id7">Normalize phase (Linker::normalize)</a></p></li>
+<li><p><a class="reference internal" href="#resolve-layout-emit-linker-link" id="id8">Resolve + layout + emit (Linker::link)</a></p></li>
+<li><p><a class="reference internal" href="#internal-inputs-and-internal-sections" id="id9">Internal inputs and “internal sections”</a></p></li>
+<li><p><a class="reference internal" href="#section-merging-input-sections-output-sections" id="id10">Section merging (input sections -&gt; output sections)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#special-case-section-handling-during-merging" id="id11">Special-case section handling during merging</a></p></li>
+<li><p><a class="reference internal" href="#output-section-construction-and-offsets" id="id12">Output section construction and offsets</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#string-merging-mergestring-fragments" id="id13">String merging (MergeString fragments)</a></p></li>
+<li><p><a class="reference internal" href="#relocations-read-scan-apply-optional-emit-reloc-sections" id="id14">Relocations: read -&gt; scan -&gt; apply -&gt; (optional) emit reloc sections</a></p>
+<ul>
+<li><p><a class="reference internal" href="#read-relocations" id="id15">Read relocations</a></p></li>
+<li><p><a class="reference internal" href="#scan-relocations-reservation-planning" id="id16">Scan relocations (reservation / planning)</a></p></li>
+<li><p><a class="reference internal" href="#create-output-relocation-sections-emit-relocs" id="id17">Create output relocation sections (<code class="docutils literal notranslate"><span class="pre">--emit-relocs</span></code>)</a></p></li>
+<li><p><a class="reference internal" href="#apply-relocations-writes-relocation-results" id="id18">Apply relocations (writes relocation results)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#dynamic-relocations-what-creates-rel-a-dyn-rel-a-plt" id="id19">Dynamic relocations (what creates <code class="docutils literal notranslate"><span class="pre">.rel[a].dyn</span></code> / <code class="docutils literal notranslate"><span class="pre">.rel[a].plt</span></code>)</a></p></li>
+<li><p><a class="reference internal" href="#garbage-collection-gc-sections" id="id20">Garbage collection (<code class="docutils literal notranslate"><span class="pre">--gc-sections</span></code>)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#where-it-runs" id="id21">Where it runs</a></p></li>
+<li><p><a class="reference internal" href="#how-the-graph-is-built" id="id22">How the graph is built</a></p></li>
+<li><p><a class="reference internal" href="#how-entry-sections-are-chosen" id="id23">How entry sections are chosen</a></p></li>
+<li><p><a class="reference internal" href="#mark-and-sweep" id="id24">Mark-and-sweep</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#fragment-model-fragment-fragmentref" id="id25">Fragment model (Fragment / FragmentRef)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#fragments" id="id26">Fragments</a></p></li>
+<li><p><a class="reference internal" href="#offsets-padding-and-why-is-this-input-marked-used" id="id27">Offsets, padding, and “why is this input marked used?”</a></p></li>
+<li><p><a class="reference internal" href="#fragmentref-symbol-relocation-addressing" id="id28">FragmentRef (symbol/relocation addressing)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#map-files-layout-printers" id="id29">Map files (layout printers)</a></p></li>
+<li><p><a class="reference internal" href="#reproducing-failures-tarball-mapping-file" id="id30">Reproducing failures (tarball + mapping file)</a></p></li>
+<li><p><a class="reference internal" href="#crash-signal-behavior-what-gets-written-on-a-crash" id="id31">Crash/signal behavior (what gets written on a crash)</a></p></li>
+<li><p><a class="reference internal" href="#where-failures-typically-come-from-symptoms-pipeline-stage" id="id32">Where failures typically come from (symptoms -&gt; pipeline stage)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#driver-target-selection-failures" id="id33">Driver/target selection failures</a></p></li>
+<li><p><a class="reference internal" href="#input-specification-archive-group-issues" id="id34">Input specification / archive/group issues</a></p></li>
+<li><p><a class="reference internal" href="#linker-script-rule-matching-errors" id="id35">Linker script rule-matching errors</a></p></li>
+<li><p><a class="reference internal" href="#linker-script-parsing-and-evaluation-errors" id="id36">Linker script parsing and evaluation errors</a></p></li>
+<li><p><a class="reference internal" href="#undefined-references-and-symbol-resolution-surprises" id="id37">Undefined references and symbol resolution surprises</a></p></li>
+<li><p><a class="reference internal" href="#garbage-collection-removed-something-needed" id="id38">Garbage collection removed something needed</a></p></li>
+<li><p><a class="reference internal" href="#relocation-overflows-unencodable-immediates-target-specific-relocation-bugs" id="id39">Relocation overflows / unencodable immediates / target-specific relocation bugs</a></p></li>
+<li><p><a class="reference internal" href="#trampolines-stubs-relaxation-issues" id="id40">Trampolines / stubs / relaxation issues</a></p></li>
+<li><p><a class="reference internal" href="#lto-failures" id="id41">LTO failures</a></p></li>
+<li><p><a class="reference internal" href="#plugin-caused-failures" id="id42">Plugin-caused failures</a></p></li>
+<li><p><a class="reference internal" href="#output-emission-failures" id="id43">Output emission failures</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#practical-debugging-checklist" id="id44">Practical debugging checklist</a></p></li>
+<li><p><a class="reference internal" href="#debugging-runtime-crashes-in-eld-built-images" id="id45">Debugging runtime crashes in ELD-built images</a></p>
+<ul>
+<li><p><a class="reference internal" href="#preserve-the-right-artifacts" id="id46">Preserve the right artifacts</a></p></li>
+<li><p><a class="reference internal" href="#use-linker-map-files-for-layout-correlation" id="id47">Use linker map files for layout correlation</a></p></li>
+<li><p><a class="reference internal" href="#symbolize-a-crash-address-pc-quickly" id="id48">Symbolize a crash address (PC) quickly</a></p></li>
+<li><p><a class="reference internal" href="#debug-with-lldb-core-dumps-and-live-debugging" id="id49">Debug with lldb (core dumps and live debugging)</a></p></li>
+<li><p><a class="reference internal" href="#run-musl-builds-under-qemu-quick-cross-runtime-triage" id="id50">Run musl builds under qemu (quick cross-runtime triage)</a></p>
+<ul>
+<li><p><a class="reference internal" href="#user-mode-qemu-recommended-for-simple-tests" id="id51">User-mode qemu (recommended for simple tests)</a></p></li>
+<li><p><a class="reference internal" href="#system-mode-qemu-when-you-need-a-full-os-image" id="id52">System-mode qemu (when you need a full OS image)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#inspect-exception-handling-and-unwinding" id="id53">Inspect exception handling and unwinding</a></p></li>
+<li><p><a class="reference internal" href="#inspect-loader-and-shared-library-problems" id="id54">Inspect loader and shared-library problems</a></p></li>
+<li><p><a class="reference internal" href="#target-abi-relocations-got-plt-debugging-notes" id="id55">Target ABI / relocations / GOT-PLT debugging notes</a></p>
+<ul>
+<li><p><a class="reference internal" href="#external-abi-elf-references-authoritative-relocation-tables" id="id56">External ABI / ELF references (authoritative relocation tables)</a></p></li>
+<li><p><a class="reference internal" href="#arm-specific-verifying-veneers-thunks" id="id57">ARM-specific: verifying veneers/thunks</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#minimize-runtime-failures-with-a-b-experiments" id="id58">Minimize runtime failures with A/B experiments</a></p></li>
+<li><p><a class="reference internal" href="#identify-which-shared-library-caused-a-crash-swap-and-isolate" id="id59">Identify which shared library caused a crash (swap-and-isolate)</a></p></li>
+<li><p><a class="reference internal" href="#switching-toolchains-compilers-to-bisect-regressions" id="id60">Switching toolchains/compilers to bisect regressions</a></p></li>
+<li><p><a class="reference internal" href="#write-small-regression-tests-symbols-relocs-dynamic-flags" id="id61">Write small regression tests (symbols/relocs/dynamic flags)</a></p></li>
+<li><p><a class="reference internal" href="#other-useful-inspection-tools" id="id62">Other useful inspection tools</a></p></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="big-picture">
+<h2><a class="toc-backref" href="#id1"><span class="section-number">6.1. </span>Big picture</a><a class="headerlink" href="#big-picture" title="Permalink to this heading"></a></h2>
+<p>At a high level, a link invocation looks like this:</p>
+<ol class="arabic simple">
+<li><p><strong>eld main</strong> expands response files and selects a driver flavor/target.</p></li>
+<li><p><strong>Driver</strong> parses options and builds an ordered list of input actions.</p></li>
+<li><p><strong>Linker prepare</strong> initializes target/emulation, inputs, and plugins, then
+reads and normalizes input files (and may run LTO).</p></li>
+<li><p><strong>Linker link</strong> resolves symbols/relocations, lays out output sections, then
+emits the final ELF and optional map files.</p></li>
+<li><p><strong>Optional diagnostics</strong>: reproduce tarball/mapping file, plugin activity
+log, timing stats, summary, etc.</p></li>
+</ol>
+</div>
+<div class="section" id="entry-point-and-driver-selection">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">6.2. </span>Entry point and driver selection</a><a class="headerlink" href="#entry-point-and-driver-selection" title="Permalink to this heading"></a></h2>
+<p>The executable entry point is <code class="docutils literal notranslate"><span class="pre">tools/eld/eld.cpp</span></code>:</p>
+<ul class="simple">
+<li><p>Expands <code class="docutils literal notranslate"><span class="pre">&#64;response</span></code> files via <code class="docutils literal notranslate"><span class="pre">llvm::cl::ExpandResponseFiles(...)</span></code>.</p></li>
+<li><p>Creates a <code class="docutils literal notranslate"><span class="pre">Driver</span></code> and calls
+<code class="docutils literal notranslate"><span class="pre">Driver::setDriverFlavorAndInferredArchFromLinkCommand(...)</span></code>.</p></li>
+<li><p>Creates a GNU-ld-compatible driver (<code class="docutils literal notranslate"><span class="pre">GnuLdDriver</span></code>) and calls
+<code class="docutils literal notranslate"><span class="pre">GnuLdDriver::link(...)</span></code>.</p></li>
+</ul>
+<p>Driver flavor selection is implemented in <code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/Driver.cpp</span></code>:</p>
+<ul class="simple">
+<li><p>First tries to infer a target from the program name (e.g. <code class="docutils literal notranslate"><span class="pre">arm-link</span></code>,
+<code class="docutils literal notranslate"><span class="pre">aarch64-link</span></code>, <code class="docutils literal notranslate"><span class="pre">hexagon-link</span></code>).</p></li>
+<li><p>Otherwise inspects early arguments like <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">&lt;emulation&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">-march</span></code> to
+select a target-specific driver.</p></li>
+</ul>
+<p>Environment hooks that affect arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ELDFLAGS</span></code>: appended to the link command by the driver (useful for always-on
+debug flags).</p></li>
+</ul>
+</div>
+<div class="section" id="argument-parsing-and-preprocessing">
+<h2><a class="toc-backref" href="#id3"><span class="section-number">6.3. </span>Argument parsing and preprocessing</a><a class="headerlink" href="#argument-parsing-and-preprocessing" title="Permalink to this heading"></a></h2>
+<p>The top-level flow of option parsing and dispatch is in
+<code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/GnuLdDriver.cpp</span></code> (<code class="docutils literal notranslate"><span class="pre">GnuLdDriver::link(...)</span></code>):</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">parseOptions(...)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">processLLVMOptions(...)</span></code> (parses <code class="docutils literal notranslate"><span class="pre">-mllvm</span> <span class="pre">...</span></code> arguments)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">processTargetOptions(...)</span></code> (handles <code class="docutils literal notranslate"><span class="pre">-mtriple</span></code>, <code class="docutils literal notranslate"><span class="pre">-march</span></code>, <code class="docutils literal notranslate"><span class="pre">-mabi</span></code>,
+<code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">&lt;emulation&gt;</span></code>, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">processOptions(...)</span></code> (general linker options)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">checkOptions(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">overrideOptions(...)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">createInputActions(...)</span></code> to build the ordered action list</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">doLink(...)</span></code> to run the actual link pipeline</p></li>
+</ol>
+<p>If you suspect argument/option issues, start with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--verbose</span></code> (or <code class="docutils literal notranslate"><span class="pre">--verbose=&lt;level&gt;</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=command-line</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=files</span></code> or <code class="docutils literal notranslate"><span class="pre">-t</span></code> (prints processed files)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--error-style=GNU</span></code> or <code class="docutils literal notranslate"><span class="pre">--error-style=LLVM</span></code> (if output formatting matters)</p></li>
+</ul>
+</div>
+<div class="section" id="input-actions-what-gets-fed-to-the-linker">
+<h2><a class="toc-backref" href="#id4"><span class="section-number">6.4. </span>Input actions (what gets fed to the linker)</a><a class="headerlink" href="#input-actions-what-gets-fed-to-the-linker" title="Permalink to this heading"></a></h2>
+<p>After parsing options, the driver builds a sequence of actions that are later
+“activated” to create inputs:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-T</span> <span class="pre">&lt;script&gt;</span></code> / <code class="docutils literal notranslate"><span class="pre">--default-script</span> <span class="pre">&lt;script&gt;</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">ScriptAction</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-R</span> <span class="pre">&lt;file&gt;</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">JustSymbolsAction</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--defsym</span> <span class="pre">&lt;sym&gt;=&lt;expr&gt;</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">DefSymAction</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-l</span> <span class="pre">&lt;namespec&gt;</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">NamespecAction</span></code> (library search)</p></li>
+<li><p>Plain inputs -&gt; <code class="docutils literal notranslate"><span class="pre">InputFileAction</span></code></p></li>
+<li><p>State toggles like <code class="docutils literal notranslate"><span class="pre">--whole-archive</span></code>, <code class="docutils literal notranslate"><span class="pre">--as-needed</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--start-group/--end-group</span></code>, <code class="docutils literal notranslate"><span class="pre">--start-lib/--end-lib</span></code> -&gt; corresponding
+actions that affect how subsequent inputs are treated</p></li>
+</ul>
+<p>This happens in <code class="docutils literal notranslate"><span class="pre">GnuLdDriver::createInputActions(...)</span></code> in
+<code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/GnuLdDriver.cpp</span></code>.</p>
+<p>Debug tip: if you see failures about mismatched groups/libs, the error is
+detected here (before any ELF parsing starts).</p>
+</div>
+<div class="section" id="link-pipeline-overview-dolink-linker">
+<h2><a class="toc-backref" href="#id5"><span class="section-number">6.5. </span>Link pipeline overview (doLink -&gt; Linker)</a><a class="headerlink" href="#link-pipeline-overview-dolink-linker" title="Permalink to this heading"></a></h2>
+<p>Once actions are created, <code class="docutils literal notranslate"><span class="pre">GnuLdDriver::doLink(...)</span></code> does the setup:</p>
+<ul class="simple">
+<li><p>Looks up the LLVM target and the ELD target based on the chosen triple.</p></li>
+<li><p>Creates a <code class="docutils literal notranslate"><span class="pre">Module</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Core/Module.cpp</span></code>) and optional <code class="docutils literal notranslate"><span class="pre">LayoutInfo</span></code> for
+map printing.</p></li>
+<li><p>Selects map printers based on <code class="docutils literal notranslate"><span class="pre">--MapStyle=...</span></code> (or defaults) and prepares
+layout printers.</p></li>
+<li><p>Constructs an <code class="docutils literal notranslate"><span class="pre">eld::Linker</span></code> and runs:
+* <code class="docutils literal notranslate"><span class="pre">linker.prepare(actions,</span> <span class="pre">target)</span></code>
+* <code class="docutils literal notranslate"><span class="pre">linker.link()</span></code> (unless running “LTO-only” modes)
+* <code class="docutils literal notranslate"><span class="pre">linker.printLayout()</span></code> (map file emission)</p></li>
+<li><p>Runs plugin teardown hooks, unloads plugins, emits stats, and finalizes the
+diagnostic engine summary.</p></li>
+</ul>
+</div>
+<div class="section" id="prepare-phase-linker-prepare">
+<h2><a class="toc-backref" href="#id6"><span class="section-number">6.6. </span>Prepare phase (Linker::prepare)</a><a class="headerlink" href="#prepare-phase-linker-prepare" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Linker::prepare(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Core/Linker.cpp</span></code>) is responsible for:</p>
+<ol class="arabic simple">
+<li><p><strong>Target/emulation + backend</strong></p>
+<ul class="simple">
+<li><p>Initializes emulator and backend for the selected target.</p></li>
+</ul>
+</li>
+<li><p><strong>Initialize inputs</strong></p>
+<ul class="simple">
+<li><p>Builds the input tree, creates internal linker-generated inputs, activates
+the action list, and reads linker scripts.</p></li>
+</ul>
+</li>
+<li><p><strong>Universal plugins</strong></p>
+<ul class="simple">
+<li><p>Reads plugin configuration, loads universal plugins from the script, stores
+them, and runs plugin init hooks.</p></li>
+</ul>
+</li>
+<li><p><strong>Read/normalize inputs</strong></p>
+<ul class="simple">
+<li><p>Reads all input files, sections, symbols, and (optionally) runs LTO-related
+preprocessing.</p></li>
+</ul>
+</li>
+</ol>
+<p>Common debug levers for this phase:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=linker-script</span></code> or <code class="docutils literal notranslate"><span class="pre">--trace-linker-script</span></code> (script parsing)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=threads</span></code> (parallel input/section reading behavior)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=LTO</span></code> or <code class="docutils literal notranslate"><span class="pre">--trace-lto</span></code> (LTO stage boundaries)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--plugin-config=&lt;config-file&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">--no-default-plugins</span></code> (plugin triage)</p></li>
+</ul>
+</div>
+<div class="section" id="normalize-phase-linker-normalize">
+<h2><a class="toc-backref" href="#id7"><span class="section-number">6.7. </span>Normalize phase (Linker::normalize)</a><a class="headerlink" href="#normalize-phase-linker-normalize" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Linker::normalize()</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Core/Linker.cpp</span></code>) performs:</p>
+<ul class="simple">
+<li><p>Optional command-line header/summary printing when <code class="docutils literal notranslate"><span class="pre">--trace=command-line</span></code> is
+enabled (via <code class="docutils literal notranslate"><span class="pre">LinkerConfig::printOptions(...)</span></code> in <code class="docutils literal notranslate"><span class="pre">lib/Config/LinkerConfig.cpp</span></code>).</p></li>
+<li><p>Reading all input files via <code class="docutils literal notranslate"><span class="pre">ObjLinker-&gt;normalize()</span></code>:
+* Parses ELF objects/archives/shared libraries/bitcode inputs.
+* Populates symbol tables and initial symbol resolution.</p></li>
+<li><p>Loads non-universal plugins.</p></li>
+<li><p>Computes code position (static/dynamic/PIE) and validates incompatible
+options (e.g. patch options with non-static output).</p></li>
+<li><p>Parses external scripts:</p>
+<ul>
+<li><p>Version scripts</p></li>
+<li><p>Dynamic list (when building dynamic artifacts)</p></li>
+</ul>
+</li>
+<li><p>Adds linker-script-defined symbols.</p></li>
+<li><p>LTO steps (when needed):</p>
+<ul>
+<li><p>Creates an LTO object from bitcode inputs.</p></li>
+<li><p>Re-runs normalization post-LTO after replacing bitcode with generated
+objects.</p></li>
+</ul>
+</li>
+</ul>
+<p>Debug tip: LTO-related failures often reproduce reliably with <code class="docutils literal notranslate"><span class="pre">--reproduce</span></code>
+because the tarball will include bitcode inputs and any generated LTO objects
+recorded by the linker.</p>
+</div>
+<div class="section" id="resolve-layout-emit-linker-link">
+<h2><a class="toc-backref" href="#id8"><span class="section-number">6.8. </span>Resolve + layout + emit (Linker::link)</a><a class="headerlink" href="#resolve-layout-emit-linker-link" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Linker::link()</span></code> in <code class="docutils literal notranslate"><span class="pre">lib/Core/Linker.cpp</span></code> is the main “work” phase:</p>
+<ol class="arabic simple">
+<li><p><strong>Standard sections</strong></p>
+<ul class="simple">
+<li><p>Initializes default sections (and per-file synthetic dynamic sections when
+producing dynamic outputs).</p></li>
+</ul>
+</li>
+<li><p><strong>Resolve (symbol/reloc processing)</strong></p>
+<ul class="simple">
+<li><p>Reads relocations.</p></li>
+<li><p>Allocates common symbols.</p></li>
+<li><p>Assigns output sections using default + linker script rules.</p></li>
+<li><p>Runs plugin hooks around rule matching/layout.</p></li>
+<li><p>Processes target-specific input handling.</p></li>
+<li><p>Optionally performs garbage collection / stripping.</p></li>
+<li><p>Scans relocations, finalizes scan results, and builds output/dynamic symbol
+tables.</p></li>
+<li><p>Merges sections and creates section symbols.</p></li>
+</ul>
+</li>
+<li><p><strong>Layout</strong></p>
+<ul class="simple">
+<li><p>Initializes stubs/trampolines, prelayout, merge-strings optimization.</p></li>
+<li><p>Establishes final layout and postlayout output section table.</p></li>
+<li><p>Finalizes symbol values, runs output-section iterator plugins, applies
+relocations, and finalizes output state.</p></li>
+</ul>
+</li>
+<li><p><strong>Emit</strong></p>
+<ul class="simple">
+<li><p>Computes output file size and creates an <code class="docutils literal notranslate"><span class="pre">llvm::FileOutputBuffer</span></code>.</p></li>
+<li><p>Writes section contents, performs post-processing, emits Build ID, commits
+the output, and optionally verifies the output size on disk.</p></li>
+</ul>
+</li>
+</ol>
+<p>If a failure happens late (layout/emit), map files are usually the fastest way
+to pinpoint the problematic section/segment/relocation.</p>
+</div>
+<div class="section" id="internal-inputs-and-internal-sections">
+<h2><a class="toc-backref" href="#id9"><span class="section-number">6.9. </span>Internal inputs and “internal sections”</a><a class="headerlink" href="#internal-inputs-and-internal-sections" title="Permalink to this heading"></a></h2>
+<p>ELD creates a number of linker-generated inputs up front so later stages can
+treat them uniformly as normal inputs/sections/symbols.</p>
+<p>Creation happens in <code class="docutils literal notranslate"><span class="pre">Module::createInternalInputs()</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Core/Module.cpp</span></code>).
+Each internal input corresponds to a named <code class="docutils literal notranslate"><span class="pre">Input</span></code>/<code class="docutils literal notranslate"><span class="pre">InputFile</span></code> (for example
+<code class="docutils literal notranslate"><span class="pre">Attributes</span></code>, <code class="docutils literal notranslate"><span class="pre">CommonSymbols</span></code>, <code class="docutils literal notranslate"><span class="pre">DynamicSections</span></code>, <code class="docutils literal notranslate"><span class="pre">Trampoline</span></code>, and
+others) and is used to host sections/fragments that are not sourced from a user
+object file.</p>
+<p>Two other “internal” concepts are easy to confuse:</p>
+<ul class="simple">
+<li><p><strong>Linker-internal input sections</strong>: sections owned by an internal input file
+(<code class="docutils literal notranslate"><span class="pre">Input::Internal</span></code>). These typically have <code class="docutils literal notranslate"><span class="pre">LDFileFormat::Internal</span></code> kind
+and may carry relocations to be applied later.</p></li>
+<li><p><strong>Output-format sections</strong>: sections that come from the backend/output format
+(not from a user input file), for example dynamic tables/headers. These are
+treated as output sections and can be matched/discarded via linker-script
+rules; see <code class="docutils literal notranslate"><span class="pre">ObjectLinker::markDiscardFileFormatSections()</span></code> in
+<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>.</p></li>
+</ul>
+<p>Debug tips:</p>
+<ul class="simple">
+<li><p>If you suspect an unexpected section exists (or is missing), prefer a text
+map: <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">--MapStyle=Text</span> <span class="pre">--Map=&lt;file&gt;</span></code>.</p></li>
+<li><p>If a section is unexpectedly discarded, use <code class="docutils literal notranslate"><span class="pre">--trace-section</span> <span class="pre">&lt;name&gt;</span></code> and
+check whether it matched a <code class="docutils literal notranslate"><span class="pre">/DISCARD/</span></code> rule.</p></li>
+</ul>
+</div>
+<div class="section" id="section-merging-input-sections-output-sections">
+<h2><a class="toc-backref" href="#id10"><span class="section-number">6.10. </span>Section merging (input sections -&gt; output sections)</a><a class="headerlink" href="#section-merging-input-sections-output-sections" title="Permalink to this heading"></a></h2>
+<p>The “merge sections” name in ELD means: take the <em>input</em> section graph (from
+object files + internal inputs), and populate the <em>output</em> section layout
+according to default rules + linker-script rules + plugins.</p>
+<p>There are three distinct sub-steps to keep straight:</p>
+<ol class="arabic simple">
+<li><p><strong>Rule matching / output section assignment</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::assignOutputSections(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>)
+uses an <code class="docutils literal notranslate"><span class="pre">ObjectBuilder</span></code> to match input sections against linker-script
+rules (including wildcards, sorting policies, <code class="docutils literal notranslate"><span class="pre">EXCLUDE_FILE</span></code>, etc).</p></li>
+</ul>
+</li>
+<li><p><strong>Input section merging</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::mergeSections()</span></code> calls <code class="docutils literal notranslate"><span class="pre">mergeInputSections(...)</span></code> which
+iterates all input sections and merges them into output sections, with
+special handling for some section kinds (<code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code>, <code class="docutils literal notranslate"><span class="pre">.sframe</span></code>, target
+overrides, linkonce/reloc sections, etc).</p></li>
+</ul>
+</li>
+<li><p><strong>Finalize output sections</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">createOutputSection(...)</span></code> builds each output section’s fragment list,
+computes flags/alignment, assigns fragment offsets, and inserts the output
+sections into the module’s output section table.</p></li>
+</ul>
+</li>
+</ol>
+<div class="section" id="special-case-section-handling-during-merging">
+<h3><a class="toc-backref" href="#id11"><span class="section-number">6.10.1. </span>Special-case section handling during merging</a><a class="headerlink" href="#special-case-section-handling-during-merging" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::mergeInputSections(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>)
+handles some input section kinds specially:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LDFileFormat::Relocation</span></code> and <code class="docutils literal notranslate"><span class="pre">LDFileFormat::LinkOnce</span></code>: if the “link”
+section is discarded/ignored, the relocation/linkonce section is ignored too.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LDFileFormat::Target</span></code>: backends may override merging via
+<code class="docutils literal notranslate"><span class="pre">GNULDBackend::DoesOverrideMerge(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">GNULDBackend::mergeSection(...)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LDFileFormat::EhFrame</span></code>:</p>
+<ul>
+<li><p>Splits and re-chunks <code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code> into CIE/FDE fragments.</p></li>
+<li><p>If enabled, registers content for <code class="docutils literal notranslate"><span class="pre">.eh_frame_hdr</span></code> and creates filler/hdr
+fragments in the backend.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LDFileFormat::SFrame</span></code>:</p>
+<ul>
+<li><p>Parses the section and may create an <code class="docutils literal notranslate"><span class="pre">SFrame</span></code> header fragment when
+configured.</p></li>
+</ul>
+</li>
+</ul>
+<p>Everything else typically flows through <code class="docutils literal notranslate"><span class="pre">ObjectBuilder::mergeSection(...)</span></code> and
+ends up contributing fragments to an output section.</p>
+</div>
+<div class="section" id="output-section-construction-and-offsets">
+<h3><a class="toc-backref" href="#id12"><span class="section-number">6.10.2. </span>Output section construction and offsets</a><a class="headerlink" href="#output-section-construction-and-offsets" title="Permalink to this heading"></a></h3>
+<p>Once merging decides <em>which</em> fragments belong to a particular output section,
+<code class="docutils literal notranslate"><span class="pre">ObjectLinker::createOutputSection(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">ObjectLinker::assignOffset(...)</span></code>
+lay them out:</p>
+<ul class="simple">
+<li><p>Output section <code class="docutils literal notranslate"><span class="pre">ALIGN</span></code> / input section <code class="docutils literal notranslate"><span class="pre">SUBALIGN</span></code> (from linker script) is
+enforced when present.</p></li>
+<li><p>“Dirty” rules (modified by plugins) trigger a recomputation of input section
+flags/type/align based on the fragments that ended up in the rule.</p></li>
+<li><p>Fragment offsets are assigned linearly; per-fragment padding/alignment is
+applied by <code class="docutils literal notranslate"><span class="pre">Fragment::paddingSize()</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Fragment/Fragment.cpp</span></code>).</p></li>
+</ul>
+<p>Debug tips:</p>
+<ul class="simple">
+<li><p>If you see “offset not assigned” diagnostics, the fragment/section likely
+never got placed into an output section (or got discarded). The diagnostic
+plumbing is in <code class="docutils literal notranslate"><span class="pre">Fragment::getOffset(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Fragment/Fragment.cpp</span></code>).</p></li>
+<li><p>If rule sorting changes layout unexpectedly, check whether the linker script
+wildcard includes a sort policy, or whether <code class="docutils literal notranslate"><span class="pre">--sort-section=...</span></code> is enabled.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="string-merging-mergestring-fragments">
+<h2><a class="toc-backref" href="#id13"><span class="section-number">6.11. </span>String merging (MergeString fragments)</a><a class="headerlink" href="#string-merging-mergestring-fragments" title="Permalink to this heading"></a></h2>
+<p>String merging is a dedicated optimization pass that runs during layout, before
+final output layout is established:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::doMergeStrings()</span></code> calls:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">mergeIdenticalStrings()</span></code>: merges <code class="docutils literal notranslate"><span class="pre">MergeStringFragment</span></code> content (can be
+threaded across output sections; global non-alloc merge is done single-threaded).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fixMergeStringRelocations()</span></code>: updates relocations that refer into merged
+strings via <code class="docutils literal notranslate"><span class="pre">Relocator::doMergeStrings(...)</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+<p>The output offset calculation for merged strings is special-cased in
+<code class="docutils literal notranslate"><span class="pre">FragmentRef::getOutputOffset(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Fragment/FragmentRef.cpp</span></code>), because
+multiple input strings may map to a shared output string (including suffix
+merging).</p>
+<p>Debug tips:</p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--trace=merge-strings</span></code> / <code class="docutils literal notranslate"><span class="pre">--trace-merge-strings=&lt;option&gt;</span></code> to see why
+strings were merged and how offsets were computed.</p></li>
+</ul>
+</div>
+<div class="section" id="relocations-read-scan-apply-optional-emit-reloc-sections">
+<h2><a class="toc-backref" href="#id14"><span class="section-number">6.12. </span>Relocations: read -&gt; scan -&gt; apply -&gt; (optional) emit reloc sections</a><a class="headerlink" href="#relocations-read-scan-apply-optional-emit-reloc-sections" title="Permalink to this heading"></a></h2>
+<p>There are multiple relocation passes, and confusing them is a common source of
+“where did this relocation come from?” debugging pain.</p>
+<div class="section" id="read-relocations">
+<h3><a class="toc-backref" href="#id15"><span class="section-number">6.12.1. </span>Read relocations</a><a class="headerlink" href="#read-relocations" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::readRelocations()</span></code> reads relocations from input objects
+(<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>):</p>
+<ul class="simple">
+<li><p>Skips non-object inputs, and skips inputs marked “just symbols”.</p></li>
+<li><p>For patch-base inputs, runs patch-base parsing via the executable-object parser.</p></li>
+</ul>
+</div>
+<div class="section" id="scan-relocations-reservation-planning">
+<h3><a class="toc-backref" href="#id16"><span class="section-number">6.12.2. </span>Scan relocations (reservation / planning)</a><a class="headerlink" href="#scan-relocations-reservation-planning" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::scanRelocations(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>) is the
+“planning” pass. It typically:</p>
+<ul class="simple">
+<li><p>Invokes <code class="docutils literal notranslate"><span class="pre">Relocator::scanRelocation(...)</span></code> per relocation, which is where the
+backend decides whether it needs to reserve GOT/PLT entries, create or reserve
+dynamic relocations, create stubs/trampolines, etc. (target-specific logic is
+in <code class="docutils literal notranslate"><span class="pre">lib/Target/*/*Relocator.cpp</span></code>).</p></li>
+<li><p>Collects copy-relocation candidates per input, then creates copy relocations
+once per symbol (see <code class="docutils literal notranslate"><span class="pre">createCopyRelocation(...)</span></code> / <code class="docutils literal notranslate"><span class="pre">addCopyReloc(...)</span></code> in
+<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>).</p></li>
+<li><p>Merges per-file dynamic relocation vectors into a single “reloc input”
+(<code class="docutils literal notranslate"><span class="pre">getDynamicSectionHeadersInputFile()</span></code>) so later code can treat them
+consistently.</p></li>
+<li><p>Runs <code class="docutils literal notranslate"><span class="pre">ObjectLinker::finalizeScanRelocations()</span></code> which calls
+<code class="docutils literal notranslate"><span class="pre">GNULDBackend::finalizeScanRelocations()</span></code> for backend-specific finalization.</p></li>
+</ul>
+<p>In relocatable/partial links, ELD uses <code class="docutils literal notranslate"><span class="pre">partialScanRelocation(...)</span></code> instead.</p>
+</div>
+<div class="section" id="create-output-relocation-sections-emit-relocs">
+<h3><a class="toc-backref" href="#id17"><span class="section-number">6.12.3. </span>Create output relocation sections (<code class="docutils literal notranslate"><span class="pre">--emit-relocs</span></code>)</a><a class="headerlink" href="#create-output-relocation-sections-emit-relocs" title="Permalink to this heading"></a></h3>
+<p>If <code class="docutils literal notranslate"><span class="pre">--emit-relocs</span></code> is enabled, ELD creates output relocation sections during
+prelayout:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::prelayout()</span></code> calls <code class="docutils literal notranslate"><span class="pre">createRelocationSections()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">createRelocationSections()</span></code> counts relocations per output section and
+creates the corresponding output relocation sections (<code class="docutils literal notranslate"><span class="pre">.rel.&lt;sec&gt;</span></code> /
+<code class="docutils literal notranslate"><span class="pre">.rela.&lt;sec&gt;</span></code> style, based on target) sized to hold all entries.</p></li>
+</ul>
+</div>
+<div class="section" id="apply-relocations-writes-relocation-results">
+<h3><a class="toc-backref" href="#id18"><span class="section-number">6.12.4. </span>Apply relocations (writes relocation results)</a><a class="headerlink" href="#apply-relocations-writes-relocation-results" title="Permalink to this heading"></a></h3>
+<p>Relocation application happens in <code class="docutils literal notranslate"><span class="pre">ObjectLinker::relocation(...)</span></code>:</p>
+<ul class="simple">
+<li><p>Applies internal/linker-created relocations.</p></li>
+<li><p>Applies input relocations, skipping relocations that are known to be relaxed
+or that target discarded/ignored sections/symbols.</p></li>
+<li><p>Applies branch-island (relaxation) relocations after input relocations are
+applied.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">--emit-relocs</span></code> is enabled, emits external-form relocation records into
+the output relocation sections (via <code class="docutils literal notranslate"><span class="pre">EmitOneReloc</span></code>).</p></li>
+</ul>
+<p>Finally, <code class="docutils literal notranslate"><span class="pre">syncRelocations(...)</span></code> writes relocation results into the output
+buffer, including extra ordering/barriers to avoid races when multi-threaded.</p>
+<p>Debug tips:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=reloc=&lt;pattern&gt;</span></code> pinpoints a single relocation kind.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=symbol=&lt;name&gt;</span></code> helps tie relocations back to symbol resolution.</p></li>
+<li><p>If you see overflows/unencodable immediates, diagnostics originate from
+<code class="docutils literal notranslate"><span class="pre">Relocation::issueSignedOverflow(...)</span></code> / <code class="docutils literal notranslate"><span class="pre">issueUnencodableImmediate(...)</span></code>
+in <code class="docutils literal notranslate"><span class="pre">lib/Readers/Relocation.cpp</span></code>.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="dynamic-relocations-what-creates-rel-a-dyn-rel-a-plt">
+<h2><a class="toc-backref" href="#id19"><span class="section-number">6.13. </span>Dynamic relocations (what creates <code class="docutils literal notranslate"><span class="pre">.rel[a].dyn</span></code> / <code class="docutils literal notranslate"><span class="pre">.rel[a].plt</span></code>)</a><a class="headerlink" href="#dynamic-relocations-what-creates-rel-a-dyn-rel-a-plt" title="Permalink to this heading"></a></h2>
+<p>Dynamic relocation entries are typically created/reserved during the relocation
+scan phase inside the target relocator and backend:</p>
+<ul class="simple">
+<li><p>Target relocators decide whether a given relocation needs:
+* a static relocation only,
+* a dynamic relocation (REL/RELA),
+* a PLT/GOT entry (and an associated relocation),
+* a copy relocation (for executable data symbol imports).</p></li>
+<li><p>Backends provide the actual sections for dynamic relocations (for example
+<code class="docutils literal notranslate"><span class="pre">.rela.dyn</span></code> / <code class="docutils literal notranslate"><span class="pre">.rela.plt</span></code>) and may sort/finalize them. A common set of
+helper logic lives in <code class="docutils literal notranslate"><span class="pre">lib/Target/GNULDBackend.cpp</span></code>.</p></li>
+</ul>
+<p>You can generally think of the relocation scan as “reserving and populating
+dynamic relocation vectors”, and layout/emission as “placing and writing those
+sections”.</p>
+</div>
+<div class="section" id="garbage-collection-gc-sections">
+<h2><a class="toc-backref" href="#id20"><span class="section-number">6.14. </span>Garbage collection (<code class="docutils literal notranslate"><span class="pre">--gc-sections</span></code>)</a><a class="headerlink" href="#garbage-collection-gc-sections" title="Permalink to this heading"></a></h2>
+<p>Garbage collection in ELD is graph reachability over sections, built from
+relocations and a chosen root set (“entry sections”).</p>
+<div class="section" id="where-it-runs">
+<h3><a class="toc-backref" href="#id21"><span class="section-number">6.14.1. </span>Where it runs</a><a class="headerlink" href="#where-it-runs" title="Permalink to this heading"></a></h3>
+<p>The default GC pass is triggered during the resolve phase:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::dataStrippingOpt()</span></code> checks
+<code class="docutils literal notranslate"><span class="pre">IRBuilder::shouldRunGarbageCollection()</span></code> and calls
+<code class="docutils literal notranslate"><span class="pre">ObjectLinker::runGarbageCollection(\&quot;GC\&quot;)</span></code>.</p></li>
+<li><p>The implementation is <code class="docutils literal notranslate"><span class="pre">GarbageCollection</span></code> in
+<code class="docutils literal notranslate"><span class="pre">lib/GarbageCollection/GarbageCollection.cpp</span></code>.</p></li>
+</ul>
+</div>
+<div class="section" id="how-the-graph-is-built">
+<h3><a class="toc-backref" href="#id22"><span class="section-number">6.14.2. </span>How the graph is built</a><a class="headerlink" href="#how-the-graph-is-built" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GarbageCollection::setUpReachedSectionsAndSymbols()</span></code>:</p>
+<ul class="simple">
+<li><p>Traverses input relocations and records, per “apply section”, the set of
+reachable target sections and reachable symbols.</p></li>
+<li><p>Handles special cases:</p>
+<ul>
+<li><p>Script-defined symbols: walks the assignment expression’s symbol references.</p></li>
+<li><p>Magic <code class="docutils literal notranslate"><span class="pre">__start_*/__stop_*</span></code> symbols: forces sections with matching names
+into the reachable set.</p></li>
+<li><p>Bitcode: defers some reachability until it can map referenced symbols back
+to bitcode “input sections”.</p></li>
+</ul>
+</li>
+<li><p>Allows the backend to add extra reachability via
+<code class="docutils literal notranslate"><span class="pre">GNULDBackend::setUpReachedSectionsForGC(...)</span></code>.</p></li>
+</ul>
+</div>
+<div class="section" id="how-entry-sections-are-chosen">
+<h3><a class="toc-backref" href="#id23"><span class="section-number">6.14.3. </span>How entry sections are chosen</a><a class="headerlink" href="#how-entry-sections-are-chosen" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GarbageCollection::getEntrySections()</span></code> considers multiple root sources:</p>
+<ul class="simple">
+<li><p>The configured entry symbol (if it resolves to a fragment).</p></li>
+<li><p>Sections matched by <code class="docutils literal notranslate"><span class="pre">KEEP(...)</span></code> in the linker script.</p></li>
+<li><p>When producing dynamic outputs, exported/visible symbols (subject to version
+script scoping) contribute entry sections.</p></li>
+<li><p>Sections marked with <code class="docutils literal notranslate"><span class="pre">SHF_GNU_RETAIN</span></code> are treated as entry-like.</p></li>
+</ul>
+</div>
+<div class="section" id="mark-and-sweep">
+<h3><a class="toc-backref" href="#id24"><span class="section-number">6.14.4. </span>Mark-and-sweep</a><a class="headerlink" href="#mark-and-sweep" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">GarbageCollection::findReferencedSectionsAndSymbols(...)</span></code> performs a BFS from
+entry sections, following the reachability map built earlier, producing a live
+set. <code class="docutils literal notranslate"><span class="pre">stripSections(...)</span></code> then marks sections not in the live set as ignored
+(and can optionally print what got collected).</p>
+<p>Debug tips:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--print-gc-sections</span></code> shows what got collected.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=garbage-collection</span></code> and <code class="docutils literal notranslate"><span class="pre">--trace=live-edges</span></code> are useful when a
+section is unexpectedly dead/alive.</p></li>
+<li><p>If GC keeps/drops a zero-sized section unexpectedly, check whether it is the
+target of a relocation or contains a symbol (see the FAQ discussion of
+zero-sized sections).</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="fragment-model-fragment-fragmentref">
+<h2><a class="toc-backref" href="#id25"><span class="section-number">6.15. </span>Fragment model (Fragment / FragmentRef)</a><a class="headerlink" href="#fragment-model-fragment-fragmentref" title="Permalink to this heading"></a></h2>
+<p>ELD uses a fragment model internally where <strong>fragments are the minimum linking
+unit</strong>, not sections.</p>
+<div class="section" id="fragments">
+<h3><a class="toc-backref" href="#id26"><span class="section-number">6.15.1. </span>Fragments</a><a class="headerlink" href="#fragments" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Fragment</span></code> (<code class="docutils literal notranslate"><span class="pre">include/eld/Fragment/Fragment.h</span></code>) represents a typed chunk of
+content that will appear in the output. Examples include:</p>
+<ul class="simple">
+<li><p>raw data regions (region fragments),</p></li>
+<li><p>stubs / trampolines / branch island content,</p></li>
+<li><p>GOT / PLT entries,</p></li>
+<li><p>mergeable strings,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code>-related pieces (CIE/FDE fragments),</p></li>
+<li><p>build-id fragments, timing fragments, and others.</p></li>
+</ul>
+<p>Each fragment belongs to an owning (input) section and has:</p>
+<ul class="simple">
+<li><p>an alignment requirement,</p></li>
+<li><p>an assigned (unaligned) offset, and derived padding size,</p></li>
+<li><p>an <code class="docutils literal notranslate"><span class="pre">emit(...)</span></code> implementation that writes bytes during output generation.</p></li>
+</ul>
+</div>
+<div class="section" id="offsets-padding-and-why-is-this-input-marked-used">
+<h3><a class="toc-backref" href="#id27"><span class="section-number">6.15.2. </span>Offsets, padding, and “why is this input marked used?”</a><a class="headerlink" href="#offsets-padding-and-why-is-this-input-marked-used" title="Permalink to this heading"></a></h3>
+<p>During output section construction, ELD assigns fragment offsets linearly. The
+final effective offset includes per-fragment padding computed by
+<code class="docutils literal notranslate"><span class="pre">Fragment::paddingSize()</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Fragment/Fragment.cpp</span></code>). When a fragment
+offset is assigned, <code class="docutils literal notranslate"><span class="pre">Fragment::setOffset(...)</span></code> also marks the owning input as
+“used” when it contributes allocatable content (this feeds into GC and
+diagnostics).</p>
+</div>
+<div class="section" id="fragmentref-symbol-relocation-addressing">
+<h3><a class="toc-backref" href="#id28"><span class="section-number">6.15.3. </span>FragmentRef (symbol/relocation addressing)</a><a class="headerlink" href="#fragmentref-symbol-relocation-addressing" title="Permalink to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">FragmentRef</span></code> (<code class="docutils literal notranslate"><span class="pre">include/eld/Fragment/FragmentRef.h</span></code>) is a pointer to:</p>
+<ul class="simple">
+<li><p>a fragment, plus</p></li>
+<li><p>an additional byte offset within that fragment.</p></li>
+</ul>
+<p>This is the core indirection used by:</p>
+<ul class="simple">
+<li><p>output symbols (symbols carry a <code class="docutils literal notranslate"><span class="pre">FragmentRef</span></code> to their definition),</p></li>
+<li><p>relocations (relocation “place” and/or “target” is a <code class="docutils literal notranslate"><span class="pre">FragmentRef</span></code>).</p></li>
+</ul>
+<p>Output offset computation is not always “fragment offset + ref offset”:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">FragmentRef::getOutputOffset(...)</span></code> special-cases <code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code> to map
+offsets through the split/piece layout.</p></li>
+<li><p>It also special-cases merged strings so references land on the deduplicated
+output string (including suffix merging).</p></li>
+</ul>
+<p>Debug tips:</p>
+<ul class="simple">
+<li><p>If a relocation points somewhere surprising, inspect:
+* the relocation’s <code class="docutils literal notranslate"><span class="pre">targetRef</span></code> (place), and
+* the symbol’s <code class="docutils literal notranslate"><span class="pre">fragRef</span></code> (definition),
+and remember both can have special-cased output offset behavior.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="map-files-layout-printers">
+<h2><a class="toc-backref" href="#id29"><span class="section-number">6.16. </span>Map files (layout printers)</a><a class="headerlink" href="#map-files-layout-printers" title="Permalink to this heading"></a></h2>
+<p>Map emission is handled after the link attempt in <code class="docutils literal notranslate"><span class="pre">Linker::printLayout()</span></code> and
+also from the crash signal handler.</p>
+<p>Key options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-M</span></code> / <code class="docutils literal notranslate"><span class="pre">--print-map</span></code>: enable map generation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--Map=&lt;filename&gt;</span></code>: choose map output file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--MapStyle=&lt;YAML|Text|Binary&gt;</span></code>: choose format(s)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--MapDetail=&lt;option&gt;</span></code>: more detail in maps</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--color-map</span></code>: colorize map output</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trampoline-map</span> <span class="pre">&lt;filename&gt;</span></code>: trampoline information (YAML)</p></li>
+</ul>
+</div>
+<div class="section" id="reproducing-failures-tarball-mapping-file">
+<h2><a class="toc-backref" href="#id30"><span class="section-number">6.17. </span>Reproducing failures (tarball + mapping file)</a><a class="headerlink" href="#reproducing-failures-tarball-mapping-file" title="Permalink to this heading"></a></h2>
+<p>ELD can capture a self-contained reproducer for link issues:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--reproduce</span> <span class="pre">&lt;tarfilename&gt;</span></code>: always produce a tarball</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--reproduce-compressed</span> <span class="pre">&lt;tarfilename&gt;</span></code>: compressed tarball</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--reproduce-on-fail</span> <span class="pre">&lt;tarfilename&gt;</span></code>: only on failure</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ELD_REPRODUCE_CREATE_TAR</span></code>: environment variable that forces reproducer
+creation (uses a temporary tar file if no filename is provided)</p></li>
+</ul>
+<p>Additional reproduce helpers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--mapping-file</span> <span class="pre">&lt;INI-file&gt;</span></code>: reproduce link using a mapping file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dump-mapping-file</span> <span class="pre">&lt;outputfilename&gt;</span></code>: dump mapping info</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dump-response-file</span> <span class="pre">&lt;outputfilename&gt;</span></code>: dump rewritten response file</p></li>
+</ul>
+<p>The reproduce tarball logic is wired through:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GnuLdDriver::handleReproduce(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">writeReproduceTar(...)</span></code> in
+<code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/GnuLdDriver.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Module::createOutputTarWriter()</span></code> creation decision via
+<code class="docutils literal notranslate"><span class="pre">LinkerConfig::shouldCreateReproduceTar()</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Config/LinkerConfig.cpp</span></code>)</p></li>
+</ul>
+</div>
+<div class="section" id="crash-signal-behavior-what-gets-written-on-a-crash">
+<h2><a class="toc-backref" href="#id31"><span class="section-number">6.18. </span>Crash/signal behavior (what gets written on a crash)</a><a class="headerlink" href="#crash-signal-behavior-what-gets-written-on-a-crash" title="Permalink to this heading"></a></h2>
+<p>ELD installs a default signal handler in <code class="docutils literal notranslate"><span class="pre">GnuLdDriver::doLink(...)</span></code>:</p>
+<ul class="simple">
+<li><p>Flushes a text map file (if configured).</p></li>
+<li><p>Detects likely plugin crashes and reports them.</p></li>
+<li><p>Writes a temporary <code class="docutils literal notranslate"><span class="pre">.sh</span></code> script that appends <code class="docutils literal notranslate"><span class="pre">--reproduce</span> <span class="pre">build.tar</span></code> to
+the command line and instructs the user to rerun.</p></li>
+</ul>
+<p>This is implemented in <code class="docutils literal notranslate"><span class="pre">GnuLdDriver::defaultSignalHandler(...)</span></code> in
+<code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/GnuLdDriver.cpp</span></code>.</p>
+</div>
+<div class="section" id="where-failures-typically-come-from-symptoms-pipeline-stage">
+<h2><a class="toc-backref" href="#id32"><span class="section-number">6.19. </span>Where failures typically come from (symptoms -&gt; pipeline stage)</a><a class="headerlink" href="#where-failures-typically-come-from-symptoms-pipeline-stage" title="Permalink to this heading"></a></h2>
+<p>This section is meant as a quick index: if you see a symptom, these are the
+stages/files to inspect first. Many of these topics are also discussed in more
+detail in <code class="docutils literal notranslate"><span class="pre">docs/userguide/documentation/linker_faq.rst</span></code>.</p>
+<div class="section" id="driver-target-selection-failures">
+<h3><a class="toc-backref" href="#id33"><span class="section-number">6.19.1. </span>Driver/target selection failures</a><a class="headerlink" href="#driver-target-selection-failures" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>“unsupported emulation” / “cannot find target”</p></li>
+<li><p>wrong backend chosen when using <code class="docutils literal notranslate"><span class="pre">-m</span></code> / <code class="docutils literal notranslate"><span class="pre">-march</span></code></p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Driver::getDriverFlavorFromLinkCommand(...)</span></code> in <code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/Driver.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GnuLdDriver::processTargetOptions(...)</span></code> and target lookups in
+<code class="docutils literal notranslate"><span class="pre">GnuLdDriver::doLink(...)</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/LinkerWrapper/GnuLdDriver.cpp</span></code>)</p></li>
+</ul>
+</div>
+<div class="section" id="input-specification-archive-group-issues">
+<h3><a class="toc-backref" href="#id34"><span class="section-number">6.19.2. </span>Input specification / archive/group issues</a><a class="headerlink" href="#input-specification-archive-group-issues" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>“mismatched group” / “mismatched lib”</p></li>
+<li><p>unexpected missing objects from an archive</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GnuLdDriver::createInputActions(...)</span></code> for <code class="docutils literal notranslate"><span class="pre">--start-group</span></code>/<code class="docutils literal notranslate"><span class="pre">--end-group</span></code>
+and <code class="docutils literal notranslate"><span class="pre">--start-lib</span></code>/<code class="docutils literal notranslate"><span class="pre">--end-lib</span></code> balancing and ordering</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">-t</span></code> / <code class="docutils literal notranslate"><span class="pre">--trace=files</span></code> to confirm what ELD actually processed</p></li>
+</ul>
+</div>
+<div class="section" id="linker-script-rule-matching-errors">
+<h3><a class="toc-backref" href="#id35"><span class="section-number">6.19.3. </span>Linker script rule-matching errors</a><a class="headerlink" href="#linker-script-rule-matching-errors" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>“no linker script rule for “.bss”” / “.data.bar” style errors</p></li>
+<li><p>sections landing in unexpected output sections</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::assignOutputSections(...)</span></code> and friends in
+<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code></p></li>
+<li><p>Emit a map file and confirm whether the input section matched any rule; the
+FAQ has a guide for diagnosing these errors and for finding used/unused rules.</p></li>
+<li><p>If this is a <em>script parsing/syntax</em> problem (rather than rule matching),
+enable <code class="docutils literal notranslate"><span class="pre">--trace=linker-script</span></code> / <code class="docutils literal notranslate"><span class="pre">--trace-linker-script</span></code> and use
+<code class="docutils literal notranslate"><span class="pre">--reproduce[-on-fail]</span></code> to capture the exact script(s) and rewritten command
+line that ELD used.</p></li>
+</ul>
+<p>Practical tips:</p>
+<ul class="simple">
+<li><p>Reduce the script: comment out most rules and add back until the behavior
+flips. For rule-matching bugs, keep only the relevant <code class="docutils literal notranslate"><span class="pre">SECTIONS</span></code> rules and a
+minimal <code class="docutils literal notranslate"><span class="pre">MEMORY</span></code> map.</p></li>
+<li><p>Prefer map files while iterating: they show which input section went to which
+output section and why that changed across experiments.</p></li>
+</ul>
+</div>
+<div class="section" id="linker-script-parsing-and-evaluation-errors">
+<h3><a class="toc-backref" href="#id36"><span class="section-number">6.19.4. </span>Linker script parsing and evaluation errors</a><a class="headerlink" href="#linker-script-parsing-and-evaluation-errors" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>parse errors (unexpected token, unexpected <code class="docutils literal notranslate"><span class="pre">)</span></code>, etc)</p></li>
+<li><p>script expression issues (undefined symbol in an expression, unexpected value)</p></li>
+<li><p>placement issues that are script-driven (for example: region overflow, PHDR
+mismatch, or a section being forced into an incompatible segment)</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=linker-script</span></code> / <code class="docutils literal notranslate"><span class="pre">--trace-linker-script</span></code> to see script parsing,
+includes, and key evaluation decisions.</p></li>
+<li><p>A text map file to confirm what the script actually did: memory regions,
+output section addresses, and segment layout are usually visible there.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--reproduce[-on-fail]</span></code> so the exact script(s) used by the link are captured
+alongside the rewritten response file (this is critical when scripts are
+generated by the build system).</p></li>
+</ul>
+</div>
+<div class="section" id="undefined-references-and-symbol-resolution-surprises">
+<h3><a class="toc-backref" href="#id37"><span class="section-number">6.19.5. </span>Undefined references and symbol resolution surprises</a><a class="headerlink" href="#undefined-references-and-symbol-resolution-surprises" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>“undefined reference” failures</p></li>
+<li><p>symbol unexpectedly resolved from a different archive/object</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p>Resolve phase in <code class="docutils literal notranslate"><span class="pre">Linker::resolve()</span></code> (<code class="docutils literal notranslate"><span class="pre">lib/Core/Linker.cpp</span></code>) and the
+diagnostic engine output</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--trace=symbol=&lt;name&gt;</span></code> (or <code class="docutils literal notranslate"><span class="pre">--trace=all-symbols</span></code>) to see the
+resolution path</p></li>
+</ul>
+<p>When the failure is a <em>runtime</em> crash (not a link error), symbol resolution can
+still be the root cause:</p>
+<ul class="simple">
+<li><p>Wrong interposition/visibility (a symbol resolves but to an unexpected
+definition at runtime).</p></li>
+<li><p>Lazy binding via PLT (a crash happens on the first call into a function that
+is resolved late by the dynamic loader).</p></li>
+</ul>
+<p>Quick inspections:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Symbol tables (static and dynamic), with type/binding/visibility:</span>
+llvm-readelf<span class="w"> </span>-s<span class="w"> </span>--demangle<span class="w"> </span>--extra-sym-info<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+llvm-readelf<span class="w"> </span>-s<span class="w"> </span>--demangle<span class="w"> </span>--extra-sym-info<span class="w"> </span>./libfoo.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+
+<span class="c1"># Dynamic symbols only (what the runtime loader sees):</span>
+llvm-readelf<span class="w"> </span>--dyn-syms<span class="w"> </span>--demangle<span class="w"> </span>--extra-sym-info<span class="w"> </span>./libfoo.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+
+<span class="c1"># Undefined dynamic symbols (what must be provided by dependencies):</span>
+llvm-readelf<span class="w"> </span>--dyn-syms<span class="w"> </span>--demangle<span class="w"> </span>--extra-sym-info<span class="w"> </span>./libfoo.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;$7==\&quot;UND\&quot; {print}&#39;</span>
+
+<span class="c1"># Imported/Exported symbols (alternate views):</span>
+nm<span class="w"> </span>-D<span class="w"> </span>--defined-only<span class="w"> </span>./libfoo.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+nm<span class="w"> </span>-D<span class="w"> </span>--undefined-only<span class="w"> </span>./libfoo.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+</pre></div>
+</div>
+</div>
+<div class="section" id="garbage-collection-removed-something-needed">
+<h3><a class="toc-backref" href="#id38"><span class="section-number">6.19.6. </span>Garbage collection removed something needed</a><a class="headerlink" href="#garbage-collection-removed-something-needed" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>function/data present in inputs but missing from output</p></li>
+<li><p>a section disappears only with <code class="docutils literal notranslate"><span class="pre">--gc-sections</span></code></p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GarbageCollection</span></code> implementation in <code class="docutils literal notranslate"><span class="pre">lib/GarbageCollection/GarbageCollection.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--print-gc-sections</span></code> plus <code class="docutils literal notranslate"><span class="pre">--trace=garbage-collection</span></code> / <code class="docutils literal notranslate"><span class="pre">--trace=live-edges</span></code></p></li>
+<li><p>Ensure linker-script <code class="docutils literal notranslate"><span class="pre">KEEP(...)</span></code> is used for sections that must never be GC’d</p></li>
+</ul>
+</div>
+<div class="section" id="relocation-overflows-unencodable-immediates-target-specific-relocation-bugs">
+<h3><a class="toc-backref" href="#id39"><span class="section-number">6.19.7. </span>Relocation overflows / unencodable immediates / target-specific relocation bugs</a><a class="headerlink" href="#relocation-overflows-unencodable-immediates-target-specific-relocation-bugs" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>overflow/unencodable relocation diagnostics</p></li>
+<li><p>crashes during relocation scan/apply</p></li>
+<li><p>output runs but has wrong addresses at runtime</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p>Scan phase: <code class="docutils literal notranslate"><span class="pre">ObjectLinker::scanRelocations(...)</span></code> and target relocators
+(<code class="docutils literal notranslate"><span class="pre">lib/Target/*/*Relocator.cpp</span></code>)</p></li>
+<li><p>Apply phase: <code class="docutils literal notranslate"><span class="pre">ObjectLinker::relocation(...)</span></code> and sync/writeback
+(<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code>)</p></li>
+<li><p>Diagnostics: <code class="docutils literal notranslate"><span class="pre">lib/Readers/Relocation.cpp</span></code> (location printing, overflow, etc)</p></li>
+</ul>
+</div>
+<div class="section" id="trampolines-stubs-relaxation-issues">
+<h3><a class="toc-backref" href="#id40"><span class="section-number">6.19.8. </span>Trampolines / stubs / relaxation issues</a><a class="headerlink" href="#trampolines-stubs-relaxation-issues" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>failures mentioning trampolines, far calls, or branch islands</p></li>
+<li><p>layout changes causing new trampolines or changing trampoline reuse</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::initStubs()</span></code> and target stub factories/backends</p></li>
+<li><p>Map/trampoline map options (<code class="docutils literal notranslate"><span class="pre">--trampoline-map</span></code>) plus FAQ sections on
+trampoline naming and reuse controls</p></li>
+</ul>
+</div>
+<div class="section" id="lto-failures">
+<h3><a class="toc-backref" href="#id41"><span class="section-number">6.19.9. </span>LTO failures</a><a class="headerlink" href="#lto-failures" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>failures only with <code class="docutils literal notranslate"><span class="pre">-flto</span></code> / ThinLTO / Full LTO</p></li>
+<li><p>“LTO merge error” / codegen diagnostics</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectLinker::createLTOObject()</span></code> and LTO diagnostics handler in
+<code class="docutils literal notranslate"><span class="pre">lib/Object/ObjectLinker.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--trace=LTO</span></code> / <code class="docutils literal notranslate"><span class="pre">--trace-lto</span></code> and <code class="docutils literal notranslate"><span class="pre">--reproduce[-on-fail]</span></code> to capture
+inputs and generated objects</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--save-temps</span></code> (or <code class="docutils literal notranslate"><span class="pre">--save-temps=&lt;dir&gt;</span></code>) to preserve intermediate LTO
+artifacts for inspection (files use the prefix <code class="docutils literal notranslate"><span class="pre">&lt;output&gt;.llvm-lto.*</span></code>)</p></li>
+<li><p>If you need stable, non-temporary LTO-generated objects: <code class="docutils literal notranslate"><span class="pre">--lto-obj-path=&lt;prefix&gt;</span></code>
+(also keeps the objects from being deleted after LTO)</p></li>
+</ul>
+</div>
+<div class="section" id="plugin-caused-failures">
+<h3><a class="toc-backref" href="#id42"><span class="section-number">6.19.10. </span>Plugin-caused failures</a><a class="headerlink" href="#plugin-caused-failures" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>crashes only when a plugin is configured</p></li>
+<li><p>non-deterministic behavior across runs with the same inputs</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--plugin-activity-file=&lt;file&gt;</span></code> to capture plugin activity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-default-plugins</span></code> to isolate</p></li>
+<li><p>Crash handler output from <code class="docutils literal notranslate"><span class="pre">GnuLdDriver::defaultSignalHandler(...)</span></code> can
+explicitly call out a plugin as the likely crash source</p></li>
+</ul>
+</div>
+<div class="section" id="output-emission-failures">
+<h3><a class="toc-backref" href="#id43"><span class="section-number">6.19.11. </span>Output emission failures</a><a class="headerlink" href="#output-emission-failures" title="Permalink to this heading"></a></h3>
+<p>Symptoms:</p>
+<ul class="simple">
+<li><p>“unwritable output” / commit errors</p></li>
+<li><p>output size verification failures</p></li>
+</ul>
+<p>Start here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Linker::emit()</span></code> in <code class="docutils literal notranslate"><span class="pre">lib/Core/Linker.cpp</span></code> (<code class="docutils literal notranslate"><span class="pre">llvm::FileOutputBuffer</span></code> creation/commit)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="practical-debugging-checklist">
+<h2><a class="toc-backref" href="#id44"><span class="section-number">6.20. </span>Practical debugging checklist</a><a class="headerlink" href="#practical-debugging-checklist" title="Permalink to this heading"></a></h2>
+<p>When a link fails and you need actionable data quickly, try (in order):</p>
+<ol class="arabic simple">
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">--reproduce-on-fail</span> <span class="pre">repro.tar</span></code> (or <code class="docutils literal notranslate"><span class="pre">--reproduce</span> <span class="pre">repro.tar</span></code>).</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">--trace=command-line</span> <span class="pre">--trace=files</span></code>.</p></li>
+<li><p>Enable map output: <code class="docutils literal notranslate"><span class="pre">-M</span> <span class="pre">--Map=layout.map</span> <span class="pre">--MapStyle=Text</span></code> (or YAML).</p></li>
+<li><p>If plugins are involved: <code class="docutils literal notranslate"><span class="pre">--plugin-activity-file=plugins.json</span></code> and try
+<code class="docutils literal notranslate"><span class="pre">--no-default-plugins</span></code> to isolate.</p></li>
+<li><p>If time-sensitive or flaky: <code class="docutils literal notranslate"><span class="pre">--print-timing-stats</span></code> and consider
+<code class="docutils literal notranslate"><span class="pre">--emit-timing-stats=&lt;file&gt;</span></code> to capture timing consistently.</p></li>
+</ol>
+</div>
+<div class="section" id="debugging-runtime-crashes-in-eld-built-images">
+<h2><a class="toc-backref" href="#id45"><span class="section-number">6.21. </span>Debugging runtime crashes in ELD-built images</a><a class="headerlink" href="#debugging-runtime-crashes-in-eld-built-images" title="Permalink to this heading"></a></h2>
+<p>This section is for cases where the link <em>succeeds</em> but the produced ELF image
+(executable / shared library / firmware image) fails at runtime (crash, abort,
+unexpected exception, bad unwind/backtrace, etc.).</p>
+<div class="section" id="preserve-the-right-artifacts">
+<h3><a class="toc-backref" href="#id46"><span class="section-number">6.21.1. </span>Preserve the right artifacts</a><a class="headerlink" href="#preserve-the-right-artifacts" title="Permalink to this heading"></a></h3>
+<p>For runtime debugging, the most common blocker is having only a stripped image
+with no symbols or line tables.</p>
+<p>Keep (or be able to re-create) at least:</p>
+<ul class="simple">
+<li><p>The exact linked ELF that ran (same build-id if you use build-ids).</p></li>
+<li><p>An unstripped ELF (or a separate <code class="docutils literal notranslate"><span class="pre">.debug</span></code> file) that matches the runtime
+image.</p></li>
+<li><p>The ELD map file (<code class="docutils literal notranslate"><span class="pre">--Map=...</span> <span class="pre">--MapStyle=Text</span></code> or YAML) for fast
+address-to-section/symbol correlation.</p></li>
+<li><p>The crash report: PC/LR/SP, full backtrace if available, and a core dump when
+possible.</p></li>
+</ul>
+<p>If your production image must be stripped, keep debug info out-of-band using
+<code class="docutils literal notranslate"><span class="pre">llvm-objcopy</span></code> (or GNU <code class="docutils literal notranslate"><span class="pre">objcopy</span></code>):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-objcopy<span class="w"> </span>--only-keep-debug<span class="w"> </span>app<span class="w"> </span>app.debug
+llvm-objcopy<span class="w"> </span>--strip-debug<span class="w"> </span>--strip-unneeded<span class="w"> </span>app<span class="w"> </span>app.stripped
+llvm-objcopy<span class="w"> </span>--add-gnu-debuglink<span class="o">=</span>app.debug<span class="w"> </span>app.stripped
+</pre></div>
+</div>
+</div>
+<div class="section" id="use-linker-map-files-for-layout-correlation">
+<h3><a class="toc-backref" href="#id47"><span class="section-number">6.21.2. </span>Use linker map files for layout correlation</a><a class="headerlink" href="#use-linker-map-files-for-layout-correlation" title="Permalink to this heading"></a></h3>
+<p>When debugging runtime failures that are layout-sensitive (for example: wrong
+PLT/GOT access, unexpected text/rodata placement, thunk/trampoline differences,
+RELRO placement), generate and keep a linker map file for the exact link:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>eld<span class="w"> </span>...<span class="w"> </span>-M<span class="w"> </span>--Map<span class="o">=</span>layout.map<span class="w"> </span>--MapStyle<span class="o">=</span>Text
+</pre></div>
+</div>
+<p>The map file is often the fastest way to answer: “which output section/segment
+contains this address?” and “why did this archive member/section get pulled in?”.</p>
+</div>
+<div class="section" id="symbolize-a-crash-address-pc-quickly">
+<h3><a class="toc-backref" href="#id48"><span class="section-number">6.21.3. </span>Symbolize a crash address (PC) quickly</a><a class="headerlink" href="#symbolize-a-crash-address-pc-quickly" title="Permalink to this heading"></a></h3>
+<p>If you have an address from a crash report (for example <code class="docutils literal notranslate"><span class="pre">PC=0x...</span></code>) you can
+usually get <a class="reference external" href="file:line">file:line</a> without opening a debugger:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pick one:</span>
+llvm-addr2line<span class="w"> </span>-f<span class="w"> </span>-C<span class="w"> </span>-e<span class="w"> </span>./app<span class="w"> </span>0xADDR
+addr2line<span class="w">      </span>-f<span class="w"> </span>-C<span class="w"> </span>-e<span class="w"> </span>./app<span class="w"> </span>0xADDR
+</pre></div>
+</div>
+<p>For PIE executables and shared libraries under ASLR, <code class="docutils literal notranslate"><span class="pre">0xADDR</span></code> is typically a
+<em>runtime virtual address</em>. Convert it to an ELF-relative address first:</p>
+<ol class="arabic simple">
+<li><p>Find the module load base (<code class="docutils literal notranslate"><span class="pre">/proc/&lt;pid&gt;/maps</span></code> for a running process, or
+<code class="docutils literal notranslate"><span class="pre">image</span> <span class="pre">list</span> <span class="pre">-o</span> <span class="pre">-f</span></code> in lldb for a core).</p></li>
+<li><p>Compute <code class="docutils literal notranslate"><span class="pre">REL</span> <span class="pre">=</span> <span class="pre">ADDR</span> <span class="pre">-</span> <span class="pre">BASE</span></code>.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">addr2line</span></code> on <code class="docutils literal notranslate"><span class="pre">REL</span></code> using the corresponding module file.</p></li>
+</ol>
+<p>If you are using sanitizers, make sure symbolization is enabled and points at a
+working symbolizer:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">LLVM_SYMBOLIZER_PATH=/path/to/llvm-symbolizer</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ASAN_OPTIONS=symbolize=1:abort_on_error=1</span></code> (plus your project defaults)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UBSAN_OPTIONS=print_stacktrace=1</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="debug-with-lldb-core-dumps-and-live-debugging">
+<h3><a class="toc-backref" href="#id49"><span class="section-number">6.21.4. </span>Debug with lldb (core dumps and live debugging)</a><a class="headerlink" href="#debug-with-lldb-core-dumps-and-live-debugging" title="Permalink to this heading"></a></h3>
+<p>For a core dump:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">ulimit</span><span class="w"> </span>-c<span class="w"> </span>unlimited
+./app<span class="w">   </span><span class="c1"># reproduce crash</span>
+lldb<span class="w"> </span>-c<span class="w"> </span>core<span class="w"> </span>./app
+</pre></div>
+</div>
+<p>On systems using <code class="docutils literal notranslate"><span class="pre">systemd-coredump</span></code>, <code class="docutils literal notranslate"><span class="pre">coredumpctl</span></code> is often the easiest:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>coredumpctl<span class="w"> </span>list<span class="w"> </span>./app
+coredumpctl<span class="w"> </span>dump<span class="w"> </span>&lt;PID&gt;<span class="w"> </span>--output<span class="o">=</span>core
+lldb<span class="w"> </span>-c<span class="w"> </span>core<span class="w"> </span>./app
+</pre></div>
+</div>
+<p>In lldb, start with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bt</span></code> / <code class="docutils literal notranslate"><span class="pre">thread</span> <span class="pre">backtrace</span> <span class="pre">all</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">register</span> <span class="pre">read</span></code> and <code class="docutils literal notranslate"><span class="pre">disassemble</span> <span class="pre">-m</span> <span class="pre">-p</span> <span class="pre">--start-address</span> <span class="pre">$pc</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span> <span class="pre">list</span> <span class="pre">-o</span> <span class="pre">-f</span></code> (verify loaded modules + load addresses)</p></li>
+</ul>
+<p>If you cannot run the image locally (cross/embedded), use <code class="docutils literal notranslate"><span class="pre">lldb-server</span></code> on the
+target and attach from the host toolchain debugger.</p>
+</div>
+<div class="section" id="run-musl-builds-under-qemu-quick-cross-runtime-triage">
+<h3><a class="toc-backref" href="#id50"><span class="section-number">6.21.5. </span>Run musl builds under qemu (quick cross-runtime triage)</a><a class="headerlink" href="#run-musl-builds-under-qemu-quick-cross-runtime-triage" title="Permalink to this heading"></a></h3>
+<p>If you need a fast, reproducible runtime environment (especially for
+cross-target issues), a practical workflow is: build a small musl-based binary
+and run it under qemu (user-mode or system-mode).</p>
+<div class="section" id="user-mode-qemu-recommended-for-simple-tests">
+<h4><a class="toc-backref" href="#id51"><span class="section-number">6.21.5.1. </span>User-mode qemu (recommended for simple tests)</a><a class="headerlink" href="#user-mode-qemu-recommended-for-simple-tests" title="Permalink to this heading"></a></h4>
+<p>For Linux user-mode emulation, run the target executable directly:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Examples (pick your target qemu):</span>
+qemu-aarch64<span class="w"> </span>./app
+qemu-arm<span class="w">     </span>./app
+qemu-riscv64<span class="w"> </span>./app
+qemu-riscv32<span class="w"> </span>./app
+qemu-x86_64<span class="w">  </span>./app
+</pre></div>
+</div>
+<p>If the binary is dynamically linked, point qemu at a sysroot that contains the
+target loader + shared libraries (musl or glibc as appropriate):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>qemu-aarch64<span class="w"> </span>-L<span class="w"> </span>/path/to/&lt;triplet&gt;/sysroot<span class="w"> </span>./app
+</pre></div>
+</div>
+<p>Common qemu-user tips:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">-strace</span></code> prints syscalls (useful when a crash is actually an <code class="docutils literal notranslate"><span class="pre">ENOENT</span></code> /
+loader issue).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-E</span> <span class="pre">VAR=...</span></code> sets environment variables for the emulated program (for
+example <code class="docutils literal notranslate"><span class="pre">-E</span> <span class="pre">LD_LIBRARY_PATH=...</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-d</span> <span class="pre">in_asm,cpu,exec</span> <span class="pre">-D</span> <span class="pre">qemu.log</span></code> logs executed instructions; it is noisy but
+can pinpoint the last instruction before a crash.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">&lt;port&gt;</span></code> enables a gdbstub; you can attach with lldb using gdb-remote:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>qemu-aarch64<span class="w"> </span>-g<span class="w"> </span><span class="m">1234</span><span class="w"> </span>./app
+lldb<span class="w"> </span>./app
+<span class="o">(</span>lldb<span class="o">)</span><span class="w"> </span>gdb-remote<span class="w"> </span><span class="m">1234</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="system-mode-qemu-when-you-need-a-full-os-image">
+<h4><a class="toc-backref" href="#id52"><span class="section-number">6.21.5.2. </span>System-mode qemu (when you need a full OS image)</a><a class="headerlink" href="#system-mode-qemu-when-you-need-a-full-os-image" title="Permalink to this heading"></a></h4>
+<p>Use system-mode (<code class="docutils literal notranslate"><span class="pre">qemu-system-*</span></code>) when user-mode is insufficient (for example:
+kernel/driver interactions, missing syscalls, or you need a full rootfs).</p>
+<p>In system-mode, typical debugging flags include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">-S</span></code> (open gdbstub and stop at reset)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-d</span> <span class="pre">in_asm,cpu,exec</span> <span class="pre">-D</span> <span class="pre">qemu.log</span></code> (instruction logging; very verbose)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="inspect-exception-handling-and-unwinding">
+<h3><a class="toc-backref" href="#id53"><span class="section-number">6.21.6. </span>Inspect exception handling and unwinding</a><a class="headerlink" href="#inspect-exception-handling-and-unwinding" title="Permalink to this heading"></a></h3>
+<p>Runtime failures that look like “crash while unwinding”, “terminate called after
+throwing”, or incorrect backtraces typically reduce to missing/mismatched unwind
+or exception tables.</p>
+<p>At link time, ELD may merge/synthesize unwind-related sections (for example
+<code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code> and <code class="docutils literal notranslate"><span class="pre">.eh_frame_hdr</span></code>) and can also process SFrame
+(<code class="docutils literal notranslate"><span class="pre">.sframe</span></code> with <code class="docutils literal notranslate"><span class="pre">--sframe-hdr</span></code>). For ARM EHABI you may also see
+<code class="docutils literal notranslate"><span class="pre">.ARM.exidx</span></code> / <code class="docutils literal notranslate"><span class="pre">.ARM.extab</span></code>.</p>
+<p>Quick checks:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-readelf<span class="w"> </span>-S<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="se">\&quot;</span>eh_frame<span class="p">|</span>eh_frame_hdr<span class="p">|</span>gcc_except_table<span class="p">|</span>ARM<span class="se">\\</span>.exidx<span class="p">|</span>ARM<span class="se">\\</span>.extab<span class="p">|</span>sframe<span class="se">\&quot;</span>
+llvm-readelf<span class="w"> </span>--unwind<span class="w"> </span>./app<span class="w">   </span><span class="c1"># unwind info (includes .eh_frame when present)</span>
+</pre></div>
+</div>
+<p>Common causes of missing/insufficient unwind info:</p>
+<ul class="simple">
+<li><p>Built without unwind tables (toolchain flags such as <code class="docutils literal notranslate"><span class="pre">-fno-asynchronous-unwind-tables</span></code>,
+<code class="docutils literal notranslate"><span class="pre">-fno-unwind-tables</span></code>).</p></li>
+<li><p>Over-aggressive stripping (for example link-time <code class="docutils literal notranslate"><span class="pre">--strip-debug</span></code>) combined
+with not keeping a matching <code class="docutils literal notranslate"><span class="pre">.debug</span></code> file.</p></li>
+<li><p>Inconsistent binaries/libraries at runtime (debugging with one ELF but running
+a different one; mismatched build-ids).</p></li>
+<li><p>For C++ exceptions: missing runtime pieces (for example <code class="docutils literal notranslate"><span class="pre">__gxx_personality_v0</span></code>
+not resolved, or the wrong unwinder/libgcc_s on the target).</p></li>
+</ul>
+<p>If the problem is “backtrace is garbage” rather than exceptions specifically,
+also consider building with frame pointers (for example <code class="docutils literal notranslate"><span class="pre">-fno-omit-frame-pointer</span></code>)
+and validating that your unwinder matches the format your toolchain emits
+(<code class="docutils literal notranslate"><span class="pre">.eh_frame</span></code> vs SFrame vs target-specific unwind tables).</p>
+</div>
+<div class="section" id="inspect-loader-and-shared-library-problems">
+<h3><a class="toc-backref" href="#id54"><span class="section-number">6.21.7. </span>Inspect loader and shared-library problems</a><a class="headerlink" href="#inspect-loader-and-shared-library-problems" title="Permalink to this heading"></a></h3>
+<p>Crashes very early in process startup (before <code class="docutils literal notranslate"><span class="pre">main</span></code>) are often due to dynamic
+loader configuration rather than “code bugs”.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-readelf<span class="w"> </span>-l<span class="w"> </span>./app<span class="w">    </span><span class="c1"># interpreter (PT_INTERP) and program headers</span>
+llvm-readelf<span class="w"> </span>-d<span class="w"> </span>./app<span class="w">    </span><span class="c1"># NEEDED, RPATH/RUNPATH</span>
+ldd<span class="w"> </span>./app<span class="w">           </span><span class="c1"># what the system thinks will load (when available)</span>
+</pre></div>
+</div>
+<p>For glibc-based systems, <code class="docutils literal notranslate"><span class="pre">LD_DEBUG</span></code> can explain loader decisions:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">LD_DEBUG</span><span class="o">=</span>libs,bindings<span class="w"> </span>./app
+</pre></div>
+</div>
+</div>
+<div class="section" id="target-abi-relocations-got-plt-debugging-notes">
+<h3><a class="toc-backref" href="#id55"><span class="section-number">6.21.8. </span>Target ABI / relocations / GOT-PLT debugging notes</a><a class="headerlink" href="#target-abi-relocations-got-plt-debugging-notes" title="Permalink to this heading"></a></h3>
+<p>When debugging runtime crashes that involve dynamic linking, relocation
+application, or address materialization sequences, it helps to look at:</p>
+<ul>
+<li><p>Relocations: <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-r</span> <span class="pre">./app</span></code> and <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">--dyn-relocations</span> <span class="pre">./app</span></code>.</p></li>
+<li><p>Dynamic table: <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-d</span> <span class="pre">./app</span></code> (<code class="docutils literal notranslate"><span class="pre">NEEDED</span></code>, <code class="docutils literal notranslate"><span class="pre">RPATH/RUNPATH</span></code>, flags).</p></li>
+<li><p>Program headers: <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-l</span> <span class="pre">./app</span></code> (<code class="docutils literal notranslate"><span class="pre">PT_LOAD</span></code> flags/alignment, <code class="docutils literal notranslate"><span class="pre">PT_GNU_RELRO</span></code>).</p></li>
+<li><p>GOT/PLT-related sections and their contents:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-readelf<span class="w"> </span>-S<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="se">\&quot;\\</span>.plt<span class="p">|</span><span class="se">\\</span>.got<span class="p">|</span><span class="se">\\</span>.rela<span class="o">(</span><span class="se">\\</span>.plt<span class="p">|</span><span class="se">\\</span>.dyn<span class="o">)</span><span class="p">|</span><span class="se">\\</span>.rel<span class="o">(</span><span class="se">\\</span>.plt<span class="p">|</span><span class="se">\\</span>.dyn<span class="o">)</span><span class="se">\&quot;</span>
+llvm-readelf<span class="w"> </span>-x<span class="w"> </span>.got<span class="w"> </span>./app<span class="w">        </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+llvm-readelf<span class="w"> </span>-x<span class="w"> </span>.got.plt<span class="w"> </span>./app<span class="w">    </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+llvm-readelf<span class="w"> </span>-x<span class="w"> </span>.plt<span class="w"> </span>./app<span class="w">        </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+</pre></div>
+</div>
+<p>Correlate entries with disassembly + relocations:</p>
+<blockquote>
+<div><div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-objdump<span class="w"> </span>-dr<span class="w"> </span>--no-show-raw-insn<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+llvm-readelf<span class="w"> </span>-r<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<div class="section" id="external-abi-elf-references-authoritative-relocation-tables">
+<h4><a class="toc-backref" href="#id56"><span class="section-number">6.21.8.1. </span>External ABI / ELF references (authoritative relocation tables)</a><a class="headerlink" href="#external-abi-elf-references-authoritative-relocation-tables" title="Permalink to this heading"></a></h4>
+<p>When you need a definitive answer for relocation semantics, PLT/GOT conventions,
+TLS models, or calling convention/stack rules, prefer the architecture psABI/ABI
+documents (rather than reverse-engineering from a tool implementation).</p>
+<p>Useful starting points:</p>
+<ul class="simple">
+<li><p>Generic ELF / System V ABI:</p>
+<ul>
+<li><p>Linux Foundation reference index:
+<a class="reference external" href="https://refspecs.linuxfoundation.org/elf/index.html">ELF and ABI Standards</a></p></li>
+<li><p>System V gABI Edition 4.1:
+<a class="reference external" href="https://refspecs.linuxfoundation.org/elf/gabi41.pdf">gabi41.pdf</a></p></li>
+<li><p>ELF Object File Format (modern publication of the ELF chapters):
+<a class="reference external" href="https://gabi.xinuos.com/v42/elf/00-foreword.html">Xinuos ELF spec (HTML)</a></p></li>
+</ul>
+</li>
+<li><p>x86_64 System V psABI:</p>
+<ul>
+<li><p>psABI PDF:
+<a class="reference external" href="https://refspecs.linuxfoundation.org/elf/x86_64-SysV-psABI.pdf">x86_64-SysV-psABI.pdf</a></p></li>
+<li><p>Sources/repo:
+<a class="reference external" href="https://gitlab.com/x86-psABIs/x86-64-ABI">x86-64 psABI (GitLab)</a></p></li>
+</ul>
+</li>
+<li><p>Arm AArch32 / AArch64:</p>
+<ul>
+<li><p>Official Arm ABI repository (AAELF32/AAELF64, PCS, EHABI, etc):
+<a class="reference external" href="https://github.com/ARM-software/abi-aa">ARM-software/abi-aa</a></p></li>
+<li><p>AAELF (Arm ELF, AArch32):
+<a class="reference external" href="https://developer.arm.com/documentation/ihi0044/e/IHI0044E_aaelf.pdf">IHI0044E_aaelf.pdf</a></p></li>
+<li><p>AAELF64 (AArch64 ELF):
+<a class="reference external" href="https://github.com/ARM-software/abi-aa/blob/main/legacy-documents/aaelf64/ihi0056_G/IHI0056G_2020Q2_aaelf64.pdf">IHI0056G_2020Q2_aaelf64.pdf</a></p></li>
+</ul>
+</li>
+<li><p>RISC-V psABI:</p>
+<ul>
+<li><p>Spec site:
+<a class="reference external" href="https://riscv-non-isa.github.io/riscv-elf-psabi-doc/">riscv-elf-psabi-doc</a></p></li>
+<li><p>Sources/releases:
+<a class="reference external" href="https://github.com/riscv-non-isa/riscv-elf-psabi-doc">riscv-elf-psabi-doc (GitHub)</a></p></li>
+</ul>
+</li>
+<li><p>Qualcomm Hexagon:</p>
+<ul>
+<li><p>ABI user guide (includes Hexagon-specific ELF/relocations):
+<a class="reference external" href="https://docs.qualcomm.com/bundle/publicresource/80-N2040-23_REV_K_Qualcomm_Hexagon_Application_Binary_Interface_User_Guide.pdf">Qualcomm Hexagon ABI User Guide (PDF)</a></p></li>
+</ul>
+</li>
+</ul>
+<p>Architecture-specific relocation names are target-defined; a quick way to see
+what you are dealing with is the relocation inventory command in this guide.
+The following are <em>common</em> relocation families you may see during runtime triage:</p>
+<ul class="simple">
+<li><p><strong>x86_64 ABI</strong>: look for <code class="docutils literal notranslate"><span class="pre">R_X86_64_*</span></code> (for example: <code class="docutils literal notranslate"><span class="pre">*_RELATIVE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*_JUMP_SLOT</span></code>, <code class="docutils literal notranslate"><span class="pre">*_GLOB_DAT</span></code>, <code class="docutils literal notranslate"><span class="pre">*_PC32</span></code>, <code class="docutils literal notranslate"><span class="pre">*_PLT32</span></code>, <code class="docutils literal notranslate"><span class="pre">*_GOTPCREL*</span></code>).</p></li>
+<li><p><strong>AArch64 ABI</strong>: look for <code class="docutils literal notranslate"><span class="pre">R_AARCH64_*</span></code> (for example: <code class="docutils literal notranslate"><span class="pre">*_CALL26</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*_JUMP26</span></code>, <code class="docutils literal notranslate"><span class="pre">*_ADR_PREL_PG_HI21</span></code>, <code class="docutils literal notranslate"><span class="pre">*_ADD_ABS_LO12_NC</span></code>, <code class="docutils literal notranslate"><span class="pre">*_RELATIVE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*_JUMP_SLOT</span></code>, <code class="docutils literal notranslate"><span class="pre">*_GLOB_DAT</span></code>).</p></li>
+<li><p><strong>ARM ABI (arm/thumb)</strong>: look for <code class="docutils literal notranslate"><span class="pre">R_ARM_*</span></code> (for example: <code class="docutils literal notranslate"><span class="pre">*_CALL</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*_JUMP24</span></code>, <code class="docutils literal notranslate"><span class="pre">*_THM_CALL</span></code>, <code class="docutils literal notranslate"><span class="pre">*_THM_JUMP24</span></code>) and, on EHABI platforms,
+unwind tables like <code class="docutils literal notranslate"><span class="pre">.ARM.exidx</span></code>/<code class="docutils literal notranslate"><span class="pre">.ARM.extab</span></code>.</p></li>
+<li><p><strong>RISC-V 32/64</strong>: look for <code class="docutils literal notranslate"><span class="pre">R_RISCV_*</span></code> (for example: <code class="docutils literal notranslate"><span class="pre">*_PCREL_HI20</span></code>,
+<code class="docutils literal notranslate"><span class="pre">*_PCREL_LO12_*</span></code>, <code class="docutils literal notranslate"><span class="pre">*_CALL*</span></code>, <code class="docutils literal notranslate"><span class="pre">*_JAL</span></code>, plus dynamic relocations like
+<code class="docutils literal notranslate"><span class="pre">*_RELATIVE</span></code>, <code class="docutils literal notranslate"><span class="pre">*_JUMP_SLOT</span></code>, <code class="docutils literal notranslate"><span class="pre">*_GLOB_DAT</span></code>).</p></li>
+<li><p><strong>Hexagon ABI</strong>: look for <code class="docutils literal notranslate"><span class="pre">R_HEX_*</span></code> relocations; use <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-r</span></code> and
+disassembly to connect the relocation type to the instruction sequence.</p></li>
+</ul>
+</div>
+<div class="section" id="arm-specific-verifying-veneers-thunks">
+<h4><a class="toc-backref" href="#id57"><span class="section-number">6.21.8.2. </span>ARM-specific: verifying veneers/thunks</a><a class="headerlink" href="#arm-specific-verifying-veneers-thunks" title="Permalink to this heading"></a></h4>
+<p>On ARM/Thumb, the linker may need to create veneers/thunks (branch islands) when
+branches cannot reach their targets or when interworking is required.</p>
+<p>When a crash looks like a bad branch target or a call landing in the wrong mode:</p>
+<ul class="simple">
+<li><p>Enable and inspect trampoline/thunk diagnostics and maps:
+<code class="docutils literal notranslate"><span class="pre">--trampoline-map</span></code> (plus the usual text map file).</p></li>
+<li><p>Disassemble around the call site and look for a veneer sequence and its
+relocation(s): <code class="docutils literal notranslate"><span class="pre">llvm-objdump</span> <span class="pre">-dr</span> <span class="pre">--start-address=...</span> <span class="pre">--stop-address=...</span></code>.</p></li>
+<li><p>Confirm the callee symbol type and interworking expectations in the symbol
+table (<code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-s</span> <span class="pre">--extra-sym-info</span></code>).</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="minimize-runtime-failures-with-a-b-experiments">
+<h3><a class="toc-backref" href="#id58"><span class="section-number">6.21.9. </span>Minimize runtime failures with A/B experiments</a><a class="headerlink" href="#minimize-runtime-failures-with-a-b-experiments" title="Permalink to this heading"></a></h3>
+<p>When a runtime crash is hard to reason about, treat it like a minimization
+problem: change one knob at a time until the failure becomes deterministic, then
+pinpoint which library/object/relocation pattern is responsible.</p>
+<p>Dynamic-linking knobs that often turn “mystery crashes” into actionable data:</p>
+<ul>
+<li><p>Force eager binding (converts lazy-PLT crashes into startup failures):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">LD_BIND_NOW</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>./app
+</pre></div>
+</div>
+<p>Or make it a link-time property of the binary: <code class="docutils literal notranslate"><span class="pre">-Wl,-z,now</span></code>.</p>
+</li>
+<li><p>Strengthen shared-library resolution rules (catch unresolved imports sooner):
+<code class="docutils literal notranslate"><span class="pre">-Wl,-z,defs</span></code> (or <code class="docutils literal notranslate"><span class="pre">-Wl,--no-undefined</span></code> depending on toolchain).</p></li>
+<li><p>Toggle dependency pruning and interposition-related behavior:
+<code class="docutils literal notranslate"><span class="pre">-Wl,--as-needed</span></code> / <code class="docutils literal notranslate"><span class="pre">-Wl,--no-as-needed</span></code> and (when applicable)
+<code class="docutils literal notranslate"><span class="pre">-Wl,-Bsymbolic</span></code> / <code class="docutils literal notranslate"><span class="pre">-Wl,-Bsymbolic-functions</span></code>.</p></li>
+<li><p>Toggle RELRO (affects which GOT/relocation targets become read-only at
+runtime): <code class="docutils literal notranslate"><span class="pre">-Wl,-z,relro</span></code> and <code class="docutils literal notranslate"><span class="pre">-Wl,-z,norelro</span></code>.</p></li>
+</ul>
+<p>Use these knobs together with map files and relocation inspection (see below) to
+connect “crash address” -&gt; “instruction” -&gt; “relocation” -&gt; “symbol” -&gt; “DSO
+that provides it”.</p>
+</div>
+<div class="section" id="identify-which-shared-library-caused-a-crash-swap-and-isolate">
+<h3><a class="toc-backref" href="#id59"><span class="section-number">6.21.10. </span>Identify which shared library caused a crash (swap-and-isolate)</a><a class="headerlink" href="#identify-which-shared-library-caused-a-crash-swap-and-isolate" title="Permalink to this heading"></a></h3>
+<p>If the crash only reproduces with a particular shared library present, isolate
+it by swapping one dependency at a time:</p>
+<ol class="arabic">
+<li><p>Confirm what actually loads:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>ldd<span class="w"> </span>./app
+llvm-readelf<span class="w"> </span>-d<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+</pre></div>
+</div>
+</li>
+<li><p>Swap the suspected DSO:</p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> to point at an alternate build directory.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">LD_PRELOAD</span></code> to force a specific <code class="docutils literal notranslate"><span class="pre">.so</span></code> (for interposition or to
+override a weak/indirect dependency).</p></li>
+<li><p>Rename/move one dependency to force a load failure; if the crash disappears
+when the DSO is absent (or replaced), that narrows the search quickly.</p></li>
+</ul>
+</li>
+<li><p>Ensure you are swapping <em>compatible</em> binaries:</p>
+<ul>
+<li><p>Same target triple/ABI, same libc/loader expectations.</p></li>
+<li><p>Prefer swapping libraries built by the same toolchain revision first
+(compiler + assembler + linker + runtimes).</p></li>
+<li><p>Verify build-ids match what you intend to test:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-readelf<span class="w"> </span>-n<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+llvm-readelf<span class="w"> </span>-n<span class="w"> </span>./libfoo.so<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+</ol>
+<p>If you suspect a linker-specific issue in a shared library, rebuild just that
+library with an alternate linker (GNU ld / gold / lld, depending on target
+support) and re-run the A/B test. If the crash tracks the linker choice with the
+same sources/flags, it is strong evidence of a link-time layout/relocation
+problem rather than a pure runtime logic bug.</p>
+</div>
+<div class="section" id="switching-toolchains-compilers-to-bisect-regressions">
+<h3><a class="toc-backref" href="#id60"><span class="section-number">6.21.11. </span>Switching toolchains/compilers to bisect regressions</a><a class="headerlink" href="#switching-toolchains-compilers-to-bisect-regressions" title="Permalink to this heading"></a></h3>
+<p>If the failure appeared after a toolchain update, a fast way to narrow root
+cause is to bisect <em>one dimension at a time</em>:</p>
+<ul class="simple">
+<li><p>Swap compiler only (keep assembler/linker constant) to see if codegen changes
+are responsible.</p></li>
+<li><p>Swap linker only (keep compiler constant) to see if layout/relocation handling
+is responsible.</p></li>
+<li><p>Swap runtime libraries (libc, libstdc++/libc++, libgcc_s/libunwind) to catch
+ABI or unwinder differences.</p></li>
+</ul>
+<p>Use build-ids, map files, and the relocation inventory command to keep these
+experiments grounded in “what changed” rather than “what you think changed”.</p>
+</div>
+<div class="section" id="write-small-regression-tests-symbols-relocs-dynamic-flags">
+<h3><a class="toc-backref" href="#id61"><span class="section-number">6.21.12. </span>Write small regression tests (symbols/relocs/dynamic flags)</a><a class="headerlink" href="#write-small-regression-tests-symbols-relocs-dynamic-flags" title="Permalink to this heading"></a></h3>
+<p>When you can reproduce a runtime failure, try to turn it into a small <em>link-time
+observable</em> property so it can be tested without running on a target.</p>
+<p>In this repo, most linker tests are lit tests (<code class="docutils literal notranslate"><span class="pre">*.test</span></code>) that:</p>
+<ul class="simple">
+<li><p>compile tiny C/asm inputs,</p></li>
+<li><p>run <code class="docutils literal notranslate"><span class="pre">%link</span></code> (eld) with specific flags, and</p></li>
+<li><p>verify ELF properties using <code class="docutils literal notranslate"><span class="pre">%readelf</span></code> (<code class="docutils literal notranslate"><span class="pre">llvm-readelf</span></code>), <code class="docutils literal notranslate"><span class="pre">llvm-readobj</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">%objdump</span></code> + <code class="docutils literal notranslate"><span class="pre">FileCheck</span></code>.</p></li>
+</ul>
+<p>Examples of properties that correlate strongly with runtime behavior:</p>
+<ul class="simple">
+<li><p>Symbol kind/binding/visibility (from <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-s</span> <span class="pre">--extra-sym-info</span></code> / <code class="docutils literal notranslate"><span class="pre">nm</span></code>).</p></li>
+<li><p>Relocation types and placement (from <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-r</span></code> / <code class="docutils literal notranslate"><span class="pre">llvm-readobj</span> <span class="pre">-r</span></code>).</p></li>
+<li><p>Dynamic linking flags and segments (<code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-d</span></code> for <code class="docutils literal notranslate"><span class="pre">BIND_NOW</span></code> /
+<code class="docutils literal notranslate"><span class="pre">FLAGS_1</span></code>, and <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-l</span></code> for <code class="docutils literal notranslate"><span class="pre">PT_GNU_RELRO</span></code> and <code class="docutils literal notranslate"><span class="pre">p_align</span></code>).</p></li>
+</ul>
+<p>If you need a starting point, see <code class="docutils literal notranslate"><span class="pre">test/Templates/ExampleOfMyLitTest.test</span></code> and
+existing tests under <code class="docutils literal notranslate"><span class="pre">test/lld/ELF</span></code> that check relocations and flags like
+<code class="docutils literal notranslate"><span class="pre">-z</span> <span class="pre">now</span></code> via <code class="docutils literal notranslate"><span class="pre">%readelf</span></code>/<code class="docutils literal notranslate"><span class="pre">%objdump</span></code>.</p>
+<p>Illustrative lit pattern (dynamic flags + RELRO):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span># RUN: %link %linkopts -shared -z now -z relro %t.o -o %t.so
+# RUN: %readelf -d %t.so | FileCheck %s --check-prefix=DYN
+# RUN: %readelf -l %t.so | FileCheck %s --check-prefix=PHDR
+# DYN: BIND_NOW
+# PHDR: GNU_RELRO
+</pre></div>
+</div>
+</div>
+<div class="section" id="other-useful-inspection-tools">
+<h3><a class="toc-backref" href="#id62"><span class="section-number">6.21.13. </span>Other useful inspection tools</a><a class="headerlink" href="#other-useful-inspection-tools" title="Permalink to this heading"></a></h3>
+<ul>
+<li><p>Address/section correlation: <code class="docutils literal notranslate"><span class="pre">llvm-nm</span> <span class="pre">-n</span></code>, <code class="docutils literal notranslate"><span class="pre">nm</span> <span class="pre">-n</span></code>, <code class="docutils literal notranslate"><span class="pre">llvm-objdump</span> <span class="pre">-d</span></code>,
+<code class="docutils literal notranslate"><span class="pre">objdump</span> <span class="pre">-d</span></code>, and the ELD map file.</p></li>
+<li><p>ELF metadata: <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-h</span> <span class="pre">-l</span> <span class="pre">-S</span> <span class="pre">-s</span> <span class="pre">-n</span></code> (build-id in <code class="docutils literal notranslate"><span class="pre">llvm-readelf</span> <span class="pre">-n</span></code>).</p></li>
+<li><p>Relocation inventory across a build tree (quickly see which relocation types
+are present in objects/archives):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>find<span class="w"> </span>.<span class="w"> </span>-name<span class="w"> </span><span class="se">\&quot;</span>*.o<span class="se">\&quot;</span><span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span><span class="se">\&quot;</span>*.a<span class="se">\&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>llvm-readelf<span class="w"> </span>-r<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $3}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>R_
+</pre></div>
+</div>
+<p>More robust (handles spaces in paths and avoids <code class="docutils literal notranslate"><span class="pre">find</span></code> precedence traps):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>find<span class="w"> </span>.<span class="w"> </span><span class="se">\\</span><span class="o">(</span><span class="w"> </span>-name<span class="w"> </span><span class="se">\&quot;</span>*.o<span class="se">\&quot;</span><span class="w"> </span>-o<span class="w"> </span>-name<span class="w"> </span><span class="se">\&quot;</span>*.a<span class="se">\&quot;</span><span class="w"> </span><span class="se">\\</span><span class="o">)</span><span class="w"> </span>-print0<span class="w"> </span><span class="se">\\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>-0<span class="w"> </span>llvm-readelf<span class="w"> </span>-r<span class="w"> </span><span class="se">\\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $3}&#39;</span><span class="w"> </span><span class="se">\\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-u<span class="w"> </span><span class="se">\\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>R_
+</pre></div>
+</div>
+</li>
+<li><p>Inspect relocations around a crash site (when investigating wrong codegen,
+bad PLT/GOT usage, or runtime loader fixups):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Disassemble with relocations shown (pick one):</span>
+llvm-objdump<span class="w"> </span>-dr<span class="w"> </span>--no-show-raw-insn<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+objdump<span class="w">     </span>-dr<span class="w"> </span>--no-show-raw-insn<span class="w"> </span>./app<span class="w"> </span><span class="p">|</span><span class="w"> </span>less
+
+<span class="c1"># Narrow to a region around an address (adjust for PIE/ASLR first):</span>
+llvm-objdump<span class="w"> </span>-dr<span class="w"> </span>--start-address<span class="o">=</span>0xSTART<span class="w"> </span>--stop-address<span class="o">=</span>0xSTOP<span class="w"> </span>./app
+</pre></div>
+</div>
+</li>
+<li><p>Segment properties / page alignment / RELRO (loader-relevant):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>llvm-readelf<span class="w"> </span>-l<span class="w"> </span>./app<span class="w">    </span><span class="c1"># program headers: p_flags, p_align, PT_LOAD, PT_GNU_RELRO, PT_INTERP</span>
+llvm-readelf<span class="w"> </span>-d<span class="w"> </span>./app<span class="w">    </span><span class="c1"># dynamic tags: DT_BIND_NOW, (FLAGS / FLAGS_1), RPATH/RUNPATH</span>
+</pre></div>
+</div>
+</li>
+<li><p>System-call tracing: <code class="docutils literal notranslate"><span class="pre">strace</span> <span class="pre">-f</span></code> (and <code class="docutils literal notranslate"><span class="pre">ltrace</span></code> when applicable).</p></li>
+<li><p>Memory corruption: ASan/UBSan/TSan builds; <code class="docutils literal notranslate"><span class="pre">valgrind</span></code> when supported.</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="linker_diagnostics.html" class="btn btn-neutral float-left" title="5. Diagnostics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="linker_support_backward_compatibility.html" class="btn btn-neutral float-right" title="7. Shared Library Versioning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

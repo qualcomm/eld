@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>19. Target Specific Features &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="20. SFrame Support" href="sframe_support.html" />
+    <link rel="prev" title="18. Command-line options" href="options/options.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_map_files.html">10. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="layout.html">11. Image layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugins_updated.html">12. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_plugin.html">13. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_optimizations.html">14. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elf_tools.html">15. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lto_support.html">16. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_image_details.html">17. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="options/options.html">18. Command-line options</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">19. Target Specific Features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#hexagon">19.1. Hexagon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#arm">19.2. ARM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aarch64">19.3. AArch64</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#riscv">19.4. RISCV</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sframe_support.html">20. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="linker_faq.html">21. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">19. </span>Target Specific Features</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/documentation/target_specific_features.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="target-specific-features">
+<h1><span class="section-number">19. </span>Target Specific Features<a class="headerlink" href="#target-specific-features" title="Permalink to this heading"></a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#hexagon" id="id1">Hexagon</a></p></li>
+<li><p><a class="reference internal" href="#arm" id="id2">ARM</a></p></li>
+<li><p><a class="reference internal" href="#aarch64" id="id3">AArch64</a></p></li>
+<li><p><a class="reference internal" href="#riscv" id="id4">RISCV</a></p></li>
+</ul>
+</div>
+<div class="section" id="hexagon">
+<h2><a class="toc-backref" href="#id1"><span class="section-number">19.1. </span>Hexagon</a><a class="headerlink" href="#hexagon" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Plugins
+- Information can be found at <a class="reference internal" href="linker_plugin.html"><span class="doc">Linker Plugins</span></a></p></li>
+<li><p>Small data</p></li>
+<li><p>Trampolines</p></li>
+<li><p><strong>–disable-guard-for-weak-undef</strong>
+- Disable guard for weak undefined symbols</p></li>
+<li><p><strong>-gpsize=&lt;value&gt;</strong>
+- Set the maximum size of objects to be optimized using GP</p></li>
+</ul>
+</div>
+<div class="section" id="arm">
+<h2><a class="toc-backref" href="#id2"><span class="section-number">19.2. </span>ARM</a><a class="headerlink" href="#arm" title="Permalink to this heading"></a></h2>
+<ul>
+<li><p>Baremetal</p></li>
+<li><p>Thumb</p></li>
+<li><p>ARM</p></li>
+<li><p>Linux</p></li>
+<li><p>Android</p></li>
+<li><p>Supported errata fixes
+- <code class="docutils literal notranslate"><span class="pre">fix_cortex_a8</span></code>
+- <code class="docutils literal notranslate"><span class="pre">fix_cortex_a53_843419</span></code></p></li>
+<li><p><strong>enable-bss-mixing</strong>
+- Enable mixing of BSS and non-BSS sections</p></li>
+<li><p><strong>-execute-only</strong>
+- Mark executable sections execute-only</p></li>
+<li><p><strong>–disable-bss-conversion</strong>
+- Don’t convert BSS to NonBSS when BSS/NonBSS sections are mixed</p></li>
+<li><p><strong>–use-mov-veneer</strong>
+- Use movt/movw to load address in veneers with absolute relocation</p></li>
+<li><p><strong>–compact</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--compact</span></code> is used to reduce the output ELF size.</p></li>
+<li><p>The loader must be able to load such ELF files and satisfy
+<code class="docutils literal notranslate"><span class="pre">segmentaddr</span> <span class="pre">-</span> <span class="pre">sectionaddr</span> <span class="pre">==</span> <span class="pre">segmentoffset</span> <span class="pre">-</span> <span class="pre">sectionoffset</span></code>.</p></li>
+<li><p>Offsets are incremented by section size, not by virtual address difference.</p></li>
+<li><p>Supported only in ARM/AArch64 baremetal environments (typically low memory).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The impact of <code class="docutils literal notranslate"><span class="pre">--compact</span></code> can be observed by checking the segment sizes.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul>
+<li><p>File offset of every section must be consistent with physical address
+of the segment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Section_file_offset</span> <span class="o">-</span> <span class="n">segment_file_offset</span>
+  <span class="o">==</span> <span class="n">section_physical_address</span> <span class="o">-</span> <span class="n">segment_physical_address</span>
+</pre></div>
+</div>
+</li>
+<li><p>If a section does not respect the rule, the linker reports an error.</p></li>
+<li><p>The image must still be a valid ELF; in particular:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">offset</span> <span class="o">%</span> <span class="n">page_alignment</span>
+  <span class="o">==</span> <span class="n">physical_address</span> <span class="o">%</span> <span class="n">page_alignment</span>
+  <span class="o">==</span> <span class="n">virtual_address</span> <span class="o">%</span> <span class="n">page_alignment</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<p>Example showing <code class="docutils literal notranslate"><span class="pre">--compact</span></code> reducing segment size to <code class="docutils literal notranslate"><span class="pre">0x20</span></code> as seen from
+<code class="docutils literal notranslate"><span class="pre">readelf</span> <span class="pre">-l</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat script.t
+PHDRS {
+  A PT_LOAD;
+}
+
+SECTIONS {
+  .A (0x1000) : AT(0x1000) { *(.text.foo) *(.ARM.exidx.text.foo) } :A
+  .B (0x10000) : { *(.text.bar) *(.ARM.exidx.text.bar) } :A
+}
+
+$ arm-link 1.o -T script.t -o t4.out --compact
+$ llvm-readelf -S -W t4.out
+  There are 8 section headers, starting at offset 0x220:
+
+  Section Headers:
+  [Nr] Name Type Address Off Size ES Flg Lk Inf Al
+  [ 0] NULL      00000000 000000 000000 00 0  0  0
+  [ 1] .A PROGBITS 00001000 000054 000010 00 AX 0  0  4
+  [ 2] .B PROGBITS 00010000 000064 000010 00 AX 0  0  4
+
+$ llvm-readelf -l -W t4.out
+  Elf file type is EXEC (Executable file)
+  Entry point 0x0
+  There are 1 program headers, starting at offset 52
+
+  Program Headers:
+    Type Offset   VirtAddr   PhysAddr   FileSiz MemSiz Flg Align
+    LOAD 0x000054 0x00001000 0x00001000 0x00020 0x0f010 R E 0x4
+
+  Section to Segment mapping:
+    Segment Sections...
+    00      .A .B
+    None    .ARM.attributes .comment .shstrtab .symtab .strtab
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="aarch64">
+<h2><a class="toc-backref" href="#id3"><span class="section-number">19.3. </span>AArch64</a><a class="headerlink" href="#aarch64" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Baremetal</p></li>
+<li><p>AArch64</p></li>
+<li><p>Linux</p></li>
+<li><p>Android</p></li>
+<li><p><strong>enable-bss-mixing</strong>
+- Enable mixing of BSS and non-BSS sections</p></li>
+<li><p><strong>–disable-bss-conversion</strong>
+- Don’t convert BSS to NonBSS when BSS/NonBSS sections are mixed</p></li>
+<li><p><strong>–use-mov-veneer</strong>
+- Use movt/movw to load address in veneers with absolute relocation</p></li>
+<li><p><strong>–compact</strong></p></li>
+<li><p><strong>-z nognustack</strong>
+- Do not create a <code class="docutils literal notranslate"><span class="pre">GNU_STACK</span></code> segment</p></li>
+</ul>
+</div>
+<div class="section" id="riscv">
+<h2><a class="toc-backref" href="#id4"><span class="section-number">19.4. </span>RISCV</a><a class="headerlink" href="#riscv" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Baremetal</p></li>
+<li><p>Linux</p></li>
+<li><p><strong>-gpsize=&lt;value&gt;</strong>
+- Set the maximum size of objects to be optimized using GP</p></li>
+<li><p>Supports relaxation
+- <code class="docutils literal notranslate"><span class="pre">--relax</span></code> (enabled by default)
+- <code class="docutils literal notranslate"><span class="pre">-no-relax</span></code> to disable relaxation</p></li>
+<li><p><strong>enable-bss-mixing</strong>
+- Enable mixing of BSS and non-BSS sections</p></li>
+<li><p><strong>-W[no]attribute-mix</strong>
+- Warn about RISC-V attributes mix instead of failing to link</p></li>
+<li><p><strong>–disable-bss-conversion</strong>
+- Don’t convert BSS to NonBSS when BSS/NonBSS sections are mixed</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="options/options.html" class="btn btn-neutral float-left" title="18. Command-line options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sframe_support.html" class="btn btn-neutral float-right" title="20. SFrame Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

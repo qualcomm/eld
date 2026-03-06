@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.3. Linker Plugin API Usage and Reference &mdash; ELD  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="13. Linker Plugins" href="../linker_plugin.html" />
+    <link rel="prev" title="12.2. Linker Plugin Examples" href="examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            ELD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../linker_overview.html">1. Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linking_modes_supported.html">2. Supported Linking Modes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../supported_targets.html">3. Supported Targets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_script.html">4. Linker Script</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_diagnostics.html">5. Diagnostics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../eld_debugging_guide.html">6. ELD  (debugging guide)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html">7. Shared Library Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_support_backward_compatibility.html#gnu-elf-symbol-versioning">8. GNU ELF Symbol Versioning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../image_structure_and_generation.html">9. Image Structure and Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_map_files.html">10. Linker Map Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../layout.html">11. Image layout</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../linker_plugins_updated.html">12. Linker Plugins</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="linker_plugins.html">12.1. Linker Plugins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">12.2. Linker Plugin Examples</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.3. Linker Plugin API Usage and Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#linker-wrapper">12.3.1. Linker Wrapper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#plugin-abstract-data-types">12.3.2. Plugin Abstract Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#chunk">12.3.2.1. Chunk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#linkerscriptrule">12.3.2.2. LinkerScriptRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#outputsection">12.3.2.3. OutputSection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#section">12.3.2.4. Section</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#use">12.3.2.5. Use</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#symbol">12.3.2.6. Symbol</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#inifile">12.3.2.7. INIFile</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#inputfile">12.3.2.8. InputFile</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#plugindata">12.3.2.9. PluginData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#autotimer">12.3.2.10. AutoTimer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#timer">12.3.2.11. Timer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#relocationhandler">12.3.2.12. RelocationHandler</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#linkerpluginconfig">12.3.3. LinkerPluginConfig</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utility-data-structures">12.3.4. Utility Data Structures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#json-objects">12.3.4.1. JSON Objects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tarwriter">12.3.4.2. TarWriter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#threadpool">12.3.4.3. ThreadPool</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#plugin-diagnostic-framework">12.3.5. Plugin Diagnostic Framework</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#diagnosticentry">12.3.5.1. DiagnosticEntry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#eld-expected-returntype">12.3.5.2. eld::Expected&lt;ReturnType&gt;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#overriding-diagnostic-severity">12.3.5.3. Overriding Diagnostic Severity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#diagnostic-framework-types-api-reference">12.3.5.4. Diagnostic Framework types API reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_plugin.html">13. Linker Plugins</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_optimizations.html">14. Linker Optimization Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../elf_tools.html">15. ELF TOOLS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../lto_support.html">16. LTO Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_image_details.html">17. Getting Image Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../options/options.html">18. Command-line options</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../target_specific_features.html">19. Target Specific Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sframe_support.html">20. SFrame Support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../linker_faq.html">21. Linker support and frequently asked questions!!!</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ELD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../linker_plugins_updated.html"><span class="section-number">12. </span>Linker Plugins</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.3. </span>Linker Plugin API Usage and Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/documentation/linker_plugins/api_docs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="linker-plugin-api-usage-and-reference">
+<h1><span class="section-number">12.3. </span>Linker Plugin API Usage and Reference<a class="headerlink" href="#linker-plugin-api-usage-and-reference" title="Permalink to this heading"></a></h1>
+<div class="section" id="linker-wrapper">
+<h2><span class="section-number">12.3.1. </span>Linker Wrapper<a class="headerlink" href="#linker-wrapper" title="Permalink to this heading"></a></h2>
+<div class="graphviz"><object data="../../_images/graphviz-02e4f7b6b2de2c1288a84415acb187d590abbe58.svg" type="image/svg+xml" class="graphviz">
+<p class="warning">LinkerWrapper flow.</p></object></div>
+<p>Plugins interacts with the linker using LinkerWrapper.</p>
+</div>
+<div class="section" id="plugin-abstract-data-types">
+<h2><span class="section-number">12.3.2. </span>Plugin Abstract Data Types<a class="headerlink" href="#plugin-abstract-data-types" title="Permalink to this heading"></a></h2>
+<div class="section" id="chunk">
+<h3><span class="section-number">12.3.2.1. </span>Chunk<a class="headerlink" href="#chunk" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="linkerscriptrule">
+<h3><span class="section-number">12.3.2.2. </span>LinkerScriptRule<a class="headerlink" href="#linkerscriptrule" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="outputsection">
+<h3><span class="section-number">12.3.2.3. </span>OutputSection<a class="headerlink" href="#outputsection" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="section">
+<h3><span class="section-number">12.3.2.4. </span>Section<a class="headerlink" href="#section" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="use">
+<h3><span class="section-number">12.3.2.5. </span>Use<a class="headerlink" href="#use" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="symbol">
+<h3><span class="section-number">12.3.2.6. </span>Symbol<a class="headerlink" href="#symbol" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="inifile">
+<h3><span class="section-number">12.3.2.7. </span>INIFile<a class="headerlink" href="#inifile" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="inputfile">
+<h3><span class="section-number">12.3.2.8. </span>InputFile<a class="headerlink" href="#inputfile" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="plugindata">
+<h3><span class="section-number">12.3.2.9. </span>PluginData<a class="headerlink" href="#plugindata" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="autotimer">
+<h3><span class="section-number">12.3.2.10. </span>AutoTimer<a class="headerlink" href="#autotimer" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="timer">
+<h3><span class="section-number">12.3.2.11. </span>Timer<a class="headerlink" href="#timer" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="relocationhandler">
+<h3><span class="section-number">12.3.2.12. </span>RelocationHandler<a class="headerlink" href="#relocationhandler" title="Permalink to this heading"></a></h3>
+</div>
+</div>
+<div class="section" id="linkerpluginconfig">
+<h2><span class="section-number">12.3.3. </span>LinkerPluginConfig<a class="headerlink" href="#linkerpluginconfig" title="Permalink to this heading"></a></h2>
+</div>
+<div class="section" id="utility-data-structures">
+<h2><span class="section-number">12.3.4. </span>Utility Data Structures<a class="headerlink" href="#utility-data-structures" title="Permalink to this heading"></a></h2>
+<div class="section" id="json-objects">
+<h3><span class="section-number">12.3.4.1. </span>JSON Objects<a class="headerlink" href="#json-objects" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="tarwriter">
+<h3><span class="section-number">12.3.4.2. </span>TarWriter<a class="headerlink" href="#tarwriter" title="Permalink to this heading"></a></h3>
+</div>
+<div class="section" id="threadpool">
+<h3><span class="section-number">12.3.4.3. </span>ThreadPool<a class="headerlink" href="#threadpool" title="Permalink to this heading"></a></h3>
+</div>
+</div>
+<div class="section" id="plugin-diagnostic-framework">
+<h2><span class="section-number">12.3.5. </span>Plugin Diagnostic Framework<a class="headerlink" href="#plugin-diagnostic-framework" title="Permalink to this heading"></a></h2>
+<p>Plugin diagnostic framework provides a uniform and consistent solution for
+reporting diagnostics from plugins. It is recommended to avoid custom
+solutions for printing diagnostics from a plugin.</p>
+<p>First, let’s go over some of the key benefits of using the Plugin Diagnostic
+Framework. After that, we’ll see how to effectively use the framework.</p>
+<p>The framework allows for creating and reporting diagnositcs on the fly.
+Diagnostics can be reported with different severities such as <em>Note</em>,
+<em>Warning</em>, <em>Error</em> and more. Each severity has a unique color, and diagnostics
+are prefixed with “PluginName:DiagnosticSeverity”.</p>
+<p>The linker keeps track of diagnostics emitted from the diagnostic framework.
+This is required to maintain extensive logs for diagnostic purposes.
+The framework also adjusts diagnostic behavior based on linker command-line
+options that affect diagnostics. For example, if the <code class="code docutils literal notranslate"><span class="pre">--fatal-warnings</span></code>
+option is enabled, then warnings will be converted to fatal errors.  If
+the <code class="code docutils literal notranslate"><span class="pre">-Werror</span></code> option is used, warnings are promoted to regular errors
+instead of fatals.</p>
+<p>The framework is thread-safe. Thus, diagnostics can be reported safely from
+multiple threads simultaneously. This is crucial in situations where
+thread-safety is neessary. In such cases, C++ <code class="code docutils literal notranslate"><span class="pre">std::cout</span></code> and
+<code class="code docutils literal notranslate"><span class="pre">std::cerr</span></code> output streams cannot be used, as they are not thread-safe.</p>
+<p>That’s enough about the theories. Now, let’s take a look at how to use the
+Plugin Diagnostic Framework.</p>
+<p>The linker assigns a unique ID to each diagnostic template.  A diagnostic
+template has a diagnostic severity and a diagnostic format string.
+Diagnostic template unique IDs are necessary for creating and reporting
+diagnostics. The code below demonstrates how to obtain a diagnostic ID
+for a diagnostic template.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// There are similar functions for other diagnostic severities.</span>
+<span class="c1">// Linker is a LinkerWrapper object.</span>
+<span class="n">DiagnosticEntry</span><span class="o">::</span><span class="n">DiagIDType</span><span class="w"> </span><span class="n">errorID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getErrorDiagID</span><span class="p">(</span><span class="s">&quot;Error diagnostic with two args: %0 and %1&quot;</span><span class="p">);</span>
+<span class="n">DiagnosticEntry</span><span class="o">::</span><span class="n">DiagIDType</span><span class="w"> </span><span class="n">warnID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">getWarningDiagID</span><span class="p">(</span><span class="s">&quot;Warning diagnostic with one arg: %0&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="code docutils literal notranslate"><span class="pre">%0</span></code>, <code class="code docutils literal notranslate"><span class="pre">%1</span></code> and so on in diagnostic format string are replaced by
+diagnostic arguments. Diagnostic arguments must be provided when reporting a
+diagnostic.</p>
+<p>The below code demonstrates how to report a diagnostic using a diagnostic ID.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// arguments can be of any type. &#39;LinkerWrapper::reportDiag&#39; is a</span>
+<span class="c1">// variadic template function.</span>
+<span class="n">Linker</span><span class="o">-&gt;</span><span class="n">reportDiag</span><span class="p">(</span><span class="n">errorID</span><span class="p">,</span><span class="w"> </span><span class="n">arg1</span><span class="p">,</span><span class="w"> </span><span class="n">arg2</span><span class="p">);</span>
+<span class="n">Linker</span><span class="o">-&gt;</span><span class="n">reportDiag</span><span class="p">(</span><span class="n">warnID</span><span class="p">,</span><span class="w"> </span><span class="n">arg1</span><span class="p">);</span>
+</pre></div>
+</div>
+<div class="section" id="diagnosticentry">
+<h3><span class="section-number">12.3.5.1. </span>DiagnosticEntry<a class="headerlink" href="#diagnosticentry" title="Permalink to this heading"></a></h3>
+<p><code class="code docutils literal notranslate"><span class="pre">DiagnosticEntry</span></code> packs complete diagnostic information, and can
+be used to pass diagnostics from one location to another. Many plugin
+framework APIs use <code class="code docutils literal notranslate"><span class="pre">DiagnosticEntry</span></code> to return errors to the caller,
+where they can be properly handled.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// diag represents a complete diagnostic.</span>
+<span class="c1">// diagID encodes diagnostic severity and diagnostic format string.</span>
+<span class="n">DiagnosticEntry</span><span class="w"> </span><span class="nf">diag</span><span class="p">(</span><span class="n">diagID</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="n">arg1</span><span class="p">,</span><span class="w"> </span><span class="n">arg2</span><span class="p">,</span><span class="w"> </span><span class="p">...});</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="eld-expected-returntype">
+<h3><span class="section-number">12.3.5.2. </span>eld::Expected&lt;ReturnType&gt;<a class="headerlink" href="#eld-expected-returntype" title="Permalink to this heading"></a></h3>
+<p>Many plugin framework APIs return values of type <code class="code docutils literal notranslate"><span class="pre">eld::Expected&lt;ReturnType&gt;</span></code>.
+At any given time, <code class="code docutils literal notranslate"><span class="pre">eld::Expected&lt;ReturnType&gt;</span></code> holds either an
+expected value of type <code class="code docutils literal notranslate"><span class="pre">ReturnType</span></code> or an unexpected value of type
+<code class="code docutils literal notranslate"><span class="pre">std::unique_ptr&lt;eld::plugin::DiagnosticEntry&gt;</span></code>. Returning the error to the
+caller allows plugin authors to decide how to best handle a particular error
+for their use case. A typical usage pattern for this is.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">eld</span><span class="o">::</span><span class="n">Expected</span><span class="o">&lt;</span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">INIFile</span><span class="o">&gt;</span><span class="w"> </span><span class="n">readFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">readINIFile</span><span class="p">(</span><span class="n">configPath</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">readFile</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">readFile</span><span class="p">.</span><span class="n">error</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">diagID</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">Diagnostic</span><span class="o">::</span><span class="n">errr_file_does_not_exit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// handle this particular error</span>
+<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Or, simply report the error and return.</span>
+<span class="w">    </span><span class="n">Linker</span><span class="o">-&gt;</span><span class="n">reportDiagEntry</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">readFile</span><span class="p">.</span><span class="n">error</span><span class="p">()));</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">eld</span><span class="o">::</span><span class="n">plugin</span><span class="o">::</span><span class="n">INIFile</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">readFile</span><span class="p">.</span><span class="n">value</span><span class="p">());</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="overriding-diagnostic-severity">
+<h3><span class="section-number">12.3.5.3. </span>Overriding Diagnostic Severity<a class="headerlink" href="#overriding-diagnostic-severity" title="Permalink to this heading"></a></h3>
+<p>Diagnostic severity can be overriden by using <code class="code docutils literal notranslate"><span class="pre">DiagnosticEntry</span></code>
+subclasses. <code class="code docutils literal notranslate"><span class="pre">DiagnosticEntry</span></code> has subclasses for each diagnostic
+severity level. Let’s explore how to use them to override diagnostic severity.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">eld</span><span class="p">::</span><span class="n">Expected</span><span class="o">&lt;</span><span class="n">eld</span><span class="p">::</span><span class="n">plugin</span><span class="p">::</span><span class="n">INIFile</span><span class="o">&gt;</span> <span class="n">readFile</span> <span class="o">=</span> <span class="n">Linker</span><span class="o">-&gt;</span><span class="n">readINIFile</span><span class="p">(</span><span class="n">configPath</span><span class="p">);</span>
+<span class="n">eld</span><span class="p">::</span><span class="n">plugin</span><span class="p">::</span><span class="n">INIFile</span> <span class="n">file</span><span class="p">;</span>
+<span class="k">if</span> <span class="p">(</span><span class="n">readFile</span><span class="p">)</span>
+  <span class="n">file</span> <span class="o">=</span> <span class="n">std</span><span class="p">::</span><span class="n">move</span><span class="p">(</span><span class="n">readFile</span><span class="o">.</span><span class="n">value</span><span class="p">());</span>
+<span class="k">else</span> <span class="p">{</span>
+  <span class="o">//</span> <span class="n">Let</span><span class="s1">&#39;s report the error as a Note, and move on by using a default INI file.</span>
+  <span class="n">eld</span><span class="p">::</span><span class="n">plugin</span><span class="p">::</span><span class="n">NoteDiagnositcEntry</span> <span class="n">noteDiag</span><span class="p">(</span><span class="n">readFile</span><span class="o">.</span><span class="n">error</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">diagID</span><span class="p">(),</span> <span class="n">readFile</span><span class="o">.</span><span class="n">error</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">args</span><span class="p">());</span>
+  <span class="n">Linker</span><span class="o">-&gt;</span><span class="n">reportDiagEntry</span><span class="p">(</span><span class="n">noteDiag</span><span class="p">);</span>
+  <span class="n">file</span> <span class="o">=</span> <span class="n">DefaultINIFile</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="diagnostic-framework-types-api-reference">
+<h3><span class="section-number">12.3.5.4. </span>Diagnostic Framework types API reference<a class="headerlink" href="#diagnostic-framework-types-api-reference" title="Permalink to this heading"></a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples.html" class="btn btn-neutral float-left" title="12.2. Linker Plugin Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../linker_plugin.html" class="btn btn-neutral float-right" title="13. Linker Plugins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
