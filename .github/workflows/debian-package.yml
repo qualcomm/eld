@@ -1,0 +1,79 @@
+name: Debian Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  debian-buildpackage:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Derive LLVM version from tag
+        id: llvm
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Extract major version: v22.1.0-rc1 -> 22
+          MAJOR="${TAG#v}"
+          MAJOR="${MAJOR%%.*}"
+          echo "major=${MAJOR}" >> "$GITHUB_OUTPUT"
+          echo "Using LLVM ${MAJOR} for tag ${TAG}"
+
+      - name: Add LLVM apt repository
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+          CODENAME=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] \
+            https://apt.llvm.org/${CODENAME}/ llvm-toolchain-${CODENAME}-${{ steps.llvm.outputs.major }} main" \
+            | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update
+
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          MAJOR=${{ steps.llvm.outputs.major }}
+          sudo apt-get install -y --no-install-recommends \
+            build-essential debhelper devscripts lintian fakeroot \
+            cmake ninja-build python3 zlib1g-dev \
+            llvm-${MAJOR}-dev libclang-${MAJOR}-dev llvm-${MAJOR}-tools
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+
+      - name: Update changelog version from tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # v22.1.0-rc1 -> 22.1.0~rc1
+          VERSION="${TAG#v}"
+          VERSION="${VERSION//-/\~}"
+          sed -i "1s/([^)]*)/($VERSION-1)/" debian/changelog
+
+      - name: Build source and binary packages
+        env:
+          MAJOR: ${{ steps.llvm.outputs.major }}
+        run: |
+          dpkg-buildpackage -us -uc -b \
+            -d \
+            -j$(nproc)
+
+      - name: Verify packages were built
+        run: |
+          echo "--- Built packages ---"
+          ls -lh ../*.deb
+          echo ""
+          echo "--- Package contents (eld) ---"
+          dpkg-deb -c ../eld_*.deb
+          echo ""
+          echo "--- Package contents (eld-plugin-dev) ---"
+          dpkg-deb -c ../eld-plugin-dev_*.deb
+
+      - name: Lint packages
+        run: |
+          lintian --no-tag-display-limit ../*.deb || true
+
+      - name: Clean up
+        if: always()
+        run: rm -f ../*.deb ../*.buildinfo ../*.changes
