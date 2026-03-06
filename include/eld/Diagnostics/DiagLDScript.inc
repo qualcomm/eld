@@ -75,6 +75,10 @@ DIAG(fatal_modulo_by_zero, DiagnosticEngine::Fatal,
      "%0: modulo by zero in expression %1")
 DIAG(error_experimental_not_supported, DiagnosticEngine::Error,
      "Linker has only experimental support for handling %0")
+DIAG(error_negative_vma, DiagnosticEngine::Fatal,
+     "VMA is negative")
+DIAG(error_negative_lma, DiagnosticEngine::Fatal,
+     "LMA is negative")
 DIAG(error_memory_region_exceeded_limit, DiagnosticEngine::Error,
      "Memory region %0 exceeded limit while adding section %1 : overflowed by 0x%2 bytes")
 DIAG(error_memory_region_empty, DiagnosticEngine::Error,
