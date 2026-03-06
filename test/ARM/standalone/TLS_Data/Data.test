@@ -1,6 +1,6 @@
 UNSUPPORTED: ndk-build
 RUN: %yaml2obj %p/Inputs/1.yaml -o %t.o
-RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %link %linkopts -mtriple armelf -static %t.o -o %t.out
 RUN: %objdump -d %t.out | %filecheck %s --check-prefix=TEXT
 
 #TEXT: 00000000 <foo>:
