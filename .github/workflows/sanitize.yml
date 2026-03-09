@@ -1,7 +1,7 @@
 name: Nightly sanitizer check
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
@@ -72,7 +72,7 @@ jobs:
             -DLLVM_OPTIMIZED_TABLEGEN:BOOL=ON \
             -DLLVM_ENABLE_SPHINX=OFF \
             -DLLVM_USE_LINKER=lld \
-            ../llvm-project/llvm
+            ../_work_san/llvm-project/llvm
 
       - name: Build Project
         run: |
