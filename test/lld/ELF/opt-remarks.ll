@@ -1,3 +1,4 @@
+; UNSUPPORTED: hexagon
 ; RUN: %opt --mtriple=%triple --data-layout=%datalayout %s -o %t.o
 ; RUN: %rm -f %t.yaml %t1.yaml %t.hot.yaml %t.t300.yaml %t.t301.yaml
 
