@@ -1,9 +1,10 @@
-#!/usr/bin/env
+#!/usr/bin/env python3
 
 import argparse
 import sys
 import json
 import re
+import os
 
 
 class Option:
@@ -73,7 +74,7 @@ class Option:
 
         return option_forms
 
-    def generate_docs(self, out):
+    def generate_docs(self, out, supplement=None):
         option_forms = self.get_all_option_forms()
         if not option_forms:
             return
@@ -82,6 +83,16 @@ class Option:
         if self.help_text:
             out.write("\n")
             out.write(self.help_text)
+            out.write("\n")
+        if supplement:
+            out.write("\n")
+            # Indent every line of the supplement by 3 spaces so it sits
+            # inside the .. option:: directive body.
+            indented = "\n".join(
+                "   " + line if line.strip() else line
+                for line in supplement.splitlines()
+            )
+            out.write(indented)
             out.write("\n")
 
     @classmethod
@@ -200,14 +211,17 @@ def get_refined_options_info(raw_options_info):
     return groups
 
 
-def generate_docs(groups, out):
+def generate_docs(groups, out, supplements):
     """Generate command-line options documentation"""
+    if supplements is None:
+        supplements = {}
     for key, group_info in groups.items():
         if not group_info.options or key is None:
             continue
         group_info.generate_docs(out)
         for option_info in group_info.options:
-            option_info.generate_docs(out)
+            supplement = supplements.get(option_info.name)
+            option_info.generate_docs(out, supplement)
             out.write("\n")
         out.write("\n\n")
 
@@ -234,6 +248,16 @@ def create_argparser():
         "--skip",
         help="Options present in the specified json dump file are skipped / not documented",
     )
+    parser.add_argument(
+        "-S",
+        "--supplement",
+        metavar="dir",
+        help=(
+            "Directory containing supplemental RST documentation for options. "
+            "Each file must be named <option-name>.rst.in (without any prefix); "
+            "its contents are appended after the auto-generated HelpText."
+        ),
+    )
 
     return parser
 
@@ -252,6 +276,17 @@ if __name__ == "__main__":
             raw_skip_options_info = json.load(skip_options_json_dump_file)
             skip_options_groups = get_refined_options_info(raw_skip_options_info)
 
+    supplements = {}
+    if args.supplement:
+        supplement_dir = args.supplement
+        for filename in os.listdir(supplement_dir):
+            if not filename.endswith(".rst.in"):
+                continue
+            option_name = filename[: -len(".rst.in")]
+            filepath = os.path.join(supplement_dir, filename)
+            with open(filepath) as f:
+                supplements[option_name] = f.read()
+
     with open(args.options_json_dump) as options_json_dump_file:
         raw_options_info = json.load(options_json_dump_file)
         groups = get_refined_options_info(raw_options_info)
@@ -262,6 +297,6 @@ if __name__ == "__main__":
     out = sys.stdout
     if args.output:
         out = open(args.output, "w")
-    generate_docs(groups, out)
+    generate_docs(groups, out, supplements)
     if args.output:
         out.close()
