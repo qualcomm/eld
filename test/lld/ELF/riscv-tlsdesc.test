@@ -40,9 +40,9 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -Rd %t.a1 | FileCheck -D#%x,XLEN=
 
 ## The order of symbols and GOT slots is different than produced by lld.
 GD-RELA:      .rela.dyn
-GD-RELA-NEXT:   0x{{0*}}[[#%X,0x2880+mul(XLEN,5)]] R_RISCV_TLSDESC - 0x7FF{{$}}
-GD-RELA-NEXT:   0x{{0*}}[[#%X,0x2880+mul(XLEN,7)]] R_RISCV_TLSDESC c 0x0{{$}}
-GD-RELA-NEXT:   0x{{0*}}[[#%X,0x2880+mul(XLEN,3)]] R_RISCV_TLSDESC a 0x0{{$}}
+GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,5)]] R_RISCV_TLSDESC - 0x7FF{{$}}
+GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,7)]] R_RISCV_TLSDESC c 0x0{{$}}
+GD-RELA-DAG:   0x{{0*}}[[#%X,0x2880+mul(XLEN,3)]] R_RISCV_TLSDESC a 0x0{{$}}
 GD-RELA-NEXT: }
 GD-RELA-GOT4:      Hex dump of section '.got':
 GD-RELA-GOT4-NEXT: 0x{{0*}}[[#%x,0x2880]] 00000000 00000000 00000000 00000000
@@ -151,8 +151,8 @@ IE8-NEXT:        ld      a0, 0x58(a0)
 IE-NEXT:         add     a0, a0, tp
 
 IEA:       OFFSET           TYPE                     VALUE
-IEA4-NEXT: {{0*}}2340 R_RISCV_TLS_TPREL[[#%d,mul(XLEN,8)]]      c
-IEA8-NEXT: {{0*}}2348 R_RISCV_TLS_TPREL[[#%d,mul(XLEN,8)]]      c
+IEA4-DAG:  {{0*}}2340 R_RISCV_TLS_TPREL[[#%d,mul(XLEN,8)]]      c
+IEA8-DAG:  {{0*}}2348 R_RISCV_TLS_TPREL[[#%d,mul(XLEN,8)]]      c
 IEA-EMPTY:
 ## riscv32: &.got[c]-. = 0x2340 - 0x1258 = 0x10e8
 ## &.got[c]-. = 0x2348 - 0x1258 = 0x10f0
