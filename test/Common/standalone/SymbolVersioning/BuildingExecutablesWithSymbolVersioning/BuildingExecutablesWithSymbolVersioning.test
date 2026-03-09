@@ -1,0 +1,18 @@
+REQUIRES: symbol_versioning
+#---BuildingExecutablesWithSymbolVersioning.test---------------------------------------#
+#BEGIN_COMMENT
+# This test verifies that linker properly creates executables that use
+# shared libraries with symbol versioning information.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/vs.1.t
+RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared --version-script %p/Inputs/vs.1.t
+RUN: %clang %clangopts -o %t1.main.1.o %p/Inputs/main.1.c -c
+RUN: %link %linkopts -o %t1.main.1.out %t1.main.1.o %t1.lib1.so %t1.lib2.so
+RUN: %readelf --dyn-syms %t1.main.1.out | %filecheck %s --check-prefix CHECK1
+#END_TEST
+
+CHECK1: UND foo@V1
+CHECK1-NOT foo@V1
