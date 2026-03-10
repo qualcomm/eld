@@ -237,10 +237,10 @@ void ARMGNULDBackend::doPreLayout() {
         continue;
       Last = S;
       if (!Start) {
-        Start = Last->getFragmentList().front();
+        Start = Last->getFrontFragment();
       }
       if (Last)
-        End = Last->getFragmentList().back();
+        End = Last->getBackFragment();
 
       FragmentRef *exidx_start = make<FragmentRef>(*Start, 0);
 
@@ -280,9 +280,9 @@ void ARMGNULDBackend::doPreLayout() {
   // set .got size
   // when building shared object, the .got section is must
   if (LinkerConfig::Object != config().codeGenType()) {
-    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+    getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelEntrySize());
-    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+    getRelaDyn()->setSize(getRelaDyn()->getRelocationCount() *
                           getRelEntrySize());
     m_Module.addOutputSection(getRelaPLT());
     m_Module.addOutputSection(getRelaDyn());
@@ -415,7 +415,7 @@ void ARMGNULDBackend::sortEXIDX() {
       exidx = In->getSection();
     for (auto &F : S->getFragmentList())
       Frags.push_back(F);
-    S->getFragmentList().clear();
+    S->clearFragments();
   }
 
   if (O->getLastRule()) {
@@ -482,11 +482,11 @@ void ARMGNULDBackend::sortEXIDX() {
 
   // Reset EXIDX symbols.
   if (m_pEXIDXStart) {
-    m_pEXIDXStart->fragRef()->setFragment(exidx->getFragmentList().front());
+    m_pEXIDXStart->fragRef()->setFragment(exidx->getFrontFragment());
     m_pEXIDXStart->fragRef()->setOffset(0);
   }
   if (m_pEXIDXEnd) {
-    m_pEXIDXEnd->fragRef()->setFragment(exidx->getFragmentList().back());
+    m_pEXIDXEnd->fragRef()->setFragment(exidx->getBackFragment());
     m_pEXIDXEnd->fragRef()->setOffset(8);
   }
 }
@@ -513,7 +513,7 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
     if (!AttributeFragment) {
       createAttributeSection(S->getFlags(), S->getAddrAlign());
       AttributeFragment = make<ARMAttributeFragment>(m_pARMAttributeSection);
-      m_pARMAttributeSection->getFragmentList().push_back(AttributeFragment);
+      m_pARMAttributeSection->addFragment(AttributeFragment);
       LayoutInfo *layoutInfo = getModule().getLayoutInfo();
       if (layoutInfo)
         layoutInfo->recordFragment(m_pARMAttributeSection->getInputFile(),
@@ -1048,7 +1048,7 @@ ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->getFragmentList().size()) {
+  if (!getGOTPLT()->hasFragments()) {
     // TODO: This should be GOT0, not GOTPLT0.
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     ARMGOTPLT0::Create(getGOTPLT(), Dynamic ? Dynamic->resolveInfo() : nullptr);
@@ -1134,7 +1134,7 @@ ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
   reportErrorIfPLTIsDiscarded(R);
 
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
-  if (!getPLT()->getFragmentList().size()) {
+  if (!getPLT()->hasFragments()) {
     ARMPLT0::Create(*m_Module.getIRBuilder(),
                     createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                     nullptr);

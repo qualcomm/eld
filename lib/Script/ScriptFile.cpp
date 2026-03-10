@@ -191,8 +191,6 @@ InputToken *ScriptFile::findResolvedFilename(InputToken *input) {
 std::string ScriptFile::findIncludeFile(const std::string &Filename,
                                         bool &Result, bool State) {
   LinkerConfig &Config = ThisModule.getConfig();
-  auto Iterb = Config.directories().begin();
-  auto Itere = Config.directories().end();
   bool HasMapping = Config.options().hasMappingFile();
   Result = true;
 
@@ -229,8 +227,8 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
     return Filename;
   }
 
-  for (; Iterb != Itere; ++Iterb) {
-    std::string Path = (*Iterb)->name();
+  for (auto *Dir : Config.directories().getDirectories()) {
+    std::string Path = Dir->name();
     Path += "/";
     Path += Filename;
     if (searchIncludeFile(Filename, Path,

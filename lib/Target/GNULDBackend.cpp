@@ -1918,7 +1918,7 @@ bool GNULDBackend::InsertAtSectionToEnd(ELFSection *OutSection,
     OutputSectionFragVector.insert(OutputSectionFragVector.end(),
                                    atSection->getFragmentList().begin(),
                                    atSection->getFragmentList().end());
-    CurRule->getSection()->splice(EndIter, atSection->getFragmentList());
+    CurRule->getSection()->splice(EndIter, *atSection);
   } else {
     return false;
   }
@@ -1975,7 +1975,7 @@ bool GNULDBackend::TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
     atSectionOffset = atSectionAddress - Section->addr();
   }
   atSection = atSection->getOutputSection()->getLastRule()->getSection();
-  Fragment *First = atSection->getFragmentList().front();
+  Fragment *First = atSection->getFrontFragment();
   typedef llvm::SmallVectorImpl<Fragment *>::iterator FragIter;
   FragIter EndIter = In->getSection()->getFragmentList().end();
   FragIter Iter = Frag ? Frag->getIterator() : EndIter;
@@ -2006,7 +2006,7 @@ bool GNULDBackend::TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
           << atSectionName << utility::toHex(atSectionAddress)
           << Section->getOutputSection()->name();
 
-    In->getSection()->splice(Iter, atSection->getFragmentList());
+    In->getSection()->splice(Iter, *atSection);
   }
   return InsertedAtSection;
 }
@@ -2139,7 +2139,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
     }
     bool placedAtSection = false;
     OutputSectionEntry::iterator NextRuleIter = in + 1;
-    if (!InSection->getFragmentList().size()) {
+    if (!InSection->hasFragments()) {
       if (!TryToPlaceAtSection(*in, nullptr, OutSection, atIndex))
         continue;
       placedAtSection = true;
@@ -3489,10 +3489,10 @@ void GNULDBackend::preLayout() {
 
         // size output
         if (llvm::ELF::SHT_REL == output_sect->getType())
-          output_sect->setSize(output_sect->getRelocations().size() *
+          output_sect->setSize(output_sect->getRelocationCount() *
                                getRelEntrySize());
         else if (output_sect->isRela())
-          output_sect->setSize(output_sect->getRelocations().size() *
+          output_sect->setSize(output_sect->getRelocationCount() *
                                getRelaEntrySize());
         else {
           config().raise(Diag::unknown_reloc_section_type)
@@ -4666,8 +4666,8 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       // Clear all the fragments.
       if (!MatchSections) {
         for (auto &Cur : *O) {
-          Cur->getSection()->getFragmentList().clear();
-          Cur->getSection()->getRelocations().clear();
+          Cur->getSection()->clearFragments();
+          Cur->getSection()->clearRelocations();
         }
       }
 

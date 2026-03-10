@@ -1367,8 +1367,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
             printFrag(Module, Cur, F, UseColor);
         }
       }
-      if ((!IS || !IS->getFragmentList().size()) &&
-          !Module.isLinkStateBeforeLayout())
+      if ((!IS || !IS->hasFragments()) && !Module.isLinkStateBeforeLayout())
         continue;
       // Do not print fragments of OutputSectData commands.
       // Fragments and sections of OutputSectData is an internal

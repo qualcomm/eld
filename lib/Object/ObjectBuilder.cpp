@@ -209,12 +209,12 @@ bool ObjectBuilder::moveSection(ELFSection *PFrom, ELFSection *PTo) {
   if (AlignFrom > AlignTo)
     PTo->setAddrAlign(AlignFrom);
 
-  if (!PFrom->getFragmentList().size())
+  if (!PFrom->hasFragments())
     return false;
 
   if (PFrom->isWanted())
     PTo->setWanted(true);
-  PTo->splice(PTo->getFragmentList().end(), PFrom->getFragmentList());
+  PTo->splice(PTo->getFragmentList().end(), *PFrom);
   return true;
 }
 
@@ -227,7 +227,7 @@ bool ObjectBuilder::moveIntoOutputSection(ELFSection *PFrom, ELFSection *PTo) {
   if (AlignFrom > AlignTo)
     PTo->setAddrAlign(AlignFrom);
 
-  if (!PFrom->getFragmentList().size())
+  if (!PFrom->hasFragments())
     return false;
 
   if (PFrom->isWanted())

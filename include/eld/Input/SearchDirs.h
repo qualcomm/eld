@@ -16,6 +16,7 @@
 #include "eld/Input/Input.h"
 #include "eld/Support/Path.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include <string>
 #include <vector>
 
@@ -39,8 +40,7 @@ class SearchDirs {
 
 public:
   typedef std::vector<ELDDirectory *> DirListType;
-  typedef DirListType::iterator iterator;
-  typedef DirListType::const_iterator const_iterator;
+  using DirRange = llvm::iterator_range<DirListType::iterator>;
 
   /// Input type preference for library search.
   enum SearchInputType {
@@ -90,11 +90,13 @@ public:
   const sys::fs::Path &sysroot() const { return SysRoot; }
   bool hasSysRoot() const { return !SysRoot.empty(); }
 
-  // -----  iterators  ----- //
-  const_iterator begin() const { return DirList.begin(); }
-  iterator begin() { return DirList.begin(); }
-  const_iterator end() const { return DirList.end(); }
-  iterator end() { return DirList.end(); }
+  // -----  iterator range  ----- //
+  DirRange getDirectories() {
+    return llvm::make_range(DirList.begin(), DirList.end());
+  }
+  llvm::iterator_range<DirListType::const_iterator> getDirectories() const {
+    return llvm::make_range(DirList.begin(), DirList.end());
+  }
 
   // -----  modifiers  ----- //
   bool insert(const char *PDirectory);

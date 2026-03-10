@@ -69,19 +69,19 @@ uint32_t Fragment::getOffset(DiagnosticEngine *DiagEngine) const {
 bool Fragment::hasOffset() const { return (UnalignedOffset != ~uint32_t(0)); }
 
 llvm::SmallVectorImpl<Fragment *>::iterator Fragment::getIterator() {
-  auto &Fragments = getOwningSection()
-                        ->getMatchedLinkerScriptRule()
-                        ->getSection()
-                        ->getFragmentList();
+  auto Fragments = getOwningSection()
+                       ->getMatchedLinkerScriptRule()
+                       ->getSection()
+                       ->getFragmentList();
   auto *Iter = std::find(Fragments.begin(), Fragments.end(), this);
   return Iter;
 }
 
 Fragment *Fragment::getPrevNode() {
-  auto &Fragments = getOwningSection()
-                        ->getMatchedLinkerScriptRule()
-                        ->getSection()
-                        ->getFragmentList();
+  auto Fragments = getOwningSection()
+                       ->getMatchedLinkerScriptRule()
+                       ->getSection()
+                       ->getFragmentList();
   auto *Begin = Fragments.begin();
   auto *Iter = std::find(Begin, Fragments.end(), this);
   assert(Iter != Fragments.end());
@@ -92,10 +92,10 @@ Fragment *Fragment::getPrevNode() {
 }
 
 Fragment *Fragment::getNextNode() {
-  auto &Fragments = getOwningSection()
-                        ->getMatchedLinkerScriptRule()
-                        ->getSection()
-                        ->getFragmentList();
+  auto Fragments = getOwningSection()
+                       ->getMatchedLinkerScriptRule()
+                       ->getSection()
+                       ->getFragmentList();
   auto *End = Fragments.end();
   auto *Iter = std::find(Fragments.begin(), End, this);
   assert(Iter != Fragments.end());

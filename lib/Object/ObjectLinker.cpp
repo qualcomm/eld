@@ -1055,7 +1055,7 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       }
       InSect->setAddrAlign(Alignment);
     }
-    if (InSect->getFragmentList().size() && !FirstNonEmptyRule)
+    if (InSect->hasFragments() && !FirstNonEmptyRule)
       FirstNonEmptyRule = *In;
 
     if (Builder.moveIntoOutputSection(InSect, OutSect)) {
@@ -2145,19 +2145,16 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
   if (!IsPartialLink) {
     ELFObjectFile *RelocInput =
         getTargetBackend().getDynamicSectionHeadersInputFile();
-    auto MergeRelocs = [](llvm::SmallVectorImpl<Relocation *> &To,
-                          const llvm::SmallVectorImpl<Relocation *> &From) {
-      To.insert(To.end(), From.begin(), From.end());
+    auto MergeRelocs = [](ELFSection &To, ELFSection &From) {
+      To.appendRelocations(From.getRelocations());
     };
     for (auto &Input : ThisModule->getObjectList())
       if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input))
         if (Obj != RelocInput) {
           if (const auto &S = Obj->getRelaDyn())
-            MergeRelocs(RelocInput->getRelaDyn()->getRelocations(),
-                        S->getRelocations());
+            MergeRelocs(*RelocInput->getRelaDyn(), *S);
           if (const auto &S = Obj->getRelaPLT())
-            MergeRelocs(RelocInput->getRelaPLT()->getRelocations(),
-                        S->getRelocations());
+            MergeRelocs(*RelocInput->getRelaPLT(), *S);
         }
   }
 
@@ -2494,10 +2491,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     branch_island_iter Bi = (*Out)->islandsBegin();
     branch_island_iter Be = (*Out)->islandsEnd();
     for (; Bi != Be; ++Bi) {
-      BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
-      for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter) {
-        (*Iter)->apply(*getTargetBackend().getRelocator());
-      }
+      for (auto *Reloc : (*Bi)->getRelocations())
+        Reloc->apply(*getTargetBackend().getRelocator());
     }
   }
 
@@ -2548,9 +2543,8 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     branch_island_iter Bi = O->islandsBegin();
     branch_island_iter Be = O->islandsEnd();
     for (; Bi != Be; ++Bi) {
-      BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
-      for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter)
-        writeRelocationResult(**Iter, Buffer);
+      for (auto *Reloc : (*Bi)->getRelocations())
+        writeRelocationResult(*Reloc, Buffer);
     }
   };
   // sync relocations created by relaxation

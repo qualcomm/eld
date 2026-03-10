@@ -160,14 +160,14 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
         FragRef = FragmentRef::null();
     } else {
       if (CurSection->isMergeKind()) {
-        auto *Strings = llvm::cast<MergeStringFragment>(
-            CurSection->getFragmentList().front());
+        auto *Strings =
+            llvm::cast<MergeStringFragment>(CurSection->getFrontFragment());
         FragRef = make<FragmentRef>(*Strings, Value);
       }
       if (!FragRef) {
         FragRef = FragmentRef::null();
         if (CurSection->hasSectionData()) {
-          Fragment *Frag = CurSection->getFragmentList().front();
+          Fragment *Frag = CurSection->getFrontFragment();
           FragRef = make<FragmentRef>(*Frag, Value - CurSection->addr());
         }
       }
@@ -494,7 +494,7 @@ Relocation *IRBuilder::addRelocation(const Relocator *CurRelocator,
 
   FragmentRef *FragRef = FragmentRef::null();
   if (CurSection->hasSectionData()) {
-    Fragment *Frag = CurSection->getFragmentList().front();
+    Fragment *Frag = CurSection->getFrontFragment();
     FragRef = make<FragmentRef>(*Frag, POffset);
   }
   Relocation *Relocation =

@@ -184,7 +184,7 @@ Fragment *ELFSection::getFirstFragmentInRule() const {
     return nullptr;
   for (auto &In : *OE) {
     if (In->getSection()->size())
-      return In->getSection()->getFragmentList().front();
+      return In->getSection()->getFrontFragment();
   }
   return nullptr;
 }

@@ -106,7 +106,7 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       Module::InternalInputType::Attributes, LDFileFormat::Internal,
       ".riscv.attributes", llvm::ELF::SHT_RISCV_ATTRIBUTES, 0, 1);
   AttributeFragment = make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
-  m_pRISCVAttributeSection->getFragmentList().push_back(AttributeFragment);
+  m_pRISCVAttributeSection->addFragment(AttributeFragment);
   LayoutInfo *layoutInfo = getModule().getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(m_pRISCVAttributeSection->getInputFile(),
@@ -185,8 +185,7 @@ bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
 
 ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
   if (S->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES) {
-    RegionFragment *R =
-        llvm::dyn_cast<RegionFragment>(S->getFragmentList().front());
+    RegionFragment *R = llvm::dyn_cast<RegionFragment>(S->getFrontFragment());
     if (R)
       AttributeFragment->updateInfo(
           R->getRegion(), R->getOwningSection()->getInputFile(),
@@ -1022,8 +1021,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
         continue;
       if (rs->isDiscard())
         continue;
-      llvm::SmallVectorImpl<Relocation *> &relocList =
-          rs->getLink()->getRelocations();
+      auto relocList = rs->getLink()->getRelocations();
       for (llvm::SmallVectorImpl<Relocation *>::iterator it = relocList.begin();
            it != relocList.end(); ++it) {
         auto relocation = *it;
@@ -1463,17 +1461,17 @@ Relocation::Type RISCVLDBackend::getRemappedInternalRelocationType(
 void RISCVLDBackend::doPreLayout() {
   m_psdata = m_Module.getScript().sectionMap().find(".sdata");
   if (getRelaPLT()) {
-    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+    getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
   }
   if (getRelaDyn()) {
-    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+    getRelaDyn()->setSize(getRelaDyn()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaDyn());
   }
   if (ELFSection *S = getRelaPatch()) {
-    S->setSize(S->getRelocations().size() * getRelaEntrySize());
+    S->setSize(S->getRelocationCount() * getRelaEntrySize());
     m_Module.addOutputSection(S);
   }
 }
@@ -1550,7 +1548,7 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->getFragmentList().size()) {
+  if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     // TODO: This should be GOT0, not GOTPLT0.
     RISCVGOT::CreateGOT0(getGOT(), Dynamic ? Dynamic->resolveInfo() : nullptr,
@@ -1663,7 +1661,7 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   } else {
     if (!config().options().hasNow()) {
       // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
-      if (getPLT()->getFragmentList().empty())
+      if (!getPLT()->hasFragments())
         RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
                              getPLT(), is32Bits);
       // Create a static relocation to the PLT0 fragment.

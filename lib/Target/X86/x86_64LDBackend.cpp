@@ -128,7 +128,7 @@ bool x86_64LDBackend::finalizeTargetSymbols() {
     m_pIRelativeEnd->setValue(relaPltSec->addr() + relaPltSec->size());
 
     // Associate symbols with the .rela.plt section
-    if (!relaPltSec->getFragmentList().empty()) {
+    if (relaPltSec->hasFragments()) {
       Fragment *firstFrag = *relaPltSec->getFragmentList().begin();
       m_pIRelativeStart->setFragmentRef(make<FragmentRef>(*firstFrag, 0));
       m_pIRelativeEnd->setFragmentRef(
@@ -145,9 +145,9 @@ void x86_64LDBackend::doPreLayout() {
     m_pDynamic = make<x86_64ELFDynamic>(*this, config());
 
   if (LinkerConfig::Object != config().codeGenType()) {
-    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+    getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
-    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+    getRelaDyn()->setSize(getRelaDyn()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
     m_Module.addOutputSection(getRelaDyn());
@@ -194,7 +194,7 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->getFragmentList().size()) {
+  if (!getGOTPLT()->hasFragments()) {
     // GOTPLT0 will populate its first 8 bytes with .dynamic address.
     x86_64GOTPLT0::Create(getGOTPLT(), &m_Module);
   }
@@ -269,7 +269,7 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
 
   // Create PLT0 if this is the first PLT entry. PLT0 is the common
   // trampoline that all PLTN entries jump to for symbol resolution.
-  if (!hasNow && !isIRelative && !getPLT()->getFragmentList().size()) {
+  if (!hasNow && !isIRelative && !getPLT()->hasFragments()) {
     x86_64PLT0::Create(*m_Module.getIRBuilder(),
                        createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                        nullptr, hasNow);

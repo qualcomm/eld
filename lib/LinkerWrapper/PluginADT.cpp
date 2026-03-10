@@ -1244,7 +1244,7 @@ bool LinkerScriptRule::doesExpressionModifyDot() const {
 
 std::vector<plugin::Chunk> LinkerScriptRule::getChunks() const {
   std::vector<plugin::Chunk> CVect;
-  auto &Fragments = m_RuleContainer->getSection()->getFragmentList();
+  auto Fragments = m_RuleContainer->getSection()->getFragmentList();
   for (auto &F : Fragments)
     CVect.push_back(plugin::Chunk(F));
   return CVect;
@@ -1269,13 +1269,12 @@ LinkerScriptRule::updateChunks(std::vector<plugin::Chunk> C, bool Verify) {
     updateChunks(C);
     return LinkerScriptRule::State::Ok;
   }
-  auto &List = m_RuleContainer->getSection()->getFragmentList();
-  if (!List.size())
+  if (!m_RuleContainer->getSection()->hasFragments())
     return LinkerScriptRule::State::NotEmpty;
   m_RuleContainer->clearSections();
   m_RuleContainer->clearFragments();
   for (auto &Chunk : C) {
-    auto &L = m_RuleContainer->getSection()->getFragmentList();
+    auto L = m_RuleContainer->getSection()->getFragmentList();
     if (std::find(L.begin(), L.end(), Chunk.getFragment()) != L.end())
       return LinkerScriptRule::State::DuplicateChunk;
     m_RuleContainer->getSection()->addFragment(Chunk.getFragment());
@@ -1303,7 +1302,7 @@ LinkerScriptRule::State LinkerScriptRule::addChunk(plugin::Chunk C,
     addChunk(C);
     return LinkerScriptRule::State::Ok;
   }
-  auto &L = m_RuleContainer->getSection()->getFragmentList();
+  auto L = m_RuleContainer->getSection()->getFragmentList();
   if (std::find(L.begin(), L.end(), C.getFragment()) != L.end())
     return LinkerScriptRule::State::DuplicateChunk;
   m_RuleContainer->getSection()->addFragment(C.getFragment());
@@ -1326,9 +1325,9 @@ LinkerScriptRule::State LinkerScriptRule::removeChunk(plugin::Chunk C,
     removeChunk(C);
     return LinkerScriptRule::State::Ok;
   }
-  auto &L = m_RuleContainer->getSection()->getFragmentList();
-  if (!L.size())
+  if (!m_RuleContainer->getSection()->hasFragments())
     return LinkerScriptRule::State::Empty;
+  auto L = m_RuleContainer->getSection()->getFragmentList();
   if (std::find(L.begin(), L.end(), C.getFragment()) == L.end())
     return LinkerScriptRule::State::NoChunk;
   removeChunk(C);
@@ -1337,7 +1336,7 @@ LinkerScriptRule::State LinkerScriptRule::removeChunk(plugin::Chunk C,
 
 std::vector<plugin::Chunk> LinkerScriptRule::getChunks(plugin::Section S) {
   std::vector<plugin::Chunk> CVect;
-  auto &Fragments = m_RuleContainer->getSection()->getFragmentList();
+  auto Fragments = m_RuleContainer->getSection()->getFragmentList();
   for (auto &F : Fragments) {
     if (F->getOwningSection() == S.getSection())
       CVect.push_back(plugin::Chunk(F));

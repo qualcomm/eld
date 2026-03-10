@@ -253,8 +253,8 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
       }
       Fragment *Frag = nullptr;
       bool FoundFrag = false;
-      if (IS && IS->getFragmentList().size())
-        Frag = IS->getFragmentList().front();
+      if (IS && IS->hasFragments())
+        Frag = IS->getFrontFragment();
       if (Frag) {
         auto *FragCur = Frag->getIterator();
         auto *FragEnd = Frag->getOwningSection()
