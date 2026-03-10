@@ -1,7 +1,7 @@
 # Check that PHDR's work properly.
 RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/foo.c -o %t1.o -g
 RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/bar.c -o %t2.o -g
-RUN: %link %linkopts -T %p/Inputs/script.t %t1.o %t2.o -o %t.out --section-start .start=0x1300000
+RUN: %link %emulation %linkopts -T %p/Inputs/script.t %t1.o %t2.o -o %t.out --section-start .start=0x1300000
 RUN: %readelf -l %t.out | %filecheck %s
 
 #CHECK: There are 3 program headers, starting at offset 52

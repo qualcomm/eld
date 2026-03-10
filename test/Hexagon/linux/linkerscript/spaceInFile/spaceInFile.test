@@ -1,6 +1,6 @@
 # Test that we actually Reserve space in file.
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o  %clangg0opts
-RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t1.out  %linkg0opts  -z max-page-size=0x1000
+RUN: %link %emulation %linkopts %t1.o -T %p/Inputs/script.t -o %t1.out  %linkg0opts  -z max-page-size=0x1000
 RUN: %readelf -l -W %t1.out | %filecheck %s -check-prefix=PHDR
 RUN: %readelf -s -W %t1.out | %filecheck %s -check-prefix=SYMBOLS
 

@@ -1,8 +1,8 @@
 # Test R_HEX_IE* relocations
 RUN: %clang %clangopts -c -fpic %p/Inputs/1.s  -o %t1.o
 RUN: %clang %clangopts -c -fpic %p/Inputs/2.s   -o %t2.o
-RUN: %link %linkopts -shared %t2.o -o %t2.so
-RUN: %link %linkopts -G0 --force-dynamic -Bdynamic %t1.o  %t2.so  -o %t.out
+RUN: %link %emulation %linkopts -shared %t2.o -o %t2.so
+RUN: %link %emulation %linkopts -G0 --force-dynamic -Bdynamic %t1.o  %t2.so  -o %t.out
 RUN: %readelf -l -r -S -s -W %t.out |   %filecheck %s
 
 # CHECK-DAG:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
