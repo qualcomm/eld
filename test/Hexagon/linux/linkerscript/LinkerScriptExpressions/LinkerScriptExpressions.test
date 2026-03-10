@@ -1,10 +1,10 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
-RUN: %link %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/script.t 2>&1
+RUN: %link %emulation %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/script.t 2>&1
 RUN: %readelf -s %t.out  | %filecheck %s
-RUN: %not %link %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/errorexpn.t 2>&1 | %filecheck -check-prefix=ERR %s
-RUN: %link %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/addr.t 2>&1
+RUN: %not %link %emulation %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/errorexpn.t 2>&1 | %filecheck -check-prefix=ERR %s
+RUN: %link %emulation %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/addr.t 2>&1
 RUN: %readelf -s %t.out | %filecheck --check-prefix=ADDR %s
-RUN: %not %link %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/addr_error.t 2>&1 | %filecheck -check-prefix=ERR2 %s
+RUN: %not %link %emulation %linkopts %t1.o  -o %t.out --section-start=.my_start=0x1000 -T=%p/Inputs/addr_error.t 2>&1 | %filecheck -check-prefix=ERR2 %s
 
 #CHECK-DAG: {{[0-9]+}}: {{[0-9]+}}   0 NOTYPE  GLOBAL DEFAULT  ABS _myvar2
 #CHECK-DAG: {{[0-9]+}}: {{[0-9]+}}   0 NOTYPE  GLOBAL DEFAULT  ABS _myvar3

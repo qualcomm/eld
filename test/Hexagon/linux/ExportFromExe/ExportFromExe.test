@@ -5,8 +5,8 @@
 #END_COMMENT
 RUN: %clang %clangopts -c -fpic -O2 %p/Inputs/dso.c -ffunction-sections -fdata-sections -o %t1.o
 RUN: %clang %clangopts -c  %p/Inputs/test.c -ffunction-sections -fdata-sections  -o %t2.o
-RUN: %link %linkopts -shared -o %t.dso.so %t1.o
-RUN: %link %linkopts -Bdynamic %t2.o %t.dso.so -o %t.out
+RUN: %link %emulation %linkopts -shared -o %t.dso.so %t1.o
+RUN: %link %emulation %linkopts -Bdynamic %t2.o %t.dso.so -o %t.out
 RUN: %readelf --dyn-syms %t.out | %filecheck %s
 
 #CHECK-NOT: COM

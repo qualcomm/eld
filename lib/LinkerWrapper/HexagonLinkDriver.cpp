@@ -207,7 +207,41 @@ bool HexagonLinkDriver::createInputActions(
 
 template <class T>
 bool HexagonLinkDriver::processTargetOptions(llvm::opt::InputArgList &Args) {
-  return GnuLdDriver::processTargetOptions<T>(Args);
+  bool result = GnuLdDriver::processTargetOptions<T>(Args);
+  std::string emulation = Config.options().getEmulation().str();
+  // If a specific emulation was requested, apply it now.
+  if (!emulation.empty()) {
+    llvm::Triple TheTriple = Config.targets().triple();
+    std::optional<Triple> OptEmulationTriple =
+        ParseEmulation(emulation, Config.getDiagEngine());
+    // Report invalid emulation error for unknown emulation.
+    if (!OptEmulationTriple) {
+      DiagEngine->raise(eld::Diag::err_invalid_emulation) << emulation;
+      return false;
+    }
+    Triple EmulationTriple = OptEmulationTriple.value();
+    if (EmulationTriple.getArch() != Triple::UnknownArch)
+      TheTriple.setArch(EmulationTriple.getArch());
+    if (EmulationTriple.getOS() != Triple::OSType::UnknownOS)
+      TheTriple.setOS(EmulationTriple.getOS());
+    if (EmulationTriple.getEnvironment() != Triple::UnknownEnvironment)
+      TheTriple.setEnvironment(EmulationTriple.getEnvironment());
+    Config.targets().setTriple(TheTriple);
+  }
+  return result;
+}
+
+std::optional<Triple>
+HexagonLinkDriver::ParseEmulation(std::string pEmulation,
+                                  eld::DiagnosticEngine *DiagEngine) {
+  std::optional<Triple> result =
+      StringSwitch<std::optional<Triple>>(pEmulation)
+          .Case("hexagonlinux", Triple("hexagon", "", "linux", "gnu"))
+          .Cases({"hexagonelf", "v68", "v69", "v71", "v71t", "v73", "v75",
+                  "v77", "v79", "v81", "v83", "v85", "v87", "v89", "v91"},
+                 Triple("hexagon", "", "", ""))
+          .Default(std::nullopt);
+  return result;
 }
 
 template <class T>
@@ -217,7 +251,7 @@ bool HexagonLinkDriver::processLLVMOptions(llvm::opt::InputArgList &Args) {
 
 bool HexagonLinkDriver::isValidEmulation(llvm::StringRef Emulation) {
   return llvm::StringSwitch<bool>(Emulation)
-      .Cases({"hexagonelf", "v68", "v69", "v71", "v71t"}, true)
+      .Cases({"hexagonelf", "hexagonlinux", "v68", "v69", "v71", "v71t"}, true)
       .Cases({"v73", "v75", "v77", "v79", "v81", "v83", "v85", "v87", "v89",
               "v91"},
              true)
