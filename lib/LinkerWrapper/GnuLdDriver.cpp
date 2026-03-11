@@ -758,6 +758,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       ZKind = eld::ZOption::SeparateCode;
     else if (ZOpt == "noseparate-code")
       ZKind = eld::ZOption::NoSeparateCode;
+    else if (ZOpt == "separate-loadable-segments")
+      ZKind = eld::ZOption::SeparateLoadableSegments;
     else if (ZOpt == "execstack")
       ZKind = eld::ZOption::ExecStack;
     else if (ZOpt == "nodelete") {

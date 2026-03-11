@@ -196,6 +196,8 @@ bool GNULDBackend::createProgramHdrs() {
       return true;
     if (!ShouldSeparate)
       return false;
+    if (SeparateKind == GeneralOptions::SeparateSegmentKind::Loadable)
+      return true;
     if (!prevOut)
       return false;
     auto PrevSegIt = _segmentsForSection.find(prevOut);

@@ -49,7 +49,7 @@ public:
 
   typedef llvm::StringMap<uint64_t> AddressMapType;
 
-  enum class SeparateSegmentKind { None, Code };
+  enum class SeparateSegmentKind { None, Code, Loadable };
 
   enum StripSymbolMode {
     KeepAllSymbols,
