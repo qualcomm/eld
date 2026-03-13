@@ -3,7 +3,7 @@ RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/1.c -ftls-model=global-dy
 RUN: %clang %clangopts %clangg0opts -c -fpic %p/Inputs/2.s  -o %t2.o
 # The symbols that are created may change order, due to threading behavior.
 # Switch off threads to just make the test output consistent.
-RUN: %link %emulation %linkopts  %linkg0opts  -static  %t1.o  %t2.o  -o %t.out -M 2>&1 | %filecheck %s --check-prefix="MAP"
+RUN: %link %linkopts  %linkg0opts  -static  %t1.o  %t2.o  -o %t.out -M 2>&1 | %filecheck %s --check-prefix="MAP"
 RUN: %readelf -l -r -S -s -W %t.out |   %filecheck %s
 
 #MAP:  Linker created TLS transformation stubs

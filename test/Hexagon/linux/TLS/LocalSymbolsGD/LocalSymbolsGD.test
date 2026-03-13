@@ -10,9 +10,9 @@
 # START_TEST
 RUN: %clang %clangopts -c -fpic %p/Inputs/1.c -o %t1.o
 RUN: %clang %clangopts -c -fpic %p/Inputs/2.c -o %t2.o
-RUN: %link %emulation %linkopts -shared %t2.o -o %tlib.so
+RUN: %link %linkopts -shared %t2.o -o %tlib.so
 #Not using -dy will transform the GD to IE
-RUN: %link %emulation %linkopts %t1.o -dy %tlib.so -o %t.out
+RUN: %link %linkopts %t1.o -dy %tlib.so -o %t.out
 RUN: %readelf --dyn-syms %t.out | %filecheck %s
 
 #CHECK: __tls_get_addr

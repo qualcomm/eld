@@ -4,7 +4,7 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -fPIC
-RUN: %link %emulation %linkopts -shared %t1.1.o -o %t2.lib1.so -shared
+RUN: %link %linkopts -shared %t1.1.o -o %t2.lib1.so -shared
 RUN: %readelf -l -W %t2.lib1.so | %filecheck %s
 #CHECK: LOAD           0x000000 0x00000000
 #END_TEST

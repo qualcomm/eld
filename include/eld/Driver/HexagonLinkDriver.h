@@ -77,9 +77,6 @@ public:
 
   static bool isValidEmulation(llvm::StringRef Emulation);
 
-  static std::optional<llvm::Triple>
-  ParseEmulation(std::string pEmulation, eld::DiagnosticEngine *DiagEngine);
-
   static std::string getInferredArch(llvm::StringRef Emulation) {
     return "hexagon";
   }

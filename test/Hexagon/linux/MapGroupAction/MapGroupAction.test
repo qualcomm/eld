@@ -4,7 +4,7 @@ RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
 RUN: %ar cr %aropts  %tlib2.a %t2.o
 RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o
 RUN: %ar cr %aropts  %tlib3.a %t3.o
-RUN: %link %emulation %linkopts %t1.o -o %t.out -M --start-group %tlib3.a %tlib2.a --end-group  2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.o -o %t.out -M --start-group %tlib3.a %tlib2.a --end-group  2>&1 | %filecheck %s
 
 #CHECK:  START GROUP
 #CHECK:  LOAD {{.*}}lib2.a

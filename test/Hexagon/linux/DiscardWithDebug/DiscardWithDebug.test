@@ -5,7 +5,7 @@
 #END_COMMENT
 #
 RUN: %clang %clangopts -c  -g %p/Inputs/1.c  -ffunction-sections -o %t1.o
-RUN: %link %emulation %linkopts -o %t.out %t1.o -T %p/Inputs/script.t
+RUN: %link %linkopts -o %t.out %t1.o -T %p/Inputs/script.t
 RUN: %readelf -s %t.out | %filecheck %s
 
 CHECK-NOT: {{ baz}}

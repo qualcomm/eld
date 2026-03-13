@@ -1,6 +1,6 @@
 # Test that linker is able to create a PLT entry for the symbol.
 RUN: %clang %clangopts -c -fPIC %p/Inputs/a.s -o %t1.o
-RUN: %link %emulation %linkopts -shared %t1.o -o %t2.so
+RUN: %link %linkopts -shared %t1.o -o %t2.so
 RUN: %objdump -d %t2.so | %filecheck %s
 RUN: %readelf -l -W %t2.so | %filecheck %s -check-prefix=STARTADDR
 

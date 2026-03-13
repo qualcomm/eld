@@ -7,7 +7,7 @@ RUN: rm -rf %t4
 RUN: mkdir %t4
 RUN: %ar cr %aropts %t4/libfn.a %t3.o
 RUN: %ar cr %aropts %t4/libfn1.a %t2.o
-RUN: %link %emulation %linkopts -dy -Bdynamic %t1.o -L%t4 --start-group -lfn -lfn1 --end-group --force-dynamic -o %t.out
+RUN: %link %linkopts -dy -Bdynamic %t1.o -L%t4 --start-group -lfn -lfn1 --end-group --force-dynamic -o %t.out
 RUN: %readelf -s %t.out | %filecheck %s
 
 CHECK: fn1

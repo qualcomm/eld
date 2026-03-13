@@ -6,7 +6,7 @@
 # PT_GNU_RELRO segment.
 #END_COMMENT
 RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t1.1.o -fno-use-init-array
-RUN: %link %emulation %linkopts %t1.1.o -shared -o %t1.so -z relro
+RUN: %link %linkopts %t1.1.o -shared -o %t1.so -z relro
 RUN: %readelf -l -W %t1.so | %filecheck %s
 
 #CHECK-NOT: 03 .dynamic .got

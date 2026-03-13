@@ -6,7 +6,7 @@ RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.o
 RUN: %clang %clangopts -c %p/Inputs/empty.c -o %tempty.o
 RUN: %ar cr %aropts %tlib1.a %t2.o %t3.o
 RUN: %ar cr %aropts %tlibempty.a %tempty.o
-RUN: %link %emulation %linkopts %t1.o %tlibempty.a %tlib1.a -t -o %t.out 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.o %tlibempty.a %tlib1.a -t -o %t.out 2>&1 | %filecheck %s
 
 #CHECK: {{.*.test.tmp1.*}}
 #CHECK-NOT: {{.*lib1.a.*tmp2.*}}

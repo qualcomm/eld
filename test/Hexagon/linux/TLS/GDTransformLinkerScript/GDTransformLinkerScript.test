@@ -4,7 +4,7 @@
 # even in presence of linker script
 #END_COMMENT
 RUN: %clang %clangopts -c -fpic  %p/Inputs/1.c -o %t1.o
-RUN: %link %emulation %linkopts %t1.o -T %p/Inputs/script.t -o %t.out
+RUN: %link %linkopts %t1.o -T %p/Inputs/script.t -o %t.out
 RUN: %readelf -s -S %t.out | %filecheck %s
 
 #CHECK: .stubs

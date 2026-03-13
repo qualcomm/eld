@@ -23,23 +23,22 @@ static bool ELDEmulateHexagonELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   pConfig.targets().setBitClass(32);
   llvm::StringRef Emulation = pConfig.options().getEmulation();
   if (!Emulation.empty()) {
-    llvm::StringRef flag =
-        llvm::StringSwitch<StringRef>(Emulation)
-            .Cases({"v68", "hexagonelf", "hexagonlinux"}, "hexagonv68")
-            .Case("v69", "hexagonv69")
-            .Case("v71", "hexagonv71")
-            .Case("v71t", "hexagonv71t")
-            .Case("v73", "hexagonv73")
-            .Case("v75", "hexagonv75")
-            .Case("v77", "hexagonv77")
-            .Case("v79", "hexagonv79")
-            .Case("v81", "hexagonv81")
-            .Case("v83", "hexagonv83")
-            .Case("v85", "hexagonv85")
-            .Case("v87", "hexagonv87")
-            .Case("v89", "hexagonv89")
-            .Case("v91", "hexagonv91")
-            .Default("invalid");
+    llvm::StringRef flag = llvm::StringSwitch<StringRef>(Emulation)
+                               .Cases({"v68", "hexagonelf"}, "hexagonv68")
+                               .Case("v69", "hexagonv69")
+                               .Case("v71", "hexagonv71")
+                               .Case("v71t", "hexagonv71t")
+                               .Case("v73", "hexagonv73")
+                               .Case("v75", "hexagonv75")
+                               .Case("v77", "hexagonv77")
+                               .Case("v79", "hexagonv79")
+                               .Case("v81", "hexagonv81")
+                               .Case("v83", "hexagonv83")
+                               .Case("v85", "hexagonv85")
+                               .Case("v87", "hexagonv87")
+                               .Case("v89", "hexagonv89")
+                               .Case("v91", "hexagonv91")
+                               .Default("invalid");
     if (flag == "deprecated") {
       pConfig.raise(Diag::deprecated_emulation)
           << pConfig.options().getEmulation();

@@ -2,6 +2,6 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -flto -o %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
 RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
-RUN: %link %emulation %linkopts %t1.1.o %t1.2.o %t1.3.o -o %t3.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
+RUN: %link %linkopts %t1.1.o %t1.2.o %t1.3.o -o %t3.out --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE
 
 #PRESERVE-NOT: Preserving symbol baz

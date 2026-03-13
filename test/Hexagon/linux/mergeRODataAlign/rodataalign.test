@@ -1,9 +1,9 @@
 # Check that rodata alignment is handled in the linker appropriately.
 RUN: %clang %clangopts -c %p/Inputs/rodataalign.s -o %t1.o
-RUN: %link %emulation %linkopts  %t1.o -o %t1.out
+RUN: %link %linkopts  %t1.o -o %t1.out
 RUN: %readelf -p 2 %t1.out | %filecheck -check-prefix=RODATAMERGE %s
 RUN: %clang %clangopts -c %p/Inputs/rodata.s -o %t2.o
-RUN: %link %emulation %linkopts  %t2.o -o %t2.out
+RUN: %link %linkopts  %t2.o -o %t2.out
 RUN: %readelf -p 2 %t2.out | %filecheck -check-prefix=RODATAWITHEMPTY %s
 
 

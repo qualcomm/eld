@@ -5,11 +5,11 @@ RUN: %clang %clangopts -c %p/Inputs/2.c  -fPIC -o %t2.o
 RUN: mkdir -p temp
 RUN: %ar cr %aropts temp/mylib.a %t2.o
 RUN: %ar cr %aropts temp/mylib.random %t2.o
-RUN: %link %emulation --no-emit-relocs %linkopts -shared %t2.o -o temp/myshlib.so
-RUN: %link %emulation --no-emit-relocs %linkopts %t1.o -Ltemp -l:mylib.a -o %t3
-RUN: %link %emulation --no-emit-relocs %linkopts %t1.o -dy -Ltemp -l:myshlib.so -o %t4
-RUN: %link %emulation --no-emit-relocs %linkopts %t1.o -static -dy -Ltemp -l:myshlib.so -o %t5
-RUN: %link %emulation --no-emit-relocs %linkopts %t1.o -Ltemp -l:mylib.random -o %t6
+RUN: %link --no-emit-relocs %linkopts -shared %t2.o -o temp/myshlib.so
+RUN: %link --no-emit-relocs %linkopts %t1.o -Ltemp -l:mylib.a -o %t3
+RUN: %link --no-emit-relocs %linkopts %t1.o -dy -Ltemp -l:myshlib.so -o %t4
+RUN: %link --no-emit-relocs %linkopts %t1.o -static -dy -Ltemp -l:myshlib.so -o %t5
+RUN: %link --no-emit-relocs %linkopts %t1.o -Ltemp -l:mylib.random -o %t6
 RUN: %readelf -s -W %t3 | %filecheck %s -check-prefix=AR
 RUN: %readelf -a %t4 | %filecheck %s -check-prefix=SO
 RUN: %readelf -a %t5 | %filecheck %s -check-prefix=SO
