@@ -3,8 +3,8 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -ftls-model=local-exec -o %t1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -ftls-model=local-exec  -o %t2.o
 RUN: %clang %clangopts -c %p/Inputs/1.c -ftls-model=local-exec -fpic -o %t1.pic.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -ftls-model=local-exec  -fpic -o %t2.pic.o
-RUN: %link %linkopts  -o %t.out %t1.o %t2.o -G0 2>&1
-RUN: %not %link %linkopts -shared -o %t.so %t1.pic.o %t2.pic.o -G0 2>&1 | %filecheck %s --check-prefix="ERR"
+RUN: %link %emulation %linkopts  -o %t.out %t1.o %t2.o -G0 2>&1
+RUN: %not %link %emulation %linkopts -shared -o %t.so %t1.pic.o %t2.pic.o -G0 2>&1 | %filecheck %s --check-prefix="ERR"
 RUN: %readelf -l -S -s -W %t.out |   %filecheck %s
 
 #ERR: recompile with -fPIC

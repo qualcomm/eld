@@ -8,7 +8,7 @@ RUN: %clang %clangopts -c  %p/Inputs/crap.c -o %t1.crap.o
 RUN: %ar cr %t2.libb1.a %t1.b1.o
 RUN: %ar cr %aropts %t2.libb2.a %t1.b2.o
 RUN: %ar cr %aropts %t2.libc.a %t1.c.o
-RUN: %link %linkopts -flto-options=no-merge-modules  -M  %t1.a.o --start-group %t2.libb1.a %t2.libb2.a %t2.libc.a %t1.crap.o --end-group --trace=lto -t 2>&1 | %filecheck %s
+RUN: %link %emulation %linkopts -flto-options=no-merge-modules  -M  %t1.a.o --start-group %t2.libb1.a %t2.libb2.a %t2.libc.a %t1.crap.o --end-group --trace=lto -t 2>&1 | %filecheck %s
 
 #CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}crap
 

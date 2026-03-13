@@ -5,6 +5,6 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o  -flto
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o  -flto
 RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
-RUN: %link -o %t1.out.1 %linkopts %t1.1.o %t1.2.o %t1.3.o --trace=lto 2>&1 | %filecheck %s
+RUN: %link %emulation -o %t1.out.1 %linkopts %t1.1.o %t1.2.o %t1.3.o --trace=lto 2>&1 | %filecheck %s
 
 #CHECK: a
