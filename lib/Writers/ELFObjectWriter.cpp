@@ -803,14 +803,15 @@ void ELFObjectWriter::emitGroup(ELFSection *S, MemoryRegion &CurRegion) {
         RegionFrag.getRegion().size() / sizeof(llvm::ELF::Elf32_Word);
     // copy the contents
     memcpy(CurRegion.begin() + CurOffset, From, Frag->size());
-    void *GroupData = (void *)(CurRegion.begin() + CurOffset);
+    uint8_t *GroupData = (uint8_t *)(CurRegion.begin() + CurOffset);
     auto *Si = S->getGroupSections().begin();
     auto *Se = S->getGroupSections().end();
     for (size_t Index = 1; Index < GroupDataSize; ++Index) {
       if (Si == Se)
         break;
       uint32_t SectionIdx = (*Si)->getOutputELFSection()->getIndex();
-      ((uint32_t *)GroupData)[Index] = SectionIdx;
+      std::memcpy(GroupData + (Index * sizeof(llvm::ELF::Elf32_Word)),
+          &SectionIdx, sizeof(llvm::ELF::Elf32_Word));
       ++Si;
     }
     CurOffset += Frag->size();
