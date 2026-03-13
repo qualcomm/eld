@@ -1,13 +1,31 @@
 #---ABS64RelocationPIE.test--------------------------- PIE -----------------#
 #BEGIN_COMMENT
-# ABS{32,16} relocations should not create dynamic relocations.
+## ABS32/64 relocations against regular symbols are not valid
+## in PIE links and should be rejected.
+## If the symbol is resolved at link time (eg via --defsym), no
+## dynamic relocation is needed and the link should succeed.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t1.1.o -fPIC
-RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.s -o %t1.2.o -fPIC
-RUN: %link %linkopts -march aarch64 %t1.1.o %t1.2.o -o %t2.out.1 -pie
-RUN: %link %linkopts -march aarch64 %t1.1.o --defsym foo=0x20 --defsym bar=0x20 -o %t2.out.2 -pie
-RUN: %readelf -r %t2.out.1 | %filecheck %s
-RUN: %readelf -r %t2.out.1 | %filecheck %s
-#CHECK-NOT: RELATIVE
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/1.s -o %t.abs32.o -fPIC
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/2.s -o %t.defs.o -fPIC
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/3.s -o %t.abs64.o -fPIC
+
+RUN: %not %link %linkopts %t.abs32.o %t.defs.o -o %t.abs32.fail -pie 2>&1 \
+RUN:  | %filecheck %s --check-prefix=ERR32
+
+RUN: %link %linkopts %t.abs32.o --defsym foo=0x20 --defsym bar=0x20 -o %t.abs32.ok -pie
+
+RUN: %not %link %linkopts %t.abs64.o %t.defs.o -o %t.abs64.fail -pie 2>&1 \
+RUN:  | %filecheck %s --check-prefix=ERR64
+
+RUN: %link %linkopts %t.abs64.o --defsym foo=0x20 -o %t.abs64.ok -pie
+RUN: %readelf -r %t.abs64.ok | %filecheck %s --check-prefix=NORELOC
+
+ERR32: R_AARCH64_ABS32
+ERR32: recompile with -fPIC
+
+ERR64: R_AARCH64_ABS64
+ERR64: recompile with -fPIC
+
+NORELOC: There are no relocations in this file.
 #END_TEST

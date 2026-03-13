@@ -3916,11 +3916,11 @@ bool GNULDBackend::symbolNeedsDynRel(const ResolveInfo &pSym, bool pSymHasPLT,
        LinkerConfig::Binary == config().codeGenType()))
     return false;
 
-  // An absolute symbol can be resolved directly if it is either local
-  // or we are linking statically. Otherwise it can still be overridden
-  // at runtime.
+  // An absolute symbol can be resolved directly if it is either local,
+  // non-preemptible, or we are linking statically.
   if (pSym.isAbsolute() &&
-      (pSym.binding() == ResolveInfo::Local || config().isCodeStatic()))
+      (pSym.binding() == ResolveInfo::Local || !isSymbolPreemptible(pSym) ||
+       config().isCodeStatic()))
     return false;
   if (config().isCodeIndep() && isAbsReloc)
     return true;
@@ -3981,17 +3981,30 @@ const LDSymbol *GNULDBackend::getEntrySymbol() const {
   return entrySymbol;
 }
 
+bool GNULDBackend::isTargetReadOnly(const ELFSection &input) const {
+  if (!input.isAlloc() || input.isWritable())
+    return false;
+
+  if (input.getOutputELFSection()->isWritable())
+    return false;
+
+  for (const RuleContainer *rule : *input.getOutputSection()) {
+    if (rule->getSection()->isWritable())
+      return false;
+    for (const ELFSection *matched : rule->getMatchedInputSections())
+      if (matched->isWritable())
+        return false;
+  }
+  return true;
+}
+
 void GNULDBackend::checkAndSetHasTextRel(const ELFSection &pSection) {
   if (m_bHasTextRel)
     return;
 
   // if the target section of the dynamic relocation is ALLOCATE but is not
   // writable, than we should set DF_TEXTREL
-  const uint32_t flag = pSection.getFlags();
-  if (0 == (flag & llvm::ELF::SHF_WRITE) && (flag & llvm::ELF::SHF_ALLOC))
-    m_bHasTextRel = true;
-
-  return;
+  m_bHasTextRel = isTargetReadOnly(pSection) && pSection.isAlloc();
 }
 
 /// sortRelocation - sort the dynamic relocations to let dynamic linker
