@@ -118,6 +118,7 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
   // include the needed members in the archive and build up the input tree
   bool willSymResolved = false;
   InputFile *referredSite = nullptr;
+  ObjectLinker &objLinker = *m_Module.getLinker()->getObjectLinker();
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   config.raise(Diag::verbose_performing_archive_symbol_resolution)
       << inputFile.getInput()->decoratedPath();
@@ -141,12 +142,18 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
           continue;
         archiveFile->setSymbolStatus(idx, status);
         willSymResolved = true;
-        if (layoutInfo && referredSite) {
+        if (referredSite) {
           llvm::StringRef SymName = archiveFile->getSymbolName(symbol);
-          layoutInfo->recordArchiveMember(
-              I, referredSite, &symbol,
+          objLinker.recordArchiveMemberForReport(
+              I, referredSite,
               llvm::cast<eld::ObjectFile>(I->getInputFile())
                   ->getSymbol(SymName.str()));
+          if (layoutInfo) {
+            layoutInfo->recordArchiveMember(
+                I, referredSite, &symbol,
+                llvm::cast<eld::ObjectFile>(I->getInputFile())
+                    ->getSymbol(SymName.str()));
+          }
         }
       } // end of if
     } // end of for
@@ -405,14 +412,15 @@ ArchiveParser::createMemberInput(llvm::object::Archive &archiveReader,
 
 eld::Expected<uint32_t>
 ArchiveParser::includeAllMembers(ArchiveFile *archive) const {
+  ObjectLinker &objLinker = *m_Module.getLinker()->getObjectLinker();
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   uint32_t IncludeMemberCount = 0;
   for (Input *member : archive->getAllMembers()) {
-    if (includeMember(member)) {
+    objLinker.recordWholeArchiveMemberForReport(member);
+    if (layoutInfo)
+      layoutInfo->recordWholeArchiveMember(member);
+    if (includeMember(member))
       ++IncludeMemberCount;
-      if (layoutInfo)
-        layoutInfo->recordWholeArchiveMember(member);
-    }
   }
   return IncludeMemberCount;
 }

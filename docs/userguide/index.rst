@@ -25,7 +25,6 @@ This document describes usage of ELD
    documentation/eld_debugging_guide.rst
    documentation/linker_support_backward_compatibility.rst
    documentation/image_structure_and_generation.rst
-   documentation/linker_map_files.rst
    documentation/layout.rst
    documentation/linker_plugins_updated.rst
    documentation/linker_plugin.rst

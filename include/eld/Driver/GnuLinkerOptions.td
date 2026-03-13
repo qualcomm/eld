@@ -1353,6 +1353,12 @@ def allow_incompatible_section_mix
       HelpText<"Allow incompatible section mix">,
       Group<grp_miscfeatures>;
 
+defm ArchiveMemberReportFile
+    : smDashWithOpt<"archive-member-report", "ArchiveMemberReportFile",
+                    "Emit JSON report for archive members pulled in by symbols">,
+      MetaVarName<"<filename>">,
+      Group<grp_miscfeatures>;
+
 //===----------------------------------------------------------------------===//
 /// Help!
 //===----------------------------------------------------------------------===//

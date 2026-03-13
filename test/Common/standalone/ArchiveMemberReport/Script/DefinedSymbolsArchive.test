@@ -1,0 +1,19 @@
+#---DefinedSymbolsArchive.test---Executable --------------------#
+#BEGIN_COMMENT
+# Verify helper mode prints defined symbols grouped by archive.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %ar -cr %tlib.a %t.foo.o %t.bar.o
+RUN: %link %linkopts -o %t.out %t.main.o %tlib.a --archive-member-report %t.report.json
+RUN: %python %xarchmemtrace %t.report.json --defined-symbols-archive "*lib.a" 2>&1 | %filecheck %s --check-prefix=DEFAR
+#END_TEST
+
+DEFAR: Defined symbols for archive pattern: *lib.a
+DEFAR: unique archives: 1
+DEFAR: Archive: {{.*}}lib.a
+DEFAR-DAG: symbol: foo
+DEFAR-DAG: symbol: bar
+DEFAR-DAG: symbol: foo_alias

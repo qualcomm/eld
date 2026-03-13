@@ -25,6 +25,7 @@
 #include "eld/Input/ZOption.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/LayoutMap/YamlLayoutPrinter.h"
+#include "eld/Object/ArchiveMemberReport.h"
 #include "eld/Support/MappingFileReader.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/OutputTarWriter.h"
@@ -1223,6 +1224,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setPluginActivityLogFile(A->getValue());
   }
 
+  // --archive-member-report=<file>
+  if (llvm::opt::Arg *A = Args.getLastArg(T::ArchiveMemberReportFile)) {
+    Config.options().setArchiveMemberReportFile(A->getValue());
+  }
+
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
   return true;
 }
@@ -1855,7 +1861,8 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     Config.targets().setTriple(Triple);
   }
   eld::LayoutInfo *layoutInfo = nullptr;
-  if (!Config.options().layoutFile().empty() || Config.options().printMap())
+  if (!Config.options().layoutFile().empty() || Config.options().printMap() ||
+      Config.options().getArchiveMemberReportFile())
     layoutInfo = eld::make<eld::LayoutInfo>(Config);
   ThisModule = eld::make<eld::Module>(m_Script, Config, layoutInfo);
 

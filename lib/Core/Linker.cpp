@@ -145,6 +145,11 @@ bool Linker::prepare(std::vector<InputAction *> &Actions,
     if (!normalize())
       return false;
   }
+
+  if (auto ReportFile = ThisConfig->options().getArchiveMemberReportFile()) {
+    if (!ObjLinker->emitArchiveMemberReport(ReportFile.value()))
+      return false;
+  }
   return true;
 }
 

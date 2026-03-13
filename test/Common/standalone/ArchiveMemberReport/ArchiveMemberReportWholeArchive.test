@@ -1,0 +1,19 @@
+#---ArchiveMemberReportWholeArchive.test---Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that whole-archive members are reported with proper reason.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %ar -cr %tlib.a %t.foo.o %t.bar.o
+RUN: %link %linkopts -o %t.out %t.main.o --whole-archive %tlib.a --no-whole-archive \
+RUN:   --archive-member-report %t.report.json
+RUN: %filecheck %s --check-prefix=WHOLE < %t.report.json
+#END_TEST
+
+WHOLE-DAG: "WholeArchive": true
+WHOLE-DAG: "Reason": "-whole-archive"
+WHOLE-DAG: "MemberIsArchiveMember": true
+WHOLE-DAG: "MemberPath": "{{.*\.a\([^)]*foo[^)]*\.o\)}}"
+WHOLE-DAG: "MemberPath": "{{.*\.a\([^)]*bar[^)]*\.o\)}}"

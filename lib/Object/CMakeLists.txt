@@ -9,6 +9,7 @@ llvm_add_library(
   OutputSectionEntry.cpp
   RuleContainer.cpp
   SectionMap.cpp
+  ArchiveMemberReport.cpp
   DEPENDS
   intrinsics_gen)
 

@@ -28,6 +28,7 @@
 #include "eld/Input/ObjectFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
+#include "eld/Object/ArchiveMemberReport.h"
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/LibReader.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -149,6 +150,11 @@ bool ObjectLinker::initialize() {
     getTargetBackend().initRelocator();
 
   return true;
+}
+
+bool ObjectLinker::emitArchiveMemberReport(llvm::StringRef Filename) const {
+  return eld::emitArchiveMemberReport(*this, Filename,
+                                      ThisConfig.getDiagEngine());
 }
 
 /// initStdSections - initialize standard sections
