@@ -315,6 +315,8 @@ public:
 
   bool initializeOutputSectionsAndRunPlugin();
 
+  void applySubAlign();
+
   // Get Plugin list for Relocation registration callback.
   LinkerScript::PluginVectorT getLinkerPluginWithLinkerConfigs();
 
