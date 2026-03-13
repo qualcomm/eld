@@ -8,6 +8,6 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
 
-#CHECK: Error: Link state 'BeforeLayout' is invalid for the API '{{.*}}overrideLinkerScriptRule{{.*}}'. Valid link states: []
+#CHECK: Error: Link state 'ActBeforeSectionMerging' is invalid for the API '{{.*}}overrideLinkerScriptRule{{.*}}'. Valid link states: [Initializing, ActBeforeRuleMatching]
 #CHECK: Fatal: Linking had errors.
 

@@ -30,10 +30,14 @@ namespace eld {
 enum LinkState : uint8_t {
   Unknown,
   Initializing,
+  ActBeforeRuleMatching,
   BeforeLayout,
+  ActBeforeSectionMerging,
   CreatingSections,
+  ActBeforePerformingLayout,
   CreatingSegments,
   AfterLayout,
+  ActBeforeWritingOutput
 };
 
 static inline llvm::StringRef getLinkStateStrRef(LinkState State) {
@@ -43,10 +47,14 @@ static inline llvm::StringRef getLinkStateStrRef(LinkState State) {
   switch (State) {
     ADD_CASE(Unknown)
     ADD_CASE(Initializing)
+    ADD_CASE(ActBeforeRuleMatching)
     ADD_CASE(BeforeLayout)
+    ADD_CASE(ActBeforeSectionMerging)
     ADD_CASE(CreatingSections)
+    ADD_CASE(ActBeforePerformingLayout)
     ADD_CASE(CreatingSegments)
     ADD_CASE(AfterLayout)
+    ADD_CASE(ActBeforeWritingOutput)
   }
 #undef ADD_CASE
   llvm_unreachable("Invalid LinkState");

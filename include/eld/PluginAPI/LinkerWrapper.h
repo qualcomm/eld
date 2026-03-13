@@ -805,13 +805,21 @@ public:
                                                bool doNotUseRMName = false);
   bool isLinkStateInitializing() const;
 
+  bool isLinkStateActBeforeRuleMatching() const;
+
   bool isLinkStateBeforeLayout() const;
+
+  bool isLinkStateActBeforeSectionMerging() const;
 
   bool isLinkStateCreatingSections() const;
 
-  bool isLinkStateAfterLayout() const;
+  bool isLinkStateActBeforePerformingLayout() const;
 
   bool isLinkStateCreatingSegments() const;
+
+  bool isLinkStateAfterLayout() const;
+
+  bool isLinkStateActBeforeWritingOutput() const;
 
 private:
   uint8_t getLinkState() const;

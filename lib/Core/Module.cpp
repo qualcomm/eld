@@ -508,7 +508,8 @@ void Module::addSymbolCreatedByPluginToFragment(Fragment *F, std::string Symbol,
                                                 const eld::Plugin *Plugin) {
   LayoutInfo *layoutInfo = getLayoutInfo();
   LDSymbol *S = SymbolNamePool.createPluginSymbol(
-      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val, layoutInfo);
+      getInternalInput(Module::InternalInputType::Plugin), Symbol, F, Val,
+      layoutInfo);
   if (S && layoutInfo && layoutInfo->showSymbolResolution())
     SymbolNamePool.getSRI().recordPluginSymbol(S, Plugin);
   PluginFragmentToSymbols[F];
