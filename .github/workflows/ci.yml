@@ -1,6 +1,11 @@
 name: CI
 
 on:
+  push: # trigger CI on push to main and release branches
+    branches:
+      - main
+      - release/21.x
+  workflow_dispatch: # allows manual trigger from github UI
   pull_request:
     paths-ignore:
       - '.github/workflows/sanitize.yml'
