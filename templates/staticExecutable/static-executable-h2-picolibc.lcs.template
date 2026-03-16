@@ -103,6 +103,7 @@ SECTIONS
 
   /* Thread Local Storage sections  */
 
+  . = ALIGN(8);
   /* TLS Initialized Data */
   .tdata          :
   {
@@ -112,7 +113,6 @@ SECTIONS
     __tdata_source = .;
     __tdata_start = __tdata_source;
     *(.tdata .tdata.* *.gnu.linkonce.td.*)
-    . = ALIGN(8);
   }
   _TLS_DATA_END_ = .;
   __tdata_end = _TLS_DATA_END_;
