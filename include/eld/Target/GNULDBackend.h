@@ -772,13 +772,23 @@ public:
 
   struct LayoutSnapshot {
     llvm::DenseMap<const OutputSectionEntry *, SectionAddrs> outSections;
+    std::vector<uint64_t> assignmentValues;
   };
 
-  // Capture current layout snapshot keyed by OutputSectionEntry*.
+  struct DivergenceResult {
+    const OutputSectionEntry *outputSection = nullptr;
+    const Assignment *assignment = nullptr;
+  };
+
   LayoutSnapshot captureLayoutSnapshot() const;
 
-  const OutputSectionEntry *findDivergence(const LayoutSnapshot &Prev,
-                                           const LayoutSnapshot &cur) const;
+  void captureAssignmentsSnapshot(LayoutSnapshot &S) const;
+
+  DivergenceResult findDivergence(const LayoutSnapshot &Prev,
+                                  const LayoutSnapshot &Cur) const;
+
+  const Assignment *findAssignmentDivergence(const LayoutSnapshot &Prev,
+                                             const LayoutSnapshot &Cur) const;
 
   // --- Exclude symbol support
   void markSymbolForRemoval(const ResolveInfo *S);

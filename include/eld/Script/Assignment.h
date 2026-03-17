@@ -71,6 +71,8 @@ public:
                bool EndWithNewLine = true, bool WithValues = false,
                bool AddIndent = true) const override;
 
+  std::string getAsString(bool WithValues = false) const;
+
   bool isDot() const;
 
   // Does the assignment have any dot usage ?

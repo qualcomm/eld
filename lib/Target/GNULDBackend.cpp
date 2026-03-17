@@ -3318,25 +3318,65 @@ GNULDBackend::LayoutSnapshot GNULDBackend::captureLayoutSnapshot() const {
     A.lma = Sec->pAddr();
     S.outSections.insert({O, A});
   }
+  captureAssignmentsSnapshot(S);
   return S;
 }
 
-const OutputSectionEntry *
+static bool shouldSkipAssignForLayoutConv(const Assignment *A) {
+  if (A->type() == Assignment::ASSERT || A->type() == Assignment::FILL)
+    return true;
+  if (A->isProvideOrProvideHidden() && !A->isUsed())
+    return true;
+  return false;
+}
+
+void GNULDBackend::captureAssignmentsSnapshot(LayoutSnapshot &S) const {
+  for (const Assignment *A : m_Module.getScript().assignments()) {
+    if (shouldSkipAssignForLayoutConv(A))
+      continue;
+    S.assignmentValues.push_back(A->value());
+  }
+}
+
+const Assignment *
+GNULDBackend::findAssignmentDivergence(const LayoutSnapshot &Prev,
+                                       const LayoutSnapshot &Cur) const {
+  const auto &Assignments = m_Module.getScript().assignments();
+  size_t Idx = 0;
+  for (const Assignment *A : Assignments) {
+    if (shouldSkipAssignForLayoutConv(A))
+      continue;
+    if (Idx >= Prev.assignmentValues.size() ||
+        Idx >= Cur.assignmentValues.size() ||
+        Prev.assignmentValues[Idx] != Cur.assignmentValues[Idx])
+      return A;
+    ++Idx;
+  }
+  return nullptr;
+}
+
+GNULDBackend::DivergenceResult
 GNULDBackend::findDivergence(const LayoutSnapshot &Prev,
-                             const LayoutSnapshot &cur) const {
+                             const LayoutSnapshot &Cur) const {
+  DivergenceResult Result;
   const SectionMap &SM = m_Module.getScript().sectionMap();
   for (auto It = SM.begin(), End = SM.end(); It != End; ++It) {
     const OutputSectionEntry *O = *It;
     auto PrevIt = Prev.outSections.find(O);
-    auto CurIt = cur.outSections.find(O);
-    if (PrevIt == Prev.outSections.end() || CurIt == cur.outSections.end())
-      return O;
+    auto CurIt = Cur.outSections.find(O);
+    if (PrevIt == Prev.outSections.end() || CurIt == Cur.outSections.end()) {
+      Result.outputSection = O;
+      break;
+    }
     const SectionAddrs &A = PrevIt->second;
     const SectionAddrs &B = CurIt->second;
-    if (A.vma != B.vma || A.lma != B.lma)
-      return O;
+    if (A.vma != B.vma || A.lma != B.lma) {
+      Result.outputSection = O;
+      break;
+    }
   }
-  return nullptr;
+  Result.assignment = findAssignmentDivergence(Prev, Cur);
+  return Result;
 }
 
 // Create or return an already created relocation output section for partial
@@ -4133,11 +4173,10 @@ bool GNULDBackend::relax() {
   while (!finished) {
     auto start = std::chrono::steady_clock::now();
     {
-      // Bounded convergence loop over address assignment.
       LayoutSnapshot prevSnap, curSnap;
       prevSnap = captureLayoutSnapshot();
       constexpr int maxIterations = 4;
-      const OutputSectionEntry *changed = nullptr;
+      DivergenceResult diverged;
       for (int i = 0; i < maxIterations; ++i) {
         eld::RegisterTimer T("Assign Address", "Establish Layout",
                              m_Module.getConfig().options().printTimingStats());
@@ -4150,16 +4189,19 @@ bool GNULDBackend::relax() {
             m_Module.setFailure(true);
         }
         curSnap = captureLayoutSnapshot();
-        changed = findDivergence(prevSnap, curSnap);
-        if (!changed)
+        diverged = findDivergence(prevSnap, curSnap);
+        if (!diverged.outputSection && !diverged.assignment)
           break;
         prevSnap = std::move(curSnap);
       }
-      if (changed) {
-        // Emit a note for the first observed changed section.
-        if (const ELFSection *S = changed->getSection())
+      if (diverged.outputSection) {
+        if (const ELFSection *S = diverged.outputSection->getSection())
           config().raise(Diag::note_section_address_not_converging)
               << S->name() << maxIterations;
+      } else if (diverged.assignment) {
+        const Assignment &A = *diverged.assignment;
+        config().raise(Diag::note_assignment_value_not_converging)
+            << A.getContext() << A.getAsString(true) << maxIterations;
       }
       if (LinkerConfig::Object != config().codeGenType()) {
         if (!setupProgramHdrs()) {

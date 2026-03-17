@@ -1,0 +1,23 @@
+#---SymbolForwReference.test------------------ Executable,LS ------------------#
+#BEGIN_COMMENT
+# This test validates that the linker reiterates the layout computation
+# until symbol values converge or the max layout iteration count is reached.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.1.t
+RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix=CHECK1
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.2.t
+RUN: %readelf -s %t1.2.out | %filecheck %s --check-prefix=CHECK2
+RUN: %link %linkopts -o %t1.3.out %t1.1.o -T %p/Inputs/script.3.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=NON_CONVERGENCE
+#END_TEST
+
+CHECK1-DAG: {{0+}}1100 {{.*}} a
+CHECK1-DAG: {{0+}}1000 {{.*}} b
+
+CHECK2-DAG: {{0+}}2100 {{.*}} a
+CHECK2-DAG: {{0+}}1100 {{.*}} b
+CHECK2-DAG: {{0+}}1000 {{.*}} c
+
+NON_CONVERGENCE: Note: {{.*}}script.3.t: assignment 'a({{.*}}) = b({{.*}}) + 0x100;' did not converge after 4 layout passes

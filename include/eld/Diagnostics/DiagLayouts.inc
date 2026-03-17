@@ -64,3 +64,7 @@ DIAG(error_offset_not_assigned_for_output_section, DiagnosticEngine::Error,
 DIAG(warn_empty_segment, DiagnosticEngine::Warning, "Empty segment: '%0'")
 DIAG(note_section_address_not_converging, DiagnosticEngine::Note,
      "Section '%0' address did not converge after %1 layout passes")
+DIAG(note_symbol_value_not_converging, DiagnosticEngine::Note,
+     "Symbol '%0' value did not converge after %1 layout passes")
+DIAG(note_assignment_value_not_converging, DiagnosticEngine::Note,
+     "%0: assignment '%1' did not converge after %2 layout passes")
