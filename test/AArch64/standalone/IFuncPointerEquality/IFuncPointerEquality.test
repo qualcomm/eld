@@ -1,0 +1,89 @@
+#---IFuncPointerEquality.test-------------- Executable --------------------#
+#BEGIN_COMMENT
+# This tests that pointers to the same ifunc function have the same address.
+# When an ifunc has both direct references (such as global pointer initialization)
+# and GOT-relative references, both should resolve to the ifunc symbol's
+# PLT slot address. To properly resolve GOT relocations for this case, the linker
+# creates a .got entry that points to the PLT entry for the ifunc.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.main.nopic.o -target aarch64-linux-gnu %p/Inputs/main.c -c -fno-pic
+RUN: %clang %clangopts -o %t1.main.pic.o -target aarch64-linux-gnu %p/Inputs/main.c -c -fPIC
+RUN: SECTION_ADDR_LINK_OPTS="--section-start .text=0x1000 --section-start .data=0x2000 \
+RUN:   --section-start .got=0x3000 --section-start .plt=0x4000"
+
+RUN: %clang %clangopts -o %t1.adrp-add.o -target aarch64-linux-gnu %p/Inputs/adrp-add.s -c
+RUN: %link %linkopts -o %t1.adrp-add.nopic.out %t1.main.nopic.o %t1.adrp-add.o ${SECTION_ADDR_LINK_OPTS}
+RUN: %link %linkopts -o %t1.adrp-add.pic.out %t1.main.pic.o %t1.adrp-add.o ${SECTION_ADDR_LINK_OPTS}
+RUN: ( %objdump -dr %t1.adrp-add.nopic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S %t1.adrp-add.nopic.out ) | %filecheck %s --check-prefix=NO_GOT_REF
+RUN: ( %objdump -dr %t1.adrp-add.pic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got %t1.adrp-add.pic.out ) | %filecheck %s --check-prefix=GOT_AND_DIRECT_REF
+
+RUN: %clang %clangopts -o %t1.adrp-ldr.o -target aarch64-linux-gnu %p/Inputs/adrp-ldr.s -c
+RUN: %link %linkopts -o %t1.adrp-ldr.nopic.out %t1.main.nopic.o %t1.adrp-ldr.o ${SECTION_ADDR_LINK_OPTS}
+RUN: %link %linkopts -o %t1.adrp-ldr.pic.out %t1.main.pic.o %t1.adrp-ldr.o ${SECTION_ADDR_LINK_OPTS}
+RUN: ( %objdump -dr %t1.adrp-ldr.nopic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got %t1.adrp-ldr.nopic.out ) | %filecheck %s --check-prefix=DIRECT_AND_GOT_REF
+RUN: ( %objdump -dr %t1.adrp-ldr.pic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got.plt %t1.adrp-ldr.pic.out ) | %filecheck %s --check-prefix=GOT_AND_GOT_REF
+
+RUN: %clang %clangopts -o %t1.adr.o -target aarch64-linux-gnu %p/Inputs/adr.s -c
+RUN: %link %linkopts -o %t1.adr.nopic.out %t1.main.nopic.o %t1.adr.o ${SECTION_ADDR_LINK_OPTS}
+RUN: %link %linkopts -o %t1.adr.pic.out %t1.main.pic.o %t1.adr.o ${SECTION_ADDR_LINK_OPTS}
+RUN: ( %objdump -dr %t1.adr.nopic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S %t1.adr.nopic.out ) | %filecheck %s --check-prefix=NO_GOT_REF_ADR
+RUN: ( %objdump -dr %t1.adr.pic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got %t1.adr.pic.out ) | %filecheck %s --check-prefix=GOT_AND_DIRECT_REF_ADR
+#END_TEST
+
+NO_GOT_REF: <main>:
+NO_GOT_REF: adrp x8, 0x4000
+NO_GOT_REF: add x8, x8, #0x[[#%x,PLT_OFFSET:]]
+NO_GOT_REF: bl {{.*}} <get_foo_from_outside>
+NO_GOT_REF: <get_foo_from_outside>:
+NO_GOT_REF: adrp	x0, 0x4000
+NO_GOT_REF: add	x0, x0, #0x[[#%x,PLT_OFFSET]]
+NO_GOT_REF-NOT: .got PROGBITS
+
+GOT_AND_DIRECT_REF: <main>:
+GOT_AND_DIRECT_REF: adrp x8, 0x3000
+GOT_AND_DIRECT_REF: ldr x8, [x8]
+GOT_AND_DIRECT_REF: bl {{.*}} <get_foo_from_outside>
+GOT_AND_DIRECT_REF: <get_foo_from_outside>:
+GOT_AND_DIRECT_REF: adrp	x0, 0x4000
+GOT_AND_DIRECT_REF: add	x0, x0, #0x20
+GOT_AND_DIRECT_REF: Hex dump of section '.got':
+GOT_AND_DIRECT_REF: {{.*}}3000 2040{{0+}}
+
+DIRECT_AND_GOT_REF: <main>:
+DIRECT_AND_GOT_REF: adrp x8, 0x4000
+DIRECT_AND_GOT_REF: add x8, x8, #0x[[#%x,PLT_OFFSET:]]
+DIRECT_AND_GOT_REF: bl {{.*}} <get_foo_from_outside>
+DIRECT_AND_GOT_REF: <get_foo_from_outside>:
+DIRECT_AND_GOT_REF: adrp	x0, 0x3000
+DIRECT_AND_GOT_REF: ldr	x0, [x0]
+DIRECT_AND_GOT_REF: Hex dump of section '.got':
+DIRECT_AND_GOT_REF: {{.*}}3000 2040{{0+}}
+
+GOT_AND_GOT_REF: <main>:
+GOT_AND_GOT_REF: adrp x8, 0x3000
+GOT_AND_GOT_REF: ldr x8, [x8, #0x[[#%x,GOTPLT_OFFSET:0x20]]]
+GOT_AND_GOT_REF: bl {{.*}} <get_foo_from_outside>
+GOT_AND_GOT_REF: <get_foo_from_outside>:
+GOT_AND_GOT_REF: adrp	x0, 0x3000
+GOT_AND_GOT_REF: ldr	x0, [x0, #0x[[#%x,GOTPLT_OFFSET]]]
+GOT_GOT_REF: Hex dump of section '.got.plt':
+GOT_GOT_REF: 0x{{0+}}3008
+GOT_GOT_REF: 0x{{0+}}3018
+
+NO_GOT_REF_ADR: <main>:
+NO_GOT_REF_ADR: adrp x8, 0x4000
+NO_GOT_REF_ADR: add x8, x8, #0x[[#%x,PLT_OFFSET:]]
+NO_GOT_REF_ADR: bl {{.*}} <get_foo_from_outside>
+NO_GOT_REF_ADR: <get_foo_from_outside>:
+NO_GOT_REF_ADR: adr	x0, 0x4020
+NO_GOT_REF_ADR-NOT: .got PROGBITS
+
+GOT_AND_DIRECT_REF_ADR: <main>:
+GOT_AND_DIRECT_REF_ADR: adrp x8, 0x3000
+GOT_AND_DIRECT_REF_ADR: ldr x8, [x8]
+GOT_AND_DIRECT_REF_ADR: bl {{.*}} <get_foo_from_outside>
+GOT_AND_DIRECT_REF_ADR: <get_foo_from_outside>:
+GOT_AND_DIRECT_REF_ADR: adr	x0, 0x4020
+GOT_AND_DIRECT_REF_ADR: Hex dump of section '.got':
+GOT_AND_DIRECT_REF_ADR: {{.*}}3000 2040{{0+}}

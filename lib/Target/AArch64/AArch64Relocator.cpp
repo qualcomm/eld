@@ -346,14 +346,14 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInput);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
+  if (rsym && rsym->isIFunc() && config().isCodeStatic())
+    return handleScanForNonPreemptibleIFunc(pReloc, Obj);
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_AUTH_ABS64:
   case llvm::ELF::R_AARCH64_ABS16:
   case llvm::ELF::R_AARCH64_ABS32:
   case llvm::ELF::R_AARCH64_ABS64: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (handleScanForNonPreemptibleIFunc(rsym, Obj))
-      return;
     bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
     // Absolute relocation type, symbol may needs PLT entry or
     // dynamic relocation entry
@@ -450,8 +450,6 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_AARCH64_JUMP26:
   case llvm::ELF::R_AARCH64_CALL26: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (handleScanForNonPreemptibleIFunc(rsym, Obj))
-      return;
     // return if we already create plt for this symbol
     if (rsym->reserved() & ReservePLT)
       return;
@@ -474,8 +472,6 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_AARCH64_ADR_PREL_PG_HI21:
   case R_AARCH64_ADR_PREL_PG_HI21_NC: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (handleScanForNonPreemptibleIFunc(rsym, Obj))
-      return;
     if (relocNeedsDynRel(pReloc)) {
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         // check if the option -z nocopyreloc is given
@@ -509,8 +505,6 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
   case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
   case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (handleScanForNonPreemptibleIFunc(rsym, Obj))
-      return;
     // Symbol needs GOT entry, reserve entry in .got
     // return if we already create GOT for this symbol
     if (rsym->reserved() & ReserveGOT)
@@ -968,9 +962,14 @@ Relocator::Result adr_got_page(Relocation &pReloc, AArch64Relocator &pParent) {
   }
   Relocator::Address GOT_S;
   if (LLVM_UNLIKELY(isStaticIFunc)) {
-    AArch64PLT *PLT = pParent.getTarget().findEntryInPLT(symInfo);
-    ASSERT(PLT, "Must not be null!");
-    GOT_S = PLT->getGOT()->getAddr(DiagEngine);
+    AArch64GOT *G = pParent.getTarget().findEntryInGOT(pReloc.symInfo());
+    if (G)
+      GOT_S = G->getAddr(pParent.config().getDiagEngine());
+    else {
+      AArch64PLT *PLT = pParent.getTarget().findEntryInPLT(symInfo);
+      ASSERT(PLT, "Must not be null!");
+      GOT_S = PLT->getGOT()->getAddr(pParent.config().getDiagEngine());
+    }
   } else {
     GOT_S = pParent.getTarget()
                 .findEntryInGOT(pReloc.symInfo())
@@ -1001,9 +1000,14 @@ Relocator::Result ld64_got_lo12(Relocation &pReloc, AArch64Relocator &pParent) {
   Relocator::Address GOT_S;
 
   if (LLVM_UNLIKELY(isStaticIFunc)) {
-    AArch64PLT *PLT = pParent.getTarget().findEntryInPLT(symInfo);
-    ASSERT(PLT, "Must not be null!");
-    GOT_S = PLT->getGOT()->getAddr(pParent.config().getDiagEngine());
+    AArch64GOT *G = pParent.getTarget().findEntryInGOT(pReloc.symInfo());
+    if (G)
+      GOT_S = G->getAddr(pParent.config().getDiagEngine());
+    else {
+      AArch64PLT *PLT = pParent.getTarget().findEntryInPLT(symInfo);
+      ASSERT(PLT, "Must not be null!");
+      GOT_S = PLT->getGOT()->getAddr(pParent.config().getDiagEngine());
+    }
   } else {
     GOT_S = pParent.getTarget()
                 .findEntryInGOT(pReloc.symInfo())
@@ -1305,14 +1309,103 @@ Relocator::Result copyInstruction(Relocation &pReloc,
   return Relocator::OK;
 }
 
-bool AArch64Relocator::handleScanForNonPreemptibleIFunc(ResolveInfo *symInfo,
+void AArch64Relocator::handleScanForNonPreemptibleIFunc(Relocation &R,
                                                         ELFObjectFile *Obj) {
-  if (!symInfo || !symInfo->isIFunc() || !config().isCodeStatic())
-    return false;
-  if (symInfo->reserved() & Relocator::ReservePLT)
+  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  ResolveInfo *RI = R.symInfo();
+  Relocator::Type RType = R.type();
+  bool isValidRelocForIFunc =
+      isGOTBasedInstrRelocation(RType) || isAbsDataRelocation(RType) ||
+      isPRelAdrRelocation(RType) || isControlFlowRelocation(RType);
+  if (!isValidRelocForIFunc) {
+    config().raise(Diag::warn_invalid_reloc_for_ifunc)
+        << getName(R.type())
+        << RI->getDecoratedName(config().options().shouldDemangle());
+  }
+
+  if (isUnsupportedIFuncRelocation(R.type())) {
+    config().raise(Diag::warn_unsupported_reloc_for_ifunc)
+        << getName(R.type())
+        << RI->getDecoratedName(config().options().shouldDemangle());
+  }
+  if (isGOTBasedInstrRelocation(R.type()))
+    RI->setIFuncNeedsGOT();
+  if (isAbsDataRelocation(R.type()) || isPRelAdrRelocation(R.type()))
+    RI->setIFuncDirectRef();
+  if (RI->reserved() & Relocator::ReservePLT)
+    return;
+  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.defineIRelativeRange(*RI);
+  RI->setReserved(RI->reserved() | Relocator::ReservePLT);
+}
+
+bool AArch64Relocator::isGOTBasedInstrRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_AARCH64_ADR_GOT_PAGE:
+  case llvm::ELF::R_AARCH64_LD64_GOT_LO12_NC:
+  case llvm::ELF::R_AARCH64_LD64_GOTPAGE_LO15:
     return true;
-  m_Target.createPLT(Obj, symInfo, /*isIRelative=*/true);
-  m_Target.defineIRelativeRange(*symInfo);
-  symInfo->setReserved(symInfo->reserved() | ReservePLT);
-  return true;
+  // These relocations are UNSUPPORTED for now!
+  case llvm::ELF::R_AARCH64_GOT_LD_PREL19:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G0:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G0_NC:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G1:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G1_NC:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G2:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G2_NC:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G3:
+    llvm_unreachable("Unsupported relocations should not reach here!");
+  }
+  return false;
+}
+
+bool AArch64Relocator::isAbsDataRelocation(Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_AARCH64_ABS16:
+  case llvm::ELF::R_AARCH64_ABS32:
+  case llvm::ELF::R_AARCH64_ABS64:
+    return true;
+  }
+  return false;
+}
+
+bool AArch64Relocator::isPRelAdrRelocation(Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_AARCH64_ADR_PREL_PG_HI21:
+  case R_AARCH64_ADR_PREL_PG_HI21_NC:
+  case llvm::ELF::R_AARCH64_ADR_PREL_LO21:
+  case llvm::ELF::R_AARCH64_ADD_ABS_LO12_NC:
+    return true;
+  }
+  return false;
+}
+
+bool AArch64Relocator::isUnsupportedIFuncRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G0:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G0_NC:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G1:
+  case llvm::ELF::R_AARCH64_MOVW_UABS_G1_NC:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G2:
+  case llvm::ELF::R_AARCH64_MOVW_GOTOFF_G3:
+  case llvm::ELF::R_AARCH64_PREL16:
+  case llvm::ELF::R_AARCH64_PREL32:
+  case llvm::ELF::R_AARCH64_PREL64:
+    return true;
+  }
+  return false;
+}
+
+bool AArch64Relocator::isControlFlowRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_AARCH64_CALL26:
+  case llvm::ELF::R_AARCH64_JUMP26:
+  case llvm::ELF::R_AARCH64_CONDBR19:
+  case llvm::ELF::R_AARCH64_TSTBR14:
+    return true;
+  }
+  return false;
 }

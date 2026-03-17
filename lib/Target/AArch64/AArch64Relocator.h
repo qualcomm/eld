@@ -86,13 +86,21 @@ private:
                        eld::IRBuilder &pBuilder, ELFSection &pSection,
                        CopyRelocs &);
 
-  bool handleScanForNonPreemptibleIFunc(ResolveInfo *symInfo,
-                                        ELFObjectFile *Obj);
+  void handleScanForNonPreemptibleIFunc(Relocation &R, ELFObjectFile *Obj);
+
+  bool isGOTBasedInstrRelocation(Relocation::Type relocType) const;
+
+  bool isAbsDataRelocation(Relocation::Type relocType) const;
+
+  bool isPRelAdrRelocation(Relocation::Type relocType) const;
+
+  bool isUnsupportedIFuncRelocation(Relocation::Type relocType) const;
+
+  bool isControlFlowRelocation(Relocation::Type relocType) const;
 
 private:
   AArch64LDBackend &m_Target;
 };
 
 } // namespace eld
-
 #endif

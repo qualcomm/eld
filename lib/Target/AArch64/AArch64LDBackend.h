@@ -75,6 +75,9 @@ public:
   /// finalizeTargetSymbols - finalize the symbol value
   bool finalizeTargetSymbols() override;
 
+  /// Currently is only used to create GOT entries for ifunc with direct refs
+  bool finalizeScanRelocations() override;
+
   void setOptions() override;
 
   void initSegmentFromLinkerScript(ELFSegment *pSegment) override;

@@ -149,6 +149,18 @@ public:
     return ((ThisBitField & PatchableMask) == PatchableMask);
   }
 
+  void setIFuncDirectRef() { ThisBitField |= IFuncDirectRefFlag; }
+
+  bool hasIFuncDirectRef() const {
+    return ((ThisBitField & IFuncDirectRefMask) == IFuncDirectRefMask);
+  }
+
+  void setIFuncNeedsGOT() { ThisBitField |= IFuncNeedsGOTFlag; }
+
+  bool hasIFuncNeedsGOT() const {
+    return ((ThisBitField & IFuncNeedsGOTMask) == IFuncNeedsGOTMask);
+  }
+
   // -----  observers  ----- //
   bool isNull() const;
 
@@ -314,14 +326,19 @@ private:
   static const uint32_t PreserveOffset = 18;
   static const uint32_t PreserveMask = 1 << PreserveOffset;
 
-  // FIXME: offset 19 can be used here!
+  static const uint32_t IFuncDirectRefOffset = 19;
+  static const uint32_t IFuncDirectRefMask = 1 << IFuncDirectRefOffset;
+
   static const uint32_t PatchableOffset = 20;
   static const uint32_t PatchableMask = 1 << PatchableOffset;
 
+  static const uint32_t IFuncNeedsGOTOffset = 21;
+  static const uint32_t IFuncNeedsGOTMask = 1 << IFuncNeedsGOTOffset;
+
   static const uint32_t InfoMask = 0xF;
 
-  // Bits are from 0-20.
-  static const uint32_t ResolveMask = 0x1FFFFF;
+  // Bits are from 0-21.
+  static const uint32_t ResolveMask = 0x3FFFFF;
 
 public:
   static const uint32_t GlobalFlag = 0 << GlobalOffset;
@@ -343,6 +360,8 @@ public:
   static const uint32_t InbitcodeFlag = 1 << InBitcodeOffset;
   static const uint32_t PreserveFlag = 1 << PreserveOffset;
   static const uint32_t PatchableFlag = 1 << PatchableOffset;
+  static const uint32_t IFuncDirectRefFlag = 1 << IFuncDirectRefOffset;
+  static const uint32_t IFuncNeedsGOTFlag = 1 << IFuncNeedsGOTOffset;
   ResolveInfo();
   ResolveInfo(llvm::StringRef SymbolName);
   ~ResolveInfo();

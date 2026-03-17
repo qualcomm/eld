@@ -574,6 +574,33 @@ bool AArch64LDBackend::finalizeTargetSymbols() {
   return true;
 }
 
+bool AArch64LDBackend::finalizeScanRelocations() {
+  if (!config().isCodeStatic())
+    return true;
+
+  ELFObjectFile *Obj = getDynamicSectionHeadersInputFile();
+  if (!Obj)
+    return true;
+
+  for (auto &[symInfo, plt] : m_PLTMap) {
+    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+        !symInfo->hasIFuncNeedsGOT())
+      continue;
+
+    AArch64GOT *G = AArch64GOT::Create(Obj->getGOT(), symInfo);
+
+    FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
+    Relocation *r = Relocation::Create(llvm::ELF::R_AARCH64_ABS64, 64,
+                                       make<FragmentRef>(*G, 0), 0);
+    Obj->getGOT()->addRelocation(r);
+    r->modifyRelocationFragmentRef(PLTFragRef);
+
+    recordGOT(symInfo, G);
+    symInfo->setReserved(symInfo->reserved() | Relocator::ReserveGOT);
+  }
+  return true;
+}
+
 void AArch64LDBackend::setupStaticTCBForTLSSupport() {
   if (!config().isCodeStatic())
     return;
