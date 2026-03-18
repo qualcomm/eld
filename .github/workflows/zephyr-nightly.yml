@@ -13,6 +13,16 @@ jobs:
   zephyr-build-and-test:
     if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - board: qemu_riscv32
+            arch: riscv32
+            multilib: rv32imac_zicsr_zifencei/ilp32
+          - board: qemu_riscv64
+            arch: riscv64
+            multilib: rv64imac_zicsr_zifencei/lp64/medany
     env:
       ZEPHYR_WORKSPACE: ${{ github.workspace }}/zephyrproject
 
@@ -33,7 +43,7 @@ jobs:
           record-mode: "record"
           status: "fail"
           run-id: ${{github.run_id}}
-          arch-name: "riscv32"
+          arch-name: ${{ matrix.target.arch }}
           branch-name: "main"
 
       - name: Install dependencies
@@ -44,7 +54,7 @@ jobs:
             libc++-dev libc++abi-dev libclang-rt-20-dev \
             git cmake ninja-build gperf dfu-util device-tree-compiler wget \
             python3-dev python3-pip python3-setuptools python3-tk python3-venv python3-wheel xz-utils \
-            file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 qemu-system-riscv32
+            file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 qemu-system-misc
 
           python3 -m venv ${{ env.ZEPHYR_WORKSPACE }}/.venv
           . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
@@ -82,25 +92,28 @@ jobs:
           cd "$SDK_DIR"
           ./setup.sh -t riscv64-zephyr-elf
 
-          PICOLIBC_SYSROOT=${SDK_DIR}/riscv64-zephyr-elf/picolibc
-          PICOLIBC_LIB_DIR=${PICOLIBC_SYSROOT}/riscv64-zephyr-elf/lib/rv32imac_zicsr_zifencei/ilp32
-          GCC_INSTALL_DIR=${PICOLIBC_SYSROOT}/lib/gcc/riscv64-zephyr-elf/12.2.0
-
-          if [ ! -d "$PICOLIBC_SYSROOT" ]; then
-            echo "Failed to locate picolibc sysroot: $PICOLIBC_SYSROOT"
-            find "${SDK_DIR}/riscv64-zephyr-elf" -maxdepth 2 -type d || true
-            exit 1
+          TOOLCHAIN_DIR=$SDK_DIR/gnu/riscv64-zephyr-elf
+          PICOLIBC_SYSROOT=${TOOLCHAIN_DIR}/riscv64-zephyr-elf
+          PICOLIBC_LIB_DIR=${PICOLIBC_SYSROOT}/lib/${{ matrix.target.multilib }}
+          GCC_VERSION_DIR=$(ls -d "${TOOLCHAIN_DIR}/lib/gcc/riscv64-zephyr-elf"/* 2>/dev/null | head -n 1)
+          GCC_MULTILIB_DIR=${GCC_VERSION_DIR}/${{ matrix.target.multilib }}
+          if [ -d "$GCC_MULTILIB_DIR" ]; then
+            GCC_INSTALL_DIR=$GCC_MULTILIB_DIR
+          else
+            GCC_INSTALL_DIR=$GCC_VERSION_DIR
           fi
 
-          if [ ! -d "$PICOLIBC_LIB_DIR" ]; then
-            echo "Failed to locate picolibc multilib dir: $PICOLIBC_LIB_DIR"
-            find "${PICOLIBC_SYSROOT}/riscv64-zephyr-elf/lib" -maxdepth 4 -type d || true
-            exit 1
-          fi
+          for DIR in "$TOOLCHAIN_DIR" "$PICOLIBC_SYSROOT" "$PICOLIBC_LIB_DIR"; do
+            if [ ! -d "$DIR" ]; then
+              echo "ERROR: directory not found: $DIR"
+              find "$SDK_DIR" -maxdepth 5 -type d || true
+              exit 1
+            fi
+          done
 
-          if [ ! -d "$GCC_INSTALL_DIR" ]; then
-            echo "Failed to locate gcc install dir: $GCC_INSTALL_DIR"
-            find "${PICOLIBC_SYSROOT}/lib/gcc/riscv64-zephyr-elf" -maxdepth 3 -type d || true
+          if [ -z "$GCC_INSTALL_DIR" ] || [ ! -d "$GCC_INSTALL_DIR" ]; then
+            echo "ERROR: gcc install dir not found under: ${TOOLCHAIN_DIR}/lib/gcc/"
+            find "$TOOLCHAIN_DIR/lib/gcc" -maxdepth 3 -type d || true
             exit 1
           fi
 
@@ -119,13 +132,13 @@ jobs:
         run: |
           echo "ZEPHYR_BASE=${{ env.ZEPHYR_WORKSPACE }}/zephyr" >> $GITHUB_ENV
 
-      - name: Build hello_world for qemu_riscv32 with ELD
+      - name: Build hello_world for ${{ matrix.target.board }} with ELD
         run: |
           cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
           . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
-          west build -p always -b qemu_riscv32 samples/hello_world -- \
+          west build -p always -b ${{ matrix.target.board }} samples/hello_world -- \
             -DZEPHYR_SDK_INSTALL_DIR=${{ env.ELD_SDK_DIR }} \
-            -DZEPHYR_TOOLCHAIN_VARIANT=llvm \
+            -DZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
             -DLLVM_TOOLCHAIN_PATH=${{ github.workspace }}/inst \
             -DTOOLCHAIN_HAS_PICOLIBC=ON \
             -DSYSROOT_DIR=${{ env.ELD_PICOLIBC_SYSROOT }} \
@@ -149,17 +162,17 @@ jobs:
             exit 1
           fi
 
-      - name: Run twister tests for qemu_riscv32 with ELD
+      - name: Run twister tests for ${{ matrix.target.board }} with ELD
         run: |
           cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
           . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
-          ./scripts/twister -W -p qemu_riscv32 \
+          ./scripts/twister -W -p ${{ matrix.target.board }} \
             --inline-logs \
             --timestamps \
-            -j 2 \
+            -j 3 \
             -v \
             -x ZEPHYR_SDK_INSTALL_DIR=${{ env.ELD_SDK_DIR }} \
-            -x ZEPHYR_TOOLCHAIN_VARIANT=llvm \
+            -x ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
             -x LLVM_TOOLCHAIN_PATH=${{ github.workspace }}/inst \
             -x TOOLCHAIN_HAS_PICOLIBC=y \
             -x SYSROOT_DIR=${{ env.ELD_PICOLIBC_SYSROOT }} \
@@ -175,7 +188,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zephyr-twister-results
+          name: zephyr-twister-results-${{ matrix.target.arch }}
           path: |
             ${{ env.ZEPHYR_WORKSPACE }}/zephyr/twister-out/twister.log
             ${{ env.ZEPHYR_WORKSPACE }}/zephyr/twister-out/twister.json
@@ -184,7 +197,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zephyr-build-artifacts
+          name: zephyr-build-artifacts-${{ matrix.target.arch }}
           path: |
             ${{ env.ZEPHYR_WORKSPACE }}/zephyr/build/zephyr/zephyr.elf
             ${{ env.ZEPHYR_WORKSPACE }}/zephyr/build/zephyr/zephyr.map
@@ -200,5 +213,5 @@ jobs:
           record-mode: "update"
           status: "pass"
           run-id: ${{github.run_id}}
-          arch-name: "riscv32"
+          arch-name: ${{ matrix.target.arch }}
           branch-name: "main"
