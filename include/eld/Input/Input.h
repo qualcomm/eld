@@ -62,6 +62,15 @@ public:
   /// Return a user-facing text representation of input type.
   static llvm::StringRef toString(InputType);
 
+  /// Expand '=' or '$SYSROOT' prefix in the path using the configured sysroot.
+  /// Returns the expanded path, or the original if no marker is present.
+  /// If a marker is present but no sysroot is configured, the marker is
+  /// stripped. Emits verbose_sysroot_expansion diagnostic when expansion
+  /// occurs.
+  static std::string expandSysrootMarkers(llvm::StringRef Name,
+                                          const SearchDirs &PSearchDirs,
+                                          DiagnosticEngine &DiagEngine);
+
   /// getFileName returns the FileName passed to the driver otherwise.
   const std::string getFileName() const { return FileName; }
 
