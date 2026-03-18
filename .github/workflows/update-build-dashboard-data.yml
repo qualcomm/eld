@@ -5,6 +5,9 @@ on:
     - cron: '0 * * * *'  # Runs hourly
   workflow_dispatch:     # Allows manual triggering
 
+
+permissions:
+  contents: write
 jobs:
   update-dashboard-data:
     runs-on: ubuntu-latest

@@ -6,6 +6,9 @@ on:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
 
+
+permissions:
+  contents: write
 jobs:
   build-and-runtest-with-asan-ubsan:
     runs-on: self-hosted

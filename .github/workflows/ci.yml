@@ -17,6 +17,9 @@ on:
       - '.github/workflows/scripts/record_builds.py'
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
 
+
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: self-hosted

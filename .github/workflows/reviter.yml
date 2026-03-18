@@ -6,6 +6,9 @@ on:
     - cron: '0 8 * * *'  # Runs daily at 2:00 AM CST
   workflow_dispatch:     # Allows manual triggering
 
+
+permissions:
+  contents: write
 jobs:
   build-and-runtest-with-reverse-iterators:
     runs-on: ubuntu-latest

@@ -9,6 +9,9 @@ on:
       - 'include/**'
   workflow_dispatch:     # Allows manual triggering
 
+permissions:
+  contents: write
+
 jobs:
   generate-docs:
     if: github.repository == 'qualcomm/eld'

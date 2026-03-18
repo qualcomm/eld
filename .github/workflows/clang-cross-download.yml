@@ -18,6 +18,9 @@ on:
         required: true
         type: string
 
+
+permissions:
+  contents: write
 jobs:
   download:
     runs-on: ${{ inputs.runner }}

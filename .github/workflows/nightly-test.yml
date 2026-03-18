@@ -6,6 +6,9 @@ on:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch: {}
 
+
+permissions:
+  contents: write
 jobs:
   build-and-runtest-nightly:
     if: github.repository == 'qualcomm/eld'
