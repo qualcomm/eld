@@ -1,0 +1,85 @@
+name: Bulid multi-version docs
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', 'include/**']
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/docs-multiversion.yaml
+
+jobs:
+  build-docs-and-deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          path: llvm-project
+          ref: main
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+          fetch-depth: 0
+
+      - name: Configure workflow environment
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz doxygen ninja-build
+          pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
+
+      - name: Configure CMake
+        run: |
+          cmake -G Ninja -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=$(which clang) \
+            -DCMAKE_CXX_COMPILER=$(which clang++) \
+            -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon" \
+            -DLLVM_ENABLE_SPHINX=ON \
+            llvm-project/llvm
+
+      - name: Build multi-version docs
+        run: cmake --build build --target eld-docs-multiversion
+
+      - name: Checkout documentation branch
+        uses: actions/checkout@v4
+        with:
+          ref: documentation
+          path: docs-branch
+        continue-on-error: true
+
+      - name: Preserve existing content (dashboard)
+        run: |
+          if [ -d dash ]; then
+            cp -r dash build/tools/eld/docs/multiversion/site/main
+            echo "Preserved dashboard from documentation branch"
+          fi
+
+      - name: Deploy to documentation branch
+        run: |
+          SITE_DIR=$(pwd)/build/tools/eld/docs/multiversion/site
+          cd llvm-project/llvm/tools/eld
+          git config user.name 'github-actions'
+          git config user.email 'github-actions@github.com'
+          git checkout --orphan documentation-update
+          git rm -rf .
+          cp -r ${SITE_DIR}/. .
+          git add .
+          git commit -m "Update multi-version documentation"
+          git push -f origin HEAD:refs/heads/documentation

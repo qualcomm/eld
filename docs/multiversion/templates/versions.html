@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ELD Documentation - All Versions</title>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .container {{
+            max-width: 480px;
+            padding: 48px 32px;
+            text-align: center;
+        }}
+        h1 {{
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }}
+        .subtitle {{
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-bottom: 40px;
+        }}
+        .version-list {{
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }}
+        .version-link {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #1a1a1a;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }}
+        .version-link:hover {{
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+        }}
+        .version-info {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .version-name {{
+            font-weight: 500;
+        }}
+        .badge {{
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }}
+        .badge-stable {{
+            background: #dcfce7;
+            color: #166534;
+        }}
+        .badge-dev {{
+            background: #fef3c7;
+            color: #92400e;
+        }}
+        .arrow {{
+            color: #9ca3af;
+            font-size: 1.1rem;
+        }}
+        .footer {{
+            margin-top: 48px;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }}
+        .footer a {{
+            color: #6b7280;
+            text-decoration: none;
+        }}
+        .footer a:hover {{
+            text-decoration: underline;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ELD Documentation</h1>
+        <p class="subtitle">Select a version</p>
+        <ul class="version-list">
+{version_links}
+        </ul>
+        <p class="footer">
+            <a href="https://github.com/qualcomm/eld">GitHub</a>
+        </p>
+    </div>
+</body>
+</html>
