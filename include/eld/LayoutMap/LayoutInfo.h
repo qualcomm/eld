@@ -239,7 +239,6 @@ public:
     InputActions.clear();
     ScriptIncludes.clear();
     ArchiveRecords.clear();
-    ArchiveRecordsForReport.clear();
     FragmentInfoMap.clear();
     FragmentInfoVector.clear();
   }
@@ -392,11 +391,6 @@ public:
     return ArchiveRecords;
   }
 
-  const std::vector<ArchiveReferenceRecordT> &
-  getArchiveRecordsForReport() const {
-    return ArchiveRecordsForReport;
-  }
-
   ScriptVectorT &getLinkerScripts() { return LinkerScripts; }
 
   std::vector<std::string> &getVersionScripts() { return VersionScripts; }
@@ -451,7 +445,6 @@ private:
   InputSequenceVectorT InputActions;
   StringVectorT ScriptIncludes;
   std::vector<ArchiveReferenceRecordT> ArchiveRecords;
-  std::vector<ArchiveReferenceRecordT> ArchiveRecordsForReport;
   FragmentInfoMapT FragmentInfoMap;
   SectionInfoMapT SectionInfoMap;
   FragmentInfoVectorT FragmentInfoVector;

@@ -155,14 +155,10 @@ void LayoutInfo::recordArchiveMember(Input *Origin, InputFile *Referred,
                                         ArchiveFile::Symbol *ArchSym,
                                         LDSymbol *Sym) {
   ArchiveRecords.push_back(std::make_tuple(Origin, Referred, ArchSym, Sym));
-  ArchiveRecordsForReport.push_back(
-      std::make_tuple(Origin, Referred, ArchSym, Sym));
 }
 
 void LayoutInfo::recordWholeArchiveMember(Input *WholeArch) {
   ArchiveRecords.push_back(
-      std::make_tuple(WholeArch, nullptr, nullptr, nullptr));
-  ArchiveRecordsForReport.push_back(
       std::make_tuple(WholeArch, nullptr, nullptr, nullptr));
 }
 
