@@ -1,7 +1,8 @@
 name: Zephyr Nightly with ELD
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  # FIXME: re-comment
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
@@ -20,9 +21,11 @@ jobs:
           - board: qemu_riscv32
             arch: riscv32
             multilib: rv32imac_zicsr_zifencei/ilp32
+            multilib_hardfloat: rv32imafd_zicsr_zifencei/ilp32d
           - board: qemu_riscv64
             arch: riscv64
             multilib: rv64imac_zicsr_zifencei/lp64/medany
+            multilib_hardfloat: rv64imafdc_zicsr_zifencei/lp64d/medany
     env:
       ZEPHYR_WORKSPACE: ${{ github.workspace }}/zephyrproject
 
@@ -95,6 +98,7 @@ jobs:
           TOOLCHAIN_DIR=$SDK_DIR/gnu/riscv64-zephyr-elf
           PICOLIBC_SYSROOT=${TOOLCHAIN_DIR}/riscv64-zephyr-elf
           PICOLIBC_LIB_DIR=${PICOLIBC_SYSROOT}/lib/${{ matrix.target.multilib }}
+          PICOLIBC_LIB_DIR_HARDFLOAT=${PICOLIBC_SYSROOT}/lib/${{ matrix.target.multilib_hardfloat }}
           GCC_VERSION_DIR=$(ls -d "${TOOLCHAIN_DIR}/lib/gcc/riscv64-zephyr-elf"/* 2>/dev/null | head -n 1)
           GCC_MULTILIB_DIR=${GCC_VERSION_DIR}/${{ matrix.target.multilib }}
           if [ -d "$GCC_MULTILIB_DIR" ]; then
@@ -103,7 +107,7 @@ jobs:
             GCC_INSTALL_DIR=$GCC_VERSION_DIR
           fi
 
-          for DIR in "$TOOLCHAIN_DIR" "$PICOLIBC_SYSROOT" "$PICOLIBC_LIB_DIR"; do
+          for DIR in "$TOOLCHAIN_DIR" "$PICOLIBC_SYSROOT" "$PICOLIBC_LIB_DIR" "$PICOLIBC_LIB_DIR_HARDFLOAT"; do
             if [ ! -d "$DIR" ]; then
               echo "ERROR: directory not found: $DIR"
               find "$SDK_DIR" -maxdepth 5 -type d || true
@@ -120,6 +124,7 @@ jobs:
           echo "ELD_SDK_DIR=$SDK_DIR" >> $GITHUB_ENV
           echo "ELD_PICOLIBC_SYSROOT=$PICOLIBC_SYSROOT" >> $GITHUB_ENV
           echo "ELD_PICOLIBC_LIB_DIR=$PICOLIBC_LIB_DIR" >> $GITHUB_ENV
+          echo "ELD_PICOLIBC_LIB_DIR_HARDFLOAT=$PICOLIBC_LIB_DIR_HARDFLOAT" >> $GITHUB_ENV
           echo "ELD_GCC_INSTALL_DIR=$GCC_INSTALL_DIR" >> $GITHUB_ENV
 
       - name: Download and apply ELD support patch
@@ -147,7 +152,7 @@ jobs:
             -DCONFIG_PICOLIBC_USE_TOOLCHAIN=y \
             -DCONFIG_COMPILER_RT_RTLIB=n \
             -DCONFIG_LIBGCC_RTLIB=y \
-            -DCMAKE_EXE_LINKER_FLAGS="-L${{ env.ELD_PICOLIBC_LIB_DIR }}"
+            -DCMAKE_EXE_LINKER_FLAGS="-L${{ env.ELD_PICOLIBC_LIB_DIR }} -L${{ env.ELD_PICOLIBC_LIB_DIR_HARDFLOAT }}"
 
       - name: Run hello_world on QEMU
         run: |
@@ -182,7 +187,7 @@ jobs:
             -x CONFIG_PICOLIBC_USE_TOOLCHAIN=y \
             -x CONFIG_COMPILER_RT_RTLIB=n \
             -x CONFIG_LIBGCC_RTLIB=y \
-            -x CMAKE_EXE_LINKER_FLAGS="-L${{ env.ELD_PICOLIBC_LIB_DIR }}"
+            -x CMAKE_EXE_LINKER_FLAGS="-L${{ env.ELD_PICOLIBC_LIB_DIR }} -L${{ env.ELD_PICOLIBC_LIB_DIR_HARDFLOAT }}"
 
       - name: Upload twister results
         if: always()
