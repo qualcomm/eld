@@ -42,6 +42,13 @@ public:
   typedef DirListType::iterator iterator;
   typedef DirListType::const_iterator const_iterator;
 
+  /// Input type preference for library search.
+  enum SearchInputType {
+    Archive,
+    DynObj,
+    Script,
+  };
+
 public:
   SearchDirs(DiagnosticEngine *Diag) : DiagEngine(Diag) {}
 
@@ -52,7 +59,7 @@ public:
 
   // find - give a namespec, return a real path of the shared object.
   const sys::fs::Path *find(const std::string &PNamespec,
-                            Input::InputType PPreferType) const;
+                            SearchInputType PPreferType) const;
 
   const eld::sys::fs::Path *findLibrary(llvm::StringRef Type,
                                         std::string LibraryName,

@@ -16,6 +16,7 @@
 #include "eld/Script/ScriptAction.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Input/LinkerScriptFile.h"
+#include "eld/Input/SearchDirs.h"
 #include "eld/Support/MsgHandling.h"
 #include "llvm/Support/FileSystem.h"
 
@@ -34,7 +35,8 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
   std::string Path = Name;
   auto &SearchDirs = ThisConfig.directories();
   if (!llvm::sys::fs::exists(Path)) {
-    const sys::fs::Path *Res = SearchDirs.find(Path, Input::Script);
+    const sys::fs::Path *Res =
+        SearchDirs.find(Path, eld::SearchDirs::SearchInputType::Script);
     if (Res == nullptr) {
       switch (ScriptFileKind) {
       case ScriptFile::LDScript:
