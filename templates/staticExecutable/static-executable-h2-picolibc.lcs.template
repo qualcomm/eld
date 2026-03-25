@@ -35,6 +35,9 @@ SECTIONS
 
   /* Need to pre-align so that the symbols come after padding */
   . = ALIGN(8);
+  /* __bothinit_array_start/end pointers are used by Picolibc to
+   * call constructor functions, don't add unwanted sections in between
+   */
   PROVIDE_HIDDEN ( __bothinit_array_start = . );
   .preinit_array  :
   {
@@ -99,6 +102,10 @@ SECTIONS
     __eh_frame_start = .;
     KEEP (*(.eh_frame))
     __eh_frame_end = .;
+  }
+  .gcc_except_table :
+  {
+    *(.gcc_except_table *.gcc_except_table.*)
   }
 
   /* Thread Local Storage sections  */
