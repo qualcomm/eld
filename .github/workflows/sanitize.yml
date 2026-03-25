@@ -1,7 +1,7 @@
 name: Nightly sanitizer check
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  #pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
@@ -11,17 +11,31 @@ permissions:
   contents: write
 jobs:
   build-and-runtest-with-asan-ubsan:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: github.repository == 'qualcomm/eld'
 
     steps:
+      - name: Set up Clang 21
+        uses: egor-tensin/setup-clang@v2
+        with:
+          version: "21"
+          platform: x64
+
+      - name: Install libc++ and libc++abi
+        run: |
+          sudo apt update
+          sudo apt install -y clang-21 lld-21 ninja-build libc++-21-dev libc++abi-21-dev ccache libclang-rt-21-dev libunwind-21-dev
+          echo "PATH=/usr/lib/llvm-21/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-21/lib:$PATH" >> $GITHUB_ENV
+
       - name: Build and Test with Clang and show versions
         run: |
           echo "clang version"
           clang --version
           echo "clang++ version"
           clang++ -stdlib=libc++ --version
-          dpkg -L clang
+          echo "ld.lld version"
+          ld.lld --version
           echo '#include <iostream>' > test.cpp
           echo 'int main() { std::cout << "Hello, Clang on Ubuntu 24.04!" << std::endl; return 0; }' >> test.cpp
           clang++ -std=c++17 -stdlib=libc++ test.cpp -o test_clang
@@ -31,24 +45,33 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: llvm/llvm-project
-          path: _work_san/llvm-project/
+          path: ./llvm-project/
           ref: main
 
       - name: Checkout eld
         uses: actions/checkout@v4
         with:
-          path: _work_san/llvm-project/llvm/tools/eld
+          path: ./llvm-project/llvm/tools/eld
           ref: main
 
       - name: Configure workflow environment variables
-        uses: ./_work_san/llvm-project//llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+        uses: ./llvm-project//llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Restore ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            sanitizer-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
-        uses: ./_work_san/llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "_work_san/llvm-project//llvm/tools/eld"
+          project: "./llvm-project//llvm/tools/eld"
           stage: "pre-"
           workflow-name: "sanitizer"
           record-mode: "record"
@@ -65,22 +88,32 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_USE_SANITIZER="Address;Undefined" \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-            -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
             -DLLVM_OPTIMIZED_TABLEGEN:BOOL=ON \
             -DLLVM_ENABLE_SPHINX=OFF \
+            -DUSE_LLVM_UTILS_FROM_INSTALL:BOOL=ON \
             -DLLVM_USE_LINKER=lld \
-            ../_work_san/llvm-project/llvm
+            ../llvm-project/llvm
 
       - name: Build Project
         run: |
           cd obj
-          ninja ld.eld opt llvm-dis
+          ninja ld.eld
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Fetch nightly toolset
+        uses: ./llvm-project//llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
       - name: Run tests
         run: |
@@ -89,10 +122,10 @@ jobs:
 
       - name: Update build entry
         if: github.event_name == 'schedule'
-        uses: ./_work_san/llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        uses: ./llvm-project//llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
-          project: "_work_san/llvm-project//llvm/tools/eld"
+          project: "./llvm-project//llvm/tools/eld"
           stage: "post-"
           workflow-name: "sanitizer"
           record-mode: "update"
@@ -100,3 +133,14 @@ jobs:
           run-id: ${{github.run_id}}
           arch-name: "all"
           branch-name: "${{env.BUILD_BRANCH}}"
+
+      - name: Clean up nightly toolset
+        if: always()
+        run: |
+          rm -rf ${{ github.workspace }}/inst
+          rm -f ${{ github.workspace }}/install-nightly-toolchain.tar.xz
+          if [ -d "${{ github.workspace }}/inst" ] || [ -f "${{ github.workspace }}/install-nightly-toolchain.tar.xz" ]; then
+            echo "Warning: Failed to clean up nightly toolset"
+          else
+            echo "Successfully cleaned up nightly toolset"
+          fi

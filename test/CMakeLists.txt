@@ -32,32 +32,39 @@ function(add_plugin pluginname)
   add_dependencies(PluginUnitTests ${pluginname})
 endfunction()
 
+option(USE_LLVM_UTILS_FROM_INSTALL "Use LLVM tools from installation" OFF)
+if (NOT USE_LLVM_UTILS_FROM_INSTALL)
+  set(LLVM_UTILS_DEPEND
+      llvm-addr2line
+      llvm-ar
+      llvm-as
+      llvm-dwarfdump
+      llvm-mc
+      llvm-nm
+      llvm-nm
+      llvm-objcopy
+      llvm-objdump
+      llvm-readelf
+      llvm-readobj
+      llvm-strings
+      llvm-strip
+    )
+endif()
+
 # Set the depends list as a variable so that it can grow conditionally. NOTE:
 # Sync the substitutions in test/lit.cfg when adding to this list.
 set(TEST_DEPENDS
-    FileCheck
-    not
-    count
-    llvm-nm
-    ld.eld
     llvm-config
-    llvm-mc
+    count
+    FileCheck
+    ld.eld
+    not
     obj2yaml
     yaml2obj
-    llvm-objdump
-    llvm-addr2line
-    llvm-readobj
-    llvm-readelf
-    llvm-nm
-    llvm-dwarfdump
-    llvm-as
-    llvm-ar
-    llvm-objcopy
-    llvm-strip
-    llvm-strings
-    ELDUnitTests
     split-file
+    ${LLVM_UTILS_DEPEND}
     ${ELD_DEPENDS}
+    ELDUnitTests
     ELDExpectedUsage
     LSParserVerifier
     PluginUnitTests)
