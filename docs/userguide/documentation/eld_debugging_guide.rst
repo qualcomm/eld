@@ -570,9 +570,13 @@ Reproducing failures (tarball + mapping file)
 
 ELD can capture a self-contained reproducer for link issues:
 
-* ``--reproduce <tarfilename>``: always produce a tarball
+* ``--reproduce <tarfilename>|default``: always produce a tarball;
+  use ``--reproduce=default`` to name the tar after the output file
+  (``<output>.tar``, where ``<output>`` is the ``-o`` filename, or
+  ``a.out.tar`` if ``-o`` is not given)
 * ``--reproduce-compressed <tarfilename>``: compressed tarball
-* ``--reproduce-on-fail <tarfilename>``: only on failure
+* ``--reproduce-on-fail <tarfilename>|default``: only on failure;
+  use ``--reproduce-on-fail=default`` to name the tar after the output file
 * ``ELD_REPRODUCE_CREATE_TAR``: environment variable that forces reproducer
   creation (uses a temporary tar file if no filename is provided)
 
@@ -597,8 +601,9 @@ ELD installs a default signal handler in ``GnuLdDriver::doLink(...)``:
 
 * Flushes a text map file (if configured).
 * Detects likely plugin crashes and reports them.
-* Writes a temporary ``.sh`` script that appends ``--reproduce build.tar`` to
-  the command line and instructs the user to rerun.
+* Writes a temporary ``.sh`` script that appends ``--reproduce=default``
+  to the original command line; when the user reruns that script the tarball
+  is named ``<output>.tar`` based on the ``-o`` output filename.
 
 This is implemented in ``GnuLdDriver::defaultSignalHandler(...)`` in
 ``lib/LinkerWrapper/GnuLdDriver.cpp``.
@@ -824,7 +829,8 @@ Practical debugging checklist
 
 When a link fails and you need actionable data quickly, try (in order):
 
-1. Add ``--reproduce-on-fail repro.tar`` (or ``--reproduce repro.tar``).
+1. Add ``--reproduce-on-fail=default`` (or ``--reproduce=default``) to get a
+   ``<output>.tar`` tarball automatically; supply an explicit filename if needed.
 2. Add ``--verbose --trace=command-line --trace=files``.
 3. Enable map output: ``-M --Map=layout.map --MapStyle=Text`` (or YAML).
 4. If plugins are involved: ``--plugin-activity-file=plugins.json`` and try

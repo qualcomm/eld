@@ -1066,10 +1066,15 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setShowProgressBar();
 
   std::optional<std::string> reproduceFileName;
-  // --reproduce
+  // --reproduce <tarfilename>|default
+  // When the special value "default" is given, the tar filename defaults to
+  // <output>.tar (where <output> is the -o filename, or "a.out" if not set).
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce)) {
     Config.options().setRecordInputfiles();
-    reproduceFileName = arg->getValue();
+    llvm::StringRef val = arg->getValue();
+    reproduceFileName = (val == "default")
+                            ? Config.options().outputFileName() + ".tar"
+                            : val.str();
   }
 
   // --reproduce-compressed
@@ -1079,10 +1084,14 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     reproduceFileName = arg->getValue();
   }
 
-  // --reproduce-on-fail
+  // --reproduce-on-fail <tarfilename>|default
+  // Same "default" keyword logic as --reproduce.
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce_on_fail)) {
     Config.options().setReproduceOnFail(true);
-    reproduceFileName = arg->getValue();
+    llvm::StringRef val = arg->getValue();
+    reproduceFileName = (val == "default")
+                            ? Config.options().outputFileName() + ".tar"
+                            : val.str();
   }
 
   if (reproduceFileName)
@@ -1789,7 +1798,7 @@ void GnuLdDriver::defaultSignalHandler(void *cookie) {
       commandLine.append(" ");
     }
   }
-  commandLine.append("--reproduce build.tar");
+  commandLine.append("--reproduce=default");
   llvm::SmallString<256> outputPath;
   std::error_code EC =
       llvm::sys::fs::createTemporaryFile("reproduce", "sh", outputPath);

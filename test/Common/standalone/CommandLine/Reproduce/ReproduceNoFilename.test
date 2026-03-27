@@ -1,0 +1,13 @@
+#UNSUPPORTED: windows, reproduce_fail
+#---ReproduceNoFilename.test----------------- Executable -----------------#
+#BEGIN_COMMENT
+# Checks that --reproduce=default defaults the tar to <output>.tar
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.1.o
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.1.out -T %p/Inputs/1.script.t --reproduce=default --dump-response-file %t1.1.response
+RUN: %filecheck %s < %t1.1.response
+CHECK: ReproduceNoFilename.test.tmp1.1.out
+RUN: ls %t1.1.out.tar
+#END_TEST

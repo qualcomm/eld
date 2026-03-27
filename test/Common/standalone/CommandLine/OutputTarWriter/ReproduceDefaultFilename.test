@@ -1,0 +1,12 @@
+#---ReproduceDefaultFilename.test-------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This checks that --reproduce=default names the tar after the output file
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %t1.1.o -o %t2.out --reproduce=default
+RUN: %filecheck %s < %t2.out.tar
+CHECK: mapping.ini
+CHECK: version.txt
+CHECK: response.txt
+#END_TEST

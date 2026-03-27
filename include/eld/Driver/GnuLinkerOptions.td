@@ -956,10 +956,10 @@ def allow_bss_conversion
                "sections in the same segment">,
       Group<grp_extendedopts>;
 defm reproduce : smDash<"reproduce", "reproduce",
-                        "Write a tar file containing input files and command "
-                        "line options to inspect and re-link">,
-                  MetaVarName<"<tarfilename>">,
-                 Group<grp_extendedopts>;
+                       "Write a tar file containing input files and command "
+                       "line options to inspect and re-link">,
+                 MetaVarName<"<tarfilename>|default">,
+                Group<grp_extendedopts>;
 defm reproduce_compressed : smDashWithOpt<"reproduce-compressed", "reproduce_compressed",
                                    "Write compressed tar file in zlib format "
                                    "containing input files and command line "
@@ -967,10 +967,10 @@ defm reproduce_compressed : smDashWithOpt<"reproduce-compressed", "reproduce_com
                             MetaVarName<"<tarfilename>">,
                             Group<grp_extendedopts>;
 defm reproduce_on_fail : smDashWithOpt<"reproduce-on-fail", "reproduce_on_fail",
-                                   "Write reproduce tar file when link fails"
+                                   "Write reproduce tar file when link fails "
                                    "containing input files and command line "
                                    "options to inspect and re-link.">,
-                            MetaVarName<"<tarfilename>">,
+                            MetaVarName<"<tarfilename>|default">,
                             Group<grp_extendedopts>;
 defm mapping_file : smDashWithOpt<"mapping-file", "mapping_file",
                                   "Reproduce link using a mapping file">,
