@@ -5,6 +5,7 @@ llvm_add_library(
   FileSystem.cpp
   HashUtils.cpp
   INIReader.cpp
+  InputTarReader.cpp
   MappingFile.cpp
   MemoryArea.cpp
   Memory.cpp

@@ -698,6 +698,7 @@ defm trace
           "collection is enabled\n"
           "\t\t\t --trace=merge-strings : trace linker string optimization\n"
           "\t\t\t --trace=trampolines : trace trampolines\n"
+          "\t\t\t --trace=untar : trace tar extraction entries\n"
           "\t\t\t --trace=wrap-symbols : trace symbol wrap options\n"
           "\t\t\t --trace=symdef : trace symbol resolution from symdef files\n"
           "\t\t\t --trace=dynamic-linking : trace dynamic linking\n"

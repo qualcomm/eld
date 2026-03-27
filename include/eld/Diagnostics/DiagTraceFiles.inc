@@ -12,3 +12,4 @@
 //===----------------------------------------------------------------------===//
 
 DIAG(trace_file, DiagnosticEngine::Trace, "%0")
+DIAG(trace_untar_entry, DiagnosticEngine::Trace, "untar: %0")

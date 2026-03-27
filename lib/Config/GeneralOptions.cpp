@@ -243,6 +243,7 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
             .Case("dynamic-linking",
                   DiagEngine->getPrinter()->TraceDynamicLinking)
             .Case("linker-script", DiagEngine->getPrinter()->TraceLinkerScript)
+            .Case("untar", DiagEngine->getPrinter()->TraceUntar)
             .Case("symdef", DiagEngine->getPrinter()->TraceSymDef)
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
             .Case("symbol-versioning",

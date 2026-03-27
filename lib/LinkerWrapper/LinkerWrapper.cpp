@@ -703,6 +703,22 @@ LinkerWrapper::getTarWriter(const std::string &Name) const {
   return TarWriter(std::move(*Tar));
 }
 
+eld::Expected<TarFile>
+LinkerWrapper::openTarFile(std::string TarFileName) const {
+  if (m_Module.getConfig().options().hasMappingFile())
+    TarFileName = m_Module.getConfig().getHashFromFile(TarFileName);
+  if (m_Module.getOutputTarWriter() && llvm::sys::fs::exists(TarFileName))
+    m_Module.getOutputTarWriter()->createAndAddConfigFile(TarFileName,
+                                                          TarFileName);
+
+  auto Buf = std::make_unique<eld::MemoryArea>(TarFileName);
+  if (!Buf->Init(m_DiagEngine))
+    return std::make_unique<DiagnosticEntry>(
+        DiagnosticEntry(Diag::error_cannot_read_tar_file,
+                        {TarFileName, "unable to map tar file"}));
+  return TarFile::Create(std::move(Buf));
+}
+
 /// \returns if Timing is enabled for the plugin.
 bool LinkerWrapper::isTimingEnabled() const {
   if (!m_Plugin)
