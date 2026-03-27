@@ -128,6 +128,12 @@ jobs:
           curl -L https://github.com/zephyrproject-rtos/zephyr/pull/103778.patch -o eld-support.patch
           git apply eld-support.patch
 
+      - name: Download and apply ULEB128 fix for kobject list
+        run: |
+          cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
+          curl -L https://github.com/quic-areg/zephyr/commit/17f605dd6a9fed6bb93e148a822f9bf7e0dae8f0.patch -o uleb128-fix.patch
+          git apply uleb128-fix.patch
+
       - name: Set up environment for ELD
         run: |
           echo "ZEPHYR_BASE=${{ env.ZEPHYR_WORKSPACE }}/zephyr" >> $GITHUB_ENV
