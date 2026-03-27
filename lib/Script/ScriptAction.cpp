@@ -15,9 +15,11 @@
 //===----------------------------------------------------------------------===//
 #include "eld/Script/ScriptAction.h"
 #include "eld/Config/LinkerConfig.h"
+#include "eld/Input/InputBuilder.h"
 #include "eld/Input/LinkerScriptFile.h"
 #include "eld/Input/SearchDirs.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/ReproduceTarReader.h"
 #include "llvm/Support/FileSystem.h"
 
 using namespace eld;
@@ -34,9 +36,13 @@ ScriptAction::ScriptAction(const std::string &PFileName, ScriptFile::Kind PKind,
 bool ScriptAction::activate(InputBuilder &PBuilder) {
   std::string Path = Name;
   auto &SearchDirs = ThisConfig.directories();
-  if (!llvm::sys::fs::exists(Path)) {
+  const ReproduceTarReader *TarReader = ThisConfig.getReproduceTarReader();
+  bool FoundInReplay = TarReader && TarReader->hasFile(Path);
+  // If replay does not have this script entry, keep normal filesystem/search
+  // behavior so command-line scripts still work outside replay mode.
+  if (!FoundInReplay && !llvm::sys::fs::exists(Path)) {
     const sys::fs::Path *Res =
-        SearchDirs.find(Path, eld::SearchDirs::SearchInputType::Script);
+        SearchDirs.find(Path, SearchDirs::SearchInputType::Script);
     if (Res == nullptr) {
       switch (ScriptFileKind) {
       case ScriptFile::LDScript:
@@ -59,7 +65,11 @@ bool ScriptAction::activate(InputBuilder &PBuilder) {
     Path = Res->native();
   }
   setFileName(Path);
-  InputFileAction::activate(PBuilder);
+  // For replay-resident scripts, avoid filesystem probing in InputFileAction.
+  if (FoundInReplay)
+    I = PBuilder.createInputNode(Path);
+  else if (!InputFileAction::activate(PBuilder))
+    return false;
 
   // Resolve the path so that the appropriate file has been read and the memory
   // area created for it.

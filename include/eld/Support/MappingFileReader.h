@@ -25,7 +25,7 @@ public:
   bool readMappingFile(eld::LinkerConfig &pConfig) {
     if (!reader)
       return false;
-    auto r = reader->readINIFile();
+    auto r = reader->readINIFile(pConfig.getReproduceTarReader());
     if (!r)
       pConfig.raiseDiagEntry(std::move(r.error()));
     if (!r || (r && !r.value()))

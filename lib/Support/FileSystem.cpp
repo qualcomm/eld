@@ -7,6 +7,7 @@
 #include "eld/Support/FileSystem.h"
 #include "eld/Config/Config.h"
 #include "eld/Support/Path.h"
+#include "eld/Support/ReproduceTarReader.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -16,8 +17,26 @@
 /// \param Lines The vector to load file contents into
 std::error_code
 eld::sys::fs::loadFileContents(llvm::StringRef FilePath,
-                               std::vector<std::string> &Lines) {
-  Lines.clear();
+                               std::vector<std::string> &Lines,
+                               const ReproduceTarReader *TarReader) {
+  if (TarReader) {
+    // Replay path: read text files (mapping/response/ini/etc.) directly from
+    // the in-memory tarball when available.
+    auto BufferRefOrErr = TarReader->findFile(FilePath);
+    if (BufferRefOrErr) {
+      llvm::StringRef Buffer = BufferRefOrErr->getBuffer();
+      while (!Buffer.empty()) {
+        std::pair<llvm::StringRef, llvm::StringRef> LineAndRest =
+            Buffer.split('\n');
+        std::string Line =
+            std::string(LineAndRest.first.data(), LineAndRest.first.size());
+        Lines.push_back(Line);
+        Buffer = LineAndRest.second;
+      }
+      return std::error_code();
+    }
+  }
+
   // Map in file list file.
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> MB =
       llvm::MemoryBuffer::getFileOrSTDIN(FilePath);
