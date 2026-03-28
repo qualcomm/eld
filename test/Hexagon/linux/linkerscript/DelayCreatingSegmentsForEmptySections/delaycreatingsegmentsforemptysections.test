@@ -2,10 +2,10 @@
 # for sections that are empty.
 RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t1.o
 RUN: %clang %clangopts -c %clangg0opts %p/Inputs/2.c -o %t2.o
-RUN: %link %linkopts %t1.o -T %p/Inputs/script1.t -o %t1.out.1
-RUN: %link %linkopts %t2.o -T %p/Inputs/script2.t -o %t1.out.2
-RUN: %link %linkopts %t2.o -T %p/Inputs/script3.t -o %t1.out.3
-RUN: %link %linkopts %t1.o -T %p/Inputs/script4.t -o %t1.out.4
+RUN: %link %emulation %linkopts %t1.o -T %p/Inputs/script1.t -o %t1.out.1
+RUN: %link %emulation %linkopts %t2.o -T %p/Inputs/script2.t -o %t1.out.2
+RUN: %link %emulation %linkopts %t2.o -T %p/Inputs/script3.t -o %t1.out.3
+RUN: %link %emulation %linkopts %t1.o -T %p/Inputs/script4.t -o %t1.out.4
 RUN: %readelf -l %t1.out.1 | %filecheck %s -check-prefix=CASEA
 RUN: %readelf -l %t1.out.2 | %filecheck %s -check-prefix=CASEB
 RUN: %readelf -l %t1.out.3 | %filecheck %s -check-prefix=CASEB

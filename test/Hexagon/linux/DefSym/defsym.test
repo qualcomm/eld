@@ -1,6 +1,6 @@
 # This tests defsym functionality by adding two symbols.
 RUN: %clang %clangopts -c  %p/Inputs/1.c -o %t1.o %clangg0opts
-RUN: %link %linkopts --defsym B=10 --defsym A=20 %t1.o -o %t2
+RUN: %link %emulation %linkopts --defsym B=10 --defsym A=20 %t1.o -o %t2
 RUN: %nm -n %t2 | %filecheck %s
 
 #CHECK: 0000000a A B
