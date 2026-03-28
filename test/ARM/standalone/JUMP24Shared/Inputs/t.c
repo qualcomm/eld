@@ -1,7 +1,7 @@
 void spa()
 {
    asm(".space 0x800000");
-  
+
 }
 
 void spa2()

@@ -17,18 +17,18 @@ PHDRS
      Keep these ordered by address, as per ELF spec, since PIL requires it. */
   INIT               PT_LOAD;
 
-  TCM_STATIC         PT_LOAD; 
+  TCM_STATIC         PT_LOAD;
 
   TCM_OVERLAY_TEXT   PT_LOAD;
   TCM_OVERLAY_DATA   PT_LOAD;
 
-  CODE               PT_LOAD; 
-  CONST              PT_LOAD; 
-  DATA               PT_LOAD; 
+  CODE               PT_LOAD;
+  CONST              PT_LOAD;
+  DATA               PT_LOAD;
   BSS                PT_LOAD;
 
-  DATA_L1WB_L2UC     PT_LOAD; 
-  DATA_UNCACHED      PT_LOAD; 
+  DATA_L1WB_L2UC     PT_LOAD;
+  DATA_UNCACHED      PT_LOAD;
 }
 
 
@@ -89,7 +89,7 @@ SECTIONS
 
   /*------------------------------------------------------------------------
     Image start.
-    ------------------------------------------------------------------------*/  
+    ------------------------------------------------------------------------*/
   . = ALIGN (DEFINED (TEXTALIGN)? (TEXTALIGN * 1K) : 4096);
   .BOOTUP : {} :INIT
   .start          :
@@ -164,7 +164,7 @@ SECTIONS
 
 
   . = ALIGN (4K);
-  __bss_start = .;  
+  __bss_start = .;
   .bss   (NOLOAD)    :
   {
 
@@ -192,11 +192,11 @@ SECTIONS
 
   /* We don't support .sbss and .bss in G0 builds.
      crt0 needs a start location for GP register; park it in an invalid memory
-     location so usage will trigger a page fault. 
+     location so usage will trigger a page fault.
      Input files still generate empty .sdata segments - capture them in a dummy
      segment and ensure it is empty.
      */
-  PROVIDE( _SDA_BASE_ = 0); 
+  PROVIDE( _SDA_BASE_ = 0);
   PROVIDE( __sbss_start = 0);
   PROVIDE( ___sbss_start = 0);
   PROVIDE( __sbss_end = 0);
@@ -212,7 +212,7 @@ SECTIONS
     *(.sbss.2 .sbss.2.* .gnu.linkonce.sb.2.*)
     *(.scommon.2 .scommon.2.*)
     *(.sbss.4 .sbss.4.* .gnu.linkonce.sb.4.*)
-    *(.scommon.4 .scommon.4.*) 
+    *(.scommon.4 .scommon.4.*)
     *(.sdata.4 .sdata.4.* .gnu.linkonce.s.4.*)
     *(.lita .lita.* .gnu.linkonce.la.*)
     *(.lit4 .lit4.* .gnu.linkonce.l4.*)
@@ -221,7 +221,7 @@ SECTIONS
     *(.sbss.8 .sbss.8.* .gnu.linkonce.sb.8.*)
     *(.scommon.8 .scommon.8.*)
     *(.sdata.hot .sdata.hot.* .gnu.linkonce.s.hot.*)
-    *(.sdata .sdata.* .gnu.linkonce.s.*) 
+    *(.sdata .sdata.* .gnu.linkonce.s.*)
 
     *(.sbss.hot .sbss.hot.* .gnu.linkonce.sb.hot.*)
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
@@ -229,7 +229,7 @@ SECTIONS
     *(.dynsbss)
     __dummy_sda_end__ = .;
   }
- 
+
   PROVIDE (end = .);
 
 /* Stabs debugging sections.  */

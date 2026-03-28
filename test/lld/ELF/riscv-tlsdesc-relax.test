@@ -99,17 +99,17 @@ GD-NEXT:         c.add   a0, tp
 LE-REL-NOT:       R_RISCV
 
 LE-LABEL: <foo>:
-LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LE-NORELAX-NEXT: addi    zero, zero, 0x0
 LER-NORELAX-NEXT:        R_RISCV_NONE b
 LER-NORELAX-NEXT:        R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_HI20 b
-LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LE-NORELAX-NEXT: addi    zero, zero, 0x0
 LER-NEXT:                R_RISCV_NONE b
 LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a7, a7
 LE-NEXT-LLD:             R_RISCV_TLSDESC_LOAD_LO12 .Ltlsdesc_hi0
-LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LE-NORELAX-NEXT: addi    zero, zero, 0x0
 LER-NEXT:                R_RISCV_NONE b
 LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NORELAX-NEXT: 11014: c.add   a7, a7
@@ -125,12 +125,12 @@ LER-NEXT:                R_RISCV_RELAX *ABS*
 LE-NEXT:         c.add   a0, tp
 
 LE-LABEL: <.Ltlsdesc_hi1>:
-LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LE-NORELAX-NEXT: addi    zero, zero, 0x0
 LER-NORELAX-NEXT:        R_RISCV_NONE b
 LER-NORELAX-NEXT:        R_RISCV_RELAX *ABS*
-LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LE-NORELAX-NEXT: addi    zero, zero, 0x0
 LER-NORELAX-NEXT:        R_RISCV_NONE b
-LE-NORELAX-NEXT: addi    zero, zero, 0x0 
+LE-NORELAX-NEXT: addi    zero, zero, 0x0
 LER-NORELAX-NEXT:        R_RISCV_NONE b
 LE-NEXT:         addi    a0, zero, 0x7ff
 LE-NEXT-LLD:             R_RISCV_TLSDESC_HI20 b
@@ -186,9 +186,9 @@ IE-REL4:   {{0*}}120e4 {{[[:xdigit:]]+}}0a       R_RISCV_TLS_TPREL32 {{0+}} b + 
 IE-REL8:   {{0*}}120e8 {{[[:xdigit:]]+}}0b       R_RISCV_TLS_TPREL64 {{0+}} b + 0
 
 IE-LABEL: <foo>:
-IE-NORELAX-NEXT: addi    zero, zero, 0x0 
+IE-NORELAX-NEXT: addi    zero, zero, 0x0
 IE-NEXT:         c.add   a7, a7
-IE-NORELAX-NEXT: addi    zero, zero, 0x0 
+IE-NORELAX-NEXT: addi    zero, zero, 0x0
 IE-NEXT:         c.add   a7, a7
 ## &.got[c]-. = 0x120e4 - 0x11008 = 0x10dc (8 bytes less if previous nops are not relaxed)
 ## &.got[c]-. = 0x120e8 - 0x11008 = 0x10e0 (8 bytes less if previous nops are not relaxed)
@@ -204,8 +204,8 @@ IE-NEXT:         c.add   a0, tp
 IE-LABEL: <.Ltlsdesc_hi1>:
 ## &.got[c]-. = 0x120e4 - 0x11018 = 0x10cc (16 bytes less if previous nops are not relaxed)
 ## &.got[c]-. = 0x120e8 - 0x11018 = 0x10d0 (16 bytes less if previous nops are not relaxed)
-IE-NORELAX-NEXT: addi    zero, zero, 0x0 
-IE-NORELAX-NEXT: addi    zero, zero, 0x0 
+IE-NORELAX-NEXT: addi    zero, zero, 0x0
+IE-NORELAX-NEXT: addi    zero, zero, 0x0
 IE-NORELAX-NEXT:  11028: auipc   a0, 0x1
 IE-RELAX-NEXT:    11018: auipc   a0, 0x1
 IE4-NORELAX-NEXT:        lw      a0, 0xbc(a0)

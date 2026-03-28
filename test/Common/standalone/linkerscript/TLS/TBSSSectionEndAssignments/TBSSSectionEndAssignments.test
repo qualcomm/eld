@@ -5,7 +5,7 @@
 # virtual address space or file space(NOBITS). They belong to the TLS segment.
 # This tests tests that the DOT value stays consistent with the section.
 #END_COMMENT
-RUN: %clang %clangopts -c %p/Inputs/tls.c  -o %t1.1.o -ffunction-sections -fdata-sections 
+RUN: %clang %clangopts -c %p/Inputs/tls.c  -o %t1.1.o -ffunction-sections -fdata-sections
 RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map.out
 RUN: %filecheck %s < %t2.map.out
 

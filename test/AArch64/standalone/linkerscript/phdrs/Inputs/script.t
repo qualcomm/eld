@@ -60,7 +60,7 @@ SECTIONS {
   /* Group all remaining sections here, and generate an error if there are any.
      To debug which sections are unrecognized, comment out the following
      lines and use qdsp6-objdump -h on the resulting image to look for them. */
-  __unrecognized_start__ = . ; 
-  .unrecognized : { *(*) } 
+  __unrecognized_start__ = . ;
+  .unrecognized : { *(*) }
   __unrecognized_end__ = . ;
 }

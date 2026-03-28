@@ -2,12 +2,12 @@ PHDRS {
   a PT_LOAD;
 }
 
-SECTIONS { 
+SECTIONS {
   STACK : {
     . = . + 0x200;
   } : a
 
-  .text : { *(.text) } 
+  .text : { *(.text) }
 
   STACK2 : {
     . = . + 0x200;

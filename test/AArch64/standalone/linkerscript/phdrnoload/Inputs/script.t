@@ -21,7 +21,7 @@ SECTIONS {
      *(.sbss)
   }
 
-  .dump (NOLOAD) : { 
+  .dump (NOLOAD) : {
     *(.bss.*)
     *(.text.bar)
     *(COMMON)
@@ -35,7 +35,7 @@ SECTIONS {
     *(*.bss)
   }
 
-  __unrecognized_start__ = . ; 
-  .unrecognized : { *(*) } 
+  __unrecognized_start__ = . ;
+  .unrecognized : { *(*) }
   __unrecognized_end__ = . ;
 }

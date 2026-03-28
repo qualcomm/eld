@@ -3,7 +3,7 @@
 
 # -----------------------------------------------------------------------------#
 # BEGIN_COMMENT
-# When a local TLS symbol is using GD model, the stub has to be exported to 
+# When a local TLS symbol is using GD model, the stub has to be exported to
 # .dynsym otherwise PLT calls is not possible.
 # END_COMMENT
 # -----------------------------------------------------------------------------#

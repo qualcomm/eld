@@ -1,4 +1,4 @@
-UNSUPPORTED: x86
+UNSUPPORTED:
 #---ResponseFileDump.test------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This checks for proper output for --dump-response-file

@@ -1,3 +1,3 @@
-int bar() { 
+int bar() {
   return baz();
 }

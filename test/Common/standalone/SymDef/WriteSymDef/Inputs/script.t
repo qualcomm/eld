@@ -1,5 +1,5 @@
 SECTIONS {
-  .foo (0x100) : { 
+  .foo (0x100) : {
     *(.text.foo)
   }
   .text : {

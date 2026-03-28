@@ -4,7 +4,7 @@ num:
 	.section .data.val
 val:
         .word   2
-	
+
         .section .text.test
 	.globl	test
 	.type	test,@function

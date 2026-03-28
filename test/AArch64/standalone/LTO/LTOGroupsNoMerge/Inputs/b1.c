@@ -1,3 +1,3 @@
-int bar() __attribute__((weak)) { 
+int bar() __attribute__((weak)) {
   return baz();
 }

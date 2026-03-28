@@ -5,7 +5,7 @@ BEGIN_COMMENT
 
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o
-RUN: %link %linkopts %t.o -o %t.exe 
+RUN: %link %linkopts %t.o -o %t.exe
 RUN: llvm-objdump -s -j .data %t.exe | FileCheck %s
 
 CHECK: Contents of section .data:

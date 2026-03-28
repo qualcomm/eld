@@ -2,4 +2,3 @@ GlobalPlugins:
   - Type: LinkerPlugin
     Name: LinkerPluginVersion
     Library: LinkerPluginNoVersion
-    
