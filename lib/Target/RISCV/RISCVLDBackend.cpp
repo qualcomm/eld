@@ -16,6 +16,7 @@
 #include "RISCVRelocationInternal.h"
 #include "RISCVRelocator.h"
 #include "RISCVStandaloneInfo.h"
+#include "RISCVTableJump.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/RegionFragment.h"
@@ -33,6 +34,7 @@
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -114,6 +116,20 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   if (LinkerConfig::Object == config().codeGenType())
     return;
 
+  if (config().options().getRISCVRelaxTbljal()) {
+    m_pRISCVTableJumpSection = m_Module.createInternalSection(
+        Module::InternalInputType::Sections, LDFileFormat::Internal,
+        ".riscv.jvt", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
+        /*Align=*/64);
+    TableJumpFragment =
+        make<RISCVTableJumpFragment>(*this, m_pRISCVTableJumpSection);
+    m_pRISCVTableJumpSection->addFragmentAndUpdateSize(TableJumpFragment);
+    m_pRISCVTableJumpSection->setWanted(true);
+    // Keep the section in the output even if its final size ends up being 0
+    // (matching lld behavior and the upstream tests).
+    m_pRISCVTableJumpSection->setWantedInOutput(true);
+  }
+
   // Create .dynamic section
   if ((!config().isCodeStatic()) || (config().options().forceDynamic())) {
     if (nullptr == m_pDynamic)
@@ -135,6 +151,26 @@ void RISCVLDBackend::initPatchSections(ELFObjectFile &InputFile) {
 void RISCVLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
+
+  if (TableJumpFragment) {
+    std::string JvtName = "__jvt_base$";
+    LDSymbol *JvtBase =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::InternalInputType::Sections),
+                JvtName, ResolveInfo::NoType, ResolveInfo::Define,
+                ResolveInfo::Global,
+                0x0, // size
+                0x0, // value
+                make<FragmentRef>(*TableJumpFragment, 0x0),
+                ResolveInfo::Default);
+    if (JvtBase)
+      JvtBase->setShouldIgnore(false);
+    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+        m_Module.getConfig().options().traceSymbol(JvtName))
+      config().raise(Diag::target_specific_symbol) << JvtName;
+  }
+
   // Do not create another __global_pointer$ when linking a patch.
   if (config().options().getPatchBase())
     return;
@@ -155,6 +191,50 @@ void RISCVLDBackend::initTargetSymbols() {
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
     config().raise(Diag::target_specific_symbol) << SymbolName;
+}
+
+void RISCVLDBackend::initTableJump() {
+  if (TableJumpInitialized || !TableJumpFragment)
+    return;
+
+  llvm::DenseSet<const ELFSection *> Visited;
+  for (auto &Input : m_Module.getObjectList()) {
+    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(Input);
+    if (!ObjFile)
+      continue;
+    for (auto &Rs : ObjFile->getRelocationSections()) {
+      if (Rs->isIgnore() || Rs->isDiscard())
+        continue;
+      ELFSection *Linked = Rs->getLink();
+      if (!Linked || !Linked->isCode())
+        continue;
+      if (!Visited.insert(Linked).second)
+        continue;
+      TableJumpFragment->scanTableJumpEntries(*Linked);
+    }
+  }
+
+  TableJumpFragment->finalizeContents();
+  // finalizeContents() computes the fragment size, which must be propagated to
+  // the owning section for layout.
+  if (m_pRISCVTableJumpSection)
+    m_pRISCVTableJumpSection->setSize(TableJumpFragment->size());
+
+  // Ensure the output keeps a (possibly empty) .riscv.jvt section when
+  // --relax-tbljal is enabled.
+  if (m_pRISCVTableJumpSection) {
+    m_pRISCVTableJumpSection->setWantedInOutput(true);
+    m_pRISCVTableJumpSection->setWanted(true);
+    if (ELFSection *Out = m_pRISCVTableJumpSection->getOutputELFSection()) {
+      Out->setWantedInOutput(true);
+      Out->setWanted(true);
+    }
+  }
+  if (ELFSection *Jvt = m_Module.getSection(".riscv.jvt")) {
+    Jvt->setWantedInOutput(true);
+    Jvt->setWanted(true);
+  }
+  TableJumpInitialized = true;
 }
 
 bool RISCVLDBackend::initBRIslandFactory() { return true; }
@@ -322,6 +402,24 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     return true;
   }
 
+  if (config().options().getRISCVRelaxTbljal() && TableJumpFragment &&
+      TableJumpFragment->size() != 0) {
+    int EntryIndex = -1;
+    if (rd == 0)
+      EntryIndex = TableJumpFragment->getCMJTEntryIndex(reloc->symInfo());
+    else if (rd == 1)
+      EntryIndex = TableJumpFragment->getCMJALTEntryIndex(reloc->symInfo());
+    if (EntryIndex >= 0) {
+      uint16_t TblJump = static_cast<uint16_t>(0xA002 | (EntryIndex << 2));
+      region->replaceInstruction(offset, reloc, TblJump, 2);
+      reloc->setTargetData(TblJump);
+      reloc->setType(ELF::riscv::internal::R_RISCV_TBJAL);
+      relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 6,
+                       reloc->symInfo()->name());
+      return true;
+    }
+  }
+
   if (canRelaxJal) {
     // Replace the instruction to JAL
     uint32_t jal = 0x6fu | rd << 7;
@@ -358,6 +456,38 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   reportMissedRelaxation("RISCV_CALL", *region, offset, 6,
                          reloc->symInfo()->name());
   return false;
+}
+
+bool RISCVLDBackend::doRelaxationJal(Relocation *reloc) {
+  if (!config().options().getRISCVRelaxTbljal() || !TableJumpFragment ||
+      TableJumpFragment->size() == 0)
+    return false;
+
+  Fragment *frag = reloc->targetRef()->frag();
+  RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
+  if (!region)
+    return false;
+
+  uint64_t offset = reloc->targetRef()->offset();
+  uint32_t Jal = 0;
+  reloc->targetRef()->memcpy(&Jal, sizeof(Jal), 0);
+  unsigned rd = (Jal >> 7) & 0x1fu;
+
+  int EntryIndex = -1;
+  if (rd == 0)
+    EntryIndex = TableJumpFragment->getCMJTEntryIndex(reloc->symInfo());
+  else if (rd == 1)
+    EntryIndex = TableJumpFragment->getCMJALTEntryIndex(reloc->symInfo());
+  if (EntryIndex < 0)
+    return false;
+
+  uint16_t TblJump = static_cast<uint16_t>(0xA002 | (EntryIndex << 2));
+  region->replaceInstruction(offset, reloc, TblJump, 2);
+  reloc->setTargetData(TblJump);
+  reloc->setType(ELF::riscv::internal::R_RISCV_TBJAL);
+  relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 2,
+                   reloc->symInfo()->name());
+  return true;
 }
 
 bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
@@ -1004,6 +1134,9 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
     return;
   }
 
+  if (relaxation_pass == RELAXATION_CALL)
+    initTableJump();
+
   // retrieve gp value, .data + 0x800
   Relocator::DWord GP = 0x0;
   if (m_pGlobalPointer)
@@ -1041,6 +1174,11 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
         case llvm::ELF::R_RISCV_CALL_PLT: {
           if (nextRelax && relaxation_pass == RELAXATION_CALL)
             doRelaxationCall(relocation);
+          break;
+        }
+        case llvm::ELF::R_RISCV_JAL: {
+          if (nextRelax && relaxation_pass == RELAXATION_CALL)
+            doRelaxationJal(relocation);
           break;
         }
         case llvm::ELF::R_RISCV_PCREL_HI20:
