@@ -22,6 +22,7 @@ namespace eld {
 class LinkerConfig;
 class RISCVInfo;
 class RISCVAttributeFragment;
+class RISCVTableJumpFragment;
 class RISCVELFDynamic;
 class RISCVPLT;
 class RISCVRelaxationStats;
@@ -54,6 +55,8 @@ public:
   bool initBRIslandFactory() override;
 
   bool initStubFactory() override;
+
+  void preRelaxation() override;
 
   void mayBeRelax(int pass, bool &pFinished) override;
 
@@ -206,8 +209,11 @@ public:
 
   // Get the value of the symbol, using the PLT slot if one exists.
   Relocation::Address getSymbolValuePLT(const Relocation &R);
+  Relocation::Address getSymbolValuePLT(ResolveInfo &Sym);
 
 private:
+  void initTableJump();
+
   Relocation *findHIRelocation(ELFSection *S, uint64_t Value);
 
   // This is `handleRelocation` for internal RISC-V relocations IDs.
@@ -227,6 +233,7 @@ private:
   bool isGOTReloc(const Relocation &reloc) const;
 
   bool doRelaxationCall(Relocation *R);
+  bool doRelaxationJal(Relocation *R);
   bool doRelaxationQCCall(Relocation *R);
 
   bool doRelaxationLui(Relocation *R, Relocation::DWord G);
@@ -289,10 +296,13 @@ private:
 private:
   /// RISCV Attribute Section
   ELFSection *m_pRISCVAttributeSection = nullptr;
+  ELFSection *m_pRISCVTableJumpSection = nullptr;
   // RISCV Dynamic section
   RISCVELFDynamic *m_pDynamic = nullptr;
   /// RISCV Attribute Fragment
   RISCVAttributeFragment *AttributeFragment = nullptr;
+  RISCVTableJumpFragment *TableJumpFragment = nullptr;
+  bool TableJumpInitialized = false;
 
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTPLTMap;

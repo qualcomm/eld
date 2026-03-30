@@ -95,6 +95,7 @@ public:
     Sections,
     SectionRelocMap,
     SmallData,
+    TableJump,
     Timing,
     TLSStub,
     Trampoline,

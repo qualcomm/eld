@@ -53,6 +53,7 @@ enum : uint32_t {
   R_RISCV_GPREL_S,
   R_RISCV_TPREL_I,
   R_RISCV_TPREL_S,
+  R_RISCV_TBJAL,
 
   /*
     Internal IDs for Nonstandard Relocations
@@ -71,8 +72,8 @@ enum : uint32_t {
   /* 'QUALCOMM' vendor relocations: 192-197 are represented by 320-325 */
   FirstQUALCOMMVendorRelocation = 320,
   LastQUALCOMMVendorRelocation = 325,
-  QUALCOMMVendorRelocationOffset = FirstQUALCOMMVendorRelocation -
-      FirstNonstandardRelocation,
+  QUALCOMMVendorRelocationOffset =
+      FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
 
   /* We don't support ANDES and CHERIOT1 vendor relocations */
   ANDESVendorRelocationOffset = 0,
