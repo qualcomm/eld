@@ -58,6 +58,11 @@ def no_relax_tlsdesc
 def riscv_relax : Flag<["--"], "relax">,
                   HelpText<"Enable relaxation (default behavior)">,
                   Group<grp_riscv_linker>;
+
+def relax_tbljal
+    : Flag<["--"], "relax-tbljal">,
+      HelpText<"Enable conversion of call/jump instructions to Zcmt table jump instructions (cm.jt/cm.jalt)">,
+      Group<grp_riscv_linker>;
 def enable_bss_mixing : Flag<["--"], "enable-bss-mixing">,
                         HelpText<"Enable mixing BSS/NonBSS sections">,
                         Group<grp_riscv_linker>;
