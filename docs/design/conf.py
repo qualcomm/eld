@@ -33,6 +33,7 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
+    'sphinx.ext.graphviz',
               # For now, do not use the githubpages extension
               # because the machines that run our buildbots do
               # not have this package installed
@@ -71,7 +72,7 @@ release = u'2.3.0'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -87,27 +88,26 @@ todo_include_todos = True
 
 # -- Options for HTML output ----------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = 'alabaster'
+# Keep design docs consistent with userguide theme.
+html_theme = os.environ.get("SPHINX_HTML_THEME", "sphinx_rtd_theme")
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {
-    "nosidebar" : False, # Used for sphinx_doc html theme
-    "show_related" : True,
-    "link": "#3782BE",
-    "link_hover": "#3782BE",
-    "page_width": "1024px",
-    "sidebar_list": "#3782BE",
-    "sidebar_link" : "#3782BE",
-    "font_family" : "Calibri",
-    "code_font_family" : "monospace",
-    "head_font_family" : "Calibri",
-}
+if html_theme == "alabaster":
+    html_theme_options = {
+        "nosidebar" : False, # Used for sphinx_doc html theme
+        "show_related" : True,
+        "link": "#3782BE",
+        "link_hover": "#3782BE",
+        "page_width": "1024px",
+        "sidebar_list": "#3782BE",
+        "sidebar_link" : "#3782BE",
+        "font_family" : "Calibri",
+        "code_font_family" : "monospace",
+        "head_font_family" : "Calibri",
+    }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -119,13 +119,14 @@ html_static_path = ['_static']
 #
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
-html_sidebars = {
-    '**': [
-        'relations.html',  # needs 'show_related': True theme option to display
-        'searchbox.html',
-        'navigation.html'
-    ]
-}
+if html_theme == "alabaster":
+    html_sidebars = {
+        '**': [
+            'relations.html',  # needs 'show_related': True theme option to display
+            'searchbox.html',
+            'navigation.html'
+        ]
+    }
 
 
 # -- Options for HTMLHelp output ------------------------------------------

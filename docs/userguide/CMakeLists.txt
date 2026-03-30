@@ -20,11 +20,15 @@ if(LLVM_ENABLE_SPHINX)
 
   add_custom_target(eld-linkeroptions-docs)
   set(LINKER_OPTS_DUMP_DIR ${DOCS_BUILD_SOURCE}/LinkerOptionsDump)
+  set(LINKER_OPTS_RST_DIR ${DOCS_BUILD_SOURCE}/documentation/options)
   set(OPTIONS_SUPPLEMENTS_DIR
       ${CMAKE_CURRENT_SOURCE_DIR}/CommandLineOptionsSupplements)
   add_custom_target(
     eld-linkeroptions-create-json-dump-dir
     COMMAND ${CMAKE_COMMAND} -E make_directory ${LINKER_OPTS_DUMP_DIR})
+  add_custom_target(
+    eld-linkeroptions-create-rst-output-dir
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${LINKER_OPTS_RST_DIR})
 
   foreach(target Gnu ARM Hexagon RISCV)
     string(TOLOWER ${target} targetLC)
@@ -57,6 +61,8 @@ if(LLVM_ENABLE_SPHINX)
 
     add_dependencies(eld-${targetLC}linkeroptions-docs
                      eld-${targetLC}linkeroptions-json-dump)
+    add_dependencies(eld-${targetLC}linkeroptions-docs
+                     eld-linkeroptions-create-rst-output-dir)
     add_dependencies(eld-linkeroptions-docs eld-${targetLC}linkeroptions-docs)
     if(NOT target MATCHES "Gnu")
       add_dependencies(eld-${targetLC}linkeroptions-docs
@@ -75,7 +81,11 @@ if(LLVM_ENABLE_SPHINX)
     eld-copy-userguide-source
     eld-linkeroptions-docs)
 
+  add_custom_target(eld-userguide-docs DEPENDS ${html_target_name})
   add_custom_target(eld-docs DEPENDS ${html_target_name})
+  if(TARGET eld-design-docs)
+    add_dependencies(eld-docs eld-design-docs)
+  endif()
 
   # PDF user guide (optional)
   if(ELD_ENABLE_PDF_DOCS)
@@ -89,6 +99,7 @@ if(LLVM_ENABLE_SPHINX)
       eld-copy-userguide-source
       eld-linkeroptions-docs)
 
+    add_custom_target(eld-userguide-pdf-docs DEPENDS ${pdf_target_name})
     add_dependencies(eld-docs ${pdf_target_name})
   endif()
 endif()

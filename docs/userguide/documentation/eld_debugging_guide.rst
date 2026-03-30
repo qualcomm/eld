@@ -404,7 +404,7 @@ Debug tips:
 
 
 Dynamic relocations (what creates ``.rel[a].dyn`` / ``.rel[a].plt``)
--------------------------------------------------------------------
+--------------------------------------------------------------------
 
 Dynamic relocation entries are typically created/reserved during the relocation
 scan phase inside the target relocator and backend:
@@ -610,7 +610,7 @@ This is implemented in ``GnuLdDriver::defaultSignalHandler(...)`` in
 
 
 Where failures typically come from (symptoms -> pipeline stage)
---------------------------------------------------------------
+---------------------------------------------------------------
 
 This section is meant as a quick index: if you see a symptom, these are the
 stages/files to inspect first. Many of these topics are also discussed in more

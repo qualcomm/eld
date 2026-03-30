@@ -58,7 +58,7 @@ namespace eld {
 ///   `std::is_move_constructible<U>::value` are true. In all other cases,
 ///   Expected move constructor is marked as delete.
 ///
-/// - <b>Move assignment</> eld::Expected<T, U> is move assignable only if all
+/// - <b>Move assignment</b> eld::Expected<T, U> is move assignable only if all
 ///   of the below constraints are true:
 ///   - `std::is_move_assignable<T>::value` is true.
 ///   - `std::is_move_assignable<U>::value` is true.

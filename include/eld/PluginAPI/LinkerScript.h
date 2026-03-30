@@ -77,7 +77,7 @@ struct DLL_A_EXPORT Sections;
 /// \class ScriptCommand
 /// \brief Base class for all linker script commands.
 struct DLL_A_EXPORT ScriptCommand {
-  /// \enum CommmandKind - represents the kind of commands supported
+  /// \enum CommandKind - represents the kind of commands supported
   enum CommandKind : uint8_t {
     Assignment,
     EnterScope,
@@ -889,7 +889,7 @@ public:
   eld::SearchDirCmd *m_SearchDir = nullptr;
 };
 
-/// \class SECTIONS Command
+/// \class SECTIONS
 /// \brief Handle SECTIONS Command
 ///
 /// The SECTIONS command tells the linker how to map input sections into output

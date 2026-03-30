@@ -60,9 +60,7 @@ jobs:
       - name: Generate documentation
         run: |
           cd obj
-          ninja eld-docs
-          mv tools/eld/docs/userguide/pdf/ELD_UserGuide.pdf \
-             tools/eld/docs/userguide/html/ELD_UserGuide.pdf
+          ninja eld-publish-userguide-docs eld-publish-design-docs
 
       - name: Deploy to docs branch
         run: |
@@ -72,7 +70,7 @@ jobs:
           git config --global user.email 'github-actions@github.com'
           git checkout --orphan docs
           git rm -rf .
-          cp -r ${ROOT}/obj/tools/eld/docs/userguide/html/. .
+          cp -r ${ROOT}/obj/tools/eld/docs/publish/. .
           touch .nojekyll
           git add .
           git commit -m "Update documentation"

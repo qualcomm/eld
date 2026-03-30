@@ -752,7 +752,9 @@ struct DLL_A_EXPORT Section {
   uint64_t getSectionHash() const;
 
   /// Sets the linker script rule for the input section.
+  /// \param LW Linker wrapper instance used to apply the override.
   /// \param R the Linkerscript rule to be set.
+  /// \param Annotataion annotation used to describe the override reason.
   eld::Expected<void> overrideLinkerScriptRule(LinkerWrapper &LW,
                                                plugin::LinkerScriptRule R,
                                                const std::string &Annotataion);
@@ -1183,10 +1185,10 @@ public:
 
   /// Creates a plugin::MemoryBuffer for a given uint8_t* data and returns
   /// eld::Expected<MemoryBuffer>
-  /// \param std::string Name of data
-  /// \param uint8_t* Data to be stored
-  /// \param size_t Length of data
-  /// \param bool isNullTerminated Specifies if data is null terminated
+  /// \param Name name of data
+  /// \param Data data to be stored
+  /// \param Length length of data
+  /// \param isNullTerminated specifies if data is null terminated
   /// \returns eld::Expected<MemoryBuffer>
   static eld::Expected<MemoryBuffer> getBuffer(const std::string &Name,
                                                const uint8_t *Data,
