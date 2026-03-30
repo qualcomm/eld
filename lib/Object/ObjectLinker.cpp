@@ -3191,6 +3191,10 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
         // example, in thin LTO the merged object may not be written. Keep the
         // holes so file names in assembler are in sync with "Files".
         LTOAsmInput = std::move(Files);
+        if (!KeepLTOOutput)
+          std::copy_if(LTOAsmInput.begin(), LTOAsmInput.end(),
+                       std::back_inserter(FilesToRemove),
+                       [](const std::string &F) { return !F.empty(); });
       }
       // Remove unused file slots.
       llvm::erase_if(Files, [](const std::string &x) { return x.empty(); });
@@ -3207,10 +3211,6 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
         ThisModule->setFailure(true);
         return false;
       }
-      if (!KeepLTOOutput)
-        for (const auto &F : LTOAsmInput)
-          if (!F.empty())
-            FilesToRemove.push_back(F);
     }
     if (!KeepLTOOutput && !ThisConfig.options().getLTOObjPath())
       FilesToRemove.insert(FilesToRemove.end(), Files.begin(), Files.end());
