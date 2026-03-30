@@ -27,7 +27,6 @@ class ARMRelocator : public Relocator {
 public:
   ARMRelocator(ARMGNULDBackend &pParent, LinkerConfig &pConfig,
                Module &pModule);
-  ~ARMRelocator();
 
   Result applyRelocation(Relocation &pRelocation) override;
 

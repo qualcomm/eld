@@ -35,8 +35,6 @@ x86_64Relocator::x86_64Relocator(x86_64LDBackend &pParent,
   }
 }
 
-x86_64Relocator::~x86_64Relocator() {}
-
 Relocator::Result x86_64Relocator::applyRelocation(Relocation &pRelocation) {
   Relocation::Type type = pRelocation.type();
 

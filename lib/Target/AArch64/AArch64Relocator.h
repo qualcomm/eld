@@ -47,7 +47,6 @@ class AArch64Relocator : public Relocator {
 public:
   AArch64Relocator(AArch64LDBackend &pParent, LinkerConfig &pConfig,
                    Module &pModule);
-  ~AArch64Relocator();
 
   Result applyRelocation(Relocation &pRelocation) override;
 

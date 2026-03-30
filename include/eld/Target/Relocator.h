@@ -73,7 +73,7 @@ public:
   Relocator(LinkerConfig &pConfig, Module &pModule)
       : m_Config(pConfig), m_Module(pModule) {}
 
-  virtual ~Relocator() = 0;
+  virtual ~Relocator() = default;
 
   /// apply - general apply function
   virtual Result applyRelocation(Relocation &pRelocation) = 0;

@@ -238,8 +238,6 @@ RISCVRelocator::RISCVRelocator(RISCVLDBackend &Backend, LinkerConfig &pConfig,
   }
 }
 
-RISCVRelocator::~RISCVRelocator() {}
-
 namespace {
 
 /// helper_Rela_init - Get an relocation entry in .rela.dyn

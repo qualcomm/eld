@@ -147,8 +147,6 @@ AArch64Relocator::AArch64Relocator(AArch64LDBackend &pParent,
                                    LinkerConfig &pConfig, Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
-AArch64Relocator::~AArch64Relocator() {}
-
 bool AArch64Relocator::isRelocSupported(Relocation &pReloc) const {
   Relocation::Type type = pReloc.type();
   // valid types are 0x0, 0x100-0x244

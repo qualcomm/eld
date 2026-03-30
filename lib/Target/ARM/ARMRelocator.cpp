@@ -252,8 +252,6 @@ ARMRelocator::ARMRelocator(ARMGNULDBackend &pParent, LinkerConfig &pConfig,
                            Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
-ARMRelocator::~ARMRelocator() {}
-
 bool ARMRelocator::isInvalidReloc(Relocation &pReloc) const {
   if (!config().isCodeIndep())
     return false;
