@@ -6,9 +6,13 @@ on:
     - cron: '0 8 * * *'  # Runs daily at 2:00 AM CST
   workflow_dispatch:     # Allows manual triggering
 
+
+permissions:
+  contents: write
 jobs:
   build-and-runtest-with-reverse-iterators:
     runs-on: ubuntu-latest
+    if: github.repository == 'qualcomm/eld'
 
     steps:
       - name: Set up Clang 20

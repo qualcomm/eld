@@ -145,6 +145,11 @@ bool Linker::prepare(std::vector<InputAction *> &Actions,
     if (!normalize())
       return false;
   }
+
+  if (auto ReportFile = ThisConfig->options().getArchiveMemberReportFile()) {
+    if (!ObjLinker->emitArchiveMemberReport(ReportFile.value()))
+      return false;
+  }
   return true;
 }
 
@@ -425,6 +430,9 @@ bool Linker::normalize() {
     if (!ObjLinker->normalize())
       return false;
   }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  IR->normalizeSymbols();
+#endif
   return true;
 }
 
@@ -471,6 +479,7 @@ bool Linker::resolve() {
     }
 
     PluginManager &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(LinkState::ActBeforeRuleMatching);
     PM.callActBeforeRuleMatchingHook();
 
     // Assign output sections.

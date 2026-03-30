@@ -115,6 +115,12 @@ TarWriter
 .. doxygenclass:: eld::plugin::TarWriter
    :members:
 
+TarFile
+^^^^^^^^^
+
+.. doxygenclass:: eld::plugin::TarFile
+   :members:
+
 ThreadPool
 ^^^^^^^^^^^^^
 

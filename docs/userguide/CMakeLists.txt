@@ -20,6 +20,8 @@ if(LLVM_ENABLE_SPHINX)
 
   add_custom_target(eld-linkeroptions-docs)
   set(LINKER_OPTS_DUMP_DIR ${DOCS_BUILD_SOURCE}/LinkerOptionsDump)
+  set(OPTIONS_SUPPLEMENTS_DIR
+      ${CMAKE_CURRENT_SOURCE_DIR}/CommandLineOptionsSupplements)
   add_custom_target(
     eld-linkeroptions-create-json-dump-dir
     COMMAND ${CMAKE_COMMAND} -E make_directory ${LINKER_OPTS_DUMP_DIR})
@@ -50,7 +52,8 @@ if(LLVM_ENABLE_SPHINX)
         python3 ${CMAKE_CURRENT_SOURCE_DIR}/GenerateOptionsDocsFromTblGen.py
         ${LINKER_OPTS_DUMP_DIR}/${target}LinkerOptionsTblGenDump.json -o
         ${DOCS_BUILD_SOURCE}/documentation/options/${target}LinkerOptions.rst
-        ${SKIP_OPTION})
+        ${SKIP_OPTION}
+        -S ${OPTIONS_SUPPLEMENTS_DIR})
 
     add_dependencies(eld-${targetLC}linkeroptions-docs
                      eld-${targetLC}linkeroptions-json-dump)

@@ -247,11 +247,13 @@ Reproducing a failure
 ----------------------
 
 If you are having an issue, and you want to pass the link step for someone else
-to debug, you can use the *--reproduce <tarball>*  option.
+to debug, you can use the ``--reproduce`` option.
 
-The *–-reproduce <tarball>*  option creates a tar ball with all the inputs that
-were fed to the linker, and rewrites the link command to make it easy for users
-to reproduce the problem.
+``--reproduce <tarball>`` creates a tarball with all the inputs that were fed
+to the linker and rewrites the link command so the problem can be reproduced
+elsewhere.  Use ``--reproduce=default`` to automatically name the tarball
+after the output file (``<output>.tar``, where ``<output>`` is the ``-o``
+filename, or ``a.out.tar`` if ``-o`` is not given).
 
 .. note::
 
@@ -262,9 +264,11 @@ to reproduce the problem.
 
     If you are having a link time failure and the problem does not reproduce everytime,
     but in specific builds, it may be because of non determinism in the builds.
-    In that case use the option --reproduce-on-fail.
+    In that case use the option ``--reproduce-on-fail <tarball>``.
+    Use ``--reproduce-on-fail=default`` to name the tar after the output file.
 
-The reproduce-on-fail switch only creates a tarball when the link step fails.
+The ``--reproduce-on-fail`` switch only creates a tarball when the link step
+fails.
 
 Multiple ways to invoke ELD linker
 ------------------------------------

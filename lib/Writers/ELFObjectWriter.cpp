@@ -18,6 +18,7 @@
 #include "eld/Fragment/FillFragment.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
+#include "eld/Fragment/GNUVerNeedFragment.h"
 #endif
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/StringFragment.h"
@@ -206,6 +207,7 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
 
   {
     PluginManager &PM = ThisModule.getPluginManager();
+    ThisModule.setLinkState(LinkState::ActBeforePerformingLayout);
     if (!PM.callActBeforeWritingOutputHook()) {
       // Return generic error-code. Actual error is already reported!
       return make_error_code(std::errc::not_supported);
@@ -705,6 +707,8 @@ uint64_t ELFObjectWriter::getSectEntrySize(ELFSection *CurSection) const {
     return CurSection->getEntSize();
   if (CurSection->getType() == llvm::ELF::SHT_GNU_verdef)
     return CurSection->getEntSize();
+  if (CurSection->getType() == llvm::ELF::SHT_GNU_verneed)
+    return CurSection->getEntSize();
 #endif
   return 0x0;
 }
@@ -729,6 +733,8 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
   if (llvm::ELF::SHT_GNU_versym == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
   if (llvm::ELF::SHT_GNU_verdef == S->getType())
+    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
+  if (llvm::ELF::SHT_GNU_verneed == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
 #endif
   if (ThisModule.getConfig().isLinkPartial() &&
@@ -762,6 +768,8 @@ uint64_t ELFObjectWriter::getSectInfo(ELFSection *CurSection) const {
   if (llvm::ELF::SHT_GNU_verdef == CurSection->getType()) {
     return ThisModule.getBackend().getGNUVerDefFragment()->defCount();
   }
+  if (llvm::ELF::SHT_GNU_verneed == CurSection->getType())
+    return ThisModule.getBackend().getGNUVerNeedFragment()->getNeedCount();
 #endif
 
   if (CurSection->isRelocationSection()) {
@@ -803,14 +811,15 @@ void ELFObjectWriter::emitGroup(ELFSection *S, MemoryRegion &CurRegion) {
         RegionFrag.getRegion().size() / sizeof(llvm::ELF::Elf32_Word);
     // copy the contents
     memcpy(CurRegion.begin() + CurOffset, From, Frag->size());
-    void *GroupData = (void *)(CurRegion.begin() + CurOffset);
+    uint8_t *GroupData = (uint8_t *)(CurRegion.begin() + CurOffset);
     auto *Si = S->getGroupSections().begin();
     auto *Se = S->getGroupSections().end();
     for (size_t Index = 1; Index < GroupDataSize; ++Index) {
       if (Si == Se)
         break;
       uint32_t SectionIdx = (*Si)->getOutputELFSection()->getIndex();
-      ((uint32_t *)GroupData)[Index] = SectionIdx;
+      std::memcpy(GroupData + (Index * sizeof(llvm::ELF::Elf32_Word)),
+          &SectionIdx, sizeof(llvm::ELF::Elf32_Word));
       ++Si;
     }
     CurOffset += Frag->size();

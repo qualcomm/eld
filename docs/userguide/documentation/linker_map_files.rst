@@ -122,6 +122,7 @@ symbols 'foo' and 'bar' from the archive members.
    libs/libbar.a(Bar.o)
                    main.o (bar)
 
+
 Allocating Common Symbols
 ==========================
 

@@ -16,7 +16,10 @@ on:
       - '.github/workflows/update-build-dashboard-data.yml'
       - '.github/workflows/scripts/record_builds.py'
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
+      - '.github/workflows/zephyr-nightly.yml'
 
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: self-hosted

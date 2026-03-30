@@ -21,10 +21,9 @@
 # CODE-NEXT: LOAD 0x003000 0x0000000000003000 0x0000000000003000 0x000001 0x000001 R   0x1000
 # CODE-NEXT: LOAD 0x003008 0x0000000000003008 0x0000000000003008 0x0000f1 0x0000f1 RW  0x1000
 
-## TODO:
 ## -z separate-loadable-segments makes all segments separate.
-# %link -pie --no-align-segments --rosegment %t.o -z separate-loadable-segments -o %t
-# llvm-readelf -l %t | FileCheck --check-prefix=ALL %s
+# RUN: %link -pie --no-align-segments --rosegment %t.o -z separate-loadable-segments -o %t
+# RUN: llvm-readelf -l %t | FileCheck --check-prefix=ALL %s
 # ALL:      LOAD 0x000000 0x0000000000000000 0x0000000000000000 0x000200 0x000200 R E 0x1000
 # ALL-NEXT: LOAD 0x001000 0x0000000000001000 0x0000000000001000 0x000044 0x000044 R   0x1000
 # ALL-NEXT: LOAD 0x002000 0x0000000000002000 0x0000000000002000 0x000001 0x000001 R E 0x1000

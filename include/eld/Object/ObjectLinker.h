@@ -51,6 +51,7 @@ class GNULDBackend;
 class GroupReader;
 class LibReader;
 class Input;
+class InputFile;
 class InputTree;
 class IRBuilder;
 class LinkerConfig;
@@ -61,12 +62,19 @@ class ELFRelocObjParser;
 class ObjectReader;
 class Relocation;
 class ResolveInfo;
+class LDSymbol;
 class ScriptReader;
 
 /** \class ObjectLinker
  */
 class ObjectLinker {
 public:
+  struct ArchiveMemberReportRecord {
+    Input *Origin = nullptr;
+    InputFile *Referrer = nullptr;
+    LDSymbol *Symbol = nullptr;
+  };
+
   ObjectLinker(LinkerConfig &PConfig, Module &PModule);
 
   bool initialize();
@@ -367,6 +375,26 @@ public:
     MMemoryAreaToArchiveFileMap[MemArea] = &AF;
   }
 
+  void recordArchiveMemberForReport(Input *Origin, InputFile *Referrer,
+                                    LDSymbol *Symbol) {
+    ArchiveRecordsForReport.push_back({Origin, Referrer, Symbol});
+  }
+
+  void recordWholeArchiveMemberForReport(Input *Origin) {
+    ArchiveRecordsForReport.push_back({Origin, nullptr, nullptr});
+  }
+
+  const std::vector<ArchiveMemberReportRecord> &
+  getArchiveRecordsForReport() const {
+    return ArchiveRecordsForReport;
+  }
+
+  static llvm::StringRef getWholeArchiveStringForReport() {
+    return "-whole-archive";
+  }
+
+  bool emitArchiveMemberReport(llvm::StringRef Filename) const;
+
 private:
   std::unique_ptr<llvm::lto::LTO> ltoInit(llvm::lto::Config Conf,
                                           bool CompileToAssembly);
@@ -531,6 +559,8 @@ private:
   /// times. ArchiveFileInfo is obtained as 'archiveFile->getArchiveFileInfo()'.
   std::unordered_map<const MemoryArea *, const ArchiveFile *>
       MMemoryAreaToArchiveFileMap;
+
+  std::vector<ArchiveMemberReportRecord> ArchiveRecordsForReport;
 };
 
 } // end namespace eld

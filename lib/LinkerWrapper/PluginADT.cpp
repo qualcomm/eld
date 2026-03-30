@@ -20,6 +20,7 @@
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/INIReader.h"
+#include "eld/Support/InputTarReader.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/SymbolResolver/SymbolInfo.h"
@@ -30,7 +31,6 @@
 #include "llvm/Support/Timer.h"
 #include <memory>
 #include <optional>
-
 using namespace eld;
 using namespace eld::plugin;
 
@@ -679,12 +679,7 @@ eld::Expected<void>
 plugin::Section::overrideLinkerScriptRule(LinkerWrapper &LW,
                                           plugin::LinkerScriptRule R,
                                           const std::string &Annotation) {
-  if (!LW.isLinkStateInitializing()) {
-    return std::make_unique<plugin::DiagnosticEntry>(
-        Diag::error_invalid_link_state,
-        std::vector<std::string>{std::string(LW.getCurrentLinkStateAsStr()),
-                                 __FUNCTION__, ""});
-  }
+  CHECK_LINK_STATE(LW, "Initializing", "ActBeforeRuleMatching");
   if (!m_Section)
     return {};
   ELFSection *S = llvm::dyn_cast<ELFSection>(m_Section);
@@ -1644,6 +1639,88 @@ std::unique_ptr<eld::MemoryArea> plugin::MemoryBuffer::getBuffer() {
 }
 
 plugin::MemoryBuffer::~MemoryBuffer() {}
+
+//
+//-------------------------------TarFile-------------------------------
+//
+
+plugin::TarFile::TarFile(
+    std::unique_ptr<eld::MemoryArea> Buf, std::vector<std::string> EntryNames,
+    std::vector<eld::InputTarReader::EntryInfo> RegularEntries)
+    : m_IsInitialized(true), m_Buffer(std::move(Buf)),
+      m_EntryNames(std::move(EntryNames)),
+      m_RegularEntries(std::move(RegularEntries)) {}
+
+eld::Expected<plugin::TarFile>
+plugin::TarFile::Create(std::unique_ptr<eld::MemoryArea> Buf) {
+  if (!Buf)
+    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
+        Diag::error_invalid_tar_archive, {"tar file is not initialized"}));
+
+  auto EntryNamesOrErr =
+      eld::InputTarReader::listEntryNames(Buf->getContents());
+  if (!EntryNamesOrErr)
+    return std::move(EntryNamesOrErr.error());
+
+  auto EntriesOrErr =
+      eld::InputTarReader::listRegularFileEntries(Buf->getContents());
+  if (!EntriesOrErr)
+    return std::move(EntriesOrErr.error());
+
+  return TarFile(std::move(Buf), std::move(*EntryNamesOrErr),
+                 std::move(*EntriesOrErr));
+}
+
+plugin::TarFile::TarFile(plugin::TarFile &&other) noexcept {
+  *this = std::move(other);
+}
+
+plugin::TarFile &plugin::TarFile::operator=(plugin::TarFile &&other) noexcept {
+  if (this == &other)
+    return *this;
+  std::swap(m_IsInitialized, other.m_IsInitialized);
+  std::swap(m_Buffer, other.m_Buffer);
+  std::swap(m_EntryNames, other.m_EntryNames);
+  std::swap(m_RegularEntries, other.m_RegularEntries);
+  return *this;
+}
+
+eld::Expected<std::vector<std::string>> plugin::TarFile::listEntries() const {
+  if (!m_IsInitialized)
+    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
+        Diag::error_invalid_tar_archive, {"tar file is not initialized"}));
+  return m_EntryNames;
+}
+
+eld::Expected<std::string>
+plugin::TarFile::readEntry(const std::string &EntryName) const {
+  auto ViewOrErr = readEntryContents(EntryName);
+  if (!ViewOrErr)
+    return std::move(ViewOrErr.error());
+  return std::string(*ViewOrErr);
+}
+
+eld::Expected<std::string_view>
+plugin::TarFile::readEntryContents(const std::string &EntryName) const {
+  if (!m_IsInitialized || !m_Buffer)
+    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
+        Diag::error_invalid_tar_archive, {"tar file is not initialized"}));
+
+  llvm::StringRef FileName(EntryName);
+  const auto &TarData = m_Buffer->getContents();
+  std::string Suffix = ("/" + EntryName);
+  for (const auto &Entry : m_RegularEntries) {
+    llvm::StringRef Name(Entry.Name);
+    if (Name == FileName || Name.ends_with(Suffix)) {
+      llvm::StringRef Payload = TarData.substr(Entry.Offset, Entry.Size);
+      return std::string_view(Payload.data(), Payload.size());
+    }
+  }
+  return std::make_unique<DiagnosticEntry>(
+      DiagnosticEntry(Diag::error_tar_file_not_found, {EntryName}));
+}
+
+plugin::TarFile::~TarFile() {}
 
 InputSymbol::InputSymbol() : Sym(nullptr), SymInfo(nullptr) {}
 

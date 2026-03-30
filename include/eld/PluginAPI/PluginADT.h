@@ -13,7 +13,9 @@
 #include "Expected.h"
 #include "LinkerScript.h"
 #include "ThreadPool.h"
+#include "eld/Support/InputTarReader.h"
 #include <string>
+#include <string_view>
 #include <sys/types.h>
 #include <vector>
 
@@ -67,6 +69,7 @@ class DLL_A_EXPORT MemoryBuffer;
 class DLL_A_EXPORT LinkerWrapper;
 struct DLL_A_EXPORT MergeableString;
 class DLL_A_EXPORT TarWriter;
+class DLL_A_EXPORT TarFile;
 struct DLL_A_EXPORT LinkerConfig;
 
 /// A section is formed of a set of chunks. Chunk is a handler for one such
@@ -1214,6 +1217,45 @@ public:
 private:
   std::unique_ptr<eld::MemoryArea> m_Buffer;
   friend class plugin::TarWriter;
+};
+
+/// plugin::TarFile represents a memory-mapped tar archive.
+/// It allows repeated queries without remapping the underlying tar file.
+class DLL_A_EXPORT TarFile final {
+public:
+  static eld::Expected<TarFile> Create(std::unique_ptr<eld::MemoryArea> Buf);
+
+  // Disable copy operations.
+  TarFile(const TarFile &) = delete;
+  TarFile &operator=(const TarFile &) = delete;
+
+  // Movable.
+  TarFile(TarFile &&) noexcept;
+  TarFile &operator=(TarFile &&) noexcept;
+
+  /// Returns all entry names in archive order.
+  eld::Expected<std::vector<std::string>> listEntries() const;
+
+  /// Read one regular-file entry and return its contents.
+  /// Matching accepts exact and suffix paths.
+  eld::Expected<std::string> readEntry(const std::string &EntryName) const;
+
+  /// Read one regular-file entry and return a view into the mapped tar memory.
+  /// The returned view remains valid while this TarFile is alive.
+  eld::Expected<std::string_view>
+  readEntryContents(const std::string &EntryName) const;
+
+  ~TarFile();
+
+private:
+  TarFile(std::unique_ptr<eld::MemoryArea> Buf,
+          std::vector<std::string> EntryNames,
+          std::vector<eld::InputTarReader::EntryInfo> RegularEntries);
+
+  bool m_IsInitialized = false;
+  std::unique_ptr<eld::MemoryArea> m_Buffer;
+  std::vector<std::string> m_EntryNames;
+  std::vector<eld::InputTarReader::EntryInfo> m_RegularEntries;
 };
 
 /// InputFile represents an input file. Input file can be an object file,

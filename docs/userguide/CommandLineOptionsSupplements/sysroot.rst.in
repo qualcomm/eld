@@ -1,0 +1,11 @@
+| ``INPUT(file, file, ...)``
+| ``GROUP(file, file, ...)``
+
+The files specified using the INPUT and GROUP command are searched inside the sysroot when:
+
+  - The file begins with the ``/`` character, and
+  - The script containing the INPUT/GROUP command is located within the sysroot directory.
+
+:option:`-L` ``<search_directory>``
+
+When ``<search_directory>`` is prefixed with ``=``, then ``=`` is expanded to the sysroot.

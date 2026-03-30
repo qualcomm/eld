@@ -95,11 +95,14 @@ bool GeneralOptions::addZOption(const ZOption &POption) {
   case ZOption::NoGnuStack:
     NoGnuStack = true;
     break;
-  case eld::ZOption::SeparateCode:
+  case ZOption::SeparateCode:
     setSeparateSegmentKind(SeparateSegmentKind::Code);
     break;
-  case eld::ZOption::NoSeparateCode:
+  case ZOption::NoSeparateCode:
     setSeparateSegmentKind(SeparateSegmentKind::None);
+    break;
+  case ZOption::SeparateLoadableSegments:
+    setSeparateSegmentKind(SeparateSegmentKind::Loadable);
     break;
   case ZOption::Global:
     BGlobal = true;
@@ -240,6 +243,7 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
             .Case("dynamic-linking",
                   DiagEngine->getPrinter()->TraceDynamicLinking)
             .Case("linker-script", DiagEngine->getPrinter()->TraceLinkerScript)
+            .Case("untar", DiagEngine->getPrinter()->TraceUntar)
             .Case("symdef", DiagEngine->getPrinter()->TraceSymDef)
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
             .Case("symbol-versioning",

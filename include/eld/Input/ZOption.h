@@ -42,6 +42,7 @@ public:
     NoExecStack,
     NoGnuStack,
     SeparateCode,
+    SeparateLoadableSegments,
     NoSeparateCode,
     NoRelro,
     Now,

@@ -70,6 +70,7 @@ struct DLL_A_EXPORT SmallJSONValue;
 struct DLL_A_EXPORT Symbol;
 struct DLL_A_EXPORT Use;
 class DLL_A_EXPORT TarWriter;
+class DLL_A_EXPORT TarFile;
 
 using AuxiliarySymbolNameMap = std::unordered_map<uint64_t, std::string>;
 
@@ -476,6 +477,12 @@ public:
   /// \returns eld::Expected<TarWriter>
   eld::Expected<TarWriter> getTarWriter(const std::string &Name) const;
 
+  /// Opens a tar file once and returns a TarFile object for repeated queries.
+  ///
+  /// For reproducible links, the input tar path should come from
+  /// LinkerWrapper::findConfigFile.
+  eld::Expected<TarFile> openTarFile(std::string TarFileName) const;
+
   /// \returns true if Timing is enabled for this plugin;
   /// Otherwise returns false.
   bool isTimingEnabled() const;
@@ -805,13 +812,21 @@ public:
                                                bool doNotUseRMName = false);
   bool isLinkStateInitializing() const;
 
+  bool isLinkStateActBeforeRuleMatching() const;
+
   bool isLinkStateBeforeLayout() const;
+
+  bool isLinkStateActBeforeSectionMerging() const;
 
   bool isLinkStateCreatingSections() const;
 
-  bool isLinkStateAfterLayout() const;
+  bool isLinkStateActBeforePerformingLayout() const;
 
   bool isLinkStateCreatingSegments() const;
+
+  bool isLinkStateAfterLayout() const;
+
+  bool isLinkStateActBeforeWritingOutput() const;
 
 private:
   uint8_t getLinkState() const;

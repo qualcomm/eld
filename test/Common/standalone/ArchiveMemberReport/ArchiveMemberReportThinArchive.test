@@ -1,0 +1,25 @@
+#---ArchiveMemberReportThinArchive.test---Executable --------------------#
+#BEGIN_COMMENT
+# Verify --archive-member-report records pull-in information for thin archives.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %ar -crT %tlibthin.a %t.foo.o %t.bar.o
+RUN: %link %linkopts -o %t.out %t.main.o %tlibthin.a --archive-member-report %t.report.json
+RUN: %filecheck %s --check-prefix=THIN < %t.report.json
+#END_TEST
+
+THIN: "ArchiveMembers"
+THIN-DAG: "Archive": "{{.*}}libthin.a"
+THIN-DAG: "MemberPath": "{{.*libthin\.a\([^)]*foo[^)]*\.o\)}}"
+THIN-DAG: "ReferrerObjectFile": "{{.*}}main.o"
+THIN-DAG: "Symbol": "foo"
+THIN-DAG: "MemberIsArchiveMember": true
+THIN-DAG: "ReferrerIsArchiveMember": false
+THIN-DAG: "MemberPath": "{{.*libthin\.a\([^)]*bar[^)]*\.o\)}}"
+THIN-DAG: "ReferrerArchive": "{{.*}}libthin.a"
+THIN-DAG: "Symbol": "bar"
+THIN-DAG: "MemberReferencedSymbols"
+THIN-DAG: "bar"

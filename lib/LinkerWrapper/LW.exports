@@ -41,6 +41,7 @@ extern "C++" { #
   eld::plugin::SmallJSONValue::*
   eld::plugin::Stub::*
   eld::plugin::Symbol::*
+  eld::plugin::TarFile::*
   eld::plugin::TarWriter::*
   eld::plugin::ThreadPool::*
   eld::plugin::Timer::*

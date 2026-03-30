@@ -178,6 +178,12 @@ DIAG(error_invalid_input_format, DiagnosticEngine::Error,
      "Invalid input format '%0'. Supported values: 'binary', 'default'")
 DIAG(warn_unknown_trace_option, DiagnosticEngine::Warning,
      "Unknown trace option '%0'")
+DIAG(error_invalid_tar_archive, DiagnosticEngine::Error,
+     "Invalid tar archive: %0")
+DIAG(error_cannot_read_tar_file, DiagnosticEngine::Error,
+     "Cannot read tar file '%0': %1")
+DIAG(error_tar_file_not_found, DiagnosticEngine::Error,
+     "File '%0' not found in tar archive")
 DIAG(err_shared_objects_in_partial_link, DiagnosticEngine::Error,
     "Shared libraries are not allowed with partial links, found %0")
 DIAG(err_patch_base_not_executable, DiagnosticEngine::Error,

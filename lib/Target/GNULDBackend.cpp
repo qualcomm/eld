@@ -26,6 +26,7 @@
 #include "eld/Fragment/GNUHashFragment.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
+#include "eld/Fragment/GNUVerNeedFragment.h"
 #include "eld/Fragment/GNUVerSymFragment.h"
 #endif
 #include "eld/Fragment/RegionFragment.h"
@@ -781,7 +782,12 @@ bool GNULDBackend::SetSymbolsToBeExported() {
           m_Module.getNamePool().findInfo(R->getNonVersionedName().str());
       if (nonVerSym) {
         auto nonVerSymScope = SymbolScopes.find(nonVerSym);
-        if (nonVerSymScope == SymbolScopes.end())
+        // Only clear export for the non-versioned alias when the
+        // version script explicitly marks it local. If there is no
+        // scope information, keep the export to satisfy relocations
+        // against the unversioned name (e.g., foo).
+        if (nonVerSymScope != SymbolScopes.end() &&
+            nonVerSymScope->second->isLocal())
           nonVerSym->clearExportToDyn();
       }
     }
@@ -849,6 +855,9 @@ void GNULDBackend::sizeDynNamePools() {
 
   // Versioning assignment and fragment creation only when enabled.
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (!shouldEmitVersioningSections())
+    return;
+
   assignOutputVersionIDs();
   if (!config().getDiagEngine()->diagnose())
     return;
@@ -880,6 +889,23 @@ void GNULDBackend::sizeDynNamePools() {
     GNUVerDefSection->addFragmentAndUpdateSize(F);
     GNUVerDefFrag = F;
     GNUVerDefSection->setInfo(F->defCount());
+  }
+
+  if (GNUVerNeedSection) {
+    if (DP->traceSymbolVersioning())
+      config().raise(Diag::trace_creating_symbol_versioning_fragment) <<
+          GNUVerNeedSection->name();
+    GNUVerNeedFragment *F = make<GNUVerNeedFragment>(GNUVerNeedSection);
+    bool is32Bits = config().targets().is32Bits();
+    if (is32Bits)
+      F->computeVersionNeeds<llvm::object::ELF32LE>(
+          m_Module.getDynLibraryList(), getOutputFormat(), *DE);
+    else
+      F->computeVersionNeeds<llvm::object::ELF64LE>(
+          m_Module.getDynLibraryList(), getOutputFormat(), *DE);
+    GNUVerNeedSection->addFragmentAndUpdateSize(F);
+    GNUVerNeedFrag = F;
+    GNUVerNeedSection->setInfo(F->getNeedCount());
   }
 #endif
 }
@@ -1031,7 +1057,7 @@ void GNULDBackend::sizeSymTab() {
         m_SymbolsToRemove.count(Sym)) {
       continue;
     }
-    std::string symName = Sym->name();
+    std::string symName = Sym->outSymbol()->name();
     strtab += symName.size() + 1;
     ++NumSymbols;
   }
@@ -1137,7 +1163,7 @@ void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
       pSym.st_name = optSymNameOffset.value();
     } else {
       pSym.st_name = pStrtabsize;
-      strcpy((pStrtab + pStrtabsize), pSymbol->name());
+      strcpy((pStrtab + pStrtabsize), std::string(pSymbol->name()).data());
     }
   }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
@@ -3280,6 +3306,39 @@ bool GNULDBackend::layout() {
   return config().getDiagEngine()->diagnose();
 }
 
+GNULDBackend::LayoutSnapshot GNULDBackend::captureLayoutSnapshot() const {
+  LayoutSnapshot S;
+  const SectionMap &SM = m_Module.getScript().sectionMap();
+  for (auto It = SM.begin(), End = SM.end(); It != End; ++It) {
+    const OutputSectionEntry *O = *It;
+    const ELFSection *Sec = O->getSection();
+    ASSERT(Sec, "Must not be null!");
+    SectionAddrs A;
+    A.vma = Sec->addr();
+    A.lma = Sec->pAddr();
+    S.outSections.insert({O, A});
+  }
+  return S;
+}
+
+const OutputSectionEntry *
+GNULDBackend::findDivergence(const LayoutSnapshot &Prev,
+                             const LayoutSnapshot &cur) const {
+  const SectionMap &SM = m_Module.getScript().sectionMap();
+  for (auto It = SM.begin(), End = SM.end(); It != End; ++It) {
+    const OutputSectionEntry *O = *It;
+    auto PrevIt = Prev.outSections.find(O);
+    auto CurIt = cur.outSections.find(O);
+    if (PrevIt == Prev.outSections.end() || CurIt == cur.outSections.end())
+      return O;
+    const SectionAddrs &A = PrevIt->second;
+    const SectionAddrs &B = CurIt->second;
+    if (A.vma != B.vma || A.lma != B.lma)
+      return O;
+  }
+  return nullptr;
+}
+
 // Create or return an already created relocation output section for partial
 // linking.
 ELFSection *GNULDBackend::getOutputRelocationSection(ELFSection *S,
@@ -3883,11 +3942,11 @@ bool GNULDBackend::symbolNeedsDynRel(const ResolveInfo &pSym, bool pSymHasPLT,
        LinkerConfig::Binary == config().codeGenType()))
     return false;
 
-  // An absolute symbol can be resolved directly if it is either local
-  // or we are linking statically. Otherwise it can still be overridden
-  // at runtime.
+  // An absolute symbol can be resolved directly if it is local,
+  // non-preemptible (e.g. --defsym in a PIE link), or statically linked.
   if (pSym.isAbsolute() &&
-      (pSym.binding() == ResolveInfo::Local || config().isCodeStatic()))
+      (pSym.binding() == ResolveInfo::Local || !isSymbolPreemptible(pSym) ||
+       config().isCodeStatic()))
     return false;
   if (config().isCodeIndep() && isAbsReloc)
     return true;
@@ -4074,15 +4133,33 @@ bool GNULDBackend::relax() {
   while (!finished) {
     auto start = std::chrono::steady_clock::now();
     {
-      eld::RegisterTimer T("Assign Address", "Establish Layout",
-                           m_Module.getConfig().options().printTimingStats());
-      bool hasError = createProgramHdrs();
-      if (hasError)
-        m_Module.setFailure(true);
-      if (updateTargetSections()) {
+      // Bounded convergence loop over address assignment.
+      LayoutSnapshot prevSnap, curSnap;
+      prevSnap = captureLayoutSnapshot();
+      constexpr int maxIterations = 4;
+      const OutputSectionEntry *changed = nullptr;
+      for (int i = 0; i < maxIterations; ++i) {
+        eld::RegisterTimer T("Assign Address", "Establish Layout",
+                             m_Module.getConfig().options().printTimingStats());
         bool hasError = createProgramHdrs();
         if (hasError)
           m_Module.setFailure(true);
+        if (updateTargetSections()) {
+          bool hasError = createProgramHdrs();
+          if (hasError)
+            m_Module.setFailure(true);
+        }
+        curSnap = captureLayoutSnapshot();
+        changed = findDivergence(prevSnap, curSnap);
+        if (!changed)
+          break;
+        prevSnap = std::move(curSnap);
+      }
+      if (changed) {
+        // Emit a note for the first observed changed section.
+        if (const ELFSection *S = changed->getSection())
+          config().raise(Diag::note_section_address_not_converging)
+              << S->name() << maxIterations;
       }
       if (LinkerConfig::Object != config().codeGenType()) {
         if (!setupProgramHdrs()) {
@@ -5323,6 +5400,16 @@ void GNULDBackend::initSymbolVersioningSections() {
       llvm::ELF::SHT_GNU_verdef, llvm::ELF::SHF_ALLOC,
       /*Align=*/sizeof(uint32_t));
   GNUVerDefSection->setLink(getOutputFormat()->getDynStrTab());
+
+  if (DP->traceSymbolVersioning())
+    config().raise(Diag::trace_creating_symbol_versioning_section)
+        << ".gnu.version_r";
+  GNUVerNeedSection = m_Module.createInternalSection(
+      Module::InternalInputType::SymbolVersioning,
+      LDFileFormat::Kind::SymbolVersion, ".gnu.version_r",
+      llvm::ELF::SHT_GNU_verneed, llvm::ELF::SHF_ALLOC,
+      /*Align=*/sizeof(uint32_t));
+  GNUVerNeedSection->setLink(getOutputFormat()->getDynStrTab());
 }
 #endif
 
@@ -5350,11 +5437,18 @@ void GNULDBackend::assignOutputVersionIDs() {
   uint16_t defaultVersionID = llvm::ELF::VER_NDX_GLOBAL;
 
   setSymbolVersionID(DynamicSymbols[0], llvm::ELF::VER_NDX_LOCAL);
+  if (shouldTraceSymbolVersioning)
+    config().raise(Diag::trace_symbol_to_output_version_id)
+        << DynamicSymbols[0]->name() << llvm::ELF::VER_NDX_LOCAL;
   // First, assign default version to any symbol without an explicit one.
   for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
     ResolveInfo *R = DynamicSymbols[i];
-    if (!getSymbolVersionID(R))
+    if (!getSymbolVersionID(R)) {
       setSymbolVersionID(R, defaultVersionID);
+      if (shouldTraceSymbolVersioning)
+        config().raise(Diag::trace_symbol_to_output_version_id)
+            << R->name() << defaultVersionID;
+    }
   }
 
   // For output-defined symbols with explicit version suffix foo@VER or
@@ -5392,6 +5486,36 @@ void GNULDBackend::assignOutputVersionIDs() {
     if (!isDefaultVersionSymbol)
       VernID |= llvm::ELF::VERSYM_HIDDEN;
     setSymbolVersionID(R, VernID);
+    if (shouldTraceSymbolVersioning)
+      config().raise(Diag::trace_symbol_to_output_version_id)
+          << R->name() << (VernID & ~llvm::ELF::VERSYM_HIDDEN);
+  }
+
+  for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
+    ResolveInfo *R = DynamicSymbols[i];
+    ELFDynObjectFile *DynObjFile =
+        llvm::dyn_cast<ELFDynObjectFile>(R->resolvedOrigin());
+    if (!DynObjFile)
+      continue;
+    LDSymbol *sym = R->outSymbol();
+    ASSERT(sym, "Must not be null!");
+    if (R->isUndef())
+      continue;
+    if (!DynObjFile->hasSymbolVersioningInfo())
+      continue;
+    uint16_t InputVersionID = DynObjFile->getSymbolVersionID(sym->getSymbolIndex());
+    if (InputVersionID == llvm::ELF::VER_NDX_LOCAL ||
+        InputVersionID == llvm::ELF::VER_NDX_GLOBAL)
+      continue;
+    auto VernAuxID = DynObjFile->getOutputVernAuxID(InputVersionID);
+    if (VernAuxID == 0) {
+      VernAuxID = NextVerID++;
+      DynObjFile->setOutputVernAuxID(InputVersionID, VernAuxID);
+    }
+    setSymbolVersionID(R, VernAuxID);
+    if (shouldTraceSymbolVersioning)
+      config().raise(Diag::trace_symbol_to_output_version_id)
+          << R->name() << VernAuxID;
   }
 }
 #endif

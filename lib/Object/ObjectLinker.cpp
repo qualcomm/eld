@@ -28,6 +28,7 @@
 #include "eld/Input/ObjectFile.h"
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/LayoutMap/TextLayoutPrinter.h"
+#include "eld/Object/ArchiveMemberReport.h"
 #include "eld/Object/GroupReader.h"
 #include "eld/Object/LibReader.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -149,6 +150,11 @@ bool ObjectLinker::initialize() {
     getTargetBackend().initRelocator();
 
   return true;
+}
+
+bool ObjectLinker::emitArchiveMemberReport(llvm::StringRef Filename) const {
+  return eld::emitArchiveMemberReport(*this, Filename,
+                                      ThisConfig.getDiagEngine());
 }
 
 /// initStdSections - initialize standard sections
@@ -1259,6 +1265,7 @@ bool ObjectLinker::mergeSections() {
     eld::RegisterTimer T("Universal Plugin", "Merge Sections",
                          ThisConfig.options().printTimingStats());
     auto &PM = ThisModule->getPluginManager();
+    ThisModule->setLinkState(LinkState::ActBeforeSectionMerging);
     if (!PM.callActBeforeSectionMergingHook())
       return false;
   }
@@ -1268,8 +1275,11 @@ bool ObjectLinker::mergeSections() {
     eld::RegisterTimer T("Plugin: Output Section Iterator Before Layout",
                          "Merge Sections",
                          ThisConfig.options().printTimingStats());
+    // For backward compatibility
+    ThisModule->setLinkState(LinkState::BeforeLayout);
     if (!runOutputSectionIteratorPlugin())
       return false;
+    ThisModule->setLinkState(LinkState::ActBeforeSectionMerging);
   }
 
   // Merge all the input sections.
@@ -1601,6 +1611,10 @@ bool ObjectLinker::addSymbolToOutput(const ResolveInfo &PInfo) const {
       ThisModule->hasWrapReference(PInfo.name()) && ResolvedOrigin->isBitcode())
     return false;
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (PInfo.isDyn() && PInfo.outSymbol() && PInfo.outSymbol()->shouldIgnore())
+    return false;
+#endif
   // Let the backend choose to add the symbol to the output.
   if (!getTargetBackend().addSymbolToOutput(const_cast<ResolveInfo *>(&PInfo)))
     return false;
@@ -3391,6 +3405,7 @@ bool ObjectLinker::insertPostLTOELF() {
       if (!BitcodeObject) {
         BitcodeObject = (*Obj);
         BitcodeObj = Obj;
+        // FIXME: break can be added here!
       }
     }
   }
@@ -3757,6 +3772,11 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
         ThisConfig.raiseDiagEntry(std::move(ExpRead.error()));
       return false;
     }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    ELFDynObjectFile *DynObjFile = llvm::cast<ELFDynObjectFile>(CurInput);
+    if (DynObjFile->hasSymbolVersioningInfo())
+      getTargetBackend().setShouldEmitVersioningSections(true);
+#endif
     ThisModule->getDynLibraryList().push_back(CurInput);
   } else if (CurInput->getKind() == InputFile::GNUArchiveFileKind) {
     eld::RegisterTimer T("Read Archive Files", "Read all Input files",

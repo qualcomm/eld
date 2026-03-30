@@ -56,6 +56,7 @@ class ELFObjectFileFormat;
 class ELFSegmentFactory;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 class GNUVerDefFragment;
+class GNUVerNeedFragment;
 #endif
 class TargetInfo;
 class Layout;
@@ -72,6 +73,7 @@ class ScriptMemoryRegion;
 class StubFactory;
 class SymDefReader;
 class TimingFragment;
+class OutputSectionEntry;
 
 /** \class GNULDBackend
  *  \brief GNULDBackend provides a common interface for all GNU Unix-OS
@@ -763,6 +765,21 @@ public:
   // -------------------- Finalize Layout callback ----------------
   virtual bool finalizeLayout() { return true; }
 
+  struct SectionAddrs {
+    uint64_t vma = 0;
+    uint64_t lma = 0;
+  };
+
+  struct LayoutSnapshot {
+    llvm::DenseMap<const OutputSectionEntry *, SectionAddrs> outSections;
+  };
+
+  // Capture current layout snapshot keyed by OutputSectionEntry*.
+  LayoutSnapshot captureLayoutSnapshot() const;
+
+  const OutputSectionEntry *findDivergence(const LayoutSnapshot &Prev,
+                                           const LayoutSnapshot &cur) const;
+
   // --- Exclude symbol support
   void markSymbolForRemoval(const ResolveInfo *S);
 
@@ -852,6 +869,8 @@ public:
   ELFSection *getGNUVerSymSection() const { return GNUVerSymSection; }
   ELFSection *getGNUVerDefSection() const { return GNUVerDefSection; }
   GNUVerDefFragment *getGNUVerDefFragment() const { return GNUVerDefFrag; }
+  ELFSection *getGNUVerNeedSection() const { return GNUVerNeedSection; }
+  GNUVerNeedFragment *getGNUVerNeedFragment() const { return GNUVerNeedFrag; }
   void setShouldEmitVersioningSections(bool Should) {
     ShouldEmitVersioningSections = Should;
   }
@@ -1190,6 +1209,8 @@ protected:
   ELFSection *GNUVerSymSection = nullptr;
   ELFSection *GNUVerDefSection = nullptr;
   GNUVerDefFragment *GNUVerDefFrag = nullptr;
+  ELFSection *GNUVerNeedSection = nullptr;
+  GNUVerNeedFragment *GNUVerNeedFrag = nullptr;
   std::unordered_map<const ResolveInfo *, uint16_t> OutputVersionIDs;
 #endif
 };

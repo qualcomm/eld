@@ -49,7 +49,7 @@ public:
 
   typedef llvm::StringMap<uint64_t> AddressMapType;
 
-  enum class SeparateSegmentKind { None, Code };
+  enum class SeparateSegmentKind { None, Code, Loadable };
 
   enum StripSymbolMode {
     KeepAllSymbols,
@@ -507,6 +507,15 @@ public:
 
   const std::optional<std::string> &getPluginActivityLogFile() const {
     return PluginActivityLogFile;
+  }
+
+  // --archive-member-report
+  void setArchiveMemberReportFile(llvm::StringRef File) {
+    ArchiveMemberReportFile = File.str();
+  }
+
+  const std::optional<std::string> &getArchiveMemberReportFile() const {
+    return ArchiveMemberReportFile;
   }
 
   // --ld-generated-unwind-info
@@ -1328,6 +1337,8 @@ private:
   std::string TarFile; // --reproduce output tarfile name
   std::string TimingStatsFile;
   std::optional<std::string> PluginActivityLogFile; // --plugin-activity-file output path
+  std::optional<std::string>
+      ArchiveMemberReportFile;           // --archive-member-report output path
   std::string MappingFileName;           // --Mapping-file
   std::string MappingDumpFile;           // --dump-mapping-file
   std::string ResponseDumpFile;          // --dump-response-file

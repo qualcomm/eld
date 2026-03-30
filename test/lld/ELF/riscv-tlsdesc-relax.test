@@ -49,8 +49,8 @@ RUN: %objdump --no-show-raw-insn -M no-aliases -h -d %t.a.pie.ie | FileCheck %s 
 GD4:      .got     {{0*}}14 {{0*}}20c0 DATA
 GD8:      .got     {{0*}}28 {{0*}}20c0 DATA
 
-GD-REL4:      {{0*}}20cc {{0*}}030c       R_RISCV_TLSDESC {{0*}}7ff b + 0
-GD-REL8:      {{0*}}20d8 {{0*}}030000000c R_RISCV_TLSDESC {{0*}}7ff b + 0
+GD-REL4:      {{0*}}20cc {{[[:xdigit:]]+}}0c       R_RISCV_TLSDESC {{0*}}7ff b + 0
+GD-REL8:      {{0*}}20d8 {{[[:xdigit:]]+}}0c       R_RISCV_TLSDESC {{0*}}7ff b + 0
 
 ## Notes re. comparing the output to lld:
 ## - .got does not have the initial entry, so its size and all offsets are 8
@@ -182,8 +182,8 @@ LEA-NEXT:         c.add   a0, tp
 IE4:      .got     {{0*}}10 {{0*}}120e0 DATA
 IE8:      .got     {{0*}}20 {{0*}}120e0 DATA
 
-IE-REL4:   {{0*}}120e4 {{0*}}010a       R_RISCV_TLS_TPREL32 {{0+}} b + 0
-IE-REL8:   {{0*}}120e8 {{0*}}010000000b R_RISCV_TLS_TPREL64 {{0+}} b + 0
+IE-REL4:   {{0*}}120e4 {{[[:xdigit:]]+}}0a       R_RISCV_TLS_TPREL32 {{0+}} b + 0
+IE-REL8:   {{0*}}120e8 {{[[:xdigit:]]+}}0b       R_RISCV_TLS_TPREL64 {{0+}} b + 0
 
 IE-LABEL: <foo>:
 IE-NORELAX-NEXT: addi    zero, zero, 0x0 

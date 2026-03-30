@@ -2,6 +2,78 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_COLOR_MAKEFILE ON)
 
+# Option to use external LLVM
+option(ELD_USE_EXTERNAL_LLVM "Use external LLVM installation" OFF)
+set(LLVM_DIR
+    ""
+    CACHE PATH
+          "Path to LLVM CMake directory (e.g., /path/to/llvm/lib/cmake/llvm)")
+
+if(ELD_USE_EXTERNAL_LLVM)
+  # Find external LLVM
+  if(NOT LLVM_DIR)
+    message(FATAL_ERROR "LLVM_DIR must be set when ELD_USE_EXTERNAL_LLVM is ON")
+  endif()
+
+  find_package(LLVM REQUIRED CONFIG PATHS ${LLVM_DIR} NO_DEFAULT_PATH)
+
+  message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+  message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+  message(STATUS "LLVM definitions: ${LLVM_DEFINITIONS}")
+  message(STATUS "LLVM include dirs: ${LLVM_INCLUDE_DIRS}")
+  message(STATUS "LLVM library dirs: ${LLVM_LIBRARY_DIRS}")
+  message(STATUS "LLVM targets: ${LLVM_TARGETS_TO_BUILD}")
+  message(STATUS "LLVM target triple: ${LLVM_TARGET_TRIPLE}")
+  message(STATUS "LLVM host triple: ${LLVM_HOST_TRIPLE}")
+
+  # Set up LLVM variables
+  list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+  include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
+  link_directories(${LLVM_LIBRARY_DIRS})
+  add_definitions(${LLVM_DEFINITIONS})
+
+  # Set PACKAGE_VERSION for ELD version computation
+  set(PACKAGE_VERSION ${LLVM_PACKAGE_VERSION})
+
+  # Set required LLVM variables
+  set(LLVM_TARGETS_TO_BUILD ${LLVM_TARGETS_TO_BUILD})
+
+  # Handle LLVM_DEFAULT_TARGET_TRIPLE (may be LLVM_TARGET_TRIPLE in newer
+  # versions)
+  if(DEFINED LLVM_DEFAULT_TARGET_TRIPLE)
+    set(LLVM_DEFAULT_TARGET_TRIPLE ${LLVM_DEFAULT_TARGET_TRIPLE})
+  elseif(DEFINED LLVM_TARGET_TRIPLE)
+    set(LLVM_DEFAULT_TARGET_TRIPLE ${LLVM_TARGET_TRIPLE})
+  elseif(DEFINED LLVM_HOST_TRIPLE)
+    set(LLVM_DEFAULT_TARGET_TRIPLE ${LLVM_HOST_TRIPLE})
+  else()
+    message(
+      FATAL_ERROR
+        "Could not determine LLVM_DEFAULT_TARGET_TRIPLE from LLVM installation")
+  endif()
+
+  message(
+    STATUS "Using LLVM_DEFAULT_TARGET_TRIPLE: ${LLVM_DEFAULT_TARGET_TRIPLE}")
+
+  # Include LLVM CMake modules
+  include(AddLLVM)
+  include(TableGen)
+  include(HandleLLVMOptions)
+
+  # Set up compiler flags similar to LLVM
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+  # FIXME : Enable tests For external builds, disable tests by default (requires
+  # LLVM source tree)
+  option(ELD_INCLUDE_TESTS "Include tests in external build" OFF)
+
+else()
+  # Integrated build (within LLVM tree)
+  message(STATUS "Building ELD as part of LLVM")
+  option(ELD_INCLUDE_TESTS "Include tests in integrated build" ON)
+endif()
+
 set(ELD_SOURCE_DIR
     ${CMAKE_CURRENT_SOURCE_DIR}
     CACHE STRING "")
@@ -9,9 +81,9 @@ set(ELD_BINARY_DIR
     ${CMAKE_CURRENT_BINARY_DIR}
     CACHE STRING "")
 
-# Most users probably don't want/need to change this, but it is referenced
-# by `llvm_install_symlink` (and other llvm cmake utilities).
-set(ELD_TOOLS_INSTALL_DIR "bin" CACHE PATH "Path for binary subdirectory (defaults to 'bin')")
+set(ELD_TOOLS_INSTALL_DIR
+    "bin"
+    CACHE PATH "Path for binary subdirectory (defaults to 'bin')")
 mark_as_advanced(ELD_TOOLS_INSTALL_DIR)
 
 list(APPEND CMAKE_MODULE_PATH "${ELD_SOURCE_DIR}/cmake/modules")
@@ -33,9 +105,7 @@ string(REGEX REPLACE "([0-9]+)\\.[0-9]+(\\.[0-9]+)?" "\\1" ELD_VERSION_MAJOR
 string(REGEX REPLACE "[0-9]+\\.([0-9]+)(\\.[0-9]+)?" "\\1" ELD_VERSION_MINOR
                      ${ELD_VERSION})
 
-# ##############################################################################
 # Support linker version
-# ##############################################################################
 add_version_info_eld_git(ELD_REPOSITORY ELD_REVISION ${ELD_SOURCE_DIR})
 
 if(LLVM_VENDOR_NAME)
@@ -50,12 +120,11 @@ else()
   info("Use LLVM_VENDOR_VERSION to set more vendor version")
 endif()
 
-# Configures everything in the Version.inc file except ELD_REVISION.
+# Configure Version.inc
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eld/Config/Version.inc.in
   ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc.in @ONLY)
-# 'ELD_VERSION_PRE_CONFIGURED_FILE' and 'ELD_VERSION_POST_CONFIGURED' variables
-# are required in 'ELDVersionMonitor'.
+
 set(ELD_VERSION_PRE_CONFIGURED_FILE
     ${CMAKE_CURRENT_BINARY_DIR}/include/eld/Config/Version.inc.in)
 set(ELD_VERSION_POST_CONFIGURED_FILE
@@ -66,8 +135,6 @@ set(ELD_DEFAULT_TARGET_TRIPLE
     "${LLVM_DEFAULT_TARGET_TRIPLE}"
     CACHE STRING "Default target for which LLVM will generate code.")
 
-# These two variables are for runnable lit tests and should be set to the
-# 32/64-bit emulators used to run the tests.
 set(ELD_EMULATOR "")
 set(ELD_EMULATOR64 "")
 
@@ -83,7 +150,7 @@ if(NOT ELD_TARGETS_TO_BUILD)
       CACHE STRING "ELD Target(Targets) to build")
 endif()
 
-# set ELD_ENUM_TARGETS="ELD_TARGET($target_to_build)
+# Set ELD_ENUM_TARGETS
 set(ELD_ENUM_TARGETS_STR "")
 set(ELD_ENUM_LINKERS_STR "")
 set(ELD_DEFINE_TARGETS_STR "")
@@ -103,24 +170,24 @@ string(REPLACE ";" "" ELD_ENUM_LINKERS "${ELD_ENUM_LINKERS_STR}")
 configure_file(${ELD_SOURCE_DIR}/include/eld/Config/Targets.def.cmake
                ${ELD_BINARY_DIR}/include/eld/Config/Targets.def)
 
+# Platform detection
 if(WIN32)
   if(CYGWIN)
     set(ELD_ON_WIN32 0)
     set(ELD_ON_UNIX 1)
-  else(CYGWIN)
+  else()
     set(ELD_ON_WIN32 1)
     set(ELD_ON_UNIX 0)
-  endif(CYGWIN)
-else(WIN32)
+  endif()
+else()
   if(UNIX)
     set(ELD_ON_WIN32 0)
     set(ELD_ON_UNIX 1)
-  else(UNIX)
+  else()
     message(SEND_ERROR "Unable to determine platform")
-  endif(UNIX)
-endif(WIN32)
+  endif()
+endif()
 
-# If MSVC set the appropriate flags as well.
 if(NOT WIN32)
   set(ELD_ON_MSVC 0)
   info("Setting up build of ELD for Unix")
@@ -135,7 +202,7 @@ if(UNIX)
   set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
-# Configure the three ELD configuration header files.
+# Configure header files
 configure_file(${ELD_SOURCE_DIR}/include/eld/Config/Config.h.cmake
                ${ELD_BINARY_DIR}/include/eld/Config/Config.h)
 configure_file(${ELD_SOURCE_DIR}/include/eld/Config/Linkers.def.cmake
@@ -151,13 +218,11 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/include/eld/PluginAPI/)
 
 option(ELD_COVERAGE "Build ELD with coverage" OFF)
-
 if(ELD_COVERAGE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif()
 
 option(ELD_SANITIZE "Build ELD with Sanitizer" OFF)
-
 if(LLVM_USE_SANITIZER OR ELD_SANITIZE)
   info("Sanitizing Linker for ${LLVM_USE_SANITIZER}")
   if(LLVM_USE_SANITIZER MATCHES "Undefined")
@@ -183,25 +248,40 @@ endif()
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/include
                     ${CMAKE_CURRENT_SOURCE_DIR}/include)
-link_directories("${PATH_TO_LLVM_BUILD}/lib")
+
+if(ELD_USE_EXTERNAL_LLVM)
+  link_directories(${LLVM_LIBRARY_DIRS})
+else()
+  link_directories("${PATH_TO_LLVM_BUILD}/lib")
+endif()
 
 add_subdirectory(include)
 
-# After the driver option TableGen targets are created in include/eld/Driver,
-# append them to LLVM_COMMON_DEPENDS so all subsequent compilation targets
-# added via add_llvm_library/llvm_add_library/add_llvm_executable depend on
-# these TableGen outputs.
+# After the driver option TableGen targets are created
 get_property(_eld_driver_tg GLOBAL PROPERTY ELD_DRIVER_TABLEGEN_TARGETS)
 set(LLVM_COMMON_DEPENDS ${LLVM_COMMON_DEPENDS} ${_eld_driver_tg})
 
 add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(docs)
-add_subdirectory(test)
+
+# Only include tests if enabled (requires LLVM source tree)
+if(ELD_INCLUDE_TESTS)
+  add_subdirectory(test)
+else()
+  message(
+    STATUS
+      "Tests disabled (set ELD_INCLUDE_TESTS=ON to enable, requires LLVM source tree)"
+  )
+endif()
+
 add_subdirectory(Plugins)
 
-option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES "Include linker script templates in the install" ON)
-option(ELD_ENABLE_PDF_DOCS "Enable PDF documentation generation (requires rst2pdf)" OFF)
+option(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES
+       "Include linker script templates in the install" ON)
+option(ELD_ENABLE_PDF_DOCS
+       "Enable PDF documentation generation (requires rst2pdf)" OFF)
+
 if(ELD_INSTALL_LINKER_SCRIPT_TEMPLATES)
   install(
     DIRECTORY templates/
@@ -223,7 +303,8 @@ if(ELD_INSTALL_YAML_MAP_PARSER)
   else()
     set(ELD_YAML_MAP_PARSER_DEST_DIR "bin")
   endif()
-  install(PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
-          DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR}
-          COMPONENT ld.eld)
+  install(
+    PROGRAMS utils/YAMLMapParser/YAMLMapParser.py
+    DESTINATION ${ELD_YAML_MAP_PARSER_DEST_DIR}
+    COMPONENT ld.eld)
 endif()

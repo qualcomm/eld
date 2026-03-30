@@ -1,0 +1,19 @@
+#---DefinedSymbolsMember.test---Executable --------------------#
+#BEGIN_COMMENT
+# Verify helper mode prints defined symbols grouped by archive member.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %ar -cr %tlib.a %t.foo.o %t.bar.o
+RUN: %link %linkopts -o %t.out %t.main.o %tlib.a --archive-member-report %t.report.json
+RUN: %python %xarchmemtrace %t.report.json --defined-symbols-member "*foo*.o" 2>&1 | %filecheck %s --check-prefix=DEFMEM
+#END_TEST
+
+DEFMEM: Defined symbols for member pattern: *foo*.o
+DEFMEM: unique members: 1
+DEFMEM: Member: {{.*\.a\([^)]*foo[^)]*\.o\)}}
+DEFMEM-DAG: symbol: foo
+DEFMEM-DAG: symbol: bar
+DEFMEM-DAG: symbol: foo_alias

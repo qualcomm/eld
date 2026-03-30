@@ -1,13 +1,14 @@
-# Test that relocation to debug strings are handled properly and emit-relocs
-# shows the right information
+# Test that relocation to debug strings are handled properly.
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -g
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o -g
-RUN: %link %linkopts %t1.o %t2.o -o %t2.out -T %p/Inputs/script.t
-RUN: %dwarfdump -debug-info %t2.out | %filecheck %s
-#CHECK: DW_AT_name ("a")
-#CHECK: DW_AT_name ("int")
-#CHECK: DW_AT_name ("bar")
-#CHECK: DW_AT_name ("b")
-#CHECK: DW_AT_name ("int")
-#CHECK: DW_AT_name ("foo")
-#CHECK: DW_AT_name ("bar")
+RUN: %link %linkopts %t1.o %t2.o -o %t2.noscript.out
+RUN: %link %linkopts %t1.o %t2.o -o %t2.script.out -T %p/Inputs/script.t
+RUN: %dwarfdump -debug-info %t2.noscript.out | %filecheck %s
+RUN: %dwarfdump -debug-info %t2.script.out | %filecheck %s
+#CHECK-DAG: DW_AT_name ("a")
+#CHECK-DAG: DW_AT_name ("int")
+#CHECK-DAG: DW_AT_name ("bar")
+#CHECK-DAG: DW_AT_name ("b")
+#CHECK-DAG: DW_AT_name ("int")
+#CHECK-DAG: DW_AT_name ("foo")
+#CHECK-DAG: DW_AT_name ("bar")

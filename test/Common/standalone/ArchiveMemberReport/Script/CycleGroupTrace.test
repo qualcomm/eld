@@ -1,0 +1,73 @@
+#---CycleGroupTrace.test---Executable --------------------#
+#BEGIN_COMMENT
+# Verify trace across cyclic archive dependencies using --start-group/--end-group,
+# and resolution to already-seen members.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/cycle_main.c -o %t.main.o
+RUN: for i in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15; do \
+RUN:   %clang %clangopts -c %p/Inputs/cycle_a${i}.c -o %t.a${i}.o; \
+RUN:   %clang %clangopts -c %p/Inputs/cycle_b${i}.c -o %t.b${i}.o; \
+RUN: done
+RUN: %ar -cr %tlibA.a %t.a01.o %t.b03.o %t.a06.o %t.b08.o %t.a11.o %t.b13.o
+RUN: %ar -cr %tlibB.a %t.b01.o %t.a04.o %t.b06.o %t.a09.o %t.b11.o %t.a14.o
+RUN: %ar -cr %tlibC.a %t.a02.o %t.b04.o %t.a07.o %t.b09.o %t.a12.o %t.b14.o
+RUN: %ar -cr %tlibD.a %t.b02.o %t.a05.o %t.b07.o %t.a10.o %t.b12.o %t.a15.o
+RUN: %ar -cr %tlibE.a %t.a03.o %t.b05.o %t.a08.o %t.b10.o %t.a13.o %t.b15.o
+RUN: %link %linkopts -o %t.out %t.main.o --start-group %tlibA.a %tlibB.a %tlibC.a %tlibD.a %tlibE.a --end-group \
+RUN:   --archive-member-report %t.report.json
+RUN: %python %xarchmemtrace %t.report.json --symbol b10 2>&1 | %filecheck %s --check-prefix=TRACE
+RUN: %python %xarchmemtrace %t.report.json --symbol b10 --symbols-only 2>&1 | %filecheck %s --check-prefix=SYMSEQ
+#END_TEST
+
+TRACE: Trace for symbol: b10
+TRACE: unique members: 2
+TRACE-DAG: member: {{.*\.a\([^)]*a10[^)]*\.o\)}}
+TRACE-DAG: member: {{.*\.a\([^)]*b10[^)]*\.o\)}}
+TRACE-DAG: referrer: {{.*}}main.o
+TRACE-DAG: symbol: a01
+TRACE-DAG: symbol: b10
+
+SYMSEQ: member: {{.*\.a\([^)]*a10[^)]*\.o\)}}
+SYMSEQ-NEXT: Trace 1
+SYMSEQ-NEXT: symbol: a01
+SYMSEQ-NEXT: symbol: b01
+SYMSEQ-NEXT: symbol: a02
+SYMSEQ-NEXT: symbol: b02
+SYMSEQ-NEXT: symbol: a03
+SYMSEQ-NEXT: symbol: b03
+SYMSEQ-NEXT: symbol: a04
+SYMSEQ-NEXT: symbol: b04
+SYMSEQ-NEXT: symbol: a05
+SYMSEQ-NEXT: symbol: b05
+SYMSEQ-NEXT: symbol: a06
+SYMSEQ-NEXT: symbol: b06
+SYMSEQ-NEXT: symbol: a07
+SYMSEQ-NEXT: symbol: b07
+SYMSEQ-NEXT: symbol: a08
+SYMSEQ-NEXT: symbol: b08
+SYMSEQ-NEXT: symbol: a09
+SYMSEQ-NEXT: symbol: b09
+SYMSEQ-NEXT: symbol: a10
+SYMSEQ: member: {{.*\.a\([^)]*b10[^)]*\.o\)}}
+SYMSEQ-NEXT: Trace 1
+SYMSEQ-NEXT: symbol: a01
+SYMSEQ-NEXT: symbol: b01
+SYMSEQ-NEXT: symbol: a02
+SYMSEQ-NEXT: symbol: b02
+SYMSEQ-NEXT: symbol: a03
+SYMSEQ-NEXT: symbol: b03
+SYMSEQ-NEXT: symbol: a04
+SYMSEQ-NEXT: symbol: b04
+SYMSEQ-NEXT: symbol: a05
+SYMSEQ-NEXT: symbol: b05
+SYMSEQ-NEXT: symbol: a06
+SYMSEQ-NEXT: symbol: b06
+SYMSEQ-NEXT: symbol: a07
+SYMSEQ-NEXT: symbol: b07
+SYMSEQ-NEXT: symbol: a08
+SYMSEQ-NEXT: symbol: b08
+SYMSEQ-NEXT: symbol: a09
+SYMSEQ-NEXT: symbol: b09
+SYMSEQ-NEXT: symbol: a10
+SYMSEQ-NEXT: symbol: b10

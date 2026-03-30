@@ -7,9 +7,13 @@ on:
     - cron: '0 4 * * *'
   workflow_dispatch:     # Allows manual triggering
 
+
+permissions:
+  contents: write
 jobs:
   build-and-test:
     name: ${{ matrix.arch.name }}
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -5,12 +5,16 @@ on:
   workflow_dispatch:     # Allows manual triggering
   # pull_request: {} # Uncomment only to test this WF file update.
 
+
+permissions:
+  contents: write
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test-musl-x86_64:
+    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
@@ -115,6 +119,7 @@ jobs:
           branch-name: "${{env.BUILD_BRANCH}}"
 
   test-musl:
+    if: github.repository == 'qualcomm/eld'
     strategy:
       fail-fast: false
       matrix:

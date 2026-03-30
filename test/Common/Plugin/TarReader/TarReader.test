@@ -1,0 +1,14 @@
+#---TarReader.test--------------------------- Executable,LS -------------------#
+#BEGIN_COMMENT
+# Tests LinkerWrapper APIs for listing tar entries and reading entry contents.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts %t.1.o -o %t.out --plugin-config %p/Inputs/plugin.config -L %p/Inputs 2>&1 | %filecheck %s
+#CHECK: tar-reader-entry-count=2
+#CHECK: tar-reader-readable-entry-count=2
+#CHECK: tar-reader-has-regular-entry=yes
+#CHECK: tar-reader-has-nested-entry=yes
+#CHECK: tar-reader-regular-entry=Regular entry contents
+#CHECK: tar-reader-nested-entry=Nested entry contents
+#END_TEST

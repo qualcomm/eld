@@ -30,7 +30,9 @@ and is designed for easy addition of more backends.
 
 ELD supports building and running tests on Linux and Windows utilizing LLVM.
 
-ELD depends on LLVM. It is required to build LLVM when building ELD.
+ELD depends on LLVM. You can build ELD either:
+- Integrated into an `llvm-project` build (recommended for running tests), or
+- Against an external, prebuilt LLVM installation (faster iteration if you already have an LLVM release).
 
 You will need a recent C++ compiler for building LLVM and ELD.
 
@@ -53,6 +55,20 @@ cmake -G Ninja \
 cmake --build obj # Build the linker
 cmake --build obj -- check-eld # Build test artifacts and run the tests
 ```
+
+## Building ELD with an external LLVM installation
+
+If you already have an installed LLVM/Clang "release" directory (with `bin/clang`, `bin/clang++`, `bin/llvm-tblgen`, and `lib/cmake/llvm`), you can configure ELD directly against it:
+
+```bash
+./configure_external_llvm.sh <LLVM_RELEASE_DIR> <ELD_BUILD_DIR>
+cd <ELD_BUILD_DIR>
+ninja
+```
+
+Notes:
+- Tests are disabled by default for external builds; see `EXTERNAL_BUILD_SETUP.md` for details and options.
+- To build just the linker: `ninja ld.eld`
 
 Some (optional) helpful CMake options:
 

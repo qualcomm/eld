@@ -254,6 +254,10 @@ public:
 
   llvm::StringRef getName() const { return SymbolName; }
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  void setName(llvm::StringRef SymName) { SymbolName = SymName; }
+#endif
+
   unsigned int nameSize() const { return SymbolName.size(); }
 
   uint32_t info() const { return (ThisBitField & InfoMask); }
@@ -271,6 +275,8 @@ public:
   std::string getResolvedPath() const;
 
   bool canBePreemptible() const;
+
+  bool isIFunc() const { return type() == ResolveInfo::IndirectFunc; }
 
 private:
   static const uint32_t GlobalOffset = 0;

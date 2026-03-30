@@ -136,7 +136,7 @@ defm output_file : smDashTwoWithOpt<"o", "output", "output_file",
                    MetaVarName<"<outputfile>">,
                    Group<grp_general>;
 defm sysroot : smDash<"sysroot", "sysroot", "Set the system root">,
-              MetaVarName<"<sysroot-path>">,
+               MetaVarName<"<sysroot-path>">,
                Group<grp_general>;
 def version : Flag<["--"], "version">,
               HelpText<"Print the Linker version">,
@@ -698,6 +698,7 @@ defm trace
           "collection is enabled\n"
           "\t\t\t --trace=merge-strings : trace linker string optimization\n"
           "\t\t\t --trace=trampolines : trace trampolines\n"
+          "\t\t\t --trace=untar : trace tar extraction entries\n"
           "\t\t\t --trace=wrap-symbols : trace symbol wrap options\n"
           "\t\t\t --trace=symdef : trace symbol resolution from symdef files\n"
           "\t\t\t --trace=dynamic-linking : trace dynamic linking\n"
@@ -890,7 +891,8 @@ defm dash_z
           "\t\t\t-z=text : Do not permit relocations in read-only segments (default)\n"
           "\t\t\t-z=notext : Allow relocations in read-only segments\n"
           "\t\t\t-z=separate-code : Create separate code segment\n"
-          "\t\t\t-z=no-separate-code : Do not create separate code segment\n">,
+          "\t\t\t-z=no-separate-code : Do not create separate code segment\n"
+          "\t\t\t-z=separate-loadable-segments : Create separate loadable segments\n">,
       MetaVarName<"<extended-opts>">,
       Group<grp_extendedopts>;
 def no_align_segments : Flag<["--"], "no-align-segments">,
@@ -955,10 +957,10 @@ def allow_bss_conversion
                "sections in the same segment">,
       Group<grp_extendedopts>;
 defm reproduce : smDash<"reproduce", "reproduce",
-                        "Write a tar file containing input files and command "
-                        "line options to inspect and re-link">,
-                  MetaVarName<"<tarfilename>">,
-                 Group<grp_extendedopts>;
+                       "Write a tar file containing input files and command "
+                       "line options to inspect and re-link">,
+                 MetaVarName<"<tarfilename>|default">,
+                Group<grp_extendedopts>;
 defm reproduce_compressed : smDashWithOpt<"reproduce-compressed", "reproduce_compressed",
                                    "Write compressed tar file in zlib format "
                                    "containing input files and command line "
@@ -966,10 +968,10 @@ defm reproduce_compressed : smDashWithOpt<"reproduce-compressed", "reproduce_com
                             MetaVarName<"<tarfilename>">,
                             Group<grp_extendedopts>;
 defm reproduce_on_fail : smDashWithOpt<"reproduce-on-fail", "reproduce_on_fail",
-                                   "Write reproduce tar file when link fails"
+                                   "Write reproduce tar file when link fails "
                                    "containing input files and command line "
                                    "options to inspect and re-link.">,
-                            MetaVarName<"<tarfilename>">,
+                            MetaVarName<"<tarfilename>|default">,
                             Group<grp_extendedopts>;
 defm mapping_file : smDashWithOpt<"mapping-file", "mapping_file",
                                   "Reproduce link using a mapping file">,
@@ -1096,6 +1098,50 @@ def flto_use_as : Flag<["-", "--"], "flto-use-as">,
                   HelpText<"Use the standalone assembler instead of the "
                            "integrated assembler for LTO">,
                   Group<grp_ltooptions>;
+def opt_remarks_filename
+    : Separate<["--"], "opt-remarks-filename">,
+      HelpText<"YAML output file for optimization remarks">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-filename=">,
+      Alias<opt_remarks_filename>,
+      HelpText<"Alias for --opt-remarks-filename">,
+      Group<grp_ltooptions>;
+def opt_remarks_format
+    : Separate<["--"], "opt-remarks-format">,
+      HelpText<"The format used for serializing remarks (default: YAML)">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-format=">,
+      Alias<opt_remarks_format>,
+      HelpText<"Alias for --opt-remarks-format">,
+      Group<grp_ltooptions>;
+defm opt_remarks_hotness_threshold
+    : EEq<"opt-remarks-hotness-threshold",
+          "Minimum profile count required for an optimization remark to be "
+          "output."
+          " Use 'auto' to apply the threshold from profile summary.">,
+      MetaVarName<"<value>">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-hotness-threshold=">,
+      Alias<opt_remarks_hotness_threshold>,
+      HelpText<"Alias for --opt-remarks-hotness-threshold">,
+      Group<grp_ltooptions>;
+def opt_remarks_passes
+    : Separate<["--"], "opt-remarks-passes">,
+      HelpText<
+          "Regex for the passes that need to be serialized to the output file">,
+      Group<grp_ltooptions>;
+def : J<"plugin-opt=opt-remarks-passes=">,
+      Alias<opt_remarks_passes>,
+      HelpText<"Alias for --opt-remarks-passes">,
+      Group<grp_ltooptions>;
+def opt_remarks_with_hotness
+    : FF<"opt-remarks-with-hotness">,
+      HelpText<"Include hotness information in the optimization remarks file">,
+      Group<grp_ltooptions>;
+def : F<"plugin-opt=opt-remarks-with-hotness">,
+      Alias<opt_remarks_with_hotness>,
+      HelpText<"Alias for --opt-remarks-with-hotness">,
+      Group<grp_ltooptions>;
 def save_temps : Flag<["-", "--"], "save-temps">,
                  HelpText<"Save the temporary files produced by LTO">,
                  Group<grp_ltooptions>;
@@ -1106,7 +1152,13 @@ defm save_temps_EQ
       Group<grp_ltooptions>;
 def : F<"plugin-opt=save-temps">,
       Alias<save_temps>,
-      HelpText<"Alias for --save-temps">;
+      HelpText<"Alias for --save-temps">,
+      Group<grp_ltooptions>;
+
+def plugin_opt_stats_file : J<"plugin-opt=stats-file=">,
+                            HelpText<"Filename to write LTO statistics to">,
+                            Group<grp_ltooptions>;
+
 defm exclude_lto_filelist
     : smDashWithOpt<"exclude-lto-filelist", "exclude_lto_filelist",
                     "Specify a list of files that are to be disregarded while "
@@ -1127,14 +1179,17 @@ def lto_cs_profile_generate
       HelpText<"Perform context sensitive PGO instrumentation">,
       Group<grp_ltooptions>;
 def lto_cs_profile_file : JJ<"lto-cs-profile-file=">,
-                          HelpText<"Context sensitive profile file path">;
+                          HelpText<"Context sensitive profile file path">,
+                          Group<grp_ltooptions>;
 
 def : F<"plugin-opt=cs-profile-generate">,
       Alias<lto_cs_profile_generate>,
-      HelpText<"Alias for --lto-cs-profile-generate">;
+      HelpText<"Alias for --lto-cs-profile-generate">,
+      Group<grp_ltooptions>;
 def : J<"plugin-opt=cs-profile-path=">,
       Alias<lto_cs_profile_file>,
-      HelpText<"Alias for --lto-cs-profile-file">;
+      HelpText<"Alias for --lto-cs-profile-file">,
+      Group<grp_ltooptions>;
 
 def disable_verify
     : F<"disable-verify">,
@@ -1156,14 +1211,16 @@ def lto_emit_asm : FF<"lto-emit-asm">,
                    Group<grp_ltooptions>;
 def plugin_opt_emit_asm : F<"plugin-opt=emit-asm">,
                           Alias<lto_emit_asm>,
-                          HelpText<"Alias for --lto-emit-asm">;
+                          HelpText<"Alias for --lto-emit-asm">,
+                          Group<grp_ltooptions>;
 
 def lto_emit_llvm : FF<"lto-emit-llvm">,
                     HelpText<"Emit LLVM-IR bitcode">,
                     Group<grp_ltooptions>;
 def plugin_opt_emit_llvm : F<"plugin-opt=emit-llvm">,
                            Alias<lto_emit_llvm>,
-                           HelpText<"Alias for --lto-emit-llvm">;
+                           HelpText<"Alias for --lto-emit-llvm">,
+                           Group<grp_ltooptions>;
 
 def lto_obj_path_eq
     : JJ<"lto-obj-path=">,
@@ -1175,7 +1232,8 @@ def lto_obj_path_eq
       Group<grp_ltooptions>;
 def : J<"plugin-opt=obj-path=">,
       Alias<lto_obj_path_eq>,
-      HelpText<"Alias for --lto-obj-path=">;
+      HelpText<"Alias for --lto-obj-path=">,
+      Group<grp_ltooptions>;
 
 def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
                       HelpText<"Number of ThinLTO jobs. Default to --threads=">,
@@ -1183,13 +1241,17 @@ def thinlto_jobs_eq : JJ<"thinlto-jobs=">,
                       Group<grp_ltooptions>;
 def : J<"plugin-opt=jobs=">,
       Alias<thinlto_jobs_eq>,
-      HelpText<"Alias for --thinlto-jobs=">;
+      HelpText<"Alias for --thinlto-jobs=">,
+      Group<grp_ltooptions>;
 
 def lto_O : JJ<"lto-O">,
             MetaVarName<"<opt-level>">,
             HelpText<"Optimization level for LTO">,
             Group<grp_ltooptions>;
-def : J<"plugin-opt=O">, Alias<lto_O>, HelpText<"Alias for --lto-O">;
+def : J<"plugin-opt=O">,
+      Alias<lto_O>,
+      HelpText<"Alias for --lto-O">,
+      Group<grp_ltooptions>;
 
 defm lto_sample_profile
     : smDashOnlyEq<"lto-sample-profile", "lto_sample_profile",
@@ -1208,7 +1270,8 @@ def lto_partitions : JJ<"lto-partitions=">,
                      Group<grp_ltooptions>;
 def : J<"plugin-opt=lto-partitions=">,
       Alias<lto_partitions>,
-      HelpText<"Alias for --lto-partitions">;
+      HelpText<"Alias for --lto-partitions">,
+      Group<grp_ltooptions>;
 
 def lto_debug_pass_manager : FF<"lto-debug-pass-manager">,
                              HelpText<"Debug new pass manager">,
@@ -1289,6 +1352,12 @@ def grp_miscfeatures : OptionGroup<"otherfeatures">, HelpText<"Misc Features">;
 def allow_incompatible_section_mix
     : Flag<["-", "--"], "allow-incompatible-section-mix">,
       HelpText<"Allow incompatible section mix">,
+      Group<grp_miscfeatures>;
+
+defm ArchiveMemberReportFile
+    : smDashWithOpt<"archive-member-report", "ArchiveMemberReportFile",
+                    "Emit JSON report for archive members pulled in by symbols">,
+      MetaVarName<"<filename>">,
       Group<grp_miscfeatures>;
 
 //===----------------------------------------------------------------------===//

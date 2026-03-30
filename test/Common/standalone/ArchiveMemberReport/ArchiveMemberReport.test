@@ -1,0 +1,30 @@
+#---ArchiveMemberReport.test---Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that --archive-member-report emits a JSON file with
+# archive member inclusion records.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %ar -cr %tlib.a %t.foo.o %t.bar.o
+RUN: %link %linkopts -o %t.out %t.main.o %tlib.a --archive-member-report %t.report.json
+RUN: %filecheck %s --check-prefix=JSON < %t.report.json
+#END_TEST
+
+JSON: "ArchiveMembers"
+JSON-DAG: "MemberPath": "{{.*\.a\([^)]*foo[^)]*\.o\)}}"
+JSON-DAG: "ReferrerObjectFile": "{{.*}}main.o"
+JSON-DAG: "Symbol": "foo"
+JSON-DAG: "MemberIsArchiveMember": true
+JSON-DAG: "ReferrerIsArchiveMember": false
+JSON-DAG: "MemberReferencedSymbols"
+JSON-DAG: "bar"
+JSON-DAG: "MemberPath": "{{.*\.a\([^)]*bar[^)]*\.o\)}}"
+JSON-DAG: "ReferrerArchive": "{{.*\.a}}"
+JSON-DAG: "ReferrerMember": "{{.*foo.*\.o}}"
+JSON-DAG: "Symbol": "bar"
+JSON-DAG: "MemberIsArchiveMember": true
+JSON-DAG: "ReferrerIsArchiveMember": true
+JSON-DAG: "MemberSymbols"
+JSON-DAG: "foo"
