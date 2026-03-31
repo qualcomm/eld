@@ -7,6 +7,7 @@ on:
       - '.github/workflows/reviter.yml'
       - '.github/workflows/qualcomm-organization-repolinter.yml'
       - '.github/workflows/docs.yaml'
+      - '.github/workflows/docs-multiversion.yaml'
       - '.github/workflows/ci-win.yml'
       - '.github/workflows/clang-cross-download.yml'
       - '.github/workflows/clang-cross-schedule.yml'

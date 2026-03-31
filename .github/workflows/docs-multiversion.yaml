@@ -1,13 +1,13 @@
 name: Bulid multi-version docs
 
 on:
-  push:
-    branches: [main]
-    paths: ['docs/**', 'include/**']
+ # push:
+ #   branches: [main]
+ #   paths: ['docs/**', 'include/**']
+ # pull_request:
+ #   paths:
+ #     - .github/workflows/docs-multiversion.yaml
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/docs-multiversion.yaml
 
 permissions:
   contents: write

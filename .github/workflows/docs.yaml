@@ -1,12 +1,12 @@
 name: Generate and Deploy Docs
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #   paths:
-  #     - 'docs/**'
-  #     - 'include/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'include/**'
   workflow_dispatch:     # Allows manual triggering
 
 permissions:
