@@ -1623,6 +1623,37 @@ ELFSection *GNULDBackend::getRelaPLT() const {
   return m_DynamicSectionHeadersInputFile->getRelaPLT();
 }
 
+void GNULDBackend::reportErrorIfGOTIsDiscarded(ResolveInfo *R) const {
+  ELFSection *GOT = getGOT();
+  if (GOT && GOT->isIgnore()) {
+    llvm::StringRef SymName = R->name();
+    std::string FileName = R->resolvedOrigin()->getInput()->getName();
+    config().raise(Diag::error_discarded_dynamic_section_required)
+        << SymName << FileName << ".got";
+  }
+}
+
+void GNULDBackend::reportErrorIfPLTIsDiscarded(ResolveInfo *R) const {
+  ELFSection *PLT = getPLT();
+  if (PLT && PLT->isIgnore()) {
+    llvm::StringRef SymName = R->name();
+    std::string FileName = R->resolvedOrigin()->getInput()->getName();
+
+    config().raise(Diag::error_discarded_dynamic_section_required)
+        << SymName << FileName << ".plt";
+  }
+}
+
+void GNULDBackend::reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const {
+  ELFSection *GOTPLT = getGOTPLT();
+  if (GOTPLT && GOTPLT->isIgnore()) {
+    llvm::StringRef SymName = R->name();
+    std::string FileName = R->resolvedOrigin()->getInput()->getName();
+    config().raise(Diag::error_discarded_dynamic_section_required)
+        << SymName << FileName << ".got.plt";
+  }
+}
+
 // Patching sections.
 ELFSection *GNULDBackend::getGOTPatch() const {
   return m_DynamicSectionHeadersInputFile->getGOTPatch();

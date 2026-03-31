@@ -227,10 +227,13 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     break;
   }
   if (R) {
-    if (GOT)
+    if (GOT) {
+      reportErrorIfGOTIsDiscarded(R);
       recordGOT(R, G);
-    else
+    } else {
+      reportErrorIfGOTPLTIsDiscarded(R);
       recordGOTPLT(R, G);
+    }
   }
   return G;
 }
@@ -261,6 +264,8 @@ x86_64PLT *x86_64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_plt_entry) << R->name();
+
+  reportErrorIfPLTIsDiscarded(R);
 
   // Create PLT0 if this is the first PLT entry. PLT0 is the common
   // trampoline that all PLTN entries jump to for symbol resolution.

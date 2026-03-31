@@ -1599,10 +1599,13 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     break;
   }
   if (R) {
-    if (GOT)
+    if (GOT) {
+      reportErrorIfGOTIsDiscarded(R);
       recordGOT(R, G);
-    else
+    } else {
+      reportErrorIfGOTPLTIsDiscarded(R);
       recordGOTPLT(R, G);
+    }
   }
   return G;
 }
@@ -1630,6 +1633,9 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
        config().options().traceSymbol(*R)) ||
       m_Module.getPrinter()->traceDynamicLinking())
     config().raise(Diag::create_plt_entry) << R->name();
+
+  reportErrorIfPLTIsDiscarded(R);
+
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
   RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
   recordPLT(R, P);

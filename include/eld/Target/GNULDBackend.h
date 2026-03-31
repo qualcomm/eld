@@ -660,6 +660,13 @@ public:
   ELFSection *getRelaDyn() const;
   ELFSection *getRelaPLT() const;
 
+  // Report error if GOT/PLT/GOTPLT sections are discarded.
+  // They are used to report the error when the section is required but is
+  // discarded.
+  void reportErrorIfGOTIsDiscarded(ResolveInfo *R) const;
+  void reportErrorIfPLTIsDiscarded(ResolveInfo *R) const;
+  void reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const;
+
   virtual LDSymbol *getGOTSymbol() const { return m_pGOTSymbol; }
 
   void recordRelativeReloc(Relocation *R, const Relocation *N) {
