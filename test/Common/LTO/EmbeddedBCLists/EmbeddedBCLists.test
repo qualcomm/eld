@@ -1,4 +1,3 @@
-UNSUPPORTED: iu
 #---EmbeddedBC.test------------- Executable,SharedLibrary,LTO -----------------#
 
 
