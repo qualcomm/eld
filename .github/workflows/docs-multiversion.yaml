@@ -9,6 +9,9 @@ on:
     paths:
       - .github/workflows/docs-multiversion.yaml
 
+permissions:
+  contents: write
+
 jobs:
   build-docs-and-deploy:
     runs-on: ubuntu-latest
