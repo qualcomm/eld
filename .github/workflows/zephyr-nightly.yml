@@ -13,18 +13,20 @@ jobs:
   zephyr-build-and-test:
     if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:main
+      options: --user 0
     strategy:
       fail-fast: false
       matrix:
         target:
           - board: qemu_riscv32
             arch: riscv32
-            multilib: rv32imac_zicsr_zifencei/ilp32
           - board: qemu_riscv64
             arch: riscv64
-            multilib: rv64imac_zicsr_zifencei/lp64/medany
     env:
-      ZEPHYR_WORKSPACE: ${{ github.workspace }}/zephyrproject
+      CPULLVM_VERSION: "22.1.0"
+      CPULLVM_DIR: /opt/cpullvm
 
     steps:
       - name: Checkout eld
@@ -46,149 +48,96 @@ jobs:
           arch-name: ${{ matrix.target.arch }}
           branch-name: "main"
 
-      - name: Install dependencies
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libc++-dev libc++abi-dev libclang-rt-20-dev \
-            git cmake ninja-build gperf dfu-util device-tree-compiler wget \
-            python3-dev python3-pip python3-setuptools python3-tk python3-venv python3-wheel xz-utils \
-            file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 qemu-system-misc
-
-          python3 -m venv ${{ env.ZEPHYR_WORKSPACE }}/.venv
-          . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
-          python -m pip install -U pip
-          python -m pip install -U west semver patool
-
-          cd ${{ github.workspace }}
-          west init -m https://github.com/zephyrproject-rtos/zephyr --mr main ${{ env.ZEPHYR_WORKSPACE }}
-          cd ${{ env.ZEPHYR_WORKSPACE }}
-          west update
-          west zephyr-export
-          west packages pip --install
-
-      - name: Fetch nightly toolchain
+      - name: Fetch nightly ELD
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
-      - name: Set up Zephyr environment
+      - name: Install cpullvm toolchain and splice nightly ELD
         run: |
-          echo "ZEPHYR_VENV=${{ env.ZEPHYR_WORKSPACE }}/.venv" >> $GITHUB_ENV
+          # Download cpullvm release
+          wget -q https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
+          tar -xf cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
+          mv cpullvm-${CPULLVM_VERSION}-Linux-x86_64 ${CPULLVM_DIR}
+          rm cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
 
-      - name: Install Zephyr SDK
-        run: |
-          cd ${{ env.ZEPHYR_WORKSPACE }}
-          . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
-          west sdk install -t riscv64-zephyr-elf
+          # Splice nightly ELD into cpullvm
+          cp inst/bin/ld.eld ${CPULLVM_DIR}/bin/ld.eld
+          cp inst/lib/libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so.4
+          ln -sf libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so
 
-      - name: Install RISC-V toolchain payload
-        run: |
-          SDK_DIR=$(ls -d "$HOME"/zephyr-sdk-* 2>/dev/null | head -n 1)
-          if [ -z "$SDK_DIR" ]; then
-            echo "Failed to locate Zephyr SDK under $HOME"
-            ls -la "$HOME" || true
-            exit 1
-          fi
-          cd "$SDK_DIR"
-          ./setup.sh -t riscv64-zephyr-elf
+          echo "Nightly ELD version:"
+          ${CPULLVM_DIR}/bin/ld.eld --version
+          echo "cpullvm clang version:"
+          ${CPULLVM_DIR}/bin/clang --version | head -1
 
-          TOOLCHAIN_DIR=$SDK_DIR/gnu/riscv64-zephyr-elf
-          PICOLIBC_SYSROOT=${TOOLCHAIN_DIR}/riscv64-zephyr-elf
-          PICOLIBC_LIB_DIR=${PICOLIBC_SYSROOT}/lib/${{ matrix.target.multilib }}
-          GCC_VERSION_DIR=$(ls -d "${TOOLCHAIN_DIR}/lib/gcc/riscv64-zephyr-elf"/* 2>/dev/null | head -n 1)
-          GCC_MULTILIB_DIR=${GCC_VERSION_DIR}/${{ matrix.target.multilib }}
-          if [ -d "$GCC_MULTILIB_DIR" ]; then
-            GCC_INSTALL_DIR=$GCC_MULTILIB_DIR
-          else
-            GCC_INSTALL_DIR=$GCC_VERSION_DIR
-          fi
+      - name: Clone Zephyr
+        uses: actions/checkout@v4
+        with:
+          repository: zephyrproject-rtos/zephyr
+          path: zephyr
 
-          for DIR in "$TOOLCHAIN_DIR" "$PICOLIBC_SYSROOT" "$PICOLIBC_LIB_DIR"; do
-            if [ ! -d "$DIR" ]; then
-              echo "ERROR: directory not found: $DIR"
-              find "$SDK_DIR" -maxdepth 5 -type d || true
-              exit 1
-            fi
-          done
-
-          if [ -z "$GCC_INSTALL_DIR" ] || [ ! -d "$GCC_INSTALL_DIR" ]; then
-            echo "ERROR: gcc install dir not found under: ${TOOLCHAIN_DIR}/lib/gcc/"
-            find "$TOOLCHAIN_DIR/lib/gcc" -maxdepth 3 -type d || true
-            exit 1
-          fi
-
-          echo "ELD_SDK_DIR=$SDK_DIR" >> $GITHUB_ENV
-          echo "ELD_PICOLIBC_SYSROOT=$PICOLIBC_SYSROOT" >> $GITHUB_ENV
-          echo "ELD_PICOLIBC_LIB_DIR=$PICOLIBC_LIB_DIR" >> $GITHUB_ENV
-          echo "ELD_GCC_INSTALL_DIR=$GCC_INSTALL_DIR" >> $GITHUB_ENV
+      - name: Set safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE/zephyr"
 
       - name: Download and apply ELD support patch
         run: |
-          cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
-          curl -L https://github.com/zephyrproject-rtos/zephyr/pull/103778.patch -o eld-support.patch
+          cd zephyr
+          wget -q https://github.com/zephyrproject-rtos/zephyr/pull/103778.patch -O eld-support.patch
           git apply eld-support.patch
 
       - name: Download and apply ULEB128 fix for kobject list
         run: |
-          cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
-          curl -L https://github.com/quic-areg/zephyr/commit/17f605dd6a9fed6bb93e148a822f9bf7e0dae8f0.patch -o uleb128-fix.patch
+          cd zephyr
+          wget -q https://github.com/quic-areg/zephyr/commit/17f605dd6a9fed6bb93e148a822f9bf7e0dae8f0.patch -O uleb128-fix.patch
           git apply uleb128-fix.patch
 
-      - name: Set up environment for ELD
+      - name: West setup
         run: |
-          echo "ZEPHYR_BASE=${{ env.ZEPHYR_WORKSPACE }}/zephyr" >> $GITHUB_ENV
+          cd zephyr
+          west init -l .
+          west update
 
       - name: Build hello_world for ${{ matrix.target.board }} with ELD
+        shell: bash
         run: |
-          cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
-          . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
+          cd zephyr
+          source zephyr-env.sh
+          export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
+          export ZEPHYR_TOOLCHAIN_VARIANT=host/llvm
+          export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
           west build -p always -b ${{ matrix.target.board }} samples/hello_world -- \
-            -DZEPHYR_SDK_INSTALL_DIR=${{ env.ELD_SDK_DIR }} \
-            -DZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
-            -DLLVM_TOOLCHAIN_PATH=${{ github.workspace }}/inst \
-            -DTOOLCHAIN_HAS_PICOLIBC=ON \
-            -DSYSROOT_DIR=${{ env.ELD_PICOLIBC_SYSROOT }} \
-            -DTOOLCHAIN_C_FLAGS=--gcc-install-dir=${{ env.ELD_GCC_INSTALL_DIR }} \
             -DCONFIG_LLVM_USE_ELD=y \
-            -DCONFIG_PICOLIBC_USE_TOOLCHAIN=y \
-            -DCONFIG_COMPILER_RT_RTLIB=n \
-            -DCONFIG_LIBGCC_RTLIB=y \
-            -DCMAKE_EXE_LINKER_FLAGS="-L${{ env.ELD_PICOLIBC_LIB_DIR }}"
+            -DCONFIG_COMPILER_RT_RTLIB=y
 
       - name: Run hello_world on QEMU
+        shell: bash
         run: |
-          cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
-          . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
+          cd zephyr
+          source zephyr-env.sh
           set -o pipefail
           timeout -k 1s 5s west build -t run 2>&1 | tee run_output.log || true
           if grep -q "Hello World" run_output.log; then
-            echo "✓ hello_world executed successfully"
+            echo "hello_world executed successfully"
           else
-            echo "✗ hello_world did not produce expected output"
+            echo "hello_world did not produce expected output"
             exit 1
           fi
 
       - name: Run twister tests for ${{ matrix.target.board }} with ELD
+        shell: bash
         run: |
-          cd ${{ env.ZEPHYR_WORKSPACE }}/zephyr
-          . ${{ env.ZEPHYR_WORKSPACE }}/.venv/bin/activate
-          ./scripts/twister -W -p ${{ matrix.target.board }} \
+          cd zephyr
+          source zephyr-env.sh
+          export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
+          export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
+          west twister -W -p ${{ matrix.target.board }} \
             --inline-logs \
             --timestamps \
             -j 3 \
             -v \
-            -x ZEPHYR_SDK_INSTALL_DIR=${{ env.ELD_SDK_DIR }} \
-            -x ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
-            -x LLVM_TOOLCHAIN_PATH=${{ github.workspace }}/inst \
-            -x TOOLCHAIN_HAS_PICOLIBC=y \
-            -x SYSROOT_DIR=${{ env.ELD_PICOLIBC_SYSROOT }} \
-            -x TOOLCHAIN_C_FLAGS=--gcc-install-dir=${{ env.ELD_GCC_INSTALL_DIR }} \
-            -x CONFIG_LLVM_USE_ELD=y \
-            -x TOOLCHAIN_HAS_NEWLIB=n \
-            -x CONFIG_PICOLIBC_USE_TOOLCHAIN=y \
-            -x CONFIG_COMPILER_RT_RTLIB=n \
-            -x CONFIG_LIBGCC_RTLIB=y \
-            -x CMAKE_EXE_LINKER_FLAGS="-L${{ env.ELD_PICOLIBC_LIB_DIR }}"
+            -x=ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
+            -x=CONFIG_LLVM_USE_ELD=y \
+            -x=CONFIG_COMPILER_RT_RTLIB=y \
+            -x=CONFIG_PICOLIBC_USE_TOOLCHAIN=y
 
       - name: Upload twister results
         if: always()
@@ -196,8 +145,8 @@ jobs:
         with:
           name: zephyr-twister-results-${{ matrix.target.arch }}
           path: |
-            ${{ env.ZEPHYR_WORKSPACE }}/zephyr/twister-out/twister.log
-            ${{ env.ZEPHYR_WORKSPACE }}/zephyr/twister-out/twister.json
+            zephyr/twister-out/twister.log
+            zephyr/twister-out/twister.json
 
       - name: Upload build artifacts
         if: always()
@@ -205,8 +154,8 @@ jobs:
         with:
           name: zephyr-build-artifacts-${{ matrix.target.arch }}
           path: |
-            ${{ env.ZEPHYR_WORKSPACE }}/zephyr/build/zephyr/zephyr.elf
-            ${{ env.ZEPHYR_WORKSPACE }}/zephyr/build/zephyr/zephyr.map
+            zephyr/build/zephyr/zephyr.elf
+            zephyr/build/zephyr/zephyr.map
 
       - name: Update build entry
         if: always() && github.event_name == 'schedule'
