@@ -67,7 +67,7 @@ ninja
 ```
 
 Notes:
-- Tests are disabled by default for external builds; see `EXTERNAL_BUILD_SETUP.md` for details and options.
+- Tests are disabled by default for external builds;
 - To build just the linker: `ninja ld.eld`
 
 Some (optional) helpful CMake options:

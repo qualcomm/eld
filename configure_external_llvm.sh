@@ -100,6 +100,7 @@ cmake -G Ninja \
   -DLLVM_TABLEGEN_EXE="${EXTERNAL_LLVM_ROOT}/bin/llvm-tblgen" \
   -DCMAKE_INSTALL_PREFIX="${BUILD_DIR}/install" \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DLLVM_ENABLE_SPHINX=ON \
   "${SOURCE_DIR}"
 
 echo ""
