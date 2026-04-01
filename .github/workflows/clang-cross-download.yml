@@ -17,6 +17,16 @@ on:
         description: "Comma-separated list of asset names to download"
         required: true
         type: string
+      upload_artifact:
+        description: "Upload extracted toolchains as a GitHub artifact"
+        required: false
+        type: boolean
+        default: false
+      artifact_name:
+        description: "Artifact name when upload_artifact is true"
+        required: false
+        type: string
+        default: "clang-cross-toolchains"
 
 
 permissions:
@@ -26,11 +36,13 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Download and extract release assets
+        id: fetch
         shell: bash
         env:
           WORKSPACE: ${{ inputs.workspace }}
           ASSETS: ${{ inputs.assets }}
         run: |
+          set -euo pipefail
           api_url="https://api.github.com/repos/cross-tools/clang-cross/releases/latest"
           release_json="$(curl -fsSL "${api_url}")"
           tag="$(printf '%s' "${release_json}" | jq -r '.tag_name')"
@@ -57,41 +69,51 @@ jobs:
 
           if [[ "${all_extracted}" == "true" ]]; then
             echo "Latest release ${tag} already fully extracted."
-            exit 0
-          fi
-
-          if [[ -d "${root_dir}" ]]; then
-            find "${root_dir}" -mindepth 1 -maxdepth 1 -type d ! -name "${tag}" -exec rm -rf {} +
-          fi
-          rm -rf "${base_dir}"
-          mkdir -p "${base_dir}"
-
-          for asset in "${asset_list[@]}"; do
-            asset="$(printf '%s' "${asset}" | xargs)"
-            if [[ -z "${asset}" ]]; then
-              continue
+          else
+            if [[ -d "${root_dir}" ]]; then
+              find "${root_dir}" -mindepth 1 -maxdepth 1 -type d ! -name "${tag}" -exec rm -rf {} +
             fi
+            rm -rf "${base_dir}"
+            mkdir -p "${base_dir}"
 
-            marker="${base_dir}/.extracted-${asset}"
-            url="$(printf '%s' "${release_json}" | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url')"
-            if [[ -z "${url}" || "${url}" == "null" ]]; then
-              echo "Asset not found in release ${tag}: ${asset}" >&2
-              exit 1
-            fi
+            for asset in "${asset_list[@]}"; do
+              asset="$(printf '%s' "${asset}" | xargs)"
+              if [[ -z "${asset}" ]]; then
+                continue
+              fi
 
-            tmp_tar="${base_dir}/${asset}"
-            echo "Downloading ${asset}..."
-            curl -fsSL -o "${tmp_tar}" "${url}"
+              marker="${base_dir}/.extracted-${asset}"
+              url="$(printf '%s' "${release_json}" | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url')"
+              if [[ -z "${url}" || "${url}" == "null" ]]; then
+                echo "Asset not found in release ${tag}: ${asset}" >&2
+                exit 1
+              fi
 
-            echo "Extracting ${asset}..."
-            tar -xJf "${tmp_tar}" -C "${base_dir}"
-            rm -f "${tmp_tar}"
-            asset_base="${asset%.tar.xz}"
-            asset_base="${asset_base%.tar.gz}"
-            asset_base="${asset_base%.tar}"
-            ln -sfn "${base_dir}/${asset_base}" "${WORKSPACE}/${asset_base}"
-            touch "${marker}"
-          done
+              tmp_tar="${base_dir}/${asset}"
+              echo "Downloading ${asset}..."
+              curl -fsSL -o "${tmp_tar}" "${url}"
+
+              echo "Extracting ${asset}..."
+              tar -xJf "${tmp_tar}" -C "${base_dir}"
+              rm -f "${tmp_tar}"
+              asset_base="${asset%.tar.xz}"
+              asset_base="${asset_base%.tar.gz}"
+              asset_base="${asset_base%.tar}"
+              ln -sfn "${base_dir}/${asset_base}" "${WORKSPACE}/${asset_base}"
+              touch "${marker}"
+            done
+          fi
 
           echo "Symlinks in ${WORKSPACE}:"
           find "${WORKSPACE}" -maxdepth 1 -type l -lname "${root_dir}/*" -printf "%p -> %l\n"
+
+          artifact_tar="${RUNNER_TEMP}/clang-cross-${tag}.tar"
+          tar -cf "${artifact_tar}" -C "${base_dir}" .
+          echo "artifact_tar=${artifact_tar}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload extracted toolchains artifact
+        if: ${{ inputs.upload_artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ steps.fetch.outputs.artifact_tar }}
