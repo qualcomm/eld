@@ -61,6 +61,15 @@ jobs:
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
+      - name: Restore ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nightly-ccache-${{ runner.os }}-
+
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
@@ -86,6 +95,8 @@ jobs:
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
+            -DCMAKE_INSTALL_RPATH:STRING='$ORIGIN/../lib/' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-nightly-toolchain \
@@ -98,6 +109,33 @@ jobs:
         run: |
           cd obj
           ninja -j8 install
+
+      - name: Bundle ld.eld runtime libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          INSTALL_ROOT="${{ github.workspace }}/install-nightly-toolchain"
+          mkdir -p "${INSTALL_ROOT}/lib"
+
+          for lib in libc++.so.1 libc++abi.so.1 libunwind.so.1; do
+            src="$(ldconfig -p | awk -v lib="${lib}" '$1 == lib { print $NF; exit }')"
+            if [[ -z "${src}" ]]; then
+              echo "Missing required runtime library: ${lib}" >&2
+              exit 1
+            fi
+            cp -P "${src}" "${INSTALL_ROOT}/lib/"
+            cp -f "$(readlink -f "${src}")" "${INSTALL_ROOT}/lib/"
+          done
+
+          echo "ld.eld RPATH/RUNPATH:"
+          readelf -d "${INSTALL_ROOT}/bin/ld.eld" | grep -E 'RPATH|RUNPATH'
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
 
       - name: Pack toolchain tarball
         run: |
