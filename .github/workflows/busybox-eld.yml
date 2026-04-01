@@ -1,0 +1,213 @@
+name: BusyBox with ELD
+
+on:
+  pull_request: {} # Uncomment only to test this WF file update.
+  workflow_dispatch:
+  #schedule:
+  #  - cron: "0 5 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fetch-clang-cross-toolchain:
+    if: github.repository == 'qualcomm/eld'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            toolchain_asset: x86_64-unknown-linux-musl.tar.xz
+            enabled: 1
+          - arch: riscv32
+            toolchain_asset: riscv32-unknown-linux-musl.tar.xz
+            enabled: 0
+          - arch: riscv64
+            toolchain_asset: riscv64-unknown-linux-musl.tar.xz
+            enabled: 0
+          - arch: arm
+            toolchain_asset: arm-unknown-linux-musleabi.tar.xz
+            enabled: 0
+          - arch: aarch64
+            toolchain_asset: aarch64-unknown-linux-musl.tar.xz
+            enabled: 0
+    uses: ./.github/workflows/clang-cross-download.yml
+    with:
+      runner: ubuntu-latest
+      workspace: /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+      assets: ${{ matrix.toolchain_asset }}
+      upload_artifact: true
+      artifact_name: clang-cross-${{ matrix.arch }}
+
+  build-busybox-with-eld:
+    if: github.repository == 'qualcomm/eld'
+    needs: fetch-clang-cross-toolchain
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            busybox_arch: x86_64
+            target_triple: x86_64-unknown-linux-musl
+            toolchain_dir: x86_64-unknown-linux-musl
+            toolchain_asset: x86_64-unknown-linux-musl.tar.xz
+            qemu_bin: ""
+            enabled: 1
+          - arch: riscv32
+            busybox_arch: riscv
+            target_triple: riscv32-unknown-linux-musl
+            toolchain_dir: riscv32-unknown-linux-musl
+            toolchain_asset: riscv32-unknown-linux-musl.tar.xz
+            qemu_bin: qemu-riscv32
+            enabled: 0
+          - arch: riscv64
+            busybox_arch: riscv
+            target_triple: riscv64-unknown-linux-musl
+            toolchain_dir: riscv64-unknown-linux-musl
+            toolchain_asset: riscv64-unknown-linux-musl.tar.xz
+            qemu_bin: qemu-riscv64
+            enabled: 0
+          - arch: arm
+            busybox_arch: arm
+            target_triple: arm-unknown-linux-musleabi
+            toolchain_dir: arm-unknown-linux-musleabi
+            toolchain_asset: arm-unknown-linux-musleabi.tar.xz
+            qemu_bin: qemu-arm
+            enabled: 0
+          - arch: aarch64
+            busybox_arch: aarch64
+            target_triple: aarch64-unknown-linux-musl
+            toolchain_dir: aarch64-unknown-linux-musl
+            toolchain_asset: aarch64-unknown-linux-musl.tar.xz
+            qemu_bin: qemu-aarch64
+            enabled: 0
+    steps:
+      - name: Checkout eld
+        if: matrix.enabled == 1
+        uses: actions/checkout@v4
+        with:
+          repository: qualcomm/eld
+          ref: main
+          fetch-depth: 1
+
+      - name: Install dependencies
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y make
+          if [[ -n "${{ matrix.qemu_bin }}" ]]; then
+            sudo apt install -y qemu-user
+          fi
+
+      - name: Fetch latest nightly toolset
+        if: matrix.enabled == 1
+        uses: ./.github/workflows/FetchNightlyToolset
+
+      - name: Download clang-cross toolchain artifact
+        if: matrix.enabled == 1
+        uses: actions/download-artifact@v4
+        with:
+          name: clang-cross-${{ matrix.arch }}
+          path: clang-cross
+
+      - name: Extract clang-cross toolchain
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          TOOLCHAIN_DIR: ${{ matrix.toolchain_dir }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ github.workspace }}/${TOOLCHAIN_DIR}"
+          tar -xf clang-cross/clang-cross-*.tar -C "${{ github.workspace }}/${TOOLCHAIN_DIR}" --strip-components=1
+
+      - name: Resolve toolchain paths
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          TARGET_TRIPLE: ${{ matrix.target_triple }}
+          TOOLCHAIN_DIR: ${{ matrix.toolchain_dir }}
+        run: |
+          set -euo pipefail
+          toolchain_base="${{ github.workspace }}/${TOOLCHAIN_DIR}"
+          cross_root="$(find "${toolchain_base}" -type f -path "*/bin/${TARGET_TRIPLE}-clang" -print -quit | sed 's|/bin/.*$||')"
+          if [[ -z "${cross_root}" ]]; then
+            echo "Could not find ${TARGET_TRIPLE}-clang under ${toolchain_base}" >&2
+            find "${toolchain_base}" -maxdepth 4 -type d -name bin -print >&2 || true
+            exit 1
+          fi
+          eld_bin="$(command -v ld.eld || true)"
+          if [[ -z "${eld_bin}" ]]; then
+            echo "Could not find ld.eld in PATH after FetchNightlyToolset" >&2
+            exit 1
+          fi
+          echo "CROSS_TOOLCHAIN_ROOT=${cross_root}" >> "${GITHUB_ENV}"
+          echo "ELD_BIN=${eld_bin}" >> "${GITHUB_ENV}"
+          echo "${cross_root}/bin" >> "${GITHUB_PATH}"
+          echo "Using cross toolchain root: ${cross_root}"
+          echo "Using ld.eld: ${eld_bin}"
+
+      - name: Clone BusyBox
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          git clone https://github.com/mirror/busybox.git
+
+      - name: Build BusyBox with ELD
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          CROSS_TOOLCHAIN_ROOT: ${{ env.CROSS_TOOLCHAIN_ROOT }}
+          TARGET_TRIPLE: ${{ matrix.target_triple }}
+          BUSYBOX_ARCH: ${{ matrix.busybox_arch }}
+          ELD_BIN: ${{ env.ELD_BIN }}
+        run: |
+          set -euo pipefail
+          export PATH="${CROSS_TOOLCHAIN_ROOT}/bin:${PATH}"
+          command -v "${TARGET_TRIPLE}-clang"
+          command -v ld.eld
+          "${TARGET_TRIPLE}"-clang --version
+          "${ELD_BIN}" --version
+
+          cd busybox
+          make defconfig
+          make -j"$(nproc)" \
+            ARCH="${BUSYBOX_ARCH}" \
+            CC="${TARGET_TRIPLE}-clang --ld-path=${ELD_BIN}" \
+            HOSTCC=clang
+
+      - name: Run BusyBox tests
+        if: matrix.enabled == 1
+        shell: bash
+        env:
+          CROSS_TOOLCHAIN_ROOT: ${{ env.CROSS_TOOLCHAIN_ROOT }}
+          TARGET_TRIPLE: ${{ matrix.target_triple }}
+          QEMU_BIN: ${{ matrix.qemu_bin }}
+        run: |
+          set -euo pipefail
+          export PATH="${CROSS_TOOLCHAIN_ROOT}/bin:${PATH}"
+
+          if [[ -n "${QEMU_BIN}" ]]; then
+            SYSROOT="${CROSS_TOOLCHAIN_ROOT}/${TARGET_TRIPLE}/sysroot"
+            if [[ ! -d "${SYSROOT}" ]]; then
+              SYSROOT="${CROSS_TOOLCHAIN_ROOT}/sysroot"
+            fi
+            if [[ ! -d "${SYSROOT}" ]]; then
+              echo "Unable to find sysroot under ${CROSS_TOOLCHAIN_ROOT}" >&2
+              exit 1
+            fi
+
+            cd busybox
+            mv busybox busybox.bin
+            printf '%s\n' '#!/usr/bin/env bash' \
+              "exec ${QEMU_BIN} -L ${SYSROOT} \"\$(dirname \"\$0\")/busybox.bin\" \"\$@\"" > busybox
+            chmod +x busybox
+          fi
+
+          cd busybox/testsuite
+          env SKIP_KNOWN_BUGS=1 SKIP_INTERNET_TESTS=1 ./runtest
