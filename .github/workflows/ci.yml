@@ -42,14 +42,14 @@ jobs:
 
     steps:
       - name: Checkout llvm-project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: llvm/llvm-project
           ref: ${{ env.BASE_BRANCH_NAME }}
           path: pr-${{ env.PR_NUMBER }}/llvm-project
 
       - name: Checkout qualcomm/eld PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}

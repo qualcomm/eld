@@ -46,14 +46,14 @@ jobs:
           free -h # or cat /proc/meminfo
 
       - name: Checkout llvm-project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: llvm/llvm-project
           path: llvm-project
           ref: main
 
       - name: Checkout eld
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
           ref: main

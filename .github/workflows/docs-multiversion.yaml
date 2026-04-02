@@ -21,14 +21,14 @@ jobs:
 
     steps:
       - name: Checkout llvm-project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: llvm/llvm-project
           path: llvm-project
           ref: main
 
       - name: Checkout eld
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
           fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
         run: cmake --build build --target eld-docs-multiversion
 
       - name: Checkout documentation branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: documentation
           path: docs-branch

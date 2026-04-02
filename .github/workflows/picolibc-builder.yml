@@ -75,7 +75,7 @@ jobs:
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project
 
       - name: Checkout ELD
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
 

@@ -20,7 +20,7 @@ jobs:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
     steps:
       - name: Checkout eld
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
 
@@ -129,7 +129,7 @@ jobs:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
     steps:
       - name: Checkout eld
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
 
