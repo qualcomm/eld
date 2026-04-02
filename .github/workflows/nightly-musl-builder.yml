@@ -201,7 +201,7 @@ jobs:
           CC=${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}-clang make RUN_WRAP="$(pwd)/qemu-${{ matrix.arch }}-wrapper.sh"
 
       - name: Upload libc-test
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: libc-test-${{ matrix.arch }}.zip
           path: libc-test

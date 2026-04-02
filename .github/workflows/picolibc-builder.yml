@@ -165,7 +165,7 @@ jobs:
               -Jcvf install-${{ matrix.arch.name }}-toolchain.tar.xz install-${{ matrix.arch.name }}-toolchain
 
       - name: Upload toolchain tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: install-${{ matrix.arch.name }}-toolchain.tar.xz
           path: install-${{ matrix.arch.name }}-toolchain.tar.xz
@@ -257,7 +257,7 @@ jobs:
 
       - name: Upload test logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.arch.name }}
           path: |

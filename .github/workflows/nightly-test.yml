@@ -143,7 +143,7 @@ jobs:
               -Jcvf install-nightly-toolchain.tar.xz install-nightly-toolchain
 
       - name: Upload toolchain tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: install-nightly-toolchain.tar.xz
           path: install-nightly-toolchain.tar.xz

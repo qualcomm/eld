@@ -192,7 +192,7 @@ jobs:
 
       - name: Upload twister results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zephyr-twister-results-${{ matrix.target.arch }}
           path: |
@@ -201,7 +201,7 @@ jobs:
 
       - name: Upload build artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zephyr-build-artifacts-${{ matrix.target.arch }}
           path: |
