@@ -24,6 +24,10 @@ jobs:
             arch: riscv32
           - board: qemu_riscv64
             arch: riscv64
+          - board: qemu_cortex_m3
+            arch: arm
+          - board: qemu_cortex_a53
+            arch: aarch64
     env:
       CPULLVM_VERSION: "22.1.0"
       CPULLVM_DIR: /opt/cpullvm
