@@ -1,0 +1,63 @@
+## Verify that EXCLUDE_FILE works correctly inside SORT_* wrappers.
+## Both GNU ld and lld accept this syntax, which is used by Zephyr's
+## generated linker scripts for C++ builds.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c %t/1.c -o %t1.o
+# RUN: %clang %clangopts -c %t/2.c -o %t2.o
+
+## SORT_NONE(EXCLUDE_FILE ...)
+# RUN: %link -MapStyle txt %linkopts -o %t.out %t1.o %t2.o -T %t/sort_none.t -Map %t.sort_none.map
+# RUN: %filecheck %s --check-prefix=SORT-NONE < %t.sort_none.map
+
+# SORT-NONE:      FOO
+# SORT-NONE-NEXT: *( EXCLUDE_FILE ( *2.o ).text)
+# SORT-NONE:      .text {{.*}}1.o
+# SORT-NONE:      OTHERS
+# SORT-NONE:      .text {{.*}}2.o
+
+## SORT_BY_NAME(EXCLUDE_FILE ...)
+# RUN: %link -MapStyle txt %linkopts -o %t.out %t1.o %t2.o -T %t/sort_by_name.t -Map %t.sort_by_name.map
+# RUN: %filecheck %s --check-prefix=SORT-NAME < %t.sort_by_name.map
+
+# SORT-NAME:      FOO
+# SORT-NAME-NEXT: *( SORT_BY_NAME( EXCLUDE_FILE ( *2.o ).text))
+# SORT-NAME:      .text {{.*}}1.o
+# SORT-NAME:      OTHERS
+# SORT-NAME:      .text {{.*}}2.o
+
+## SORT_BY_NAME(SORT_BY_ALIGNMENT(EXCLUDE_FILE ...))
+# RUN: %link -MapStyle txt %linkopts -o %t.out %t1.o %t2.o -T %t/nested_sort.t -Map %t.nested_sort.map
+# RUN: %filecheck %s --check-prefix=NESTED < %t.nested_sort.map
+
+# NESTED:      FOO
+# NESTED-NEXT: *( SORT_BY_NAME_ALIGNMENT( EXCLUDE_FILE ( *2.o ).text))
+# NESTED:      .text {{.*}}1.o
+# NESTED:      OTHERS
+# NESTED:      .text {{.*}}2.o
+
+#--- 1.c
+int foo() { return 1; }
+
+#--- 2.c
+int foo();
+int bar() { return 2; }
+int main() { return foo() + bar(); }
+
+#--- sort_none.t
+SECTIONS {
+  FOO : { *(SORT_NONE(EXCLUDE_FILE (*2.o) .text)) }
+  OTHERS : { *(.text*) }
+}
+
+#--- sort_by_name.t
+SECTIONS {
+  FOO : { *(SORT_BY_NAME(EXCLUDE_FILE (*2.o) .text)) }
+  OTHERS : { *(.text*) }
+}
+
+#--- nested_sort.t
+SECTIONS {
+  FOO : { *(SORT_BY_NAME(SORT_BY_ALIGNMENT(EXCLUDE_FILE (*2.o) .text))) }
+  OTHERS : { *(.text*) }
+}

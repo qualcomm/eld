@@ -91,23 +91,22 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
       case WildcardPattern::SORT_BY_ALIGNMENT_NAME:
         Outs << " SORT_BY_ALIGNMENT_NAME(";
         break;
-      case WildcardPattern::EXCLUDE:
-        if (Wildcard->excludeFiles()) {
-          const ExcludeFiles *List = Wildcard->excludeFiles();
-          Outs << " EXCLUDE_FILE (";
-          for (const auto &ListIt : *List) {
-            if ((ListIt)->isArchive())
-              Outs << (ListIt)->archive()->getDecoratedName() << ":";
-            if (!((ListIt)->isFileInArchive()))
-              Outs << " ";
-            if ((ListIt)->isFile())
-              Outs << (ListIt)->file()->getDecoratedName() << " ";
-          }
-        }
-        Outs << ")";
-        LLVM_FALLTHROUGH;
       default:
         break;
+      }
+
+      if (Wildcard->excludeFiles()) {
+        const ExcludeFiles *List = Wildcard->excludeFiles();
+        Outs << " EXCLUDE_FILE (";
+        for (const auto &ListIt : *List) {
+          if ((ListIt)->isArchive())
+            Outs << (ListIt)->archive()->getDecoratedName() << ":";
+          if (!((ListIt)->isFileInArchive()))
+            Outs << " ";
+          if ((ListIt)->isFile())
+            Outs << (ListIt)->file()->getDecoratedName() << " ";
+        }
+        Outs << ")";
       }
 
       if (IsFirst) {

@@ -1286,14 +1286,24 @@ WildcardPattern *ScriptParser::readWildcardPattern() {
       WildcardPattern::SortPolicy SortPolicy =
           computeSortPolicy(OuterSortPolicy.value(), InnerSortPolicy);
       expect("(");
+      ExcludeFiles *EF = nullptr;
+      if (peek() == "EXCLUDE_FILE") {
+        skip();
+        EF = readExcludeFile();
+      }
       SectPat = createAndRegisterWildcardPattern(
-          ThisScriptFile.createParserStr(next()), SortPolicy);
+          ThisScriptFile.createParserStr(next()), SortPolicy, EF);
       expect(")");
     } else {
       WildcardPattern::SortPolicy SortPolicy =
           computeSortPolicy(OuterSortPolicy.value());
+      ExcludeFiles *EF = nullptr;
+      if (peek() == "EXCLUDE_FILE") {
+        skip();
+        EF = readExcludeFile();
+      }
       SectPat = createAndRegisterWildcardPattern(
-          ThisScriptFile.createParserStr(next()), SortPolicy);
+          ThisScriptFile.createParserStr(next()), SortPolicy, EF);
     }
     expect(")");
   } else {
