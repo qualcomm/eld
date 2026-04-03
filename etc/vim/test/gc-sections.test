@@ -1,0 +1,44 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 30:1:eldGCSection \
+# RUN:   --check 30:3:eldSectionName \
+# RUN:   --check 30:14:eldSectionName \
+# RUN:   --check 30:18:eldGCTag \
+# RUN:   --check 30:19:eldGCTag \
+# RUN:   --check 30:21:eldGCTag \
+# RUN:   --check 30:25:eldHex \
+# RUN:   --check 30:28:eldHex \
+# RUN:   --check 30:48:eldSectionAttr \
+# RUN:   --check 30:49:eldSHT \
+# RUN:   --check 30:60:eldSHT \
+# RUN:   --check 30:62:eldSHF \
+# RUN:   --check 30:70:eldSHF \
+# RUN:   --check 30:71:eldSectionAttr \
+# RUN:   --check 30:72:eldSectionAttr \
+# RUN:   --check 31:1:eldGCSymbol \
+# RUN:   --check 31:3:eldGCSymbol \
+# RUN:   --check 31:13:eldGCSymbol
+#
+# Garbage-collected section lines appear inside # comments.
+#
+# Line 30: "# .text.unused   <GC>   0x20   libgc.a(gc.o)   #SHT_PROGBITS,SHF_ALLOC,4"
+#   30:1  = '#' → eldGCSection   (start of GC comment line)
+#   30:3  = '.' → eldSectionName (start of .text.unused)
+#   30:14 = 'd' → eldSectionName (last char of .unused)
+#   30:18 = '<' → eldGCTag       (start of <GC>)
+#   30:19 = 'G' → eldGCTag       (middle of <GC>)
+#   30:21 = '>' → eldGCTag       (end of <GC>)
+#   30:25 = '0' → eldHex         (start of 0x20)
+#   30:28 = '0' → eldHex         (last char of 0x20)
+#   30:48 = '#' → eldSectionAttr (start of #SHT_... annotation)
+#   30:49 = 'S' → eldSHT         (start of SHT_PROGBITS)
+#   30:60 = 'S' → eldSHT         (last char of SHT_PROGBITS)
+#   30:62 = 'S' → eldSHF         (start of SHF_ALLOC)
+#   30:70 = 'C' → eldSHF         (last char of SHF_ALLOC)
+#   30:71 = ',' → eldSectionAttr (comma separator)
+#   30:72 = '4' → eldSectionAttr (alignment value)
+#
+# Line 31: "# _unused_sym"
+# A GC'd symbol name line immediately after a GC section line.
+#   31:1  = '#' → eldGCSymbol  (start of GC symbol comment)
+#   31:3  = '_' → eldGCSymbol  (start of symbol name)
+#   31:13 = 'm' → eldGCSymbol  (last char of "_unused_sym")

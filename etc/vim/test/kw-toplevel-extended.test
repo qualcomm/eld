@@ -1,0 +1,90 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 57:1:eldKwTopLevel \
+# RUN:   --check 57:6:eldKwTopLevel \
+# RUN:   --check 58:1:eldKwTopLevel \
+# RUN:   --check 58:7:eldKwTopLevel \
+# RUN:   --check 59:1:eldKwTopLevel \
+# RUN:   --check 59:11:eldKwTopLevel \
+# RUN:   --check 60:1:eldKwTopLevel \
+# RUN:   --check 60:12:eldKwTopLevel \
+# RUN:   --check 61:1:eldKwTopLevel \
+# RUN:   --check 61:6:eldKwTopLevel \
+# RUN:   --check 62:1:eldKwTopLevel \
+# RUN:   --check 62:5:eldKwTopLevel \
+# RUN:   --check 63:1:eldKwTopLevel \
+# RUN:   --check 63:13:eldKwTopLevel \
+# RUN:   --check 64:1:eldKwTopLevel \
+# RUN:   --check 64:21:eldKwTopLevel \
+# RUN:   --check 65:1:eldKwTopLevel \
+# RUN:   --check 65:20:eldKwTopLevel \
+# RUN:   --check 66:1:eldKwTopLevel \
+# RUN:   --check 66:20:eldKwTopLevel \
+# RUN:   --check 67:1:eldKwTopLevel \
+# RUN:   --check 67:26:eldKwTopLevel \
+# RUN:   --check 68:1:eldKwTopLevel \
+# RUN:   --check 68:22:eldKwTopLevel \
+# RUN:   --check 69:1:eldKwTopLevel \
+# RUN:   --check 69:16:eldKwTopLevel \
+# RUN:   --check 70:1:eldKwTopLevel \
+# RUN:   --check 70:8:eldKwTopLevel
+#
+# Extended eldKwTopLevel coverage: EXTERN VERSION NOCROSSREFS REGION_ALIAS
+# INSERT PRINT LINKER_PLUGIN PLUGIN_CONTROL_FILESZ PLUGIN_CONTROL_MEMSZ
+# PLUGIN_ITER_SECTIONS PLUGIN_OUTPUT_SECTION_ITER PLUGIN_SECTION_MATCHER
+# INCLUDE_OPTIONAL DONTMOVE
+#
+# Line 57: "EXTERN(foo_sym bar_sym)"
+#   57:1  = 'E' → eldKwTopLevel  (start of EXTERN)
+#   57:6  = 'N' → eldKwTopLevel  (last char of EXTERN)
+#
+# Line 58: "VERSION { v1 { global: *; }; }"
+#   58:1  = 'V' → eldKwTopLevel  (start of VERSION)
+#   58:7  = 'N' → eldKwTopLevel  (last char of VERSION)
+#
+# Line 59: "NOCROSSREFS(.text .data)"
+#   59:1  = 'N' → eldKwTopLevel  (start of NOCROSSREFS)
+#   59:11 = 'S' → eldKwTopLevel  (last char of NOCROSSREFS)
+#
+# Line 60: "REGION_ALIAS("FLASH", ROM)"
+#   60:1  = 'R' → eldKwTopLevel  (start of REGION_ALIAS)
+#   60:12 = 'S' → eldKwTopLevel  (last char of REGION_ALIAS)
+#
+# Line 61: "INSERT AFTER .text"
+#   61:1  = 'I' → eldKwTopLevel  (start of INSERT)
+#   61:6  = 'T' → eldKwTopLevel  (last char of INSERT)
+#
+# Line 62: "PRINT("linking done")"
+#   62:1  = 'P' → eldKwTopLevel  (start of PRINT)
+#   62:5  = 'T' → eldKwTopLevel  (last char of PRINT)
+#
+# Line 63: "LINKER_PLUGIN(myplugin.so)"
+#   63:1  = 'L' → eldKwTopLevel  (start of LINKER_PLUGIN)
+#   63:13 = 'N' → eldKwTopLevel  (last char of LINKER_PLUGIN)
+#
+# Line 64: "PLUGIN_CONTROL_FILESZ(0x100)"
+#   64:1  = 'P' → eldKwTopLevel  (start of PLUGIN_CONTROL_FILESZ)
+#   64:21 = 'Z' → eldKwTopLevel  (last char of PLUGIN_CONTROL_FILESZ)
+#
+# Line 65: "PLUGIN_CONTROL_MEMSZ(0x200)"
+#   65:1  = 'P' → eldKwTopLevel  (start of PLUGIN_CONTROL_MEMSZ)
+#   65:20 = 'Z' → eldKwTopLevel  (last char of PLUGIN_CONTROL_MEMSZ)
+#
+# Line 66: "PLUGIN_ITER_SECTIONS(iter_fn)"
+#   66:1  = 'P' → eldKwTopLevel  (start of PLUGIN_ITER_SECTIONS)
+#   66:20 = 'S' → eldKwTopLevel  (last char of PLUGIN_ITER_SECTIONS)
+#
+# Line 67: "PLUGIN_OUTPUT_SECTION_ITER(out_fn)"
+#   67:1  = 'P' → eldKwTopLevel  (start of PLUGIN_OUTPUT_SECTION_ITER)
+#   67:26 = 'R' → eldKwTopLevel  (last char of PLUGIN_OUTPUT_SECTION_ITER)
+#
+# Line 68: "PLUGIN_SECTION_MATCHER(match_fn)"
+#   68:1  = 'P' → eldKwTopLevel  (start of PLUGIN_SECTION_MATCHER)
+#   68:22 = 'R' → eldKwTopLevel  (last char of PLUGIN_SECTION_MATCHER)
+#
+# Line 69: "INCLUDE_OPTIONAL maybe.ld"
+#   69:1  = 'I' → eldKwTopLevel  (start of INCLUDE_OPTIONAL)
+#   69:16 = 'L' → eldKwTopLevel  (last char of INCLUDE_OPTIONAL)
+#
+# Line 70: "DONTMOVE(.keep_me)"
+#   70:1  = 'D' → eldKwTopLevel  (start of DONTMOVE)
+#   70:8  = 'E' → eldKwTopLevel  (last char of DONTMOVE)

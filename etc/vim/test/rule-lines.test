@@ -1,0 +1,73 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 22:1:eldRule \
+# RUN:   --check 22:2:eldRuleGlob \
+# RUN:   --check 22:3:eldRulePattern \
+# RUN:   --check 22:4:eldKwSectionList \
+# RUN:   --check 22:7:eldKwSectionList \
+# RUN:   --check 22:8:eldRulePattern \
+# RUN:   --check 22:9:eldRuleGlob \
+# RUN:   --check 22:10:eldRulePattern \
+# RUN:   --check 22:11:eldRuleSectionName \
+# RUN:   --check 22:21:eldRuleSectionName \
+# RUN:   --check 22:22:eldRulePattern \
+# RUN:   --check 22:26:eldRuleComment \
+# RUN:   --check 22:27:eldRuleComment \
+# RUN:   --check 22:48:eldRuleComment \
+# RUN:   --check 23:1:eldRule \
+# RUN:   --check 23:2:eldRuleGlob \
+# RUN:   --check 23:3:eldRulePattern \
+# RUN:   --check 23:4:eldRuleSectionName \
+# RUN:   --check 23:10:eldRuleSectionName \
+# RUN:   --check 23:11:eldRulePattern \
+# RUN:   --check 23:13:eldRuleComment \
+# RUN:   --check 23:35:eldRuleComment \
+# RUN:   --check 24:1:eldRuleKw \
+# RUN:   --check 24:2:eldRuleKw \
+# RUN:   --check 24:5:eldRuleKw \
+# RUN:   --check 24:8:eldRuleGlob \
+# RUN:   --check 24:9:eldRulePattern \
+# RUN:   --check 24:10:eldRuleSectionName \
+# RUN:   --check 24:14:eldRuleSectionName \
+# RUN:   --check 24:15:eldRulePattern \
+# RUN:   --check 24:18:eldRuleComment \
+# RUN:   --check 24:40:eldRuleComment
+#
+# Map-file rule lines: *(pattern) + #Rule suffix.
+#
+# Line 22: "\t*(KEEP(*(.text.hot.*))) #Rule 1, script.t [1:1]"
+#   22:1  = TAB → eldRule            (leading tab, whole-line region)
+#   22:2  = '*' → eldRuleGlob        (outer wildcard)
+#   22:3  = '(' → eldRulePattern     (outer pattern open paren)
+#   22:4  = 'K' → eldKwSectionList   (start of KEEP)
+#   22:7  = 'P' → eldKwSectionList   (last char of KEEP)
+#   22:8  = '(' → eldRulePattern     (inner pattern open paren)
+#   22:9  = '*' → eldRuleGlob        (inner wildcard)
+#   22:10 = '(' → eldRulePattern     (section list open paren)
+#   22:11 = '.' → eldRuleSectionName (start of .text.hot.*)
+#   22:21 = '*' → eldRuleSectionName (trailing glob in section name)
+#   22:22 = ')' → eldRulePattern     (section list close paren)
+#   22:26 = '#' → eldRuleComment     (start of #Rule comment)
+#   22:27 = 'R' → eldRuleComment     (start of "Rule")
+#   22:48 = ']' → eldRuleComment     (last char of [1:1])
+#
+# Line 23: "\t*(.text.*) #Rule 2, script.t [2:1]"
+#   23:1  = TAB → eldRule
+#   23:2  = '*' → eldRuleGlob
+#   23:3  = '(' → eldRulePattern
+#   23:4  = '.' → eldRuleSectionName (start of .text.*)
+#   23:10 = '*' → eldRuleSectionName (trailing glob)
+#   23:11 = ')' → eldRulePattern     (close paren)
+#   23:13 = '#' → eldRuleComment
+#   23:35 = ']' → eldRuleComment     (last char of [2:1])
+#
+# Line 24: "\tKEEP (*(.init)) #Rule 3, script.t [3:1]"
+#   24:1  = TAB → eldRuleKw          (leading tab, part of keyword match)
+#   24:2  = 'K' → eldRuleKw          (start of KEEP)
+#   24:5  = 'P' → eldRuleKw          (last char of KEEP)
+#   24:8  = '*' → eldRuleGlob
+#   24:9  = '(' → eldRulePattern
+#   24:10 = '.' → eldRuleSectionName (start of .init)
+#   24:14 = 't' → eldRuleSectionName (last char of .init)
+#   24:15 = ')' → eldRulePattern
+#   24:18 = '#' → eldRuleComment
+#   24:40 = ']' → eldRuleComment

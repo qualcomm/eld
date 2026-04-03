@@ -1,0 +1,23 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 1:1:eldComment \
+# RUN:   --check 1:3:eldComment \
+# RUN:   --check 1:30:eldComment \
+# RUN:   --check 3:1:eldComment \
+# RUN:   --check 3:3:eldComment \
+# RUN:   --check 4:1:eldComment \
+# RUN:   --check 4:13:eldComment
+#
+# Verify that plain '#' line comments (map-file header lines) are highlighted
+# as eldComment.
+#
+# Line 1: "# Linker Script and memory map"
+#   1:1  = '#'  → eldComment  (start of comment)
+#   1:3  = 'L'  → eldComment  (body of comment)
+#   1:30 = 'p'  → eldComment  (last char of "map")
+#
+# Lines 3-4: "# LinkStats Begin" / "# LinkStats End"
+# These are plain # comments (not banners), so they get eldComment.
+#   3:1  = '#'  → eldComment
+#   3:3  = 'L'  → eldComment
+#   4:1  = '#'  → eldComment
+#   4:13 = 'E'  → eldComment  (last char of "End")

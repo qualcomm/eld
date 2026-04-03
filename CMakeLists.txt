@@ -264,6 +264,7 @@ set(LLVM_COMMON_DEPENDS ${LLVM_COMMON_DEPENDS} ${_eld_driver_tg})
 add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(docs)
+add_subdirectory(etc)
 
 # Only include tests if enabled (requires LLVM source tree)
 if(ELD_INCLUDE_TESTS)

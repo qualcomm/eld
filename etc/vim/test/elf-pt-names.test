@@ -1,0 +1,107 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 170:16:eldKwSegType \
+# RUN:   --check 170:30:eldKwSegType \
+# RUN:   --check 171:16:eldKwSegType \
+# RUN:   --check 171:28:eldKwSegType \
+# RUN:   --check 172:16:eldKwSegType \
+# RUN:   --check 172:22:eldKwSegType \
+# RUN:   --check 173:16:eldKwSegType \
+# RUN:   --check 173:24:eldKwSegType \
+# RUN:   --check 174:16:eldKwSegType \
+# RUN:   --check 174:24:eldKwSegType \
+# RUN:   --check 175:16:eldKwSegType \
+# RUN:   --check 175:22:eldKwSegType \
+# RUN:   --check 176:16:eldKwSegType \
+# RUN:   --check 176:24:eldKwSegType \
+# RUN:   --check 177:16:eldKwSegType \
+# RUN:   --check 177:24:eldKwSegType \
+# RUN:   --check 178:16:eldKwSegType \
+# RUN:   --check 178:31:eldKwSegType \
+# RUN:   --check 179:16:eldKwSegType \
+# RUN:   --check 179:30:eldKwSegType \
+# RUN:   --check 180:16:eldKwSegType \
+# RUN:   --check 180:30:eldKwSegType \
+# RUN:   --check 181:16:eldKwSegType \
+# RUN:   --check 181:29:eldKwSegType \
+# RUN:   --check 182:16:eldKwSegType \
+# RUN:   --check 182:21:eldKwSegType \
+# RUN:   --check 183:16:eldKwSegType \
+# RUN:   --check 183:32:eldKwSegType \
+# RUN:   --check 184:16:eldKwSegType \
+# RUN:   --check 184:31:eldKwSegType \
+# RUN:   --check 185:16:eldKwSegType \
+# RUN:   --check 185:25:eldKwSegType \
+# RUN:   --check 186:16:eldKwSegType \
+# RUN:   --check 186:27:eldKwSegType
+#
+# PT_* program-header type names from /usr/include/elf.h highlighted as
+# eldKwSegType.  These names were added by reading elf.h; the original
+# hardcoded list only covered 12 names.
+#
+# Line 170: "  p_gnu_prop   PT_GNU_PROPERTY"
+#   170:16 = 'P' → eldKwSegType  (start of PT_GNU_PROPERTY)
+#   170:30 = 'Y' → eldKwSegType  (last char of PT_GNU_PROPERTY)
+#
+# Line 171: "  p_gnu_sf     PT_GNU_SFRAME"
+#   171:16 = 'P' → eldKwSegType  (start of PT_GNU_SFRAME)
+#   171:28 = 'E' → eldKwSegType  (last char of PT_GNU_SFRAME)
+#
+# Line 172: "  p_hios       PT_HIOS"
+#   172:16 = 'P' → eldKwSegType  (start of PT_HIOS)
+#   172:22 = 'S' → eldKwSegType  (last char of PT_HIOS)
+#
+# Line 173: "  p_hiproc     PT_HIPROC"
+#   173:16 = 'P' → eldKwSegType  (start of PT_HIPROC)
+#   173:24 = 'C' → eldKwSegType  (last char of PT_HIPROC)
+#
+# Line 174: "  p_hisunw     PT_HISUNW"
+#   174:16 = 'P' → eldKwSegType  (start of PT_HISUNW)
+#   174:24 = 'W' → eldKwSegType  (last char of PT_HISUNW)
+#
+# Line 175: "  p_loos       PT_LOOS"
+#   175:16 = 'P' → eldKwSegType  (start of PT_LOOS)
+#   175:22 = 'S' → eldKwSegType  (last char of PT_LOOS)
+#
+# Line 176: "  p_loproc     PT_LOPROC"
+#   176:16 = 'P' → eldKwSegType  (start of PT_LOPROC)
+#   176:24 = 'C' → eldKwSegType  (last char of PT_LOPROC)
+#
+# Line 177: "  p_losunw     PT_LOSUNW"
+#   177:16 = 'P' → eldKwSegType  (start of PT_LOSUNW)
+#   177:24 = 'W' → eldKwSegType  (last char of PT_LOSUNW)
+#
+# Line 178: "  p_mips_abi   PT_MIPS_ABIFLAGS"
+#   178:16 = 'P' → eldKwSegType  (start of PT_MIPS_ABIFLAGS)
+#   178:31 = 'S' → eldKwSegType  (last char of PT_MIPS_ABIFLAGS)
+#
+# Line 179: "  p_mips_opt   PT_MIPS_OPTIONS"
+#   179:16 = 'P' → eldKwSegType  (start of PT_MIPS_OPTIONS)
+#   179:30 = 'S' → eldKwSegType  (last char of PT_MIPS_OPTIONS)
+#
+# Line 180: "  p_mips_reg   PT_MIPS_REGINFO"
+#   180:16 = 'P' → eldKwSegType  (start of PT_MIPS_REGINFO)
+#   180:30 = 'O' → eldKwSegType  (last char of PT_MIPS_REGINFO)
+#
+# Line 181: "  p_mips_rtp   PT_MIPS_RTPROC"
+#   181:16 = 'P' → eldKwSegType  (start of PT_MIPS_RTPROC)
+#   181:29 = 'C' → eldKwSegType  (last char of PT_MIPS_RTPROC)
+#
+# Line 182: "  p_num        PT_NUM"
+#   182:16 = 'P' → eldKwSegType  (start of PT_NUM)
+#   182:21 = 'M' → eldKwSegType  (last char of PT_NUM)
+#
+# Line 183: "  p_par_arch   PT_PARISC_ARCHEXT"
+#   183:16 = 'P' → eldKwSegType  (start of PT_PARISC_ARCHEXT)
+#   183:32 = 'T' → eldKwSegType  (last char of PT_PARISC_ARCHEXT)
+#
+# Line 184: "  p_par_unw    PT_PARISC_UNWIND"
+#   184:16 = 'P' → eldKwSegType  (start of PT_PARISC_UNWIND)
+#   184:31 = 'D' → eldKwSegType  (last char of PT_PARISC_UNWIND)
+#
+# Line 185: "  p_sunwbss    PT_SUNWBSS"
+#   185:16 = 'P' → eldKwSegType  (start of PT_SUNWBSS)
+#   185:25 = 'S' → eldKwSegType  (last char of PT_SUNWBSS)
+#
+# Line 186: "  p_sunwstack  PT_SUNWSTACK"
+#   186:16 = 'P' → eldKwSegType  (start of PT_SUNWSTACK)
+#   186:27 = 'K' → eldKwSegType  (last char of PT_SUNWSTACK)

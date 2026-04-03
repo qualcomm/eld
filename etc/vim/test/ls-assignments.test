@@ -1,0 +1,89 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 39:1:eldLsAssignLHS \
+# RUN:   --check 39:3:eldLsAssignOp \
+# RUN:   --check 39:5:eldKwExpr \
+# RUN:   --check 39:9:eldKwExpr \
+# RUN:   --check 39:10:eldLsAssign \
+# RUN:   --check 39:13:eldLsAssign \
+# RUN:   --check 40:1:eldLsAssignLHS \
+# RUN:   --check 40:12:eldLsAssignLHS \
+# RUN:   --check 40:14:eldLsAssignOp \
+# RUN:   --check 40:17:eldLsAssign \
+# RUN:   --check 41:1:eldLsAssignLHS \
+# RUN:   --check 41:12:eldLsAssignLHS \
+# RUN:   --check 41:14:eldLsAssignOp \
+# RUN:   --check 41:16:eldHex \
+# RUN:   --check 41:21:eldHex \
+# RUN:   --check 41:22:eldLsAssign \
+# RUN:   --check 42:1:eldKwAssign \
+# RUN:   --check 42:14:eldKwAssign \
+# RUN:   --check 42:16:eldExprParen \
+# RUN:   --check 42:17:eldExprLHS \
+# RUN:   --check 42:27:eldExprLHS \
+# RUN:   --check 42:29:eldExprOp \
+# RUN:   --check 42:31:eldExprLHS \
+# RUN:   --check 42:42:eldExprLHS \
+# RUN:   --check 42:44:eldExprOp \
+# RUN:   --check 42:46:eldExprLHS \
+# RUN:   --check 42:57:eldExprLHS \
+# RUN:   --check 42:58:eldExprParen \
+# RUN:   --check 42:59:eldExprLine \
+# RUN:   --check 43:1:eldKwAssign \
+# RUN:   --check 43:7:eldKwAssign \
+# RUN:   --check 43:9:eldExprParen \
+# RUN:   --check 43:10:eldExprLHS \
+# RUN:   --check 43:12:eldExprLHS \
+# RUN:   --check 43:14:eldExprOp \
+# RUN:   --check 43:16:eldExprDot \
+# RUN:   --check 43:17:eldExprParen \
+# RUN:   --check 43:18:eldExprLine
+#
+# Linker-script assignment statements.
+#
+# Line 39: ". = ALIGN(4);"
+#   39:1  = '.' → eldLsAssignLHS  (location counter as LHS)
+#   39:3  = '=' → eldLsAssignOp   (assignment operator)
+#   39:5  = 'A' → eldKwExpr       (start of ALIGN)
+#   39:9  = 'N' → eldKwExpr       (last char of ALIGN)
+#   39:10 = '(' → eldLsAssign     (open paren of ALIGN call)
+#   39:13 = ';' → eldLsAssign     (semicolon)
+#
+# Line 40: "__heap_start = .;"
+#   40:1  = '_' → eldLsAssignLHS  (start of __heap_start)
+#   40:12 = 't' → eldLsAssignLHS  (last char of __heap_start)
+#   40:14 = '=' → eldLsAssignOp
+#   40:17 = ';' → eldLsAssign
+#
+# Line 41: "__stack_size = 0x1000;"
+#   41:1  = '_' → eldLsAssignLHS  (start of __stack_size)
+#   41:12 = 'e' → eldLsAssignLHS  (last char of __stack_size)
+#   41:14 = '=' → eldLsAssignOp
+#   41:16 = '0' → eldHex          (start of 0x1000)
+#   41:21 = '0' → eldHex          (last char of 0x1000)
+#   41:22 = ';' → eldLsAssign
+#
+# Line 42: "PROVIDE_HIDDEN (__stack_end = __heap_start + __stack_size);"
+#   42:1  = 'P' → eldKwAssign    (start of PROVIDE_HIDDEN)
+#   42:14 = 'N' → eldKwAssign    (last char of PROVIDE_HIDDEN)
+#   42:16 = '(' → eldExprParen   (outer open paren)
+#   42:17 = '_' → eldExprLHS     (start of __stack_end)
+#   42:27 = 'd' → eldExprLHS     (last char of __stack_end)
+#   42:29 = '=' → eldExprOp
+#   42:31 = '_' → eldExprLHS     (start of __heap_start)
+#   42:42 = 't' → eldExprLHS     (last char of __heap_start)
+#   42:44 = '+' → eldExprOp
+#   42:46 = '_' → eldExprLHS     (start of __stack_size)
+#   42:57 = 'e' → eldExprLHS     (last char of __stack_size)
+#   42:58 = ')' → eldExprParen   (outer close paren)
+#   42:59 = ';' → eldExprLine
+#
+# Line 43: "PROVIDE (end = .);"
+#   43:1  = 'P' → eldKwAssign   (start of PROVIDE)
+#   43:7  = 'E' → eldKwAssign   (last char of PROVIDE)
+#   43:9  = '(' → eldExprParen
+#   43:10 = 'e' → eldExprLHS    (start of "end")
+#   43:12 = 'd' → eldExprLHS    (last char of "end")
+#   43:14 = '=' → eldExprOp
+#   43:16 = '.' → eldExprDot    (location counter)
+#   43:17 = ')' → eldExprParen
+#   43:18 = ';' → eldExprLine

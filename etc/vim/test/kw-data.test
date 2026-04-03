@@ -1,0 +1,34 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 124:5:eldKwData \
+# RUN:   --check 124:8:eldKwData \
+# RUN:   --check 125:5:eldKwData \
+# RUN:   --check 125:9:eldKwData \
+# RUN:   --check 126:5:eldKwData \
+# RUN:   --check 126:8:eldKwData \
+# RUN:   --check 127:5:eldKwData \
+# RUN:   --check 127:8:eldKwData \
+# RUN:   --check 128:5:eldKwData \
+# RUN:   --check 128:9:eldKwData
+#
+# eldKwData: BYTE SHORT LONG QUAD SQUAD
+# Data-output commands that emit raw bytes into the current section.
+#
+# Line 124: "    BYTE(0x01)"
+#   124:5 = 'B' → eldKwData  (start of BYTE)
+#   124:8 = 'E' → eldKwData  (last char of BYTE)
+#
+# Line 125: "    SHORT(0x0102)"
+#   125:5 = 'S' → eldKwData  (start of SHORT)
+#   125:9 = 'T' → eldKwData  (last char of SHORT)
+#
+# Line 126: "    LONG(0x01020304)"
+#   126:5 = 'L' → eldKwData  (start of LONG)
+#   126:8 = 'G' → eldKwData  (last char of LONG)
+#
+# Line 127: "    QUAD(0x0102030405060708)"
+#   127:5 = 'Q' → eldKwData  (start of QUAD)
+#   127:8 = 'D' → eldKwData  (last char of QUAD)
+#
+# Line 128: "    SQUAD(-1)"
+#   128:5 = 'S' → eldKwData  (start of SQUAD)
+#   128:9 = 'D' → eldKwData  (last char of SQUAD)

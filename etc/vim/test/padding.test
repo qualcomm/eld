@@ -1,0 +1,24 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 25:1:eldPaddingKw \
+# RUN:   --check 25:17:eldPaddingKw \
+# RUN:   --check 25:18:eldPadding \
+# RUN:   --check 25:21:eldHex \
+# RUN:   --check 25:26:eldHex \
+# RUN:   --check 25:30:eldHex \
+# RUN:   --check 25:32:eldHex \
+# RUN:   --check 25:36:eldHex \
+# RUN:   --check 25:38:eldHex
+#
+# Line 25: "PADDING_ALIGNMENT   0xef74   0x4   0x0"
+# PADDING_ALIGNMENT lines: the keyword is eldPaddingKw; the hex values are
+# eldHex; the rest of the line is eldPadding.
+#
+#   25:1  = 'P' → eldPaddingKw  (start of PADDING_ALIGNMENT)
+#   25:17 = 'T' → eldPaddingKw  (last char of PADDING_ALIGNMENT)
+#   25:18 = ' ' → eldPadding    (space after keyword)
+#   25:21 = '0' → eldHex        (start of 0xef74)
+#   25:26 = '4' → eldHex        (last char of 0xef74)
+#   25:30 = '0' → eldHex        (start of 0x4)
+#   25:32 = '4' → eldHex        (last char of 0x4)
+#   25:36 = '0' → eldHex        (start of 0x0)
+#   25:38 = '0' → eldHex        (last char of 0x0)

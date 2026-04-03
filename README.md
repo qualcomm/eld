@@ -118,6 +118,56 @@ This command runs only the AliasSymbolExportDynamic test using the ARM default c
 - -a: Always show detailed output.
 - -v: Show detailed output only when a test fails ("on failure" mode).
 
+### Testing Vim Integration
+
+The Vim syntax-highlighting files in `etc/vim/` have a
+[lit](https://llvm.org/docs/CommandGuide/lit.html)-based test suite that
+verifies syntax-group assignments for every token class in `eld.vim`.
+
+**Prerequisites**
+
+- Vim 9.1 or later in `PATH` (tests drive Vim in batch mode; Neovim is not supported).
+- Python 3 in `PATH`.
+- `lit` installed (`pip install lit`).
+
+**Running the tests**
+
+Each test spawns one Vim process; run the suite serially to avoid resource contention:
+
+```bash
+cd etc/vim/test
+lit -j1 .
+```
+
+Run a single test file:
+
+```bash
+lit -j1 comments.test
+```
+
+Run with verbose output to see per-check PASS/FAIL lines:
+
+```bash
+lit -j1 -v .
+```
+
+Use a specific Vim binary:
+
+```bash
+lit -j1 -D vim=/path/to/vim .
+```
+
+**CMake build target**
+
+Enable the test suite at configure time with `-DELD_VIM_TESTS=ON`.
+This adds a `check-eld-vim` target that runs the tests with a single worker
+and a 120-second per-test timeout:
+
+```bash
+cmake -DELD_VIM_TESTS=ON <other options> <source-dir>
+ninja check-eld-vim
+```
+
 ### Building documentation
 
 First install the prerequisites for building documentation:

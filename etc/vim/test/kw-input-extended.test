@@ -1,0 +1,21 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 73:1:eldKwInput \
+# RUN:   --check 73:5:eldKwInput \
+# RUN:   --check 74:1:eldKwInput \
+# RUN:   --check 74:5:eldKwInput \
+# RUN:   --check 75:1:eldKwInput \
+# RUN:   --check 75:9:eldKwInput
+#
+# Extended eldKwInput coverage: INPUT GROUP AS_NEEDED
+#
+# Line 73: "INPUT(libfoo.a)"
+#   73:1  = 'I' → eldKwInput  (start of INPUT)
+#   73:5  = 'T' → eldKwInput  (last char of INPUT)
+#
+# Line 74: "GROUP(libbar.a libbaz.a)"
+#   74:1  = 'G' → eldKwInput  (start of GROUP)
+#   74:5  = 'P' → eldKwInput  (last char of GROUP)
+#
+# Line 75: "AS_NEEDED(libopt.a)"
+#   75:1  = 'A' → eldKwInput  (start of AS_NEEDED)
+#   75:9  = 'D' → eldKwInput  (last char of AS_NEEDED)

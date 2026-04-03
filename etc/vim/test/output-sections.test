@@ -1,0 +1,59 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 16:1:eldSectionName \
+# RUN:   --check 16:5:eldSectionName \
+# RUN:   --check 16:6:eldLsOutputSection \
+# RUN:   --check 16:9:eldHex \
+# RUN:   --check 16:14:eldHex \
+# RUN:   --check 16:18:eldHex \
+# RUN:   --check 16:24:eldHex \
+# RUN:   --check 16:26:eldLsOutputSection \
+# RUN:   --check 16:28:eldLsOutputSection \
+# RUN:   --check 16:34:eldLsOutputSection \
+# RUN:   --check 16:36:eldHex \
+# RUN:   --check 16:41:eldHex \
+# RUN:   --check 16:57:eldLsOutputSection \
+# RUN:   --check 16:66:eldLsOutputSection \
+# RUN:   --check 16:68:eldHex \
+# RUN:   --check 16:70:eldHex \
+# RUN:   --check 18:1:eldSectionName \
+# RUN:   --check 18:16:eldSectionName \
+# RUN:   --check 18:17:eldInputSection \
+# RUN:   --check 18:20:eldHex \
+# RUN:   --check 18:26:eldHex \
+# RUN:   --check 18:30:eldHex \
+# RUN:   --check 18:32:eldHex \
+# RUN:   --check 18:36:eldInputSection
+#
+# Output section header lines (map file):
+#   ".section_name  addr  size  # Offset: ..."
+# The section name is eldSectionName; hex values are eldHex; the metadata
+# comment tail is eldLsOutputSection.
+#
+# Line 16: ".text   0xe7a0   0xc7e5f # Offset: 0xe7a0, LMA: 0xe7a0, Alignment: 0x8, ..."
+#   16:1  = '.'  → eldSectionName      (start of .text)
+#   16:5  = 't'  → eldSectionName      (last char of .text)
+#   16:6  = ' '  → eldLsOutputSection  (space after section name)
+#   16:9  = '0'  → eldHex              (start of 0xe7a0 address)
+#   16:14 = '0'  → eldHex              (last char of 0xe7a0)
+#   16:18 = '0'  → eldHex              (start of 0xc7e5f size)
+#   16:24 = 'f'  → eldHex              (last char of 0xc7e5f)
+#   16:26 = '#'  → eldLsOutputSection  (start of metadata comment)
+#   16:28 = 'O'  → eldLsOutputSection  (start of "Offset")
+#   16:34 = ':'  → eldLsOutputSection  (colon after "Offset")
+#   16:36 = '0'  → eldHex              (start of Offset value 0xe7a0)
+#   16:41 = '0'  → eldHex              (last char of Offset value)
+#   16:57 = 'A'  → eldLsOutputSection  (start of "Alignment")
+#   16:66 = ':'  → eldLsOutputSection  (colon after "Alignment")
+#   16:68 = '0'  → eldHex              (start of 0x8)
+#   16:70 = '8'  → eldHex              (last char of 0x8)
+#
+# Input section lines (no leading tab, non-# char after hex fields):
+# Line 18: ".text.init_array   0x10f00   0x8   libinit.a(init.o)   #SHT_..."
+#   18:1  = '.'  → eldSectionName   (start of .text.init_array)
+#   18:16 = 'y'  → eldSectionName   (last char of .init_array)
+#   18:17 = ' '  → eldInputSection  (space after section name)
+#   18:20 = '0'  → eldHex           (start of 0x10f00)
+#   18:26 = '0'  → eldHex           (last char of 0x10f00)
+#   18:30 = '0'  → eldHex           (start of 0x8)
+#   18:32 = '8'  → eldHex           (last char of 0x8)
+#   18:36 = 'l'  → eldInputSection  (start of origin file path)

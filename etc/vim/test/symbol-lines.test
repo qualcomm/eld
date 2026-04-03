@@ -1,0 +1,31 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 19:1:eldSymbolLine \
+# RUN:   --check 19:2:eldHex \
+# RUN:   --check 19:8:eldHex \
+# RUN:   --check 19:9:eldSymbolLine \
+# RUN:   --check 19:12:eldSymbol \
+# RUN:   --check 19:18:eldSymbol \
+# RUN:   --check 21:1:eldSymbolLine \
+# RUN:   --check 21:2:eldHex \
+# RUN:   --check 21:8:eldHex \
+# RUN:   --check 21:12:eldSymbol \
+# RUN:   --check 21:19:eldSymbol
+#
+# Symbol address lines: leading whitespace + hex address + symbol name.
+# The hex address is eldHex; the symbol name is eldSymbol; the whole line
+# region is eldSymbolLine.
+#
+# Line 19: "\t0x10e65   xmalloc"
+#   19:1  = TAB → eldSymbolLine  (leading whitespace)
+#   19:2  = '0' → eldHex         (start of 0x10e65)
+#   19:8  = '5' → eldHex         (last char of 0x10e65)
+#   19:9  = ' ' → eldSymbolLine  (space between address and symbol)
+#   19:12 = 'x' → eldSymbol      (start of "xmalloc")
+#   19:18 = 'c' → eldSymbol      (last char of "xmalloc")
+#
+# Line 21: "\t0x10e85   foo_func"
+#   21:1  = TAB → eldSymbolLine
+#   21:2  = '0' → eldHex
+#   21:8  = '5' → eldHex
+#   21:12 = 'f' → eldSymbol      (start of "foo_func")
+#   21:19 = 'c' → eldSymbol      (last char of "foo_func")

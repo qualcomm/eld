@@ -1,0 +1,25 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 133:1:eldKwGroup \
+# RUN:   --check 133:5:eldKwGroup \
+# RUN:   --check 133:6:eldKwGroup \
+# RUN:   --check 133:11:eldKwGroup \
+# RUN:   --check 136:1:eldKwGroup \
+# RUN:   --check 136:3:eldKwGroup \
+# RUN:   --check 136:4:eldKwGroup \
+# RUN:   --check 136:9:eldKwGroup
+#
+# eldKwGroup: START GROUP and END GROUP
+# These two-word phrases are matched as a single group so the whole phrase
+# gets the group color.
+#
+# Line 133: "START GROUP"
+#   133:1  = 'S' → eldKwGroup  (start of "START GROUP")
+#   133:5  = 'T' → eldKwGroup  (last char of START)
+#   133:6  = ' ' → eldKwGroup  (space between words)
+#   133:11 = 'P' → eldKwGroup  (last char of GROUP)
+#
+# Line 136: "END GROUP"
+#   136:1  = 'E' → eldKwGroup  (start of "END GROUP")
+#   136:3  = 'D' → eldKwGroup  (last char of END)
+#   136:4  = ' ' → eldKwGroup  (space between words)
+#   136:9  = 'P' → eldKwGroup  (last char of GROUP)

@@ -1,0 +1,25 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 9:1:eldPullIn \
+# RUN:   --check 9:2:eldPullIn \
+# RUN:   --check 9:3:eldArchiveMember \
+# RUN:   --check 9:17:eldArchiveMember \
+# RUN:   --check 9:18:eldPullIn \
+# RUN:   --check 9:19:eldSymbolInParens \
+# RUN:   --check 9:20:eldSymbolInParens \
+# RUN:   --check 9:31:eldSymbolInParens
+#
+# Line 9 (two leading hard tabs):
+#   "\t\tlibbar.a(bar.o) (some_symbol)"
+#
+# The double-tab prefix marks this as an archive pull-in line (eldPullIn).
+# The archive reference is sub-highlighted as eldArchiveMember.
+# The trailing "(symbol)" is eldSymbolInParens.
+#
+#   9:1  = TAB → eldPullIn          (first tab)
+#   9:2  = TAB → eldPullIn          (second tab)
+#   9:3  = 'l' → eldArchiveMember   (start of libbar.a(bar.o))
+#   9:17 = ')' → eldArchiveMember   (closing paren of member)
+#   9:18 = ' ' → eldPullIn          (space between archive and symbol)
+#   9:19 = '(' → eldSymbolInParens  (opening paren of pulled-in symbol)
+#   9:20 = 's' → eldSymbolInParens  (first char of symbol name)
+#   9:31 = ')' → eldSymbolInParens  (closing paren)

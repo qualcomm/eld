@@ -1,0 +1,13 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 6:1:eldScriptFile \
+# RUN:   --check 6:9:eldScriptFile \
+# RUN:   --check 6:17:eldScriptFile
+#
+# Line 6: "/path/to/script.t"
+# Bare linker-script filenames in the "Linker scripts used" section are
+# highlighted as eldScriptFile.  The pattern matches absolute paths (/...)
+# and paths ending in .t, .ld, .lcs, .lds, or .x.
+#
+#   6:1  = '/' → eldScriptFile  (start of absolute path)
+#   6:9  = 'o' → eldScriptFile  (middle of path)
+#   6:17 = 't' → eldScriptFile  (last char, the .t extension)

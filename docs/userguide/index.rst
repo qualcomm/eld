@@ -35,6 +35,7 @@ This document describes usage of ELD
    documentation/options/options.rst
    documentation/target_specific_features.rst
    documentation/sframe_support.rst
+   documentation/editor_support.rst
    documentation/linker_faq.rst
 
 *******************

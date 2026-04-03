@@ -1,0 +1,156 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 36:53:eldSHT \
+# RUN:   --check 36:62:eldSHT \
+# RUN:   --check 36:64:eldSHF \
+# RUN:   --check 36:72:eldSHF \
+# RUN:   --check 37:53:eldSHT \
+# RUN:   --check 37:64:eldSHT \
+# RUN:   --check 37:66:eldSHF \
+# RUN:   --check 37:74:eldSHF \
+# RUN:   --check 38:53:eldSHT \
+# RUN:   --check 38:60:eldSHT \
+# RUN:   --check 38:62:eldSHF \
+# RUN:   --check 38:70:eldSHF \
+# RUN:   --check 39:53:eldSHT \
+# RUN:   --check 39:62:eldSHT \
+# RUN:   --check 39:64:eldSHF \
+# RUN:   --check 39:84:eldSHF \
+# RUN:   --check 40:53:eldSHT \
+# RUN:   --check 40:60:eldSHT \
+# RUN:   --check 40:62:eldSHF \
+# RUN:   --check 40:74:eldSHF \
+# RUN:   --check 41:53:eldSHT \
+# RUN:   --check 41:66:eldSHT \
+# RUN:   --check 41:68:eldSHF \
+# RUN:   --check 41:86:eldSHF \
+# RUN:   --check 42:53:eldSHT \
+# RUN:   --check 42:66:eldSHT \
+# RUN:   --check 42:68:eldSHF \
+# RUN:   --check 42:86:eldSHF \
+# RUN:   --check 43:53:eldSHT \
+# RUN:   --check 43:66:eldSHT \
+# RUN:   --check 43:68:eldSHF \
+# RUN:   --check 43:76:eldSHF \
+# RUN:   --check 44:53:eldSHT \
+# RUN:   --check 44:66:eldSHT \
+# RUN:   --check 44:68:eldSHF \
+# RUN:   --check 44:76:eldSHF \
+# RUN:   --check 45:53:eldSHT \
+# RUN:   --check 45:67:eldSHT \
+# RUN:   --check 45:69:eldSHF \
+# RUN:   --check 45:77:eldSHF \
+# RUN:   --check 46:53:eldSHT \
+# RUN:   --check 46:64:eldSHT \
+# RUN:   --check 46:66:eldSHF \
+# RUN:   --check 46:82:eldSHF \
+# RUN:   --check 47:53:eldSHT \
+# RUN:   --check 47:64:eldSHT \
+# RUN:   --check 47:66:eldSHF \
+# RUN:   --check 47:89:eldSHF \
+# RUN:   --check 48:53:eldSHT \
+# RUN:   --check 48:61:eldSHT \
+# RUN:   --check 48:63:eldSHF \
+# RUN:   --check 48:71:eldSHF \
+# RUN:   --check 49:53:eldSHT \
+# RUN:   --check 49:60:eldSHT \
+# RUN:   --check 49:62:eldSHF \
+# RUN:   --check 49:70:eldSHF \
+# RUN:   --check 50:53:eldSHT \
+# RUN:   --check 50:62:eldSHT \
+# RUN:   --check 50:64:eldSHF \
+# RUN:   --check 50:82:eldSHF
+#
+# SHT_* and SHF_* names from /usr/include/elf.h highlighted as eldSHT / eldSHF
+# inside GC section annotation comments (#SHT_TYPE,SHF_FLAGS,ALIGN).
+# These names were added by reading elf.h; the old syn match patterns only
+# covered names matching [A-Z_]+.
+#
+# Line 36: "# .dynsym.sec  <GC>  0x40  libelf.a(dynsym.o)  #SHT_DYNSYM,SHF_ALLOC,8"
+#   36:53 = 'S' → eldSHT  (start of SHT_DYNSYM)
+#   36:62 = 'M' → eldSHT  (last char of SHT_DYNSYM)
+#   36:64 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   36:72 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 37: "#SHT_GNU_HASH,SHF_ALLOC,8"
+#   37:53 = 'S' → eldSHT  (start of SHT_GNU_HASH)
+#   37:64 = 'H' → eldSHT  (last char of SHT_GNU_HASH)
+#   37:66 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   37:74 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 38: "#SHT_NOTE,SHF_ALLOC,4"
+#   38:53 = 'S' → eldSHT  (start of SHT_NOTE)
+#   38:60 = 'E' → eldSHT  (last char of SHT_NOTE)
+#   38:62 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   38:70 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 39: "#SHT_STRTAB,SHF_MERGE|SHF_STRINGS,1"
+#   39:53 = 'S' → eldSHT  (start of SHT_STRTAB)
+#   39:62 = 'B' → eldSHT  (last char of SHT_STRTAB)
+#   39:64 = 'S' → eldSHF  (start of SHF_MERGE)
+#   39:84 = 'S' → eldSHF  (last char of SHF_STRINGS)
+#
+# Line 40: "#SHT_RELA,SHF_INFO_LINK,8"
+#   40:53 = 'S' → eldSHT  (start of SHT_RELA)
+#   40:60 = 'A' → eldSHT  (last char of SHT_RELA)
+#   40:62 = 'S' → eldSHF  (start of SHF_INFO_LINK)
+#   40:74 = 'K' → eldSHF  (last char of SHF_INFO_LINK)
+#
+# Line 41: "#SHT_INIT_ARRAY,SHF_ALLOC|SHF_WRITE,8"
+#   41:53 = 'S' → eldSHT  (start of SHT_INIT_ARRAY)
+#   41:66 = 'Y' → eldSHT  (last char of SHT_INIT_ARRAY)
+#   41:68 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   41:86 = 'E' → eldSHF  (last char of SHF_WRITE)
+#
+# Line 42: "#SHT_FINI_ARRAY,SHF_ALLOC|SHF_WRITE,8"
+#   42:53 = 'S' → eldSHT  (start of SHT_FINI_ARRAY)
+#   42:66 = 'Y' → eldSHT  (last char of SHT_FINI_ARRAY)
+#   42:68 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   42:86 = 'E' → eldSHF  (last char of SHF_WRITE)
+#
+# Line 43: "#SHT_GNU_versym,SHF_ALLOC,2"  (lowercase 'versym' — new from elf.h)
+#   43:53 = 'S' → eldSHT  (start of SHT_GNU_versym)
+#   43:66 = 'm' → eldSHT  (last char of SHT_GNU_versym, lowercase)
+#   43:68 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   43:76 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 44: "#SHT_GNU_verdef,SHF_ALLOC,4"  (lowercase 'verdef' — new from elf.h)
+#   44:53 = 'S' → eldSHT  (start of SHT_GNU_verdef)
+#   44:66 = 'f' → eldSHT  (last char of SHT_GNU_verdef, lowercase)
+#   44:68 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   44:76 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 45: "#SHT_GNU_verneed,SHF_ALLOC,4"  (lowercase 'verneed' — new from elf.h)
+#   45:53 = 'S' → eldSHT  (start of SHT_GNU_verneed)
+#   45:67 = 'd' → eldSHT  (last char of SHT_GNU_verneed, lowercase)
+#   45:69 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   45:77 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 46: "#SHT_PROGBITS,SHF_ALLOC|SHF_TLS,8"
+#   46:53 = 'S' → eldSHT  (start of SHT_PROGBITS)
+#   46:64 = 'S' → eldSHT  (last char of SHT_PROGBITS)
+#   46:66 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   46:82 = 'S' → eldSHF  (last char of SHF_TLS)
+#
+# Line 47: "#SHT_PROGBITS,SHF_ALLOC|SHF_COMPRESSED,8"
+#   47:53 = 'S' → eldSHT  (start of SHT_PROGBITS)
+#   47:64 = 'S' → eldSHT  (last char of SHT_PROGBITS)
+#   47:66 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   47:89 = 'D' → eldSHF  (last char of SHF_COMPRESSED)
+#
+# Line 48: "#SHT_GROUP,SHF_GROUP,4"
+#   48:53 = 'S' → eldSHT  (start of SHT_GROUP)
+#   48:61 = 'P' → eldSHT  (last char of SHT_GROUP)
+#   48:63 = 'S' → eldSHF  (start of SHF_GROUP)
+#   48:71 = 'P' → eldSHF  (last char of SHF_GROUP)
+#
+# Line 49: "#SHT_RELR,SHF_ALLOC,8"
+#   49:53 = 'S' → eldSHT  (start of SHT_RELR)
+#   49:60 = 'R' → eldSHT  (last char of SHT_RELR)
+#   49:62 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   49:70 = 'C' → eldSHF  (last char of SHF_ALLOC)
+#
+# Line 50: "#SHT_NOBITS,SHF_ALLOC|SHF_WRITE,16"
+#   50:53 = 'S' → eldSHT  (start of SHT_NOBITS)
+#   50:62 = 'S' → eldSHT  (last char of SHT_NOBITS)
+#   50:64 = 'S' → eldSHF  (start of SHF_ALLOC)
+#   50:82 = 'E' → eldSHF  (last char of SHF_WRITE)
