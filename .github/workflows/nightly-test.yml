@@ -86,7 +86,7 @@ jobs:
 
       - name: Run CMake
         run: |
-          mkdir obj
+          mkdir -p obj
           cd obj
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
