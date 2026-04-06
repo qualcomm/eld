@@ -28,6 +28,18 @@ bool GNULDBackend::createProgramHdrs() {
   uint64_t segAlign = abiPageSize();
   m_NumReservedSegments = 0;
 
+  if (!m_Module.getScript().phdrsSpecified()) {
+    for (auto &OutSection : script.sectionMap()) {
+      if (!OutSection->epilog().hasPhdrs())
+        continue;
+      for (const auto &PhdrNameToken : *OutSection->epilog().phdrs()) {
+        config().raise(Diag::fatal_segment_not_defined_ldscript)
+            << OutSection->name() << PhdrNameToken->name();
+        return false;
+      }
+    }
+  }
+
   bool linkerScriptHasMemoryCommand = m_Module.getScript().hasMemoryCommand();
 
   if (linkerScriptHasMemoryCommand)

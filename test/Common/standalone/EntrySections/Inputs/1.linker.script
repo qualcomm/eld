@@ -1,3 +1,8 @@
+PHDRS {
+    CODE_SEGMENT PT_LOAD;
+    DATA_SEGMENT PT_LOAD;
+}
+
 SECTIONS {
   CODE_RAM 0x000000 : {
     *(.rodata .rodata*)
