@@ -5,7 +5,7 @@ UNSUPPORTED: x86
 # collected in the YAML map file.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
 RUN: %link -MapStyle yaml %linkopts %t1.1.o  --gc-sections -e foo -Map %t2.map -o %t2.out
 RUN: %filecheck %s < %t2.map
 #END_TEST

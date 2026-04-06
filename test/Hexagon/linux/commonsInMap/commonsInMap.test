@@ -1,6 +1,6 @@
 # Check that commons exist in the Map file.
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o.g0 %clangg0opts
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.o.g0 %clangg0opts
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.o
 # Test G0 with and without linker scripts
 RUN: %link -o %t1.out.1 %linkopts %t1.o.g0 -z max-page-size=4096 -M 2>&1 | %filecheck -check-prefix=COMMONSWITHOUTLSG0 %s
 RUN: %link -o %t1.out.2 %linkopts %t1.o.g0 -z max-page-size=4096 -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLSG0 %s

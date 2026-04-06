@@ -1,3 +1,4 @@
+int foo();
 char onesmallfoo;
 char onebigfoo[100];
 

@@ -1,3 +1,6 @@
+int callfar1();
+int callfar2();
+int far();
 
 int main ()
 {

@@ -1,3 +1,5 @@
+int bar();
+int foo();
 int commonInt;
 char commonChar;
 int commonArray[10];

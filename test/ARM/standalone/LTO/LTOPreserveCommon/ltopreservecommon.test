@@ -1,7 +1,7 @@
 # Tests that the linker handles cases that a common symbol is properly preserved
-RUN: %clang %clangopts -target arm -c %p/Inputs/1.c -flto -o %t1.o
-RUN: %clang %clangopts -target arm -c %p/Inputs/2.c -o %t2.o
-RUN: %clang %clangopts -target arm -c %p/Inputs/3.c -o %t3.o
+RUN: %clang %clangopts -fcommon -target arm -c %p/Inputs/1.c -flto -o %t1.o
+RUN: %clang %clangopts -fcommon -target arm -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -fcommon -target arm -c %p/Inputs/3.c -o %t3.o
 RUN: %link %linkopts -march arm %t1.o %t2.o %t3.o -o %t3.out --trace=symbol=a --trace=lto 2>&1 | %filecheck %s -check-prefix=LTO
 RUN: %readelf -s %t3.out | %filecheck %s
 

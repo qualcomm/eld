@@ -1,2 +1,2 @@
 extern int foo;
-int baz() { return foo + baz; }
+int baz() { return foo + (int)(long)baz; }

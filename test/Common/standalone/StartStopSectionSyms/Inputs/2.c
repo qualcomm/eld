@@ -2,5 +2,5 @@
 int __start_bar;
 __attribute__((section("bar"))) int foo() { return 0; }
 int main() {
-return &__start_bar;
+return (int)(long)(&__start_bar);
 }

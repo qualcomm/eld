@@ -1,8 +1,8 @@
 UNSUPPORTED: arm, aarch64, riscv32, riscv64
 # Check eflags produced by %link %linkopts.
-RUN: %clang %clangopts -mv68 -c %p/Inputs/1.c -o %t1.o
-RUN: %clang %clangopts -mv68 -c %p/Inputs/1.c -o %t2.o
-RUN: %clang %clangopts -mv68 -c %p/Inputs/1.c -o %t3.o
+RUN: %clang %clangopts -fcommon -mv68 -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -fcommon -mv68 -c %p/Inputs/1.c -o %t2.o
+RUN: %clang %clangopts -fcommon -mv68 -c %p/Inputs/1.c -o %t3.o
 
 # Generate V68 objects
 RUN: %link %linkopts -mv68 %t1.o -o %t1.elf.mv68.1

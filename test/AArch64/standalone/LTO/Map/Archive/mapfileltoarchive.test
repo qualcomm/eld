@@ -1,7 +1,7 @@
 # Test that map file is properly produced when the link %linkopts involves archive files.
-RUN: %clang %clangopts -target aarch64 -c %p/Inputs/main.c -o %t1.main.o
-RUN: %clang %clangopts -target aarch64 -c %p/Inputs/foo.c -o %t1.foo.o -flto
-RUN: %clang %clangopts -target aarch64 -c %p/Inputs/bar.c -o %t1.bar.o -flto
+RUN: %clang %clangopts -fcommon -target aarch64 -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -fcommon -target aarch64 -c %p/Inputs/foo.c -o %t1.foo.o -flto
+RUN: %clang %clangopts -fcommon -target aarch64 -c %p/Inputs/bar.c -o %t1.bar.o -flto
 RUN: %ar cr %t1.library.a %t1.foo.o %t1.bar.o
 RUN: %link %linkopts -march aarch64 -flto-options=codegen="-Os -relocation-model=static -function-sections -data-sections" %t1.main.o %t1.library.a -M -o %t2.out 2>&1 | %filecheck %s
 

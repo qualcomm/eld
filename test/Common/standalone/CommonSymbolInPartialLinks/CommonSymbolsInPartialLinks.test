@@ -4,7 +4,7 @@ UNSUPPORTED: x86
 # This test checks the usage of common symbols in partial links.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %clang %clangg0opts -fcommon -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
 RUN: %link %linkg0opts -o %t1.1.r.out %t1.1.o -r 2>&1
 RUN: %readelf -sS %t1.1.r.out 2>&1 | %filecheck %s --check-prefix=PARTIAL
 RUN: %link %linkg0opts -o %t1.1.rd.out %t1.1.o -r -d 2>&1

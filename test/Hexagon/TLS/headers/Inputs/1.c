@@ -1,3 +1,4 @@
+int foo();
 __thread double a = 2.0;
 __thread int b;
 int c;

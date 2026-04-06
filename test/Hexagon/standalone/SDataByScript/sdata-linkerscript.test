@@ -1,6 +1,6 @@
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
-RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.2.o
-RUN: %clang %clangopts -c %p/Inputs/3.c -o %t3.3.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/2.c -o %t2.2.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/3.c -o %t3.3.o
 RUN: %link %linkopts %t1.1.o %t2.2.o %t3.3.o -T %p/Inputs/script -o %t.out
 RUN: %nm -n %t.out | %filecheck %s
 

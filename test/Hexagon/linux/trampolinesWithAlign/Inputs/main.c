@@ -1,3 +1,4 @@
+int FarFunction();
 
 int main ()
 {

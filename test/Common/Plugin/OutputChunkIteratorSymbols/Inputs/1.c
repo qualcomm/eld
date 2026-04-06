@@ -1,3 +1,4 @@
+int bar();
 int common[100];
 char a;
 short b;

@@ -1,9 +1,9 @@
 
 # Test that map file is properly produced when the link %linkopts involves whole archive
 # command line.
-RUN: %clang %clangopts -target arm -c %p/Inputs/main.c -o %t1.main.o
-RUN: %clang %clangopts -target arm -c %p/Inputs/foo.c -o %t1.foo.o
-RUN: %clang %clangopts -target arm -c %p/Inputs/bar.c -o %t1.bar.o
+RUN: %clang %clangopts -fcommon -target arm -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -fcommon -target arm -c %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -fcommon -target arm -c %p/Inputs/bar.c -o %t1.bar.o
 RUN: %ar cr %aropts %t1.library.a %t1.foo.o %t1.bar.o
 RUN: %link %linkopts -march arm %t1.main.o --whole-archive %t1.library.a -M -o %t2.out 2>&1 | %filecheck %s
 
