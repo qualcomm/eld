@@ -1125,7 +1125,7 @@ void GNULDBackend::sizeDynamic() {
   }
 
   // add DT_NEEDED
-  std::unordered_set<MemoryArea *> addedLibs;
+  llvm::StringMap<std::string> sonameToFile;
   for (auto &lib : m_Module.getDynLibraryList()) {
     if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
       const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
@@ -1138,6 +1138,10 @@ void GNULDBackend::sizeDynamic() {
       DTEntry->tag = llvm::ELF::DT_NEEDED;
       DTEntry->value = SONameOffset;
     }
+    sonameToFile[SOName] = fileName;
+    std::size_t SONameOffset = FileFormat->addStringToDynStrTab(SOName);
+    auto DTEntry = dynamic()->reserveNeedEntry();
+    DTEntry->setValue(llvm::ELF::DT_NEEDED, SONameOffset);
   }
 
   // add DT_RUNPATH
