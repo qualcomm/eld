@@ -734,13 +734,10 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
     break;
   }
   if (R) {
-    if (GOT) {
-      reportErrorIfGOTIsDiscarded(R);
+    if (GOT)
       recordGOT(R, G);
-    } else {
-      reportErrorIfGOTPLTIsDiscarded(R);
+    else
       recordGOTPLT(R, G);
-    }
   }
   return G;
 }
@@ -771,9 +768,6 @@ AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_plt_entry) << R->name();
-
-  reportErrorIfPLTIsDiscarded(R);
-
   if (!getPLT()->getFragmentList().size()) {
     AArch64PLT0::Create(*m_Module.getIRBuilder(),
                         createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),

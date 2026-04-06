@@ -1089,13 +1089,10 @@ ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     break;
   }
   if (R) {
-    if (GOT) {
-      reportErrorIfGOTIsDiscarded(R);
+    if (GOT)
       recordGOT(R, G);
-    } else {
-      reportErrorIfGOTPLTIsDiscarded(R);
+    else
       recordGOTPLT(R, G);
-    }
   }
   return G;
 }
@@ -1130,9 +1127,6 @@ ARMPLT *ARMGNULDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_plt_entry) << R->name();
-
-  reportErrorIfPLTIsDiscarded(R);
-
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
   if (!getPLT()->getFragmentList().size()) {
     ARMPLT0::Create(*m_Module.getIRBuilder(),
