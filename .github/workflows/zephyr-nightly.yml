@@ -70,7 +70,7 @@ jobs:
           ${CPULLVM_DIR}/bin/clang --version | head -1
 
       - name: Clone Zephyr
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: zephyrproject-rtos/zephyr
           path: zephyr
