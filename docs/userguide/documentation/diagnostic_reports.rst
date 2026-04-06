@@ -82,10 +82,12 @@ General Warning Flags
      - Warns when the ``.`` (location counter) is used in a way that may cause layout issues or undefined behavior.
    * - ``-Wcommand-line``
      - Enables warnings for malformed or conflicting command-line options.
+   * - ``-Wdeprecated``
+     - Enables warnings for deprecated linker features and linker-script syntax.
    * - ``-Werror``
      - Treats all warnings as errors, halting the link process.
    * - ``-Wlinker-script``
-     - Enables warnings specific to linker script issues, such as malformed directives, deprecated syntax, or unsupported constructs.
+     - Enables warnings specific to linker script issues, such as malformed directives or unsupported constructs.
    * - ``-Wlinker-script-memory``
      - Focuses on memory region definitions in linker scripts, such as overlaps or undefined regions.
    * - ``-Wwhole-archive``
@@ -107,6 +109,8 @@ Suppression Flags
      - Suppresses archive file-related warnings.
    * - ``-Wno-attribute-mix``
      - Suppresses attribute mismatch warnings.
+   * - ``-Wno-deprecated``
+     - Suppresses deprecated feature and syntax warnings.
    * - ``-Wno-error``
      - Allows warnings to be emitted without halting the link process.
    * - ``-Wno-linker-script``

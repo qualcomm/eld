@@ -197,6 +197,14 @@ bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
     setShowLinkerScriptWarning(false);
     return true;
   }
+  if (WarnOpt == "deprecated") {
+    setShowDeprecatedWarning(true);
+    return true;
+  }
+  if (WarnOpt == "no-deprecated") {
+    setShowDeprecatedWarning(false);
+    return true;
+  }
   if (WarnOpt == "error") {
     options().setWarningsAsErrors(true);
     return true;
