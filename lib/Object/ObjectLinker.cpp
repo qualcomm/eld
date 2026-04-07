@@ -878,7 +878,7 @@ void ObjectLinker::mergeIdenticalStrings() const {
       continue;
     OutputSections.push_back(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     OutputSections.push_back(O);
   }
 
@@ -1300,7 +1300,7 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   initializeMerge();
 
   // Clear the vector of sections collected by the rules.
-  for (auto &Out : ThisModule->getScript().sectionMap()) {
+  for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *Out)
       In->clearSections();
   }
@@ -1321,7 +1321,7 @@ bool ObjectLinker::updateInputSectionMappingsForPlugin() {
   }
 
   // Sort the rule.
-  for (auto &Out : ThisModule->getScript().sectionMap()) {
+  for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *Out)
       sortSections(In, true);
   }
@@ -1383,7 +1383,7 @@ bool ObjectLinker::runOutputSectionIteratorPlugin() {
 
     for (auto &P : PluginList) {
       plugin::PluginBase *L = P->getLinkerPlugin();
-      for (auto &Out : ThisModule->getScript().sectionMap())
+      for (auto *Out : ThisModule->getScript().sectionMap().outputSections())
         (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(L))
             ->processOutputSection(plugin::OutputSection(Out));
     }
@@ -1467,9 +1467,7 @@ bool ObjectLinker::mergeSections() {
   }
 
   // Create output sections.
-  SectionMap::iterator Out, OutBegin, OutEnd;
-  OutBegin = ThisModule->getScript().sectionMap().begin();
-  OutEnd = ThisModule->getScript().sectionMap().end();
+  auto Sections = ThisModule->getScript().sectionMap().outputSections();
 
   ThisModule->setLinkState(LinkState::CreatingSections);
   if (!ThisConfig.getDiagEngine()->diagnose())
@@ -1493,7 +1491,8 @@ bool ObjectLinker::mergeSections() {
     // section serially to avoid races in parallel output creation.
     applySubAlign();
     std::vector<OutputSectionEntry *> OutSections;
-    for (Out = OutBegin; Out != OutEnd; ++Out) {
+    for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+         ++Out) {
       OutSections.push_back(*Out);
     }
     for (auto &S : *ThisModule) {
@@ -1528,7 +1527,7 @@ bool ObjectLinker::mergeSections() {
 }
 
 bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
-  for (auto &O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     for (auto &In : *O)
       sortSections(In, false);
   }
@@ -1538,7 +1537,7 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
 void ObjectLinker::applySubAlign() {
   std::unordered_set<ELFSection *> seen;
 
-  for (auto *O : ThisModule->getScript().sectionMap()) {
+  for (auto *O : ThisModule->getScript().sectionMap().outputSections()) {
     auto &prolog = O->prolog();
     if (!prolog.hasSubAlign())
       continue;
@@ -1869,7 +1868,7 @@ bool ObjectLinker::mayBeAddSectionSymbol(ELFSection *S) {
 
 bool ObjectLinker::addSectionSymbols() {
   // create and add section symbols for each output section
-  for (auto &S : ThisModule->getScript().sectionMap())
+  for (auto *S : ThisModule->getScript().sectionMap().outputSections())
     mayBeAddSectionSymbol(S->getSection());
   for (auto &S : *ThisModule)
     mayBeAddSectionSymbol(S);
@@ -2715,11 +2714,10 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     finalizeEmitRelocSectionSizes(RelocCount);
 
   // apply relocations created by relaxation
-  SectionMap::iterator Out, OutBegin, OutEnd;
   typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-  OutBegin = ThisModule->getScript().sectionMap().begin();
-  OutEnd = ThisModule->getScript().sectionMap().end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
+  auto Sections = ThisModule->getScript().sectionMap().outputSections();
+  for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+       ++Out) {
     branch_island_iter Bi = (*Out)->islandsBegin();
     branch_island_iter Be = (*Out)->islandsEnd();
     for (; Bi != Be; ++Bi) {
@@ -2786,7 +2784,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
       !ThisConfig.isSyncRelocationsMultiThreaded()) {
     if (ThisModule->getPrinter()->traceThreads())
       ThisConfig.raise(Diag::threads_disabled) << "SyncRelocations";
-    for (auto &Out : ThisModule->getScript().sectionMap())
+    for (auto *Out : ThisModule->getScript().sectionMap().outputSections())
       SyncBranchIslandsForOutputSection(Out);
     // sync linker created internal relocations
     for (auto *R : getTargetBackend().getInternalRelocs()) {
@@ -2807,7 +2805,7 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     // of the input relocation to be overwritten by R_AARCH_COPY_INSN.
     // Therefore, a barrier is needed between writing branch island
     // relocations and input relocations.
-    for (auto &Out : ThisModule->getScript().sectionMap()) {
+    for (auto *Out : ThisModule->getScript().sectionMap().outputSections()) {
       Pool->run([&, Out] { SyncBranchIslandsForOutputSection(Out); });
     }
     Pool->wait();

@@ -16,7 +16,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
   ELFSection *last_seen_alloc_section = nullptr;
   std::vector<ELFSegment *> segmentsForSection;
   ELFSection *prev = nullptr;
-  SectionMap::iterator out, outBegin, outEnd;
+  SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd;
   GeneralOptions::AddressMapType::iterator addr,
       addrEnd = config().options().addressMap().end();
   bool hasInterp = false;
@@ -57,8 +57,8 @@ bool GNULDBackend::createScriptProgramHdrs() {
 
   auto reset_state = [&](OutputSectionEntry *OS = nullptr) {
     // Reset the state, and start from beginning.
-    outBegin = script.sectionMap().begin();
-    outEnd = script.sectionMap().end();
+    outBegin = script.sectionMap().outputSections().begin();
+    outEnd = script.sectionMap().outputSections().end();
     out = outBegin;
     disconnect_lma_vma = false;
     last_seen_alloc_section = nullptr;

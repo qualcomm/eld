@@ -354,8 +354,9 @@ LinkerWrapper::getOutputSectionAndRule(Section S) {
   auto *Script = getLinkerScript().getLinkerScript();
   auto *Input = F.getInputFile()->getInput();
 
+  auto Sections = Script->sectionMap().outputSections();
   auto [Section, Rule] = Script->sectionMap().findIn(
-      Script->sectionMap().begin(), Input->getResolvedPath().native(),
+      Sections.begin(), Input->getResolvedPath().native(),
       *llvm::cast<ELFSection>(S.getSection()), F.isArchive(), Input->getName(),
       S.getSection()->sectionNameHash(), Input->getResolvedPathHash(),
       Input->getArchiveMemberNameHash(),
@@ -1056,7 +1057,7 @@ LinkerWrapper::getAllOutputSections() const {
 
   SectionMap sectMap = m_Module.getScript().sectionMap();
   std::vector<plugin::OutputSection> outputSects;
-  for (OutputSectionEntry *OSE : sectMap) {
+  for (OutputSectionEntry *OSE : sectMap.outputSections()) {
     outputSects.emplace_back(OSE);
   }
   return outputSects;

@@ -359,8 +359,9 @@ bool AArch64LDBackend::isErratum843419Sequence(uint32_t insn1,
 
 bool AArch64LDBackend::scanErrata843419() {
   LinkerScript &script = m_Module.getScript();
-  SectionMap::iterator out, outBegin = script.sectionMap().begin(),
-                            outEnd = script.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out,
+      outBegin = script.sectionMap().outputSections().begin(),
+      outEnd = script.sectionMap().outputSections().end();
   out = outBegin;
   bool updated = false;
   for (; out != outEnd; ++out) {

@@ -222,7 +222,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.OutputFile = Module.getConfig().options().outputFileName();
   Result.CommandLine = CommandLine;
   Result.EntryAddress = getEntryAddress(Module, Backend);
-  for (auto *I : Module.getScript().sectionMap()) {
+  for (auto *I : Module.getScript().sectionMap().outputSections()) {
     auto *Section = I->getSection();
     if (!(ThisLayoutInfo->showHeaderDetails() &&
           (Section->name() == "__ehdr__" || Section->name() == "__pHdr__")) &&
@@ -529,7 +529,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
 
 void eld::YamlLayoutPrinter::getTrampolineMap(
     eld::Module &Module, std::vector<eld::LDYAML::TrampolineInfo> &R) {
-  for (auto &OutputSection : Module.getScript().sectionMap()) {
+  for (auto *OutputSection : Module.getScript().sectionMap().outputSections()) {
     eld::LDYAML::TrampolineInfo TInfo;
     TInfo.OutputSectionName = OutputSection->name().str();
     typedef std::vector<BranchIsland *>::iterator branch_island_iter;

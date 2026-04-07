@@ -422,7 +422,7 @@ void ObjectBuilder::assignInputFromOutputLegacy(eld::InputFile *Obj) {
   ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Obj);
   std::vector<Section *> Sections = getInputSectionsForRuleMatching(ObjFile);
   // For all output sections.
-  for (auto *Out : SectionMap) {
+  for (auto *Out : SectionMap.outputSections()) {
     // For each input rule.
     for (auto *In : *Out) {
       auto Start = std::chrono::system_clock::now();
@@ -633,7 +633,7 @@ void ObjectBuilder::printStats() {
     return;
   auto &SectionMap = ThisModule.getScript().sectionMap();
   LayoutInfo *LayoutInfo = ThisModule.getLayoutInfo();
-  for (auto *Out : SectionMap) {
+  for (auto *Out : SectionMap.outputSections()) {
     for (auto *In : *Out) {
       if (LayoutInfo && !In->getMatchCount())
         LayoutInfo->recordNoLinkerScriptRuleMatch();
@@ -814,7 +814,7 @@ bool ObjectBuilder::shouldSkipMergeSection(ELFSection *I) const {
 bool ObjectBuilder::doPluginOutputSectionsIterate(plugin::PluginBase *P) {
   if (P->getType() != plugin::Plugin::Type::OutputSectionIterator)
     return false;
-  for (auto &Out : ThisModule.getScript().sectionMap())
+  for (auto *Out : ThisModule.getScript().sectionMap().outputSections())
     (llvm::dyn_cast<plugin::OutputSectionIteratorPlugin>(P))
         ->processOutputSection(plugin::OutputSection(Out));
   return true;
@@ -841,9 +841,9 @@ void ObjectBuilder::reAssignOutputSections(const plugin::LinkerWrapper *LW) {
     if (CommonELFSection *CommonSection =
             llvm::dyn_cast<CommonELFSection>(ELFSect))
       Input = CommonSection->getOrigin();
-    SectionMap::iterator OutputSectIter =
-        SectionMap.findIter(OutputSectionOverride);
-    if (OutputSectIter != SectionMap.end()) {
+    auto OutputSectIter = SectionMap.findIter(OutputSectionOverride);
+    auto Sections = SectionMap.outputSections();
+    if (OutputSectIter != Sections.end()) {
       if (ELFSect->getOldInputFile())
         Input = ELFSect->getOldInputFile();
       std::string const &Name = Input->getInput()->getName();
