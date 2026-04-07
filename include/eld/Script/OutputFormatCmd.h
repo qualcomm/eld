@@ -14,6 +14,7 @@
 #define ELD_SCRIPT_OUTPUTFORMATCMD_H
 
 #include "eld/Script/ScriptCommand.h"
+#include "llvm/ADT/iterator_range.h"
 #include <string>
 #include <vector>
 
@@ -28,19 +29,20 @@ class Module;
 class OutputFormatCmd : public ScriptCommand {
 public:
   typedef std::vector<std::string> FormatList;
-  typedef FormatList::const_iterator const_iterator;
-  typedef FormatList::iterator iterator;
+  using FormatRange = llvm::iterator_range<FormatList::iterator>;
+  using FormatConstRange = llvm::iterator_range<FormatList::const_iterator>;
 
 public:
   OutputFormatCmd(const std::string &PFormat);
   OutputFormatCmd(const std::string &PDefault, const std::string &PBig,
                   const std::string &PLittle);
 
-
-  const_iterator begin() const { return OutputFormatList.begin(); }
-  iterator begin() { return OutputFormatList.begin(); }
-  const_iterator end() const { return OutputFormatList.end(); }
-  iterator end() { return OutputFormatList.end(); }
+  FormatRange formats() {
+    return llvm::make_range(OutputFormatList.begin(), OutputFormatList.end());
+  }
+  FormatConstRange formats() const {
+    return llvm::make_range(OutputFormatList.begin(), OutputFormatList.end());
+  }
 
   void dump(llvm::raw_ostream &Outs) const override;
 
