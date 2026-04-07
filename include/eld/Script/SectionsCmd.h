@@ -14,6 +14,7 @@
 #define ELD_SCRIPT_SECTIONSCMD_H
 
 #include "eld/Script/ScriptCommand.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/DataTypes.h"
 #include <vector>
 
@@ -28,24 +29,26 @@ class Module;
 class SectionsCmd : public ScriptCommand {
 public:
   typedef std::vector<ScriptCommand *> SectionCommands;
-  typedef SectionCommands::const_iterator const_iterator;
-  typedef SectionCommands::iterator iterator;
-  typedef SectionCommands::const_reference const_reference;
-  typedef SectionCommands::reference reference;
+  using SectionCmdRange = llvm::iterator_range<SectionCommands::iterator>;
+  using SectionCmdConstRange =
+      llvm::iterator_range<SectionCommands::const_iterator>;
 
 public:
   SectionsCmd();
 
+  SectionCmdRange commands() {
+    return llvm::make_range(ThisSectionCommands.begin(),
+                            ThisSectionCommands.end());
+  }
+  SectionCmdConstRange commands() const {
+    return llvm::make_range(ThisSectionCommands.begin(),
+                            ThisSectionCommands.end());
+  }
 
-  const_iterator begin() const { return ThisSectionCommands.begin(); }
-  iterator begin() { return ThisSectionCommands.begin(); }
-  const_iterator end() const { return ThisSectionCommands.end(); }
-  iterator end() { return ThisSectionCommands.end(); }
-
-  const_reference front() const { return ThisSectionCommands.front(); }
-  reference front() { return ThisSectionCommands.front(); }
-  const_reference back() const { return ThisSectionCommands.back(); }
-  reference back() { return ThisSectionCommands.back(); }
+  const ScriptCommand *front() const { return ThisSectionCommands.front(); }
+  ScriptCommand *front() { return ThisSectionCommands.front(); }
+  const ScriptCommand *back() const { return ThisSectionCommands.back(); }
+  ScriptCommand *back() { return ThisSectionCommands.back(); }
 
   size_t size() const { return ThisSectionCommands.size(); }
 
@@ -62,8 +65,6 @@ public:
   eld::Expected<void> activate(Module &CurModule) override;
 
   void pushBack(ScriptCommand *PCommand) override;
-
-  SectionCommands &getSectionCommands() { return ThisSectionCommands; }
 
 private:
   SectionCommands ThisSectionCommands;

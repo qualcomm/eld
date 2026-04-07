@@ -113,7 +113,7 @@ eld::Expected<void> ScriptFile::earlyActivate(Module &CurModule,
   if (shouldEarlyActivate(Cmd))
     return Cmd->activateOnce(CurModule);
   if (auto *SectionsCommand = llvm::dyn_cast<SectionsCmd>(Cmd)) {
-    for (ScriptCommand *Child : SectionsCommand->getSectionCommands()) {
+    for (ScriptCommand *Child : SectionsCommand->commands()) {
       if (Child->isEntry()) {
         eld::Expected<void> E = Child->activateOnce(CurModule);
         ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
