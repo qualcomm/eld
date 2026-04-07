@@ -1152,11 +1152,10 @@ void GNULDBackend::sizeDynamic() {
   if (!config().options().getRpathList().empty()) {
     auto DTEntry = dynamic()->reserveNeedEntry();
     std::string RunPath;
-    GeneralOptions::const_rpath_iterator rpath,
-        rpathEnd = config().options().rpathEnd();
-    for (rpath = config().options().rpathBegin(); rpath != rpathEnd; ++rpath) {
-      RunPath += *rpath;
-      if (rpath + 1 != rpathEnd)
+    auto RPaths = config().options().rpaths();
+    for (auto RPath = RPaths.begin(); RPath != RPaths.end(); ++RPath) {
+      RunPath += *RPath;
+      if ((RPath + 1) != RPaths.end())
         RunPath += ":";
     }
     std::size_t RunPathOffset = m_pDynStrFrag->addString(RunPath);

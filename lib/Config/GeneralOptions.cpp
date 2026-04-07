@@ -471,8 +471,7 @@ bool GeneralOptions::hasLTOAsmFile(void) const {
   return (LTOOptions & LTOAsmFileOpt);
 }
 
-llvm::iterator_range<GeneralOptions::StringVectorIterT>
-GeneralOptions::ltoAsmFile(void) const {
+GeneralOptions::StringListConstRange GeneralOptions::ltoAsmFile(void) const {
   return llvm::make_range(LTOAsmFile.cbegin(), LTOAsmFile.cend());
 }
 
@@ -490,8 +489,7 @@ bool GeneralOptions::hasLTOOutputFile(void) const {
   return (LTOOptions & LTOOutputFileOpt);
 }
 
-llvm::iterator_range<GeneralOptions::StringVectorIterT>
-GeneralOptions::ltoOutputFile(void) const {
+GeneralOptions::StringListConstRange GeneralOptions::ltoOutputFile(void) const {
   return llvm::make_range(LTOOutputFile.cbegin(), LTOOutputFile.cend());
 }
 

@@ -504,9 +504,7 @@ bool GarbageCollection::getEntrySections(SectionSetTy &EntrySections) {
 
   addRetainSections(EntrySections);
 
-  GeneralOptions::const_undef_sym_iterator UndefSym, UndefSymEnd;
-  UndefSymEnd = ThisModule.getConfig().options().undefSymEnd();
-  UndefSym = ThisModule.getConfig().options().undefSymBegin();
+  auto UndefSymbols = ThisModule.getConfig().options().undefinedSymbols();
   auto AddListEntry = [&](llvm::StringRef Name) -> void {
     ResolveInfo *SymInfo = ThisModule.getNamePool().findInfo(Name.str());
     if (!SymInfo)
@@ -519,8 +517,8 @@ bool GarbageCollection::getEntrySections(SectionSetTy &EntrySections) {
     if (SymInfo->outSymbol())
       SymInfo->outSymbol()->setShouldIgnore(false);
   };
-  for (; UndefSym != UndefSymEnd; UndefSym++)
-    AddListEntry((*UndefSym)->name());
+  for (auto *UndefSym : UndefSymbols)
+    AddListEntry(UndefSym->name());
 
   auto &DynExpSymbols = ThisConfig.options().getExportDynSymList();
   for (const auto &S : DynExpSymbols)
