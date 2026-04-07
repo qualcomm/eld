@@ -1,7 +1,8 @@
 name: Zephyr Nightly with ELD
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  # FIXME: comment
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
@@ -28,6 +29,8 @@ jobs:
             arch: arm
           - board: qemu_cortex_a53
             arch: aarch64
+          - board: qemu_riscv32_xip
+            arch: riscv32_xip
     env:
       CPULLVM_VERSION: "22.1.0"
       CPULLVM_DIR: /opt/cpullvm
