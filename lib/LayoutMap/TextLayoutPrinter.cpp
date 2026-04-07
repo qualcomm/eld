@@ -1402,7 +1402,6 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
 
 void TextLayoutPrinter::printLayout(eld::Module &Module) {
   // Get start and end points from section map to iterate over each section.
-  SectionMap::const_iterator Out, OutBegin, OutEnd;
   LinkerScript const &Script = Module.getScript();
   GNULDBackend &Backend = Module.getBackend();
   bool UseColor = Backend.config().options().color() &&
@@ -1411,11 +1410,11 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
   bool LinkerScriptHasSectionsCommand =
       Module.getScript().linkerScriptHasSectionsCommand();
 
-  OutBegin = Script.sectionMap().begin();
-  OutEnd = Script.sectionMap().end();
+  auto Sections = Script.sectionMap().outputSections();
   if (Module.isLinkStateBeforeLayout())
     outputStream() << "Initial layout:\n";
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
+  for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
+       ++Out) {
 
     ELFSection *Cur = (*Out)->getSection();
     if ((ThisLayoutInfo->showHeaderDetails() &&

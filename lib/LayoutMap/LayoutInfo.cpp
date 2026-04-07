@@ -544,7 +544,7 @@ void LayoutInfo::buildMergedMaps(Module &M) {
       continue;
     AddOutputSection(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : M.getScript().sectionMap())
+  for (OutputSectionEntry *O : M.getScript().sectionMap().outputSections())
     AddOutputSection(O);
   bool GlobalMerge = M.getConfig().options().shouldGlobalStringMerge();
   auto AddString = [&](OutputSectionEntry *O, MergeableString *S) {

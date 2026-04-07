@@ -2255,8 +2255,9 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
 
   addPhdrsIfNeeded();
 
-  SectionMap::iterator out, outBegin = ldscript.sectionMap().begin(),
-                            outEnd = ldscript.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out,
+      outBegin = ldscript.sectionMap().outputSections().begin(),
+      outEnd = ldscript.sectionMap().outputSections().end();
   OutputSectionEntry *prev = nullptr;
   OutputSectionEntry *cur = nullptr;
 
@@ -2358,7 +2359,7 @@ void GNULDBackend::assignOffsetsToSkippedSections() {
                        m_Module.getConfig().options().printTimingStats());
   ELFSection *prev = nullptr;
   uint64_t offset = 0;
-  for (auto &out : m_Module.getScript().sectionMap()) {
+  for (auto &out : m_Module.getScript().sectionMap().outputSections()) {
     ELFSection *cur = out->getSection();
     if (cur->isNullType()) {
       prev = cur;
@@ -2690,9 +2691,9 @@ bool GNULDBackend::setOutputSectionOffset() {
   LinkerScript &script = m_Module.getScript();
   uint64_t offset = 0x0;
   ELFSection *prev = nullptr;
-  SectionMap::iterator out, outBegin, outEnd;
-  out = outBegin = script.sectionMap().begin();
-  outEnd = script.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd;
+  out = outBegin = script.sectionMap().outputSections().begin();
+  outEnd = script.sectionMap().outputSections().end();
 
   uint64_t one_ehdr_size = 0;
 
@@ -2939,7 +2940,8 @@ bool GNULDBackend::placeOutputSections() {
         unwantedSection->setOrder(getSectionOrder(*elem));
 
       if (wanted) {
-        SectionMap::iterator out, outBegin, outEnd, outMatched;
+        SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd,
+            outMatched;
         outBegin = sectionMap.begin();
         outEnd = sectionMap.end();
         outMatched = sectionMap.end();
@@ -3086,7 +3088,7 @@ bool GNULDBackend::placeOutputSections() {
       if (layoutInfo)
         layoutInfo->recordOrphanSection();
       size_t order = getSectionOrder(*orphan);
-      SectionMap::iterator out, outBegin, outEnd;
+      SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd;
       outBegin = sectionMap.begin();
       outEnd = sectionMap.end();
 
@@ -3108,7 +3110,8 @@ bool GNULDBackend::placeOutputSections() {
         // loadable segment. Fall back to the last fit if there is none (eg
         // NONE segment layouts).
         int numSections = -1;
-        SectionMap::iterator lastFit = outEnd, lastLoadFit = outEnd;
+        SectionMap::OutputSectionEntryDescList::iterator lastFit = outEnd,
+                                                         lastLoadFit = outEnd;
         for (out = outBegin; out != outEnd; ++out) {
           if (numSections && (*out)->isDiscard() && (order <= SHO_UNDEFINED))
             break;
@@ -3143,8 +3146,8 @@ bool GNULDBackend::placeOutputSections() {
       (*out)->setOrder(order);
       if (linkerScriptHasSectionsCommand &&
           (orphan->getFlags() & llvm::ELF::SHF_ALLOC) == llvm::ELF::SHF_ALLOC) {
-        SectionMap::iterator prev = --out;
-        SectionMap::iterator cur = ++out;
+        SectionMap::OutputSectionEntryDescList::iterator prev = --out;
+        SectionMap::OutputSectionEntryDescList::iterator cur = ++out;
         // Move section assignments only if the orphan section and the previous
         // section prior to the orphan section have the same permissions.
         // Behavior seen from GNU.
@@ -3159,8 +3162,9 @@ bool GNULDBackend::placeOutputSections() {
     eld::RegisterTimer T("Override Output Section Properties",
                          "Place Output Sections",
                          m_Module.getConfig().options().printTimingStats());
-    for (SectionMap::iterator out = sectionMap.begin(),
-                              outEnd = sectionMap.end();
+    for (SectionMap::OutputSectionEntryDescList::iterator
+             out = sectionMap.begin(),
+             outEnd = sectionMap.end();
          out != outEnd; ++out) {
       ELFSection *cur = (*out)->getSection();
       uint32_t type = (*out)->prolog().type();
@@ -3525,7 +3529,7 @@ bool GNULDBackend::postLayout() {
   size_t sectionIdx = 0;
   LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
   std::vector<ELFSection *> outputSections;
-  for (auto &out : m_Module.getScript().sectionMap()) {
+  for (auto &out : m_Module.getScript().sectionMap().outputSections()) {
     ELFSection *cur = out->getSection();
     if (cur->isWanted() || cur->size() ||
         cur->getKind() == LinkerSectionKind::Null) {
@@ -3639,10 +3643,10 @@ void GNULDBackend::checkOverlap(llvm::StringRef name,
 }
 
 void GNULDBackend::finalizeBeforeWrite() {
-  SectionMap::iterator out, outBegin, outEnd;
+  SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd;
   LinkerScript &script = m_Module.getScript();
-  outBegin = script.sectionMap().begin();
-  outEnd = script.sectionMap().end();
+  outBegin = script.sectionMap().outputSections().begin();
+  outEnd = script.sectionMap().outputSections().end();
 
   bool recalculateOffsets = false;
 
@@ -4544,8 +4548,9 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
     return false;
   }
 
-  SectionMap::iterator out = script.sectionMap().begin(),
-                       outEnd = script.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator
+      out = script.sectionMap().outputSections().begin(),
+      outEnd = script.sectionMap().outputSections().end();
 
   SectionMap::OutputSectionEntryDescList OList =
       m_Module.getScript()
@@ -4808,7 +4813,7 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       uint64_t nameHash = input->getInput()->getArchiveMemberNameHash();
       uint64_t inputSectionHash = sec->sectionNameHash();
       SectionMap::mapping pair = m_Module.getScript().sectionMap().findIn(
-          m_Module.getScript().sectionMap().begin(),
+          m_Module.getScript().sectionMap().outputSections().begin(),
           input->getInput()->getResolvedPath().native(), *sec, false,
           input->getInput()->getName(), inputSectionHash, inputFileHash,
           nameHash,
@@ -5169,8 +5174,9 @@ uint64_t GNULDBackend::getImageStartVMA() const {
 
 bool GNULDBackend::checkForLinkerScriptPhdrErrors() const {
   LinkerScript &ldscript = m_Module.getScript();
-  SectionMap::iterator out, outBegin = ldscript.sectionMap().begin(),
-                            outEnd = ldscript.sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out,
+      outBegin = ldscript.sectionMap().outputSections().begin(),
+      outEnd = ldscript.sectionMap().outputSections().end();
   bool hasError = false;
   for (out = outBegin; out != outEnd; ++out) {
     OutputSectionEntry *cur = (*out);
@@ -5233,7 +5239,7 @@ bool GNULDBackend::assignMemoryRegions() {
   if (!linkerScriptHasMemoryCommand)
     return true;
 
-  for (auto &out : script.sectionMap()) {
+  for (auto &out : script.sectionMap().outputSections()) {
     if (out->isDiscard())
       continue;
     for (auto &region : script.getMemoryRegions()) {
@@ -5242,7 +5248,7 @@ bool GNULDBackend::assignMemoryRegions() {
     }
   }
   bool status = true;
-  for (auto &out : script.sectionMap()) {
+  for (auto &out : script.sectionMap().outputSections()) {
     if (!out->getSection()->isAlloc())
       continue;
     if (out->isDiscard())
@@ -5336,8 +5342,10 @@ void GNULDBackend::addFileHeaderToLayout() {
   if (!isEhdrNeeded())
     return;
   LinkerScript &script = m_Module.getScript();
-  SectionMap::iterator out = script.sectionMap().begin();
-  SectionMap::iterator Iter = script.sectionMap().insert(out + 1, m_ehdr);
+  SectionMap::OutputSectionEntryDescList::iterator out =
+      script.sectionMap().outputSections().begin();
+  SectionMap::OutputSectionEntryDescList::iterator Iter =
+      script.sectionMap().insert(out + 1, m_ehdr);
   m_ehdr->setOffset(0);
   m_ehdr->setSize(getOneEhdrSize());
   m_ehdr->setOutputSection(*Iter);
@@ -5378,8 +5386,9 @@ void GNULDBackend::addProgramHeaderToLayout() {
   }
   LinkerScript &script = m_Module.getScript();
 
-  SectionMap::iterator out = script.sectionMap().begin();
-  SectionMap::iterator Iter;
+  SectionMap::OutputSectionEntryDescList::iterator out =
+      script.sectionMap().outputSections().begin();
+  SectionMap::OutputSectionEntryDescList::iterator Iter;
   if (isEhdrInLayout())
     Iter = script.sectionMap().insert(out + 2, m_phdr);
   else
@@ -5484,9 +5493,9 @@ bool GNULDBackend::setupTLS() {
   bool seenTLS = false;
   bool lastSectTLS = false;
   uint32_t MaxAlignment = 1;
-  SectionMap::iterator out, outBegin, outEnd;
-  outBegin = m_Module.getScript().sectionMap().begin();
-  outEnd = m_Module.getScript().sectionMap().end();
+  SectionMap::OutputSectionEntryDescList::iterator out, outBegin, outEnd;
+  outBegin = m_Module.getScript().sectionMap().outputSections().begin();
+  outEnd = m_Module.getScript().sectionMap().outputSections().end();
   out = outBegin;
   while (out != outEnd) {
     auto sec = (*out)->getSection();
