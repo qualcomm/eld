@@ -21,6 +21,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include <stack>
@@ -178,18 +179,11 @@ public:
       FragmentInfoMapT;
   typedef llvm::DenseMap<ELFSection *, InputFile *> SectionInfoMapT;
 
-  typedef FragmentInfoMapT::iterator FragmentInfoMapIterT;
   typedef std::vector<LayoutFragmentInfo *> FragmentInfoVectorT;
-  typedef FragmentInfoVectorT::iterator FragmentInfoVectorTIter;
   typedef std::vector<LDSymbol *> SymVectorT;
-  typedef SymVectorT::iterator SymVectorTIterT;
   typedef std::vector<ResolveInfo *> ResolveInfoVectorT;
-  typedef ResolveInfoVectorT::iterator ResolveInfoIterT;
-  typedef std::vector<ArchiveReferenceRecordT>::iterator
-      ArchiveReferenceRecordIteratorT;
   typedef std::vector<InputSequenceT> InputSequenceVectorT;
   typedef std::vector<std::string> StringVectorT;
-  typedef StringVectorT::iterator StringVectorIteratorT;
 
   // Linker Script support
   struct ScriptInputT {
@@ -200,6 +194,26 @@ public:
     uint32_t Depth = 0;
   };
   typedef std::vector<ScriptInputT> ScriptVectorT;
+  using FeatureRange = llvm::iterator_range<std::vector<std::string>::iterator>;
+  using FeatureConstRange =
+      llvm::iterator_range<std::vector<std::string>::const_iterator>;
+  using ArchiveRecordRange =
+      llvm::iterator_range<std::vector<ArchiveReferenceRecordT>::iterator>;
+  using ArchiveRecordConstRange = llvm::iterator_range<
+      std::vector<ArchiveReferenceRecordT>::const_iterator>;
+  using LinkerScriptRange = llvm::iterator_range<ScriptVectorT::iterator>;
+  using LinkerScriptConstRange =
+      llvm::iterator_range<ScriptVectorT::const_iterator>;
+  using VersionScriptRange =
+      llvm::iterator_range<std::vector<std::string>::iterator>;
+  using VersionScriptConstRange =
+      llvm::iterator_range<std::vector<std::string>::const_iterator>;
+  using InputActionRange = llvm::iterator_range<InputSequenceVectorT::iterator>;
+  using InputActionConstRange =
+      llvm::iterator_range<InputSequenceVectorT::const_iterator>;
+  using CommentRange = llvm::iterator_range<std::vector<std::string>::iterator>;
+  using CommentConstRange =
+      llvm::iterator_range<std::vector<std::string>::const_iterator>;
 
   // -------------------End Typedefs ---------------------------------
 
@@ -405,20 +419,56 @@ public:
 
   ResolveInfoVectorT getCommonsGarbageCollected(Module &Module);
 
+  FeatureRange features() {
+    return llvm::make_range(Features.begin(), Features.end());
+  }
+  FeatureConstRange features() const {
+    return llvm::make_range(Features.begin(), Features.end());
+  }
   std::vector<std::string> &getFeatures() { return Features; }
 
   Stats &getLinkStats() { return LinkStats; }
 
+  ArchiveRecordRange archiveRecords() {
+    return llvm::make_range(ArchiveRecords.begin(), ArchiveRecords.end());
+  }
+  ArchiveRecordConstRange archiveRecords() const {
+    return llvm::make_range(ArchiveRecords.begin(), ArchiveRecords.end());
+  }
   std::vector<ArchiveReferenceRecordT> &getArchiveRecords() {
     return ArchiveRecords;
   }
 
+  LinkerScriptRange linkerScripts() {
+    return llvm::make_range(LinkerScripts.begin(), LinkerScripts.end());
+  }
+  LinkerScriptConstRange linkerScripts() const {
+    return llvm::make_range(LinkerScripts.begin(), LinkerScripts.end());
+  }
   ScriptVectorT &getLinkerScripts() { return LinkerScripts; }
 
+  VersionScriptRange versionScripts() {
+    return llvm::make_range(VersionScripts.begin(), VersionScripts.end());
+  }
+  VersionScriptConstRange versionScripts() const {
+    return llvm::make_range(VersionScripts.begin(), VersionScripts.end());
+  }
   std::vector<std::string> &getVersionScripts() { return VersionScripts; }
 
+  InputActionRange inputActions() {
+    return llvm::make_range(InputActions.begin(), InputActions.end());
+  }
+  InputActionConstRange inputActions() const {
+    return llvm::make_range(InputActions.begin(), InputActions.end());
+  }
   InputSequenceVectorT &getInputActions() { return InputActions; }
 
+  CommentRange comments() {
+    return llvm::make_range(Comments.begin(), Comments.end());
+  }
+  CommentConstRange comments() const {
+    return llvm::make_range(Comments.begin(), Comments.end());
+  }
   std::vector<std::string> &getComments() { return Comments; }
 
   void buildMergedMaps(Module &M);
