@@ -22,12 +22,18 @@ jobs:
         target:
           - board: qemu_riscv32
             arch: riscv32
+            extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
           - board: qemu_riscv64
             arch: riscv64
+            extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
           - board: qemu_cortex_m3
             arch: arm
+            # cpullvm ARM picolibc is missing a _nopic version, so its
+            # objects have GOT relocations that fail when .got is discarded.
+            extra_args: CONFIG_PICOLIBC_USE_MODULE=y
           - board: qemu_cortex_a53
             arch: aarch64
+            extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
     env:
       CPULLVM_VERSION: "22.1.0"
       CPULLVM_DIR: /opt/cpullvm
@@ -114,7 +120,8 @@ jobs:
           export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
           west build -p always -b ${{ matrix.target.board }} samples/hello_world -- \
             -DCONFIG_LLVM_USE_ELD=y \
-            -DCONFIG_COMPILER_RT_RTLIB=y
+            -DCONFIG_COMPILER_RT_RTLIB=y \
+            ${{ matrix.target.extra_args && format('-D{0}', matrix.target.extra_args) }}
 
       - name: Run hello_world on QEMU
         shell: bash
@@ -145,7 +152,7 @@ jobs:
             -x=ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
             -x=CONFIG_LLVM_USE_ELD=y \
             -x=CONFIG_COMPILER_RT_RTLIB=y \
-            -x=CONFIG_PICOLIBC_USE_TOOLCHAIN=y
+            ${{ matrix.target.extra_args && format('-x={0}', matrix.target.extra_args) }}
 
       - name: Upload twister results
         if: always()
