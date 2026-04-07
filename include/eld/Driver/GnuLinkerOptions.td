@@ -473,7 +473,7 @@ def soname_separate
       MetaVarName<"<name>">,
       Group<grp_dynlib>;
 def soname_h
-    : Separate<["-"], "h">,
+    : JoinedOrSeparate<["-"], "h">,
       HelpText<"Set the internal DT_SONAME field to the specified name">,
       Alias<soname>,
       MetaVarName<"<name>">,
