@@ -438,7 +438,7 @@ bool SectionMap::matchedSections(
   bool Match = matched(Pattern, CurInputSection, InputSectionHash);
   if (Match) {
     if (!EF.empty()) {
-      for (const auto &Elem : EF) {
+      for (auto *Elem : EF.patterns()) {
         const WildcardPattern *ArchivePattern = Elem->archive();
         bool ArchiveMatchWithFileName = false;
         if (ArchivePattern) {
