@@ -389,9 +389,8 @@ bool SectionMap::matched(const RuleContainer &PInput, InputFile *I,
   bool MatchedRule = false;
 
   if (PInput.spec().hasSections()) {
-    StringList::const_iterator Sect, SectEnd = PInput.spec().sections().end();
-    for (Sect = PInput.spec().sections().begin(); Sect != SectEnd; ++Sect) {
-      const WildcardPattern &Pattern = llvm::cast<WildcardPattern>(**Sect);
+    for (auto *Sect : PInput.spec().sections().tokens()) {
+      const WildcardPattern &Pattern = llvm::cast<WildcardPattern>(*Sect);
       ExcludeFiles EF(PInput.spec().getExcludeFiles(), Pattern.excludeFiles());
       if (!EF.empty() && !DoOnce) {
         // Try to do only for Archive files and Archive patterns. If the Spec is

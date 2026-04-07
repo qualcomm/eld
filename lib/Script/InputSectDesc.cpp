@@ -71,8 +71,8 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
 
   if (InputSpec.hasSections()) {
     bool IsFirst = true;
-    for (const auto &Elem : InputSpec.sections()) {
-      assert((Elem)->kind() == StrToken::Wildcard);
+    for (auto *Elem : InputSpec.sections().tokens()) {
+      assert(Elem->kind() == StrToken::Wildcard);
       WildcardPattern *Wildcard = llvm::cast<WildcardPattern>(Elem);
 
       switch (Wildcard->sortPolicy()) {

@@ -23,7 +23,7 @@ ExternCmd::ExternCmd(StringList &PExtern)
     : ScriptCommand(ScriptCommand::EXTERN), ExternSymbolList(PExtern) {}
 
 void ExternCmd::dump(llvm::raw_ostream &Outs) const {
-  for (auto &E : ExternSymbolList)
+  for (auto *E : ExternSymbolList.tokens())
     Outs << "EXTERN(" << E->name() << ")"
          << "\n";
 }
@@ -32,7 +32,7 @@ eld::Expected<void> ExternCmd::activate(Module &CurModule) {
   InputFile *I =
       CurModule.getInternalInput(Module::InternalInputType::ExternList);
   auto *IRBuilder = CurModule.getIRBuilder();
-  for (auto &E : ExternSymbolList) {
+  for (auto *E : ExternSymbolList.tokens()) {
     std::string Name = E->name();
     LDSymbol *LDSym =
         IRBuilder->addSymbol<IRBuilder::SymbolDefinePolicy::Force,
@@ -46,9 +46,9 @@ eld::Expected<void> ExternCmd::activate(Module &CurModule) {
         eld::make<StrToken>(Name));
     ScriptSymbol *ScriptSym = llvm::dyn_cast_or_null<ScriptSymbol>(E);
     if (ScriptSym) {
-      eld::Expected<void> E = ScriptSym->activate();
-      if (!E)
-        return E;
+      eld::Expected<void> Result = ScriptSym->activate();
+      if (!Result)
+        return Result;
       ScriptSym->addResolveInfoToContainer(LDSym->resolveInfo());
       ThisSymbolContainers.push_back(ScriptSym->getSymbolContainer());
     }

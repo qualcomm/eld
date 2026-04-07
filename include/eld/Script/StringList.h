@@ -13,6 +13,7 @@
 #ifndef ELD_SCRIPT_STRINGLIST_H
 #define ELD_SCRIPT_STRINGLIST_H
 
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/raw_ostream.h"
 #include <vector>
 
@@ -27,26 +28,24 @@ class StrToken;
 class StringList {
 public:
   typedef std::vector<StrToken *> Tokens;
-  typedef Tokens::const_iterator const_iterator;
-  typedef Tokens::iterator iterator;
-  typedef Tokens::const_reference const_reference;
-  typedef Tokens::reference reference;
+  using TokenRange = llvm::iterator_range<Tokens::iterator>;
+  using TokenConstRange = llvm::iterator_range<Tokens::const_iterator>;
 
   StringList();
 
   ~StringList() { TokenList.clear(); }
 
-  const_iterator begin() const { return TokenList.begin(); }
-  iterator begin() { return TokenList.begin(); }
-  const_iterator end() const { return TokenList.end(); }
-  iterator end() { return TokenList.end(); }
-  const_iterator find(StrToken *Token) const;
-  iterator find(StrToken *Token);
+  TokenRange tokens() {
+    return llvm::make_range(TokenList.begin(), TokenList.end());
+  }
+  TokenConstRange tokens() const {
+    return llvm::make_range(TokenList.begin(), TokenList.end());
+  }
 
-  const_reference front() const { return TokenList.front(); }
-  reference front() { return TokenList.front(); }
-  const_reference back() const { return TokenList.back(); }
-  reference back() { return TokenList.back(); }
+  const StrToken *front() const { return TokenList.front(); }
+  StrToken *front() { return TokenList.front(); }
+  const StrToken *back() const { return TokenList.back(); }
+  StrToken *back() { return TokenList.back(); }
 
   bool empty() const { return TokenList.empty(); }
 

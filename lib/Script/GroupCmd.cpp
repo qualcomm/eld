@@ -33,7 +33,7 @@ void GroupCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "GROUP(";
   bool Prev = false, Cur = false;
   bool HasInput = false;
-  for (auto &S : ThisStringList) {
+  for (auto *S : ThisStringList.tokens()) {
     InputToken *Input = llvm::cast<InputToken>(S);
     Cur = Input->asNeeded();
     if (!Prev && Cur)
@@ -62,7 +62,7 @@ eld::Expected<void> GroupCmd::activate(Module &CurModule) {
   // Prefer ScriptCommand context (handles included scripts).
   InputFile *parentScriptFile = &ThisScriptFile.getLinkerScriptFile();
 
-  for (auto &S : ThisStringList) {
+  for (auto *S : ThisStringList.tokens()) {
     InputToken *Token = llvm::cast<InputToken>(S);
     Token = ThisScriptFile.findResolvedFilename(Token);
     if (Token->asNeeded())

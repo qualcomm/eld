@@ -80,9 +80,9 @@ public:
     if (Epilog.OutputSectionLMARegion)
       Outs << " AT>" << Epilog.OutputSectionLMARegion->name();
     if (Epilog.ScriptPhdrs && !Epilog.ScriptPhdrs->empty()) {
-      for (auto &Elem : *Epilog.ScriptPhdrs) {
-        assert((Elem)->kind() == StrToken::String);
-        Outs << ":" << (Elem)->name() << " ";
+      for (auto *Elem : Epilog.ScriptPhdrs->tokens()) {
+        assert(Elem->kind() == StrToken::String);
+        Outs << ":" << Elem->name() << " ";
       }
     }
     if (Epilog.FillExpression) {

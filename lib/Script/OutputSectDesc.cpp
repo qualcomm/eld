@@ -110,13 +110,13 @@ void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
   }
 
   Outs << "\t{\n";
-  for (const auto &Elem : *this) {
-    switch ((Elem)->getKind()) {
+  for (auto *Elem : commands()) {
+    switch (Elem->getKind()) {
     case ScriptCommand::ASSIGNMENT:
     case ScriptCommand::INPUT_SECT_DESC:
     case ScriptCommand::OUTPUT_SECT_DATA:
       Outs << "\t\t";
-      (Elem)->dump(Outs);
+      Elem->dump(Outs);
       break;
     case ScriptCommand::INCLUDE:
     case ScriptCommand::ENTER_SCOPE:
@@ -141,9 +141,9 @@ void OutputSectDesc::dumpEpilogue(llvm::raw_ostream &Outs) const {
     Outs << "\tAT>" << OutputSectDescEpilog.getLMARegionName();
 
   if (OutputSectDescEpilog.hasPhdrs()) {
-    for (auto &Elem : *OutputSectDescEpilog.phdrs()) {
-      assert((Elem)->kind() == StrToken::String);
-      Outs << ":" << (Elem)->name() << " ";
+    for (auto *Elem : OutputSectDescEpilog.phdrs()->tokens()) {
+      assert(Elem->kind() == StrToken::String);
+      Outs << ":" << Elem->name() << " ";
     }
   }
 
@@ -304,14 +304,14 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
     OutputSectDescEpilog.ScriptLMAMemoryRegion = LmaRegion.value();
   }
 
-  for (const_iterator It = begin(), Ie = end(); It != Ie; ++It) {
-    switch ((*It)->getKind()) {
+  for (auto *Cmd : commands()) {
+    switch (Cmd->getKind()) {
     case ScriptCommand::ASSIGNMENT:
-      Assignments.push_back(*It);
+      Assignments.push_back(Cmd);
       break;
     case ScriptCommand::INPUT_SECT_DESC:
     case ScriptCommand::OUTPUT_SECT_DATA: {
-      (*It)->activate(CurModule);
+      Cmd->activate(CurModule);
 
       for (auto &Assignment : Assignments) {
         (Assignment)->activate(CurModule);

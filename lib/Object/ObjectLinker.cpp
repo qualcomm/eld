@@ -964,13 +964,12 @@ bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
     if (!I->spec().hasSections())
       return false;
 
-    auto &E = I->spec().sections().front();
+    const StrToken *E = I->spec().sections().front();
 
     if (E->kind() != StrToken::Wildcard)
       return false;
 
-    WildcardPattern &Pattern =
-        llvm::cast<WildcardPattern>(*I->spec().sections().front());
+    const WildcardPattern &Pattern = llvm::cast<WildcardPattern>(*E);
     P = Pattern.sortPolicy();
     if (P == WildcardPattern::SortPolicy::SORT_NONE &&
         ThisConfig.options().isSortSectionEnabled()) {
@@ -1490,13 +1489,14 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   if (Type == ScriptFile::ExternList || Type == ScriptFile::DynamicList) {
     if (!SymbolListReader.activate(*ThisModule))
       return false;
-  } else
-    for (const auto &Sym : SymbolListReader.getExternList()) {
+  } else {
+    for (auto *Sym : SymbolListReader.getExternList().tokens()) {
       if (Type == ScriptFile::DuplicateCodeList)
         ThisModule->addToCopyFarCallSet(Sym->name());
       else if (Type == ScriptFile::NoReuseTrampolineList)
         ThisModule->addToNoReuseOfTrampolines(Sym->name());
     }
+  }
   return true;
 }
 

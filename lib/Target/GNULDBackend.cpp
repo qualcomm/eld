@@ -2346,10 +2346,8 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
       if (cur->epilog().hasPhdrs()) {
         curPhdrList = cur->epilog().phdrs();
         ELFSegment *seg = nullptr;
-        for (StringList::const_iterator it = curPhdrList->begin(),
-                                        ie = curPhdrList->end();
-             it != ie; ++it) {
-          std::string phdrName = ((*it)->name());
+        for (auto *Token : curPhdrList->tokens()) {
+          std::string phdrName = Token->name();
           auto iter = _segments.find(phdrName);
           if (llvm::StringRef(phdrName).lower() == "none") {
             if (!m_pNONESegment) {
@@ -2388,7 +2386,7 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
     if (prev && curPhdrList && prevPhdrList && prev->prolog().hasLMA() &&
         curHasLMA && (prevPhdrList == curPhdrList)) {
       std::string phdrName;
-      for (auto &s : *curPhdrList) {
+      for (auto *s : curPhdrList->tokens()) {
         phdrName += s->name();
         phdrName += ",";
       }

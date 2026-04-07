@@ -24,7 +24,7 @@ NoCrossRefsCmd::NoCrossRefsCmd(StringList &PSections, size_t ID)
 void NoCrossRefsCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "NOCROSSREFS(";
   bool IsFirst = true;
-  for (auto &I : ThisSectionions) {
+  for (auto *I : ThisSectionions.tokens()) {
     if (IsFirst)
       IsFirst = false;
     else
@@ -35,9 +35,8 @@ void NoCrossRefsCmd::dump(llvm::raw_ostream &Outs) const {
 }
 
 eld::Expected<void> NoCrossRefsCmd::activate(Module &CurModule) {
-  StringList::iterator It, Ite = ThisSectionions.end();
-  for (It = ThisSectionions.begin(); It != Ite; It++) {
-    std::string Name = (*It)->name();
+  for (auto *Token : ThisSectionions.tokens()) {
+    std::string Name = Token->name();
     CurModule.getNonRefSections().emplace(std::make_pair(Name, CurID));
   }
   return eld::Expected<void>();
