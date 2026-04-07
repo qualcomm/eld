@@ -435,7 +435,9 @@ bool AArch64LDBackend::scanErrata843419() {
                 // Now since a new fragment has been inserted, the fragment
                 // needs to be reset.
                 ie = section->getFragmentList().end();
-                it = frag->getIterator();
+                auto SectionFragments = section->getFragmentList();
+                it = std::find(SectionFragments.begin(), SectionFragments.end(),
+                               frag);
                 updated = true;
               }
             }

@@ -268,12 +268,9 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
       if (IS && IS->hasFragments())
         Frag = IS->getFrontFragment();
       if (Frag) {
-        auto *FragCur = Frag->getIterator();
-        auto *FragEnd = Frag->getOwningSection()
-                            ->getMatchedLinkerScriptRule()
-                            ->getSection()
-                            ->getFragmentList()
-                            .end();
+        auto Fragments = Frag->siblingFragments();
+        auto *FragCur = std::find(Fragments.begin(), Fragments.end(), Frag);
+        auto *FragEnd = Fragments.end();
         DiagnosticEngine *DiagEngine = Module.getConfig().getDiagEngine();
         for (; FragCur != FragEnd; ++FragCur) {
           auto *Frag = *FragCur;
