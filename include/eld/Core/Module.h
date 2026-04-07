@@ -38,6 +38,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/iterator_range.h"
 #include <array>
 #include <atomic>
 #include <climits>
@@ -124,8 +125,6 @@ public:
   typedef SectionTable::const_iterator const_iterator;
 
   typedef std::vector<StrToken *> ListSyms;
-  typedef ListSyms::iterator ListSyms_iterator;
-  typedef ListSyms::const_iterator const_ListSyms_iterator;
 
   typedef std::array<InputFile *, MAX> InternalInputArray;
 
@@ -147,6 +146,25 @@ public:
   typedef std::vector<ScriptSymbol *> ScriptSymbolList;
 
   typedef std::pair<uint64_t, uint64_t> DynamicListStartEndIndexPair;
+  using ObjectRange = llvm::iterator_range<ObjectList::iterator>;
+  using ObjectConstRange = llvm::iterator_range<ObjectList::const_iterator>;
+  using LibraryRange = llvm::iterator_range<LibraryList::iterator>;
+  using LibraryConstRange = llvm::iterator_range<LibraryList::const_iterator>;
+  using SectionRange = llvm::iterator_range<SectionTable::iterator>;
+  using SectionConstRange = llvm::iterator_range<SectionTable::const_iterator>;
+  using SymbolRange =
+      llvm::iterator_range<std::vector<ResolveInfo *>::iterator>;
+  using SymbolConstRange =
+      llvm::iterator_range<std::vector<ResolveInfo *>::const_iterator>;
+  using VersionScriptNodeRange =
+      llvm::iterator_range<VersionScriptNodes::iterator>;
+  using VersionScriptNodeConstRange =
+      llvm::iterator_range<VersionScriptNodes::const_iterator>;
+  using ScriptSymbolRange = llvm::iterator_range<ScriptSymbolList::iterator>;
+  using ScriptSymbolConstRange =
+      llvm::iterator_range<ScriptSymbolList::const_iterator>;
+  using VersionScriptRange = llvm::iterator_range<
+      llvm::SmallVector<const VersionScript *>::const_iterator>;
 
 public:
   explicit Module(LinkerScript &CurScript, LinkerConfig &Config,
@@ -168,6 +186,12 @@ public:
   const std::vector<InputFile *> &getObjectList() const {
     return InputObjectList;
   }
+  ObjectRange objects() {
+    return llvm::make_range(InputObjectList.begin(), InputObjectList.end());
+  }
+  ObjectConstRange objects() const {
+    return llvm::make_range(InputObjectList.begin(), InputObjectList.end());
+  }
 
   obj_iterator objBegin() { return InputObjectList.begin(); }
   obj_iterator objEnd() { return InputObjectList.end(); }
@@ -179,6 +203,20 @@ public:
   // -----  link-in libraries  ----- //
   LibraryList &getDynLibraryList() { return DynLibraryList; }
   LibraryList &getArchiveLibraryList() { return ArchiveLibraryList; }
+  LibraryRange dynamicLibraries() {
+    return llvm::make_range(DynLibraryList.begin(), DynLibraryList.end());
+  }
+  LibraryConstRange dynamicLibraries() const {
+    return llvm::make_range(DynLibraryList.begin(), DynLibraryList.end());
+  }
+  LibraryRange archiveLibraries() {
+    return llvm::make_range(ArchiveLibraryList.begin(),
+                            ArchiveLibraryList.end());
+  }
+  LibraryConstRange archiveLibraries() const {
+    return llvm::make_range(ArchiveLibraryList.begin(),
+                            ArchiveLibraryList.end());
+  }
 
   /// @}
   /// @name Section Accessors
@@ -187,6 +225,14 @@ public:
   // -----  sections  ----- //
   const SectionTable &getSectionTable() const { return OutputSectionTable; }
   SectionTable &getSectionTable() { return OutputSectionTable; }
+  SectionRange outputSections() {
+    return llvm::make_range(OutputSectionTable.begin(),
+                            OutputSectionTable.end());
+  }
+  SectionConstRange outputSections() const {
+    return llvm::make_range(OutputSectionTable.begin(),
+                            OutputSectionTable.end());
+  }
 
   void clearOutputSections() {
     OutputSectionTable.clear();
@@ -224,9 +270,25 @@ public:
 
   // ------ Dynamic List symbols ----//
   ScriptSymbolList &dynListSyms() { return DynamicListSymbols; }
+  ScriptSymbolRange dynamicListSymbols() {
+    return llvm::make_range(DynamicListSymbols.begin(),
+                            DynamicListSymbols.end());
+  }
+  ScriptSymbolConstRange dynamicListSymbols() const {
+    return llvm::make_range(DynamicListSymbols.begin(),
+                            DynamicListSymbols.end());
+  }
 
   VersionScriptNodes &getVersionScriptNodes() {
     return LinkerVersionScriptNodes;
+  }
+  VersionScriptNodeRange versionScriptNodes() {
+    return llvm::make_range(LinkerVersionScriptNodes.begin(),
+                            LinkerVersionScriptNodes.end());
+  }
+  VersionScriptNodeConstRange versionScriptNodes() const {
+    return llvm::make_range(LinkerVersionScriptNodes.begin(),
+                            LinkerVersionScriptNodes.end());
   }
 
   void addVersionScriptNode(const VersionScriptNode *N) {
@@ -349,11 +411,23 @@ public:
   const std::vector<ResolveInfo *> &getSymbols() const { return Symbols; }
 
   std::vector<ResolveInfo *> &getSymbols() { return Symbols; }
+  SymbolRange symbols() {
+    return llvm::make_range(Symbols.begin(), Symbols.end());
+  }
+  SymbolConstRange symbols() const {
+    return llvm::make_range(Symbols.begin(), Symbols.end());
+  }
 
   // Common symbols.
   void addCommonSymbol(ResolveInfo *R) { CommonSymbols.push_back(R); }
 
   std::vector<ResolveInfo *> &getCommonSymbols() { return CommonSymbols; }
+  SymbolRange commonSymbols() {
+    return llvm::make_range(CommonSymbols.begin(), CommonSymbols.end());
+  }
+  SymbolConstRange commonSymbols() const {
+    return llvm::make_range(CommonSymbols.begin(), CommonSymbols.end());
+  }
 
   bool sortCommonSymbols();
 
@@ -612,6 +686,9 @@ public:
   const llvm::SmallVectorImpl<const VersionScript *> &
   getVersionScripts() const {
     return VersionScripts;
+  }
+  VersionScriptRange versionScripts() const {
+    return llvm::make_range(VersionScripts.begin(), VersionScripts.end());
   }
 
   // Tracks VersionScript objects parsed from a VERSION{} block embedded
