@@ -36,7 +36,7 @@ using namespace eld;
 LayoutInfo::LayoutInfo(LinkerConfig &Config) : ThisConfig(Config) {}
 
 std::string LayoutInfo::infoForFrag(const Fragment *Frag) {
-  FragmentInfoMapIterT FragmentInfoIter = FragmentInfoMap.find(Frag);
+  auto FragmentInfoIter = FragmentInfoMap.find(Frag);
   if (FragmentInfoIter == FragmentInfoMap.end())
     return "";
   LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
@@ -73,7 +73,7 @@ void LayoutInfo::recordFragment(InputFile *Input,
 }
 
 void LayoutInfo::recordSymbol(const Fragment *Frag, LDSymbol *Symbol) {
-  FragmentInfoMapIterT FragmentInfoIter = FragmentInfoMap.find(Frag);
+  auto FragmentInfoIter = FragmentInfoMap.find(Frag);
   if (FragmentInfoIter == FragmentInfoMap.end() || !Symbol->hasName())
     return;
   LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;

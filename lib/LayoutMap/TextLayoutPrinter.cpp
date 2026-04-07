@@ -829,22 +829,20 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::YELLOW);
 
-  LayoutInfo::FragmentInfoMapIterT FragmentInfoIter =
-      ThisLayoutInfo->getFragmentInfoMap().find(Frag);
+  auto FragmentInfoIter = ThisLayoutInfo->getFragmentInfoMap().find(Frag);
   if (FragmentInfoIter == ThisLayoutInfo->getFragmentInfoMap().end())
     return;
   LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
   printFragInfo(Frag, FragmentInfo, Section, CurModule);
-  LayoutInfo::SymVectorTIterT Syms, EndSymbols = FragmentInfo->Symbols.end();
 
   ThisLayoutInfo->sortFragmentSymbols(FragmentInfo);
 
-  for (Syms = FragmentInfo->Symbols.begin(); Syms != EndSymbols; ++Syms) {
+  for (auto *Sym : FragmentInfo->Symbols) {
     // Handle weak symbols.
     std::string ResolvedPath =
-        getDecoratedPath((*Syms)->resolveInfo()->resolvedOrigin()->getInput());
+        getDecoratedPath(Sym->resolveInfo()->resolvedOrigin()->getInput());
 
-    InputFile *ResolvedOrigin = (*Syms)->resolveInfo()->resolvedOrigin();
+    InputFile *ResolvedOrigin = Sym->resolveInfo()->resolvedOrigin();
     bool IsBitcode = false;
 
     if (ResolvedOrigin->isBitcode())
@@ -853,12 +851,11 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
              FragmentInfo->getResolvedPath())
       continue;
 
-    if ((*Syms)->name() == FragmentInfo->name())
+    if (Sym->name() == FragmentInfo->name())
       continue;
 
     outputStream() << "\t"
-                   << showDecoratedSymbolName(CurModule,
-                                              (*Syms)->resolveInfo());
+                   << showDecoratedSymbolName(CurModule, Sym->resolveInfo());
     if (IsBitcode) {
       outputStream() << "\t"
                      << "#(Bitcode origin:"
@@ -897,16 +894,13 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::YELLOW);
 
-  LayoutInfo::FragmentInfoMapIterT FragmentInfoIter =
-      ThisLayoutInfo->getFragmentInfoMap().find(Frag);
+  auto FragmentInfoIter = ThisLayoutInfo->getFragmentInfoMap().find(Frag);
   if (FragmentInfoIter == ThisLayoutInfo->getFragmentInfoMap().end())
     return;
 
   LayoutFragmentInfo *FragmentInfo = FragmentInfoIter->second;
   bool IsGc = Frag->getOwningSection()->isIgnore();
   printFragInfo(Frag, FragmentInfo, Section, CurModule);
-  LayoutInfo::SymVectorTIterT Syms, EndSymbols = FragmentInfo->Symbols.end();
-
   ThisLayoutInfo->sortFragmentSymbols(FragmentInfo);
 
   const LayoutInfo::RemoveSymbolOpsMapT RemovedSymbols =
@@ -918,12 +912,12 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
   bool HasFragOffsets =
       (CurModule.getState() >= LinkState::ActBeforePerformingLayout);
 
-  for (Syms = FragmentInfo->Symbols.begin(); Syms != EndSymbols; ++Syms) {
+  for (auto *Sym : FragmentInfo->Symbols) {
     // Handle weak symbols.
     std::string ResolvedPath =
-        getDecoratedPath((*Syms)->resolveInfo()->resolvedOrigin()->getInput());
+        getDecoratedPath(Sym->resolveInfo()->resolvedOrigin()->getInput());
 
-    InputFile *ResolvedOrigin = (*Syms)->resolveInfo()->resolvedOrigin();
+    InputFile *ResolvedOrigin = Sym->resolveInfo()->resolvedOrigin();
     bool IsBitcode = false;
 
     if (ResolvedOrigin->isBitcode())
@@ -933,30 +927,29 @@ void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
              FragmentInfo->getResolvedPath())
       continue;
 
-    if ((*Syms)->name() == FragmentInfo->name())
+    if (Sym->name() == FragmentInfo->name())
       continue;
 
-    if ((*Syms)->name() == FragmentInfo->getRealName())
+    if (Sym->name() == FragmentInfo->getRealName())
       continue;
 
-    auto Removed = RemovedSymbols.find((*Syms)->resolveInfo());
+    auto Removed = RemovedSymbols.find(Sym->resolveInfo());
 
-    auto SetAddress = SetSymbolAddressOps.find((*Syms)->resolveInfo());
+    auto SetAddress = SetSymbolAddressOps.find(Sym->resolveInfo());
 
     if (!IsGc) {
       outputStream() << "\t";
       printOffsetHelper(HasFragOffsets, [&, this]() {
         outputStream() << "0x";
         outputStream().write_hex(
-            ThisLayoutInfo->calculateSymbolValue(*Syms, CurModule));
+            ThisLayoutInfo->calculateSymbolValue(Sym, CurModule));
         outputStream() << "\t";
       });
     } else {
       outputStream() << "#";
     }
     outputStream() << "\t"
-                   << showDecoratedSymbolName(CurModule,
-                                              (*Syms)->resolveInfo());
+                   << showDecoratedSymbolName(CurModule, Sym->resolveInfo());
     if (Removed != RemovedSymbols.end())
       outputStream() << " {" << Removed->getSecond()->getPluginOpStr() << ", "
                      << Removed->getSecond()->getPluginName() << "}";
@@ -983,12 +976,10 @@ void TextLayoutPrinter::printArchiveRecords(Module &Module, bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::CYAN);
 
-  if (ThisLayoutInfo->getArchiveRecords().size()) {
-    auto It = ThisLayoutInfo->getArchiveRecords().begin(),
-         Ie = ThisLayoutInfo->getArchiveRecords().end();
+  if (!ThisLayoutInfo->getArchiveRecords().empty()) {
     outputStream() << "Archive member included because of file (symbol)\n";
-    for (; It != Ie; It++) {
-      auto Ret = ThisLayoutInfo->getArchiveRecord(*It);
+    for (auto &Record : ThisLayoutInfo->archiveRecords()) {
+      auto Ret = ThisLayoutInfo->getArchiveRecord(Record);
       outputStream() << Ret.first << "\n\t\t" << Ret.second << "\n";
     }
   }
@@ -1126,7 +1117,7 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
     outputStream().changeColor(llvm::raw_ostream::GREEN);
   if (ThisLayoutInfo->getLinkerScripts().size())
     outputStream() << "\nLinker scripts used (including INCLUDE command)\n";
-  for (auto &Script : ThisLayoutInfo->getLinkerScripts()) {
+  for (auto &Script : ThisLayoutInfo->linkerScripts()) {
     std::string Indent = "";
     for (uint32_t I = 0; I < Script.Depth; ++I)
       Indent += "\t";
@@ -1162,7 +1153,7 @@ void TextLayoutPrinter::printVersionScripts(bool UseColor) {
     outputStream().changeColor(llvm::raw_ostream::GREEN);
   if (ThisLayoutInfo->getVersionScripts().size())
     outputStream() << "\nVersion scripts used\n";
-  for (auto &Script : ThisLayoutInfo->getVersionScripts()) {
+  for (auto &Script : ThisLayoutInfo->versionScripts()) {
     std::string VersionScriptName = Script;
     if (ThisLayoutInfo->getConfig().options().hasMappingFile())
       VersionScriptName = ThisLayoutInfo->getPath(VersionScriptName) + "(" +
@@ -1186,7 +1177,7 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
     outputStream().changeColor(llvm::raw_ostream::MAGENTA);
   outputStream() << "\nBuild Statistics";
   outputStream() << "\n# <file> <start time> <duration>\n";
-  for (auto &I : ThisLayoutInfo->getInputActions()) {
+  for (auto &I : ThisLayoutInfo->inputActions()) {
     if (I.Inp == nullptr || I.Inp->getInputFile() == nullptr)
       continue;
     if (!I.Inp->getInputFile()->isObjectFile())
@@ -1214,7 +1205,7 @@ void TextLayoutPrinter::printInputActions(bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::BLUE);
   outputStream() << "\nLinker Script and memory map\n";
-  for (auto &I : ThisLayoutInfo->getInputActions())
+  for (auto &I : ThisLayoutInfo->inputActions())
     outputStream() << ThisLayoutInfo->getStringFromLoadSequence(I) << "\n";
   if (UseColor)
     outputStream().resetColor();

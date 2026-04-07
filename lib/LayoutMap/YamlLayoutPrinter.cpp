@@ -190,7 +190,7 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   Result.ModuleVersion.VendorVersion = eld::getVendorVersion().str();
   Result.ModuleVersion.ELDVersion = eld::getELDVersion().str();
 
-  for (auto &I : ThisLayoutInfo->getArchiveRecords()) {
+  for (auto &I : ThisLayoutInfo->archiveRecords()) {
     std::pair<std::string, std::string> Ret =
         ThisLayoutInfo->getArchiveRecord(I);
     Result.ArchiveRecords.push_back({Ret.first, Ret.second});
@@ -198,13 +198,14 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
   insertCommons(Result.Commons,
                 ThisLayoutInfo->getAllocatedCommonSymbols(Module));
   addStats(ThisLayoutInfo->getLinkStats(), Result.Stats);
-  Result.Features = ThisLayoutInfo->getFeatures();
+  Result.Features.assign(ThisLayoutInfo->features().begin(),
+                         ThisLayoutInfo->features().end());
   addInputs(Result.InputFileInfo, Module);
-  for (auto &I : ThisLayoutInfo->getInputActions()) {
+  for (auto &I : ThisLayoutInfo->inputActions()) {
     std::string Action = ThisLayoutInfo->getStringFromLoadSequence(I);
     Result.InputActions.push_back(Action);
   }
-  for (auto &Script : ThisLayoutInfo->getLinkerScripts()) {
+  for (auto &Script : ThisLayoutInfo->linkerScripts()) {
     std::string Indent = "";
     for (uint32_t I = 0; I < Script.Depth; ++I)
       Indent += "\t";
