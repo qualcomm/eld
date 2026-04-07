@@ -13,6 +13,7 @@
 #ifndef ELD_TARGET_ELFSEGMENTFACTORY_H
 #define ELD_TARGET_ELFSEGMENTFACTORY_H
 
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"
 #include <vector>
@@ -28,14 +29,19 @@ class ELFSection;
 class ELFSegmentFactory {
 public:
   typedef std::vector<ELFSegment *> Segments;
-  typedef Segments::const_iterator const_iterator;
-  typedef Segments::iterator iterator;
-  typedef Segments::reverse_iterator riterator;
+  using SegmentRange = llvm::iterator_range<Segments::iterator>;
+  using SegmentConstRange = llvm::iterator_range<Segments::const_iterator>;
 
-  iterator begin() { return m_Segments.begin(); }
-  iterator end() { return m_Segments.end(); }
+  SegmentRange segmentsRange() {
+    return llvm::make_range(m_Segments.begin(), m_Segments.end());
+  }
+  SegmentConstRange segmentsRange() const {
+    return llvm::make_range(m_Segments.begin(), m_Segments.end());
+  }
 
+  const ELFSegment *front() const { return m_Segments.front(); }
   ELFSegment *front() { return m_Segments.front(); }
+  const ELFSegment *back() const { return m_Segments.back(); }
   ELFSegment *back() { return m_Segments.back(); }
 
   void clear() { m_Segments.clear(); }
@@ -50,9 +56,9 @@ public:
 
   ELFSegment *findr(uint32_t pType, uint32_t pFlagSet, uint32_t pFlagClear);
 
-  iterator find(uint32_t pType, const ELFSection *pSection);
+  Segments::iterator find(uint32_t pType, const ELFSection *pSection);
 
-  void erase(iterator pSegment);
+  void erase(Segments::iterator pSegment);
 
   void push_back(ELFSegment *seg) { m_Segments.push_back(seg); }
 

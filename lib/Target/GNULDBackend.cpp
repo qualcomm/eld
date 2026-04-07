@@ -2620,7 +2620,7 @@ bool GNULDBackend::setupProgramHdrs() {
                          m_Module.getConfig().options().printTimingStats());
     int64_t segmentOffset = 0;
     // update segment info
-    for (auto &Seg : elfSegmentTable()) {
+    for (auto *Seg : elfSegmentTable().segmentsRange()) {
 
       // bypass if there is no section in this segment (e.g., PT_GNU_STACK)
       if (Seg->size() == 0) {
@@ -5428,7 +5428,7 @@ bool GNULDBackend::allocateHeaders() {
     return true;
 
   std::optional<uint64_t> VAddr, PAddr;
-  for (auto *Seg : elfSegmentTable()) {
+  for (auto *Seg : elfSegmentTable().segmentsRange()) {
     if (!Seg->isLoadSegment())
       continue;
     for (auto &S : *Seg) {
@@ -5720,7 +5720,7 @@ bool GNULDBackend::validateVersionedSymbols() {
 void GNULDBackend::warnRWXSegments() {
   if (!config().options().warnRWXSegments())
     return;
-  for (auto *Seg : elfSegmentTable()) {
+  for (auto *Seg : elfSegmentTable().segmentsRange()) {
     if (!Seg->isLoadSegment())
       continue;
     uint32_t f = Seg->flag();

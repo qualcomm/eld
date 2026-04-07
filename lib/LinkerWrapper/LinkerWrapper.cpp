@@ -259,7 +259,7 @@ eld::Expected<std::vector<Segment>> LinkerWrapper::getSegmentTable() const {
   CHECK_LINK_STATE(*this, "CreatingSegments", "AfterLayout",
                    "ActBeforeWritingOutput");
   std::vector<Segment> Segments;
-  for (auto *S : m_Module.getBackend().elfSegmentTable())
+  for (auto *S : m_Module.getBackend().elfSegmentTable().segmentsRange())
     Segments.push_back(Segment(S));
   return Segments;
 }
