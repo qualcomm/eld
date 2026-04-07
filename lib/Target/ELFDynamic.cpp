@@ -15,6 +15,7 @@
 #include "eld/Config/GeneralOptions.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
+#include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFFileFormat.h"
@@ -483,5 +484,7 @@ void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
 }
 
 void ELFDynamic::applySoname(uint64_t pStrTabIdx) {
+  if (m_Config.getPrinter()->traceDynamicLinking())
+    m_Config.raise(Diag::trace_set_soname) << m_Config.options().soname();
   applyOne(llvm::ELF::DT_SONAME, pStrTabIdx); // DT_SONAME
 }
