@@ -16,6 +16,7 @@
 
 #include "eld/Fragment/Fragment.h"
 #include "eld/Readers/Relocation.h"
+#include "llvm/ADT/iterator_range.h"
 #include <string>
 #include <vector>
 
@@ -57,6 +58,8 @@ public:
   typedef std::vector<Fixup *> FixupListType;
   typedef FixupListType::iterator fixup_iterator;
   typedef FixupListType::const_iterator const_fixup_iterator;
+  using FixupRange = llvm::iterator_range<FixupListType::iterator>;
+  using FixupConstRange = llvm::iterator_range<FixupListType::const_iterator>;
 
 public:
   Stub();
@@ -109,9 +112,12 @@ public:
   }
 
   ///  -----  Fixup  -----  ///
-  fixup_iterator fixupBegin() { return FixupList.begin(); }
-
-  fixup_iterator fixupEnd() { return FixupList.end(); }
+  FixupRange fixups() {
+    return llvm::make_range(FixupList.begin(), FixupList.end());
+  }
+  FixupConstRange fixups() const {
+    return llvm::make_range(FixupList.begin(), FixupList.end());
+  }
 
   /// ----- modifiers ----- ///
   void setSymInfo(ResolveInfo *CurSymInfo);

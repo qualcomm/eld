@@ -109,8 +109,8 @@ size_t HexagonAbsoluteStub::alignment() const { return 4u; }
 Stub *HexagonAbsoluteStub::clone(InputFile *, Relocation *, eld::IRBuilder *,
                                  DiagnosticEngine *) {
   std::lock_guard<std::mutex> Guard(Mutex);
-  return make<HexagonAbsoluteStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
-                                   Alignment);
+  return make<HexagonAbsoluteStub>(m_pData, ThisSize, fixups().begin(),
+                                   fixups().end(), Alignment);
 }
 
 Stub *HexagonAbsoluteStub::clone(InputFile *, Relocation *, Fragment *frag,

@@ -86,15 +86,14 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
       pBuilder.getModule().getConfig().options().traceSymbol(returnName))
     DiagEngine->raise(Diag::target_specific_symbol) << returnName;
   // Set the branch target of this cloned stub.
-  for (Stub::fixup_iterator it = clone->fixupBegin(), ie = clone->fixupEnd();
-       it != ie; ++it) {
+  for (auto *Fixup : clone->fixups()) {
 
     Relocation *reloc = Relocation::Create(
-        (*it)->type(),
+        Fixup->type(),
         pBuilder.getModule().getBackend().getRelocator()->getSize(
-            (*it)->type()),
-        make<FragmentRef>(*clone, (*it)->offset()), 0);
-    if ((*it)->type() == llvm::ELF::R_AARCH64_JUMP26) {
+            Fixup->type()),
+        make<FragmentRef>(*clone, Fixup->offset()), 0);
+    if (Fixup->type() == llvm::ELF::R_AARCH64_JUMP26) {
       reloc->setSymInfo(returnSymbol->resolveInfo());
       reloc->target() = AArch64InsnHelpers::buildBranchInsn();
     } else

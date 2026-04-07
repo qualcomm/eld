@@ -75,8 +75,8 @@ const std::string &AArch64Errata843419Stub::name() const { return m_Name; }
 
 Stub *AArch64Errata843419Stub::clone(InputFile *, Relocation *R,
                                      eld::IRBuilder *, DiagnosticEngine *) {
-  return make<AArch64Errata843419Stub>(m_pData, m_Size, fixupBegin(),
-                                       fixupEnd(), Alignment);
+  return make<AArch64Errata843419Stub>(m_pData, m_Size, fixups().begin(),
+                                       fixups().end(), Alignment);
 }
 
 } // namespace eld

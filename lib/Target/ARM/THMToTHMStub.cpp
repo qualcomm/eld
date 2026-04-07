@@ -130,8 +130,8 @@ uint64_t THMToTHMStub::initSymValue() const { return 0x1; }
 
 Stub *THMToTHMStub::clone(InputFile *F, Relocation *, eld::IRBuilder *pBuilder,
                           DiagnosticEngine *) {
-  Stub *S = make<THMToTHMStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
-                               Alignment, m_NumStub++);
+  Stub *S = make<THMToTHMStub>(m_pData, ThisSize, fixups().begin(),
+                               fixups().end(), Alignment, m_NumStub++);
   uint32_t DataOffset = 0;
   if (m_Type == ARMGNULDBackend::VENEER_PIC) {
     pBuilder->addLinkerInternalLocalSymbol(

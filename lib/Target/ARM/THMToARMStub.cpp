@@ -136,8 +136,8 @@ Stub *THMToARMStub::clone(InputFile *F, Relocation *R, eld::IRBuilder *pBuilder,
                                        options);
     return nullptr;
   }
-  Stub *S = make<THMToARMStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
-                               Alignment, m_NumStub++);
+  Stub *S = make<THMToARMStub>(m_pData, ThisSize, fixups().begin(),
+                               fixups().end(), Alignment, m_NumStub++);
   uint32_t DataOffset = 0;
   pBuilder->addLinkerInternalLocalSymbol(F,
                                          "$t.t2a." + std::to_string(m_NumStub),
