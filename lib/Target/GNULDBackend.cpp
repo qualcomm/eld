@@ -2198,7 +2198,7 @@ void GNULDBackend::evaluatePostOutputSectionAssignments(
   if (m_Module.getPrinter()->traceAssignments())
     config().raise(Diag::output_section_eval)
         << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
-  for (auto *assign : out->getPostOutputSectionAssignments()) {
+  for (auto *assign : out->postOutputSectionSymbols()) {
     // We do not need to evaluate PROVIDE expressions for PROVIDE
     // symbols that are not being used in the link.
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))

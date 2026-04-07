@@ -1005,9 +1005,8 @@ std::vector<plugin::Stub> OutputSection::getStubs() const {
   if (!m_OutputSection)
     return {};
   std::vector<plugin::Stub> trampolines;
-  for (auto iter = m_OutputSection->islandsBegin();
-       iter != m_OutputSection->islandsEnd(); ++iter) {
-    trampolines.emplace_back(*iter);
+  for (auto *Island : m_OutputSection->branchIslands()) {
+    trampolines.emplace_back(Island);
   }
   return trampolines;
 }

@@ -16,6 +16,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/DataTypes.h"
 #include <atomic>
 #include <chrono>
@@ -35,14 +36,22 @@ class SectionMap;
 class OutputSectionEntry {
 public:
   typedef std::vector<RuleContainer *> InputList;
-  typedef std::vector<BranchIsland *>::iterator BranchIslandsIter;
   typedef InputList::iterator iterator;
   typedef InputList::const_iterator const_iterator;
   typedef InputList::const_reference const_reference;
   typedef InputList::reference reference;
 
   typedef std::vector<Assignment *> SymbolAssignments;
-  typedef SymbolAssignments::iterator sym_iterator;
+  using InputRange = llvm::iterator_range<InputList::iterator>;
+  using InputConstRange = llvm::iterator_range<InputList::const_iterator>;
+  using PostOutputSectionAssignmentsRange =
+      llvm::iterator_range<SymbolAssignments::iterator>;
+  using PostOutputSectionAssignmentsConstRange =
+      llvm::iterator_range<SymbolAssignments::const_iterator>;
+  using BranchIslandsRange =
+      llvm::iterator_range<std::vector<BranchIsland *>::iterator>;
+  using BranchIslandsConstRange =
+      llvm::iterator_range<std::vector<BranchIsland *>::const_iterator>;
 
   OutputSectionEntry(SectionMap *, std::string PName);
   OutputSectionEntry(SectionMap *, ELFSection *);
@@ -79,6 +88,10 @@ public:
     computeHash();
   }
   void computeHash();
+  InputRange inputs() { return llvm::make_range(Inputs.begin(), Inputs.end()); }
+  InputConstRange inputs() const {
+    return llvm::make_range(Inputs.begin(), Inputs.end());
+  }
   iterator begin() { return Inputs.begin(); }
   iterator end() { return Inputs.end(); }
 
@@ -105,6 +118,15 @@ public:
   }
   SymbolAssignments &getPostOutputSectionAssignments() {
     return postOutputSectionAssignments;
+  }
+
+  PostOutputSectionAssignmentsRange postOutputSectionSymbols() {
+    return llvm::make_range(postOutputSectionAssignments.begin(),
+                            postOutputSectionAssignments.end());
+  }
+  PostOutputSectionAssignmentsConstRange postOutputSectionSymbols() const {
+    return llvm::make_range(postOutputSectionAssignments.begin(),
+                            postOutputSectionAssignments.end());
   }
 
   void movePostOutputSectionAssignments(OutputSectionEntry *Out) {
@@ -137,9 +159,12 @@ public:
   RuleContainer *createDefaultRule(Module &M);
 
   // ------------------Branch island support ------------------------
-  BranchIslandsIter islandsBegin() { return BranchIslands.begin(); }
-
-  BranchIslandsIter islandsEnd() { return BranchIslands.end(); }
+  BranchIslandsRange branchIslands() {
+    return llvm::make_range(BranchIslands.begin(), BranchIslands.end());
+  }
+  BranchIslandsConstRange branchIslands() const {
+    return llvm::make_range(BranchIslands.begin(), BranchIslands.end());
+  }
 
   void addBranchIsland(BranchIsland *B) { BranchIslands.push_back(B); }
 

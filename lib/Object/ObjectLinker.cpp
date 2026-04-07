@@ -2714,14 +2714,11 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     finalizeEmitRelocSectionSizes(RelocCount);
 
   // apply relocations created by relaxation
-  typedef std::vector<BranchIsland *>::iterator branch_island_iter;
   auto Sections = ThisModule->getScript().sectionMap().outputSections();
   for (auto Out = Sections.begin(), OutEnd = Sections.end(); Out != OutEnd;
        ++Out) {
-    branch_island_iter Bi = (*Out)->islandsBegin();
-    branch_island_iter Be = (*Out)->islandsEnd();
-    for (; Bi != Be; ++Bi) {
-      for (auto *Reloc : (*Bi)->getRelocations())
+    for (auto *BI : (*Out)->branchIslands()) {
+      for (auto *Reloc : BI->getRelocations())
         Reloc->apply(*getTargetBackend().getRelocator());
     }
   }
@@ -2771,11 +2768,8 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
   // must be written before the input relocation overwritten the same
   // location again.
   auto SyncBranchIslandsForOutputSection = [&](OutputSectionEntry *O) -> void {
-    typedef std::vector<BranchIsland *>::iterator branch_island_iter;
-    branch_island_iter Bi = O->islandsBegin();
-    branch_island_iter Be = O->islandsEnd();
-    for (; Bi != Be; ++Bi) {
-      for (auto *Reloc : (*Bi)->getRelocations())
+    for (auto *BI : O->branchIslands()) {
+      for (auto *Reloc : BI->getRelocations())
         writeRelocationResult(*Reloc, Buffer);
     }
   };
