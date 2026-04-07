@@ -27,6 +27,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/SHA1.h"
 #include "llvm/Support/Timer.h"
 #include <atomic>
@@ -84,11 +85,22 @@ public:
   typedef std::vector<Assignment *> Assignments;
   typedef std::vector<ChangeOutputSectionPluginOp *> OverrideSectionMatchT;
   typedef std::vector<Plugin *> PluginVectorT;
-  typedef PluginVectorT::iterator PluginVectorTIter;
   typedef llvm::StringMap<llvm::Timer *> Name2TimerMap;
 
   typedef std::vector<Phdrs *> PhdrSpecList;
   typedef std::vector<MemorySpec *> MemorySpecList;
+  using PhdrRange = llvm::iterator_range<PhdrSpecList::iterator>;
+  using PhdrConstRange = llvm::iterator_range<PhdrSpecList::const_iterator>;
+  using PluginRange = llvm::iterator_range<PluginVectorT::iterator>;
+  using PluginConstRange = llvm::iterator_range<PluginVectorT::const_iterator>;
+  using PluginRunListRange =
+      llvm::iterator_range<std::vector<Plugin *>::iterator>;
+  using PluginRunListConstRange =
+      llvm::iterator_range<std::vector<Plugin *>::const_iterator>;
+  using ScriptCommandConstRange =
+      llvm::iterator_range<std::vector<ScriptCommand *>::const_iterator>;
+  using MemoryRegionConstRange = llvm::iterator_range<
+      llvm::SmallVector<ScriptMemoryRegion *, 4>::const_iterator>;
 
   struct PendingOutputSectionInsertion {
     std::string SectionName;
@@ -96,12 +108,20 @@ public:
     bool InsertAfter = false;
     InputFile *Context = nullptr;
   };
+  using PendingOutputSectionInsertionConstRange = llvm::iterator_range<
+      std::vector<PendingOutputSectionInsertion>::const_iterator>;
 
 public:
   LinkerScript(DiagnosticEngine *);
 
   ~LinkerScript();
 
+  PhdrRange phdrs() {
+    return llvm::make_range(PhdrList.begin(), PhdrList.end());
+  }
+  PhdrConstRange phdrs() const {
+    return llvm::make_range(PhdrList.begin(), PhdrList.end());
+  }
   const PhdrSpecList &phdrList() const { return PhdrList; }
   PhdrSpecList &phdrList() { return PhdrList; }
 
@@ -185,6 +205,12 @@ public:
 
   void addPlugin(Plugin *, Module &Module);
 
+  PluginRange plugins() {
+    return llvm::make_range(MPlugins.begin(), MPlugins.end());
+  }
+  PluginConstRange plugins() const {
+    return llvm::make_range(MPlugins.begin(), MPlugins.end());
+  }
   const PluginVectorT &getPlugins() const { return MPlugins; }
 
   PluginVectorT getPluginForType(plugin::PluginBase::Type T) const;
@@ -263,6 +289,12 @@ public:
   bool hasPendingSectionOverride(const plugin::LinkerWrapper *LW) const;
 
   // -------------- Plugin Runlist support -------------------
+  PluginRunListRange pluginRunList() {
+    return llvm::make_range(MRunList.begin(), MRunList.end());
+  }
+  PluginRunListConstRange pluginRunList() const {
+    return llvm::make_range(MRunList.begin(), MRunList.end());
+  }
   std::vector<Plugin *> &getPluginRunList() { return MRunList; }
 
   // -------------- Annotate Rule Count ------------------------
@@ -318,6 +350,10 @@ public:
   // ------------------- Script Commands -------------------------
   void addScriptCommand(ScriptCommand *PCommand);
 
+  ScriptCommandConstRange scriptCommands() const {
+    return llvm::make_range(UserLinkerScriptCommands.begin(),
+                            UserLinkerScriptCommands.end());
+  }
   const std::vector<ScriptCommand *> &getScriptCommands() const {
     return UserLinkerScriptCommands;
   }
@@ -349,6 +385,9 @@ public:
   eld::Expected<eld::ScriptMemoryRegion *>
   getMemoryRegion(llvm::StringRef DescName) const;
 
+  MemoryRegionConstRange memoryRegions() const {
+    return llvm::make_range(MMemoryRegions.begin(), MMemoryRegions.end());
+  }
   const llvm::SmallVector<ScriptMemoryRegion *, 4> &getMemoryRegions() const {
     return MMemoryRegions;
   }
@@ -375,6 +414,11 @@ public:
   bool applyPendingOutputSectionInsertionsForAnchor(SectionMap &Map,
                                                     llvm::StringRef AnchorName);
 
+  PendingOutputSectionInsertionConstRange
+  pendingOutputSectionInsertions() const {
+    return llvm::make_range(PendingOutputSectionInsertions.begin(),
+                            PendingOutputSectionInsertions.end());
+  }
   const std::vector<PendingOutputSectionInsertion> &
   getPendingOutputSectionInsertions() const {
     return PendingOutputSectionInsertions;
