@@ -35,6 +35,10 @@ public:
     return llvm::make_range(TargetList.begin(), TargetList.end());
   }
 
+  static TargetConstRange targetsConst() {
+    return llvm::make_range(TargetList.begin(), TargetList.end());
+  }
+
   static void RegisterTarget(Target &pTarget, llvm::StringRef Name,
                              uint16_t Machine, bool is64bit = false);
 
