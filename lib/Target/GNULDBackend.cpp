@@ -1985,10 +1985,8 @@ void GNULDBackend::changeSymbolsFromAbsoluteToGlobal(OutputSectionEntry *out) {
                        m_Module.getConfig().options().printTimingStats());
   for (OutputSectionEntry::iterator in = out->begin(), inEnd = out->end();
        in != inEnd; ++in) {
-    for (RuleContainer::sym_iterator it = (*in)->symBegin(),
-                                     ie = (*in)->symEnd();
-         it != ie; ++it) {
-      LDSymbol *symbol = (*it)->symbol();
+    for (auto *Assign : (*in)->symAssignmentsRange()) {
+      LDSymbol *symbol = Assign->symbol();
       if (symbol && symbol->resolveInfo()->isAbsolute()) {
         symbol->resolveInfo()->setBinding(ResolveInfo::Global);
         addSectionInfo(symbol, (*out).getSection());
@@ -2075,10 +2073,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
     RuleContainer *CurRule = (*in);
     ELFSection *InSection = CurRule->getSection();
     // Evaluate all assignments at the beginning of input section.
-    for (RuleContainer::sym_iterator it = (*in)->symBegin(),
-                                     ie = (*in)->symEnd();
-         it != ie; ++it) {
-      Assignment *assign = (*it);
+    for (auto *assign : (*in)->symAssignmentsRange()) {
       if (shouldskipAssert(assign))
         continue;
       // We do not need to evaluate PROVIDE expressions for PROVIDE
@@ -2087,7 +2082,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
       if (padding.startOffset == -1)
         padding.startOffset = offset;
       uint64_t previousDotValue = dotSymbol->value();
-      (*it)->assign(m_Module, OutSection);
+      assign->assign(m_Module, OutSection);
       offset = dotSymbol->value() - OutSection->addr();
       // Check for backward movement of dot symbol in the current output section
       if ((dotSymbol->value() < previousDotValue) &&
@@ -2101,14 +2096,14 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
       if (!OutSection->hasNoFragments())
         OutSection->setSize(offset);
       hasAssignmentsOrFragments = true;
-      if ((*it)->getExpression()->type() == Expression::FILL) {
+      if (assign->getExpression()->type() == Expression::FILL) {
         if (padding.startOffset != -1 && (offset - padding.startOffset)) {
           padding.endOffset = offset;
           m_PaddingMap[OutSection].push_back(padding);
         }
         padding.startOffset = offset;
         padding.endOffset = -1;
-        padding.Exp = (*it)->getExpression();
+        padding.Exp = assign->getExpression();
         fillExpression = padding.Exp;
       }
     }

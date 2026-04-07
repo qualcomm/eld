@@ -249,15 +249,15 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     }
     for (auto J = I->begin(), N = I->end(); J != N; ++J) {
       ELFSection *IS = (*J)->getSection();
-      for (auto K = (*J)->symBegin(), M = (*J)->symEnd(); K != M; ++K) {
+      for (auto *Assign : (*J)->symAssignmentsRange()) {
         std::string Text;
         {
           llvm::raw_string_ostream Stream(Text);
-          (*K)->getExpression()->dump(Stream, true);
+          Assign->getExpression()->dump(Stream, true);
         }
         eld::LDYAML::Assignment Assignment;
-        Assignment.Name = (*K)->name();
-        Assignment.Value = (*K)->value();
+        Assignment.Name = Assign->name();
+        Assignment.Value = Assign->value();
         Assignment.Text = std::move(Text);
         Value.Inputs.push_back(
             std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
