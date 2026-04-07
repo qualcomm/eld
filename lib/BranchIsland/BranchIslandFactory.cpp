@@ -233,8 +233,10 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
     MatchedRule = CurNode->getOwningSection()->getMatchedLinkerScriptRule();
     MatchedSection = MatchedRule->getSection();
 
-    CurNodeIter = CurNode->getIterator();
-    Iter EndNodeIter = MatchedSection->getFragmentList().end();
+    auto MatchedFragments = MatchedSection->getFragmentList();
+    CurNodeIter =
+        std::find(MatchedFragments.begin(), MatchedFragments.end(), CurNode);
+    Iter EndNodeIter = MatchedFragments.end();
 
     // Set the owning section.
     {

@@ -116,8 +116,10 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
       curNode->getOwningSection()->getMatchedLinkerScriptRule();
   ELFSection *MatchedSection = MatchedRule->getSection();
 
-  Iter curNodeIter = curNode->getIterator();
-  Iter endNodeIter = MatchedSection->getFragmentList().end();
+  auto MatchedFragments = MatchedSection->getFragmentList();
+  Iter curNodeIter =
+      std::find(MatchedFragments.begin(), MatchedFragments.end(), curNode);
+  Iter endNodeIter = MatchedFragments.end();
 
   int64_t fragAddr = 0;
   bool isLastFragInSection = false;
@@ -205,8 +207,9 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
     newOffset = previousFrag->getOffset(DiagEngine) + previousFrag->size();
   // Flag thats used to check if the linker already processed the clone.
   bool seenClone = false;
-  for (auto i = dirtyFrag->getIterator(),
-            n = MatchedSection->getFragmentList().end();
+  auto MatchedFrags = MatchedSection->getFragmentList();
+  for (auto i = std::find(MatchedFrags.begin(), MatchedFrags.end(), dirtyFrag),
+            n = MatchedFrags.end();
        i != n; ++i) {
     auto dirtyFrag = *i;
     // There is no need to reset the section size, if any of the fragment after
