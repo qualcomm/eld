@@ -532,31 +532,28 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
   for (auto *OutputSection : Module.getScript().sectionMap().outputSections()) {
     eld::LDYAML::TrampolineInfo TInfo;
     TInfo.OutputSectionName = OutputSection->name().str();
-    typedef std::vector<BranchIsland *>::iterator branch_island_iter;
     if (!OutputSection->getNumBranchIslands())
       continue;
     bool HasBranchIsland = false;
-    branch_island_iter Bi = OutputSection->islandsBegin();
-    branch_island_iter Be = OutputSection->islandsEnd();
-    for (; Bi != Be; ++Bi) {
+    for (auto *BI : OutputSection->branchIslands()) {
       eld::LDYAML::Trampoline T;
       // ARMv7 uses the same branch island interface, but some of the stuff
       // that exists in branch island interface are not stored by the ARM
       // backend.
-      if (!(*Bi)->stub())
+      if (!BI->stub())
         continue;
 
-      if (!(*Bi)->stub()->symInfo())
+      if (!BI->stub()->symInfo())
         continue;
 
-      if (!(*Bi)->stub()->savedSymInfo())
+      if (!BI->stub()->savedSymInfo())
         continue;
       HasBranchIsland = true;
 
       // Name of the trampoline.
-      T.Name = (*Bi)->stub()->symInfo()->name();
+      T.Name = BI->stub()->symInfo()->name();
       // The file where the source is located.
-      eld::Relocation *OrigRelocation = (*Bi)->getOrigRelocation();
+      eld::Relocation *OrigRelocation = BI->getOrigRelocation();
       Fragment *PatchFrag = OrigRelocation->targetRef()->frag();
       T.From = PatchFrag->getOwningSection()->name().str();
       {
@@ -573,10 +570,9 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
                        ->getInputFile()
                        ->getInput()
                        ->decoratedPath(ThisLayoutInfo->showAbsolutePath());
-      T.To = (*Bi)->stub()->savedSymInfo()->name();
-      if (!(*Bi)->stub()->savedSymInfo()->isAbsolute()) {
-        T.ToSection = (*Bi)
-                          ->stub()
+      T.To = BI->stub()->savedSymInfo()->name();
+      if (!BI->stub()->savedSymInfo()->isAbsolute()) {
+        T.ToSection = BI->stub()
                           ->savedSymInfo()
                           ->outSymbol()
                           ->fragRef()
@@ -587,17 +583,16 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
       } else {
         T.ToSection = "No Section";
       }
-      T.ToFile = (*Bi)
-                     ->stub()
+      T.ToFile = BI->stub()
                      ->savedSymInfo()
                      ->resolvedOrigin()
                      ->getInput()
                      ->decoratedPath(ThisLayoutInfo->showAbsolutePath());
-      T.Addend = (*Bi)->getAddend();
+      T.Addend = BI->getAddend();
       {
-        if ((*Bi)->stub()->savedSymInfo()->isLocal()) {
+        if (BI->stub()->savedSymInfo()->isLocal()) {
           Fragment *ToFrag =
-              (*Bi)->stub()->savedSymInfo()->outSymbol()->fragRef()->frag();
+              BI->stub()->savedSymInfo()->outSymbol()->fragRef()->frag();
           auto Existing = ThisLayoutInfo->getFragmentInfoMap().find(ToFrag);
           if (Existing != ThisLayoutInfo->getFragmentInfoMap().end()) {
             auto *Info = Existing->second;
@@ -610,7 +605,7 @@ void eld::YamlLayoutPrinter::getTrampolineMap(
       }
       std::set<Fragment *> RSet;
 
-      for (auto &Reloc : (*Bi)->getReuses()) {
+      for (auto &Reloc : BI->getReuses()) {
         eld::LDYAML::Reuse R;
         Fragment *F = Reloc->targetRef()->frag();
         if (RSet.find(F) != RSet.end())
