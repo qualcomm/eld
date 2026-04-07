@@ -106,6 +106,6 @@ size_t AArch64FarcallStub::alignment() const { return 8u; }
 
 Stub *AArch64FarcallStub::clone(InputFile *, Relocation *, eld::IRBuilder *,
                                 DiagnosticEngine *) {
-  return make<AArch64FarcallStub>(m_pData, ThisSize, fixupBegin(), fixupEnd(),
-                                  Alignment);
+  return make<AArch64FarcallStub>(m_pData, ThisSize, fixups().begin(),
+                                  fixups().end(), Alignment);
 }
