@@ -1437,10 +1437,8 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
          in != InEnd; ++in) {
       ELFSection *IS = (*in)->getSection();
       // Evaluate all assignments at the beginning of input section.
-      for (RuleContainer::sym_iterator It = (*in)->symBegin(),
-                                       Ie = (*in)->symEnd();
-           It != Ie; ++It) {
-        printAssignment(**It, Module, UseColor);
+      for (auto *Assign : (*in)->symAssignmentsRange()) {
+        printAssignment(*Assign, Module, UseColor);
       }
       if ((*in)->desc()) {
         (*in)->desc()->dumpMap(outputStream(), UseColor, false);
