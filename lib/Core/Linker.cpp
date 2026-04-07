@@ -891,7 +891,7 @@ bool Linker::verifyLinkerScript() {
     if (!Sections)
       continue;
 
-    for (auto *SectionCmd : *Sections) {
+    for (auto *SectionCmd : Sections->commands()) {
       auto *Out = llvm::dyn_cast<OutputSectDesc>(SectionCmd);
       if (!Out || !Out->epilog().hasPhdrs())
         continue;
