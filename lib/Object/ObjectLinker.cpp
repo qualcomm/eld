@@ -757,12 +757,8 @@ void ObjectLinker::parseDynList() {
   if (!ThisConfig.options().hasDynamicList())
     return;
 
-  GeneralOptions::const_dyn_list_iterator It =
-      ThisConfig.options().dynListBegin();
-  GeneralOptions::const_dyn_list_iterator Ie =
-      ThisConfig.options().dynListEnd();
-  for (; It != Ie; It++) {
-    if (!parseListFile(*It, ScriptFile::DynamicList))
+  for (const auto &DynListEntry : ThisConfig.options().dynamicSymbols()) {
+    if (!parseListFile(DynListEntry, ScriptFile::DynamicList))
       return;
   }
 }
@@ -1699,13 +1695,8 @@ void ObjectLinker::addNoReuseOfTrampolines() {
 /// addUndefSymbols - add any symbols specified by the -u flag
 ///   @return true if symbols added
 bool ObjectLinker::addUndefSymbols() {
-  GeneralOptions::const_ext_list_iterator It =
-      ThisConfig.options().extListBegin();
-  GeneralOptions::const_ext_list_iterator Ie =
-      ThisConfig.options().extListEnd();
-
-  for (; It != Ie; It++) {
-    if (!parseListFile(*It, ScriptFile::ExternList))
+  for (const auto &ExternListEntry : ThisConfig.options().externSymbols()) {
+    if (!parseListFile(ExternListEntry, ScriptFile::ExternList))
       return false;
   }
 
@@ -1719,14 +1710,11 @@ bool ObjectLinker::addUndefSymbols() {
   }
 
   if (!ThisConfig.options().getUndefSymList().empty()) {
-    GeneralOptions::const_undef_sym_iterator UndefSym,
-        UndefSymEnd = ThisConfig.options().undefSymEnd();
-    for (UndefSym = ThisConfig.options().undefSymBegin();
-         UndefSym != UndefSymEnd; ++UndefSym) {
+    for (auto *UndefSym : ThisConfig.options().undefinedSymbols()) {
       InputFile *I = ThisModule->getInternalInput(
           eld::Module::InternalInputType::ExternList);
       ThisModule->getNamePool().insertSymbol(
-          I, (*UndefSym)->name(), false, eld::ResolveInfo::NoType,
+          I, UndefSym->name(), false, eld::ResolveInfo::NoType,
           eld::ResolveInfo::Undefined, eld::ResolveInfo::Global, 0, 0,
           eld::ResolveInfo::Default, nullptr, Result,
           false /* isPostLTOPhase */, false, 0, ThisModule->getPrinter());
@@ -1735,7 +1723,7 @@ bool ObjectLinker::addUndefSymbols() {
       Result.Info->setOutSymbol(OutputSym);
       // Initialize origin.
       Result.Info->setResolvedOrigin(I);
-      ThisModule->addNeededSymbol((*UndefSym)->name());
+      ThisModule->addNeededSymbol(UndefSym->name());
     }
   }
 
