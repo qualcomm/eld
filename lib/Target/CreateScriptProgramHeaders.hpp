@@ -364,7 +364,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     ++out;
   }
 
-  for (auto &seg : elfSegmentTable()) {
+  for (auto *seg : elfSegmentTable().segmentsRange()) {
     // Handle empty segments
     if (!seg->size()) {
       if (seg->isLoadSegment() && !config().options().isOMagic())
