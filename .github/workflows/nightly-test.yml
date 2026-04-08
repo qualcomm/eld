@@ -88,10 +88,52 @@ jobs:
         run: |
           mkdir -p obj
           cd obj
+          cat > distribution-components.cmake <<'EOF'
+          set(LLVM_INSTALL_TOOLCHAIN_ONLY ON CACHE BOOL "")
+          set(LLVM_TOOLCHAIN_TOOLS
+            llvm-ar
+            llvm-cov
+            llvm-cxxfilt
+            llvm-dis
+            llvm-dlltool
+            llvm-dwp
+            llvm-lib
+            llvm-mca
+            llvm-nm
+            llvm-objcopy
+            llvm-objdump
+            llvm-pdbutil
+            llvm-profdata
+            llvm-profgen
+            llvm-ranlib
+            llvm-readobj
+            llvm-remarkutil
+            llvm-size
+            llvm-strings
+            llvm-strip
+            llvm-symbolizer
+            opt
+            CACHE STRING "")
+          set(LLVM_DISTRIBUTION_COMPONENTS
+            clang
+            lld
+            LTO
+            clang-resource-headers
+            clang-format
+            clang-tidy
+            clangd
+            builtins
+            runtimes
+            ${LLVM_TOOLCHAIN_TOOLS}
+            ld.eld
+            CACHE STRING "")
+          EOF
           cmake -G Ninja \
+            -C distribution-components.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra;lld" \
+            -DLLVM_ENABLE_RUNTIMES="compiler-rt;libcxx;libcxxabi;libunwind" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
@@ -108,27 +150,43 @@ jobs:
       - name: Build and install toolchain
         run: |
           cd obj
-          ninja -j8 install
+          ninja -j8 install-distribution
 
-      - name: Bundle ld.eld runtime libraries
+      - name: Bundle binary shared library dependencies
         shell: bash
         run: |
           set -euo pipefail
           INSTALL_ROOT="${{ github.workspace }}/install-nightly-toolchain"
-          mkdir -p "${INSTALL_ROOT}/lib"
+          BIN_DIR="${INSTALL_ROOT}/bin"
+          LIB_DIR="${INSTALL_ROOT}/lib"
+          mkdir -p "${LIB_DIR}"
 
-          for lib in libc++.so.1 libc++abi.so.1 libunwind.so.1; do
-            src="$(ldconfig -p | awk -v lib="${lib}" '$1 == lib { print $NF; exit }')"
-            if [[ -z "${src}" ]]; then
-              echo "Missing required runtime library: ${lib}" >&2
-              exit 1
+          # Resolve runtime deps from installed tool binaries and package them.
+          tools=(clang clang++ ld.eld lld ld.lld clangd clang-tidy clang-format)
+          for tool in "${tools[@]}"; do
+            if [[ -x "${BIN_DIR}/${tool}" ]]; then
+              echo "Collecting shared libraries for ${tool}"
+              ldd "${BIN_DIR}/${tool}" | awk '/=> \// { print $3 } /^\/.*\.so/ { print $1 }' | while read -r dep; do
+                [[ -n "${dep}" && -f "${dep}" ]] || continue
+                base="$(basename "${dep}")"
+                if compgen -G "${LIB_DIR}/${base}*" > /dev/null; then
+                  continue
+                fi
+                cp -P "${dep}" "${LIB_DIR}/"
+                cp -n "$(readlink -f "${dep}")" "${LIB_DIR}/" || true
+              done
             fi
-            cp -P "${src}" "${INSTALL_ROOT}/lib/"
-            cp -f "$(readlink -f "${src}")" "${INSTALL_ROOT}/lib/"
           done
 
-          echo "ld.eld RPATH/RUNPATH:"
-          readelf -d "${INSTALL_ROOT}/bin/ld.eld" | grep -E 'RPATH|RUNPATH'
+          for tool in ld.eld clang; do
+            if [[ -x "${BIN_DIR}/${tool}" ]]; then
+              echo "${tool} RPATH/RUNPATH:"
+              readelf -d "${BIN_DIR}/${tool}" | grep -E 'RPATH|RUNPATH' || true
+            fi
+          done
+
+          echo "Packaged shared libraries:"
+          ls -la "${LIB_DIR}"
 
       - name: Save ccache
         if: always()
