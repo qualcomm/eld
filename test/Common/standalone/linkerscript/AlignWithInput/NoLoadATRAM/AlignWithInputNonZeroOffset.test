@@ -1,0 +1,51 @@
+## ALIGN_WITH_INPUT section starting at non-zero region offset should not
+## cause the next section to overlap.
+
+# RUN: split-file %s %t
+# RUN: %clang %clangopts -c %t/1.c -o %t.o
+
+# RUN: %link %linkopts %t.o -T %t/script.t -Map %t.map -o %t.out
+# RUN: %filecheck %s < %t.map
+
+## With PHDRS.
+# RUN: %link %linkopts %t.o -T %t/phdrs.t -Map %t.phdrs.map -o %t.phdrs.out
+# RUN: %filecheck %s < %t.phdrs.map
+
+CHECK: datas 0x20000000
+CHECK: bss 0x200000b0
+CHECK: noinit 0x20000838
+
+#--- 1.c
+__attribute__((section(".data_region"))) int d[43] = {1};
+__attribute__((aligned(8))) char bss_data[0x781];
+__attribute__((section(".noinit"), aligned(8))) char noinit_data[4096];
+int main() { return bss_data[0] + noinit_data[0]; }
+
+#--- script.t
+MEMORY {
+  FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+  RAM  (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
+}
+SECTIONS {
+  .text : { *(.text*) } > FLASH
+  datas : { *(.data_region) } > RAM AT > FLASH
+  bss : ALIGN_WITH_INPUT { *(.bss) *(.bss.*) *(COMMON) } > RAM
+  noinit : { *(.noinit) *(.noinit.*) } > RAM
+}
+
+#--- phdrs.t
+MEMORY {
+  FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+  RAM  (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
+}
+PHDRS {
+  flash PT_LOAD;
+  ram   PT_LOAD;
+  bss   PT_LOAD;
+}
+SECTIONS {
+  .text : { *(.text*) } > FLASH :flash
+  datas : { *(.data_region) } > RAM AT > FLASH :ram
+  bss (NOLOAD) : ALIGN_WITH_INPUT { *(.bss) *(.bss.*) *(COMMON) } > RAM :bss
+  noinit (NOLOAD) : { *(.noinit) *(.noinit.*) } > RAM :bss
+}

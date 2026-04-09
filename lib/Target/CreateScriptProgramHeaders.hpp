@@ -333,9 +333,8 @@ bool GNULDBackend::createScriptProgramHdrs() {
 
     if (hasVMARegion)
       (*out)->epilog().region().addOutputSectionVMA(*out);
-    // If LMA is set explicitly then there is no LMA region for this
-    // section.
-    if (!useSetLMA && (hasVMARegion || hasLMARegion))
+    // Only update the LMA region cursor when it is a distinct region
+    if (!useSetLMA && hasLMARegion)
       (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
     if (!config().getDiagEngine()->diagnose()) {
       return false;
