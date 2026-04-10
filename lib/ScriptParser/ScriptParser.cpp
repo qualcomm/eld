@@ -1218,6 +1218,15 @@ bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
     return true;
   }
 
+  if (Tok == "ASCIZ") {
+    expect("(");
+    StringRef StrTok = next();
+    std::string Str = unquote(StrTok).str();
+    expect(")");
+    ThisScriptFile.addASCIZ(std::move(Str));
+    return true;
+  }
+
   std::optional<OutputSectData::OSDKind> OptDataKind =
       llvm::StringSwitch<std::optional<OutputSectData::OSDKind>>(Tok)
           .Case("BYTE", OutputSectData::OSDKind::Byte)

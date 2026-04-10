@@ -10,6 +10,7 @@
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/ScriptCommand.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include <cassert>
 
 namespace eld {
 class ELFSection;
@@ -20,7 +21,7 @@ class OutputSectDesc;
 
 /// OutputSectData represents commands that are used to explicitly insert bytes
 /// of data in an output section. These commands include: BYTE, SHORT, LONG,
-/// QUAD, and SQUAD.
+/// QUAD, SQUAD, and ASCIZ.
 ///
 /// But why is OutputSectData inheriting from InputSectDesc?
 ///
@@ -41,11 +42,15 @@ class OutputSectDesc;
 /// special input section description is processed.
 class OutputSectData : public InputSectDesc {
 public:
-  enum OSDKind { None, Byte, Short, Long, Quad, Squad };
+  enum OSDKind { None, Byte, Short, Long, Quad, Squad, ASCIZ };
 
   /// Creates an OutputSectData object.
   static OutputSectData *create(uint32_t ID, OutputSectDesc &OutSectDesc,
                                 OSDKind Kind, Expression &Expr);
+
+  /// Creates an OutputSectData object for ASCIZ (null-terminated string).
+  static OutputSectData *create(uint32_t ID, OutputSectDesc &OutSectDesc,
+                                std::string Str);
 
   // FIXME: Ideally, it should be private. Users of this class should only
   // use OutputSectData::Create function to create objects of this class.
@@ -54,6 +59,10 @@ public:
   OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
                  const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
                  OSDKind Kind, Expression &Expr);
+
+  OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
+                 const InputSectDesc::Spec Spec, OutputSectDesc &OutSectDesc,
+                 std::string Str);
 
   void dump(llvm::raw_ostream &Outs) const override;
 
@@ -75,7 +84,16 @@ public:
 
   ELFSection *getELFSection() const { return ThisSectionion; }
 
-  Expression &getExpr() { return ExpressionToEvaluate; }
+  Expression &getExpr() {
+    assert(ExpressionToEvaluate &&
+           "expression not available for ASCIZ output section data");
+    return *ExpressionToEvaluate;
+  }
+
+  /// Returns the string content (only valid for ASCIZ kind).
+  llvm::StringRef getString() const { return ASCIIZStr; }
+
+  bool isASCIZ() const { return MOsdKind == OSDKind::ASCIZ; }
 
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_SECT_DATA;
@@ -90,7 +108,8 @@ private:
   ELFSection *createOSDSection(Module &Module);
 
   const OSDKind MOsdKind = OSDKind::None;
-  Expression &ExpressionToEvaluate;
+  Expression *ExpressionToEvaluate = nullptr;
+  std::string ASCIIZStr;
   ELFSection *ThisSectionion = nullptr;
 };
 

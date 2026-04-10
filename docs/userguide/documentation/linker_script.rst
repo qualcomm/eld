@@ -1061,6 +1061,88 @@ INSERT AFTER <section-name> | INSERT BEFORE <section-name>
     sections do not support output section epilogues, so INSERT is not allowed
     inside OVERLAY member blocks.
 
+.. _output-section-data:
+
+Output Section Data
+--------------------
+
+Within an output section description, you can use data-emitting commands to
+insert raw bytes directly into the output section at the current location
+counter. These commands are useful for embedding version strings, magic
+numbers, padding constants, or any other fixed data into the linked image
+without requiring a separate object file.
+
+ELD supports the following output section data commands:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Command
+     - Description
+   * - ``BYTE(expression)``
+     - Emit one byte (8 bits). The expression is truncated to 8 bits.
+   * - ``SHORT(expression)``
+     - Emit two bytes (16 bits). The expression is truncated to 16 bits.
+   * - ``LONG(expression)``
+     - Emit four bytes (32 bits). The expression is truncated to 32 bits.
+   * - ``QUAD(expression)``
+     - Emit eight bytes (64 bits) as an unsigned value.
+   * - ``SQUAD(expression)``
+     - Emit eight bytes (64 bits) as a signed value.
+   * - ``ASCIZ("string")``
+     - Emit a null-terminated ASCII string. The string literal (enclosed in
+       double quotes) is written byte-for-byte followed by a NUL byte
+       (``\0``). The size contributed is ``strlen(string) + 1``.
+
+.. note::
+
+   The numeric commands (``BYTE`` through ``SQUAD``) accept any linker
+   script expression, including symbol references and arithmetic. Values
+   that do not fit in the target width are truncated; with
+   ``-Wlinker-script``, the linker emits a warning when truncation occurs.
+
+   ``ASCIZ`` accepts only a quoted string literal, not an arbitrary
+   expression.
+
+.. note::
+
+   These commands are documented in the GNU Binutils ld manual under
+   `Output Section Data
+   <https://sourceware.org/binutils/docs/ld/Output-Section-Data.html>`_.
+
+Example
+^^^^^^^
+
+The following linker script embeds a magic number, a version constant, and
+a build-info string into the ``.rodata`` output section::
+
+  SECTIONS {
+    .text : { *(.text*) }
+
+    .rodata : {
+      *(.rodata*)
+
+      /* 4-byte magic number */
+      LONG(0xDEADBEEF)
+
+      /* 2-byte protocol version */
+      SHORT(3)
+
+      /* Null-terminated build-info string */
+      ASCIZ ("eld linker v1.0")
+    }
+  }
+
+After linking, the ``.rodata`` section will contain (in order):
+
+- The contents of all matched ``.rodata*`` input sections.
+- Four bytes ``ef be ad de`` (little-endian ``0xDEADBEEF``).
+- Two bytes ``03 00`` (little-endian ``3``).
+- Sixteen bytes for ``"eld linker v1.0\0"`` (15 characters + NUL).
+- Fifteen bytes for ``"built with ELD\0"`` (14 characters + NUL).
+
+
 Sorting input sections
 ----------------------
 

@@ -291,10 +291,14 @@ public:
   void leaveMemoryCmd() {}
 
   /// This adds support for explicit output section data keywords. They include
-  /// BYTE, SHORT, LONG, QUAD, and SQUAD.
+  /// BYTE, SHORT, LONG, QUAD, SQUAD, and ASCIZ.
   ///
   void addOutputSectData(OutputSectData::OSDKind DataKind, Expression *Expr);
   void addLinkerVersionData();
+
+  /// This adds support for the ASCIZ output section data keyword.
+  /// It emits a null-terminated ASCII string into the output section.
+  void addASCIZ(std::string Str);
 
   // ------------------------ REGION_ALIAS ------------------------------------
   void addRegionAlias(const StrToken *Alias, const StrToken *Region);

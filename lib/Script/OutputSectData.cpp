@@ -11,8 +11,8 @@
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/FragmentRef.h"
 #include "eld/Fragment/OutputSectDataFragment.h"
-#include "eld/Fragment/StringFragment.h"
 #include "eld/Fragment/RegionFragment.h"
+#include "eld/Fragment/StringFragment.h"
 #include "eld/LayoutMap/LayoutInfo.h"
 #include "eld/Object/RuleContainer.h"
 #include "eld/Readers/ELFSection.h"
@@ -20,6 +20,7 @@
 #include "eld/Script/InputSectDesc.h"
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Target/LDFileFormat.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
 #include <cstdint>
@@ -47,13 +48,30 @@ OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
   return OSD;
 }
 
+OutputSectData *OutputSectData::create(uint32_t ID, OutputSectDesc &OutSectDesc,
+                                       std::string Str) {
+  InputSectDesc::Spec Spec;
+  Spec.initialize();
+  InputSectDesc::Policy Policy = InputSectDesc::Policy::Keep;
+  OutputSectData *OSD =
+      eld::make<OutputSectData>(ID, Policy, Spec, OutSectDesc, Str);
+  return OSD;
+}
+
 OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
                                const InputSectDesc::Spec Spec,
                                OutputSectDesc &OutSectDesc, OSDKind Kind,
                                Expression &Expr)
     : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, Policy, Spec,
                     OutSectDesc),
-      MOsdKind(Kind), ExpressionToEvaluate(Expr) {}
+      MOsdKind(Kind), ExpressionToEvaluate(&Expr) {}
+
+OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
+                               const InputSectDesc::Spec Spec,
+                               OutputSectDesc &OutSectDesc, std::string Str)
+    : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, Policy, Spec,
+                    OutSectDesc),
+      MOsdKind(OSDKind::ASCIZ), ASCIIZStr(Str) {}
 
 llvm::StringRef OutputSectData::getOSDKindAsStr() const {
 #define ADD_CASE(dataKind)                                                     \
@@ -66,6 +84,7 @@ llvm::StringRef OutputSectData::getOSDKindAsStr() const {
     ADD_CASE(Long);
     ADD_CASE(Quad);
     ADD_CASE(Squad);
+    ADD_CASE(ASCIZ);
   }
 #undef ADD_CASE
 }
@@ -81,6 +100,8 @@ std::size_t OutputSectData::getDataSize() const {
   case Quad:
   case Squad:
     return 8;
+  case ASCIZ:
+    return ASCIIZStr.size() + 1;
   default:
     llvm_unreachable(
         (llvm::Twine("Invalid output section data: ") + getOSDKindAsStr())
@@ -90,7 +111,8 @@ std::size_t OutputSectData::getDataSize() const {
 }
 
 eld::Expected<void> OutputSectData::activate(Module &Module) {
-  ExpressionToEvaluate.setContext(getContext());
+  if (ExpressionToEvaluate)
+    ExpressionToEvaluate->setContext(getContext());
   std::pair<SectionMap::mapping, bool> Mapping =
       Module.getScript().sectionMap().insert(*this, OutputSectionDescription);
   ASSERT(Mapping.second,
@@ -120,7 +142,9 @@ ELFSection *OutputSectData::createOSDSection(Module &Module) {
   ELFSection *S = Module.createInternalSection(
       Module::InternalInputType::OutputSectData, LDFileFormat::OutputSectData,
       Name, DefaultSectionType, DefaultSectionFlags, /*alignment=*/1);
-  Fragment *F = make<OutputSectDataFragment>(*this);
+  Fragment *F =
+      isASCIZ() ? static_cast<Fragment *>(make<StringFragment>(ASCIIZStr, S))
+                : static_cast<Fragment *>(make<OutputSectDataFragment>(*this));
   LayoutInfo *layoutInfo = Module.getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(
@@ -141,7 +165,10 @@ void OutputSectData::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
     Outs.changeColor(llvm::raw_ostream::BLUE);
   Outs << getOSDKindAsStr().upper() << " ";
   Outs << "(";
-  ExpressionToEvaluate.dump(Outs);
+  if (isASCIZ())
+    Outs << "\"" << ASCIIZStr << "\"";
+  else
+    ExpressionToEvaluate->dump(Outs);
   Outs << ") ";
   ELFSection *S = getRuleContainer()->getSection();
   Outs << "\t0x";
@@ -158,7 +185,10 @@ void OutputSectData::dumpOnlyThis(llvm::raw_ostream &Outs) const {
   doIndent(Outs);
   Outs << getOSDKindAsStr().upper() << " ";
   Outs << "(";
-  ExpressionToEvaluate.dump(Outs);
+  if (isASCIZ())
+    Outs << "\"" << ASCIIZStr << "\"";
+  else
+    ExpressionToEvaluate->dump(Outs);
   Outs << ")";
   Outs << "\n";
 }

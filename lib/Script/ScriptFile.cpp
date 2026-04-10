@@ -713,6 +713,21 @@ void ScriptFile::addLinkerVersionData() {
   OutputSectionDescription->pushBack(OSD);
 }
 
+void ScriptFile::addASCIZ(std::string Str) {
+  assert(ScriptStateInSectionsCommmand);
+
+  LayoutInfo *layoutInfo = ThisModule.getLayoutInfo();
+  if (layoutInfo)
+    layoutInfo->recordLinkerScriptRule();
+
+  OutputSectData *OSD =
+      OutputSectData::create(ThisModule.getScript().getIncrementedRuleCount(),
+                             *OutputSectionDescription, Str);
+  OSD->setInputFileInContext(getContext());
+  OSD->setParent(getParent());
+  OutputSectionDescription->pushBack(OSD);
+}
+
 void ScriptFile::addRegionAlias(const StrToken *Alias, const StrToken *Region) {
   RegionAlias *R = eld::make<RegionAlias>(Alias, Region);
   R->setInputFileInContext(getContext());
