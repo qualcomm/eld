@@ -1,7 +1,7 @@
 name: Zephyr Nightly with ELD
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
@@ -58,7 +58,7 @@ jobs:
       - name: Install cpullvm toolchain and splice nightly ELD
         run: |
           # Download cpullvm release
-          curl -sfL --retry 3 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz -o cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
+          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
           tar -xf cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
           mv cpullvm-${CPULLVM_VERSION}-Linux-x86_64 ${CPULLVM_DIR}
           rm cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
@@ -85,13 +85,13 @@ jobs:
       - name: Download and apply ELD support patch
         run: |
           cd zephyr
-          curl -sfL --retry 3 https://github.com/zephyrproject-rtos/zephyr/pull/103778.patch -o eld-support.patch
+          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/zephyrproject-rtos/zephyr/pull/103778.patch -O eld-support.patch
           git apply eld-support.patch
 
       - name: Download and apply ULEB128 fix for kobject list
         run: |
           cd zephyr
-          curl -sfL --retry 3 https://github.com/quic-areg/zephyr/commit/17f605dd6a9fed6bb93e148a822f9bf7e0dae8f0.patch -o uleb128-fix.patch
+          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/quic-areg/zephyr/commit/17f605dd6a9fed6bb93e148a822f9bf7e0dae8f0.patch -O uleb128-fix.patch
           git apply uleb128-fix.patch
 
       - name: West setup
