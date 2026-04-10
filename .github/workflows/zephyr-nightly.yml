@@ -1,7 +1,7 @@
 name: Zephyr Nightly with ELD
 
 on:
-  pull_request: {} # Uncomment only to test this WF file update.
+  # pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
