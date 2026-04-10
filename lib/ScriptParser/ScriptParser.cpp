@@ -870,8 +870,10 @@ OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
   Prologue.init();
   if (peek(LexState::Expr) != ":") {
     if (consume("(")) {
-      if (!readOutputSectTypeAndPermissions(Prologue, peek()))
+      if (!readOutputSectTypeAndPermissions(Prologue, peek())){
         Prologue.OutputSectionVMA = readExpr();
+        Prologue.OutputSectionVMA->setParen();
+      }
       expect(")");
     } else if (peek() == "{") {
       expect(":");
