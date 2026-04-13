@@ -1,0 +1,31 @@
+REQUIRES: run_test
+# XFAIL'ed for rv64 until https://github.com/qualcomm/eld/issues/1342 is resolved.
+# The accesses to __rela_iplt_start/__rela_iplt_end aren't relaxed in rv64 as
+# they are 0 at the time of relaxation so use the GOT and hit 1342. rv32 can
+# always assume relative accesses will be in range, so sidestep this issue.
+XFAIL: riscv64
+#----------GOT_LOAD_RELAX_RUN.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Run tests for RISC-V GOT load relaxation. Verifies that the correct runtime
+# behavior is produced for simple static executables.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc -fPIC -c %p/Inputs/got_relax_run.c -o %t.o
+
+RUN: %run_cc -static -Wl,--defsym,sym_cli=31 -Wl,--defsym,sym_addi=100 \
+RUN:   %t.o -o %t.out
+RUN: %run %t.out | %filecheck %s
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.out | %filecheck %s --check-prefix=DUMP
+
+CHECK: relative: 12345
+CHECK: cli: 0x1f
+CHECK: addi: 0x64
+
+DUMP-LABEL: <get_relative>:
+DUMP: auipc a0,
+DUMP-NEXT: addi a0, a0,
+DUMP-LABEL: <get_cli>:
+DUMP: c.li a0, 31
+DUMP-LABEL: <get_addi>:
+DUMP: addi a0, zero, 100

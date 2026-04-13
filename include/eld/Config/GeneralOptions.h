@@ -956,6 +956,10 @@ public:
     return RiscvRelaxTbljal == RISCVRelaxTbljalMode::Xqccmt;
   }
 
+  void setRISCVRelaxGOT(bool Value) { BRiscvRelaxGOT = Value; }
+
+  bool getRISCVRelaxGOT() const { return BRiscvRelaxGOT; }
+
   bool warnCommon() const { return BWarnCommon; }
 
   void setWarnCommon() { BWarnCommon = true; }
@@ -1321,6 +1325,7 @@ private:
   bool BRiscvRelaxTLSDESC = true; // enable riscv relaxations for TLSDESC
   RISCVRelaxTbljalMode RiscvRelaxTbljal =
       RISCVRelaxTbljalMode::None; // enable Zcmt/Xqccmt table jump relaxation
+  bool BRiscvRelaxGOT = true;     // enable RISC-V GOT load relaxations
   bool AllowIncompatibleSectionsMix = false; // Allow incompatibleSections;
   bool ProgressBar = false;                  // Show progressbar.
   bool RecordInputFiles = false;             // --reproduce

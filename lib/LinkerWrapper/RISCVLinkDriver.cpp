@@ -176,6 +176,10 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   }
   Config.options().setRISCVRelaxTbljal(TbljalMode);
 
+  // --no-relax-got
+  if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_got))
+    Config.options().setRISCVRelaxGOT(false);
+
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))
     Config.options().setAllowBSSMixing(true);

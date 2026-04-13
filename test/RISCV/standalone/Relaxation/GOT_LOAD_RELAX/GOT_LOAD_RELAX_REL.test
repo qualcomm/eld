@@ -1,0 +1,76 @@
+REQUIRES: riscv32 || riscv64
+#----------GOT_LOAD_RELAX_REL.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests checks GOT load relaxation behavior specific to handling relative
+# symbols.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/rel.s -o %t.o
+
+## Static executable
+RUN: %link %linkopts -static %t.o -o %t.static.out \
+RUN: --section-start zero=0x0 --section-start .text=0x10000 --section-start .data=0x20000 \
+RUN: --section-start .got=0x30000 --section-start .plt=0x40000
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.static.out | %filecheck %s --check-prefixes=DUMP-STATIC,DUMP-STATIC%xlen
+
+## Static, pie executable
+RUN: %link %linkopts -static -pie %t.o -o %t.static-pie.out \
+RUN: --section-start zero=0x0 --section-start .text=0x10000 --section-start .data=0x20000 \
+RUN: --section-start .got=0x30000 --section-start .plt=0x40000
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.static-pie.out | %filecheck %s --check-prefixes=DUMP-STATIC,DUMP-STATIC%xlen
+
+## Shared
+RUN: %link %linkopts -shared %t.o -o %t.so \
+RUN: --section-start zero=0x0 --section-start .text=0x10000 --section-start .data=0x20000 \
+RUN: --section-start .got=0x30000 --section-start .plt=0x40000
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.so | %filecheck %s --check-prefix=DUMP-SHARED
+
+## Check nonsequential relaxations look as expected.
+RUN: %clang %clangopts -DUSE_REL=1 -c %p/Inputs/nonsequential.S -o %t.nonseq.o
+RUN: %link %linkopts -static %t.nonseq.o -o %t.nonseq.out \
+RUN: --section-start .text=0x10000 --section-start .data=0x20000 --section-start .got=0x30000
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.nonseq.out | %filecheck %s --check-prefixes=DUMP-NONSEQ
+
+DUMP-STATIC-LABEL: <foo>:
+DUMP-STATIC: auipc a0, 16
+DUMP-STATIC-NEXT: addi a0, a0, -6
+DUMP-STATIC: auipc a1, 16
+DUMP-STATIC-NEXT: addi a1, a1, -10
+DUMP-STATIC: auipc a2, 32
+DUMP-STATIC-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+DUMP-STATIC4: auipc a3, 1048560
+DUMP-STATIC4-NEXT: addi a3, a3, -30
+DUMP-STATIC8: auipc a3, 32
+DUMP-STATIC8-NEXT: {{l[wd]}} a3, 2(a3)
+DUMP-STATIC: auipc a4, 0
+DUMP-STATIC-NEXT: addi a4, a4, -36
+DUMP-STATIC: auipc a5, 0
+DUMP-STATIC-NEXT: addi a5, a5, -42
+
+DUMP-SHARED-LABEL: <foo>:
+DUMP-SHARED: auipc a0, 32
+DUMP-SHARED-NEXT: {{l[wd]}} a0, {{-?[0-9]+}}(a0)
+DUMP-SHARED-NEXT: auipc a1, 16
+DUMP-SHARED-NEXT: addi a1, a1, -10
+DUMP-SHARED-NEXT: auipc a2, 32
+DUMP-SHARED-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+DUMP-SHARED-NEXT: auipc a3, 32
+DUMP-SHARED-NEXT: {{l[wd]}} a3, {{-?[0-9]+}}(a3)
+DUMP-SHARED-NEXT: auipc a4, 0
+DUMP-SHARED-NEXT: addi a4, a4, -36
+DUMP-SHARED-NEXT: auipc a5, 32
+DUMP-SHARED-NEXT: {{l[wd]}} a5, {{-?[0-9]+}}(a5)
+
+DUMP-NONSEQ-LABEL: <foo>:
+DUMP-NONSEQ: auipc a0, 16
+DUMP-NONSEQ: c.nop
+DUMP-NONSEQ: c.nop
+DUMP-NONSEQ: addi a3, a0, 0
+DUMP-NONSEQ: auipc a1, 16
+DUMP-NONSEQ: addi a1, a1, -8
+DUMP-NONSEQ: addi a2, a0, 0
+
+DUMP-NONSEQ-LABEL: <bar>:
+DUMP-NONSEQ: addi a0, a0, -28
+DUMP-NONSEQ: auipc a0, 16

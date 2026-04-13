@@ -49,6 +49,7 @@ enum : uint32_t {
   LastRelaxationRelocation = 319,
 
   R_RISCV_RVC_LUI = FirstRelaxationRelocation,
+  R_RISCV_RVC_LI,
   R_RISCV_GPREL_I,
   R_RISCV_GPREL_S,
   R_RISCV_TPREL_I,

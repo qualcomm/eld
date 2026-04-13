@@ -1,0 +1,160 @@
+REQUIRES: riscv32 || riscv64
+#----------GOT_LOAD_RELAX_ABS.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests checks GOT load relaxation behavior specific to handling absolute
+# symbols.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/abs.s -o %t.o
+
+## Static executable
+RUN: %link %linkopts -static -T %p/Inputs/abs_syms.t --verbose -MapStyle txt -Map %t.static.map \
+RUN: %t.o -o %t.static.out 2>&1 | %filecheck %s --check-prefixes=VERBOSE-COMMON,VERBOSE-C
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.static.out | %filecheck %s --check-prefixes=DUMP-COMMON,DUMP-C
+RUN: %filecheck %s --input-file=%t.static.map --check-prefix=MAP-C
+
+## Static, pie executable
+RUN: %link %linkopts -T %p/Inputs/abs_syms.t -static -pie --verbose -MapStyle txt -Map %t.static-pie.map \
+RUN: %t.o -o %t.static-pie.out 2>&1 | %filecheck %s --check-prefixes=VERBOSE-COMMON,VERBOSE-C
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.static-pie.out | %filecheck %s --check-prefixes=DUMP-COMMON,DUMP-C
+RUN: %filecheck %s --input-file=%t.static-pie.map --check-prefix=MAP-C
+
+## Static executable with --no-relax-c
+RUN: %link %linkopts -T %p/Inputs/abs_syms.t -static --no-relax-c --verbose -MapStyle txt -Map %t.norelaxc.map \
+RUN: %t.o -o %t.norelaxc.out 2>&1 | %filecheck %s --check-prefixes=VERBOSE-COMMON,VERBOSE-NO-C
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.norelaxc.out | %filecheck %s --check-prefixes=DUMP-COMMON,DUMP-NO-C
+RUN: %filecheck %s --input-file=%t.norelaxc.map --check-prefix=MAP-NO-C
+
+## Shared. The psABI only includes "it’s bound at link time to be within the
+## object" as a condition for the relative case, but it is enforced in eld for
+## the absolute case as well. Check that no relaxation is performed for
+## preemptible absolute symbols.
+RUN: %link %linkopts -shared -T %p/Inputs/abs_syms.t \
+RUN: --verbose -MapStyle txt -Map %t.shared.map %t.o -o %t.so 2>&1 | %filecheck %s --check-prefix=SHARED-VERBOSE
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.so | %filecheck %s --check-prefix=SHARED-DUMP
+RUN: %filecheck %s --input-file=%t.shared.map --check-prefix=MAP-SHARED
+
+RUN: %clang %clangopts -c %p/Inputs/nonsequential.S -o %t.nonseq.o
+
+## Check nonsequential relaxations look as expected when relaxing to c.li
+RUN: %link %linkopts -static --defsym var=10 --defsym var2=5 --verbose -MapStyle txt -Map %t.nonseq-cli.map \
+RUN: %t.nonseq.o -o %t.nonseq-cli.out 2>&1 | %filecheck %s --check-prefix=VERBOSE-NONSEQ-CLI
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.nonseq-cli.out | %filecheck %s --check-prefixes=DUMP-NONSEQ-COMMON,DUMP-NONSEQ-CLI
+RUN: %filecheck %s --input-file=%t.nonseq-cli.map --check-prefix=MAP-NONSEQ-CLI
+
+## Check nonsequential relaxations look as expected when relaxing to addi
+RUN: %link %linkopts -static --defsym var=10 --defsym var2=5 --no-relax-c --verbose -MapStyle txt -Map %t.nonseq-addi.map \
+RUN: %t.nonseq.o -o %t.nonseq-addi.out 2>&1 | %filecheck %s --check-prefix=VERBOSE-NONSEQ-ADDI
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.nonseq-addi.out | %filecheck %s --check-prefix=DUMP-NONSEQ-COMMON,DUMP-NONSEQ-ADDI
+RUN: %filecheck %s --input-file=%t.nonseq-addi.map --check-prefix=MAP-NONSEQ-ADDI
+
+VERBOSE-COMMON: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_cli_pos'
+VERBOSE-C-NEXT: RISCV_GOT_LOAD : Deleting 2 bytes for symbol 'sym_cli_pos'
+VERBOSE-C-NEXT: RISCV_LI_C : relaxing instruction {{.*}} to compressed instruction {{.*}} for symbol sym_cli_pos
+VERBOSE-NO-C-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_cli_pos'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_cli_neg'
+VERBOSE-C-NEXT: RISCV_GOT_LOAD : Deleting 2 bytes for symbol 'sym_cli_neg'
+VERBOSE-C-NEXT: RISCV_LI_C : relaxing instruction {{.*}} to compressed instruction {{.*}} for symbol sym_cli_neg
+VERBOSE-NO-C-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_cli_neg'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_cli_pos_oob'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_cli_pos_oob'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_cli_neg_oob'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_cli_neg_oob'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_addi_pos'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_addi_pos'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_addi_neg'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_addi_neg'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 4 bytes for symbol 'sym_addi_pos_oob'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 4 bytes for symbol 'sym_addi_neg_oob'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 4 bytes for symbol 'sym_zero'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_cli_pos'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_cli_pos'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_hidden'
+VERBOSE-COMMON-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_hidden'
+
+DUMP-C: c.li a0, 31
+DUMP-NO-C: addi a0, zero, 31
+DUMP-C: c.li a1, -32
+DUMP-NO-C: addi a1, zero, -32
+DUMP-COMMON: addi a2, zero, 32
+DUMP-COMMON: addi a3, zero, -33
+DUMP-COMMON: addi a0, zero, 2047
+DUMP-COMMON: addi a1, zero, -2048
+DUMP-COMMON: auipc a2, 0
+DUMP-COMMON-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+DUMP-COMMON: auipc a3, 0
+DUMP-COMMON-NEXT: {{l[wd]}} a3, {{-?[0-9]+}}(a3)
+DUMP-COMMON: auipc a0, 0
+DUMP-COMMON-NEXT: {{l[wd]}} a0, {{-?[0-9]+}}(a0)
+DUMP-COMMON: addi zero, zero, 31
+DUMP-COMMON: addi a1, zero, 42
+
+MAP-C: # RelaxationBytesDeleted : 36
+MAP-C: # RelaxationBytesMissed : 24
+
+MAP-NO-C: # RelaxationBytesDeleted : 32
+MAP-NO-C: # RelaxationBytesMissed : 28
+
+SHARED-VERBOSE: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_hidden'
+SHARED-VERBOSE-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_hidden'
+
+SHARED-DUMP: auipc a0, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a0, {{-?[0-9]+}}(a0)
+SHARED-DUMP-NEXT: auipc a1, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
+SHARED-DUMP-NEXT: auipc a2, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+SHARED-DUMP-NEXT: auipc a3, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a3, {{-?[0-9]+}}(a3)
+SHARED-DUMP-NEXT: auipc a0, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a0, {{-?[0-9]+}}(a0)
+SHARED-DUMP-NEXT: auipc a1, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
+SHARED-DUMP-NEXT: auipc a2, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+SHARED-DUMP-NEXT: auipc a3, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a3, {{-?[0-9]+}}(a3)
+SHARED-DUMP-NEXT: auipc a0, 0
+SHARED-DUMP-NEXT: {{l[wd]}} a0, {{-?[0-9]+}}(a0)
+SHARED-DUMP-NEXT: auipc zero, 0
+SHARED-DUMP-NEXT: {{l[wd]}} zero, {{-?[0-9]+}}(zero)
+SHARED-DUMP-NEXT: addi a1, zero, 42
+
+MAP-SHARED: # RelaxationBytesDeleted : 4
+MAP-SHARED: # RelaxationBytesMissed : 2
+
+VERBOSE-NONSEQ-CLI: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'var'
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_GOT_LOAD : Deleting 2 bytes for symbol 'var'
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_LI_C : relaxing instruction {{.*}} to compressed instruction {{.*}} for symbol var
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'var2'
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_GOT_LOAD : Deleting 2 bytes for symbol 'var2'
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_LI_C : relaxing instruction {{.*}} to compressed instruction {{.*}} for symbol var2
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_GOT_LOAD : Deleting 2 bytes for symbol 'var'
+VERBOSE-NONSEQ-CLI-NEXT: RISCV_LI_C : relaxing instruction {{.*}} to compressed instruction {{.*}} for symbol var
+
+VERBOSE-NONSEQ-ADDI: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'var'
+VERBOSE-NONSEQ-ADDI-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'var'
+VERBOSE-NONSEQ-ADDI-NEXT: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'var2'
+VERBOSE-NONSEQ-ADDI-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'var2'
+VERBOSE-NONSEQ-ADDI-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'var'
+
+DUMP-NONSEQ-COMMON-LABEL: <foo>:
+DUMP-NONSEQ-COMMON: c.nop
+DUMP-NONSEQ-COMMON: c.nop
+DUMP-NONSEQ-CLI: c.li a3, 10
+DUMP-NONSEQ-CLI: c.li a1, 5
+DUMP-NONSEQ-CLI: c.li a2, 10
+DUMP-NONSEQ-ADDI: addi a3, zero, 10
+DUMP-NONSEQ-ADDI: addi a1, zero, 5
+DUMP-NONSEQ-ADDI: addi a2, zero, 10
+
+DUMP-NONSEQ-COMMON-LABEL: <bar>:
+DUMP-NONSEQ-CLI: c.li a0, 5
+DUMP-NONSEQ-ADDI: addi a0, zero, 5
+DUMP-NONSEQ-COMMON-NOT: auipc a0
+
+MAP-NONSEQ-CLI: # RelaxationBytesDeleted : 20
+
+MAP-NONSEQ-ADDI: # RelaxationBytesDeleted : 12
+MAP-NONSEQ-ADDI: # RelaxationBytesMissed : 8
