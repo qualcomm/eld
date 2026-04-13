@@ -144,6 +144,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-nightly-toolchain \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
             -DLLVM_ENABLE_SPHINX=OFF \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             -DLLVM_INSTALL_UTILS=On \
             ../llvm-project/llvm
 
