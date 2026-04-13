@@ -93,7 +93,7 @@ public:
   /// Returns the string content (only valid for ASCIZ kind).
   llvm::StringRef getString() const { return ASCIIZStr; }
 
-  bool isASCIZ() const { return MOsdKind == OSDKind::ASCIZ; }
+  bool isASCIZ() const { return DataKind == OSDKind::ASCIZ; }
 
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::OUTPUT_SECT_DATA;
@@ -107,7 +107,7 @@ private:
   /// section data.
   ELFSection *createOSDSection(Module &Module);
 
-  const OSDKind MOsdKind = OSDKind::None;
+  const OSDKind DataKind = OSDKind::None;
   Expression *ExpressionToEvaluate = nullptr;
   std::string ASCIIZStr;
   ELFSection *ThisSectionion = nullptr;

@@ -64,20 +64,20 @@ OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
                                Expression &Expr)
     : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, Policy, Spec,
                     OutSectDesc),
-      MOsdKind(Kind), ExpressionToEvaluate(&Expr) {}
+      DataKind(Kind), ExpressionToEvaluate(&Expr) {}
 
 OutputSectData::OutputSectData(uint32_t ID, InputSectDesc::Policy Policy,
                                const InputSectDesc::Spec Spec,
                                OutputSectDesc &OutSectDesc, std::string Str)
     : InputSectDesc(ScriptCommand::Kind::OUTPUT_SECT_DATA, ID, Policy, Spec,
                     OutSectDesc),
-      MOsdKind(OSDKind::ASCIZ), ASCIIZStr(Str) {}
+      DataKind(OSDKind::ASCIZ), ASCIIZStr(Str) {}
 
 llvm::StringRef OutputSectData::getOSDKindAsStr() const {
 #define ADD_CASE(dataKind)                                                     \
   case OSDKind::dataKind:                                                      \
     return #dataKind;
-  switch (MOsdKind) {
+  switch (DataKind) {
     ADD_CASE(None);
     ADD_CASE(Byte);
     ADD_CASE(Short);
@@ -90,7 +90,7 @@ llvm::StringRef OutputSectData::getOSDKindAsStr() const {
 }
 
 std::size_t OutputSectData::getDataSize() const {
-  switch (MOsdKind) {
+  switch (DataKind) {
   case Byte:
     return 1;
   case Short:
