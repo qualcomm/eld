@@ -54,6 +54,7 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyJumpOrCall)
 DECL_RISCV_APPLY_RELOC_FUNC(applyAlign)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGPRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLUI)
+DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyTprelAdd)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGOT)
 DECL_RISCV_APPLY_RELOC_FUNC(applyXqciloAbs)
@@ -205,6 +206,7 @@ RelocationDescMap RelocDescs = {
 
     /* Internal Relocations for Relaxation */
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_RVC_LUI, applyCompressedLUI),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_RVC_LI, applyCompressedLI),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_GPREL_I, applyGPRel),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_GPREL_S, applyGPRel),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_I, unsupported),
@@ -1163,6 +1165,15 @@ RISCVRelocator::Result applyCompressedLUI(Relocation &pReloc,
   uint64_t LoImm = llvm::SignExtend64<12>(Result);
   return ApplyReloc(pReloc, Result - LoImm, pRelocDesc, Backend.config(),
                     Parent);
+}
+
+RISCVRelocator::Result applyCompressedLI(Relocation &pReloc,
+                                         RISCVLDBackend &Backend,
+                                         RISCVRelocator &Parent,
+                                         RelocationDescription &pRelocDesc) {
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
+  int64_t A = pReloc.addend();
+  return ApplyReloc(pReloc, S + A, pRelocDesc, Backend.config(), Parent);
 }
 
 Relocator::Result unsupported(Relocation &pReloc, RISCVLDBackend &,

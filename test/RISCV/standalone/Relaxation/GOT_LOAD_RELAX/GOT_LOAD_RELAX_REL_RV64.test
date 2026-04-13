@@ -1,0 +1,29 @@
+REQUIRES: riscv64
+#----------GOT_LOAD_RELAX_REL_RV64.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests checks GOT load relaxation behavior specific to handling relative symbols
+# for rv64 targets.
+#END_COMMENT
+#START_TEST
+
+## Check the bounds for the relative relaxation for rv64 are working as expected.
+RUN: %clang %clangopts -c %p/Inputs/rel_rv64.s -o %t.rel_rv64.o
+RUN: %link %linkopts -static --verbose %t.rel_rv64.o -o %t.rel_rv64.out 2>&1 \
+RUN: --section-start .text=0x80002000 \
+RUN: --section-start .sym_wp=0x100001000 --section-start .sym_op=0x100002000 \
+RUN: --section-start .sym_wn=0x2000 --section-start .sym_on=0x1000 \
+RUN: --section-start .got=0x80006000 | %filecheck %s --check-prefix=VERBOSE
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.rel_rv64.out | %filecheck %s --check-prefix=DUMP
+
+VERBOSE: RISCV_GOT_LOAD : Cannot relax 0 bytes for symbol 'sym_op'
+VERBOSE-NEXT: RISCV_GOT_LOAD : Cannot relax 0 bytes for symbol 'sym_on'
+
+DUMP-LABEL: <foo>:
+DUMP: auipc a0, 524287
+DUMP-NEXT: addi a0, a0, 0
+DUMP: auipc a1, 4
+DUMP-NEXT: ld a1, 8(a1)
+DUMP: auipc a2, 524288
+DUMP-NEXT: addi a2, a2, -16
+DUMP: auipc a3, 4
+DUMP-NEXT: ld a3, 8(a3)

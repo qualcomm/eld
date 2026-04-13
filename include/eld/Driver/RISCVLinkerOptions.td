@@ -55,6 +55,11 @@ def no_relax_tlsdesc
       HelpText<"Disable relaxing TLSDESC instruction sequences">,
       Group<grp_riscv_linker>;
 
+def no_relax_got
+    : Flag<["--"], "no-relax-got">,
+      HelpText<"Disable relaxing GOT load instruction sequences">,
+      Group<grp_riscv_linker>;
+
 def riscv_relax : Flag<["--"], "relax">,
                   HelpText<"Enable relaxation (default behavior)">,
                   Group<grp_riscv_linker>;
