@@ -150,7 +150,37 @@ jobs:
       - name: Build and install toolchain
         run: |
           cd obj
-          ninja -j8 install-distribution
+          ninja -j11 install-distribution
+
+      - name: Install testing utilities into toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_BIN_DIR="${{ github.workspace }}/obj/bin"
+          INSTALL_BIN_DIR="${{ github.workspace }}/install-nightly-toolchain/bin"
+          mkdir -p "${INSTALL_BIN_DIR}"
+
+          testing_utils=(
+            FileCheck
+            split-file
+            count
+            yaml2obj
+            obj2yaml
+            not
+          )
+
+          echo "Building testing utilities with ninja"
+          ninja -C "${{ github.workspace }}/obj" -j11 "${testing_utils[@]}"
+
+          echo "Installing testing utilities into ${INSTALL_BIN_DIR}"
+          for util in "${testing_utils[@]}"; do
+            if [[ -x "${BUILD_BIN_DIR}/${util}" ]]; then
+              echo "  - ${util}"
+              cp "${BUILD_BIN_DIR}/${util}" "${INSTALL_BIN_DIR}/"
+            else
+              echo "Warning: testing utility ${util} not found in ${BUILD_BIN_DIR}" >&2
+            fi
+          done
 
       - name: Bundle binary shared library dependencies
         shell: bash
