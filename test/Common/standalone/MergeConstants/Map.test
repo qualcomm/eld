@@ -1,0 +1,14 @@
+#---Map.test--------------------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that the map file shows the surviving canonical constant and the merged
+# input constant underneath it.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts --entry=c1 %t1.o %t2.o -o %t.out -Map %t.map
+RUN: %filecheck %s < %t.map
+#END_TEST
+
+#CHECK: .rodata.cst4{{[[:space:]]+}}0x{{[0-9a-f]+}}{{[[:space:]]+}}0x4{{[[:space:]]+}}{{.*}}2.o{{[[:space:]]+}}#SHT_PROGBITS,SHF_ALLOC|SHF_MERGE,4
+#CHECK: {{[[:space:]]+}}# .rodata.cst4{{[[:space:]]+}}0x0{{[[:space:]]+}}{{.*}}1.o

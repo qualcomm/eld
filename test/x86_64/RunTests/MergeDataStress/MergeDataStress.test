@@ -1,0 +1,48 @@
+REQUIRES: run_test, linux, x86_64
+#---MergeDataStress.test--------------- MergeConstants, RunTest ----------#
+#BEGIN_COMMENT
+# Stress-test SHF_MERGE constant-data dedup across four scenarios:
+#   1) full link, merge-on: identical constants across TUs collapse
+#   2) full link, merge-off: identical constants stay distinct
+#   3) partial link (-r): identical constants must not be merged
+#   4) --gc-sections: dead constant is removed, live constant survives
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -ffreestanding -c %p/Inputs/f1.c -o %t.f1.o
+RUN: %run_cc %clangopts -ffreestanding -c %p/Inputs/f2.c -o %t.f2.o
+RUN: %run_cc %clangopts -ffreestanding -c %p/Inputs/f3.c -o %t.f3.o
+RUN: %run_cc %clangopts -ffreestanding -c %p/Inputs/runtime_common.c -o %t.runtime_common.o
+RUN: %run_cc %clangopts -ffreestanding -ffunction-sections -fdata-sections -c %p/Inputs/gc_live.c -o %t.gc_live.o
+RUN: %run_cc %clangopts -ffreestanding -ffunction-sections -fdata-sections -c %p/Inputs/gc_dead.c -o %t.gc_dead.o
+RUN: %run_cc %clangopts -ffreestanding -ffunction-sections -fdata-sections -c %p/Inputs/start_gc.c -o %t.start_gc.o
+
+# Full link with default merge behavior.
+RUN: %run_cc %clangopts -o %t.full-merge-on.elf %t.runtime_common.o %t.f1.o %t.f2.o %t.f3.o -Wl,--entry=_start_merge_on -nostdlib
+RUN: %run %t.full-merge-on.elf | %filecheck %s --check-prefix=MERGE-ON
+
+# Full link with --no-merge-constants.
+RUN: %run_cc %clangopts -o %t.full-merge-off.elf %t.runtime_common.o %t.f1.o %t.f2.o %t.f3.o -Wl,--entry=_start_merge_off -Wl,--no-merge-constants -nostdlib
+RUN: %run %t.full-merge-off.elf | %filecheck %s --check-prefix=MERGE-OFF
+
+# Partial link: identical constants must remain unmerged at -r stage.
+RUN: %eld -r %t.f1.o %t.f2.o %t.f3.o -o %t.partial-r.o
+RUN: %readelf -s -W %t.partial-r.o | %filecheck %s --check-prefix=PARTIAL
+
+# GC case: live symbol must exist; dead symbol must be removed.
+RUN: %run_cc %clangopts -o %t.gc.elf %t.start_gc.o %t.gc_live.o %t.gc_dead.o -Wl,--gc-sections -Wl,--entry=_start_gc -nostdlib
+RUN: %run %t.gc.elf | %filecheck %s --check-prefix=GC
+RUN: %readelf -s -W %t.gc.elf | %filecheck %s --check-prefix=GC-SYMS
+#END_TEST
+
+MERGE-ON: RUNTIME_MERGE_ON_OK
+
+MERGE-OFF: RUNTIME_MERGE_OFF_OK
+
+PARTIAL-DAG: m1
+PARTIAL-DAG: m2
+PARTIAL-DAG: m3
+
+GC: RUNTIME_GC_OK
+
+GC-SYMS: c_gc_live
+GC-SYMS-NOT: c_gc_dead
