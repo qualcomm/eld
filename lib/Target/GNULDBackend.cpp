@@ -893,8 +893,8 @@ void GNULDBackend::sizeDynNamePools() {
 
   if (GNUVerNeedSection) {
     if (DP->traceSymbolVersioning())
-      config().raise(Diag::trace_creating_symbol_versioning_fragment) <<
-          GNUVerNeedSection->name();
+      config().raise(Diag::trace_creating_symbol_versioning_fragment)
+          << GNUVerNeedSection->name();
     GNUVerNeedFragment *F = make<GNUVerNeedFragment>(GNUVerNeedSection);
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
@@ -3557,8 +3557,16 @@ bool GNULDBackend::postLayout() {
   // ranges in the file.
   std::vector<SectionOffset> vmas;
   for (ELFSection *sec : outputSections) {
-    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()))
+    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS())) {
+      // Warn if section address is not a multiple of aligment
+      // Same behaviour as LLD
+      if (sec->addr() % sec->getAddrAlign() != 0 &&
+          config().showLinkerScriptWarnings())
+        config().raise(Diag::warn_address_not_aligned)
+            << utility::toHex(static_cast<uint64_t>(sec->addr())) << sec->name()
+            << sec->getAddrAlign();
       vmas.push_back({sec, sec->addr()});
+    }
   }
   checkOverlap("virtual address", vmas, true);
 
@@ -3569,8 +3577,9 @@ bool GNULDBackend::postLayout() {
   std::vector<SectionOffset> lmas;
   for (ELFSection *sec : outputSections) {
     if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()) &&
-        !sec->isNoBits())
+        !sec->isNoBits()) {
       lmas.push_back({sec, sec->pAddr()});
+    }
   }
   checkOverlap("load address", lmas, false);
   return true;
@@ -3580,7 +3589,6 @@ std::string GNULDBackend::rangeToString(uint64_t addr, uint64_t len) {
   return "[0x" + llvm::utohexstr(addr) + ", 0x" +
          llvm::utohexstr(addr + len - 1) + "]";
 }
-
 // Check whether sections overlap for a specific address range (file offsets,
 // load and virtual addresses).
 void GNULDBackend::checkOverlap(llvm::StringRef name,
@@ -3828,8 +3836,7 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
                          m_Module.getConfig().options().printTimingStats());
     MemoryRegion region =
         getFileOutputRegion(pOutput, 0, pOutput.getBufferSize());
-    eld::Expected<void> expEmit =
-        m_pSFrameFragment->emit(region, getModule());
+    eld::Expected<void> expEmit = m_pSFrameFragment->emit(region, getModule());
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expEmit);
   }
   {
@@ -5576,7 +5583,8 @@ void GNULDBackend::assignOutputVersionIDs() {
       continue;
     if (!DynObjFile->hasSymbolVersioningInfo())
       continue;
-    uint16_t InputVersionID = DynObjFile->getSymbolVersionID(sym->getSymbolIndex());
+    uint16_t InputVersionID =
+        DynObjFile->getSymbolVersionID(sym->getSymbolIndex());
     if (InputVersionID == llvm::ELF::VER_NDX_LOCAL ||
         InputVersionID == llvm::ELF::VER_NDX_GLOBAL)
       continue;

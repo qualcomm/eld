@@ -499,17 +499,22 @@ bool GNULDBackend::createProgramHdrs() {
           alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
-        alignAddress(pma, cur->getAddrAlign());
+        // Only align LMA if VMA is also aligned
+        if (vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       } else if ((last_section_needs_new_segment) && (!disconnect_lma_vma)) {
         // If the LMA and VMA are disconnected, the physical address should
         // always be taken as the difference of the current virtual address
         // minus the previous virtual address.
         pma = prev->pAddr() + prev->size();
-        alignAddress(pma, cur->getAddrAlign());
+        // Only align LMA if VMA is also aligned
+        if (vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       } else {
         vmaoffset = vma - (prev->addr() + prev->size());
         pma = prev->pAddr() + prev->size() + vmaoffset;
-        alignAddress(pma, cur->getAddrAlign());
+        if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       }
 
       // FIXME : remove this option alignSegmentsToPage
@@ -599,7 +604,8 @@ bool GNULDBackend::createProgramHdrs() {
           alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
-        alignAddress(pma, cur->getAddrAlign());
+        if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       } else {
         vmaoffset = vma - (prev->addr() + prev->size());
         pma = prev->pAddr() + prev->size() + vmaoffset;

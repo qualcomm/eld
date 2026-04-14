@@ -319,13 +319,17 @@ bool GNULDBackend::createScriptProgramHdrs() {
       ScriptMemoryRegion &R = (*out)->epilog().lmaRegion();
       pma = R.getPhysicalAddr(*out);
       if (!(*out)->prolog().hasAlignWithInput() && !hasLMARegion)
-        alignAddress(pma, cur->getAddrAlign());
+        if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
     } else if (hasFixedLMA) {
       // If the current segment has a fixed LMA address, then
       curLoadSegment->fixedLMA()->evaluateAndRaiseError();
       pma = curLoadSegment->fixedLMA()->result();
     } else {
-      alignAddress(pma, cur->getAddrAlign());
+      // Only align LMA if VMA is also aligned to prevent
+      // LMA/VMA divergence when user sets unaligned address
+      if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+        alignAddress(pma, cur->getAddrAlign());
     }
 
     cur->setPaddr(pma);

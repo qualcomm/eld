@@ -28,8 +28,7 @@ DIAG(promoting_bss_to_progbits, DiagnosticEngine::Note,
      "Section %0(%1) is before %2(%3), Promoting %0 to PROGBITS")
 DIAG(undefined_symbol_in_linker_script, DiagnosticEngine::Fatal,
      "%0: Error: undefined symbol '%1' referenced in expression")
-DIAG(error_sect_invalid, DiagnosticEngine::Error,
-     "%0: Invalid section '%1'")
+DIAG(error_sect_invalid, DiagnosticEngine::Error, "%0: Invalid section '%1'")
 DIAG(warn_section_no_segment, DiagnosticEngine::Warning,
      "Section %0 does not have segment assignment in linker script.")
 DIAG(fatal_segment_not_defined_ldscript, DiagnosticEngine::Fatal,
@@ -68,7 +67,8 @@ DIAG(error_linker_script, DiagnosticEngine::Error, "%0")
 DIAG(note_linker_script, DiagnosticEngine::Note, "%0")
 DIAG(reading_dynamic_list, DiagnosticEngine::Verbose, "Dynamic List[%0] : %1")
 DIAG(reading_extern_list, DiagnosticEngine::Verbose, "Extern List[%0] : %1")
-DIAG(error_parsing_version_script, DiagnosticEngine::Error, "Error parsing version script %0")
+DIAG(error_parsing_version_script, DiagnosticEngine::Error,
+     "Error parsing version script %0")
 DIAG(fatal_divide_by_zero, DiagnosticEngine::Fatal,
      "%0: division by zero in expression %1")
 DIAG(fatal_modulo_by_zero, DiagnosticEngine::Fatal,
@@ -76,7 +76,8 @@ DIAG(fatal_modulo_by_zero, DiagnosticEngine::Fatal,
 DIAG(error_experimental_not_supported, DiagnosticEngine::Error,
      "Linker has only experimental support for handling %0")
 DIAG(error_memory_region_exceeded_limit, DiagnosticEngine::Error,
-     "Memory region %0 exceeded limit while adding section %1 : overflowed by 0x%2 bytes")
+     "Memory region %0 exceeded limit while adding section %1 : overflowed by "
+     "0x%2 bytes")
 DIAG(error_memory_region_empty, DiagnosticEngine::Error,
      "Missing name for memory region, name cannot be empty")
 DIAG(error_duplicate_memory_region, DiagnosticEngine::Error,
@@ -109,7 +110,8 @@ DIAG(warn_forward_reference, DiagnosticEngine::Warning,
 DIAG(warn_output_data_truncated, DiagnosticEngine::Warning,
      "Output data value 0x%0 was truncated to %1 bits for type %2")
 DIAG(error_section_overlap, DiagnosticEngine::Error,
-     "section %0 %1 range overlaps with %2 \n\t >>> %3 range is %4 \n\t >>> %5 range is %6")
+     "section %0 %1 range overlaps with %2 \n\t >>> %3 range is %4 \n\t >>> %5 "
+     "range is %6")
 DIAG(error_exp_mem_region_not_found, DiagnosticEngine::Error,
      "Cannot find memory region %1 in script %0")
 DIAG(warn_provide_sym_redecl, DiagnosticEngine::Warning,
@@ -119,20 +121,26 @@ DIAG(internal_err_tok_input_or_group, DiagnosticEngine::InternalError,
 DIAG(error_dot_lhs_in_non_alloc, DiagnosticEngine::Error,
      "dot expression evaluation in %0 with permissions %1 is not supported")
 DIAG(error_cannot_specify_lma_and_memory_region, DiagnosticEngine::Error,
-     "cannot specify AT and LMA memory region for output section : %0 defined in script %1")
+     "cannot specify AT and LMA memory region for output section : %0 defined "
+     "in script %1")
 DIAG(error_insert_output_section, DiagnosticEngine::Error,
      "Cannot INSERT output section %0 %1 %2 in script %3")
 DIAG(warn_non_power_of_2_value_to_align_builtin, DiagnosticEngine::Warning,
      "%0: non-power-of-2 value 0x%1 passed to ALIGN builtin function")
-DIAG(warn_subalign_less_than_section_alignment, DiagnosticEngine::Warning,
-     "SUBALIGN(0x%0) is less than the section alignment (0x%1) for section '%2'")
-DIAG(error_non_power_of_2_value_to_align_output_section, DiagnosticEngine::Error,
-     "%0: non-power-of-2 value 0x%1 passed to ALIGN in '%2' output section description, value must "
+DIAG(
+    warn_subalign_less_than_section_alignment, DiagnosticEngine::Warning,
+    "SUBALIGN(0x%0) is less than the section alignment (0x%1) for section '%2'")
+DIAG(error_non_power_of_2_value_to_align_output_section,
+     DiagnosticEngine::Error,
+     "%0: non-power-of-2 value 0x%1 passed to ALIGN in '%2' output section "
+     "description, value must "
      "be 0 or a power of 2")
 DIAG(warn_linker_script, DiagnosticEngine::Warning, "%0")
 DIAG(warn_memory_region_has_zero_size, DiagnosticEngine::Warning,
      "%0: Memory region '%1' has zero size")
 DIAG(error_empty_pt_tls_segment, DiagnosticEngine::Error,
-      "TLS segments are empty")
+     "TLS segments are empty")
 DIAG(internal_error_null_expression, DiagnosticEngine::InternalError,
      "Trying to evaluate null expression")
+DIAG(warn_address_not_aligned, DiagnosticEngine::Warning,
+     "address (0x%0) of section %1 is not a multiple of alignment (%2)")

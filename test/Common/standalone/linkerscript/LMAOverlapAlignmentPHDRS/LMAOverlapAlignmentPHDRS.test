@@ -1,0 +1,12 @@
+#---LMAOverlapAlignmentPHDRS.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD does not emit a false load address range overlap error when
+# section address is not aligned with PHDRS command. Tests createScriptProgramHdrs
+# path. (issue #621)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+#CHECK: Warning: address (0x1001) of section foo is not a multiple of alignment
+#CHECK-NOT: Fatal
+#END_TEST
