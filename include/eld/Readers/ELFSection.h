@@ -54,9 +54,10 @@ public:
   void setLink(ELFSectionBase *L) { Link = L; }
 
   bool isIgnore() const { return ELFSectionKind == LinkerSectionKind::Ignore; }
-  bool isMergeKind() const {
+  bool isMergeStringKind() const {
     return ELFSectionKind == LinkerSectionKind::MergeStr;
   }
+  bool isMergeKind() const { return isMergeStr() || isMergeData(); }
   bool isNullKind() const { return ELFSectionKind == LinkerSectionKind::Null; }
   bool isDiscard() const {
     return ELFSectionKind == LinkerSectionKind::Discard;
@@ -101,6 +102,13 @@ public:
   bool isCompressed() const { return Flags & llvm::ELF::SHF_COMPRESSED; }
   bool isMergeStr() const {
     return (Flags & llvm::ELF::SHF_MERGE) && (Flags & llvm::ELF::SHF_STRINGS);
+  }
+  bool isMergeData() const {
+    // Mergeable constants are ELF SHF_MERGE sections that:
+    //  1) participate in the runtime image (SHF_ALLOC), and
+    //  2) are not string-merge sections (no SHF_STRINGS).
+    return (Flags & llvm::ELF::SHF_ALLOC) && (Flags & llvm::ELF::SHF_MERGE) &&
+           !(Flags & llvm::ELF::SHF_STRINGS);
   }
   bool isNote() const { return Type == llvm::ELF::SHT_NOTE; }
 

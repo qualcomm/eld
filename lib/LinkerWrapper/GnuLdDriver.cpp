@@ -641,6 +641,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.addCommandLine(Table->getOptionName(T::no_merge_strings),
                         Args.hasArg(T::no_merge_strings));
 
+  // --no-merge-constants
+  Config.options().setMergeConstants(!Args.hasArg(T::no_merge_constants));
+  Config.addCommandLine(Table->getOptionName(T::no_merge_constants),
+                        Args.hasArg(T::no_merge_constants));
+
   // --[no-]warn-mismatch
   // This flag defaults to none so only set it if at least one of the two flags
   // are present.

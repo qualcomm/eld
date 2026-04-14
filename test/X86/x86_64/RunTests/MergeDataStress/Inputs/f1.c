@@ -1,0 +1,15 @@
+#include <stdint.h>
+__asm__(".section .rodata.cst4,\"aM\",@progbits,4\n"
+        ".p2align 2\n"
+        ".globl m1\n.type m1,@object\n.size m1,4\n"
+        "m1:\n.long 0x11223344\n"
+        ".globl d1\n.type d1,@object\n.size d1,4\n"
+        "d1:\n.long 0x55667788\n"
+        ".section .rodata.cst8,\"aM\",@progbits,8\n"
+        ".p2align 3\n"
+        ".globl e1\n.type e1,@object\n.size e1,8\n"
+        "e1:\n.quad 0x0102030405060708\n"
+        ".section .rodata,\"a\",@progbits\n"
+        ".p2align 2\n"
+        ".globl n1\n.type n1,@object\n.size n1,4\n"
+        "n1:\n.long 0x11223344\n");

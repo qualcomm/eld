@@ -7,11 +7,13 @@
 #ifndef ELD_OBJECT_OUTPUTSECTIONENTRY_H
 #define ELD_OBJECT_OUTPUTSECTIONENTRY_H
 
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Object/LinkerSectionKind.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/Script/Assignment.h"
 #include "eld/Script/OutputSectDesc.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
@@ -217,6 +219,42 @@ public:
     return AllStrings;
   }
 
+  // -------------------- Constant merging support ------------------------
+
+  MergeableConstant *findConstant(const MergeableConstant *C) const {
+    auto Const = UniqueConstants.find(C->Data);
+    if (Const == UniqueConstants.end())
+      return nullptr;
+    for (MergeableConstant *MergedConstant : Const->second) {
+      if (MergedConstant != C && !MergedConstant->Exclude &&
+          MergedConstant->isAlignmentCompatible(*C))
+        return MergedConstant;
+    }
+    return nullptr;
+  }
+
+  MergeableConstant *getMergedConstant(const MergeableConstant *C) const {
+    MergeableConstant *MergedConstant = findConstant(C);
+    if (!MergedConstant)
+      return nullptr;
+    // Merge only when both input offsets can satisfy their section-alignment
+    // constraints at the same output address.
+    if (MergedConstant->getAlignment() < C->getAlignment())
+      return nullptr;
+    return MergedConstant;
+  }
+
+  void addConstant(MergeableConstant *C, bool RecordForMap) {
+    if (RecordForMap)
+      AllConstants.push_back(C);
+    if (!C->Exclude)
+      UniqueConstants[C->Data].push_back(C);
+  }
+
+  const llvm::SmallVectorImpl<MergeableConstant *> &getMergeConstants() const {
+    return AllConstants;
+  }
+
 private:
   std::string Name;
   OutputSectDesc *OutputSectionDesc = nullptr;
@@ -233,6 +271,8 @@ private:
       BranchIslandForSymbol;
   llvm::StringMap<MergeableString *> UniqueStrings;
   llvm::SmallVector<MergeableString *, 0> AllStrings;
+  llvm::StringMap<llvm::SmallVector<MergeableConstant *, 1>> UniqueConstants;
+  llvm::SmallVector<MergeableConstant *, 0> AllConstants;
   uint64_t Hash = 0;
   llvm::StringMap<uint64_t> TrampolineNameToCountMap;
   uint64_t PAddr = 0;

@@ -1,0 +1,25 @@
+#---AlignmentOrder.test---------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that identical SHF_MERGE constant data only merges when the canonical
+# fragment has equal-or-stricter alignment, independent of input order.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts --entry=c1 %t1.o %t2.o -o %t.out
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+RUN: %link %linkopts --entry=c2 %t2.o %t1.o -o %t.rev.out
+RUN: %readelf -S -W %t.rev.out | %filecheck %s --check-prefix=REV-SECTIONS
+RUN: %readelf -s -W %t.rev.out | %filecheck %s --check-prefix=REV-SYMS
+#END_TEST
+
+#SECTIONS: .rodata {{.*}} 000004 {{.*}} AM {{.*}} 4
+#SECTIONS-NOT: .rodata {{.*}} AMS
+#SYMS-DAG: {{[0-9]+}}: [[CVAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1
+#SYMS-DAG: {{[0-9]+}}: [[CVAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+
+#REV-SECTIONS: .rodata {{.*}} 000004 {{.*}} AM {{.*}} 4
+#REV-SECTIONS-NOT: .rodata {{.*}} AMS
+#REV-SYMS-DAG: {{[0-9]+}}: [[RCVAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+#REV-SYMS-DAG: {{[0-9]+}}: [[RCVAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1

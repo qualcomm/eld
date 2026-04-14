@@ -637,11 +637,8 @@ bool Linker::layout() {
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::merging_strings);
-  if (!ThisConfig->isLinkPartial() && ThisConfig->options().mergeStrings()) {
-    eld::RegisterTimer F("Merge strings", "Link Summary",
-                         ThisConfig->options().printTimingStats());
-    ObjLinker->doMergeStrings();
-  }
+  if (!ThisConfig->isLinkPartial())
+    ObjLinker->doMergeStringsAndConstants();
 
   {
     LinkerProgress->incrementAndDisplayProgress("Establish layout");
