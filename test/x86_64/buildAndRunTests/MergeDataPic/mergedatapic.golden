@@ -1,0 +1,3 @@
+CHECK: MERGE_ON_RC=0
+CHECK: MERGE_OFF_RC=1
+CHECK: PASS: -fPIC merge-constants behavior verified

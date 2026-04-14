@@ -11,6 +11,7 @@
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/FragmentRef.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Input/ArchiveFile.h"
 #include "eld/Input/ArchiveMemberInput.h"
@@ -497,19 +498,23 @@ void LayoutInfo::recordUpdateLinkStats(plugin::LinkerWrapper *W,
   Plugins.insert(W);
 }
 
-void LayoutInfo::buildMergedStringMap(Module &M) {
-  if (!MergedStrings.empty())
+void LayoutInfo::buildMergedMaps(Module &M) {
+  if (!MergedStrings.empty() || !MergedConstants.empty())
     return;
   std::vector<OutputSectionEntry *> OutputSections;
+  std::unordered_set<OutputSectionEntry *> SeenOutputSections;
+  auto AddOutputSection = [&](OutputSectionEntry *O) {
+    if (!O || !SeenOutputSections.insert(O).second)
+      return;
+    OutputSections.push_back(O);
+  };
   for (ELFSection *S : M) {
     if (S->isRelocationSection())
       continue;
-    if (auto *O = S->getOutputSection())
-      OutputSections.push_back(O);
+    AddOutputSection(S->getOutputSection());
   }
-  for (OutputSectionEntry *O : M.getScript().sectionMap()) {
-    OutputSections.push_back(O);
-  }
+  for (OutputSectionEntry *O : M.getScript().sectionMap())
+    AddOutputSection(O);
   bool GlobalMerge = M.getConfig().options().shouldGlobalStringMerge();
   auto AddString = [&](OutputSectionEntry *O, MergeableString *S) {
     if (!S->Exclude)
@@ -520,9 +525,17 @@ void LayoutInfo::buildMergedStringMap(Module &M) {
     ASSERT(Merged, "expected to find a merged string");
     addMergedStrings(Merged, S);
   };
-  for (OutputSectionEntry *O : OutputSections)
+  for (OutputSectionEntry *O : OutputSections) {
     for (MergeableString *S : O->getMergeStrings())
       AddString(O, S);
+    for (MergeableConstant *C : O->getMergeConstants()) {
+      if (!C->Exclude)
+        continue;
+      MergeableConstant *Merged = O->findConstant(C);
+      ASSERT(Merged, "expected to find a merged constant");
+      addMergedConstants(Merged, C);
+    }
+  }
   for (MergeableString *S : M.getNonAllocStrings())
     AddString(nullptr, S);
 }

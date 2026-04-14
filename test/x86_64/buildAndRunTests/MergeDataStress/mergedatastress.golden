@@ -1,0 +1,4 @@
+CHECK: RUNTIME_MERGE_ON_OK
+CHECK: RUNTIME_MERGE_OFF_OK
+CHECK: RUNTIME_GC_OK
+CHECK: PASS: constant-data merge stress test completed

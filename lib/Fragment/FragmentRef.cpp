@@ -14,6 +14,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Fragment/Fragment.h"
 #include "eld/Fragment/GOT.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/OutputSectDataFragment.h"
 #include "eld/Fragment/PLT.h"
 #include "eld/Fragment/RegionFragment.h"
@@ -56,6 +57,14 @@ void FragmentRef::memcpy(void *PDest, size_t PNBytes, Offset POffset) const {
     if (TotalLength < (TotalOffset + PNBytes))
       PNBytes = TotalLength - TotalOffset;
     Strings->copyData(PDest, PNBytes, TotalOffset);
+    return;
+  }
+  case Fragment::MergeData: {
+    auto *Constants = static_cast<MergeDataFragment *>(ThisFragment);
+    unsigned int TotalLength = Constants->size();
+    if (TotalLength < (TotalOffset + PNBytes))
+      PNBytes = TotalLength - TotalOffset;
+    Constants->copyData(PDest, PNBytes, TotalOffset);
     return;
   }
   case Fragment::Region: {
@@ -156,6 +165,22 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
     assert(!S->Exclude);
     assert(S->hasOutputOffset());
     return S->OutputOffset + OffsetInString;
+  }
+  if (ThisFragment->isMergeData()) {
+    auto *MDF = llvm::cast<MergeDataFragment>(ThisFragment);
+    OutputSectionEntry *O = getOutputSection();
+    const MergeableConstant *C = MDF->getConstantAtOffset(ThisOffset);
+    assert(C);
+    uint32_t OffsetInConstant = ThisOffset - C->InputOffset;
+    if (const MergeableConstant *Merged = O->getMergedConstant(C)) {
+      assert(C->Exclude);
+      assert(!Merged->Exclude);
+      assert(Merged->hasOutputOffset());
+      return Merged->OutputOffset + OffsetInConstant;
+    }
+    assert(!C->Exclude);
+    assert(C->hasOutputOffset());
+    return C->OutputOffset + OffsetInConstant;
   }
   Offset Result = 0;
   if (nullptr != ThisFragment)

@@ -17,6 +17,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Driver/GnuLdDriver.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/GarbageCollection/GarbageCollection.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/BitcodeFile.h"
@@ -701,7 +702,50 @@ void ObjectLinker::mergeIdenticalStrings() const {
     Pool->wait();
 }
 
+void ObjectLinker::mergeIdenticalConstants() const {
+  ObjectBuilder Builder(ThisConfig, *ThisModule);
+  bool UseThreads = ThisConfig.useThreads();
+  llvm::ThreadPoolInterface *Pool = ThisModule->getThreadPool();
+  auto MergeConstants = [&](OutputSectionEntry *O) {
+    for (RuleContainer *RC : *O) {
+      for (Fragment *F : RC->getSection()->getFragmentList()) {
+        auto *Constants = llvm::dyn_cast<MergeDataFragment>(F);
+        if (!Constants)
+          continue;
+        Builder.mergeConstants(Constants, O);
+      }
+    }
+  };
+
+  std::vector<OutputSectionEntry *> OutputSections;
+  // Collect every unique output section once (regular section table entries +
+  // orphan sections from the script map) and run constant dedup per-section.
+  for (ELFSection *S : *ThisModule) {
+    if (!S->getOutputSection())
+      continue;
+    if (S->isRelocationSection())
+      continue;
+    OutputSections.push_back(S->getOutputSection());
+  }
+  for (OutputSectionEntry *O : ThisModule->getScript().sectionMap())
+    OutputSections.push_back(O);
+
+  for (OutputSectionEntry *O : OutputSections) {
+    if (UseThreads)
+      Pool->async(std::bind(MergeConstants, O));
+    else
+      MergeConstants(O);
+  }
+  if (UseThreads)
+    Pool->wait();
+}
+
 void ObjectLinker::fixMergeStringRelocations() const {
+  bool MergeStrings = ThisConfig.options().mergeStrings();
+  bool MergeConstants = ThisConfig.options().getMergeConstants();
+
+  // Despite the historical name, this pass retargets relocations for both
+  // merge-strings and merge-constants after canonicalization.
   for (InputFile *I : ThisModule->getObjectList()) {
     if (I->isInternal())
       continue;
@@ -709,12 +753,20 @@ void ObjectLinker::fixMergeStringRelocations() const {
     if (!Obj)
       continue;
     for (ELFSection *S : Obj->getRelocationSections()) {
-      if (ThisModule->getPrinter()->isVerbose() ||
-          ThisModule->getPrinter()->traceMergeStrings())
+      if (MergeStrings && (ThisModule->getPrinter()->isVerbose() ||
+                           ThisModule->getPrinter()->traceMergeStrings()))
         ThisConfig.raise(Diag::handling_merge_strings_for_section)
             << S->getDecoratedName(ThisConfig.options())
             << S->getInputFile()->getInput()->decoratedPath(true);
-      getTargetBackend().getRelocator()->doMergeStrings(S);
+      if (MergeConstants && (ThisModule->getPrinter()->isVerbose() ||
+                             ThisModule->getPrinter()->traceMergeConstants()))
+        ThisConfig.raise(Diag::handling_merge_constants_for_section)
+            << S->getDecoratedName(ThisConfig.options())
+            << S->getInputFile()->getInput()->decoratedPath(true);
+      if (MergeStrings)
+        getTargetBackend().getRelocator()->doMergeStrings(S);
+      if (MergeConstants)
+        getTargetBackend().getRelocator()->doMergeConstants(S);
     }
   }
 }
@@ -722,8 +774,13 @@ void ObjectLinker::fixMergeStringRelocations() const {
 void ObjectLinker::doMergeStrings() {
   if (ThisConfig.isLinkPartial())
     return;
-  mergeIdenticalStrings();
-  fixMergeStringRelocations();
+  if (ThisConfig.options().mergeStrings())
+    mergeIdenticalStrings();
+  if (ThisConfig.options().getMergeConstants())
+    mergeIdenticalConstants();
+  if (ThisConfig.options().mergeStrings() ||
+      ThisConfig.options().getMergeConstants())
+    fixMergeStringRelocations();
 }
 
 void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {

@@ -49,6 +49,7 @@ public:
     Timing,
     Null,
     MergeString,
+    MergeData,
     BuildID,
     SFrame,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
@@ -125,6 +126,7 @@ public:
   virtual void addSymbol(ResolveInfo *R) {}
 
   bool isMergeStr() const;
+  bool isMergeData() const;
 
   bool isNull() const { return Kind == Null; }
 

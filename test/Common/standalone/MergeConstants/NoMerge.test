@@ -1,0 +1,21 @@
+#---NoMerge.test----------------------- Executable----------------------#
+#BEGIN_COMMENT
+# Check that --no-merge-constants disables canonicalization of identical
+# SHF_MERGE constant data.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %clang %clangopts -c %p/Inputs/TraceReloc1.c -o %t.reloc1.o
+RUN: %clang %clangopts -c %p/Inputs/TraceReloc2.c -o %t.reloc2.o
+RUN: %link %linkopts --entry=c1 --no-merge-constants %t1.o %t2.o -o %t.out
+RUN: %link %linkopts --entry=c1 --trace=merge-constants --no-merge-constants %t1.o %t2.o -o %t.trace.out 2>&1 | %not %grep "Trace: Merging constant"
+RUN: %link %linkopts --entry=_start --trace=merge-constants --no-merge-constants %t.reloc1.o %t.reloc2.o -o %t.trace.reloc.out 2>&1 | %not %grep "Trace: Modified relocation"
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SECTIONS
+RUN: %readelf -s -W %t.out | %filecheck %s --check-prefix=SYMS
+#END_TEST
+
+#SECTIONS: .rodata {{.*}} 000008 {{.*}} AM {{.*}} 4
+#SYMS-DAG: {{[0-9]+}}: [[C1VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c1
+#SYMS-DAG: {{[0-9]+}}: [[C2VAL:[0-9a-f]+]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2
+#SYMS-NOT: [[C1VAL]] 4 OBJECT GLOBAL DEFAULT {{[0-9]+}} c2

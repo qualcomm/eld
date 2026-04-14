@@ -16,6 +16,7 @@
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/InputFile.h"
@@ -186,6 +187,31 @@ void ObjectBuilder::traceMergeStrings(const MergeableString *From,
   assert(From->String == To->String);
 }
 
+void ObjectBuilder::traceMergeConstants(const MergeableConstant *From,
+                                        const MergeableConstant *To) const {
+  ELFSection *OutputSection =
+      From->Fragment->getOwningSection()->getOutputELFSection();
+  std::string OutputSectionName =
+      OutputSection->getDecoratedName(ThisConfig.options());
+  std::string FileFrom = From->Fragment->getOwningSection()
+                             ->getInputFile()
+                             ->getInput()
+                             ->decoratedPath(true);
+  std::string FileTo = To->Fragment->getOwningSection()
+                           ->getInputFile()
+                           ->getInput()
+                           ->decoratedPath(true);
+  std::string SectionFrom =
+      From->Fragment->getOwningSection()->getDecoratedName(
+          ThisConfig.options());
+  std::string SectionTo =
+      To->Fragment->getOwningSection()->getDecoratedName(ThisConfig.options());
+  ThisConfig.raise(Diag::merging_constant_fragments)
+      << FileFrom << SectionFrom << From->InputOffset << From->getAlignment()
+      << FileTo << SectionTo << To->InputOffset << To->getAlignment()
+      << OutputSectionName;
+}
+
 void ObjectBuilder::mergeStrings(MergeStringFragment *F,
                                  OutputSectionEntry *O) {
   for (MergeableString &S : F->getStrings()) {
@@ -196,6 +222,20 @@ void ObjectBuilder::mergeStrings(MergeStringFragment *F,
     if (config().getPrinter()->traceMergeStrings() ||
         config().getPrinter()->isVerbose())
       traceMergeStrings(&S, &MergedString);
+  }
+}
+
+void ObjectBuilder::mergeConstants(MergeDataFragment *F,
+                                   OutputSectionEntry *O) {
+  for (MergeableConstant &C : F->getConstants()) {
+    // Deduplicate by payload while honoring canonical-alignment constraints.
+    MergeableConstant &MergedConstant =
+        MergeDataFragment::getOrAddMergedConstant(&C, O);
+    if (&MergedConstant == &C)
+      continue;
+    if (config().getPrinter()->traceMergeConstants() ||
+        config().getPrinter()->isVerbose())
+      traceMergeConstants(&C, &MergedConstant);
   }
 }
 

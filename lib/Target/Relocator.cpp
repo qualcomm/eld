@@ -14,8 +14,10 @@
 #include "eld/Config/Config.h"
 #include "eld/Core/Module.h"
 #include "eld/Fragment/Fragment.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Input/ELFObjectFile.h"
+#include "eld/Object/OutputSectionEntry.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
@@ -89,6 +91,35 @@ void Relocator::traceMergeStrings(const ELFSection *RelocationSection,
       << OldFile << NewOffset << NewSection << NewFile;
 }
 
+void Relocator::traceMergeConstants(const ELFSection *RelocationSection,
+                                    const Relocation *R,
+                                    const MergeableConstant *From,
+                                    const MergeableConstant *To) const {
+  std::string SymName = R->symInfo()->name();
+  uint32_t Addend = R->addend();
+  std::string Section = RelocationSection->getDecoratedName(m_Config.options());
+  std::string File =
+      RelocationSection->getInputFile()->getInput()->decoratedPath();
+  uint32_t OldOffset = From->InputOffset;
+  std::string OldSection =
+      From->Fragment->getOwningSection()->getDecoratedName(m_Config.options());
+  std::string OldFile = From->Fragment->getOwningSection()
+                            ->getInputFile()
+                            ->getInput()
+                            ->decoratedPath();
+  uint32_t NewOffset = To->InputOffset;
+  std::string NewSection =
+      To->Fragment->getOwningSection()->getDecoratedName(m_Config.options());
+  std::string NewFile = To->Fragment->getOwningSection()
+                            ->getInputFile()
+                            ->getInput()
+                            ->decoratedPath();
+
+  m_Config.raise(Diag::modifying_mergeconst_reloc)
+      << SymName << Addend << Section << File << OldOffset << OldSection
+      << OldFile << NewOffset << NewSection << NewFile;
+}
+
 std::pair<Fragment *, uint64_t>
 Relocator::findFragmentForMergeStr(const ELFSection *RelocationSection,
                                    const Relocation *R,
@@ -123,8 +154,9 @@ bool Relocator::doMergeStrings(ELFSection *S) {
     FragmentRef *OldTarget = R->targetFragRef()
                                  ? R->targetFragRef()
                                  : R->symInfo()->outSymbol()->fragRef();
-
-    auto *MSF = llvm::cast<MergeStringFragment>(OldTarget->frag());
+    auto *MSF = llvm::dyn_cast<MergeStringFragment>(OldTarget->frag());
+    if (!MSF)
+      return;
     auto [Frag, Offset] = findFragmentForMergeStr(S, R, MSF);
     if (!Frag)
       return;
@@ -135,6 +167,46 @@ bool Relocator::doMergeStrings(ELFSection *S) {
 
   for (Relocation *R : S->getLink()->getRelocations())
     DoMergeStrReloc(R);
+  return true;
+}
+
+bool Relocator::doMergeConstants(ELFSection *S) {
+  auto DoMergeConstReloc = [&](Relocation *R) -> void {
+    if (!R->isMergeKind() || !R->symInfo()->isSection() ||
+        getTarget().maySkipRelocProcessing(R))
+      return;
+    FragmentRef *OldTarget = R->targetFragRef()
+                                 ? R->targetFragRef()
+                                 : R->symInfo()->outSymbol()->fragRef();
+    auto *MDF = llvm::dyn_cast<MergeDataFragment>(OldTarget->frag());
+    if (!MDF)
+      return;
+
+    uint32_t Addend = getAddend(R);
+    const MergeableConstant *C = MDF->getConstantAtOffset(Addend);
+    if (!C)
+      return;
+    uint32_t OffsetInConstant = Addend - C->InputOffset;
+    OutputSectionEntry *OutputSection =
+        MDF->getOwningSection()->getOutputSection();
+    if (const MergeableConstant *Merged = OutputSection->getMergedConstant(C)) {
+      if (m_Config.getPrinter()->isVerbose() ||
+          m_Config.getPrinter()->traceMergeConstants())
+        traceMergeConstants(S, R, C, Merged);
+      C = Merged;
+    }
+
+    // Recompute architecture-specific addend before replacing the fragment
+    // target. Some targets encode/track addends differently (e.g. Hexagon).
+    adjustAddend(R);
+    // Point directly at the selected canonical constant while preserving the
+    // original intra-constant byte offset.
+    R->modifyRelocationFragmentRef(
+        make<FragmentRef>(*C->Fragment, C->InputOffset + OffsetInConstant));
+  };
+
+  for (Relocation *R : S->getLink()->getRelocations())
+    DoMergeConstReloc(R);
   return true;
 }
 

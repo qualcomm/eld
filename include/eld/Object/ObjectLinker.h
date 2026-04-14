@@ -481,6 +481,8 @@ private:
   void mergeNonAllocStrings(std::vector<OutputSectionEntry *>,
                             ObjectBuilder &Builder) const;
 
+  void mergeIdenticalConstants() const;
+
   /// Redirect relocations to point directly to a deduplicated string fragment
   void fixMergeStringRelocations() const;
 

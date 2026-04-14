@@ -145,6 +145,7 @@ public:
   void printInsertPlacement(const OutputSectionEntry *OS) const;
 
   void printMergeString(MergeableString *S, Module &M) const;
+  void printMergeConstant(MergeableConstant *C, Module &M) const;
 
   void printIsFileHeaderLoadedInfo(bool IsLoaded, bool UseColor);
 
