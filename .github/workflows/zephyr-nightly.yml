@@ -173,7 +173,7 @@ jobs:
             zephyr/build/zephyr/zephyr.map
 
       - name: Update build entry
-        if: always() && github.event_name == 'schedule'
+        if: success() && github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
