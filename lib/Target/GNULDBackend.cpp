@@ -3566,10 +3566,12 @@ bool GNULDBackend::postLayout() {
 
   // Finally, check that the load addresses don't overlap. This will usually be
   // the same as the virtual addresses but can be different when using a linker
-  // script with AT().
+  // script with AT(). Skip SHT_NOBITS sections as they have no physical content
+  // in the output file.
   std::vector<SectionOffset> lmas;
   for (ELFSection *sec : outputSections) {
-    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()))
+    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()) &&
+        !sec->isNoBits())
       lmas.push_back({sec, sec->pAddr()});
   }
   checkOverlap("load address", lmas, false);
