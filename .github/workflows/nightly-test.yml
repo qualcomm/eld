@@ -107,6 +107,9 @@ jobs:
             llvm-profgen
             llvm-ranlib
             llvm-readobj
+            llvm-readelf
+            llvm-mc
+            llvm-as
             llvm-remarkutil
             llvm-size
             llvm-strings
