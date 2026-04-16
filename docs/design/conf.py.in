@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+
+THIS_DIR = Path(__file__).resolve().parent
+REPO_ROOT = (THIS_DIR / ".." / "..").resolve()
+
+sys.path.insert(0, str(REPO_ROOT))
+
+
+project = "ELD"
+copyright = "2020, Qualcomm Technologies, Inc. All rights reserved."
+author = "Qualcomm Technologies, Inc"
+version = "2.3"
+release = "2.3.0"
+
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.graphviz",
+]
+
+_BREATHE_XML_DIR = os.environ.get("ELD_BREATHE_XML_DIR")
+if _BREATHE_XML_DIR:
+    try:
+        import breathe  # noqa: F401
+
+        extensions.append("breathe")
+    except Exception:
+        pass
+
+templates_path = ["halidetemplates"]
+exclude_patterns = ["_build", "_build_*", "**/_build", "**/_build_*"]
+
+source_suffix = ".rst"
+master_doc = "index"
+
+language = "en"
+pygments_style = "sphinx"
+todo_include_todos = True
+
+
+def _read_env_breathe_projects() -> dict[str, str]:
+    name = os.environ.get("ELD_BREATHE_PROJECT_NAME", "ELD")
+    xml_dir = os.environ.get("ELD_BREATHE_XML_DIR")
+    if not xml_dir:
+        return {}
+    return {name: xml_dir}
+
+
+if "breathe" in extensions:
+    breathe_projects = _read_env_breathe_projects()
+    breathe_default_project = next(iter(breathe_projects.keys()))
+
+
+# Optional PDF builder (rst2pdf) for generating a single design-guide PDF.
+try:
+    import rst2pdf.pdfbuilder  # noqa: F401
+
+    extensions.append("rst2pdf.pdfbuilder")
+    pdf_documents = [
+        ("index", "ELD_DesignGuide", "ELD Design Guide", "Qualcomm Technologies, Inc"),
+    ]
+    pdf_stylesheets = ["sphinx"]
+except Exception:
+    # rst2pdf is optional; if it's not available, skip PDF builder.
+    pdf_documents: list = []
+
+
+html_theme = "alabaster"
+html_theme_options = {
+    "nosidebar": False,
+    "show_related": True,
+    "link": "#3782BE",
+    "link_hover": "#3782BE",
+    "page_width": "1024px",
+    "sidebar_list": "#3782BE",
+    "sidebar_link": "#3782BE",
+    "font_family": "Calibri",
+    "code_font_family": "monospace",
+    "head_font_family": "Calibri",
+}
+html_static_path = ["_static"]
+html_sidebars = {
+    "**": [
+        "relations.html",
+        "searchbox.html",
+        "navigation.html",
+    ]
+}
+htmlhelp_basename = "ELD"
+
+latex_engine = "pdflatex"
+latex_elements = {
+    "papersize": "a4paper",
+    "releasename": "ELD",
+}
+latex_documents = [
+    (master_doc, "ELD.tex", "ELD", "Qualcomm Technologies, Inc", "manual"),
+]
+man_pages = [
+    (master_doc, "ELD", "ELD", [author], 1),
+]
+texinfo_documents = [
+    (
+        master_doc,
+        "ELD",
+        "ELD",
+        author,
+        "ELD",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
+]
+epub_title = project
+epub_author = author
+epub_publisher = author
+epub_copyright = copyright
+#
+# epub_uid = ''
+
+# A list of files that should not be packed into the epub file.
+epub_exclude_files = ['search.html']
+
+
+rst_epilog = """
+.. |reg|    unicode:: U+000AE .. REGISTERED SIGN
+.. |TM|     unicode:: U+2122 .. TRADE MARK SIGN
+"""
