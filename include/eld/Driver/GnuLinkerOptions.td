@@ -303,10 +303,10 @@ def dynamic : Flag<["-"], "dynamic">,
 def shared : Flag<["-"], "shared">,
              HelpText<"Create dynamic library">,
              Group<grp_kind>;
-def pie : Flag<["-"], "pie">,
+def pie : Flag<["-", "--"], "pie">,
           HelpText<"Create PIE executable">,
           Group<grp_kind>;
-def no_pie : Flag<["-"], "no-pie">,
+def no_pie : Flag<["-", "--"], "no-pie">,
           HelpText<"Do not create a PIE executable">,
           Group<grp_kind>;
 def picexec : Flag<["--"], "pic-executable">,
