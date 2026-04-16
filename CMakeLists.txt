@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.16)
-project(ELD LANGUAGES C CXX)
 
 set(CMAKE_COLOR_MAKEFILE ON)
 

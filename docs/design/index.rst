@@ -1,7 +1,7 @@
 .. eld documentation
 
 ####################################################
-ELD Design Documentation
+ELD Design Guide
 ####################################################
 
 This document describes design details of ELD
@@ -11,19 +11,6 @@ This document describes design details of ELD
 
    documentation/mergingSimilarStrings.rst
    documentation/MemoryAreaRegionFragment.rst
-   documentation/addingCommandLineOptions.rst
-   documentation/fragmentSectionSymbolModel.rst
-
-********************
-Design documentation
-********************
-
-- `ELD Design Guide (PDF) <ELD_DesignGuide.pdf>`_
-
-*******************
-ELD Userguide
-*******************
-- `ELD Userguide <../userguide/index.html>`_
 
 *******************
 Indices and tables

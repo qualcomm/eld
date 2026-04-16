@@ -45,15 +45,12 @@ User guide
 - `ELD User Guide (PDF) <ELD_UserGuide.pdf>`_
 
 *******************
-Design documents
-*******************
-- `ELD Design Documents <../design/index.html>`_
-
-*******************
 Indices and tables
 *******************
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-* `Build Dashboard <../dash/dash.html>`_
+* `Build Dashboard`_
+
+.. _Build Dashboard: dash/dash.html

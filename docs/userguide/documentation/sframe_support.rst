@@ -77,7 +77,7 @@ To link object files containing `.sframe` sections and create an SFrame header:
 .. note::
    For llvm-mc versions prior to 22.x, the section type must be specified explicitly:
 
-   .. code-block:: text
+   .. code-block:: asm
 
       .section .sframe,"a",@0x6ffffff4  # Explicit SHT_GNU_SFRAME type for older assemblers
 

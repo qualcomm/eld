@@ -166,7 +166,7 @@ is creating an executable or a shared library), and whether the link contains a 
 script. The address 0 is used as the starting address if a linker script is present or
 if the link is creating a shared library.
 
-The default image base value can be overridden by using ``--image-base`` command-line
+The default image base value can be overridden by using :option:`--image-base` command-line
 option.
 
 Output section virtual memory address (VMA)
@@ -367,7 +367,7 @@ A new load segment is created when:
   previous LOAD segment. By default, the segment flags :code:`R` and :code:`RE` are
   compatible, whereas :code:`RW` is incompatible with :code:`R` and :code:`RW`.
 
-  ``--rosegment`` and ``--omagic`` influence which sections can be
+  :option:`--rosegment` and :option:`--omagic` influence which sections can be
   part of the same segment.
 
 - The memory region of the current output section is different
@@ -420,39 +420,39 @@ outside-:code:`SECTIONS` linker script assignments.
 Linker options that affect layout
 ===================================
 
-``--rosegment``
+:option:`--rosegment`
 ----------------------
 
 By default, readonly non-executable (:code:`R`) sections such as :code:`.rodata` sections and
 executable sections (:code:`RX`) such as :code:`.text` can be part of the same segment. When
-``--rosegment`` is specified, a different segment is created for readonly non-executable
+:option:`--rosegment` is specified, a different segment is created for readonly non-executable
 segments.
 
-``--omagic``
+:option:`--omagic`
 -------------------
 
-If ``--omagic`` is specified, then readonly non-executable (:code:`R`),
+If :option:`--omagic` is specified, then readonly non-executable (:code:`R`),
 executable (:code:`RX`), and read-write (:code:`RW`) sections can be part of the same segment.
 Moreover, the segment alignment is set to the maximum section alignment instead of the page
 alignment.
 
-``--align-segments``
+:option:`--align-segments`
 ----------------------------
 
 This option cannot be used with linker scripts. When used,
 the addresses of segments (both virtual and physical addresses)
 are aligned to the page boundaries.
 
-``--enable-bss-mixing`` and ``--disable-bss-conversion``
+:option:`--enable-bss-mixing` and :option:`--disable-bss-conversion`
 ---------------------------------------------------------------------
 
 These options control how the linker treats BSS sections relative to non-BSS
 sections within the same segment.
 
-``--disable-bss-conversion`` controls whether the linker converts BSS
+:option:`--disable-bss-conversion` controls whether the linker converts BSS
 to non-BSS when BSS/non-BSS sections are mixed. When this option is passed,
 BSS remains NOBITS when BSS and Non-BSS are mixed in a segment. This option must
-be combined with ``--enable-bss-mixing`` if the BSS section will be placed before a non-BSS
+be combined with :option:`--enable-bss-mixing` if the BSS section will be placed before a non-BSS
 section because otherwise BSS before non-BSS is an error.
 
 This combination of options is useful for reducing file size of a program.

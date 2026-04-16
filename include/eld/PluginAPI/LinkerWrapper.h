@@ -267,7 +267,7 @@ public:
   /// Pattern matching here follows unix glob style pattern matching.
   ///
   /// \param Pattern glob pattern
-  /// \param Name string to be matched against the pattern
+  /// \param name string to be matched against the pattern
   /// \returns true if Name matches the pattern specified by Pattern;
   /// Otherwise returns false.
   bool matchPattern(const std::string &Pattern, const std::string &Name) const;
@@ -283,7 +283,7 @@ public:
   /// Adds a local symbol Symbol to the chunk C.
   ///
   /// \param C Chunk in which the symbol should be added.
-  /// \param Symbol Name of the symbol
+  /// \param symbol Name of the symbol
   /// \param Val Value of the symbol
   eld::Expected<void> addSymbolToChunk(Chunk &C, const std::string &Symbol,
                                        uint64_t Val);
@@ -463,7 +463,7 @@ public:
   eld::Expected<INIFile> readINIFile(std::string FileName);
 
   /// Write an ini file.
-  /// \param INI INIFile
+  /// \param ini INIFile
   /// \param OutputPath path of the file to write
   /// \returns std::unique_ptr<DiagnosticEntry> object that describes the error;
   /// if no error occurs, then returns void.
@@ -472,7 +472,7 @@ public:
 
   /// Creates and returns eld::Expected<TarWriter> to support
   /// creating a tar archive with the name passed and add files to it.
-  /// \param Name tar file name.
+  /// \param std::string &Name for tar file name.
   /// \returns eld::Expected<TarWriter>
   eld::Expected<TarWriter> getTarWriter(const std::string &Name) const;
 

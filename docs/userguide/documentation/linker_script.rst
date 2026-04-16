@@ -473,7 +473,7 @@ Syntax :- ``ENTRY(symbol)``
 - The entry point is the first instruction that is executed after a
   program is loaded.
 - This command is equivalent to the linker command-line option
-  ``-e``.
+  :option:`-e`.
 
 OUTPUT_FORMAT
 ^^^^^^^^^^^^^
@@ -503,7 +503,7 @@ Syntax :- ``SEARCH_DIR(path)``
 - The ``SEARCH_DIR`` script command adds the specified path to the list
   of paths that the linker uses to search for libraries.
 - This command is equivalent to the linker command-line option
-  ``-L``.
+  :option:`-L`.
 
 INCLUDE
 ^^^^^^^

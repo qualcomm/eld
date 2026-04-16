@@ -7,7 +7,7 @@ It contains detailed information for input files, linker scripts, memory
 regions, image memory layout, and so much more. Effectively using map files
 can significantly reduce the time spent analyzing and debugging builds.
 
-Use ``-Map`` to generate map files for your builds.
+Use :option:`-Map` to generate map files for your builds.
 
 .. contents::
    :local:
@@ -21,7 +21,7 @@ Map files are available in three distinct styles:
 #. YAML
 #. Binary
 
-Use option ``-MapStyle`` to specify the map file style. Text map file
+Use option :option:`-MapStyle` to specify the map file style. Text map file
 is the default map style.
 
 Navigating Text Map File
