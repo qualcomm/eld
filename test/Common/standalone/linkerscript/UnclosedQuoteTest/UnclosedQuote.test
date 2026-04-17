@@ -1,0 +1,12 @@
+#---UnclosedQuote.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This test checks that unclosed quote in linker script reports one error and
+# parsing stops without cascaded duplicate diagnostics.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}script.t:3: unclosed quote
+CHECK-COUNT-1: unclosed quote
+#END_TEST

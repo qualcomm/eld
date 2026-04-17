@@ -1090,7 +1090,7 @@ ELD supports the following output section data commands:
      - Emit eight bytes (64 bits) as an unsigned value.
    * - ``SQUAD(expression)``
      - Emit eight bytes (64 bits) as a signed value.
-   * - ``ASCIZ("string")``
+   * - ``ASCIZ "string"``
      - Emit a null-terminated ASCII string. The string literal (enclosed in
        double quotes) is written byte-for-byte followed by a NUL byte
        (``\0``). The size contributed is ``strlen(string) + 1``.
@@ -1130,7 +1130,7 @@ a build-info string into the ``.rodata`` output section::
       SHORT(3)
 
       /* Null-terminated build-info string */
-      ASCIZ ("eld linker v1.0")
+      ASCIZ "eld linker v1.0"
     }
   }
 

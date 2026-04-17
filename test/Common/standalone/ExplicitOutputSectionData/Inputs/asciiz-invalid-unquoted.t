@@ -1,7 +1,6 @@
 SECTIONS {
   .text : { *(.text*) }
   .rodata : {
-    ASCIZ "hello"
-    ASCIZ "world"
+    ASCIZ eld
   }
 }

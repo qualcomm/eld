@@ -339,7 +339,7 @@ syn keyword eldKwSecType
       \ AT SUBALIGN FILL FLAGS
 
 " Data-output commands: emit raw bytes into the current section.
-syn keyword eldKwData BYTE SHORT LONG QUAD SQUAD
+syn keyword eldKwData BYTE SHORT LONG QUAD SQUAD ASCIZ
 
 " Top-level linker-script commands: appear at the outermost scope.
 " Sourced from ScriptParser.cpp.

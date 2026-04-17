@@ -2,7 +2,7 @@
 #BEGIN_COMMENT
 # This test checks the behavior of the ASCIZ linker script command, which emits
 # a null-terminated ASCII string into an output section.
-# ASCIZ ("hello") emits: 68 65 6c 6c 6f 00
+# ASCIZ "hello" emits: 68 65 6c 6c 6f 00
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
@@ -13,4 +13,6 @@ RUN: %filecheck %s --check-prefix=MAP < %t1.map.txt
 #END_TEST
 SECTIONS: .rodata PROGBITS {{.*}} {{0+c}} {{.*}} A
 RODATA: {{[0-9a-f]+}} 68656c6c 6f00{{.*}}
-MAP-COUNT-2: ASCIZ
+MAP-COUNT-4: ASCIZ
+MAP: ASCIZ "hello"{{.*}}asciiz.t
+MAP: ASCIZ "world"{{.*}}asciiz.t

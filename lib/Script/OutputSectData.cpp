@@ -164,17 +164,20 @@ void OutputSectData::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
   if (UseColor)
     Outs.changeColor(llvm::raw_ostream::BLUE);
   Outs << getOSDKindAsStr().upper() << " ";
-  Outs << "(";
-  if (isASCIZ())
-    Outs << "\"" << ASCIIZStr << "\"";
-  else
+  if (isASCIZ()) {
+    Outs << "\"" << ASCIIZStr << "\" ";
+  } else {
+    Outs << "(";
     ExpressionToEvaluate->dump(Outs);
-  Outs << ") ";
+    Outs << ") ";
+  }
   ELFSection *S = getRuleContainer()->getSection();
   Outs << "\t0x";
   Outs.write_hex(S->offset());
   Outs << "\t0x";
   Outs.write_hex(S->size());
+  if (hasInputFileInContext())
+    Outs << " # " << getContext();
   if (UseNewLine)
     Outs << "\n";
   if (UseColor)
@@ -184,12 +187,15 @@ void OutputSectData::dumpMap(llvm::raw_ostream &Outs, bool UseColor,
 void OutputSectData::dumpOnlyThis(llvm::raw_ostream &Outs) const {
   doIndent(Outs);
   Outs << getOSDKindAsStr().upper() << " ";
-  Outs << "(";
-  if (isASCIZ())
+  if (isASCIZ()) {
     Outs << "\"" << ASCIIZStr << "\"";
-  else
+  } else {
+    Outs << "(";
     ExpressionToEvaluate->dump(Outs);
-  Outs << ")";
+    Outs << ")";
+  }
+  if (hasInputFileInContext())
+    Outs << " # " << getContext();
   Outs << "\n";
 }
 

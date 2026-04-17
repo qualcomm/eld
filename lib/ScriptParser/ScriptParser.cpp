@@ -1219,10 +1219,13 @@ bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
   }
 
   if (Tok == "ASCIZ") {
-    expect("(");
     StringRef StrTok = next();
+    if (!(StrTok.size() >= 2 && StrTok.starts_with("\"") &&
+          StrTok.ends_with("\""))) {
+      setError("ASCIZ expects a quoted string literal");
+      return true;
+    }
     std::string Str = unquote(StrTok).str();
-    expect(")");
     ThisScriptFile.addASCIZ(std::move(Str));
     return true;
   }

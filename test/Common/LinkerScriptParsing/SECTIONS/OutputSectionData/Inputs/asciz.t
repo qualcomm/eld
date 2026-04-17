@@ -1,6 +1,6 @@
 SECTIONS {
   .rodata : {
-    ASCIZ ("hello")
-    ASCIZ ("world")
+    ASCIZ "hello"
+    ASCIZ "world"
   }
 }
