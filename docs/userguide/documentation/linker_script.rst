@@ -332,6 +332,8 @@ Rules:
   defaults the LMA region to the same region as the VMA region.
 - If a section has explicit LMA control (``AT(<address>)``), ELD does not
   automatically align the LMA. (See :ref:`controlling-physical-addresses`.)
+- ``NOLOAD``/``SHT_NOBITS`` sections do not occupy file space, so they are
+  ignored by load-address overlap checks.
 
 Builtins: ``ORIGIN()`` and ``LENGTH()``
 """""""""""""""""""""""""""""""""""""""
@@ -1165,6 +1167,11 @@ sorting directives in input section descriptions. These directives include
 ELD also supports the GNU linker shorthand ``SORT(CONSTRUCTORS)`` for
 compatibility with other linkers.
 
+``EXCLUDE_FILE`` can be used inside ``SORT_*`` wrappers, including nested sort
+expressions, for GNU-compatible forms such as:
+``SORT_NONE(EXCLUDE_FILE(*crtend.o) .eh_frame)`` and
+``SORT_BY_NAME(SORT_BY_ALIGNMENT(EXCLUDE_FILE(*2.o) .text))``.
+
 .. _controlling-physical-addresses:
 
 Controlling Physical addresses
@@ -1193,6 +1200,8 @@ Behavior summary:
   region, and it is tracked independently from the VMA placement.
 - ALIGN_WITH_INPUT preserves the prior VMA-to-LMA delta, but only while both
   regions remain the same.
+- When VMA and LMA resolve to the same region (for example, no ``AT>REGION``),
+  ELD advances that shared region cursor once per output section.
 
 See also:
 

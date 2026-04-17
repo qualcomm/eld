@@ -124,6 +124,14 @@ useful for debugging and enforcing correctness:
 - ``-Wlinker-script-memory`` enables warnings for suspicious ``MEMORY`` setups
   (for example, zero-sized regions or regions that end up unused).
 
+PIE options
+-----------
+
+ELD accepts both GNU-style single-dash and double-dash forms for PIE toggles:
+
+- ``-pie`` and ``--pie``: create a position-independent executable.
+- ``-no-pie`` and ``--no-pie``: create a non-PIE executable.
+
 ARM and AArch64 specific options
 ---------------------------------
 
@@ -206,6 +214,9 @@ The following ``-z`` keywords are supported by ELD:
   Create a separate code PT_LOAD segment with instructions on pages disjoint
   from any other data. This is a no-op when a linker script with a ``SECTIONS``
   command is used.
+
+``-z separate-loadable-segments``
+  Place every loadable segment on pages disjoint from all other segments.
 
 ``-z noseparate-code``
   Disable separate code segment handling. This is the default behavior.
