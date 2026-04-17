@@ -1,7 +1,7 @@
 name: Windows Arm64/x86_64 Nightly
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'

@@ -2,10 +2,10 @@
 
 import argparse
 import sys
-import os
 import subprocess
 import yaml
 import re
+from pathlib import Path
 from elftools.elf.elffile import ELFFile
 
 import arch.aarch64.arch
@@ -15,7 +15,7 @@ ARCH = {
 }
 
 TIMEOUT = 5
-DATA_DIR = os.path.abspath(os.path.dirname(__file__))
+DATA_DIR = Path(__file__).resolve().parent
 YAML2OBJ = ["yaml2obj"]  # Must be in $PATH
 DEFAULT_LINK = ["ld.lld"]  # Must be in $PATH
 DEFAULT_TOOLS_PREFIX = "llvm-"
@@ -93,12 +93,12 @@ def write_yaml(o, f):
 
 
 def create_obj(y, base_name):
-    Y = os.path.join(output_dir, f"{base_name}.yaml")
-    with open(Y, "w") as f:
+    Y = output_dir / f"{base_name}.yaml"
+    with Y.open("w") as f:
         write_yaml(y, f)
-    with open(Y, "r") as f:
+    with Y.open("r") as f:
         subprocess.check_call(
-            YAML2OBJ + ["-o", os.path.join(output_dir, f"{base_name}.o")],
+            YAML2OBJ + ["-o", str(output_dir / f"{base_name}.o")],
             stdin=f,
             universal_newlines=True)
 
@@ -172,7 +172,7 @@ def create_argparser():
 
 
 args = create_argparser().parse_args()
-output_dir = args.output_dir if args.output_dir else "."
+output_dir = Path(args.output_dir) if args.output_dir else Path(".")
 link_cmd = args.link_cmd.split(
 ) if args.link_cmd else DEFAULT_LINK  # TODO: spaces and quotes are probably not handled well.
 tools_prefix = args.tools_prefix if args.tools_prefix else DEFAULT_TOOLS_PREFIX
@@ -221,7 +221,7 @@ for i, make_section in [("object", make_data_section),
 create_obj(obj, base_name)
 subprocess.check_call(DEFAULT_LINK +
                       [f"{base_name}.o", "-shared", "-o", f"{base_name}.so"],
-                      cwd=output_dir)
+                      cwd=str(output_dir))
 
 #  Main loop.
 for exec_type, exec_cmd in EXEC_TYPE.items():
@@ -238,16 +238,15 @@ for exec_type, exec_cmd in EXEC_TYPE.items():
             O = f"a.{name}.out"
             cmd = link_cmd + exec_cmd + [
                 "-o", O, "-T",
-                os.path.join(DATA_DIR, "script.t"), "-e", "0",
+                str(DATA_DIR / "script.t"), "-e", "0",
                 f"-Map=" + f"a.{name}.map", f"a.{name}.o"
             ] + lib_cmd
-            with open(os.path.join(output_dir, f"a.{name}.cmd"),
-                      "w") as cmd_file:
+            with (output_dir / f"a.{name}.cmd").open("w") as cmd_file:
                 print(" ".join(cmd), file=cmd_file)
             try:
                 ret = subprocess.run(cmd,
                                      stderr=subprocess.PIPE,
-                                     cwd=output_dir,
+                                     cwd=str(output_dir),
                                      text=True,
                                      timeout=TIMEOUT)
                 status = "FAIL" if ret.returncode else "OK"
@@ -266,14 +265,13 @@ for exec_type, exec_cmd in EXEC_TYPE.items():
                     if not should_hide(i):
                         print(i)
 
-            with open(os.path.join(output_dir, f"a.{name}.err"),
-                      "w") as stderr:
+            with (output_dir / f"a.{name}.err").open("w") as stderr:
                 stderr.write(ret.stderr)
 
             if status != "OK":
                 continue
 
-            with open(os.path.join(output_dir, O), "rb") as f:
+            with (output_dir / O).open("rb") as f:
                 elf = ELFFile(f)
 
                 # TODO: Build a map: interval -> section.
@@ -394,8 +392,7 @@ for exec_type, exec_cmd in EXEC_TYPE.items():
 
                 # Run additional tools on the binary for extra bonus.
                 for tool, cmd in TOOLS.items():
-                    with open(os.path.join(output_dir, '.'.join([O, tool])),
-                              "wb") as stdout:
+                    with (output_dir / '.'.join([O, tool])).open("wb") as stdout:
                         subprocess.run(cmd + [O],
-                                       cwd=output_dir,
+                                       cwd=str(output_dir),
                                        stdout=stdout)
