@@ -1,0 +1,11 @@
+#---ASCIZEscapes.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This test checks ASCIZ escape handling for \n, \r, \t and octal escapes.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: %link -MapStyle txt %linkopts -o %t1.elf %t1.o -T %p/Inputs/asciiz-escapes.t
+RUN: %objdump -s %t1.elf --section .rodata | %filecheck %s
+#END_TEST
+
+CHECK: {{[0-9a-f]+}} 410a420d 43094441 004500

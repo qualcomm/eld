@@ -35,6 +35,7 @@
 #include "eld/Script/StrToken.h"
 #include "eld/Script/WildcardPattern.h"
 #include "eld/ScriptParser/ScriptLexer.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -1225,7 +1226,10 @@ bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
       setError("ASCIZ expects a quoted string literal");
       return true;
     }
-    std::string Str = unquote(StrTok).str();
+    std::optional<std::string> OptStr = parseASCIZString(unquote(StrTok));
+    if (!OptStr.has_value())
+      return true;
+    std::string Str = std::move(OptStr.value());
     ThisScriptFile.addASCIZ(std::move(Str));
     return true;
   }
@@ -1245,6 +1249,74 @@ bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
   expect(")");
   ThisScriptFile.addOutputSectData(OptDataKind.value(), Exp);
   return true;
+}
+
+std::optional<std::string> ScriptParser::parseASCIZString(llvm::StringRef Str) {
+  std::string Parsed;
+  Parsed.reserve(Str.size());
+  auto IsOctalDigit = [](char C) { return llvm::isDigit(C) && C < '8'; };
+
+  size_t I = 0;
+  while (I < Str.size()) {
+    char C = Str[I++];
+    if (C != '\\') {
+      Parsed.push_back(C);
+      continue;
+    }
+
+    if (I >= Str.size()) {
+      Parsed.push_back('\\');
+      continue;
+    }
+
+    char Esc = Str[I++];
+    switch (Esc) {
+    case 'n':
+      Parsed.push_back('\n');
+      break;
+    case 'r':
+      Parsed.push_back('\r');
+      break;
+    case 't':
+      Parsed.push_back('\t');
+      break;
+    case 'x':
+    case 'X':
+      setError("ASCIZ does not support hex escape sequences");
+      return std::nullopt;
+    default:
+      if (IsOctalDigit(Esc)) {
+        std::string OctalDigits(1, Esc);
+        // Consume at most 3 octal digits, matching C-style escape parsing.
+        while (OctalDigits.size() < 3 && I < Str.size() &&
+               IsOctalDigit(Str[I])) {
+          OctalDigits.push_back(Str[I]);
+          ++I;
+        }
+        if (I < Str.size() && IsOctalDigit(Str[I])) {
+          setWarn("ASCIZ octal escape supports at most 3 digits");
+        }
+
+        uint32_t OctalValue = 0;
+        if (llvm::StringRef(OctalDigits)
+                .getAsInteger(/*Radix=*/8, OctalValue)) {
+          setError("ASCIZ has invalid octal escape sequence");
+          return std::nullopt;
+        }
+        if (OctalValue > 0xFFu) {
+          setError("ASCIZ octal escape value is out of range");
+          return std::nullopt;
+        }
+        Parsed.push_back(static_cast<char>(OctalValue));
+        break;
+      }
+      // Keep unknown escapes unchanged for compatibility.
+      Parsed.push_back('\\');
+      Parsed.push_back(Esc);
+      break;
+    }
+  }
+  return Parsed;
 }
 
 std::optional<WildcardPattern::SortPolicy> ScriptParser::readSortPolicy() {

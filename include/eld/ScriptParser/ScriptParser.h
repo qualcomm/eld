@@ -20,6 +20,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBufferRef.h"
 #include <optional>
+#include <string>
 
 namespace eld {
 class Expression;
@@ -177,6 +178,7 @@ private:
   void readRegionAlias();
 
   bool readOutputSectionData(llvm::StringRef Tok);
+  std::optional<std::string> parseASCIZString(llvm::StringRef Str);
 
   std::optional<WildcardPattern::SortPolicy> readSortPolicy();
 

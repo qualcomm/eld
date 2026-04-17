@@ -1092,8 +1092,9 @@ ELD supports the following output section data commands:
      - Emit eight bytes (64 bits) as a signed value.
    * - ``ASCIZ "string"``
      - Emit a null-terminated ASCII string. The string literal (enclosed in
-       double quotes) is written byte-for-byte followed by a NUL byte
-       (``\0``). The size contributed is ``strlen(string) + 1``.
+       double quotes) supports a small set of escape sequences and is then
+       written followed by a NUL byte (``\0``). The size contributed is
+       ``strlen(unescaped_string) + 1``.
 
 .. note::
 
@@ -1104,6 +1105,16 @@ ELD supports the following output section data commands:
 
    ``ASCIZ`` accepts only a quoted string literal, not an arbitrary
    expression.
+
+   Supported ``ASCIZ`` escape sequences are:
+
+   - ``\n`` (line feed)
+   - ``\r`` (carriage return)
+   - ``\t`` (horizontal tab)
+   - Octal escapes with up to 3 octal digits (for example ``\0``, ``\12``,
+     ``\101``)
+
+   Hex escapes (for example ``\x41``) are not supported.
 
 .. note::
 
