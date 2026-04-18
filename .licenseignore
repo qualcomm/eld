@@ -5,3 +5,4 @@ test/**/*
 **/lit.site.cfg.in
 **/lit.local.cfg
 **/*.test
+**/*.sh

@@ -1,0 +1,9 @@
+# Synced from llvm-project/llvm/.clang-format (LLVM community style baseline).
+BasedOnStyle: LLVM
+LineEnding: LF
+---
+# Don't format .td files
+Language: TableGen
+DisableFormat: true
+SortIncludes: false
+---

@@ -1,0 +1,76 @@
+name: Clang Format Check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install clang-format
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y wget gpg lsb-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          UBUNTU_CODENAME="$(lsb_release -cs)"
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+          clang-format --version
+
+      - name: Check formatting of changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          GREEN=$'\033[0;32m'
+          RED=$'\033[0;31m'
+          RESET=$'\033[0m'
+          CLANG_FORMAT_BIN=clang-format
+
+          BASE_REF="${{ github.base_ref }}"
+          git fetch origin "${BASE_REF}" --depth=1
+          "$CLANG_FORMAT_BIN" --version
+
+          mapfile -t FILES < <(
+            git diff --name-only --diff-filter=ACMRT "origin/${BASE_REF}...HEAD" \
+            | grep -E '\.(c|cc|cpp|cxx|h|hh|hpp|hxx|inc|def)$' || true
+          )
+
+          if [[ ${#FILES[@]} -eq 0 ]]; then
+            echo "No C/C++ source files changed."
+            exit 0
+          fi
+
+          echo "Checking ${#FILES[@]} changed C/C++ file(s)..."
+          FAIL=0
+          for f in "${FILES[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              continue
+            fi
+            if "$CLANG_FORMAT_BIN" --style=file "$f" | diff -u "$f" - >/dev/null; then
+              printf "%b[PASSED]%b %s\n" "$GREEN" "$RESET" "$f"
+            else
+              printf "%b[FAILED]%b %s\n" "$RED" "$RESET" "$f"
+              FAIL=1
+            fi
+          done
+
+          if [[ $FAIL -ne 0 ]]; then
+            printf "%bclang-format check FAILED%b\n" "$RED" "$RESET"
+            echo "Run clang-format --style=file -i on the listed files."
+            exit 1
+          fi
+
+          printf "%bclang-format check PASSED%b\n" "$GREEN" "$RESET"

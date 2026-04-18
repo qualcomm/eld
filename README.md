@@ -210,6 +210,49 @@ To run the DCO checks locally use the following command:
 repolinter lint </path/to/eld>
 ```
 
+## Clang-format
+
+ELD uses LLVM clang-format style via the repository `.clang-format` file.
+
+### Bash functions
+
+Use the helper script at:
+`etc/bash/eld_clang_format_helpers.sh`
+
+To enable the functions in your shell, add this to your `~/.bashrc`
+(or `~/.bash_aliases`) and reload:
+
+```bash
+source </path/to/eld>/etc/bash/eld_clang_format_helpers.sh
+```
+
+For usage, run:
+
+```bash
+eld_clang_format_check --help
+```
+
+### Check formatting locally
+
+```bash
+clang-format --version
+eld_clang_format_check <base-branch>
+```
+
+`eld_clang_format_check` prints per-file colored status and returns non-zero on
+failure.
+
+### Format changed files locally
+
+```bash
+eld_clang_format_fix <base-branch>
+```
+
+### CI enforcement
+
+Pull requests run `.github/workflows/clang-format-pr.yml`, which fails if any
+changed C/C++ source file is not formatted with `clang-format --style=file`.
+
 ## ELD Build Status
 
 Live status of workflows building with ELD
