@@ -1,0 +1,222 @@
+name: Cpp Linter PR Check
+
+on:
+  # Temporarily disable PR-triggered runs.
+  # pull_request:
+  # Run on push for now.
+  push:
+  workflow_dispatch:
+
+permissions:
+  # Required for checkout and metadata reads.
+  contents: read
+  # Allows cpp-linter action to publish check-run results.
+  checks: write
+  # Needed for sticky PR comments with report links.
+  pull-requests: write
+
+env:
+  # Knob for future strict mode. Keep false for now to avoid failing PRs.
+  CPP_LINTER_ENFORCE: "false"
+  # Build directory for external LLVM ELD build (compile_commands.json lives here).
+  CPP_LINTER_BUILD_DIR: "llvm-build-ext-clang-pr"
+  CPP_LINTER_CCACHE_DIR: ".ccache-external-llvm"
+
+jobs:
+  cpp-linter:
+    # Keep the check non-blocking while surfacing actionable diagnostics.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Collect changed C/C++ files
+        id: changed-files
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Build a deterministic file list used by all later steps.
+          BASE_REF="${{ github.base_ref }}"
+          git fetch origin "${BASE_REF}" --depth=1
+          git diff --name-only --diff-filter=ACMRT "origin/${BASE_REF}...HEAD" \
+            | grep -E '\.(c|cc|cpp|cxx|h|hh|hpp|hxx|inc|def)$' > .cpp-linter-files.txt || true
+          COUNT="$(wc -l < .cpp-linter-files.txt | tr -d ' ')"
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+          if [[ "${COUNT}" -eq 0 ]]; then
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_files=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Changed files count: ${COUNT}"
+
+      - name: Install latest clang-tidy from LLVM apt repo
+        id: toolchain
+        if: steps.changed-files.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Install toolchain from LLVM apt so clang-tidy/clang-format stay current.
+          sudo apt-get update
+          sudo apt-get install -y wget gpg lsb-release ccache cmake ninja-build
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          UBUNTU_CODENAME="$(lsb_release -cs)"
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y clang clang-tidy llvm llvm-dev
+          clang-tidy --version
+          clang-format --version
+          # cpp-linter action expects a clang major version string.
+          CLANG_MAJOR="$(clang-tidy --version | sed -n 's/.*version \([0-9][0-9]*\).*/\1/p' | head -n1)"
+          echo "clang_major=${CLANG_MAJOR}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare external LLVM release layout
+        id: llvm-layout
+        if: steps.changed-files.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Create a lightweight external LLVM prefix expected by configure_external_llvm.sh.
+          ROOT="${GITHUB_WORKSPACE}"
+          EXT_LLVM_DIR="${ROOT}/external-llvm-release"
+          mkdir -p "${EXT_LLVM_DIR}/bin" "${EXT_LLVM_DIR}/lib/cmake"
+          LLVM_PREFIX="$(llvm-config --prefix)"
+          LLVM_CMAKE_DIR="$(llvm-config --cmakedir)"
+          ln -sf "$(command -v clang)" "${EXT_LLVM_DIR}/bin/clang"
+          ln -sf "$(command -v clang++)" "${EXT_LLVM_DIR}/bin/clang++"
+          ln -sf "${LLVM_PREFIX}/bin/llvm-tblgen" "${EXT_LLVM_DIR}/bin/llvm-tblgen"
+          ln -sfn "${LLVM_CMAKE_DIR}" "${EXT_LLVM_DIR}/lib/cmake/llvm"
+          echo "ext_llvm_dir=${EXT_LLVM_DIR}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure and build ELD with external LLVM
+        if: steps.changed-files.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Produce compile_commands.json for clang-tidy-driven checks.
+          mkdir -p "${CPP_LINTER_BUILD_DIR}" "${CPP_LINTER_CCACHE_DIR}"
+          ./configure_external_llvm.sh \
+            "${{ steps.llvm-layout.outputs.ext_llvm_dir }}" \
+            "${CPP_LINTER_BUILD_DIR}" \
+            --target ld.eld \
+            --ccache-dir "${CPP_LINTER_CCACHE_DIR}"
+
+      - name: Run C/C++ linter (non-blocking)
+        id: cpp-lint
+        uses: cpp-linter/cpp-linter-action@v2
+        if: steps.changed-files.outputs.has_files == 'true'
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: "${{ steps.toolchain.outputs.clang_major }}"
+          # Respect repository .clang-format.
+          style: "file"
+          # Use project defaults for clang-tidy checks.
+          tidy-checks: ""
+          # Limit scope/noise to touched files only.
+          files-changed-only: true
+          # Keep PR clean; report via artifact/link instead.
+          thread-comments: false
+          step-summary: false
+          file-annotations: false
+
+      - name: Run helper linter (non-blocking detailed diagnostics)
+        id: helper-lint
+        if: steps.changed-files.outputs.has_files == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Helper script collects richer clang-tidy diagnostics into a log artifact.
+          source ./etc/bash/eld_cpp_linter_helpers.sh
+          eld_cpp_linter_check \
+            --base-branch "${{ github.base_ref }}" \
+            --build-directory "${CPP_LINTER_BUILD_DIR}" \
+            > cpp-linter-helper.log 2>&1 || true
+
+      - name: Write cpp-linter report
+        if: always()
+        shell: bash
+        run: |
+          # Single downloadable report for reviewers and authors.
+          {
+            echo "Cpp Linter PR Report"
+            echo "===================="
+            echo "Date (UTC): $(date -u '+%Y-%m-%d %H:%M:%S')"
+            echo "Base branch: ${{ github.base_ref }}"
+            echo "clang-tidy version:"
+            clang-tidy --version || true
+            echo
+            echo "Build directory: ${CPP_LINTER_BUILD_DIR}"
+            echo "ccache directory: ${CPP_LINTER_CCACHE_DIR}"
+            echo
+            echo "Changed C/C++ files:"
+            if [[ -s .cpp-linter-files.txt ]]; then
+              sed 's/^/  - /' .cpp-linter-files.txt
+            else
+              echo "  (none)"
+            fi
+            echo
+            echo "cpp-linter action outputs:"
+            echo "  checks-failed: ${{ steps.cpp-lint.outputs.checks-failed }}"
+            echo "  tidy-checks-failed: ${{ steps.cpp-lint.outputs.tidy-checks-failed }}"
+            echo "  format-checks-failed: ${{ steps.cpp-lint.outputs.format-checks-failed }}"
+            echo
+            echo "What to fix:"
+            echo "  1. Download the 'cpp-linter-report' artifact from this workflow run."
+            echo "  2. For local reproduction/fixes, use:"
+            echo "       source etc/bash/eld_cpp_linter_helpers.sh"
+            echo "       eld_cpp_linter_check --base-branch '${{ github.base_ref }}' --build-directory '<build-dir>'"
+            echo "       eld_cpp_linter_fix   --base-branch '${{ github.base_ref }}' --build-directory '<build-dir>'"
+            echo
+            echo "Helper linter detailed log:"
+            if [[ -f cpp-linter-helper.log ]]; then
+              sed 's/^/  /' cpp-linter-helper.log
+            else
+              echo "  (helper log not generated)"
+            fi
+            echo
+            echo "PR enforcement knob:"
+            echo "  CPP_LINTER_ENFORCE=${CPP_LINTER_ENFORCE}"
+          } > cpp-linter-report.txt
+
+      - name: Upload cpp-linter report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Stable artifact name referenced by PR comment and docs.
+          name: cpp-linter-report
+          path: |
+            cpp-linter-report.txt
+            cpp-linter-helper.log
+            .cpp-linter-files.txt
+          if-no-files-found: error
+
+      - name: Report non-blocking lint warnings
+        if: ${{ steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}
+        run: |
+          # Keep job green for now, but visibly flag that follow-up is required.
+          echo "::warning::cpp-linter reported ${{ steps.cpp-lint.outputs.checks-failed }} warning(s). See workflow artifacts: cpp-linter-report."
+
+      - name: Post PR comment with report link
+        if: ${{ steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          # Sticky comment updates in-place across pushes.
+          header: cpp-linter-report
+          message: |
+            cpp-linter found **${{ steps.cpp-lint.outputs.checks-failed }}** warning(s).
+            Download the **cpp-linter-report** artifact from this workflow run:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Optional strict mode (currently disabled)
+        if: ${{ env.CPP_LINTER_ENFORCE == 'true' && steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}
+        run: |
+          # Switch this on later to enforce lint cleanliness.
+          echo "cpp-linter strict mode enabled and checks failed."
+          exit 1

@@ -253,6 +253,81 @@ eld_clang_format_fix <base-branch>
 Pull requests run `.github/workflows/clang-format-pr.yml`, which fails if any
 changed C/C++ source file is not formatted with `clang-format --style=file`.
 
+## Clang-tidy and cpp-linter
+
+ELD PRs also run clang-tidy-based lint checks via:
+`.github/workflows/cpp-linter-pr.yml`
+
+Current behavior:
+- Runs on changed C/C++ files in the PR.
+- Uses external-LLVM build setup to generate `compile_commands.json`.
+- Runs non-blocking for now (does not fail the PR by default).
+- Uploads downloadable logs/artifacts (including detailed diagnostics).
+
+### Local helper functions
+
+Use the helper script at:
+`etc/bash/eld_cpp_linter_helpers.sh`
+
+To enable the functions in your shell:
+
+```bash
+source </path/to/eld>/etc/bash/eld_cpp_linter_helpers.sh
+```
+
+For usage/help:
+
+```bash
+eld_cpp_linter_check --help
+```
+
+Common usage:
+
+```bash
+# Check changed files against base branch
+eld_cpp_linter_check --base-branch main --build-directory <build-dir>
+
+# Apply clang-tidy fixes on changed files
+eld_cpp_linter_fix --base-branch main --build-directory <build-dir>
+
+# Check or fix a single file
+eld_cpp_linter_check --build-directory <build-dir> --file path/to/file.cpp
+eld_cpp_linter_fix   --build-directory <build-dir> --file path/to/file.cpp
+```
+
+### How to skip files from clang-tidy checks
+
+1. Skip in PR workflow input list (temporary CI-level skip):
+
+```bash
+git diff --name-only --diff-filter=ACMRT "origin/${BASE_REF}...HEAD" \
+  | grep -E '\.(c|cc|cpp|cxx|h|hh|hpp|hxx|inc|def)$' \
+  | grep -Ev '^(path/to/file1\.cpp|path/to/legacy/.*)$' \
+  > .cpp-linter-files.txt || true
+```
+
+2. Run helpers on a specific file only (local scope control):
+
+```bash
+eld_cpp_linter_check --build-directory <build-dir> --file path/to/file.cpp
+```
+
+3. Add source-level suppressions where justified:
+- `// NOLINT(<check-name>)`
+- `// NOLINTBEGIN(<check-name>)` / `// NOLINTEND(<check-name>)`
+
+4. Use repo-level `.clang-tidy` policy filters, if maintained, for broad path/check tuning.
+
+### Where to find clang-tidy check names
+
+- Official clang-tidy checks list:
+  `https://clang.llvm.org/extra/clang-tidy/checks/list.html`
+- Checks supported by your installed clang-tidy version:
+
+```bash
+clang-tidy -list-checks -checks='*'
+```
+
 ## ELD Build Status
 
 Live status of workflows building with ELD

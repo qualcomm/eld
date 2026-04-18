@@ -17,7 +17,8 @@ on:
       - '.github/workflows/update-build-dashboard-data.yml'
       - '.github/workflows/scripts/record_builds.py'
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
-      - '.github/workflows/zephyr-nightly.yml'
+      - '.github/workflows/clang-format-pr.yml'
+      - '.github/workflows/cpp-linter-pr.yml'
 
 permissions:
   contents: write
