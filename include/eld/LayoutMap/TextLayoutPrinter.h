@@ -87,7 +87,7 @@ public:
 
   void flush();
 
- private:
+private:
   void printAssignment(const Assignment &A, Module &M, bool UseColor);
 
   void printChangeOutputSectionInfo(const ELFSection *S) const;

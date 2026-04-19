@@ -62,11 +62,12 @@ using namespace eld;
 static constexpr llvm::opt::OptTable::Info infoTable[] = {
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
                ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, GnuLdOptTable::ID, KIND,          \
-      GnuLdOptTable::GROUP, GnuLdOptTable::ALIAS, ALIASARGS, FLAGS,            \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
+               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)    \
+  LLVM_CONSTRUCT_OPT_INFO(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET,               \
+                          GnuLdOptTable::ID, KIND, GnuLdOptTable::GROUP,       \
+                          GnuLdOptTable::ALIAS, ALIASARGS, FLAGS, VISIBILITY,  \
+                          PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR,      \
+                          VALUES, SUBCOMMANDIDS_OFFSET),
 #include "eld/Driver/GnuLinkerOptions.inc"
 #undef OPTION
 };
@@ -601,7 +602,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --enable-linker-version / --disable-linker-version
   if (Args.hasArg(T::enable_linker_version) &&
       Args.hasArg(T::disable_linker_version)) {
-    errs() << "Cannot specify enable and disable LINKER_VERSION at same time!\n";
+    errs()
+        << "Cannot specify enable and disable LINKER_VERSION at same time!\n";
     return false;
   }
 
@@ -612,7 +614,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   if (Args.hasArg(T::disable_linker_version)) {
     Config.options().setLinkerVersionDirectiveEnabled(false);
-    Config.addCommandLine(Table->getOptionName(T::disable_linker_version), true);
+    Config.addCommandLine(Table->getOptionName(T::disable_linker_version),
+                          true);
   }
 
   bool recordCommandLine = Args.hasFlag(

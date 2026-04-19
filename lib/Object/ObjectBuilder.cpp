@@ -508,9 +508,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Pool->async([&] { assignInputFromOutput(Obj); });
     }
     Pool->wait();
   }
@@ -656,16 +654,16 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
             << target->name();
         return false;
       }
-        std::string Str;
-        if (target->getLink())
-          Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
-        else
-          Str = "No Available Sections";
-        ThisConfig.raise(Diag::incompatible_sections)
-            << I->name() << I->getInputFile()->getInput()->decoratedPath()
-            << target->name();
-        ThisModule.setFailure(true);
-        return false;
+      std::string Str;
+      if (target->getLink())
+        Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
+      else
+        Str = "No Available Sections";
+      ThisConfig.raise(Diag::incompatible_sections)
+          << I->name() << I->getInputFile()->getInput()->decoratedPath()
+          << target->name();
+      ThisModule.setFailure(true);
+      return false;
     }
 
     uint64_t TargetHasGroup = target->getFlags() & llvm::ELF::SHF_GROUP;

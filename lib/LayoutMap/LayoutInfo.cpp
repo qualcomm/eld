@@ -48,8 +48,8 @@ std::string LayoutInfo::infoForFrag(const Fragment *Frag) {
 }
 
 void LayoutInfo::recordFragment(InputFile *Input,
-                                   const ELFSection *InputElfSection,
-                                   const Fragment *Frag) {
+                                const ELFSection *InputElfSection,
+                                const Fragment *Frag) {
   if (!Frag)
     return;
 
@@ -155,8 +155,8 @@ bool LayoutInfo::isSectionDetailedInfoAvailable(ELFSection *Section) {
 }
 
 void LayoutInfo::recordArchiveMember(Input *Origin, InputFile *Referred,
-                                        ArchiveFile::Symbol *ArchSym,
-                                        LDSymbol *Sym) {
+                                     ArchiveFile::Symbol *ArchSym,
+                                     LDSymbol *Sym) {
   ArchiveRecords.push_back(std::make_tuple(Origin, Referred, ArchSym, Sym));
 }
 
@@ -169,9 +169,8 @@ uint32_t LayoutInfo::LayoutDetail = 0;
 
 std::optional<std::string> LayoutInfo::ThisBasepath;
 
-eld::Expected<void>
-LayoutInfo::setLayoutDetail(llvm::StringRef Option,
-                               DiagnosticEngine *DiagEngine) {
+eld::Expected<void> LayoutInfo::setLayoutDetail(llvm::StringRef Option,
+                                                DiagnosticEngine *DiagEngine) {
   const llvm::StringLiteral ShowRelativePathOptionStr = "relative-path";
   uint32_t OptionLayoutDetail =
       llvm::StringSwitch<uint32_t>(Option)
@@ -342,7 +341,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
 }
 
 void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
-                                       std::string FileType) {
+                                    std::string FileType) {
   InputSequenceT IS;
   IS.Prefix = Prefix;
   IS.Input = Input;
@@ -381,21 +380,15 @@ std::string LayoutInfo::getPath(const std::string &Hash) const {
   return ThisConfig.getFileFromHash(Hash);
 }
 
-void LayoutInfo::recordLinkerScriptRule() {
-  LinkStats.NumLinkerScriptRules++;
-}
+void LayoutInfo::recordLinkerScriptRule() { LinkStats.NumLinkerScriptRules++; }
 
 void LayoutInfo::recordOrphanSection() { LinkStats.NumOrphans++; }
 
 void LayoutInfo::recordTrampolines() { LinkStats.NumTrampolines++; }
 
-void LayoutInfo::recordRetainedSections() {
-  LinkStats.NumRetainedSections++;
-}
+void LayoutInfo::recordRetainedSections() { LinkStats.NumRetainedSections++; }
 
-void LayoutInfo::recordNoLinkerScriptRuleMatch() {
-  LinkStats.NumNoRuleMatch++;
-}
+void LayoutInfo::recordNoLinkerScriptRuleMatch() { LinkStats.NumNoRuleMatch++; }
 
 void LayoutInfo::recordPlugin() { LinkStats.NumPlugins++; }
 
@@ -404,39 +397,38 @@ void LayoutInfo::recordFeature(std::string Feature) {
 }
 
 void LayoutInfo::recordSectionOverride(plugin::LinkerWrapper *W,
-                                          ChangeOutputSectionPluginOp *O) {
+                                       ChangeOutputSectionPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChangeOutputSectionOps[O->getELFSection()].push_back(O);
 }
 
-void LayoutInfo::recordAddChunk(plugin::LinkerWrapper *W,
-                                   AddChunkPluginOp *O) {
+void LayoutInfo::recordAddChunk(plugin::LinkerWrapper *W, AddChunkPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChunkOps[O->getFrag()].push_back(O);
 }
 
 void LayoutInfo::recordResetOffset(plugin::LinkerWrapper *W,
-                                      ResetOffsetPluginOp *O) {
+                                   ResetOffsetPluginOp *O) {
   PluginOps[W].push_back(O);
 }
 
 void LayoutInfo::recordRemoveChunk(plugin::LinkerWrapper *W,
-                                      RemoveChunkPluginOp *O) {
+                                   RemoveChunkPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChunkOps[O->getFrag()].push_back(O);
 }
 
 void LayoutInfo::recordUpdateChunks(plugin::LinkerWrapper *W,
-                                       UpdateChunksPluginOp *O) {
+                                    UpdateChunksPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
 }
 
 void LayoutInfo::recordRemoveSymbol(plugin::LinkerWrapper *W,
-                                       RemoveSymbolPluginOp *O) {
+                                    RemoveSymbolPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   RemovedSymbols[O->getRemovedSymbol()] = O;
@@ -480,7 +472,7 @@ LayoutInfo::getCommonsGarbageCollected(Module &Module) {
 }
 
 void LayoutInfo::recordRelocationData(plugin::LinkerWrapper *W,
-                                         RelocationDataPluginOp *O) {
+                                      RelocationDataPluginOp *O) {
   PluginOps[W].push_back(O);
   Plugins.insert(W);
   ChunkOps[O->getFrag()].push_back(O);

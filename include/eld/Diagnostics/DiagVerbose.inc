@@ -127,7 +127,8 @@ DIAG(created_internal_section, DiagnosticEngine::Verbose,
      "entry size %4")
 DIAG(created_eh_frame_hdr, DiagnosticEngine::Verbose,
      "Created eh frame header section %0 with type %1 flag %2 alignment %3")
-DIAG(verbose_initializing_plugin, DiagnosticEngine::Verbose, "Initalized plugin %0")
+DIAG(verbose_initializing_plugin, DiagnosticEngine::Verbose,
+     "Initalized plugin %0")
 DIAG(adding_output_section_for_plugin, DiagnosticEngine::Verbose,
      "Adding outputsection %0 for Plugin %1")
 DIAG(adding_symbol_to_fragment, DiagnosticEngine::Verbose,
@@ -163,8 +164,7 @@ DIAG(modifying_mergeconst_reloc, DiagnosticEngine::Trace,
 DIAG(splitting_merge_string_section, DiagnosticEngine::Verbose,
      "%0: created mergeable string fragment with contents %1 and align "
      "%2")
-DIAG(mapstyles_used, DiagnosticEngine::Verbose,
-     "Using MapStyles %0")
+DIAG(mapstyles_used, DiagnosticEngine::Verbose, "Using MapStyles %0")
 DIAG(verbose_using_just_symbols, DiagnosticEngine::Verbose,
      "Using just symbols for input %0")
 DIAG(verbose_inserting_section_at_fixed_addr, DiagnosticEngine::Trace,
@@ -175,8 +175,7 @@ DIAG(verbose_rule_matching_cache_func_hash, DiagnosticEngine::Verbose,
      "Rule-matching cache-functionality hash: %0")
 DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
      "Initialized plugin config for %0")
-DIAG(verbose_infer_target, DiagnosticEngine::Verbose,
-     "Inferred target : %0")
+DIAG(verbose_infer_target, DiagnosticEngine::Verbose, "Inferred target : %0")
 DIAG(verbose_sframe_log, DiagnosticEngine::Verbose, "SFrame Handling : %0")
 DIAG(verbose_remap_input, DiagnosticEngine::Verbose,
      "Remapping input file %0 to %1")

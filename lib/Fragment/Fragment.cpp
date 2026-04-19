@@ -159,5 +159,6 @@ std::string Fragment::str(const GeneralOptions &Options) const {
     return "";
   InputFile *IF = S->originalInput();
   ASSERT(IF, "Input section must have an InputFile!");
-  return IF->getInput()->decoratedPath() + "(" + S->getDecoratedName(Options) + ")";
+  return IF->getInput()->decoratedPath() + "(" + S->getDecoratedName(Options) +
+         ")";
 }

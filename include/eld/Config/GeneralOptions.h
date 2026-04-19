@@ -127,8 +127,8 @@ public:
   ~GeneralOptions();
 
   GeneralOptions() = delete;
-  GeneralOptions(const GeneralOptions&) = delete;
-  GeneralOptions(GeneralOptions&&) = delete;
+  GeneralOptions(const GeneralOptions &) = delete;
+  GeneralOptions(GeneralOptions &&) = delete;
 
   /// stats
   void setStats(llvm::StringRef Stats);
@@ -1239,17 +1239,17 @@ private:
   bool BColor = true;             // --color[=true,false,auto]
   bool BCreateEhFrameHdr = false; // --eh-frame-hdr
   bool BCreateEhFrameHdrSet = false;
-  bool BCreateSFrameHdr = false;  // --sframe-hdr
-  bool BOMagic = false;            // -N, --omagic
-  bool BNMagic = false;            // -n, --nmagic
-  bool BStripDebug = false;        // -S, --strip-debug
-  bool BExportDynamic = false;     //-E, --export-dynamic
-  bool BWarnSharedTextrel = false; // --warn-shared-textrel
-  bool BWarnCommon = false;        // --warn-common
-  bool BDefineCommon = false;      // -d, -dc, -dp
-  bool BFatalWarnings = false;     // --fatal-warnings
-  bool BWarningsAsErrors = false;  // -Werror
-  bool BLTOOptRemarksFile = false; // --opt-record-file
+  bool BCreateSFrameHdr = false;             // --sframe-hdr
+  bool BOMagic = false;                      // -N, --omagic
+  bool BNMagic = false;                      // -n, --nmagic
+  bool BStripDebug = false;                  // -S, --strip-debug
+  bool BExportDynamic = false;               //-E, --export-dynamic
+  bool BWarnSharedTextrel = false;           // --warn-shared-textrel
+  bool BWarnCommon = false;                  // --warn-common
+  bool BDefineCommon = false;                // -d, -dc, -dp
+  bool BFatalWarnings = false;               // --fatal-warnings
+  bool BWarningsAsErrors = false;            // -Werror
+  bool BLTOOptRemarksFile = false;           // --opt-record-file
   bool BLTOOptRemarksDisplayHotness = false; // --display-hotness-remarks
   bool BNoStdlib = false;                    // -nostdlib
   bool BPrintMap = false;                    // --print-map
@@ -1289,7 +1289,7 @@ private:
   std::optional<std::string> SaveTempsDir; // -save-temps=
   bool Rosegment = false; // merge read only with readonly/execute segments.
   SeparateSegmentKind SeparateSegments =
-      SeparateSegmentKind::None; // -z separate-code
+      SeparateSegmentKind::None;         // -z separate-code
   std::optional<std::string> LTOObjPath; // --lto-obj-path=
   std::vector<std::string>
       UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
@@ -1304,14 +1304,14 @@ private:
   std::string SymDefFile;          // --symdef-file
   llvm::StringRef SymDefFileStyle; // --symdef-style
   bool BAllowBSSMixing = false;    // --disable-bss-mixing
-  bool BAllowBSSConversion = false;       // --disable-bss-conversion
-  bool BFixCortexA53Errata843419 = false; // --fix-cortex-a53-843419
-  bool Compact = false;                   // --compact
-  bool BRWPI = false;                     // --frwpi
-  bool BROPI = false;                     // --fropi
+  bool BAllowBSSConversion = false;              // --disable-bss-conversion
+  bool BFixCortexA53Errata843419 = false;        // --fix-cortex-a53-843419
+  bool Compact = false;                          // --compact
+  bool BRWPI = false;                            // --frwpi
+  bool BROPI = false;                            // --fropi
   Target2Policy Target2 = Target2Policy::GotRel; // --target2
-  bool BExecuteOnly = false;              // --execute-only
-  bool BPrintTimeStats = false;           // --print-stats
+  bool BExecuteOnly = false;                     // --execute-only
+  bool BPrintTimeStats = false;                  // --print-stats
   bool BPrintAllUserPluginTimeStats = false;
   bool BDemangle = true;                  // --demangle-style
   bool ValidateArchOpts = false;          // check -mabi with backend
@@ -1320,21 +1320,21 @@ private:
   bool BRiscvRelax = true;                // enable riscv relaxation
   bool RiscvZeroRelax = true;             // Zero-page relaxation
   bool RiscvGPRelax = true;               // GP relaxation
-  bool BRiscvRelaxToC = true; // enable riscv relax to compressed code
-  bool BRiscvRelaxXqci = false; // enable riscv relaxations for xqci
+  bool BRiscvRelaxToC = true;     // enable riscv relax to compressed code
+  bool BRiscvRelaxXqci = false;   // enable riscv relaxations for xqci
   bool BRiscvRelaxTLSDESC = true; // enable riscv relaxations for TLSDESC
   bool AllowIncompatibleSectionsMix = false; // Allow incompatibleSections;
   bool ProgressBar = false;                  // Show progressbar.
   bool RecordInputFiles = false;             // --reproduce
   bool RecordInputFilesOnFail = false;       // --reproduce-on-fail
   // FIXME: Change the name to CompressReproduceTar
-  bool CompressTar = false;         // --reproduce-compressed
-  bool DisplaySummary = false;      // display linker run summary
-  bool HasMappingFile = false;      // --Mapping-file
-  bool DumpMappings = false;        // --Dump-Mapping-file
-  bool DumpResponse = false;        // --Dump-Response-file
-  bool InsertTimingStats = false;        // -emit-timing-stats-in-output
-  bool FatalInternalErrors = false;      // --fatal-internal-errors
+  bool CompressTar = false;                  // --reproduce-compressed
+  bool DisplaySummary = false;               // display linker run summary
+  bool HasMappingFile = false;               // --Mapping-file
+  bool DumpMappings = false;                 // --Dump-Mapping-file
+  bool DumpResponse = false;                 // --Dump-Response-file
+  bool InsertTimingStats = false;            // -emit-timing-stats-in-output
+  bool FatalInternalErrors = false;          // --fatal-internal-errors
   bool EnableLinkerVersionDirective = false; // --enable/disable-linker-version
   bool RecordCommandLine = false;            // --{no-,}record-command-line
 
@@ -1350,7 +1350,8 @@ private:
   std::string MapFile; // Mapfile
   std::string TarFile; // --reproduce output tarfile name
   std::string TimingStatsFile;
-  std::optional<std::string> PluginActivityLogFile; // --plugin-activity-file output path
+  std::optional<std::string>
+      PluginActivityLogFile; // --plugin-activity-file output path
   std::optional<std::string>
       ArchiveMemberReportFile;           // --archive-member-report output path
   std::string MappingFileName;           // --Mapping-file

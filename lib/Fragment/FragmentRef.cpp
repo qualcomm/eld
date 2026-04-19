@@ -154,9 +154,9 @@ FragmentRef::Offset FragmentRef::getOutputOffset(Module &M) const {
     /// The target string could be a suffix
     uint32_t OffsetInString = ThisOffset - S->InputOffset;
     bool GlobalMerge = M.getConfig().options().shouldGlobalStringMerge();
-    if (const MergeableString *Merged =
-            (!S->isAlloc() && GlobalMerge) ? M.getMergedNonAllocString(S)
-                                           : O->getMergedString(S)) {
+    if (const MergeableString *Merged = (!S->isAlloc() && GlobalMerge)
+                                            ? M.getMergedNonAllocString(S)
+                                            : O->getMergedString(S)) {
       assert(S->Exclude);
       assert(!Merged->Exclude);
       assert(Merged->hasOutputOffset());

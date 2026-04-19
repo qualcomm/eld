@@ -1437,7 +1437,8 @@ void ObjectLinker::applySubAlign() {
         }
         if (owningSect && seen.insert(owningSect).second) {
           // Warn if SUBALIGN is reducing the section alignment
-          if (ThisConfig.showLinkerScriptWarnings() && F->alignment() > subAlign) {
+          if (ThisConfig.showLinkerScriptWarnings() &&
+              F->alignment() > subAlign) {
             ThisConfig.raise(Diag::warn_subalign_less_than_section_alignment)
                 << utility::toHex(subAlign) << utility::toHex(F->alignment())
                 << owningSect->getLocation(0, ThisConfig.options());

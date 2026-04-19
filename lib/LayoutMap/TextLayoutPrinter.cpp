@@ -74,8 +74,8 @@ eld::Expected<void> TextLayoutPrinter::init() {
     std::string LayoutFileName =
         ThisLayoutInfo->getConfig().options().layoutFile();
     if (!SuffixExtension.empty())
-      LayoutFileName = ThisLayoutInfo->getConfig().options().layoutFile() +
-                       SuffixExtension;
+      LayoutFileName =
+          ThisLayoutInfo->getConfig().options().layoutFile() + SuffixExtension;
     LayoutFile = std::make_unique<llvm::raw_fd_ostream>(LayoutFileName, Error,
                                                         llvm::sys::fs::OF_None);
     Buffer = std::make_unique<llvm::raw_string_ostream>(Storage);
@@ -156,8 +156,7 @@ void TextLayoutPrinter::printPluginStats(
   }
 }
 
-void TextLayoutPrinter::printStats(LayoutInfo::Stats &L,
-                                   const Module &Module) {
+void TextLayoutPrinter::printStats(LayoutInfo::Stats &L, const Module &Module) {
   const ObjectLinker &ObjLinker = *(Module.getLinker()->getObjectLinker());
   const GNULDBackend &Backend = Module.getBackend();
   if (!L.hasStats())
@@ -370,9 +369,9 @@ void TextLayoutPrinter::printGlobalPluginInfo(Module &M, bool UseColor) {
     std::string features;
     if (P.isDefaultPlugin())
       features += "[autoloaded]";
-    outputStream() << "\t" << "\t" << P.getName() << "\t"
-                   << P.getLibraryName() << "\t" << P.getPluginType() << "\t"
-                   << P.getPluginOptions() << features << "\n";
+    outputStream() << "\t" << "\t" << P.getName() << "\t" << P.getLibraryName()
+                   << "\t" << P.getPluginType() << "\t" << P.getPluginOptions()
+                   << features << "\n";
   };
 
   if (UniversalPlugins.size()) {
@@ -727,8 +726,7 @@ void TextLayoutPrinter::printFragInfo(Fragment *Frag, LayoutFragmentInfo *Info,
       };
 
   std::optional<uint64_t> AddressOrOffset;
-  bool HasFragInfo =
-      (M.getState() >= LinkState::ActBeforePerformingLayout);
+  bool HasFragInfo = (M.getState() >= LinkState::ActBeforePerformingLayout);
   if (llvm::isa<MergeStringFragment>(Frag) && !M.isLinkStateBeforeLayout()) {
     auto *Strings = llvm::cast<MergeStringFragment>(Frag);
     for (MergeableString &S : Strings->getStrings()) {
@@ -864,8 +862,7 @@ void TextLayoutPrinter::printOnlyLayoutFrag(eld::Module &CurModule,
 /// printOnlyLayoutFrag()
 void TextLayoutPrinter::printFrag(eld::Module &CurModule, ELFSection *Section,
                                   Fragment *Frag, bool UseColor) {
-  if (ThisLayoutInfo->showOnlyLayout() ||
-      CurModule.isLinkStateBeforeLayout()) {
+  if (ThisLayoutInfo->showOnlyLayout() || CurModule.isLinkStateBeforeLayout()) {
     printOnlyLayoutFrag(CurModule, Section, Frag, UseColor);
     return;
   }
@@ -1443,9 +1440,7 @@ void TextLayoutPrinter::flush() {
   }
 }
 
-TextLayoutPrinter::~TextLayoutPrinter() {
-  flush();
-}
+TextLayoutPrinter::~TextLayoutPrinter() { flush(); }
 
 void TextLayoutPrinter::clearInputRecords() {
   ThisLayoutInfo->resetArchiveRecords();
