@@ -24,5 +24,10 @@ DIAG(referenced_bc_file, DiagnosticEngine::Trace, "\tBC : [%0]")
 DIAG(referenced_by_root_symbol, DiagnosticEngine::Trace,
      "\tReferenced by = Root symbol")
 DIAG(referenced_by, DiagnosticEngine::Trace, "\tReferenced by = %0")
+DIAG(referenced_by_link_order, DiagnosticEngine::Trace,
+     "\tReferenced by = %0 (SHF_LINK_ORDER dependency)")
 DIAG(trace_gc_section, DiagnosticEngine::Trace, "GC : %0[%1]")
 DIAG(trace_gc_symbol, DiagnosticEngine::Trace, "GC (Common Symbol): %0[%1]")
+DIAG(trace_link_order_dependency, DiagnosticEngine::Trace,
+     "LINK_ORDER : %0 depends on %1")
+DIAG(trace_discard_section, DiagnosticEngine::Trace, "DISCARD : %0 in %1 (%2)")

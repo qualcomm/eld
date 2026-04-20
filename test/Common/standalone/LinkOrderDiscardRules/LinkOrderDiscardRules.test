@@ -1,0 +1,23 @@
+#---LinkOrderDiscardRules.test--------------------- Executable,LinkerScript -----#
+#BEGIN_COMMENT
+# Verify /DISCARD/ interactions with SHF_LINK_ORDER sections:
+# 1) If SHF_LINK_ORDER section is explicitly discarded, it is removed.
+# 2) If its linked parent section is discarded, dependent SHF_LINK_ORDER is
+#    also removed.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/1.s -o %t1.o
+
+RUN: %link %linkopts %t1.o -T %p/Inputs/discard-linkorder.t -e _start -o %t.discard-linkorder.out
+RUN: %readelf -S -W %t.discard-linkorder.out | %filecheck %s --check-prefix=DISCARD_LINKORDER
+
+RUN: %link %linkopts %t1.o -T %p/Inputs/discard-parent.t -e _start -o %t.discard-parent.out
+RUN: %readelf -S -W %t.discard-parent.out | %filecheck %s --check-prefix=DISCARD_PARENT
+
+# DISCARD_LINKORDER: .text
+# DISCARD_LINKORDER-NOT: .linkorder.dep
+
+# DISCARD_PARENT: .text
+# DISCARD_PARENT-NOT: .text.dep
+# DISCARD_PARENT-NOT: .linkorder.dep
+#END_TEST

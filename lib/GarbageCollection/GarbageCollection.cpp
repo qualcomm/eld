@@ -452,6 +452,12 @@ void GarbageCollection::setUpReachedSectionsAndSymbols() {
       if (!Linked)
         continue;
       MSectionReachedListMap.addReference(*Linked, *Dependent);
+      if (ThisModule.getPrinter()->traceLinkOrder() ||
+          ThisModule.getPrinter()->traceGC()) {
+        ThisConfig.raise(Diag::trace_link_order_dependency)
+            << Dependent->getDecoratedName(ThisConfig.options())
+            << Linked->getDecoratedName(ThisConfig.options());
+      }
     }
   }
 
@@ -697,8 +703,16 @@ void GarbageCollection::findReferencedSectionsAndSymbols(
         if (!P.second)
           ThisConfig.raise(Diag::referenced_by_root_symbol);
         else {
-          ThisConfig.raise(Diag::referenced_by)
-              << P.second->getDecoratedName(ThisConfig.options());
+          bool IsLinkOrderEdge = false;
+          if (ELFSection *ELFSect = llvm::dyn_cast<ELFSection>(Sect))
+            if (ELFSect->isLinkOrder() && ELFSect->getLink() == P.second)
+              IsLinkOrderEdge = true;
+          if (IsLinkOrderEdge)
+            ThisConfig.raise(Diag::referenced_by_link_order)
+                << P.second->getDecoratedName(ThisConfig.options());
+          else
+            ThisConfig.raise(Diag::referenced_by)
+                << P.second->getDecoratedName(ThisConfig.options());
           if (P.second->getInputFile())
             ThisConfig.raise(Diag::referenced_input_file)
                 << P.second->getInputFile()->getInput()->decoratedPath();
@@ -782,6 +796,11 @@ void GarbageCollection::stripSections(SectionSetTy &S,
           ThisConfig.raise(Diag::gc_section_info)
               << Section->getDecoratedName(ThisConfig.options())
               << I->decoratedPath();
+        if (ThisModule.getPrinter()->traceDiscardSections()) {
+          ThisConfig.raise(Diag::trace_discard_section)
+              << Section->getDecoratedName(ThisConfig.options())
+              << I->decoratedPath() << "garbage collection";
+        }
         if (CommonSectionsOnly && !IsCommonSection)
           IgnoredSections.push_back(
               std::make_pair(Section, Section->getKind()));

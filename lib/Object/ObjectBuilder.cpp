@@ -352,6 +352,12 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
           // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
           if (ELFSect && Out->isDiscard()) {
             ELFSect->setKind(LDFileFormat::Ignore);
+            if (ThisModule.getPrinter()->traceDiscardSections()) {
+              ThisConfig.raise(Diag::trace_discard_section)
+                  << ELFSect->getDecoratedName(ThisConfig.options())
+                  << ObjFile->getInput()->decoratedPath()
+                  << "matched /DISCARD/ linker script rule";
+            }
             if (ThisConfig.options().isSectionTracingRequested() &&
                 ThisConfig.options().traceSection(ELFSect->name().str()))
               ThisConfig.raise(Diag::discarded_section_info)
@@ -632,6 +638,25 @@ bool ObjectBuilder::shouldSkipMergeSection(ELFSection *I) const {
   bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
   Pair.first = I->getOutputSection();
   Pair.second = I->getMatchedLinkerScriptRule();
+
+  // SHF_LINK_ORDER input sections depend on their linked input section.
+  // If the linked section is discarded by linker script processing, skip
+  // merging the dependent section as well.
+  if (I->isLinkOrder()) {
+    ELFSection *Linked = I->getLink();
+    if (Linked && (Linked->isIgnore() || Linked->isDiscard() ||
+                   (Linked->getOutputSection() &&
+                    Linked->getOutputSection()->isDiscard()))) {
+      if (ThisModule.getPrinter()->traceDiscardSections()) {
+        Input *In = I->getInputFile() ? I->getInputFile()->getInput() : nullptr;
+        ThisConfig.raise(Diag::trace_discard_section)
+            << I->getDecoratedName(ThisConfig.options())
+            << (In ? In->decoratedPath() : "<internal>")
+            << "linked SHF_LINK_ORDER target section is discarded";
+      }
+      return true;
+    }
+  }
 
   if (Pair.first != nullptr && Pair.first->isDiscard())
     return true;

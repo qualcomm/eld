@@ -481,6 +481,13 @@ Debug tips:
 * ``--print-gc-sections`` shows what got collected.
 * ``--trace=garbage-collection`` and ``--trace=live-edges`` are useful when a
   section is unexpectedly dead/alive.
+* ``--trace=link-order`` prints ``SHF_LINK_ORDER`` dependency edges so you can
+  see which dependent section follows which linked section.
+* ``--trace=discard-sections`` prints section discard reasons, including
+  explicit ``/DISCARD/`` rule matches and dependent ``SHF_LINK_ORDER`` section
+  discards when the linked section is discarded.
+* ``--trace=live-edges`` now annotates ``SHF_LINK_ORDER`` reachability edges in
+  the ``Referenced by = ...`` diagnostics.
 * If GC keeps/drops a zero-sized section unexpectedly, check whether it is the
   target of a relocation or contains a symbol (see the FAQ discussion of
   zero-sized sections).

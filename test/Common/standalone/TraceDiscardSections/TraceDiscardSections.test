@@ -1,0 +1,12 @@
+#---TraceDiscardSections.test--------------------- Executable,Trace,LinkerScript ---#
+#BEGIN_COMMENT
+# Verify --trace=discard-sections traces both explicitly discarded sections
+# and SHF_LINK_ORDER sections discarded due to a discarded linked section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts --trace=discard-sections %t1.o -T %p/Inputs/script.t -e _start -o %t.out 2>&1 | %filecheck %s
+
+# CHECK-DAG: DISCARD : .text.dep in {{.*}}tmp1.o (matched /DISCARD/ linker script rule)
+# CHECK-DAG: DISCARD : .linkorder.dep in {{.*}}tmp1.o (linked SHF_LINK_ORDER target section is discarded)
+#END_TEST
