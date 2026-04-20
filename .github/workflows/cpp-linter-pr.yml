@@ -187,7 +187,7 @@ jobs:
 
       - name: Upload cpp-linter report artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           # Stable artifact name referenced by PR comment and docs.
           name: cpp-linter-report
