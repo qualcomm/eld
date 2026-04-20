@@ -205,7 +205,7 @@ jobs:
 
       - name: Post PR comment with report link
         if: ${{ steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           # Sticky comment updates in-place across pushes.
           header: cpp-linter-report
