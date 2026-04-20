@@ -7,7 +7,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./configure_external_llvm.sh <LLVM_RELEASE_DIR> <ELD_BUILD_DIR> [options]
+  ./configure_external_llvm.sh <LLVM_RELEASE_DIR> <ELD_BUILD_DIR> [options] [-- <cmake-args...>]
 
 Arguments:
   LLVM_RELEASE_DIR   Path to an installed LLVM "release" directory containing:
@@ -25,12 +25,15 @@ Options:
       Default: ${ELD_BUILD_DIR}/.ccache
   --no-ccache
       Disable ccache even if installed.
+  -- <cmake-args...>
+      Forward all following arguments directly to cmake.
 
 Examples:
   ./configure_external_llvm.sh /path/to/llvm.rel.latest ./llvm-build-ext-clang
   ./configure_external_llvm.sh /opt/llvm-22.0.0 /tmp/eld-build
   ./configure_external_llvm.sh /opt/llvm-22.0.0 /tmp/eld-build --target all
   ./configure_external_llvm.sh /opt/llvm-22.0.0 /tmp/eld-build --no-build
+  ./configure_external_llvm.sh /opt/llvm-22.0.0 /tmp/eld-build -- -DLLVM_ENABLE_ASSERTIONS=ON
 EOF
 }
 
@@ -54,6 +57,7 @@ BUILD_AFTER_CONFIG=1
 NINJA_TARGET="ld.eld"
 USE_CCACHE=1
 CCACHE_DIR_ARG=""
+EXTRA_CMAKE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +78,11 @@ while [[ $# -gt 0 ]]; do
     --no-ccache)
       USE_CCACHE=0
       shift
+      ;;
+    --)
+      shift
+      EXTRA_CMAKE_ARGS=("$@")
+      break
       ;;
     *)
       echo "error: unknown option: $1" >&2
@@ -132,6 +141,9 @@ echo "External LLVM: ${EXTERNAL_LLVM_ROOT}"
 echo "LLVM CMake dir: ${EXTERNAL_LLVM_CMAKE}"
 echo "Build target: ${NINJA_TARGET}"
 echo "Build after configure: $([[ ${BUILD_AFTER_CONFIG} -eq 1 ]] && echo yes || echo no)"
+if [[ ${#EXTRA_CMAKE_ARGS[@]} -gt 0 ]]; then
+  echo "Extra CMake args: ${EXTRA_CMAKE_ARGS[*]}"
+fi
 echo ""
 
 CCACHE_CMAKE_ARGS=()
@@ -168,6 +180,7 @@ cmake -G Ninja \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DLLVM_ENABLE_SPHINX=ON \
   "${CCACHE_CMAKE_ARGS[@]}" \
+  "${EXTRA_CMAKE_ARGS[@]}" \
   "${SOURCE_DIR}"
 
 echo ""
