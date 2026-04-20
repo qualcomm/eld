@@ -19,6 +19,8 @@ on:
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
       - '.github/workflows/clang-format-pr.yml'
       - '.github/workflows/cpp-linter-pr.yml'
+      - 'etc/**/*.sh'
+      - '**/configure_external_llvm.sh'
 
 permissions:
   contents: write
