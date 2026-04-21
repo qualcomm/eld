@@ -3576,9 +3576,14 @@ bool GNULDBackend::postLayout() {
   // in the output file.
   std::vector<SectionOffset> lmas;
   for (ELFSection *sec : outputSections) {
-    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()) &&
-        !sec->isNoBits()) {
-      lmas.push_back({sec, sec->pAddr()});
+    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS())) {
+      if (sec->pAddr() % sec->getAddrAlign() != 0 &&
+          config().showLinkerScriptWarnings())
+        config().raise(Diag::warn_lma_not_aligned)
+            << utility::toHex(static_cast<uint64_t>(sec->pAddr()))
+            << sec->name() << sec->getAddrAlign();
+      if (!sec->isNoBits())
+        lmas.push_back({sec, sec->pAddr()});
     }
   }
   checkOverlap("load address", lmas, false);
