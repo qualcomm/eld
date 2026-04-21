@@ -1370,7 +1370,13 @@ void ObjectLinker::applySubAlign() {
     prolog.subAlign().eval();
     prolog.subAlign().commit();
     subAlign = prolog.subAlign().result();
-
+    // Validate SUBALIGN is power of 2
+    if (subAlign != 0 && !llvm::isPowerOf2_64(subAlign)) {
+      ThisConfig.raise(Diag::error_subalign_not_power_of_two)
+          << prolog.subAlign().getContext() << utility::toHex(subAlign)
+          << O->name();
+      continue;
+    }
     for (RuleContainer *R : *O) {
       ELFSection *inSect = R->getSection();
       for (Fragment *F : inSect->getFragmentList()) {
@@ -1380,7 +1386,8 @@ void ObjectLinker::applySubAlign() {
         }
         if (owningSect && seen.insert(owningSect).second) {
           // Warn if SUBALIGN is reducing the section alignment
-          if (ThisConfig.showLinkerScriptWarnings() && F->alignment() > subAlign) {
+          if (ThisConfig.showLinkerScriptWarnings() &&
+              F->alignment() > subAlign) {
             ThisConfig.raise(Diag::warn_subalign_less_than_section_alignment)
                 << utility::toHex(subAlign) << utility::toHex(F->alignment())
                 << owningSect->getLocation(0, ThisConfig.options());

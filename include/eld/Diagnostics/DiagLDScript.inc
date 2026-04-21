@@ -130,6 +130,8 @@ DIAG(warn_non_power_of_2_value_to_align_builtin, DiagnosticEngine::Warning,
 DIAG(
     warn_subalign_less_than_section_alignment, DiagnosticEngine::Warning,
     "SUBALIGN(0x%0) is less than the section alignment (0x%1) for section '%2'")
+DIAG(error_subalign_not_power_of_two, DiagnosticEngine::Error,
+     "%0: SUBALIGN value 0x%1 is not a power of 2 for output section '%2'")
 DIAG(error_non_power_of_2_value_to_align_output_section,
      DiagnosticEngine::Error,
      "%0: non-power-of-2 value 0x%1 passed to ALIGN in '%2' output section "
