@@ -250,8 +250,8 @@ void HexagonLDBackend::createAttributeSection() {
   AttributeFragment = make<HexagonAttributeFragment>(AttributeSection);
   AttributeSection->addFragment(AttributeFragment);
   if (auto *layoutInfo = getModule().getLayoutInfo())
-    layoutInfo->recordFragment(AttributeSection->getInputFile(), AttributeSection,
-                            AttributeFragment);
+    layoutInfo->recordFragment(AttributeSection->getInputFile(),
+                               AttributeSection, AttributeFragment);
 }
 
 void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -948,8 +948,9 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry)
         << GOT::getGOTTypeAsStr(T) << R->name();
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
+  // Only create .got.plt when dynamic linking is involved
+  if (!getGOTPLT()->hasFragments() &&
+      (config().isCodeDynamic() || T == GOT::GOTPLT0)) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     HexagonGOTPLT0::Create(getGOTPLT(),
                            Dynamic ? Dynamic->resolveInfo() : nullptr);

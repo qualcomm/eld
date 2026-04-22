@@ -142,7 +142,7 @@ void ARMGNULDBackend::initTargetSymbols() {
   if (m_Module.getScript().linkerScriptHasSectionsCommand())
     return;
 
-  const NamePool& NP = m_Module.getNamePool();
+  const NamePool &NP = m_Module.getNamePool();
   SymbolName = "__exidx_start";
   const ResolveInfo *EXIDXStartInfo = NP.findInfo(SymbolName);
   if (EXIDXStartInfo && EXIDXStartInfo->isUndef()) {
@@ -211,8 +211,7 @@ void ARMGNULDBackend::doPreLayout() {
   if (isMicroController() &&
       ((config().codeGenType() == LinkerConfig::DynObj) ||
        (config().options().isPIE()))) {
-    config().raise(Diag::not_supported) << "SharedLibrary/PIE"
-                                        << "Cortex-M";
+    config().raise(Diag::not_supported) << "SharedLibrary/PIE" << "Cortex-M";
     m_Module.setFailure(true);
     return;
   }
@@ -510,7 +509,7 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
       LayoutInfo *layoutInfo = getModule().getLayoutInfo();
       if (layoutInfo)
         layoutInfo->recordFragment(m_pARMAttributeSection->getInputFile(),
-                                m_pARMAttributeSection, AttributeFragment);
+                                   m_pARMAttributeSection, AttributeFragment);
     }
     AttributeFragment->updateAttributes(
         Region, m_Module, llvm::dyn_cast<ObjectFile>(&pInput), config());
@@ -1069,8 +1068,9 @@ ARMGOT *ARMGNULDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry)
         << GOT::getGOTTypeAsStr(T) << R->name();
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
+  // Only create .got.plt when dynamic linking is involved
+  if (!getGOTPLT()->hasFragments() &&
+      (config().isCodeDynamic() || T == GOT::GOTPLT0)) {
     // TODO: This should be GOT0, not GOTPLT0.
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     ARMGOTPLT0::Create(getGOTPLT(), Dynamic ? Dynamic->resolveInfo() : nullptr);
@@ -1187,6 +1187,10 @@ ARMPLT *ARMGNULDBackend::findEntryInPLT(ResolveInfo *I) const {
     return nullptr;
   return Entry->second;
 }
+
+
+// Update the RegionTable with updated information from the Backend.
+
 
 bool ARMGNULDBackend::canRewriteToBLX() const {
   // We always rewrite the instruction to BLX except for cases if

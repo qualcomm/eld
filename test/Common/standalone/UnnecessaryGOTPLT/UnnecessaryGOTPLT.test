@@ -1,0 +1,23 @@
+#---UnnecessaryGOTPLT.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD does not create unnecessary .got.plt section when only
+# Also verify that .got.plt IS created when dynamic linking is involved.
+#END_COMMENT
+#START_TEST
+
+# Test 1: Static executable - should have .got but NOT .got.plt
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.1.out %t1.1.o
+RUN: %readelf -S %t1.1.out | %filecheck %s --check-prefix=STATIC
+
+# Test 2: Shared library - should have both .got AND .got.plt
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -shared -o %t1.2.out %t1.2.o
+RUN: %readelf -S %t1.2.out | %filecheck %s --check-prefix=DYNAMIC
+
+STATIC: .got
+STATIC-NOT: .got.plt
+
+DYNAMIC: .got
+DYNAMIC: .got.plt
+#END_TEST
