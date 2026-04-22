@@ -694,8 +694,9 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
+  // Only create .got.plt when dynamic linking is involved
+  if (!getGOTPLT()->hasFragments() &&
+   (config().isCodeDynamic() || T == GOT::GOTPLT0)) {
     // TODO: This should be GOT0, not GOTPLT0.
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     AArch64GOTPLT0::Create(getGOTPLT(),
