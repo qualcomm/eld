@@ -5535,7 +5535,7 @@ void GNULDBackend::assignOutputVersionIDs() {
   // foo@@VER, assign the version index based on version node names.
   for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
     ResolveInfo *R = DynamicSymbols[i];
-    if (llvm::isa<ELFDynObjectFile>(R->resolvedOrigin()))
+    if (llvm::isa<ELFDynObjectFile>(R->resolvedOrigin()) || R->isUndef())
       continue;
     std::string FullName = R->getName().str();
     bool isDefaultVersionSymbol = false;
