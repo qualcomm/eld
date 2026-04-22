@@ -5,6 +5,8 @@ on:
   # pull_request:
   # Run on push for now.
   push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
