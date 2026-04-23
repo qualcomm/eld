@@ -11,6 +11,10 @@
 #include "eld/Fragment/TargetFragment.h"
 #include "eld/Readers/ELFSection.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/ELFAttributes.h"
+#include "llvm/Support/LEB128.h"
+#include "llvm/Support/RISCVAttributeParser.h"
+#include "llvm/Support/RISCVAttributes.h"
 #include "llvm/TargetParser/RISCVISAInfo.h"
 #include <string>
 #include <vector>
@@ -81,6 +85,9 @@ private:
   mergeRISCVAttributes(const llvm::RISCVAttributeParser &parser, InputFile *I);
 
   llvm::StringRef getTagStr(uint32_t Tag) const;
+
+  eld::Expected<void> mergeAtomic(const InputFile *I, unsigned tagattr,
+                                   llvm::RISCVAttrs::RISCVAtomicAbiTag Tag);
 
 protected:
   llvm::StringRef CurrentVendor = "riscv";
