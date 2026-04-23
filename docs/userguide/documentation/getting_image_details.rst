@@ -30,7 +30,10 @@ Supported Diagnostic Options
             * **reloc** - tracing of relocations
             * **symbol=<symbol name>** - Allows tracing of a particular symbol. It also supports regular expressions
             * **section=<section name>** - Allows tracing of a particular section. Supports regular expressions.
-            * **GarbageCollection** - tracing of garrbage collected symbols
+            * **garbage-collection** - tracing of garbage collection activity and collected sections
+            * **live-edges** - tracing of section reachability edges used by garbage collection
+            * **link-order** - tracing of ``SHF_LINK_ORDER`` dependency edges (dependent section -> linked section)
+            * **discard-sections** - tracing of sections discarded by linker script rules or dependent discard decisions
             * **Trampolines** - tracing of trampolines.
             * **LTO** - Allows tracing of LTO.
 

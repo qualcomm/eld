@@ -352,6 +352,12 @@ void ObjectBuilder::assignInputFromOutput(eld::InputFile *Obj) {
           // FIXME: Shouldn't we set ELFSect to LDFileFormat::Discard?
           if (ELFSect && Out->isDiscard()) {
             ELFSect->setKind(LDFileFormat::Ignore);
+            if (ThisModule.getPrinter()->traceDiscardSections()) {
+              ThisConfig.raise(Diag::trace_discard_section)
+                  << ELFSect->getDecoratedName(ThisConfig.options())
+                  << ObjFile->getInput()->decoratedPath()
+                  << "matched /DISCARD/ linker script rule";
+            }
             if (ThisConfig.options().isSectionTracingRequested() &&
                 ThisConfig.options().traceSection(ELFSect->name().str()))
               ThisConfig.raise(Diag::discarded_section_info)
@@ -468,9 +474,7 @@ void ObjectBuilder::assignOutputSections(std::vector<eld::InputFile *> Inputs,
       if (ObjFile && HasSectionsCommand && ObjFile->hasHighSectionCount())
         ThisConfig.raise(Diag::more_sections)
             << Obj->getInput()->decoratedPath();
-      Pool->async([&] {
-        assignInputFromOutput(Obj);
-      });
+      Pool->async([&] { assignInputFromOutput(Obj); });
     }
     Pool->wait();
   }
@@ -599,34 +603,12 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
   if (I->name().find("@") != llvm::StringRef::npos)
     return true;
 
-  bool hasLinkerScriptSectionsCommand =
-      ThisModule.getScript().linkerScriptHasSectionsCommand();
   if (ThisConfig.codeGenType() == LinkerConfig::Object) {
     // The linker only creates groups with partial link.
     if (target->isGroupKind())
       return true;
-    if (I->isLinkOrder() && !I->isEXIDX()) {
-      if (I->getLink() == target->getLink() || target->isUninit())
-        return false;
-      if (!hasLinkerScriptSectionsCommand)
-        return true;
-      if (ThisConfig.options().allowIncompatibleSectionsMix()) {
-        ThisConfig.raise(Diag::note_incompatible_sections)
-            << I->name() << I->getInputFile()->getInput()->decoratedPath()
-            << target->name();
-        return false;
-      }
-        std::string Str;
-        if (target->getLink())
-          Str = target->getLink()->getInputFile()->getInput()->decoratedPath();
-        else
-          Str = "No Available Sections";
-        ThisConfig.raise(Diag::incompatible_sections)
-            << I->name() << I->getInputFile()->getInput()->decoratedPath()
-            << target->name();
-        ThisModule.setFailure(true);
-        return false;
-    }
+    if (I->isLinkOrder() && !I->isEXIDX())
+      return true;
 
     uint64_t TargetHasGroup = target->getFlags() & llvm::ELF::SHF_GROUP;
     uint64_t InputHasGroup = I->getFlags() & llvm::ELF::SHF_GROUP;
@@ -656,6 +638,25 @@ bool ObjectBuilder::shouldSkipMergeSection(ELFSection *I) const {
   bool IsPartialLink = (ThisConfig.codeGenType() == LinkerConfig::Object);
   Pair.first = I->getOutputSection();
   Pair.second = I->getMatchedLinkerScriptRule();
+
+  // SHF_LINK_ORDER input sections depend on their linked input section.
+  // If the linked section is discarded by linker script processing, skip
+  // merging the dependent section as well.
+  if (I->isLinkOrder()) {
+    ELFSection *Linked = I->getLink();
+    if (Linked && (Linked->isIgnore() || Linked->isDiscard() ||
+                   (Linked->getOutputSection() &&
+                    Linked->getOutputSection()->isDiscard()))) {
+      if (ThisModule.getPrinter()->traceDiscardSections()) {
+        Input *In = I->getInputFile() ? I->getInputFile()->getInput() : nullptr;
+        ThisConfig.raise(Diag::trace_discard_section)
+            << I->getDecoratedName(ThisConfig.options())
+            << (In ? In->decoratedPath() : "<internal>")
+            << "linked SHF_LINK_ORDER target section is discarded";
+      }
+      return true;
+    }
+  }
 
   if (Pair.first != nullptr && Pair.first->isDiscard())
     return true;

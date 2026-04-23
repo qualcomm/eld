@@ -696,6 +696,8 @@ defm trace
           "\t\t\t --trace=command-line : trace header info\n"
           "\t\t\t --trace=live-edges : trace reachable sections when garbage "
           "collection is enabled\n"
+          "\t\t\t --trace=link-order : trace SHF_LINK_ORDER dependencies\n"
+          "\t\t\t --trace=discard-sections : trace discarded input sections\n"
           "\t\t\t --trace=merge-strings : trace linker string optimization\n"
           "\t\t\t --trace=trampolines : trace trampolines\n"
           "\t\t\t --trace=untar : trace tar extraction entries\n"

@@ -1,0 +1,20 @@
+#---ComdatLinkOrderDiscard.test---------------- Executable ---------------------#
+#BEGIN_COMMENT
+# If COMDAT signatures match, the preempted group's SHF_LINK_ORDER section
+# should be discarded with that group.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/1.s -o %t1.o
+RUN: %clang %clangopts -x assembler-with-cpp -I %standalone_inputs -c %p/Inputs/2.s -o %t2.o
+RUN: %link -MapStyle txt %linkopts %t1.o %t2.o -Map %t.map -e foo -o %t.out
+RUN: %objdump -s -j .linkorder %t.out | %filecheck %s --check-prefix=OD
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+
+# OD: Contents of section .linkorder:
+# OD: {{[0-9a-f]+}} {{[1]+}}{{[0]+}}
+# OD-NOT: {{[2]+}}{{[0]+}}
+
+# MAP: .linkorder
+# MAP: .linkorder{{.*}}tmp1.o
+# MAP-NOT: .linkorder{{.*}}tmp2.o
+#END_TEST

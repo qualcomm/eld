@@ -828,6 +828,22 @@ bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
     bool HasSectionData = Sect->hasSectionData();
     if (Sect->isIgnore() || Sect->isDiscard())
       continue;
+    // SHF_LINK_ORDER sections depend on the section named by sh_link.
+    // If linker script rules have already discarded that linked section,
+    // discard this dependent section as well.
+    if (Sect->isLinkOrder()) {
+      ELFSection *Linked = Sect->getLink();
+      if (Linked && (Linked->isIgnore() || Linked->isDiscard())) {
+        if (ThisModule->getPrinter()->traceDiscardSections()) {
+          ThisConfig.raise(Diag::trace_discard_section)
+              << Sect->getDecoratedName(ThisConfig.options())
+              << Sect->getInputFile()->getInput()->decoratedPath()
+              << "linked SHF_LINK_ORDER target section is discarded";
+        }
+        Sect->setKind(LDFileFormat::Ignore);
+        continue;
+      }
+    }
     switch (Sect->getKind()) {
     // Some *INPUT sections should not be merged.
     case LDFileFormat::Null:
@@ -1380,7 +1396,8 @@ void ObjectLinker::applySubAlign() {
         }
         if (owningSect && seen.insert(owningSect).second) {
           // Warn if SUBALIGN is reducing the section alignment
-          if (ThisConfig.showLinkerScriptWarnings() && F->alignment() > subAlign) {
+          if (ThisConfig.showLinkerScriptWarnings() &&
+              F->alignment() > subAlign) {
             ThisConfig.raise(Diag::warn_subalign_less_than_section_alignment)
                 << utility::toHex(subAlign) << utility::toHex(F->alignment())
                 << owningSect->getLocation(0, ThisConfig.options());
@@ -2273,32 +2290,40 @@ void ObjectLinker::finalizeSymbolValue(ResolveInfo *I) const {
   if (I->isAbsolute() || I->type() == ResolveInfo::File)
     return;
 
+  LDSymbol *OutSym = I->outSymbol();
+  if (!OutSym)
+    return;
+
   if (I->type() == ResolveInfo::ThreadLocal) {
-    I->outSymbol()->setValue(
-        getTargetBackend().finalizeTLSSymbol(I->outSymbol()));
+    OutSym->setValue(getTargetBackend().finalizeTLSSymbol(OutSym));
     return;
   }
 
-  if (I->outSymbol()->hasFragRef() &&
-      I->outSymbol()->fragRef()->frag()->getOwningSection()->isDiscard())
+  if (!OutSym->hasFragRef())
     return;
 
-  if (I->outSymbol()->hasFragRef()) {
-    // set the virtual address of the symbol. If the output file is
-    // relocatable object file, the section's virtual address becomes zero.
-    // And the symbol's value become section relative offset.
-    uint64_t Value = I->outSymbol()->fragRef()->getOutputOffset(*ThisModule);
-    assert(nullptr != I->outSymbol()->fragRef()->frag());
-    // For sections that are zero in size, there is no output section. Just
-    // rely on the owning section name for now.
-    ELFSection *Section = I->getOwningSection();
-    if (Section->getOutputSection())
-      Section = Section->getOutputSection()->getSection();
-    if (Section->isAlloc())
-      I->outSymbol()->setValue(Value + Section->addr());
-    else
-      I->outSymbol()->setValue(Value);
-  }
+  FragmentRef *Ref = OutSym->fragRef();
+  Fragment *Frag = Ref ? Ref->frag() : nullptr;
+  if (!Frag)
+    return;
+
+  ELFSection *OwningSection = Frag->getOwningSection();
+  if (!OwningSection || OwningSection->isDiscard() || OwningSection->isIgnore())
+    return;
+
+  // Set the virtual address of the symbol. If the output file is relocatable
+  // object file, the section's virtual address becomes zero, and the symbol's
+  // value becomes section-relative offset.
+  uint64_t Value = Ref->getOutputOffset(*ThisModule);
+  // For sections that are zero in size, there is no output section. Just rely
+  // on the owning section name for now.
+  ELFSection *Section = I->getOwningSection();
+  if (Section->getOutputSection())
+    Section = Section->getOutputSection()->getSection();
+  if (Section->isAlloc())
+    OutSym->setValue(Value + Section->addr());
+  else
+    OutSym->setValue(Value);
 }
 
 /// relocate - applying relocation entries and create relocation
