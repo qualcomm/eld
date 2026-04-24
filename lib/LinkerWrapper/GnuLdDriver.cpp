@@ -1653,7 +1653,13 @@ bool GnuLdDriver::processReproduceOption(
           auto ipt = action->getInput();
           if (!ipt)
             return false;
-          os << outputTar->rewritePath(ipt->getName()) << ' ';
+          // Use the mapped path as the rewrite key. For a namespec input
+          // e.g. "-l2", use "2" instead of "lib2.so". This will match the
+          // form in the mapping file "2=SharedLibrary/2.<hash>".
+          std::string key = ipt->getInputFile()
+                                ? ipt->getInputFile()->getMappedPath()
+                                : ipt->getName();
+          os << outputTar->rewritePath(key) << ' ';
           break;
         }
       }

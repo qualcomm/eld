@@ -1,15 +1,43 @@
-UNSUPPORTED:
-#---Namespec.test------------------------- Executable -----------------#
-#BEGIN_COMMENT
-# This checks for proper output for proper response file with -l option
-#END_COMMENT
-#START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
-RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
-RUN: %ar -cr libNamespecTest.a %t.2.o
-RUN: %link %linkopts %t.1.o -L . -lNamespecTest --reproduce %t0.tar --dump-response-file %t0.dump -o %t1.out.namespec
-RUN: %filecheck %s < %t0.dump
-CHECK NOT: -l
-CHECK NOT: -L
-CHECK: {{[0-9]+}}
-CHECK-NOT: "NamespecTest"
+UNSUPPORTED: windows, reproduce_fail
+
+## Verify that --reproduce handles every namespec form: -l<name> (archive or
+## shared library) and -l:<filename> (literal filename search).
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c -fPIC %p/Inputs/2.c -o %t.2.o
+RUN: %rm -rf %t.libs && %mkdir %t.libs
+RUN: %ar -cr %t.libs/libarc.a %t.2.o
+RUN: %link %linkopts -shared %t.2.o -o %t.libs/libshr.so
+
+## Archive found via -l<namespec>.
+RUN: %link %linkopts %t.1.o -L%t.libs -larc --reproduce %t.arc.tar \
+RUN:   --dump-response-file %t.arc.response -o %t.arc.out
+
+## Shared library found via -l<namespec>.
+RUN: %link %linkopts -dynamic %t.1.o %t.2.o -L%t.libs -lshr \
+RUN:   --reproduce %t.shr.tar --dump-response-file %t.shr.response \
+RUN:   -o %t.shr.out
+
+## Shared library found via -l:<filename>.
+RUN: %link %linkopts -dynamic %t.1.o %t.2.o -L%t.libs -l:libshr.so \
+RUN:   --reproduce %t.lit.tar --dump-response-file %t.lit.response \
+RUN:   -o %t.lit.out
+
+RUN: %filecheck %s --check-prefix=NOFLAGS < %t.arc.response
+RUN: %filecheck %s --check-prefix=NOFLAGS < %t.shr.response
+RUN: %filecheck %s --check-prefix=NOFLAGS < %t.lit.response
+NOFLAGS-NOT: -l
+NOFLAGS-NOT: -L
+
+## Run the response file.
+RUN: %rm -rf %t.arc.rep && %mkdir %t.arc.rep
+RUN: %tar %gnutaropts -xf %t.arc.tar -C %t.arc.rep --strip-components=1
+RUN: cd %t.arc.rep && %link %linkopts @response.txt -o out && cd -
+
+RUN: %rm -rf %t.shr.rep && %mkdir %t.shr.rep
+RUN: %tar %gnutaropts -xf %t.shr.tar -C %t.shr.rep --strip-components=1
+RUN: cd %t.shr.rep && %link %linkopts @response.txt -o out && cd -
+
+RUN: %rm -rf %t.lit.rep && %mkdir %t.lit.rep
+RUN: %tar %gnutaropts -xf %t.lit.tar -C %t.lit.rep --strip-components=1
+RUN: cd %t.lit.rep && %link %linkopts @response.txt -o out
