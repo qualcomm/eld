@@ -3,13 +3,14 @@
 # Test that DT_NEEDED entries are deduplicated by SONAME.
 # When multiple shared libraries with the same SONAME are linked,
 # only one DT_NEEDED entry should be emitted.
+# Warning is only shown with -Wdynamic flag.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts %t1.1.o -o %t1.lib1.so -shared -soname=foo
 RUN: %link %linkopts %t1.1.o -o %t1.lib2.so -shared -soname=foo
-RUN: %link %linkopts %t1.lib1.so %t1.lib2.so -o %t1.out 2>&1 | %filecheck %s --check-prefix=WARN
-RUN: %readelf --dynamic %t1.out | %filecheck %s --check-prefix=NEEDED
+RUN: %link %linkopts %t1.lib1.so %t1.lib2.so -o %t1.out -Wdynamic 2>&1 | %filecheck %s --check-prefix=WARN
+RUN: %readelf --dynamic %t1.out 2>&1 | %filecheck %s --check-prefix=NEEDED
 #WARN: have the same SONAME 'foo'
 #NEEDED: Shared library: [foo]
 #NEEDED-NOT: Shared library: [foo]
