@@ -988,7 +988,7 @@ void GNULDBackend::sizeDynamic() {
     std::string fileName = dynObjFile->getInput()->getFileName();
     if (sonameToFile.count(SOName)) {
       // Only warn when different files have the same SONAME
-      if (sonameToFile[SOName] != fileName)
+      if (sonameToFile[SOName] != fileName && config().showDynamicWarnings())
         config().raise(Diag::warn_duplicate_soname)
             << sonameToFile[SOName] << fileName << SOName;
       continue;
