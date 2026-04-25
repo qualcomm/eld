@@ -42,8 +42,16 @@ void ScriptMemoryRegion::addOutputSection(const OutputSectionEntry *O) {
     FirstOutputSectionExceededLimit = O;
   }
 }
+void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config,
+                                           const OutputSectionEntry &out) {
+  if (!out.prolog().hasVMA())
+    return;
+  uint64_t vma = out.prolog().vma().result();
+  if (!containsVMA(vma))
+    Config.raise(Diag::error_section_not_in_region)
+        << out.name() << getName() << utility::toHex(vma)
+        << out.prolog().vma().getContext();
 
-void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
   auto ExpLen = getLength();
   if (ExpLen && !ExpLen.value() && Config.showLinkerScriptWarnings()) {
     MemorySpec *Spec = MMemoryDesc->getMemorySpec();
