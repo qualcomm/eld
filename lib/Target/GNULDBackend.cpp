@@ -978,22 +978,12 @@ void GNULDBackend::sizeDynamic() {
   }
 
   // add DT_NEEDED
-  llvm::StringMap<std::string> sonameToFile;
   for (auto &lib : m_Module.getDynLibraryList()) {
     if (!llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded())
       continue;
     const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
-    std::string SOName = dynObjFile->getSOName();
-    std::string fileName = dynObjFile->getInput()->getFileName();
-    if (sonameToFile.count(SOName)) {
-      // Only warn when different files have the same SONAME
-      if (sonameToFile[SOName] != fileName)
-        config().raise(Diag::warn_duplicate_soname)
-            << sonameToFile[SOName] << fileName << SOName;
-      continue;
-    }
-    sonameToFile[SOName] = fileName;
-    std::size_t SONameOffset = FileFormat->addStringToDynStrTab(SOName);
+    std::size_t SONameOffset =
+        FileFormat->addStringToDynStrTab(dynObjFile->getSOName());
     auto DTEntry = dynamic()->reserveNeedEntry();
     DTEntry->setValue(llvm::ELF::DT_NEEDED, SONameOffset);
   }
