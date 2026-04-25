@@ -598,6 +598,7 @@ private:
       MMemoryAreaToArchiveFileMap;
 
   std::vector<ArchiveMemberReportRecord> ArchiveRecordsForReport;
+  llvm::StringMap<std::string> MSonameToFile;
 };
 
 } // end namespace eld

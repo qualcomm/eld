@@ -1125,7 +1125,6 @@ void GNULDBackend::sizeDynamic() {
   }
 
   // add DT_NEEDED
-  llvm::StringMap<std::string> sonameToFile;
   for (auto &lib : m_Module.getDynLibraryList()) {
     if (llvm::dyn_cast<ELFFileBase>(lib)->isELFNeeded()) {
       const ELFDynObjectFile *dynObjFile = llvm::cast<ELFDynObjectFile>(lib);
