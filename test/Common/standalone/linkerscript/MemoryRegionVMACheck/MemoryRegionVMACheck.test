@@ -1,0 +1,13 @@
+#---MemoryRegionVMACheck.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD emits a warning when a section VMA does not fit
+# in its assigned memory region, matching BFD behavior.
+# Warning is shown under -Wlinker-script flag. (issue #327)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t1.2.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix=NOWARN --allow-empty
+#CHECK: address {{.*}} of section '.foo' is not within region 'RAM'
+#NOWARN-NOT: is not within region
+#END_TEST
