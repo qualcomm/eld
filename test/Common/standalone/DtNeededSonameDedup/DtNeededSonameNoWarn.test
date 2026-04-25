@@ -1,0 +1,16 @@
+#---DtNeededSonameNoWarn.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that no warning is emitted when -Wdynamic is not passed,
+# even when multiple shared libraries with the same SONAME are linked.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.lib1.so -shared -soname=foo
+RUN: %link %linkopts %t1.1.o -o %t1.lib2.so -shared -soname=foo
+RUN: %link %linkopts %t1.lib1.so %t1.lib2.so -o %t1.out 2>&1 | (cat; echo "LINK_DONE") | %filecheck %s --check-prefix=NOWARN
+RUN: %readelf --dynamic %t1.out 2>&1 | %filecheck %s --check-prefix=NEEDED
+#NOWARN-NOT: have the same SONAME 'foo'
+#NOWARN: LINK_DONE
+#NEEDED: Shared library: [foo]
+#NEEDED-NOT: Shared library: [foo]
+#END_TEST
