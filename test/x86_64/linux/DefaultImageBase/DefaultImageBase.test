@@ -1,16 +1,20 @@
-#UNSUPPORTED: windows
 #---DefaultImageBase.test-----Executable--------#
 BEGIN_COMMENT
 # Test x86_64 default image address
 # This test verifies that eld uses the correct default image base (0x400000)
-# without requiring manual --image-base=0x400000 flag.
+# without requiring manual --image-base=0x400000 flag and allows overriding it.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
-RUN: %link %linkopts -o %t.1.out %t.1.o
-RUN: %t.1.out; echo $? > %t.code
-RUN: %filecheck --input-file=%t.code %s --check-prefix=EXITCODE
-RUN: %readelf -l %t.1.out | %grep LOAD | %filecheck %s --check-prefix=IMAGEBASE
+RUN: %link %linkopts -o %t.default.out %t.1.o
+RUN: %if windows %{ %qemu_x86_64 %t.default.out %} %else %{ %t.default.out %}; echo $? > %t.default.code
+RUN: %filecheck --input-file=%t.default.code %s --check-prefix=EXITCODE
+RUN: %readelf -l %t.default.out | %grep LOAD | %filecheck %s --check-prefix=IMAGEBASE-DEFAULT
+RUN: %link %linkopts --image-base=0x500000 -o %t.custom.out %t.1.o
+RUN: %if windows %{ %qemu_x86_64 %t.custom.out %} %else %{ %t.custom.out %}; echo $? > %t.custom.code
+RUN: %filecheck --input-file=%t.custom.code %s --check-prefix=EXITCODE
+RUN: %readelf -l %t.custom.out | %grep LOAD | %filecheck %s --check-prefix=IMAGEBASE-CUSTOM
 EXITCODE: 7
-IMAGEBASE: {{.*}}400000{{.*}}
+IMAGEBASE-DEFAULT: {{.*}}400000{{.*}}
+IMAGEBASE-CUSTOM: {{.*}}500000{{.*}}
 #END_TEST

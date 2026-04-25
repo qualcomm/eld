@@ -1,7 +1,7 @@
 name: Windows Arm64/x86_64 Nightly
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
@@ -33,6 +33,59 @@ jobs:
             name: Windows-Arm64
 
     steps:
+      - name: Install QEMU with winget
+        shell: pwsh
+        run: |
+          $qemuInstallDirs = @(
+            'C:\Program Files\qemu',
+            'C:\Program Files\QEMU',
+            'C:\Program Files (x86)\qemu'
+          )
+
+          foreach ($qemuDir in $qemuInstallDirs) {
+            if ((Test-Path $qemuDir) -and -not (($env:Path -split ';') -contains $qemuDir)) {
+              $env:Path = "$qemuDir;$env:Path"
+            }
+          }
+
+          if (-not (Get-Command qemu-system-x86_64 -ErrorAction SilentlyContinue)) {
+            winget install -e --id SoftwareFreedomConservancy.QEMU --silent --accept-package-agreements --accept-source-agreements
+            $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+            $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+            $env:Path = "$machinePath;$userPath"
+
+            foreach ($qemuDir in $qemuInstallDirs) {
+              if ((Test-Path $qemuDir) -and -not (($env:Path -split ';') -contains $qemuDir)) {
+                $env:Path = "$qemuDir;$env:Path"
+              }
+            }
+          }
+
+          $qemu = Get-Command qemu-system-x86_64 -ErrorAction SilentlyContinue
+          if (-not $qemu) {
+            $qemu = Get-Command qemu-system-x86_64.exe -ErrorAction SilentlyContinue
+          }
+
+          if (-not $qemu) {
+            foreach ($qemuDir in $qemuInstallDirs) {
+              $qemuExePath = Join-Path $qemuDir 'qemu-system-x86_64.exe'
+              if (Test-Path $qemuExePath) {
+                $qemu = Get-Item $qemuExePath
+                break
+              }
+            }
+          }
+
+          if (-not $qemu) {
+            throw 'qemu-system-x86_64.exe not found. Ensure one of these is on PATH: C:\Program Files\qemu, C:\Program Files\QEMU, or C:\Program Files (x86)\qemu.'
+          }
+
+          Split-Path $qemu.Path | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify QEMU installation
+        shell: pwsh
+        run: qemu-system-x86_64 --help
+
       - name: Map Git usr/bin to a space-free drive and prepend to PATH
         shell: pwsh
         run: |
