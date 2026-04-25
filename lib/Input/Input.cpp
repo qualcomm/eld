@@ -85,6 +85,25 @@ bool Input::isPathValid(const std::string &Path) const {
   return true;
 }
 
+std::string Input::expandSysrootMarkers(llvm::StringRef Name,
+                                        const SearchDirs &PSearchDirs,
+                                        DiagnosticEngine &DiagEngine) {
+  llvm::StringRef Suffix;
+  if (Name.starts_with("="))
+    Suffix = Name.substr(1);
+  else if (Name.starts_with("$SYSROOT"))
+    Suffix = Name.substr(strlen("$SYSROOT"));
+  else
+    return Name.str();
+
+  std::string ExpandedPath = Suffix.str();
+  if (PSearchDirs.hasSysRoot())
+    ExpandedPath = (PSearchDirs.sysroot().native() + Suffix).str();
+
+  DiagEngine.raise(Diag::verbose_sysroot_expansion) << Name << ExpandedPath;
+  return ExpandedPath;
+}
+
 /// \return True if path able to be resolved, otherwise false
 bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (ResolvedPath)
@@ -104,9 +123,14 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     }
   }
   auto &PSearchDirs = PConfig.directories();
+
+  std::string ExpandedFileName = FileName;
+  if (Type == Input::InputType::Script || Type == Input::InputType::Default)
+    ExpandedFileName = expandSysrootMarkers(FileName, PSearchDirs, *DiagEngine);
+
   switch (Type) {
   default:
-    ResolvedPath = eld::sys::fs::Path(FileName);
+    ResolvedPath = eld::sys::fs::Path(ExpandedFileName);
     break;
   case Input::Internal:
     ResolvedPath = eld::sys::fs::Path(FileName);
@@ -115,11 +139,11 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (Type == Input::Script) {
     if (shouldPrependSysrootToScriptInput(PConfig)) {
       ResolvedPath = PSearchDirs.sysroot();
-      ResolvedPath->append(FileName);
+      ResolvedPath->append(ExpandedFileName);
     }
     if (!llvm::sys::fs::exists(ResolvedPath->native())) {
-      const sys::fs::Path *P =
-          PSearchDirs.find(FileName, SearchDirs::SearchInputType::Script);
+      const sys::fs::Path *P = PSearchDirs.find(
+          ExpandedFileName, SearchDirs::SearchInputType::Script);
       if (P != nullptr)
         ResolvedPath = *P;
     }

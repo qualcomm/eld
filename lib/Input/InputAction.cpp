@@ -44,10 +44,15 @@ InputFileAction::InputFileAction(std::string Name,
     : InputAction(K, Printer), Name(Name), I(nullptr) {}
 
 bool InputFileAction::activate(InputBuilder &PBuilder) {
+  const LinkerConfig &Config = PBuilder.getLinkerConfig();
+  std::string ExpandedName = Input::expandSysrootMarkers(
+      Name, Config.directories(), *Config.getDiagEngine());
+
   std::ifstream Is;
-  Is.open(Name.c_str(), std::ifstream::in);
+  Is.open(ExpandedName.c_str(), std::ifstream::in);
   if (!Is.good()) {
-    PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input) << Name;
+    PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input)
+        << ExpandedName;
     return false;
   }
   Is.close();

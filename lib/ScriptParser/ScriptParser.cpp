@@ -745,9 +745,10 @@ void ScriptParser::addFile(StringRef Name) {
   if (Name.consume_front("-l"))
     InputStrTok = ThisScriptFile.createNameSpecToken(Name.str(),
                                                      ThisScriptFile.asNeeded());
-  else
+  else {
     InputStrTok =
         ThisScriptFile.createFileToken(Name.str(), ThisScriptFile.asNeeded());
+  }
   ThisScriptFile.getCurrentStringList()->pushBack(InputStrTok);
 }
 

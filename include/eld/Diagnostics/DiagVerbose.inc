@@ -170,3 +170,5 @@ DIAG(verbose_infer_target, DiagnosticEngine::Verbose,
 DIAG(verbose_sframe_log, DiagnosticEngine::Verbose, "SFrame Handling : %0")
 DIAG(verbose_remap_input, DiagnosticEngine::Verbose,
      "Remapping input file %0 to %1")
+DIAG(verbose_sysroot_expansion, DiagnosticEngine::Verbose,
+     "Expanded sysroot marker in path. '%0' -> '%1'")

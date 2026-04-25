@@ -1,4 +1,3 @@
-// UNSUPPORTED: arm, aarch64, riscv32, riscv64
 #---RevisionInfo.s----------------------- Executable ---------------------------#
 
 // START_COMMENT

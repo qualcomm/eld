@@ -6,6 +6,15 @@ The files specified using the INPUT and GROUP command are searched inside the sy
   - The file begins with the ``/`` character, and
   - The script containing the INPUT/GROUP command is located within the sysroot directory.
 
+Additionally, paths in INPUT/GROUP commands or on the command line can explicitly
+force sysroot expansion by using the ``=`` or ``$SYSROOT`` prefix:
+
+  - ``=/path/to/file`` expands to ``<sysroot>/path/to/file``
+  - ``$SYSROOT/path/to/file`` expands to ``<sysroot>/path/to/file``
+
+This works for both linker script commands and command-line input files.
+If no sysroot is configured, the prefix is stripped and the remaining path is used.
+
 :option:`-L` ``<search_directory>``
 
 When ``<search_directory>`` is prefixed with ``=``, then ``=`` is expanded to the sysroot.
