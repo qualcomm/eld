@@ -154,8 +154,11 @@ bool AArch64Relocator::isRelocSupported(Relocation &pReloc) const {
       (type != R_AARCH64_COPY_INSN))
     return false;
 
-  assert(ApplyFunctions.find(type) != ApplyFunctions.end());
-  return true;
+  auto iter = ApplyFunctions.find(type);
+
+  assert(iter != ApplyFunctions.end());
+
+  return iter->second.func != unsupport;
 }
 
 bool AArch64Relocator::isInvalidReloc(Relocation &pReloc) const {
