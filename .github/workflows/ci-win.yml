@@ -79,7 +79,7 @@ jobs:
 
       - name: Run tests
         working-directory: nightly/obj
-        shell: bash
+        shell: cmd
         run: cmake --build . --config Release --target check-eld
 
       - name: Clean up
