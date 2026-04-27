@@ -37,12 +37,34 @@ jobs:
     env:
       CPULLVM_VERSION: "22.1.0"
       CPULLVM_DIR: /opt/cpullvm
+      CCACHE_DIR: /root/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_NOHASHDIR: "1"
+      CCACHE_MAXSIZE: "2G"
+      CCACHE_COMPRESS: "1"
+      CCACHE_COMPILERCHECK: "content"
 
     steps:
       - name: Checkout eld
         uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
+
+      - name: Prepare ccache dir
+        run: |
+          mkdir -p "$CCACHE_DIR"
+          ccache --version | head -1
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ matrix.target.arch }}-cpullvm${{ env.CPULLVM_VERSION }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ matrix.target.arch }}-cpullvm${{ env.CPULLVM_VERSION }}-
+
+      - name: ccache stats (before build)
+        run: ccache -s -v || ccache -s
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
@@ -171,6 +193,10 @@ jobs:
           path: |
             zephyr/build/zephyr/zephyr.elf
             zephyr/build/zephyr/zephyr.map
+
+      - name: ccache stats (after build)
+        if: always()
+        run: ccache -s -v || ccache -s
 
       - name: Update build entry
         if: success() && github.event_name == 'schedule'
