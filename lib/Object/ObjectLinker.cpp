@@ -137,14 +137,14 @@ bool ObjectLinker::initialize() {
   // initialize the readers and writers
   RelocObjParser = createRelocObjParser();
   DynObjReader = createDynObjReader();
-  ArchiveParser = createArchiveParser();
-  ELFExecObjParser = createELFExecObjParser();
-  BinaryFileParser = createBinaryFileParser();
+  archiveParser = createArchiveParser();
+  execObjParser = createELFExecObjParser();
+  binaryFileParser = createBinaryFileParser();
   // SymDef Reader.
-  SymDefReader = createSymDefReader();
-  GroupReader = make<eld::GroupReader>(*ThisModule, this);
-  LibReader = make<eld::LibReader>(*ThisModule, this);
-  ScriptReader = make<eld::ScriptReader>();
+  symDefReader = createSymDefReader();
+  groupReader = make<eld::GroupReader>(*ThisModule, this);
+  libReader = make<eld::LibReader>(*ThisModule, this);
+  scriptReader = make<eld::ScriptReader>();
   ObjWriter = createWriter();
 
   // initialize Relocator

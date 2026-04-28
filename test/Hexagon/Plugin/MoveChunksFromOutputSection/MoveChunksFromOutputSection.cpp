@@ -12,8 +12,8 @@ using namespace eld::plugin;
 
 class InputChunk {
 public:
-  InputChunk(Chunk S) : Chunk(S) {}
-  Chunk Chunk;
+  InputChunk(Chunk S) : C(S) {}
+  Chunk C;
 };
 
 class DLL_A_EXPORT OSIter : public OutputSectionIteratorPlugin {

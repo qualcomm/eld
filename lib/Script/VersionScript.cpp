@@ -134,9 +134,9 @@ void LocalVersionScriptBlock::dump(
 }
 
 // -----------------------VersionScriptSymbol -------------------------------
-bool VersionSymbol::isGlobal() const { return VersionScriptBlock->isGlobal(); }
+bool VersionSymbol::isGlobal() const { return Block->isGlobal(); }
 
-bool VersionSymbol::isLocal() const { return VersionScriptBlock->isLocal(); }
+bool VersionSymbol::isLocal() const { return Block->isLocal(); }
 
 void VersionSymbol::dump(
     llvm::raw_ostream &Ostream,

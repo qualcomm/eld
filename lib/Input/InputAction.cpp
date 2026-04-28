@@ -241,15 +241,15 @@ DefSymAction::DefSymAction(std::string PAssignment, DiagnosticPrinter *Printer)
 bool DefSymAction::activate(InputBuilder &PBuilder) {
   std::string FileName =
       (llvm::Twine("Expression(Defsym)") + llvm::Twine(MAssignment)).str();
-  Input *Input = PBuilder.createInputNode(FileName, true /*isSpecial*/);
-  Input->setInputType(Input::Script);
-  Input->setResolvedPath(FileName);
+  Input *Inp = PBuilder.createInputNode(FileName, true /*isSpecial*/);
+  Inp->setInputType(Input::Script);
+  Inp->setResolvedPath(FileName);
   auto pos = MAssignment.find("=");
   if (pos != std::string::npos)
     MAssignment =
         MAssignment.substr(0, pos) + " = " + MAssignment.substr(pos + 1);
   MAssignment.append(";");
-  PBuilder.setMemory(*Input, &MAssignment[0], MAssignment.size());
+  PBuilder.setMemory(*Inp, &MAssignment[0], MAssignment.size());
   return true;
 }
 

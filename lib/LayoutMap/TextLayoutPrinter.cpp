@@ -1117,18 +1117,18 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
   outputStream() << "\nBuild Statistics";
   outputStream() << "\n# <file> <start time> <duration>\n";
   for (auto &I : ThisLayoutInfo->getInputActions()) {
-    if (I.Input == nullptr || I.Input->getInputFile() == nullptr)
+    if (I.Inp == nullptr || I.Inp->getInputFile() == nullptr)
       continue;
-    if (!I.Input->getInputFile()->isObjectFile())
+    if (!I.Inp->getInputFile()->isObjectFile())
       continue;
-    ELFObjectFile *EObj =
-        llvm::dyn_cast<ELFObjectFile>(I.Input->getInputFile());
+    ELFObjectFile *EObj = llvm::dyn_cast<ELFObjectFile>(I.Inp->getInputFile());
     if (EObj->getTimingSection()) {
       for (const Fragment *TF : EObj->getTimingSection()->getFragmentList()) {
-        const TimingSlice *TS =
+        const TimingSlice *timingSection =
             llvm::dyn_cast<TimingFragment>(TF)->getTimingSlice();
-        outputStream() << TS->getModuleName() << " " << TS->getDate() << " "
-                       << TS->getDurationSeconds() << "\n";
+        outputStream() << timingSection->getModuleName() << " "
+                       << timingSection->getDate() << " "
+                       << timingSection->getDurationSeconds() << "\n";
       }
     }
   }

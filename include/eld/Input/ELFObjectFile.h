@@ -41,9 +41,9 @@ public:
 
   ELFSection *getLLVMBCSection() const { return LLVMBCSection; }
 
-  TimingSection *getTimingSection() const { return TimingSection; }
+  TimingSection *getTimingSection() const { return timingSection; }
 
-  void setTimingSection(TimingSection *T) { TimingSection = T; }
+  void setTimingSection(TimingSection *T) { timingSection = T; }
 
   void setDynamicSections(ELFSection &GOT, ELFSection &GOTPLT, ELFSection &PLT,
                           ELFSection &RelDyn, ELFSection &RelPLT);
@@ -136,7 +136,7 @@ public:
 
 private:
   eld::ELFSection *LLVMBCSection = nullptr;
-  eld::TimingSection *TimingSection = nullptr;
+  eld::TimingSection *timingSection = nullptr;
   bool IsResultFromLTO = false;
   std::unique_ptr<llvm::DWARFContext> DWARFContext;
   std::vector<std::unique_ptr<llvm::MemoryBuffer>> DebugSections;

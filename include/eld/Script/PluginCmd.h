@@ -28,7 +28,7 @@ public:
 
   eld::Expected<void> activate(Module &CurModule) override;
 
-  Plugin *getPlugin() const { return Plugin; }
+  Plugin *getPlugin() const { return plugin; }
 
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::PLUGIN;
@@ -50,7 +50,7 @@ private:
   std::string Name;
   std::string R;
   std::string Options;
-  eld::Plugin *Plugin = nullptr;
+  eld::Plugin *plugin = nullptr;
   bool PluginHasOutputSection = false;
 };
 

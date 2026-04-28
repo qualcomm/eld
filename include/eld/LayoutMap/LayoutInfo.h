@@ -135,7 +135,7 @@ public:
 
   struct InputSequenceT {
     InputKindPrefix Prefix;
-    Input *Input;
+    Input *Inp;
     std::string ArchFlag;
   };
 

@@ -17,7 +17,7 @@ class RegionFragment;
 
 struct EXIDXEntry {
   uint32_t InputOffset = -1;
-  Fragment *Fragment = nullptr;
+  Fragment *Frag = nullptr;
 };
 
 class ARMEXIDXSection : public ELFSection {

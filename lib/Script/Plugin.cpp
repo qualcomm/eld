@@ -487,10 +487,10 @@ void Plugin::recordFragmentRemove(RuleContainer *R, Fragment *F) {
 eld::Expected<std::pair<void *, std::string>>
 Plugin::loadLibrary(const std::string &LibraryName) {
   const eld::sys::fs::Path *Library =
-      ThisModule.getConfig().searchDirs().findLibrary(
+      ThisModule.getConfig().getSearchDirs().findLibrary(
           "plugin loadLibrary", LibraryName, ThisModule.getConfig());
   if (!Library) {
-    Library = ThisModule.getConfig().searchDirs().findLibrary(
+    Library = ThisModule.getConfig().getSearchDirs().findLibrary(
         "plugin loadLibrary", DynamicLibrary::getLibraryName(LibraryName),
         ThisModule.getConfig());
     if (!Library)

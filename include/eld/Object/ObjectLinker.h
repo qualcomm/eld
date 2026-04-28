@@ -226,23 +226,23 @@ public:
   // -----  readers and writers  ----- //
   ELFRelocObjParser *getRelocObjParser() const { return RelocObjParser; }
 
-  ELFExecObjParser *getELFExecObjParser() const { return ELFExecObjParser; }
+  ELFExecObjParser *getELFExecObjParser() const { return execObjParser; }
 
-  BinaryFileParser *getBinaryFileParser() const { return BinaryFileParser; }
+  BinaryFileParser *getBinaryFileParser() const { return binaryFileParser; }
 
   ELFDynObjParser *getNewDynObjReader() const { return DynObjReader; }
 
-  ArchiveParser *getArchiveParser() const { return ArchiveParser; }
+  ArchiveParser *getArchiveParser() const { return archiveParser; }
 
-  GroupReader *getGroupReader() const { return GroupReader; }
+  GroupReader *getGroupReader() const { return groupReader; }
 
-  LibReader *getLibReader() const { return LibReader; }
+  LibReader *getLibReader() const { return libReader; }
 
-  ScriptReader *getScriptReader() const { return ScriptReader; }
+  ScriptReader *getScriptReader() const { return scriptReader; }
 
   BitcodeReader *getBitcodeReader() const { return MPBitcodeReader; }
 
-  ObjectReader *getSymDefReader() const { return SymDefReader; }
+  ObjectReader *getSymDefReader() const { return symDefReader; }
 
   ELFObjectWriter *getWriter() const { return ObjWriter; }
 
@@ -513,15 +513,15 @@ private:
   // -----  readers and writers  ----- //
   ELFRelocObjParser *RelocObjParser = nullptr;
   ELFDynObjParser *DynObjReader = nullptr;
-  ArchiveParser *ArchiveParser = nullptr;
-  ELFExecObjParser *ELFExecObjParser = nullptr;
-  BinaryFileParser *BinaryFileParser = nullptr;
-  GroupReader *GroupReader = nullptr;
-  LibReader *LibReader = nullptr;
-  ScriptReader *ScriptReader = nullptr;
+  ArchiveParser *archiveParser = nullptr;
+  ELFExecObjParser *execObjParser = nullptr;
+  BinaryFileParser *binaryFileParser = nullptr;
+  GroupReader *groupReader = nullptr;
+  LibReader *libReader = nullptr;
+  ScriptReader *scriptReader = nullptr;
   ELFObjectWriter *ObjWriter = nullptr;
   BitcodeReader *MPBitcodeReader = nullptr;
-  ObjectReader *SymDefReader = nullptr;
+  ObjectReader *symDefReader = nullptr;
   llvm::StringSet<> MDynlistExports;
 
   // Is this the second phase of normalize for LTO

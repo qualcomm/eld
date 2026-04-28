@@ -254,13 +254,13 @@ public:
   void raiseDiagEntry(std::unique_ptr<plugin::DiagnosticEntry> DiagEntry) const;
 
   /// search directory
-  const SearchDirs &directories() const { return SearchDirs; }
+  const SearchDirs &directories() const { return searchDirs; }
 
-  SearchDirs &directories() { return SearchDirs; }
+  SearchDirs &directories() { return searchDirs; }
 
-  void setSysRoot(std::string SysRoot) { SearchDirs.setSysRoot(SysRoot); }
+  void setSysRoot(std::string SysRoot) { searchDirs.setSysRoot(SysRoot); }
 
-  const SearchDirs &searchDirs() const { return SearchDirs; }
+  const SearchDirs &getSearchDirs() const { return searchDirs; }
 
   /// ---------------------Wall functionality---------------------------
   bool hasShowAllWarnings() const {
@@ -445,7 +445,7 @@ private:
   bool GlobalThreadingEnabled = false;
   uint32_t EnableThreads = LinkerConfig::EnableThreadsOpt::AllThreads;
   DiagnosticEngine *DiagEngine;
-  SearchDirs SearchDirs;
+  SearchDirs searchDirs;
   WarnOptions WarnOpt;
   std::optional<bool> UseOldStyleTrampolineNames;
   MappingFileInfo MappingFile;

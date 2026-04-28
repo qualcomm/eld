@@ -1240,7 +1240,7 @@ bool ARMGNULDBackend::handleRelocation(ELFSection *Section,
   if (auto *EXIDX = llvm::dyn_cast<ARMEXIDXSection>(Section)) {
     EXIDXEntry Entry = EXIDX->getEntry(Offset);
     Relocation *R = eld::IRBuilder::addRelocation(
-        getRelocator(), *Entry.Fragment, Type, Sym, Offset - Entry.InputOffset);
+        getRelocator(), *Entry.Frag, Type, Sym, Offset - Entry.InputOffset);
     EXIDX->addRelocation(R);
     return true;
   }

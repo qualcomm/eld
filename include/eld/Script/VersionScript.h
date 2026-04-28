@@ -42,9 +42,9 @@ public:
                          eld::StrToken *Language)
       : ScriptFileKind(K), ThisSymbol(P), VersionScriptLanguage(Language) {}
 
-  void setBlock(VersionScriptBlock *B) { VersionScriptBlock = B; }
+  void setBlock(VersionScriptBlock *B) { Block = B; }
 
-  VersionScriptBlock *getBlock() const { return VersionScriptBlock; }
+  VersionScriptBlock *getBlock() const { return Block; }
 
   ScriptSymbol *getSymbolPattern() const { return ThisSymbol; }
 
@@ -75,7 +75,7 @@ protected:
   VersionSymbolKind ScriptFileKind;
   ScriptSymbol *ThisSymbol = nullptr;
   eld::StrToken *VersionScriptLanguage = nullptr;
-  eld::VersionScriptBlock *VersionScriptBlock = nullptr;
+  eld::VersionScriptBlock *Block = nullptr;
 };
 
 class VersionScriptBlock {
@@ -87,7 +87,7 @@ public:
 
 public:
   VersionScriptBlock(BlockKind K, class VersionScriptNode *N)
-      : ScriptFileKind(K), VersionScriptNode(N) {}
+      : ScriptFileKind(K), Node(N) {}
 
   void addSymbol(eld::ScriptSymbol *S, eld::StrToken *Language);
 
@@ -95,9 +95,9 @@ public:
 
   bool isGlobal() const { return ScriptFileKind == Global; }
 
-  void setNode(VersionScriptNode *N) { VersionScriptNode = N; }
+  void setNode(VersionScriptNode *N) { Node = N; }
 
-  VersionScriptNode *getNode() const { return VersionScriptNode; }
+  VersionScriptNode *getNode() const { return Node; }
 
   const std::vector<VersionSymbol *> &getSymbols() const { return ThisSymbols; }
 
@@ -112,7 +112,7 @@ public:
 protected:
   std::vector<VersionSymbol *> ThisSymbols;
   VersionScriptBlock::BlockKind ScriptFileKind = Global;
-  VersionScriptNode *VersionScriptNode = nullptr;
+  VersionScriptNode *Node = nullptr;
 };
 
 class LocalVersionScriptBlock : public VersionScriptBlock {

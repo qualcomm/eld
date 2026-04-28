@@ -269,7 +269,7 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     return "END LIB";
   }
 
-  Input *Input = Ist.Input;
+  Input *Input = Ist.Inp;
   std::string Files = "";
   std::string RemapComment = "";
   auto appendRemapComment = [&](llvm::StringRef Comment) {
@@ -341,10 +341,10 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
 }
 
 void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
-                                       std::string FileType) {
+                                    std::string FileType) {
   InputSequenceT IS;
   IS.Prefix = Prefix;
-  IS.Input = Input;
+  IS.Inp = Input;
   IS.ArchFlag = FileType;
   InputActions.push_back(IS);
 }
@@ -392,9 +392,7 @@ void LayoutInfo::recordRetainedSections() {
   LinkStats.NumRetainedSections++;
 }
 
-void LayoutInfo::recordNoLinkerScriptRuleMatch() {
-  LinkStats.NumNoRuleMatch++;
-}
+void LayoutInfo::recordNoLinkerScriptRuleMatch() { LinkStats.NumNoRuleMatch++; }
 
 void LayoutInfo::recordPlugin() { LinkStats.NumPlugins++; }
 

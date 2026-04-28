@@ -168,7 +168,7 @@ public:
     void reset() {
       NumArgs = 0;
       ID.reset();
-      Severity = None;
+      severity = None;
       File = nullptr;
       Plugin = nullptr;
       ThreadID = std::thread::id();
@@ -180,7 +180,7 @@ public:
     uint8_t ArgumentKinds[MaxArguments];
     int8_t NumArgs = 0;
     std::optional<DiagIDType> ID;
-    Severity Severity = Severity::None;
+    Severity severity = Severity::None;
     Input *File = nullptr;
     const eld::Plugin *Plugin = nullptr;
     std::thread::id ThreadID;
