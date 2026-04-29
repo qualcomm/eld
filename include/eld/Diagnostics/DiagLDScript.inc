@@ -120,6 +120,8 @@ DIAG(internal_err_tok_input_or_group, DiagnosticEngine::InternalError,
      "tok must be INPUT or GROUP!")
 DIAG(error_dot_lhs_in_non_alloc, DiagnosticEngine::Error,
      "dot expression evaluation in %0 with permissions %1 is not supported")
+DIAG(error_dot_assignment_overflow, DiagnosticEngine::Error,
+     "%0: dot assignment creates padding that exceeds UINT32_MAX, value 0x%1")
 DIAG(error_cannot_specify_lma_and_memory_region, DiagnosticEngine::Error,
      "cannot specify AT and LMA memory region for output section : %0 defined "
      "in script %1")
