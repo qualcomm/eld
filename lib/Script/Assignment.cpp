@@ -18,6 +18,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Section.h"
 #include "eld/Script/Expression.h"
+#include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "llvm/Support/Casting.h"
 #include <cassert>
@@ -33,8 +34,6 @@ Assignment::Assignment(Level AssignmentLevel, Type AssignmentType,
       AssignmentLevel(AssignmentLevel), ThisType(AssignmentType),
       ExpressionValue(0), Name(Symbol), ExpressionToEvaluate(ScriptExpression),
       ThisSymbol(nullptr) {}
-
-
 
 void Assignment::dump(llvm::raw_ostream &Outs) const {
   bool CloseParen = true;
@@ -213,6 +212,25 @@ bool Assignment::assign(Module &CurModule, const ELFSection *Section) {
   if (!Result)
     return false;
   ExpressionValue = *Result;
+  // Check if dot assignment creates padding > UINT32_MAX
+  if (isDot() && Section) {
+    LDSymbol *DotSym = CurModule.getNamePool().findSymbol(".");
+    if (DotSym) {
+      uint64_t CurDot = DotSym->value();
+      uint64_t Diff = (ExpressionValue >= CurDot) ? ExpressionValue - CurDot
+                                                  : CurDot - ExpressionValue;
+      if (Diff > std::numeric_limits<uint32_t>::max()) {
+        if (!CurModule.getConfig().targets().is64Bits()) {
+          CurModule.getConfig().raise(Diag::error_dot_assignment_overflow)
+              << getContext() << utility::toHex(Diff);
+          return false;
+        } else if (CurModule.getConfig().showLinkerScriptWarnings()) {
+          CurModule.getConfig().raise(Diag::warn_dot_assignment_overflow)
+              << getContext() << utility::toHex(Diff);
+        }
+      }
+    }
+  }
 
   if (!checkLinkerScript(CurModule))
     return false;
