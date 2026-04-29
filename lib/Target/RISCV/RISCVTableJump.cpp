@@ -48,6 +48,11 @@ static int64_t getCallDisplace(RISCVLDBackend &Backend, const Relocation &R) {
   return S + A - P;
 }
 
+static uint64_t getTableJumpTargetVA(RISCVLDBackend &Backend,
+                                     const ResolveInfo *Sym) {
+  return Backend.getSymbolValuePLT(*Sym);
+}
+
 void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
   if (!Sec.isCode())
     return;
@@ -74,10 +79,9 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
       R->targetRef()->memcpy(&Insn, sizeof(Insn), 0);
       Rd = (Insn >> 7) & 0x1f;
     } else {
-      // CALL/CALL_PLT: read the following JALR instruction to get rd.
-      uint32_t Jalr = 0;
-      R->targetRef()->memcpy(&Jalr, sizeof(Jalr), 4);
-      Rd = (Jalr >> 7) & 0x1f;
+      // CALL/CALL_PLT: read the following JALR to get rd.
+      R->targetRef()->memcpy(&Insn, sizeof(Insn), 4);
+      Rd = (Insn >> 7) & 0x1f;
     }
 
     // Only x0 (cm.jt) and ra (cm.jalt) are supported.
@@ -110,8 +114,14 @@ static void selectEntries(
     uint32_t MaxSize) {
   llvm::SmallVector<std::pair<const ResolveInfo *, RISCVTableJumpEntry>, 0>
       Entries(Candidates.begin(), Candidates.end());
-  llvm::sort(Entries, [](const auto &A, const auto &B) {
-    return A.second.Saved > B.second.Saved;
+  llvm::sort(Entries, [&Backend](const auto &A, const auto &B) {
+    if (A.second.Saved != B.second.Saved)
+      return A.second.Saved > B.second.Saved;
+    const uint64_t AVA = getTableJumpTargetVA(Backend, A.first);
+    const uint64_t BVA = getTableJumpTargetVA(Backend, B.first);
+    if (AVA != BVA)
+      return AVA < BVA;
+    return A.first->name() < B.first->name();
   });
 
   if (Entries.size() > MaxSize)
@@ -187,7 +197,7 @@ writeEntries(RISCVLDBackend &Backend, uint8_t *Buf,
   });
 
   for (auto &KV : Entries) {
-    uint64_t VA = KV.first->outSymbol()->value();
+    uint64_t VA = getTableJumpTargetVA(Backend, KV.first);
     if (Backend.config().targets().is32Bits())
       llvm::support::endian::write32le(Buf, static_cast<uint32_t>(VA));
     else

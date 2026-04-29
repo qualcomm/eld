@@ -207,6 +207,7 @@ public:
 
   // Get the value of the symbol, using the PLT slot if one exists.
   Relocation::Address getSymbolValuePLT(const Relocation &R);
+  Relocation::Address getSymbolValuePLT(const ResolveInfo &Sym);
 
 private:
   void initTableJump();

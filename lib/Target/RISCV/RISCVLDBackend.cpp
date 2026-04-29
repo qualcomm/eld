@@ -75,6 +75,20 @@ Relocation::Address RISCVLDBackend::getSymbolValuePLT(const Relocation &R) {
   return getRelocator()->getSymValue(&R);
 }
 
+Relocation::Address RISCVLDBackend::getSymbolValuePLT(const ResolveInfo &Sym) {
+  ResolveInfo *MutableSym = const_cast<ResolveInfo *>(&Sym);
+  if (MutableSym->reserved() & Relocator::ReservePLT) {
+    if (const Fragment *S = findEntryInPLT(MutableSym))
+      return S->getAddr(config().getDiagEngine());
+    if (const ResolveInfo *S = findAbsolutePLT(MutableSym))
+      return S->value();
+  }
+
+  if (const LDSymbol *Out = Sym.outSymbol())
+    return Out->value();
+  return Sym.value();
+}
+
 Relocation::Type RISCVLDBackend::getCopyRelType() const {
   return llvm::ELF::R_RISCV_COPY;
 }
@@ -160,7 +174,7 @@ void RISCVLDBackend::initTargetSymbols() {
                 m_Module.getInternalInput(Module::InternalInputType::Sections),
                 JvtName, ResolveInfo::NoType, ResolveInfo::Define,
                 ResolveInfo::Global,
-                0x0, // size
+                TableJumpFragment->size(), // size
                 0x0, // value
                 make<FragmentRef>(*TableJumpFragment, 0x0),
                 ResolveInfo::Default);
@@ -1111,7 +1125,8 @@ void RISCVLDBackend::translatePseudoRelocation(Relocation *reloc) {
 }
 
 enum RelaxationPass {
-  RELAXATION_CALL, // Must start at zero
+  RELAXATION_TABLE_JUMP, // Must start at zero.
+  RELAXATION_CALL,
   RELAXATION_PC,
   RELAXATION_LUI,
   RELAXATION_TLSDESC,
@@ -1134,8 +1149,11 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
     return;
   }
 
-  if (relaxation_pass == RELAXATION_CALL)
+  if (relaxation_pass == RELAXATION_TABLE_JUMP) {
     initTableJump();
+    pFinished = false;
+    return;
+  }
 
   // retrieve gp value, .data + 0x800
   Relocator::DWord GP = 0x0;

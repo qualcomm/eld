@@ -139,9 +139,10 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_tlsdesc))
     Config.options().setRISCVRelaxTLSDESC(false);
 
-  // --relax-tbljal
+  // --relax-tbljal, --no-relax-tbljal (default)
   Config.options().setRISCVRelaxTbljal(
-      ArgList.hasArg(OPT_RISCVLinkOptTable::relax_tbljal));
+      ArgList.hasFlag(OPT_RISCVLinkOptTable::relax_tbljal,
+                      OPT_RISCVLinkOptTable::no_relax_tbljal, false));
 
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))
