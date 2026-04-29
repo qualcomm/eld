@@ -175,7 +175,7 @@ void RISCVLDBackend::initTargetSymbols() {
                 JvtName, ResolveInfo::NoType, ResolveInfo::Define,
                 ResolveInfo::Global,
                 TableJumpFragment->size(), // size
-                0x0, // value
+                0x0,                       // value
                 make<FragmentRef>(*TableJumpFragment, 0x0),
                 ResolveInfo::Default);
     if (JvtBase)
