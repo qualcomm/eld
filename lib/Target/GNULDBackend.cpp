@@ -24,6 +24,7 @@
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#include "llvm/ADT/StringSet.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
 #include "eld/Fragment/GNUVerNeedFragment.h"
@@ -853,8 +854,10 @@ void GNULDBackend::sizeDynNamePools() {
     }
   }
 
-  // Versioning assignment and fragment creation only when enabled.
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (!validateVersionedSymbols())
+    return;
+
   if (!shouldEmitVersioningSections())
     return;
 
@@ -5545,12 +5548,8 @@ void GNULDBackend::assignOutputVersionIDs() {
     if (!VernSymbol) {
       llvm::StringRef VerName = R->getVersionName();
       auto it = VerNameToID.find(VerName.str());
-      if (it == VerNameToID.end() && !VerName.empty()) {
-        InputFile *origin = R->resolvedOrigin();
-        config().raise(Diag::error_missing_version_node)
-            << origin->getInput()->decoratedPath() << R->name() << VerName;
-        continue;
-      }
+      ASSERT(it != VerNameToID.end(), "We should not reach here if the link "
+                                      "contains symbols with invalid versions");
       VernID = it->second;
     } else {
       VersionScriptNode *VSN = VernSymbol->getBlock()->getNode();
@@ -5598,5 +5597,42 @@ void GNULDBackend::assignOutputVersionIDs() {
       config().raise(Diag::trace_symbol_to_output_version_id)
           << R->name() << VernAuxID;
   }
+}
+
+bool GNULDBackend::validateVersionedSymbols() {
+  if (DynamicSymbols.empty())
+    return true;
+
+  const auto &VSNodes = m_Module.getVersionScriptNodes();
+  llvm::StringSet<> DefinedVersions;
+
+  for (const auto *VSNode : VSNodes) {
+    ASSERT(VSNode, "VSNode must not be null!");
+    if (!VSNode->isAnonymous())
+      DefinedVersions.insert(VSNode->getName());
+  }
+  bool hasError = false;
+  for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
+    ResolveInfo *R = DynamicSymbols[i];
+    if (llvm::isa<ELFDynObjectFile>(R->resolvedOrigin()))
+      continue;
+
+    llvm::StringRef VerName = R->getVersionName();
+    if (VerName.empty())
+      continue;
+
+    InputFile *origin = R->resolvedOrigin();
+
+    if (R->isUndef()) {
+      config().raise(Diag::error_versioned_undef_symbol)
+          << origin->getInput()->decoratedPath() << R->name() << VerName;
+      hasError = true;
+    } else if (!DefinedVersions.contains(VerName)) {
+      config().raise(Diag::error_missing_version_node)
+          << origin->getInput()->decoratedPath() << R->name() << VerName;
+      hasError = true;
+    }
+  }
+  return !hasError;
 }
 #endif
