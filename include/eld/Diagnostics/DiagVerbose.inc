@@ -127,7 +127,8 @@ DIAG(created_internal_section, DiagnosticEngine::Verbose,
      "entry size %4")
 DIAG(created_eh_frame_hdr, DiagnosticEngine::Verbose,
      "Created eh frame header section %0 with type %1 flag %2 alignment %3")
-DIAG(verbose_initializing_plugin, DiagnosticEngine::Verbose, "Initalized plugin %0")
+DIAG(verbose_initializing_plugin, DiagnosticEngine::Verbose,
+     "Initalized plugin %0")
 DIAG(adding_output_section_for_plugin, DiagnosticEngine::Verbose,
      "Adding outputsection %0 for Plugin %1")
 DIAG(adding_symbol_to_fragment, DiagnosticEngine::Verbose,
@@ -142,6 +143,8 @@ DIAG(calling_function_from_dynamic_lib, DiagnosticEngine::Verbose,
 DIAG(merging_strings, DiagnosticEngine::Verbose, "Merging strings")
 DIAG(handling_merge_strings_for_section, DiagnosticEngine::Verbose,
      "Handling merge string relocations for section %0 in file %1")
+DIAG(handling_merge_constants_for_section, DiagnosticEngine::Verbose,
+     "Handling merge constant relocations for section %0 in file %1")
 DIAG(merging_fragments, DiagnosticEngine::Trace,
      "Merging fragment from file %0 in section %1\n\twith fragment "
      "from file %2 in section %3\n\tand content %4 to output section "
@@ -150,11 +153,18 @@ DIAG(modifying_mergestr_reloc, DiagnosticEngine::Trace,
      "Modified relocation %0 + %1 from relocation section %2 in file %3:\n\t "
      "Old fragment: offset %4 in section %5 "
      "from file %6\n\t New fragment: offset %7 in section %8 from file %9")
+DIAG(merging_constant_fragments, DiagnosticEngine::Trace,
+     "Merging constant from file %0 in section %1 at offset %2 with alignment "
+     "%3\n\twith constant from file %4 in section %5 at offset %6 with "
+     "alignment %7\n\tto output section %8")
+DIAG(modifying_mergeconst_reloc, DiagnosticEngine::Trace,
+     "Modified relocation %0 + %1 from relocation section %2 in file %3:\n\t "
+     "Old constant: offset %4 in section %5 from file %6\n\t New constant: "
+     "offset %7 in section %8 from file %9")
 DIAG(splitting_merge_string_section, DiagnosticEngine::Verbose,
      "%0: created mergeable string fragment with contents %1 and align "
      "%2")
-DIAG(mapstyles_used, DiagnosticEngine::Verbose,
-     "Using MapStyles %0")
+DIAG(mapstyles_used, DiagnosticEngine::Verbose, "Using MapStyles %0")
 DIAG(verbose_using_just_symbols, DiagnosticEngine::Verbose,
      "Using just symbols for input %0")
 DIAG(verbose_inserting_section_at_fixed_addr, DiagnosticEngine::Trace,
@@ -165,8 +175,7 @@ DIAG(verbose_rule_matching_cache_func_hash, DiagnosticEngine::Verbose,
      "Rule-matching cache-functionality hash: %0")
 DIAG(verbose_loaded_plugin_config, DiagnosticEngine::Verbose,
      "Initialized plugin config for %0")
-DIAG(verbose_infer_target, DiagnosticEngine::Verbose,
-     "Inferred target : %0")
+DIAG(verbose_infer_target, DiagnosticEngine::Verbose, "Inferred target : %0")
 DIAG(verbose_sframe_log, DiagnosticEngine::Verbose, "SFrame Handling : %0")
 DIAG(verbose_remap_input, DiagnosticEngine::Verbose,
      "Remapping input file %0 to %1")

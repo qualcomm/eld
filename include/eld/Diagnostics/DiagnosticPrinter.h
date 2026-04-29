@@ -45,8 +45,9 @@ public:
     TraceSection = 0x2000,
     TraceDynamicLinking = 0x4000,
     TraceMergeStrings = 0x8000,
-    TraceLinkerScript = 0x10000,
-    TraceUntar = 0x20000,
+    TraceMergeConstants = 0x10000,
+    TraceLinkerScript = 0x20000,
+    TraceUntar = 0x40000,
     TraceSymDef = 0x100000,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     TraceSymbolVersioning = 0x200000
@@ -97,6 +98,8 @@ public:
   bool traceSection() { return Trace & TraceSection; }
 
   bool traceMergeStrings() { return Trace & TraceMergeStrings; }
+
+  bool traceMergeConstants() { return Trace & TraceMergeConstants; }
 
   bool traceLinkerScript() { return (Trace & TraceLinkerScript); }
 

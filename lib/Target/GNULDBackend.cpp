@@ -24,6 +24,7 @@
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
+#include "eld/Fragment/MergeDataFragment.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 #include "eld/Fragment/GNUVerDefFragment.h"
 #include "eld/Fragment/GNUVerNeedFragment.h"
@@ -1079,7 +1080,14 @@ void GNULDBackend::sizeSymTab() {
 bool GNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
   Fragment *F = nullptr;
   static LayoutInfo *layoutInfo = m_Module.getLayoutInfo();
-  if (!S->size() || S->isNoBits())
+  // Constant-data dedup is modeled as a dedicated fragment kind only for
+  // non-partial links. Partial links must preserve merge inputs as-is.
+  if (S->isMergeData() && S->getEntSize() != 0 && !config().isLinkPartial()) {
+    auto *MergeData = make<MergeDataFragment>(S);
+    if (!MergeData->readConstants(config()))
+      return false;
+    F = MergeData;
+  } else if (!S->size() || S->isNoBits())
     F = make<FillFragment>(getModule(), 0x0, S->size(), S, S->getAddrAlign());
   else {
     llvm::StringRef R = pInput.getSlice(S->offset(), S->size());

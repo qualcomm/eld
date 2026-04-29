@@ -7,6 +7,7 @@
 #ifndef ELD_OBJECT_OUTPUTSECTIONENTRY_H
 #define ELD_OBJECT_OUTPUTSECTIONENTRY_H
 
+#include "eld/Fragment/MergeDataFragment.h"
 #include "eld/Fragment/MergeStringFragment.h"
 #include "eld/Object/SectionMap.h"
 #include "eld/Script/Assignment.h"
@@ -213,6 +214,40 @@ public:
     return AllStrings;
   }
 
+  // -------------------- Constant merging support ------------------------
+
+  MergeableConstant *findConstant(const MergeableConstant *C) const {
+    auto Const = UniqueConstants.find(C->Data);
+    if (Const == UniqueConstants.end())
+      return nullptr;
+    MergeableConstant *MergedConstant = Const->second;
+    if (MergedConstant == C)
+      return nullptr;
+    return MergedConstant;
+  }
+
+  MergeableConstant *getMergedConstant(const MergeableConstant *C) const {
+    MergeableConstant *MergedConstant = findConstant(C);
+    if (!MergedConstant)
+      return nullptr;
+    // Preserve alignment requirements: a fragment can fold into an existing
+    // canonical constant only when that canonical constant is at least as
+    // strictly aligned.
+    if (MergedConstant->getAlignment() < C->getAlignment())
+      return nullptr;
+    return MergedConstant;
+  }
+
+  void addConstant(MergeableConstant *C) {
+    AllConstants.push_back(C);
+    if (!C->Exclude)
+      UniqueConstants[C->Data] = C;
+  }
+
+  const llvm::SmallVectorImpl<MergeableConstant *> &getMergeConstants() const {
+    return AllConstants;
+  }
+
 private:
   std::string Name;
   OutputSectDesc *OutputSectionDesc = nullptr;
@@ -229,6 +264,8 @@ private:
       BranchIslandForSymbol;
   llvm::StringMap<MergeableString *> UniqueStrings;
   llvm::SmallVector<MergeableString *, 0> AllStrings;
+  llvm::StringMap<MergeableConstant *> UniqueConstants;
+  llvm::SmallVector<MergeableConstant *, 0> AllConstants;
   uint64_t Hash = 0;
   llvm::StringMap<uint64_t> TrampolineNameToCountMap;
   uint64_t PAddr = 0;

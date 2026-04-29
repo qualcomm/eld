@@ -364,6 +364,29 @@ we can also see where each symbol of the section is placed in the output layout.
 Other <OutputSectionAndLayout> substructures
 ---------------------------------------------
 
+Merged string/constant entries in text map files
+------------------------------------------------
+When ELD merges mergeable string or constant inputs, the text map records the
+canonical contributor as a normal input-section line and records merged
+contributors as comment-prefixed lines below it.
+
+Merged constants example pattern::
+
+   .rodata.cst4   0x<off>  0x<size>  file2.o  #SHT_PROGBITS,SHF_ALLOC|SHF_MERGE,4
+           # .rodata.cst4 0x0 file1.o
+
+Merged strings example pattern (with ``--MapDetail=show-strings``)::
+
+   .rodata.str1.1 0x<off>  0x<size>  file.o #SHT_PROGBITS,SHF_ALLOC|SHF_MERGE|SHF_STRINGS,1 [ Contents: ... ]
+           # .rodata.str2.1 0x<in_off> file.o
+
+Interpretation:
+
+* The non-comment line is the canonical storage selected by the linker.
+* Comment lines are contributors that were merged into the canonical storage.
+* If ``--gc-sections`` discards an input section, it does not appear as a live
+  contributor in the final merged layout.
+
 <LinkerScriptExpression>
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

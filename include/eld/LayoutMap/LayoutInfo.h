@@ -38,6 +38,8 @@ class UpdateChunksPluginOp;
 class LinkerConfig;
 class Module;
 class Stats;
+struct MergeableConstant;
+struct MergeableString;
 
 struct LayoutFragmentInfo {
   LayoutFragmentInfo(InputFile *F, const ELFSection *Section)
@@ -401,7 +403,7 @@ public:
 
   std::vector<std::string> &getComments() { return Comments; }
 
-  void buildMergedStringMap(Module &M);
+  void buildMergedMaps(Module &M);
 
   void addMergedStrings(MergeableString *From, MergeableString *To) {
     assert(From != To);
@@ -416,6 +418,19 @@ public:
     if (Fragments == MergedStrings.end())
       return {};
     return MergedStrings.at(S);
+  }
+
+  void addMergedConstants(MergeableConstant *From, MergeableConstant *To) {
+    assert(From != To);
+    MergedConstants[From].push_back(To);
+  }
+
+  std::vector<MergeableConstant *>
+  getMergedConstants(MergeableConstant *C) const {
+    auto Fragments = MergedConstants.find(C);
+    if (Fragments == MergedConstants.end())
+      return {};
+    return MergedConstants.at(C);
   }
 
   static std::optional<std::string> getBasepath() { return ThisBasepath; }
@@ -456,6 +471,8 @@ private:
   std::vector<std::string> Comments;
   std::unordered_map<MergeableString *, std::vector<MergeableString *>>
       MergedStrings;
+  std::unordered_map<MergeableConstant *, std::vector<MergeableConstant *>>
+      MergedConstants;
   LinkerConfig &ThisConfig;
   /// It is required to compute relative path when -MapDetail
   /// 'show-relative-path=...' is used.

@@ -27,6 +27,8 @@ class GNULDBackend;
 class IRBuilder;
 class Module;
 class InputFile;
+struct MergeableConstant;
+struct MergeableString;
 
 /** \class Relocator
  *  \brief Relocator provides the interface of performing relocations
@@ -104,11 +106,17 @@ public:
                                  const MergeableString *From,
                                  const MergeableString *To) const;
 
+  virtual void traceMergeConstants(const ELFSection *RelocationSection,
+                                   const Relocation *R,
+                                   const MergeableConstant *From,
+                                   const MergeableConstant *To) const;
+
   virtual std::pair<Fragment *, uint64_t>
   findFragmentForMergeStr(const ELFSection *RelocationSection,
                           const Relocation *R, MergeStringFragment *F) const;
 
   virtual bool doMergeStrings(ELFSection *S);
+  virtual bool doMergeConstants(ELFSection *S);
 
   // ------ observers -----//
   virtual GNULDBackend &getTarget() = 0;

@@ -1,6 +1,9 @@
 Linker Optimization Features
 ============================
 
+For image-size-focused guidance and workflows, see
+:doc:`linker_image_size_optimizations`.
+
     * Plugins
         More Information about linker plugins can be found at :doc:`linker_plugin`
 

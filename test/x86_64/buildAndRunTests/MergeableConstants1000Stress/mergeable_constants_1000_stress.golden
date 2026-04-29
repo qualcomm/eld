@@ -1,0 +1,5 @@
+CHECK: 0000 MERGE_CONST_000 0x{{[0-9a-fA-F]+}}
+CHECK: 0249 MERGE_CONST_249 0x{{[0-9a-fA-F]+}}
+CHECK: 0250 MERGE_CONST_000 0x{{[0-9a-fA-F]+}}
+CHECK: SUMMARY total=1000 unique_addresses=250 expected_unique=250
+CHECK: PASS: mergeable constants combined across multiple files

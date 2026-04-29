@@ -29,6 +29,7 @@ This document describes usage of ELD
    documentation/linker_plugins_updated.rst
    documentation/linker_plugin.rst
    documentation/linker_optimizations.rst
+   documentation/linker_image_size_optimizations.rst
    documentation/elf_tools.rst
    documentation/lto_support.rst
    documentation/getting_image_details.rst

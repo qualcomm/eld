@@ -90,6 +90,13 @@ public:
   bool isMergeStr() const {
     return (Flags & llvm::ELF::SHF_MERGE) && (Flags & llvm::ELF::SHF_STRINGS);
   }
+  bool isMergeData() const {
+    // Mergeable constants are ELF SHF_MERGE sections that:
+    //  1) participate in the runtime image (SHF_ALLOC), and
+    //  2) are not string-merge sections (no SHF_STRINGS).
+    return (Flags & llvm::ELF::SHF_ALLOC) && (Flags & llvm::ELF::SHF_MERGE) &&
+           !(Flags & llvm::ELF::SHF_STRINGS);
+  }
   bool isNote() const { return Type == llvm::ELF::SHT_NOTE; }
 
 protected:

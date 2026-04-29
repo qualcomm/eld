@@ -15,6 +15,7 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/Relocator.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ManagedStatic.h"
 
 namespace eld {
@@ -355,5 +356,6 @@ bool Relocation::isMergeKind() const {
   FragmentRef *Target =
       targetFragRef() ? targetFragRef() : symInfo()->outSymbol()->fragRef();
   return Target && Target->frag() &&
-         Target->frag()->getOwningSection()->isMergeKind();
+         (Target->frag()->getOwningSection()->getFlags() &
+          llvm::ELF::SHF_MERGE);
 }

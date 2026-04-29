@@ -30,6 +30,8 @@ class ELFSection;
 class Fragment;
 struct MergeableString;
 class MergeStringFragment;
+struct MergeableConstant;
+class MergeDataFragment;
 class GNULDBackend;
 class Input;
 class LinkerConfig;
@@ -84,6 +86,7 @@ public:
   void mayChangeSectionTypeOrKind(ELFSection *, ELFSection *) const;
 
   void mergeStrings(MergeStringFragment *F, OutputSectionEntry *O);
+  void mergeConstants(MergeDataFragment *F, OutputSectionEntry *O);
 
 private:
   bool shouldSkipMergeSection(ELFSection *) const;
@@ -92,6 +95,8 @@ private:
 
   void traceMergeStrings(const MergeableString *From,
                          const MergeableString *To) const;
+  void traceMergeConstants(const MergeableConstant *From,
+                           const MergeableConstant *To) const;
 
   /// Assigns output sections to internal common sections.
   bool assignOutputSectionsToCommonSymbols();
