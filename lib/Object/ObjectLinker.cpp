@@ -55,6 +55,7 @@
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptReader.h"
 #include "eld/Script/ScriptSymbol.h"
+#include "eld/Script/VersionScript.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/RegisterTimer.h"
@@ -407,13 +408,16 @@ bool ObjectLinker::parseVersionScript() {
   }
   auto &SymbolScopes = getTargetBackend().symbolScopes();
   auto &NP = ThisModule->getNamePool();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  DemangledNamesMap DemangledNames;
+#endif
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
     for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
       if (VersionScriptNode->getGlobalBlock()) {
         for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP);
+          bool isMatched = Sym->matched(*R, NP, DemangledNames);
 #else
           bool isMatched = Sym->getSymbolPattern()->matched(*R);
 #endif
@@ -438,7 +442,7 @@ bool ObjectLinker::parseVersionScript() {
       if (VersionScriptNode->getLocalBlock()) {
         for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP);
+          bool isMatched = Sym->matched(*R, NP, DemangledNames);
 #else
           bool isMatched = Sym->getSymbolPattern()->matched(*R);
 #endif

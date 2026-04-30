@@ -6,9 +6,11 @@
 
 #include "eld/Script/VersionScript.h"
 #include "eld/Script/ScriptSymbol.h"
+#include "eld/Script/StrToken.h"
 #include "eld/Script/SymbolContainer.h"
 #include "eld/Support/Memory.h"
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
+#include "eld/Support/StringRefUtils.h"
 #include "eld/SymbolResolver/NamePool.h"
 #endif
 
@@ -138,6 +140,13 @@ bool VersionSymbol::isGlobal() const { return Block->isGlobal(); }
 
 bool VersionSymbol::isLocal() const { return Block->isLocal(); }
 
+bool VersionSymbol::isExternCpp() const {
+  if (ScriptFileKind != Extern || !VersionScriptLanguage)
+    return false;
+  llvm::StringRef Lang = VersionScriptLanguage->name();
+  return Lang == "\"C++\"";
+}
+
 void VersionSymbol::dump(
     llvm::raw_ostream &Ostream,
     std::function<std::string(const Input *)> GetDecoratedPath) const {
@@ -150,7 +159,8 @@ void VersionSymbol::dump(
 }
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-bool VersionSymbol::matched(const ResolveInfo &R, const NamePool &NP) const {
+bool VersionSymbol::matched(const ResolveInfo &R, const NamePool &NP,
+                            DemangledNamesMap &DemangledNames) const {
   auto *VB = getBlock();
   VersionScriptNode *VN = VB->getNode();
   if (!VN->isAnonymous()) {
@@ -170,7 +180,20 @@ bool VersionSymbol::matched(const ResolveInfo &R, const NamePool &NP) const {
         return false;
     }
   }
+
   ScriptSymbol *symbolPattern = getSymbolPattern();
+
+  if (isExternCpp()) {
+    auto It = DemangledNames.find(&R);
+    if (It == DemangledNames.end()) {
+      std::string Demangled =
+          eld::string::getDemangledName(R.getNonVersionedName());
+      It = DemangledNames.insert({&R, std::move(Demangled)}).first;
+    }
+    const std::string &demangledName = It->second;
+    return symbolPattern->matched(R, demangledName);
+  }
+
   return symbolPattern->matched(R);
 }
 #endif

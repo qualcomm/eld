@@ -1,0 +1,50 @@
+REQUIRES: symbol_versioning
+#---VersionScriptExternCpp.test------------- VersionScript --------#
+#BEGIN_COMMENT
+# Tests for extern "C++" blocks in version scripts.
+# The extern "C++" directive allows matching C++ symbols by their
+# demangled names rather than their mangled names.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -o %t1.1.o -c %p/Inputs/1.cpp -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/vs.global.t
+RUN: %readelf --dyn-syms %t1.lib1.so | %filecheck %s --check-prefix=GLOBAL
+
+RUN: %link %linkopts -o %t1.lib2.so %t1.1.o -shared --version-script %p/Inputs/vs.local.t
+RUN: %readelf --dyn-syms %t1.lib2.so | %filecheck %s --check-prefix=LOCAL
+
+RUN: %link %linkopts -o %t1.lib3.so %t1.1.o -shared --version-script %p/Inputs/vs.global.version.t
+RUN: %readelf --dyn-syms %t1.lib3.so | %filecheck %s --check-prefix=VERSION
+
+#END_TEST
+
+GLOBAL-DAG: {{.*}}freeFuncChar{{.*}}
+GLOBAL-DAG: {{.*}}globalFunc{{.*}}
+GLOBAL-DAG: {{.*}}staticMethod{{.*}}
+GLOBAL-DAG: {{.*}}foo{{.*}}
+GLOBAL-NOT: {{.*}}bar{{.*}}
+GLOBAL-NOT: {{.*}}baz{{.*}}
+GLOBAL-NOT: {{.*}}freeFunc{{.*}}
+GLOBAL-NOT: {{.*}}globalFunc{{.*}}
+GLOBAL-NOT: _start
+
+LOCAL-DAG: {{.*}}bar{{.*}}
+LOCAL-DAG: {{.*}}baz{{.*}}
+LOCAL-DAG: {{.*}}freeFunc{{.*}}
+LOCAL-DAG: _start
+LOCAL-NOT: {{.*}}globalFunc{{.*}}
+LOCAL-NOT: {{.*}}freeFuncChar{{.*}}
+LOCAL-NOT: {{.*}}globalFunc{{.*}}
+LOCAL-NOT: {{.*}}staticMethod{{.*}}
+LOCAL-NOT: {{.*}}foo{{.*}}
+
+VERSION-DAG: {{.*}}freeFuncChar{{.*}}@@V1
+VERSION-DAG: {{.*}}globalFunc{{.*}}@@V1
+VERSION-DAG: {{.*}}staticMethod{{.*}}@@V1
+VERSION-DAG: {{.*}}foo{{.*}}@@V1
+VERSION-NOT: {{.*}}bar{{.*}}
+VERSION-NOT: {{.*}}baz{{.*}}
+VERSION-NOT: {{.*}}freeFunc{{.*}}
+VERSION-NOT: {{.*}}globalFunc{{.*}}
+VERSION-NOT: _start
