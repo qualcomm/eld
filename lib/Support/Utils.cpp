@@ -9,9 +9,9 @@
 namespace eld {
 namespace utility {
 const std::string toHex(uint64_t Number) {
-  std::stringstream Ss;
-  Ss << std::hex << Number;
-  std::string HexNumber = Ss.str();
+  std::stringstream SS;
+  SS << std::hex << Number;
+  std::string HexNumber = SS.str();
   return HexNumber;
 }
 } // namespace utility
