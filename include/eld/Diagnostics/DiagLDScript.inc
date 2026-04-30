@@ -148,3 +148,5 @@ DIAG(internal_error_null_expression, DiagnosticEngine::InternalError,
      "Trying to evaluate null expression")
 DIAG(warn_address_not_aligned, DiagnosticEngine::Warning,
      "address (0x%0) of section %1 is not a multiple of alignment (%2)")
+DIAG(warn_lma_not_aligned, DiagnosticEngine::Warning,
+     "LMA (0x%0) of section %1 is not a multiple of alignment (%2)")
