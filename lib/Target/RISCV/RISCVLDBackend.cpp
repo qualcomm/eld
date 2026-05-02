@@ -125,7 +125,7 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
   LayoutInfo *layoutInfo = getModule().getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(m_pRISCVAttributeSection->getInputFile(),
-                            m_pRISCVAttributeSection, AttributeFragment);
+                               m_pRISCVAttributeSection, AttributeFragment);
   if (LinkerConfig::Object == config().codeGenType())
     return;
 
@@ -163,6 +163,8 @@ void RISCVLDBackend::initPatchSections(ELFObjectFile &InputFile) {
 void RISCVLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
+
+  m_pGOTSymbol = defineGlobalOffsetTableSymbol();
 
   if (TableJumpFragment) {
     // The __jvt_base$ symbol contains the Zcmt jump table base address.
@@ -433,7 +435,8 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
                  ->getInput()
                  ->decoratedPath();
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&c_j), 2);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&c_j),
+                               2);
     reloc->setTargetData(c_j);
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
@@ -466,7 +469,8 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     // Replace the instruction to JAL
     uint32_t jal = 0x6fu | rd << 7;
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal), 4);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal),
+                               4);
     reloc->setTargetData(jal);
     reloc->setType(llvm::ELF::R_RISCV_JAL);
     // Delete the next instruction
@@ -485,7 +489,8 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     const char *msg =
         (rd == 1) ? "R_RISCV_CALL_QC_E_JAL" : "R_RISCV_CALL_QC_E_J";
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&qc_e_j), 6);
+    region->replaceInstruction(offset, reloc,
+                               reinterpret_cast<uint8_t *>(&qc_e_j), 6);
     reloc->setTargetData(qc_e_j);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT);
     relaxDeleteBytes(msg, *region, offset + 6, 2, reloc->symInfo()->name());
@@ -624,8 +629,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   reloc->setTargetData(jal_instr);
   // Delete the next instruction
   const char *msg = isTailCall ? "RISCV_QC_E_J" : "RISCV_QC_E_JAL";
-  relaxDeleteBytes(msg, *region, offset + 4, 2,
-                   reloc->symInfo()->name());
+  relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
 
   return true;
 }
@@ -822,7 +826,8 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
   if (canRelaxQcLi) {
     uint32_t qc_li = 0x0000001bu | rd << 7;
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&qc_li), 4);
+    region->replaceInstruction(offset, reloc,
+                               reinterpret_cast<uint8_t *>(&qc_li), 4);
     reloc->setTargetData(qc_li);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_ABS20_U);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
@@ -834,7 +839,8 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
     unsigned rs = 3; // x3 = gp
     uint32_t addi = 0x00000013u | (rd << 7) | (rs << 15);
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&addi), 4);
+    region->replaceInstruction(offset, reloc,
+                               reinterpret_cast<uint8_t *>(&addi), 4);
     reloc->setTargetData(addi);
     reloc->setType(ELF::riscv::internal::R_RISCV_GPREL_I);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
@@ -1211,8 +1217,8 @@ bool RISCVLDBackend::doRelaxationTLSDESC(Relocation &R, bool Relax) {
       // Otherwise, the instruction is replaced with a NOP.
       reportMissedRelaxation(RelaxType, *region, offset, 4, Sym.name());
       uint32_t NOPi32 = static_cast<uint32_t>(NOP);
-      region->replaceInstruction(
-          offset, &R, reinterpret_cast<uint8_t *>(&NOPi32), 4);
+      region->replaceInstruction(offset, &R,
+                                 reinterpret_cast<uint8_t *>(&NOPi32), 4);
     }
     R.setType(llvm::ELF::R_RISCV_NONE);
     return Relaxed;

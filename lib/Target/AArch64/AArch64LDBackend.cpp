@@ -54,8 +54,7 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 // AArch64LDBackend
 //===----------------------------------------------------------------------===//
-AArch64LDBackend::AArch64LDBackend(eld::Module &pModule,
-                                                 TargetInfo *pInfo)
+AArch64LDBackend::AArch64LDBackend(eld::Module &pModule, TargetInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pErrata843419Factory(nullptr),
       m_pAArch64ErrataIslandFactory(nullptr), m_pRelocator(nullptr),
       m_pDynamic(nullptr), m_pIRelativeStart(nullptr), m_pIRelativeEnd(nullptr),
@@ -109,24 +108,8 @@ void AArch64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 }
 
 void AArch64LDBackend::initTargetSymbols() {
-  // Define the symbol _GLOBAL_OFFSET_TABLE_ if there is a symbol with the
-  // same name in input
-  auto SymbolName = "_GLOBAL_OFFSET_TABLE_";
-  if (LinkerConfig::Object != config().codeGenType()) {
-    m_pGOTSymbol =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
-                0x0, // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Hidden);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    if (m_pGOTSymbol)
-      m_pGOTSymbol->setShouldIgnore(false);
-  }
+  if (LinkerConfig::Object != config().codeGenType())
+    m_pGOTSymbol = defineGlobalOffsetTableSymbol();
 }
 
 bool AArch64LDBackend::initRelocator() {
@@ -136,8 +119,7 @@ bool AArch64LDBackend::initRelocator() {
   return true;
 }
 
-bool AArch64LDBackend::processInputFiles(
-    std::vector<InputFile *> &Inputs) {
+bool AArch64LDBackend::processInputFiles(std::vector<InputFile *> &Inputs) {
   if (!m_pGPF)
     return config().getDiagEngine()->diagnose();
   for (auto &I : Inputs) {
@@ -220,8 +202,7 @@ void AArch64LDBackend::doPreLayout() {
   m_ptbss = m_Module.getScript().sectionMap().find(".tbss");
 }
 
-void AArch64LDBackend::initSegmentFromLinkerScript(
-    ELFSegment *pSegment) {
+void AArch64LDBackend::initSegmentFromLinkerScript(ELFSegment *pSegment) {
   auto sect = pSegment->begin(), sectEnd = pSegment->end();
   bool isPrevBSS = false;
   bool hasMixedBSS = false;
@@ -260,8 +241,8 @@ void AArch64LDBackend::initSegmentFromLinkerScript(
 
 AArch64ELFDynamic *AArch64LDBackend::dynamic() { return m_pDynamic; }
 
-unsigned int AArch64LDBackend::getTargetSectionOrder(
-    const ELFSection &pSectHdr) const {
+unsigned int
+AArch64LDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
   if (pSectHdr.name() == ".got") {
     if (config().options().hasNow())
       return SHO_RELRO;
@@ -349,9 +330,8 @@ void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
 }
 
 // Return whether this is a 3-insn erratum sequence.
-bool AArch64LDBackend::isErratum843419Sequence(uint32_t insn1,
-                                                      uint32_t insn2,
-                                                      uint32_t insn3) {
+bool AArch64LDBackend::isErratum843419Sequence(uint32_t insn1, uint32_t insn2,
+                                               uint32_t insn3) {
   unsigned rt1, rt2;
   bool load, pair;
 
@@ -462,7 +442,7 @@ bool AArch64LDBackend::scanErrata843419() {
 }
 
 void AArch64LDBackend::createErratum843419Stub(Fragment *frag,
-                                                      uint32_t offset) {
+                                               uint32_t offset) {
   BranchIsland *branchIsland = m_pErrata843419Factory->create(
       frag, offset, *m_Module.getIRBuilder(), *m_pAArch64ErrataIslandFactory);
   switch (config().options().getStripSymbolMode()) {
@@ -645,9 +625,9 @@ bool AArch64LDBackend::ltoNeedAssembler() {
   return true;
 }
 
-bool AArch64LDBackend::ltoCallExternalAssembler(
-    const std::string &Input, std::string RelocModel,
-    const std::string &Output) {
+bool AArch64LDBackend::ltoCallExternalAssembler(const std::string &Input,
+                                                std::string RelocModel,
+                                                const std::string &Output) {
   bool traceLTO = config().options().traceLTO();
 
   // Invoke assembler.
@@ -712,10 +692,8 @@ bool AArch64LDBackend::ltoCallExternalAssembler(
 }
 
 // Create GOT entry.
-AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
-                                               ELFObjectFile *Obj,
-                                               ResolveInfo *R,
-                                               bool SkipPLTRef) {
+AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
+                                        ResolveInfo *R, bool SkipPLTRef) {
 
   if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
                         config().options().traceSymbol(*R)) ||
@@ -828,7 +806,8 @@ void AArch64LDBackend::recordPLT(ResolveInfo *I, AArch64PLT *P) {
   m_PLTMap[I] = P;
 }
 
-Relocation *AArch64LDBackend::findRelativeReloc(const Relocation *pReloc) const {
+Relocation *
+AArch64LDBackend::findRelativeReloc(const Relocation *pReloc) const {
   return m_RelativeRelocMap.lookup(pReloc);
 }
 
@@ -895,7 +874,7 @@ ELFSection *AArch64LDBackend::mergeSection(ELFSection *S) {
 // Read .note.gnu.property and extract features for pointer authentication.
 template <class ELFT>
 bool AArch64LDBackend::readGNUProperty(InputFile &pInput, ELFSection *S,
-                                              uint32_t &featureSet) {
+                                       uint32_t &featureSet) {
   using Elf_Nhdr = typename ELFT::Nhdr;
   using Elf_Note = typename ELFT::Note;
 
@@ -974,10 +953,10 @@ namespace eld {
 //===----------------------------------------------------------------------===//
 GNULDBackend *createAArch64LDBackend(Module &pModule) {
   if (pModule.getConfig().targets().triple().isOSLinux())
-    return make<AArch64LDBackend>(
-        pModule, make<AArch64LinuxInfo>(pModule.getConfig()));
+    return make<AArch64LDBackend>(pModule,
+                                  make<AArch64LinuxInfo>(pModule.getConfig()));
   return make<AArch64LDBackend>(pModule,
-                                       make<AArch64Info>(pModule.getConfig()));
+                                make<AArch64Info>(pModule.getConfig()));
 }
 
 uint64_t AArch64LDBackend::StaticTCBSize = 0x10;
