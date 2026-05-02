@@ -55,6 +55,10 @@ public:
   /// finalizeTargetSymbols - finalize the symbol value
   bool finalizeTargetSymbols() override;
 
+  bool finalizeScanRelocations() override;
+
+  void defineGOTSymbol(Fragment &pFrag);
+
   uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
 
   x86_64ELFDynamic *dynamic() override;
@@ -109,7 +113,8 @@ public:
       return DynRelocType::GLOB_DAT;
     if (X->type() == llvm::ELF::R_X86_64_JUMP_SLOT)
       return DynRelocType::JMP_SLOT;
-    if (X->type() == llvm::ELF::R_X86_64_RELATIVE || X->type()==llvm::ELF::R_X86_64_IRELATIVE)
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE ||
+        X->type() == llvm::ELF::R_X86_64_IRELATIVE)
       return DynRelocType::RELATIVE;
     if (X->type() == llvm::ELF::R_X86_64_DTPMOD64) {
       if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
@@ -155,6 +160,7 @@ private:
 
   x86_64ELFDynamic *m_pDynamic;
   LDSymbol *m_pEndOfImage;
+  LDSymbol *m_pGOTSymbol = nullptr;
   // Tracks .rela.plt entry index
   // m_RelaPLTIndex starts at 0 for the first function PLT entry
   uint32_t m_RelaPLTIndex = 0;
