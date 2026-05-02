@@ -83,6 +83,7 @@ void x86_64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
 void x86_64LDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
+  m_pGOTSymbol = defineGlobalOffsetTableSymbol();
 
   m_pEndOfImage =
       m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
@@ -93,6 +94,47 @@ void x86_64LDBackend::initTargetSymbols() {
           FragmentRef::null());
   if (m_pEndOfImage)
     m_pEndOfImage->setShouldIgnore(false);
+}
+
+void x86_64LDBackend::defineGOTSymbol(Fragment &pFrag) {
+  const std::string GOTSymName = "_GLOBAL_OFFSET_TABLE_";
+  if (m_pGOTSymbol != nullptr) {
+    m_pGOTSymbol =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Unresolve>(
+                m_Module.getInternalInput(Module::Script), GOTSymName,
+                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
+                0x0, // size
+                0x0, // value
+                make<FragmentRef>(pFrag, 0x0), ResolveInfo::Hidden);
+  } else {
+    m_pGOTSymbol =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                pFrag.getOwningSection()->getInputFile(), GOTSymName,
+                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
+                0x0, // size
+                0x0, // value
+                make<FragmentRef>(pFrag, 0x0), ResolveInfo::Hidden);
+  }
+  if (m_pGOTSymbol)
+    m_pGOTSymbol->setShouldIgnore(false);
+}
+
+bool x86_64LDBackend::finalizeScanRelocations() {
+  if (m_pGOTSymbol != nullptr && !getGOTPLT()->isIgnore())
+    createGOT(GOT::GOTPLT0, nullptr, nullptr);
+  Fragment *frag = nullptr;
+  if (auto *GOTPLT = getGOTPLT()) {
+    if (!GOTPLT->isIgnore() && GOTPLT->hasFragments())
+      frag = *GOTPLT->getFragmentList().begin();
+  }
+  if (frag) {
+    defineGOTSymbol(*frag);
+  } else if (m_pGOTSymbol != nullptr) {
+    reportErrorIfGOTPLTIsDiscarded(m_pGOTSymbol->resolveInfo());
+  }
+  return true;
 }
 
 bool x86_64LDBackend::initBRIslandFactory() { return true; }

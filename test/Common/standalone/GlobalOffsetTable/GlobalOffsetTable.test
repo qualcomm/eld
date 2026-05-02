@@ -1,0 +1,15 @@
+#----------GlobalOffsetTable.test--------------------- Executable ------#
+#BEGIN_COMMENT
+# Test that _GLOBAL_OFFSET_TABLE_ symbol is emitted and points to
+# the GOT section with a non-zero address.
+# The GOT section name varies per target:
+#   .got.plt -> X86, ARM, Hexagon
+#   .got     -> AArch64, RISCV
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t1.out 2>&1
+RUN: %readelf -S -W -s %t1.out 2>&1 | %filecheck %s -DGlobalOffsetTableSection=%GlobalOffsetTableSection
+#END_TEST
+CHECK: [[GlobalOffsetTableSection]] PROGBITS [[ADDR:0*[1-9a-f][0-9a-f]*]]
+CHECK: {{.*}} [[ADDR]] {{.*}} _GLOBAL_OFFSET_TABLE_

@@ -1,0 +1,13 @@
+#---GlobalOffsetTableShared_ARM.test----------- Shared Library ---------------#
+# REQUIRES: arm
+#BEGIN_COMMENT
+# Verify that _GLOBAL_OFFSET_TABLE_ is emitted with a valid address
+# pointing to .got.plt when building a shared library for ARM.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1_arm.c -o %t1.o -fPIC -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t1.so -shared 2>&1
+RUN: %readelf -S -W -s %t1.so 2>&1 | %filecheck %s
+#END_TEST
+CHECK: .got.plt PROGBITS [[ADDR:[xa-f0-9]+]]
+CHECK: {{.*}} [[ADDR]] {{.*}} _GLOBAL_OFFSET_TABLE_
