@@ -109,24 +109,8 @@ void AArch64LDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 }
 
 void AArch64LDBackend::initTargetSymbols() {
-  // Define the symbol _GLOBAL_OFFSET_TABLE_ if there is a symbol with the
-  // same name in input
-  auto SymbolName = "_GLOBAL_OFFSET_TABLE_";
-  if (LinkerConfig::Object != config().codeGenType()) {
-    m_pGOTSymbol =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
-                0x0, // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Hidden);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    if (m_pGOTSymbol)
-      m_pGOTSymbol->setShouldIgnore(false);
-  }
+  if (LinkerConfig::Object != config().codeGenType())
+      m_pGOTSymbol = defineGlobalOffsetTableSymbol();
 }
 
 bool AArch64LDBackend::initRelocator() {

@@ -1,0 +1,13 @@
+#----------GlobalOffsetTable_ARM.test--------------------- Executable ------#
+# REQUIRES: arm
+#BEGIN_COMMENT
+# Test that _GLOBAL_OFFSET_TABLE_ symbol is emitted for ARM and
+# points to .got.plt section with a non-zero address.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t1.out 2>&1
+RUN: %readelf -S -W -s %t1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK: .got.plt PROGBITS [[ADDR:0*[1-9a-f][0-9a-f]*]]
+CHECK: {{.*}} [[ADDR]] {{.*}} _GLOBAL_OFFSET_TABLE_

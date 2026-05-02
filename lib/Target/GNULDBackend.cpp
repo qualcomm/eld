@@ -4885,6 +4885,27 @@ size_t GNULDBackend::getGOTSymbolAddr() const {
   return (fragRef->getOutputOffset(m_Module) + section->addr());
 }
 
+LDSymbol *GNULDBackend::defineGlobalOffsetTableSymbol() {
+  const std::string SymbolName = "_GLOBAL_OFFSET_TABLE_";
+  LDSymbol *Sym =
+      m_Module.getIRBuilder()
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+              m_Module.getInternalInput(Module::Script), SymbolName,
+              ResolveInfo::Object,
+              ResolveInfo::Define,
+              ResolveInfo::Local,   
+              0x0,                  
+              0x0,                  
+              FragmentRef::null(),
+              ResolveInfo::Hidden); 
+  if (Sym)
+    Sym->setShouldIgnore(false);
+  if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+      m_Module.getConfig().options().traceSymbol(SymbolName))
+    config().raise(Diag::target_specific_symbol) << SymbolName;
+  return Sym;
+}
+
 std::string
 GNULDBackend::getCommonSymbolName(const CommonELFSection *commonSection) const {
   llvm::StringRef sectionName = commonSection->name();

@@ -135,7 +135,8 @@ void RISCVLDBackend::initPatchSections(ELFObjectFile &InputFile) {
 void RISCVLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
-  // Do not create another __global_pointer$ when linking a patch.
+  m_pGOTSymbol = defineGlobalOffsetTableSymbol();
+  
   if (config().options().getPatchBase())
     return;
   if (m_Module.getScript().linkerScriptHasSectionsCommand()) {

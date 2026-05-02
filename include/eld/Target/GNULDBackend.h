@@ -932,6 +932,7 @@ protected:
   virtual void addTargetSpecificSegments();
 
   void addSectionInfo(LDSymbol *symbol, ELFSection *section);
+  LDSymbol *defineGlobalOffsetTableSymbol();
 
   /// Returns the name of the common symbol associated with the section
   /// 'commonSection'.
