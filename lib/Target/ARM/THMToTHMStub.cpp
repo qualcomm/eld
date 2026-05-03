@@ -92,7 +92,8 @@ bool THMToTHMStub::isNeeded(const Relocation *pReloc, int64_t pTargetValue,
                             Module &Module) const {
   int64_t Offset = 0;
   // This stub cannot be used for ARM target.
-  if ((pTargetValue & 0x1) == 0)
+  if ((pTargetValue & 0x1) == 0 &&
+       pReloc->type() != llvm::ELF::R_ARM_THM_JUMP19)
     return false;
   // The stub is needed only if the target is unreachable
   return !isRelocInRange(pReloc, pTargetValue, Offset, Module);
@@ -107,7 +108,8 @@ bool THMToTHMStub::isRelocInRange(const Relocation *pReloc,
   Offset = pTargetValue + addend - pReloc->place(Module);
   switch (pReloc->type()) {
   case llvm::ELF::R_ARM_THM_JUMP24:
-  case llvm::ELF::R_ARM_THM_CALL: {
+  case llvm::ELF::R_ARM_THM_CALL:
+  case llvm::ELF::R_ARM_THM_JUMP19: {
     if (m_Target->isJ1J2BranchEncoding())
       return llvm::isInt<THM2_MAX_BRANCH_BITS>(Offset);
     return llvm::isInt<THM_MAX_BRANCH_BITS>(Offset);

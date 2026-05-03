@@ -1,0 +1,13 @@
+#---THMJump19Veneer.test--------- Executable --------------------------#
+#BEGIN_COMMENT
+# This tests that R_ARM_THM_JUMP19 relocation (conditional branch beq)
+# is supported for static ARM targets (e.g. Cortex-M0plus / Cortex-M33).
+# Regression test for https://github.com/qualcomm/eld/issues/1005
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts %p/Inputs/test.S -o %t.test.o -c --target=arm-none-eabi -mcpu=cortex-m0plus -mfloat-abi=soft
+RUN: %clang %clangopts %p/Inputs/main.c -o %t.main.o -c --target=arm-none-eabi -mcpu=cortex-m0plus -mfloat-abi=soft
+RUN: %link %linkopts %t.test.o %t.main.o -o %t.out -T %p/Inputs/link.ld -m armelf --entry=main -static 2>&1
+RUN: %readelf -s %t.out | %filecheck %s
+#CHECK: plain_entry
+#END_TEST
