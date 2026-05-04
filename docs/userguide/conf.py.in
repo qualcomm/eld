@@ -58,6 +58,22 @@ targets = os.environ.get("LLVM_TARGETS_TO_BUILD", "ARM;AArch64;Hexagon;RISCV")
 
 html_theme = os.environ.get("SPHINX_HTML_THEME", "sphinx_rtd_theme")
 html_static_path = ["_static"]
+html_meta = {
+    "description": "ELD embedded linker documentation",
+    "keywords": ", ".join(
+        [
+            "eld linker",
+            "embedded linker",
+            "eld embedded linker",
+            "eld documentation",
+            "eld linker documentation",
+            "embedded linker documentation",
+            "eld embedded linker documentation",
+            "embedded linker eld docs",
+            "eld linker docs",
+        ]
+    ),
+}
 
 # Graphviz configuration
 graphviz_dot = "/usr/bin/dot"
