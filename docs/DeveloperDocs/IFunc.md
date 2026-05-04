@@ -35,24 +35,24 @@ calls the corresponding resolver function to fill the GOTPLT slot.
 For the case of static executables, libc plays the role of runtime and takes on a task that is typically
 unusual for a libc -- resolve symbols and patch the binary at runtime with the resolution information.
 
-eld emits `R_AARCH64_IRELATIVE` relocations in `.rela.plt` section, and `__rela_iplt_start` and
+eld emits `R_<TARGET>_IRELATIVE` relocations in `.rela.plt` section, and `__rela_iplt_start` and
 `__rela_iplt_end` symbols that store the start and end addresses of `.rela.plt` section.
 
-The tiny-loader in the libc process the `R_AARCH64_IRELATIVE` relocations by
+The tiny-loader in the libc process the `R_<TARGET>_IRELATIVE` relocations by
 iterating over the [`__rela_iplt_start`, `__rela_iplt_end`) range.
 
 ```
 Relocation section '.rela.plt' at offset 0x190 contains 6 entries:
     Offset             Info             Type               Symbol's Value
-0000000000490000  0000000000000408 R_AARCH64_IRELATIVE               4358c0
-0000000000490008  0000000000000408 R_AARCH64_IRELATIVE               40db20
+0000000000490000  0000000000000408 R_<TARGET>_IRELATIVE               4358c0
+0000000000490008  0000000000000408 R_<TARGET>_IRELATIVE               40db20
 ```
 
 The symbol value of `IRELATIVE` relocations contains the IFunc resolver address, and
 the relocation offset points to the GOTPLT slot for the IFunc symbol. For each relocation,
 the tiny-loader in the libc calls the IFunc resolver and stores the result in the GOTPLT slot.
 
-Note that there is no lazy binding here.
+**Note that there is no lazy binding here.**
 
 ### Direct reference to an IFunc symbol
 
@@ -60,11 +60,11 @@ Direct references to an IFunc symbol are resolved to the PLT slot of the IFunc s
 
 ```
 // global variable!
-// R_AARCH64_ABS64
+// Absolute relocation, for example, `R_AARCH64_ABS64`, `R_RISCV64_64`.
 int (*foo_gp)(int) = foo;
 ```
 
-eld will resolve `R_AARCH64_ABS64` relocation to the address of PLT[foo].
+eld will resolve the absolute relocation to the address of PLT[foo].
 
 ### GOT references to an IFunc symbol
 
@@ -130,7 +130,8 @@ into the following categories:
 - Control flow relocations
 - GOT-related instruction relocations
 - Absolute / PC-relative address-forming relocations
-- Absolute / PC-relative load/store relocations.
+- Absolute / PC-relative load/store relocations
+- General address forming relocations
 - General computation relocation
 
 The relocations which are not supported by GNU for IFunc symbols are annotated with
@@ -144,27 +145,32 @@ Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.
 
 - R_AARCH64_ABS{16, 32, 64}
 
-Not handled currently.
+- R_RISCV_{32, 64}
 
-[!IMPORTANT]
-They should be resolved to PLT[IFuncSymbol] as well!
+
+The below relocations are not handled currently by eld.
+They should be resolved to PLT[IFuncSymbol] as well.
 
 - R_AARCH64_PREL{16, 32, 64} (NotSupportedInGNULDForIFunc)
 - R_AARCH64_PLT32 (UNSUPPORTED)
 
 #### GOT-related data relocations
 
-- GOTREL{32, 64} (UNSUPPORTED)
-- GOTPCREL32 (UNSUPPORTED)
+- R_AARCH64_GOTREL{32, 64} (UNSUPPORTED)
+- R_AARCH64_GOTPCREL32 (UNSUPPORTED)
 
 #### Control flow relocations
 
 Resolves to PLT[IFuncSymbol].
 
-- TSTBR14
-- CONDBR19
-- JUMP26
-- CALL26
+- R_AARCH64_TSTBR14
+- R_AARCH64_CONDBR19
+- R_AARCH64_JUMP26
+- R_AARCH64_CALL26
+
+- R_RISCV_CALL
+- R_RISCV_CALL_PLT
+- R_RISCV_JAL
 
 #### GOT-related instruction relocations
 
@@ -178,22 +184,30 @@ IFuncSymbol; otherwise uses GOT[IFuncSymbol].
 - AUTH-ABI GOT relocations (UNSUPPORTED)
 - R_AARCH64_MOVW_GOTOFF_G{0,1}{_NC} (UNSUPPORTED)
 
+- R_RISCV_GOT_HI20
+
 #### Absolute / PC-relative address-forming relocations
+
+Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.
 
 - R_AARCH64_ADR_PREL_LO21 (NotSupportedInGNULDForIFunc)
 - R_AARCH64_ADR_PREL_PG_HI21{_NC}
 
-Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.
+- R_RISCV_HI20
+- R_RISCV_PCREL_HI20
+- R_RISCV_LO12_I
+- R_RISCV_LO12_S
+
+The below relocations are resolved to the IFunc symbol:
 
 - R_AARCH64_MOVW_UABS_G{0,1,2,3}{_NC} (NotSupportedInGNULDForIFunc)
 - R_AARCH64_SABS_G{0,1,2,3} (NotSupportedInGNULDForIFunc)
 - MOVW_PREL_G{0, 1, 2, 3}{_NC} (UNSUPPORTED)
 
-Resolves to IFuncSymbol.
-
 [!IMPORTANT]
 FIXME: We should perhaps resolve these relocations to the PLT[IFuncSymbol]
 instead of the IFuncSymbol for ensuring pointer equality.
+
 
 #### Absolute / PC-relative load/store relocations
 
@@ -206,6 +220,16 @@ at a function address.
 
 [!IMPORTANT]
 FIXME: It should be an error to use these relocations with IFunc symbols.
+
+#### General address-forming relocations
+
+These are the relocations that can be used to form both
+GOT and non-GOT addresses.
+
+The behavior of these relocations depend upon the corresponding Hi-relocation pair.
+
+- R_RISCV_PCREL_LO12_I
+- R_RISCV_PCREL_LO12_S
 
 #### General computation relocation
 

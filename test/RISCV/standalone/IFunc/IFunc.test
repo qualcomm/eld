@@ -1,0 +1,69 @@
+UNSUPPORTED: riscv32
+#---IFunc.test---------------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks the IFunc functionality in RISCV.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target %linuxtarget -o %t1.main.nopic.o %p/Inputs/main-nopic.s -c
+RUN: %clang %clangopts -target %linuxtarget -o %t1.main.pic.o %p/Inputs/main-pic.s -c
+RUN: SECTION_ADDR_LINK_OPTS="--section-start .text=0x10000 --section-start .data=0x20000 \
+RUN:   --section-start .got=0x30000 --section-start .plt=0x40000"
+
+RUN: %clang %clangopts -target %linuxtarget -o %t1.auipc-addi.o %p/Inputs/auipc-addi.s -c
+RUN: %link %linkopts -o %t1.nopic.auipc-addi.out %t1.main.nopic.o %t1.auipc-addi.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
+RUN: %link %linkopts -o %t1.pic.auipc-addi.out %t1.main.pic.o %t1.auipc-addi.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
+RUN: %readelf -Ss %t1.nopic.auipc-addi.out | %filecheck %s --check-prefix=READELF
+RUN: ( %objdump -dr %t1.nopic.auipc-addi.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S %t1.nopic.auipc-addi.out ) | %filecheck %s --check-prefix=LUI_AND_AUIPC
+RUN: ( %objdump -dr %t1.pic.auipc-addi.out && %readelf -x .got %t1.pic.auipc-addi.out ) | %filecheck %s --check-prefix=AUIPC_GOT_AND_AUIPC
+
+RUN: %clang %clangopts -target %linuxtarget -o %t1.auipc-got.o %p/Inputs/auipc-got.s -c
+RUN: %link %linkopts -o %t1.nopic.auipc-got.out %t1.main.nopic.o %t1.auipc-got.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
+RUN: %link %linkopts -o %t1.pic.auipc-got.out %t1.main.pic.o %t1.auipc-got.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
+RUN: ( %objdump -dr %t1.nopic.auipc-got.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S -x .got %t1.nopic.auipc-got.out ) | %filecheck %s --check-prefix=LUI_AND_AUIPC_GOT
+RUN: %objdump -dr %t1.pic.auipc-got.out | %filecheck %s --check-prefix=AUIPC_GOT
+#END_TEST
+
+READELF: [[#SECTION_INDEX:]]] .rela.plt
+READELF: NOTYPE LOCAL DEFAULT [[#SECTION_INDEX]] __rela_iplt_start
+READELF: NOTYPE LOCAL DEFAULT [[#SECTION_INDEX]] __rela_iplt_end
+
+LUI_AND_AUIPC: <main>:
+LUI_AND_AUIPC: lui a0, 0x40
+LUI_AND_AUIPC: addi a0, a0, 0x20
+LUI_AND_AUIPC: <get_foo_from_outside>:
+# 10020 + 0x30000 = 0x40020 (.plt)
+LUI_AND_AUIPC: 10020: {{.*}} auipc a0, 0x30
+LUI_AND_AUIPC: mv a0, a0
+LUI_AND_AUIPC: .plt {{.*}} {{0+}}40000
+
+AUIPC_GOT_AND_AUIPC: <main>:
+# 0x1000e + 0x20000 - 0x6 = 0x30008 (.got)
+AUIPC_GOT_AND_AUIPC: 1000e: {{.*}} auipc a0, 0x20
+AUIPC_GOT_AND_AUIPC: ld a0, -0x6
+AUIPC_GOT_AND_AUIPC: <get_foo_from_outside>:
+# 0x10020 + 0x30000 = 0x40020 (.plt)
+AUIPC_GOT_AND_AUIPC: 10020: {{.*}} auipc a0, 0x30
+AUIPC_GOT_AND_AUIPC: 10024: {{.*}} mv a0, a0
+AUIPC_GOT_AND_AUIPC: '.got':
+AUIPC_GOT_AND_AUIPC: 20000400 {{0+}}
+
+LUI_AND_AUIPC_GOT: <main>:
+LUI_AND_AUIPC_GOT: lui a0, 0x40
+LUI_AND_AUIPC_GOT: addi a0, a0, 0x20
+LUI_AND_AUIPC_GOT: <get_foo_from_outside>:
+# 0x10020 + 0x20000 - 0x18 = 0x30008 (.got)
+LUI_AND_AUIPC_GOT: 10020: {{.*}} auipc a0, 0x20
+LUI_AND_AUIPC_GOT: 10024: {{.*}} ld a0, -0x18
+LUI_AND_AUIPC_GOT-DAG: .plt {{.*}} {{0+}}4000
+LUI_AND_AUIPC_GOT-DAG: .got {{.*}} {{0+}}3000
+LUI_AND_AUIPC_GOT: '.got':
+LUI_AND_AUIPC_GOT: 20000400 {{0+}}
+
+AUIPC_GOT: <main>:
+# 0x1000e + 0x20000 + 0xa = 0x30018 (.got.plt)
+AUIPC_GOT: 1000e: {{.*}} auipc a0, 0x20
+AUIPC_GOT: 10012: {{.*}} ld a0, 0xa
+AUIPC_GOT: <get_foo_from_outside>:
+# 0x10020 + 0x20000 - 0x8 = 0x30018 (.got.plt)
+AUIPC_GOT: 10020: {{.*}} auipc a0, 0x20
+AUIPC_GOT: 10024: {{.*}} ld a0, -0x8
