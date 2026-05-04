@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: "0 16 * * 0"
   workflow_dispatch:
+  pull_request: {} # Uncomment only to test this WF file update.
 
 
 permissions:
@@ -29,4 +30,4 @@ jobs:
     with:
       runner: self-hosted
       workspace: "/local/mnt/workspace"
-      assets: "aarch64-unknown-linux-musl.tar.xz,arm-unknown-linux-musleabi.tar.xz,riscv32-unknown-linux-musl.tar.xz,riscv64-unknown-linux-musl.tar.xz,x86_64-unknown-linux-musl.tar.xz"
+      assets: "aarch64-unknown-linux-gnu.tar.xz,aarch64-unknown-linux-musl.tar.xz,arm-unknown-linux-musleabi.tar.xz,riscv32-unknown-linux-musl.tar.xz,riscv64-unknown-linux-musl.tar.xz,x86_64-unknown-linux-musl.tar.xz"
