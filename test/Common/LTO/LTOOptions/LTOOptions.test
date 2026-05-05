@@ -1,0 +1,8 @@
+UNSUPPORTED: x86
+# TODO: Calling assembler from LTO is not implemented for RISC-V.
+UNSUPPORTED: riscv32, riscv64
+# Check that input assembler files are not deleted.
+RUN: %clang %clangopts -flto -c %p/Inputs/main.c -o %t.main.o
+RUN: %cp %p/Inputs/foo.s %t.foo.s
+RUN: %link %linkopts -mtriple %triple %t.main.o -flto-options=lto-asm-file=%t.foo.s -o %t.out
+RUN: ls %t.foo.s

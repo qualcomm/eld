@@ -30,12 +30,12 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 LinkerConfig::LinkerConfig(DiagnosticEngine *DiagEngine)
     : GenOptions(DiagEngine), Targets(), CodeGen(Unknown), CodePos(Unset),
-      DiagEngine(DiagEngine), SearchDirs(DiagEngine) {}
+      DiagEngine(DiagEngine), searchDirs(DiagEngine) {}
 
 LinkerConfig::LinkerConfig(DiagnosticEngine *DiagEngine,
                            const std::string &PTripleString)
     : GenOptions(DiagEngine), Targets(PTripleString), CodeGen(Unknown),
-      CodePos(Unset), DiagEngine(DiagEngine), SearchDirs(DiagEngine) {}
+      CodePos(Unset), DiagEngine(DiagEngine), searchDirs(DiagEngine) {}
 
 LinkerConfig::~LinkerConfig() {}
 

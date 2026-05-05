@@ -1,3 +1,4 @@
+int mmain();
 int main() {
   mmain();
   return 0;

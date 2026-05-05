@@ -5,21 +5,21 @@
 # the text map file.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c -G1 %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c -G1 %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -G1 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK1
-RUN: %clang %clangopts -c -G2 %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c -G2 %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -G2 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK2
-RUN: %clang %clangopts -c -G4 %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c -G4 %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -G4 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK3
-RUN: %clang %clangopts -c %clangg0opts %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c %clangg0opts %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -G8 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=CHECK4
-RUN: %clang %clangopts -c %p/Inputs/1.c -G1 -flto -o %t1.1.lto.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -G1 -flto -o %t1.1.lto.o
 RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G1 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO1
-RUN: %clang %clangopts -c %p/Inputs/1.c -G2 -flto -o %t1.1.lto.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -G2 -flto -o %t1.1.lto.o
 RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G2 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO2
-RUN: %clang %clangopts -c %p/Inputs/1.c -G4 -flto -o %t1.1.lto.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -G4 -flto -o %t1.1.lto.o
 RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G4 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO3
-RUN: %clang %clangopts -c %p/Inputs/1.c %clangg0opts -flto -o %t1.1.lto.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c %clangg0opts -flto -o %t1.1.lto.o
 RUN: %link %linkopts -o %t1.1.lto.out %t1.1.lto.o -G8 --gc-sections -e main -T %p/Inputs/1.script -M 2>&1 | %filecheck %s --check-prefix=LTO4
 #END_TEST
 #CHECK1: .sdata

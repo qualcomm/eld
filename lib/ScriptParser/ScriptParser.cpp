@@ -35,6 +35,7 @@
 #include "eld/Script/StrToken.h"
 #include "eld/Script/WildcardPattern.h"
 #include "eld/ScriptParser/ScriptLexer.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -744,9 +745,10 @@ void ScriptParser::addFile(StringRef Name) {
   if (Name.consume_front("-l"))
     InputStrTok = ThisScriptFile.createNameSpecToken(Name.str(),
                                                      ThisScriptFile.asNeeded());
-  else
+  else {
     InputStrTok =
         ThisScriptFile.createFileToken(Name.str(), ThisScriptFile.asNeeded());
+  }
   ThisScriptFile.getCurrentStringList()->pushBack(InputStrTok);
 }
 
@@ -870,8 +872,10 @@ OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
   Prologue.init();
   if (peek(LexState::Expr) != ":") {
     if (consume("(")) {
-      if (!readOutputSectTypeAndPermissions(Prologue, peek()))
+      if (!readOutputSectTypeAndPermissions(Prologue, peek())){
         Prologue.OutputSectionVMA = readExpr();
+        Prologue.OutputSectionVMA->setParen();
+      }
       expect(")");
     } else if (peek() == "{") {
       expect(":");
@@ -1216,6 +1220,21 @@ bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
     return true;
   }
 
+  if (Tok == "ASCIZ") {
+    StringRef StrTok = next();
+    if (!(StrTok.size() >= 2 && StrTok.starts_with("\"") &&
+          StrTok.ends_with("\""))) {
+      setError("ASCIZ expects a quoted string literal");
+      return true;
+    }
+    std::optional<std::string> OptStr = parseASCIZString(unquote(StrTok));
+    if (!OptStr.has_value())
+      return true;
+    std::string Str = std::move(OptStr.value());
+    ThisScriptFile.addASCIZ(std::move(Str));
+    return true;
+  }
+
   std::optional<OutputSectData::OSDKind> OptDataKind =
       llvm::StringSwitch<std::optional<OutputSectData::OSDKind>>(Tok)
           .Case("BYTE", OutputSectData::OSDKind::Byte)
@@ -1231,6 +1250,74 @@ bool ScriptParser::readOutputSectionData(llvm::StringRef Tok) {
   expect(")");
   ThisScriptFile.addOutputSectData(OptDataKind.value(), Exp);
   return true;
+}
+
+std::optional<std::string> ScriptParser::parseASCIZString(llvm::StringRef Str) {
+  std::string Parsed;
+  Parsed.reserve(Str.size());
+  auto IsOctalDigit = [](char C) { return llvm::isDigit(C) && C < '8'; };
+
+  size_t I = 0;
+  while (I < Str.size()) {
+    char C = Str[I++];
+    if (C != '\\') {
+      Parsed.push_back(C);
+      continue;
+    }
+
+    if (I >= Str.size()) {
+      Parsed.push_back('\\');
+      continue;
+    }
+
+    char Esc = Str[I++];
+    switch (Esc) {
+    case 'n':
+      Parsed.push_back('\n');
+      break;
+    case 'r':
+      Parsed.push_back('\r');
+      break;
+    case 't':
+      Parsed.push_back('\t');
+      break;
+    case 'x':
+    case 'X':
+      setError("ASCIZ does not support hex escape sequences");
+      return std::nullopt;
+    default:
+      if (IsOctalDigit(Esc)) {
+        std::string OctalDigits(1, Esc);
+        // Consume at most 3 octal digits, matching C-style escape parsing.
+        while (OctalDigits.size() < 3 && I < Str.size() &&
+               IsOctalDigit(Str[I])) {
+          OctalDigits.push_back(Str[I]);
+          ++I;
+        }
+        if (I < Str.size() && IsOctalDigit(Str[I])) {
+          setWarn("ASCIZ octal escape supports at most 3 digits");
+        }
+
+        uint32_t OctalValue = 0;
+        if (llvm::StringRef(OctalDigits)
+                .getAsInteger(/*Radix=*/8, OctalValue)) {
+          setError("ASCIZ has invalid octal escape sequence");
+          return std::nullopt;
+        }
+        if (OctalValue > 0xFFu) {
+          setError("ASCIZ octal escape value is out of range");
+          return std::nullopt;
+        }
+        Parsed.push_back(static_cast<char>(OctalValue));
+        break;
+      }
+      // Keep unknown escapes unchanged for compatibility.
+      Parsed.push_back('\\');
+      Parsed.push_back(Esc);
+      break;
+    }
+  }
+  return Parsed;
 }
 
 std::optional<WildcardPattern::SortPolicy> ScriptParser::readSortPolicy() {
@@ -1286,14 +1373,24 @@ WildcardPattern *ScriptParser::readWildcardPattern() {
       WildcardPattern::SortPolicy SortPolicy =
           computeSortPolicy(OuterSortPolicy.value(), InnerSortPolicy);
       expect("(");
+      ExcludeFiles *EF = nullptr;
+      if (peek() == "EXCLUDE_FILE") {
+        skip();
+        EF = readExcludeFile();
+      }
       SectPat = createAndRegisterWildcardPattern(
-          ThisScriptFile.createParserStr(next()), SortPolicy);
+          ThisScriptFile.createParserStr(next()), SortPolicy, EF);
       expect(")");
     } else {
       WildcardPattern::SortPolicy SortPolicy =
           computeSortPolicy(OuterSortPolicy.value());
+      ExcludeFiles *EF = nullptr;
+      if (peek() == "EXCLUDE_FILE") {
+        skip();
+        EF = readExcludeFile();
+      }
       SectPat = createAndRegisterWildcardPattern(
-          ThisScriptFile.createParserStr(next()), SortPolicy);
+          ThisScriptFile.createParserStr(next()), SortPolicy, EF);
     }
     expect(")");
   } else {
@@ -1350,12 +1447,27 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
     return false;
   bool IsOptionalInclude = Tok == "INCLUDE_OPTIONAL";
   llvm::StringRef FileName = unquote(next());
+  // Apply --remap-inputs to the INCLUDE filename before searching.
+  std::string RemappedFileName = FileName.str();
+  for (const auto &Entry : ThisConfig.options().getRemapInputs()) {
+    WildcardPattern Pat(Entry.Pattern);
+    if (Pat.matched(RemappedFileName)) {
+      if (ThisConfig.getPrinter()->isVerbose())
+        ThisConfig.raise(Diag::verbose_remap_input)
+            << RemappedFileName << Entry.Replacement;
+      RemappedFileName = Entry.Replacement;
+      break;
+    }
+  }
   LayoutInfo *layoutInfo = ThisScriptFile.module().getLayoutInfo();
   bool Result = true;
+  llvm::StringRef RemappedFrom;
   std::string ResolvedFileName = ThisScriptFile.findIncludeFile(
-      FileName.str(), Result, /*state=*/!IsOptionalInclude);
+      RemappedFileName, Result, /*state=*/!IsOptionalInclude);
+  if (RemappedFileName != FileName)
+    RemappedFrom = FileName;
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(ResolvedFileName, Result);
+    layoutInfo->recordLinkerScript(ResolvedFileName, Result, RemappedFrom);
   if (!Result && IsOptionalInclude)
     return true;
   ThisScriptFile.module().getScript().addToHash(ResolvedFileName);

@@ -8,6 +8,63 @@ Common options for all the backends
 
 .. include:: GnuLinkerOptions.rst
 
+Input remapping options
+-----------------------
+
+``--remap-inputs`` and ``--remap-inputs-file`` let you redirect input file
+names before ELD opens them.
+
+``--remap-inputs``
+^^^^^^^^^^^^^^^^^^
+
+Use ``--remap-inputs=<pattern>=<replacement>`` (or
+``--remap-inputs <pattern>=<replacement>``) to add one remap rule.
+
+Rules are evaluated in command-line order and the first matching rule wins.
+``<pattern>`` supports wildcard matching.
+
+Example::
+
+  $ ld.eld main.o foo.o --remap-inputs=foo.o=bar.o -T script.t
+
+In this example, any reference to ``foo.o`` is resolved as ``bar.o``.
+
+``--remap-inputs-file``
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Use ``--remap-inputs-file=<file>`` (or ``--remap-inputs-file <file>``) to
+load remap rules from a text file.
+
+Each non-empty line in ``<file>`` defines one rule, either as:
+
+* ``pattern=replacement``
+* ``pattern replacement``
+
+Lines starting with ``#`` (or text after ``#`` on a line) are treated as
+comments.
+
+Example::
+
+  # remap.txt
+  *foo.o build/alt/bar.o
+  libold.a=libnew.a
+
+  $ ld.eld main.o foo.o libold.a --remap-inputs-file=remap.txt -T script.t
+
+Notes:
+
+* Remapping is applied before path search/open, including linker-script
+  ``INPUT(...)``, ``GROUP(...)``, and ``INCLUDE`` processing.
+* ``--remap-inputs`` and ``--remap-inputs-file`` rules share one ordered rule
+  list; whichever matching rule appears first is applied.
+* To confirm remapping happened:
+
+  - Use ``--verbose`` to see diagnostics such as
+    ``Remapping input file <old> to <new>``.
+  - In text map output (``-MapStyle txt``), input/load lines and linker-script
+    include tracking lines are annotated with
+    ``# remapped from <original-name>`` when remapping is applied.
+
 Using ``--start-lib`` / ``--end-lib``
 -------------------------------------
 
@@ -66,6 +123,14 @@ useful for debugging and enforcing correctness:
   is present in the linker script.
 - ``-Wlinker-script-memory`` enables warnings for suspicious ``MEMORY`` setups
   (for example, zero-sized regions or regions that end up unused).
+
+PIE options
+-----------
+
+ELD accepts both GNU-style single-dash and double-dash forms for PIE toggles:
+
+- ``-pie`` and ``--pie``: create a position-independent executable.
+- ``-no-pie`` and ``--no-pie``: create a non-PIE executable.
 
 ARM and AArch64 specific options
 ---------------------------------
@@ -149,6 +214,9 @@ The following ``-z`` keywords are supported by ELD:
   Create a separate code PT_LOAD segment with instructions on pages disjoint
   from any other data. This is a no-op when a linker script with a ``SECTIONS``
   command is used.
+
+``-z separate-loadable-segments``
+  Place every loadable segment on pages disjoint from all other segments.
 
 ``-z noseparate-code``
   Disable separate code segment handling. This is the default behavior.

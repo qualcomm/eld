@@ -1,0 +1,15 @@
+FOO_1.0 {
+    global:
+        foo;   /* single-version symbol, default in FOO_1.0 */
+        bar;   /* old version of bar -- will be superseded in FOO_2.0 */
+        baz;   /* only exists in FOO_1.0, no newer version */
+    local:
+        *;     /* hide everything else */
+};
+
+FOO_2.0 {
+    global:
+        bar;   /* new default version of bar, supersedes FOO_1.0 bar */
+        far;   /* new symbol in FOO_2.0 */
+        car;   /* new symbol in FOO_2.0 */
+} FOO_1.0;     /* FOO_2.0 inherits FOO_1.0 */

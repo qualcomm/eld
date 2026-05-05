@@ -62,8 +62,24 @@ public:
   /// Return a user-facing text representation of input type.
   static llvm::StringRef toString(InputType);
 
+  /// Expand '=' or '$SYSROOT' prefix in the path using the configured sysroot.
+  /// Returns the expanded path, or the original if no marker is present.
+  /// If a marker is present but no sysroot is configured, the marker is
+  /// stripped. Emits verbose_sysroot_expansion diagnostic when expansion
+  /// occurs.
+  static std::string expandSysrootMarkers(llvm::StringRef Name,
+                                          const SearchDirs &PSearchDirs,
+                                          DiagnosticEngine &DiagEngine);
+
   /// getFileName returns the FileName passed to the driver otherwise.
   const std::string getFileName() const { return FileName; }
+
+  /// getName for the Input class returns the FileName
+  /// getOriginalFileName returns the name before any --remap-inputs was
+  /// applied.
+  const std::string &getOriginalFileName() const { return OriginalFileName; }
+
+  bool wasRemapped() const { return !OriginalFileName.empty(); }
 
   /// getName for the Input class returns the FileName
   const std::string getName() const { return Name; }
@@ -181,6 +197,7 @@ protected:
   std::string FileName;                      // Filename as what is passed to
                                              //   the linker
   std::string Name;                          // Resolved Name or
+  std::string OriginalFileName;              // FileName before --remap-inputs
                                              // Member Name or the SONAME.
   std::optional<sys::fs::Path> ResolvedPath; // Resolved path.
   Attribute Attr;                            // Attribute

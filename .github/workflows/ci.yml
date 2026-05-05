@@ -7,6 +7,7 @@ on:
       - '.github/workflows/reviter.yml'
       - '.github/workflows/qualcomm-organization-repolinter.yml'
       - '.github/workflows/docs.yaml'
+      - '.github/workflows/docs-multiversion.yaml'
       - '.github/workflows/ci-win.yml'
       - '.github/workflows/clang-cross-download.yml'
       - '.github/workflows/clang-cross-schedule.yml'
@@ -16,7 +17,10 @@ on:
       - '.github/workflows/update-build-dashboard-data.yml'
       - '.github/workflows/scripts/record_builds.py'
       - '.github/workflows/BuildStatusDataRecorder/action.yaml'
-      - '.github/workflows/zephyr-nightly.yml'
+      - '.github/workflows/clang-format-pr.yml'
+      - '.github/workflows/cpp-linter-pr.yml'
+      - 'etc/**/*.sh'
+      - '**/configure_external_llvm.sh'
 
 permissions:
   contents: write
@@ -41,14 +45,14 @@ jobs:
 
     steps:
       - name: Checkout llvm-project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: llvm/llvm-project
           ref: ${{ env.BASE_BRANCH_NAME }}
           path: pr-${{ env.PR_NUMBER }}/llvm-project
 
       - name: Checkout qualcomm/eld PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}

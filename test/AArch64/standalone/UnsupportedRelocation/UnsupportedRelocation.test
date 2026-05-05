@@ -1,0 +1,14 @@
+#---UnsuportedRelocation.test--------- Executable --------------------#
+#BEGIN_COMMENT
+# The test checks that the unsupported relocation error is emitted for
+# unsupported relocations.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.s -c
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o 2>&1 | %filecheck %s --check-prefix=GOT_LD_PREL19
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.s -c
+RUN: %not %link %linkopts -o %t1.2.out %t1.2.o 2>&1 | %filecheck %s --check-prefix=GOTPREL
+#END_TEST
+
+GOT_LD_PREL19: Fatal: Found unsupported reloc type 309 in section .rela.text in input file
+GOTPREL: Fatal: Found unsupported reloc type 307 in section .rela.data in input file

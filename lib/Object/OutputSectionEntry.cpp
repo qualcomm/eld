@@ -90,10 +90,9 @@ uint64_t OutputSectionEntry::getTotalTrampolineCount() const {
 }
 
 Fragment *OutputSectionEntry::getFirstFrag() const {
-  if (!FirstNonEmptyRule ||
-      !FirstNonEmptyRule->getSection()->getFragmentList().size())
+  if (!FirstNonEmptyRule || !FirstNonEmptyRule->getSection()->hasFragments())
     return nullptr;
-  return FirstNonEmptyRule->getSection()->getFragmentList().front();
+  return FirstNonEmptyRule->getSection()->getFrontFragment();
 }
 
 RuleContainer *OutputSectionEntry::createDefaultRule(eld::Module &M) {

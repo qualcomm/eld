@@ -209,9 +209,9 @@ void AArch64LDBackend::doPreLayout() {
     m_pDynamic = make<AArch64ELFDynamic>(*this, config());
 
   if (LinkerConfig::Object != config().codeGenType()) {
-    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+    getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
-    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+    getRelaDyn()->setSize(getRelaDyn()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
     m_Module.addOutputSection(getRelaDyn());
@@ -574,6 +574,33 @@ bool AArch64LDBackend::finalizeTargetSymbols() {
   return true;
 }
 
+bool AArch64LDBackend::finalizeScanRelocations() {
+  if (!config().isCodeStatic())
+    return true;
+
+  ELFObjectFile *Obj = getDynamicSectionHeadersInputFile();
+  if (!Obj)
+    return true;
+
+  for (auto &[symInfo, plt] : m_PLTMap) {
+    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+        !symInfo->hasIFuncNeedsGOT())
+      continue;
+
+    AArch64GOT *G = AArch64GOT::Create(Obj->getGOT(), symInfo);
+
+    FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
+    Relocation *r = Relocation::Create(llvm::ELF::R_AARCH64_ABS64, 64,
+                                       make<FragmentRef>(*G, 0), 0);
+    Obj->getGOT()->addRelocation(r);
+    r->modifyRelocationFragmentRef(PLTFragRef);
+
+    recordGOT(symInfo, G);
+    symInfo->setReserved(symInfo->reserved() | Relocator::ReserveGOT);
+  }
+  return true;
+}
+
 void AArch64LDBackend::setupStaticTCBForTLSSupport() {
   if (!config().isCodeStatic())
     return;
@@ -695,7 +722,7 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->getFragmentList().size()) {
+  if (!getGOTPLT()->hasFragments()) {
     // TODO: This should be GOT0, not GOTPLT0.
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     AArch64GOTPLT0::Create(getGOTPLT(),
@@ -734,10 +761,13 @@ AArch64GOT *AArch64LDBackend::createGOT(GOT::GOTType T,
     break;
   }
   if (R) {
-    if (GOT)
+    if (GOT) {
+      reportErrorIfGOTIsDiscarded(R);
       recordGOT(R, G);
-    else
+    } else {
+      reportErrorIfGOTPLTIsDiscarded(R);
       recordGOTPLT(R, G);
+    }
   }
   return G;
 }
@@ -768,7 +798,10 @@ AArch64PLT *AArch64LDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_plt_entry) << R->name();
-  if (!getPLT()->getFragmentList().size()) {
+
+  reportErrorIfPLTIsDiscarded(R);
+
+  if (!getPLT()->hasFragments()) {
     AArch64PLT0::Create(*m_Module.getIRBuilder(),
                         createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                         nullptr);

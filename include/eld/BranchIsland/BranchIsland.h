@@ -17,6 +17,7 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/DataTypes.h"
 #include <set>
 #include <string>
@@ -35,17 +36,17 @@ class Relocation;
 class BranchIsland {
 public:
   typedef std::vector<Relocation *> RelocationListType;
-  typedef RelocationListType::iterator reloc_iterator;
+  using RelocationRange = llvm::iterator_range<RelocationListType::iterator>;
 
 public:
   BranchIsland(Stub *Stub);
 
   ~BranchIsland();
 
-  /// relocation iterators of the island
-  reloc_iterator relocBegin() { return Relocations.begin(); }
-
-  reloc_iterator relocEnd() { return Relocations.end(); }
+  /// relocation iterator range of the island
+  RelocationRange getRelocations() {
+    return llvm::make_range(Relocations.begin(), Relocations.end());
+  }
 
   bool canReuseBranchIsland(ResolveInfo *PInfo, int64_t PAddend,
                             bool UseAddends, Stub *PS) {

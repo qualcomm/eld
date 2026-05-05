@@ -34,19 +34,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### 2026
 
-- March: added `-z separate-loadable-segments`, fixed PIE handling for absolute `--defsym`, and improved AArch64 static TLS/IFunc support.
-- February: added linker script `INSERT BEFORE/AFTER` and `NEXT_SECTION`, added `--start-lib/--end-lib`, and expanded LTO reporting options.
-- January: expanded LTO CLI compatibility (`--thinlto-jobs`, `--lto-partitions`, `--lto-obj-path`) and improved layout convergence behavior.
+- added `-z separate-loadable-segments`, fixed PIE handling for absolute `--defsym`, and improved AArch64 static TLS/IFunc support.
+- added linker script `INSERT BEFORE/AFTER` and `NEXT_SECTION`, added `--start-lib/--end-lib`, and expanded LTO reporting options.
+- expanded LTO CLI compatibility (`--thinlto-jobs`, `--lto-partitions`, `--lto-obj-path`) and improved layout convergence behavior.
 
 ### 2025
 
-- November-December: major x86_64 dynamic-linking improvements (PLT/GOT/.rela.plt, TLSGD/TLSLD, IRELATIVE/ifunc), plus initial shared-library symbol versioning support.
-- July-August: substantial linker-script and diagnostics hardening, plus RISC-V `TLSDESC` and `DriverFlavor` support.
-- April-June: foundational feature ramp-up across emulations, plugin APIs, x86_64 static relocations, and linker-script expression handling.
+- major x86_64 dynamic-linking improvements (PLT/GOT/.rela.plt, TLSGD/TLSLD, IRELATIVE/ifunc), plus initial shared-library symbol versioning support.
+- substantial linker-script and diagnostics hardening, plus RISC-V `TLSDESC` and `DriverFlavor` support.
+- foundational feature ramp-up across emulations, plugin APIs, x86_64 static relocations, and linker-script expression handling.
 
 ## 2026
 
 ### March 2026
+
+#### [2026-03-23] - 2026-03-23 to 2026-03-29
+##### Added
+- Add `InputTarReader` and plugin `TarFile` API for tar lookup.
+- Support `--reproduce=default` and `--reproduce-on-fail=default`.
+##### Fixed
+- Apply ULEB128 fix for clang kernel test failures.
 
 #### [2026-03-16] - 2026-03-16 to 2026-03-22
 ##### Changed

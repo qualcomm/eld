@@ -28,14 +28,6 @@ except Exception as e:
 # Global
 _build_status_db = "build-status.db"
 _build_status_db_connection = None
-SUPPORTED_WORKFLOWS = ["picolibc",
-        "musl",
-        "sanitizer",
-        "reverse_iterator",
-        "nightly",
-        "release",
-        "documentation",
-        ]
 
 
 def close_connection():
@@ -202,10 +194,6 @@ def emitJSData(args):
 
 
 def validateArgs(args):
-    # Validate workflow
-    if args.workflow_build.lower() not in SUPPORTED_WORKFLOWS:
-        sys.exit("Unsupported Workflow!")
-
     # Record/update mode must have a run_id.
     if args.record_mode or args.update_mode:
         if args.run_id is None:
@@ -223,7 +211,7 @@ def handleArguments():
         "-w",
         dest="workflow_build",
         required=True,
-        help="The workflow build name. Supported workflows: " + str(SUPPORTED_WORKFLOWS),
+        help="The workflow build name. E.g. picolibc, musl, nightly, etc. ",
     )
     parser.add_argument(
         "--arch",

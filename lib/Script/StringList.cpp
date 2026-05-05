@@ -26,25 +26,7 @@ void StringList::pushBack(StrToken *ThisInputToken) {
 }
 
 void StringList::dump(llvm::raw_ostream &Outs) const {
-  for (const auto &Elem : *this)
-    Outs << (Elem)->name() << "\t";
+  for (auto *Elem : tokens())
+    Outs << Elem->name() << "\t";
   Outs << "\n";
-}
-
-StringList::iterator StringList::find(StrToken *Token) {
-  iterator It, Ite = end();
-  for (It = begin(); It != Ite; It++) {
-    if ((*It)->name() == Token->name())
-      return It;
-  }
-  return end();
-}
-
-StringList::const_iterator StringList::find(StrToken *Token) const {
-  const_iterator It, Ite = end();
-  for (It = begin(); It != Ite; It++) {
-    if ((*It)->name() == Token->name())
-      return It;
-  }
-  return end();
 }

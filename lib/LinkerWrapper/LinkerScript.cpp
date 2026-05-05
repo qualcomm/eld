@@ -695,7 +695,7 @@ eld::ScriptCommand *plugin::Script::OutputSectionSpec::getCommand() const {
 }
 
 void plugin::Script::OutputSectionSpec::getOutputSectionSpecCommands() {
-  for (auto &LSC : m_OutputSectionSpec->getOutputSectCommands()) {
+  for (auto &LSC : m_OutputSectionSpec->commands()) {
     plugin::Script::ScriptCommand *Cmd =
         plugin::Script::ScriptCommand::getScriptCommand(LSC);
     m_OutputSectionSpecCommands.push_back(Cmd);

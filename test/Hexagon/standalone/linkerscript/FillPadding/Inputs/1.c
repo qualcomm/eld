@@ -1,3 +1,6 @@
+int bar();
+int baz();
+int foo();
 __attribute__((aligned(4))) int fn() { return foo() + bar() + baz(); }
 __attribute__((aligned(8))) int foo() { return fn() + bar() + baz(); }
 __attribute__((aligned(16))) int bar() { return foo() + fn() + baz(); }

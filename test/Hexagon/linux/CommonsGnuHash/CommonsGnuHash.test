@@ -1,7 +1,7 @@
 #---CommonsGnuHash.test----------------- SharedLib --------------------#
 #BEGIN_COMMENT
 # Calculate correct .gnu.hash size
-# When there are not enough buckets and commons are to be exported to 
+# When there are not enough buckets and commons are to be exported to
 # .dynsym with .gnu.hash style of hashes, the size of the .gnu.hash
 # is incorrectly calculated. The commons need to be looked up
 # to account for them.

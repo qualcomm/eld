@@ -50,3 +50,14 @@ bool ScriptSymbol::matched(const ResolveInfo &Sym) const {
   }
   return false;
 }
+
+bool ScriptSymbol::matched(const ResolveInfo &RI,
+                           llvm::StringRef demangledName) const {
+  uint64_t Hash = llvm::hash_combine(demangledName);
+  if ((hasHash() && hashValue() == Hash) ||
+      WildcardPattern::matched(demangledName)) {
+    addResolveInfoToContainer(&RI);
+    return true;
+  }
+  return false;
+}

@@ -5,4 +5,4 @@ RUN: %readelf -S -W %t2.so | %filecheck %s
 
 CHECK: HASH
 CHECK: GNU_HASH
-  
+

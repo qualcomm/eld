@@ -1,4 +1,3 @@
-UNSUPPORTED: iu
 # Test that LTO can be used to build a shared library.
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -flto
 RUN: %link %linkopts  -shared %t1.1.o -o %t1.so --trace=lto 2>&1 | %filecheck %s -check-prefix=PRESERVE

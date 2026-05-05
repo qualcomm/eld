@@ -279,9 +279,9 @@ public:
 
   bool linkFail() const { return Failure; }
 
-  Linker *getLinker() const { return Linker; }
+  Linker *getLinker() const { return L; }
 
-  void setLinker(Linker *L) { Linker = L; }
+  void setLinker(Linker *linker) { L = linker; }
 
   bool createInternalInputs();
 
@@ -658,8 +658,6 @@ private:
   // Read one plugin config file
   bool readOnePluginConfig(llvm::StringRef Cfg, bool IsDefaultConfig);
 
-
-
 private:
   LinkerScript &UserLinkerScript;
   ObjectList InputObjectList;
@@ -687,7 +685,7 @@ private:
   llvm::StringSet<> NeededSymbols;
   NoCrossRefSet NonRefSections;
   LDSymbol *DotSymbol = nullptr;
-  Linker *Linker = nullptr;
+  Linker *L = nullptr;
   LayoutInfo *ThisLayoutInfo = nullptr;
   bool Failure = false;
   bool UsesLto = false;

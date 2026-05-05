@@ -1,4 +1,4 @@
-UNSUPPORTED: iu, riscv32, riscv64
+UNSUPPORTED: riscv32, riscv64
 #---LTODynamicUndefs.test----------------------- Executable,LTO --------------------#
 #XFAIL: hexagonv
 

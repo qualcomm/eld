@@ -17,6 +17,7 @@
 std::error_code
 eld::sys::fs::loadFileContents(llvm::StringRef FilePath,
                                std::vector<std::string> &Lines) {
+  Lines.clear();
   // Map in file list file.
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> MB =
       llvm::MemoryBuffer::getFileOrSTDIN(FilePath);
@@ -27,9 +28,10 @@ eld::sys::fs::loadFileContents(llvm::StringRef FilePath,
     // Split off each line in the file.
     std::pair<llvm::StringRef, llvm::StringRef> LineAndRest =
         Buffer.split('\n');
-    std::string Line =
-        std::string(LineAndRest.first.data(), LineAndRest.first.size());
-    Lines.push_back(Line);
+    llvm::StringRef Line = LineAndRest.first;
+    // Normalize Windows line endings for line-based parsers.
+    Line = Line.rtrim('\r');
+    Lines.push_back(Line.str());
     Buffer = LineAndRest.second;
   }
   return std::error_code();

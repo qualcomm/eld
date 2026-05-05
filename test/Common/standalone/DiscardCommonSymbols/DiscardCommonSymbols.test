@@ -5,7 +5,7 @@ UNSUPPORTED: x86
 # common symbol input description.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %clang %clangg0opts -fcommon -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
 RUN: %link %linkg0opts -o %t1.1.out %t1.1.o -T %p/Inputs/1.linker.script 2>&1
 RUN: %readelf -s %t1.1.out 2>&1 | %filecheck %s
 RUN: %link %linkg0opts -o %t1.1.r.out %t1.1.o -T %p/Inputs/1.linker.script -r

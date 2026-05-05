@@ -1,7 +1,7 @@
 
 # Check that commons exist in the Map file.
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o.g0 %clangg0opts
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.o.g0 %clangg0opts
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.o
 # Test G0 with and without linker scripts
 RUN: %link -o %t1.out.1 %linkopts %t1.o.g0 -M 2>&1 | %filecheck -check-prefix=COMMONSWITHOUTLSG0 %s
 RUN: %link -o %t1.out.2 %linkopts %t1.o.g0 -T %p/Inputs/script.t -M  2>&1| %filecheck -check-prefix=COMMONSWITHLSG0 %s
@@ -16,12 +16,12 @@ RUN: %link %linkopts -o %t1.1.r.elf %t1.o -r -M 2>&1 | %filecheck %s --check-pre
 RUN: %link %linkopts -o %t1.1.r.elf %t1.o -r -d -M 2>&1 | %filecheck %s --check-prefix=COMMON_PARTIAL_LINK_WITH_DOPTION
 
 # Test for common symbols with LTO
-RUN: %clang %clangopts -o %t1.1.lto.o %p/Inputs/1.c -c -flto -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -fcommon -o %t1.1.lto.o %p/Inputs/1.c -c -flto -ffunction-sections -fdata-sections
 RUN: %link %linkopts -o %t1.1.lto.elf %t1.1.lto.o -flto-options=codegen="-function-sections -data-sections" -T %p/Inputs/1.linker.script -M 2>&1 | %filecheck %s --check-prefix=COMMON_LTO
 
-RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC -ffunction-sections -fdata-sections
+RUN: %clang %clangopts -fcommon -o %t1.2.o %p/Inputs/2.c -c -fPIC -ffunction-sections -fdata-sections
 RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared -M 2>&1 | %filecheck %s --check-prefix=COMMON_SHARED_LIB
-RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
+RUN: %clang %clangopts -fcommon -o %t1.3.o %p/Inputs/3.c -c
 RUN: %link %linkopts -o %t1.3.elf %t1.3.o -dy %t1.lib2.so -M 2>&1 | %filecheck %s --check-prefix=COMMON_DYN_EXE
 
 #COMMONSWITHOUTLSG0:common_char 0x1

@@ -303,11 +303,11 @@ public:
   llvm::ArrayRef<OverlayDesc *> getOverlayDescs() const { return OverlayDescs; }
 
   // ------------------ MEMORY Support --------------------------
-  MemoryCmd *getMemoryCommand() const { return MemoryCmd; }
+  MemoryCmd *getMemoryCommand() const { return memoryCmd; }
 
-  bool hasMemoryCommand() const { return MemoryCmd != nullptr; }
+  bool hasMemoryCommand() const { return memoryCmd != nullptr; }
 
-  void setMemoryCommand(MemoryCmd *Cmd) { MemoryCmd = Cmd; }
+  void setMemoryCommand(MemoryCmd *Cmd) { memoryCmd = Cmd; }
 
   bool insertMemoryDescriptor(llvm::StringRef DescName) {
     return !MemoryDescriptors.insert(DescName).second;
@@ -417,7 +417,7 @@ private:
   std::vector<SymbolContainer *> ThisSymbolContainers;
   DiagnosticEngine *Diag = nullptr;
   // Support MEMORY commmand
-  MemoryCmd *MemoryCmd = nullptr;
+  MemoryCmd *memoryCmd = nullptr;
   std::unordered_map<const plugin::LinkerWrapper *,
                      std::unordered_set<const RuleContainer *>>
       MPendingRuleInsertions;

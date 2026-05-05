@@ -75,3 +75,7 @@ DIAG(resolve_undef_weak_guard, DiagnosticEngine::Warning,
 DIAG(error_relocations_plugin, DiagnosticEngine::Error, "unable to apply relocations")
 DIAG(verbose_remapped_internal_reloc, DiagnosticEngine::Verbose,
      "Remapped Internal Relocation %0 to %1 in section %2")
+DIAG(warn_unsupported_reloc_for_ifunc, DiagnosticEngine::Warning,
+     "Unsupported relocation %0 used for STT_GNU_IFUNC symbol '%1'")
+DIAG(warn_invalid_reloc_for_ifunc, DiagnosticEngine::Warning,
+     "Invalid relocation %0 used for STT_GNU_IFUNC symbol '%1'")

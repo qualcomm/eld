@@ -1,0 +1,64 @@
+REQUIRES: symbol_versioning
+#---UserFlowTests.test---------------------------------------#
+#BEGIN_COMMENT
+# This test verifies some end-to-end symbol versioning workflows.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t1.dir && %mkdir %t1.dir
+RUN: %clang %clangopts -o %t1.dir/libfoo.so -fuse-ld=%link %p/Inputs/foo.c -fPIC \
+RUN:   -shared -Wl,--version-script,%p/Inputs/libfoo.map -Wl,-soname,libfoo.so \
+RUN:   -Wl,--hash-style=sysv
+RUN: %clang %clangopts -o %t1.dir/libbar.so -fuse-ld=%link %p/Inputs/bar.c -fPIC \
+RUN:   -shared -L %t1.dir -lfoo -Wl,-soname,libbar.so -Wl,--hash-style=sysv
+RUN: %clang %clangopts -o %t1.main.out -fuse-ld=%link %p/Inputs/main.c \
+RUN:   -L %t1.dir -lfoo -lbar -Wl,-rpath,%t1.dir -Wl,--hash-style=sysv
+RUN: %readelf --dyn-syms %t1.dir/libfoo.so | %filecheck %s --check-prefix=LIBFOO_DYNINFO
+RUN: %readelf --dyn-syms --version-info %t1.dir/libbar.so | %filecheck %s --check-prefix=LIBBAR_DYNINFO
+RUN: %readelf --dyn-syms --version-info %t1.main.out | %filecheck %s --check-prefix=MAIN_DYNINFO
+RUN: %t1.main.out | %filecheck %s --check-prefix=OUTPUT
+
+RUN: %clang %clangopts -o %t1.dir/libfoo.so -fuse-ld=%link %p/Inputs/foo.c -fPIC \
+RUN:   -shared -Wl,--version-script,%p/Inputs/libfoo.map -Wl,-soname,libfoo.so \
+RUN:   -Wl,--hash-style=gnu
+RUN: %clang %clangopts -o %t1.dir/libbar.so -fuse-ld=%link %p/Inputs/bar.c -fPIC \
+RUN:   -shared -L %t1.dir -lfoo -Wl,-soname,libbar.so -Wl,--hash-style=gnu
+RUN: %clang %clangopts -o %t1.main.out -fuse-ld=%link %p/Inputs/main.c \
+RUN:   -L %t1.dir -lfoo -lbar -Wl,-rpath,%t1.dir -Wl,--hash-style=gnu
+RUN: %readelf --dyn-syms %t1.dir/libfoo.so | %filecheck %s --check-prefix=LIBFOO_DYNINFO
+RUN: %readelf --dyn-syms --version-info %t1.dir/libbar.so | %filecheck %s --check-prefix=LIBBAR_DYNINFO
+RUN: %readelf --dyn-syms --version-info %t1.main.out | %filecheck %s --check-prefix=MAIN_DYNINFO
+RUN: %t1.main.out | %filecheck %s --check-prefix=OUTPUT
+
+LIBFOO_DYNINFO-DAG: {{[0-9]}} far@@FOO_2.0
+LIBFOO_DYNINFO-DAG: {{[0-9]}} bar@FOO_1.0
+LIBFOO_DYNINFO-DAG: {{[0-9]}} car@@FOO_2.0
+LIBFOO_DYNINFO-DAG: {{[0-9]}} foo@@FOO_1.0
+LIBFOO_DYNINFO-DAG: {{[0-9]}} bar@@FOO_2.0
+LIBFOO_DYNINFO-DAG: {{[0-9]}} baz@@FOO_1.0
+
+LIBBAR_DYNINFO-DAG: UND bar@FOO_1.0
+LIBBAR_DYNINFO-DAG: {{[0-9]}} bar_wrapper
+LIBBAR_DYNINFO-DAG: Version needs section '.gnu.version_r'
+LIBBAR_DYNINFO-DAG: File: libfoo.so
+LIBBAR_DYNINFO-DAG: Name: FOO_1.0
+
+MAIN_DYNINFO-DAG: UND bar_wrapper
+MAIN_DYNINFO-DAG: UND bar@FOO_2.0
+MAIN_DYNINFO-DAG: UND far@FOO_2.0
+MAIN_DYNINFO-DAG: UND car@FOO_2.0
+MAIN_DYNINFO-DAG: UND foo@FOO_1.0
+MAIN_DYNINFO-DAG: {{[0-9]+}} main
+MAIN_DYNINFO: Version needs section '.gnu.version_r'
+MAIN_DYNINFO: File: libfoo.so
+MAIN_DYNINFO: Name: FOO_1.0
+MAIN_DYNINFO: Name: FOO_2.0
+
+OUTPUT: === main: calling libfoo symbols (default versions) ===
+OUTPUT: libfoo: foo  [FOO_1.0 - default]
+OUTPUT: libfoo: bar  [FOO_2.0 - new, default]
+OUTPUT: libfoo: far  [FOO_2.0 - default]
+OUTPUT: libfoo: car  [FOO_2.0 - default]
+OUTPUT: === main: calling libbar (which uses bar@FOO_1.0 internally) ===
+OUTPUT: libbar: bar_wrapper -> calling bar@FOO_1.0 from libfoo:
+OUTPUT: libfoo: bar  [FOO_1.0 - old, non-default]
+OUTPUT: Done.

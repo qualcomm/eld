@@ -6,9 +6,9 @@ UNSUPPORTED: x86
 #symbol is still preserved, which otherwise will allow the compiler to
 #internalize the symbol.
 #END_COMMENT
-RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o -flto
-RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
-RUN: %clang %clangopts -c %p/Inputs/3.c -ffunction-sections -o %t1.3.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o -flto
+RUN: %clang %clangopts -fcommon -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/3.c -ffunction-sections -o %t1.3.o
 RUN: %link %linkopts %t1.1.o %t1.2.o %t1.3.o -e main --trace=lto -o %t.out 2>&1 | %filecheck %s
 
 #CHECK: Preserving symbol foo

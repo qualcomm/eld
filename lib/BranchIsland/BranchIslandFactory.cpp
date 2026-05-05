@@ -321,7 +321,7 @@ BranchIslandFactory::createBranchIsland(Relocation &PReloc, Stub *S,
       ToBeInsertedFrags.push_back(Clone);
 
     if (IsLastFragInSection) {
-      CurNode = MatchedSection->getFragmentList().back();
+      CurNode = MatchedSection->getBackFragment();
       CurNodeIter = MatchedSection->getFragmentList().end();
     }
 

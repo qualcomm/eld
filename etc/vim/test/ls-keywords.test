@@ -1,0 +1,58 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 2:1:eldKwTopLevel \
+# RUN:   --check 2:13:eldKwTopLevel \
+# RUN:   --check 3:1:eldKwTopLevel \
+# RUN:   --check 3:11:eldKwTopLevel \
+# RUN:   --check 4:1:eldKwTopLevel \
+# RUN:   --check 4:5:eldKwTopLevel \
+# RUN:   --check 6:1:eldKwTopLevel \
+# RUN:   --check 6:10:eldKwTopLevel \
+# RUN:   --check 7:1:eldKwInput \
+# RUN:   --check 7:7:eldKwInput \
+# RUN:   --check 9:1:eldKwTopLevel \
+# RUN:   --check 9:6:eldKwTopLevel \
+# RUN:   --check 14:1:eldKwTopLevel \
+# RUN:   --check 14:8:eldKwTopLevel \
+# RUN:   --check 33:3:eldKwDiscard \
+# RUN:   --check 33:11:eldKwDiscard \
+# RUN:   --check 45:1:eldKwTopLevel \
+# RUN:   --check 45:5:eldKwTopLevel
+#
+# Linker-script top-level, input, and special keywords.
+#
+# Line 2:  "OUTPUT_FORMAT(...)"  → eldKwTopLevel
+#   2:1  = 'O' → eldKwTopLevel  (start of OUTPUT_FORMAT)
+#   2:13 = 'T' → eldKwTopLevel  (last char of OUTPUT_FORMAT)
+#
+# Line 3:  "OUTPUT_ARCH(hexagon)"  → eldKwTopLevel
+#   3:1  = 'O' → eldKwTopLevel  (start of OUTPUT_ARCH)
+#   3:11 = 'H' → eldKwTopLevel  (last char of OUTPUT_ARCH)
+#
+# Line 4:  "ENTRY(_start)"  → eldKwTopLevel
+#   4:1  = 'E' → eldKwTopLevel  (start of ENTRY)
+#   4:5  = 'Y' → eldKwTopLevel  (last char of ENTRY)
+#
+# Line 6:  "SEARCH_DIR(...)"  → eldKwTopLevel
+#   6:1  = 'S' → eldKwTopLevel  (start of SEARCH_DIR)
+#   6:10 = 'R' → eldKwTopLevel  (last char of SEARCH_DIR)
+#
+# Line 7:  "INCLUDE extra.ld"  → eldKwInput
+#   7:1  = 'I' → eldKwInput     (start of INCLUDE)
+#   7:7  = 'E' → eldKwInput     (last char of INCLUDE)
+#
+# Line 9:  "MEMORY {"  → eldKwTopLevel
+#   9:1  = 'M' → eldKwTopLevel  (start of MEMORY)
+#   9:6  = 'Y' → eldKwTopLevel  (last char of MEMORY)
+#
+# Line 14: "SECTIONS {"  → eldKwTopLevel
+#   14:1 = 'S' → eldKwTopLevel  (start of SECTIONS)
+#   14:8 = 'S' → eldKwTopLevel  (last char of SECTIONS)
+#
+# Line 33: "  /DISCARD/ : {"
+# /DISCARD/ is a special pseudo-section matched as a pattern.
+#   33:3  = '/' → eldKwDiscard  (opening slash)
+#   33:11 = '/' → eldKwDiscard  (closing slash)
+#
+# Line 45: "PHDRS {"  → eldKwTopLevel
+#   45:1 = 'P' → eldKwTopLevel  (start of PHDRS)
+#   45:5 = 'S' → eldKwTopLevel  (last char of PHDRS)

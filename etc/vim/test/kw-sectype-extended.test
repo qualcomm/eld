@@ -1,0 +1,76 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 107:15:eldKwSecType \
+# RUN:   --check 107:19:eldKwSecType \
+# RUN:   --check 108:15:eldKwSecType \
+# RUN:   --check 108:18:eldKwSecType \
+# RUN:   --check 109:15:eldKwSecType \
+# RUN:   --check 109:18:eldKwSecType \
+# RUN:   --check 110:15:eldKwSecType \
+# RUN:   --check 110:21:eldKwSecType \
+# RUN:   --check 111:15:eldKwSecType \
+# RUN:   --check 111:22:eldKwSecType \
+# RUN:   --check 112:15:eldKwSecType \
+# RUN:   --check 112:20:eldKwSecType \
+# RUN:   --check 113:15:eldKwSecType \
+# RUN:   --check 113:24:eldKwSecType \
+# RUN:   --check 114:15:eldKwSecType \
+# RUN:   --check 114:24:eldKwSecType \
+# RUN:   --check 115:14:eldKwSecType \
+# RUN:   --check 115:29:eldKwSecType \
+# RUN:   --check 116:16:eldKwSecType \
+# RUN:   --check 116:23:eldKwSecType \
+# RUN:   --check 117:16:eldKwSecType \
+# RUN:   --check 117:19:eldKwSecType \
+# RUN:   --check 118:16:eldKwSecType \
+# RUN:   --check 118:20:eldKwSecType
+#
+# Extended eldKwSecType coverage: DSECT COPY INFO OVERLAY PROGBITS UNINIT
+# ONLY_IF_RO ONLY_IF_RW ALIGN_WITH_INPUT SUBALIGN FILL FLAGS
+#
+# Line 107: "  .dsect_sec (DSECT) : { *(.dsect) }"
+#   107:15 = 'D' → eldKwSecType  (start of DSECT)
+#   107:19 = 'T' → eldKwSecType  (last char of DSECT)
+#
+# Line 108: "  .copy_sec  (COPY)  : { *(.copy) }"
+#   108:15 = 'C' → eldKwSecType  (start of COPY)
+#   108:18 = 'Y' → eldKwSecType  (last char of COPY)
+#
+# Line 109: "  .info_sec  (INFO)  : { *(.info) }"
+#   109:15 = 'I' → eldKwSecType  (start of INFO)
+#   109:18 = 'O' → eldKwSecType  (last char of INFO)
+#
+# Line 110: "  .ovl_sec   (OVERLAY) : { *(.ovl) }"
+#   110:15 = 'O' → eldKwSecType  (start of OVERLAY)
+#   110:21 = 'Y' → eldKwSecType  (last char of OVERLAY)
+#
+# Line 111: "  .prog_sec  (PROGBITS) : { *(.prog) }"
+#   111:15 = 'P' → eldKwSecType  (start of PROGBITS)
+#   111:22 = 'S' → eldKwSecType  (last char of PROGBITS)
+#
+# Line 112: "  .uninit    (UNINIT) : { *(.uninit) }"
+#   112:15 = 'U' → eldKwSecType  (start of UNINIT)
+#   112:20 = 'T' → eldKwSecType  (last char of UNINIT)
+#
+# Line 113: "  .ro_only   (ONLY_IF_RO) : { *(.ro) }"
+#   113:15 = 'O' → eldKwSecType  (start of ONLY_IF_RO)
+#   113:24 = 'O' → eldKwSecType  (last char of ONLY_IF_RO)
+#
+# Line 114: "  .rw_only   (ONLY_IF_RW) : { *(.rw) }"
+#   114:15 = 'O' → eldKwSecType  (start of ONLY_IF_RW)
+#   114:24 = 'W' → eldKwSecType  (last char of ONLY_IF_RW)
+#
+# Line 115: "  .aligned   ALIGN_WITH_INPUT : { *(.aligned) }"
+#   115:14 = 'A' → eldKwSecType  (start of ALIGN_WITH_INPUT)
+#   115:29 = 'T' → eldKwSecType  (last char of ALIGN_WITH_INPUT)
+#
+# Line 116: "  .subalign  : SUBALIGN(4) { *(.sub) }"
+#   116:16 = 'S' → eldKwSecType  (start of SUBALIGN)
+#   116:23 = 'N' → eldKwSecType  (last char of SUBALIGN)
+#
+# Line 117: "  .filled    : FILL(0xdeadbeef) { *(.fill) }"
+#   117:16 = 'F' → eldKwSecType  (start of FILL)
+#   117:19 = 'L' → eldKwSecType  (last char of FILL)
+#
+# Line 118: "  .flagged   : FLAGS(SHF_ALLOC) { *(.flagged) }"
+#   118:16 = 'F' → eldKwSecType  (start of FLAGS)
+#   118:20 = 'S' → eldKwSecType  (last char of FLAGS)

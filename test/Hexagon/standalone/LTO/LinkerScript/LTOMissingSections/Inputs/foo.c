@@ -1,3 +1,4 @@
+int puts();
 const char *bar1 = "12";
 const char *bar2 = "34";
 const char *bar3 = "56";

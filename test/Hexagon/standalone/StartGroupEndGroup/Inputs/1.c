@@ -1,3 +1,4 @@
+int fn();
 int _start() {
   return 0;
 }

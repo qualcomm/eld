@@ -166,7 +166,7 @@ BranchIsland *AArch64ErrataIslandFactory::createAArch64ErrataIsland(
     toBeInsertedFrags.push_back(clone);
 
   if (isLastFragInSection) {
-    curNode = MatchedSection->getFragmentList().back();
+    curNode = MatchedSection->getBackFragment();
     curNodeIter = MatchedSection->getFragmentList().end();
   }
   MatchedSection->splice(curNodeIter, toBeInsertedFrags);

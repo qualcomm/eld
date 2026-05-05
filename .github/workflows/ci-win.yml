@@ -40,14 +40,14 @@ jobs:
           'P:\' | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Checkout llvm-project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: llvm/llvm-project
           ref: ${{ env.BASE_BRANCH_NAME }}
           path: nightly/llvm-project
 
       - name: Checkout ELD main branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository }}
           ref: ${{ env.BASE_BRANCH_NAME }}

@@ -85,16 +85,52 @@ bool Input::isPathValid(const std::string &Path) const {
   return true;
 }
 
+std::string Input::expandSysrootMarkers(llvm::StringRef Name,
+                                        const SearchDirs &PSearchDirs,
+                                        DiagnosticEngine &DiagEngine) {
+  llvm::StringRef Suffix;
+  if (Name.starts_with("="))
+    Suffix = Name.substr(1);
+  else if (Name.starts_with("$SYSROOT"))
+    Suffix = Name.substr(strlen("$SYSROOT"));
+  else
+    return Name.str();
+
+  std::string ExpandedPath = Suffix.str();
+  if (PSearchDirs.hasSysRoot())
+    ExpandedPath = (PSearchDirs.sysroot().native() + Suffix).str();
+
+  DiagEngine.raise(Diag::verbose_sysroot_expansion) << Name << ExpandedPath;
+  return ExpandedPath;
+}
+
 /// \return True if path able to be resolved, otherwise false
 bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (ResolvedPath)
     return true;
   if (PConfig.options().hasMappingFile() && !isInternal())
     return resolvePathMappingFile(PConfig);
+  // Apply --remap-inputs remappings (in order, first match wins).
+  for (const auto &Entry : PConfig.options().getRemapInputs()) {
+    WildcardPattern Pat(Entry.Pattern);
+    if (Pat.matched(FileName)) {
+      if (PConfig.getPrinter()->isVerbose())
+        PConfig.raise(Diag::verbose_remap_input)
+            << FileName << Entry.Replacement;
+      OriginalFileName = FileName;
+      FileName = Entry.Replacement;
+      break;
+    }
+  }
   auto &PSearchDirs = PConfig.directories();
+
+  std::string ExpandedFileName = FileName;
+  if (Type == Input::InputType::Script || Type == Input::InputType::Default)
+    ExpandedFileName = expandSysrootMarkers(FileName, PSearchDirs, *DiagEngine);
+
   switch (Type) {
   default:
-    ResolvedPath = eld::sys::fs::Path(FileName);
+    ResolvedPath = eld::sys::fs::Path(ExpandedFileName);
     break;
   case Input::Internal:
     ResolvedPath = eld::sys::fs::Path(FileName);
@@ -103,10 +139,11 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (Type == Input::Script) {
     if (shouldPrependSysrootToScriptInput(PConfig)) {
       ResolvedPath = PSearchDirs.sysroot();
-      ResolvedPath->append(FileName);
+      ResolvedPath->append(ExpandedFileName);
     }
     if (!llvm::sys::fs::exists(ResolvedPath->native())) {
-      const sys::fs::Path *P = PSearchDirs.find(FileName, Input::Script);
+      const sys::fs::Path *P = PSearchDirs.find(
+          ExpandedFileName, SearchDirs::SearchInputType::Script);
       if (P != nullptr)
         ResolvedPath = *P;
     }
@@ -115,11 +152,13 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
     const sys::fs::Path *NameSpecPath = nullptr;
     if (Attr.isStatic()) {
       // with --static, we must search an archive.
-      NameSpecPath = PSearchDirs.find(FileName, Input::Archive);
+      NameSpecPath =
+          PSearchDirs.find(FileName, SearchDirs::SearchInputType::Archive);
     } else {
       // otherwise, with --Bdynamic, we can find either an archive or a
       // shared object.
-      NameSpecPath = PSearchDirs.find(FileName, Input::DynObj);
+      NameSpecPath =
+          PSearchDirs.find(FileName, SearchDirs::SearchInputType::DynObj);
     }
     if (nullptr == NameSpecPath) {
       DiagEngine->raise(Diag::err_cannot_find_namespec) << FileName;

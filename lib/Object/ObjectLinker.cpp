@@ -55,6 +55,7 @@
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptReader.h"
 #include "eld/Script/ScriptSymbol.h"
+#include "eld/Script/VersionScript.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/RegisterTimer.h"
@@ -64,6 +65,7 @@
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
+#include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -84,6 +86,7 @@
 #include <chrono>
 #include <mutex>
 #include <sstream>
+#include <unordered_set>
 
 using namespace llvm;
 using namespace eld;
@@ -135,14 +138,14 @@ bool ObjectLinker::initialize() {
   // initialize the readers and writers
   RelocObjParser = createRelocObjParser();
   DynObjReader = createDynObjReader();
-  ArchiveParser = createArchiveParser();
-  ELFExecObjParser = createELFExecObjParser();
-  BinaryFileParser = createBinaryFileParser();
+  archiveParser = createArchiveParser();
+  execObjParser = createELFExecObjParser();
+  binaryFileParser = createBinaryFileParser();
   // SymDef Reader.
-  SymDefReader = createSymDefReader();
-  GroupReader = make<eld::GroupReader>(*ThisModule, this);
-  LibReader = make<eld::LibReader>(*ThisModule, this);
-  ScriptReader = make<eld::ScriptReader>();
+  symDefReader = createSymDefReader();
+  groupReader = make<eld::GroupReader>(*ThisModule, this);
+  libReader = make<eld::LibReader>(*ThisModule, this);
+  scriptReader = make<eld::ScriptReader>();
   ObjWriter = createWriter();
 
   // initialize Relocator
@@ -206,7 +209,11 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
   // Record the linker script in the Map file.
   LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(Input->getInput()->getFileName());
+    layoutInfo->recordLinkerScript(
+        Input->getInput()->getFileName(), /*Found=*/true,
+        Input->getInput()->wasRemapped()
+            ? llvm::StringRef(Input->getInput()->getOriginalFileName())
+            : llvm::StringRef());
 
   ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
 
@@ -401,13 +408,16 @@ bool ObjectLinker::parseVersionScript() {
   }
   auto &SymbolScopes = getTargetBackend().symbolScopes();
   auto &NP = ThisModule->getNamePool();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  DemangledNamesMap DemangledNames;
+#endif
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
     for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
       if (VersionScriptNode->getGlobalBlock()) {
         for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP);
+          bool isMatched = Sym->matched(*R, NP, DemangledNames);
 #else
           bool isMatched = Sym->getSymbolPattern()->matched(*R);
 #endif
@@ -432,7 +442,7 @@ bool ObjectLinker::parseVersionScript() {
       if (VersionScriptNode->getLocalBlock()) {
         for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP);
+          bool isMatched = Sym->matched(*R, NP, DemangledNames);
 #else
           bool isMatched = Sym->getSymbolPattern()->matched(*R);
 #endif
@@ -958,13 +968,12 @@ bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
     if (!I->spec().hasSections())
       return false;
 
-    auto &E = I->spec().sections().front();
+    const StrToken *E = I->spec().sections().front();
 
     if (E->kind() != StrToken::Wildcard)
       return false;
 
-    WildcardPattern &Pattern =
-        llvm::cast<WildcardPattern>(*I->spec().sections().front());
+    const WildcardPattern &Pattern = llvm::cast<WildcardPattern>(*E);
     P = Pattern.sortPolicy();
     if (P == WildcardPattern::SortPolicy::SORT_NONE &&
         ThisConfig.options().isSortSectionEnabled()) {
@@ -1002,7 +1011,7 @@ bool ObjectLinker::sortSections(RuleContainer *I, bool SortRule) {
 bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
                                        OutputSectionEntry *Output,
                                        bool PostLayout) {
-  uint64_t OutAlign = 0x0, InAlign = 0x0;
+  uint64_t OutAlign = 0x0;
   bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
 
   ELFSection *OutSect = Output->getSection();
@@ -1012,15 +1021,6 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
   OutputSectionEntry::iterator In, InBegin, InEnd;
   InBegin = Output->begin();
   InEnd = Output->end();
-  bool HasSubAlign = false;
-
-  // force input alignment from ldscript if any
-  if (Output->prolog().hasSubAlign()) {
-    Output->prolog().subAlign().eval();
-    Output->prolog().subAlign().commit();
-    InAlign = Output->prolog().subAlign().result();
-    HasSubAlign = true;
-  }
 
   // force output alignment from ldscript if any
   if (Output->prolog().hasAlign()) {
@@ -1062,13 +1062,7 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       }
       InSect->setAddrAlign(Alignment);
     }
-    if (HasSubAlign && (InSect->getAddrAlign() < InAlign)) {
-      if (InSect->getFragmentList().size()) {
-        InSect->getFragmentList().front()->setAlignment(InAlign);
-        InSect->setAddrAlign(InAlign);
-      }
-    }
-    if (InSect->getFragmentList().size() && !FirstNonEmptyRule)
+    if (InSect->hasFragments() && !FirstNonEmptyRule)
       FirstNonEmptyRule = *In;
 
     if (Builder.moveIntoOutputSection(InSect, OutSect)) {
@@ -1323,6 +1317,9 @@ bool ObjectLinker::mergeSections() {
   {
     eld::RegisterTimer T("Create Output Section", "Merge Sections",
                          ThisConfig.options().printTimingStats());
+    // Prepass: apply SUBALIGN to first fragments per input section per output
+    // section serially to avoid races in parallel output creation.
+    applySubAlign();
     std::vector<OutputSectionEntry *> OutSections;
     for (Out = OutBegin; Out != OutEnd; ++Out) {
       OutSections.push_back(*Out);
@@ -1364,6 +1361,48 @@ bool ObjectLinker::initializeOutputSectionsAndRunPlugin() {
       sortSections(In, false);
   }
   return runOutputSectionIteratorPlugin();
+}
+
+void ObjectLinker::applySubAlign() {
+  std::unordered_set<ELFSection *> seen;
+
+  for (auto *O : ThisModule->getScript().sectionMap()) {
+    auto &prolog = O->prolog();
+    if (!prolog.hasSubAlign())
+      continue;
+    uint64_t subAlign;
+    prolog.subAlign().eval();
+    prolog.subAlign().commit();
+    subAlign = prolog.subAlign().result();
+    // Validate SUBALIGN is power of 2
+    if (subAlign != 0 && !llvm::isPowerOf2_64(subAlign)) {
+      ThisConfig.raise(Diag::error_subalign_not_power_of_two)
+          << prolog.subAlign().getContext() << utility::toHex(subAlign)
+          << O->name();
+      continue;
+    }
+    for (RuleContainer *R : *O) {
+      ELFSection *inSect = R->getSection();
+      for (Fragment *F : inSect->getFragmentList()) {
+        ELFSection *owningSect = F->getOwningSection();
+        if (owningSect->getKind() == LDFileFormat::Kind::OutputSectData) {
+          continue;
+        }
+        if (owningSect && seen.insert(owningSect).second) {
+          // Warn if SUBALIGN is reducing the section alignment
+          if (ThisConfig.showLinkerScriptWarnings() &&
+              F->alignment() > subAlign) {
+            ThisConfig.raise(Diag::warn_subalign_less_than_section_alignment)
+                << utility::toHex(subAlign) << utility::toHex(F->alignment())
+                << owningSect->getLocation(0, ThisConfig.options());
+          }
+          F->setAlignment(subAlign);
+          inSect->setAddrAlign(std::max(
+              static_cast<uint64_t>(inSect->getAddrAlign()), subAlign));
+        }
+      }
+    }
+  }
 }
 
 void ObjectLinker::assignOffset(OutputSectionEntry *Out) {
@@ -1438,7 +1477,11 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   SymbolListInput->setInputFile(SymbolListInputFile);
   // Record the dynamic list script in the Map file.
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(SymbolListInput->decoratedPath());
+    layoutInfo->recordLinkerScript(
+        SymbolListInput->decoratedPath(), /*Found=*/true,
+        SymbolListInput->wasRemapped()
+            ? llvm::StringRef(SymbolListInput->getOriginalFileName())
+            : llvm::StringRef());
   // Read the dynamic List file
   ScriptFile SymbolListReader(
       (ScriptFile::Kind)Type, *ThisModule,
@@ -1457,13 +1500,14 @@ bool ObjectLinker::parseListFile(std::string Filename, uint32_t Type) {
   if (Type == ScriptFile::ExternList || Type == ScriptFile::DynamicList) {
     if (!SymbolListReader.activate(*ThisModule))
       return false;
-  } else
-    for (const auto &Sym : SymbolListReader.getExternList()) {
+  } else {
+    for (auto *Sym : SymbolListReader.getExternList().tokens()) {
       if (Type == ScriptFile::DuplicateCodeList)
         ThisModule->addToCopyFarCallSet(Sym->name());
       else if (Type == ScriptFile::NoReuseTrampolineList)
         ThisModule->addToNoReuseOfTrampolines(Sym->name());
     }
+  }
   return true;
 }
 
@@ -2120,19 +2164,16 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
   if (!IsPartialLink) {
     ELFObjectFile *RelocInput =
         getTargetBackend().getDynamicSectionHeadersInputFile();
-    auto MergeRelocs = [](llvm::SmallVectorImpl<Relocation *> &To,
-                          const llvm::SmallVectorImpl<Relocation *> &From) {
-      To.insert(To.end(), From.begin(), From.end());
+    auto MergeRelocs = [](ELFSection &To, ELFSection &From) {
+      To.appendRelocations(From.getRelocations());
     };
     for (auto &Input : ThisModule->getObjectList())
       if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input))
         if (Obj != RelocInput) {
           if (const auto &S = Obj->getRelaDyn())
-            MergeRelocs(RelocInput->getRelaDyn()->getRelocations(),
-                        S->getRelocations());
+            MergeRelocs(*RelocInput->getRelaDyn(), *S);
           if (const auto &S = Obj->getRelaPLT())
-            MergeRelocs(RelocInput->getRelaPLT()->getRelocations(),
-                        S->getRelocations());
+            MergeRelocs(*RelocInput->getRelaPLT(), *S);
         }
   }
 
@@ -2469,10 +2510,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     branch_island_iter Bi = (*Out)->islandsBegin();
     branch_island_iter Be = (*Out)->islandsEnd();
     for (; Bi != Be; ++Bi) {
-      BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
-      for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter) {
-        (*Iter)->apply(*getTargetBackend().getRelocator());
-      }
+      for (auto *Reloc : (*Bi)->getRelocations())
+        Reloc->apply(*getTargetBackend().getRelocator());
     }
   }
 
@@ -2523,9 +2562,8 @@ void ObjectLinker::syncRelocations(uint8_t *Buffer) {
     branch_island_iter Bi = O->islandsBegin();
     branch_island_iter Be = O->islandsEnd();
     for (; Bi != Be; ++Bi) {
-      BranchIsland::reloc_iterator Iter, IterEnd = (*Bi)->relocEnd();
-      for (Iter = (*Bi)->relocBegin(); Iter != IterEnd; ++Iter)
-        writeRelocationResult(**Iter, Buffer);
+      for (auto *Reloc : (*Bi)->getRelocations())
+        writeRelocationResult(*Reloc, Buffer);
     }
   };
   // sync relocations created by relaxation
@@ -3191,6 +3229,10 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
         // example, in thin LTO the merged object may not be written. Keep the
         // holes so file names in assembler are in sync with "Files".
         LTOAsmInput = std::move(Files);
+        if (!KeepLTOOutput)
+          std::copy_if(LTOAsmInput.begin(), LTOAsmInput.end(),
+                       std::back_inserter(FilesToRemove),
+                       [](const std::string &F) { return !F.empty(); });
       }
       // Remove unused file slots.
       llvm::erase_if(Files, [](const std::string &x) { return x.empty(); });
@@ -3207,10 +3249,6 @@ bool ObjectLinker::doLto(llvm::lto::LTO &LTO, bool CompileToAssembly) {
         ThisModule->setFailure(true);
         return false;
       }
-      if (!KeepLTOOutput)
-        for (const auto &F : LTOAsmInput)
-          if (!F.empty())
-            FilesToRemove.push_back(F);
     }
     if (!KeepLTOOutput && !ThisConfig.options().getLTOObjPath())
       FilesToRemove.insert(FilesToRemove.end(), Files.begin(), Files.end());

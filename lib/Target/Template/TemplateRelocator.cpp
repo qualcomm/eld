@@ -35,8 +35,6 @@ TemplateRelocator::TemplateRelocator(TemplateLDBackend &pParent,
   }
 }
 
-TemplateRelocator::~TemplateRelocator() {}
-
 Relocator::Result TemplateRelocator::applyRelocation(Relocation &pRelocation) {
   Relocation::Type type = pRelocation.type();
 

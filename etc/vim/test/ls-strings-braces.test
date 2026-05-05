@@ -1,0 +1,63 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 2:15:eldLsString \
+# RUN:   --check 2:16:eldLsString \
+# RUN:   --check 2:34:eldLsString \
+# RUN:   --check 2:35:eldLsString \
+# RUN:   --check 9:8:eldLsBrace \
+# RUN:   --check 12:1:eldLsBrace \
+# RUN:   --check 14:10:eldLsBrace \
+# RUN:   --check 37:1:eldLsBrace \
+# RUN:   --check 49:1:eldLsBrace \
+# RUN:   --check 15:3:eldSectionName \
+# RUN:   --check 15:7:eldSectionName \
+# RUN:   --check 15:8:eldLsOutputSection \
+# RUN:   --check 15:9:eldHex \
+# RUN:   --check 15:14:eldHex \
+# RUN:   --check 15:16:eldLsOutputSection \
+# RUN:   --check 15:18:eldLsBrace \
+# RUN:   --check 24:3:eldSectionName \
+# RUN:   --check 24:6:eldSectionName \
+# RUN:   --check 24:8:eldLsSecAttr \
+# RUN:   --check 24:9:eldKwSecType \
+# RUN:   --check 24:14:eldKwSecType \
+# RUN:   --check 24:15:eldLsSecAttr \
+# RUN:   --check 24:17:eldLsOutputSection \
+# RUN:   --check 24:19:eldLsBrace
+#
+# Linker-script string literals, braces, output section headers, and
+# section type annotations.
+#
+# Line 2: 'OUTPUT_FORMAT("elf32-littlehexagon", ...)'
+# String literals are eldLsString.
+#   2:15 = '"' → eldLsString  (opening quote of first string)
+#   2:16 = 'e' → eldLsString  (first char of string body)
+#   2:34 = 'n' → eldLsString  (last char of "elf32-littlehexagon")
+#   2:35 = '"' → eldLsString  (closing quote of first string)
+#
+# Section body delimiters { } are eldLsBrace.
+#   9:8  = '{' → eldLsBrace  (MEMORY block open)
+#   12:1 = '}' → eldLsBrace  (MEMORY block close)
+#   14:10= '{' → eldLsBrace  (SECTIONS block open)
+#   37:1 = '}' → eldLsBrace  (SECTIONS block close)
+#   49:1 = '}' → eldLsBrace  (PHDRS block close)
+#
+# Line 15: "  .text 0x1000 : {"
+# Output section header: section name, address, colon, open brace.
+#   15:3  = '.' → eldSectionName      (start of .text)
+#   15:7  = 't' → eldSectionName      (last char of .text)
+#   15:8  = ' ' → eldLsOutputSection  (space before address)
+#   15:9  = '0' → eldHex              (start of 0x1000)
+#   15:14 = '0' → eldHex              (last char of 0x1000)
+#   15:16 = ':' → eldLsOutputSection  (colon)
+#   15:18 = '{' → eldLsBrace          (section body open)
+#
+# Line 24: "  .bss (NOLOAD) : {"
+# Section type annotation (NOLOAD) is eldLsSecAttr with eldKwSecType inside.
+#   24:3  = '.' → eldSectionName      (start of .bss)
+#   24:6  = 's' → eldSectionName      (last char of .bss)
+#   24:8  = '(' → eldLsSecAttr        (open paren of type annotation)
+#   24:9  = 'N' → eldKwSecType        (start of NOLOAD)
+#   24:14 = 'D' → eldKwSecType        (last char of NOLOAD)
+#   24:15 = ')' → eldLsSecAttr        (close paren of type annotation)
+#   24:17 = ':' → eldLsOutputSection  (colon)
+#   24:19 = '{' → eldLsBrace          (section body open)

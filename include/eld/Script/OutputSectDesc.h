@@ -18,6 +18,7 @@
 #include "eld/Script/StrToken.h"
 #include "eld/Script/StringList.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include <string>
 #include <vector>
@@ -287,24 +288,26 @@ public:
   };
 
   typedef std::vector<ScriptCommand *> OutputSectCmds;
-  typedef OutputSectCmds::const_iterator const_iterator;
-  typedef OutputSectCmds::iterator iterator;
-  typedef OutputSectCmds::const_reference const_reference;
-  typedef OutputSectCmds::reference reference;
+  using OutputSectCmdRange = llvm::iterator_range<OutputSectCmds::iterator>;
+  using OutputSectCmdConstRange =
+      llvm::iterator_range<OutputSectCmds::const_iterator>;
 
 public:
   OutputSectDesc(const std::string &PName);
 
+  OutputSectCmdRange commands() {
+    return llvm::make_range(OutputSectionCommands.begin(),
+                            OutputSectionCommands.end());
+  }
+  OutputSectCmdConstRange commands() const {
+    return llvm::make_range(OutputSectionCommands.begin(),
+                            OutputSectionCommands.end());
+  }
 
-  const_iterator begin() const { return OutputSectionCommands.begin(); }
-  iterator begin() { return OutputSectionCommands.begin(); }
-  const_iterator end() const { return OutputSectionCommands.end(); }
-  iterator end() { return OutputSectionCommands.end(); }
-
-  const_reference front() const { return OutputSectionCommands.front(); }
-  reference front() { return OutputSectionCommands.front(); }
-  const_reference back() const { return OutputSectionCommands.back(); }
-  reference back() { return OutputSectionCommands.back(); }
+  const ScriptCommand *front() const { return OutputSectionCommands.front(); }
+  ScriptCommand *front() { return OutputSectionCommands.front(); }
+  const ScriptCommand *back() const { return OutputSectionCommands.back(); }
+  ScriptCommand *back() { return OutputSectionCommands.back(); }
 
   std::string name() const { return Name; }
 
@@ -337,8 +340,6 @@ public:
   Epilog &epilog() { return OutputSectDescEpilog; }
 
   void initialize();
-
-  OutputSectCmds &getOutputSectCommands() { return OutputSectionCommands; }
 
   void dumpEpilogue(llvm::raw_ostream &Outs) const;
 

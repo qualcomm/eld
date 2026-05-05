@@ -20,7 +20,6 @@
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/INIReader.h"
-#include "eld/Support/InputTarReader.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/SymbolResolver/SymbolInfo.h"
@@ -1245,7 +1244,7 @@ bool LinkerScriptRule::doesExpressionModifyDot() const {
 
 std::vector<plugin::Chunk> LinkerScriptRule::getChunks() const {
   std::vector<plugin::Chunk> CVect;
-  auto &Fragments = m_RuleContainer->getSection()->getFragmentList();
+  auto Fragments = m_RuleContainer->getSection()->getFragmentList();
   for (auto &F : Fragments)
     CVect.push_back(plugin::Chunk(F));
   return CVect;
@@ -1270,13 +1269,12 @@ LinkerScriptRule::updateChunks(std::vector<plugin::Chunk> C, bool Verify) {
     updateChunks(C);
     return LinkerScriptRule::State::Ok;
   }
-  auto &List = m_RuleContainer->getSection()->getFragmentList();
-  if (!List.size())
+  if (!m_RuleContainer->getSection()->hasFragments())
     return LinkerScriptRule::State::NotEmpty;
   m_RuleContainer->clearSections();
   m_RuleContainer->clearFragments();
   for (auto &Chunk : C) {
-    auto &L = m_RuleContainer->getSection()->getFragmentList();
+    auto L = m_RuleContainer->getSection()->getFragmentList();
     if (std::find(L.begin(), L.end(), Chunk.getFragment()) != L.end())
       return LinkerScriptRule::State::DuplicateChunk;
     m_RuleContainer->getSection()->addFragment(Chunk.getFragment());
@@ -1304,7 +1302,7 @@ LinkerScriptRule::State LinkerScriptRule::addChunk(plugin::Chunk C,
     addChunk(C);
     return LinkerScriptRule::State::Ok;
   }
-  auto &L = m_RuleContainer->getSection()->getFragmentList();
+  auto L = m_RuleContainer->getSection()->getFragmentList();
   if (std::find(L.begin(), L.end(), C.getFragment()) != L.end())
     return LinkerScriptRule::State::DuplicateChunk;
   m_RuleContainer->getSection()->addFragment(C.getFragment());
@@ -1327,9 +1325,9 @@ LinkerScriptRule::State LinkerScriptRule::removeChunk(plugin::Chunk C,
     removeChunk(C);
     return LinkerScriptRule::State::Ok;
   }
-  auto &L = m_RuleContainer->getSection()->getFragmentList();
-  if (!L.size())
+  if (!m_RuleContainer->getSection()->hasFragments())
     return LinkerScriptRule::State::Empty;
+  auto L = m_RuleContainer->getSection()->getFragmentList();
   if (std::find(L.begin(), L.end(), C.getFragment()) == L.end())
     return LinkerScriptRule::State::NoChunk;
   removeChunk(C);
@@ -1338,7 +1336,7 @@ LinkerScriptRule::State LinkerScriptRule::removeChunk(plugin::Chunk C,
 
 std::vector<plugin::Chunk> LinkerScriptRule::getChunks(plugin::Section S) {
   std::vector<plugin::Chunk> CVect;
-  auto &Fragments = m_RuleContainer->getSection()->getFragmentList();
+  auto Fragments = m_RuleContainer->getSection()->getFragmentList();
   for (auto &F : Fragments) {
     if (F->getOwningSection() == S.getSection())
       CVect.push_back(plugin::Chunk(F));
@@ -1639,88 +1637,6 @@ std::unique_ptr<eld::MemoryArea> plugin::MemoryBuffer::getBuffer() {
 }
 
 plugin::MemoryBuffer::~MemoryBuffer() {}
-
-//
-//-------------------------------TarFile-------------------------------
-//
-
-plugin::TarFile::TarFile(
-    std::unique_ptr<eld::MemoryArea> Buf, std::vector<std::string> EntryNames,
-    std::vector<eld::InputTarReader::EntryInfo> RegularEntries)
-    : m_IsInitialized(true), m_Buffer(std::move(Buf)),
-      m_EntryNames(std::move(EntryNames)),
-      m_RegularEntries(std::move(RegularEntries)) {}
-
-eld::Expected<plugin::TarFile>
-plugin::TarFile::Create(std::unique_ptr<eld::MemoryArea> Buf) {
-  if (!Buf)
-    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
-        Diag::error_invalid_tar_archive, {"tar file is not initialized"}));
-
-  auto EntryNamesOrErr =
-      eld::InputTarReader::listEntryNames(Buf->getContents());
-  if (!EntryNamesOrErr)
-    return std::move(EntryNamesOrErr.error());
-
-  auto EntriesOrErr =
-      eld::InputTarReader::listRegularFileEntries(Buf->getContents());
-  if (!EntriesOrErr)
-    return std::move(EntriesOrErr.error());
-
-  return TarFile(std::move(Buf), std::move(*EntryNamesOrErr),
-                 std::move(*EntriesOrErr));
-}
-
-plugin::TarFile::TarFile(plugin::TarFile &&other) noexcept {
-  *this = std::move(other);
-}
-
-plugin::TarFile &plugin::TarFile::operator=(plugin::TarFile &&other) noexcept {
-  if (this == &other)
-    return *this;
-  std::swap(m_IsInitialized, other.m_IsInitialized);
-  std::swap(m_Buffer, other.m_Buffer);
-  std::swap(m_EntryNames, other.m_EntryNames);
-  std::swap(m_RegularEntries, other.m_RegularEntries);
-  return *this;
-}
-
-eld::Expected<std::vector<std::string>> plugin::TarFile::listEntries() const {
-  if (!m_IsInitialized)
-    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
-        Diag::error_invalid_tar_archive, {"tar file is not initialized"}));
-  return m_EntryNames;
-}
-
-eld::Expected<std::string>
-plugin::TarFile::readEntry(const std::string &EntryName) const {
-  auto ViewOrErr = readEntryContents(EntryName);
-  if (!ViewOrErr)
-    return std::move(ViewOrErr.error());
-  return std::string(*ViewOrErr);
-}
-
-eld::Expected<std::string_view>
-plugin::TarFile::readEntryContents(const std::string &EntryName) const {
-  if (!m_IsInitialized || !m_Buffer)
-    return std::make_unique<DiagnosticEntry>(DiagnosticEntry(
-        Diag::error_invalid_tar_archive, {"tar file is not initialized"}));
-
-  llvm::StringRef FileName(EntryName);
-  const auto &TarData = m_Buffer->getContents();
-  std::string Suffix = ("/" + EntryName);
-  for (const auto &Entry : m_RegularEntries) {
-    llvm::StringRef Name(Entry.Name);
-    if (Name == FileName || Name.ends_with(Suffix)) {
-      llvm::StringRef Payload = TarData.substr(Entry.Offset, Entry.Size);
-      return std::string_view(Payload.data(), Payload.size());
-    }
-  }
-  return std::make_unique<DiagnosticEntry>(
-      DiagnosticEntry(Diag::error_tar_file_not_found, {EntryName}));
-}
-
-plugin::TarFile::~TarFile() {}
 
 InputSymbol::InputSymbol() : Sym(nullptr), SymInfo(nullptr) {}
 

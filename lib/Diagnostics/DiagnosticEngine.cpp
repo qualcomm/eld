@@ -252,7 +252,7 @@ DiagnosticEngine::DiagIDType Diag::Counter = 0;
 #include "eld/Diagnostics/DiagAttribute.inc"
 #include "eld/Diagnostics/DiagBackends.inc"
 #include "eld/Diagnostics/DiagCommonKinds.inc"
-#include "eld/Diagnostics/DiagGOTPLT.inc"
+#include "eld/Diagnostics/DiagDynamicLink.inc"
 #include "eld/Diagnostics/DiagLDScript.inc"
 #include "eld/Diagnostics/DiagLTO.inc"
 #include "eld/Diagnostics/DiagLayouts.inc"

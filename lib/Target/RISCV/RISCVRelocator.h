@@ -25,7 +25,6 @@ class RISCVRelocator : public Relocator {
 public:
   RISCVRelocator(RISCVLDBackend &pParent, LinkerConfig &pConfig,
                  Module &pModule);
-  ~RISCVRelocator();
 
   Result applyRelocation(Relocation &pRelocation) override;
 

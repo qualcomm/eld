@@ -499,17 +499,22 @@ bool GNULDBackend::createProgramHdrs() {
           alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
-        alignAddress(pma, cur->getAddrAlign());
+        // Only align LMA if VMA is also aligned
+        if (vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       } else if ((last_section_needs_new_segment) && (!disconnect_lma_vma)) {
         // If the LMA and VMA are disconnected, the physical address should
         // always be taken as the difference of the current virtual address
         // minus the previous virtual address.
         pma = prev->pAddr() + prev->size();
-        alignAddress(pma, cur->getAddrAlign());
+        // Only align LMA if VMA is also aligned
+        if (vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       } else {
         vmaoffset = vma - (prev->addr() + prev->size());
         pma = prev->pAddr() + prev->size() + vmaoffset;
-        alignAddress(pma, cur->getAddrAlign());
+        if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       }
 
       // FIXME : remove this option alignSegmentsToPage
@@ -536,7 +541,10 @@ bool GNULDBackend::createProgramHdrs() {
       cur->setWanted(cur->wantedInOutput() || cur->size());
       if (hasVMARegion)
         (*out)->epilog().region().addOutputSectionVMA(*out);
-      if (!useSetLMA && (hasVMARegion || hasLMARegion))
+      // Only update the LMA region cursor when it is a distinct region.
+      // When VMA and LMA share a region, addOutputSectionVMA already
+      // advanced the cursor.
+      if (!useSetLMA && hasLMARegion)
         (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
       if (!config().getDiagEngine()->diagnose()) {
         return false;
@@ -596,7 +604,8 @@ bool GNULDBackend::createProgramHdrs() {
           alignAddress(pma, cur->getAddrAlign());
       } else if (!prev || !disconnect_lma_vma) {
         pma = vma;
-        alignAddress(pma, cur->getAddrAlign());
+        if (cur->getAddrAlign() > 0 && vma % cur->getAddrAlign() == 0)
+          alignAddress(pma, cur->getAddrAlign());
       } else {
         vmaoffset = vma - (prev->addr() + prev->size());
         pma = prev->pAddr() + prev->size() + vmaoffset;
@@ -606,7 +615,7 @@ bool GNULDBackend::createProgramHdrs() {
       evaluateAssignments(*out, m_AtTableIndex);
       if (hasVMARegion)
         (*out)->epilog().region().addOutputSectionVMA(*out);
-      if (!useSetLMA && (hasVMARegion || hasLMARegion))
+      if (!useSetLMA && hasLMARegion)
         (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
       if (!config().getDiagEngine()->diagnose()) {
         return false;

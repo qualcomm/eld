@@ -1,0 +1,50 @@
+# Linker Script and memory map
+# CommandLine : ld.eld -T script.t -o output.elf foo.o bar.o
+# LinkStats Begin
+# LinkStats End
+Linker scripts used (including INCLUDE command)
+/path/to/script.t
+Archive member included because of file (symbol)
+libfoo.a(foo.o)
+		libbar.a(bar.o) (some_symbol)
+LOAD /path/to/libfoo.a(foo.o)[hexagonv68]
+LOAD /path/to/libbar.a[hexagonv68]
+Build Statistics
+Linker Plugin Information
+Linker Plugin Run Information
+# Output Section and Layout
+.text   0xe7a0   0xc7e5f # Offset: 0xe7a0, LMA: 0xe7a0, Alignment: 0x8, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+	.text.xmalloc   0x10e65   0x20   libbb/lib.a(xfuncs_printf.o)   #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+.text.init_array   0x10f00   0x8   libinit.a(init.o)   #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+	0x10e65   xmalloc
+	.text.hot.foo   0x10e85   0x10   libfoo.a(foo.o)   #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+	0x10e85   foo_func
+	*(KEEP(*(.text.hot.*))) #Rule 1, script.t [1:1]
+	*(.text.*) #Rule 2, script.t [2:1]
+	KEEP (*(.init)) #Rule 3, script.t [3:1]
+PADDING_ALIGNMENT   0xef74   0x4   0x0
+.bss   0x20000   0x100 # Offset: 0x20000, LMA: 0x20000, Alignment: 0x10, Flags: SHF_ALLOC|SHF_WRITE, Type: SHT_NOBITS
+	.bss.buf   0x20000   0x100   libfoo.a(foo.o)   #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,16
+PROVIDE_HIDDEN(__start(0x0) = .(0x0)); # PROVIDE_HIDDEN(__start = .); script.t
+.(0x1000) = ALIGN(.(0x1c), 0x1000); # . = ALIGN(., 0x1000); script.t
+# .text.unused   <GC>   0x20   libgc.a(gc.o)   #SHT_PROGBITS,SHF_ALLOC,4
+# _unused_sym
+Discarded input sections
+Memory Configuration
+Cross Reference Table
+Common symbol   size   file
+# .dynsym.sec   <GC>   0x40   libelf.a(dynsym.o)   #SHT_DYNSYM,SHF_ALLOC,8
+# .gnu.hash     <GC>   0x20   libelf.a(hash.o)     #SHT_GNU_HASH,SHF_ALLOC,8
+# .note.sec     <GC>   0x10   libelf.a(note.o)     #SHT_NOTE,SHF_ALLOC,4
+# .strtab.sec   <GC>   0x30   libelf.a(str.o)      #SHT_STRTAB,SHF_MERGE|SHF_STRINGS,1
+# .rela.text    <GC>   0x18   libelf.a(rela.o)     #SHT_RELA,SHF_INFO_LINK,8
+# .init_array   <GC>   0x8    libelf.a(init.o)     #SHT_INIT_ARRAY,SHF_ALLOC|SHF_WRITE,8
+# .fini_array   <GC>   0x8    libelf.a(fini.o)     #SHT_FINI_ARRAY,SHF_ALLOC|SHF_WRITE,8
+# .gnu.version  <GC>   0x10   libelf.a(ver.o)      #SHT_GNU_versym,SHF_ALLOC,2
+# .gnu.verdef   <GC>   0x1c   libelf.a(verd.o)     #SHT_GNU_verdef,SHF_ALLOC,4
+# .gnu.verneed  <GC>   0x20   libelf.a(vern.o)     #SHT_GNU_verneed,SHF_ALLOC,4
+# .tls.sec      <GC>   0x10   libelf.a(tls.o)      #SHT_PROGBITS,SHF_ALLOC|SHF_TLS,8
+# .compressed   <GC>   0x80   libelf.a(comp.o)     #SHT_PROGBITS,SHF_ALLOC|SHF_COMPRESSED,8
+# .group.sec    <GC>   0x10   libelf.a(grp.o)      #SHT_GROUP,SHF_GROUP,4
+# .relr.sec     <GC>   0x20   libelf.a(relr.o)     #SHT_RELR,SHF_ALLOC,8
+# .nobits.sec   <GC>   0x100  libelf.a(bss.o)      #SHT_NOBITS,SHF_ALLOC|SHF_WRITE,16

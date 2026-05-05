@@ -1,0 +1,39 @@
+name: Clang Format Check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install clang-format
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y wget gpg lsb-release
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+          UBUNTU_CODENAME="$(lsb_release -cs)"
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+          clang-format --version
+
+      - name: Check formatting of changed files
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang-format --version
+          source ./etc/bash/eld_clang_format_helpers.sh
+          eld_clang_format_check "${{ github.base_ref }}"

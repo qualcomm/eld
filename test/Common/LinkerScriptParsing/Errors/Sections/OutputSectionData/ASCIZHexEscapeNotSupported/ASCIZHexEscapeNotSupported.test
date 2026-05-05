@@ -1,0 +1,8 @@
+UNSUPPORTED: old_lsparser
+#---ASCIZHexEscapeNotSupported.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks that ASCIZ rejects hex escapes.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}script.t:3: ASCIZ does not support hex escape sequences

@@ -22,4 +22,5 @@ target_link_libraries(
           ELDSupport
           ELDTarget
           LLVMSupport
+          LLVMBitWriter
           LLVMLTO)

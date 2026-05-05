@@ -135,7 +135,7 @@ public:
 
   struct InputSequenceT {
     InputKindPrefix Prefix;
-    Input *Input;
+    Input *Inp;
     std::string ArchFlag;
   };
 
@@ -176,6 +176,7 @@ public:
   // Linker Script support
   struct ScriptInputT {
     std::string Include;
+    std::string RemappedFrom;
     std::string Parent;
     bool Found = false;
     uint32_t Depth = 0;
@@ -285,7 +286,8 @@ public:
 
   std::string getPath(const std::string &Filename) const;
 
-  void recordLinkerScript(std::string File, bool Found = true);
+  void recordLinkerScript(std::string File, bool Found = true,
+                          llvm::StringRef RemappedFrom = "");
 
   void recordLinkerScriptRule();
 

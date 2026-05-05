@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Set up Clang 20
-        uses: egor-tensin/setup-clang@v1
+        uses: egor-tensin/setup-clang@v2
         with:
           version: "20"
           platform: x64
@@ -46,20 +46,29 @@ jobs:
           free -h # or cat /proc/meminfo
 
       - name: Checkout llvm-project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: llvm/llvm-project
           path: llvm-project
           ref: main
 
       - name: Checkout eld
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
           ref: main
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Restore ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nightly-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
         if: github.event_name == 'schedule'
@@ -77,27 +86,148 @@ jobs:
 
       - name: Run CMake
         run: |
-          mkdir obj
+          mkdir -p obj
           cd obj
+          cat > distribution-components.cmake <<'EOF'
+          set(LLVM_INSTALL_TOOLCHAIN_ONLY ON CACHE BOOL "")
+          set(LLVM_TOOLCHAIN_TOOLS
+            llvm-ar
+            llvm-cov
+            llvm-cxxfilt
+            llvm-dis
+            llvm-dlltool
+            llvm-dwp
+            llvm-lib
+            llvm-mca
+            llvm-nm
+            llvm-objcopy
+            llvm-objdump
+            llvm-pdbutil
+            llvm-profdata
+            llvm-profgen
+            llvm-ranlib
+            llvm-readobj
+            llvm-readelf
+            llvm-mc
+            llvm-as
+            llvm-remarkutil
+            llvm-size
+            llvm-strings
+            llvm-strip
+            llvm-symbolizer
+            opt
+            CACHE STRING "")
+          set(LLVM_DISTRIBUTION_COMPONENTS
+            clang
+            lld
+            LTO
+            clang-resource-headers
+            clang-format
+            clang-tidy
+            clangd
+            builtins
+            runtimes
+            ${LLVM_TOOLCHAIN_TOOLS}
+            ld.eld
+            CACHE STRING "")
+          EOF
           cmake -G Ninja \
+            -C distribution-components.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
+            -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra;lld" \
+            -DLLVM_ENABLE_RUNTIMES="compiler-rt;libcxx;libcxxabi;libunwind" \
             -DCMAKE_C_COMPILER:STRING=`which clang` \
             -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
             -DCMAKE_CXX_FLAGS:STRING="-stdlib=libc++" \
+            -DCMAKE_INSTALL_RPATH:STRING='$ORIGIN/../lib/' \
+            -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
             -DLLVM_TARGETS_TO_BUILD:STRING="ARM;AArch64;RISCV;Hexagon;X86" \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-nightly-toolchain \
             -DLLVM_CCACHE_DIR:STRING=$PWD/ccache/ \
             -DLLVM_ENABLE_SPHINX=OFF \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             -DLLVM_INSTALL_UTILS=On \
             ../llvm-project/llvm
 
       - name: Build and install toolchain
         run: |
           cd obj
-          ninja -j8 install
+          ninja -j11 install-distribution
+
+      - name: Install testing utilities into toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_BIN_DIR="${{ github.workspace }}/obj/bin"
+          INSTALL_BIN_DIR="${{ github.workspace }}/install-nightly-toolchain/bin"
+          mkdir -p "${INSTALL_BIN_DIR}"
+
+          testing_utils=(
+            FileCheck
+            split-file
+            count
+            yaml2obj
+            obj2yaml
+            not
+          )
+
+          echo "Building testing utilities with ninja"
+          ninja -C "${{ github.workspace }}/obj" -j11 "${testing_utils[@]}"
+
+          echo "Installing testing utilities into ${INSTALL_BIN_DIR}"
+          for util in "${testing_utils[@]}"; do
+            if [[ -x "${BUILD_BIN_DIR}/${util}" ]]; then
+              echo "  - ${util}"
+              cp "${BUILD_BIN_DIR}/${util}" "${INSTALL_BIN_DIR}/"
+            else
+              echo "Warning: testing utility ${util} not found in ${BUILD_BIN_DIR}" >&2
+            fi
+          done
+
+      - name: Bundle binary shared library dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          INSTALL_ROOT="${{ github.workspace }}/install-nightly-toolchain"
+          BIN_DIR="${INSTALL_ROOT}/bin"
+          LIB_DIR="${INSTALL_ROOT}/lib"
+          mkdir -p "${LIB_DIR}"
+
+          # Resolve runtime deps from installed tool binaries and package them.
+          tools=(clang clang++ ld.eld lld ld.lld clangd clang-tidy clang-format)
+          for tool in "${tools[@]}"; do
+            if [[ -x "${BIN_DIR}/${tool}" ]]; then
+              echo "Collecting shared libraries for ${tool}"
+              ldd "${BIN_DIR}/${tool}" | awk '/=> \// { print $3 } /^\/.*\.so/ { print $1 }' | while read -r dep; do
+                [[ -n "${dep}" && -f "${dep}" ]] || continue
+                base="$(basename "${dep}")"
+                if compgen -G "${LIB_DIR}/${base}*" > /dev/null; then
+                  continue
+                fi
+                cp -P "${dep}" "${LIB_DIR}/"
+                cp -n "$(readlink -f "${dep}")" "${LIB_DIR}/" || true
+              done
+            fi
+          done
+
+          for tool in ld.eld clang; do
+            if [[ -x "${BIN_DIR}/${tool}" ]]; then
+              echo "${tool} RPATH/RUNPATH:"
+              readelf -d "${BIN_DIR}/${tool}" | grep -E 'RPATH|RUNPATH' || true
+            fi
+          done
+
+          echo "Packaged shared libraries:"
+          ls -la "${LIB_DIR}"
+
+      - name: Save ccache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/obj/ccache
+          key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
 
       - name: Pack toolchain tarball
         run: |
@@ -105,7 +235,7 @@ jobs:
               -Jcvf install-nightly-toolchain.tar.xz install-nightly-toolchain
 
       - name: Upload toolchain tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: install-nightly-toolchain.tar.xz
           path: install-nightly-toolchain.tar.xz

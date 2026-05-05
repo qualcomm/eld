@@ -1,0 +1,14 @@
+#---IFuncUnsupportedRelocations.test-------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that eld reports errors for relocations that are currently
+# not support for IFunc symbols.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o -target aarch64-linux-gnu %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t1.mov.o -target aarch64-linux-gnu %p/Inputs/mov.s -c
+RUN: %link %linkopts -o %t1.mov.out %t1.1.o %t1.mov.o 2>&1 | %filecheck %s --check-prefix=MOV
+RUN: %clang %clangopts -o %t1.prel.o -target aarch64-linux-gnu %p/Inputs/prel.s -c
+RUN: %link %linkopts -o %t1.prel.out %t1.1.o %t1.prel.o 2>&1 | %filecheck %s --check-prefix=PREL
+
+MOV: Warning: Unsupported relocation R_AARCH64_MOVW_UABS_G1_NC used for STT_GNU_IFUNC symbol 'foo'
+PREL: Warning: Unsupported relocation R_AARCH64_PREL64 used for STT_GNU_IFUNC symbol 'foo'

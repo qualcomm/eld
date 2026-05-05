@@ -25,10 +25,10 @@ bool SFrameSection::parseSFrameSection() {
     return true;
 
   // Get data from the first fragment (RegionFragment).
-  if (getFragmentList().empty())
+  if (!hasFragments())
     return true;
 
-  auto *RF = llvm::dyn_cast<eld::RegionFragment>(getFragmentList().front());
+  auto *RF = llvm::dyn_cast<eld::RegionFragment>(getFrontFragment());
   if (!RF)
     return false;
 

@@ -47,9 +47,9 @@ using namespace eld;
 Module::Module(LinkerScript &CurScript, LinkerConfig &Config,
                LayoutInfo *LayoutInfo)
     : UserLinkerScript(CurScript), ThisConfig(Config), DotSymbol(nullptr),
-      Linker(nullptr), ThisLayoutInfo(LayoutInfo), Failure(false),
-      UsesLto(false), Saver(BAlloc), PM(CurScript, *Config.getDiagEngine(),
-                                        Config.options().printTimingStats()),
+      L(nullptr), ThisLayoutInfo(LayoutInfo), Failure(false), UsesLto(false),
+      Saver(BAlloc), PM(CurScript, *Config.getDiagEngine(),
+                        Config.options().printTimingStats()),
       SymbolNamePool(Config, PM) {
   State = LinkState::Initializing;
   initThreading();
@@ -90,8 +90,8 @@ ELFSection *Module::getSection(const std::string &Name) const {
 }
 
 eld::IRBuilder *Module::getIRBuilder() const {
-  ASSERT(Linker->getIRBuilder(), "Value must be non-null!");
-  return Linker->getIRBuilder();
+  ASSERT(L->getIRBuilder(), "Value must be non-null!");
+  return L->getIRBuilder();
 }
 
 /// createSection - create an output section.
@@ -251,7 +251,7 @@ bool Module::createInternalInputs() {
     InternalFiles[IType] = IF;
   }
 
-  if (Linker->getBackend())
+  if (L->getBackend())
     getBackend().createInternalInputs();
 
   // Add implicit dot symbol
@@ -619,8 +619,8 @@ Module::createPluginFragmentWithCustomName(std::string Name, size_t SectType,
 }
 
 GNULDBackend &Module::getBackend() const {
-  ASSERT(Linker->getBackend(), "The value must be non-null.");
-  return *Linker->getBackend();
+  ASSERT(L->getBackend(), "The value must be non-null.");
+  return *L->getBackend();
 }
 
 void Module::replaceFragment(FragmentRef *F, const uint8_t *Data, size_t Sz) {
@@ -887,7 +887,7 @@ Module::createCommonELFSection(const std::string &SectionName, uint32_t Align,
 }
 
 bool Module::isPostLTOPhase() const {
-  return Linker->getObjLinker()->isPostLTOPhase();
+  return L->getObjLinker()->isPostLTOPhase();
 }
 
 void Module::setFragmentPaddingValue(Fragment *F, uint64_t V) {
@@ -901,6 +901,4 @@ Module::getFragmentPaddingValue(const Fragment *F) const {
   return FragmentPaddingValues.at(F);
 }
 
-bool Module::isBackendInitialized() const {
-  return Linker->getBackend() != nullptr;
-}
+bool Module::isBackendInitialized() const { return L->getBackend() != nullptr; }

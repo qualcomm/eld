@@ -8,6 +8,7 @@
 #define ELD_SCRIPT_VERSIONSCRIPT_H
 
 #include "eld/Script/ScriptSymbol.h"
+#include "llvm/ADT/DenseMap.h"
 #include <string>
 namespace eld {
 class StrToken;
@@ -16,6 +17,10 @@ class VersionScriptBlock;
 class VersionScriptNode;
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
 class NamePool;
+
+/// Map from ResolveInfo to its demangled name. Used for extern "C++" matching.
+/// The map is lazily populated during version script matching.
+using DemangledNamesMap = llvm::DenseMap<const ResolveInfo *, std::string>;
 #endif
 
 /*
@@ -42,9 +47,9 @@ public:
                          eld::StrToken *Language)
       : ScriptFileKind(K), ThisSymbol(P), VersionScriptLanguage(Language) {}
 
-  void setBlock(VersionScriptBlock *B) { VersionScriptBlock = B; }
+  void setBlock(VersionScriptBlock *B) { Block = B; }
 
-  VersionScriptBlock *getBlock() const { return VersionScriptBlock; }
+  VersionScriptBlock *getBlock() const { return Block; }
 
   ScriptSymbol *getSymbolPattern() const { return ThisSymbol; }
 
@@ -54,6 +59,9 @@ public:
 
   void dump(llvm::raw_ostream &Ostream,
             std::function<std::string(const Input *)> GetDecoratedPath) const;
+
+  /// Returns true if this is an extern "C++" symbol pattern.
+  bool isExternCpp() const;
 
   /// Returns true if the symbol R matches the version symbol.
   ///
@@ -67,15 +75,19 @@ public:
   /// is present in the link. In this case, the symbol version name
   /// does not need to match the version node. It is sufficient that
   /// the symbol non-versioned name matches the version symbol pattern.
+  ///
+  /// For extern "C++" symbols, the pattern is matched against the demangled
+  /// name of the symbol. The DemangledNames map is lazily populated.
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  bool matched(const ResolveInfo &R, const NamePool &NP) const;
+  bool matched(const ResolveInfo &R, const NamePool &NP,
+               DemangledNamesMap &DemangledNames) const;
 #endif
 
 protected:
   VersionSymbolKind ScriptFileKind;
   ScriptSymbol *ThisSymbol = nullptr;
   eld::StrToken *VersionScriptLanguage = nullptr;
-  eld::VersionScriptBlock *VersionScriptBlock = nullptr;
+  eld::VersionScriptBlock *Block = nullptr;
 };
 
 class VersionScriptBlock {
@@ -87,7 +99,7 @@ public:
 
 public:
   VersionScriptBlock(BlockKind K, class VersionScriptNode *N)
-      : ScriptFileKind(K), VersionScriptNode(N) {}
+      : ScriptFileKind(K), Node(N) {}
 
   void addSymbol(eld::ScriptSymbol *S, eld::StrToken *Language);
 
@@ -95,9 +107,9 @@ public:
 
   bool isGlobal() const { return ScriptFileKind == Global; }
 
-  void setNode(VersionScriptNode *N) { VersionScriptNode = N; }
+  void setNode(VersionScriptNode *N) { Node = N; }
 
-  VersionScriptNode *getNode() const { return VersionScriptNode; }
+  VersionScriptNode *getNode() const { return Node; }
 
   const std::vector<VersionSymbol *> &getSymbols() const { return ThisSymbols; }
 
@@ -112,7 +124,7 @@ public:
 protected:
   std::vector<VersionSymbol *> ThisSymbols;
   VersionScriptBlock::BlockKind ScriptFileKind = Global;
-  VersionScriptNode *VersionScriptNode = nullptr;
+  VersionScriptNode *Node = nullptr;
 };
 
 class LocalVersionScriptBlock : public VersionScriptBlock {

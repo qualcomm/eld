@@ -1,0 +1,10 @@
+#---SubAlignNonPowerOf2.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD emits an error when SUBALIGN value is not a power of 2
+# instead of crashing with an assertion failure. (issue #310)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#CHECK: SUBALIGN value 0x401 is not a power of 2 for output section '.tbss'
+#END_TEST

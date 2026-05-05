@@ -1,3 +1,4 @@
+int baz(int);
 int a;
 int main(int x) {
   return a+baz(x);

@@ -1,0 +1,23 @@
+---
+# ELD clang-tidy policy following LLVM-style checks and tooling behavior.
+# Keep this practical: strong bug-finding checks on by default, avoid naming/style
+# checks that generate high-noise during initial adoption.
+
+Checks: >
+  -*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  llvm-header-guard,
+  llvm-include-order,
+  llvm-namespace-comment,
+  -readability-identifier-naming,
+  -readability-magic-numbers
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file
+UseColor: true
+...

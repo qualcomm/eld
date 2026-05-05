@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---BuildingSharedLibsWithSymbolVersioning.test---------------------------------------#
+#BEGIN_COMMENT
+# This test verifies that linker properly creates shared libraries with
+# symbol versioning information.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/vs.t
+RUN: %readelf --dyn-syms --version-info %t1.lib1.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: UND foo{{$}}
+CHECK-DAG: {{[0-9]+}} bar@@V1

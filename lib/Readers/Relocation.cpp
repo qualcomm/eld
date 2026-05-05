@@ -46,9 +46,6 @@ Relocation *Relocation::Create(Type pType, Size pSize, FragmentRef *pFragRef,
   return make<Relocation>(pType, pFragRef, pAddend, targetData);
 }
 
-/// Destroy - destroy a relocation entry
-void Relocation::Destroy(Relocation *&pRelocation) { pRelocation = nullptr; }
-
 //===----------------------------------------------------------------------===//
 // Relocation
 //===----------------------------------------------------------------------===//

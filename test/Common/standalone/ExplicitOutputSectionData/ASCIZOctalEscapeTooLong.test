@@ -1,0 +1,9 @@
+#---ASCIZOctalEscapeTooLong.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This test checks that ASCIZ emits a warning for octal escapes longer
+# than 3 digits when -Wlinker-script is enabled.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: %link %linkopts -Wlinker-script -o %t1.elf %t1.o -T %p/Inputs/asciiz-invalid-octal-too-long.t 2>&1 | %filecheck %s --check-prefix=WARN
+
+WARN: Warning: {{.*}}asciiz-invalid-octal-too-long.t:4: ASCIZ octal escape supports at most 3 digits

@@ -1,0 +1,14 @@
+#---VMASectionParen.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test checks that parentheses around output section VMA are
+# preserved when the linker script is printed/dumped by the plugin.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test -T %p/Inputs/script.VMAWithParen.t 2>&1 | %filecheck %s
+#CHECK: SECTIONS {
+#CHECK:   .text (0x1000)  : {
+#CHECK:     *(.text*)
+#CHECK:   }
+#CHECK: }
+#END_TEST

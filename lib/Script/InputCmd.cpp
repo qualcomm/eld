@@ -33,7 +33,7 @@ void InputCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "INPUT(";
   bool Prev = false, Cur = false;
   bool HasInput = false;
-  for (auto &S : ThisStringList) {
+  for (auto *S : ThisStringList.tokens()) {
     InputToken *Input = llvm::cast<InputToken>(S);
     Cur = Input->asNeeded();
     if (!Prev && Cur)
@@ -59,7 +59,7 @@ eld::Expected<void> InputCmd::activate(Module &CurModule) {
   // Prefer ScriptCommand context (handles included scripts).
   InputFile *parentScriptFile = &ThisScriptFile.getLinkerScriptFile();
 
-  for (auto &S : ThisStringList) {
+  for (auto *S : ThisStringList.tokens()) {
     InputToken *Token = llvm::cast<InputToken>(S);
     Token = ThisScriptFile.findResolvedFilename(Token);
     if (Token->asNeeded())

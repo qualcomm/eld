@@ -660,6 +660,13 @@ public:
   ELFSection *getRelaDyn() const;
   ELFSection *getRelaPLT() const;
 
+  // Report error if GOT/PLT/GOTPLT sections are discarded.
+  // They are used to report the error when the section is required but is
+  // discarded.
+  void reportErrorIfGOTIsDiscarded(ResolveInfo *R) const;
+  void reportErrorIfPLTIsDiscarded(ResolveInfo *R) const;
+  void reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const;
+
   virtual LDSymbol *getGOTSymbol() const { return m_pGOTSymbol; }
 
   void recordRelativeReloc(Relocation *R, const Relocation *N) {
@@ -772,13 +779,23 @@ public:
 
   struct LayoutSnapshot {
     llvm::DenseMap<const OutputSectionEntry *, SectionAddrs> outSections;
+    std::vector<uint64_t> assignmentValues;
   };
 
-  // Capture current layout snapshot keyed by OutputSectionEntry*.
+  struct DivergenceResult {
+    const OutputSectionEntry *outputSection = nullptr;
+    const Assignment *assignment = nullptr;
+  };
+
   LayoutSnapshot captureLayoutSnapshot() const;
 
-  const OutputSectionEntry *findDivergence(const LayoutSnapshot &Prev,
-                                           const LayoutSnapshot &cur) const;
+  void captureAssignmentsSnapshot(LayoutSnapshot &S) const;
+
+  DivergenceResult findDivergence(const LayoutSnapshot &Prev,
+                                  const LayoutSnapshot &Cur) const;
+
+  const Assignment *findAssignmentDivergence(const LayoutSnapshot &Prev,
+                                             const LayoutSnapshot &Cur) const;
 
   // --- Exclude symbol support
   void markSymbolForRemoval(const ResolveInfo *S);

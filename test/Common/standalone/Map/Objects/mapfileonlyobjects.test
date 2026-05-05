@@ -1,7 +1,7 @@
 UNSUPPORTED: x86
 # Test that map file is properly produced when the link %linkopts involves only objects.
-RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
-RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/foo.c -o %t1.foo.o
 RUN: %link %linkopts %t1.main.o %t1.foo.o -M -o %t2.out 2>&1 | %filecheck %s
 
 #CHECK: LinkStats

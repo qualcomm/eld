@@ -29,7 +29,6 @@ class x86_64Relocator : public Relocator {
 public:
   x86_64Relocator(x86_64LDBackend &pParent, LinkerConfig &pConfig,
                   Module &pModule);
-  ~x86_64Relocator();
 
   Result applyRelocation(Relocation &pRelocation) override;
 

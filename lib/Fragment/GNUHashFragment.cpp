@@ -161,8 +161,14 @@ template <class ELFT> void GNUHashFragment<ELFT>::sortSymbols() {
   if (Mid == DynamicSymbols.end())
     return;
   for (auto I = Mid, E = DynamicSymbols.end(); I != E; ++I) {
-    Symbols.push_back(make<SymbolData>(*I, I - DynamicSymbols.begin(),
-                                       hashGnu(llvm::StringRef((*I)->name()))));
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    SymbolData *symData = make<SymbolData>(
+        *I, I - DynamicSymbols.begin(), hashGnu((*I)->getNonVersionedName()));
+#else
+    SymbolData *symData = make<SymbolData>(
+        *I, I - DynamicSymbols.begin(), hashGnu(llvm::StringRef((*I)->name())));
+#endif
+    Symbols.push_back(symData);
   }
 
   unsigned NBuckets = calcNBuckets(Symbols.size());

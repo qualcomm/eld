@@ -42,10 +42,10 @@ CHECK3: {{0+}}2000 <foogp>:
 CHECK3: 2000: {{.*}} .word 0x{{0+}}[[#%x,PLT_START+0x20]]
 
 CHECK4: .plt PROGBITS [[#%x,PLT_START:]]
-CHECK4: .got.plt PROGBITS {{0+}}2008
+CHECK4: .got PROGBITS {{0+}}[[#%x,GOT_START:]]
 CHECK4: <main>:
-CHECK4: adrp x8, 0x2000
-CHECK4: ldr	x8, [x8, #0x20]
+CHECK4: adrp x8, 0x[[#%x,GOT_PAGE_START:]]
+CHECK4: ldr	x8, [x8, #0x{{0*}}[[#%x,GOT_START-GOT_PAGE_START]]
 CHECK4: Disassembly of section .data:
 CHECK4: {{0+}}2000 <foogp>:
 CHECK4: 2000: {{.*}} .word 0x{{0+}}[[#%x,PLT_START+0x20]]

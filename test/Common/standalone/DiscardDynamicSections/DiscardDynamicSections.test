@@ -1,0 +1,24 @@
+#---DiscardDynamicSections.test-------------- Executable, LS ----------------#
+#BEGIN_COMMENT
+# This test verifies that the linker emits a proper error message when dynamic
+# sections (.got, .plt, .got.plt) are discarded via /DISCARD/ in a linker
+# script and there is a relocation that points to these sections.
+#END_COMMENT
+#START_TEST
+# Test 1: Discard .got section
+RUN: %clang %clangopts -o %t1.got.o %p/Inputs/got.c -c -fPIC
+RUN: %not %link %linkopts -o %t1.got.out %t1.got.o -T %p/Inputs/discard-got.t 2>&1 | %filecheck %s --check-prefix=GOT
+
+# Test 2: Discard .plt section - need shared library to trigger PLT
+RUN: %clang %clangopts -o %t1.plt.o %p/Inputs/plt.c -c -fPIC
+RUN: %clang %clangopts -o %t1.bar.o %p/Inputs/bar.c -c -fPIC
+RUN: %link %linkopts -o %t1.bar.so %t1.bar.o -shared
+RUN: %not %link %linkopts -o %t1.plt.out %t1.plt.o %t1.bar.so -T %p/Inputs/discard-plt.t 2>&1 | %filecheck %s --check-prefix=PLT
+
+# Test 3: Discard .got.plt section
+RUN: %not %link %linkopts -o %t1.gotplt.out %t1.plt.o %t1.bar.so -T %p/Inputs/discard-gotplt.t 2>&1 | %filecheck %s --check-prefix=GOTPLT
+#END_TEST
+
+GOT: Error: symbol '{{.*}}' referenced in file '{{.*}}' depends upon discarded .got section
+PLT: Error: symbol '{{.*}}' referenced in file '{{.*}}' depends upon discarded .plt section
+GOTPLT: Error: symbol '{{.*}}' referenced in file '{{.*}}' depends upon discarded .got.plt section

@@ -392,8 +392,7 @@ eld::Expected<void> LinkerScript::updateChunksOp(
       PluginActLog->addPluginOperation(*Op);
   }
 
-  llvm::SmallVectorImpl<Fragment *> &FragmentsInRule =
-      R->getSection()->getFragmentList();
+  auto FragmentsInRule = R->getSection()->getFragmentList();
   if (layoutInfo || PluginActLog) {
     for (auto &Frag : FragmentsInRule) {
       RemoveChunkPluginOp *Op =

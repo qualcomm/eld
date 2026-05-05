@@ -1,12 +1,12 @@
 SECTIONS
 {
-  .text           : { *(.text*) } 
-  .bss            : { *(.bss*) } 
-  .sdata          : { *(.sdata) } 
+  .text           : { *(.text*) }
+  .bss            : { *(.bss*) }
+  .sdata          : { *(.sdata) }
   . = ALIGN (64);
   . = ALIGN (4096);
   QSR_STRING :
   {
    *(QSR_STR.fmt.rodata.*)
-  } 
+  }
 }

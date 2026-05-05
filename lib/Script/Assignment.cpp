@@ -251,6 +251,13 @@ bool Assignment::checkLinkerScript(Module &CurModule) {
 
 bool Assignment::isDot() const { return (Name.size() == 1 && Name[0] == '.'); }
 
+std::string Assignment::getAsString(bool WithValues) const {
+  std::string Str;
+  llvm::raw_string_ostream SS(Str);
+  dumpMap(SS, false, false, WithValues);
+  return Str;
+}
+
 bool Assignment::hasDot() const {
   return isDot() || ExpressionToEvaluate->hasDot();
 }

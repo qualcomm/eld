@@ -4,7 +4,7 @@
 # symbols input description.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkopts -o %t1.1.out %t1.1.o --gc-sections -e main -T %p/Inputs/1.script
 RUN: %readelf -s %t1.1.out | %filecheck %s
 #END_TEST

@@ -1,0 +1,16 @@
+#---SonameJoinedForm.test----------------------- CommandLine -----------------#
+#BEGIN_COMMENT
+# Test that the -h option supports both joined (-h<soname>) and separate
+# (-h <soname>) forms for specifying the shared library soname.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c -fPIC
+RUN: %link %linkopts -o %t1.so %t1.o -shared -h libsep.so
+RUN: %readelf --dynamic %t1.so | %filecheck %s --check-prefix=SEP
+RUN: %link %linkopts -o %t2.so %t1.o -shared -hlibjoined.so
+RUN: %readelf --dynamic %t2.so | %filecheck %s --check-prefix=JOINED
+#END_TEST
+
+SEP: SONAME{{.*}}libsep.so
+
+JOINED: SONAME{{.*}}libjoined.so

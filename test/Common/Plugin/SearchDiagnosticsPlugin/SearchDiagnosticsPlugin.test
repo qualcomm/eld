@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows, iu
+#UNSUPPORTED: windows
 #---SearchDiagnostics.test---- ----------------- Executable --------------------#
 
 #BEGIN_COMMENT

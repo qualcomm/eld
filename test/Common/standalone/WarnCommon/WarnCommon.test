@@ -4,10 +4,10 @@ UNSUPPORTED: x86
 # This checks that the linker removes FDE entries that are garbage collected
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
-RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
-RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.3.o
-RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.4.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/2.c -o %t1.2.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/3.c -o %t1.3.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/4.c -o %t1.4.o
 # Definition overrides common symbol
 RUN: %link %linkopts %t1.1.o %t1.2.o --warn-common -o %t1.out.1 2>&1
 RUN: %link %linkopts %t1.1.o %t1.2.o --warn-common -o %t1.out.2 2>&1 | %filecheck %s -check-prefix=DEF

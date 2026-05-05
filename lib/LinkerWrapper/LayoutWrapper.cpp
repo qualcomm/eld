@@ -57,7 +57,7 @@ LayoutWrapper::getPaddings(eld::plugin::OutputSection &Section) {
                                          itEnd = entry->end();
        it != itEnd; ++it) {
     eld::ELFSection *section = (*it)->getSection();
-    if (!section || !section->getFragmentList().size())
+    if (!section || !section->hasFragments())
       continue;
     // fragment padding
     for (auto &F : (*it)->getSection()->getFragmentList()) {

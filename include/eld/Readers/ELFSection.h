@@ -20,6 +20,7 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/iterator_range.h"
 #include <string>
 
 namespace eld {
@@ -251,7 +252,15 @@ public:
 
   bool hasSectionData() const;
 
-  llvm::SmallVectorImpl<Fragment *> &getFragmentList() { return Fragments; }
+  using FragmentRange =
+      llvm::iterator_range<llvm::SmallVectorImpl<Fragment *>::iterator>;
+  using RelocationRange =
+      llvm::iterator_range<llvm::SmallVectorImpl<Relocation *>::iterator>;
+
+  FragmentRange getFragmentList() { return getFragments(); }
+  FragmentRange getFragments() {
+    return llvm::make_range(Fragments.begin(), Fragments.end());
+  }
 
   void splice(llvm::SmallVectorImpl<Fragment *>::iterator Where,
               llvm::SmallVectorImpl<Fragment *> &InputVector,
@@ -259,6 +268,10 @@ public:
     Fragments.insert(Where, InputVector.begin(), InputVector.end());
     if (DoClear)
       InputVector.clear();
+  }
+  void splice(llvm::SmallVectorImpl<Fragment *>::iterator Where,
+              ELFSection &InputSection, bool DoClear = true) {
+    splice(Where, InputSection.Fragments, DoClear);
   }
 
   void addFragment(Fragment *F);
@@ -282,8 +295,18 @@ public:
   void addFragmentAndUpdateSize(Fragment *F);
 
   bool hasRelocData() const { return (!Relocations.empty()); }
+  size_t fragmentCount() const { return Fragments.size(); }
+  Fragment *getFrontFragment() { return Fragments.front(); }
+  Fragment *getBackFragment() { return Fragments.back(); }
 
-  llvm::SmallVectorImpl<Relocation *> &getRelocations() { return Relocations; }
+  RelocationRange getRelocations() {
+    return llvm::make_range(Relocations.begin(), Relocations.end());
+  }
+  size_t getRelocationCount() const { return Relocations.size(); }
+  void clearRelocations() { Relocations.clear(); }
+  void appendRelocations(RelocationRange From) {
+    Relocations.insert(Relocations.end(), From.begin(), From.end());
+  }
 
   void addRelocation(Relocation *R) {
     assert(R);

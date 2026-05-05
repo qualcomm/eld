@@ -1,0 +1,9 @@
+#---ASCIZFailFast.test--------------------- Executable---------------------#
+#BEGIN_COMMENT
+# This test checks that linker script parsing stops after the first ASCIZ
+# syntax error and does not emit cascaded duplicate diagnostics.
+#END_COMMENT
+RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
+RUN: %not %link %linkopts -o %t1.elf %t1.o -T %p/Inputs/asciiz-invalid-multi-unquoted.t 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}asciiz-invalid-multi-unquoted.t:4: ASCIZ expects a quoted string literal

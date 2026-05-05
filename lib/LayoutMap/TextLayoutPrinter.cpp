@@ -109,6 +109,10 @@ void TextLayoutPrinter::printOnlyLayoutSection(GNULDBackend const &Backend,
   outputStream().write_hex(Section->size());
   outputStream() << "\t# Alignment: 0x";
   outputStream().write_hex(Section->getAddrAlign());
+  if (OS->prolog().hasSubAlign()) {
+    outputStream() << ", SubAlign: 0x";
+    outputStream().write_hex(OS->prolog().subAlign().resultOrZero());
+  }
   if (Section->isAlloc())
     printSegments(Backend, OS);
   outputStream() << "\n";
@@ -296,6 +300,12 @@ void TextLayoutPrinter::printSection(GNULDBackend const &Backend,
   // Print alignment
   outputStream() << ", Alignment: 0x";
   outputStream().write_hex(Section->getAddrAlign());
+
+  // Print SubAlign if present
+  if (OS->prolog().hasSubAlign()) {
+    outputStream() << ", SubAlign: 0x";
+    outputStream().write_hex(OS->prolog().subAlign().resultOrZero());
+  }
 
   // Print flags
   outputStream() << ", Flags: "
@@ -1068,6 +1078,8 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
                          LinkerScriptName + ")";
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
+    if (!Script.RemappedFrom.empty())
+      LinkerScriptName += " # remapped from " + Script.RemappedFrom;
     outputStream() << Indent << LinkerScriptName;
     outputStream() << "\n";
   }
@@ -1105,18 +1117,18 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
   outputStream() << "\nBuild Statistics";
   outputStream() << "\n# <file> <start time> <duration>\n";
   for (auto &I : ThisLayoutInfo->getInputActions()) {
-    if (I.Input == nullptr || I.Input->getInputFile() == nullptr)
+    if (I.Inp == nullptr || I.Inp->getInputFile() == nullptr)
       continue;
-    if (!I.Input->getInputFile()->isObjectFile())
+    if (!I.Inp->getInputFile()->isObjectFile())
       continue;
-    ELFObjectFile *EObj =
-        llvm::dyn_cast<ELFObjectFile>(I.Input->getInputFile());
+    ELFObjectFile *EObj = llvm::dyn_cast<ELFObjectFile>(I.Inp->getInputFile());
     if (EObj->getTimingSection()) {
       for (const Fragment *TF : EObj->getTimingSection()->getFragmentList()) {
-        const TimingSlice *TS =
+        const TimingSlice *timingSection =
             llvm::dyn_cast<TimingFragment>(TF)->getTimingSlice();
-        outputStream() << TS->getModuleName() << " " << TS->getDate() << " "
-                       << TS->getDurationSeconds() << "\n";
+        outputStream() << timingSection->getModuleName() << " "
+                       << timingSection->getDate() << " "
+                       << timingSection->getDurationSeconds() << "\n";
       }
     }
   }
@@ -1357,8 +1369,7 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
             printFrag(Module, Cur, F, UseColor);
         }
       }
-      if ((!IS || !IS->getFragmentList().size()) &&
-          !Module.isLinkStateBeforeLayout())
+      if ((!IS || !IS->hasFragments()) && !Module.isLinkStateBeforeLayout())
         continue;
       // Do not print fragments of OutputSectData commands.
       // Fragments and sections of OutputSectData is an internal

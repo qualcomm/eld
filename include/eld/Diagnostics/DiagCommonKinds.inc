@@ -192,3 +192,7 @@ DIAG(err_patch_not_static, DiagnosticEngine::Error,
      "Patching is only supported for static linking")
 DIAG(error_invalid_target2, DiagnosticEngine::Error,
      "unknown --target2 option: %0")
+DIAG(err_remap_inputs_bad_format, DiagnosticEngine::Error,
+     "invalid --remap-inputs value %0: expected pattern=filename")
+DIAG(err_remap_inputs_file_not_found, DiagnosticEngine::Error,
+     "cannot open --remap-inputs-file %0: %1")

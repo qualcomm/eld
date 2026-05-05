@@ -1,4 +1,4 @@
-#UNSUPPORTED: windows, ndk-build, riscv32, riscv64, x86
+#UNSUPPORTED: windows, ndk-build, x86, riscv32, riscv64
 #---LTO.test------------------------- Executable -------------------------#
 
 

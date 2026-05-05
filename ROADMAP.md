@@ -176,7 +176,7 @@
 | `INPUT_SECTION_FLAGS` | Nice to have | TBD | TBD | TBD | |
 | `REVERSE` sort policy | Low | TBD | TBD | TBD | |
 | Version script complete support | Nice to have | TBD | TBD | TBD | |
-| `ASCIZ/ASCIIZ` output section data | Low | TBD | TBD | TBD | |
+| `ASCIZ` output section data | Low | Done | Done | TBD | https://sourceware.org/binutils/docs/ld/Output-Section-Data.html |
 | `STARTUP` | Low | TBD | TBD | TBD | |
 | `NEXT` | Low | TBD | TBD | TBD | |
 | `OUTPUT_SECTION` `READONLY` | Low | TBD | TBD | TBD | |

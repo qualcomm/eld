@@ -25,7 +25,6 @@ class TemplateRelocator : public Relocator {
 public:
   TemplateRelocator(TemplateLDBackend &pParent, LinkerConfig &pConfig,
                     Module &pModule);
-  ~TemplateRelocator();
 
   Result applyRelocation(Relocation &pRelocation);
 

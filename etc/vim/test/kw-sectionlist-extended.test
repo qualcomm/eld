@@ -1,0 +1,37 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 160:7:eldKwSectionList \
+# RUN:   --check 160:18:eldKwSectionList \
+# RUN:   --check 161:7:eldKwSectionList \
+# RUN:   --check 161:23:eldKwSectionList \
+# RUN:   --check 162:7:eldKwSectionList \
+# RUN:   --check 162:27:eldKwSectionList \
+# RUN:   --check 163:7:eldKwSectionList \
+# RUN:   --check 163:15:eldKwSectionList \
+# RUN:   --check 164:1:eldRuleKw \
+# RUN:   --check 164:17:eldRuleKw
+#
+# Extended eldKwSectionList coverage: SORT_BY_NAME SORT_BY_ALIGNMENT
+# SORT_BY_INIT_PRIORITY SORT_NONE (inside *(keyword(...)) patterns).
+# Also: KEEP_DONTMOVE as a rule-prefix keyword (eldRuleKw).
+#
+# Line 160: "    *(SORT_BY_NAME(.sorted_name.*))"
+# SORT_BY_NAME appears inside *(pattern) so it fires as eldKwSectionList.
+#   160:7  = 'S' → eldKwSectionList  (start of SORT_BY_NAME)
+#   160:18 = 'E' → eldKwSectionList  (last char of SORT_BY_NAME)
+#
+# Line 161: "    *(SORT_BY_ALIGNMENT(.sorted_align.*))"
+#   161:7  = 'S' → eldKwSectionList  (start of SORT_BY_ALIGNMENT)
+#   161:23 = 'T' → eldKwSectionList  (last char of SORT_BY_ALIGNMENT)
+#
+# Line 162: "    *(SORT_BY_INIT_PRIORITY(.init_prio.*))"
+#   162:7  = 'S' → eldKwSectionList  (start of SORT_BY_INIT_PRIORITY)
+#   162:27 = 'Y' → eldKwSectionList  (last char of SORT_BY_INIT_PRIORITY)
+#
+# Line 163: "    *(SORT_NONE(.unsorted.*))"
+#   163:7  = 'S' → eldKwSectionList  (start of SORT_NONE)
+#   163:15 = 'E' → eldKwSectionList  (last char of SORT_NONE)
+#
+# Line 164: "    KEEP_DONTMOVE (*(.keep_fixed))"
+# KEEP_DONTMOVE as a rule-prefix keyword (space before '(') fires as eldRuleKw.
+#   164:1  = ' ' → eldRuleKw  (leading whitespace, part of rule-kw match)
+#   164:17 = 'E' → eldRuleKw  (last char of KEEP_DONTMOVE)

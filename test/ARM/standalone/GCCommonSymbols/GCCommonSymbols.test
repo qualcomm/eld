@@ -7,8 +7,8 @@
 # wrong.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -target arm
-RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o  -target arm
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.1.o -target arm
+RUN: %clang %clangopts -fcommon -c %p/Inputs/2.c -o %t1.2.o  -target arm
 RUN: %link %linkopts -march arm %t1.1.o %t1.2.o -e baz --gc-sections --trace=symbol=bar -o %t2.out 2>&1 | %filecheck %s
 
 #CHECK: Symbol `bar' from Input file `{{[ -\(\)_A-Za-z0-9.\\/:]+}}' with info `(ELF)(OBJECT)(COMMON)[Global]{DEFAULT}{IGNORE}'

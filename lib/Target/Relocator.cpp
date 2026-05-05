@@ -33,8 +33,6 @@ using namespace eld;
 //===----------------------------------------------------------------------===//
 // Relocator
 //===----------------------------------------------------------------------===//
-Relocator::~Relocator() {}
-
 void Relocator::partialScanRelocation(Relocation &pReloc,
                                       const ELFSection &pSection) {
   // if we meet a section symbol

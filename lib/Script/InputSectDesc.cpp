@@ -71,8 +71,8 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
 
   if (InputSpec.hasSections()) {
     bool IsFirst = true;
-    for (const auto &Elem : InputSpec.sections()) {
-      assert((Elem)->kind() == StrToken::Wildcard);
+    for (auto *Elem : InputSpec.sections().tokens()) {
+      assert(Elem->kind() == StrToken::Wildcard);
       WildcardPattern *Wildcard = llvm::cast<WildcardPattern>(Elem);
 
       switch (Wildcard->sortPolicy()) {
@@ -91,23 +91,22 @@ void InputSectDesc::dumpSpec(llvm::raw_ostream &Outs) const {
       case WildcardPattern::SORT_BY_ALIGNMENT_NAME:
         Outs << " SORT_BY_ALIGNMENT_NAME(";
         break;
-      case WildcardPattern::EXCLUDE:
-        if (Wildcard->excludeFiles()) {
-          const ExcludeFiles *List = Wildcard->excludeFiles();
-          Outs << " EXCLUDE_FILE (";
-          for (const auto &ListIt : *List) {
-            if ((ListIt)->isArchive())
-              Outs << (ListIt)->archive()->getDecoratedName() << ":";
-            if (!((ListIt)->isFileInArchive()))
-              Outs << " ";
-            if ((ListIt)->isFile())
-              Outs << (ListIt)->file()->getDecoratedName() << " ";
-          }
-        }
-        Outs << ")";
-        LLVM_FALLTHROUGH;
       default:
         break;
+      }
+
+      if (Wildcard->excludeFiles()) {
+        const ExcludeFiles *List = Wildcard->excludeFiles();
+        Outs << " EXCLUDE_FILE (";
+        for (const auto &ListIt : *List) {
+          if ((ListIt)->isArchive())
+            Outs << (ListIt)->archive()->getDecoratedName() << ":";
+          if (!((ListIt)->isFileInArchive()))
+            Outs << " ";
+          if ((ListIt)->isFile())
+            Outs << (ListIt)->file()->getDecoratedName() << " ";
+        }
+        Outs << ")";
       }
 
       if (IsFirst) {

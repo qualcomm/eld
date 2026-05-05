@@ -1,3 +1,4 @@
+int bar(int);
 int a;
 int baz(int b) {
   a += b;

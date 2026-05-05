@@ -1,0 +1,7 @@
+#---ASCIZ.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test verifies linker script parsing for the ASCIZ output section
+# data command, which emits null-terminated ASCII strings into an output
+# section.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/asciz.t

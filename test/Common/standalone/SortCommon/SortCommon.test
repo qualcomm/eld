@@ -4,7 +4,7 @@ UNSUPPORTED: x86
 #This tests that the command line flag --sort-common
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangg0opts -fcommon -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkg0opts %t1.1.o --sort-common -o %t2.out.d1
 RUN: %link %linkg0opts %t1.1.o --sort-common=ascending -o %t2.out.a
 RUN: %link %linkg0opts %t1.1.o --sort-common=descending -o %t2.out.d2

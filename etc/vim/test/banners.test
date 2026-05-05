@@ -1,0 +1,42 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 5:1:eldBanner \
+# RUN:   --check 5:8:eldBanner \
+# RUN:   --check 5:47:eldBanner \
+# RUN:   --check 7:1:eldBanner \
+# RUN:   --check 7:48:eldBanner \
+# RUN:   --check 12:1:eldBanner \
+# RUN:   --check 12:16:eldBanner \
+# RUN:   --check 15:1:eldBanner \
+# RUN:   --check 15:3:eldBanner \
+# RUN:   --check 15:27:eldBanner \
+# RUN:   --check 32:1:eldBanner \
+# RUN:   --check 33:1:eldBanner \
+# RUN:   --check 34:1:eldBanner \
+# RUN:   --check 35:1:eldBanner
+#
+# Top-level section headings in ELD map files are highlighted as eldBanner.
+#
+# Line 5:  "Linker scripts used (including INCLUDE command)"
+#   5:1  = 'L'  → eldBanner  (first char)
+#   5:8  = 's'  → eldBanner  (middle of "scripts")
+#   5:47 = ')'  → eldBanner  (last char)
+#
+# Line 7:  "Archive member included because of file (symbol)"
+#   7:1  = 'A'  → eldBanner
+#   7:48 = ')'  → eldBanner
+#
+# Line 12: "Build Statistics"
+#   12:1  = 'B'  → eldBanner
+#   12:16 = 's'  → eldBanner
+#
+# Line 15: "# Output Section and Layout"
+#   15:1  = '#'  → eldBanner  (banner starts with '#')
+#   15:3  = 'O'  → eldBanner
+#   15:27 = 't'  → eldBanner
+#
+# Lines 32-35: "Discarded input sections", "Memory Configuration",
+#              "Cross Reference Table", "Common symbol   size   file"
+#   32:1 = 'D'  → eldBanner
+#   33:1 = 'M'  → eldBanner
+#   34:1 = 'C'  → eldBanner
+#   35:1 = 'C'  → eldBanner

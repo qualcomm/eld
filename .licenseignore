@@ -1,0 +1,8 @@
+test/**/*
+**/CMakeLists.txt
+**/lit.cfg
+**/lit.site.cfg
+**/lit.site.cfg.in
+**/lit.local.cfg
+**/*.test
+**/*.sh

@@ -70,7 +70,7 @@ void RuleContainer::dumpMap(llvm::raw_ostream &Ostream) {
 }
 
 bool RuleContainer::hasContent() const {
-  return !MPSection->getFragmentList().empty();
+  return MPSection && MPSection->hasFragments();
 }
 
 RuleContainer *RuleContainer::getNextRuleWithContent() const {
@@ -84,15 +84,13 @@ RuleContainer *RuleContainer::getNextRuleWithContent() const {
 }
 
 Fragment *RuleContainer::getFirstFrag() const {
-  return MPSection && !MPSection->getFragmentList().empty()
-             ? MPSection->getFragmentList().front()
-             : nullptr;
+  return MPSection && MPSection->hasFragments() ? MPSection->getFrontFragment()
+                                                : nullptr;
 }
 
 Fragment *RuleContainer::getLastFrag() const {
-  return MPSection && !MPSection->getFragmentList().empty()
-             ? MPSection->getFragmentList().back()
-             : nullptr;
+  return MPSection && MPSection->hasFragments() ? MPSection->getBackFragment()
+                                                : nullptr;
 }
 
 void RuleContainer::updateMatchedSections(const Module &Module) {

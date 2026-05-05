@@ -1,0 +1,79 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 16:5:eldRuleKw \
+# RUN:   --check 16:8:eldRuleKw \
+# RUN:   --check 16:11:eldRuleGlob \
+# RUN:   --check 16:12:eldLsRule \
+# RUN:   --check 16:13:eldRuleSectionName \
+# RUN:   --check 16:17:eldRuleSectionName \
+# RUN:   --check 16:18:eldLsRule \
+# RUN:   --check 18:5:eldRuleGlob \
+# RUN:   --check 18:6:eldLsRule \
+# RUN:   --check 18:7:eldRuleSectionName \
+# RUN:   --check 18:11:eldRuleSectionName \
+# RUN:   --check 18:12:eldLsRule \
+# RUN:   --check 18:13:eldRuleSectionName \
+# RUN:   --check 18:19:eldRuleSectionName \
+# RUN:   --check 18:20:eldLsRule \
+# RUN:   --check 20:5:eldRuleKw \
+# RUN:   --check 20:16:eldRuleKw \
+# RUN:   --check 20:29:eldRuleGlob \
+# RUN:   --check 20:30:eldLsRule \
+# RUN:   --check 20:31:eldRuleSectionName \
+# RUN:   --check 20:39:eldRuleSectionName \
+# RUN:   --check 20:40:eldLsRule \
+# RUN:   --check 21:5:eldKwSectionList \
+# RUN:   --check 21:8:eldKwSectionList \
+# RUN:   --check 21:9:eldLsSortConstructors \
+# RUN:   --check 21:10:eldKwSectionList \
+# RUN:   --check 21:21:eldKwSectionList \
+# RUN:   --check 21:22:eldLsSortConstructors \
+# RUN:   --check 26:5:eldRuleGlob \
+# RUN:   --check 26:6:eldLsRule \
+# RUN:   --check 26:7:eldKwSectionList \
+# RUN:   --check 26:12:eldKwSectionList \
+# RUN:   --check 26:13:eldLsRule
+#
+# Linker-script rule lines (no #Rule suffix).
+#
+# Line 16: "    KEEP (*(.init))"
+#   16:5  = 'K' → eldRuleKw          (start of KEEP)
+#   16:8  = 'P' → eldRuleKw          (last char of KEEP)
+#   16:11 = '*' → eldRuleGlob
+#   16:12 = '(' → eldLsRule
+#   16:13 = '.' → eldRuleSectionName (start of .init)
+#   16:17 = 't' → eldRuleSectionName (last char of .init)
+#   16:18 = ')' → eldLsRule
+#
+# Line 18: "    *(.text .text.*)"
+#   18:5  = '*' → eldRuleGlob
+#   18:6  = '(' → eldLsRule
+#   18:7  = '.' → eldRuleSectionName (start of .text)
+#   18:11 = 't' → eldRuleSectionName (last char of .text)
+#   18:12 = ' ' → eldLsRule          (space between patterns)
+#   18:13 = '.' → eldRuleSectionName (start of .text.*)
+#   18:19 = '*' → eldRuleSectionName (trailing glob)
+#   18:20 = ')' → eldLsRule
+#
+# Line 20: "    EXCLUDE_FILE (libfoo.a) *(.text.foo)"
+#   20:5  = 'E' → eldRuleKw          (start of EXCLUDE_FILE)
+#   20:16 = 'E' → eldRuleKw          (last char of EXCLUDE_FILE)
+#   20:29 = '*' → eldRuleGlob
+#   20:30 = '(' → eldLsRule
+#   20:31 = '.' → eldRuleSectionName (start of .text.foo)
+#   20:39 = 'o' → eldRuleSectionName (last char of .text.foo)
+#   20:40 = ')' → eldLsRule
+#
+# Line 21: "    SORT(CONSTRUCTORS)"
+#   21:5  = 'S' → eldKwSectionList      (start of SORT)
+#   21:8  = 'T' → eldKwSectionList      (last char of SORT)
+#   21:9  = '(' → eldLsSortConstructors (open paren)
+#   21:10 = 'C' → eldKwSectionList      (start of CONSTRUCTORS)
+#   21:21 = 'S' → eldKwSectionList      (last char of CONSTRUCTORS)
+#   21:22 = ')' → eldLsSortConstructors (close paren)
+#
+# Line 26: "    *(COMMON)"
+#   26:5  = '*' → eldRuleGlob
+#   26:6  = '(' → eldLsRule
+#   26:7  = 'C' → eldKwSectionList  (start of COMMON)
+#   26:12 = 'N' → eldKwSectionList  (last char of COMMON)
+#   26:13 = ')' → eldLsRule

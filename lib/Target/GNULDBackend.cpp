@@ -893,8 +893,8 @@ void GNULDBackend::sizeDynNamePools() {
 
   if (GNUVerNeedSection) {
     if (DP->traceSymbolVersioning())
-      config().raise(Diag::trace_creating_symbol_versioning_fragment) <<
-          GNUVerNeedSection->name();
+      config().raise(Diag::trace_creating_symbol_versioning_fragment)
+          << GNUVerNeedSection->name();
     GNUVerNeedFragment *F = make<GNUVerNeedFragment>(GNUVerNeedSection);
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
@@ -1623,6 +1623,37 @@ ELFSection *GNULDBackend::getRelaPLT() const {
   return m_DynamicSectionHeadersInputFile->getRelaPLT();
 }
 
+void GNULDBackend::reportErrorIfGOTIsDiscarded(ResolveInfo *R) const {
+  ELFSection *GOT = getGOT();
+  if (GOT && GOT->isIgnore()) {
+    llvm::StringRef SymName = R->name();
+    std::string FileName = R->resolvedOrigin()->getInput()->getName();
+    config().raise(Diag::error_discarded_dynamic_section_required)
+        << SymName << FileName << ".got";
+  }
+}
+
+void GNULDBackend::reportErrorIfPLTIsDiscarded(ResolveInfo *R) const {
+  ELFSection *PLT = getPLT();
+  if (PLT && PLT->isIgnore()) {
+    llvm::StringRef SymName = R->name();
+    std::string FileName = R->resolvedOrigin()->getInput()->getName();
+
+    config().raise(Diag::error_discarded_dynamic_section_required)
+        << SymName << FileName << ".plt";
+  }
+}
+
+void GNULDBackend::reportErrorIfGOTPLTIsDiscarded(ResolveInfo *R) const {
+  ELFSection *GOTPLT = getGOTPLT();
+  if (GOTPLT && GOTPLT->isIgnore()) {
+    llvm::StringRef SymName = R->name();
+    std::string FileName = R->resolvedOrigin()->getInput()->getName();
+    config().raise(Diag::error_discarded_dynamic_section_required)
+        << SymName << FileName << ".got.plt";
+  }
+}
+
 // Patching sections.
 ELFSection *GNULDBackend::getGOTPatch() const {
   return m_DynamicSectionHeadersInputFile->getGOTPatch();
@@ -1887,7 +1918,7 @@ bool GNULDBackend::InsertAtSectionToEnd(ELFSection *OutSection,
     OutputSectionFragVector.insert(OutputSectionFragVector.end(),
                                    atSection->getFragmentList().begin(),
                                    atSection->getFragmentList().end());
-    CurRule->getSection()->splice(EndIter, atSection->getFragmentList());
+    CurRule->getSection()->splice(EndIter, *atSection);
   } else {
     return false;
   }
@@ -1944,7 +1975,7 @@ bool GNULDBackend::TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
     atSectionOffset = atSectionAddress - Section->addr();
   }
   atSection = atSection->getOutputSection()->getLastRule()->getSection();
-  Fragment *First = atSection->getFragmentList().front();
+  Fragment *First = atSection->getFrontFragment();
   typedef llvm::SmallVectorImpl<Fragment *>::iterator FragIter;
   FragIter EndIter = In->getSection()->getFragmentList().end();
   FragIter Iter = Frag ? Frag->getIterator() : EndIter;
@@ -1975,7 +2006,7 @@ bool GNULDBackend::TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
           << atSectionName << utility::toHex(atSectionAddress)
           << Section->getOutputSection()->name();
 
-    In->getSection()->splice(Iter, atSection->getFragmentList());
+    In->getSection()->splice(Iter, *atSection);
   }
   return InsertedAtSection;
 }
@@ -2108,7 +2139,7 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
     }
     bool placedAtSection = false;
     OutputSectionEntry::iterator NextRuleIter = in + 1;
-    if (!InSection->getFragmentList().size()) {
+    if (!InSection->hasFragments()) {
       if (!TryToPlaceAtSection(*in, nullptr, OutSection, atIndex))
         continue;
       placedAtSection = true;
@@ -2315,10 +2346,8 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
       if (cur->epilog().hasPhdrs()) {
         curPhdrList = cur->epilog().phdrs();
         ELFSegment *seg = nullptr;
-        for (StringList::const_iterator it = curPhdrList->begin(),
-                                        ie = curPhdrList->end();
-             it != ie; ++it) {
-          std::string phdrName = ((*it)->name());
+        for (auto *Token : curPhdrList->tokens()) {
+          std::string phdrName = Token->name();
           auto iter = _segments.find(phdrName);
           if (llvm::StringRef(phdrName).lower() == "none") {
             if (!m_pNONESegment) {
@@ -2357,7 +2386,7 @@ bool GNULDBackend::createSegmentsFromLinkerScript() {
     if (prev && curPhdrList && prevPhdrList && prev->prolog().hasLMA() &&
         curHasLMA && (prevPhdrList == curPhdrList)) {
       std::string phdrName;
-      for (auto &s : *curPhdrList) {
+      for (auto *s : curPhdrList->tokens()) {
         phdrName += s->name();
         phdrName += ",";
       }
@@ -3318,25 +3347,65 @@ GNULDBackend::LayoutSnapshot GNULDBackend::captureLayoutSnapshot() const {
     A.lma = Sec->pAddr();
     S.outSections.insert({O, A});
   }
+  captureAssignmentsSnapshot(S);
   return S;
 }
 
-const OutputSectionEntry *
+static bool shouldSkipAssignForLayoutConv(const Assignment *A) {
+  if (A->type() == Assignment::ASSERT || A->type() == Assignment::FILL)
+    return true;
+  if (A->isProvideOrProvideHidden() && !A->isUsed())
+    return true;
+  return false;
+}
+
+void GNULDBackend::captureAssignmentsSnapshot(LayoutSnapshot &S) const {
+  for (const Assignment *A : m_Module.getScript().assignments()) {
+    if (shouldSkipAssignForLayoutConv(A))
+      continue;
+    S.assignmentValues.push_back(A->value());
+  }
+}
+
+const Assignment *
+GNULDBackend::findAssignmentDivergence(const LayoutSnapshot &Prev,
+                                       const LayoutSnapshot &Cur) const {
+  const auto &Assignments = m_Module.getScript().assignments();
+  size_t Idx = 0;
+  for (const Assignment *A : Assignments) {
+    if (shouldSkipAssignForLayoutConv(A))
+      continue;
+    if (Idx >= Prev.assignmentValues.size() ||
+        Idx >= Cur.assignmentValues.size() ||
+        Prev.assignmentValues[Idx] != Cur.assignmentValues[Idx])
+      return A;
+    ++Idx;
+  }
+  return nullptr;
+}
+
+GNULDBackend::DivergenceResult
 GNULDBackend::findDivergence(const LayoutSnapshot &Prev,
-                             const LayoutSnapshot &cur) const {
+                             const LayoutSnapshot &Cur) const {
+  DivergenceResult Result;
   const SectionMap &SM = m_Module.getScript().sectionMap();
   for (auto It = SM.begin(), End = SM.end(); It != End; ++It) {
     const OutputSectionEntry *O = *It;
     auto PrevIt = Prev.outSections.find(O);
-    auto CurIt = cur.outSections.find(O);
-    if (PrevIt == Prev.outSections.end() || CurIt == cur.outSections.end())
-      return O;
+    auto CurIt = Cur.outSections.find(O);
+    if (PrevIt == Prev.outSections.end() || CurIt == Cur.outSections.end()) {
+      Result.outputSection = O;
+      break;
+    }
     const SectionAddrs &A = PrevIt->second;
     const SectionAddrs &B = CurIt->second;
-    if (A.vma != B.vma || A.lma != B.lma)
-      return O;
+    if (A.vma != B.vma || A.lma != B.lma) {
+      Result.outputSection = O;
+      break;
+    }
   }
-  return nullptr;
+  Result.assignment = findAssignmentDivergence(Prev, Cur);
+  return Result;
 }
 
 // Create or return an already created relocation output section for partial
@@ -3418,10 +3487,10 @@ void GNULDBackend::preLayout() {
 
         // size output
         if (llvm::ELF::SHT_REL == output_sect->getType())
-          output_sect->setSize(output_sect->getRelocations().size() *
+          output_sect->setSize(output_sect->getRelocationCount() *
                                getRelEntrySize());
         else if (output_sect->isRela())
-          output_sect->setSize(output_sect->getRelocations().size() *
+          output_sect->setSize(output_sect->getRelocationCount() *
                                getRelaEntrySize());
         else {
           config().raise(Diag::unknown_reloc_section_type)
@@ -3488,18 +3557,29 @@ bool GNULDBackend::postLayout() {
   // ranges in the file.
   std::vector<SectionOffset> vmas;
   for (ELFSection *sec : outputSections) {
-    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()))
+    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS())) {
+      // Warn if section address is not a multiple of aligment
+      // Same behaviour as LLD
+      if (sec->addr() % sec->getAddrAlign() != 0 &&
+          config().showLinkerScriptWarnings())
+        config().raise(Diag::warn_address_not_aligned)
+            << utility::toHex(static_cast<uint64_t>(sec->addr())) << sec->name()
+            << sec->getAddrAlign();
       vmas.push_back({sec, sec->addr()});
+    }
   }
   checkOverlap("virtual address", vmas, true);
 
   // Finally, check that the load addresses don't overlap. This will usually be
   // the same as the virtual addresses but can be different when using a linker
-  // script with AT().
+  // script with AT(). Skip SHT_NOBITS sections as they have no physical content
+  // in the output file.
   std::vector<SectionOffset> lmas;
   for (ELFSection *sec : outputSections) {
-    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()))
+    if (sec->size() > 0 && (sec->isAlloc() && !sec->isTLS()) &&
+        !sec->isNoBits()) {
       lmas.push_back({sec, sec->pAddr()});
+    }
   }
   checkOverlap("load address", lmas, false);
   return true;
@@ -3509,7 +3589,6 @@ std::string GNULDBackend::rangeToString(uint64_t addr, uint64_t len) {
   return "[0x" + llvm::utohexstr(addr) + ", 0x" +
          llvm::utohexstr(addr + len - 1) + "]";
 }
-
 // Check whether sections overlap for a specific address range (file offsets,
 // load and virtual addresses).
 void GNULDBackend::checkOverlap(llvm::StringRef name,
@@ -3757,8 +3836,7 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
                          m_Module.getConfig().options().printTimingStats());
     MemoryRegion region =
         getFileOutputRegion(pOutput, 0, pOutput.getBufferSize());
-    eld::Expected<void> expEmit =
-        m_pSFrameFragment->emit(region, getModule());
+    eld::Expected<void> expEmit = m_pSFrameFragment->emit(region, getModule());
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expEmit);
   }
   {
@@ -4133,11 +4211,10 @@ bool GNULDBackend::relax() {
   while (!finished) {
     auto start = std::chrono::steady_clock::now();
     {
-      // Bounded convergence loop over address assignment.
       LayoutSnapshot prevSnap, curSnap;
       prevSnap = captureLayoutSnapshot();
       constexpr int maxIterations = 4;
-      const OutputSectionEntry *changed = nullptr;
+      DivergenceResult diverged;
       for (int i = 0; i < maxIterations; ++i) {
         eld::RegisterTimer T("Assign Address", "Establish Layout",
                              m_Module.getConfig().options().printTimingStats());
@@ -4150,16 +4227,19 @@ bool GNULDBackend::relax() {
             m_Module.setFailure(true);
         }
         curSnap = captureLayoutSnapshot();
-        changed = findDivergence(prevSnap, curSnap);
-        if (!changed)
+        diverged = findDivergence(prevSnap, curSnap);
+        if (!diverged.outputSection && !diverged.assignment)
           break;
         prevSnap = std::move(curSnap);
       }
-      if (changed) {
-        // Emit a note for the first observed changed section.
-        if (const ELFSection *S = changed->getSection())
+      if (diverged.outputSection) {
+        if (const ELFSection *S = diverged.outputSection->getSection())
           config().raise(Diag::note_section_address_not_converging)
               << S->name() << maxIterations;
+      } else if (diverged.assignment) {
+        const Assignment &A = *diverged.assignment;
+        config().raise(Diag::note_assignment_value_not_converging)
+            << A.getContext() << A.getAsString(true) << maxIterations;
       }
       if (LinkerConfig::Object != config().codeGenType()) {
         if (!setupProgramHdrs()) {
@@ -4593,8 +4673,8 @@ bool GNULDBackend::RunPluginsAndProcessHelper(
       // Clear all the fragments.
       if (!MatchSections) {
         for (auto &Cur : *O) {
-          Cur->getSection()->getFragmentList().clear();
-          Cur->getSection()->getRelocations().clear();
+          Cur->getSection()->clearFragments();
+          Cur->getSection()->clearRelocations();
         }
       }
 
@@ -5455,7 +5535,7 @@ void GNULDBackend::assignOutputVersionIDs() {
   // foo@@VER, assign the version index based on version node names.
   for (std::size_t i = 1, e = DynamicSymbols.size(); i < e; ++i) {
     ResolveInfo *R = DynamicSymbols[i];
-    if (llvm::isa<ELFDynObjectFile>(R->resolvedOrigin()))
+    if (llvm::isa<ELFDynObjectFile>(R->resolvedOrigin()) || R->isUndef())
       continue;
     std::string FullName = R->getName().str();
     bool isDefaultVersionSymbol = false;
@@ -5503,7 +5583,8 @@ void GNULDBackend::assignOutputVersionIDs() {
       continue;
     if (!DynObjFile->hasSymbolVersioningInfo())
       continue;
-    uint16_t InputVersionID = DynObjFile->getSymbolVersionID(sym->getSymbolIndex());
+    uint16_t InputVersionID =
+        DynObjFile->getSymbolVersionID(sym->getSymbolIndex());
     if (InputVersionID == llvm::ELF::VER_NDX_LOCAL ||
         InputVersionID == llvm::ELF::VER_NDX_GLOBAL)
       continue;

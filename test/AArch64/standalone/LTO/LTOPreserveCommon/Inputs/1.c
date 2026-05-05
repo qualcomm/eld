@@ -1,6 +1,6 @@
 int a[100];
 int main() {
-  return a;
+  return a[0];
 }
 
 int bar(int b) {

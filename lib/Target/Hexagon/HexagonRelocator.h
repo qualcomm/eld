@@ -29,7 +29,6 @@ class HexagonRelocator : public Relocator {
 public:
   HexagonRelocator(HexagonLDBackend &pParent, LinkerConfig &pConfig,
                    Module &pModule);
-  ~HexagonRelocator();
 
   Result applyRelocation(Relocation &pRelocation) override;
 

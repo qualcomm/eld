@@ -1,0 +1,41 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.map \
+# RUN:   --check 10:1:eldLoad \
+# RUN:   --check 10:4:eldLoad \
+# RUN:   --check 10:5:eldLoad \
+# RUN:   --check 10:6:eldArchiveMember \
+# RUN:   --check 10:22:eldArchiveMember \
+# RUN:   --check 10:23:eldArchiveMember \
+# RUN:   --check 10:29:eldArchiveMember \
+# RUN:   --check 10:30:eldArch \
+# RUN:   --check 10:31:eldArch \
+# RUN:   --check 10:38:eldArch \
+# RUN:   --check 10:41:eldArch \
+# RUN:   --check 11:1:eldLoad \
+# RUN:   --check 11:6:eldLoadPath \
+# RUN:   --check 11:22:eldLoadPath \
+# RUN:   --check 11:23:eldArch \
+# RUN:   --check 11:34:eldArch
+#
+# LOAD lines: the "LOAD" keyword is eldLoad; archive paths are
+# eldArchiveMember; plain paths are eldLoadPath; arch tags are eldArch.
+#
+# Line 10: "LOAD /path/to/libfoo.a(foo.o)[hexagonv68]"
+#   10:1  = 'L'  → eldLoad          (start of LOAD keyword)
+#   10:4  = 'D'  → eldLoad          (last char of LOAD)
+#   10:5  = ' '  → eldLoad          (trailing space in LOAD match)
+#   10:6  = '/'  → eldArchiveMember (start of archive path)
+#   10:22 = 'a'  → eldArchiveMember (the '.a' extension)
+#   10:23 = '('  → eldArchiveMember (opening paren of member)
+#   10:29 = ')'  → eldArchiveMember (closing paren of member)
+#   10:30 = '['  → eldArch          (opening bracket of arch tag)
+#   10:31 = 'h'  → eldArch          (first char of arch name)
+#   10:38 = 'v'  → eldArch          (version separator)
+#   10:41 = ']'  → eldArch          (closing bracket)
+#
+# Line 11: "LOAD /path/to/libbar.a[hexagonv68]"
+# A LOAD line without a member specifier: the path is eldLoadPath.
+#   11:1  = 'L'  → eldLoad
+#   11:6  = '/'  → eldLoadPath      (plain path, no archive member)
+#   11:22 = 'a'  → eldLoadPath      (end of .a extension)
+#   11:23 = '['  → eldArch
+#   11:34 = ']'  → eldArch

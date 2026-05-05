@@ -1,2 +1,5 @@
 add_subdirectory(design)
 add_subdirectory(userguide)
+if (NOT ELD_USE_EXTERNAL_LLVM)
+  add_subdirectory(multiversion)
+endif()

@@ -6,7 +6,7 @@ UNSUPPORTED: x86
 # the text map file.
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangg0opts -O0 -c %p/Inputs/1.c -o %t1.1.o
+RUN: %clang %clangg0opts -fcommon -O0 -c %p/Inputs/1.c -o %t1.1.o
 RUN: %link %linkg0opts -o %t1.1.out %t1.1.o --gc-sections -e main -M 2>&1 | %filecheck %s
 #END_TEST
 #CHECK: .bss

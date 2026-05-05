@@ -1,0 +1,78 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 140:13:eldKwSegType \
+# RUN:   --check 140:19:eldKwSegType \
+# RUN:   --check 141:13:eldKwSegType \
+# RUN:   --check 141:19:eldKwSegType \
+# RUN:   --check 142:13:eldKwSegType \
+# RUN:   --check 142:22:eldKwSegType \
+# RUN:   --check 143:13:eldKwSegType \
+# RUN:   --check 143:21:eldKwSegType \
+# RUN:   --check 144:13:eldKwSegType \
+# RUN:   --check 144:19:eldKwSegType \
+# RUN:   --check 145:13:eldKwSegType \
+# RUN:   --check 145:20:eldKwSegType \
+# RUN:   --check 146:13:eldKwSegType \
+# RUN:   --check 146:19:eldKwSegType \
+# RUN:   --check 147:13:eldKwSegType \
+# RUN:   --check 147:18:eldKwSegType \
+# RUN:   --check 148:13:eldKwSegType \
+# RUN:   --check 148:27:eldKwSegType \
+# RUN:   --check 149:13:eldKwSegType \
+# RUN:   --check 149:24:eldKwSegType \
+# RUN:   --check 150:13:eldKwSegType \
+# RUN:   --check 150:24:eldKwSegType
+# Note: PT_ARM_EXIDX is defined as (PT_LOPROC + 1) in elf.h — a computed
+# value — so gen_elf_keywords.py correctly excludes it from eldKwSegType.
+# Line 151 ("  p_exidx   PT_ARM_EXIDX") therefore has no syntax group.
+#
+# eldKwSegType: all PT_* segment type names used in PHDRS blocks.
+# Note: these lines have no trailing ';' so eldExprLine does not capture them,
+# allowing eldKwSegType to fire.
+#
+# Line 140: "  p_null    PT_NULL"
+#   140:13 = 'P' → eldKwSegType  (start of PT_NULL)
+#   140:19 = 'L' → eldKwSegType  (last char of PT_NULL)
+#
+# Line 141: "  p_load    PT_LOAD"
+#   141:13 = 'P' → eldKwSegType  (start of PT_LOAD)
+#   141:19 = 'D' → eldKwSegType  (last char of PT_LOAD)
+#
+# Line 142: "  p_dyn     PT_DYNAMIC"
+#   142:13 = 'P' → eldKwSegType  (start of PT_DYNAMIC)
+#   142:22 = 'C' → eldKwSegType  (last char of PT_DYNAMIC)
+#
+# Line 143: "  p_interp  PT_INTERP"
+#   143:13 = 'P' → eldKwSegType  (start of PT_INTERP)
+#   143:21 = 'P' → eldKwSegType  (last char of PT_INTERP)
+#
+# Line 144: "  p_note    PT_NOTE"
+#   144:13 = 'P' → eldKwSegType  (start of PT_NOTE)
+#   144:19 = 'E' → eldKwSegType  (last char of PT_NOTE)
+#
+# Line 145: "  p_shlib   PT_SHLIB"
+#   145:13 = 'P' → eldKwSegType  (start of PT_SHLIB)
+#   145:20 = 'B' → eldKwSegType  (last char of PT_SHLIB)
+#
+# Line 146: "  p_phdr    PT_PHDR"
+#   146:13 = 'P' → eldKwSegType  (start of PT_PHDR)
+#   146:19 = 'R' → eldKwSegType  (last char of PT_PHDR)
+#
+# Line 147: "  p_tls     PT_TLS"
+#   147:13 = 'P' → eldKwSegType  (start of PT_TLS)
+#   147:18 = 'S' → eldKwSegType  (last char of PT_TLS)
+#
+# Line 148: "  p_eh      PT_GNU_EH_FRAME"
+#   148:13 = 'P' → eldKwSegType  (start of PT_GNU_EH_FRAME)
+#   148:27 = 'E' → eldKwSegType  (last char of PT_GNU_EH_FRAME)
+#
+# Line 149: "  p_stack   PT_GNU_STACK"
+#   149:13 = 'P' → eldKwSegType  (start of PT_GNU_STACK)
+#   149:24 = 'K' → eldKwSegType  (last char of PT_GNU_STACK)
+#
+# Line 150: "  p_relro   PT_GNU_RELRO"
+#   150:13 = 'P' → eldKwSegType  (start of PT_GNU_RELRO)
+#   150:24 = 'O' → eldKwSegType  (last char of PT_GNU_RELRO)
+#
+# Line 151: "  p_exidx   PT_ARM_EXIDX"
+#   151:13 = 'P' → eldKwSegType  (start of PT_ARM_EXIDX)
+#   151:24 = 'X' → eldKwSegType  (last char of PT_ARM_EXIDX)

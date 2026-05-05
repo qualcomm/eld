@@ -136,12 +136,12 @@ void HexagonLDBackend::doPreLayout() {
     return;
 
   if (getRelaPLT()) {
-    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+    getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
   }
   if (getRelaDyn()) {
-    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+    getRelaDyn()->setSize(getRelaDyn()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaDyn());
   }
@@ -788,7 +788,7 @@ bool HexagonLDBackend::allocateCommonSymbols() {
 
 bool HexagonLDBackend::MoveSectionAndSort(ELFSection *pFrom, ELFSection *pTo) {
   ObjectBuilder builder(config(), m_Module);
-  if (pFrom->getFragmentList().size() == 0)
+  if (!pFrom->hasFragments())
     return true;
 
   if (builder.moveSection(pFrom, pTo)) {
@@ -949,7 +949,7 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->getFragmentList().size()) {
+  if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     HexagonGOTPLT0::Create(getGOTPLT(),
                            Dynamic ? Dynamic->resolveInfo() : nullptr);
@@ -988,10 +988,13 @@ HexagonGOT *HexagonLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     break;
   }
   if (R) {
-    if (GOT)
+    if (GOT) {
+      reportErrorIfGOTIsDiscarded(R);
       recordGOT(R, G);
-    else
+    } else {
+      reportErrorIfGOTPLTIsDiscarded(R);
       recordGOTPLT(R, G);
+    }
   }
   return G;
 }
@@ -1021,8 +1024,11 @@ HexagonPLT *HexagonLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_plt_entry) << R->name();
+
+  reportErrorIfPLTIsDiscarded(R);
+
   // If there is no entries GOTPLT and PLT, we dont have a PLT0.
-  if (!hasNow && !getPLT()->getFragmentList().size()) {
+  if (!hasNow && !getPLT()->hasFragments()) {
     HexagonPLT0::Create(*m_Module.getIRBuilder(),
                         createGOT(GOT::GOTPLT0, nullptr, nullptr), getPLT(),
                         nullptr);

@@ -303,10 +303,10 @@ def dynamic : Flag<["-"], "dynamic">,
 def shared : Flag<["-"], "shared">,
              HelpText<"Create dynamic library">,
              Group<grp_kind>;
-def pie : Flag<["-"], "pie">,
+def pie : Flag<["-", "--"], "pie">,
           HelpText<"Create PIE executable">,
           Group<grp_kind>;
-def no_pie : Flag<["-"], "no-pie">,
+def no_pie : Flag<["-", "--"], "no-pie">,
           HelpText<"Do not create a PIE executable">,
           Group<grp_kind>;
 def picexec : Flag<["--"], "pic-executable">,
@@ -473,7 +473,7 @@ def soname_separate
       MetaVarName<"<name>">,
       Group<grp_dynlib>;
 def soname_h
-    : Separate<["-"], "h">,
+    : JoinedOrSeparate<["-"], "h">,
       HelpText<"Set the internal DT_SONAME field to the specified name">,
       Alias<soname>,
       MetaVarName<"<name>">,
@@ -1380,3 +1380,12 @@ defm input_format : smDashTwoWithOpt<"b", "format", "input_format",
                       "Supported values: binary,default">,
                     MetaVarName<"<input-format>">,
                     Group<grp_input_formats>;
+
+defm remap_inputs : EEq<"remap-inputs",
+                        "Remap input file names (pattern=filename)">,
+                    MetaVarName<"<pattern=filename>">,
+                    Group<grp_input_formats>;
+defm remap_inputs_file : EEq<"remap-inputs-file",
+                             "Read input file name remappings from file">,
+                         MetaVarName<"<file>">,
+                         Group<grp_input_formats>;

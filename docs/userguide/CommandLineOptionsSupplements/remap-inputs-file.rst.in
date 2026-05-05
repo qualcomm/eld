@@ -1,0 +1,12 @@
+Read remap rules from ``<file>``.
+
+Each non-empty line in the file is one rule in either format:
+
+| ``pattern=replacement``
+| ``pattern replacement``
+
+Lines beginning with ``#`` and blank lines are ignored. Inline ``#`` comments
+are also supported.
+
+Rules from this file are appended to the same ordered remap list used by
+:option:`--remap-inputs`.

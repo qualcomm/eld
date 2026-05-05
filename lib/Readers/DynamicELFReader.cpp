@@ -274,7 +274,7 @@ eld::Expected<void> DynamicELFReader<ELFT>::readVerNeedSection() {
           reinterpret_cast<const typename ELFT::Vernaux *>(VernAuxBuf);
       uint16_t VersionIdentifier =
           CurVernAux->vna_other & llvm::ELF::VERSYM_VERSION;
-      if (VersionIdentifier > VerNeeds.size())
+      if (VersionIdentifier >= VerNeeds.size())
         VerNeeds.resize(VersionIdentifier + 1);
       VerNeeds[VersionIdentifier] = CurVernAux->vna_name;
       VernAuxBuf += CurVernAux->vna_next;

@@ -1,8 +1,12 @@
+PHDRS {
+    A PT_LOAD;
+}
+
 SECTIONS
 {
   .data_l1wb_l2uc :
   {
-  } :crap=0
+  } :A=0
   INCLUDE include.lcs
 }
 

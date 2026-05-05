@@ -55,9 +55,6 @@ public:
   static Relocation *Create(Type pType, Size pSize, FragmentRef *pFragRef,
                             Address pAddend = 0);
 
-  /// Destroy - destroy a relocation entry
-  static void Destroy(Relocation *&pRelocation);
-
   /// type - relocation type
   Type type() const { return m_Type; }
 

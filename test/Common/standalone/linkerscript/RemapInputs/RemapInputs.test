@@ -1,0 +1,120 @@
+#---RemapInputs.test--------------------- Executable,LS ---------------------#
+#BEGIN_COMMENT
+# Tests for --remap-inputs interactions with linker scripts:
+#  - File input patterns (*foo.o) match the remapped name
+#  - EXCLUDE_FILE patterns match the remapped name
+#  - Archive patterns match the remapped archive name
+#  - EXCLUDE_FILE for archives matches the remapped archive name
+#  - INCLUDE <file> in a linker script is remapped before file search and map
+#    output annotates it as remapped
+#  - INPUT() command in a linker script is remapped
+#  - Map file annotates remapped inputs with "# remapped from ..."
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c  -o %t1.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c  -o %t1.bar.o
+RUN: %clang %clangopts -c %p/Inputs/baz.c  -o %t1.baz.o
+RUN: %ar cr %aropts %t1.libfoo.a %t1.foo.o
+RUN: %ar cr %aropts %t1.libbar.a %t1.bar.o
+
+#--- Test 1: file input pattern matches remapped name -----------------------
+# Remap foo.o -> bar.o; script routes *bar.o(.text*) to .text_bar.
+# Without remap, foo.o sections would go to .text_rest.
+# With remap, they go to .text_bar (because the file is now bar.o).
+RUN: %link -MapStyle txt %linkopts -o %t1.filepat.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o %t1.foo.o \
+RUN:   -T %p/Inputs/script_filepat.t -Map %t1.filepat.map.txt
+RUN: %filecheck %s --check-prefix=FILEPAT < %t1.filepat.map.txt
+
+#--- Test 2: EXCLUDE_FILE matches remapped name -----------------------------
+# Remap foo.o -> bar.o; script excludes *bar.o from .text_nobar.
+# Without remap, foo.o would go to .text_nobar.
+# With remap, foo.o (now bar.o) is excluded from .text_nobar and goes to .text_bar.
+RUN: %link -MapStyle txt %linkopts -o %t1.exclude.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o %t1.foo.o \
+RUN:   -T %p/Inputs/script_exclude.t -Map %t1.exclude.map.txt
+RUN: %filecheck %s --check-prefix=EXCLUDE < %t1.exclude.map.txt
+
+#--- Test 3: archive pattern matches remapped archive name ------------------
+# Remap libfoo.a -> libbar.a; script routes *libbar.a(*) to .text_from_bar_archive.
+# Without remap, libfoo.a members would go to .text_rest.
+# With remap, they go to .text_from_bar_archive.
+RUN: %link -MapStyle txt %linkopts -o %t1.archive.out \
+RUN:   --remap-inputs=%t1.libfoo.a=%t1.libbar.a \
+RUN:   %t1.main.o %t1.libfoo.a \
+RUN:   -T %p/Inputs/script_archive.t -Map %t1.archive.map.txt
+RUN: %filecheck %s --check-prefix=ARCHIVE < %t1.archive.map.txt
+
+#--- Test 4: EXCLUDE_FILE for archive matches remapped archive name ---------
+# Remap libfoo.a -> libbar.a; script excludes *libbar.a from .text_nobar.
+# Without remap, libfoo.a members would go to .text_nobar.
+# With remap, they are excluded from .text_nobar and go to .text_bar.
+RUN: %link -MapStyle txt %linkopts -o %t1.excl_arch.out \
+RUN:   --remap-inputs=%t1.libfoo.a=%t1.libbar.a \
+RUN:   %t1.main.o %t1.libfoo.a \
+RUN:   -T %p/Inputs/script_exclude_archive.t -Map %t1.excl_arch.map.txt
+RUN: %filecheck %s --check-prefix=EXCL_ARCH < %t1.excl_arch.map.txt
+
+#--- Test 5: INCLUDE in linker script is remapped ---------------------------
+# outer.t does INCLUDE inner.t; remap inner.t -> replacement.t.
+# replacement.t has the same SECTIONS as inner.t so the link succeeds.
+RUN: %link %linkopts -o %t1.include.out \
+RUN:   --remap-inputs=inner.t=%p/Inputs/replacement.t \
+RUN:   %t1.main.o %t1.foo.o \
+RUN:   -T %p/Inputs/outer.t -MapStyle txt -Map %t1.include.map.txt
+RUN: %readelf -s %t1.include.out | %filecheck %s --check-prefix=INCLUDE_REMAP
+RUN: %filecheck %s --check-prefix=INCLUDE_MAP < %t1.include.map.txt
+
+#--- Test 6: INPUT() in linker script is remapped ---------------------------
+# Script uses INPUT(foo.o); remap foo.o -> bar.o.
+RUN: echo "INPUT(%t1.foo.o)" > %t1.input_cmd.t
+RUN: %link %linkopts -o %t1.inputcmd.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o -T %t1.input_cmd.t -T %p/Inputs/script.t
+RUN: %readelf -s %t1.inputcmd.out | %filecheck %s --check-prefix=INPUT_CMD
+
+#--- Test 7: map file annotates remapped inputs -----------------------------
+RUN: %link -MapStyle txt %linkopts -o %t1.mapannot.out \
+RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
+RUN:   %t1.main.o %t1.foo.o \
+RUN:   -T %p/Inputs/script.t -Map %t1.mapannot.map.txt
+RUN: %filecheck %s --check-prefix=MAPANNOT < %t1.mapannot.map.txt
+
+#--- Test 8: wildcard remap + file pattern in script -----------------------
+# Remap *foo.o -> bar.o (wildcard); script routes *bar.o(.text*) to .text_bar.
+RUN: %link -MapStyle txt %linkopts -o %t1.wildpat.out \
+RUN:   "--remap-inputs=*foo.o=%t1.bar.o" \
+RUN:   %t1.main.o %t1.foo.o \
+RUN:   -T %p/Inputs/script_filepat.t -Map %t1.wildpat.map.txt
+RUN: %filecheck %s --check-prefix=FILEPAT < %t1.wildpat.map.txt
+
+# .text_bar
+# {{.*}}bar.o
+FILEPAT: .text_bar
+FILEPAT: {{.*}}bar.o
+
+EXCLUDE: .text_nobar
+EXCLUDE: EXCLUDE_FILE ( *bar.o )
+EXCLUDE: main.o
+EXCLUDE: .text_bar
+EXCLUDE: bar.o
+
+ARCHIVE: .text_from_bar_archive
+ARCHIVE: {{.*}}libbar.a
+
+EXCL_ARCH: .text_nobar
+EXCL_ARCH: EXCLUDE_FILE ( *libbar.a )
+EXCL_ARCH: main.o
+EXCL_ARCH: .text_bar
+EXCL_ARCH: libbar.a
+
+INCLUDE_REMAP: foo
+INCLUDE_MAP: # remapped from inner.t
+
+INPUT_CMD: foo
+
+MAPANNOT: # remapped from
+MAPANNOT: {{.*}}foo.o

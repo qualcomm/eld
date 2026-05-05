@@ -1,0 +1,130 @@
+# RUN: %check_syn --syntax %eld_vim --input %inputs/sample.ld \
+# RUN:   --check 82:17:eldKwExpr \
+# RUN:   --check 82:23:eldKwExpr \
+# RUN:   --check 83:17:eldKwExpr \
+# RUN:   --check 83:20:eldKwExpr \
+# RUN:   --check 84:17:eldKwExpr \
+# RUN:   --check 84:24:eldKwExpr \
+# RUN:   --check 85:17:eldKwExpr \
+# RUN:   --check 85:22:eldKwExpr \
+# RUN:   --check 86:17:eldKwExpr \
+# RUN:   --check 86:30:eldKwExpr \
+# RUN:   --check 87:17:eldKwExpr \
+# RUN:   --check 87:23:eldKwExpr \
+# RUN:   --check 88:17:eldKwExpr \
+# RUN:   --check 88:24:eldKwExpr \
+# RUN:   --check 89:17:eldKwExpr \
+# RUN:   --check 89:20:eldKwExpr \
+# RUN:   --check 90:17:eldKwExpr \
+# RUN:   --check 90:19:eldKwExpr \
+# RUN:   --check 91:17:eldKwExpr \
+# RUN:   --check 91:19:eldKwExpr \
+# RUN:   --check 92:17:eldKwExpr \
+# RUN:   --check 92:24:eldKwExpr \
+# RUN:   --check 93:17:eldKwExpr \
+# RUN:   --check 93:29:eldKwExpr \
+# RUN:   --check 94:17:eldKwExpr \
+# RUN:   --check 94:22:eldKwExpr \
+# RUN:   --check 95:17:eldKwExpr \
+# RUN:   --check 95:22:eldKwExpr \
+# RUN:   --check 96:17:eldKwExpr \
+# RUN:   --check 96:34:eldKwExpr \
+# RUN:   --check 97:17:eldKwExpr \
+# RUN:   --check 97:32:eldKwExpr \
+# RUN:   --check 98:17:eldKwExpr \
+# RUN:   --check 98:38:eldKwExpr \
+# RUN:   --check 99:17:eldKwExpr \
+# RUN:   --check 99:39:eldKwExpr \
+# RUN:   --check 100:17:eldKwExpr \
+# RUN:   --check 100:36:eldKwExpr \
+# RUN:   --check 101:17:eldKwExpr \
+# RUN:   --check 101:28:eldKwExpr \
+# RUN:   --check 102:17:eldKwExpr \
+# RUN:   --check 102:30:eldKwExpr
+#
+# Extended eldKwExpr coverage: all expression built-in functions.
+# Each line has the form "sym = KEYWORD(...);" so the keyword appears at col 17.
+#
+# Line 82:  "sym_alignof   = ALIGNOF(.text);"
+#   82:17 = 'A' → eldKwExpr  (start of ALIGNOF)
+#   82:23 = 'F' → eldKwExpr  (last char of ALIGNOF)
+#
+# Line 83:  "sym_addr      = ADDR(.text);"
+#   83:17 = 'A' → eldKwExpr  (start of ADDR)
+#   83:20 = 'R' → eldKwExpr  (last char of ADDR)
+#
+# Line 84:  "sym_loadaddr  = LOADADDR(.text);"
+#   84:17 = 'L' → eldKwExpr  (start of LOADADDR)
+#   84:24 = 'R' → eldKwExpr  (last char of LOADADDR)
+#
+# Line 85:  "sym_sizeof    = SIZEOF(.text);"
+#   85:17 = 'S' → eldKwExpr  (start of SIZEOF)
+#   85:22 = 'F' → eldKwExpr  (last char of SIZEOF)
+#
+# Line 86:  "sym_soh       = SIZEOF_HEADERS;"
+#   86:17 = 'S' → eldKwExpr  (start of SIZEOF_HEADERS)
+#   86:30 = 'S' → eldKwExpr  (last char of SIZEOF_HEADERS)
+#
+# Line 87:  "sym_defined   = DEFINED(foo_sym);"
+#   87:17 = 'D' → eldKwExpr  (start of DEFINED)
+#   87:23 = 'D' → eldKwExpr  (last char of DEFINED)
+#
+# Line 88:  "sym_absolute  = ABSOLUTE(0x1000);"
+#   88:17 = 'A' → eldKwExpr  (start of ABSOLUTE)
+#   88:24 = 'E' → eldKwExpr  (last char of ABSOLUTE)
+#
+# Line 89:  "sym_next      = NEXT(0x10);"
+#   89:17 = 'N' → eldKwExpr  (start of NEXT)
+#   89:20 = 'T' → eldKwExpr  (last char of NEXT)
+#
+# Line 90:  "sym_max       = MAX(0x100, 0x200);"
+#   90:17 = 'M' → eldKwExpr  (start of MAX)
+#   90:19 = 'X' → eldKwExpr  (last char of MAX)
+#
+# Line 91:  "sym_min       = MIN(0x100, 0x200);"
+#   91:17 = 'M' → eldKwExpr  (start of MIN)
+#   91:19 = 'N' → eldKwExpr  (last char of MIN)
+#
+# Line 92:  "sym_log2      = LOG2CEIL(0x1000);"
+#   92:17 = 'L' → eldKwExpr  (start of LOG2CEIL)
+#   92:24 = 'L' → eldKwExpr  (last char of LOG2CEIL)
+#
+# Line 93:  "sym_segstart  = SEGMENT_START("text", 0);"
+#   93:17 = 'S' → eldKwExpr  (start of SEGMENT_START)
+#   93:29 = 'T' → eldKwExpr  (last char of SEGMENT_START)
+#
+# Line 94:  "sym_origin    = ORIGIN(ROM);"
+#   94:17 = 'O' → eldKwExpr  (start of ORIGIN)
+#   94:22 = 'N' → eldKwExpr  (last char of ORIGIN)
+#
+# Line 95:  "sym_length    = LENGTH(ROM);"
+#   95:17 = 'L' → eldKwExpr  (start of LENGTH)
+#   95:22 = 'H' → eldKwExpr  (last char of LENGTH)
+#
+# Line 96:  "sym_dsa       = DATA_SEGMENT_ALIGN(0x1000, 0x200);"
+#   96:17 = 'D' → eldKwExpr  (start of DATA_SEGMENT_ALIGN)
+#   96:34 = 'N' → eldKwExpr  (last char of DATA_SEGMENT_ALIGN)
+#
+# Line 97:  "sym_dse       = DATA_SEGMENT_END(0x8000);"
+#   97:17 = 'D' → eldKwExpr  (start of DATA_SEGMENT_END)
+#   97:32 = 'D' → eldKwExpr  (last char of DATA_SEGMENT_END)
+#
+# Line 98:  "sym_dsrre     = DATA_SEGMENT_RELRO_END(0, 0x4000);"
+#   98:17 = 'D' → eldKwExpr  (start of DATA_SEGMENT_RELRO_END)
+#   98:38 = 'D' → eldKwExpr  (last char of DATA_SEGMENT_RELRO_END)
+#
+# Line 99:  "sym_const     = CONSTANT(COMMONPAGESIZE);"
+#   99:17 = 'C' → eldKwExpr  (start of CONSTANT)
+#   99:39 = 'E' → eldKwExpr  (last char of COMMONPAGESIZE, also eldKwExpr)
+#
+# Line 100: "sym_maxpg     = CONSTANT(MAXPAGESIZE);"
+#   100:17 = 'C' → eldKwExpr  (start of CONSTANT)
+#   100:36 = 'E' → eldKwExpr  (last char of MAXPAGESIZE)
+#
+# Line 101: "sym_nextsec   = NEXT_SECTION;"
+#   101:17 = 'N' → eldKwExpr  (start of NEXT_SECTION)
+#   101:28 = 'N' → eldKwExpr  (last char of NEXT_SECTION)
+#
+# Line 102: "sym_lver      = LINKER_VERSION;"
+#   102:17 = 'L' → eldKwExpr  (start of LINKER_VERSION)
+#   102:30 = 'N' → eldKwExpr  (last char of LINKER_VERSION)

@@ -41,11 +41,23 @@ constexpr inline llvm::StringRef foundString(bool Found) {
   return Found ? "found" : "not found";
 }
 
-bool checkInputFile(Input::InputType Type, llvm::StringRef NameSpec,
+llvm::StringRef toString(SearchDirs::SearchInputType Type) {
+  switch (Type) {
+  case SearchDirs::SearchInputType::Archive:
+    return "archive";
+  case SearchDirs::SearchInputType::DynObj:
+    return "dynamic object";
+  case SearchDirs::SearchInputType::Script:
+    return "linker script";
+  }
+  llvm_unreachable("SearchDirs::SearchInputType out of range");
+}
+
+bool checkInputFile(SearchDirs::SearchInputType Type, llvm::StringRef NameSpec,
                     llvm::StringRef FileName, DiagnosticEngine *DiagEngine) {
   bool Found = llvm::sys::fs::exists(FileName);
   DiagEngine->raise(Diag::verbose_trying_input_file)
-      << FileName << Input::toString(Type) << NameSpec << foundString(Found);
+      << FileName << toString(Type) << NameSpec << foundString(Found);
   return Found;
 }
 
@@ -64,31 +76,30 @@ bool checkLibraryOrConfigFile(llvm::StringRef Type, llvm::StringRef LibraryName,
 // Non-member functions
 //===----------------------------------------------------------------------===//
 static inline bool SpecToFilename(const std::string &pSpec, std::string &pFile,
-                                  uint32_t pType) {
+                                  SearchDirs::SearchInputType pType) {
   bool StartsWithColon = (pSpec.c_str()[0] == ':');
   pFile.clear();
   if (StartsWithColon) {
     pFile = pSpec.substr(1, pSpec.length());
     return true;
   }
-  if (pType == Input::Script) {
+  if (pType == SearchDirs::SearchInputType::Script) {
     pFile = pSpec;
     return false;
-  } else {
-    pFile = "lib";
-    pFile += pSpec;
-    switch (pType) {
-    case Input::DynObj:
-      pFile += ".so";
-      break;
-    case Input::Archive:
-      pFile += ".a";
-      break;
-    default:
-      break;
-    }
-    return false;
   }
+  pFile = "lib";
+  pFile += pSpec;
+  switch (pType) {
+  case SearchDirs::SearchInputType::DynObj:
+    pFile += ".so";
+    break;
+  case SearchDirs::SearchInputType::Archive:
+    pFile += ".a";
+    break;
+  case SearchDirs::SearchInputType::Script:
+    llvm_unreachable("Script case already handled above");
+  }
+  return false;
 }
 
 //===----------------------------------------------------------------------===//
@@ -115,7 +126,7 @@ bool SearchDirs::insert(const sys::fs::Path &PPath) {
 }
 
 const eld::sys::fs::Path *SearchDirs::find(const std::string &pNamespec,
-                                           Input::InputType pType) const {
+                                           SearchInputType pType) const {
   std::string File;
   bool hasNamespace = false;
   hasNamespace = SpecToFilename(pNamespec, File, pType);
@@ -128,11 +139,12 @@ const eld::sys::fs::Path *SearchDirs::find(const std::string &pNamespec,
     std::string fileName = dirName + "/" + File;
     if (checkInputFile(pType, pNamespec, fileName, DiagEngine))
       return make<eld::sys::fs::Path>(fileName);
-    if (Input::DynObj == pType && !hasNamespace) {
+    if (SearchDirs::SearchInputType::DynObj == pType && !hasNamespace) {
       // we should also try linking with archives if we dont find a DSO
-      SpecToFilename(pNamespec, fileName, Input::Archive);
+      SpecToFilename(pNamespec, fileName, SearchDirs::SearchInputType::Archive);
       fileName = dirName + "/" + fileName;
-      if (checkInputFile(Input::Archive, pNamespec, fileName, DiagEngine))
+      if (checkInputFile(SearchDirs::SearchInputType::Archive, pNamespec,
+                         fileName, DiagEngine))
         return make<eld::sys::fs::Path>(fileName);
     }
   } // end of for

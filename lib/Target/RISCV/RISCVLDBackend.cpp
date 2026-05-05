@@ -122,7 +122,7 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       Module::InternalInputType::Attributes, LDFileFormat::Internal,
       ".riscv.attributes", llvm::ELF::SHT_RISCV_ATTRIBUTES, 0, 1);
   AttributeFragment = make<RISCVAttributeFragment>(m_pRISCVAttributeSection);
-  m_pRISCVAttributeSection->getFragmentList().push_back(AttributeFragment);
+  m_pRISCVAttributeSection->addFragment(AttributeFragment);
   LayoutInfo *layoutInfo = getModule().getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(m_pRISCVAttributeSection->getInputFile(),
@@ -279,8 +279,7 @@ bool RISCVLDBackend::DoesOverrideMerge(ELFSection *pSection) const {
 
 ELFSection *RISCVLDBackend::mergeSection(ELFSection *S) {
   if (S->getType() == llvm::ELF::SHT_RISCV_ATTRIBUTES) {
-    RegionFragment *R =
-        llvm::dyn_cast<RegionFragment>(S->getFragmentList().front());
+    RegionFragment *R = llvm::dyn_cast<RegionFragment>(S->getFrontFragment());
     if (R)
       AttributeFragment->updateInfo(
           R->getRegion(), R->getOwningSection()->getInputFile(),
@@ -407,7 +406,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
                  ->getInput()
                  ->decoratedPath();
 
-    region->replaceInstruction(offset, reloc, c_j, 2);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&c_j), 2);
     reloc->setTargetData(c_j);
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     relaxDeleteBytes("RISCV_CALL_C", *region, offset + 2, 6,
@@ -438,7 +437,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     // Replace the instruction to JAL
     uint32_t jal = 0x6fu | rd << 7;
 
-    region->replaceInstruction(offset, reloc, jal, 4 /* Replace bytes */);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal), 4);
     reloc->setTargetData(jal);
     reloc->setType(llvm::ELF::R_RISCV_JAL);
     // Delete the next instruction
@@ -457,7 +456,7 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
     const char *msg =
         (rd == 1) ? "R_RISCV_CALL_QC_E_JAL" : "R_RISCV_CALL_QC_E_J";
 
-    region->replaceInstruction(offset, reloc, qc_e_j, 6);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&qc_e_j), 6);
     reloc->setTargetData(qc_e_j);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT);
     relaxDeleteBytes(msg, *region, offset + 6, 2, reloc->symInfo()->name());
@@ -550,7 +549,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
                  ->getInput()
                  ->decoratedPath();
 
-    region->replaceInstruction(offset, reloc, compressed, 2);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&compressed), 2);
     // Replace the reloc to R_RISCV_RVC_JUMP
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     reloc->setTargetData(compressed);
@@ -562,7 +561,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   // Replace the instruction to JAL
   unsigned rd = isTailCall ? /*x0*/ 0 : /*ra*/ 1;
   uint32_t jal_instr = 0x6fu | rd << 7;
-  region->replaceInstruction(offset, reloc, jal_instr, 4);
+  region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal_instr), 4);
   // Replace the reloc to R_RISCV_JAL
   reloc->setType(llvm::ELF::R_RISCV_JAL);
   reloc->setTargetData(jal_instr);
@@ -766,7 +765,7 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
   if (canRelaxQcLi) {
     uint32_t qc_li = 0x0000001bu | rd << 7;
 
-    region->replaceInstruction(offset, reloc, qc_li, 4);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&qc_li), 4);
     reloc->setTargetData(qc_li);
     reloc->setType(ELF::riscv::internal::R_RISCV_QC_ABS20_U);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
@@ -778,7 +777,7 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
     unsigned rs = 3; // x3 = gp
     uint32_t addi = 0x00000013u | (rd << 7) | (rs << 15);
 
-    region->replaceInstruction(offset, reloc, addi, 4);
+    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&addi), 4);
     reloc->setTargetData(addi);
     reloc->setType(ELF::riscv::internal::R_RISCV_GPREL_I);
     relaxDeleteBytes(msg, *region, offset + 4, 2, reloc->symInfo()->name());
@@ -813,7 +812,9 @@ bool RISCVLDBackend::doRelaxationTLSDESC(Relocation &R, bool Relax) {
     else {
       // Otherwise, the instruction is replaced with a NOP.
       reportMissedRelaxation(RelaxType, *region, offset, 4, Sym.name());
-      region->replaceInstruction(offset, &R, NOP, 4);
+      uint32_t NOPi32 = static_cast<uint32_t>(NOP);
+      region->replaceInstruction(
+          offset, &R, reinterpret_cast<uint8_t *>(&NOPi32), 4);
     }
     R.setType(llvm::ELF::R_RISCV_NONE);
     return Relaxed;
@@ -1171,8 +1172,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
         continue;
       if (rs->isDiscard())
         continue;
-      llvm::SmallVectorImpl<Relocation *> &relocList =
-          rs->getLink()->getRelocations();
+      auto relocList = rs->getLink()->getRelocations();
       for (llvm::SmallVectorImpl<Relocation *>::iterator it = relocList.begin();
            it != relocList.end(); ++it) {
         auto relocation = *it;
@@ -1617,17 +1617,17 @@ Relocation::Type RISCVLDBackend::getRemappedInternalRelocationType(
 void RISCVLDBackend::doPreLayout() {
   m_psdata = m_Module.getScript().sectionMap().find(".sdata");
   if (getRelaPLT()) {
-    getRelaPLT()->setSize(getRelaPLT()->getRelocations().size() *
+    getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
   }
   if (getRelaDyn()) {
-    getRelaDyn()->setSize(getRelaDyn()->getRelocations().size() *
+    getRelaDyn()->setSize(getRelaDyn()->getRelocationCount() *
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaDyn());
   }
   if (ELFSection *S = getRelaPatch()) {
-    S->setSize(S->getRelocations().size() * getRelaEntrySize());
+    S->setSize(S->getRelocationCount() * getRelaEntrySize());
     m_Module.addOutputSection(S);
   }
 }
@@ -1704,7 +1704,7 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
   // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->getFragmentList().size()) {
+  if (!getGOTPLT()->hasFragments()) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     // TODO: This should be GOT0, not GOTPLT0.
     RISCVGOT::CreateGOT0(getGOT(), Dynamic ? Dynamic->resolveInfo() : nullptr,
@@ -1753,10 +1753,13 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
     break;
   }
   if (R) {
-    if (GOT)
+    if (GOT) {
+      reportErrorIfGOTIsDiscarded(R);
       recordGOT(R, G);
-    else
+    } else {
+      reportErrorIfGOTPLTIsDiscarded(R);
       recordGOTPLT(R, G);
+    }
   }
   return G;
 }
@@ -1784,6 +1787,9 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
        config().options().traceSymbol(*R)) ||
       m_Module.getPrinter()->traceDynamicLinking())
     config().raise(Diag::create_plt_entry) << R->name();
+
+  reportErrorIfPLTIsDiscarded(R);
+
   RISCVGOT *G = createGOT(GOT::GOTPLTN, Obj, R);
   RISCVPLT *P = RISCVPLT::CreatePLTN(G, Obj->getPLT(), R, is32Bits);
   recordPLT(R, P);
@@ -1811,7 +1817,7 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
   } else {
     if (!config().options().hasNow()) {
       // For lazy binding, create GOTPLT0 and PLT0, if they don't exist.
-      if (getPLT()->getFragmentList().empty())
+      if (!getPLT()->hasFragments())
         RISCVPLT::CreatePLT0(*this, createGOT(GOT::GOTPLT0, Obj, nullptr),
                              getPLT(), is32Bits);
       // Create a static relocation to the PLT0 fragment.

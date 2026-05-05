@@ -44,10 +44,15 @@ InputFileAction::InputFileAction(std::string Name,
     : InputAction(K, Printer), Name(Name), I(nullptr) {}
 
 bool InputFileAction::activate(InputBuilder &PBuilder) {
+  const LinkerConfig &Config = PBuilder.getLinkerConfig();
+  std::string ExpandedName = Input::expandSysrootMarkers(
+      Name, Config.directories(), *Config.getDiagEngine());
+
   std::ifstream Is;
-  Is.open(Name.c_str(), std::ifstream::in);
+  Is.open(ExpandedName.c_str(), std::ifstream::in);
   if (!Is.good()) {
-    PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input) << Name;
+    PBuilder.getDiagEngine()->raise(Diag::fatal_cannot_read_input)
+        << ExpandedName;
     return false;
   }
   Is.close();
@@ -236,15 +241,15 @@ DefSymAction::DefSymAction(std::string PAssignment, DiagnosticPrinter *Printer)
 bool DefSymAction::activate(InputBuilder &PBuilder) {
   std::string FileName =
       (llvm::Twine("Expression(Defsym)") + llvm::Twine(MAssignment)).str();
-  Input *Input = PBuilder.createInputNode(FileName, true /*isSpecial*/);
-  Input->setInputType(Input::Script);
-  Input->setResolvedPath(FileName);
+  Input *Inp = PBuilder.createInputNode(FileName, true /*isSpecial*/);
+  Inp->setInputType(Input::Script);
+  Inp->setResolvedPath(FileName);
   auto pos = MAssignment.find("=");
   if (pos != std::string::npos)
     MAssignment =
         MAssignment.substr(0, pos) + " = " + MAssignment.substr(pos + 1);
   MAssignment.append(";");
-  PBuilder.setMemory(*Input, &MAssignment[0], MAssignment.size());
+  PBuilder.setMemory(*Inp, &MAssignment[0], MAssignment.size());
   return true;
 }
 

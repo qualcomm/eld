@@ -1,3 +1,4 @@
+int printf(const char *, ...);
 char p[] = "Quic";
 char q[] = "eld";
 
