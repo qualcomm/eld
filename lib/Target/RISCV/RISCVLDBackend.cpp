@@ -177,7 +177,7 @@ void RISCVLDBackend::initTargetSymbols() {
                 TableJumpFragment->size(), // size
                 0x0,                       // value
                 make<FragmentRef>(*TableJumpFragment, 0x0),
-                ResolveInfo::Default);
+                ResolveInfo::Hidden);
     if (JvtBase)
       JvtBase->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
