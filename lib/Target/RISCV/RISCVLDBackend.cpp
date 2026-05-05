@@ -424,7 +424,8 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
       EntryIndex = TableJumpFragment->getCMJALTEntryIndex(reloc->symInfo());
     if (EntryIndex >= 0) {
       uint16_t TblJump = static_cast<uint16_t>(0xA002 | (EntryIndex << 2));
-      region->replaceInstruction(offset, reloc, TblJump, 2);
+      region->replaceInstruction(offset, reloc,
+                                 reinterpret_cast<uint8_t *>(&TblJump), 2);
       reloc->setTargetData(TblJump);
       reloc->setType(ELF::riscv::internal::R_RISCV_TBJAL);
       relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 6,
@@ -495,7 +496,8 @@ bool RISCVLDBackend::doRelaxationJal(Relocation *reloc) {
     return false;
 
   uint16_t TblJump = static_cast<uint16_t>(0xA002 | (EntryIndex << 2));
-  region->replaceInstruction(offset, reloc, TblJump, 2);
+  region->replaceInstruction(offset, reloc,
+                             reinterpret_cast<uint8_t *>(&TblJump), 2);
   reloc->setTargetData(TblJump);
   reloc->setType(ELF::riscv::internal::R_RISCV_TBJAL);
   relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 2,

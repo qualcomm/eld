@@ -57,7 +57,9 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
   if (!Sec.isCode())
     return;
 
-  auto &Relocs = Sec.getRelocations();
+  auto RelocRange = Sec.getRelocations();
+  llvm::SmallVector<const Relocation *, 0> Relocs(RelocRange.begin(),
+                                                  RelocRange.end());
   for (size_t I = 0; I < Relocs.size(); ++I) {
     const Relocation *R = Relocs[I];
     if (R->type() != llvm::ELF::R_RISCV_JAL &&
