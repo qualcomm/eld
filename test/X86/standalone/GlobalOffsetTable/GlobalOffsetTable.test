@@ -1,0 +1,13 @@
+REQUIRES: x86
+#----------GlobalOffsetTable.test--------------------- Executable ------#
+#BEGIN_COMMENT
+# Test that _GLOBAL_OFFSET_TABLE_ symbol is emitted for x86-64 and
+# points to .got.plt section.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC -ffunction-sections
+RUN: %link %linkopts %t1.o -o %t1.out 2>&1
+RUN: %readelf -S -W -s %t1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK: .got.plt PROGBITS [[ADDR:[xa-f0-9]+]]
+CHECK: {{.*}} [[ADDR]] {{.*}} _GLOBAL_OFFSET_TABLE_

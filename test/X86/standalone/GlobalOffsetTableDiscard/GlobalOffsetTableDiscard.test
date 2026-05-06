@@ -1,0 +1,13 @@
+REQUIRES: x86
+#---GlobalOffsetTableDiscard.test----------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that ELD errors out when _GLOBAL_OFFSET_TABLE_ is referenced
+# but .got.plt section is discarded via linker script.
+# Consistent with GNU ld behavior.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC -ffunction-sections
+RUN: %not %link %linkopts -T %p/Inputs/discard.t %t1.o -o %t1.out 2>&1 | %filecheck %s
+#END_TEST
+CHECK: symbol '_GLOBAL_OFFSET_TABLE_' referenced
+CHECK: discarded .got.plt section
