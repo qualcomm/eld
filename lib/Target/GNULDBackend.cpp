@@ -1853,164 +1853,6 @@ void GNULDBackend::changeSymbolsFromAbsoluteToGlobal(OutputSectionEntry *out) {
   }
 }
 
-bool GNULDBackend::InsertAtSectionToEnd(ELFSection *OutSection,
-                                        uint64_t &Offset,
-                                        RuleContainer *CurRule,
-                                        RuleContainer *NextRule,
-                                        Expression *Fill, uint32_t atIndex) {
-  std::vector<ELFSection *> &atTable = m_Module.getAtTable();
-
-  if (OutSection->getKind() == LDFileFormat::Null)
-    return false;
-
-  if (!atTable.size())
-    return false;
-  if (atIndex >= atTable.size())
-    return false;
-
-  if (!NextRule)
-    return false;
-
-  eld::RegisterTimer T("Place AT Section to End", "Evaluate Assignments",
-                       m_Module.getConfig().options().printTimingStats());
-
-  // Create empty entry
-  OutputSectionEntry *out = OutSection->getOutputSection();
-
-  if (OutputSectionToFrags.find(out) == OutputSectionToFrags.end())
-    OutputSectionToFrags[out];
-
-  auto &OutputSectionFragVector = OutputSectionToFrags[out];
-
-  uint64_t NewOffset = Offset;
-  LDSymbol *dotSymbol = m_Module.getDotSymbol();
-  if (OutSection->isAlloc())
-    dotSymbol->setValue(OutSection->addr() + NewOffset);
-  for (RuleContainer::sym_iterator it = NextRule->symBegin(),
-                                   ie = NextRule->symEnd();
-       it != ie; ++it) {
-    Assignment *assign = (*it);
-    if (shouldskipAssert(assign))
-      continue;
-    (*it)->assign(m_Module, OutSection);
-    if (OutSection->isAlloc())
-      NewOffset = dotSymbol->value() - OutSection->addr();
-  }
-  uint64_t atSectionAddress = 0;
-  uint64_t atSectionOffset = 0;
-
-  ELFSection *atSection = atTable[atIndex];
-  if (atSection) {
-    atSectionAddress = atSection->addr();
-    atSectionOffset = atSectionAddress - OutSection->addr();
-  }
-  if (NewOffset >= atSectionOffset) {
-    atSection = atSection->getOutputSection()->getLastRule()->getSection();
-    typedef llvm::SmallVectorImpl<Fragment *>::iterator FragIter;
-    FragIter EndIter = CurRule->getSection()->getFragmentList().end();
-    for (auto &Frag : atSection->getFragmentList()) {
-      Frag->getOwningSection()->setFixedAddr();
-      Frag->getOwningSection()->setAddr(atSectionAddress);
-      Frag->getOwningSection()->setMatchedLinkerScriptRule(CurRule);
-      Frag->getOwningSection()->setOutputSection(
-          OutSection->getOutputSection());
-    }
-    OutputSectionFragVector.insert(OutputSectionFragVector.end(),
-                                   atSection->getFragmentList().begin(),
-                                   atSection->getFragmentList().end());
-    CurRule->getSection()->splice(EndIter, *atSection);
-  } else {
-    return false;
-  }
-
-  Offset = CurRule->getSection()->offset();
-  if (OutSection->isAlloc())
-    dotSymbol->setValue(OutSection->addr() + Offset);
-  for (auto &F : CurRule->getSection()->getFragmentList()) {
-    if (F->getOwningSection()->isFixedAddr())
-      Offset = Offset + (F->getOwningSection()->addr() - dotSymbol->value());
-    F->setOffset(Offset);
-    if (Fill)
-      getModule().setFragmentPaddingValue(F, Fill->result());
-    Offset = F->getOffset(config().getDiagEngine()) + F->size();
-    if (OutSection->isAlloc()) {
-      dotSymbol->setValue(OutSection->addr() + Offset);
-      Offset = dotSymbol->value() - OutSection->addr();
-    }
-  }
-  return true;
-}
-
-bool GNULDBackend::TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
-                                       ELFSection *Section, uint32_t atIndex) {
-  std::vector<ELFSection *> &atTable = m_Module.getAtTable();
-
-  if (Section->getKind() == LDFileFormat::Null)
-    return false;
-
-  if (!atTable.size())
-    return false;
-
-  if (atIndex >= atTable.size())
-    return false;
-
-  eld::RegisterTimer T("Try to Place AT Section", "Evaluate Assignments",
-                       m_Module.getConfig().options().printTimingStats());
-  // Create empty entry
-  OutputSectionEntry *out = Section->getOutputSection();
-  if (OutputSectionToFrags.find(out) == OutputSectionToFrags.end())
-    OutputSectionToFrags[out];
-
-  auto &OutputSectionFragVector = OutputSectionToFrags[out];
-
-  ELFSection *atSection = atTable[atIndex];
-  LDSymbol *dotSymbol = m_Module.getDotSymbol();
-
-  uint64_t atSectionAddress = 0;
-  uint64_t atSectionOffset = 0;
-  llvm::StringRef atSectionName = atSection->name();
-
-  if (atSection) {
-    atSectionAddress = atSection->addr();
-    atSectionOffset = atSectionAddress - Section->addr();
-  }
-  atSection = atSection->getOutputSection()->getLastRule()->getSection();
-  Fragment *First = atSection->getFrontFragment();
-  typedef llvm::SmallVectorImpl<Fragment *>::iterator FragIter;
-  FragIter EndIter = In->getSection()->getFragmentList().end();
-  FragIter Iter = Frag ? Frag->getIterator() : EndIter;
-
-  bool InsertedAtSection = false;
-
-  uint64_t Offset = dotSymbol->value() - Section->addr();
-
-  // Check if the next fragment can be inserted in the list of fragments
-  // that is being iterated on.
-  if (atSectionOffset == Offset ||
-      (Frag && (Offset < atSectionOffset) &&
-       ((First->getNewOffset(Offset) >= atSectionOffset) ||
-        ((First->getNewOffset(Offset) + First->size()) >= atSectionOffset)))) {
-    InsertedAtSection = true;
-    Offset = atSectionAddress - Offset;
-    for (auto &Frag : atSection->getFragmentList()) {
-      Frag->getOwningSection()->setFixedAddr();
-      Frag->getOwningSection()->setAddr(atSectionAddress);
-      Frag->getOwningSection()->setMatchedLinkerScriptRule(In);
-      Frag->getOwningSection()->setOutputSection(Section->getOutputSection());
-    }
-    OutputSectionFragVector.insert(OutputSectionFragVector.end(),
-                                   atSection->getFragmentList().begin(),
-                                   atSection->getFragmentList().end());
-    if (m_Module.getPrinter()->isVerbose())
-      config().raise(Diag::verbose_inserting_section_at_fixed_addr)
-          << atSectionName << utility::toHex(atSectionAddress)
-          << Section->getOutputSection()->name();
-
-    In->getSection()->splice(Iter, *atSection);
-  }
-  return InsertedAtSection;
-}
-
 static void checkFragOffset(const Fragment *F, DiagnosticEngine *DiagEngine) {
   if (!F->hasOffset()) {
     auto *I = F->getOwningSection()->getMatchedLinkerScriptRule();
@@ -2040,8 +1882,7 @@ static void checkFragOffset(const Fragment *F, DiagnosticEngine *DiagEngine) {
 
 // Study this function! Use this function to emit diagnostics of
 // getOffset(config().getDiagEngine()).
-void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
-                                       uint32_t &atIndex) {
+void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
 
   eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
@@ -2137,14 +1978,6 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
     if (fillExpression) {
       fillExpression->evaluateAndRaiseError();
     }
-    bool placedAtSection = false;
-    OutputSectionEntry::iterator NextRuleIter = in + 1;
-    if (!InSection->hasFragments()) {
-      if (!TryToPlaceAtSection(*in, nullptr, OutSection, atIndex))
-        continue;
-      placedAtSection = true;
-      ++atIndex;
-    }
     typedef llvm::SmallVectorImpl<Fragment *>::iterator FragIter;
     FragIter Begin, End;
     Begin = InSection->getFragmentList().begin();
@@ -2155,17 +1988,6 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
       Fragment *F = *Begin;
       if (F->isNull()) {
         ++Begin;
-        continue;
-      }
-      if (!placedAtSection &&
-          TryToPlaceAtSection(*in, F, OutSection, atIndex)) {
-        // Reset begin/end.
-        Begin = InSection->getFragmentList().begin();
-        End = InSection->getFragmentList().end();
-        offset = InSection->offset();
-        if (OutSection->isAlloc())
-          dotSymbol->setValue(OutSection->addr() + offset);
-        ++atIndex;
         continue;
       }
       auto OwningSection = F->getOwningSection();
@@ -2191,15 +2013,6 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out,
       dotSymbol->setValue(OutSection->addr() + offset);
       offset = dotSymbol->value() - OutSection->addr();
       ++Begin;
-    }
-    RuleContainer *NextRule =
-        (NextRuleIter == inEnd) ? nullptr : *(NextRuleIter);
-    if (NextRule && NextRule->hasAssignments()) {
-      if (InsertAtSectionToEnd(OutSection, offset, CurRule, NextRule,
-                               fillExpression, atIndex))
-        atIndex++;
-      else
-        dotSymbol->setValue(OutSection->addr() + offset);
     }
     CurRule->getSection()->setSize(offset);
     padding.startOffset = offset;
@@ -2728,7 +2541,6 @@ bool GNULDBackend::setOutputSectionOffset() {
   SectionMap::iterator out, outBegin, outEnd;
   out = outBegin = script.sectionMap().begin();
   outEnd = script.sectionMap().end();
-  uint32_t atIndex = 0;
 
   uint64_t one_ehdr_size = 0;
 
@@ -2756,7 +2568,7 @@ bool GNULDBackend::setOutputSectionOffset() {
       offset = one_ehdr_size;
       cur->setOffset(one_ehdr_size);
     }
-    evaluateAssignments(*out, atIndex);
+    evaluateAssignments(*out);
     if (!config().getDiagEngine()->diagnose()) {
       if (m_Module.getPrinter()->isVerbose())
         config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
@@ -3097,27 +2909,6 @@ bool GNULDBackend::placeOutputSections() {
     for (auto &orphan : orphans) {
       if (layoutInfo)
         layoutInfo->recordOrphanSection();
-      // If the section has an @ command, the section remains as an orphan
-      // section
-      // permanently, When the output sections are created, it assigns the right
-      // place for these sections.
-      size_t atpos = orphan->name().find("@");
-      if (atpos != llvm::StringRef::npos) {
-        uint64_t addr;
-        orphan->name()
-            .slice(atpos + 1, orphan->name().size())
-            .getAsInteger(0, addr);
-        orphan->setAddr(addr);
-        orphan->setFixedAddr();
-        if ((addr % orphan->getAddrAlign()) != 0) {
-          config().raise(Diag::at_section_not_aligned) << orphan->name();
-          alignAddress(addr, orphan->getAddrAlign());
-          orphan->setAddr(addr);
-        }
-        if (!orphan->isRelocationKind())
-          m_Module.getAtTable().push_back(orphan);
-        continue;
-      }
       size_t order = getSectionOrder(*orphan);
       SectionMap::iterator out, outBegin, outEnd;
       outBegin = sectionMap.begin();
@@ -3206,11 +2997,6 @@ bool GNULDBackend::placeOutputSections() {
     }
   }
 
-  // Sort the At Table by the address, so its easy to place them.
-  std::vector<ELFSection *> &atTable = m_Module.getAtTable();
-  std::stable_sort(
-      atTable.begin(), atTable.end(),
-      [](ELFSection *A, ELFSection *B) { return A->addr() < B->addr(); });
   return !isError;
 }
 

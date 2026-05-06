@@ -478,7 +478,7 @@ public:
 
   bool assignOffsets(uint64_t Offset);
 
-  void evaluateAssignments(OutputSectionEntry *output, uint32_t &atIndex);
+  void evaluateAssignments(OutputSectionEntry *output);
 
   void evaluateAssignmentsAtEndOfOutputSection(OutputSectionEntry *output);
 
@@ -984,13 +984,6 @@ private:
 
   void addProgramHeaderToLayout();
 
-  bool TryToPlaceAtSection(RuleContainer *In, Fragment *Frag,
-                           ELFSection *Section, uint32_t Index);
-
-  bool InsertAtSectionToEnd(ELFSection *OutSection, uint64_t &Offset,
-                            RuleContainer *CurRule, RuleContainer *NextRule,
-                            Expression *Fill, uint32_t Index);
-
   // ----------------------Handle Assert --------------------------
   void evaluateAsserts();
 
@@ -1175,9 +1168,6 @@ protected:
   // Build ID Section
   ELFSection *m_pBuildIDSection = nullptr;
   BuildIDFragment *m_pBuildIDFragment = nullptr;
-
-  // At Table.
-  uint32_t m_AtTableIndex = 0;
 
   // Start Offset.
   int64_t m_StartOffset = 0;
