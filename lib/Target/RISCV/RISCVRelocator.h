@@ -49,6 +49,8 @@ public:
   bool is32bit() const { return config().targets().is32Bits(); }
 
 private:
+  bool isPICRelocTypeSupported(const Relocation &reloc) const override;
+
   virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                               eld::IRBuilder &pBuilder, ELFSection &pSection);
 
@@ -57,8 +59,6 @@ private:
                                CopyRelocs &);
 
   RISCVGOT *getTLSModuleID(ResolveInfo *R, bool isStatic);
-
-  bool isInvalidReloc(Relocation &pReloc) const;
 
   bool isRelocSupported(Relocation &pReloc) const;
 

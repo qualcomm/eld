@@ -252,10 +252,8 @@ ARMRelocator::ARMRelocator(ARMGNULDBackend &pParent, LinkerConfig &pConfig,
                            Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {}
 
-bool ARMRelocator::isInvalidReloc(Relocation &pReloc) const {
-  if (!config().isCodeIndep())
-    return false;
-  switch (pReloc.type()) {
+bool ARMRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
+  switch (reloc.type()) {
   case llvm::ELF::R_ARM_ABS16:
   case llvm::ELF::R_ARM_ABS12:
   case llvm::ELF::R_ARM_THM_ABS5:
@@ -267,13 +265,12 @@ bool ARMRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_ARM_THM_MOVT_ABS:
   case llvm::ELF::R_ARM_TLS_LE12:
   case llvm::ELF::R_ARM_TLS_IE12GP:
-    return true;
+    return false;
   case llvm::ELF::R_ARM_TLS_LE32:
-    return !config().options().isPIE();
+    return config().options().isPIE();
   default:
-    break;
+    return true;
   }
-  return false;
 }
 
 Relocator::Result ARMRelocator::applyRelocation(Relocation &pRelocation) {
@@ -310,14 +307,8 @@ Relocator::Size ARMRelocator::getSize(Relocation::Type pType) const {
   return 32;
 }
 
-/// checkValidReloc - When we attempt to generate a dynamic relocation for
-/// output file, check if the relocation is supported by dynamic linker.
-bool ARMRelocator::checkValidReloc(Relocation &pReloc) const {
-  // If not PIC object, no relocation type is invalid
-  if (!config().isCodeIndep())
-    return true;
-
-  switch (pReloc.type()) {
+bool ARMRelocator::isDynamicRelocSupported(const Relocation &reloc) const {
+  switch (reloc.type()) {
   case llvm::ELF::R_ARM_RELATIVE:
   case llvm::ELF::R_ARM_COPY:
   case llvm::ELF::R_ARM_GLOB_DAT:
@@ -329,12 +320,9 @@ bool ARMRelocator::checkValidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_ARM_TLS_DTPOFF32:
   case llvm::ELF::R_ARM_TLS_TPOFF32:
     return true;
-    break;
-
   default:
     return false;
   }
-  return false;
 }
 
 void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
@@ -360,6 +348,8 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                          pReloc.targetRef()->offset(),
                          llvm::ELF::R_ARM_RELATIVE, m_Target);
@@ -552,13 +542,8 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
         }
         CopyRelocs.insert(rsym);
       } else {
-        if (!checkValidReloc(pReloc)) {
-          config().raise(Diag::non_pic_relocation)
-              << (int)pReloc.type() << pReloc.symInfo()->name()
-              << pReloc.getSourcePath(config().options());
-          m_Target.getModule().setFailure(true);
+        if (!checkDynamicRelocAllowed(pReloc, pSection, true))
           return;
-        }
         helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                            pReloc.targetRef()->offset(),
                            isSymbolPreemptible ? llvm::ELF::R_ARM_ABS32
@@ -640,13 +625,8 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         CopyRelocs.insert(rsym);
       } else {
-        if (!checkValidReloc(pReloc)) {
-          config().raise(Diag::non_pic_relocation)
-              << (int)pReloc.type() << pReloc.symInfo()->name()
-              << pReloc.getSourcePath(config().options());
-          m_Target.getModule().setFailure(true);
+        if (!checkDynamicRelocAllowed(pReloc, pSection, false))
           return;
-        }
         rsym->setReserved(rsym->reserved() | ReserveRel);
         getTarget().checkAndSetHasTextRel(pSection);
       }
@@ -805,14 +785,8 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
   if (LinkerConfig::Object == config().codeGenType())
     return;
 
-  if (isInvalidReloc(pReloc)) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(Diag::non_pic_relocation)
-        << getName(pReloc.type()) << pReloc.symInfo()->name()
-        << pReloc.getSourcePath(config().options());
-    m_Target.getModule().setFailure(true);
+  if (!checkPICRelocSupported(pReloc))
     return;
-  }
 
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();

@@ -284,6 +284,43 @@ uint32_t Relocator::getRelocType(std::string RelocName) {
   return RelocNameMap[RelocName];
 }
 
+bool Relocator::reportNonPICRelocation(const Relocation &reloc) const {
+  const auto *sym = reloc.symInfo();
+  config().raise(Diag::non_pic_relocation)
+      << getName(reloc.type()) << sym->name()
+      << reloc.getSourcePath(config().options());
+  return false;
+}
+
+bool Relocator::checkPICRelocSupported(const Relocation &reloc) const {
+  if (!config().isCodeIndep())
+    return true;
+  if (isPICRelocTypeSupported(reloc))
+    return true;
+  return reportNonPICRelocation(reloc);
+}
+
+bool Relocator::checkDynamicRelocAllowed(const Relocation &reloc,
+                                         const ELFSection &section,
+                                         bool isAbs) const {
+  if (!config().isCodeIndep())
+    return true;
+
+  // -z text (default) rejects dynamic relocations in read-only output sections.
+  if (section.isAlloc() && getTarget().isTargetReadOnly(section) &&
+      !config().options().textRelocsAllowed())
+    return reportNonPICRelocation(reloc);
+
+  // Truncated absolute relocations cannot be safely represented as dynamic
+  // relocations for 64-bit outputs.
+  if (isAbs && config().targets().is64Bits() && getSize(reloc.type()) < 64)
+    return reportNonPICRelocation(reloc);
+
+  if (!isDynamicRelocSupported(reloc))
+    return reportNonPICRelocation(reloc);
+  return true;
+}
+
 bool Relocator::doDeMangle() const {
   return m_Config.options().shouldDemangle();
 }

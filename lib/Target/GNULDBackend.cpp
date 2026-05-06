@@ -4086,17 +4086,32 @@ const LDSymbol *GNULDBackend::getEntrySymbol() const {
   return entrySymbol;
 }
 
+bool GNULDBackend::isTargetReadOnly(const ELFSection &input) const {
+  if (!input.isAlloc() || input.isWritable())
+    return false;
+
+  assert(input.getOutputELFSection());
+  if (input.getOutputELFSection()->isWritable())
+    return false;
+
+  assert(input.getOutputSection());
+  for (const RuleContainer *rule : *input.getOutputSection()) {
+    if (rule->getSection()->isWritable())
+      return false;
+    for (const ELFSection *matched : rule->getMatchedInputSections())
+      if (matched->isWritable())
+        return false;
+  }
+  return true;
+}
+
 void GNULDBackend::checkAndSetHasTextRel(const ELFSection &pSection) {
   if (m_bHasTextRel)
     return;
 
   // if the target section of the dynamic relocation is ALLOCATE but is not
   // writable, than we should set DF_TEXTREL
-  const uint32_t flag = pSection.getFlags();
-  if (0 == (flag & llvm::ELF::SHF_WRITE) && (flag & llvm::ELF::SHF_ALLOC))
-    m_bHasTextRel = true;
-
-  return;
+  m_bHasTextRel = isTargetReadOnly(pSection);
 }
 
 /// sortRelocation - sort the dynamic relocations to let dynamic linker

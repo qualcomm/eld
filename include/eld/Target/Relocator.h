@@ -133,6 +133,11 @@ public:
 
   uint32_t getRelocType(std::string Name);
 
+  bool checkPICRelocSupported(const Relocation &reloc) const;
+
+  bool checkDynamicRelocAllowed(const Relocation &reloc,
+                                const ELFSection &section, bool isAbs) const;
+
   /// Get Symbol Name
   std::string getSymbolName(const ResolveInfo *R) const;
 
@@ -159,6 +164,16 @@ private:
   llvm::DenseMap<uint64_t, bool> UndefHits;
 
 protected:
+  bool reportNonPICRelocation(const Relocation &reloc) const;
+
+  virtual bool isPICRelocTypeSupported(const Relocation &reloc) const {
+    return true;
+  }
+
+  virtual bool isDynamicRelocSupported(const Relocation &reloc) const {
+    return true;
+  }
+
   Module &m_Module;
   std::mutex m_RelocMutex;
   std::unordered_map<std::string, uint32_t> RelocNameMap;

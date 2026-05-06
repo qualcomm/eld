@@ -222,14 +222,9 @@ Relocator::Size HexagonRelocator::getSize(Relocation::Type pType) const {
   return 32;
 }
 
-// Check if the relocation is invalid while generating
-// dynamic libraries
-bool HexagonRelocator::isInvalidReloc(Relocation &pReloc) const {
-  // If not PIC object, no relocation type is invalid
-  if (!config().isCodeIndep())
-    return false;
-
-  switch (pReloc.type()) {
+// Check if relocation type is legal in code-independent links.
+bool HexagonRelocator::isPICRelocTypeSupported(const Relocation &reloc) const {
+  switch (reloc.type()) {
   case llvm::ELF::R_HEX_LO16:
   case llvm::ELF::R_HEX_HI16:
   case llvm::ELF::R_HEX_16:
@@ -254,7 +249,7 @@ bool HexagonRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_HEX_IE_32:
   case llvm::ELF::R_HEX_IE_32_6_X:
   case llvm::ELF::R_HEX_IE_16_X:
-    return true;
+    return false;
   case llvm::ELF::R_HEX_TPREL_LO16:
   case llvm::ELF::R_HEX_TPREL_HI16:
   case llvm::ELF::R_HEX_TPREL_32:
@@ -262,9 +257,9 @@ bool HexagonRelocator::isInvalidReloc(Relocation &pReloc) const {
   case llvm::ELF::R_HEX_TPREL_16_X:
   case llvm::ELF::R_HEX_TPREL_11_X:
   case llvm::ELF::R_HEX_TPREL_16:
-    return !config().options().isPIE();
+    return config().options().isPIE();
   default:
-    return false;
+    return true;
   }
 }
 
@@ -288,14 +283,8 @@ void HexagonRelocator::scanRelocation(Relocation &pReloc,
   }
 
   // If we are generating a shared library check for invalid relocations
-  if (isInvalidReloc(pReloc)) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    config().raise(Diag::non_pic_relocation)
-        << getName(pReloc.type()) << pReloc.symInfo()->name()
-        << pReloc.getSourcePath(config().options());
-    m_Target.getModule().setFailure(true);
+  if (!checkPICRelocSupported(pReloc))
     return;
-  }
 
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
@@ -365,6 +354,8 @@ void HexagonRelocator::scanLocalReloc(InputFile &InputFile, Relocation &pReloc,
     // Reserve an entry in .rel.dyn
     if (config().isCodeIndep()) {
       std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+        return;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                          pReloc.targetRef()->offset(),
                          llvm::ELF::R_HEX_RELATIVE, m_Target);
@@ -490,6 +481,8 @@ void HexagonRelocator::scanGlobalReloc(InputFile &InputFile, Relocation &pReloc,
         }
         CopyRelocs.insert(rsym);
       } else {
+        if (!checkDynamicRelocAllowed(pReloc, pSection, true))
+          return;
         helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
                            pReloc.targetRef()->offset(),
                            isSymbolPreemptible ? llvm::ELF::R_HEX_32
