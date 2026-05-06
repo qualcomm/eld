@@ -1101,9 +1101,13 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
   }
 
   if (0x0 == T) {
-    // FIXME: conditional branch to PLT in THUMB-2 not supported yet
-    DiagEngine->raise(Diag::unsupport_cond_branch_reloc) << (int)pReloc.type();
-    return Relocator::BadReloc;
+    // If the target is a PLT entry, conditional branch to PLT is not
+    // supported yet. For non-PLT targets (plain labels in Thumb code
+    // without .thumb_func), proceed with the relocation.
+    if (pReloc.symInfo()->reserved() & Relocator::ReservePLT) {
+      DiagEngine->raise(Diag::unsupport_cond_branch_reloc) << (int)pReloc.type();
+      return Relocator::BadReloc;
+    }
   }
 
   Relocator::DWord X = ((S + A) | T) - P;
