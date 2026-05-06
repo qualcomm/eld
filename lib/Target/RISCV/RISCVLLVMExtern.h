@@ -30,6 +30,8 @@ enum EncodingType {
   EncTy_QC_EB,
   EncTy_QC_EAI,
   EncTy_QC_EJ,
+  EncTy_QC_EI,
+  EncTy_QC_ES,
   EncTy_6,
   EncTy_8,
   EncTy_16,
@@ -93,6 +95,9 @@ inline unsigned getEncodingBitWidth(EncodingType Type) {
   case EncTy_QC_EJ:
   case EncTy_32:
     return 32;
+  case EncTy_QC_EI:
+  case EncTy_QC_ES:
+    return 26;
   case EncTy_LEB128:
   case EncTy_None:
     return 0;

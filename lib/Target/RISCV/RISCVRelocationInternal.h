@@ -54,6 +54,10 @@ enum : uint32_t {
   R_RISCV_TPREL_I,
   R_RISCV_TPREL_S,
   R_RISCV_TBJAL,
+  R_RISCV_QC_ABS26_I,   // absolute xqcilo load  (S+A)
+  R_RISCV_QC_ABS26_S,   // absolute xqcilo store (S+A)
+  R_RISCV_QC_GPREL26_I, // GP-relative xqcilo load  (S+A-G)
+  R_RISCV_QC_GPREL26_S, // GP-relative xqcilo store (S+A-G)
 
   /*
     Internal IDs for Nonstandard Relocations
