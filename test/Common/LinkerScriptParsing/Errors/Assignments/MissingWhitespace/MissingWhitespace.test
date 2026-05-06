@@ -1,0 +1,25 @@
+UNSUPPORTED: old_lsparser
+#---MissingWhitespace.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks deprecated warning reporting for assignment expressions that
+# miss whitespace around assignment operators, except in MEMORY command.
+#END_COMMENT
+RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s --allow-empty --check-prefix NO_WARN
+RUN: %lsparserverifier %lsparserverifier_opts -Wdeprecated %p/Inputs/script.t -Wno-deprecated 2>&1 | %filecheck %s --allow-empty --check-prefix NO_WARN
+RUN: %lsparserverifier %lsparserverifier_opts -Wdeprecated %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix CHECK --strict-whitespace
+RUN: %lsparserverifier %lsparserverifier_opts -Wdeprecated %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1 --strict-whitespace
+RUN: %lsparserverifier %lsparserverifier_opts -Wdeprecated %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2 --strict-whitespace
+RUN: %lsparserverifier %lsparserverifier_opts -Wdeprecated %p/Inputs/script3.t 2>&1 | %filecheck %s --check-prefix CHECK3 --strict-whitespace
+RUN: %lsparserverifier %lsparserverifier_opts -Wdeprecated %p/Inputs/script4.t 2>&1 | %filecheck %s --check-prefix CHECK4 --strict-whitespace
+
+#NO_WARN-NOT: missing whitespace around assignment operator
+
+#CHECK: Warning: {{.*}}script.t:6: missing whitespace around assignment operator '=' in assignment expression is deprecated
+
+#CHECK1: Warning: {{.*}}script1.t:1: missing whitespace around assignment operator '=' in assignment expression is deprecated
+
+#CHECK2: Warning: {{.*}}script2.t:1: missing whitespace around assignment operator '=' in assignment expression is deprecated
+
+#CHECK3: Warning: {{.*}}script3.t:3: missing whitespace around assignment operator '=' in assignment expression is deprecated
+
+#CHECK4: Warning: {{.*}}script4.t:1: missing whitespace around assignment operator '+=' in assignment expression is deprecated

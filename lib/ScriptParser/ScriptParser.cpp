@@ -111,11 +111,10 @@ bool ScriptParser::readAssignment(llvm::StringRef Tok) {
     consume(";");
     return true;
   }
+  Tok = splitAssignmentToken(Tok);
   bool Ret = false;
   StringRef Op = peek(LexState::Expr);
-  if (Op.starts_with("=") ||
-      (Op.size() == 2 && Op[1] == '=' && strchr("*/+-&|^", Op[0])) ||
-      Op == "<<=" || Op == ">>=") {
+  if (isAssignmentOperator(Op)) {
     Ret = readSymbolAssignment(Tok);
   } else if (Tok == "PROVIDE" || Tok == "HIDDEN" || Tok == "PROVIDE_HIDDEN") {
     readProvideHidden(Tok);
@@ -471,13 +470,63 @@ bool ScriptParser::isValidSymbolName(StringRef S) {
   return !S.empty() && !isDigit(S[0]) && llvm::all_of(S, Valid);
 }
 
+std::optional<StringRef> ScriptParser::getOpWithoutSpace(StringRef line,
+                                                         StringRef op) {
+  size_t pos = 0;
+  while ((pos = line.find(op, pos)) != StringRef::npos) {
+    size_t opStart = pos;
+    size_t opEnd = pos + op.size();
+
+    if (opStart == 0 || opEnd >= line.size())
+      return line.slice(opStart, opEnd);
+    if (line[opStart - 1] != ' ' || line[opEnd] != ' ')
+      return line.slice(opStart, opEnd);
+    pos = opEnd;
+  }
+  return std::nullopt;
+}
+
+bool ScriptParser::isAssignmentOperator(StringRef Op) const {
+  for (StringRef AssignmentOp : AssignmentOps)
+    if (AssignmentOp == Op)
+      return true;
+  return false;
+}
+
+bool ScriptParser::isValidAssignment(llvm::StringRef Op) {
+  if (InMemoryCmd || !isAssignmentOperator(Op))
+    return true;
+
+  StringRef line = getLine();
+  std::optional<StringRef> BadOp = getOpWithoutSpace(line, Op);
+  if (BadOp) {
+    if (ThisConfig.showDeprecatedWarnings())
+      setWarn(Twine("missing whitespace around assignment operator '") + Op +
+              "' in assignment expression is deprecated");
+  }
+
+  return true;
+}
+
+StringRef ScriptParser::splitAssignmentToken(StringRef Tok) {
+  for (StringRef Op : AssignmentOps) {
+    size_t Pos = Tok.find(Op);
+    if (Pos == StringRef::npos || Pos == 0)
+      continue;
+    CurBuf.S = StringRef(Tok.data() + Pos, CurBuf.S.end() - Tok.data() - Pos);
+    CurTok = {};
+    return Tok.take_front(Pos);
+  }
+  return Tok;
+}
+
 bool ScriptParser::readSymbolAssignment(StringRef Tok,
                                         Assignment::Type AssignType) {
   StringRef Name = unquote(Tok);
   StringRef Op = next(LexState::Expr);
 
-  assert(Op == "=" || Op == "*=" || Op == "/=" || Op == "+=" || Op == "-=" ||
-         Op == "&=" || Op == "|=" || Op == "^=" || Op == "<<=" || Op == ">>=");
+  assert(isAssignmentOperator(Op));
+  isValidAssignment(Op);
   // Note: GNU ld does not support %=.
   Expression *E = readExpr();
   Module &Module = ThisScriptFile.module();
@@ -839,7 +888,7 @@ InputSectDesc::Spec ScriptParser::readInputSectionDescSpec(StringRef Tok) {
     if (!atEOF() && peekTok != "(" &&
         computeLineNumber(peekTok) == getCurrentLineNumber()) {
       next();
-      if (ThisConfig.showLinkerScriptWarnings())
+      if (ThisConfig.showDeprecatedWarnings())
         setWarn("Space between archive:member file pattern is deprecated");
       ArchiveMem = createAndRegisterWildcardPattern(peekTok);
     }
@@ -872,7 +921,7 @@ OutputSectDesc::Prolog ScriptParser::readOutputSectDescPrologue() {
   Prologue.init();
   if (peek(LexState::Expr) != ":") {
     if (consume("(")) {
-      if (!readOutputSectTypeAndPermissions(Prologue, peek())){
+      if (!readOutputSectTypeAndPermissions(Prologue, peek())) {
         Prologue.OutputSectionVMA = readExpr();
         Prologue.OutputSectionVMA->setParen();
       }
@@ -1132,6 +1181,7 @@ void ScriptParser::readOutputArch() {
 }
 
 void ScriptParser::readMemory() {
+  llvm::SaveAndRestore<bool> SaveInMemoryCmd(InMemoryCmd, true);
   expect("{");
   while (peek() != "}" && !atEOF()) {
     llvm::StringRef Tok = next();
