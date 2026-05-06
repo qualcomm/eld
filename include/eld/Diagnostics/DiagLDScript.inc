@@ -82,6 +82,8 @@ DIAG(error_memory_region_exceeded_limit, DiagnosticEngine::Error,
      "0x%2 bytes")
 DIAG(error_memory_region_empty, DiagnosticEngine::Error,
      "Missing name for memory region, name cannot be empty")
+DIAG(warn_section_not_in_region, DiagnosticEngine::Warning,
+     "address 0x%2 of section '%0' is not within region '%1'")
 DIAG(error_duplicate_memory_region, DiagnosticEngine::Error,
      "Duplicate memory region %0")
 DIAG(verbose_verified_add_memory_region, DiagnosticEngine::Verbose,

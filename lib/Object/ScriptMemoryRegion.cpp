@@ -43,7 +43,23 @@ void ScriptMemoryRegion::addOutputSection(const OutputSectionEntry *O) {
   }
 }
 
-void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config) {
+void ScriptMemoryRegion::verifyMemoryUsage(LinkerConfig &Config,
+                                           const SectionMap &SectMap) {
+
+  if (Config.showLinkerScriptWarnings()) {
+    for (auto *out : SectMap) {
+      if (!out->epilog().hasRegion())
+        continue;
+      if (&out->epilog().region() != this)
+        continue;
+      if (!out->prolog().hasVMA())
+        continue;
+      uint64_t vma = out->prolog().vma().result();
+      if (!containsVMA(vma))
+        Config.raise(Diag::warn_section_not_in_region)
+            << out->name() << getName() << utility::toHex(vma);
+    }
+  }
   auto ExpLen = getLength();
   if (ExpLen && !ExpLen.value() && Config.showLinkerScriptWarnings()) {
     MemorySpec *Spec = MMemoryDesc->getMemorySpec();
