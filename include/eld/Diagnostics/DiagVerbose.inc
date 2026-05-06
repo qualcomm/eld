@@ -157,8 +157,6 @@ DIAG(mapstyles_used, DiagnosticEngine::Verbose,
      "Using MapStyles %0")
 DIAG(verbose_using_just_symbols, DiagnosticEngine::Verbose,
      "Using just symbols for input %0")
-DIAG(verbose_inserting_section_at_fixed_addr, DiagnosticEngine::Trace,
-     "Section %0 is placed at 0x%1 in output section %2")
 DIAG(verbose_linker_script_output_file, DiagnosticEngine::Verbose,
      "Using output file name '%0' specified in the linker script '%1'")
 DIAG(verbose_rule_matching_cache_func_hash, DiagnosticEngine::Verbose,

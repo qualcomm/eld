@@ -211,9 +211,6 @@ public:
 
   ELFSection *getSection(const std::string &Name) const;
 
-  // --- Sections with @ --- //
-  SectionTable &getAtTable() { return AtTable; }
-
   /// @}
   /// @name Symbol Accessors
   /// @{
@@ -668,7 +665,6 @@ private:
   llvm::StringMap<ELFSection *> OutputSectionTableMap;
   std::unordered_map<Fragment *, std::vector<LDSymbol *>>
       PluginFragmentToSymbols;
-  SectionTable AtTable;
   LinkerConfig &ThisConfig;
   ScriptSymbolList DynamicListSymbols;
   llvm::StringSet<> DuplicateFarCalls;
