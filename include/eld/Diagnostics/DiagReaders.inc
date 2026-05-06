@@ -54,7 +54,7 @@ DIAG(discard_reloc_section_map, DiagnosticEngine::Note,
 DIAG(input_file_has_zero_size, DiagnosticEngine::Note,
      "Input file %0 has no contents")
 DIAG(string_not_null_terminated, DiagnosticEngine::Error,
-    "%0: string is not null terminated")
+     "%0: string is not null terminated")
 DIAG(invalid_elf_class, DiagnosticEngine::Error,
      "Invalid ELF file %0 for target %1")
 DIAG(fatal_big_endian_target, DiagnosticEngine::Fatal,
@@ -79,7 +79,8 @@ DIAG(error_failed_to_read_thin_archive_mem, DiagnosticEngine::Error,
 DIAG(warn_whole_archive_enabled, DiagnosticEngine::Warning,
      "'whole-archive' enabled for '%0'")
 DIAG(warn_archive_mem_repeated_content, DiagnosticEngine::Warning,
-     "Archive member '%0:%1' at index %2 has same content as archive member '%0:%3' "
+     "Archive member '%0:%1' at index %2 has same content as archive member "
+     "'%0:%3' "
      "at index %4")
 DIAG(verbose_performing_archive_symbol_resolution, DiagnosticEngine::Verbose,
      "Performing symbol resolution for archive '%0'")
@@ -97,7 +98,7 @@ DIAG(error_patch_invalid_symbol, DiagnosticEngine::Error,
 DIAG(warning_abi_differences, DiagnosticEngine::Warning,
      "'%0' has OS/ABI set to %1, previously seen %2")
 DIAG(error_unknown_target_emulation, DiagnosticEngine::Error,
-  "target emulation unknown: -m or at least one .o file required")
+     "target emulation unknown: -m or at least one .o file required")
 DIAG(error_target_not_found, DiagnosticEngine::Error,
      "Target not registered : %0")
 DIAG(error_emulation_failed_for_target, DiagnosticEngine::Error,
@@ -110,7 +111,8 @@ DIAG(error_failed_to_find_driver, DiagnosticEngine::Error,
      "No driver found for target : %0")
 DIAG(fatal_unsupported_bit_code_file, DiagnosticEngine::Fatal,
      "Unsupported architecture %0 in LLVM Bitcode file : %1")
-DIAG(note_empty_archive, DiagnosticEngine::Note,
-     "Empty archive file: '%0'")
+DIAG(note_empty_archive, DiagnosticEngine::Note, "Empty archive file: '%0'")
 DIAG(sframe_read_error, DiagnosticEngine::Error,
      "SFrame Read Error : %0 from file %1")
+DIAG(warn_duplicate_soname, DiagnosticEngine::Warning,
+     "'%0' and '%1' have the same SONAME '%2'")
