@@ -350,10 +350,6 @@ OutputSectionIterator interface
 
     **CreatingSections**
         * When the state of the linker is set to CreatingSections, the plug-in can query each rule for its contents. The contents of the Rule can only be Chunks.
-        * Call APIs specified in the LinkerScriptRule to do either of the following:
-            * addChunk – Add a Chunk to a LinkerScriptRule
-            * removeChunk – Remove a Chunk from a LinkerScriptRule.
-            * updateChunk – Replace Chunks in a LinkerScriptRule.
 
     **AfterLayout**
         When the state of the linker is set to AfterLayout, the plugin can query for the size of the OutputSection.
