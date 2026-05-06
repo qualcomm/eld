@@ -4179,8 +4179,7 @@ void ObjectLinker::collectEntrySections() const {
         continue;
       RuleContainer *R = ELFSect->getMatchedLinkerScriptRule();
 
-      if ((R && R->isEntry()) ||
-          ELFSect->name().find("@") != llvm::StringRef::npos) {
+      if (R && R->isEntry()) {
         InputToEntrySections[I].push_back(ELFSect);
         continue;
       }

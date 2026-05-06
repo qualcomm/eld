@@ -596,9 +596,6 @@ bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
   if (!target || ThisConfig.options().shouldEmitUniqueOutputSections())
     return true;
 
-  if (I->name().find("@") != llvm::StringRef::npos)
-    return true;
-
   bool hasLinkerScriptSectionsCommand =
       ThisModule.getScript().linkerScriptHasSectionsCommand();
   if (ThisConfig.codeGenType() == LinkerConfig::Object) {
