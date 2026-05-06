@@ -1,0 +1,250 @@
+#----------QC_E_LI_ACCESS.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Linker relaxation for R_RISCV_QC_ACCESS_16 and R_RISCV_QC_ACCESS_32.
+# A qc.e.li + load/store pair is replaced with a single GP-relative or
+# absolute load/store (standard or xqcilo) when the symbol is in range.
+# All variants require --relax-xqci.
+#END_COMMENT
+#--------------------------------------------------------------------
+REQUIRES: riscv32
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o -menable-experimental-extensions -march=rv32gc_xqcili0p2
+
+## Link with Xqci and GP relaxations enabled (default).
+RUN: %link %linkopts --relax-xqci -MapStyle txt -Map %t.1.map --verbose %t.o -o %t.1.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE
+
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gprel_xqci' in section .text+0xa file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gprel_xqci' in section .text+0x4 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_too_far' in section .text+0xa file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_too_far' in section .text+0xa file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x18 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
+
+MAP: # LinkStats Begin
+MAP: # RelaxationBytesDeleted : 14
+MAP: # RelaxationBytesMissed : 8
+MAP: # LinkStats End
+
+MAP: .text {{.+}}, Alignment: 0x4, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP: # RelaxationBytesDeleted : 14
+MAP: # RelaxationBytesMissed : 8
+MAP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo -M no-aliases -d %t.1.out 2>&1 | %filecheck %s --check-prefix=EXE
+
+EXE: <main>:
+EXE-NEXT: 0201a503      lw      a0, 32(gp)
+EXE-NEXT: e51f 0001 0400        qc.e.lw a0, 1048576(gp)
+EXE-NEXT: 059f 0000 0500        qc.e.li a1, 83886080
+EXE-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NEXT: 0201a503      lw      a0, 32(gp)
+
+## Link with Xqci enabled, GP relaxation disabled.
+RUN: %link %linkopts --relax-xqci --no-relax-gp -MapStyle txt -Map %t.2.map --verbose %t.o -o %t.2.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-GP
+
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x6 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gprel_std' in section .text+0x0 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_gprel_xqci' in section .text+0xc file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gprel_xqci' in section .text+0x6 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_too_far' in section .text+0xc file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_too_far' in section .text+0xc file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 2 bytes for symbol 'sym_gprel_std' in section .text+0x1c file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gprel_std' in section .text+0x16 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP-NO-GP
+
+MAP-NO-GP: # LinkStats Begin
+MAP-NO-GP: # RelaxationBytesDeleted : 10
+MAP-NO-GP: # RelaxationBytesMissed : 12
+MAP-NO-GP: # LinkStats End
+
+MAP-NO-GP: .text {{.+}}, Alignment: 0x4, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS
+MAP-NO-GP: # RelaxationBytesDeleted : 10
+MAP-NO-GP: # RelaxationBytesMissed : 12
+MAP-NO-GP: .text {{.+}}.o     #SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,4
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo -M no-aliases -d %t.2.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-GP
+
+EXE-NO-GP: <main>:
+EXE-NO-GP-NEXT: 651f 0200 4000        qc.e.lw a0, 16777248(zero)
+EXE-NO-GP-NEXT: 651f 0000 4400        qc.e.lw a0, 17825792(zero)
+EXE-NO-GP-NEXT: 059f 0000 0500        qc.e.li a1, 83886080
+EXE-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-GP-NEXT: 651f 0200 4000        qc.e.lw a0, 16777248(zero)
+
+## Link with Xqci relaxation disabled — no relaxation occurs.
+RUN: %link %linkopts --no-relax-xqci -MapStyle txt -Map %t.3.map --verbose %t.o -o %t.3.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-XQCI
+
+VERBOSE-NO-XQCI-NOT: Deleting {{.*}} bytes
+VERBOSE-NO-XQCI-NOT: Cannot relax {{.*}} bytes
+
+RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP-NO-XQCI
+
+MAP-NO-XQCI-NOT: RelaxationBytesDeleted
+MAP-NO-XQCI-NOT: RelaxationBytesMissed
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcili,+xqcilo -M no-aliases -d %t.3.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-XQCI
+
+EXE-NO-XQCI: <main>:
+EXE-NO-XQCI-NEXT: 059f 0020 0100      qc.e.li a1, 16777248
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 0110      qc.e.li a1, 17825792
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 0500      qc.e.li a1, 83886080
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 0100      qc.e.li a1, 16777248
+EXE-NO-XQCI-NEXT: 4188        c.lw    a0, 0(a1)
+
+## Additional cases from Inputs/2.s:
+##   Abs-std, no-RELAX-on-ACCESS, base-reg mismatch, store instructions,
+##   16-bit CS store (c.sw) and Zcb instructions (c.lbu, c.sh).
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t2.o -menable-experimental-extensions -march=rv32gc_zcb_xqcili0p2
+
+## Abs-std wins by default (ZeroRelax enabled).
+## Case 2 verifies that without R_RISCV_RELAX on the ACCESS reloc the pair is
+## NOT relaxed — qc.e.li falls back to qc.li-only relaxation, leaving the lw.
+## Base register mismatch falls back to qc.e.li-only relaxation.
+## Store instructions (sw, c.sw) and Zcb (c.lbu, c.sh) are relaxed correctly.
+RUN: %link %linkopts --relax-xqci -MapStyle txt -Map %t2.1.map --verbose %t2.o -o %t2.1.out -T %p/Inputs/2.t 2>&1 | %filecheck %s --check-prefix=VERBOSE2
+
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std' in section .text+0x4 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std' in section .text+0x8 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_GP : Deleting 2 bytes for symbol 'sym_gprel_std' in section .text+0x10 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x18 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x1c file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x20 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x24 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t2.1.map --check-prefix=MAP2
+
+MAP2: # LinkStats Begin
+MAP2: # RelaxationBytesDeleted : 28
+MAP2: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo,+zcb -M no-aliases -d %t2.1.out 2>&1 | %filecheck %s --check-prefix=EXE2
+
+EXE2: <main>:
+EXE2-NEXT: 10002503      lw      a0, 256(zero)
+EXE2-NEXT: 0100059b      qc.li   a1, 256
+EXE2-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NEXT: 02018593      addi    a1, gp, 32
+EXE2-NEXT: 00062503      lw      a0, 0(a2)
+EXE2-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE2-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE2-NEXT: 0201c503      lbu     a0, 32(gp)
+EXE2-NEXT: 02a19023      sh      a0, 32(gp)
+
+## With --no-relax-zero, Abs-std is disabled. sym_abs_std (= 0x100) is
+## within isInt<26>(sym - GP) so GP-xqci fires instead, producing qc.e.lw
+## instructions. Cases using GP-std (sym_gprel_std) are unaffected.
+RUN: %link %linkopts --relax-xqci --no-relax-zero -MapStyle txt -Map %t2.2.map --verbose %t2.o -o %t2.2.out -T %p/Inputs/2.t 2>&1 | %filecheck %s --check-prefix=VERBOSE2-NRZ
+
+VERBOSE2-NRZ: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_abs_std' in section .text+0x6 file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std' in section .text+0x0 file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std' in section .text+0xa file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_GP : Deleting 2 bytes for symbol 'sym_gprel_std' in section .text+0x12 file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x1a file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x1e file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x22 file {{.*}}.o
+VERBOSE2-NRZ: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x26 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t2.2.map --check-prefix=MAP2-NRZ
+
+MAP2-NRZ: # LinkStats Begin
+MAP2-NRZ: # RelaxationBytesDeleted : 26
+MAP2-NRZ: # RelaxationBytesMissed : 2
+MAP2-NRZ: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo,+zcb -M no-aliases -d %t2.2.out 2>&1 | %filecheck %s --check-prefix=EXE2-NRZ
+
+EXE2-NRZ: <main>:
+EXE2-NRZ-NEXT: e51f 1001 c000        qc.e.lw a0, -16776960(gp)
+EXE2-NRZ-NEXT: 0100059b      qc.li   a1, 256
+EXE2-NRZ-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NRZ-NEXT: 02018593      addi    a1, gp, 32
+EXE2-NRZ-NEXT: 00062503      lw      a0, 0(a2)
+EXE2-NRZ-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE2-NRZ-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE2-NRZ-NEXT: 0201c503      lbu     a0, 32(gp)
+EXE2-NRZ-NEXT: 02a19023      sh      a0, 32(gp)
+
+## Boundary tests from Inputs/3.s + Inputs/3.t.
+## GP = 0x10000000, so GP-relative and absolute symbol ranges do not overlap.
+## Verifies relaxation at the exact edges of each range and that symbols one
+## step outside the range are not relaxed by that variant.
+RUN: %clang %clangopts -c %p/Inputs/3.s -o %t3.o -menable-experimental-extensions -march=rv32gc_xqcili0p2
+
+## With GP and ZeroRelax enabled: all four variants are exercised.
+## GP-std applies at ±2047 from GP, GP-xqci at ±33554431, Abs-std at 2047,
+## Abs-xqci at 33554431. Symbols one step outside each threshold fall to the
+## next cheaper variant (or miss entirely).
+RUN: %link %linkopts --relax-xqci -MapStyle txt -Map %t3.1.map --verbose %t3.o -o %t3.1.out -T %p/Inputs/3.t 2>&1 | %filecheck %s --check-prefix=VERBOSE3
+
+VERBOSE3: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gp_std_pos_edge' in section .text+0x4 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gp_std_neg_edge' in section .text+0x8 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_std_pos_out' in section .text+0xe file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_std_pos_out' in section .text+0x8 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_std_neg_out' in section .text+0x14 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_std_neg_out' in section .text+0xe file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x1a file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x14 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_xqci_neg_edge' in section .text+0x20 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_xqci_neg_edge' in section .text+0x1a file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_xqci_pos_out' in section .text+0x20 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_xqci_pos_out' in section .text+0x20 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_xqci_neg_out' in section .text+0x2a file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_xqci_neg_out' in section .text+0x2a file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std_edge' in section .text+0x38 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_std_out' in section .text+0x3e file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std_out' in section .text+0x38 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x44 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x3e file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_out' in section .text+0x44 file {{.*}}.o
+VERBOSE3: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_out' in section .text+0x44 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t3.1.map --check-prefix=MAP3
+
+MAP3: # LinkStats Begin
+MAP3: # RelaxationBytesDeleted : 42
+MAP3: # RelaxationBytesMissed : 30
+MAP3: # LinkStats End
+
+## Without GP relaxation: GP-relative symbols never relax (absolute values are
+## all outside the isInt<12> and isInt<26> abs ranges). Abs-std and Abs-xqci
+## still fire for the absolute symbols.
+RUN: %link %linkopts --relax-xqci --no-relax-gp -MapStyle txt -Map %t3.2.map --verbose %t3.o -o %t3.2.out -T %p/Inputs/3.t 2>&1 | %filecheck %s --check-prefix=VERBOSE3-NO-GP
+
+VERBOSE3-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_std_pos_edge' in section .text+0x0 file {{.*}}.o
+VERBOSE3-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_std_pos_edge' in section .text+0x0 file {{.*}}.o
+VERBOSE3-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x28 file {{.*}}.o
+VERBOSE3-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x28 file {{.*}}.o
+VERBOSE3-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std_edge' in section .text+0x54 file {{.*}}.o
+VERBOSE3-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x60 file {{.*}}.o
+VERBOSE3-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_out' in section .text+0x60 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t3.2.map --check-prefix=MAP3-NO-GP
+
+MAP3-NO-GP: # LinkStats Begin
+MAP3-NO-GP: # RelaxationBytesDeleted : 14
+MAP3-NO-GP: # RelaxationBytesMissed : 58
+MAP3-NO-GP: # LinkStats End
+
+## Without GP relaxation or ZeroRelax: only Abs-xqci fires (isInt<26>).
+## sym_abs_std_edge (2047) now uses Abs-xqci instead of Abs-std.
+## sym_abs_xqci_out (33554432) still misses.
+RUN: %link %linkopts --relax-xqci --no-relax-gp --no-relax-zero -MapStyle txt -Map %t3.3.map --verbose %t3.o -o %t3.3.out -T %p/Inputs/3.t 2>&1 | %filecheck %s --check-prefix=VERBOSE3-NO-ZERO
+
+VERBOSE3-NO-ZERO: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_std_edge' in section .text+0x56 file {{.*}}.o
+VERBOSE3-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std_edge' in section .text+0x50 file {{.*}}.o
+VERBOSE3-NO-ZERO: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x62 file {{.*}}.o
+VERBOSE3-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x5c file {{.*}}.o
+VERBOSE3-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_out' in section .text+0x62 file {{.*}}.o
+VERBOSE3-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_out' in section .text+0x62 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t3.3.map --check-prefix=MAP3-NO-ZERO
+
+MAP3-NO-ZERO: # LinkStats Begin
+MAP3-NO-ZERO: # RelaxationBytesDeleted : 12
+MAP3-NO-ZERO: # RelaxationBytesMissed : 60
+MAP3-NO-ZERO: # LinkStats End
