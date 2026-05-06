@@ -56,6 +56,8 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyGPRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLUI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyTprelAdd)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGOT)
+DECL_RISCV_APPLY_RELOC_FUNC(applyXqciloAbs)
+DECL_RISCV_APPLY_RELOC_FUNC(applyXqciloGPRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyVendor)
 
 #undef DECL_RISCV_APPLY_RELOC_FUNC
@@ -207,6 +209,10 @@ RelocationDescMap RelocDescs = {
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_GPREL_S, applyGPRel),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_I, unsupported),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_S, unsupported),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_ABS26_I, applyXqciloAbs),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_ABS26_S, applyXqciloAbs),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_GPREL26_I, applyXqciloGPRel),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_GPREL26_S, applyXqciloGPRel),
 
     /* Vendor Relocations: QUALCOMM */
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_ABS20_U, applyAbs),
@@ -1097,6 +1103,39 @@ RISCVRelocator::Result applyGPRel(Relocation &pReloc, RISCVLDBackend &Backend,
     return checkSignedRange(pReloc, Parent, Value, 12);
 
   return ApplyReloc(pReloc, S + A - G, pRelocDesc, Backend.config(), Parent);
+}
+
+RISCVRelocator::Result applyXqciloAbs(Relocation &pReloc,
+                                      RISCVLDBackend &Backend,
+                                      RISCVRelocator &Parent,
+                                      RelocationDescription &pRelocDesc) {
+  if (RelocDescs.count(pReloc.type()) == 0)
+    return RISCVRelocator::Unsupport;
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
+  int64_t A = pReloc.addend();
+  int64_t Result = S + A;
+  if (!llvm::isInt<26>(Result))
+    return checkSignedRange(pReloc, Parent, Result, 26);
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config(), Parent);
+}
+
+RISCVRelocator::Result applyXqciloGPRel(Relocation &pReloc,
+                                        RISCVLDBackend &Backend,
+                                        RISCVRelocator &Parent,
+                                        RelocationDescription &pRelocDesc) {
+  if (RelocDescs.count(pReloc.type()) == 0)
+    return RISCVRelocator::Unsupport;
+  int64_t S = Backend.getSymbolValuePLT(pReloc);
+  int64_t A = pReloc.addend();
+  int64_t G = 0;
+  LDSymbol *gpSym =
+      Backend.getModule().getNamePool().findSymbol("__global_pointer$");
+  if (gpSym)
+    G = gpSym->value();
+  int64_t Result = S + A - G;
+  if (!llvm::isInt<26>(Result))
+    return checkSignedRange(pReloc, Parent, Result, 26);
+  return ApplyReloc(pReloc, Result, pRelocDesc, Backend.config(), Parent);
 }
 
 RISCVRelocator::Result applyCompressedLUI(Relocation &pReloc,
