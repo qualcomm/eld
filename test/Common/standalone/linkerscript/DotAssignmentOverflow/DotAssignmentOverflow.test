@@ -1,0 +1,10 @@
+#---DotAssignmentOverflow.test----------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD emits an error when dot assignment creates padding
+# that exceeds UINT32_MAX. (issue #386)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -fdata-sections -ffunction-sections -G0
+RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#CHECK: dot assignment creates padding that exceeds UINT32_MAX
+#END_TEST
