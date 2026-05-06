@@ -1,0 +1,16 @@
+REQUIRES: symbol_versioning
+#---UnknownSymbolVersion.test--------------- Executable, SharedLibrary ----------------#
+#BEGIN_COMMENT
+# This test verifies that the linker errors out when a defined symbol has an
+# invalid symbol version and the link does not contain version script and
+# shared libraries with symbol versioning.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %not %link %linkopts -o %t1.1.so %t1.1.o -shared 2>&1 | %filecheck %s
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
+RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared
+RUN: %not %link %linkopts -dy -o %t1.1.out %t1.1.o %t1.lib2.so -E 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}1.o: symbol foo@DOES_NOT_EXIST has undefined version DOES_NOT_EXIST

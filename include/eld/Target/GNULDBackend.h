@@ -1091,6 +1091,12 @@ private:
   /// Assigns the version IDs to the dynamic symbols.
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   void assignOutputVersionIDs();
+
+  /// Validates that dynamic symbols have valid versions. It reports an error
+  /// if: 1) A defined non-shared library dynamic symbol has a version not
+  /// present in version script. 2) An undefined dynamic symbol has a version.
+  bool validateVersionedSymbols();
+
   void setSymbolVersionID(const ResolveInfo *R, uint16_t VerID) {
     OutputVersionIDs[R] = VerID;
   }
