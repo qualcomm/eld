@@ -105,12 +105,13 @@ bool THMToARMStub::isRelocInRange(const class Relocation *pReloc,
   Offset = pTargetValue + addend - pReloc->place(Module);
   switch (pReloc->type()) {
   case llvm::ELF::R_ARM_THM_JUMP24:
-  case llvm::ELF::R_ARM_THM_CALL:
-  case llvm::ELF::R_ARM_THM_JUMP19: {
+  case llvm::ELF::R_ARM_THM_CALL:{
     if (m_Target->isJ1J2BranchEncoding())
       return llvm::isInt<THM2_MAX_BRANCH_BITS>(Offset);
     return llvm::isInt<THM_MAX_BRANCH_BITS>(Offset);
   }
+  case llvm::ELF::R_ARM_THM_JUMP19:
+    return llvm::isInt<21>(Offset);
   default:
     break;
   }

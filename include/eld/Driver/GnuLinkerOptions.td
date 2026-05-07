@@ -225,6 +225,16 @@ defm Ttext_segment
                     "Specify an address for the .text-segment segment">,
       MetaVarName<"<address>">,
       Group<grp_scriptopts>;
+defm Trodata_segment
+    : dashEqWithOpt<"Trodata-segment", "Trodata-segment", "Trodata_segment",
+                    "Specify an address for the first byte of the read-only data segment">,
+      MetaVarName<"<address>">,
+      Group<grp_scriptopts>;
+defm Tldata_segment
+    : dashEqWithOpt<"Tldata-segment", "Tldata-segment", "Tldata_segment",
+                    "Specify an address for the first byte of the ldata segment">,
+      MetaVarName<"<address>">,
+      Group<grp_scriptopts>;
 defm Tdata
     : smDash<"Tdata", "Tdata", "Specify an address for the .data section">,
       MetaVarName<"<address>">,
