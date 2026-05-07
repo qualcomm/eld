@@ -1,7 +1,7 @@
-name: Windows Arm64/x86_64 Nightly
+name: Windows Arm64/x86_64 CI/Nightly
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  # pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
@@ -16,7 +16,9 @@ jobs:
     permissions:
       contents: read
     env:
-      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+      ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+      ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -46,11 +48,11 @@ jobs:
           ref: ${{ env.BASE_BRANCH_NAME }}
           path: nightly/llvm-project
 
-      - name: Checkout ELD main branch
+      - name: Checkout ELD
         uses: actions/checkout@v6
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ env.BASE_BRANCH_NAME }}
+          repository: ${{ env.ELD_REPO }}
+          ref: ${{ env.ELD_REF }}
           path: nightly/llvm-project/llvm/tools/eld
           fetch-depth: 0
 
