@@ -1,0 +1,10 @@
+#---TrodataSegment.test--------------------------- Executable,LS -----------------#
+#BEGIN_COMMENT
+# This checks for option -Trodata-segment that is handled in the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t1.out -Trodata-segment=0x20000000
+RUN: %readelf -l %t1.out -W | %filecheck %s --check-prefix=CHECK-RODATA-SEGMENT
+CHECK-RODATA-SEGMENT: LOAD {{.*}} 0x{{0*}}20000000
+#END_TEST
