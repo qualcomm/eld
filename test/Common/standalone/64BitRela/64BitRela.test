@@ -1,0 +1,13 @@
+UNSUPPORTED: 32BitsArch
+#---64BitRela.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks that the linker generates correct RELA relocations
+# when the addend is greater than INT32_MAX.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkg0opts -o %t1.lib1.so %t1.1.o -shared --section-start=.data=0x80000000
+RUN: %readelf -r %t1.lib1.so | %filecheck %s
+#END_TEST
+
+CHECK: R_{{.*}}_RELATIVE 80000000
