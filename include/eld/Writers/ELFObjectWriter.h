@@ -102,12 +102,12 @@ private:
   // Emit SHT_REL/SHT_RELA relocations
   template <typename ELFT>
   void emitRelocation(typename ELFT::Rel &PRel, Relocation::Type CurType,
-                      uint32_t CurSymIdx, uint32_t CurOffset) const;
+                      uint32_t CurSymIdx, uint64_t CurOffset) const;
 
   template <typename ELFT>
   void emitRelocation(typename ELFT::Rela &PRel, Relocation::Type CurType,
-                      uint32_t CurSymIdx, uint32_t CurOffset,
-                      int32_t CurAddend) const;
+                      uint32_t CurSymIdx, uint64_t CurOffset,
+                      int64_t CurAddend) const;
 
 private:
   Module &ThisModule;
