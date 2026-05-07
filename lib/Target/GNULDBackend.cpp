@@ -4060,6 +4060,8 @@ bool GNULDBackend::symbolNeedsCopyReloc(const Relocation &pReloc,
 }
 
 uint64_t GNULDBackend::getImageBase(bool HasInterp, bool LoadEHdr) const {
+  if (auto TextSegment = config().options().textSegment())
+    return *TextSegment;
   if (auto ImageBase = config().options().imageBase())
     return *ImageBase;
   return m_pInfo->startAddr(
