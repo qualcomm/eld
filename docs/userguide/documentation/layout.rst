@@ -277,6 +277,28 @@ alignment specified in :code:`ALIGN`.
 There are various linker command-line options for setting output section
 VMA: ``-Tbss``, ``-Tdata``, ``-Ttext`` and ``--section-start``.
 
+--section-start=sectionname=org
+    Locate a section in the output file at the absolute address given by org.
+    You may use this option multiple times to locate multiple sections.
+
+-Ttext=org
+    Same as ``--section-start`` with ``.text`` as the section name.
+
+-Tdata=org
+    Same as ``--section-start`` with ``.data`` as the section name.
+
+-Tbss=org
+    Same as ``--section-start`` with ``.bss`` as the section name.
+
+-Ttext-segment=org
+    When creating an ELF executable, it sets the address of the first byte of the text segment.
+
+-Trodata-segment=org
+    When creating an ELF executable or shared object for a target where the read-only data is in its own segment separate from the executable text, it sets the address of the first byte of the read-only data segment.
+
+-Tldata-segment=org
+    When creating an ELF executable or shared object for the x86-64 medium memory model, it sets the address of the first byte of the ldata segment.
+
 When both the linker script and the command line specify an output-section address,
 the command-line option takes precedence and overrides the script's explicit address.
 

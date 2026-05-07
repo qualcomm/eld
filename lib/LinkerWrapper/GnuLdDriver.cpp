@@ -858,6 +858,27 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().addressMap().insert(std::make_pair(".text", addr));
   }
 
+  // -Ttext-segment=value
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::Ttext_segment)) {
+    uint64_t addr = 0;
+    if (!llvm::StringRef(arg->getValue()).getAsInteger(0, addr))
+      Config.options().setTextSegment(addr);
+  }
+
+  // -Trodata-segment=value
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::Trodata_segment)) {
+    uint64_t addr = 0;
+    if (!llvm::StringRef(arg->getValue()).getAsInteger(0, addr))
+      Config.options().setRodataSegment(addr);
+  }
+
+  // -Tldata-segment=value
+  if (llvm::opt::Arg *arg = Args.getLastArg(T::Tldata_segment)) {
+    uint64_t addr = 0;
+    if (!llvm::StringRef(arg->getValue()).getAsInteger(0, addr))
+      Config.options().setLdataSegment(addr);
+  }
+
   // --dynamic-list
   for (auto *Arg : Args.filtered(T::dynamic_list))
     Config.options().getDynList().emplace(Arg->getValue());
