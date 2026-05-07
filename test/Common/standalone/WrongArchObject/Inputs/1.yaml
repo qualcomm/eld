@@ -2,8 +2,8 @@
 FileHeader:
   Class:           ELFCLASS32
   Data:            ELFDATA2LSB
-  Type:            ET_REL
-  Machine:         EM_386
+  Type:            [[TYPE=ET_REL]]
+  Machine:         EM_NONE
 Sections:
   - Name:            .text
     Type:            SHT_PROGBITS

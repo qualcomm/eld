@@ -1302,6 +1302,29 @@ The following overlaps are detected by the linker.
 If the overlaps are known and you want to turn this behavior OFF, you can use
 *--no-check-sections* flag.
 
+Link errors
+-----------
+
+Why am I receiving the error 'cannot recognize the format of file YourObjectFile.o'. object format or given target machine (...) is incompatible.'?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Fix:** Ensure that all object files being linked use the same object format
+and target architecture.
+
+**But what is the cause of the error?**
+
+A linker can only combine object files that are compatible with each other.
+This means every input file must match in:
+  * Object format (e.g. ELF)
+  * Target architecture (e.g. Hexagon)
+  * Endianness and ABI
+
+If any object file differs, the linker cannot interpret it correctly and will
+produce this error.
+
+**How to verify:** You can inspect the object file using by using tools like
+llvm-readelf.
+
 Input File to Linker
 =====================
 

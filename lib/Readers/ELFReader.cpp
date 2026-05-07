@@ -427,7 +427,7 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::err_unrecognized_input_file,
         {inputFile.getInput()->getResolvedPath().native(),
-         config.targets().triple().str()}));
+         config.targets().getArch()}));
 
   eld::Expected<bool> expCheckFlags = checkFlags();
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expCheckFlags);
