@@ -53,6 +53,10 @@ enum : uint32_t {
   R_RISCV_GPREL_S,
   R_RISCV_TPREL_I,
   R_RISCV_TPREL_S,
+  R_RISCV_QC_ABS26_I,   // absolute xqcilo load  (S+A)
+  R_RISCV_QC_ABS26_S,   // absolute xqcilo store (S+A)
+  R_RISCV_QC_GPREL26_I, // GP-relative xqcilo load  (S+A-G)
+  R_RISCV_QC_GPREL26_S, // GP-relative xqcilo store (S+A-G)
 
   /*
     Internal IDs for Nonstandard Relocations
@@ -66,11 +70,11 @@ enum : uint32_t {
     added to the nonstandard ID to get the internal ID.
   */
   FirstInternalRelocation = 320,
-  LastInternalRelocation = 323,
+  LastInternalRelocation = 325,
 
-  /* 'QUALCOMM' vendor relocations: 192-195 are represented by 320-323 */
+  /* 'QUALCOMM' vendor relocations: 192-197 are represented by 320-325 */
   FirstQUALCOMMVendorRelocation = 320,
-  LastQUALCOMMVendorRelocation = 323,
+  LastQUALCOMMVendorRelocation = 325,
   QUALCOMMVendorRelocationOffset =
       FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
 

@@ -14,6 +14,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Object/OutputSectionEntry.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include <sstream>
 
 using namespace eld;
@@ -176,6 +177,15 @@ Relocation *ELFSection::findRelocation(uint64_t Offset, Relocation::Type Type,
       return *Reloc;
   }
   return nullptr;
+}
+
+bool ELFSection::hasFollowing(const Relocation *R,
+                              Relocation::Type Type) const {
+  auto It = std::find(Relocations.begin(), Relocations.end(), R);
+  if (It == Relocations.end())
+    return false;
+  ++It;
+  return It != Relocations.end() && (*It)->type() == Type;
 }
 
 Fragment *ELFSection::getFirstFragmentInRule() const {

@@ -1,0 +1,38 @@
+#---R_RISCV_QC_ACCESS_32.test------------------ Executable------------#
+#BEGIN_COMMENT
+#  Check that R_RISCV_QC_ACCESS_32 is correctly handled.
+#  It marks 32-bit load and store instructions that are candidates for
+#  GP-relative linker relaxation from a QC_E_LI + Load/Store sequence.
+#  Without relaxation, the instruction is left unchanged.
+#--------------------------------------------------------------------
+#END_COMMENT
+REQUIRES: riscv32
+#START_TEST
+RUN: %clang %clangopts -march=rv32i -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out | %filecheck %s
+#END_TEST
+
+CHECK-LABEL: <test_lb>:
+CHECK: lb a0, 0(a1)
+
+CHECK-LABEL: <test_lbu>:
+CHECK: lbu a0, 0(a1)
+
+CHECK-LABEL: <test_lh>:
+CHECK: lh a0, 0(a1)
+
+CHECK-LABEL: <test_lhu>:
+CHECK: lhu a0, 0(a1)
+
+CHECK-LABEL: <test_lw>:
+CHECK: lw a0, 0(a1)
+
+CHECK-LABEL: <test_sb>:
+CHECK: sb a0, 0(a1)
+
+CHECK-LABEL: <test_sh>:
+CHECK: sh a0, 0(a1)
+
+CHECK-LABEL: <test_sw>:
+CHECK: sw a0, 0(a1)

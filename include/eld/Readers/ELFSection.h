@@ -320,6 +320,10 @@ public:
   Relocation *findRelocation(uint64_t Offset, Relocation::Type Type,
                              bool Reverse = true) const;
 
+  // Returns true if R is immediately followed by a relocation of the given
+  // type in the section's relocation list.
+  bool hasFollowing(const Relocation *R, Relocation::Type Type) const;
+
   Relocation *createOneReloc();
 
   // Linker Script support for sorting sections.

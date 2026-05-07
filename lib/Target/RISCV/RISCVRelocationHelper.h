@@ -48,12 +48,46 @@ enum Reg {
                                 uint32_t imm) {
   return op | (rd << 7) | (rs1 << 15) | (imm << 20);
 }
+[[maybe_unused]] uint32_t stype(uint32_t op, uint32_t rs2, uint32_t rs1,
+                                uint32_t imm) {
+  return op | ((imm & 0x1Fu) << 7) | (rs1 << 15) | (rs2 << 20) |
+         ((imm >> 5) << 25);
+}
 [[maybe_unused]] uint32_t rtype(uint32_t op, uint32_t rd, uint32_t rs1,
                                 uint32_t rs2) {
   return op | (rd << 7) | (rs1 << 15) | (rs2 << 20);
 }
 [[maybe_unused]] uint32_t utype(uint32_t op, uint32_t rd, uint32_t imm) {
   return op | (rd << 7) | (imm << 12);
+}
+
+// QC.EI type instruction
+[[maybe_unused]] uint64_t qceitype(uint32_t xf3, uint32_t xf2, uint32_t rd,
+                                   uint32_t rs1, int64_t imm) {
+  uint32_t uimm = (uint32_t)(imm & 0x3FFFFFFu);
+  uint64_t inst = 0x1fu;
+  inst |= (uint64_t)rd << 7;
+  inst |= (uint64_t)xf3 << 12;
+  inst |= (uint64_t)rs1 << 15;
+  inst |= (uint64_t)(uimm & 0x3FFu) << 20;
+  inst |= (uint64_t)xf2 << 30;
+  inst |= (uint64_t)((uimm >> 10) & 0xFFFFu) << 32;
+  return inst;
+}
+
+// QC.ES type instruction
+[[maybe_unused]] uint64_t qcestype(uint32_t xf3, uint32_t xf2, uint32_t rs2,
+                                   uint32_t rs1, int64_t imm) {
+  uint32_t uimm = (uint32_t)(imm & 0x3FFFFFFu);
+  uint64_t inst = 0x1fu;
+  inst |= (uint64_t)(uimm & 0x1Fu) << 7;
+  inst |= (uint64_t)xf3 << 12;
+  inst |= (uint64_t)rs1 << 15;
+  inst |= (uint64_t)rs2 << 20;
+  inst |= (uint64_t)((uimm >> 5) & 0x1Fu) << 25;
+  inst |= (uint64_t)xf2 << 30;
+  inst |= (uint64_t)((uimm >> 10) & 0xFFFFu) << 32;
+  return inst;
 }
 
 // Extract bits v[begin:end], where range is inclusive, and begin must be < 63.

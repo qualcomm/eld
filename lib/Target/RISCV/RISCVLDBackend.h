@@ -232,6 +232,28 @@ private:
   bool doRelaxationLui(Relocation *R, Relocation::DWord G);
   bool doRelaxationQCELi(Relocation *R, Relocation::DWord G);
 
+  bool doRelaxationQCAccess32(Relocation *QCELiReloc, Relocation *AccessReloc,
+                              Relocation::DWord G);
+  bool doRelaxationQCAccess16(Relocation *QCELiReloc, Relocation *AccessReloc,
+                              Relocation::DWord G);
+
+  // Decoded load/store instruction info for QC ACCESS relaxation.
+  struct QCAccess {
+    // Loads come first so isLoad() is a cheap comparison.
+    enum class Operation { Lb, Lbu, Lh, Lhu, Lw, Sb, Sh, Sw };
+    Operation op;
+    unsigned reg;  // destination (load) or source data (store) register
+    uint32_t size; // access instruction size (in bytes)
+
+    bool isLoad() const { return op <= Operation::Lw; }
+
+    uint32_t build32Bit(unsigned base_reg) const;
+    uint64_t build48Bit(unsigned base_reg) const;
+  };
+  bool doRelaxationQCAccessCommon(Relocation *QCELiReloc,
+                                  Relocation *AccessReloc, Relocation::DWord G,
+                                  QCAccess access);
+
   bool doRelaxationAlign(Relocation *R);
 
   bool doRelaxationPC(Relocation *R, Relocation::DWord G);
