@@ -14,7 +14,7 @@
 DIAG(cannot_open_search_dir, DiagnosticEngine::Note,
      "can not open search directory `%0'")
 DIAG(err_no_inputs, DiagnosticEngine::Error, "no inputs")
-DIAG(err_unrecognized_input_file, DiagnosticEngine::Fatal,
+DIAG(err_unrecognized_input_file, DiagnosticEngine::Error,
      "cannot recognize the format of file `%0'. object format or given target "
      "machine (%1) is incompatible.")
 DIAG(err_cannot_find_namespec, DiagnosticEngine::Fatal,
