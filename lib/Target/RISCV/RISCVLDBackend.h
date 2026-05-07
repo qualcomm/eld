@@ -113,9 +113,14 @@ public:
   shouldProcessSectionForGC(const ELFSection &pSec) const override;
 
   // ---------------------  PLT Support ---------------------------
-  RISCVPLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym);
+  RISCVPLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym,
+                      bool isIRelative = false);
 
   void recordPLT(ResolveInfo *, RISCVPLT *);
+
+  /// defineIRelativeRange - define __rela_iplt_start/__rela_iplt_end symbols
+  /// for IFunc support in static linking
+  void defineIRelativeRange(ResolveInfo &pSym);
 
   RISCVPLT *findEntryInPLT(ResolveInfo *) const;
 
@@ -137,6 +142,8 @@ public:
     if (X->type() == llvm::ELF::R_RISCV_JUMP_SLOT)
       return DynRelocType::JMP_SLOT;
     if (X->type() == llvm::ELF::R_RISCV_RELATIVE)
+      return DynRelocType::RELATIVE;
+    if (X->type() == llvm::ELF::R_RISCV_IRELATIVE)
       return DynRelocType::RELATIVE;
     if (X->type() == llvm::ELF::R_RISCV_TLS_DTPMOD32 ||
         X->type() == llvm::ELF::R_RISCV_TLS_DTPMOD64) {
@@ -293,6 +300,9 @@ private:
   RISCVELFDynamic *m_pDynamic = nullptr;
   /// RISCV Attribute Fragment
   RISCVAttributeFragment *AttributeFragment = nullptr;
+
+  LDSymbol *m_pIRelativeStart = nullptr;
+  LDSymbol *m_pIRelativeEnd = nullptr;
 
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTPLTMap;

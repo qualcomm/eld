@@ -1111,6 +1111,16 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
 
 /// finalizeSymbol - finalize the symbol value
 bool RISCVLDBackend::finalizeTargetSymbols() {
+  if (m_pIRelativeStart && m_pIRelativeEnd) {
+    m_pIRelativeStart->setValue(
+        getRelaPLT()->getOutputSection()->getSection()->addr());
+    m_pIRelativeEnd->setValue(
+        getRelaPLT()->getOutputSection()->getSection()->addr() +
+        getRelaPLT()->getOutputSection()->getSection()->size());
+    addSectionInfo(m_pIRelativeStart, getRelaPLT());
+    addSectionInfo(m_pIRelativeEnd, getRelaPLT());
+  }
+
   for (auto &I : m_LabeledSymbols)
     m_Module.getLinker()->getObjLinker()->finalizeSymbolValue(I);
 
@@ -1529,6 +1539,44 @@ void RISCVLDBackend::defineGOTSymbol(Fragment &pFrag) {
     config().raise(Diag::target_specific_symbol) << SymbolName;
 }
 
+void RISCVLDBackend::defineIRelativeRange(ResolveInfo &pSym) {
+  if (m_Module.getScript().linkerScriptHasSectionsCommand())
+    return;
+
+  auto SymbolName = "__rela_iplt_start";
+  if (!m_pIRelativeStart && !m_pIRelativeEnd) {
+    m_pIRelativeStart =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::Script), SymbolName,
+                ResolveInfo::Type::NoType, ResolveInfo::Define,
+                ResolveInfo::Binding::Local,
+                0,   // size
+                0x0, // value
+                FragmentRef::null(), ResolveInfo::Visibility::Default);
+    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+        m_Module.getConfig().options().traceSymbol(SymbolName)) {
+      config().raise(Diag::target_specific_symbol) << SymbolName;
+    }
+    m_pIRelativeStart->setShouldIgnore(false);
+    SymbolName = "__rela_iplt_end";
+    m_pIRelativeEnd =
+        m_Module.getIRBuilder()
+            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+                m_Module.getInternalInput(Module::Script), SymbolName,
+                ResolveInfo::Type::NoType, ResolveInfo::Define,
+                ResolveInfo::Binding::Local,
+                pSym.size(), // size
+                0x0,         // value
+                FragmentRef::null(), ResolveInfo::Visibility::Default);
+    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+        m_Module.getConfig().options().traceSymbol(SymbolName)) {
+      config().raise(Diag::target_specific_symbol) << SymbolName;
+    }
+    m_pIRelativeEnd->setShouldIgnore(false);
+  }
+}
+
 bool RISCVLDBackend::finalizeScanRelocations() {
   Fragment *frag = nullptr;
   if (auto *GOT = getGOT())
@@ -1536,6 +1584,32 @@ bool RISCVLDBackend::finalizeScanRelocations() {
       frag = *GOT->getFragmentList().begin();
   if (frag)
     defineGOTSymbol(*frag);
+
+  if (!config().isCodeStatic())
+    return true;
+
+  ELFObjectFile *Obj = getDynamicSectionHeadersInputFile();
+  ASSERT(Obj, "Must not be null!");
+
+  bool is32Bits = config().targets().is32Bits();
+
+  for (auto &[symInfo, plt] : m_PLTMap) {
+    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+        !symInfo->hasIFuncNeedsGOT())
+      continue;
+
+    RISCVGOT *G = RISCVGOT::Create(Obj->getGOT(), symInfo, is32Bits);
+
+    FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
+    Relocation *r = Relocation::Create(
+        is32Bits ? llvm::ELF::R_RISCV_32 : llvm::ELF::R_RISCV_64,
+        is32Bits ? 32 : 64, make<FragmentRef>(*G, 0), 0);
+    Obj->getGOT()->addRelocation(r);
+    r->modifyRelocationFragmentRef(PLTFragRef);
+
+    recordGOT(symInfo, G);
+    symInfo->setReserved(symInfo->reserved() | Relocator::ReserveGOT);
+  }
   return true;
 }
 
@@ -1625,7 +1699,8 @@ RISCVGOT *RISCVLDBackend::findEntryInGOT(ResolveInfo *I) const {
 }
 
 // Create PLT entry.
-RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
+RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R,
+                                    bool isIRelative) {
   bool is32Bits = config().targets().is32Bits();
   if ((config().options().isSymbolTracingRequested() &&
        config().options().traceSymbol(*R)) ||
@@ -1672,10 +1747,11 @@ RISCVPLT *RISCVLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
           make<FragmentRef>(**getPLT()->getFragmentList().begin()));
       Obj->getGOTPLT()->addRelocation(r0);
     }
+    Relocation::Type relocType = (isIRelative ? llvm::ELF::R_RISCV_IRELATIVE
+                                              : llvm::ELF::R_RISCV_JUMP_SLOT);
     // Create a dynamic relocation for the GOTPLT slot.
-    Relocation *dynRel =
-        Relocation::Create(llvm::ELF::R_RISCV_JUMP_SLOT, is32Bits ? 32 : 64,
-                           make<FragmentRef>(*G));
+    Relocation *dynRel = Relocation::Create(relocType, is32Bits ? 32 : 64,
+                                            make<FragmentRef>(*G));
     dynRel->setSymInfo(R);
     Obj->getRelaPLT()->addRelocation(dynRel);
   }
