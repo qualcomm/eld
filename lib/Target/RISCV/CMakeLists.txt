@@ -7,6 +7,7 @@ llvm_add_library(
   RISCVGOT.cpp
   RISCVInfo.cpp
   RISCVPLT.cpp
+  RISCVTableJump.cpp
   RISCVLDBackend.cpp
   RISCVRelocationCompute.cpp
   RISCVRelocationInfo.cpp

@@ -207,6 +207,7 @@ RelocationDescMap RelocDescs = {
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_GPREL_S, applyGPRel),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_I, unsupported),
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TPREL_S, unsupported),
+    INTERNAL_RELOC_DESC_ENTRY(R_RISCV_TBJAL, applyNone),
 
     /* Vendor Relocations: QUALCOMM */
     INTERNAL_RELOC_DESC_ENTRY(R_RISCV_QC_ABS20_U, applyAbs),
