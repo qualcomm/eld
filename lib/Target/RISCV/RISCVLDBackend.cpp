@@ -695,7 +695,6 @@ bool RISCVLDBackend::doRelaxationQCAccess32(Relocation *QCELiReloc,
   if (!region)
     return false;
 
-  uint64_t qceli_offset = QCELiReloc->targetRef()->offset();
   uint64_t qceli_instr = QCELiReloc->target();
   if ((qceli_instr & 0xf07fu) != 0x1fu)
     return false;
@@ -708,7 +707,7 @@ bool RISCVLDBackend::doRelaxationQCAccess32(Relocation *QCELiReloc,
     return false;
 
   uint32_t access_instr = 0;
-  region->copyData(&access_instr, sizeof(access_instr), qceli_offset + 6);
+  AccessReloc->targetRef()->memcpy(&access_instr, sizeof(access_instr), 0);
   QCAccess access;
 
   // Decode the RV32I access instruction so we have enough information to
@@ -778,7 +777,6 @@ bool RISCVLDBackend::doRelaxationQCAccess16(Relocation *QCELiReloc,
   if (!region)
     return false;
 
-  uint64_t qceli_offset = QCELiReloc->targetRef()->offset();
   uint64_t qceli_instr = QCELiReloc->target();
   if ((qceli_instr & 0xf07fu) != 0x1fu)
     return false;
@@ -791,7 +789,7 @@ bool RISCVLDBackend::doRelaxationQCAccess16(Relocation *QCELiReloc,
     return false;
 
   uint16_t access_instr = 0;
-  region->copyData(&access_instr, sizeof(access_instr), qceli_offset + 6);
+  AccessReloc->targetRef()->memcpy(&access_instr, sizeof(access_instr), 0);
   QCAccess access;
 
   // Decode the RV32 Zca/Zcb access instruction so we have enough information to
