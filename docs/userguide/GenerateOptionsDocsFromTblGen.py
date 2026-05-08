@@ -80,10 +80,7 @@ class Option:
             return
         out.write(".. option:: " + ", ".join(option_forms))
         out.write("\n")
-        if self.help_text:
-            out.write("\n")
-            out.write(self.help_text)
-            out.write("\n")
+        # supplement overrides helptext
         if supplement:
             out.write("\n")
             # Indent every line of the supplement by 3 spaces so it sits
@@ -93,6 +90,10 @@ class Option:
                 for line in supplement.splitlines()
             )
             out.write(indented)
+            out.write("\n")
+        elif self.help_text:
+            out.write("\n")
+            out.write(self.help_text)
             out.write("\n")
 
     @classmethod
