@@ -1,0 +1,17 @@
+#---EXIDXSortingPartialLink.test--------------- PartialLink ------------------#
+#BEGIN_COMMENT
+# This tests EXIDX piece sorting with partial linking.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts -r %t1.1.o -T %p/Inputs/script.t -o %t2.r.o -Map %t2.map
+RUN: %filecheck %s --check-prefix=MAP < %t2.map
+RUN: %readelf -S -W %t2.r.o | %filecheck %s --check-prefix=REL
+
+#MAP: .ARM.exidx.text.f2{{[[:space:]]+}}0x0{{[[:space:]]+}}0x10
+#MAP: .ARM.exidx.text.f1{{[[:space:]]+}}0x10{{[[:space:]]+}}0x8
+#MAP: .ARM.exidx.text.start{{[[:space:]]+}}0x18{{[[:space:]]+}}0x8
+
+#REL: .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]+}}00000000{{[[:space:]]+}}{{[0-9a-f]+}}{{[[:space:]]+}}000020
+#REL: .rel.ARM.exidx{{[[:space:]]+}}REL
+#END_TEST
