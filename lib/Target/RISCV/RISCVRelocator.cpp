@@ -1111,7 +1111,8 @@ RISCVRelocator::Result applyXqciloAbs(Relocation &pReloc,
                                       RelocationDescription &pRelocDesc) {
   if (RelocDescs.count(pReloc.type()) == 0)
     return RISCVRelocator::Unsupport;
-  int64_t S = Backend.getSymbolValuePLT(pReloc);
+  uint64_t S_raw = Backend.getSymbolValuePLT(pReloc);
+  int64_t S = Backend.signedAddress(S_raw);
   int64_t A = pReloc.addend();
   int64_t Result = S + A;
   if (!llvm::isInt<26>(Result))

@@ -1,7 +1,4 @@
-  # Required until https://github.com/llvm/llvm-project/pull/146184 lands
   .option exact
-
-  # Enable relaxations on qc.e.li instructions
   .option relax
 
   .text
@@ -13,75 +10,147 @@ QUALCOMM:
 
 main:
 
-  ## Case 1: Abs-std relaxation
-  ## sym_abs_std = 0x100 is within isInt<12>, so Abs-std applies:
-  ##   qc.e.li + lw -> lw a0, 256(zero), deletes 6 bytes
+  ## GP-std range boundary tests (--relax-xqci with GP relax).
+  ## isInt<12>(sym - GP): range is [-2048, +2047].
 
-  qc.e.li a1, sym_abs_std
+  ## At the positive edge of GP-std range (+2047): → GP-std relaxation.
+  qc.e.li a1, sym_gp_std_pos_edge
 1:
   lw a0, 0(a1)
   .reloc 1b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 1b, R_RISCV_CUSTOM197, sym_abs_std
+  .reloc 1b, R_RISCV_CUSTOM197, sym_gp_std_pos_edge
   .reloc 1b, R_RISCV_RELAX
 
-  ## Case 2: ACCESS without R_RISCV_RELAX on the load/store
-  ## R_RISCV_RELAX is required on the ACCESS reloc for pair relaxation.
-  ## Without it, qc.e.li falls back to qc.li-only relaxation.
-
-  qc.e.li a1, sym_abs_std
+  ## At the negative edge of GP-std range (-2048): → GP-std relaxation.
+  qc.e.li a1, sym_gp_std_neg_edge
 2:
   lw a0, 0(a1)
   .reloc 2b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 2b, R_RISCV_CUSTOM197, sym_abs_std
-  # Intentionally no R_RISCV_RELAX on the ACCESS reloc
+  .reloc 2b, R_RISCV_CUSTOM197, sym_gp_std_neg_edge
+  .reloc 2b, R_RISCV_RELAX
 
-  ## Case 3: Base register mismatch — ACCESS decode fails, falls back to
-  ## qc.e.li-only relaxation. qc.e.li loads into a1 but the lw uses a2.
-
-  qc.e.li a1, sym_gprel_std
+  ## Just outside the positive GP-std range (+2048): → GP-xqci relaxation.
+  qc.e.li a1, sym_gp_std_pos_out
 3:
-  lw a0, 0(a2)
+  lw a0, 0(a1)
   .reloc 3b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 3b, R_RISCV_CUSTOM197, sym_gprel_std
+  .reloc 3b, R_RISCV_CUSTOM197, sym_gp_std_pos_out
   .reloc 3b, R_RISCV_RELAX
 
-  ## Case 4: Store (sw) with ACCESS_32, GP-std range
-  ## sym_gprel_std is within isInt<12>(sym - GP), so GP-std applies:
-  ##   qc.e.li + sw -> sw a0, 32(gp)
-
-  qc.e.li a1, sym_gprel_std
+  ## Just outside the negative GP-std range (-2049): → GP-xqci relaxation.
+  qc.e.li a1, sym_gp_std_neg_out
 4:
-  sw a0, 0(a1)
+  lw a0, 0(a1)
   .reloc 4b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 4b, R_RISCV_CUSTOM197, sym_gprel_std
+  .reloc 4b, R_RISCV_CUSTOM197, sym_gp_std_neg_out
   .reloc 4b, R_RISCV_RELAX
 
-  ## Case 5: c.sw (ACCESS_16, CS format), GP-std range
-  ## 16-bit store; GP-std applies, result is a 4-byte sw.
+  ## GP-xqci range boundary tests.
+  ## isInt<26>(sym - GP): range is [-33554432, +33554431].
 
-  qc.e.li a1, sym_gprel_std
+  ## At the positive edge of GP-xqci range (+33554431): → GP-xqci relaxation.
+  qc.e.li a1, sym_gp_xqci_pos_edge
 5:
-  c.sw a0, 0(a1)
+  lw a0, 0(a1)
   .reloc 5b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 5b, R_RISCV_CUSTOM196, sym_gprel_std
+  .reloc 5b, R_RISCV_CUSTOM197, sym_gp_xqci_pos_edge
   .reloc 5b, R_RISCV_RELAX
 
-  ## Case 6: c.lbu (ACCESS_16, Zcb), GP-std range
-
-  qc.e.li a1, sym_gprel_std
+  ## At the negative edge of GP-xqci range (-33554432): → GP-xqci relaxation.
+  qc.e.li a1, sym_gp_xqci_neg_edge
 6:
-  c.lbu a0, 0(a1)
+  lw a0, 0(a1)
   .reloc 6b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 6b, R_RISCV_CUSTOM196, sym_gprel_std
+  .reloc 6b, R_RISCV_CUSTOM197, sym_gp_xqci_neg_edge
   .reloc 6b, R_RISCV_RELAX
 
-  ## Case 7: c.sh (ACCESS_16, Zcb), GP-std range
-
-  qc.e.li a1, sym_gprel_std
+  ## Just outside the positive GP-xqci range (+33554432): → missed.
+  qc.e.li a1, sym_gp_xqci_pos_out
 7:
-  c.sh a0, 0(a1)
+  lw a0, 0(a1)
   .reloc 7b, R_RISCV_VENDOR, QUALCOMM
-  .reloc 7b, R_RISCV_CUSTOM196, sym_gprel_std
+  .reloc 7b, R_RISCV_CUSTOM197, sym_gp_xqci_pos_out
   .reloc 7b, R_RISCV_RELAX
+
+  ## Just outside the negative GP-xqci range (-33554433): → missed.
+  qc.e.li a1, sym_gp_xqci_neg_out
+8:
+  lw a0, 0(a1)
+  .reloc 8b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 8b, R_RISCV_CUSTOM197, sym_gp_xqci_neg_out
+  .reloc 8b, R_RISCV_RELAX
+
+  ## Abs-std range boundary tests (ZeroRelax enabled, no GP relax).
+  ## isInt<12>(sym): range is [-2048, +2047]; sym must be non-zero.
+
+  ## At the positive edge of Abs-std range (2047): → Abs-std relaxation.
+  qc.e.li a1, sym_abs_std_edge
+9:
+  lw a0, 0(a1)
+  .reloc 9b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 9b, R_RISCV_CUSTOM197, sym_abs_std_edge
+  .reloc 9b, R_RISCV_RELAX
+
+  ## Just outside the positive Abs-std range (2048): → Abs-xqci relaxation.
+  qc.e.li a1, sym_abs_std_out
+10:
+  lw a0, 0(a1)
+  .reloc 10b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 10b, R_RISCV_CUSTOM197, sym_abs_std_out
+  .reloc 10b, R_RISCV_RELAX
+
+  ## Abs-xqci range boundary tests (ZeroRelax disabled, no GP relax).
+  ## isInt<26>(sym): range is [1, 33554431].
+
+  ## At the positive edge of Abs-xqci range (33554431): → Abs-xqci relaxation.
+  qc.e.li a1, sym_abs_xqci_edge
+11:
+  lw a0, 0(a1)
+  .reloc 11b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 11b, R_RISCV_CUSTOM197, sym_abs_xqci_edge
+  .reloc 11b, R_RISCV_RELAX
+
+  ## Just outside the positive Abs-xqci range (33554432): → missed.
+  qc.e.li a1, sym_abs_xqci_out
+12:
+  lw a0, 0(a1)
+  .reloc 12b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 12b, R_RISCV_CUSTOM197, sym_abs_xqci_out
+  .reloc 12b, R_RISCV_RELAX
+
+  ## Negative absolute boundary tests: addresses in the upper 32-bit half that
+  ## the 32-bit core treats as negative (sign-extended before range check).
+
+  ## Negative edge of Abs-std range (sign-ext → -2048): → Abs-std relaxation.
+  qc.e.li a1, sym_abs_std_neg_edge
+13:
+  lw a0, 0(a1)
+  .reloc 13b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 13b, R_RISCV_CUSTOM197, sym_abs_std_neg_edge
+  .reloc 13b, R_RISCV_RELAX
+
+  ## Just outside the negative Abs-std range (sign-ext → -2049): → Abs-xqci.
+  qc.e.li a1, sym_abs_std_neg_out
+14:
+  lw a0, 0(a1)
+  .reloc 14b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 14b, R_RISCV_CUSTOM197, sym_abs_std_neg_out
+  .reloc 14b, R_RISCV_RELAX
+
+  ## Negative edge of Abs-xqci range (sign-ext → -33554432): → Abs-xqci.
+  qc.e.li a1, sym_abs_xqci_neg_edge
+15:
+  lw a0, 0(a1)
+  .reloc 15b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 15b, R_RISCV_CUSTOM197, sym_abs_xqci_neg_edge
+  .reloc 15b, R_RISCV_RELAX
+
+  ## Just outside the negative Abs-xqci range (sign-ext → -33554433): → miss.
+  qc.e.li a1, sym_abs_xqci_neg_out
+16:
+  lw a0, 0(a1)
+  .reloc 16b, R_RISCV_VENDOR, QUALCOMM
+  .reloc 16b, R_RISCV_CUSTOM197, sym_abs_xqci_neg_out
+  .reloc 16b, R_RISCV_RELAX
 
   .size main, .-main
