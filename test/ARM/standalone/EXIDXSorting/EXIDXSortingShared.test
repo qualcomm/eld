@@ -1,0 +1,19 @@
+#---EXIDXSortingShared.test-------------------- Shared -----------------------#
+#BEGIN_COMMENT
+# This tests EXIDX piece sorting when producing shared libraries.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts -shared %t1.1.o -T %p/Inputs/script.t -o %t2.so -Map %t2.map
+RUN: %filecheck %s --check-prefix=MAP < %t2.map
+RUN: %readelf -u %t2.so | %filecheck %s --check-prefix=UNW
+
+#MAP: .ARM.exidx.text.f2{{[[:space:]]+}}0x11010{{[[:space:]]+}}0x10
+#MAP: .ARM.exidx.text.f1{{[[:space:]]+}}0x11020{{[[:space:]]+}}0x8
+#MAP: .ARM.exidx.text.start{{[[:space:]]+}}0x11028{{[[:space:]]+}}0x8
+
+#UNW: FunctionAddress: 0x11000
+#UNW: FunctionAddress: 0x11004
+#UNW: FunctionAddress: 0x11008
+#UNW: FunctionAddress: 0x1100C
+#END_TEST
