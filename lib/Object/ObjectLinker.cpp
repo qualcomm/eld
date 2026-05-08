@@ -407,65 +407,121 @@ bool ObjectLinker::parseVersionScript() {
       ThisModule->addVersionScriptNode(VersionScriptNode);
     }
   }
-  auto &SymbolScopes = getTargetBackend().symbolScopes();
-  auto &NP = ThisModule->getNamePool();
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  DemangledNamesMap DemangledNames;
-#endif
-  for (auto &G : NP.getGlobals()) {
-    ResolveInfo *R = G.getValue();
-    for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
-      if (VersionScriptNode->getGlobalBlock()) {
-        for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP, DemangledNames);
-#else
-          bool isMatched = Sym->getSymbolPattern()->matched(*R);
-#endif
-          if (isMatched) {
-            getTargetBackend().addSymbolScope(R, Sym);
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            if (ThisConfig.getPrinter()->traceSymbolVersioning())
-              ThisConfig.raise(Diag::trace_version_script_matched_scope)
-                  << "global" << R->name();
-            break;
-#endif
-          } // end Symbol Match
-        } // end Symbols
-      } // end Global
-      if (SymbolScopes.find(R) != SymbolScopes.end()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-        break;
-#else
-        continue;
-#endif
-      }
-      if (VersionScriptNode->getLocalBlock()) {
-        for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP, DemangledNames);
-#else
-          bool isMatched = Sym->getSymbolPattern()->matched(*R);
-#endif
-          if (isMatched) {
-            getTargetBackend().addSymbolScope(R, Sym);
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            if (ThisConfig.getPrinter()->traceSymbolVersioning())
-              ThisConfig.raise(Diag::trace_version_script_matched_scope)
-                  << "local" << R->name();
-            break;
-#endif
-          } // end Symbol Match
-        } // end Symbols
-      } // end Local
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (SymbolScopes.find(R) != SymbolScopes.end()) {
-        break;
-      }
-#endif
-    } // end all Nodes
-  } // end Globals
+  assignVersionNodesToSymbols();
   return true;
+}
+
+void ObjectLinker::assignVersionNodesToSymbols() {
+  auto &NP = ThisModule->getNamePool();
+  auto &VersionNodes = ThisModule->getVersionScriptNodes();
+
+  if (VersionNodes.empty())
+    return;
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  DemangledNamesMap demangledNames;
+#endif
+
+  auto canAssignVersionNode = [](const ResolveInfo &R) {
+    return (R.isDefine() || R.isCommon()) && !R.isDyn();
+  };
+
+  auto getVersionName = [](const VersionSymbol *VS) -> llvm::StringRef {
+    auto *block = VS->getBlock();
+    auto *node = block->getNode();
+    if (node->isAnonymous()) {
+      if (block->isGlobal())
+        return "VER_NDX_GLOBAL";
+      else
+        return "VER_NDX_LOCAL";
+    }
+    return (block->isLocal() ? "VER_NDX_LOCAL" : node->getName());
+  };
+
+  auto tryAssign = [&](ResolveInfo *R, VersionSymbol *VS, bool warnOnReassign) {
+    VersionSymbol *existing = getTargetBackend().getSymbolScope(R);
+    InputFile *verSymInputFile =
+        VS->getBlock()->getNode()->getVersionScript().getInputFile();
+    if (existing != nullptr) {
+      if (warnOnReassign && ThisConfig.showVersionScriptWarnings()) {
+        ThisConfig.raise(Diag::warn_version_script_reassign)
+            << verSymInputFile->getInput()->decoratedPath() << R->name()
+            << getVersionName(existing) << getVersionName(VS);
+      }
+      return false;
+    }
+
+    getTargetBackend().addSymbolScope(R, VS);
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    if (ThisConfig.getPrinter()->traceSymbolVersioning()) {
+      ThisConfig.raise(Diag::trace_version_script_matched_scope)
+          << (VS->isGlobal() ? "global" : "local") << R->name();
+    }
+#endif
+    return true;
+  };
+
+  using PatternFilter = std::function<bool(const WildcardPattern &)>;
+
+  auto processBlock = [&](VersionScriptBlock *block, PatternFilter filter,
+                          bool warnOnReassign) {
+    if (!block)
+      return;
+
+    for (auto *sym : block->getSymbols()) {
+      auto *pattern = sym->getSymbolPattern();
+      if (!filter(*pattern))
+        continue;
+
+      for (auto &G : NP.getGlobals()) {
+        ResolveInfo *R = G.getValue();
+        if (!canAssignVersionNode(*R))
+          continue;
+        if (!warnOnReassign && getTargetBackend().getSymbolScope(R) != nullptr)
+          continue;
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+        if (sym->matched(*R, NP, demangledNames))
+#else
+        if (pattern->matched(*R))
+#endif
+        {
+          tryAssign(R, sym, warnOnReassign);
+        }
+      }
+    }
+  };
+
+  auto processNodeFirstWins = [&](const VersionScriptNode *node,
+                                  PatternFilter filter, bool warnOnReassign) {
+    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
+    processBlock(node->getLocalBlock(), filter, warnOnReassign);
+  };
+
+  auto processNodeLastWins = [&](const VersionScriptNode *node,
+                                 PatternFilter filter, bool warnOnReassign) {
+    processBlock(node->getLocalBlock(), filter, warnOnReassign);
+    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
+  };
+
+  auto isExact = [](const WildcardPattern &P) { return !P.hasGlob(); };
+  auto isNonStarWildcard = [](const WildcardPattern &P) {
+    return P.hasGlob() && !P.isMatchAll();
+  };
+  auto isMatchAll = [](const WildcardPattern &P) { return P.isMatchAll(); };
+
+  for (const auto *N : VersionNodes) {
+    processNodeFirstWins(N, isExact, true);
+  }
+
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    processNodeLastWins(*It, isNonStarWildcard, false);
+  }
+
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    processNodeLastWins(*It, isMatchAll, false);
+  }
 }
 
 std::string ObjectLinker::getLTOTempPrefix() const {
