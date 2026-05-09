@@ -278,7 +278,7 @@ There are various linker command-line options for setting output section
 VMA: ``-Tbss``, ``-Tdata``, ``-Ttext`` and ``--section-start``.
 
 --section-start=sectionname=org
-    Locate a section in the output file at the absolute address given by org.
+    --section-start assigns the specified address to the output section in the output file at the absolute address given by org.
     You may use this option multiple times to locate multiple sections.
 
 -Ttext=org
