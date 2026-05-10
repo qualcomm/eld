@@ -1,0 +1,6 @@
+{
+  global: bar;
+};
+VER_1.0 {
+  global: foo;
+};
