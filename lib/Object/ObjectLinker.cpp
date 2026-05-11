@@ -67,6 +67,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -1976,8 +1977,12 @@ void ObjectLinker::createRelocationSections() {
     }
   };
 
-  // apply all relocations of all inputs
-  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocCount;
+  // Apply all relocations of all inputs.
+  // Use a MapVector so that output relocation sections are created in a
+  // deterministic order.
+  llvm::MapVector<SectionKey, uint32_t,
+                  llvm::DenseMap<SectionKey, unsigned, SectionKeyInfo>>
+      OutputRelocCount;
   llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocAlignment;
   llvm::DenseMap<SectionKey, ELFSection *, SectionKeyInfo>
       OutputRelocTargetSect;

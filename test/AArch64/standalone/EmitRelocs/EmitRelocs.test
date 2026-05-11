@@ -1,4 +1,3 @@
-#UNSUPPORTED: asserts
 RUN: %clang %clangopts -target aarch64 -c %p/test.c -o %t1.o
 RUN: %clang %clangopts -target aarch64 -c %p/bar.c -o %t2.o
 
@@ -41,11 +40,7 @@ OBJ2: Relocation section '.relamycode_2' at offset {{.*}} contains
 OBJ2-DAG: z + 0
 OBJ2-DAG: z + 0
 
-EXE: Relocation section '.rela.text' at offset {{.*}} contains
-EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
-EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
-EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
-EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+EXE: Relocation section '.relamycode_1' at offset {{.*}} contains
 EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
 
@@ -57,7 +52,11 @@ EXE-DAG: {{[0-9a-f]+}} {{.*}} bar2 + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
 
-EXE: Relocation section '.relamycode_1' at offset {{.*}} contains
+EXE: Relocation section '.rela.text' at offset {{.*}} contains
+EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} z + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
+EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
 
@@ -95,7 +94,7 @@ SECT:  .text             PROGBITS
 SECT:  mycode_1          PROGBITS
 SECT:  mycode_2          PROGBITS
 SECT:  mydata            PROGBITS
-SECT:  .rela.text        RELA            {{.*}}
-SECT:  .relamycode_2     RELA            {{.*}}
 SECT:  .relamycode_1     RELA            {{.*}}
+SECT:  .relamycode_2     RELA            {{.*}}
+SECT:  .rela.text        RELA            {{.*}}
 SECT:  .symtab           SYMTAB
