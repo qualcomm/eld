@@ -29,7 +29,6 @@
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
-#include "eld/Support/HashUtils.h"
 #include "eld/Support/RegisterTimer.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"

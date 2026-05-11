@@ -3,7 +3,6 @@ llvm_add_library(
   STATIC
   DynamicLibrary.cpp
   FileSystem.cpp
-  HashUtils.cpp
   INIReader.cpp
   InputTarReader.cpp
   MappingFile.cpp
