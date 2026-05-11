@@ -24,11 +24,29 @@ bool eld::ELDEmulateELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   auto Sysroot = pConfig.directories().hasSysRoot()
                      ? pConfig.directories().sysroot().native()
                      : "";
-  auto LibPath = ELDDirectory("=/lib", Sysroot);
-  auto UsrLibPath = ELDDirectory("=/usr/lib", Sysroot);
-  if (llvm::sys::fs::is_directory(LibPath.name()))
-    pConfig.directories().insert("=/lib");
-  if (llvm::sys::fs::is_directory(UsrLibPath.name()))
-    pConfig.directories().insert("=/usr/lib");
+  static const char *StandardDirs[] = {
+      "=/lib",
+      "=/usr/lib",
+      "=/usr/local/lib",
+  };
+  for (const char *Dir : StandardDirs) {
+    auto EldDir = ELDDirectory(Dir, Sysroot);
+    if (llvm::sys::fs::is_directory(EldDir.name()))
+      pConfig.directories().insert(Dir);
+  }
+  // lib64 directories are only relevant for 64-bit targets.
+  // 32-bit architectures (ARM, Hexagon, RISCV32) do not use lib64.
+  if (pConfig.targets().is64Bits()) {
+    static const char *Lib64Dirs[] = {
+        "=/lib64",
+        "=/usr/lib64",
+        "=/usr/local/lib64",
+    };
+    for (const char *Dir : Lib64Dirs) {
+      auto EldDir = ELDDirectory(Dir, Sysroot);
+      if (llvm::sys::fs::is_directory(EldDir.name()))
+        pConfig.directories().insert(Dir);
+    }
+  }
   return true;
 }
