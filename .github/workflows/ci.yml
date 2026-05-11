@@ -92,6 +92,7 @@ jobs:
           mkdir -p obj
           cd obj
           cmake -G Ninja \
+            ../llvm-project/llvm \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
@@ -106,7 +107,7 @@ jobs:
             -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
             -DELD_ENABLE_SYMBOL_VERSIONING=ON \
             -DLLVM_ENABLE_WERROR:BOOL=ON \
-            ../llvm-project/llvm
+            -DELD_ENABLE_RUN_TESTS:BOOL=On
 
       - name: Cache Usage before build
         if: steps.file-check.outputs.skip_build == 'false'
@@ -131,7 +132,32 @@ jobs:
       - name: Run tests
         if: steps.file-check.outputs.skip_build == 'false'
         working-directory: pr-${{ env.PR_NUMBER }}/obj
-        run: ninja check-eld
+        run: |
+          export PATH="$PATH:/opt/qemu/bin"
+          export PATH="$PATH:/local/mnt/workspace/arm-unknown-linux-gnueabi/bin"
+          export PATH="$PATH:/local/mnt/workspace/aarch64-unknown-linux-gnu/bin"
+          export PATH="$PATH:/local/mnt/workspace/riscv32-unknown-linux-gnu/bin"
+          export PATH="$PATH:/local/mnt/workspace/riscv64-unknown-linux-gnu/bin"
+          export PATH="$PATH:/local/mnt/workspace/x86_64-unknown-linux-gnu/bin"
+
+          export ELD_ARM_C_COMPILER=arm-unknown-linux-gnueabi-cc
+          export ELD_ARM_CXX_COMPILER=arm-unknown-linux-gnueabi-c++
+          export ELD_ARM_SYSROOT=/local/mnt/workspace/arm-unknown-linux-gnueabi/arm-unknown-linux-gnueabi/sysroot
+          export ELD_AARCH64_C_COMPILER=aarch64-unknown-linux-gnu-cc
+          export ELD_AARCH64_CXX_COMPILER=aarch64-unknown-linux-gnu-c++
+          export ELD_AARCH64_SYSROOT=/local/mnt/workspace/aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu/sysroot
+          export ELD_RISCV32_C_COMPILER=riscv32-unknown-linux-gnu-cc
+          export ELD_RISCV32_CXX_COMPILER=riscv32-unknown-linux-gnu-c++
+          export ELD_RISCV32_SYSROOT=/local/mnt/workspace/riscv32-unknown-linux-gnu/riscv32-unknown-linux-gnu/sysroot
+          export ELD_RISCV64_C_COMPILER=riscv64-unknown-linux-gnu-cc
+          export ELD_RISCV64_CXX_COMPILER=riscv64-unknown-linux-gnu-c++
+          export ELD_RISCV64_SYSROOT=/local/mnt/workspace/riscv64-unknown-linux-gnu/riscv64-unknown-linux-gnu/sysroot
+          export ELD_X86_64_C_COMPILER=x86_64-unknown-linux-gnu-cc
+          export ELD_X86_64_CXX_COMPILER=x86_64-unknown-linux-gnu-c++
+          export ELD_X86_64_SYSROOT=/local/mnt/workspace/x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu/sysroot
+
+          ninja check-eld
+
 
       - name: Clean up
         if: always()
