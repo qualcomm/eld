@@ -33,13 +33,13 @@ static CompatibilityAction getCompatibilityAction(uint32_t A, uint32_t B) {
 }
 
 static const char *ISAs[eld::HexagonInfo::LAST_ISA] = {
-    "v68", "v69", "v71", "v71t", "v73", "v75", "v77",
-    "v79", "v81", "v83", "v85",  "v87", "v89", "v91"};
+    "v68", "v69", "v71", "v71t", "v73", "v75", "v77", "v79",
+    "v81", "v83", "v85", "v87",  "v89", "v91", "v93"};
 
 static const char *MCPUs[eld::HexagonInfo::LAST_ISA] = {
     "hexagonv68", "hexagonv69", "hexagonv71", "hexagonv71t", "hexagonv73",
     "hexagonv75", "hexagonv77", "hexagonv79", "hexagonv81",  "hexagonv83",
-    "hexagonv85", "hexagonv87", "hexagonv89", "hexagonv91",
+    "hexagonv85", "hexagonv87", "hexagonv89", "hexagonv91",  "hexagonv93",
 };
 
 static const uint32_t ISAsToEFlag[eld::HexagonInfo::LAST_ISA] = {
@@ -50,6 +50,7 @@ static const uint32_t ISAsToEFlag[eld::HexagonInfo::LAST_ISA] = {
     llvm::ELF::EF_HEXAGON_MACH_V81, llvm::ELF::EF_HEXAGON_MACH_V83,
     llvm::ELF::EF_HEXAGON_MACH_V85, llvm::ELF::EF_HEXAGON_MACH_V87,
     llvm::ELF::EF_HEXAGON_MACH_V89, llvm::ELF::EF_HEXAGON_MACH_V91,
+    llvm::ELF::EF_HEXAGON_MACH_V93,
 };
 
 std::string HexagonInfo::flagString(uint64_t flag) const {
@@ -87,6 +88,7 @@ bool HexagonInfo::initialize() {
                       .Case("hexagonv87", llvm::ELF::EF_HEXAGON_MACH_V87)
                       .Case("hexagonv89", llvm::ELF::EF_HEXAGON_MACH_V89)
                       .Case("hexagonv91", llvm::ELF::EF_HEXAGON_MACH_V91)
+                      .Case("hexagonv93", llvm::ELF::EF_HEXAGON_MACH_V93)
                       .Default(LINK_UNKNOWN);
   if (m_CmdLineFlag == -1) {
     m_Config.raise(Diag::fatal_unsupported_emulation)
@@ -138,6 +140,8 @@ uint64_t HexagonInfo::translateFlag(uint64_t pFlag) const {
     return LINK_V89;
   case llvm::ELF::EF_HEXAGON_MACH_V91:
     return LINK_V91;
+  case llvm::ELF::EF_HEXAGON_MACH_V93:
+    return LINK_V93;
   default:
     llvm_unreachable(llvm::Twine("Unknown flag " + pflagStr).str().c_str());
   }
@@ -198,6 +202,8 @@ std::string HexagonInfo::getArchStr(uint64_t pFlag) const {
     return "hexagonv89";
   case llvm::ELF::EF_HEXAGON_MACH_V91:
     return "hexagonv91";
+  case llvm::ELF::EF_HEXAGON_MACH_V93:
+    return "hexagonv93";
   default:
     break;
   }
@@ -237,6 +243,7 @@ HexagonInfo::ArchSupport HexagonInfo::getArchSupport(uint64_t pFlag) const {
   case llvm::ELF::EF_HEXAGON_MACH_V87:
   case llvm::ELF::EF_HEXAGON_MACH_V89:
   case llvm::ELF::EF_HEXAGON_MACH_V91:
+  case llvm::ELF::EF_HEXAGON_MACH_V93:
     return HexagonInfo::ArchSupport::Supported;
   default:
     break;
