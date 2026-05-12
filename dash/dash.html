@@ -22,6 +22,7 @@
 <script type="text/javascript" src="musl_status_data.py"></script>
 <script type="text/javascript" src="sanitizer_status_data.py"></script>
 <script type="text/javascript" src="nightly_status_data.py"></script>
+<script type="text/javascript" src="windows_nightly_status_data.py"></script>
 <script type="text/javascript" src="reverse_iterator_status_data.py"></script>
 <script type="text/javascript" src="release_status_data.py"></script>
 </head>
@@ -56,12 +57,17 @@
         <br>
         &nbsp;&nbsp;&nbsp;&nbsp;Nightly Status <sub><span id="nightly_green" class="status status-pass"></span><span id="nightly_red" class="status status-fail"></span></sub><label for="select_nightly" style="position: relative; left: 180px;">Filter: </label><input type="checkbox" id="select_nightly" name="select_nightly" checked style="position: relative; left: 180px;">
       </div>
-      <div class="Build5 flex-child" id="reverse_iteratorPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+      <div class="Build5 flex-child" id="windows_nightlyPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+        <canvas id="windowsNightlyPie"></canvas>
+        <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;Windows Nightly Status <sub><span id="windows_nightly_green" class="status status-pass"></span><span id="windows_nightly_red" class="status status-fail"></span></sub><label for="select_windows_nightly" style="position: relative; left: 105px;">Filter: </label><input type="checkbox" id="select_windows_nightly" name="select_windows_nightly" checked style="position: relative; left: 105px;">
+      </div>
+      <div class="Build6 flex-child" id="reverse_iteratorPie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
         <canvas id="reverseIteratorPie"></canvas>
         <br>
         &nbsp;&nbsp;&nbsp;&nbsp;Reverse Iterator Status <sub><span id="reverse_iterator_green" class="status status-pass"></span><span id="reverse_iterator_red" class="status status-fail"></span></sub><label for="select_reverse_iterator" style="position: relative; left: 130px;">Filter: </label><input type="checkbox" id="select_reverse_iterator" name="select_reverse_iterator" checked style="position: relative; left: 130px;">
       </div>
-      <div class="Build6 flex-child" id="releasePie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
+      <div class="Build7 flex-child" id="releasePie-div" style="max-width: 400px;border:2px solid skyblue;border-style:inset hidden hidden inset;border-radius: 18px;">
         <canvas id="releasePie"></canvas>
         <br>
         &nbsp;&nbsp;&nbsp;&nbsp;Release Status <sub><span id="release_green" class="status status-pass"></span><span id="release_red" class="status status-fail"></span></sub><label for="select_release" style="position: relative; left: 180px;">Filter: </label><input type="checkbox" id="select_release" name="select_release" checked style="position: relative; left: 180px;">
@@ -288,6 +294,45 @@
   </script>
 
   <script>
+  const windowsNightly = document.getElementById("windowsNightlyPie");
+  updateStatusIndicators(windows_nightly_build_states, "#windows_nightly_green", "#windows_nightly_red");
+  let windows_nightly_passes = 0;
+  let windows_nightly_fails = 0;
+  windows_nightly_build_states.forEach(function(value, key) {
+    if(value.state == 'pass')
+      windows_nightly_passes += 1;
+    else if (value.state == 'fail')
+      windows_nightly_fails += 1;
+  });
+  const windows_nightly_pie = new Chart(windowsNightly, {
+    type: 'pie',
+    data: {
+      labels: ['Pass', 'Fail'],
+      datasets: [{
+        label: '#Builds',
+        data: [windows_nightly_passes, windows_nightly_fails],
+        borderWidth: 2,
+        backgroundColor: [
+        'lightgreen',
+        'red'
+      ],
+      hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      title: {
+        display: true,
+        text: 'Windows Nightly Builds'
+      },
+        onClick: (e) => {
+            window.open("windowsNightlyBuilds.html", "_blank");
+        }
+    }
+  });
+  </script>
+
+  <script>
   const reverseIterator = document.getElementById("reverseIteratorPie");
   updateStatusIndicators(reverse_iterator_build_states, "#reverse_iterator_green", "#reverse_iterator_red");
   let reverse_iterator_passes = 0;
@@ -391,6 +436,7 @@
       { selector: '#select_musl',             states: musl_build_states,             chart: musl_pie,             label: 'MUSL' },
       { selector: '#select_sanitizer',        states: sanitizer_build_states,        chart: sanitizer_pie,        label: 'Sanitizer' },
       { selector: '#select_nightly',          states: nightly_build_states,          chart: nightly_pie,          label: 'Nightly' },
+      { selector: '#select_windows_nightly',  states: windows_nightly_build_states,  chart: windows_nightly_pie,  label: 'Windows Nightly' },
       { selector: '#select_reverse_iterator', states: reverse_iterator_build_states, chart: reverse_iterator_pie, label: 'Reverse Iterator' },
       { selector: '#select_release',          states: release_build_states,          chart: release_pie,          label: 'Release' }
     ];
