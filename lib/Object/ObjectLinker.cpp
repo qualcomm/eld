@@ -1981,7 +1981,7 @@ void ObjectLinker::createRelocationSections() {
   // Use a MapVector so that output relocation sections are created in a
   // deterministic order.
   llvm::MapVector<SectionKey, uint32_t,
-                  llvm::DenseMap<SectionKey, unsigned, SectionKeyInfo>>
+                  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo>>
       OutputRelocCount;
   llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocAlignment;
   llvm::DenseMap<SectionKey, ELFSection *, SectionKeyInfo>
