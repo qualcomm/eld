@@ -227,12 +227,12 @@ defm Ttext_segment
       Group<grp_scriptopts>;
 defm Trodata_segment
     : dashEqWithOpt<"Trodata-segment", "Trodata-segment", "Trodata_segment",
-                    "Specify an address for the .rodata-segment segment">,
+                    "Set address of rodata segment">,
       MetaVarName<"<address>">,
       Group<grp_scriptopts>;
 defm Tldata_segment
     : dashEqWithOpt<"Tldata-segment", "Tldata-segment", "Tldata_segment",
-                    "Specify an address for the .ldata-segment segment">,
+                    "Set address of ldata segment">,
       MetaVarName<"<address>">,
       Group<grp_scriptopts>;
 defm Tdata

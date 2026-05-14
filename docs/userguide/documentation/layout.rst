@@ -279,16 +279,20 @@ VMA: ``-Tbss``, ``-Tdata``, ``-Ttext`` and ``--section-start``.
 
 --section-start=sectionname=org
     Assigns the absolute address org to the named output section.
-    You may use this option multiple times to place multiple sections at specific addresses.
+    This option can be used multiple times to set addresses for different sections.
+    If the same section name is specified more than once, the last address is used.
 
 -Ttext=org
     Same as ``--section-start`` with ``.text`` as the section name.
+    If the output does not contain a ``.text`` section, this has no effect.
 
 -Tdata=org
     Same as ``--section-start`` with ``.data`` as the section name.
+    If the output does not contain a ``.data`` section, this has no effect.
 
 -Tbss=org
     Same as ``--section-start`` with ``.bss`` as the section name.
+    If the output does not contain a ``.bss`` section, this has no effect.
 
 -Ttext-segment=org
     When creating an ELF executable, it sets the address of the first byte of the text segment.
