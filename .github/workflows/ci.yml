@@ -123,6 +123,11 @@ jobs:
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ccache --show-stats --dir=$CCACHE_DIR
 
+      - name: Prune ccache after build
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ccache --evict-older-than 7200s --dir=$CCACHE_DIR
+
       - name: Run tests
         if: steps.file-check.outputs.skip_build == 'false'
         working-directory: pr-${{ env.PR_NUMBER }}/obj

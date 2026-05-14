@@ -105,6 +105,12 @@ jobs:
           cd obj
           ninja ld.eld
 
+      - name: Prune ccache before save
+        if: always()
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/obj/ccache
+        run: ccache --evict-older-than 7200s
+
       - name: Save ccache
         if: always()
         uses: actions/cache/save@v5
