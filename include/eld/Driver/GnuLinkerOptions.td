@@ -1089,6 +1089,20 @@ def plugin_opt_eq_minus
 def flto : Flag<["-", "--"], "flto">,
            HelpText<"Enable LTO if a Bitcode file is present.">,
            Group<grp_ltooptions>;
+def fat_lto_objects : Flag<["--"], "fat-lto-objects">,
+                      HelpText<"Use .llvm.lto section in fat LTO objects">,
+                      Group<grp_ltooptions>;
+def no_fat_lto_objects : Flag<["--"], "no-fat-lto-objects">,
+                         HelpText<"Ignore .llvm.lto section in fat LTO objects">,
+                         Group<grp_ltooptions>;
+def ffat_lto_objects : Flag<["-"], "ffat-lto-objects">,
+                       Alias<fat_lto_objects>,
+                       HelpText<"Alias for --fat-lto-objects">,
+                       Group<grp_ltooptions>;
+def fno_fat_lto_objects : Flag<["-"], "fno-fat-lto-objects">,
+                          Alias<no_fat_lto_objects>,
+                          HelpText<"Alias for --no-fat-lto-objects">,
+                          Group<grp_ltooptions>;
 defm flto_options
     : dashEqWithOpt<"flto-options", "flto-options", "flto_options",
                     "Specify various options with LTO">,

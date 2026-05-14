@@ -295,6 +295,8 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
     }
     K = Input->getInputFile()->getKind();
   }
+  if (!Ist.Annotation.empty())
+    appendRemapComment(Ist.Annotation);
 
   std::string FileType;
   if (ArchFlag.empty()) {
@@ -341,12 +343,33 @@ std::string LayoutInfo::getStringFromLoadSequence(InputSequenceT Ist) {
 }
 
 void LayoutInfo::recordInputActions(InputKindPrefix Prefix, Input *Input,
-                                    std::string FileType) {
+                                    std::string FileType,
+                                    std::string Annotation) {
   InputSequenceT IS;
   IS.Prefix = Prefix;
   IS.Inp = Input;
   IS.ArchFlag = FileType;
+  IS.Annotation = Annotation;
   InputActions.push_back(IS);
+}
+
+void LayoutInfo::annotateInputAction(Input *Input, llvm::StringRef Annotation) {
+  if (!Input || Annotation.empty())
+    return;
+
+  for (auto It = InputActions.rbegin(); It != InputActions.rend(); ++It) {
+    if (It->Inp != Input)
+      continue;
+    if (It->Annotation.empty()) {
+      It->Annotation = Annotation.str();
+    } else if (!llvm::StringRef(It->Annotation).contains(Annotation)) {
+      It->Annotation += ", ";
+      It->Annotation += Annotation.str();
+    }
+    return;
+  }
+
+  recordInputActions(LayoutInfo::Load, Input, "", Annotation.str());
 }
 
 void LayoutInfo::recordGroup() { LinkStats.NumGroupTraversal++; }

@@ -129,7 +129,9 @@ void ELFReader<ELFT>::setSectionInInputFile(ELFSection *S,
     break;
   }
 
-  if (!isDynObj && S->name() == ".llvmbc") {
+  bool ReadFatLTOSections = m_Module.getConfig().options().hasFatLTOObjects();
+  if (!isDynObj && ELFSection::shouldReadEmbeddedBitcodeSection(
+                       S->name(), ReadFatLTOSections)) {
     ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(&m_InputFile);
     EObj->setLLVMBCSection(S);
   }

@@ -3888,9 +3888,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 }
 
 bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
-  // If -flto option is not passed to the linker, and there is not a list
-  // to include, then just move on.
-  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size())
+  // If neither -flto nor list-driven selection nor --fat-lto-objects is used,
+  // then just move on.
+  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size() &&
+      !ThisConfig.options().hasFatLTOObjects())
     return false;
 
   eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
@@ -3907,6 +3908,11 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
 
   ELFSection *LLVMBCSection = EObj->getLLVMBCSection();
   if (!LLVMBCSection)
+    return false;
+
+  // Fat-LTO payloads are selected only when --fat-lto-objects is enabled.
+  if (ELFSection::isFatLTOSection(LLVMBCSection->name()) &&
+      !ThisConfig.options().hasFatLTOObjects())
     return false;
 
   bool MatchedPattern = false;
@@ -3932,15 +3938,25 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   if (ThisConfig.options().hasLTO()) {
     if (MatchedPattern)
       return false;
-  } else {
+  } else if (LTOPatternList.size()) {
     // The file needs to be included, if
     // -flto option is not used and there is a match.
     if (!MatchedPattern)
       return false;
+  } else if (!(ThisConfig.options().hasFatLTOObjects() &&
+               ELFSection::isFatLTOSection(LLVMBCSection->name()))) {
+    // We have to delay this to make sure llvmbc sections are handled using
+    // exclude-lto-filelist and include-lto-filelist accordingly.
+    return false;
   }
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig.raise(Diag::use_embedded_bitcode) << Path;
+
+  if (ELFSection::isFatLTOSection(LLVMBCSection->name())) {
+    if (LayoutInfo *layoutInfo = ThisModule->getLayoutInfo())
+      layoutInfo->annotateInputAction(CurInput, "Fat LTO object selected");
+  }
 
   // LTO is needed. Since Bitcode was chosen.
   ThisModule->setLTONeeded();

@@ -1,0 +1,44 @@
+#---FatLTOObjects.test--------------------------- Executable,LTO -----------------#
+#BEGIN_COMMENT
+# Verify support for fat LTO objects carrying a .llvm.lto section.
+# --fat-lto-objects (and -ffat-lto-objects alias) should select embedded
+# bitcode from .llvm.lto, while default mode should use the native object.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/native.c -o %t.native.o
+RUN: %clang %clangopts -emit-llvm -c %p/Inputs/lto.c -o %t.lto.bc
+
+RUN: %objcopy --add-section=.llvm.lto=%t.lto.bc --set-section-flags=.llvm.lto=exclude --set-section-type=.llvm.lto=0x6fff4c0c %t.native.o %t.fat.o
+RUN: %readelf -S %t.fat.o | %filecheck %s --check-prefix=HAS-LTO-SECTION
+
+RUN: %link %linkopts -e main %t.main.o %t.fat.o -o %t.no-fat.out
+RUN: %nm %t.no-fat.out | %filecheck %s --check-prefix=NOFAT
+RUN: %readelf -S %t.no-fat.out | %filecheck %s --check-prefix=NO-LTO-SECTION
+
+RUN: %link %linkopts -e main %t.main.o %t.fat.o --fat-lto-objects --trace=lto --verbose -o %t.fat.out 2>&1 | %filecheck %s --check-prefix=FAT-MSG
+RUN: %nm %t.fat.out | %filecheck %s --check-prefix=FAT
+RUN: %readelf -S %t.fat.out | %filecheck %s --check-prefix=NO-LTO-SECTION
+
+RUN: %link %linkopts -e main %t.main.o %t.fat.o --fat-lto-objects -Map %t.fat.map -o %t.fat.map.out
+RUN: %filecheck %s --check-prefix=FAT-MAP < %t.fat.map
+
+RUN: %link %linkopts -e main %t.main.o %t.fat.o -ffat-lto-objects --trace=lto --verbose -o %t.ffat.out 2>&1 | %filecheck %s --check-prefix=FAT-MSG
+RUN: %nm %t.ffat.out | %filecheck %s --check-prefix=FAT
+
+RUN: %link %linkopts -r %t.fat.o -o %t.reloc.o
+RUN: %readelf -S %t.reloc.o | %filecheck %s --check-prefix=NO-LTO-SECTION
+
+HAS-LTO-SECTION: .llvm.lto
+
+NO-LTO-SECTION-NOT: .llvm.lto
+
+FAT-MSG: Using embedded bitcode section from file
+
+FAT-MAP: LOAD {{.*}}fat.o{{.*}} # Fat LTO object selected
+
+NOFAT: native_symbol
+NOFAT-NOT: lto_symbol
+
+FAT: lto_symbol
+FAT-NOT: native_symbol

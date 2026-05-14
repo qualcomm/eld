@@ -20,6 +20,7 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/LDFileFormat.h"
 #include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/iterator_range.h"
 #include <string>
 
@@ -141,6 +142,26 @@ public:
                        AddrAlign, Type, Info, Link, SectionSize) {}
 
   static bool classof(const Section *S) { return S->isELF(); }
+
+  // Embedded-bitcode helper predicates used by readers and LTO selection.
+  static bool isFatLTOSection(llvm::StringRef Name) {
+    return Name == ".llvm.lto";
+  }
+
+  static bool isEmbeddedBitcodeSection(llvm::StringRef Name) {
+    return Name == ".llvmbc" || isFatLTOSection(Name);
+  }
+
+  static bool isEmbeddedBitcodeMetadataSection(llvm::StringRef Name) {
+    return Name == ".llvmcmd";
+  }
+
+  static bool shouldReadEmbeddedBitcodeSection(llvm::StringRef Name,
+                                               bool UseFatLTOObjects) {
+    if (Name == ".llvmbc")
+      return true;
+    return UseFatLTOObjects && isFatLTOSection(Name);
+  }
 
   virtual ~ELFSection() {}
 

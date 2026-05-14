@@ -671,6 +671,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.options().setLTO(opt_flto);
   Config.addCommandLine(Table->getOptionName(T::flto), opt_flto);
 
+  // --{no-,}fat-lto-objects / -f{no-,}fat-lto-objects
+  bool fatLTOObjects =
+      Args.hasFlag(T::fat_lto_objects, T::no_fat_lto_objects, false);
+  Config.options().setFatLTOObjects(fatLTOObjects);
+  Config.addCommandLine(Table->getOptionName(T::fat_lto_objects),
+                        fatLTOObjects);
+
   // --save-temps
   Config.options().setSaveTemps(Args.hasArg(T::save_temps));
 

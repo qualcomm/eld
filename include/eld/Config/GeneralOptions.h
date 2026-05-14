@@ -397,6 +397,10 @@ public:
 
   bool hasLTO() const { return Lto; }
 
+  void setFatLTOObjects(bool V = true) { FatLTOObjects = V; }
+
+  bool hasFatLTOObjects() const { return FatLTOObjects; }
+
   void setLTOOptions(llvm::StringRef OptionType);
 
   void addLTOCodeGenOptions(std::string O);
@@ -1272,6 +1276,7 @@ private:
   bool BForcePACPLT = false;         // -z pac-plt
   uint32_t GPSize = 8;               // -G, --gpsize
   bool Lto = false;
+  bool FatLTOObjects = false;                    // --fat-lto-objects
   bool LTOUseAs = false;                         // -flto-use-as
   StripSymbolMode StripSymbols = KeepAllSymbols; // Strip symbols ?
   bool BPageAlignSegments = true;   // Does the linker need to align segments to
