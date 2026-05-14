@@ -15,18 +15,18 @@ jobs:
     if: github.repository == 'qualcomm/eld'
 
     steps:
-      - name: Set up Clang 21
+      - name: Set up Clang 22
         uses: egor-tensin/setup-clang@v2
         with:
-          version: "21"
+          version: "22"
           platform: x64
 
       - name: Install libc++ and libc++abi
         run: |
           sudo apt update
-          sudo apt install -y clang-21 lld-21 ninja-build libc++-21-dev libc++abi-21-dev ccache libclang-rt-21-dev libunwind-21-dev
-          echo "PATH=/usr/lib/llvm-21/bin:$PATH" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-21/lib:$PATH" >> $GITHUB_ENV
+          sudo apt install -y clang-22 lld-22 ninja-build libc++-22-dev libc++abi-22-dev ccache libclang-rt-22-dev libunwind-22-dev
+          echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-22/lib:$PATH" >> $GITHUB_ENV
 
       - name: Build and Test with Clang and show versions
         run: |
