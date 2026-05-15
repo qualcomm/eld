@@ -17,14 +17,12 @@
 #include "eld/Support/MappingFile.h"
 #include "eld/Support/Path.h"
 #include "eld/Target/Relocator.h"
-#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/FileOutputBuffer.h"
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 namespace llvm {
@@ -188,7 +186,7 @@ public:
   bool prelayout();
 
   // Create relocation sections for emit relocs.
-  void createEmitRelocationSections();
+  void createRelocationSections();
 
   /// layout - linearly layout all output sections and reserve some space
   /// for GOT/PLT
@@ -508,26 +506,6 @@ private:
   // Initialize the target machine when sniffing object files
   bool initializeTarget(InputFile *I);
 
-  uint32_t getEmitRelocSectionType() const;
-
-  ELFSection *getEmitRelocOutputTargetSection(Relocation *Reloc) const;
-
-  void markRelocationOutputTargetSectionWanted(Relocation *Reloc) const;
-
-  ELFSection *createEmitRelocSection(ELFSection *OutputTargetSect,
-                                     uint32_t RelocSectionType,
-                                     uint32_t MaxAlignment,
-                                     uint32_t RelocCount);
-
-  ELFSection *findEmitRelocOutputSection(Relocation *Reloc,
-                                         uint32_t RelocSectionType) const;
-
-  void initializeEmitRelocCounts(
-      llvm::DenseMap<ELFSection *, unsigned> &RelocCount) const;
-
-  void finalizeEmitRelocSectionSizes(
-      const llvm::DenseMap<ELFSection *, unsigned> &RelocCount);
-
 private:
   LinkerConfig &ThisConfig;
   Module *ThisModule = nullptr;
@@ -545,8 +523,6 @@ private:
   BitcodeReader *MPBitcodeReader = nullptr;
   ObjectReader *symDefReader = nullptr;
   llvm::StringSet<> MDynlistExports;
-  // Maps each output section to its emit-relocs output relocation section.
-  llvm::DenseMap<ELFSection *, ELFSection *> EmitRelocSectionMap;
 
   // Is this the second phase of normalize for LTO
   bool MPostLtoPhase = false;

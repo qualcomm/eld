@@ -1949,96 +1949,42 @@ size_t ObjectLinker::getRelocSectSize(uint32_t Type, uint32_t Count) {
                       : getTargetBackend().getRelEntrySize());
 }
 
-uint32_t ObjectLinker::getEmitRelocSectionType() const {
-  return getTargetBackend().getRelocator()->relocType();
-}
+void ObjectLinker::createRelocationSections() {
 
-ELFSection *
-ObjectLinker::getEmitRelocOutputTargetSection(Relocation *Reloc) const {
-  if (!Reloc || !Reloc->targetRef() || !Reloc->targetRef()->frag())
-    return nullptr;
-
-  ELFSection *OutputTargetSect = Reloc->targetRef()->frag()->getOwningSection();
-  if (OutputTargetSect && OutputTargetSect->getOutputSection())
-    OutputTargetSect = OutputTargetSect->getOutputSection()->getSection();
-  return OutputTargetSect;
-}
-
-// The target relocation section will be seen in the output only if not
-// discarded (linker script) or ignored (garbage collected)
-void ObjectLinker::markRelocationOutputTargetSectionWanted(
-    Relocation *Reloc) const {
-  ELFSection *TargetSection = Reloc->targetSection();
-  if (!TargetSection || TargetSection->isDiscard() || TargetSection->isIgnore())
-    return;
-
-  if (ELFSection *TargetOutputSection = TargetSection->getOutputELFSection())
-    TargetOutputSection->setWantedInOutput();
-}
-
-ELFSection *ObjectLinker::createEmitRelocSection(ELFSection *OutputTargetSect,
-                                                 uint32_t RelocSectionType,
-                                                 uint32_t MaxAlignment,
-                                                 uint32_t RelocCount) {
-  if (!OutputTargetSect)
-    return nullptr;
-
-  std::string RelocSectionName = getTargetBackend().getOutputRelocSectName(
-      OutputTargetSect->name().str(), RelocSectionType);
-  ELFSection *OutputRelocSect = ThisModule->createOutputSection(
-      RelocSectionName, LDFileFormat::Relocation, RelocSectionType /* Kind */,
-      0x0, MaxAlignment);
-  OutputRelocSect->setEntSize(RelocSectionType == llvm::ELF::SHT_RELA
-                                  ? getTargetBackend().getRelaEntrySize()
-                                  : getTargetBackend().getRelEntrySize());
-  OutputTargetSect->setWantedInOutput(true);
-  OutputRelocSect->setLink(OutputTargetSect);
-  OutputRelocSect->setSize(getRelocSectSize(RelocSectionType, RelocCount));
-  EmitRelocSectionMap[OutputTargetSect] = OutputRelocSect;
-  return OutputRelocSect;
-}
-
-ELFSection *
-ObjectLinker::findEmitRelocOutputSection(Relocation *Reloc,
-                                         uint32_t RelocSectionType) const {
-  ELFSection *TargetOutputSect = getEmitRelocOutputTargetSection(Reloc);
-  if (!TargetOutputSect)
-    return nullptr;
-
-  auto It = EmitRelocSectionMap.find(TargetOutputSect);
-  if (It != EmitRelocSectionMap.end())
-    return It->second;
-
-  return ThisModule->getSection(getTargetBackend().getOutputRelocSectName(
-      TargetOutputSect->name().str(), RelocSectionType));
-}
-
-void ObjectLinker::initializeEmitRelocCounts(
-    llvm::DenseMap<ELFSection *, unsigned> &RelocCount) const {
-  for (const auto &SectMap : EmitRelocSectionMap)
-    RelocCount[SectMap.second] = 0;
-}
-
-void ObjectLinker::finalizeEmitRelocSectionSizes(
-    const llvm::DenseMap<ELFSection *, unsigned> &RelocCount) {
-  for (const auto &Kv : RelocCount)
-    Kv.first->setSize(getRelocSectSize(Kv.first->getType(), Kv.second));
-}
-
-void ObjectLinker::createEmitRelocationSections() {
   if (!ThisConfig.options().emitRelocs())
     return;
 
-  struct EmitRelocSectionPlan {
-    uint32_t RelocCount = 0;
-    uint32_t MaxAlignment = 0;
+  // SectionName, contentPermissions, filepath
+  struct SectionKey {
+    SectionKey() : Name(""), Type(-1) {}
+
+    SectionKey(llvm::StringRef Name, int32_t Type) : Name(Name), Type(Type) {}
+
+    // Data members
+    StringRef Name;
+    int32_t Type;
+  };
+
+  struct SectionKeyInfo {
+    static SectionKey getEmptyKey() { return SectionKey(); }
+    static SectionKey getTombstoneKey() { return SectionKey(); }
+    static unsigned getHashValue(const SectionKey &K) {
+      return llvm::hash_combine(K.Name, K.Type);
+    }
+    static bool isEqual(const SectionKey &Lhs, const SectionKey &Rhs) {
+      return ((Lhs.Name == Rhs.Name) && (Lhs.Type == Rhs.Type));
+    }
   };
 
   // Apply all relocations of all inputs.
   // Use a MapVector so that output relocation sections are created in a
   // deterministic order.
-  llvm::MapVector<ELFSection *, EmitRelocSectionPlan> OutputRelocPlans;
-  const uint32_t RelocSectionType = getEmitRelocSectionType();
+  llvm::MapVector<SectionKey, uint32_t,
+                  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo>>
+      OutputRelocCount;
+  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocAlignment;
+  llvm::DenseMap<SectionKey, ELFSection *, SectionKeyInfo>
+      OutputRelocTargetSect;
 
   eld::Module::obj_iterator Input, InEnd = ThisModule->objEnd();
   for (Input = ThisModule->objBegin(); Input != InEnd; ++Input) {
@@ -2056,25 +2002,45 @@ void ObjectLinker::createEmitRelocationSections() {
           continue;
 
         auto CountRelocEntries = [&](class Relocation *Relocation) -> void {
-          ELFSection *OutputTargetSect =
-              getEmitRelocOutputTargetSection(Relocation);
-          if (!OutputTargetSect)
-            return;
+          ELFSection *OutputSect =
+              Relocation->targetRef()->frag()->getOwningSection();
 
-          markRelocationOutputTargetSectionWanted(Relocation);
-          auto &Plan = OutputRelocPlans[OutputTargetSect];
-          ++Plan.RelocCount;
-          Plan.MaxAlignment = std::max(Rs->getAddrAlign(), Plan.MaxAlignment);
+          if (OutputSect->getOutputSection())
+            OutputSect = OutputSect->getOutputSection()->getSection();
+
+          ELFSection *TargetSection = Relocation->targetSection();
+
+          if (TargetSection &&
+              (!TargetSection->isDiscard() && !TargetSection->isIgnore())) {
+            ELFSection *TargetOutputSection =
+                TargetSection->getOutputELFSection();
+            TargetOutputSection->setWantedInOutput();
+          }
+
+          // Count the num of entries that refers to that section.
+          SectionKey SectKey(OutputSect->name(),
+                             getTargetBackend().getRelocator()->relocType());
+          OutputRelocCount[SectKey] += 1;
+          OutputRelocAlignment[SectKey] =
+              std::max(Rs->getAddrAlign(), OutputRelocAlignment[SectKey]);
+          OutputRelocTargetSect[SectKey] = OutputSect;
         };
         CountRelocEntries(Relocation);
       } // for all relocations
     } // for all relocation section
   } // for all inputs
-  for (const auto &Kv : OutputRelocPlans) {
-    ELFSection *OutputTargetSect = Kv.first;
-    const EmitRelocSectionPlan &Plan = Kv.second;
-    createEmitRelocSection(OutputTargetSect, RelocSectionType,
-                           Plan.MaxAlignment, Plan.RelocCount);
+  for (const auto &Kv : OutputRelocCount) {
+    ELFSection *OutputSect = ThisModule->createOutputSection(
+        getTargetBackend().getOutputRelocSectName(Kv.first.Name.str(),
+                                                  Kv.first.Type),
+        LDFileFormat::Relocation, Kv.first.Type /* Reloc Kind */, 0x0,
+        OutputRelocAlignment[Kv.first]);
+    OutputSect->setEntSize(Kv.first.Type == llvm::ELF::SHT_RELA
+                               ? getTargetBackend().getRelaEntrySize()
+                               : getTargetBackend().getRelEntrySize());
+    OutputRelocTargetSect[Kv.first]->setWantedInOutput(true);
+    OutputSect->setLink(OutputRelocTargetSect[Kv.first]);
+    OutputSect->setSize(getRelocSectSize(Kv.first.Type, Kv.second));
   }
 }
 
@@ -2285,7 +2251,7 @@ bool ObjectLinker::prelayout() {
 
   getTargetBackend().initSymTab();
 
-  createEmitRelocationSections();
+  createRelocationSections();
 
   return true;
 }
@@ -2360,12 +2326,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
   if (LinkerConfig::Object == ThisConfig.codeGenType())
     return true;
 
-  llvm::DenseMap<ELFSection *, unsigned> RelocCount;
-  const uint32_t RelocSectionType = getEmitRelocSectionType();
-  std::mutex EmitRelocsMutex;
-
-  if (EmitRelocs)
-    initializeEmitRelocCounts(RelocCount);
+  // Mapping section to count and max_size.
+  llvm::DenseMap<ELFSection *, unsigned> RelocCount, MaxSectSize;
 
   getTargetBackend().getRelocator()->computeTLSOffsets();
 
@@ -2374,10 +2336,19 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       return true;
     ResolveInfo *Info = Relocation->symInfo();
     ELFSection *OutputSect =
-        findEmitRelocOutputSection(Relocation, RelocSectionType);
+        ThisModule->getSection(getTargetBackend().getOutputRelocSectName(
+            Relocation->targetRef()->getOutputELFSection()->name().str(),
+            getTargetBackend().getRelocator()->relocType()));
 
     if (!OutputSect)
       return true;
+
+    // Make sure we have an entry for each section because it's possible
+    // that the whole section has no any valid relocs.
+    if (RelocCount.find(OutputSect) == RelocCount.end()) {
+      RelocCount[OutputSect] = 0;
+      MaxSectSize[OutputSect] = OutputSect->size();
+    }
 
     Relocation::Type ExtType =
         getTargetBackend().getRemappedInternalRelocationType(
@@ -2408,11 +2379,8 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     // set relocation target symbol to the output section symbol's
     // resolveInfo
     R->setSymInfo(SymInfo);
-    {
-      std::lock_guard<std::mutex> Guard(EmitRelocsMutex);
-      OutputSect->addRelocation(R);
-      RelocCount[OutputSect] += 1;
-    }
+    OutputSect->addRelocation(R);
+    RelocCount[OutputSect] += 1;
     return true;
   };
 
@@ -2502,6 +2470,11 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     if (!ThisConfig.getDiagEngine()->diagnose()) {
       return false;
     }
+
+    if (ThisConfig.options().emitRelocs()) {
+      for (auto &Kv : RelocCount)
+        Kv.first->setSize(getRelocSectSize(Kv.first->getType(), Kv.second));
+    }
     return true;
   };
 
@@ -2531,9 +2504,6 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     }
     Pool->wait();
   }
-
-  if (EmitRelocs)
-    finalizeEmitRelocSectionSizes(RelocCount);
 
   // apply relocations created by relaxation
   SectionMap::iterator Out, OutBegin, OutEnd;
