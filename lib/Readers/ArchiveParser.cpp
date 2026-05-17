@@ -494,10 +494,15 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile &archive,
     return ArchiveFile::Symbol::Include;
 
   // If there is a wrap option specified for that symbol, we only pull from
-  // an archive, if the real symbol is still undefined.
+  // an archive, if the real symbol is still undefined. There are two ways this can manifest:
+  //   1. __real_<sym> exists directly in the name pool (uncommon).
+  //   2. __real_<sym> was renamed to <sym> by IRBuilder::addSymbol before
+  //      archive scanning began, so it never has its own name pool entry.
+  //      In that case <sym> itself is the renamed reference and info->isUndef()
+  //      captures it.
   std::string realSymbol = ("__real_" + SymName).str();
   ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
-  if (RealSymbol && RealSymbol->isUndef())
+  if ((RealSymbol && RealSymbol->isUndef()) || info->isUndef())
     return ArchiveFile::Symbol::Include;
 
   return ArchiveFile::Symbol::Exclude;
