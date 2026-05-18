@@ -1,0 +1,33 @@
+#---R_RISCV_QC_ACCESS_16.test------------------ Executable------------#
+#BEGIN_COMMENT
+#  Check that R_RISCV_QC_ACCESS_16 is correctly handled.
+#  It marks 16-bit compressed load and store instructions that are
+#  candidates for GP-relative linker relaxation from a QC_E_LI +
+#  compressed Load/Store sequence. Without relaxation, the instruction
+#  is left unchanged.
+#--------------------------------------------------------------------
+#END_COMMENT
+REQUIRES: riscv32
+#START_TEST
+RUN: %clang %clangopts -march=rv32ic_zcb -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t1.out | %filecheck %s
+#END_TEST
+
+CHECK-LABEL: <test_clw>:
+CHECK: c.lw a0, 0(a2)
+
+CHECK-LABEL: <test_csw>:
+CHECK: c.sw a0, 0(a2)
+
+CHECK-LABEL: <test_clbu>:
+CHECK: c.lbu a0, 0(a2)
+
+CHECK-LABEL: <test_clh>:
+CHECK: c.lh a0, 0(a2)
+
+CHECK-LABEL: <test_csb>:
+CHECK: c.sb a0, 0(a2)
+
+CHECK-LABEL: <test_csh>:
+CHECK: c.sh a0, 0(a2)

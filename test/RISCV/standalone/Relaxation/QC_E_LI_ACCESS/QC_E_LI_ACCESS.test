@@ -1,0 +1,559 @@
+#----------QC_E_LI_ACCESS.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Linker relaxation for R_RISCV_QC_ACCESS_16 and R_RISCV_QC_ACCESS_32.
+# A qc.e.li + load/store pair is replaced with a single GP-relative or
+# absolute load/store (standard or xqcilo) when the symbol is in range.
+# All variants require --relax-xqci.
+#END_COMMENT
+#--------------------------------------------------------------------
+REQUIRES: riscv32
+
+## Inputs/1.s: five range cases for lw (GP-std, GP-xqci, Abs-std, Abs-xqci,
+## missed), then the same five for c.lw, then one GP-std case for each
+## remaining load/store instruction type, then non-zero offset cases in order
+## lw, sw, compressed loads, compressed stores, then the edge cases (ACCESS
+## without R_RISCV_RELAX, base-register mismatch).
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.o -menable-experimental-extensions -march=rv32gc_zcb_xqcili0p2
+
+## Link with Xqci and GP relaxations enabled (default).
+RUN: %link %linkopts --relax-xqci -MapStyle txt -Map %t.1.map --verbose %t.o -o %t.1.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE
+
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gprel_xqci' in section .text+0xa file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gprel_xqci' in section .text+0x4 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std' in section .text+0xe file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci' in section .text+0x14 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0xe file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_too_far' in section .text+0x14 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_too_far' in section .text+0x14 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x22 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 2 bytes for symbol 'sym_gprel_xqci' in section .text+0x28 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gprel_xqci' in section .text+0x22 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 4 bytes for symbol 'sym_abs_std' in section .text+0x2c file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 2 bytes for symbol 'sym_abs_xqci' in section .text+0x32 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0x2c file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_too_far' in section .text+0x32 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_too_far' in section .text+0x32 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x3e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x42 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x46 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4a file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x52 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x56 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x5a file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x5e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x62 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x66 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x6a file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x6e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x72 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x76 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x7a file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x7e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x82 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x86 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x8a file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x8e file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std' in section .text+0x92 file {{.*}}.o
+VERBOSE: RISCV_QC_E_LI_GP : Deleting 2 bytes for symbol 'sym_gprel_std' in section .text+0x9a file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.1.map --check-prefix=MAP
+
+MAP: # LinkStats Begin
+MAP: # RelaxationBytesDeleted : 138
+MAP: # RelaxationBytesMissed : 18
+MAP: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo,+zcb -M no-aliases -d %t.1.out 2>&1 | %filecheck %s --check-prefix=EXE
+
+EXE: <main>:
+EXE-NEXT: 0201a503      lw      a0, 32(gp)
+EXE-NEXT: e51f 0001 0400        qc.e.lw a0, 1048576(gp)
+EXE-NEXT: 10002503      lw      a0, 256(zero)
+EXE-NEXT: 651f 0000 0800        qc.e.lw a0, 2097152(zero)
+EXE-NEXT: 059f 0000 1400        qc.e.li a1, 335544320
+EXE-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NEXT: 0201a503      lw      a0, 32(gp)
+EXE-NEXT: e51f 0001 0400        qc.e.lw a0, 1048576(gp)
+EXE-NEXT: 10002503      lw      a0, 256(zero)
+EXE-NEXT: 651f 0000 0800        qc.e.lw a0, 2097152(zero)
+EXE-NEXT: 059f 0000 1400        qc.e.li a1, 335544320
+EXE-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NEXT: 02018503      lb      a0, 32(gp)
+EXE-NEXT: 0201c503      lbu     a0, 32(gp)
+EXE-NEXT: 02019503      lh      a0, 32(gp)
+EXE-NEXT: 0201d503      lhu     a0, 32(gp)
+EXE-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE-NEXT: 02a18023      sb      a0, 32(gp)
+EXE-NEXT: 02a19023      sh      a0, 32(gp)
+EXE-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE-NEXT: 0201c503      lbu     a0, 32(gp)
+EXE-NEXT: 0201d503      lhu     a0, 32(gp)
+EXE-NEXT: 02019503      lh      a0, 32(gp)
+EXE-NEXT: 02a18023      sb      a0, 32(gp)
+EXE-NEXT: 02a19023      sh      a0, 32(gp)
+EXE-NEXT: 0241a503      lw      a0, 36(gp)
+EXE-NEXT: 02a1a223      sw      a0, 36(gp)
+EXE-NEXT: 0241a503      lw      a0, 36(gp)
+EXE-NEXT: 0211c503      lbu     a0, 33(gp)
+EXE-NEXT: 0221d503      lhu     a0, 34(gp)
+EXE-NEXT: 02219503      lh      a0, 34(gp)
+EXE-NEXT: 02a180a3      sb      a0, 33(gp)
+EXE-NEXT: 02a19123      sh      a0, 34(gp)
+EXE-NEXT: 0100059b      qc.li   a1, 256
+EXE-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NEXT: 02018593      addi    a1, gp, 32
+EXE-NEXT: 00062503      lw      a0, 0(a2)
+
+## Link with Xqci enabled, GP relaxation disabled. With GP = 0x10000000,
+## all GP-relative symbols exceed the Abs-xqci range too, so they cannot
+## relax via any path. Only the explicitly small absolute symbols relax.
+RUN: %link %linkopts --relax-xqci --no-relax-gp -MapStyle txt -Map %t.2.map --verbose %t.o -o %t.2.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-GP
+
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gprel_std' in section .text+0x0 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gprel_std' in section .text+0x0 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gprel_xqci' in section .text+0xa file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std' in section .text+0x18 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci' in section .text+0x1e file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0x18 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_too_far' in section .text+0x1e file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 4 bytes for symbol 'sym_abs_std' in section .text+0x3c file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 2 bytes for symbol 'sym_abs_xqci' in section .text+0x42 file {{.*}}.o
+VERBOSE-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0x3c file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.2.map --check-prefix=MAP-NO-GP
+
+MAP-NO-GP: # LinkStats Begin
+MAP-NO-GP: # RelaxationBytesDeleted : 18
+MAP-NO-GP: # RelaxationBytesMissed : 138
+MAP-NO-GP: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo,+zcb -M no-aliases -d %t.2.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-GP
+
+EXE-NO-GP: <main>:
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0000 1010        qc.e.li a1, 269484032
+EXE-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-GP-NEXT: 10002503      lw      a0, 256(zero)
+EXE-NO-GP-NEXT: 651f 0000 0800        qc.e.lw a0, 2097152(zero)
+EXE-NO-GP-NEXT: 059f 0000 1400        qc.e.li a1, 335544320
+EXE-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0000 1010        qc.e.li a1, 269484032
+EXE-NO-GP-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NO-GP-NEXT: 10002503      lw      a0, 256(zero)
+EXE-NO-GP-NEXT: 651f 0000 0800        qc.e.lw a0, 2097152(zero)
+EXE-NO-GP-NEXT: 059f 0000 1400        qc.e.li a1, 335544320
+EXE-NO-GP-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00058503      lb      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 0005c503      lbu     a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00059503      lh      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 0005d503      lhu     a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00a5a023      sw      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00a58023      sb      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00a59023      sh      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: c188          c.sw    a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 8188          c.lbu   a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 8588          c.lhu   a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 85c8          c.lh    a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 8988          c.sb    a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 8d88          c.sh    a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 0045a503      lw      a0, 4(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00a5a223      sw      a0, 4(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 41c8          c.lw    a0, 4(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 81c8          c.lbu   a0, 1(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 85a8          c.lhu   a0, 2(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 85e8          c.lh    a0, 2(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 89c8          c.sb    a0, 1(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 8da8          c.sh    a0, 2(a1)
+EXE-NO-GP-NEXT: 0100059b      qc.li   a1, 256
+EXE-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-GP-NEXT: 059f 0020 1000        qc.e.li a1, 268435488
+EXE-NO-GP-NEXT: 00062503      lw      a0, 0(a2)
+
+## Link with Xqci relaxation disabled — no relaxation occurs.
+RUN: %link %linkopts --no-relax-xqci -MapStyle txt -Map %t.3.map --verbose %t.o -o %t.3.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-XQCI
+
+VERBOSE-NO-XQCI-NOT: Deleting {{.*}} bytes
+VERBOSE-NO-XQCI-NOT: Cannot relax {{.*}} bytes
+
+RUN: %filecheck %s --input-file=%t.3.map --check-prefix=MAP-NO-XQCI
+
+MAP-NO-XQCI-NOT: RelaxationBytesDeleted
+MAP-NO-XQCI-NOT: RelaxationBytesMissed
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcili,+xqcilo,+zcb -M no-aliases -d %t.3.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-XQCI
+
+EXE-NO-XQCI: <main>:
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 1010      qc.e.li a1, 269484032
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0100 0000      qc.e.li a1, 256
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 0020      qc.e.li a1, 2097152
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 1400      qc.e.li a1, 335544320
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 4188        c.lw    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 1010      qc.e.li a1, 269484032
+EXE-NO-XQCI-NEXT: 4188        c.lw    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0100 0000      qc.e.li a1, 256
+EXE-NO-XQCI-NEXT: 4188        c.lw    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 0020      qc.e.li a1, 2097152
+EXE-NO-XQCI-NEXT: 4188        c.lw    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0000 1400      qc.e.li a1, 335544320
+EXE-NO-XQCI-NEXT: 4188        c.lw    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00058503    lb      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 0005c503    lbu     a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00059503    lh      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 0005d503    lhu     a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00a5a023    sw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00a58023    sb      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00a59023    sh      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: c188        c.sw    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 8188        c.lbu   a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 8588        c.lhu   a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 85c8        c.lh    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 8988        c.sb    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 8d88        c.sh    a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 0045a503    lw      a0, 4(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00a5a223    sw      a0, 4(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 41c8        c.lw    a0, 4(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 81c8        c.lbu   a0, 1(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 85a8        c.lhu   a0, 2(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 85e8        c.lh    a0, 2(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 89c8        c.sb    a0, 1(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 8da8        c.sh    a0, 2(a1)
+EXE-NO-XQCI-NEXT: 059f 0100 0000      qc.e.li a1, 256
+EXE-NO-XQCI-NEXT: 0005a503    lw      a0, 0(a1)
+EXE-NO-XQCI-NEXT: 059f 0020 1000      qc.e.li a1, 268435488
+EXE-NO-XQCI-NEXT: 00062503    lw      a0, 0(a2)
+
+## With --no-relax-zero, both Abs-std and Abs-xqci are disabled. sym_abs_std
+## falls back to qc.li (256 fits in isInt<20>); sym_abs_xqci misses entirely.
+RUN: %link %linkopts --relax-xqci --no-relax-zero -MapStyle txt -Map %t.4.map --verbose %t.o -o %t.4.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-ZERO
+
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gprel_xqci' in section .text+0xa file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_std' in section .text+0xa file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std' in section .text+0xe file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci' in section .text+0x12 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0x12 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_too_far' in section .text+0x1c file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x2a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 2 bytes for symbol 'sym_gprel_xqci' in section .text+0x30 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std' in section .text+0x30 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std' in section .text+0x34 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0x36 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci' in section .text+0x36 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_too_far' in section .text+0x3e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x4e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x52 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x56 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x5a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x5e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x62 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x66 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x6a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x6e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x72 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x76 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x7a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x7e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gprel_std' in section .text+0x82 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x86 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x8a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x8e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x92 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x96 file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 4 bytes for symbol 'sym_gprel_std' in section .text+0x9a file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std' in section .text+0x9e file {{.*}}.o
+VERBOSE-NO-ZERO: RISCV_QC_E_LI_GP : Deleting 2 bytes for symbol 'sym_gprel_std' in section .text+0xa6 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t.4.map --check-prefix=MAP-NO-ZERO
+
+MAP-NO-ZERO: # LinkStats Begin
+MAP-NO-ZERO: # RelaxationBytesDeleted : 126
+MAP-NO-ZERO: # RelaxationBytesMissed : 30
+MAP-NO-ZERO: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo,+zcb -M no-aliases -d %t.4.out 2>&1 | %filecheck %s --check-prefix=EXE-NO-ZERO
+
+EXE-NO-ZERO: <main>:
+EXE-NO-ZERO-NEXT: 0201a503      lw      a0, 32(gp)
+EXE-NO-ZERO-NEXT: e51f 0001 0400        qc.e.lw a0, 1048576(gp)
+EXE-NO-ZERO-NEXT: 0100059b      qc.li   a1, 256
+EXE-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-ZERO-NEXT: 059f 0000 0020        qc.e.li a1, 2097152
+EXE-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-ZERO-NEXT: 059f 0000 1400        qc.e.li a1, 335544320
+EXE-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-ZERO-NEXT: 0201a503      lw      a0, 32(gp)
+EXE-NO-ZERO-NEXT: e51f 0001 0400        qc.e.lw a0, 1048576(gp)
+EXE-NO-ZERO-NEXT: 0100059b      qc.li   a1, 256
+EXE-NO-ZERO-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NO-ZERO-NEXT: 059f 0000 0020        qc.e.li a1, 2097152
+EXE-NO-ZERO-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NO-ZERO-NEXT: 059f 0000 1400        qc.e.li a1, 335544320
+EXE-NO-ZERO-NEXT: 4188          c.lw    a0, 0(a1)
+EXE-NO-ZERO-NEXT: 02018503      lb      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 0201c503      lbu     a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02019503      lh      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 0201d503      lhu     a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02a18023      sb      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02a19023      sh      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02a1a023      sw      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 0201c503      lbu     a0, 32(gp)
+EXE-NO-ZERO-NEXT: 0201d503      lhu     a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02019503      lh      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02a18023      sb      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 02a19023      sh      a0, 32(gp)
+EXE-NO-ZERO-NEXT: 0241a503      lw      a0, 36(gp)
+EXE-NO-ZERO-NEXT: 02a1a223      sw      a0, 36(gp)
+EXE-NO-ZERO-NEXT: 0241a503      lw      a0, 36(gp)
+EXE-NO-ZERO-NEXT: 0211c503      lbu     a0, 33(gp)
+EXE-NO-ZERO-NEXT: 0221d503      lhu     a0, 34(gp)
+EXE-NO-ZERO-NEXT: 02219503      lh      a0, 34(gp)
+EXE-NO-ZERO-NEXT: 02a180a3      sb      a0, 33(gp)
+EXE-NO-ZERO-NEXT: 02a19123      sh      a0, 34(gp)
+EXE-NO-ZERO-NEXT: 0100059b      qc.li   a1, 256
+EXE-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE-NO-ZERO-NEXT: 02018593      addi    a1, gp, 32
+EXE-NO-ZERO-NEXT: 00062503      lw      a0, 0(a2)
+
+## Boundary tests from Inputs/2.s + Inputs/2.t.
+## GP = 0x10000000, so GP-relative and absolute symbol ranges do not overlap.
+## Verifies relaxation at the exact edges of each range and that symbols one
+## step outside the range are not relaxed by that variant.
+RUN: %clang %clangopts -c %p/Inputs/2.s -o %t2.o -menable-experimental-extensions -march=rv32gc_xqcili0p2
+
+## With GP and ZeroRelax enabled: all four variants are exercised.
+RUN: %link %linkopts --relax-xqci -MapStyle txt -Map %t2.1.map --verbose %t2.o -o %t2.1.out -T %p/Inputs/2.t 2>&1 | %filecheck %s --check-prefix=VERBOSE2
+
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gp_std_pos_edge' in section .text+0x4 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_STD : Deleting 6 bytes for symbol 'sym_gp_std_neg_edge' in section .text+0x8 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_std_pos_out' in section .text+0xe file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_std_pos_out' in section .text+0x8 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_std_neg_out' in section .text+0x14 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_std_neg_out' in section .text+0xe file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x1a file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x14 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_GP_XQCI : Deleting 4 bytes for symbol 'sym_gp_xqci_neg_edge' in section .text+0x20 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_gp_xqci_neg_edge' in section .text+0x1a file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_xqci_pos_out' in section .text+0x20 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_xqci_pos_out' in section .text+0x20 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_xqci_neg_out' in section .text+0x2a file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_xqci_neg_out' in section .text+0x2a file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std_edge' in section .text+0x38 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_std_out' in section .text+0x3e file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std_out' in section .text+0x38 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x44 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x3e file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_out' in section .text+0x44 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_out' in section .text+0x44 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std_neg_edge' in section .text+0x52 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_std_neg_out' in section .text+0x58 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std_neg_out' in section .text+0x52 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_neg_edge' in section .text+0x5e file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci_neg_edge' in section .text+0x58 file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_neg_out' in section .text+0x5e file {{.*}}.o
+VERBOSE2: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_neg_out' in section .text+0x5e file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t2.1.map --check-prefix=MAP2
+
+MAP2: # LinkStats Begin
+MAP2: # RelaxationBytesDeleted : 56
+MAP2: # RelaxationBytesMissed : 40
+MAP2: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo -M no-aliases -d %t2.1.out 2>&1 | %filecheck %s --check-prefix=EXE2
+
+EXE2: <main>:
+EXE2-NEXT: 7ff1a503      lw      a0, 2047(gp)
+EXE2-NEXT: 8001a503      lw      a0, -2048(gp)
+EXE2-NEXT: e51f 0001 0002        qc.e.lw a0, 2048(gp)
+EXE2-NEXT: e51f 3ff1 fffd        qc.e.lw a0, -2049(gp)
+EXE2-NEXT: e51f 3ff1 7fff        qc.e.lw a0, 33554431(gp)
+EXE2-NEXT: e51f 0001 8000        qc.e.lw a0, -33554432(gp)
+EXE2-NEXT: 059f 0000 1200        qc.e.li a1, 301989888
+EXE2-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NEXT: 059f ffff 0dff        qc.e.li a1, 234881023
+EXE2-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NEXT: 7ff02503      lw      a0, 2047(zero)
+EXE2-NEXT: 651f 0000 0002        qc.e.lw a0, 2048(zero)
+EXE2-NEXT: 651f 3ff0 7fff        qc.e.lw a0, 33554431(zero)
+EXE2-NEXT: 059f 0000 0200        qc.e.li a1, 33554432
+EXE2-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NEXT: 80002503      lw      a0, -2048(zero)
+EXE2-NEXT: 651f 3ff0 fffd        qc.e.lw a0, -2049(zero)
+EXE2-NEXT: 651f 0000 8000        qc.e.lw a0, -33554432(zero)
+EXE2-NEXT: 059f ffff fdff        qc.e.li a1, -33554433
+EXE2-NEXT: 0005a503      lw      a0, 0(a1)
+
+## Without GP relaxation: GP-relative symbols never relax. Abs-std and Abs-xqci
+## still fire for the absolute symbols.
+RUN: %link %linkopts --relax-xqci --no-relax-gp -MapStyle txt -Map %t2.2.map --verbose %t2.o -o %t2.2.out -T %p/Inputs/2.t 2>&1 | %filecheck %s --check-prefix=VERBOSE2-NO-GP
+
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_std_pos_edge' in section .text+0x0 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_std_pos_edge' in section .text+0x0 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x28 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_gp_xqci_pos_edge' in section .text+0x28 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std_edge' in section .text+0x54 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x60 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_out' in section .text+0x60 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_STD : Deleting 6 bytes for symbol 'sym_abs_std_neg_edge' in section .text+0x6e file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_std_neg_out' in section .text+0x74 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_std_neg_out' in section .text+0x6e file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS_ABS_XQCI : Deleting 4 bytes for symbol 'sym_abs_xqci_neg_edge' in section .text+0x7a file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 2 bytes for symbol 'sym_abs_xqci_neg_edge' in section .text+0x74 file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_neg_out' in section .text+0x7a file {{.*}}.o
+VERBOSE2-NO-GP: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_neg_out' in section .text+0x7a file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t2.2.map --check-prefix=MAP2-NO-GP
+
+MAP2-NO-GP: # LinkStats Begin
+MAP2-NO-GP: # RelaxationBytesDeleted : 28
+MAP2-NO-GP: # RelaxationBytesMissed : 68
+MAP2-NO-GP: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo -M no-aliases -d %t2.2.out 2>&1 | %filecheck %s --check-prefix=EXE2-NO-GP
+
+EXE2-NO-GP: <main>:
+EXE2-NO-GP-NEXT: 059f 07ff 1000        qc.e.li a1, 268437503
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f f800 0fff        qc.e.li a1, 268433408
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f 0800 1000        qc.e.li a1, 268437504
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f f7ff 0fff        qc.e.li a1, 268433407
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f ffff 11ff        qc.e.li a1, 301989887
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f 0000 0e00        qc.e.li a1, 234881024
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f 0000 1200        qc.e.li a1, 301989888
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 059f ffff 0dff        qc.e.li a1, 234881023
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 7ff02503      lw      a0, 2047(zero)
+EXE2-NO-GP-NEXT: 651f 0000 0002        qc.e.lw a0, 2048(zero)
+EXE2-NO-GP-NEXT: 651f 3ff0 7fff        qc.e.lw a0, 33554431(zero)
+EXE2-NO-GP-NEXT: 059f 0000 0200        qc.e.li a1, 33554432
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-GP-NEXT: 80002503      lw      a0, -2048(zero)
+EXE2-NO-GP-NEXT: 651f 3ff0 fffd        qc.e.lw a0, -2049(zero)
+EXE2-NO-GP-NEXT: 651f 0000 8000        qc.e.lw a0, -33554432(zero)
+EXE2-NO-GP-NEXT: 059f ffff fdff        qc.e.li a1, -33554433
+EXE2-NO-GP-NEXT: 0005a503      lw      a0, 0(a1)
+
+## Without GP relaxation or ZeroRelax: only Abs-xqci fires (isInt<26>).
+RUN: %link %linkopts --relax-xqci --no-relax-gp --no-relax-zero -MapStyle txt -Map %t2.3.map --verbose %t2.o -o %t2.3.out -T %p/Inputs/2.t 2>&1 | %filecheck %s --check-prefix=VERBOSE2-NO-ZERO
+
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_std_edge' in section .text+0x50 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std_edge' in section .text+0x54 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_std_out' in section .text+0x58 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Deleting 2 bytes for symbol 'sym_abs_std_out' in section .text+0x5c file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x60 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_edge' in section .text+0x60 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_out' in section .text+0x6a file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_out' in section .text+0x6a file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_std_neg_edge' in section .text+0x74 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_std_neg_edge' in section .text+0x74 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_std_neg_out' in section .text+0x7e file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_std_neg_out' in section .text+0x7e file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_neg_edge' in section .text+0x88 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_neg_edge' in section .text+0x88 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_ACCESS : Cannot relax 4 bytes for symbol 'sym_abs_xqci_neg_out' in section .text+0x92 file {{.*}}.o
+VERBOSE2-NO-ZERO: RISCV_QC_E_LI_QC_LI : Cannot relax 2 bytes for symbol 'sym_abs_xqci_neg_out' in section .text+0x92 file {{.*}}.o
+
+RUN: %filecheck %s --input-file=%t2.3.map --check-prefix=MAP2-NO-ZERO
+
+MAP2-NO-ZERO: # LinkStats Begin
+MAP2-NO-ZERO: # RelaxationBytesDeleted : 4
+MAP2-NO-ZERO: # RelaxationBytesMissed : 92
+MAP2-NO-ZERO: # LinkStats End
+
+RUN: %objdump --no-print-imm-hex --mattr=+xqcilo -M no-aliases -d %t2.3.out 2>&1 | %filecheck %s --check-prefix=EXE2-NO-ZERO
+
+EXE2-NO-ZERO: <main>:
+EXE2-NO-ZERO-NEXT: 059f 07ff 1000        qc.e.li a1, 268437503
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f f800 0fff        qc.e.li a1, 268433408
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f 0800 1000        qc.e.li a1, 268437504
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f f7ff 0fff        qc.e.li a1, 268433407
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f ffff 11ff        qc.e.li a1, 301989887
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f 0000 0e00        qc.e.li a1, 234881024
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f 0000 1200        qc.e.li a1, 301989888
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f ffff 0dff        qc.e.li a1, 234881023
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 07ff059b      qc.li   a1, 2047
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 0800059b      qc.li   a1, 2048
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f ffff 01ff        qc.e.li a1, 33554431
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f 0000 0200        qc.e.li a1, 33554432
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f f800 ffff        qc.e.li a1, -2048
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f f7ff ffff        qc.e.li a1, -2049
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f 0000 fe00        qc.e.li a1, -33554432
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)
+EXE2-NO-ZERO-NEXT: 059f ffff fdff        qc.e.li a1, -33554433
+EXE2-NO-ZERO-NEXT: 0005a503      lw      a0, 0(a1)

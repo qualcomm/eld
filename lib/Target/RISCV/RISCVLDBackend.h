@@ -207,6 +207,15 @@ public:
   // Get the value of the symbol, using the PLT slot if one exists.
   Relocation::Address getSymbolValuePLT(const Relocation &R);
 
+  // Interpret a raw address as a signed value at the target's pointer width.
+  // On a 32-bit target, truncate to 32 bits (applying the same wraparound the
+  // processor would) and then sign-extend for range checks; on a 64-bit target
+  // the address is already the right width.
+  int64_t signedAddress(uint64_t addr) const {
+    return config().targets().is32Bits() ? llvm::SignExtend64<32>(addr)
+                                         : (int64_t)addr;
+  }
+
 private:
   Relocation *findHIRelocation(ELFSection *S, uint64_t Value);
 
@@ -232,6 +241,29 @@ private:
   bool doRelaxationLui(Relocation *R, Relocation::DWord G);
   bool doRelaxationQCELi(Relocation *R, Relocation::DWord G);
 
+  bool doRelaxationQCAccess32(Relocation *QCELiReloc, Relocation *AccessReloc,
+                              Relocation::DWord G);
+  bool doRelaxationQCAccess16(Relocation *QCELiReloc, Relocation *AccessReloc,
+                              Relocation::DWord G);
+
+  // Decoded load/store instruction info for QC ACCESS relaxation.
+  struct QCAccess {
+    // Loads come first so isLoad() is a cheap comparison.
+    enum class Operation { Lb, Lbu, Lh, Lhu, Lw, Sb, Sh, Sw };
+    Operation op;
+    uint32_t size;  // access instruction size (in bytes)
+    unsigned reg;   // destination (load) or source data (store) register
+    int64_t offset; // immediate offset in the original access instruction
+
+    bool isLoad() const { return op <= Operation::Lw; }
+
+    uint32_t build32Bit(unsigned base_reg) const;
+    uint64_t build48Bit(unsigned base_reg) const;
+  };
+  bool doRelaxationQCAccessCommon(Relocation *QCELiReloc,
+                                  Relocation *AccessReloc, Relocation::DWord G,
+                                  QCAccess access);
+
   bool doRelaxationAlign(Relocation *R);
 
   bool doRelaxationPC(Relocation *R, Relocation::DWord G);
@@ -254,6 +286,7 @@ private:
 
   bool finalizeScanRelocations() override;
 
+  template <unsigned N>
   bool fitsInGP(Relocation::DWord, Relocation::DWord, Fragment *frag,
                 ELFSection *TargetSection, size_t) const;
 

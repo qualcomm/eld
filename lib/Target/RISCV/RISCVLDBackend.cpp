@@ -464,8 +464,8 @@ bool RISCVLDBackend::doRelaxationLui(Relocation *reloc, Relocator::DWord G) {
   bool canRelaxToGP =
       config().options().getRISCVRelax() &&
       config().options().getRISCVGPRelax() && !config().isCodeIndep() &&
-      G != 0 && fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize) &&
-      S != 0;
+      G != 0 && S != 0 &&
+      fitsInGP<12>(G, Value, frag, reloc->targetSection(), SymbolSize);
 
   if (type == llvm::ELF::R_RISCV_HI20) {
 
@@ -615,7 +615,7 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
   bool canRelaxGP =
       canRelaxXqci && config().options().getRISCVGPRelax() &&
       !config().isCodeIndep() && G != 0 && S != 0 &&
-      fitsInGP(G, Value, frag, reloc->targetSection(), SymbolSize);
+      fitsInGP<12>(G, Value, frag, reloc->targetSection(), SymbolSize);
 
   const char *msg = "RISCV_QC_E_LI_QC_LI";
   if (canRelaxQcLi) {
@@ -642,6 +642,338 @@ bool RISCVLDBackend::doRelaxationQCELi(Relocation *reloc, Relocator::DWord G) {
 
   if (canRelaxXqci)
     reportMissedRelaxation(msg, *region, offset, 2, reloc->symInfo()->name());
+  return false;
+}
+
+uint64_t RISCVLDBackend::QCAccess::build48Bit(unsigned base_reg) const {
+  switch (op) {
+  case Operation::Lb:
+    return qceitype(0x5u, 0x0u, reg, base_reg, 0);
+  case Operation::Lbu:
+    return qceitype(0x5u, 0x1u, reg, base_reg, 0);
+  case Operation::Lh:
+    return qceitype(0x5u, 0x2u, reg, base_reg, 0);
+  case Operation::Lhu:
+    return qceitype(0x5u, 0x3u, reg, base_reg, 0);
+  case Operation::Lw:
+    return qceitype(0x6u, 0x0u, reg, base_reg, 0);
+  case Operation::Sb:
+    return qcestype(0x6u, 0x1u, reg, base_reg, 0);
+  case Operation::Sh:
+    return qcestype(0x6u, 0x2u, reg, base_reg, 0);
+  case Operation::Sw:
+    return qcestype(0x6u, 0x3u, reg, base_reg, 0);
+  }
+}
+
+uint32_t RISCVLDBackend::QCAccess::build32Bit(unsigned base_reg) const {
+  switch (op) {
+  case Operation::Lb:
+    return itype(0x03u | (0x0u << 12), reg, base_reg, 0);
+  case Operation::Lh:
+    return itype(0x03u | (0x1u << 12), reg, base_reg, 0);
+  case Operation::Lw:
+    return itype(0x03u | (0x2u << 12), reg, base_reg, 0);
+  case Operation::Lbu:
+    return itype(0x03u | (0x4u << 12), reg, base_reg, 0);
+  case Operation::Lhu:
+    return itype(0x03u | (0x5u << 12), reg, base_reg, 0);
+  case Operation::Sb:
+    return stype(0x23u | (0x0u << 12), reg, base_reg, 0);
+  case Operation::Sh:
+    return stype(0x23u | (0x1u << 12), reg, base_reg, 0);
+  case Operation::Sw:
+    return stype(0x23u | (0x2u << 12), reg, base_reg, 0);
+  }
+}
+
+bool RISCVLDBackend::doRelaxationQCAccess32(Relocation *QCELiReloc,
+                                            Relocation *AccessReloc,
+                                            Relocator::DWord G) {
+  Fragment *frag = QCELiReloc->targetRef()->frag();
+  RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
+  if (!region)
+    return false;
+
+  uint64_t qceli_instr = QCELiReloc->target();
+  if ((qceli_instr & 0xf07fu) != 0x1fu)
+    return false;
+  unsigned qceli_rd = extractBits(qceli_instr, 11, 7);
+  if (qceli_rd == X_ZERO)
+    return false;
+
+  uint32_t access_instr = 0;
+  AccessReloc->targetRef()->memcpy(&access_instr, sizeof(access_instr), 0);
+  QCAccess access;
+
+  // Decode the RV32I access instruction so we have enough information to
+  // know what width the access is, what its operand register is (rd for loads,
+  // rs2 for stores), and (for loads) whether it does a sign or zero extension.
+  // Its size will always be 4 bytes in this function, but we need that for the
+  // doRelaxationQCCommon.
+  switch (extractBits(access_instr, 6, 0)) {
+  case 0x03u:
+    // Loads are I-type
+    access.reg = extractBits(access_instr, 11, 7);
+    access.offset = llvm::SignExtend64<12>(extractBits(access_instr, 31, 20));
+    switch (extractBits(access_instr, 14, 12)) {
+    case 0b000u:
+      access.op = QCAccess::Operation::Lb;
+      break;
+    case 0b100u:
+      access.op = QCAccess::Operation::Lbu;
+      break;
+    case 0b001u:
+      access.op = QCAccess::Operation::Lh;
+      break;
+    case 0b101u:
+      access.op = QCAccess::Operation::Lhu;
+      break;
+    case 0b010u:
+      access.op = QCAccess::Operation::Lw;
+      break;
+    default:
+      return false;
+    }
+    break;
+  case 0x23u:
+    // Stores are S-type
+    access.reg = extractBits(access_instr, 24, 20);
+    access.offset =
+        llvm::SignExtend64<12>((extractBits(access_instr, 31, 25) << 5) |
+                               extractBits(access_instr, 11, 7));
+    switch (extractBits(access_instr, 14, 12)) {
+    case 0b000u:
+      access.op = QCAccess::Operation::Sb;
+      break;
+    case 0b001u:
+      access.op = QCAccess::Operation::Sh;
+      break;
+    case 0b010u:
+      access.op = QCAccess::Operation::Sw;
+      break;
+    default:
+      return false;
+    }
+    break;
+  default:
+    return false;
+  }
+
+  access.size = 4;
+
+  // Check rd of qc.e.li against base register of access
+  if (qceli_rd != extractBits(access_instr, 19, 15))
+    return false;
+
+  return doRelaxationQCAccessCommon(QCELiReloc, AccessReloc, G, access);
+}
+
+bool RISCVLDBackend::doRelaxationQCAccess16(Relocation *QCELiReloc,
+                                            Relocation *AccessReloc,
+                                            Relocator::DWord G) {
+  Fragment *frag = QCELiReloc->targetRef()->frag();
+  RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
+  if (!region)
+    return false;
+
+  uint64_t qceli_instr = QCELiReloc->target();
+  if ((qceli_instr & 0xf07fu) != 0x1fu)
+    return false;
+  unsigned qceli_rd = extractBits(qceli_instr, 11, 7);
+  if (qceli_rd == X_ZERO)
+    return false;
+
+  uint16_t access_instr = 0;
+  AccessReloc->targetRef()->memcpy(&access_instr, sizeof(access_instr), 0);
+  QCAccess access;
+
+  // Decode the RV32 Zca/Zcb access instruction so we have enough information to
+  // know what width the access is, what its operand register is (rd for loads,
+  // rs2 for stores), and (for loads) whether it does a sign or zero extension.
+  // Its size will always be 2 bytes in this function, but we need that for the
+  // doRelaxationQCCommon.
+  //
+  // This decoding is more complex than for 32-bit instructions as the 16-bit
+  // instructions are much less regular.
+  if ((access_instr & 0x3u) != 0x0u)
+    return false;
+  switch (extractBits(access_instr, 15, 13)) {
+  case 0b010u:
+    // c.lw: CL-format
+    access.op = QCAccess::Operation::Lw;
+    access.offset = (extractBits(access_instr, 5, 5) << 6) |
+                    (extractBits(access_instr, 12, 10) << 3) |
+                    (extractBits(access_instr, 6, 6) << 2);
+    break;
+  case 0b110u:
+    // c.sw: CS-format
+    access.op = QCAccess::Operation::Sw;
+    access.offset = (extractBits(access_instr, 5, 5) << 6) |
+                    (extractBits(access_instr, 12, 10) << 3) |
+                    (extractBits(access_instr, 6, 6) << 2);
+    break;
+  case 0b100u:
+    switch (extractBits(access_instr, 11, 10)) {
+    case 0b00u:
+      // c.lbu: off[1:0] = {instr[5], instr[6]}, byte offset 0-3
+      access.op = QCAccess::Operation::Lbu;
+      access.offset = (extractBits(access_instr, 5, 5) << 1) |
+                      extractBits(access_instr, 6, 6);
+      break;
+    case 0b01u:
+      // c.lhu/c.lh: off[1] = instr[5], halfword offset 0 or 2
+      if (extractBits(access_instr, 6, 6) == 0b1u)
+        access.op = QCAccess::Operation::Lh;
+      else
+        access.op = QCAccess::Operation::Lhu;
+      access.offset = extractBits(access_instr, 5, 5) << 1;
+      break;
+    case 0b10u:
+      // c.sb: off[1:0] = {instr[5], instr[6]}, byte offset 0-3
+      access.op = QCAccess::Operation::Sb;
+      access.offset = (extractBits(access_instr, 5, 5) << 1) |
+                      extractBits(access_instr, 6, 6);
+      break;
+    case 0b11u:
+      // c.sh: off[1] = instr[5], halfword offset 0 or 2
+      access.op = QCAccess::Operation::Sh;
+      access.offset = extractBits(access_instr, 5, 5) << 1;
+      break;
+    default:
+      llvm_unreachable("Impossible Encoding");
+    }
+    break;
+  default:
+    return false;
+  }
+
+  access.reg = 8 + extractBits(access_instr, 4, 2);
+  access.size = 2;
+
+  // Check rd of qc.e.li against base register of access
+  if (qceli_rd != 8 + extractBits(access_instr, 9, 7))
+    return false;
+
+  return doRelaxationQCAccessCommon(QCELiReloc, AccessReloc, G, access);
+}
+
+bool RISCVLDBackend::doRelaxationQCAccessCommon(Relocation *QCELiReloc,
+                                                Relocation *AccessReloc,
+                                                Relocator::DWord G,
+                                                QCAccess access) {
+  /* Four relaxation variants, applied in priority order:
+   * -- GP-relative standard: -> GP-relative 32-bit load/store (saves 6/4 bytes)
+   * -- Absolute standard:    -> x0-based 32-bit load/store (saves 6/4 bytes)
+   * -- GP-relative xqcilo:   -> 6-byte qc.e.l/qc.e.s (saves 4/2 bytes)
+   * -- Absolute xqcilo:      -> 6-byte qc.e.l/qc.e.s (saves 4/2 bytes)
+   * All variants require --relax-xqci since qc.e.li is itself an xqci insn.
+   */
+
+  RegionFragmentEx *region =
+      llvm::cast<RegionFragmentEx>(QCELiReloc->targetRef()->frag());
+  uint64_t qceli_offset = QCELiReloc->targetRef()->offset();
+
+  Relocator::Address S = getSymbolValuePLT(*QCELiReloc);
+  Relocator::DWord A = QCELiReloc->addend();
+  Relocator::Address Value = S + A;
+  // The effective address includes the offset from the access instruction;
+  // all range checks operate on this adjusted value.
+  Relocator::Address AdjValue = Value + (Relocator::DWord)access.offset;
+  size_t SymbolSize = QCELiReloc->symInfo()->outSymbol()->size();
+
+  // These relaxations need to be enabled, and we need to be 32-bit.
+  bool canRelaxXqci = config().options().getRISCVRelax() &&
+                      config().targets().is32Bits() &&
+                      config().options().getRISCVRelaxXqci();
+
+  bool canRelaxGPStd = canRelaxXqci && config().options().getRISCVGPRelax() &&
+                       !config().isCodeIndep() && G != 0 && S != 0 &&
+                       fitsInGP<12>(G, AdjValue, region,
+                                    QCELiReloc->targetSection(), SymbolSize);
+
+  bool canRelaxAbsStd = canRelaxXqci &&
+                        config().options().getRISCVZeroRelax() && S != 0 &&
+                        llvm::isInt<12>(signedAddress(AdjValue));
+
+  bool canRelaxGPXqci = canRelaxXqci && config().options().getRISCVGPRelax() &&
+                        !config().isCodeIndep() && G != 0 && S != 0 &&
+                        fitsInGP<26>(G, AdjValue, region,
+                                     QCELiReloc->targetSection(), SymbolSize);
+
+  bool canRelaxAbsXqci = canRelaxXqci &&
+                         config().options().getRISCVZeroRelax() && S != 0 &&
+                         llvm::isInt<26>(signedAddress(AdjValue));
+
+  const char *msg = "RISCV_QC_E_LI_ACCESS";
+
+  // This replaces the `qc.e.li; access` sequence with a 4-byte RVI access
+  // instruction
+  auto applyStdRelax = [&](unsigned base_reg, Relocation::Type reloc_load,
+                           Relocation::Type reloc_store,
+                           const char *variant_msg) {
+    uint32_t new_access = access.build32Bit(base_reg);
+    region->replaceInstruction(qceli_offset, QCELiReloc,
+                               reinterpret_cast<uint8_t *>(&new_access), 4);
+    QCELiReloc->setTargetData(new_access);
+    QCELiReloc->setAddend(A + (Relocator::DWord)access.offset);
+    QCELiReloc->setType(access.isLoad() ? reloc_load : reloc_store);
+    relaxDeleteBytes(variant_msg, *region, qceli_offset + 4, 2 + access.size,
+                     QCELiReloc->symInfo()->name());
+    AccessReloc->setType(llvm::ELF::R_RISCV_NONE);
+  };
+
+  // This replaces the `qc.e.li; access` sequence with a 6-byte Xqcilo access
+  // instruction.
+  auto applyXqciloRelax = [&](unsigned base_reg, Relocation::Type reloc_load,
+                              Relocation::Type reloc_store,
+                              const char *variant_msg) {
+    uint64_t new_access = access.build48Bit(base_reg);
+    region->replaceInstruction(qceli_offset, QCELiReloc,
+                               reinterpret_cast<uint8_t *>(&new_access), 6);
+    QCELiReloc->setTargetData(new_access);
+    QCELiReloc->setAddend(A + (Relocator::DWord)access.offset);
+    QCELiReloc->setType(access.isLoad() ? reloc_load : reloc_store);
+    relaxDeleteBytes(variant_msg, *region, qceli_offset + 6, access.size,
+                     QCELiReloc->symInfo()->name());
+    AccessReloc->setType(llvm::ELF::R_RISCV_NONE);
+  };
+
+  // 1. GP-relative standard
+  if (canRelaxGPStd) {
+    applyStdRelax(X_GP, ELF::riscv::internal::R_RISCV_GPREL_I,
+                  ELF::riscv::internal::R_RISCV_GPREL_S,
+                  "RISCV_QC_E_LI_ACCESS_GP_STD");
+    return true;
+  }
+  // 2. Absolute standard
+  if (canRelaxAbsStd) {
+    applyStdRelax(X_ZERO, llvm::ELF::R_RISCV_LO12_I, llvm::ELF::R_RISCV_LO12_S,
+                  "RISCV_QC_E_LI_ACCESS_ABS_STD");
+    return true;
+  }
+  // 3. GP-relative xqcilo
+  if (canRelaxGPXqci) {
+    applyXqciloRelax(X_GP, ELF::riscv::internal::R_RISCV_QC_GPREL26_I,
+                     ELF::riscv::internal::R_RISCV_QC_GPREL26_S,
+                     "RISCV_QC_E_LI_ACCESS_GP_XQCI");
+    reportMissedRelaxation(msg, *region, qceli_offset, 2,
+                           QCELiReloc->symInfo()->name());
+    return true;
+  }
+  // 4. Absolute xqcilo
+  if (canRelaxAbsXqci) {
+    applyXqciloRelax(X_ZERO, ELF::riscv::internal::R_RISCV_QC_ABS26_I,
+                     ELF::riscv::internal::R_RISCV_QC_ABS26_S,
+                     "RISCV_QC_E_LI_ACCESS_ABS_XQCI");
+    reportMissedRelaxation(msg, *region, qceli_offset, 2,
+                           QCELiReloc->symInfo()->name());
+    return true;
+  }
+
+  if (canRelaxXqci)
+    reportMissedRelaxation(msg, *region, qceli_offset, access.size,
+                           QCELiReloc->symInfo()->name());
   return false;
 }
 
@@ -798,6 +1130,7 @@ bool RISCVLDBackend::doRelaxationAlign(Relocation *pReloc) {
   return true;
 }
 
+template <unsigned N>
 bool RISCVLDBackend::fitsInGP(Relocator::DWord G, Relocation::DWord Value,
                               Fragment *frag, ELFSection *TargetSection,
                               size_t SymSize) const {
@@ -829,7 +1162,7 @@ bool RISCVLDBackend::fitsInGP(Relocator::DWord G, Relocation::DWord Value,
     X = Value - G + Alignment + SymSize;
   else
     X = Value - G - Alignment - SymSize;
-  return llvm::isInt<12>(X);
+  return llvm::isInt<N>(X);
 }
 
 bool RISCVLDBackend::addSymbolToOutput(ResolveInfo *Info) {
@@ -910,9 +1243,10 @@ bool RISCVLDBackend::doRelaxationPC(Relocation *reloc, Relocator::DWord G) {
   }
 
   uint64_t offset = reloc->targetRef()->offset();
-  bool canRelax = config().options().getRISCVRelax() &&
-                  config().options().getRISCVGPRelax() && G != 0 &&
-                  fitsInGP(G, S + A, frag, reloc->targetSection(), SymbolSize);
+  bool canRelax =
+      config().options().getRISCVRelax() &&
+      config().options().getRISCVGPRelax() && G != 0 &&
+      fitsInGP<12>(G, S + A, frag, reloc->targetSection(), SymbolSize);
 
   // HI will be deleted, Low will be converted to use gp as base.
   if (type == llvm::ELF::R_RISCV_PCREL_HI20) {
@@ -1089,8 +1423,23 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
           break;
         }
         case ELF::riscv::internal::R_RISCV_QC_E_32: {
-          if (nextRelax && relaxation_pass == RELAXATION_LUI)
-            doRelaxationQCELi(relocation, GP);
+          if (nextRelax && relaxation_pass == RELAXATION_LUI) {
+            uint64_t access_offset = relocation->targetRef()->offset() + 6;
+            bool relaxed = false;
+            if (Relocation *acc32 = rs->getLink()->findRelocation(
+                    access_offset, ELF::riscv::internal::R_RISCV_QC_ACCESS_32))
+              if (rs->getLink()->hasFollowing(acc32, llvm::ELF::R_RISCV_RELAX))
+                relaxed = doRelaxationQCAccess32(relocation, acc32, GP);
+            if (!relaxed)
+              if (Relocation *acc16 = rs->getLink()->findRelocation(
+                      access_offset,
+                      ELF::riscv::internal::R_RISCV_QC_ACCESS_16))
+                if (rs->getLink()->hasFollowing(acc16,
+                                                llvm::ELF::R_RISCV_RELAX))
+                  relaxed = doRelaxationQCAccess16(relocation, acc16, GP);
+            if (!relaxed)
+              doRelaxationQCELi(relocation, GP);
+          }
           break;
         }
         }

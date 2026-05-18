@@ -22,6 +22,9 @@ bool checkRange(uint64_t Value, bool IsSigned, EncodingType Type) {
   case EncTy_QC_EAI:
   case EncTy_QC_EJ:
     return llvm::isInt<32>(static_cast<int64_t>(Value));
+  case EncTy_QC_EI:
+  case EncTy_QC_ES:
+    return llvm::isInt<26>(static_cast<int64_t>(Value));
   case EncTy_U_HI20:
   case EncTy_U_ABS20:
   case EncTy_UJ:
@@ -95,6 +98,10 @@ uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
     return Instr & 0x00000000FFFF;
   case EncTy_QC_EJ:
     return Instr & 0x000001F1F07F;
+  case EncTy_QC_EI:
+    return Instr & 0x00000000C00FFFFFull;
+  case EncTy_QC_ES:
+    return Instr & 0x00000000C1FFF07Full;
   /* C.LUI/C.LI clearing handled in doRelocHelper */
   case EncTy_CI:
   /* No overwriting being performed */
@@ -153,6 +160,12 @@ uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
     break;
   case EncTy_QC_EJ:
     Value = encodeQCEJ(Value);
+    break;
+  case EncTy_QC_EI:
+    Value = encodeQCEI(Value);
+    break;
+  case EncTy_QC_ES:
+    Value = encodeQCES(Value);
     break;
   case EncTy_32:
     Value = encode32(Value);
