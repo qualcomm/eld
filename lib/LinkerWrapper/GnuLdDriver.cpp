@@ -778,10 +778,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       ZKind = eld::ZOption::MaxPageSize;
       ZOpt.drop_front(14).getAsInteger(0, Zval);
     }
-    if (!Config.options().addZOption(eld::ZOption(ZKind, Zval))) {
-      errs() << "Invalid -z option specified " << ZOpt << "\n";
-      return false;
-    }
+    if (!Config.options().addZOption(eld::ZOption(ZKind, Zval)))
+      Config.raise(Diag::warn_unsupported_option) << "-z " + ZOpt.str();
   }
 
   // --image-base
