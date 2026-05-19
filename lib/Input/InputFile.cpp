@@ -48,26 +48,8 @@ InputFile *InputFile::createEmbedded(Input *I, llvm::StringRef S,
   InputFile::InputFileKind K = getInputFileKind(S);
   InputFile *EmbeddedFile = nullptr;
   switch (K) {
-  case InputFile::ELFObjFileKind:
-    EmbeddedFile = make<ELFObjectFile>(I, DiagEngine);
-    break;
-  case InputFile::ELFExecutableFileKind:
-    EmbeddedFile = make<ELFExecutableFile>(I, DiagEngine);
-    break;
-  case InputFile::ELFDynObjFileKind:
-    EmbeddedFile = make<ELFDynObjectFile>(I, DiagEngine);
-    break;
   case InputFile::BitcodeFileKind:
     EmbeddedFile = make<BitcodeFile>(I, DiagEngine);
-    break;
-  case InputFile::GNUArchiveFileKind:
-    EmbeddedFile = make<ArchiveFile>(I, DiagEngine);
-    break;
-  case InputFile::ELFSymDefFileKind:
-    EmbeddedFile = make<SymDefFile>(I, DiagEngine);
-    break;
-  case InputFile::GNULinkerScriptKind:
-    EmbeddedFile = make<LinkerScriptFile>(I, DiagEngine);
     break;
   default:
     return nullptr;

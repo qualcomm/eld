@@ -1,0 +1,51 @@
+#---EmbeddedLLVMBcObjects.test-------------------- Executable,LTO ------------#
+#BEGIN_COMMENT
+# Verify support for relocatable objects carrying an embedded .llvmbc section.
+# - Without LTO selection, linker should use native object code.
+# - With -flto, linker should select embedded bitcode from .llvmbc.
+# - Empty .llvmbc should be ignored.
+# - Invalid .llvmbc payload should diagnose instead of crashing.
+#END_COMMENT
+
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/native.c -o %t.native.o
+RUN: %clang %clangopts -emit-llvm -c %p/Inputs/lto.c -o %t.lto.bc
+
+RUN: %objcopy --add-section=.llvmbc=%t.lto.bc  \
+RUN: --set-section-flags=.llvmbc=exclude %t.native.o %t.llvmbc.o
+RUN: %readelf -S %t.llvmbc.o | %filecheck %s --check-prefix=HAS-LLVMBC-SECTION
+
+RUN: %link %linkopts -e main %t.main.o %t.llvmbc.o -o %t.no-lto.out
+RUN: %nm %t.no-lto.out | %filecheck %s --check-prefix=NO-LTO
+
+RUN: %link %linkopts -flto -e main %t.main.o %t.llvmbc.o \
+RUN: --trace=lto --verbose -o %t.lto.out 2>&1 | %filecheck %s --check-prefix=LTO-MSG
+RUN: %nm %t.lto.out | %filecheck %s --check-prefix=WITH-LTO
+
+# Empty BC
+RUN: %touch %t.empty
+RUN: %objcopy --add-section=.llvmbc=%t.empty \
+RUN: --set-section-flags=.llvmbc=exclude %t.native.o %t.empty.llvmbc.o
+RUN: %link %linkopts -flto -r %t.empty.llvmbc.o -o /dev/null \
+RUN: --trace=lto 2>&1 | %filecheck %s --check-prefix=EMPTY-LLVMBC
+
+# Invalid non-bitcode payload should diagnose instead of crashing.
+RUN: printf "eld\n" > %t.invalid
+RUN: %objcopy --add-section=.llvmbc=%t.invalid \
+RUN: --set-section-flags=.llvmbc=exclude %t.native.o %t.invalid.llvmbc.o
+RUN: %not %link %linkopts -flto -r %t.invalid.llvmbc.o  \
+RUN: -o /dev/null --trace=lto 2>&1 | %filecheck %s --check-prefix=INVALID-LLVMBC
+
+HAS-LLVMBC-SECTION: .llvmbc
+
+NO-LTO: native_symbol
+NO-LTO-NOT: lto_symbol
+
+LTO-MSG: Using embedded bitcode section from file
+
+WITH-LTO: lto_symbol
+WITH-LTO-NOT: native_symbol
+
+EMPTY-LLVMBC-NOT: Using embedded bitcode section
+
+INVALID-LLVMBC: Invalid embedded bitcode in section '.llvmbc'

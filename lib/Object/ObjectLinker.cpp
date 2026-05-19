@@ -3907,7 +3907,7 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   std::string Path = CurInput->decoratedPath();
 
   ELFSection *LLVMBCSection = EObj->getLLVMBCSection();
-  if (!LLVMBCSection)
+  if (!LLVMBCSection || !LLVMBCSection->size())
     return false;
 
   // Fat-LTO payloads are selected only when --fat-lto-objects is enabled.
@@ -3967,8 +3967,12 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   InputFile *OverrideBCFile = InputFile::createEmbedded(
       CurInput, LLVMBCContents, ThisConfig.getDiagEngine());
 
-  ASSERT(OverrideBCFile->getKind() == InputFile::BitcodeFileKind,
-         CurInput->decoratedPath());
+  if (!OverrideBCFile ||
+      OverrideBCFile->getKind() != InputFile::BitcodeFileKind) {
+    ThisConfig.raise(Diag::error_invalid_embedded_bitcode)
+        << Path << LLVMBCSection->name();
+    return false;
+  }
 
   CurInput->overrideInputFile(OverrideBCFile);
 
