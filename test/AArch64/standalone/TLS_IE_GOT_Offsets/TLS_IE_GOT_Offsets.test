@@ -13,7 +13,7 @@
 
 RUN: %clang %clangopts -target aarch64 -c %p/Inputs/hw1.c -o %t.o \
 RUN: -fPIC -ftls-model=initial-exec -fdata-sections
-RUN: %link %linkopts -march aarch64 %t.o -o %t.out --no-threads
+RUN: %link -march aarch64 %t.o -o %t.out --no-threads
 RUN: %readelf -x .got %t.out | %filecheck %s
 
 # The .got section should contain two TLS IE entries with offsets 0x10 and 0x14

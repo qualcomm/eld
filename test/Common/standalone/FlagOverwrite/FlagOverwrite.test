@@ -1,0 +1,74 @@
+#---FlagOverwrite.test--------------------- Executable --------------------#
+UNSUPPORTED: x86
+#BEGIN_COMMENT
+# Check that the last option is the one being used for mutually exclusive flags.
+# Currently, it checks for:
+#    --[no-]warn-shared-textrel
+#    --[no-]fatal-warnings
+#    --[no-]demangle
+#    --[no-]check-sections
+#    --[no-]omagic
+#    --[no-]gc-sections
+#    --[no-]align-segments
+#    --[no-]emit-relocs
+#    --[no-]threads
+#    --[no-]export-dynamic
+# TODO: Add check for --[no-]warn-mismatch when support for --no-warn-mismatch
+# is added to ELD
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.cpp -o %t1.o
+RUN: %link -o %t1.out -shared -z=notext %t1.o --no-warn-shared-textrel --warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=TEXTREL
+RUN: %link -o %t1.out -shared -z=notext %t1.o --warn-shared-textrel --no-warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=NOTEXTREL -allow-empty
+RUN: %not %link -o %t1.out -shared -z=notext %t1.o --warn-shared-textrel --no-fatal-warnings --fatal-warnings 2>&1 | %filecheck %s -check-prefix=FATAL
+RUN: %link -o %t1.out -shared -z=notext %t1.o --warn-shared-textrel --fatal-warnings --no-fatal-warnings 2>&1 | %filecheck %s -check-prefix=NOFATAL
+RUN: %link %linkopts -o %t1.out %t1.o --verbose --no-demangle --demangle 2>&1 | %filecheck %s -check-prefix=DEMANGLE
+RUN: %link %linkopts -o %t1.out %t1.o --verbose --demangle --no-demangle 2>&1 | %filecheck %s -check-prefix=NODEMANGLE
+RUN: %not %link %linkopts -T %p/Inputs/script1.t %t1.o -o %t1.out --no-check-sections --check-sections --verbose 2>&1 | %filecheck %s -check-prefix=CHECKSECT
+RUN: %link %linkopts -T %p/Inputs/script1.t %t1.o -o %t1.out --check-sections --no-check-sections --verbose 2>&1 | %filecheck %s -check-prefix=NOCHECKSECT
+RUN: %link %linkopts -o %t1.out %t1.o --no-omagic --omagic -z max-page-size=0x1000
+RUN: %readelf --elf-output-style LLVM -l -W %t1.out 2>&1 | %filecheck %s -check-prefix=OMAGIC
+RUN: %link %linkopts -o %t1.out %t1.o --omagic -z max-page-size=0x1000 --no-omagic
+RUN: %readelf --elf-output-style LLVM -l -W %t1.out 2>&1 | %filecheck %s -check-prefix=NOOMAGIC
+RUN: %link %linkopts %t1.o -T %p/Inputs/script2.t --no-gc-sections --gc-sections -o %t1.out -M 2>&1 | %filecheck %s -check-prefix=GCSECT
+RUN: %link %linkopts %t1.o -T %p/Inputs/script2.t --gc-sections --no-gc-sections -o %t1.out -M 2>&1 | %filecheck %s -check-prefix=NOGCSECT
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts --rosegment --no-align-segments --align-segments --section-start .text=0x1000 %t2.o -o %t2.out --noinhibit-exec
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=ALIGN
+RUN: %link %linkopts --rosegment --align-segments --no-align-segments --section-start .text=0x1000 %t2.o -o %t2.out --noinhibit-exec
+RUN: %readelf -l -W %t2.out | %filecheck %s -check-prefix=NOALIGN
+RUN: %link %linkopts  %t2.o --no-emit-relocs --emit-relocs -o %t2.out --noinhibit-exec
+RUN: %readelf -r %t2.out | %filecheck %s -check-prefix=RELOCS
+RUN: %link %linkopts  %t2.o --emit-relocs --no-emit-relocs -o %t2.out --noinhibit-exec
+RUN: %readelf -r %t2.out | %filecheck %s -check-prefix=NORELOCS
+RUN: %link %linkopts %t1.o -o %t1.out --no-threads --threads --trace=threads 2>&1 | %filecheck %s -check-prefix=THREADS
+RUN: %link %t1.o -o %t1.out --threads --no-threads --trace=threads 2>&1 | %filecheck %s -check-prefix=NOTHREADS
+RUN: %clang %clangopts -c %p/Inputs/1.cpp -o %t1.o -flto
+RUN: %link %linkopts --no-export-dynamic --export-dynamic  %t1.o -o %t1.out
+RUN: %readelf -s %t1.out | %filecheck %s -check-prefix=EXPDYN
+RUN: %link %linkopts --export-dynamic --no-export-dynamic  %t1.o -o %t1.out
+RUN: %readelf -s %t1.out | %filecheck %s -check-prefix=NOEXPDYN
+
+TEXTREL: Warning: Add DT_TEXTREL in a shared object!
+NOTEXTREL-NOT: Warning: Add DT_TEXTREL in a shared object!
+FATAL: Fatal: Linking had errors.
+NOFATAL-NOT: Fatal: Linking had errors.
+DEMANGLE: Verbose: Adding symbol foo()
+NODEMANGLE: Verbose: Adding symbol _Z3foov
+CHECKSECT: section .comment file range overlaps with .text
+NOCHECKSECT-NOT: section .comment file range overlaps with .text
+OMAGIC-NOT: 4096
+NOOMAGIC: 4096
+GCSECT: # .text <GC> 0x0
+NOGCSECT-NOT: # .text <GC> 0x0
+ALIGN: LOAD 0x002000 {{.*}} R 0x1000
+ALIGN: LOAD 0x003000 {{.*}} RW 0x1000
+NOALIGN-NOT: LOAD 0x002000 {{.*}} R 0x1000
+NOALIGN-NOT: LOAD 0x003000 {{.*}} RW 0x1000
+RELOCS: Relocation section {{.*}} contains
+NORELOCS: There are no relocations in this file.
+THREADS: Threads Enabled
+NOTHREADS: Threads Disabled
+EXPDYN: {{.}} GLOBAL {{.*}} _Z3foov
+NOEXPDYN-NOT: {{.}} GLOBAL {{.*}} _Z3foov
+#END_TEST
