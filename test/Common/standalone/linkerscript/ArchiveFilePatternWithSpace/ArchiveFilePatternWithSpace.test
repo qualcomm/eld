@@ -7,9 +7,9 @@ RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections
 RUN: %ar cr %t1.lib12.a %t1.1.o %t1.2.o
 RUN: %link %linkopts -o %t1.a1.out --whole-archive %t1.lib12.a \
-RUN:   -T %p/Inputs/script.1.t -Map %t1.a1.map.txt -Wno-linker-script 2>&1 | %filecheck %s --allow-empty --check-prefix NO_WARN
+RUN:   -T %p/Inputs/script.1.t -Map %t1.a1.map.txt -Wno-deprecated 2>&1 | %filecheck %s --allow-empty --check-prefix NO_WARN
 RUN: %link %linkopts -o %t1.a1.out --whole-archive %t1.lib12.a \
-RUN:   -T %p/Inputs/script.1.t -Map %t1.a1.map.txt -Wlinker-script 2>&1 | %filecheck %s --check-prefix WARN
+RUN:   -T %p/Inputs/script.1.t -Map %t1.a1.map.txt -Wdeprecated 2>&1 | %filecheck %s --check-prefix WARN
 RUN: %filecheck %s --check-prefix MAP < %t1.a1.map.txt
 RUN: %link %linkopts -o %t1.a2.out --whole-archive %t1.lib12.a \
 RUN:   -T %p/Inputs/script.2.t -Map %t1.a2.map.txt

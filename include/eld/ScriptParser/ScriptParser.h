@@ -59,6 +59,26 @@ private:
   /// - PROVIDE_HIDDEN(symbol = expression);
   bool readAssignment(llvm::StringRef Tok);
 
+  /// Warns when deprecated assignment formatting without surrounding whitespace
+  /// around assignment operators appears in the current line.
+  /// \param Op Assignment operator to validate.
+  /// \returns True.
+  bool isValidAssignment(llvm::StringRef Op);
+
+  /// Splits a deprecated compact assignment token into symbol and operator.
+  /// \param Tok Token that may contain an assignment operator.
+  /// \returns Symbol name token if a compact assignment was split; otherwise
+  /// \p Tok.
+  llvm::StringRef splitAssignmentToken(llvm::StringRef Tok);
+
+  /// Returns first occurrence of assignment operator in line that misses a
+  /// space before or after the operator.
+  /// \param line Source line containing a potential assignment expression.
+  /// \param op Assignment operator to validate.
+  /// \returns Offending operator token when missing whitespace is detected.
+  std::optional<llvm::StringRef> getOpWithoutSpace(llvm::StringRef line,
+                                                   llvm::StringRef op);
+
   /// This is an operator-precedence parser to parse a linker
   /// script expression.
   Expression *readExpr();
@@ -93,6 +113,8 @@ private:
 
   bool readSymbolAssignment(llvm::StringRef Tok,
                             Assignment::Type Type = Assignment::Type::DEFAULT);
+
+  bool isAssignmentOperator(llvm::StringRef Op) const;
 
   Expression *readTernary(Expression *Cond);
 
@@ -242,6 +264,11 @@ private:
   ExcludePattern *createExcludePattern(StrToken *S);
 
   uint32_t OverlayCounter = 0;
+
+  bool InMemoryCmd = false;
+
+  static constexpr llvm::StringRef AssignmentOps[] = {
+      "<<=", ">>=", "*=", "/=", "+=", "-=", "&=", "|=", "^=", "="};
 };
 } // namespace v2
 } // namespace eld

@@ -30,10 +30,7 @@ namespace v2 {
 
 class ScriptLexer {
 public:
-  enum class LexState {
-    Default,
-    Expr
-  };
+  enum class LexState { Default, Expr };
 
   explicit ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile);
 
@@ -100,9 +97,7 @@ public:
 
   size_t computeLineNumber(llvm::StringRef tok);
 
-  size_t getCurrentLineNumber() {
-    return PrevTokLine;
-  }
+  size_t getCurrentLineNumber() { return PrevTokLine; }
 
 protected:
   // Get current memory buffer
