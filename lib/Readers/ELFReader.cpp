@@ -425,7 +425,7 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
   const InputFile &inputFile = this->m_InputFile;
   LinkerConfig &config = this->m_Module.getConfig();
 
-  if (!checkMachine())
+  if (!config.options().noWarnMismatch() && !checkMachine())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::err_unrecognized_input_file,
         {inputFile.getInput()->getResolvedPath().native(),
@@ -436,7 +436,7 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
   if (!expCheckFlags.value())
     return false;
 
-  if (!checkClass())
+  if (!config.options().noWarnMismatch() && !checkClass())
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::invalid_elf_class,
         {inputFile.getInput()->decoratedPath(), config.targets().getArch()}));
