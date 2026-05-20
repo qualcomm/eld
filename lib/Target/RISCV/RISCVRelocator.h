@@ -64,6 +64,30 @@ private:
 
   RISCVGOT *getTLSModuleID(ResolveInfo *rsym);
 
+  void handleScanForNonPreemptibleIFunc(Relocation &R, ELFObjectFile *Obj);
+
+  /// Returns true if the relocation is a non-TLS instruction relocation whose
+  /// computation uses GOT entry of the symbol.
+  bool isRegularGOTInstrRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation is an absolute or PCREl relocation designed
+  /// for data section of the program.
+  bool isAbsDataRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation is used for computing an absolute
+  /// or a PC-relative address.
+  ///
+  /// This function returns false for PCREL_LO12_I and PCREL_LO12_S because
+  /// these relocations may be used to construct a GOT address depending upon
+  /// the corresponding Hi-relocation.
+  bool isAbsOrPCRELAddressInstrRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation is a non-TLS non-call instruction
+  /// relocation used for computing address.
+  bool isRegularAddressInstrRelocation(Relocation::Type relocType) const;
+
+  bool isControlFlowRelocation(Relocation::Type relocType) const;
+
 public:
   RISCVLDBackend &m_Target;
 

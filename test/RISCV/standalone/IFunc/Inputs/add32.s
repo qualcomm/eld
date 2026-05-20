@@ -1,0 +1,16 @@
+.section .data,"aw",%progbits
+foo_gp:
+  .word 0x0
+  .reloc ., R_RISCV_ADD32, foo
+
+  .section .text,"ax",%progbits
+  .global get_foo_from_outside
+  .type get_foo_from_outside, @function
+
+get_foo_from_outside:
+.Lpcrel_hi0:
+  auipc a0, %pcrel_hi(foo_gp)
+  addi a0, a0, %pcrel_lo(.Lpcrel_hi0)
+  ret
+
+  .size get_foo_from_outside, .-get_foo_from_outside
