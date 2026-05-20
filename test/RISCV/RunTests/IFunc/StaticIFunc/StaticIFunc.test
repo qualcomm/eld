@@ -1,0 +1,69 @@
+REQUIRES: run_test
+#---IFunc.test---------------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that the IFunc functionality works correctly for static RISCV executables.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -target %linuxtarget -o %t1.main.nopic.o %p/Inputs/main.c -c
+RUN: %run_cc -target %linuxtarget -o %t1.main.pic.o %p/Inputs/main.c -c -fPIC
+
+RUN: %run_cc -target %linuxtarget -o %t1.auipc-addi.o %p/Inputs/auipc-addi.s -c
+RUN: %run_cc -o %t1.nopic.auipc-addi.out %t1.main.nopic.o %t1.auipc-addi.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.auipc-addi.out %t1.main.pic.o %t1.auipc-addi.o \
+RUN:   -static -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.auipc-addi.out | %filecheck %s
+RUN: %run %t1.pic.auipc-addi.out | %filecheck %s
+
+RUN: %run_cc -target %linuxtarget -o %t1.auipc-got.o %p/Inputs/auipc-got.s -c -fPIC
+RUN: %run_cc -o %t1.nopic.auipc-got.out %t1.main.nopic.o %t1.auipc-got.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run_cc -o %t1.pic.auipc-got.out %t1.main.pic.o %t1.auipc-got.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.auipc-got.out | %filecheck %s
+RUN: %run %t1.pic.auipc-got.out | %filecheck %s
+
+RUN: %run_cc -target %linuxtarget -o %t1.abs.o %p/Inputs/abs.c -c -static
+RUN: %run_cc -o %t1.nopic.abs.out %t1.main.nopic.o %t1.abs.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.abs.out %t1.main.pic.o %t1.abs.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.abs.out | %filecheck %s
+RUN: %run %t1.pic.abs.out | %filecheck %s
+
+RUN: %run_cc -target %linuxtarget -o %t1.main-call.nopic.o %p/Inputs/main-call.c -c
+RUN: %run_cc -target %linuxtarget -o %t1.main-call.pic.o %p/Inputs/main-call.c -c
+RUN: %run_cc -target %linuxtarget -o %t1.jal.o %p/Inputs/jal.s -c -static
+RUN: %run_cc -o %t1.nopic.jal.out %t1.main-call.nopic.o %t1.jal.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.jal.out %t1.main-call.pic.o %t1.jal.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.jal.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.jal.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+
+RUN: %run_cc -target %linuxtarget -o %t1.branch.o %p/Inputs/branch.s -c -static
+RUN: %run_cc -o %t1.nopic.branch.out %t1.main-call.nopic.o %t1.branch.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.branch.out %t1.main-call.pic.o %t1.branch.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.branch.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.branch.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+
+RUN: %run_cc -target %linuxtarget -o %t1.rvc-jump.o %p/Inputs/rvc-jump.s -c -static
+RUN: %run_cc -o %t1.nopic.rvc-jump.out %t1.main-call.nopic.o %t1.rvc-jump.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.rvc-jump.out %t1.main-call.pic.o %t1.rvc-jump.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.rvc-jump.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.rvc-jump.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+#END_TEST
+
+CHECK: 11 11 11
+CHECK: [[FOO_ADDR:0x[0-9a-fA-F]+]] [[FOO_ADDR]] [[FOO_ADDR]]
+
+CALL_FROM_OUTSIDE: 11 11 11
+CALL_FROM_OUTSIDE: [[FOO_ADDR:0x[0-9a-fA-F]+]] [[FOO_ADDR]]
+
+CHECK_GOT: Created GOT Entry for Symbol foo{{$}}
+
+CHECK_NO_GOT-NOT: Created GOT Entry for Symbol foo{{$}}

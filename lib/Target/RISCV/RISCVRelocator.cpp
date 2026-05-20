@@ -607,6 +607,10 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
+
+  if (rsym && rsym->isIFunc() && config().isCodeStatic())
+    return handleScanForNonPreemptibleIFunc(pReloc, Obj);
+
   RISCVLDBackend &ld_backend = getTarget();
   switch (pReloc.type()) {
   case llvm::ELF::R_RISCV_32:
@@ -986,10 +990,15 @@ RISCVRelocator::Result applyRelLO(Relocation &pReloc, RISCVLDBackend &Backend,
   if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
       HIReloc->type() == llvm::ELF::R_RISCV_TLS_GD_HI20 ||
       HIReloc->type() == llvm::ELF::R_RISCV_TLS_GOT_HI20) {
-    RISCVGOT *GOT = Backend.findEntryInGOT(pReloc.symInfo());
-    if (!GOT)
+    GOT *GOTEntry = Backend.findEntryInGOT(pReloc.symInfo());
+    if (!GOTEntry && pReloc.symInfo()->isIFunc()) {
+      auto PLTEntry = Backend.findEntryInPLT(pReloc.symInfo());
+      ASSERT(PLTEntry, "IFunc symbols must always have a PLT entry!");
+      GOTEntry = PLTEntry->getGOT();
+    }
+    if (!GOTEntry)
       return RISCVRelocator::BadReloc;
-    Value = GOT->getAddr(DiagEngine);
+    Value = GOTEntry->getAddr(DiagEngine);
   } else
     Value = Backend.getSymbolValuePLT(*HIReloc);
 
@@ -1014,7 +1023,8 @@ RISCVRelocator::Result applyRelLO(Relocation &pReloc, RISCVLDBackend &Backend,
 RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
                                 RISCVRelocator &Parent,
                                 RelocationDescription &pRelocDesc) {
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  ResolveInfo *RI = pReloc.symInfo();
+  if (!(RI->reserved() & Relocator::ReserveGOT) && !RI->isIFunc()) {
     return Relocator::BadReloc;
   }
 
@@ -1027,8 +1037,15 @@ RISCVRelocator::Result applyGOT(Relocation &pReloc, RISCVLDBackend &Backend,
   if (!BaseReloc)
     return RISCVRelocator::BadReloc;
 
-  int64_t S = Backend.findEntryInGOT(BaseReloc->symInfo())
-                  ->getAddr(Backend.config().getDiagEngine());
+  GOT *GOTEntry = Backend.findEntryInGOT(BaseReloc->symInfo());
+  if (!GOTEntry && BaseReloc->symInfo()->isIFunc()) {
+    auto PLTEntry = Backend.findEntryInPLT(BaseReloc->symInfo());
+    ASSERT(PLTEntry, "IFunc symbol must always have a PLT entry!");
+    GOTEntry = PLTEntry->getGOT();
+  }
+  if (!GOTEntry)
+    return RISCVRelocator::BadReloc;
+  int64_t S = GOTEntry->getAddr(Backend.config().getDiagEngine());
   int64_t A = BaseReloc->addend();
   int64_t P = BaseReloc->place(Backend.getModule());
   int64_t Result = S + A - P;
@@ -1129,4 +1146,87 @@ RISCVRelocator::Result applyVendor(Relocation &pReloc, RISCVLDBackend &,
 
 } // anonymous namespace
 
+void RISCVRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
+                                                      ELFObjectFile *Obj) {
+  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  ResolveInfo *RI = R.symInfo();
+  Relocator::Type relocType = R.type();
+
+  bool isValidRelocForIFunc = isRegularAddressInstrRelocation(relocType) ||
+                              isAbsDataRelocation(relocType) ||
+                              isControlFlowRelocation(relocType);
+
+  if (!isValidRelocForIFunc) {
+    config().raise(Diag::warn_invalid_reloc_for_ifunc)
+        << getName(relocType)
+        << RI->getDecoratedName(config().options().shouldDemangle());
+  }
+
+  if (isRegularGOTInstrRelocation(relocType))
+    RI->setIFuncNeedsGOT();
+  if (isAbsDataRelocation(relocType) ||
+      isAbsOrPCRELAddressInstrRelocation(relocType))
+    RI->setIFuncDirectRef();
+
+  if (RI->reserved() & Relocator::ReservePLT)
+    return;
+
+  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.defineIRelativeRange(*RI);
+  RI->setReserved(RI->reserved() | Relocator::ReservePLT);
+}
+
+bool RISCVRelocator::isRegularGOTInstrRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_RISCV_GOT_HI20:
+    return true;
+  default:
+    return false;
+  }
+}
+
+bool RISCVRelocator::isAbsDataRelocation(Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_RISCV_32:
+  case llvm::ELF::R_RISCV_64:
+    return true;
+  default:
+    return false;
+  }
+}
+
+bool RISCVRelocator::isAbsOrPCRELAddressInstrRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_RISCV_HI20:
+  case llvm::ELF::R_RISCV_PCREL_HI20:
+  case llvm::ELF::R_RISCV_LO12_S:
+  case llvm::ELF::R_RISCV_LO12_I:
+    return true;
+  }
+  return false;
+}
+
+bool RISCVRelocator::isRegularAddressInstrRelocation(
+    Relocation::Type relocType) const {
+  return isRegularGOTInstrRelocation(relocType) ||
+         isAbsOrPCRELAddressInstrRelocation(relocType) ||
+         relocType == llvm::ELF::R_RISCV_PCREL_LO12_I ||
+         relocType == llvm::ELF::R_RISCV_PCREL_LO12_S;
+}
+
+bool RISCVRelocator::isControlFlowRelocation(Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_RISCV_CALL:
+  case llvm::ELF::R_RISCV_CALL_PLT:
+  case llvm::ELF::R_RISCV_JAL:
+  case llvm::ELF::R_RISCV_BRANCH:
+  case llvm::ELF::R_RISCV_RVC_BRANCH:
+  case llvm::ELF::R_RISCV_RVC_JUMP:
+    return true;
+  default:
+    return false;
+  }
+}
 } // namespace eld
