@@ -12,6 +12,6 @@ CHECK: Note: Symbol `foo' from Input file `{{.*}}.o' with info `(ELF)(NOTYPE)(UN
 CHECK-NEXT: Note: Symbol `foo' from Input file `{{.*}}.so' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}{DYN}' being added to Namepool
 CHECK-NEXT: Note: Symbol `foo' from Input file `{{.*}}.so' with info `(ELF)(FUNCTION)(DEFINE)[Global]{DEFAULT}{DYN}' being resolved from Namepool
 CHECK-NEXT: Note: Created PLT Entry for Symbol foo
-CHECK-NEXT: Note: Created GOT Entry for Symbol foo
+CHECK-NEXT: Note: Created GOTPLT Entry for Symbol foo
 
 

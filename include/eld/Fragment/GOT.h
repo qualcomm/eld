@@ -9,6 +9,7 @@
 
 #include "eld/Fragment/Fragment.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
 #include <string>
 #include <vector>
@@ -68,6 +69,8 @@ public:
 
   // -- GOT Type
   GOTType getType() const { return GotType; }
+
+  static llvm::StringRef getGOTTypeAsStr(GOTType T);
 
 protected:
   ResolveInfo *ThisSymInfo;
