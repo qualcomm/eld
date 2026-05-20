@@ -357,6 +357,13 @@ void TextLayoutPrinter::printGlobalPluginInfo(Module &M, bool UseColor) {
       M.getScript().getPluginForType(plugin::Plugin::Type::ControlFileSize);
   const LinkerScript::PluginVectorT &UniversalPlugins =
       M.getPluginManager().getUniversalPlugins();
+  bool hasPluginInfo =
+      !UniversalPlugins.empty() || !PluginListForSectionMatcher.empty() ||
+      !PluginListForSectionIterator.empty() ||
+      !PluginListForOutputSectionIterator.empty() ||
+      !PluginListForMemorySize.empty() || !PluginListForFileSize.empty();
+  if (!hasPluginInfo)
+    return;
 
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::GREEN);
@@ -1114,8 +1121,15 @@ void TextLayoutPrinter::printLinkerInsertedTimingStats(Module &CurModule) {
 void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::MAGENTA);
-  outputStream() << "\nBuild Statistics";
-  outputStream() << "\n# <file> <start time> <duration>\n";
+  bool InsertedBuildStats = false;
+  auto PrintBuildStatsHeader = [this, &InsertedBuildStats]() {
+    if (InsertedBuildStats)
+      return;
+    outputStream() << "\nBuild Statistics";
+    outputStream() << "\n# <file> <start time> <duration>\n";
+    InsertedBuildStats = true;
+  };
+
   for (auto &I : ThisLayoutInfo->getInputActions()) {
     if (I.Inp == nullptr || I.Inp->getInputFile() == nullptr)
       continue;
@@ -1124,6 +1138,7 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
     ELFObjectFile *EObj = llvm::dyn_cast<ELFObjectFile>(I.Inp->getInputFile());
     if (EObj->getTimingSection()) {
       for (const Fragment *TF : EObj->getTimingSection()->getFragmentList()) {
+        PrintBuildStatsHeader();
         const TimingSlice *timingSection =
             llvm::dyn_cast<TimingFragment>(TF)->getTimingSlice();
         outputStream() << timingSection->getModuleName() << " "
@@ -1133,6 +1148,7 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
     }
   }
   if (ThisLayoutInfo->getConfig().options().getInsertTimingStats()) {
+    PrintBuildStatsHeader();
     printLinkerInsertedTimingStats(CurModule);
   }
   outputStream() << "\n";
@@ -1141,10 +1157,13 @@ void TextLayoutPrinter::printBuildStatistics(Module &CurModule, bool UseColor) {
 
 // Print the loaded Linker scripts and Memory Map files.
 void TextLayoutPrinter::printInputActions(bool UseColor) {
+  auto &InputActions = ThisLayoutInfo->getInputActions();
+  if (InputActions.empty())
+    return;
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::BLUE);
   outputStream() << "\nLinker Script and memory map\n";
-  for (auto &I : ThisLayoutInfo->getInputActions())
+  for (auto &I : InputActions)
     outputStream() << ThisLayoutInfo->getStringFromLoadSequence(I) << "\n";
   if (UseColor)
     outputStream().resetColor();
