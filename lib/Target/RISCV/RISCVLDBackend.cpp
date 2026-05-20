@@ -1547,8 +1547,9 @@ RISCVGOT *RISCVLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
+  // Only create .got.plt when dynamic linking is involved
+  if (!getGOTPLT()->hasFragments() && 
+      (config().isCodeDynamic() || T == GOT::GOTPLT0)) {
     LDSymbol *Dynamic = m_Module.getNamePool().findSymbol("_DYNAMIC");
     // TODO: This should be GOT0, not GOTPLT0.
     RISCVGOT::CreateGOT0(getGOT(), Dynamic ? Dynamic->resolveInfo() : nullptr,
