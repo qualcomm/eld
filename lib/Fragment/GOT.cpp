@@ -9,6 +9,7 @@
 #include "eld/Core/Module.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/ErrorHandling.h"
 
 using namespace eld;
 
@@ -33,4 +34,26 @@ const std::string GOT::name() const {
   if (!ThisSymInfo)
     return "";
   return (llvm::Twine("GOT entry for ") + ThisSymInfo->name()).str();
+}
+
+llvm::StringRef GOT::getGOTTypeAsStr(GOTType T) {
+  switch (T) {
+  case GOTType::Regular:
+    return "GOT";
+  case GOTType::GOTPLT0:
+    return "GOTPLT0";
+  case GOTType::GOTPLTN:
+    return "GOTPLT";
+  case GOTType::TLS_DESC:
+    return "TLS_DESC";
+  case GOTType::TLS_GD:
+    return "TLS_GD";
+  case GOTType::TLS_LD:
+    return "TLS_LD";
+  case GOTType::TLS_IE:
+    return "TLS_IE";
+  case GOTType::TLS_LE:
+    return "TLS_LE";
+  }
+  llvm_unreachable("Invalid GOTType!");
 }
