@@ -24,11 +24,14 @@ bool eld::ELDEmulateELF(LinkerScript &pScript, LinkerConfig &pConfig) {
   auto Sysroot = pConfig.directories().hasSysRoot()
                      ? pConfig.directories().sysroot().native()
                      : "";
-  auto LibPath = ELDDirectory("=/lib", Sysroot);
-  auto UsrLibPath = ELDDirectory("=/usr/lib", Sysroot);
-  if (llvm::sys::fs::is_directory(LibPath.name()))
-    pConfig.directories().insert("=/lib");
-  if (llvm::sys::fs::is_directory(UsrLibPath.name()))
-    pConfig.directories().insert("=/usr/lib");
+  static const char *StandardDirs[] = {
+      "=/lib",       "=/lib64",         "=/usr/lib",
+      "=/usr/lib64", "=/usr/local/lib", "=/usr/local/lib64",
+  };
+  for (const char *Dir : StandardDirs) {
+    auto EldDir = ELDDirectory(Dir, Sysroot);
+    if (llvm::sys::fs::is_directory(EldDir.name()))
+      pConfig.directories().insert(Dir);
+  }
   return true;
 }

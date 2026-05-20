@@ -253,6 +253,33 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
   return true;
 }
 
+void ObjectLinker::tryInitializeTargetFromInputs(
+    std::vector<Node *>::const_iterator Begin,
+    std::vector<Node *>::const_iterator End) {
+  for (auto It = Begin; It != End; ++It) {
+    if ((*It)->kind() == Node::GroupStart)
+      continue;
+    FileNode *FN = llvm::dyn_cast<FileNode>(*It);
+    if (!FN)
+      continue;
+    Input *I = FN->getInput();
+    if (!I->resolvePath(ThisConfig))
+      continue;
+    InputFile *IF = InputFile::create(I, ThisConfig.getDiagEngine());
+    if (!IF)
+      continue;
+    I->setInputFile(IF);
+    if (IF->getKind() != InputFile::ELFObjFileKind)
+      continue;
+    eld::Expected<uint16_t> Machine = getRelocObjParser()->getMachine(*IF);
+    if (!Machine)
+      continue;
+    llvm::cast<ObjectFile>(IF)->setMachine(*Machine);
+    initializeTarget(IF);
+    return;
+  }
+}
+
 bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
   typedef std::vector<Node *>::const_iterator Iter;
 
@@ -288,6 +315,13 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
     if (!Input->resolvePath(ThisConfig)) {
       ThisModule->setFailure(true);
       return false;
+    }
+    if (!isBackendInitialized()) {
+      InputFile *IF = InputFile::create(Input, ThisConfig.getDiagEngine());
+      if (IF && IF->getKind() == InputFile::GNULinkerScriptKind) {
+        Input->setInputFile(IF);
+        tryInitializeTargetFromInputs(std::next(Begin), End);
+      }
     }
     if (!readAndProcessInput(Input, MPostLtoPhase))
       return false;

@@ -505,6 +505,8 @@ private:
 
   // Initialize the target machine when sniffing object files
   bool initializeTarget(InputFile *I);
+  void tryInitializeTargetFromInputs(std::vector<Node *>::const_iterator Begin,
+                                     std::vector<Node *>::const_iterator End);
 
 private:
   LinkerConfig &ThisConfig;
