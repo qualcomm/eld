@@ -256,6 +256,15 @@ bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
   if (WarnOpt == "no-osabi") {
     setShowOSABIWarning(false);
   }
+  // -Wversion-script and -Wno-version-script
+  if (WarnOpt == "version-script") {
+    setShowVersionScriptWarning(true);
+    return true;
+  }
+  if (WarnOpt == "no-version-script") {
+    setShowVersionScriptWarning(false);
+    return true;
+  }
   return false;
 }
 
