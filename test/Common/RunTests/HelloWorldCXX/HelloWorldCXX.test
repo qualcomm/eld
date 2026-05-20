@@ -1,5 +1,4 @@
 REQUIRES: run_cxx_test
-XFAIL: riscv32, riscv64
 UNSUPPORTED: x86
 #---HelloWorldCXX.test--------------------- Executable------------------#
 #BEGIN_COMMENT
