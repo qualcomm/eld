@@ -1,0 +1,11 @@
+#---SysrootScriptCrash.test----------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that ELD does not crash when a linker script references a
+# file that cannot be read (e.g. not found in sysroot).
+# ELD should error out gracefully instead of segfaulting.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o %p/Inputs/main.c -c
+RUN: %not %link %linkopts %t1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
+#END_TEST
+CHECK: cannot read file /lib64/lib1.so
