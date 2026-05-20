@@ -1,0 +1,34 @@
+
+#---WrapSymbolArchivePull.test------------------------ Executable ----------#
+#BEGIN_COMMENT
+# Regression test for GitHub issue #936:
+# --wrap=<sym>: archive member not pulled when wrapper calls __real_<sym>
+#
+# When --wrap=add is used and wrap.o has an undefined reference to __real_add,
+# IRBuilder renames that reference to 'add' in the name pool.  Later, when the
+# archive is scanned, shouldIncludeSymbol() must still recognise the undefined
+# 'add' entry as a demand for the archive member that defines 'add'.
+#
+# Before the fix, shouldIncludeSymbol() looked only for __real_add in the name
+# pool (which no longer existed under that name after the rename) and therefore
+# returned Exclude, causing an "undefined reference to `add`" error.
+#END_COMMENT
+#START_TEST
+
+# Compile inputs.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.wrap.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t2.libfoo.a %t1.add.o
+
+# Link: main.o + wrap.o are direct inputs; add.o is only reachable via the
+# archive.  The linker must pull add.o from libfoo.a because __real_add
+# (renamed to 'add') remains undefined after processing the object files.
+# Use -t (trace) to confirm the archive member is actually included.
+RUN: %link %linkopts %t1.main.o %t1.wrap.o %t2.libfoo.a --wrap=add -o %t2.out -t 2>&1 | %filecheck %s
+
+# Verify the archive member was pulled in.
+#CHECK: {{.*}}libfoo.a{{.*}}add.o
+
