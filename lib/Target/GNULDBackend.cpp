@@ -4970,8 +4970,11 @@ void GNULDBackend::clearMemoryRegions() {
 }
 
 void GNULDBackend::verifyMemoryRegions() {
-  for (auto &M : m_Module.getLinkerScript().getMemoryRegions())
-    M->verifyMemoryUsage(config());
+  for (auto *out : m_Module.getLinkerScript().sectionMap()) {
+    if (!out->epilog().hasRegion())
+      continue;
+    out->epilog().region().verifyMemoryUsage(config(), *out);
+  }
 }
 
 bool GNULDBackend::assignMemoryRegions() {
