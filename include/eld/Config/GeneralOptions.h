@@ -750,6 +750,13 @@ public:
   const std::optional<uint64_t> &imageBase() const { return ImageBase; }
 
   void setImageBase(uint64_t Value) { ImageBase = Value; }
+  
+const std::optional<uint64_t> &getTextSegmentAddress() const { return TextSegment; }
+void setTextSegmentAddress(uint64_t Value) { TextSegment = Value; }
+const std::optional<uint64_t> &getRodataSegmentAddress() const { return RodataSegment; }
+void setRodataSegmentAddress(uint64_t Value) { RodataSegment = Value; }
+const std::optional<uint64_t> &getLdataSegmentAddress() const { return LdataSegment; }
+void setLdataSegmentAddress(uint64_t Value) { LdataSegment = Value; }
 
   /// entry point
   const std::string &entry() const;
@@ -1382,6 +1389,9 @@ private:
   std::vector<std::string> LTOOutputFile;
   bool BCompactDyn = false;          // z,compactdyn
   std::optional<uint64_t> ImageBase; // --image-base=value
+  std::optional<uint64_t> TextSegment;
+  std::optional<uint64_t> RodataSegment;
+  std::optional<uint64_t> LdataSegment;
   std::string Entry;
   SymbolRenameMap SymbolRenames;
   AddressMapType AddressMap;
