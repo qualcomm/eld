@@ -269,8 +269,6 @@ public:
   bool mergeInputSections(ObjectBuilder &Builder,
                           std::vector<Section *> &Sections);
 
-  bool mayBeSortSections(std::vector<Section *> &Sections);
-
   bool createOutputSection(ObjectBuilder &Builder, OutputSectionEntry *Output,
                            bool PostLayout = false);
 

@@ -784,44 +784,6 @@ void ObjectLinker::markDiscardFileFormatSections() {
   }
 }
 
-bool ObjectLinker::mayBeSortSections(std::vector<Section *> &Sections) {
-  // If no linker scripts, we dont store the original input. Lets not sort.
-  if (!ThisModule->getScript().linkerScriptHasSectionsCommand())
-    return true;
-  if (ThisConfig.options().disableLTOLinkOrder())
-    return true;
-  // If we are doing partial link, lets not sort it.
-  bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
-  if (IsPartialLink || LtoObjects.empty())
-    return true;
-  std::stable_sort(Sections.begin(), Sections.end(),
-                   [](Section *ASection, Section *BSection) {
-                     ELFSection *A = llvm::dyn_cast<ELFSection>(ASection);
-                     ELFSection *B = llvm::dyn_cast<ELFSection>(BSection);
-                     if (A == nullptr or B == nullptr)
-                       return false;
-                     // FIXME: Redundant checks. All files have original input.
-                     if (!A->originalInput())
-                       return false;
-                     if (!B->originalInput())
-                       return false;
-                     if ((A->name().starts_with(".ctors")) ||
-                         (B->name().starts_with(".ctors")))
-                       return false;
-                     if ((A->name().starts_with(".dtors")) ||
-                         (B->name().starts_with(".dtors")))
-                       return false;
-                     int64_t AOrdinal =
-                         A->originalInput()->getInput()->getInputOrdinal();
-                     int64_t BOrdinal =
-                         B->originalInput()->getInput()->getInputOrdinal();
-                     if (AOrdinal == BOrdinal)
-                       return false;
-                     return (AOrdinal < BOrdinal);
-                   });
-  return true;
-}
-
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
                                       std::vector<Section *> &Sections) {
   bool IsPartialLink = ThisConfig.isLinkPartial();
@@ -1111,12 +1073,6 @@ bool ObjectLinker::initializeMerge() {
         ThisModule->getLayoutInfo()->recordSectionStat(Sect);
       }
     }
-  }
-  {
-    eld::RegisterTimer T("Sort sections if LTO enabled", "Merge Sections",
-                         ThisConfig.options().printTimingStats());
-    // Sort sections if we have LTO enabled.
-    mayBeSortSections(AllInputSections);
   }
   return true;
 }

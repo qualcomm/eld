@@ -1,0 +1,42 @@
+UNSUPPORTED: x86
+#---NonLTOSectionsOrderWithLTO.test------------- Executable,LTO,LS ----------------#
+#BEGIN_COMMENT
+# When a linker script rule matches input sections without explicit ordering,
+# the output should contain matched input sections in input order. With LTO,
+# ordering is relaxed for LTO-generated sections, but sections from non-LTO
+# object files must still maintain their original order. This test verifies
+# that non-LTO input section ordering is preserved when mixed with LTO objects.
+#END_COMMENT
+#START_TEST
+RUN: %python %p/Inputs/gen.py %t1.1.c
+RUN: %clang %clangopts -o %t1.1.o -c %t1.1.c -ffunction-sections
+RUN: %clang %clangopts -o %t1.2.o -c %p/Inputs/2.c -flto -ffunction-sections
+RUN: %clang %clangopts -o %t1.3.o -c %p/Inputs/3.c -flto -ffunction-sections
+RUN: %link -MapStyle txt %linkopts -o %t2.out %t1.2.o %t1.1.o %t1.3.o -T %p/Inputs/script.t -e main -Map %t2.map
+RUN: %filecheck %s < %t2.map
+#END_TEST
+
+CHECK: .text.foo_0
+CHECK: .text.foo_1
+CHECK: .text.foo_2
+CHECK: .text.foo_3
+CHECK: .text.foo_4
+CHECK: .text.foo_5
+CHECK: .text.foo_6
+CHECK: .text.foo_7
+CHECK: .text.foo_8
+CHECK: .text.foo_9
+CHECK: .text.foo_10
+CHECK: .text.foo_11
+CHECK: .text.foo_12
+CHECK: .text.foo_13
+CHECK: .text.foo_14
+CHECK: .text.foo_15
+CHECK: .text.foo_16
+CHECK: .text.foo_17
+CHECK: .text.foo_18
+CHECK: .text.foo_19
+CHECK: .text.foo_20
+CHECK: .text.foo_298
+CHECK: .text.foo_299
+CHECK: .text.main
