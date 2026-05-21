@@ -137,7 +137,8 @@ void HexagonRelocator::CreateGOTIE(ELFObjectFile *Obj,
 
   // set up the got and the corresponding rel entry
   HexagonGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-  if (config().isCodeStatic())
+  if (config().isCodeStatic() ||
+      (config().isBuildingExecutable() && !m_Target.isSymbolPreemptible(*rsym)))
     G->setValueType(GOT::TLSStaticSymbolValue);
   else
     helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0, llvm::ELF::R_HEX_TPREL_32,
@@ -635,7 +636,7 @@ void HexagonRelocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
       config().raise(Diag::target_specific_symbol) << SymbolName;
     if (layoutInfo)
       layoutInfo->recordFragment(guardSection->getInputFile(), guardSection,
-                                    frag);
+                                 frag);
   }
   config().raise(Diag::resolve_undef_weak_guard)
       << pSym->name() << pSym->resolvedOrigin()->getInput()->decoratedPath()

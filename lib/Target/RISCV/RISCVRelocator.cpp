@@ -581,7 +581,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
       return;
     RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || config().isBuildingExecutable()) {
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
@@ -589,6 +589,7 @@ void RISCVRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                        is32bit() ? llvm::ELF::R_RISCV_TLS_TPREL32
                                  : llvm::ELF::R_RISCV_TLS_TPREL64,
                        m_Target);
+    m_Target.setHasStaticTLS();
     break;
   }
 
@@ -733,7 +734,8 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
       return;
     RISCVGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
     rsym->setReserved(rsym->reserved() | ReserveGOT);
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || (config().isBuildingExecutable() &&
+                                    !m_Target.isSymbolPreemptible(*rsym))) {
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
@@ -741,6 +743,7 @@ void RISCVRelocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
                        is32bit() ? llvm::ELF::R_RISCV_TLS_TPREL32
                                  : llvm::ELF::R_RISCV_TLS_TPREL64,
                        m_Target);
+    m_Target.setHasStaticTLS();
     break;
   }
 
