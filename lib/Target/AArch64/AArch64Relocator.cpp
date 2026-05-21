@@ -307,8 +307,15 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     if (config().isCodeStatic())
       return;
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+    if (config().isBuildingExecutable()) {
+      G->setValueType(GOT::TLSStaticSymbolValue);
+      if (rsym->reserved() == Relocator::None)
+        rsym->setReserved(rsym->reserved() | ReserveGOT);
+      return;
+    }
     helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                        llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+    m_Target.setHasStaticTLS();
     if (rsym->reserved() == Relocator::None)
       rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
@@ -535,13 +542,15 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
 
     // set up the got and the corresponding rel entry
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || (config().isBuildingExecutable() &&
+                                    !m_Target.isSymbolPreemptible(*rsym))) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
     helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                        llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+    m_Target.setHasStaticTLS();
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
