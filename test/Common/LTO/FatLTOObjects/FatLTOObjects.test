@@ -39,14 +39,14 @@ RUN: %readelf -S %t.reloc.o | %filecheck %s --check-prefix=NO-LTO-SECTION
 RUN: %touch %t.empty
 RUN: %objcopy --add-section=.llvm.lto=%t.empty --set-section-flags=.llvm.lto=exclude \
 RUN: --set-section-type=.llvm.lto=0x6fff4c0c %t.native.o %t.fat.o
-RUN: %link --fat-lto-objects -r %t.fat.o -o /dev/null \
+RUN: %link --fat-lto-objects -r %t.fat.o -o %t1.out \
 RUN: --trace=lto 2>&1 | %filecheck %s -check-prefix=EMBED-LTO
 
 # Invalid non-bitcode payload should diagnose instead of crashing.
 RUN: printf "eld\n" > %t.invalid
 RUN: %objcopy --add-section=.llvm.lto=%t.invalid --set-section-flags=.llvm.lto=exclude \
 RUN: --set-section-type=.llvm.lto=0x6fff4c0c %t.native.o %t.fat.invalid.o
-RUN: %not %link --fat-lto-objects -r %t.fat.invalid.o -o /dev/null \
+RUN: %not %link --fat-lto-objects -r %t.fat.invalid.o -o %t1.out \
 RUN: --trace=lto 2>&1 | %filecheck %s -check-prefix=INVALID-EMBED-LTO
 
 HAS-LTO-SECTION: .llvm.lto
