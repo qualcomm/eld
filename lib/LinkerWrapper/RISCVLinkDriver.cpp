@@ -143,11 +143,6 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   Config.options().setRISCVRelaxTbljal(
       ArgList.hasFlag(OPT_RISCVLinkOptTable::relax_tbljal,
                       OPT_RISCVLinkOptTable::no_relax_tbljal, false));
-  if (Config.options().getRISCVRelaxTbljal() &&
-      ArgList.getLastArg(OPT_RISCVLinkOptTable::shared)) {
-    Config.raise(Diag::warn_incompatible_option) << "relax-tbljal" << "shared";
-    Config.options().setRISCVRelaxTbljal(false);
-  }
 
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))

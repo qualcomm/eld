@@ -131,16 +131,15 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 
   if (config().options().getRISCVRelaxTbljal()) {
     m_pRISCVTableJumpSection = m_Module.createInternalSection(
-        Module::InternalInputType::Sections, LDFileFormat::Internal,
+        Module::InternalInputType::TableJump, LDFileFormat::Internal,
         ".riscv.jvt", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC,
         /*Align=*/64);
     TableJumpFragment =
         make<RISCVTableJumpFragment>(*this, m_pRISCVTableJumpSection);
     m_pRISCVTableJumpSection->addFragmentAndUpdateSize(TableJumpFragment);
-    m_pRISCVTableJumpSection->setWanted(true);
-    // Keep the section in the output even if its final size ends up being 0
-    // (matching lld behavior and the upstream tests).
-    m_pRISCVTableJumpSection->setWantedInOutput(true);
+    if (layoutInfo)
+      layoutInfo->recordFragment(m_pRISCVTableJumpSection->getInputFile(),
+                                 m_pRISCVTableJumpSection, TableJumpFragment);
   }
 
   // Create .dynamic section
@@ -171,7 +170,7 @@ void RISCVLDBackend::initTargetSymbols() {
     LDSymbol *JvtBase =
         m_Module.getIRBuilder()
             ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::InternalInputType::Sections),
+                m_Module.getInternalInput(Module::InternalInputType::TableJump),
                 JvtName, ResolveInfo::NoType, ResolveInfo::Define,
                 ResolveInfo::Global,
                 TableJumpFragment->size(), // size
@@ -211,6 +210,16 @@ void RISCVLDBackend::initTableJump() {
   if (TableJumpInitialized || !TableJumpFragment)
     return;
 
+  // If the jump-table section is discarded by linker script rules, do not
+  // generate entries and do not relax calls to table-jump instructions.
+  if (m_pRISCVTableJumpSection &&
+      (m_pRISCVTableJumpSection->isIgnore() ||
+       m_pRISCVTableJumpSection->isDiscard())) {
+    m_pRISCVTableJumpSection->setSize(0);
+    TableJumpInitialized = true;
+    return;
+  }
+
   llvm::DenseSet<const ELFSection *> Visited;
   for (auto &Input : m_Module.getObjectList()) {
     ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(Input);
@@ -233,21 +242,6 @@ void RISCVLDBackend::initTableJump() {
   // the owning section for layout.
   if (m_pRISCVTableJumpSection)
     m_pRISCVTableJumpSection->setSize(TableJumpFragment->size());
-
-  // Ensure the output keeps a (possibly empty) .riscv.jvt section when
-  // --relax-tbljal is enabled.
-  if (m_pRISCVTableJumpSection) {
-    m_pRISCVTableJumpSection->setWantedInOutput(true);
-    m_pRISCVTableJumpSection->setWanted(true);
-    if (ELFSection *Out = m_pRISCVTableJumpSection->getOutputELFSection()) {
-      Out->setWantedInOutput(true);
-      Out->setWanted(true);
-    }
-  }
-  if (ELFSection *Jvt = m_Module.getSection(".riscv.jvt")) {
-    Jvt->setWantedInOutput(true);
-    Jvt->setWanted(true);
-  }
   TableJumpInitialized = true;
 }
 
@@ -438,9 +432,14 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
   }
 
   if (config().options().getRISCVRelaxTbljal() && TableJumpFragment &&
-      TableJumpFragment->size()) {
+      TableJumpFragment->size() && m_pRISCVTableJumpSection &&
+      !m_pRISCVTableJumpSection->isIgnore() &&
+      !m_pRISCVTableJumpSection->isDiscard()) {
     int EntryIndex =
         getTableJumpEntryIndex(*TableJumpFragment, reloc->symInfo(), rd);
+    // EntryIndex is the index in the JVT where the address is stored.
+    // getTableJumpEntryIndex() returns a valid index [0,255] when it finds one
+    // and -1 when the relocation is not applicable.
     if (EntryIndex >= 0) {
       applyTableJumpRelaxation(reloc, *region, offset,
                                static_cast<unsigned>(EntryIndex));
@@ -490,7 +489,9 @@ bool RISCVLDBackend::doRelaxationCall(Relocation *reloc) {
 
 bool RISCVLDBackend::doRelaxationJal(Relocation *reloc) {
   if (!config().options().getRISCVRelaxTbljal() || !TableJumpFragment ||
-      !TableJumpFragment->size())
+      !TableJumpFragment->size() || !m_pRISCVTableJumpSection ||
+      m_pRISCVTableJumpSection->isIgnore() ||
+      m_pRISCVTableJumpSection->isDiscard())
     return false;
 
   Fragment *frag = reloc->targetRef()->frag();

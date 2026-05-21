@@ -3,6 +3,14 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
+//
+// This file implements RISC-V Zcmt table-jump handling for linker relaxation:
+// - scans call/jal relocations and selects profitable cm.jt/cm.jalt entries
+// - materializes and emits the .riscv.jvt table
+// - provides map-dump support for selected table-jump entries
+//
+// ABI reference:
+// https://riscv-non-isa.github.io/riscv-elf-psabi-doc/#_table_jump_relaxation
 
 #include "RISCVTableJump.h"
 #include "RISCVLDBackend.h"
@@ -17,7 +25,6 @@
 #include <cassert>
 
 using namespace eld;
-
 RISCVTableJumpFragment::RISCVTableJumpFragment(RISCVLDBackend &B, ELFSection *O)
     : TargetFragment(TargetFragment::Kind::TargetSpecific, O, nullptr,
                      /*Align=*/64, /*Size=*/0),
@@ -185,6 +192,42 @@ int RISCVTableJumpFragment::getCMJALTEntryIndex(const ResolveInfo *Sym) const {
   return It != CMJALTCandidates.end()
              ? static_cast<int>(StartCMJALTEntryIdx) + It->second.Index
              : -1;
+}
+
+void RISCVTableJumpFragment::dump(llvm::raw_ostream &OS) {
+  struct DumpEntry {
+    int Index = -1;
+    const ResolveInfo *Sym = nullptr;
+    uint64_t VA = 0;
+    const char *Insn = "";
+  };
+
+  llvm::SmallVector<DumpEntry, 0> Entries;
+  auto AddEntries = [&](const llvm::DenseMap<const ResolveInfo *,
+                                              RISCVTableJumpEntry> &Candidates,
+                        int Bias, const char *Insn) {
+    for (auto &KV : Candidates) {
+      if (KV.second.Index < 0)
+        continue;
+      Entries.push_back({Bias + KV.second.Index, KV.first,
+                         getTableJumpTargetVA(Backend, KV.first), Insn});
+    }
+  };
+  AddEntries(CMJTCandidates, /*Bias=*/0, "cm.jt");
+  AddEntries(CMJALTCandidates, static_cast<int>(StartCMJALTEntryIdx), "cm.jalt");
+  if (Entries.empty())
+    return;
+
+  llvm::sort(Entries, [](const DumpEntry &A, const DumpEntry &B) {
+    return A.Index < B.Index;
+  });
+  OS << "#\t.riscv.jvt entries:\n";
+  for (const auto &Entry : Entries) {
+    OS << "#\t  [" << Entry.Index << "] " << Entry.Insn << "\t"
+       << Entry.Sym->name() << "\t0x";
+    OS.write_hex(Entry.VA);
+    OS << "\n";
+  }
 }
 
 static void

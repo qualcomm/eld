@@ -29,6 +29,7 @@ public:
 
   size_t size() const override;
   eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
+  void dump(llvm::raw_ostream &OS) override;
 
   void scanTableJumpEntries(ELFSection &Sec);
   void finalizeContents();
