@@ -26,7 +26,7 @@ RUN: %nm %t.lto.out | %filecheck %s --check-prefix=WITH-LTO
 RUN: %touch %t.empty
 RUN: %objcopy --add-section=.llvmbc=%t.empty \
 RUN: --set-section-flags=.llvmbc=exclude %t.native.o %t.empty.llvmbc.o
-RUN: %link %linkopts -flto -r %t.empty.llvmbc.o -o /dev/null \
+RUN: %link %linkopts -flto -r %t.empty.llvmbc.o -o %t1.out \
 RUN: --trace=lto 2>&1 | %filecheck %s --check-prefix=EMPTY-LLVMBC
 
 # Invalid non-bitcode payload should diagnose instead of crashing.
@@ -34,7 +34,7 @@ RUN: printf "eld\n" > %t.invalid
 RUN: %objcopy --add-section=.llvmbc=%t.invalid \
 RUN: --set-section-flags=.llvmbc=exclude %t.native.o %t.invalid.llvmbc.o
 RUN: %not %link %linkopts -flto -r %t.invalid.llvmbc.o  \
-RUN: -o /dev/null --trace=lto 2>&1 | %filecheck %s --check-prefix=INVALID-LLVMBC
+RUN: -o %t1.out --trace=lto 2>&1 | %filecheck %s --check-prefix=INVALID-LLVMBC
 
 HAS-LLVMBC-SECTION: .llvmbc
 
