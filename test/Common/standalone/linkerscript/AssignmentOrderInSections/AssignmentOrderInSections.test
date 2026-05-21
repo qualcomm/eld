@@ -1,0 +1,24 @@
+#---AssignmentOrderInSections.test--------------------- Executable,LS ----------------------#
+#BEGIN_COMMENT
+# This test verifies that assignments within SECTIONS are evaluated
+# in sequential order.
+# u = v should evaluate to 0xc (the value of v at that point),
+# not 0xa (the value v is reassigned to later).
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.txt
+RUN: %readelf -s %t1.1.out | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+#END_TEST
+
+CHECK-DAG: {{0+}}c {{.*}} u
+CHECK-DAG: {{0+}}a {{.*}} v
+
+MAP: Output Section and Layout
+MAP: v(0xc) = 0xc; # v = 0xc; {{.*}}script.t
+MAP: u(0xc) = v(0xc); # u = v; {{.*}}script.t
+MAP: .text
+MAP: *(.text*)
+MAP: .text {{.*}}1.o
+MAP: v(0xa) = 0xa; # v = 0xa; {{.*}}script.t

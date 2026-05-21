@@ -1,0 +1,26 @@
+#---MultipleSectionsAssignment.test--------------------- Executable,LS ----------------------#
+#BEGIN_COMMENT
+# This test verifies that assignments between multiple SECTIONS blocks
+# are evaluated in the correct sequential order.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.txt
+RUN: %readelf -s %t1.1.out | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP < %t1.1.map.txt
+#END_TEST
+
+CHECK-DAG: {{0+}}7 {{.*}} a
+CHECK-DAG: {{0+}}3 {{.*}} b
+CHECK-DAG: {{0+}}7 {{.*}} u
+
+MAP: Output Section and Layout
+MAP: .text
+MAP: *(.text*) #Rule 1
+MAP: .text.foo
+MAP: a(0x7) = u(0x7); # a = u;
+MAP: u(0x3) = 0x3; # u = 0x3;
+MAP: .data
+MAP: *(.data*)
+MAP: b(0x3) = u(0x3); # b = u;
+MAP: u(0x7) = 0x7; # u = 0x7;
