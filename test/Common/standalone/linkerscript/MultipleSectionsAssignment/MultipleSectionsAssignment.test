@@ -1,0 +1,14 @@
+#---MultipleSectionsAssignment.test--------------------- Executable,LS ----------------------#
+#BEGIN_COMMENT
+# This test verifies that assignments between multiple SECTIONS blocks
+# are evaluated in the correct sequential order.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections
+RUN: %link %linkopts -o %t1.out %t1.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.out | %filecheck %s
+#END_TEST
+
+CHECK-DAG: {{0+}}7 {{.*}} a
+CHECK-DAG: {{0+}}3 {{.*}} b
+CHECK-DAG: {{0+}}7 {{.*}} u

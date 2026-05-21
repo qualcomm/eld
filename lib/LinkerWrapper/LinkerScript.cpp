@@ -14,6 +14,7 @@
 #include "eld/Script/IncludeCmd.h"
 #include "eld/Script/InputCmd.h"
 #include "eld/Script/InputSectDesc.h"
+#include "eld/Script/MemoryCmd.h"
 #include "eld/Script/NoCrossRefsCmd.h"
 #include "eld/Script/OutputArchCmd.h"
 #include "eld/Script/OutputCmd.h"
@@ -22,9 +23,8 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/PhdrDesc.h"
 #include "eld/Script/PhdrsCmd.h"
-#include "eld/Script/MemoryCmd.h"
-#include "eld/Script/RegionAlias.h"
 #include "eld/Script/PluginCmd.h"
+#include "eld/Script/RegionAlias.h"
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Script/SearchDirCmd.h"
 #include "eld/Script/SectionsCmd.h"
@@ -470,10 +470,11 @@ bool plugin::Script::Assignment::isGlobal() const {
   return m_Assignment->isOutsideSections();
 }
 
-// FIXME: This should return true when the assignment level
-// is SECTIONS_END or OUTSIDE_SECTIONS.
 bool plugin::Script::Assignment::isOutsideOutputSection() const {
-  return false;
+  auto Level = m_Assignment->level();
+  return Level == eld::Assignment::BeforeSections ||
+         Level == eld::Assignment::AfterSections ||
+         Level == eld::Assignment::AfterOutputSection;
 }
 
 bool plugin::Script::Assignment::isInsideOutputSection() const {
@@ -656,7 +657,6 @@ plugin::Script::Output::Output(eld::OutputCmd *Output)
 eld::ScriptCommand *plugin::Script::Output::getCommand() const {
   return m_Output;
 }
-
 
 //
 // OUTPUT_ARCH

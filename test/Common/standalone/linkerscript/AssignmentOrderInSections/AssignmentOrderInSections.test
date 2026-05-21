@@ -1,0 +1,15 @@
+#---AssignmentOrderInSections.test--------------------- Executable,LS ----------------------#
+#BEGIN_COMMENT
+# This test verifies that assignments within SECTIONS are evaluated
+# in sequential order.
+# u = v should evaluate to 0xc (the value of v at that point),
+# not 0xa (the value v is reassigned to later).
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.out %t1.o -T %p/Inputs/script.t
+RUN: %readelf -s %t1.out | %filecheck %s
+#END_TEST
+
+CHECK-DAG: {{0+}}c {{.*}} u
+CHECK-DAG: {{0+}}a {{.*}} v

@@ -98,17 +98,28 @@ public:
 
   void append(RuleContainer *PInput) { Inputs.push_back(PInput); }
 
-  const SymbolAssignments &sectionsEndAssignments() const {
-    return SectionEndAssignments;
+  const SymbolAssignments &getPostOutputSectionAssignments() const {
+    return postOutputSectionAssignments;
   }
-  SymbolAssignments &sectionEndAssignments() { return SectionEndAssignments; }
+  SymbolAssignments &getPostOutputSectionAssignments() {
+    return postOutputSectionAssignments;
+  }
 
-  sym_iterator sectionendsymBegin() { return SectionEndAssignments.begin(); }
-  sym_iterator sectionendsymEnd() { return SectionEndAssignments.end(); }
+  sym_iterator postOutputSectionAssignmentsBegin() {
+    return postOutputSectionAssignments.begin();
+  }
+  sym_iterator postOutputSectionAssignmentsEnd() {
+    return postOutputSectionAssignments.end();
+  }
 
   void moveSectionAssignments(OutputSectionEntry *Out) {
-    SectionEndAssignments = Out->sectionEndAssignments();
-    Out->sectionEndAssignments().clear();
+    postOutputSectionAssignments = Out->getPostOutputSectionAssignments();
+    Out->getPostOutputSectionAssignments().clear();
+  }
+
+  template <typename Func> void forEachPostOutputSectionAssignment(Func F) {
+    for (auto *A : postOutputSectionAssignments)
+      F(A);
   }
 
   // A section may be part of multiple segments, this only returns the
@@ -221,7 +232,7 @@ private:
   size_t Order;
   bool IsDiscard;
   InputList Inputs;
-  SymbolAssignments SectionEndAssignments;
+  SymbolAssignments postOutputSectionAssignments;
   RuleContainer *FirstNonEmptyRule;
   RuleContainer *LastRule;
   std::vector<BranchIsland *> BranchIslands;

@@ -962,7 +962,7 @@ private:
 
   // Evaluate defsym assignments and script assignments that appear outside
   // sections.
-  void evaluateScriptAssignments(bool evaluateAsserts = true);
+  void evaluateBeforeSectionsAssignments(bool evaluateAsserts = true);
 
   bool isRelROSection(const ELFSection *sect) const;
 
