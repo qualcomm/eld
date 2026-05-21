@@ -328,12 +328,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::sysroot))
     Config.setSysRoot(arg->getValue());
 
-  // --fatal-warnings
-  Config.options().setFatalWarnings(Args.hasArg(T::fatal_warnings));
-
-  // --no-fatal-warnings
-  if (Args.hasArg(T::no_fatal_warnings))
-    Config.options().setFatalWarnings(false);
+  // --[no-]fatal-warnings
+  Config.options().setFatalWarnings(
+      Args.hasFlag(T::fatal_warnings, T::no_fatal_warnings, /*default=*/false));
 
   // --opt-record-file
   if (Args.hasArg(T::opt_record_file)) {
@@ -469,8 +466,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     }
   }
 
-  // --export-dynamic, -E
-  Config.options().setExportDynamic(Args.hasArg(T::export_dynamic));
+  // --[no-]export-dynamic, -E
+  Config.options().setExportDynamic(
+      Args.hasFlag(T::export_dynamic, T::no_export_dynamic, /*default=*/false));
 
   // --export-dynamic-symbol
   for (auto *Arg : Args.filtered(T::export_dynamic_symbol))
@@ -572,17 +570,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     }
   }
 
-  // --warn-shared-textrel
-  if (Args.hasArg(T::warn_shared_textrel))
-    Config.options().setWarnSharedTextrel(true);
+  // --[no-]warn-shared-textrel
+  Config.options().setWarnSharedTextrel(Args.hasFlag(
+      T::warn_shared_textrel, T::no_warn_shared_textrel, /*default=*/false));
 
   // --warn-common
   if (Args.hasArg(T::warn_common))
     Config.options().setWarnCommon();
-
-  // --no-warn-shared_textrel
-  if (Args.hasArg(T::no_warn_shared_textrel))
-    Config.options().setWarnSharedTextrel(false);
 
   // --enable-newdtags, --disable-newdtags
   if (Args.hasArg(T::enable_newdtags) && Args.hasArg(T::disable_newdtags)) {
@@ -619,34 +613,31 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       T::record_command_line, T::no_record_command_line, /*default=*/false);
   Config.options().setRecordCommandLine(recordCommandLine);
 
-  // --emit-relocs
-  if (Args.hasArg(T::emit_relocs)) {
-    Config.options().setEmitGNUCompatRelocs(true);
-    Config.options().setEmitRelocs(true);
+  // --[no-]emit-relocs
+  bool emitRelocs =
+      Args.hasFlag(T::emit_relocs, T::no_emit_relocs, /*default=*/false);
+  Config.options().setEmitGNUCompatRelocs(emitRelocs);
+  Config.options().setEmitRelocs(emitRelocs);
+  if (emitRelocs)
     Config.addCommandLine(Table->getOptionName(T::emit_relocs), true);
-  }
 
   // --emit-relocs-llvm
   if (Args.hasArg(T::emit_relocs_llvm))
     Config.options().setEmitRelocs(true);
-
-  // --no-emit-relocs
-  if (Args.hasArg(T::no_emit_relocs)) {
-    Config.options().setEmitGNUCompatRelocs(false);
-    Config.options().setEmitRelocs(false);
-  }
 
   // --no-merge-strings
   Config.options().setMergeStrings(!Args.hasArg(T::no_merge_strings));
   Config.addCommandLine(Table->getOptionName(T::no_merge_strings),
                         Args.hasArg(T::no_merge_strings));
 
-  // --{no-}warn-mismatch
-  if (Args.getLastArg(T::no_warn_mismatch))
-    Config.options().setWarnMismatch(false);
-
-  if (Args.getLastArg(T::warn_mismatch))
-    Config.options().setWarnMismatch(true);
+  // --[no-]warn-mismatch
+  // This flag defaults to none so only set it if at least one of the two flags
+  // are present.
+  if (Args.getLastArg(T::warn_mismatch) ||
+      Args.getLastArg(T::no_warn_mismatch)) {
+    Config.options().setWarnMismatch(
+        Args.hasFlag(T::warn_mismatch, T::no_warn_mismatch, /*default=*/true));
+  }
 
   // --no-trampolines
   if (Args.hasArg(T::no_trampolines)) {
@@ -694,9 +685,15 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   }
   Config.addCommandLine(Table->getOptionName(T::flto_options), ltoOptions);
 
-  // --no-align-segments
-  if (Args.hasArg(T::no_align_segments))
-    Config.options().setAlignSegments(false);
+  // --[no-]align-segments
+  // This flag sets the same thing as --script, -T, --[no-]omagic, -N so only
+  // set it if at least one of the two flags are present.
+  if (Args.getLastArg(T::align_segments) ||
+      Args.getLastArg(T::no_align_segments)) {
+    bool alignSegments =
+        Args.hasFlag(T::align_segments, T::no_align_segments, /*default=*/true);
+    Config.options().setAlignSegments(alignSegments);
+  }
 
   bool enableFatalInternalErrors = Args.hasFlag(
       T::fatal_internal_errors, T::no_fatal_internal_errors, /*default=*/false);
@@ -1005,8 +1002,9 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // Disable --gc-sections, --print-gc-sections for Partial Linking.
   if (Config.codeGenType() != eld::LinkerConfig::Object) {
-    // --gc-sections
-    bool enableGC = Args.hasArg(T::gc_sections);
+    // --[no-]gc-sections
+    bool enableGC =
+        Args.hasFlag(T::gc_sections, T::no_gc_sections, /*default=*/false);
     Config.options().setGCSections(enableGC);
     Config.addCommandLine(Table->getOptionName(T::gc_sections), enableGC);
     // --print-gc-sections
@@ -1033,12 +1031,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // Thread Options.
   //
 
-  // --no-threads, --threads
-  if (!Args.getLastArg(T::no_threads) || Args.getLastArg(T::threads)) {
+  // --[no-]threads
+  if (Args.hasFlag(T::threads, T::no_threads, /*default=*/true)) {
     Config.options().enableThreads();
     Config.addCommandLine(Table->getOptionName(T::threads), true);
-  } else if (Args.getLastArg(T::no_threads)) {
-    // --no-threads
+  } else {
     Config.options().disableThreads();
     Config.options().setNumThreads(1);
     Config.addCommandLine(Table->getOptionName(T::threads), false);
@@ -1117,13 +1114,15 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     }
   }
 
-  // --no-demangle
-  if (Args.getLastArg(T::no_demangle))
-    Config.options().setDemangleStyle("none");
-
-  // --demangle
-  if (Args.getLastArg(T::demangle))
-    Config.options().setDemangleStyle("demangle");
+  // --[no-]demangle
+  // This flag sets the same thing as --demangle-style so only set it if at
+  // least one of the two flags are present.
+  if (Args.getLastArg(T::demangle) || Args.getLastArg(T::no_demangle)) {
+    if (Args.hasFlag(T::demangle, T::no_demangle, /*default=*/true))
+      Config.options().setDemangleStyle("demangle");
+    else
+      Config.options().setDemangleStyle("none");
+  }
 
   /// --progress-bar
   if (Args.getLastArg(T::progress_bar))
@@ -1236,12 +1235,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Args.hasArg(T::use_old_style_trampoline_name))
     Config.setUseOldStyleTrampolineName(true);
 
-  // --check-sections
-  if (Args.hasArg(T::enable_overlap_checks))
+  // --[no-]check-sections
+  if (Args.hasFlag(T::enable_overlap_checks, T::disable_overlap_checks,
+                   /*default=*/true))
     Config.options().setEnableCheckSectionOverlaps();
-
-  // --no-check-sections
-  if (Args.hasArg(T::disable_overlap_checks))
+  else
     Config.options().setDisableCheckSectionOverlaps();
 
   if (Args.hasArg(T::thin_archive_rule_matching_compatibility))
@@ -1284,13 +1282,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (Args.hasArg(T::noDefaultPlugins))
     Config.options().setNoDefaultPlugins();
 
-  // --no-omagic, --omagic, -N support
-  if (Args.hasArg(T::no_omagic))
-    Config.options().setOMagic(false);
-  else if (Args.hasArg(T::omagic)) {
+  // --[no-]omagic, -N
+  bool omagic = Args.hasFlag(T::omagic, T::no_omagic, /*default=*/false);
+  Config.options().setOMagic(omagic);
+  if (omagic)
     Config.options().setAlignSegments(false);
-    Config.options().setOMagic(true);
-  }
 
   // --plugin-activity-file=<file>
   if (llvm::opt::Arg *A = Args.getLastArg(T::PluginActivityFile)) {

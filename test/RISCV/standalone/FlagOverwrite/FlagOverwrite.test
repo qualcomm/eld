@@ -1,0 +1,16 @@
+#---FlagOverwrite.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Check that the last option is the one being used for mutually exclusive flags.
+# Currently, it checks for:
+#    --[no-]relax
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
+RUN: %link %linkopts --emit-relocs --no-relax --relax  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s -check-prefix=RELAX
+RUN: %link %linkopts --emit-relocs --relax --no-relax  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
+RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s -check-prefix=NORELAX
+
+RELAX-NOT: auipc	ra, 0
+NORELAX: auipc	ra, 0
+#END_TEST
