@@ -94,6 +94,7 @@ public:
     Script,
     Sections,
     SectionRelocMap,
+    TableJump,
     SmallData,
     Timing,
     TLSStub,

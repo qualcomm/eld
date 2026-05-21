@@ -4057,6 +4057,17 @@ bool GNULDBackend::relax() {
       return false;
     }
     {
+      eld::RegisterTimer T("Prepare Relaxation", "Establish Layout",
+                           m_Module.getConfig().options().printTimingStats());
+      preRelaxation();
+    }
+
+    if (!config().getDiagEngine()->diagnose()) {
+      if (m_Module.getPrinter()->isVerbose())
+        config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
+      return false;
+    }
+    {
       eld::RegisterTimer T("Create Trampolines", "Establish Layout",
                            m_Module.getConfig().options().printTimingStats());
       mayBeRelax(iteration, finished);

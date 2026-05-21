@@ -551,6 +551,10 @@ public:
   /// relax - the relaxation pass
   virtual bool relax();
 
+  /// preRelaxation - Backend can override this function to do any setup
+  /// required before relaxation passes.
+  virtual void preRelaxation() {}
+
   /// mayBeRelax - Backend can orevride this function to add its relaxation
   /// implementation. Set pFinished to true if no more passes are needed.
   virtual void mayBeRelax(int pass, bool &pFinished) { pFinished = true; }

@@ -53,6 +53,7 @@ enum : uint32_t {
   R_RISCV_GPREL_S,
   R_RISCV_TPREL_I,
   R_RISCV_TPREL_S,
+  R_RISCV_TBJAL,
 
   /*
     Internal IDs for Nonstandard Relocations
