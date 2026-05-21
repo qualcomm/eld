@@ -2059,11 +2059,7 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
   if (m_Module.getPrinter()->traceAssignments())
     config().raise(Diag::output_section_eval)
         << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
-  // Evaluate all assignments at the end of the output section.
-  for (OutputSectionEntry::sym_iterator it = out->sectionendsymBegin(),
-                                        ie = out->sectionendsymEnd();
-       it != ie; ++it) {
-    Assignment *assign = (*it);
+  for (auto *assign : out->getPostOutputSectionAssignments()) {
     // We do not need to evaluate PROVIDE expressions for PROVIDE
     // symbols that are not being used in the link.
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))
@@ -2078,7 +2074,7 @@ void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
       }
       continue;
     }
-    (*it)->assign(m_Module, nullptr);
+    assign->assign(m_Module, nullptr);
   }
 }
 
@@ -2555,6 +2551,7 @@ bool GNULDBackend::setOutputSectionOffset() {
   // Set initial dot symbol value.
   LDSymbol *dotSymbol = m_Module.getNamePool().findSymbol(".");
 
+  evaluateBeforeSectionsAssignments();
   while (out != outEnd) {
     ELFSection *cur = (*out)->getSection();
 
@@ -3042,14 +3039,6 @@ bool GNULDBackend::layout() {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
-  }
-
-  // Evaluate all assignments.
-  {
-    eld::RegisterTimer T("Evaluate Script Assignments and Asserts",
-                         "Establish Layout",
-                         m_Module.getConfig().options().printTimingStats());
-    evaluateScriptAssignments();
   }
 
   if (!config().getDiagEngine()->diagnose()) {
@@ -4095,11 +4084,12 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
   return MemoryRegion(pBuffer.getBufferStart() + pOffset, pLength);
 }
 
-void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
+void GNULDBackend::evaluateBeforeSectionsAssignments(bool evaluateAsserts) {
   for (auto &assign : m_Module.getScript().assignments()) {
-    // Evaluate assignments outside SECTIONS both before and after layout.
-    if (!(assign->level() == Assignment::BEFORE_SECTIONS ||
-          assign->level() == Assignment::AFTER_SECTIONS))
+    // Only evaluate BeforeSections assignments here.
+    // AfterSections and AfterOutputSection assignments are evaluated
+    // per-OutputSectionEntry in evaluateAssignmentsAtEndOfOutputSection().
+    if (assign->level() != Assignment::BeforeSections)
       continue;
     if (shouldskipAssert(assign)) {
       if (m_Module.getPrinter()->isVerbose()) {

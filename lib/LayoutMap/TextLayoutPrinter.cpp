@@ -1394,12 +1394,8 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       }
     }
 
-    // Evaluate all assignments at the end of the output section.
-    for (OutputSectionEntry::sym_iterator It = (*Out)->sectionendsymBegin(),
-                                          Ie = (*Out)->sectionendsymEnd();
-         It != Ie; ++It) {
-      printAssignment(**It, Module, UseColor);
-    }
+    (*Out)->forEachPostOutputSectionAssignment(
+        [&](Assignment *A) { printAssignment(*A, Module, UseColor); });
   }
 }
 

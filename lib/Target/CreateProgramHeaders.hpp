@@ -177,7 +177,7 @@ bool GNULDBackend::createProgramHdrs() {
     {
       eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
                            m_Module.getConfig().options().printTimingStats());
-      evaluateScriptAssignments(/*evaluateAsserts=*/false);
+      evaluateBeforeSectionsAssignments(/*evaluateAsserts=*/false);
     }
   };
 
