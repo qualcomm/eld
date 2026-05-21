@@ -258,8 +258,7 @@ eld::Expected<void> LinkerWrapper::doRelocation() {
   CHECK_LINK_STATE(*this, "CreatingSegments");
   /// FIXME: we can report better errors if ObjectLinker::relocation() returned
   /// eld::Expected
-  if (!m_Module.getLinker()->getObjectLinker()->relocation(
-          m_Module.getConfig().options().emitRelocs()))
+  if (!m_Module.getLinker()->getObjectLinker()->relocation(false))
     return std::make_unique<DiagnosticEntry>(Diag::error_relocations_plugin);
   return {};
 }

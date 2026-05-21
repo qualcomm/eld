@@ -671,6 +671,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   Config.options().setLTO(opt_flto);
   Config.addCommandLine(Table->getOptionName(T::flto), opt_flto);
 
+  // --{no-,}fat-lto-objects / -f{no-,}fat-lto-objects
+  bool fatLTOObjects =
+      Args.hasFlag(T::fat_lto_objects, T::no_fat_lto_objects, false);
+  Config.options().setFatLTOObjects(fatLTOObjects);
+  Config.addCommandLine(Table->getOptionName(T::fat_lto_objects),
+                        fatLTOObjects);
+
   // --save-temps
   Config.options().setSaveTemps(Args.hasArg(T::save_temps));
 
@@ -778,10 +785,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       ZKind = eld::ZOption::MaxPageSize;
       ZOpt.drop_front(14).getAsInteger(0, Zval);
     }
-    if (!Config.options().addZOption(eld::ZOption(ZKind, Zval))) {
-      errs() << "Invalid -z option specified " << ZOpt << "\n";
-      return false;
-    }
+    if (!Config.options().addZOption(eld::ZOption(ZKind, Zval)))
+      Config.raise(Diag::warn_unsupported_option) << "-z " + ZOpt.str();
   }
 
   // --image-base

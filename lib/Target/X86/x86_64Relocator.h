@@ -70,7 +70,7 @@ private:
                                eld::IRBuilder &pBuilder, ELFSection &pSection,
                                CopyRelocs &);
 
-  bool isInvalidReloc(Relocation &pReloc) const;
+  bool isRelocSupported(const Relocation &pReloc) const;
 
   x86_64GOT *getTLSModuleID(ResolveInfo *R, bool isStatic = false);
 

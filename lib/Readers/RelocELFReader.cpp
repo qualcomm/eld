@@ -65,7 +65,8 @@ eld::Expected<ELFSection *> RelocELFReader<ELFT>::createSection(
   // that follow these sections will need to have proper index in section
   // header table. We thus read them and then set to ignore to have no effect
   // on linking.
-  if (sectName == ".llvmbc" || sectName == ".llvmcmd")
+  if (ELFSection::isEmbeddedBitcodeSection(sectName) ||
+      ELFSection::isEmbeddedBitcodeMetadataSection(sectName))
     LLVMBCSectionIsIgnore = true;
 
   ELFSection *section = nullptr;

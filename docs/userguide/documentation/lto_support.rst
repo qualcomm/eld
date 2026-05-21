@@ -34,9 +34,12 @@ ELD triggers LTO when it sees bitcode inputs or when it is instructed to use
 embedded bitcode sections in ELF files:
 
 * **Bitcode inputs**: `.bc` inputs are always treated as LTO inputs.
-* **Embedded bitcode**: ELD recognizes the `.llvmbc` section in ELF objects and
-  can replace the native object with the embedded bitcode when LTO is enabled.
-  This supports "fat" objects that carry both native code and LLVM bitcode.
+* **Embedded bitcode**:
+
+  * ELD recognizes `.llvmbc` sections in ELF objects and can replace the
+    native object with embedded bitcode when LTO input selection enables it.
+  * ELD also supports `.llvm.lto` (`SHT_LLVM_LTO`) sections used by fat LTO
+    objects when `--fat-lto-objects` is enabled.
 
 Selecting LTO inputs
 ~~~~~~~~~~~~~~~~~~~~
@@ -45,10 +48,15 @@ LTO is enabled in two ways:
 * `-flto` enables LTO if any bitcode input or embedded bitcode is present.
 * `--include-lto-filelist` can be used without `-flto` to select which
   ELF inputs with embedded bitcode should be upgraded to LTO inputs.
+* `--fat-lto-objects` enables consuming embedded `.llvm.lto` sections from
+  relocatable ELF inputs (alias: `-ffat-lto-objects`).
 
 When `-flto` is used, embedded bitcode is used by default unless excluded using
 `--exclude-lto-filelist`. When `-flto` is not used, only file patterns listed
 in `--include-lto-filelist` are upgraded to LTO inputs.
+
+By default, `.llvm.lto` sections are ignored. They are only consumed when
+`--fat-lto-objects` (or `-ffat-lto-objects`) is specified.
 
 File lists accept one glob pattern per line (wildcards `*`, `?`, and `[]` are
 supported). Patterns are matched against the input path as seen by the linker.
@@ -64,6 +72,10 @@ ELD performs LTO in distinct phases:
 3. **Post-LTO**: The generated objects are inserted back into the link and
    linked like normal ELF objects. Map files can include pre-LTO and post-LTO
    details.
+
+When ``--fat-lto-objects`` (or ``-ffat-lto-objects``) selects embedded
+``.llvm.lto`` from a mixed object, the pre-LTO map input record for that file
+is annotated with ``Fat LTO object selected``.
 
 Linker scripts and LTO
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -81,6 +93,10 @@ Core LTO enablement and input selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * `-flto` or `--flto`
   Enable LTO if a bitcode file or embedded bitcode section is present.
+* `--fat-lto-objects` / `--no-fat-lto-objects`
+  Enable/disable use of `.llvm.lto` embedded bitcode sections from fat LTO
+  relocatable objects.
+  Aliases: `-ffat-lto-objects`, `-fno-fat-lto-objects`.
 * `--include-lto-filelist=<list>`
   Use this list to select which ELF inputs with embedded bitcode should be
   used for LTO when `-flto` is not present.
@@ -222,6 +238,12 @@ Emit LTO assembly for inspection:
 
   ld.eld -flto --lto-emit-asm foo.o bar.o -o app.elf
   # Output files: app.elf.llvm-lto.0.s, app.elf.llvm-lto.1.s, ...
+
+Use `.llvm.lto` from fat LTO objects:
+::
+
+  # foo.fat.o carries native code plus a .llvm.lto section.
+  ld.eld --fat-lto-objects foo.fat.o bar.bc -o app.elf
 
 References
 ----------

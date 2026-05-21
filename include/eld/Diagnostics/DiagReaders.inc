@@ -16,6 +16,8 @@ DIAG(fatal_cannot_read_input_err, DiagnosticEngine::Fatal,
      "cannot read file %0, because of error %1")
 DIAG(fatal_cannot_make_module, DiagnosticEngine::Fatal,
      "cannot make module out of bitcode file %0 for file, error : %1 ")
+DIAG(error_invalid_embedded_bitcode, DiagnosticEngine::Error,
+     "Invalid embedded bitcode in section '%1' from input file '%0'")
 DIAG(fatal_no_codegen, DiagnosticEngine::Fatal,
      "cannot create code generator object %0")
 DIAG(fatal_no_codegen_compile, DiagnosticEngine::Fatal,

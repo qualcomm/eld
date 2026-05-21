@@ -6,8 +6,8 @@ UNSUPPORTED: ndk-build
 # this test only checks setup, now only static linked supported
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -target arm -c %p/Inputs/m.c -o %tm.o
-RUN: %clang %clangopts -target arm -c %p/Inputs/t.c -o %tt.o
+RUN: %clang %clangopts -target arm -fPIC -c %p/Inputs/m.c -o %tm.o
+RUN: %clang %clangopts -target arm -fPIC -c %p/Inputs/t.c -o %tt.o
 RUN: %link %linkopts -march arm %tm.o %tt.o -o %t.out
 RUN: %readelf -a %t.out | %filecheck --check-prefix=STANDALONE %s
 RUN: %link %linkopts -march arm %tm.o %tt.o -pie -o %t2.out

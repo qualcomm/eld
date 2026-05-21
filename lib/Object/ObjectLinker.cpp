@@ -735,6 +735,10 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   auto Start = std::chrono::steady_clock::now();
   Builder.assignOutputSections(Inputs, MPostLtoPhase);
+  // Refresh matched inputs for each rule before relocation scan. We need this
+  // to infer output properties from script merged inputs before layout is
+  // finalized.
+  RuleContainer::updateMatchedSections(*ThisModule);
   // FIXME: Perhaps transfer entry section ownership to GarbageCollection as
   // Entry sections are only relevant with garbage collection.
   // Currently, entry section are computed even if garbage-collection is not
@@ -743,13 +747,8 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   LayoutInfo *LayoutInfo = ThisModule->getLayoutInfo();
   if (LayoutInfo && LayoutInfo->LayoutInfo::showInitialLayout()) {
     TextLayoutPrinter *TextMapPrinter = ThisModule->getTextMapPrinter();
-    if (TextMapPrinter) {
-      // FIXME: ideally, we should not need 'updateMatchedSections' call here.
-      // However, we need it because currently we do not maintain the list of
-      // matched input sections for rule containers consistently.
-      RuleContainer::updateMatchedSections(*ThisModule);
+    if (TextMapPrinter)
       TextMapPrinter->printLayout(*ThisModule);
-    }
   }
   // FIXME: SectionMatcher plugins should not consume time under
   // 'LinkerScriptRuleMatch' timing category!
@@ -3889,9 +3888,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 }
 
 bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
-  // If -flto option is not passed to the linker, and there is not a list
-  // to include, then just move on.
-  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size())
+  // If neither -flto nor list-driven selection nor --fat-lto-objects is used,
+  // then just move on.
+  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size() &&
+      !ThisConfig.options().hasFatLTOObjects())
     return false;
 
   eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
@@ -3907,7 +3907,12 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   std::string Path = CurInput->decoratedPath();
 
   ELFSection *LLVMBCSection = EObj->getLLVMBCSection();
-  if (!LLVMBCSection)
+  if (!LLVMBCSection || !LLVMBCSection->size())
+    return false;
+
+  // Fat-LTO payloads are selected only when --fat-lto-objects is enabled.
+  if (ELFSection::isFatLTOSection(LLVMBCSection->name()) &&
+      !ThisConfig.options().hasFatLTOObjects())
     return false;
 
   bool MatchedPattern = false;
@@ -3933,15 +3938,25 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   if (ThisConfig.options().hasLTO()) {
     if (MatchedPattern)
       return false;
-  } else {
+  } else if (LTOPatternList.size()) {
     // The file needs to be included, if
     // -flto option is not used and there is a match.
     if (!MatchedPattern)
       return false;
+  } else if (!(ThisConfig.options().hasFatLTOObjects() &&
+               ELFSection::isFatLTOSection(LLVMBCSection->name()))) {
+    // We have to delay this to make sure llvmbc sections are handled using
+    // exclude-lto-filelist and include-lto-filelist accordingly.
+    return false;
   }
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig.raise(Diag::use_embedded_bitcode) << Path;
+
+  if (ELFSection::isFatLTOSection(LLVMBCSection->name())) {
+    if (LayoutInfo *layoutInfo = ThisModule->getLayoutInfo())
+      layoutInfo->annotateInputAction(CurInput, "Fat LTO object selected");
+  }
 
   // LTO is needed. Since Bitcode was chosen.
   ThisModule->setLTONeeded();
@@ -3952,8 +3967,12 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   InputFile *OverrideBCFile = InputFile::createEmbedded(
       CurInput, LLVMBCContents, ThisConfig.getDiagEngine());
 
-  ASSERT(OverrideBCFile->getKind() == InputFile::BitcodeFileKind,
-         CurInput->decoratedPath());
+  if (!OverrideBCFile ||
+      OverrideBCFile->getKind() != InputFile::BitcodeFileKind) {
+    ThisConfig.raise(Diag::error_invalid_embedded_bitcode)
+        << Path << LLVMBCSection->name();
+    return false;
+  }
 
   CurInput->overrideInputFile(OverrideBCFile);
 

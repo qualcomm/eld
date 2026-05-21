@@ -13,6 +13,7 @@ config.targets_to_build = "@ELD_CURRENT_TARGET@"
 config.python_executable = "@PYTHON_EXECUTABLE@"
 config.emulator = "@ELD_EMULATOR@"
 config.emulator64 = "@ELD_EMULATOR64@"
+
 config.has_sanitize = "@ELD_SANITIZE@"
 config.has_tsan = "@ELD_THREAD_SANITIZE@"
 config.has_symbol_versioning = "@ELD_ENABLE_SYMBOL_VERSIONING_TESTS@"
@@ -20,6 +21,7 @@ config.eld_option = "@ELD_OPTION@"
 config.eld_option_name = "@ELD_OPTION_NAME@"
 config.cpp_compiler = "@CMAKE_CXX_COMPILER@"
 config.cmake_executable = "@CMAKE_COMMAND@"
+config.enable_run_tests = "@ELD_ENABLE_RUN_TESTS@"
 if "@HEXAGON_EXPERIMENTAL@" in ["ON", "1"]:
     config.available_features.add("hexagon_experimental")
 
