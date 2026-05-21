@@ -4,7 +4,7 @@ Linker Plugin API Usage and Reference
 Linker Wrapper
 ----------------
 
-.. graphviz:: ../images/LinkerWrapper.dot
+.. d2:: ../images/LinkerWrapper.d2
    :alt: LinkerWrapper flow.
 
 Plugins interacts with the linker using LinkerWrapper.

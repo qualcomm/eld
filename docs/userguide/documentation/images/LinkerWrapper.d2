@@ -1,0 +1,9 @@
+...@Common
+
+direction: right
+
+plugin: "Plugin" { class: component }
+wrapper: "LinkerWrapper" { class: adapter }
+linker: "Linker" { class: component }
+
+plugin -> wrapper -> linker { class: flow }

@@ -1,0 +1,11 @@
+...@Common
+
+direction: right
+
+finalize_layout: "Finalize output\nimage layout" { class: phase }
+init: "UserPlugin::Init" { class: callback }
+process_output: "Call\nUserPlugin::ProcessOutputSection\nfor each output section" { class: callback }
+destroy: "Call\nUserPlugin::Destroy" { class: callback }
+emit_image: "Finalize relocations,\nsymbol values and then\nemit output image." { class: phase }
+
+finalize_layout -> init -> process_output -> destroy -> emit_image { class: flow }
