@@ -469,13 +469,14 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
 
     // set up the got and the corresponding rel entry
     ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || config().isBuildingExecutable()) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
     helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0, llvm::ELF::R_ARM_TLS_TPOFF32,
                        m_Target);
+    m_Target.setHasStaticTLS();
     if (rsym->reserved() == Relocator::None)
       rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
@@ -763,13 +764,15 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
 
     // set up the got and the corresponding rel entry
     ARMGOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || (config().isBuildingExecutable() &&
+                                    !m_Target.isSymbolPreemptible(*rsym))) {
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
     helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0, llvm::ELF::R_ARM_TLS_TPOFF32,
                        m_Target);
+    m_Target.setHasStaticTLS();
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
