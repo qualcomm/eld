@@ -1,0 +1,20 @@
+// REQUIRES: run_test
+
+/// Runtime counterpart to TLSIEPIE: build a PIE executable that uses
+/// initial-exec TLS for both a local-static and a non-preemptible global TLS
+/// symbol, and run it under the target emulator.
+
+// RUN: %run_cc %clangopts -x c %s -fPIE -ftls-model=initial-exec -pie -o %t.pie.out
+// RUN: %run %t.pie.out | %filecheck %s
+
+// CHECK: local_tls=10 global_tls=20
+
+#include <stdio.h>
+
+static __thread int local_tls = 10;
+__thread int global_tls = 20;
+
+int main(void) {
+  printf("local_tls=%d global_tls=%d\n", local_tls, global_tls);
+  return 0;
+}
