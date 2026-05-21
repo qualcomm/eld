@@ -274,9 +274,17 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
       return;
-    // Create a TLS IE GOT entry.
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    G->setValueType(GOT::TLSStaticSymbolValue);
+    // For executables, the symbol's offset from the thread pointer is fixed at
+    // link time. For shared objects, the dynamic loader must compute the offset
+    // at load time, so emit R_X86_64_TPOFF64.
+    if (config().isBuildingExecutable()) {
+      G->setValueType(GOT::TLSStaticSymbolValue);
+    } else {
+      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                         llvm::ELF::R_X86_64_TPOFF64, m_Target);
+      m_Target.setHasStaticTLS();
+    }
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
   }
@@ -408,13 +416,14 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     if (rsym->reserved() & ReserveGOT)
       return;
     x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    const bool isExec = (config().codeGenType() == LinkerConfig::Exec);
+    const bool isExec = config().isBuildingExecutable();
     const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
     if (isExec && !preemptible) {
       G->setValueType(GOT::TLSStaticSymbolValue);
     } else {
       helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                          llvm::ELF::R_X86_64_TPOFF64, m_Target);
+      m_Target.setHasStaticTLS();
     }
     rsym->setReserved(rsym->reserved() | ReserveGOT);
     return;
