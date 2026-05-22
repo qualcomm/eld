@@ -1,7 +1,7 @@
 name: Windows Arm64/x86_64 CI/Nightly
 
 on:
-  # pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
+  pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
@@ -81,6 +81,7 @@ jobs:
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DLLVM_ENABLE_ASSERTIONS=ON \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
             ../llvm-project/llvm
 
