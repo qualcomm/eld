@@ -150,6 +150,13 @@ if(NOT ELD_TARGETS_TO_BUILD)
       CACHE STRING "ELD Target(Targets) to build")
 endif()
 
+# Validate ELD_TARGETS_TO_BUILD against known targets
+foreach(t ${ELD_TARGETS_TO_BUILD})
+  if(NOT t IN_LIST ELD_ALL_TARGETS)
+    message(WARNING "Unknown ELD target '${t}'. Known targets are: ${ELD_ALL_TARGETS}")
+  endif()
+endforeach()
+
 # Set ELD_ENUM_TARGETS
 set(ELD_ENUM_TARGETS_STR "")
 set(ELD_ENUM_LINKERS_STR "")
