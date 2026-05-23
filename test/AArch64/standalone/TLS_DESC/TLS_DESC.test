@@ -1,0 +1,14 @@
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/t.s -o %t.o
+RUN: %link %linkopts -march aarch64 -static -z max-page-size=0x1000 %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: _test_tls_desc
+CHECK: d2a00000       movz
+CHECK: f2800200       movk
+CHECK: d503201f       nop
+CHECK: d503201f       nop
+CHECK: _test_tls_desc_local
+CHECK: d2a00000       movz
+CHECK: f2800280       movk
+CHECK: d503201f       nop
+CHECK: d503201f       nop
