@@ -1247,11 +1247,12 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
                                  AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
+      pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
-    // Convert to movk, save to x0
-    uint32_t movk = 0xF2800000;
+    // Convert to movk, preserve original register
+    uint32_t movk = 0xF2800000 | (pReloc.target() & 0x0000001F);
     pReloc.target() = helper_reencode_movzk_imm(movk, X);
     return Relocator::OK;
   }
@@ -1261,10 +1262,6 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
                                  ->getAddr(pParent.config().getDiagEngine());
   Relocator::DWord GX = helper_get_page_offset(GOT_S + A);
   pReloc.target() = helper_reencode_ldst_pos_imm(pReloc.target(), GX >> 3);
-
-  // Convert Rt to X0 if static
-  if (pParent.config().isCodeStatic())
-    pReloc.target() = pReloc.target() & ~0x1F;
 
   return Relocator::OK;
 }
