@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-
 #include "AArch64Relocator.h"
 #include "AArch64InsnHelpers.h"
 #include "AArch64PLT.h"
@@ -52,8 +51,7 @@ static uint64_t getSigningSchema(const Relocation &pReloc) {
 /// helper_DynRel - Get an relocation entry in .rela.dyn
 Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
                                ResolveInfo *pSym, Fragment *F, uint32_t pOffset,
-                               Relocator::Type pType,
-                               AArch64LDBackend &B) {
+                               Relocator::Type pType, AArch64LDBackend &B) {
   Relocation *rela_entry = nullptr;
 
   if (pType == R_AARCH64_TLSDESC)
@@ -190,9 +188,8 @@ bool AArch64Relocator::relocNeedsDynRel(Relocation &pReloc) const {
                     pReloc.type() == llvm::ELF::R_AARCH64_ABS32 ||
                     pReloc.type() == llvm::ELF::R_AARCH64_ABS16 ||
                     pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
-  return getTarget().symbolNeedsDynRel(
-                   *rsym, (rsym->reserved() & ReservePLT),
-                   isAbsReloc);
+  return getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
+                                       isAbsReloc);
 }
 
 Relocator::Result AArch64Relocator::applyRelocation(Relocation &pRelocation) {
@@ -252,12 +249,10 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
       rsym->setReserved(rsym->reserved() | ReserveRel);
       getTarget().checkAndSetHasTextRel(pSection);
       // set up the dyn rel directly
-      Relocation::Type relType =
-        isAuthAbs ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
-                  : llvm::ELF::R_AARCH64_RELATIVE;
+      Relocation::Type relType = isAuthAbs ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
+                                           : llvm::ELF::R_AARCH64_RELATIVE;
       helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-                         pReloc.targetRef()->offset(), relType,
-                         m_Target);
+                         pReloc.targetRef()->offset(), relType, m_Target);
     }
   }
     return;
@@ -382,8 +377,8 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
         // for signed pointers"
         if (isAuthAbs) {
           config().raise(Diag::non_pic_relocation)
-            << getName(pReloc.type()) << pReloc.symInfo()->name()
-            << pReloc.getSourcePath(config().options());
+              << getName(pReloc.type()) << pReloc.symInfo()->name()
+              << pReloc.getSourcePath(config().options());
           m_Target.getModule().setFailure(true);
           return;
         }
@@ -409,10 +404,8 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
           relType = isAuthAbs ? llvm::ELF::R_AARCH64_AUTH_RELATIVE
                               : llvm::ELF::R_AARCH64_RELATIVE;
         }
-        helper_DynRel_init(
-            Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-            pReloc.targetRef()->offset(),
-            relType, m_Target);
+        helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
+                           pReloc.targetRef()->offset(), relType, m_Target);
       }
     }
   }
@@ -1023,7 +1016,8 @@ Relocator::Result ld64_got_lo12(Relocation &pReloc, AArch64Relocator &pParent) {
 }
 
 // R_AARCH64_LD64_GOTPAGE_LO15: G(GDAT(S)) - Page(GOT)
-Relocator::Result ld64_gotpage_lo15(Relocation &pReloc, AArch64Relocator &pParent) {
+Relocator::Result ld64_gotpage_lo15(Relocation &pReloc,
+                                    AArch64Relocator &pParent) {
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
     return Relocator::BadReloc;
   }
@@ -1148,7 +1142,8 @@ Relocator::Result tls_gottprel_page(Relocation &pReloc,
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
+      pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movz
@@ -1173,7 +1168,8 @@ Relocator::Result tls_gottprel_lo(Relocation &pReloc,
                                   AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
+      pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movk
