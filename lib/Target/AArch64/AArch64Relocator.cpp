@@ -1212,7 +1212,8 @@ Relocator::Result tls_tlsdesc_page(Relocation &pReloc,
                                    AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
+      pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movz
@@ -1243,7 +1244,7 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movk, preserve original register
-    uint32_t movk = 0xF2800000 | (pReloc.target() & 0x0000001F);
+    uint32_t movk = 0xF2800000;
     pReloc.target() = helper_reencode_movzk_imm(movk, X);
     return Relocator::OK;
   }
