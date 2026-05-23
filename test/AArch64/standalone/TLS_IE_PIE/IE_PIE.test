@@ -1,0 +1,12 @@
+# Verify that IE TLS relocations remain as GOT-indirect adrp+ldr
+# in PIE executables (IE stays as IE, no relaxation to LE).
+RUN: %clangas %clangasopts -filetype obj -target-cpu generic -target-feature +neon -mrelax-all %p/Inputs/ie.s -o %t.o
+RUN: %link %linkopts -march aarch64 -pie -z max-page-size=0x1000 %t.o -o %t.out
+RUN: llvm-objdump -d %t.out | %filecheck %s
+
+CHECK: _test_tls_IE
+CHECK: b0000000       adrp
+CHECK: f9408000       ldr
+CHECK: _test_tls_IE_local
+CHECK: b0000000       adrp
+CHECK: f9408400       ldr

@@ -1,0 +1,34 @@
+RUN: %clang %clangopts -target aarch64-unknown-none-elf \
+RUN:   -ftls-model=global-dynamic -fPIC \
+RUN:   -c %p/Inputs/tls_test.c -o %t.o
+RUN: %link %linkopts -march aarch64 -static \
+RUN:   -z max-page-size=0x1000 %t.o -o %t.static.out
+RUN: llvm-objdump -d %t.static.out | %filecheck %s --check-prefix=STATIC
+RUN: %link %linkopts -march aarch64 -pie \
+RUN:   -z max-page-size=0x1000 %t.o -o %t.pie.out
+RUN: llvm-objdump -d %t.pie.out | %filecheck %s --check-prefix=PIE
+RUN: %readelf -r %t.pie.out | %filecheck %s --check-prefix=PIE-RELOC
+
+STATIC: <get_global>:
+STATIC: d2a00000       movz
+STATIC: f2800200       movk
+STATIC: d503201f       nop
+STATIC: d503201f       nop
+STATIC: <get_local>:
+STATIC: d2a00000       movz
+STATIC: f2800280       movk
+STATIC: d503201f       nop
+STATIC: d503201f       nop
+
+PIE: <get_global>:
+PIE: b0000000          adrp
+PIE: f9408400          ldr
+PIE: d503201f          nop
+PIE: d503201f          nop
+PIE: <get_local>:
+PIE: b0000000          adrp
+PIE: f9408800          ldr
+PIE: d503201f          nop
+PIE: d503201f          nop
+
+PIE-RELOC: R_AARCH64_TLS_TPREL64
