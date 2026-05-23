@@ -332,6 +332,14 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
       G->setValueType(GOT::TLSStaticSymbolValue);
       return;
     }
+    if (config().options().isPIE()) {
+      // PIE executable: relax TLSDESC to IE
+      AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                         llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+      rsym->setReserved(rsym->reserved() | ReserveGOT);
+      return;
+    }
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_DESC, Obj, rsym);
     helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
                        llvm::ELF::R_AARCH64_TLSDESC, m_Target);
@@ -562,6 +570,14 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
       AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
+      return;
+    }
+    if (config().options().isPIE()) {
+      // PIE executable: relax TLSDESC to IE
+      AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                         llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+      rsym->setReserved(rsym->reserved() | ReserveGOT);
       return;
     }
     AArch64GOT *G = m_Target.createGOT(GOT::TLS_DESC, Obj, rsym);
@@ -1247,23 +1263,28 @@ Relocator::Result tls_tlsdesc_page(Relocation &pReloc,
 Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
                                  AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
-
   if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT) ||
       pParent.config().isCodeStatic()) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
-    // Convert to movk, preserve original register
     uint32_t movk = 0xF2800000;
     pReloc.target() = helper_reencode_movzk_imm(movk, X);
     return Relocator::OK;
   }
-
+  if (pParent.config().options().isPIE()) {
+    uint32_t insn = 0xF9400000; // ldr x0, [x0, #0]
+    Relocator::Address GOT_S = pParent.getTarget()
+                                   .findEntryInGOT(pReloc.symInfo())
+                                   ->getAddr(pParent.config().getDiagEngine());
+    Relocator::DWord GX = helper_get_page_offset(GOT_S + A);
+    pReloc.target() = helper_reencode_ldst_pos_imm(insn, GX >> 3);
+    return Relocator::OK;
+  }
   Relocator::Address GOT_S = pParent.getTarget()
                                  .findEntryInGOT(pReloc.symInfo())
                                  ->getAddr(pParent.config().getDiagEngine());
   Relocator::DWord GX = helper_get_page_offset(GOT_S + A);
   pReloc.target() = helper_reencode_ldst_pos_imm(pReloc.target(), GX >> 3);
-
   return Relocator::OK;
 }
 
@@ -1271,7 +1292,7 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
 Relocator::Result tls_tlsdesc_add(Relocation &pReloc,
                                   AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
-  if (pParent.config().isCodeStatic()) {
+  if (pParent.config().isCodeStatic() || pParent.config().options().isPIE()) {
     // Convert to nop
     pReloc.target() = 0xD503201F;
     return Relocator::OK;
@@ -1288,7 +1309,7 @@ Relocator::Result tls_tlsdesc_add(Relocation &pReloc,
 
 // R_AARCH64_TLSDESC_CALL
 Relocator::Result tls_call(Relocation &pReloc, AArch64Relocator &pParent) {
-  if (pParent.config().isCodeStatic()) {
+  if (pParent.config().isCodeStatic() || pParent.config().options().isPIE()) {
     // Convert to nop
     pReloc.target() = 0xD503201F;
     return Relocator::OK;
