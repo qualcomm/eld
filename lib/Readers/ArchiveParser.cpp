@@ -500,10 +500,19 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile &archive,
   //      archive scanning began, so it never has its own name pool entry.
   //      In that case <sym> itself is the renamed reference and info->isUndef()
   //      captures it.
+  // Emit a trace message when pulling archive members for wrapped symbols to aid
+  // in debugging the wrap chain and archive resolution process.
+  bool TraceWrap = m_Module.getPrinter()->traceWrapSymbols();
   std::string realSymbol = ("__real_" + SymName).str();
   ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
-  if ((RealSymbol && RealSymbol->isUndef()) || info->isUndef())
+  if ((RealSymbol && RealSymbol->isUndef()) || info->isUndef()){
+    if (TraceWrap){
+        m_Module.getConfig().raise(Diag::trace_wrap_archive_pull)
+        << archive.getInput()->decoratedPath()    // archive filename
+        << SymName;           // wrapped symbol name  
+    }
     return ArchiveFile::Symbol::Include;
+  }
 
   return ArchiveFile::Symbol::Exclude;
 }

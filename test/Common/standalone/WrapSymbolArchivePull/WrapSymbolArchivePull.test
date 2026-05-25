@@ -1,7 +1,6 @@
 
 #---WrapSymbolArchivePull.test------------------------ Executable ----------#
 #BEGIN_COMMENT
-# Regression test for GitHub issue #936:
 # --wrap=<sym>: archive member not pulled when wrapper calls __real_<sym>
 #
 # When --wrap=add is used and wrap.o has an undefined reference to __real_add,

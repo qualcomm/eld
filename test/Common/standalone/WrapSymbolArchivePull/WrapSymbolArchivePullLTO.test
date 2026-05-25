@@ -1,0 +1,28 @@
+#---WrapSymbolArchivePullLTO.test---------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that --wrap archive extraction works correctly under LTO.
+# When --wrap=add is active and wrap.o references __real_add,
+# IRBuilder renames __real_add to add in the name pool. Later,
+# when the archive is scanned, shouldIncludeSymbol() must still
+# recognise the undefined 'add' entry as a demand for the archive
+# member that defines 'add', even under LTO.
+#END_COMMENT
+#START_TEST
+
+# Compile inputs with LTO enabled.
+RUN: %clang %clangopts -flto -c %p/Inputs/1.c -o %t1.main.o
+RUN: %clang %clangopts -flto -c %p/Inputs/2.c -o %t1.wrap.o
+RUN: %clang %clangopts -flto -c %p/Inputs/3.c -o %t1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t2.libfoo.a %t1.add.o
+
+# Link with LTO: main.o + wrap.o are direct inputs;
+# add.o is only reachable via the archive.
+RUN: %link %linkopts -flto %t1.main.o %t1.wrap.o %t2.libfoo.a \
+RUN:   --wrap=add -o %t2.out -t 2>&1 | %filecheck %s
+
+# Verify the archive member was pulled in.
+#CHECK: {{.*}}libfoo.a{{.*}}add.o
+
+#UNSUPPORTED: windows, ndk-build, riscv32, riscv64
