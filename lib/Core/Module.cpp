@@ -266,6 +266,9 @@ bool Module::createInternalInputs() {
   ResolvedResult.Info->setOutSymbol(DotSym);
   setDotSymbol(DotSym);
 
+  Input::setInternalInputOrderEnd(
+      static_cast<uint32_t>(Module::InternalInputType::MAX));
+
   return true;
 }
 
