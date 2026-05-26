@@ -62,6 +62,9 @@ llvm::json::Object PluginActivityLog::toJSON(const PluginOp &Op) const {
   case PluginOp::UpdateLinkState:
     return PluginActivityLog::toJSON(
         static_cast<const UpdateLinkStateOp &>(Op));
+  case PluginOp::SortInputSectionsForMerging:
+    return PluginActivityLog::toJSON(
+        static_cast<const SortInputSectionsForMergingPluginOp &>(Op));
   }
 }
 
@@ -137,6 +140,11 @@ PluginActivityLog::toJSON(const UpdateLinkStateOp &Op) const {
   auto JSONObj = getBaseActivityJSONObject(Op);
   JSONObj["NewState"] = getLinkStateStrRef(Op.getNewState());
   return JSONObj;
+}
+
+llvm::json::Object
+PluginActivityLog::toJSON(const SortInputSectionsForMergingPluginOp &Op) const {
+  return getBaseActivityJSONObject(Op);
 }
 
 llvm::json::Object

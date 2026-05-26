@@ -16,7 +16,9 @@
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Object/OutputSectionEntry.h"
 #include "eld/Object/SectionMap.h"
+#include "eld/Plugin/PluginActivityLog.h"
 #include "eld/Plugin/PluginManager.h"
+#include "eld/Plugin/PluginOp.h"
 #include "eld/PluginAPI/DWARF.h"
 #include "eld/PluginAPI/DiagnosticEntry.h"
 #include "eld/PluginAPI/Diagnostics.h"
@@ -41,6 +43,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Process.h"
 #include "llvm/Support/raw_ostream.h"
+#include <algorithm>
 #include <memory>
 #include <string>
 
@@ -209,6 +212,35 @@ eld::Expected<void> LinkerWrapper::finishAssignOutputSections() {
   if (!m_Module.getLinkerScript().hasPendingSectionOverride(this))
     reportDiag(plugin::Diagnostic::warn_no_section_overrides_found());
   m_Module.getLinker()->getObjLinker()->finishAssignOutputSections(this);
+  return {};
+}
+
+eld::Expected<std::vector<plugin::Section>>
+LinkerWrapper::getInputSectionsForSectionMerging() const {
+  CHECK_LINK_STATE(*this, "ActBeforeSectionMerging");
+  const auto &AllInputSections =
+      m_Module.getLinker()->getObjLinker()->getAllInputSections();
+  std::vector<plugin::Section> Sections;
+  Sections.reserve(AllInputSections.size());
+  for (eld::Section *S : AllInputSections)
+    Sections.emplace_back(S);
+  return Sections;
+}
+
+eld::Expected<void>
+LinkerWrapper::sortInputSectionsForSectionMerging(InputSectionComparator cmp,
+                                                  std::string_view annotation) {
+  CHECK_LINK_STATE(*this, "ActBeforeSectionMerging");
+  if (auto &PluginActLog = m_Module.getPluginActivityLog()) {
+    auto *Op = eld::make<SortInputSectionsForMergingPluginOp>(
+        this, std::string(annotation));
+    PluginActLog->addPluginOperation(*Op);
+  }
+  m_Module.getLinker()->getObjLinker()->sortAllInputSections(
+      [&cmp](const eld::Section *A, const eld::Section *B) {
+        return cmp(plugin::Section{const_cast<eld::Section *>(A)},
+                   plugin::Section{const_cast<eld::Section *>(B)});
+      });
   return {};
 }
 

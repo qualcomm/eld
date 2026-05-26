@@ -1,0 +1,39 @@
+#---SortInputSectionsForMerging.test---------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Tests that LinkerWrapper::getInputSectionsForSectionMerging exposes the
+# pre-merge input section pool, and that
+# LinkerWrapper::sortInputSectionsForSectionMerging reorders that pool using a
+# user-supplied comparator. The plugin sorts by descending section name,
+# so .text.ccc should appear before .text.bbb, which should appear before
+# .text.aaa after the sort.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config \
+RUN:   %p/Inputs/PluginConfig.yaml -Map %t1.1.map.txt \
+RUN:   --plugin-activity-file=%t1.1.plugin.map.json 2>&1 | %filecheck %s
+RUN: %filecheck %s --check-prefix=MAP  < %t1.1.map.txt
+RUN: %filecheck %s --check-prefix=LOG  < %t1.1.plugin.map.json
+#END_TEST
+
+CHECK:      Before sort:
+CHECK-DAG:    .text.aaa
+CHECK-DAG:    .text.bbb
+CHECK-DAG:    .text.ccc
+CHECK:      After sort:
+CHECK:        .text.ccc
+CHECK:        .text.bbb
+CHECK:        .text.aaa
+
+MAP: Output Section and Layout
+MAP: .text
+MAP: .text.ccc
+MAP: .text.bbb
+MAP: .text.aaa
+
+LOG:      "PluginActivities":
+LOG:        {
+LOG-DAG:      "Annotation": "DescendingByName",
+LOG-DAG:      "Plugin": "SortInputSectionsForMergingPlugin",
+LOG-DAG:      "Type": "SortInputSectionsForMerging"
+LOG:        }

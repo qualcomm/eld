@@ -66,6 +66,8 @@ private:
 
   llvm::json::Object toJSON(const UpdateLinkStateOp &P) const;
 
+  llvm::json::Object toJSON(const SortInputSectionsForMergingPluginOp &P) const;
+
   llvm::json::Object getBaseActivityJSONObject(const PluginOp &Op) const;
 
   llvm::json::Array getPluginActivities() const;

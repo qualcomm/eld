@@ -4255,3 +4255,8 @@ bool ObjectLinker::initializeTarget(InputFile *I) {
     return false;
   return true;
 }
+
+void ObjectLinker::sortAllInputSections(
+    std::function<bool(const Section *, const Section *)> cmp) {
+  std::stable_sort(AllInputSections.begin(), AllInputSections.end(), cmp);
+}
