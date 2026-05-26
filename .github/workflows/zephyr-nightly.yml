@@ -96,6 +96,11 @@ jobs:
           cp inst/lib/libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so.4
           ln -sf libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so
 
+          # ld.eld and libLW.so.4 are linked against nightly's libc++; cpullvm/lib
+          # has none, so copy the matching libc++/libc++abi alongside them.
+          cp -P inst/lib/libc++.so.1*    ${CPULLVM_DIR}/lib/
+          cp -P inst/lib/libc++abi.so.1* ${CPULLVM_DIR}/lib/
+
           echo "Nightly ELD version:"
           ${CPULLVM_DIR}/bin/ld.eld --version
           echo "cpullvm clang version:"
