@@ -318,6 +318,9 @@ public:
     return AllInputSections;
   }
 
+  void sortAllInputSections(
+      std::function<bool(const Section *, const Section *)> cmp);
+
   void addInputSection(Section *InputSection) {
     AllInputSections.push_back(InputSection);
   }

@@ -72,3 +72,4 @@ ResetOffsetPluginOp::ResetOffsetPluginOp(plugin::LinkerWrapper *W,
                                          const std::string &Annotation)
     : PluginOp(W, PluginOp::ResetOffset, Annotation), O(O),
       OldOffset(OldOffset) {}
+
