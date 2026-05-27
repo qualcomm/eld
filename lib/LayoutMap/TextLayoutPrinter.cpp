@@ -358,14 +358,6 @@ void TextLayoutPrinter::printGlobalPluginInfo(Module &M, bool UseColor) {
   const LinkerScript::PluginVectorT &UniversalPlugins =
       M.getPluginManager().getUniversalPlugins();
 
-  bool hasPluginInfo =
-      !UniversalPlugins.empty() || !PluginListForSectionMatcher.empty() ||
-      !PluginListForSectionIterator.empty() ||
-      !PluginListForOutputSectionIterator.empty() ||
-      !PluginListForMemorySize.empty() || !PluginListForFileSize.empty();
-  if (!hasPluginInfo)
-    return;
-
   if (UseColor)
     outputStream().changeColor(llvm::raw_ostream::GREEN);
   outputStream() << "Linker Plugin Information"
@@ -423,9 +415,6 @@ void TextLayoutPrinter::printGlobalPluginInfo(Module &M, bool UseColor) {
     for (auto &P : PluginListForFileSize)
       PrintPlugin(*P);
   }
-
-  if (!M.getScript().getPluginRunList().size())
-    return;
   outputStream() << "Linker Plugin Run Information"
                  << "\n";
   int Index = 0;

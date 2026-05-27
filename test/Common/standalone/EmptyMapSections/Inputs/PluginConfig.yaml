@@ -1,4 +1,0 @@
-GlobalPlugins:
-  - Type: LinkerPlugin
-    Name: EmptyPlugin
-    Library: EmptyPlugin
