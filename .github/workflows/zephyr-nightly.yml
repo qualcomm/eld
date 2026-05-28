@@ -23,6 +23,9 @@ jobs:
           - board: qemu_riscv32
             arch: riscv32
             extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
+          - board: qemu_riscv32_xip
+            arch: riscv32
+            extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
           - board: qemu_riscv64
             arch: riscv64
             extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
@@ -149,8 +152,12 @@ jobs:
         run: |
           cd zephyr
           source zephyr-env.sh
-          set -o pipefail
-          timeout -k 1s 5s west build -t run 2>&1 | tee run_output.log || true
+          # No pipe to tee: qemu_riscv32_xip uses -machine sifive_e which has
+          # no QEMU exit mechanism, so QEMU outlives `timeout` and would keep
+          # tee blocked. pkill below frees the CPU for the next step.
+          timeout -k 1s 5s west build -t run > run_output.log 2>&1 || true
+          pkill -KILL -f "qemu-system.*build/zephyr/zephyr.elf" 2>/dev/null || true
+          cat run_output.log
           if grep -q "Hello World" run_output.log; then
             echo "hello_world executed successfully"
           else
@@ -179,7 +186,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: zephyr-twister-results-${{ matrix.target.arch }}
+          name: zephyr-twister-results-${{ matrix.target.board }}
           path: |
             zephyr/twister-out/twister.log
             zephyr/twister-out/twister.json
@@ -188,7 +195,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: zephyr-build-artifacts-${{ matrix.target.arch }}
+          name: zephyr-build-artifacts-${{ matrix.target.board }}
           path: |
             zephyr/build/zephyr/zephyr.elf
             zephyr/build/zephyr/zephyr.map
