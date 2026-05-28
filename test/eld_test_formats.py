@@ -106,7 +106,7 @@ class EldShellTestFormat(lit.formats.ShTest):
             return lit.Test.Result(lit.Test.PASS, "")
         cmd = [shell, expanded_script_path]
         out, err, exitCode = lit.util.executeCommand(
-            cmd, env=env, cwd=execdir, timeout=litConfig.maxIndividualTestTime)
+            cmd, env=env, cwd=execdir, timeout=test.config.maxIndividualTestTime)
         output = out + err
         if exitCode != 0:
             return lit.Test.Result(lit.Test.FAIL, output)
