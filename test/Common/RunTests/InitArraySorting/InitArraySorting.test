@@ -1,0 +1,26 @@
+REQUIRES: run_test, linux
+#---InitArraySorting.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test init/fini execution order for constructors and destructors sorted by
+# init priority using the runtime harness.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -c %p/Inputs/init_low.c -o %t.init_low.o
+RUN: %run_cc %clangopts -c %p/Inputs/init_high.c -o %t.init_high.o
+RUN: %run_cc %clangopts -c %p/Inputs/init_default.c -o %t.init_default.o
+RUN: %run_cc %clangopts -c %p/Inputs/fini_low.c -o %t.fini_low.o
+RUN: %run_cc %clangopts -c %p/Inputs/fini_high.c -o %t.fini_high.o
+RUN: %run_cc %clangopts -c %p/Inputs/fini_default.c -o %t.fini_default.o
+RUN: %run_cc %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %run_cc %clangopts -o %t.out \
+RUN:   %t.init_low.o \
+RUN:   %t.init_high.o \
+RUN:   %t.init_default.o \
+RUN:   %t.fini_low.o \
+RUN:   %t.fini_high.o \
+RUN:   %t.fini_default.o \
+RUN:   %t.main.o
+RUN: %run %t.out 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: ABCMcba
