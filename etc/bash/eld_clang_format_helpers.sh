@@ -73,6 +73,7 @@ eld_clang_format_check() {
   local base_ref
   local -a files=()
   local format_diff
+  local clang_format_rc=0
   if ! git clang-format -h >/dev/null 2>&1; then
     echo "Required tool not found: git clang-format"
     return 1
@@ -89,11 +90,16 @@ eld_clang_format_check() {
   fi
 
   format_diff="$(
-    git clang-format --diff "$base_ref" -- "${files[@]}"
-  )" || {
-    echo "Failed to run git clang-format --diff"
+    git clang-format --diff "$base_ref" -- "${files[@]}" 2>&1
+  )"
+  clang_format_rc=$?
+  # git clang-format --diff returns 1 when formatting changes are needed.
+  # Treat only codes >1 as execution failures.
+  if [[ $clang_format_rc -gt 1 ]]; then
+    echo "$format_diff" >&2
+    echo "Failed to run git clang-format --diff" >&2
     return 1
-  }
+  fi
 
   # git clang-format may print informational text; only fail when there are
   # actual patch hunks.
@@ -128,6 +134,8 @@ eld_clang_format_fix() {
   local f
   local before_hash
   local after_hash
+  local clang_format_output
+  local clang_format_rc=0
   declare -A file_hash_before=()
 
   if ! git clang-format -h >/dev/null 2>&1; then
@@ -169,29 +177,38 @@ eld_clang_format_fix() {
   done
 
   # Format only lines that differ from base_ref, then report file-level impact.
-  if git clang-format "$base_ref" -- "${existing_files[@]}"; then
-    for f in "${existing_files[@]}"; do
-      before_hash="${file_hash_before["$f"]}"
-      after_hash="$(git hash-object -- "$f")"
-      if [[ "$before_hash" != "$after_hash" ]]; then
-        changed_files+=("$f")
-      else
-        unchanged_files+=("$f")
-      fi
-    done
-
-    for f in "${changed_files[@]}"; do
-      printf "%b[FORMATTED]%b %s\n" "$green" "$reset" "$f"
-    done
-    for f in "${unchanged_files[@]}"; do
-      printf "[UNCHANGED] %s\n" "$f"
-    done
-
-    printf "%b[SUMMARY]%b formatted %d of %d candidate files\n" \
-      "$green" "$reset" "${#changed_files[@]}" "${#existing_files[@]}"
-    return 0
+  clang_format_output="$(
+    git clang-format "$base_ref" -- "${existing_files[@]}" 2>&1
+  )"
+  clang_format_rc=$?
+  if [[ -n "$clang_format_output" ]]; then
+    echo "$clang_format_output"
+  fi
+  # git clang-format can return 1 even when formatting is successfully applied.
+  # Treat only codes >1 as execution failures.
+  if [[ $clang_format_rc -gt 1 ]]; then
+    printf "%b[FAILED]%b unable to apply clang-format to diff hunks\n" "$red" "$reset"
+    return 1
   fi
 
-  printf "%b[FAILED]%b unable to apply clang-format to diff hunks\n" "$red" "$reset"
-  return 1
+  for f in "${existing_files[@]}"; do
+    before_hash="${file_hash_before["$f"]}"
+    after_hash="$(git hash-object -- "$f")"
+    if [[ "$before_hash" != "$after_hash" ]]; then
+      changed_files+=("$f")
+    else
+      unchanged_files+=("$f")
+    fi
+  done
+
+  for f in "${changed_files[@]}"; do
+    printf "%b[FORMATTED]%b %s\n" "$green" "$reset" "$f"
+  done
+  for f in "${unchanged_files[@]}"; do
+    printf "[UNCHANGED] %s\n" "$f"
+  done
+
+  printf "%b[SUMMARY]%b formatted %d of %d candidate files\n" \
+    "$green" "$reset" "${#changed_files[@]}" "${#existing_files[@]}"
+  return 0
 }
