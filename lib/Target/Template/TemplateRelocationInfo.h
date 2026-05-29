@@ -19,7 +19,7 @@ namespace llvm {
 namespace Template {
 
 extern "C" {
-const RelocationInfo Relocs[] = {};
+const RelocationInfo Relocs[1] = {{}};
 } // extern "C"
 } // namespace Template
 } // namespace llvm

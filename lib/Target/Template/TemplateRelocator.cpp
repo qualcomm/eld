@@ -24,7 +24,7 @@ TemplateRelocator::TemplateRelocator(TemplateLDBackend &pParent,
                                      LinkerConfig &pConfig, Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {
   // Mark force verify bit for specified relcoations
-  if (DiagnosticPrinter::verifyReloc() &&
+  if (m_Module.getPrinter()->verifyReloc() &&
       config().options().verifyRelocList().size()) {
     auto &list = config().options().verifyRelocList();
     for (auto &i : RelocDesc) {
@@ -44,10 +44,10 @@ Relocator::Result TemplateRelocator::applyRelocation(Relocation &pRelocation) {
     LDSymbol *outSymbol = symInfo->outSymbol();
     if (outSymbol && outSymbol->hasFragRef()) {
       ELFSection *S = outSymbol->fragRef()->frag()->getOwningSection();
-      if (S->kind() == LDFileFormat::Discard ||
+      if (S->isDiscard() ||
           (S->getOutputSection() && S->getOutputSection()->isDiscard())) {
         std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-        issueUndefRef(pRelocation, *S->input(), S);
+        issueUndefRef(pRelocation, *S->getInputFile(), S);
         return Relocator::OK;
       }
     }
@@ -63,7 +63,8 @@ const char *TemplateRelocator::getName(Relocation::Type pType) const {
 
 void TemplateRelocator::scanRelocation(Relocation &pReloc,
                                        eld::IRBuilder &pLinker,
-                                       ELFSection &pSection, Input &pInput,
+                                       ELFSection &pSection,
+                                       InputFile &pInputFile,
                                        CopyRelocs &CopyRelocs) {
   if (LinkerConfig::Object == config().codeGenType())
     return;
@@ -74,23 +75,24 @@ void TemplateRelocator::scanRelocation(Relocation &pReloc,
          "ResolveInfo of relocation not set while scanRelocation");
 
   // Check if we are tracing relocations.
-  if (DiagnosticPrinter::traceReloc()) {
+  if (m_Module.getPrinter()->traceReloc()) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     std::string relocName = getName(pReloc.type());
     if (config().options().traceReloc(relocName))
-      config().place(config().getDiagEngine())(Diag::reloc_trace)
-          << relocName << pInput.decoratedPath();
+      config().raise(Diag::reloc_trace)
+          << relocName << pReloc.symInfo()->name()
+          << pInputFile.getInput()->decoratedPath();
   }
 
   // check if we should issue undefined reference for the relocation target
   // symbol
-  if (rsym->isUndef() || rsym->isBitCode()) {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (!m_Target.canProvideSymbol(rsym)) {
+  {
+    if (rsym->isUndef() || rsym->isBitCode()) {
+      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
       if (m_Target.canIssueUndef(rsym)) {
         if (rsym->visibility() != ResolveInfo::Default)
-          issueInvisibleRef(pReloc, pInput);
-        issueUndefRef(pReloc, pInput, &pSection);
+          issueInvisibleRef(pReloc, pInputFile);
+        issueUndefRef(pReloc, pInputFile, &pSection);
       }
     }
   }
@@ -99,30 +101,30 @@ void TemplateRelocator::scanRelocation(Relocation &pReloc,
                             ? pSection.getLink()
                             : pReloc.targetRef()->frag()->getOwningSection();
 
-  if (0 == (section->flag() & llvm::ELF::SHF_ALLOC))
+  if (!section->isAlloc())
     return;
 
   if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInput, pReloc, pLinker, *section);
+    scanLocalReloc(pInputFile, pReloc, pLinker, *section);
   else // rsym is external
-    scanGlobalReloc(pInput, pReloc, pLinker, *section);
+    scanGlobalReloc(pInputFile, pReloc, pLinker, *section);
 }
 
 Relocation::Size TemplateRelocator::getSize(Relocation::Type pType) const {
   return 0;
 }
 
-void TemplateRelocator::scanLocalReloc(Input &pInput, Relocation &pReloc,
+void TemplateRelocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                                        eld::IRBuilder &pBuilder,
                                        ELFSection &pSection) {}
 
-void TemplateRelocator::scanGlobalReloc(Input &pInput, Relocation &pReloc,
+void TemplateRelocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
                                         eld::IRBuilder &pBuilder,
                                         ELFSection &pSection) {}
 
 void TemplateRelocator::partialScanRelocation(Relocation &pReloc,
                                               const ELFSection &pSection) {
-  pReloc.updateAddend(config().getDiagEngine());
+  pReloc.updateAddend(m_Module);
 
   // if we meet a section symbol
   if (pReloc.symInfo()->type() == ResolveInfo::Section) {
@@ -131,13 +133,15 @@ void TemplateRelocator::partialScanRelocation(Relocation &pReloc,
     // 1. update the relocation target offset
     assert(input_sym->hasFragRef());
     // 2. get the output ELFSection which the symbol defined in
-    ELFSection *out_sect = input_sym->fragRef()->frag()->getOutputSection();
+    ELFSection *out_sect = input_sym->fragRef()->getOutputELFSection();
 
     ResolveInfo *sym_info = m_Module.getSectionSymbol(out_sect);
     // set relocation target symbol to the output section symbol's resolveInfo
     pReloc.setSymInfo(sym_info);
   }
 }
+
+uint32_t TemplateRelocator::getNumRelocs() const { return TEMPLATE_MAXRELOCS; }
 
 //=========================================//
 // Relocation Verifier
@@ -162,86 +166,82 @@ Relocator::Result ApplyReloc(Relocation &pReloc, uint32_t Result,
 // Each relocation function implementation //
 //=========================================//
 
-TemplateRelocator::Result eld::applyNone(Relocation &pReloc,
-                                         TemplateRelocator &pParent,
-                                         RelocationDescription &pRelocDesc) {
+TemplateRelocator::Result applyNone(Relocation &pReloc,
+                                    TemplateRelocator &pParent,
+                                    RelocationDescription &pRelocDesc) {
   return TemplateRelocator::OK;
 }
 
-TemplateVRelocator::Result eld::applyAbs(Relocation &pReloc,
-                                         TemplateRelocator &pParent,
-                                         RelocationDescription &pRelocDesc) {
-  if (pReloc.type() >= TEMPLATE_MAXRELOCS)
-    return TemplateRelocator::Unsupport;
-
-  int64_t S = pReloc.symValue();
+TemplateRelocator::Result applyAbs(Relocation &pReloc,
+                                   TemplateRelocator &pParent,
+                                   RelocationDescription &pRelocDesc) {
+  int64_t S = pReloc.symValue(pParent.module());
   int64_t A = pReloc.addend();
 
   return ApplyReloc(pReloc, S + A, pRelocDesc);
 }
 
-TemplateRelocator::Result eld::applyRel(Relocation &pReloc,
-                                        TemplateRelocator &pParent,
-                                        RelocationDescription &pRelocDesc) {
+TemplateRelocator::Result applyRel(Relocation &pReloc,
+                                   TemplateRelocator &pParent,
+                                   RelocationDescription &pRelocDesc) {
 
-  int64_t S = pReloc.symValue();
+  int64_t S = pReloc.symValue(pParent.module());
   int64_t A = pReloc.addend();
-  int64_t P = pReloc.place(config().getDiagEngine());
+  int64_t P = pReloc.place(pParent.module());
 
   return ApplyReloc(pReloc, S + A - P, pRelocDesc);
 }
 
-TemplateRelocator::Result eld::applyHILO(Relocation &pReloc,
-                                         TemplateRelocator &pParent,
-                                         RelocationDescription &pRelocDesc) {
-  int64_t S = pReloc.symValue();
+TemplateRelocator::Result applyHILO(Relocation &pReloc,
+                                    TemplateRelocator &pParent,
+                                    RelocationDescription &pRelocDesc) {
+  int64_t S = pReloc.symValue(pParent.module());
   int64_t A = pReloc.addend();
 
   return ApplyReloc(pReloc, S + A, pRelocDesc);
 }
 
-TemplateRelocator::Result eld::applyRelax(Relocation &pReloc,
+TemplateRelocator::Result applyRelax(Relocation &pReloc,
+                                     TemplateRelocator &pParent,
+                                     RelocationDescription &pRelocDesc) {
+
+  int64_t S = pReloc.symValue(pParent.module());
+  int64_t A = pReloc.addend();
+
+  return ApplyReloc(pReloc, S + A, pRelocDesc);
+}
+
+TemplateRelocator::Result applyJumpOrCall(Relocation &pReloc,
                                           TemplateRelocator &pParent,
                                           RelocationDescription &pRelocDesc) {
 
-  int64_t S = pReloc.symValue();
+  int64_t S = pReloc.symValue(pParent.module());
   int64_t A = pReloc.addend();
 
   return ApplyReloc(pReloc, S + A, pRelocDesc);
 }
 
-TemplateRelocator::Result
-eld::applyJumpOrCall(Relocation &pReloc, TemplateRelocator &pParent,
-                     RelocationDescription &pRelocDesc) {
+TemplateRelocator::Result applyAlign(Relocation &pReloc,
+                                     TemplateRelocator &pParent,
+                                     RelocationDescription &pRelocDesc) {
 
-  int64_t S = pReloc.symValue();
+  int64_t S = pReloc.symValue(pParent.module());
   int64_t A = pReloc.addend();
 
   return ApplyReloc(pReloc, S + A, pRelocDesc);
 }
 
-TemplateRelocator::Result eld::applyAlign(Relocation &pReloc,
-                                          TemplateRelocator &pParent,
-                                          RelocationDescription &pRelocDesc) {
+TemplateRelocator::Result applyGPRel(Relocation &pReloc,
+                                     TemplateRelocator &pParent,
+                                     RelocationDescription &pRelocDesc) {
 
-  int64_t S = pReloc.symValue();
+  int64_t S = pReloc.symValue(pParent.module());
   int64_t A = pReloc.addend();
 
   return ApplyReloc(pReloc, S + A, pRelocDesc);
 }
 
-TemplateRelocator::Result eld::applyGPRel(Relocation &pReloc,
-                                          TemplateRelocator &pParent,
-                                          RelocationDescription &pRelocDesc)
-
-    int64_t S = pReloc.symValue();
-int64_t A = pReloc.addend();
-
-return ApplyReloc(pReloc, S + A, pRelocDesc);
-}
-
-Relocator::Result eld::unsupported(Relocation &pReloc,
-                                   TemplateRelocator &pParent,
-                                   RelocationDescription &pRelocDesc) {
+Relocator::Result unsupported(Relocation &pReloc, TemplateRelocator &pParent,
+                              RelocationDescription &pRelocDesc) {
   return TemplateRelocator::Unsupport;
 }

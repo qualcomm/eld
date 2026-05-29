@@ -18,13 +18,13 @@ class TemplateStandaloneInfo : public TemplateInfo {
 public:
   TemplateStandaloneInfo(LinkerConfig &pConfig) : TemplateInfo(pConfig) {}
 
-  virtual uint64_t startAddr(bool linkerScriptHasSectionsCmd, bool isDynExec,
-                             bool loadPhdr) const override {
+  uint64_t startAddr(bool linkerScriptHasSectionsCommand, bool isDynExec,
+                     bool loadPhdr) const override {
     return 0;
   }
 
-  void initializeAttributes(eld::IRBuilder &pBuilder) override {
-    pBuilder.AgainstStatic();
+  void initializeAttributes(InputBuilder &pBuilder) override {
+    pBuilder.makeBStatic();
   }
 };
 

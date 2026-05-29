@@ -8,9 +8,11 @@
 #ifndef TEMPLATE_LDBACKEND_H
 #define TEMPLATE_LDBACKEND_H
 
+#include "TemplateGOT.h"
+#include "TemplatePLT.h"
 #include "eld/Config/LinkerConfig.h"
-#include "eld/Input/ELFSection.h"
 #include "eld/Object/ObjectBuilder.h"
+#include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
 
@@ -25,8 +27,6 @@ class TemplateInfo;
 class TemplateLDBackend : public GNULDBackend {
 public:
   TemplateLDBackend(Module &pModule, TemplateInfo *pInfo);
-
-  ~TemplateLDBackend();
 
   void initializeAttributes() override;
 
@@ -65,11 +65,22 @@ private:
 
   uint64_t maxBranchOffset() override { return 0; }
 
+public:
+  Stub *getBranchIslandStub(Relocation *pReloc,
+                            int64_t pTargetValue) const override;
+
+  std::size_t PLTEntriesCount() const override { return m_PLTMap.size(); }
+
+  std::size_t GOTEntriesCount() const override { return m_GOTMap.size(); }
+
 private:
   Relocator *m_pRelocator;
   llvm::BumpPtrAllocator _alloc;
 
   LDSymbol *m_pEndOfImage;
+
+  llvm::DenseMap<ResolveInfo *, TemplateGOT *> m_GOTMap;
+  llvm::DenseMap<ResolveInfo *, TemplatePLT *> m_PLTMap;
 };
 } // namespace eld
 

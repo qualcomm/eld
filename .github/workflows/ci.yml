@@ -102,6 +102,7 @@ jobs:
             -DCMAKE_CXX_COMPILER="$(which clang++)" \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
             -DLLVM_CCACHE_BUILD:BOOL=ON \
             -DLLVM_CCACHE_DIR:STRING="$CCACHE_DIR" \
