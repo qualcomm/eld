@@ -1,0 +1,54 @@
+REQUIRES: run_test
+#---R_ARM_CALL.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_CALL relocation.
+# Covers: basic ARM-to-ARM call (static/PIE/dynamic), local and hidden
+# (non-preemptible) symbols, weak undefined symbol NOP conversion,
+# Thumb target BL->BLX rewrite, PLT call via shared library, and
+# trampoline creation for out-of-range branches.
+#END_COMMENT
+#START_TEST
+## --- Basic ARM-to-ARM call: local and global callee ---
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.c
+# Static
+#RUN: %link -T %p/Inputs/script.ld -static -o %t.static.out %t.startup.o %t.main.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 32M -kernel %t.static.out | %filecheck %s
+# PIE
+#RUN: %link -T %p/Inputs/script.ld -pie -o %t.pie.out %t.startup.o %t.main.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 32M -kernel %t.pie.out | %filecheck %s
+# Dynamic
+#RUN: %link -T %p/Inputs/script.ld -Wl,-dy -o %t.dyn.out %t.startup.o %t.main.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 32M -kernel %t.dyn.out | %filecheck %s
+
+## --- Weak undefined symbol: BL rewritten to NOP, execution continues ---
+#RUN: %run_cc -nostdlib -c -o %t.weak.o %p/Inputs/weak.c
+#RUN: %link -T %p/Inputs/script.ld -static -o %t.weak.out %t.startup.o %t.weak.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 32M -kernel %t.weak.out | %filecheck %s
+
+## --- Hidden (non-preemptible) symbol: direct call, no PLT ---
+#RUN: %run_cc -nostdlib -c -o %t.hidden.o %p/Inputs/hidden_callee.c
+#RUN: %link -T %p/Inputs/script.ld -static -o %t.hidden.out %t.startup.o %t.hidden.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 32M -kernel  %t.hidden.out | %filecheck %s
+
+## --- Thumb target: BL rewritten to BLX at link time ---
+#RUN: %run_cc -nostdlib -c -o %t.thumb.o %p/Inputs/thumb_callee.c
+#RUN: %link -T %p/Inputs/script.ld -static -o %t.thumb.out %t.startup.o %t.thumb.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 32M -kernel  %t.thumb.out | %filecheck %s
+
+## --- Preemptible symbol: call goes through PLT at runtime ---
+#RUN: %run_cc -fPIC -o %t.shared_callee.o -c %p/Inputs/shared_callee.c
+#RUN: %run_cc -fPIC -o %t.shared_caller.o -c %p/Inputs/shared_caller.c
+#RUN: %run_cc -shared -o %t.callee.so %t.shared_callee.o
+#RUN: %run_cc -o %t.shared.out %t.shared_caller.o %t.callee.so -Wl,-dy
+#RUN: %run %t.shared.out
+
+## --- Trampoline: out-of-range branch requires trampoline creation ---
+#RUN: %run_cc -nostdlib -c -o %t.distant_callee.o %p/Inputs/distant_callee.c
+#RUN: %run_cc -nostdlib -c -o %t.trampoline_caller.o %p/Inputs/trampoline_caller.c
+#RUN: %link -T %p/Inputs/script_trampoline.ld -static -o %t.trampoline.out %t.startup.o %t.trampoline_caller.o %t.distant_callee.o
+#RUN: %not timeout .1 %run_sys -M vexpress-a9 -m 64M -kernel %t.trampoline.out | %filecheck %s
+
+#CHECK: success
+
+#END_TEST

@@ -127,17 +127,17 @@ Configure the project with `-DELD_ENABLE_RUN_TESTS=On` and set the
 following environment variables for each target architecture you want
 to enable run tests on:
 
-| Architecture | C Compiler | C++ Compiler | Sysroot | Emulator |
-|--------------|------------|--------------|---------|----------|
-| AArch64 | `ELD_AARCH64_C_COMPILER` | `ELD_AARCH64_CXX_COMPILER` | `ELD_AARCH64_SYSROOT` | `ELD_AARCH64_EMULATOR` |
-| ARM | `ELD_ARM_C_COMPILER` | `ELD_ARM_CXX_COMPILER` | `ELD_ARM_SYSROOT` | `ELD_ARM_EMULATOR` |
-| RISCV32 | `ELD_RISCV32_C_COMPILER` | `ELD_RISCV32_CXX_COMPILER` | `ELD_RISCV32_SYSROOT` | `ELD_RISCV32_EMULATOR` |
-| RISCV64 | `ELD_RISCV64_C_COMPILER` | `ELD_RISCV64_CXX_COMPILER` | `ELD_RISCV64_SYSROOT` | `ELD_RISCV64_EMULATOR` |
-| X86_64 | `ELD_X86_64_C_COMPILER` | `ELD_X86_64_CXX_COMPILER` | `ELD_X86_64_SYSROOT` | `ELD_X86_64_EMULATOR` |
+| Architecture | C Compiler | C++ Compiler | Sysroot | Emulator | Emulator System|
+|--------------|------------|--------------|---------|----------|----------------|
+| AArch64 | `ELD_AARCH64_C_COMPILER` | `ELD_AARCH64_CXX_COMPILER` | `ELD_AARCH64_SYSROOT` | `ELD_AARCH64_EMULATOR` | `ELD_AARCH64_EMULATOR_SYSTEM` |
+| ARM | `ELD_ARM_C_COMPILER` | `ELD_ARM_CXX_COMPILER` | `ELD_ARM_SYSROOT` | `ELD_ARM_EMULATOR` | `ELD_ARM_EMULATOR_SYSTEM` |
+| RISCV32 | `ELD_RISCV32_C_COMPILER` | `ELD_RISCV32_CXX_COMPILER` | `ELD_RISCV32_SYSROOT` | `ELD_RISCV32_EMULATOR` | `ELD_RISCV32_EMULATOR_SYSTEM` |
+| RISCV64 | `ELD_RISCV64_C_COMPILER` | `ELD_RISCV64_CXX_COMPILER` | `ELD_RISCV64_SYSROOT` | `ELD_RISCV64_EMULATOR` | `ELD_RISCV64_EMULATOR_SYSTEM` |
+| X86_64 | `ELD_X86_64_C_COMPILER` | `ELD_X86_64_CXX_COMPILER` | `ELD_X86_64_SYSROOT` | `ELD_X86_64_EMULATOR` | `ELD_X86_64_EMULATOR_SYSTEM` |
 
 The `run_test` lit feature is enabled when the C compiler, sysroot, and emulator are all configured for a target. The `run_cxx_test` feature additionally requires the C++ compiler.
 
-For `<TARGET>_C_COMPILER`, `<TARGET>_CXX_COMPILER`, and `<TARGET>_EMULATOR`,
+For `<TARGET>_C_COMPILER`, `<TARGET>_CXX_COMPILER`, `<TARGET>_EMULATOR`, and `<TARGET>_EMULATOR_SYSTEM`,
 you can provide either a full path or just the tool name
 (which will be resolved via `PATH`).
 
@@ -149,6 +149,7 @@ export ELD_AARCH64_C_COMPILER=/usr/bin/aarch64-linux-gnu-gcc
 export ELD_AARCH64_CXX_COMPILER=/usr/bin/aarch64-linux-gnu-g++
 export ELD_AARCH64_SYSROOT=/usr/aarch64-linux-gnu
 export ELD_AARCH64_EMULATOR=qemu-aarch64
+export ELD_AARCH64_EMULATOR_SYSTEM=qemu-system-aarch64
 ```
 
 

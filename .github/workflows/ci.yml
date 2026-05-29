@@ -129,6 +129,12 @@ jobs:
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ccache --evict-older-than 7200s --dir=$CCACHE_DIR
 
+      - name: Install dependencies
+        shell: bash
+        run:  |
+          sudo apt update
+          sudo apt install -y libsdl2-2.0-0
+
       - name: Run tests
         if: steps.file-check.outputs.skip_build == 'false'
         working-directory: pr-${{ env.PR_NUMBER }}/obj
