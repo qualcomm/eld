@@ -1,0 +1,19 @@
+#---EmptyMapSections.test------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks that empty map sections are not emitted.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o %p/Inputs/1.c -c
+RUN: %link %linkopts --no-default-plugins -o %t1.out %t1.o -Map %t1.map
+RUN: %filecheck %s < %t1.map -check-prefix=NOINFO
+
+RUN: %link %linkopts --no-default-plugins -o %t1.out %t1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml -Map %t1.map
+RUN: %filecheck %s < %t1.map -check-prefix=NORUNINFO
+#END_TEST
+
+NOINFO-NOT: Linker Plugin Information
+
+NORUNINFO: Linker Plugin Information
+NORUNINFO: Linker Plugins
+NORUNINFO: EmptyPlugin		EmptyPlugin
+NORUNINFO-NOT: Linker Plugin Run Information
