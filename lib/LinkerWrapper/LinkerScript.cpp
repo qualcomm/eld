@@ -14,6 +14,8 @@
 #include "eld/Script/IncludeCmd.h"
 #include "eld/Script/InputCmd.h"
 #include "eld/Script/InputSectDesc.h"
+#include "eld/Script/MemoryCmd.h"
+#include "eld/Script/MemoryDesc.h"
 #include "eld/Script/NoCrossRefsCmd.h"
 #include "eld/Script/OutputArchCmd.h"
 #include "eld/Script/OutputCmd.h"
@@ -22,9 +24,8 @@
 #include "eld/Script/OutputSectDesc.h"
 #include "eld/Script/PhdrDesc.h"
 #include "eld/Script/PhdrsCmd.h"
-#include "eld/Script/MemoryCmd.h"
-#include "eld/Script/RegionAlias.h"
 #include "eld/Script/PluginCmd.h"
+#include "eld/Script/RegionAlias.h"
 #include "eld/Script/ScriptCommand.h"
 #include "eld/Script/SearchDirCmd.h"
 #include "eld/Script/SectionsCmd.h"
@@ -827,12 +828,55 @@ eld::ScriptCommand *plugin::Script::OutputSectionData::getCommand() const {
   return m_OutputSectData;
 }
 // MEMORY
+namespace {
+
+class MemoryDescriptor : public plugin::Script::ScriptCommand {
+public:
+  explicit MemoryDescriptor(eld::MemoryDesc *Desc)
+      : plugin::Script::ScriptCommand(UnSupported), MDesc(Desc) {}
+
+  eld::ScriptCommand *getCommand() const override { return MDesc; }
+
+private:
+  eld::MemoryDesc *MDesc = nullptr;
+};
+
+} // namespace
+
 plugin::Script::Memory::Memory(eld::MemoryCmd *MemoryCmd)
     : ScriptCommand(plugin::Script::ScriptCommand::Memory),
-      m_MemoryCmd(MemoryCmd) {}
+      m_MemoryCmd(MemoryCmd) {
+  getMemoryDescriptors();
+}
 
 eld::ScriptCommand *plugin::Script::Memory::getCommand() const {
   return m_MemoryCmd;
+}
+
+void plugin::Script::Memory::getMemoryDescriptors() {
+  if (!m_MemoryCmd)
+    return;
+  auto *Enter = new eld::EnterScopeCmd();
+  Enter->setParent(m_MemoryCmd);
+  m_MemoryCommands.push_back(new plugin::Script::EnterScope(Enter));
+  for (eld::MemoryDesc *Desc : m_MemoryCmd->getMemoryDescriptors())
+    m_MemoryCommands.push_back(new MemoryDescriptor(Desc));
+  auto *Exit = new eld::ExitScopeCmd();
+  Exit->setParent(m_MemoryCmd);
+  m_MemoryCommands.push_back(new plugin::Script::ExitScope(Exit));
+}
+
+std::vector<plugin::Script::ScriptCommand *>
+plugin::Script::Memory::getCommands() const {
+  return m_MemoryCommands;
+}
+
+plugin::Script::Memory::~Memory() {
+  for (auto &Cmd : m_MemoryCommands) {
+    if (Cmd && (Cmd->isEnterScope() || Cmd->isExitScope()))
+      delete Cmd->getCommand();
+    delete Cmd;
+  }
 }
 
 size_t plugin::Script::Memory::size() const {

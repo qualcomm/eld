@@ -33,6 +33,8 @@ public:
 
   void dump(llvm::raw_ostream &Outs) const override;
 
+  void dumpOnlyThis(llvm::raw_ostream &Outs) const override;
+
   static bool classof(const ScriptCommand *LinkerScriptCommand) {
     return LinkerScriptCommand->getKind() == ScriptCommand::MEMORY;
   }
