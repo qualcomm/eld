@@ -121,7 +121,7 @@ DIAG(plugin_crash, DiagnosticEngine::Fatal,
 DIAG(unable_to_create_temporary_file, DiagnosticEngine::Fatal,
      "Unable to create temporary file %0")
 DIAG(unable_to_write_json_file, DiagnosticEngine::Error,
-     "Unable to write JSON file %0 due to error %1")
+     "Unable to write file %0 due to %1")
 DIAG(unsupported_linker_flavor, DiagnosticEngine::Error,
      "Unsupported linker flavor %0")
 DIAG(unable_to_compress, DiagnosticEngine::Fatal, "Unable to compress %0")

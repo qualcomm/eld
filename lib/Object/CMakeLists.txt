@@ -10,6 +10,7 @@ llvm_add_library(
   RuleContainer.cpp
   SectionMap.cpp
   ArchiveMemberReport.cpp
+  LoadInfoReport.cpp
   DEPENDS
   intrinsics_gen)
 

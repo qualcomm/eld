@@ -181,6 +181,16 @@ public:
   static void cacheMemoryAreaForPath(const std::string &Filepath,
                                      MemoryArea *Area);
 
+  /// Set the ordinal value that marks the end of internal inputs.
+  /// This should be called after all internal inputs are created.
+  static void setInternalInputOrderEnd(uint32_t OrderEnd) {
+    InternalInputOrderEnd = OrderEnd;
+  }
+
+  /// Get the ordinal value that marks the end of internal inputs.
+  /// User input ordinals start from this value.
+  static uint32_t getInternalInputOrderEnd() { return InternalInputOrderEnd; }
+
 private:
   // Check if a path is valid and emit any errors
   bool isPathValid(const std::string &Path) const;
@@ -215,6 +225,9 @@ protected:
   /// the link command-line.
   static std::unordered_map<std::string, MemoryArea *>
       ResolvedPathToMemoryAreaMap;
+
+  /// The ordinal value marking the end of internal inputs.
+  static uint32_t InternalInputOrderEnd;
 };
 
 } // namespace eld
