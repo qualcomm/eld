@@ -4,11 +4,13 @@
 # relative relocations. Check for symbols size after relaxation
 #END_COMMENT
 #--------------------------------------------------------------------
-RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.o
+RUN: %llvm-mc -filetype=obj -mattr=+relax %p/Inputs/main.s -o %t1.o
 RUN: %link %linkopts  %t1.o -o %t.out -T %p/Inputs/s.t
 RUN: %objdump --no-print-imm-hex -d %t.out 2>&1 | %filecheck %s
 RUN: %readelf -s %t.out 2>&1 | %filecheck %s -check-prefix=SYMSIZE
 
 #CHECK: lw a{{.*}}, 0(gp)
 #CHECK: lw a{{.*}}, 4(gp)
-#SYMSIZE: 30 {{.*}} main
+## main is 16 bytes before relaxation; each lui/lw pair relaxes from 8 to 4
+## bytes leaving an 8 byte function.
+#SYMSIZE: 8 {{.*}} main
