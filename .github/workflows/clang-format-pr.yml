@@ -33,7 +33,10 @@ jobs:
       - name: Check formatting of changed files
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          set +e
           clang-format --version
           source ./etc/bash/eld_clang_format_helpers.sh
           eld_clang_format_check "${{ github.base_ref }}"
+          check_rc=$?
+          exit "$check_rc"
