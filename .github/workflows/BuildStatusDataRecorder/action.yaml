@@ -67,21 +67,39 @@ runs:
           done
           echo "Data lock removed"
         }
-        check_lock
-        # After data lock is released by other workflows, a lock is acquired for current workflow.
-        echo "Adding ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
-        touch data.lock
-        git add .
-        git commit -m "Add data lock for ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data to be written"
-        # Keep trying until a data lock is pushed successfully.
-        until git push -f origin HEAD:refs/heads/dashboard; do
-          sleep 5
+
+        commit_if_changes() {
+          COMMIT_MSG="$1"
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit: ${COMMIT_MSG}"
+            return 1
+          fi
+          git commit -m "${COMMIT_MSG}"
+          return 0
+        }
+
+        LOCK_COMMIT_MSG="Add data lock for ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data to be written"
+        # Keep trying until a data lock is committed and pushed successfully.
+        while true; do
           check_lock
+          # After data lock is released by other workflows, a lock is acquired for current workflow.
+          echo "Adding ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
+          touch data.lock
+          if ! commit_if_changes "${LOCK_COMMIT_MSG}"; then
+            echo "Data lock changed during acquisition, retrying..."
+            sleep 5
+            git fetch --all
+            git reset --hard origin/dashboard
+            continue
+          fi
+          if git push -f origin HEAD:refs/heads/dashboard; then
+            break
+          fi
+          echo "Push failed while acquiring lock. Retrying..."
+          sleep 5
           git fetch --all
           git reset --hard origin/dashboard
-          touch data.lock
-          git add .
-          git commit -m "Add data lock for ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data to be written"
         done
         # Record build status data for current workflow.
         echo "Proceeding with data recording..."
@@ -91,40 +109,48 @@ runs:
         python3 record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
         EXITCODE=$?
         if [ "$EXITCODE" -ne 0 ]; then
+           UNLOCK_COMMIT_MSG="Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
            echo "Build Data Recording Failed!"
            echo "Removing Data Lock and Cleaning Up..."
            rm -f record_builds.py
            rm -f data.lock
-           git add .
-           git commit -m "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
-           until git push -f origin HEAD:refs/heads/dashboard; do
-            sleep 5
-            git fetch --all
-            git reset --hard origin/dashboard
-            rm -f data.lock
-            git add .
-            git commit -m "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
-          done
+           if commit_if_changes "${UNLOCK_COMMIT_MSG}"; then
+             until git push -f origin HEAD:refs/heads/dashboard; do
+              echo "Push failed while removing lock. Retrying..."
+              sleep 5
+              git fetch --all
+              git reset --hard origin/dashboard
+              rm -f data.lock
+              if ! commit_if_changes "${UNLOCK_COMMIT_MSG}"; then
+                echo "Data lock already removed while retrying cleanup."
+                break
+              fi
+            done
+           fi
           rm -rf ${DASH_DIR}
           git checkout -
         else
+          DATA_COMMIT_MSG="Add ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data in DB"
           cp build-status.db ${DASH_DIR}/
           rm -f record_builds.py
           echo "Removing ${{ inputs.workflow-name }} ${{ inputs.arch-name }} data lock."
           rm -f data.lock
-          git add .
-          git commit -m "Add ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data in DB"
-          # Keep trying until lock/conflicts are resolved and build data is pushed successfully.
-          until git push -f origin HEAD:refs/heads/dashboard; do
-            sleep 5
-            check_lock
-            git fetch --all
-            git reset --hard origin/dashboard
-            cp -f ${DASH_DIR}/build-status.db .
-            rm -f data.lock
-            git add .
-            git commit -m "Add ${{ inputs.workflow-name }} ${{ matrix.arch.name }} build status data in DB"
-          done
+          if commit_if_changes "${DATA_COMMIT_MSG}"; then
+            # Keep trying until lock/conflicts are resolved and build data is pushed successfully.
+            until git push -f origin HEAD:refs/heads/dashboard; do
+              echo "Push failed while writing build data. Retrying..."
+              sleep 5
+              check_lock
+              git fetch --all
+              git reset --hard origin/dashboard
+              cp -f ${DASH_DIR}/build-status.db .
+              rm -f data.lock
+              if ! commit_if_changes "${DATA_COMMIT_MSG}"; then
+                echo "No new build data changes to retry pushing."
+                break
+              fi
+            done
+          fi
           rm -rf ${DASH_DIR}
           git checkout -
         fi
