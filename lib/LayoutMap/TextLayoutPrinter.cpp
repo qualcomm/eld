@@ -32,6 +32,7 @@
 #include "eld/Script/MemoryCmd.h"
 #include "eld/Script/OutputSectData.h"
 #include "eld/Script/OverlayDesc.h"
+#include "eld/Script/PhdrsCmd.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Script/ScriptSymbol.h"
 #include "eld/Script/StrToken.h"
@@ -1221,9 +1222,36 @@ void TextLayoutPrinter::printMemoryCommand(const MemoryCmd *M) {
   outputStream() << "\n";
 }
 
+void TextLayoutPrinter::printPhdrsCommand(const PhdrsCmd *P) {
+  std::string Str;
+  {
+    llvm::raw_string_ostream OS(Str);
+    P->dumpOnlyThis(OS);
+    outputStream() << "# " << OS.str();
+    outputStream() << "\n";
+    outputStream() << "#{";
+    outputStream() << "\n";
+  }
+  for (const auto *Cmd : P->getPhdrDescriptors()) {
+    if (!Cmd || !Cmd->isPhdrDesc())
+      continue;
+    llvm::raw_string_ostream OS(Str);
+    Str.clear();
+    Cmd->dump(OS);
+    outputStream() << "#"
+                   << "\t" << OS.str();
+  }
+  outputStream() << "#}";
+  outputStream() << "\n";
+}
+
 void TextLayoutPrinter::printScriptCommands(const LinkerScript &Script) {
-  if (Script.getMemoryCommand())
-    printMemoryCommand(Script.getMemoryCommand());
+  for (const auto *Cmd : Script.getScriptCommands()) {
+    if (const auto *P = llvm::dyn_cast<PhdrsCmd>(Cmd))
+      printPhdrsCommand(P);
+    else if (const auto *M = llvm::dyn_cast<MemoryCmd>(Cmd))
+      printMemoryCommand(M);
+  }
 
   for (const OverlayDesc *O : Script.getOverlayDescs()) {
     std::string Str;

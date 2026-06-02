@@ -23,6 +23,7 @@ namespace eld {
 
 class LinkerConfig;
 class Assignment;
+class PhdrsCmd;
 
 class TextLayoutPrinter {
 public:
@@ -151,6 +152,8 @@ public:
   void printIsPHDRSLoadedInfo(bool IsLoaded, bool UseColor);
 
   void printScriptCommands(const LinkerScript &Script);
+
+  void printPhdrsCommand(const PhdrsCmd *Cmd);
 
   void printMemoryCommand(const MemoryCmd *Cmd);
 

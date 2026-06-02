@@ -10,12 +10,27 @@ RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
 RUN: -T %p/Inputs/script.t -o %t2.out -Map %t1.map \
 RUN: 2>&1
 RUN: %readelf -l -W %t2.out 2>&1 | %filecheck %s
+RUN: %filecheck %s -check-prefix=MAPCMD < %t1.map
 RUN: %filecheck %s -check-prefix=MAP < %t1.map
 #END_TEST
 #CHECK:   00     .t1
 #CHECK:   01     .t2
 #CHECK:   02     .t3
 #CHECK:   03     .t4
+#MAPCMD: # Output Section and Layout
+#MAPCMD: # MEMORY
+#MAPCMD: #{
+#MAPCMD: #{{[[:space:]]+}}b1 (rx) : ORIGIN = {{.*}}
+#MAPCMD: #{{[[:space:]]+}}b2 (rx) : ORIGIN = {{.*}}
+#MAPCMD: #{{[[:space:]]+}}b3 (rw) : ORIGIN = {{.*}}
+#MAPCMD: #}
+#MAPCMD: # PHDRS
+#MAPCMD: #{
+#MAPCMD: #{{[[:space:]]+}}A PT_LOAD;
+#MAPCMD: #{{[[:space:]]+}}B PT_LOAD;
+#MAPCMD: #{{[[:space:]]+}}C PT_LOAD;
+#MAPCMD: #{{[[:space:]]+}}D PT_LOAD;
+#MAPCMD: #}
 #MAP: .t1 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ A ], Memory : [b1, b1]
 #MAP: .t2 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ B ], Memory : [b2, b2]
 #MAP: .t3 {{.*}} {{.*}} # Offset: {{.*}}, LMA: {{.*}}, Alignment: {{.*}}, Flags: SHF_ALLOC|SHF_EXECINSTR, Type: SHT_PROGBITS, Segments : [ C ], Memory : [b3, b3]

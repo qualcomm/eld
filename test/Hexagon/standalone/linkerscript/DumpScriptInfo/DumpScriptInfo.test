@@ -12,4 +12,4 @@ RUN: echo "INPUT(\"%t1.o\")" >> %t4.t
 RUN: echo "GROUP(\"%t2.lib2.a\")" >> %t4.t
 RUN: %link %linkopts -T %t4.t -M 2>&1 | %filecheck %s --allow-empty
 CHECK: # Output Section and Layout
-CHECK-NEXT: plusval(0x100) = 0x100;
+CHECK: plusval(0x100) = 0x100;
