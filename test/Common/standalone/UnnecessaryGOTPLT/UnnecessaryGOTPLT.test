@@ -1,0 +1,12 @@
+#---UnnecessaryGOTPLT.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD does not create unnecessary .got.plt section when only
+# .got section is required for a static executable. (issue #1030)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %link %linkopts -o %t1.1.out %t1.1.o
+RUN: %readelf -S %t1.1.out | %filecheck %s
+#CHECK: .got
+#CHECK-NOT: .got.plt
+#END_TEST

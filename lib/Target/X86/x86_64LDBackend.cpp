@@ -193,8 +193,9 @@ x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
                         config().options().traceSymbol(*R)) ||
                        m_Module.getPrinter()->traceDynamicLinking()))
     config().raise(Diag::create_got_entry) << R->name();
-  // If we are creating a GOT, always create a .got.plt.
-  if (!getGOTPLT()->hasFragments()) {
+  // Only create .got.plt when dynamic linking is involved
+  if (!getGOTPLT()->hasFragments() && 
+      (config().isCodeDynamic() || T == GOT::GOTPLT0)) {
     // GOTPLT0 will populate its first 8 bytes with .dynamic address.
     x86_64GOTPLT0::Create(getGOTPLT(), &m_Module);
   }
