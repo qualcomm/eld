@@ -78,9 +78,7 @@ eld::Expected<bool> DynamicELFReader<ELFT>::readDynamic() {
 
   ELFDynObjectFile *dynObjFile =
       llvm::cast<ELFDynObjectFile>(&(this->m_InputFile));
-  /// FIXME: unneeded cast?
-  ELFSection *dynamicSect =
-      llvm::dyn_cast<ELFSection>(dynObjFile->getDynamic());
+  ELFSection *dynamicSect = dynObjFile->getDynamic();
   if (!dynamicSect) {
     return std::make_unique<plugin::DiagnosticEntry>(
         plugin::DiagnosticEntry(Diag::err_cannot_read_section, {".dynamic"}));
