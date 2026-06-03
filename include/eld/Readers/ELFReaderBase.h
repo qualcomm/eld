@@ -93,11 +93,9 @@ public:
 
   /// Creates and returns an instance of a reader class.
   ///
-  /// The reader class depends on the input type and the target
-  /// configuration. For example, if an input is a dyanmic input library
-  /// and the target configuration is little-endian 32-bits architecture,
-  /// then the reader class would be
-  /// DynamicELFReader<llvm::object::ELF32LE>.
+  /// The reader class depends on the input type. For example, if an input is a
+  /// dynamic input library and a little-endian 32-bits architecture, then the
+  /// reader class would be DynamicELFReader<llvm::object::ELF32LE>.
   static eld::Expected<std::unique_ptr<ELFReaderBase>>
   Create(Module &module, InputFile &inputFile);
 
