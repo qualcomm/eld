@@ -3,23 +3,21 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
-
+// Refer to eld/Target/GNULDBackend.h for additional hooks.
 //===----------------------------------------------------------------------===//
 #ifndef TEMPLATE_LDBACKEND_H
 #define TEMPLATE_LDBACKEND_H
 
+#include "TemplateELFDynamic.h"
 #include "TemplateGOT.h"
 #include "TemplatePLT.h"
-#include "eld/Config/LinkerConfig.h"
-#include "eld/Object/ObjectBuilder.h"
-#include "eld/Readers/ELFSection.h"
-#include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
 
 namespace eld {
 
 class LinkerConfig;
 class TemplateInfo;
+class TemplateELFDynamic;
 
 //===----------------------------------------------------------------------===//
 /// TemplateLDBackend - linker backend of Template target of GNU ELF format
@@ -28,40 +26,52 @@ class TemplateLDBackend : public GNULDBackend {
 public:
   TemplateLDBackend(Module &pModule, TemplateInfo *pInfo);
 
-  void initializeAttributes() override;
+  ~TemplateLDBackend();
 
-  /// initRelocator - create and initialize Relocator.
-  bool initRelocator() override;
+  /// finalizeTargetSymbols - finalize the symbol value
+  bool finalizeTargetSymbols() override;
 
   /// getRelocator - return relocator.
   Relocator *getRelocator() const override;
+
+  /// getTargetSectionOrder - compute the layout order of target section
+  unsigned int getTargetSectionOrder(const ELFSection &pSectHdr) const override;
+
+  /// initRelocator - create and initialize Relocator.
+  bool initRelocator() override;
 
   void initTargetSections(ObjectBuilder &pBuilder) override;
 
   void initTargetSymbols() override;
 
-  bool initBRIslandFactory() override;
+  void initializeAttributes() override;
 
-  bool initStubFactory() override;
+  ELFDynamic *dynamic() override { return m_pDynamic; }
 
-  /// getTargetSectionOrder - compute the layout order of target section
-  unsigned int getTargetSectionOrder(const ELFSection &pSectHdr) const override;
+  // ---  GOT Support ------
+  TemplateGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
 
-  /// finalizeTargetSymbols - finalize the symbol value
-  bool finalizeTargetSymbols() override;
+  void recordGOT(ResolveInfo *, TemplateGOT *);
 
-  uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
+  void recordGOTPLT(ResolveInfo *, TemplateGOT *);
 
-  ELFDynamic *dynamic() override { return nullptr; }
+  // ---------------------  PLT Support ---------------------------
+  TemplatePLT *createPLT(ELFObjectFile *Obj, ResolveInfo *sym);
 
-  void doCreateProgramHdrs() override { return; }
+  void recordPLT(ResolveInfo *, TemplatePLT *);
+
+  TemplatePLT *findEntryInPLT(ResolveInfo *) const;
+
+  TemplateGOT *findEntryInGOT(ResolveInfo *) const;
+
+  // ---------------------  Dynamic relocation support ------------
 
 private:
   /// getRelEntrySize - the size in BYTE of rela type relocation
   size_t getRelEntrySize() override { return 0; }
 
   /// getRelaEntrySize - the size in BYTE of rela type relocation
-  size_t getRelaEntrySize() override { return 12; }
+  size_t getRelaEntrySize() override { return 0; }
 
   uint64_t maxBranchOffset() override { return 0; }
 
@@ -74,12 +84,11 @@ public:
   std::size_t GOTEntriesCount() const override { return m_GOTMap.size(); }
 
 private:
-  Relocator *m_pRelocator;
-  llvm::BumpPtrAllocator _alloc;
-
-  LDSymbol *m_pEndOfImage;
+  Relocator *m_pRelocator = nullptr;
+  TemplateELFDynamic *m_pDynamic = nullptr;
 
   llvm::DenseMap<ResolveInfo *, TemplateGOT *> m_GOTMap;
+  llvm::DenseMap<ResolveInfo *, TemplateGOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, TemplatePLT *> m_PLTMap;
 };
 } // namespace eld

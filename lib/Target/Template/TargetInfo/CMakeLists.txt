@@ -1,1 +1,2 @@
 llvm_add_library(ELDTemplateTargetInfo STATIC TemplateTargetInfo.cpp)
+# add this: target_link_libraries(ELDTemplateTargetInfo LLVMTemplateAsmParser LLVMTemplateCodeGen)

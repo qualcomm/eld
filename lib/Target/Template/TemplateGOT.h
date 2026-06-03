@@ -3,6 +3,8 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
+// Refer to eld/Fragment/GOT.h for additional hooks.
+//===----------------------------------------------------------------------===//
 
 #ifndef ELD_TARGET_TEMPLATE_GOT_H
 #define ELD_TARGET_TEMPLATE_GOT_H

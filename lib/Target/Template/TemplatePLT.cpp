@@ -14,7 +14,7 @@ using namespace eld;
 // PLT0
 TemplatePLT0 *TemplatePLT0::Create(eld::IRBuilder &I, TemplateGOT *G,
                                    ELFSection *O, ResolveInfo *R) {
-  TemplatePLT0 *P = make<TemplatePLT0>(G, I, O, R, 4, sizeof(hexagon_plt0));
+  TemplatePLT0 *P = make<TemplatePLT0>(G, I, O, R, 4, sizeof(template_plt0));
 
   return P;
 }
@@ -22,7 +22,7 @@ TemplatePLT0 *TemplatePLT0::Create(eld::IRBuilder &I, TemplateGOT *G,
 // PLTN
 TemplatePLTN *TemplatePLTN::Create(eld::IRBuilder &I, TemplateGOT *G,
                                    ELFSection *O, ResolveInfo *R) {
-  TemplatePLTN *P = make<TemplatePLTN>(G, I, O, R, 4, sizeof(hexagon_plt1));
+  TemplatePLTN *P = make<TemplatePLTN>(G, I, O, R, 4, sizeof(template_plt1));
 
   return P;
 }

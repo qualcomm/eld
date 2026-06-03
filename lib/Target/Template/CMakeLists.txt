@@ -1,6 +1,7 @@
 llvm_add_library(
   ELDTemplateLDBackend
   STATIC
+  TemplateELFDynamic.cpp
   TemplateEmulation.cpp
   TemplateGOT.cpp
   TemplateInfo.cpp

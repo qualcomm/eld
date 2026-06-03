@@ -7,30 +7,23 @@
 #ifndef TEMPLATE_LLVM_EXTERN_H
 #define TEMPLATE_LLVM_EXTERN_H
 
-#include "llvm/BinaryFormat/ELF.h"
+#include <cstdint>
 
+// Here you can add information about relocations. Look at other architectures
+// to see what kind of information they record.
 typedef struct {
   const char *Name;
   const uint32_t Type;
-  const uint32_t EffectiveBits;
-  const uint32_t Alignment;
-  const uint32_t Shift;
-  const bool VerifyRange;
-  const bool VerifyAlignment;
-  const bool IsSigned;
   uint32_t Size;
 } RelocationInfo;
 
+// Here you can add helper functions that do various things based on the
+// relocation information. Look at other architectures to see what kind of
+// helpers they implement.
 namespace llvm {
 namespace Template {
 extern "C" {
 uint32_t doReloc(uint32_t RelocType, uint32_t Instruction, uint32_t Value);
-
-bool verifyRange(uint32_t RelocType, uint32_t Value);
-
-bool verifyAlignment(uint32_t RelocType, uint32_t Value);
-
-bool isTruncated(uint32_t pRelocType, uint32_t Value);
 
 extern const RelocationInfo Relocs[];
 }

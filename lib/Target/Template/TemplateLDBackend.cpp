@@ -8,30 +8,7 @@
 #include "Template.h"
 #include "TemplateRelocator.h"
 #include "TemplateStandaloneInfo.h"
-#include "eld/BranchIsland/StubFactory.h"
-#include "eld/Config/LinkerConfig.h"
-#include "eld/Fragment/FillFragment.h"
-#include "eld/Fragment/RegionFragment.h"
-#include "eld/Fragment/Stub.h"
-#include "eld/Object/ObjectBuilder.h"
-#include "eld/Object/ObjectLinker.h"
-#include "eld/Support/MemoryArea.h"
-#include "eld/Support/MsgHandling.h"
-#include "eld/Support/RegisterTimer.h"
 #include "eld/Support/TargetRegistry.h"
-#include "eld/SymbolResolver/IRBuilder.h"
-#include "eld/Target/ELFFileFormat.h"
-#include "eld/Target/ELFSegmentFactory.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/BinaryFormat/ELF.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/ErrorOr.h"
-#include "llvm/Support/Memory.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/Path.h"
-#include "llvm/Support/Program.h"
-#include "llvm/TargetParser/Host.h"
-#include "llvm/TargetParser/Triple.h"
 #include <string>
 
 using namespace eld;
@@ -41,13 +18,15 @@ using namespace llvm;
 // TemplateLDBackend
 //===----------------------------------------------------------------------===//
 TemplateLDBackend::TemplateLDBackend(Module &pModule, TemplateInfo *pInfo)
-    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr),
-      m_pEndOfImage(nullptr) {}
+    : GNULDBackend(pModule, pInfo) {}
 
-bool TemplateLDBackend::initRelocator() {
-  if (nullptr == m_pRelocator) {
-    m_pRelocator = make<TemplateRelocator>(*this, config(), m_Module);
-  }
+TemplateLDBackend::~TemplateLDBackend() {}
+
+/// finalizeSymbol - finalize the symbol value
+bool TemplateLDBackend::finalizeTargetSymbols() {
+  if (config().codeGenType() == LinkerConfig::Object)
+    return true;
+
   return true;
 }
 
@@ -61,54 +40,18 @@ TemplateLDBackend::getTargetSectionOrder(const ELFSection &pSectHdr) const {
   return SHO_UNDEFINED;
 }
 
+bool TemplateLDBackend::initRelocator() {
+  if (nullptr == m_pRelocator)
+    m_pRelocator = make<TemplateRelocator>(*this, config(), m_Module);
+
+  return true;
+}
+
 void TemplateLDBackend::initTargetSections(ObjectBuilder &pBuilder) {}
 
 void TemplateLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
-
-  m_pEndOfImage =
-      m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-          m_Module.getInternalInput(Module::Script), "___end",
-          ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Absolute,
-          0x0, // size
-          0x0, // value
-          FragmentRef::null());
-  if (m_pEndOfImage)
-    m_pEndOfImage->setShouldIgnore(false);
-}
-
-bool TemplateLDBackend::initBRIslandFactory() { return true; }
-
-bool TemplateLDBackend::initStubFactory() { return true; }
-
-/// finalizeSymbol - finalize the symbol value
-bool TemplateLDBackend::finalizeTargetSymbols() {
-  if (config().codeGenType() == LinkerConfig::Object)
-    return true;
-
-  // Get the pointer to the real end of the image.
-  if (m_pEndOfImage && !m_pEndOfImage->scriptDefined()) {
-    uint64_t imageEnd = 0;
-    for (auto &seg : elfSegmentTable()) {
-      if (seg->type() != llvm::ELF::PT_LOAD)
-        continue;
-      uint64_t segSz = seg->paddr() + seg->memsz();
-      if (imageEnd < segSz)
-        imageEnd = segSz;
-    }
-    alignAddress(imageEnd, 8);
-    m_pEndOfImage->setValue(imageEnd + 1);
-  }
-
-  return true;
-}
-
-uint64_t
-TemplateLDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
-  if (!m_pEndOfImage)
-    return GNULDBackend::getValueForDiscardedRelocations(R);
-  return m_pEndOfImage->value();
 }
 
 void TemplateLDBackend::initializeAttributes() {
@@ -117,9 +60,48 @@ void TemplateLDBackend::initializeAttributes() {
 
 Stub *TemplateLDBackend::getBranchIslandStub(Relocation *pReloc,
                                              int64_t targetValue) const {
-  (void)pReloc;
-  (void)targetValue;
-  return *(getStubFactory()->getAllStubs().cbegin());
+  return nullptr;
+}
+
+TemplateGOT *TemplateLDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
+                                          ResolveInfo *R) {
+  return nullptr;
+}
+
+// Record GOT entry.
+void TemplateLDBackend::recordGOT(ResolveInfo *I, TemplateGOT *G) {
+  m_GOTMap[I] = G;
+}
+
+// Record GOTPLT entry.
+void TemplateLDBackend::recordGOTPLT(ResolveInfo *I, TemplateGOT *G) {
+  m_GOTPLTMap[I] = G;
+}
+
+// Find an entry in the GOT.
+TemplateGOT *TemplateLDBackend::findEntryInGOT(ResolveInfo *I) const {
+  auto Entry = m_GOTMap.find(I);
+  if (Entry == m_GOTMap.end())
+    return nullptr;
+  return Entry->second;
+}
+
+// Create PLT entry.
+TemplatePLT *TemplateLDBackend::createPLT(ELFObjectFile *Obj, ResolveInfo *R) {
+  return nullptr;
+}
+
+// Record PLT entry
+void TemplateLDBackend::recordPLT(ResolveInfo *I, TemplatePLT *P) {
+  m_PLTMap[I] = P;
+}
+
+// Find an entry in the PLT
+TemplatePLT *TemplateLDBackend::findEntryInPLT(ResolveInfo *I) const {
+  auto Entry = m_PLTMap.find(I);
+  if (Entry == m_PLTMap.end())
+    return nullptr;
+  return Entry->second;
 }
 
 namespace eld {

@@ -3,8 +3,6 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
-
-//===----------------------------------------------------------------------===//
 #ifndef TEMPLATE_RELOCATION_FUNCTIONS_H
 #define TEMPLATE_RELOCATION_FUNCTIONS_H
 
@@ -20,27 +18,6 @@ struct RelocationDescription;
 TemplateRelocator::Result applyNone(Relocation &pEntry,
                                     TemplateRelocator &pParent,
                                     RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyAbs(Relocation &pEntry,
-                                   TemplateRelocator &pParent,
-                                   RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyRel(Relocation &pEntry,
-                                   TemplateRelocator &pParent,
-                                   RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyHILO(Relocation &pEntry,
-                                    TemplateRelocator &pParent,
-                                    RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyJumpOrCall(Relocation &pEntry,
-                                          TemplateRelocator &pParent,
-                                          RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyAlign(Relocation &pEntry,
-                                     TemplateRelocator &pParent,
-                                     RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyRelax(Relocation &pEntry,
-                                     TemplateRelocator &pParent,
-                                     RelocationDescription &RelocDesc);
-TemplateRelocator::Result applyGPRel(Relocation &pEntry,
-                                     TemplateRelocator &pParent,
-                                     RelocationDescription &RelocDesc);
 TemplateRelocator::Result unsupported(Relocation &pEntry,
                                       TemplateRelocator &pParent,
                                       RelocationDescription &RelocDesc);

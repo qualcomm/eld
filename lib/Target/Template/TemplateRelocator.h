@@ -3,7 +3,7 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
-
+// Refer to eld/Target/Relocator.h for additional hooks.
 //===----------------------------------------------------------------------===//
 #ifndef TEMPLATE_RELOCATION_FACTORY_H
 #define TEMPLATE_RELOCATION_FACTORY_H

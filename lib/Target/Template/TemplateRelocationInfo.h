@@ -3,13 +3,6 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
-
-//===- TemplateRelocationInfo.h - Relocation Application
-// Helper-------------===//
-//
-// (c) 2020 Qualcomm Innovation Center, Inc. All rights reserved.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TEMPLATE_RELOCATION_INFO_H
 #define TEMPLATE_RELOCATION_INFO_H
 

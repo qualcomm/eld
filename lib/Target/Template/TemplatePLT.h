@@ -3,6 +3,8 @@
 // See https://github.com/qualcomm/eld/LICENSE.txt for license information.
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
+// Refer to eld/Fragment/PLT.h for additional hooks.
+//===----------------------------------------------------------------------===//
 
 #ifndef ELD_TARGET_TEMPLATE_PLT_H
 #define ELD_TARGET_TEMPLATE_PLT_H
@@ -13,11 +15,11 @@
 
 namespace {
 
-const uint8_t hexagon_plt0[] = {
+const uint8_t template_plt0[] = {
     0x00,
 };
 
-const uint8_t hexagon_plt1[] = {
+const uint8_t template_plt1[] = {
     0x00,
 };
 
@@ -48,7 +50,7 @@ public:
   virtual ~TemplatePLT0() {}
 
   virtual llvm::ArrayRef<uint8_t> getContent() const override {
-    return hexagon_plt0;
+    return template_plt0;
   }
 
   static TemplatePLT0 *Create(eld::IRBuilder &I, TemplateGOT *G, ELFSection *O,
@@ -64,7 +66,7 @@ public:
   virtual ~TemplatePLTN() {}
 
   virtual llvm::ArrayRef<uint8_t> getContent() const override {
-    return hexagon_plt1;
+    return template_plt1;
   }
 
   static TemplatePLTN *Create(eld::IRBuilder &I, TemplateGOT *G, ELFSection *O,

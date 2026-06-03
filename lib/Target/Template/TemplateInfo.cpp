@@ -14,25 +14,18 @@
 
 using namespace eld;
 
-std::string TemplateInfo::flagString(uint64_t flag) const { return ""; }
-
-llvm::StringRef TemplateInfo::getOutputMCPU() const { return "Template"; }
-
 //===----------------------------------------------------------------------===//
 // TemplateInfo
 //===----------------------------------------------------------------------===//
-TemplateInfo::TemplateInfo(LinkerConfig &pConfig)
-    : TargetInfo(pConfig), m_OutputFlag(-1) {}
+TemplateInfo::TemplateInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {}
 
-bool TemplateInfo::initialize() {
-  m_CmdLineFlag = -1;
-  return true;
+/// flags - the value of ElfXX_Ehdr::e_flags
+uint64_t TemplateInfo::flags() const {
+  // FIXME: Add proper code.
+  return m_OutputFlag ? *m_OutputFlag : 0;
 }
 
-uint64_t TemplateInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
-
-bool TemplateInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
-                              bool) {
+bool TemplateInfo::checkFlags(uint64_t pFlag, const InputFile *pInput, bool) {
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
   if (!m_OutputFlag)
@@ -41,11 +34,3 @@ bool TemplateInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
   // FIXME: Check for compatibility about other versions.
   return true;
 }
-
-/// flags - the value of ElfXX_Ehdr::e_flags
-uint64_t TemplateInfo::flags() const {
-  // FIXME: Add proper code.
-  return m_OutputFlag;
-}
-
-uint8_t TemplateInfo::OSABI() const { return llvm::ELF::ELFOSABI_NONE; }

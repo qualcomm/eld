@@ -23,7 +23,7 @@ using namespace eld;
 TemplateRelocator::TemplateRelocator(TemplateLDBackend &pParent,
                                      LinkerConfig &pConfig, Module &pModule)
     : Relocator(pConfig, pModule), m_Target(pParent) {
-  // Mark force verify bit for specified relcoations
+  // Mark force verify bit for specified relocations
   if (m_Module.getPrinter()->verifyReloc() &&
       config().options().verifyRelocList().size()) {
     auto &list = config().options().verifyRelocList();
@@ -170,75 +170,6 @@ TemplateRelocator::Result applyNone(Relocation &pReloc,
                                     TemplateRelocator &pParent,
                                     RelocationDescription &pRelocDesc) {
   return TemplateRelocator::OK;
-}
-
-TemplateRelocator::Result applyAbs(Relocation &pReloc,
-                                   TemplateRelocator &pParent,
-                                   RelocationDescription &pRelocDesc) {
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-
-  return ApplyReloc(pReloc, S + A, pRelocDesc);
-}
-
-TemplateRelocator::Result applyRel(Relocation &pReloc,
-                                   TemplateRelocator &pParent,
-                                   RelocationDescription &pRelocDesc) {
-
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-  int64_t P = pReloc.place(pParent.module());
-
-  return ApplyReloc(pReloc, S + A - P, pRelocDesc);
-}
-
-TemplateRelocator::Result applyHILO(Relocation &pReloc,
-                                    TemplateRelocator &pParent,
-                                    RelocationDescription &pRelocDesc) {
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-
-  return ApplyReloc(pReloc, S + A, pRelocDesc);
-}
-
-TemplateRelocator::Result applyRelax(Relocation &pReloc,
-                                     TemplateRelocator &pParent,
-                                     RelocationDescription &pRelocDesc) {
-
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-
-  return ApplyReloc(pReloc, S + A, pRelocDesc);
-}
-
-TemplateRelocator::Result applyJumpOrCall(Relocation &pReloc,
-                                          TemplateRelocator &pParent,
-                                          RelocationDescription &pRelocDesc) {
-
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-
-  return ApplyReloc(pReloc, S + A, pRelocDesc);
-}
-
-TemplateRelocator::Result applyAlign(Relocation &pReloc,
-                                     TemplateRelocator &pParent,
-                                     RelocationDescription &pRelocDesc) {
-
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-
-  return ApplyReloc(pReloc, S + A, pRelocDesc);
-}
-
-TemplateRelocator::Result applyGPRel(Relocation &pReloc,
-                                     TemplateRelocator &pParent,
-                                     RelocationDescription &pRelocDesc) {
-
-  int64_t S = pReloc.symValue(pParent.module());
-  int64_t A = pReloc.addend();
-
-  return ApplyReloc(pReloc, S + A, pRelocDesc);
 }
 
 Relocator::Result unsupported(Relocation &pReloc, TemplateRelocator &pParent,

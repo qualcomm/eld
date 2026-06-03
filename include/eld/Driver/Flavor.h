@@ -15,6 +15,7 @@ enum DriverFlavor {
   Hexagon,         // Hexagon
   ARM_AArch64,     // ARM, AArch64
   RISCV32_RISCV64, // RISCV32
+  Template,        // Template
   x86_64,          // x86_64
   Unknown          // Unknown
 };

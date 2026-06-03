@@ -16,6 +16,10 @@ if(ELD_ENABLE_TARGET_RISCV)
   set(DRIVER_SOURCES ${DRIVER_SOURCES} RISCVLinkDriver.cpp)
 endif()
 
+if(ELD_ENABLE_TARGET_TEMPLATE)
+  set(DRIVER_SOURCES ${DRIVER_SOURCES} TemplateLinkDriver.cpp)
+endif()
+
 if(ELD_ENABLE_TARGET_X86)
   set(DRIVER_SOURCES ${DRIVER_SOURCES} x86_64LinkDriver.cpp)
 endif()
