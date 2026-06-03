@@ -71,12 +71,8 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git checkout --orphan docs
-          # A Temp dir for dashboard data.
-          DASH_DIR="$(mktemp -d)"
-          mv dash ${DASH_DIR}/
           git rm -rf .
           cp -r ${ROOT}/obj/tools/eld/docs/userguide/html/. .
-          mv ${DASH_DIR}/dash .
           touch .nojekyll
           git add .
           git commit -m "Update documentation"
