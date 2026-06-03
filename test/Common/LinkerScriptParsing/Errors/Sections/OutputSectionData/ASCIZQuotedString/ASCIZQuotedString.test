@@ -5,4 +5,4 @@ UNSUPPORTED: old_lsparser
 #END_COMMENT
 RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s
 
-CHECK: Error: {{.*}}script.t:3: ASCIZ expects a quoted string literal
+CHECK: Error: {{.*}}script.t:3:11: ASCIZ expects a quoted string literal

@@ -6,4 +6,4 @@
 RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
 RUN: %link %linkopts -Wlinker-script -o %t1.elf %t1.o -T %p/Inputs/asciiz-invalid-octal-too-long.t 2>&1 | %filecheck %s --check-prefix=WARN
 
-WARN: Warning: {{.*}}asciiz-invalid-octal-too-long.t:4: ASCIZ octal escape supports at most 3 digits
+WARN: Warning: {{.*}}asciiz-invalid-octal-too-long.t:4:11: ASCIZ octal escape supports at most 3 digits

@@ -13,7 +13,7 @@ RUN: %not %link %linkopts %t1.o -T %p/Inputs/segment-flags.t 2>&1 | %filecheck %
 # Check that the errors are not reported before parsing is complete
 RUN: %not %link %linkopts %t1.o -T %p/Inputs/segment-flags-syntax.t 2>&1 | %filecheck %s --check-prefix=PARSE
 #PARSE-NOT: undefined symbol {{.*}} referenced in expression
-#PARSE: segment-flags-syntax.t:5: unknown directive: This
+#PARSE: segment-flags-syntax.t:5:1: unknown directive: This
 #PARSE: Fatal: Linking had errors
 
 # Check that the assertion is reported too

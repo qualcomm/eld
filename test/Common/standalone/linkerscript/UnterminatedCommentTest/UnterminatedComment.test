@@ -7,5 +7,5 @@ comment unterminated.
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
 
-#CHECK: {{script.t:1:1: error: unterminated comment|script.t:1: unclosed comment in a linker script}}
+#CHECK: Error: {{.*}}script.t:1:1: unclosed comment in a linker script
 #END_TEST

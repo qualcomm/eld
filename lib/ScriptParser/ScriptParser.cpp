@@ -1601,7 +1601,8 @@ void ScriptParser::readVersionScript() {
   readVersionScriptCommand();
   llvm::StringRef Tok = peek();
   if (Tok.size())
-    setError("EOF expected, but got " + Tok);
+    // Point at the unexpected token rather than the last consumed token.
+    setError("EOF expected, but got " + Tok, Tok);
 }
 
 void ScriptParser::parse() {
@@ -1634,7 +1635,8 @@ void ScriptParser::readDynamicList() {
     consume(";");
   }
   if (!atEOF())
-    setError("Unexpected token: " + peek());
+    // Use peek() as anchor so line/column/caret match the offending token.
+    setError("Unexpected token: " + peek(), peek());
 }
 
 void ScriptParser::readExternList() {
@@ -1652,7 +1654,8 @@ void ScriptParser::readExternList() {
     consume(";");
   }
   if (!atEOF())
-    setError("Unexpected token: " + peek());
+    // Use peek() as anchor so line/column/caret match the offending token.
+    setError("Unexpected token: " + peek(), peek());
 }
 
 bool ScriptParser::isValidFilePattern(llvm::StringRef Pat) {

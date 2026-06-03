@@ -9,6 +9,6 @@ RUN: %not %link %linkopts %t1.o %tlib.a -o %t.out.err1 --extern-list=%p/Inputs/l
 RUN: %not %link %linkopts %t1.o %tlib.a -o %t.out.err2 --extern-list=%p/Inputs/list2 2>&1 | %filecheck --check-prefix "ERR2" %s
 RUN: %readelf -s %t.out  | %filecheck %s
 
-#ERR1: {{syntax error|list1:1: ; expected, but got [}]}}
-#ERR2: {{syntax error|list2:1: ; expected, but got \*/}}
+#ERR1: {{(syntax error|Error: .*list1:1:6: ; expected, but got [}])}}
+#ERR2: {{(syntax error|Error: .*list2:1:7: ; expected, but got \*/)}}
 #CHECK:       {{[0-9a-f]+}}: {{[0-9a-f]+}}    12 FUNC    GLOBAL DEFAULT    1 foo
