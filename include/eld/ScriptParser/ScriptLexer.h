@@ -38,12 +38,14 @@ public:
   explicit ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile);
 
   // Set error as needed
-  void setError(const llvm::Twine &Msg);
+  void setError(const llvm::Twine &Msg,
+                std::optional<llvm::StringRef> columnTok = std::nullopt);
 
   void setNote(const llvm::Twine &msg,
                std::optional<llvm::StringRef> columnTok = std::nullopt) const;
 
-  void setWarn(const llvm::Twine &Msg);
+  void setWarn(const llvm::Twine &Msg,
+               std::optional<llvm::StringRef> columnTok = std::nullopt);
 
   void lex();
 
@@ -86,7 +88,8 @@ public:
   bool encloses(llvm::StringRef S, llvm::StringRef T) const;
 
   // Get current location of token including filename
-  std::string getCurrentLocation() const;
+  std::string getCurrentLocation(
+      std::optional<llvm::StringRef> columnTok = std::nullopt) const;
 
   // Unquote string if quoted
   llvm::StringRef unquote(llvm::StringRef S);
@@ -98,7 +101,7 @@ public:
   /// end the link abruptly.
   bool diagnose() const;
 
-  size_t computeLineNumber(llvm::StringRef tok);
+  size_t computeLineNumber(llvm::StringRef tok) const;
 
   size_t getCurrentLineNumber() {
     return PrevTokLine;
@@ -110,7 +113,15 @@ protected:
 
   size_t getColumnNumber() const;
 
-  size_t computeColumnWidth(llvm::StringRef s, llvm::StringRef e) const;
+  size_t computeColumnWidth(llvm::StringRef linePrefix) const;
+
+  bool getLineAndColumnInfo(std::optional<llvm::StringRef> columnTok,
+                            llvm::StringRef &line, size_t &lineNumber,
+                            size_t &columnNumber) const;
+
+  std::string formatDiagnosticMessage(
+      const llvm::Twine &Msg,
+      std::optional<llvm::StringRef> columnTok = std::nullopt) const;
 
 private:
   // Handle expression splits.

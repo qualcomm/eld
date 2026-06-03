@@ -7,10 +7,10 @@ UNSUPPORTED: old_lsparser
 RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
 RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
 
-CHECK1: Error: {{.*}}/script1.t:2: Invalid output section type: PROGBYTES
+CHECK1: Error: {{.*}}/script1.t:2:14: Invalid output section type: PROGBYTES
 CHECK1: >>>   FOO 0x1000 (PROGBYTES) { *(*foo*) }
 CHECK1: >>>
 
-CHECK2: Error: {{.*}}/script2.t:2: Invalid permission flag: WX
+CHECK2: Error: {{.*}}/script2.t:2:25: Invalid permission flag: WX
 CHECK2: >>>   FOO 0x1000 (PROGBITS, WX) { *(*foo*) }
 CHECK2: >>>

@@ -5,4 +5,4 @@
 RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
 RUN: %not %link %linkopts -o %t1.elf %t1.o -T %p/Inputs/asciiz-invalid-hex-escape.t 2>&1 | %filecheck %s
 
-CHECK: Error: {{.*}}asciiz-invalid-hex-escape.t:4: ASCIZ does not support hex escape sequences
+CHECK: Error: {{.*}}asciiz-invalid-hex-escape.t:4:11: ASCIZ does not support hex escape sequences

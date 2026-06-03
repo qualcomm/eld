@@ -1,0 +1,10 @@
+#---ScriptErrorMsg.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks that the linker reports a clear error when a linker script
+# contains an unexpected closing brace after the SECTIONS block is closed.
+#END_COMMENT
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.o
+RUN: %not %link %linkopts -T %p/Inputs/script.t %t.o -o %t.out 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}script.t:6:1: unknown directive: }
+

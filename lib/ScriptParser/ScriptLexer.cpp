@@ -67,12 +67,22 @@ StringRef ScriptLexer::getLine() const {
 
 // Returns 0-based column number of the current token.
 size_t ScriptLexer::getColumnNumber() const {
-  return computeColumnWidth(getLine().data(), PrevTok.data());
+  llvm::StringRef line = getLine();
+  llvm::StringRef linePrefix(line.data(), PrevTok.data() - line.data());
+  return computeColumnWidth(linePrefix);
 }
 
-std::string ScriptLexer::getCurrentLocation() const {
-  std::string Filename = std::string(getCurrentMB().getBufferIdentifier());
-  return (Filename + ":" + Twine(PrevTokLine)).str();
+std::string ScriptLexer::getCurrentLocation(
+    std::optional<llvm::StringRef> columnTok) const {
+  llvm::MemoryBufferRef mb = getCurrentMB();
+  std::string filename(mb.getBufferIdentifier());
+  size_t lineNumber = PrevTokLine;
+  size_t columnNumber = 0;
+  llvm::StringRef line;
+  if (getLineAndColumnInfo(columnTok, line, lineNumber, columnNumber))
+    return (filename + ":" + Twine(lineNumber) + ":" + Twine(columnNumber + 1))
+        .str();
+  return (filename + ":" + Twine(lineNumber)).str();
 }
 
 ScriptLexer::ScriptLexer(eld::LinkerConfig &Config, ScriptFile &ScriptFile)
@@ -92,39 +102,38 @@ bool ScriptLexer::diagnose() const {
   return ThisConfig.getDiagEngine()->diagnose();
 }
 
+std::string ScriptLexer::formatDiagnosticMessage(
+    const Twine &Msg, std::optional<llvm::StringRef> columnTok) const {
+  std::string message = (getCurrentLocation(columnTok) + ": " + Msg).str();
+  llvm::StringRef line;
+  size_t lineNumber = PrevTokLine;
+  size_t columnNumber = 0;
+  if (getLineAndColumnInfo(columnTok, line, lineNumber, columnNumber))
+    message +=
+        "\n>>> " + line.str() + "\n>>> " + std::string(columnNumber, ' ') + "^";
+  return message;
+}
+
 // We don't want to record cascading errors. Keep only the first one.
-void ScriptLexer::setError(const Twine &Msg) {
+void ScriptLexer::setError(const Twine &Msg,
+                           std::optional<llvm::StringRef> columnTok) {
   if (!diagnose())
     return;
 
-  std::string S = (getCurrentLocation() + ": " + Msg).str();
-  if (PrevTok.size())
-    S += "\n>>> " + getLine().str() + "\n>>> " +
-         std::string(getColumnNumber(), ' ') + "^";
-  ThisConfig.raise(Diag::error_linker_script) << S;
+  ThisConfig.raise(Diag::error_linker_script)
+      << formatDiagnosticMessage(Msg, columnTok);
 }
 
 void ScriptLexer::setNote(const Twine &msg,
                           std::optional<llvm::StringRef> columnTok) const {
-  std::string s = (getCurrentLocation() + ": " + msg).str();
-  if (PrevTok.size()) {
-    std::size_t columnNumber = 0;
-    if (columnTok)
-      columnNumber = computeColumnWidth(getLine().data(), columnTok->data());
-    else
-      columnNumber = getColumnNumber();
-    s += "\n>>> " + getLine().str() + "\n>>> " +
-         std::string(columnNumber, ' ') + "^";
-  }
-  ThisConfig.raise(Diag::note_linker_script) << s;
+  ThisConfig.raise(Diag::note_linker_script)
+      << formatDiagnosticMessage(msg, columnTok);
 }
 
-void ScriptLexer::setWarn(const Twine &Msg) {
-  std::string S = (getCurrentLocation() + ": " + Msg).str();
-  if (PrevTok.size())
-    S += "\n>>> " + getLine().str() + "\n>>> " +
-         std::string(getColumnNumber(), ' ') + "^";
-  ThisConfig.raise(Diag::warn_linker_script) << S;
+void ScriptLexer::setWarn(const Twine &Msg,
+                          std::optional<llvm::StringRef> columnTok) {
+  ThisConfig.raise(Diag::warn_linker_script)
+      << formatDiagnosticMessage(Msg, columnTok);
 }
 
 void ScriptLexer::lex() {
@@ -155,11 +164,7 @@ void ScriptLexer::lex() {
     if (S.starts_with("\"")) {
       size_t E = S.find("\"", 1);
       if (E == StringRef::npos) {
-        size_t Lineno = computeLineNumber(S);
-        ThisConfig.raise(Diag::error_linker_script)
-            << llvm::Twine(CurBuf.Filename + ":" + Twine(Lineno) +
-                           ": unclosed quote")
-                   .str();
+        setError("unclosed quote", S.take_front(1));
         return;
       }
 
@@ -217,7 +222,7 @@ StringRef ScriptLexer::skipSpace(StringRef S) {
     if (S.starts_with("/*")) {
       size_t E = S.find("*/", 2);
       if (E == StringRef::npos) {
-        setError("unclosed comment in a linker script");
+        setError("unclosed comment in a linker script", S.take_front(2));
         return "";
       }
       CurBuf.LineNumber += S.substr(0, E).count('\n');
@@ -368,18 +373,47 @@ std::string ScriptLexer::convertToHex(char c) const {
   return stream.str();
 }
 
-size_t ScriptLexer::computeColumnWidth(llvm::StringRef s,
-                                       llvm::StringRef e) const {
+size_t ScriptLexer::computeColumnWidth(llvm::StringRef linePrefix) const {
   size_t nonASCIIColumnOffset = 0;
-  std::for_each(s.data(), e.data(), [&nonASCIIColumnOffset, this](char c) {
-    if (isNonASCIIUnicode(c) && !isFirstByteOfMultiByteUnicode(c))
-      ++nonASCIIColumnOffset;
-  });
-  return e.data() - s.data() - nonASCIIColumnOffset;
+  std::for_each(linePrefix.begin(), linePrefix.end(),
+                [&nonASCIIColumnOffset, this](char c) {
+                  if (isNonASCIIUnicode(c) && !isFirstByteOfMultiByteUnicode(c))
+                    ++nonASCIIColumnOffset;
+                });
+  return linePrefix.size() - nonASCIIColumnOffset;
 }
 
-size_t ScriptLexer::computeLineNumber(llvm::StringRef tok) {
-  size_t LineNumber =
-      llvm::StringRef(CurBuf.Begin, tok.data() - CurBuf.Begin).count('\n');
-  return LineNumber + 1;
+bool ScriptLexer::getLineAndColumnInfo(std::optional<llvm::StringRef> columnTok,
+                                       llvm::StringRef &line,
+                                       size_t &lineNumber,
+                                       size_t &columnNumber) const {
+  llvm::StringRef tok = columnTok.value_or(PrevTok);
+  if (tok.empty())
+    return false;
+
+  llvm::StringRef buffer = getCurrentMB().getBuffer();
+  if (!encloses(buffer, tok))
+    return false;
+
+  size_t tokOffset = tok.data() - buffer.data();
+  lineNumber = computeLineNumber(tok);
+
+  size_t lineStart = buffer.rfind('\n', tokOffset);
+  if (lineStart == llvm::StringRef::npos)
+    lineStart = 0;
+  else
+    ++lineStart;
+
+  size_t lineEnd = buffer.find_first_of("\r\n", tokOffset);
+  if (lineEnd == llvm::StringRef::npos)
+    lineEnd = buffer.size();
+  line = buffer.slice(lineStart, lineEnd);
+  llvm::StringRef linePrefix(line.data(), tok.data() - line.data());
+  columnNumber = computeColumnWidth(linePrefix);
+  return true;
+}
+
+size_t ScriptLexer::computeLineNumber(llvm::StringRef tok) const {
+  return llvm::StringRef(CurBuf.Begin, tok.data() - CurBuf.Begin).count('\n') +
+         1;
 }

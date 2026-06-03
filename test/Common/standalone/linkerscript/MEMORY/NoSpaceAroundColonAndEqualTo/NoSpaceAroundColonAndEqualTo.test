@@ -18,7 +18,7 @@ RUN:   | %filecheck %s --check-prefix=ERR --strict-whitespace --match-full-lines
 #END_TEST
 
 #CHECK: .foo PROGBITS {{0+}}1000
-ERR:Error:{{.*}}script4.t:2: expected one of: ORIGIN, org, or o
+ERR:Error:{{.*}}script4.t:2:9: expected one of: ORIGIN, org, or o
 ERR:>>>   RAM : ORIGIN= 0x1000, LENGTH = 0x1000
 ERR:>>>         ^
 

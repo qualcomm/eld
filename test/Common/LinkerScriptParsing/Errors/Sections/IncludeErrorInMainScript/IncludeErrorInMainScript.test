@@ -1,0 +1,12 @@
+#---IncludeErrorInMainScript.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks that the linker reports a clear error when the linker
+# script contains a syntax error (double colon '::' in an output section
+# definition) even when the script uses INCLUDE directives and archives.
+#END_COMMENT
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/11.c -o %t.11.o
+RUN: %ar cr %aropts %t.lib11.a %t.11.o
+RUN: %not %link %linkopts %t.1.o %t.lib11.a -L %p/Inputs/ -T %p/Inputs/script_with_archive.t -o %t.out 2>&1 | %filecheck %s
+
+CHECK: Error: {{.*}}script_with_archive.t:11:10: { expected, but got :

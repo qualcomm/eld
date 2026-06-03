@@ -1,0 +1,29 @@
+#---DiagnosticColumn.test--------------------- Executable,LS------------------#
+#BEGIN_COMMENT
+# This test verifies linker-script diagnostics include line:column and
+# place the caret at the correct column.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+
+RUN: %not %link %linkopts %t.1.o -T %p/Inputs/script.unknown.t -o %t.unknown.out 2>&1 \
+RUN:   | %filecheck %s --check-prefix=UNKNOWN --strict-whitespace --match-full-lines
+
+RUN: %not %link %linkopts %t.1.o -T %p/Inputs/script.unclosed-quote.t -o %t.quote.out 2>&1 \
+RUN:   | %filecheck %s --check-prefix=QUOTE --strict-whitespace --match-full-lines
+
+RUN: %not %link %linkopts %t.1.o -T %p/Inputs/script.unclosed-comment.t -o %t.comment.out 2>&1 \
+RUN:   | %filecheck %s --check-prefix=COMMENT --strict-whitespace --match-full-lines
+
+UNKNOWN:Error: {{.*}}script.unknown.t:2:3: unknown directive: BADTOK{{.*}}
+UNKNOWN-NEXT:>>>   BADTOK
+UNKNOWN-NEXT:>>>   ^
+
+QUOTE:Error: {{.*}}script.unclosed-quote.t:3:11: unclosed quote{{.*}}
+QUOTE-NEXT:>>>     ASCIZ "eld
+QUOTE-NEXT:>>>           ^
+
+COMMENT:Error: {{.*}}script.unclosed-comment.t:2:20: unclosed comment in a linker script{{.*}}
+COMMENT-NEXT:>>>                    /* unterminated
+COMMENT-NEXT:>>>                    ^
+#END_TEST

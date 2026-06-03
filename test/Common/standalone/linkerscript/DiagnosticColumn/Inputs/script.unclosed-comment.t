@@ -1,0 +1,4 @@
+SECTIONS {
+                   /* unterminated
+  .text : { *(.text) }
+}

@@ -7,6 +7,6 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
 
-CHECK: Error: {{.*}}script.t:3: unclosed quote
-CHECK-COUNT-1: unclosed quote
+CHECK: Error: {{.*}}script.t:3:11: unclosed quote
+CHECK-NOT: unclosed quote
 #END_TEST

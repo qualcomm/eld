@@ -7,10 +7,10 @@ UNSUPPORTED: old_lsparser
 RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
 RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
 
-CHECK1: Error: {{.*}}script1.t:2: { expected, but got ONLY_IF_RX
+CHECK1: Error: {{.*}}script1.t:2:9: { expected, but got ONLY_IF_RX
 CHECK1: >>>   FOO : ONLY_IF_RX { *(*foo*) }
 CHECK1: >>>
 
-CHECK2: Error: {{.*}}script2.t:2: { expected, but got ONLY_IF_RW
+CHECK2: Error: {{.*}}script2.t:2:20: { expected, but got ONLY_IF_RW
 CHECK2: >>>   FOO : ONLY_IF_RO ONLY_IF_RW { *(*foo*) }
 CHECK2: >>>

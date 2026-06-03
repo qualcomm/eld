@@ -6,5 +6,5 @@
 RUN: %clang %clangopts -o %t1.o -c %p/Inputs/1.c
 RUN: %link %linkopts -Wlinker-script -o %t1.out %t1.o -T %p/Inputs/script.t 2>&1 | %filecheck %s
 
-CHECK: Warning: {{.*}}Inputs/script.t:{{[0-9]+}}: INSERT is not supported inside OVERLAY member blocks
+CHECK: Warning: {{.*}}Inputs/script.t:4:42: INSERT is not supported inside OVERLAY member blocks
 #END_TEST
