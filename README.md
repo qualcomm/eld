@@ -207,13 +207,15 @@ ninja check-eld-vim
 First install the prerequisites for building documentation:
 
 - Doxygen (>=1.8.11)
-- graphviz
+- graphviz (for Doxygen-generated diagrams)
+- D2 CLI (for Sphinx diagrams)
 - Sphinx and other python dependencies as specified in 'docs/userguide/requirements.txt'
 
 On an ubuntu machine, the prerequisites can be installed as:
 
 ```
 sudo apt install doxygen graphviz
+curl -fsSL https://d2lang.com/install.sh | sh -s --
 pip3 install -r ${ELDRoot}/docs/userguide/requirements.txt
 ```
 

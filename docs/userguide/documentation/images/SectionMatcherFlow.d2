@@ -1,0 +1,13 @@
+...@Common
+
+direction: right
+
+rule_matching: "Perform section\nrule-matching" { class: phase }
+init: "UserPlugin::Init(...)" { class: callback }
+process_section: "Call\nUserPlugin::ProcessSection(...)\nfor each input section" { class: callback }
+run: "UserPlugin::run(...)" { class: callback }
+destroy: "UserPlugin::Destroy(...)" { class: callback }
+garbage_collection: "Perform garbage\ncollection" { class: phase }
+continue_link: "Continue the linking\nprocess" { class: phase }
+
+rule_matching -> init -> process_section -> run -> destroy -> garbage_collection -> continue_link { class: flow }

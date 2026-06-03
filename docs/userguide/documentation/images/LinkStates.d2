@@ -1,0 +1,10 @@
+...@Common
+
+direction: right
+
+initializing: "Initializing" { class: state }
+before_layout: "BeforeLayout" { class: state }
+creating_sections: "CreatingSections" { class: state }
+after_layout: "AfterLayout" { class: state }
+
+initializing -> before_layout -> creating_sections -> after_layout { class: flow }

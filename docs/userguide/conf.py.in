@@ -17,6 +17,7 @@ THIS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = (THIS_DIR / ".." / "..").resolve()
 
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(THIS_DIR / "_ext"))
 
 
 project = "ELD"
@@ -26,7 +27,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
     "sphinx.ext.ifconfig",
-    "sphinx.ext.graphviz",
+    "eld_d2",
 ]
 
 _BREATHE_XML_DIR = os.environ.get("ELD_BREATHE_XML_DIR")
@@ -75,9 +76,15 @@ html_meta = {
     ),
 }
 
-# Graphviz configuration
-graphviz_dot = "/usr/bin/dot"
-graphviz_output_format = "svg"
+# D2 diagram configuration
+_configured_d2_bin = "@ELD_D2_BIN@"
+if not _configured_d2_bin or _configured_d2_bin.startswith("@"):
+    _configured_d2_bin = "d2"
+d2_bin = os.environ.get("D2_BIN", _configured_d2_bin)
+d2_args = []
+d2_pdf_output_format = "png"
+d2_pdf_chrome_bin = os.environ.get("D2_PDF_CHROME_BIN", "")
+d2_pdf_raster_scale = int(os.environ.get("D2_PDF_RASTER_SCALE", "2"))
 
 def _read_env_breathe_projects() -> dict[str, str]:
     """

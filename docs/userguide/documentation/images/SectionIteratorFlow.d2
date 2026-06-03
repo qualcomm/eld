@@ -1,0 +1,13 @@
+...@Common
+
+direction: down
+
+initialize: "Initialize the plugin" { class: phase }
+process_files: "Process input files, and perform garbage\ncollection on sections" { class: phase }
+init: "UserPlugin::Init(...)" { class: callback }
+process_section: "Call\nUserPlugin::ProcessSection(...)\nfor each input section that is\nnot garbage-collected" { class: callback }
+run: "UserPlugin::Run(...)" { class: callback }
+destroy: "UserPlugin::Destroy(...)" { class: callback }
+continue_link: "Continue the linking\nprocess" { class: phase }
+
+initialize -> process_files -> init -> process_section -> run -> destroy -> continue_link { class: flow }

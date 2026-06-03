@@ -1,0 +1,12 @@
+...@Common
+
+direction: right
+
+merge_sections: "Merge input sections\nbased on rules and create\nmissing output sections" { class: phase }
+init: "UserPlugin::Init(...)" { class: callback }
+process_output: "Call\nUserPlugin::ProcessOutputSection(...)\nfor each input section" { class: callback }
+run: "UserPlugin::run(...)" { class: callback }
+destroy: "UserPlugin::Destroy(...)" { class: callback }
+complete: "Complete processing\nof output sections" { class: phase }
+
+merge_sections -> init -> process_output -> run -> destroy -> complete { class: flow }

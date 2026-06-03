@@ -1,0 +1,27 @@
+...@Common
+
+direction: down
+
+setup: "Setup" { class: phase }
+load_plugins: "Load linker\nplugins" { class: phase }
+read_inputs: "Read inputs" { class: phase }
+rule_matching: "Rule matching" { class: phase }
+section_merging: "Section merging" { class: phase }
+perform_layout: "Perform layout" { class: phase }
+write_output: "Write output" { class: phase }
+
+init: "Init" { class: hook }
+visit_sections: "Visit sections\nand symbols" { class: hook }
+before_rule_matching: "BeforeRuleMatching" { class: hook }
+before_section_merging: "BeforeSectionMerging" { class: hook }
+before_layout: "BeforePerformingLayout" { class: hook }
+before_output: "BeforeWritingOutput" { class: hook }
+
+setup -> load_plugins -> read_inputs -> rule_matching -> section_merging -> perform_layout -> write_output { class: flow }
+
+load_plugins -> init: "plugin hook" { class: hook-flow }
+read_inputs -> visit_sections: "plugin hook" { class: hook-flow }
+read_inputs -> before_rule_matching: "plugin hook" { class: hook-flow }
+rule_matching -> before_section_merging: "plugin hook" { class: hook-flow }
+section_merging -> before_layout: "plugin hook" { class: hook-flow }
+perform_layout -> before_output: "plugin hook" { class: hook-flow }

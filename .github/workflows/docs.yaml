@@ -41,8 +41,27 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install -y graphviz doxygen libxml2 libxml2-dev libxslt1-dev
           pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
+
+      - name: Install D2 diagram generator
+        run: |
+          curl -fsSL https://d2lang.com/install.sh | sh -s -- --prefix "$HOME/.local"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure D2 PDF renderer
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME_BIN" ]; then
+            cd /tmp
+            wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+            sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+            CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable)"
+          fi
+          echo "D2_PDF_CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          d2 --version
+          "$CHROME_BIN" --version
 
       - name: Run CMake
         run: |
@@ -57,12 +76,17 @@ jobs:
             -DELD_ENABLE_PDF_DOCS:BOOL=ON \
             ../llvm-project/llvm
 
-      - name: Generate documentation
+      - name: Generate HTML documentation with D2 diagrams
         run: |
           cd obj
-          ninja eld-docs
-          mv tools/eld/docs/userguide/pdf/ELD_UserGuide.pdf \
-             tools/eld/docs/userguide/html/ELD_UserGuide.pdf
+          ninja docs-eld-userguide-html
+
+      - name: Generate PDF documentation with D2 diagrams
+        run: |
+          cd obj
+          ninja docs-eld-userguide-pdf
+          cp tools/eld/docs/userguide/pdf/ELD_UserGuide.pdf \
+            tools/eld/docs/userguide/html/ELD_UserGuide.pdf
 
       - name: Deploy to docs branch
         run: |

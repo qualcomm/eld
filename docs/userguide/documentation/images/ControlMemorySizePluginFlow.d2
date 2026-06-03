@@ -1,0 +1,12 @@
+...@Common
+
+direction: right
+
+create: "Creating\noutput\nsections" { class: phase }
+init: "UserPlugin::\nInit" { class: callback }
+add_blocks: "UserPlugin::\nAddBlocks" { class: callback }
+run: "UserPlugin::\nRun" { class: callback }
+destroy: "UserPlugin::\nDestroy" { class: callback }
+finalize: "Finalize output\nimage layout" { class: phase }
+
+create -> init -> add_blocks -> run -> destroy -> finalize { class: flow }

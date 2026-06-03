@@ -1,0 +1,52 @@
+.d2 {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgb(37 99 235 / 12%), transparent 32rem),
+    linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.d2 object {
+  width: min(100%, 1120px);
+  max-width: 100%;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgb(15 23 42 / 14%);
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.d2 object:hover {
+  box-shadow: 0 24px 60px rgb(15 23 42 / 18%);
+  transform: translateY(-2px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .d2 {
+    background:
+      radial-gradient(circle at top left, rgb(56 189 248 / 18%), transparent 32rem),
+      linear-gradient(135deg, #0f172a 0%, #111827 100%);
+  }
+
+  .d2 object {
+    border-color: rgb(96 165 250 / 35%);
+    background: #0f172a;
+    box-shadow: 0 18px 45px rgb(0 0 0 / 30%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d2 object {
+    transition: none;
+  }
+
+  .d2 object:hover {
+    transform: none;
+  }
+}
