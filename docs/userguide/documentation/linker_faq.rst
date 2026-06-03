@@ -1417,7 +1417,7 @@ specification to do the following:
 .. list-table:: Input section patterns
    :widths: 35 65
    :header-rows: 1
-   
+
    * - Specification
      - Description
    * - dir/subdir/init.lib:init.o(.text.*)
@@ -3224,7 +3224,7 @@ Example error output::
   Error: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from 1.o[.text] symbol defined in 1.o[.data.bar]
   Error: R_ARM_SBREL32 Relocation Mismatch for symbol bar defined in 1.o[.debug_info] has a different load segment
   Error: Relocation error when applying relocation `R_ARM_SBREL32' for symbol `bar' referred from 1.o[.debug_info] symbol defined in 1.o[.data.bar]
-  Fatal: Linking had errors.
+  Fatal: Linking had errors (a.out)
 
 **Fixed linker script for this example**
 
@@ -3814,7 +3814,7 @@ Output:
 .. error::
 
   Error: Loadable section .baz not in any load segment
-  Fatal: Linking had errors.
+  Fatal: Linking had errors (a.out)
 
 Placing NOLOAD region to LOAD segment
 """"""""""""""""""""""""""""""""""""""
@@ -4332,7 +4332,7 @@ load section is not assigned program headers automatically.
 
 .. error ::
 
-  Linking had errors.
+  Linking had errors (a.out)
 
 NOLOAD sections at the beginning of the LOAD segment
 """"""""""""""""""""""""""""""""""""""""""""""""""""""

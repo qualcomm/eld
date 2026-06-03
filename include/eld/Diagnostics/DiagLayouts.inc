@@ -21,7 +21,7 @@ DIAG(output_file_not_complete, DiagnosticEngine::Fatal,
      "recorded size : %2.")
 DIAG(output_file_error, DiagnosticEngine::Fatal,
      "Output file %0 not fully written because of error %1.")
-DIAG(linking_had_errors, DiagnosticEngine::Fatal, "Linking had errors.")
+DIAG(linking_had_errors, DiagnosticEngine::Fatal, "Linking had errors (%0)")
 DIAG(unable_to_insert_trampoline, DiagnosticEngine::Fatal,
      "Unable to insert trampoline for symbol %0 from section %1(%3) to section %2")
 DIAG(change_section_type, DiagnosticEngine::Warning,

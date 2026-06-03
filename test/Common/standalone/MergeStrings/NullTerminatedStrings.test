@@ -16,11 +16,11 @@ RUN: %link %linkopts %t.4.o -o %t.4.out --verbose 2>&1 | %filecheck %s --check-p
 
 T1: Error: {{.*}}1.o:(.rodata.str1.1): string is not null terminated
 T1: Fatal: can not read section `.rodata.str1.1'.
-T1: Fatal: Linking had errors.
+T1: Fatal: Linking had errors
 
 T2: Error: {{.*}}2.o:(.rodata.str1.1+0x4): string is not null terminated
 T2: {{(Fatal: can not read section `.rodata.str1.1'.)?}}
-T2: Fatal: Linking had errors.
+T2: Fatal: Linking had errors
 
 VERBOSE1: {{.*}}3.o:(.rodata.str1.1): created mergeable string fragment with contents and align 1
 VERBOSE1: {{.*}}3.o:(.rodata.str1.1+0x1): created mergeable string fragment with contents and align 1

@@ -12,6 +12,6 @@ RUN: %readelf -s %t1.1.out | %filecheck %s --check-prefix READELF
 CHECK-NOT: undefined symbol 'B' referenced in expression
 CHECK-NOT: Symbol D used before being defined
 CHECK-NOT: Assertion failed.
-CHECK-NOT: Linking had errors.
+CHECK-NOT: Linking had errors
 
 READELF: {{0+}} 0 NOTYPE {{.*}} ABS A

@@ -147,6 +147,8 @@ public:
 
   bool isRunLTOOnly() const { return m_RunLTOOnly; }
 
+  std::string getOutputFileName() const;
+
 protected:
   int getInteger(llvm::opt::InputArgList &Args, unsigned Key,
                  int Default) const;

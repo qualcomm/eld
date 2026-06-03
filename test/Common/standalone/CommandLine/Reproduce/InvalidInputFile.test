@@ -6,5 +6,5 @@
 RUN: %not %link %linkopts  nonexistent.o -lnonexistent --reproduce a.tar 2>&1 | %filecheck %s
 #CHECK: Fatal: cannot read file 'nonexistent.o'
 #CHECK: Note: Creating tarball {{.*}}.tar
-#CHECK: Fatal: Linking had errors.
+#CHECK: Fatal: Linking had errors
 #END_TEST

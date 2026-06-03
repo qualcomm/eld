@@ -7,6 +7,6 @@ RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
 RUN: %not %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
 #END_TEST
 CHECK: UPInitError:Error: Something bad happened!
-CHECK: Fatal: Linking had errors.
+CHECK: Fatal: Linking had errors
 
 

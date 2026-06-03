@@ -8,4 +8,4 @@ RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.1.o  -ffunction-sections -fdata
 RUN: %not %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t1.1.out -L %p/Inputs 2>&1 | %filecheck %s
 #END_TEST
 #CHECK: MissingINIFile:Fatal: File 'someFile.ini' does not exist
-#CHECK: Fatal: Linking had errors.
+#CHECK: Fatal: Linking had errors

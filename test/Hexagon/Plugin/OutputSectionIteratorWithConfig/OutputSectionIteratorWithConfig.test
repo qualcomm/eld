@@ -21,6 +21,6 @@ MAPPING: foo.txt
 #CHECK-DAG: 2b
 #CHECK-DAG: 3c
 #CHECK-DAG: GETOUTPUTWITHCONFIG:Error: ini file {{.*}}badcharacters.ini contains non-ascii characters
-#CHECK-DAG: Fatal: Linking had errors.
+#CHECK-DAG: Fatal: Linking had errors
 
 #END_TEST

@@ -30,6 +30,7 @@
 #include "eld/Support/MappingFileReader.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/OutputTarWriter.h"
+#include "eld/Support/Path.h"
 #include "eld/Support/StringUtils.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
@@ -40,7 +41,6 @@
 #include "llvm/Object/ELF.h"
 #include "llvm/Remarks/HotnessThresholdParser.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
@@ -1406,7 +1406,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
         Config.raise(Diag::warn_group_is_empty);
       if (GroupMatchCount) {
         Config.raise(Diag::nested_group_not_allowed);
-        Config.raise(Diag::linking_had_errors);
+        Config.raise(Diag::linking_had_errors) << getOutputFileName();
         return false;
       }
       ++GroupMatchCount;
@@ -1427,7 +1427,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
         Config.raise(Diag::warn_lib_is_empty);
       if (LibMatchCount) {
         Config.raise(Diag::nested_lib_not_allowed);
-        Config.raise(Diag::linking_had_errors);
+        Config.raise(Diag::linking_had_errors) << getOutputFileName();
         return false;
       }
       ++LibMatchCount;
@@ -1442,7 +1442,7 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
         Config.raise(Diag::warn_lib_is_empty);
       if (LibMatchCount) {
         Config.raise(Diag::nested_lib_not_allowed);
-        Config.raise(Diag::linking_had_errors);
+        Config.raise(Diag::linking_had_errors) << getOutputFileName();
         return false;
       }
       ++LibMatchCount;
@@ -1484,19 +1484,19 @@ bool GnuLdDriver::createInputActions(llvm::opt::InputArgList &Args,
 
   if (GroupMatchCount != 0) {
     Config.raise(Diag::mismatched_group);
-    Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::linking_had_errors) << getOutputFileName();
     return false;
   }
 
   if (LibMatchCount != 0) {
     Config.raise(Diag::mismatched_lib);
-    Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::linking_had_errors) << getOutputFileName();
     return false;
   }
 
   if (input_num == 0) {
     Config.raise(Diag::err_no_inputs);
-    Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::linking_had_errors) << getOutputFileName();
     return false;
   }
 
@@ -2002,7 +2002,7 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
   if (Config.options().displaySummary())
     Config.getDiagEngine()->finalize();
   if (!linkStatus)
-    Config.raise(Diag::linking_had_errors);
+    Config.raise(Diag::linking_had_errors) << getOutputFileName();
   eld::freeArena();
   return linkStatus;
 }
@@ -2127,6 +2127,14 @@ std::optional<int> GnuLdDriver::parseOptions(ArrayRef<const char *> Args,
 bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
                                     std::vector<std::string> &LLVMOptions) {
   return GnuLdDriver::processLTOOptions<OPT_GnuLdOptTable>(Conf, LLVMOptions);
+}
+
+std::string GnuLdDriver::getOutputFileName() const {
+  std::string FileName = Config.options().outputFileName();
+  if (FileName != "/dev/null")
+    FileName = eld::sys::fs::Path(FileName).filename().native();
+
+  return FileName;
 }
 
 // Start the link step.
