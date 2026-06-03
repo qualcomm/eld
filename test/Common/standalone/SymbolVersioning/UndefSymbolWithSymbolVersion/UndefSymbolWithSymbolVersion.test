@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---UndefSymbolWithSymbolVersion.test--------- SymbolVersioning ----------------#
+#BEGIN_COMMENT
+# This test verifies that the linker errors when building a shared library
+# with an undefined symbol that has a version.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
+RUN: %not %link %linkopts -o %t1.1.so %t1.1.o -shared 2>&1 | %filecheck %s
+RUN: %not %link %linkopts -o %t1.1.so %t1.1.o -shared --version-script %p/Inputs/vs.t \
+RUN:   2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}1.o: undefined symbol 'foo@SOME_VERSION' cannot have version
