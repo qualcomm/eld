@@ -29,7 +29,6 @@
 #include "eld/Script/WildcardPattern.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MsgHandling.h"
-#include "eld/Target/ARMEXIDXSection.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/GNULDBackend.h"
 #include "llvm/ADT/Hashing.h"
@@ -537,8 +536,6 @@ ELFSection *SectionMap::createOutputSectionEntry(std::string Section,
 ELFSection *SectionMap::createELFSection(const std::string &Name,
                                          LDFileFormat::Kind K, uint32_t Type,
                                          uint32_t Flags, uint32_t EntSize) {
-  if (Type == llvm::ELF::SHT_ARM_EXIDX && K == LDFileFormat::Target)
-    return make<ARMEXIDXSection>(Name, Flags, EntSize, /*Size=*/0, /*PAddr=*/0);
   return make<ELFSection>(K, Name, Flags, EntSize, /*AddrAlign=*/0, Type,
                           /*Info=*/0,
                           /*Link=*/nullptr,
