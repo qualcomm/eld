@@ -1,3 +1,4 @@
 add_subdirectory(EmitMapFileEvenInCrash)
+add_subdirectory(EmptyMapSections)
 add_subdirectory(PluginAPI)
 add_subdirectory(SymbolResolutionReport)

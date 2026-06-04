@@ -29,7 +29,6 @@
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
-#include "eld/Support/HashUtils.h"
 #include "eld/Support/RegisterTimer.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
@@ -594,9 +593,6 @@ void ObjectBuilder::updateSectionFlags(ELFSection *PTo, ELFSection *PFrom) {
 bool ObjectBuilder::shouldCreateNewSection(ELFSection *target,
                                            ELFSection *I) const {
   if (!target || ThisConfig.options().shouldEmitUniqueOutputSections())
-    return true;
-
-  if (I->name().find("@") != llvm::StringRef::npos)
     return true;
 
   bool hasLinkerScriptSectionsCommand =

@@ -188,7 +188,7 @@ void LinkerScript::addToHash(llvm::StringRef FilenameOrText) {
   if (!MBOrErr)
     return; // Ignore errors here. It'll fail later.
 
-  uint64_t I = xxHash64((*MBOrErr)->getBuffer());
+  uint64_t I = xxh3_64bits((*MBOrErr)->getBuffer());
 
   uint8_t Data[8];
   Data[0] = I;

@@ -843,20 +843,27 @@ bool ELFObjectWriter::shouldEmitReloc(const Relocation *R) const {
                                               /*IgnoreUnknown=*/true);
 }
 
-/// emitRelocation - write data to the ELF32_Rel entry
+/// emitRelocation - write data to the ELFX_Rel entry
+/// Please note that it is okay to use 64-bit types for
+/// ELFX_Rel because 64-bit signed type can represent
+/// all the values of 32-bit signed type and the conversion
+/// between 32-bit and 64-bit is well-defined as long as the
+/// value fits in the 32-bit signed range. Similar reasoning
+/// is also valid for the conversion between 32-bit and 64-bit
+/// unsigned values.
 template <typename ELFT>
 void ELFObjectWriter::emitRelocation(typename ELFT::Rel &pRel,
                                      Relocation::Type pType, uint32_t pSymIdx,
-                                     uint32_t pOffset) const {
+                                     uint64_t pOffset) const {
   pRel.r_offset = pOffset;
   pRel.setSymbolAndType(pSymIdx, pType, false);
 }
 
-/// emitRelocation - write data to the ELF32_Rela entry
+/// emitRelocation - write data to the ELFX_Rela entry
 template <typename ELFT>
 void ELFObjectWriter::emitRelocation(typename ELFT::Rela &pRel,
                                      Relocation::Type pType, uint32_t pSymIdx,
-                                     uint32_t pOffset, int32_t pAddend) const {
+                                     uint64_t pOffset, int64_t pAddend) const {
   pRel.r_offset = pOffset;
   pRel.r_addend = pAddend;
   pRel.setSymbolAndType(pSymIdx, pType, false);
@@ -894,13 +901,13 @@ template uint64_t
 ELFObjectWriter::getLastStartOffset<llvm::object::ELF64LE>() const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF32LE>(
     llvm::object::ELF32LE::Rel &pRel, Relocation::Type pType, uint32_t pSymIdx,
-    uint32_t pOffset) const;
+    uint64_t pOffset) const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF64LE>(
     llvm::object::ELF64LE::Rel &pRel, Relocation::Type pType, uint32_t pSymIdx,
-    uint32_t pOffset) const;
+    uint64_t pOffset) const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF32LE>(
     llvm::object::ELF32LE::Rela &pRela, Relocation::Type pType,
-    uint32_t pSymIdx, uint32_t pOffset, int32_t Addend) const;
+    uint32_t pSymIdx, uint64_t pOffset, int64_t Addend) const;
 template void ELFObjectWriter::emitRelocation<llvm::object::ELF64LE>(
     llvm::object::ELF64LE::Rela &pRela, Relocation::Type pType,
-    uint32_t pSymIdx, uint32_t pOffset, int32_t Addend) const;
+    uint32_t pSymIdx, uint64_t pOffset, int64_t Addend) const;

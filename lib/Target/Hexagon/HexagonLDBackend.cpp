@@ -27,7 +27,6 @@
 #include "eld/Object/ObjectLinker.h"
 #include "eld/Readers/CommonELFSection.h"
 #include "eld/Support/DynamicLibrary.h"
-#include "eld/Support/HashUtils.h"
 #include "eld/Support/Memory.h"
 #include "eld/Support/MemoryArea.h"
 #include "eld/Support/MsgHandling.h"

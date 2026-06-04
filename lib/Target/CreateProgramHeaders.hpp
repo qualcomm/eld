@@ -33,9 +33,6 @@ bool GNULDBackend::createProgramHdrs() {
   if (linkerScriptHasMemoryCommand)
     clearMemoryRegions();
 
-  // Module AT Table.
-  std::vector<ELFSection *> &atTable = m_Module.getAtTable();
-
   GeneralOptions::AddressMapType::iterator addr,
       addrEnd = config().options().addressMap().end();
 
@@ -321,37 +318,9 @@ bool GNULDBackend::createProgramHdrs() {
         dotSymbol->setValue(vma);
     }
 
-    // If there is an AT Table. Lets try to check the dot value with the
-    // section specified in the AT Table.
-    if (atTable.size() && m_AtTableIndex < atTable.size()) {
-      ELFSection *atSection = atTable[m_AtTableIndex];
-      if (curIsDebugSection ||
-          ((atSection->addr() < dotSymbol->value()) ||
-           (scriptvma && (*scriptvma > atSection->addr())))) {
-        out = script.sectionMap().insert(out, atSection);
-        SectionMap::iterator outPrev = --out;
-        SectionMap::iterator outCur = ++out;
-        (*outCur)->setOrder((*outPrev)->order());
-        if (m_Module.getPrinter()->isVerbose())
-          config().raise(Diag::verbose_inserting_section_at_fixed_addr)
-              << atSection->name() << cur->addr()
-              << atSection->getInputFile()->getInput()->decoratedPath()
-              << (*out)->name();
-        if (out != script.sectionMap().begin())
-          (*outCur)->moveSectionAssignments(*outPrev);
-        if (atSection->hasSectionData()) {
-          for (auto &f : atSection->getFragmentList())
-            f->getOwningSection()->setOutputSection(*outCur);
-        }
-        m_AtTableIndex++;
-        reset_state();
-        continue;
-      }
-    }
-
     if (curIsDebugSection || (*out)->isDiscard()) {
       cur->setAddr(dotSymbol->value());
-      evaluateAssignments(*out, m_AtTableIndex);
+      evaluateAssignments(*out);
       evaluateAssignmentsAtEndOfOutputSection(*out);
       cur->setWanted(cur->wantedInOutput() || cur->size());
       ++out;
@@ -537,7 +506,7 @@ bool GNULDBackend::createProgramHdrs() {
           }
         }
       }
-      evaluateAssignments(*out, m_AtTableIndex);
+      evaluateAssignments(*out);
       cur->setWanted(cur->wantedInOutput() || cur->size());
       if (hasVMARegion)
         (*out)->epilog().region().addOutputSectionVMA(*out);
@@ -550,13 +519,6 @@ bool GNULDBackend::createProgramHdrs() {
         return false;
       }
 
-      if (m_AtTableIndex < atTable.size() &&
-          (atTable[m_AtTableIndex]->addr() < (cur->addr() + cur->size()))) {
-        config().raise(Diag::cannot_place_at_section)
-            << atTable[m_AtTableIndex]->name() << cur->name();
-        ++m_AtTableIndex;
-        hasError = true;
-      }
       // The flag last_section_needs_new_segment controls that if there was a
       // need to create a PT_LOAD segment but we determined that the size of the
       // section is 0, we set the flag and move on.
@@ -612,20 +574,13 @@ bool GNULDBackend::createProgramHdrs() {
         alignAddress(pma, cur->getAddrAlign());
       }
       cur->setPaddr(pma);
-      evaluateAssignments(*out, m_AtTableIndex);
+      evaluateAssignments(*out);
       if (hasVMARegion)
         (*out)->epilog().region().addOutputSectionVMA(*out);
       if (!useSetLMA && hasLMARegion)
         (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
       if (!config().getDiagEngine()->diagnose()) {
         return false;
-      }
-      if (m_AtTableIndex < atTable.size() &&
-          (atTable[m_AtTableIndex]->addr() < (cur->addr() + cur->size()))) {
-        config().raise(Diag::cannot_place_at_section)
-            << atTable[m_AtTableIndex]->name() << cur->name();
-        ++m_AtTableIndex;
-        hasError = true;
       }
     }
 
@@ -795,8 +750,6 @@ bool GNULDBackend::createProgramHdrs() {
   evaluateTargetSymbolsBeforeRelaxation();
 
   elfSegmentTable().sortSegments();
-
-  m_Module.getAtTable().clear();
 
   return hasError;
 }

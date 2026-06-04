@@ -1,0 +1,21 @@
+/// Verifies that R_X86_64_GOTTPOFF against a file-local TLS symbol emits a
+/// R_X86_64_TPOFF64 dynamic relocation in -shared output, and is statically
+/// resolved into the GOT slot in -pie.
+
+// RUN: %clang %clangopts -c -x c %s -fPIC -ftls-model=initial-exec -o %t.o
+// RUN: %link %linkopts -shared %t.o -o %t.shared.so
+// RUN: %readelf -r -x .got -d %t.shared.so | %filecheck %s --check-prefix=SHARED
+// RUN: %link %linkopts -pie %t.o -o %t.pie --defsym __libc_start_main=0
+// RUN: %readelf -r -x .got %t.pie | %filecheck %s --check-prefix=PIE
+
+// SHARED: STATIC_TLS
+// SHARED: R_X86_64_TPOFF64
+// SHARED-LABEL: Hex dump of section '.got':
+// SHARED-NEXT: 0x{{[0-9a-f]+}} 00000000 00000000
+
+// PIE-NOT: R_X86_64_TPOFF64
+// PIE-LABEL: Hex dump of section '.got':
+// PIE-NEXT: 0x{{[0-9a-f]+}} fcffffff ffffffff
+
+static __thread int a = 10;
+int foo(void) { return a; }

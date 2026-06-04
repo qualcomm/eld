@@ -15,6 +15,8 @@
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Target/Relocator.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/DataTypes.h"
 #include "llvm/Support/ManagedStatic.h"
 
 namespace eld {
@@ -23,7 +25,7 @@ class DiagnosticEngine;
 
 using namespace eld;
 
-llvm::DenseMap<const Relocation *, FragmentRef *> Relocation::m_RelocFragMap;
+static llvm::DenseMap<const Relocation *, FragmentRef *> m_RelocFragMap;
 
 //===----------------------------------------------------------------------===//
 // Relocation Factory Methods
@@ -315,6 +317,19 @@ void Relocation::setSymInfo(ResolveInfo *pSym) { m_pSymInfo = pSym; }
 
 void Relocation::setTargetData(DWord pTargetData) {
   m_TargetData = pTargetData;
+}
+
+void Relocation::modifyRelocationFragmentRef(FragmentRef *fragRef) {
+  if (!fragRef)
+    return;
+  m_RelocFragMap[this] = fragRef;
+}
+
+FragmentRef *Relocation::targetFragRef() const {
+  auto it = m_RelocFragMap.find(this);
+  if (it == m_RelocFragMap.end())
+    return nullptr;
+  return it->second;
 }
 
 Relocation::Size Relocation::size(Relocator &pRelocator) const {

@@ -1,4 +1,3 @@
-XFAIL: aarch64
 #---StripAllSymbols.test--------------------------- Executable -----------------#
 
 #BEGIN_COMMENT

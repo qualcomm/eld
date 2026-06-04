@@ -12,10 +12,10 @@
 //===----------------------------------------------------------------------===//
 #ifndef ELD_READERS_RELOCATION_H
 #define ELD_READERS_RELOCATION_H
+
 #include "eld/Config/Config.h"
 #include "eld/Fragment/FragmentRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/DataTypes.h"
+#include <string>
 #include <unordered_map>
 
 namespace eld {
@@ -29,7 +29,6 @@ class ELFSection;
 class ELFSegment;
 
 class Relocation {
-  static llvm::DenseMap<const Relocation *, FragmentRef *> m_RelocFragMap;
 
 public:
   typedef uint64_t Address; // FIXME: use SizeTrait<T>::Address instead
@@ -115,18 +114,9 @@ public:
 
   void setTargetData(DWord pTargetData);
 
-  void modifyRelocationFragmentRef(FragmentRef *fragRef) {
-    if (!fragRef)
-      return;
-    m_RelocFragMap[this] = fragRef;
-  }
+  void modifyRelocationFragmentRef(FragmentRef *fragRef);
 
-  FragmentRef *targetFragRef() const {
-    auto it = m_RelocFragMap.find(this);
-    if (it == m_RelocFragMap.end())
-      return nullptr;
-    return it->second;
-  }
+  FragmentRef *targetFragRef() const;
 
   static std::string getFragmentPath(ResolveInfo *symInfo, Fragment *frag,
                                      const GeneralOptions &options);

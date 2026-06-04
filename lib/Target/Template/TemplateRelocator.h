@@ -26,27 +26,31 @@ public:
   TemplateRelocator(TemplateLDBackend &pParent, LinkerConfig &pConfig,
                     Module &pModule);
 
-  Result applyRelocation(Relocation &pRelocation);
+  Result applyRelocation(Relocation &pRelocation) override;
 
   void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
-                      ELFSection &pSection, Input &pInput, CopyRelocs &);
+                      ELFSection &pSection, InputFile &pInput,
+                      CopyRelocs &) override;
 
   // Handle partial linking
-  void partialScanRelocation(Relocation &pReloc, const ELFSection &pSection);
+  void partialScanRelocation(Relocation &pReloc,
+                             const ELFSection &pSection) override;
 
-  TemplateLDBackend &getTarget() { return m_Target; }
+  TemplateLDBackend &getTarget() override { return m_Target; }
 
-  const TemplateLDBackend &getTarget() const { return m_Target; }
+  const TemplateLDBackend &getTarget() const override { return m_Target; }
 
-  const char *getName(Relocation::Type pType) const;
+  const char *getName(Relocation::Type pType) const override;
 
-  Size getSize(Relocation::Type pType) const;
+  Size getSize(Relocation::Type pType) const override;
+
+  uint32_t getNumRelocs() const override;
 
 private:
-  virtual void scanLocalReloc(Input &pInput, Relocation &pReloc,
+  virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
                               eld::IRBuilder &pBuilder, ELFSection &pSection);
 
-  virtual void scanGlobalReloc(Input &pInput, Relocation &pReloc,
+  virtual void scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
                                eld::IRBuilder &pBuilder, ELFSection &pSection);
 
 private:

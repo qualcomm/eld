@@ -78,6 +78,10 @@ RUN: %link %linkopts -mcpu hexagonv89 %t1.o -o %t1.elf.mv89.2
 RUN: %link %linkopts -mv91 %t1.o -o %t1.elf.mv91.1
 RUN: %link %linkopts -mcpu hexagonv91 %t1.o -o %t1.elf.mv91.2
 
+# Generate V93 objects
+RUN: %link %linkopts -mv93 %t1.o -o %t1.elf.mv93.1
+RUN: %link %linkopts -mcpu hexagonv93 %t1.o -o %t1.elf.mv93.2
+
 # Check all variants
 RUN: %readelf -h %t1.elf.mv68.1 | %filecheck -check-prefix=V68 %s
 RUN: %readelf -h %t1.elf.mv68.2 | %filecheck -check-prefix=V68 %s
@@ -116,6 +120,8 @@ RUN: %readelf -h %t1.elf.mv89.1 | %filecheck -check-prefix=V89 %s
 RUN: %readelf -h %t1.elf.mv89.2 | %filecheck -check-prefix=V89 %s
 RUN: %readelf -h %t1.elf.mv91.1 | %filecheck -check-prefix=V91 %s
 RUN: %readelf -h %t1.elf.mv91.2 | %filecheck -check-prefix=V91 %s
+RUN: %readelf -h %t1.elf.mv93.1 | %filecheck -check-prefix=V93 %s
+RUN: %readelf -h %t1.elf.mv93.2 | %filecheck -check-prefix=V93 %s
 
 #V68: Flags: 0x68
 #V69: Flags: 0x69
@@ -131,3 +137,4 @@ RUN: %readelf -h %t1.elf.mv91.2 | %filecheck -check-prefix=V91 %s
 #V87: Flags: 0x87
 #V89: Flags: 0x89
 #V91: Flags: 0x91
+#V93: Flags: 0x93

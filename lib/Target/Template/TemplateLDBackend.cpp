@@ -8,6 +8,7 @@
 #include "Template.h"
 #include "TemplateRelocator.h"
 #include "TemplateStandaloneInfo.h"
+#include "eld/BranchIsland/StubFactory.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/RegionFragment.h"
@@ -43,11 +44,9 @@ TemplateLDBackend::TemplateLDBackend(Module &pModule, TemplateInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr),
       m_pEndOfImage(nullptr) {}
 
-TemplateLDBackend::~TemplateLDBackend() { delete m_pRelocator; }
-
 bool TemplateLDBackend::initRelocator() {
   if (nullptr == m_pRelocator) {
-    m_pRelocator = new TemplateRelocator(*this, config(), m_Module);
+    m_pRelocator = make<TemplateRelocator>(*this, config(), m_Module);
   }
   return true;
 }
@@ -113,7 +112,14 @@ TemplateLDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
 }
 
 void TemplateLDBackend::initializeAttributes() {
-  getInfo().initializeAttributes(*m_Module.getIRBuilder());
+  getInfo().initializeAttributes(m_Module.getIRBuilder()->getInputBuilder());
+}
+
+Stub *TemplateLDBackend::getBranchIslandStub(Relocation *pReloc,
+                                             int64_t targetValue) const {
+  (void)pReloc;
+  (void)targetValue;
+  return *(getStubFactory()->getAllStubs().cbegin());
 }
 
 namespace eld {
@@ -121,9 +127,9 @@ namespace eld {
 //===----------------------------------------------------------------------===//
 /// createTemplateLDBackend - the help function to create corresponding
 /// TemplateLDBackend
-GNULDBackend *createTemplateLDBackend(Module &pModule) {
-  return new TemplateLDBackend(pModule,
-                               new TemplateStandaloneInfo(pModule.getConfig()));
+GNULDBackend *createTemplateLDBackend(eld::Module &pModule) {
+  return make<TemplateLDBackend>(
+      pModule, make<TemplateStandaloneInfo>(pModule.getConfig()));
 }
 
 } // namespace eld

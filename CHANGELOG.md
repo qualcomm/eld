@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [Major Highlights](#major-highlights)
 
 ### 2026
+- [May 2026](#may-2026)
+- [April 2026](#april-2026)
 - [March 2026](#march-2026)
 - [February 2026](#february-2026)
 - [January 2026](#january-2026)
@@ -34,9 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### 2026
 
+- added fat LTO-object support, new plugin relocation API surface, and x86 IE-mode TLS relocation support in shared objects.
+- hardened linker-script behavior (`EXCLUDE_FILE` in `SORT_*`, `ASCIZ`, stricter `SUBALIGN` validation) and fixed multiple versioning/address-layout issues.
 - added `-z separate-loadable-segments`, fixed PIE handling for absolute `--defsym`, and improved AArch64 static TLS/IFunc support.
-- added linker script `INSERT BEFORE/AFTER` and `NEXT_SECTION`, added `--start-lib/--end-lib`, and expanded LTO reporting options.
-- expanded LTO CLI compatibility (`--thinlto-jobs`, `--lto-partitions`, `--lto-obj-path`) and improved layout convergence behavior.
 
 ### 2025
 
@@ -46,7 +48,91 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## 2026
 
+### May 2026
+
+#### [2026-05-25] - 2026-05-25 to 2026-05-31
+##### Changed
+- No net user-visible linker behavior changes this week; commits were primarily workflow and test maintenance.
+
+#### [2026-05-18] - 2026-05-18 to 2026-05-24
+##### Added
+- [plugin-api] Add `LinkerWrapper::doRelocation`.
+- [fatlto] Diagnose invalid/empty embedded bitcode.
+- [X86] Emit `R_X86_64_TPOFF64` for IE-mode TLS in shared objects.
+##### Changed
+- Remove unnecessary sorting of input sections.
+##### Fixed
+- Unknown `-z` sub-options now warn (instead of error) for consistency with other unknown options.
+
+#### [2026-05-11] - 2026-05-11 to 2026-05-17
+##### Added
+- [LTO] Support fat LTO objects.
+- Add support for `-Wno-whole-archive`.
+- [Hexagon] Add V93 support.
+##### Changed
+- Make output relocation section order deterministic.
+- Replace `xxHash64` with `xxh3_64bits` and remove `HashUtils`.
+##### Removed
+- Remove deprecated `LinkerScriptRule` chunk APIs.
+
+#### [2026-05-04] - 2026-05-04 to 2026-05-10
+##### Changed
+- Detect incompatible input files in `ELFDynObjParser`.
+##### Fixed
+- Fix `ELFObjectWriter::emitRelocation`.
+- Fix windows build failures.
+##### Removed
+- Remove `AtTable` support and remaining `AtSection` plumbing.
+
+### April 2026
+
+#### [2026-04-27] - 2026-04-27 to 2026-05-03
+##### Added
+- Add support for `extern "C++"` in version scripts.
+##### Fixed
+- Fix build errors seen with `-fno-permissive`.
+- Fix windows test failures.
+
+#### [2026-04-20] - 2026-04-20 to 2026-04-26
+##### Fixed
+- Emit an error for non-power-of-2 `SUBALIGN` values.
+- Fix incorrect version assignment to undefined symbols.
+- Fix response-file generation for namespec-resolved libraries.
+- Fix `AArch64Relocator::isRelocSupported`.
+
+#### [2026-04-13] - 2026-04-13 to 2026-04-19
+##### Added
+- Accept single- and double-dash forms of `pie`/`no-pie`.
+- Support `ASCIZ` escapes and reject invalid hex escapes in linker scripts.
+##### Changed
+- Update `ASCIZ` syntax and map-file output behavior.
+##### Fixed
+- Correct `.gnu.hash` computation for versioned symbols.
+- Fix LMA alignment when VMA is not aligned.
+- Skip `NOLOAD` sections in LMA-overlap checks.
+
+#### [2026-04-06] - 2026-04-06 to 2026-04-12
+##### Added
+- Support joined soname argument form: `-h<soname>`.
+- Add trace diagnostics for soname property updates.
+- Add `ASCIZ` linker-script support.
+##### Changed
+- Emit diagnostics for segment assignments when `PHDRS` are absent.
+##### Fixed
+- Fix `ALIGN_WITH_INPUT` overlap when VMA and LMA share a region.
+- Preserve parentheses around output section VMA.
+
 ### March 2026
+
+#### [2026-03-30] - 2026-03-30 to 2026-04-05
+##### Added
+- Support `EXCLUDE_FILE` inside `SORT_*` linker-script constructs.
+##### Changed
+- [LTO] Do not delete assembly inputs to LTO.
+##### Fixed
+- Fix incorrect `"Plugin Error"` when PLT/GOT sections are discarded.
+- Fix build with `BUILD_SHARED_LIBS=On`.
+- Fix windows build failure.
 
 #### [2026-03-23] - 2026-03-23 to 2026-03-29
 ##### Added

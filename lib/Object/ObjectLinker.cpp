@@ -67,6 +67,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -734,6 +735,10 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   ObjectBuilder Builder(ThisConfig, *ThisModule);
   auto Start = std::chrono::steady_clock::now();
   Builder.assignOutputSections(Inputs, MPostLtoPhase);
+  // Refresh matched inputs for each rule before relocation scan. We need this
+  // to infer output properties from script merged inputs before layout is
+  // finalized.
+  RuleContainer::updateMatchedSections(*ThisModule);
   // FIXME: Perhaps transfer entry section ownership to GarbageCollection as
   // Entry sections are only relevant with garbage collection.
   // Currently, entry section are computed even if garbage-collection is not
@@ -742,13 +747,8 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   LayoutInfo *LayoutInfo = ThisModule->getLayoutInfo();
   if (LayoutInfo && LayoutInfo->LayoutInfo::showInitialLayout()) {
     TextLayoutPrinter *TextMapPrinter = ThisModule->getTextMapPrinter();
-    if (TextMapPrinter) {
-      // FIXME: ideally, we should not need 'updateMatchedSections' call here.
-      // However, we need it because currently we do not maintain the list of
-      // matched input sections for rule containers consistently.
-      RuleContainer::updateMatchedSections(*ThisModule);
+    if (TextMapPrinter)
       TextMapPrinter->printLayout(*ThisModule);
-    }
   }
   // FIXME: SectionMatcher plugins should not consume time under
   // 'LinkerScriptRuleMatch' timing category!
@@ -782,44 +782,6 @@ void ObjectLinker::markDiscardFileFormatSections() {
       }
     }
   }
-}
-
-bool ObjectLinker::mayBeSortSections(std::vector<Section *> &Sections) {
-  // If no linker scripts, we dont store the original input. Lets not sort.
-  if (!ThisModule->getScript().linkerScriptHasSectionsCommand())
-    return true;
-  if (ThisConfig.options().disableLTOLinkOrder())
-    return true;
-  // If we are doing partial link, lets not sort it.
-  bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
-  if (IsPartialLink || LtoObjects.empty())
-    return true;
-  std::stable_sort(Sections.begin(), Sections.end(),
-                   [](Section *ASection, Section *BSection) {
-                     ELFSection *A = llvm::dyn_cast<ELFSection>(ASection);
-                     ELFSection *B = llvm::dyn_cast<ELFSection>(BSection);
-                     if (A == nullptr or B == nullptr)
-                       return false;
-                     // FIXME: Redundant checks. All files have original input.
-                     if (!A->originalInput())
-                       return false;
-                     if (!B->originalInput())
-                       return false;
-                     if ((A->name().starts_with(".ctors")) ||
-                         (B->name().starts_with(".ctors")))
-                       return false;
-                     if ((A->name().starts_with(".dtors")) ||
-                         (B->name().starts_with(".dtors")))
-                       return false;
-                     int64_t AOrdinal =
-                         A->originalInput()->getInput()->getInputOrdinal();
-                     int64_t BOrdinal =
-                         B->originalInput()->getInput()->getInputOrdinal();
-                     if (AOrdinal == BOrdinal)
-                       return false;
-                     return (AOrdinal < BOrdinal);
-                   });
-  return true;
 }
 
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,
@@ -1111,12 +1073,6 @@ bool ObjectLinker::initializeMerge() {
         ThisModule->getLayoutInfo()->recordSectionStat(Sect);
       }
     }
-  }
-  {
-    eld::RegisterTimer T("Sort sections if LTO enabled", "Merge Sections",
-                         ThisConfig.options().printTimingStats());
-    // Sort sections if we have LTO enabled.
-    mayBeSortSections(AllInputSections);
   }
   return true;
 }
@@ -1949,38 +1905,96 @@ size_t ObjectLinker::getRelocSectSize(uint32_t Type, uint32_t Count) {
                       : getTargetBackend().getRelEntrySize());
 }
 
-void ObjectLinker::createRelocationSections() {
+uint32_t ObjectLinker::getEmitRelocSectionType() const {
+  return getTargetBackend().getRelocator()->relocType();
+}
 
+ELFSection *
+ObjectLinker::getEmitRelocOutputTargetSection(Relocation *Reloc) const {
+  if (!Reloc || !Reloc->targetRef() || !Reloc->targetRef()->frag())
+    return nullptr;
+
+  ELFSection *OutputTargetSect = Reloc->targetRef()->frag()->getOwningSection();
+  if (OutputTargetSect && OutputTargetSect->getOutputSection())
+    OutputTargetSect = OutputTargetSect->getOutputSection()->getSection();
+  return OutputTargetSect;
+}
+
+// The target relocation section will be seen in the output only if not
+// discarded (linker script) or ignored (garbage collected)
+void ObjectLinker::markRelocationOutputTargetSectionWanted(
+    Relocation *Reloc) const {
+  ELFSection *TargetSection = Reloc->targetSection();
+  if (!TargetSection || TargetSection->isDiscard() || TargetSection->isIgnore())
+    return;
+
+  if (ELFSection *TargetOutputSection = TargetSection->getOutputELFSection())
+    TargetOutputSection->setWantedInOutput();
+}
+
+ELFSection *ObjectLinker::createEmitRelocSection(ELFSection *OutputTargetSect,
+                                                 uint32_t RelocSectionType,
+                                                 uint32_t MaxAlignment,
+                                                 uint32_t RelocCount) {
+  if (!OutputTargetSect)
+    return nullptr;
+
+  std::string RelocSectionName = getTargetBackend().getOutputRelocSectName(
+      OutputTargetSect->name().str(), RelocSectionType);
+  ELFSection *OutputRelocSect = ThisModule->createOutputSection(
+      RelocSectionName, LDFileFormat::Relocation, RelocSectionType /* Kind */,
+      0x0, MaxAlignment);
+  OutputRelocSect->setEntSize(RelocSectionType == llvm::ELF::SHT_RELA
+                                  ? getTargetBackend().getRelaEntrySize()
+                                  : getTargetBackend().getRelEntrySize());
+  OutputTargetSect->setWantedInOutput(true);
+  OutputRelocSect->setLink(OutputTargetSect);
+  OutputRelocSect->setSize(getRelocSectSize(RelocSectionType, RelocCount));
+  EmitRelocSectionMap[OutputTargetSect] = OutputRelocSect;
+  return OutputRelocSect;
+}
+
+ELFSection *
+ObjectLinker::findEmitRelocOutputSection(Relocation *Reloc,
+                                         uint32_t RelocSectionType) const {
+  ELFSection *TargetOutputSect = getEmitRelocOutputTargetSection(Reloc);
+  if (!TargetOutputSect)
+    return nullptr;
+
+  auto It = EmitRelocSectionMap.find(TargetOutputSect);
+  if (It != EmitRelocSectionMap.end())
+    return It->second;
+
+  return ThisModule->getSection(getTargetBackend().getOutputRelocSectName(
+      TargetOutputSect->name().str(), RelocSectionType));
+}
+
+void ObjectLinker::initializeEmitRelocCounts(
+    llvm::DenseMap<ELFSection *, unsigned> &RelocCount) const {
+  for (const auto &SectMap : EmitRelocSectionMap)
+    RelocCount[SectMap.second] = 0;
+}
+
+void ObjectLinker::finalizeEmitRelocSectionSizes(
+    const llvm::DenseMap<ELFSection *, unsigned> &RelocCount) {
+  for (const auto &Kv : RelocCount)
+    Kv.first->setSize(getRelocSectSize(Kv.first->getType(), Kv.second));
+}
+
+void ObjectLinker::createEmitRelocationSections() {
   if (!ThisConfig.options().emitRelocs())
     return;
 
-  // SectionName, contentPermissions, filepath
-  struct SectionKey {
-    SectionKey() : Name(""), Type(-1) {}
-
-    SectionKey(llvm::StringRef Name, int32_t Type) : Name(Name), Type(Type) {}
-
-    // Data members
-    StringRef Name;
-    int32_t Type;
+  struct EmitRelocSectionPlan {
+    uint32_t RelocCount = 0;
+    uint32_t MaxAlignment = 0;
   };
 
-  struct SectionKeyInfo {
-    static SectionKey getEmptyKey() { return SectionKey(); }
-    static SectionKey getTombstoneKey() { return SectionKey(); }
-    static unsigned getHashValue(const SectionKey &K) {
-      return llvm::hash_combine(K.Name, K.Type);
-    }
-    static bool isEqual(const SectionKey &Lhs, const SectionKey &Rhs) {
-      return ((Lhs.Name == Rhs.Name) && (Lhs.Type == Rhs.Type));
-    }
-  };
-
-  // apply all relocations of all inputs
-  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocCount;
-  llvm::DenseMap<SectionKey, uint32_t, SectionKeyInfo> OutputRelocAlignment;
-  llvm::DenseMap<SectionKey, ELFSection *, SectionKeyInfo>
-      OutputRelocTargetSect;
+  // Apply all relocations of all inputs.
+  // Use a MapVector so that output relocation sections are created in a
+  // deterministic order.
+  llvm::MapVector<ELFSection *, EmitRelocSectionPlan> OutputRelocPlans;
+  const uint32_t RelocSectionType = getEmitRelocSectionType();
 
   eld::Module::obj_iterator Input, InEnd = ThisModule->objEnd();
   for (Input = ThisModule->objBegin(); Input != InEnd; ++Input) {
@@ -1998,45 +2012,25 @@ void ObjectLinker::createRelocationSections() {
           continue;
 
         auto CountRelocEntries = [&](class Relocation *Relocation) -> void {
-          ELFSection *OutputSect =
-              Relocation->targetRef()->frag()->getOwningSection();
+          ELFSection *OutputTargetSect =
+              getEmitRelocOutputTargetSection(Relocation);
+          if (!OutputTargetSect)
+            return;
 
-          if (OutputSect->getOutputSection())
-            OutputSect = OutputSect->getOutputSection()->getSection();
-
-          ELFSection *TargetSection = Relocation->targetSection();
-
-          if (TargetSection &&
-              (!TargetSection->isDiscard() && !TargetSection->isIgnore())) {
-            ELFSection *TargetOutputSection =
-                TargetSection->getOutputELFSection();
-            TargetOutputSection->setWantedInOutput();
-          }
-
-          // Count the num of entries that refers to that section.
-          SectionKey SectKey(OutputSect->name(),
-                             getTargetBackend().getRelocator()->relocType());
-          OutputRelocCount[SectKey] += 1;
-          OutputRelocAlignment[SectKey] =
-              std::max(Rs->getAddrAlign(), OutputRelocAlignment[SectKey]);
-          OutputRelocTargetSect[SectKey] = OutputSect;
+          markRelocationOutputTargetSectionWanted(Relocation);
+          auto &Plan = OutputRelocPlans[OutputTargetSect];
+          ++Plan.RelocCount;
+          Plan.MaxAlignment = std::max(Rs->getAddrAlign(), Plan.MaxAlignment);
         };
         CountRelocEntries(Relocation);
       } // for all relocations
     } // for all relocation section
   } // for all inputs
-  for (const auto &Kv : OutputRelocCount) {
-    ELFSection *OutputSect = ThisModule->createOutputSection(
-        getTargetBackend().getOutputRelocSectName(Kv.first.Name.str(),
-                                                  Kv.first.Type),
-        LDFileFormat::Relocation, Kv.first.Type /* Reloc Kind */, 0x0,
-        OutputRelocAlignment[Kv.first]);
-    OutputSect->setEntSize(Kv.first.Type == llvm::ELF::SHT_RELA
-                               ? getTargetBackend().getRelaEntrySize()
-                               : getTargetBackend().getRelEntrySize());
-    OutputRelocTargetSect[Kv.first]->setWantedInOutput(true);
-    OutputSect->setLink(OutputRelocTargetSect[Kv.first]);
-    OutputSect->setSize(getRelocSectSize(Kv.first.Type, Kv.second));
+  for (const auto &Kv : OutputRelocPlans) {
+    ELFSection *OutputTargetSect = Kv.first;
+    const EmitRelocSectionPlan &Plan = Kv.second;
+    createEmitRelocSection(OutputTargetSect, RelocSectionType,
+                           Plan.MaxAlignment, Plan.RelocCount);
   }
 }
 
@@ -2247,7 +2241,7 @@ bool ObjectLinker::prelayout() {
 
   getTargetBackend().initSymTab();
 
-  createRelocationSections();
+  createEmitRelocationSections();
 
   return true;
 }
@@ -2322,8 +2316,12 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
   if (LinkerConfig::Object == ThisConfig.codeGenType())
     return true;
 
-  // Mapping section to count and max_size.
-  llvm::DenseMap<ELFSection *, unsigned> RelocCount, MaxSectSize;
+  llvm::DenseMap<ELFSection *, unsigned> RelocCount;
+  const uint32_t RelocSectionType = getEmitRelocSectionType();
+  std::mutex EmitRelocsMutex;
+
+  if (EmitRelocs)
+    initializeEmitRelocCounts(RelocCount);
 
   getTargetBackend().getRelocator()->computeTLSOffsets();
 
@@ -2332,19 +2330,10 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
       return true;
     ResolveInfo *Info = Relocation->symInfo();
     ELFSection *OutputSect =
-        ThisModule->getSection(getTargetBackend().getOutputRelocSectName(
-            Relocation->targetRef()->getOutputELFSection()->name().str(),
-            getTargetBackend().getRelocator()->relocType()));
+        findEmitRelocOutputSection(Relocation, RelocSectionType);
 
     if (!OutputSect)
       return true;
-
-    // Make sure we have an entry for each section because it's possible
-    // that the whole section has no any valid relocs.
-    if (RelocCount.find(OutputSect) == RelocCount.end()) {
-      RelocCount[OutputSect] = 0;
-      MaxSectSize[OutputSect] = OutputSect->size();
-    }
 
     Relocation::Type ExtType =
         getTargetBackend().getRemappedInternalRelocationType(
@@ -2375,8 +2364,11 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     // set relocation target symbol to the output section symbol's
     // resolveInfo
     R->setSymInfo(SymInfo);
-    OutputSect->addRelocation(R);
-    RelocCount[OutputSect] += 1;
+    {
+      std::lock_guard<std::mutex> Guard(EmitRelocsMutex);
+      OutputSect->addRelocation(R);
+      RelocCount[OutputSect] += 1;
+    }
     return true;
   };
 
@@ -2466,11 +2458,6 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     if (!ThisConfig.getDiagEngine()->diagnose()) {
       return false;
     }
-
-    if (ThisConfig.options().emitRelocs()) {
-      for (auto &Kv : RelocCount)
-        Kv.first->setSize(getRelocSectSize(Kv.first->getType(), Kv.second));
-    }
     return true;
   };
 
@@ -2500,6 +2487,9 @@ bool ObjectLinker::relocation(bool EmitRelocs) {
     }
     Pool->wait();
   }
+
+  if (EmitRelocs)
+    finalizeEmitRelocSectionSizes(RelocCount);
 
   // apply relocations created by relaxation
   SectionMap::iterator Out, OutBegin, OutEnd;
@@ -3884,9 +3874,10 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
 }
 
 bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
-  // If -flto option is not passed to the linker, and there is not a list
-  // to include, then just move on.
-  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size())
+  // If neither -flto nor list-driven selection nor --fat-lto-objects is used,
+  // then just move on.
+  if (!ThisConfig.options().hasLTO() && !LTOPatternList.size() &&
+      !ThisConfig.options().hasFatLTOObjects())
     return false;
 
   eld::RegisterTimer T("Read Mixed ELF/Bitcode Object Files",
@@ -3902,7 +3893,12 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   std::string Path = CurInput->decoratedPath();
 
   ELFSection *LLVMBCSection = EObj->getLLVMBCSection();
-  if (!LLVMBCSection)
+  if (!LLVMBCSection || !LLVMBCSection->size())
+    return false;
+
+  // Fat-LTO payloads are selected only when --fat-lto-objects is enabled.
+  if (ELFSection::isFatLTOSection(LLVMBCSection->name()) &&
+      !ThisConfig.options().hasFatLTOObjects())
     return false;
 
   bool MatchedPattern = false;
@@ -3928,15 +3924,25 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   if (ThisConfig.options().hasLTO()) {
     if (MatchedPattern)
       return false;
-  } else {
+  } else if (LTOPatternList.size()) {
     // The file needs to be included, if
     // -flto option is not used and there is a match.
     if (!MatchedPattern)
       return false;
+  } else if (!(ThisConfig.options().hasFatLTOObjects() &&
+               ELFSection::isFatLTOSection(LLVMBCSection->name()))) {
+    // We have to delay this to make sure llvmbc sections are handled using
+    // exclude-lto-filelist and include-lto-filelist accordingly.
+    return false;
   }
 
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig.raise(Diag::use_embedded_bitcode) << Path;
+
+  if (ELFSection::isFatLTOSection(LLVMBCSection->name())) {
+    if (LayoutInfo *layoutInfo = ThisModule->getLayoutInfo())
+      layoutInfo->annotateInputAction(CurInput, "Fat LTO object selected");
+  }
 
   // LTO is needed. Since Bitcode was chosen.
   ThisModule->setLTONeeded();
@@ -3947,8 +3953,12 @@ bool ObjectLinker::overrideELFObjectWithBitCode(InputFile *CurInputFile) {
   InputFile *OverrideBCFile = InputFile::createEmbedded(
       CurInput, LLVMBCContents, ThisConfig.getDiagEngine());
 
-  ASSERT(OverrideBCFile->getKind() == InputFile::BitcodeFileKind,
-         CurInput->decoratedPath());
+  if (!OverrideBCFile ||
+      OverrideBCFile->getKind() != InputFile::BitcodeFileKind) {
+    ThisConfig.raise(Diag::error_invalid_embedded_bitcode)
+        << Path << LLVMBCSection->name();
+    return false;
+  }
 
   CurInput->overrideInputFile(OverrideBCFile);
 
@@ -4179,8 +4189,7 @@ void ObjectLinker::collectEntrySections() const {
         continue;
       RuleContainer *R = ELFSect->getMatchedLinkerScriptRule();
 
-      if ((R && R->isEntry()) ||
-          ELFSect->name().find("@") != llvm::StringRef::npos) {
+      if (R && R->isEntry()) {
         InputToEntrySections[I].push_back(ELFSect);
         continue;
       }
@@ -4245,4 +4254,9 @@ bool ObjectLinker::initializeTarget(InputFile *I) {
   if (!ThisModule->getLinker()->initializeTarget(machine, is64bit))
     return false;
   return true;
+}
+
+void ObjectLinker::sortAllInputSections(
+    std::function<bool(const Section *, const Section *)> cmp) {
+  std::stable_sort(AllInputSections.begin(), AllInputSections.end(), cmp);
 }

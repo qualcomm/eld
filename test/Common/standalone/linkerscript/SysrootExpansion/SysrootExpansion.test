@@ -1,3 +1,4 @@
+#UNSUPPORTED: windows
 #---SysrootExpansion.test---------------- Linker Script ----------------#
 #BEGIN_COMMENT
 # Validate sysroot expansion for "=" and "$SYSROOT" markers in INPUT/GROUP

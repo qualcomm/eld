@@ -42,12 +42,6 @@ DIAG(linker_script_uses_phdrs_no_sections, DiagnosticEngine::Error,
 DIAG(cannot_set_at_address, DiagnosticEngine::Error,
      "Address for section %0 specified with AT cannot be set, as there is a "
      "dependency issue, check the map file for more analysis")
-DIAG(cannot_place_at_section, DiagnosticEngine::Error,
-     "The section %0 cannot be placed as the address range is occupied by "
-     "section %1, Please remove the AT section name and place it manually")
-DIAG(at_section_not_aligned, DiagnosticEngine::Warning,
-     "The section %0 is not aligned to the section alignment, Aligning "
-     "automatically")
 DIAG(assignment_maybe_wrong, DiagnosticEngine::Warning,
      "The section %0 has assignment in the middle. the value is not accurate "
      "in best-fit mode")

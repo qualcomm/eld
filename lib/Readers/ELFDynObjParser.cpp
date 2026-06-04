@@ -32,6 +32,11 @@ eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
 
   std::unique_ptr<ELFReaderBase> ELFReader = std::move(expReader.value());
 
+  eld::Expected<bool> expCompatibility = ELFReader->isCompatible();
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expCompatibility);
+  if (!expCompatibility.value())
+    return false;
+
   eld::Expected<bool> expCheckFlags = ELFReader->checkFlags();
 
   // FIXME: Linker should give some error if checkFlags return false.
@@ -42,7 +47,7 @@ eld::Expected<bool> ELFDynObjParser::parseFile(InputFile &inputFile) {
       if (!flagStr.empty()) {
         std::string flag = "[" + std::string(flagStr) + "]";
         layoutInfo->recordInputActions(LayoutInfo::Load, inputFile.getInput(),
-                                    flag);
+                                       flag);
       }
     }
   }

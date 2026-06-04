@@ -1,0 +1,21 @@
+#---MemoryCmdNoDuplicateMapPrint.test--------- Executable,LS--------------#
+#BEGIN_COMMENT
+# Regression test: MEMORY command should be printed only once in map output
+# and only in commented form.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -L %p/Inputs/ \
+RUN: -T %p/Inputs/mem.t -o %t2.out -Map %t1.map \
+RUN: 2>&1
+RUN: %filecheck %s < %t1.map
+#END_TEST
+
+CHECK: # Output Section and Layout
+CHECK-NEXT: # MEMORY
+CHECK-NOT: {{^[[:space:]]*\{$}}
+CHECK-NEXT: #{
+CHECK: # bootloader (rx) : ORIGIN =
+CHECK: # newbootloader : ORIGIN =
+CHECK-NEXT: #}
+CHECK-NOT: # MEMORY

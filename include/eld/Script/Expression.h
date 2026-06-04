@@ -337,6 +337,7 @@ private:
   Expression *getRightExpression() const override { return nullptr; }
 
   mutable LDSymbol *ThisSymbol = nullptr;
+  const Assignment *SourceAssignment = nullptr;
 };
 
 //===----------------------------------------------------------------------===//

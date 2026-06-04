@@ -68,7 +68,6 @@ Module::~Module() {
   ArchiveLibraryList.clear();
   DynLibraryList.clear();
   OutputSectionTable.clear();
-  AtTable.clear();
   DynamicListSymbols.clear();
   DuplicateFarCalls.clear();
   NoReuseTrampolines.clear();

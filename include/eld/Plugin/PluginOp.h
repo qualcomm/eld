@@ -36,7 +36,8 @@ public:
     UpdateLinkStat,
     UpdateRule,
     RelocationData,
-    UpdateLinkState
+    UpdateLinkState,
+    SortInputSectionsForMerging
   };
 
   explicit PluginOp(plugin::LinkerWrapper *, PluginOpType T,
@@ -65,6 +66,7 @@ public:
       ADD_CASE(UpdateRule)
       ADD_CASE(RelocationData)
       ADD_CASE(UpdateLinkState)
+      ADD_CASE(SortInputSectionsForMerging)
     }
 #undef ADD_CASE
     return "Unknown";
@@ -281,6 +283,16 @@ public:
 
 private:
   LinkState NewState = LinkState::Unknown;
+};
+
+class SortInputSectionsForMergingPluginOp : public PluginOp {
+public:
+  SortInputSectionsForMergingPluginOp(plugin::LinkerWrapper *W,
+                                      std::string Annotation);
+
+  static bool classof(const PluginOp *P) {
+    return P->getPluginOpType() == PluginOpType::SortInputSectionsForMerging;
+  }
 };
 
 } // namespace eld

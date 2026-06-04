@@ -21,18 +21,16 @@ public:
     return 1;
   }
 
+  std::string getMachineStr() const override { return ""; }
+
   /// flags - the value of ElfXX_Ehdr::e_flags
   uint64_t flags() const override;
 
   uint8_t OSABI() const override;
 
-  bool checkFlags(uint64_t flag, const std::string &name, bool) override;
+  bool checkFlags(uint64_t flag, const InputFile *pInputFile, bool) override;
 
-  const char *flagString(uint64_t pFlag) const override;
-
-  int32_t cmdLineFlag() const override { return m_CmdLineFlag; }
-
-  int32_t outputFlag() const override { return m_OutputFlag; }
+  std::string flagString(uint64_t pFlag) const override;
 
   bool needEhdr(Module &pModule, bool linkerScriptHasSectionsCmd,
                 bool isPhdr) override {
@@ -43,8 +41,11 @@ public:
 
   llvm::StringRef getOutputMCPU() const override;
 
+  bool initialize() override;
+
 private:
   uint64_t translateFlag(uint64_t pFlag) const;
+  int32_t m_CmdLineFlag;
   int32_t m_OutputFlag;
 };
 

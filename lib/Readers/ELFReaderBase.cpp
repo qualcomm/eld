@@ -5,7 +5,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "eld/Readers/ELFReaderBase.h"
-#include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Input/ObjectFile.h"
@@ -26,7 +25,6 @@ eld::Expected<std::unique_ptr<ELFReaderBase>>
 ELFReaderBase::Create(Module &module, InputFile &inputFile) {
   plugin::DiagnosticEntry diagEntry;
   std::unique_ptr<ELFReaderBase> reader;
-  LinkerConfig &config = module.getConfig();
 
   eld::Expected<ObjectFile::ELFKind> fileKind =
       ELFReaderBase::inspectELFKind(inputFile);
@@ -35,18 +33,15 @@ ELFReaderBase::Create(Module &module, InputFile &inputFile) {
   // Set the ELF kind in the object file
   llvm::dyn_cast<ObjectFile>(&inputFile)->setELFKind(*fileKind);
 
-  if (config.targets().isBigEndian() ||
-      (*fileKind == ObjectFile::ELFKind::ELF32BEKind) ||
+  if ((*fileKind == ObjectFile::ELFKind::ELF32BEKind) ||
       (*fileKind == ObjectFile::ELFKind::ELF64BEKind))
     return std::make_unique<plugin::DiagnosticEntry>(
         plugin::DiagnosticEntry(Diag::fatal_big_endian_target,
                                 {inputFile.getInput()->decoratedPath()}));
 
-  if (config.targets().is32Bits() ||
-      (*fileKind == ObjectFile::ELFKind::ELF32LEKind))
+  if (*fileKind == ObjectFile::ELFKind::ELF32LEKind)
     return createImpl<llvm::object::ELF32LE>(module, inputFile);
-  else if (config.targets().is64Bits() ||
-           (*fileKind == ObjectFile::ELFKind::ELF64LEKind))
+  else if (*fileKind == ObjectFile::ELFKind::ELF64LEKind)
     return createImpl<llvm::object::ELF64LE>(module, inputFile);
   return {};
 }

@@ -113,6 +113,8 @@ Suppression Flags
      - Disables linker script-related warnings.
    * - ``-Wno-osabi``
      - Disables OS/ABI warnings.
+   * - ``-Wno-whole-archive``
+     - Disables whole archive warnings.
 
 Archive Member Reports
 ======================

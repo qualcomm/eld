@@ -959,10 +959,19 @@ struct DLL_A_EXPORT Memory : public ScriptCommand {
 
   eld::ScriptCommand *getCommand() const override;
 
+  bool hasMoreCommands() const override { return true; }
+
+  std::vector<plugin::Script::ScriptCommand *> getCommands() const override;
+
+  ~Memory();
+
   size_t size() const;
 
 private:
+  void getMemoryDescriptors();
+
   eld::MemoryCmd *m_MemoryCmd = nullptr;
+  std::vector<plugin::Script::ScriptCommand *> m_MemoryCommands;
 };
 
 /// REGION_ALIAS command wrapper

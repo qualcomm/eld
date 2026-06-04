@@ -26,6 +26,10 @@ void MemoryCmd::dump(llvm::raw_ostream &Outs) const {
   Outs << "}\n";
 }
 
+void MemoryCmd::dumpOnlyThis(llvm::raw_ostream &Outs) const {
+  Outs << "MEMORY";
+}
+
 void MemoryCmd::pushBack(ScriptCommand *Desc) {
   MemoryDescriptors.push_back(llvm::cast<MemoryDesc>(Desc));
 }
@@ -38,4 +42,3 @@ eld::Expected<void> MemoryCmd::activate(Module &CurModule) {
   CurModule.getScript().setMemoryCommand(this);
   return eld::Expected<void>();
 }
-

@@ -72,3 +72,8 @@ ResetOffsetPluginOp::ResetOffsetPluginOp(plugin::LinkerWrapper *W,
                                          const std::string &Annotation)
     : PluginOp(W, PluginOp::ResetOffset, Annotation), O(O),
       OldOffset(OldOffset) {}
+
+SortInputSectionsForMergingPluginOp::SortInputSectionsForMergingPluginOp(
+    plugin::LinkerWrapper *W, std::string annotation)
+    : PluginOp(W, PluginOp::PluginOpType::SortInputSectionsForMerging,
+               annotation) {}

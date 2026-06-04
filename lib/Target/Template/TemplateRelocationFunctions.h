@@ -62,12 +62,15 @@ struct RelocationDescription {
   bool forceVerify;
 };
 
-struct RelocationDescription RelocDesc[] = {
+struct RelocationDescription RelocDesc[1] = {
+    {}
     /* {  func =         &applyNone
             ,  type =        llvm::ELF::
             ,  forceVerify =  false
     } */
 };
+
+#define TEMPLATE_MAXRELOCS (/*llvm::ELF::R_LAST_RELOC + 1*/ 0)
 
 } // namespace eld
 

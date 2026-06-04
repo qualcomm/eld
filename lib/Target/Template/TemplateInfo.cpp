@@ -14,20 +14,25 @@
 
 using namespace eld;
 
-const char *TemplateInfo::flagString(uint64_t flag) const { return ""; }
+std::string TemplateInfo::flagString(uint64_t flag) const { return ""; }
 
 llvm::StringRef TemplateInfo::getOutputMCPU() const { return "Template"; }
 
 //===----------------------------------------------------------------------===//
 // TemplateInfo
 //===----------------------------------------------------------------------===//
-TemplateInfo::TemplateInfo(LinkerConfig &pConfig) : TargetInfo(pConfig) {
-  m_OutputFlag = 0;
+TemplateInfo::TemplateInfo(LinkerConfig &pConfig)
+    : TargetInfo(pConfig), m_OutputFlag(-1) {}
+
+bool TemplateInfo::initialize() {
+  m_CmdLineFlag = -1;
+  return true;
 }
 
 uint64_t TemplateInfo::translateFlag(uint64_t pFlag) const { return pFlag; }
 
-bool TemplateInfo::checkFlags(uint64_t pFlag, const std::string &name, bool) {
+bool TemplateInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
+                              bool) {
   // Choose the default architecture from the input files, only if mcpu option
   // is not specified on the command line.
   if (!m_OutputFlag)

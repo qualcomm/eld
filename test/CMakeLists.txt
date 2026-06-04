@@ -24,6 +24,9 @@ if(test_riscv GREATER -1)
   set(TEST_TARGETS "${TEST_TARGETS};RISCV64")
 endif()
 
+#Remove the Template backend from the testing infrastructure.
+list(REMOVE_ITEM TEST_TARGETS "Template")
+
 add_custom_target(PluginUnitTests)
 set_target_properties(PluginUnitTests PROPERTIES FOLDER
   "plugin unit tests")

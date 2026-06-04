@@ -9,6 +9,7 @@
 #include "eld/Core/LinkerScript.h"
 #include "eld/Core/Module.h"
 #include "eld/Readers/ELFSection.h"
+#include "eld/Script/Assignment.h"
 #include "eld/Script/ScriptFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/Utils.h"
@@ -135,7 +136,6 @@ bool Symbol::hasDot() const {
 }
 
 eld::Expected<uint64_t> Symbol::evalImpl() {
-
   if (!ThisSymbol)
     ThisSymbol = ThisModule.getNamePool().findSymbol(Name);
 
@@ -144,6 +144,15 @@ eld::Expected<uint64_t> Symbol::evalImpl() {
     return std::make_unique<plugin::DiagnosticEntry>(
         Diag::undefined_symbol_in_linker_script,
         std::vector<std::string>{Name});
+
+  if (!SourceAssignment &&
+      ThisSymbol->resolveInfo()->outSymbol()->scriptDefined()) {
+    auto &Backend = ThisModule.getBackend();
+    const auto *A = Backend.getLatestAssignment(Name);
+    if (!A)
+      A = ThisModule.getAssignmentForSymbol(Name);
+    SourceAssignment = A;
+  }
 
   if (ThisSymbol->hasFragRef() && !ThisSymbol->shouldIgnore()) {
     FragmentRef *FragRef = ThisSymbol->fragRef();
@@ -154,6 +163,10 @@ eld::Expected<uint64_t> Symbol::evalImpl() {
            "using a symbol that points to a non allocatable section!");
     return Section->addr() + FragRef->getOutputOffset(ThisModule);
   }
+  if (hasDot())
+    return ThisSymbol->value();
+  if (SourceAssignment)
+    return SourceAssignment->value();
   return ThisSymbol->value();
 }
 

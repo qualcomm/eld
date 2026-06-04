@@ -266,6 +266,10 @@ add_subdirectory(tools)
 add_subdirectory(docs)
 add_subdirectory(etc)
 
+
+option(ELD_ENABLE_RUN_TESTS
+       "Enable build and run tests" OFF)
+
 # Only include tests if enabled (requires LLVM source tree)
 if(ELD_INCLUDE_TESTS)
   add_subdirectory(test)

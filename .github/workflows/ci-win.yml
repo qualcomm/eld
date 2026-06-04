@@ -1,7 +1,7 @@
-name: Windows Arm64/x86_64 Nightly
+name: Windows Arm64/x86_64 CI/Nightly
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  # pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
@@ -14,9 +14,11 @@ jobs:
   build-windows:
     if: github.repository == 'qualcomm/eld'
     permissions:
-      contents: read
+      contents: write
     env:
-      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+      ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+      ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
 
@@ -46,13 +48,27 @@ jobs:
           ref: ${{ env.BASE_BRANCH_NAME }}
           path: nightly/llvm-project
 
-      - name: Checkout ELD main branch
+      - name: Checkout ELD
         uses: actions/checkout@v6
         with:
-          repository: ${{ github.repository }}
-          ref: ${{ env.BASE_BRANCH_NAME }}
+          repository: ${{ env.ELD_REPO }}
+          ref: ${{ env.ELD_REF }}
           path: nightly/llvm-project/llvm/tools/eld
           fetch-depth: 0
+
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule'
+        uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "nightly/llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "windows_nightly"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: ${{ matrix.arch }}
+          branch-name: "${{ env.BASE_BRANCH_NAME }}"
 
       - name: Configure CMake
         working-directory: nightly
@@ -66,6 +82,7 @@ jobs:
             -DLLVM_ENABLE_PROJECTS="llvm;clang;clang-tools-extra" \
             -DLLVM_ENABLE_ASSERTIONS=ON \
             -DLLVM_TARGETS_TO_BUILD="ARM;AArch64;RISCV;Hexagon;X86" \
+            -DELD_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86;Template' \
             ../llvm-project/llvm
 
       - name: Build
@@ -81,6 +98,20 @@ jobs:
         working-directory: nightly/obj
         shell: bash
         run: cmake --build . --config Release --target check-eld
+
+      - name: Update build entry
+        if: github.event_name == 'schedule'
+        uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "nightly/llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "windows_nightly"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: ${{ matrix.arch }}
+          branch-name: "${{ env.BASE_BRANCH_NAME }}"
 
       - name: Clean up
         if: always()

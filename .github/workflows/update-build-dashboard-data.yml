@@ -41,6 +41,7 @@ jobs:
             python3 record_builds.py --workflow nightly --emit
             python3 record_builds.py --workflow reverse_iterator --emit
             python3 record_builds.py --workflow release --emit
+            python3 record_builds.py --workflow windows_nightly --emit
             rm -f record_builds.py build-status.db
             rm -rf ${DASH_DIR}
             cd ..

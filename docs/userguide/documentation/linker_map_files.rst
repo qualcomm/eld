@@ -168,6 +168,11 @@ Linker Script and Memory Map Section
         END GROUP
         LOAD $PATH/../target/hexagon/lib/v65/G0/fini.o[hexagonv65]
 
+    * ``LOAD`` entries can include trailing comments (``# ...``) with input
+      selection notes. For example, when ``--fat-lto-objects`` selects a fat
+      LTO payload, the input line is annotated with
+      ``# Fat LTO object selected``.
+
 
 Linker Scripts Used
 =====================

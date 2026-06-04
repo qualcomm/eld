@@ -1,0 +1,19 @@
+REQUIRES: run_cxx_test
+XFAIL: riscv32, riscv64
+UNSUPPORTED: x86
+#---HelloWorldCXX.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test that we can build and run a simple executable using the run test infrastructure.
+# This test requires the run_tests feature which is enabled when the target's
+# C compiler, sysroot, and emulator are all configured.
+#END_COMMENT
+#START_TEST
+RUN: %run_cxx -o %t1.o %p/Inputs/HelloWorld.cpp -c -fno-pic
+RUN: %run_cxx -o %t.out %t1.o -static
+RUN: %run %t.out | %filecheck %s
+RUN: %run_cxx -o %t1.pic.o %p/Inputs/HelloWorld.cpp -c -fPIC
+RUN: %run_cxx -o %t.dyn.out %t1.pic.o -Wl,-dy
+RUN: %run %t.dyn.out | %filecheck %s
+#END_TEST
+
+CHECK: Hello World

@@ -137,6 +137,7 @@ public:
     InputKindPrefix Prefix;
     Input *Inp;
     std::string ArchFlag;
+    std::string Annotation;
   };
 
   // -------------------- Public Typedefs ----------------------------
@@ -264,7 +265,10 @@ public:
   std::string getStringFromLoadSequence(InputSequenceT Ist);
 
   void recordInputActions(InputKindPrefix Prefix, Input *Input,
-                          std::string FileType = "");
+                          std::string FileType = "",
+                          std::string Annotation = "");
+
+  void annotateInputAction(Input *Input, llvm::StringRef Annotation);
 
   void resetInputActions() { InputActions.clear(); }
 

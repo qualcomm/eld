@@ -129,7 +129,9 @@ void ELFReader<ELFT>::setSectionInInputFile(ELFSection *S,
     break;
   }
 
-  if (!isDynObj && S->name() == ".llvmbc") {
+  bool ReadFatLTOSections = m_Module.getConfig().options().hasFatLTOObjects();
+  if (!isDynObj && ELFSection::shouldReadEmbeddedBitcodeSection(
+                       S->name(), ReadFatLTOSections)) {
     ELFObjectFile *EObj = llvm::cast<ELFObjectFile>(&m_InputFile);
     EObj->setLLVMBCSection(S);
   }
@@ -427,7 +429,7 @@ eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
     return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
         Diag::err_unrecognized_input_file,
         {inputFile.getInput()->getResolvedPath().native(),
-         config.targets().triple().str()}));
+         config.targets().getArch()}));
 
   eld::Expected<bool> expCheckFlags = checkFlags();
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expCheckFlags);

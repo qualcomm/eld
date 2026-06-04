@@ -20,12 +20,8 @@ bool GNULDBackend::createScriptProgramHdrs() {
   GeneralOptions::AddressMapType::iterator addr,
       addrEnd = config().options().addressMap().end();
   bool hasInterp = false;
-  uint32_t m_AtTableIndex = 0;
   // Dot symbol.
   LDSymbol *dotSymbol = m_Module.getNamePool().findSymbol(".");
-
-  // Module AT Table.
-  std::vector<ELFSection *> &atTable = m_Module.getAtTable();
 
   ELFSection *interp = script.sectionMap().find(".interp");
   if (interp && interp->size())
@@ -204,50 +200,9 @@ bool GNULDBackend::createScriptProgramHdrs() {
         dotSymbol->setValue(vma);
       hasVMARegion = true;
     }
-    // If there is an AT Table. Lets try to check the dot value with the
-    // section specified in the AT Table.
-    if (atTable.size() && m_AtTableIndex < atTable.size()) {
-      ELFSection *atSection = atTable[m_AtTableIndex];
-      if (curIsDebugSection ||
-          ((atSection->addr() < dotSymbol->value()) ||
-           (scriptvma && (*scriptvma > atSection->addr())))) {
-        // If the AT section falls within the bounds of the current address and
-        // the size of the current section, try to place the AT section inside
-        // the output section while traversing through the assignments.
-        auto &segmentsForSection = _segmentsForSection[*out];
-        out = script.sectionMap().insert(out, atSection);
-        SectionMap::iterator outPrev = --out;
-        SectionMap::iterator outCur = ++out;
-        (*outCur)->setOrder((*outPrev)->order());
-        if (out != script.sectionMap().begin()) {
-          (*outCur)->moveSectionAssignments(*outPrev);
-          _segmentsForSection[*outCur];
-        }
-        if (m_Module.getPrinter()->isVerbose())
-          config().raise(Diag::verbose_inserting_section_at_fixed_addr)
-              << atSection->name() << cur->addr()
-              << atSection->getInputFile()->getInput()->decoratedPath()
-              << (*out)->name();
-        if (atSection->hasSectionData()) {
-          for (auto &f : atSection->getFragmentList())
-            f->getOwningSection()->setOutputSection(*outCur);
-        }
-        // Pick the PHDR's from the current section if the previous section is
-        // a
-        // nullptr section.
-        if ((*outPrev)->getSection()->isNullKind())
-          _segmentsForSection[*outCur] = segmentsForSection;
-        else
-          _segmentsForSection[*outCur] = _segmentsForSection[*outPrev];
-        m_AtTableIndex++;
-        reset_state(*outCur);
-        continue;
-      }
-    }
-
     if (curIsDebugSection || (*out)->isDiscard()) {
       cur->setAddr(dotSymbol->value());
-      evaluateAssignments(*out, m_AtTableIndex);
+      evaluateAssignments(*out);
       evaluateAssignmentsAtEndOfOutputSection(*out);
       cur->setAddr(0);
       cur->setPaddr(0);
@@ -333,7 +288,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     }
 
     cur->setPaddr(pma);
-    evaluateAssignments(*out, m_AtTableIndex);
+    evaluateAssignments(*out);
 
     if (hasVMARegion)
       (*out)->epilog().region().addOutputSectionVMA(*out);
@@ -342,13 +297,6 @@ bool GNULDBackend::createScriptProgramHdrs() {
       (*out)->epilog().lmaRegion().addOutputSectionLMA(*out);
     if (!config().getDiagEngine()->diagnose()) {
       return false;
-    }
-    if (m_AtTableIndex < atTable.size() &&
-        (atTable[m_AtTableIndex]->addr() < (cur->addr() + cur->size()))) {
-      config().raise(Diag::cannot_place_at_section)
-          << atTable[m_AtTableIndex]->name() << cur->name();
-      ++m_AtTableIndex;
-      hasError = true;
     }
     cur->setWanted(cur->wantedInOutput() || cur->size());
     if (cur->isWanted()) {
@@ -401,8 +349,6 @@ bool GNULDBackend::createScriptProgramHdrs() {
   }
 
   evaluateTargetSymbolsBeforeRelaxation();
-
-  m_Module.getAtTable().clear();
 
   return hasError;
 }
