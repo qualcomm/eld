@@ -829,6 +829,8 @@ def W : Joined<["-"], "W">,
         MetaVarName<"<warn-type>">,
         HelpText<"Print warnings which are OFF by default\n"
              "\t\t\t -Wall : print all warnings\n"
+             "\t\t\t -W[no-]deprecated : display warnings for deprecated "
+             "features\n"
              "\t\t\t -W[no]linker-script : display warnings detected"
              " while parsing linker scripts\n"
              "\t\t\t -W[no]attribute-mix : display a warning if object files"

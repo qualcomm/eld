@@ -423,7 +423,10 @@ Common MEMORY pitfalls and errors
 """""""""""""""""""""""""""""""""
 
 - **Tokenization**: ``ORIGIN``/``LENGTH`` must be separate tokens (``ORIGIN =
-  ...``); scripts like ``ORIGIN= 0x1000`` are rejected.
+  ...``);
+  To be more compatible with GNU linker, parsing of ':' and '='
+  inside MEMORY command is modified to accept no white-space around them.
+  So, script like ``RAM :ORIGIN =0x1000, LENGTH = 0x1000`` will be accepted.
 - **Unknown region name**: ``>REGION`` or ``AT>REGION`` refers to a region not
   defined in ``MEMORY`` (error: ``Cannot find memory region ...``).
 - **No region assigned**: if ``MEMORY`` is present and an allocatable output
@@ -1217,9 +1220,9 @@ any linker script that works with the GNU linker should also work with eld,
 with the exception of a few GNU linker script features that are not yet
 supported by eld.
 
-Previously, eld supported two extensions to the GNU linker script syntax.
-**These extensions are no longer supported.** Any scripts using these
-extensions must be updated to maintain compatibility with eld.
+eld supports two deprecated extensions to the GNU linker script syntax.
+Any scripts using these extensions should be updated to maintain compatibility
+with future eld releases.
 These extensions are:
 
 1) Assignment without space between the symbol and :code:`=`
@@ -1228,12 +1231,13 @@ Previously supported::
 
     symbol=<expr>
 
-GNU-compliant syntax (required now)::
+GNU-compliant syntax::
 
     symbol = <expr>
 
-GNU requires a space between the symbol and the assignment operator.
-eld now enforces this requirement. Scripts must be updated accordingly.
+GNU requires a space around the assignment operator. eld accepts the extension
+for now, but with ``-Wdeprecated`` emits a warning that the syntax is
+deprecated. Scripts should be updated accordingly.
 
 2) Output section description without space between the output section name and :code:`:`
 

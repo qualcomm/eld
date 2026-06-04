@@ -23,6 +23,7 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/TargetInfo.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include <cassert>
 #include <cstring>
@@ -119,8 +120,14 @@ int main(int argc, char **argv) {
   linkerModel.Initialize();
   std::string filename;
   eld::LinkerConfig &config = *linkerModel.getConfig();
-  for (int i = 1; i < argc; ++i)
+  for (int i = 1; i < argc; ++i) {
+    llvm::StringRef arg = argv[i];
+    if (arg.consume_front("-W")) {
+      config.setWarningOption(arg);
+      continue;
+    }
     filename = argv[i];
+  }
   eld::ScriptFile SF = linkerModel.CreateScriptFile(filename);
   bool res = linkerModel.getScriptReader().readScript(config, SF);
   return res == 0;
