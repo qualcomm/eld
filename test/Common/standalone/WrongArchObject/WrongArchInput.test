@@ -1,11 +1,18 @@
-RUN: %yaml2obj %p/Inputs/1.yaml -o %t.1.o
-RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.o
-RUN: %not %link %emulation %linkopts %t.1.o %t1.o -o %t2.out 2>&1 | %filecheck %s
-RUN: %ar cr %aropts %t1.a %t.1.o
-RUN: %not %link %emulation %linkopts %t1.o --whole-archive %t1.a -o %t3.out 2>&1 | %filecheck %s -check-prefix=ARCHIVE
-RUN: %yaml2obj %p/Inputs/1.yaml -DTYPE=ET_DYN -o %t.lib.so
-RUN: %not %link %emulation -Bdynamic %t1.o -L%p/Inputs %t.lib.so 2>&1 | %filecheck %s -check-prefix=DYNAMIC
+#BEGIN_COMMENT
+# Test linking incompatible input files
+#END_COMMENT
+RUN: %yaml2obj %p/Inputs/3.yaml -o %t.3.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %not %link %emulation %linkopts --warn-mismatch %t.3.o %t.2.o 2>&1 | %filecheck %s
+RUN: %link %emulation %linkopts --no-warn-mismatch %t.3.o %t.2.o 2>&1 | %filecheck %s -check-prefix=NOERR --allow-empty
+RUN: %ar cr %aropts %t.1.a %t.3.o
+RUN: %not %link %emulation %linkopts --warn-mismatch %t.2.o --whole-archive %t.1.a 2>&1 | %filecheck %s -check-prefix=ARCHIVE
+RUN: %link %emulation %linkopts --no-warn-mismatch %t.2.o --whole-archive %t.1.a 2>&1 | %filecheck %s -check-prefix=NOERR --allow-empty
+RUN: %yaml2obj %p/Inputs/dyn.yaml -o %t.lib.so
+RUN: %not %link %emulation -Bdynamic --warn-mismatch %t.2.o -L%p/Inputs %t.lib.so 2>&1 | %filecheck %s -check-prefix=DYNAMIC
+RUN: %link %emulation -Bdynamic --no-warn-mismatch %t.2.o -L%p/Inputs %t.lib.so 2>&1 | %filecheck %s -check-prefix=NOERR --allow-empty
 
-CHECK: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}1.o'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
+CHECK: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}.3.o'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
+NOERR-NOT: Error: cannot recognize the format of file
 ARCHIVE: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}.a'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
-DYNAMIC: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}lib.so'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
+DYNAMIC: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}.lib.so'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
