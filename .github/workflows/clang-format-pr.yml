@@ -18,16 +18,68 @@ jobs:
       - name: Install clang-format
         run: |
           set -euo pipefail
+          LLVM_APT_URL="https://apt.llvm.org"
           sudo apt-get update
           sudo apt-get install -y wget gpg lsb-release
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+          wget -qO- \
+            "${LLVM_APT_URL}/llvm-snapshot.gpg.key" \
             | gpg --dearmor \
-            | sudo tee /usr/share/keyrings/llvm-archive-keyring.gpg >/dev/null
+            | sudo tee \
+              /usr/share/keyrings/llvm-archive-keyring.gpg \
+              >/dev/null
           UBUNTU_CODENAME="$(lsb_release -cs)"
-          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME} main" \
+          printf -v LLVM_TOOLCHAIN_RE '%s%s%s' \
+            "llvm-toolchain-" \
+            "${UBUNTU_CODENAME}-" \
+            "[0-9]+/"
+          printf -v LLVM_TOOLCHAIN_SED_EXPR '%s%s' \
+            "s@llvm-toolchain-" \
+            "${UBUNTU_CODENAME}-([0-9]+)/@\1@"
+          LLVM_STABLE_MAJOR="$(
+            wget -qO- \
+              "${LLVM_APT_URL}/${UBUNTU_CODENAME}/dists/" \
+              | grep -oE \
+                "${LLVM_TOOLCHAIN_RE}" \
+              | sed -E \
+                "${LLVM_TOOLCHAIN_SED_EXPR}" \
+              | sort -n \
+              | tail -1
+          )"
+          if [[ -z "${LLVM_STABLE_MAJOR}" ]]; then
+            echo "Could not resolve latest stable LLVM major version for "\
+              "${UBUNTU_CODENAME}" >&2
+            exit 1
+          fi
+          echo "Using LLVM stable major version: ${LLVM_STABLE_MAJOR}"
+          echo \
+            "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] "\
+            "http://apt.llvm.org/${UBUNTU_CODENAME}/ "\
+            "llvm-toolchain-${UBUNTU_CODENAME}-${LLVM_STABLE_MAJOR} main" \
             | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
           sudo apt-get update
-          sudo apt-get install -y clang-format
+          sudo apt-get install -y "clang-format-${LLVM_STABLE_MAJOR}"
+          sudo ln -sf "/usr/bin/clang-format-${LLVM_STABLE_MAJOR}" \
+            /usr/local/bin/clang-format
+          if ! command -v git-clang-format >/dev/null 2>&1; then
+            for candidate in \
+              "/usr/bin/git-clang-format-${LLVM_STABLE_MAJOR}" \
+              "/usr/lib/llvm-${LLVM_STABLE_MAJOR}/bin/git-clang-format"; do
+              if [[ -x "${candidate}" ]]; then
+                sudo ln -sf "${candidate}" /usr/local/bin/git-clang-format
+                break
+              fi
+            done
+          fi
+          if ! git clang-format -h >/dev/null 2>&1; then
+            echo "git clang-format is unavailable after installation." >&2
+            echo "clang-format candidates:" >&2
+            ls -1 /usr/bin/clang-format* 2>/dev/null || true
+            echo "git-clang-format candidates:" >&2
+            ls -1 /usr/bin/git-clang-format* 2>/dev/null || true
+            ls -1 "/usr/lib/llvm-${LLVM_STABLE_MAJOR}/bin/git-clang-format"* \
+              2>/dev/null || true
+            exit 1
+          fi
           clang-format --version
 
       - name: Check formatting of changed files
