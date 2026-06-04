@@ -71,8 +71,8 @@ enum : uint32_t {
   /* 'QUALCOMM' vendor relocations: 192-197 are represented by 320-325 */
   FirstQUALCOMMVendorRelocation = 320,
   LastQUALCOMMVendorRelocation = 325,
-  QUALCOMMVendorRelocationOffset =
-      FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
+  QUALCOMMVendorRelocationOffset = FirstQUALCOMMVendorRelocation -
+      FirstNonstandardRelocation,
 
   /* We don't support ANDES and CHERIOT1 vendor relocations */
   ANDESVendorRelocationOffset = 0,
