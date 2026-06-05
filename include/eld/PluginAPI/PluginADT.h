@@ -670,6 +670,13 @@ struct DLL_A_EXPORT Section {
   /// returns false otherwise.
   bool hasOldInputFile() const;
 
+  /// Returns the input file used for rule matching for this section.
+  /// If a rule-matching input was explicitly set via
+  /// LinkerWrapper::setRuleMatchingInput, that input is returned; otherwise
+  /// the section's current input file is returned. Returns a null InputFile
+  /// if the object is an empty handler.
+  plugin::InputFile getRuleMatchingInput() const;
+
   /// Returns the hash of the input section.
   uint64_t getSectionHash() const;
 
