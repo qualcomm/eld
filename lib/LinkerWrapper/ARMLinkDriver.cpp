@@ -59,6 +59,10 @@ ARMLinkDriver::ParseEmulation(std::string pEmulation,
   return result;
 }
 
+bool ARMLinkDriver::isValidEmulation(llvm::StringRef Emulation) {
+  return ParseEmulation(Emulation.str(), nullptr).has_value();
+}
+
 OPT_ARMLinkOptTable::OPT_ARMLinkOptTable()
     : GenericOptTable(OptionStrTable, OptionPrefixesTable, infoTable) {}
 
