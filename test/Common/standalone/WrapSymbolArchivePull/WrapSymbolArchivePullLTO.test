@@ -1,11 +1,6 @@
 #---WrapSymbolArchivePullLTO.test---------- Executable ------------------#
 #BEGIN_COMMENT
-# Test that --wrap archive extraction works correctly under LTO.
-# When --wrap=add is active and wrap.o references __real_add,
-# IRBuilder renames __real_add to add in the name pool. Later,
-# when the archive is scanned, shouldIncludeSymbol() must still
-# recognise the undefined 'add' entry as a demand for the archive
-# member that defines 'add', even under LTO.
+# Test that --wrap archive extraction works correctly with LTO enabled.
 #END_COMMENT
 #START_TEST
 
@@ -24,5 +19,3 @@ RUN:   --wrap=add -o %t2.out -t 2>&1 | %filecheck %s
 
 # Verify the archive member was pulled in.
 #CHECK: {{.*}}libfoo.a{{.*}}add.o
-
-#UNSUPPORTED: windows, ndk-build, riscv32, riscv64

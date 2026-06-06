@@ -1,7 +1,7 @@
 #---WrapSymbolWrapNotDefined.test---------- Executable ------------------#
 #BEGIN_COMMENT
-# Test that when --wrap=add is specified but __wrap_add is not defined,
-# ELD gives a clear undefined reference error for __wrap_add.
+# Test that specifying --wrap=<sym> without defining __wrap_<sym> reports a
+# clear undefined reference error.
 #END_COMMENT
 #START_TEST
 

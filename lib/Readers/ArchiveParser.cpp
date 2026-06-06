@@ -494,26 +494,34 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile &archive,
     return ArchiveFile::Symbol::Include;
 
   // If there is a wrap option specified for that symbol, we only pull from
-  // an archive, if the real symbol is still undefined. There are two ways this can manifest:
-  //   1. __real_<sym> exists directly in the name pool (uncommon).
-  //   2. __real_<sym> was renamed to <sym> by IRBuilder::addSymbol before
-  //      archive scanning began, so it never has its own name pool entry.
-  //      In that case <sym> itself is the renamed reference and info->isUndef()
-  //      captures it.
-  // Emit a trace message when pulling archive members for wrapped symbols to aid
-  // in debugging the wrap chain and archive resolution process.
-  bool TraceWrap = m_Module.getPrinter()->traceWrapSymbols();
+  // an archive if the wrap chain actually requires the symbol.
+
+  // Restrict the fallback archive extraction path to non-LTO builds.
+  bool isElfPath = !(m_Module.getConfig().options().hasLTO() ||
+                     m_Module.needLTOToBeInvoked() || isPostLTOPhase);
+
   std::string realSymbol = ("__real_" + SymName).str();
   ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
-  if ((RealSymbol && RealSymbol->isUndef()) || info->isUndef()){
-    if (TraceWrap){
-        m_Module.getConfig().raise(Diag::trace_wrap_archive_pull)
-        << archive.getInput()->decoratedPath()    // archive filename
-        << SymName;           // wrapped symbol name  
+  // Emit a trace message when pulling archive members for wrapped symbols to
+  // aid in debugging the wrap chain and archive resolution process.
+  bool TraceWrap = m_Module.getPrinter()->traceWrapSymbols();
+  if (RealSymbol && RealSymbol->isUndef()) {
+    if (TraceWrap) {
+      m_Module.getConfig().raise(Diag::trace_wrap_archive_pull)
+          << archive.getInput()->decoratedPath() // archive filename
+          << SymName;                            // wrapped symbol name
     }
     return ArchiveFile::Symbol::Include;
   }
-
+  // Non-LTO ELF path:
+  // Allow unresolved wrapped symbols to pull archive members.
+  if (isElfPath) {
+    if (TraceWrap) {
+      m_Module.getConfig().raise(Diag::trace_wrap_archive_pull)
+          << archive.getInput()->decoratedPath() << SymName;
+    }
+    return ArchiveFile::Symbol::Include;
+  }
   return ArchiveFile::Symbol::Exclude;
 }
 

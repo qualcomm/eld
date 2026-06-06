@@ -1,8 +1,8 @@
 
 #---WrapSymbolArchivePullTrace.test---------- Executable ------------------#
 #BEGIN_COMMENT
-# Test that --trace=wrap-symbols correctly reports archive member extraction
-# for wrapped symbols.
+# Test that --trace=wrap-symbols reports archive extraction for wrapped
+# symbols.
 #END_COMMENT
 #START_TEST
 

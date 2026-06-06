@@ -1,16 +1,8 @@
 
 #---WrapSymbolArchivePull.test------------------------ Executable ----------#
 #BEGIN_COMMENT
-# --wrap=<sym>: archive member not pulled when wrapper calls __real_<sym>
-#
-# When --wrap=add is used and wrap.o has an undefined reference to __real_add,
-# IRBuilder renames that reference to 'add' in the name pool.  Later, when the
-# archive is scanned, shouldIncludeSymbol() must still recognise the undefined
-# 'add' entry as a demand for the archive member that defines 'add'.
-#
-# Before the fix, shouldIncludeSymbol() looked only for __real_add in the name
-# pool (which no longer existed under that name after the rename) and therefore
-# returned Exclude, causing an "undefined reference to `add`" error.
+# Test that an archive member providing the real symbol is pulled when a
+# wrapper calls __real_<sym> (verifies archive extraction for wrapped symbols).
 #END_COMMENT
 #START_TEST
 

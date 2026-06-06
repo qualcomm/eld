@@ -1,8 +1,7 @@
 #---WrapSymbolNoRealRef.test---------- Executable ------------------#
 #BEGIN_COMMENT
-# Test that when __wrap_add is defined but never calls __real_add,
-# the archive member is not required and linking succeeds cleanly.
-# Input file 4 a wrap.o that defines __wrap_add but never calls __real_add
+# Test that a wrapper that does not call __real_<sym> does not force the
+# archive member with the real symbol to be pulled.
 #END_COMMENT
 #START_TEST
 
