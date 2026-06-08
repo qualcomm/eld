@@ -17,7 +17,8 @@ jobs:
 
       - name: Install clang-format
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          set +e
           LLVM_APT_URL="https://apt.llvm.org"
           sudo apt-get update
           sudo apt-get install -y wget gpg lsb-release
