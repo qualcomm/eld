@@ -146,7 +146,7 @@ uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
     // `c.lui rd, 0` is illegal, convert to `c.li rd, 0`
     if ((Instruction & 0xE003) == 0x6001 && Value >> 12 == 0)
       Instruction ^= 0x2000;
-    Value = encodeCI(Value);
+    Value = encodeCI(Value, RelocInfo.Shift);
     break;
   }
   case EncTy_QC_EB:
