@@ -143,7 +143,7 @@ uint64_t doRelocHelper(const RelocationInfo &RelocInfo, uint64_t Instruction,
     Value = encodeCJ(Value);
     break;
   case EncTy_CI:
-    Value = encodeCI(Value);
+    Value = encodeCI(Value, RelocInfo.Shift);
     break;
   case EncTy_QC_EB:
     Value = encodeQCEB(Value);
