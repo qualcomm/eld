@@ -1,7 +1,8 @@
 name: Zephyr Nightly with ELD
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  #FIXME: comment this back
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
@@ -31,15 +32,12 @@ jobs:
             extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
           - board: qemu_cortex_m3
             arch: arm
-            # cpullvm ARM picolibc is missing a _nopic version, so its
-            # objects have GOT relocations that fail when .got is discarded.
-            extra_args: CONFIG_PICOLIBC_USE_MODULE=y
+            extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
           - board: qemu_cortex_a53
             arch: aarch64
             extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
     env:
-      CPULLVM_VERSION: "22.1.0"
-      CPULLVM_DIR: /opt/cpullvm
+      SDK_INSTALL_BASE: /opt/toolchains
       CCACHE_DIR: /root/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_NOHASHDIR: "1"
@@ -62,9 +60,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ matrix.target.arch }}-cpullvm${{ env.CPULLVM_VERSION }}-${{ github.run_id }}
+          key: ccache-${{ matrix.target.arch }}-sdkllvm-${{ github.run_id }}
           restore-keys: |
-            ccache-${{ matrix.target.arch }}-cpullvm${{ env.CPULLVM_VERSION }}-
+            ccache-${{ matrix.target.arch }}-sdkllvm-
 
       - name: ccache stats (before build)
         run: ccache -s -v || ccache -s
@@ -85,29 +83,6 @@ jobs:
 
       - name: Fetch nightly ELD
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
-
-      - name: Install cpullvm toolchain and splice nightly ELD
-        run: |
-          # Download cpullvm release
-          wget -q --tries=3 --retry-on-http-error=429,500,502,503,504 --waitretry=5 https://github.com/qualcomm/cpullvm-toolchain/releases/download/cpullvm-${CPULLVM_VERSION}/cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
-          tar -xf cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
-          mv cpullvm-${CPULLVM_VERSION}-Linux-x86_64 ${CPULLVM_DIR}
-          rm cpullvm-${CPULLVM_VERSION}-Linux-x86_64.tar.xz
-
-          # Splice nightly ELD into cpullvm
-          cp inst/bin/ld.eld ${CPULLVM_DIR}/bin/ld.eld
-          cp inst/lib/libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so.4
-          ln -sf libLW.so.4 ${CPULLVM_DIR}/lib/libLW.so
-
-          # ld.eld and libLW.so.4 are linked against nightly's libc++; cpullvm/lib
-          # has none, so copy the matching libc++/libc++abi alongside them.
-          cp -P inst/lib/libc++.so.1*    ${CPULLVM_DIR}/lib/
-          cp -P inst/lib/libc++abi.so.1* ${CPULLVM_DIR}/lib/
-
-          echo "Nightly ELD version:"
-          ${CPULLVM_DIR}/bin/ld.eld --version
-          echo "cpullvm clang version:"
-          ${CPULLVM_DIR}/bin/clang --version | head -1
 
       - name: Clone Zephyr
         uses: actions/checkout@v6
@@ -130,18 +105,64 @@ jobs:
           west init -l .
           west update
 
-      - name: Install Zephyr SDK hosttools
+      - name: Install Zephyr SDK (LLVM toolchain + host tools)
+        shell: bash
         run: |
-          west sdk install --no-gnu-toolchains --install-base /opt/toolchains
+          cd zephyr
+          source zephyr-env.sh
+          west sdk install --llvm --no-gnu-toolchains --install-base "${SDK_INSTALL_BASE}"
+
+          SDK_LLVM=$(ls -d "${SDK_INSTALL_BASE}"/zephyr-sdk-*/llvm 2>/dev/null | head -1)
+          if [ -z "${SDK_LLVM}" ] || [ ! -x "${SDK_LLVM}/bin/clang" ]; then
+            echo "Zephyr SDK LLVM toolchain not found under ${SDK_INSTALL_BASE}"
+            ls -la "${SDK_INSTALL_BASE}" || true
+            exit 1
+          fi
+          echo "SDK_LLVM=${SDK_LLVM}" >> "$GITHUB_ENV"
+          echo "Zephyr SDK clang version:"
+          "${SDK_LLVM}/bin/clang" --version | head -1
+
+      - name: Splice nightly ELD into Zephyr SDK LLVM
+        run: |
+          # SDK LLVM ships no libc++ .so; ld.eld/libLW need it.
+          cp inst/bin/ld.eld "${SDK_LLVM}/bin/ld.eld"
+          cp inst/lib/libLW.so.4 "${SDK_LLVM}/lib/libLW.so.4"
+          ln -sf libLW.so.4 "${SDK_LLVM}/lib/libLW.so"
+          cp -P inst/lib/libc++.so.1*    "${SDK_LLVM}/lib/"
+          cp -P inst/lib/libc++abi.so.1* "${SDK_LLVM}/lib/"
+
+          # RISC-V multilib fixes (clang-side, no per-build flags):
+          #  1. Rewrite the triple Zephyr emits (riscv*-unknown-elf, normalized
+          #     to -unknown-unknown-elf) to the canonical -none-elf the SDK
+          #     multilibs key on.
+          #  2. qemu_riscv64 DT forces 'zicntr' (counter CSRs, no codegen
+          #     impact) which has no SDK multilib; map it to the zicntr-free
+          #     march for both integer (lp64) and FP (lp64d) configs.
+          ML="${SDK_LLVM}/lib/clang-runtimes/multilib.yaml"
+          {
+            for bits in 32 64; do
+              echo "- Match: --target=riscv${bits}-unknown-unknown-elf"
+              echo "  Flags:"
+              echo "  - --target=riscv${bits}-unknown-none-elf"
+            done
+            for ext in "" "f2p2_d2p2_"; do
+              echo "- Match: -march=rv64i2p1_m2p0_a2p1_${ext}c2p0_zicntr2p0_zicsr2p0_zifencei2p0_zmmul1p0"
+              echo "  Flags:"
+              echo "  - -march=rv64i2p1_m2p0_a2p1_${ext}c2p0_zicsr2p0_zifencei2p0_zmmul1p0"
+            done
+          } >> "${ML}"
+
+          echo "Nightly ELD version:"
+          "${SDK_LLVM}/bin/ld.eld" --version
 
       - name: Build hello_world for ${{ matrix.target.board }} with ELD
         shell: bash
         run: |
           cd zephyr
           source zephyr-env.sh
-          export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
+          export ZEPHYR_SDK_INSTALL_DIR="${SDK_INSTALL_BASE}"
           export ZEPHYR_TOOLCHAIN_VARIANT=host/llvm
-          export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
+          export LLVM_TOOLCHAIN_PATH="${SDK_LLVM}"
           west build -p always -b ${{ matrix.target.board }} samples/hello_world -- \
             -DCONFIG_LLVM_USE_ELD=y \
             -DCONFIG_COMPILER_RT_RTLIB=y \
@@ -170,15 +191,18 @@ jobs:
         run: |
           cd zephyr
           source zephyr-env.sh
-          export ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/
-          export LLVM_TOOLCHAIN_PATH=${CPULLVM_DIR}
+          export ZEPHYR_SDK_INSTALL_DIR="${SDK_INSTALL_BASE}"
+          # Twister reads the variant from the env, not -x=; --force-toolchain
+          # since these boards' yaml don't list host/llvm.
+          export ZEPHYR_TOOLCHAIN_VARIANT=host/llvm
+          export LLVM_TOOLCHAIN_PATH="${SDK_LLVM}"
           west twister -W -p ${{ matrix.target.board }} \
-            -T tests \
+            -T tests/kernel \
+            --force-toolchain \
             --inline-logs \
             --timestamps \
             -j 3 \
             -v \
-            -x=ZEPHYR_TOOLCHAIN_VARIANT=host/llvm \
             -x=CONFIG_LLVM_USE_ELD=y \
             -x=CONFIG_COMPILER_RT_RTLIB=y \
             ${{ matrix.target.extra_args && format('-x={0}', matrix.target.extra_args) }}
