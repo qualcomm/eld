@@ -1,0 +1,29 @@
+#---IFuncUnsupportedRelocations.test-------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that eld emits the correct diagnostic for each of the two
+# distinct problematic relocation categories against an STT_GNU_IFUNC symbol:
+#
+# INVALID relocation: the relocation does not belong to any recognised IFunc
+#   category -- using it against an IFunc makes no semantic sense.
+#   Produces: "Warning: Invalid relocation ... used for STT_GNU_IFUNC symbol"
+#
+# UNSUPPORTED_RELOC relocation: the relocation belongs to a valid IFunc
+#   category (it should work against an IFunc) but either eld does not yet support it,
+#   or the behavior of ifunc is risky/uncertain with this relocation.
+#   Produces: "Warning: Unsupported relocation ... used for STT_GNU_IFUNC symbol"
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target %linuxtarget -fPIC -c %p/Inputs/1.c -o %t.1.o
+
+RUN: %clang %clangopts -target %linuxtarget -c %p/Inputs/ldrpcg1.s -o %tldrpcg1.o
+RUN: %not %link %linkopts %t.1.o %tldrpcg1.o -o %t.ldrpcg1.out \
+RUN:   2>&1 | %filecheck %s --check-prefix=INVALID
+
+RUN: %clang %clangopts -target %linuxtarget -c %p/Inputs/thmjump8.s -o %tthmjump8.o
+RUN: %link %linkopts %t.1.o %tthmjump8.o -o %t.thmjump8.out \
+RUN:   2>&1 | %filecheck %s --check-prefix=UNSUPPORTED_RELOC
+
+#END_TEST
+
+UNSUPPORTED_RELOC: Warning: Unsupported relocation R_ARM_THM_JUMP8 used for STT_GNU_IFUNC symbol 'foo'
+INVALID: Warning: Invalid relocation R_ARM_LDR_PC_G1 used for STT_GNU_IFUNC symbol 'foo'

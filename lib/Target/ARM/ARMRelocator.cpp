@@ -334,13 +334,6 @@ void ARMRelocator::scanLocalReloc(InputFile &pInput, Relocation::Type Type,
 
   switch (Type) {
 
-  // Set R_ARM_TARGET1 to R_ARM_ABS32
-  // Ref: GNU gold 1.11 arm.cc, line 9892
-  // FIXME: R_ARM_TARGET1 should be set by option --target1-rel
-  // or --target1-rel
-  case llvm::ELF::R_ARM_TARGET1:
-    pReloc.setType(llvm::ELF::R_ARM_ABS32);
-    LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_ABS32:
   case llvm::ELF::R_ARM_ABS32_NOI: {
     // If building PIC object (shared library or PIC executable),
@@ -497,13 +490,6 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
   ResolveInfo *rsym = pReloc.symInfo();
 
   switch (Type) {
-  // Set R_ARM_TARGET1 to R_ARM_ABS32
-  // Ref: GNU gold 1.11 arm.cc, line 9892
-  // FIXME: R_ARM_TARGET1 should be set by option --target1-rel
-  // or --target1-rel
-  case llvm::ELF::R_ARM_TARGET1:
-    pReloc.setType(llvm::ELF::R_ARM_ABS32);
-    LLVM_FALLTHROUGH;
   case llvm::ELF::R_ARM_ABS32:
   case llvm::ELF::R_ARM_ABS16:
   case llvm::ELF::R_ARM_ABS12:
@@ -655,16 +641,6 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
     if (rsym->reserved() & ReservePLT)
       return;
 
-    // create IRELATIVE for IFUNC symbol
-    if ((rsym->type() == ResolveInfo::IndirectFunc) &&
-        (config().isCodeStatic())) {
-      m_Target.createPLT(Obj, rsym, true);
-      rsym->setReserved(rsym->reserved() | ReservePLT);
-      ARMGNULDBackend &backend = getTarget();
-      backend.defineIRelativeRange(*rsym);
-      return;
-    }
-
     // if symbol is defined in the output file and it's not
     // preemptible, no need plt
     if (!getTarget().isSymbolPreemptible(*rsym))
@@ -782,6 +758,107 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
   } // end switch
 }
 
+bool ARMRelocator::isControlFlowRelocation(Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_ARM_PC24:
+  case llvm::ELF::R_ARM_CALL:
+  case llvm::ELF::R_ARM_JUMP24:
+  case llvm::ELF::R_ARM_PLT32:
+  case llvm::ELF::R_ARM_THM_CALL:
+  case llvm::ELF::R_ARM_THM_JUMP24:
+  case llvm::ELF::R_ARM_THM_JUMP19:
+  case llvm::ELF::R_ARM_THM_JUMP11:
+  case llvm::ELF::R_ARM_THM_JUMP8:
+  case llvm::ELF::R_ARM_THM_JUMP6:
+    return true;
+  }
+  return false;
+}
+
+bool ARMRelocator::isAbsDataRelocation(Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_ARM_ABS8:
+  case llvm::ELF::R_ARM_ABS16:
+  case llvm::ELF::R_ARM_ABS32:
+  case llvm::ELF::R_ARM_ABS32_NOI:
+  case llvm::ELF::R_ARM_TARGET1:
+    return true;
+  }
+  return false;
+}
+
+bool ARMRelocator::isAbsOrPCRELAddressInstrRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_ARM_REL32:
+  case llvm::ELF::R_ARM_PREL31:
+  case llvm::ELF::R_ARM_MOVW_ABS_NC:
+  case llvm::ELF::R_ARM_MOVT_ABS:
+  case llvm::ELF::R_ARM_MOVW_PREL_NC:
+  case llvm::ELF::R_ARM_MOVT_PREL:
+  case llvm::ELF::R_ARM_THM_MOVW_ABS_NC:
+  case llvm::ELF::R_ARM_THM_MOVT_ABS:
+  case llvm::ELF::R_ARM_THM_MOVW_PREL_NC:
+  case llvm::ELF::R_ARM_THM_MOVT_PREL:
+    return true;
+  }
+  return false;
+}
+
+bool ARMRelocator::isRegularGOTInstrRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_ARM_GOT_BREL:
+  case llvm::ELF::R_ARM_GOT_ABS:
+  case llvm::ELF::R_ARM_GOT_PREL:
+    return true;
+  }
+  return false;
+}
+
+bool ARMRelocator::isUnsupportedIFuncRelocation(
+    Relocation::Type relocType) const {
+  switch (relocType) {
+  case llvm::ELF::R_ARM_THM_JUMP19:
+  case llvm::ELF::R_ARM_THM_JUMP11:
+  case llvm::ELF::R_ARM_THM_JUMP8:
+    return true;
+  }
+  return false;
+}
+
+void ARMRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
+                                                    ELFObjectFile *Obj) {
+  std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+  ResolveInfo *RI = R.symInfo();
+  Relocation::Type RType = R.type();
+
+  bool isValidRelocForIFunc = isControlFlowRelocation(RType) ||
+                              isAbsDataRelocation(RType) ||
+                              isAbsOrPCRELAddressInstrRelocation(RType) ||
+                              isRegularGOTInstrRelocation(RType);
+  if (!isValidRelocForIFunc)
+    config().raise(Diag::warn_invalid_reloc_for_ifunc)
+        << getName(RType)
+        << RI->getDecoratedName(config().options().shouldDemangle());
+
+  if (isUnsupportedIFuncRelocation(RType))
+    config().raise(Diag::warn_unsupported_reloc_for_ifunc)
+        << getName(RType)
+        << RI->getDecoratedName(config().options().shouldDemangle());
+
+  if (isRegularGOTInstrRelocation(RType))
+    RI->setIFuncNeedsGOT();
+  if (isAbsDataRelocation(RType) || isAbsOrPCRELAddressInstrRelocation(RType))
+    RI->setIFuncDirectRef();
+
+  if (RI->reserved() & ReservePLT)
+    return;
+  m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
+  m_Target.defineIRelativeRange(*RI);
+  RI->setReserved(RI->reserved() | ReservePLT);
+}
+
 void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
                                   ELFSection &pSection, InputFile &pInputFile,
                                   CopyRelocs &CopyRelocs) {
@@ -826,6 +903,10 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
   if (!section->isAlloc())
     return;
 
+  if (pReloc.type() == llvm::ELF::R_ARM_TARGET1) {
+    pReloc.setType(llvm::ELF::R_ARM_ABS32);
+  }
+
   Relocation::Type Type = pReloc.type();
 
   // Set R_ARM_TARGET2 to R_ARM_ABS32/R_ARM_REL32/R_ARM_GOT_PREL.
@@ -842,6 +923,14 @@ void ARMRelocator::scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
       break;
     }
   }
+
+  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
+
+  // A reference to a non-preemptible IFunc in a static link is resolved
+  // through an IRELATIVE PLT entry regardless of whether the symbol is local
+  // or global.
+  if (rsym->isIFunc() && config().isCodeStatic())
+    return handleScanForNonPreemptibleIFunc(pReloc, Obj);
 
   if (rsym->isLocal()) // rsym is local
     scanLocalReloc(pInputFile, Type, pReloc, *section);
@@ -979,11 +1068,24 @@ Relocator::Result gotoff32(Relocation &pReloc, ARMRelocator &pParent) {
 // R_ARM_GOT_BREL: GOT(S) + A - GOT_ORG
 Relocator::Result got_brel(Relocation &pReloc, ARMRelocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT))
+  ResolveInfo *rsym = pReloc.symInfo();
+  bool isStaticIFunc = rsym->isIFunc() && pParent.config().isCodeStatic();
+  // For a static-context ifunc, the GOT reference resolves to its dedicated
+  // GOT slot when one exists (direct reference present, for pointer equality);
+  // otherwise it falls back to the GOTPLT slot of PLT[ifunc].
+  if ((!isStaticIFunc && !(rsym->reserved() & Relocator::ReserveGOT)) ||
+      (isStaticIFunc && !(rsym->reserved() & Relocator::ReservePLT)))
     return Relocator::BadReloc;
 
-  Relocator::Address GOT_S =
-      pParent.getTarget().findEntryInGOT(pReloc.symInfo())->getAddr(DiagEngine);
+  GOT *G = pParent.getTarget().findEntryInGOT(rsym);
+  if (!G) {
+    ASSERT(isStaticIFunc,
+           "Non-ifunc symbols reaching here must always have a GOT entry!");
+    ARMPLT *P = pParent.getTarget().findEntryInPLT(rsym);
+    G = P->getGOT();
+  }
+  Relocator::Address GOT_S = G->getAddr(DiagEngine);
+
   Relocator::DWord A = pReloc.target() + pReloc.addend();
   Relocator::Address GOT_ORG = pParent.getTarget().getGOTSymbolAddr();
   // Apply relocation.
@@ -995,11 +1097,21 @@ Relocator::Result got_brel(Relocation &pReloc, ARMRelocator &pParent) {
 // R_ARM_GOT_PREL: GOT(S) + A - P
 Relocator::Result got_prel(Relocation &pReloc, ARMRelocator &pParent) {
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  ResolveInfo *rsym = pReloc.symInfo();
+  bool isStaticIFunc = rsym->isIFunc() && pParent.config().isCodeStatic();
+  if ((!isStaticIFunc && !(rsym->reserved() & Relocator::ReserveGOT)) ||
+      (isStaticIFunc && !(rsym->reserved() & Relocator::ReservePLT))) {
     return Relocator::BadReloc;
   }
-  Relocator::Address GOT_S =
-      pParent.getTarget().findEntryInGOT(pReloc.symInfo())->getAddr(DiagEngine);
+  GOT *G = pParent.getTarget().findEntryInGOT(rsym);
+  if (!G) {
+    ASSERT(isStaticIFunc,
+           "Non-ifunc symbols reaching here must always have a GOT entry!");
+    ARMPLT *P = pParent.getTarget().findEntryInPLT(rsym);
+    G = P->getGOT();
+  }
+  Relocator::Address GOT_S = G->getAddr(DiagEngine);
+
   Relocator::DWord A = pReloc.addend() + pReloc.target();
   Relocator::Address P = pReloc.place(pParent.module());
 
@@ -1318,6 +1430,14 @@ Relocator::Result movw_prel_nc(Relocation &pReloc, ARMRelocator &pParent) {
       helper_extract_movw_movt_addend(pReloc.target()) + pReloc.addend();
   if (T != 0x0)
     helper_clear_thumb_bit(S);
+  ResolveInfo *rsym = pReloc.symInfo();
+  bool isStaticIFunc =
+      (rsym && rsym->isIFunc() && pParent.config().isCodeStatic());
+  if (isStaticIFunc) {
+    DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+    S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(DiagEngine);
+    T = 0;
+  }
   Relocator::DWord X = ((S + A) | T) - P;
   pReloc.target() = helper_insert_val_movw_movt_inst(pReloc.target(), X);
   return Relocator::OK;
@@ -1356,6 +1476,12 @@ Relocator::Result movt_prel(Relocation &pReloc, ARMRelocator &pParent) {
   Relocator::DWord P = pReloc.place(pParent.module());
   Relocator::DWord A =
       helper_extract_movw_movt_addend(pReloc.target()) + pReloc.addend();
+  ResolveInfo *rsym = pReloc.symInfo();
+  bool isStaticIFunc =
+      (rsym && rsym->isIFunc() && pParent.config().isCodeStatic());
+  if (isStaticIFunc)
+    S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(
+        pParent.config().getDiagEngine());
   Relocator::DWord X = S + A - P;
   X >>= 16;
 
@@ -1413,6 +1539,14 @@ Relocator::Result thm_movw_prel_nc(Relocation &pReloc, ARMRelocator &pParent) {
   Relocator::DWord val = ((upper_inst) << 16) | (lower_inst);
   Relocator::DWord A =
       helper_extract_thumb_movw_movt_addend(val) + pReloc.addend();
+  ResolveInfo *rsym = pReloc.symInfo();
+  bool isStaticIFunc =
+      (rsym && rsym->isIFunc() && pParent.config().isCodeStatic());
+  if (isStaticIFunc) {
+    DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+    S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(DiagEngine);
+    T = 0;
+  }
   Relocator::DWord X = ((S + A) | T) - P;
 
   val = helper_insert_val_thumb_movw_movt_inst(val, X);
@@ -1492,6 +1626,12 @@ Relocator::Result thm_movt_prel(Relocation &pReloc, ARMRelocator &pParent) {
   Relocator::DWord val = ((upper_inst) << 16) | (lower_inst);
   Relocator::DWord A =
       helper_extract_thumb_movw_movt_addend(val) + pReloc.addend();
+  ResolveInfo *rsym = pReloc.symInfo();
+  bool isStaticIFunc =
+      (rsym && rsym->isIFunc() && pParent.config().isCodeStatic());
+  if (isStaticIFunc)
+    S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(
+        pParent.config().getDiagEngine());
   Relocator::DWord X = S + A - P;
   X >>= 16;
 

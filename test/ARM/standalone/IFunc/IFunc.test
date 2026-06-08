@@ -8,7 +8,8 @@ UNSUPPORTED: ndk-build
 #START_TEST
 RUN: %clang %clangopts -target arm -fPIC -c %p/Inputs/m.c -o %tm.o
 RUN: %clang %clangopts -target arm -fPIC -c %p/Inputs/t.c -o %tt.o
-RUN: %link %linkopts -march arm %tm.o %tt.o -o %t.out
+RUN: %link %linkopts -march arm %tm.o %tt.o \
+RUN:   --undefined=__rel_iplt_start --undefined=__rel_iplt_end -o %t.out
 RUN: %readelf -a %t.out | %filecheck --check-prefix=STANDALONE %s
 RUN: %link %linkopts -march arm %tm.o %tt.o -pie -o %t2.out
 RUN: %readelf -a %t2.out | %filecheck --check-prefix=PIE %s

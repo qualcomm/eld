@@ -37,11 +37,11 @@ For the case of static executables, libc plays the role of runtime and takes on 
 that is typically unusual for a libc -- resolve symbols and patch the binary at runtime
 with the resolution information.
 
-eld emits `R_<TARGET>_IRELATIVE` relocations in `.rela.plt` section, and `__rela_iplt_start` and
-`__rela_iplt_end` symbols that store the start and end addresses of `.rela.plt` section.
+eld emits `R_<TARGET>_IRELATIVE` relocations in `.rel[a].plt` section, and `__rel[a]_iplt_start` and
+`__rela_iplt_end` symbols that store the start and end addresses of `.rel[a].plt` section.
 
 The tiny-loader in the libc process the `R_<TARGET>_IRELATIVE` relocations by
-iterating over the [`__rela_iplt_start`, `__rela_iplt_end`) range.
+iterating over the [`__rel[a]_iplt_start`, `__rel[a]_iplt_end`) range.
 
 ```
 Relocation section '.rela.plt' at offset 0x190 contains 6 entries:
@@ -137,6 +137,9 @@ into the following categories:
 *Regular* in the relocation category name here means that the relocations are
 non-TLS non-call relocations.
 
+Any relocation against an IFunc symbol that does not fall into one of the above
+categories is invalid and produces a warning.
+
 The relocations which are not supported by GNU for IFunc symbols are annotated with
 NotSupportedInGNULDForIFunc. The GNU toolchain that is used for verifying this is:
 aarch64-none-linux-gnu-gcc (Arm GNU Toolchain 15.2.Rel1 (Build arm-15.86)) 15.2.1 20251203,
@@ -151,14 +154,21 @@ Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.
 
 - R_RISCV_{32, 64}
 
+- R_ARM_ABS32
+- R_ARM_ABS32_NOI
+- R_ARM_TARGET1 (treated as R_ARM_ABS32)
 
 The below relocations are currently unsupported by eld.
-For IFunc symbols, these should be resolved to the PLT[IFuncSymbol]
-as well.
+For IFunc symbols, these should be resolved to the PLT[IFuncSymbol] as well.
 
 - R_AARCH64_PREL{16, 32, 64} (NotSupportedInGNULDForIFunc)
 - R_AARCH64_PLT32
+
 - R_RISCV_PLT32
+
+- R_ARM_ABS8
+- R_ARM_ABS16
+- R_ARM_PREL{16, 32, 64}
 
 ### GOT-related data relocations
 
@@ -185,6 +195,23 @@ Resolves to PLT[IFuncSymbol].
 - R_RISCV_RVC_BRANCH
 - R_RISCV_RVC_JUMP
 
+- R_ARM_CALL
+- R_ARM_JUMP24
+- R_ARM_PC24
+- R_ARM_PLT32
+- R_ARM_THM_CALL
+- R_ARM_THM_JUMP24
+
+The below relocations should not be used with IFunc functions because
+these relocations are used with thumb instructions that does not support
+interworking (correctly transferring control between thumb-state and ARM-state)
+and PLT slot is typically always in the ARM state.
+
+- R_ARM_THM_JUMP6 (UNSUPPORTED) (NotSupportedInGNULDForIFunc)
+- R_ARM_THM_JUMP19
+- R_ARM_THM_JUMP11
+- R_ARM_THM_JUMP8
+
 ### Regular GOT-related instruction relocations
 
 Resolves-to / uses GOTPLT[IFuncSymbol] if there is no direct reference to
@@ -193,11 +220,19 @@ IFuncSymbol; otherwise uses GOT[IFuncSymbol].
 - R_AARCH64_ADR_GOT_PAGE
 - R_AARCH64_LD{32,64}_GOT_LO12_NC (LD32 variant UNSUPPORTED)
 - R_AARCH64_LD{32,64}_GOTPAGE_LO15 (LD32 variant UNSUPPORTED)
-- R_AARCH64_GOT_LD_PREL19 (UNSUPPORTED)
-- AUTH-ABI GOT relocations (UNSUPPORTED)
-- R_AARCH64_MOVW_GOTOFF_G{0,1}{_NC} (UNSUPPORTED)
 
 - R_RISCV_GOT_HI20
+
+- R_ARM_GOT_BREL
+- R_ARM_GOT_PREL
+
+The below relocations are unsupported by eld:
+
+- R_AARCH64_GOT_LD_PREL19
+- AUTH-ABI GOT relocations
+- R_AARCH64_MOVW_GOTOFF_G{0,1}{_NC}
+
+- R_ARM_GOT_ABS
 
 ### Regular absolute / PC-relative address-forming relocations
 
@@ -212,6 +247,17 @@ Resolves to PLT[IFuncSymbol]. Sets HasDirectReference[IFuncSymbol] to true.
 - R_RISCV_LO12_I
 - R_RISCV_LO12_S
 
+- R_ARM_REL32
+- R_ARM_PREL31
+- R_ARM_MOVW_ABS_NC
+- R_ARM_MOVT_ABS
+- R_ARM_MOVW_PREL_NC
+- R_ARM_MOVT_PREL
+- R_ARM_THM_MOVW_ABS_NC
+- R_ARM_THM_MOVT_ABS
+- R_ARM_THM_MOVW_PREL_NC
+- R_ARM_THM_MOVT_PREL
+
 The below relocations are resolved to the IFunc symbol:
 
 - R_AARCH64_MOVW_UABS_G{0,1,2,3}{_NC} (NotSupportedInGNULDForIFunc)
@@ -221,9 +267,9 @@ The below relocations are resolved to the IFunc symbol:
 > FIXME: We should perhaps resolve these relocations to the PLT[IFuncSymbol]
 > instead of the IFuncSymbol for ensuring pointer equality.
 
-The below relocations are currenty unsupported in eld:
+The below relocations are currently unsupported in eld:
 
-- MOVW_PREL_G{0, 1, 2, 3}{_NC}
+- R_AARCH64_MOVW_PREL_G{0, 1, 2, 3}{_NC}
 
 ### Address forming relocations used to compute both GOT and non-GOT addresses
 
@@ -239,13 +285,14 @@ The behavior of these relocations depend upon the corresponding Hi-relocation pa
 
 ### Absolute / PC-relative load/store relocations
 
+These relocations do not make sense with IFunc symbols. Loading a value at a
+function address is invalid behavior, and so is storing a value at a function
+address.
+
 - LD_PREL_LO19 (NotSupportedInGNULDForIFunc)
 - LDST{8, 16, 32, 64, 128}_ABS_LO12_NC (NotSupportedInGNULDForIFunc)
 
-These relocations does not make sense with IFunc symbols. Loading value
-at a function address is an invalid behavior, and so is storing a value
-at a function address.
-
 > [!IMPORTANT]
 > FIXME: It should be an error to use these relocations with IFunc symbols.
+
 

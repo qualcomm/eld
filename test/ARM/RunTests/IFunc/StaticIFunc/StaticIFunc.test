@@ -1,0 +1,165 @@
+#---StaticIFunc.test---------------------------------- Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that the IFunc functionality works correctly for static ARM
+# executables. This test covers the following relocations:
+# - control-flow (R_ARM_CALL / R_ARM_JUMP24 / R_ARM_THM_CALL / R_ARM_THM_JUMP24),
+# - absolute data (R_ARM_ABS32, R_ARM_TARGET1),
+# - GOT-based (R_ARM_GOT_PREL), and
+# - PC-relative / absolute address-forming MOVW/MOVT pairs (R_ARM_MOVW_*).
+# Each input file exercises exactly one relocation kind, linked against both a
+# non-PIC and a PIC build of the driver.
+#
+# The test asserts that:
+#  - all calls reach the resolved implementation (returns 11),
+#  - the IFunc address is the same wherever it is taken (pointer equality:
+#    &foo in the driver == the address obtained from another TU),
+#  - a regular GOT entry for the IFunc symbol is created (CHECK_GOT) exactly
+#    when the symbol has BOTH a direct and a GOT reference across the link, and
+#    is NOT created (CHECK_NO_GOT) otherwise.
+#
+# Note on how the driver references foo (`int (*foo_lp)() = foo;`):
+#  - built non-PIC (-fno-PIC), &foo emits R_ARM_ABS32  (a direct reference),
+#  - built PIC (-fPIC),        &foo emits R_ARM_GOT_PREL (a GOT reference).
+# So a single input file that holds a direct reference (abs / movw-movt) creates
+# the dedicated pointer-equality GOT entry only in the PIC driver build (direct
+# + GOT), whereas a GOT-based input file (got.c) creates it only in the non-PIC
+# driver build.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc -o %t1.main.nopic.o %p/Inputs/main.c -c -fno-PIC
+RUN: %run_cc -o %t1.main.pic.o   %p/Inputs/main.c -c -fPIC
+
+RUN: %run_cc -o %t1.main-call.nopic.o %p/Inputs/main-call.c -c -fno-PIC
+RUN: %run_cc -o %t1.main-call.pic.o   %p/Inputs/main-call.c -c -fPIC
+
+# --- abs.c: R_ARM_ABS32 (absolute data reference / direct ref). --------------
+RUN: %run_cc -o %t1.abs.o %p/Inputs/abs.c -c
+RUN: %run_cc -o %t1.nopic.abs.out %t1.main.nopic.o %t1.abs.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.abs.out   %t1.main.pic.o   %t1.abs.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.abs.out | %filecheck %s
+RUN: %run %t1.pic.abs.out   | %filecheck %s
+
+# --- target1.s: R_ARM_TARGET1, treated as R_ARM_ABS32 (a direct ref). Same
+# direct-reference pattern as abs.c: a regular GOT entry is created only in the
+# PIC driver build (driver's GOT ref + target1's direct ref).
+RUN: %run_cc -o %t1.target1.o %p/Inputs/target1.s -c
+RUN: %run_cc -o %t1.nopic.target1.out %t1.main.nopic.o %t1.target1.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.target1.out   %t1.main.pic.o   %t1.target1.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.target1.out | %filecheck %s
+RUN: %run %t1.pic.target1.out   | %filecheck %s
+
+# --- got.c: R_ARM_GOT_PREL (GOT-based reference, compiler-emitted with -fPIC).
+RUN: %run_cc -o %t1.got.o %p/Inputs/got.c -c -fPIC
+RUN: %run_cc -o %t1.nopic.got.out %t1.main.nopic.o %t1.got.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run_cc -o %t1.pic.got.out   %t1.main.pic.o   %t1.got.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.got.out | %filecheck %s
+RUN: %run %t1.pic.got.out   | %filecheck %s
+
+# --- movw-movt-abs.s: R_ARM_MOVW_ABS_NC + R_ARM_MOVT_ABS (direct ref). --------
+RUN: %run_cc -o %t1.movabs.o %p/Inputs/movw-movt-abs.s -c
+RUN: %run_cc -o %t1.nopic.movabs.out %t1.main.nopic.o %t1.movabs.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.movabs.out   %t1.main.pic.o   %t1.movabs.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.movabs.out | %filecheck %s
+RUN: %run %t1.pic.movabs.out   | %filecheck %s
+
+# --- movw-movt-prel.s: R_ARM_MOVW_PREL_NC + R_ARM_MOVT_PREL (direct ref). -----
+RUN: %run_cc -o %t1.movprel.o %p/Inputs/movw-movt-prel.s -c
+RUN: %run_cc -o %t1.nopic.movprel.out %t1.main.nopic.o %t1.movprel.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.movprel.out   %t1.main.pic.o   %t1.movprel.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.movprel.out | %filecheck %s
+RUN: %run %t1.pic.movprel.out   | %filecheck %s
+
+# --- call.c: R_ARM_CALL (direct call). ---------------------------------------
+# Control-flow inputs only call foo, so foo never has both a direct and a GOT
+# reference -> no regular GOT entry in either build.
+RUN: %run_cc -o %t1.call.o %p/Inputs/call.c -c
+RUN: %run_cc -o %t1.nopic.call.out %t1.main-call.nopic.o %t1.call.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.call.out   %t1.main-call.pic.o   %t1.call.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.call.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.call.out   | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+
+# --- jump.s: R_ARM_JUMP24 (tail-call branch). --------------------------------
+RUN: %run_cc -o %t1.jump.o %p/Inputs/jump.s -c
+RUN: %run_cc -o %t1.nopic.jump.out %t1.main-call.nopic.o %t1.jump.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.jump.out   %t1.main-call.pic.o   %t1.jump.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.jump.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.jump.out   | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+
+# --- thm-call.s: R_ARM_THM_CALL (Thumb call). --------------------------------
+RUN: %run_cc -o %t1.thmcall.o %p/Inputs/thm-call.s -c
+RUN: %run_cc -o %t1.nopic.thmcall.out %t1.main-call.nopic.o %t1.thmcall.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.thmcall.out   %t1.main-call.pic.o   %t1.thmcall.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.thmcall.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.thmcall.out   | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+
+# --- thm-jump24.s: R_ARM_THM_JUMP24 (Thumb wide tail-call branch). -----------
+RUN: %run_cc -o %t1.thmjump24.o %p/Inputs/thm-jump24.s -c
+RUN: %run_cc -o %t1.nopic.thmjump24.out %t1.main-call.nopic.o %t1.thmjump24.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.pic.thmjump24.out   %t1.main-call.pic.o   %t1.thmjump24.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run %t1.nopic.thmjump24.out | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+RUN: %run %t1.pic.thmjump24.out   | %filecheck %s --check-prefix=CALL_FROM_OUTSIDE
+
+# --- got-and-direct.c: BOTH R_ARM_ABS32 (direct) and R_ARM_GOT_PREL (GOT) for
+# the same IFunc symbol, in a single TU separate from foo's definition. The
+# linker always sees both reference kinds, so it materializes a regular GOT
+# entry for `foo` (CHECK_GOT) holding PLT[foo] in both builds.
+RUN: %run_cc -o %t1.gd.o %p/Inputs/got-and-direct.c -c -fPIC
+RUN: %run_cc -o %t1.main-got.nopic.o %p/Inputs/main-got.c -c -fno-PIC
+RUN: %run_cc -o %t1.main-got.pic.o   %p/Inputs/main-got.c -c -fPIC
+RUN: %run_cc -o %t1.nopic.gd.out %t1.main-got.nopic.o %t1.gd.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run_cc -o %t1.pic.gd.out   %t1.main-got.pic.o   %t1.gd.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.nopic.gd.out | %filecheck %s
+RUN: %run %t1.pic.gd.out   | %filecheck %s
+
+# --- local ifunc symbol -------------------------
+# local_foo has visibility("hidden") making it non-preemptible, which exercises
+# the same IFunc PLT path as a LOCAL IFunc. The file is self-contained.
+RUN: %run_cc -o %t1.main-local.nopic.o %p/Inputs/main-local.c -c -fno-PIC
+RUN: %run_cc -o %t1.main-local.pic.o   %p/Inputs/main-local.c -c -fPIC
+RUN: %run_cc -o %t1.main-local.nopic.out %t1.main-local.nopic.o -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_NO_GOT
+RUN: %run_cc -o %t1.main-local.pic.out   %t1.main-local.pic.o   -static \
+RUN:   -Wl,--trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
+RUN: %run %t1.main-local.nopic.out | %filecheck %s
+RUN: %run %t1.main-local.pic.out   | %filecheck %s
+
+#END_TEST
+
+# main.c output: foo() == foo_lp() == foo_outside() == 11, and the three IFunc
+# addresses (&foo, foo_lp = foo, and the address obtained from another TU) are
+# all equal (pointer equality).
+CHECK: 11 11 11
+CHECK: [[FOO_ADDR:0x[0-9a-fA-F]+]] [[FOO_ADDR]] [[FOO_ADDR]]
+
+# main-call.c output: foo() == call_foo_from_outside() == 11.
+CALL_FROM_OUTSIDE: 11 11
+
+# When an IFunc symbol is referenced both directly (resolving to PLT[foo]) and
+# through the GOT, eld creates a dedicated regular GOT entry for it so that
+# GOT-loaded pointers equal the direct pointers (pointer equality).
+CHECK_GOT: Created GOT Entry for Symbol foo{{$}}
+
+# Otherwise (only direct refs, only GOT refs, or only control-flow refs) no
+# dedicated regular GOT entry for the IFunc is needed.
+CHECK_NO_GOT-NOT: Created GOT Entry for Symbol foo{{$}}

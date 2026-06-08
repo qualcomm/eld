@@ -608,6 +608,31 @@ bool ARMGNULDBackend::finalizeScanRelocations() {
       frag = *GOTPLT->getFragmentList().begin();
   if (frag)
     defineGOTSymbol(*frag);
+
+  if (!config().isCodeStatic())
+    return true;
+
+  // For an IFunc symbol that is both referenced directly (its address is
+  // taken via an absolute / PC-relative reloc, which resolves to PLT[ifunc])
+  // and referenced through the GOT, we materialize a dedicated GOT slot that
+  // holds the address of PLT[ifunc]. GOT references then resolve to this slot
+  // rather than the GOTPLT slot, so that the GOT-loaded pointer equals the
+  // direct-reference pointer (pointer equality).
+  for (auto &[symInfo, plt] : m_PLTMap) {
+    if (!symInfo->isIFunc() || !symInfo->hasIFuncDirectRef() ||
+        !symInfo->hasIFuncNeedsGOT())
+      continue;
+    ELFObjectFile *PLTSlotObjFile =
+        llvm::cast<ELFObjectFile>(plt->getOwningSection()->getInputFile());
+    ARMGOT *G = createGOT(GOT::Regular, PLTSlotObjFile, symInfo);
+    FragmentRef *PLTFragRef = make<FragmentRef>(*plt, 0);
+    Relocation *r = Relocation::Create(llvm::ELF::R_ARM_ABS32, 32,
+                                       make<FragmentRef>(*G, 0), 0);
+    PLTSlotObjFile->getGOT()->addRelocation(r);
+    r->modifyRelocationFragmentRef(PLTFragRef);
+    // createGOT(GOT::Regular, ...) already calls recordGOT for symInfo.
+    symInfo->setReserved(symInfo->reserved() | Relocator::ReserveGOT);
+  }
   return true;
 }
 
@@ -622,38 +647,39 @@ void ARMGNULDBackend::defineIRelativeRange(ResolveInfo &pSym) {
   if (m_Module.getScript().linkerScriptHasSectionsCommand())
     return;
 
-  // Define the copy symbol in the bss section and resolve it
   if (!m_pIRelativeStart && !m_pIRelativeEnd) {
     auto SymbolName = "__rel_iplt_start";
     m_pIRelativeStart =
         m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define,
-                (ResolveInfo::Binding)pSym.binding(),
+                ResolveInfo::Type::NoType, ResolveInfo::Define,
+                ResolveInfo::Binding::Local,
                 0,   // size
                 0x0, // value
-                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
-
-    m_pIRelativeStart->setShouldIgnore(false);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(Diag::target_specific_symbol) << SymbolName;
+                FragmentRef::null(), ResolveInfo::Visibility::Default);
+    if (m_pIRelativeStart) {
+      m_pIRelativeStart->setShouldIgnore(false);
+      if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+          m_Module.getConfig().options().traceSymbol(SymbolName))
+        config().raise(Diag::target_specific_symbol) << SymbolName;
+    }
     SymbolName = "__rel_iplt_end";
     m_pIRelativeEnd =
         m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define,
-                (ResolveInfo::Binding)pSym.binding(),
-                pSym.size(), // size
-                0x0,         // value
-                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
-
-    m_pIRelativeEnd->setShouldIgnore(false);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(Diag::target_specific_symbol) << SymbolName;
+                ResolveInfo::Type::NoType, ResolveInfo::Define,
+                ResolveInfo::Binding::Local,
+                0,   // size
+                0x0, // value
+                FragmentRef::null(), ResolveInfo::Visibility::Default);
+    if (m_pIRelativeEnd) {
+      m_pIRelativeEnd->setShouldIgnore(false);
+      if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+          m_Module.getConfig().options().traceSymbol(SymbolName))
+        config().raise(Diag::target_specific_symbol) << SymbolName;
+    }
   }
 }
 
@@ -665,6 +691,8 @@ bool ARMGNULDBackend::finalizeTargetSymbols() {
     m_pIRelativeEnd->setValue(
         getRelaPLT()->getOutputSection()->getSection()->addr() +
         getRelaPLT()->getOutputSection()->getSection()->size());
+    addSectionInfo(m_pIRelativeStart, getRelaPLT());
+    addSectionInfo(m_pIRelativeEnd, getRelaPLT());
   }
   return true;
 }

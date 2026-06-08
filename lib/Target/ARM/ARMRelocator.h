@@ -80,6 +80,35 @@ private:
                        eld::IRBuilder &pBuilder, ELFSection &pSection,
                        CopyRelocs &);
 
+  /// Handle a relocation that references a non-preemptible STT_GNU_IFUNC
+  /// symbol in a static link. Classifies the relocation, records whether
+  /// the ifunc needs a GOT slot and/or has a direct reference, and
+  /// reserves an IRELATIVE PLT entry for it.
+  void handleScanForNonPreemptibleIFunc(Relocation &R, ELFObjectFile *Obj);
+
+  /// Returns true if the relocation is a control-flow (call/branch)
+  /// relocation.
+  bool isControlFlowRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation is an absolute relocation designed for
+  /// the data section of the program.
+  bool isAbsDataRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation is used for computing an absolute or a
+  /// PC-relative address using one or more instructions (e.g. a MOVW/MOVT
+  /// pair, or a REL32 / PREL31 word).
+  bool isAbsOrPCRELAddressInstrRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation is a non-TLS instruction relocation
+  /// whose computation uses the GOT entry of the symbol.
+  bool isRegularGOTInstrRelocation(Relocation::Type relocType) const;
+
+  /// Returns true if the relocation would be valid against an STT_GNU_IFUNC
+  /// symbol in principle but cannot hold a PLT stub address, so eld does not
+  /// support it for an ifunc target. Used by
+  /// handleScanForNonPreemptibleIFunc to emit a diagnostic.
+  bool isUnsupportedIFuncRelocation(Relocation::Type relocType) const;
+
   bool isDynamicRelocSupported(const Relocation &reloc) const override;
 
   uint32_t relocType() const override { return llvm::ELF::SHT_REL; }

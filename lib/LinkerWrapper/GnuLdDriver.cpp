@@ -720,11 +720,13 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   for (auto *arg : Args.filtered(T::wrap)) {
     std::string wname = arg->getValue();
     wrapString.push_back(wname);
+    // FIXME: No need for string saver here!
     std::string to_wrap_str = eld::Saver.save("__wrap_" + wname).str();
     Config.options().renameMap().insert(std::make_pair(wname, to_wrap_str));
 
     // add __real_wname -> wname
     std::string from_real_str = eld::Saver.save("__real_" + wname).str();
+    // Undefined behavior!
     Config.options().renameMap().insert(std::make_pair(from_real_str, wname));
   } // end of for
   if (Args.hasArg(T::wrap))
