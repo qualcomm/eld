@@ -24,11 +24,6 @@ def use_mov_veneer
       HelpText<
           "Use movt/movw to load address in veneers with absolute relocation">,
       Group<grp_arm_linker>;
-def compact : Flag<["-", "--"], "compact">,
-              HelpText<"Create a smaller output file. The Loader need to "
-                       "support such files">,
-              Group<grp_arm_linker>;
-
 def grp_arm_linker_only : OptionGroup<"opts">,
                           HelpText<"ARM Linker Option ONLY">;
 def fix_cortex_a8 : Flag<["--"], "fix-cortex-a8">,

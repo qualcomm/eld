@@ -24,13 +24,6 @@ DIAG(msg_base_not_found_no_linker_script, DiagnosticEngine::Fatal,
      "_MSG_BASE_ area not found")
 DIAG(warn_armexidx_no_link, DiagnosticEngine::Warning,
      "ARM_EXIDX Section %1 from %0 does not have link section set")
-DIAG(physical_address_not_in_syn_with_offset, DiagnosticEngine::Warning,
-     "Compact Option needs physical address aligned with File offsets. "
-     "Mismatch found at section %0")
-DIAG(physical_address_and_offset_are_not_congruent, DiagnosticEngine::Warning,
-     "Physical address and the offset of a segment must be congruent modulo "
-     "the alignment of the segment. "
-     "Mismatch found at segment %0")
 DIAG(sbrel_reloc_different_seg, DiagnosticEngine::Error,
      "R_ARM_SBREL32 Relocation Mismatch for symbol %0 defined in %1 has a "
      "different load segment")

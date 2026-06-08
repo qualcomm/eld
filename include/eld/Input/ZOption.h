@@ -50,7 +50,6 @@ public:
     Relro,
     Text,
     NoText,
-    CompactDyn,
     ForceBTI,
     ForcePACPLT,
     Unknown

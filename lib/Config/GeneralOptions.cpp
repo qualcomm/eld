@@ -107,9 +107,6 @@ bool GeneralOptions::addZOption(const ZOption &POption) {
   case ZOption::Global:
     BGlobal = true;
     break;
-  case ZOption::CompactDyn:
-    BCompactDyn = true;
-    break;
   case ZOption::ForceBTI:
     BForceBTI = true;
     break;

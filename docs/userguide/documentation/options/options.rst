@@ -227,9 +227,6 @@ The following ``-z`` keywords are supported by ELD:
 ``-z nodelete``
   Mark a shared object as non-unloadable at runtime.
 
-``-z compactdyn``
-  Emit a more compact dynamic section by omitting DT_PLTGOT and DT_DEBUG entries.
-
 ``-z force-bti``
   Force GNU property BTI feature bits to be recorded (AArch64).
 

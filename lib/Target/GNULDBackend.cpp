@@ -2236,7 +2236,7 @@ void GNULDBackend::assignOffsetsToSkippedSections() {
 
 std::pair<int64_t, ELFSection *>
 GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
-                                 int64_t BeginOffset, bool Check) {
+                                 int64_t BeginOffset) {
   eld::RegisterTimer T("Setup Segment Offsets", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
   ELFSection *prev = P;
@@ -2260,11 +2260,8 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
   int64_t offset = BeginOffset;
   // Sort the sections in the segment. This is to allow decreasing addresses
   // in the same segment and making sure file offset is sane and doesn't
-  // become negative. If we are doing a compact representation of the layout
-  // this is just not needed, since the fileoffsets are incremented in the
-  // order the sections are seen.
-  if (!config().options().isCompact())
-    Seg->sortSections();
+  // become negative.
+  Seg->sortSections();
 
   ELFSegment::iterator iterB = Seg->begin(), iterE = Seg->end(), iterNext;
   auto isSectionNoLoad = [](const ELFSection *S) -> bool {
@@ -2338,15 +2335,15 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
           offset = prev->offset() + (cur->addr() - Seg->front()->addr());
       } else if (prev->isNoBits()) {
         offset = prev->offset();
-      } else if ((isBeginningOfSection) || (config().options().isCompact()) ||
-                 (cur->addr() <= prev->addr()) || (cur->isNoBits()))
+      } else if ((isBeginningOfSection) || (cur->addr() <= prev->addr()) ||
+                 (cur->isNoBits()))
         offset = prev->offset() + prev->size();
       else
         offset = prev->offset() + (cur->addr() - prev->addr());
     }
     if (!cur->isNoBits())
       prevProgBitsInSegment = cur;
-    if (config().options().isCompact() || !cur->isBSS()) {
+    if (!cur->isBSS()) {
       if (!outSection->prolog().hasVMA())
         alignAddress((uint64_t &)offset, cur->getAddrAlign());
     }
@@ -2361,10 +2358,6 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
         offset = cur->addr();
       else
         offset = new_offset;
-      if (config().options().isCompact() &&
-          ((uint64_t)offset % segAlign != Seg->front()->pAddr() % segAlign))
-        config().raise(Diag::physical_address_and_offset_are_not_congruent)
-            << Seg->front()->name();
       isBeginningOfSection = false;
       BeginOffset = offset;
     }
@@ -2377,13 +2370,6 @@ GNULDBackend::setupSegmentOffset(ELFSegment *Seg, ELFSection *P,
           << utility::toHex(static_cast<uint64_t>(offset)) << Seg->name()
           << Seg->type();
 
-    if (Check) {
-      if (config().options().isCompact() && cur->isAlloc() &&
-          (uint64_t)(offset - BeginOffset + Seg->front()->pAddr()) !=
-              cur->pAddr())
-        config().raise(Diag::physical_address_not_in_syn_with_offset)
-            << cur->name();
-    }
     prev = cur;
   }
   return std::make_pair(BeginOffset, isTLSSegment ? P : prev);
@@ -4362,7 +4348,7 @@ bool GNULDBackend::assignOffsets(uint64_t offset) {
     segment_counter++;
     */
     std::pair<int64_t, ELFSection *> SF =
-        setupSegmentOffset(Seg, prev, BeginOffset, true);
+        setupSegmentOffset(Seg, prev, BeginOffset);
     BeginOffset = SF.first;
     prev = SF.second;
     // raise an error if there is a BSS section and the following

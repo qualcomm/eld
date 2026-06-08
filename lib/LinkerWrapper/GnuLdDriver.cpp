@@ -783,8 +783,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
       ZKind = eld::ZOption::ExecStack;
     else if (ZOpt == "nodelete") {
       ZKind = eld::ZOption::NoDelete;
-    } else if (ZOpt == "compactdyn") {
-      ZKind = eld::ZOption::CompactDyn;
     } else if (ZOpt == "force-bti") {
       ZKind = eld::ZOption::ForceBTI;
     } else if (ZOpt == "pac-plt") {

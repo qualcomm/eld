@@ -830,14 +830,6 @@ public:
 
   std::set<std::string> &verifyRelocList() { return RelocVerify; }
 
-  void setCompact(bool C = true) { Compact = C; }
-
-  bool isCompact() const { return Compact; }
-
-  void setCompactDyn(bool Value = true) { BCompactDyn = Value; }
-
-  bool isCompactDyn() const { return BCompactDyn; }
-
   // --------------------ROPI/RWPI Support -----------------------------
   bool hasRWPI() const { return BRWPI; }
 
@@ -1308,7 +1300,6 @@ private:
   bool BAllowBSSMixing = false;    // --disable-bss-mixing
   bool BAllowBSSConversion = false;       // --disable-bss-conversion
   bool BFixCortexA53Errata843419 = false; // --fix-cortex-a53-843419
-  bool Compact = false;                   // --compact
   bool BRWPI = false;                     // --frwpi
   bool BROPI = false;                     // --fropi
   Target2Policy Target2 = Target2Policy::GotRel; // --target2
@@ -1385,7 +1376,6 @@ private:
   ScriptOptionType ScriptOption = MatchLLVM;
   std::vector<std::string> LTOAsmFile;
   std::vector<std::string> LTOOutputFile;
-  bool BCompactDyn = false;          // z,compactdyn
   std::optional<uint64_t> ImageBase; // --image-base=value
   std::string Entry;
   SymbolRenameMap SymbolRenames;

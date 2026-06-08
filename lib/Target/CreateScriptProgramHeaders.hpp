@@ -251,10 +251,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
       // if pma was previously defined but not for this section then increment
       // this pma by the prev->pAddr + size and include the vmaoffset if this
       // not the start of a new segment.
-      if (config().options().isCompact())
-        pma = prev->pAddr() +
-              ((prev->isBSS() || prev->isTBSS()) ? 0 : prev->size());
-      else if (!is_previous_start_of_segment)
+      if (!is_previous_start_of_segment)
         pma = prev->pAddr() + (vma - prev->addr());
     } else {
       pma = vma;

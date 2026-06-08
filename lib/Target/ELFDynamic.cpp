@@ -183,8 +183,7 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
     reserveOne(llvm::ELF::DT_STRSZ);  // DT_STRSZ
   }
 
-  if (!m_Config.options().isCompactDyn() && m_Backend.getGOTPLT() &&
-      m_Backend.getGOTPLT()->size() != 0) {
+  if (m_Backend.getGOTPLT() && m_Backend.getGOTPLT()->size() != 0) {
     assert(m_Backend.getGOTPLT()->hasVMA());
     reserveOne(llvm::ELF::DT_PLTGOT);
   }
@@ -341,15 +340,14 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
              pModule.getSection(".dynstr")->size()); // DT_STRSZ
   }
 
-  if (!m_Config.options().isCompactDyn())
-    if (const ELFSection *GOTPLT = m_Backend.getGOTPLT())
-      if (GOTPLT->size() != 0)
-        // DT_PLTGOT always points to the GOTPLT section. Glad that the
-        // linker treats .got.plt section as internal. DT_PLTGOT is needed
-        // only by lazy binding. Note that both ld and lld create
-        // DT_PLTGOT even with lazy binding and the image crashes without
-        // it on riscv qemu.
-        applyOne(llvm::ELF::DT_PLTGOT, GOTPLT->addr());
+  if (const ELFSection *GOTPLT = m_Backend.getGOTPLT())
+    if (GOTPLT->size() != 0)
+      // DT_PLTGOT always points to the GOTPLT section. Glad that the
+      // linker treats .got.plt section as internal. DT_PLTGOT is needed
+      // only by lazy binding. Note that both ld and lld create
+      // DT_PLTGOT even with lazy binding and the image crashes without
+      // it on riscv qemu.
+      applyOne(llvm::ELF::DT_PLTGOT, GOTPLT->addr());
 
   applyTargetEntries();
 
@@ -451,8 +449,7 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
   }
 #endif
 
-  if (!m_Config.options().isCompactDyn())
-    applyOne(llvm::ELF::DT_DEBUG, 0x0); // for DT_DEBUG
+  applyOne(llvm::ELF::DT_DEBUG, 0x0); // for DT_DEBUG
 
   applyOne(llvm::ELF::DT_NULL, 0x0); // for DT_NULL
 }

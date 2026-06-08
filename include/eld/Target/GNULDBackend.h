@@ -690,13 +690,10 @@ public:
   bool setupSegment(ELFSegment *E);
 
   // Setup the segment Offset with 'S' as the section previous to the section
-  // BeginOffset the start Offset of the segment, and Check is set based on
-  // whether we want to check for Compact semantics or anything else in the
-  // future.
+  // and BeginOffset the start Offset of the segment.
   std::pair<int64_t, ELFSection *> setupSegmentOffset(ELFSegment *E,
                                                       ELFSection *S = nullptr,
-                                                      int64_t BeginOffset = 0,
-                                                      bool Check = false);
+                                                      int64_t BeginOffset = 0);
 
   // ----------------------PHDR/FILEHDR support----------------------------
 
