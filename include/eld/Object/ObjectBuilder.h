@@ -61,6 +61,8 @@ public:
 
   void assignInputFromOutput(eld::InputFile *Obj);
 
+  void assignInputFromOutputLegacy(eld::InputFile *Obj);
+
   void assignOutputSections(std::vector<InputFile *> Inputs, bool);
 
   /// Update section mappings for pending section overrides associated with the
