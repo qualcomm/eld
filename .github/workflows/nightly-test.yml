@@ -254,6 +254,11 @@ jobs:
           cd obj
           ninja -j8 check-eld
 
+      - name: Summarize test results
+        run: |
+          cd obj
+          ninja check-eld-summary
+
       - name: Update build entry
         if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder

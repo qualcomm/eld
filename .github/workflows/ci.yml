@@ -159,6 +159,10 @@ jobs:
 
           ninja check-eld
 
+      - name: Summarize test results
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}/obj
+        run: ninja check-eld-summary
 
       - name: Clean up
         if: always()

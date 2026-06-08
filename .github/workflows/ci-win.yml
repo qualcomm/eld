@@ -99,6 +99,11 @@ jobs:
         shell: bash
         run: cmake --build . --config Release --target check-eld
 
+      - name: Summarize test results
+        working-directory: nightly/obj
+        shell: bash
+        run: cmake --build . --config Release --target check-eld-summary
+
       - name: Update build entry
         if: github.event_name == 'schedule'
         uses: ./nightly/llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder

@@ -29,12 +29,15 @@ function(add_external_eld_lit TARGET_NAME ARCH OPTION OPTIONNAME)
   string(TOLOWER ${ARCH} ARCH_LOWER)
   set(LLVM_EXTERNAL_LIT
       ${CMAKE_CURRENT_BINARY_DIR}/llvm-lit-${ARCH_LOWER}-${OPTIONNAME})
+  set(JSON_OUTPUT
+      "${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config/results.json")
   add_lit_testsuite(
     ${TARGET_NAME}-test-${ARCH_LOWER}-${OPTIONNAME}
     "Running the Linker regression tests ${ADDITIONAL_TESTMSG} for option: ${OPTION} arch: ${ARCH}"
     ${CMAKE_CURRENT_BINARY_DIR}/${ARCH}-${OPTIONNAME}-config
     DEPENDS
-    ${TEST_DEPENDS})
+    ${TEST_DEPENDS}
+    ARGS --output ${JSON_OUTPUT})
   set_target_properties(${TARGET_NAME}-test-${ARCH_LOWER}-${OPTIONNAME}
                         PROPERTIES FOLDER "Tests")
   add_dependencies(${TARGET_NAME}

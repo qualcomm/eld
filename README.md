@@ -151,6 +151,40 @@ export ELD_AARCH64_SYSROOT=/usr/aarch64-linux-gnu
 export ELD_AARCH64_EMULATOR=qemu-aarch64
 ```
 
+### Summarizing Test Results Across Configurations
+
+After running `check-eld`, you can print a consolidated result table across all
+architecture/option configurations using the `check-eld-summary` target:
+
+```bash
+cmake --build obj -- check-eld-summary
+# or with ninja:
+ninja check-eld-summary
+```
+
+This reads the `results.json` file written by each lit sub-run and prints a
+table.
+
+If a configuration has not been run yet its row shows `(no results)`.
+`check-eld-summary` is independent of `check-eld` — it only reads result files
+and always exits successfully.
+
+#### Detailed test listing
+
+To list individual test names beneath each configuration row, set
+`ELD_SUMMARY_DETAIL=1` (shows all non-PASS codes) or
+`ELD_SUMMARY_DETAIL_CODES` (comma-separated list of codes to expand):
+
+```bash
+# Linux - PASS result codes
+ELD_SUMMARY_DETAIL=1 ninja check-eld-summary
+
+# Linux — expand only UNSUPPORTED and XFAIL
+ELD_SUMMARY_DETAIL_CODES=UNSUPPORTED,XFAIL ninja check-eld-summary
+
+# Windows (cmake --build)
+ELD_SUMMARY_DETAIL=1 cmake --build obj --config Release --target check-eld-summary
+```
 
 ### Testing Vim Integration
 
