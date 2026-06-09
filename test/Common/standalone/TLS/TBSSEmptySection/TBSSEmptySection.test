@@ -1,0 +1,57 @@
+#---TBSSEmptySection.test------------------- TLS, Executable -----------------#
+#BEGIN_COMMENT
+# Tests that empty sections adjacent to TBSS do not disturb segment layout.
+# Empty sections (size 0, not wanted) should be transparent: TBSS must not
+# pollute segment flags and the data section must land in its own RW LOAD.
+# Four scenarios are covered:
+#   EMPTY-BEFORE : empty section between text and TBSS
+#   EMPTY-AFTER  : empty section between TBSS and data
+#   EMPTY-BOTH   : empty sections on both sides of TBSS
+#   EMPTY-OMAGIC : empty section between text and TBSS with --omagic
+#                  (text+data merged into one RWE LOAD, TBSS absent from LOAD)
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+
+# Empty section before TBSS
+RUN: %link %linkopts %t1.o -T %p/Inputs/s_empty_before.t -o %t.before.out
+RUN: %readelf -l -W %t.before.out | %filecheck %s --check-prefix=EMPTY-BEFORE
+
+# Empty section after TBSS
+RUN: %link %linkopts %t1.o -T %p/Inputs/s_empty_after.t -o %t.after.out
+RUN: %readelf -l -W %t.after.out | %filecheck %s --check-prefix=EMPTY-AFTER
+
+# Empty sections on both sides of TBSS
+RUN: %link %linkopts %t1.o -T %p/Inputs/s_empty_both.t -o %t.both.out
+RUN: %readelf -l -W %t.both.out | %filecheck %s --check-prefix=EMPTY-BOTH
+
+# Empty section adjacent to TBSS with --omagic
+RUN: %link %linkopts %t1.o -T %p/Inputs/s_empty_omagic.t --omagic -o %t.omagic.out
+RUN: %readelf -l -W %t.omagic.out | %filecheck %s --check-prefix=EMPTY-OMAGIC
+#END_TEST
+
+# Empty section before TBSS: text R E, data RW, no spurious LOAD
+EMPTY-BEFORE:      LOAD {{.*}} R E
+EMPTY-BEFORE:      LOAD {{.*}} RW
+EMPTY-BEFORE-NOT:  LOAD
+EMPTY-BEFORE:      00     .foo
+EMPTY-BEFORE:      01     {{.*}}.data
+
+# Empty section after TBSS: same expected layout
+EMPTY-AFTER:      LOAD {{.*}} R E
+EMPTY-AFTER:      LOAD {{.*}} RW
+EMPTY-AFTER-NOT:  LOAD
+EMPTY-AFTER:      00     .foo
+EMPTY-AFTER:      01     {{.*}}.data
+
+# Empty sections on both sides of TBSS: same expected layout
+EMPTY-BOTH:      LOAD {{.*}} R E
+EMPTY-BOTH:      LOAD {{.*}} RW
+EMPTY-BOTH-NOT:  LOAD
+EMPTY-BOTH:      00     .foo
+EMPTY-BOTH:      01     {{.*}}.data
+
+# With --omagic: text+data merged into one RWE LOAD, TBSS absent from LOAD
+EMPTY-OMAGIC:      LOAD {{.*}} RWE
+EMPTY-OMAGIC-NOT:  LOAD
+EMPTY-OMAGIC:      00     .foo {{.*}}.data
