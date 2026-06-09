@@ -1,0 +1,17 @@
+#---TBSSNoteSegmentReuse.test----------------------- TLS, Executable -----------------#
+#BEGIN_COMMENT
+# This tests that two NOTE sections separated by a TBSS section are placed in
+# the same PT_NOTE segment. Before the fix, prevOut was updated for TBSS, so
+# the NOTE reuse lookup (_noteSegmentsForSection[prevOut]) returned null after
+# TBSS and a spurious second PT_NOTE segment was created.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+# Exactly one PT_NOTE segment containing both note sections.
+#CHECK:      NOTE
+#CHECK:      {{[0-9]+}}     .note1 .note2
+#CHECK-NOT:  NOTE
+#END_TEST

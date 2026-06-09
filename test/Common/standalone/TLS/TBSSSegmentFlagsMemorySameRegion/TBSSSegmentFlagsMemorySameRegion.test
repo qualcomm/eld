@@ -1,0 +1,20 @@
+#---TBSSSegmentFlagsMemorySameRegion.test------------ TLS, Executable -----------------#
+#BEGIN_COMMENT
+# This tests that when text, TBSS, and data sections all share the same MEMORY
+# region, the TBSS section does not prevent the data section from being placed
+# in a separate LOAD segment from the text section, and that the text segment
+# flags are not polluted by the TBSS Write flag. Before the fix, prev_mem_region
+# was updated for TBSS, making the data section appear to be in the same region
+# as the previous section and suppressing new segment creation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK:      LOAD {{.*}} R E
+#CHECK:      LOAD {{.*}} RW
+#CHECK-NOT:  LOAD
+#CHECK:      00     .foo
+#CHECK:      01     .data
+#END_TEST

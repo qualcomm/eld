@@ -303,9 +303,14 @@ bool GNULDBackend::createScriptProgramHdrs() {
     } else if (isStartOfSegment)
       is_previous_start_of_segment = true;
 
-    if (cur->isAlloc())
+    // Do not advance layout state for TBSS. TBSS occupies no file space and
+    // does not advance the dot counter, so letting it update prev or
+    // last_seen_alloc_section would cause the next real section to be placed
+    // relative to a phantom boundary.
+    if (cur->isAlloc() && !cur->isTBSS())
       last_seen_alloc_section = cur;
-    prev = cur;
+    if (!cur->isTBSS())
+      prev = cur;
 
     if (isNoLoad)
       noLoadSections.push_back(cur);
@@ -317,6 +322,10 @@ bool GNULDBackend::createScriptProgramHdrs() {
       if (cur->isWanted() || cur->wantedInOutput() ||
           (scriptvma && scriptvma.value())) {
         seg->append(*out);
+        // Always update segment flags, including for TBSS, so that a segment
+        // containing only TBSS sections gets the correct p_flags (PF_R|PF_W).
+        // Skipping this for TBSS would leave a PHDRS-defined TLS segment with
+        // p_flags=0 when no other section in that segment updates the flags.
         seg->updateFlagPhdr(getSegmentFlag(cur->getFlags()));
       }
       if (seg->isLoadSegment() && !config().options().isOMagic())

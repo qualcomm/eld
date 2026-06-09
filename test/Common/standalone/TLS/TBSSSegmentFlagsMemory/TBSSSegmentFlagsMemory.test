@@ -1,0 +1,18 @@
+#---TBSSSegmentFlagsMemory.test----------------------- TLS, Executable -----------------#
+#BEGIN_COMMENT
+# This tests that when a MEMORY command is used, a TBSS section in a RAM region
+# following a text section in a ROM region does not prevent the data section
+# from being placed in a separate LOAD segment, and that the text segment flags
+# are not polluted by the TBSS Write flag.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK:      LOAD {{.*}} R E
+#CHECK:      LOAD {{.*}} RW
+#CHECK-NOT:  LOAD
+#CHECK:      00     .foo
+#CHECK:      01     .data
+#END_TEST

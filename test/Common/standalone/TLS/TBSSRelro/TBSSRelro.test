@@ -1,0 +1,17 @@
+#---TBSSRelro.test----------------------- TLS, Executable -----------------#
+#BEGIN_COMMENT
+# This tests that when -z relro is used with a TBSS section, the LOAD segments
+# have correct flags (text is R E, data is RW) and the GNU_RELRO segment is
+# empty (TBSS is not a real loadable section and must not pollute RELRO).
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -z relro -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK:      LOAD {{.*}} R E
+#CHECK:      LOAD {{.*}} RW
+#CHECK-NOT:  LOAD
+#CHECK:      00     .foo
+#CHECK:      01     .data
+#END_TEST
