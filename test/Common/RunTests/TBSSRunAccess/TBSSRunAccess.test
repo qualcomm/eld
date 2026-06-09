@@ -1,0 +1,16 @@
+REQUIRES: run_test, linux
+#---TBSSRunAccess.test--------------------- TLS, RunTest ------------------#
+#BEGIN_COMMENT
+# Test that TBSS (zero-initialized thread-local) variables are accessible at
+# runtime. Verifies that segment flags are correct so the OS can map the TLS
+# template and the dynamic linker can initialize thread-local storage.
+# Before the fix, a TBSS-only segment created via a PHDRS command could end
+# up with p_flags=0, causing the dynamic linker to fail to map TLS.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/tls.c -o %t.o
+RUN: %run_cc %clangopts -o %t.out %t.o
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: 1 2 42

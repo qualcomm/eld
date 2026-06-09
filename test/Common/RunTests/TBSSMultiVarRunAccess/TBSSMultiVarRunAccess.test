@@ -1,0 +1,16 @@
+REQUIRES: run_test, linux
+#---TBSSMultiVarRunAccess.test------------- TLS, RunTest ------------------#
+#BEGIN_COMMENT
+# Test that multiple TBSS (zero-initialized thread-local) variables followed
+# by regular data are accessible at runtime. This exercises segment flag
+# correctness for TBSS — if the TBSS section contaminates the segment flags
+# or disrupts the layout state for the following data section, TLS access or
+# data access will fault or produce wrong values.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/tls.c -o %t.o
+RUN: %run_cc %clangopts -o %t.out %t.o
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: 1 2 3 10 20

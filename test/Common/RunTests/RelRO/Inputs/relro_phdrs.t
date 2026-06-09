@@ -16,12 +16,14 @@ PHDRS {
   ph_data   PT_LOAD      FLAGS(6);
   ph_tls    PT_TLS;
   ph_relro  PT_GNU_RELRO;
+  ph_note   PT_NOTE;
   ph_dyn    PT_DYNAMIC;
 }
 SECTIONS {
   .interp     : { *(.interp) }                             :ph_interp :ph_text
-  .note.ABI-tag : { *(.note.ABI-tag) }                     :ph_text
-  .note.gnu.build-id : { *(.note.gnu.build-id) }           :ph_text
+  .note.ABI-tag : { *(.note.ABI-tag) }                     :ph_note :ph_text
+  .note.gnu.build-id : { *(.note.gnu.build-id) }           :ph_note :ph_text
+  .note.eld.run : { *(.note.eld.run) }                     :ph_note :ph_text
   .dynsym     : { *(.dynsym) }                             :ph_text
   .dynstr     : { *(.dynstr) }                             :ph_text
   .gnu.version   : { *(.gnu.version) }                    :ph_text

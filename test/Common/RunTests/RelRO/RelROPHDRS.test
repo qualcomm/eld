@@ -8,6 +8,7 @@ REQUIRES: run_test, linux
 #START_TEST
 
 # Use -ftls-model=initial-exec to avoid TLSDESC relocations.
+RUN: %run_cc %clangopts -c %p/Inputs/relro_note.s -o %t.note.o
 
 # --- Case 1: TBSS-only, partial RELRO ---
 RUN: %run_cc %clangopts -fuse-init-array -c -fPIC -ftls-model=initial-exec %p/Inputs/relro_tbss.c -o %t.tbss.o
@@ -29,12 +30,22 @@ RUN: %run_cc %clangopts -fuse-init-array -c -fPIC -ftls-model=initial-exec %p/In
 RUN: %run_cc %clangopts -o %t.bss.out %t.bss.o -Wl,-z,relro -Wl,-dy -T %p/Inputs/relro_phdrs.t -Wl,-z,max-page-size=0x1000
 RUN: %run %t.bss.out | %filecheck %s --check-prefix=BSS
 
+# --- Case 5: TBSS + NOTE section, RELRO, explicit PHDRS ---
+RUN: %run_cc %clangopts -o %t.notephdrs.out %t.tbss.o %t.note.o -Wl,-z,relro -Wl,-dy -T %p/Inputs/relro_phdrs.t -Wl,-z,max-page-size=0x1000
+RUN: %run %t.notephdrs.out | %filecheck %s --check-prefix=TBSS
+RUN: %readelf -l -W %t.notephdrs.out | %filecheck %s --check-prefix=HAS-TLS
+RUN: %readelf -l -W %t.notephdrs.out | %filecheck %s --check-prefix=HAS-RELRO
+RUN: %readelf -l -W %t.notephdrs.out | %filecheck %s --check-prefix=HAS-NOTE
+
 #END_TEST
 
 # Case 1 (ELF structure): PT_TLS FileSiz == 0 for TBSS-only; MemSiz > 0
 # The offset field is verified by the runtime test passing (p_offset % p_align
 # == p_vaddr % p_align must hold or the dynamic loader rejects the binary).
 TBSS-FILESZ: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{0x0+}} {{0x[0-9a-f]+}}
+HAS-TLS: TLS
+HAS-RELRO: GNU_RELRO
+HAS-NOTE: NOTE
 
 # Case 1 & 2: TBSS written by constructor is readable
 TBSS: 42

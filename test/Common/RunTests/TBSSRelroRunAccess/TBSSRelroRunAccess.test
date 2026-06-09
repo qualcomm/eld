@@ -1,0 +1,15 @@
+REQUIRES: run_test, linux
+#---TBSSRelroRunAccess.test---------------- TLS, RunTest ------------------#
+#BEGIN_COMMENT
+# Test that -z relro with a TBSS section does not prevent writing to the data
+# section at runtime. Before the fix, TBSS polluted the RELRO segment causing
+# the dynamic linker to mprotect the data section read-only, making the write
+# to 'data' below fault with SIGSEGV.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/relro.c -o %t.o
+RUN: %run_cc %clangopts -o %t.out %t.o -Wl,-z,relro
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: 7 99

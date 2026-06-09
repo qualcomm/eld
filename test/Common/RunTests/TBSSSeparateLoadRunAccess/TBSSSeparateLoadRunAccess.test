@@ -1,0 +1,16 @@
+REQUIRES: run_test, linux
+#---TBSSSeparateLoadRunAccess.test--------- TLS, RunTest ------------------#
+#BEGIN_COMMENT
+# Test that TBSS variables and regular data are accessible at runtime when
+# -z separate-loadable-segments is used. This option page-aligns each LOAD
+# segment boundary; TBSS must not cause prevOut to advance, which would make
+# the page-align decision for the data segment compare against the wrong
+# previous segment's exec flag.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -ffunction-sections -fdata-sections -c %p/Inputs/tls.c -o %t.o
+RUN: %run_cc %clangopts -o %t.out %t.o -Wl,-z,separate-loadable-segments
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: 1 2 99
