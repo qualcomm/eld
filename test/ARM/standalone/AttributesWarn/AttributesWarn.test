@@ -7,5 +7,7 @@
 #RUN: %clang %clangopts -c -fshort-enums %p/Inputs/foo.c -o %t1.o
 #RUN: %clang %clangopts -c -fno-short-enums %p/Inputs/bar.c -o %t2.o
 #RUN: %link --warn-mismatch -o %t1.out %linkopts %t1.o %t2.o 2>&1 | %filecheck %s --check-prefix="ENUM"
+#RUN: %link --no-warn-mismatch -o %t1.out %linkopts %t1.o %t2.o 2>&1 | %filecheck %s --check-prefix="ENUM_NOERR" --allow-empty
 #
 #ENUM:  Warning: the size of enumerated data item
+#ENUM_NOERR-NOT:  Warning: the size of enumerated data item

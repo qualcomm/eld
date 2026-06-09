@@ -10,8 +10,10 @@ RUN: %clang %clangopts -mabi=ilp32f -c %p/Inputs/1.c -o %t.1.o
 RUN: %eld %t.emptyelf.o %t.1.o -o %t1.out
 RUN: %readelf -h %t1.out | %filecheck %s -check-prefix=EFLAGS
 RUN: %yaml2obj %p/Inputs/flagszero_with_exec_sections.yaml -o %t.f.o
-RUN: %not %eld %t.f.o %t.1.o -o %t1.out 2>&1 | %filecheck %s
+RUN: %not %eld --warn-mismatch %t.f.o %t.1.o -o %t1.out 2>&1 | %filecheck %s
+RUN: %eld --no-warn-mismatch %t.f.o %t.1.o -o %t1.out 2>&1 | %filecheck %s --check-prefix NOERR --allow-empty
 #END_TEST
 
 EFLAGS: Flags: 0x3
 CHECK: Error: Incompatible object files when reading {{.*}}1.o
+NOERR-NOT: Error: Incompatible object files when reading
