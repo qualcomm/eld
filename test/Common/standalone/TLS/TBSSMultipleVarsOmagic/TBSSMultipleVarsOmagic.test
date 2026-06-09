@@ -1,0 +1,17 @@
+#---TBSSMultipleVarsOmagic.test------------- TLS, Executable -----------------#
+#BEGIN_COMMENT
+# This tests that --omagic with multiple per-variable TBSS sections (produced
+# by -fdata-sections) between text and data produces a single merged RWE LOAD
+# segment containing both .foo and .data. No TBSS section must appear in any
+# LOAD segment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t --omagic -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK:      LOAD {{.*}} RWE
+#CHECK-NOT:  LOAD
+#CHECK:      00     .foo {{.*}}.data
+#CHECK:      {{[0-9]+}}     .tbss.a .tbss.b .tbss.c
+#END_TEST

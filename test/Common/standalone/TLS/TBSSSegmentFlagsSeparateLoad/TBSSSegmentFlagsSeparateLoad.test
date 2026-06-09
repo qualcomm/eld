@@ -1,0 +1,18 @@
+#---TBSSSegmentFlagsSeparateLoad.test------- TLS, Executable -----------------#
+#BEGIN_COMMENT
+# This tests that -z separate-loadable-segments with a TBSS section between
+# text and data still produces correct separate LOAD segments (R E for text,
+# RW for data). TBSS must not contaminate the text segment flags with PF_W
+# nor prevent the data section from getting its own RW segment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -ffunction-sections -fdata-sections
+RUN: %link %linkopts %t1.o -T %p/Inputs/s.t -z separate-loadable-segments -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+#CHECK:      LOAD {{.*}} R E
+#CHECK:      LOAD {{.*}} RW
+#CHECK-NOT:  LOAD
+#CHECK:      00     .foo
+#CHECK:      01     {{.*}}.data
+#END_TEST
