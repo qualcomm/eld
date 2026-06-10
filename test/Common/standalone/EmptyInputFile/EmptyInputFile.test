@@ -1,0 +1,17 @@
+#---EmptyInputFile.test----------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that ELD handles empty input files gracefully for:
+# 1. Direct empty object file
+# 2. Archive containing empty member
+# 3. Thin archive containing empty member
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.o %p/Inputs/1.c -c
+RUN: %touch %t1.empty.o
+RUN: %ar rcs %t1.a %t1.o %t1.empty.o
+RUN: %ar rcsT %t1.thin.a %t1.o %t1.empty.o
+RUN: %link %emulation %linkopts %t1.empty.o 2>&1 | %filecheck %s --check-prefix=EMPTY --allow-empty
+RUN: %link %emulation %linkopts %t1.a 2>&1
+RUN: %link %emulation %linkopts %t1.thin.a 2>&1
+#END_TEST
+EMPTY: Input file {{.*}} has no contents
