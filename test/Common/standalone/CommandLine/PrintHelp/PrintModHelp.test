@@ -5,85 +5,539 @@
 #START_TEST
 RUN: %link --help 2>&1 | %filecheck %s
 
-#CHECK:   --color=<on/off>
+#CHECK:   --add-needed
+#CHECK:   --copy-dt-needed-entries
+#CHECK:   -EL
+#CHECK:   --ignore-unknown-opts
+#CHECK:   --nmagic
+#CHECK:   --no-add-needed
+#CHECK:   --no-allow-shlib-undefined
+#CHECK:   --no-copy-dt-needed-entries
+#CHECK:   -n
+#CHECK:   --plugin-opt=<plugin-opt>
+#CHECK:   -plugin-opt=<plugin-opt>
+#CHECK:   --plugin-opt <plugin-opt>
+#CHECK:   -plugin-opt <plugin-opt>
+#CHECK:   --plugin=<pluginfile>
+#CHECK:   -plugin=<pluginfile>
+#CHECK:   --plugin <pluginfile>
+#CHECK:   -plugin <pluginfile>
+#CHECK:   -Qy
+#CHECK:   -thin-archive-rule-matching-compatibility
+#CHECK:   --color=<never/always/auto>
+#CHECK:   -color=<never/always/auto>
+#CHECK:   --color <never/always/auto>
+#CHECK:   -color <never/always/auto>
+#CHECK:   --cref
+#CHECK:   -cref
+#CHECK:   --display-hotness=<value>
+#CHECK:   -display-hotness=<value>
+#CHECK:   --display-hotness <value>
+#CHECK:   -display-hotness <value>
+#CHECK:   --emit-timing-stats-in-output
+#CHECK:   -emit-timing-stats-in-output
 #CHECK:   --emit-timing-stats=<filename>
+#CHECK:   --emit-timing-stats <filename>
+#CHECK:   --error-limit=<max-error-number>
+#CHECK:   --error-limit <max-error-number>
 #CHECK:   --error-style=<style>
+#CHECK:   --error-style <style>
+#CHECK:   --fatal-internal-errors
+#CHECK:   --fatal-warnings
 #CHECK:   --gc-cref=<symbol/section>
+#CHECK:   --gc-cref <symbol/section>
+#CHECK:   --no-fatal-internal-errors
+#CHECK:   --no-fatal-warnings
+#CHECK:   --no-warn-mismatch
+#CHECK:   --opt-record-file
+#CHECK:   -opt-record-file
+#CHECK:   --print-timing-stats
+#CHECK:   -print-timing-stats
+#CHECK:   --progress-bar
+#CHECK:   --summary
 #CHECK:   --time-region=<region>
 #CHECK:   --time-region <region>
+#CHECK:   --trace-linker-script
+#CHECK:   --trace-lto
+#CHECK:   --trace-merge-strings=<option>
+#CHECK:   -trace-merge-strings=<option>
+#CHECK:   --trace-merge-strings <option>
+#CHECK:   -trace-merge-strings <option>
 #CHECK:   --trace-reloc=<relocation>
+#CHECK:   -trace-reloc=<relocation>
+#CHECK:   --trace-reloc <relocation>
+#CHECK:   -trace-reloc <relocation>
 #CHECK:   --trace-section=<section_name>
+#CHECK:   -trace-section=<section_name>
+#CHECK:   --trace-section <section_name>
+#CHECK:   -trace-section <section_name>
 #CHECK:   --trace-symbol=<symbol>
+#CHECK:   -trace-symbol=<symbol>
+#CHECK:   --trace-symbol <symbol>
+#CHECK:   -trace-symbol <symbol>
+#CHECK:   --trace=<trace-type>
+#CHECK:   -trace=<trace-type>
+#CHECK:   --trace <trace-type>
+#CHECK:   -trace <trace-type>
+#CHECK:   -t
 #CHECK:   --verbose=<verbose-level>
+#CHECK:   -verbose=<verbose-level>
+#CHECK:   --verbose
 #CHECK:   --verify-options=<option>
+#CHECK:   -verify-options=<option>
+#CHECK:   --verify-options <option>
+#CHECK:   -verify-options <option>
+#CHECK:   --warn-common
 #CHECK:   --warn-limit=<maxwarnings>
+#CHECK:   --warn-limit <maxwarnings>
+#CHECK:   --warn-mismatch
+#CHECK:   -W<warn-type>
+#CHECK:   --y=<symbol>
 #CHECK:   -y=<symbol>
+#CHECK:   --y <symbol>
+#CHECK:   -y <symbol>
+#CHECK:   -y<symbol>
+#CHECK:   --Bgroup
+#CHECK:   -Bgroup
+#CHECK:   --Bsymbolic-functions
+#CHECK:   -Bsymbolic-functions
+#CHECK:   --Bsymbolic
+#CHECK:   -Bsymbolic
+#CHECK:   -fPIC
+#CHECK:   -g
 #CHECK:   --hash-size=<size>
+#CHECK:   --hash-size <size>
 #CHECK:   --hash-style=<hashstyle>
+#CHECK:   -hash-style=<hashstyle>
+#CHECK:   --hash-style <hashstyle>
+#CHECK:   -hash-style <hashstyle>
 #CHECK:   -h <name>
+#CHECK:   --no-warn-shared-textrel
+#CHECK:   --soname=<name>
 #CHECK:   -soname=<name>
+#CHECK:   --soname <name>
+#CHECK:   -soname <name>
+#CHECK:   --warn-shared-textrel
 #CHECK:   --dynamic-linker=<path>
+#CHECK:   -dynamic-linker=<path>
+#CHECK:   --dynamic-linker <path>
+#CHECK:   -dynamic-linker <path>
 #CHECK:   --export-dynamic-symbol=<symbol>
+#CHECK:   -export-dynamic-symbol=<symbol>
+#CHECK:   --export-dynamic-symbol <symbol>
+#CHECK:   -export-dynamic-symbol <symbol>
+#CHECK:   --export-dynamic
+#CHECK:   -export-dynamic
+#CHECK:   -E
+#CHECK:   --force-dynamic
+#CHECK:   -force-dynamic
+#CHECK:   --no-dynamic-linker
+#CHECK:   -no-dynamic-linker
+#CHECK:   --rpath-link=<path>
 #CHECK:   -rpath-link=<path>
+#CHECK:   --rpath-link <path>
+#CHECK:   -rpath-link <path>
+#CHECK:   --rpath=<path>
+#CHECK:   -rpath=<path>
+#CHECK:   --rpath <path>
+#CHECK:   -rpath <path>
+#CHECK:   --e=<symbolname>
 #CHECK:   -e=<symbolname>
+#CHECK:   --emit-relocs
+#CHECK:   -emit-relocs
 #CHECK:   --entry=<symbolname>
+#CHECK:   -entry=<symbolname>
+#CHECK:   --entry <symbolname>
+#CHECK:   -entry <symbolname>
 #CHECK:   --e <symbolname>
+#CHECK:   -e <symbolname>
+#CHECK:   -e<symbolname>
 #CHECK:   --fini=<symbol>
+#CHECK:   -fini=<symbol>
+#CHECK:   --fini <symbol>
+#CHECK:   -fini <symbol>
 #CHECK:   --image-base=<address>
 #CHECK:   --init=<symbol>
+#CHECK:   -init=<symbol>
+#CHECK:   --init <symbol>
+#CHECK:   -init <symbol>
 #CHECK:   --library-path=<path>
+#CHECK:   --library-path <path>
+#CHECK:   --library=<namespec>
 #CHECK:   -L <path>
 #CHECK:   -l <libName>
+#CHECK:   --no-omagic
+#CHECK:   --no-whole-archive
+#CHECK:   -no-whole-archive
+#CHECK:   --noinhibit-exec
+#CHECK:   --nostdlib
+#CHECK:   -nostdlib
+#CHECK:   -N
+#CHECK:   --omagic
+#CHECK:   --whole-archive
+#CHECK:   -whole-archive
 #CHECK:   --Y=<path>
+#CHECK:   -Y=<path>
+#CHECK:   --Y <path>
+#CHECK:   -Y <path>
+#CHECK:   --about
+#CHECK:   --align-segments
+#CHECK:   --allow-bss-conversion
 #CHECK:   --copy-farcalls-from-file=<filename>
+#CHECK:   -copy-farcalls-from-file=<filename>
+#CHECK:   --copy-farcalls-from-file <filename>
+#CHECK:   -copy-farcalls-from-file <filename>
+#CHECK:   --disable-linker-version
+#CHECK:   --disable-new-dtags
 #CHECK:   --dump-mapping-file=<outputfilename>
+#CHECK:   -dump-mapping-file=<outputfilename>
+#CHECK:   --dump-mapping-file <outputfilename>
+#CHECK:   -dump-mapping-file <outputfilename>
+#CHECK:   --dump-response-file=<outputfilename>
 #CHECK:   -dump-response-file=<outputfilename>
+#CHECK:   --dump-response-file <outputfilename>
+#CHECK:   -dump-response-file <outputfilename>
+#CHECK:   --emit-relocs-llvm
+#CHECK:   -emit-relocs-llvm
+#CHECK:   --enable-linker-version
+#CHECK:   --enable-new-dtags
+#CHECK:   --mapping-file=<INI-file>
+#CHECK:   -mapping-file=<INI-file>
+#CHECK:   --mapping-file <INI-file>
+#CHECK:   -mapping-file <INI-file>
+#CHECK:   --no-align-segments
+#CHECK:   --no-emit-relocs
+#CHECK:   -no-emit-relocs
+#CHECK:   --no-record-command-line
 #CHECK:   --no-reuse-trampolines-file=<filename>
+#CHECK:   -no-reuse-trampolines-file=<filename>
+#CHECK:   --no-reuse-trampolines-file <filename>
+#CHECK:   -no-reuse-trampolines-file <filename>
+#CHECK:   --no-verify
+#CHECK:   --record-command-line
 #CHECK:   --reproduce-compressed=<tarfilename>
-#CHECK:   --reproduce=<tarfilename>
+#CHECK:   -reproduce-compressed=<tarfilename>
+#CHECK:   --reproduce-compressed <tarfilename>
+#CHECK:   -reproduce-compressed <tarfilename>
+#CHECK:   --reproduce-on-fail=<tarfilename>|default
+#CHECK:   -reproduce-on-fail=<tarfilename>|default
+#CHECK:   --reproduce-on-fail <tarfilename>|default
+#CHECK:   -reproduce-on-fail <tarfilename>|default
+#CHECK:   --reproduce=<tarfilename>|default
+#CHECK:   -reproduce=<tarfilename>|default
+#CHECK:   --reproduce <tarfilename>|default
+#CHECK:   -reproduce <tarfilename>|default
+#CHECK:   --rosegment
+#CHECK:   -rosegment
 #CHECK:   --script-options=<matchtype>
+#CHECK:   --script-options <matchtype>
+#CHECK:   --use-old-style-trampoline-name
+#CHECK:   -z=<extended-opts>
+#CHECK:   -z <extended-opts>
+#CHECK:   -z<extended-opts>
 #CHECK:   --just-symbols=<filename>
+#CHECK:   --just-symbols <filename>
 #CHECK:   -R=<filename>
+#CHECK:   -R <filename>
 #CHECK:   --symdef-file=<filename>
+#CHECK:   --symdef-file <filename>
 #CHECK:   --symdef-style=<style>
+#CHECK:   --symdef-style <style>
+#CHECK:   --symdef
+#CHECK:   -symdef
+#CHECK:   --build-id=fast/md5/sha1/tree/uuid/0x<hexstring>/none
+#CHECK:   -build-id=fast/md5/sha1/tree/uuid/0x<hexstring>/none
+#CHECK:   --build-id
+#CHECK:   --o=<outputfile>
 #CHECK:   -o=<outputfile>
 #CHECK:   --output=<outputfile>
+#CHECK:   -output=<outputfile>
+#CHECK:   --output <outputfile>
+#CHECK:   -output <outputfile>
 #CHECK:   --o <outputfile>
+#CHECK:   -o <outputfile>
+#CHECK:   -o<outputfile>
+#CHECK:   --repository-version
 #CHECK:   --sysroot=<sysroot-path>
+#CHECK:   -sysroot=<sysroot-path>
+#CHECK:   --sysroot <sysroot-path>
+#CHECK:   -sysroot <sysroot-path>
+#CHECK:   --version
+#CHECK:   --help-hidden
+#CHECK:   --help
+#CHECK:   --b=<input-format>
 #CHECK:   -b=<input-format>
+#CHECK:   --b <input-format>
+#CHECK:   -b <input-format>
+#CHECK:   -b<input-format>
 #CHECK:   --format=<input-format>
+#CHECK:   -format=<input-format>
+#CHECK:   --format <input-format>
+#CHECK:   -format <input-format>
+#CHECK:   --remap-inputs-file=<file>
+#CHECK:   --remap-inputs=<pattern=filename>
+#CHECK:   -mabi=<mabi>
+#CHECK:   -mabi <mabi>
+#CHECK:   -march=<march>
+#CHECK:   -march <march>
+#CHECK:   -mcpu=<mcpu>
+#CHECK:   -mcpu <mcpu>
+#CHECK:   -mllvm <option>
+#CHECK:   -mtriple=<triple>
+#CHECK:   -mtriple <triple>
+#CHECK:   -m <emulation>
+#CHECK:   --disable-verify
+#CHECK:   --dwodir=<dir>
+#CHECK:   -dwodir=<dir>
+#CHECK:   --dwodir <dir>
+#CHECK:   -dwodir <dir>
 #CHECK:   --exclude-lto-filelist=<list_of_files>
+#CHECK:   -exclude-lto-filelist=<list_of_files>
+#CHECK:   --exclude-lto-filelist <list_of_files>
+#CHECK:   -exclude-lto-filelist <list_of_files>
+#CHECK:   --flto-options=<option>
 #CHECK:   -flto-options=<option>
+#CHECK:   --flto-options <option>
+#CHECK:   -flto-options <option>
+#CHECK:   --flto-use-as
+#CHECK:   -flto-use-as
+#CHECK:   --flto
+#CHECK:   -flto
 #CHECK:   --include-lto-filelist=<list_of_files>
+#CHECK:   -include-lto-filelist=<list_of_files>
+#CHECK:   --include-lto-filelist <list_of_files>
+#CHECK:   -include-lto-filelist <list_of_files>
+#CHECK:   --lto-cs-profile-file=<value>
+#CHECK:   --lto-cs-profile-generate
+#CHECK:   --lto-debug-pass-manager
+#CHECK:   --lto-emit-asm
+#CHECK:   --lto-emit-llvm
+#CHECK:   --lto-obj-path=<prefix>
+#CHECK:   --lto-O<opt-level>
+#CHECK:   --lto-partitions=<number>
+#CHECK:   --lto-sample-profile=<file>
+#CHECK:   -lto-sample-profile=<file>
+#CHECK:   --opt-remarks-filename <value>
+#CHECK:   --opt-remarks-format <value>
+#CHECK:   --opt-remarks-hotness-threshold=<value>
+#CHECK:   --opt-remarks-passes <value>
+#CHECK:   --opt-remarks-with-hotness
+#CHECK:   --plugin-opt=-<value>
+#CHECK:   --plugin-opt=cs-profile-generate
+#CHECK:   --plugin-opt=cs-profile-path=<value>
+#CHECK:   --plugin-opt=debug-pass-manager
+#CHECK:   --plugin-opt=disable-verify
+#CHECK:   --plugin-opt=emit-asm
+#CHECK:   --plugin-opt=emit-llvm
+#CHECK:   --plugin-opt=jobs=<value>
+#CHECK:   --plugin-opt=lto-partitions=<value>
+#CHECK:   --plugin-opt=obj-path=<value>
+#CHECK:   --plugin-opt=opt-remarks-filename=<value>
+#CHECK:   --plugin-opt=opt-remarks-format=<value>
+#CHECK:   --plugin-opt=opt-remarks-hotness-threshold=<value>
+#CHECK:   --plugin-opt=opt-remarks-passes=<value>
+#CHECK:   --plugin-opt=opt-remarks-with-hotness
+#CHECK:   --plugin-opt=O<value>
+#CHECK:   --plugin-opt=sample-profile=<value>
+#CHECK:   -plugin-opt=sample-profile=<value>
+#CHECK:   --plugin-opt=save-temps
+#CHECK:   --plugin-opt=stats-file=<value>
 #CHECK:   --save-temps=<dir>
+#CHECK:   -save-temps=<dir>
+#CHECK:   --save-temps
+#CHECK:   -save-temps
+#CHECK:   --thinlto-jobs=<number>
 #CHECK:   --enable-threads=<option>
+#CHECK:   -enable-threads=<option>
+#CHECK:   --no-threads
+#CHECK:   -no-threads
 #CHECK:   --thread-count=<threadcount>
+#CHECK:   --thread-count <threadcount>
+#CHECK:   --threads
+#CHECK:   -threads
+#CHECK:   --color-map
+#CHECK:   --Map=<filename>
 #CHECK:   -Map=<filename>
 #CHECK:   --MapDetail=<option>
+#CHECK:   -MapDetail=<option>
+#CHECK:   --MapDetail <option>
+#CHECK:   -MapDetail <option>
 #CHECK:   --MapStyle=<fileformat>
+#CHECK:   -MapStyle=<fileformat>
+#CHECK:   --MapStyle <fileformat>
+#CHECK:   -MapStyle <fileformat>
+#CHECK:   --Map <filename>
 #CHECK:   -Map <filename>
+#CHECK:   -M
+#CHECK:   --print-map
 #CHECK:   --trampoline-map=<filename>
+#CHECK:   -trampoline-map=<filename>
+#CHECK:   --trampoline-map <filename>
+#CHECK:   -trampoline-map <filename>
+#CHECK:   --allow-incompatible-section-mix
+#CHECK:   -allow-incompatible-section-mix
+#CHECK:   --archive-member-report=<filename>
+#CHECK:   -archive-member-report=<filename>
+#CHECK:   --archive-member-report <filename>
+#CHECK:   -archive-member-report <filename>
+#CHECK:   --eh-frame-hdr
+#CHECK:   --gc-sections
+#CHECK:   -gc-sections
+#CHECK:   --no-gc-sections
+#CHECK:   -no-gc-sections
+#CHECK:   --no-merge-strings
+#CHECK:   --no-trampolines
+#CHECK:   --print-gc-sections
+#CHECK:   -print-gc-sections
+#CHECK:   --sframe-hdr
+#CHECK:   --Bdynamic
+#CHECK:   -Bdynamic
+#CHECK:   --Bshareable
+#CHECK:   -Bshareable
+#CHECK:   --Bstatic
+#CHECK:   -Bstatic
+#CHECK:   --call_shared
+#CHECK:   -call_shared
+#CHECK:   --dn
+#CHECK:   -dn
+#CHECK:   --dynamic
+#CHECK:   -dynamic
+#CHECK:   --dy
+#CHECK:   -dy
+#CHECK:   --no-pie
+#CHECK:   -no-pie
+#CHECK:   --non_shared
+#CHECK:   -non_shared
+#CHECK:   --pic-executable
+#CHECK:   --pie
+#CHECK:   -pie
+#CHECK:   -r
+#CHECK:   --shared
+#CHECK:   -shared
+#CHECK:   --static
+#CHECK:   -static
+#CHECK:   --no-default-plugins
+#CHECK:   --plugin-activity-file=<filename>
+#CHECK:   -plugin-activity-file=<filename>
+#CHECK:   --plugin-activity-file <filename>
+#CHECK:   -plugin-activity-file <filename>
 #CHECK:   --plugin-config=<config-file>
+#CHECK:   --plugin-config <config-file>
+#CHECK:   --check-sections
 #CHECK:   --default-script=<pluginfile>
+#CHECK:   -default-script=<pluginfile>
+#CHECK:   --default-script <pluginfile>
+#CHECK:   -default-script <pluginfile>
 #CHECK:   --dynamic-list=<list-of-symbols>
+#CHECK:   -dynamic-list=<list-of-symbols>
+#CHECK:   --dynamic-list <list-of-symbols>
+#CHECK:   -dynamic-list <list-of-symbols>
 #CHECK:   --exclude-libs=<libs>
+#CHECK:   --exclude-libs <libs>
 #CHECK:   --extern-list=<list-of-symbols>
+#CHECK:   -extern-list=<list-of-symbols>
+#CHECK:   --extern-list <list-of-symbols>
+#CHECK:   -extern-list <list-of-symbols>
+#CHECK:   --global-merge-non-alloc-strings
 #CHECK:   --map-section=<section>
+#CHECK:   --map-section <section>
+#CHECK:   --no-check-sections
+#CHECK:   --orphan-handling=<mode>
+#CHECK:   -orphan-handling=<mode>
+#CHECK:   --orphan-handling <mode>
+#CHECK:   -orphan-handling <mode>
+#CHECK:   --print-memory-usage
 #CHECK:   --script=<linkerscriptfile>
+#CHECK:   -script=<linkerscriptfile>
+#CHECK:   --script <linkerscriptfile>
+#CHECK:   -script <linkerscriptfile>
 #CHECK:   --section-start=<address>
+#CHECK:   -section-start=<address>
+#CHECK:   --section-start <address>
+#CHECK:   -section-start <address>
 #CHECK:   --sort-section=<sort_section>
+#CHECK:   --T=<linkerscriptfile>
 #CHECK:   -T=<linkerscriptfile>
 #CHECK:   --Tbss=<address>
+#CHECK:   -Tbss=<address>
+#CHECK:   --Tbss <address>
+#CHECK:   -Tbss <address>
+#CHECK:   --Tdata=<address>
+#CHECK:   -Tdata=<address>
+#CHECK:   --Tdata <address>
+#CHECK:   -Tdata <address>
+#CHECK:   --Ttext-segment=<address>
 #CHECK:   -Ttext-segment=<address>
+#CHECK:   --Ttext-segment <address>
+#CHECK:   -Ttext-segment <address>
 #CHECK:   --Ttext=<address>
+#CHECK:   -Ttext=<address>
+#CHECK:   --Ttext <address>
+#CHECK:   -Ttext <address>
 #CHECK:   --T <linkerscriptfile>
+#CHECK:   -T <linkerscriptfile>
+#CHECK:   -T<linkerscriptfile>
+#CHECK:   --unique-output-sections
+#CHECK:   -unique-output-sections
 #CHECK:   --unresolved-symbols=<option>
+#CHECK:   --unresolved-symbols <option>
 #CHECK:   --version-script=<linkersciptfile>
+#CHECK:   -version-script=<linkersciptfile>
+#CHECK:   --version-script <linkersciptfile>
+#CHECK:   -version-script <linkersciptfile>
+#CHECK:   --dc
+#CHECK:   -dc
+#CHECK:   --demangle-style=<value>
+#CHECK:   --demangle-style <value>
+#CHECK:   --demangle
+#CHECK:   --discard-all
+#CHECK:   --discard-locals
+#CHECK:   --dp
+#CHECK:   -dp
+#CHECK:   -d
+#CHECK:   --no-demangle
 #CHECK:   --portable=<symbol>
-#CHECK:   --sort-common=<option>
+#CHECK:   -portable=<symbol>
+#CHECK:   --portable <symbol>
+#CHECK:   -portable <symbol>
+#CHECK:   --sort-common=<ascending|descending>
+#CHECK:   -sort-common=<ascending|descending>
+#CHECK:   --sort-common
+#CHECK:   --strip-all
+#CHECK:   --strip-debug
+#CHECK:   -S
+#CHECK:   -s
 #CHECK:   --wrap=<symbol>
+#CHECK:   -wrap=<symbol>
+#CHECK:   --wrap <symbol>
+#CHECK:   -wrap <symbol>
+#CHECK:   -X
+#CHECK:   -x
+#CHECK:   -(
+#CHECK:   -)
+#CHECK:   --allow-multiple-definition
+#CHECK:   --allow-shlib-undefined
+#CHECK:   -allow-shlib-undefined
+#CHECK:   --as-needed
 #CHECK:   --defsym=symbol=<expression>
+#CHECK:   -defsym=symbol=<expression>
+#CHECK:   --defsym symbol=<expression>
+#CHECK:   -defsym symbol=<expression>
+#CHECK:   --end-group
+#CHECK:   -end-group
+#CHECK:   --end-lib-thin
+#CHECK:   --end-lib
+#CHECK:   --no-as-needed
+#CHECK:   --no-undefined
+#CHECK:   -no-undefined
+#CHECK:   --pop-state
+#CHECK:   --push-state
+#CHECK:   --start-group
+#CHECK:   -start-group
+#CHECK:   --start-lib-thin
+#CHECK:   --start-lib
 #CHECK:   --undefined=<symbol>
+#CHECK:   --use-shlib-undefines
 #CHECK:   -u <symbol>
-
+#CHECK:   --warn-once
 #END_TEST
