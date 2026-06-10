@@ -126,31 +126,15 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 }
 
 void ARMGNULDBackend::initTargetSymbols() {
-  // Define the symbol _GLOBAL_OFFSET_TABLE_ if there is a symbol with the
-  // same name in input
-  auto SymbolName = "_GLOBAL_OFFSET_TABLE_";
-  if (LinkerConfig::Object != config().codeGenType()) {
-    m_pGOTSymbol =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
-                0x0, // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Hidden);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName))
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    if (m_pGOTSymbol)
-      m_pGOTSymbol->setShouldIgnore(false);
-  }
+  if (LinkerConfig::Object != config().codeGenType())
+    m_pGOTSymbol = defineGlobalOffsetTableSymbol();
 
   // If linker script, lets not add this symbol.
   if (m_Module.getScript().linkerScriptHasSectionsCommand())
     return;
 
-  const NamePool& NP = m_Module.getNamePool();
-  SymbolName = "__exidx_start";
+  const NamePool &NP = m_Module.getNamePool();
+  const char *SymbolName = "__exidx_start";
   const ResolveInfo *EXIDXStartInfo = NP.findInfo(SymbolName);
   if (EXIDXStartInfo && EXIDXStartInfo->isUndef()) {
     m_pEXIDXStart =
@@ -218,8 +202,7 @@ void ARMGNULDBackend::doPreLayout() {
   if (isMicroController() &&
       ((config().codeGenType() == LinkerConfig::DynObj) ||
        (config().options().isPIE()))) {
-    config().raise(Diag::not_supported) << "SharedLibrary/PIE"
-                                        << "Cortex-M";
+    config().raise(Diag::not_supported) << "SharedLibrary/PIE" << "Cortex-M";
     m_Module.setFailure(true);
     return;
   }
@@ -517,7 +500,7 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
       LayoutInfo *layoutInfo = getModule().getLayoutInfo();
       if (layoutInfo)
         layoutInfo->recordFragment(m_pARMAttributeSection->getInputFile(),
-                                m_pARMAttributeSection, AttributeFragment);
+                                   m_pARMAttributeSection, AttributeFragment);
     }
     AttributeFragment->updateAttributes(
         Region, m_Module, llvm::dyn_cast<ObjectFile>(&pInput), config());
@@ -1193,7 +1176,7 @@ void ARMGNULDBackend::finishAssignOutputSections() {
   LayoutInfo *layoutInfo = getModule().getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordFragment(m_pRegionTableSection->getInputFile(),
-                            m_pRegionTableSection, m_pRegionTableFragment);
+                               m_pRegionTableSection, m_pRegionTableFragment);
 }
 
 // Update the RegionTable with updated information from the Backend.

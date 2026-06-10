@@ -250,8 +250,8 @@ void HexagonLDBackend::createAttributeSection() {
   AttributeFragment = make<HexagonAttributeFragment>(AttributeSection);
   AttributeSection->addFragment(AttributeFragment);
   if (auto *layoutInfo = getModule().getLayoutInfo())
-    layoutInfo->recordFragment(AttributeSection->getInputFile(), AttributeSection,
-                            AttributeFragment);
+    layoutInfo->recordFragment(AttributeSection->getInputFile(),
+                               AttributeSection, AttributeFragment);
 }
 
 void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
@@ -314,23 +314,9 @@ void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 void HexagonLDBackend::initTargetSymbols() {
   if (config().codeGenType() == LinkerConfig::Object)
     return;
-  auto SymbolName = "_GLOBAL_OFFSET_TABLE_";
-  // Define the symbol _GLOBAL_OFFSET_TABLE_ if there is a symbol with the
-  // same name in input
-  m_pGOTSymbol =
-      m_Module.getIRBuilder()
-          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-              m_Module.getInternalInput(Module::Script), SymbolName,
-              ResolveInfo::Object, ResolveInfo::Define, ResolveInfo::Local,
-              0x0, // size
-              0x0, // value
-              FragmentRef::null(), ResolveInfo::Hidden);
-  if (m_pGOTSymbol)
-    m_pGOTSymbol->setShouldIgnore(false);
-  if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-      m_Module.getConfig().options().traceSymbol(SymbolName))
-    config().raise(Diag::target_specific_symbol) << SymbolName;
-  SymbolName = "___end";
+  m_pGOTSymbol = defineGlobalOffsetTableSymbol();
+
+  const char *SymbolName = "___end";
   m_pEndOfImage = m_Module.getNamePool().findSymbol(SymbolName);
   if (!m_pEndOfImage)
     m_pEndOfImage =
