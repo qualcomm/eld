@@ -10,5 +10,5 @@ RUN: %link %linkopts -o %t1.lib1.so %t1.1.o -shared --version-script %p/Inputs/v
 RUN: %readelf --dyn-syms --version-info %t1.lib1.so | %filecheck %s
 #END_TEST
 
-CHECK-DAG: UND foo{{$}}
-CHECK-DAG: {{[0-9]+}} bar@@V1
+CHECK:      UND foo{{$}}
+CHECK-NEXT: {{[0-9]+}} bar@@V1

@@ -382,28 +382,38 @@ bool Module::sortCommonSymbols() {
 }
 
 bool Module::sortSymbols() {
-  std::stable_sort(Symbols.begin(), Symbols.end(),
-                   static_cast<bool (*)(ResolveInfo *, ResolveInfo *)>(
-                       [](ResolveInfo *A, ResolveInfo *B) -> bool {
-                         // Section symbols always appear first.
-                         if (A->type() == ResolveInfo::Section &&
-                             (B->type() != ResolveInfo::Section))
-                           return true;
-                         if (A->type() != ResolveInfo::Section &&
-                             (B->type() == ResolveInfo::Section))
-                           return false;
-                         if (A->isLocal() && !B->isLocal())
-                           return true;
-                         if (!A->isLocal() && B->isLocal())
-                           return false;
-                         // All undefs appear after sections.
-                         if (A->isUndef() && !B->isUndef())
-                           return true;
-                         if (!A->isUndef() && B->isUndef())
-                           return false;
-                         return A->outSymbol()->value() <
-                                B->outSymbol()->value();
-                       }));
+  auto Cmp = [](ResolveInfo *A, ResolveInfo *B) -> bool {
+    // Section symbols always appear first.
+    if (A->type() == ResolveInfo::Section &&
+        (B->type() != ResolveInfo::Section))
+      return true;
+    if (A->type() != ResolveInfo::Section &&
+        (B->type() == ResolveInfo::Section))
+      return false;
+    if (A->isLocal() && !B->isLocal())
+      return true;
+    if (!A->isLocal() && B->isLocal())
+      return false;
+    // All undefs appear after sections.
+    if (A->isUndef() && !B->isUndef())
+      return true;
+    if (!A->isUndef() && B->isUndef())
+      return false;
+    auto ValA = A->outSymbol()->value();
+    auto ValB = B->outSymbol()->value();
+    if (ValA != ValB)
+      return ValA < ValB;
+    // Break ties deterministically by name, then input ordinal, so the final
+    // order does not depend on insertion order which can vary across runs due
+    // to multithreaded relocation scanning.
+    int NameCmp = A->getName().compare(B->getName());
+    if (NameCmp != 0)
+      return NameCmp < 0;
+    assert(A->resolvedOrigin() && B->resolvedOrigin());
+    return A->resolvedOrigin()->getInput()->getInputOrdinal() <
+           B->resolvedOrigin()->getInput()->getInputOrdinal();
+  };
+  llvm::stable_sort(Symbols, Cmp);
   return true;
 }
 
