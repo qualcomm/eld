@@ -1,0 +1,27 @@
+#---FlagOverwrite.test--------------------- Executable --------------------#
+UNSUPPORTED: x86
+#BEGIN_COMMENT
+# Check that the last option is the one being used for mutually exclusive flags.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.cpp -o %t.1.o
+RUN: %link -o %t.1.out -shared -z=notext %t.1.o --no-warn-shared-textrel --warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=TEXTREL
+RUN: %link -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --no-warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=NOTEXTREL -allow-empty
+RUN: %not %link -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --no-fatal-warnings --fatal-warnings 2>&1 | %filecheck %s -check-prefix=FATAL
+RUN: %link -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --fatal-warnings --no-fatal-warnings 2>&1 | %filecheck %s -check-prefix=NOFATAL
+RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --no-demangle --demangle 2>&1 | %filecheck %s -check-prefix=DEMANGLE
+RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle --no-demangle 2>&1 | %filecheck %s -check-prefix=NODEMANGLE
+RUN: %link %linkopts -o %t.1.out %t.1.o --no-omagic --omagic -z max-page-size=0x1000
+RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=OMAGIC
+RUN: %link %linkopts -o %t.1.out %t.1.o --omagic -z max-page-size=0x1000 --no-omagic
+RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=NOOMAGIC
+
+TEXTREL: Warning: Add DT_TEXTREL in a shared object!
+NOTEXTREL-NOT: Warning: Add DT_TEXTREL in a shared object!
+FATAL: Fatal: Linking had errors ({{.*}}1.out)
+NOFATAL-NOT: Fatal: Linking had errors
+DEMANGLE: Verbose: Adding symbol foo()
+NODEMANGLE: Verbose: Adding symbol _Z3foov
+OMAGIC-NOT: 4096
+NOOMAGIC: 4096
+#END_TEST
