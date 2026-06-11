@@ -1,0 +1,27 @@
+
+#---WrapSymbolArchivePullTrace.test---------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that --trace=wrap-symbols reports archive extraction for wrapped
+# symbols.
+#END_COMMENT
+#START_TEST
+
+# Compile inputs.
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.wrap.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.add.o
+
+# Place the real add() implementation inside an archive.
+RUN: %ar cr %aropts %t2.libfoo.a %t1.add.o
+
+# Link with trace enabled to verify archive pull is reported
+RUN: %link %linkopts %t1.main.o %t1.wrap.o %t2.libfoo.a \
+RUN:   --wrap=add -o %t2.out --trace=wrap-symbols 2>&1 | %filecheck %s
+
+# Verify wrap rename messages
+#CHECK: Renaming undefined symbol `add' to `__wrap_add'
+#CHECK: Renaming undefined symbol `__real_add' to `add'
+
+# Verify archive pull trace message (your new trace)
+#CHECK: Pulling archive member from `{{.*}}libfoo.a' for wrapped symbol `add'
+

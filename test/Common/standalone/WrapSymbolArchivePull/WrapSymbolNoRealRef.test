@@ -1,0 +1,19 @@
+#---WrapSymbolNoRealRef.test---------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that a wrapper that does not call __real_<sym> does not force the
+# archive member with the real symbol to be pulled.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.main.o
+RUN: %clang %clangopts -c %p/Inputs/3.c -o %t1.add.o
+RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.wrap.o
+RUN: %ar cr %aropts %t2.libfoo.a %t1.add.o
+
+
+# Should link successfully — __real_add never referenced
+RUN: %link %linkopts %t1.main.o %t1.wrap.o %t2.libfoo.a \
+RUN:   --wrap=add -o %t2.out 
+
+#CHECK-NOT: undefined reference
+#CHECK-NOT: error
