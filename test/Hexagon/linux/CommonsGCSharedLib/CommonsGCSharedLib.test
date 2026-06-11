@@ -2,7 +2,7 @@ RUN: %clang %clangopts -c -ffunction-sections -fdata-sections %p/Inputs/1.c -fpi
 RUN: %link %linkopts %t1.o -o %t.out -dy -shared  --gc-sections --entry=main 2>&1
 RUN: %readelf -s %t.out | %filecheck %s
 
-#CHECK-DAG:   4 OBJECT  GLOBAL DEFAULT    9 commonInt
-#CHECK-DAG:   1 OBJECT GLOBAL DEFAULT 9 commonChar
-#CHECK-DAG:   40 OBJECT GLOBAL DEFAULT 9 commonArray
+#CHECK:      40 OBJECT GLOBAL DEFAULT 9 commonArray
+#CHECK-NEXT: 1 OBJECT  GLOBAL DEFAULT 9 commonChar
+#CHECK-NEXT: 4 OBJECT  GLOBAL DEFAULT 9 commonInt
 

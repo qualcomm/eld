@@ -800,6 +800,9 @@ void GNULDBackend::sizeDynNamePools() {
   if (!SetSymbolsToBeExported())
     return;
 
+  // Sort before partitioning so dynsym indices are deterministic across runs.
+  m_Module.sortSymbols();
+
   typedef std::vector<ResolveInfo *>::iterator RIter;
 
   std::vector<ResolveInfo *> &RVect = m_Module.getSymbols();
