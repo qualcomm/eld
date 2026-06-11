@@ -90,7 +90,6 @@ public:
     LinkerVersion,
     OutputSectData,
     Plugin,
-    RegionTable,
     Script,
     Sections,
     SectionRelocMap,

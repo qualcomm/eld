@@ -59,11 +59,9 @@ using namespace llvm;
 ARMGNULDBackend::ARMGNULDBackend(eld::Module &pModule, TargetInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
       m_pEXIDXStart(nullptr), m_pEXIDXEnd(nullptr), m_pIRelativeStart(nullptr),
-      m_pIRelativeEnd(nullptr), m_pEXIDX(nullptr),
-      m_pRegionTableSection(nullptr), m_pRegionTableFragment(nullptr),
-      m_pRWPIBase(nullptr), m_pSBRELSegment(nullptr),
-      m_pARMAttributeSection(nullptr), AttributeFragment(nullptr),
-      m_bEmitRegionTable(false) {}
+      m_pIRelativeEnd(nullptr), m_pEXIDX(nullptr), m_pRWPIBase(nullptr),
+      m_pSBRELSegment(nullptr), m_pARMAttributeSection(nullptr),
+      AttributeFragment(nullptr) {}
 
 ARMGNULDBackend::~ARMGNULDBackend() {}
 
@@ -118,11 +116,6 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       Module::InternalInputType::Exception, LDFileFormat::Internal,
       ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
-
-  // Create a RegionTable section.
-  m_pRegionTableSection = m_Module.createInternalSection(
-      Module::InternalInputType::RegionTable, LDFileFormat::Internal,
-      "__region_table__", llvm::ELF::SHT_PROGBITS, llvm::ELF::SHF_ALLOC, 4);
 }
 
 void ARMGNULDBackend::initTargetSymbols() {
@@ -1165,47 +1158,6 @@ ARMPLT *ARMGNULDBackend::findEntryInPLT(ResolveInfo *I) const {
   if (Entry == m_PLTMap.end())
     return nullptr;
   return Entry->second;
-}
-
-void ARMGNULDBackend::finishAssignOutputSections() {
-  OutputSectionEntry *O = m_pRegionTableSection->getOutputSection();
-
-  // No region table for partial linking.
-  if (config().codeGenType() == LinkerConfig::Object)
-    return;
-
-  // No region table for PIE or Dynamic libraries.
-  if ((config().codeGenType() == LinkerConfig::DynObj) ||
-      (config().options().isPIE()))
-    return;
-
-  if (O && ((O->name() != ".unrecognized") && !(O->isDiscard())))
-    m_bEmitRegionTable = true;
-
-  // Dont create a fragment if nothing matched.
-  if (!m_bEmitRegionTable)
-    return;
-
-  // Create a RegionTable Fragment.
-  m_pRegionTableFragment =
-      make<RegionTableFragment<llvm::object::ELF32LE>>(m_pRegionTableSection);
-  m_pRegionTableSection->addFragmentAndUpdateSize(m_pRegionTableFragment);
-  LayoutInfo *layoutInfo = getModule().getLayoutInfo();
-  if (layoutInfo)
-    layoutInfo->recordFragment(m_pRegionTableSection->getInputFile(),
-                            m_pRegionTableSection, m_pRegionTableFragment);
-}
-
-// Update the RegionTable with updated information from the Backend.
-bool ARMGNULDBackend::updateTargetSections() {
-  if (!m_pRegionTableFragment)
-    return false;
-  return m_pRegionTableFragment->updateInfo(this);
-}
-
-bool ARMGNULDBackend::handleBSS(const ELFSection *prev,
-                                const ELFSection *cur) const {
-  return ((GNULDBackend::handleBSS(prev, cur)) && !m_bEmitRegionTable);
 }
 
 bool ARMGNULDBackend::canRewriteToBLX() const {

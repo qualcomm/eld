@@ -184,10 +184,6 @@ bool Module::createInternalInputs() {
       I = make<Input>("Plugin", ThisConfig.getDiagEngine());
       break;
 
-    case Module::InternalInputType::RegionTable:
-      I = make<Input>("RegionTable", ThisConfig.getDiagEngine());
-      break;
-
     case Module::InternalInputType::Script:
       I = make<Input>("Internal-LinkerScript", ThisConfig.getDiagEngine());
       break;

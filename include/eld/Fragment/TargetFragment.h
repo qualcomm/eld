@@ -29,7 +29,6 @@ public:
     Attributes,
     GNUHash,
     NoteGNUProperty,
-    RegionTable,
     SysVHash,
     TargetSpecific,
   };

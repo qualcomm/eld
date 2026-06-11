@@ -17,7 +17,6 @@
 #include "ARMELFDynamic.h"
 #include "ARMGOT.h"
 #include "ARMPLT.h"
-#include "eld/Fragment/RegionTableFragment.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/Memory.h"
 #include "eld/Target/GNULDBackend.h"
@@ -211,13 +210,6 @@ public:
   /// Sort ARM.EDIDX
   void sortEXIDX();
 
-  void finishAssignOutputSections() override;
-
-  bool updateTargetSections() override;
-
-  virtual bool handleBSS(const ELFSection *prev,
-                         const ELFSection *cur) const override;
-
   /// Add Target specific segments.
   void addTargetSpecificSegments() override;
 
@@ -258,16 +250,13 @@ private:
   LDSymbol *m_pIRelativeEnd;
 
   //     variable name           :  ELF
-  ELFSection *m_pEXIDX;              // .ARM.exidx
-  ELFSection *m_pRegionTableSection; // RegionTable section.
-  TargetFragment *m_pRegionTableFragment;
+  ELFSection *m_pEXIDX;        // .ARM.exidx
   LDSymbol *m_pRWPIBase;       // _RWPI_BASE__
   ELFSegment *m_pSBRELSegment; // SBREL segment.
   /// ARM Attribute Section
   ELFSection *m_pARMAttributeSection;
   /// ARM Attribute Fragment
   ARMAttributeFragment *AttributeFragment;
-  bool m_bEmitRegionTable;
   llvm::DenseMap<ResolveInfo *, ARMGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, ARMGOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, ARMPLT *> m_PLTMap;

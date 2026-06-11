@@ -618,8 +618,6 @@ public:
   virtual bool updateTargetSections() { return false; }
 
   // The target can decide on how we want to handle BSS sections.
-  // If the linker is emitting a region table, its possible to mix BSS
-  // DATA in one segment.
   virtual bool handleBSS(const ELFSection *prev, const ELFSection *cur) const {
     return (prev->isNoBits() && !cur->isNoBits());
   }

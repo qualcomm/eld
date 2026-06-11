@@ -7,7 +7,6 @@
 #ifndef ELD_LAYOUTMAP_LAYOUTPRINTER_H
 #define ELD_LAYOUTMAP_LAYOUTPRINTER_H
 #include "eld/Diagnostics/DiagnosticEngine.h"
-#include "eld/Fragment/RegionTableFragment.h"
 #include "eld/Input/ArchiveFile.h"
 #include "eld/Input/ArchiveMemberInput.h"
 #include "eld/Input/Input.h"
