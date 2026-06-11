@@ -29,12 +29,10 @@ RUN: %readelf -l -S -s -W %t6.out |   %filecheck %s --check-prefix="TBSSDATA"
 #ALL: 00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} b
 #TBSSTDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
 #TBSSTDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
-#TBSS:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} R E 0x1000
 #TBSS:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00000 0x00008 R   0x8
 #TDATADATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00008 0x00008 RW  0x1000
 #TDATADATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
 #TDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
 #TDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
-#TBSSDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
 #TBSSDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00000 0x00008 R   0x8
 
