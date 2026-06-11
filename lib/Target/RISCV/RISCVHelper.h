@@ -333,6 +333,21 @@ template <typename T> T encodeQCEJ(T Result) {
   return Result;
 }
 
+template <typename T> T encodeQCEI(T Result) {
+  uint32_t Imm9_0 = extractBits(Result, 9, 0) << 20;
+  uint64_t Imm25_10 = static_cast<uint64_t>(extractBits(Result, 25, 10)) << 32;
+  Result = Imm9_0 | Imm25_10;
+  return Result;
+}
+
+template <typename T> T encodeQCES(T Result) {
+  uint32_t Imm4_0 = extractBits(Result, 4, 0) << 7;
+  uint32_t Imm9_5 = extractBits(Result, 9, 5) << 25;
+  uint64_t Imm25_10 = static_cast<uint64_t>(extractBits(Result, 25, 10)) << 32;
+  Result = Imm4_0 | Imm9_5 | Imm25_10;
+  return Result;
+}
+
 /// --------------------------------------------
 /// Fetch Registers and Opcode from Instruction
 /// --------------------------------------------
