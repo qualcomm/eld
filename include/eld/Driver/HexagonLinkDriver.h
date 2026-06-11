@@ -12,6 +12,8 @@
 #include "eld/Core/Module.h"
 #include "eld/Driver/GnuLdDriver.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/TargetParser/Triple.h"
+#include <cctype>
 
 // Create OptTable class for parsing actual command line arguments
 class OPT_HexagonLinkOptTable : public llvm::opt::GenericOptTable {
@@ -80,7 +82,35 @@ public:
   static std::string getInferredArch(llvm::StringRef Emulation) {
     return "hexagon";
   }
-  static bool isMyArch(llvm::StringRef MArch) { return MArch == "hexagon"; }
+  static bool inferFromMarch(llvm::StringRef MArch, std::string &InferredArch) {
+    if (MArch == "hexagon" || MArch.starts_with("hexagon")) {
+      InferredArch = "hexagon";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromTriple(const llvm::Triple &T, std::string &InferredArch) {
+    if (T.getArch() == llvm::Triple::hexagon) {
+      InferredArch = "hexagon";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromCpu(llvm::StringRef Cpu, std::string &InferredArch) {
+    if (Cpu.starts_with("hexagon") ||
+        (Cpu.size() > 1 && Cpu[0] == 'v' && isdigit(Cpu[1]))) {
+      InferredArch = "hexagon";
+      return true;
+    }
+    return false;
+  }
+
+  static bool isMyArch(llvm::StringRef MArch) {
+    std::string Arch;
+    return inferFromMarch(MArch, Arch);
+  }
 };
 
 #endif

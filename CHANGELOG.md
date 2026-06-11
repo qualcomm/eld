@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - [Major Highlights](#major-highlights)
 
 ### 2026
+- [June 2026](#june-2026)
 - [May 2026](#may-2026)
 - [April 2026](#april-2026)
 - [March 2026](#march-2026)
@@ -47,6 +48,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - foundational feature ramp-up across emulations, plugin APIs, x86_64 static relocations, and linker-script expression handling.
 
 ## 2026
+
+### June 2026
+
+#### [2026-06-02] - 2026-06-02 to 2026-06-08
+##### Added
+- Support `-mcpu` driver selection and conflicting-option rejection when invoking `ld.eld` without target symlink names.
+##### Fixed
+- Tighten ARM `-m` emulation validation to match supported emulation strings.
 
 ### May 2026
 

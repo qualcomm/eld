@@ -14,6 +14,7 @@
 #include "eld/Core/Module.h"
 #include "eld/Driver/GnuLdDriver.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/TargetParser/Triple.h"
 
 // Create OptTable class for parsing actual command line arguments
 class OPT_x86_64LinkOptTable : public llvm::opt::GenericOptTable {
@@ -82,7 +83,32 @@ public:
     return "x86_64";
   }
 
-  static bool isMyArch(llvm::StringRef MArch) { return MArch == "x86_64"; }
+  static bool inferFromMarch(llvm::StringRef MArch, std::string &InferredArch) {
+    if (MArch == "x86_64") {
+      InferredArch = "x86_64";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromTriple(const llvm::Triple &T, std::string &InferredArch) {
+    if (T.getArch() == llvm::Triple::x86_64) {
+      InferredArch = "x86_64";
+      return true;
+    }
+    return false;
+  }
+
+  static bool inferFromCpu(llvm::StringRef Cpu, std::string &InferredArch) {
+    (void)Cpu;
+    (void)InferredArch;
+    return false;
+  }
+
+  static bool isMyArch(llvm::StringRef MArch) {
+    std::string Arch;
+    return inferFromMarch(MArch, Arch);
+  }
 };
 
 #endif

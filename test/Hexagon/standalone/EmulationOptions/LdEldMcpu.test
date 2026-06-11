@@ -1,0 +1,12 @@
+#---LdEldMcpu.test--------------------------- Executable -------------------#
+#BEGIN_COMMENT
+# Verify ld.eld selects the Hexagon driver from -mcpu without -m emulation.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %eld %linkopts -mcpu=hexagonv75 %t.o -o %t.mcpu.out
+RUN: %readelf -h %t.mcpu.out | %filecheck %s
+#END_TEST
+
+# CHECK: Machine:
+# CHECK: QUALCOMM Hexagon
