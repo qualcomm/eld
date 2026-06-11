@@ -8,4 +8,4 @@ RUN: %readelf -s %t.out  | %filecheck %s
 RUN: %not %link %linkopts %t1.o %tlib.a -o %t.out --dynamic-list=%p/Inputs/errlist --force-dynamic 2>&1 | %filecheck %s -check-prefix=ERR
 
 #CHECK:       {{[0-9a-f]+}}: {{[0-9a-f]+}}    12 FUNC    GLOBAL DEFAULT    5 foo
-#ERR: {{syntax error|errlist:3: ; expected, but got [}]}}
+#ERR: {{(syntax error|Error: .*errlist:3:1: ; expected, but got [}])}}

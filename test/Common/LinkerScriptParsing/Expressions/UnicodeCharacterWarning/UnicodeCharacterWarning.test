@@ -4,9 +4,9 @@
 # non-ascii unicode characters.
 #END_COMMENT
 RUN: %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s
-CHECK: Note: {{.*}}script.t:7: treating non-ascii unicode character as whitespace
+CHECK: Note: {{.*}}script.t:7:20: treating non-ascii unicode character as whitespace
 CHECK: >>>    FOODATA_LMA_END    = FOODATA_LMA_START + 10;
 CHECK: >>>                    ^
-CHECK: Note: {{.*}}script.t:7: treating non-ascii unicode character as whitespace
+CHECK: Note: {{.*}}script.t:7:22: treating non-ascii unicode character as whitespace
 CHECK: >>>    FOODATA_LMA_END    = FOODATA_LMA_START + 10;
 CHECK: >>>                      ^

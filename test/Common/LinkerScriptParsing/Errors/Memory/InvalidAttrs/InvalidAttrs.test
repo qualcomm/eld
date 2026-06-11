@@ -6,6 +6,6 @@ UNSUPPORTED: old_lsparser
 #END_COMMENT
 RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix CHECK
 
-CHECK: Error: {{.*}}script.t:2: invalid memory region attribute
+CHECK: Error: {{.*}}script.t:2:6: invalid memory region attribute
 CHECK: >>>   A (rxb) : ORIGIN = 0x100, LENGTH = 0x200
 CHECK: >>>
