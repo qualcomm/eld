@@ -37,11 +37,15 @@ runs:
       if: ${{ inputs.enabled }} == "true"
       shell: bash
       run: |
+        # Set +e to not immediately exit "run" step on failure.
+        set +e
         cd ${{ inputs.project }}
         DASH_DIR="$(mktemp -d)"
         cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
         git config user.name 'github-actions'
         git config user.email 'github-actions@github.com'
+        # Record current branch name
+        current_branch=$(git rev-parse --abbrev-ref HEAD)
         # Switch to dashboard branch to access build-status.db
         git fetch --all
         git checkout dashboard
@@ -62,7 +66,6 @@ runs:
             sleep 10
             git fetch --all
             git reset --hard origin/dashboard
-            git pull
             ls -l
           done
           echo "Data lock removed"
@@ -77,17 +80,14 @@ runs:
         until git push -f origin HEAD:refs/heads/dashboard; do
           sleep 5
           check_lock
-          git fetch --all
-          git reset --hard origin/dashboard
           touch data.lock
           git add .
           git commit -m "Add data lock for ${{ inputs.workflow-name }} ${{ inputs.arch-name }} build status data to be written"
         done
         # Record build status data for current workflow.
         echo "Proceeding with data recording..."
+        git checkout --orphan dash
         cp ${DASH_DIR}/record_builds.py .
-        # Set +e to not immediately exit "run" step on failure.
-        set +e
         python3 record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
         EXITCODE=$?
         if [ "$EXITCODE" -ne 0 ]; then
@@ -117,14 +117,16 @@ runs:
           # Keep trying until lock/conflicts are resolved and build data is pushed successfully.
           until git push -f origin HEAD:refs/heads/dashboard; do
             sleep 5
+            git checkout dashboard
             check_lock
             git fetch --all
             git reset --hard origin/dashboard
+            git checkout --orphan dash
             cp -f ${DASH_DIR}/build-status.db .
             rm -f data.lock
             git add .
             git commit -m "Add ${{ inputs.workflow-name }} ${{ matrix.arch.name }} build status data in DB"
           done
           rm -rf ${DASH_DIR}
-          git checkout -
+          git checkout "$current_branch"
         fi
