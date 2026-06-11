@@ -108,22 +108,16 @@ def updateBuildData(args):
     cursor = conn.cursor()
     workflow_table = args.workflow_build.lower()
     try:
-        if workflow_table == "picolibc":
-            cursor.execute(
-                "UPDATE "
-                + workflow_table
-                + " SET state = ? WHERE run_id = ? AND arch = ?",
-                (
-                    "pass" if args.build_status else "fail",
-                    args.run_id,
-                    args.workflow_arch,
-                ),
-            )
-        else:
-            cursor.execute(
-                "UPDATE " + workflow_table + " SET state = ? WHERE run_id = ?",
-                ("pass" if args.build_status else "fail", args.run_id),
-            )
+        cursor.execute(
+            "UPDATE "
+            + workflow_table
+            + " SET state = ? WHERE run_id = ? AND arch = ?",
+            (
+                "pass" if args.build_status else "fail",
+                args.run_id,
+                args.workflow_arch,
+            ),
+        )
     except Exception as e:
         sys.exit("Error updating build status data in " + workflow_table + ":" + str(e))
     finally:

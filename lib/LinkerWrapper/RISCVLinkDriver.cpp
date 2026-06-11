@@ -140,9 +140,18 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
     Config.options().setRISCVRelaxTLSDESC(false);
 
   // --relax-tbljal, --no-relax-tbljal (default)
-  Config.options().setRISCVRelaxTbljal(
+  bool EnableTbljal =
       ArgList.hasFlag(OPT_RISCVLinkOptTable::relax_tbljal,
-                      OPT_RISCVLinkOptTable::no_relax_tbljal, false));
+                      OPT_RISCVLinkOptTable::no_relax_tbljal, false);
+  if (EnableTbljal && (ArgList.hasArg(OPT_RISCVLinkOptTable::shared) ||
+                       ArgList.hasFlag(OPT_RISCVLinkOptTable::pie,
+                                       OPT_RISCVLinkOptTable::no_pie, false))) {
+    Config.raise(Diag::not_supported)
+        << "Zcmt table jump relaxation"
+        << "shared libraries or position independent code";
+    return LINK_FAIL;
+  }
+  Config.options().setRISCVRelaxTbljal(EnableTbljal);
 
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))
