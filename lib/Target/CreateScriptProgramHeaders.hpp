@@ -81,7 +81,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     {
       eld::RegisterTimer T("Evaluate Script Assignments", "Establish Layout",
                            m_Module.getConfig().options().printTimingStats());
-      evaluateScriptAssignments(/*evaluateAsserts=*/false);
+      evaluateBeforeSectionsAssignments(/*evaluateAsserts=*/false);
     }
   };
 
@@ -203,7 +203,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     if (curIsDebugSection || (*out)->isDiscard()) {
       cur->setAddr(dotSymbol->value());
       evaluateAssignments(*out);
-      evaluateAssignmentsAtEndOfOutputSection(*out);
+      evaluatePostOutputSectionAssignments(*out);
       cur->setAddr(0);
       cur->setPaddr(0);
       ++out;
@@ -326,7 +326,7 @@ bool GNULDBackend::createScriptProgramHdrs() {
     }
 
     // Evaluate Assignments at the end of the output section.
-    evaluateAssignmentsAtEndOfOutputSection(*out);
+    evaluatePostOutputSectionAssignments(*out);
     cur->setWanted(cur->wantedInOutput() || cur->size());
     if (!config().getDiagEngine()->diagnose()) {
       return false;
