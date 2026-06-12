@@ -30,7 +30,7 @@ DIAG(unknown_reloc_section_type, DiagnosticEngine::Unreachable,
      "unknown relocation section type: `%0' in section `%1'")
 DIAG(unsupport_cond_branch_reloc, DiagnosticEngine::Error,
      "applying relocation `%0', conditional branch to PLT in THUMB-2 not "
-     "supported yet")
+     "supported yet for symbol `%1' referred from %2[%3]")
 DIAG(copyrelocs_is_error, DiagnosticEngine::Error,
      "Cannot copy symbol %0 referenced in %1 from dynamic library %1 due to -z "
      "nocopyrelocs ")

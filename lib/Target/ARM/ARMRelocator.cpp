@@ -648,6 +648,27 @@ void ARMRelocator::scanGlobalReloc(InputFile &pInput, Relocation::Type Type,
   case llvm::ELF::R_ARM_THM_JUMP11:
   case llvm::ELF::R_ARM_THM_JUMP8: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+
+    // Check if this symbol already has a PLT, or is about to be granted one
+    bool needsPLT = false;
+    if (rsym->reserved() & ReservePLT) {
+      needsPLT = true;
+    } else if ((rsym->type() == ResolveInfo::IndirectFunc) && config().isCodeStatic()) {
+      needsPLT = true;
+    } else if (getTarget().isSymbolPreemptible(*rsym) && rsym->visibility() != ResolveInfo::Hidden) {
+      needsPLT = true;
+    }
+
+    // If a PLT is involved and this is a JUMP19, throw our detailed error immediately!
+    if (needsPLT && pReloc.type() == llvm::ELF::R_ARM_THM_JUMP19) {
+      config().raise(Diag::unsupport_cond_branch_reloc)
+          << (int)pReloc.type() 
+          << rsym->name() 
+          << pReloc.getSourcePath(config().options()) 
+          << pSection.name();
+      return;
+    }
+
     // These are branch relocation (except PREL31)
     // A PLT entry is needed when building shared library
 
@@ -1075,12 +1096,6 @@ Relocator::Result thm_jump19(Relocation &pReloc, ARMRelocator &pParent) {
     S = pParent.getSymValue(&pReloc);
     if (T != 0x0)
       helper_clear_thumb_bit(S);
-  }
-
-  if (0x0 == T) {
-    // FIXME: conditional branch to PLT in THUMB-2 not supported yet
-    DiagEngine->raise(Diag::unsupport_cond_branch_reloc) << (int)pReloc.type();
-    return Relocator::BadReloc;
   }
 
   Relocator::DWord X = ((S + A) | T) - P;
