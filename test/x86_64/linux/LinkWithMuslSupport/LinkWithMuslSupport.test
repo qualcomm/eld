@@ -5,6 +5,6 @@ BEGIN_COMMENT
 #END_COMMENT
 #START_TEST
 RUN: %musl-clang %clangopts -static %p/Inputs/1.c -o %t.1.out
-RUN: %t.1.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %run_and_print_exit %t.1.out | %filecheck %s --check-prefix=EXITCODE
 EXITCODE: 42
 #END_TEST

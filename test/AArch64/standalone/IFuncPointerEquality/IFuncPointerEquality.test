@@ -9,26 +9,36 @@
 #START_TEST
 RUN: %clang %clangopts -o %t1.main.nopic.o -target aarch64-linux-gnu %p/Inputs/main.c -c -fno-pic
 RUN: %clang %clangopts -o %t1.main.pic.o -target aarch64-linux-gnu %p/Inputs/main.c -c -fPIC
-RUN: SECTION_ADDR_LINK_OPTS="--section-start .text=0x1000 --section-start .data=0x2000 \
-RUN:   --section-start .got=0x3000 --section-start .plt=0x4000"
 
 RUN: %clang %clangopts -o %t1.adrp-add.o -target aarch64-linux-gnu %p/Inputs/adrp-add.s -c
-RUN: %link %linkopts -o %t1.adrp-add.nopic.out %t1.main.nopic.o %t1.adrp-add.o ${SECTION_ADDR_LINK_OPTS}
-RUN: %link %linkopts -o %t1.adrp-add.pic.out %t1.main.pic.o %t1.adrp-add.o ${SECTION_ADDR_LINK_OPTS}
-RUN: ( %objdump -dr %t1.adrp-add.nopic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S %t1.adrp-add.nopic.out ) | %filecheck %s --check-prefix=NO_GOT_REF
-RUN: ( %objdump -dr %t1.adrp-add.pic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got %t1.adrp-add.pic.out ) | %filecheck %s --check-prefix=GOT_AND_DIRECT_REF
+RUN: %link %linkopts -o %t1.adrp-add.nopic.out %t1.main.nopic.o %t1.adrp-add.o --section-start .text=0x1000 --section-start .data=0x2000 --section-start .got=0x3000 --section-start .plt=0x4000
+RUN: %link %linkopts -o %t1.adrp-add.pic.out %t1.main.pic.o %t1.adrp-add.o --section-start .text=0x1000 --section-start .data=0x2000 --section-start .got=0x3000 --section-start .plt=0x4000
+RUN: %objdump -dr %t1.adrp-add.nopic.out --disassemble-symbols=main,get_foo_from_outside > %t1.adrp-add.nopic.txt
+RUN: %readelf -S %t1.adrp-add.nopic.out >> %t1.adrp-add.nopic.txt
+RUN: %filecheck %s --check-prefix=NO_GOT_REF < %t1.adrp-add.nopic.txt
+RUN: %objdump -dr %t1.adrp-add.pic.out --disassemble-symbols=main,get_foo_from_outside > %t1.adrp-add.pic.txt
+RUN: %readelf -x .got %t1.adrp-add.pic.out >> %t1.adrp-add.pic.txt
+RUN: %filecheck %s --check-prefix=GOT_AND_DIRECT_REF < %t1.adrp-add.pic.txt
 
 RUN: %clang %clangopts -o %t1.adrp-ldr.o -target aarch64-linux-gnu %p/Inputs/adrp-ldr.s -c
-RUN: %link %linkopts -o %t1.adrp-ldr.nopic.out %t1.main.nopic.o %t1.adrp-ldr.o ${SECTION_ADDR_LINK_OPTS}
-RUN: %link %linkopts -o %t1.adrp-ldr.pic.out %t1.main.pic.o %t1.adrp-ldr.o ${SECTION_ADDR_LINK_OPTS}
-RUN: ( %objdump -dr %t1.adrp-ldr.nopic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got %t1.adrp-ldr.nopic.out ) | %filecheck %s --check-prefix=DIRECT_AND_GOT_REF
-RUN: ( %objdump -dr %t1.adrp-ldr.pic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got.plt %t1.adrp-ldr.pic.out ) | %filecheck %s --check-prefix=GOT_AND_GOT_REF
+RUN: %link %linkopts -o %t1.adrp-ldr.nopic.out %t1.main.nopic.o %t1.adrp-ldr.o --section-start .text=0x1000 --section-start .data=0x2000 --section-start .got=0x3000 --section-start .plt=0x4000
+RUN: %link %linkopts -o %t1.adrp-ldr.pic.out %t1.main.pic.o %t1.adrp-ldr.o --section-start .text=0x1000 --section-start .data=0x2000 --section-start .got=0x3000 --section-start .plt=0x4000
+RUN: %objdump -dr %t1.adrp-ldr.nopic.out --disassemble-symbols=main,get_foo_from_outside > %t1.adrp-ldr.nopic.txt
+RUN: %readelf -x .got %t1.adrp-ldr.nopic.out >> %t1.adrp-ldr.nopic.txt
+RUN: %filecheck %s --check-prefix=DIRECT_AND_GOT_REF < %t1.adrp-ldr.nopic.txt
+RUN: %objdump -dr %t1.adrp-ldr.pic.out --disassemble-symbols=main,get_foo_from_outside > %t1.adrp-ldr.pic.txt
+RUN: %readelf -x .got.plt %t1.adrp-ldr.pic.out >> %t1.adrp-ldr.pic.txt
+RUN: %filecheck %s --check-prefix=GOT_AND_GOT_REF < %t1.adrp-ldr.pic.txt
 
 RUN: %clang %clangopts -o %t1.adr.o -target aarch64-linux-gnu %p/Inputs/adr.s -c
-RUN: %link %linkopts -o %t1.adr.nopic.out %t1.main.nopic.o %t1.adr.o ${SECTION_ADDR_LINK_OPTS}
-RUN: %link %linkopts -o %t1.adr.pic.out %t1.main.pic.o %t1.adr.o ${SECTION_ADDR_LINK_OPTS}
-RUN: ( %objdump -dr %t1.adr.nopic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S %t1.adr.nopic.out ) | %filecheck %s --check-prefix=NO_GOT_REF_ADR
-RUN: ( %objdump -dr %t1.adr.pic.out --disassemble-symbols=main,get_foo_from_outside && %readelf -x .got %t1.adr.pic.out ) | %filecheck %s --check-prefix=GOT_AND_DIRECT_REF_ADR
+RUN: %link %linkopts -o %t1.adr.nopic.out %t1.main.nopic.o %t1.adr.o --section-start .text=0x1000 --section-start .data=0x2000 --section-start .got=0x3000 --section-start .plt=0x4000
+RUN: %link %linkopts -o %t1.adr.pic.out %t1.main.pic.o %t1.adr.o --section-start .text=0x1000 --section-start .data=0x2000 --section-start .got=0x3000 --section-start .plt=0x4000
+RUN: %objdump -dr %t1.adr.nopic.out --disassemble-symbols=main,get_foo_from_outside > %t1.adr.nopic.txt
+RUN: %readelf -S %t1.adr.nopic.out >> %t1.adr.nopic.txt
+RUN: %filecheck %s --check-prefix=NO_GOT_REF_ADR < %t1.adr.nopic.txt
+RUN: %objdump -dr %t1.adr.pic.out --disassemble-symbols=main,get_foo_from_outside > %t1.adr.pic.txt
+RUN: %readelf -x .got %t1.adr.pic.out >> %t1.adr.pic.txt
+RUN: %filecheck %s --check-prefix=GOT_AND_DIRECT_REF_ADR < %t1.adr.pic.txt
 #END_TEST
 
 NO_GOT_REF: <main>:

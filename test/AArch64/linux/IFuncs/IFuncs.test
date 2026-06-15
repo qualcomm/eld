@@ -6,20 +6,30 @@
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.1.o %p/Inputs/main.1.c -c
 RUN: %link %linkopts -march aarch64 -o %t1.a.1.out %t1.main.1.o %t1.1.o --image-base 0x1000
-RUN: (%readelf -S %t1.a.1.out; %objdump -d %t1.a.1.out) | %filecheck %s --check-prefix CHECK1
+RUN: %readelf -S %t1.a.1.out > %t1.check1.txt
+RUN: %objdump -d %t1.a.1.out >> %t1.check1.txt
+RUN: %filecheck %s --check-prefix CHECK1 < %t1.check1.txt
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.2.o %p/Inputs/main.2.c -c
 RUN: %link %linkopts -march aarch64 -o %t1.a.2.out %t1.main.2.o %t1.1.o --image-base 0x1000
-RUN: (%readelf -S %t1.a.2.out; %objdump -d %t1.a.2.out) | %filecheck %s --check-prefix CHECK2
+RUN: %readelf -S %t1.a.2.out > %t1.check2.txt
+RUN: %objdump -d %t1.a.2.out >> %t1.check2.txt
+RUN: %filecheck %s --check-prefix CHECK2 < %t1.check2.txt
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.1.no_pic.o %p/Inputs/1.c -c -fno-pic
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.2.no_pic.o %p/Inputs/main.2.c -c -fno-pic
 RUN: %link %linkopts -march aarch64 -o %t1.a.2.no_pic.out %t1.main.2.no_pic.o %t1.1.no_pic.o --image-base 0x1000
-RUN: (%readelf -S %t1.a.2.no_pic.out; %objdump -d %t1.a.2.no_pic.out) | %filecheck %s --check-prefix CHECK2_NOPIC
+RUN: %readelf -S %t1.a.2.no_pic.out > %t1.check2nopic.txt
+RUN: %objdump -d %t1.a.2.no_pic.out >> %t1.check2nopic.txt
+RUN: %filecheck %s --check-prefix CHECK2_NOPIC < %t1.check2nopic.txt
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.3.o %p/Inputs/main.3.c -c
 RUN: %link %linkopts -march aarch64 -o %t1.a.3.out %t1.main.3.o %t1.1.o --image-base 0x1000
-RUN: (%readelf -S %t1.a.3.out; %objdump -D %t1.a.3.out) | %filecheck %s --check-prefix CHECK3
+RUN: %readelf -S %t1.a.3.out > %t1.check3.txt
+RUN: %objdump -D %t1.a.3.out >> %t1.check3.txt
+RUN: %filecheck %s --check-prefix CHECK3 < %t1.check3.txt
 RUN: %clang %clangopts --target=aarch64-linux-gnu -o %t1.main.4.o %p/Inputs/main.4.c -c
 RUN: %link %linkopts -march aarch64 -o %t1.a.4.out %t1.main.4.o %t1.1.o --image-base 0x1000
-RUN: (%readelf -S %t1.a.4.out; %objdump -D %t1.a.4.out) | %filecheck %s --check-prefix CHECK4
+RUN: %readelf -S %t1.a.4.out > %t1.check4.txt
+RUN: %objdump -D %t1.a.4.out >> %t1.check4.txt
+RUN: %filecheck %s --check-prefix CHECK4 < %t1.check4.txt
 #END_TEST
 
 CHECK1: .plt PROGBITS [[#%x,PLT_START:]]

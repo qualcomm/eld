@@ -11,7 +11,7 @@ BEGIN_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %link %linkopts -o %t.1.out %t.1.o --image-base=0x400000
-RUN: %t.1.out; echo $? > %t.code
+RUN: %run_and_print_exit %t.1.out > %t.code
 RUN: %filecheck --input-file=%t.code %s --check-prefix=EXITCODE
 EXITCODE: 5
 #END_TEST

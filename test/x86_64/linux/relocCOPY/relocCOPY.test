@@ -15,7 +15,7 @@ RUN: %link %linkopts -shared -o %t.libu.so %t.2.o
 RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.libu.so -no-pie
 RUN: %readelf -r %t.out | %filecheck %s --check-prefix=CHECK-COPY-RELOC
 RUN: %readelf -s %t.out | %filecheck %s --check-prefix=CHECK-BSS-SYMBOLS
-RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
 
 CHECK-ABS-TYPE-DAG: {{.*}}R_X86_64_64{{.*}}v{{.*}}
 CHECK-ABS-TYPE-DAG: {{.*}}R_X86_64_32S{{.*}}u{{.*}}

@@ -6,20 +6,24 @@ UNSUPPORTED: riscv32
 #START_TEST
 RUN: %clang %clangopts -target %linuxtarget -o %t1.main.nopic.o %p/Inputs/main-nopic.s -c
 RUN: %clang %clangopts -target %linuxtarget -o %t1.main.pic.o %p/Inputs/main-pic.s -c -fPIC
-RUN: SECTION_ADDR_LINK_OPTS="--section-start .text=0x10000 --section-start .data=0x20000 \
-RUN:   --section-start .got=0x30000 --section-start .plt=0x40000"
 
 RUN: %clang %clangopts -target %linuxtarget -o %t1.auipc-addi.o %p/Inputs/auipc-addi.s -c
-RUN: %link %linkopts -o %t1.nopic.auipc-addi.out %t1.main.nopic.o %t1.auipc-addi.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
-RUN: %link %linkopts -o %t1.pic.auipc-addi.out %t1.main.pic.o %t1.auipc-addi.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
+RUN: %link %linkopts -o %t1.nopic.auipc-addi.out %t1.main.nopic.o %t1.auipc-addi.o --no-relax -static --section-start .text=0x10000 --section-start .data=0x20000 --section-start .got=0x30000 --section-start .plt=0x40000
+RUN: %link %linkopts -o %t1.pic.auipc-addi.out %t1.main.pic.o %t1.auipc-addi.o --no-relax -static --section-start .text=0x10000 --section-start .data=0x20000 --section-start .got=0x30000 --section-start .plt=0x40000
 RUN: %readelf -Ss %t1.nopic.auipc-addi.out | %filecheck %s --check-prefix=READELF
-RUN: ( %objdump -dr %t1.nopic.auipc-addi.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S %t1.nopic.auipc-addi.out ) | %filecheck %s --check-prefix=LUI_AND_AUIPC
-RUN: ( %objdump -dr %t1.pic.auipc-addi.out && %readelf -x .got %t1.pic.auipc-addi.out ) | %filecheck %s --check-prefix=AUIPC_GOT_AND_AUIPC
+RUN: %objdump -dr %t1.nopic.auipc-addi.out --disassemble-symbols=main,get_foo_from_outside > %t1.nopic.auipc-addi.txt
+RUN: %readelf -S %t1.nopic.auipc-addi.out >> %t1.nopic.auipc-addi.txt
+RUN: %filecheck %s --check-prefix=LUI_AND_AUIPC < %t1.nopic.auipc-addi.txt
+RUN: %objdump -dr %t1.pic.auipc-addi.out > %t1.pic.auipc-addi.txt
+RUN: %readelf -x .got %t1.pic.auipc-addi.out >> %t1.pic.auipc-addi.txt
+RUN: %filecheck %s --check-prefix=AUIPC_GOT_AND_AUIPC < %t1.pic.auipc-addi.txt
 
 RUN: %clang %clangopts -target %linuxtarget -o %t1.auipc-got.o %p/Inputs/auipc-got.s -c -fPIC
-RUN: %link %linkopts -o %t1.nopic.auipc-got.out %t1.main.nopic.o %t1.auipc-got.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
-RUN: %link %linkopts -o %t1.pic.auipc-got.out %t1.main.pic.o %t1.auipc-got.o --no-relax -static ${SECTION_ADDR_LINK_OPTS}
-RUN: ( %objdump -dr %t1.nopic.auipc-got.out --disassemble-symbols=main,get_foo_from_outside && %readelf -S -x .got %t1.nopic.auipc-got.out ) | %filecheck %s --check-prefix=LUI_AND_AUIPC_GOT
+RUN: %link %linkopts -o %t1.nopic.auipc-got.out %t1.main.nopic.o %t1.auipc-got.o --no-relax -static --section-start .text=0x10000 --section-start .data=0x20000 --section-start .got=0x30000 --section-start .plt=0x40000
+RUN: %link %linkopts -o %t1.pic.auipc-got.out %t1.main.pic.o %t1.auipc-got.o --no-relax -static --section-start .text=0x10000 --section-start .data=0x20000 --section-start .got=0x30000 --section-start .plt=0x40000
+RUN: %objdump -dr %t1.nopic.auipc-got.out --disassemble-symbols=main,get_foo_from_outside > %t1.nopic.auipc-got.txt
+RUN: %readelf -S -x .got %t1.nopic.auipc-got.out >> %t1.nopic.auipc-got.txt
+RUN: %filecheck %s --check-prefix=LUI_AND_AUIPC_GOT < %t1.nopic.auipc-got.txt
 RUN: %objdump -dr %t1.pic.auipc-got.out | %filecheck %s --check-prefix=AUIPC_GOT
 #END_TEST
 
