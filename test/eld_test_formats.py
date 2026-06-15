@@ -15,7 +15,7 @@ from thin_archive_test_format import ThinArchiveTestFormat
 
 class EldShellTestFormat(lit.formats.ShTest):
     def __init__(self, execute_external):
-        super().__init__(execute_external)
+        super().__init__(execute_external, force_execute_external=True)
 
     def execute(self, test, litConfig):
         if test.getSourcePath().endswith(".sh"):
