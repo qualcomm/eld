@@ -8,7 +8,9 @@
 RUN: %clang %clangopts -c %p/Inputs/1.s -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.s -o %t.2.o
 RUN: %link %linkopts %t.1.o %t.2.o -o %t.out
-RUN: (%readelf -s %t.out; %readelf -Sgr %t.out) | %filecheck %s
+RUN: %readelf -s %t.out > %t.readelf
+RUN: %readelf -Sgr %t.out >> %t.readelf
+RUN: %filecheck %s < %t.readelf
 
 CHECK:     Symbol table '.symtab' contains
 CHECK:             Num:       Value  Size    Type  Bind      Vis           Ndx Name

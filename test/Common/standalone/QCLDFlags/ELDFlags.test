@@ -6,9 +6,9 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
-RUN: ELDFLAGS="--gc-sections --print-gc-sections -o %t1.output.elf" %link %linkopts %t1.1.o 2>&1 | %filecheck %s
-RUN: ELDFLAGS="" %link %linkopts %t1.1.o 2>&1 | %filecheck %s --check-prefix=EMPTY --allow-empty
-RUN: ELDFLAGS="--invalid-option" %link %linkopts %t1.1.o 2>&1 | %filecheck %s --check-prefix=INVALIDOPTION
+RUN: env ELDFLAGS="--gc-sections --print-gc-sections -o %t1.output.elf" %link %linkopts %t1.1.o 2>&1 | %filecheck %s
+RUN: env ELDFLAGS="" %link %linkopts %t1.1.o 2>&1 | %filecheck %s --check-prefix=EMPTY --allow-empty
+RUN: env ELDFLAGS="--invalid-option" %link %linkopts %t1.1.o 2>&1 | %filecheck %s --check-prefix=INVALIDOPTION
 #CHECK-DAG: ELDFlags: '--gc-sections --print-gc-sections -o {{.*}}output.elf'
 #CHECK-DAG: Note: ELDFlags({{.*}}output.elf): '--gc-sections --print-gc-sections -o {{.*}}output.elf'
 #EMPTY-NOT: ELDFlags

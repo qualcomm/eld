@@ -8,7 +8,9 @@
 #START_TEST
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -g
 RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t
-RUN: (%readelf -sS %t1.1.out && %readelf -S %t1.1.out) | %filecheck %s -check-prefix=READELF1
+RUN: %readelf -sS %t1.1.out > %t1.1.readelf
+RUN: %readelf -S %t1.1.out >> %t1.1.readelf
+RUN: %filecheck %s -check-prefix=READELF1 < %t1.1.readelf
 
 RUN: %link %linkopts -o %t1.1.2.out %t1.1.o -T %p/Inputs/script.2.t
 RUN: %readelf -sS %t1.1.2.out | %filecheck %s -check-prefix=READELF2

@@ -32,12 +32,12 @@ NOFLAGS-NOT: -L
 ## Run the response file.
 RUN: %rm -rf %t.arc.rep && %mkdir %t.arc.rep
 RUN: %tar %gnutaropts -xf %t.arc.tar -C %t.arc.rep --strip-components=1
-RUN: cd %t.arc.rep && %link %linkopts @response.txt -o out && cd -
+RUN: %python -c "import shlex, subprocess; subprocess.check_call(shlex.split(r'%link %linkopts @response.txt -o out'), cwd=r'%t.arc.rep')"
 
 RUN: %rm -rf %t.shr.rep && %mkdir %t.shr.rep
 RUN: %tar %gnutaropts -xf %t.shr.tar -C %t.shr.rep --strip-components=1
-RUN: cd %t.shr.rep && %link %linkopts @response.txt -o out && cd -
+RUN: %python -c "import shlex, subprocess; subprocess.check_call(shlex.split(r'%link %linkopts @response.txt -o out'), cwd=r'%t.shr.rep')"
 
 RUN: %rm -rf %t.lit.rep && %mkdir %t.lit.rep
 RUN: %tar %gnutaropts -xf %t.lit.tar -C %t.lit.rep --strip-components=1
-RUN: cd %t.lit.rep && %link %linkopts @response.txt -o out
+RUN: %python -c "import shlex, subprocess; subprocess.check_call(shlex.split(r'%link %linkopts @response.txt -o out'), cwd=r'%t.lit.rep')"

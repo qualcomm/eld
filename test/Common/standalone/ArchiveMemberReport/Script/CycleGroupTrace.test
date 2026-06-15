@@ -5,10 +5,36 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/cycle_main.c -o %t.main.o
-RUN: for i in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15; do \
-RUN:   %clang %clangopts -c %p/Inputs/cycle_a${i}.c -o %t.a${i}.o; \
-RUN:   %clang %clangopts -c %p/Inputs/cycle_b${i}.c -o %t.b${i}.o; \
-RUN: done
+RUN: %clang %clangopts -c %p/Inputs/cycle_a01.c -o %t.a01.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b01.c -o %t.b01.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a02.c -o %t.a02.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b02.c -o %t.b02.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a03.c -o %t.a03.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b03.c -o %t.b03.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a04.c -o %t.a04.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b04.c -o %t.b04.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a05.c -o %t.a05.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b05.c -o %t.b05.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a06.c -o %t.a06.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b06.c -o %t.b06.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a07.c -o %t.a07.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b07.c -o %t.b07.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a08.c -o %t.a08.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b08.c -o %t.b08.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a09.c -o %t.a09.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b09.c -o %t.b09.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a10.c -o %t.a10.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b10.c -o %t.b10.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a11.c -o %t.a11.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b11.c -o %t.b11.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a12.c -o %t.a12.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b12.c -o %t.b12.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a13.c -o %t.a13.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b13.c -o %t.b13.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a14.c -o %t.a14.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b14.c -o %t.b14.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_a15.c -o %t.a15.o
+RUN: %clang %clangopts -c %p/Inputs/cycle_b15.c -o %t.b15.o
 RUN: %ar -cr %tlibA.a %t.a01.o %t.b03.o %t.a06.o %t.b08.o %t.a11.o %t.b13.o
 RUN: %ar -cr %tlibB.a %t.b01.o %t.a04.o %t.b06.o %t.a09.o %t.b11.o %t.a14.o
 RUN: %ar -cr %tlibC.a %t.a02.o %t.b04.o %t.a07.o %t.b09.o %t.a12.o %t.b14.o
