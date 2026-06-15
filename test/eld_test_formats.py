@@ -14,8 +14,8 @@ from thin_archive_test_format import ThinArchiveTestFormat
 
 
 class EldShellTestFormat(lit.formats.ShTest):
-    def __init__(self, execute_external):
-        super().__init__(execute_external, force_execute_external=True)
+    def __init__(self):
+        super().__init__()
 
     def execute(self, test, litConfig):
         if test.getSourcePath().endswith(".sh"):
@@ -113,8 +113,8 @@ class EldShellTestFormat(lit.formats.ShTest):
         return lit.Test.Result(lit.Test.PASS, output)
 
 
-def get_test_format(config, execute_external):
-    base_format = EldShellTestFormat(execute_external)
+def get_test_format(config):
+    base_format = EldShellTestFormat()
     if config.eld_option_name == "thin_archives":
-        return ThinArchiveTestFormat(execute_external, base_format)
+        return ThinArchiveTestFormat(base_format)
     return base_format
