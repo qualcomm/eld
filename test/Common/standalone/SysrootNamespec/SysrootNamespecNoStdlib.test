@@ -1,0 +1,13 @@
+#---SysrootNamespecNoStdlib.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# This test checks that -nostdlib prevents sysroot standard dirs from being added.
+#END_COMMENT
+#START_TEST
+RUN: rm -rf %t.sysroot
+RUN: mkdir -p %t.sysroot/lib64
+RUN: %clang %clangopts -o %t1.o %p/Inputs/1.c -c
+RUN: %clang %clangopts -o %t.lib1.o %p/Inputs/lib1.c -c
+RUN: %ar cr %aropts %t.sysroot/lib64/lib1.a %t.lib1.o
+RUN: %not %link %linkopts --sysroot=%t.sysroot -nostdlib -T %p/Inputs/script.t %t1.o -o %t1.out 2>&1 | %filecheck %s
+CHECK: cannot recognize namespec
+#END_TEST
