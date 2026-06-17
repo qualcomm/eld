@@ -164,6 +164,34 @@ jobs:
         working-directory: pr-${{ env.PR_NUMBER }}/obj
         run: ninja check-eld-summary
 
+      # Package the PR-built ld.eld (+ libs) for zephyr-pr.yml. `inst/` layout
+      # matches FetchNightlyToolset (~18MB compressed).
+      - name: Package PR ELD toolset
+        if: steps.file-check.outputs.skip_build == 'false'
+        working-directory: pr-${{ env.PR_NUMBER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inst/bin inst/lib
+
+          cp obj/bin/ld.eld          inst/bin/
+          cp -P obj/lib/libLW.so.4   inst/lib/
+          ln -sf libLW.so.4          inst/lib/libLW.so
+
+          # Bundle libc++/libc++abi dependencies.
+          bash llvm-project/llvm/tools/eld/.github/workflows/scripts/BundleSharedLibDeps.sh \
+            inst ld.eld
+
+          XZ_OPT=-T0 tar -Jcf install-pr-toolset.tar.xz inst
+
+      - name: Upload PR ELD toolset
+        if: steps.file-check.outputs.skip_build == 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        with:
+          name: pr-eld-toolset
+          retention-days: 1
+          path: pr-${{ env.PR_NUMBER }}/install-pr-toolset.tar.xz
+
       - name: Clean up
         if: always()
         run: |
