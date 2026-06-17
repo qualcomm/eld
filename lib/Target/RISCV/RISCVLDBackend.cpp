@@ -519,7 +519,7 @@ bool RISCVLDBackend::doRelaxationJal(Relocation *reloc) {
 
 bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   // This function performs the relaxation to replace: QC.E.JAL or QC.E.J with
-  // one of JAL, C.J, or C.JAL.
+  // one of CM.JT/CM.JALT, JAL, C.J, or C.JAL.
 
   Fragment *frag = reloc->targetRef()->frag();
   RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
@@ -536,19 +536,29 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   Relocator::DWord P = reloc->place(m_Module);
   Relocator::DWord X = S + A - P;
 
+  bool doRelax = config().options().getRISCVRelax();
   bool DoCompressed = config().options().getRISCVRelaxToC();
   bool canRelaxXqci =
       config().targets().is32Bits() && config().options().getRISCVRelaxXqci();
-  bool canRelax =
-      config().options().getRISCVRelax() && canRelaxXqci && llvm::isInt<21>(X);
-  bool canCompress = DoCompressed && llvm::isInt<12>(X);
+  bool canRelax = doRelax && canRelaxXqci;
+  bool canCompress = canRelax && DoCompressed && llvm::isInt<12>(X);
+  bool canRelaxTbljal = canRelax && DoCompressed &&
+                        config().options().getRISCVRelaxTbljal() &&
+                        llvm::isInt<32>(X);
+  bool canRelaxJal = canRelax && llvm::isInt<21>(X);
+  auto reportMissedQCCall = [&]() {
+    reportMissedRelaxation("RISCV_QC_E_CALL", *region, offset,
+                           (canCompress || canRelaxTbljal) ? 4 : 2,
+                           reloc->symInfo()->name());
+  };
 
   if (!canRelax) {
-    reportMissedRelaxation("RISCV_QC_E_CALL", *region, offset,
-                           canCompress ? 4 : 2, reloc->symInfo()->name());
+    reportMissedQCCall();
     return false;
   }
 
+  // Prefer direct C.J/C.JAL over table-jump since both end up 2 bytes and
+  // direct compression avoids the JVT entry overhead.
   if (canCompress) {
     uint32_t compressed = isTailCall ? 0xa001 : 0x2001;
     const char *msg = isTailCall ? "RISCV_QC_E_J_C" : "RISCV_QC_E_JAL_C";
@@ -563,19 +573,40 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
                  ->getInput()
                  ->decoratedPath();
 
-    region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&compressed), 2);
+    region->replaceInstruction(offset, reloc,
+                               reinterpret_cast<uint8_t *>(&compressed), 2);
     // Replace the reloc to R_RISCV_RVC_JUMP
     reloc->setType(llvm::ELF::R_RISCV_RVC_JUMP);
     reloc->setTargetData(compressed);
-    relaxDeleteBytes(msg, *region, offset + 2, 4,
-                     reloc->symInfo()->name());
+    relaxDeleteBytes(msg, *region, offset + 2, 4, reloc->symInfo()->name());
     return true;
+  }
+
+  if (canRelaxTbljal && TableJumpFragment && TableJumpFragment->size() &&
+      m_pRISCVTableJumpSection && !m_pRISCVTableJumpSection->isIgnore() &&
+      !m_pRISCVTableJumpSection->isDiscard()) {
+    unsigned rd = isTailCall ? /*x0*/ 0 : /*ra*/ 1;
+    int EntryIndex =
+        getTableJumpEntryIndex(*TableJumpFragment, reloc->symInfo(), rd);
+    if (EntryIndex >= 0) {
+      applyTableJumpRelaxation(reloc, *region, offset,
+                               static_cast<unsigned>(EntryIndex));
+      relaxDeleteBytes("RISCV_TBJAL", *region, offset + 2, 4,
+                       reloc->symInfo()->name());
+      return true;
+    }
+  }
+
+  if (!canRelaxJal) {
+    reportMissedQCCall();
+    return false;
   }
 
   // Replace the instruction to JAL
   unsigned rd = isTailCall ? /*x0*/ 0 : /*ra*/ 1;
   uint32_t jal_instr = 0x6fu | rd << 7;
-  region->replaceInstruction(offset, reloc, reinterpret_cast<uint8_t *>(&jal_instr), 4);
+  region->replaceInstruction(offset, reloc,
+                             reinterpret_cast<uint8_t *>(&jal_instr), 4);
   // Replace the reloc to R_RISCV_JAL
   reloc->setType(llvm::ELF::R_RISCV_JAL);
   reloc->setTargetData(jal_instr);

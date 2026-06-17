@@ -14,6 +14,7 @@
 
 #include "RISCVTableJump.h"
 #include "RISCVLDBackend.h"
+#include "RISCVRelocationInternal.h"
 #include "eld/Core/Module.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
@@ -70,11 +71,18 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
     const Relocation *R = Relocs[I];
     if (R->type() != llvm::ELF::R_RISCV_JAL &&
         R->type() != llvm::ELF::R_RISCV_CALL &&
-        R->type() != llvm::ELF::R_RISCV_CALL_PLT)
+        R->type() != llvm::ELF::R_RISCV_CALL_PLT &&
+        R->type() != eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT)
       continue;
 
     if (I + 1 >= Relocs.size() ||
         Relocs[I + 1]->type() != llvm::ELF::R_RISCV_RELAX)
+      continue;
+
+    if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT &&
+        (!Backend.config().options().getRISCVRelax() ||
+         !Backend.config().targets().is32Bits() ||
+         !Backend.config().options().getRISCVRelaxXqci()))
       continue;
 
     const ResolveInfo *Sym = R->symInfo();
@@ -86,6 +94,11 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
     if (R->type() == llvm::ELF::R_RISCV_JAL) {
       R->targetRef()->memcpy(&Insn, sizeof(Insn), 0);
       Rd = (Insn >> 7) & 0x1f;
+    } else if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT) {
+      R->targetRef()->memcpy(&Insn, sizeof(Insn), 0);
+      // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this for
+      // selecting Rd.
+      Rd = (Insn >> 15) & 0x3;
     } else {
       // CALL/CALL_PLT: read the following JALR to get rd.
       R->targetRef()->memcpy(&Insn, sizeof(Insn), 4);
@@ -105,9 +118,21 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
         continue;
     }
 
-    // If the jal/j can be relaxed to a 32-bit instruction, the saving becomes
-    // actually 2 bytes (4->2), otherwise it's 6 bytes (8->2).
-    const int Saved = llvm::isInt<21>(Displace) ? 2 : 6;
+    int Saved = 0;
+    if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT) {
+      // For qc.e.j/qc.e.jal, tbljal saves 4 bytes (6->2). If the instruction
+      // can already relax to JAL, the incremental saving is only 2 bytes
+      // (4->2), matching the profitability model used for CALL/JAL.
+      const bool CanRelaxToJAL =
+          Backend.config().targets().is32Bits() &&
+          Backend.config().options().getRISCVRelaxXqci() &&
+          llvm::isInt<21>(Displace);
+      Saved = CanRelaxToJAL ? 2 : 4;
+    } else {
+      // If the jal/j can be relaxed to a 32-bit instruction, the saving
+      // becomes actually 2 bytes (4->2), otherwise it's 6 bytes (8->2).
+      Saved = llvm::isInt<21>(Displace) ? 2 : 6;
+    }
 
     if (Rd == 0)
       addEntry(CMJTCandidates, Sym, Saved);
