@@ -1,0 +1,29 @@
+#---IsLTOGeneratedObject.test----------------------- Executable,LS ----------------#
+#BEGIN_COMMENT
+# Tests that isLTOGeneratedObject() returns true for ELF objects generated
+# by LTO (full LTO, ThinLTO, and fat LTO) and false for regular ELF object files.
+#END_COMMENT
+#START_TEST
+
+## Full LTO: foo.c is a regular ELF, bar.c is bitcode (-flto).
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.foo.o
+RUN: %clang %clangopts -c -flto %p/Inputs/bar.c -o %t1.bar.o
+RUN: %link %linkopts %t1.foo.o %t1.bar.o -o %t2.out \
+RUN:   --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
+
+## ThinLTO: foo.c is a regular ELF, bar.c is thin bitcode (-flto=thin).
+RUN: %clang %clangopts -c -flto=thin %p/Inputs/bar.c -o %t1.thin.bar.o
+RUN: %link %linkopts %t1.foo.o %t1.thin.bar.o -o %t3.out \
+RUN:   --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
+
+## Fat LTO: embed bitcode into a native ELF via objcopy, then link with --fat-lto-objects.
+RUN: %clang %clangopts -flto -ffat-lto-objects -c %p/Inputs/bar.c -o %t1.fat.bar.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t1.native.bar.o
+RUN: %link %linkopts %t1.foo.o %t1.fat.bar.o --fat-lto-objects -o %t4.out \
+RUN:   --plugin-config %p/Inputs/plugin.config 2>&1 | %filecheck %s
+
+# Regular ELF object: isLTOGeneratedObject should be false (0).
+CHECK: {{.*}}foo.o isLTOGeneratedObject: 0
+# LTO-generated ELF object produced internally during link: should be true (1).
+CHECK: {{.*}} isLTOGeneratedObject: 1
+CHECK: {{.*}}bar.o isLTOGeneratedObject: 0

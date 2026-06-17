@@ -1296,6 +1296,15 @@ bool plugin::InputFile::isBitcode() const {
   return m_InputFile->isBitcode();
 }
 
+bool plugin::InputFile::isLTOGeneratedObject() const {
+  if (!m_InputFile)
+    return false;
+  eld::ELFObjectFile *ObjFile = llvm::dyn_cast<eld::ELFObjectFile>(m_InputFile);
+  if (!ObjFile)
+    return false;
+  return ObjFile->isLTOObject();
+}
+
 std::string plugin::InputFile::getMemberName() const {
   if (!isArchive())
     return "";
