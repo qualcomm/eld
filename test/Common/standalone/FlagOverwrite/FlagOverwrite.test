@@ -1,0 +1,152 @@
+#---FlagOverwrite.test--------------------- Executable --------------------#
+UNSUPPORTED: x86
+#BEGIN_COMMENT
+# Check that the last option is the one being used for mutually exclusive flags.
+#END_COMMENT
+#START_TEST
+COM: --[no-]fatal-warnings
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.cpp -o %t.1.o
+RUN: %not %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --no-fatal-warnings --fatal-warnings 2>&1 | %filecheck %s -check-prefix=FATAL
+RUN: %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --fatal-warnings --no-fatal-warnings 2>&1 | %filecheck %s -check-prefix=NOFATAL
+
+COM: --[no-]check-sections
+RUN: %not %link %linkopts -T %p/Inputs/1.script %t.1.o -o %t.1.out --no-check-sections --check-sections --verbose 2>&1 | %filecheck %s -check-prefix=CHECKSECT
+RUN: %link %linkopts -T %p/Inputs/1.script %t.1.o -o %t.1.out --check-sections --no-check-sections --verbose 2>&1 | %filecheck %s -check-prefix=NOCHECKSECT
+
+COM: --[no-]gc-sections
+RUN: %link %linkopts %t.1.o -T %p/Inputs/2.script --no-gc-sections --gc-sections -o %t.1.out -M 2>&1 | %filecheck %s -check-prefix=GCSECT
+RUN: %link %linkopts %t.1.o -T %p/Inputs/2.script --gc-sections --no-gc-sections -o %t.1.out -M 2>&1 | %filecheck %s -check-prefix=NOGCSECT
+
+COM: --[no-]align-segments
+RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/2.cpp -o %t.2.o
+RUN: %link %linkopts --rosegment --no-align-segments --align-segments %t.2.o -o %t.2.out --noinhibit-exec
+RUN: %readelf -l -W %t.2.out | %filecheck %s -check-prefix=ALIGN
+RUN: %link %linkopts --rosegment --align-segments --no-align-segments %t.2.o -o %t.2.out --noinhibit-exec
+RUN: %readelf -l -W %t.2.out | %filecheck %s -check-prefix=NOALIGN
+COM: Special case. omagic takes precendence over --align-segments
+RUN: %link %linkopts -o %t.1.out %t.1.o --no-omagic --omagic --align-segments -z max-page-size=0x1000
+RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=OMAGIC
+
+COM: --[no-]emit-relocs
+RUN: %link %linkopts  %t.2.o -o %t.2.out --no-emit-relocs --emit-relocs --noinhibit-exec
+RUN: %readelf -r %t.2.out | %filecheck %s -check-prefix=RELOCS
+RUN: %link %linkopts  %t.2.o -o %t.2.out --emit-relocs --no-emit-relocs --noinhibit-exec
+RUN: %readelf -r %t.2.out | %filecheck %s -check-prefix=NORELOCS
+
+COM: --[no-]threads, --enable-threads
+RUN: %link %linkopts %t.1.o -o %t.1.out --emit-relocs --enable-threads=all --no-threads --threads --trace=threads 2>&1 | %filecheck %s -check-prefix=THREADS
+RUN: %link %t.1.o -o %t.1.out --emit-relocs --enable-threads=all --threads --no-threads --trace=threads 2>&1 | %filecheck %s -check-prefix=NOTHREADS
+RUN: %link %linkopts %t.1.o -o %t.1.out --emit-relocs --no-threads --threads --enable-threads=all --trace=threads 2>&1 | %filecheck %s -check-prefix=GLOBALTHREADS
+
+COM: --[no-]fat-lto-objects
+RUN: printf "eld\n" > %t.invalid
+RUN: %objcopy --add-section=.llvm.lto=%t.invalid --set-section-flags=.llvm.lto=exclude --set-section-type=.llvm.lto=0x6fff4c0c %t.1.o %t.fat.invalid.o
+RUN: %not %link -r %t.fat.invalid.o -o %t1.out --no-fat-lto-objects --fat-lto-objects --trace=lto 2>&1 | %filecheck %s -check-prefix=FATLTO
+RUN: %link -r %t.fat.invalid.o -o %t1.out --fat-lto-objects --no-fat-lto-objects --trace=lto 2>&1 | %filecheck %s -check-prefix=NOFATLTO
+
+COM: --[no-]warn-shared-textrel
+RUN: %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --no-warn-shared-textrel --warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=TEXTREL
+RUN: %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --no-warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=NOTEXTREL -allow-empty
+
+COM: --[no-]demangle, --demangle-style
+RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle-style=demangle --no-demangle --demangle 2>&1 | %filecheck %s -check-prefix=DEMANGLE
+RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle-style=demangle --demangle --no-demangle 2>&1 | %filecheck %s -check-prefix=NODEMANGLE
+RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle --no-demangle --demangle-style=demangle 2>&1 | %filecheck %s -check-prefix=DEMANGLE
+
+COM: --[no-]omagic
+RUN: %link %linkopts -o %t.1.out %t.1.o --no-omagic --omagic -z max-page-size=0x1000
+RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=OMAGIC
+RUN: %link %linkopts -o %t.1.out %t.1.o --omagic -z max-page-size=0x1000 --no-omagic
+RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=NOOMAGIC
+
+COM: --[disable/enable]-new-dtags
+RUN: %link %linkopts -shared %t.1.o -o %t.1.so -z now --disable-new-dtags --enable-new-dtags
+RUN: %readelf -d %t.1.so | %filecheck %s --check-prefix=NEWDTAG
+RUN: %link %linkopts -shared %t.1.o -o %t.1.so  -z now --enable-new-dtags --disable-new-dtags
+RUN: %readelf -d %t.1.so | %filecheck %s --check-prefix=NONEWDTAG
+
+COM: --[disable/enable]-linker-version
+RUN: %link %linkopts %t.1.o -T %p/Inputs/3.script -o %t.1.out --disable-linker-version --enable-linker-version
+RUN: %readelf -S -W %t.1.out | %filecheck %s --check-prefix=ENABLEDLINKVER
+RUN: %link %linkopts %t.1.o -T %p/Inputs/3.script -o %t.1.out --disable-linker-version --disable-linker-version
+RUN: %readelf -S -W %t.1.out | %filecheck %s --check-prefix=NOENABLEDLINKVER
+
+COM: --[no-]record-command-line
+RUN: %link %linkopts %t.1.o -o %t.1.out --no-record-command-line --record-command-line
+RUN: %readelf -p .comment %t.1.out | %filecheck %s --check-prefix=RECORDCOMMAND
+RUN: %link %linkopts %t.1.o -o %t.1.out --record-command-line --no-record-command-line
+RUN: %readelf -p .comment %t.1.out | %filecheck %s --check-prefix=NORECORDCOMMAND
+
+COM: --[no-]warn-mismatch
+RUN: %yaml2obj %p/Inputs/2.yaml -o %t.2.o
+RUN: %not %link %emulation %linkopts %t.1.o %t.2.o -o %t.1.out --no-warn-mismatch --warn-mismatch 2>&1 | %filecheck %s --check-prefix=WARNMISMATCH
+RUN: %link %emulation %linkopts %t.1.o %t.2.o -o %t.1.out --warn-mismatch --no-warn-mismatch 2>&1 | %filecheck %s --check-prefix=NOWARNMISMATCH  --allow-empty
+
+COM: --[no-]export-dynamic
+RUN: %clang %clangopts -flto -c %p/Inputs/1.cpp -o %t.1.o
+RUN: %link %linkopts --no-export-dynamic --export-dynamic  %t.1.o -o %t.1.out
+RUN: %readelf -s %t.1.out | %filecheck %s -check-prefix=EXPDYN
+RUN: %link %linkopts --export-dynamic --no-export-dynamic  %t.1.o -o %t.1.out
+RUN: %readelf -s %t.1.out | %filecheck %s -check-prefix=NOEXPDYN
+
+COM: --[no-]pie
+RUN: %clang %clangopts -fPIC -c %p/Inputs/1.cpp -o %t.1.o
+RUN: %link %linkopts %t.1.o -o %t.1.out --no-pie --pie
+RUN: %readelf --file-header %t.1.out 2>&1 | %filecheck %s --check-prefix=PIE
+RUN: %link %linkopts %t.1.o -o %t.1.out --pie --no-pie
+RUN: %readelf --file-header %t.1.out 2>&1 | %filecheck %s --check-prefix=NOPIE
+
+FATAL: Fatal: Linking had errors ({{.*}}1.out)
+NOFATAL-NOT: Fatal: Linking had errors
+
+CHECKSECT: section .comment file range overlaps with .text
+NOCHECKSECT-NOT: section .comment file range overlaps with .text
+
+GCSECT: # .text <GC> 0x0
+NOGCSECT-NOT: # .text <GC> 0x0
+
+ALIGN: LOAD 0x00{{[0-9]}}000 {{.*}} 0x1000
+NOALIGN-NOT: LOAD 0x00{{[0-9]}}{{[1-9]}}+ {{.*}} 0x1000
+
+RELOCS: Relocation section {{.*}} contains
+NORELOCS: There are no relocations in this file
+
+THREADS: Threads Enabled
+THREADS: Threads Disabled
+NOTHREADS-NOT: Threads Enabled
+NOTHREADS: Threads Disabled
+GLOBALTHREADS: Threads Enabled
+GLOBALTHREADS-NOT: Threads Disabled
+
+FATLTO: Invalid embedded bitcode in section '.llvm.lto'
+NOFATLTO-NOT: Invalid embedded bitcode in section '.llvm.lto'
+
+TEXTREL: Warning: Add DT_TEXTREL in a shared object!
+NOTEXTREL-NOT: Warning: Add DT_TEXTREL in a shared object!
+
+DEMANGLE: Verbose: Adding symbol foo()
+NODEMANGLE: Verbose: Adding symbol _Z3foov
+
+OMAGIC-NOT: 4096
+NOOMAGIC: 4096
+
+NEWDTAG:  0x{{[0]+}}1e (FLAGS)                BIND_NOW
+NEWDTAG:  0x{{[0]*}}6ffffffb (FLAGS_1)              NOW
+NONEWDTAG: 0x{{[0]+}}18 (BIND_NOW)             0x1
+NONEWDTAG: 0x{{[0]*}}6ffffffb (FLAGS_1)              NOW
+
+ENABLEDLINKVER: .myver {{.*}} {{[0-9a-f]+}} {{.*}}
+NOENABLEDLINKVER-NOT: .myver
+
+RECORDCOMMAND: Command:{{.*}} --no-record-command-line --record-command-line
+NORECORDCOMMAND-NOT: Command
+
+WARNMISMATCH: Error: cannot recognize the format of file
+NOWARNMISMATCH-NOT: Error: cannot recognize the format of file
+
+EXPDYN: {{.}} GLOBAL {{.*}} _Z3foov
+NOEXPDYN-NOT: {{.}} GLOBAL {{.*}} _Z3foov
+
+PIE: DYN (Shared object file)
+NOPIE: EXEC (Executable file)
+#END_TEST

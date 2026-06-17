@@ -1,0 +1,5 @@
+SECTIONS
+{
+  .myver 0x100 : { LINKER_VERSION }
+  .text : { *(.text) }
+}
