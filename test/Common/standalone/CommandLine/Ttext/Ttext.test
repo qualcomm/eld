@@ -1,0 +1,16 @@
+#---Ttext.test--------------------------- Executable,LS -----------------#
+#BEGIN_COMMENT
+# This checks for options -Ttext, -Tdata and -Tbss that are handled in the linker.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o
+RUN: %link %linkopts %t1.o -o %t1.out -Ttext=0x10000000
+RUN: %readelf -S %t1.out -W | %filecheck %s --check-prefix=CHECK-TEXT
+CHECK-TEXT: .text {{.*}} {{0*}}10000000
+RUN: %link %linkopts %t1.o -T %p/Inputs/force-sections.t -o %t2.out -Tdata=0x20000000
+RUN: %readelf -S %t2.out -W | %filecheck %s --check-prefix=CHECK-DATA
+CHECK-DATA: .data {{.*}} {{0*}}20000000
+RUN: %link %linkopts %t1.o -T %p/Inputs/force-sections.t -o %t3.out -Tbss=0x30000000
+RUN: %readelf -S %t3.out -W | %filecheck %s --check-prefix=CHECK-BSS
+CHECK-BSS: .bss {{.*}} {{0*}}30000000
+#END_TEST
