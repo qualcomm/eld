@@ -85,8 +85,10 @@ jobs:
 
       - name: Download and Setup libc-test
         run: |
-          git clone --depth 1 https://repo.or.cz/libc-test.git
+          git clone https://repo.or.cz/libc-test.git
           cd libc-test
+          STABLE_COMMIT=f2bac7711bec93467b73bec1465579ea0b8d5071
+          git checkout ${STABLE_COMMIT}
           cp config.mak.def config.mak
           sed -i 's/LDFLAGS += -g/LDFLAGS += -g -static/' config.mak
           sed -i '1s/$/ -Wno-parentheses/' config.mak
@@ -174,7 +176,10 @@ jobs:
 
       - name: Download musl libc-test
         run: |
-          git clone --depth 1 https://repo.or.cz/libc-test.git
+          git clone https://repo.or.cz/libc-test.git
+          cd libc-test
+          STABLE_COMMIT=f2bac7711bec93467b73bec1465579ea0b8d5071
+          git checkout ${STABLE_COMMIT}
 
       - name: Setup musl libc-test environment
         shell: bash
