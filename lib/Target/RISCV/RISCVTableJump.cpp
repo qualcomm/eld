@@ -89,20 +89,17 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
     if (!Sym || Sym->isUndef())
       continue;
 
-    uint32_t Insn = 0;
     uint8_t Rd = 0;
     if (R->type() == llvm::ELF::R_RISCV_JAL) {
-      R->targetRef()->memcpy(&Insn, sizeof(Insn), 0);
-      Rd = (Insn >> 7) & 0x1f;
+      Rd = (R->target() >> 7) & 0x1f;
     } else if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT) {
-      R->targetRef()->memcpy(&Insn, sizeof(Insn), 0);
-      // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this for
-      // selecting Rd.
-      Rd = (Insn >> 15) & 0x3;
+      // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this as
+      // the rd-equivalent selector because QC.E.J does not write ra.
+      Rd = (R->target() >> 15) & 0x3;
     } else {
-      // CALL/CALL_PLT: read the following JALR to get rd.
-      R->targetRef()->memcpy(&Insn, sizeof(Insn), 4);
-      Rd = (Insn >> 7) & 0x1f;
+      // CALL/CALL_PLT pseudos use AUIPC rd=ra for calls and a scratch rd for
+      // tail calls. Table jumps only need to distinguish ra from x0.
+      Rd = (((R->target() >> 7) & 0x1f) == 1) ? 1 : 0;
     }
 
     // Only x0 (cm.jt) and ra (cm.jalt) are supported.
