@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---ExecOutput_NonDefaultVersionInSymtab.test-----------------------------#
+# Executable with non-default `bar@V1`: static .symtab must contain the
+# single-`@` form (and not @@, which is reserved for defaults).
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: echo '__asm__(".symver bar_v1, bar@V1"); extern int bar_v1(void); int main(void){return bar_v1();}' > %t.main.c
+RUN: %clang %clangopts -o %t.main.o %t.main.c -c
+RUN: %link %linkopts -o %t.exe %t.a.o %t.main.o
+RUN: %readelf -sW %t.exe | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@V1
+CHECK-NOT: bar@@V1

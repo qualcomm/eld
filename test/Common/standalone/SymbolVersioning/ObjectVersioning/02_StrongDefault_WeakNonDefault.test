@@ -1,0 +1,17 @@
+REQUIRES: symbol_versioning
+#---02_StrongDefault_WeakNonDefault.test----------------------------------#
+#BEGIN_COMMENT
+# Rule 2: strong bar@@V1 (a.o) + weak bar@V1 (b.o). Strong wins both
+# slots. Output: one symbol bar@@V1 (default), no separate bar, no
+# separate non-default bar@V1.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/weak_nondefault.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o %t.b.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-NOT: : bar{{$}}
+CHECK-NOT: bar@V1{{$}}

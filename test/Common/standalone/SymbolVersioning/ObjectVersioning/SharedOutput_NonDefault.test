@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---SharedOutput_NonDefault.test------------------------------------------#
+# Non-default version: dynsym entry has bare name; .gnu.version_d lists
+# V1; the dynsym entry should have VERSYM_HIDDEN set (rendered as the
+# single `@` form by readelf).
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@V1
+CHECK-DAG: Name: V1
+CHECK-NOT: bar@@V1

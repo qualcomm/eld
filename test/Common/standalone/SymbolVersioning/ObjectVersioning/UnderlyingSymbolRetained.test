@@ -1,0 +1,13 @@
+REQUIRES: symbol_versioning
+#---UnderlyingSymbolRetained.test-----------------------------------------#
+# A.10: when the assembler emits `.symver impl, bar@@V1` alongside an
+# `int impl()` body, the output .symtab must retain BOTH `impl` (the
+# underlying body) and `bar@@V1` (the versioned alias), matching GNU.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf -sW %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: impl
+CHECK-DAG: bar@@V1

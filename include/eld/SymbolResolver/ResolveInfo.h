@@ -29,6 +29,28 @@ class InputFile;
 class LDSymbol;
 class LinkerConfig;
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+/// Parse result for a possibly-versioned symbol name. See parseVersionedName.
+struct ParsedVersionedName {
+  llvm::StringRef Base;     // "bar" — substring of the input name.
+  llvm::StringRef Version;  // "V1"  — substring of the input name.
+  bool IsDefault;           // true if input had `@@`.
+  bool IsMalformed;         // true on `@V1`, `bar@`, `bar@@`, `bar@V1@V2`.
+};
+
+/// Parse a possibly-versioned symbol name into (base, version, isDefault).
+///
+/// Recognized inputs:
+///   "bar"         -> {"bar", "",   false, false}  (unversioned)
+///   "bar@V1"      -> {"bar", "V1", false, false}  (non-default)
+///   "bar@@V1"     -> {"bar", "V1", true,  false}  (default)
+///   "@V1"         -> malformed (no base)
+///   "bar@"        -> malformed
+///   "bar@@"       -> malformed
+///   "bar@V1@V2"   -> malformed (multiple `@` groups)
+ParsedVersionedName parseVersionedName(llvm::StringRef Name);
+#endif
+
 /** \class ResolveInfo
  *  \brief ResolveInfo records the information about how to resolve a symbol.
  *
@@ -249,18 +271,41 @@ public:
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   llvm::StringRef getNonVersionedName() const {
     InputFile *origin = resolvedOrigin();
-    if (origin && origin->isInternal()) {
+    if (origin && origin->isInternal())
       return SymbolName;
-    }
-    llvm::StringRef::size_type pos = SymbolName.find('@');
-    return SymbolName.substr(0, pos);
+    return parseVersionedName(SymbolName).Base;
   }
 
   llvm::StringRef getVersionName() const {
-    auto pos = SymbolName.find_last_of('@');
-    if (pos == std::string::npos)
-      return "";
-    return llvm::StringRef(SymbolName).substr(pos + 1);
+    return parseVersionedName(SymbolName).Version;
+  }
+
+  /// Returns true if SymbolName literally contains an '@'. This is a
+  /// SYNTACTIC check on the name string, NOT a semantic "is this a
+  /// versioned symbol" predicate.
+  ///
+  /// Only two kinds of ResolveInfo carry '@' in the name after reading and
+  /// resolving symbols:
+  ///   - Non-default versioned canonicals          (e.g. "bar@V1")
+  ///   - Default versioned canonicals              (e.g. "bar@V1" — we
+  ///     normalize to a single '@' and track the default-ness via
+  ///     isDefaultVersion()).
+  bool hasVersionInName() const { return SymbolName.contains('@'); }
+
+  /// True for the default-version of a versioned symbol. Set on the canonical
+  /// ResolveInfo (the "bar@V1" slot) when a default-versioned definition is
+  /// inserted, and OR-preserved across overrideAttributes so a strong
+  /// non-default `bar@V1` inheriting the slot from a weak `bar@@V1` keeps the
+  /// default-version attribute.
+  bool isDefaultVersion() const {
+    return ThisBitField & IsDefaultVersionMask;
+  }
+
+  void setDefaultVersion(bool On) {
+    if (On)
+      ThisBitField |= IsDefaultVersionMask;
+    else
+      ThisBitField &= ~IsDefaultVersionMask;
   }
 #endif
 
@@ -335,10 +380,20 @@ private:
   static const uint32_t IFuncNeedsGOTOffset = 21;
   static const uint32_t IFuncNeedsGOTMask = 1 << IFuncNeedsGOTOffset;
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  static const uint32_t IsDefaultVersionOffset = 22;
+  static const uint32_t IsDefaultVersionMask = 1 << IsDefaultVersionOffset;
+#endif
+
   static const uint32_t InfoMask = 0xF;
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  // Bits are from 0-22.
+  static const uint32_t ResolveMask = 0x7FFFFF;
+#else
   // Bits are from 0-21.
   static const uint32_t ResolveMask = 0x3FFFFF;
+#endif
 
 public:
   static const uint32_t GlobalFlag = 0 << GlobalOffset;

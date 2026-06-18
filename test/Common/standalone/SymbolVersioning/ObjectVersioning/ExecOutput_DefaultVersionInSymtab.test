@@ -1,0 +1,15 @@
+REQUIRES: symbol_versioning
+#---ExecOutput_DefaultVersionInSymtab.test--------------------------------#
+# Build an executable that defines bar@@V1 (default). The static .symtab
+# of the executable must contain the GNU-visible `bar@@V1` (with `@@`),
+# reconstructed by GNULDBackend::getSymbolTableName from the canonical
+# name + the default-version flag.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: echo 'extern int bar(void); int main(void){return bar();}' > %t.main.c
+RUN: %clang %clangopts -o %t.main.o %t.main.c -c
+RUN: %link %linkopts -o %t.exe %t.a.o %t.main.o
+RUN: %readelf -sW %t.exe | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1

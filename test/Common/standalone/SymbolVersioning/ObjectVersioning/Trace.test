@@ -1,0 +1,13 @@
+REQUIRES: symbol_versioning
+#---Trace.test------------------------------------------------------------#
+# `--trace=symbol-versioning` should emit
+# `trace_object_versioned_symbol` for each versioned object input. The
+# trace records the original input name, the canonical single-`@` name
+# we synthesize, and whether the input was default-versioned.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t \
+RUN:    --trace=symbol-versioning 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: Versioned object symbol: 'bar@@V1' -> canonical 'bar@V1', default-version=1

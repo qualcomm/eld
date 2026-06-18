@@ -1,0 +1,10 @@
+REQUIRES: symbol_versioning
+#---MalformedName_DoubleAtNoVersion.test----------------------------------#
+# yaml-crafted symbol named literally `foo@@` (no version after `@@`)
+# should be rejected as a malformed versioned symbol name.
+#START_TEST
+RUN: %yaml2obj %p/Inputs/malformed_doubleat_no_version.yaml -o %t.o
+RUN: not %link %linkopts -o %t.lib.so %t.o -shared --version-script %p/Inputs/vs_v1.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: malformed versioned symbol name 'foo@@'

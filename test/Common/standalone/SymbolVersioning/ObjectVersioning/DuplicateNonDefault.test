@@ -1,0 +1,10 @@
+REQUIRES: symbol_versioning
+#---DuplicateNonDefault.test----------------------------------------------#
+# Two strong non-default `bar@V1` from different objects -> multi-def.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: not %link %linkopts -o %t.lib.so %t.a.o %t.b.o -shared --version-script %p/Inputs/vs_v1.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: multiple definition of symbol

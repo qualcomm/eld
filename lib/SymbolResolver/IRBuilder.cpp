@@ -238,76 +238,153 @@ LDSymbol *IRBuilder::addSymbolFromObject(
     uint32_t Shndx, bool IsPostLtoPhase, uint32_t Idx, bool IsPatchable) {
   // Step 1. calculate a Resolver::Result
   // ResolvedResult is a triple <resolved_info, existent, override>
-  Resolver::Result ResolvedResult = {nullptr, false, false};
   eld::RegisterTimer T("Create && Resolve symbols", "Symbol Resolution",
                        ThisConfig.options().printTimingStats());
   NamePool &NP = ThisModule.getNamePool();
+
+  // Insert one ResolveInfo into the NamePool.
+  // Used once for unversioned / non-default-versioned inputs and twice for
+  // default-versioned inputs (one call per (canonical, non-canonical)
+  // alias). Returns nullptr on error.
+  auto AddSymbol = [&](ResolveInfo InputSymbolResolveInfo,
+                       LDSymbol::ValueType ValueArg) -> LDSymbol * {
+    Resolver::Result ResolvedResult = {nullptr, false, false};
+    LDSymbol *InputSym = makeLDSymbol(nullptr);
+    InputSym->setFragmentRef(CurFragmentRef);
+    InputSym->setSectionIndex(Shndx);
+    InputSym->setSymbolIndex(Idx);
+
+    auto &PM = ThisModule.getPluginManager();
+    SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
+                       /*isBitcode=*/false);
+    DiagnosticPrinter *DP = ThisConfig.getPrinter();
+    auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+    PM.callVisitSymbolHook(InputSym, InputSymbolResolveInfo.getName(), SymInfo);
+    auto NewErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
+    if (NewErrorCount != OldErrorCount)
+      return nullptr;
+
+    if (Binding == ResolveInfo::Binding::Local) {
+      ResolveInfo *RI = NP.insertLocalSymbol(InputSymbolResolveInfo, *InputSym);
+      RI->setOutSymbol(InputSym);
+      InputSym->setResolveInfo(*RI);
+      return InputSym;
+    }
+
+    if (ThisModule.getLayoutInfo() &&
+        ThisModule.getLayoutInfo()->showSymbolResolution())
+      NP.getSRI().recordSymbolInfo(InputSym, SymInfo);
+
+    bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
+                                     IsPostLtoPhase, ResolvedResult);
+    if (!S)
+      return nullptr;
+
+    if (ThisConfig.options().cref() || ThisConfig.options().buildCRef())
+      addToCref(Input, ResolvedResult);
+
+    LDSymbol *OutputSym = ResolvedResult.Info->outSymbol();
+    bool HasOutputSym = (nullptr != OutputSym);
+
+    InputSym->setResolveInfo(*ResolvedResult.Info);
+
+    LDSymbol::ValueType ValueLocal = ValueArg;
+    if (ResolvedResult.Overriden) {
+      if (CurFragmentRef && CurFragmentRef->frag()) {
+        ELFSection *Sec = CurFragmentRef->frag()->getOwningSection();
+        ValueLocal = ValueLocal - Sec->addr();
+      }
+      ResolvedResult.Info->setValue(ValueLocal, /*isFinal=*/false);
+      ResolvedResult.Info->setOutSymbol(InputSym);
+    } else if (!ResolvedResult.Overriden && !HasOutputSym) {
+      // Set the out symbol for the corresponding shared library symbol because
+      // the symbol is referenced by an object file.
+      // For shared library symbols, out symbol in ResolveInfo is only set if
+      // the symbol is referenced by a relocatable object file.
+      LDSymbol *SharedLibSym = NP.getSharedLibSymbol(ResolvedResult.Info);
+      if (SharedLibSym)
+        ResolvedResult.Info->setOutSymbol(SharedLibSym);
+    }
+
+    if (ThisModule.getPrinter()->traceSymbols())
+      ThisConfig.raise(Diag::obj_symbol_created)
+          << InputSym->name() << InputSym->sectionIndex()
+          << InputSym->resolveInfo()->infoAsString();
+    return InputSym;
+  };
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  ParsedVersionedName P = parseVersionedName(SymbolName);
+
+  if (P.IsMalformed) {
+    ThisConfig.raise(Diag::error_malformed_versioned_symbol_name)
+        << Input.getInput()->decoratedPath() << SymbolName;
+    return nullptr;
+  }
+
+  if (!P.Version.empty()) {
+    // Versioned input. Reject the unsupported sub-cases up front; full
+    // support for these will be added in follow-up patches.
+    if (Binding == ResolveInfo::Binding::Local) {
+      ThisConfig.raise(Diag::error_local_versioned_symbol_unsupported)
+          << Input.getInput()->decoratedPath() << SymbolName;
+      return nullptr;
+    }
+    if (P.IsDefault && Desc == ResolveInfo::Undefined) {
+      ThisConfig.raise(Diag::error_default_versioned_undef_ref)
+          << Input.getInput()->decoratedPath() << SymbolName;
+      return nullptr;
+    }
+
+    // Build the canonical name: always single `@`. Default-ness is
+    // tracked by the ResolveInfo flag.
+    std::string CanonicalName = (P.Base + "@" + P.Version).str();
+
+    LDSymbol *NonCanonicalSym = nullptr;
+    LDSymbol *CanonicalSym = nullptr;
+
+    // A default-versioned definition `bar@@V1` also claims the
+    // unversioned slot `bar`, so synthesize the non-canonical alias.
+    // If the input independently defines `bar` (e.g. a body symbol from
+    // `int bar(){}` alongside `.symver bar, bar@@V1`), the alias and the
+    // body collide on the unversioned slot and a multiple-definition
+    // error is reported — that is acceptable.
+    if (P.IsDefault) {
+      ResolveInfo NonCanonRI = NP.createInputSymbolRI(
+          P.Base.str(), Input, /*isDyn=*/false, Type, Desc, Binding, Size,
+          Visibility, Value, IsPatchable);
+      NonCanonicalSym = AddSymbol(NonCanonRI, Value);
+      if (!NonCanonicalSym)
+        return nullptr;
+      if (auto *EFB = llvm::dyn_cast<ELFFileBase>(&Input))
+        EFB->addNonCanonicalSymbol(NonCanonicalSym);
+    }
+
+    ResolveInfo CanonRI = NP.createInputSymbolRI(
+        CanonicalName, Input, /*isDyn=*/false, Type, Desc, Binding, Size,
+        Visibility, Value, IsPatchable);
+    CanonRI.setDefaultVersion(P.IsDefault);
+    CanonicalSym = AddSymbol(CanonRI, Value);
+    if (!CanonicalSym)
+      return nullptr;
+
+    if (NonCanonicalSym && CanonicalSym)
+      VersionedSymbols.push_back({CanonicalSym, NonCanonicalSym});
+
+    if (ThisModule.getPrinter()->traceSymbolVersioning())
+      ThisConfig.raise(Diag::trace_object_versioned_symbol)
+          << SymbolName << CanonicalName << (P.IsDefault ? 1 : 0);
+
+    return CanonicalSym;
+  }
+#endif
+  // Unversioned: original path. Also reached when symbol versioning is
+  // enabled but the symbol carries no version (falls through the versioned
+  // block above, which returns for the versioned case).
   ResolveInfo InputSymbolResolveInfo =
       NP.createInputSymbolRI(SymbolName, Input, /*isDyn=*/false, Type, Desc,
                              Binding, Size, Visibility, Value, IsPatchable);
-  LDSymbol *InputSym = makeLDSymbol(nullptr);
-  InputSym->setFragmentRef(CurFragmentRef);
-  InputSym->setSectionIndex(Shndx);
-  InputSym->setSymbolIndex(Idx);
-
-  auto &PM = ThisModule.getPluginManager();
-  SymbolInfo SymInfo(&Input, Size, Binding, Type, Visibility, Desc,
-                     /*isBitcode=*/false);
-  DiagnosticPrinter *DP = ThisConfig.getPrinter();
-  auto OldErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  PM.callVisitSymbolHook(InputSym, InputSymbolResolveInfo.getName(), SymInfo);
-  auto NewErrorCount = DP->getNumErrors() + DP->getNumFatalErrors();
-  if (NewErrorCount != OldErrorCount)
-    return nullptr;
-
-  if (Binding == ResolveInfo::Binding::Local) {
-    ResolveInfo *RI = NP.insertLocalSymbol(InputSymbolResolveInfo, *InputSym);
-    RI->setOutSymbol(InputSym);
-    InputSym->setResolveInfo(*RI);
-    return InputSym;
-  }
-
-  if (ThisModule.getLayoutInfo() &&
-      ThisModule.getLayoutInfo()->showSymbolResolution())
-    NP.getSRI().recordSymbolInfo(InputSym, SymInfo);
-
-  bool S = NP.insertNonLocalSymbol(InputSymbolResolveInfo, *InputSym,
-                                   IsPostLtoPhase, ResolvedResult);
-  if (!S)
-    return nullptr;
-
-  if (ThisConfig.options().cref() || ThisConfig.options().buildCRef())
-    addToCref(Input, ResolvedResult);
-
-  // Step 3. Set up corresponding output LDSymbol
-  LDSymbol *OutputSym = ResolvedResult.Info->outSymbol();
-
-  bool HasOutputSym = (nullptr != OutputSym);
-
-  InputSym->setResolveInfo(*ResolvedResult.Info);
-
-  if (ResolvedResult.Overriden) {
-    if (CurFragmentRef->frag()) {
-      ELFSection *S = CurFragmentRef->frag()->getOwningSection();
-      Value = Value - S->addr();
-    }
-    ResolvedResult.Info->setValue(Value, /*isFinal=*/false);
-    ResolvedResult.Info->setOutSymbol(InputSym);
-  } else if (!ResolvedResult.Overriden && !HasOutputSym) {
-    // Set the out symbol for the corresponding shared library symbol because
-    // the symbol is referenced by an object file.
-    // For shared library symbols, out symbol in ResolveInfo is only set if the
-    // symbol is referenced by a relocatable object file.
-    LDSymbol *SharedLibSym = NP.getSharedLibSymbol(ResolvedResult.Info);
-    if (SharedLibSym)
-      ResolvedResult.Info->setOutSymbol(SharedLibSym);
-  }
-
-  if (ThisModule.getPrinter()->traceSymbols())
-    ThisConfig.raise(Diag::obj_symbol_created)
-        << InputSym->name() << InputSym->sectionIndex()
-        << InputSym->resolveInfo()->infoAsString();
-  return InputSym;
+  return AddSymbol(InputSymbolResolveInfo, Value);
 }
 
 LDSymbol *IRBuilder::addSymbolFromDynObj(
@@ -718,27 +795,113 @@ LDSymbol *IRBuilder::addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
 }
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
+namespace {
+// True if `X` and `Y` describe the same underlying input definition. Used
+// in branch (4) of normalizeSymbols to distinguish a legal supersession of
+// a weak default-versioned pair by another default (e.g. weak `bar@@V1` +
+// strong `bar@@V1`) from rule-5 multi-def (strong `bar` + strong `bar@V1`).
+//
+// Comparison is by resolved origin AND FragmentRef value (frag, offset).
+// Pointer-equality on FragmentRef would always be false here because each
+// LDSymbol gets its own make<FragmentRef>(...). LDSymbol::value() is NOT
+// finalized until layout, so it is intentionally not compared.
+static bool sameDefinition(LDSymbol *X, LDSymbol *Y) {
+  if (!X || !Y)
+    return false;
+  ResolveInfo *RX = X->resolveInfo();
+  ResolveInfo *RY = Y->resolveInfo();
+  if (!RX || !RY)
+    return false;
+  if (RX->resolvedOrigin() != RY->resolvedOrigin())
+    return false;
+  FragmentRef *FX = X->fragRef();
+  FragmentRef *FY = Y->fragRef();
+  if (!FX || !FY)
+    return false;
+  return *FX == *FY;
+}
+} // namespace
+
 void IRBuilder::normalizeSymbols() {
   std::unordered_map<ResolveInfo *, ResolveInfo *> RIReplacementMap;
+  GNULDBackend &Backend = ThisModule.getBackend();
+
   for (const auto &P : VersionedSymbols) {
-    // P.first is the canonical version symbol, P.second is the non-canonical
-    // version symbol.
-    LDSymbol *CanonicalSym = P.first;
-    LDSymbol *NonCanonicalSym = P.second;
-    assert(CanonicalSym && NonCanonicalSym && "must not be null!");
+    LDSymbol *LDSym_canon = P.first;
+    LDSymbol *LDSym_noncanon = P.second;
+    assert(LDSym_canon && LDSym_noncanon && "must not be null!");
 
-    if (CanonicalSym->resolveInfo()->outSymbol() == CanonicalSym &&
-        NonCanonicalSym->resolveInfo()->outSymbol() == NonCanonicalSym) {
-      ResolveInfo *CanonicalRI = P.first->resolveInfo();
-      ResolveInfo *NonCanonicalRI = P.second->resolveInfo();
-      if (NonCanonicalRI->exportToDyn())
-        CanonicalRI->setExportToDyn();
+    ResolveInfo *RI_canon = LDSym_canon->resolveInfo();
+    ResolveInfo *RI_noncanon = LDSym_noncanon->resolveInfo();
+    assert(RI_canon && RI_noncanon && "must not be null!");
+    // The canonical and non-canonical halves of a pair always carry distinct
+    // names (e.g. `bar@V1` vs `bar`), so they must resolve to distinct NamePool
+    // RIs.
+    assert(RI_canon != RI_noncanon && "degenerate pair sharing one RI");
+    LDSymbol *canonWinner = RI_canon->outSymbol();
+    LDSymbol *nonCanonWinner = RI_noncanon->outSymbol();
+    // A null winner means the half is a versioned symbol pulled from a shared
+    // library that no relocatable object referenced: eld only materializes a
+    // ResolveInfo::outSymbol for a DSO symbol once an object uses it, so an
+    // unreferenced DSO alias keeps a null outSymbol. There is no output symbol
+    // to rewrite, so skip the pair.
+    if (!canonWinner || !nonCanonWinner)
+      continue;
 
-      // NonCanonicalSym should not be used anymore when both the canonical
-      // and the non-canonical versioned symbols are selected by the symbol
-      // resolver.
-      NonCanonicalSym->setShouldIgnore();
-      RIReplacementMap[NonCanonicalRI] = CanonicalRI;
+    bool canonHeldByA = (canonWinner == LDSym_canon);
+    bool nonCanonHeldByA = (nonCanonWinner == LDSym_noncanon);
+
+    if (canonHeldByA && nonCanonHeldByA) {
+      // (1) A won both slots. Plain `bar` refs follow A's alias to
+      //     `bar@V1`. RI_canon already carries the default-version flag
+      //     from Phase 2.
+      if (RI_noncanon->exportToDyn())
+        RI_canon->setExportToDyn();
+      Backend.addNonCanonicalVersionedSym(RI_noncanon);
+      RIReplacementMap[RI_noncanon] = RI_canon;
+    } else if (canonHeldByA && !nonCanonHeldByA) {
+      // (2) Rule 4: A's canonical won; A's non-canonical lost to a
+      //     strong unversioned `bar` (X). Required output: one symbol
+      //     `bar@@V1` backed by X. Survivor is RI_canon (carries name
+      //     "bar@V1" + default flag); stamp X's definition fields onto
+      //     it.
+      RI_canon->override(*nonCanonWinner->resolveInfo());
+      RI_canon->setOutSymbol(nonCanonWinner);
+      if (RI_noncanon->exportToDyn())
+        RI_canon->setExportToDyn();
+      Backend.addNonCanonicalVersionedSym(RI_noncanon);
+      RIReplacementMap[RI_noncanon] = RI_canon;
+    } else if (!canonHeldByA && nonCanonHeldByA) {
+      // (3) Rule 3: A's canonical lost to a strong non-default `bar@V1`
+      //     (B); A's non-canonical was the only `bar` def.
+      if (RI_noncanon->exportToDyn())
+        RI_canon->setExportToDyn();
+      Backend.addNonCanonicalVersionedSym(RI_noncanon);
+      RIReplacementMap[RI_noncanon] = RI_canon;
+    } else {
+      // (4) Both halves of A's pair were independently overridden.
+      //     Sub-case (a): same-definition (e.g. weak @@V1 + strong @@V1).
+      //                   Legal supersession; C's pair handles collapse.
+      //     Sub-case (b): rule-5 multi-def. Different X and B.
+      if (sameDefinition(canonWinner, nonCanonWinner))
+        continue;
+
+      ResolveInfo *NonCanonRI = nonCanonWinner->resolveInfo();
+      ResolveInfo *CanonRI = canonWinner->resolveInfo();
+      InputFile *nonCanonWinnerOrigin = NonCanonRI->resolvedOrigin();
+      InputFile *canonWinnerOrigin = CanonRI->resolvedOrigin();
+      std::string nonCanonWinnerOriginPath =
+          (nonCanonWinnerOrigin && nonCanonWinnerOrigin->getInput())
+              ? nonCanonWinnerOrigin->getInput()->decoratedPath()
+              : std::string("<unknown>");
+      std::string canonWinnerOriginPath =
+          (canonWinnerOrigin && canonWinnerOrigin->getInput())
+              ? canonWinnerOrigin->getInput()->decoratedPath()
+              : std::string("<unknown>");
+      ThisConfig.raise(Diag::multiple_definitions)
+          << RI_canon->name() << nonCanonWinnerOriginPath
+          << canonWinnerOriginPath;
+      return; // do not dispatch further pairs on inconsistent state.
     }
   }
 
@@ -751,29 +914,24 @@ void IRBuilder::normalizeSymbols() {
                    DynObjectFiles.end());
 
   for (InputFile *Input : AllInputs) {
-    ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input);
-    if (ObjFile) {
+    if (ObjectFile *ObjFile = llvm::dyn_cast<ObjectFile>(Input)) {
       for (LDSymbol *Sym : ObjFile->getSymbols()) {
         ResolveInfo *RI = Sym->resolveInfo();
         auto it = RIReplacementMap.find(RI);
-
-        if (it != RIReplacementMap.end()) {
+        if (it != RIReplacementMap.end())
           Sym->setResolveInfo(*(it->second));
-        }
       }
     }
 
-    ELFDynObjectFile *DynObjFile = llvm::dyn_cast<ELFDynObjectFile>(Input);
-    if (!DynObjFile)
-      continue;
-
-    const auto &NonCanonicalSymbols = DynObjFile->getNonCanonicalSymbols();
-    for (LDSymbol *NonCanonicalSym : NonCanonicalSymbols) {
-      ResolveInfo *NonCanonicalRI = NonCanonicalSym->resolveInfo();
-      auto it = RIReplacementMap.find(NonCanonicalRI);
-
-      if (it != RIReplacementMap.end()) {
-        NonCanonicalSym->setResolveInfo(*(it->second));
+    // Walk recorded non-canonical alias symbols on BOTH object and dyn
+    // inputs (storage was promoted to ELFFileBase in Phase 2b). A single
+    // pass per input avoids double-iterating object symbols.
+    if (ELFFileBase *ELFFile = llvm::dyn_cast<ELFFileBase>(Input)) {
+      for (LDSymbol *NonCanonicalSym : ELFFile->getNonCanonicalSymbols()) {
+        ResolveInfo *NonCanonicalRI = NonCanonicalSym->resolveInfo();
+        auto it = RIReplacementMap.find(NonCanonicalRI);
+        if (it != RIReplacementMap.end())
+          NonCanonicalSym->setResolveInfo(*(it->second));
       }
     }
   }

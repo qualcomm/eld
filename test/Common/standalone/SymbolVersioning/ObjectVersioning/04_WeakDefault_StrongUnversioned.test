@@ -1,0 +1,17 @@
+REQUIRES: symbol_versioning
+#---04_WeakDefault_StrongUnversioned.test---------------------------------#
+#BEGIN_COMMENT
+# Rule 4: weak bar@@V1 (a.o) + strong unversioned bar (b.o).
+# branch (2) reconciliation: RI_canon survives; X's data stamped onto
+# it; default flag preserved. Output: one symbol bar@@V1 backed by b.o.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/weak_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o %t.b.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-NOT: : bar{{$}}
+CHECK-NOT: bar@V1{{$}}

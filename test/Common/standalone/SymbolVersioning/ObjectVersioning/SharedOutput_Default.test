@@ -1,0 +1,13 @@
+REQUIRES: symbol_versioning
+#---SharedOutput_Default.test---------------------------------------------#
+# Output emission for default-version shared lib: dynsym entry has the
+# bare name (no `@`) with version index pointing at V1; .gnu.version_d
+# lists V1; no VERSYM_HIDDEN bit on the entry.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-DAG: Name: V1

@@ -1,0 +1,15 @@
+REQUIRES: symbol_versioning
+#---Export_Branch3_Dynsym.test--------------------------------------------#
+# Branch-(3) reconciliation (rule 3): weak `bar@@V1` + strong `bar@V1`.
+# RI_canon now holds B; the default-version flag is preserved across
+# override; .dynsym shows `bar@@V1` (default identity transferred to B).
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/weak_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o %t.b.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-NOT: : bar{{$}}
+CHECK-NOT: bar@V1{{$}}

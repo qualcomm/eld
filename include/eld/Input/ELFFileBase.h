@@ -76,6 +76,21 @@ public:
 
   virtual bool isELFNeeded() { return true; }
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  // Record the synthetic non-canonical alias LDSymbol of a versioned
+  // symbol pair. For a default-versioned input definition `bar@@V1`, the
+  // pair is (canonical "bar@V1", non-canonical "bar"); the non-canonical
+  // half is recorded here so IRBuilder::normalizeSymbols can replace
+  // ResolveInfo references resolved to non-canonical symbol to the canonical symbol ResolveInfo*
+  // during the normalization pass.
+  void addNonCanonicalSymbol(LDSymbol *Sym) {
+    NonCanonicalSymbols.push_back(Sym);
+  }
+  const std::vector<LDSymbol *> &getNonCanonicalSymbols() const {
+    return NonCanonicalSymbols;
+  }
+#endif
+
   virtual ~ELFFileBase() {}
 
 protected:
@@ -84,6 +99,9 @@ protected:
   ELFSection *StringTable = nullptr;
   ELFSection *ExtendedSymbolTable = nullptr;
   ELFSection *Dynamic = nullptr;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  std::vector<LDSymbol *> NonCanonicalSymbols;
+#endif
 };
 
 } // namespace eld
