@@ -7,7 +7,22 @@ REQUIRES: symbol_versioning
 #START_TEST
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
 RUN: %not %link %linkopts -o %t1.lib1.so %t1.2.o -shared --version-script %p/Inputs/vs.5.t 2>&1 | %filecheck %s --check-prefix=ERRORS1
+# A cross-name default `.symver bar, baz@@V2` synthesizes the unversioned
+# alias `baz`, which collides with the independent `int baz()` body in the
+# same object. This is a multiple definition, matching GNU ld.
+RUN: %clang %clangopts -o %t1.4.o %p/Inputs/4.c -c -fPIC
+RUN: %not %link %linkopts -o %t1.lib2.so %t1.4.o -shared --version-script %p/Inputs/vs.2.t 2>&1 | %filecheck %s --check-prefix=ERRORS2
+# A default-versioned `foo@@V2` synthesizes the unversioned alias `foo`,
+# which collides with the independent `int foo()` body. eld rejects this
+# rather than emitting two default versions (`foo@@V1` and `foo@@V2`) of the
+# same name.
+RUN: %clang %clangopts -o %t1.idc.o %p/Inputs/independent_default_clash.c -c -fPIC
+RUN: %not %link %linkopts -o %t1.lib3.so %t1.idc.o -shared --version-script %p/Inputs/vs.3.t 2>&1 | %filecheck %s --check-prefix=ERRORS3
 #END_TEST
 
 ERRORS1: Error: {{.*}}2.o: symbol foo@V1 has undefined version V1
 ERRORS1: Error: {{.*}}2.o: symbol bar@V1 has undefined version V1
+
+ERRORS2: Error: multiple definition of symbol `baz'
+
+ERRORS3: Error: multiple definition of symbol `foo'

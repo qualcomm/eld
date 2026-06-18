@@ -1,0 +1,15 @@
+REQUIRES: symbol_versioning
+#---VersionedSymbolsWithGC.test---------------------------------------------#
+#BEGIN_COMMENT
+# Validate a strong default-versioned definition survives --gc-sections.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.gc.o %p/Inputs/strong_default.c -c -fPIC -ffunction-sections
+RUN: %link %linkopts -o %t.gc.so %t.gc.o -shared \
+RUN:     --version-script %p/Inputs/vs_v1.t --gc-sections
+RUN: %readelf --dyn-syms --version-info %t.gc.so \
+RUN:   | %filecheck %s --check-prefix=GcSections
+#END_TEST
+
+GcSections-DAG:            bar@@V1
+GcSections-NOT:            {{ }}bar{{$}}

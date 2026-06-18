@@ -1,0 +1,22 @@
+REQUIRES: symbol_versioning
+#---ResolutionInStaticExecutable.test---------------------------------------#
+#BEGIN_COMMENT
+# Validate versioned symbols in executable static symbol tables.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.strong_default.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.strong_nondefault.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %clang %clangopts -o %t.main_default.o %p/Inputs/main_default.c -c
+RUN: %clang %clangopts -o %t.main_nondefault.o %p/Inputs/main_nondefault.c -c
+
+RUN: %link %linkopts -o %t.exec_default.exe %t.strong_default.o %t.main_default.o
+RUN: %readelf -sW %t.exec_default.exe | %filecheck %s --check-prefix=ExecDefault
+
+RUN: %link %linkopts -o %t.exec_nondefault.exe %t.strong_nondefault.o %t.main_nondefault.o
+RUN: %readelf -sW %t.exec_nondefault.exe | %filecheck %s --check-prefix=ExecNonDefault
+#END_TEST
+
+ExecDefault-DAG:           bar@@V1
+
+ExecNonDefault-DAG:        bar@V1
+ExecNonDefault-NOT:        bar@@V1

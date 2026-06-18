@@ -272,6 +272,14 @@ ELFReader<ELFT>::createSymbol(llvm::StringRef stringTable, Elf_Sym rawSym,
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expSymName);
   llvm::StringRef ldName = expSymName.value();
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (parseVersionedName(ldName).IsMalformed) {
+    m_Module.getConfig().raise(Diag::error_malformed_versioned_symbol_name)
+        << m_InputFile.getInput()->decoratedPath() << ldName;
+    return static_cast<LDSymbol *>(nullptr);
+  }
+#endif
+
   if (section && ldType != ResolveInfo::Section)
     section->setWanted(true);
 
