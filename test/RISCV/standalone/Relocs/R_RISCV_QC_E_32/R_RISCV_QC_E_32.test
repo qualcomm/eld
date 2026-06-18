@@ -13,10 +13,10 @@ RUN: %objdump -dt  %t1.out |  %filecheck %s
 #END_TEST
 
 CHECK-LABEL: SYMBOL TABLE:
-CHECK: 00000000 l *ABS* 00000000 test_zero
-CHECK: 0000007a l .text 00000000 test2
-CHECK: 89abcdef l *ABS* 00000000 test_distinct
-CHECK: ffffffff l *ABS* 00000000 test_ffff
+CHECK-DAG: 00000000 l *ABS* 00000000 test_zero
+CHECK-DAG: 0000007a l .text 00000000 test2
+CHECK-DAG: 89abcdef l *ABS* 00000000 test_distinct
+CHECK-DAG: ffffffff l *ABS* 00000000 test_ffff
 
 CHECK-LABEL: 00000074 <test1>:
 CHECK: 029f 0000 0000 qc.e.li t0, 0

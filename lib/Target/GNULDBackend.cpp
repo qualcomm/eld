@@ -818,6 +818,25 @@ void GNULDBackend::sizeDynNamePools() {
 
     // Copy all the DynamicSymbols.
     std::copy(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
+
+    // Deterministic .dynsym order: undefined symbols first, then defined;
+    // within each group by (input ordinal, input .symtab index).
+    auto Cmp = [](const ResolveInfo *A, const ResolveInfo *B) -> bool {
+      bool UndA = A->isUndef() || A->isDyn();
+      bool UndB = B->isUndef() || B->isDyn();
+      if (UndA != UndB)
+        return UndA;
+      auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
+      auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
+      if (OrdA != OrdB)
+        return OrdA < OrdB;
+      return A->outSymbol()->getSymbolIndex() <
+             B->outSymbol()->getSymbolIndex();
+    };
+    // Skip the null symbol at index 0.
+    llvm::stable_sort(
+        llvm::make_range(DynamicSymbols.begin() + 1, DynamicSymbols.end()),
+        Cmp);
   }
 
   {
