@@ -335,8 +335,14 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     if (config().options().isPIE()) {
       // PIE executable: relax TLSDESC to IE
       AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
-                         llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+      if (rsym->isLocal()) {
+        // Local symbol: fill GOT at link time, no dynamic reloc needed
+        G->setValueType(GOT::TLSStaticSymbolValue);
+      } else {
+        // Global symbol: dynamic linker fills GOT
+        helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                           llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+      }
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       return;
     }
@@ -575,8 +581,14 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     if (config().options().isPIE()) {
       // PIE executable: relax TLSDESC to IE
       AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
-                         llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+      if (rsym->isLocal()) {
+        // Local symbol: no name in dynamic symtab, fill at link time
+        G->setValueType(GOT::TLSStaticSymbolValue);
+      } else {
+        // Global symbol: dynamic linker fills GOT at startup
+        helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
+                           llvm::ELF::R_AARCH64_TLS_TPREL64, m_Target);
+      }
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       return;
     }
