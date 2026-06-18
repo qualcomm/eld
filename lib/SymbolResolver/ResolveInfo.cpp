@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 #include "eld/SymbolResolver/ResolveInfo.h"
 #include "eld/Config/LinkerConfig.h"
+#include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/StringRefUtils.h"
 #include "eld/Target/GNULDBackend.h"
@@ -19,6 +20,32 @@
 #include <string>
 
 using namespace eld;
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+ParsedVersionedName eld::parseVersionedName(llvm::StringRef Name) {
+  ParsedVersionedName R{Name, /*Version=*/llvm::StringRef(),
+                        /*IsDefault=*/false, /*IsMalformed=*/false};
+  auto At = Name.find('@');
+  if (At == llvm::StringRef::npos)
+    return R; // unversioned plain name.
+  if (At == 0) {
+    // Leading `@`, no base.
+    return {{}, {}, false, true};
+  }
+  R.Base = Name.substr(0, At);
+  llvm::StringRef Rest = Name.substr(At + 1);
+  if (!Rest.empty() && Rest.front() == '@') {
+    R.IsDefault = true;
+    Rest = Rest.substr(1);
+  }
+  if (Rest.empty() || Rest.contains('@')) {
+    // "bar@", "bar@@", or extra `@` in the version part.
+    return {{}, {}, false, true};
+  }
+  R.Version = Rest;
+  return R;
+}
+#endif
 
 /// g_NullResolveInfo - a pointer to Null
 static ResolveInfo GNullResolveInfo;
@@ -57,12 +84,21 @@ void ResolveInfo::overrideAttributes(const ResolveInfo &PFrom) {
   // exportToDyn should stay true after overriding if
   // the overriding symbol can be a preemptible symbol.
   bool PrevExportToDyn = exportToDyn();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  // OR-preserve the default-version flag: if either side claimed the symbol
+  // is the default version of its base, the survivor keeps the identity.
+  bool PrevDefaultVersion = isDefaultVersion();
+#endif
   ThisBitField &= ~ResolveMask;
   ThisBitField |= (PFrom.ThisBitField & ResolveMask);
   shouldPreserve(P);
   setVisibility(V);
   if (PrevExportToDyn && PFrom.canBePreemptible())
     setExportToDyn();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (PrevDefaultVersion || PFrom.isDefaultVersion())
+    setDefaultVersion(true);
+#endif
 }
 
 /// overrideVisibility - override the visibility
@@ -355,9 +391,34 @@ std::string ResolveInfo::getContextualLabel() const {
 }
 
 std::string ResolveInfo::getDecoratedName(bool DoDeMangle) const {
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  // Render the GNU-visible versioned form. Object-origin symbols get
+  // `bar@@V1` when default-versioned and `bar@V1` when not; DSO-origin
+  // symbols keep the canonical single-`@` form because the .gnu.version
+  // index conveys default-ness for shared-library symbols. Mirrors
+  // GNULDBackend::getSymbolTableName so diagnostics and the on-disk
+  // symbol table agree.
+  std::string BaseName = std::string(name());
+  std::string VersionSuffix;
+  if (hasVersionInName()) {
+    ParsedVersionedName P = parseVersionedName(name());
+    if (!P.IsMalformed && !P.Version.empty()) {
+      InputFile *Origin = resolvedOrigin();
+      bool IsDsoOrigin = Origin && llvm::isa<ELFDynObjectFile>(Origin);
+      const llvm::StringRef Sep =
+          (!IsDsoOrigin && isDefaultVersion()) ? "@@" : "@";
+      BaseName = P.Base.str();
+      VersionSuffix = (Sep + P.Version).str();
+    }
+  }
+  std::string DecoratedName =
+      DoDeMangle ? eld::string::getDemangledName(BaseName) : BaseName;
+  DecoratedName += VersionSuffix;
+#else
   std::string DecoratedName = name();
   if (DoDeMangle)
     DecoratedName = eld::string::getDemangledName(name());
+#endif
   std::optional<std::string> AuxSymName;
   if (ObjectFile *ObjFile =
           llvm::dyn_cast_or_null<ObjectFile>(SymbolResolvedOrigin))
