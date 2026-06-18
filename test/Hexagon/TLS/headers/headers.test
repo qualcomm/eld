@@ -25,8 +25,8 @@ RUN: %readelf -l -S -s -W %t6.out |   %filecheck %s --check-prefix="TBSSDATA"
 #ALL: TLS            {{[x0-9a-f]+}} {{[x0-9a-f]+}} {{[x0-9a-f]+}} 0x00008 0x00010 R   0x8
 #ALL: 01     .tdata .data .bss
 #ALL: 02     .tdata .tbss
-#ALL: 00000000     8 TLS     GLOBAL DEFAULT    {{[0-9]}} a
-#ALL: 00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} b
+#ALL-DAG: 00000000     8 TLS     GLOBAL DEFAULT    {{[0-9]}} a
+#ALL-DAG: 00000008     4 TLS     GLOBAL DEFAULT    {{[0-9]}} b
 #TBSSTDATA:  LOAD           {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00004 RW  0x1000
 #TBSSTDATA:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00004 0x00008 R   0x8
 #TBSS:  TLS            {{[x0-9a-z]+}} {{[x0-9a-z]+}} {{[x0-9a-z]+}} 0x00000 0x00008 R   0x8

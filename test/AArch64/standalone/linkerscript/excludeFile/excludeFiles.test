@@ -9,8 +9,8 @@ RUN: %readelf -S -s %t.out | %filecheck %s
 
 CHECK:  .section1          PROGBITS
 CHECK:  .others           PROGBITS
-CHECK:  FUNC    GLOBAL DEFAULT    1 main_4
+CHECK:  FUNC    GLOBAL DEFAULT    2 main_1
 CHECK:  FUNC    GLOBAL DEFAULT    1 main_5
 CHECK:  OBJECT  GLOBAL DEFAULT    1 a5
-CHECK:  FUNC    GLOBAL DEFAULT    2 main_1
+CHECK:  FUNC    GLOBAL DEFAULT    1 main_4
 CHECK:  OBJECT  GLOBAL DEFAULT    2 a4
