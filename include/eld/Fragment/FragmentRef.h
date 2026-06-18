@@ -70,6 +70,15 @@ public:
 
   void setOffset(Offset Offset) { ThisOffset = Offset; }
 
+  // Compare two FragmentRefs by underlying (fragment, offset). Each LDSymbol
+  // gets its own make<FragmentRef>(...), so pointer-equality is meaningless
+  // across symbols of the same definition.
+  bool operator==(const FragmentRef &O) const {
+    return ThisFragment == O.ThisFragment && ThisOffset == O.ThisOffset;
+  }
+
+  bool operator!=(const FragmentRef &O) const { return !(*this == O); }
+
   Offset getOutputOffset(Module &M) const;
 
   ELFSection *getOutputELFSection() const;
