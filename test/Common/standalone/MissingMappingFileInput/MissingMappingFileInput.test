@@ -1,0 +1,15 @@
+#---MissingMappingFileInput.test----------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that ELD does not crash when --mapping-file maps an input
+# to a file that does not exist. ELD should report a fatal error
+# instead of segfaulting.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %not %link %linkopts %t.main.o \
+RUN:   -L%p/Inputs \
+RUN:   -T script.t \
+RUN:   --mapping-file=%p/Inputs/mapping_missing.ini \
+RUN:   2>&1 | %filecheck %s
+#END_TEST
+CHECK: cannot read file
