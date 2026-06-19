@@ -68,6 +68,8 @@ bool Input::resolvePathMappingFile(const LinkerConfig &PConfig) {
       Input::getMemoryAreaForPath(FileName, PConfig.getDiagEngine());
   if (!InputMem)
     InputMem = createMemoryArea(FileName, PConfig.getDiagEngine());
+  if (!InputMem)
+    return false; // File does not exist;
   setMemArea(InputMem);
   // All queries to return the name of the Input return FileName for the main
   // driver.
