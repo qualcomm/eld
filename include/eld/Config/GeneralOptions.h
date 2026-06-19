@@ -529,6 +529,15 @@ public:
     return ArchiveMemberReportFile;
   }
 
+  // --emit-load-info-json
+  void setEmitLoadInfoJsonFile(llvm::StringRef File) {
+    EmitLoadInfoJsonFile = File.str();
+  }
+
+  const std::optional<std::string> &getEmitLoadInfoJsonFile() const {
+    return EmitLoadInfoJsonFile;
+  }
+
   // --ld-generated-unwind-info
   void setGenUnwindInfo(bool PEnable = true) { BGenUnwindInfo = PEnable; }
 
@@ -1421,6 +1430,7 @@ private:
   std::string LinkLaunchDirectory;
   bool ShowRMSectNameInDiag = false;
   bool UseDefaultPlugins = true;
+  std::optional<std::string> EmitLoadInfoJsonFile;
 };
 
 } // namespace eld

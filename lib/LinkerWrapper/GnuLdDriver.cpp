@@ -29,6 +29,7 @@
 #include "eld/LayoutMap/TextLayoutPrinter.h"
 #include "eld/LayoutMap/YamlLayoutPrinter.h"
 #include "eld/Object/ArchiveMemberReport.h"
+#include "eld/Object/LoadInfoReport.h"
 #include "eld/Support/FileSystem.h"
 #include "eld/Support/MappingFileReader.h"
 #include "eld/Support/MsgHandling.h"
@@ -65,11 +66,12 @@ using namespace eld;
 static constexpr llvm::opt::OptTable::Info infoTable[] = {
 #define OPTION(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, ID, KIND, GROUP, ALIAS,  \
                ALIASARGS, FLAGS, VISIBILITY, PARAM, HELPTEXT,                  \
-               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)                          \
-  LLVM_CONSTRUCT_OPT_INFO(                                                     \
-      PREFIXES_OFFSET, PREFIXED_NAME_OFFSET, GnuLdOptTable::ID, KIND,          \
-      GnuLdOptTable::GROUP, GnuLdOptTable::ALIAS, ALIASARGS, FLAGS,            \
-      VISIBILITY, PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET),
+               HELPTEXTSFORVARIANTS, METAVAR, VALUES, SUBCOMMANDIDS_OFFSET)    \
+  LLVM_CONSTRUCT_OPT_INFO(PREFIXES_OFFSET, PREFIXED_NAME_OFFSET,               \
+                          GnuLdOptTable::ID, KIND, GnuLdOptTable::GROUP,       \
+                          GnuLdOptTable::ALIAS, ALIASARGS, FLAGS, VISIBILITY,  \
+                          PARAM, HELPTEXT, HELPTEXTSFORVARIANTS, METAVAR,      \
+                          VALUES, SUBCOMMANDIDS_OFFSET),
 #include "eld/Driver/GnuLinkerOptions.inc"
 #undef OPTION
 };
@@ -612,7 +614,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --enable-linker-version / --disable-linker-version
   if (Args.hasArg(T::enable_linker_version) &&
       Args.hasArg(T::disable_linker_version)) {
-    errs() << "Cannot specify enable and disable LINKER_VERSION at same time!\n";
+    errs()
+        << "Cannot specify enable and disable LINKER_VERSION at same time!\n";
     return false;
   }
 
@@ -623,7 +626,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   if (Args.hasArg(T::disable_linker_version)) {
     Config.options().setLinkerVersionDirectiveEnabled(false);
-    Config.addCommandLine(Table->getOptionName(T::disable_linker_version), true);
+    Config.addCommandLine(Table->getOptionName(T::disable_linker_version),
+                          true);
   }
 
   bool recordCommandLine = Args.hasFlag(
@@ -1309,6 +1313,11 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --archive-member-report=<file>
   if (llvm::opt::Arg *A = Args.getLastArg(T::ArchiveMemberReportFile)) {
     Config.options().setArchiveMemberReportFile(A->getValue());
+  }
+
+  // --emit-load-info-json=<file>
+  if (llvm::opt::Arg *A = Args.getLastArg(T::EmitLoadInfoJson)) {
+    Config.options().setEmitLoadInfoJsonFile(A->getValue());
   }
 
   Config.options().setUnknownOptions(Args.getAllArgValues(T::UNKNOWN));
@@ -2000,6 +2009,11 @@ bool GnuLdDriver::doLink(llvm::opt::InputArgList &Args,
     }
     if (!linkStatus || Config.options().getRecordInputFiles())
       handleReproduce<T>(Args, actions, true);
+    if (auto &LoadInfoFile = Config.options().getEmitLoadInfoJsonFile()) {
+      LoadInfoReport Report(*linker.getObjectLinker(), actions,
+                            *Config.getDiagEngine());
+      Report.emitLoadInfoJson(LoadInfoFile.value());
+    }
     if (auto &PluginActLog = ThisModule->getPluginActivityLog()) {
       PluginActLog->print(Config.options().getPluginActivityLogFile().value());
     }

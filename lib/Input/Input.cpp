@@ -248,6 +248,8 @@ llvm::hash_code Input::computeFilePathHash(llvm::StringRef FilePath) {
 std::unordered_map<std::string, MemoryArea *>
     Input::ResolvedPathToMemoryAreaMap;
 
+uint32_t Input::InternalInputOrderEnd = 0;
+
 MemoryArea *Input::getMemoryAreaForPath(const std::string &Filepath,
                                         DiagnosticEngine *DiagEngine) {
   auto Iter = ResolvedPathToMemoryAreaMap.find(Filepath);

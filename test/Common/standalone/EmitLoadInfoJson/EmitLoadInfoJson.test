@@ -1,0 +1,43 @@
+#---EmitLoadInfoJson.test---Executable --------------------#
+#BEGIN_COMMENT
+# This test checks that --emit-load-info-json emits a JSON file with
+# information about all input files including objects, archives, shared
+# libraries, and behavior options.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t.foo.o
+RUN: %clang %clangopts -c %p/Inputs/bar.c -o %t.bar.o
+RUN: %clang %clangopts -c %p/Inputs/lib.c -fPIC -o %t.lib.o
+RUN: %ar -cr %t.libfoobar.a %t.foo.o %t.bar.o
+RUN: %link %linkopts -shared -o %t.libshared.so %t.lib.o
+RUN: %link %linkopts -o %t.out %t.main.o --whole-archive %t.libfoobar.a --no-whole-archive --as-needed %t.libshared.so --no-as-needed --emit-load-info-json %t.loadinfo.json
+RUN: %filecheck %s --check-prefix=JSON < %t.loadinfo.json
+#END_TEST
+
+JSON-DAG: "LinkerRevision"
+JSON-DAG: "Inputs"
+
+JSON-DAG: "Index":
+JSON-DAG: "Name": "{{.*}}main.o"
+JSON-DAG: "Type": "Object"
+JSON-DAG: "ResolvedPath": "{{.*}}main.o"
+
+JSON-DAG: "InputBehaviorOption": "--whole-archive"
+
+JSON-DAG: "Name": "{{.*}}libfoobar.a"
+JSON-DAG: "Type": "Archive"
+JSON-DAG: "IncludedCount":
+JSON-DAG: "TotalCount":
+JSON-DAG: "Members"
+JSON-DAG: "Reason": "WholeArchive"
+
+JSON-DAG: "InputBehaviorOption": "--no-whole-archive"
+JSON-DAG: "InputBehaviorOption": "--as-needed"
+
+JSON-DAG: "Name": "{{.*}}libshared.so"
+JSON-DAG: "Type": "SharedLibrary"
+JSON-DAG: "SOName":
+JSON-DAG: "Needed":
+
+JSON-DAG: "InputBehaviorOption": "--no-as-needed"

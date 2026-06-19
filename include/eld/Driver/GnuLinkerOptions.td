@@ -1532,6 +1532,12 @@ defm ArchiveMemberReportFile
       MetaVarName<"<filename>">,
       Group<grp_miscfeatures>;
 
+defm EmitLoadInfoJson
+    : smDashWithOpt<"emit-load-info-json", "EmitLoadInfoJson",
+                    "Emit JSON report containing information about all input files">,
+      MetaVarName<"<filename>">,
+      Group<grp_miscfeatures>;
+
 //===----------------------------------------------------------------------===//
 /// Help!
 //===----------------------------------------------------------------------===//
