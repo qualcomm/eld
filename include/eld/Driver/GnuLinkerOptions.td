@@ -815,10 +815,14 @@ defm portable : mDashDeprEq<"portable",
 def d : Flag<["-"], "d">,
         HelpText<"Assign space to common symbols">,
         Group<grp_symbolopts>;
-defm dc : mDashDeprWithOpt<"dc", "d", "Assign space to common symbols">,
-          Group<grp_symbolopts>;
-defm dp : mDashDeprWithOpt<"dp", "d", "Assign space to common symbols">,
-          Group<grp_symbolopts>;
+def dc : Flag<["-"], "dc">,
+         HelpText<"Assign space to common symbols">,
+         Alias<d>,
+         Group<grp_symbolopts>;
+def dp : Flag<["-"], "dp">,
+         HelpText<"Assign space to common symbols">,
+         Alias<d>,
+         Group<grp_symbolopts>;
 def sort_common : FF<"sort-common">,
                   HelpText<"sort common symbols by alignment">,
                   Group<grp_symbolopts>;

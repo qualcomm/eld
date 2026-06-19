@@ -485,14 +485,12 @@ RUN: %link --help 2>&1 | %filecheck %s
 #CHECK:   -version-script=<linkersciptfile>
 #CHECK:   --version-script <linkersciptfile>
 #CHECK:   -version-script <linkersciptfile>
-#CHECK:   --dc
 #CHECK:   -dc
 #CHECK:   --demangle-style=<value>
 #CHECK:   --demangle-style <value>
 #CHECK:   --demangle
 #CHECK:   --discard-all
 #CHECK:   --discard-locals
-#CHECK:   --dp
 #CHECK:   -dp
 #CHECK:   -d
 #CHECK:   --no-demangle
