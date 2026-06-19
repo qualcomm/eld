@@ -1,0 +1,25 @@
+#---MissingMappingFileInput.test----------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that ELD does not crash when a reproduce tarball is replayed
+# and an input file referenced in a linker script is missing.
+# ELD should report a fatal error instead of segfaulting.
+#END_COMMENT
+#START_TEST
+RUN: %rm %t.dir && mkdir -p %t.dir/lib64 %t.dir/scripts
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o
+RUN: %clang %clangopts -c %p/Inputs/lib1.c -o %t.lib1.o -fPIC
+RUN: %link %linkopts -shared %t.lib1.o -o %t.dir/lib64/lib1.so
+RUN: %cp %p/Inputs/script.t %t.dir/scripts/script.t
+RUN: %link %linkopts %t.main.o \
+RUN:   --sysroot=%t.dir \
+RUN:   -T %t.dir/scripts/script.t \
+RUN:   --reproduce %t.tar \
+RUN:   --dump-response-file %t.response \
+RUN:   -o %t.out
+RUN: %rm -rf %t.rep && %mkdir %t.rep
+RUN: %tar %gnutaropts -xf %t.tar -C %t.rep --strip-components=1
+RUN: %rm %t.rep/SharedLibrary
+RUN: %rm %t.dir/lib64/lib1.so
+RUN: cd %t.rep && %not %link @%t.response 2>&1 | %filecheck %s
+#END_TEST
+CHECK: cannot read file /lib64/lib1.so
