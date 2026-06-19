@@ -54,7 +54,7 @@ jobs:
           free -h # or cat /proc/meminfo
 
       - name: Checkout llvm-project
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: llvm/llvm-project
           path: llvm-project
@@ -71,7 +71,7 @@ jobs:
           echo "::notice::Using base branch '${PR_BASE_REF}' for llvm-project checkout"
 
       - name: Checkout eld
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: llvm-project/llvm/tools/eld
           repository: ${{ env.ELD_REPO }}
