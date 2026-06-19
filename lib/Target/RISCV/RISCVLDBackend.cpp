@@ -544,7 +544,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   bool canCompress = canRelax && DoCompressed && llvm::isInt<12>(X);
   bool canRelaxTbljal = canRelax && DoCompressed &&
                         config().options().getRISCVRelaxTbljal() &&
-                        llvm::isInt<32>(X);
+                        llvm::isUInt<32>(S + A);
   bool canRelaxJal = canRelax && llvm::isInt<21>(X);
   auto reportMissedQCCall = [&]() {
     reportMissedRelaxation("RISCV_QC_E_CALL", *region, offset,

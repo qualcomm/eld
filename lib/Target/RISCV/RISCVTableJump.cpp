@@ -82,7 +82,9 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
     if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT &&
         (!Backend.config().options().getRISCVRelax() ||
          !Backend.config().targets().is32Bits() ||
-         !Backend.config().options().getRISCVRelaxXqci()))
+         !Backend.config().options().getRISCVRelaxXqci() ||
+         !Backend.config().options().getRISCVRelaxToC() ||
+         !llvm::isUInt<32>(Backend.getSymbolValuePLT(*R) + R->addend())))
       continue;
 
     const ResolveInfo *Sym = R->symInfo();

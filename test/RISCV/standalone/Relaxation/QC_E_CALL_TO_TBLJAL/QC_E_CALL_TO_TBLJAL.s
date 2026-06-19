@@ -48,6 +48,19 @@
 # RUN:   --implicit-check-not=cm.jalt --implicit-check-not=cm.jt \
 # RUN:   --implicit-check-not=qc.e.jal --implicit-check-not=qc.e.j
 # NO-RELAX-C-DISASM-COUNT-68: jal
+# RUN: %readelf -S %t.no-relax-c.out \
+# RUN:   | %filecheck %s --check-prefix=NO-JVT
+
+# RUN: %link %linkopts --relax-xqci --relax-tbljal \
+# RUN:   --defsym target=0x100001000 %t.far.o -o %t.out-of-u32.out
+# RUN: %objdump -d -M no-aliases --mattr=+zcmt \
+# RUN:   %t.out-of-u32.out 2>&1 \
+# RUN:   | %filecheck %s --check-prefix=OUT-OF-U32-DISASM \
+# RUN:   --implicit-check-not=cm.jalt --implicit-check-not=cm.jt
+# OUT-OF-U32-DISASM-COUNT-34: qc.e.jal
+# OUT-OF-U32-DISASM-COUNT-34: qc.e.j
+# RUN: %readelf -S %t.out-of-u32.out \
+# RUN:   | %filecheck %s --check-prefix=NO-JVT
 
 # RUN: %echo "SECTIONS {" > %t.discard.t
 # RUN: %echo "  /DISCARD/ : { *(.riscv.jvt) }" >> %t.discard.t
