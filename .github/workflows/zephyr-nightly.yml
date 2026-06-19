@@ -188,6 +188,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: zephyr-twister-results-${{ matrix.target.board }}
+          retention-days: 2
           path: |
             zephyr/twister-out/twister.log
             zephyr/twister-out/twister.json
@@ -197,6 +198,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: zephyr-build-artifacts-${{ matrix.target.board }}
+          retention-days: 2
           path: |
             zephyr/build/zephyr/zephyr.elf
             zephyr/build/zephyr/zephyr.map

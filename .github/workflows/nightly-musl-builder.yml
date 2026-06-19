@@ -209,6 +209,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: libc-test-${{ matrix.arch }}.zip
+          retention-days: 2
           path: libc-test
 
       - name: Validate test results with FileCheck

@@ -193,6 +193,7 @@ jobs:
         with:
           # Stable artifact name referenced by PR comment and docs.
           name: cpp-linter-report
+          retention-days: 1
           path: |
             cpp-linter-report.txt
             cpp-linter-helper.log

@@ -169,6 +169,7 @@ jobs:
         with:
           name: install-${{ matrix.arch.name }}-toolchain.tar.xz
           path: install-${{ matrix.arch.name }}-toolchain.tar.xz
+          retention-days: 2
 
       - name: Install Meson
         run: |
@@ -264,7 +265,7 @@ jobs:
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config/meson-logs/testlog.txt
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls/meson-logs/testlog.txt
           if-no-files-found: ignore
-          retention-days: 60
+          retention-days: 2
 
       - name: Update build entry
         if: github.event_name == 'schedule'

@@ -265,6 +265,7 @@ jobs:
         with:
           name: install-nightly-toolchain.tar.xz
           path: install-nightly-toolchain.tar.xz
+          retention-days: 2
 
       - name: Run tests
         run: |
