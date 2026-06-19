@@ -1,0 +1,91 @@
+name: Arch Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  arch-pkgbuild:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm base-devel cmake ninja clang python git
+
+      - name: Derive LLVM branch from tag
+        id: llvm
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Extract major version: v22.1.0-rc1 -> 22
+          MAJOR="${TAG#v}"
+          MAJOR="${MAJOR%%.*}"
+          echo "branch=release/${MAJOR}.x" >> "$GITHUB_OUTPUT"
+          echo "Using LLVM branch: release/${MAJOR}.x for tag ${TAG}"
+
+      - name: Checkout eld
+        uses: actions/checkout@v4
+        with:
+          path: eld-src
+
+      - name: Checkout llvm-project
+        uses: actions/checkout@v4
+        with:
+          repository: llvm/llvm-project
+          ref: ${{ steps.llvm.outputs.branch }}
+          path: llvm-project
+
+      - name: Set up build tree
+        run: |
+          ln -sfn "${GITHUB_WORKSPACE}/eld-src" \
+            "${GITHUB_WORKSPACE}/llvm-project/llvm/tools/eld"
+
+      - name: Configure
+        working-directory: ${{ github.workspace }}
+        run: |
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DLLVM_ENABLE_PROJECTS='llvm;clang' \
+            -DLLVM_TARGETS_TO_BUILD='ARM;AArch64;RISCV;Hexagon;X86' \
+            -DLLVM_ENABLE_ASSERTIONS=OFF \
+            -DELD_ENABLE_SYMBOL_VERSIONING=ON \
+            -Wno-dev \
+            -B obj \
+            -S llvm-project/llvm
+
+      - name: Build eld
+        run: |
+          cmake --build obj --target ld.eld
+          cmake --build obj --target LW
+          cmake --build obj --target LSParserVerifier
+
+      - name: Verify build outputs
+        run: |
+          echo "--- Binaries ---"
+          test -x obj/bin/ld.eld
+          test -x obj/bin/LSParserVerifier
+          test -f obj/lib/libLW.so.4
+          test -L obj/lib/libLW.so
+
+          echo "--- Version ---"
+          obj/bin/ld.eld --version
+
+          echo "--- Symlinks ---"
+          for link in arm-link aarch64-link hexagon-link riscv-link x86_64-link; do
+            test -L "obj/bin/${link}" || test -x "obj/bin/${link}"
+          done
+
+          echo "--- Plugin headers ---"
+          test -f obj/tools/eld/include/eld/PluginAPI/PluginBase.h
+
+          echo "All arch package build outputs verified."
+
+      - name: Clean up
+        if: always()
+        run: rm -rf obj llvm-project eld-src
