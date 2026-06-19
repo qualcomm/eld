@@ -247,6 +247,8 @@ bool GNULDBackend::createProgramHdrs() {
       continue;
     }
 
+    bool isPrevTBSS = prev && prev->isTBSS();
+
     bool isPrevRelRO =
         config().options().hasRelro() && prev && isRelROSection(prev);
 
@@ -372,21 +374,19 @@ bool GNULDBackend::createProgramHdrs() {
     if (config().options().isOMagic())
       cur_flag = (cur_flag & ~llvm::ELF::PF_W);
 
-    // TBSS sections occupy no file space and do not consume VMA at load time.
-    // Skip flag-change and memory-region checks for TBSS so that a TBSS
-    // section between two real sections does not trigger a spurious new
-    // PT_LOAD segment.
-    if (!cur->isTBSS()) {
-      if ((cur_flag != prev_flag) && (isCurAlloc))
-        createPT_LOAD = true;
+    // getSegmentFlag returns 0 if the section is not allocatable.
+    if ((cur_flag != prev_flag) && (isCurAlloc))
+      createPT_LOAD = true;
 
-      if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
-        createPT_LOAD = true;
-    }
+    if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
+      createPT_LOAD = true;
+
+    if (linkerScriptHasMemoryCommand && (cur_mem_region != prev_mem_region))
+      createPT_LOAD = true;
 
     // If the current section is alloc section and if the previous section is
     // NOBITS and current is PROGBITS, we need to create a new segment.
-    if (isCurAlloc && cur->isWanted()) {
+    if (isCurAlloc && cur->isWanted() && !isPrevTBSS) {
       if ((cur_flag == prev_flag) && handleBSS(prev, cur))
         createPT_LOAD = true;
     }
@@ -394,7 +394,7 @@ bool GNULDBackend::createProgramHdrs() {
     // Calculate VMA offset
     int64_t vmaoffset = 0;
     // Adjust the offset with VMA.
-    if (prev) {
+    if (prev && !isPrevTBSS) {
       // Calculate VMA only if section is allocatable
       if (!createPT_LOAD && isCurAlloc) {
         // it's possible that the location counter was set with an address
@@ -402,22 +402,18 @@ bool GNULDBackend::createProgramHdrs() {
         // which case the vmaoffset should 0x0
         if (vma >= (prev->addr() + prev->size()))
           vmaoffset = vma - (prev->addr() + prev->size());
-        else if (!cur->isTBSS())
+        else
           // Without program headers, we always create a new segment if the
           // previous address is larger than the current address. Calculating
           // the offsets is taken care automatically. The gnu linker may choose
           // to place the sections in decreasing order of addresses and later
           // decide to sort it as is done in CreateScriptProgramheaders.
           // TODO: raise an error to see LMA needs to be assigned.
-          // Skip for TBSS: its VMA does not advance the dot counter, so a
-          // comparison against the stale prev is meaningless.
           createPT_LOAD = true;
 
         // If Program headers are not specified and the vma difference is big
         // lets create a PT_LOAD to adjust the offset.
-        // Skip for TBSS: it shares VMA with the previous section and the large
-        // gap check is meaningless against the stale prev pointer.
-        if ((std::abs(vmaoffset) > (int64_t)segAlign) && (!cur->isTBSS()))
+        if (std::abs(vmaoffset) > (int64_t)segAlign)
           createPT_LOAD = true;
       }
     }
@@ -526,11 +522,7 @@ bool GNULDBackend::createProgramHdrs() {
       // The flag last_section_needs_new_segment controls that if there was a
       // need to create a PT_LOAD segment but we determined that the size of the
       // section is 0, we set the flag and move on.
-      // TBSS sections are also deferred: they never materialise into a real
-      // PT_LOAD; the next non-TBSS section will re-evaluate segment creation
-      // using the pre-TBSS prev pointer, which is correct because TBSS does
-      // not advance the dot counter.
-      if (!cur->isWanted() || cur->isTBSS())
+      if (!cur->isWanted())
         last_section_needs_new_segment = true;
       else if (!sectionHasLoadSeg &&
                (createPT_LOAD || (cur->addr() < prev->addr()))) {
@@ -669,25 +661,15 @@ bool GNULDBackend::createProgramHdrs() {
             pt_gnu_relro->setAlign(pt_gnu_relro->getMaxSectionAlign());
           }
         }
-        // Do not update layout state for TBSS. TBSS occupies no file space
-        // and its VMA is shared with the section that follows it. Advancing
-        // prev/prev_flag/prevOut/prev_mem_region would make the next real
-        // section compare against a non existent boundary, causing wrong
-        // segment splits and incorrect segment flags.
-        if (!cur->isTBSS()) {
+        if (!cur->isTBSS())
           prev = cur;
-          prev_flag = cur_flag;
-        }
         if (isNoLoad)
           noLoadSections.push_back(cur);
-        if (!cur->isTBSS())
-          prevOut = (*out);
-        if (!cur->isTBSS() && !cur_mem_region.empty())
+        prevOut = (*out);
+        prev_flag = cur_flag;
+        if (!cur_mem_region.empty())
           prev_mem_region = cur_mem_region;
-        // Do not let TBSS pollute the PT_LOAD flags: its SHF_WRITE would
-        // incorrectly mark a text segment as writable.
-        if (!cur->isTBSS())
-          load_seg->updateFlag(getSegmentFlag(cur->getFlags()));
+        load_seg->updateFlag(getSegmentFlag(cur->getFlags()));
         changeSymbolsFromAbsoluteToGlobal(*out);
         last_section_needs_new_segment = false;
         if (!sectionHasLoadSeg) {
