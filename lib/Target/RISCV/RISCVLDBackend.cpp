@@ -1530,10 +1530,18 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
         continue;
       auto relocList = rs->getLink()->getRelocations();
       for (llvm::SmallVectorImpl<Relocation *>::iterator it = relocList.begin();
-           it != relocList.end(); ++it) {
+           config().getDiagEngine()->diagnose() && it != relocList.end();
+           ++it) {
         auto relocation = *it;
-        // Check if the next relocation is a RELAX relocation.
         Relocation::Type type = relocation->type();
+
+        // Processing of R_RISCV_ALIGN is unconditional.
+        if (relaxation_pass == RELAXATION_ALIGN) {
+          if (type == llvm::ELF::R_RISCV_ALIGN && doRelaxationAlign(relocation))
+            pFinished = false;
+          continue;
+        }
+
         llvm::SmallVectorImpl<Relocation *>::iterator it2 = it + 1;
         Relocation *nextRelax = nullptr;
         if (it2 != relocList.end()) {
@@ -1542,38 +1550,15 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             nextRelax = nullptr;
         }
 
-        // try to relax
-        switch (type) {
-        case llvm::ELF::R_RISCV_CALL:
-        case llvm::ELF::R_RISCV_CALL_PLT: {
-          if (nextRelax && relaxation_pass == RELAXATION_CALL)
-            doRelaxationCall(relocation);
-          break;
-        }
-        case llvm::ELF::R_RISCV_JAL: {
-          if (nextRelax && relaxation_pass == RELAXATION_CALL)
-            doRelaxationJal(relocation);
-          break;
-        }
-        case llvm::ELF::R_RISCV_PCREL_HI20:
-        case llvm::ELF::R_RISCV_PCREL_LO12_I:
-        case llvm::ELF::R_RISCV_PCREL_LO12_S: {
-          if (nextRelax && relaxation_pass == RELAXATION_PC)
-            doRelaxationPC(relocation, GP);
-          break;
-        }
-        case llvm::ELF::R_RISCV_LO12_S:
-        case llvm::ELF::R_RISCV_LO12_I:
-        case llvm::ELF::R_RISCV_HI20: {
-          if (nextRelax && relaxation_pass == RELAXATION_LUI)
-            doRelaxationLui(relocation, GP);
-          break;
-        }
-        case llvm::ELF::R_RISCV_TLSDESC_HI20:
-        case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
-        case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
-        case llvm::ELF::R_RISCV_TLSDESC_CALL:
-          if (relaxation_pass == RELAXATION_TLSDESC) {
+        if (relaxation_pass == RELAXATION_TLSDESC) {
+          // doRelaxationTLSDESC is used for both TLSDESC optimizations and
+          // relaxations, therefore this function should be called regardless
+          // of whether relaxations are enabled.
+          switch (type) {
+          case llvm::ELF::R_RISCV_TLSDESC_HI20:
+          case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+          case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+          case llvm::ELF::R_RISCV_TLSDESC_CALL:
             // In the TLSDESC relaxation sequence, only the instruction with
             // R_RISCV_TLSDESC_HI20 can be marked with R_RISCV_RELAX to indicate
             // that the whole sequence is relaxable. So the other three
@@ -1583,25 +1568,48 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
               if (const Relocation *HIReloc = getBaseReloc(*relocation))
                 nextRelax = rs->getLink()->findRelocation(
                     HIReloc->targetRef()->offset(), llvm::ELF::R_RISCV_RELAX);
-            // Note that doRelaxationTLSDESC is used for both optimizations and
-            // relaxations, therefore this function should be called regardless
-            // of whether relaxations are enabled.
             doRelaxationTLSDESC(*relocation, nextRelax);
+            break;
+          }
+          continue;
+        }
+
+        // try to relax
+        if (!nextRelax)
+          continue;
+
+        switch (relaxation_pass) {
+        case RELAXATION_CALL:
+          switch (type) {
+          case llvm::ELF::R_RISCV_CALL:
+          case llvm::ELF::R_RISCV_CALL_PLT:
+            doRelaxationCall(relocation);
+            break;
+          case llvm::ELF::R_RISCV_JAL:
+            doRelaxationJal(relocation);
+            break;
+          case ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT:
+            doRelaxationQCCall(relocation);
+            break;
           }
           break;
-        case llvm::ELF::R_RISCV_ALIGN: {
-          if (relaxation_pass == RELAXATION_ALIGN)
-            if (doRelaxationAlign(relocation))
-              pFinished = false;
+        case RELAXATION_PC:
+          switch (type) {
+          case llvm::ELF::R_RISCV_PCREL_HI20:
+          case llvm::ELF::R_RISCV_PCREL_LO12_I:
+          case llvm::ELF::R_RISCV_PCREL_LO12_S:
+            doRelaxationPC(relocation, GP);
+            break;
+          }
           break;
-        }
-        case ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT: {
-          if (nextRelax && relaxation_pass == RELAXATION_CALL)
-            doRelaxationQCCall(relocation);
-          break;
-        }
-        case ELF::riscv::internal::R_RISCV_QC_E_32: {
-          if (nextRelax && relaxation_pass == RELAXATION_LUI) {
+        case RELAXATION_LUI:
+          switch (type) {
+          case llvm::ELF::R_RISCV_LO12_S:
+          case llvm::ELF::R_RISCV_LO12_I:
+          case llvm::ELF::R_RISCV_HI20:
+            doRelaxationLui(relocation, GP);
+            break;
+          case ELF::riscv::internal::R_RISCV_QC_E_32: {
             uint64_t access_offset = relocation->targetRef()->offset() + 6;
             bool relaxed = false;
             if (Relocation *acc32 = rs->getLink()->findRelocation(
@@ -1617,16 +1625,17 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
                   relaxed = doRelaxationQCAccess16(relocation, acc16, GP);
             if (!relaxed)
               doRelaxationQCELi(relocation, GP);
+            break;
+          }
           }
           break;
         }
-        }
-        if (!config().getDiagEngine()->diagnose()) {
-          m_Module.setFailure(true);
-          pFinished = true;
-          return;
-        }
       } // for all relocations
+      if (!config().getDiagEngine()->diagnose()) {
+        m_Module.setFailure(true);
+        pFinished = true;
+        return;
+      }
     } // for all relocation section
   }
 
