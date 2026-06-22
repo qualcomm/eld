@@ -157,28 +157,6 @@ Relocation *ELFSection::createOneReloc() {
   return R;
 }
 
-Relocation *ELFSection::findRelocation(uint64_t Offset, Relocation::Type Type,
-                                       bool Reverse) const {
-  if (Reverse) {
-    auto Reloc = std::find_if(
-        Relocations.rbegin(), Relocations.rend(), [&](Relocation *R) -> bool {
-          return R->type() == Type && !R->targetRef()->isNull() &&
-                 R->targetRef()->offset() == Offset;
-        });
-    if (Reloc != Relocations.rend())
-      return *Reloc;
-  } else {
-    const auto *Reloc = std::find_if(
-        Relocations.begin(), Relocations.end(), [&](Relocation *R) -> bool {
-          return R->type() == Type && !R->targetRef()->isNull() &&
-                 R->targetRef()->offset() == Offset;
-        });
-    if (Reloc != Relocations.end())
-      return *Reloc;
-  }
-  return nullptr;
-}
-
 Fragment *ELFSection::getFirstFragmentInRule() const {
   OutputSectionEntry *OE = getOutputSection();
   if (!OE || !OE->size())

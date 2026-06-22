@@ -338,9 +338,6 @@ public:
       R->targetSection()->setWanted(true);
   }
 
-  Relocation *findRelocation(uint64_t Offset, Relocation::Type Type,
-                             bool Reverse = true) const;
-
   Relocation *createOneReloc();
 
   // Linker Script support for sorting sections.

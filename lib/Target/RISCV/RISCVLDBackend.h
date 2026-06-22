@@ -235,8 +235,6 @@ public:
 private:
   void initTableJump();
 
-  Relocation *findHIRelocation(ELFSection *S, uint64_t Value);
-
   // This is `handleRelocation` for internal RISC-V relocations IDs.
   bool handleVendorRelocation(ELFSection *pSection,
                               Relocation::Type pInternalType, LDSymbol &pSym,
@@ -360,10 +358,6 @@ private:
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, RISCVPLT *> m_PLTMap;
   std::vector<ResolveInfo *> m_LabeledSymbols;
-  using PendingRelocInfo =
-      std::tuple<ELFSection *, Relocation::Type, LDSymbol *, uint32_t,
-                 Relocation::Address>;
-  std::vector<PendingRelocInfo> m_PendingRelocations;
   std::unordered_set<Relocation *> m_DisableGPRelocs;
   Relocator *m_pRelocator = nullptr;
   LDSymbol *m_pGlobalPointer = nullptr;

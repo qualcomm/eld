@@ -1703,22 +1703,6 @@ bool RISCVLDBackend::checkABIStr(llvm::StringRef abi) const {
   return true;
 }
 
-Relocation *RISCVLDBackend::findHIRelocation(ELFSection *S, uint64_t Value) {
-  Relocation *HIReloc = S->findRelocation(Value, llvm::ELF::R_RISCV_PCREL_HI20);
-  if (HIReloc)
-    return HIReloc;
-  HIReloc = S->findRelocation(Value, llvm::ELF::R_RISCV_GOT_HI20);
-  if (HIReloc)
-    return HIReloc;
-  HIReloc = S->findRelocation(Value, llvm::ELF::R_RISCV_TLS_GD_HI20);
-  if (HIReloc)
-    return HIReloc;
-  HIReloc = S->findRelocation(Value, llvm::ELF::R_RISCV_TLS_GOT_HI20);
-  if (HIReloc)
-    return HIReloc;
-  return nullptr;
-}
-
 bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
                                       Relocation::Type pType, LDSymbol &pSym,
                                       uint32_t pOffset,
@@ -1789,46 +1773,16 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
   case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_CALL: {
-    bool pcrel = pType == llvm::ELF::R_RISCV_PCREL_LO12_I ||
-                 pType == llvm::ELF::R_RISCV_PCREL_LO12_S;
-    Relocation *hi_reloc =
-        pcrel ? findHIRelocation(pSection, pSym.value())
-              : pSection->findRelocation(pSym.value(),
-                                         llvm::ELF::R_RISCV_TLSDESC_HI20);
-    if (!hi_reloc && pLastVisit) {
-      config().raise(Diag::rv_hi20_not_found)
-          << pSym.name() << getRISCVRelocName(pType)
-          << pSection->originalInput()->getInput()->decoratedPath();
-      m_Module.setFailure(true);
-      return false;
-    }
-    if (!hi_reloc) {
-      // We might be seeing a pcrel_lo with a forward reference to pcrel_hi.
-      // Add this to the pending relocations so that it can be revisited again
-      // after processing the entire relocation table once.
-      m_PendingRelocations.push_back(
-          std::make_tuple(pSection, pType, &pSym, pOffset, pAddend));
-      return true;
-    }
     if (pAddend) {
       config().raise(Diag::warn_ignore_pcrel_lo_addend)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
       pAddend = 0;
     }
-    Relocation *reloc = IRBuilder::addRelocation(
-        getRelocator(), pSection, pType, *hi_reloc->symInfo()->outSymbol(),
-        pOffset, pAddend);
-    m_BaseRelocs[reloc] = hi_reloc;
-    if (reloc) {
-      reloc->setSymInfo(hi_reloc->symInfo());
+    Relocation *reloc = IRBuilder::addRelocation(getRelocator(), pSection,
+                                                 pType, pSym, pOffset, pAddend);
+    if (reloc)
       pSection->addRelocation(reloc);
-    }
-    if (pcrel && pLastVisit) {
-      // Disable GP Relaxation for this pair to mimic GNU
-      m_DisableGPRelocs.insert(reloc);
-      m_DisableGPRelocs.insert(hi_reloc);
-    }
     return true;
   }
   default: {
@@ -1839,9 +1793,16 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
     // that to translate them into their relevant internal relocation type.
     if (pType >= internal::FirstNonstandardRelocation &&
         pType <= internal::LastNonstandardRelocation) {
-      Relocation *VendorReloc =
-          pSection->findRelocation(pOffset, llvm::ELF::R_RISCV_VENDOR);
-      if (!VendorReloc) {
+      // The internal list of relocations is not sorted yet, scan the whole
+      // list.
+      auto RI =
+          std::find_if(pSection->getRelocations().begin(),
+                       pSection->getRelocations().end(), [&](Relocation *R) {
+                         return R->type() == llvm::ELF::R_RISCV_VENDOR &&
+                                !R->targetRef()->isNull() &&
+                                R->targetRef()->offset() == pOffset;
+                       });
+      if (RI == pSection->getRelocations().end()) {
         // The ABI requires that R_RISCV_VENDOR precedes any R_RISCV_CUSTOM<n>
         // Relocation.
         config().raise(Diag::error_rv_vendor_not_found)
@@ -1851,6 +1812,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
         return false;
       }
 
+      Relocation *VendorReloc = *RI;
       std::string VendorSymbol = VendorReloc->symInfo()->getName().str();
       auto [VendorOffset, VendorFirst, VendorLast] =
           llvm::StringSwitch<std::tuple<uint32_t, uint32_t, uint32_t>>(
@@ -1939,25 +1901,24 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
     return false;
   }
 
-  for (auto &r : m_PendingRelocations)
-    if (!handleRelocation(std::get<0>(r), std::get<1>(r), *(std::get<2>(r)),
-                          std::get<3>(r), std::get<4>(r), /*pLastVisit*/ true))
-      return false;
-
-  // Sort the relocation table, in offset order, since the pending relocations
-  // that got added at end of the relocation table may not be in offset order.
-  // Another reason to sort relocations is to make sure R_RISCV_RELAX are
-  // adjacent to the relocation they affect. The psABI is not clear if
-  // R_RISCV_RELAX must be adjacent, but using `.reloc` in assembly may generate
-  // those that are not. Note that because of this, this function must not have
-  // earlier non-error exits.
+  // Sort the relocation table in offset order to quickly find a relocation at
+  // the offset, or by the symbol offset. This is needed for several reasons:
+  // find out which relocations are relaxable, find the correponding HI20
+  // relocation for some LO12, and for "group relocation".
   std::stable_sort(section->getRelocations().begin(),
                    section->getRelocations().end(),
                    [](Relocation *A, Relocation *B) {
                      return A->getOffset() < B->getOffset();
                    });
 
-  m_PendingRelocations.clear();
+  struct Less {
+    bool operator()(const Relocation *X, uint64_t Y) const {
+      return !X->targetRef()->isNull() && X->targetRef()->offset() < Y;
+    }
+    bool operator()(uint64_t X, const Relocation *Y) const {
+      return Y->targetRef()->isNull() || X < Y->targetRef()->offset();
+    }
+  };
 
   // Iterate over groups of relocations with equal offsets.
   llvm::SmallVectorImpl<Relocation *>::iterator RI;
@@ -1978,6 +1939,54 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
       }
 
       switch (R->type()) {
+      // R_RISCV_PCREL_LO* and TLSDESC relocations have the corresponding HI
+      // reloc as the syminfo, we need to find out the actual target by
+      // inspecting this reloc and set the appropriate relocation.
+      case llvm::ELF::R_RISCV_PCREL_LO12_I:
+      case llvm::ELF::R_RISCV_PCREL_LO12_S:
+      case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
+      case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
+      case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+        bool IsPCRel = R->type() == llvm::ELF::R_RISCV_PCREL_LO12_I ||
+                       R->type() == llvm::ELF::R_RISCV_PCREL_LO12_S;
+        uint64_t HiOffset = R->symInfo()->outSymbol()->value();
+        auto HiRelocRange =
+            std::equal_range(section->getRelocations().begin(),
+                             section->getRelocations().end(), HiOffset, Less());
+
+        Relocation *HiReloc = nullptr;
+        for (auto HiRI = HiRelocRange.first; HiRI != HiRelocRange.second;
+             ++HiRI) {
+          if ((IsPCRel &&
+               ((*HiRI)->type() == llvm::ELF::R_RISCV_PCREL_HI20 ||
+                (*HiRI)->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
+                (*HiRI)->type() == llvm::ELF::R_RISCV_TLS_GD_HI20 ||
+                (*HiRI)->type() == llvm::ELF::R_RISCV_TLS_GOT_HI20)) ||
+              (!IsPCRel &&
+               (*HiRI)->type() == llvm::ELF::R_RISCV_TLSDESC_HI20)) {
+            HiReloc = *HiRI;
+            break;
+          }
+        }
+        if (!HiReloc) {
+          config().raise(Diag::rv_hi20_not_found)
+              << R->symInfo()->outSymbol()->name()
+              << getRISCVRelocName(R->type())
+              << section->originalInput()->getInput()->decoratedPath();
+          m_Module.setFailure(true);
+          return false;
+        }
+
+        R->setSymInfo(HiReloc->symInfo());
+        m_BaseRelocs[R] = HiReloc;
+
+        if (IsPCRel && Offset < HiOffset) {
+          // Disable GP Relaxation for this pair to mimic GNU
+          m_DisableGPRelocs.insert(R);
+          m_DisableGPRelocs.insert(HiReloc);
+        }
+        break;
+      }
       case ELF::riscv::internal::R_RISCV_QC_E_32: {
         // R_RISCV_QC_E_32 is special as in addition to knowing if it is
         // relaxable, we need to distinguish between 32-bit and 16-bit types of
@@ -1987,12 +1996,21 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
         // because it is at a higher offset and usually follows the original
         // one in the list.
         uint64_t AccessOffset = Offset + 6;
-        if (Relocation *AccessReloc = section->findRelocation(
-                AccessOffset, ELF::riscv::internal::R_RISCV_QC_ACCESS_32))
-          m_BaseRelocs[R] = AccessReloc;
-        else if (Relocation *AccessReloc = section->findRelocation(
-                     AccessOffset, ELF::riscv::internal::R_RISCV_QC_ACCESS_16))
-          m_BaseRelocs[R] = AccessReloc;
+        auto AccessRelocRange = std::equal_range(
+            section->getRelocations().begin(), section->getRelocations().end(),
+            AccessOffset, Less());
+        if (AccessRelocRange.first != AccessRelocRange.second) {
+          for (auto AccessRI = AccessRelocRange.first + 1;
+               AccessRI != AccessRelocRange.second; ++AccessRI) {
+            if ((*AccessRI)->type() ==
+                    ELF::riscv::internal::R_RISCV_QC_ACCESS_32 ||
+                (*AccessRI)->type() ==
+                    ELF::riscv::internal::R_RISCV_QC_ACCESS_16) {
+              m_BaseRelocs[R] = *AccessRI;
+              break;
+            }
+          }
+        }
         break;
       }
       }
