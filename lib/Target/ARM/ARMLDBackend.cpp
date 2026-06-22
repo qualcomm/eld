@@ -1188,8 +1188,7 @@ void ARMGNULDBackend::initializeAttributes() {
 bool ARMGNULDBackend::handleRelocation(ELFSection *Section,
                                        Relocation::Type Type, LDSymbol &Sym,
                                        uint32_t Offset,
-                                       Relocation::Address Addend,
-                                       bool LastVisit) {
+                                       Relocation::Address Addend) {
   if (auto *EXIDX = llvm::dyn_cast<ARMEXIDXSection>(Section)) {
     EXIDXEntry Entry = EXIDX->getEntry(Offset);
     Relocation *R = eld::IRBuilder::addRelocation(

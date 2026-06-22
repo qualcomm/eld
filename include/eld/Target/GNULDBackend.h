@@ -703,8 +703,7 @@ public:
   /// handled here, false otherwise.
   virtual bool handleRelocation(ELFSection *pSection, Relocation::Type pType,
                                 LDSymbol &pSym, uint32_t pOffset,
-                                Relocation::Address pAddend = 0,
-                                bool pLastVisit = false) {
+                                Relocation::Address pAddend) {
     return false;
   }
 

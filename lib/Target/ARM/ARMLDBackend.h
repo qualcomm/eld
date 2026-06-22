@@ -228,8 +228,7 @@ public:
 
   bool handleRelocation(ELFSection *Section, Relocation::Type Type,
                         LDSymbol &Sym, uint32_t Offset,
-                        Relocation::Address Addend = 0,
-                        bool LastVisit = false) override;
+                        Relocation::Address Addend) override;
 
   std::size_t PLTEntriesCount() const override { return m_PLTMap.size(); }
 

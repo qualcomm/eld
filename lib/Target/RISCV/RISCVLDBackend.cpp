@@ -1706,8 +1706,7 @@ bool RISCVLDBackend::checkABIStr(llvm::StringRef abi) const {
 bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
                                       Relocation::Type pType, LDSymbol &pSym,
                                       uint32_t pOffset,
-                                      Relocation::Address pAddend,
-                                      bool pLastVisit) {
+                                      Relocation::Address pAddend) {
   if (config().codeGenType() == LinkerConfig::Object)
     return false;
   if (SectionRelocMap.find(pSection) == SectionRelocMap.end())
@@ -1844,8 +1843,8 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       }
 
       // Allow custom handling of vendor relocations (using the internal type)
-      if (handleVendorRelocation(pSection, InternalType, pSym, pOffset, pAddend,
-                                 pLastVisit))
+      if (handleVendorRelocation(pSection, InternalType, pSym, pOffset,
+                                 pAddend))
         return true;
 
       // Add a relocation using the internal type
@@ -2023,8 +2022,7 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
 bool RISCVLDBackend::handleVendorRelocation(ELFSection *pSection,
                                             Relocation::Type pType,
                                             LDSymbol &pSym, uint32_t pOffset,
-                                            Relocation::Address pAddend,
-                                            bool pLastVisit) {
+                                            Relocation::Address pAddend) {
   using namespace eld::ELF::riscv;
   assert((internal::FirstInternalRelocation <= pType) &&
          (pType <= internal::LastInternalRelocation) &&

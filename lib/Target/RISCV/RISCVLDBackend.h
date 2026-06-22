@@ -86,8 +86,7 @@ public:
 
   bool handleRelocation(ELFSection *pSection, Relocation::Type pType,
                         LDSymbol &pSym, uint32_t pOffset,
-                        Relocation::Address pAddend = 0,
-                        bool pLastPass = false) override;
+                        Relocation::Address pAddend) override;
 
   // Handle the relocations that handleRelocation() could not process.
   bool handlePendingRelocations(ELFSection *S) override;
@@ -238,8 +237,7 @@ private:
   // This is `handleRelocation` for internal RISC-V relocations IDs.
   bool handleVendorRelocation(ELFSection *pSection,
                               Relocation::Type pInternalType, LDSymbol &pSym,
-                              uint32_t pOffset, Relocation::Address pAddend = 0,
-                              bool pLastPass = false);
+                              uint32_t pOffset, Relocation::Address pAddend);
 
   void relaxDeleteBytes(llvm::StringRef Name, RegionFragmentEx &Region,
                         uint64_t Offset, unsigned NumBytes,
