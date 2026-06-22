@@ -1542,14 +1542,6 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
           continue;
         }
 
-        llvm::SmallVectorImpl<Relocation *>::iterator it2 = it + 1;
-        Relocation *nextRelax = nullptr;
-        if (it2 != relocList.end()) {
-          nextRelax = *it2;
-          if (nextRelax->type() != llvm::ELF::R_RISCV_RELAX)
-            nextRelax = nullptr;
-        }
-
         if (relaxation_pass == RELAXATION_TLSDESC) {
           // doRelaxationTLSDESC is used for both TLSDESC optimizations and
           // relaxations, therefore this function should be called regardless
@@ -1558,24 +1550,28 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
           case llvm::ELF::R_RISCV_TLSDESC_HI20:
           case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
           case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
-          case llvm::ELF::R_RISCV_TLSDESC_CALL:
+          case llvm::ELF::R_RISCV_TLSDESC_CALL: {
             // In the TLSDESC relaxation sequence, only the instruction with
             // R_RISCV_TLSDESC_HI20 can be marked with R_RISCV_RELAX to indicate
             // that the whole sequence is relaxable. So the other three
             // relocation types will inherit this knowledge from the
             // R_RISCV_TLSDESC_HI20 relocation.
-            if (type != llvm::ELF::R_RISCV_TLSDESC_HI20)
-              if (const Relocation *HIReloc = getBaseReloc(*relocation))
-                nextRelax = rs->getLink()->findRelocation(
-                    HIReloc->targetRef()->offset(), llvm::ELF::R_RISCV_RELAX);
-            doRelaxationTLSDESC(*relocation, nextRelax);
+            bool Relax;
+            if (type == llvm::ELF::R_RISCV_TLSDESC_HI20)
+              Relax = hasRelax(*relocation);
+            else {
+              const Relocation *BaseReloc = getBaseReloc(*relocation);
+              Relax = BaseReloc && hasRelax(*BaseReloc);
+            }
+            doRelaxationTLSDESC(*relocation, Relax);
             break;
+          }
           }
           continue;
         }
 
         // try to relax
-        if (!nextRelax)
+        if (!hasRelax(*relocation))
           continue;
 
         switch (relaxation_pass) {
@@ -1610,19 +1606,17 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             doRelaxationLui(relocation, GP);
             break;
           case ELF::riscv::internal::R_RISCV_QC_E_32: {
-            uint64_t access_offset = relocation->targetRef()->offset() + 6;
             bool relaxed = false;
-            if (Relocation *acc32 = rs->getLink()->findRelocation(
-                    access_offset, ELF::riscv::internal::R_RISCV_QC_ACCESS_32))
-              if (rs->getLink()->hasFollowing(acc32, llvm::ELF::R_RISCV_RELAX))
-                relaxed = doRelaxationQCAccess32(relocation, acc32, GP);
-            if (!relaxed)
-              if (Relocation *acc16 = rs->getLink()->findRelocation(
-                      access_offset,
-                      ELF::riscv::internal::R_RISCV_QC_ACCESS_16))
-                if (rs->getLink()->hasFollowing(acc16,
-                                                llvm::ELF::R_RISCV_RELAX))
-                  relaxed = doRelaxationQCAccess16(relocation, acc16, GP);
+            if (Relocation *AccessReloc = getBaseReloc(*relocation)) {
+              if (hasRelax(*AccessReloc)) {
+                if (AccessReloc->type() ==
+                    ELF::riscv::internal::R_RISCV_QC_ACCESS_32)
+                  relaxed = doRelaxationQCAccess32(relocation, AccessReloc, GP);
+                else if (AccessReloc->type() ==
+                         ELF::riscv::internal::R_RISCV_QC_ACCESS_16)
+                  relaxed = doRelaxationQCAccess16(relocation, AccessReloc, GP);
+              }
+            }
             if (!relaxed)
               doRelaxationQCELi(relocation, GP);
             break;
@@ -1964,6 +1958,46 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
                    });
 
   m_PendingRelocations.clear();
+
+  // Iterate over groups of relocations with equal offsets.
+  llvm::SmallVectorImpl<Relocation *>::iterator RI;
+  for (auto GroupI = section->getRelocations().begin();
+       GroupI != section->getRelocations().end(); GroupI = RI) {
+    uint64_t Offset = (*GroupI)->getOffset();
+
+    // Iterate over relocations within a group.
+    for (RI = GroupI;
+         RI != section->getRelocations().end() && (*RI)->getOffset() == Offset;
+         ++RI) {
+      Relocation *R = *RI;
+
+      if (R->type() == llvm::ELF::R_RISCV_RELAX) {
+        if (RI != GroupI)
+          m_RelocsWithRelax.insert(*(RI - 1));
+        continue;
+      }
+
+      switch (R->type()) {
+      case ELF::riscv::internal::R_RISCV_QC_E_32: {
+        // R_RISCV_QC_E_32 is special as in addition to knowing if it is
+        // relaxable, we need to distinguish between 32-bit and 16-bit types of
+        // relaxation based on the "access" relocation type. We reuse
+        // m_BaseRelocs to store the pointer to the access relocation.
+        // We look for the access relocation after loading all the relocations
+        // because it is at a higher offset and usually follows the original
+        // one in the list.
+        uint64_t AccessOffset = Offset + 6;
+        if (Relocation *AccessReloc = section->findRelocation(
+                AccessOffset, ELF::riscv::internal::R_RISCV_QC_ACCESS_32))
+          m_BaseRelocs[R] = AccessReloc;
+        else if (Relocation *AccessReloc = section->findRelocation(
+                     AccessOffset, ELF::riscv::internal::R_RISCV_QC_ACCESS_16))
+          m_BaseRelocs[R] = AccessReloc;
+        break;
+      }
+      }
+    }
+  }
 
   return true;
 }

@@ -179,15 +179,6 @@ Relocation *ELFSection::findRelocation(uint64_t Offset, Relocation::Type Type,
   return nullptr;
 }
 
-bool ELFSection::hasFollowing(const Relocation *R,
-                              Relocation::Type Type) const {
-  auto It = std::find(Relocations.begin(), Relocations.end(), R);
-  if (It == Relocations.end())
-    return false;
-  ++It;
-  return It != Relocations.end() && (*It)->type() == Type;
-}
-
 Fragment *ELFSection::getFirstFragmentInRule() const {
   OutputSectionEntry *OE = getOutputSection();
   if (!OE || !OE->size())

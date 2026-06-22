@@ -15,6 +15,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/ADT/DenseSet.h"
 #include <unordered_set>
 
 namespace eld {
@@ -55,6 +56,10 @@ public:
   bool initBRIslandFactory() override;
 
   bool initStubFactory() override;
+
+  bool hasRelax(const Relocation &R) const {
+    return m_RelocsWithRelax.find(&R) != m_RelocsWithRelax.end();
+  }
 
   void preRelaxation() override;
 
@@ -194,7 +199,7 @@ public:
     return reloc->second;
   }
 
-  const Relocation *getBaseReloc(const Relocation &R) const {
+  Relocation *getBaseReloc(const Relocation &R) const {
     auto reloc = m_BaseRelocs.find(&R);
     if (reloc == m_BaseRelocs.end())
       return nullptr;
@@ -332,7 +337,10 @@ private:
   /// A map to keep track of the relocation that defines the base address for
   /// relative relocations. This is a concept in RISC-V and applies to
   /// relocations consisting of a HI20 and LO12 pairs.
-  llvm::DenseMap<const Relocation *, const Relocation *> m_BaseRelocs;
+  llvm::DenseMap<const Relocation *, Relocation *> m_BaseRelocs;
+
+  /// Identify relocations that have an associated R_RISCV_RELAX.
+  llvm::DenseSet<const Relocation *> m_RelocsWithRelax;
 
 private:
   /// RISCV Attribute Section

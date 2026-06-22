@@ -73,8 +73,7 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
         R->type() != llvm::ELF::R_RISCV_CALL_PLT)
       continue;
 
-    if (I + 1 >= Relocs.size() ||
-        Relocs[I + 1]->type() != llvm::ELF::R_RISCV_RELAX)
+    if (!Backend.hasRelax(*R))
       continue;
 
     const ResolveInfo *Sym = R->symInfo();
