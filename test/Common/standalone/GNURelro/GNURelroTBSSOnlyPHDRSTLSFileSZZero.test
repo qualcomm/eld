@@ -1,0 +1,26 @@
+#---GNURelroTBSSOnlyPHDRSTLSFileSZZero.test--- TLS, Executable, LinkerScript, PHDRS ---#
+
+#BEGIN_COMMENT
+# PT_TLS FileSiz must be zero when only .tbss sections are present (no .tdata).
+#
+# .tbss is SHT_NOBITS: it occupies no space in the file.  The PT_TLS segment
+# therefore has no file-backed content, so FileSiz == 0 and MemSiz > 0
+# (the runtime still reserves per-thread storage).
+#
+# Before the fix in setupSegment(), .tbss was included in the file-offset
+# tracking for PT_TLS, corrupting FileSiz.  This test locks in the correct
+# behavior.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_only.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_only_phdrs.t %t.o -o %t.out
+RUN: %readelf --elf-output-style LLVM -l -W %t.out | %filecheck %s
+
+# PT_TLS FileSiz == 0 (.tbss is SHT_NOBITS; nothing written to file)
+# PT_TLS MemSiz > 0  (runtime must reserve per-thread space)
+# CHECK:      Type: PT_TLS
+# CHECK-NEXT: Offset:
+# CHECK-NEXT: VirtualAddress:
+# CHECK-NEXT: PhysicalAddress:
+# CHECK-NEXT: FileSize: 0
+# CHECK-NEXT: MemSize: {{[1-9][0-9]*}}

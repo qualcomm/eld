@@ -1,0 +1,16 @@
+UNSUPPORTED: ndk-build
+#---TLSPhdrsFileSiz.test-------------------- TLS, Executable, LinkerScript ---#
+
+#BEGIN_COMMENT
+# Tests that PT_TLS FileSiz reflects only the initialized TLS data (.tdata)
+# and not the uninitialized .tbss when a PHDRS linker script is used.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o %clangg0opts
+RUN: %link %linkopts -T %p/Inputs/t.t %t.o -o %t.out --defsym __aeabi_read_tp=0
+
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+# CHECK: TLS {{[x0-9a-f]+}} {{[x0-9a-f]+}} {{[x0-9a-f]+}} 0x{{[0]+}}4 0x{{[0]+}}8 R
+#END_TEST
