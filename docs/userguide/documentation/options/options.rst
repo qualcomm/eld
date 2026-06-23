@@ -265,3 +265,348 @@ Record command line
 
 ``--no-record-command-line``
   Do not record the linker command line in the ``.comment`` section.
+
+Conflicting command line options
+--------------------------------
+
+Command line options listed here conflict with each other. These should never
+be used together. The last one specified will take precedence unless any
+specific behavior is mentioned here.
+
+Warnings
+^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--fatal-warnings``
+     - ``--no-fatal-warnings``
+     - Last specified
+   * - ``--warn-shared-textrel``
+     - ``--no-warn-shared-textrel``
+     - Last specified
+   * - ``--warn-mismatch``
+     - ``--no-warn-mismatch``
+     - Last specified
+   * - ``-Wlinker-script``
+     - ``-Wno-linker-script``
+     - Last specified
+   * - ``-Werror``
+     - ``-Wno-error``
+     - Last specified
+   * - ``-Wattribute-mix``
+     - ``-Wno-attribute-mix``
+     - Last specified
+   * - ``-Warchive-file``
+     - ``-Wno-archive-file``
+     - Last specified
+   * - ``-Wlinker-script-memory``
+     - ``-Wno-linker-script-memory``
+     - Last specified
+   * - ``-Wbad-dot-assignments``
+     - ``-Wno-bad-dot-assignments``
+     - Last specified
+   * - ``-Wwhole-archive``
+     - ``-Wno-whole-archive``
+     - Last specified
+   * - ``-Wosabi``
+     - ``-Wno-osabi``
+     - Last specified
+   * - ``-Wconflicting-options``
+     - ``-Wno-conflicting-options``
+     - Last specified
+
+Output type
+^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--pie``
+     - ``--no-pie``
+     - Last specified
+   * - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``-Bdynamic`` / ``--call_shared`` / ``--dy``
+     - Last specified
+   * - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``--dynamic``
+     - Last specified
+   * - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``--shared`` / ``--Bshareable``
+     - Last specified
+   * - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``-r`` / ``--relocatable``
+     - Last specified
+   * - ``-Bdynamic`` / ``--call_shared`` / ``--dy``
+     - ``--dynamic``
+     - Last specified
+   * - ``-Bdynamic`` / ``--call_shared`` / ``--dy``
+     - ``--shared`` / ``--Bshareable``
+     - Last specified
+   * - ``-Bdynamic`` / ``--call_shared`` / ``--dy``
+     - ``-r`` / ``--relocatable``
+     - Last specified
+   * - ``--dynamic``
+     - ``--shared`` / ``--Bshareable``
+     - Last specified
+   * - ``--dynamic``
+     - ``-r`` / ``--relocatable``
+     - Last specified
+   * - ``--shared`` / ``--Bshareable``
+     - ``-r`` / ``--relocatable``
+     - Last specified
+
+Export and symbol visibility
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--export-dynamic`` / ``-E``
+     - ``--no-export-dynamic``
+     - Last specified
+   * - ``--Bsymbolic``
+     - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``--static`` always wins
+   * - ``--Bsymbolic-functions``
+     - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``--static`` always wins
+
+Relocation emission
+^^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--emit-relocs``
+     - ``--no-emit-relocs``
+     - Last specified
+   * - ``--emit-relocs-llvm``
+     - ``--no-emit-relocs``
+     - Last specified
+   * - ``--emit-relocs``
+     - ``--emit-relocs-llvm``
+     - Last specified
+   * - ``--emit-relocs``
+     - ``--shared`` / ``--Bshareable``
+     - ``--shared`` / ``--Bshareable`` always wins
+   * - ``--emit-relocs``
+     - ``--pie``
+     - ``--pie`` always wins
+   * - ``--emit-relocs``
+     - ``-r`` / ``--relocatable``
+     - ``-r`` / ``--relocatable`` always wins
+   * - ``--emit-relocs-llvm``
+     - ``--shared`` / ``--Bshareable``
+     - ``--shared`` / ``--Bshareable`` always wins
+   * - ``--emit-relocs-llvm``
+     - ``--pie``
+     - ``--pie`` always wins
+   * - ``--emit-relocs-llvm``
+     - ``-r`` / ``--relocatable``
+     - ``-r`` / ``--relocatable`` always wins
+
+Symbol definition export
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--symdef``
+     - ``--shared`` / ``--Bshareable``
+     - ``--shared`` / ``--Bshareable`` always wins
+   * - ``--symdef``
+     - ``--pie``
+     - ``--pie`` always wins
+   * - ``--symdef``
+     - ``-r`` / ``--relocatable``
+     - ``-r`` / ``--relocatable`` always wins
+   * - ``--symdef-file``
+     - ``--shared`` / ``--Bshareable``
+     - ``--shared`` / ``--Bshareable`` always wins
+   * - ``--symdef-file``
+     - ``--pie``
+     - ``--pie`` always wins
+   * - ``--symdef-file``
+     - ``-r`` / ``--relocatable``
+     - ``-r`` / ``--relocatable`` always wins
+
+Miscellaneous
+^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--enable-new-dtags``
+     - ``--disable-new-dtags``
+     - Last specified
+   * - ``--enable-linker-version``
+     - ``--disable-linker-version``
+     - Last specified
+   * - ``--record-command-line``
+     - ``--no-record-command-line``
+     - Last specified
+   * - ``--fat-lto-objects`` / ``-ffat-lto-objects``
+     - ``--no-fat-lto-objects`` / ``-fno-fat-lto-objects``
+     - Last specified
+   * - ``--fatal-internal-errors``
+     - ``--no-fatal-internal-errors``
+     - Last specified
+   * - ``--gc-sections``
+     - ``--no-gc-sections``
+     - Last specified
+   * - ``--check-sections``
+     - ``--no-check-sections``
+     - Last specified
+
+Segment alignment
+^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--align-segments``
+     - ``--no-align-segments``
+     - Last specified
+   * - ``--align-segments``
+     - ``--omagic`` / ``-N``
+     - ``--omagic`` / ``-N`` always wins
+   * - ``--align-segments``
+     - ``-T`` / ``--script``
+     - ``-T`` / ``--script`` always wins
+   * - ``--omagic`` / ``-N``
+     - ``--no-omagic``
+     - Last specified
+
+Threads
+^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--threads``
+     - ``--no-threads``
+     - Last specified
+   * - ``--enable-threads``
+     - ``--no-threads``
+     - Last specified
+   * - ``--enable-threads``
+     - ``--threads``
+     - Last specified
+   * - ``--thread-count``
+     - ``--no-threads``
+     - ``--no-threads`` always wins
+
+Demangling
+^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--demangle``
+     - ``--no-demangle``
+     - Last specified
+   * - ``--demangle-style``
+     - ``--demangle``
+     - Last specified
+   * - ``--demangle-style``
+     - ``--no-demangle``
+     - Last specified
+
+-z keyword options
+^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``-z combreloc``
+     - ``-z nocombreloc``
+     - Last specified
+   * - ``-z relro``
+     - ``-z norelro``
+     - Last specified
+   * - ``-z lazy``
+     - ``-z now``
+     - Last specified
+   * - ``-z lazy``
+     - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``--static`` always wins
+   * - ``-z now``
+     - ``--static`` / ``--Bstatic`` / ``--dn`` / ``--non_shared``
+     - ``--static`` always wins
+   * - ``-z text``
+     - ``-z notext``
+     - Last specified
+   * - ``-z execstack``
+     - ``-z noexecstack``
+     - Last specified
+   * - ``-z separate-code``
+     - ``-z noseparate-code``
+     - Last specified
+   * - ``-z separate-code``
+     - ``-z separate-loadable-segments``
+     - Last specified
+   * - ``-z noseparate-code``
+     - ``-z separate-loadable-segments``
+     - Last specified
+
+RISCV relaxation
+^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 40 20
+
+   * - Option A
+     - Option B
+     - Winner
+   * - ``--relax``
+     - ``--no-relax``
+     - Last specified
+   * - ``--relax-xqci``
+     - ``--no-relax-xqci``
+     - Last specified
+   * - ``--relax-tbljal``
+     - ``--no-relax-tbljal``
+     - Last specified
+

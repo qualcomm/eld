@@ -199,17 +199,180 @@ void GnuLdDriver::printVersionInfo() const {
 }
 
 // Some command line options or some combinations of them are not allowed.
-// This function checks for such errors.
+// This function checks for such issues and generate warnings or errors.
 template <class T>
 bool GnuLdDriver::checkOptions(llvm::opt::InputArgList &Args) const {
-  // TODO: Disabled since this will get replaced with a warning.
-  // check --thread-count and if threads are disabled.
-  // if (Args.getLastArg(T::thread_count)) {
-  //   if (!Config.options().threadsEnabled()) {
-  //     Config.raise(Diag::thread_count_with_no_threads);
-  //     return false;
-  //   }
-  // }
+  if (!Config.showConflictingOptionsWarnings())
+    return true;
+
+  // Build a map of option spelling -> last seen index, for all args and -z
+  // sub-options, so that conflicting pairs can be checked uniformly.
+  llvm::StringMap<unsigned> SeenOpts;
+  unsigned OptIndex = 0;
+  for (llvm::opt::Arg *Arg : Args) {
+    StringRef Spelling = Arg->getSpelling();
+    // Options with Aliasses or values
+    switch (Arg->getOption().getID()) {
+    case T::export_dynamic:
+      Spelling = "--export-dynamic/-E";
+      break;
+    case T::fat_lto_objects:
+      Spelling = "--[f]fat-lto-objects";
+      break;
+    case T::no_fat_lto_objects:
+      Spelling = "--[f]no-fat-lto-objects";
+      break;
+    case T::omagic:
+      Spelling = "--omagic/-N";
+      break;
+    case T::T:
+      Spelling = "-T/--script";
+      break;
+    case T::enable_threads:
+      Spelling = "--enable-threads";
+      break;
+    case T::static_link:
+      Spelling = "--static/--Bstatic/--dn/--non_shared";
+      break;
+    case T::Bdynamic:
+      Spelling = "-Bdynamic/--call_shared/--dy";
+      break;
+    case T::shared:
+      Spelling = "--shared/--Bshareable";
+      break;
+    case T::W:
+    case T::dash_z:
+      Spelling = Arg->getValue();
+      break;
+    default:
+      break;
+    }
+    SeenOpts[Spelling] = OptIndex++;
+  }
+
+  // Table of conflicting option pairs. Each entry is {Opt1, Opt2} where
+  // the option with the higher index in SeenOpts is the winner (last wins).
+  const std::pair<StringRef, StringRef> ConflictingOpts[] = {
+      // clang-format off
+      {"--fatal-warnings",          "--no-fatal-warnings"},
+      {"--pie",                     "--no-pie"},
+      {"--export-dynamic/-E",       "--no-export-dynamic"},
+      {"--warn-shared-textrel",     "--no-warn-shared-textrel"},
+      {"--enable-new-dtags",        "--disable-new-dtags"},
+      {"--enable-linker-version",   "--disable-linker-version"},
+      {"--record-command-line",     "--no-record-command-line"},
+      {"--warn-mismatch",           "--no-warn-mismatch"},
+      {"--[f]fat-lto-objects",      "--[f]no-fat-lto-objects"},
+      {"--align-segments",          "--no-align-segments"},
+      {"--align-segments",          "--omagic/-N"},
+      {"--align-segments",          "-T/--script"},
+      {"--fatal-internal-errors",   "--no-fatal-internal-errors"},
+      {"--gc-sections",             "--no-gc-sections"},
+      {"--check-sections",          "--no-check-sections"},
+      {"--omagic/-N",               "--no-omagic"},
+      {"--threads",                 "--no-threads"},
+      {"--enable-threads",          "--no-threads"},
+      {"--enable-threads",          "--threads"},
+      {"--thread-count",            "--no-threads"},
+      {"--demangle",                "--no-demangle"},
+      {"--demangle-style",          "--demangle"},
+      {"--demangle-style",          "--no-demangle"},
+      {"--emit-relocs",             "--no-emit-relocs"},
+      {"--emit-relocs-llvm",        "--no-emit-relocs"},
+      {"--emit-relocs-llvm",        "--shared/--Bshareable"},
+      {"--emit-relocs-llvm",        "--pie"},
+      {"--emit-relocs-llvm",        "-r"},
+      {"--emit-relocs",             "--emit-relocs-llvm"},
+      {"--emit-relocs",             "--shared/--Bshareable"},
+      {"--emit-relocs",             "--pie"},
+      {"--emit-relocs",             "-r"},
+      {"--symdef",                  "--shared/--Bshareable"},
+      {"--symdef",                  "--pie"},
+      {"--symdef",                  "-r"},
+      {"--symdef-file",             "--shared/--Bshareable"},
+      {"--symdef-file",             "--pie"},
+      {"--symdef-file",             "-r"},
+      {"--static/--Bstatic/--dn/--non_shared", "-Bdynamic/--call_shared/--dy"},
+      {"--static/--Bstatic/--dn/--non_shared", "--dynamic"},
+      {"--static/--Bstatic/--dn/--non_shared", "--shared/--Bshareable"},
+      {"--static/--Bstatic/--dn/--non_shared", "-r"},
+      {"-Bdynamic/--call_shared/--dy",         "--dynamic"},
+      {"-Bdynamic/--call_shared/--dy",         "--shared/--Bshareable"},
+      {"-Bdynamic/--call_shared/--dy",         "-r"},
+      {"--dynamic",                            "--shared/--Bshareable"},
+      {"--dynamic",                            "-r"},
+      {"--shared/--Bshareable",                "-r"},
+      {"--Bsymbolic",               "--static/--Bstatic/--dn/--non_shared"},
+      {"--Bsymbolic-functions",     "--static/--Bstatic/--dn/--non_shared"},
+      {"combreloc",                 "nocombreloc"},
+      {"relro",                     "norelro"},
+      {"lazy",                      "now"},
+      {"lazy",                      "--static/--Bstatic/--dn/--non_shared"},
+      {"now",                       "--static/--Bstatic/--dn/--non_shared"},
+      {"text",                      "notext"},
+      {"execstack",                 "noexecstack"},
+      {"separate-code",             "noseparate-code"},
+      {"separate-code",             "separate-loadable-segments"},
+      {"noseparate-code",           "separate-loadable-segments"},
+      {"linker-script",             "no-linker-script"},
+      {"error",                     "no-error"},
+      {"attribute-mix",             "no-attribute-mix"},
+      {"archive-file",              "no-archive-file"},
+      {"linker-script-memory",      "no-linker-script-memory"},
+      {"bad-dot-assignments",       "no-bad-dot-assignments"},
+      {"whole-archive",             "no-whole-archive"},
+      {"osabi",                     "no-osabi"},
+      {"conflicting-options",       "no-conflicting-options"},
+      // clang-format on
+  };
+  for (auto [Opt1, Opt2] : ConflictingOpts) {
+    auto It1 = SeenOpts.find(Opt1);
+    auto It2 = SeenOpts.find(Opt2);
+    if (It1 == SeenOpts.end() || It2 == SeenOpts.end())
+      continue;
+
+    // Special cases
+
+    // Threads won so --thread-count is not disabled.
+    if (Config.options().threadsEnabled() && Opt1 == "--thread-count")
+      continue;
+
+    bool Opt1Won = It1->second > It2->second;
+    // -T and -N require alignment to be false, so they will take precedence
+    // over
+    // --align-segments.
+    if (Opt1 == "--align-segments" &&
+        (Opt2 == "--omagic/-N" || Opt2 == "-T/--script"))
+      Opt1Won = false;
+    // --thread-count is disabled if --no-threads
+    else if (Opt1 == "--thread-count" && Opt2 == "--no-threads")
+      Opt1Won = false;
+    // emit relocs is disabled if -shared,-pie,-r
+    else if ((Opt1 == "--emit-relocs" || Opt1 == "--emit-relocs-llvm") &&
+             (Opt2 == "--shared/--Bshareable" || Opt2 == "--pie" ||
+              Opt2 == "-r"))
+      Opt1Won = false;
+    // symdef is disabled if -shared,-pie,-r
+    else if ((Opt1 == "--symdef" || Opt1 == "--symdef-file") &&
+             (Opt2 == "--shared/--Bshareable" || Opt2 == "--pie" ||
+              Opt2 == "-r"))
+      Opt1Won = false;
+    // -Bsymbolic/-Bsymbolic-functions are disabled if -static
+    else if ((Opt1 == "--Bsymbolic" || Opt1 == "--Bsymbolic-functions") &&
+             Opt2 == "--static/--Bstatic/--dn/--non_shared")
+      Opt1Won = false;
+    // lazy is disabled if -static,-r
+    else if (Opt1 == "lazy" &&
+             (Opt2 == "--static/--Bstatic/--dn/--non_shared" || Opt2 == "-r"))
+      Opt1Won = false;
+    // now is disabled if -static
+    else if (Opt1 == "now" && Opt2 == "--static/--Bstatic/--dn/--non_shared")
+      Opt1Won = false;
+
+    StringRef Enabled = Opt1Won ? Opt1 : Opt2;
+    StringRef Disabled = Opt1Won ? Opt2 : Opt1;
+    Config.raise(Diag::warn_incompatible_option) << Disabled << Enabled;
+  }
   return true;
 }
 
@@ -1021,8 +1184,6 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
 
   // Disable emit relocs if -shared/-pie/relocatable
   if (Config.options().emitRelocs() && !conflictingOption.empty()) {
-    Config.raise(Diag::warn_incompatible_option)
-        << "-emit-relocs" << conflictingOption;
     Config.options().setEmitRelocs(false);
     Config.options().setEmitGNUCompatRelocs(false);
   }
@@ -1100,11 +1261,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   }
 
   // Disable symdef if -shared/-pie/-relocatable
-  if (Config.options().symDef() && !conflictingOption.empty()) {
-    Config.raise(Diag::warn_incompatible_option)
-        << "-symdef/--symdef-file" << conflictingOption;
+  if (Config.options().symDef() && !conflictingOption.empty())
     Config.options().setSymDef(false);
-  }
 
   // --unresolved-symbols=ignore-all,report-all,ignore-in-object-files,
   //                      ignore-in-shared-libs

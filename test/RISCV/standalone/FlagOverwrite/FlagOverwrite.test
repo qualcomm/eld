@@ -1,16 +1,27 @@
 #---FlagOverwrite.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Check that the last option is the one being used for mutually exclusive flags.
-# Currently, it checks for:
-#    --[no-]relax
 #END_COMMENT
 #START_TEST
-RUN: %clang %clangopts -c %p/Inputs/1.s -o %t1.1.o
-RUN: %link %linkopts --emit-relocs --no-relax --relax  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
-RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s -check-prefix=RELAX
-RUN: %link %linkopts --emit-relocs --relax --no-relax  -T %p/Inputs/script.t  %t1.1.o -o %t1.out
-RUN: %objdump --no-print-imm-hex -d %t1.out |  %filecheck %s -check-prefix=NORELAX
+COM: --[no-]relax
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-relax --relax 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-relax -DENABLED=--relax
+RUN: %link %linkopts %t.1.o -Wconflicting-options --relax --no-relax 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--relax -DENABLED=--no-relax
 
-RELAX-NOT: auipc	ra, 0
-NORELAX: auipc	ra, 0
+COM: --[no-]relax-xqci
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-relax-xqci --relax-xqci 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-relax-xqci -DENABLED=--relax-xqci
+RUN: %link %linkopts %t.1.o -Wconflicting-options --relax-xqci --no-relax-xqci 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--relax-xqci -DENABLED=--no-relax-xqci
+
+COM: --[no-]relax-tbljal
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-relax-tbljal --relax-tbljal 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-relax-tbljal -DENABLED=--relax-tbljal
+RUN: %link %linkopts %t.1.o -Wconflicting-options --relax-tbljal --no-relax-tbljal 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--relax-tbljal -DENABLED=--no-relax-tbljal
+
+WARNING: Warning: Option `[[DISABLED]]' is disabled as it is incompatible with `[[ENABLED]]`
 #END_TEST

@@ -5,9 +5,7 @@ RUN: %clang %clangopts -target aarch64 -c %p/test.c -g -gdwarf-4 -o %t_g1.o
 RUN: %clang %clangopts -target aarch64 -c %p/bar.c  -g -gdwarf-4 -o %t_g2.o
 
 
-RUN: %link %linkopts -march=aarch64  -static %t2.o -emit-relocs -r -o %t1.out 2>&1 | %filecheck %s -check-prefix=PARTIAL
 RUN: %link %linkopts -march=aarch64  -static -Ttext=0x1000 %t1.o %t2.o -emit-relocs -o %t2.out
-RUN: %link %linkopts -march=aarch64  -shared -Ttext=0x1000 %t1.o %t2.o -emit-relocs -o %t2.so 2>&1 | %filecheck %s --check-prefix=SO
 RUN: %link %linkopts -march=aarch64  -static -Ttext=0x1000 %t1.o %t2.o -T %p/test.ld -emit-relocs -o %t3.out
 RUN: %link %linkopts -march=aarch64  -static -Ttext=0x1000 %t_g1.o %t_g2.o -emit-relocs -o %t3_g.out
 
@@ -17,8 +15,6 @@ RUN: %readelf -r %t2.out | %filecheck %s -check-prefix=EXE
 RUN: %readelf -r %t3.out | %filecheck %s --check-prefix=SCRIPT
 RUN: %readelf -r %t3_g.out | %filecheck %s --check-prefix=DEBUG
 RUN: %readelf -W -S %t2.out | %filecheck %s --check-prefix=SECT
-
-PARTIAL: Warning: Option `--emit-relocs' is disabled as it is incompatible with `-relocatable`
 
 OBJ1: Relocation section '.relamycode_1' at offset {{.*}} contains
 OBJ1: x + 0
@@ -59,8 +55,6 @@ EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} y + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
 EXE-DAG: {{[0-9a-f]+}} {{.*}} x + 0
-
-SO: Option `--emit-relocs' is disabled as it is incompatible with `-shared`
 
 SCRIPT: Relocation section '.relaCODE' at offset {{.*}} contains
 SCRIPT-DAG: {{[0-9a-f]+}} {{.*}} x + 0

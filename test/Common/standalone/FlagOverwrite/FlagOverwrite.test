@@ -1,152 +1,379 @@
 #---FlagOverwrite.test--------------------- Executable --------------------#
-UNSUPPORTED: x86
 #BEGIN_COMMENT
 # Check that the last option is the one being used for mutually exclusive flags.
 #END_COMMENT
 #START_TEST
 COM: --[no-]fatal-warnings
-RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.cpp -o %t.1.o
-RUN: %not %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --no-fatal-warnings --fatal-warnings 2>&1 | %filecheck %s -check-prefix=FATAL
-RUN: %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --fatal-warnings --no-fatal-warnings 2>&1 | %filecheck %s -check-prefix=NOFATAL
-
-COM: --[no-]check-sections
-RUN: %not %link %linkopts -T %p/Inputs/1.script %t.1.o -o %t.1.out --no-check-sections --check-sections --verbose 2>&1 | %filecheck %s -check-prefix=CHECKSECT
-RUN: %link %linkopts -T %p/Inputs/1.script %t.1.o -o %t.1.out --check-sections --no-check-sections --verbose 2>&1 | %filecheck %s -check-prefix=NOCHECKSECT
-
-COM: --[no-]gc-sections
-RUN: %link %linkopts %t.1.o -T %p/Inputs/2.script --no-gc-sections --gc-sections -o %t.1.out -M 2>&1 | %filecheck %s -check-prefix=GCSECT
-RUN: %link %linkopts %t.1.o -T %p/Inputs/2.script --gc-sections --no-gc-sections -o %t.1.out -M 2>&1 | %filecheck %s -check-prefix=NOGCSECT
-
-COM: --[no-]align-segments
-RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/2.cpp -o %t.2.o
-RUN: %link %linkopts --rosegment --no-align-segments --align-segments %t.2.o -o %t.2.out --noinhibit-exec
-RUN: %readelf -l -W %t.2.out | %filecheck %s -check-prefix=ALIGN
-RUN: %link %linkopts --rosegment --align-segments --no-align-segments %t.2.o -o %t.2.out --noinhibit-exec
-RUN: %readelf -l -W %t.2.out | %filecheck %s -check-prefix=NOALIGN
-COM: Special case. omagic takes precendence over --align-segments
-RUN: %link %linkopts -o %t.1.out %t.1.o --no-omagic --omagic --align-segments -z max-page-size=0x1000
-RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=OMAGIC
-
-COM: --[no-]emit-relocs
-RUN: %link %linkopts  %t.2.o -o %t.2.out --no-emit-relocs --emit-relocs --noinhibit-exec
-RUN: %readelf -r %t.2.out | %filecheck %s -check-prefix=RELOCS
-RUN: %link %linkopts  %t.2.o -o %t.2.out --emit-relocs --no-emit-relocs --noinhibit-exec
-RUN: %readelf -r %t.2.out | %filecheck %s -check-prefix=NORELOCS
-
-COM: --[no-]threads, --enable-threads
-RUN: %link %linkopts %t.1.o -o %t.1.out --emit-relocs --enable-threads=all --no-threads --threads --trace=threads 2>&1 | %filecheck %s -check-prefix=THREADS
-RUN: %link %t.1.o -o %t.1.out --emit-relocs --enable-threads=all --threads --no-threads --trace=threads 2>&1 | %filecheck %s -check-prefix=NOTHREADS
-RUN: %link %linkopts %t.1.o -o %t.1.out --emit-relocs --no-threads --threads --enable-threads=all --trace=threads 2>&1 | %filecheck %s -check-prefix=GLOBALTHREADS
-
-COM: --[no-]fat-lto-objects
-RUN: printf "eld\n" > %t.invalid
-RUN: %objcopy --add-section=.llvm.lto=%t.invalid --set-section-flags=.llvm.lto=exclude --set-section-type=.llvm.lto=0x6fff4c0c %t.1.o %t.fat.invalid.o
-RUN: %not %link -r %t.fat.invalid.o -o %t1.out --no-fat-lto-objects --fat-lto-objects --trace=lto 2>&1 | %filecheck %s -check-prefix=FATLTO
-RUN: %link -r %t.fat.invalid.o -o %t1.out --fat-lto-objects --no-fat-lto-objects --trace=lto 2>&1 | %filecheck %s -check-prefix=NOFATLTO
-
-COM: --[no-]warn-shared-textrel
-RUN: %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --no-warn-shared-textrel --warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=TEXTREL
-RUN: %link %linkopts -o %t.1.out -shared -z=notext %t.1.o --warn-shared-textrel --no-warn-shared-textrel 2>&1 | %filecheck %s -check-prefix=NOTEXTREL -allow-empty
-
-COM: --[no-]demangle, --demangle-style
-RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle-style=demangle --no-demangle --demangle 2>&1 | %filecheck %s -check-prefix=DEMANGLE
-RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle-style=demangle --demangle --no-demangle 2>&1 | %filecheck %s -check-prefix=NODEMANGLE
-RUN: %link %linkopts -o %t.1.out %t.1.o --verbose --demangle --no-demangle --demangle-style=demangle 2>&1 | %filecheck %s -check-prefix=DEMANGLE
-
-COM: --[no-]omagic
-RUN: %link %linkopts -o %t.1.out %t.1.o --no-omagic --omagic -z max-page-size=0x1000
-RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=OMAGIC
-RUN: %link %linkopts -o %t.1.out %t.1.o --omagic -z max-page-size=0x1000 --no-omagic
-RUN: %readelf --elf-output-style LLVM -l -W %t.1.out 2>&1 | %filecheck %s -check-prefix=NOOMAGIC
-
-COM: --[disable/enable]-new-dtags
-RUN: %link %linkopts -shared %t.1.o -o %t.1.so -z now --disable-new-dtags --enable-new-dtags
-RUN: %readelf -d %t.1.so | %filecheck %s --check-prefix=NEWDTAG
-RUN: %link %linkopts -shared %t.1.o -o %t.1.so  -z now --enable-new-dtags --disable-new-dtags
-RUN: %readelf -d %t.1.so | %filecheck %s --check-prefix=NONEWDTAG
-
-COM: --[disable/enable]-linker-version
-RUN: %link %linkopts %t.1.o -T %p/Inputs/3.script -o %t.1.out --disable-linker-version --enable-linker-version
-RUN: %readelf -S -W %t.1.out | %filecheck %s --check-prefix=ENABLEDLINKVER
-RUN: %link %linkopts %t.1.o -T %p/Inputs/3.script -o %t.1.out --disable-linker-version --disable-linker-version
-RUN: %readelf -S -W %t.1.out | %filecheck %s --check-prefix=NOENABLEDLINKVER
-
-COM: --[no-]record-command-line
-RUN: %link %linkopts %t.1.o -o %t.1.out --no-record-command-line --record-command-line
-RUN: %readelf -p .comment %t.1.out | %filecheck %s --check-prefix=RECORDCOMMAND
-RUN: %link %linkopts %t.1.o -o %t.1.out --record-command-line --no-record-command-line
-RUN: %readelf -p .comment %t.1.out | %filecheck %s --check-prefix=NORECORDCOMMAND
-
-COM: --[no-]warn-mismatch
-RUN: %yaml2obj %p/Inputs/2.yaml -o %t.2.o
-RUN: %not %link %emulation %linkopts %t.1.o %t.2.o -o %t.1.out --no-warn-mismatch --warn-mismatch 2>&1 | %filecheck %s --check-prefix=WARNMISMATCH
-RUN: %link %emulation %linkopts %t.1.o %t.2.o -o %t.1.out --warn-mismatch --no-warn-mismatch 2>&1 | %filecheck %s --check-prefix=NOWARNMISMATCH  --allow-empty
-
-COM: --[no-]export-dynamic
-RUN: %clang %clangopts -flto -c %p/Inputs/1.cpp -o %t.1.o
-RUN: %link %linkopts --no-export-dynamic --export-dynamic  %t.1.o -o %t.1.out
-RUN: %readelf -s %t.1.out | %filecheck %s -check-prefix=EXPDYN
-RUN: %link %linkopts --export-dynamic --no-export-dynamic  %t.1.o -o %t.1.out
-RUN: %readelf -s %t.1.out | %filecheck %s -check-prefix=NOEXPDYN
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
+RUN: %not %link %linkopts %t.1.o -Wconflicting-options --no-fatal-warnings --fatal-warnings 2>&1 | \
+RUN: %filecheck %s -check-prefix=FATAL
+RUN: %link %linkopts %t.1.o -Wconflicting-options --fatal-warnings --no-fatal-warnings 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--fatal-warnings -DENABLED=--no-fatal-warnings
 
 COM: --[no-]pie
-RUN: %clang %clangopts -fPIC -c %p/Inputs/1.cpp -o %t.1.o
-RUN: %link %linkopts %t.1.o -o %t.1.out --no-pie --pie
-RUN: %readelf --file-header %t.1.out 2>&1 | %filecheck %s --check-prefix=PIE
-RUN: %link %linkopts %t.1.o -o %t.1.out --pie --no-pie
-RUN: %readelf --file-header %t.1.out 2>&1 | %filecheck %s --check-prefix=NOPIE
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-pie --pie 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-pie -DENABLED=--pie
+RUN: %link %linkopts %t.1.o -Wconflicting-options --pie --no-pie 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--pie -DENABLED=--no-pie
 
-FATAL: Fatal: Linking had errors ({{.*}}1.out)
-NOFATAL-NOT: Fatal: Linking had errors
+COM: --[no-]export-dynamic, -E
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-export-dynamic --export-dynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-export-dynamic -DENABLED=--export-dynamic/-E
+RUN: %link %linkopts %t.1.o -Wconflicting-options --export-dynamic --no-export-dynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--export-dynamic/-E -DENABLED=--no-export-dynamic
 
-CHECKSECT: section .comment file range overlaps with .text
-NOCHECKSECT-NOT: section .comment file range overlaps with .text
+COM: --[no-]warn-shared-textrel
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-warn-shared-textrel --warn-shared-textrel 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-warn-shared-textrel -DENABLED=--warn-shared-textrel
+RUN: %link %linkopts %t.1.o -Wconflicting-options --warn-shared-textrel --no-warn-shared-textrel 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--warn-shared-textrel -DENABLED=--no-warn-shared-textrel
 
-GCSECT: # .text <GC> 0x0
-NOGCSECT-NOT: # .text <GC> 0x0
+COM: --[disable/enable]-new-dtags
+RUN: %link %linkopts %t.1.o -Wconflicting-options --disable-new-dtags --enable-new-dtags 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--disable-new-dtags -DENABLED=--enable-new-dtags
+RUN: %link %linkopts %t.1.o -Wconflicting-options --enable-new-dtags --disable-new-dtags 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--enable-new-dtags -DENABLED=--disable-new-dtags
 
-ALIGN: LOAD 0x00{{[0-9]}}000 {{.*}} 0x1000
-NOALIGN-NOT: LOAD 0x00{{[0-9]}}{{[1-9]}}+ {{.*}} 0x1000
+COM: --[disable/enable]-linker-version
+RUN: %link %linkopts %t.1.o -Wconflicting-options --disable-linker-version --enable-linker-version 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--disable-linker-version -DENABLED=--enable-linker-version
+RUN: %link %linkopts %t.1.o -Wconflicting-options --enable-linker-version --disable-linker-version 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--enable-linker-version -DENABLED=--disable-linker-version
 
-RELOCS: Relocation section {{.*}} contains
-NORELOCS: There are no relocations in this file
+COM: --[no-]record-command-line
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-record-command-line --record-command-line 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-record-command-line -DENABLED=--record-command-line
+RUN: %link %linkopts %t.1.o -Wconflicting-options --record-command-line --no-record-command-line 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--record-command-line -DENABLED=--no-record-command-line
 
-THREADS: Threads Enabled
-THREADS: Threads Disabled
-NOTHREADS-NOT: Threads Enabled
-NOTHREADS: Threads Disabled
-GLOBALTHREADS: Threads Enabled
-GLOBALTHREADS-NOT: Threads Disabled
+COM: --[no-]warn-mismatch
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-warn-mismatch --warn-mismatch 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-warn-mismatch -DENABLED=--warn-mismatch
+RUN: %link %linkopts %t.1.o -Wconflicting-options --warn-mismatch --no-warn-mismatch 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--warn-mismatch -DENABLED=--no-warn-mismatch
 
-FATLTO: Invalid embedded bitcode in section '.llvm.lto'
-NOFATLTO-NOT: Invalid embedded bitcode in section '.llvm.lto'
+COM: --[no-]fat-lto-objects / -f[no-]fat-lto-objects
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-fat-lto-objects --fat-lto-objects 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--[f]no-fat-lto-objects -DENABLED=--[f]fat-lto-objects
+RUN: %link %linkopts %t.1.o -Wconflicting-options --fat-lto-objects --no-fat-lto-objects 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--[f]fat-lto-objects -DENABLED=--[f]no-fat-lto-objects
 
-TEXTREL: Warning: Add DT_TEXTREL in a shared object!
-NOTEXTREL-NOT: Warning: Add DT_TEXTREL in a shared object!
+COM: --[no-]align-segments
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-align-segments --align-segments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-align-segments -DENABLED=--align-segments
+RUN: %link %linkopts %t.1.o -Wconflicting-options --align-segments --no-align-segments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--align-segments -DENABLED=--no-align-segments
+COM: Special case. --omagic and --script take precendence over --align-segments
+RUN: %link %linkopts %t.1.o -Wconflicting-options --omagic --align-segments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--align-segments -DENABLED=--omagic/-N
+RUN: %link %linkopts %t.1.o -Wconflicting-options -T %p/Inputs/1.script --align-segments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--align-segments -DENABLED=-T/--script
 
-DEMANGLE: Verbose: Adding symbol foo()
-NODEMANGLE: Verbose: Adding symbol _Z3foov
+COM: --[no-]fatal-internal-errors
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-fatal-internal-errors --fatal-internal-errors 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-fatal-internal-errors -DENABLED=--fatal-internal-errors
+RUN: %link %linkopts %t.1.o -Wconflicting-options --fatal-internal-errors --no-fatal-internal-errors 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--fatal-internal-errors -DENABLED=--no-fatal-internal-errors
 
-OMAGIC-NOT: 4096
-NOOMAGIC: 4096
+COM: --[no-]gc-sections
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-gc-sections --gc-sections 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-gc-sections -DENABLED=--gc-sections
+RUN: %link %linkopts %t.1.o -Wconflicting-options --gc-sections --no-gc-sections 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--gc-sections -DENABLED=--no-gc-sections
 
-NEWDTAG:  0x{{[0]+}}1e (FLAGS)                BIND_NOW
-NEWDTAG:  0x{{[0]*}}6ffffffb (FLAGS_1)              NOW
-NONEWDTAG: 0x{{[0]+}}18 (BIND_NOW)             0x1
-NONEWDTAG: 0x{{[0]*}}6ffffffb (FLAGS_1)              NOW
+COM: --[no-]check-sections
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-check-sections --check-sections 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-check-sections -DENABLED=--check-sections
+RUN: %link %linkopts %t.1.o -Wconflicting-options --check-sections --no-check-sections 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--check-sections -DENABLED=--no-check-sections
 
-ENABLEDLINKVER: .myver {{.*}} {{[0-9a-f]+}} {{.*}}
-NOENABLEDLINKVER-NOT: .myver
+COM: --[no-]omagic, -N
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-omagic --omagic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-omagic -DENABLED=--omagic/-N
+RUN: %link %linkopts %t.1.o -Wconflicting-options --omagic --no-omagic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--omagic/-N -DENABLED=--no-omagic
 
-RECORDCOMMAND: Command:{{.*}} --no-record-command-line --record-command-line
-NORECORDCOMMAND-NOT: Command
+COM: emit relocs is disabled if -shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options -shared --emit-relocs-llvm 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs-llvm -DENABLED=--shared/--Bshareable
+RUN: %link %linkopts %t.1.o -Wconflicting-options -shared --emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs -DENABLED=--shared/--Bshareable
 
-WARNMISMATCH: Error: cannot recognize the format of file
-NOWARNMISMATCH-NOT: Error: cannot recognize the format of file
+COM: emit relocs is disabled if -pie
+RUN: %link %linkopts %t.1.o -Wconflicting-options -pie --emit-relocs-llvm 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs-llvm -DENABLED=--pie
+RUN: %link %linkopts %t.1.o -Wconflicting-options -pie --emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs -DENABLED=--pie
 
-EXPDYN: {{.}} GLOBAL {{.*}} _Z3foov
-NOEXPDYN-NOT: {{.}} GLOBAL {{.*}} _Z3foov
+COM: emit relocs is disabled if -r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --emit-relocs-llvm 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs-llvm -DENABLED=-r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs -DENABLED=-r
 
-PIE: DYN (Shared object file)
-NOPIE: EXEC (Executable file)
+COM: Disable --symdef/--symdef-file if -shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options -shared --symdef 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--symdef -DENABLED=--shared/--Bshareable
+RUN: %link %linkopts %t.1.o -Wconflicting-options -shared --symdef-file %t.1.symdef 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--symdef-file -DENABLED=--shared/--Bshareable
+
+COM: Disable --symdef/--symdef-file if -pie
+RUN: %link %linkopts %t.1.o -Wconflicting-options -pie --symdef 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--symdef -DENABLED=--pie
+RUN: %link %linkopts %t.1.o -Wconflicting-options -pie --symdef-file %t.1.symdef 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--symdef-file -DENABLED=--pie
+
+COM: Disable --symdef/--symdef-file if -r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --symdef 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--symdef -DENABLED=-r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --symdef-file %t.1.symdef 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--symdef-file -DENABLED=-r
+
+COM: --[no-]threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-threads --threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-threads -DENABLED=--threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --threads --no-threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--threads -DENABLED=--no-threads
+
+COM: --threads, --enable-threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --enable-threads --threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--enable-threads -DENABLED=--threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --threads --enable-threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--threads -DENABLED=--enable-threads
+
+COM: --no-threads, --enable-threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --enable-threads --no-threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--enable-threads -DENABLED=--no-threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-threads --enable-threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-threads -DENABLED=--enable-threads
+
+COM: --thread-count is disabled if --no-threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --thread-count=4 --no-threads 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--thread-count -DENABLED=--no-threads
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-threads --thread-count=4 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--thread-count -DENABLED=--no-threads
+
+COM: --[no-]demangle
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-demangle --demangle 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-demangle -DENABLED=--demangle
+RUN: %link %linkopts %t.1.o -Wconflicting-options --demangle --no-demangle 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--demangle -DENABLED=--no-demangle
+
+COM: --demangle, --demangle-style
+RUN: %link %linkopts %t.1.o -Wconflicting-options --demangle-style=demangle --demangle 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--demangle-style -DENABLED=--demangle
+RUN: %link %linkopts %t.1.o -Wconflicting-options --demangle --demangle-style=demangle 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--demangle -DENABLED=--demangle-style
+
+COM: --no-demangle, --demangle-style
+RUN: %link %linkopts %t.1.o -Wconflicting-options --demangle-style=demangle --no-demangle 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--demangle-style -DENABLED=--no-demangle
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-demangle --demangle-style=demangle 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-demangle -DENABLED=--demangle-style
+
+COM: --[no-]emit-relocs
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-emit-relocs --emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-emit-relocs -DENABLED=--emit-relocs
+RUN: %link %linkopts %t.1.o -Wconflicting-options --emit-relocs --no-emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs -DENABLED=--no-emit-relocs
+
+COM: --emit-relocs, --emit-relocs-llvm
+RUN: %link %linkopts %t.1.o -Wconflicting-options --emit-relocs-llvm --emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs-llvm -DENABLED=--emit-relocs
+RUN: %link %linkopts %t.1.o -Wconflicting-options --emit-relocs --emit-relocs-llvm 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs -DENABLED=--emit-relocs-llvm
+
+COM: --no-emit-relocs, --emit-relocs-llvm
+RUN: %link %linkopts %t.1.o -Wconflicting-options --emit-relocs-llvm --no-emit-relocs 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--emit-relocs-llvm -DENABLED=--no-emit-relocs
+RUN: %link %linkopts %t.1.o -Wconflicting-options --no-emit-relocs --emit-relocs-llvm 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--no-emit-relocs -DENABLED=--emit-relocs-llvm
+
+COM: -static, --Bsymbolic
+RUN: %link %linkopts %t.1.o -Wconflicting-options --static --Bsymbolic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--Bsymbolic -DENABLED=--static/--Bstatic/--dn/--non_shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options --Bsymbolic --static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--Bsymbolic -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: -static, --Bsymbolic-functions
+RUN: %link %linkopts %t.1.o -Wconflicting-options --static --Bsymbolic-functions 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--Bsymbolic-functions -DENABLED=--static/--Bstatic/--dn/--non_shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options --Bsymbolic-functions --static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--Bsymbolic-functions -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: combreloc, nocombreloc
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znocombreloc -zcombreloc 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=nocombreloc -DENABLED=combreloc
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zcombreloc -znocombreloc 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=combreloc -DENABLED=nocombreloc
+
+COM: relro, norelro
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znorelro -zrelro 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=norelro -DENABLED=relro
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zrelro -znorelro 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=relro -DENABLED=norelro
+
+COM: lazy, now
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znow -zlazy 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=now -DENABLED=lazy
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zlazy -znow 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=lazy -DENABLED=now
+
+COM: text, notext
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znotext -ztext 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=notext -DENABLED=text
+RUN: %link %linkopts %t.1.o -Wconflicting-options -ztext -znotext 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=text -DENABLED=notext
+
+COM: execstack, noexecstack
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znoexecstack -zexecstack 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=noexecstack -DENABLED=execstack
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zexecstack -znoexecstack 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=execstack -DENABLED=noexecstack
+
+COM: separate-code, noseparate-code
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znoseparate-code -zseparate-code 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=noseparate-code -DENABLED=separate-code
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zseparate-code -znoseparate-code 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=separate-code -DENABLED=noseparate-code
+
+COM: separate-code, separate-loadable-segments
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zseparate-loadable-segments -zseparate-code 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=separate-loadable-segments -DENABLED=separate-code
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zseparate-code -zseparate-loadable-segments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=separate-code -DENABLED=separate-loadable-segments
+
+COM: noseparate-code, separate-loadable-segments
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zseparate-loadable-segments -znoseparate-code 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=separate-loadable-segments -DENABLED=noseparate-code
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znoseparate-code -zseparate-loadable-segments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=noseparate-code -DENABLED=separate-loadable-segments
+
+COM: lazy is disabled if -static
+RUN: %link %linkopts %t.1.o -Wconflicting-options -static -zlazy 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=lazy -DENABLED=--static/--Bstatic/--dn/--non_shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options -zlazy -static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=lazy -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: now is disabled if -static
+RUN: %link %linkopts %t.1.o -Wconflicting-options -static -znow 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=now -DENABLED=--static/--Bstatic/--dn/--non_shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options -znow -static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=now -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: --static vs -Bdynamic
+RUN: %link %linkopts %t.1.o -Wconflicting-options --static -Bdynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--static/--Bstatic/--dn/--non_shared -DENABLED=-Bdynamic/--call_shared/--dy
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Bdynamic --static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-Bdynamic/--call_shared/--dy -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: --static vs --dynamic
+RUN: %link %linkopts %t.1.o -Wconflicting-options --static --dynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--static/--Bstatic/--dn/--non_shared -DENABLED=--dynamic
+RUN: %link %linkopts %t.1.o -Wconflicting-options --dynamic --static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--dynamic -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: --static vs --shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options --static --shared 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--static/--Bstatic/--dn/--non_shared -DENABLED=--shared/--Bshareable
+RUN: %link %linkopts %t.1.o -Wconflicting-options --shared --static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--shared/--Bshareable -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: --static vs -r
+RUN: %link %linkopts %t.1.o -Wconflicting-options --static -r 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--static/--Bstatic/--dn/--non_shared -DENABLED=-r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --static 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-r -DENABLED=--static/--Bstatic/--dn/--non_shared
+
+COM: -Bdynamic vs --dynamic
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Bdynamic --dynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-Bdynamic/--call_shared/--dy -DENABLED=--dynamic
+RUN: %link %linkopts %t.1.o -Wconflicting-options --dynamic -Bdynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--dynamic -DENABLED=-Bdynamic/--call_shared/--dy
+
+COM: -Bdynamic vs --shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Bdynamic --shared 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-Bdynamic/--call_shared/--dy -DENABLED=--shared/--Bshareable
+RUN: %link %linkopts %t.1.o -Wconflicting-options --shared -Bdynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--shared/--Bshareable -DENABLED=-Bdynamic/--call_shared/--dy
+
+COM: -Bdynamic vs -r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Bdynamic -r 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-Bdynamic/--call_shared/--dy -DENABLED=-r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r -Bdynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-r -DENABLED=-Bdynamic/--call_shared/--dy
+
+COM: --dynamic vs --shared
+RUN: %link %linkopts %t.1.o -Wconflicting-options --dynamic --shared 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--dynamic -DENABLED=--shared/--Bshareable
+RUN: %link %linkopts %t.1.o -Wconflicting-options --shared --dynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--shared/--Bshareable -DENABLED=--dynamic
+
+COM: --dynamic vs -r
+RUN: %link %linkopts %t.1.o -Wconflicting-options --dynamic -r 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--dynamic -DENABLED=-r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --dynamic 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-r -DENABLED=--dynamic
+
+COM: --shared vs -r
+RUN: %link %linkopts %t.1.o -Wconflicting-options --shared -r 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=--shared/--Bshareable -DENABLED=-r
+RUN: %link %linkopts %t.1.o -Wconflicting-options -r --shared 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=-r -DENABLED=--shared/--Bshareable
+
+COM: -Wlinker-script, -Wno-linker-script
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-linker-script -Wlinker-script 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-linker-script -DENABLED=linker-script
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wlinker-script -Wno-linker-script 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=linker-script -DENABLED=no-linker-script
+
+COM: -Werror, -Wno-error
+RUN: %not %link %linkopts %t.1.o -Wconflicting-options -Wno-error -Werror 2>&1 | \
+RUN: %filecheck %s -check-prefix=ERROR
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Werror -Wno-error 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=error -DENABLED=no-error
+
+COM: -Wattribute-mix, -Wno-attribute-mix
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-attribute-mix -Wattribute-mix 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-attribute-mix -DENABLED=attribute-mix
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wattribute-mix -Wno-attribute-mix 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=attribute-mix -DENABLED=no-attribute-mix
+
+COM: -Warchive-file, -Wno-archive-file
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-archive-file -Warchive-file 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-archive-file -DENABLED=archive-file
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Warchive-file -Wno-archive-file 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=archive-file -DENABLED=no-archive-file
+
+COM: -Wlinker-script-memory, -Wno-linker-script-memory
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-linker-script-memory -Wlinker-script-memory 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-linker-script-memory -DENABLED=linker-script-memory
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wlinker-script-memory -Wno-linker-script-memory 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=linker-script-memory -DENABLED=no-linker-script-memory
+
+COM: -Wbad-dot-assignments, -Wno-bad-dot-assignments
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-bad-dot-assignments -Wbad-dot-assignments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-bad-dot-assignments -DENABLED=bad-dot-assignments
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wbad-dot-assignments -Wno-bad-dot-assignments 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=bad-dot-assignments -DENABLED=no-bad-dot-assignments
+
+COM: -Wwhole-archive, -Wno-whole-archive
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-whole-archive -Wwhole-archive 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-whole-archive -DENABLED=whole-archive
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wwhole-archive -Wno-whole-archive 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=whole-archive -DENABLED=no-whole-archive
+
+COM: -Wosabi, -Wno-osabi
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-osabi -Wosabi 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-osabi -DENABLED=osabi
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wosabi -Wno-osabi 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=osabi -DENABLED=no-osabi
+
+COM: -Wconflicting-options, -Wno-conflicting-options
+RUN: %link %linkopts %t.1.o -Wconflicting-options -Wno-conflicting-options -Wconflicting-options 2>&1 | \
+RUN: %filecheck %s -check-prefix=WARNING -DDISABLED=no-conflicting-options -DENABLED=conflicting-options
+
+FATAL: Fatal: Option `--no-fatal-warnings' is disabled as it is incompatible with `--fatal-warnings`
+ERROR: Error: Option `no-error' is disabled as it is incompatible with `error`
+WARNING: Warning: Option `[[DISABLED]]' is disabled as it is incompatible with `[[ENABLED]]`
 #END_TEST
