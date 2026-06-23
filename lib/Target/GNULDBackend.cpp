@@ -2401,6 +2401,16 @@ bool GNULDBackend::setupSegment(ELFSegment *E) {
     if (!cur->size())
       continue;
 
+    // For PT_TLS, .tbss is SHT_NOBITS and only contributes to memory size.
+    // Skip file-offset tracking entirely; only update address bounds.
+    if ((isTLS && isCurBSS) && E->type() == llvm::ELF::PT_TLS) {
+      if (cur->addr() < lower)
+        lower = cur->addr();
+      if ((cur->addr() + cur->size()) > upper)
+        upper = cur->addr() + cur->size();
+      continue;
+    }
+
     // All PT_LOAD segments should be compliant to ELF standard.
     bool isELFCompliant =
         (E->type() == llvm::ELF::PT_LOAD) &&

@@ -1,0 +1,17 @@
+# Test that PT_TLS p_filesz equals the size of initialized TLS data (.tdata)
+# when the segment also contains a .tbss (NOBITS) section.
+#
+# Bug: setupSegment() tracked file offsets for TBSS sections in PT_TLS.
+# .tbss is SHT_NOBITS and only in PT_TLS (not PT_LOAD), so its sh_offset is 0.
+# This reset lower_offset to 0, making p_filesz an absolute file offset
+# instead of the size of .tdata.
+#
+# Fix: for PT_TLS segments, TBSS sections only update memory bounds (lower/upper)
+# and skip file-offset tracking via an early continue.
+RUN: %clang %clangg0opts -c %p/Inputs/tdata_tbss.c -o %t.o
+RUN: %link %linkopts %t.o -T %p/Inputs/tdata_tbss.t -o %t.out
+RUN: %readelf -l -W %t.out | %filecheck %s
+
+# PT_TLS p_filesz = sizeof(.tdata) = 4 bytes (one int, initialized).
+# PT_TLS p_memsz  = sizeof(.tdata) + sizeof(.tbss) = 4 + 4 = 8 bytes.
+#CHECK: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{0x0+4}} {{0x0+8}} R
