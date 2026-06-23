@@ -816,9 +816,8 @@ void GNULDBackend::sizeDynNamePools() {
 
     DynamicSymbols.push_back(LDSymbol::null()->resolveInfo());
 
-    // Move all the DynamicSymbols.
-    // FIXME: Is it really moving?
-    std::move(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
+    // Copy all the DynamicSymbols.
+    std::copy(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
   }
 
   {
