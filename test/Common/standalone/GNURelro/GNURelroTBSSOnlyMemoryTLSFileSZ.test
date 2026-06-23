@@ -1,0 +1,20 @@
+#---GNURelroTBSSOnlyMemoryTLSFileSZ.test--- TLS, Executable, LinkerScript, MEMORY ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TBSS-only (no TDATA) with a MEMORY linker script.
+#
+# A MEMORY script places text in FLASH and data/TLS in RAM, giving the TLS
+# section a VirtAddr inside the RAM region.  The same PT_TLS invariants
+# must hold regardless of where MEMORY places the section:
+#   - PT_TLS FileSiz == 0  (.tbss is BSS; nothing stored in the file)
+#   - PT_TLS MemSiz  >  0  (runtime allocates per-thread space in RAM)
+#   - .tbss is under PT_TLS, not under any PT_LOAD
+#   - The RW PT_LOAD covering RAM has FileSiz == MemSiz
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_only.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_only_memory.t %t.o -o %t.out
+
+#--- PT_TLS FileSiz == 0 (no TDATA in file) ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{0x0+}} {{0x[0-9a-f]+}} R

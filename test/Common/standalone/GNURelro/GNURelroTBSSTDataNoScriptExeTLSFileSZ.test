@@ -1,0 +1,35 @@
+#---GNURelroTBSSTDataNoScriptExeTLSFileSZ.test--- TLS, Executable, SharedLibrary ---#
+
+#BEGIN_COMMENT
+# Tests for GNU_RELRO behavior when both TDATA (initialized TLS) and TBSS
+# (uninitialized TLS) sections are present.
+#
+# GNU behavior:
+#
+# PT_TLS segment:
+#   - FileSiz == size of .tdata  (initialized TLS is stored in the file)
+#   - MemSiz  == size of .tdata + size of .tbss  (runtime allocates both)
+#   - Both .tdata and .tbss are listed under PT_TLS in the mapping.
+#
+# PT_LOAD segments:
+#   - .tdata is part of the RW PT_LOAD (it has file-backed contents).
+#   - .tbss is NOT counted in the RW PT_LOAD's file size or memory size;
+#     its space is only described by the PT_TLS MemSiz.
+#   - The RW PT_LOAD has FileSiz == MemSiz when no non-TLS BSS is present
+#     (TBSS does not inflate the LOAD memory size beyond its file size).
+#     This was broken before the QTOOL-21682 fix.
+#END_COMMENT
+
+# --- Build executable ---
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_tdata.c -o %t.exe.o
+RUN: %link %linkopts %t.exe.o -o %t.exe.out
+
+# --- Build shared library ---
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/tbss_tdata.c -o %t.so.o
+RUN: %link %linkopts -shared %t.so.o -o %t.so
+
+#--- Executable: PT_TLS FileSiz > 0 (TDATA has file-backed content) ---
+# Initialized TLS variables are stored in the file so the loader can copy
+# them into each thread's TLS block. FileSiz must be non-zero.
+RUN: %readelf -l -W %t.exe.out | %filecheck %s
+# CHECK-NOT: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{0x0+}} {{0x[0-9a-f]+}} R

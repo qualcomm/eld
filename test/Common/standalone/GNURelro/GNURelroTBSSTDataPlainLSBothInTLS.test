@@ -1,0 +1,21 @@
+#---GNURelroTBSSTDataPlainLSBothInTLS.test--- TLS, Executable, LinkerScript ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TDATA+TBSS (initialized and uninitialized TLS)
+# with a plain SECTIONS linker script (no PHDRS, no MEMORY).
+#
+# With a SECTIONS-only script the linker auto-generates segments.  The TLS
+# segment invariants for mixed TDATA+TBSS:
+#   - PT_TLS FileSiz > 0   (.tdata is PROGBITS; its content is in the file)
+#   - PT_TLS MemSiz  > FileSiz  (.tbss extends the per-thread block beyond .tdata)
+#   - .tdata and .tbss both appear under PT_TLS
+#   - .tdata is in the RW PT_LOAD (.tbss is not)
+#   - The RW PT_LOAD has FileSiz == MemSiz (.tbss not counted in LOAD)
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_tdata.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_tdata_plain.t %t.o -o %t.out
+
+#--- .tdata and .tbss are both listed under PT_TLS ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: .tdata .tbss

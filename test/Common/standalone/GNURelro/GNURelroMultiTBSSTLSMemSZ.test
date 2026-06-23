@@ -1,0 +1,13 @@
+#---GNURelroMultiTBSSTLSMemSZ.test--- TLS, SharedLibrary ---#
+
+#BEGIN_COMMENT
+# With -fdata-sections each TLS variable gets its own .tbss.<var> section.
+# The runtime must allocate per-thread space for all three variables, so
+# PT_TLS MemSiz must be non-zero.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC -fdata-sections %p/Inputs/tbss_multi.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+
+RUN: %readelf -l -W %t.relro.so | %filecheck %s
+# CHECK-NOT: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{0x0+}} {{0x0+}} R

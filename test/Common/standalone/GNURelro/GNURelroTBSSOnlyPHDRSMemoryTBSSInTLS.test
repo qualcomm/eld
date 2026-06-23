@@ -1,0 +1,23 @@
+#---GNURelroTBSSOnlyPHDRSMemoryTBSSInTLS.test--- TLS, Executable, LinkerScript, PHDRS, MEMORY ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TBSS-only (no TDATA) with both PHDRS and MEMORY
+# directives in the linker script.
+#
+# PHDRS defines named segments; MEMORY places text in FLASH and data/TLS in
+# RAM.  .tbss is assigned to ph_tls (PT_TLS) and ph_data (PT_LOAD), both of
+# which address RAM.
+#
+#   - PT_TLS FileSiz == 0  (TBSS is BSS; no file content)
+#   - PT_TLS MemSiz  >  0  (runtime allocates per-thread space in RAM)
+#   - PT_TLS VirtAddr falls inside the RAM region (MEMORY respected)
+#   - .tbss appears under PT_TLS in the section-to-segment mapping
+#   - ph_data PT_LOAD has FileSiz == MemSiz (TBSS excluded from LOAD sizes)
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_only.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_only_phdrs_memory.t %t.o -o %t.out
+
+#--- .tbss is listed under PT_TLS ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: .tbss

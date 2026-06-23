@@ -1,0 +1,11 @@
+#---GNURelroSOSections.test--- SharedLibrary ---#
+#BEGIN_COMMENT
+# Verify that .init_array, .fini_array, .dynamic, and .got are placed in the
+# PT_GNU_RELRO segment for a shared library with partial RELRO (-z relro).
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/relro.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+RUN: %readelf -l -W %t.relro.so | %filecheck %s
+
+CHECK: .init_array .fini_array .dynamic .got

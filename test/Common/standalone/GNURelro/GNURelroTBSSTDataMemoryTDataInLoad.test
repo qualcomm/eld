@@ -1,0 +1,21 @@
+#---GNURelroTBSSTDataMemoryTDataInLoad.test--- TLS, Executable, LinkerScript, MEMORY ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TDATA+TBSS with a MEMORY linker script.
+#
+# The MEMORY script places text in FLASH and all TLS/data in RAM.  The TLS
+# segment must reflect the RAM placement and maintain correct sizes:
+#   - PT_TLS VirtAddr falls in the RAM region
+#   - PT_TLS FileSiz > 0   (.tdata stored in file)
+#   - PT_TLS MemSiz  > FileSiz  (.tbss extends per-thread space)
+#   - .tdata and .tbss are both under PT_TLS
+#   - .tdata is in the RW PT_LOAD; .tbss is not
+#   - The RW PT_LOAD (RAM) has FileSiz == MemSiz
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_tdata.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_tdata_memory.t %t.o -o %t.out
+
+#--- .tdata is in the RW PT_LOAD ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: .tdata

@@ -1,0 +1,15 @@
+#---GNURelroSOGotPltNotRelro.test--- SharedLibrary ---#
+#BEGIN_COMMENT
+# Verify that .got.plt is NOT in the PT_GNU_RELRO segment for a shared library
+# with partial RELRO (-z relro).  .got.plt must remain in the RW data segment
+# so the dynamic linker can patch it during lazy binding.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/relro.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+RUN: %readelf -l -W %t.relro.so | %filecheck %s
+
+# .got.plt appears in the output (in the data LOAD segment)
+CHECK:     .got.plt
+# But it is NOT listed inside the GNU_RELRO segment alongside init/got
+CHECK-NOT: .init_array .fini_array .dynamic .got .got.plt

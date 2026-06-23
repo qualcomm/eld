@@ -1,0 +1,12 @@
+#---GNURelroSONow.test--- SharedLibrary ---#
+#BEGIN_COMMENT
+# Verify that with -z now (full RELRO), a PT_GNU_RELRO segment is emitted and
+# .got (covering all GOT entries) is in RELRO for a shared library.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/relro.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro -z now %t.so.o -o %t.now.so
+RUN: %readelf -l -W %t.now.so | %filecheck %s
+
+CHECK: GNU_RELRO
+CHECK: .init_array .fini_array .dynamic .got

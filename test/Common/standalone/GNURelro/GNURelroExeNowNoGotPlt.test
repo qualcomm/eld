@@ -1,0 +1,11 @@
+#---GNURelroExeNowNoGotPlt.test--- Executable ---#
+#BEGIN_COMMENT
+# Verify that with -z now (full RELRO), .got.plt is merged into .got and does
+# not appear in any segment's section mapping for the dynamic executable output.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/relro.c -o %t.exe.o
+RUN: %link %linkopts -z relro -z now %t.exe.o -o %t.now.out
+RUN: %readelf -l -W %t.now.out | %filecheck %s
+
+CHECK-NOT: .got.plt

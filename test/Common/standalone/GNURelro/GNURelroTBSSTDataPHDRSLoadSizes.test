@@ -1,0 +1,21 @@
+#---GNURelroTBSSTDataPHDRSLoadSizes.test--- TLS, Executable, LinkerScript, PHDRS ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TDATA+TBSS with an explicit PHDRS linker script.
+#
+# The script assigns .tdata and .tbss to both ph_tls (PT_TLS) and ph_data
+# (PT_LOAD), so the TLS segment and the data LOAD overlap — which is the
+# standard ELF convention for TLS.
+#
+#   - PT_TLS FileSiz > 0   (.tdata PROGBITS content is in the file)
+#   - PT_TLS MemSiz  > FileSiz  (.tbss adds zero-init space)
+#   - .tdata and .tbss both appear under PT_TLS
+#   - ph_data PT_LOAD has FileSiz == MemSiz (.tbss excluded from LOAD)
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_tdata.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_tdata_phdrs.t %t.o -o %t.out
+
+#--- ph_data PT_LOAD has FileSiz == MemSiz (.tbss not counted in LOAD) ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: LOAD {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} [[SZ:[0-9a-fx]+]] [[SZ]] RW

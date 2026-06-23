@@ -1,0 +1,11 @@
+#---GNURelroExeRelro.test--- Executable ---#
+#BEGIN_COMMENT
+# Verify that a PT_GNU_RELRO segment is emitted for a dynamic executable built
+# with -z relro (partial RELRO).
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/relro.c -o %t.exe.o
+RUN: %link %linkopts -z relro %t.exe.o -o %t.relro.out
+RUN: %readelf -l -W %t.relro.out | %filecheck %s
+
+CHECK: GNU_RELRO

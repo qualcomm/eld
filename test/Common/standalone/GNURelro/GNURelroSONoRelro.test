@@ -1,0 +1,11 @@
+#---GNURelroSONoRelro.test--- SharedLibrary ---#
+#BEGIN_COMMENT
+# Verify that no PT_GNU_RELRO segment is emitted for a shared library built
+# with -z norelro.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/relro.c -o %t.so.o
+RUN: %link %linkopts -shared -z norelro %t.so.o -o %t.norelro.so
+RUN: %readelf -l -W %t.norelro.so | %filecheck %s
+
+CHECK-NOT: GNU_RELRO

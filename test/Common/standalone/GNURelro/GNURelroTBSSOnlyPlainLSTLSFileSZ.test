@@ -1,0 +1,20 @@
+#---GNURelroTBSSOnlyPlainLSTLSFileSZ.test--- TLS, Executable, LinkerScript ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TBSS-only (no TDATA) with a plain SECTIONS linker
+# script (no PHDRS, no MEMORY).
+#
+# With a SECTIONS-only script the linker auto-generates segments.  The TLS
+# segment must still satisfy the invariants that hold without a script:
+#   - PT_TLS FileSiz == 0   (no initialized TLS to store in the file)
+#   - PT_TLS MemSiz  >  0   (runtime reserves per-thread space for TBSS)
+#   - .tbss is listed under PT_TLS, not under any PT_LOAD
+#   - The RW PT_LOAD covering non-TLS data has FileSiz == MemSiz
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_only.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_only_plain.t %t.o -o %t.out
+
+#--- PT_TLS FileSiz == 0 (no TDATA; only BSS TLS variables) ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{0x0+}} {{0x[0-9a-f]+}} R

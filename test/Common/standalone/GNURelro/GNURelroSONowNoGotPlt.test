@@ -1,0 +1,11 @@
+#---GNURelroSONowNoGotPlt.test--- SharedLibrary ---#
+#BEGIN_COMMENT
+# Verify that with -z now (full RELRO), .got.plt is merged into .got and does
+# not appear in any segment's section mapping for the shared library output.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/relro.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro -z now %t.so.o -o %t.now.so
+RUN: %readelf -l -W %t.now.so | %filecheck %s
+
+CHECK-NOT: .got.plt

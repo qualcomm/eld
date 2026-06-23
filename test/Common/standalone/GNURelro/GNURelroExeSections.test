@@ -1,0 +1,11 @@
+#---GNURelroExeSections.test--- Executable ---#
+#BEGIN_COMMENT
+# Verify that .init_array and .fini_array are placed in the PT_GNU_RELRO
+# segment for a dynamic executable with partial RELRO (-z relro).
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/relro.c -o %t.exe.o
+RUN: %link %linkopts -z relro %t.exe.o -o %t.relro.out
+RUN: %readelf -l -W %t.relro.out | %filecheck %s
+
+CHECK: .init_array .fini_array

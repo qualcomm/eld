@@ -1,0 +1,23 @@
+#---GNURelroTBSSTDataPHDRSMemoryTLSSizes.test--- TLS, Executable, LinkerScript, PHDRS, MEMORY ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TDATA+TBSS with both PHDRS and MEMORY directives.
+#
+# PHDRS names segments explicitly; MEMORY places text in FLASH and TLS/data
+# in RAM.  .tdata and .tbss are assigned to ph_tls (PT_TLS) and ph_data
+# (PT_LOAD), both pointing into RAM.
+#
+#   - PT_TLS VirtAddr is in the RAM region
+#   - PT_TLS FileSiz > 0   (.tdata stored in file)
+#   - PT_TLS MemSiz  > FileSiz  (.tbss extends per-thread block)
+#   - .tdata and .tbss both appear under PT_TLS
+#   - ph_data PT_LOAD has FileSiz == MemSiz (.tbss excluded)
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_tdata.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_tdata_phdrs_memory.t %t.o -o %t.out
+
+#--- PT_TLS MemSiz > FileSiz (.tbss extends the TLS template) ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} [[FSIZ:0x[0-9a-f]+]] {{0x[0-9a-f]+}} RW
+# CHECK-NOT: TLS {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} {{[0x0-9a-f]+}} [[FSIZ]] [[FSIZ]] RW

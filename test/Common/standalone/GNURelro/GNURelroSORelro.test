@@ -1,0 +1,11 @@
+#---GNURelroSORelro.test--- SharedLibrary ---#
+#BEGIN_COMMENT
+# Verify that a PT_GNU_RELRO segment is emitted for a shared library built
+# with -z relro (partial RELRO).
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/relro.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+RUN: %readelf -l -W %t.relro.so | %filecheck %s
+
+CHECK: GNU_RELRO

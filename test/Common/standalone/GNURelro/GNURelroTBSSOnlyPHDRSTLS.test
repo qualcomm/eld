@@ -1,0 +1,23 @@
+#---GNURelroTBSSOnlyPHDRSTLS.test--- TLS, Executable, LinkerScript, PHDRS ---#
+
+#BEGIN_COMMENT
+# Tests PT_TLS behavior for TBSS-only (no TDATA) with an explicit PHDRS linker
+# script.
+#
+# With PHDRS the programmer assigns sections to named segments.  The script
+# assigns .tbss to both ph_tls (PT_TLS) and ph_data (PT_LOAD), mirroring
+# the GNU convention where the TLS segment overlaps the data LOAD.
+#
+#   - PT_TLS FileSiz == 0   (.tbss is BSS; no initialized content in file)
+#   - PT_TLS MemSiz  >  0   (runtime reserves per-thread space)
+#   - .tbss appears under PT_TLS in the section-to-segment mapping
+#   - .tbss appears under the ph_data PT_LOAD (PHDRS overlap is intentional)
+#   - The ph_data PT_LOAD has FileSiz == MemSiz (.tbss not double-counted)
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_only.c -o %t.o
+RUN: %link %linkopts -T %p/Inputs/tbss_only_phdrs.t %t.o -o %t.out
+
+#--- PT_TLS segment is present ---
+RUN: %readelf -l -W %t.out | %filecheck %s
+# CHECK: TLS

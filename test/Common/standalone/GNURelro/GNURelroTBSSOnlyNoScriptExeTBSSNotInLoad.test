@@ -1,0 +1,44 @@
+#---GNURelroTBSSOnlyNoScriptExeTBSSNotInLoad.test--- TLS, Executable, SharedLibrary ---#
+
+#BEGIN_COMMENT
+# Tests for GNU_RELRO behavior when only TBSS (uninitialized TLS) sections are
+# present — no TDATA (initialized TLS).
+#
+# GNU behavior:
+#
+# PT_TLS segment:
+#   - FileSiz == 0  (no initialized TLS data to copy from the file)
+#   - MemSiz  >  0  (runtime reserves space for the uninitialized TLS block)
+#
+# PT_LOAD segments:
+#   - .tbss must NOT be counted in any PT_LOAD's file size or memory size.
+#     It lives only in the PT_TLS segment.
+#   - The RW PT_LOAD covering non-TLS data has FileSiz == MemSiz (TBSS
+#     does not inflate the LOAD's memory size beyond its file size).
+#     This was broken before the QTOOL-21682 fix.
+#
+# Section placement:
+#   - .tbss is listed under PT_TLS in the section-to-segment mapping.
+#   - .tbss is NOT listed under any PT_LOAD.
+#
+# PT_GNU_RELRO (with -z relro):
+#   - GNU_RELRO is present and covers .dynamic and .got.
+#   - .tbss must NOT appear in the GNU_RELRO section-to-segment mapping.
+#     Before the fix, .tbss was treated as a RELRO section, which caused
+#     the RELRO segment VirtAddr to point at the TLS area and excluded
+#     .dynamic/.got from the protected range.
+#END_COMMENT
+
+# --- Build executable ---
+RUN: %clang %clangg0opts -fuse-init-array -c %p/Inputs/tbss_only.c -o %t.exe.o
+RUN: %link %linkopts %t.exe.o -o %t.exe.out
+
+# --- Build shared library (no relro) ---
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/tbss_only.c -o %t.so.o
+RUN: %link %linkopts -shared %t.so.o -o %t.so
+
+# --- Build shared library (with relro) ---
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+
+RUN: %readelf -l -W %t.exe.out | %filecheck %s
+# CHECK-NOT: LOAD {{.*}} .tbss
