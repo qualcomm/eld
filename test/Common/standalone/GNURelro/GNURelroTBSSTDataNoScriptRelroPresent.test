@@ -1,0 +1,18 @@
+#---GNURelroTBSSTDataNoScriptRelroPresent.test--- TLS, SharedLibrary ---#
+
+#BEGIN_COMMENT
+# Verify PT_GNU_RELRO is emitted for a shared library with both TDATA and TBSS
+# when -z relro is used.
+#
+# The CreateProgramHeaders fix guards the enable_RELRO transition with
+# !cur->isTBSS().  Without it, when .tbss follows .tdata (which is RELRO),
+# the isPrevRelRO && !isCurRelRO transition fires on .tbss and clears
+# enable_RELRO before .dynamic/.got are processed, causing PT_GNU_RELRO to
+# be omitted or truncated.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC %p/Inputs/tbss_tdata.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+
+RUN: %readelf -l -W %t.relro.so | %filecheck %s
+# CHECK: GNU_RELRO

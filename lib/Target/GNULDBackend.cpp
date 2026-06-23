@@ -1446,6 +1446,10 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
         // We can use the same function isRELRO for both cases, but we need to
         // also determine the case of Partial RELRO versus Full RELRO. This code
         // is mainly duplicated to assume that.
+        // .tbss uses SHO_RELRO for ordering only, so it is placed adjacent to
+        // .tdata (also SHO_RELRO) as required for a contiguous PT_TLS.
+        // It is NOT a RELRO section for segment-membership purposes; see
+        // isRelROSection() which explicitly excludes .tbss.
         if (sectionName == ".ctors" || sectionName == ".data.rel.ro.local" ||
             sectionName == ".data.rel.ro" || sectionName == ".dtors" ||
             sectionName == ".fini_array" || sectionName == ".init_array" ||
@@ -1528,12 +1532,16 @@ bool GNULDBackend::isRelROSection(const ELFSection *section) const {
   if (isGOTAndGOTPLTMerged() && sectionName == ".got" &&
       !config().options().hasNow())
     return false;
+  // .tbss is SHT_NOBITS TLS BSS: it carries no file content and is not
+  // covered by PT_GNU_RELRO.  Treating it as a RELRO section suppresses the
+  // page-gap that separates the RELRO region from subsequent non-RELRO data
+  // and prevents enable_RELRO from being cleared at the right point.
   if (sectionName == ".ctors" || sectionName == ".data.rel.ro.local" ||
       sectionName == ".data.rel.ro" || sectionName == ".dtors" ||
       sectionName == ".fini_array" || sectionName == ".got" ||
       sectionName == ".init_array" || sectionName == ".tdata" ||
-      sectionName == ".tbss" || sectionName == ".preinit_array" ||
-      sectionName == ".jcr" || sectionName == ".dynamic")
+      sectionName == ".preinit_array" || sectionName == ".jcr" ||
+      sectionName == ".dynamic")
     return true;
   if (config().options().hasNow() && sectionName == ".got.plt")
     return true;
@@ -2475,11 +2483,12 @@ bool GNULDBackend::setupProgramHdrs() {
         continue;
       }
 
-      Seg->setOffset(Seg->front()->offset());
-      Seg->setVaddr(Seg->front()->addr());
-      Seg->setPaddr(Seg->front()->pAddr());
+      ELFSection *FirstSec = Seg->front();
+      Seg->setOffset(FirstSec->offset());
+      Seg->setVaddr(FirstSec->addr());
+      Seg->setPaddr(FirstSec->pAddr());
 
-      segmentOffset = Seg->front()->offset();
+      segmentOffset = FirstSec->offset();
 
       if (!setupSegment(Seg))
         return false;

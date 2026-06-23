@@ -1,0 +1,19 @@
+REQUIRES: run_test, linux
+UNSUPPORTED: aarch64
+#---RelROGDTBSSTData.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: TBSS + TDATA with partial RELRO (-z relro), GD TLS model.
+# Both initialized (.tdata) and uninitialized (.tbss) TLS are present.  The
+# initialized value must survive and the uninitialized slot must be zero at
+# startup; neither should be affected by RELRO protection.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc %clangopts -fuse-init-array -c -fPIC %p/Inputs/relro_tdata_tbss.c -o %t.tdata.o
+RUN: %run_cc %clangopts -o %t.tdata.out %t.tdata.o -Wl,-z,relro -Wl,-dy
+RUN: %run %t.tdata.out | %filecheck %s
+
+#END_TEST
+
+# Initialized TLS value followed by zero-initialized TLS value
+CHECK: tdata=7 tbss=0

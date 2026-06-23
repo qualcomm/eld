@@ -545,7 +545,14 @@ bool GNULDBackend::createProgramHdrs() {
       // same page. This is a difference between ELD and GNU linker. This is
       // done only if the previous section and the new section fall in the same
       // segment.
-      if (enable_RELRO && isPrevRelRO && !isCurRelRO &&
+      //
+      // .tbss is excluded even though !isCurRelRO is true for it: .tbss is a
+      // virtual NOBITS TLS section with no file content that sits between
+      // .tdata (RELRO) and .dynamic/.got (also RELRO) in section order.
+      // Treating it as the end of the RELRO region would bump the VMA by a
+      // page and permanently clear enable_RELRO before .dynamic/.got are
+      // processed, causing them to be excluded from PT_GNU_RELRO.
+      if (enable_RELRO && isPrevRelRO && !isCurRelRO && !cur->isTBSS() &&
           !linkerScriptHasSectionsCommand)
         vma += abiPageSize();
       if (cur->isFixedAddr() && (vma != cur->addr())) {
@@ -595,7 +602,12 @@ bool GNULDBackend::createProgramHdrs() {
     if (load_seg && isCurAlloc) {
       if (!last_section_needs_new_segment &&
           (createPT_LOAD || cur->isWanted())) {
-        if (isPrevRelRO && !isCurRelRO)
+        // Close the RELRO region when we reach the first genuinely non-RELRO
+        // section after a RELRO section.  .tbss is excluded for the same
+        // reason as the page-gap above: it is a virtual NOBITS TLS section
+        // that appears between RELRO sections (.tdata and .dynamic/.got) in
+        // section order but is not the true end of the RELRO region.
+        if (isPrevRelRO && !isCurRelRO && !cur->isTBSS())
           enable_RELRO = false;
         // Check if the current section is a NOTE section and create appropriate
         // NOTE segments.
@@ -636,7 +648,6 @@ bool GNULDBackend::createProgramHdrs() {
             note_seg->setAlign(note_seg->getMaxSectionAlign());
           }
         }
-        // Handle GNU RELRO sections.
         if (isRelROSection(cur) && enable_RELRO) {
           bool sectionHasRelROSegment = true;
           bool needRelRoSegment = false;

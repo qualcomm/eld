@@ -1,0 +1,18 @@
+REQUIRES: run_test, linux
+UNSUPPORTED: aarch64
+#---RelROGDTBSSBss.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: TBSS + non-TLS BSS with partial RELRO (-z relro), GD TLS model.
+# A regular (non-TLS) BSS variable must not be confused with TBSS.  Both
+# must be readable/writable after the loader maps the binary.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc %clangopts -fuse-init-array -c -fPIC %p/Inputs/relro_bss_tbss.c -o %t.bss.o
+RUN: %run_cc %clangopts -o %t.bss.out %t.bss.o -Wl,-z,relro -Wl,-dy
+RUN: %run %t.bss.out | %filecheck %s
+
+#END_TEST
+
+# Non-TLS BSS is zero, TBSS written by constructor is still 42
+CHECK: bss=0 tbss=42

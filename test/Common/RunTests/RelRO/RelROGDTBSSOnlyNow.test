@@ -1,0 +1,18 @@
+REQUIRES: run_test, linux
+UNSUPPORTED: aarch64
+#---RelROGDTBSSOnlyNow.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: TBSS-only with full RELRO (-z relro -z now), GD TLS model.
+# Full RELRO merges .got.plt into .got.  The segment's first section is still
+# a real RELRO section (not .tbss).  TLS and constructors must still work.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc %clangopts -fuse-init-array -c -fPIC %p/Inputs/relro_tbss.c -o %t.tbss.o
+RUN: %run_cc %clangopts -o %t.now.out %t.tbss.o -Wl,-z,relro -Wl,-z,now -Wl,-dy
+RUN: %run %t.now.out | %filecheck %s
+
+#END_TEST
+
+# TBSS written by constructor is readable
+CHECK: 42

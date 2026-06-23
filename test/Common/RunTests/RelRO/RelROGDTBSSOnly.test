@@ -1,0 +1,18 @@
+REQUIRES: run_test, linux
+UNSUPPORTED: aarch64
+#---RelROGDTBSSOnly.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: TBSS-only with partial RELRO (-z relro), GD TLS model.
+# GD (global-dynamic) is the most general TLS model and is the compiler
+# default for -fPIC on most targets.
+#END_COMMENT
+#START_TEST
+
+RUN: %run_cc %clangopts -fuse-init-array -c -fPIC %p/Inputs/relro_tbss.c -o %t.tbss.o
+RUN: %run_cc %clangopts -o %t.tbss.out %t.tbss.o -Wl,-z,relro -Wl,-dy
+RUN: %run %t.tbss.out | %filecheck %s
+
+#END_TEST
+
+# TBSS written by constructor is readable
+CHECK: 42

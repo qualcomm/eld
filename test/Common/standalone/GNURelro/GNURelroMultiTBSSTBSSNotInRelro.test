@@ -1,0 +1,19 @@
+#---GNURelroMultiTBSSTBSSNotInRelro.test--- TLS, SharedLibrary ---#
+
+#BEGIN_COMMENT
+# With -fdata-sections each TLS variable gets its own .tbss.<var> section.
+# Verify that none of the .tbss.* sections appear inside the PT_GNU_RELRO
+# segment mapping.
+#
+# The section-to-segment mapping row for GNU_RELRO must end with .got and must
+# not contain .tbss.  We verify this by asserting that the RELRO mapping row is
+# exactly ".dynamic .got" with nothing after it — if .tbss appeared there the
+# trailing-whitespace anchor would fail.
+#END_COMMENT
+
+RUN: %clang %clangg0opts -fuse-init-array -c -fPIC -fdata-sections %p/Inputs/tbss_multi.c -o %t.so.o
+RUN: %link %linkopts -shared -z relro %t.so.o -o %t.relro.so
+
+RUN: %readelf -l -W %t.relro.so | %filecheck %s
+# CHECK: GNU_RELRO
+# CHECK: .dynamic .got{{[[:space:]]*$}}
