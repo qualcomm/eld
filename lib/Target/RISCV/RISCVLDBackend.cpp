@@ -167,21 +167,31 @@ void RISCVLDBackend::initTargetSymbols() {
   if (TableJumpFragment) {
     // The __jvt_base$ symbol contains the Zcmt jump table base address.
     std::string JvtName = "__jvt_base$";
-    LDSymbol *JvtBase =
+    m_pJvtBase =
         m_Module.getIRBuilder()
             ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
                 m_Module.getInternalInput(Module::InternalInputType::TableJump),
                 JvtName, ResolveInfo::NoType, ResolveInfo::Define,
                 ResolveInfo::Global,
-                TableJumpFragment->size(), // size
-                0x0,                       // value
+                /*Size=*/0x0, /*Value=*/0x0,
                 make<FragmentRef>(*TableJumpFragment, 0x0),
                 ResolveInfo::Hidden);
-    if (JvtBase)
-      JvtBase->setShouldIgnore(false);
+    if (m_pJvtBase)
+      m_pJvtBase->setShouldIgnore(false);
     if (m_Module.getConfig().options().isSymbolTracingRequested() &&
         m_Module.getConfig().options().traceSymbol(JvtName))
       config().raise(Diag::target_specific_symbol) << JvtName;
+
+    // We put a data marker symbol at the start of the `.riscv.jvt` section to
+    // mark it correctly. Use addSymbol directly (not
+    // addLinkerInternalLocalSymbol) so addSymbolsToOutput() adds it to
+    // Module::Symbols exactly once.
+    std::string JvtMarkerName = "$d";
+    m_Module.getIRBuilder()->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
+        m_Module.getInternalInput(Module::InternalInputType::TableJump),
+        JvtMarkerName, ResolveInfo::NoType, ResolveInfo::Define,
+        ResolveInfo::Local, /*Size=*/0, /*Value=*/0,
+        make<FragmentRef>(*TableJumpFragment, 0x0), ResolveInfo::Default);
   }
 
   // Do not create another __global_pointer$ when linking a patch.
@@ -241,6 +251,8 @@ void RISCVLDBackend::initTableJump() {
   // the owning section for layout.
   if (m_pRISCVTableJumpSection)
     m_pRISCVTableJumpSection->setSize(TableJumpFragment->size());
+  if (m_pJvtBase)
+    m_pJvtBase->setSize(TableJumpFragment->size());
   TableJumpInitialized = true;
 }
 

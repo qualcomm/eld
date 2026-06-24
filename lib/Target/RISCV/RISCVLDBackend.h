@@ -344,6 +344,7 @@ private:
   RISCVAttributeFragment *AttributeFragment = nullptr;
   RISCVTableJumpFragment *TableJumpFragment = nullptr;
   bool TableJumpInitialized = false;
+  LDSymbol *m_pJvtBase = nullptr;
 
   LDSymbol *m_pIRelativeStart = nullptr;
   LDSymbol *m_pIRelativeEnd = nullptr;
