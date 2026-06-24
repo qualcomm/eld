@@ -841,6 +841,12 @@ Relocator::Result adr_prel_pg_hi21(Relocation &pReloc,
   Relocator::DWord X =
       helper_get_page_address(S + A) - helper_get_page_address(P);
 
+  if (pReloc.type() == llvm::ELF::R_AARCH64_ADR_PREL_PG_HI21) {
+    if (!llvm::isInt<21>(static_cast<int64_t>(X >> 12)))
+      return checkSignedRange(pReloc, pParent, static_cast<int64_t>(X >> 12),
+                              21);
+  }
+
   pReloc.target() = helper_reencode_adr_imm(pReloc.target(), (X >> 12));
 
   return Relocator::OK;
