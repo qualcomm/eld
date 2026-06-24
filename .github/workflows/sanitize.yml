@@ -59,7 +59,7 @@ jobs:
 
       - name: Restore ccache
         id: cache-ccache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
@@ -113,7 +113,7 @@ jobs:
 
       - name: Save ccache
         if: always()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
