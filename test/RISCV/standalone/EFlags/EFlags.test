@@ -16,4 +16,4 @@ RUN: %eld --no-warn-mismatch %t.f.o %t.1.o -o %t1.out 2>&1 | %filecheck %s --che
 
 EFLAGS: Flags: 0x3
 CHECK: Error: Incompatible object files when reading {{.*}}1.o
-NOERR-NOT: Error: Incompatible object files when reading
+NOERR: Note: Incompatible object files when reading {{.*}}1.o

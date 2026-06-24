@@ -19,7 +19,7 @@ DIAG(warn_mismatch_cpu_arch_profile, DiagnosticEngine::Warning,
 DIAG(error_mismatch_mpextension_use, DiagnosticEngine::Error,
      "conflicting values from Tag_MPextension_use and "
      "Tag_MPextension_use_legacy in %0")
-DIAG(warn_mismatch_enum_size, DiagnosticEngine::Warning,
+DIAG(warn_mismatch_enum_size, DiagnosticEngine::WarnMismatchWarning,
      "the size of enumerated data item in input %0 (value=%1) is not "
      "compatible with the output (value=%2).")
 DIAG(warn_mismatch_fp16_format, DiagnosticEngine::Warning,
@@ -30,7 +30,7 @@ DIAG(warn_mismatch_abi_wmmx_args, DiagnosticEngine::Warning,
      "%0 uses different way to pass WMMX parameters and results.")
 DIAG(warn_mismatch_pcs_config, DiagnosticEngine::Warning,
      "conflicting procedure call standard config in input %0.")
-DIAG(err_mismatch_r9_use, DiagnosticEngine::Error,
+DIAG(err_mismatch_r9_use, DiagnosticEngine::WarnMismatchError,
      "conflicting way to use R9. %2: `%1', previously seen: `%0'")
 DIAG(warn_mismatch_wchar_size, DiagnosticEngine::Warning,
      "incompatible size of wchar_t in input %0 (value=%1) with the output "
