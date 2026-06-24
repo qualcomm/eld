@@ -1,0 +1,21 @@
+REQUIRES: run_test
+#---R_ARM_BREL_ADJ.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_BREL_ADJ relocation.
+# R_ARM_BREL_ADJ is a 32-bit dynamic/FDPIC relocation used to adjust a
+# base-relative offset when a shared library segment is relocated at
+# runtime.
+# Covers: static
+#END_COMMENT
+#START_TEST
+
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+#RUN: %readelf -r %t.main.o | %filecheck %s -check-prefix MAIN-RELOCS
+# Static - link is expected to fail because R_ARM_BREL_ADJ is unsupported
+#RUN: %not %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o 2>&1 | %filecheck %s -check-prefix LINK-ERROR
+
+#MAIN-RELOCS: {{.*}} R_ARM_BREL_ADJ {{.*}} target
+#LINK-ERROR: Unsupported relocation found during relocation scan `R_ARM_BREL_ADJ'
+
+#END_TEST
