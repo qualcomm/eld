@@ -160,11 +160,13 @@ jobs:
           cmake --build ${{ github.workspace }}/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
 
       - name: Pack toolchain tarball
+        if: false
         run: |
           tar -C ${{ github.workspace }}/ \
               -Jcvf install-${{ matrix.arch.name }}-toolchain.tar.xz install-${{ matrix.arch.name }}-toolchain
 
       - name: Upload toolchain tarball
+        if: false
         uses: actions/upload-artifact@v7
         with:
           name: install-${{ matrix.arch.name }}-toolchain.tar.xz
