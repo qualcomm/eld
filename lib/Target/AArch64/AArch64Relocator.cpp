@@ -699,7 +699,6 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
     // Create GOT slot for rsym with the fragment reference of P
   } else
     S = pParent.getSymValue(&pReloc);
-  Relocator::Address targetVal = S + A;
 
   bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
   ELFSection *target_sect = pReloc.targetRef()->getOutputELFSection();
@@ -712,46 +711,42 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
     return Relocator::OK;
   }
 
-  if (isAuthAbs) {
+  if (rsym && (rsym->reserved() & Relocator::ReserveRel)) {
     // Handle authenticated pointer relocations:
-    // - Undefined weak reference: the relocation is 0 regardless of the schema
     // - AUTH_RELATIVE: write only schema (dynamic linker adds address)
     // - AUTH_ABS64 (preemptible): skip writing (dynamic linker handles)
     // - AUTH_ABS64 (non-preemptible): write address + schema
-
-    // PAuth spec 8.1.1:
-    // "if the target symbol is an undefined weak reference, the result of
-    // the relocation is 0 (nullptr) regardless of the signing schema"
-    if (rsym && rsym->isWeak() && rsym->isUndef()) {
-      pReloc.target() = 0;
-      return Relocator::OK;
-    }
-    Relocator::DWord signingSchema = getSigningSchema(pReloc);
-    if (rsym && (rsym->reserved() & Relocator::ReserveRel)) {
+    if (isAuthAbs) {
       Relocation *dynrel = pParent.getTarget().findRelativeReloc(&pReloc);
       // Only store the signing schema in the place for authenticated RELA
       if (dynrel && (dynrel->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)) {
-        pReloc.target() = signingSchema;
+        pReloc.target() = getSigningSchema(pReloc);
         return Relocator::OK;
       }
     }
-    targetVal = static_cast<uint32_t>(targetVal) | signingSchema;
+    if (pParent.getTarget().isSymbolPreemptible(*rsym))
+      return Relocator::OK;
   }
-
-  if (rsym && (rsym->reserved() & Relocator::ReserveRel) &&
-      (pParent.getTarget().isSymbolPreemptible(*rsym)))
-    return Relocator::OK;
 
   if (rsym && rsym->reserved() & Relocator::ReservePLT)
     S = pParent.getTarget().findEntryInPLT(rsym)->getAddr(
         pParent.config().getDiagEngine());
 
-  if (rsym && rsym->isWeakUndef() &&
-      (pParent.config().codeGenType() == LinkerConfig::Exec))
-    S = 0;
+  if (rsym && rsym->isWeakUndef()) {
+    // PAuth spec 8.1.1:
+    // "if the target symbol is an undefined weak reference, the result of
+    // the relocation is 0 (nullptr) regardless of the signing schema"
+    if (isAuthAbs) {
+      pReloc.target() = 0;
+      return Relocator::OK;
+    }
+    if (pParent.config().codeGenType() == LinkerConfig::Exec)
+      S = 0;
+  }
 
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_ABS32:
+  case llvm::ELF::R_AARCH64_AUTH_ABS64:
     if (!llvm::isUInt<32>(S + A) && !llvm::isInt<32>(S + A))
       return emitSignedOrUnsignedRangeOverflow(pReloc, pParent, S + A, 32);
     break;
@@ -765,7 +760,10 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
 
   // A local symbol may need RELATIVE Type dynamic relocation
   // perform static relocation
-  pReloc.target() = targetVal;
+  if (isAuthAbs)
+    pReloc.target() = static_cast<uint32_t>(S + A) | getSigningSchema(pReloc);
+  else
+    pReloc.target() = S + A;
   return Relocator::OK;
 }
 

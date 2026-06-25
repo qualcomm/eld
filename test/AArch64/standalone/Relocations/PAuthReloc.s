@@ -136,6 +136,26 @@
 
 # STATIC_NOPIE-COUNT-14:       {{0x[0-9A-F]+}} R_AARCH64_AUTH_RELATIVE - {{0x[0-9A-F]+}}
 
+# The static-nopie build has no shared libraries, so every AUTH_ABS64
+# in a.s becomes non-preemptible and gets an AUTH_RELATIVE dynamic
+# relocation. In that case abs() must write only the signing schema in
+# the top 32 bits and zero in the low 32 bits at each slot. The byte
+# layout is identical to the NOPIE HEX block above, mirror it here.
+# RUN: %readelf -x .test %t/main.static.nopie | %filecheck %s --check-prefix=STATIC_NOPIE_HEX
+# RUN: %readelf -x .rodata %t/main.static.nopie | %filecheck %s --check-prefix=STATIC_NOPIE_RODATA
+
+# STATIC_NOPIE_HEX: Hex dump of section '.test':
+# STATIC_NOPIE_HEX-NEXT: {{0x[0-9a-f]+}} 00000000 2a000020 00000000 2b000000
+# STATIC_NOPIE_HEX-NEXT: {{0x[0-9a-f]+}} 00000000 2c000080 00000000 2d000020
+# STATIC_NOPIE_HEX-NEXT: {{0x[0-9a-f]+}} 00000000 2e000020 00000000 2f000020
+# STATIC_NOPIE_HEX-NEXT: {{0x[0-9a-f]+}} 00000000 30000020 00000000 31000020
+# STATIC_NOPIE_HEX-NEXT: {{0x[0-9a-f]+}} 00000000 32000000 77000000 00330000
+# STATIC_NOPIE_HEX-NEXT: {{0x[0-9a-f]+}} 20770000 00003400 0020
+
+# STATIC_NOPIE_RODATA: Hex dump of section '.rodata':
+# STATIC_NOPIE_RODATA-NEXT: {{0x[0-9a-f]+}} 00000000 35000020 00000000 36000000
+# STATIC_NOPIE_RODATA-NEXT: {{0x[0-9a-f]+}} 00000000 37000020
+
 #END_TEST
 
 #--- a.s
