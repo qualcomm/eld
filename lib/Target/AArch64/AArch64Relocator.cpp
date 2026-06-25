@@ -699,7 +699,6 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
     // Create GOT slot for rsym with the fragment reference of P
   } else
     S = pParent.getSymValue(&pReloc);
-  Relocator::Address targetVal = S + A;
 
   bool isAuthAbs = pReloc.type() == llvm::ELF::R_AARCH64_AUTH_ABS64;
   ELFSection *target_sect = pReloc.targetRef()->getOutputELFSection();
@@ -726,16 +725,14 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
       pReloc.target() = 0;
       return Relocator::OK;
     }
-    Relocator::DWord signingSchema = getSigningSchema(pReloc);
     if (rsym && (rsym->reserved() & Relocator::ReserveRel)) {
       Relocation *dynrel = pParent.getTarget().findRelativeReloc(&pReloc);
       // Only store the signing schema in the place for authenticated RELA
       if (dynrel && (dynrel->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)) {
-        pReloc.target() = signingSchema;
+        pReloc.target() = getSigningSchema(pReloc);
         return Relocator::OK;
       }
     }
-    targetVal = static_cast<uint32_t>(targetVal) | signingSchema;
   }
 
   if (rsym && (rsym->reserved() & Relocator::ReserveRel) &&
@@ -752,6 +749,7 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
 
   switch (pReloc.type()) {
   case llvm::ELF::R_AARCH64_ABS32:
+  case llvm::ELF::R_AARCH64_AUTH_ABS64:
     if (!llvm::isUInt<32>(S + A) && !llvm::isInt<32>(S + A))
       return emitSignedOrUnsignedRangeOverflow(pReloc, pParent, S + A, 32);
     break;
@@ -765,7 +763,10 @@ Relocator::Result abs(Relocation &pReloc, AArch64Relocator &pParent) {
 
   // A local symbol may need RELATIVE Type dynamic relocation
   // perform static relocation
-  pReloc.target() = targetVal;
+  if (isAuthAbs)
+    pReloc.target() = static_cast<uint32_t>(S + A) | getSigningSchema(pReloc);
+  else
+    pReloc.target() = S + A;
   return Relocator::OK;
 }
 
