@@ -14,12 +14,12 @@ RUN: %link %linkopts %t.1.o -L%t.libs -larc --reproduce %t.arc.tar \
 RUN:   --dump-response-file %t.arc.response -o %t.arc.out
 
 ## Shared library found via -l<namespec>.
-RUN: %link %linkopts -dynamic %t.1.o %t.2.o -L%t.libs -lshr \
+RUN: %link %linkopts --dynamic %t.1.o %t.2.o -L%t.libs -lshr \
 RUN:   --reproduce %t.shr.tar --dump-response-file %t.shr.response \
 RUN:   -o %t.shr.out
 
 ## Shared library found via -l:<filename>.
-RUN: %link %linkopts -dynamic %t.1.o %t.2.o -L%t.libs -l:libshr.so \
+RUN: %link %linkopts --dynamic %t.1.o %t.2.o -L%t.libs -l:libshr.so \
 RUN:   --reproduce %t.lit.tar --dump-response-file %t.lit.response \
 RUN:   -o %t.lit.out
 

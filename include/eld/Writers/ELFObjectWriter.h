@@ -39,7 +39,7 @@ public:
 
   std::error_code writeObject(llvm::FileOutputBuffer &CurOutput);
 
-  // write timing stats into .note.qc.timing when -emit-timing-stats-in-output
+  // write timing stats into .note.qc.timing when --emit-timing-stats-in-output
   // enabled
   void writeLinkTimeStats(uint64_t BeginningOfTime, uint64_t Duration);
 

@@ -4,5 +4,5 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c -flto -ffunction-sections -fdata-sections %p/Inputs/common.c -o %t1.1.o -target arm
-RUN: %link %linkopts --gc-sections %t1.1.o -flto-options=codegen="-function-sections -data-sections" -o %t2.out -e foo -march arm
+RUN: %link %linkopts --gc-sections %t1.1.o --flto-options=codegen="-function-sections -data-sections" -o %t2.out -e foo -march arm
 #END_TEST

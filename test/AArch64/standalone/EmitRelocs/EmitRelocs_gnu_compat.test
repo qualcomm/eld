@@ -1,8 +1,8 @@
 RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -c %p/test1.c -o %test1.o
 RUN: %clang %clangopts -mcpu=cortex-a53 -target aarch64 -ffunction-sections -c %p/test2.c -o %test2.o
 
-RUN: %link %linkopts -emit-relocs-llvm -march aarch64 -Ttext=0x1000 --noinhibit-exec %test1.o -o %test1.out
-RUN: %link %linkopts -emit-relocs-llvm -march aarch64 -Ttext=0x1000 --noinhibit-exec %test2.o -o %test2.out
+RUN: %link %linkopts --emit-relocs-llvm -march aarch64 -Ttext=0x1000 --noinhibit-exec %test1.o -o %test1.out
+RUN: %link %linkopts --emit-relocs-llvm -march aarch64 -Ttext=0x1000 --noinhibit-exec %test2.o -o %test2.out
 RUN: %link %linkopts -emit-relocs -Ttext=0x1000 -march aarch64 --noinhibit-exec %test1.o -z max-page-size=0x1000 -o %test1.gnu.out
 RUN: %link %linkopts -emit-relocs -Ttext=0x1000 -march aarch64 --noinhibit-exec %test2.o -z max-page-size=0x1000 -o %test2.gnu.out
 

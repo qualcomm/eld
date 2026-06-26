@@ -1,7 +1,7 @@
 #---FatLTOObjects.test--------------------------- Executable,LTO -----------------#
 #BEGIN_COMMENT
 # Verify support for fat LTO objects carrying a .llvm.lto section.
-# --fat-lto-objects (and -ffat-lto-objects alias) should select embedded
+# --fat-lto-objects (and --ffat-lto-objects alias) should select embedded
 # bitcode from .llvm.lto, while default mode should use the native object.
 #END_COMMENT
 
@@ -28,7 +28,7 @@ RUN: %link %linkopts -e main %t.main.o %t.fat.o \
 RUN: --fat-lto-objects -Map %t.fat.map -o %t.fat.map.out
 RUN: %filecheck %s --check-prefix=FAT-MAP < %t.fat.map
 
-RUN: %link %linkopts -e main %t.main.o %t.fat.o -ffat-lto-objects \
+RUN: %link %linkopts -e main %t.main.o %t.fat.o --ffat-lto-objects \
 RUN: --trace=lto --verbose -o %t.ffat.out 2>&1 | %filecheck %s --check-prefix=FAT-MSG
 RUN: %nm %t.ffat.out | %filecheck %s --check-prefix=FAT
 

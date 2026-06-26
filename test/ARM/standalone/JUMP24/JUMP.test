@@ -6,9 +6,9 @@ RUN: llvm-objdump -d --start-address=0x100000 %t.out | %filecheck %s -check-pref
 # different combination as veneer.
 #
 # T2T thunks should be compatible with Cortex-M3.
-RUN: %link %linkopts -static %t.o -o %t2.out -defsym=foo=0x10000000 --use-mov-veneer
+RUN: %link %linkopts -static %t.o -o %t2.out --defsym=foo=0x10000000 --use-mov-veneer
 RUN: llvm-objdump --start-address=0x100000 -d --triple=thumbv8 %t2.out | %filecheck %s -check-prefix MOV_T2A
-RUN: %link %linkopts -static %t.o -o %t3.out -defsym=foo=0x10000001 --use-mov-veneer
+RUN: %link %linkopts -static %t.o -o %t3.out --defsym=foo=0x10000001 --use-mov-veneer
 RUN: llvm-objdump --start-address=0x100000 -d --triple=thumbv8 %t3.out | %filecheck %s -check-prefix MOV_T2T
 
 #LDR_T2A: {{.*}} <__foo_T2A_veneer@island-1>:

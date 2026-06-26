@@ -17,7 +17,7 @@ Supported Diagnostic Options
     * **-MapStyle=[Text|YAML|Binary]**
             Display the Map information in Text/YAML/Binary format.
 
-    * **-MapDetail <value>**
+    * **--MapDetail <value>**
           Detail information in the map file
 
     * **--verbose**
@@ -34,7 +34,7 @@ Supported Diagnostic Options
             * **Trampolines** - tracing of trampolines.
             * **LTO** - Allows tracing of LTO.
 
-    * **-color <value>**
+    * **--color <value>**
               Enable color output for diagnostics
 
     * **-display_hotness <value>**
@@ -43,7 +43,7 @@ Supported Diagnostic Options
     * **--emit-timing-stats <value>**
             Emit time statistics of various linker operations to the specified file
 
-    * **-print-timing-stats**
+    * **--print-timing-stats**
             Print time statistics of various linker operations to console
 
     * **--time-region <value>**

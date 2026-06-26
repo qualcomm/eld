@@ -39,9 +39,9 @@ using namespace eld;
 //       // Pull-in cause for non-whole-archive inclusion.
 //       "Symbol": "malloc",
 //
-//       // Present for -whole-archive inclusion.
+//       // Present for --whole-archive inclusion.
 //       "WholeArchive": true,
-//       "Reason": "-whole-archive",
+//       "Reason": "--whole-archive",
 //
 //       // Metadata.
 //       "MemberIsBitcode": false,

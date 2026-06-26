@@ -5,11 +5,11 @@
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -fPIC
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -fPIC
 RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
-RUN: %link -MapStyle txt %linkopts -o %t1.lib1.so %t1.1.o -shared -Map %t1.lib1.map.txt -MapDetail show-symbol-resolution
+RUN: %link -MapStyle txt %linkopts -o %t1.lib1.so %t1.1.o -shared -Map %t1.lib1.map.txt --MapDetail show-symbol-resolution
 RUN: %filecheck %s --check-prefix=LIB1 < %t1.lib1.map.txt
-RUN: %link -MapStyle txt %linkopts -o %t1.lib2.so %t1.2.o -shared -Map %t1.lib2.map.txt -MapDetail show-symbol-resolution
+RUN: %link -MapStyle txt %linkopts -o %t1.lib2.so %t1.2.o -shared -Map %t1.lib2.map.txt --MapDetail show-symbol-resolution
 RUN: %filecheck %s --check-prefix=LIB2 < %t1.lib2.map.txt
-RUN: %link -MapStyle txt %linkopts -dy -o %t1.3.out %t1.3.o %t1.lib1.so %t1.lib2.so -Map %t1.3.map.txt -MapDetail show-symbol-resolution
+RUN: %link -MapStyle txt %linkopts -dy -o %t1.3.out %t1.3.o %t1.lib1.so %t1.lib2.so -Map %t1.3.map.txt --MapDetail show-symbol-resolution
 RUN: %filecheck %s < %t1.3.map.txt
 
 LIB1: # Symbol Resolution:

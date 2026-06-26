@@ -11,22 +11,22 @@ RUN: %clang %clangopts -o %t.tmpdir/1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts -o %t.tmpdir/2.o %p/Inputs/2.c -c
 RUN: %ar cr %t.tmpdir/lib2.a %t.tmpdir/2.o
 
-RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a -MapDetail relative-path=%t.tmpdir -Map %t.tmpdir/map.txt --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a --MapDetail relative-path=%t.tmpdir -Map %t.tmpdir/map.txt --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
 RUN: %filecheck %s < %t.tmpdir/map.txt
 
-RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a -MapDetail relative-path=. -Map %t.tmpdir/map.txt.dot
+RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a --MapDetail relative-path=. -Map %t.tmpdir/map.txt.dot
 RUN: %filecheck %s --check-prefix=DOT < %t.tmpdir/map.txt.dot
 
-RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a -MapDetail relative-path -Map %t.tmpdir/map.txt.default
+RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a --MapDetail relative-path -Map %t.tmpdir/map.txt.default
 RUN: %filecheck %s --check-prefix=DEFAULT < %t.tmpdir/map.txt.default
 
 RUN: %rm -f %t.tmpdir/lib2.a
 RUN: %ar --thin cr %t.tmpdir/lib2.a %t.tmpdir/2.o
-RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a -MapDetail relative-path=%t.tmpdir -Map %t.tmpdir/map.txt --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
+RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a --MapDetail relative-path=%t.tmpdir -Map %t.tmpdir/map.txt --verbose 2>&1 | %filecheck %s --check-prefix=VERBOSE
 RUN: %filecheck %s --check-prefix=CHECK_THIN < %t.tmpdir/map.txt
-RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a -MapDetail relative-path=. -Map %t.tmpdir/map.txt.dot
+RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a --MapDetail relative-path=. -Map %t.tmpdir/map.txt.dot
 RUN: %filecheck %s --check-prefix=DOT_THIN < %t.tmpdir/map.txt.dot
-RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a -MapDetail relative-path -Map %t.tmpdir/map.txt.default
+RUN: %link -MapStyle txt %linkopts -o %t.tmpdir/out %t.tmpdir/1.o %t.tmpdir/lib2.a --MapDetail relative-path -Map %t.tmpdir/map.txt.default
 RUN: %filecheck %s --check-prefix=DEFAULT_THIN < %t.tmpdir/map.txt.default
 #END_TEST
 VERBOSE: Verbose: Using '{{.*}}' for computing relative paths in map files

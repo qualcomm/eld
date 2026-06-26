@@ -6,7 +6,7 @@
 #START_TEST
 
 RUN: %clang %clangopts -c %p/Inputs/4.c -o %t1.1.o -ffunction-sections
-RUN: %not %link %linkopts -orphan-handling=error %t1.1.o -T %p/Inputs/script_empty.t -o %t2.out 2>&1 | %filecheck %s
+RUN: %not %link %linkopts --orphan-handling=error %t1.1.o -T %p/Inputs/script_empty.t -o %t2.out 2>&1 | %filecheck %s
 #CHECK:Error: no linker script rule for section .text.bar
 #CHECK-NOT:Error: no linker script rule for section .bss.str
 #END_TEST

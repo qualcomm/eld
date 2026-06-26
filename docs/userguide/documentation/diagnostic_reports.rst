@@ -135,8 +135,8 @@ Schema (per ``ArchiveMembers`` entry):
 - ``ReferrerArchive`` / ``ReferrerMember``: Requester when another archive
   member caused the pull-in.
 - ``Symbol``: Symbol that triggered inclusion for non-whole-archive pulls.
-- ``WholeArchive`` and ``Reason``: Present when ``-whole-archive`` caused
-  inclusion (for example ``Reason: -whole-archive``).
+- ``WholeArchive`` and ``Reason``: Present when ``--whole-archive`` caused
+  inclusion (for example ``Reason: --whole-archive``).
 - ``MemberReferencedSymbols``: Symbols referenced by the included member; this
   enables tracing symbol chains such as ``sys_init_tls -> malloc``.
 - ``MemberSymbols``: Symbols defined by the included member.
@@ -149,8 +149,8 @@ Behavior notes:
 
 - The report is emitted even when map files are not requested.
 - Both regular archives and thin archives are supported.
-- For ``-whole-archive`` inclusion, ``WholeArchive`` is ``true`` and
-  ``Reason`` is emitted as ``-whole-archive``.
+- For ``--whole-archive`` inclusion, ``WholeArchive`` is ``true`` and
+  ``Reason`` is emitted as ``--whole-archive``.
 
 Example JSON snippet::
 

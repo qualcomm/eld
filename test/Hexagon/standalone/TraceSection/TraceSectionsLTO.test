@@ -4,5 +4,5 @@
 #--------------------------------------------------------------------------------------
 #END_COMMENT
 RUN: %clang %clangopts -ffunction-sections -c %p/Inputs/1.c -emit-llvm -o %t1.bc
-RUN: %link %linkopts -o %t.out %t1.bc -e foo -flto-options="codegen=-function-sections" --trace=section=.text.foo 2>&1 | %filecheck %s
+RUN: %link %linkopts -o %t.out %t1.bc -e foo --flto-options="codegen=-function-sections" --trace=section=.text.foo 2>&1 | %filecheck %s
 CHECK: Note: Input Section : .text.foo InputFile :

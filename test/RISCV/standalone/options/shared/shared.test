@@ -14,17 +14,12 @@ RUN: %not %link -o %t1.out.1 %linkopts -Bsymbolic-functions 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts -Bsymbolic 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts -call_shared 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --copy-dt-needed-entries null 2>&1 | %filecheck %s
-RUN: %not %link -o %t1.out.1 %linkopts -dynamic-linker=null 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --dynamic-linker=null 2>&1 | %filecheck %s
-RUN: %not %link -o %t1.out.1 %linkopts -dynamic-linker null 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --dynamic-linker null 2>&1 | %filecheck %s
-RUN: %not %link -o %t1.out.1 %linkopts -dynamic-list=null 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --dynamic-list=null 2>&1 | %filecheck %s
-RUN: %not %link -o %t1.out.1 %linkopts -dynamic-list null 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --dynamic-list null 2>&1 | %filecheck %s
-RUN: %not %link -o %t1.out.1 %linkopts -dynamic 2>&1 | %filecheck %s
+RUN: %not %link -o %t1.out.1 %linkopts --dynamic 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts -dy 2>&1 | %filecheck %s
-RUN: %not %link -o %t1.out.1 %linkopts -force-dynamic 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --force-dynamic 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts -g 2>&1 | %filecheck %s
 RUN: %not %link -o %t1.out.1 %linkopts --hash-size=0 2>&1 | %filecheck %s
@@ -47,9 +42,9 @@ RUN: %not %link -o %t1.out.1 %linkopts --warn-shared-textrel 2>&1 | %filecheck %
 
 RUN: %link -o %t1.out.2 %linkopts --disable-new-dtags %t1.o 2>&1 | %filecheck %s -allow-empty
 RUN: %link -o %t1.out.3 %linkopts --enable-new-dtags %t1.o 2>&1 | %filecheck %s -allow-empty
-RUN: %link -o %t1.out.4 %linkopts -hash-style=gnu %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.4 %linkopts --hash-style=gnu %t1.o 2>&1 | %filecheck %s -allow-empty
 RUN: %link -o %t1.out.5 %linkopts --hash-style=gnu %t1.o 2>&1 | %filecheck %s -allow-empty
-RUN: %link -o %t1.out.6 %linkopts -hash-style gnu %t1.o 2>&1 | %filecheck %s -allow-empty
+RUN: %link -o %t1.out.6 %linkopts --hash-style gnu %t1.o 2>&1 | %filecheck %s -allow-empty
 RUN: %link -o %t1.out.7 %linkopts --hash-style gnu %t1.o 2>&1 | %filecheck %s -allow-empty
 RUN: %link -o %t1.out.8 %linkopts --hash-style gnu %t1.o \
 RUN: -static 2>&1 | %filecheck %s -allow-empty -check-prefix=STATIC

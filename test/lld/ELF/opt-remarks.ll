@@ -2,7 +2,7 @@
 ; RUN: %opt --mtriple=%triple --data-layout=%datalayout %s -o %t.o
 ; RUN: %rm -f %t.yaml %t1.yaml %t.hot.yaml %t.t300.yaml %t.t301.yaml
 
-; RUN: %link %linkopts --opt-remarks-filename %t.yaml %t.o -o %t -shared -save-temps
+; RUN: %link %linkopts --opt-remarks-filename %t.yaml %t.o -o %t -shared --save-temps
 ; RUN: %llvm-dis %t.llvm-lto.0.4.opt.bc -o - | FileCheck %s
 ; RUN: %link %linkopts --opt-remarks-with-hotness --opt-remarks-filename %t.hot.yaml \
 ; RUN:   %t.o -o %t -shared

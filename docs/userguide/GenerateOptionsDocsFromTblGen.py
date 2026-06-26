@@ -102,15 +102,15 @@ class Option:
         One of the complication transformations it performs is transforming
         documentation such as:
 
-        -trace=linker-script
-        -trace=files
-        -trace=LTO
+        --trace=linker-script
+        --trace=files
+        --trace=LTO
 
         to:
 
-        * -trace=linker-script
-        * -trace=files
-        * -trace=LTO
+        * --trace=linker-script
+        * --trace=files
+        * --trace=LTO
 
         This transformation is required to improve formatting in the sphinx
         documentation output.

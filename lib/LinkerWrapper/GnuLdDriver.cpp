@@ -516,7 +516,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
                           arg->getValue());
   }
 
-  // -flto-use-as
+  // --flto-use-as
   if (Args.hasArg(T::flto_use_as)) {
     Config.options().setLTOUseAs();
     Config.addCommandLine(Table->getOptionName(T::flto_use_as), true);
@@ -528,7 +528,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // If -M option is used, lets try to use color.
   Config.options().setMapFileWithColor(Args.hasArg(T::PrintMap));
 
-  // -MapDetail
+  // --MapDetail
   for (llvm::opt::Arg *arg : Args.filtered(T::MapDetail)) {
     eld::Expected<void> E = eld::LayoutInfo::setLayoutDetail(
         arg->getValue(), Config.getDiagEngine());
@@ -562,7 +562,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (!Config.options().rosegment())
     Config.options().setROSegment(Args.hasArg(T::rosegment));
 
-  // -emit-timing-stats-in-output
+  // --emit-timing-stats-in-output
   if (Args.hasArg(T::emit_timing_stats_in_output))
     Config.options().setInsertTimingStats(true);
 
@@ -1730,7 +1730,7 @@ bool GnuLdDriver::processReproduceOption(
     }
   }
   if (!outputTar->getLTOObjects().empty()) {
-    os << "-flto-options=lto-output-file=";
+    os << "--flto-options=lto-output-file=";
     auto &LTOObjects = outputTar->getLTOObjects();
     for (size_t i = 0; i < LTOObjects.size() - 1; ++i)
       os << outputTar->rewritePath(LTOObjects[i]) << ",";

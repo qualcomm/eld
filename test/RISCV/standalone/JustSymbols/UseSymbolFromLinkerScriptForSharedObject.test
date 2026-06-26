@@ -8,7 +8,7 @@ RUN: %clang %clangopts %p/Inputs/1.c -o %t1.1.o -c -ffunction-sections -fdata-se
 RUN: %clang %clangopts %p/Inputs/2.c -o %t1.2.o -c -ffunction-sections -fdata-sections
 RUN: %clang %clangopts %p/Inputs/3.c -o %t1.3.o -c -ffunction-sections -fdata-sections
 RUN: %link %linkopts -shared %t1.3.o -T %p/Inputs/image.t -o %t3.so
-RUN: %link -MapStyle txt %linkopts -dynamic %t1.1.o %t1.2.o --just-symbols=%t3.so -T %p/Inputs/script.t -o %t.out.sharedlibrary -Map %t.map --trace=symbol=a1 2>&1 | %filecheck %s
+RUN: %link -MapStyle txt %linkopts --dynamic %t1.1.o %t1.2.o --just-symbols=%t3.so -T %p/Inputs/script.t -o %t.out.sharedlibrary -Map %t.map --trace=symbol=a1 2>&1 | %filecheck %s
 RUN: %readelf -s %t.out.sharedlibrary 2>&1 | %filecheck %s --check-prefix=ELFCHECK
 RUN: %filecheck %s --check-prefix=MAPCHECK < %t.map
 #CHECK: Resolving symbol 'a1' from provide style sym def file '{{.*}}/Inputs/script.t'

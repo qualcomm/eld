@@ -9,7 +9,7 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -fdata-sections -o %
 RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -fdata-sections -o %t1.2.o
 RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -Map %t2.map.withtiming -L %p/Inputs/ -o %t2.out -T %p/Inputs/script.t
 RUN: %filecheck %s < %t2.map.withtiming
-RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -Map %t2.map.notiming -L %p/Inputs/ -o %t2.out -T %p/Inputs/script.t -MapDetail no-timing
+RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.2.o -Map %t2.map.notiming -L %p/Inputs/ -o %t2.out -T %p/Inputs/script.t --MapDetail no-timing
 RUN: %filecheck %s < %t2.map.notiming
 
 #CHECK: mytext{{.*}}text.t

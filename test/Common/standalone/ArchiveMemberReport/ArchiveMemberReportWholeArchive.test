@@ -13,7 +13,7 @@ RUN: %filecheck %s --check-prefix=WHOLE < %t.report.json
 #END_TEST
 
 WHOLE-DAG: "WholeArchive": true
-WHOLE-DAG: "Reason": "-whole-archive"
+WHOLE-DAG: "Reason": "--whole-archive"
 WHOLE-DAG: "MemberIsArchiveMember": true
 WHOLE-DAG: "MemberPath": "{{.*\.a\([^)]*foo[^)]*\.o\)}}"
 WHOLE-DAG: "MemberPath": "{{.*\.a\([^)]*bar[^)]*\.o\)}}"

@@ -7,7 +7,7 @@
 RUN: %clang %clangopts -target arm -w -c %p/Inputs/f.c -o %tf.o
 RUN: %clang %clangopts -target arm -w -c %p/Inputs/m.c -o %tm.o
 RUN: %clang %clangopts -target arm -w -c %p/Inputs/t.c -o %tt.o
-RUN: %link %linkopts  -march arm %tm.o %tf.o %tt.o -gc-sections -entry=main -o %t.out
+RUN: %link %linkopts  -march arm %tm.o %tf.o %tt.o --gc-sections --entry=main -o %t.out
 RUN: %nm %t.out | %filecheck %s
 
 CHECK: __start_llvm_profile_data

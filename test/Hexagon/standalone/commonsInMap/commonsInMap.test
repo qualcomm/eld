@@ -17,7 +17,7 @@ RUN: %link %linkopts -o %t1.1.r.elf %t1.o -r -d -M 2>&1 | %filecheck %s --check-
 
 # Test for common symbols with LTO
 RUN: %clang %clangopts -fcommon -o %t1.1.lto.o %p/Inputs/1.c -c -flto -ffunction-sections -fdata-sections
-RUN: %link %linkopts -o %t1.1.lto.elf %t1.1.lto.o -flto-options=codegen="-function-sections -data-sections" -T %p/Inputs/1.linker.script -M 2>&1 | %filecheck %s --check-prefix=COMMON_LTO
+RUN: %link %linkopts -o %t1.1.lto.elf %t1.1.lto.o --flto-options=codegen="-function-sections -data-sections" -T %p/Inputs/1.linker.script -M 2>&1 | %filecheck %s --check-prefix=COMMON_LTO
 
 RUN: %clang %clangopts -fcommon -o %t1.2.o %p/Inputs/2.c -c -fPIC -ffunction-sections -fdata-sections
 RUN: %link %linkopts -o %t1.lib2.so %t1.2.o -shared -M 2>&1 | %filecheck %s --check-prefix=COMMON_SHARED_LIB

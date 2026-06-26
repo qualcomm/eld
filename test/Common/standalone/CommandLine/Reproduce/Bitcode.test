@@ -23,6 +23,6 @@ CHECK_TEMPS: internalize.bc
 CHECK_TEMPS: opt.bc
 CHECK_TEMPS: precodegen.bc
 CHECK_TEMPS: resolution.txt
-CHECK_LTORESPONSE: -flto-options=lto-output-file=
+CHECK_LTORESPONSE: --flto-options=lto-output-file=
 CHECK_LTORESPONSE-NOT: llvm-lto.o
 CHECK_LTORESPONSE-NOT: ,

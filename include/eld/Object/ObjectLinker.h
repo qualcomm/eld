@@ -395,7 +395,7 @@ public:
   }
 
   static llvm::StringRef getWholeArchiveStringForReport() {
-    return "-whole-archive";
+    return "--whole-archive";
   }
 
   bool emitArchiveMemberReport(llvm::StringRef Filename) const;

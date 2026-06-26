@@ -4,5 +4,5 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c -flto -ffunction-sections -fdata-sections %p/Inputs/common.c -o %t1.1.o
-RUN: %link %linkopts --gc-sections %t1.1.o -flto-options=codegen="-function-sections -data-sections" -o %t2.out -e foo --emit-timing-stats=%t.time.stats
+RUN: %link %linkopts --gc-sections %t1.1.o --flto-options=codegen="-function-sections -data-sections" -o %t2.out -e foo --emit-timing-stats=%t.time.stats
 #END_TEST

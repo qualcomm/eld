@@ -6,7 +6,7 @@
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -ffunction-sections -o %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -ffunction-sections -o %t1.2.o
-RUN: %link -MapStyle yaml %linkopts %t1.1.o %t1.2.o -Map %t2.map -MapDetail absolute-path -o %t2.out -T %p/Inputs/script.t
+RUN: %link -MapStyle yaml %linkopts %t1.1.o %t1.2.o -Map %t2.map --MapDetail absolute-path -o %t2.out -T %p/Inputs/script.t
 RUN: %filecheck %s < %t2.map
 #END_TEST
 

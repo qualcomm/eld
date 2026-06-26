@@ -1,6 +1,6 @@
-## Check the -dwodir= option.
+## Check the --dwodir= option.
 RUN: %rm -rf %t.dwo
 RUN: %clang %clangopts -g -flto -c %p/Inputs/main.c -o %t.main.o
-RUN: %link %linkopts %t.main.o -dwodir=%t.dwo -o %t.out --trace=lto
+RUN: %link %linkopts %t.main.o --dwodir=%t.dwo -o %t.out --trace=lto
 RUN: llvm-readobj -h %t.dwo/0.dwo | FileCheck %s
 CHECK: ElfHeader

@@ -9,7 +9,7 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t1.2.o
 RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
 RUN: %link -MapStyle txt %linkopts %t1.1.o %t1.lib2.a -T %p/Inputs/s.t --noinhibit-exec \
-RUN: -MapDetail show-timing -Map %t1.map  -o %t2.out --gc-sections 2>&1 | %filecheck %s
+RUN: --MapDetail show-timing -Map %t1.map  -o %t2.out --gc-sections 2>&1 | %filecheck %s
 RUN_UNSUPPORTED %filecheck %s -check-prefix=GCTIMER < %t1.map
 
 #CHECK: undefined reference to `baz'

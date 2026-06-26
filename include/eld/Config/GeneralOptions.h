@@ -392,7 +392,7 @@ public:
 
   void setGCCref(std::string PSym) { GcCrefSym = PSym; }
 
-  // LTO Functions, -flto -flto-options
+  // LTO Functions, -flto --flto-options
   void setLTO(bool PLto = false) { Lto = PLto; }
 
   bool hasLTO() const { return Lto; }
@@ -1273,21 +1273,21 @@ private:
   uint32_t GPSize = 8;               // -G, --gpsize
   bool Lto = false;
   bool FatLTOObjects = false;                    // --fat-lto-objects
-  bool LTOUseAs = false;                         // -flto-use-as
+  bool LTOUseAs = false;                         // --flto-use-as
   StripSymbolMode StripSymbols = KeepAllSymbols; // Strip symbols ?
   bool BPageAlignSegments = true;   // Does the linker need to align segments to
                                     // a page.
   bool HasShared = false;           // -shared
   unsigned int HashStyle = SystemV; // HashStyle
-  bool Savetemps = false;           // -save-temps
-  std::optional<std::string> SaveTempsDir; // -save-temps=
+  bool Savetemps = false;           // --save-temps
+  std::optional<std::string> SaveTempsDir; // --save-temps=
   bool Rosegment = false; // merge read only with readonly/execute segments.
   SeparateSegmentKind SeparateSegments =
       SeparateSegmentKind::None; // -z separate-code
   std::optional<std::string> LTOObjPath; // --lto-obj-path=
   std::vector<std::string>
-      UnparsedLTOOptions;          // Unparsed -flto-options, to pass to plugin.
-  uint32_t LTOOptions = 0;         // -flto-options
+      UnparsedLTOOptions;  // Unparsed --flto-options, to pass to plugin.
+  uint32_t LTOOptions = 0; // --flto-options
   llvm::StringRef ThinLTOJobs;     // --thinlto-jobs=
   unsigned LTOPartitions = 1;      // --lto-partitions=
   bool Verify = true;              // Linker verifies output file.
@@ -1327,7 +1327,7 @@ private:
   bool HasMappingFile = false;      // --Mapping-file
   bool DumpMappings = false;        // --Dump-Mapping-file
   bool DumpResponse = false;        // --Dump-Response-file
-  bool InsertTimingStats = false;        // -emit-timing-stats-in-output
+  bool InsertTimingStats = false;   // --emit-timing-stats-in-output
   bool FatalInternalErrors = false;      // --fatal-internal-errors
   bool EnableLinkerVersionDirective = false; // --enable/disable-linker-version
   bool RecordCommandLine = false;            // --{no-,}record-command-line

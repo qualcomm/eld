@@ -5,7 +5,7 @@ RUN: %link %linkopts --lto-sample-profile=%p/Inputs/sample-profile.prof %t.f.o -
 RUN: %opt -S %t.1.out.llvm-lto.0.4.opt.bc
 
 RUN: rm -f %t.f.o.4.opt.bc
-RUN: %link %linkopts -plugin-opt=sample-profile=%p/Inputs/sample-profile.prof %t.f.o --save-temps -o %t.2.out
+RUN: %link %linkopts --plugin-opt=sample-profile=%p/Inputs/sample-profile.prof %t.f.o --save-temps -o %t.2.out
 RUN: %opt -S %t.2.out.llvm-lto.0.4.opt.bc
 
 CHECK: ![[#]] = !{i32 1, !"ProfileSummary", ![[#]]}

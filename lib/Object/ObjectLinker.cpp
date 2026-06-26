@@ -489,7 +489,7 @@ ObjectLinker::createLTOTempFile(size_t Number, bool Asm,
   if (Asm) {
     Suffix = "s";
     // Also use non-temporary location for output asm file with -emit-asm,
-    // independently from -save-temps.
+    // independently from --save-temps.
     Prefix = ThisModule->getLinker()->getLinkerDriver()->isRunLTOOnly()
                  ? getLTOTempPrefix()
                  : MLtoTempPrefix;
@@ -3000,8 +3000,8 @@ bool ObjectLinker::finalizeLtoSymbolResolution(
   /// The definition of this symbol is visible outside of the LTO unit.
 
   /// LinkerRedefined = True
-  /// Linker redefined version of the symbol which appeared in -wrap or
-  /// -defsym linker option.
+  /// Linker redefined version of the symbol which appeared in --wrap or
+  /// --defsym linker option.
 
   bool HasSectionsCmd =
       ThisModule->getScript().linkerScriptHasSectionsCommand();

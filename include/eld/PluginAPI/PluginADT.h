@@ -1465,13 +1465,13 @@ struct DLL_A_EXPORT LinkerConfig {
   bool hasGCSections() const;
   bool hasUniqueOutputSections() const;
 
-  /// Return options set by -flto-options.
+  /// Return options set by --flto-options.
   const std::vector<std::string> &getLTOOptions() const;
 
-  /// Return options set by -flto-options=codegen=
+  /// Return options set by --flto-options=codegen=
   std::vector<std::string> getLTOCodeGenOptions() const;
 
-  /// return true if the `-flto-options=cache` is specified.
+  /// return true if the `--flto-options=cache` is specified.
   bool isLTOCacheEnabled() const;
 
   // Trace options.

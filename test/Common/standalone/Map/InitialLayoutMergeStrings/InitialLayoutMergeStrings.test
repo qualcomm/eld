@@ -7,7 +7,7 @@
 #START_TEST
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections -g
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c -ffunction-sections -g
-RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.2.o -T %p/Inputs/script.t -MapDetail show-initial-layout -Map %t1.main.map.txt
+RUN: %link -MapStyle txt %linkopts -o %t1.1.out %t1.1.o %t1.2.o -T %p/Inputs/script.t --MapDetail show-initial-layout -Map %t1.main.map.txt
 RUN: %filecheck %s < %t1.main.map.txt
 #END_TEST
 CHECK: Initial layout:

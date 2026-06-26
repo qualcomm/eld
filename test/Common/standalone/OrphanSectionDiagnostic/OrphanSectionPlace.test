@@ -7,7 +7,7 @@ UNSUPPORTED: x86
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
-RUN: %link -MapStyle txt %linkopts -orphan-handling=place %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map
+RUN: %link -MapStyle txt %linkopts --orphan-handling=place %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map
 RUN: %filecheck %s < %t2.map
 
 #CHECK: .text.bar

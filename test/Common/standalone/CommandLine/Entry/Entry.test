@@ -8,6 +8,4 @@ RUN: %link %linkopts %t1.1.o -o %t2.out.dashe1 -e 0
 RUN: %link %linkopts %t1.1.o -o %t2.out.dashe2 -e0
 RUN: %link %linkopts %t1.1.o -o %t2.out.dashe3 --entry 0
 RUN: %link %linkopts %t1.1.o -o %t2.out.dashe4 --entry=0
-RUN: %link %linkopts %t1.1.o -o %t2.out.dashe5 -entry=0
-RUN: %link %linkopts %t1.1.o -o %t2.out.dashe6 -entry 0
 #END_TEST

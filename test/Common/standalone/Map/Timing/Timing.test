@@ -7,7 +7,7 @@ UNSUPPORTED: true
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/main.c -o %t1.main.o
 RUN: %clang %clangopts -c %p/Inputs/foo.c -o %t1.foo.o
-RUN: %link %linkopts %t1.main.o %t1.foo.o -M -MapDetail show-timing -o %t2.out 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.main.o %t1.foo.o -M --MapDetail show-timing -o %t2.out 2>&1 | %filecheck %s
 
 #CHECK: LinkStats
 #CHECK: Common symbol	size	file

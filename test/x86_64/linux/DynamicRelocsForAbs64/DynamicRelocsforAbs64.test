@@ -15,7 +15,7 @@
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
 RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
-RUN: %link %linkopts  -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o %t.out %t.1.o %t.lib2.so
+RUN: %link %linkopts  --dynamic-linker /lib64/ld-linux-x86-64.so.2 -o %t.out %t.1.o %t.lib2.so
 # TODO: ELD emits R_X86_64_GLOB_DAT outside .data instead of in .got, causing
 # a runtime segfault. Re-enable execution once the R_X86_64_64 GOT allocation
 # bug is fixed.

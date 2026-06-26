@@ -258,7 +258,7 @@ filename, or ``a.out.tar`` if ``-o`` is not given).
 .. note::
 
     If the tarball is big and you want the linker to compress the tarball
-    automatically, you can use the switch -reproduce-compressed.
+    automatically, you can use the switch --reproduce-compressed.
 
 .. note::
 
@@ -281,7 +281,7 @@ Multiple ways to invoke ELD linker
     int main(){return 0;}
 
     clang -target  armv7-none-eabi  -g  -c bar.c  -o bar.o
-    arm-link -m armelf_linux_eabi -dynamic-linker /lib/ld-linux.so.3 -o bar.elf --strip-debug bar.o
+    arm-link -m armelf_linux_eabi --dynamic-linker /lib/ld-linux.so.3 -o bar.elf --strip-debug bar.o
 
 * Pass -fuse-ld=eld flag to clang driver, so that eld is used for linking
 
@@ -292,7 +292,7 @@ Multiple ways to invoke ELD linker
 .. note::
 
     ELD linker flags can be passed to clang driver using -Wl prefix.
-    Example : clang ...... -Wl,-shared -Wl,-gc-sections bar.o -o bar.elf
+    Example : clang ...... -Wl,-shared -Wl,--gc-sections bar.o -o bar.elf
 
 * Pass -v (verbose) when linking using clang binary, pick the link command line,
   edit and execute it
@@ -305,9 +305,9 @@ Multiple ways to invoke ELD linker
   Target: armv7-none-unknown-eabi
   Thread model: posix
   InstalledDir: /pkg/qct/software/llvm/release/arm/16.0.0/bin
-   "/pkg/qct/software/llvm/release/arm/16.0.0/bin/ld.eld" -EL -X --eh-frame-hdr -m armelf_linux_eabi -dynamic-linker /lib/ld-linux.so.3 -o bar.elf bar.o -L/pkg/qct/software/llvm/release/arm/16.0.0/armv7-none-eabi/libc/lib -L/afs/localcell/cm/gv2.6/sysname/pkg.@sys/qct/software/llvm/release/arm/16.0.0/lib/clang/16.0.0/lib/baremetal --start-group -lc -lclang_rt.builtins-armv7 --end-group -lc
+   "/pkg/qct/software/llvm/release/arm/16.0.0/bin/ld.eld" -EL -X --eh-frame-hdr -m armelf_linux_eabi --dynamic-linker /lib/ld-linux.so.3 -o bar.elf bar.o -L/pkg/qct/software/llvm/release/arm/16.0.0/armv7-none-eabi/libc/lib -L/afs/localcell/cm/gv2.6/sysname/pkg.@sys/qct/software/llvm/release/arm/16.0.0/lib/clang/16.0.0/lib/baremetal --start-group -lc -lclang_rt.builtins-armv7 --end-group -lc
 
-  $ ld.eld -EL -X --eh-frame-hdr -m armelf_linux_eabi -dynamic-linker /lib/ld-linux.so.3 -o bar.elf bar.o -L/pkg/qct/software/llvm/release/arm/16.0.0/armv7-none-eabi/libc/lib -L/afs/localcell/cm/gv2.6/sysname/pkg.@sys/qct/software/llvm/release/arm/16.0.0/lib/clang/16.0.0/lib/baremetal --start-group -lc -lclang_rt.builtins-armv7 --end-group -lc --strip-debug
+  $ ld.eld -EL -X --eh-frame-hdr -m armelf_linux_eabi --dynamic-linker /lib/ld-linux.so.3 -o bar.elf bar.o -L/pkg/qct/software/llvm/release/arm/16.0.0/armv7-none-eabi/libc/lib -L/afs/localcell/cm/gv2.6/sysname/pkg.@sys/qct/software/llvm/release/arm/16.0.0/lib/clang/16.0.0/lib/baremetal --start-group -lc -lclang_rt.builtins-armv7 --end-group -lc --strip-debug
 
 Ignore multiple definition errors and continue with the link
 --------------------------------------------------------------
@@ -467,12 +467,12 @@ mapfiles of the two output images which you are interested in.
 By default, mapfiles layout section also contains virtual addresses associated
 with the layout. This brings in too much unnecessary noise when comparing the two
 layouts, because a small change in the layout can result in change of virtual
-address of many sections. This can be fixed by using '-MapDetail only-layout'
+address of many sections. This can be fixed by using '--MapDetail only-layout'
 option.
 
 .. code-block:: bash
 
-  // Run link commands with '-MapDetail only-layout' when generating the two output images.
+  // Run link commands with '--MapDetail only-layout' when generating the two output images.
   vim -d image1.map image2.map # To compare the two output images layouts.
 
 How to embed a binary and use it in 'C' code
@@ -1060,7 +1060,7 @@ Example:
 .. code-block:: bash
 
   $ clang -c  main.c -ffunction-sections
-  $ ld.eld main.o -T script.t -Map x -no-reuse-trampolines-file=noreuse
+  $ ld.eld main.o -T script.t -Map x --no-reuse-trampolines-file=noreuse
 
 **Symbols from readelf:**
 
@@ -1088,7 +1088,7 @@ the existing trampoline is not possible.
 
 .. note::
 
-  The reuse was not possible because of ``-no-reuse-trampolines-file=noreuse``.
+  The reuse was not possible because of ``--no-reuse-trampolines-file=noreuse``.
 
 Case3:
 ^^^^^^^
@@ -1202,7 +1202,7 @@ Example:
 .. code-block:: bash
 
   $ clang -c  main.c -ffunction-sections
-  $ ld.eld main.o -T script.t -Map x -no-reuse-trampolines-file=noreuse
+  $ ld.eld main.o -T script.t -Map x --no-reuse-trampolines-file=noreuse
 
 **Symbols from readelf:**
 

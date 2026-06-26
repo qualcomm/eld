@@ -1440,7 +1440,7 @@ defm lto_sample_profile
 
 defm plugin_opt_sample_profile
     : mDashDeprEqOnlyAlias<"plugin-opt=sample-profile", "lto_sample_profile",
-                           "Alias for -lto-sample-profile=">,
+                           "Alias for --lto-sample-profile=">,
       Group<grp_ltooptions>;
 
 def lto_partitions : JJ<"lto-partitions=">,

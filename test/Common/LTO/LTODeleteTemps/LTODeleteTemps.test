@@ -1,16 +1,16 @@
 #---LTODeleteTemps.test--------------------- Executable,LTO -------------#
 #BEGIN_COMMENT
-#Test if LTO temporary files are deleted without -save-temps
+#Test if LTO temporary files are deleted without --save-temps
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -O2 -ffunction-sections -flto -o %t1.o
 
 # First, check if the LTO output is deleted
-RUN: %link %linkopts %t1.o -flto-options=verbose -o %t1.out 2>&1 | %filecheck --check-prefix=DELETETEMP %s
+RUN: %link %linkopts %t1.o --flto-options=verbose -o %t1.out 2>&1 | %filecheck --check-prefix=DELETETEMP %s
 DELETETEMP: Deleting temporary file
 
 # Second, check that a.out.llvm-lto.* are not created
-# Note, -flto-options=verbose implies creation of the bincode files, so cannot be used here
+# Note, --flto-options=verbose implies creation of the bincode files, so cannot be used here
 RUN: %link %linkopts %t1.o -o %t2.out 2>&1 | %filecheck --check-prefix=DELETEGEN %s
 DELETEGEN: LTO code generation
 

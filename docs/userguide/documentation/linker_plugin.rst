@@ -142,7 +142,7 @@ The linker performs the following sequence of operations with respect to plugins
 
           ::
 
-            -trace=plugin
+            --trace=plugin
 
 Plugin data structures
 --------------------------

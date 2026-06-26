@@ -6,7 +6,7 @@
 # when it includes PHDRS and FILEHDRS to be loaded
 #END_COMMENT
 RUN: %clang %clangopts -c %p/Inputs/test.c -o %t1.1.o
-RUN: %link %linkopts -z max-page-size=0x1000 %t1.1.o -T %p/Inputs/script.t -Map %t2.map -MapDetail show-header-details -o %t2.out 2>&1
+RUN: %link %linkopts -z max-page-size=0x1000 %t1.1.o -T %p/Inputs/script.t -Map %t2.map --MapDetail show-header-details -o %t2.out 2>&1
 RUN: %filecheck %s < %t2.map
 
 #CHECK: __ehdr__	0x0	0x34 # Offset: 0x0, LMA: 0x2fc0

@@ -1,6 +1,6 @@
 #---BuildID.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
-# This checks for option -build-id=<xxx> that is being handled in the linker.
+# This checks for option --build-id=<xxx> that is being handled in the linker.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o

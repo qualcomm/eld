@@ -6,7 +6,7 @@ UNSUPPORTED: x86
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
-RUN: %link %linkopts -orphan-handling=warn %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
+RUN: %link %linkopts --orphan-handling=warn %t1.1.o -T %p/Inputs/script.t -o %t2.out 2>&1 | %filecheck %s
 
 #CHECK-NOT: Warning: no linker script rule for section .note.GNU-stack
 

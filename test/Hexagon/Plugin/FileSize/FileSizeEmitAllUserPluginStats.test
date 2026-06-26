@@ -4,7 +4,7 @@
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o -ffunction-sections
-RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -print-timing-stats --time-region=all-user-plugins 2>&1 | %filecheck %s
+RUN: %link %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out --print-timing-stats --time-region=all-user-plugins 2>&1 | %filecheck %s
 
 #CHECK-NOT: Diagnostics
 #CHECK-NOT:  Emit Output File

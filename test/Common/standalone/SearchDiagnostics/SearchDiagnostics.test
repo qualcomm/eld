@@ -15,7 +15,7 @@ NOT-FOUND: Trying to open input `{{.+}}libblablabla.a' of type `archive' for nam
 RUN: %link %linkopts -static --verbose -o %t2.out %t1.o -L%t-lib -la 2>&1 | %filecheck %s --check-prefix=FOUND-STATIC
 FOUND-STATIC: Trying to open input `{{.+}}-lib/liba.a' of type `archive' for namespec `a': found
 
-RUN: %link %linkopts -dynamic --verbose -o %t3.out %t1.o -L%t-lib -la 2>&1 | %filecheck %s --check-prefix=FOUND-DYNOBJ
+RUN: %link %linkopts --dynamic --verbose -o %t3.out %t1.o -L%t-lib -la 2>&1 | %filecheck %s --check-prefix=FOUND-DYNOBJ
 FOUND-DYNOBJ: Trying to open input `{{.+}}-lib/liba.so' of type `dynamic object' for namespec `a': found
 
 RUN: %link %linkopts --verbose -o %t1.out %t1.o -L%p/Inputs/ -T 1.t 2>&1 | %filecheck %s --check-prefix=FOUND-SCRIPT

@@ -236,7 +236,7 @@ This sections documents llvm ELF command-line tools along with detailed examples
       00000000 T bar
       0000000c T foo
 
-  - **-D** = **-dynamic**
+  - **-D** = **--dynamic**
 
     List dynamic symbols
 

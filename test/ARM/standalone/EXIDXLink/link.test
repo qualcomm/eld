@@ -7,7 +7,7 @@
 RUN: %clang %clangopts -target arm -c %p/Inputs/t.cpp -o %t.o
 RUN: %link %linkopts -r %t.o -o %t.out
 RUN: %readelf -S -W %t.out | %filecheck %s
-RUN: %link %linkopts -T %p/Inputs/t.l   %t.o -o %t2.out -defsym=__aeabi_unwind_cpp_pr0=0x0 -defsym=__cxa_allocate_exception=0x0 -defsym=__cxa_throw=0x0 -defsym=__cxa_begin_catch=0x0 -defsym=__cxa_end_catch=0x0 -defsym=__gxx_personality_v0=0x0 -defsym=_ZTIi=0x0
+RUN: %link %linkopts -T %p/Inputs/t.l   %t.o -o %t2.out --defsym=__aeabi_unwind_cpp_pr0=0x0 --defsym=__cxa_allocate_exception=0x0 --defsym=__cxa_throw=0x0 --defsym=__cxa_begin_catch=0x0 --defsym=__cxa_end_catch=0x0 --defsym=__gxx_personality_v0=0x0 --defsym=_ZTIi=0x0
 RUN: %readelf -S -W %t2.out | %filecheck %s -check-prefix EXE
 
 CHECK: .ARM.exidx        ARM_EXIDX       00000000 {{[0-9a-f]+}} {{[0-9a-f]+}} 00  AL  2

@@ -5,7 +5,7 @@ UNSUPPORTED: x86
 #END_COMMENT
 RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
-RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.2.o -Map %t1.a.map.txt -MapDetail show-symbol-resolution --wrap=foo
+RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.2.o -Map %t1.a.map.txt --MapDetail show-symbol-resolution --wrap=foo
 RUN: %filecheck %s < %t1.a.map.txt
 
 CHECK: # Symbol Resolution:

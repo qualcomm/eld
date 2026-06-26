@@ -412,7 +412,7 @@ std::vector<llvm::StringRef> GeneralOptions::getLTOOptionsAsString() const {
     ReturnValue.push_back("asmopts");
   if ((LTOOptions & LTODisableLinkOrder) == LTODisableLinkOrder)
     ReturnValue.push_back("Disable link order with linker scripts/LTO");
-  // Extend this later or for other -flto-options
+  // Extend this later or for other --flto-options
   return ReturnValue;
 }
 

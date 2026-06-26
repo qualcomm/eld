@@ -49,14 +49,14 @@ LTO is enabled in two ways:
 * `--include-lto-filelist` can be used without `-flto` to select which
   ELF inputs with embedded bitcode should be upgraded to LTO inputs.
 * `--fat-lto-objects` enables consuming embedded `.llvm.lto` sections from
-  relocatable ELF inputs (alias: `-ffat-lto-objects`).
+  relocatable ELF inputs (alias: `--ffat-lto-objects`).
 
 When `-flto` is used, embedded bitcode is used by default unless excluded using
 `--exclude-lto-filelist`. When `-flto` is not used, only file patterns listed
 in `--include-lto-filelist` are upgraded to LTO inputs.
 
 By default, `.llvm.lto` sections are ignored. They are only consumed when
-`--fat-lto-objects` (or `-ffat-lto-objects`) is specified.
+`--fat-lto-objects` (or `--ffat-lto-objects`) is specified.
 
 File lists accept one glob pattern per line (wildcards `*`, `?`, and `[]` are
 supported). Patterns are matched against the input path as seen by the linker.
@@ -73,7 +73,7 @@ ELD performs LTO in distinct phases:
    linked like normal ELF objects. Map files can include pre-LTO and post-LTO
    details.
 
-When ``--fat-lto-objects`` (or ``-ffat-lto-objects``) selects embedded
+When ``--fat-lto-objects`` (or ``--ffat-lto-objects``) selects embedded
 ``.llvm.lto`` from a mixed object, the pre-LTO map input record for that file
 is annotated with ``Fat LTO object selected``.
 
@@ -82,7 +82,7 @@ Linker scripts and LTO
 ELD supports LTO with linker scripts. When a script uses `SECTIONS` ordering,
 ELD preserves input order for LTO-generated sections. If you need to disable
 this ordering for performance or to match non-script ordering, use
-`-flto-options=disable-linkorder`.
+`--flto-options=disable-linkorder`.
 
 LTO switch reference
 --------------------
@@ -96,7 +96,7 @@ Core LTO enablement and input selection
 * `--fat-lto-objects` / `--no-fat-lto-objects`
   Enable/disable use of `.llvm.lto` embedded bitcode sections from fat LTO
   relocatable objects.
-  Aliases: `-ffat-lto-objects`, `-fno-fat-lto-objects`.
+  Aliases: `--ffat-lto-objects`, `--fno-fat-lto-objects`.
 * `--include-lto-filelist=<list>`
   Use this list to select which ELF inputs with embedded bitcode should be
   used for LTO when `-flto` is not present.
@@ -122,9 +122,9 @@ LTO output control and artifacts
   Prefix for LTO-generated object files. When provided, output objects are not
   deleted after LTO.
   Alias: `--plugin-opt=obj-path=`.
-* `-flto-options=lto-asm-file=<file[,file2,...]>`
+* `--flto-options=lto-asm-file=<file[,file2,...]>`
   Use pre-generated LTO assembly files as inputs to the external assembler.
-* `-flto-options=lto-output-file=<file[,file2,...]>`
+* `--flto-options=lto-output-file=<file[,file2,...]>`
   Use pre-generated LTO object files as outputs (bypasses LTO code generation).
 
 LTO optimization control
@@ -161,39 +161,39 @@ LLVM option passthrough
 * `--plugin-opt=-<llvm-option>`
   Pass a raw LLVM option to LTO (LLVMgold compatibility). For example,
   `--plugin-opt=-debug-pass-manager`.
-* `-flto-options=codegen=<llvm-arg>`
+* `--flto-options=codegen=<llvm-arg>`
   Pass LLVM codegen options to LTO (supports `-O`, `-mcpu=`, `-mattr=`, and
   arbitrary LLVM options).
-* `-flto-options=<string>`
+* `--flto-options=<string>`
   Passes additional LTO plugin options through. For example, tests use
-  `-flto-options=no-merge-modules` and `-flto-options=codegen=-split-lto-cg`.
+  `--flto-options=no-merge-modules` and `--flto-options=codegen=-split-lto-cg`.
 
 Assembler control
 ~~~~~~~~~~~~~~~~~
-* `-flto-use-as`
+* `--flto-use-as`
   Use the external assembler instead of the integrated assembler for LTO.
-* `-flto-options=asmopts=<arg>`
+* `--flto-options=asmopts=<arg>`
   Extra arguments passed to the external assembler during LTO.
 
 LTO caching
 ~~~~~~~~~~~
-* `-flto-options=cache`
+* `--flto-options=cache`
   Enable ThinLTO caching. By default, cache output is written to
   `<output>.ltocache`.
-* `-flto-options=cache=<dir>`
+* `--flto-options=cache=<dir>`
   Enable ThinLTO caching using the specified directory.
 
 Symbol preservation and ordering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-* `-flto-options=preserveall`
+* `--flto-options=preserveall`
   Preserve all bitcode symbols during LTO.
-* `-flto-options=preserve-sym=<sym1,sym2,...>`
+* `--flto-options=preserve-sym=<sym1,sym2,...>`
   Preserve the specified symbols in LTO.
-* `-flto-options=preserve-file=<file>`
+* `--flto-options=preserve-file=<file>`
   Preserve the symbols listed in the given file (one symbol per line).
-* `-flto-options=disable-linkorder`
+* `--flto-options=disable-linkorder`
   Disable link order enforcement when linker scripts are present.
-* `-flto-options=verbose`
+* `--flto-options=verbose`
   Enable verbose LTO diagnostics and trace output.
 
 Diagnostics and tracing

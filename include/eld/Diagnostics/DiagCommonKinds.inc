@@ -149,7 +149,7 @@ DIAG(unable_to_find_mergestr_fragment, DiagnosticEngine::Error,
      "Unable to find merge string fragment at offset %0 in section %1 from "
      "file %2")
 DIAG(error_invalid_option_symdef_style, DiagnosticEngine::Error,
-     "Invalid options specified for -symdef-style=%0 valid values are "
+     "Invalid options specified for --symdef-style=%0 valid values are "
      "default/provide")
 DIAG(error_unknown_symdef_style, DiagnosticEngine::Error,
      "Unknown symdef style detected")

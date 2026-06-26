@@ -7,9 +7,9 @@ RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
 RUN: %clang %clangopts -o %t1.2.o %p/Inputs/2.c -c
 RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c
 RUN: %ar cr %aropts %t1.lib2.a %t1.2.o
-RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.lib2.a %t1.3.o -Map %t1.a.map.txt -MapDetail show-symbol-resolution
+RUN: %link -MapStyle txt %linkopts -o %t1.a.out %t1.1.o %t1.lib2.a %t1.3.o -Map %t1.a.map.txt --MapDetail show-symbol-resolution
 RUN: %filecheck %s --check-prefix ARCHIVE_FIRST < %t1.a.map.txt
-RUN: %link -MapStyle txt %linkopts -o %t1.b.out %t1.1.o %t1.3.o %t1.lib2.a -Map %t1.b.map.txt -MapDetail show-symbol-resolution
+RUN: %link -MapStyle txt %linkopts -o %t1.b.out %t1.1.o %t1.3.o %t1.lib2.a -Map %t1.b.map.txt --MapDetail show-symbol-resolution
 RUN: %filecheck %s --check-prefix ARCHIVE_LATER < %t1.b.map.txt
 
 ARCHIVE_FIRST: # Symbol Resolution:

@@ -17,7 +17,7 @@ def get_referrer_path(record: dict) -> str:
     if obj:
         return obj
     if record.get("WholeArchive"):
-        return "-whole-archive"
+        return "--whole-archive"
     ref = record.get("Referrer")
     if ref:
         return ref

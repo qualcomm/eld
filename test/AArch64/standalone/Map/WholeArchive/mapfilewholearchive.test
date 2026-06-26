@@ -10,9 +10,9 @@ RUN: %link %linkopts -march aarch64 %t1.main.o --whole-archive %t1.library.a -M 
 
 #CHECK: Archive member included because of file (symbol)
 #CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}foo.o
-#CHECK: 		-whole-archive
+#CHECK: 		--whole-archive
 #CHECK: {{[ -\(\)_A-Za-z0-9.\\/:]+}}bar.o
-#CHECK: 		-whole-archive
+#CHECK: 		--whole-archive
 #CHECK: Common symbol	size	file
 #CHECK: common_array	0x50	{{[ -\(\)_A-Za-z0-9.\\/:]+}}main.o
 #CHECK: Linker Script and memory map
