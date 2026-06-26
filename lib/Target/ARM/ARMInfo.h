@@ -75,13 +75,6 @@ public:
 
   std::string flagString(uint64_t flag) const override;
 
-  void initializeAttributes(InputBuilder &pBuilder) override {
-    // Do not warn on mismatch by default
-    if (!m_Config.options().hasOptionWarnNoWarnMismatch()) {
-      m_Config.options().setWarnMismatch(false);
-    }
-  }
-
   bool checkFlags(uint64_t Flag, const InputFile *I, bool) override;
 
 private:

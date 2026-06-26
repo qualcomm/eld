@@ -45,7 +45,7 @@ bool RISCVInfo::isABIFlagSet(uint64_t inputFlag, uint32_t ABIFlag) const {
 }
 
 bool RISCVInfo::isCompatible(uint64_t pFlag, const std::string &pFile) const {
-  if (m_Config.options().noWarnMismatch())
+  if (!m_Config.options().warnMismatch())
     return true;
 
   assert(m_OutputFlag);

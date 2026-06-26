@@ -62,12 +62,6 @@ public:
   bool InitializeDefaultMappings(Module &pModule) override;
 
   std::string flagString(uint64_t flag) const override;
-
-  void initializeAttributes(InputBuilder &pBuilder) override {
-    // Warn on mismatch.
-    if (!m_Config.options().hasOptionWarnNoWarnMismatch())
-      m_Config.options().setWarnMismatch(false);
-  }
 };
 
 } // namespace eld

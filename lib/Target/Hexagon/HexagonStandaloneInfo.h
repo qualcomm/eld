@@ -25,9 +25,6 @@ public:
 
   void initializeAttributes(InputBuilder &pBuilder) override {
     pBuilder.makeBStatic();
-    // Warn on mismatch.
-    if (!m_Config.options().hasOptionWarnNoWarnMismatch())
-      m_Config.options().setWarnMismatch(true);
   }
 };
 

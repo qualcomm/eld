@@ -37,12 +37,6 @@ public:
 
     return 0x0;
   }
-
-  void initializeAttributes(InputBuilder &pBuilder) override {
-    // Warn on mismatch is by default false.
-    if (!m_Config.options().hasOptionWarnNoWarnMismatch())
-      m_Config.options().setWarnMismatch(false);
-  }
 };
 
 } // namespace eld

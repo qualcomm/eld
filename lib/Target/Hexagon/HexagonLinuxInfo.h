@@ -46,9 +46,6 @@ public:
   void initializeAttributes(InputBuilder &pBuilder) override {
     if (!m_Config.options().isEhFrameHdrSet())
       m_Config.options().setEhFrameHdr(true);
-    // Warn on mismatch.
-    if (!m_Config.options().hasOptionWarnNoWarnMismatch())
-      m_Config.options().setWarnMismatch(true);
   }
 };
 

@@ -298,7 +298,7 @@ bool HexagonInfo::checkFlags(uint64_t pFlag, const InputFile *pInputFile,
         << ISAs[translateFlag(pFlag)];
     return false;
   case WA:
-    if (!m_Config.options().noWarnMismatch())
+    if (m_Config.options().warnMismatch())
       m_Config.raise(Diag::incompatible_input_architecture)
           << pInputFile->getInput()->decoratedPath() << getArchStr(pFlag)
           << getArchStr(m_OutputFlag);
@@ -329,7 +329,7 @@ uint64_t HexagonInfo::flags() const {
           << targetOptions().getTargetCPU() << ISAs[translateFlag(OutputFlag)];
       LLVM_FALLTHROUGH;
     case WA:
-      if (!m_Config.options().noWarnMismatch())
+      if (m_Config.options().warnMismatch())
         m_Config.raise(Diag::incompatible_architecture)
             << targetOptions().getTargetCPU();
       LLVM_FALLTHROUGH;

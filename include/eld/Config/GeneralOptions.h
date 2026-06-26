@@ -58,8 +58,6 @@ public:
     StripAllSymbols
   };
 
-  enum class WarnMismatchMode { None, WarnMismatch, NoWarnMismatch };
-
   enum OrphanMode { Place, Warn, Error, Invalid };
 
   enum ErrorStyleType { gnu, llvm };
@@ -481,25 +479,9 @@ public:
 
   bool printMap() const { return BPrintMap; }
 
-  void setWarnMismatch(bool PEnable) {
-    if (PEnable) {
-      WarnMismatch = WarnMismatchMode::WarnMismatch;
-      return;
-    }
-    WarnMismatch = WarnMismatchMode::NoWarnMismatch;
-  }
+  void setWarnMismatch(bool Enable) { WarnMismatch = Enable; }
 
-  bool hasOptionWarnNoWarnMismatch() const {
-    return (WarnMismatch != WarnMismatchMode::None);
-  }
-
-  bool noWarnMismatch() const {
-    return (WarnMismatch == WarnMismatchMode::NoWarnMismatch);
-  }
-
-  bool warnMismatch() const {
-    return (WarnMismatch == WarnMismatchMode::WarnMismatch);
-  }
+  bool warnMismatch() const { return WarnMismatch; }
 
   // --gc-sections
   void setGCSections(bool PEnable = true) { BGCSections = PEnable; }
@@ -1247,8 +1229,7 @@ private:
   bool BLTOOptRemarksDisplayHotness = false; // --display-hotness-remarks
   bool BNoStdlib = false;                    // -nostdlib
   bool BPrintMap = false;                    // --print-map
-  WarnMismatchMode WarnMismatch =
-      WarnMismatchMode::None;        // --no{-warn}-mismatch
+  bool WarnMismatch = true;                  // --[no-]warn-mismatch
   bool BGCSections = false;          // --gc-sections
   bool BPrintGCSections = false;     // --print-gc-sections
   bool BGenUnwindInfo = true;        // --ld-generated-unwind-info
