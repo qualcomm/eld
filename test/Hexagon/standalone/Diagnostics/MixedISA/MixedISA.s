@@ -10,8 +10,12 @@ nop
 // RUN: %link %linkopts %t2.o %t.o -o %t2.out 2>&1 | %filecheck %s --check-prefix=WA7371
 
 // RUN: %link %linkopts --no-warn-mismatch %t.o %t2.o -o %t3.out 2>&1 \
-// RUN:  | %filecheck --allow-empty %s --check-prefix=NOWARN
+// RUN:  | %filecheck %s --check-prefix=WA7173_NOTE
+
+// RUN: %link %linkopts --no-warn-mismatch %t2.o %t.o -o %t4.out 2>&1 \
+// RUN:  | %filecheck %s --check-prefix=WA7371_NOTE
 
 // WA7173: Warning: Mixing incompatible object file {{.*}} object file arch is hexagonv73, {{.*}}hexagonv71t
 // WA7371: Warning: Mixing incompatible object file {{.*}} object file arch is hexagonv71t, {{.*}} hexagonv73
-// NOWARN-NOT: Mixing incompatible object file
+// WA7173_NOTE: Note: Mixing incompatible object file {{.*}} object file arch is hexagonv73, {{.*}}hexagonv71t
+// WA7371_NOTE: Note: Mixing incompatible object file {{.*}} object file arch is hexagonv71t, {{.*}} hexagonv73

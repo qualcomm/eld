@@ -105,7 +105,9 @@ public:
     Verbose,
     Warning,
     Trace,
-    InternalError
+    InternalError,
+    WarnMismatchWarning,
+    WarnMismatchError
   };
 
   enum ArgumentKind {

@@ -10,4 +10,4 @@
 #RUN: %link --no-warn-mismatch -o %t1.out %linkopts %t1.o %t2.o 2>&1 | %filecheck %s --check-prefix="ENUM_NOERR" --allow-empty
 #
 #ENUM:  Warning: the size of enumerated data item
-#ENUM_NOERR-NOT:  Warning: the size of enumerated data item
+#ENUM_NOERR:  Note: the size of enumerated data item

@@ -57,7 +57,7 @@ DIAG(input_file_has_zero_size, DiagnosticEngine::Note,
      "Input file %0 has no contents")
 DIAG(string_not_null_terminated, DiagnosticEngine::Error,
     "%0: string is not null terminated")
-DIAG(invalid_elf_class, DiagnosticEngine::Error,
+DIAG(invalid_elf_class, DiagnosticEngine::WarnMismatchError,
      "Invalid ELF file %0 for target %1")
 DIAG(fatal_big_endian_target, DiagnosticEngine::Fatal,
      "big-endian targets are not supported: %0")

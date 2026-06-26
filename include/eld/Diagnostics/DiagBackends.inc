@@ -47,7 +47,7 @@ DIAG(riscv_relaxation_error, DiagnosticEngine::Fatal,
 DIAG(error_riscv_relaxation_align, DiagnosticEngine::Error,
      "Insufficient number of spare bytes for alignment relaxation: present %0, "
      "needed %1 in section %2+0x%3 file %4")
-DIAG(incompatible_architecture, DiagnosticEngine::Warning,
+DIAG(incompatible_architecture, DiagnosticEngine::WarnMismatchWarning,
      "Mixing incompatible object files in the link process %0")
 DIAG(deprecated_isa, DiagnosticEngine::Warning,
      "Support for ISA %0 is deprecated for input file %1")
@@ -57,9 +57,9 @@ DIAG(not_supported_isa, DiagnosticEngine::Error,
      "ISA %0 is not supported for input file %1")
 DIAG(sbrel_reloc_no_section, DiagnosticEngine::Error,
      "SBREL Relocation points to no segment for symbol %0")
-DIAG(incompatible_architecture_versions, DiagnosticEngine::Error,
+DIAG(incompatible_architecture_versions, DiagnosticEngine::WarnMismatchError,
      "Incompatible object files when reading %1, mixing %0 and %2")
-DIAG(attribute_parsing_error, DiagnosticEngine::Error,
+DIAG(attribute_parsing_error, DiagnosticEngine::WarnMismatchError,
      "Reading attributes failed for file %0, Error : %1")
 DIAG(riscv_attribute_parsing_mix_warn, DiagnosticEngine::Warning,
      "Reading incompatible attributes in file %1, Warning mixing attribute %2, seen "
@@ -67,7 +67,7 @@ DIAG(riscv_attribute_parsing_mix_warn, DiagnosticEngine::Warning,
 DIAG(riscv_attribute_parsing_mix_error, DiagnosticEngine::Error,
      "Reading incompatible attributes in file %1, Error mixing attribute %2, seen "
      "previous value %4 from input file %0, now seen %3")
-DIAG(incompatible_input_architecture, DiagnosticEngine::Warning,
+DIAG(incompatible_input_architecture, DiagnosticEngine::WarnMismatchWarning,
      "Mixing incompatible object file %0, object file arch is %1, output file "
      "arch is %2")
 DIAG(gnu_property_read_error, DiagnosticEngine::Fatal,
