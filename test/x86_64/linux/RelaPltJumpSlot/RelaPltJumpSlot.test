@@ -8,8 +8,7 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
 RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
 RUN: %link %linkopts -o %t.out %t.1.o %t.lib2.so
-RUN: %readelf -Sr %t.out > %t.check.txt
-RUN: %filecheck %s < %t.check.txt
+RUN: (%readelf -S %t.out; %readelf -r %t.out) | %filecheck %s
 
 #Capture .got.plt section address
 CHECK: .got.plt PROGBITS [[#%x,GOTPLT_ADDR:]]

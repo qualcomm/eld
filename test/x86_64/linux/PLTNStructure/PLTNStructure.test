@@ -10,9 +10,7 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
 RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
 RUN: %link %linkopts -o %t.out %t.1.o %t.lib2.so
-RUN: %readelf -S %t.out > %t.check.txt
-RUN: %objdump -d %t.out >> %t.check.txt
-RUN: %filecheck %s < %t.check.txt
+RUN: (%readelf -S %t.out; %objdump -d %t.out) | %filecheck %s
 
 # Capture section addresses
 CHECK: .plt PROGBITS [[#%x,PLT0_ADDR:]]

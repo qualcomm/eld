@@ -3,8 +3,8 @@ import lit.formats
 
 
 class ThinArchiveTestFormat(lit.formats.TestFormat):
-    def __init__(self, base_format=None):
-        self.base_format = base_format or lit.formats.ShTest()
+    def __init__(self, execute_external, base_format=None):
+        self.base_format = base_format or lit.formats.ShTest(execute_external)
 
     def getTestsInDirectory(self, testSuite, path_in_suite, litConfig,
                             localConfig):

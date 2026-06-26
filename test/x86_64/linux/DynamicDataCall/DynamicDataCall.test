@@ -13,9 +13,8 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -fPIC -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
 RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
 RUN: %link %linkopts  -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o %t.out %t.1.o %t.lib2.so
-RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
-RUN: %readelf -Sdr %t.out > %t.check.txt
-RUN: %filecheck %s < %t.check.txt
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -Sdr %t.out | %filecheck %s
 CHECK: .data PROGBITS [[#%x,DATA_SEC_ADDR:]]
 CHECK: .got PROGBITS [[#%x,GOT_ADDR:]]
 CHECK: Dynamic section

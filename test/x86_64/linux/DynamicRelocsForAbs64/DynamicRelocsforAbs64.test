@@ -16,11 +16,8 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
 RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
 RUN: %link %linkopts  -dynamic-linker /lib64/ld-linux-x86-64.so.2 -o %t.out %t.1.o %t.lib2.so
-# TODO: ELD emits R_X86_64_GLOB_DAT outside .data instead of in .got, causing
-# a runtime segfault. Re-enable execution once the R_X86_64_64 GOT allocation
-# bug is fixed.
-RUN: %readelf -Sr %t.lib2.so > %t.check.txt
-RUN: %filecheck %s < %t.check.txt
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
+RUN: %readelf -Sr %t.lib2.so | %filecheck %s
 CHECK: .data PROGBITS [[#%x,DATA_SEC_ADDR:]]
 
 # Verify R_X86_64_RELATIVE at offset 0x10 (for 'p' pointing to 'v')
@@ -28,3 +25,4 @@ CHECK-DAG: [[#DATA_SEC_ADDR+0x10]]{{.*}}000000000008{{.*}}R_X86_64_RELATIVE{{.*}
 
 # Verify R_X86_64_64 at offset 0x8 (for 'v' pointing to 'u')
 CHECK-DAG: [[#DATA_SEC_ADDR+0x8]]{{.*}}R_X86_64_64{{.*}}u + 0
+EXITCODE: 39

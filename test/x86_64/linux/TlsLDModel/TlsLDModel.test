@@ -12,7 +12,7 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.1.o
 RUN: %clang %clangopts -c %p/Inputs/2.c -fPIC -o %t.2.o
 RUN: %link %linkopts -shared -o %t.lib2.so %t.2.o
 RUN: %clang %clangopts -fuse-ld=%link -o %t.out %t.1.o %t.lib2.so
-RUN: %run_and_print_exit %t.out | %filecheck %s --check-prefix=EXITCODE
+RUN: %t.out; echo $? | %filecheck %s --check-prefix=EXITCODE
 RUN: %readelf -r %t.lib2.so | %filecheck %s --check-prefix=CHECK-ONE-DTPMOD
 
 # Should have exactly one DTPMOD64 relocation (shared across all static TLS accesses)
