@@ -25,6 +25,8 @@ x86_64Relocator::Result unsupport(Relocation &pEntry, x86_64Relocator &pParent,
                                   RelocationDescription &RelocDesc);
 x86_64Relocator::Result relocPLT32(Relocation &pEntry, x86_64Relocator &pParent,
                                    RelocationDescription &RelocDesc);
+x86_64Relocator::Result relocGOTPC32(Relocation &pEntry,x86_64Relocator &pParent,
+                                   RelocationDescription &pRelocDesc);
 x86_64Relocator::Result relocGOTRelative(Relocation &pEntry,
                                          x86_64Relocator &pParent,
                                          RelocationDescription &RelocDesc);
@@ -129,7 +131,9 @@ struct RelocationDescription x86RelocDesc[] = {
      /*.type = */ llvm::ELF::R_X86_64_PC64,
      /*.forceVerify = */ false},
     {/*.func = */ none, /*.type = */ 25, /*.forceVerify = */ false},
-    {/*.func = */ none, /*.type = */ 26, /*.forceVerify = */ false},
+    {/*.func = */ &relocGOTPC32,
+     /*.type = */ llvm::ELF::R_X86_64_GOTPC32, 
+     /*.forceVerify = */ false},
     {/*.func = */ none, /*.type = */ 27, /*.forceVerify = */ false},
     {/*.func = */ none, /*.type = */ 28, /*.forceVerify = */ false},
     {/*.func = */ none, /*.type = */ 29, /*.forceVerify = */ false},
