@@ -1,7 +1,7 @@
 name: Windows Arm64/x86_64 CI/Nightly
 
 on:
-  # pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
+  pull_request: {} # Uncomment to run in CI mode to build ELD PR branch.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
