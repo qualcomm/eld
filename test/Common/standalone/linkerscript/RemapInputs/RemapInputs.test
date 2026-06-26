@@ -70,7 +70,7 @@ RUN: %filecheck %s --check-prefix=INCLUDE_MAP < %t1.include.map.txt
 
 #--- Test 6: INPUT() in linker script is remapped ---------------------------
 # Script uses INPUT(foo.o); remap foo.o -> bar.o.
-RUN: echo "INPUT(%t1.foo.o)" > %t1.input_cmd.t
+RUN: %echo "INPUT(%t1.foo.o)" > %t1.input_cmd.t
 RUN: %link %linkopts -o %t1.inputcmd.out \
 RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
 RUN:   %t1.main.o -T %t1.input_cmd.t -T %p/Inputs/script.t

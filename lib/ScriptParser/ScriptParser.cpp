@@ -41,6 +41,7 @@
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MemoryBufferRef.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/SaveAndRestore.h"
 #include <optional>
 #include <utility>
@@ -1449,15 +1450,12 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
   llvm::StringRef FileName = unquote(next());
   // Apply --remap-inputs to the INCLUDE filename before searching.
   std::string RemappedFileName = FileName.str();
-  for (const auto &Entry : ThisConfig.options().getRemapInputs()) {
-    WildcardPattern Pat(Entry.Pattern);
-    if (Pat.matched(RemappedFileName)) {
-      if (ThisConfig.getPrinter()->isVerbose())
-        ThisConfig.raise(Diag::verbose_remap_input)
-            << RemappedFileName << Entry.Replacement;
-      RemappedFileName = Entry.Replacement;
-      break;
-    }
+  if (auto Replacement =
+          ThisConfig.options().findRemapInput(RemappedFileName)) {
+    if (ThisConfig.getPrinter()->isVerbose())
+      ThisConfig.raise(Diag::verbose_remap_input)
+          << RemappedFileName << *Replacement;
+    RemappedFileName = std::move(*Replacement);
   }
   LayoutInfo *layoutInfo = ThisScriptFile.module().getLayoutInfo();
   bool Result = true;

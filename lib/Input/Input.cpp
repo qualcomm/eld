@@ -14,7 +14,6 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Input/InputFile.h"
 #include "eld/Input/InputTree.h"
-#include "eld/Script/WildcardPattern.h"
 #include "eld/Support/MsgHandling.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/Support/FileSystem.h"
@@ -111,16 +110,11 @@ bool Input::resolvePath(const LinkerConfig &PConfig) {
   if (PConfig.options().hasMappingFile() && !isInternal())
     return resolvePathMappingFile(PConfig);
   // Apply --remap-inputs remappings (in order, first match wins).
-  for (const auto &Entry : PConfig.options().getRemapInputs()) {
-    WildcardPattern Pat(Entry.Pattern);
-    if (Pat.matched(FileName)) {
-      if (PConfig.getPrinter()->isVerbose())
-        PConfig.raise(Diag::verbose_remap_input)
-            << FileName << Entry.Replacement;
-      OriginalFileName = FileName;
-      FileName = Entry.Replacement;
-      break;
-    }
+  if (auto Replacement = PConfig.options().findRemapInput(FileName)) {
+    if (PConfig.getPrinter()->isVerbose())
+      PConfig.raise(Diag::verbose_remap_input) << FileName << *Replacement;
+    OriginalFileName = FileName;
+    FileName = std::move(*Replacement);
   }
   auto &PSearchDirs = PConfig.directories();
 

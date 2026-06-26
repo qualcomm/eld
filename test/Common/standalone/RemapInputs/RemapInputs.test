@@ -27,21 +27,24 @@ RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
 RUN: %readelf -s %t1.wildcard.out | %filecheck %s --check-prefix=LINKED
 
 #--- Test 3: --remap-inputs-file with = separator ---------------------------
-RUN: echo "%t1.foo.o=%t1.bar.o" > %t1.remap_eq.txt
+RUN: %echo "%t1.foo.o=%t1.bar.o" > %t1.remap_eq.txt
 RUN: %link %linkopts -o %t1.remapfile_eq.out \
 RUN:   --remap-inputs-file=%t1.remap_eq.txt \
 RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
 RUN: %readelf -s %t1.remapfile_eq.out | %filecheck %s --check-prefix=LINKED
 
 #--- Test 4: --remap-inputs-file with whitespace separator ------------------
-RUN: echo "%t1.foo.o %t1.bar.o" > %t1.remap_ws.txt
+RUN: %echo "%t1.foo.o %t1.bar.o" > %t1.remap_ws.txt
 RUN: %link %linkopts -o %t1.remapfile_ws.out \
 RUN:   --remap-inputs-file=%t1.remap_ws.txt \
 RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
 RUN: %readelf -s %t1.remapfile_ws.out | %filecheck %s --check-prefix=LINKED
 
 #--- Test 5: --remap-inputs-file with comments and blank lines --------------
-RUN: printf "# this is a comment\n\n%t1.foo.o=%t1.bar.o\n# another comment\n" > %t1.remap_comments.txt
+RUN: %echo "# this is a comment" > %t1.remap_comments.txt
+RUN: %echo "" >> %t1.remap_comments.txt
+RUN: %echo "%t1.foo.o=%t1.bar.o" >> %t1.remap_comments.txt
+RUN: %echo "# another comment" >> %t1.remap_comments.txt
 RUN: %link %linkopts -o %t1.remapfile_comments.out \
 RUN:   --remap-inputs-file=%t1.remap_comments.txt \
 RUN:   %t1.main.o %t1.foo.o -T %p/Inputs/script.t
@@ -64,7 +67,7 @@ RUN:   %t1.main.o %t1.libfoo.a -T %p/Inputs/script.t
 RUN: %readelf -s %t1.archive.out | %filecheck %s --check-prefix=LINKED
 
 #--- Test 8: remap applied to INPUT() in linker script ----------------------
-RUN: echo "INPUT(%t1.foo.o)" > %t1.input_script.t
+RUN: %echo "INPUT(%t1.foo.o)" > %t1.input_script.t
 RUN: %link %linkopts -o %t1.lscinput.out \
 RUN:   --remap-inputs=%t1.foo.o=%t1.bar.o \
 RUN:   %t1.main.o -T %t1.input_script.t -T %p/Inputs/script.t

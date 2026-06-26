@@ -595,6 +595,10 @@ public:
   const RemapInputsType &getRemapInputs() const { return RemapInputs; }
   RemapInputsType &getRemapInputs() { return RemapInputs; }
 
+  /// Apply --remap-inputs rules to \p FileName (first match wins).
+  /// Returns the replacement path if a rule matched, or std::nullopt.
+  std::optional<std::string> findRemapInput(llvm::StringRef FileName) const;
+
   // ---- add extern symbols from list file ---- //
   const ExtList &getExternList() const { return ExternList; }
   ExtList &getExternList() { return ExternList; }

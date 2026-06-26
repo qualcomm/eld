@@ -677,3 +677,16 @@ bool GeneralOptions::traceSymbol(const ResolveInfo &RI) const {
   }
   return false;
 }
+
+std::optional<std::string>
+GeneralOptions::findRemapInput(llvm::StringRef FileName) const {
+  std::string NormalizedFileName = llvm::sys::path::convert_to_slash(FileName);
+  for (const auto &Entry : RemapInputs) {
+    std::string NormalizedPattern =
+        llvm::sys::path::convert_to_slash(Entry.Pattern);
+    WildcardPattern Pat(NormalizedPattern);
+    if (Pat.matched(NormalizedFileName))
+      return Entry.Replacement;
+  }
+  return std::nullopt;
+}
