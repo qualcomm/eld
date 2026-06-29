@@ -4,6 +4,9 @@
 # content of a defined data symbol in the output binary.
 # The plugin replaces all bytes of foo_data with 0xAB; the readelf hex dump of
 # .data is checked to confirm abababab appears in the output.
+# The plugin also replays reloc_data's bytes back unchanged. reloc_data holds
+# two relocations into foo_data; the no-op replay must not clobber the resolved
+# addresses.
 # A second run with --gc-sections verifies that dead_data (unreferenced from
 # main) is skipped rather than replaced.
 #END_COMMENT
@@ -20,8 +23,10 @@ RUN:   2>&1 | %filecheck %s --check-prefix GC
 #END_TEST
 
 CHECK: ReplaceSymbolContentPlugin: replaced foo_data ({{[0-9]+}} bytes)
+CHECK: ReplaceSymbolContentPlugin: replayed reloc_data unchanged ({{[0-9]+}} bytes)
 
 HEXDUMP: abababab
+HEXDUMP-NOT: 00000000 00000000
 
 GC: ReplaceSymbolContentPlugin: replaced foo_data ({{[0-9]+}} bytes)
 GC: ReplaceSymbolContentPlugin: skipped dead_data (garbage collected)

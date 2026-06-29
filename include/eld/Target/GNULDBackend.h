@@ -545,6 +545,13 @@ public:
   /// postProcessing - Backend can do any needed modification in the final stage
   virtual eld::Expected<void> postProcessing(llvm::FileOutputBuffer &pOutput);
 
+  /// copy plugin provided replacement content (registered via
+  /// LinkerWrapper::replaceSymbolContent) into the output
+  /// buffer. This must run before relocations are synced so that relocations
+  /// targeting the replaced symbol are applied on top of the new content rather
+  /// than being clobbered by it.
+  void applyPluginFragmentReplacements(llvm::FileOutputBuffer &Output);
+
   /// dynamic - the dynamic section of the target machine.
   virtual ELFDynamic *dynamic() = 0;
 

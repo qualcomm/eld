@@ -2525,6 +2525,8 @@ bool ObjectLinker::emitOutput(llvm::FileOutputBuffer &POutput) {
 /// postProcessing - do modification after all processes
 eld::Expected<void>
 ObjectLinker::postProcessing(llvm::FileOutputBuffer &POutput) {
+  getTargetBackend().applyPluginFragmentReplacements(POutput);
+
   {
     eld::RegisterTimer T("Sync Relocations", "Emit Output File",
                          ThisConfig.options().printTimingStats());

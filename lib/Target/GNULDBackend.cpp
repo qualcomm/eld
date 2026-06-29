@@ -3634,21 +3634,23 @@ GNULDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
     eld::Expected<void> expEmit = m_pSFrameFragment->emit(region, getModule());
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expEmit);
   }
-  {
-    eld::RegisterTimer T(
-        "Replace Fragments from Plugin", "Post Processing",
-        m_Module.getConfig().options().printTimingStats("Plugin"));
-    for (auto &V : m_Module.getReplaceFrags()) {
-      FragmentRef *F = V.first;
-      MemoryArea *M = V.second;
-      FragmentRef::Offset Off = F->getOutputOffset(m_Module);
-      size_t out_offset = F->getOutputELFSection()->offset() + Off;
-      uint8_t *target_addr = pOutput.getBufferStart() + out_offset;
-      llvm::StringRef Contents = M->getContents();
-      std::memcpy(target_addr, Contents.data(), Contents.size());
-    }
-  }
   return {};
+}
+
+void GNULDBackend::applyPluginFragmentReplacements(
+    llvm::FileOutputBuffer &Output) {
+  eld::RegisterTimer T(
+      "Replace Fragments from Plugin", "Post Processing",
+      m_Module.getConfig().options().printTimingStats("Plugin"));
+  for (auto &V : m_Module.getReplaceFrags()) {
+    FragmentRef *F = V.first;
+    MemoryArea *M = V.second;
+    FragmentRef::Offset Off = F->getOutputOffset(m_Module);
+    size_t OutOffset = F->getOutputELFSection()->offset() + Off;
+    uint8_t *TargetAddr = Output.getBufferStart() + OutOffset;
+    llvm::StringRef Contents = M->getContents();
+    std::memcpy(TargetAddr, Contents.data(), Contents.size());
+  }
 }
 
 /// elfSegmentTable - return the reference of the elf segment table
