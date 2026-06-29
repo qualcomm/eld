@@ -1,0 +1,26 @@
+REQUIRES: run_test
+#---R_ARM_CALL.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_CALL relocation.
+# R_ARM_CALL is a PC-relative relocation for ARM BL/BLX instructions
+# that encodes a 24-bit signed offset from the current PC to the target
+# function, providing a call range of +/-32MB with optional mode
+# switching between ARM and Thumb.
+# Covers: static
+#END_COMMENT
+#START_TEST
+
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.c
+#RUN: %readelf -r %t.startup.o | %filecheck %s -check-prefix START-RELOCS
+#RUN: %readelf -r %t.main.o | %filecheck %s -check-prefix MAIN-RELOCS
+# Static
+#RUN: %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o
+#RUN: %objdump -d %t.static.out | %filecheck %s -check-prefix STATIC
+#RUN: %run %t.static.out
+
+#START-RELOCS: {{.*}} R_ARM_CALL {{.*}} main
+#MAIN-RELOCS: {{.*}} R_ARM_CALL {{.*}} foo
+#STATIC: bl {{.*}} <main>
+#STATIC: bl {{.*}} <foo>
+#END_TEST
