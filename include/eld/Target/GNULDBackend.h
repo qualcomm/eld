@@ -482,7 +482,7 @@ public:
 
   void evaluateAssignments(OutputSectionEntry *output);
 
-  void evaluatePostOutputSectionAssignments(OutputSectionEntry *output);
+  void evaluateAssignmentsAtEndOfOutputSection(OutputSectionEntry *output);
 
   // Print padding between end and start fragments of adjacent rules
   std::vector<PaddingT>
@@ -961,7 +961,7 @@ private:
 
   // Evaluate defsym assignments and script assignments that appear outside
   // sections.
-  void evaluateBeforeSectionsAssignments(bool evaluateAsserts = true);
+  void evaluateScriptAssignments(bool evaluateAsserts = true);
 
   bool isRelROSection(const ELFSection *sect) const;
 

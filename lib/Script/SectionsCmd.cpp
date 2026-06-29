@@ -101,9 +101,12 @@ eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
       break;
     }
   }
+  // The assignment may be the last set too.
   if (!Assignments.empty()) {
-    for (auto *Assign : Assignments) {
-      eld::Expected<void> E = Assign->activate(CurModule);
+    iterator Assign, AssignEnd = Assignments.end();
+    for (Assign = Assignments.begin(); Assign != AssignEnd; ++Assign) {
+      llvm::cast<Assignment>(*Assign)->setLevel(Assignment::SECTIONS_END);
+      eld::Expected<void> E = (*Assign)->activate(CurModule);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
     }
     Assignments.clear();

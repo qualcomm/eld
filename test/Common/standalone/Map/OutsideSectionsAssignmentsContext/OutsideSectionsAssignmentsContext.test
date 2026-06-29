@@ -10,5 +10,5 @@ RUN: %filecheck %s < %t2.map
 #END_TEST
 
 CHECK: var_u(0x1) = 0x1; # var_u = 0x1; {{.*}}script.t
-CHECK: var_v(0x3) = 0x3; # var_v = 0x3; {{.*}}script.t
 CHECK: var_w(0x5) = 0x5; # var_w = 0x5; {{.*}}script.t
+CHECK: var_v(0x3) = 0x3; # var_v = 0x3; {{.*}}script.t

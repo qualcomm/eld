@@ -383,18 +383,20 @@ eld::YamlLayoutPrinter::buildYaml(eld::Module &Module,
     }
     Result.OutputSections.emplace_back(
         std::make_shared<eld::LDYAML::OutputSection>(std::move(Value)));
-    I->forEachPostOutputSectionAssignment([&](Assignment *A) {
+    for (OutputSectionEntry::sym_iterator It = I->sectionendsymBegin(),
+                                          Ie = I->sectionendsymEnd();
+         It != Ie; ++It) {
       eld::LDYAML::Assignment Assignment;
-      Assignment.Name = A->name();
-      Assignment.Value = A->value();
+      Assignment.Name = (*It)->name();
+      Assignment.Value = (*It)->value();
       {
         raw_string_ostream Stream(Assignment.Text);
-        A->getExpression()->dump(Stream);
+        (*It)->getExpression()->dump(Stream);
         Stream.flush();
       }
       Result.OutputSections.emplace_back(
           std::make_shared<eld::LDYAML::Assignment>(std::move(Assignment)));
-    });
+    }
   }
   Module::const_obj_iterator Obj, ObjEnd = Module.objEnd();
   for (Obj = Module.objBegin(); Obj != ObjEnd; ++Obj) {

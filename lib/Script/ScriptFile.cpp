@@ -311,24 +311,29 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
     if (ScriptStateInsideOutputSection) {
       assert(!Sections->empty());
       NewAssignment =
-          make<Assignment>(Assignment::AfterInputSectDesc, AssignmentType,
+          make<Assignment>(Assignment::INPUT_SECTION, AssignmentType,
                            SymbolName, ScriptExpression);
       NewAssignment->setInputFileInContext(getContext());
       NewAssignment->setParent(getParent());
       OutputSectionDescription->pushBack(NewAssignment);
     } else {
       NewAssignment =
-          make<Assignment>(Assignment::AfterOutputSection, AssignmentType,
+          make<Assignment>(Assignment::Level::SECTIONS_END, AssignmentType,
                            SymbolName, ScriptExpression);
       NewAssignment->setInputFileInContext(getContext());
       NewAssignment->setParent(getParent());
       Sections->pushBack(NewAssignment);
     }
   } else {
+    // Assignments encountered when not inside SECTIONS are either BEFORE or
+    // AFTER SECTIONS. Mark as AFTER if we've already seen a SECTIONS block
+    // in this script file or any previously processed script.
+    // Global state is sufficient: it is set during parsing when any
+    // SECTIONS block is entered.
     Assignment::Level Lvl =
         ThisModule.getScript().linkerScriptHasSectionsCommand()
-            ? Assignment::AfterSections
-            : Assignment::BeforeSections;
+            ? Assignment::AFTER_SECTIONS
+            : Assignment::BEFORE_SECTIONS;
     NewAssignment =
         make<Assignment>(Lvl, AssignmentType, SymbolName, ScriptExpression);
     NewAssignment->setInputFileInContext(getContext());
@@ -345,7 +350,7 @@ bool ScriptFile::linkerScriptHasSectionsCommand() const {
 void ScriptFile::enterSectionsCmd() {
   LinkerScriptHasSectionsCommand = true;
   // Also mark global script state so other scripts parsed later
-  // can correctly set the level of assignments.
+  // can correctly mark AFTER_SECTIONS assignments.
   ThisModule.getScript().setHasSectionsCmd();
   ScriptStateInSectionsCommmand = true;
   auto *Cmd = make<SectionsCmd>();

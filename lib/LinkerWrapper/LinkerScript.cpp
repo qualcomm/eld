@@ -471,11 +471,10 @@ bool plugin::Script::Assignment::isGlobal() const {
   return m_Assignment->isOutsideSections();
 }
 
+// FIXME: This should return true when the assignment level
+// is SECTIONS_END or OUTSIDE_SECTIONS.
 bool plugin::Script::Assignment::isOutsideOutputSection() const {
-  auto Level = m_Assignment->level();
-  return Level == eld::Assignment::BeforeSections ||
-         Level == eld::Assignment::AfterSections ||
-         Level == eld::Assignment::AfterOutputSection;
+  return false;
 }
 
 bool plugin::Script::Assignment::isInsideOutputSection() const {

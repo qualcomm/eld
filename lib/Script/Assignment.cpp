@@ -73,16 +73,16 @@ void Assignment::dump(llvm::raw_ostream &Outs) const {
 
 void Assignment::trace(llvm::raw_ostream &Outs) const {
   switch (AssignmentLevel) {
-  case BeforeSections:
+  case BEFORE_SECTIONS:
     Outs << "BEFORE_SECTIONS   >>  ";
     break;
-  case AfterSections:
+  case AFTER_SECTIONS:
     Outs << "AFTER_SECTIONS    >>  ";
     break;
-  case AfterInputSectDesc:
+  case INPUT_SECTION:
     Outs << "    INSIDE_OUTPUT_SECTION    >>  ";
     break;
-  case AfterOutputSection:
+  case SECTIONS_END:
     Outs << "  OUTPUT_SECTION(EPILOGUE)   >>  ";
     break;
   }
@@ -97,14 +97,14 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
                          bool UseNewLine, bool WithValues,
                          bool AddIndent) const {
   switch (AssignmentLevel) {
-  case BeforeSections:
-  case AfterSections: {
+  case BEFORE_SECTIONS:
+  case AFTER_SECTIONS: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::GREEN);
     break;
   }
 
-  case AfterInputSectDesc: {
+  case INPUT_SECTION: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::YELLOW);
     if (AddIndent)
@@ -112,7 +112,7 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
     break;
   }
 
-  case AfterOutputSection: {
+  case SECTIONS_END: {
     if (Color)
       Ostream.changeColor(llvm::raw_ostream::MAGENTA);
     break;
@@ -174,22 +174,22 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
   ExpressionToEvaluate->setContext(getContext());
 
   switch (AssignmentLevel) {
-  case BeforeSections:
+  case BEFORE_SECTIONS:
+  case AFTER_SECTIONS:
     break;
 
-  case AfterSections:
-  case AfterOutputSection: {
-    SectionMap::reference Out = Script.sectionMap().back();
-    Out->getPostOutputSectionAssignments().push_back(this);
-    break;
-  }
-
-  case AfterInputSectDesc: {
+  case INPUT_SECTION: {
     OutputSectionEntry::reference In = Script.sectionMap().back()->back();
     In->symAssignments().push_back(this);
     break;
   }
+
+  case SECTIONS_END: {
+    SectionMap::reference Out = Script.sectionMap().back();
+    Out->sectionEndAssignments().push_back(this);
+    break;
   }
+  } // end of switch
   return eld::Expected<void>();
 }
 

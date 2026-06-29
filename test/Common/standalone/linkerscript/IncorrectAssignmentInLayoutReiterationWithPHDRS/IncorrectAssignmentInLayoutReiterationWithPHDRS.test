@@ -9,5 +9,5 @@ RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Map %t1.1.map.t
 RUN: %readelf -s %t1.1.out | %filecheck %s
 #END_TEST
 
-CHECK-DAG: {{0*300}}     0 NOTYPE  GLOBAL DEFAULT   ABS u
 CHECK-DAG: {{0*100}}     0 NOTYPE  GLOBAL DEFAULT   ABS v
+CHECK-DAG: {{0*100}}     0 NOTYPE  GLOBAL DEFAULT   ABS u

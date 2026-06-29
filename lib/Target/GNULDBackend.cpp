@@ -2059,14 +2059,18 @@ void GNULDBackend::evaluateAssignments(OutputSectionEntry *out) {
   }
 }
 
-void GNULDBackend::evaluatePostOutputSectionAssignments(
+void GNULDBackend::evaluateAssignmentsAtEndOfOutputSection(
     OutputSectionEntry *out) {
   eld::RegisterTimer T("Evaluate Expressions", "Establish Layout",
                        m_Module.getConfig().options().printTimingStats());
   if (m_Module.getPrinter()->traceAssignments())
     config().raise(Diag::output_section_eval)
         << (out->name().empty() ? "<nullptr>" : out->name()) << "\n";
-  for (auto *assign : out->getPostOutputSectionAssignments()) {
+  // Evaluate all assignments at the end of the output section.
+  for (OutputSectionEntry::sym_iterator it = out->sectionendsymBegin(),
+                                        ie = out->sectionendsymEnd();
+       it != ie; ++it) {
+    Assignment *assign = (*it);
     // We do not need to evaluate PROVIDE expressions for PROVIDE
     // symbols that are not being used in the link.
     if (assign->isProvideOrProvideHidden() && !isProvideSymBeingUsed(assign))
@@ -2081,7 +2085,7 @@ void GNULDBackend::evaluatePostOutputSectionAssignments(
       }
       continue;
     }
-    assign->assign(m_Module, nullptr);
+    (*it)->assign(m_Module, nullptr);
   }
 }
 
@@ -2559,7 +2563,6 @@ bool GNULDBackend::setOutputSectionOffset() {
   // Set initial dot symbol value.
   LDSymbol *dotSymbol = m_Module.getNamePool().findSymbol(".");
 
-  evaluateBeforeSectionsAssignments();
   while (out != outEnd) {
     ELFSection *cur = (*out)->getSection();
 
@@ -2591,7 +2594,7 @@ bool GNULDBackend::setOutputSectionOffset() {
     if (isCurAlloc && cur->size())
       changeSymbolsFromAbsoluteToGlobal(*out);
     prev = cur;
-    evaluatePostOutputSectionAssignments(*out);
+    evaluateAssignmentsAtEndOfOutputSection(*out);
     ++out;
   }
   return true;
@@ -2957,7 +2960,7 @@ bool GNULDBackend::placeOutputSections() {
         // Behavior seen from GNU.
         if ((out != sectionMap.begin() && ((*cur)->getSection()->getFlags() ==
                                            (*prev)->getSection()->getFlags())))
-          (*cur)->movePostOutputSectionAssignments(*prev);
+          (*cur)->moveSectionAssignments(*prev);
       }
     }
   }
@@ -3047,6 +3050,14 @@ bool GNULDBackend::layout() {
     if (m_Module.getPrinter()->isVerbose())
       config().raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
+  }
+
+  // Evaluate all assignments.
+  {
+    eld::RegisterTimer T("Evaluate Script Assignments and Asserts",
+                         "Establish Layout",
+                         m_Module.getConfig().options().printTimingStats());
+    evaluateScriptAssignments();
   }
 
   if (!config().getDiagEngine()->diagnose()) {
@@ -4103,12 +4114,11 @@ MemoryRegion GNULDBackend::getFileOutputRegion(llvm::FileOutputBuffer &pBuffer,
   return MemoryRegion(pBuffer.getBufferStart() + pOffset, pLength);
 }
 
-void GNULDBackend::evaluateBeforeSectionsAssignments(bool evaluateAsserts) {
+void GNULDBackend::evaluateScriptAssignments(bool evaluateAsserts) {
   for (auto &assign : m_Module.getScript().assignments()) {
-    // Only evaluate BeforeSections assignments here.
-    // AfterSections and AfterOutputSection assignments are evaluated
-    // per-OutputSectionEntry in evaluatePostOutputSectionAssignments().
-    if (assign->level() != Assignment::BeforeSections)
+    // Evaluate assignments outside SECTIONS both before and after layout.
+    if (!(assign->level() == Assignment::BEFORE_SECTIONS ||
+          assign->level() == Assignment::AFTER_SECTIONS))
       continue;
     if (shouldskipAssert(assign)) {
       if (m_Module.getPrinter()->isVerbose()) {
