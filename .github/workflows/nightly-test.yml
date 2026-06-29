@@ -275,7 +275,7 @@ jobs:
 
       - name: Upload ELD release to GitHub
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && steps.release_day.outputs.is_release_day == 'true')
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b
         with:
           tag_name: nightly
           name: Nightly ELD Release
