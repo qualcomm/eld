@@ -42,14 +42,14 @@ jobs:
           ./test_clang
 
       - name: Checkout llvm-project
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: llvm/llvm-project
           path: ./llvm-project/
           ref: main
 
       - name: Checkout eld
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: ./llvm-project/llvm/tools/eld
           ref: main
@@ -59,7 +59,7 @@ jobs:
 
       - name: Restore ccache
         id: cache-ccache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}
@@ -113,7 +113,7 @@ jobs:
 
       - name: Save ccache
         if: always()
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: sanitizer-ccache-${{ runner.os }}-${{ github.run_id }}

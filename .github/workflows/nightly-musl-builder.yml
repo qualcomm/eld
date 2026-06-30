@@ -20,7 +20,7 @@ jobs:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
     steps:
       - name: Checkout eld
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: llvm-project/llvm/tools/eld
 
@@ -131,7 +131,7 @@ jobs:
       ELD_SOURCE_DIR: ${{ github.workspace }}/llvm-project/llvm/tools/eld
     steps:
       - name: Checkout eld
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: llvm-project/llvm/tools/eld
 
@@ -206,7 +206,7 @@ jobs:
           CC=${{ matrix.arch }}-unknown-linux-musl${arm_toolchain_name_suffix}-clang make RUN_WRAP="$(pwd)/qemu-${{ matrix.arch }}-wrapper.sh"
 
       - name: Upload libc-test
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: libc-test-${{ matrix.arch }}.zip
           retention-days: 2

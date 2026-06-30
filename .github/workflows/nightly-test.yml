@@ -54,7 +54,7 @@ jobs:
           free -h # or cat /proc/meminfo
 
       - name: Checkout llvm-project
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: llvm/llvm-project
           path: llvm-project
@@ -71,7 +71,7 @@ jobs:
           echo "::notice::Using base branch '${PR_BASE_REF}' for llvm-project checkout"
 
       - name: Checkout eld
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           path: llvm-project/llvm/tools/eld
           repository: ${{ env.ELD_REPO }}
@@ -83,7 +83,7 @@ jobs:
 
       - name: Restore ccache
         id: cache-ccache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
@@ -229,7 +229,7 @@ jobs:
 
       - name: Save ccache
         if: always()
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
         with:
           path: ${{ github.workspace }}/obj/ccache
           key: nightly-ccache-${{ runner.os }}-${{ github.run_id }}
@@ -257,7 +257,7 @@ jobs:
               -Jcvf eld-unstable.tar.xz eld-unstable
 
       - name: Upload toolchain tarball
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: install-nightly-toolchain.tar.xz
           path: install-nightly-toolchain.tar.xz
