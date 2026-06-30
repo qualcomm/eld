@@ -35,7 +35,7 @@
 # RUN: %not %link %linkopts --no-warn-mismatch invalid_arch1.o -o /dev/null 2>&1 | FileCheck %s --check-prefix=INVALID_ARCH1_NOERR
 # INVALID_ARCH1: Reading attributes failed for file invalid_arch1.o, Error : extension lacks version in expected format
 # INVALID_ARCH1_NOERR-NOT: Warning: Reading attributes failed for file invalid_arch1.o, Error : extension lacks version in expected format
-# INVALID_ARCH1_NOERR: Fatal: Linking had errors (/dev/null)
+# INVALID_ARCH1_NOERR: Fatal: Linking had errors ({{/dev/null|NUL}})
 
 ## A zero value attribute is not printed.
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 unaligned_access_0.s -o unaligned_access_0.o

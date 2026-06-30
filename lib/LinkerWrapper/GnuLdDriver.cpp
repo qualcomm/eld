@@ -2150,7 +2150,7 @@ bool GnuLdDriver::processLTOOptions(llvm::lto::Config &Conf,
 
 std::string GnuLdDriver::getOutputFileName() const {
   std::string FileName = Config.options().outputFileName();
-  if (FileName != "/dev/null")
+  if (FileName != "/dev/null" && FileName != "NUL")
     FileName = eld::sys::fs::Path(FileName).filename().native();
 
   return FileName;

@@ -765,7 +765,7 @@ bool Linker::emit() {
   if (layoutInfo)
     layoutInfo->recordOutputFileSize(OutputFileSize);
 
-  {
+  if (Path != "/dev/null" && Path != "NUL") {
     std::error_code Ec;
     int OutputFlag = 0;
     if (Perm & 0x755)
