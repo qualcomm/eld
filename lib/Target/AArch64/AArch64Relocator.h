@@ -60,6 +60,8 @@ public:
 
   Size getSize(Relocation::Type pType) const override;
 
+  bool isTLSDescStatic(Relocation &pReloc) const;
+
   /// scanRelocation - determine the empty entries are needed or not and create
   /// the empty entries if needed.
   /// For AArch64, following entries are check to create:

@@ -1,5 +1,4 @@
 REQUIRES: run_test, linux
-UNSUPPORTED: aarch64
 #---RelROGDTBSSOnlyNow.test--------------------- Executable------------------#
 #BEGIN_COMMENT
 # Runtime test: TBSS-only with full RELRO (-z relro -z now), GD TLS model.
