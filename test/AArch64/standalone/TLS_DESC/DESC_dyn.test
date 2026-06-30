@@ -1,0 +1,25 @@
+#---DESC_dyn.test----------------------------------------------------------#
+#BEGIN_COMMENT
+# R_AARCH64_TLSDESC_ADD_LO12_NC encoding correctness.
+#
+# The TLSDESC sequence for a TLS variable is:
+#   adrp  x0, :tlsdesc:VAR          -> R_AARCH64_TLSDESC_ADR_PAGE21
+#   ldr   x1, [x0, :tlsdesc_lo12:]  -> R_AARCH64_TLSDESC_LD64_LO12_NC
+#   add   x0, x0, :tlsdesc_lo12:    -> R_AARCH64_TLSDESC_ADD_LO12_NC
+#   blr   x1                        -> R_AARCH64_TLSDESC_CALL
+#
+# Both the ldr and the add address the same GOT slot: ldr loads the resolver
+# function pointer and add sets x0 to point at the descriptor.  Their page
+# offsets must therefore be identical.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -fPIC -c %p/Inputs/tlsdesc_add.c -o %t.o
+RUN: %link %linkopts -march aarch64 -shared %t.o -o %t.so
+RUN: %objdump -d %t.so | %filecheck %s
+
+CHECK: <get_tls>:
+CHECK:      adrp    x0,
+CHECK-NEXT: ldr     x1, [x0, #[[OFF:0x[0-9a-f]+]]]
+CHECK-NEXT: add     x0, x0, #[[OFF]]
+CHECK-NEXT: blr     x1
+#END_TEST

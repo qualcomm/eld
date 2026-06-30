@@ -1287,7 +1287,7 @@ Relocator::Result tls_tlsdesc_add(Relocation &pReloc,
                                  .findEntryInGOT(pReloc.symInfo())
                                  ->getAddr(pParent.config().getDiagEngine());
   Relocator::DWord GX = helper_get_page_offset(GOT_S + A);
-  pReloc.target() = helper_reencode_ldst_pos_imm(pReloc.target(), GX >> 3);
+  pReloc.target() = helper_reencode_add_imm(pReloc.target(), GX);
 
   return Relocator::OK;
 }
