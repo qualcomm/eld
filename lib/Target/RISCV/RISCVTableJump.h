@@ -21,8 +21,9 @@ struct RISCVTableJumpEntry {
   int Index = -1;
 };
 
-// Implements the Zcmt table jump section (.riscv.jvt) used by table jump
-// relaxation (cm.jt/cm.jalt).
+// Implements the RISC-V table jump section (.riscv.jvt) used by table jump
+// relaxation. Zcmt uses cm.jt/cm.jalt. Xqccmt uses the same instruction
+// encoding, but the assembler/disassembler names are qc.cm.jt/qc.cm.jalt.
 class RISCVTableJumpFragment final : public TargetFragment {
 public:
   RISCVTableJumpFragment(RISCVLDBackend &B, ELFSection *O);
@@ -35,7 +36,7 @@ public:
   void finalizeContents();
 
   int getCMJTEntryIndex(const ResolveInfo *Sym) const;
-  int getCMJALTEntryIndex(const ResolveInfo *Sym) const;
+  int getCMJALTEntryIndex(const ResolveInfo *Sym, unsigned Rd) const;
 
 private:
   void writeTo(uint8_t *Buf);
@@ -47,6 +48,11 @@ private:
   RISCVLDBackend &Backend;
   llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry> CMJTCandidates;
   llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry> CMJALTCandidates;
+  // Xqccmt lets qc.cm.jalt write the return address to t0 (x5). The table
+  // entry uses bit 0 to request that behavior, so an ra entry and a t0 entry
+  // for the same symbol cannot share one slot.
+  llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry> QCCMJALTTCandidates;
+  bool HasXqccmt = false;
   size_t ThisSize = 0;
 };
 
