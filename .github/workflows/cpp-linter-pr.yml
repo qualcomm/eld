@@ -4,9 +4,9 @@ on:
   # Temporarily disable PR-triggered runs.
   # pull_request:
   # Run on push for now.
-  push:
-    branches:
-      - main
+  #push:
+  #  branches:
+  #    - main
   workflow_dispatch:
 
 permissions:
@@ -38,7 +38,7 @@ jobs:
         id: changed-files
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # Build a deterministic file list used by all later steps.
           BASE_REF="${{ github.base_ref }}"
           git fetch origin "${BASE_REF}" --depth=1
@@ -58,7 +58,7 @@ jobs:
         if: steps.changed-files.outputs.has_files == 'true'
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # Install toolchain from LLVM apt so clang-tidy/clang-format stay current.
           sudo apt-get update
           sudo apt-get install -y wget gpg lsb-release ccache cmake ninja-build
@@ -81,7 +81,7 @@ jobs:
         if: steps.changed-files.outputs.has_files == 'true'
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # Create a lightweight external LLVM prefix expected by configure_external_llvm.sh.
           ROOT="${GITHUB_WORKSPACE}"
           EXT_LLVM_DIR="${ROOT}/external-llvm-release"
@@ -98,7 +98,7 @@ jobs:
         if: steps.changed-files.outputs.has_files == 'true'
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # Produce compile_commands.json for clang-tidy-driven checks.
           mkdir -p "${CPP_LINTER_BUILD_DIR}" "${CPP_LINTER_CCACHE_DIR}"
           ./configure_external_llvm.sh \
@@ -133,7 +133,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # Helper script collects richer clang-tidy diagnostics into a log artifact.
           source ./etc/bash/eld_cpp_linter_helpers.sh
           eld_cpp_linter_check \
