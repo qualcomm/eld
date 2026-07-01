@@ -814,7 +814,8 @@ bool Linker::emit() {
   }
 
   LinkerProgress->incrementAndDisplayProgress();
-  if ((Path != "/dev/null") && (ThisConfig->options().verifyLink())) {
+  if ((Path != "/dev/null" && Path != "NUL") &&
+      (ThisConfig->options().verifyLink())) {
     llvm::sys::fs::file_status FileStatus;
     std::error_code Ec = llvm::sys::fs::status(Path, FileStatus);
     if (Ec != std::error_code()) {
