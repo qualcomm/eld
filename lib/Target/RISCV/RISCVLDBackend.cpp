@@ -533,8 +533,8 @@ bool RISCVLDBackend::doRelaxationJal(Relocation *reloc) {
 }
 
 bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
-  // This function performs the relaxation to replace QC.E.J, QC.E.JAL, or
-  // QC.E.JALT with one of CM.JT/CM.JALT, JAL, C.J, or C.JAL.
+  // This function performs the relaxation to replace QC.E.J or QC.E.JAL with
+  // one of CM.JT/CM.JALT, JAL, C.J, or C.JAL.
 
   Fragment *frag = reloc->targetRef()->frag();
   RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
@@ -629,8 +629,6 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   const char *msg = "RISCV_QC_E_JAL";
   if (isTailCall)
     msg = "RISCV_QC_E_J";
-  else if (rd == 5)
-    msg = "RISCV_QC_E_JALT";
   relaxDeleteBytes(msg, *region, offset + 4, 2,
                    reloc->symInfo()->name());
 

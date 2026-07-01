@@ -31,6 +31,7 @@
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/MathExtras.h"
 #include <cassert>
+#include <tuple>
 
 using namespace eld;
 RISCVTableJumpFragment::RISCVTableJumpFragment(RISCVLDBackend &B, ELFSection *O)
@@ -113,9 +114,8 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
     if (R->type() == llvm::ELF::R_RISCV_JAL) {
       Rd = (R->target() >> 7) & 0x1f;
     } else if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT) {
-      // QC.E.J has func2=0b00, QC.E.JAL has func2=0b01, and QC.E.JALT
-      // has func2=0b10. Use this as the rd-equivalent selector because
-      // QC.E.J does not write a link register and QC.E.JALT writes t0.
+      // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this as the
+      // rd-equivalent selector because QC.E.J does not write a link register.
       Rd = getQCEJumpRd(R->target());
     } else {
       // CALL/CALL_PLT: read the following JALR to get rd.
@@ -223,17 +223,14 @@ static void selectCallEntries(
     Entries.push_back({KV.first, KV.second, /*UseT0=*/true});
 
   llvm::sort(Entries, [&Backend](const CallEntry &A, const CallEntry &B) {
-    if (A.Entry.Saved != B.Entry.Saved)
-      return A.Entry.Saved > B.Entry.Saved;
     const uint64_t AVA = getTableJumpTargetVA(Backend, A.Sym);
     const uint64_t BVA = getTableJumpTargetVA(Backend, B.Sym);
-    if (AVA != BVA)
-      return AVA < BVA;
-    if (A.Sym->name() != B.Sym->name())
-      return A.Sym->name() < B.Sym->name();
-    // Keep ra before t0 when every other key is the same. The order is only a
-    // tie-breaker, but stable output makes tests and maps easier to read.
-    return !A.UseT0 && B.UseT0;
+    const int ASaved = -A.Entry.Saved;
+    const int BSaved = -B.Entry.Saved;
+    const llvm::StringRef AName = A.Sym->name();
+    const llvm::StringRef BName = B.Sym->name();
+    return std::tie(ASaved, AVA, AName, A.UseT0) <
+           std::tie(BSaved, BVA, BName, B.UseT0);
   });
 
   if (Entries.size() > MaxSize)
@@ -315,6 +312,9 @@ int RISCVTableJumpFragment::getCMJTEntryIndex(const ResolveInfo *Sym) const {
 
 int RISCVTableJumpFragment::getCMJALTEntryIndex(const ResolveInfo *Sym,
                                                 unsigned Rd) const {
+  // ra and t0 call entries share one JVT index space, but are tracked in
+  // separate maps because Xqccmt encodes the link-register choice in bit 0 of
+  // the table entry rather than in the instruction.
   const auto &Candidates = Rd == 5 ? QCCMJALTTCandidates : CMJALTCandidates;
   auto It = Candidates.find(Sym);
   return It != Candidates.end()
@@ -362,10 +362,10 @@ void RISCVTableJumpFragment::dump(llvm::raw_ostream &OS) {
   }
 }
 
-static void writeEntries(
-    RISCVLDBackend &Backend, uint8_t *Buf,
-    const llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry> &Candidates,
-    bool SetEntryBit0 = false) {
+static void
+writeEntries(RISCVLDBackend &Backend, uint8_t *Buf,
+             const llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry>
+                 &Candidates) {
   llvm::SmallVector<std::pair<const ResolveInfo *, RISCVTableJumpEntry>, 0>
       Entries(Candidates.begin(), Candidates.end());
   llvm::sort(Entries, [](const auto &A, const auto &B) {
@@ -374,10 +374,6 @@ static void writeEntries(
 
   for (auto &KV : Entries) {
     uint64_t VA = getTableJumpTargetVA(Backend, KV.first);
-    // Xqccmt qc.cm.jalt uses bit 0 as link-register metadata. The hardware
-    // clears that bit before jumping, so this does not change the target.
-    if (SetEntryBit0)
-      VA |= 1;
     if (Backend.config().targets().is32Bits())
       llvm::support::endian::write32le(Buf, static_cast<uint32_t>(VA));
     else
@@ -407,8 +403,8 @@ writeCallEntries(RISCVLDBackend &Backend, uint8_t *Buf,
       llvm::support::endian::write64le(EntryBuf, VA);
   };
 
-  // Call entries from both maps share one index space. Write every entry to
-  // its exact index so ra and t0 entries never overwrite each other.
+  // Call entries from both maps share one index space. The maps are not laid
+  // out in separate ra-then-t0 ranges, so write every entry to its exact index.
   for (auto &KV : CMJALTCandidates)
     WriteOne(KV.first, KV.second, /*SetEntryBit0=*/false);
   for (auto &KV : QCCMJALTTCandidates)

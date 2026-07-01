@@ -155,8 +155,8 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
       TbljalMode =
           llvm::StringSwitch<GeneralOptions::RISCVRelaxTbljalMode>(
               Arg->getValue())
-              .Case("zcmt", GeneralOptions::RISCVRelaxTbljalMode::Zcmt)
-              .Case("xqccmt", GeneralOptions::RISCVRelaxTbljalMode::Xqccmt)
+              .CaseLower("zcmt", GeneralOptions::RISCVRelaxTbljalMode::Zcmt)
+              .CaseLower("xqccmt", GeneralOptions::RISCVRelaxTbljalMode::Xqccmt)
               .Default(GeneralOptions::RISCVRelaxTbljalMode::None);
       if (TbljalMode == GeneralOptions::RISCVRelaxTbljalMode::None) {
         Config.raise(Diag::invalid_value_for_option)
