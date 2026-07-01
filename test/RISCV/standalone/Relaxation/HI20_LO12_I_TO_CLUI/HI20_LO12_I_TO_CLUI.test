@@ -170,6 +170,40 @@ CHECK-NEXT: 80402503  	lw	a0, -2044(zero)
 CHECK-NEXT: 00001137  	lui	sp, 1
 CHECK-NEXT: 80412503  	lw	a0, -2044(sp)
 
+## Check that --no-relax-zero is honored. Also check that a c.lui with imm 0
+## is not generated when it is known to be 0.
 RUN: %clang %clangopts -c  %p/Inputs/1.s -o %t.1.o
 RUN: %link %linkopts -MapStyle txt -Map %t.1.map --verbose --no-relax-zero %t.1.o -o %t.1.no-relax-zero.out -T %p/Inputs/1.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-RELAX-ZERO
 VERBOSE-NO-RELAX-ZERO-NOT: RISCV_LUI_ZERO : Deleting [[#]] bytes
+VERBOSE-NO-RELAX-ZERO-NOT: RISCV_LUI_C : Deleting 2 bytes for symbol 'B'
+VERBOSE-NO-RELAX-ZERO-NOT: RISCV_LUI_C : relaxing instruction {{.*}} for symbol B
+VERBOSE-NO-RELAX-ZERO-NOT: RISCV_LUI_C : Deleting 2 bytes for symbol 'C'
+VERBOSE-NO-RELAX-ZERO-NOT: RISCV_LUI_C : relaxing instruction {{.*}} for symbol C
+
+RUN: %objdump --no-print-imm-hex -d %t.1.no-relax-zero.out 2>&1 | %filecheck %s --check-prefix=NO-RELAX-ZERO-DUMP
+
+NO-RELAX-ZERO-DUMP: <.text>:
+NO-RELAX-ZERO-DUMP-NEXT: 00000537      lui     a0, 0
+NO-RELAX-ZERO-DUMP-NEXT: 00052503      lw      a0, 0(a0)
+NO-RELAX-ZERO-DUMP-NEXT: 00000537      lui     a0, 0
+NO-RELAX-ZERO-DUMP-NEXT: 7fc52503      lw      a0, 2044(a0)
+NO-RELAX-ZERO-DUMP-NEXT: 00000537      lui     a0, 0
+NO-RELAX-ZERO-DUMP-NEXT: 80452503      lw      a0, -2044(a0)
+
+## There are some cases where c.lui's are created without knowing that the imm will
+## be 0. Check that these are handled in some way. Currently this is done by rewriting
+## `c.lui rd, 0` to `c.li rd, 0`.
+RUN: %clang %clangopts -c  %p/Inputs/2.s -o %t.2.o
+RUN: %link %linkopts -MapStyle txt -Map %t.2.map --verbose %t.2.o -o %t.2.out -T %p/Inputs/2.t 2>&1 | %filecheck %s --check-prefix=VERBOSE-CLI
+VERBOSE-CLI: RISCV_LUI_C : Deleting 2 bytes for symbol 'var'
+VERBOSE-CLI-NEXT: RISCV_LUI_C : relaxing instruction {{.*}} for symbol var
+VERBOSE-CLI: RISCV_LUI_C : Deleting 2 bytes for symbol 'var'
+VERBOSE-CLI-NEXT: RISCV_LUI_C : relaxing instruction {{.*}} for symbol var
+
+RUN: %objdump --no-print-imm-hex -d %t.2.out 2>&1 | %filecheck %s --check-prefix=CLI-DUMP
+
+CLI-DUMP: <foo>:
+CLI-DUMP-NEXT: 4501          li      a0, 0
+CLI-DUMP-NEXT: 7fe52503      lw      a0, 2046(a0)
+CLI-DUMP-NEXT: 4501          li      a0, 0
+CLI-DUMP-NEXT: 7fe52503      lw      a0, 2046(a0)
