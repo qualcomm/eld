@@ -1,0 +1,16 @@
+{
+  "versions": [
+    {
+      "path": "main",
+      "display_name": "Main (dev)",
+      "dev": true
+    },
+    {
+      "path": "22.x",
+      "display_name": "Release 22.x",
+      "stable": true
+    }
+  ],
+  "stable": "22.x",
+  "default": "stable"
+}

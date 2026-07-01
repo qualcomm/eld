@@ -1,0 +1,56 @@
+Symbol Patching
+^^^^^^^^^^^^^^^^
+.. option:: --patch-base <value>
+
+   Specify base image to generate patch for
+
+.. option:: --patch-enable
+
+   Enable symbol patching using indirection
+
+
+
+RISCV Linker Options
+^^^^^^^^^^^^^^^^^^^^^
+.. option:: --disable-bss-conversion
+
+   Don't convert BSS to NonBSS when BSS/NonBSS Sections are mixed
+
+.. option:: --enable-bss-mixing
+
+   Enable mixing BSS/NonBSS sections
+
+.. option:: --keep-labels
+
+   Keep all local labels for debugging purposes
+
+.. option:: --no-relax-gp
+
+   Disable GP relaxation
+
+.. option:: --no-relax-zero
+
+   Disable zero-page relaxation
+
+.. option:: --no-relax
+
+   Disable relaxation
+
+.. option:: --no-relax-c
+
+   Disable relaxation to compressed instructions
+
+.. option:: --no-relax-xqci
+
+   Disable relaxing to/from Xqci instructions (default behavior)
+
+.. option:: --relax
+
+   Enable relaxation (default behavior)
+
+.. option:: --relax-xqci
+
+   Enable relaxing to/from Xqci instructions
+
+
+

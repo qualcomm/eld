@@ -1,0 +1,20 @@
+Hexagon Linker experimental Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. option:: --relax
+
+   Enable Hexagon Relaxation (default behavior)
+
+.. option:: -relax=<regex>
+
+   Restrict relaxation to only certain sections
+
+
+
+Hexagon Options
+^^^^^^^^^^^^^^^^
+.. option:: --gpsize=<maxsize>
+
+   Set the maximum size of objects to be optimized using GP
+
+
+
