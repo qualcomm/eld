@@ -605,12 +605,14 @@ public:
 
   void addSymbolScope(ResolveInfo *R, VersionSymbol *V) { SymbolScopes[R] = V; }
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
   VersionSymbol *getSymbolScope(const ResolveInfo *R) const {
     auto it = SymbolScopes.find(R);
     if (it != SymbolScopes.end())
       return it->second;
     return nullptr;
   }
+#endif
 
   std::vector<Relocation *> &getInternalRelocs() { return m_InternalRelocs; }
 

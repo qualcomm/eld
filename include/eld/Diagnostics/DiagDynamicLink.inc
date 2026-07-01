@@ -16,7 +16,4 @@ DIAG(create_plt_entry, DiagnosticEngine::Note,
      "Created PLT Entry for Symbol %0")
 DIAG(error_discarded_dynamic_section_required, DiagnosticEngine::Error,
      "symbol '%0' referenced in file '%1' depends upon discarded %2 section")
-DIAG(trace_set_soname, DiagnosticEngine::Trace,
-     "Setting '%0' as the soname")
-DIAG(warn_version_script_reassign, DiagnosticEngine::Warning,
-     "%0: attempt to reassign symbol '%1' of version '%2' to version '%3'")
+DIAG(trace_set_soname, DiagnosticEngine::Trace, "Setting '%0' as the soname")

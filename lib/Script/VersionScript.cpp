@@ -20,7 +20,7 @@ using namespace eld;
 VersionScript::VersionScript(InputFile *Inp) : MInputFile(Inp) {}
 
 VersionScriptNode *VersionScript::createVersionScriptNode() {
-  MCurrentNode = eld::make<VersionScriptNode>(*this);
+  MCurrentNode = eld::make<VersionScriptNode>();
   VersionScriptNodes.push_back(MCurrentNode);
   return MCurrentNode;
 }
@@ -49,7 +49,7 @@ void VersionScript::dump(
 }
 
 // -----------------------VersionScriptNode -------------------------------
-VersionScriptNode::VersionScriptNode(const VersionScript &pVS) : VS(pVS) {}
+VersionScriptNode::VersionScriptNode() {}
 
 VersionScriptBlock *VersionScriptNode::switchToGlobal() {
   if (MLocal && !MGlobal) {

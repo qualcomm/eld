@@ -145,11 +145,9 @@ public:
       const override;
 };
 
-class VersionScript;
-
 class VersionScriptNode {
 public:
-  VersionScriptNode(const VersionScript &);
+  VersionScriptNode();
 
   VersionScriptBlock *switchToGlobal();
 
@@ -184,8 +182,6 @@ public:
   void dump(llvm::raw_ostream &Ostream,
             std::function<std::string(const Input *)> GetDecoratedPath) const;
 
-  const VersionScript &getVersionScript() const { return VS; }
-
 private:
   VersionScriptBlock *MLocal = nullptr;
   VersionScriptBlock *MGlobal = nullptr;
@@ -194,7 +190,6 @@ private:
   eld::StrToken *Name = nullptr;
   eld::StrToken *MDependency = nullptr;
   bool MHasErrorDuringParsing = false;
-  const VersionScript &VS;
 };
 
 class VersionScript {

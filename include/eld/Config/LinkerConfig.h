@@ -85,7 +85,6 @@ public:
     std::optional<bool> EnableWholeArchiveWarnings;
     std::optional<bool> EnableCommandLineWarnings;
     std::optional<bool> EnableOSABIWarnings;
-    std::optional<bool> EnableVersionScriptWarnings;
   };
 
   struct MappingFileInfo {
@@ -349,14 +348,6 @@ public:
     return (hasOSABIWarnings() && *WarnOpt.EnableOSABIWarnings);
   }
 
-  bool hasVersionScriptWarnings() const {
-    return WarnOpt.EnableVersionScriptWarnings.has_value();
-  }
-
-  bool showVersionScriptWarnings() const {
-    return (hasVersionScriptWarnings() && *WarnOpt.EnableVersionScriptWarnings);
-  }
-
   void setShowAllWarnings() {
     WarnOpt.EnableAllWarnings = true;
     WarnOpt.EnableLinkerScriptWarnings = true;
@@ -367,7 +358,6 @@ public:
     WarnOpt.EnableBadDotAssignmentWarnings = true;
     WarnOpt.EnableWholeArchiveWarnings = true;
     WarnOpt.EnableOSABIWarnings = true;
-    WarnOpt.EnableVersionScriptWarnings = true;
   }
 
   void setShowLinkerScriptWarning(bool Option) {
@@ -404,10 +394,6 @@ public:
 
   void setShowOSABIWarning(bool Option) {
     WarnOpt.EnableOSABIWarnings = Option;
-  }
-
-  void setShowVersionScriptWarning(bool Option) {
-    WarnOpt.EnableVersionScriptWarnings = Option;
   }
 
   bool setWarningOption(llvm::StringRef WarnOpt);

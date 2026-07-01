@@ -26,5 +26,6 @@ DIAG(trace_adding_verneed_entry, DiagnosticEngine::Trace,
      "Adding verneed entry: '%0' -> '%1'")
 DIAG(trace_reading_symbol_versioning_section, DiagnosticEngine::Trace,
      "Reading %0[%1]")
+
 DIAG(trace_symbol_to_output_version_id, DiagnosticEngine::Trace,
      "Symbol '%0' -> version id %1")
