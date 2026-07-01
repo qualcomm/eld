@@ -1,1 +1,2 @@
-INCLUDE 2.t
+INCLUDE
+2.t

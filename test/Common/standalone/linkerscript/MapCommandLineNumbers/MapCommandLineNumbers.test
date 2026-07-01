@@ -1,0 +1,32 @@
+#---MapCommandLineNumbers.test--------------------- Executable ------------#
+#BEGIN_COMMENT
+# Verify that map-file linker script diagnostics include source line numbers
+# for each printed linker script command context.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t2.out -T %p/Inputs/script.t -Map %t2.map
+RUN: %filecheck %s < %t2.map
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t3.out -T %p/Inputs/mem_script.t -Map %t3.map
+RUN: %filecheck %s --check-prefix=MEM < %t3.map
+RUN: %link -MapStyle txt %linkopts %t1.1.o -o %t4.out -T %p/Inputs/phdrs_script.t -Map %t4.map
+RUN: %filecheck %s --check-prefix=PHDRS < %t4.map
+#END_TEST
+
+# CHECK: Extern list files
+# CHECK-NEXT: {{.*}}script.t:1
+# CHECK: marker{{.*}}# marker = .; {{.*}}script.t:3
+# CHECK: BYTE (0x11){{.*}}# {{.*}}script.t:5
+# CHECK: *(.text*) #Rule {{[0-9]+}}, {{.*}}script.t:6
+
+# MEM: # MEMORY
+# MEM: #	ram (rwx) : ORIGIN = {{.*}} # {{.*}}mem_script.t:2
+# MEM: #	rom (rx) : ORIGIN = {{.*}} # {{.*}}mem_script.t:3
+# MEM: *(.text*) #Rule {{[0-9]+}}, {{.*}}mem_script.t:6
+
+# PHDRS: # MEMORY
+# PHDRS: #	ram (rwx) : ORIGIN = {{.*}} # {{.*}}phdrs_script.t:2
+# PHDRS: # PHDRS
+# PHDRS: #{
+# PHDRS: #	text PT_LOAD; # {{.*}}phdrs_script.t:5
+# PHDRS: *(.text*) #Rule {{[0-9]+}}, {{.*}}phdrs_script.t:8

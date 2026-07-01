@@ -41,7 +41,6 @@
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MemoryBufferRef.h"
-#include "llvm/Support/Path.h"
 #include "llvm/Support/SaveAndRestore.h"
 #include <optional>
 #include <utility>
@@ -133,7 +132,6 @@ void ScriptParser::readEntry() {
   StringRef EntrySymbol = unquote(Tok);
   expect(")");
   auto *EntryCmd = ThisScriptFile.addEntryPoint(EntrySymbol.str());
-  EntryCmd->setLineNumberInContext(PrevTokLine);
   if (ThisConfig.options().shouldTraceLinkerScript())
     EntryCmd->dump(llvm::outs());
 }
@@ -1138,6 +1136,9 @@ void ScriptParser::readMemory() {
     llvm::StringRef Tok = next();
     if (readInclude(Tok))
       continue;
+    InputFile *CapturedContext = ThisScriptFile.getContext();
+    std::optional<size_t> CapturedLineNumber =
+        ThisScriptFile.getCurrentLineNumber();
     llvm::StringRef Name = Tok;
     StrToken *MemoryAttrs = nullptr;
     if (consume("(")) {
@@ -1150,7 +1151,8 @@ void ScriptParser::readMemory() {
     Expression *Length = readMemoryAssignment({"LENGTH", "len", "l"});
     if (Origin && Length) {
       StrToken *NameToken = readName(Name);
-      ThisScriptFile.addMemoryRegion(NameToken, MemoryAttrs, Origin, Length);
+      ThisScriptFile.addMemoryRegion(NameToken, MemoryAttrs, Origin, Length,
+                                     CapturedContext, CapturedLineNumber);
     }
   }
   expect("}");
@@ -1447,6 +1449,9 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
   if (Tok != "INCLUDE" && Tok != "INCLUDE_OPTIONAL")
     return false;
   bool IsOptionalInclude = Tok == "INCLUDE_OPTIONAL";
+  // Capture the line number at the point of the script getting
+  // included.
+  const size_t IncludeDirectiveLine = getCurrentLineNumber();
   llvm::StringRef FileName = unquote(next());
   // Apply --remap-inputs to the INCLUDE filename before searching.
   std::string RemappedFileName = FileName.str();
@@ -1465,7 +1470,10 @@ bool ScriptParser::readInclude(llvm::StringRef Tok) {
   if (RemappedFileName != FileName)
     RemappedFrom = FileName;
   if (layoutInfo)
-    layoutInfo->recordLinkerScript(ResolvedFileName, Result, RemappedFrom);
+    // Keep INCLUDE call-site location so map diagnostics can show
+    // "script-file:line" for nested linker scripts.
+    layoutInfo->recordLinkerScript(ResolvedFileName, Result, RemappedFrom,
+                                   IncludeDirectiveLine);
   if (!Result && IsOptionalInclude)
     return true;
   ThisScriptFile.module().getScript().addToHash(ResolvedFileName);
