@@ -96,8 +96,6 @@ enum Reg {
     return X_ZERO;
   case 1:
     return X_RA;
-  case 2:
-    return X_T0;
   default:
     return 32;
   }

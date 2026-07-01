@@ -22,8 +22,9 @@ struct RISCVTableJumpEntry {
 };
 
 // Implements the RISC-V table jump section (.riscv.jvt) used by table jump
-// relaxation. Zcmt uses cm.jt/cm.jalt. Xqccmt uses the same instruction
-// encoding, but the assembler/disassembler names are qc.cm.jt/qc.cm.jalt.
+// relaxation. The table contains jump target addresses. In Xqccmt mode, call
+// entries may set bit 0 to request linking through t0; hardware clears that bit
+// before jumping, so the target address remains aligned.
 class RISCVTableJumpFragment final : public TargetFragment {
 public:
   RISCVTableJumpFragment(RISCVLDBackend &B, ELFSection *O);

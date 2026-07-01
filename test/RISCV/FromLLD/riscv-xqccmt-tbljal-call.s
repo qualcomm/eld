@@ -4,6 +4,7 @@
 #
 # RUN: %llvm-mc -filetype=obj -mattr=+relax,+experimental-xqccmt %s -o %t.o
 # RUN: %link %linkopts %t.o --relax-tbljal=xqccmt --defsym foo=0x800000 --defsym bar=0x900000 -o %t
+# RUN: %link %linkopts %t.o --relax-tbljal=XQCCMT --defsym foo=0x800000 --defsym bar=0x900000 -o %t.upper
 # RUN: %objdump -d -M no-aliases --mattr=+experimental-xqccmt --no-show-raw-insn %t \
 # RUN:   | %filecheck --check-prefix=JT %s
 # RUN: %objdump -d -M no-aliases --mattr=+experimental-xqccmt --no-show-raw-insn %t \
