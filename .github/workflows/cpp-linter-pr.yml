@@ -109,7 +109,7 @@ jobs:
 
       - name: Run C/C++ linter (non-blocking)
         id: cpp-lint
-        uses: cpp-linter/cpp-linter-action@v2
+        uses: cpp-linter/cpp-linter-action@8e85cd02c8c3fe3ae527c94b5683fe2366b144ed #v3.20.0
         if: steps.changed-files.outputs.has_files == 'true'
         continue-on-error: true
         env:
@@ -208,7 +208,7 @@ jobs:
 
       - name: Post PR comment with report link
         if: ${{ steps.cpp-lint.outputs.checks-failed != '' && steps.cpp-lint.outputs.checks-failed != '0' }}
-        uses: marocchino/sticky-pull-request-comment@v3
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 #v3.0.4
         with:
           # Sticky comment updates in-place across pushes.
           header: cpp-linter-report

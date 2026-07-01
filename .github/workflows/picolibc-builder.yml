@@ -61,7 +61,7 @@ jobs:
 
     steps:
       - name: Set up Clang 20
-        uses: egor-tensin/setup-clang@v2
+        uses: egor-tensin/setup-clang@23bc15cd4207e45f1566447deb48f4ff3ef932cb #v2.3
         with:
           version: "20"
           platform: x64
