@@ -208,6 +208,10 @@ bool Linker::link() {
     }
   }
 
+  // Skip if out file does not need to be emitted.
+  if (!ThisConfig->options().shouldEmitOutputFile())
+    return true;
+
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::emit_output_file)
         << ThisConfig->options().outputFileName();
@@ -765,7 +769,7 @@ bool Linker::emit() {
   if (layoutInfo)
     layoutInfo->recordOutputFileSize(OutputFileSize);
 
-  if (Path != "/dev/null" && Path != "NUL") {
+  {
     std::error_code Ec;
     int OutputFlag = 0;
     if (Perm & 0x755)
@@ -814,8 +818,7 @@ bool Linker::emit() {
   }
 
   LinkerProgress->incrementAndDisplayProgress();
-  if ((Path != "/dev/null" && Path != "NUL") &&
-      (ThisConfig->options().verifyLink())) {
+  if (ThisConfig->options().verifyLink()) {
     llvm::sys::fs::file_status FileStatus;
     std::error_code Ec = llvm::sys::fs::status(Path, FileStatus);
     if (Ec != std::error_code()) {

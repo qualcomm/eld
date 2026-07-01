@@ -12,6 +12,8 @@
 namespace eld {
 namespace utility {
 const std::string toHex(uint64_t number);
+
+bool isNullDevice(const std::string &Path);
 } // namespace utility
 } // namespace eld
 
