@@ -51,7 +51,7 @@ DIAG(fatal_unwritable_output, DiagnosticEngine::Fatal,
 DIAG(warn_unsupported_option, DiagnosticEngine::Warning,
      "Unrecognized option `%0'")
 DIAG(warn_incompatible_option, DiagnosticEngine::Warning,
-     "Option `-%0' is disabled as it is incompatible with `-%1`")
+     "Option `%0' is disabled as it is incompatible with `%1`")
 DIAG(symdef_incompatible_option, DiagnosticEngine::Fatal,
      "SymDef files are valid only when building executables")
 DIAG(warn_shared_textrel, DiagnosticEngine::Warning,
