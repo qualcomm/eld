@@ -1088,6 +1088,9 @@ void TextLayoutPrinter::printScriptIncludes(bool UseColor) {
     if (ThisLayoutInfo->getConfig().options().hasMappingFile())
       LinkerScriptName = ThisLayoutInfo->getPath(LinkerScriptName) + "(" +
                          LinkerScriptName + ")";
+    // For INCLUDE entries, append source line where the include was parsed.
+    if (Script.LineNumber)
+      LinkerScriptName += ":" + std::to_string(*Script.LineNumber);
     if (!Script.Found)
       LinkerScriptName += "(NOTFOUND)";
     if (!Script.RemappedFrom.empty())
@@ -1235,8 +1238,8 @@ void TextLayoutPrinter::printPhdrsCommand(const PhdrsCmd *P) {
   for (const auto *Cmd : P->getPhdrDescriptors()) {
     if (!Cmd || !Cmd->isPhdrDesc())
       continue;
+    std::string Str;
     llvm::raw_string_ostream OS(Str);
-    Str.clear();
     Cmd->dump(OS);
     outputStream() << "#"
                    << "\t" << OS.str();
