@@ -326,6 +326,8 @@ public:
   }
 
 private:
+  void setCommandContext(ScriptCommand *Cmd);
+
   Kind ScriptFileKind;
   Module &ThisModule;
   LinkerScriptFile &ThisLinkerScriptFile;

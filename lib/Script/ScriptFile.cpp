@@ -81,6 +81,11 @@ ScriptFile::ScriptFile(Kind PKind, Module &CurModule, LinkerScriptFile &PInput,
 
 ScriptFile::~ScriptFile() {}
 
+void ScriptFile::setCommandContext(ScriptCommand *Cmd) {
+  Cmd->setInputFileInContext(getContext());
+  Cmd->setParent(getParent());
+}
+
 void ScriptFile::dump(llvm::raw_ostream &Outs) const {
   for (const auto &Elem : *this)
     (Elem)->dump(Outs);
@@ -125,8 +130,7 @@ eld::Expected<void> ScriptFile::activate(Module &CurModule) {
 
 ScriptCommand *ScriptFile::addEntryPoint(const std::string &Symbol) {
   auto *Entry = make<EntryCmd>(Symbol);
-  Entry->setInputFileInContext(getContext());
-  Entry->setParent(getParent());
+  setCommandContext(Entry);
 
   if (ScriptStateInSectionsCommmand) {
     LinkerScriptSectionsCommand->pushBack(Entry);
@@ -138,8 +142,7 @@ ScriptCommand *ScriptFile::addEntryPoint(const std::string &Symbol) {
 
 ExternCmd *ScriptFile::addExtern(StringList &List) {
   auto *ExternCmd = make<eld::ExternCmd>(List);
-  ExternCmd->setInputFileInContext(getContext());
-  ExternCmd->setParent(getParent());
+  setCommandContext(ExternCmd);
   LinkerScriptCommandQueue.push_back(ExternCmd);
   return ExternCmd;
 }
@@ -147,8 +150,7 @@ ExternCmd *ScriptFile::addExtern(StringList &List) {
 void ScriptFile::addNoCrossRefs(StringList &List) {
   auto *NoCrossRefs =
       make<NoCrossRefsCmd>(List, LinkerScriptCommandQueue.size());
-  NoCrossRefs->setInputFileInContext(getContext());
-  NoCrossRefs->setParent(getParent());
+  setCommandContext(NoCrossRefs);
   LinkerScriptCommandQueue.push_back(NoCrossRefs);
 }
 
@@ -196,7 +198,7 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
 
   // Add INCLUDE Command
   auto *IncludeCmd = eld::make<eld::IncludeCmd>(Filename, !State);
-  IncludeCmd->setInputFileInContext(getContext());
+  setCommandContext(IncludeCmd);
   if (IsLeavingOutputSectDesc) {
     LinkerScriptSectionsCommand->pushBack(IncludeCmd);
     IncludeCmd->setParent(LinkerScriptSectionsCommand);
@@ -248,8 +250,7 @@ std::string ScriptFile::findIncludeFile(const std::string &Filename,
 
 void ScriptFile::addOutputFormatCmd(const std::string &PName) {
   auto *Cmd = make<OutputFormatCmd>(PName);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
@@ -257,8 +258,7 @@ void ScriptFile::addOutputFormatCmd(const std::string &PDefault,
                                     const std::string &PBig,
                                     const std::string &PLittle) {
   auto *Cmd = make<OutputFormatCmd>(PDefault, PBig, PLittle);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
@@ -266,8 +266,7 @@ void ScriptFile::addGroupCmd(StringList &PStringList,
                              const Attribute &Attributes) {
   auto *Cmd =
       make<GroupCmd>(ThisModule.getConfig(), PStringList, Attributes, *this);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
@@ -275,29 +274,25 @@ void ScriptFile::addInputCmd(StringList &PStringList,
                              const Attribute &Attributes) {
   auto *Cmd =
       make<InputCmd>(ThisModule.getConfig(), PStringList, Attributes, *this);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
 void ScriptFile::addOutputCmd(const std::string &PFileName) {
   auto *Cmd = make<OutputCmd>(PFileName);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
 void ScriptFile::addSearchDirCmd(const std::string &PPath) {
   auto *Cmd = make<SearchDirCmd>(PPath);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
 void ScriptFile::addOutputArchCmd(const std::string &PArch) {
   auto *Cmd = make<OutputArchCmd>(PArch);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
 }
 
@@ -313,15 +308,13 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
       NewAssignment =
           make<Assignment>(Assignment::INPUT_SECTION, AssignmentType,
                            SymbolName, ScriptExpression);
-      NewAssignment->setInputFileInContext(getContext());
-      NewAssignment->setParent(getParent());
+      setCommandContext(NewAssignment);
       OutputSectionDescription->pushBack(NewAssignment);
     } else {
       NewAssignment =
           make<Assignment>(Assignment::Level::SECTIONS_END, AssignmentType,
                            SymbolName, ScriptExpression);
-      NewAssignment->setInputFileInContext(getContext());
-      NewAssignment->setParent(getParent());
+      setCommandContext(NewAssignment);
       Sections->pushBack(NewAssignment);
     }
   } else {
@@ -336,8 +329,7 @@ void ScriptFile::addAssignment(const std::string &SymbolName,
             : Assignment::BEFORE_SECTIONS;
     NewAssignment =
         make<Assignment>(Lvl, AssignmentType, SymbolName, ScriptExpression);
-    NewAssignment->setInputFileInContext(getContext());
-    NewAssignment->setParent(getParent());
+    setCommandContext(NewAssignment);
     LinkerScriptCommandQueue.push_back(NewAssignment);
   }
   Assignments.push_back(NewAssignment);
@@ -354,7 +346,7 @@ void ScriptFile::enterSectionsCmd() {
   ThisModule.getScript().setHasSectionsCmd();
   ScriptStateInSectionsCommmand = true;
   auto *Cmd = make<SectionsCmd>();
-  Cmd->setInputFileInContext(getContext());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
   LinkerScriptSectionsCommand = Cmd;
   push(LinkerScriptSectionsCommand);
@@ -363,15 +355,13 @@ void ScriptFile::enterSectionsCmd() {
 
 ScriptCommand *ScriptFile::enterScope() {
   auto *Cmd = make<EnterScopeCmd>();
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   return Cmd;
 }
 
 ScriptCommand *ScriptFile::exitScope() {
   auto *Cmd = make<ExitScopeCmd>();
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   pop();
   return Cmd;
 }
@@ -389,8 +379,7 @@ void ScriptFile::enterOutputSectDesc(const std::string &PName,
   assert(ScriptStateInSectionsCommmand);
   ASSERT(OutputSectionDescription == nullptr, "OutputSectDesc should be null");
   OutputSectionDescription = make<OutputSectDesc>(PName);
-  OutputSectionDescription->setParent(getParent());
-  OutputSectionDescription->setInputFileInContext(getContext());
+  setCommandContext(OutputSectionDescription);
   OutputSectionDescription->setProlog(PProlog);
   LinkerScriptSectionsCommand->pushBack(OutputSectionDescription);
   ScriptStateInsideOutputSection = true;
@@ -495,8 +484,7 @@ void ScriptFile::addInputSectDesc(InputSectDesc::Policy PPolicy,
     Desc = make<InputSectDesc>(ThisModule.getScript().getIncrementedRuleCount(),
                                PPolicy, PSpec, *OutputSectionDescription);
   }
-  Desc->setInputFileInContext(getContext());
-  Desc->setParent(getParent());
+  setCommandContext(Desc);
   OutputSectionDescription->pushBack(Desc);
 }
 
@@ -582,7 +570,7 @@ void ScriptFile::enterPhdrsCmd() {
   ScriptStateInPHDRSCommand = true;
   ThisModule.getScript().setPhdrsSpecified();
   auto *Cmd = make<PhdrsCmd>();
-  Cmd->setInputFileInContext(getContext());
+  setCommandContext(Cmd);
   LinkerScriptCommandQueue.push_back(Cmd);
   LinkerScriptPHDRSCommand = Cmd;
   push(LinkerScriptPHDRSCommand);
@@ -598,16 +586,14 @@ void ScriptFile::addPhdrDesc(const PhdrSpec &PSpec) {
   assert(!LinkerScriptCommandQueue.empty());
   assert(ScriptStateInPHDRSCommand);
   auto *Cmd = make<PhdrDesc>(PSpec);
-  Cmd->setInputFileInContext(getContext());
-  Cmd->setParent(getParent());
+  setCommandContext(Cmd);
   LinkerScriptPHDRSCommand->pushBack(Cmd);
 }
 
 PluginCmd *ScriptFile::addPlugin(plugin::Plugin::Type T, std::string Name,
                                  std::string R, std::string O) {
   auto *Plugin = make<PluginCmd>(T, Name, R, O);
-  Plugin->setParent(getParent());
-  Plugin->setInputFileInContext(getContext());
+  setCommandContext(Plugin);
   LinkerScriptCommandQueue.push_back(Plugin);
   return Plugin;
 }
@@ -667,14 +653,12 @@ void ScriptFile::addMemoryRegion(StrToken *Name, StrToken *Attributes,
                                  Expression *Origin, Expression *Length) {
   if (!MemoryCmd) {
     MemoryCmd = eld::make<eld::MemoryCmd>();
-    MemoryCmd->setInputFileInContext(getContext());
-    MemoryCmd->setParent(getParent());
+    setCommandContext(MemoryCmd);
     LinkerScriptCommandQueue.push_back(MemoryCmd);
   }
   MemoryDesc *Desc =
       eld::make<MemoryDesc>(MemorySpec(Name, Attributes, Origin, Length));
-  Desc->setInputFileInContext(getContext());
-  Desc->setParent(getParent());
+  setCommandContext(Desc);
   MemoryCmd->pushBack(Desc);
 }
 
@@ -691,8 +675,7 @@ void ScriptFile::addOutputSectData(OutputSectData::OSDKind DataKind,
   OutputSectData *OSD =
       OutputSectData::create(ThisModule.getScript().getIncrementedRuleCount(),
                              *OutputSectionDescription, DataKind, *Expr);
-  OSD->setInputFileInContext(getContext());
-  OSD->setParent(getParent());
+  setCommandContext(OSD);
   OutputSectionDescription->pushBack(OSD);
 }
 
@@ -709,8 +692,7 @@ void ScriptFile::addLinkerVersionData() {
   auto *OSD = LinkerVersionOutputData::create(
       ThisModule.getScript().getIncrementedRuleCount(),
       *OutputSectionDescription);
-  OSD->setInputFileInContext(getContext());
-  OSD->setParent(getParent());
+  setCommandContext(OSD);
   OutputSectionDescription->pushBack(OSD);
 }
 
@@ -724,15 +706,13 @@ void ScriptFile::addASCIZ(std::string Str) {
   OutputSectData *OSD =
       OutputSectData::create(ThisModule.getScript().getIncrementedRuleCount(),
                              *OutputSectionDescription, Str);
-  OSD->setInputFileInContext(getContext());
-  OSD->setParent(getParent());
+  setCommandContext(OSD);
   OutputSectionDescription->pushBack(OSD);
 }
 
 void ScriptFile::addRegionAlias(const StrToken *Alias, const StrToken *Region) {
   RegionAlias *R = eld::make<RegionAlias>(Alias, Region);
-  R->setInputFileInContext(getContext());
-  R->setParent(getParent());
+  setCommandContext(R);
   LinkerScriptCommandQueue.push_back(R);
 }
 
