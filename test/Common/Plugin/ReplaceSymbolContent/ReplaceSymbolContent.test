@@ -1,0 +1,32 @@
+#---ReplaceSymbolContent.test----------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# This test verifies that LinkerWrapper::replaceSymbolContent replaces the
+# content of a defined data symbol in the output binary.
+# The plugin replaces all bytes of foo_data with 0xAB; the readelf hex dump of
+# .data is checked to confirm abababab appears in the output.
+# The plugin also replays reloc_data's bytes back unchanged. reloc_data holds
+# two relocations into foo_data; the no-op replay must not clobber the resolved
+# addresses.
+# A second run with --gc-sections verifies that dead_data (unreferenced from
+# main) is skipped rather than replaced.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t1.1.o %p/Inputs/1.c -c
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml 2>&1 | %filecheck %s
+RUN: %readelf -x .data %t1.1.out | %filecheck %s --check-prefix HEXDUMP
+
+RUN: %clang %clangopts -o %t1.2.o %p/Inputs/1.c -c -fdata-sections
+RUN: %link %linkopts -o %t1.2.out %t1.2.o -L%libsdir/test \
+RUN:   --plugin-config %p/Inputs/PluginConfig.yaml --gc-sections -e main \
+RUN:   2>&1 | %filecheck %s --check-prefix GC
+#END_TEST
+
+CHECK: ReplaceSymbolContentPlugin: replaced foo_data ({{[0-9]+}} bytes)
+CHECK: ReplaceSymbolContentPlugin: replayed reloc_data unchanged ({{[0-9]+}} bytes)
+
+HEXDUMP: abababab
+HEXDUMP-NOT: 00000000 00000000
+
+GC: ReplaceSymbolContentPlugin: replaced foo_data ({{[0-9]+}} bytes)
+GC: ReplaceSymbolContentPlugin: skipped dead_data (garbage collected)
