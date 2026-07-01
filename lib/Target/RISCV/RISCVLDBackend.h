@@ -15,6 +15,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
+#include "llvm/ADT/DenseSet.h"
 #include <unordered_set>
 
 namespace eld {
@@ -282,6 +283,7 @@ private:
   bool doRelaxationAlign(Relocation *R);
 
   bool doRelaxationPC(Relocation *R, Relocation::DWord G);
+  bool doRelaxationGOT(Relocation &R);
 
   bool doRelaxationTLSDESC(Relocation &R, bool Relax);
 
@@ -314,6 +316,28 @@ private:
 
   /// postProcessing - Backend can do any needed modification in the final stage
   eld::Expected<void> postProcessing(llvm::FileOutputBuffer &pOutput) override;
+
+  const llvm::SmallVectorImpl<const Relocation *> *
+  getBaseRelocRefs(const Relocation &R) const {
+    auto Refs = m_BaseRelocRefs.find(&R);
+    if (Refs == m_BaseRelocRefs.end())
+      return nullptr;
+    return &Refs->second;
+  }
+
+  void setRelocGOTLoadRelaxed(const Relocation *R) {
+    m_RelaxedGOTLoadRelocs.insert(R);
+  }
+
+  bool relocWasGOTLoadRelaxed(const Relocation *R) const {
+    return m_RelaxedGOTLoadRelocs.count(R);
+  }
+
+  bool allGOTLOsRelaxable(const Relocation &HIReloc, const ELFSection *S) const;
+
+  // Returns whether all PCREL_LO12 relocations referencing the provided
+  // GOT_HI20 relocation occur at a greater offset than the GOT_HI20.
+  bool allGOTLOsAfterHI(const Relocation &HIReloc) const;
 
 private:
   ELFSection *createGOTSection(InputFile &InputFile);
@@ -370,6 +394,13 @@ private:
   // A map from HI relocations to the relocations that should be used as a base
   // address for the load instruction during TLSDESC to IE optimization.
   std::unordered_map<const Relocation *, const Relocation *> m_HiToIELoadBase;
+
+  // A map to keep track of all relocations referencing a particular
+  // base relocation. This is effectively a reverse-mapping of `m_BaseRelocs`.
+  llvm::DenseMap<const Relocation *, llvm::SmallVector<const Relocation *, 1>>
+      m_BaseRelocRefs;
+
+  llvm::DenseSet<const Relocation *> m_RelaxedGOTLoadRelocs;
 };
 } // namespace eld
 

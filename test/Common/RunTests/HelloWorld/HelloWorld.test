@@ -9,6 +9,8 @@ UNSUPPORTED: x86
 #END_COMMENT
 #START_TEST
 RUN: %run_cc -o %t1.o %p/Inputs/HelloWorld.c -c -fno-pic
+RUN: %run_cc -o %t.norelax.out %t1.o -static -Wl,--no-relax-got
+RUN: %run %t.norelax.out | %filecheck %s
 RUN: %run_cc -o %t.out %t1.o -static
 RUN: %run %t.out | %filecheck %s
 RUN: %run_cc -o %t1.pic.o %p/Inputs/HelloWorld.c -c -fPIC

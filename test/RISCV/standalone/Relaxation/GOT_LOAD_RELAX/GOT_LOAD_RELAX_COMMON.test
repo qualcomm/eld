@@ -1,0 +1,46 @@
+REQUIRES: riscv32 || riscv64
+#----------GOT_LOAD_RELAX_COMMON.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests checks GOT load relaxation behavior common to both relative and
+# absolute symbols around when the relaxation should not occur.
+#END_COMMENT
+#START_TEST
+
+## Check --no-relax and --no-relax-got are respected.
+RUN: %clang %clangopts -c %p/Inputs/common.s -o %t.common.o
+RUN: %link %linkopts --defsym abs_var=5 --no-relax %t.common.o -o %t.out
+RUN: %link %linkopts --defsym abs_var=5 --no-relax-got %t.common.o -o %t2.out
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.out | %filecheck %s --check-prefix=NO-RELAX
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t2.out | %filecheck %s --check-prefix=NO-RELAX
+
+## Check relaxation isn't performed if there's a non-zero addend on the got_hi.
+RUN: %clang %clangopts -c %p/Inputs/addend.s -o %t.addend.o
+RUN: %link %linkopts --defsym abs_var=5 %t.addend.o -o %t.addend.out
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.addend.out | %filecheck %s --check-prefix=NO-RELAX
+
+## Check relaxation isn't performed if not all HI/LOs have R_RISCV_RELAX or
+## if a LO is missing.
+RUN: %clang %clangopts -c %p/Inputs/partial_relax.s -o %t.partial.o
+RUN: %link %linkopts --defsym abs_var=5 %t.partial.o -o %t.partial.out
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.partial.out | %filecheck %s --check-prefix=PARTIAL-NO-RELAX
+
+NO-RELAX: auipc a1, 1
+NO-RELAX-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
+NO-RELAX: auipc a2, 1
+NO-RELAX-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+
+PARTIAL-NO-RELAX: auipc a1, 1
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
+PARTIAL-NO-RELAX: auipc a2, 1
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+PARTIAL-NO-RELAX: auipc a1, 1
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a1, {{-?[0-9]+}}(a1)
+PARTIAL-NO-RELAX: auipc a2, 1
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a2)
+PARTIAL-NO-RELAX: auipc a1, 1
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a1)
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a3, {{-?[0-9]+}}(a1)
+PARTIAL-NO-RELAX: auipc a1, 1
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a2, {{-?[0-9]+}}(a1)
+PARTIAL-NO-RELAX-NEXT: {{l[wd]}} a3, {{-?[0-9]+}}(a1)
+PARTIAL-NO-RELAX: auipc a1, 1

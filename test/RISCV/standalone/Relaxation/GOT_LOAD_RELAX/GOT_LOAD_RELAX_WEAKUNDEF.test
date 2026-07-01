@@ -1,0 +1,57 @@
+REQUIRES: riscv32 || riscv64
+#----------GOT_LOAD_RELAX_WEAKUNDEF.test----------------- Executable------------------#
+#BEGIN_COMMENT
+# This tests checks GOT load relaxation behavior specific to handling weakundef
+# symbols.
+#END_COMMENT
+#START_TEST
+
+RUN: %clang %clangopts -c %p/Inputs/weakundef.s -o %t.o
+
+## Static executable
+RUN: %link %linkopts -static --verbose -MapStyle txt -Map %t.static.map \
+RUN: %t.o -o %t.static.out 2>&1 | %filecheck %s --check-prefix=VERBOSE-C
+RUN: %objdump --no-print-imm-hex -M no-aliases -dr %t.static.out | %filecheck %s --check-prefix=DUMP-C
+RUN: %filecheck %s --input-file=%t.static.map --check-prefix=MAP-C
+
+## Static executable with --no-relax-c
+RUN: %link %linkopts -static --no-relax-c --verbose -MapStyle txt -Map %t.norelaxc.map \
+RUN: %t.o -o %t.norelaxc.out 2>&1 | %filecheck %s --check-prefix=VERBOSE-NO-C
+RUN: %objdump --no-print-imm-hex -M no-aliases -dr %t.norelaxc.out | %filecheck %s --check-prefix=DUMP-NO-C
+RUN: %filecheck %s --input-file=%t.norelaxc.map --check-prefix=MAP-NO-C
+
+## Static pie executable, currently eld treats weak undef symbols as preemptible
+## under static pie, so no relaxation can happen here.
+RUN: %link %linkopts -static -pie --verbose -MapStyle txt -Map %t.static-pie.map %t.o -o %t.static-pie.out 2>&1 | %filecheck %s --check-prefix=NO-RELAX-VERBOSE
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.static-pie.out | %filecheck %s --check-prefix=NO-RELAX-DUMP
+RUN: %filecheck %s --input-file=%t.static-pie.map --check-prefix=MAP-NO-RELAX
+
+## Shared, the symbol is preemptible so no relaxation should happen.
+RUN: %link %linkopts -shared --verbose -MapStyle txt -Map %t.shared.map %t.o -o %t.so 2>&1 | %filecheck %s --check-prefix=NO-RELAX-VERBOSE
+RUN: %objdump --no-print-imm-hex -M no-aliases -d %t.so | %filecheck %s --check-prefix=NO-RELAX-DUMP
+RUN: %filecheck %s --input-file=%t.shared.map --check-prefix=MAP-NO-RELAX
+
+VERBOSE-C: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_weakundef'
+VERBOSE-C-NEXT: RISCV_GOT_LOAD : Deleting 2 bytes for symbol 'sym_weakundef'
+VERBOSE-C-NEXT: RISCV_LI_C : relaxing instruction {{.*}} to compressed instruction {{.*}} for symbol sym_weakundef
+DUMP-C: c.li a0, 0
+
+MAP-C: # RelaxationBytesDeleted : 6
+MAP-C-NOT: # RelaxationBytesMissed
+
+VERBOSE-NO-C: RISCV_GOT_LOAD : Deleting 4 bytes for symbol 'sym_weakundef'
+VERBOSE-NO-C-NEXT: RISCV_GOT_LOAD : Cannot relax 2 bytes for symbol 'sym_weakundef'
+
+DUMP-NO-C: addi a0, zero, 0
+
+MAP-NO-C: # RelaxationBytesDeleted : 4
+MAP-NO-C: # RelaxationBytesMissed : 2
+
+NO-RELAX-VERBOSE-NOT: RISCV_GOT_LOAD
+NO-RELAX-VERBOSE-NOT: RISCV_LI_C
+
+NO-RELAX-DUMP: auipc a0, 1
+NO-RELAX-DUMP-NEXT: {{l[wd]}} a0, {{-?[0-9]+}}(a0)
+
+MAP-NO-RELAX-NOT: # RelaxationBytesDeleted
+MAP-NO-RELAX-NOT: # RelaxationBytesMissed
