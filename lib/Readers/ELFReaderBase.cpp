@@ -232,5 +232,6 @@ ELFReaderBase::inspectELFKind(const InputFile &I) {
 // FIXME: Move ELFRelocObjParser::readSections to RelocELFReader::readSections
 eld::Expected<void> ELFReaderBase::readSections() {
   ASSERT(0, "readSections must only be called for shared object files.");
+  return {};
 }
 #endif
