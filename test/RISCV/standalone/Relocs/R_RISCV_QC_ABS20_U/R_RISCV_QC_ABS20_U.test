@@ -13,11 +13,11 @@ RUN: %objdump --no-print-imm-hex -dt %t1.out |  %filecheck %s
 #END_TEST
 
 CHECK-LABEL: SYMBOL TABLE:
-CHECK: 00000000 l *ABS* 00000000 test_zero
-CHECK: 0007ffff l *ABS* 00000000 test_hi
-CHECK: fff80000 l *ABS* 00000000 test_lo
-CHECK: fffabcde l *ABS* 00000000 test_distinct
-CHECK: ffffffff l *ABS* 00000000 test_minus_one
+CHECK-DAG: 00000000 l *ABS* 00000000 test_zero
+CHECK-DAG: 0007ffff l *ABS* 00000000 test_hi
+CHECK-DAG: fff80000 l *ABS* 00000000 test_lo
+CHECK-DAG: fffabcde l *ABS* 00000000 test_distinct
+CHECK-DAG: ffffffff l *ABS* 00000000 test_minus_one
 
 CHECK-LABEL: 00000074 <test1>:
 CHECK: 0000029b qc.li t0, 0

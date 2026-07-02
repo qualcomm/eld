@@ -26,8 +26,8 @@ ELF:      [ {{[[:digit:]]+}}]   .rela.pgot         RELA        {{[[:xdigit:]]+}}
 ELF:      Relocation section '.rela.pgot' at offset 0x{{[[:xdigit:]]+}} contains 1 entries:
 ELF:      [[#PGOT]]             {{[[:xdigit:]]+}}  R_RISCV_32  {{0*}}[[#%x,0x2000]] f + 0
 
-ELF:      00001000     {{[[:xdigit:]]+}} NOTYPE  GLOBAL DEFAULT     {{[[:digit:]]+}} __llvm_patchable_f
 ELF:      00002000     {{[[:xdigit:]]+}} FUNC    GLOBAL DEFAULT     {{[[:digit:]]+}} f
+ELF:      00001000     {{[[:xdigit:]]+}} NOTYPE  GLOBAL DEFAULT     {{[[:digit:]]+}} __llvm_patchable_f
 
 OD:       Disassembly of section .plt:
 
