@@ -6,13 +6,9 @@ SECTIONS
 {
   /* Code starts. */
 
+  /* Address 0x2000000 is supplied by --section-start=.start=0x2000000 in h2-picolibc.cfg */
   .start          :
   {
-    /*
-      H2 expects the entry point to be 0x2000000
-      so it places the .start section at 0x2000000,
-      so place _start which is in .text.init.enter in .start
-    */
     KEEP (*(.text.init.enter))
     KEEP (*(.start))
   } =0x00c0007f
@@ -209,15 +205,17 @@ SECTIONS
 
   /* Picolibc looks for __heap* and __stack* symbols */
 
-  /* Allow a minimum heap size to be specified */
+  /*
+   * Heap is represented as a pair of address pointers only.
+   * No .heap section is created so the heap address space is not part of the
+   * ELF image and does not need to be zeroed at load time.
+   */
   __heap_start = .;
-  .heap (NOLOAD) :
-  {
-    . += (DEFINED(__heap_size_min) ? __heap_size_min : 0x10000);
-  }
-
-  __heap_end = .;
+  __heap_end = __heap_start + (DEFINED(__heap_size_min) ? __heap_size_min : 0x4000000);
   HEAP_SIZE = __heap_end - __heap_start;
+
+  /* Advance . past the heap so the stack region does not overlap heap memory */
+  . = __heap_end;
 
   __stack_size = 0x1000;
   STACK_SIZE = __stack_size;
