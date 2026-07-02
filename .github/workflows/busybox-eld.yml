@@ -25,16 +25,16 @@ jobs:
             enabled: 1
           - arch: riscv32
             toolchain_asset: riscv32-unknown-linux-musl.tar.xz
-            enabled: 0
+            enabled: 1
           - arch: riscv64
             toolchain_asset: riscv64-unknown-linux-musl.tar.xz
-            enabled: 0
+            enabled: 1
           - arch: arm
             toolchain_asset: arm-unknown-linux-musleabi.tar.xz
-            enabled: 0
+            enabled: 1
           - arch: aarch64
             toolchain_asset: aarch64-unknown-linux-musl.tar.xz
-            enabled: 0
+            enabled: 1
     uses: ./.github/workflows/clang-cross-download.yml
     with:
       runner: ubuntu-latest
@@ -64,32 +64,32 @@ jobs:
             toolchain_dir: riscv32-unknown-linux-musl
             toolchain_asset: riscv32-unknown-linux-musl.tar.xz
             qemu_bin: qemu-riscv32
-            enabled: 0
+            enabled: 1
           - arch: riscv64
             busybox_arch: riscv
             target_triple: riscv64-unknown-linux-musl
             toolchain_dir: riscv64-unknown-linux-musl
             toolchain_asset: riscv64-unknown-linux-musl.tar.xz
             qemu_bin: qemu-riscv64
-            enabled: 0
+            enabled: 1
           - arch: arm
             busybox_arch: arm
             target_triple: arm-unknown-linux-musleabi
             toolchain_dir: arm-unknown-linux-musleabi
             toolchain_asset: arm-unknown-linux-musleabi.tar.xz
             qemu_bin: qemu-arm
-            enabled: 0
+            enabled: 1
           - arch: aarch64
             busybox_arch: aarch64
             target_triple: aarch64-unknown-linux-musl
             toolchain_dir: aarch64-unknown-linux-musl
             toolchain_asset: aarch64-unknown-linux-musl.tar.xz
             qemu_bin: qemu-aarch64
-            enabled: 0
+            enabled: 1
     steps:
       - name: Checkout eld
         if: matrix.enabled == 1
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: qualcomm/eld
           ref: main
@@ -111,7 +111,7 @@ jobs:
 
       - name: Download clang-cross toolchain artifact
         if: matrix.enabled == 1
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1
         with:
           name: clang-cross-${{ matrix.arch }}
           path: clang-cross
@@ -174,15 +174,28 @@ jobs:
           "${TARGET_TRIPLE}"-clang --version
           "${ELD_BIN}" --version
 
+          SYSROOT="${CROSS_TOOLCHAIN_ROOT}/${TARGET_TRIPLE}/sysroot"
+          MUSL_LINKER="$(find "${SYSROOT}/lib" -name 'ld-musl-*.so.1' | head -1)"
+
           cd busybox
           make defconfig
           make -j"$(nproc)" \
             ARCH="${BUSYBOX_ARCH}" \
             CC="${TARGET_TRIPLE}-clang --ld-path=${ELD_BIN}" \
-            HOSTCC=clang
+            HOSTCC=clang \
+            LDFLAGS="-Wl,-dynamic-linker,${MUSL_LINKER} -Wl,-rpath,${SYSROOT}/lib" \
+            || { \
+              echo "--- Parallel build failed, retrying serially for clear error output ---" >&2; \
+              make -j1 \
+                ARCH="${BUSYBOX_ARCH}" \
+                CC="${TARGET_TRIPLE}-clang --ld-path=${ELD_BIN}" \
+                HOSTCC=clang \
+                LDFLAGS="-Wl,-dynamic-linker,${MUSL_LINKER} -Wl,-rpath,${SYSROOT}/lib"; \
+            }
 
       - name: Run BusyBox tests
         if: matrix.enabled == 1
+        timeout-minutes: 5
         shell: bash
         env:
           CROSS_TOOLCHAIN_ROOT: ${{ env.CROSS_TOOLCHAIN_ROOT }}
@@ -210,4 +223,13 @@ jobs:
           fi
 
           cd busybox/testsuite
-          env SKIP_KNOWN_BUGS=1 SKIP_INTERNET_TESTS=1 ./runtest
+          # env --default-signal resets all signals (including SIGPIPE) to their
+          # default handlers before exec-ing the shell. This is necessary because
+          # the GitHub Actions runner sets SIGPIPE to SIG_IGN, which is inherited
+          # by all child processes and causes 'yes' in md5sum.tests to spin
+          # forever instead of dying when the pipe is closed by 'head'.
+          # See:
+          # https://github.com/actions/runner/issues/2684
+          # https://www.pixelbeat.org/programming/sigpipe_handling.html
+          # https://www.gnu.org/software/coreutils/manual/html_node/env-invocation.html#g_t_002dS_002f_002d_002dsplit_002dstring-usage-in-scripts
+          env SKIP_KNOWN_BUGS=1 SKIP_INTERNET_TESTS=1 env --default-signal /bin/sh ./runtest

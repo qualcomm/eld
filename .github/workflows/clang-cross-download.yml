@@ -89,34 +89,39 @@ jobs:
                 exit 1
               fi
 
-            echo "Extracting ${asset}..."
-            tar -xJf "${tmp_tar}" -C "${base_dir}"
-            rm -f "${tmp_tar}"
-            asset_base="${asset%.tar.xz}"
-            asset_base="${asset_base%.tar.gz}"
-            asset_base="${asset_base%.tar}"
-            extracted_dir="${base_dir}/${asset_base}"
-            symlink_path="${WORKSPACE}/${asset_base}"
+              tmp_tar="${base_dir}/${asset}"
+              echo "Downloading ${asset}..."
+              curl -fsSL -o "${tmp_tar}" "${url}"
 
-            if [[ -d "${extracted_dir}" ]]; then
-              before_dir_perm="$(stat -c '%a' "${extracted_dir}")"
-              echo "Changing permissions for extracted directory ${extracted_dir} from ${before_dir_perm} to 777..."
-              chmod -R 777 "${extracted_dir}"
-              after_dir_perm="$(stat -c '%a' "${extracted_dir}")"
-              echo "Permissions updated for ${extracted_dir}: ${before_dir_perm} -> ${after_dir_perm}"
-            fi
-            ln -sfn "${extracted_dir}" "${symlink_path}"
+              echo "Extracting ${asset}..."
+              tar -xJf "${tmp_tar}" -C "${base_dir}"
+              rm -f "${tmp_tar}"
+              asset_base="${asset%.tar.xz}"
+              asset_base="${asset_base%.tar.gz}"
+              asset_base="${asset_base%.tar}"
+              extracted_dir="${base_dir}/${asset_base}"
+              symlink_path="${WORKSPACE}/${asset_base}"
 
-            if [[ -L "${symlink_path}" ]]; then
-              before_link_perm="$(stat -c '%a' "${symlink_path}")"
-              echo "Changing permissions via symlink ${symlink_path} from ${before_link_perm} to 777..."
-              chmod -R 777 "${symlink_path}"
-              after_link_perm="$(stat -c '%a' "${symlink_path}")"
-              echo "Permissions updated via symlink ${symlink_path}: ${before_link_perm} -> ${after_link_perm}"
-            fi
+              if [[ -d "${extracted_dir}" ]]; then
+                before_dir_perm="$(stat -c '%a' "${extracted_dir}")"
+                echo "Changing permissions for extracted directory ${extracted_dir} from ${before_dir_perm} to 777..."
+                chmod -R 777 "${extracted_dir}"
+                after_dir_perm="$(stat -c '%a' "${extracted_dir}")"
+                echo "Permissions updated for ${extracted_dir}: ${before_dir_perm} -> ${after_dir_perm}"
+              fi
+              ln -sfn "${extracted_dir}" "${symlink_path}"
 
-            touch "${marker}"
-          done
+              if [[ -L "${symlink_path}" ]]; then
+                before_link_perm="$(stat -c '%a' "${symlink_path}")"
+                echo "Changing permissions via symlink ${symlink_path} from ${before_link_perm} to 777..."
+                chmod -R 777 "${symlink_path}"
+                after_link_perm="$(stat -c '%a' "${symlink_path}")"
+                echo "Permissions updated via symlink ${symlink_path}: ${before_link_perm} -> ${after_link_perm}"
+              fi
+
+              touch "${marker}"
+            done
+          fi
 
           echo "Symlinks in ${WORKSPACE}:"
           find "${WORKSPACE}" -maxdepth 1 -type l -lname "${root_dir}/*" -printf "%p -> %l\n"
@@ -127,7 +132,7 @@ jobs:
 
       - name: Upload extracted toolchains artifact
         if: ${{ inputs.upload_artifact }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ steps.fetch.outputs.artifact_tar }}
