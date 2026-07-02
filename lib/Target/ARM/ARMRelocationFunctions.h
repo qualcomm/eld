@@ -52,12 +52,13 @@
   DECL_ARM_APPLY_RELOC_FUNC(relocAddPREL1)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(relocAddPREL2)                                     \
   DECL_ARM_APPLY_RELOC_FUNC(relocLDR12)                                        \
+  DECL_ARM_APPLY_RELOC_FUNC(ldr_pc_g0)                                         \
   DECL_ARM_APPLY_RELOC_FUNC(unsupport)
 
 #define DECL_ARM_APPLY_RELOC_FUNC_PTRS                                         \
   {&none, 0, "R_ARM_NONE"}, {&call, 1, "R_ARM_PC24"},                          \
       {&abs32, 2, "R_ARM_ABS32"}, {&rel32, 3, "R_ARM_REL32"},                  \
-      {&unsupport, 4, "R_ARM_LDR_PC_G0"}, {&unsupport, 5, "R_ARM_ABS16"},      \
+      {&ldr_pc_g0, 4, "R_ARM_LDR_PC_G0"}, {&unsupport, 5, "R_ARM_ABS16"},      \
       {&unsupport, 6, "R_ARM_ABS12"}, {&unsupport, 7, "R_ARM_THM_ABS5"},       \
       {&unsupport, 8, "R_ARM_ABS8"}, {&rel32, 9, "R_ARM_SBREL32"},             \
       {&thm_call, 10, "R_ARM_THM_CALL"}, {&unsupport, 11, "R_ARM_THM_PC8"},    \
