@@ -1,0 +1,9 @@
+REQUIRES: symbol_versioning
+#---MalformedName_LeadingAt.test------------------------------------------#
+# yaml-crafted symbol named literally `@V1` (no base) should be rejected.
+#START_TEST
+RUN: %yaml2obj %p/Inputs/malformed_leading_at.yaml -o %t.o
+RUN: not %link %linkopts -o %t.lib.so %t.o -shared --version-script %p/Inputs/vs_v1.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: malformed versioned symbol name '@V1'

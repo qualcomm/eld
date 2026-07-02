@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---Export_Branch1_Dynsym.test--------------------------------------------#
+# Branch-(1) reconciliation in normalizeSymbols (a.k.a. rule 2): both
+# halves of A's pair won. The canonical `bar@V1` survives; the
+# unversioned alias is suppressed via the backend set. .dynsym in the
+# resulting .so must include `bar@@V1` and NOT a separate `bar`.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-NOT: : bar{{$}}

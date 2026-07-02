@@ -1094,6 +1094,26 @@ private:
   void setSymbolVersionID(const ResolveInfo *R, uint16_t VerID) {
     OutputVersionIDs[R] = VerID;
   }
+
+public:
+  // Records non-canonical versioned symbols. It is primarily used to
+  // suppress emitting of non-canonical symbols in the output symbol tables.
+  void addNonCanonicalVersionedSym(const ResolveInfo *R) {
+    NonCanonicalVersionedSyms.insert(R);
+  }
+
+  bool isNonCanonicalVersionedSym(const ResolveInfo *R) const {
+    return NonCanonicalVersionedSyms.count(R) != 0;
+  }
+
+  // Reconstruct the .symtab strtab string for a ResolveInfo:
+  //   - shared-library origin: single `@` (canonical name unchanged).
+  //   - object origin, default-version flag set: "base@@version".
+  //   - object origin, non-default:               "base@version".
+  //   - non-versioned:                            R.name() unchanged.
+  std::string getSymbolTableName(const ResolveInfo &R) const;
+
+private:
 #endif
 
 protected:
@@ -1238,6 +1258,7 @@ protected:
   ELFSection *GNUVerNeedSection = nullptr;
   GNUVerNeedFragment *GNUVerNeedFrag = nullptr;
   std::unordered_map<const ResolveInfo *, uint16_t> OutputVersionIDs;
+  std::unordered_set<const ResolveInfo *> NonCanonicalVersionedSyms;
 #endif
 
   llvm::StringMap<const Assignment *> SymbolNameToLatestAssignment;

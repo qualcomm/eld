@@ -1,0 +1,15 @@
+REQUIRES: symbol_versioning
+#---DefaultAcrossArchive.test---------------------------------------------#
+# Archive selection + rule 4: a.a(a.o) provides weak `bar@@V1`,
+# b.o provides strong unversioned `bar`. The strong unversioned must win
+# and become the surviving `bar@@V1` (default-version identity transfers
+# from a -> b).
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/weak_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %ar rcs %t.a.a %t.a.o
+RUN: %link %linkopts -o %t.lib.so %t.b.o %t.a.a -shared --version-script %p/Inputs/vs_v1.t -u bar
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1

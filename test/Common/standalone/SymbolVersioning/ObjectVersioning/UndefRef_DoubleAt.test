@@ -1,0 +1,10 @@
+REQUIRES: symbol_versioning
+#---UndefRef_DoubleAt.test------------------------------------------------#
+# yaml-crafted UND symbol named `foo@@V1` should be rejected:
+# `@@` is only valid on definitions, not on undefined references.
+#START_TEST
+RUN: %yaml2obj %p/Inputs/undef_doubleat.yaml -o %t.o
+RUN: not %link %linkopts -o %t.lib.so %t.o -shared --version-script %p/Inputs/vs_v1.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: 'foo@@V1' uses '@@' but is an undefined reference

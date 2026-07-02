@@ -1,0 +1,20 @@
+REQUIRES: symbol_versioning
+#---OnlyDefault.test------------------------------------------------------#
+# Single object with strong `bar@@V1`. Output must contain exactly the
+# default-versioned name (reconstructed via getSymbolTableName from the
+# default-version flag) and not a redundant bare `bar`.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s --check-prefix=DYN
+RUN: %readelf -sW %t.lib.so | %filecheck %s --check-prefix=SYMTAB
+#END_TEST
+
+DYN-DAG: bar@@V1
+DYN-NOT: : bar{{$}}
+
+# The static .symtab keeps `impl` (the underlying body name from .symver)
+# and the versioned form. No bare `bar`.
+SYMTAB-DAG: impl
+SYMTAB-DAG: bar@@V1
+SYMTAB-NOT: : bar{{$}}

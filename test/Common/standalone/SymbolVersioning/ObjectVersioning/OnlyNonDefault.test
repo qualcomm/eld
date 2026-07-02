@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---OnlyNonDefault.test---------------------------------------------------#
+# Single object with strong `bar@V1` (non-default). Output should have
+# `bar@V1` (single `@`, marked VERSYM_HIDDEN). No bare `bar` should be
+# in the dynsym either.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@V1
+CHECK-NOT: bar@@V1
+CHECK-NOT: : bar{{$}}

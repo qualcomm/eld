@@ -1,0 +1,11 @@
+REQUIRES: symbol_versioning
+#---DistinctDefaultVersions.test------------------------------------------#
+# a.o has default `bar@@V1`; c.o has default `bar@@V2`. Both synthesize
+# a non-canonical "bar"; the resolver multi-defs on the bar slot.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.c.o %p/Inputs/strong_default_v2.c -c -fPIC
+RUN: not %link %linkopts -o %t.lib.so %t.a.o %t.c.o -shared --version-script %p/Inputs/vs_v1_v2.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: multiple definition of symbol

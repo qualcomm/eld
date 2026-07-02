@@ -1,0 +1,11 @@
+REQUIRES: symbol_versioning
+#---LocalVersionedSymbol.test---------------------------------------------#
+# yaml-crafted LOCAL-binding versioned symbol `bar@V1`. Local versioned
+# symbols are rejected with a fatal diagnostic in this work; full
+# support is deferred to a follow-up.
+#START_TEST
+RUN: %yaml2obj %p/Inputs/local_versioned.yaml -o %t.o
+RUN: not %link %linkopts -o %t.lib.so %t.o -shared --version-script %p/Inputs/vs_v1.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: local versioned symbol 'bar@V1' is not supported

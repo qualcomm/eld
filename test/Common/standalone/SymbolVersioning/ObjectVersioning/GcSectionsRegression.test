@@ -1,0 +1,16 @@
+REQUIRES: symbol_versioning
+#---GcSectionsRegression.test---------------------------------------------#
+# R2.3 regression: when --gc-sections is used, every LDSymbol is born
+# with shouldIgnore=true; GC clears the bit on reachable symbols. Our
+# alias-collapse suppression goes through GNULDBackend's set keyed on
+# RI*, NOT through shouldIgnore on the LDSymbol, so it must not
+# over-strip live symbols under --gc-sections. This test confirms the
+# default-versioned alias still emits correctly with --gc-sections on.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/strong_default.c -c -fPIC -ffunction-sections
+RUN: %link %linkopts -o %t.lib.so %t.a.o -shared --version-script %p/Inputs/vs_v1.t --gc-sections
+RUN: %readelf --dyn-syms --version-info %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-NOT: : bar{{$}}

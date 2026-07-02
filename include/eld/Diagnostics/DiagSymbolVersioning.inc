@@ -29,3 +29,16 @@ DIAG(trace_reading_symbol_versioning_section, DiagnosticEngine::Trace,
 
 DIAG(trace_symbol_to_output_version_id, DiagnosticEngine::Trace,
      "Symbol '%0' -> version id %1")
+
+DIAG(error_malformed_versioned_symbol_name, DiagnosticEngine::Error,
+     "%0: malformed versioned symbol name '%1'")
+
+DIAG(error_default_versioned_undef_ref, DiagnosticEngine::Error,
+     "%0: '%1' uses '@@' but is an undefined reference; "
+     "'@@' is only valid on definitions")
+
+DIAG(error_local_versioned_symbol_unsupported, DiagnosticEngine::Error,
+     "%0: local versioned symbol '%1' is not supported")
+
+DIAG(trace_object_versioned_symbol, DiagnosticEngine::Trace,
+     "Versioned object symbol: '%0' -> canonical '%1', default-version=%2")

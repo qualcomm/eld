@@ -20,6 +20,32 @@
 
 using namespace eld;
 
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+ParsedVersionedName eld::parseVersionedName(llvm::StringRef Name) {
+  ParsedVersionedName R{Name, /*Version=*/llvm::StringRef(),
+                        /*IsDefault=*/false, /*IsMalformed=*/false};
+  auto At = Name.find('@');
+  if (At == llvm::StringRef::npos)
+    return R; // unversioned plain name.
+  if (At == 0) {
+    // Leading `@`, no base.
+    return {{}, {}, false, true};
+  }
+  R.Base = Name.substr(0, At);
+  llvm::StringRef Rest = Name.substr(At + 1);
+  if (!Rest.empty() && Rest.front() == '@') {
+    R.IsDefault = true;
+    Rest = Rest.substr(1);
+  }
+  if (Rest.empty() || Rest.contains('@')) {
+    // "bar@", "bar@@", or extra `@` in the version part.
+    return {{}, {}, false, true};
+  }
+  R.Version = Rest;
+  return R;
+}
+#endif
+
 /// g_NullResolveInfo - a pointer to Null
 static ResolveInfo GNullResolveInfo;
 
@@ -57,12 +83,23 @@ void ResolveInfo::overrideAttributes(const ResolveInfo &PFrom) {
   // exportToDyn should stay true after overriding if
   // the overriding symbol can be a preemptible symbol.
   bool PrevExportToDyn = exportToDyn();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  // OR-preserve the default-version flag: if either side claimed the symbol
+  // is the default version of its base, the survivor keeps the identity.
+  // Required for rule 3 (weak `bar@@V1` overridden by strong `bar@V1`) so
+  // the surviving canonical RI still emits as `bar@@V1`.
+  bool PrevDefaultVersion = isDefaultVersion();
+#endif
   ThisBitField &= ~ResolveMask;
   ThisBitField |= (PFrom.ThisBitField & ResolveMask);
   shouldPreserve(P);
   setVisibility(V);
   if (PrevExportToDyn && PFrom.canBePreemptible())
     setExportToDyn();
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+  if (PrevDefaultVersion || PFrom.isDefaultVersion())
+    setDefaultVersion(true);
+#endif
 }
 
 /// overrideVisibility - override the visibility

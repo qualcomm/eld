@@ -1,0 +1,16 @@
+REQUIRES: symbol_versioning
+#---05_WeakDefault_StrongUnversioned_StrongNonDefault.test----------------#
+#BEGIN_COMMENT
+# Rule 5: weak bar@@V1 (a.o) + strong unversioned bar (b.o) +
+# strong bar@V1 (c.o). Both halves of A's pair lose to independent
+# definitions -> normalizeSymbols branch (4) detects sameDefinition is
+# false -> multi-def diagnostic between b.o and c.o.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/weak_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %clang %clangopts -o %t.c.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: not %link %linkopts -o %t.lib.so %t.a.o %t.b.o %t.c.o -shared --version-script %p/Inputs/vs_v1.t 2>&1 | %filecheck %s
+#END_TEST
+
+CHECK: multiple definition of symbol

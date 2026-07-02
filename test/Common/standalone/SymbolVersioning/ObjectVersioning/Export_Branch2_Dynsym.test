@@ -1,0 +1,14 @@
+REQUIRES: symbol_versioning
+#---Export_Branch2_Dynsym.test--------------------------------------------#
+# Branch-(2) reconciliation (rule 4): weak `bar@@V1` + strong unversioned
+# `bar`. Survivor is the canonical RI carrying X's data + default flag;
+# .dynsym must show `bar@@V1` and no separate `bar`.
+#START_TEST
+RUN: %clang %clangopts -o %t.a.o %p/Inputs/weak_default.c -c -fPIC
+RUN: %clang %clangopts -o %t.b.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %link %linkopts -o %t.lib.so %t.a.o %t.b.o -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms %t.lib.so | %filecheck %s
+#END_TEST
+
+CHECK-DAG: bar@@V1
+CHECK-NOT: : bar{{$}}
