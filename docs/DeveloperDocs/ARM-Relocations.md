@@ -71,6 +71,7 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 | `R_ARM_THM_MOVW_BREL` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
 | `R_ARM_ALU_PC_G0` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none |
 | `R_ARM_LDR_PC_G2` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
+| `R_ARM_LDR_PC_G0` | `S + A - P` | imm12 (bits 11:0) | [0, 4095] |
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -129,7 +130,6 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 
 | Type | Relocation | ABI category | TODO |
 |------|-----------|--------------|------|
-| 4 | `R_ARM_LDR_PC_G0` | Group reloc — literal-pool PC-relative LDR (G0) | Implement LDR PC-group G0 |
 | 5 | `R_ARM_ABS16` | 16-bit absolute | Implement 16-bit absolute |
 | 6 | `R_ARM_ABS12` | 12-bit absolute (LDR/STR immediate) | Implement ABS12 |
 | 7 | `R_ARM_THM_ABS5` | Thumb 5-bit absolute (LDR/STR) | |
