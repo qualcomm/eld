@@ -37,6 +37,7 @@
 #include "eld/Support/StringUtils.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
+#include "eld/Support/Utils.h"
 #include "eld/Target/TargetMachine.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/LTO/LTO.h"
@@ -988,6 +989,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setOutputFileName(outputFileName);
     Config.addCommandLine(Table->getOptionName(T::output_file),
                           outputFileName.c_str());
+    Config.options().setEmitOutputFile(
+        !eld::utility::isNullDevice(outputFileName));
   }
 
   std::string conflictingOption;
