@@ -1,0 +1,106 @@
+name: Zephyr on ELD PR
+
+# Opt-in: run Zephyr against a PR's *own* ELD build (not nightly). Assumes ci.yml
+# passed for the PR and uploaded the `pr-eld-toolset` artifact. Given a PR number,
+# finds the latest successful ci.yml run for its head commit; ci_run_id overrides.
+# Scope: aarch64 (qemu_cortex_a53), tests/kernel. Add arches later by mirroring
+# zephyr-nightly.yml's matrix.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number (auto-discovers the latest successful CI run for its head commit)"
+        required: false
+      ci_run_id:
+        description: "CI (ci.yml) run id to pull ld.eld from (overrides auto-discovery)"
+        required: false
+  # pull_request: {} # Uncomment only to test this WF file update.
+
+permissions:
+  contents: read
+  actions: read       # needed to list/download artifacts from the ci.yml run
+  pull-requests: read # needed to resolve a PR number's head SHA
+
+jobs:
+  resolve:
+    if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+    steps:
+      - name: Resolve ci.yml run id
+        id: find
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        env:
+          CI_RUN_ID: ${{ github.event.inputs.ci_run_id }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          # Fallback for the `pull_request:` test trigger (empty on dispatch).
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ciRunId = (process.env.CI_RUN_ID || '').trim();
+            const prNumber = (process.env.PR_NUMBER || process.env.EVENT_PR_NUMBER || '').trim();
+
+            // Explicit run id wins.
+            if (ciRunId) {
+              core.info(`Using explicit ci_run_id: ${ciRunId}`);
+              core.setOutput('run_id', ciRunId);
+              return;
+            }
+
+            if (!prNumber) {
+              core.setFailed('Provide either pr_number or ci_run_id.');
+              return;
+            }
+
+            // Resolve the PR's head commit, then find the newest successful
+            // ci.yml run for that exact SHA.
+            const pr = await github.rest.pulls.get({
+              owner, repo, pull_number: Number(prNumber),
+            });
+            const headSha = pr.data.head.sha;
+            core.info(`PR #${prNumber} head SHA: ${headSha}`);
+
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRuns,
+              {
+                owner, repo,
+                workflow_id: 'ci.yml',
+                event: 'pull_request',
+                head_sha: headSha,
+                per_page: 100,
+              }
+            );
+
+            const success = runs
+              .filter(r => r.conclusion === 'success')
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            if (success.length === 0) {
+              core.setFailed(
+                `No successful ci.yml run found for PR #${prNumber} (SHA ${headSha}). ` +
+                `Ensure CI passed for the PR's latest commit.`);
+              return;
+            }
+
+            const run = success[0];
+            core.info(`Latest successful ci.yml run: id=${run.id}, run_number=${run.run_number}`);
+            core.setOutput('run_id', String(run.id));
+
+  zephyr:
+    needs: resolve
+    permissions:
+      contents: write # zephyr-run.yml requires write (unused outside the nightly schedule path)
+      actions: read
+    uses: ./.github/workflows/zephyr-run.yml
+    with:
+      board: qemu_cortex_a53
+      arch: aarch64
+      extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
+      test_scope: tests/kernel
+      eld_source: artifact
+      artifact_run_id: ${{ needs.resolve.outputs.run_id }}
