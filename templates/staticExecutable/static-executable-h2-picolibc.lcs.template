@@ -2,17 +2,20 @@ OUTPUT_FORMAT("elf32-littlehexagon", "elf32-bighexagon",
 	      "elf32-littlehexagon")
 OUTPUT_ARCH(hexagon)
 ENTRY(_start)
+
+EXTERN(__retarget_lock_init)
+INPUT(liblocks.a)
 SECTIONS
 {
   /* Code starts. */
 
-  .start          :
+  /*
+    H2 expects the entry point to be 0x2000000
+    so we place the .start section at 0x2000000,
+    this places the entry poing _start at this address
+  */
+  .start 0x2000000:
   {
-    /*
-      H2 expects the entry point to be 0x2000000
-      so it places the .start section at 0x2000000,
-      so place _start which is in .text.init.enter in .start
-    */
     KEEP (*(.text.init.enter))
     KEEP (*(.start))
   } =0x00c0007f
@@ -209,15 +212,17 @@ SECTIONS
 
   /* Picolibc looks for __heap* and __stack* symbols */
 
-  /* Allow a minimum heap size to be specified */
+  /*
+   * Heap is represented as a pair of address pointers only.
+   * No .heap section is created so the heap address space is not part of the
+   * ELF image and does not need to be zeroed at load time.
+   */
   __heap_start = .;
-  .heap (NOLOAD) :
-  {
-    . += (DEFINED(__heap_size_min) ? __heap_size_min : 0x10000);
-  }
-
-  __heap_end = .;
+  __heap_end = __heap_start + (DEFINED(__heap_size_min) ? __heap_size_min : 0x4000000);
   HEAP_SIZE = __heap_end - __heap_start;
+
+  /* Advance . past the heap so the stack region does not overlap heap memory */
+  . = __heap_end;
 
   __stack_size = 0x1000;
   STACK_SIZE = __stack_size;
