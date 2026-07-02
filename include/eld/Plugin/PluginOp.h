@@ -34,6 +34,7 @@ public:
     UpdateLinkStat,
     UpdateRule,
     RelocationData,
+    SortInputSectionsForMerging
   };
 
   explicit PluginOp(plugin::LinkerWrapper *, PluginOpType T,
