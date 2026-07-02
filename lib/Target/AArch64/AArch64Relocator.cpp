@@ -331,7 +331,7 @@ void AArch64Relocator::scanLocalReloc(InputFile &pInput, Relocation &pReloc,
     if (rsym->reserved() & ReserveGOT)
       return;
 
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || config().isBuildingExecutable()) {
       AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
@@ -565,7 +565,8 @@ void AArch64Relocator::scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
     if (rsym->reserved() & ReserveGOT)
       return;
 
-    if (config().isCodeStatic()) {
+    if (config().isCodeStatic() || (config().isBuildingExecutable() &&
+                                    !m_Target.isSymbolPreemptible(*rsym))) {
       AArch64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
       rsym->setReserved(rsym->reserved() | ReserveGOT);
       G->setValueType(GOT::TLSStaticSymbolValue);
@@ -1220,12 +1221,24 @@ Relocator::Result tls_tprel(Relocation &pReloc, AArch64Relocator &pParent) {
   return Relocator::OK;
 }
 
+// Returns true when a TLSDESC relocation was resolved statically at link
+// time (i.e. the GOT entry holds a TP-relative offset, not a descriptor
+// pair).  This happens for static executables and for non-preemptible
+// symbols in dynamic executables; in both cases the TLSDESC instruction
+// sequence must be converted to the IE movz/movk/nop pattern.
+bool AArch64Relocator::isTLSDescStatic(Relocation &pReloc) const {
+  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT))
+    return true;
+  AArch64GOT *G = getTarget().findEntryInGOT(pReloc.symInfo());
+  return G && G->getValueType() == GOT::TLSStaticSymbolValue;
+}
+
 // R_AARCH64_TLSDESC_ADR_PAGE21 : PAGE(G(GTLSDESC(S+A))) - PAGE(P)
 Relocator::Result tls_tlsdesc_page(Relocation &pReloc,
                                    AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (pParent.isTLSDescStatic(pReloc)) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
     // Convert to movz
@@ -1251,10 +1264,10 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
                                  AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
 
-  if (!(pReloc.symInfo()->reserved() & Relocator::ReserveGOT)) {
+  if (pParent.isTLSDescStatic(pReloc)) {
     Relocator::DWord X =
         pParent.getSymValue(&pReloc) + AArch64LDBackend::getStaticTCBSize();
-    // Convert to movk, save to x0
+    // Convert to movk with x0 as destination
     uint32_t movk = 0xF2800000;
     pReloc.target() = helper_reencode_movzk_imm(movk, X);
     return Relocator::OK;
@@ -1266,10 +1279,6 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
   Relocator::DWord GX = helper_get_page_offset(GOT_S + A);
   pReloc.target() = helper_reencode_ldst_pos_imm(pReloc.target(), GX >> 3);
 
-  // Convert Rt to X0 if static
-  if (pParent.config().isCodeStatic())
-    pReloc.target() = pReloc.target() & ~0x1F;
-
   return Relocator::OK;
 }
 
@@ -1277,7 +1286,7 @@ Relocator::Result tls_tlsdesc_lo(Relocation &pReloc,
 Relocator::Result tls_tlsdesc_add(Relocation &pReloc,
                                   AArch64Relocator &pParent) {
   Relocator::DWord A = pReloc.addend();
-  if (pParent.config().isCodeStatic()) {
+  if (pParent.isTLSDescStatic(pReloc)) {
     // Convert to nop
     pReloc.target() = 0xD503201F;
     return Relocator::OK;
@@ -1294,7 +1303,7 @@ Relocator::Result tls_tlsdesc_add(Relocation &pReloc,
 
 // R_AARCH64_TLSDESC_CALL
 Relocator::Result tls_call(Relocation &pReloc, AArch64Relocator &pParent) {
-  if (pParent.config().isCodeStatic()) {
+  if (pParent.isTLSDescStatic(pReloc)) {
     // Convert to nop
     pReloc.target() = 0xD503201F;
     return Relocator::OK;

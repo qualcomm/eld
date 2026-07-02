@@ -1,0 +1,17 @@
+#---DESC_pie.test----------------------------------------------------------#
+#BEGIN_COMMENT
+# Verify that a hidden-visibility TLS symbol accessed via TLSDESC is relaxed
+# to the IE inline sequence (movz/movk/nop/nop) when linking as PIE.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -fpic -c %p/Inputs/tdesc_relax.c     -o %t.relax.o
+RUN: %clang %clangopts -target aarch64 -fpic -c %p/Inputs/tdesc_relax_def.c -o %t.def.o
+RUN: %link %linkopts -march aarch64 -pie %t.relax.o %t.def.o -z max-page-size=0x1000 -o %t.out
+RUN: %objdump -d %t.out | %filecheck %s
+
+CHECK: <get_tls>:
+CHECK:      movz    x0,
+CHECK-NEXT: movk    x0,
+CHECK-NEXT: nop
+CHECK-NEXT: nop
+#END_TEST

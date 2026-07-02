@@ -1,0 +1,20 @@
+#---DESC_so.test-----------------------------------------------------------#
+#BEGIN_COMMENT
+# Verify TLSDESC relocation emission when building a shared object.
+#
+# In a shared object both default-visibility (preemptible) and
+# hidden-visibility (non-preemptible) TLS symbols are accessed via the GD
+# model and receive R_AARCH64_TLSDESC dynamic relocations.  The dynamic
+# linker resolves both at load time; relaxation to IE only happens when
+# linking an executable or PIE.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target aarch64 -fpic -c %p/Inputs/tdesc_so.c -o %t.o
+RUN: %link %linkopts -march aarch64 -shared %t.o -o %t.so
+RUN: %readelf -r %t.so | %filecheck %s
+
+# Both the preemptible and the non-preemptible symbol must have a
+# R_AARCH64_TLSDESC dynamic relocation in the shared object.
+CHECK: R_AARCH64_TLSDESC{{.*}}tls_preemptible
+CHECK: R_AARCH64_TLSDESC{{.*}}tls_nonpreemptible
+#END_TEST
