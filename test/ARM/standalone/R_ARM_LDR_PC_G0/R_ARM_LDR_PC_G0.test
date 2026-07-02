@@ -1,0 +1,15 @@
+#---R_ARM_LDR_PC_G0.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify R_ARM_LDR_PC_G0 relocation is supported and correctly applied.
+# Formula: S + A - P encoded in LDR (literal) instruction.
+#END_COMMENT
+#START_TEST
+RUN: %clangas -c %p/Inputs/main.s -o %t.o
+RUN: %link %linkopts -march arm -static %t.o -o %t.out
+RUN: %readelf -x .text %t.out | %filecheck %s
+
+# target at 0x08048054, ldr_pc_g0_slot at 0x08048058
+# S + A - P = 0x08048054 - 0x08048058 = -4
+# U=0 (subtract), imm12=4 → encoded as 0x00000004
+CHECK: 00000000 04000000
+#END_TEST

@@ -983,6 +983,30 @@ Relocator::Result abs32(Relocation &pReloc, ARMRelocator &pParent) {
   return Relocator::OK;
 }
 
+// R_ARM_LDR_PC_G0: S + A - P
+// LDR (literal) instruction: U=bit23, imm12=bits[11:0]
+Relocator::Result ldr_pc_g0(Relocation &pReloc, ARMRelocator &pParent) {
+  Relocator::Address S = pParent.getSymValue(&pReloc);
+  Relocator::DWord A = pReloc.target() + pReloc.addend();
+  Relocator::Address P = pReloc.place(pParent.module());
+
+  int64_t val = (int64_t)(S + A) - (int64_t)P;
+
+  // LDR (literal): U bit = bit23 (1=add, 0=subtract)
+  uint32_t opcode = 0x00800000; // U=1
+  if (val < 0) {
+    opcode = 0x0; // U=0
+    val = -val;
+  }
+
+  if (val > 0xfff)
+    return ARMRelocator::Overflow;
+
+  // Keep existing bits, set U bit and imm12
+  pReloc.target() = (pReloc.target() & 0xff7ff000) | opcode | (val & 0xfff);
+  return Relocator::OK;
+}
+
 // R_ARM_REL32: ((S + A) | T) - P
 // R_ARM_SBREL32: ((S + A) | T) - B(S)
 Relocator::Result rel32(Relocation &pReloc, ARMRelocator &pParent) {
