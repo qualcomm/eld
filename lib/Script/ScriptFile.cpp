@@ -84,6 +84,8 @@ ScriptFile::~ScriptFile() {}
 void ScriptFile::setCommandContext(ScriptCommand *Cmd) {
   Cmd->setInputFileInContext(getContext());
   Cmd->setParent(getParent());
+  if (auto Line = getCurrentLineNumber())
+    Cmd->setLineNumberInContext(*Line);
 }
 
 void ScriptFile::dump(llvm::raw_ostream &Outs) const {
@@ -484,7 +486,10 @@ void ScriptFile::addInputSectDesc(InputSectDesc::Policy PPolicy,
     Desc = make<InputSectDesc>(ThisModule.getScript().getIncrementedRuleCount(),
                                PPolicy, PSpec, *OutputSectionDescription);
   }
-  setCommandContext(Desc);
+  Desc->setInputFileInContext(getContext());
+  Desc->setParent(getParent());
+  if (auto Line = getCurrentLineNumber())
+    Desc->setLineNumberInContext(*Line);
   OutputSectionDescription->pushBack(Desc);
 }
 
@@ -650,7 +655,9 @@ VersionScript *ScriptFile::createVersionScript() {
 VersionScript *ScriptFile::getVersionScript() { return LinkerVersionScript; }
 
 void ScriptFile::addMemoryRegion(StrToken *Name, StrToken *Attributes,
-                                 Expression *Origin, Expression *Length) {
+                                 Expression *Origin, Expression *Length,
+                                 InputFile *CapturedContext,
+                                 std::optional<size_t> CapturedLineNumber) {
   if (!MemoryCmd) {
     MemoryCmd = eld::make<eld::MemoryCmd>();
     setCommandContext(MemoryCmd);
@@ -658,7 +665,10 @@ void ScriptFile::addMemoryRegion(StrToken *Name, StrToken *Attributes,
   }
   MemoryDesc *Desc =
       eld::make<MemoryDesc>(MemorySpec(Name, Attributes, Origin, Length));
-  setCommandContext(Desc);
+  Desc->setInputFileInContext(CapturedContext);
+  Desc->setParent(getParent());
+  if (CapturedLineNumber)
+    Desc->setLineNumberInContext(*CapturedLineNumber);
   MemoryCmd->pushBack(Desc);
 }
 

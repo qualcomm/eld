@@ -383,11 +383,13 @@ void LayoutInfo::recordGC(const ELFSection *Section) {
 }
 
 void LayoutInfo::recordLinkerScript(std::string LinkerScriptFile, bool Found,
-                                    llvm::StringRef RemappedFrom) {
+                                    llvm::StringRef RemappedFrom,
+                                    std::optional<size_t> LineNumber) {
   ScriptInputT Script;
   LinkStats.NumLinkerScripts++;
   Script.Include = LinkerScriptFile;
   Script.RemappedFrom = RemappedFrom.str();
+  Script.LineNumber = LineNumber;
   Script.Depth = LinkerScriptStack.size();
   if (LinkerScriptStack.size() > 0)
     Script.Parent = LinkerScriptStack.top();
