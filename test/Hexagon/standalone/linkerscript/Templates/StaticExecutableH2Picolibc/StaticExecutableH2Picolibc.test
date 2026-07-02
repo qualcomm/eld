@@ -16,7 +16,7 @@
 #     __tbss_start, __tbss_end, __tbss_size, __tbss_offset
 #     __tls_base, __tls_space_size
 #     __bss_start, __bss_end, __bss_size
-#     __heap_start, __heap_end, HEAP_SIZE
+#     __heap_start, __heap_end, HEAP_SIZE  (address pointers only, no .heap section)
 #     __stack_size, STACK_SIZE, __stack
 #     __start___lcxx_override, __stop___lcxx_override
 #     __eh_frame_hdr_start, __eh_frame_hdr_end
@@ -65,7 +65,7 @@ CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bss_start
 CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bss_end
 CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __bss_size
 
-# --- Heap symbols (plain assignments) ---
+# --- Heap symbols (plain address pointer assignments, no .heap section) ---
 CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __heap_start
 CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} __heap_end
 CHECK-DAG: {{[0-9a-f]+}} {{[A-Za-z]}} HEAP_SIZE
