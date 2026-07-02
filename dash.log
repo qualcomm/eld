@@ -61,3 +61,4 @@ Thu Jul  2 10:04:04 AM UTC 2026 -> Add data lock for zephyr aarch64 build status
 Thu Jul  2 10:04:17 AM UTC 2026 -> Add data lock for zephyr riscv64 build status data to be written
 Thu Jul  2 10:04:23 AM UTC 2026 -> Add data lock for zephyr riscv32 build status data to be written
 Thu Jul  2 10:11:47 AM UTC 2026 -> Add data lock for zephyr riscv32 build status data to be written
+Thu Jul  2 10:44:48 UTC 2026 -> Add data lock for nightly all build status data to be written
