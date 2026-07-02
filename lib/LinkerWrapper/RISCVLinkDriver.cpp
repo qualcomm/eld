@@ -140,19 +140,41 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::no_relax_tlsdesc))
     Config.options().setRISCVRelaxTLSDESC(false);
 
-  // --relax-tbljal, --no-relax-tbljal (default)
-  bool EnableTbljal =
-      ArgList.hasFlag(OPT_RISCVLinkOptTable::relax_tbljal,
-                      OPT_RISCVLinkOptTable::no_relax_tbljal, false);
-  if (EnableTbljal && (ArgList.hasArg(OPT_RISCVLinkOptTable::shared) ||
-                       ArgList.hasFlag(OPT_RISCVLinkOptTable::pie,
-                                       OPT_RISCVLinkOptTable::no_pie, false))) {
+  // --relax-tbljal[=zcmt|xqccmt], --no-relax-tbljal (default)
+  GeneralOptions::RISCVRelaxTbljalMode TbljalMode =
+      GeneralOptions::RISCVRelaxTbljalMode::None;
+  if (llvm::opt::Arg *Arg =
+          ArgList.getLastArg(OPT_RISCVLinkOptTable::relax_tbljal,
+                             OPT_RISCVLinkOptTable::relax_tbljal_eq,
+                             OPT_RISCVLinkOptTable::no_relax_tbljal)) {
+    if (Arg->getOption().matches(OPT_RISCVLinkOptTable::no_relax_tbljal)) {
+      TbljalMode = GeneralOptions::RISCVRelaxTbljalMode::None;
+    } else if (Arg->getOption().matches(OPT_RISCVLinkOptTable::relax_tbljal)) {
+      TbljalMode = GeneralOptions::RISCVRelaxTbljalMode::Zcmt;
+    } else {
+      TbljalMode =
+          llvm::StringSwitch<GeneralOptions::RISCVRelaxTbljalMode>(
+              Arg->getValue())
+              .CaseLower("zcmt", GeneralOptions::RISCVRelaxTbljalMode::Zcmt)
+              .CaseLower("xqccmt", GeneralOptions::RISCVRelaxTbljalMode::Xqccmt)
+              .Default(GeneralOptions::RISCVRelaxTbljalMode::None);
+      if (TbljalMode == GeneralOptions::RISCVRelaxTbljalMode::None) {
+        Config.raise(Diag::invalid_value_for_option)
+            << Arg->getOption().getPrefixedName() << Arg->getValue();
+        return LINK_FAIL;
+      }
+    }
+  }
+  if (TbljalMode != GeneralOptions::RISCVRelaxTbljalMode::None &&
+      (ArgList.hasArg(OPT_RISCVLinkOptTable::shared) ||
+       ArgList.hasFlag(OPT_RISCVLinkOptTable::pie,
+                       OPT_RISCVLinkOptTable::no_pie, false))) {
     Config.raise(Diag::not_supported)
-        << "Zcmt table jump relaxation"
+        << "Zcmt/Xqccmt table jump relaxation"
         << "shared libraries or position independent code";
     return LINK_FAIL;
   }
-  Config.options().setRISCVRelaxTbljal(EnableTbljal);
+  Config.options().setRISCVRelaxTbljal(TbljalMode);
 
   // --enable-bss-mixing
   if (ArgList.hasArg(OPT_RISCVLinkOptTable::enable_bss_mixing))

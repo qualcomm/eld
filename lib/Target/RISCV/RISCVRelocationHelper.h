@@ -90,6 +90,17 @@ enum Reg {
   return inst;
 }
 
+[[maybe_unused]] unsigned getQCEJumpRd(uint64_t insn) {
+  switch ((insn >> 15) & 0x3) {
+  case 0:
+    return X_ZERO;
+  case 1:
+    return X_RA;
+  default:
+    return 32;
+  }
+}
+
 // Extract bits v[begin:end], where range is inclusive, and begin must be < 63.
 [[maybe_unused]] uint32_t extractBits(uint64_t v, uint32_t begin,
                                       uint32_t end) {

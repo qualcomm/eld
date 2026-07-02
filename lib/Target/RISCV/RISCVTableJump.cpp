@@ -4,16 +4,23 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 //
-// This file implements RISC-V Zcmt table-jump handling for linker relaxation:
-// - scans call/jal relocations and selects profitable cm.jt/cm.jalt entries
+// This file implements RISC-V table-jump handling for linker relaxation:
+// - scans call/jal relocations and selects profitable table entries
 // - materializes and emits the .riscv.jvt table
 // - provides map-dump support for selected table-jump entries
+//
+// Zcmt and Xqccmt use the same 16-bit instruction encoding. Zcmt calls the
+// instructions cm.jt/cm.jalt. Xqccmt calls them qc.cm.jt/qc.cm.jalt.
+// Xqccmt also lets qc.cm.jalt write the return address to t0 (x5). It does
+// that by storing bit 0 as metadata in the JVT entry. A clear bit means ra
+// (x1). A set bit means t0 (x5). The real jump target always has bit 0 clear.
 //
 // ABI reference:
 // https://riscv-non-isa.github.io/riscv-elf-psabi-doc/#_table_jump_relaxation
 
 #include "RISCVTableJump.h"
 #include "RISCVLDBackend.h"
+#include "RISCVRelocationHelper.h"
 #include "RISCVRelocationInternal.h"
 #include "eld/Core/Module.h"
 #include "eld/Readers/ELFSection.h"
@@ -24,6 +31,7 @@
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/MathExtras.h"
 #include <cassert>
+#include <tuple>
 
 using namespace eld;
 RISCVTableJumpFragment::RISCVTableJumpFragment(RISCVLDBackend &B, ELFSection *O)
@@ -61,8 +69,20 @@ static uint64_t getTableJumpTargetVA(RISCVLDBackend &Backend,
   return Backend.getSymbolValuePLT(const_cast<ResolveInfo &>(*Sym));
 }
 
+static unsigned getCallTableCandidateCount(
+    const llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry>
+        &CMJALTCandidates,
+    const llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry>
+        &QCCMJALTTCandidates) {
+  return CMJALTCandidates.size() + QCCMJALTTCandidates.size();
+}
+
 void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
   assert(Sec.isCode() && "table jump scan expects a code section");
+
+  const bool UseXqccmt =
+      Backend.config().options().getRISCVRelaxTbljalToXqccmt();
+  HasXqccmt |= UseXqccmt;
 
   auto RelocRange = Sec.getRelocations();
   llvm::SmallVector<const Relocation *, 0> Relocs(RelocRange.begin(),
@@ -94,9 +114,9 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
     if (R->type() == llvm::ELF::R_RISCV_JAL) {
       Rd = (R->target() >> 7) & 0x1f;
     } else if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT) {
-      // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this as
-      // the rd-equivalent selector because QC.E.J does not write ra.
-      Rd = (R->target() >> 15) & 0x3;
+      // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this as the
+      // rd-equivalent selector because QC.E.J does not write a link register.
+      Rd = getQCEJumpRd(R->target());
     } else {
       // CALL/CALL_PLT: read the following JALR to get rd.
       uint32_t Insn = 0;
@@ -104,8 +124,10 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
       Rd = (Insn >> 7) & 0x1f;
     }
 
-    // Only x0 (cm.jt) and ra (cm.jalt) are supported.
-    if (Rd != 0 && Rd != 1)
+    // x0 uses the jump-only instruction.
+    // ra uses the normal jump-and-link instruction.
+    // Xqccmt also supports t0 by setting bit 0 in the JVT entry.
+    if (Rd != 0 && Rd != 1 && !(UseXqccmt && Rd == 5))
       continue;
 
     const int64_t Displace = getCallDisplace(Backend, *R);
@@ -135,6 +157,8 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
 
     if (Rd == 0)
       addEntry(CMJTCandidates, Sym, Saved);
+    else if (Rd == 5)
+      addEntry(QCCMJALTTCandidates, Sym, Saved);
     else
       addEntry(CMJALTCandidates, Sym, Saved);
   }
@@ -175,14 +199,80 @@ static void selectEntries(
     Candidates.erase(Sym);
 }
 
-void RISCVTableJumpFragment::finalizeContents() {
-  selectEntries(Backend, CMJTCandidates, MaxCMJTEntrySize);
-  selectEntries(Backend, CMJALTCandidates, MaxCMJALTEntrySize);
+static void selectCallEntries(
+    RISCVLDBackend &Backend,
+    llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry> &CMJALTCandidates,
+    llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry>
+        &QCCMJALTTCandidates,
+    uint32_t MaxSize) {
+  struct CallEntry {
+    const ResolveInfo *Sym = nullptr;
+    RISCVTableJumpEntry Entry;
+    bool UseT0 = false;
+  };
+
+  llvm::SmallVector<CallEntry, 0> Entries;
+
+  // Add the normal ra entries. They are valid for both Zcmt and Xqccmt.
+  for (const auto &KV : CMJALTCandidates)
+    Entries.push_back({KV.first, KV.second, /*UseT0=*/false});
+
+  // Add the Xqccmt t0 entries. They need their own JVT slot even when the
+  // symbol is the same as an ra entry, because bit 0 in the slot is different.
+  for (const auto &KV : QCCMJALTTCandidates)
+    Entries.push_back({KV.first, KV.second, /*UseT0=*/true});
+
+  llvm::sort(Entries, [&Backend](const CallEntry &A, const CallEntry &B) {
+    const uint64_t AVA = getTableJumpTargetVA(Backend, A.Sym);
+    const uint64_t BVA = getTableJumpTargetVA(Backend, B.Sym);
+    const int ASaved = -A.Entry.Saved;
+    const int BSaved = -B.Entry.Saved;
+    const llvm::StringRef AName = A.Sym->name();
+    const llvm::StringRef BName = B.Sym->name();
+    return std::tie(ASaved, AVA, AName, A.UseT0) <
+           std::tie(BSaved, BVA, BName, B.UseT0);
+  });
+
+  if (Entries.size() > MaxSize)
+    Entries.resize(MaxSize);
 
   const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
+  while (!Entries.empty() && Entries.back().Entry.Saved < WordSize)
+    Entries.pop_back();
 
-  int SavedBoth = -static_cast<int>(
-      (StartCMJALTEntryIdx + CMJALTCandidates.size()) * WordSize);
+  for (size_t I = 0; I < Entries.size(); ++I) {
+    if (Entries[I].UseT0)
+      QCCMJALTTCandidates[Entries[I].Sym].Index = static_cast<int>(I);
+    else
+      CMJALTCandidates[Entries[I].Sym].Index = static_cast<int>(I);
+  }
+
+  llvm::SmallVector<const ResolveInfo *, 0> ToErase;
+  for (const auto &KV : CMJALTCandidates)
+    if (KV.second.Index < 0)
+      ToErase.push_back(KV.first);
+  for (const ResolveInfo *Sym : ToErase)
+    CMJALTCandidates.erase(Sym);
+
+  ToErase.clear();
+  for (const auto &KV : QCCMJALTTCandidates)
+    if (KV.second.Index < 0)
+      ToErase.push_back(KV.first);
+  for (const ResolveInfo *Sym : ToErase)
+    QCCMJALTTCandidates.erase(Sym);
+}
+
+void RISCVTableJumpFragment::finalizeContents() {
+  selectEntries(Backend, CMJTCandidates, MaxCMJTEntrySize);
+  selectCallEntries(Backend, CMJALTCandidates, QCCMJALTTCandidates,
+                    MaxCMJALTEntrySize);
+
+  const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
+  const unsigned CallEntryCount =
+      getCallTableCandidateCount(CMJALTCandidates, QCCMJALTTCandidates);
+
+  int SavedBoth =
+      -static_cast<int>((StartCMJALTEntryIdx + CallEntryCount) * WordSize);
   int SavedCMJTOnly = -static_cast<int>(CMJTCandidates.size() * WordSize);
 
   for (auto &KV : CMJTCandidates) {
@@ -191,18 +281,26 @@ void RISCVTableJumpFragment::finalizeContents() {
   }
   for (auto &KV : CMJALTCandidates)
     SavedBoth += KV.second.Saved;
+  for (auto &KV : QCCMJALTTCandidates)
+    SavedBoth += KV.second.Saved;
 
-  // Using cm.jalt requires padding the cm.jt region to 32 entries.
-  if (!CMJALTCandidates.empty() && SavedBoth < SavedCMJTOnly)
+  // Using the call table requires padding the jump table to 32 entries.
+  // If that padding loses more bytes than the calls save, keep only cm.jt.
+  if (CallEntryCount != 0 && SavedBoth < SavedCMJTOnly) {
     CMJALTCandidates.clear();
+    QCCMJALTTCandidates.clear();
+  }
 
   if (SavedCMJTOnly < 0) {
     CMJTCandidates.clear();
     CMJALTCandidates.clear();
+    QCCMJALTTCandidates.clear();
   }
 
-  if (!CMJALTCandidates.empty())
-    ThisSize = (StartCMJALTEntryIdx + CMJALTCandidates.size()) * WordSize;
+  const unsigned FinalCallEntryCount =
+      getCallTableCandidateCount(CMJALTCandidates, QCCMJALTTCandidates);
+  if (FinalCallEntryCount != 0)
+    ThisSize = (StartCMJALTEntryIdx + FinalCallEntryCount) * WordSize;
   else
     ThisSize = CMJTCandidates.size() * WordSize;
 }
@@ -212,9 +310,14 @@ int RISCVTableJumpFragment::getCMJTEntryIndex(const ResolveInfo *Sym) const {
   return It != CMJTCandidates.end() ? It->second.Index : -1;
 }
 
-int RISCVTableJumpFragment::getCMJALTEntryIndex(const ResolveInfo *Sym) const {
-  auto It = CMJALTCandidates.find(Sym);
-  return It != CMJALTCandidates.end()
+int RISCVTableJumpFragment::getCMJALTEntryIndex(const ResolveInfo *Sym,
+                                                unsigned Rd) const {
+  // ra and t0 call entries share one JVT index space, but are tracked in
+  // separate maps because Xqccmt encodes the link-register choice in bit 0 of
+  // the table entry rather than in the instruction.
+  const auto &Candidates = Rd == 5 ? QCCMJALTTCandidates : CMJALTCandidates;
+  auto It = Candidates.find(Sym);
+  return It != Candidates.end()
              ? static_cast<int>(StartCMJALTEntryIdx) + It->second.Index
              : -1;
 }
@@ -228,6 +331,8 @@ void RISCVTableJumpFragment::dump(llvm::raw_ostream &OS) {
   };
 
   llvm::SmallVector<DumpEntry, 0> Entries;
+  const char *JumpInsn = HasXqccmt ? "qc.cm.jt" : "cm.jt";
+  const char *CallInsn = HasXqccmt ? "qc.cm.jalt" : "cm.jalt";
   auto AddEntries = [&](const llvm::DenseMap<const ResolveInfo *,
                                              RISCVTableJumpEntry> &Candidates,
                         int Bias, const char *Insn) {
@@ -238,9 +343,10 @@ void RISCVTableJumpFragment::dump(llvm::raw_ostream &OS) {
                          getTableJumpTargetVA(Backend, KV.first), Insn});
     }
   };
-  AddEntries(CMJTCandidates, /*Bias=*/0, "cm.jt");
-  AddEntries(CMJALTCandidates, static_cast<int>(StartCMJALTEntryIdx),
-             "cm.jalt");
+  AddEntries(CMJTCandidates, /*Bias=*/0, JumpInsn);
+  AddEntries(CMJALTCandidates, static_cast<int>(StartCMJALTEntryIdx), CallInsn);
+  AddEntries(QCCMJALTTCandidates, static_cast<int>(StartCMJALTEntryIdx),
+             CallInsn);
   if (Entries.empty())
     return;
 
@@ -276,12 +382,39 @@ writeEntries(RISCVLDBackend &Backend, uint8_t *Buf,
   }
 }
 
+static void
+writeCallEntries(RISCVLDBackend &Backend, uint8_t *Buf,
+                 unsigned StartCallEntryIdx,
+                 const llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry>
+                     &CMJALTCandidates,
+                 const llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry>
+                     &QCCMJALTTCandidates) {
+  const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
+
+  auto WriteOne = [&](const ResolveInfo *Sym, const RISCVTableJumpEntry &Entry,
+                      bool SetEntryBit0) {
+    uint64_t VA = getTableJumpTargetVA(Backend, Sym);
+    if (SetEntryBit0)
+      VA |= 1;
+    uint8_t *EntryBuf = Buf + (StartCallEntryIdx + Entry.Index) * WordSize;
+    if (Backend.config().targets().is32Bits())
+      llvm::support::endian::write32le(EntryBuf, static_cast<uint32_t>(VA));
+    else
+      llvm::support::endian::write64le(EntryBuf, VA);
+  };
+
+  // Call entries from both maps share one index space. The maps are not laid
+  // out in separate ra-then-t0 ranges, so write every entry to its exact index.
+  for (auto &KV : CMJALTCandidates)
+    WriteOne(KV.first, KV.second, /*SetEntryBit0=*/false);
+  for (auto &KV : QCCMJALTTCandidates)
+    WriteOne(KV.first, KV.second, /*SetEntryBit0=*/true);
+}
+
 void RISCVTableJumpFragment::writeTo(uint8_t *Buf) {
   if (!CMJTCandidates.empty())
     writeEntries(Backend, Buf, CMJTCandidates);
-  if (!CMJALTCandidates.empty()) {
-    const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
-    writeEntries(Backend, Buf + StartCMJALTEntryIdx * WordSize,
-                 CMJALTCandidates);
-  }
+  if (!CMJALTCandidates.empty() || !QCCMJALTTCandidates.empty())
+    writeCallEntries(Backend, Buf, StartCMJALTEntryIdx, CMJALTCandidates,
+                     QCCMJALTTCandidates);
 }
