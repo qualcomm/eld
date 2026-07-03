@@ -1,0 +1,25 @@
+REQUIRES: run_test
+#---TLS_RunTest.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Verify TLS relaxations work correctly at runtime for all link modes:
+# - Static executable: TLSDESC->LE relaxation
+# - PIE executable: TLSDESC->IE relaxation  
+# - Dynamic executable: TLSDESC->IE relaxation
+# Requires AArch64 cross compiler, sysroot, and QEMU emulator.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -o %t.o %p/Inputs/tls_run.c -c -ftls-model=global-dynamic -fPIC
+
+RUN: %run_cc -o %t.static.out %t.o -static
+RUN: %run %t.static.out | %filecheck %s --check-prefix=CHECK
+
+RUN: %run_cc -o %t.pie.out %t.o -pie
+RUN: %run %t.pie.out | %filecheck %s --check-prefix=CHECK
+
+RUN: %run_cc -o %t.dyn.out %t.o -Wl,-dy
+RUN: %run %t.dyn.out | %filecheck %s --check-prefix=CHECK
+#END_TEST
+
+CHECK: tls_global = 42
+CHECK: tls_local = 100
+CHECK: tls_global after write = 99
