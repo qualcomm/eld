@@ -1,0 +1,14 @@
+#--GOTPCRELXRelax_AddendNonM4.test----------Shared Library--------#
+# R_X86_64_GOTPCRELX with addend != -4 must not be relaxed.
+# GNU as may emit GOTPCRELX with addend != -4 (e.g. addend=0 loads the high
+# 32 bits of the GOT entry). Relaxing such a relocation would produce wrong
+# output, so the GOT slot must be preserved and the instruction left as-is.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/addend_nonm4.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+#END_TEST
+
+# Instruction must remain a movl (8b), not an lea (8d).
+CHECK: <h>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl

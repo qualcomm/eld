@@ -14,6 +14,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "x86_64PLT.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include <unordered_set>
 
 namespace eld {
 
@@ -47,6 +48,10 @@ public:
   bool initBRIslandFactory() override;
 
   bool initStubFactory() override;
+
+  bool shouldIgnoreRelocSync(Relocation *Reloc) const override;
+
+  eld::Expected<void> postProcessing(llvm::FileOutputBuffer &pOutput) override;
 
   /// getTargetSectionOrder - compute the layout order of target section
   unsigned int getTargetSectionOrder(const ELFSection &pSectHdr) const override;
@@ -98,6 +103,27 @@ public:
 
   void sortRelocation(ELFSection &pSection) override;
 
+  /// Returns true if the relocation is eligible for GOTPCRELX relaxation.
+  /// Checks: type R_X86_64_GOTPCRELX, addend == -4, non-preemptible,
+  /// not IFUNC, and opcode is MOV/CALL/JMP (read directly from the input
+  /// fragment). Relaxation is disabled for partial links.
+  bool isGOTPCRELXRelaxable(const Relocation *reloc) const;
+
+  /// Records a relocation that the scan phase has decided to relax, so that
+  /// postProcessing can iterate only these candidates instead of re-walking
+  /// every relocation. Thread-safe: called from the parallel scan under the
+  /// relocator mutex.
+  void recordGOTPCRELXRelaxCandidate(Relocation *reloc) {
+    m_GOTPCRELXRelaxCandidates.insert(reloc);
+  }
+
+  /// Returns true if this relocation was recorded as a relaxation candidate
+  /// during the scan phase. O(1) lookup used by shouldIgnoreRelocSync and
+  /// the apply-path guard to avoid re-deriving relaxability.
+  bool isGOTPCRELXRelaxCandidate(Relocation *reloc) const {
+    return m_GOTPCRELXRelaxCandidates.count(reloc) != 0;
+  }
+
   DynRelocType getDynRelocType(const Relocation *X) const override {
     if (X->type() == llvm::ELF::R_X86_64_GLOB_DAT)
       return DynRelocType::GLOB_DAT;
@@ -144,6 +170,18 @@ private:
 
   uint64_t maxBranchOffset() override { return 0; }
 
+  enum class GOTPCRELXOpcode { MOV, CALL, JMP, Unknown };
+  GOTPCRELXOpcode getGOTPCRELXOpcode(uint8_t op, uint8_t modrm) const;
+
+  /// Rewrites the GOT-indirect instruction referenced by a single relaxation
+  /// candidate into its PC-relative form, patching the output buffer.
+  /// Returns an error (and does not patch) if the displacement overflows a
+  /// signed 32-bit field.
+  eld::Expected<void> relaxGOTPCRELXReloc(Relocation *reloc, uint8_t *buf);
+
+  /// Iterates the cached relaxation candidates and rewrites each one.
+  eld::Expected<void> doRelax(llvm::FileOutputBuffer &pOutput);
+
 private:
   Relocator *m_pRelocator;
 
@@ -155,6 +193,11 @@ private:
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
+  /// Relocations selected for GOTPCRELX relaxation during the scan phase.
+  /// Populated under the relocator mutex; consumed single-threaded in
+  /// postProcessing. unordered_set for O(1) membership checks in
+  /// shouldIgnoreRelocSync and the apply-path guard.
+  std::unordered_set<Relocation *> m_GOTPCRELXRelaxCandidates;
 };
 } // namespace eld
 

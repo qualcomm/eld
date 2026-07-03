@@ -235,6 +235,7 @@ eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {
             .Case("lto", DiagEngine->getPrinter()->TraceLTO)
             .Case("merge-strings", DiagEngine->getPrinter()->TraceMergeStrings)
             .Case("plugin", DiagEngine->getPrinter()->TracePlugin)
+            .Case("relax", DiagEngine->getPrinter()->TraceRelax)
             .Case("threads", DiagEngine->getPrinter()->TraceThreads)
             .Case("trampolines", DiagEngine->getPrinter()->TraceTrampolines)
             .Case("wrap-symbols", DiagEngine->getPrinter()->TraceWrap)

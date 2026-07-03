@@ -1,0 +1,35 @@
+#--GOTPCRELXRelax_PartialRelink.test----------Shared Library--------#
+# Two-stage link: a partial link (-r) must NOT relax (it has no final
+# layout), and must preserve the R_X86_64_GOTPCRELX relocations so the final
+# link can relax them. Relinking the partial output into a final shared object
+# must then relax the non-preemptible (hidden) reference.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/mov.s -o %t.o
+
+# Stage 1: partial link with --relax. Relaxation must be skipped; the
+# GOTPCRELX relocation and the GOT-indirect movl (opcode 8b) must survive.
+RUN: %link %linkopts -r --relax -o %t.partial.o %t.o
+RUN: %readelf -r %t.partial.o | %filecheck %s --check-prefix=PARTIAL
+RUN: %objdump -dr %t.partial.o | %filecheck %s --check-prefix=PARTIALDIS
+
+# Stage 2: relink the partial output into a final shared object with --relax.
+# The hidden reference must now relax to leal (opcode 8d); the preemptible
+# reference must remain movl (opcode 8b).
+RUN: %link %linkopts --relax -shared -o %t.so %t.partial.o
+RUN: %objdump -d %t.so | %filecheck %s --check-prefix=FINAL
+#END_TEST
+
+# Partial output keeps the GOTPCRELX relocations.
+PARTIAL: R_X86_64_GOTPCRELX {{.*}} sym_hidden
+PARTIAL: R_X86_64_GOTPCRELX {{.*}} sym_default
+
+# Partial output is not relaxed: still a GOT-indirect movl.
+PARTIALDIS: <h_hidden>:
+PARTIALDIS-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl
+
+# Final output: hidden reference relaxed to leal.
+FINAL: <h_hidden>:
+FINAL-NEXT: {{[0-9a-f]+}}: 8d 05 {{.*}} leal
+# Final output: preemptible reference not relaxed.
+FINAL: <h_default>:
+FINAL-NEXT: {{[0-9a-f]+}}: 8b 05 {{.*}} movl

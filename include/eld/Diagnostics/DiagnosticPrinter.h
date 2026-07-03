@@ -47,6 +47,7 @@ public:
     TraceMergeStrings = 0x8000,
     TraceLinkerScript = 0x10000,
     TraceUntar = 0x20000,
+    TraceRelax = 0x40000,
     TraceSymDef = 0x100000,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     TraceSymbolVersioning = 0x200000
@@ -101,6 +102,8 @@ public:
   bool traceLinkerScript() { return (Trace & TraceLinkerScript); }
 
   bool traceUntar() { return (Trace & TraceUntar); }
+
+  bool traceRelax() { return (Trace & TraceRelax); }
 
   bool traceSymDef() { return (Trace & TraceSymDef); }
 

@@ -1,0 +1,16 @@
+#--GOTPCRELXRelax_Basic.test----------Shared Library--------#
+# Basic R_X86_64_GOTPCRELX relaxation.
+# movl sym@GOTPCREL(%rip), %eax -> leal sym(%rip), %eax.
+# Also verifies that no GOT slot is allocated for the relaxed symbol.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/mov.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+RUN: %readelf -r %t.so | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+CHECK: <h_hidden>:
+CHECK-NEXT: {{[0-9a-f]+}}: 8d 05 {{.*}} leal
+
+# No dynamic relocation should exist for the relaxed hidden symbol.
+NORELOC-NOT: sym_hidden

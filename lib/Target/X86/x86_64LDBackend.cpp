@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 #include "x86_64LDBackend.h"
 #include "eld/Config/LinkerConfig.h"
+#include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/Stub.h"
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Object/ObjectBuilder.h"
@@ -22,7 +23,10 @@
 #include "x86_64StandaloneInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/Endian.h"
+#include "llvm/Support/MathExtras.h"
 #include "llvm/TargetParser/Host.h"
+#include <limits>
 
 using namespace eld;
 using namespace llvm;
@@ -96,6 +100,190 @@ void x86_64LDBackend::initTargetSymbols() {
 bool x86_64LDBackend::initBRIslandFactory() { return true; }
 
 bool x86_64LDBackend::initStubFactory() { return true; }
+
+x86_64LDBackend::GOTPCRELXOpcode
+x86_64LDBackend::getGOTPCRELXOpcode(uint8_t op, uint8_t modrm) const {
+  if (op == 0x8b)
+    return GOTPCRELXOpcode::MOV;
+  if (op == 0xff && modrm == 0x15)
+    return GOTPCRELXOpcode::CALL;
+  if (op == 0xff && modrm == 0x25)
+    return GOTPCRELXOpcode::JMP;
+  return GOTPCRELXOpcode::Unknown;
+}
+
+bool x86_64LDBackend::isGOTPCRELXRelaxable(const Relocation *reloc) const {
+  // Partial links have no final layout, so relaxation is not possible; keep
+  // the GOT slot and let the final link decide.
+  if (config().isLinkPartial())
+    return false;
+  if (reloc->type() != llvm::ELF::R_X86_64_GOTPCRELX)
+    return false;
+  // GNU as may emit GOTPCRELX with addend != -4. Such an instruction does not
+  // load the full GOT entry (e.g. movl x@GOTPCREL+4(%rip) loads the high 32
+  // bits), so it cannot be relaxed. Matches lld's adjustGotPcExpr.
+  if (static_cast<int64_t>(reloc->addend()) != -4)
+    return false;
+  const ResolveInfo *rsym = reloc->symInfo();
+  // IFUNC symbols must retain their GOT slot: the IRELATIVE resolver runs at
+  // load time and deposits the selected implementation's address there.
+  // Relaxing to a PC-relative access would bypass that resolution. Note a
+  // hidden/local IFUNC is non-preemptible, so the isIFunc() check is not
+  // redundant with isSymbolPreemptible().
+  if (isSymbolPreemptible(*rsym) || rsym->isIFunc())
+    return false;
+  auto *RF = llvm::dyn_cast<RegionFragment>(reloc->targetRef()->frag());
+  if (!RF)
+    return false;
+  uint32_t offset = reloc->targetRef()->offset();
+  // The opcode and ModR/M byte sit at offset-2 and offset-1 relative to the
+  // displacement field. A corrupt or hand-crafted object could place the
+  // relocation at offset 0 or 1, making those reads out-of-bounds.
+  if (offset < 2)
+    return false;
+  // The two bytes preceding the 4-byte displacement hold the opcode and,
+  // for CALL/JMP, the ModR/M byte. Only MOV/CALL/JMP are relaxable.
+  const uint8_t *loc =
+      reinterpret_cast<const uint8_t *>(RF->getRegion().data()) + offset;
+  uint8_t op = loc[-2];
+  uint8_t modrm = loc[-1];
+  return getGOTPCRELXOpcode(op, modrm) != GOTPCRELXOpcode::Unknown;
+}
+
+bool x86_64LDBackend::shouldIgnoreRelocSync(Relocation *reloc) const {
+  return isGOTPCRELXRelaxCandidate(reloc);
+}
+
+eld::Expected<void>
+x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
+  ELDEXP_RETURN_DIAGENTRY_IF_ERROR(GNULDBackend::postProcessing(pOutput));
+
+  // Relaxation rewrites bytes in the laid-out output image; it is not
+  // applicable to partial links, which have no final layout.
+  if (config().options().getRelax() && !config().isLinkPartial())
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(doRelax(pOutput));
+
+  return {};
+}
+
+eld::Expected<void> x86_64LDBackend::doRelax(llvm::FileOutputBuffer &pOutput) {
+  uint8_t *buf = pOutput.getBufferStart();
+  // The scan phase already identified every relaxation candidate (skipping
+  // debug relocations and internal files, which never carry a relaxable
+  // relocation). Iterate that cached set instead of re-walking all
+  // relocations, and dispatch on the relocation type. Future relaxable types
+  // (e.g. R_X86_64_REX_GOTPCRELX, TLS relaxations) add a case here.
+  for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
+    switch (reloc->type()) {
+    case llvm::ELF::R_X86_64_GOTPCRELX:
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
+      break;
+    default:
+      // Only relaxable types are recorded as candidates; skip anything else.
+      break;
+    }
+  }
+  return {};
+}
+
+eld::Expected<void> x86_64LDBackend::relaxGOTPCRELXReloc(Relocation *reloc,
+                                                         uint8_t *buf) {
+  // Only RegionFragment relocations are recorded as relaxation candidates
+  // (isGOTPCRELXRelaxable requires a RegionFragment), so this cast must
+  // succeed.
+  auto *RF = llvm::dyn_cast<RegionFragment>(reloc->targetRef()->frag());
+  assert(RF && "GOTPCRELX relax candidate must reference a RegionFragment");
+
+  uint32_t offset = reloc->targetRef()->offset();
+  // isGOTPCRELXRelaxable checks offset >= 2 before recording a candidate,
+  // so this must hold for every relocation that reaches here.
+  assert(offset >= 2 && "GOTPCRELX relax candidate must have offset >= 2");
+  // Opcode/ModR/M bytes live just before the 4-byte displacement field.
+  const uint8_t *loc =
+      reinterpret_cast<const uint8_t *>(RF->getRegion().data()) + offset;
+
+  ResolveInfo *rsym = reloc->symInfo();
+  Relocator::Address S = reloc->symValue(m_Module);
+  Relocator::DWord A = reloc->addend();
+  Relocator::DWord P = reloc->place(m_Module);
+  // Relaxed form is a direct PC-relative access: displacement = S + A - P.
+  int64_t val = static_cast<int64_t>(S) + static_cast<int64_t>(A) -
+                static_cast<int64_t>(P);
+
+  if (!llvm::isInt<32>(val)) {
+    // Unlike lld (which relayouts and can fall back to the GOT slot), eld
+    // decides relaxability at scan time and has already dropped the GOT slot,
+    // so an out-of-range displacement here is a hard error. Report it with the
+    // source location and abort the link (matching GNU ld's --no-relax hint).
+    std::string location;
+    ELFSection *overflowSect = RF->getOwningSection();
+    assert(overflowSect &&
+           "RegionFragment in relax candidate must have an owning section");
+    location = overflowSect->getLocation(offset, config().options());
+    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+        Diag::error_x86_gotpcrelx_relax_overflow,
+        {std::move(location), "R_X86_64_GOTPCRELX", llvm::itostr(val),
+         llvm::itostr(std::numeric_limits<int32_t>::min()),
+         llvm::itostr(std::numeric_limits<int32_t>::max()),
+         std::string(rsym->name())}));
+  }
+
+  FragmentRef::Offset off = reloc->targetRef()->getOutputOffset(m_Module);
+  if (off == (FragmentRef::Offset)-1)
+    return {};
+  size_t out_off = reloc->targetRef()->getOutputELFSection()->offset() + off;
+
+  uint8_t op = loc[-2];
+  uint8_t modrm = loc[-1];
+  const char *kind = nullptr;
+  switch (getGOTPCRELXOpcode(op, modrm)) {
+  case GOTPCRELXOpcode::MOV:
+    // mov foo@GOTPCREL(%rip), reg  ->  lea foo(%rip), reg
+    // The GOT-load opcode 0x8b becomes the address-load opcode 0x8d; the
+    // ModR/M and displacement encoding are otherwise identical.
+    buf[out_off - 2] = 0x8d;
+    llvm::support::endian::write32le(buf + out_off, static_cast<uint32_t>(val));
+    kind = "mov->lea";
+    break;
+  case GOTPCRELXOpcode::CALL:
+    // call *foo@GOTPCREL(%rip)  ->  addr32 call foo
+    // The 2-byte "ff 15" indirect call is 6 bytes; the direct "e8 rel32" is
+    // 5 bytes, so a 0x67 (addr32) prefix pads it back to 6 bytes.
+    buf[out_off - 2] = 0x67;
+    buf[out_off - 1] = 0xe8;
+    llvm::support::endian::write32le(buf + out_off, static_cast<uint32_t>(val));
+    kind = "call->direct";
+    break;
+  case GOTPCRELXOpcode::JMP:
+    // jmp *foo@GOTPCREL(%rip)  ->  jmp foo; nop
+    // "ff 25" indirect jmp (6 bytes) becomes "e9 rel32" direct jmp (5 bytes)
+    // followed by a 0x90 nop for padding. The displacement shifts one byte
+    // earlier (no ModR/M), so it is written at out_off-1 with val+1 to account
+    // for the one-byte-shorter instruction prefix.
+    buf[out_off - 2] = 0xe9;
+    llvm::support::endian::write32le(buf + out_off - 1,
+                                     static_cast<uint32_t>(val + 1));
+    buf[out_off + 3] = 0x90;
+    kind = "jmp->direct";
+    break;
+  case GOTPCRELXOpcode::Unknown:
+    // isGOTPCRELXRelaxable only records MOV/CALL/JMP candidates, so this is
+    // not expected; leave the instruction untouched if it is ever reached.
+    break;
+  }
+
+  if (m_Module.getPrinter()->traceRelax()) {
+    std::string location;
+    ELFSection *traceSect = RF->getOwningSection();
+    assert(traceSect &&
+           "RegionFragment in relax candidate must have an owning section");
+    location = traceSect->getLocation(offset, config().options());
+    config().raise(Diag::trace_relax_gotpcrelx)
+        << location << kind << rsym->name();
+  }
+
+  return {};
+}
 
 /// finalizeSymbol - finalize the symbol value
 bool x86_64LDBackend::finalizeTargetSymbols() {

@@ -924,6 +924,10 @@ public:
 
   bool getRISCVRelax() const { return BRiscvRelax; }
 
+  void setRelax(bool Value) { ShouldRelax = Value; }
+
+  bool getRelax() const { return ShouldRelax; }
+
   void setRISCVZeroRelax(bool Relax) { RiscvZeroRelax = Relax; }
 
   bool getRISCVZeroRelax() const { return RiscvZeroRelax; }
@@ -1323,6 +1327,7 @@ private:
   bool DisableGuardForWeakUndefs = false; // hexagon specific option to
                                           // disable guard functionality.
   bool BRiscvRelax = true;                // enable riscv relaxation
+  bool ShouldRelax = false; // x86-64 GOTPCRELX relaxation (opt-in via --relax)
   bool RiscvZeroRelax = true;             // Zero-page relaxation
   bool RiscvGPRelax = true;               // GP relaxation
   bool BRiscvRelaxToC = true; // enable riscv relax to compressed code

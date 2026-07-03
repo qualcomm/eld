@@ -97,6 +97,12 @@ x86_64LinkDriver::parseOptions(ArrayRef<const char *> Args,
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_x86_64LinkOptTable::UNKNOWN));
 
+  // --relax/--no-relax: enable/disable GOTPCRELX relaxation (disabled by
+  // default)
+  Config.options().setRelax(ArgList.hasFlag(OPT_x86_64LinkOptTable::relax,
+                                            OPT_x86_64LinkOptTable::no_relax,
+                                            /*default=*/false));
+
   return {};
 }
 

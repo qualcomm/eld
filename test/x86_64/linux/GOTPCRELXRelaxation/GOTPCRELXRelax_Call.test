@@ -1,0 +1,11 @@
+#--GOTPCRELXRelax_Call.test----------Shared Library--------#
+# CALL rewrite: call *sym@GOTPCREL(%rip) (ff 15) -> addr32 callq sym (67 e8).
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/call.s -o %t.o
+RUN: %link %linkopts --relax -shared -o %t.so %t.o
+RUN: %objdump -d %t.so | %filecheck %s
+#END_TEST
+
+# Instruction must be rewritten to addr32 call (67 e8), not indirect call (ff 15).
+CHECK: <h>:
+CHECK-NEXT: {{[0-9a-f]+}}: 67 e8 {{.*}} addr32 call

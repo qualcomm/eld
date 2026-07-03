@@ -1,0 +1,9 @@
+#--GOTPCRELXRelax_Overflow.test----------Shared Library--------#
+# Out-of-range: displacement overflows 32 bits, linker must error.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/overflow.s -o %t.o
+RUN: %not %link %linkopts --relax -T %p/Inputs/script_overflow.t -o %t.out %t.o 2>&1 \
+RUN:   | %filecheck %s
+#END_TEST
+
+CHECK: {{.*}}: relaxing relocation R_X86_64_GOTPCRELX out of range: {{[0-9]+}} is not in [-2147483648, 2147483647]; references 'sym'; relink with --no-relax
