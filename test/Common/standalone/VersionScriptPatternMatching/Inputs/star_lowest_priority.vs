@@ -1,4 +1,6 @@
 {
     global:
         *;
+    local:
+        foo*;
 };

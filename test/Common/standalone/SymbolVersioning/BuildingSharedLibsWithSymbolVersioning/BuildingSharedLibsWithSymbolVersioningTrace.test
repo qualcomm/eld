@@ -9,11 +9,21 @@ RUN: %clang %clangopts -o %t1.3.o %p/Inputs/3.c -c -fPIC
 RUN: %link %linkopts -o %t1.lib1.so %t1.3.o -shared --version-script %p/Inputs/vs.2.t \
 RUN:   --trace=symbol-versioning 2>&1 | %filecheck %s --check-prefix=TRACE1
 #END_TEST
-TRACE1: Trace: Version script node matched global symbol 'baz'
-TRACE1: Trace: Version script node matched global symbol 'foo@V1'
-TRACE1: Trace: Version script node matched global symbol 'bar@@V1'
+TRACE1-DAG: Trace: Version script node 'V2(global)' matched symbol 'baz'
+TRACE1-DAG: Trace: Version script node 'V1(global)' matched symbol 'foo@V1'
+TRACE1-DAG: Trace: Version script node 'V1(global)' matched symbol 'bar@@V1'
 TRACE1: Trace: Creating symbol versioning section: .gnu.version
 TRACE1: Trace: Creating symbol versioning section: .gnu.version_d
 TRACE1: Trace: Assigning version IDs to output symbols
 TRACE1: Trace: Creating symbol versioning fragment: .gnu.version
 TRACE1: Trace: Creating symbol versioning fragment: .gnu.version_d
+
+# A symbol matched by a named node's local block should report the node name
+# with its scope, i.e. 'V1(local)', not VER_NDX_LOCAL.
+RUN: %clang %clangopts -o %t1.local.o %p/Inputs/local_scope.c -c -fPIC
+RUN: %link %linkopts -o %t1.local.so %t1.local.o -shared \
+RUN:   --version-script %p/Inputs/local_scope.t \
+RUN:   --trace=symbol-versioning 2>&1 | %filecheck %s --check-prefix=TRACE2
+
+TRACE2-DAG: Trace: Version script node 'V1(global)' matched symbol 'exported'
+TRACE2-DAG: Trace: Version script node 'V1(local)' matched symbol 'hidden'

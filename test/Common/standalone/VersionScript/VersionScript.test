@@ -92,8 +92,6 @@ MAPCHECK5: Pattern: *
 MAPCHECK5-DAG: # bar {{.*}}5.o
 MAPCHECK5-DAG: # baz {{.*}}5.o
 MAPCHECK5-DAG: # foo {{.*}}5.o
-MAPCHECK5: Local:
-MAPCHECK5: Pattern: *
 
 
 EXEC5: foo
@@ -107,8 +105,6 @@ MAPCHECK51: Pattern: *
 MAPCHECK51-DAG: # bar {{.*}}5.o
 MAPCHECK51-DAG: # baz {{.*}}5.o
 MAPCHECK51-DAG: # foo {{.*}}5.o
-MAPCHECK51: Local:
-MAPCHECK51: Pattern: *
 
 
 # Test  version script on an executable with -E flag, all globals mentioned in script
@@ -157,13 +153,8 @@ MAPCHECK8: {{.*}}/Inputs/vs5
 MAPCHECK8: Global:
 MAPCHECK8: Pattern: *
 MAPCHECK8-DAG: # f_exe {{.*}}8_2.o
-MAPCHECK8-DAG: # bar {{.*}}8.so
 MAPCHECK8-DAG: # main {{.*}}8_2.o
-MAPCHECK8-DAG: # baz {{.*}}8.so
 MAPCHECK8-DAG: # func_exe {{.*}}8_2.o
-MAPCHECK8-DAG: # foo {{.*}}8.so
-MAPCHECK8: Local:
-MAPCHECK8: Pattern: *
 
 #Test that scripts with version nodes are warned as unsupported and ignored
 RUN: %link -MapStyle txt %linkopts -shared -o %t1.so %t1.o --version-script=%p/Inputs/vs6 -Map %t.map9 2>&1 |  %filecheck --check-prefix="CHECK9" %s

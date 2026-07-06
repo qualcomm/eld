@@ -1003,6 +1003,8 @@ def W : Joined<["-"], "W">,
              "whole-archive is enabled for any archive file\n"
              "\t\t\t -W[no-]osabi : display a warning when linking objects "
              "with different values for OS/ABI\n"
+             "\t\t\t -W[no-]version-script : display warnings detected while "
+             "processing version scripts\n"
             >,
         Group<grp_diagopts>;
 

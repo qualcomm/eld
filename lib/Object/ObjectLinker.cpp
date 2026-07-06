@@ -407,65 +407,124 @@ bool ObjectLinker::parseVersionScript() {
       ThisModule->addVersionScriptNode(VersionScriptNode);
     }
   }
-  auto &SymbolScopes = getTargetBackend().symbolScopes();
+  assignVersionNodesToSymbols();
+  return true;
+}
+
+void ObjectLinker::assignVersionNodesToSymbols() {
   auto &NP = ThisModule->getNamePool();
+  auto &VersionNodes = ThisModule->getVersionScriptNodes();
+
+  if (VersionNodes.empty())
+    return;
+
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-  DemangledNamesMap DemangledNames;
+  DemangledNamesMap demangledNames;
 #endif
+
+  auto canAssignVersionNode = [](const ResolveInfo &R) {
+    return (R.isDefine() || R.isCommon()) && !R.isDyn();
+  };
+
+  auto getVersionDesc = [](const VersionSymbol *VS) -> std::string {
+    auto *node = VS->getBlock()->getNode();
+    if (node->isAnonymous())
+      return VS->isGlobal() ? "VER_NDX_GLOBAL" : "VER_NDX_LOCAL";
+    return (node->getName() + (VS->isGlobal() ? "(global)" : "(local)")).str();
+  };
+
+  // Try assigning version node VS to the symbol R. It only assigns a
+  // version node to the symbol if the symbol does not already have an
+  // assigned version node. It emits version node reassign warning if
+  // warnOnReassing is true.
+  auto tryAssign = [&](ResolveInfo *R, VersionSymbol *VS, bool warnOnReassign) {
+    VersionSymbol *existing = getTargetBackend().getSymbolScope(R);
+    InputFile *verSymInputFile =
+        VS->getBlock()->getNode()->getVersionScript().getInputFile();
+    if (existing != nullptr) {
+      if (warnOnReassign && ThisConfig.showVersionScriptWarnings()) {
+        ThisConfig.raise(Diag::warn_version_script_reassign)
+            << verSymInputFile->getInput()->decoratedPath() << R->name()
+            << getVersionDesc(existing) << getVersionDesc(VS);
+      }
+      return false;
+    }
+
+    getTargetBackend().addSymbolScope(R, VS);
+
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    if (ThisConfig.getPrinter()->traceSymbolVersioning()) {
+      ThisConfig.raise(Diag::trace_version_script_matched_scope)
+          << R->name() << getVersionDesc(VS);
+    }
+#endif
+    return true;
+  };
+
+  using PatternFilter = std::function<bool(const WildcardPattern &)>;
+
+  std::vector<ResolveInfo *> VSApplicableSymbols;
   for (auto &G : NP.getGlobals()) {
     ResolveInfo *R = G.getValue();
-    for (auto &VersionScriptNode : ThisModule->getVersionScriptNodes()) {
-      if (VersionScriptNode->getGlobalBlock()) {
-        for (auto *Sym : VersionScriptNode->getGlobalBlock()->getSymbols()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP, DemangledNames);
-#else
-          bool isMatched = Sym->getSymbolPattern()->matched(*R);
-#endif
-          if (isMatched) {
-            getTargetBackend().addSymbolScope(R, Sym);
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            if (ThisConfig.getPrinter()->traceSymbolVersioning())
-              ThisConfig.raise(Diag::trace_version_script_matched_scope)
-                  << "global" << R->name();
-            break;
-#endif
-          } // end Symbol Match
-        } // end Symbols
-      } // end Global
-      if (SymbolScopes.find(R) != SymbolScopes.end()) {
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-        break;
-#else
+    if (canAssignVersionNode(*R))
+      VSApplicableSymbols.push_back(R);
+  }
+
+  auto processBlock = [&](VersionScriptBlock *block, PatternFilter filter,
+                          bool warnOnReassign) {
+    if (!block)
+      return;
+
+    for (auto *sym : block->getSymbols()) {
+      auto *pattern = sym->getSymbolPattern();
+      if (!filter(*pattern))
         continue;
-#endif
-      }
-      if (VersionScriptNode->getLocalBlock()) {
-        for (auto *Sym : VersionScriptNode->getLocalBlock()->getSymbols()) {
+
+      for (auto *R : VSApplicableSymbols) {
+        if (!warnOnReassign && getTargetBackend().getSymbolScope(R) != nullptr)
+          continue;
+
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
-          bool isMatched = Sym->matched(*R, NP, DemangledNames);
+        if (sym->matched(*R, NP, demangledNames))
 #else
-          bool isMatched = Sym->getSymbolPattern()->matched(*R);
+        if (pattern->matched(*R))
 #endif
-          if (isMatched) {
-            getTargetBackend().addSymbolScope(R, Sym);
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-            if (ThisConfig.getPrinter()->traceSymbolVersioning())
-              ThisConfig.raise(Diag::trace_version_script_matched_scope)
-                  << "local" << R->name();
-            break;
-#endif
-          } // end Symbol Match
-        } // end Symbols
-      } // end Local
-#ifdef ELD_ENABLE_SYMBOL_VERSIONING
-      if (SymbolScopes.find(R) != SymbolScopes.end()) {
-        break;
+        {
+          tryAssign(R, sym, warnOnReassign);
+        }
       }
-#endif
-    } // end all Nodes
-  } // end Globals
-  return true;
+    }
+  };
+
+  auto processNodeFirstWins = [&](const VersionScriptNode *node,
+                                  PatternFilter filter, bool warnOnReassign) {
+    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
+    processBlock(node->getLocalBlock(), filter, warnOnReassign);
+  };
+
+  auto processNodeLastWins = [&](const VersionScriptNode *node,
+                                 PatternFilter filter, bool warnOnReassign) {
+    processBlock(node->getLocalBlock(), filter, warnOnReassign);
+    processBlock(node->getGlobalBlock(), filter, warnOnReassign);
+  };
+
+  auto isExact = [](const WildcardPattern &P) { return !P.hasGlob(); };
+  auto isNonStarWildcard = [](const WildcardPattern &P) {
+    return P.hasGlob() && !P.isMatchAll();
+  };
+  auto isMatchAll = [](const WildcardPattern &P) { return P.isMatchAll(); };
+
+  for (const auto *N : VersionNodes) {
+    processNodeFirstWins(N, isExact, true);
+  }
+
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    processNodeLastWins(*It, isNonStarWildcard, false);
+  }
+
+  for (auto It = VersionNodes.rbegin(); It != VersionNodes.rend(); ++It) {
+    processNodeLastWins(*It, isMatchAll, false);
+  }
 }
 
 std::string ObjectLinker::getLTOTempPrefix() const {
