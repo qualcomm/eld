@@ -219,6 +219,10 @@ public:
 
   bool hasOutputFileName() const { return OutputFileName.has_value(); }
 
+  void setEmitOutputFile(bool Enable = true) { EmitOutputFile = Enable; }
+
+  bool shouldEmitOutputFile() { return EmitOutputFile; }
+
   void setVerbose(int8_t PVerbose = 1);
 
   void setColor(bool PEnabled = true) { BColor = PEnabled; }
@@ -1421,6 +1425,7 @@ private:
   std::string LinkLaunchDirectory;
   bool ShowRMSectNameInDiag = false;
   bool UseDefaultPlugins = true;
+  bool EmitOutputFile = true;
 };
 
 } // namespace eld

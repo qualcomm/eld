@@ -14,5 +14,9 @@ const std::string toHex(uint64_t Number) {
   std::string HexNumber = Ss.str();
   return HexNumber;
 }
+
+bool isNullDevice(const std::string &Path) {
+  return Path == "/dev/null" || Path == "NUL";
+}
 } // namespace utility
 } // namespace eld

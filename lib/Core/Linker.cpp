@@ -208,6 +208,10 @@ bool Linker::link() {
     }
   }
 
+  // Skip if out file does not need to be emitted.
+  if (!ThisConfig->options().shouldEmitOutputFile())
+    return true;
+
   if (ThisModule->getPrinter()->isVerbose())
     ThisConfig->raise(Diag::emit_output_file)
         << ThisConfig->options().outputFileName();
@@ -765,57 +769,53 @@ bool Linker::emit() {
   if (layoutInfo)
     layoutInfo->recordOutputFileSize(OutputFileSize);
 
-  if (Path != "/dev/null" && Path != "NUL") {
-    std::error_code Ec;
-    int OutputFlag = 0;
-    if (Perm & 0x755)
-      OutputFlag = llvm::FileOutputBuffer::F_executable;
-    auto OutputOrError =
-        llvm::FileOutputBuffer::create(Path, OutputFileSize, OutputFlag);
-    // If there is an error, return with a fatal error message.
-    if (!OutputOrError) {
-      ThisConfig->raise(Diag::fatal_unwritable_output)
-          << Path << llvm::toString(OutputOrError.takeError());
-      return false;
-    }
-    {
-      LinkerProgress->incrementAndDisplayProgress();
-      eld::RegisterTimer T("Write All Sections", "Emit Output File",
-                           ThisConfig->options().printTimingStats());
-      ObjLinker->emitOutput(*OutputOrError.get());
-    }
-
+  std::error_code Ec;
+  int OutputFlag = 0;
+  if (Perm & 0x755)
+    OutputFlag = llvm::FileOutputBuffer::F_executable;
+  auto OutputOrError =
+      llvm::FileOutputBuffer::create(Path, OutputFileSize, OutputFlag);
+  // If there is an error, return with a fatal error message.
+  if (!OutputOrError) {
+    ThisConfig->raise(Diag::fatal_unwritable_output)
+        << Path << llvm::toString(OutputOrError.takeError());
+    return false;
+  }
+  {
     LinkerProgress->incrementAndDisplayProgress();
-    eld::Expected<void> ExpPostProcess =
-        ObjLinker->postProcessing(*OutputOrError.get());
-    if (!ExpPostProcess) {
-      ThisConfig->raiseDiagEntry(std::move(ExpPostProcess.error()));
-      return false;
-    }
+    eld::RegisterTimer T("Write All Sections", "Emit Output File",
+                         ThisConfig->options().printTimingStats());
+    ObjLinker->emitOutput(*OutputOrError.get());
+  }
 
-    // Update Build ID and sync
-    eld::Expected<void> E =
-        Backend->finalizeAndEmitBuildID(*OutputOrError.get());
-    if (!E) {
-      ThisConfig->raiseDiagEntry(std::move(E.error()));
-      return false;
-    }
+  LinkerProgress->incrementAndDisplayProgress();
+  eld::Expected<void> ExpPostProcess =
+      ObjLinker->postProcessing(*OutputOrError.get());
+  if (!ExpPostProcess) {
+    ThisConfig->raiseDiagEntry(std::move(ExpPostProcess.error()));
+    return false;
+  }
 
-    {
-      LinkerProgress->incrementAndDisplayProgress();
-      eld::RegisterTimer T("Commit File", "Emit Output File",
-                           ThisConfig->options().printTimingStats());
-      if (auto E = (*OutputOrError)->commit()) {
-        ThisConfig->raise(Diag::unable_to_write_output_file)
-            << Path << llvm::toString(std::move(E));
-        return false;
-      }
+  // Update Build ID and sync
+  eld::Expected<void> E = Backend->finalizeAndEmitBuildID(*OutputOrError.get());
+  if (!E) {
+    ThisConfig->raiseDiagEntry(std::move(E.error()));
+    return false;
+  }
+
+  {
+    LinkerProgress->incrementAndDisplayProgress();
+    eld::RegisterTimer T("Commit File", "Emit Output File",
+                         ThisConfig->options().printTimingStats());
+    if (auto E = (*OutputOrError)->commit()) {
+      ThisConfig->raise(Diag::unable_to_write_output_file)
+          << Path << llvm::toString(std::move(E));
+      return false;
     }
   }
 
   LinkerProgress->incrementAndDisplayProgress();
-  if ((Path != "/dev/null" && Path != "NUL") &&
-      (ThisConfig->options().verifyLink())) {
+  if (ThisConfig->options().verifyLink()) {
     llvm::sys::fs::file_status FileStatus;
     std::error_code Ec = llvm::sys::fs::status(Path, FileStatus);
     if (Ec != std::error_code()) {
