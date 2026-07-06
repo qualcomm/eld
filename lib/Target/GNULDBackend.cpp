@@ -560,7 +560,7 @@ void GNULDBackend::defineStandardAndSectionMagicSymbol(const ResolveInfo &R) {
                 0x0,           // size
                 0x0,           // value
                 magic_fragref, // FragRef
-                ResolveInfo::Default);
+                ResolveInfo::Protected);
     if (magic_sym)
       magic_sym->setShouldIgnore(false);
     // all symbols are already finalized, hence define the symbols address
@@ -3693,6 +3693,13 @@ bool GNULDBackend::isSymbolPreemptible(const ResolveInfo &pSym) const {
     // The linker will define it locally during layout, so it's not preemptible
     return false;
   }
+
+  // __start_SECTION/__stop_SECTION symbols are defined by the linker as
+  // PROTECTED during layout. Relocation scanning happens before layout, so
+  // they appear undefined here. Treat them as non-preemptible so the GOT
+  // entry gets a RELATIVE relocation rather than GLOB_DAT.
+  if (pSym.isUndef() && isSectionMagicSymbol(pSym.name()))
+    return false;
 
   // For ELD, Weak undefined symbols are treated a bit differently from GNU
   // linker.

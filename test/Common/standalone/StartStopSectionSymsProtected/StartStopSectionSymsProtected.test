@@ -1,0 +1,22 @@
+#---StartStopSectionSymsProtected.test------- Shared library ------------------#
+#BEGIN_COMMENT
+# __start_SECTION / __stop_SECTION symbols synthesised by the linker must be
+# PROTECTED, so a GOT reference to them in a shared library must use a
+# RELATIVE relocation rather than GLOB_DAT.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/def.c -o %t.def.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/ref.c -o %t.ref.o
+RUN: %link %linkopts -shared %t.def.o %t.ref.o -o %t.so
+RUN: %readelf --dyn-syms %t.so | %filecheck %s --check-prefix=SYMS
+RUN: %readelf -r %t.so          | %filecheck %s --check-prefix=RELOCS
+#END_TEST
+
+# __start_foobar and __stop_foobar must be PROTECTED in the dynamic symbol table.
+SYMS-DAG: PROTECTED {{.*}} __start_foobar
+SYMS-DAG: PROTECTED {{.*}} __stop_foobar
+
+# The GOT entries for __start_foobar / __stop_foobar must be resolved via
+# RELATIVE, not GLOB_DAT.
+RELOCS: R_{{.*}}_RELATIVE
+RELOCS-NOT: GLOB_DAT

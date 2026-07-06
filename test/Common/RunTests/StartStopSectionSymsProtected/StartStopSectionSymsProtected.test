@@ -1,0 +1,16 @@
+REQUIRES: run_test, linux
+#---StartStopSectionSymsProtected.test--------- RunTest ------------------#
+#BEGIN_COMMENT
+# Verify at runtime that __start_SECTION / __stop_SECTION symbols defined by
+# the linker as PROTECTED are resolved correctly.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc %clangopts -fPIC -c %p/Inputs/def.c -o %t.def.o
+RUN: %run_cc %clangopts -fPIC -c %p/Inputs/ref.c -o %t.ref.o
+RUN: %run_cc %clangopts -shared -o %t.so %t.def.o %t.ref.o
+RUN: %run_cc %clangopts -fPIC -c %p/Inputs/main.c -o %t.main.o
+RUN: %run_cc %clangopts -o %t.out %t.main.o %t.so
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: 1
