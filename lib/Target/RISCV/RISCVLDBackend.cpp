@@ -1953,6 +1953,11 @@ bool RISCVLDBackend::handlePendingRelocations(ELFSection *section) {
                      return A->getOffset() < B->getOffset();
                    });
 
+  // Skip HI20/LO12 pairing, R_RISCV_RELAX marking, and vendor relocation
+  // grouping under -r.
+  if (config().isLinkPartial())
+    return true;
+
   struct Less {
     bool operator()(const Relocation *X, uint64_t Y) const {
       return !X->targetRef()->isNull() && X->targetRef()->offset() < Y;
