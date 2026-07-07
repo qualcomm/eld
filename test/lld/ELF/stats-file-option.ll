@@ -9,7 +9,7 @@
 ; CHECK: {
 ; CHECK: "asm-printer.EmittedInsts":
 ; CHECK: "inline.NumInlined":
-; CHECK: "prologepilog.NumFuncSeen":
+; CHECK: "prolog-epilog.NumFuncSeen":
 ; CHECK: }
 
 declare i32 @patatino()
