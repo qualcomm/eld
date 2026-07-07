@@ -545,6 +545,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   // extract instruction
   uint64_t qc_e_jump = reloc->target() & 0xffffffffffff;
   unsigned rd = getQCEJumpRd(qc_e_jump);
+  const bool IsValidRd = isValidQCEJumpRd(rd);
   bool isTailCall = rd == 0;
 
   Relocator::DWord S = getSymbolValuePLT(*reloc);
@@ -556,7 +557,7 @@ bool RISCVLDBackend::doRelaxationQCCall(Relocation *reloc) {
   bool DoCompressed = config().options().getRISCVRelaxToC();
   bool canRelaxXqci =
       config().targets().is32Bits() && config().options().getRISCVRelaxXqci();
-  bool canRelax = doRelax && canRelaxXqci && rd != 32;
+  bool canRelax = doRelax && canRelaxXqci && IsValidRd;
   bool canCompress =
       canRelax && DoCompressed && llvm::isInt<12>(X) && (rd == 0 || rd == 1);
   bool canRelaxTbljal = canRelax && DoCompressed &&

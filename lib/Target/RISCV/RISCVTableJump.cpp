@@ -117,6 +117,8 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
       // QC.E.J has func2=0b00 and QC.E.JAL has func2=0b01. Use this as the
       // rd-equivalent selector because QC.E.J does not write a link register.
       Rd = getQCEJumpRd(R->target());
+      if (!isValidQCEJumpRd(Rd))
+        continue;
     } else {
       // CALL/CALL_PLT: read the following JALR to get rd.
       uint32_t Insn = 0;
@@ -169,7 +171,12 @@ static void selectEntries(
     llvm::DenseMap<const ResolveInfo *, RISCVTableJumpEntry> &Candidates,
     uint32_t MaxSize) {
   llvm::SmallVector<std::pair<const ResolveInfo *, RISCVTableJumpEntry>, 0>
-      Entries(Candidates.begin(), Candidates.end());
+      Entries;
+  const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
+  for (const auto &KV : Candidates)
+    if (KV.second.Saved >= WordSize)
+      Entries.push_back(KV);
+
   llvm::sort(Entries, [&Backend](const auto &A, const auto &B) {
     if (A.second.Saved != B.second.Saved)
       return A.second.Saved > B.second.Saved;
@@ -183,20 +190,12 @@ static void selectEntries(
   if (Entries.size() > MaxSize)
     Entries.resize(MaxSize);
 
-  const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
-  while (!Entries.empty() && Entries.back().second.Saved < WordSize)
-    Entries.pop_back();
-
-  for (size_t I = 0; I < Entries.size(); ++I)
-    Candidates[Entries[I].first].Index = static_cast<int>(I);
-
-  llvm::SmallVector<const ResolveInfo *, 0> ToErase;
-  for (const auto &KV : Candidates)
-    if (KV.second.Index < 0)
-      ToErase.push_back(KV.first);
-
-  for (const ResolveInfo *Sym : ToErase)
-    Candidates.erase(Sym);
+  Candidates.clear();
+  int Index = 0;
+  for (auto Entry : Entries) {
+    Entry.second.Index = Index++;
+    Candidates.insert(Entry);
+  }
 }
 
 static void selectCallEntries(
@@ -211,16 +210,21 @@ static void selectCallEntries(
     bool UseT0 = false;
   };
 
+  const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
   llvm::SmallVector<CallEntry, 0> Entries;
+  auto AddCandidate = [&](const auto &KV, bool UseT0) {
+    if (KV.second.Saved >= WordSize)
+      Entries.push_back({KV.first, KV.second, UseT0});
+  };
 
   // Add the normal ra entries. They are valid for both Zcmt and Xqccmt.
   for (const auto &KV : CMJALTCandidates)
-    Entries.push_back({KV.first, KV.second, /*UseT0=*/false});
+    AddCandidate(KV, /*UseT0=*/false);
 
   // Add the Xqccmt t0 entries. They need their own JVT slot even when the
   // symbol is the same as an ra entry, because bit 0 in the slot is different.
   for (const auto &KV : QCCMJALTTCandidates)
-    Entries.push_back({KV.first, KV.second, /*UseT0=*/true});
+    AddCandidate(KV, /*UseT0=*/true);
 
   llvm::sort(Entries, [&Backend](const CallEntry &A, const CallEntry &B) {
     const uint64_t AVA = getTableJumpTargetVA(Backend, A.Sym);
@@ -236,30 +240,17 @@ static void selectCallEntries(
   if (Entries.size() > MaxSize)
     Entries.resize(MaxSize);
 
-  const int WordSize = Backend.config().targets().is32Bits() ? 4 : 8;
-  while (!Entries.empty() && Entries.back().Entry.Saved < WordSize)
-    Entries.pop_back();
+  CMJALTCandidates.clear();
+  QCCMJALTTCandidates.clear();
 
-  for (size_t I = 0; I < Entries.size(); ++I) {
-    if (Entries[I].UseT0)
-      QCCMJALTTCandidates[Entries[I].Sym].Index = static_cast<int>(I);
+  int Index = 0;
+  for (CallEntry Entry : Entries) {
+    Entry.Entry.Index = Index++;
+    if (Entry.UseT0)
+      QCCMJALTTCandidates.insert({Entry.Sym, Entry.Entry});
     else
-      CMJALTCandidates[Entries[I].Sym].Index = static_cast<int>(I);
+      CMJALTCandidates.insert({Entry.Sym, Entry.Entry});
   }
-
-  llvm::SmallVector<const ResolveInfo *, 0> ToErase;
-  for (const auto &KV : CMJALTCandidates)
-    if (KV.second.Index < 0)
-      ToErase.push_back(KV.first);
-  for (const ResolveInfo *Sym : ToErase)
-    CMJALTCandidates.erase(Sym);
-
-  ToErase.clear();
-  for (const auto &KV : QCCMJALTTCandidates)
-    if (KV.second.Index < 0)
-      ToErase.push_back(KV.first);
-  for (const ResolveInfo *Sym : ToErase)
-    QCCMJALTTCandidates.erase(Sym);
 }
 
 void RISCVTableJumpFragment::finalizeContents() {
@@ -271,9 +262,11 @@ void RISCVTableJumpFragment::finalizeContents() {
   const unsigned CallEntryCount =
       getCallTableCandidateCount(CMJALTCandidates, QCCMJALTTCandidates);
 
+  // These are signed net byte deltas: table bytes start as a negative cost,
+  // then each selected relaxation adds back the bytes it saves.
   int SavedBoth =
-      -static_cast<int>((StartCMJALTEntryIdx + CallEntryCount) * WordSize);
-  int SavedCMJTOnly = -static_cast<int>(CMJTCandidates.size() * WordSize);
+      -static_cast<int>(StartCMJALTEntryIdx + CallEntryCount) * WordSize;
+  int SavedCMJTOnly = -static_cast<int>(CMJTCandidates.size()) * WordSize;
 
   for (auto &KV : CMJTCandidates) {
     SavedCMJTOnly += KV.second.Saved;
