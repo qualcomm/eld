@@ -262,8 +262,9 @@ void RISCVTableJumpFragment::finalizeContents() {
   const unsigned CallEntryCount =
       getCallTableCandidateCount(CMJALTCandidates, QCCMJALTTCandidates);
 
-  // These are signed net byte deltas: table bytes start as a negative cost,
-  // then each selected relaxation adds back the bytes it saves.
+  // Profitability starts negative with the table emission cost. Candidate
+  // savings are added to this and if the result stays negative we discard the
+  // candidates since the jump table would increase code size.
   int SavedBoth =
       -static_cast<int>(StartCMJALTEntryIdx + CallEntryCount) * WordSize;
   int SavedCMJTOnly = -static_cast<int>(CMJTCandidates.size()) * WordSize;
