@@ -20,7 +20,7 @@ ARM (32-bit) supports two instruction set architectures: the 32-bit ARM ISA and 
 
 ### The T Bit
 
-ARM and Thumb functions are distinguished by the least-significant bit of a branch target. When `T = 1`, the expression `(S + A) | T` sets bit 0, signalling an interworking branch to a Thumb function. Plain data relocations (`R_ARM_ABS16`, `R_ARM_ABS8`) do not OR in `T`.
+ARM and Thumb functions are distinguished by the least-significant bit of a branch target. When `T = 1`, the expression `(S + A) \| T` sets bit 0, signalling an interworking branch to a Thumb function. Plain data relocations (`R_ARM_ABS16`, `R_ARM_ABS8`) do not OR in `T`.
 
 ---
 
@@ -28,12 +28,12 @@ ARM and Thumb functions are distinguished by the least-significant bit of a bran
 
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
-| `R_ARM_ABS32` | `(S + A) | T` | 32 | none |
+| `R_ARM_ABS32` | `(S + A) \| T` | 32 | none |
 | `R_ARM_ABS16` | `S + A` | 16 | none |
 | `R_ARM_ABS8` | `S + A` | 8 | none |
-| `R_ARM_MOVW_ABS_NC` | `(S + A) | T` | `[15:0]` | none |
+| `R_ARM_MOVW_ABS_NC` | `(S + A) \| T` | `[15:0]` | none |
 | `R_ARM_MOVT_ABS` | `S + A` | `[31:16]` | none |
-| `R_ARM_THM_MOVW_ABS_NC` | `(S + A) | T` | `[15:0]` | none |
+| `R_ARM_THM_MOVW_ABS_NC` | `(S + A) \| T` | `[15:0]` | none |
 | `R_ARM_THM_MOVT_ABS` | `S + A` | `[31:16]` | none |
 
 `R_ARM_MOVW_ABS_NC` and `R_ARM_MOVT_ABS` are used in pairs: `MOVW` loads bits `[15:0]` and `MOVT` loads bits `[31:16]` of a 32-bit address.
@@ -58,18 +58,18 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
-| `R_ARM_REL32` | `((S + A) | T) - P` | 32 | none |
-| `R_ARM_SBREL32` | `((S + A) | T) - P` | 32 | none |
-| `R_ARM_PREL31` | `((S + A) | T) - P` | 31 | none |
+| `R_ARM_REL32` | `((S + A) \| T) - P` | 32 | none |
+| `R_ARM_SBREL32` | `((S + A) \| T) - P` | 32 | none |
+| `R_ARM_PREL31` | `((S + A) \| T) - P` | 31 | none |
 | `R_ARM_BASE_PREL` | `B(S) + A - P` | 32 | none |
-| `R_ARM_MOVW_PREL_NC` | `((S + A) | T) - P` | `[15:0]` | none |
+| `R_ARM_MOVW_PREL_NC` | `((S + A) \| T) - P` | `[15:0]` | none |
 | `R_ARM_MOVT_PREL` | `S + A - P` | `[31:16]` | none |
-| `R_ARM_THM_MOVW_PREL_NC` | `((S + A) | T) - P` | `[15:0]` | none |
+| `R_ARM_THM_MOVW_PREL_NC` | `((S + A) \| T) - P` | `[15:0]` | none |
 | `R_ARM_THM_MOVT_PREL` | `S + A - P` | `[31:16]` | none |
 | `R_ARM_THM_MOVT_BREL` | `S + A - P` | `[31:16]` | none |
-| `R_ARM_THM_MOVW_BREL_NC` | `((S + A) | T) - B(S)` | `[15:0]` | none |
-| `R_ARM_THM_MOVW_BREL` | `((S + A) | T) - B(S)` | `[15:0]` | none |
-| `R_ARM_ALU_PC_G0` | `((S + A) | T) - P` | top 8 bits, 4-bit rotation | none |
+| `R_ARM_THM_MOVW_BREL_NC` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
+| `R_ARM_THM_MOVW_BREL` | `((S + A) \| T) - B(S)` | `[15:0]` | none |
+| `R_ARM_ALU_PC_G0` | `((S + A) \| T) - P` | top 8 bits, 4-bit rotation | none |
 
 `R_ARM_SBREL32` uses the same handler as `R_ARM_REL32` but produces a segment-base-relative offset. `R_ARM_PREL31` is used in ARM exception table entries.
 
@@ -83,10 +83,10 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 
 | Relocation | Expression | Instruction | Encoded bits | Range |
 |------------|-----------|-------------|--------------|-------|
-| `R_ARM_PC24` | `((S + A) | T) - P` | `b` | 24-bit signed (`X >> 2`) | ±32 MB |
-| `R_ARM_PLT32` | `((S + A) | T) - P` | `b` | 24-bit signed (`X >> 2`) | ±32 MB |
-| `R_ARM_JUMP24` | `((S + A) | T) - P` | `b`/`bx` | 24-bit signed (`X >> 2`) | ±32 MB |
-| `R_ARM_CALL` | `((S + A) | T) - P` | `bl`/`blx` | 24-bit signed (`X >> 2`) | ±32 MB |
+| `R_ARM_PC24` | `((S + A) \| T) - P` | `b` | 24-bit signed (`X >> 2`) | ±32 MB |
+| `R_ARM_PLT32` | `((S + A) \| T) - P` | `b` | 24-bit signed (`X >> 2`) | ±32 MB |
+| `R_ARM_JUMP24` | `((S + A) \| T) - P` | `b`/`bx` | 24-bit signed (`X >> 2`) | ±32 MB |
+| `R_ARM_CALL` | `((S + A) \| T) - P` | `bl`/`blx` | 24-bit signed (`X >> 2`) | ±32 MB |
 
 ## Thumb Branch
 
@@ -94,9 +94,9 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 |------------|-----------|-------------|--------------|-------|
 | `R_ARM_THM_JUMP8` | `S + A - P` | `b` (cond) | 8-bit signed (`X >> 1`) | ±256 B |
 | `R_ARM_THM_JUMP11` | `S + A - P` | `b` (uncond) | 11-bit signed (`X >> 1`) | ±2 KB |
-| `R_ARM_THM_JUMP19` | `((S + A) | T) - P` | `b.cond` (Thumb-2) | 21-bit signed (`X >> 1`) | ±1 MB |
-| `R_ARM_THM_CALL` | `((S + A) | T) - P` | `bl`/`blx` (Thumb-2) | 25-bit signed (`X >> 1`) | ±16 MB |
-| `R_ARM_THM_JUMP24` | `((S + A) | T) - P` | `b` (Thumb-2) | 25-bit signed (`X >> 1`) | ±16 MB |
+| `R_ARM_THM_JUMP19` | `((S + A) \| T) - P` | `b.cond` (Thumb-2) | 21-bit signed (`X >> 1`) | ±1 MB |
+| `R_ARM_THM_CALL` | `((S + A) \| T) - P` | `bl`/`blx` (Thumb-2) | 25-bit signed (`X >> 1`) | ±16 MB |
+| `R_ARM_THM_JUMP24` | `((S + A) \| T) - P` | `b` (Thumb-2) | 25-bit signed (`X >> 1`) | ±16 MB |
 
 ---
 
@@ -104,7 +104,7 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
-| `R_ARM_GOTOFF32` | `((S + A) | T) - GOT_ORG` | 32 | none |
+| `R_ARM_GOTOFF32` | `((S + A) \| T) - GOT_ORG` | 32 | none |
 | `R_ARM_GOT_BREL` | `GOT(S) + A - GOT_ORG` | 12 | none |
 | `R_ARM_GOT_PREL` | `GOT(S) + A - P` | 32 | none |
 
