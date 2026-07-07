@@ -5,7 +5,6 @@ on:
     paths-ignore:
       - '.github/workflows/sanitize.yml'
       - '.github/workflows/reviter.yml'
-      - '.github/workflows/qualcomm-organization-repolinter.yml'
       - '.github/workflows/docs.yaml'
       - '.github/workflows/docs-multiversion.yaml'
       - '.github/workflows/ci-win.yml'
