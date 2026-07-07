@@ -1,4 +1,4 @@
-# AArch64 Relocation Prefixes
+# AArch64 Relocation Reference
 
 ## Introduction
 
