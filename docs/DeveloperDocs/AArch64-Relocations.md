@@ -52,12 +52,16 @@ movk x1, #:abs_g0_nc:u64
 
 # PC-Relative Address Relocations
 
-| Operator | Relocation | Expression | Instruction | Encoded Bits | Range Check |
-|-----------|------------|------------|-------------|--------------|-------------|
-| implicit | `LD_PREL_LO19` | `S+A-P` | literal `ldr` | `[20:2]` | `-2^20 <= X < 2^20` |
-| implicit | `LD_PREL_LO21` | `S+A-P` | `adr` | `[20:0]` | `-2^20 <= X < 2^20` |
-| `:pg_hi21:` | `ADR_PREL_PG_HI21` | `Page(S+A)-Page(P)` | `adrp` | `[31:12]` | `-2^32 <= X < 2^32` |
-| `:pg_hi21_nc:` | `ADR_PREL_PG_HI21_NC` | `Page(S+A)-Page(P)` | `adrp` | `[31:12]` | none |
+| Operator | Relocation | Expression | Instruction | Encoded Bits | Range Check | Alignment |
+|-----------|------------|------------|-------------|--------------|-------------|-----------|
+| implicit | `LD_PREL_LO19` | `S+A-P` | literal `ldr` | `[20:2]` | `-2^20 <= X < 2^20` | `X` must be a multiple of 4 |
+| implicit | `LD_PREL_LO21` | `S+A-P` | `adr` | `[20:0]` | `-2^20 <= X < 2^20` | none |
+| `:pg_hi21:` | `ADR_PREL_PG_HI21` | `Page(S+A)-Page(P)` | `adrp` | `[31:12]` | `-2^32 <= X < 2^32` | none |
+| `:pg_hi21_nc:` | `ADR_PREL_PG_HI21_NC` | `Page(S+A)-Page(P)` | `adrp` | `[31:12]` | none | none |
+
+> **`LD_PREL_LO19` alignment:** The literal `ldr` instruction addresses 4-byte-aligned
+> literals; `X` (`S+A-P`) must therefore be divisible by 4. The linker encodes `X >> 2`
+> into the 19-bit field and emits a warning if `X & 3 != 0`.
 
 ## Typical ADRP + ADD Sequence
 

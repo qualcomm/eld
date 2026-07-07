@@ -864,7 +864,10 @@ Relocator::Result adr_prel_lo21(Relocation &pReloc, AArch64Relocator &pParent) {
   Relocator::DWord P = pReloc.place(pParent.module());
 
   Relocator::DWord X = S + A - P;
-  // TODO:: check overflow
+
+  Relocator::Result R = checkSignedRange(pReloc, pParent, X, 21);
+  if (R != Relocator::OK)
+    return R;
 
   pReloc.target() = helper_reencode_adr_imm(pReloc.target(), X);
 
@@ -884,7 +887,18 @@ Relocator::Result ld_prel_lo19(Relocation &pReloc, AArch64Relocator &pParent) {
   Relocator::DWord P = pReloc.place(pParent.module());
 
   Relocator::DWord X = S + A - P;
-  // TODO:: check overflow
+
+  if (X & 0x3) {
+    DiagEngine->raise(Diag::error_reloc_not_aligned)
+        << pParent.getName(pReloc.type()) << pReloc.symInfo()->name()
+        << pReloc.getSourcePath(pParent.config().options()) << "4"
+        << ("PC-relative offset 0x" + llvm::utohexstr(X));
+    return Relocator::BadReloc;
+  }
+
+  Relocator::Result R = checkSignedRange(pReloc, pParent, X, 21);
+  if (R != Relocator::OK)
+    return R;
 
   pReloc.target() = helper_reencode_ld_literal_19(pReloc.target(), X >> 2);
 
@@ -917,7 +931,6 @@ Relocator::Result call(Relocation &pReloc, AArch64Relocator &pParent) {
             ->getAddr(DiagEngine);
 
   Relocator::DWord X = S + A - P;
-  // TODO: check overflow..
 
   pReloc.target() = helper_reencode_branch_offset_26(pReloc.target(), X >> 2);
 

@@ -52,6 +52,9 @@ DIAG(unsupported_relocation_moreinfo, DiagnosticEngine::Fatal,
 DIAG(not_aligned, DiagnosticEngine::Warning,
      "Relocation `%0' for symbol `%1' referred from `%2' and defined in `%3' "
      "has alignment %4 but is not aligned")
+DIAG(error_reloc_not_aligned, DiagnosticEngine::Error,
+     "Relocation `%0' for symbol `%1' in %2 requires %3-byte alignment (%4 is "
+     "not aligned)")
 DIAG(reloc_truncated, DiagnosticEngine::Warning,
      "Relocation `%0' for symbol `%1' referred from `%2' and defined in `%3' "
      "is truncated to fit relocation field")

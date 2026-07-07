@@ -1,0 +1,28 @@
+#---R_AARCH64_LD_PREL_LO19.overflow.test--------------------- Executable --------------------#
+#START_COMMENT
+# Check that R_AARCH64_LD_PREL_LO19 overflow and alignment errors are correctly detected.
+# The LDR (literal) instruction encodes (S + A) - P in a 19-bit signed field
+# scaled by 4. The range check uses 21 signed bits on the raw byte offset,
+# so the checked range is [-2^20, 2^20 - 1]. X must also be divisible by 4.
+# foo links at 0x0 (bare metal), so --defsym bar=<value> sets X = value directly:
+#   bar = 0xFFFFC -> X = 1048572 (largest 4-byte aligned value in range)
+#   bar = 0x100000 -> X = 1048576 (one past the 21-bit max, overflow)
+#   bar = 0x5     -> X = 5 (in range but not 4-byte aligned, error)
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -mrelocation-model static -o %t.o %p/Inputs/t.s
+
+# bar = 0xFFFFC: offset 1048572 — within 21-bit signed range and 4-byte aligned.
+RUN: %link %linkopts -march aarch64 %t.o --defsym bar=0xFFFFC -o %t.out
+RUN: %nm %t.out | %filecheck %s
+CHECK: foo
+
+# bar = 0x100000: offset 1048576 — one past the 21-bit max.
+RUN: %not %link %linkopts -march aarch64 %t.o --defsym bar=0x100000 -o %t.out 2>&1 | %filecheck %s -check-prefix=OVER
+OVER: relocation R_AARCH64_LD_PREL_LO19 out of range: 1048576 is not in [-1048576, 1048575]
+
+# bar = 0x5: offset 5 — in range but not 4-byte aligned, expect alignment error.
+RUN: %not %link %linkopts -march aarch64 %t.o --defsym bar=0x5 -o %t.out 2>&1 | %filecheck %s -check-prefix=ALIGN
+ALIGN: Relocation `R_AARCH64_LD_PREL_LO19' for symbol `bar'{{.*}}requires 4-byte alignment (PC-relative offset 0x5 is not aligned)
+
+#END_TEST

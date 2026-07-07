@@ -1,0 +1,22 @@
+#---R_AARCH64_ADR_PREL_LO21.overflow.test--------------------- Executable --------------------#
+#START_COMMENT
+# Check that R_AARCH64_ADR_PREL_LO21 overflow is correctly detected.
+# The ADR instruction encodes (S + A) - P in a 21-bit signed field,
+# so the PC-relative offset must be in [-1048576, 1048575].
+# foo links at 0x0 (bare metal), so --defsym bar=<value> sets X = value directly:
+#   bar = 0xFFFFF -> X = 1048575 (max positive, in range)
+#   bar = 0x100000 -> X = 1048576 (one past max, overflow)
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -mrelocation-model static -o %t.o %p/Inputs/t.s
+
+# bar = 0xFFFFF: offset 1048575 — top of 21-bit signed range.
+RUN: %link %linkopts -march aarch64 %t.o --defsym bar=0xFFFFF -o %t.out
+RUN: %nm %t.out | %filecheck %s
+CHECK: foo
+
+# bar = 0x100000: offset 1048576 — one past the 21-bit max.
+RUN: %not %link %linkopts -march aarch64 %t.o --defsym bar=0x100000 -o %t.out 2>&1 | %filecheck %s -check-prefix=OVER
+OVER: relocation R_AARCH64_ADR_PREL_LO21 out of range: 1048576 is not in [-1048576, 1048575]
+
+#END_TEST
