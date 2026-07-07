@@ -1,0 +1,31 @@
+#---R_AARCH64_CALL26_JUMP26.overflow.test--------------------- Executable --------------------#
+#START_COMMENT
+# Verify that R_AARCH64_CALL26 and R_AARCH64_JUMP26 relocations are handled
+# correctly for in-range, out-of-range, and misaligned targets.
+# BL/B encodes (S + A) - P in a 26-bit signed field scaled by 4 (+/-128MB range).
+# When the target is out of range, the linker inserts a trampoline stub for
+# range extension rather than reporting an overflow error.
+# The target must also be 4-byte aligned; a misaligned target is always an error.
+# foo/baz link at 0x0 (bare metal), so:
+#   bar = 0x7FFFFFC -> X = 134217724 (within +/-128MB range, no trampoline needed)
+#   bar = 0x8000000 -> X = 134217728 (beyond +128MB, trampoline inserted)
+#   bar = 0x5       -> X = 5 (in range but not 4-byte aligned, alignment error)
+#END_COMMENT
+#START_TEST
+RUN: %clangas %clangasopts -filetype obj -mrelocation-model static -o %t.o %p/Inputs/t.s
+
+# bar at 0x7FFFFFC: within the 26-bit signed scaled range — links directly.
+RUN: %link %linkopts -march aarch64 %t.o --defsym bar=0x7FFFFFC -o %t.out
+RUN: %nm %t.out | %filecheck %s
+CHECK: foo
+
+# bar at 0x8000000: beyond +128MB — linker inserts a trampoline for range extension.
+RUN: %link %linkopts -march aarch64 %t.o --defsym bar=0x8000000 -o %t.out
+RUN: %nm %t.out | %filecheck %s -check-prefix=TRAMP
+TRAMP: trampoline_for_bar
+
+# bar at 0x5: in range but not 4-byte aligned — alignment error.
+RUN: %not %link %linkopts -march aarch64 %t.o --defsym bar=0x5 -o %t.out 2>&1 | %filecheck %s -check-prefix=ALIGN
+ALIGN: Relocation `R_AARCH64_CALL26' for symbol `bar'{{.*}}requires 4-byte alignment (PC-relative offset 0x5 is not aligned)
+
+#END_TEST
