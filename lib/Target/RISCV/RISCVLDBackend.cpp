@@ -1447,7 +1447,7 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
   Relocator::DWord S = getSymbolValuePLT(*BaseReloc);
   uint64_t Offset = Reloc.targetRef()->offset();
   StringRef SymName = SymInfo->name();
-  const char *RelaxName = "RISCV_GOT_LOAD";
+  StringRef RelaxName = "RISCV_GOT_LOAD";
   bool GOTRelaxEnabled = config().options().getRISCVRelax() &&
                          config().options().getRISCVRelaxGOT();
   if (SymInfo->isAbsolute() || SymInfo->isWeakUndef()) {
