@@ -333,7 +333,7 @@ private:
     return m_RelaxedGOTLoadRelocs.count(R);
   }
 
-  bool allGOTLOsRelaxable(const Relocation &HIReloc, const ELFSection *S) const;
+  bool allGOTLOsRelaxable(const Relocation &HIReloc) const;
 
 private:
   ELFSection *createGOTSection(InputFile &InputFile);

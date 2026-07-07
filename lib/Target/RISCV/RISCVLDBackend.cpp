@@ -1788,7 +1788,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
 
             if (HIReloc->type() == llvm::ELF::R_RISCV_GOT_HI20 ||
                 relocWasGOTLoadRelaxed(HIReloc)) {
-              if (hasRelax(*HIReloc) && allGOTLOsRelaxable(*HIReloc, rs))
+              if (hasRelax(*HIReloc) && allGOTLOsRelaxable(*HIReloc))
                 doRelaxationGOT(*relocation);
             } else {
               doRelaxationPC(relocation, GP);
@@ -1796,7 +1796,7 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
             break;
           }
           case llvm::ELF::R_RISCV_GOT_HI20:
-            if (allGOTLOsRelaxable(*relocation, rs))
+            if (allGOTLOsRelaxable(*relocation))
               doRelaxationGOT(*relocation);
             break;
           }
@@ -2706,8 +2706,7 @@ RISCVLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
   return {};
 }
 
-bool RISCVLDBackend::allGOTLOsRelaxable(const Relocation &HIReloc,
-                                        const ELFSection *S) const {
+bool RISCVLDBackend::allGOTLOsRelaxable(const Relocation &HIReloc) const {
   const llvm::SmallVectorImpl<const Relocation *> *LORelocs =
       getBaseRelocRefs(HIReloc);
   if (!LORelocs || LORelocs->empty())
