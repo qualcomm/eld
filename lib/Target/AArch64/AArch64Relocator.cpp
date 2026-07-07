@@ -932,6 +932,14 @@ Relocator::Result call(Relocation &pReloc, AArch64Relocator &pParent) {
 
   Relocator::DWord X = S + A - P;
 
+  if (X & 0x3) {
+    DiagEngine->raise(Diag::error_reloc_not_aligned)
+        << pParent.getName(pReloc.type()) << pReloc.symInfo()->name()
+        << pReloc.getSourcePath(pParent.config().options()) << "4"
+        << ("PC-relative offset 0x" + llvm::utohexstr(X));
+    return Relocator::BadReloc;
+  }
+
   pReloc.target() = helper_reencode_branch_offset_26(pReloc.target(), X >> 2);
 
   return Relocator::OK;
