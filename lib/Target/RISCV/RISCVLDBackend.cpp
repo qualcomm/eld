@@ -1953,18 +1953,19 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       m_GroupRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
     return true;
   }
-  // R_RISCV_PCREL_LO* and TLSDESC relocations must have an addend of zero.
-  // Ignore any non-zero addends and warn.
+  // R_RISCV_PCREL_LO*, R_RISCV_GOT_HI20, and TLSDESC relocations must have an
+  // addend of zero. Ignore non-zero addends and warn.
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
   case llvm::ELF::R_RISCV_PCREL_LO12_S:
   case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
-  case llvm::ELF::R_RISCV_TLSDESC_CALL: {
+  case llvm::ELF::R_RISCV_TLSDESC_CALL:
+  case llvm::ELF::R_RISCV_GOT_HI20: {
     if (pAddend) {
       config().raise(Diag::warn_ignore_reloc_addend)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
-      pAddend = 0;
+      // pAddend = 0;
     }
     Relocation *reloc = IRBuilder::addRelocation(getRelocator(), pSection,
                                                  pType, pSym, pOffset, pAddend);
