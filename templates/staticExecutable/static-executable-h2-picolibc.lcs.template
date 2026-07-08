@@ -32,24 +32,28 @@ SECTIONS
   /* Need to pre-align so that the symbols come after padding */
   . = ALIGN(8);
   /* __bothinit_array_start/end pointers are used by Picolibc to
-   * call constructor functions, don't add unwanted sections in between
+   * call constructor functions, don't add unwanted sections in between.
+   *
+   * All constructor input sections (.preinit_array, .ctors, .init_array) are
+   * collected into a SINGLE output section so the linker cannot place an
+   * orphan section between them.  An orphan landing inside the
+   * [__bothinit_array_start, __bothinit_array_end) window would be walked by
+   * __libc_init_array() and called as a bogus constructor function pointer,
+   * faulting at startup.  Consolidating guarantees the window contains only
+   * genuine constructor pointers.
    */
   PROVIDE_HIDDEN ( __bothinit_array_start = . );
-  .preinit_array  :
+  .init_array     :
   {
     PROVIDE_HIDDEN ( __preinit_array_start = . );
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN ( __preinit_array_end = . );
-  }
-  .ctors          :
-  {
+
     PROVIDE_HIDDEN ( __ctors_start = . );
     KEEP (*( SORT_BY_INIT_PRIORITY(.ctors.*)))
     KEEP (*(.ctors))
     PROVIDE_HIDDEN ( __ctors_end = . );
-  }
-  .init_array     :
-  {
+
     PROVIDE_HIDDEN ( __init_array_start = . );
     KEEP (*( SORT_BY_INIT_PRIORITY(.init_array.*)))
     KEEP (*(.init_array))
@@ -57,15 +61,16 @@ SECTIONS
   }
   PROVIDE_HIDDEN ( __bothinit_array_end = . );
 
-  .dtors          :
+  /* All destructor input sections (.dtors, .fini_array) are likewise
+   * collected into a SINGLE output section so no orphan section can be
+   * placed between the entries that the runtime walks at exit. */
+  .fini_array     :
   {
     PROVIDE_HIDDEN ( __dtors_start = . );
     KEEP (*(SORT_BY_INIT_PRIORITY(.dtors.*)))
     KEEP (*(.dtors))
     PROVIDE_HIDDEN ( __dtors_end = . );
-  }
-  .fini_array     :
-  {
+
     PROVIDE_HIDDEN ( __fini_array_start = . );
     KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*)))
     KEEP (*(.fini_array))
