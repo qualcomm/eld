@@ -420,6 +420,18 @@ void ARMGNULDBackend::sortEXIDX() {
         exidx->getMatchedLinkerScriptRule());
   exidx->splice(exidx->getFragmentList().end(), Frags);
 
+  // Capture the offset assigned to the first EXIDX fragment during layout. This
+  // offset accounts for any dot assignments (e.g. '. = ALIGN(8)') and symbol
+  // assignments that precede the *(.ARM.exidx*) rule in the output section, so
+  // the reset loop below must resume from it rather than from zero.
+  uint64_t baseOffset = 0;
+  for (auto &F : exidx->getFragmentList()) {
+    if (F->isNull())
+      continue;
+    baseOffset = F->getOffset(config().getDiagEngine());
+    break;
+  }
+
   for (auto &F : exidx->getFragmentList()) {
     for (auto &relocation : F->getOwningSection()->getRelocations()) {
       // bypass the reloc if the symbol is in the discarded input section
@@ -463,7 +475,7 @@ void ARMGNULDBackend::sortEXIDX() {
             });
 
   // Reset offset to real offset
-  uint64_t offset = 0;
+  uint64_t offset = baseOffset;
   for (auto &Frag : exidx->getFragmentList()) {
     if (Frag->isNull())
       continue;
