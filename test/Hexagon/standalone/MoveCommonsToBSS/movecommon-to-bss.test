@@ -1,0 +1,28 @@
+## Test how common symbols and regular BSS symbols land in the output on
+## Hexagon with and without -G0. Under -G0, commons
+## are merged into .bss alongside regular BSS symbols. Without -G0, the
+## compiler places a 4-byte bss = 0 into .sbss.4 which
+## the linker folds into .sdata. common1 still ends up in .bss.
+
+## Single .bss holding both common1 and bss.
+RUN: %clang %clangg0opts -fcommon -c %p/Inputs/1.c -o %t1.g0.o
+RUN: %clang %clangg0opts -fcommon -c %p/Inputs/2.c -o %t2.g0.o
+RUN: %link %linkg0opts %t1.g0.o %t2.g0.o -o %t.g0.out
+RUN: %readelf -S %t.g0.out | %filecheck --check-prefix=G0-SEC %s
+RUN: %readelf -s %t.g0.out | %filecheck --check-prefix=G0-SYM %s
+
+G0-SEC: [ 1] .bss
+G0-SYM-DAG: {{[0-9]+}}: {{[x0-9a-z]+}}  4000 OBJECT  GLOBAL DEFAULT    1 common1
+G0-SYM-DAG: {{[0-9]+}}: {{[x0-9a-z]+}}     4 OBJECT  GLOBAL DEFAULT    1 bss
+
+## Non-G0 branch: `bss` in .sdata and common1 in .bss.
+RUN: %clang %clangopts -fcommon -c %p/Inputs/1.c -o %t1.o
+RUN: %clang %clangopts -fcommon -c %p/Inputs/2.c -o %t2.o
+RUN: %link %linkopts %t1.o %t2.o -o %t.out
+RUN: %readelf -S %t.out | %filecheck --check-prefix=NOG0-SEC %s
+RUN: %readelf -s %t.out | %filecheck --check-prefix=NOG0-SYM %s
+
+NOG0-SEC: [ 1] .sdata
+NOG0-SEC: [ 2] .bss
+NOG0-SYM-DAG: {{[0-9]+}}: {{[x0-9a-z]+}}  4000 OBJECT  GLOBAL DEFAULT    2 common1
+NOG0-SYM-DAG: {{[0-9]+}}: {{[x0-9a-z]+}}     4 OBJECT  GLOBAL DEFAULT    1 bss
