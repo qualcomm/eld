@@ -1807,16 +1807,15 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       m_GroupRelocs.insert(std::make_pair(reloc, offsetToReloc->second));
     return true;
   }
-  // R_RISCV_PCREL_LO* and TLSDESC relocations have the corresponding HI reloc
-  // as the syminfo, we need to find out the actual target by inspecting this
-  // reloc and set the appropriate relocation.
+  // R_RISCV_PCREL_LO* and TLSDESC relocations must have an addend of zero.
+  // Ignore any non-zero addends and warn.
   case llvm::ELF::R_RISCV_PCREL_LO12_I:
   case llvm::ELF::R_RISCV_PCREL_LO12_S:
   case llvm::ELF::R_RISCV_TLSDESC_LOAD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_ADD_LO12:
   case llvm::ELF::R_RISCV_TLSDESC_CALL: {
     if (pAddend) {
-      config().raise(Diag::warn_ignore_pcrel_lo_addend)
+      config().raise(Diag::warn_ignore_reloc_addend)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
       pAddend = 0;

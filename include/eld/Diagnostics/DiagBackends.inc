@@ -88,7 +88,7 @@ DIAG(pcrel_reloc_overflow, DiagnosticEngine::Note,
      "Symbol Address = 0x%0, Addend = 0x%1, Place = 0x%2, Relocation Value = 0x%3")
 DIAG(expected_group_section, DiagnosticEngine::InternalError,
      "Expected %0 to be a 'group' section.")
-DIAG(warn_ignore_pcrel_lo_addend, DiagnosticEngine::Warning,
+DIAG(warn_ignore_reloc_addend, DiagnosticEngine::Warning,
      "%2: ignoring addend for relocation `%1' referring symbol %0")
 DIAG(error_build_id_not_hex, DiagnosticEngine::Error,
     "build id specified is not hexadecimal : %0")
