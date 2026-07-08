@@ -1,10 +1,10 @@
 name: Zephyr on ELD PR
 
-# Opt-in: run Zephyr against a PR's *own* ELD build (not nightly). Assumes ci.yml
-# passed for the PR and uploaded the `pr-eld-toolset` artifact. Given a PR number,
-# finds the latest successful ci.yml run for its head commit; ci_run_id overrides.
-# Scope: aarch64 (qemu_cortex_a53), tests/kernel. Add arches later by mirroring
-# zephyr-nightly.yml's matrix.
+# Opt-in: run Zephyr against a PR's own ELD build. Requires the
+# PR to carry the `zephyr-check` label so ci.yml uploads the `pr-eld-toolset`
+# artifact. Given a PR number, finds the latest successful ci.yml run for its
+# head commit; ci_run_id overrides. Scope: aarch64 (qemu_cortex_a53),
+# tests/kernel. Add arches later by mirroring zephyr-nightly.yml's matrix.
 
 on:
   workflow_dispatch:
@@ -89,6 +89,20 @@ jobs:
 
             const run = success[0];
             core.info(`Latest successful ci.yml run: id=${run.id}, run_number=${run.run_number}`);
+
+            // Fail fast with a helpful message if the run predates the label
+            // (otherwise zephyr-run.yml's download-artifact fails cryptically).
+            const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner, repo, run_id: run.id, per_page: 100,
+            });
+            if (!artifacts.some(a => a.name === 'pr-eld-toolset' && !a.expired)) {
+              core.setFailed(
+                `ci.yml run ${run.id} did not upload a pr-eld-toolset artifact ` +
+                `(or it has expired). Add the \`zephyr-check\` label to PR ` +
+                `#${prNumber} and re-run CI, then dispatch this workflow again.`);
+              return;
+            }
+
             core.setOutput('run_id', String(run.id));
 
   zephyr:
