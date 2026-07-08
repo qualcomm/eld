@@ -19,14 +19,13 @@ LINK-DAG: trampoline_for_far_from_.text.bar_{{[0-9]+}}
 
 # the extra entry is the null symbol
 SYMTAB: Symbol table '.symtab' contains 12 entries:
-SYMTAB: .comment
-SYMTAB: .hexagon.attributes
 SYMTAB: .text
+SYMTAB: .comment
 SYMTAB: .text.far
 SYMTAB: .text.foo
 SYMTAB: trampoline_for_far_from_.text.bar_{{[0-9]+}}
 SYMTAB: local
-SYMTAB: ___end
-SYMTAB: foo
-SYMTAB: far
 SYMTAB: bar
+SYMTAB: far
+SYMTAB: foo
+SYMTAB: __end

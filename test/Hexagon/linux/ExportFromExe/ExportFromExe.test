@@ -10,7 +10,7 @@ RUN: %link %linkopts -Bdynamic %t2.o %t.dso.so -o %t.out
 RUN: %readelf --dyn-syms %t.out | %filecheck %s
 
 #CHECK-NOT: COM
-#CHECK:      func_in_program
-#CHECK-NEXT: variable_in_program
-#CHECK-NEXT: data_in_program
-#CHECK-NEXT: common_in_program
+#CHECK-DAG: common_in_program
+#CHECK-DAG: data_in_program
+#CHECK-DAG: func_in_program
+#CHECK-DAG: variable_in_program

@@ -378,32 +378,28 @@ bool Module::sortCommonSymbols() {
 }
 
 bool Module::sortSymbols() {
-  auto Cmp = [](ResolveInfo *A, ResolveInfo *B) -> bool {
-    // Section symbols always appear first.
-    if (A->type() == ResolveInfo::Section &&
-        (B->type() != ResolveInfo::Section))
-      return true;
-    if (A->type() != ResolveInfo::Section &&
-        (B->type() == ResolveInfo::Section))
-      return false;
-    // ELF requires all locals before all globals.
-    if (A->isLocal() != B->isLocal())
-      return A->isLocal();
-    // Deterministic order: by (input ordinal, input .symtab index).
-    auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
-    auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
-    if (OrdA != OrdB)
-      return OrdA < OrdB;
-    if (A->outSymbol()->getSymbolIndex() != B->outSymbol()->getSymbolIndex())
-      return A->outSymbol()->getSymbolIndex() <
-             B->outSymbol()->getSymbolIndex();
-    // Linker-created symbols share an input and carry no input .symtab index;
-    // break ties by final address then name to keep the order total.
-    if (A->outSymbol()->value() != B->outSymbol()->value())
-      return A->outSymbol()->value() < B->outSymbol()->value();
-    return A->getName() < B->getName();
-  };
-  llvm::stable_sort(Symbols, Cmp);
+  std::stable_sort(Symbols.begin(), Symbols.end(),
+                   static_cast<bool (*)(ResolveInfo *, ResolveInfo *)>(
+                       [](ResolveInfo *A, ResolveInfo *B) -> bool {
+                         // Section symbols always appear first.
+                         if (A->type() == ResolveInfo::Section &&
+                             (B->type() != ResolveInfo::Section))
+                           return true;
+                         if (A->type() != ResolveInfo::Section &&
+                             (B->type() == ResolveInfo::Section))
+                           return false;
+                         if (A->isLocal() && !B->isLocal())
+                           return true;
+                         if (!A->isLocal() && B->isLocal())
+                           return false;
+                         // All undefs appear after sections.
+                         if (A->isUndef() && !B->isUndef())
+                           return true;
+                         if (!A->isUndef() && B->isUndef())
+                           return false;
+                         return A->outSymbol()->value() <
+                                B->outSymbol()->value();
+                       }));
   return true;
 }
 
