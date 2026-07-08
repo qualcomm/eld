@@ -942,6 +942,25 @@ void GNULDBackend::sizeDynNamePools() {
 
     // Copy all the DynamicSymbols.
     std::copy(PartitionBegin, RVect.end(), std::back_inserter(DynamicSymbols));
+
+    // Deterministic .dynsym order: undefined symbols first, then defined;
+    // within each group by (input ordinal, input .symtab index).
+    auto Cmp = [](const ResolveInfo *A, const ResolveInfo *B) -> bool {
+      bool UndA = A->isUndef() || A->isDyn();
+      bool UndB = B->isUndef() || B->isDyn();
+      if (UndA != UndB)
+        return UndA;
+      auto OrdA = A->resolvedOrigin()->getInput()->getInputOrdinal();
+      auto OrdB = B->resolvedOrigin()->getInput()->getInputOrdinal();
+      if (OrdA != OrdB)
+        return OrdA < OrdB;
+      return A->outSymbol()->getSymbolIndex() <
+             B->outSymbol()->getSymbolIndex();
+    };
+    // Skip the null symbol at index 0.
+    llvm::stable_sort(
+        llvm::make_range(DynamicSymbols.begin() + 1, DynamicSymbols.end()),
+        Cmp);
   }
 
   {
@@ -1378,7 +1397,8 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
     else
       emitSymbol64(symtab64[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
                    /*IsDynSymTab=*/false);
-    if ((S->isGlobal() || S->isWeak()) && !firstNonLocal)
+    if (getSymbolBinding(S->outSymbol()) != llvm::ELF::STB_LOCAL &&
+        !firstNonLocal)
       firstNonLocal = symIdx;
     std::string symName = std::string(S->name());
     strtabsize += symName.length() + 1;
@@ -1602,9 +1622,11 @@ Relocation::Type GNULDBackend::getCopyRelType() const {
   return m_pInfo->getTargetRelocationType().CopyRelocType;
 }
 
-/// getSymbolInfo
-uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
-  // set binding
+/// getSymbolBinding - compute the ELF st_info binding a symbol is emitted with.
+/// sh_info of a symbol table must equal the index of the first symbol whose
+/// emitted binding is not STB_LOCAL, so the scan that sets sh_info must use
+/// this same classification (e.g. Absolute symbols emit as STB_GLOBAL).
+uint8_t GNULDBackend::getSymbolBinding(LDSymbol *pSymbol) const {
   uint8_t bind = 0x0;
   if (pSymbol->resolveInfo()->isLocal())
     bind = llvm::ELF::STB_LOCAL;
@@ -1613,13 +1635,22 @@ uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
   else if (pSymbol->resolveInfo()->isWeak())
     bind = llvm::ELF::STB_WEAK;
   else if (pSymbol->resolveInfo()->isAbsolute()) {
-    // (Luba) Is a absolute but not global (weak or local) symbol meaningful?
+    // eld's ResolveInfo binding enum stores "absolute-valued" as a distinct
+    // binding, so isGlobal()/isWeak() are false here. In ELF this is really a
+    // global symbol with SHN_ABS section, so emit STB_GLOBAL.
     bind = llvm::ELF::STB_GLOBAL;
   }
 
   if (config().codeGenType() != LinkerConfig::Object &&
       pSymbol->visibility() == llvm::ELF::STV_INTERNAL)
     bind = llvm::ELF::STB_LOCAL;
+
+  return bind;
+}
+
+/// getSymbolInfo
+uint64_t GNULDBackend::getSymbolInfo(LDSymbol *pSymbol) const {
+  uint8_t bind = getSymbolBinding(pSymbol);
 
   uint32_t type = pSymbol->resolveInfo()->type();
   // if the IndirectFunc symbol (i.e., STT_GNU_IFUNC) is from dynobj, change

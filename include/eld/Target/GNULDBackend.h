@@ -489,6 +489,8 @@ public:
 
   uint64_t getSymbolInfo(LDSymbol *pSymbol) const;
 
+  uint8_t getSymbolBinding(LDSymbol *pSymbol) const;
+
   uint64_t getSymbolValue(LDSymbol *pSymbol) const;
 
   std::pair<uint16_t, uint32_t> getSymbolShndx(LDSymbol *pSymbol) const;

@@ -48,7 +48,9 @@ eld::Expected<void> DynSymFragment::emit(MemoryRegion &Mr, Module &M) {
       M.getBackend().emitSymbol64(Symtab64[SymIdx], DynSym->outSymbol(),
                                   nullptr, 0, SymIdx,
                                   /*isDynSymTab=*/true);
-    if ((DynSym->isGlobal() || DynSym->isWeak()) && !FirstNonLocal)
+    if (M.getBackend().getSymbolBinding(DynSym->outSymbol()) !=
+            llvm::ELF::STB_LOCAL &&
+        !FirstNonLocal)
       FirstNonLocal = SymIdx;
     ++SymIdx;
   }
