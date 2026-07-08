@@ -1,0 +1,20 @@
+#---NonAllocAddrZero.test--------------------- Executable,LS --------------------#
+#BEGIN_COMMENT
+# Verify that non-alloc (debug) sections are laid out with address 0, and that
+# the dot symbol is not advanced by non-alloc sections so subsequent alloc
+# sections and inter-section symbol assignments get the correct VMA.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.o %p/Inputs/1.c -c -ffunction-sections -fdata-sections -g
+RUN: %link %linkopts -o %t1.out %t1.o -T %p/Inputs/script.t
+RUN: %readelf -Ss %t1.out | %filecheck %s
+
+# Non-alloc debug section must have address 0.
+CHECK: .debug_info PROGBITS {{[0]+}}
+
+# after_debug is assigned with ". =" between the non-alloc and .data sections.
+# It must equal the VMA of .data, proving dot was not advanced by the non-alloc
+# section.
+CHECK: .data PROGBITS [[#%x,DATA_ADDR:]]
+CHECK: {{.*}}: {{0+}}[[#%x,DATA_ADDR]] {{.*}} after_debug
+#END_TEST

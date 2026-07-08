@@ -201,11 +201,13 @@ bool GNULDBackend::createScriptProgramHdrs() {
       hasVMARegion = true;
     }
     if (curIsDebugSection || (*out)->isDiscard()) {
-      cur->setAddr(dotSymbol->value());
-      evaluateAssignments(*out);
-      evaluateAssignmentsAtEndOfOutputSection(*out);
+      // Use addr=0; restore dot after evaluateAssignments resets it to 0.
+      uint64_t SavedDot = dotSymbol->value();
       cur->setAddr(0);
       cur->setPaddr(0);
+      evaluateAssignments(*out);
+      dotSymbol->setValue(SavedDot);
+      evaluateAssignmentsAtEndOfOutputSection(*out);
       ++out;
       continue;
     }

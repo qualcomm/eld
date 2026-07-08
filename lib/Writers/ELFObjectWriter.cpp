@@ -414,7 +414,7 @@ void ELFObjectWriter::emitSectionHeader(
     Shdr[SectIdx].sh_name = Shstridx;
     Shdr[SectIdx].sh_type = LdSect->getType();
     Shdr[SectIdx].sh_flags = LdSect->getFlags();
-    Shdr[SectIdx].sh_addr = (LdSect->isAlloc()) ? LdSect->addr() : 0;
+    Shdr[SectIdx].sh_addr = LdSect->addr();
     Shdr[SectIdx].sh_offset = LdSect->offset();
     if (SectIdx == 0 && ThisModule.size() >= SHN_LORESERVE)
       Shdr[SectIdx].sh_size = ThisModule.size();

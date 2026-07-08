@@ -317,13 +317,15 @@ bool GNULDBackend::createProgramHdrs() {
     }
 
     if (curIsDebugSection || (*out)->isDiscard()) {
-      cur->setAddr(dotSymbol->value());
+      // Use addr=0; restore dot after evaluateAssignments resets it to 0.
+      uint64_t SavedDot = dotSymbol->value();
+      cur->setAddr(0);
+      cur->setPaddr(0);
       evaluateAssignments(*out);
+      dotSymbol->setValue(SavedDot);
       evaluateAssignmentsAtEndOfOutputSection(*out);
       cur->setWanted(cur->wantedInOutput() || cur->size());
       ++out;
-      cur->setAddr(0);
-      cur->setPaddr(0);
       continue;
     }
 
