@@ -1965,7 +1965,7 @@ bool RISCVLDBackend::handleRelocation(ELFSection *pSection,
       config().raise(Diag::warn_ignore_reloc_addend)
           << pSym.name() << getRISCVRelocName(pType)
           << pSection->originalInput()->getInput()->decoratedPath();
-      // pAddend = 0;
+      pAddend = 0;
     }
     Relocation *reloc = IRBuilder::addRelocation(getRelocator(), pSection,
                                                  pType, pSym, pOffset, pAddend);
