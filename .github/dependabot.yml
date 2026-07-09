@@ -9,3 +9,10 @@ updates:
     directory: "/" # This points to .github/workflows
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
+    reviewers:
+      - "@Steven6798"
+    labels:
+      - "dependencies"
+      - "security"
