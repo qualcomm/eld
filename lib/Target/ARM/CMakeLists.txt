@@ -4,6 +4,7 @@ llvm_add_library(
   ARMAttributeFragment.cpp
   ARMELFDynamic.cpp
   ARMEmulation.cpp
+  ARMEXIDXFragment.cpp
   ARMEXIDXSection.cpp
   ARMInfo.cpp
   ARMGOT.cpp
