@@ -1,0 +1,25 @@
+#---EXIDXSortingReverseScript.test------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify that sortEXIDX() sorts EXIDX entries by function address even when
+# the linker script lists each .ARM.exidx input section as a separate rule
+# in reverse address order.  In this case every RuleContainer holds exactly
+# one fragment, so the intra-rule stable_sort is a no-op.  The inter-rule
+# reordering pass must fix the ordering.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.o
+RUN: %link %linkopts %t1.o -T %p/Inputs/script_reverse_exidx.t -o %t2.out
+RUN: %readelf -u %t2.out | %filecheck %s --check-prefix=UNW
+
+# Entries must appear in ascending function-address order regardless of the
+# reverse rule ordering in the linker script.
+#UNW:      FunctionAddress: 0x11000
+#UNW-NEXT: Model: CantUnwind
+#UNW:      FunctionAddress: 0x11004
+#UNW-NEXT: Model: CantUnwind
+#UNW:      FunctionAddress: 0x11008
+#UNW-NEXT: Model: CantUnwind
+#UNW:      FunctionAddress: 0x1100C
+#UNW-NEXT: Model: CantUnwind
+# No sentinel: all entries are CANTUNWIND so the linker omits it.
+#END_TEST

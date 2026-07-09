@@ -317,6 +317,12 @@ void ARMGNULDBackend::sortEXIDX() {
     EXIDXFragSet.insert(KV.second);
 
   DiagnosticEngine *Diag = config().getDiagEngine();
+
+  // Setup RuleKeys for linker script rule container sorting
+  llvm::DenseMap<RuleContainer *, uint64_t> RuleKey;
+  for (auto &In : *O)
+    RuleKey[In] = MaxSortKey;
+
   for (auto &In : *O) {
     ELFSection *S = In->getSection();
     if (!S)
@@ -444,8 +450,22 @@ void ARMGNULDBackend::sortEXIDX() {
                        return OriginalFragOffsets.lookup(A) <
                               OriginalFragOffsets.lookup(B);
                      });
+
+    // Record the minimum key for this rule so we can sort rules below.
+    uint64_t RuleMinKey = MaxSortKey;
+    for (const auto &KV : FragSortKeys)
+      RuleMinKey = std::min(RuleMinKey, KV.second);
+    RuleKey[In] = RuleMinKey;
   }
 
+  std::stable_sort(O->begin(), O->end(),
+                   [&](RuleContainer *A, RuleContainer *B) {
+                     const uint64_t KeyA = RuleKey.lookup(A);
+                     const uint64_t KeyB = RuleKey.lookup(B);
+                     if (KeyA != KeyB)
+                       return KeyA < KeyB;
+                     return false;
+                   });
   evaluateAssignments(O);
 
   Fragment *FirstEXIDXFrag = nullptr;
