@@ -35,12 +35,13 @@
 #include "eld/Support/RegisterTimer.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
-#include "eld/Target/ARMEXIDXSection.h"
+#include "ARMEXIDXFragment.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/TargetInfo.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/ELFTypes.h"
@@ -48,7 +49,9 @@
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Program.h"
+#include <algorithm>
 #include <cstring>
+#include <limits>
 
 using namespace eld;
 using namespace llvm;
@@ -485,20 +488,19 @@ void ARMGNULDBackend::sortEXIDX() {
 }
 
 bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
-  // We need break them down to individual entry
-  if (auto *EXIDX = llvm::dyn_cast<ARMEXIDXSection>(S)) {
-    uint32_t Offset = 0;
+  // Keep one EXIDX fragment per section and track entry offsets as pieces.
+  if (S->isEXIDX()) {
+    llvm::StringRef Region = pInput.getSlice(S->offset(), S->size());
+    EXIDXFragment *EXIDX = make<EXIDXFragment>(Region, S, S->getAddrAlign());
+    m_EXIDXFragments[S] = EXIDX;
     LayoutInfo *layoutInfo = getModule().getLayoutInfo();
+    S->addFragment(EXIDX);
     for (uint32_t i = 0; i < S->size(); i += 8) {
-      llvm::StringRef region = pInput.getSlice(S->offset() + i, 8);
-      Fragment *frag = make<RegionFragment>(region, S, Fragment::Type::Region,
-                                            S->getAddrAlign());
-      if (layoutInfo)
-        layoutInfo->recordFragment(&pInput, S, frag);
-      EXIDX->addFragment(frag);
-      EXIDX->addEntry({Offset, frag});
-      Offset += 8;
+      const uint32_t PieceSize = (S->size() - i >= 8) ? 8 : (S->size() - i);
+      EXIDX->addPiece({i, PieceSize});
     }
+    if (layoutInfo)
+      layoutInfo->recordFragment(&pInput, S, EXIDX);
     return true;
   }
   if (S->getType() == llvm::ELF::SHT_ARM_ATTRIBUTES) {
@@ -1217,11 +1219,12 @@ bool ARMGNULDBackend::handleRelocation(ELFSection *Section,
                                        Relocation::Type Type, LDSymbol &Sym,
                                        uint32_t Offset,
                                        Relocation::Address Addend) {
-  if (auto *EXIDX = llvm::dyn_cast<ARMEXIDXSection>(Section)) {
-    EXIDXEntry Entry = EXIDX->getEntry(Offset);
-    Relocation *R = eld::IRBuilder::addRelocation(
-        getRelocator(), *Entry.Frag, Type, Sym, Offset - Entry.InputOffset);
-    EXIDX->addRelocation(R);
+  auto It = m_EXIDXFragments.find(Section);
+  if (It != m_EXIDXFragments.end()) {
+    (void)It->second->getPiece(Offset);
+    Relocation *R = eld::IRBuilder::addRelocation(getRelocator(), *It->second,
+                                                  Type, Sym, Offset);
+    Section->addRelocation(R);
     return true;
   }
   return false;
