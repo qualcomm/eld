@@ -1,0 +1,53 @@
+## When a linker script declares a lower ranked section before a higher ranked
+## one (a WA .vectors before an AX .text), the output section list is not
+## sorted by rank. An executable orphan must still be placed after .text, not
+## spliced in ahead of .vectors.
+
+RUN: split-file %s %t
+RUN: %clang %clangopts -c %t/1.s -o %t.o
+RUN: %link %linkopts %t.o -T %t/script.t -o %t.out
+RUN: %readelf -S %t.out | %filecheck %s
+
+## .vectors (WA) keeps the origin, .text (AX) follows, and the AX orphan should
+## land after .text rather than ahead of .vectors.
+CHECK:      .vectors {{.*}} WA
+CHECK-NEXT: .text {{.*}} AX
+CHECK-NEXT: .orphan_text {{.*}} AX
+
+## When the script declares only a higher ranked section, a lower ranked orphan
+## ranks ahead of everything present. The scan finds no fit and inserts the
+## orphan at the front of the section list.
+RUN: %clang %clangopts -c %t/2.s -o %t2.o
+RUN: %link %linkopts %t2.o -T %t/front.t -o %t.front.out
+RUN: %readelf -S %t.front.out | %filecheck %s -check-prefix=FRONT
+
+FRONT:      .text {{.*}} AX
+FRONT-NEXT: .bss {{.*}} WA
+
+#--- 1.s
+.section .vectors, "aw", %progbits
+.long 0
+
+.section .text, "ax", %progbits
+.long 0
+
+.section .orphan_text, "ax", %progbits
+.long 0
+
+#--- 2.s
+.section .bss, "aw", %nobits
+.long 0
+
+.section .text, "ax", %progbits
+.long 0
+
+#--- script.t
+SECTIONS {
+  .vectors : { *(.vectors) }
+  .text    : { *(.text) }
+}
+
+#--- front.t
+SECTIONS {
+  .bss : { *(.bss) }
+}

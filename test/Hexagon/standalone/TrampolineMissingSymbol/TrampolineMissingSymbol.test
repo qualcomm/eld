@@ -16,8 +16,7 @@ RUN: %clang %clangopts -c -fpic %p/Inputs/5.s -o %t5.o
 RUN: %link %linkopts %t1.o %t2.o %t3.o %t4.o %t5.o -T %p/Inputs/script.t -Map %t.map -o %t.out
 RUN: %objdump -d %t.out | %filecheck %s
 
-CHECK: <bar>:
-CHECK-DAG: <baz>:
-CHECK-DAG: <caz>
-CHECK-DAG: <foo>
-CHECK-DAG: <coo>
+CHECK: <baz>:
+CHECK: call {{.*}} <trampoline_for_coo_from_.init{{.*}}>
+CHECK: <trampoline_for_coo_from_.init{{.*}}>:
+CHECK: jump {{.*}} <coo>

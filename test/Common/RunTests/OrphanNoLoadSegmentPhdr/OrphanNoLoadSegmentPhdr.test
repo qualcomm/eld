@@ -1,0 +1,77 @@
+REQUIRES: run_test
+
+## Verify that orphan section placement respects segments. An orphan writable
+## section must not be placed into a non-loadable  segment even when a same rank
+## script mentioned section is bound there; doing so would leave
+## the orphan unmapped at run time.
+
+RUN: split-file %s %t
+RUN: %run_cc %clangopts -c -fPIC %t/orphan.c -o %t.o
+RUN: %run_cc %clangopts -o %t.out %t.o -Wl,-dy -Wl,-z,max-page-size=0x1000 -T %t/script.t
+RUN: %run %t.out | %filecheck %s
+RUN: %readelf -l %t.out | %filecheck %s --check-prefix=PHDRS
+
+CHECK: OK
+
+PHDRS:      LOAD
+PHDRS:      LOAD
+PHDRS:      NULL
+
+#--- orphan.c
+#include <stdio.h>
+
+__attribute__((section(".orphan_data"))) volatile int sentinel = 0xC0FFEE;
+
+/// Force the overlay output section to exist so the orphan placement scan
+/// actually considers it as a candidate anchor.
+__attribute__((section(".overlay"), used)) volatile int overlay_marker;
+
+int main(void) {
+  if (sentinel != 0xC0FFEE) {
+    fprintf(stderr, "orphan stranded: sentinel=0x%x\n", sentinel);
+    return 1;
+  }
+  puts("OK");
+  return 0;
+}
+
+#--- script.t
+PHDRS {
+  ph_phdr    PT_PHDR    PHDRS;
+  ph_interp  PT_INTERP;
+  ph_text    PT_LOAD    FILEHDR PHDRS FLAGS(5);
+  ph_data    PT_LOAD    FLAGS(6);
+  ph_dyn     PT_DYNAMIC;
+  ph_overlay PT_NULL    FLAGS(6);
+}
+SECTIONS {
+  .interp        : { *(.interp) }         :ph_interp :ph_text
+  .note.gnu.build-id : { *(.note.gnu.build-id) } :ph_text
+  .dynsym        : { *(.dynsym) }         :ph_text
+  .dynstr        : { *(.dynstr) }         :ph_text
+  .gnu.version   : { *(.gnu.version) }    :ph_text
+  .gnu.version_r : { *(.gnu.version_r) }  :ph_text
+  .gnu.hash      : { *(.gnu.hash) }       :ph_text
+  .rela.dyn      : { *(.rela.dyn) }       :ph_text
+  .rela.plt      : { *(.rela.plt) }       :ph_text
+  .rel.dyn       : { *(.rel.dyn) }        :ph_text
+  .rel.plt       : { *(.rel.plt) }        :ph_text
+  .init          : { *(.init) }           :ph_text
+  .plt           : { *(.plt*) }           :ph_text
+  . = ALIGN(4K);
+  .text          : { *(.text*) }          :ph_text
+  .fini          : { *(.fini) }           :ph_text
+  .rodata        : { *(.rodata*) }        :ph_text
+  .eh_frame      : { *(.eh_frame*) }      :ph_text
+  . = ALIGN(4K);
+  .init_array : { KEEP(*(.init_array*)) } :ph_data
+  .fini_array : { KEEP(*(.fini_array*)) } :ph_data
+  .dynamic    : { *(.dynamic) }           :ph_data :ph_dyn
+  .got        : { *(.got) }               :ph_data
+  .got.plt    : { *(.got.plt) }           :ph_data
+  __global_pointer$ = .;
+  .mydata     : { *(.mydata) *(.data*) }  :ph_data
+  .bss        : { *(.bss*) *(COMMON) }    :ph_data
+  . = 0x40000000;
+  .overlay (NOLOAD) : { *(.overlay) }     :ph_overlay
+}

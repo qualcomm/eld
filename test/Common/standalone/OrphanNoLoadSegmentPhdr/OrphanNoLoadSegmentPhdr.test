@@ -1,0 +1,43 @@
+## A script can declare PHDRS with a non-loadable segment (e.g. a PT_NULL
+## overlay) and assign a writable section to it after the normal writable
+## data. A writable orphan of the same rank must not end up in that segment:
+## an orphan takes the segment of the section it follows, so landing after the
+## overlay section would leave it unloaded at run time. It should stay after
+## the last loadable section (.mydata) instead.
+
+RUN: split-file %s %t
+RUN: %clang %clangopts -c %t/1.s -o %t.o
+RUN: %link %linkopts %t.o -T %t/script.t -o %t.out
+RUN: %readelf -l %t.out | %filecheck %s
+
+CHECK:      Segment Sections
+CHECK:      {{[0-9]+}} .mydata .orphan_rw {{$}}
+CHECK:      {{[0-9]+}} .overlay {{$}}
+
+#--- 1.s
+.section .text, "ax", %progbits
+.long 0
+
+.section .mydata, "aw", %progbits
+.long 0x11111111
+
+.section .orphan_rw, "aw", %progbits
+.long 0x22222222
+
+.section .overlay, "aw", %progbits
+.long 0x33333333
+
+#--- script.t
+PHDRS {
+  TEXT PT_LOAD;
+  DATA PT_LOAD;
+  OVERLAY PT_NULL;
+}
+SECTIONS {
+  . = 0x1000;
+  .text    : { *(.text) }    :TEXT
+  . = 0x10000;
+  .mydata  : { *(.mydata) }  :DATA
+  . = 0x40000000;
+  .overlay (NOLOAD) : { *(.overlay) } :OVERLAY
+}

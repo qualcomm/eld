@@ -2732,6 +2732,29 @@ bool GNULDBackend::checkCrossReferences() {
   return true;
 }
 
+// True if a section is bound only to non-PT_LOAD segments. A section with no
+// phdr binding stays in the default PT_LOAD, so it is loadable.
+static bool isInNonLoadSegment(const OutputSectionEntry *Sec,
+                               LinkerScript &Script) {
+  if (Sec->getSection()->isNullKind())
+    return true;
+  if (!Sec->epilog().hasPhdrs())
+    return false;
+  bool sawPhdr = false;
+  for (const StrToken *Tok : Sec->epilog().phdrs()->tokens()) {
+    uint32_t type = llvm::ELF::PT_NULL;
+    for (const auto *Phdr : Script.phdrList())
+      if (Phdr->spec().name() == Tok->name()) {
+        type = Phdr->spec().type();
+        break;
+      }
+    if (type == llvm::ELF::PT_LOAD)
+      return false;
+    sawPhdr = true;
+  }
+  return sawPhdr;
+}
+
 /// placeOutputSections - place output sections based on SectionMap
 bool GNULDBackend::placeOutputSections() {
   typedef std::vector<ELFSection *> Orphans;
@@ -2996,15 +3019,37 @@ bool GNULDBackend::placeOutputSections() {
         // later
         // though. The value is initialized to -1, to skip the Null section
         // inserted.
+        //
+        // With a SECTIONS command sectionMap is in declaration order, not
+        // rank order, so stopping at the first higher ranked entry can insert
+        // the orphan too early. Track the last position it may follow instead.
+        //
+        // An orphan inherits the segment of the section before it. Keep an
+        // alloc orphan out of a non-load segment by preferring the last
+        // loadable segment. Fall back to the last fit if there is none (eg
+        // NONE segment layouts).
         int numSections = -1;
+        SectionMap::iterator lastFit = outEnd, lastLoadFit = outEnd;
         for (out = outBegin; out != outEnd; ++out) {
           if (numSections && (*out)->isDiscard() && (order <= SHO_UNDEFINED))
             break;
           if ((*out)->order() > order) {
-            break;
+            if (!linkerScriptHasSectionsCommand)
+              break;
+          } else if (linkerScriptHasSectionsCommand) {
+            lastFit = out;
+            if (orphan->isAlloc() &&
+                !isInNonLoadSegment(*out, m_Module.getScript()))
+              lastLoadFit = out;
           }
           ++numSections;
         }
+        if (lastLoadFit != outEnd)
+          lastFit = lastLoadFit;
+        // lastFit points at the entry to follow; insert after it. No fit
+        // (outEnd) means the orphan outranks everything, so insert at front.
+        if (linkerScriptHasSectionsCommand)
+          out = (lastFit == outEnd) ? outBegin : ++lastFit;
         if (orphan->getOutputSection())
           out = sectionMap.insert(out, orphan->getOutputSection());
         else {
