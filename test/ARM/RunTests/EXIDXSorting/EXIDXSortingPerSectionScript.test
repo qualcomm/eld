@@ -1,0 +1,34 @@
+REQUIRES: run_test, linux
+#---EXIDXSortingPerSectionScript.test----------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: verify that EXIDX sorting works correctly when a linker script
+# lists each .ARM.exidx.text.<func> section as a separate rule in REVERSE
+# address order inside the single .ARM.exidx output section.  sortEXIDX() must
+# reorder the rules by function address so the ARM unwinder can binary-search
+# the table.  A throw through multiple frames exercises the sorted table; an
+# incorrect sort causes the unwinder to miss the catch and terminate instead.
+#
+# Static linking is used so that CRT/libstdc++ text occupies lower virtual
+# addresses than the four test functions, which are placed in a separate
+# .testtext section after .text by the linker script.  This keeps the EXIDX
+# catch-all entries (CRT/libstdc++) at lower addresses than the per-section
+# test-function entries, satisfying the ascending-address invariant after
+# sortEXIDX() reorders the per-section rules.
+#END_COMMENT
+#START_TEST
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_sort_f_main.cpp -o %t.exidx_sort_f_main.o
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_sort_f_level1.cpp -o %t.exidx_sort_f_level1.o
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_sort_f_level2.cpp -o %t.exidx_sort_f_level2.o
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_sort_f_level3.cpp -o %t.exidx_sort_f_level3.o
+RUN: %run_cxx %clangopts -static -T %p/Inputs/script_per_section_exidx.t \
+RUN:   -Wl,-z,max-page-size=0x1000 -o %t.out \
+RUN:   %t.exidx_sort_f_level3.o %t.exidx_sort_f_level2.o \
+RUN:   %t.exidx_sort_f_level1.o %t.exidx_sort_f_main.o
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: caught 99
