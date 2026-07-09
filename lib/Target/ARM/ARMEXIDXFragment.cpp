@@ -42,6 +42,75 @@ size_t EXIDXFragment::size() const {
   return Total;
 }
 
+///   #EXIDX  sec=0x<addr>  sz=0x<size>  n=<npieces>  [<GC>]
+///   #P[i]   off=0x<input_offset>  addr=0x<output_addr>  sz=0x<size>  [<GC>]
+///   #R      sym=<name>  add=0x<addend>  [<GC>]   (once per reloc in piece)
+void EXIDXFragment::dump(llvm::raw_ostream &OS) {
+  if (Pieces.empty())
+    return;
+
+  ELFSection *S = getOwningSection();
+  const bool IsGC = S && (S->isIgnore() || S->isDiscard());
+  ELFSection *OutSection = getOutputELFSection();
+  const uint64_t SectionAddr = OutSection ? OutSection->addr() : 0;
+  const uint64_t FragmentOutputOffset = hasOffset() ? getOffset() : 0;
+  const uint64_t FragmentOutputAddr = SectionAddr + FragmentOutputOffset;
+
+  // Fragment header line.
+  OS << "#EXIDX";
+  OS << "\tsec=0x";
+  OS.write_hex(FragmentOutputAddr);
+  OS << "\tsz=0x";
+  OS.write_hex(size());
+  OS << "\tn=" << Pieces.size();
+  if (IsGC)
+    OS << "\t<GC>";
+  OS << "\n";
+
+  for (size_t I = 0; I < Pieces.size(); ++I) {
+    const EXIDXPiece &Piece = Pieces[I];
+
+    // Per-piece line: input offset, output address, size.
+    OS << "#P[" << I << "]";
+    OS << "\toff=0x";
+    OS.write_hex(Piece.InputOffset);
+    OS << "\taddr=0x";
+    OS.write_hex(FragmentOutputAddr + Piece.InputOffset);
+    OS << "\tsz=0x";
+    OS.write_hex(Piece.Size);
+    if (IsGC)
+      OS << "\t<GC>";
+    OS << "\n";
+
+    if (!S)
+      continue;
+
+    // Emit one #R line per relocation whose target falls within this piece.
+    // Relocations are stored on the owning section; offsets are in
+    // piece-layout space after sortEXIDX translates them.
+    for (Relocation *R : S->getRelocations()) {
+      if (!R || !R->targetRef() || R->targetRef()->isNull())
+        continue;
+      if (R->targetRef()->frag() != this)
+        continue;
+
+      const uint32_t RelInputOffset = R->targetRef()->offset();
+      if (RelInputOffset < Piece.InputOffset ||
+          RelInputOffset >= Piece.InputOffset + Piece.Size)
+        continue;
+
+      OS << "#R";
+      if (ResolveInfo *Sym = R->symInfo())
+        OS << "\tsym=" << Sym->name();
+      OS << "\tadd=0x";
+      OS.write_hex(R->addend());
+      if (IsGC)
+        OS << "\t<GC>";
+      OS << "\n";
+    }
+  }
+}
+
 eld::Expected<void> EXIDXFragment::emit(MemoryRegion &Mr, Module &) {
   if (Pieces.empty())
     return {};
