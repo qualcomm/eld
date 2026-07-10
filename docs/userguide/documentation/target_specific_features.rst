@@ -9,7 +9,7 @@ Hexagon
 -------
 
 - Plugins
-  - Information can be found at :doc:`linker_plugin`
+  - Information can be found at :doc:`linker_plugins_updated`
 - Small data
 - Trampolines
 - **--disable-guard-for-weak-undef**

@@ -2,7 +2,7 @@ Linker Optimization Features
 ============================
 
     * Plugins
-        More Information about linker plugins can be found at :doc:`linker_plugin`
+        More Information about linker plugins can be found at :doc:`linker_plugins_updated`
 
     * Garbage Collection
 

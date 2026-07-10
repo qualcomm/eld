@@ -27,7 +27,6 @@ This document describes usage of ELD
    documentation/image_structure_and_generation.rst
    documentation/layout.rst
    documentation/linker_plugins_updated.rst
-   documentation/linker_plugin.rst
    documentation/linker_optimizations.rst
    documentation/elf_tools.rst
    documentation/lto_support.rst
