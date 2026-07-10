@@ -197,6 +197,13 @@ eld::Expected<void> DiagnosticInfos::process(DiagnosticEngine &PEngine) const {
       Severity = DiagnosticEngine::Fatal;
   }
 
+  // If --no-warn-mismatch is used, then switch errors and warning affected by
+  // --no-warn-mismatch to notes
+  if (!Config.options().warnMismatch() &&
+      (DiagnosticEngine::isWarnMismatch(ID) ||
+       DiagnosticEngine::isErrorMismatch(ID)))
+    Severity = DiagnosticEngine::Note;
+
   // finally, report it.
   eld::Expected<void> ExpReportRes =
       PEngine.getPrinter()->handleDiagnostic(Severity, Info);

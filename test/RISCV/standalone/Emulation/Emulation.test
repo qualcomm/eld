@@ -16,7 +16,7 @@ RISCV32: ELF32
 RISCV32: RISC-V
 
 RISCV64ERR: Error: Invalid ELF file {{.*}}1.64.o for target riscv32
-RISCV64NOERR-NOT: Error: Invalid ELF file
+RISCV64NOERR: Note: Invalid ELF file {{.*}}1.64.o for target riscv32
 
 RISCV64: ELF64
 RISCV64: RISC-V

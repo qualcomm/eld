@@ -230,6 +230,25 @@ void DiagnosticEngine::ignoreLLVMError(llvm::Error E) {
     ASSERT(!IgnoreErr, "ignoreErr must always be false");
 }
 
+bool DiagnosticEngine::isWarnMismatch(DiagIDType Id) {
+  if (Id == Diag::warn_mismatch_enum_size ||
+      Id == Diag::incompatible_architecture ||
+      Id == Diag::incompatible_input_architecture)
+    return true;
+
+  return false;
+}
+
+bool DiagnosticEngine::isErrorMismatch(DiagIDType Id) {
+  if (Id == Diag::err_mismatch_r9_use ||
+      Id == Diag::incompatible_architecture_versions ||
+      Id == Diag::attribute_parsing_error ||
+      Id == Diag::err_unrecognized_input_file || Id == Diag::invalid_elf_class)
+    return true;
+
+  return false;
+}
+
 // Initializes the default diagnostic IDs.
 // Diagnostic IDs are formed of 2 components: diagnostic severity and base ID.
 // Both diagnostic severity and the base diagnostic ID can be extract out of the

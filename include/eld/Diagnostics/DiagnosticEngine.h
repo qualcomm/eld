@@ -260,6 +260,10 @@ public:
 
   static void ignoreLLVMError(llvm::Error E);
 
+  static bool isWarnMismatch(DiagIDType Id);
+
+  static bool isErrorMismatch(DiagIDType Id);
+
 private:
   // -----  emission  ----- //
   // emit - process the message to printer

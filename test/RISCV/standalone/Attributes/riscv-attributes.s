@@ -34,11 +34,9 @@ UNSUPPORTED: riscv32, windows
 
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 invalid_arch1.s -o invalid_arch1.o
 # RUN: %not %link --warn-mismatch -march riscv64 invalid_arch1.o -o /dev/null 2>&1 | FileCheck %s --check-prefix=INVALID_ARCH1 --implicit-check-not=error:
-#TODO: Why this does not link with eld but does with gnu ld?
-# RUN: %not %link --no-warn-mismatch -march riscv64 invalid_arch1.o -o /dev/null 2>&1 | FileCheck %s --check-prefix=INVALID_ARCH1_NOERR
+# RUN: %link --no-warn-mismatch -march riscv64 invalid_arch1.o -o /dev/null 2>&1 | FileCheck %s --check-prefix=INVALID_ARCH1_NOERR
 # INVALID_ARCH1: Reading attributes failed for file invalid_arch1.o, Error : extension lacks version in expected format
-# INVALID_ARCH1_NOERR-NOT: Warning: Reading attributes failed for file invalid_arch1.o, Error : extension lacks version in expected format
-# INVALID_ARCH1_NOERR: Fatal: Linking had errors (/dev/null)
+# INVALID_ARCH1_NOERR: Note: Reading attributes failed for file invalid_arch1.o, Error : extension lacks version in expected format
 
 ## A zero value attribute is not printed.
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 unaligned_access_0.s -o unaligned_access_0.o
@@ -60,20 +58,16 @@ UNSUPPORTED: riscv32, windows
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 unknown13.s -o unknown13.o
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 unknown13a.s -o unknown13a.o
 # RUN: not %link --warn-mismatch -march riscv64 -e 0 unknown13.o unknown13.o unknown13a.o -o unknown13 2>&1 | FileCheck %s --check-prefix=UNKNOWN13 --implicit-check-not=warning:
-#TODO: Why this does not link with eld but does with gnu ld?
-# RUN: not %link --no-warn-mismatch -march riscv64 -e 0 unknown13.o unknown13.o unknown13a.o -o unknown13 2>&1 | FileCheck %s --check-prefix=UNKNOWN13_NOERR
+# RUN: %link --no-warn-mismatch -march riscv64 -e 0 unknown13.o unknown13.o unknown13a.o -o unknown13 2>&1 | FileCheck %s --check-prefix=UNKNOWN13_NOERR
 # UNKNOWN13: Reading attributes failed for file unknown13.o, Error : invalid tag 0xd at offset 0x10
-# UNKNOWN13_NOERR-NOT: Warning: Reading attributes failed for file unknown13.o, Error : invalid tag
-# UNKNOWN13_NOERR: Fatal: Linking had errors (unknown13)
+# UNKNOWN13_NOERR: Note: Reading attributes failed for file unknown13.o, Error : invalid tag 0xd at offset 0x10
 
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 unknown22.s -o unknown22.o
 # RUN: %llvm-mc -filetype=obj -triple=riscv64 unknown22a.s -o unknown22a.o
 # RUN: not %link --warn-mismatch -march riscv64 -e 0 unknown22.o unknown22.o unknown22a.o -o unknown22 2>&1 | FileCheck %s --check-prefix=UNKNOWN22 --implicit-check-not=warning:
-#TODO: Why this does not link with eld but does with gnu ld?
-# RUN: not %link --no-warn-mismatch -march riscv64 -e 0 unknown22.o unknown22.o unknown22a.o -o unknown22 2>&1 | FileCheck %s --check-prefix=UNKNOWN22_NOERR
+# RUN: %link --no-warn-mismatch -march riscv64 -e 0 unknown22.o unknown22.o unknown22a.o -o unknown22 2>&1 | FileCheck %s --check-prefix=UNKNOWN22_NOERR
 # UNKNOWN22: Reading attributes failed for file unknown22a.o
-# UNKNOWN22_NOERR-NOT: Warning: Reading attributes failed for file
-# UNKNOWN22_NOERR: Fatal: Linking had errors (unknown22)
+# UNKNOWN22_NOERR: Note: Reading attributes failed for file
 
 # HDR:      Name              Type             Address          Off    Size   ES Flg Lk Inf Al
 # HDR:      .riscv.attributes RISCV_ATTRIBUTES 0000000000000000 0000b0 {{.*}} 00      0   0  1{{$}}

@@ -182,8 +182,9 @@ bool ARMAttributeFragment::updateARMVFPArgs(
     // as a clash.
     return true;
 
+  bool WarnMismatch = Config.options().warnMismatch();
   unsigned vfpArgs = attr.value();
-  ARMVFPArgKind arg;
+  ARMVFPArgKind arg = ARMVFPArgKind::Default;
   switch (vfpArgs) {
   case llvm::ARMBuildAttrs::BaseAAPCS:
     arg = ARMVFPArgKind::Base;
@@ -199,22 +200,22 @@ bool ARMAttributeFragment::updateARMVFPArgs(
     // Object compatible with all conventions.
     return true;
   default: {
-    if (Config.options().warnMismatch()) {
-      std::string ErrorMsg =
-          "unknown Tag_ABI_VFP_args value: " + std::to_string(vfpArgs);
-      DiagEngine->raise(Diag::attribute_parsing_error)
-          << f->getInput()->decoratedPath() << ErrorMsg;
+    std::string ErrorMsg =
+        "unknown Tag_ABI_VFP_args value: " + std::to_string(vfpArgs);
+    DiagEngine->raise(Diag::attribute_parsing_error)
+        << f->getInput()->decoratedPath() << ErrorMsg;
+    if (WarnMismatch)
       return false;
-    }
+    break;
   }
   }
   // Follow ld.bfd and error if there is a mix of calling conventions.
-  if (Config.options().warnMismatch() &&
-      (OutputAttributes.armVFPArgs != arg &&
-       OutputAttributes.armVFPArgs != ARMVFPArgKind::Default)) {
+  if (OutputAttributes.armVFPArgs != arg &&
+      OutputAttributes.armVFPArgs != ARMVFPArgKind::Default) {
     DiagEngine->raise(Diag::attribute_parsing_error)
         << f->getInput()->decoratedPath() << "incompatible Tag_ABI_VFP_args";
-    return false;
+    if (WarnMismatch)
+      return false;
   }
   std::string VFPStr = "ARM VFP " + std::to_string((uint32_t)arg);
   f->recordFeature(VFPStr);
@@ -245,12 +246,12 @@ bool ARMAttributeFragment::updatePCS(const llvm::ARMAttributeParser &attributes,
     OutputAttributes.armR9Args = r9args;
     return true;
   }
-  if (Config.options().warnMismatch() &&
-      (OutputAttributes.armR9Args != r9args)) {
+  if (OutputAttributes.armR9Args != r9args) {
     DiagEngine->raise(Diag::err_mismatch_r9_use)
         << R9Str(*OutputAttributes.armR9Args) << R9Str(r9args)
         << f->getInput()->decoratedPath();
-    return false;
+    if (Config.options().warnMismatch())
+      return false;
   }
   return true;
 }
@@ -273,12 +274,12 @@ bool ARMAttributeFragment::updatePCSRO(
     OutputAttributes.ABI_PCS_RO_data = ABI_PCS_RO_data_val;
     return true;
   }
-  if (Config.options().warnMismatch() &&
-      (OutputAttributes.ABI_PCS_RO_data != ABI_PCS_RO_data_val)) {
+  if (OutputAttributes.ABI_PCS_RO_data != ABI_PCS_RO_data_val) {
     Config.raise(Diag::err_mismatch_r9_use)
         << PCS_ROStr(*OutputAttributes.ABI_PCS_RO_data)
         << PCS_ROStr(ABI_PCS_RO_data_val) << f->getInput()->decoratedPath();
-    return false;
+    if (Config.options().warnMismatch())
+      return false;
   }
   return true;
 }
@@ -302,12 +303,12 @@ bool ARMAttributeFragment::updatePCSRW(
     OutputAttributes.ABI_PCS_RW_data = ABI_PCS_RW_data_val;
     return true;
   }
-  if (Config.options().warnMismatch() &&
-      (OutputAttributes.ABI_PCS_RW_data != ABI_PCS_RW_data_val)) {
+  if (OutputAttributes.ABI_PCS_RW_data != ABI_PCS_RW_data_val) {
     DiagEngine->raise(Diag::err_mismatch_r9_use)
         << PCS_RWStr(*OutputAttributes.ABI_PCS_RW_data)
         << PCS_RWStr(ABI_PCS_RW_data_val) << f->getInput()->decoratedPath();
-    return false;
+    if (Config.options().warnMismatch())
+      return false;
   }
   return true;
 }
@@ -331,12 +332,12 @@ bool ARMAttributeFragment::updateEnumSize(
     OutputAttributes.armEnumSize = enumSize;
     return true;
   }
-  if (Config.options().warnMismatch() &&
-      (OutputAttributes.armEnumSize != enumSize)) {
+  if (OutputAttributes.armEnumSize != enumSize) {
     DiagEngine->raise(Diag::warn_mismatch_enum_size)
         << f->getInput()->decoratedPath() << enumSize
         << *OutputAttributes.armEnumSize;
-    return false;
+    if (Config.options().warnMismatch())
+      return false;
   }
   return true;
 }

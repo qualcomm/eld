@@ -14,8 +14,8 @@ RUN: %not %link --warn-mismatch -MapStyle yaml %linkopts -Map %t1.yaml.map -marc
 RUN: %link --no-warn-mismatch -MapStyle yaml %linkopts -Map %t1.yaml.map -march armv7 %t1.o %t2.o -o %t2.out.2 2>&1 | %filecheck %s -check-prefix=NOERR --allow-empty
 RUN: %filecheck %s -check-prefix MAP < %t1.yaml.map
 
-CHECK: conflicting way to use R9. {{[ -\(\)_A-Za-z0-9.\\/:]+}}: `SB', previously seen: `GPR'
-NOERR-NOT: conflicting way to use R9. {{.*}}: `SB', previously seen: `GPR'
+CHECK: Error: conflicting way to use R9. {{.*}}: `SB', previously seen: `GPR'
+NOERR: Note: conflicting way to use R9. {{.*}}: `SB', previously seen: `GPR'
 
 #MAP: LOAD {{.*}}1.o[arm][blx,j1j2,movtmovw,GPR,PCRel,EnumSize 2,Application]
 #MAP: LOAD {{.*}}2.o[arm][blx,j1j2,movtmovw,SB,SBRel,EnumSize 2,Application]

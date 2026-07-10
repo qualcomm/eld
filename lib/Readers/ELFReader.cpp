@@ -424,22 +424,35 @@ template <class ELFT>
 eld::Expected<bool> ELFReader<ELFT>::isCompatible() const {
   const InputFile &inputFile = this->m_InputFile;
   LinkerConfig &config = this->m_Module.getConfig();
+  bool WarnMismatch = config.options().warnMismatch();
 
-  if (config.options().warnMismatch() && !checkMachine())
-    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+  if (!checkMachine()) {
+    auto DE = std::make_unique<DiagnosticEntry>(
         Diag::err_unrecognized_input_file,
-        {inputFile.getInput()->getResolvedPath().native(),
-         config.targets().getArch()}));
+        std::vector<std::string>{
+            inputFile.getInput()->getResolvedPath().native(),
+            config.targets().getArch()});
+    if (!WarnMismatch)
+      config.raiseDiagEntry(std::move(DE));
+    else
+      return std::move(DE);
+  }
 
   eld::Expected<bool> expCheckFlags = checkFlags();
   ELDEXP_RETURN_DIAGENTRY_IF_ERROR(expCheckFlags);
   if (!expCheckFlags.value())
     return false;
 
-  if (config.options().warnMismatch() && !checkClass())
-    return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
+  if (!checkClass()) {
+    auto DE = std::make_unique<DiagnosticEntry>(
         Diag::invalid_elf_class,
-        {inputFile.getInput()->decoratedPath(), config.targets().getArch()}));
+        std::vector<std::string>{inputFile.getInput()->decoratedPath(),
+                                 config.targets().getArch()});
+    if (!WarnMismatch)
+      config.raiseDiagEntry(std::move(DE));
+    else
+      return std::move(DE);
+  }
 
   checkOSABI();
 

@@ -16,6 +16,6 @@ RUN: %not %link %emulation -Bdynamic --warn-mismatch %t.2.o -L%p/Inputs %t.lib.s
 RUN: %link %emulation -Bdynamic --no-warn-mismatch %t.2.o -L%p/Inputs %t.lib.so 2>&1 | %filecheck %s -check-prefix=NOERR --allow-empty
 
 CHECK: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}.3.o'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
-NOERR-NOT: Error: cannot recognize the format of file
+NOERR: Note: cannot recognize the format of file {{.*}}. object format or given target machine ({{.*}}) is incompatible.
 ARCHIVE: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}.a'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
 DYNAMIC: Error: cannot recognize the format of file {{[` -\(\)_A-Za-z0-9.\\/:]+}}.lib.so'. object format or given target machine ({{[` -\(\)_A-Za-z0-9.\\/:]+}}) is incompatible.
