@@ -24,7 +24,7 @@ ARM and Thumb functions are distinguished by the least-significant bit of a bran
 
 ---
 
-# Absolute Relocations
+## Absolute Relocations
 
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
@@ -38,14 +38,14 @@ ARM and Thumb functions are distinguished by the least-significant bit of a bran
 
 `R_ARM_MOVW_ABS_NC` and `R_ARM_MOVT_ABS` are used in pairs: `MOVW` loads bits `[15:0]` and `MOVT` loads bits `[31:16]` of a 32-bit address.
 
-## Example: Loading a 32-bit Address (ARM)
+### Example: Loading a 32-bit Address (ARM)
 
 ```asm
 movw r0, #:lower16:symbol   @ R_ARM_MOVW_ABS_NC
 movt r0, #:upper16:symbol   @ R_ARM_MOVT_ABS
 ```
 
-## Example: Loading a 32-bit Address (Thumb)
+### Example: Loading a 32-bit Address (Thumb)
 
 ```asm
 movw r0, #:lower16:symbol   @ R_ARM_THM_MOVW_ABS_NC
@@ -54,7 +54,7 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 
 ---
 
-# PC-Relative Relocations
+## PC-Relative Relocations
 
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
@@ -75,11 +75,11 @@ movt r0, #:upper16:symbol   @ R_ARM_THM_MOVT_ABS
 
 ---
 
-# Branch Relocations
+## Branch Relocations
 
 ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit field, giving a range of ±32 MB. Thumb branch instructions encode the offset divided by 2.
 
-## ARM Branch
+### ARM Branch
 
 | Relocation | Expression | Instruction | Encoded bits | Range |
 |------------|-----------|-------------|--------------|-------|
@@ -88,7 +88,7 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 | `R_ARM_JUMP24` | `((S + A) \| T) - P` | `b`/`bx` | 24-bit signed (`X >> 2`) | ±32 MB |
 | `R_ARM_CALL` | `((S + A) \| T) - P` | `bl`/`blx` | 24-bit signed (`X >> 2`) | ±32 MB |
 
-## Thumb Branch
+### Thumb Branch
 
 | Relocation | Expression | Instruction | Encoded bits | Range |
 |------------|-----------|-------------|--------------|-------|
@@ -100,7 +100,7 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 
 ---
 
-# GOT-Relative Relocations
+## GOT-Relative Relocations
 
 | Relocation | Expression | Bits | Range Check |
 |------------|-----------|------|-------------|
@@ -110,7 +110,7 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 
 ---
 
-# TLS Relocations
+## TLS Relocations
 
 | Relocation | Expression | Notes |
 |------------|-----------|-------|
@@ -122,7 +122,7 @@ ARM branch instructions encode a signed byte offset divided by 4 into a 24-bit f
 
 ---
 
-# Unsupported Relocations
+## Unsupported Relocations
 
 The table below lists every relocation that ELD's ARM backend maps to the `unsupport` handler. Applying any of these to a non-dynamic object causes a link error. Relocations not listed here are handled. The **ABI category** column records how the ARM ELF ABI classifies the entry, and the **TODO** column records cases where the linker could reasonably add support.
 
@@ -209,7 +209,7 @@ The table below lists every relocation that ELD's ARM backend maps to the `unsup
 
 ---
 
-# ABI Comparison Notes
+## ABI Comparison Notes
 
 The following discrepancies or gaps were found when comparing this document against the AAELF32 ABI specification:
 
@@ -225,11 +225,11 @@ The following discrepancies or gaps were found when comparing this document agai
 
 ---
 
-# Veneers (Branch Island Stubs)
+## Veneers (Branch Island Stubs)
 
 When a branch target is out of range or requires an ISA mode switch (ARM ↔ Thumb), the linker inserts a small stub function called a **veneer** (also called a trampoline or branch island). The veneer is placed near the caller and jumps to the real target using an absolute or PC-relative address.
 
-## When the Linker Creates Veneers
+### When the Linker Creates Veneers
 
 | Caller ISA | Target ISA | Relocation | Condition | Notes |
 |------------|------------|------------|-----------|-------|
@@ -244,7 +244,7 @@ When a branch target is out of range or requires an ISA mode switch (ARM ↔ Thu
 >
 > **J1J2 encoding:** Thumb-2 processors with J1J2 branch encoding support a 25-bit offset (±16 MB); older Thumb-2 without J1J2 use a 23-bit offset (±4 MB). The linker detects this from the object attribute section.
 
-## Branch Range Reference
+### Branch Range Reference
 
 | Caller ISA | Branch encoding | Range |
 |------------|----------------|-------|
@@ -252,7 +252,7 @@ When a branch target is out of range or requires an ISA mode switch (ARM ↔ Thu
 | Thumb | 23-bit signed `× 2`, bias 4 | ±4 MB |
 | Thumb (J1J2) | 25-bit signed `× 2`, bias 4 | ±16 MB |
 
-## Veneer Templates
+### Veneer Templates
 
 The linker selects a veneer template based on link-time options and the target CPU profile:
 
@@ -267,7 +267,7 @@ For Thumb→Thumb veneers the stub body first switches to ARM mode (`bx pc; nop`
 
 ---
 
-# References
+## References
 
 - ELF for the Arm Architecture (AAELF32)
   - https://github.com/ARM-software/abi-aa/blob/main/aaelf32/aaelf32.rst

@@ -42,7 +42,7 @@ Relocations with the `_X` suffix are the upper-bits half of such a pair. The low
 
 ---
 
-# Absolute Relocations
+## Absolute Relocations
 
 | Relocation | Expression | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|-----------|--------------|-------|--------|-------------|-----------------|
@@ -56,11 +56,11 @@ Relocations with the `_X` suffix are the upper-bits half of such a pair. The low
 
 ---
 
-# PC-Relative Branch Relocations
+## PC-Relative Branch Relocations
 
 Expression: `S + A - P`
 
-## Non-Extended
+### Non-Extended
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -74,7 +74,7 @@ Expression: `S + A - P`
 
 `R_HEX_32_PCREL` is a 32-bit PC-relative relocation used in data (not in instruction immediates). `R_HEX_6_PCREL_X` encodes the low 6 bits of an extended PC-relative pair.
 
-## Extended (_X variants — upper bits of a two-relocation sequence)
+### Extended (_X variants — upper bits of a two-relocation sequence)
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -85,7 +85,7 @@ Expression: `S + A - P`
 | `R_HEX_B9_PCREL_X` | 9 | 0 | yes | `-2^8 ≤ X < 2^8` | — |
 | `R_HEX_B7_PCREL_X` | 7 | 0 | yes | `-2^6 ≤ X < 2^6` | — |
 
-### Example: Extended B22 Pair
+#### Example: Extended B22 Pair
 
 ```asm
 ; Upper bits: R_HEX_B32_PCREL_X encodes (S+A-P)[31:6]
@@ -95,7 +95,7 @@ call target
 
 ---
 
-# GP-Relative Relocations
+## GP-Relative Relocations
 
 Expression: `S + A - GP`
 
@@ -110,7 +110,7 @@ The suffix `_0` through `_3` reflects the access size: byte, halfword, word, and
 
 ---
 
-# Absolute Extended/Truncated Relocations
+## Absolute Extended/Truncated Relocations
 
 Expression: `S + A`
 
@@ -130,7 +130,7 @@ Expression: `S + A`
 
 ---
 
-# Dynamic Relocations
+## Dynamic Relocations
 
 These relocations are resolved by the dynamic linker at load time.
 
@@ -143,9 +143,9 @@ These relocations are resolved by the dynamic linker at load time.
 
 ---
 
-# GOT-Relative Relocations
+## GOT-Relative Relocations
 
-## GOT-offset (Expression: `GOT(S) + A - GOT_ORG`)
+### GOT-offset (Expression: `GOT(S) + A - GOT_ORG`)
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -156,7 +156,7 @@ These relocations are resolved by the dynamic linker at load time.
 | `R_HEX_GOTREL_16_X` | 6 | 0 | no | — | — |
 | `R_HEX_GOTREL_11_X` | 6 | 0 | no | — | — |
 
-## GOT entry PC-relative (Expression: `GOT(S) + A - P`)
+### GOT entry PC-relative (Expression: `GOT(S) + A - P`)
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -170,13 +170,13 @@ These relocations are resolved by the dynamic linker at load time.
 
 ---
 
-# TLS Relocations
+## TLS Relocations
 
-## General Dynamic (GD) and Local Dynamic (LD)
+### General Dynamic (GD) and Local Dynamic (LD)
 
 These relocations use a GOT-entry-based indirection. Expression: `GOT(S) + A - P`.
 
-### GD PLT Call
+#### GD PLT Call
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -184,7 +184,7 @@ These relocations use a GOT-entry-based indirection. Expression: `GOT(S) + A - P
 | `R_HEX_GD_PLT_B22_PCREL_X` | 22 | 0 | yes | — | — |
 | `R_HEX_GD_PLT_B32_PCREL_X` | 26 | 6 | yes | — | — |
 
-### GD GOT Access
+#### GD GOT Access
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -211,7 +211,7 @@ The LD variants follow the same structure:
 | `R_HEX_LD_GOT_16_X` | 6 | 0 | no | — | — |
 | `R_HEX_LD_GOT_11_X` | 6 | 0 | no | — | — |
 
-## Initial Exec (IE)
+### Initial Exec (IE)
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -228,7 +228,7 @@ The LD variants follow the same structure:
 | `R_HEX_IE_GOT_11_X` | 6 | 0 | no | — | — |
 | `R_HEX_IE_GOT_16` | 16 | 0 | yes | `-2^15 ≤ X < 2^15` | `X % 4 == 0` |
 
-## Local Exec (LE) — TP-Relative
+### Local Exec (LE) — TP-Relative
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -240,7 +240,7 @@ The LD variants follow the same structure:
 | `R_HEX_TPREL_16_X` | 6 | 0 | no | — | — |
 | `R_HEX_TPREL_11_X` | 6 | 0 | no | — | — |
 
-## DTPREL — Module-Relative (Local Dynamic)
+### DTPREL — Module-Relative (Local Dynamic)
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -257,7 +257,7 @@ The LD variants follow the same structure:
 
 ---
 
-# Register Relocations
+## Register Relocations
 
 These relocations encode an address into an instruction's register-index field.
 
@@ -268,7 +268,7 @@ These relocations encode an address into an instruction's register-index field.
 
 ---
 
-# PLT Relocations
+## PLT Relocations
 
 | Relocation | EffectiveBits | Shift | Signed | Range check | Alignment check |
 |------------|--------------|-------|--------|-------------|-----------------|
@@ -278,7 +278,7 @@ These relocations encode an address into an instruction's register-index field.
 
 ---
 
-# References
+## References
 
 - ELF for the Hexagon Architecture (Hexagon V73 ABI)
   - https://docs.qualcomm.com/bundle/publicresource/topics/80-N2040-1/ELF_for_the_Hexagon_Architecture.html
