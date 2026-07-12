@@ -1,0 +1,38 @@
+#BEGIN_COMMENT
+# This test verifies that the reproduce functionality works correctly
+# with shared libraries that have soname.
+#END_COMMENT
+RUN: %clang %clangopts -c -fPIC %p/Inputs/1.c -o %t.1.o
+RUN: %clang %clangopts -c %p/Inputs/2.c -o %t.2.o
+RUN: %link %linkopts -shared %t.1.o -o %t.lib1.so -soname LIB1
+RUN: %link %linkopts --dynamic %t.2.o %t.lib1.so \
+RUN:   --reproduce %t.a.tar --dump-mapping-file %t.a.mapping \
+RUN:   --dump-response-file %t.a.response -o %t.a.out
+RUN: %filecheck %s --check-prefix=MAPPING < %t.a.mapping
+# Replaying the response file must succeed.
+RUN: %rm -rf %t.rep && %mkdir %t.rep
+RUN: %tar %gnutaropts -xf %t.a.tar -C %t.rep --strip-components=1
+RUN: cd %t.rep
+RUN: %link @response.txt
+
+RUN: cd ..
+RUN: mkdir %t.libdir
+RUN: %cp %t.lib1.so %t.libdir/lib1.so
+RUN: %link %linkopts --dynamic %t.2.o -l1 -L %t.libdir \
+RUN:   --reproduce %t.b.tar --dump-mapping-file %t.b.mapping \
+RUN:   --dump-response-file %t.b.response -o %t.b.out
+RUN: %filecheck %s --check-prefix=MAPPING_NAMESPEC < %t.b.mapping
+# Replaying the response file must succeed.
+RUN: %rm -rf %t.rep && %mkdir %t.rep
+RUN: %tar %gnutaropts -xf %t.b.tar -C %t.rep --strip-components=1
+RUN: cd %t.rep
+RUN: %link @response.txt
+
+MAPPING: {{.*}}2.o=Object/
+MAPPING: {{.*}}lib1.so=SharedLibrary/
+
+MAPPING_NAMESPEC: {{.*}}2.o=Object/
+MAPPING_NAMESPEC: {{.*}}1=SharedLibrary/
+
+
+

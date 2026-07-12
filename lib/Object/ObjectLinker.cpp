@@ -3630,10 +3630,7 @@ void ObjectLinker::addInputFileToTar(InputFile *Ipt, MappingFile::Kind K) {
   if (Ipt->getInput()->isArchiveMember())
     return;
   Input *I = Ipt->getInput();
-  bool UseDecorated =
-      !I->isNamespec() &&
-      Ipt->getKind() == InputFile::InputFileKind::ELFDynObjFileKind;
-  Ipt->setMappedPath(UseDecorated ? I->decoratedPath() : I->getName());
+  Ipt->setMappedPath(I->getName());
   Ipt->setMappingFileKind(K);
   OutputTar->addInputFile(Ipt, /*isLTO*/ false);
 }
