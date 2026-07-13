@@ -4741,6 +4741,9 @@ void GNULDBackend::doPostLayout() {
     for (auto &r : m_RelativeRelocMap) {
       const Relocation *N = r.first;
       Relocation *R = r.second;
+      const FragmentRef *NFragRef = N->targetFragRef();
+      if (!NFragRef || !NFragRef->frag() || !NFragRef->frag()->isMergeStr())
+        continue;
       R->modifyRelocationFragmentRef(N->targetFragRef());
       R->setAddend(N->addend());
     }

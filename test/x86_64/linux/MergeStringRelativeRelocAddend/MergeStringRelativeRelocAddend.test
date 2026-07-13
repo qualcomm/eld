@@ -1,0 +1,65 @@
+#--MergeStringAndGOTRelativeReloc.test-----------Executable--------#
+#BEGIN_COMMENT
+# Test: x86_64 merge-string R_X86_64_RELATIVE relocation addend, and the
+# isMergeStr() guard in GNULDBackend::doPostLayout() that must fix up
+# merge-string RELATIVE addends while leaving GOT-related RELATIVE addends
+# untouched.
+#
+# When a PIE stores a pointer to a string literal that lives in a merged
+# SHF_MERGE|SHF_STRINGS section (.rodata.str1.1), the linker emits an
+# R_X86_64_RELATIVE dynamic relocation whose addend must be the string's final,
+# post-merge address. String merging runs after relocation scanning, so the
+# post-merge fragment reference and addend are propagated to the dynamic
+# relocation by GNULDBackend::doPostLayout().
+#
+# doPostLayout() walks m_RelativeRelocMap and, for each dynamic RELATIVE
+# relocation R paired with its original relocation N, copies N's post-merge
+# fragment reference and addend onto R -- but only when N's target is a
+# merge-string fragment (isMergeStr()). Without that guard, the copy would
+# also run for GOT-related RELATIVE relocations, whose original relocation
+# (R_X86_64_(REX_)?GOTPCRELX) carries addend -4 (the RIP end-of-instruction
+# bias for the 4-byte displacement field) -- overwriting the GOT slot's
+# correct addend (the symbol's own address) with a corrupted, off-by-4 value.
+#
+# Inputs (pad.c linked first, main.c second): main.o's copies of "a"/"c"/"fF"
+# are excluded during merging, shifting its four escape strings from their
+# pre-merge input offsets to different post-merge output offsets -- this is
+# the merge-string RELATIVE case. main.c also reads a non-preemptible global
+# through a GOT entry, which gets its own GOT-related RELATIVE relocation --
+# this is the case the guard must leave alone.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/pad.c -o %t.pad.o -fPIC
+RUN: %clang %clangopts -c %p/Inputs/main.c -o %t.main.o -fPIC
+RUN: %clang %clangopts -fuse-ld=%link -pie %t.pad.o %t.main.o -o %t.out
+RUN: %readelf -sr -W %t.out | %filecheck %s
+#END_TEST
+
+# p_nl/p_cr/p_tab/p_nul (canonical) and g_nl/g_cr/g_tab/g_nul (duplicates,
+# excluded+shifted at merge) must each resolve to the identical post-merge
+# string address: the merge-string fixup must have run.
+CHECK-DAG: {{[0-9]+}}: [[#%x,PNL_ADDR:]]{{.*}} p_nl
+CHECK-DAG: [[#PNL_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#%x,NL_STR:]]
+CHECK-DAG: {{[0-9]+}}: [[#%x,GNL_ADDR:]]{{.*}} g_nl
+CHECK-DAG: [[#GNL_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#NL_STR]]
+
+CHECK-DAG: {{[0-9]+}}: [[#%x,PCR_ADDR:]]{{.*}} p_cr
+CHECK-DAG: [[#PCR_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#%x,CR_STR:]]
+CHECK-DAG: {{[0-9]+}}: [[#%x,GCR_ADDR:]]{{.*}} g_cr
+CHECK-DAG: [[#GCR_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#CR_STR]]
+
+CHECK-DAG: {{[0-9]+}}: [[#%x,PTAB_ADDR:]]{{.*}} p_tab
+CHECK-DAG: [[#PTAB_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#%x,TAB_STR:]]
+CHECK-DAG: {{[0-9]+}}: [[#%x,GTAB_ADDR:]]{{.*}} g_tab
+CHECK-DAG: [[#GTAB_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#TAB_STR]]
+
+CHECK-DAG: {{[0-9]+}}: [[#%x,PNUL_ADDR:]]{{.*}} p_nul
+CHECK-DAG: [[#PNUL_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#%x,NUL_STR:]]
+CHECK-DAG: {{[0-9]+}}: [[#%x,GNUL_ADDR:]]{{.*}} g_nul
+CHECK-DAG: [[#GNUL_ADDR]]{{.*}}R_X86_64_RELATIVE{{.*}}[[#NUL_STR]]
+
+# global_var_non_premp's GOT-slot RELATIVE relocation must have an addend
+# equal to global_var_non_premp's OWN address -- not shifted by -4. If the
+# guard were missing, this addend would instead read [[#GV_ADDR-4]].
+CHECK-DAG: {{[0-9]+}}: [[#%x,GV_ADDR:]]{{.*}} global_var_non_premp
+CHECK-DAG: {{[0-9a-f]+}}{{.*}}R_X86_64_RELATIVE{{.*}}[[#GV_ADDR]]

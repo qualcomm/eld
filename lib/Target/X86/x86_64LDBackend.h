@@ -96,10 +96,6 @@ public:
 
   void doPreLayout() override;
 
-  void recordRelativeReloc(Relocation *DynRel, const Relocation *OrigRel) {
-    m_RelativeRelocMap[DynRel] = OrigRel;
-  }
-
   void sortRelocation(ELFSection &pSection) override;
 
   DynRelocType getDynRelocType(const Relocation *X) const override {
@@ -160,7 +156,6 @@ private:
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
-  llvm::DenseMap<Relocation *, const Relocation *> m_RelativeRelocMap;
 };
 } // namespace eld
 

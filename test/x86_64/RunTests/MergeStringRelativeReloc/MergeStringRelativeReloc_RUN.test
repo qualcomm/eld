@@ -1,0 +1,28 @@
+REQUIRES: run_test
+#--MergeStringRelativeReloc_RUN.test-------------Executable--------#
+#BEGIN_COMMENT
+# Run test: x86_64 merge-string R_X86_64_RELATIVE relocation addend.
+#
+# When a PIE stores a pointer to a string literal that lives in a merged
+# SHF_MERGE|SHF_STRINGS section (.rodata.str1.1), the linker emits an
+# R_X86_64_RELATIVE dynamic relocation whose addend must be the string's final,
+# post-merge address. String merging runs after relocation scanning, so the
+# post-merge fragment reference and addend are propagated to the dynamic
+# relocation by GNULDBackend::doPostLayout().
+#
+# Inputs (pad.c linked first, main.c second): main.o's copies of "a"/"c"/"fF"
+# are excluded during merging, shifting its first escape string "  \n" from
+# input offset 7 to output offset 0. Runs the linked binary and checks that
+# every merged string pointer's content matches the expected string.
+#END_COMMENT
+#START_TEST
+RUN: %run_cc -c %p/Inputs/pad.c -o %t.pad.o
+RUN: %run_cc -c %p/Inputs/main.c -o %t.main.o
+RUN: %run_cc -pie %t.pad.o %t.main.o -o %t.out
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: nl: ok
+CHECK: cr: ok
+CHECK: tab: ok
+CHECK: nul: ok
