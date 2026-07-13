@@ -1331,7 +1331,8 @@ void TextLayoutPrinter::printMapFile(eld::Module &Module) {
 
   for (const auto *X : (Script.getScriptCommands())) {
     if (const Assignment *A = llvm::dyn_cast<Assignment>(X))
-      printAssignment(*A, Module, UseColor);
+      if (A->level() == Assignment::Level::BeforeSections)
+        printAssignment(*A, Module, UseColor);
   }
 
   printLayout(Module);
@@ -1433,12 +1434,8 @@ void TextLayoutPrinter::printLayout(eld::Module &Module) {
       }
     }
 
-    // Evaluate all assignments at the end of the output section.
-    for (OutputSectionEntry::sym_iterator It = (*Out)->sectionendsymBegin(),
-                                          Ie = (*Out)->sectionendsymEnd();
-         It != Ie; ++It) {
-      printAssignment(**It, Module, UseColor);
-    }
+    (*Out)->forEachPostOutputSectionAssignment(
+        [&](const Assignment *A) { printAssignment(*A, Module, UseColor); });
   }
 }
 
