@@ -209,6 +209,10 @@ eld::Expected<bool> RelocELFReader<ELFT>::readCompressedSection(ELFSection *S) {
   if (hdr->ch_type != llvm::ELF::ELFCOMPRESS_ZLIB)
     return false;
 
+  // Check if zlib is available before calling decompress.
+  if (!llvm::compression::zlib::isAvailable())
+    return false;
+
   size_t uncompressedSize = hdr->ch_size;
   typename ELFReader<ELFT>::uintX_t alignment =
       std::max<typename ELFReader<ELFT>::uintX_t>(hdr->ch_addralign, 1);

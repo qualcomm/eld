@@ -1,0 +1,10 @@
+#---ReadCompressedSectionsNoZlib.test---------- Executable --------------------#
+#BEGIN_COMMENT
+#This checks that the linker does not crash when trying to read information in
+#compressed format and zlib is not available
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -gz -g -o %t1.1.o -ffunction-sections
+RUN: %link %linkopts %t1.1.o -o %t2.out
+
+#END_TEST
