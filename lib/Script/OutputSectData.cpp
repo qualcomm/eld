@@ -87,6 +87,7 @@ llvm::StringRef OutputSectData::getOSDKindAsStr() const {
     ADD_CASE(ASCIZ);
   }
 #undef ADD_CASE
+  llvm_unreachable("Unexpected OSDKind!");
 }
 
 std::size_t OutputSectData::getDataSize() const {

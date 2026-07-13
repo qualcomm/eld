@@ -33,8 +33,6 @@ public:
 
   eld::Expected<bool> readRelocationSection(ELFSection *RS) override;
 
-  eld::Expected<void> readRelocations();
-
 protected:
   explicit ExecELFReader(Module &module, InputFile &inputFile,
                          plugin::DiagnosticEntry &diagEntry);

@@ -109,6 +109,7 @@ public:
       return "File does not exist";
       break;
     }
+    llvm_unreachable("Unexpected ErrorCode!");
   }
 
   std::string GetName() override { return "ConfigFile"; }

@@ -88,7 +88,7 @@ void YamlLayoutPrinter::insertCommons(std::vector<eld::LDYAML::Common> &Commons,
     InputFile *Input = I->resolvedOrigin();
     if (Input != nullptr)
       Common.InputPath = ThisLayoutInfo->getPath(Input->getInput());
-    if (Input->getInput()->isArchiveMember() > 0)
+    if (Input->getInput()->isArchiveMember())
       Common.InputName = Input->getInput()->getName();
     Commons.push_back(Common);
   }

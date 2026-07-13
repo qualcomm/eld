@@ -70,6 +70,7 @@ getSymVisibility(const llvm::lto::InputFile::Symbol &Sym) {
   case llvm::GlobalValue::ProtectedVisibility:
     return ResolveInfo::Protected;
   }
+  llvm_unreachable("Unexpected VisibilityTypes!");
 }
 
 static size_t getSymSize(const llvm::lto::InputFile::Symbol &Sym) {

@@ -13,6 +13,7 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/Script/Plugin.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/JSON.h"
 
 using namespace eld;
@@ -66,6 +67,7 @@ llvm::json::Object PluginActivityLog::toJSON(const PluginOp &Op) const {
     return PluginActivityLog::toJSON(
         static_cast<const SortInputSectionsForMergingPluginOp &>(Op));
   }
+  llvm_unreachable("Unexpected PluginOpType!");
 }
 
 // Overloads for each concrete PluginOp to extract a minimal JSON payload.

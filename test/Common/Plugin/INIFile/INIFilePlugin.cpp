@@ -1,5 +1,6 @@
 #include "OutputSectionIteratorPlugin.h"
 #include "PluginVersion.h"
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -88,6 +89,7 @@ public:
       return "File does not exist";
       break;
     }
+    std::abort();
   }
 
   std::string GetName() override { return "INIFILE"; }

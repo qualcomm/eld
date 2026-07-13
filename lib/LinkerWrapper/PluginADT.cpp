@@ -378,6 +378,7 @@ std::string plugin::INIFile::getLastErrorAsString() {
     return "File does not exist";
     break;
   }
+  llvm_unreachable("Unexpected ErrorCode!");
 }
 
 eld::Expected<INIFile> INIFile::Create(const std::string &filename) {

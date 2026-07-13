@@ -7,6 +7,7 @@
 #ifndef RISCV_LLVM_EXTERN_H
 #define RISCV_LLVM_EXTERN_H
 
+#include "llvm/Support/ErrorHandling.h"
 #include <cstdint>
 #include <string>
 
@@ -102,6 +103,7 @@ inline unsigned getEncodingBitWidth(EncodingType Type) {
   case EncTy_None:
     return 0;
   }
+  llvm_unreachable("Unexpected EncodingType!");
 }
 
 } // namespace eld

@@ -873,6 +873,7 @@ uint64_t RISCVLDBackend::QCAccess::build48Bit(unsigned base_reg) const {
   case Operation::Sw:
     return qcestype(0x6u, 0x3u, reg, base_reg, 0);
   }
+  llvm_unreachable("Unexpected Operation!");
 }
 
 uint32_t RISCVLDBackend::QCAccess::build32Bit(unsigned base_reg) const {
@@ -896,6 +897,7 @@ uint32_t RISCVLDBackend::QCAccess::build32Bit(unsigned base_reg) const {
   case Operation::Sw:
     return stype(0x23u | (0x2u << 12), reg, base_reg, 0);
   }
+  llvm_unreachable("Unexpected Operation!");
 }
 
 bool RISCVLDBackend::doRelaxationQCAccess32(Relocation *QCELiReloc,
@@ -2238,10 +2240,6 @@ bool RISCVLDBackend::handleVendorRelocation(ELFSection *pSection,
          "handleVendorRelocation should only be called with internal "
          "relocation types");
 
-  switch (pType) {
-  default:
-    break;
-  };
   return false;
 }
 

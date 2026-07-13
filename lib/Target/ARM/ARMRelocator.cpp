@@ -1651,6 +1651,7 @@ Relocator::Result target2(Relocation &R, ARMRelocator &Parent) {
   case GeneralOptions::Target2Policy::GotRel:
     return got_prel(R, Parent);
   }
+  llvm_unreachable("Unexpected Target2Policy!");
 }
 
 // R_ARM_PREL31: ((S + A) | T) - P

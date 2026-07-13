@@ -183,6 +183,7 @@ bool GeneralOptions::shouldTraceMergeStrSection(const ELFSection *S) const {
         return true;
     return false;
   }
+  llvm_unreachable("Unknown MergeStrTraceType!");
 }
 
 eld::Expected<void> GeneralOptions::setTrace(const char *PTraceType) {

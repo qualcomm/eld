@@ -64,4 +64,5 @@ std::string PluginCmd::getPluginType() const {
   case plugin::PluginBase::Type::LinkerPlugin:
     return "LINKER_PLUGIN";
   }
+  llvm_unreachable("Unexpected PluginBas::Type!");
 }

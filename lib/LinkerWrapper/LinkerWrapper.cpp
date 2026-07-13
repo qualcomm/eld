@@ -120,6 +120,7 @@ eld::Expected<plugin::Symbol> LinkerWrapper::addSymbol(
     case plugin::Symbol::Common:
       return ResolveInfo::Common;
     }
+    llvm_unreachable("Unexpected Symbol::Kind!");
   };
 
   auto GetSymbolBinding = [](plugin::Symbol::Binding SymbolBinding) {
@@ -131,6 +132,7 @@ eld::Expected<plugin::Symbol> LinkerWrapper::addSymbol(
     case plugin::Symbol::Local:
       return ResolveInfo::Local;
     }
+    llvm_unreachable("Unexpected Symbol::Binding!");
   };
 
   auto GetSymbolVisibility = [](plugin::Symbol::Visibility SymbolVisibility)
@@ -145,6 +147,7 @@ eld::Expected<plugin::Symbol> LinkerWrapper::addSymbol(
     case plugin::Symbol::Protected:
       return ResolveInfo::Protected;
     }
+    llvm_unreachable("Unexpected Symbol::Visibility!");
   };
 
   eld::BitcodeFile *BitcodeFile =

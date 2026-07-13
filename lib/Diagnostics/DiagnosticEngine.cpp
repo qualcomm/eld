@@ -196,6 +196,7 @@ DiagnosticEngine::Severity DiagnosticEngine::getDiagEngineSeverity(
     ADD_CASE(Fatal);
 #undef ADD_CASE
   }
+  llvm_unreachable("Unexpected severity!");
 }
 
 plugin::DiagnosticEntry::Severity DiagnosticEngine::getDiagEntrySeverity(

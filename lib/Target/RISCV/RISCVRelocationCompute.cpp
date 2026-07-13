@@ -9,6 +9,7 @@
 #include "RISCVHelper.h"
 #include "RISCVLLVMExtern.h"
 #include "RISCVRelocationInternal.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/MathExtras.h"
 
@@ -63,6 +64,7 @@ bool checkRange(uint64_t Value, bool IsSigned, EncodingType Type) {
   case EncTy_LEB128:
     return true;
   }
+  llvm_unreachable("Unexpected EncodingType!");
 }
 
 uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
@@ -109,6 +111,7 @@ uint64_t clearImmediateBits(uint64_t Instr, EncodingType Type) {
   case EncTy_LEB128:
     return Instr;
   }
+  llvm_unreachable("Unexpected EncodingType!");
 }
 
 // The Relocation helper function that computes the Instruction bits with the
