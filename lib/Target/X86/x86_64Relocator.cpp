@@ -383,8 +383,6 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
       m_Target.createPLT(Obj, rsym, true);
       rsym->setReserved(rsym->reserved() | ReservePLT);
-      x86_64LDBackend &backend = getTarget();
-      backend.defineIRelativeRange(*rsym);
       return;
     }
     // if symbol is defined in the output file and it's not

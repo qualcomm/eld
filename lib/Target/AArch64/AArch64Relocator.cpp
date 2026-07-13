@@ -1378,7 +1378,6 @@ void AArch64Relocator::handleScanForNonPreemptibleIFunc(Relocation &R,
   if (RI->reserved() & Relocator::ReservePLT)
     return;
   m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
-  m_Target.defineIRelativeRange(*RI);
   RI->setReserved(RI->reserved() | Relocator::ReservePLT);
 }
 

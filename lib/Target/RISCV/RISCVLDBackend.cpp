@@ -198,6 +198,7 @@ void RISCVLDBackend::initTargetSymbols() {
   // Do not create another __global_pointer$ when linking a patch.
   if (config().options().getPatchBase())
     return;
+
   if (m_Module.getScript().linkerScriptHasSectionsCommand()) {
     m_pGlobalPointer = m_Module.getNamePool().findSymbol("__global_pointer$");
     return;
@@ -1846,16 +1847,6 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
 
 /// finalizeSymbol - finalize the symbol value
 bool RISCVLDBackend::finalizeTargetSymbols() {
-  if (m_pIRelativeStart && m_pIRelativeEnd) {
-    m_pIRelativeStart->setValue(
-        getRelaPLT()->getOutputSection()->getSection()->addr());
-    m_pIRelativeEnd->setValue(
-        getRelaPLT()->getOutputSection()->getSection()->addr() +
-        getRelaPLT()->getOutputSection()->getSection()->size());
-    addSectionInfo(m_pIRelativeStart, getRelaPLT());
-    addSectionInfo(m_pIRelativeEnd, getRelaPLT());
-  }
-
   for (auto &I : m_LabeledSymbols)
     m_Module.getLinker()->getObjLinker()->finalizeSymbolValue(I);
 
@@ -2330,44 +2321,6 @@ void RISCVLDBackend::defineGOTSymbol(Fragment &pFrag) {
   if (m_Module.getConfig().options().isSymbolTracingRequested() &&
       m_Module.getConfig().options().traceSymbol(SymbolName))
     config().raise(Diag::target_specific_symbol) << SymbolName;
-}
-
-void RISCVLDBackend::defineIRelativeRange(ResolveInfo &pSym) {
-  if (m_Module.getScript().linkerScriptHasSectionsCommand())
-    return;
-
-  if (!m_pIRelativeStart && !m_pIRelativeEnd) {
-    auto SymbolName = "__rela_iplt_start";
-    m_pIRelativeStart =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Type::NoType, ResolveInfo::Define,
-                ResolveInfo::Binding::Local,
-                0,   // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Visibility::Default);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName)) {
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    }
-    m_pIRelativeStart->setShouldIgnore(false);
-    SymbolName = "__rela_iplt_end";
-    m_pIRelativeEnd =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Type::NoType, ResolveInfo::Define,
-                ResolveInfo::Binding::Local,
-                0x0, // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Visibility::Default);
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName)) {
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    }
-    m_pIRelativeEnd->setShouldIgnore(false);
-  }
 }
 
 bool RISCVLDBackend::finalizeScanRelocations() {

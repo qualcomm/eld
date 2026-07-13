@@ -1224,7 +1224,6 @@ void RISCVRelocator::handleScanForNonPreemptibleIFunc(Relocation &R,
     return;
 
   m_Target.createPLT(Obj, RI, /*isIRelative=*/true);
-  m_Target.defineIRelativeRange(*RI);
   RI->setReserved(RI->reserved() | Relocator::ReservePLT);
 }
 

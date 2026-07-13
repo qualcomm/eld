@@ -38,8 +38,8 @@ RUN: %link %linkopts -o %t1.main-local.pic.out %t1.main-local.pic.o \
 RUN:   --trace=symbol=foo 2>&1 | %filecheck %s --check-prefix=CHECK_GOT
 #END_TEST
 
-READELF: 0 NOTYPE  LOCAL  DEFAULT     [[SECT_INDEX:[1-9]]] __rel_iplt_start
-READELF: 0 NOTYPE  LOCAL  DEFAULT     [[SECT_INDEX]] __rel_iplt_end
+READELF: 0 NOTYPE  GLOBAL HIDDEN     [[SECT_INDEX:[1-9]]] __rel_iplt_start
+READELF: 0 NOTYPE  GLOBAL HIDDEN     [[SECT_INDEX]] __rel_iplt_end
 
 CHECK_NO_GOT-NOT: Created GOT Entry for Symbol foo{{$}}
 

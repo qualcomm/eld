@@ -100,8 +100,6 @@ public:
     m_RelativeRelocMap[DynRel] = OrigRel;
   }
 
-  void defineIRelativeRange(ResolveInfo &pSym);
-
   void sortRelocation(ELFSection &pSection) override;
 
   DynRelocType getDynRelocType(const Relocation *X) const override {
@@ -163,10 +161,6 @@ private:
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
   llvm::DenseMap<Relocation *, const Relocation *> m_RelativeRelocMap;
-
-  // IRELATIVE range symbols for static executables
-  LDSymbol *m_pIRelativeStart = nullptr;
-  LDSymbol *m_pIRelativeEnd = nullptr;
 };
 } // namespace eld
 

@@ -117,8 +117,6 @@ public:
                                 std::string RelocModel,
                                 const std::string &Output) override;
 
-  void defineIRelativeRange(ResolveInfo &pSym);
-
   uint64_t getSectLink(const ELFSection *S) const override;
 
   Relocation::Type getCopyRelType() const override;
@@ -246,8 +244,6 @@ private:
   ARMELFDynamic *m_pDynamic;
   LDSymbol *m_pEXIDXStart;
   LDSymbol *m_pEXIDXEnd;
-  LDSymbol *m_pIRelativeStart;
-  LDSymbol *m_pIRelativeEnd;
 
   //     variable name           :  ELF
   ELFSection *m_pEXIDX;        // .ARM.exidx

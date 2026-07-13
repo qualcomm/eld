@@ -28,8 +28,8 @@ RUN: %objdump -dr %t1.pic.auipc-got.out | %filecheck %s --check-prefix=AUIPC_GOT
 #END_TEST
 
 READELF: [[#SECTION_INDEX:]]] .rela.plt
-READELF: 0 NOTYPE LOCAL DEFAULT [[#SECTION_INDEX]] __rela_iplt_start
-READELF: 0 NOTYPE LOCAL DEFAULT [[#SECTION_INDEX]] __rela_iplt_end
+READELF: 0 NOTYPE GLOBAL HIDDEN [[#SECTION_INDEX]] __rela_iplt_start
+READELF: 0 NOTYPE GLOBAL HIDDEN [[#SECTION_INDEX]] __rela_iplt_end
 
 LUI_AND_AUIPC: <main>:
 LUI_AND_AUIPC: lui a0, 0x40

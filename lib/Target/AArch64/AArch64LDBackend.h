@@ -86,8 +86,6 @@ public:
 
   ELFSection *getTBSS() const { return m_ptbss; }
 
-  void defineIRelativeRange(ResolveInfo &pSym);
-
   bool scanErrata843419();
 
   Relocation::Type getCopyRelType() const override;
@@ -220,8 +218,6 @@ private:
   Relocator *m_pRelocator;
 
   AArch64ELFDynamic *m_pDynamic;
-  LDSymbol *m_pIRelativeStart;
-  LDSymbol *m_pIRelativeEnd;
   ELFSection *m_ptdata;
   ELFSection *m_ptbss;
   /// GNU Property section

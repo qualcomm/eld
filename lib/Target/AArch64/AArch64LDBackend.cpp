@@ -54,12 +54,10 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 // AArch64LDBackend
 //===----------------------------------------------------------------------===//
-AArch64LDBackend::AArch64LDBackend(eld::Module &pModule,
-                                                 TargetInfo *pInfo)
+AArch64LDBackend::AArch64LDBackend(eld::Module &pModule, TargetInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pErrata843419Factory(nullptr),
       m_pAArch64ErrataIslandFactory(nullptr), m_pRelocator(nullptr),
-      m_pDynamic(nullptr), m_pIRelativeStart(nullptr), m_pIRelativeEnd(nullptr),
-      m_ptdata(nullptr), m_ptbss(nullptr) {}
+      m_pDynamic(nullptr), m_ptdata(nullptr), m_ptbss(nullptr) {}
 
 AArch64LDBackend::~AArch64LDBackend() {}
 
@@ -520,54 +518,7 @@ void AArch64LDBackend::createErratum843419Stub(Fragment *frag,
   } // for all relocation section
 }
 
-void AArch64LDBackend::defineIRelativeRange(ResolveInfo &pSym) {
-  // It is up to linker script to define those symbols.
-  if (m_Module.getScript().linkerScriptHasSectionsCommand())
-    return;
-
-  // Define the copy symbol in the bss section and resolve it
-  auto SymbolName = "__rela_iplt_start";
-  if (!m_pIRelativeStart && !m_pIRelativeEnd) {
-    m_pIRelativeStart =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define,
-                (ResolveInfo::Binding)pSym.binding(),
-                0,   // size
-                0x0, // value
-                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName)) {
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    }
-    m_pIRelativeStart->setShouldIgnore(false);
-    SymbolName = "__rela_iplt_end";
-    m_pIRelativeEnd =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define,
-                (ResolveInfo::Binding)pSym.binding(),
-                pSym.size(), // size
-                0x0,         // value
-                FragmentRef::null(), (ResolveInfo::Visibility)pSym.other());
-    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-        m_Module.getConfig().options().traceSymbol(SymbolName)) {
-      config().raise(Diag::target_specific_symbol) << SymbolName;
-    }
-    m_pIRelativeEnd->setShouldIgnore(false);
-  }
-}
-
 bool AArch64LDBackend::finalizeTargetSymbols() {
-  if (m_pIRelativeStart && m_pIRelativeEnd) {
-    m_pIRelativeStart->setValue(
-        getRelaPLT()->getOutputSection()->getSection()->addr());
-    m_pIRelativeEnd->setValue(
-        getRelaPLT()->getOutputSection()->getSection()->addr() +
-        getRelaPLT()->getOutputSection()->getSection()->size());
-  }
   if (m_pGOTSymbol) {
     m_pGOTSymbol->setValue(getGOT()->getOutputSection()->getSection()->addr());
   }

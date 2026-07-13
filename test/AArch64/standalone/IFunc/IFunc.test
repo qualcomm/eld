@@ -6,7 +6,8 @@
 #START_TEST
 RUN: %clang %clangopts -target aarch64 -c %p/Inputs/m.c -o %tm.o
 RUN: %clang %clangopts -target aarch64 -c %p/Inputs/t.c -o %tt.o
-RUN: %link %linkopts -march aarch64 %tm.o %tt.o -o %t.out
+RUN: %clang %clangopts -target aarch64 -c %p/Inputs/iplt_range.s -o %tr.o
+RUN: %link %linkopts -march aarch64 %tm.o %tt.o %tr.o -o %t.out
 RUN: %readelf -a %t.out | %filecheck --check-prefix=STANDALONE %s
 RUN: llvm-readobj -r %t.out | %filecheck --check-prefix=STANDALONE2 %s
 RUN: %link %linkopts -march aarch64 %tm.o %tt.o -pie -o %t2.out

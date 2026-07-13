@@ -31,3 +31,12 @@ main:
   ret
 
   .size main, . - main
+
+  # Reference the linker-defined IRELATIVE range symbols (as glibc's crt does)
+  # so that they are defined in the output. These are absolute data references
+  # and do not create GOT entries, so the .text/.got layout is unchanged.
+  .section .data,"aw",@progbits
+  .global iplt_range
+iplt_range:
+  .word __rela_iplt_start
+  .word __rela_iplt_end

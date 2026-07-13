@@ -196,6 +196,16 @@ public:
   /// finalizeTargetSymbols - set the value of target symbols
   virtual bool finalizeTargetSymbols() = 0;
 
+  /// defineIRelativeRange - define the __rel[a]_iplt_start/__rel[a]_iplt_end
+  /// range symbols. This must run before scanRelocations so
+  /// that any GOT entries created for these symbols are populated with the
+  /// correct symbol values.
+  void defineIRelativeRange();
+
+  /// finalizeIRelativeRange - set the values of the __rel[a]_iplt range symbols
+  /// to bound the PLT relocation output section.
+  void finalizeIRelativeRange();
+
   /// finalizeTLSSymbol - set the value of a TLS symbol
   virtual uint64_t finalizeTLSSymbol(LDSymbol *pSymbol);
 
@@ -1217,6 +1227,11 @@ protected:
   ELFObjectFile *m_DynamicSectionHeadersInputFile = nullptr;
   LDSymbol *m_pGOTSymbol = nullptr;
   llvm::DenseMap<const Relocation *, Relocation *> m_RelativeRelocMap;
+
+  // __rel[a]_iplt_start / __rel[a]_iplt_end range symbols for static IFunc
+  // (R_*_IRELATIVE) support.
+  LDSymbol *m_pIRelativeStart = nullptr;
+  LDSymbol *m_pIRelativeEnd = nullptr;
 
   // Patching.
   llvm::DenseMap<ResolveInfo *, const ResolveInfo *> m_AbsolutePLTMap;

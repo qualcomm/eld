@@ -125,10 +125,6 @@ public:
 
   void recordPLT(ResolveInfo *, RISCVPLT *);
 
-  /// defineIRelativeRange - define __rela_iplt_start/__rela_iplt_end symbols
-  /// for IFunc support in static linking
-  void defineIRelativeRange(ResolveInfo &pSym);
-
   RISCVPLT *findEntryInPLT(ResolveInfo *) const;
 
   // ---------------------  Dynamic relocation support ------------
@@ -368,9 +364,6 @@ private:
   RISCVTableJumpFragment *TableJumpFragment = nullptr;
   bool TableJumpInitialized = false;
   LDSymbol *m_pJvtBase = nullptr;
-
-  LDSymbol *m_pIRelativeStart = nullptr;
-  LDSymbol *m_pIRelativeEnd = nullptr;
 
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, RISCVGOT *> m_GOTPLTMap;

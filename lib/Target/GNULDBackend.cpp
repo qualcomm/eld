@@ -365,6 +365,13 @@ bool GNULDBackend::initStandardSymbols() {
   InitStandardSym("", "_end", m_Module.getSection(".bss"));
   MayDefineStandardSym("__ehdr_start");
   MayDefineStandardSym("__dso_handle");
+
+  // Define __rel[a]_iplt_start/__rel[a]_iplt_end (used by glibc to process
+  // R_*_IRELATIVE entries in static executables) if they are referenced. This
+  // must run before scanRelocations creates GOT entries for them, so that the
+  // GOT slots are populated with the correct symbol values.
+  if (config().isCodeStatic())
+    defineIRelativeRange();
   return true;
 }
 
@@ -468,6 +475,7 @@ bool GNULDBackend::finalizeStandardSymbols() {
                                llvm::ELF::PF_X, 8, true, true);
   DefineStandardSymFromSegment("", "_end", llvm::ELF::PF_W, llvm::ELF::PF_X, 8,
                                true, true);
+  finalizeIRelativeRange();
   return true;
 }
 
@@ -581,6 +589,64 @@ bool GNULDBackend::defineStandardAndSectionMagicSymbols() {
       canProvideSymbol(R);
   }
   return true;
+}
+
+void GNULDBackend::defineIRelativeRange() {
+  // It is up to the linker script to define these symbols when a SECTIONS
+  // command is present.
+  if (m_Module.getScript().linkerScriptHasSectionsCommand())
+    return;
+
+  if (m_pIRelativeStart || m_pIRelativeEnd)
+    return;
+
+  // The relocation section that holds R_*_IRELATIVE entries is `.rela.plt` on
+  // RELA targets and `.rel.plt` on REL targets; the range symbols are named to
+  // match.
+  const bool IsRela = getRelocator()->relocType() == llvm::ELF::SHT_RELA;
+  llvm::StringRef StartName = IsRela ? "__rela_iplt_start" : "__rel_iplt_start";
+  llvm::StringRef EndName = IsRela ? "__rela_iplt_end" : "__rel_iplt_end";
+
+  m_pIRelativeStart =
+      m_Module.getIRBuilder()
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+              m_Module.getInternalInput(Module::Script), StartName.str(),
+              ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
+              0,   // size
+              0x0, // value
+              FragmentRef::null(), ResolveInfo::Hidden);
+  if (m_pIRelativeStart) {
+    m_pIRelativeStart->setShouldIgnore(false);
+    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+        m_Module.getConfig().options().traceSymbol(StartName.str()))
+      config().raise(Diag::target_specific_symbol) << StartName;
+  }
+
+  m_pIRelativeEnd =
+      m_Module.getIRBuilder()
+          ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
+              m_Module.getInternalInput(Module::Script), EndName.str(),
+              ResolveInfo::NoType, ResolveInfo::Define, ResolveInfo::Global,
+              0,   // size
+              0x0, // value
+              FragmentRef::null(), ResolveInfo::Hidden);
+  if (m_pIRelativeEnd) {
+    m_pIRelativeEnd->setShouldIgnore(false);
+    if (m_Module.getConfig().options().isSymbolTracingRequested() &&
+        m_Module.getConfig().options().traceSymbol(EndName.str()))
+      config().raise(Diag::target_specific_symbol) << EndName;
+  }
+}
+
+void GNULDBackend::finalizeIRelativeRange() {
+  if (m_pIRelativeStart && m_pIRelativeEnd && getRelaPLT() &&
+      getRelaPLT()->getOutputSection()) {
+    ELFSection *relaPltSec = getRelaPLT()->getOutputSection()->getSection();
+    m_pIRelativeStart->setValue(relaPltSec->addr());
+    m_pIRelativeEnd->setValue(relaPltSec->addr() + relaPltSec->size());
+    addSectionInfo(m_pIRelativeStart, getRelaPLT());
+    addSectionInfo(m_pIRelativeEnd, getRelaPLT());
+  }
 }
 
 void GNULDBackend::provideSymbols() {

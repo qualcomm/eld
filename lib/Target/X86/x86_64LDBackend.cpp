@@ -33,8 +33,7 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 x86_64LDBackend::x86_64LDBackend(Module &pModule, x86_64Info *pInfo)
     : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
-      m_pEndOfImage(nullptr), m_pIRelativeStart(nullptr),
-      m_pIRelativeEnd(nullptr) {}
+      m_pEndOfImage(nullptr) {}
 
 x86_64LDBackend::~x86_64LDBackend() {}
 
@@ -118,24 +117,6 @@ bool x86_64LDBackend::finalizeTargetSymbols() {
     m_pEndOfImage->setValue(imageEnd + 1);
   }
 
-  // Finalize __rela_iplt range symbols for static executables when
-  // output sections are available.
-  if (config().isCodeStatic() && m_pIRelativeStart && m_pIRelativeEnd &&
-      getRelaPLT()->getOutputSection()) {
-    ELFSection *relaPltSec = getRelaPLT()->getOutputSection()->getSection();
-
-    m_pIRelativeStart->setValue(relaPltSec->addr());
-    m_pIRelativeEnd->setValue(relaPltSec->addr() + relaPltSec->size());
-
-    // Associate symbols with the .rela.plt section
-    if (relaPltSec->hasFragments()) {
-      Fragment *firstFrag = *relaPltSec->getFragmentList().begin();
-      m_pIRelativeStart->setFragmentRef(make<FragmentRef>(*firstFrag, 0));
-      m_pIRelativeEnd->setFragmentRef(
-          make<FragmentRef>(*firstFrag, relaPltSec->size()));
-    }
-  }
-
   return true;
 }
 
@@ -151,35 +132,6 @@ void x86_64LDBackend::doPreLayout() {
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
     m_Module.addOutputSection(getRelaDyn());
-  }
-}
-
-// Define synthetic range symbols for IRELATIVE processing in static
-// executables. Values are finalized to bound the .rela.plt output section.
-void x86_64LDBackend::defineIRelativeRange(ResolveInfo &pSym) {
-  if (m_Module.getScript().linkerScriptHasSectionsCommand())
-    return;
-  auto SymbolName = "__rela_iplt_start";
-  if (!m_pIRelativeStart && !m_pIRelativeEnd) {
-    m_pIRelativeStart =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Object, ResolveInfo::Define,
-                ResolveInfo::Local, //
-                0,                  // size
-                0x0,                // value
-                FragmentRef::null(), ResolveInfo::Hidden);
-
-    m_pIRelativeEnd =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::Force, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), "__rela_iplt_end",
-                ResolveInfo::Object, ResolveInfo::Define,
-                ResolveInfo::Local, //
-                0,                  // size
-                0x0,                // value
-                FragmentRef::null(), ResolveInfo::Hidden);
   }
 }
 

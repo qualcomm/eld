@@ -58,10 +58,9 @@ using namespace llvm;
 //===----------------------------------------------------------------------===//
 ARMGNULDBackend::ARMGNULDBackend(eld::Module &pModule, TargetInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
-      m_pEXIDXStart(nullptr), m_pEXIDXEnd(nullptr), m_pIRelativeStart(nullptr),
-      m_pIRelativeEnd(nullptr), m_pEXIDX(nullptr), m_pRWPIBase(nullptr),
-      m_pSBRELSegment(nullptr), m_pARMAttributeSection(nullptr),
-      AttributeFragment(nullptr) {}
+      m_pEXIDXStart(nullptr), m_pEXIDXEnd(nullptr), m_pEXIDX(nullptr),
+      m_pRWPIBase(nullptr), m_pSBRELSegment(nullptr),
+      m_pARMAttributeSection(nullptr), AttributeFragment(nullptr) {}
 
 ARMGNULDBackend::~ARMGNULDBackend() {}
 
@@ -642,60 +641,8 @@ ARMGNULDBackend::emitSection(ELFSection *pSection,
   return GNULDBackend::emitSection(pSection, pRegion);
 }
 
-void ARMGNULDBackend::defineIRelativeRange(ResolveInfo &pSym) {
-  // It is up to linker script to define those symbols.
-  if (m_Module.getScript().linkerScriptHasSectionsCommand())
-    return;
-
-  if (!m_pIRelativeStart && !m_pIRelativeEnd) {
-    auto SymbolName = "__rel_iplt_start";
-    m_pIRelativeStart =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Type::NoType, ResolveInfo::Define,
-                ResolveInfo::Binding::Local,
-                0,   // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Visibility::Default);
-    if (m_pIRelativeStart) {
-      m_pIRelativeStart->setShouldIgnore(false);
-      if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-          m_Module.getConfig().options().traceSymbol(SymbolName))
-        config().raise(Diag::target_specific_symbol) << SymbolName;
-    }
-    SymbolName = "__rel_iplt_end";
-    m_pIRelativeEnd =
-        m_Module.getIRBuilder()
-            ->addSymbol<IRBuilder::AsReferred, IRBuilder::Resolve>(
-                m_Module.getInternalInput(Module::Script), SymbolName,
-                ResolveInfo::Type::NoType, ResolveInfo::Define,
-                ResolveInfo::Binding::Local,
-                0,   // size
-                0x0, // value
-                FragmentRef::null(), ResolveInfo::Visibility::Default);
-    if (m_pIRelativeEnd) {
-      m_pIRelativeEnd->setShouldIgnore(false);
-      if (m_Module.getConfig().options().isSymbolTracingRequested() &&
-          m_Module.getConfig().options().traceSymbol(SymbolName))
-        config().raise(Diag::target_specific_symbol) << SymbolName;
-    }
-  }
-}
-
 /// finalizeSymbol - finalize the symbol value
-bool ARMGNULDBackend::finalizeTargetSymbols() {
-  if (m_pIRelativeStart && m_pIRelativeEnd) {
-    m_pIRelativeStart->setValue(
-        getRelaPLT()->getOutputSection()->getSection()->addr());
-    m_pIRelativeEnd->setValue(
-        getRelaPLT()->getOutputSection()->getSection()->addr() +
-        getRelaPLT()->getOutputSection()->getSection()->size());
-    addSectionInfo(m_pIRelativeStart, getRelaPLT());
-    addSectionInfo(m_pIRelativeEnd, getRelaPLT());
-  }
-  return true;
-}
+bool ARMGNULDBackend::finalizeTargetSymbols() { return true; }
 
 void ARMGNULDBackend::finalizeBeforeWrite() {
   // Update __RWPI_BASE__
