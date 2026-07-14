@@ -5,10 +5,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "ARMEXIDXFragment.h"
+#include "eld/Core/Module.h"
 #include "eld/Diagnostics/MsgHandler.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Readers/Relocation.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
+#include "llvm/Support/Endian.h"
 #include <cstring>
 
 using namespace eld;
@@ -111,12 +113,13 @@ void EXIDXFragment::dump(llvm::raw_ostream &OS) {
   }
 }
 
-eld::Expected<void> EXIDXFragment::emit(MemoryRegion &Mr, Module &) {
+eld::Expected<void> EXIDXFragment::emit(MemoryRegion &Mr, Module &M) {
   if (Pieces.empty())
     return {};
 
+  DiagnosticEngine *Diag = M.getConfig().getDiagEngine();
   llvm::StringRef Region = getRegion();
-  uint32_t BaseOffset = getOffset();
+  uint32_t BaseOffset = getOffset(Diag);
   uint32_t OutOffset = 0;
   for (const EXIDXPiece &Piece : Pieces) {
     const uint32_t Begin = Piece.InputOffset;
@@ -130,4 +133,30 @@ eld::Expected<void> EXIDXFragment::emit(MemoryRegion &Mr, Module &) {
     OutOffset += PieceSize;
   }
   return {};
+}
+
+// EXIDXSentinelFragment
+
+eld::Expected<void> EXIDXSentinelFragment::emit(MemoryRegion &Mr, Module &M) {
+  DiagnosticEngine *Diag = M.getConfig().getDiagEngine();
+  uint8_t *Buf = Mr.begin() + getOffset(Diag);
+  uint64_t SentinelAddr = getAddr(Diag);
+  uint64_t TargetAddr = 0;
+  if (LinkedSection)
+    TargetAddr = LinkedSection->addr() + LinkedSection->size();
+  // PREL31: (target - place) masked to 31 bits.
+  int32_t Prel31 = static_cast<int32_t>(TargetAddr - SentinelAddr) & 0x7FFFFFFF;
+  llvm::support::endian::write32le(Buf, static_cast<uint32_t>(Prel31));
+  llvm::support::endian::write32le(Buf + 4, 0x00000001u);
+  return {};
+}
+
+void EXIDXSentinelFragment::dump(llvm::raw_ostream &OS) {
+  ELFSection *OutSection = getOutputELFSection();
+  const uint64_t SectionAddr = OutSection ? OutSection->addr() : 0;
+  const uint64_t FragAddr = SectionAddr + (hasOffset() ? getOffset() : 0);
+  OS << "#EXIDX-sentinel";
+  OS << "\taddr=0x";
+  OS.write_hex(FragAddr);
+  OS << "\tsz=0x8\n";
 }

@@ -8,6 +8,7 @@
 #define TARGET_ARM_ARMEXIDXFRAGMENT_H
 
 #include "eld/Fragment/RegionFragment.h"
+#include "eld/Fragment/TargetFragment.h"
 #include "llvm/ADT/SmallVector.h"
 #include <cstdint>
 
@@ -54,6 +55,31 @@ public:
 
 private:
   llvm::SmallVector<EXIDXPiece, 0> Pieces;
+};
+
+// An 8-byte linker-generated CANTUNWIND entry placed at the end of the
+// .ARM.exidx table.  Its first word is a PREL31 offset to the byte
+// immediately past the last covered function; its second word is 0x1
+// (CANTUNWIND compact model entry).  Lives in its own internal section so
+// it is naturally placed last by any *(.ARM.exidx*) linker script rule.
+class EXIDXSentinelFragment : public TargetFragment {
+public:
+  EXIDXSentinelFragment(ELFSection *O)
+      : TargetFragment(TargetFragment::TargetSpecific, O, nullptr, 4, 8) {}
+
+  ~EXIDXSentinelFragment() override = default;
+
+  const std::string name() const override { return "EXIDXSentinel"; }
+  size_t size() const override { return 8; }
+
+  void setLinkedSection(ELFSection *S) { LinkedSection = S; }
+  ELFSection *getLinkedSection() const { return LinkedSection; }
+
+  eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
+  void dump(llvm::raw_ostream &OS) override;
+
+private:
+  ELFSection *LinkedSection = nullptr;
 };
 
 } // namespace eld
