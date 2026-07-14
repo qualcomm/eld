@@ -1,0 +1,36 @@
+#---EXIDXSortingPartialLinkExec.test---------- Executable,PartialLink --------#
+#BEGIN_COMMENT
+# Verify EXIDX sorting when inputs come from two separately compiled objects
+# that are first combined via a partial link (-r), then linked into a final
+# executable.  The partial link merges the EXIDX sections from both objects;
+# the final link must still sort them by function address and emit the
+# CANTUNWIND sentinel.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_a.s -o %t.a.o
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_b.s -o %t.b.o
+RUN: %link %linkopts -r %t.a.o %t.b.o -o %t.r.o
+RUN: %link -MapStyle txt %linkopts %t.r.o -T %p/Inputs/script_multi.t \
+RUN:   -o %t.out -Map %t.map
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+RUN: %readelf -S -W %t.out | %filecheck %s --check-prefix=SEC
+RUN: %readelf -u %t.out | %filecheck %s --check-prefix=UNW
+
+# EXIDX entries must be sorted by function address regardless of input order.
+# fa2/fa3 share a fragment (lowest address); fa1, _start, fb1 follow in order.
+#MAP: .ARM.exidx.text.fa2
+#MAP: .ARM.exidx.text.fa1
+#MAP: .ARM.exidx.text.fb2
+#MAP: .ARM.exidx.text.fb1
+
+# The sentinel is NOT emitted when all entries are CANTUNWIND (no real unwind
+# data), so the total .ARM.exidx size is 5 entries * 8 bytes = 0x28.
+#SEC: .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]}}{{.*}}000028
+
+# All five functions must appear in the unwind table.
+#UNW: FunctionAddress:
+#UNW: FunctionAddress:
+#UNW: FunctionAddress:
+#UNW: FunctionAddress:
+#UNW: FunctionAddress:
+#END_TEST

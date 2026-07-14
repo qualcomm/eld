@@ -1,0 +1,21 @@
+REQUIRES: run_test, linux
+#---EXIDXSortingPartialLinkExec.test---------- Executable,PartialLink --------#
+#BEGIN_COMMENT
+# Runtime test: verify EXIDX sorting produces a correct unwind table when the
+# final executable is built from a partial-linked relocatable (-r) object.
+# Two translation units are compiled independently and combined with -r; the
+# resulting relocatable is then linked into a final executable.  A throw
+# through frames from both original translation units exercises the unwinder
+# across the merged EXIDX table.
+#END_COMMENT
+#START_TEST
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_partial_levels.cpp -o %t.levels.o
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_partial_main.cpp -o %t.main.o
+RUN: %link %linkopts -r %t.levels.o %t.main.o -o %t.r.o
+RUN: %run_cxx %clangopts -o %t.out %t.r.o
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: caught 99

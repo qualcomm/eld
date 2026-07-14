@@ -1,0 +1,17 @@
+REQUIRES: run_test, linux
+#---EXIDXSorting.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: verify that EXIDX entry sorting produces a working unwind table.
+# Each function lives in its own section (-ffunction-sections), so the linker
+# must sort .ARM.exidx entries by function address. A throw through multiple
+# frames exercises the sorted table; a wrong sort causes the unwinder to miss
+# the catch and terminate instead.
+#END_COMMENT
+#START_TEST
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_sort.cpp -o %t.o
+RUN: %run_cxx %clangopts -o %t.out %t.o
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: caught 99

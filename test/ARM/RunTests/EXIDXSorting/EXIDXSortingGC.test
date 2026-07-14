@@ -1,0 +1,16 @@
+REQUIRES: run_test, linux
+#---EXIDXSortingGC.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Runtime test: verify that EXIDX sorting works correctly after garbage
+# collection. dead_func is unreachable from main and its .ARM.exidx entry
+# is removed by --gc-sections; the remaining entries are re-sorted by
+# function address. A throw through surviving frames must still be caught.
+#END_COMMENT
+#START_TEST
+RUN: %run_cxx %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_sort_gc.cpp -o %t.o
+RUN: %run_cxx %clangopts -Wl,--gc-sections -o %t.out %t.o
+RUN: %run %t.out | %filecheck %s
+#END_TEST
+
+CHECK: caught 99
