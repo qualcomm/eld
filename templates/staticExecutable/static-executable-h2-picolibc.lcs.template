@@ -167,9 +167,9 @@ SECTIONS
     *(.sdata.hot .sdata.hot.* .gnu.linkonce.s.hot.*)
     *(.sdata .sdata.* .gnu.linkonce.s.*)
   }
-  .sbss           :
+  . = ALIGN (64);
+  .bss :
   {
-    __bss_start = .;
     PROVIDE (__sbss_start = .);
     PROVIDE (___sbss_start = .);
     *(.dynsbss)
@@ -184,20 +184,17 @@ SECTIONS
     *(.sbss.hot .sbss.hot.* .gnu.linkonce.sb.hot.*)
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.scommon .scommon.*)
-    . = ALIGN (. != 0 ? 64 : 1);
     PROVIDE (__sbss_end = .);
     PROVIDE (___sbss_end = .);
-  }
-  . = ALIGN (64);
-  .bss            :
-  {
+
     *(.dynbss)
     *(.bss.hot .bss.hot.* .gnu.linkonce.b.hot.*)
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
-    __bss_end = .;
   }
-  __bss_size = __bss_end - __bss_start;
+  __bss_start = ADDR(.bss);
+  __bss_end = ADDR(.bss) + SIZEOF(.bss);
+  __bss_size = SIZEOF(.bss);
 
   . = ALIGN (64);
   _end = .;
