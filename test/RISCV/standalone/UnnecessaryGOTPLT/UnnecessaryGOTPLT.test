@@ -1,0 +1,38 @@
+#---UnnecessaryGOTPLT.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD does not create unnecessary .got.plt section when only
+# .got section is required.
+# Also verify that .got.plt IS created when PLT entries are needed.
+#END_COMMENT
+#START_TEST
+
+# Test 1: Static executable with only GOT - should have .got but NOT .got.plt
+RUN: %clang %clangopts -target %linuxtarget -o %t1.o %p/Inputs/got-only.c -c -fPIC
+RUN: %link %linkopts -o %t1.static.out %t1.o
+RUN: %readelf -S %t1.static.out | %filecheck %s --check-prefix=STATIC --implicit-check-not=.got.plt
+
+# Test 2: Shared library with no function calls - should have .got but NOT .got.plt
+RUN: %link %linkopts -shared -o %t1.shared.out %t1.o
+RUN: %readelf -S %t1.shared.out | %filecheck %s --check-prefix=STATIC --implicit-check-not=.got.plt
+
+# Test 3: Shared library with external function call - should have both .got AND .got.plt
+RUN: %clang %clangopts -target %linuxtarget -o %t1.plt.o %p/Inputs/plt-needed.c -c -fPIC
+RUN: %clang %clangopts -target %linuxtarget -o %t1.bar.o %p/Inputs/bar.c -c -fPIC
+RUN: %link %linkopts -shared -o %t1.plt.shared.out %t1.plt.o %t1.bar.o
+RUN: %readelf -S %t1.plt.shared.out | %filecheck %s --check-prefix=DYNAMIC
+
+# Test 4: Runtime test - verify static executable builds and runs correctly
+REQUIRES: run_test
+RUN: %run_cc -o %t1.run.o %p/Inputs/got-only.c -c -fPIC
+RUN: %run_cc -o %t1.main.o %p/Inputs/main.c -c
+RUN: %run_cc -o %t1.run.out %t1.run.o %t1.main.o -static
+RUN: %run %t1.run.out | %filecheck %s --check-prefix=OUTPUT
+
+#END_TEST
+
+STATIC: .got
+
+DYNAMIC: .got
+DYNAMIC: .got.plt
+
+OUTPUT: 42
