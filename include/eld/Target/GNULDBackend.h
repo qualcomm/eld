@@ -514,6 +514,12 @@ public:
   /// flag
   inline uint32_t getSegmentFlag(const uint32_t pSectionFlag);
 
+  /// initScanRelocations - target hook run single-threaded at the start of
+  /// ObjectLinker::scanRelocations(), after symbol resolution and before the
+  /// parallel per-file scan. Targets that accumulate per-symbol scan state
+  /// (e.g. x86_64's two-phase flag map) populate it here.
+  virtual void initScanRelocations() {}
+
   virtual bool finalizeScanRelocations() { return true; }
 
   /// setOutputSectionOffset - helper function to set output sections' offset.

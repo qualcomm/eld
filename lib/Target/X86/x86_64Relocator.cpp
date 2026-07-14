@@ -14,15 +14,80 @@
 #include "x86_64RelocationFunctions.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include <mutex>
+#include <unordered_map>
 
 using namespace eld;
+
+//===--------------------------------------------------------------------===//
+// ScanFlagMap — two-phase scan flag accumulator.
+// Defined inside namespace eld to match the forward declaration in the header.
+//===--------------------------------------------------------------------===//
+namespace eld {
+
+/// Bit flags set during parallel scan phase 1.
+enum ScanFlagBit : uint8_t {
+  MayNeedGOT = 1 << 0,
+  MayNeedPLT = 1 << 1,
+  MayNeedTLSIE = 1 << 2,
+  MayNeedTLSGD = 1 << 3,
+};
+
+/// One slot per global symbol, holding the routing decision made during the
+/// parallel scan (phase 1). `Flags` is atomic so phase 1 can OR bits into it
+/// lock-free from multiple threads. The *referencing* input file is NOT stored
+/// here: phase 2 re-walks the relocations in encounter order and recovers the
+/// owning ELFObjectFile from the walk (see allocateDynEntries).
+struct ScanEntry {
+  std::atomic<uint8_t> Flags{0};
+};
+
+struct ScanFlagMap {
+  // Pre-populated by init() with every global, single-threaded, so no
+  // concurrent insertion ever happens. Phase 1 only *updates* existing slots.
+  std::unordered_map<ResolveInfo *, ScanEntry> Entries;
+
+  void init(Module &M) {
+    auto &Globals = M.getNamePool().getGlobals();
+    Entries.reserve(Globals.size() * 2);
+    for (auto &G : Globals)
+      Entries.try_emplace(G.getValue());
+  }
+
+  // Only called for global symbols pre-inserted by init(). Local symbols take
+  // direct code paths (e.g. TLSLD/local GOTTPOFF handled inline in
+  // scanOneReloc) and must never call set() — concurrent insertion into
+  // unordered_map is not safe.
+  void set(ResolveInfo *rsym, uint8_t bit) {
+    auto it = Entries.find(rsym);
+    if (it == Entries.end())
+      return;
+    it->second.Flags.fetch_or(bit, std::memory_order_relaxed);
+  }
+
+  uint8_t get(ResolveInfo *rsym) const {
+    auto it = Entries.find(rsym);
+    return it != Entries.end()
+               ? it->second.Flags.load(std::memory_order_relaxed)
+               : 0;
+  }
+
+  bool empty() const { return Entries.empty(); }
+};
+
+} // namespace eld
 
 //===--------------------------------------------------------------------===//
 // x86_64Relocator
 //===--------------------------------------------------------------------===//
 x86_64Relocator::x86_64Relocator(x86_64LDBackend &pParent,
                                  LinkerConfig &pConfig, Module &pModule)
-    : Relocator(pConfig, pModule), m_Target(pParent) {
+    : Relocator(pConfig, pModule), m_Target(pParent),
+      m_ScanFlags(std::make_unique<ScanFlagMap>()) {
+  // NOTE: m_ScanFlags is NOT populated here. The constructor runs from
+  // initRelocator() on the first input file, before symbol resolution has
+  // filled getGlobals(). Population happens in initScanRelocations(), called
+  // single-threaded just before the parallel scan.
   // Mark force verify bit for specified relcoations
   if (m_Module.getPrinter()->verifyReloc() &&
       config().options().verifyRelocList().size()) {
@@ -34,6 +99,9 @@ x86_64Relocator::x86_64Relocator(x86_64LDBackend &pParent,
     }
   }
 }
+
+// Out-of-line destructor: ScanFlagMap must be complete for unique_ptr.
+x86_64Relocator::~x86_64Relocator() = default;
 
 Relocator::Result x86_64Relocator::applyRelocation(Relocation &pRelocation) {
   Relocation::Type type = pRelocation.type();
@@ -152,10 +220,8 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
   if (!section->isAlloc())
     return;
 
-  if (rsym->isLocal()) // rsym is local
-    scanLocalReloc(pInputFile, pReloc, pLinker, *section);
-  else // rsym is external
-    scanGlobalReloc(pInputFile, pReloc, pLinker, *section, CopyRelocs);
+  bool isLocal = rsym->isLocal();
+  scanOneReloc(pInputFile, pReloc, pLinker, *section, CopyRelocs, isLocal);
 }
 
 namespace {
@@ -173,14 +239,12 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
     // Preemptible symbol: dynamic loader resolves the value; addend must be 0.
     rela_entry->setAddend(0);
   } else if (pType == llvm::ELF::R_X86_64_RELATIVE) {
-    if (R->type() == llvm::ELF::R_X86_64_64) {
+    if (R && R->type() == llvm::ELF::R_X86_64_64) {
       // Non-preemptible R_X86_64_64 → preserve original addend
       // Writer will compute final: S + A (see emitRela RELATIVE case)
       rela_entry->setAddend(R->addend());
-    } else if (R->type() == llvm::ELF::R_X86_64_GOTPCREL ||
-               R->type() == llvm::ELF::R_X86_64_GOTPCRELX ||
-               R->type() == llvm::ELF::R_X86_64_REX_GOTPCRELX) {
-      // Non-preemptible GOT → addend = 0
+    } else {
+      // Phase-2 GOT RELATIVE (no original relocation) or GOTPCREL — addend = 0.
       // Writer will compute final: S (see emitRela RELATIVE case)
       rela_entry->setAddend(0);
     }
@@ -201,36 +265,15 @@ Relocation *helper_DynRel_init(ELFObjectFile *Obj, Relocation *R,
   return rela_entry;
 }
 
-// Create a GOT entry and attach appropriate dynamic relocation when needed.
-// - Non-dynamic case (!pHasRel): set link-time content to the symbol value.
-// - PIC/PIE: use RELATIVE for non-preemptible, GLOB_DAT for preemptible.
-x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
-                     x86_64LDBackend &B) {
-  ResolveInfo *rsym = pReloc.symInfo();
-  x86_64GOT *G = B.createGOT(GOT::Regular, Obj, rsym);
-  if (!pHasRel) {
-    // Write link-time content into GOT for static/non-dynamic case.
-    G->setValueType(GOT::SymbolValue);
-    return *G;
-  }
-  bool useRelative = !B.isSymbolPreemptible(*rsym);
-  helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
-                     useRelative ? llvm::ELF::R_X86_64_RELATIVE
-                                 : llvm::ELF::R_X86_64_GLOB_DAT,
-                     B);
-  return *G;
-}
-
 } // namespace
 
 x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
-  static x86_64GOT *G = nullptr;
-  if (G != nullptr) {
-    m_Target.recordGOT(R, G);
-    return G;
+  if (m_TLSModuleIDGOT != nullptr) {
+    m_Target.recordGOT(R, m_TLSModuleIDGOT);
+    return m_TLSModuleIDGOT;
   }
 
-  G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
+  m_TLSModuleIDGOT = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
 
   ASSERT(!isStatic,
          "We always need to relax if -static because libc.a doesn't "
@@ -238,123 +281,67 @@ x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
 
   if (!isStatic)
     helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
-                       nullptr, G, 0x0, llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+                       nullptr, m_TLSModuleIDGOT, 0x0,
+                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
 
-  m_Target.recordGOT(R, G);
-  return G;
+  m_Target.recordGOT(R, m_TLSModuleIDGOT);
+  return m_TLSModuleIDGOT;
 }
-void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
-                                     eld::IRBuilder &pBuilder,
-                                     ELFSection &pSection) {
-  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
-  // rsym - The relocation target symbol
+void x86_64Relocator::scanOneReloc(InputFile &pInputFile, Relocation &pReloc,
+                                   eld::IRBuilder &pBuilder,
+                                   ELFSection &pSection, CopyRelocs &copyRelocs,
+                                   bool isLocal) {
   ResolveInfo *rsym = pReloc.symInfo();
-  switch (pReloc.type()) {
-  case llvm::ELF::R_X86_64_64: {
-    if (config().isCodeIndep()) {
-      std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
-        return;
-      rsym->setReserved(rsym->reserved() | ReserveRel);
-      getTarget().checkAndSetHasTextRel(pSection);
-      helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-                         pReloc.targetRef()->offset(),
-                         llvm::ELF::R_X86_64_RELATIVE, m_Target);
-    }
-    return;
-  }
-  case llvm::ELF::R_X86_64_32:
-  case llvm::ELF::R_X86_64_32S:
-  case llvm::ELF::R_X86_64_16:
-  case llvm::ELF::R_X86_64_8:
-    if (config().isCodeIndep())
-      checkDynamicRelocAllowed(pReloc, pSection, true);
-    return;
-  case llvm::ELF::R_X86_64_GOTTPOFF: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (rsym->reserved() & ReserveGOT)
-      return;
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    // For executables, the symbol's offset from the thread pointer is fixed at
-    // link time. For shared objects, the dynamic loader must compute the offset
-    // at load time, so emit R_X86_64_TPOFF64.
-    if (config().isBuildingExecutable()) {
-      G->setValueType(GOT::TLSStaticSymbolValue);
-    } else {
-      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
-                         llvm::ELF::R_X86_64_TPOFF64, m_Target);
-      m_Target.setHasStaticTLS();
-    }
-    rsym->setReserved(rsym->reserved() | ReserveGOT);
-    return;
-  }
-  case llvm::ELF::R_X86_64_TLSLD: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
-    return;
-  }
-  default:
-    break;
-  }
-}
 
-void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
-                                      eld::IRBuilder &pBuilder,
-                                      ELFSection &pSection,
-                                      CopyRelocs &copyRelocs) {
-
-  ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
-  // rsym - The relocation target symbol
-  ResolveInfo *rsym = pReloc.symInfo();
+  // Phase 1 is lock-free: it performs NO shared-state mutation (no createGOT/
+  // createPLT/helper_DynRel_init/setReserved). It only (a) sets per-symbol
+  // routing flags for globals via the atomic flag map, and (b) makes the
+  // read-only copy-relocation / non-PIC / diagnostic decisions for absolute
+  // relocations. All actual allocation happens in phase 2 (allocateDynEntries).
+  //
+  // Why the copy-reloc decision must stay here (not phase 2): it feeds
+  // ObjectLinker::createCopyRelocation(), which runs after the parallel scan
+  // and BEFORE phase 2, converting the symbol to a local BSS define. That
+  // conversion is what makes phase 2's symbolNeedsDynRel() correctly skip the
+  // symbol. Deferring the decision would break that ordering.
+  //
+  // Diagnostics are safe without m_RelocMutex: DiagnosticEngine::raise() locks
+  // internally, and symbolNeedsCopyReloc/symbolNeedsDynRel/isSymbolPreemptible
+  // are const reads. copyRelocs is a per-file (thread-local) set.
 
   switch (pReloc.type()) {
   case llvm::ELF::R_X86_64_64: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    bool isSymbolPreemptible = m_Target.isSymbolPreemptible(*rsym);
+    if (isLocal)
+      return; // local RELATIVE dynrel is created per-site in phase 2
+    // Global: only the copy-relocation decision is made here. The dynamic
+    // relocation itself (if needed and not a copy reloc) is created in phase 2.
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
-                                      true)) {
-      // COPY relocations for data symbols referenced from non-PIC
-      // executables
-      if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
-        if (config().options().hasNoCopyReloc()) {
-          // Honor -z nocopyreloc
-          config().raise(Diag::copyrelocs_is_error)
-              << rsym->name() << pInputFile.getInput()->decoratedPath()
-              << rsym->resolvedOrigin()->getInput()->decoratedPath();
-          return;
-        }
-        copyRelocs.insert(rsym);
-        // Do not emit a dynamic relocation here; copy reloc will be created
-        // later
+                                      true) &&
+        getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
+      if (config().options().hasNoCopyReloc()) {
+        config().raise(Diag::copyrelocs_is_error)
+            << rsym->name() << pInputFile.getInput()->decoratedPath()
+            << rsym->resolvedOrigin()->getInput()->decoratedPath();
         return;
       }
-      // No copy reloc needed: emit a dynamic relocation as before
-      if (!checkDynamicRelocAllowed(pReloc, pSection, true))
-        return;
-      rsym->setReserved(rsym->reserved() | ReserveRel);
-      getTarget().checkAndSetHasTextRel(pSection);
-      helper_DynRel_init(Obj, &pReloc, rsym, pReloc.targetRef()->frag(),
-                         pReloc.targetRef()->offset(),
-                         isSymbolPreemptible ? llvm::ELF::R_X86_64_64
-                                             : llvm::ELF::R_X86_64_RELATIVE,
-                         m_Target);
+      copyRelocs.insert(rsym);
     }
     return;
   }
 
-  // Handle smaller absolute relocations similarly: if a dynamic relocation
-  // would be required, can use COPY reloc; otherwise need to error out as
-  // non-pointer-sized dynamic relocations should not be emitted
   case llvm::ELF::R_X86_64_32:
   case llvm::ELF::R_X86_64_32S:
   case llvm::ELF::R_X86_64_16:
   case llvm::ELF::R_X86_64_8: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    const bool isAbsReloc = true;
+    // Decision-only case: these never allocate a GOT/PLT; they either need a
+    // copy reloc (collected here) or are a hard non-PIC error. No phase-2 work.
+    if (isLocal) {
+      if (config().isCodeIndep())
+        checkDynamicRelocAllowed(pReloc, pSection, true);
+      return;
+    }
     if (getTarget().symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
-                                      isAbsReloc)) {
-      // For truncated absolute relocations, we cannot emit a suitable dynamic
-      // reloc; require a COPY relocation for data symbols.
+                                      true)) {
       if (getTarget().symbolNeedsCopyReloc(pReloc, *rsym)) {
         if (config().options().hasNoCopyReloc()) {
           config().raise(Diag::copyrelocs_is_error)
@@ -369,105 +356,58 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
           << (int)pReloc.type() << pReloc.symInfo()->name()
           << pReloc.getSourcePath(config().options());
       m_Target.getModule().setFailure(true);
-      return;
     }
-    // No dynamic relocation needed; keep as static relocation.
     return;
   }
+
   case llvm::ELF::R_X86_64_PLT32: {
-    // return if we already create plt for this symbol
-    if (rsym->reserved() & ReservePLT)
+    if (isLocal || rsym->reserved() & ReservePLT)
       return;
-
-    // create IRELATIVE for IFUNC symbol
-    if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic()) {
-      m_Target.createPLT(Obj, rsym, true);
-      rsym->setReserved(rsym->reserved() | ReservePLT);
-      x86_64LDBackend &backend = getTarget();
-      backend.defineIRelativeRange(*rsym);
+    // Static IFUNC PLT and preemptible PLT are both allocated in phase 2; here
+    // we only record the routing decision for the preemptible case. (IFUNC is
+    // re-derived by type in phase 2, so it needs no flag.)
+    if (rsym->type() == ResolveInfo::IndirectFunc && config().isCodeStatic())
       return;
-    }
-    // if symbol is defined in the output file and it's not
-    // preemptible, no need plt
-    if (!getTarget().isSymbolPreemptible(*rsym)) {
+    if (!getTarget().isSymbolPreemptible(*rsym))
       return;
-    }
-
-    // Symbol needs PLT entry, we need to reserve a PLT entry
-    // and the corresponding GOT and dynamic relocation entry
-    // in .got and .rel.plt.
-    m_Target.createPLT(Obj, rsym);
-    rsym->setReserved(rsym->reserved() | ReservePLT);
+    m_ScanFlags->set(rsym, MayNeedPLT);
     return;
   }
 
   case llvm::ELF::R_X86_64_GOTPCREL:
   case llvm::ELF::R_X86_64_GOTPCRELX:
   case llvm::ELF::R_X86_64_REX_GOTPCRELX: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (rsym->reserved() & ReserveGOT)
+    if (isLocal || rsym->reserved() & ReserveGOT)
       return;
-    CreateGOT(Obj, pReloc, !config().isCodeStatic(), m_Target);
-    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    m_ScanFlags->set(rsym, MayNeedGOT);
     return;
   }
+
   case llvm::ELF::R_X86_64_GOTTPOFF: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
       return;
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
-    const bool isExec = config().isBuildingExecutable();
-    const bool preemptible = m_Target.isSymbolPreemptible(*rsym);
-    if (isExec && !preemptible) {
-      G->setValueType(GOT::TLSStaticSymbolValue);
-    } else {
-      helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
-                         llvm::ELF::R_X86_64_TPOFF64, m_Target);
-      m_Target.setHasStaticTLS();
-    }
-    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    // Global TLS-IE is routed via the flag map; local TLS-IE is re-derived by
+    // type in phase 2 (locals are not in the flag map). Both allocate in
+    // phase 2.
+    if (!isLocal)
+      m_ScanFlags->set(rsym, MayNeedTLSIE);
     return;
   }
+
   case llvm::ELF::R_X86_64_TLSGD: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (rsym->reserved() & ReserveGOT)
+    if (isLocal || rsym->reserved() & ReserveGOT)
       return;
-
-    // Create GD GOT pair (x86_64GDGOT creates both entries)
-    x86_64GOT *G = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
-
-    // Always emit DTPMOD64 for first entry (module ID unknown for DSO)
-    helper_DynRel_init(Obj, &pReloc, rsym, G->getFirst(), 0x0,
-                       llvm::ELF::R_X86_64_DTPMOD64, m_Target);
-
-    // Check if symbol is preemptible to decide on second entry
-    if (m_Target.isSymbolPreemptible(*rsym)) {
-      // Preemptible: emit DTPOFF64 (dynamic loader fills it)
-      helper_DynRel_init(Obj, &pReloc, rsym, G->getNext(), 0x0,
-                         llvm::ELF::R_X86_64_DTPOFF64, m_Target);
-    } else {
-      // Non-preemptible: fill second entry at link time
-      G->getNext()->setValueType(GOT::TLSStaticSymbolValue);
-    }
-
-    rsym->setReserved(rsym->reserved() | ReserveGOT);
+    m_ScanFlags->set(rsym, MayNeedTLSGD);
     return;
   }
-  case llvm::ELF::R_X86_64_TLSLD: {
-    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
+
+  case llvm::ELF::R_X86_64_TLSLD:
+    // TLSLD creates one shared module-ID GOT entry; allocated in phase 2.
     return;
-  }
+
   default:
     break;
-
-  } // end of switch
-}
-
-void x86_64Relocator::defineSymbolforGuard(eld::IRBuilder &pBuilder,
-                                           ResolveInfo *pSym,
-                                           x86_64LDBackend &pTarget) {
-  return;
+  }
 }
 
 void x86_64Relocator::partialScanRelocation(Relocation &pReloc,
@@ -538,6 +478,197 @@ void x86_64Relocator::computeTLSOffsets() {
   uint64_t alignment = tlsSegment->align();
   templateSize = llvm::alignTo(templateSize, alignment);
   GNULDBackend::setTLSTemplateSize(templateSize);
+}
+
+// Phase 0: populate the per-global flag map. Runs single-threaded from
+// ObjectLinker::scanRelocations(), after symbol resolution has filled the
+// name pool but before the parallel scan begins. Populating here (not in the
+// constructor) is required: the constructor runs on the first input file,
+// long before getGlobals() is complete.
+void x86_64Relocator::initScanRelocations() { m_ScanFlags->init(module()); }
+
+// Phase 2: the single allocation pass. Runs sequentially after Pool->wait(),
+// so NO mutex is needed anywhere here.
+//
+// Two kinds of work happen in the same encounter-order re-walk:
+//   (1) Flag-driven, per-symbol, allocate-once (global GOT/PLT/TLS-IE/TLS-GD):
+//       the routing decision was cached as a flag bit in phase 1; here we
+//       allocate at the symbol's first encounter, guarded by reserved().
+//   (2) Type-driven, re-derived here (things that cannot use the global flag
+//       map): local RELATIVE dynrels and global R_X86_64_64 dynrels (per site),
+//       local GOTTPOFF (TLS-IE), the TLSLD module-ID singleton, and static
+//       IFUNC PLT. These were previously done inline under m_RelocMutex during
+//       the parallel scan; moving them here makes phase 1 fully lock-free.
+//
+// Encounter order (object-list → section → within-section) reproduces pristine
+// GOT/PLT slot offsets and .rela.plt indices, which are a test/ABI contract.
+// The walk hands us the referencing ELFObjectFile for free (each file owns its
+// own .got/.rela.dyn — see initDynamicSections).
+void x86_64Relocator::allocateDynEntries() {
+  // Partial links (-r / LinkerConfig::Object) never scan for GOT/PLT/dynrels
+  // (scanRelocation early-returns for them, and per-file .got/.rela.dyn are not
+  // created by initDynamicSections). finalizeScanRelocations still runs for
+  // them, so guard here too — otherwise the re-walk would deref a null
+  // getRelaDyn()/getGOT().
+  if (LinkerConfig::Object == config().codeGenType())
+    return;
+
+  for (InputFile *Input : module().getObjectList()) {
+    ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input);
+    if (!Obj)
+      continue;
+    for (ELFSection *Rs : Obj->getRelocationSections()) {
+      if (Rs->isIgnore() || Rs->isDiscard())
+        continue;
+      for (Relocation *pReloc : Rs->getLink()->getRelocations()) {
+        if (m_Target.maySkipRelocProcessing(pReloc))
+          continue;
+        ResolveInfo *rsym = pReloc->symInfo();
+        if (!rsym)
+          continue;
+
+        // Replicate scanRelocation's section filter: only allocate for
+        // relocations whose target section is allocatable. This also ensures
+        // flag-driven allocation attaches to the correct first *alloc*
+        // encounter (matching pristine order and Obj selection).
+        ELFSection *section =
+            Rs->getLink() ? Rs->getLink()
+                          : pReloc->targetRef()->frag()->getOwningSection();
+        if (!section || !section->isAlloc())
+          continue;
+
+        bool isLocal = rsym->isLocal();
+        // Locals are never pre-inserted in the flag map (it's populated only
+        // from getGlobals()), so get() would always return 0 and waste a hash
+        // lookup. Skip it for locals — they are handled by the type-driven
+        // switch below.
+        uint8_t f = isLocal ? 0 : m_ScanFlags->get(rsym);
+
+        // ---- (1) flag-driven, per-symbol, allocate-once ----
+        if ((f & MayNeedGOT) && !(rsym->reserved() & ReserveGOT)) {
+          x86_64GOT *Gslot = m_Target.createGOT(GOT::Regular, Obj, rsym);
+          if (!config().isCodeStatic()) {
+            bool useRelative = !m_Target.isSymbolPreemptible(*rsym);
+            helper_DynRel_init(Obj, nullptr, rsym, Gslot, 0,
+                               useRelative ? llvm::ELF::R_X86_64_RELATIVE
+                                           : llvm::ELF::R_X86_64_GLOB_DAT,
+                               m_Target);
+          } else {
+            Gslot->setValueType(GOT::SymbolValue);
+          }
+          rsym->setReserved(rsym->reserved() | ReserveGOT);
+        }
+
+        if ((f & MayNeedPLT) && !(rsym->reserved() & ReservePLT) &&
+            m_Target.isSymbolPreemptible(*rsym) &&
+            rsym->type() != ResolveInfo::IndirectFunc) {
+          m_Target.createPLT(Obj, rsym);
+          rsym->setReserved(rsym->reserved() | ReservePLT);
+        }
+
+        if ((f & MayNeedTLSIE) && !(rsym->reserved() & ReserveGOT)) {
+          x86_64GOT *Gtls = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+          if (config().isBuildingExecutable() &&
+              !m_Target.isSymbolPreemptible(*rsym)) {
+            Gtls->setValueType(GOT::TLSStaticSymbolValue);
+          } else {
+            helper_DynRel_init(Obj, nullptr, rsym, Gtls, 0,
+                               llvm::ELF::R_X86_64_TPOFF64, m_Target);
+            m_Target.setHasStaticTLS();
+          }
+          rsym->setReserved(rsym->reserved() | ReserveGOT);
+        }
+
+        if ((f & MayNeedTLSGD) && !(rsym->reserved() & ReserveGOT)) {
+          x86_64GOT *Ggd = m_Target.createGOT(GOT::TLS_GD, Obj, rsym);
+          helper_DynRel_init(Obj, nullptr, rsym, Ggd->getFirst(), 0,
+                             llvm::ELF::R_X86_64_DTPMOD64, m_Target);
+          if (m_Target.isSymbolPreemptible(*rsym))
+            helper_DynRel_init(Obj, nullptr, rsym, Ggd->getNext(), 0,
+                               llvm::ELF::R_X86_64_DTPOFF64, m_Target);
+          else
+            Ggd->getNext()->setValueType(GOT::TLSStaticSymbolValue);
+          rsym->setReserved(rsym->reserved() | ReserveGOT);
+        }
+
+        // ---- (2) type-driven, re-derived here ----
+        switch (pReloc->type()) {
+        case llvm::ELF::R_X86_64_64: {
+          if (isLocal) {
+            // Local absolute in PIC output: one RELATIVE dynrel per site.
+            if (config().isCodeIndep() &&
+                checkDynamicRelocAllowed(*pReloc, *section, true)) {
+              rsym->setReserved(rsym->reserved() | ReserveRel);
+              m_Target.checkAndSetHasTextRel(*section);
+              helper_DynRel_init(Obj, pReloc, rsym, pReloc->targetRef()->frag(),
+                                 pReloc->targetRef()->offset(),
+                                 llvm::ELF::R_X86_64_RELATIVE, m_Target);
+            }
+            break;
+          }
+          // Global absolute. Copy-relocated symbols were converted to local
+          // BSS defines by createCopyRelocation (before this pass), so
+          // symbolNeedsDynRel() returns false for them here — no double work.
+          if (m_Target.symbolNeedsDynRel(*rsym, (rsym->reserved() & ReservePLT),
+                                         true) &&
+              !m_Target.symbolNeedsCopyReloc(*pReloc, *rsym) &&
+              checkDynamicRelocAllowed(*pReloc, *section, true)) {
+            bool isPreemptible = m_Target.isSymbolPreemptible(*rsym);
+            rsym->setReserved(rsym->reserved() | ReserveRel);
+            m_Target.checkAndSetHasTextRel(*section);
+            helper_DynRel_init(Obj, pReloc, rsym, pReloc->targetRef()->frag(),
+                               pReloc->targetRef()->offset(),
+                               isPreemptible ? llvm::ELF::R_X86_64_64
+                                             : llvm::ELF::R_X86_64_RELATIVE,
+                               m_Target);
+          }
+          break;
+        }
+
+        case llvm::ELF::R_X86_64_PLT32: {
+          // Static IFUNC: emit IRELATIVE PLT. Preemptible PLT is flag-driven
+          // above; this branch only fires for the IFUNC-in-static case, which
+          // set no flag in phase 1.
+          if (!isLocal && !(rsym->reserved() & ReservePLT) &&
+              rsym->type() == ResolveInfo::IndirectFunc &&
+              config().isCodeStatic()) {
+            m_Target.createPLT(Obj, rsym, /*isIRelative=*/true);
+            rsym->setReserved(rsym->reserved() | ReservePLT);
+            m_Target.defineIRelativeRange(*rsym);
+          }
+          break;
+        }
+
+        case llvm::ELF::R_X86_64_GOTTPOFF: {
+          // Local __thread IE: not in the flag map, re-derived by type here.
+          if (isLocal && !(rsym->reserved() & ReserveGOT)) {
+            x86_64GOT *G = m_Target.createGOT(GOT::TLS_IE, Obj, rsym);
+            if (config().isBuildingExecutable()) {
+              G->setValueType(GOT::TLSStaticSymbolValue);
+            } else {
+              helper_DynRel_init(Obj, pReloc, rsym, G, 0x0,
+                                 llvm::ELF::R_X86_64_TPOFF64, m_Target);
+              m_Target.setHasStaticTLS();
+            }
+            rsym->setReserved(rsym->reserved() | ReserveGOT);
+          }
+          break;
+        }
+
+        case llvm::ELF::R_X86_64_TLSLD:
+          // One shared module-ID GOT entry per module (singleton). In this
+          // single-threaded pass no mutex is needed.
+          getTLSModuleID(rsym, config().isCodeStatic());
+          break;
+
+        default:
+          break;
+        }
+      }
+    }
+  }
+
+  m_ScanFlags.reset();
 }
 
 template <typename T>

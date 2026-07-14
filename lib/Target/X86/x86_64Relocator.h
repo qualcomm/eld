@@ -9,6 +9,7 @@
 
 #include "eld/Target/Relocator.h"
 #include "x86_64LDBackend.h"
+#include <memory>
 #include <mutex>
 
 #define POSITION_OF_PACKET_BITS 14
@@ -21,6 +22,9 @@ namespace eld {
 class ResolveInfo;
 class LinkerConfig;
 
+// Forward declaration — defined in x86_64Relocator.cpp (pimpl).
+struct ScanFlagMap;
+
 /** \class x86_64Relocator
  *  \brief x86_64Relocator creates and destroys the x86_64 relocations.
  *
@@ -29,15 +33,10 @@ class x86_64Relocator : public Relocator {
 public:
   x86_64Relocator(x86_64LDBackend &pParent, LinkerConfig &pConfig,
                   Module &pModule);
+  ~x86_64Relocator(); // out-of-line: ScanFlagMap complete type needed for dtor
 
   Result applyRelocation(Relocation &pRelocation) override;
 
-  /// scanRelocation - determine the empty entries are needed or not and create
-  /// the empty entries if needed.
-  /// For x86_64, following entries are check to create:
-  /// - GOT entry (for .got and .got.plt sections)
-  /// - PLT entry (for .plt section)
-  /// - dynamin relocation entries (for .rel.plt and .rel.dyn sections)
   void scanRelocation(Relocation &pReloc, eld::IRBuilder &pBuilder,
                       ELFSection &pSection, InputFile &pInput,
                       CopyRelocs &) override;
@@ -58,23 +57,28 @@ public:
 
   void computeTLSOffsets() override;
 
-protected:
-  void defineSymbolforGuard(eld::IRBuilder &pLinker, ResolveInfo *pSym,
-                            x86_64LDBackend &pTarget);
+  // Phase 0: populate the per-global scan-flag map. Must run single-threaded
+  // after symbol resolution (getGlobals() complete) and before the parallel
+  // scan. Called from x86_64LDBackend::initScanRelocations().
+  void initScanRelocations();
+
+  // Phase 2: allocate GOT/PLT/TLS entries for all symbols flagged during the
+  // parallel scan. Called from x86_64LDBackend::finalizeScanRelocations()
+  // after Pool->wait(). Does NOT merge relocations (handled by ObjectLinker).
+  void allocateDynEntries();
 
 private:
-  virtual void scanLocalReloc(InputFile &pInput, Relocation &pReloc,
-                              eld::IRBuilder &pBuilder, ELFSection &pSection);
-
-  virtual void scanGlobalReloc(InputFile &pInput, Relocation &pReloc,
-                               eld::IRBuilder &pBuilder, ELFSection &pSection,
-                               CopyRelocs &);
+  void scanOneReloc(InputFile &pInput, Relocation &pReloc,
+                    eld::IRBuilder &pBuilder, ELFSection &pSection,
+                    CopyRelocs &, bool isLocal);
 
   bool isRelocSupported(const Relocation &pReloc) const;
 
   x86_64GOT *getTLSModuleID(ResolveInfo *R, bool isStatic = false);
 
   x86_64LDBackend &m_Target;
+  std::unique_ptr<ScanFlagMap> m_ScanFlags;
+  x86_64GOT *m_TLSModuleIDGOT = nullptr;
 };
 
 } // namespace eld

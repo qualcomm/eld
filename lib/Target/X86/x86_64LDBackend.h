@@ -96,6 +96,10 @@ public:
 
   void doPreLayout() override;
 
+  void initScanRelocations() override;
+
+  bool finalizeScanRelocations() override;
+
   void recordRelativeReloc(Relocation *DynRel, const Relocation *OrigRel) {
     m_RelativeRelocMap[DynRel] = OrigRel;
   }
