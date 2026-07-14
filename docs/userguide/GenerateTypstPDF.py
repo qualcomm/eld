@@ -807,6 +807,13 @@ class TypstConverter:
 #let accent = rgb("#1868DB")
 #let body-gray = rgb("#555555")
 #let rule-gray = rgb("#e6e6e6")
+// Cover-page colors keep the first PDF page visually distinct from content pages.
+#let cover-bg = rgb("#f6f9ff")
+#let cover-ink = rgb("#10213f")
+#let cover-muted = rgb("#50617d")
+#let cover-orb-blue = rgb("#dbeaff")
+#let cover-orb-cyan = rgb("#e8f6ff")
+#let cover-pill-stroke = rgb("#d9e5f8")
 #let table-stroke = rgb("#dddddd")
 #let table-head = rgb("#fafafa")
 #let link-blue = rgb("#2d8fd5")
@@ -818,7 +825,7 @@ class TypstConverter:
 #let warning-gold = rgb("#b58c38")
 
 #set document(title: {typst_string(title)}, author: {typst_string(author)})
-#set page(paper: "a4", margin: (x: 0.72in, top: 0.82in, bottom: 0.82in), numbering: none)
+#set page(paper: "a4", margin: 0.72in, numbering: none, fill: cover-bg)
 #set text(font: "DejaVu Sans", size: 9.2pt, fill: body-gray)
 #set par(justify: true, leading: 0.55em)
 #show link: it => text(fill: link-blue, it)
@@ -831,17 +838,29 @@ class TypstConverter:
 #show figure: set block(above: 0.45em, below: 0.75em)
 #show outline.entry: set block(below: 0.18em)
 
-#align(center + horizon)[
-  #text(fill: accent, size: 24pt)[{title}]
-  #v(0.18in)
-  #text(size: 8pt, fill: body-gray)[Generated from ELD documentation]
+// Splash cover: decorative orbs, prominent title, and a compact metadata pill.
+#place(top + right, dx: 0.42in, dy: -0.42in)[#circle(radius: 1.65in, fill: cover-orb-blue)]
+#place(bottom + left, dx: -0.32in, dy: 0.28in)[#circle(radius: 1.10in, fill: cover-orb-cyan)]
+#v(5.7in)
+#line(length: 1.6in, stroke: 2.2pt + accent)
+#v(0.28in)
+#text(size: 12pt, fill: accent, weight: "bold")[Embedded Linker]
+#v(0.10in)
+#text(size: 34pt, fill: cover-ink, weight: "bold")[ELD Documentation]
+#v(0.18in)
+#text(size: 11pt, fill: cover-muted)[A detailed guide to linking, diagnostics, plugins, linker-scripts, etc.]
+#v(0.48in)
+#grid(columns: (auto, auto), gutter: 0.14in)[
+  #rect(fill: accent, stroke: none, radius: 7pt, inset: (x: 11pt, y: 7pt))[#text(size: 8.5pt, fill: white, weight: "bold")[{escape_text(author)}]]
 ]
 
 #pagebreak()
+// Reset regular document pages after the full-page splash cover.
 #set page(
   paper: "a4",
   margin: (x: 0.72in, top: 0.82in, bottom: 0.82in),
   numbering: "1",
+  fill: white,
   header: context [
     #text(size: 7.5pt, fill: body-gray)[#align(right)[| Page #counter(page).display()]]
     #line(length: 100%, stroke: rule-gray)
