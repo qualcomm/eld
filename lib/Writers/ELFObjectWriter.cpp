@@ -738,7 +738,7 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
     Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
 #endif
   if (ThisModule.getConfig().isLinkPartial() &&
-      llvm::ELF::SHF_LINK_ORDER & S->getFlags())
+      llvm::ELF::SHF_LINK_ORDER & S->getFlags() && S->getLink())
     return S->getLink()->getOutputSection()->getSection()->getIndex();
   if (S->isRelocationSection()) {
     if (S->getKind() != LDFileFormat::DynamicRelocation)

@@ -18,7 +18,5 @@ RUN: %filecheck %s < %t2.map
 #CHECK-NEXT: #P[0]{{.*}}
 #CHECK-NEXT: #R{{.*}}sym=.text.start{{.*}}
 
-# Sentinel section follows the last surviving EXIDX entry.
-#CHECK: .ARM.exidx{{[[:space:]]+}}0x{{[0-9a-f]+}}{{[[:space:]]+}}0x8{{[[:space:]]+}}Exceptions
-#CHECK-NEXT: #EXIDX-sentinel{{[[:space:]]+}}addr=0x{{[0-9a-f]+}}{{[[:space:]]+}}sz=0x8
+#CHECK-NOT: #EXIDX-sentinel
 #END_TEST

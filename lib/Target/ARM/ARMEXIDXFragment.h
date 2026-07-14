@@ -47,6 +47,10 @@ public:
   /// Called after sortEXIDX to fix up relocation target offsets.
   uint32_t translateInputOffset(uint32_t InputOffset) const;
 
+  /// Returns true if any live piece contains a non-CANTUNWIND unwind word
+  /// (i.e. the second 32-bit word of an 8-byte entry is not 0x1).
+  bool hasRealUnwindData() const;
+
   /// Total live size: sum of all piece sizes (excludes GC'd entries).
   size_t size() const override;
 
@@ -65,21 +69,28 @@ private:
 class EXIDXSentinelFragment : public TargetFragment {
 public:
   EXIDXSentinelFragment(ELFSection *O)
-      : TargetFragment(TargetFragment::TargetSpecific, O, nullptr, 4, 8) {}
+      : TargetFragment(TargetFragment::TargetSpecific, O, nullptr, 4, 0) {}
 
   ~EXIDXSentinelFragment() override = default;
 
   const std::string name() const override { return "EXIDXSentinel"; }
-  size_t size() const override { return 8; }
+  // Size is 0 until activate() is called; this keeps the fragment invisible
+  // when no real .ARM.exidx input sections exist.
+  size_t size() const override { return Active ? 8 : 0; }
 
-  void setLinkedSection(ELFSection *S) { LinkedSection = S; }
-  ELFSection *getLinkedSection() const { return LinkedSection; }
+  // Called by sortEXIDX() once at least one real EXIDX fragment is found.
+  void activate() { Active = true; }
+
+  // Set the target address (byte past the last covered function).
+  // Called by sortEXIDX() once all output addresses are known.
+  void setTargetAddr(uint64_t Addr) { TargetAddr = Addr; }
 
   eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
   void dump(llvm::raw_ostream &OS) override;
 
 private:
-  ELFSection *LinkedSection = nullptr;
+  uint64_t TargetAddr = 0;
+  bool Active = false;
 };
 
 } // namespace eld

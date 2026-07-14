@@ -11,9 +11,11 @@ RUN: %readelf -u %t2.so | %filecheck %s --check-prefix=UNW
 #MAP: .ARM.exidx.text.f2{{[[:space:]]+}}0x11010{{[[:space:]]+}}0x10
 #MAP: .ARM.exidx.text.f1{{[[:space:]]+}}0x11020{{[[:space:]]+}}0x8
 #MAP: .ARM.exidx.text.start{{[[:space:]]+}}0x11028{{[[:space:]]+}}0x8
+#MAP-NOT: #EXIDX-sentinel
 
 #UNW: FunctionAddress: 0x11000
 #UNW: FunctionAddress: 0x11004
 #UNW: FunctionAddress: 0x11008
 #UNW: FunctionAddress: 0x1100C
+#UNW-NOT: FunctionAddress: 0x11010
 #END_TEST

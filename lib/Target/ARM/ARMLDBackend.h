@@ -30,6 +30,7 @@ class LinkerConfig;
 class TargetInfo;
 class ARMAttributeFragment;
 class EXIDXFragment;
+class EXIDXSentinelFragment;
 
 //===----------------------------------------------------------------------===//
 /// ARMGNULDBackend - linker backend of ARM target of GNU ELF format
@@ -260,6 +261,8 @@ private:
   /// Maps each .ARM.exidx input section to its EXIDXFragment.  Populated in
   /// readSection; used by handleRelocation and sortEXIDX.
   llvm::DenseMap<ELFSection *, EXIDXFragment *> m_EXIDXFragments;
+  ELFSection *m_pEXIDXSentinel = nullptr;
+  EXIDXSentinelFragment *m_pSentinelFrag = nullptr;
   llvm::DenseMap<ResolveInfo *, ARMGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, ARMGOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, ARMPLT *> m_PLTMap;

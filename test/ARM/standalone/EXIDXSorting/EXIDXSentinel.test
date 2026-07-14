@@ -1,0 +1,39 @@
+#---EXIDXSentinel.test------------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Verify that ld.eld appends an 8-byte CANTUNWIND sentinel at the end of the
+# sorted .ARM.exidx table when at least one entry has real unwind data.
+# The sentinel is a linker-generated entry whose first word is a PREL31 offset
+# to the byte immediately past the last covered function, and whose second word
+# is 0x1 (CANTUNWIND compact model entry).  This matches GNU ld behaviour:
+# the sentinel is only emitted when the table contains real (non-CANTUNWIND)
+# unwind data.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx_sentinel.s -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0 \
+RUN:   -o %t2.out -Map %t2.map
+RUN: %filecheck %s --check-prefix=MAP < %t2.map
+RUN: %readelf -S -W %t2.out | %filecheck %s --check-prefix=SEC
+RUN: %readelf -u %t2.out | %filecheck %s --check-prefix=UNW
+
+# The sentinel appears as a separate internal section in the map with its own
+# annotation line.
+#MAP: .ARM.exidx{{[[:space:]]+}}0x11034{{[[:space:]]+}}0x8{{[[:space:]]+}}Exceptions
+#MAP-NEXT: #EXIDX-sentinel{{[[:space:]]+}}addr=0x11034{{[[:space:]]+}}sz=0x8
+
+# .ARM.exidx total size = 4 real entries (0x8 each) + 1 sentinel = 0x28.
+#SEC: .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]}}{{.*}}000028
+
+# _start has compact-inline unwind (not CANTUNWIND); sentinel points past it.
+#UNW:      FunctionAddress: 0x11000
+#UNW-NEXT: Model: CantUnwind
+#UNW:      FunctionAddress: 0x11004
+#UNW-NEXT: Model: CantUnwind
+#UNW:      FunctionAddress: 0x11008
+#UNW-NEXT: Model: CantUnwind
+#UNW:      FunctionAddress: 0x1100C
+#UNW-NEXT: Model: Compact (Inline)
+#UNW:      FunctionAddress: 0x11014
+#UNW-NEXT: Model: CantUnwind
+#END_TEST

@@ -37,6 +37,23 @@ uint32_t EXIDXFragment::translateInputOffset(uint32_t InputOffset) const {
   return 0;
 }
 
+bool EXIDXFragment::hasRealUnwindData() const {
+  llvm::StringRef Region = getRegion();
+  for (const EXIDXPiece &P : Pieces) {
+    // Each piece is an 8-byte EXIDX entry; the second word is the unwind word.
+    // 0x00000001 (LE) means CANTUNWIND; anything else is real unwind data.
+    for (uint32_t Off = P.InputOffset + 4; Off + 4 <= P.InputOffset + P.Size;
+         Off += 8) {
+      if (Off + 4 > Region.size())
+        break;
+      uint32_t Word = llvm::support::endian::read32le(Region.data() + Off);
+      if (Word != 0x00000001u)
+        return true;
+    }
+  }
+  return false;
+}
+
 size_t EXIDXFragment::size() const {
   size_t Total = 0;
   for (const EXIDXPiece &P : Pieces)
@@ -141,9 +158,6 @@ eld::Expected<void> EXIDXSentinelFragment::emit(MemoryRegion &Mr, Module &M) {
   DiagnosticEngine *Diag = M.getConfig().getDiagEngine();
   uint8_t *Buf = Mr.begin() + getOffset(Diag);
   uint64_t SentinelAddr = getAddr(Diag);
-  uint64_t TargetAddr = 0;
-  if (LinkedSection)
-    TargetAddr = LinkedSection->addr() + LinkedSection->size();
   // PREL31: (target - place) masked to 31 bits.
   int32_t Prel31 = static_cast<int32_t>(TargetAddr - SentinelAddr) & 0x7FFFFFFF;
   llvm::support::endian::write32le(Buf, static_cast<uint32_t>(Prel31));
@@ -152,6 +166,8 @@ eld::Expected<void> EXIDXSentinelFragment::emit(MemoryRegion &Mr, Module &M) {
 }
 
 void EXIDXSentinelFragment::dump(llvm::raw_ostream &OS) {
+  if (!Active)
+    return;
   ELFSection *OutSection = getOutputELFSection();
   const uint64_t SectionAddr = OutSection ? OutSection->addr() : 0;
   const uint64_t FragAddr = SectionAddr + (hasOffset() ? getOffset() : 0);

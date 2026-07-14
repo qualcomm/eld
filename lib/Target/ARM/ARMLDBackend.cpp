@@ -119,6 +119,23 @@ void ARMGNULDBackend::initTargetSections(ObjectBuilder &pBuilder) {
       Module::InternalInputType::Exception, LDFileFormat::Internal,
       ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
       llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
+
+  // For final links (executables and shared libraries), create a separate
+  // internal sentinel section that holds the 8-byte CANTUNWIND terminator.
+  // Its section type and name match *(.ARM.exidx*) linker script rules so it
+  // is always placed last.  Partial links (-r) do not get a sentinel.
+  if (LinkerConfig::Object != config().codeGenType()) {
+    m_pEXIDXSentinel = m_Module.createInternalSection(
+        Module::InternalInputType::Exception, LDFileFormat::Internal,
+        ".ARM.exidx", llvm::ELF::SHT_ARM_EXIDX,
+        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_LINK_ORDER, 4);
+    m_pSentinelFrag = make<EXIDXSentinelFragment>(m_pEXIDXSentinel);
+    m_pEXIDXSentinel->addFragment(m_pSentinelFrag);
+    LayoutInfo *LI = getModule().getLayoutInfo();
+    if (LI)
+      LI->recordFragment(m_pEXIDXSentinel->getInputFile(), m_pEXIDXSentinel,
+                         m_pSentinelFrag);
+  }
 }
 
 void ARMGNULDBackend::initTargetSymbols() {
@@ -236,51 +253,43 @@ void ARMGNULDBackend::doPreLayout() {
     m_Module.addOutputSection(getRelaDyn());
   }
 
-  // We need link ARM.EXIDX.xx to .xx
-  Module::obj_iterator input, inEnd = m_Module.objEnd();
-  for (input = m_Module.objBegin(); input != inEnd; ++input) {
-    ELFObjectFile *ObjFile = llvm::dyn_cast<ELFObjectFile>(*input);
-    if (!ObjFile)
+  // For each EXIDX input section, ensure its output section's sh_link points
+  // to the output .text section (not the raw input section).  This is needed
+  // because ObjectBuilder stores the input-section link on the output section;
+  // getSectLink must return an output section index.
+  for (const auto &KV : m_EXIDXFragments) {
+    EXIDXFragment *Frag = KV.second;
+    ELFSection *InputExidx = Frag->getOwningSection();
+    if (!InputExidx)
       continue;
-    for (auto &sect : ObjFile->getSections()) {
-      if (sect->isBitcode())
-        continue;
-      ELFSection *section = llvm::dyn_cast<eld::ELFSection>(sect);
-      if (section->isIgnore())
-        continue;
-      if (section->isDiscard())
-        continue;
-      if (!section->isEXIDX())
-        continue;
-      // get the output relocation ELFSection with name in accordance with
-      // linker script rule for the section where relocations are patched
-      llvm::StringRef outputName = section->name();
+    ELFSection *OutExidx = InputExidx->getOutputELFSection();
+    if (!OutExidx || OutExidx->isIgnore() || OutExidx->isDiscard())
+      continue;
+    ELFSection *InputLink = InputExidx->getLink();
+    if (!InputLink)
+      continue;
+    ELFSection *OutLink = InputLink->getOutputELFSection();
+    if (OutLink)
+      OutExidx->setLink(OutLink);
+  }
 
-      ELFSection *output_sect = nullptr;
-      OutputSectionEntry *outputSection = section->getOutputSection();
-      if (outputSection)
-        output_sect = outputSection->getSection();
-      else
-        output_sect = m_Module.getSection(outputName.str());
-      if (nullptr == output_sect)
-        continue;
-
-      // set output relocation section link
-      const ELFSection *input_link =
-          llvm::dyn_cast_or_null<ELFSection>(section->getLink());
-      assert(nullptr != input_link && "Illegal input ARM.exidx section.");
-
-      // get the linked output section
-      ELFSection *output_link = nullptr;
-      outputSection = input_link->getOutputSection();
-      if (outputSection)
-        output_link = outputSection->getSection();
-      else
-        output_link = m_Module.getSection(input_link->name().str());
-
-      assert(nullptr != output_link);
-
-      output_sect->setLink(output_link);
+  // Activate the sentinel fragment early so its 8-byte contribution to the
+  // .ARM.exidx output section size is known during the address-assignment
+  // layout pass.  Without this, the sentinel size would be 0 at layout time
+  // and .dynamic (or whatever follows) would be placed at an address that
+  // overlaps with the sentinel once it is activated in doPostLayout.
+  //
+  // Match GNU ld: only emit the sentinel when at least one live EXIDX entry
+  // carries real unwind data (i.e. not a bare CANTUNWIND word 0x1).
+  if (m_pSentinelFrag) {
+    for (const auto &KV : m_EXIDXFragments) {
+      EXIDXFragment *Frag = KV.second;
+      ELFSection *OutSec = Frag->getOutputELFSection();
+      if (OutSec && !OutSec->isIgnore() && !OutSec->isDiscard() &&
+          Frag->hasRealUnwindData()) {
+        m_pSentinelFrag->activate();
+        break;
+      }
     }
   }
 }
@@ -459,10 +468,31 @@ void ARMGNULDBackend::sortEXIDX() {
     }
   }
 
-  if (m_pEXIDXStart && FirstEXIDXFrag) {
-    m_pEXIDXStart->setFragmentRef(make<FragmentRef>(*FirstEXIDXFrag, 0));
+  // The sentinel was activated in doPreLayout to ensure its 8-byte size was
+  // included in the layout pass.  Here we set the PREL31 target address once
+  // output addresses are available.
+  if (m_pSentinelFrag && m_pSentinelFrag->size() && LastEXIDXFrag) {
+    // The rule's MPSection has no sh_link; use the fragment's owning input
+    // section (the actual .ARM.exidx.* section) to resolve the linked .text
+    // output section whose addr() is set by layout.
+    auto *LastEXIDX = dyn_cast<EXIDXFragment>(LastEXIDXFrag);
+    ELFSection *OwningSection =
+        LastEXIDX ? LastEXIDX->getOwningSection() : nullptr;
+    ELFSection *InputLink = OwningSection ? OwningSection->getLink() : nullptr;
+    ELFSection *LastLinkedSection =
+        InputLink ? InputLink->getOutputELFSection() : nullptr;
+    if (LastLinkedSection)
+      m_pSentinelFrag->setTargetAddr(LastLinkedSection->addr() +
+                                     LastLinkedSection->size());
   }
-  if (m_pEXIDXEnd && LastEXIDXFrag) {
+
+  if (m_pEXIDXStart && FirstEXIDXFrag)
+    m_pEXIDXStart->setFragmentRef(make<FragmentRef>(*FirstEXIDXFrag, 0));
+  // __exidx_end points past the sentinel (the true end of the EXIDX table).
+  if (m_pEXIDXEnd && m_pSentinelFrag && m_pSentinelFrag->size()) {
+    m_pEXIDXEnd->setFragmentRef(
+        make<FragmentRef>(*m_pSentinelFrag, m_pSentinelFrag->size()));
+  } else if (m_pEXIDXEnd && LastEXIDXFrag) {
     m_pEXIDXEnd->setFragmentRef(
         make<FragmentRef>(*LastEXIDXFrag, LastEXIDXFrag->size()));
   }
