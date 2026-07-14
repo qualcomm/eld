@@ -1,0 +1,24 @@
+#---EXIDXGCAnnotations.test--------------------- Executable ------------------#
+#BEGIN_COMMENT
+# This tests that EXIDX dump records are annotated with <GC> when the owning
+# EXIDX section is garbage collected.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
+RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -e _start --gc-sections -Map %t2.map -MapDetail show-header-details -o %t2.out
+RUN: %filecheck %s < %t2.map
+
+#CHECK: # .ARM.exidx.text.f1{{.*}}<GC>
+#CHECK-NEXT: #EXIDX{{.*}}<GC>
+#CHECK-NEXT: #P[0]{{.*}}<GC>
+#CHECK-NEXT: #R{{.*}}sym=.text.f1{{.*}}<GC>
+
+#CHECK: .ARM.exidx.text.start
+#CHECK-NEXT: #EXIDX{{.*}}n=1
+#CHECK-NEXT: #P[0]{{.*}}
+#CHECK-NEXT: #R{{.*}}sym=.text.start{{.*}}
+
+# Sentinel section follows the last surviving EXIDX entry.
+#CHECK: .ARM.exidx{{[[:space:]]+}}0x{{[0-9a-f]+}}{{[[:space:]]+}}0x8{{[[:space:]]+}}Exceptions
+#CHECK-NEXT: #EXIDX-sentinel{{[[:space:]]+}}addr=0x{{[0-9a-f]+}}{{[[:space:]]+}}sz=0x8
+#END_TEST

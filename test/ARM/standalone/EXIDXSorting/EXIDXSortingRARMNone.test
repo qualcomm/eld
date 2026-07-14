@@ -1,0 +1,40 @@
+#---EXIDXSortingRARMNone.test------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Verify that sortEXIDX() skips R_ARM_NONE relocations when computing sort
+# keys for EXIDX entries.
+#
+# When a function uses C++ exception handling the compiler emits two
+# relocations at offset 0 of its .ARM.exidx entry:
+#   R_ARM_NONE  — personality-function hint (__aeabi_unwind_cpp_pr0); carries
+#                 no function address.
+#   R_ARM_PREL31 — points at the function itself; this is the correct key.
+#
+# If sortEXIDX() were to use R_ARM_NONE's symValue as a sort key candidate it
+# would pick the personality routine address (0x0 here via --defsym) instead
+# of the function address, causing the entry to sort before all others
+# regardless of where the function actually lives.
+#
+# The test places f2 (no exceptions) before f1 (throws) in .text so f2 has
+# the lower address.  The object file presents f2's EXIDX section before
+# f1's, which is already the correct order.  f1's EXIDX entry has R_ARM_NONE
+# at offset 0 with __aeabi_unwind_cpp_pr0=0x0.  Without the R_ARM_NONE skip,
+# f1 would be assigned sort key 0x0 and move before f2, corrupting the table.
+# With the fix, R_ARM_PREL31 (f1's actual address) is used and f2 stays first.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -ffunction-sections -fno-asynchronous-unwind-tables \
+RUN:   -c %p/Inputs/exidx_r_arm_none.cpp -o %t.o
+RUN: %link -MapStyle txt %linkopts %t.o -T %p/Inputs/script_r_arm_none.t \
+RUN:   --defsym=__aeabi_unwind_cpp_pr0=0x0 \
+RUN:   --defsym=__cxa_allocate_exception=0x0 \
+RUN:   --defsym=__cxa_throw=0x0 \
+RUN:   --defsym=_ZTIi=0x0 \
+RUN:   -o %t.out -Map %t.map
+RUN: %filecheck %s < %t.map
+
+# f2 (lower address) must appear before f1 (higher address) in the EXIDX
+# output.  If R_ARM_NONE were used as f1's sort key (value 0x0) f1 would
+# sort first.  The {{.*}} patterns absorb the exact addresses.
+CHECK: .ARM.exidx.text._Z2f2v{{.*}}
+CHECK: .ARM.exidx.text._Z2f1v{{.*}}
+#END_TEST

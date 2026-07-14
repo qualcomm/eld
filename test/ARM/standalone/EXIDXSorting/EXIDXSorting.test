@@ -1,14 +1,24 @@
 #---EXIDXSorting.test--------------------------- Executable -----------------#
 #BEGIN_COMMENT
 # This tests that the linker is sorting the fragments as per EXIDX design.
+# All .ARM.exidx* sections are matched by a single catch-all rule so the
+# intra-rule (fragment-level) sort applies.
+#
+# Sort key derivation for each EXIDXFragment:
+#   Primary:  lowest function address found via R_ARM_PREL31 relocations at
+#             the first word (offset 0) of each 8-byte EXIDX entry.
+#   Fallback: if no relocation yields a key (SortKeys stays at MaxSortKey),
+#             the linked text section address (sh_link -> .text.*) is used
+#             instead.  This guards against fragments with no qualifying
+#             relocations ending up sorted last regardless of their actual
+#             function address.
 #END_COMMENT
 #START_TEST
 RUN: %clang %clangopts -target arm -c %p/Inputs/exidx.s -o %t1.1.o
 RUN: %link -MapStyle txt %linkopts %t1.1.o -T %p/Inputs/script.t -o %t2.out -Map %t2.map
 RUN: %filecheck %s < %t2.map
 
-#CHECK: .ARM.exidx.text.f2      0x11010 0x8
-#CHECK: .ARM.exidx.text.f2      0x11018 0x8
+#CHECK: .ARM.exidx.text.f2      0x11010 0x10
 #CHECK: .ARM.exidx.text.f1      0x11020 0x8
 #CHECK: .ARM.exidx.text.start   0x11028 0x8
 
