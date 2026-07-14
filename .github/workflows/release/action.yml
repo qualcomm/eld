@@ -1,0 +1,36 @@
+name: Create GitHub Release
+description: Create a GitHub release for a given tag.
+
+inputs:
+  tag_name:
+    description: "Tag to create/attach the release to"
+    required: true
+  release_name:
+    description: "Release title shown on GitHub"
+    required: true
+  draft:
+    description: "Create as a draft release ('true'/'false')"
+    required: false
+    default: "false"
+  prerelease:
+    description: "Mark as a prerelease ('true'/'false')"
+    required: false
+    default: "false"
+  generate_release_notes:
+    description: "Auto-generate release notes from merged PRs ('true'/'false')"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+      with:
+        tag_name: ${{ inputs.tag_name }}
+        name: ${{ inputs.release_name }}
+        generate_release_notes: ${{ inputs.generate_release_notes }}
+        draft: ${{ inputs.draft }}
+        prerelease: ${{ inputs.prerelease }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}

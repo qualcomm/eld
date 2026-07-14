@@ -1,0 +1,52 @@
+name: Release
+
+# TODO:
+# This is a template workflow to test release notes via manual dispatch. This
+# must be updated for an official release.
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag / version to use for the test release (e.g. v23.0.0)'
+        required: false
+        default: 'v23.0.0'
+      draft:
+        description: 'Publish as draft?'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+      prerelease:
+        description: 'Is it a prerelease?'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      # ------------------------------------------------------------------ #
+      # 1. Checkout with full history so GitHub can compare against the
+      #    previous tag when generating the PR/commit list
+      # ------------------------------------------------------------------ #
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------ #
+      # 2. Create the GitHub Release
+      # ------------------------------------------------------------------ #
+      - name: Create Release
+        uses: ./.github/workflows/release
+        with:
+          tag_name: ${{ github.event.inputs.tag_name }}
+          release_name: 'ELD ${{ github.event.inputs.tag_name }}'
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: ${{ github.event.inputs.prerelease }}
