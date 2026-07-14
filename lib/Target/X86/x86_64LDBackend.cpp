@@ -315,6 +315,17 @@ x86_64PLT *x86_64LDBackend::findEntryInPLT(ResolveInfo *I) const {
   return Entry->second;
 }
 
+void x86_64LDBackend::initScanRelocations() {
+  auto *rel = static_cast<x86_64Relocator *>(getRelocator());
+  rel->initScanRelocations();
+}
+
+bool x86_64LDBackend::finalizeScanRelocations() {
+  auto *rel = static_cast<x86_64Relocator *>(getRelocator());
+  rel->allocateDynEntries();
+  return true;
+}
+
 uint64_t
 x86_64LDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
   if (!m_pEndOfImage)
