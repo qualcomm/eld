@@ -2123,6 +2123,11 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
 
   getTargetBackend().provideSymbols();
 
+  // Single-threaded phase-0 hook: let the target populate any per-symbol scan
+  // state (x86_64 pre-populates its flag map here) now that symbol resolution
+  // is complete and before the parallel scan below begins.
+  getTargetBackend().initScanRelocations();
+
   std::vector<std::unique_ptr<Relocator::CopyRelocs>> AllCopyRelocs;
   if (ThisConfig.options().numThreads() <= 1 ||
       !ThisConfig.isScanRelocationsMultiThreaded()) {
@@ -2154,22 +2159,12 @@ bool ObjectLinker::scanRelocations(bool IsPartialLink) {
     for (auto &Reloc : *RelocVec)
       createCopyRelocation(*Reloc, CopyRelocType);
 
-  // Merge per-file relocations
-  if (!IsPartialLink) {
-    ELFObjectFile *RelocInput =
-        getTargetBackend().getDynamicSectionHeadersInputFile();
-    auto MergeRelocs = [](ELFSection &To, ELFSection &From) {
-      To.appendRelocations(From.getRelocations());
-    };
-    for (auto &Input : ThisModule->getObjectList())
-      if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input))
-        if (Obj != RelocInput) {
-          if (const auto &S = Obj->getRelaDyn())
-            MergeRelocs(*RelocInput->getRelaDyn(), *S);
-          if (const auto &S = Obj->getRelaPLT())
-            MergeRelocs(*RelocInput->getRelaPLT(), *S);
-        }
-  }
+  // NOTE: MergeRelocs (.rela.dyn / .rela.plt per-input → output) runs in
+  // ObjectLinker::finalizeScanRelocations() — after the per-backend
+  // finalizeScanRelocations() hook — so that dynrelocs created by x86_64's
+  // phase-2 allocation (and any created during other backends' scan) are all
+  // captured. It must not run here: for x86_64 the phase-2 dynrelocs do not
+  // exist yet at this point.
 
   // If there is a undefined symbol, fail the link. No point fixing the
   // relocations. This is overridden by --noinhibit-exec.
@@ -2187,6 +2182,26 @@ bool ObjectLinker::finalizeScanRelocations() {
     if (ThisModule->getPrinter()->isVerbose())
       ThisConfig.raise(Diag::function_has_error) << __PRETTY_FUNCTION__;
     return false;
+  }
+
+  // Merge per-input .rela.dyn and .rela.plt into the output sections.
+  // For x86_64: phase 2 dynrelocs (GOTPCREL, PLT32) were emitted above.
+  // For all other targets: dynrelocs emitted during scan are merged here.
+  bool IsPartialLink = (LinkerConfig::Object == ThisConfig.codeGenType());
+  if (!IsPartialLink) {
+    ELFObjectFile *RelocInput =
+        getTargetBackend().getDynamicSectionHeadersInputFile();
+    auto MergeRelocs = [](ELFSection &To, ELFSection &From) {
+      To.appendRelocations(From.getRelocations());
+    };
+    for (auto &Input : ThisModule->getObjectList())
+      if (ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(Input))
+        if (Obj != RelocInput) {
+          if (const auto &S = Obj->getRelaDyn())
+            MergeRelocs(*RelocInput->getRelaDyn(), *S);
+          if (const auto &S = Obj->getRelaPLT())
+            MergeRelocs(*RelocInput->getRelaPLT(), *S);
+        }
   }
   return true;
 }
