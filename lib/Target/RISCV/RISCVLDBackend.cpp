@@ -18,6 +18,7 @@
 #include "RISCVTableJump.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Fragment/FillFragment.h"
+#include "eld/Fragment/FragmentRef.h"
 #include "eld/Fragment/RegionFragment.h"
 #include "eld/Fragment/RegionFragmentEx.h"
 #include "eld/Fragment/Stub.h"
@@ -40,6 +41,7 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 #include <optional>
 #include <string>
 
@@ -1190,6 +1192,56 @@ bool RISCVLDBackend::doRelaxationQCAccessCommon(Relocation *QCELiReloc,
   return false;
 }
 
+bool RISCVLDBackend::doRelaxationTP(Relocation &R) {
+  assert((R.type() == llvm::ELF::R_RISCV_TPREL_HI20 ||
+          R.type() == llvm::ELF::R_RISCV_TPREL_ADD ||
+          R.type() == llvm::ELF::R_RISCV_TPREL_LO12_I ||
+          R.type() == llvm::ELF::R_RISCV_TPREL_LO12_S) &&
+         "Unexpected relocation type!");
+
+  Fragment *frag = R.targetRef()->frag();
+  RegionFragmentEx *region = llvm::dyn_cast<RegionFragmentEx>(frag);
+  if (!region)
+    return false;
+
+  ResolveInfo *SymInfo = R.symInfo();
+  FragmentRef::Offset Offset = R.targetRef()->offset();
+  StringRef SymName = SymInfo->name();
+  StringRef RelaxName = "RISCV_TPREL";
+
+  Relocator::Address S = getRelocator()->getSymValue(&R);
+  Relocator::Address A = R.addend();
+  Relocator::Address Value = S + A;
+
+  bool CanRelax = config().options().getRISCVRelax() &&
+                  config().options().getRISCVRelaxTP() && hi20(Value) == 0;
+  if (!CanRelax) {
+    if (R.type() == llvm::ELF::R_RISCV_TPREL_HI20 ||
+        R.type() == llvm::ELF::R_RISCV_TPREL_ADD)
+      reportMissedRelaxation(RelaxName, *region, Offset, 4, SymName);
+    return false;
+  }
+
+  switch (R.type()) {
+  case llvm::ELF::R_RISCV_TPREL_HI20:
+  case llvm::ELF::R_RISCV_TPREL_ADD:
+    R.setType(llvm::ELF::R_RISCV_NONE);
+    relaxDeleteBytes(RelaxName, *region, Offset, 4, SymName);
+    return true;
+  case llvm::ELF::R_RISCV_TPREL_LO12_I:
+  case llvm::ELF::R_RISCV_TPREL_LO12_S: {
+    // Overwrite rs1 with `tp`
+    uint64_t Instr = (R.target() & ~(31 << 15)) | (X_TP << 15);
+    region->replaceInstruction(Offset, &R, reinterpret_cast<uint8_t *>(&Instr),
+                               4);
+    R.setTargetData(Instr);
+    return true;
+  }
+  default:
+    llvm_unreachable("Unexpected relocation type!");
+  }
+}
+
 bool RISCVLDBackend::doRelaxationTLSDESC(Relocation &R, bool Relax) {
 
   Fragment *frag = R.targetRef()->frag();
@@ -1670,6 +1722,7 @@ enum RelaxationPass {
   RELAXATION_PC,
   RELAXATION_LUI,
   RELAXATION_TLSDESC,
+  RELAXATION_TP,
   RELAXATION_ALIGN,
   RELAXATION_PASS_COUNT, // Number of passes
 };
@@ -1821,6 +1874,16 @@ void RISCVLDBackend::mayBeRelax(int relaxation_pass, bool &pFinished) {
               doRelaxationQCELi(relocation, GP);
             break;
           }
+          }
+          break;
+        case RELAXATION_TP:
+          switch (type) {
+          case llvm::ELF::R_RISCV_TPREL_HI20:
+          case llvm::ELF::R_RISCV_TPREL_ADD:
+          case llvm::ELF::R_RISCV_TPREL_LO12_I:
+          case llvm::ELF::R_RISCV_TPREL_LO12_S:
+            doRelaxationTP(*relocation);
+            break;
           }
           break;
         }

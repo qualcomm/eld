@@ -55,7 +55,6 @@ DECL_RISCV_APPLY_RELOC_FUNC(applyAlign)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGPRel)
 DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLUI)
 DECL_RISCV_APPLY_RELOC_FUNC(applyCompressedLI)
-DECL_RISCV_APPLY_RELOC_FUNC(applyTprelAdd)
 DECL_RISCV_APPLY_RELOC_FUNC(applyGOT)
 DECL_RISCV_APPLY_RELOC_FUNC(applyXqciloAbs)
 DECL_RISCV_APPLY_RELOC_FUNC(applyXqciloGPRel)
@@ -111,7 +110,7 @@ RelocationDescMap RelocDescs = {
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_HI20, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_I, applyAbs),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_LO12_S, applyAbs),
-    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_ADD, applyTprelAdd),
+    PUBLIC_RELOC_DESC_ENTRY(R_RISCV_TPREL_ADD, applyNone),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD8, applyAdditive),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD16, applyAdditive),
     PUBLIC_RELOC_DESC_ENTRY(R_RISCV_ADD32, applyAdditive),
@@ -1180,13 +1179,6 @@ Relocator::Result unsupported(Relocation &pReloc, RISCVLDBackend &,
                               RISCVRelocator &,
                               RelocationDescription &pRelocDesc) {
   return RISCVRelocator::Unsupport;
-}
-
-RISCVRelocator::Result applyTprelAdd(Relocation &pReloc, RISCVLDBackend &,
-                                     RISCVRelocator &,
-                                     RelocationDescription &pRelocDesc) {
-  // TODO: Add support for R_RISCV_TPREL_ADD type relaxation
-  return RISCVRelocator::OK;
 }
 
 // R_RISCV_VENDOR
