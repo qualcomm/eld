@@ -19,6 +19,7 @@
 #include "eld/Input/SearchDirs.h"
 #include "eld/Support/FileSystem.h"
 #include "eld/Support/MsgHandling.h"
+#include "eld/Support/Utils.h"
 #include <fstream>
 
 using namespace eld;
@@ -44,6 +45,10 @@ InputFileAction::InputFileAction(std::string Name,
     : InputAction(K, Printer), Name(Name), I(nullptr) {}
 
 bool InputFileAction::activate(InputBuilder &PBuilder) {
+  // Skip null file.
+  if (eld::utility::isNullDevice(Name))
+    return true;
+
   const LinkerConfig &Config = PBuilder.getLinkerConfig();
   std::string ExpandedName = Input::expandSysrootMarkers(
       Name, Config.directories(), *Config.getDiagEngine());
