@@ -42,6 +42,8 @@ DIAG(insert_wrapper, DiagnosticEngine::Note,
      "Inserting wrapper `%0' for bitcode symbol")
 DIAG(real_sym_reference, DiagnosticEngine::Note,
      "Found real symbol `%0' for wrapped symbol `%1'")
+DIAG(trace_wrap_archive_pull, DiagnosticEngine::Note,
+     "Pulling archive member from `%0' for wrapped symbol `%1'")
 DIAG(comm_override_by_definition, DiagnosticEngine::Warning,
      "common symbol %0 in file %1 is overridden by definition from %2")
 DIAG(common_symbol_doesnot_override_definition, DiagnosticEngine::Warning,

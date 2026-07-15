@@ -496,9 +496,19 @@ ArchiveParser::shouldIncludeSymbol(const ArchiveFile &archive,
   // If there is a wrap option specified for that symbol, we only pull from
   // an archive, if the real symbol is still undefined.
   std::string realSymbol = ("__real_" + SymName).str();
-  ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
-  if (RealSymbol && RealSymbol->isUndef())
-    return ArchiveFile::Symbol::Include;
+  if (m_Module.hasWrapReference(realSymbol)) {
+    ResolveInfo *RealSymbol = m_Module.getNamePool().findInfo(realSymbol);
+    if (!RealSymbol || RealSymbol->isUndef()) {
+      // Emit a trace message when pulling archive members for wrapped symbols
+      // to aid in debugging the wrap chain and archive resolution process.
+      if (m_Module.getPrinter()->traceWrapSymbols()) {
+        m_Module.getConfig().raise(Diag::trace_wrap_archive_pull)
+            << archive.getInput()->decoratedPath() // archive filename
+            << SymName;                            // wrapped symbol name
+      }
+      return ArchiveFile::Symbol::Include;
+    }
+  }
 
   return ArchiveFile::Symbol::Exclude;
 }
