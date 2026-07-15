@@ -1,0 +1,1 @@
+llvm-project/llvm/(include|lib|utils|unittests|examples|docs|cmake|test|benchmarks|projects|runtimes)/|llvm-project/llvm/tools/[^e]|llvm-project/llvm/tools/e[^l]|llvm-project/llvm/tools/el[^d]|third-party/|/obj/tools/[^e]|/obj/tools/e[^l]|/obj/tools/el[^d]|/obj/(include|lib|bin)/|llvm-project/llvm/tools/eld/test/|llvm-project/llvm/tools/eld/Plugins/HelloWorldPlugin/
