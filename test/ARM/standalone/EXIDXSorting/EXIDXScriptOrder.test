@@ -1,0 +1,21 @@
+#---EXIDXScriptOrder.test--------------------- Shared,LS -------------------#
+#BEGIN_COMMENT
+# Test that .ARM.exidx entries are sorted by function address even when the
+# linker script places .ARM.exidx before the .text sections and the .text
+# sections have non-monotonic VMAs (.text.fb at 0x1000, .text.fa at 0x2000,
+# but fa* is listed first in the input command line).
+# Ported from lld's arm-exidx-script-order.s test.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_a.s -o %t.a.o
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_b.s -o %t.b.o
+RUN: %link %linkopts --thread-count 4 --threads %t.a.o %t.b.o -T %p/Inputs/script_exidx_first.t -shared -o %t.so
+RUN: %readelf -u %t.so > %t.unwind
+RUN: %filecheck %s --check-prefix=UNWIND < %t.unwind
+# .text.fb is at 0x1000, .text.fa is at 0x2000. EXIDX must list fb entries first.
+#UNWIND:      FunctionAddress: 0x1000
+#UNWIND:      FunctionAddress: 0x1004
+#UNWIND:      FunctionAddress: 0x2000
+#UNWIND:      FunctionAddress: 0x2004
+#UNWIND:      FunctionAddress: 0x2008
+#END_TEST

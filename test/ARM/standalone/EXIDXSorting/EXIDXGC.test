@@ -1,0 +1,20 @@
+#---EXIDXGC.test------------------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that --gc-sections removes unreferenced .ARM.exidx sections.
+# f3 and f4 in exidx_gc.s are not reachable from _start, so their
+# .ARM.exidx.text.f3 section (and .ARM.extab.text.f3) must be GC'd.
+# Ported from lld's arm-exidx-gc.s test.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_gc.s -o %t.o
+RUN: %link %linkopts --thread-count 4 --threads -MapStyle txt %t.o --gc-sections --entry=_start -Map %t.map -o %t.out
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+# The EXIDX section for the dead function must be GC'd in the map.
+#MAP: .ARM.exidx.text.f3{{.*}}<GC>
+# .ARM.extab for the dead function must also be GC'd.
+#MAP: .ARM.extab.text.f3{{.*}}<GC>
+# Live EXIDX sections must survive.
+#MAP: .ARM.exidx.text.f0
+#MAP: .ARM.exidx.text.f1
+#MAP: .ARM.exidx.text.f2
+#END_TEST

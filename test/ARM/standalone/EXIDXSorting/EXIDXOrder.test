@@ -1,0 +1,17 @@
+#---EXIDXOrder.test---------------------------- Executable ------------------#
+#BEGIN_COMMENT
+# Test that .ARM.exidx entries appear in function address order.
+# Functions _start, f1, f2 are placed at increasing addresses; the
+# .ARM.exidx output section must list them in the same order.
+# Ported from lld's arm-exidx-order.s test.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx.s -o %t.o
+RUN: %link %linkopts --thread-count 4 --threads -MapStyle txt %t.o -Map %t.map --entry=_start -o %t.out
+RUN: %filecheck %s --check-prefix=MAP < %t.map
+# Exidx sections must appear in the map in the order of their linked .text sections:
+# .text.start (lowest addr) -> .text.f1 -> .text.f2
+#MAP:      .ARM.exidx.text.start
+#MAP:      .ARM.exidx.text.f1
+#MAP:      .ARM.exidx.text.f2
+#END_TEST

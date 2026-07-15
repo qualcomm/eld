@@ -1,0 +1,18 @@
+#---EXIDXRelocatable.test--------------------- PartialLink ------------------#
+#BEGIN_COMMENT
+# Test that a relocatable (-r) link preserves SHF_LINK_ORDER on .ARM.exidx
+# sections and does not add a CANTUNWIND sentinel entry or merge sections.
+# Ported from lld's arm-exidx-relocatable.s and arm-exidx-sentinel-norelocatable.s.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx.s -o %t.o
+RUN: %link %linkopts --thread-count 4 --threads -r %t.o -o %t.r.o
+RUN: %readelf -S -W %t.r.o > %t.sec
+RUN: %filecheck %s --check-prefix=SEC < %t.sec
+# All .ARM.exidx.* sections must carry SHF_ALLOC|SHF_LINK_ORDER (flags "AL").
+#SEC:      .ARM.exidx.text.start{{.*}}ARM_EXIDX{{.*}}AL
+#SEC:      .ARM.exidx.text.f1{{.*}}ARM_EXIDX{{.*}}AL
+#SEC:      .ARM.exidx.text.f2{{.*}}ARM_EXIDX{{.*}}AL
+# No merged/renamed bare .ARM.exidx section (only per-function sections present).
+#SEC-NOT:  .ARM.exidx{{[[:space:]]+}}ARM_EXIDX
+#END_TEST

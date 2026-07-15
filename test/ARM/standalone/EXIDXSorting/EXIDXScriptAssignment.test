@@ -1,0 +1,19 @@
+#---EXIDXScriptAssignment.test----------------- Shared,LS ------------------#
+#BEGIN_COMMENT
+# Test that a trailing assignment after *(.ARM.exidx*) in a linker script
+# output section does not crash and places the assigned symbol at the end
+# of the section.
+# Ported from lld's linkerscript/arm-exidx-sentinel-and-assignment.s test.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx.s -o %t.o
+RUN: %link %linkopts --thread-count 4 --threads %t.o -T %p/Inputs/script_exidx_assignment.t -shared -o %t.so
+RUN: %readelf -S -W %t.so > %t.sec
+RUN: %readelf -s %t.so > %t.sym
+RUN: %filecheck %s --check-prefix=SEC < %t.sec
+RUN: %filecheck %s --check-prefix=SYM < %t.sym
+# .ARM.exidx must be present at 0x1000.
+#SEC:      .ARM.exidx{{[[:space:]]+}}ARM_EXIDX{{[[:space:]]+}}00001000
+# The symbol foo must be placed at the end of .ARM.exidx (0x1000 + 0x20 = 0x1020).
+#SYM:      00001020{{.*}}foo
+#END_TEST

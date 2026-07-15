@@ -1,0 +1,16 @@
+#---EXIDXOutput.test--------------------------- Shared ----------------------#
+#BEGIN_COMMENT
+# Test that multiple input .ARM.exidx sections are merged into a single
+# .ARM.exidx output section in the final link.
+# Ported from lld's arm-exidx-output.s test.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx.s -o %t1.o
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx_cantunwind.s -o %t2.o
+RUN: %link %linkopts --thread-count 4 --threads %t1.o %t2.o -shared -o %t.so
+RUN: %readelf -S -W %t.so > %t.sec
+RUN: %filecheck %s --check-prefix=SEC < %t.sec
+# Exactly one .ARM.exidx output section must be present.
+#SEC:      .ARM.exidx{{[[:space:]]+}}ARM_EXIDX
+#SEC-NOT:  .ARM.exidx{{[[:space:]]+}}ARM_EXIDX
+#END_TEST

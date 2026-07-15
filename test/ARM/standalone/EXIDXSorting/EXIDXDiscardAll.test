@@ -1,0 +1,14 @@
+#---EXIDXDiscardAll.test----------------------- Shared,LS -------------------#
+#BEGIN_COMMENT
+# Test that a linker script /DISCARD/ rule on *(.ARM.exidx*) removes all
+# .ARM.exidx sections from the output.
+# Ported from lld's linkerscript/arm-exidx-discard-all.s test.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -target arm-linux-gnueabi -c %p/Inputs/exidx.s -o %t.o
+RUN: %link %linkopts --thread-count 4 --threads %t.o -T %p/Inputs/script_discard_exidx_all.t -shared -o %t.so
+RUN: %readelf -S -W %t.so > %t.sec
+RUN: %filecheck %s --check-prefix=SEC < %t.sec
+# No .ARM.exidx section should exist in the output.
+#SEC-NOT: ARM_EXIDX
+#END_TEST
