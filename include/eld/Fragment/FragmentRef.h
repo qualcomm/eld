@@ -15,6 +15,7 @@
 #define ELD_FRAGMENT_FRAGMENTREF_H
 
 #include "eld/Config/Config.h"
+#include "eld/Support/SizeTraits.h"
 #include "llvm/Support/DataTypes.h"
 
 namespace eld {
@@ -32,7 +33,7 @@ class OutputSectionEntry;
  */
 class FragmentRef {
 public:
-  typedef uint64_t Offset; // FIXME: use SizeTraits<T>::Offset
+  typedef SizeTraits<64>::Offset Offset;
 
 public:
   static FragmentRef *null();
