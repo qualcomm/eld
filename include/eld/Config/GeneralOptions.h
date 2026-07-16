@@ -982,9 +982,9 @@ public:
 
   void setRecordInputfiles() { RecordInputFiles = true; }
 
-  void setCompressTar() { CompressTar = true; }
+  void setCompressReproduceTar() { CompressReproduceTar = true; }
 
-  bool getCompressTar() const { return CompressTar; }
+  bool getCompressReproduceTar() const { return CompressReproduceTar; }
 
   void setHasMappingFile(bool HasMap) { HasMappingFile = HasMap; }
 
@@ -1335,8 +1335,7 @@ private:
   bool ProgressBar = false;                  // Show progressbar.
   bool RecordInputFiles = false;             // --reproduce
   bool RecordInputFilesOnFail = false;       // --reproduce-on-fail
-  // FIXME: Change the name to CompressReproduceTar
-  bool CompressTar = false;         // --reproduce-compressed
+  bool CompressReproduceTar = false;         // --reproduce-compressed
   bool DisplaySummary = false;      // display linker run summary
   bool HasMappingFile = false;      // --Mapping-file
   bool DumpMappings = false;        // --Dump-Mapping-file
