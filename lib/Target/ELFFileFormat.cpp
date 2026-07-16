@@ -17,8 +17,8 @@
 using namespace eld;
 
 ELFFileFormat::ELFFileFormat()
-    : f_pDynamic(nullptr), f_pDynStrTab(nullptr), f_pDynSymTab(nullptr),
-      f_pShStrTab(nullptr), f_pStrTab(nullptr), f_pSymTab(nullptr) {}
+    : f_pDynamic(nullptr), f_pDynSymTab(nullptr), f_pShStrTab(nullptr),
+      f_pStrTab(nullptr), f_pSymTab(nullptr) {}
 
 void ELFFileFormat::initStdSections(Module &pModule, unsigned int pBitClass) {
   ELFSection *NullSection = createFileFormatSection(
@@ -31,10 +31,6 @@ void ELFFileFormat::initStdSections(Module &pModule, unsigned int pBitClass) {
     f_pDynSymTab = createFileFormatSection(
         pModule, ".dynsym", LDFileFormat::NamePool, llvm::ELF::SHT_DYNSYM,
         llvm::ELF::SHF_ALLOC, pBitClass / 8);
-
-    f_pDynStrTab = createFileFormatSection(
-        pModule, ".dynstr", LDFileFormat::NamePool, llvm::ELF::SHT_STRTAB,
-        llvm::ELF::SHF_ALLOC, 0x1);
 
     f_pDynamic = createFileFormatSection(
         pModule, ".dynamic", LDFileFormat::NamePool, llvm::ELF::SHT_DYNAMIC,

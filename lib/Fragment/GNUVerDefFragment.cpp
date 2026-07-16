@@ -14,8 +14,8 @@
 #include "eld/Config/GeneralOptions.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Fragment/DynStrFragment.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Object/ELF.h"
@@ -29,7 +29,7 @@ GNUVerDefFragment::GNUVerDefFragment(ELFSection *S)
 
 template <class ELFT>
 eld::Expected<void>
-GNUVerDefFragment::computeVersionDefs(Module &M, ELFFileFormat *FileFormat,
+GNUVerDefFragment::computeVersionDefs(Module &M, DynStrFragment *DynStr,
                                       DiagnosticEngine &DE) {
   const auto &VSNodes = M.getVersionScriptNodes();
   if (VSNodes.empty())
@@ -47,7 +47,7 @@ GNUVerDefFragment::computeVersionDefs(Module &M, ELFFileFormat *FileFormat,
     std::string outputFileName = options.outputFileName();
     baseVersion = std::string(llvm::sys::path::filename(outputFileName));
   }
-  std::size_t baseVersionOffset = FileFormat->addStringToDynStrTab(baseVersion);
+  std::size_t baseVersionOffset = DynStr->addString(baseVersion);
   VersionDefs.push_back(VerDefInfo{1, static_cast<uint32_t>(baseVersionOffset),
                                    llvm::object::hashSysV(baseVersion)});
 
@@ -57,7 +57,7 @@ GNUVerDefFragment::computeVersionDefs(Module &M, ELFFileFormat *FileFormat,
     if (!Node || Node->isAnonymous())
       continue;
     llvm::StringRef VerName = Node->getName();
-    std::size_t NameOffset = FileFormat->addStringToDynStrTab(VerName.str());
+    std::size_t NameOffset = DynStr->addString(VerName.str());
     VersionDefs.push_back(VerDefInfo{VerID, static_cast<uint32_t>(NameOffset),
                                      llvm::object::hashSysV(VerName)});
     ++VerID;
@@ -112,10 +112,10 @@ eld::Expected<void> GNUVerDefFragment::emitImpl(uint8_t *Buf, Module &M) {
 // Explicit instantiations
 template eld::Expected<void>
 GNUVerDefFragment::computeVersionDefs<llvm::object::ELF32LE>(
-    Module &M, ELFFileFormat *FileFormat, DiagnosticEngine &DE);
+    Module &M, DynStrFragment *DynStr, DiagnosticEngine &DE);
 template eld::Expected<void>
 GNUVerDefFragment::computeVersionDefs<llvm::object::ELF64LE>(
-    Module &M, ELFFileFormat *FileFormat, DiagnosticEngine &DE);
+    Module &M, DynStrFragment *DynStr, DiagnosticEngine &DE);
 template eld::Expected<void>
 GNUVerDefFragment::emitImpl<llvm::object::ELF32LE>(uint8_t *Buf, Module &M);
 template eld::Expected<void>

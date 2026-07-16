@@ -19,7 +19,7 @@
 
 namespace eld {
 class DiagnosticEngine;
-class ELFFileFormat;
+class DynStrFragment;
 
 /// .gnu.version_d(SHT_GNU_verdef) section contains the symbol version
 /// definitions for the symbols that are defined by the module.
@@ -32,7 +32,7 @@ public:
   }
 
   template <class ELFT>
-  eld::Expected<void> computeVersionDefs(Module &M, ELFFileFormat *FileFormat,
+  eld::Expected<void> computeVersionDefs(Module &M, DynStrFragment *DynStr,
                                          DiagnosticEngine &DE);
 
   eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;

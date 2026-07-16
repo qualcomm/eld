@@ -723,9 +723,9 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
   if (llvm::ELF::SHT_SYMTAB_SHNDX == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
   if (llvm::ELF::SHT_DYNSYM == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
+    Link = ThisModule.getBackend().getDynStrSection();
   if (llvm::ELF::SHT_DYNAMIC == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
+    Link = ThisModule.getBackend().getDynStrSection();
   if (llvm::ELF::SHT_HASH == S->getType() ||
       llvm::ELF::SHT_GNU_HASH == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
@@ -733,9 +733,9 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
   if (llvm::ELF::SHT_GNU_versym == S->getType())
     Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
   if (llvm::ELF::SHT_GNU_verdef == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
+    Link = ThisModule.getBackend().getDynStrSection();
   if (llvm::ELF::SHT_GNU_verneed == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getDynStrTab();
+    Link = ThisModule.getBackend().getDynStrSection();
 #endif
   if (ThisModule.getConfig().isLinkPartial() &&
       llvm::ELF::SHF_LINK_ORDER & S->getFlags() && S->getLink())
@@ -751,6 +751,9 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
 
   if (Link->isIgnore() || Link->isDiscard())
     return 0;
+  // For internal (input) sections, return the output section index.
+  if (ELFSection *OutSect = Link->getOutputELFSection())
+    return OutSect->getIndex();
   return Link->getIndex();
 }
 

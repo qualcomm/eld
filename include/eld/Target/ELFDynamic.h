@@ -26,6 +26,7 @@
 
 namespace eld {
 
+class DynStrFragment;
 class ELFFileFormat;
 class GNULDBackend;
 class LinkerConfig;
@@ -141,13 +142,13 @@ public:
   size_t numOfBytes() const;
 
   /// reserveEntries - reserve entries
-  void reserveEntries(ELFFileFormat &pFormat, Module &pModule);
+  void reserveEntries(DynStrFragment *DynStr, Module &pModule);
 
   /// reserveNeedEntry - reserve on DT_NEED entry.
   elf_dynamic::EntryIF *reserveNeedEntry();
 
   /// applyEntries - apply entries
-  void applyEntries(const ELFFileFormat &pFormat, const Module &pModule);
+  void applyEntries(const ELFSection *DynStrSect, const Module &pModule);
 
   void applySoname(uint64_t pStrTabIdx);
 

@@ -42,6 +42,7 @@
 namespace eld {
 
 class BuildIDFragment;
+class DynStrFragment;
 class BinaryFileParser;
 class BitcodeReader;
 class BranchIslandFactory;
@@ -171,6 +172,10 @@ public:
   void insertTimingFragmentStub();
 
   TimingFragment *getTimingFragment() const { return m_pTimingFragment; }
+
+  DynStrFragment *getDynStrFragment() const { return m_pDynStrFrag; }
+
+  ELFSection *getDynStrSection() const { return m_pDynStrSection; }
 
   // -----  target symbols ----- //
   /// initStandardSymbols - initialize standard symbols.
@@ -1185,6 +1190,10 @@ protected:
   // Build ID Section
   ELFSection *m_pBuildIDSection = nullptr;
   BuildIDFragment *m_pBuildIDFragment = nullptr;
+
+  // Dynamic string table
+  ELFSection *m_pDynStrSection = nullptr;
+  DynStrFragment *m_pDynStrFrag = nullptr;
 
   // Start Offset.
   int64_t m_StartOffset = 0;

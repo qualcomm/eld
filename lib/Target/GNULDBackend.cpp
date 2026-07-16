@@ -21,6 +21,7 @@
 #include "eld/Diagnostics/DiagnosticEngine.h"
 #include "eld/Diagnostics/DiagnosticInfos.h"
 #include "eld/Fragment/BuildIDFragment.h"
+#include "eld/Fragment/DynStrFragment.h"
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
@@ -209,6 +210,17 @@ eld::Expected<void> GNULDBackend::initStdSections() {
   m_pFileFormat = make<ELFFileFormat>();
 
   m_pFileFormat->initStdSections(m_Module, config().targets().bitclass());
+
+  if (!config().isCodeStatic() || config().options().isPIE() ||
+      config().options().forceDynamic()) {
+    ELFSection *DynStrSection = m_Module.createInternalSection(
+        Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
+        ".dynstr", llvm::ELF::SHT_STRTAB, llvm::ELF::SHF_ALLOC, 1);
+    m_pDynStrFrag = make<DynStrFragment>(DynStrSection);
+    DynStrSection->addFragmentAndUpdateSize(m_pDynStrFrag);
+    m_pDynStrSection = DynStrSection;
+    m_pFileFormat->getSections().push_back(DynStrSection);
+  }
 
   ELFSection *interp = nullptr;
 
@@ -946,10 +958,10 @@ void GNULDBackend::sizeDynNamePools() {
     GNUVerDefFragment *F = make<GNUVerDefFragment>(GNUVerDefSection);
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
-      F->computeVersionDefs<llvm::object::ELF32LE>(m_Module, getOutputFormat(),
+      F->computeVersionDefs<llvm::object::ELF32LE>(m_Module, m_pDynStrFrag,
                                                    *DE);
     else
-      F->computeVersionDefs<llvm::object::ELF64LE>(m_Module, getOutputFormat(),
+      F->computeVersionDefs<llvm::object::ELF64LE>(m_Module, m_pDynStrFrag,
                                                    *DE);
     GNUVerDefSection->addFragmentAndUpdateSize(F);
     GNUVerDefFrag = F;
@@ -964,10 +976,10 @@ void GNULDBackend::sizeDynNamePools() {
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
       F->computeVersionNeeds<llvm::object::ELF32LE>(
-          m_Module.getDynLibraryList(), getOutputFormat(), *DE);
+          m_Module.getDynLibraryList(), m_pDynStrFrag, *DE);
     else
       F->computeVersionNeeds<llvm::object::ELF64LE>(
-          m_Module.getDynLibraryList(), getOutputFormat(), *DE);
+          m_Module.getDynLibraryList(), m_pDynStrFrag, *DE);
     GNUVerNeedSection->addFragmentAndUpdateSize(F);
     GNUVerNeedFrag = F;
     GNUVerNeedSection->setInfo(F->getNeedCount());
@@ -1025,8 +1037,6 @@ void GNULDBackend::sizeDynamic() {
   if (config().isCodeStatic() && !config().options().forceDynamic()) {
     return;
   }
-  ELFFileFormat *FileFormat = getOutputFormat();
-  ASSERT(FileFormat, "Must not be null!");
   size_t symIdx = 0;
   for (auto &DynSym : DynamicSymbols) {
     m_pDynSymIndexMap[DynSym->outSymbol()] = symIdx;
@@ -1035,12 +1045,12 @@ void GNULDBackend::sizeDynamic() {
 #else
     std::string symName = std::string(DynSym->name());
 #endif
-    FileFormat->addStringToDynStrTab(symName);
+    m_pDynStrFrag->addString(symName);
     ++symIdx;
   }
   if (config().codeGenType() == LinkerConfig::DynObj) {
     if (!config().options().soname().empty())
-      FileFormat->addStringToDynStrTab(config().options().soname());
+      m_pDynStrFrag->addString(config().options().soname());
   }
 
   // add DT_NEEDED
@@ -1052,7 +1062,7 @@ void GNULDBackend::sizeDynamic() {
         continue;
       addedLibs.insert(dynObjFile->getInput()->getMemArea());
       std::size_t SONameOffset =
-          FileFormat->addStringToDynStrTab(dynObjFile->getSOName());
+          m_pDynStrFrag->addString(dynObjFile->getSOName());
       auto DTEntry = dynamic()->reserveNeedEntry();
       DTEntry->setValue(llvm::ELF::DT_NEEDED, SONameOffset);
     }
@@ -1069,7 +1079,7 @@ void GNULDBackend::sizeDynamic() {
       if (rpath + 1 != rpathEnd)
         RunPath += ":";
     }
-    std::size_t RunPathOffset = FileFormat->addStringToDynStrTab(RunPath);
+    std::size_t RunPathOffset = m_pDynStrFrag->addString(RunPath);
     DTEntry->setValue(llvm::ELF::DT_RUNPATH, RunPathOffset);
   }
   // set size
@@ -1080,8 +1090,8 @@ void GNULDBackend::sizeDynamic() {
     getOutputFormat()->getDynSymTab()->setSize((DynamicSymbols.size()) *
                                                sizeof(llvm::ELF::Elf64_Sym));
   }
-  dynamic()->reserveEntries(*getOutputFormat(), m_Module);
-  getOutputFormat()->getDynStrTab()->setSize(FileFormat->getDynStrTabSize());
+  dynamic()->reserveEntries(m_pDynStrFrag, m_Module);
+  m_pDynStrSection->setSize(m_pDynStrFrag->size());
   getOutputFormat()->getDynamic()->setSize(dynamic()->numOfBytes());
 }
 
@@ -1190,7 +1200,7 @@ void GNULDBackend::emitSymbol32(llvm::ELF::Elf32_Sym &pSym, LDSymbol *pSymbol,
 #else
       std::string name = std::string(pSymbol->name());
 #endif
-      auto optSymNameOffset = getOutputFormat()->getOffsetInDynStrTab(name);
+      auto optSymNameOffset = m_pDynStrFrag->getStringOffset(name);
       ASSERT(optSymNameOffset.has_value(),
              "Symbol name must be present in .dynstr!");
       pSym.st_name = optSymNameOffset.value();
@@ -1222,7 +1232,7 @@ void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
 #else
       std::string name = std::string(pSymbol->name());
 #endif
-      auto optSymNameOffset = getOutputFormat()->getOffsetInDynStrTab(name);
+      auto optSymNameOffset = m_pDynStrFrag->getStringOffset(name);
       ASSERT(optSymNameOffset.has_value(),
              "Symbol name (" + name + ") must be present in .dynstr!");
       pSym.st_name = optSymNameOffset.value();
@@ -1356,7 +1366,7 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
 /// layout should computes the start offset of these tables
 bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
   ELFSection *symtab_sect = m_Module.getSection(".dynsym");
-  ELFSection *strtab_sect = m_Module.getSection(".dynstr");
+  ELFSection *strtab_sect = m_pDynStrSection;
   ELFSection *dyn_sect = m_Module.getSection(".dynamic");
 
   bool BuildDynSym = false;
@@ -1400,18 +1410,11 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
       config().raise(Diag::section_ignored) << ".dynstr";
       return false;
     }
+    ELFSection *StrtabOutSect = strtab_sect->getOutputELFSection();
+    ASSERT(StrtabOutSect, ".dynstr must be placed in an output section!");
     MemoryRegion strtab_region = getFileOutputRegion(
-        pOutput, strtab_sect->offset(), strtab_sect->size());
+        pOutput, StrtabOutSect->offset(), StrtabOutSect->size());
     strtab = (char *)strtab_region.begin();
-  }
-
-  if (strtab) {
-    ELFFileFormat *FileFormat = getOutputFormat();
-    ASSERT(FileFormat, "Must not be null!");
-    const std::string &DynStrTabContents = FileFormat->getDynStrTabContents();
-    ASSERT(strtab_sect->size() == DynStrTabContents.size(),
-           "Size must be same!");
-    memcpy(strtab, DynStrTabContents.c_str(), DynStrTabContents.size());
   }
   size_t symIdx = 0;
   size_t strtabsize = 0;
@@ -1436,7 +1439,7 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
   if (firstNonLocal)
     symtab_sect->setInfo(*firstNonLocal);
 
-  dynamic()->applyEntries(*getOutputFormat(), m_Module);
+  dynamic()->applyEntries(m_pDynStrSection, m_Module);
 
   if (dyn_sect->getKind() != LDFileFormat::Null) {
     MemoryRegion dyn_region =
@@ -1480,6 +1483,9 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     return SHO_NAMEPOOL;
 
   if (pSectHdr.name() == ".gnu.hash")
+    return SHO_NAMEPOOL;
+
+  if (pSectHdr.name() == ".dynstr")
     return SHO_NAMEPOOL;
 
   // if the section is not ALLOC, lay it out until the last possible moment
@@ -5375,7 +5381,7 @@ void GNULDBackend::initSymbolVersioningSections() {
       LDFileFormat::Kind::SymbolVersion, ".gnu.version_d",
       llvm::ELF::SHT_GNU_verdef, llvm::ELF::SHF_ALLOC,
       /*Align=*/sizeof(uint32_t));
-  GNUVerDefSection->setLink(getOutputFormat()->getDynStrTab());
+  GNUVerDefSection->setLink(m_pDynStrSection);
 
   if (DP->traceSymbolVersioning())
     config().raise(Diag::trace_creating_symbol_versioning_section)
@@ -5385,7 +5391,7 @@ void GNULDBackend::initSymbolVersioningSections() {
       LDFileFormat::Kind::SymbolVersion, ".gnu.version_r",
       llvm::ELF::SHT_GNU_verneed, llvm::ELF::SHF_ALLOC,
       /*Align=*/sizeof(uint32_t));
-  GNUVerNeedSection->setLink(getOutputFormat()->getDynStrTab());
+  GNUVerNeedSection->setLink(m_pDynStrSection);
 }
 #endif
 

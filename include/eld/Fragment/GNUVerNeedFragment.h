@@ -19,9 +19,9 @@
 
 namespace eld {
 class DiagnosticEngine;
+class DynStrFragment;
 class ELFSection;
 class InputFile;
-class ELFFileFormat;
 
 /** \class VerNeedFragment
  *  \brief VerNeedFragment is a kind of Fragment containing input memory region
@@ -38,7 +38,7 @@ public:
   template <class ELFT>
   eld::Expected<void>
   computeVersionNeeds(const std::vector<InputFile *> &DynamicObjectFiles,
-                      ELFFileFormat *FileFormat, DiagnosticEngine &DE);
+                      DynStrFragment *DynStr, DiagnosticEngine &DE);
 
   eld::Expected<void> emit(MemoryRegion &Mr, Module &M) override;
 

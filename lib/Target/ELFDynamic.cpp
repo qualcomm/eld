@@ -16,6 +16,7 @@
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
+#include "eld/Fragment/DynStrFragment.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFFileFormat.h"
@@ -133,12 +134,12 @@ void ELFDynamic::applyOne(uint64_t pTag, uint64_t pValue) {
 }
 
 /// reserveEntries - reserve entries
-void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
+void ELFDynamic::reserveEntries(DynStrFragment *DynStr, Module &pModule) {
   if (LinkerConfig::DynObj == m_Config.codeGenType()) {
     // DT_SONAME is the 0th entry in the dynamic section.
-    if (pModule.getSection(".dynstr") && !m_Config.options().soname().empty()) {
+    if (DynStr && !m_Config.options().soname().empty()) {
       reserveOne(llvm::ELF::DT_SONAME); // DT_SONAME
-      applySoname(pFormat.addStringToDynStrTab(m_Config.options().soname()));
+      applySoname(DynStr->addString(m_Config.options().soname()));
     }
 
     if (m_Config.options().bsymbolic())
@@ -178,7 +179,7 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
     reserveOne(llvm::ELF::DT_SYMENT); // DT_SYMENT
   }
 
-  if (pModule.getSection(".dynstr")) {
+  if (DynStr) {
     reserveOne(llvm::ELF::DT_STRTAB); // DT_STRTAB
     reserveOne(llvm::ELF::DT_STRSZ);  // DT_STRSZ
   }
@@ -265,7 +266,7 @@ void ELFDynamic::reserveEntries(ELFFileFormat &pFormat, Module &pModule) {
 }
 
 /// applyEntries - apply entries
-void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
+void ELFDynamic::applyEntries(const ELFSection *DynStrSect,
                               const Module &pModule) {
   if (LinkerConfig::DynObj == m_Config.codeGenType() &&
       m_Config.options().bsymbolic()) {
@@ -333,11 +334,13 @@ void ELFDynamic::applyEntries(const ELFFileFormat &pFormat,
     applyOne(llvm::ELF::DT_SYMENT, symbolSize());    // DT_SYMENT
   }
 
-  if (pModule.getSection(".dynstr")) {
-    applyOne(llvm::ELF::DT_STRTAB,
-             pModule.getSection(".dynstr")->addr()); // DT_STRTAB
-    applyOne(llvm::ELF::DT_STRSZ,
-             pModule.getSection(".dynstr")->size()); // DT_STRSZ
+  if (DynStrSect) {
+    ELFSection *DynStrOut = DynStrSect->getOutputELFSection();
+    uint64_t DynStrAddr = DynStrOut ? (DynStrOut->addr() + DynStrSect->offset())
+                                    : DynStrSect->addr();
+    uint64_t DynStrSize = DynStrSect->size();
+    applyOne(llvm::ELF::DT_STRTAB, DynStrAddr); // DT_STRTAB
+    applyOne(llvm::ELF::DT_STRSZ, DynStrSize);  // DT_STRSZ
   }
 
   if (const ELFSection *GOTPLT = m_Backend.getGOTPLT())

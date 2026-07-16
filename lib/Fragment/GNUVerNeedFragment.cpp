@@ -13,9 +13,9 @@
 #include "eld/Fragment/GNUVerNeedFragment.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticEngine.h"
+#include "eld/Fragment/DynStrFragment.h"
 #include "eld/Input/ELFDynObjectFile.h"
 #include "eld/Input/InputFile.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "llvm/Object/ELF.h"
 #include <cstdint>
 
@@ -26,8 +26,8 @@ GNUVerNeedFragment::GNUVerNeedFragment(ELFSection *S)
 
 template <class ELFT>
 eld::Expected<void> GNUVerNeedFragment::computeVersionNeeds(
-    const std::vector<InputFile *> &DynamicObjectFiles,
-    ELFFileFormat *FileFormat, DiagnosticEngine &DE) {
+    const std::vector<InputFile *> &DynamicObjectFiles, DynStrFragment *DynStr,
+    DiagnosticEngine &DE) {
   VerNeedEntrySize = sizeof(typename ELFT::Verneed);
   VernAuxEntrySize = sizeof(typename ELFT::Vernaux);
   bool traceSV = DE.getPrinter()->traceSymbolVersioning();
@@ -35,8 +35,7 @@ eld::Expected<void> GNUVerNeedFragment::computeVersionNeeds(
     auto *DynObjFile = llvm::cast<ELFDynObjectFile>(IF);
     const auto &VernAuxIDMap = DynObjFile->getOutputVernAuxIDMap();
     VerNeedInfo VNI;
-    VNI.SONameOffset =
-        FileFormat->addStringToDynStrTab(DynObjFile->getSOName());
+    VNI.SONameOffset = DynStr->addString(DynObjFile->getSOName());
     for (std::size_t i = 0; i < VernAuxIDMap.size(); ++i) {
       if (VernAuxIDMap[i] == 0)
         continue;
@@ -45,8 +44,7 @@ eld::Expected<void> GNUVerNeedFragment::computeVersionNeeds(
       llvm::StringRef VerName = DynObjFile->getDynStringTable().data() +
                                 static_cast<size_t>(verdef->getAux()->vda_name);
       VernAuxInfo AuxInfo = {
-          static_cast<uint32_t>(
-              FileFormat->addStringToDynStrTab(VerName.str())),
+          static_cast<uint32_t>(DynStr->addString(VerName.str())),
           VernAuxIDMap[i], verdef->vd_hash};
       if (traceSV)
         DE.raise(Diag::trace_adding_verneed_entry)
@@ -108,9 +106,9 @@ eld::Expected<void> GNUVerNeedFragment::emitImpl(uint8_t *Buf, Module &M) {
 
 template eld::Expected<void>
 GNUVerNeedFragment::computeVersionNeeds<llvm::object::ELF32LE>(
-    const std::vector<InputFile *> &DynamicObjectFiles,
-    ELFFileFormat *FileFormat, DiagnosticEngine &DE);
+    const std::vector<InputFile *> &DynamicObjectFiles, DynStrFragment *DynStr,
+    DiagnosticEngine &DE);
 template eld::Expected<void>
 GNUVerNeedFragment::computeVersionNeeds<llvm::object::ELF64LE>(
-    const std::vector<InputFile *> &DynamicObjectFiles,
-    ELFFileFormat *FileFormat, DiagnosticEngine &DE);
+    const std::vector<InputFile *> &DynamicObjectFiles, DynStrFragment *DynStr,
+    DiagnosticEngine &DE);
