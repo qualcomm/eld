@@ -78,6 +78,11 @@ void x86_64LDBackend::initDynamicSections(ELFObjectFile &InputFile) {
       *m_Module.createInternalSection(
           InputFile, LDFileFormat::DynamicRelocation, ".rela.plt",
           llvm::ELF::SHT_RELA, llvm::ELF::SHF_ALLOC, 8));
+  // .plt.got is x86-64-specific; kept in m_pPLTGot rather than ELFObjectFile.
+  m_pPLTGot = m_Module.createInternalSection(
+      InputFile, LDFileFormat::Internal, ".plt.got", llvm::ELF::SHT_PROGBITS,
+      llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_EXECINSTR, 8);
+  m_pPLTGot->setExcludedFromGC();
 }
 
 void x86_64LDBackend::initTargetSymbols() {
@@ -151,6 +156,9 @@ void x86_64LDBackend::doPreLayout() {
                           getRelaEntrySize());
     m_Module.addOutputSection(getRelaPLT());
     m_Module.addOutputSection(getRelaDyn());
+    // Only add .plt.got if it has stubs — avoids empty section in output.
+    if (m_pPLTGot && m_pPLTGot->hasFragments())
+      m_Module.addOutputSection(m_pPLTGot);
   }
 }
 
@@ -307,12 +315,44 @@ void x86_64LDBackend::recordPLT(ResolveInfo *I, x86_64PLT *P) {
   m_PLTMap[I] = P;
 }
 
-// Find an entry in the GOT.
+// Find an entry in the PLT.
 x86_64PLT *x86_64LDBackend::findEntryInPLT(ResolveInfo *I) const {
   auto Entry = m_PLTMap.find(I);
   if (Entry == m_PLTMap.end())
     return nullptr;
   return Entry->second;
+}
+
+void x86_64LDBackend::recordPLTGot(ResolveInfo *I, x86_64PLTGot *P) {
+  m_PLTGotMap[I] = P;
+}
+
+x86_64PLTGot *x86_64LDBackend::findEntryInPLTGot(ResolveInfo *I) const {
+  auto Entry = m_PLTGotMap.find(I);
+  if (Entry == m_PLTGotMap.end())
+    return nullptr;
+  return Entry->second;
+}
+
+// Create a compact .plt.got stub for a symbol that has BOTH a .got entry
+// (address-taken, GLOB_DAT) and a PLT call. Reads the function address from
+// the .got slot directly — no .gotplt slot, no JUMP_SLOT dynreloc.
+x86_64PLTGot *x86_64LDBackend::createPLTGot(ELFObjectFile *Obj,
+                                            ResolveInfo *R) {
+  if (R != nullptr && ((config().options().isSymbolTracingRequested() &&
+                        config().options().traceSymbol(*R)) ||
+                       m_Module.getPrinter()->traceDynamicLinking()))
+    config().raise(Diag::create_plt_entry) << R->name();
+
+  reportErrorIfPLTIsDiscarded(R);
+
+  x86_64GOT *GotSlot = findEntryInGOT(R);
+  assert(GotSlot && "GOT slot must exist before createPLTGot");
+
+  x86_64PLTGot *P =
+      x86_64PLTGot::Create(*m_Module.getIRBuilder(), GotSlot, m_pPLTGot, R);
+  recordPLTGot(R, P);
+  return P;
 }
 
 void x86_64LDBackend::initScanRelocations() {

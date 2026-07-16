@@ -2,7 +2,10 @@
 #BEGIN_COMMENT
 # Since the weak undefined symbol got resolved from the shared object, make sure
 # the access goes through the PLT.
+# Note: on x86_64, symbols with both GOTPCREL (address-taken) and PLT32 (called)
+# are routed through .plt.got (GLOB_DAT only). See x86_64/linux/PltGotRedundancy/.
 #END_COMMENT
+#UNSUPPORTED: default
 #START_TEST
 RUN: %clang %clangopts %p/Inputs/1.c -o %t1.w2.1.o -c
 RUN: %clang %clangopts %p/Inputs/4.c -o %t1.w2.2.o -c -fpic

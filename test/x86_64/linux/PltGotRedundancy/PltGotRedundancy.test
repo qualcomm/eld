@@ -1,0 +1,31 @@
+#------PltGotRedundancy.test-------Shared,Executable------#
+#BEGIN_COMMENT
+# When a preemptible symbol is both address-taken (R_X86_64_REX_GOTPCRELX)
+# and called (R_X86_64_PLT32), ELD must allocate only one .got slot and
+# use a compact .plt.got stub — not two slots (GLOB_DAT + JUMP_SLOT).
+#
+# Expected:
+#   - Exactly one dynamic reloc for 'foo': R_X86_64_GLOB_DAT (no JUMP_SLOT)
+#   - .got.plt header-only (size 0x18 = 24 bytes)
+#   - .plt.got section present with 8-byte stub for 'foo'
+#
+# This matches the behavior of BFD and mold.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/lib.c -o %t.lib.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/main.c -o %t.main.o
+RUN: %link %linkopts -shared %t.lib.o -o %t.lib.so
+RUN: %link %linkopts -dy %t.main.o %t.lib.so -o %t.out --no-emit-relocs
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=DYNRELOC
+RUN: %readelf -S %t.out | %filecheck %s --check-prefix=SECTIONS
+
+# Only GLOB_DAT for foo — no JUMP_SLOT
+DYNRELOC:     R_X86_64_GLOB_DAT {{.*}} foo
+DYNRELOC-NOT: R_X86_64_JUMP_SLOT {{.*}} foo
+
+# .plt.got section exists (compact 8-byte stub for foo)
+SECTIONS: .plt.got
+
+# .got.plt is header-only (size 000018 = 24 bytes, no slot for foo)
+SECTIONS: .got.plt {{.*}} 000018
+#END_TEST

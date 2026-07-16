@@ -11,6 +11,7 @@
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64PLT.h"
+#include "x86_64PLTGot.h"
 #include "x86_64RelocationFunctions.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -558,7 +559,13 @@ void x86_64Relocator::allocateDynEntries() {
         if ((f & MayNeedPLT) && !(rsym->reserved() & ReservePLT) &&
             m_Target.isSymbolPreemptible(*rsym) &&
             rsym->type() != ResolveInfo::IndirectFunc) {
-          m_Target.createPLT(Obj, rsym);
+          // Both GOT and PLT needed: use compact .plt.got stub that reads from
+          // the .got slot created above. Eliminates the redundant .gotplt slot
+          // and JUMP_SLOT dynreloc (matches BFD/mold behavior).
+          if (f & MayNeedGOT)
+            m_Target.createPLTGot(Obj, rsym);
+          else
+            m_Target.createPLT(Obj, rsym);
           rsym->setReserved(rsym->reserved() | ReservePLT);
         }
 
@@ -781,9 +788,14 @@ Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
   ResolveInfo *symInfo = pReloc.symInfo();
   Relocator::Address S;
   if (symInfo->reserved() & Relocator::ReservePLT) {
-    // Symbol has PLT entry - redirect through PLT
-    x86_64PLT *pltEntry = pParent.getTarget().findEntryInPLT(symInfo);
-    S = pltEntry->getAddr(DiagEngine);
+    // Symbol may have a .plt.got stub (both GOTPCREL+PLT32) or a regular .plt
+    // stub (PLT32-only). Check .plt.got first.
+    if (x86_64PLTGot *pg = pParent.getTarget().findEntryInPLTGot(symInfo)) {
+      S = pg->getAddr(DiagEngine);
+    } else {
+      x86_64PLT *pltEntry = pParent.getTarget().findEntryInPLT(symInfo);
+      S = pltEntry->getAddr(DiagEngine);
+    }
   } else {
     // No PLT entry - use direct symbol address
     S = pReloc.symValue(pParent.module());

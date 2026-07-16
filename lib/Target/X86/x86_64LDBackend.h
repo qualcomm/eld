@@ -14,6 +14,7 @@
 #include "eld/Target/GNULDBackend.h"
 #include "x86_64ELFDynamic.h"
 #include "x86_64PLT.h"
+#include "x86_64PLTGot.h"
 #include "llvm/BinaryFormat/ELF.h"
 
 namespace eld {
@@ -88,6 +89,12 @@ public:
 
   x86_64PLT *findEntryInPLT(ResolveInfo *) const;
 
+  // --- .plt.got stub support ---
+  x86_64PLTGot *createPLTGot(ELFObjectFile *Obj, ResolveInfo *sym);
+  void recordPLTGot(ResolveInfo *, x86_64PLTGot *);
+  x86_64PLTGot *findEntryInPLTGot(ResolveInfo *) const;
+  ELFSection *getPLTGot() const { return m_pPLTGot; }
+
   std::size_t PLTEntriesCount() const override { return m_PLTMap.size(); }
 
   std::size_t GOTEntriesCount() const override { return m_GOTMap.size(); }
@@ -113,7 +120,8 @@ public:
       return DynRelocType::GLOB_DAT;
     if (X->type() == llvm::ELF::R_X86_64_JUMP_SLOT)
       return DynRelocType::JMP_SLOT;
-    if (X->type() == llvm::ELF::R_X86_64_RELATIVE || X->type()==llvm::ELF::R_X86_64_IRELATIVE)
+    if (X->type() == llvm::ELF::R_X86_64_RELATIVE ||
+        X->type() == llvm::ELF::R_X86_64_IRELATIVE)
       return DynRelocType::RELATIVE;
     if (X->type() == llvm::ELF::R_X86_64_DTPMOD64) {
       if (X->symInfo() && X->symInfo()->binding() == ResolveInfo::Local)
@@ -166,6 +174,8 @@ private:
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, x86_64GOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, x86_64PLT *> m_PLTMap;
+  llvm::DenseMap<ResolveInfo *, x86_64PLTGot *> m_PLTGotMap;
+  ELFSection *m_pPLTGot = nullptr;
   llvm::DenseMap<Relocation *, const Relocation *> m_RelativeRelocMap;
 
   // IRELATIVE range symbols for static executables

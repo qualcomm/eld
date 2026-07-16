@@ -24,8 +24,9 @@ class PLT : public Fragment {
 public:
   // PLT Types.
   enum PLTType {
-    PLT0, /* Lazy Binding PLT */
-    PLTN, /* PLTn */
+    PLT0,   /* Lazy Binding PLT */
+    PLTN,   /* PLTn */
+    PLTGot, /* Compact .plt.got stub — reads from .got, no lazy binding */
   };
 
 public:

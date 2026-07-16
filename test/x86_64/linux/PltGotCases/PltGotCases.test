@@ -1,0 +1,41 @@
+#------PltGotCases.test-------Shared,Executable------#
+#BEGIN_COMMENT
+# Verifies the four distinct PLT/GOT routing cases for x86-64:
+#
+# Case 1 (foo_both):      both GOTPCREL + PLT32 → .plt.got stub, GLOB_DAT only
+#                         (the .got/.gotplt redundancy fix — no JUMP_SLOT)
+# Case 2 (foo_call_only): PLT32 only            → normal .plt + JUMP_SLOT
+# Case 3 (foo_addr_only): GOTPCREL only          → .got + GLOB_DAT, no PLT
+# Case 4 (foo_hidden):    PLT32 but hidden/local  → non-preemptible, no GOT/PLT
+#
+# Ensures the optimization fires only for Case 1 and does not disturb
+# the normal routing for Cases 2-4.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -fPIC -c %p/Inputs/lib.c  -o %t.lib.o
+RUN: %clang %clangopts -fPIC -c %p/Inputs/main.c -o %t.main.o
+RUN: %link %linkopts -shared %t.lib.o -o %t.lib.so
+RUN: %link %linkopts -dy %t.main.o %t.lib.so -o %t.out --no-emit-relocs
+RUN: %readelf -r %t.out | %filecheck %s --check-prefix=DYNRELOC
+RUN: %readelf -S %t.out | %filecheck %s --check-prefix=SECTIONS
+
+# Case 1: foo_both — optimization fires: GLOB_DAT only, no JUMP_SLOT
+DYNRELOC:     R_X86_64_GLOB_DAT {{.*}} foo_both
+DYNRELOC-NOT: R_X86_64_JUMP_SLOT {{.*}} foo_both
+
+# Case 3: foo_addr_only — GLOB_DAT only, no JUMP_SLOT
+DYNRELOC:     R_X86_64_GLOB_DAT {{.*}} foo_addr_only
+DYNRELOC-NOT: R_X86_64_JUMP_SLOT {{.*}} foo_addr_only
+
+# Case 2: foo_call_only — normal path: JUMP_SLOT
+DYNRELOC: R_X86_64_JUMP_SLOT {{.*}} foo_call_only
+
+# Case 4: foo_hidden — non-preemptible, no dynamic reloc
+DYNRELOC-NOT: {{.*}} foo_hidden
+
+# .plt.got present: Case 1 compact 8-byte stub
+SECTIONS: .plt.got {{.*}} 000008
+
+# .got.plt: header (000018) + one slot for Case 2 = 000020
+SECTIONS: .got.plt {{.*}} 000020
+#END_TEST

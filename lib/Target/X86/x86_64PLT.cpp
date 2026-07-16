@@ -45,9 +45,12 @@ x86_64PLTN *x86_64PLTN::Create(eld::IRBuilder &I, x86_64GOT *G, ELFSection *O,
   x86_64PLTN *P = make<x86_64PLTN>(G, I, O, R, 16, 16);
   O->addFragmentAndUpdateSize(P);
 
-  // Link GOTPLTN to this PLT entry so it can compute its initial value
-  x86_64GOTPLTN *gotplt = llvm::cast<x86_64GOTPLTN>(G);
-  gotplt->setPLTEntry(P);
+  // Link GOTPLTN to this PLT entry so it can compute its initial value.
+  // Only needed for GOTPLTN fragments (lazy-binding initial value = PLT+6).
+  // A GOT::Regular slot (used by .plt.got path) is filled by GLOB_DAT at
+  // startup and needs no back-pointer.
+  if (auto *gotpln = llvm::dyn_cast<x86_64GOTPLTN>(G))
+    gotpln->setPLTEntry(P);
 
   // First instruction: jmpq *GOTPLTN(%rip)
   // Patches offset at PLTN+2 to reference GOTPLTN entry
