@@ -116,11 +116,9 @@ public:
   }
 
   virtual std::string decoratedPath(bool ShowAbsolute = false) const {
-    // FIXME: We do not need to do llvm::Twine(...).str() because
-    // getFullPath() and native() already returns std::string.
     if (ShowAbsolute)
-      return llvm::Twine(getResolvedPath().getFullPath()).str();
-    return llvm::Twine(getResolvedPath().native()).str();
+      return getResolvedPath().getFullPath();
+    return getResolvedPath().native();
   }
 
   virtual std::string
