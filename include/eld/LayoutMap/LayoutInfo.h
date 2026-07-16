@@ -232,18 +232,6 @@ public:
 
   void recordOutputFileSize(uint32_t Sz) { LinkStats.OutputFileSize = Sz; }
 
-  // FIXME: Destructor is redundant here.
-  ~LayoutInfo() { destroy(); }
-
-  // FIXME: This function is not required.
-  void destroy() {
-    InputActions.clear();
-    ScriptIncludes.clear();
-    ArchiveRecords.clear();
-    FragmentInfoMap.clear();
-    FragmentInfoVector.clear();
-  }
-
   void recordArchiveMember(Input *Origin, InputFile *Referred,
                            ArchiveFile::Symbol *ArchSym, LDSymbol *Sym);
 
@@ -444,9 +432,6 @@ private:
   ChunkOpsMapT ChunkOps;
   RemoveSymbolOpsMapT RemovedSymbols;
   llvm::DenseSet<plugin::LinkerWrapper *> Plugins;
-  // FIXME: Why do member names here start from underscore?
-  // Names starting from an underscore is generally used to
-  // indicate internal implementation use.
   InputSequenceVectorT InputActions;
   StringVectorT ScriptIncludes;
   std::vector<ArchiveReferenceRecordT> ArchiveRecords;
