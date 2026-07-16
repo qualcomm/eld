@@ -1169,7 +1169,7 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   // --reproduce-compressed
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce_compressed)) {
     Config.options().setRecordInputfiles();
-    Config.options().setCompressTar();
+    Config.options().setCompressReproduceTar();
     reproduceFileName = arg->getValue();
   }
 

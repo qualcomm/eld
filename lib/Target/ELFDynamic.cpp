@@ -180,9 +180,8 @@ void ELFDynamic::reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
   if (pModule.getSection(".hash"))
     reserveOne(llvm::ELF::DT_HASH); // DT_HASH
 
-  // FIXME: use llvm enum constant
   if (pModule.getSection(".gnu.hash"))
-    reserveOne(0x6ffffef5); // DT_GNU_HASH
+    reserveOne(llvm::ELF::DT_GNU_HASH);
 
   if (pModule.getSection(".dynsym")) {
     reserveOne(llvm::ELF::DT_SYMTAB); // DT_SYMTAB
@@ -339,8 +338,7 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
              pModule.getSection(".hash")->addr()); // DT_HASH
 
   if (pModule.getSection(".gnu.hash"))
-    applyOne(0x6ffffef5,
-             pModule.getSection(".gnu.hash")->addr()); // DT_GNU_HASH
+    applyOne(llvm::ELF::DT_GNU_HASH, pModule.getSection(".gnu.hash")->addr());
 
   if (pModule.getSection(".dynsym")) {
     applyOne(llvm::ELF::DT_SYMTAB,

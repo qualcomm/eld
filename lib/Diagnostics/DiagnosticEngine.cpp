@@ -75,8 +75,7 @@ bool DiagnosticEngine::diagnose() {
       return false;
   }
 
-  // FIXME: Remove redundant '&& true'
-  return !Printer->getNumFatalErrors() && true;
+  return !Printer->getNumFatalErrors();
 }
 
 void DiagnosticEngine::finalize() {

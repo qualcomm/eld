@@ -25,7 +25,8 @@ using namespace eld;
 /// \param OutputPath where the tarball should be written
 /// \param BaseDir base directory
 OutputTarWriter::OutputTarWriter(LinkerConfig &Config)
-    : m_Config(Config), m_Compress(m_Config.options().getCompressTar()),
+    : m_Config(Config),
+      m_Compress(m_Config.options().getCompressReproduceTar()),
       m_Verbose(m_Config.getPrinter()->isVerbose()) {}
 
 bool OutputTarWriter::createOutput() {

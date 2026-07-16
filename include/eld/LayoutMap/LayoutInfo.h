@@ -232,18 +232,6 @@ public:
 
   void recordOutputFileSize(uint32_t Sz) { LinkStats.OutputFileSize = Sz; }
 
-  // FIXME: Destructor is redundant here.
-  ~LayoutInfo() { destroy(); }
-
-  // FIXME: This function is not required.
-  void destroy() {
-    InputActions.clear();
-    ScriptIncludes.clear();
-    ArchiveRecords.clear();
-    FragmentInfoMap.clear();
-    FragmentInfoVector.clear();
-  }
-
   void recordArchiveMember(Input *Origin, InputFile *Referred,
                            ArchiveFile::Symbol *ArchSym, LDSymbol *Sym);
 

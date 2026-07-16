@@ -66,18 +66,9 @@ public:
                  std::string Name, uint64_t InputSectionHash,
                  uint64_t InputFileHash, uint64_t NameHash, bool GNUCompatible);
 
-  /// FIXME: this is not used
-  mapping find(std::string PInputFile, std::string CurInputSection,
-               bool IsArchive, std::string Name, uint64_t InputSectionHash,
-               uint64_t InputFileHash, uint64_t InputNameHash,
-               bool GNUCompatible, bool IsCommonSection);
-
   ELFSection *find(std::string EntrySection);
 
   ELFSection *find(uint32_t SectionType);
-
-  /// FIXME: this is not used or implemented
-  ELFSection *findSectionIfNotEmpty(std::string Section);
 
   iterator findIter(std::string EntrySection);
 

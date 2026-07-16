@@ -998,8 +998,6 @@ bool ObjectLinker::createOutputSection(ObjectBuilder &Builder,
       OutSect->setAddrAlign(OutAlign);
   }
 
-  /// FIXME: this vector is unused?
-  std::vector<RuleContainer *> InputsWithNoData;
   RuleContainer *FirstNonEmptyRule = nullptr;
 
   for (In = InBegin; In != InEnd; ++In) {

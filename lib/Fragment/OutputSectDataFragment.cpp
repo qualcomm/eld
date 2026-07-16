@@ -30,8 +30,7 @@ eld::Expected<void> OutputSectDataFragment::emit(MemoryRegion &Mr, Module &M) {
   uint64_t Value = ExpVal.value();
   if (M.getConfig().showLinkerScriptWarnings()) {
     std::size_t DataSizeBits = 8 * size();
-    // FIXME: 'size() < sizeof(value)' is redundant.
-    if (size() < sizeof(Value) && !llvm::isIntN(DataSizeBits, Value) &&
+    if (!llvm::isIntN(DataSizeBits, Value) &&
         !llvm::isUIntN(DataSizeBits, Value)) {
       M.getConfig().raise(Diag::warn_output_data_truncated)
           << llvm::utohexstr(Value, true) << DataSizeBits

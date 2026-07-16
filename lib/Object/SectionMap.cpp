@@ -52,31 +52,6 @@ SectionMap::~SectionMap() {
   MEntrySections.clear();
 }
 
-SectionMap::mapping SectionMap::find(std::string PInputFile,
-                                     std::string CurInputSection,
-                                     bool IsArchive, std::string Name,
-                                     uint64_t InputSectionHash,
-                                     uint64_t InputFileHash, uint64_t NameHash,
-                                     bool GNUCompatible, bool IsCommonSection) {
-  iterator Out, OutBegin = begin(), OutEnd = end();
-  for (Out = OutBegin; Out != OutEnd; ++Out) {
-    OutputSectionEntry::iterator In, InBegin = (*Out)->begin(),
-                                     InEnd = (*Out)->end();
-    for (In = InBegin; In != InEnd; ++In) {
-      if ((*In)->isSpecial())
-        continue;
-      if (matched(**In, nullptr, PInputFile, CurInputSection, IsArchive, Name,
-                  InputSectionHash, InputFileHash, NameHash, GNUCompatible,
-                  IsCommonSection))
-        return std::make_pair(*Out, *In);
-    }
-  }
-  auto Sp = SpecialSections.find(CurInputSection);
-  if (Sp != SpecialSections.end())
-    return std::make_pair(Sp->second.first, Sp->second.second);
-  return std::make_pair(nullptr, nullptr);
-}
-
 // Find section by name.
 ELFSection *SectionMap::find(std::string POutputSection) {
   iterator Out, OutBegin = begin(), OutEnd = end();

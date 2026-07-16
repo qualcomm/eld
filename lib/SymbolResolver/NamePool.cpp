@@ -228,7 +228,7 @@ bool NamePool::getSymbolTracingRequested() const {
   return IsSymbolTracingRequested;
 }
 /// findInfo - find the resolved ResolveInfo
-ResolveInfo *NamePool::findInfo(std::string SymbolName) {
+ResolveInfo *NamePool::findInfo(const std::string &SymbolName) {
   auto I = GlobalSymbols.find(SymbolName);
   if (I == GlobalSymbols.end())
     return nullptr;
@@ -236,8 +236,7 @@ ResolveInfo *NamePool::findInfo(std::string SymbolName) {
 }
 
 /// findInfo - find the resolved ResolveInfo
-// FIXME: Pass name by const reference, or use llvm::StringRef
-const ResolveInfo *NamePool::findInfo(std::string SymbolName) const {
+const ResolveInfo *NamePool::findInfo(const std::string &SymbolName) const {
   auto I = GlobalSymbols.find(SymbolName);
   if (I == GlobalSymbols.end())
     return nullptr;
@@ -245,8 +244,7 @@ const ResolveInfo *NamePool::findInfo(std::string SymbolName) const {
 }
 
 /// findSymbol - find the resolved output LDSymbol
-// FIXME: Pass name by const reference, or use llvm::StringRef
-LDSymbol *NamePool::findSymbol(std::string SymbolName) {
+LDSymbol *NamePool::findSymbol(const std::string &SymbolName) {
   ResolveInfo *Info = findInfo(SymbolName);
   if (nullptr == Info)
     return nullptr;
@@ -254,8 +252,7 @@ LDSymbol *NamePool::findSymbol(std::string SymbolName) {
 }
 
 /// findSymbol - find the resolved output LDSymbol
-// FIXME: Pass name by const reference, or use llvm::StringRef
-const LDSymbol *NamePool::findSymbol(std::string SymbolName) const {
+const LDSymbol *NamePool::findSymbol(const std::string &SymbolName) const {
   const ResolveInfo *Info = findInfo(SymbolName);
   if (nullptr == Info)
     return nullptr;

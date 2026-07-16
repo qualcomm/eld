@@ -89,12 +89,12 @@ public:
   size_t getNumGlobalSize() const { return GlobalSymbols.size(); }
 
   /// findSymbol - find the resolved output LDSymbol
-  const LDSymbol *findSymbol(std::string SymbolName) const;
-  LDSymbol *findSymbol(std::string SymbolName);
+  const LDSymbol *findSymbol(const std::string &SymbolName) const;
+  LDSymbol *findSymbol(const std::string &SymbolName);
 
   /// findInfo - find the resolved ResolveInfo
-  const ResolveInfo *findInfo(std::string SymbolName) const;
-  ResolveInfo *findInfo(std::string SymbolName);
+  const ResolveInfo *findInfo(const std::string &SymbolName) const;
+  ResolveInfo *findInfo(const std::string &SymbolName);
 
   // Get Local symbols.
   std::vector<ResolveInfo *> &getLocals() { return LocalSymbols; }

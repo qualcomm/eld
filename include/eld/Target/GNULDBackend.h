@@ -970,9 +970,6 @@ protected:
   /// 'commonSection'.
   std::string getCommonSymbolName(const CommonELFSection *commonSection) const;
 
-  /// FIXME: This is not implemented anywhere
-  bool evaluateOutputSectionDataCmds();
-
 private:
   uint32_t getOneEhdrSize() const;
 
