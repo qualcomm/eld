@@ -14,7 +14,6 @@
 #ifndef TARGET_AARCH64_AARCH64LDBACKEND_H
 #define TARGET_AARCH64_AARCH64LDBACKEND_H
 
-#include "AArch64ELFDynamic.h"
 #include "AArch64ErrataFactory.h"
 #include "AArch64ErrataIslandFactory.h"
 #include "AArch64GOT.h"
@@ -64,9 +63,8 @@ public:
   /// doPreLayout - Backend can do any needed modification before layout
   void doPreLayout() override;
 
-  /// dynamic - the dynamic section of the target machine.
-  /// Use co-variant return type to return its own dynamic section.
-  AArch64ELFDynamic *dynamic() override;
+  void reserveTargetDynamicEntries() override;
+  void applyTargetDynamicEntries() override;
 
   /// getTargetSectionOrder - compute the layout order of AArch64 target
   /// sections
@@ -217,7 +215,6 @@ private:
 
   Relocator *m_pRelocator;
 
-  AArch64ELFDynamic *m_pDynamic;
   ELFSection *m_ptdata;
   ELFSection *m_ptbss;
   /// GNU Property section

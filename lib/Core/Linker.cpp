@@ -607,6 +607,13 @@ bool Linker::resolve() {
       return false;
   }
 
+  {
+    LinkerProgress->incrementAndDisplayProgress();
+    eld::RegisterTimer T("Size Dynamic Sections", "Perform Layout",
+                         ThisConfig->options().printTimingStats());
+    ObjLinker->sizeDynamic();
+  }
+
   // Merge sections.
   {
     LinkerProgress->incrementAndDisplayProgress();

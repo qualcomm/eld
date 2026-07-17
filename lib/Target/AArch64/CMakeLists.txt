@@ -1,7 +1,6 @@
 llvm_add_library(
   ELDAArch64LDBackend
   STATIC
-  AArch64ELFDynamic.cpp
   AArch64GOT.cpp
   AArch64Info.cpp
   AArch64Emulation.cpp

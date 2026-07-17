@@ -24,7 +24,6 @@ class LinkerConfig;
 class RISCVInfo;
 class RISCVAttributeFragment;
 class RISCVTableJumpFragment;
-class RISCVELFDynamic;
 class RISCVPLT;
 class RISCVRelaxationStats;
 
@@ -71,7 +70,8 @@ public:
   /// finalizeTargetSymbols - finalize the symbol value
   bool finalizeTargetSymbols() override;
 
-  ELFDynamic *dynamic() override;
+  void reserveTargetDynamicEntries() override;
+  void applyTargetDynamicEntries() override;
 
   void evaluateTargetSymbolsBeforeRelaxation() override;
 
@@ -357,8 +357,6 @@ private:
   /// RISCV Attribute Section
   ELFSection *m_pRISCVAttributeSection = nullptr;
   ELFSection *m_pRISCVTableJumpSection = nullptr;
-  // RISCV Dynamic section
-  RISCVELFDynamic *m_pDynamic = nullptr;
   /// RISCV Attribute Fragment
   RISCVAttributeFragment *AttributeFragment = nullptr;
   RISCVTableJumpFragment *TableJumpFragment = nullptr;

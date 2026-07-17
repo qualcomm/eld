@@ -12,7 +12,6 @@
 #include "eld/Readers/ELFSection.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/GNULDBackend.h"
-#include "x86_64ELFDynamic.h"
 #include "x86_64PLT.h"
 #include "llvm/BinaryFormat/ELF.h"
 
@@ -57,7 +56,8 @@ public:
 
   uint64_t getValueForDiscardedRelocations(const Relocation *R) const override;
 
-  x86_64ELFDynamic *dynamic() override;
+  void reserveTargetDynamicEntries() override;
+  void applyTargetDynamicEntries() override;
 
   void doCreateProgramHdrs() override { return; }
 
@@ -151,7 +151,6 @@ private:
 private:
   Relocator *m_pRelocator;
 
-  x86_64ELFDynamic *m_pDynamic;
   LDSymbol *m_pEndOfImage;
   // Tracks .rela.plt entry index
   // m_RelaPLTIndex starts at 0 for the first function PLT entry

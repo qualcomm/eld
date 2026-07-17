@@ -7,7 +7,6 @@
 #include "RISCVLDBackend.h"
 #include "RISCV.h"
 #include "RISCVAttributeFragment.h"
-#include "RISCVELFDynamic.h"
 #include "RISCVGOT.h"
 #include "RISCVLLVMExtern.h"
 #include "RISCVPLT.h"
@@ -32,6 +31,7 @@
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
+#include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/GNULDBackend.h"
@@ -141,12 +141,6 @@ void RISCVLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
     if (layoutInfo)
       layoutInfo->recordFragment(m_pRISCVTableJumpSection->getInputFile(),
                                  m_pRISCVTableJumpSection, TableJumpFragment);
-  }
-
-  // Create .dynamic section
-  if ((!config().isCodeStatic()) || (config().options().forceDynamic())) {
-    if (nullptr == m_pDynamic)
-      m_pDynamic = make<RISCVELFDynamic>(*this, config());
   }
 }
 
@@ -2525,8 +2519,18 @@ RISCVLDBackend::getValueForDiscardedRelocations(const Relocation *R) const {
   return GNULDBackend::getValueForDiscardedRelocations(R);
 }
 
-/// dynamic - the dynamic section of the target machine.
-ELFDynamic *RISCVLDBackend::dynamic() { return m_pDynamic; }
+void RISCVLDBackend::reserveTargetDynamicEntries() {
+  m_pDynamic->reserveOne(llvm::ELF::DT_RELACOUNT);
+}
+
+void RISCVLDBackend::applyTargetDynamicEntries() {
+  uint32_t relaCount = 0;
+  for (auto &it : getRelaDyn()->getRelocations()) {
+    if ((*it).type() == llvm::ELF::R_RISCV_RELATIVE)
+      relaCount++;
+  }
+  m_pDynamic->applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
+}
 
 std::optional<bool>
 RISCVLDBackend::shouldProcessSectionForGC(const ELFSection &pSec) const {

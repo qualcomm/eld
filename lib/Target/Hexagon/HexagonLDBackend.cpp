@@ -7,7 +7,6 @@
 #include "HexagonLDBackend.h"
 #include "Hexagon.h"
 #include "HexagonAbsoluteStub.h"
-#include "HexagonELFDynamic.h"
 #include "HexagonLinuxInfo.h"
 #include "HexagonRelocator.h"
 #include "HexagonStandaloneInfo.h"
@@ -34,6 +33,7 @@
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
+#include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
@@ -81,10 +81,10 @@ private:
 // HexagonLDBackend
 //===----------------------------------------------------------------------===//
 HexagonLDBackend::HexagonLDBackend(eld::Module &pModule, HexagonInfo *pInfo)
-    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
-      m_psdata(nullptr), m_pscommon_1(nullptr), m_pscommon_2(nullptr),
-      m_pscommon_4(nullptr), m_pscommon_8(nullptr), m_pstart(nullptr),
-      m_pguard(nullptr), m_psdabase(nullptr), AttributeSection(nullptr),
+    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_psdata(nullptr),
+      m_pscommon_1(nullptr), m_pscommon_2(nullptr), m_pscommon_4(nullptr),
+      m_pscommon_8(nullptr), m_pstart(nullptr), m_pguard(nullptr),
+      m_psdabase(nullptr), AttributeSection(nullptr),
       AttributeFragment(nullptr), m_pTLSBASE(nullptr), m_pTDATAEND(nullptr),
       m_pTLSEND(nullptr), m_scommon_1_hash(0), m_scommon_2_hash(0),
       m_scommon_4_hash(0), m_scommon_8_hash(0), m_common_hash(0),
@@ -159,9 +159,20 @@ HexagonLDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
   return {};
 }
 
-/// dynamic - the dynamic section of the target machine.
-/// Use co-variant return type to return its own dynamic section.
-HexagonELFDynamic *HexagonLDBackend::dynamic() { return m_pDynamic; }
+void HexagonLDBackend::reserveTargetDynamicEntries() {
+  m_pDynamic->reserveOne(DT_HEXAGON_VER);
+  m_pDynamic->reserveOne(llvm::ELF::DT_RELACOUNT);
+}
+
+void HexagonLDBackend::applyTargetDynamicEntries() {
+  m_pDynamic->applyOne(DT_HEXAGON_VER, 0x3);
+  uint32_t relaCount = 0;
+  for (auto &it : getRelaDyn()->getRelocations()) {
+    if ((*it).type() == llvm::ELF::R_HEX_RELATIVE)
+      relaCount++;
+  }
+  m_pDynamic->applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
+}
 
 void HexagonLDBackend::defineGOTSymbol(Fragment &pFrag) {
   // define symbol _GLOBAL_OFFSET_TABLE_
@@ -262,11 +273,6 @@ void HexagonLDBackend::initTargetSections(ObjectBuilder &pBuilder) {
 
   bool linkerScriptHasSectionsCommand =
       (m_Module.getScript().linkerScriptHasSectionsCommand());
-
-  if ((!config().isCodeStatic()) || (config().options().forceDynamic())) {
-    if (nullptr == m_pDynamic)
-      m_pDynamic = make<HexagonELFDynamic>(*this, config());
-  }
 
   for (int i = HexagonTLSStub::GD; i <= HexagonTLSStub::LDtoLE; ++i) {
     std::string stubName =

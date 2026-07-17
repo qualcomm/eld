@@ -28,6 +28,7 @@ namespace eld {
 
 class DynStrFragment;
 class ELFFileFormat;
+class ELFSection;
 class GNULDBackend;
 class LinkerConfig;
 class Module;
@@ -131,7 +132,7 @@ public:
   typedef EntryListType::const_iterator const_iterator;
 
 public:
-  ELFDynamic(GNULDBackend &pBackend, LinkerConfig &pConfig);
+  ELFDynamic(LinkerConfig &pConfig, ELFSection &pDynSection);
 
   virtual ~ELFDynamic();
 
@@ -142,13 +143,15 @@ public:
   size_t numOfBytes() const;
 
   /// reserveEntries - reserve entries
-  void reserveEntries(DynStrFragment *DynStr, Module &pModule);
+  void reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
+                      Module &pModule);
 
   /// reserveNeedEntry - reserve on DT_NEED entry.
   elf_dynamic::EntryIF *reserveNeedEntry();
 
   /// applyEntries - apply entries
-  void applyEntries(const ELFSection *DynStrSect, const Module &pModule);
+  void applyEntries(GNULDBackend &pBackend, const ELFSection *DynStrSect,
+                    const Module &pModule);
 
   void applySoname(uint64_t pStrTabIdx);
 
@@ -163,14 +166,6 @@ public:
 
   static std::string TagToString(uint64_t Tag);
 
-protected:
-  /// reserveTargetEntries - reserve target dependent entries
-  virtual void reserveTargetEntries() = 0;
-
-  /// applyTargetEntries - apply target-dependant
-  virtual void applyTargetEntries() = 0;
-
-protected:
   void reserveOne(uint64_t pTag);
 
   void applyOne(uint64_t pTag, uint64_t pValue);
@@ -183,14 +178,10 @@ private:
   EntryListType m_EntryList;
   EntryListType m_NeedList;
   elf_dynamic::EntryIF *m_pEntryFactory;
-  // The entry reserved and the entry being applied are not must matched.
-  // For better performance, we use a simple counter and apply entry one-by-one
-  // by the counter. m_Idx is the counter indicating to the entry being applied.
   size_t m_Idx;
 
-protected:
-  GNULDBackend &m_Backend;
   LinkerConfig &m_Config;
+  ELFSection &m_DynamicSection;
 };
 
 } // namespace eld

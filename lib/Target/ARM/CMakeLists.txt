@@ -2,7 +2,6 @@ llvm_add_library(
   ELDARMLDBackend
   STATIC
   ARMAttributeFragment.cpp
-  ARMELFDynamic.cpp
   ARMEmulation.cpp
   ARMEXIDXFragment.cpp
   ARMInfo.cpp

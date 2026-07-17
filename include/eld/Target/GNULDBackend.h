@@ -42,6 +42,7 @@
 namespace eld {
 
 class BuildIDFragment;
+class DynamicFragment;
 class DynStrFragment;
 class BinaryFileParser;
 class BitcodeReader;
@@ -177,6 +178,10 @@ public:
 
   ELFSection *getDynStrSection() const { return m_pDynStrSection; }
 
+  DynamicFragment *getDynamicFragment() const { return m_pDynamicFrag; }
+
+  ELFSection *getDynamicSection() const { return m_pDynamicSection; }
+
   // -----  target symbols ----- //
   /// initStandardSymbols - initialize standard symbols.
   /// Some section symbols is undefined in input object, and linkers must set
@@ -243,6 +248,8 @@ public:
   virtual void sizeSymTab();
 
   virtual void sizeDynamic();
+
+  void reserveDynamic();
 
   virtual void finalizeBeforeWrite();
 
@@ -568,7 +575,13 @@ public:
   void applyPluginFragmentReplacements(llvm::FileOutputBuffer &Output);
 
   /// dynamic - the dynamic section of the target machine.
-  virtual ELFDynamic *dynamic() = 0;
+  virtual ELFDynamic *dynamic() { return m_pDynamic; }
+
+  /// reserveTargetDynamicEntries - reserve target-specific .dynamic entries.
+  virtual void reserveTargetDynamicEntries() {}
+
+  /// applyTargetDynamicEntries - apply target-specific .dynamic entries.
+  virtual void applyTargetDynamicEntries() {}
 
   /// relax - the relaxation pass
   virtual bool relax();
@@ -1194,6 +1207,11 @@ protected:
   // Dynamic string table
   ELFSection *m_pDynStrSection = nullptr;
   DynStrFragment *m_pDynStrFrag = nullptr;
+
+  // Dynamic section
+  ELFSection *m_pDynamicSection = nullptr;
+  DynamicFragment *m_pDynamicFrag = nullptr;
+  ELFDynamic *m_pDynamic = nullptr;
 
   // Start Offset.
   int64_t m_StartOffset = 0;

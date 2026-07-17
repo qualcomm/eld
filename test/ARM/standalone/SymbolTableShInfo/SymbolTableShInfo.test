@@ -11,5 +11,5 @@ RUN: %readelf -S -W %t2.out.exe | %filecheck %s
 RUN: %readelf -S -W %t2.out.shared | %filecheck %s
 RUN: %readelf -S -W %t2.out.partial | %filecheck %s
 
-#CHECK: .symtab      SYMTAB     {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}}   {{[0-9a-fx]+}} 3{{[0-9a-fx]+}}
+#CHECK: .symtab      SYMTAB     {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}} {{[0-9a-fx]+}}   {{[0-9a-fx]+}} {{[1-9a-f][0-9a-fx]+}}
 

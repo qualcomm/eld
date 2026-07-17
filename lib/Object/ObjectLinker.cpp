@@ -2230,6 +2230,8 @@ bool ObjectLinker::addDynamicSymbols() {
 #endif
 }
 
+void ObjectLinker::sizeDynamic() { getTargetBackend().sizeDynamic(); }
+
 /// prelayout - help backend to do some modification before layout
 bool ObjectLinker::prelayout() {
   getTargetBackend().preLayout();
@@ -2237,7 +2239,7 @@ bool ObjectLinker::prelayout() {
   if (!ThisConfig.getDiagEngine()->diagnose())
     return false;
 
-  getTargetBackend().sizeDynamic();
+  getTargetBackend().reserveDynamic();
 
   getTargetBackend().initSymTab();
 

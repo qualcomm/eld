@@ -52,6 +52,7 @@ public:
     BuildID,
     SFrame,
     DynStr,
+    Dynamic,
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
     GNUVerDef,
     GNUVerSym,

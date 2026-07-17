@@ -8,7 +8,6 @@
 #define HEXAGON_LDBACKEND_H
 
 #include "HexagonAttributeFragment.h"
-#include "HexagonELFDynamic.h"
 #include "HexagonGOT.h"
 #include "HexagonPLT.h"
 #include "HexagonTLSStub.h"
@@ -19,6 +18,12 @@
 #include "eld/Target/GNULDBackend.h"
 
 namespace eld {
+
+enum {
+  DT_HEXAGON_SYMSZ = 0x70000000,
+  DT_HEXAGON_VER = 0x70000001,
+  DT_HEXAGON_PLT = 0x70000002
+};
 
 class LinkerConfig;
 class HexagonInfo;
@@ -48,9 +53,8 @@ public:
   /// postProcessing - Backend can do any needed modification in the final stage
   eld::Expected<void> postProcessing(llvm::FileOutputBuffer &pOutput) override;
 
-  /// dynamic - the dynamic section of the target machine.
-  /// Use co-variant return type to return its own dynamic section.
-  HexagonELFDynamic *dynamic() override;
+  void reserveTargetDynamicEntries() override;
+  void applyTargetDynamicEntries() override;
 
   /// initRelocator - create and initialize Relocator.
   bool initRelocator() override;
@@ -308,8 +312,6 @@ private:
 
 private:
   Relocator *m_pRelocator;
-
-  HexagonELFDynamic *m_pDynamic;
 
   ELFSection *m_psdata;
   ELFSection *m_pscommon_1;

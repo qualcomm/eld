@@ -14,7 +14,6 @@
 #ifndef TARGET_ARM_ARMLDBACKEND_H
 #define TARGET_ARM_ARMLDBACKEND_H
 
-#include "ARMELFDynamic.h"
 #include "ARMGOT.h"
 #include "ARMPLT.h"
 #include "eld/Readers/ELFSection.h"
@@ -80,9 +79,8 @@ public:
   /// doPostLayout -Backend can do any needed modification after layout
   void doPostLayout() override;
 
-  /// dynamic - the dynamic section of the target machine.
-  /// Use co-variant return type to return its own dynamic section.
-  ARMELFDynamic *dynamic() override;
+  void reserveTargetDynamicEntries() override;
+  void applyTargetDynamicEntries() override;
 
   eld::Expected<uint64_t> emitSection(ELFSection *pSection,
                                       MemoryRegion &pRegion) const override;
@@ -242,7 +240,6 @@ private:
 private:
   Relocator *m_pRelocator;
 
-  ARMELFDynamic *m_pDynamic;
   LDSymbol *m_pEXIDXStart;
   LDSymbol *m_pEXIDXEnd;
 

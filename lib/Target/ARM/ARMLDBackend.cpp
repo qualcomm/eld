@@ -13,7 +13,6 @@
 #include "ARMLDBackend.h"
 #include "ARM.h"
 #include "ARMAttributeFragment.h"
-#include "ARMELFDynamic.h"
 #include "ARMEXIDXFragment.h"
 #include "ARMInfo.h"
 #include "ARMRelocator.h"
@@ -36,6 +35,7 @@
 #include "eld/Support/RegisterTimer.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
+#include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
@@ -60,7 +60,7 @@ using namespace llvm;
 // ARMGNULDBackend
 //===----------------------------------------------------------------------===//
 ARMGNULDBackend::ARMGNULDBackend(eld::Module &pModule, TargetInfo *pInfo)
-    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
+    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr),
       m_pEXIDXStart(nullptr), m_pEXIDXEnd(nullptr), m_pEXIDX(nullptr),
       m_pRWPIBase(nullptr), m_pSBRELSegment(nullptr),
       m_pARMAttributeSection(nullptr), AttributeFragment(nullptr) {}
@@ -235,11 +235,6 @@ void ARMGNULDBackend::doPreLayout() {
     m_Module.setFailure(true);
     return;
   }
-
-  // initialize .dynamic data
-  if ((!config().isCodeStatic() || config().options().forceDynamic()) &&
-      nullptr == m_pDynamic)
-    m_pDynamic = make<ARMELFDynamic>(*this, config());
 
   // set .got size
   // when building shared object, the .got section is must
@@ -601,9 +596,17 @@ void ARMGNULDBackend::initSegmentFromLinkerScript(ELFSegment *pSegment) {
   }
 }
 
-/// dynamic - the dynamic section of the target machine.
-/// Use co-variant return type to return its own dynamic section.
-ARMELFDynamic *ARMGNULDBackend::dynamic() { return m_pDynamic; }
+void ARMGNULDBackend::reserveTargetDynamicEntries() {
+  m_pDynamic->reserveOne(llvm::ELF::DT_RELCOUNT);
+}
+
+void ARMGNULDBackend::applyTargetDynamicEntries() {
+  uint32_t relaCount = 0;
+  for (auto &R : getRelaDyn()->getRelocations())
+    if (R->type() == llvm::ELF::R_ARM_RELATIVE)
+      relaCount++;
+  m_pDynamic->applyOne(llvm::ELF::DT_RELCOUNT, relaCount);
+}
 
 void ARMGNULDBackend::defineGOTSymbol(Fragment &pFrag) {
   // define symbol _GLOBAL_OFFSET_TABLE_

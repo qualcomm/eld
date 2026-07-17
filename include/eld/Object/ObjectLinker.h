@@ -138,6 +138,8 @@ public:
 
   bool addDynamicSymbols();
 
+  void sizeDynamic();
+
   /// addUndefSymbols - add any symbols specified by the -u flag
   /// forced undefined symbols
   ///   @return true if symbols added

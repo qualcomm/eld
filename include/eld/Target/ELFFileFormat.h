@@ -23,8 +23,6 @@ public:
 
   void initStdSections(Module &pModule, unsigned int pBitClass);
 
-  ELFSection *getDynamic() const { return f_pDynamic; }
-
   ELFSection *getDynSymTab() const { return f_pDynSymTab; }
 
   ELFSection *getShStrTab() const { return f_pShStrTab; }
@@ -34,8 +32,6 @@ public:
   ELFSection *getSymTab() const { return f_pSymTab; }
 
   ELFSection *getSymTabShndxr() const { return f_pSymTabShndxr; }
-
-  bool hasDynamic() const { return (f_pDynamic) && (!f_pDynamic->isIgnore()); }
 
   bool hasDynSymTab() const {
     return (f_pDynSymTab) && (!f_pDynSymTab->isIgnore());
@@ -59,7 +55,6 @@ private:
   ELFSection *createFileFormatSection(Module &pModule, llvm::StringRef pName,
                                       LDFileFormat::Kind pKind, uint32_t pType,
                                       uint32_t pFlag, uint32_t pAlign);
-  ELFSection *f_pDynamic;      // .dynamic
   ELFSection *f_pDynSymTab;    // .dynsym
   ELFSection *f_pShStrTab;     // .shstrtab
   ELFSection *f_pStrTab;       // .strtab

@@ -8,7 +8,6 @@
 #ifndef TEMPLATE_LDBACKEND_H
 #define TEMPLATE_LDBACKEND_H
 
-#include "TemplateELFDynamic.h"
 #include "TemplateGOT.h"
 #include "TemplatePLT.h"
 #include "eld/Target/GNULDBackend.h"
@@ -17,7 +16,6 @@ namespace eld {
 
 class LinkerConfig;
 class TemplateInfo;
-class TemplateELFDynamic;
 
 //===----------------------------------------------------------------------===//
 /// TemplateLDBackend - linker backend of Template target of GNU ELF format
@@ -45,8 +43,6 @@ public:
   void initTargetSymbols() override;
 
   void initializeAttributes() override;
-
-  ELFDynamic *dynamic() override { return m_pDynamic; }
 
   // ---  GOT Support ------
   TemplateGOT *createGOT(GOT::GOTType T, ELFObjectFile *Obj, ResolveInfo *sym);
@@ -85,8 +81,6 @@ public:
 
 private:
   Relocator *m_pRelocator = nullptr;
-  TemplateELFDynamic *m_pDynamic = nullptr;
-
   llvm::DenseMap<ResolveInfo *, TemplateGOT *> m_GOTMap;
   llvm::DenseMap<ResolveInfo *, TemplateGOT *> m_GOTPLTMap;
   llvm::DenseMap<ResolveInfo *, TemplatePLT *> m_PLTMap;

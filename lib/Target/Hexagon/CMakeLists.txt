@@ -5,7 +5,6 @@ llvm_add_library(
   STATIC
   HexagonAbsoluteStub.cpp
   HexagonAttributeFragment.cpp
-  HexagonELFDynamic.cpp
   HexagonEmulation.cpp
   HexagonFindMask.cpp
   HexagonGOT.cpp

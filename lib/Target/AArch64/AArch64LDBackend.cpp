@@ -13,7 +13,6 @@
 
 #include "AArch64LDBackend.h"
 #include "AArch64.h"
-#include "AArch64ELFDynamic.h"
 #include "AArch64Errata843419Stub.h"
 #include "AArch64FarcallStub.h"
 #include "AArch64Info.h"
@@ -34,6 +33,7 @@
 #include "eld/Support/RegisterTimer.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
+#include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
@@ -57,7 +57,7 @@ using namespace llvm;
 AArch64LDBackend::AArch64LDBackend(eld::Module &pModule, TargetInfo *pInfo)
     : GNULDBackend(pModule, pInfo), m_pErrata843419Factory(nullptr),
       m_pAArch64ErrataIslandFactory(nullptr), m_pRelocator(nullptr),
-      m_pDynamic(nullptr), m_ptdata(nullptr), m_ptbss(nullptr) {}
+      m_ptdata(nullptr), m_ptbss(nullptr) {}
 
 AArch64LDBackend::~AArch64LDBackend() {}
 
@@ -201,11 +201,6 @@ Relocation::Type AArch64LDBackend::getCopyRelType() const {
 }
 
 void AArch64LDBackend::doPreLayout() {
-  // initialize .dynamic data
-  if ((!config().isCodeStatic() || config().options().forceDynamic()) &&
-      nullptr == m_pDynamic)
-    m_pDynamic = make<AArch64ELFDynamic>(*this, config());
-
   if (LinkerConfig::Object != config().codeGenType()) {
     getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
@@ -256,7 +251,19 @@ void AArch64LDBackend::initSegmentFromLinkerScript(
   }
 }
 
-AArch64ELFDynamic *AArch64LDBackend::dynamic() { return m_pDynamic; }
+void AArch64LDBackend::reserveTargetDynamicEntries() {
+  m_pDynamic->reserveOne(llvm::ELF::DT_RELACOUNT);
+}
+
+void AArch64LDBackend::applyTargetDynamicEntries() {
+  uint32_t relaCount = 0;
+  for (auto &R : getRelaDyn()->getRelocations()) {
+    if (R->type() == llvm::ELF::R_AARCH64_RELATIVE ||
+        R->type() == llvm::ELF::R_AARCH64_AUTH_RELATIVE)
+      relaCount++;
+  }
+  m_pDynamic->applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
+}
 
 unsigned int AArch64LDBackend::getTargetSectionOrder(
     const ELFSection &pSectHdr) const {

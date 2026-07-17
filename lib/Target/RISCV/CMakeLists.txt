@@ -2,7 +2,6 @@ llvm_add_library(
   ELDRISCVLDBackend
   STATIC
   RISCVAttributeFragment.cpp
-  RISCVELFDynamic.cpp
   RISCVEmulation.cpp
   RISCVGOT.cpp
   RISCVInfo.cpp

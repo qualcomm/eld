@@ -22,6 +22,7 @@
 #include "eld/Diagnostics/DiagnosticInfos.h"
 #include "eld/Fragment/BuildIDFragment.h"
 #include "eld/Fragment/DynStrFragment.h"
+#include "eld/Fragment/DynamicFragment.h"
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
 #include "eld/Fragment/GNUHashFragment.h"
@@ -219,7 +220,16 @@ eld::Expected<void> GNULDBackend::initStdSections() {
     m_pDynStrFrag = make<DynStrFragment>(DynStrSection);
     DynStrSection->addFragmentAndUpdateSize(m_pDynStrFrag);
     m_pDynStrSection = DynStrSection;
-    m_pFileFormat->getSections().push_back(DynStrSection);
+
+    ELFSection *DynSection = m_Module.createInternalSection(
+        Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
+        ".dynamic", llvm::ELF::SHT_DYNAMIC,
+        llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
+        config().targets().bitclass() / 8);
+    m_pDynamic = make<ELFDynamic>(config(), *DynSection);
+    m_pDynamicFrag = make<DynamicFragment>(DynSection, *m_pDynamic);
+    DynSection->addFragment(m_pDynamicFrag);
+    m_pDynamicSection = DynSection;
   }
 
   ELFSection *interp = nullptr;
@@ -1090,9 +1100,23 @@ void GNULDBackend::sizeDynamic() {
     getOutputFormat()->getDynSymTab()->setSize((DynamicSymbols.size()) *
                                                sizeof(llvm::ELF::Elf64_Sym));
   }
-  dynamic()->reserveEntries(m_pDynStrFrag, m_Module);
-  m_pDynStrSection->setSize(m_pDynStrFrag->size());
-  getOutputFormat()->getDynamic()->setSize(dynamic()->numOfBytes());
+}
+
+void GNULDBackend::reserveDynamic() {
+  if (config().isCodeStatic() && !config().options().forceDynamic())
+    return;
+  dynamic()->reserveEntries(*this, m_pDynStrFrag, m_Module);
+  // assignOffset() in createOutputSection zeroes NamePool section sizes since
+  // they have no input fragments. Restore the dynsym size so
+  // placeOutputSections sees a non-zero value and marks it wanted.
+  if (getOutputFormat()->getDynSymTab()) {
+    if (config().targets().is32Bits())
+      getOutputFormat()->getDynSymTab()->setSize(DynamicSymbols.size() *
+                                                 sizeof(llvm::ELF::Elf32_Sym));
+    else
+      getOutputFormat()->getDynSymTab()->setSize(DynamicSymbols.size() *
+                                                 sizeof(llvm::ELF::Elf64_Sym));
+  }
 }
 
 void GNULDBackend::initSymTab() {
@@ -1367,11 +1391,11 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
 bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
   ELFSection *symtab_sect = m_Module.getSection(".dynsym");
   ELFSection *strtab_sect = m_pDynStrSection;
-  ELFSection *dyn_sect = m_Module.getSection(".dynamic");
+  ELFSection *dyn_sect = m_pDynamicSection;
 
   bool BuildDynSym = false;
 
-  if (!dyn_sect || (dyn_sect && !dyn_sect->size()))
+  if (!dyn_sect || !dyn_sect->size())
     return true;
 
   // Build dynsym only if the dynsym section has some size reserved.
@@ -1439,13 +1463,7 @@ bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
   if (firstNonLocal)
     symtab_sect->setInfo(*firstNonLocal);
 
-  dynamic()->applyEntries(m_pDynStrSection, m_Module);
-
-  if (dyn_sect->getKind() != LDFileFormat::Null) {
-    MemoryRegion dyn_region =
-        getFileOutputRegion(pOutput, dyn_sect->offset(), dyn_sect->size());
-    dynamic()->emit(*dyn_sect, dyn_region);
-  }
+  dynamic()->applyEntries(*this, m_pDynStrSection, m_Module);
 
   return true;
 }
@@ -1487,6 +1505,9 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
 
   if (pSectHdr.name() == ".dynstr")
     return SHO_NAMEPOOL;
+
+  if (pSectHdr.name() == ".dynamic")
+    return SHO_RELRO;
 
   // if the section is not ALLOC, lay it out until the last possible moment
   if (0 == (pSectHdr.getFlags() & llvm::ELF::SHF_ALLOC)) {
@@ -1552,11 +1573,8 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
       return SHO_RO;
     return SHO_UNDEFINED;
 
-  case LDFileFormat::NamePool: {
-    if (&pSectHdr == file_format->getDynamic())
-      return SHO_RELRO;
+  case LDFileFormat::NamePool:
     return SHO_NAMEPOOL;
-  }
   case LDFileFormat::Relocation:
   case LDFileFormat::DynamicRelocation:
     if (sectionName == ".rel.plt" || sectionName == ".rela.plt")

@@ -15,10 +15,10 @@
 #include "eld/Support/RegisterTimer.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
+#include "eld/Target/ELFDynamic.h"
 #include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64.h"
-#include "x86_64ELFDynamic.h"
 #include "x86_64Relocator.h"
 #include "x86_64StandaloneInfo.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -32,7 +32,7 @@ using namespace llvm;
 // x86_64LDBackend
 //===----------------------------------------------------------------------===//
 x86_64LDBackend::x86_64LDBackend(Module &pModule, x86_64Info *pInfo)
-    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr), m_pDynamic(nullptr),
+    : GNULDBackend(pModule, pInfo), m_pRelocator(nullptr),
       m_pEndOfImage(nullptr) {}
 
 x86_64LDBackend::~x86_64LDBackend() {}
@@ -121,10 +121,6 @@ bool x86_64LDBackend::finalizeTargetSymbols() {
 }
 
 void x86_64LDBackend::doPreLayout() {
-  // Create a dynamic section handler for non-static or forced-dynamic outputs.
-  if (!config().isCodeStatic() || config().options().forceDynamic())
-    m_pDynamic = make<x86_64ELFDynamic>(*this, config());
-
   if (LinkerConfig::Object != config().codeGenType()) {
     getRelaPLT()->setSize(getRelaPLT()->getRelocationCount() *
                           getRelaEntrySize());
@@ -135,7 +131,18 @@ void x86_64LDBackend::doPreLayout() {
   }
 }
 
-x86_64ELFDynamic *x86_64LDBackend::dynamic() { return m_pDynamic; }
+void x86_64LDBackend::reserveTargetDynamicEntries() {
+  m_pDynamic->reserveOne(llvm::ELF::DT_RELACOUNT);
+}
+
+void x86_64LDBackend::applyTargetDynamicEntries() {
+  uint32_t relaCount = 0;
+  for (auto &R : getRelaDyn()->getRelocations()) {
+    if (R->type() == llvm::ELF::R_X86_64_RELATIVE)
+      relaCount++;
+  }
+  m_pDynamic->applyOne(llvm::ELF::DT_RELACOUNT, relaCount);
+}
 
 // Create GOT entry.
 x86_64GOT *x86_64LDBackend::createGOT(GOT::GOTType T, ELFObjectFile *Obj,
