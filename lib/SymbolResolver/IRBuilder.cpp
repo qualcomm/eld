@@ -177,7 +177,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
 
     LDSymbol *InputSym = nullptr;
     {
-      eld::RegisterTimer T("Add symbols from object files", "Symbol Resolution",
+      eld::RegisterTimer T("Add symbols from object files", "Resolve",
                            ThisConfig.options().printTimingStats());
 
       InputSym = addSymbolFromObject(Input, Name, Type, Desc, Binding, Size,
@@ -212,8 +212,7 @@ LDSymbol *IRBuilder::addSymbol(InputFile &Input, const std::string &SymbolName,
   }
   case InputFile::ELFDynObjFileKind: {
     {
-      eld::RegisterTimer T("Add symbols from dynamic object files",
-                           "Symbol Resolution",
+      eld::RegisterTimer T("Add symbols from dynamic object files", "Resolve",
                            ThisConfig.options().printTimingStats());
 
       LDSymbol *InputSym =
@@ -239,7 +238,7 @@ LDSymbol *IRBuilder::addSymbolFromObject(
   // Step 1. calculate a Resolver::Result
   // ResolvedResult is a triple <resolved_info, existent, override>
   Resolver::Result ResolvedResult = {nullptr, false, false};
-  eld::RegisterTimer T("Create && Resolve symbols", "Symbol Resolution",
+  eld::RegisterTimer T("Create && Resolve symbols", "Resolve",
                        ThisConfig.options().printTimingStats());
   NamePool &NP = ThisModule.getNamePool();
   ResolveInfo InputSymbolResolveInfo =
@@ -326,7 +325,7 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
       Visibility == ResolveInfo::Hidden)
     return nullptr;
 
-  eld::RegisterTimer T("Create && Resolve dynamic symbols", "Symbol Resolution",
+  eld::RegisterTimer T("Create && Resolve dynamic symbols", "Resolve",
                        ThisConfig.options().printTimingStats());
   NamePool &NP = ThisModule.getNamePool();
 
@@ -447,8 +446,7 @@ LDSymbol *IRBuilder::addSymbolFromDynObj(
 }
 
 void IRBuilder::addToCref(InputFile &Input, Resolver::Result PResult) {
-  eld::RegisterTimer T("Add Symbols to Cross Reference Table",
-                       "Symbol Resolution",
+  eld::RegisterTimer T("Add Symbols to Cross Reference Table", "Resolve",
                        ThisConfig.options().printTimingStats());
 
   GeneralOptions &Options = ThisConfig.options();

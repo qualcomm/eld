@@ -878,7 +878,10 @@ public:
   // --print-stats
   bool printTimingStats(const char *TimeRegion = nullptr) const;
 
-  void setPrintTimingStats() { BPrintTimeStats = true; }
+  void setPrintTimingStats() {
+    BPrintTimeStats = true;
+    BPrintAllUserPluginTimeStats = true;
+  }
 
   bool allUserPluginStatsRequested() const {
     return BPrintAllUserPluginTimeStats;

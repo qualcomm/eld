@@ -189,7 +189,7 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
 
   if (IsDynobj || IsExec) {
     // Write out name pool sections: .dynsym, .dynstr, .hash
-    eld::RegisterTimer T("Emit Dynamic Name Pool sections", "Emit Output File",
+    eld::RegisterTimer T("Emit Dynamic Name Pool sections", "Emit",
                          ThisModule.getConfig().options().printTimingStats());
     if (!ThisModule.getBackend().emitDynNamePools(CurOutput))
       return make_error_code(std::errc::function_not_supported);
@@ -237,7 +237,7 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
       }
     }
   } else {
-    eld::RegisterTimer T("Emit Regular ELF Sections", "Emit Output File",
+    eld::RegisterTimer T("Emit Regular ELF Sections", "Emit",
                          ThisModule.getConfig().options().printTimingStats());
     // Write out regular ELF sections
     Module::iterator Sect, SectEnd = ThisModule.end();

@@ -211,7 +211,7 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
   // 1. traverse all the relocations to set up the reached sections of each
   // section
   {
-    eld::RegisterTimer T("Get Reachable Sections", "Garbage Collection",
+    eld::RegisterTimer T("Get Reachable Sections", "Layout",
                          ThisConfig.options().printTimingStats());
 
     setUpReachedSectionsAndSymbols();
@@ -221,7 +221,7 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
   SectionSetTy Entry;
   SectionSetTy LiveSet;
   {
-    eld::RegisterTimer T("Compute Entry Sections", "Garbage Collection",
+    eld::RegisterTimer T("Compute Entry Sections", "Layout",
                          ThisConfig.options().printTimingStats());
     // 2. get all sections defined the entry point
     if (!getEntrySections(Entry))
@@ -229,7 +229,7 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
   }
 
   {
-    eld::RegisterTimer T("Find Dead Code", "Garbage Collection",
+    eld::RegisterTimer T("Find Dead Code", "Layout",
                          ThisConfig.options().printTimingStats());
     // 3. find all the referenced sections those can be reached by entry
     if (ThisModule.getPrinter()->traceGCLive())
@@ -239,7 +239,7 @@ bool GarbageCollection::run(const std::string &Phase, bool CommonSectionsOnly) {
 
   // 4. stripSections - set the unreached sections to Ignore
   {
-    eld::RegisterTimer T("Apply Dead Code Elimination", "Garbage Collection",
+    eld::RegisterTimer T("Apply Dead Code Elimination", "Layout",
                          ThisConfig.options().printTimingStats());
     stripSections(LiveSet, CommonSectionsOnly);
   }

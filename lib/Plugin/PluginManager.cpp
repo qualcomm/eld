@@ -23,8 +23,9 @@ void PluginManager::storeUniversalPlugins() {
 }
 
 bool PluginManager::callInitHook() {
-  RegisterTimer T("Init", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/Init", "Plugins",
+                    ShouldPrintTimingStats);
     P->callInitHook();
     if (!DE.diagnose())
       return false;
@@ -33,8 +34,9 @@ bool PluginManager::callInitHook() {
 }
 
 bool PluginManager::callDestroyHook() {
-  RegisterTimer T("Destroy", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/Destroy", "Plugins",
+                    ShouldPrintTimingStats);
     P->callDestroyHook();
     if (!DE.diagnose())
       return false;
@@ -43,11 +45,11 @@ bool PluginManager::callDestroyHook() {
 }
 
 bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
-  RegisterTimer T("PluginCommandLineOptions", "Plugins",
-                  ShouldPrintTimingStats);
   const auto &UnknownOpts = Options.getUnknownOptions();
   std::unordered_set<std::size_t> UsedOpts;
   for (Plugin *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/CommandLineOptions", "Plugins",
+                    ShouldPrintTimingStats);
     for (std::size_t UnknownOptIdx = 0; UnknownOptIdx < UnknownOpts.size();
          ++UnknownOptIdx) {
       const std::string &Option = UnknownOpts[UnknownOptIdx];
@@ -77,8 +79,9 @@ bool PluginManager::processPluginCommandLineOptions(GeneralOptions &Options) {
 }
 
 bool PluginManager::callVisitSectionsHook(InputFile &IF) {
-  RegisterTimer T("VisitSections", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/VisitSections", "Plugins",
+                    ShouldPrintTimingStats);
     P->callVisitSectionsHook(IF);
     if (!DE.diagnose())
       return false;
@@ -87,8 +90,9 @@ bool PluginManager::callVisitSectionsHook(InputFile &IF) {
 }
 
 bool PluginManager::callActBeforeRuleMatchingHook() {
-  RegisterTimer T("ActBeforeRuleMatching", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/ActBeforeRuleMatching", "Plugins",
+                    ShouldPrintTimingStats);
     P->callActBeforeRuleMatchingHook();
     if (!DE.diagnose())
       return false;
@@ -98,9 +102,10 @@ bool PluginManager::callActBeforeRuleMatchingHook() {
 
 bool PluginManager::callVisitSymbolHook(LDSymbol *Sym, llvm::StringRef SymName,
                                         const SymbolInfo &SymInfo) {
-  RegisterTimer T("VisitSymbol", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
     if (SymbolVisitors.count(P)) {
+      RegisterTimer T(P->getPluginName() + "/VisitSymbol", "Plugins",
+                      ShouldPrintTimingStats);
       P->callVisitSymbolHook(Sym, SymName, SymInfo);
       if (!DE.diagnose())
         return false;
@@ -116,8 +121,9 @@ void PluginManager::addSymbolVisitor(eld::Plugin *P) {
 }
 
 bool PluginManager::callActBeforeSectionMergingHook() {
-  RegisterTimer T("ActBeforeSectionMerging", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/ActBeforeSectionMerging", "Plugins",
+                    ShouldPrintTimingStats);
     P->callActBeforeSectionMergingHook();
     if (!DE.diagnose())
       return false;
@@ -142,9 +148,9 @@ void PluginManager::setAuxiliarySymbolNameMap(
 }
 
 bool PluginManager::callActBeforePerformingLayoutHook() {
-  RegisterTimer T("ActBeforePerformingLayout", "Plugins",
-                  ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/ActBeforePerformingLayout",
+                    "Plugins", ShouldPrintTimingStats);
     P->callActBeforePerformingLayoutHook();
     if (!DE.diagnose())
       return false;
@@ -153,8 +159,9 @@ bool PluginManager::callActBeforePerformingLayoutHook() {
 }
 
 bool PluginManager::callActBeforeWritingOutputHook() {
-  RegisterTimer T("ActBeforeWritingOutput", "Plugins", ShouldPrintTimingStats);
   for (auto *P : UniversalPlugins) {
+    RegisterTimer T(P->getPluginName() + "/ActBeforeWritingOutput", "Plugins",
+                    ShouldPrintTimingStats);
     P->callActBeforeWritingOutputHook();
     if (!DE.diagnose())
       return false;

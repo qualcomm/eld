@@ -34,6 +34,7 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/Support/OutputTarWriter.h"
 #include "eld/Support/Path.h"
+#include "eld/Support/RegisterTimer.h"
 #include "eld/Support/StringUtils.h"
 #include "eld/Support/TargetRegistry.h"
 #include "eld/Support/TargetSelect.h"
@@ -157,7 +158,7 @@ bool GnuLdDriver::emitStats(eld::Module &M) const {
   llvm::raw_fd_ostream *OutStream = &llvm::outs();
   if (StatsFile)
     OutStream = StatsFile;
-  llvm::TimerGroup::printAll(*OutStream);
+  RegisterTimer::printTimingReport(*OutStream);
   llvm::TimerGroup::clearAll();
   M.getLinkerScript().printPluginTimers(*OutStream);
   delete StatsFile;

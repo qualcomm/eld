@@ -87,7 +87,7 @@ ELFRelocObjParser::readSectionHeaders(ELFReaderBase &ELFReader) {
 
 eld::Expected<bool> ELFRelocObjParser::readSections(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
-  eld::RegisterTimer T("Read Sections", "Link Summary",
+  eld::RegisterTimer T("Read Sections", "Read",
                        config.options().printTimingStats());
   InputFile *inputFile = ELFReader.getInputFile();
   GNULDBackend &backend = m_Module.getBackend();
