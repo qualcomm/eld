@@ -10,13 +10,13 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-
 #include "eld/Target/ELFDynamic.h"
 #include "eld/Config/GeneralOptions.h"
 #include "eld/Config/LinkerConfig.h"
 #include "eld/Core/Module.h"
 #include "eld/Diagnostics/DiagnosticPrinter.h"
 #include "eld/Fragment/DynStrFragment.h"
+#include "eld/Readers/ELFSection.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/GNULDBackend.h"
@@ -27,55 +27,23 @@
 #endif
 
 using namespace eld;
-using namespace elf_dynamic;
-
-//===----------------------------------------------------------------------===//
-// elf_dynamic::EntryIF
-//===----------------------------------------------------------------------===//
-EntryIF::EntryIF() {}
-
-EntryIF::~EntryIF() {}
 
 //===----------------------------------------------------------------------===//
 // ELFDynamic
 //===----------------------------------------------------------------------===//
 ELFDynamic::ELFDynamic(LinkerConfig &pConfig, ELFSection &pDynSection)
-    : m_pEntryFactory(nullptr), m_Idx(0), m_Config(pConfig),
-      m_DynamicSection(pDynSection) {
-  // FIXME: support big-endian machine.
-  if (m_Config.targets().is32Bits()) {
-    if (m_Config.targets().isLittleEndian())
-      m_pEntryFactory = new Entry<32, true>();
-  } else if (m_Config.targets().is64Bits()) {
-    if (m_Config.targets().isLittleEndian())
-      m_pEntryFactory = new Entry<64, true>();
-  } else {
+    : m_Config(pConfig), m_DynamicSection(pDynSection) {
+  if (!m_Config.targets().is32Bits() && !m_Config.targets().is64Bits()) {
     m_Config.raise(Diag::unsupported_bitclass)
         << m_Config.targets().triple().str() << m_Config.targets().bitclass();
   }
   // Seed one entry so the section has non-zero size and survives
-  // placeOutputSections. reset() clears this before the real entries are
-  // reserved.
-  if (m_pEntryFactory)
-    reserveOne(llvm::ELF::DT_NULL);
+  // placeOutputSections. reserveEntries() clears this before the real entries
+  // are reserved.
+  reserveOne(llvm::ELF::DT_NULL);
 }
 
-ELFDynamic::~ELFDynamic() {
-  if (nullptr != m_pEntryFactory)
-    delete m_pEntryFactory;
-
-  EntryListType::iterator entry, entryEnd = m_EntryList.end();
-  for (entry = m_EntryList.begin(); entry != entryEnd; ++entry) {
-    if (nullptr != *entry)
-      delete (*entry);
-  }
-
-  entryEnd = m_NeedList.end();
-  for (entry = m_NeedList.begin(); entry != entryEnd; ++entry) {
-    if (nullptr != *entry)
-      delete (*entry);
-  }
-}
+bool ELFDynamic::is32Bits() const { return m_Config.targets().is32Bits(); }
 
 size_t ELFDynamic::size() const {
   return (m_NeedList.size() + m_EntryList.size());
@@ -83,7 +51,25 @@ size_t ELFDynamic::size() const {
 
 size_t ELFDynamic::numOfBytes() const { return size() * entrySize(); }
 
-size_t ELFDynamic::entrySize() const { return m_pEntryFactory->size(); }
+size_t ELFDynamic::entrySize() const {
+  return is32Bits() ? sizeof(llvm::ELF::Elf32_Dyn)
+                    : sizeof(llvm::ELF::Elf64_Dyn);
+}
+
+size_t ELFDynamic::symbolSize() const {
+  return is32Bits() ? sizeof(llvm::ELF::Elf32_Sym)
+                    : sizeof(llvm::ELF::Elf64_Sym);
+}
+
+size_t ELFDynamic::relSize() const {
+  return is32Bits() ? sizeof(llvm::ELF::Elf32_Rel)
+                    : sizeof(llvm::ELF::Elf64_Rel);
+}
+
+size_t ELFDynamic::relaSize() const {
+  return is32Bits() ? sizeof(llvm::ELF::Elf32_Rela)
+                    : sizeof(llvm::ELF::Elf64_Rela);
+}
 
 std::string ELFDynamic::TagToString(uint64_t Tag) {
 #define INTOTAGSTR(ns, T)                                                      \
@@ -125,16 +111,14 @@ std::string ELFDynamic::TagToString(uint64_t Tag) {
 }
 
 void ELFDynamic::reserveOne(uint64_t pTag) {
-  // llvm::errs() << "R : " << TagToString(pTag) << "\n";;
-  assert(nullptr != m_pEntryFactory);
-  m_EntryList.push_back(m_pEntryFactory->clone());
+  m_EntryList.push_back({pTag, 0});
   m_DynamicSection.setSize(numOfBytes());
 }
 
 void ELFDynamic::applyOne(uint64_t pTag, uint64_t pValue) {
-  // llvm::errs() << "A : " << TagToString(pTag) << "\n";
   assert(m_Idx < m_EntryList.size());
-  m_EntryList[m_Idx]->setValue(pTag, pValue);
+  m_EntryList[m_Idx].tag = pTag;
+  m_EntryList[m_Idx].value = pValue;
   ++m_Idx;
 }
 
@@ -384,16 +368,16 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
     applyOne(llvm::ELF::DT_REL,
              pModule.getSection(".rel.dyn")->addr()); // DT_REL
     applyOne(llvm::ELF::DT_RELSZ,
-             pModule.getSection(".rel.dyn")->size());           // DT_RELSZ
-    applyOne(llvm::ELF::DT_RELENT, m_pEntryFactory->relSize()); // DT_RELENT
+             pModule.getSection(".rel.dyn")->size()); // DT_RELSZ
+    applyOne(llvm::ELF::DT_RELENT, relSize());        // DT_RELENT
   }
 
   if (pModule.getSection(".rela.dyn")) {
     applyOne(llvm::ELF::DT_RELA,
              pModule.getSection(".rela.dyn")->addr()); // DT_RELA
     applyOne(llvm::ELF::DT_RELASZ,
-             pModule.getSection(".rela.dyn")->size());            // DT_RELASZ
-    applyOne(llvm::ELF::DT_RELAENT, m_pEntryFactory->relaSize()); // DT_RELAENT
+             pModule.getSection(".rela.dyn")->size()); // DT_RELASZ
+    applyOne(llvm::ELF::DT_RELAENT, relaSize());       // DT_RELAENT
   }
 
   const bool ShouldEmitTextRel =
@@ -469,13 +453,10 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
   applyOne(llvm::ELF::DT_NULL, 0x0); // for DT_NULL
 }
 
-/// symbolSize
-size_t ELFDynamic::symbolSize() const { return m_pEntryFactory->symbolSize(); }
-
-/// reserveNeedEntry - reserve on DT_NEED entry.
-elf_dynamic::EntryIF * ELFDynamic::reserveNeedEntry() {
-  m_NeedList.push_back(m_pEntryFactory->clone());
-  return m_NeedList.back();
+/// reserveNeedEntry - reserve one DT_NEEDED/DT_RUNPATH entry.
+ELFDynamic::DynEntry *ELFDynamic::reserveNeedEntry() {
+  m_NeedList.push_back({0, 0});
+  return &m_NeedList.back();
 }
 
 /// emit
@@ -485,14 +466,28 @@ void ELFDynamic::emit(const ELFSection &pSection, MemoryRegion &pRegion) const {
                              llvm::Twine(" than the section's demand.\n"));
   }
 
-  uint8_t *address = (uint8_t *)pRegion.begin();
-  EntryListType::const_iterator entry, entryEnd = m_NeedList.end();
-  for (entry = m_NeedList.begin(); entry != entryEnd; ++entry)
-    address += (*entry)->emit(address);
+  uint8_t *address = pRegion.begin();
 
-  entryEnd = m_EntryList.end();
-  for (entry = m_EntryList.begin(); entry != entryEnd; ++entry)
-    address += (*entry)->emit(address);
+  auto writeEntry = [&](const DynEntry &E) {
+    if (is32Bits()) {
+      llvm::ELF::Elf32_Dyn D;
+      D.d_tag = static_cast<llvm::ELF::Elf32_Sword>(E.tag);
+      D.d_un.d_val = static_cast<llvm::ELF::Elf32_Word>(E.value);
+      memcpy(address, &D, sizeof(D));
+      address += sizeof(D);
+    } else {
+      llvm::ELF::Elf64_Dyn D;
+      D.d_tag = static_cast<llvm::ELF::Elf64_Sxword>(E.tag);
+      D.d_un.d_val = static_cast<llvm::ELF::Elf64_Xword>(E.value);
+      memcpy(address, &D, sizeof(D));
+      address += sizeof(D);
+    }
+  };
+
+  for (const DynEntry &E : m_NeedList)
+    writeEntry(E);
+  for (const DynEntry &E : m_EntryList)
+    writeEntry(E);
 }
 
 void ELFDynamic::applySoname(uint64_t pStrTabIdx) {

@@ -1074,7 +1074,8 @@ void GNULDBackend::sizeDynamic() {
       std::size_t SONameOffset =
           m_pDynStrFrag->addString(dynObjFile->getSOName());
       auto DTEntry = dynamic()->reserveNeedEntry();
-      DTEntry->setValue(llvm::ELF::DT_NEEDED, SONameOffset);
+      DTEntry->tag = llvm::ELF::DT_NEEDED;
+      DTEntry->value = SONameOffset;
     }
   }
 
@@ -1090,7 +1091,8 @@ void GNULDBackend::sizeDynamic() {
         RunPath += ":";
     }
     std::size_t RunPathOffset = m_pDynStrFrag->addString(RunPath);
-    DTEntry->setValue(llvm::ELF::DT_RUNPATH, RunPathOffset);
+    DTEntry->tag = llvm::ELF::DT_RUNPATH;
+    DTEntry->value = RunPathOffset;
   }
   // set size
   if (config().targets().is32Bits()) {

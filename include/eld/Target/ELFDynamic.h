@@ -10,116 +10,21 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-
-//===- ELFDynamic.h -------------------------------------------------------===//
-//===----------------------------------------------------------------------===//
 #ifndef ELD_TARGET_ELFDYNAMIC_H
 #define ELD_TARGET_ELFDYNAMIC_H
 
-#include "eld/Input/ELFDynObjectFile.h"
-#include "eld/Readers/ELFSection.h"
 #include "eld/Support/MemoryRegion.h"
 #include "llvm/BinaryFormat/ELF.h"
-#include "llvm/Support/FileOutputBuffer.h"
-#include <cstring>
+#include <string>
 #include <vector>
 
 namespace eld {
 
 class DynStrFragment;
-class ELFFileFormat;
 class ELFSection;
 class GNULDBackend;
 class LinkerConfig;
 class Module;
-
-namespace elf_dynamic {
-
-/** \class EntryIF
- *  \brief EntryIF provides a common interface for one entry in the dynamic
- *  section
- */
-class EntryIF {
-protected:
-  EntryIF();
-
-public:
-  virtual ~EntryIF();
-
-  virtual EntryIF *clone() const = 0;
-  virtual size_t size() const = 0;
-  virtual size_t symbolSize() const = 0;
-  virtual size_t relSize() const = 0;
-  virtual size_t relaSize() const = 0;
-  virtual size_t emit(uint8_t *pAddress) const = 0;
-  virtual void setValue(uint64_t pTag, uint64_t pValue) = 0;
-};
-
-template <size_t BITNUMBER, bool LITTLEENDIAN> class Entry {};
-
-template <> class Entry<32, true> : public EntryIF {
-public:
-  typedef llvm::ELF::Elf32_Dyn Pair;
-  typedef llvm::ELF::Elf32_Sym Symbol;
-  typedef llvm::ELF::Elf32_Rel Rel;
-  typedef llvm::ELF::Elf32_Rela Rela;
-
-public:
-  inline Entry();
-
-  inline ~Entry();
-
-  Entry *clone() const override { return new Entry(); }
-
-  size_t size() const override { return sizeof(Pair); }
-
-  size_t symbolSize() const override { return sizeof(Symbol); }
-
-  size_t relSize() const override { return sizeof(Rel); }
-
-  size_t relaSize() const override { return sizeof(Rela); }
-
-  inline void setValue(uint64_t pTag, uint64_t pValue) override;
-
-  inline size_t emit(uint8_t *pAddress) const override;
-
-private:
-  Pair m_Pair;
-};
-
-template <> class Entry<64, true> : public EntryIF {
-public:
-  typedef llvm::ELF::Elf64_Dyn Pair;
-  typedef llvm::ELF::Elf64_Sym Symbol;
-  typedef llvm::ELF::Elf64_Rel Rel;
-  typedef llvm::ELF::Elf64_Rela Rela;
-
-public:
-  inline Entry();
-
-  inline ~Entry();
-
-  Entry *clone() const override { return new Entry(); }
-
-  size_t size() const override { return sizeof(Pair); }
-
-  size_t symbolSize() const override { return sizeof(Symbol); }
-
-  size_t relSize() const override { return sizeof(Rel); }
-
-  size_t relaSize() const override { return sizeof(Rela); }
-
-  inline void setValue(uint64_t pTag, uint64_t pValue) override;
-
-  inline size_t emit(uint8_t *pAddress) const override;
-
-private:
-  Pair m_Pair;
-};
-
-#include "ELFDynamic.tcc"
-
-} // namespace elf_dynamic
 
 /** \class ELFDynamic
  *  \brief ELFDynamic is the .dynamic section in ELF shared and executable
@@ -127,14 +32,19 @@ private:
  */
 class ELFDynamic {
 public:
-  typedef std::vector<elf_dynamic::EntryIF *> EntryListType;
+  struct DynEntry {
+    uint64_t tag = 0;
+    uint64_t value = 0;
+  };
+
+  typedef std::vector<DynEntry> EntryListType;
   typedef EntryListType::iterator iterator;
   typedef EntryListType::const_iterator const_iterator;
 
 public:
   ELFDynamic(LinkerConfig &pConfig, ELFSection &pDynSection);
 
-  virtual ~ELFDynamic();
+  virtual ~ELFDynamic() = default;
 
   size_t size() const;
 
@@ -146,8 +56,8 @@ public:
   void reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
                       Module &pModule);
 
-  /// reserveNeedEntry - reserve on DT_NEED entry.
-  elf_dynamic::EntryIF *reserveNeedEntry();
+  /// reserveNeedEntry - reserve one DT_NEEDED/DT_RUNPATH entry.
+  DynEntry *reserveNeedEntry();
 
   /// applyEntries - apply entries
   void applyEntries(GNULDBackend &pBackend, const ELFSection *DynStrSect,
@@ -171,14 +81,18 @@ public:
   void applyOne(uint64_t pTag, uint64_t pValue);
 
   size_t symbolSize() const;
+  size_t relSize() const;
+  size_t relaSize() const;
 
   LinkerConfig &config() const { return m_Config; }
 
 private:
+  bool is32Bits() const;
+
   EntryListType m_EntryList;
   EntryListType m_NeedList;
-  elf_dynamic::EntryIF *m_pEntryFactory;
-  size_t m_Idx;
+  // Counter for applyOne: entries are applied in reservation order, one-by-one.
+  size_t m_Idx = 0;
 
   LinkerConfig &m_Config;
   ELFSection &m_DynamicSection;
