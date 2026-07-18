@@ -1,0 +1,10 @@
+#--TLSGDRelax_Trace.test----------Static Executable--------#
+# --trace=relax emits a message for each relaxed TLSGD reference.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_gd_hidden.s -o %t.o
+RUN: %link %linkopts -static -e get_tls --trace=relax -o %t.eld %t.o 2>&1 \
+RUN:   | %filecheck %s
+#END_TEST
+
+# The hidden (non-preemptible) TLSGD reference is relaxed to LE and traced.
+CHECK: Trace: relaxed TLSGD for symbol 'tls_hidden' to LE access in section {{.*}}+0x{{[0-9a-f]+}} file {{.*}}

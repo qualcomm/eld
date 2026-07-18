@@ -151,7 +151,7 @@ bool x86_64LDBackend::isGOTPCRELXRelaxable(const Relocation *reloc) const {
 }
 
 bool x86_64LDBackend::shouldIgnoreRelocSync(Relocation *reloc) const {
-  return isGOTPCRELXRelaxCandidate(reloc);
+  return isGOTPCRELXRelaxCandidate(reloc) || isTLSGDRelaxCandidate(reloc);
 }
 
 eld::Expected<void>
@@ -160,7 +160,7 @@ x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 
   // Relaxation rewrites bytes in the laid-out output image; it is not
   // applicable to partial links, which have no final layout.
-  if (config().options().getRelax() && !config().isLinkPartial())
+  if (!config().isLinkPartial())
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(doRelax(pOutput));
 
   return {};
@@ -168,21 +168,24 @@ x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 
 eld::Expected<void> x86_64LDBackend::doRelax(llvm::FileOutputBuffer &pOutput) {
   uint8_t *buf = pOutput.getBufferStart();
-  // The scan phase already identified every relaxation candidate (skipping
-  // debug relocations and internal files, which never carry a relaxable
-  // relocation). Iterate that cached set instead of re-walking all
-  // relocations, and dispatch on the relocation type. Future relaxable types
-  // (e.g. R_X86_64_REX_GOTPCRELX, TLS relaxations) add a case here.
-  for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
-    switch (reloc->type()) {
-    case llvm::ELF::R_X86_64_GOTPCRELX:
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
-      break;
-    default:
-      // Only relaxable types are recorded as candidates; skip anything else.
-      break;
+  // The scan phase already identified every relaxation candidate
+  // GOTPCRELX relaxation is optional (--relax); GD→LE is
+  // mandatory (otherwise we get an undefined reference for __tls_get_addr in
+  // static links).
+  if (config().options().getRelax()) {
+    for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
+      switch (reloc->type()) {
+      case llvm::ELF::R_X86_64_GOTPCRELX:
+        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
+        break;
+      default:
+        // Only relaxable types are recorded as candidates; skip anything else.
+        break;
+      }
     }
   }
+  for (Relocation *reloc : m_TLSGDLERelaxCandidates)
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxTLSGDToLEReloc(reloc, buf));
   return {};
 }
 
@@ -280,6 +283,62 @@ eld::Expected<void> x86_64LDBackend::relaxGOTPCRELXReloc(Relocation *reloc,
     location = traceSect->getLocation(offset, config().options());
     config().raise(Diag::trace_relax_gotpcrelx)
         << location << kind << rsym->name();
+  }
+
+  return {};
+}
+
+eld::Expected<void> x86_64LDBackend::relaxTLSGDToLEReloc(Relocation *reloc,
+                                                         uint8_t *buf) {
+  auto *RF = llvm::cast<RegionFragment>(reloc->targetRef()->frag());
+
+  uint32_t offset = reloc->targetRef()->offset();
+  assert(offset >= 4 && "TLSGD relax candidate offset must be >= 4");
+
+  FragmentRef::Offset off = reloc->targetRef()->getOutputOffset(m_Module);
+  if (off == (FragmentRef::Offset)-1)
+    return {};
+  size_t out_off = reloc->targetRef()->getOutputELFSection()->offset() + off;
+
+  uint64_t TLSTemplateSize = getTLSTemplateSize();
+  if (TLSTemplateSize == 0) {
+    config().raise(Diag::no_pt_tls_segment);
+    return {};
+  }
+  // Use finalizeTLSSymbol to get the TLS-segment-relative offset (S).
+  // Relocation::symValue() ASSERTs on TLS-type symbols; the correct path
+  // for TLS is through finalizeTLSSymbol(), mirroring what
+  // Relocator::getSymValue does for thread-local symbols.
+  uint64_t S = finalizeTLSSymbol(reloc->symInfo()->outSymbol());
+  int64_t A = static_cast<int64_t>(reloc->addend());
+  int64_t tpoff =
+      static_cast<int64_t>(S) + A - static_cast<int64_t>(TLSTemplateSize);
+
+  // Rewrite 16 bytes starting at out_off-4:
+  //   9 bytes: movq %fs:0x0, %rax
+  //   7 bytes: leaq tpoff(%rax), %rax
+  static const uint8_t kMoveFS[] = {0x64, 0x48, 0x8b, 0x04, 0x25,
+                                    0x00, 0x00, 0x00, 0x00};
+  std::memcpy(buf + out_off - 4, kMoveFS, sizeof(kMoveFS));
+  buf[out_off + 5] = 0x48; // REX.W
+  buf[out_off + 6] = 0x8d; // LEA opcode
+  buf[out_off + 7] = 0x80; // ModR/M: disp32(%rax) -> %rax
+  // imm32 at out_off+8: the R_X86_64_TLSGD addend is -4 (PC-relative bias);
+  // adding +4 cancels it, giving the raw tpoff = S_rel - templateSize.
+  llvm::support::endian::write32le(buf + out_off + 8,
+                                   static_cast<uint32_t>(tpoff + 4));
+
+  if (m_Module.getPrinter()->traceRelax()) {
+    ELFSection *traceSect = RF->getOwningSection();
+    assert(traceSect &&
+           "RegionFragment in relax candidate must have an owning section");
+    std::string fileName;
+    if (InputFile *F = traceSect->getInputFile())
+      if (auto *I = F->getInput())
+        fileName = I->decoratedPath();
+    config().raise(Diag::trace_relax_tlsgd_le)
+        << reloc->symInfo()->name() << traceSect->name()
+        << llvm::utohexstr(offset) << fileName;
   }
 
   return {};

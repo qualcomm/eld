@@ -1,0 +1,10 @@
+#--TLSGDRelax_SharedPreemptible_NoRelax.test----------Shared Library--------#
+# Preemptible (default-visibility) symbol in a DSO must not be relaxed.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_gd_preemptible.s -o %t.o
+RUN: %link %linkopts -shared -o %t.so %t.o
+RUN: %readelf -r %t.so | %filecheck %s
+#END_TEST
+
+CHECK: R_X86_64_DTPMOD64
+CHECK: R_X86_64_DTPOFF64
