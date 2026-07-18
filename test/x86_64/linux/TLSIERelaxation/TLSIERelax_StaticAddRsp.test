@@ -1,0 +1,15 @@
+#--TLSIERelax_StaticAddRsp.test----------Static Executable--------#
+# R_X86_64_GOTTPOFF IE→LE relaxation: static link, addq %rsp sub-case.
+# addq tls_var@gottpoff(%rip), %rsp  →  addq $tpoff, %rsp
+# %rsp (and %r12) cannot use leaq: their ModR/M (0x25) would require a SIB
+# byte, making leaq 8 bytes and breaking the size-preserving rewrite. So the
+# addq $imm form (48 81 c4) is used instead of leaq (48 8d 80).
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_add_rsp.s -o %t.o
+RUN: %link %linkopts -static -e get_tls -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+#END_TEST
+
+# addq $imm32, %rsp is encoded as 48 81 c4 <imm32> (not leaq, not a GOT load).
+CHECK: <get_tls>:
+CHECK-NEXT: {{[0-9a-f]+}}: 48 81 c4 fc ff ff ff {{.*}}addq

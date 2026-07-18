@@ -1,0 +1,13 @@
+#--TLSIERelax_StaticAdd.test----------Static Executable--------#
+# R_X86_64_GOTTPOFF IE→LE relaxation: static link, addq sub-case.
+# addq tls_var@gottpoff(%rip), %rax  →  leaq tpoff(%rax), %rax
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_add.s -o %t.o
+RUN: %link %linkopts -static -e get_tls -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+#END_TEST
+
+# leaq disp32(%rax), %rax is encoded as 48 8d 80 <disp32>
+# tls_var is the only TLS var (4 bytes) so tpoff = 0 - 4 = -4 = 0xfffffffc
+CHECK: <get_tls>:
+CHECK-NEXT: {{[0-9a-f]+}}: 48 8d 80 fc ff ff ff {{.*}}leaq

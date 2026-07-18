@@ -1,0 +1,18 @@
+#--TLSIERelax_StaticMov.test----------Static Executable--------#
+# R_X86_64_GOTTPOFF IE→LE relaxation: static link, movq sub-case.
+# movq tls_var@gottpoff(%rip), %rax  →  movq $tpoff, %rax
+# Also verifies that no .got section is allocated for the relaxed symbol.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_mov.s -o %t.o
+RUN: %link %linkopts -static -e get_tls -o %t.eld %t.o
+RUN: %objdump -d %t.eld | %filecheck %s
+RUN: %readelf -W -S %t.eld | %filecheck %s --check-prefix=NOGOT
+#END_TEST
+
+# movq $imm32, %rax is encoded as 48 c7 c0 <imm32>
+# tls_var is the only TLS var (4 bytes) so tpoff = 0 - 4 = -4 = 0xfffffffc
+CHECK: <get_tls>:
+CHECK-NEXT: {{[0-9a-f]+}}: 48 c7 c0 fc ff ff ff {{.*}}movq
+
+# No .got section should appear (or it should have zero size) after relaxation.
+NOGOT-NOT: .got{{[^p]}}

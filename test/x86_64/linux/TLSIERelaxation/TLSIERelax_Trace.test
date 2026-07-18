@@ -1,0 +1,10 @@
+#--TLSIERelax_Trace.test----------Static Executable--------#
+# --trace=relax emits a message for each relaxed GOTTPOFF reference.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_mov.s -o %t.o
+RUN: %link %linkopts --trace=relax -static -e get_tls -o %t.eld %t.o 2>&1 \
+RUN:   | %filecheck %s
+#END_TEST
+
+# The relaxed GOTTPOFF reference must produce a trace message.
+CHECK: Trace: relaxed GOTTPOFF (mov->movimm) for symbol 'tls_var' to TP-relative immediate in section {{.*}}+0x{{[0-9a-f]+}} file {{.*}}

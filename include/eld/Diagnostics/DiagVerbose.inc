@@ -36,6 +36,9 @@ DIAG(relax_to_compress, DiagnosticEngine::Verbose,
      "%3 in section %4+0x%5 file %6")
 DIAG(trace_relax_gotpcrelx, DiagnosticEngine::Trace,
      "%0: relaxed GOTPCRELX (%1) for symbol '%2' to PC-relative access")
+DIAG(trace_relax_gottpoff, DiagnosticEngine::Trace,
+     "relaxed GOTTPOFF (%0) for symbol '%1' to TP-relative immediate in "
+     "section %2+0x%3 file %4")
 DIAG(verbose_ehframe_remove_fde, DiagnosticEngine::Verbose, "EhFrame %0")
 DIAG(verbose_ehframe_read_fde, DiagnosticEngine::Verbose, "EhFrame %0")
 DIAG(verbose_ehframe_read_cie, DiagnosticEngine::Verbose, "EhFrame %0")

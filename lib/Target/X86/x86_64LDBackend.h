@@ -109,6 +109,18 @@ public:
   /// fragment). Relaxation is disabled for partial links.
   bool isGOTPCRELXRelaxable(const Relocation *reloc) const;
 
+  /// Returns true if a GOTTPOFF relocation is eligible for IE->LE relaxation.
+  /// Checks: not a partial link, type R_X86_64_GOTTPOFF, addend == -4,
+  /// RegionFragment with offset >= 3, and opcode is MOV (0x8b) or ADD (0x03).
+  /// Non-preemptibility and output-is-executable are checked in the scan.
+  bool isTLSIERelaxable(const Relocation *reloc) const;
+
+  /// Returns true if the GOTTPOFF scan should record pReloc as an IE->LE
+  /// candidate and skip GOT creation. Combines isTLSIERelaxable and the
+  /// link-type / preemptibility condition. IE->LE is a mandatory ABI
+  /// transition.
+  bool shouldRelaxTLSIEToLE(const Relocation *reloc, bool pPreemptible) const;
+
   /// Records a relocation that the scan phase has decided to relax, so that
   /// postProcessing can iterate only these candidates instead of re-walking
   /// every relocation. Thread-safe: called from the parallel scan under the
@@ -122,6 +134,19 @@ public:
   /// the apply-path guard to avoid re-deriving relaxability.
   bool isGOTPCRELXRelaxCandidate(Relocation *reloc) const {
     return m_GOTPCRELXRelaxCandidates.count(reloc) != 0;
+  }
+
+  /// Records a GOTTPOFF relocation whose scan phase decided on IE→LE
+  /// relaxation (a non-preemptible symbol in an executable). The GOT slot is
+  /// not allocated; postProcessing rewrites the instruction bytes.
+  void recordTLSIERelaxCandidate(Relocation *reloc) {
+    m_TLSIERelaxCandidates.insert(reloc);
+  }
+
+  /// O(1) membership check used by shouldIgnoreRelocSync and the apply-path
+  /// guard in relocGOTRelative.
+  bool isTLSIERelaxCandidate(Relocation *reloc) const {
+    return m_TLSIERelaxCandidates.count(reloc) != 0;
   }
 
   DynRelocType getDynRelocType(const Relocation *X) const override {
@@ -179,6 +204,10 @@ private:
   /// signed 32-bit field.
   eld::Expected<void> relaxGOTPCRELXReloc(Relocation *reloc, uint8_t *buf);
 
+  /// Rewrites a single GOTTPOFF IE→LE candidate: patches REX, opcode,
+  /// ModR/M, and the 4-byte immediate in the output buffer.
+  eld::Expected<void> relaxTLSIEReloc(Relocation *reloc, uint8_t *buf);
+
   /// Iterates the cached relaxation candidates and rewrites each one.
   eld::Expected<void> doRelax(llvm::FileOutputBuffer &pOutput);
 
@@ -198,6 +227,10 @@ private:
   /// postProcessing. unordered_set for O(1) membership checks in
   /// shouldIgnoreRelocSync and the apply-path guard.
   std::unordered_set<Relocation *> m_GOTPCRELXRelaxCandidates;
+
+  /// Relocations selected for GOTTPOFF IE→LE relaxation during the scan
+  /// phase (non-preemptible symbols in executables).
+  std::unordered_set<Relocation *> m_TLSIERelaxCandidates;
 };
 } // namespace eld
 

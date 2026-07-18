@@ -151,7 +151,46 @@ bool x86_64LDBackend::isGOTPCRELXRelaxable(const Relocation *reloc) const {
 }
 
 bool x86_64LDBackend::shouldIgnoreRelocSync(Relocation *reloc) const {
-  return isGOTPCRELXRelaxCandidate(reloc);
+  return isGOTPCRELXRelaxCandidate(reloc) || isTLSIERelaxCandidate(reloc);
+}
+
+bool x86_64LDBackend::isTLSIERelaxable(const Relocation *reloc) const {
+  // Partial links have no final layout; keep the GOT slot
+  if (config().isLinkPartial())
+    return false;
+  if (reloc->type() != llvm::ELF::R_X86_64_GOTTPOFF)
+    return false;
+  // GNU as emits GOTTPOFF with addend -4. An object with a different addend
+  // does not encode a standard gottpoff(%rip) load and cannot be rewritten.
+  if (static_cast<int64_t>(reloc->addend()) != -4)
+    return false;
+  // TLS symbols (STT_TLS) cannot be STT_GNU_IFUNC, so no IFUNC guard is
+  // needed here unlike isGOTPCRELXRelaxable.
+  auto *RF = llvm::dyn_cast<RegionFragment>(reloc->targetRef()->frag());
+  if (!RF)
+    return false;
+  uint32_t offset = reloc->targetRef()->offset();
+  // The rewrite reads REX at loc[-3], opcode at loc[-2], ModR/M at loc[-1].
+  if (offset < 3)
+    return false;
+  const uint8_t *loc =
+      reinterpret_cast<const uint8_t *>(RF->getRegion().data()) + offset;
+  uint8_t opcode = loc[-2];
+  // Only MOV (0x8b) and ADD (0x03) GOTTPOFF forms are relaxable.
+  return opcode == 0x8b || opcode == 0x03;
+}
+
+bool x86_64LDBackend::shouldRelaxTLSIEToLE(const Relocation *reloc,
+                                           bool pPreemptible) const {
+  // Unifies the two scan-call-sites: local (pPreemptible=false) and global.
+  // IE->LE is a mandatory ABI TLS transition.
+  if (!isTLSIERelaxable(reloc))
+    return false;
+  // Relax when the TP offset is a link-time constant: any executable
+  // (static, dynamic, or PIE) for non-preemptible symbols. Shared libraries
+  // are never relaxed even for hidden symbols — the loader places the DSO TLS
+  // block at a runtime-determined offset.
+  return !pPreemptible && config().isBuildingExecutable();
 }
 
 eld::Expected<void>
@@ -160,7 +199,7 @@ x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 
   // Relaxation rewrites bytes in the laid-out output image; it is not
   // applicable to partial links, which have no final layout.
-  if (config().options().getRelax() && !config().isLinkPartial())
+  if (!config().isLinkPartial())
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(doRelax(pOutput));
 
   return {};
@@ -168,21 +207,23 @@ x86_64LDBackend::postProcessing(llvm::FileOutputBuffer &pOutput) {
 
 eld::Expected<void> x86_64LDBackend::doRelax(llvm::FileOutputBuffer &pOutput) {
   uint8_t *buf = pOutput.getBufferStart();
-  // The scan phase already identified every relaxation candidate (skipping
-  // debug relocations and internal files, which never carry a relaxable
-  // relocation). Iterate that cached set instead of re-walking all
-  // relocations, and dispatch on the relocation type. Future relaxable types
-  // (e.g. R_X86_64_REX_GOTPCRELX, TLS relaxations) add a case here.
-  for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
-    switch (reloc->type()) {
-    case llvm::ELF::R_X86_64_GOTPCRELX:
-      ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
-      break;
-    default:
-      // Only relaxable types are recorded as candidates; skip anything else.
-      break;
+  // The scan phase already identified every relaxation candidate.
+  // GOTPCRELX relaxation is optional (gated on --relax); IE→LE is a mandatory
+  // ABI TLS transition and runs unconditionally (mirrors GD→LE).
+  if (config().options().getRelax()) {
+    for (Relocation *reloc : m_GOTPCRELXRelaxCandidates) {
+      switch (reloc->type()) {
+      case llvm::ELF::R_X86_64_GOTPCRELX:
+        ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxGOTPCRELXReloc(reloc, buf));
+        break;
+      default:
+        // Only relaxable types are recorded as candidates; skip anything else.
+        break;
+      }
     }
   }
+  for (Relocation *reloc : m_TLSIERelaxCandidates)
+    ELDEXP_RETURN_DIAGENTRY_IF_ERROR(relaxTLSIEReloc(reloc, buf));
   return {};
 }
 
@@ -280,6 +321,90 @@ eld::Expected<void> x86_64LDBackend::relaxGOTPCRELXReloc(Relocation *reloc,
     location = traceSect->getLocation(offset, config().options());
     config().raise(Diag::trace_relax_gotpcrelx)
         << location << kind << rsym->name();
+  }
+
+  return {};
+}
+
+eld::Expected<void> x86_64LDBackend::relaxTLSIEReloc(Relocation *reloc,
+                                                     uint8_t *buf) {
+  // Only RegionFragment relocations can carry GOTTPOFF (object file code
+  // sections), and offset >= 3 is guaranteed by isTLSIERelaxable in scan.
+  auto *RF = llvm::cast<RegionFragment>(reloc->targetRef()->frag());
+
+  uint32_t offset = reloc->targetRef()->offset();
+  assert(offset >= 3 && "GOTTPOFF IE→LE relax candidate offset must be >= 3");
+
+  const uint8_t *loc =
+      reinterpret_cast<const uint8_t *>(RF->getRegion().data()) + offset;
+
+  uint64_t TLSTemplateSize = getTLSTemplateSize();
+  if (TLSTemplateSize == 0) {
+    config().raise(Diag::no_pt_tls_segment);
+    return {};
+  }
+
+  // finalizeTLSSymbol gives the PT_TLS-relative offset: sym_VA - tls_vaddr.
+  // The TP-relative offset for Variant 2 (x86-64) is S - TLSTemplateSize.
+  // The GOTTPOFF addend (-4) is a PC-relative displacement artifact of the
+  // original GOT-indirect load; it must NOT be included in the immediate.
+  uint64_t S = finalizeTLSSymbol(reloc->symInfo()->outSymbol());
+  int64_t tpoff =
+      static_cast<int64_t>(S) - static_cast<int64_t>(TLSTemplateSize);
+  uint32_t imm32 = static_cast<uint32_t>(tpoff);
+
+  FragmentRef::Offset off = reloc->targetRef()->getOutputOffset(m_Module);
+  if (off == (FragmentRef::Offset)-1)
+    return {};
+  size_t out_off = reloc->targetRef()->getOutputELFSection()->offset() + off;
+
+  uint8_t rex = loc[-3];
+  uint8_t opcode = loc[-2];
+  uint8_t modrm = loc[-1];
+  uint8_t reg = (modrm >> 3) & 0x7;
+
+  if (opcode == 0x8b) {
+    // movq gottpoff(%rip), %reg  ->  movq $tpoff, %reg
+    // REX.R (encodes reg field source) is no longer needed; REX.B (bit 0)
+    // selects r8-r15 in the 0xc0|reg ModRM. Map: 0x4c -> 0x49, else 0x48.
+    buf[out_off - 3] = (rex == 0x4c) ? 0x49 : 0x48;
+    buf[out_off - 2] = 0xc7;
+    buf[out_off - 1] = 0xc0 | reg;
+    llvm::support::endian::write32le(buf + out_off, imm32);
+  } else {
+    assert(opcode == 0x03 &&
+           "isTLSIERelaxable only passes 0x8b and 0x03 opcodes");
+    if (modrm == 0x25) {
+      // addq gottpoff(%rip), %rsp/%r12  ->  addq $tpoff, %rsp/%r12
+      // leaq would need a SIB byte (8 bytes total); addq $imm stays at 7.
+      buf[out_off - 3] = (rex == 0x4c) ? 0x49 : 0x48;
+      buf[out_off - 2] = 0x81;
+      buf[out_off - 1] = 0xc4;
+      llvm::support::endian::write32le(buf + out_off, imm32);
+    } else {
+      // addq gottpoff(%rip), %reg  ->  leaq tpoff(%reg), %reg
+      // For r8-r15 (REX was 0x4c), the new form needs REX.W + REX.R + REX.B
+      // because both the base and destination are the same extended register.
+      buf[out_off - 3] = (rex == 0x4c) ? 0x4d : 0x48;
+      buf[out_off - 2] = 0x8d;
+      buf[out_off - 1] = 0x80 | (reg << 3) | reg;
+      llvm::support::endian::write32le(buf + out_off, imm32);
+    }
+  }
+
+  if (m_Module.getPrinter()->traceRelax()) {
+    ResolveInfo *rsym = reloc->symInfo();
+    ELFSection *traceSect = RF->getOwningSection();
+    assert(traceSect &&
+           "RegionFragment in relax candidate must have an owning section");
+    std::string fileName;
+    if (InputFile *F = traceSect->getInputFile())
+      if (auto *I = F->getInput())
+        fileName = I->decoratedPath();
+    const char *kind = (opcode == 0x8b) ? "mov->movimm" : "add->lea/addimm";
+    config().raise(Diag::trace_relax_gottpoff)
+        << kind << rsym->name() << traceSect->name() << llvm::utohexstr(offset)
+        << fileName;
   }
 
   return {};

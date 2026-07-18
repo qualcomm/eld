@@ -1,0 +1,16 @@
+#--TLSIERelax_ExecNonPreemptible.test----------PIE Executable--------#
+# R_X86_64_GOTTPOFF IE→LE relaxation: -pie link, hidden global symbol.
+# Hidden symbols are non-preemptible in all link types; the relaxation must
+# fire and no R_X86_64_TPOFF64 dynamic reloc should be emitted.
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/tls_ie_hidden.s -o %t.o
+RUN: %link %linkopts -pie -e get_tls -o %t.eld %t.o --defsym __libc_start_main=0
+RUN: %objdump -d %t.eld | %filecheck %s
+RUN: %readelf -r %t.eld | %filecheck %s --check-prefix=NORELOC
+#END_TEST
+
+# movq $imm32, %rax encoding
+CHECK: {{[0-9a-f]+}}: 48 c7 c0 {{.*}}
+
+# No TPOFF64 dynamic reloc should be present after relaxation.
+NORELOC-NOT: R_X86_64_TPOFF64
