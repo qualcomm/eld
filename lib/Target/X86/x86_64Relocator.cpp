@@ -136,7 +136,12 @@ void x86_64Relocator::scanRelocation(Relocation &pReloc,
   // symbol
   if (rsym->isUndef() || rsym->isBitCode()) {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
-    if (!m_Target.canProvideSymbol(rsym)) {
+    // A companion call reloc in an LD→LE relaxed sequence has its bytes
+    // overwritten by postProcessing; the symbol never needs to be resolved.
+    // isTLSLDCompanion identifies companions positionally (independent of
+    // reloc type or symbol name), so this suppression is precise.
+    if (!m_Target.isTLSLDCompanion(&pReloc) &&
+        !m_Target.canProvideSymbol(rsym)) {
       if (m_Target.canIssueUndef(rsym)) {
         if (rsym->visibility() != ResolveInfo::Default)
           issueInvisibleRef(pReloc, pInputFile);
@@ -236,10 +241,6 @@ x86_64GOT *x86_64Relocator::getTLSModuleID(ResolveInfo *R, bool isStatic) {
 
   G = m_Target.createGOT(GOT::TLS_LD, nullptr, nullptr);
 
-  ASSERT(!isStatic,
-         "We always need to relax if -static because libc.a doesn't "
-         "contain__tls_get_addr(). Relaxations are currently unsupported");
-
   if (!isStatic)
     helper_DynRel_init(m_Target.getDynamicSectionHeadersInputFile(), nullptr,
                        nullptr, G, 0x0, llvm::ELF::R_X86_64_DTPMOD64, m_Target);
@@ -253,6 +254,18 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
+  // The companion call reloc of a LD→LE relaxed sequence (PLT32/PC32 for the
+  // direct call, GOTPCRELX/GOTPCREL for the -fno-plt indirect call) has its
+  // bytes overwritten by postProcessing, so no GOT/PLT entry is needed for it.
+  // A single positional check here subsumes the per-type guards that would
+  // otherwise be scattered across the relevant cases. Locked because
+  // isTLSLDCompanion reads m_TLSLDFragOffsets, which other scan threads write
+  // under the same mutex.
+  {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (m_Target.isTLSLDCompanion(&pReloc))
+      return;
+  }
   switch (pReloc.type()) {
   case llvm::ELF::R_X86_64_64: {
     if (config().isCodeIndep()) {
@@ -313,7 +326,23 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
   }
   case llvm::ELF::R_X86_64_TLSLD: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Static builds have no __tls_get_addr in libc.a; LD→LE relaxation is
+    // mandatory. recordTLSLDLERelaxCandidate checks all eligibility conditions
+    // (static build, RegionFragment, offset >= 3) and records the candidate.
+    // A corrupt object with offset < 3 falls through to getTLSModuleID.
+    if (m_Target.recordTLSLDLERelaxCandidate(&pReloc))
+      return;
     getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
+    return;
+  }
+  case llvm::ELF::R_X86_64_DTPOFF32:
+  case llvm::ELF::R_X86_64_DTPOFF64: {
+    // Tag DTPOFF relocs that follow a relaxed TLSLD in the same fragment so
+    // relocDTPOFF can apply the TP-relative formula only for those.
+    // Lock held for both the read of m_TLSLDFragOffsets and the insert.
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (m_Target.isDTPOFFInRelaxedLDSequence(&pReloc))
+      m_Target.recordTLSLDRelaxDTPOFF(&pReloc);
     return;
   }
   default:
@@ -329,6 +358,19 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   ELFObjectFile *Obj = llvm::dyn_cast<ELFObjectFile>(&pInputFile);
   // rsym - The relocation target symbol
   ResolveInfo *rsym = pReloc.symInfo();
+
+  // The companion call reloc of a LD→LE relaxed sequence (PLT32 for the direct
+  // call, GOTPCRELX/GOTPCREL for the -fno-plt indirect call) has its bytes
+  // overwritten by postProcessing, so no GOT/PLT entry is needed for it. A
+  // single positional check here subsumes the per-type guards that would
+  // otherwise be scattered across the PLT32/GOTPCRELX/GOTPCREL cases. Locked
+  // because isTLSLDCompanion reads m_TLSLDFragOffsets, which other scan threads
+  // write under the same mutex.
+  {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (m_Target.isTLSLDCompanion(&pReloc))
+      return;
+  }
 
   switch (pReloc.type()) {
   case llvm::ELF::R_X86_64_64: {
@@ -501,7 +543,17 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
   }
   case llvm::ELF::R_X86_64_TLSLD: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    // Static builds: LD→LE is mandatory; use the same helper as scanLocalReloc.
+    if (m_Target.recordTLSLDLERelaxCandidate(&pReloc))
+      return;
     getTLSModuleID(pReloc.symInfo(), config().isCodeStatic());
+    return;
+  }
+  case llvm::ELF::R_X86_64_DTPOFF32:
+  case llvm::ELF::R_X86_64_DTPOFF64: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
+    if (m_Target.isDTPOFFInRelaxedLDSequence(&pReloc))
+      m_Target.recordTLSLDRelaxDTPOFF(&pReloc);
     return;
   }
   default:
@@ -660,6 +712,10 @@ Relocator::Result eld::relocAbs(Relocation &pReloc, x86_64Relocator &pParent,
 
 Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
                                   RelocationDescription &pRelocDesc) {
+  // R_X86_64_PC32 __tls_get_addr in a static+LD→LE link: the bytes are
+  // overwritten by the LD→LE sequence (same as PLT32 — both use opcode 0xe8).
+  if (pParent.getTarget().isTLSLDCompanion(&pReloc))
+    return Relocator::OK;
   //  ResolveInfo *rsym = pReloc.symInfo();
   uint32_t Result;
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
@@ -696,6 +752,11 @@ Relocator::Result eld::relocPCREL(Relocation &pReloc, x86_64Relocator &pParent,
 // Formula: S + A - P (or PLT_entry + A - P if symbol has PLT)
 Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
                                   RelocationDescription &pRelocDesc) {
+  // PLT32 __tls_get_addr in a static+LD→LE link: the bytes are overwritten by
+  // the 12-byte LD→LE sequence, so there is no displacement to compute.
+  if (pParent.getTarget().isTLSLDCompanion(&pReloc))
+    return Relocator::OK;
+
   DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
   ResolveInfo *symInfo = pReloc.symInfo();
   Relocator::Address S;
@@ -738,6 +799,11 @@ Relocator::Result eld::relocGOTRelative(Relocation &pReloc,
   if (pParent.getTarget().isGOTPCRELXRelaxCandidate(&pReloc))
     return Relocator::OK;
 
+  // TLSLD candidates and their companion call relocs: bytes overwritten by
+  // the LD→LE rewrite; no GOT entry was created in scan.
+  if (pParent.getTarget().isTLSLDRelaxCandidate(&pReloc))
+    return Relocator::OK;
+
   Relocator::DWord A = pReloc.addend();
   Relocator::DWord P = pReloc.place(pParent.module());
   x86_64GOT *gotEntry = pParent.getTarget().findEntryInGOT(symInfo);
@@ -770,6 +836,24 @@ Relocator::Result eld::relocDTPOFF(Relocation &pReloc, x86_64Relocator &pParent,
   const GeneralOptions &options = pParent.config().options();
   uint64_t S = pParent.getSymValue(&pReloc);
   Relocator::DWord A = pReloc.addend();
+
+  // DTPOFF32/64 that follow a relaxed LD→LE sequence are tagged during scan.
+  // For those, %rax holds %fs:0 (TP) after relaxation, so the offset must be
+  // TP-relative (S + A - TLSTemplateSize). All other DTPOFF relocs (data,
+  // unrelaxed sequences, shared objects) remain module-relative (S + A).
+  if (pParent.getTarget().isTLSLDRelaxDTPOFF(&pReloc)) {
+    uint64_t TLSTemplateSize = pParent.getTarget().getTLSTemplateSize();
+    if (TLSTemplateSize == 0) {
+      pParent.config().raise(Diag::no_pt_tls_segment);
+      return Relocator::BadReloc;
+    }
+    int64_t Result =
+        static_cast<int64_t>(S + A) - static_cast<int64_t>(TLSTemplateSize);
+    return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
+  }
+
+  // Shared object: dtpoff is module-relative (loader fills DTPMOD64 at
+  // runtime, runtime computes module_base + dtpoff).
   int64_t Result = S + A;
   return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
 }
