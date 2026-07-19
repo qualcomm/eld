@@ -548,7 +548,7 @@ bool ARMGNULDBackend::readSection(InputFile &pInput, ELFSection *S) {
 
 void ARMGNULDBackend::doPostLayout() {
   {
-    eld::RegisterTimer T("Sort EXIDX Fragments if Present", "Do Post Layout",
+    eld::RegisterTimer T("Sort EXIDX Fragments if Present", "Layout",
                          m_Module.getConfig().options().printTimingStats());
     ELFSection *exidx =
         m_Module.getScript().sectionMap().find(llvm::ELF::SHT_ARM_EXIDX);

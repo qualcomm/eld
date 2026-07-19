@@ -100,7 +100,7 @@ bool LibReader::readLib(InputBuilder::InputIteratorT &CurNode,
   std::string ArchiveName = getStartLibArchiveName(IsThin, LibId);
   MemoryArea *MemArea = CachedArchiveArea;
   if (!MemArea) {
-    eld::RegisterTimer T("Build --start-lib archive", "Read all Input files",
+    eld::RegisterTimer T("Build --start-lib archive", "Read",
                          Config.options().printTimingStats());
     llvm::Expected<std::unique_ptr<llvm::MemoryBuffer>> ExpArchiveBuf =
         llvm::writeArchiveToBuffer(Members,

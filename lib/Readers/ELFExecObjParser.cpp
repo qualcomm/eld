@@ -82,7 +82,7 @@ eld::Expected<void> ELFExecObjParser::readSections(ELFReaderBase &ELFReader) {
   LinkerConfig &config = m_Module.getConfig();
   InputFile *inputFile = ELFReader.getInputFile();
   GNULDBackend &backend = m_Module.getBackend();
-  eld::RegisterTimer T("Read Sections", "Link Summary",
+  eld::RegisterTimer T("Read Sections", "Read",
                        config.options().printTimingStats());
 
   if (m_Module.getPrinter()->traceFiles())
