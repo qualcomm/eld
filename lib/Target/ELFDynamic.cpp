@@ -167,7 +167,7 @@ void ELFDynamic::reserveEntries(GNULDBackend &pBackend, DynStrFragment *DynStr,
   if (pModule.getSection(".gnu.hash"))
     reserveOne(llvm::ELF::DT_GNU_HASH);
 
-  if (pModule.getSection(".dynsym")) {
+  if (pBackend.getDynSymSection()) {
     reserveOne(llvm::ELF::DT_SYMTAB); // DT_SYMTAB
     reserveOne(llvm::ELF::DT_SYMENT); // DT_SYMENT
   }
@@ -324,10 +324,12 @@ void ELFDynamic::applyEntries(GNULDBackend &pBackend,
   if (pModule.getSection(".gnu.hash"))
     applyOne(llvm::ELF::DT_GNU_HASH, pModule.getSection(".gnu.hash")->addr());
 
-  if (pModule.getSection(".dynsym")) {
-    applyOne(llvm::ELF::DT_SYMTAB,
-             pModule.getSection(".dynsym")->addr()); // DT_SYMTAB
-    applyOne(llvm::ELF::DT_SYMENT, symbolSize());    // DT_SYMENT
+  if (const ELFSection *DynSymSect = pBackend.getDynSymSection()) {
+    ELFSection *DynSymOut = DynSymSect->getOutputELFSection();
+    uint64_t DynSymAddr = DynSymOut ? (DynSymOut->addr() + DynSymSect->offset())
+                                    : DynSymSect->addr();
+    applyOne(llvm::ELF::DT_SYMTAB, DynSymAddr);   // DT_SYMTAB
+    applyOne(llvm::ELF::DT_SYMENT, symbolSize()); // DT_SYMENT
   }
 
   if (DynStrSect) {

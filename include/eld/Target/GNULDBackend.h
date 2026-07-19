@@ -44,6 +44,7 @@ namespace eld {
 class BuildIDFragment;
 class DynamicFragment;
 class DynStrFragment;
+class DynSymFragment;
 class BinaryFileParser;
 class BitcodeReader;
 class BranchIslandFactory;
@@ -178,6 +179,10 @@ public:
 
   ELFSection *getDynStrSection() const { return m_pDynStrSection; }
 
+  DynSymFragment *getDynSymFragment() const { return m_pDynSymFrag; }
+
+  ELFSection *getDynSymSection() const { return m_pDynSymSection; }
+
   DynamicFragment *getDynamicFragment() const { return m_pDynamicFrag; }
 
   ELFSection *getDynamicSection() const { return m_pDynamicSection; }
@@ -259,9 +264,6 @@ public:
 
   /// emitRegNamePools - emit regular name pools - .symtab, .strtab
   virtual eld::Expected<void> emitRegNamePools(llvm::FileOutputBuffer &pOutput);
-
-  /// emitNamePools - emit dynamic name pools - .dyntab, .dynstr, .hash
-  virtual bool emitDynNamePools(llvm::FileOutputBuffer &pOutput);
 
   void setHasStaticTLS(bool pVal = true) { m_bHasStaticTLS = pVal; }
 
@@ -1204,6 +1206,10 @@ protected:
   // Dynamic string table
   ELFSection *m_pDynStrSection = nullptr;
   DynStrFragment *m_pDynStrFrag = nullptr;
+
+  // Dynamic symbol table
+  ELFSection *m_pDynSymSection = nullptr;
+  DynSymFragment *m_pDynSymFrag = nullptr;
 
   // Dynamic section
   ELFSection *m_pDynamicSection = nullptr;

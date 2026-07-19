@@ -16,6 +16,10 @@ DynamicFragment::DynamicFragment(ELFSection *S, ELFDynamic &Dynamic)
 size_t DynamicFragment::size() const { return m_Dynamic.numOfBytes(); }
 
 eld::Expected<void> DynamicFragment::emit(MemoryRegion &Mr, Module &M) {
+  // Apply dynamic entries based on final link state before emitting
+  ELFSection *DynStr = M.getBackend().getDynStrSection();
+  m_Dynamic.applyEntries(M.getBackend(), DynStr, M);
+
   uint8_t *Base = Mr.begin() + getOffset(M.getConfig().getDiagEngine());
   MemoryRegion SubRegion(Base, m_Dynamic.numOfBytes());
   m_Dynamic.emit(*getOwningSection(), SubRegion);

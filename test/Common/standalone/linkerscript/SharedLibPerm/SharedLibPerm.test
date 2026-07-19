@@ -3,7 +3,9 @@ RUN: %clang %clangopts -c %p/Inputs/1.c -o %t1.o -fPIC
 RUN: %link %linkopts --rosegment -shared %t1.o -T %p/Inputs/script.t -o %t.out 2>&1
 RUN: %readelf -l -W %t.out |   %filecheck %s
 
-# CHECK:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  R  {{[x0-9a-z]+}}
+# The dynamic sections (.dynsym/.dynstr/.dynamic) are captured by the catch-all
+# *(*) rule into .others, so the output has three LOAD segments: R E (.text),
+# R (.rodata), and RW (.others).
 # CHECK:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  R E  {{[x0-9a-z]+}}
 # CHECK:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  R   {{[x0-9a-z]+}}
 # CHECK:  LOAD            {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  {{[x0-9a-z]+}}  RW   {{[x0-9a-z]+}}

@@ -17,21 +17,13 @@
 using namespace eld;
 
 ELFFileFormat::ELFFileFormat()
-    : f_pDynSymTab(nullptr), f_pShStrTab(nullptr), f_pStrTab(nullptr),
-      f_pSymTab(nullptr) {}
+    : f_pShStrTab(nullptr), f_pStrTab(nullptr), f_pSymTab(nullptr) {}
 
 void ELFFileFormat::initStdSections(Module &pModule, unsigned int pBitClass) {
   ELFSection *NullSection = createFileFormatSection(
       pModule, "", LDFileFormat::Null, llvm::ELF::SHT_NULL, 0x0, 0x0);
   NullSection->setOffset(0);
 
-  if (!pModule.getConfig().isCodeStatic() ||
-      pModule.getConfig().options().isPIE() ||
-      pModule.getConfig().options().forceDynamic()) {
-    f_pDynSymTab = createFileFormatSection(
-        pModule, ".dynsym", LDFileFormat::NamePool, llvm::ELF::SHT_DYNSYM,
-        llvm::ELF::SHF_ALLOC, pBitClass / 8);
-  }
   f_pShStrTab =
       createFileFormatSection(pModule, ".shstrtab", LDFileFormat::NamePool,
                               llvm::ELF::SHT_STRTAB, 0x0, 0x1);

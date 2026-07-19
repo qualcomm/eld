@@ -188,11 +188,8 @@ ELFObjectWriter::writeObject(llvm::FileOutputBuffer &CurOutput) {
   assert(IsDynobj || IsExec || IsBinary || IsObject);
 
   if (IsDynobj || IsExec) {
-    // Write out name pool sections: .dynsym, .dynstr, .hash
-    eld::RegisterTimer T("Emit Dynamic Name Pool sections", "Emit Output File",
-                         ThisModule.getConfig().options().printTimingStats());
-    if (!ThisModule.getBackend().emitDynNamePools(CurOutput))
-      return make_error_code(std::errc::function_not_supported);
+    // Dynamic sections are now emitted by their fragments during the regular
+    // section-writing loop, with entries applied by DynamicFragment::emit()
   }
 
   if (IsObject || IsDynobj || IsExec) {
@@ -728,10 +725,10 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
     Link = ThisModule.getBackend().getDynStrSection();
   if (llvm::ELF::SHT_HASH == S->getType() ||
       llvm::ELF::SHT_GNU_HASH == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
+    Link = ThisModule.getBackend().getDynSymSection();
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
   if (llvm::ELF::SHT_GNU_versym == S->getType())
-    Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
+    Link = ThisModule.getBackend().getDynSymSection();
   if (llvm::ELF::SHT_GNU_verdef == S->getType())
     Link = ThisModule.getBackend().getDynStrSection();
   if (llvm::ELF::SHT_GNU_verneed == S->getType())
@@ -744,7 +741,7 @@ uint64_t ELFObjectWriter::getSectLink(const ELFSection *S) const {
     if (S->getKind() != LDFileFormat::DynamicRelocation)
       Link = ThisModule.getBackend().getOutputFormat()->getSymTab();
     else
-      Link = ThisModule.getBackend().getOutputFormat()->getDynSymTab();
+      Link = ThisModule.getBackend().getDynSymSection();
   }
   if (!Link)
     return ThisModule.getBackend().getSectLink(S);

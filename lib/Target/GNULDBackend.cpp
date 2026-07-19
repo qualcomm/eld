@@ -22,6 +22,7 @@
 #include "eld/Diagnostics/DiagnosticInfos.h"
 #include "eld/Fragment/BuildIDFragment.h"
 #include "eld/Fragment/DynStrFragment.h"
+#include "eld/Fragment/DynSymFragment.h"
 #include "eld/Fragment/DynamicFragment.h"
 #include "eld/Fragment/EhFrameFragment.h"
 #include "eld/Fragment/FillFragment.h"
@@ -214,6 +215,15 @@ eld::Expected<void> GNULDBackend::initStdSections() {
 
   if (!config().isCodeStatic() || config().options().isPIE() ||
       config().options().forceDynamic()) {
+    ELFSection *DynSymSection = m_Module.createInternalSection(
+        Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
+        ".dynsym", llvm::ELF::SHT_DYNSYM, llvm::ELF::SHF_ALLOC,
+        config().targets().bitclass() / 8);
+    m_pDynSymFrag = make<DynSymFragment>(DynSymSection, DynamicSymbols,
+                                         config().targets().is32Bits());
+    DynSymSection->addFragmentAndUpdateSize(m_pDynSymFrag);
+    m_pDynSymSection = DynSymSection;
+
     ELFSection *DynStrSection = m_Module.createInternalSection(
         Module::InternalInputType::DynamicSections, LDFileFormat::Internal,
         ".dynstr", llvm::ELF::SHT_STRTAB, llvm::ELF::SHF_ALLOC, 1);
@@ -1094,31 +1104,12 @@ void GNULDBackend::sizeDynamic() {
     DTEntry->tag = llvm::ELF::DT_RUNPATH;
     DTEntry->value = RunPathOffset;
   }
-  // set size
-  if (config().targets().is32Bits()) {
-    getOutputFormat()->getDynSymTab()->setSize((DynamicSymbols.size()) *
-                                               sizeof(llvm::ELF::Elf32_Sym));
-  } else {
-    getOutputFormat()->getDynSymTab()->setSize((DynamicSymbols.size()) *
-                                               sizeof(llvm::ELF::Elf64_Sym));
-  }
 }
 
 void GNULDBackend::reserveDynamic() {
   if (config().isCodeStatic() && !config().options().forceDynamic())
     return;
   dynamic()->reserveEntries(*this, m_pDynStrFrag, m_Module);
-  // assignOffset() in createOutputSection zeroes NamePool section sizes since
-  // they have no input fragments. Restore the dynsym size so
-  // placeOutputSections sees a non-zero value and marks it wanted.
-  if (getOutputFormat()->getDynSymTab()) {
-    if (config().targets().is32Bits())
-      getOutputFormat()->getDynSymTab()->setSize(DynamicSymbols.size() *
-                                                 sizeof(llvm::ELF::Elf32_Sym));
-    else
-      getOutputFormat()->getDynSymTab()->setSize(DynamicSymbols.size() *
-                                                 sizeof(llvm::ELF::Elf64_Sym));
-  }
 }
 
 void GNULDBackend::initSymTab() {
@@ -1386,90 +1377,6 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
   return {};
 }
 
-/// emitDynNamePools - emit dynamic name pools - .dyntab, .dynstr, .hash
-///
-/// the size of these tables should be computed before layout
-/// layout should computes the start offset of these tables
-bool GNULDBackend::emitDynNamePools(llvm::FileOutputBuffer &pOutput) {
-  ELFSection *symtab_sect = m_Module.getSection(".dynsym");
-  ELFSection *strtab_sect = m_pDynStrSection;
-  ELFSection *dyn_sect = m_pDynamicSection;
-
-  bool BuildDynSym = false;
-
-  if (!dyn_sect || !dyn_sect->size())
-    return true;
-
-  // Build dynsym only if the dynsym section has some size reserved.
-  if (symtab_sect && !symtab_sect->isIgnore() && !symtab_sect->isDiscard() &&
-      symtab_sect->size())
-    BuildDynSym = true;
-
-  // Reset strtab if the strtab section is set to be Ignored or there is nothing
-  // that reserved size for it.
-  if (!(strtab_sect && !strtab_sect->isIgnore() && !strtab_sect->isDiscard() &&
-        strtab_sect->size()))
-    strtab_sect = nullptr;
-
-  llvm::ELF::Elf32_Sym *symtab32 = nullptr;
-  llvm::ELF::Elf64_Sym *symtab64 = nullptr;
-  if (BuildDynSym) {
-    MemoryRegion symtab_region = getFileOutputRegion(
-        pOutput, symtab_sect->offset(), symtab_sect->size());
-    // set up symtab_region
-    if (config().targets().is32Bits()) {
-      symtab32 = (llvm::ELF::Elf32_Sym *)symtab_region.begin();
-    } else if (config().targets().is64Bits()) {
-      symtab64 = (llvm::ELF::Elf64_Sym *)symtab_region.begin();
-    } else {
-      config().raise(Diag::unsupported_bitclass)
-          << config().targets().triple().str() << config().targets().bitclass();
-    }
-  }
-
-  // set up strtab_region
-  char *strtab = nullptr;
-  if (BuildDynSym) {
-    // Lets make sure that strtab section is not ignored.
-    if (!strtab_sect ||
-        (strtab_sect && strtab_sect->getKind() == LDFileFormat::Ignore)) {
-      config().raise(Diag::section_ignored) << ".dynstr";
-      return false;
-    }
-    ELFSection *StrtabOutSect = strtab_sect->getOutputELFSection();
-    ASSERT(StrtabOutSect, ".dynstr must be placed in an output section!");
-    MemoryRegion strtab_region = getFileOutputRegion(
-        pOutput, StrtabOutSect->offset(), StrtabOutSect->size());
-    strtab = (char *)strtab_region.begin();
-  }
-  size_t symIdx = 0;
-  size_t strtabsize = 0;
-
-  std::optional<size_t> firstNonLocal;
-
-  if (BuildDynSym) {
-    for (auto &D : DynamicSymbols) {
-      if (config().targets().is32Bits())
-        emitSymbol32(symtab32[symIdx], D->outSymbol(), strtab, strtabsize,
-                     symIdx, /*IsDynSymTab=*/true);
-      else
-        emitSymbol64(symtab64[symIdx], D->outSymbol(), strtab, strtabsize,
-                     symIdx, /*IsDynSymTab=*/true);
-      if ((D->isGlobal() || D->isWeak()) && !firstNonLocal)
-        firstNonLocal = symIdx;
-      symIdx++;
-      strtabsize += D->nameSize() + 1;
-    }
-  }
-
-  if (firstNonLocal)
-    symtab_sect->setInfo(*firstNonLocal);
-
-  dynamic()->applyEntries(*this, m_pDynStrSection, m_Module);
-
-  return true;
-}
-
 /// getSectionOrder
 unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
   bool linkerScriptHasSectionsCommand =
@@ -1506,6 +1413,9 @@ unsigned int GNULDBackend::getSectionOrder(const ELFSection &pSectHdr) const {
     return SHO_NAMEPOOL;
 
   if (pSectHdr.name() == ".dynstr")
+    return SHO_NAMEPOOL;
+
+  if (pSectHdr.name() == ".dynsym")
     return SHO_NAMEPOOL;
 
   if (pSectHdr.name() == ".dynamic")

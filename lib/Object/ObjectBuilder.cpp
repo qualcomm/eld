@@ -891,7 +891,7 @@ ObjectBuilder::getInputSectionsForRuleMatching(ObjectFile *ObjFile) {
       }
       if (SectionKind == LDFileFormat::Null ||
           SectionKind == LDFileFormat::StackNote ||
-          (SectionKind == LDFileFormat::NamePool && !IsLinkerInternal) ||
+          SectionKind == LDFileFormat::NamePool ||
           (SectionKind == LDFileFormat::Relocation && !IsLinkerInternal) ||
           SectionKind == LDFileFormat::Group)
         continue;
