@@ -8,7 +8,6 @@
 #include "eld/Input/ELFObjectFile.h"
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "x86_64PLT.h"
 #include "x86_64RelocationFunctions.h"

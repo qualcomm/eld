@@ -5,7 +5,6 @@ llvm_add_library(
   STATIC
   ELFDynamic.cpp
   ELFEmulation.cpp
-  ELFFileFormat.cpp
   ELFSegment.cpp
   ELFSegmentFactory.cpp
   TargetInfo.cpp

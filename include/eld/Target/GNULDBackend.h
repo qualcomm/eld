@@ -54,7 +54,6 @@ class SFrameSection;
 class ELFDynamic;
 class ELFDynObjFileFormat;
 class ELFExecFileFormat;
-class ELFFileFormat;
 class ELFObjectFile;
 class ELFObjectFileFormat;
 class ELFSegmentFactory;
@@ -162,7 +161,15 @@ public:
   /// initStdSections - initialize standard sections of the output file.
   virtual eld::Expected<void> initStdSections();
 
-  virtual ELFFileFormat *getOutputFormat() const;
+  /// createOutputSection - helper to create and register an output section
+  ELFSection *createOutputSection(llvm::StringRef pName,
+                                  LDFileFormat::Kind pKind, uint32_t pType,
+                                  uint32_t pFlag, uint32_t pAlign);
+
+  ELFSection *getShStrTab() const { return m_pShStrTab; }
+  ELFSection *getStrTab() const { return m_pStrTab; }
+  ELFSection *getSymTab() const { return m_pSymTab; }
+  ELFSection *getSymTabShndxr() const { return m_pSymTabShndxr; }
 
   Module &getModule() const { return m_Module; }
 
@@ -1124,7 +1131,11 @@ private:
 protected:
   Module &m_Module;
 
-  ELFFileFormat *m_pFileFormat = nullptr;
+  // Standard output sections (.shstrtab, .symtab, .strtab, .symtab_shndxr)
+  ELFSection *m_pShStrTab = nullptr;
+  ELFSection *m_pStrTab = nullptr;
+  ELFSection *m_pSymTab = nullptr;
+  ELFSection *m_pSymTabShndxr = nullptr;
 
   // TargetInfo
   TargetInfo *m_pInfo = nullptr;

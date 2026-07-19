@@ -19,7 +19,6 @@
 #include "AArch64Relocator.h"
 #include "eld/Readers/ELFSection.h"
 #include "eld/Support/MsgHandling.h"
-#include "eld/Target/ELFFileFormat.h"
 
 namespace eld {
 //===----------------------------------------------------------------------===//

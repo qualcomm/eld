@@ -34,7 +34,6 @@
 #include "eld/Support/TargetRegistry.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/Target/ELFDynamic.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "eld/Target/TargetInfo.h"
@@ -292,7 +291,6 @@ void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
   }
 
   assert(nullptr != getStubFactory() && nullptr != getBRIslandFactory());
-  ELFFileFormat *file_format = getOutputFormat();
   pFinished = true;
 
   if (config().options().fixCortexA53Erratum843419() && pass == 0) {
@@ -331,8 +329,8 @@ void AArch64LDBackend::mayBeRelax(int pass, bool &pFinished) {
               break;
             default: {
               // a stub symbol should be local
-              ELFSection &symtab = *file_format->getSymTab();
-              ELFSection &strtab = *file_format->getStrTab();
+              ELFSection &symtab = *getSymTab();
+              ELFSection &strtab = *getStrTab();
 
               // increase the size of .symtab and .strtab if needed
               symtab.setSize(symtab.size() + sizeof(llvm::ELF::Elf64_Sym));
@@ -475,8 +473,8 @@ void AArch64LDBackend::createErratum843419Stub(Fragment *frag,
   case GeneralOptions::StripLocals:
     break;
   default: {
-    ELFSection &symtab = *(getOutputFormat()->getSymTab());
-    ELFSection &strtab = *(getOutputFormat()->getStrTab());
+    ELFSection &symtab = *(getSymTab());
+    ELFSection &strtab = *(getStrTab());
     symtab.setSize(symtab.size() + (sizeof(llvm::ELF::Elf64_Sym) * 2));
     symtab.setInfo(symtab.getInfo() + 2);
     strtab.setSize(strtab.size() + (branchIsland->symInfo()->nameSize() * 2) +

@@ -10,7 +10,6 @@
 #include "eld/Support/MsgHandling.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/SymbolResolver/Resolver.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/DataTypes.h"

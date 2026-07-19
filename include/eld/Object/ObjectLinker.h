@@ -276,9 +276,6 @@ public:
   bool createOutputSection(ObjectBuilder &Builder, OutputSectionEntry *Output,
                            bool PostLayout = false);
 
-  // For sections inside ELFFileFormat
-  void markDiscardFileFormatSections();
-
   void assignOffset(OutputSectionEntry *);
 
   void assignOffset(ELFSection *);

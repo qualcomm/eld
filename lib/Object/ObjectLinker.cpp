@@ -63,7 +63,6 @@
 #include "eld/Support/Utils.h"
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/ResolveInfo.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/GNULDBackend.h"
 #include "eld/Target/LDFileFormat.h"
 #include "eld/Target/Relocator.h"
@@ -818,29 +817,6 @@ void ObjectLinker::assignOutputSections(std::vector<eld::InputFile *> &Inputs) {
   if (ThisModule->getPrinter()->allStats())
     ThisConfig.raise(Diag::linker_script_rule_matching_time)
         << (int)std::chrono::duration<double, std::milli>(End - Start).count();
-}
-
-// Sections in ELFFileFormat are not internal but are Output sections.
-// At the moment, there is  no way being marked with assignOutputSections
-// We traverse them explicitly to mark them as ignore before placing them.
-void ObjectLinker::markDiscardFileFormatSections() {
-  auto &SectionMap = ThisModule->getScript().sectionMap();
-  SectionMap::iterator It = SectionMap.findIter("/DISCARD/");
-  bool IsGnuCompatible =
-      (ThisConfig.options().getScriptOption() == GeneralOptions::MatchGNU);
-  for (auto &Sec : getTargetBackend().getOutputFormat()->getSections()) {
-    SectionMap::mapping Pair =
-        SectionMap.findIn(It, "internal", *Sec, false, "internal",
-                          Sec->sectionNameHash(), 0, 0, IsGnuCompatible);
-    if (Pair.first && Pair.first->isDiscard()) {
-      Sec->setKind(LDFileFormat::Ignore);
-      if (ThisConfig.options().isSectionTracingRequested() &&
-          ThisConfig.options().traceSection(Pair.first->name().str())) {
-        ThisConfig.raise(Diag::discarded_section_info)
-            << Pair.first->getSection()->getDecoratedName(ThisConfig.options());
-      }
-    }
-  }
 }
 
 bool ObjectLinker::mergeInputSections(ObjectBuilder &Builder,

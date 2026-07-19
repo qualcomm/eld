@@ -34,7 +34,6 @@
 #include "eld/SymbolResolver/IRBuilder.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "eld/Target/ELFDynamic.h"
-#include "eld/Target/ELFFileFormat.h"
 #include "eld/Target/ELFSegment.h"
 #include "eld/Target/ELFSegmentFactory.h"
 #include "llvm/ADT/Hashing.h"
@@ -534,7 +533,6 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
     return;
   }
   assert(nullptr != getStubFactory() && nullptr != getBRIslandFactory());
-  ELFFileFormat *file_format = getOutputFormat();
   pFinished = true;
   std::vector<OutputSectionEntry *> OutSections;
   std::vector<RegionFragmentEx *> FragsForRelaxation;
@@ -594,8 +592,8 @@ void HexagonLDBackend::mayBeRelax(int, bool &pFinished) {
             default: {
               std::lock_guard<std::mutex> Guard(Mutex);
               // a stub symbol should be local
-              ELFSection &symtab = *file_format->getSymTab();
-              ELFSection &strtab = *file_format->getStrTab();
+              ELFSection &symtab = *getSymTab();
+              ELFSection &strtab = *getStrTab();
 
               // increase the size of .symtab and .strtab if needed
               symtab.setSize(symtab.size() + sizeof(llvm::ELF::Elf32_Sym));
