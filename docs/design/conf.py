@@ -33,6 +33,7 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
+    'myst_parser',
               # For now, do not use the githubpages extension
               # because the machines that run our buildbots do
               # not have this package installed
@@ -45,8 +46,9 @@ templates_path = ['halidetemplates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+# source_suffix = ['.md']
+source_suffix = '.md'
+myst_enable_extensions = ['colon_fence', 'deflist']
 
 # The master toctree document.
 master_doc = 'index'
@@ -71,7 +73,7 @@ release = u'2.3.0'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

@@ -78,7 +78,7 @@ class Option:
         option_forms = self.get_all_option_forms()
         if not option_forms:
             return
-        out.write(".. option:: " + ", ".join(option_forms))
+        out.write("```{option} " + ", ".join(option_forms))
         out.write("\n")
         if self.help_text:
             out.write("\n")
@@ -86,19 +86,15 @@ class Option:
             out.write("\n")
         if supplement:
             out.write("\n")
-            # Indent every line of the supplement by 3 spaces so it sits
-            # inside the .. option:: directive body.
-            indented = "\n".join(
-                "   " + line if line.strip() else line
-                for line in supplement.splitlines()
-            )
-            out.write(indented)
-            out.write("\n")
+            out.write(supplement)
+            if not supplement.endswith("\n"):
+                out.write("\n")
+        out.write("```\n")
 
     @classmethod
     def fixHelpTextFormatting(self, help_text):
         """
-        Modifies help text formatting to be as per restructureText expectations.
+        Modifies help text formatting to be as per Markdown expectations.
         One of the complication transformations it performs is transforming
         documentation such as:
 
@@ -119,7 +115,6 @@ class Option:
             help_text = help_text.replace("\n", "\n\n", 1)
         help_text = re.sub(r"^[ \t]+-", r"* \g<0>", help_text, 0, re.MULTILINE)
         help_text = help_text.replace("\t", "")
-        help_text = " " * 3 + help_text.replace("\n", "\n" + " " * 3)
         return help_text
 
 
@@ -143,9 +138,7 @@ class OptionGroup:
         )
 
     def generate_docs(self, out):
-        group_line = self.help_text + "\n"
-        out.write(group_line)
-        out.write("^" * len(group_line) + "\n")
+        out.write("### " + self.help_text + "\n\n")
 
 
 def create_groups(raw_options_info):
@@ -230,9 +223,9 @@ def create_argparser():
     parser = argparse.ArgumentParser(
         prog="GenerateOptionsDocsFromTblGen",
         description=(
-            "Utility script for generating sphinx restructureText "
-            "documentation for command-line options from JSON-dump of "
-            "command-line options TableGen file."
+            "Utility script for generating Sphinx Markdown documentation for "
+            "command-line options from JSON-dump of command-line options "
+            "TableGen file."
         ),
     )
 
@@ -253,8 +246,8 @@ def create_argparser():
         "--supplement",
         metavar="dir",
         help=(
-            "Directory containing supplemental RST documentation for options. "
-            "Each file must be named <option-name>.rst.in (without any prefix); "
+            "Directory containing supplemental Markdown documentation for options. "
+            "Each file must be named <option-name>.md.in (without any prefix); "
             "its contents are appended after the auto-generated HelpText."
         ),
     )
@@ -280,9 +273,9 @@ if __name__ == "__main__":
     if args.supplement:
         supplement_dir = args.supplement
         for filename in os.listdir(supplement_dir):
-            if not filename.endswith(".rst.in"):
+            if not filename.endswith(".md.in"):
                 continue
-            option_name = filename[: -len(".rst.in")]
+            option_name = filename[: -len(".md.in")]
             filepath = os.path.join(supplement_dir, filename)
             with open(filepath) as f:
                 supplements[option_name] = f.read()

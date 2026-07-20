@@ -42,13 +42,20 @@ if _BREATHE_XML_DIR:
 
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "_build_*", "**/_build", "**/_build_*"]
+exclude_patterns = [
+    "_build",
+    "_build_*",
+    "**/_build",
+    "**/_build_*",
+    "documentation/options/*LinkerOptions.md",
+]
 
 source_suffix = {
-    ".rst": "restructuredtext",
     ".md": "markdown",
 }
 master_doc = "index"
+
+myst_enable_extensions = ["colon_fence", "deflist"]
 
 language = "en"
 pygments_style = "sphinx"

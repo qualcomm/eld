@@ -42,7 +42,7 @@ if(LLVM_ENABLE_SPHINX)
         ${LINKER_OPTS_DUMP_DIR}/${target}LinkerOptionsTblGenDump.json
       DEPENDS eld-linkeroptions-create-json-dump-dir)
 
-    # Generates ${target}LinkerOptions restructureText documentation from the
+    # Generates ${target}LinkerOptions Markdown documentation from the
     # ${target}LinkerOptions JSON dump file.
     set(SKIP_OPTION "")
     if(NOT target MATCHES "Gnu")
@@ -54,7 +54,7 @@ if(LLVM_ENABLE_SPHINX)
       COMMAND
         python3 ${CMAKE_CURRENT_SOURCE_DIR}/GenerateOptionsDocsFromTblGen.py
         ${LINKER_OPTS_DUMP_DIR}/${target}LinkerOptionsTblGenDump.json -o
-        ${DOCS_BUILD_SOURCE}/documentation/options/${target}LinkerOptions.rst
+        ${DOCS_BUILD_SOURCE}/documentation/options/${target}LinkerOptions.md
         ${SKIP_OPTION}
         -S ${OPTIONS_SUPPLEMENTS_DIR})
 
@@ -125,6 +125,7 @@ if(LLVM_ENABLE_SPHINX)
     add_custom_command(
       OUTPUT ${ELD_USERGUIDE_PDF} ${ELD_USERGUIDE_HTML_PDF}
       COMMAND
+        ${CMAKE_COMMAND} -E env --unset=PYTHONPATH
         ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/GenerateTypstPDF.py
         ${ELD_USERGUIDE_SINGLEHTML_DIR}/index.html ${ELD_USERGUIDE_TYPST}
