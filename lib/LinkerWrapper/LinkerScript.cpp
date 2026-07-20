@@ -473,9 +473,7 @@ bool plugin::Script::Assignment::isGlobal() const {
 
 bool plugin::Script::Assignment::isOutsideOutputSection() const {
   auto Level = m_Assignment->level();
-  return Level == eld::Assignment::BeforeSections ||
-         Level == eld::Assignment::AfterSections ||
-         Level == eld::Assignment::AfterOutputSection;
+  return Level != eld::Assignment::AfterInputSectDesc;
 }
 
 bool plugin::Script::Assignment::isInsideOutputSection() const {

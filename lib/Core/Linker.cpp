@@ -268,8 +268,9 @@ bool Linker::activateInputs(std::vector<InputAction *> &Actions) {
     }
     if (!Action->activate(IR->getInputBuilder()))
       return false;
-    if (!ObjLinker->readLinkerScript(
-            llvm::dyn_cast<eld::ScriptAction>(Action)->getLinkerScriptFile())) {
+    if (!ObjLinker->readAndActivateLinkerScript(
+            llvm::dyn_cast<eld::ScriptAction>(Action)->getLinkerScriptFile(),
+            ScriptFile::ScriptActivationKind::Early)) {
       ThisModule->setFailure(true);
       return false;
     }
