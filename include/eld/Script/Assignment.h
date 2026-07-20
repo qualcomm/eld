@@ -35,6 +35,7 @@ class ELFSection;
 class Assignment : public ScriptCommand {
 public:
   enum Level {
+    Unknown,
     BeforeSections,     // Assignments before any SECTIONS command
     AfterInputSectDesc, // Assignments inside output section body (with input
                         // rules)

@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 #include "eld/Script/SectionsCmd.h"
+#include "eld/Core/LinkerScript.h"
+#include "eld/Core/Module.h"
 #include "eld/Script/Assignment.h"
 #include "eld/Support/MsgHandling.h"
 #include "llvm/Support/Casting.h"
@@ -68,27 +70,28 @@ void SectionsCmd::pushBack(ScriptCommand *PCommand) {
 }
 
 eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
+  CurModule.getScript().setSeenSectionsForAssignmentLevels();
   // Assignment between output sections
   SectionCommands Assignments;
 
   for (const_iterator It = begin(), Ie = end(); It != Ie; ++It) {
     switch ((*It)->getKind()) {
     case ScriptCommand::ENTRY:
-      (*It)->activate(CurModule);
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR((*It)->activateOnce(CurModule));
       break;
     case ScriptCommand::ASSIGNMENT:
       Assignments.push_back(*It);
       break;
     case ScriptCommand::ASSERT:
-      (*It)->activate(CurModule);
+      ELDEXP_RETURN_DIAGENTRY_IF_ERROR((*It)->activateOnce(CurModule));
       break;
     case ScriptCommand::OUTPUT_SECT_DESC: {
       if (!Assignments.empty()) {
         for (auto *Assign : Assignments)
-          Assign->activate(CurModule);
+          ELDEXP_RETURN_DIAGENTRY_IF_ERROR(Assign->activateOnce(CurModule));
         Assignments.clear();
       }
-      eld::Expected<void> E = (*It)->activate(CurModule);
+      eld::Expected<void> E = (*It)->activateOnce(CurModule);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
       break;
     }
@@ -103,7 +106,7 @@ eld::Expected<void> SectionsCmd::activate(Module &CurModule) {
   }
   if (!Assignments.empty()) {
     for (auto *Assign : Assignments) {
-      eld::Expected<void> E = Assign->activate(CurModule);
+      eld::Expected<void> E = Assign->activateOnce(CurModule);
       ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
     }
     Assignments.clear();

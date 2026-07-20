@@ -20,6 +20,7 @@
 #include "eld/Script/Expression.h"
 #include "eld/SymbolResolver/LDSymbol.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 #include <cassert>
 
 using namespace eld;
@@ -73,6 +74,8 @@ void Assignment::dump(llvm::raw_ostream &Outs) const {
 
 void Assignment::trace(llvm::raw_ostream &Outs) const {
   switch (AssignmentLevel) {
+  case Unknown:
+    llvm_unreachable("assignment level must be resolved before tracing");
   case BeforeSections:
     Outs << "BEFORE_SECTIONS   >>  ";
     break;
@@ -97,6 +100,10 @@ void Assignment::dumpMap(llvm::raw_ostream &Ostream, bool Color,
                          bool UseNewLine, bool WithValues,
                          bool AddIndent) const {
   switch (AssignmentLevel) {
+  case Unknown:
+    // We should not assert here. This case can be reached when the link
+    // fails/crashes during input reading and the map-file is requested.
+    // llvm_unreachable("assignment level must be resolved before map dump");
   case BeforeSections:
   case AfterSections: {
     if (Color)
@@ -173,7 +180,14 @@ eld::Expected<void> Assignment::activate(Module &CurModule) {
 
   ExpressionToEvaluate->setContext(getContext());
 
+  if (AssignmentLevel == Unknown)
+    AssignmentLevel = Script.hasSeenSectionsForAssignmentLevels()
+                          ? AfterSections
+                          : BeforeSections;
+
   switch (AssignmentLevel) {
+  case Unknown:
+    llvm_unreachable("assignment level must be resolved before activation");
   case BeforeSections:
     break;
 
