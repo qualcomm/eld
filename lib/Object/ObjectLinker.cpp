@@ -197,58 +197,78 @@ bool ObjectLinker::initStdSections() {
   return true;
 }
 
-// Read Linker script Helper.
-bool ObjectLinker::readLinkerScript(InputFile *Input) {
-
-  LinkerScriptFile *LSFile = llvm::dyn_cast<eld::LinkerScriptFile>(Input);
-
-  if (LSFile->isParsed()) {
+bool ObjectLinker::parseLinkerScript(InputFile *input,
+                                     LinkerScriptFile *linkerScriptFile) {
+  if (linkerScriptFile->isParsed())
     return true;
-  }
 
-  // Record the linker script in the Map file.
   LayoutInfo *layoutInfo = ThisModule->getLayoutInfo();
   if (layoutInfo)
     layoutInfo->recordLinkerScript(
-        Input->getInput()->getFileName(), /*Found=*/true,
-        Input->getInput()->wasRemapped()
-            ? llvm::StringRef(Input->getInput()->getOriginalFileName())
+        input->getInput()->getFileName(), /*Found=*/true,
+        input->getInput()->wasRemapped()
+            ? llvm::StringRef(input->getInput()->getOriginalFileName())
             : llvm::StringRef());
 
-  ThisModule->getScript().addToHash(Input->getInput()->decoratedPath());
+  ThisModule->getScript().addToHash(input->getInput()->decoratedPath());
 
-  ScriptFile *S =
-      make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *LSFile,
+  ScriptFile *scriptFile =
+      make<ScriptFile>(ScriptFile::LDScript, *ThisModule, *linkerScriptFile,
                        ThisModule->getIRBuilder()->getInputBuilder());
 
-  LSFile->setParsed();
-  LSFile->setScriptFile(S);
+  linkerScriptFile->setParsed();
+  linkerScriptFile->setScriptFile(scriptFile);
 
-  bool SuccessFullInParse = getScriptReader()->readScript(ThisConfig, *S);
+  bool successfullyParsed =
+      getScriptReader()->readScript(ThisConfig, *scriptFile);
   if (layoutInfo)
     layoutInfo->closeLinkerScript();
 
-  // Error if the linker script has an issue parsing.
-  if (!SuccessFullInParse) {
+  if (!successfullyParsed) {
     ThisConfig.raise(Diag::file_has_error)
-        << Input->getInput()->getResolvedPath();
+        << input->getInput()->getResolvedPath();
     return false;
   }
-  // Update the caller with information if the linker script had sections et
-  // all.
-  if (S->linkerScriptHasSectionsCommand())
-    ThisModule->getScript().setHasSectionsCmd();
 
-  // Activate the Linker script.
-  eld::Expected<void> E = S->activate(*ThisModule);
+  if (scriptFile->linkerScriptHasSectionsCommand())
+    ThisModule->getScript().setHasSectionsCmd();
+  return true;
+}
+
+bool ObjectLinker::readAndActivateLinkerScript(
+    InputFile *input, ScriptFile::ScriptActivationKind kind) {
+  LinkerScriptFile *linkerScriptFile = llvm::dyn_cast<LinkerScriptFile>(input);
+  assert(linkerScriptFile && "Expected linker script input");
+
+  if (kind == ScriptFile::ScriptActivationKind::Early) {
+    assert(!linkerScriptFile->isEarlyActivated() &&
+           "Linker script is already early activated");
+    if (linkerScriptFile->isEarlyActivated())
+      return true;
+  } else {
+    assert(!linkerScriptFile->isFullyActivated() &&
+           "Linker script is already fully activated");
+    if (linkerScriptFile->isFullyActivated())
+      return true;
+  }
+
+  if (!parseLinkerScript(input, linkerScriptFile))
+    return false;
+
+  eld::Expected<void> E =
+      linkerScriptFile->getScript()->activate(*ThisModule, kind);
   if (!E) {
     ThisConfig.raiseDiagEntry(std::move(E.error()));
     if (!ThisConfig.getDiagEngine()->diagnose())
       return false;
   }
 
-  Input->setUsed(true);
+  if (kind == ScriptFile::ScriptActivationKind::Early)
+    linkerScriptFile->setEarlyActivated();
+  else
+    linkerScriptFile->setFullyActivated();
 
+  input->setUsed(true);
   return true;
 }
 
@@ -288,18 +308,35 @@ bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
       ThisModule->setFailure(true);
       return false;
     }
-    if (!readAndProcessInput(Input, MPostLtoPhase))
+    if (!readAndProcessInput(Input, MPostLtoPhase)) {
+      activateEarlyParsedLinkerScripts(InputVector);
       return false;
+    }
     if (Input->getInputFile()->getKind() == InputFile::GNULinkerScriptKind) {
       // Read inputs that the script contains.
       if (!readInputs(
               llvm::dyn_cast<eld::LinkerScriptFile>(Input->getInputFile())
                   ->getNodes())) {
+        activateEarlyParsedLinkerScripts(InputVector);
         return false;
       }
     }
   } // end of for
   return true;
+}
+
+void ObjectLinker::activateEarlyParsedLinkerScripts(
+    const std::vector<Node *> &InputVector) {
+  for (Node *N : InputVector) {
+    FileNode *File = llvm::dyn_cast<FileNode>(N);
+    if (!File)
+      continue;
+    InputFile *Input = File->getInput()->getInputFile();
+    LinkerScriptFile *LSFile = llvm::dyn_cast_or_null<LinkerScriptFile>(Input);
+    if (!LSFile || !LSFile->isEarlyActivated() || LSFile->isFullyActivated())
+      continue;
+    readAndActivateLinkerScript(LSFile, ScriptFile::ScriptActivationKind::Full);
+  }
 }
 
 bool ObjectLinker::normalize() {
@@ -3894,7 +3931,8 @@ bool ObjectLinker::readAndProcessInput(Input *Input, bool IsPostLto) {
       layoutInfo->recordInputKind(CurInput->getKind());
     addInputFileToTar(CurInput, eld::MappingFile::LinkerScript);
     CurInput->setToSkip();
-    if (!readLinkerScript(CurInput)) {
+    if (!readAndActivateLinkerScript(CurInput,
+                                     ScriptFile::ScriptActivationKind::Full)) {
       ThisModule->setFailure(true);
       return false;
     }

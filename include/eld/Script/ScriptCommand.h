@@ -73,7 +73,11 @@ public:
 
   virtual eld::Expected<void> activate(Module &) = 0;
 
+  eld::Expected<void> activateOnce(Module &M);
+
   Kind getKind() const { return ScriptFileKind; }
+
+  bool isActivated() const { return Activated; }
 
   /// ----------------- Extra Informative Context --------------
   void setInputFileInContext(InputFile *File) { ThisScriptFile = File; }
@@ -147,6 +151,7 @@ public:
 
 private:
   Kind ScriptFileKind;
+  bool Activated = false;
   InputFile *ThisScriptFile = nullptr;
   // m_LineNum represents the line number corresponding to the script command in
   // m_ScriptFile

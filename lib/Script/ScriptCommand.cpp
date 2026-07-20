@@ -36,6 +36,16 @@ void ScriptCommand::dumpMap(llvm::raw_ostream &Ostream, bool Color,
     Ostream.resetColor();
 }
 
+eld::Expected<void> ScriptCommand::activateOnce(Module &M) {
+  if (Activated)
+    return eld::Expected<void>();
+  eld::Expected<void> E = activate(M);
+  if (!E)
+    return E;
+  Activated = true;
+  return eld::Expected<void>();
+}
+
 uint32_t ScriptCommand::getDepth() const {
   uint32_t Depth = 0;
   eld::ScriptCommand *Parent = ParentScriptCommand;

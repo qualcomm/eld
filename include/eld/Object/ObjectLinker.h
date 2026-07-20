@@ -14,6 +14,7 @@
 #define ELD_OBJECT_OBJECTLINKER_H
 #include "eld/Core/Module.h"
 #include "eld/PluginAPI/Expected.h"
+#include "eld/Script/ScriptFile.h"
 #include "eld/Support/MappingFile.h"
 #include "eld/Support/Path.h"
 #include "eld/Target/Relocator.h"
@@ -55,6 +56,7 @@ class LibReader;
 class Input;
 class InputFile;
 class InputTree;
+class LinkerScriptFile;
 class IRBuilder;
 class LinkerConfig;
 class Module;
@@ -293,7 +295,12 @@ public:
   bool sortSections(RuleContainer *I, bool SortRule);
 
   // -------------------LinkerScript Support--------------------------------
-  bool readLinkerScript(InputFile *I);
+  bool parseLinkerScript(InputFile *I, LinkerScriptFile *LSFile);
+
+  bool readAndActivateLinkerScript(InputFile *I,
+                                   ScriptFile::ScriptActivationKind Kind);
+
+  void activateEarlyParsedLinkerScripts(const std::vector<Node *> &N);
 
   bool readInputs(const std::vector<Node *> &N);
 

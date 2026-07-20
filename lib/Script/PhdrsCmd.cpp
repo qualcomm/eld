@@ -31,7 +31,7 @@ void PhdrsCmd::pushBack(ScriptCommand *Cmd) { MPhdrs.push_back(Cmd); }
 
 eld::Expected<void> PhdrsCmd::activate(Module &CurModule) {
   for (auto &Elem : MPhdrs) {
-    eld::Expected<void> E = Elem->activate(CurModule);
+    eld::Expected<void> E = Elem->activateOnce(CurModule);
     ELDEXP_RETURN_DIAGENTRY_IF_ERROR(E);
   }
   return eld::Expected<void>();
