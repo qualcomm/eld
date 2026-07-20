@@ -1,8 +1,8 @@
 name: Zephyr build and test (reusable)
 
-# Reusable Zephyr build + twister body. Called by zephyr-nightly.yml (5-board
-# matrix, nightly ELD) and zephyr-pr.yml (aarch64, ELD from a PR's CI artifact).
-# Only `eld_source` differs between callers; the splice step onward is identical.
+# Reusable Zephyr build + twister body, called by zephyr-nightly.yml and
+# zephyr-pr.yml. Callers resolve a run id and pass the toolset artifact/tarball
+# names; the fetch step normalizes either source to ./inst.
 
 on:
   workflow_call:
@@ -25,16 +25,18 @@ on:
         required: false
         type: string
         default: "tests"
-      eld_source:
-        description: "Where ld.eld comes from: 'nightly' (FetchNightlyToolset) or 'artifact' (PR CI upload)"
-        required: false
+      toolset_run_id:
+        description: "Workflow run id to download the ELD toolset artifact from"
+        required: true
         type: string
-        default: "nightly"
-      artifact_run_id:
-        description: "ci.yml run id to download the pr-eld-toolset artifact from (eld_source=artifact)"
-        required: false
+      toolset_artifact:
+        description: "Artifact name to download (e.g. pr-eld-toolset or install-nightly-toolchain.tar.xz)"
+        required: true
         type: string
-        default: ""
+      toolset_tarball:
+        description: "Tar filename inside the artifact to extract (e.g. install-pr-toolset.tar.xz)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -91,27 +93,12 @@ jobs:
           arch-name: ${{ inputs.arch }}
           branch-name: "main"
 
-      # Both branches normalize the payload to ./inst so the splice is identical.
-      - name: Fetch nightly ELD
-        if: inputs.eld_source == 'nightly'
-        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
-
-      - name: Download PR ELD artifact
-        if: inputs.eld_source == 'artifact'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1
+      - name: Fetch ELD toolset
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchEldToolset
         with:
-          name: pr-eld-toolset
-          run-id: ${{ inputs.artifact_run_id }}
-          github-token: ${{ github.token }}
-
-      - name: Extract PR ELD artifact
-        if: inputs.eld_source == 'artifact'
-        shell: bash
-        run: |
-          mkdir -p inst
-          tar -xf install-pr-toolset.tar.xz -C inst --strip-components=1
-          ls inst
-          echo "PATH=$(pwd)/inst/bin:$PATH" >> $GITHUB_ENV
+          run-id: ${{ inputs.toolset_run_id }}
+          artifact-name: ${{ inputs.toolset_artifact }}
+          tarball: ${{ inputs.toolset_tarball }}
 
       - name: Install cpullvm toolchain and splice ELD
         run: |
@@ -226,16 +213,6 @@ jobs:
           path: |
             zephyr/twister-out/twister.log
             zephyr/twister-out/twister.json
-
-      - name: Upload build artifacts
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
-        with:
-          name: zephyr-build-artifacts-${{ inputs.board }}
-          retention-days: 2
-          path: |
-            zephyr/build/zephyr/zephyr.elf
-            zephyr/build/zephyr/zephyr.map
 
       - name: ccache stats (after build)
         if: always()

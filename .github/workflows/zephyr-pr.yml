@@ -1,12 +1,17 @@
 name: Zephyr on ELD PR
 
-# Opt-in: run Zephyr against a PR's own ELD build. Requires the
-# PR to carry the `zephyr-check` label so ci.yml uploads the `pr-eld-toolset`
-# artifact. Given a PR number, finds the latest successful ci.yml run for its
-# head commit; ci_run_id overrides. Scope: aarch64 (qemu_cortex_a53),
-# tests/kernel. Add arches later by mirroring zephyr-nightly.yml's matrix.
+# Run Zephyr against a PR's own ELD build. Opt-in via the `zephyr-check` label:
+# ci.yml uploads the `pr-eld-toolset` artifact only when the PR carries it, and
+# that artifact's presence gates this workflow. Triggers:
+#   - workflow_run: auto-fires when CI completes; skips if there's no artifact.
+#   - workflow_dispatch: manual. Give a PR number or an explicit ci_run_id.
+#     NOTE: workflow_run only fires from the default-branch copy, so the auto
+#     path can't be exercised pre-merge.
 
 on:
+  workflow_run:
+    workflows: ["CI"]   # ci.yml's `name:`
+    types: [completed]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -16,6 +21,11 @@ on:
         description: "CI (ci.yml) run id to pull ld.eld from (overrides auto-discovery)"
         required: false
   # pull_request: {} # Uncomment only to test this WF file update.
+
+# A newer CI completion for the same branch supersedes the previous run.
+concurrency:
+  group: zephyr-pr-${{ github.event.workflow_run.head_branch || github.event.inputs.pr_number || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -28,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run_id: ${{ steps.find.outputs.run_id }}
+      should_run: ${{ steps.find.outputs.should_run }}
     steps:
       - name: Resolve ci.yml run id
         id: find
@@ -42,13 +53,39 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+
+            // Auto path: chained off a completed CI run. A missing
+            // pr-eld-toolset artifact means the PR isn't labeled, so skip.
+            if (context.eventName === 'workflow_run') {
+              const wr = context.payload.workflow_run;
+              core.info(`workflow_run: id=${wr.id} event=${wr.event} conclusion=${wr.conclusion} branch=${wr.head_branch}`);
+              if (wr.conclusion !== 'success' || wr.event !== 'pull_request') {
+                core.info('Not a successful pull_request CI run; skipping.');
+                core.setOutput('should_run', 'false');
+                return;
+              }
+              const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner, repo, run_id: wr.id, per_page: 100,
+              });
+              if (!artifacts.some(a => a.name === 'pr-eld-toolset' && !a.expired)) {
+                core.info('No pr-eld-toolset artifact (PR not labeled zephyr-check); skipping.');
+                core.setOutput('should_run', 'false');
+                return;
+              }
+              core.info(`Using CI run ${wr.id}`);
+              core.setOutput('run_id', String(wr.id));
+              core.setOutput('should_run', 'true');
+              return;
+            }
+
+            // Manual path: workflow_dispatch.
             const ciRunId = (process.env.CI_RUN_ID || '').trim();
             const prNumber = (process.env.PR_NUMBER || process.env.EVENT_PR_NUMBER || '').trim();
 
-            // Explicit run id wins.
             if (ciRunId) {
               core.info(`Using explicit ci_run_id: ${ciRunId}`);
               core.setOutput('run_id', ciRunId);
+              core.setOutput('should_run', 'true');
               return;
             }
 
@@ -57,8 +94,7 @@ jobs:
               return;
             }
 
-            // Resolve the PR's head commit, then find the newest successful
-            // ci.yml run for that exact SHA.
+            // Find the newest successful ci.yml run for the PR's head SHA.
             const pr = await github.rest.pulls.get({
               owner, repo, pull_number: Number(prNumber),
             });
@@ -90,8 +126,8 @@ jobs:
             const run = success[0];
             core.info(`Latest successful ci.yml run: id=${run.id}, run_number=${run.run_number}`);
 
-            // Fail fast with a helpful message if the run predates the label
-            // (otherwise zephyr-run.yml's download-artifact fails cryptically).
+            // Fail with a clear message if the run predates the label, rather
+            // than letting the later download-artifact fail cryptically.
             const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
               owner, repo, run_id: run.id, per_page: 100,
             });
@@ -104,17 +140,31 @@ jobs:
             }
 
             core.setOutput('run_id', String(run.id));
+            core.setOutput('should_run', 'true');
 
   zephyr:
     needs: resolve
+    if: needs.resolve.outputs.should_run == 'true'
     permissions:
-      contents: write # zephyr-run.yml requires write (unused outside the nightly schedule path)
+      contents: read # caps zephyr-run.yml's declared write, only used on the nightly path
       actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { board: qemu_riscv32,     arch: riscv32,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
+          - { board: qemu_riscv32_xip, arch: riscv32,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
+          - { board: qemu_riscv64,     arch: riscv64,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
+          # cpullvm ARM picolibc is missing a _nopic version, so its objects
+          # have GOT relocations that fail when .got is discarded.
+          - { board: qemu_cortex_m3,   arch: arm,      extra_args: CONFIG_PICOLIBC_USE_MODULE=y }
+          - { board: qemu_cortex_a53,  arch: aarch64,  extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y }
     uses: ./.github/workflows/zephyr-run.yml
     with:
-      board: qemu_cortex_a53
-      arch: aarch64
-      extra_args: CONFIG_PICOLIBC_USE_TOOLCHAIN=y
+      board: ${{ matrix.target.board }}
+      arch: ${{ matrix.target.arch }}
+      extra_args: ${{ matrix.target.extra_args }}
       test_scope: tests/kernel
-      eld_source: artifact
-      artifact_run_id: ${{ needs.resolve.outputs.run_id }}
+      toolset_run_id: ${{ needs.resolve.outputs.run_id }}
+      toolset_artifact: pr-eld-toolset
+      toolset_tarball: install-pr-toolset.tar.xz

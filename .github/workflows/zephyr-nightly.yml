@@ -11,8 +11,37 @@ permissions:
   contents: write
   actions: read
 jobs:
-  zephyr:
+  resolve:
     if: github.repository == 'qualcomm/eld' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.find.outputs.run_id }}
+    steps:
+      - name: Resolve nightly-test.yml run id
+        id: find
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 #v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const resp = await github.rest.actions.listWorkflowRuns({
+              owner, repo,
+              workflow_id: 'nightly-test.yml',
+              status: 'success',
+              per_page: 1, // we only need the latest
+            });
+            const runs = resp.data.workflow_runs || [];
+            if (runs.length === 0) {
+              core.setFailed('No successful nightly-test.yml run found.');
+              return;
+            }
+            const run = runs[0];
+            core.info(`Latest successful nightly-test.yml run: id=${run.id}, run_number=${run.run_number}`);
+            core.setOutput('run_id', String(run.id));
+
+  zephyr:
+    needs: resolve
     strategy:
       fail-fast: false
       matrix:
@@ -30,4 +59,6 @@ jobs:
       arch: ${{ matrix.target.arch }}
       extra_args: ${{ matrix.target.extra_args }}
       test_scope: tests
-      eld_source: nightly
+      toolset_run_id: ${{ needs.resolve.outputs.run_id }}
+      toolset_artifact: install-nightly-toolchain.tar.xz
+      toolset_tarball: install-nightly-toolchain.tar.xz
