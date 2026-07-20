@@ -375,6 +375,7 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     return;
   }
   case llvm::ELF::R_X86_64_PLT32: {
+    std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     // return if we already create plt for this symbol
     if (rsym->reserved() & ReservePLT)
       return;
