@@ -215,6 +215,34 @@ RISCVLinkDriver::parseOptions(ArrayRef<const char *> Args,
   Config.options().setUnknownOptions(
       ArgList.getAllArgValues(OPT_RISCVLinkOptTable::UNKNOWN));
 
+  if (!Config.showConflictingOptionsWarnings())
+    return {};
+
+  llvm::StringMap<unsigned> SeenOpts;
+  unsigned OptIndex = 0;
+  for (const llvm::opt::Arg *Arg : ArgList)
+    SeenOpts[Arg->getSpelling()] = OptIndex++;
+
+  // Table of RISCV-specific conflicting option pairs (last wins).
+  const std::pair<StringRef, StringRef> ConflictingOpts[] = {
+      // clang-format off
+      {"--relax",        "--no-relax"},
+      {"--relax-xqci",   "--no-relax-xqci"},
+      {"--relax-tbljal", "--no-relax-tbljal"},
+      // clang-format on
+  };
+  for (auto [Opt1, Opt2] : ConflictingOpts) {
+    auto It1 = SeenOpts.find(Opt1);
+    auto It2 = SeenOpts.find(Opt2);
+    if (It1 == SeenOpts.end() || It2 == SeenOpts.end())
+      continue;
+
+    bool Opt1Won = It1->second > It2->second;
+    StringRef Enabled = Opt1Won ? Opt1 : Opt2;
+    StringRef Disabled = Opt1Won ? Opt2 : Opt1;
+    Config.raise(Diag::warn_incompatible_option) << Disabled << Enabled;
+  }
+
   return {};
 }
 

@@ -256,6 +256,14 @@ bool LinkerConfig::setWarningOption(llvm::StringRef WarnOption) {
   if (WarnOpt == "no-osabi") {
     setShowOSABIWarning(false);
   }
+  if (WarnOpt == "conflicting-options") {
+    setShowConflictingOptionsWarning(true);
+    return true;
+  }
+  if (WarnOpt == "no-conflicting-options") {
+    setShowConflictingOptionsWarning(false);
+    return true;
+  }
   return false;
 }
 
