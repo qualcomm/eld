@@ -1331,7 +1331,7 @@ private:
   bool RiscvGPRelax = true;               // GP relaxation
   bool BRiscvRelaxToC = true; // enable riscv relax to compressed code
   bool BRiscvRelaxXqci = false; // enable riscv relaxations for xqci
-  bool BRiscvRelaxTP = true; // enable riscv thread-pointer relaxation
+  bool BRiscvRelaxTP = true;    // enable riscv thread-pointer relaxation
   bool BRiscvRelaxTLSDESC = true; // enable riscv relaxations for TLSDESC
   RISCVRelaxTbljalMode RiscvRelaxTbljal =
       RISCVRelaxTbljalMode::None; // enable Zcmt/Xqccmt table jump relaxation
