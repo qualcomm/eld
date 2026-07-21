@@ -27,12 +27,18 @@ on:
         required: false
         type: string
         default: "clang-cross-toolchains"
+      enabled:
+        description: "Set to false to skip this job entirely (used to disable matrix entries)"
+        required: false
+        type: boolean
+        default: true
 
 
 permissions:
   contents: write
 jobs:
   download:
+    if: ${{ inputs.enabled }}
     runs-on: ${{ inputs.runner }}
     steps:
       - name: Download and extract release assets
@@ -69,25 +75,31 @@ jobs:
 
           if [[ "${all_extracted}" == "true" ]]; then
             echo "Latest release ${tag} already fully extracted."
-          else
-            if [[ -d "${root_dir}" ]]; then
-              find "${root_dir}" -mindepth 1 -maxdepth 1 -type d ! -name "${tag}" -exec rm -rf {} +
+            exit 0
+          fi
+
+          if [[ -d "${root_dir}" ]]; then
+            find "${root_dir}" -mindepth 1 -maxdepth 1 -type d ! -name "${tag}" -exec rm -rf {} +
+          fi
+          rm -rf "${base_dir}"
+          mkdir -p "${base_dir}"
+
+          for asset in "${asset_list[@]}"; do
+            asset="$(printf '%s' "${asset}" | xargs)"
+            if [[ -z "${asset}" ]]; then
+              continue
             fi
-            rm -rf "${base_dir}"
-            mkdir -p "${base_dir}"
 
-            for asset in "${asset_list[@]}"; do
-              asset="$(printf '%s' "${asset}" | xargs)"
-              if [[ -z "${asset}" ]]; then
-                continue
-              fi
+            marker="${base_dir}/.extracted-${asset}"
+            url="$(printf '%s' "${release_json}" | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url')"
+            if [[ -z "${url}" || "${url}" == "null" ]]; then
+              echo "Asset not found in release ${tag}: ${asset}" >&2
+              exit 1
+            fi
 
-              marker="${base_dir}/.extracted-${asset}"
-              url="$(printf '%s' "${release_json}" | jq -r --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url')"
-              if [[ -z "${url}" || "${url}" == "null" ]]; then
-                echo "Asset not found in release ${tag}: ${asset}" >&2
-                exit 1
-              fi
+            tmp_tar="${base_dir}/${asset}"
+            echo "Downloading ${asset}..."
+            curl -fsSL -o "${tmp_tar}" "${url}"
 
             echo "Extracting ${asset}..."
             tar -xJf "${tmp_tar}" -C "${base_dir}"
@@ -127,7 +139,8 @@ jobs:
 
       - name: Upload extracted toolchains artifact
         if: ${{ inputs.upload_artifact }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
         with:
           name: ${{ inputs.artifact_name }}
+          retention-days: 1
           path: ${{ steps.fetch.outputs.artifact_tar }}

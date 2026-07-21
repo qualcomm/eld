@@ -1,10 +1,10 @@
 name: BusyBox with ELD
 
 on:
-  pull_request: {} # Uncomment only to test this WF file update.
   workflow_dispatch:
-  #schedule:
-  #  - cron: "0 5 * * *"
+  # pull_request: {}
+  schedule:
+   - cron: "0 5 * * *"
 
 permissions:
   contents: write
@@ -42,6 +42,7 @@ jobs:
       assets: ${{ matrix.toolchain_asset }}
       upload_artifact: true
       artifact_name: clang-cross-${{ matrix.arch }}
+      enabled: ${{ matrix.enabled == 1 }}
 
   build-busybox-with-eld:
     if: github.repository == 'qualcomm/eld'
@@ -55,55 +56,66 @@ jobs:
             busybox_arch: x86_64
             target_triple: x86_64-unknown-linux-musl
             toolchain_dir: x86_64-unknown-linux-musl
-            toolchain_asset: x86_64-unknown-linux-musl.tar.xz
             qemu_bin: ""
             enabled: 1
           - arch: riscv32
             busybox_arch: riscv
             target_triple: riscv32-unknown-linux-musl
             toolchain_dir: riscv32-unknown-linux-musl
-            toolchain_asset: riscv32-unknown-linux-musl.tar.xz
             qemu_bin: qemu-riscv32
             enabled: 0
           - arch: riscv64
             busybox_arch: riscv
             target_triple: riscv64-unknown-linux-musl
             toolchain_dir: riscv64-unknown-linux-musl
-            toolchain_asset: riscv64-unknown-linux-musl.tar.xz
             qemu_bin: qemu-riscv64
             enabled: 0
           - arch: arm
             busybox_arch: arm
             target_triple: arm-unknown-linux-musleabi
             toolchain_dir: arm-unknown-linux-musleabi
-            toolchain_asset: arm-unknown-linux-musleabi.tar.xz
             qemu_bin: qemu-arm
             enabled: 0
           - arch: aarch64
             busybox_arch: aarch64
             target_triple: aarch64-unknown-linux-musl
             toolchain_dir: aarch64-unknown-linux-musl
-            toolchain_asset: aarch64-unknown-linux-musl.tar.xz
             qemu_bin: qemu-aarch64
             enabled: 0
     steps:
       - name: Checkout eld
-        if: matrix.enabled == 1
-        uses: actions/checkout@v4
+        if: matrix.enabled == 1 && github.event_name != 'pull_request'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: qualcomm/eld
           ref: main
           fetch-depth: 1
 
-      - name: Install dependencies
+      - name: Checkout eld PR branch
+        if: matrix.enabled == 1 && github.event_name == 'pull_request'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+
+      - name: Configure workflow environment variables
         if: matrix.enabled == 1
-        shell: bash
-        run: |
-          sudo apt update
-          sudo apt install -y make
-          if [[ -n "${{ matrix.qemu_bin }}" ]]; then
-            sudo apt install -y qemu-user
-          fi
+        uses: ./.github/workflows/ConfigureBuildWorkflowENV
+
+      - name: Record pre-build entry
+        if: github.event_name == 'schedule' && matrix.enabled == 1
+        uses: ./.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "busybox"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "${{ matrix.arch }}"
+          branch-name: "${{env.BUILD_BRANCH}}"
 
       - name: Fetch latest nightly toolset
         if: matrix.enabled == 1
@@ -111,7 +123,7 @@ jobs:
 
       - name: Download clang-cross toolchain artifact
         if: matrix.enabled == 1
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c #v8.0.1
         with:
           name: clang-cross-${{ matrix.arch }}
           path: clang-cross
@@ -168,46 +180,55 @@ jobs:
           ELD_BIN: ${{ env.ELD_BIN }}
         run: |
           set -euo pipefail
-          export PATH="${CROSS_TOOLCHAIN_ROOT}/bin:${PATH}"
           command -v "${TARGET_TRIPLE}-clang"
           command -v ld.eld
           "${TARGET_TRIPLE}"-clang --version
           "${ELD_BIN}" --version
 
+          SYSROOT="${CROSS_TOOLCHAIN_ROOT}/${TARGET_TRIPLE}/sysroot"
+          MUSL_LINKER="$(find "${SYSROOT}/lib" -name 'ld-musl-*.so.1' | head -1)"
+
           cd busybox
           make defconfig
+
           make -j"$(nproc)" \
             ARCH="${BUSYBOX_ARCH}" \
             CC="${TARGET_TRIPLE}-clang --ld-path=${ELD_BIN}" \
-            HOSTCC=clang
+            HOSTCC=clang \
+            STRIP="${TARGET_TRIPLE}-strip" \
+            LDFLAGS="-Wl,-dynamic-linker,${MUSL_LINKER} -Wl,-rpath,${SYSROOT}/lib"
 
       - name: Run BusyBox tests
         if: matrix.enabled == 1
+        timeout-minutes: 5
         shell: bash
-        env:
-          CROSS_TOOLCHAIN_ROOT: ${{ env.CROSS_TOOLCHAIN_ROOT }}
-          TARGET_TRIPLE: ${{ matrix.target_triple }}
-          QEMU_BIN: ${{ matrix.qemu_bin }}
         run: |
           set -euo pipefail
-          export PATH="${CROSS_TOOLCHAIN_ROOT}/bin:${PATH}"
-
-          if [[ -n "${QEMU_BIN}" ]]; then
-            SYSROOT="${CROSS_TOOLCHAIN_ROOT}/${TARGET_TRIPLE}/sysroot"
-            if [[ ! -d "${SYSROOT}" ]]; then
-              SYSROOT="${CROSS_TOOLCHAIN_ROOT}/sysroot"
-            fi
-            if [[ ! -d "${SYSROOT}" ]]; then
-              echo "Unable to find sysroot under ${CROSS_TOOLCHAIN_ROOT}" >&2
-              exit 1
-            fi
-
-            cd busybox
-            mv busybox busybox.bin
-            printf '%s\n' '#!/usr/bin/env bash' \
-              "exec ${QEMU_BIN} -L ${SYSROOT} \"\$(dirname \"\$0\")/busybox.bin\" \"\$@\"" > busybox
-            chmod +x busybox
-          fi
-
           cd busybox/testsuite
-          env SKIP_KNOWN_BUGS=1 SKIP_INTERNET_TESTS=1 ./runtest
+
+          # env --default-signal resets all signals (including SIGPIPE) to their
+          # default handlers before exec-ing the shell. This is necessary because
+          # the GitHub Actions runner sets SIGPIPE to SIG_IGN, which is inherited
+          # by all child processes and causes 'yes' in md5sum.tests to spin
+          # forever instead of dying when the pipe is closed by 'head'.
+          env SKIP_KNOWN_BUGS=1 SKIP_INTERNET_TESTS=1 env --default-signal /bin/sh ./runtest 2>&1 | tee /tmp/busybox-test-output.txt || true
+
+      - name: Validate test results with FileCheck
+        if: matrix.enabled == 1
+        shell: bash
+        run: |
+          FileCheck --input-file=/tmp/busybox-test-output.txt "${{ github.workspace }}/test/BusyBox/${{ matrix.arch }}/test-failures.txt"
+
+      - name: Update build entry
+        if: github.event_name == 'schedule' && matrix.enabled == 1
+        uses: ./.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "busybox"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "${{ matrix.arch }}"
+          branch-name: "${{env.BUILD_BRANCH}}"
