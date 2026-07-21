@@ -510,6 +510,7 @@ private:
 
   // Initialize the target machine when sniffing object files
   bool initializeTarget(InputFile *I);
+  void tryInitializeTargetFromInputs();
 
   uint32_t getEmitRelocSectionType() const;
 

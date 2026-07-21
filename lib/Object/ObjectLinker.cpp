@@ -253,6 +253,29 @@ bool ObjectLinker::readLinkerScript(InputFile *Input) {
   return true;
 }
 
+void ObjectLinker::tryInitializeTargetFromInputs() {
+  const auto &InputVector =
+      ThisModule->getIRBuilder()->getInputBuilder().getInputs();
+  for (const auto *Node : InputVector) {
+    const FileNode *FN = llvm::dyn_cast<FileNode>(Node);
+    if (!FN)
+      continue;
+    Input *I = FN->getInput();
+    if (!I->resolvePath(ThisConfig))
+      continue;
+    InputFile *IF = InputFile::create(I, ThisConfig.getDiagEngine());
+    if (!IF || IF->getKind() != InputFile::ELFObjFileKind)
+      continue;
+    eld::Expected<uint16_t> Machine = getRelocObjParser()->getMachine(*IF);
+    if (!Machine)
+      continue;
+    I->setInputFile(IF);
+    llvm::cast<ObjectFile>(IF)->setMachine(*Machine);
+    initializeTarget(IF);
+    return;
+  }
+}
+
 bool ObjectLinker::readInputs(const std::vector<Node *> &InputVector) {
   typedef std::vector<Node *>::const_iterator Iter;
 
@@ -314,6 +337,9 @@ bool ObjectLinker::normalize() {
     addDuplicateCodeInsteadOfTrampolines();
     addNoReuseOfTrampolines();
   }
+
+  if (!isBackendInitialized() && !MPostLtoPhase)
+    tryInitializeTargetFromInputs();
 
   // Read all the inputs
   auto ReadSuccess =
