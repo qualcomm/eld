@@ -1,0 +1,11 @@
+REQUIRES: hexagon, riscv32
+#---ConflictingOptions.test------------------ Executable -------------------#
+#BEGIN_COMMENT
+# Verify ld.eld rejects conflicting target options when using ld.eld.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/1.c -o %t.o
+RUN: %not %eld %linkopts -m elf32lriscv -mcpu=hexagonv75 %t.o -o %t.conflict.out 2>&1 | %filecheck %s
+#END_TEST
+
+# CHECK: Invalid Emulation conflicting target options
