@@ -1,6 +1,11 @@
 name: CI
 
 on:
+  push: # trigger CI on push to main and release branches
+    branches:
+      - main
+      - release/21.x
+  workflow_dispatch: # allows manual trigger from github UI
   pull_request:
     # `labeled` so adding `zephyr-check` mid-PR triggers a fresh CI upload.
     types: [opened, synchronize, reopened, labeled]
