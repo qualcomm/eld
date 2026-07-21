@@ -1,0 +1,20 @@
+REQUIRES: run_test
+#---R_ARM_ABS16.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_ABS16 relocation.
+# R_ARM_ABS16 is an absolute relocation that stores the low 16 bits of
+# a symbol's absolute address into a halfword-sized field.
+# Covers: static
+#END_COMMENT
+#START_TEST
+
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.s
+#RUN: %readelf -r %t.main.o | %filecheck %s -check-prefix MAIN-RELOCS
+# Static - link is expected to fail because R_ARM_ABS16 is unsupported
+#RUN: %not %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o 2>&1 | %filecheck %s -check-prefix LINK-ERROR
+
+#MAIN-RELOCS: {{.*}} R_ARM_ABS16 {{.*}} target
+#LINK-ERROR: Unsupported relocation found during relocation scan `R_ARM_ABS16'
+
+#END_TEST

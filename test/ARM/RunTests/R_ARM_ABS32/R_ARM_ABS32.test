@@ -1,0 +1,27 @@
+REQUIRES: run_test
+#---R_ARM_ABS32.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# Test the ARM R_ARM_ABS32 relocation.
+# R_ARM_ABS32 is an absolute relocation that stores the full 32-bit
+# absolute address of a symbol into a word-sized field, providing a
+# direct reference to the symbol's runtime address.
+# Covers: static
+#END_COMMENT
+#START_TEST
+
+#RUN: %run_cc -nostdlib -c -o %t.startup.o %p/Inputs/startup.s
+#RUN: %run_cc -nostdlib -c -o %t.main.o %p/Inputs/main.c
+#RUN: %readelf -r %t.main.o | %filecheck %s -check-prefix MAIN-RELOCS
+# Static
+#RUN: %run_cc -static -nostartfiles -o %t.static.out %t.startup.o %t.main.o
+#RUN: %objdump -d %t.static.out | %filecheck %s -check-prefix STATIC
+#RUN: %run %t.static.out
+
+#MAIN-RELOCS: {{.*}} R_ARM_ABS32 {{.*}} GlobalVal
+#MAIN-RELOCS: {{.*}} R_ARM_ABS32 {{.*}} .data
+#STATIC: ldr {{.*}} {{.*}} 0x[[ADDR1:[0-9a-f]+]]
+#STATIC: ldr {{.*}} {{.*}} 0x[[ADDR2:[0-9a-f]+]]
+#STATIC: [[ADDR1]]: {{.*}} .word
+#STATIC: [[ADDR2]]: {{.*}} .word
+
+#END_TEST
