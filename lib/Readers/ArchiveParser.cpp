@@ -103,9 +103,6 @@ eld::Expected<uint32_t> ArchiveParser::parseFile(InputFile &inputFile) const {
     return numObjects;
   }
 
-  if (!m_Module.isBackendInitialized())
-    return 0;
-
   if (!hasAFI) {
     auto expInitAF = initArchiveFile(archiveFile);
     DG_ELDEXP_REPORT_AND_RETURN_FALSE_IF_ERROR(*config.getDiagEngine(),
@@ -285,6 +282,14 @@ eld::Expected<bool> ArchiveParser::computeSymInfoTableForELFMember(
   ASSERT(ELFObjFile.isRelocatableObject(),
          "Only relocatable object files are supported as archive members!");
   using Elf_Sym = typename ELFT::Sym;
+
+  if (!m_Module.isBackendInitialized()) {
+    auto *ELFObj = llvm::dyn_cast<llvm::object::ELFObjectFileBase>(&ELFObjFile);
+    uint16_t machine = ELFObj->getEMachine();
+    bool is64Bit = ELFObj->is64Bit();
+    if (!m_Module.getLinker()->initializeTarget(machine, is64Bit))
+      return false;
+  }
 
   for (const llvm::object::ELFSymbolRef &sym : ELFObjFile.symbols()) {
     llvm::Expected<const Elf_Sym *> expRawSym =
