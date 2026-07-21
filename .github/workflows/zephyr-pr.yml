@@ -146,7 +146,9 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.should_run == 'true'
     permissions:
-      contents: read # caps zephyr-run.yml's declared write, only used on the nightly path
+      # Must be >= zephyr-run.yml's declared contents: write; GitHub rejects
+      # the call otherwise. The write is only exercised on the nightly path.
+      contents: write
       actions: read
     strategy:
       fail-fast: false
