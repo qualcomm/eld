@@ -1,0 +1,166 @@
+REQUIRES: symbol_versioning
+#---ValidResolution.test--------------------------------------------------#
+#BEGIN_COMMENT
+# All object-side symbol-versioning inputs that must link *successfully*.
+# Each case builds only the objects it needs, links its own tmp .so / .exe,
+# and pipes the resulting symbol tables through FileCheck with a distinct
+# prefix.
+# For every multi-object case, we also link with -Map and grep the map's
+# `#<Pattern: bar>` section to assert *which* input actually won the
+# resolution — the dyn-syms table shows only the resolved name, not the
+# owning input.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.strong_default.o     %p/Inputs/strong_default.c     -c -fPIC
+RUN: %clang %clangopts -o %t.strong_nondefault.o  %p/Inputs/strong_nondefault.c  -c -fPIC
+RUN: %clang %clangopts -o %t.strong_unversioned.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %clang %clangopts -o %t.weak_default.o       %p/Inputs/weak_default.c       -c -fPIC
+RUN: %clang %clangopts -o %t.weak_nondefault.o    %p/Inputs/weak_nondefault.c    -c -fPIC
+
+## Case 1: single strong bar@@V1 (dynsym + static symtab shape).
+RUN: %link %linkopts -o %t.single_default.so %t.strong_default.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.single_default.so \
+RUN:   | %filecheck %s --check-prefix=SingleDefaultDyn
+RUN: %readelf -sW %t.single_default.so \
+RUN:   | %filecheck %s --check-prefix=SingleDefaultSymtab
+
+SingleDefaultDyn-DAG:      bar@@V1
+SingleDefaultDyn-DAG:      Name: V1
+SingleDefaultDyn-NOT:      bar@V1{{$}}
+SingleDefaultDyn-NOT:      {{ }}bar{{$}}
+SingleDefaultSymtab-DAG:   impl
+SingleDefaultSymtab-DAG:   bar@@V1
+SingleDefaultSymtab-NOT:   {{ }}bar{{$}}
+
+## Case 2: single strong bar@V1 alone.
+RUN: %link %linkopts -o %t.single_nondefault.so %t.strong_nondefault.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t
+RUN: %readelf --dyn-syms --version-info %t.single_nondefault.so \
+RUN:   | %filecheck %s --check-prefix=SingleNonDefault
+
+SingleNonDefault-DAG:      bar@V1
+SingleNonDefault-DAG:      Name: V1
+SingleNonDefault-NOT:      bar@@V1
+SingleNonDefault-NOT:      {{ }}bar{{$}}
+
+## Case 3: strong bar@@V1 + weak bar@V1. Strong wins both halves.
+RUN: %link %linkopts -o %t.strong_weak.so %t.strong_default.o %t.weak_nondefault.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -Map %t.strong_weak.map.txt
+RUN: %readelf --dyn-syms --version-info %t.strong_weak.so \
+RUN:   | %filecheck %s --check-prefix=StrongDefWeakNonDef
+# The canonical `bar@V1` must be backed by strong_default.o, NOT weak_nondefault.o.
+RUN: %filecheck %s --check-prefix=StrongDefWeakNonDefMap < %t.strong_weak.map.txt
+
+StrongDefWeakNonDef-DAG:   bar@@V1
+StrongDefWeakNonDef-NOT:   bar@V1{{$}}
+StrongDefWeakNonDef-NOT:   {{ }}bar{{$}}
+StrongDefWeakNonDefMap:      #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}strong_default.o
+StrongDefWeakNonDefMap-NOT:  #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}weak_nondefault.o
+
+## Case 4: weak bar@@V1 + strong bar@V1. Trace enabled. Strong
+## non-default wins the canonical slot; default identity transfers to it.
+RUN: %link %linkopts -o %t.weak_strong_nd.so %t.weak_default.o %t.strong_nondefault.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -Map %t.weak_strong_nd.map.txt \
+RUN:     --trace=symbol-versioning 2>&1 \
+RUN:   | %filecheck %s --check-prefix=WeakDefStrongNonDefTrace
+RUN: %readelf --dyn-syms --version-info %t.weak_strong_nd.so \
+RUN:   | %filecheck %s --check-prefix=WeakDefStrongNonDef
+# Default identity transferred from weak_default.o -> strong_nondefault.o.
+RUN: %filecheck %s --check-prefix=WeakDefStrongNonDefMap < %t.weak_strong_nd.map.txt
+
+WeakDefStrongNonDefTrace-DAG: Inserted versioned symbol 'bar@@V1' from '{{.*}}weak_default.o'
+WeakDefStrongNonDefTrace-DAG: Inserted versioned symbol 'bar@V1' from '{{.*}}strong_nondefault.o'
+WeakDefStrongNonDef-DAG:   bar@@V1
+WeakDefStrongNonDef-NOT:   bar@V1{{$}}
+WeakDefStrongNonDef-NOT:   {{ }}bar{{$}}
+WeakDefStrongNonDefMap:      #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}strong_nondefault.o
+WeakDefStrongNonDefMap-NOT:  #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}weak_default.o
+
+## Case 5: weak bar@@V1 + strong unversioned bar. Trace enabled.
+## The bare `bar` wins the alias slot and default-version identity
+## transfers to strong_unversioned.o.
+RUN: %link %linkopts -o %t.weak_strong_bare.so %t.weak_default.o %t.strong_unversioned.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -Map %t.weak_strong_bare.map.txt \
+RUN:     --trace=symbol-versioning 2>&1 \
+RUN:   | %filecheck %s --check-prefix=WeakDefStrongUnversionedTrace
+RUN: %readelf --dyn-syms --version-info %t.weak_strong_bare.so \
+RUN:   | %filecheck %s --check-prefix=WeakDefStrongUnversioned
+# The resolved `bar@V1` canonical must point at strong_unversioned.o
+# (bare `bar` won the alias slot and default identity transferred to it).
+RUN: %filecheck %s --check-prefix=WeakDefStrongUnversionedMap < %t.weak_strong_bare.map.txt
+
+WeakDefStrongUnversionedTrace: Inserted versioned symbol 'bar@@V1' from '{{.*}}weak_default.o'
+WeakDefStrongUnversioned-DAG: bar@@V1
+WeakDefStrongUnversioned-NOT: bar@V1{{$}}
+WeakDefStrongUnversioned-NOT: {{ }}bar{{$}}
+WeakDefStrongUnversionedMap:      #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}strong_unversioned.o
+WeakDefStrongUnversionedMap-NOT:  #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}weak_default.o
+
+## Case 6: weak bar@@V1 + strong bar@@V1. Strong overrides weak on both
+## pair slots via the sameDefinition() guard.
+RUN: %link %linkopts -o %t.weak_strong_def.so %t.weak_default.o %t.strong_default.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -Map %t.weak_strong_def.map.txt
+RUN: %readelf --dyn-syms --version-info %t.weak_strong_def.so \
+RUN:   | %filecheck %s --check-prefix=WeakDefStrongDef
+# Strong beats weak on the same default-versioned name.
+RUN: %filecheck %s --check-prefix=WeakDefStrongDefMap < %t.weak_strong_def.map.txt
+
+WeakDefStrongDef-DAG:      bar@@V1
+WeakDefStrongDef-NOT:      bar@V1{{$}}
+WeakDefStrongDef-NOT:      {{ }}bar{{$}}
+WeakDefStrongDefMap:      #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}strong_default.o
+WeakDefStrongDefMap-NOT:  #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}weak_default.o
+
+## Case 7: same as case 6 but with reversed link order.
+RUN: %link %linkopts -o %t.weak_strong_def_swap.so %t.strong_default.o %t.weak_default.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -Map %t.weak_strong_def_swap.map.txt
+RUN: %readelf --dyn-syms --version-info %t.weak_strong_def_swap.so \
+RUN:   | %filecheck %s --check-prefix=WeakDefStrongDefSwapped
+# Same as case 6; strong must still win regardless of link order.
+RUN: %filecheck %s --check-prefix=WeakDefStrongDefSwappedMap < %t.weak_strong_def_swap.map.txt
+
+WeakDefStrongDefSwapped-DAG: bar@@V1
+WeakDefStrongDefSwapped-NOT: bar@V1{{$}}
+WeakDefStrongDefSwapped-NOT: {{ }}bar{{$}}
+WeakDefStrongDefSwappedMap:      #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}strong_default.o
+WeakDefStrongDefSwappedMap-NOT:  #{{[[:space:]]+}}bar@V1{{[[:space:]]+}}{{.*}}weak_default.o
+
+## Case 8: weak bar@@V1 in archive + strong bare bar. Strong bare wins
+## the `bar` slot; archive member is not pulled at all.
+RUN: %ar rcs %t.weak_default.a %t.weak_default.o
+RUN: %link %linkopts -o %t.archive.so %t.strong_unversioned.o %t.weak_default.a \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t -u bar -Map %t.archive.map.txt
+RUN: %readelf --dyn-syms --version-info %t.archive.so \
+RUN:   | %filecheck %s --check-prefix=Archive
+# `bar` from strong_unversioned.o wins; the archive member should not be
+# pulled (weak_default.a's contents must not appear as a resolution owner).
+RUN: %filecheck %s --check-prefix=ArchiveMap < %t.archive.map.txt
+Archive-DAG:               bar@@V1
+ArchiveMap:      #{{[[:space:]]+}}bar{{[[:space:]]+}}{{.*}}strong_unversioned.o
+ArchiveMap-NOT:  #{{[[:space:]]+}}bar{{.*}}weak_default.o
+
+## Case 9: single strong bar@@V1 under --gc-sections.
+RUN: %clang %clangopts -o %t.gc.o %p/Inputs/strong_default.c -c -fPIC -ffunction-sections
+RUN: %link %linkopts -o %t.gc.so %t.gc.o -shared \
+RUN:     --version-script %p/Inputs/vs_v1.t --gc-sections
+RUN: %readelf --dyn-syms --version-info %t.gc.so \
+RUN:   | %filecheck %s --check-prefix=GcSections
+GcSections-DAG:            bar@@V1
+GcSections-NOT:            {{ }}bar{{$}}
+
+## Case 10: executable whose static .symtab must contain bar@@V1.
+RUN: echo 'extern int bar(void); int main(void){return bar();}' > %t.main_default.c
+RUN: %clang %clangopts -o %t.main_default.o %t.main_default.c -c
+RUN: %link %linkopts -o %t.exec_default.exe %t.strong_default.o %t.main_default.o
+RUN: %readelf -sW %t.exec_default.exe | %filecheck %s --check-prefix=ExecDefault
+ExecDefault-DAG:           bar@@V1
+
+## Case 11: executable whose static .symtab must contain bar@V1 and no @@.
+RUN: echo '__asm__(".symver bar_v1, bar@V1"); extern int bar_v1(void); int main(void){return bar_v1();}' > %t.main_nondefault.c
+RUN: %clang %clangopts -o %t.main_nondefault.o %t.main_nondefault.c -c
+RUN: %link %linkopts -o %t.exec_nondefault.exe %t.strong_nondefault.o %t.main_nondefault.o
+RUN: %readelf -sW %t.exec_nondefault.exe | %filecheck %s --check-prefix=ExecNonDefault
+ExecNonDefault-DAG:        bar@V1
+ExecNonDefault-NOT:        bar@@V1
+#END_TEST

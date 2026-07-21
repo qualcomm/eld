@@ -1,0 +1,64 @@
+REQUIRES: symbol_versioning
+#---MultipleDefinitionErrors.test-----------------------------------------#
+#BEGIN_COMMENT
+# All object-side symbol-versioning inputs that must fail with a
+# `multiple definition of symbol` diagnostic. Each case builds only the
+# objects it needs and pipes through FileCheck with a distinct prefix.
+#
+#   TwoStrongDefault         - two strong `bar@@V1` (same-name default
+#                              clash).
+#   TwoStrongNonDefault      - two strong `bar@V1`.
+#   DefaultVsNonDefault      - strong `bar@@V1` + strong `bar@V1`.
+#   DistinctVersions         - `bar@@V1` + `bar@@V2` under a two-version
+#                              script; the synthesized non-canonical `bar`
+#                              alias clashes.
+#   WeakDefaultSplitOverride - weak `bar@@V1` + strong bare `bar` + strong
+#                              `bar@V1`: both halves of the weak pair get
+#                              overridden by different strong definitions
+#                              that disagree with each other.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangopts -o %t.strong_default.o    %p/Inputs/strong_default.c    -c -fPIC
+RUN: %clang %clangopts -o %t.strong_nondefault.o %p/Inputs/strong_nondefault.c -c -fPIC
+RUN: %clang %clangopts -o %t.strong_unversioned.o %p/Inputs/strong_unversioned.c -c -fPIC
+RUN: %clang %clangopts -o %t.strong_default_v2.o %p/Inputs/strong_default_v2.c -c -fPIC
+RUN: %clang %clangopts -o %t.weak_default.o      %p/Inputs/weak_default.c      -c -fPIC
+
+## Case 1: two strong bar@@V1 clash on the canonical `bar@V1` slot.
+RUN: %not %link %linkopts -o %t.two_strong_default.so \
+RUN:     %t.strong_default.o %t.strong_default.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TwoStrongDefault
+TwoStrongDefault: multiple definition of symbol `bar@V1'
+
+## Case 2: two strong bar@V1 clash on the canonical `bar@V1` slot.
+RUN: %not %link %linkopts -o %t.two_strong_nondefault.so \
+RUN:     %t.strong_nondefault.o %t.strong_nondefault.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=TwoStrongNonDefault
+TwoStrongNonDefault: multiple definition of symbol `bar@V1'
+
+## Case 3: strong bar@@V1 + strong bar@V1 clash on the canonical `bar@V1`.
+RUN: %not %link %linkopts -o %t.default_vs_nondefault.so \
+RUN:     %t.strong_default.o %t.strong_nondefault.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=DefaultVsNonDefault
+DefaultVsNonDefault: multiple definition of symbol `bar@V1'
+
+## Case 4: bar@@V1 + bar@@V2 under a two-version script. Both synthesize
+## a non-canonical `bar` alias which clashes.
+RUN: %not %link %linkopts -o %t.distinct_versions.so \
+RUN:     %t.strong_default.o %t.strong_default_v2.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1_v2.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=DistinctVersions
+DistinctVersions: multiple definition of symbol
+
+## Case 5: weak bar@@V1 + strong bare bar + strong bar@V1. Weak default's
+## alias slot loses to bare bar; weak default's canonical slot loses to
+## strong bar@V1; the two winners disagree with each other -> multi-def.
+RUN: %not %link %linkopts -o %t.weak_default_split_override.so \
+RUN:     %t.weak_default.o %t.strong_unversioned.o %t.strong_nondefault.o \
+RUN:     -shared --version-script %p/Inputs/vs_v1.t 2>&1 \
+RUN:   | %filecheck %s --check-prefix=WeakDefaultSplitOverride
+WeakDefaultSplitOverride: multiple definition of symbol
+#END_TEST

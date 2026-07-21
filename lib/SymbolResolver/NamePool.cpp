@@ -227,6 +227,16 @@ bool NamePool::insertSymbol(
 bool NamePool::getSymbolTracingRequested() const {
   return IsSymbolTracingRequested;
 }
+
+bool NamePool::resolvePair(ResolveInfo &OldRI, ResolveInfo &NewRI,
+                           bool IsPostLtoPhase) {
+  bool Override = false;
+  LDSymbol::ValueType Value =
+      NewRI.outSymbol() ? NewRI.outSymbol()->value() : NewRI.value();
+  SymbolResolver->resolve(OldRI, NewRI, Override, Value, &ThisConfig,
+                          IsPostLtoPhase);
+  return Override;
+}
 /// findInfo - find the resolved ResolveInfo
 ResolveInfo *NamePool::findInfo(const std::string &SymbolName) {
   auto I = GlobalSymbols.find(SymbolName);

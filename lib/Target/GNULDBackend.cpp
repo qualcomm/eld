@@ -1149,7 +1149,15 @@ void GNULDBackend::sizeSymTab() {
         m_SymbolsToRemove.count(Sym)) {
       continue;
     }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    // Suppressed non-canonical versioned aliases are filtered upstream by
+    // ObjectLinker::addSymbolToOutput and must not reach here.
+    assert(!isNonCanonicalVersionedSym(Sym) &&
+           "non-canonical versioned sym leaked past addSymbolToOutput");
+    std::string symName = getSymbolTableName(*Sym);
+#else
     std::string symName = Sym->outSymbol()->name();
+#endif
     strtab += symName.size() + 1;
     ++NumSymbols;
   }
@@ -1223,7 +1231,12 @@ void GNULDBackend::emitSymbol32(llvm::ELF::Elf32_Sym &pSym, LDSymbol *pSymbol,
       pSym.st_name = optSymNameOffset.value();
     } else {
       pSym.st_name = pStrtabsize;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      std::string SymtabName = getSymbolTableName(*pSymbol->resolveInfo());
+      strcpy((pStrtab + pStrtabsize), SymtabName.c_str());
+#else
       strcpy((pStrtab + pStrtabsize), pSymbol->name());
+#endif
     }
   }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
@@ -1255,7 +1268,12 @@ void GNULDBackend::emitSymbol64(llvm::ELF::Elf64_Sym &pSym, LDSymbol *pSymbol,
       pSym.st_name = optSymNameOffset.value();
     } else {
       pSym.st_name = pStrtabsize;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+      std::string SymtabName = getSymbolTableName(*pSymbol->resolveInfo());
+      strcpy((pStrtab + pStrtabsize), SymtabName.c_str());
+#else
       strcpy((pStrtab + pStrtabsize), std::string(pSymbol->name()).data());
+#endif
     }
   }
   if ((pSymbol->resolveInfo()->isUndef()) || (pSymbol->isDyn()))
@@ -1346,6 +1364,12 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
       config().raise(Diag::stripping_symbol) << S->name();
       continue;
     }
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    // Suppressed non-canonical versioned aliases are filtered upstream by
+    // ObjectLinker::addSymbolToOutput and must not reach here.
+    assert(!isNonCanonicalVersionedSym(S) &&
+           "non-canonical versioned sym leaked past addSymbolToOutput");
+#endif
     if (config().targets().is32Bits())
       emitSymbol32(symtab32[symIdx], S->outSymbol(), strtab, strtabsize, symIdx,
                    /*IsDynSymTab=*/false);
@@ -1354,7 +1378,11 @@ GNULDBackend::emitRegNamePools(llvm::FileOutputBuffer &pOutput) {
                    /*IsDynSymTab=*/false);
     if ((S->isGlobal() || S->isWeak()) && !firstNonLocal)
       firstNonLocal = symIdx;
+#ifdef ELD_ENABLE_SYMBOL_VERSIONING
+    std::string symName = getSymbolTableName(*S);
+#else
     std::string symName = std::string(S->name());
+#endif
     strtabsize += symName.length() + 1;
     ++symIdx;
   }
@@ -5374,6 +5402,27 @@ void GNULDBackend::initSymbolVersioningSections() {
 #endif
 
 #ifdef ELD_ENABLE_SYMBOL_VERSIONING
+std::string GNULDBackend::getSymbolTableName(const ResolveInfo &R) const {
+  if (!R.hasVersionInName())
+    return std::string(R.getName());
+
+  // Shared-library origin: keep the canonical single-`@` form. The
+  // .gnu.version index conveys default-ness for DSO symbols, so dyn-test
+  // goldens stay byte-identical.
+  InputFile *Origin = R.resolvedOrigin();
+  if (Origin && llvm::isa<ELFDynObjectFile>(Origin))
+    return std::string(R.getName());
+
+  // Object origin: reconstruct the GNU-visible form from the canonical
+  // single-`@` name plus the default-version flag.
+  ParsedVersionedName P = parseVersionedName(R.getName());
+  if (P.IsMalformed || P.Version.empty())
+    return std::string(R.getName());
+  if (R.isDefaultVersion())
+    return (P.Base + "@@" + P.Version).str();
+  return (P.Base + "@" + P.Version).str();
+}
+
 void GNULDBackend::assignOutputVersionIDs() {
   bool shouldTraceSymbolVersioning =
       m_Module.getPrinter()->traceSymbolVersioning();
@@ -5440,8 +5489,8 @@ void GNULDBackend::assignOutputVersionIDs() {
       VernID = it->second;
     }
 
-    isDefaultVersionSymbol = (Pos == std::string::npos ||
-                              (FullName.find("@@") != std::string::npos));
+    isDefaultVersionSymbol =
+        (Pos == std::string::npos) || R->isDefaultVersion();
 
     if (!isDefaultVersionSymbol)
       VernID |= llvm::ELF::VERSYM_HIDDEN;

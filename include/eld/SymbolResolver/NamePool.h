@@ -72,6 +72,16 @@ public:
                             const LDSymbol &Sym, bool IsPostLtoPhase,
                             Resolver::Result &PResult);
 
+  /// Resolve two already-inserted NamePool entries against each other using
+  /// the ordinary symbol-resolution precedence rules, keeping \p OldRI as the
+  /// survivor. This is used by versioned-symbol reconciliation, where the
+  /// unversioned slot (`bar`) and the default-versioned slot (`bar@V1`) denote
+  /// one logical symbol and must be collapsed to a single winner. Returns true
+  /// if \p NewRI overrode \p OldRI (i.e. the caller must adopt NewRI's output
+  /// symbol). A genuine strong/strong clash raises multiple_definitions,
+  /// matching ordinary resolution.
+  bool resolvePair(ResolveInfo &OldRI, ResolveInfo &NewRI, bool IsPostLtoPhase);
+
   /// insertSymbol - insert a symbol and resolve the symbol immediately
   bool insertSymbol(InputFile *Input, std::string SymbolName,
                     bool IsSymbolInDynamicLibrary, ResolveInfo::Type Type,
