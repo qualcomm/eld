@@ -1,0 +1,10 @@
+#---LMAUnaligned.test--------------------------- Executable -----------------#
+#BEGIN_COMMENT
+# Test that ELD emits a warning diagnostic when the LMA specified via AT()
+# is not a multiple of the section alignment.
+#END_COMMENT
+#START_TEST
+RUN: %clang %clangg0opts -o %t1.1.o %p/Inputs/1.c -c -ffunction-sections
+RUN: %link %linkopts -o %t1.1.out %t1.1.o -T %p/Inputs/script.t -Wlinker-script 2>&1 | %filecheck %s
+#CHECK: Warning: LMA (0x201) of section .foo is not a multiple of alignment
+#END_TEST
