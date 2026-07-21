@@ -20,6 +20,7 @@
 #include "llvm/Support/RISCVAttributeParser.h"
 #include "llvm/Support/RISCVAttributes.h"
 
+using namespace llvm;
 using namespace eld;
 
 //===----------------------------------------------------------------------===//
@@ -84,6 +85,8 @@ llvm::StringRef RISCVAttributeFragment::getTagStr(uint32_t Tag) const {
     return "PrivSpecMinor";
   if (Tag == llvm::RISCVAttrs::PRIV_SPEC_MINOR)
     return "PrivSpecRevision";
+  if (Tag == llvm::RISCVAttrs::ATOMIC_ABI)
+    return "AtomicABI";
   return "Undefined";
 }
 
@@ -199,6 +202,16 @@ bool RISCVAttributeFragment::updateInfo(llvm::StringRef Contents,
       retval = false;
     }
   }
+  if (getIntegerAttribute(Parser, llvm::RISCVAttrs::ATOMIC_ABI, Val)) {
+    if ((!addAttributeIntegerItem(llvm::RISCVAttrs::ATOMIC_ABI, Val, OldVal)) &&
+        ShowAttributeMixWarnings) {
+      DiagEngine->raise(Diag::riscv_attribute_parsing_mix_error)
+          << PreviousInputFileDecoratedPath
+          << InputFile->getInput()->decoratedPath() << "ATOMIC_ABI" << Val
+          << llvm::utohexstr(OldVal);
+      retval = false;
+    }
+  }
   eld::Expected<void> E = mergeRISCVAttributes(Parser, InputFile);
   if (!E)
     DiagEngine->raiseDiagEntry(std::move(E.error()));
@@ -235,9 +248,120 @@ eld::Expected<void> RISCVAttributeFragment::mergeArch(
   return eld::Expected<void>();
 }
 
+eld::Expected<void>
+RISCVAttributeFragment::mergeAtomic(const InputFile *I, unsigned tagattr,
+                                    llvm::RISCVAttrs::RISCVAtomicAbiTag Tag) {
+  using llvm::RISCVAttrs::RISCVAtomicAbiTag;
+
+  uint32_t oldTagVal;
+
+  llvm::RISCVAttrs::RISCVAtomicAbiTag oldTag, newTag;
+
+  auto reportUnknownAbiError =
+      [&](const InputFile *I, RISCVAtomicAbiTag tag) -> eld::Expected<void> {
+    switch (tag) {
+    case RISCVAtomicAbiTag::UNKNOWN:
+    case RISCVAtomicAbiTag::A6C:
+    case RISCVAtomicAbiTag::A6S:
+    case RISCVAtomicAbiTag::A7:
+      return eld::Expected<void>();
+    };
+    return std::make_unique<eld::DiagnosticEntry>(
+        eld::DiagnosticEntry(Diag::error_unsupported_atomic_attribute,
+                              {I->getInput()->decoratedPath(),
+                               llvm::utohexstr(static_cast<unsigned>(Tag))}));
+  };
+
+  auto r = IntegerAttributes.try_emplace(tagattr, static_cast<unsigned>(Tag));
+  if (r.second) {
+    addAttributeIntegerItem(tagattr, static_cast<unsigned>(Tag), oldTagVal);
+    return reportUnknownAbiError(I, Tag);
+  } else {
+    oldTag = static_cast<llvm::RISCVAttrs::RISCVAtomicAbiTag>(
+        IntegerAttributes[tagattr]);
+    newTag = Tag;
+  }
+
+  // Same tags stay the same, and UNKNOWN is compatible with anything
+  if (oldTag == newTag || newTag == RISCVAtomicAbiTag::UNKNOWN)
+    reportUnknownAbiError(I, Tag);
+
+  switch (oldTag) {
+  case RISCVAtomicAbiTag::UNKNOWN:
+    IntegerAttributes[tagattr] = static_cast<unsigned>(newTag);
+    addAttributeIntegerItem(tagattr, static_cast<unsigned>(newTag), oldTagVal);
+    return eld::Expected<void>();
+  case RISCVAtomicAbiTag::A6C:
+    switch (newTag) {
+    case RISCVAtomicAbiTag::A6S: {
+      IntegerAttributes[tagattr] =
+          static_cast<unsigned>(RISCVAtomicAbiTag::A6C);
+      addAttributeIntegerItem(
+          tagattr, static_cast<unsigned>(RISCVAtomicAbiTag::A6C), oldTagVal);
+      return eld::Expected<void>();
+    }
+    case RISCVAtomicAbiTag::A7:
+      return std::make_unique<eld::DiagnosticEntry>(eld::DiagnosticEntry(
+          Diag::error_atomic_attribute_mix,
+          {I->getInput()->decoratedPath(),
+           llvm::utohexstr(static_cast<unsigned>(oldTag)),
+           llvm::utohexstr(static_cast<unsigned>(newTag))}));
+    case RISCVAttrs::RISCVAtomicAbiTag::UNKNOWN:
+    case RISCVAttrs::RISCVAtomicAbiTag::A6C:
+      return eld::Expected<void>();
+    };
+    break;
+
+  case RISCVAtomicAbiTag::A6S:
+    switch (newTag) {
+    case RISCVAtomicAbiTag::A6C: {
+      IntegerAttributes[tagattr] =
+          static_cast<unsigned>(RISCVAtomicAbiTag::A6C);
+      addAttributeIntegerItem(
+          tagattr, static_cast<unsigned>(RISCVAtomicAbiTag::A6C), oldTagVal);
+      return eld::Expected<void>();
+    }
+    case RISCVAtomicAbiTag::A7: {
+      IntegerAttributes[tagattr] = static_cast<unsigned>(RISCVAtomicAbiTag::A7);
+      addAttributeIntegerItem(
+          tagattr, static_cast<unsigned>(RISCVAtomicAbiTag::A7), oldTagVal);
+      return eld::Expected<void>();
+    }
+    case RISCVAttrs::RISCVAtomicAbiTag::UNKNOWN:
+    case RISCVAttrs::RISCVAtomicAbiTag::A6S:
+      return eld::Expected<void>();
+    };
+    break;
+
+  case RISCVAtomicAbiTag::A7:
+    switch (newTag) {
+    case RISCVAtomicAbiTag::A6S: {
+      IntegerAttributes[tagattr] = static_cast<unsigned>(RISCVAtomicAbiTag::A7);
+      addAttributeIntegerItem(
+          tagattr, static_cast<unsigned>(RISCVAtomicAbiTag::A7), oldTagVal);
+      return eld::Expected<void>();
+    }
+    case RISCVAtomicAbiTag::A6C:
+      return std::make_unique<eld::DiagnosticEntry>(eld::DiagnosticEntry(
+          Diag::error_atomic_attribute_mix,
+          {I->getInput()->decoratedPath(),
+           llvm::utohexstr(static_cast<unsigned>(oldTag)),
+           llvm::utohexstr(static_cast<unsigned>(newTag))}));
+    case RISCVAttrs::RISCVAtomicAbiTag::UNKNOWN:
+    case RISCVAttrs::RISCVAtomicAbiTag::A7:
+      return eld::Expected<void>();
+    };
+    break;
+  };
+
+  return reportUnknownAbiError(I, newTag);
+}
+
 eld::Expected<void> RISCVAttributeFragment::mergeRISCVAttributes(
     const llvm::RISCVAttributeParser &parser, InputFile *I) {
   bool hasArch = false;
+  uint32_t OldVal = 0;
+  std::string OldStr;
 
   // Collect all tags values from attributes section.
   const auto &attributesTags = llvm::RISCVAttrs::getRISCVAttributeTags();
@@ -247,12 +371,15 @@ eld::Expected<void> RISCVAttributeFragment::mergeRISCVAttributes(
     case llvm::RISCVAttrs::STACK_ALIGN: {
       if (auto i = parser.getAttributeValue(tag.attr)) {
         IntegerAttributes.try_emplace(tag.attr, *i);
+        addAttributeIntegerItem(tag.attr, IntegerAttributes[tag.attr], OldVal);
       }
       continue;
     }
     case llvm::RISCVAttrs::UNALIGNED_ACCESS: {
-      if (auto i = parser.getAttributeValue(tag.attr))
+      if (auto i = parser.getAttributeValue(tag.attr)) {
         IntegerAttributes[tag.attr] |= *i;
+        addAttributeIntegerItem(tag.attr, IntegerAttributes[tag.attr], OldVal);
+      }
       continue;
     }
 
@@ -271,15 +398,24 @@ eld::Expected<void> RISCVAttributeFragment::mergeRISCVAttributes(
     case llvm::RISCVAttrs::PRIV_SPEC:
     case llvm::RISCVAttrs::PRIV_SPEC_MINOR:
     case llvm::RISCVAttrs::PRIV_SPEC_REVISION:
-    case llvm::RISCVAttrs::ATOMIC_ABI:
       break;
+
+    case llvm::RISCVAttrs::ATOMIC_ABI:
+      if (auto i = parser.getAttributeValue(tag.attr)) {
+        auto E = mergeAtomic(
+            I, tag.attr, static_cast<llvm::RISCVAttrs::RISCVAtomicAbiTag>(*i));
+        if (!E)
+          return E;
+      }
+      continue;
     }
 
-    // Fallback for deprecated priv_spec* and other unknown attributes: retain
-    // the attribute if all input sections agree on the value. GNU ld uses 0
-    // and empty strings as default values which are not dumped to the output.
+    // Fallback for deprecated priv_spec* and other unknown attributes:
+    // retain the attribute if all input sections agree on the value. GNU ld
+    // uses 0 and empty strings as default values which are not dumped to
+    // the output.
     // TODO Adjust after resolution to
-    // https://github.com/riscv-non-isa/riscv-elf-psabi-doc/issues/352
+    // https://github.com/riscv-non-isa/riscv-elf-psabi-doc/issues/353
     if (tag.attr % 2 == 0) {
       if (auto i = parser.getAttributeValue(tag.attr)) {
         auto r = IntegerAttributes.try_emplace(tag.attr, *i);
@@ -297,6 +433,7 @@ eld::Expected<void> RISCVAttributeFragment::mergeRISCVAttributes(
     if (auto result = llvm::RISCVISAInfo::createFromExtMap(xlen, exts)) {
       llvm::StringRef R = eld::Saver.save((*result)->toString());
       StringAttributes[llvm::RISCVAttrs::ARCH] = R;
+      addAttributeStringItem(llvm::RISCVAttrs::ARCH, std::string(R), OldStr);
     } else {
       return std::make_unique<plugin::DiagnosticEntry>(plugin::DiagnosticEntry(
           Diag::attribute_parsing_error, {I->getInput()->decoratedPath(),
@@ -304,8 +441,8 @@ eld::Expected<void> RISCVAttributeFragment::mergeRISCVAttributes(
     }
   }
 
-  // The total size of headers: format-version [ <section-length> "vendor-name"
-  // [ <file-tag> <size>.
+  // The total size of headers: format-version [ <section-length>
+  // "vendor-name" [ <file-tag> <size>.
   size_t size = 5 + CurrentVendor.size() + 1 + 5;
   for (auto &attr : IntegerAttributes)
     if (attr.second != 0)
@@ -353,6 +490,7 @@ bool RISCVAttributeFragment::addAttributeIntegerItem(uint32_t Tag,
       continue;
     if (C.IntValue != Value) {
       OldValue = C.IntValue;
+      C.IntValue = Value;
       return false;
     } else
       return true;
@@ -376,6 +514,7 @@ bool RISCVAttributeFragment::addAttributeStringItem(uint32_t Tag,
       continue;
     if (C.StringValue != Value) {
       OldValue = C.StringValue;
+      C.StringValue = Value;
       return false;
     } else
       return true;
