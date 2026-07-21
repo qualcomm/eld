@@ -23,6 +23,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include <optional>
 #include <stack>
 #include <tuple>
 #include <unordered_set>
@@ -178,6 +179,7 @@ public:
     std::string Include;
     std::string RemappedFrom;
     std::string Parent;
+    std::optional<size_t> LineNumber;
     bool Found = false;
     uint32_t Depth = 0;
   };
@@ -278,7 +280,8 @@ public:
   std::string getPath(const std::string &Filename) const;
 
   void recordLinkerScript(std::string File, bool Found = true,
-                          llvm::StringRef RemappedFrom = "");
+                          llvm::StringRef RemappedFrom = "",
+                          std::optional<size_t> LineNumber = std::nullopt);
 
   void recordLinkerScriptRule();
 
