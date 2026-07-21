@@ -235,7 +235,8 @@ eld::Expected<void> GNULDBackend::initStdSections() {
         ".dynsym", llvm::ELF::SHT_DYNSYM, llvm::ELF::SHF_ALLOC,
         config().targets().bitclass() / 8);
     m_pDynSymFrag = make<DynSymFragment>(DynSymSection, DynamicSymbols,
-                                         config().targets().is32Bits());
+                                         config().targets().is32Bits(),
+                                         config().targets().bitclass() / 8);
     DynSymSection->addFragmentAndUpdateSize(m_pDynSymFrag);
     m_pDynSymSection = DynSymSection;
 
@@ -252,7 +253,8 @@ eld::Expected<void> GNULDBackend::initStdSections() {
         llvm::ELF::SHF_ALLOC | llvm::ELF::SHF_WRITE,
         config().targets().bitclass() / 8);
     m_pDynamic = make<ELFDynamic>(config(), *DynSection);
-    m_pDynamicFrag = make<DynamicFragment>(DynSection, *m_pDynamic);
+    m_pDynamicFrag = make<DynamicFragment>(DynSection, *m_pDynamic,
+                                           config().targets().bitclass() / 8);
     DynSection->addFragment(m_pDynamicFrag);
     m_pDynamicSection = DynSection;
   }
@@ -988,7 +990,7 @@ void GNULDBackend::sizeDynNamePools() {
     if (DP->traceSymbolVersioning())
       config().raise(Diag::trace_creating_symbol_versioning_fragment)
           << GNUVerSymSection->name();
-    Fragment *F = make<GNUVerSymFragment>(GNUVerSymSection, DynamicSymbols);
+    Fragment *F = make<GNUVerSymFragment>(GNUVerSymSection, DynamicSymbols, 2);
     GNUVerSymSection->addFragmentAndUpdateSize(F);
   }
 
@@ -998,7 +1000,8 @@ void GNULDBackend::sizeDynNamePools() {
     if (DP->traceSymbolVersioning())
       config().raise(Diag::trace_creating_symbol_versioning_fragment)
           << GNUVerDefSection->name();
-    GNUVerDefFragment *F = make<GNUVerDefFragment>(GNUVerDefSection);
+    GNUVerDefFragment *F =
+        make<GNUVerDefFragment>(GNUVerDefSection, sizeof(uint32_t));
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
       F->computeVersionDefs<llvm::object::ELF32LE>(m_Module, m_pDynStrFrag,
@@ -1015,7 +1018,8 @@ void GNULDBackend::sizeDynNamePools() {
     if (DP->traceSymbolVersioning())
       config().raise(Diag::trace_creating_symbol_versioning_fragment)
           << GNUVerNeedSection->name();
-    GNUVerNeedFragment *F = make<GNUVerNeedFragment>(GNUVerNeedSection);
+    GNUVerNeedFragment *F =
+        make<GNUVerNeedFragment>(GNUVerNeedSection, sizeof(uint32_t));
     bool is32Bits = config().targets().is32Bits();
     if (is32Bits)
       F->computeVersionNeeds<llvm::object::ELF32LE>(

@@ -25,7 +25,7 @@ class DynStrFragment;
 /// definitions for the symbols that are defined by the module.
 class GNUVerDefFragment : public Fragment {
 public:
-  GNUVerDefFragment(ELFSection *S);
+  GNUVerDefFragment(ELFSection *S, uint32_t Align = 1);
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Type::GNUVerDef;

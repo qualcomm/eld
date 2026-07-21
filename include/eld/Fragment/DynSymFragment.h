@@ -17,7 +17,7 @@ namespace eld {
 class DynSymFragment : public Fragment {
 public:
   DynSymFragment(ELFSection *S, const std::vector<ResolveInfo *> &DynSyms,
-                 bool Is32Bits);
+                 bool Is32Bits, uint32_t Align = 1);
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Type::DynSym;

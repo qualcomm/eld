@@ -16,8 +16,8 @@ using namespace eld;
 
 DynSymFragment::DynSymFragment(ELFSection *S,
                                const std::vector<ResolveInfo *> &DynSyms,
-                               bool Is32Bits)
-    : Fragment(Fragment::Type::DynSym, S), DynamicSymbols(DynSyms),
+                               bool Is32Bits, uint32_t Align)
+    : Fragment(Fragment::Type::DynSym, S, Align), DynamicSymbols(DynSyms),
       Is32Bits(Is32Bits) {}
 
 size_t DynSymFragment::size() const {

@@ -17,8 +17,9 @@
 using namespace eld;
 
 GNUVerSymFragment::GNUVerSymFragment(ELFSection *S,
-                                     const std::vector<ResolveInfo *> &DynSyms)
-    : Fragment(Fragment::Type::GNUVerSym, S), DynamicSymbols(DynSyms) {}
+                                     const std::vector<ResolveInfo *> &DynSyms,
+                                     uint32_t Align)
+    : Fragment(Fragment::Type::GNUVerSym, S, Align), DynamicSymbols(DynSyms) {}
 
 size_t GNUVerSymFragment::size() const { return DynamicSymbols.size() * 2; }
 

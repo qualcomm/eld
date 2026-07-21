@@ -18,7 +18,7 @@ class ELFSection;
 /// It delegates size() and emit() to ELFDynamic.
 class DynamicFragment : public Fragment {
 public:
-  DynamicFragment(ELFSection *S, ELFDynamic &Dynamic);
+  DynamicFragment(ELFSection *S, ELFDynamic &Dynamic, uint32_t Align = 1);
 
   static bool classof(const Fragment *F) {
     return F->getKind() == Fragment::Type::Dynamic;
