@@ -92,7 +92,7 @@ jobs:
 
       - name: Install PyYAML
         shell: bash
-        run: python -m pip install pyyaml
+        run: python -m pip install pyyaml psutil
 
       - name: Run tests
         working-directory: nightly/obj
