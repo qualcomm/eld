@@ -83,6 +83,7 @@ bool x86_64Relocator::isRelocSupported(const Relocation &pReloc) const {
   case llvm::ELF::R_X86_64_PC8:
   case llvm::ELF::R_X86_64_PC64:
   case llvm::ELF::R_X86_64_PLT32:
+  case llvm::ELF::R_X86_64_GOTPC32:
   case llvm::ELF::R_X86_64_GOTPCREL:
   case llvm::ELF::R_X86_64_GOTPCRELX:
   case llvm::ELF::R_X86_64_REX_GOTPCRELX:
@@ -269,6 +270,8 @@ void x86_64Relocator::scanLocalReloc(InputFile &pInputFile, Relocation &pReloc,
     if (config().isCodeIndep())
       checkDynamicRelocAllowed(pReloc, pSection, true);
     return;
+  case llvm::ELF::R_X86_64_GOTPC32:
+    return;
   case llvm::ELF::R_X86_64_GOTTPOFF: {
     std::lock_guard<std::mutex> relocGuard(m_RelocMutex);
     if (rsym->reserved() & ReserveGOT)
@@ -397,6 +400,8 @@ void x86_64Relocator::scanGlobalReloc(InputFile &pInputFile, Relocation &pReloc,
     rsym->setReserved(rsym->reserved() | ReservePLT);
     return;
   }
+  case llvm::ELF::R_X86_64_GOTPC32:
+    return;
 
   case llvm::ELF::R_X86_64_GOTPCREL:
   case llvm::ELF::R_X86_64_GOTPCRELX:
@@ -669,6 +674,20 @@ Relocator::Result eld::relocPLT32(Relocation &pReloc, x86_64Relocator &pParent,
 Relocator::Result eld::unsupport(Relocation &pReloc, x86_64Relocator &pParent,
                                  RelocationDescription &pRelocDesc) {
   return x86_64Relocator::Unsupport;
+}
+
+/// R_X86_64_GOTPC32: GOT_base + A - P  (32-bit PC-relative to the GOT start)
+Relocator::Result eld::relocGOTPC32(Relocation &pReloc,
+                                    x86_64Relocator &pParent,
+                                    RelocationDescription &pRelocDesc) {
+  DiagnosticEngine *DiagEngine = pParent.config().getDiagEngine();
+  const GeneralOptions &options = pParent.config().options();
+
+  Relocator::DWord A = pReloc.addend();
+  Relocator::DWord P = pReloc.place(pParent.module());
+  uint64_t GOTBase = pParent.getTarget().getGOTPLT()->addr();
+  uint64_t Result = GOTBase + A - P;
+  return ApplyReloc(pReloc, Result, pRelocDesc, DiagEngine, options, pParent);
 }
 
 /// Apply GOT-relative relocations: GOT[S] + A - P

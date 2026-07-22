@@ -1,0 +1,25 @@
+#---GOTPC32.test--------------------- Executable------------------#
+#UNSUPPORTED: windows
+
+#BEGIN_COMMENT
+# Verify that R_X86_64_GOTPC32 relocations against
+# _GLOBAL_OFFSET_TABLE_ are accepted by the linker.
+#END_COMMENT
+
+#START_TEST
+RUN: %clang %clangopts -c %p/Inputs/gotpc32.s -fPIC -o %t.o
+
+# Object file should contain the relocation.
+RUN: %readelf -r %t.o | %filecheck %s --check-prefix=RELOC
+
+# Link should resolve the relocation without error.
+RUN: %link %linkopts %t.o -o %t.out
+
+# _GLOBAL_OFFSET_TABLE_ should exist in the linked image.
+RUN: %readelf -s %t.out | %filecheck %s --check-prefix=GOT
+
+#END_TEST
+
+RELOC: R_X86_64_GOTPC32{{.*}}_GLOBAL_OFFSET_TABLE_
+
+GOT: _GLOBAL_OFFSET_TABLE_
