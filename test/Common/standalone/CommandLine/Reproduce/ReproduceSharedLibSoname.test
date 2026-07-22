@@ -33,6 +33,3 @@ MAPPING: {{.*}}lib1.so=SharedLibrary/
 
 MAPPING_NAMESPEC: {{.*}}2.o=Object/
 MAPPING_NAMESPEC: {{.*}}1=SharedLibrary/
-
-
-
