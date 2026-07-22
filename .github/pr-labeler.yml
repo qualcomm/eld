@@ -1,0 +1,48 @@
+github-workflow:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/workflows/**
+      - .github/dependabot.yml
+      - .github/pr-labeler.yml
+
+cmake:
+  - changed-files:
+    - any-glob-to-any-file:
+      - cmake/**
+      - '**/CMakeLists.txt'
+
+aarch64:
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/Target/AArch64/**
+      - test/AArch64/**
+
+arm:
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/Target/ARM/**
+      - test/ARM/**
+
+hexagon:
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/Target/Hexagon/**
+      - test/Hexagon/**
+
+riscv:
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/Target/RISCV/**
+      - test/RISCV/**
+
+template:
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/Target/Template/**
+      - test/Template/**
+
+x86-64:
+  - changed-files:
+    - any-glob-to-any-file:
+      - lib/Target/X86/**
+      - test/X86/**
