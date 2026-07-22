@@ -1422,11 +1422,11 @@ bool RISCVLDBackend::doRelaxationGOT(Relocation &Reloc) {
 
   // Until recently, the calculation for R_RISCV_GOT_HI20 was `G + GOT + A - P`
   // where non-zero addends were allowed. The addend must now be zero and has
-  // been removed from calculation, but not all tools reflect this yet. It's
-  // unclear how this relaxation should work in the presence of a non-zero
-  // addend so avoid doing so to be safe.
-  if (BaseReloc->addend())
-    return false;
+  // been removed from the calculation. eld should ignore any non-zero addends
+  // for the relocations involved here, but assert to be sure as it is unclear
+  // how non-zero addends should be handled in this relaxation.
+  assert(!Reloc->addend() && !BaseReloc->addend() &&
+         "Unexpected non-zero addend!");
 
   ResolveInfo *SymInfo = BaseReloc->symInfo();
   // The psABI only includes "it’s bound at link time to be within the object"
