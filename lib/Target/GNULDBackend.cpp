@@ -3846,8 +3846,9 @@ bool GNULDBackend::canIssueUndef(const ResolveInfo *pSym) {
       isSectionMagicSymbol(pSym->name()) || isStandardSymbol(pSym->name());
 
   // Visibility trumps --unresolved-symbols behavior. Dont check Unresolved
-  // symbol policy here.
-  if (!MagicSym && pSym->isUndef() &&
+  // symbol policy here. Weak undefined symbols with hidden/protected visibility
+  // are valid in shared objects — they resolve to 0 at runtime.
+  if (!MagicSym && pSym->isUndef() && !pSym->isWeak() &&
       pSym->visibility() != ResolveInfo::Default &&
       LinkerConfig::DynObj == config().codeGenType())
     return true;

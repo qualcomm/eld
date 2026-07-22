@@ -290,6 +290,12 @@ RISCVGOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
   uint8_t Reloc = llvm::ELF::R_RISCV_32;
   if (!B.config().targets().is32Bits())
     Reloc = llvm::ELF::R_RISCV_64;
+
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return *G;
+
   // If the symbol is not preemptible and we are not building an executable,
   // then try to use a relative reloc. We use a relative reloc if the symbol is
   // hidden otherwise.

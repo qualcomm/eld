@@ -212,6 +212,11 @@ x86_64GOT &CreateGOT(ELFObjectFile *Obj, Relocation &pReloc, bool pHasRel,
     G->setValueType(GOT::SymbolValue);
     return *G;
   }
+  // A non-default-visibility weak undefined symbol resolves to 0; no dynamic
+  // relocation needed.
+  if ((rsym->isHidden() || rsym->isProtected()) && rsym->isWeakUndef())
+    return *G;
+
   bool useRelative = !B.isSymbolPreemptible(*rsym);
   helper_DynRel_init(Obj, &pReloc, rsym, G, 0x0,
                      useRelative ? llvm::ELF::R_X86_64_RELATIVE
