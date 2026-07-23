@@ -654,9 +654,7 @@ void AArch64Relocator::scanRelocation(Relocation &pReloc,
     }
   }
 
-  ELFSection *section = pSection.getLink()
-                            ? pSection.getLink()
-                            : pReloc.targetRef()->frag()->getOwningSection();
+  ELFSection *section = pSection.getLink();
 
   if (!section->isAlloc()) {
     // Cannot have authenticated relocations in non-alloc sections (like .debug)
